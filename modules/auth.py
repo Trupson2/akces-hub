@@ -102,7 +102,7 @@ def require_login(f):
         if not session.get('user_id'):
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'success': False, 'error': 'Wymagane logowanie'}), 401
-            return redirect(url_for('auth.login', next=request.path))
+            return redirect(url_for('auth.login', next=request.full_path.rstrip('?')))
         return f(*args, **kwargs)
     return decorated
 
@@ -116,7 +116,7 @@ def require_role(*roles):
         @wraps(f)
         def decorated(*args, **kwargs):
             if not session.get('user_id'):
-                return redirect(url_for('auth.login', next=request.path))
+                return redirect(url_for('auth.login', next=request.full_path.rstrip('?')))
             user_role = session.get('rola', 'user')
             user_level = ROLE_HIERARCHY.get(user_role, 0)
             min_level = min(ROLE_HIERARCHY.get(r, 99) for r in roles)
@@ -233,6 +233,10 @@ def login():
             conn.close()
 
             next_url = request.args.get('next', '/')
+            # Zachowaj kiosk mode jesli byl w URL
+            if 'kiosk=1' in request.url and 'kiosk' not in next_url:
+                sep = '&' if '?' in next_url else '?'
+                next_url = next_url + sep + 'kiosk=1'
             return redirect(next_url)
         else:
             _record_failed_login(client_ip)
@@ -517,7 +521,7 @@ def setup_auth(app):
         if not session.get('user_id'):
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'success': False, 'error': 'Wymagane logowanie'}), 401
-            return redirect(url_for('auth.login', next=request.path))
+            return redirect(url_for('auth.login', next=request.full_path.rstrip('?')))
 
         return None
 
