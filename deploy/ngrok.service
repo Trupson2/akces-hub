@@ -1,0 +1,17 @@
+[Unit]
+Description=Ngrok tunnel with watchdog
+After=network-online.target akceshub.service
+Wants=network-online.target
+Requires=akceshub.service
+
+[Service]
+Type=simple
+User=pi
+Environment=HOME=/home/pi
+ExecStart=/bin/bash /home/pi/akces-hub/deploy/ngrok_watchdog.sh
+Restart=always
+RestartSec=5
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target
