@@ -156,7 +156,7 @@ def support_zgloszenie():
     brand = get_config('brand_name', 'AKCES HUB')
 
     try:
-        from app import CSS
+        from modules.shared import CSS
         css = CSS
     except:
         css = ''

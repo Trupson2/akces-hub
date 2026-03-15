@@ -515,7 +515,8 @@ def wysylki_cofnij(id):
 def wysylki_lista():
     """Lista zamówień do wysyłki z checkboxami (status='nowa') - GRUPOWANE PO ZAMÓWIENIU"""
     from modules.database import get_db
-    from app import CSS, VERSION
+    from modules.shared import CSS
+    from app import VERSION
     from collections import defaultdict
     
     # Pobierz filtr użytkownika z parametru URL

@@ -8,8 +8,7 @@ sprzedaze_bp = Blueprint('sprzedaze', __name__)
 
 
 def _get_css():
-    """Lazy import CSS z app.py żeby uniknąć circular imports"""
-    from app import CSS
+    from modules.shared import CSS
     return CSS
 
 

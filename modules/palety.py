@@ -10,8 +10,7 @@ palety_bp = Blueprint('palety', __name__)
 
 
 def _get_css():
-    """Pobiera CSS z głównego modułu app"""
-    from app import CSS
+    from modules.shared import CSS
     return CSS
 
 

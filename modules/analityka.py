@@ -10,7 +10,7 @@ analityka_bp = Blueprint('analityka', __name__)
 @analityka_bp.route('/statystyki')
 def statystyki():
     from modules.database import get_full_stats, get_palety_list, get_db
-    from app import CSS
+    from modules.shared import CSS
     import json
 
     stats = get_full_stats()

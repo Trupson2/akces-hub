@@ -34,9 +34,7 @@ def ustawienia():
     # Sprawdz czy to ngrok URL
     is_ngrok = 'ngrok' in base_url
 
-    # Import CSS from main app module
-    import app as main_app
-    CSS = main_app.CSS
+    from modules.shared import CSS
 
     html = CSS + '''
     <div class="container">
