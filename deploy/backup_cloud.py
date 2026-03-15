@@ -122,7 +122,11 @@ def export_csv():
 
         # === Export sprzedaży ===
         sprzedaze = conn.execute('''
-            SELECT s.*, p.nazwa as produkt_nazwa, p.ean, p.asin
+            SELECT s.id, s.data_sprzedazy, s.cena, s.ilosc, s.status,
+                   s.allegro_order_id, s.kupujacy,
+                   COALESCE(s.nazwa, p.nazwa, '') as produkt_nazwa,
+                   COALESCE(p.ean, '') as ean,
+                   COALESCE(p.asin, '') as asin
             FROM sprzedaze s
             LEFT JOIN produkty p ON s.produkt_id = p.id
             ORDER BY s.data_sprzedazy DESC
@@ -131,13 +135,16 @@ def export_csv():
         sprzedaze_file = EXPORT_DIR / f'sprzedaze_{ts}.csv'
         with open(sprzedaze_file, 'w', newline='', encoding='utf-8-sig') as f:
             w = csv.writer(f, delimiter=';')
-            w.writerow(['ID', 'Data', 'Produkt', 'EAN', 'ASIN', 'Platforma',
-                        'Kwota', 'Prowizja', 'Numer zamówienia'])
+            w.writerow(['ID', 'Data', 'Produkt', 'EAN', 'ASIN', 'Cena', 'Ilość',
+                        'Wartość', 'Status', 'Allegro Order', 'Kupujący'])
             for s in sprzedaze:
+                cena = s['cena'] or 0
+                ilosc = s['ilosc'] or 1
                 w.writerow([s['id'], s['data_sprzedazy'] or '',
-                           s['produkt_nazwa'] or '', s['ean'] or '', s['asin'] or '',
-                           s['platforma'] or '', f"{s['kwota'] or 0:.2f}",
-                           f"{s['prowizja'] or 0:.2f}", s['numer_zamowienia'] or ''])
+                           s['produkt_nazwa'], s['ean'], s['asin'],
+                           f"{cena:.2f}", ilosc, f"{cena * ilosc:.2f}",
+                           s['status'] or '', s['allegro_order_id'] or '',
+                           s['kupujacy'] or ''])
 
         # === Stats summary JSON ===
         stats = conn.execute('''
@@ -148,7 +155,7 @@ def export_csv():
                 (SELECT COUNT(*) FROM produkty WHERE status='wystawiony') as wystawione,
                 (SELECT COUNT(*) FROM produkty WHERE status='sprzedany') as sprzedane,
                 (SELECT COUNT(*) FROM sprzedaze) as sprzedaze,
-                (SELECT COALESCE(SUM(kwota), 0) FROM sprzedaze) as przychod,
+                (SELECT COALESCE(SUM(cena * ilosc), 0) FROM sprzedaze) as przychod,
                 (SELECT COUNT(*) FROM oferty) as oferty_allegro
         ''').fetchone()
 

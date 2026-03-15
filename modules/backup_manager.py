@@ -19,8 +19,8 @@ MAX_BACKUPS = 24  # Trzymaj 24 ostatnie backupy (1 dzień)
 
 # Google Drive sync via rclone
 # Konfiguracja: rclone config → "gdrive" → Google Drive
-GDRIVE_REMOTE = 'gdrive'  # nazwa remote w rclone
-GDRIVE_BACKUP_FOLDER = 'akces_backup'  # folder na Google Drive
+GDRIVE_REMOTE = 'akces-cloud'  # nazwa remote w rclone (unified with backup_cloud.py)
+GDRIVE_BACKUP_FOLDER = 'akces-hub-backups/backups'  # folder na Google Drive
 _rclone_available = None  # cache: None=unchecked, True/False=checked
 _stop_event = threading.Event()
 
