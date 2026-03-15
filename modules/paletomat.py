@@ -349,7 +349,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
         
         nazwa = amazon_data.get('title', '') or f'Produkt {asin}'
         # Przetłumacz nazwę na polski
-        nazwa = translate_product_name(nazwa)
+        nazwa = translate_product_name(nazwa, use_ai=True)
         zdjecie_url = amazon_data.get('image_url', '') or get_amazon_image_url(asin)
         wszystkie_zdjecia = amazon_data.get('all_images', []) or [zdjecie_url]
         cena_amazon = amazon_data.get('price', 0) or 0
@@ -4620,7 +4620,7 @@ def generator_detail(asin):
         if amazon_data:
             nazwa = amazon_data.get('title', '') or f'Produkt {asin}'
             # Przetłumacz nazwę na polski
-            nazwa = translate_product_name(nazwa)
+            nazwa = translate_product_name(nazwa, use_ai=True)
             if amazon_data.get('image_url'):
                 zdjecie_url = amazon_data['image_url']
             if amazon_data.get('all_images'):
@@ -6577,7 +6577,7 @@ def api_fix_names():
             amazon_data = scrape_amazon_product(asin)
             if amazon_data and amazon_data.get('title'):
                 nazwa = amazon_data['title']
-                nazwa = translate_product_name(nazwa)
+                nazwa = translate_product_name(nazwa, use_ai=True)
                 if nazwa and len(nazwa) > 15 and not nazwa.lower().startswith('amazon'):
                     conn.execute('UPDATE produkty SET nazwa=? WHERE id=?', (nazwa, p['id']))
                     # Zaktualizuj też scraped

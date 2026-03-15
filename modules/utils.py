@@ -785,13 +785,13 @@ TRANSLATIONS = {
     'grün': 'zielony', 'green': 'zielony',
 }
 
-def translate_product_name(name: str, use_ai: bool = False) -> str:
+def translate_product_name(name: str, use_ai: bool = True) -> str:
     """
     Tłumaczy nazwę produktu z niemieckiego/angielskiego na polski.
-    
+
     Args:
         name: Nazwa produktu
-        use_ai: Czy użyć Gemini AI do tłumaczenia (WYŁĄCZONE domyślnie - problemy z formatem API)
+        use_ai: Czy użyć Gemini AI do tłumaczenia
         
     Returns:
         Przetłumaczona nazwa (lokalny słownik)
@@ -826,13 +826,27 @@ def translate_product_name(name: str, use_ai: bool = False) -> str:
             try:
                 import requests
                 
-                prompt = f"""Przetłumacz tę nazwę produktu na polski. 
-Odpowiedz TYLKO przetłumaczoną nazwą, bez dodatkowych komentarzy.
-Jeśli nazwa jest już po polsku lub zawiera głównie nazwy własne/modele, zostaw ją.
+                prompt = f"""Jesteś tłumaczem nazw produktów na Allegro. Przetłumacz poniższą nazwę produktu na POLSKI.
 
-Nazwa: {name}
+ZASADY:
+- Nazwy własne, marki i modele (np. "Samsung", "iPhone", "Bosch") ZACHOWAJ bez zmian
+- Jednostki (cm, kg, W, mAh) ZACHOWAJ bez zmian
+- Numery modeli ZACHOWAJ bez zmian
+- Przetłumacz TYLKO słowa opisowe (przymiotniki, rzeczowniki pospolite, kolory)
+- Zachowaj oryginalną strukturę nazwy (kolejność słów jak w oryginale, ale po polsku)
+- NIE dodawaj słów których nie ma w oryginale
+- NIE zmieniaj wielkości liter nazw własnych
+- Jeśli nazwa jest już po polsku, zwróć ją bez zmian
 
-Tłumaczenie:"""
+PRZYKŁADY:
+"UGREEN USB C to Ethernet Adapter 2.5G" → "UGREEN Adapter USB C na Ethernet 2.5G"
+"Autositzbezüge Vordersitze Schwarz" → "Pokrowce na przednie fotele Czarne"
+"Wireless Bluetooth Headphones with Noise Cancelling" → "Bezprzewodowe słuchawki Bluetooth z redukcją szumów"
+"Laufband Klappbar mit Display 120kg" → "Bieżnia składana z wyświetlaczem 120kg"
+
+Nazwa do tłumaczenia: {name}
+
+Odpowiedz TYLKO przetłumaczoną nazwą, bez cudzysłowów, bez komentarzy:"""
 
                 response = requests.post(
                     f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}',

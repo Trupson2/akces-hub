@@ -23,7 +23,7 @@ LOG_FILE = APP_DIR / 'backups' / 'backup.log'
 
 # Cloud config
 RCLONE_REMOTE = 'akces-cloud'  # nazwa remote w rclone config
-CLOUD_DIR = 'AkcesHub_Backups'  # folder w chmurze
+CLOUD_DIR = 'akces-hub-backups'  # folder w chmurze
 
 def log(msg):
     ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
