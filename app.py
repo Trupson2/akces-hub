@@ -14,90 +14,28 @@ import os
 import sys
 import subprocess
 
-# Fix Windows cp1250 encoding — emoji/unicode w print() crashowały Flask (500 error)
-if sys.platform == 'win32':
+# Fix Windows cp1250 encoding — emoji/unicode w print()
+if hasattr(sys.stdout, 'reconfigure'):
     try:
         sys.stdout.reconfigure(encoding='utf-8', errors='replace')
         sys.stderr.reconfigure(encoding='utf-8', errors='replace')
     except Exception:
         pass
 
-# Fix emoji/unicode w print() na Windows cp1250
-if hasattr(sys.stdout, 'reconfigure'):
+# ============================================================
+# SPRAWDZENIE WYMAGANYCH BIBLIOTEK (bez auto-instalacji)
+# ============================================================
+_REQUIRED_MODULES = ['flask', 'flask_cors', 'requests', 'openpyxl', 'PIL', 'qrcode', 'bs4', 'schedule']
+_missing = []
+for _mod in _REQUIRED_MODULES:
     try:
-        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
-    except:
-        pass
-
-# ============================================================
-# AUTO-INSTALACJA BRAKUJĄCYCH BIBLIOTEK
-# ============================================================
-def auto_install_packages():
-    """Automatycznie instaluje brakujące pakiety przy starcie"""
-    
-    required_packages = {
-        'flask': 'flask',
-        'flask_cors': 'flask-cors',  # ← DODANO DLA NGROK!
-        'requests': 'requests',
-        'openpyxl': 'openpyxl',
-        'PIL': 'pillow',
-        'qrcode': 'qrcode',
-        'bleak': 'bleak',
-        'niimprint': 'niimprint',
-        'barcode': 'python-barcode',
-        'bs4': 'beautifulsoup4',
-        'schedule': 'schedule',
-        'google.genai': 'google-genai',  # ← NOWA BIBLIOTEKA!
-    }
-    
-    missing = []
-    
-    for module, package in required_packages.items():
-        try:
-            __import__(module)
-        except ImportError:
-            missing.append(package)
-    
-    if missing:
-        print(f"\n{'='*60}")
-        print(f"📦 AUTO-INSTALACJA BRAKUJĄCYCH PAKIETÓW")
-        print(f"{'='*60}")
-        print(f"Brakujące: {', '.join(missing)}")
-        print(f"Instalowanie...")
-        
-        for package in missing:
-            try:
-                print(f"  → {package}...", end=" ")
-                result = subprocess.run(
-                    [sys.executable, '-m', 'pip', 'install', package, '--quiet'],
-                    capture_output=True,
-                    text=True,
-                    timeout=120
-                )
-                if result.returncode == 0:
-                    print("✅")
-                else:
-                    # Spróbuj z --break-system-packages (Linux)
-                    result2 = subprocess.run(
-                        [sys.executable, '-m', 'pip', 'install', package, '--break-system-packages', '--quiet'],
-                        capture_output=True,
-                        text=True,
-                        timeout=120
-                    )
-                    if result2.returncode == 0:
-                        print("✅")
-                    else:
-                        print(f"❌ ({result.stderr[:50]})")
-            except subprocess.TimeoutExpired:
-                print("⏱️ Timeout")
-            except Exception as e:
-                print(f"❌ {e}")
-        
-        print(f"{'='*60}\n")
-
-# Uruchom auto-instalację
-auto_install_packages()
+        __import__(_mod)
+    except ImportError:
+        _missing.append(_mod)
+if _missing:
+    print(f"❌ Brakujące moduły: {', '.join(_missing)}")
+    print(f"   Zainstaluj: pip install -r requirements.txt")
+    sys.exit(1)
 
 import threading
 import time
@@ -151,6 +89,7 @@ except Exception as e:
 # WERSJA I KONFIGURACJA
 # ============================================================
 VERSION = "6.1.13 MULTI IMAGES"
+APP_START_TIME = time.time()
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 # SECRET_KEY — generowany losowo i zapisywany do pliku (nie hardcoded!)
@@ -180,18 +119,18 @@ def handle_500(e):
     from flask import request as _req, jsonify as _jf
     if _req.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return _jf({'success': False, 'message': f'Server error: {e}'}), 500
-    return f"<h1>500 Internal Server Error</h1><pre>{traceback.format_exc()}</pre>", 500
+    return "<h1>500 Internal Server Error</h1><p>Wystapil blad serwera. Szczegoly zostaly zapisane w logach.</p>", 500
 
 # ============================================================
 # ✅ CORS CONFIGURATION - NGROK & REMOTE ACCESS FIX!
 # ============================================================
 CORS(app, resources={
     r"/*": {
-        "origins": "*",  # Wszystkie domeny (ngrok, localhost, production)
+        "origins": ["http://localhost:*", "http://127.0.0.1:*"],  # Tylko lokalne domeny
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization", "Accept"],
         "expose_headers": ["Content-Type", "X-Total-Count"],
-        "supports_credentials": False,  # ← ZMIENIONE! False + origins: "*" działa
+        "supports_credentials": True,
         "max_age": 3600
     }
 })
@@ -206,9 +145,13 @@ print("""
 @app.after_request
 def after_request(response):
     """Dodaj CORS headers + cache control dla SSE"""
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
-    response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+    # CORS headers zarzadzane przez flask-cors — nie nadpisuj globalnie
+    if 'Access-Control-Allow-Origin' not in response.headers:
+        origin = request.headers.get('Origin', '')
+        if origin.startswith('http://localhost') or origin.startswith('http://127.0.0.1'):
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+            response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
     
     # Dla SSE streams - wyłącz buffering i cache
     if response.mimetype == 'text/event-stream':
@@ -1391,18 +1334,40 @@ def zmien_konto():
 # ============================================================
 @app.route('/api/health')
 def api_health():
-    """Health check endpoint - sprawdź czy backend działa"""
+    """Health check endpoint - sprawdz czy backend dziala"""
+    # DB check
+    db_status = 'ok'
+    try:
+        conn = get_db()
+        conn.execute('SELECT 1').fetchone()
+    except Exception as e:
+        db_status = f'error: {e}'
+
+    # Uptime
+    uptime_sec = int(time.time() - APP_START_TIME)
+    days = uptime_sec // 86400
+    hours = (uptime_sec % 86400) // 3600
+    mins = (uptime_sec % 3600) // 60
+    secs = uptime_sec % 60
+    if days > 0:
+        uptime_str = f"{days}d {hours}h {mins}m"
+    elif hours > 0:
+        uptime_str = f"{hours}h {mins}m"
+    else:
+        uptime_str = f"{mins}m {secs}s"
+
     return jsonify({
-        'status': 'ok',
+        'status': 'ok' if db_status == 'ok' else 'degraded',
+        'version': VERSION,
+        'uptime': uptime_str,
+        'uptime_seconds': uptime_sec,
+        'db_status': db_status,
         'timestamp': datetime.now().isoformat(),
-        'version': 'v6.1-fixed',
-        'cors': 'enabled',
         'features': {
             'paletomat': True,
             'magazynier': True,
             'allegro': True,
             'telegram': True,
-            'mass_listing_retry': True
         }
     })
 
@@ -3009,7 +2974,7 @@ def produkt_regenerate_meta_title(produkt_id):
     # CORS preflight
     if request.method == 'OPTIONS':
         response = jsonify({'success': True})
-        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
         return response
@@ -3024,7 +2989,7 @@ def produkt_regenerate_meta_title(produkt_id):
             
             if not GEMINI_API_KEY or GEMINI_API_KEY == 'WKLEJ_TUTAJ_SWOJ_KLUCZ':
                 response = jsonify({'success': False, 'error': 'Brak klucza Gemini API'})
-                response.headers.add('Access-Control-Allow-Origin', '*')
+                response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
                 return response
             
             # NOWE API - Client
@@ -3032,7 +2997,7 @@ def produkt_regenerate_meta_title(produkt_id):
             
         except Exception as e:
             response = jsonify({'success': False, 'error': f'Gemini niedostępne: {str(e)}'})
-            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
             return response
         
         # Pobierz produkt
@@ -3041,7 +3006,7 @@ def produkt_regenerate_meta_title(produkt_id):
         
         if not produkt:
             response = jsonify({'success': False, 'error': 'Produkt nie znaleziony'})
-            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
             return response
         
         # Generuj meta_title
@@ -3054,7 +3019,7 @@ def produkt_regenerate_meta_title(produkt_id):
         
         if not meta_title:
             response = jsonify({'success': False, 'error': 'Nie udało się wygenerować tytułu'})
-            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
             return response
         
         # Zapisz do bazy
@@ -3062,12 +3027,12 @@ def produkt_regenerate_meta_title(produkt_id):
         conn.commit()
         
         response = jsonify({'success': True, 'meta_title': meta_title})
-        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
         return response
         
     except Exception as e:
         response = jsonify({'success': False, 'error': str(e)})
-        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
         return response
 
 # ============================================================
@@ -3079,7 +3044,7 @@ def generate_meta_title_batch():
     # CORS preflight
     if request.method == 'OPTIONS':
         response = jsonify({'success': True})
-        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
         return response
@@ -3098,12 +3063,12 @@ def generate_meta_title_batch():
                 'success': False, 
                 'error': f'Zbyt dużo produktów! Max {MAX_BATCH_SIZE} na raz. Zaznacz mniej produktów lub podziel na mniejsze batche.'
             })
-            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
             return response
         
         if not product_ids:
             response = jsonify({'success': False, 'error': 'Brak produktów do przetworzenia'})
-            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
             return response
         
         # Sprawdź API key
@@ -3112,12 +3077,12 @@ def generate_meta_title_batch():
             
             if not GEMINI_API_KEY or GEMINI_API_KEY == 'WKLEJ_TUTAJ_SWOJ_KLUCZ':
                 response = jsonify({'success': False, 'error': 'Brak klucza Gemini API w gemini_config.py'})
-                response.headers.add('Access-Control-Allow-Origin', '*')
+                response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
                 return response
             
         except Exception as e:
             response = jsonify({'success': False, 'error': f'Gemini niedostępne: {str(e)}'})
-            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
             return response
         
         conn = get_db()
@@ -3223,12 +3188,12 @@ def generate_meta_title_batch():
                     })
         
         response = jsonify(results)
-        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
         return response
         
     except Exception as e:
         response = jsonify({'success': False, 'error': str(e)})
-        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
         return response
 
 # ============================================================
@@ -12370,18 +12335,42 @@ def bingo2026_page():
 
 
 # ============================================================
-# AKCES HUB PUBLIC API  (klucz w pliku api_key.txt)
+# AKCES HUB PUBLIC API
 # ============================================================
 
 def get_api_key():
-    """Czyta klucz API z pliku lub generuje nowy"""
+    """Czyta klucz API z env / config DB / generuje nowy"""
     import secrets
+    # 1. Zmienna środowiskowa
+    key = os.environ.get('AKCES_API_KEY')
+    if key:
+        return key.strip()
+    # 2. Config DB
+    try:
+        from modules.database import get_config, set_config
+        key = get_config('akces_api_key', '')
+        if key:
+            return key
+    except Exception:
+        pass
+    # 3. Legacy plik (migracja → DB)
     key_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'api_key.txt')
     if os.path.exists(key_file):
-        return open(key_file).read().strip()
+        key = open(key_file).read().strip()
+        try:
+            from modules.database import set_config
+            set_config('akces_api_key', key)
+        except Exception:
+            pass
+        return key
+    # 4. Generuj nowy i zapisz do DB
     key = secrets.token_hex(24)
-    open(key_file, 'w').write(key)
-    print(f'Wygenerowano nowy klucz API: {key}')
+    try:
+        from modules.database import set_config
+        set_config('akces_api_key', key)
+    except Exception:
+        pass
+    print(f'Wygenerowano nowy klucz API (config DB)')
     return key
 
 AKCES_API_KEY = None  # Lazy-loaded przy pierwszym zapytaniu

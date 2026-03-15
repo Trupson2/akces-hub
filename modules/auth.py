@@ -14,6 +14,7 @@ from functools import wraps
 from pathlib import Path
 
 from flask import Blueprint, request, redirect, url_for, session, render_template_string, jsonify, abort, flash
+from werkzeug.security import generate_password_hash, check_password_hash
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -53,17 +54,21 @@ def _record_failed_login(ip):
 
 
 def _hash_password(password, salt=None):
-    """Hashuje haslo z solą (SHA-256)"""
-    if salt is None:
-        salt = secrets.token_hex(16)
-    hashed = hashlib.sha256(f"{salt}:{password}".encode()).hexdigest()
-    return f"{salt}:{hashed}"
+    """Hashuje haslo z pbkdf2 (werkzeug). Parametr salt ignorowany — dla kompatybilnosci."""
+    return generate_password_hash(password, method='pbkdf2:sha256', salt_length=16)
 
 
 def _verify_password(password, stored_hash):
-    """Weryfikuje haslo z hashem"""
+    """Weryfikuje haslo — obsluguje nowy pbkdf2 i stary SHA-256 (migracja)"""
+    if stored_hash.startswith('pbkdf2:'):
+        return check_password_hash(stored_hash, password)
+    # Legacy SHA-256: salt:hash
     salt = stored_hash.split(':')[0]
-    return _hash_password(password, salt) == stored_hash
+    legacy_hash = hashlib.sha256(f"{salt}:{password}".encode()).hexdigest()
+    if f"{salt}:{legacy_hash}" == stored_hash:
+        # Haslo poprawne — uaktualnij do pbkdf2
+        return True
+    return False
 
 
 def _get_auth_db():
@@ -219,6 +224,14 @@ def login():
         ).fetchone()
 
         if user and _verify_password(password, user['password_hash']):
+            # Migracja starych haszy SHA-256 do pbkdf2
+            if not user['password_hash'].startswith('pbkdf2:'):
+                conn.execute(
+                    'UPDATE users SET password_hash = ? WHERE id = ?',
+                    (_hash_password(password), user['id'])
+                )
+                conn.commit()
+
             # Udane logowanie — wyczysc licznik prob
             _login_attempts.pop(client_ip, None)
 

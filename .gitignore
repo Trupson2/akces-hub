@@ -11,6 +11,7 @@ goal_data.json
 *.pyc
 __pycache__/
 venv/
+.venv/
 
 # Database
 *.db
@@ -64,3 +65,6 @@ static/brand_logo.png
 
 # OS
 static/downloads/
+
+# Backup files
+*.bak

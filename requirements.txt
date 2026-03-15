@@ -1,53 +1,48 @@
-# Akces Hub - wymagania
+# ============================================================
+# Akces Hub - Wymagania produkcyjne
 # Instalacja: pip install -r requirements.txt
+# ============================================================
 
-# Serwer web
+# --- Serwer web ---
 flask>=3.0.0
+flask-cors>=4.0.0
+waitress>=3.0.0             # WSGI server produkcyjny (zamiast flask dev server)
 
-# Requesty HTTP (Telegram, scraping)
+# --- HTTP / API ---
 requests>=2.31.0
+requests-oauthlib>=1.3.1    # Allegro OAuth
 
-# Excel/CSV obsługa
+# --- Dane / Excel / CSV ---
 openpyxl>=3.1.2
 pandas>=2.1.0
 
-# Obsługa obrazków (opcjonalnie)
+# --- Obrazki ---
 Pillow>=10.0.0
 
-# QR kody na etykietach
+# --- Kody QR i kreskowe ---
 qrcode>=7.4.0
-
-# Kody kreskowe EAN/Code128
 python-barcode>=0.15.0
 
-# PDF do etykiet Vretti
+# --- PDF / Etykiety ---
 reportlab>=4.0.0
 
-# Drukowanie etykiet (Bluetooth/USB)
+# --- Drukowanie (Bluetooth/USB) ---
 python-escpos>=3.1
+bleak>=0.21.0               # BLE (Niimbot)
+niimprint>=0.2.0            # Niimbot SDK
 
-# Scheduler (raporty dzienne)
+# --- Scheduler ---
 schedule>=1.2.0
 
-# Allegro API (OAuth)
-requests-oauthlib>=1.3.1
-
-# Scraping Amazon (opcjonalnie)
+# --- Scraping ---
 beautifulsoup4>=4.12.0
 lxml>=4.9.0
 
-# AI opisy - Gemini (opcjonalnie)
+# --- AI (Gemini) ---
 google-generativeai>=0.8.0
 
-# === NOWE v2.7 ===
-# Bluetooth Low Energy (drukarka Niimbot)
-bleak>=0.21.0
-
-# Niimbot bezpośrednia biblioteka (alternatywa)
-niimprint>=0.2.0
-
-# === OPCJONALNE (TURBO MODE) ===
-# Auto-detection sprzętu (CPU/RAM) dla optymalnej wydajności
-# Bez psutil: używa domyślnych ustawień (5 workerów, 64MB cache)
-# Z psutil: automatycznie dostosowuje do Twojego PC
+# --- System info ---
 psutil>=5.9.0
+
+# --- Bezpieczeństwo (NOWE) ---
+python-dotenv>=1.0.0        # Ładowanie .env
