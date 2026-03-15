@@ -71,3 +71,4 @@ static/downloads/
 
 # Security testing (dev only)
 pentest_*.py
+app.py.backup

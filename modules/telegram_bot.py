@@ -128,6 +128,40 @@ def send_telegram(message, parse_mode='HTML', silent=False):
         return False
 
 
+def send_telegram_support(message, parse_mode='HTML'):
+    """Wysyła wiadomość na chat supportu (do właściciela systemu).
+    Używa tego samego bota, ale osobny chat_id z configu 'support_chat_id'.
+    Jeśli support_chat_id nie ustawiony — wysyła na główny chat_id.
+    """
+    token = get_bot_token()
+    support_chat = get_config('support_chat_id', '')
+    chat_id = support_chat if support_chat else get_chat_id()
+
+    if not token or not chat_id:
+        print("[Telegram Support] Brak tokena lub chat_id")
+        return False
+
+    try:
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        data = {
+            'chat_id': chat_id,
+            'text': message,
+            'parse_mode': parse_mode,
+            'disable_notification': False  # Support = zawsze z dzwiekiem
+        }
+        response = requests.post(url, data=data, timeout=10)
+
+        if response.status_code == 200:
+            return True
+        else:
+            print(f"[Telegram Support] Błąd: {response.text}")
+            return False
+
+    except Exception as e:
+        print(f"[Telegram Support] Wyjątek: {e}")
+        return False
+
+
 def delete_telegram_message(message_id):
     """Usuwa pojedynczą wiadomość z czatu Telegram"""
     token = get_bot_token()
@@ -534,8 +568,9 @@ def index():
     is_on = bot_status()
     token = get_bot_token()
     chat_id = get_chat_id()
+    support_chat_id = get_config('support_chat_id', '')
     logs = get_logs(10)
-    
+
     # WhatsApp config
     wa_key = get_whatsapp_key()
     wa_phone = get_whatsapp_phone()
@@ -581,8 +616,13 @@ def index():
                 <input type="text" name="token" class="form-ctrl" value="{token}" placeholder="123456:ABC...">
             </div>
             <div class="form-group">
-                <label>Chat ID</label>
+                <label>Chat ID (powiadomienia klienta)</label>
                 <input type="text" name="chat_id" class="form-ctrl" value="{chat_id}" placeholder="123456789">
+            </div>
+            <div class="form-group">
+                <label>Support Chat ID (zgłoszenia → do Ciebie)</label>
+                <input type="text" name="support_chat_id" class="form-ctrl" value="{support_chat_id}" placeholder="Twój osobisty chat_id dla zgłoszeń supportu">
+                <small style="color:#94a3b8;display:block;margin-top:4px">Jeśli puste — zgłoszenia lecą na główny Chat ID</small>
             </div>
             <button type="submit" class="btn btn-p">💾 ZAPISZ</button>
         </form>
@@ -699,7 +739,12 @@ def config():
     
     set_config('telegram_bot_token', token)
     set_config('telegram_chat_id', chat_id)
-    
+
+    # Support chat_id (osobny, do zgłoszeń klientów → właściciel)
+    support_chat = request.form.get('support_chat_id', '').strip()
+    if support_chat:
+        set_config('support_chat_id', support_chat)
+
     return redirect('/telegram')
 
 

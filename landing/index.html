@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AKCES HUB — Zarządzaj paletami zwrotów jak profesjonalista</title>
+<meta name="description" content="System do zarządzania paletami zwrotów. Allegro, OLX, Vinted — jeden system. Magazyn, wysyłki, analityka.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0a0a0f;
+  --bg-card: #12121a;
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --accent: #10b981;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border: rgba(255,255,255,0.06);
+  --glass: rgba(255,255,255,0.03);
+  --glass-border: rgba(255,255,255,0.08);
+  --radius: 16px;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ===== NAV ===== */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding: 1rem 2rem;
+  background: rgba(10,10,15,0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  transition: background 0.3s;
+}
+.nav-logo {
+  font-size: 1.4rem; font-weight: 900; letter-spacing: -0.5px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.nav-links { display: flex; gap: 2rem; list-style: none; }
+.nav-links a {
+  color: var(--text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--text); }
+.hamburger {
+  display: none; flex-direction: column; gap: 5px; cursor: pointer;
+  background: none; border: none; padding: 4px;
+}
+.hamburger span {
+  width: 24px; height: 2px; background: var(--text); border-radius: 2px;
+  transition: transform 0.3s, opacity 0.3s;
+}
+.hamburger.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger.active span:nth-child(2) { opacity: 0; }
+.hamburger.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+@media (max-width: 768px) {
+  .hamburger { display: flex; }
+  .nav-links {
+    position: fixed; top: 60px; left: 0; right: 0;
+    background: rgba(10,10,15,0.95); backdrop-filter: blur(20px);
+    flex-direction: column; align-items: center; gap: 0; padding: 0;
+    max-height: 0; overflow: hidden; transition: max-height 0.4s ease, padding 0.3s;
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-links.open { max-height: 400px; padding: 1rem 0; }
+  .nav-links li { width: 100%; text-align: center; }
+  .nav-links a { display: block; padding: 0.8rem; font-size: 1rem; }
+}
+
+/* ===== GENERAL ===== */
+.container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+section { padding: 6rem 0; }
+.section-label {
+  text-transform: uppercase; font-size: 0.8rem; font-weight: 700;
+  color: var(--primary-light); letter-spacing: 2px; margin-bottom: 0.75rem;
+}
+.section-title {
+  font-size: clamp(2rem, 4vw, 3rem); font-weight: 800;
+  line-height: 1.15; margin-bottom: 1.25rem;
+}
+.section-sub { color: var(--text-muted); font-size: 1.1rem; max-width: 600px; margin-bottom: 3rem; }
+
+/* reveal animation */
+.reveal {
+  opacity: 0; transform: translateY(30px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ===== HERO ===== */
+.hero {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  text-align: center; position: relative; overflow: hidden;
+  padding-top: 5rem;
+}
+.hero-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(99,102,241,0.15) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 20% 80%, rgba(16,185,129,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(99,102,241,0.08) 0%, transparent 50%);
+}
+#particles { position: absolute; inset: 0; z-index: 0; }
+.hero-content { position: relative; z-index: 1; max-width: 800px; padding: 2rem 1.5rem; }
+.hero-badge {
+  display: inline-block; padding: 0.4rem 1rem; border-radius: 50px;
+  background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25);
+  font-size: 0.85rem; font-weight: 600; color: var(--primary-light); margin-bottom: 1.5rem;
+}
+.hero h1 {
+  font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 900;
+  line-height: 1.1; margin-bottom: 1.25rem;
+  background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.hero p { color: var(--text-muted); font-size: clamp(1rem, 2vw, 1.25rem); max-width: 600px; margin: 0 auto 2.5rem; }
+.hero-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.85rem 1.8rem; border-radius: 12px; font-size: 1rem;
+  font-weight: 600; text-decoration: none; border: none; cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.btn:hover { transform: translateY(-2px); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), #4f46e5);
+  color: #fff; box-shadow: 0 4px 24px rgba(99,102,241,0.3);
+}
+.btn-primary:hover { box-shadow: 0 8px 32px rgba(99,102,241,0.45); }
+.btn-secondary {
+  background: var(--glass); color: var(--text);
+  border: 1px solid var(--glass-border);
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.06); }
+
+/* ===== PROBLEM ===== */
+.problem { background: linear-gradient(180deg, var(--bg) 0%, #0d0d14 100%); text-align: center; }
+.pain-points { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 3rem; }
+.pain-card {
+  background: var(--bg-card); border: 1px solid var(--glass-border);
+  border-radius: var(--radius); padding: 2rem; text-align: left;
+  backdrop-filter: blur(10px);
+}
+.pain-card .icon { font-size: 2rem; margin-bottom: 1rem; }
+.pain-card p { color: var(--text-muted); font-size: 1rem; line-height: 1.5; }
+.arrow-down { font-size: 2.5rem; color: var(--primary); animation: bounce 2s infinite; }
+@keyframes bounce {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(10px); }
+}
+.problem-cta { font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem; }
+
+/* ===== FEATURES ===== */
+.features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
+.feature-card {
+  background: var(--glass); border: 1px solid var(--glass-border);
+  border-radius: var(--radius); padding: 2rem;
+  backdrop-filter: blur(10px);
+  transition: transform 0.3s, border-color 0.3s;
+}
+.feature-card:hover { transform: translateY(-4px); border-color: rgba(99,102,241,0.3); }
+.feature-card .icon { font-size: 2.2rem; margin-bottom: 1rem; display: block; }
+.feature-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem; }
+.feature-card p { color: var(--text-muted); font-size: 0.95rem; }
+
+/* ===== HOW IT WORKS ===== */
+.steps { text-align: center; }
+.steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2rem; position: relative; }
+.step {
+  position: relative; padding: 2rem;
+}
+.step-number {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), #4f46e5);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem; font-weight: 800; margin: 0 auto 1.25rem;
+  box-shadow: 0 4px 20px rgba(99,102,241,0.3);
+}
+.step h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+.step p { color: var(--text-muted); font-size: 0.95rem; }
+
+/* ===== COMPARISON ===== */
+.comparison { text-align: center; }
+.table-wrap {
+  overflow-x: auto; border-radius: var(--radius);
+  border: 1px solid var(--glass-border); margin-top: 1rem;
+}
+.comparison table {
+  width: 100%; border-collapse: collapse; min-width: 500px;
+}
+.comparison th, .comparison td {
+  padding: 1rem 1.5rem; text-align: left; border-bottom: 1px solid var(--border);
+}
+.comparison thead th {
+  background: rgba(99,102,241,0.08); font-weight: 700; font-size: 0.95rem;
+}
+.comparison tbody tr:last-child td { border-bottom: none; }
+.comparison tbody td { font-size: 0.95rem; color: var(--text-muted); }
+.comparison tbody td:first-child { color: var(--text); font-weight: 500; }
+.check { color: var(--accent); font-weight: 700; font-size: 1.1rem; }
+.cross { color: #ef4444; font-size: 0.9rem; }
+
+/* ===== PRICING ===== */
+.pricing { text-align: center; }
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; align-items: start; }
+.price-card {
+  background: var(--bg-card); border: 1px solid var(--glass-border);
+  border-radius: var(--radius); padding: 2.5rem 2rem;
+  backdrop-filter: blur(10px); position: relative;
+  transition: transform 0.3s;
+}
+.price-card:hover { transform: translateY(-4px); }
+.price-card.featured {
+  border-color: var(--primary);
+  box-shadow: 0 0 40px rgba(99,102,241,0.15), 0 0 80px rgba(99,102,241,0.05);
+  transform: scale(1.04);
+  z-index: 2;
+}
+.price-card.featured:hover { transform: scale(1.06); }
+.price-badge {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--primary), #4f46e5);
+  color: #fff; padding: 0.3rem 1.2rem; border-radius: 50px;
+  font-size: 0.8rem; font-weight: 700; white-space: nowrap;
+}
+.price-card h3 { font-size: 1.3rem; font-weight: 800; margin-bottom: 0.5rem; }
+.price-amount { font-size: 2.8rem; font-weight: 900; margin-bottom: 0.25rem; }
+.price-amount span { font-size: 1rem; font-weight: 500; color: var(--text-muted); }
+.price-card ul { list-style: none; text-align: left; margin: 1.5rem 0; }
+.price-card li {
+  padding: 0.5rem 0; font-size: 0.95rem; color: var(--text-muted);
+  display: flex; align-items: flex-start; gap: 0.6rem;
+}
+.price-card li::before { content: ''; color: var(--accent); font-weight: 700; flex-shrink: 0; }
+.li-check::before { content: '\2713'; color: var(--accent); }
+.price-card .btn { width: 100%; justify-content: center; margin-top: 0.5rem; }
+.pricing-note {
+  margin-top: 2.5rem; font-size: 1.15rem; font-weight: 600;
+  color: var(--primary-light);
+}
+.pricing-small { margin-top: 0.75rem; font-size: 0.9rem; color: var(--text-muted); }
+
+/* ===== FAQ ===== */
+.faq { max-width: 800px; margin: 0 auto; }
+.faq-item {
+  border-bottom: 1px solid var(--border); overflow: hidden;
+}
+.faq-q {
+  width: 100%; background: none; border: none; color: var(--text);
+  font-size: 1.05rem; font-weight: 600; text-align: left;
+  padding: 1.25rem 0; cursor: pointer; display: flex;
+  justify-content: space-between; align-items: center;
+  font-family: inherit;
+}
+.faq-q:hover { color: var(--primary-light); }
+.faq-q .arrow {
+  transition: transform 0.3s; font-size: 1.2rem; flex-shrink: 0; margin-left: 1rem;
+}
+.faq-item.open .faq-q .arrow { transform: rotate(180deg); }
+.faq-a {
+  max-height: 0; overflow: hidden; transition: max-height 0.4s ease, padding 0.3s;
+}
+.faq-item.open .faq-a { max-height: 200px; padding-bottom: 1.25rem; }
+.faq-a p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.7; }
+
+/* ===== CONTACT ===== */
+.contact { text-align: center; }
+.contact-form {
+  max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 1rem;
+}
+.contact-form input, .contact-form textarea {
+  background: var(--bg-card); border: 1px solid var(--glass-border);
+  border-radius: 12px; padding: 0.9rem 1.2rem; color: var(--text);
+  font-family: inherit; font-size: 1rem; outline: none;
+  transition: border-color 0.2s;
+}
+.contact-form input:focus, .contact-form textarea:focus { border-color: var(--primary); }
+.contact-form textarea { resize: vertical; min-height: 100px; }
+.contact-form input::placeholder, .contact-form textarea::placeholder { color: var(--text-muted); }
+.contact-phone { margin-top: 1.5rem; font-size: 1rem; color: var(--text-muted); }
+
+/* ===== FOOTER ===== */
+footer {
+  padding: 2.5rem 0; border-top: 1px solid var(--border);
+  text-align: center; font-size: 0.85rem; color: var(--text-muted);
+}
+footer a { color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+footer a:hover { color: var(--text); }
+.footer-links { display: flex; gap: 1.5rem; justify-content: center; margin-top: 0.75rem; }
+
+/* ===== UTILITIES ===== */
+@media (max-width: 480px) {
+  section { padding: 4rem 0; }
+  .hero-content { padding: 1rem; }
+  .pricing-grid { grid-template-columns: 1fr; }
+  .price-card.featured { transform: scale(1); }
+  .price-card.featured:hover { transform: translateY(-4px); }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">AKCES HUB</div>
+  <button class="hamburger" id="hamburger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="#problemy">Problemy</a></li>
+    <li><a href="#funkcje">Funkcje</a></li>
+    <li><a href="#jak-dziala">Jak dziala</a></li>
+    <li><a href="#cennik">Cennik</a></li>
+    <li><a href="#faq">FAQ</a></li>
+    <li><a href="#kontakt">Kontakt</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <canvas id="particles"></canvas>
+  <div class="hero-content">
+    <div class="hero-badge">System do zarzadzania paletami zwrotow</div>
+    <h1>Zarzadzaj paletami zwrotow jak profesjonalista</h1>
+    <p>Allegro, OLX, Vinted — jeden system. Magazyn, wysylki, analityka. Dziala na Twoim urzadzeniu, nawet offline.</p>
+    <div class="hero-buttons">
+      <a href="#kontakt" class="btn btn-primary">&#x1F680; Umow demo</a>
+      <a href="#cennik" class="btn btn-secondary">&#x1F4CB; Zobacz cennik</a>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section class="problem" id="problemy">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Wyzwania</p>
+      <h2 class="section-title">Znasz to?</h2>
+    </div>
+    <div class="pain-points reveal">
+      <div class="pain-card">
+        <div class="icon">&#x1F4CB;</div>
+        <p>Excel z 500 pozycjami i zero kontroli nad towarem</p>
+      </div>
+      <div class="pain-card">
+        <div class="icon">&#x23F0;</div>
+        <p>Reczne wystawianie tego samego produktu na 3 platformach</p>
+      </div>
+      <div class="pain-card">
+        <div class="icon">&#x1F4C9;</div>
+        <p>Brak wiedzy co sie sprzedaje, a co lezy miesiącami</p>
+      </div>
+    </div>
+    <div class="reveal">
+      <p class="problem-cta">AKCES HUB rozwiazuje te problemy</p>
+      <div class="arrow-down">&#x2193;</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="funkcje">
+  <div class="container">
+    <div class="reveal" style="text-align:center">
+      <p class="section-label">Funkcje</p>
+      <h2 class="section-title">Wszystko czego potrzebujesz</h2>
+      <p class="section-sub" style="margin-left:auto;margin-right:auto">Jeden system zamiast dziesieciu narzedzi.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <span class="icon">&#x1F4E6;</span>
+        <h3>Magazyn 3D</h3>
+        <p>Heatmapa, regaly, lokalizacje. Wiesz gdzie co lezy.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="icon">&#x1F6D2;</span>
+        <h3>Multi-platforma</h3>
+        <p>Allegro + OLX + Vinted — jedno klikniecie, trzy oferty.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="icon">&#x1F916;</span>
+        <h3>AI Opisy</h3>
+        <p>Gemini AI generuje opisy zoptymalizowane pod SEO.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="icon">&#x1F4CA;</span>
+        <h3>Analityka</h3>
+        <p>Dashboard zyskow, czas sprzedazy, trendy kategorii.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="icon">&#x1F69A;</span>
+        <h3>Wysylki</h3>
+        <p>Zarzadzanie zamowieniami, etykiety, sledzenie paczek.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="icon">&#x1F514;</span>
+        <h3>Powiadomienia</h3>
+        <p>Telegram — alerty o sprzedazach w czasie rzeczywistym.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="steps" id="jak-dziala">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Jak to dziala</p>
+      <h2 class="section-title">3 proste kroki</h2>
+      <p class="section-sub" style="margin-left:auto;margin-right:auto">Od rozpakowania do pierwszej sprzedazy w kilka minut.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step reveal">
+        <div class="step-number">1</div>
+        <h3>Dostajesz gotowe urzadzenie</h3>
+        <p>Plug & play. Podpinasz do pradu i routera.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-number">2</div>
+        <h3>Otwierasz w przegladarce</h3>
+        <p>Na telefonie, laptopie lub tablecie. Zero instalacji.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-number">3</div>
+        <h3>Importujesz palete</h3>
+        <p>System robi reszte: scraping, opisy AI, wystawianie.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section class="comparison" id="porownanie">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Porownanie</p>
+      <h2 class="section-title">Dlaczego AKCES HUB?</h2>
+    </div>
+    <div class="table-wrap reveal">
+      <table>
+        <thead>
+          <tr>
+            <th>Funkcja</th>
+            <th>AKCES HUB</th>
+            <th>Inne systemy</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Dziala offline</td><td class="check">&#x2713;</td><td class="cross">&#x2717;</td></tr>
+          <tr><td>3 platformy (Allegro+OLX+Vinted)</td><td class="check">&#x2713;</td><td class="cross">&#x2717; Tylko Allegro</td></tr>
+          <tr><td>Twoje dane, Twoje urzadzenie</td><td class="check">&#x2713;</td><td class="cross">&#x2717; Cudzy serwer</td></tr>
+          <tr><td>Magazyn 3D z heatmapa</td><td class="check">&#x2713;</td><td class="cross">&#x2717;</td></tr>
+          <tr><td>Zdalny support SSH</td><td class="check">&#x2713;</td><td class="cross">&#x2717; Tylko email</td></tr>
+          <tr><td>Bez limitu produktow</td><td class="check">&#x2713;</td><td class="check">&#x2713;</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="cennik">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Cennik</p>
+      <h2 class="section-title">Wybierz plan dla siebie</h2>
+      <p class="section-sub" style="margin-left:auto;margin-right:auto">Bez ukrytych kosztow. Mozesz zmienic plan w kazdej chwili.</p>
+    </div>
+    <div class="pricing-grid reveal">
+      <!-- START -->
+      <div class="price-card">
+        <h3>START</h3>
+        <div class="price-amount">149 zl <span>/mies.</span></div>
+        <ul>
+          <li class="li-check">1 platforma sprzedazowa</li>
+          <li class="li-check">Magazyn</li>
+          <li class="li-check">Sprzedaze</li>
+          <li class="li-check">Etykiety</li>
+          <li class="li-check">AI opisy</li>
+        </ul>
+        <a href="#kontakt" class="btn btn-secondary">Wybierz START</a>
+      </div>
+      <!-- PRO -->
+      <div class="price-card featured">
+        <div class="price-badge">Polecany</div>
+        <h3>PRO</h3>
+        <div class="price-amount">249 zl <span>/mies.</span></div>
+        <ul>
+          <li class="li-check">3 platformy sprzedazowe</li>
+          <li class="li-check">Analityka</li>
+          <li class="li-check">Wysylki</li>
+          <li class="li-check">Powiadomienia Telegram</li>
+          <li class="li-check">Support zdalny</li>
+        </ul>
+        <a href="#kontakt" class="btn btn-primary">Wybierz PRO</a>
+      </div>
+      <!-- ENTERPRISE -->
+      <div class="price-card">
+        <h3>ENTERPRISE</h3>
+        <div class="price-amount">449 zl <span>/mies.</span></div>
+        <ul>
+          <li class="li-check">Wszystko z PRO</li>
+          <li class="li-check">Customizacja</li>
+          <li class="li-check">Priorytetowy support</li>
+          <li class="li-check">Integracje na zyczenie</li>
+        </ul>
+        <a href="#kontakt" class="btn btn-secondary">Wybierz ENTERPRISE</a>
+      </div>
+    </div>
+    <p class="pricing-note reveal">&#x1F4A1; Pierwszy miesiac za 1 zl — przetestuj bez ryzyka</p>
+    <p class="pricing-small reveal">Zestaw sprzetowy (Raspberry Pi) — 899 zl jednorazowo (opcjonalnie)</p>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="container faq">
+    <div class="reveal" style="text-align:center">
+      <p class="section-label">FAQ</p>
+      <h2 class="section-title">Czeste pytania</h2>
+    </div>
+    <div class="reveal">
+      <div class="faq-item">
+        <button class="faq-q">Czy potrzebuje staly internet? <span class="arrow">&#x25BE;</span></button>
+        <div class="faq-a"><p>Nie. System dziala na Twoim urzadzeniu, nawet offline. Internet potrzebny tylko do synchronizacji z platformami sprzedazowymi.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Jak wyglada support? <span class="arrow">&#x25BE;</span></button>
+        <div class="faq-a"><p>Zdalnie! Laczymy sie z Twoim urzadzeniem przez bezpieczny tunel SSH. Naprawiamy problemy bez dojazdu.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Czy moge przetestowac? <span class="arrow">&#x25BE;</span></button>
+        <div class="faq-a"><p>Tak! Pierwszy miesiac za 1 zl. Jesli nie spodoba Ci sie — zero zobowiazan.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Jakie platformy obslugujecie? <span class="arrow">&#x25BE;</span></button>
+        <div class="faq-a"><p>Allegro, OLX i Vinted. Pracujemy nad kolejnymi integracjami.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Czy moje dane sa bezpieczne? <span class="arrow">&#x25BE;</span></button>
+        <div class="faq-a"><p>Tak. Dane przechowywane sa lokalnie na Twoim urzadzeniu, nie na cudzych serwerach. Automatyczne backupy na Google Drive.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="contact" id="kontakt">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Kontakt</p>
+      <h2 class="section-title">Zacznij zarabiac wiecej na paletach</h2>
+      <p class="section-sub" style="margin-left:auto;margin-right:auto">Napisz do nas — odezwiemy sie w ciagu 24h.</p>
+    </div>
+    <form class="contact-form reveal" action="#" method="POST">
+      <input type="text" name="name" placeholder="Imie" required>
+      <input type="text" name="contact" placeholder="Telefon lub e-mail" required>
+      <textarea name="message" placeholder="Wiadomosc (opcjonalnie)"></textarea>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">&#x1F4E8; Wyslij zapytanie</button>
+    </form>
+    <p class="contact-phone reveal">&#x1F4DE; Zadzwon: +48 XXX XXX XXX</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <p>&copy; 2026 AKCES HUB. Wszystkie prawa zastrzezone.</p>
+    <div class="footer-links">
+      <a href="#">Polityka prywatnosci</a>
+      <a href="#">Regulamin</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Hamburger menu
+const hamburger = document.getElementById('hamburger');
+const navLinks = document.getElementById('navLinks');
+hamburger.addEventListener('click', () => {
+  hamburger.classList.toggle('active');
+  navLinks.classList.toggle('open');
+});
+navLinks.querySelectorAll('a').forEach(a => {
+  a.addEventListener('click', () => {
+    hamburger.classList.remove('active');
+    navLinks.classList.remove('open');
+  });
+});
+
+// Reveal on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// FAQ accordion
+document.querySelectorAll('.faq-q').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const item = btn.parentElement;
+    const wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!wasOpen) item.classList.add('open');
+  });
+});
+
+// Particles
+(function() {
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  let w, h, particles = [];
+  function resize() {
+    w = canvas.width = canvas.parentElement.offsetWidth;
+    h = canvas.height = canvas.parentElement.offsetHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  class Particle {
+    constructor() { this.reset(); }
+    reset() {
+      this.x = Math.random() * w;
+      this.y = Math.random() * h;
+      this.r = Math.random() * 1.5 + 0.5;
+      this.vx = (Math.random() - 0.5) * 0.3;
+      this.vy = (Math.random() - 0.5) * 0.3;
+      this.alpha = Math.random() * 0.4 + 0.1;
+    }
+    update() {
+      this.x += this.vx; this.y += this.vy;
+      if (this.x < 0 || this.x > w || this.y < 0 || this.y > h) this.reset();
+    }
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(99,102,241,${this.alpha})`;
+      ctx.fill();
+    }
+  }
+  for (let i = 0; i < 60; i++) particles.push(new Particle());
+
+  function animate() {
+    ctx.clearRect(0, 0, w, h);
+    particles.forEach(p => { p.update(); p.draw(); });
+
+    // connections
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(99,102,241,${0.06 * (1 - dist/120)})`;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(animate);
+  }
+  animate();
+})();
+</script>
+</body>
+</html>
