@@ -44,19 +44,70 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
     </div>
 </div>
 
+<!-- ═══════════ SYSTEM (tylko admin) ═══════════ -->
+{% if session.get('rola') == 'admin' %}
+<div id="sys-panel" style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:12px;padding:12px;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:0.75rem;color:#64748b;font-weight:600">SYSTEM</div>
+        <div style="display:flex;align-items:center;gap:6px">
+            <span id="sys-uptime" style="font-size:0.7rem;color:#64748b">--</span>
+            <div id="sys-dot" style="width:6px;height:6px;border-radius:50%;background:#22c55e"></div>
+        </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">
+        <div>
+            <div id="sys-temp" style="font-size:1rem;font-weight:700;color:#22c55e">--</div>
+            <div style="font-size:0.6rem;color:#475569">Temp</div>
+        </div>
+        <div>
+            <div style="font-size:1rem;font-weight:700;color:#3b82f6"><span id="sys-cpu">--</span>%</div>
+            <div style="font-size:0.6rem;color:#475569">CPU</div>
+        </div>
+        <div>
+            <div id="sys-ram" style="font-size:1rem;font-weight:700;color:#8b5cf6">--</div>
+            <div style="font-size:0.6rem;color:#475569">RAM</div>
+        </div>
+        <div>
+            <div id="sys-disk" style="font-size:1rem;font-weight:700;color:#f59e0b">--</div>
+            <div style="font-size:0.6rem;color:#475569">Dysk</div>
+        </div>
+    </div>
+</div>
+<script>
+(function(){
+    function updSys(){
+        fetch('/api/system-stats').then(r=>r.json()).then(d=>{
+            const te=document.getElementById('sys-temp');
+            if(!te)return;
+            te.textContent=d.temp>0?d.temp.toFixed(0)+'°C':'N/A';
+            te.style.color=d.temp<55?'#22c55e':d.temp<70?'#eab308':'#ef4444';
+            document.getElementById('sys-cpu').textContent=d.cpu.toFixed(0);
+            document.getElementById('sys-ram').textContent=d.ram_used.toFixed(1)+'/'+d.ram_total.toFixed(0);
+            document.getElementById('sys-disk').textContent=d.disk_used.toFixed(0)+'/'+d.disk_total.toFixed(0);
+            document.getElementById('sys-uptime').textContent='⏱️ '+d.uptime;
+        }).catch(()=>{});
+    }
+    updSys();setInterval(updSys,15000);
+})();
+</script>
+{% endif %}
+
 <!-- ═══════════ GOAL (tylko admin) ═══════════ -->
 {% if session.get('rola') == 'admin' and goal %}
-<a href="/goal/details" style="text-decoration:none;display:block;background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(139,92,246,0.08));border:1px solid rgba(59,130,246,0.25);border-radius:14px;padding:14px;margin-bottom:16px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div style="font-weight:700;color:#3b82f6;font-size:0.9rem">🚗 {{ goal['name'] }}</div>
-        <div style="font-weight:800;color:#22c55e;font-size:1.1rem">{{ "%.1f"|format(goal.get('progress', 0)) }}%</div>
-    </div>
-    <div style="background:rgba(0,0,0,0.3);border-radius:8px;height:10px;overflow:hidden">
-        <div style="background:linear-gradient(90deg,#22c55e,#16a34a);height:100%;width:{{ "%.1f"|format(goal.get('progress', 0)) }}%;border-radius:8px"></div>
-    </div>
-    <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:0.75rem;color:#94a3b8">
-        <span>{{ "{:,.0f}".format(goal['current']) }} zł</span>
-        <span>{{ "{:,.0f}".format(goal['target']) }} zł</span>
+<a href="/goal/details" style="text-decoration:none;display:block;position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.1));border:1px solid rgba(59,130,246,0.3);border-radius:14px;padding:16px;margin-bottom:16px">
+    <div style="position:absolute;top:0;right:0;bottom:0;width:45%;background:url('/static/goal.jpg') no-repeat center right;background-size:cover;opacity:0.15;z-index:0"></div>
+    <div style="position:relative;z-index:1">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="font-weight:700;color:#3b82f6;font-size:1rem">🚗 {{ goal['name'] }}</div>
+            <div style="font-weight:800;color:#22c55e;font-size:1.2rem">{{ "%.1f"|format(goal.get('progress', 0)) }}%</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.3);border-radius:8px;height:12px;overflow:hidden;margin-bottom:8px">
+            <div style="background:linear-gradient(90deg,#22c55e,#16a34a);height:100%;width:{{ "%.1f"|format(goal.get('progress', 0)) }}%;border-radius:8px"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.8rem">
+            <span style="color:#22c55e;font-weight:600">{{ "{:,.0f}".format(goal['current']) }} zł</span>
+            <span style="color:#94a3b8">cel: {{ "{:,.0f}".format(goal['target']) }} zł</span>
+        </div>
     </div>
 </a>
 {% endif %}
@@ -229,54 +280,6 @@ fetch('/api/warehouse/heatmap').then(r=>r.json()).then(d=>{
     </div>
 </div>
 {% endfor %}
-{% endif %}
-
-<!-- ═══════════ SYSTEM (tylko admin) ═══════════ -->
-{% if session.get('rola') == 'admin' %}
-<div id="sys-panel" style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:12px;padding:12px;margin-top:16px;margin-bottom:16px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-size:0.75rem;color:#64748b;font-weight:600">SYSTEM</div>
-        <div style="display:flex;align-items:center;gap:6px">
-            <span id="sys-uptime" style="font-size:0.7rem;color:#64748b">--</span>
-            <div id="sys-dot" style="width:6px;height:6px;border-radius:50%;background:#22c55e"></div>
-        </div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">
-        <div>
-            <div id="sys-temp" style="font-size:1rem;font-weight:700;color:#22c55e">--</div>
-            <div style="font-size:0.6rem;color:#475569">Temp</div>
-        </div>
-        <div>
-            <div style="font-size:1rem;font-weight:700;color:#3b82f6"><span id="sys-cpu">--</span>%</div>
-            <div style="font-size:0.6rem;color:#475569">CPU</div>
-        </div>
-        <div>
-            <div id="sys-ram" style="font-size:1rem;font-weight:700;color:#8b5cf6">--</div>
-            <div style="font-size:0.6rem;color:#475569">RAM</div>
-        </div>
-        <div>
-            <div id="sys-disk" style="font-size:1rem;font-weight:700;color:#f59e0b">--</div>
-            <div style="font-size:0.6rem;color:#475569">Dysk</div>
-        </div>
-    </div>
-</div>
-<script>
-(function(){
-    function updSys(){
-        fetch('/api/system-stats').then(r=>r.json()).then(d=>{
-            const te=document.getElementById('sys-temp');
-            if(!te)return;
-            te.textContent=d.temp>0?d.temp.toFixed(0)+'°C':'N/A';
-            te.style.color=d.temp<55?'#22c55e':d.temp<70?'#eab308':'#ef4444';
-            document.getElementById('sys-cpu').textContent=d.cpu.toFixed(0);
-            document.getElementById('sys-ram').textContent=d.ram_used.toFixed(1)+'/'+d.ram_total.toFixed(0);
-            document.getElementById('sys-disk').textContent=d.disk_used.toFixed(0)+'/'+d.disk_total.toFixed(0);
-            document.getElementById('sys-uptime').textContent='⏱️ '+d.uptime;
-        }).catch(()=>{});
-    }
-    updSys();setInterval(updSys,15000);
-})();
-</script>
 {% endif %}
 
 <!-- ═══════════ POWIADOMIENIE SPRZEDAŻY ═══════════ -->
