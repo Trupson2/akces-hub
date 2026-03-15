@@ -203,19 +203,22 @@ def _generate_default_locations():
     if existing > 0:
         return  # Już są lokalizacje
     
-    # Generuj wszystkie kombinacje
+    # Generuj lokalizacje: każdy regał × każdy poziom
     locations = []
+    levels = WAREHOUSE_CONFIG.get('levels', 6)
+    capacity = WAREHOUSE_CONFIG['default'].get('capacity_per_shelf', 50)
     for shelf in WAREHOUSE_CONFIG['shelves']:
-        for level in range(1, WAREHOUSE_CONFIG['levels'] + 1):
-            for section in range(1, WAREHOUSE_CONFIG['sections'] + 1):
-                code = f"{shelf}{level}-{section}"
-                locations.append((
-                    code,
-                    shelf,
-                    level,
-                    section,
-                    WAREHOUSE_CONFIG['max_items_per_section']
-                ))
+        # Determine section (1 or 2) based on config
+        section = 1 if shelf in WAREHOUSE_CONFIG.get('section_1', []) else 2
+        for level in range(1, levels + 1):
+            code = f"{shelf}{level}"
+            locations.append((
+                code,
+                shelf,
+                level,
+                section,
+                capacity
+            ))
     
     # Wstaw do bazy
     cursor.executemany('''
