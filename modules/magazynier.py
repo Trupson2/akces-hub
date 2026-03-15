@@ -2323,22 +2323,55 @@ def statystyki():
         pryw_per_msc = {}
         pryw_total_rok = 0
 
-    # Koszty zakupu palet per miesiąc (automatyczne z tabeli palety)
+    # COGS per miesiąc — koszt SPRZEDANYCH produktów (nie kupionych palet)
+    # koszt_per_szt = paleta.cena_zakupu / łączna_ilość_sztuk_z_palety
     try:
-        palety_msc_rows = conn.execute('''
-            SELECT strftime('%m', data_zakupu) as m, SUM(cena_zakupu) as suma, COUNT(*) as cnt
+        cogs_msc_rows = conn.execute('''
+            SELECT strftime('%m', s.data_sprzedazy) as m,
+                COALESCE(SUM(
+                    CASE
+                        WHEN pal.cena_zakupu > 0 AND pal_total.total_szt > 0
+                        THEN (pal.cena_zakupu / pal_total.total_szt) * s.ilosc
+                        ELSE 0
+                    END
+                ), 0) as cogs
+            FROM sprzedaze s
+            LEFT JOIN produkty p ON s.produkt_id = p.id
+            LEFT JOIN palety pal ON p.paleta_id = pal.id
+            LEFT JOIN (
+                SELECT pr.paleta_id,
+                    COALESCE(SUM(pr.ilosc), 0)
+                    + COALESCE(SUM(pr.sprzedano_offline), 0)
+                    + COALESCE((
+                        SELECT SUM(sp2.ilosc) FROM sprzedaze sp2
+                        JOIN produkty pp2 ON sp2.produkt_id = pp2.id
+                        WHERE pp2.paleta_id = pr.paleta_id
+                        AND sp2.status NOT IN ('zwrot','anulowane','anulowana')
+                    ), 0) as total_szt
+                FROM produkty pr GROUP BY pr.paleta_id
+            ) pal_total ON pal_total.paleta_id = pal.id
+            WHERE strftime('%Y', s.data_sprzedazy) = ?
+            AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
+            GROUP BY m
+        ''', (str(current_year),)).fetchall()
+        palety_per_msc = {int(r['m']): float(r['cogs'] or 0) for r in cogs_msc_rows}
+        palety_total_rok = sum(palety_per_msc.values())
+    except:
+        palety_per_msc = {}
+        palety_total_rok = 0
+
+    # Ilość palet kupionych (do wyświetlania)
+    try:
+        palety_cnt_rows = conn.execute('''
+            SELECT strftime('%m', data_zakupu) as m, COUNT(*) as cnt
             FROM palety WHERE strftime('%Y', data_zakupu) = ?
             AND data_zakupu IS NOT NULL AND data_zakupu != ''
             GROUP BY m
         ''', (str(current_year),)).fetchall()
-        palety_per_msc = {int(r['m']): float(r['suma'] or 0) for r in palety_msc_rows}
-        palety_cnt_per_msc = {int(r['m']): int(r['cnt']) for r in palety_msc_rows}
-        palety_total_rok = sum(palety_per_msc.values())
+        palety_cnt_per_msc = {int(r['m']): int(r['cnt']) for r in palety_cnt_rows}
         palety_total_cnt_rok = sum(palety_cnt_per_msc.values())
     except:
-        palety_per_msc = {}
         palety_cnt_per_msc = {}
-        palety_total_rok = 0
         palety_total_cnt_rok = 0
 
     # ROI per paleta - ta sama logika co /analityka (proporcjonalny koszt sprzedanych)
@@ -2788,7 +2821,7 @@ def statystyki():
     const daneKoszty = {json.dumps(dane_koszty)};
     const danePrywatne = {json.dumps(dane_prywatne)};
     const danePalety = {json.dumps(dane_palety)};
-    // Łączne koszty = operacyjne + zakup palet
+    // Łączne koszty = operacyjne + COGS (koszt sprzedanych produktów)
     const daneKosztyLacznie = daneKoszty.map((k, i) => k + danePalety[i]);
     // null dla miesięcy bez aktywności - linia nie spada do zera
     const daneZysk = daneMiesieczne.map((p, i) => {{
@@ -2981,7 +3014,7 @@ def statystyki():
                 </div>
                 <div style="flex:1;min-width:100px;background:#1e1e2e;border-radius:10px;padding:10px;text-align:center">
                     <div style="font-size:1.1rem;font-weight:700;color:#f43f5e">-${{koszty.toFixed(0)}} zł</div>
-                    <div style="font-size:0.7rem;color:#64748b;margin-top:2px">Koszty${{kosztPalety > 0 ? ' (w tym 📦 ' + kosztPalety.toFixed(0) + ' zł palety)' : ''}}</div>
+                    <div style="font-size:0.7rem;color:#64748b;margin-top:2px">Koszty (COGS${{kosztPalety > 0 ? ' ' + kosztPalety.toFixed(0) + ' zł' : ''}})</div>
                 </div>
                 <div style="flex:1;min-width:100px;background:#1e1e2e;border-radius:10px;padding:10px;text-align:center">
                     <div style="font-size:1.1rem;font-weight:700">${{cnt}}</div>
