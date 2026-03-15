@@ -801,13 +801,12 @@ def get_full_stats():
                     WHEN p.nazwa IS NOT NULL AND p.nazwa != '' THEN p.nazwa
                     ELSE 'Produkt #' || s.id
                 END as produkt_nazwa,
-                COALESCE(NULLIF(s.zdjecie_url,''), NULLIF(p.zdjecie_url,''), NULLIF(p2.zdjecie_url,''), '') as zdjecie_url,
+                COALESCE(NULLIF(s.zdjecie_url,''), NULLIF(p.zdjecie_url,''), '') as zdjecie_url,
                 COUNT(s.id) as sprzedazy_cnt,
                 COALESCE(SUM(s.cena * s.ilosc), 0) as sprzedazy_suma
             FROM sprzedaze s
             LEFT JOIN oferty o ON s.oferta_id = o.id
             LEFT JOIN produkty p ON COALESCE(s.produkt_id, o.produkt_id) = p.id
-            LEFT JOIN produkty p2 ON p.id IS NULL AND s.nazwa IS NOT NULL AND s.nazwa != '' AND p2.nazwa LIKE SUBSTR(s.nazwa, 1, 25) || '%'
             WHERE s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
             GROUP BY produkt_nazwa
             ORDER BY sprzedazy_cnt DESC
