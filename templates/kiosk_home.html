@@ -58,9 +58,12 @@
 <div class="kd kiosk-dash">
     <!-- HEADER -->
     <div class="kd-head">
-        <div>
-            <div class="kd-title">{{ brand_name }}</div>
-            <div class="kd-sub">Raspberry Pi Control Center</div>
+        <div style="display:flex;align-items:center;gap:12px">
+            {% if brand_logo %}<img src="/static/brand_logo.png" style="max-height:40px">{% endif %}
+            <div>
+                <div class="kd-title">{{ brand_name }}</div>
+                <div class="kd-sub">Raspberry Pi Control Center</div>
+            </div>
         </div>
         <div class="kd-right">
             <div class="kd-time" id="k-clock">--:--</div>

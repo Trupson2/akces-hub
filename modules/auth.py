@@ -5,6 +5,7 @@ Rate limiting na login (ochrona przed brute-force)
 """
 
 import hashlib
+import os
 import secrets
 import sqlite3
 import time
@@ -156,6 +157,7 @@ button:hover{opacity:0.9}
 <body>
 <div class="login-box">
 <div class="logo">
+{% if brand_logo %}<img src="/static/brand_logo.png" style="max-height:60px;margin-bottom:10px">{% endif %}
 <h1>{{ brand_name }}</h1>
 <p>System zarzadzania magazynem</p>
 </div>
@@ -557,4 +559,5 @@ def setup_auth(app):
             'module_magazynier': is_module_enabled('magazynier'),
             'brand_name': get_config_cached('brand_name', 'AKCES HUB'),
             'brand_color': get_config_cached('brand_color', '#6366f1'),
+            'brand_logo': os.path.exists(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'brand_logo.png')),
         }

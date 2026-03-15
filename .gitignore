@@ -59,5 +59,8 @@ modules/image_cleaner.txt
 OFERTA_KLIENTA.md
 TODO_IMPROVEMENTS.md
 
+# Client-specific
+static/brand_logo.png
+
 # OS
 static/downloads/

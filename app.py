@@ -4082,11 +4082,19 @@ def ustawienia():
         <!-- BRANDING -->
         <div style="margin-top:20px;padding:15px;background:linear-gradient(135deg,rgba(236,72,153,0.1),rgba(168,85,247,0.1));border:1px solid rgba(236,72,153,0.3);border-radius:12px">
             <div style="font-weight:600;margin-bottom:15px;color:#ec4899">🎨 Branding</div>
-            <form action="/ustawienia/branding" method="POST">
+            <form action="/ustawienia/branding" method="POST" enctype="multipart/form-data">
                 <div style="margin-bottom:12px">
                     <label style="font-size:0.8rem;color:#64748b">Nazwa systemu</label>
                     <input type="text" name="brand_name" value="''' + brand_name + '''"
                         style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:5px">
+                </div>
+                <div style="margin-bottom:12px">
+                    <label style="font-size:0.8rem;color:#64748b">Logo firmy (PNG/JPG, max 500KB)</label>
+                    <div style="display:flex;gap:10px;align-items:center;margin-top:5px">
+                        ''' + (f'<img src="/static/brand_logo.png?v={int(__import__("time").time())}" style="height:40px;border-radius:6px">' if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'brand_logo.png')) else '<span style="color:#64748b;font-size:0.85rem">Brak logo</span>') + '''
+                        <input type="file" name="brand_logo" accept="image/png,image/jpeg"
+                            style="flex:1;padding:8px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#e2e8f0;font-size:0.85rem">
+                    </div>
                 </div>
                 <div style="margin-bottom:12px">
                     <label style="font-size:0.8rem;color:#64748b">Kolor przewodni</label>
@@ -6262,12 +6270,30 @@ def ustawienia_modules():
 
 @app.route('/ustawienia/branding', methods=['POST'])
 def ustawienia_branding():
-    """Zapisuje branding"""
+    """Zapisuje branding + logo"""
     from modules.database import set_config, invalidate_config_cache
     brand_name = request.form.get('brand_name', 'AKCES HUB').strip()
     brand_color = request.form.get('brand_color', '#6366f1').strip()
     set_config('brand_name', brand_name)
     set_config('brand_color', brand_color)
+
+    # Logo upload
+    logo = request.files.get('brand_logo')
+    if logo and logo.filename:
+        ext = logo.filename.rsplit('.', 1)[-1].lower()
+        if ext in ('png', 'jpg', 'jpeg'):
+            from PIL import Image
+            import io
+            img_data = logo.read()
+            if len(img_data) <= 512 * 1024:  # max 500KB
+                img = Image.open(io.BytesIO(img_data))
+                # Resize if too large (max 200px height)
+                if img.height > 200:
+                    ratio = 200 / img.height
+                    img = img.resize((int(img.width * ratio), 200), Image.LANCZOS)
+                logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'brand_logo.png')
+                img.save(logo_path, 'PNG', optimize=True)
+
     invalidate_config_cache()
     return redirect('/ustawienia')
 
