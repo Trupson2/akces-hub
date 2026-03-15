@@ -136,13 +136,13 @@ LOGIN_HTML = '''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Logowanie - AKCES HUB</title>
+<title>Logowanie - {{ brand_name }}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a1a;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh}
 .login-box{background:#12122a;border:1px solid #1e1e3a;border-radius:16px;padding:40px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
 .logo{text-align:center;margin-bottom:30px}
-.logo h1{font-size:1.8rem;background:linear-gradient(135deg,#818cf8,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo h1{font-size:1.8rem;background:linear-gradient(135deg,{{ brand_color }},#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .logo p{color:#666;font-size:0.85rem;margin-top:4px}
 .form-group{margin-bottom:20px}
 label{display:block;margin-bottom:6px;color:#888;font-size:0.85rem;font-weight:500}
@@ -156,7 +156,7 @@ button:hover{opacity:0.9}
 <body>
 <div class="login-box">
 <div class="logo">
-<h1>AKCES HUB</h1>
+<h1>{{ brand_name }}</h1>
 <p>System zarzadzania magazynem</p>
 </div>
 {% if error %}
