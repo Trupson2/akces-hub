@@ -103,7 +103,7 @@ else:
     with open(_secret_key_path, 'w') as f:
         f.write(_secret_key)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', _secret_key)
-app.config['DATABASE'] = 'akces_hub.db'
+app.config['DATABASE'] = os.environ.get('DATABASE_PATH', 'akces_hub.db')
 app.config['VERSION'] = VERSION
 
 # Session cookie security
@@ -168,6 +168,12 @@ def after_request(response):
     # Cache dla statycznych plików (obrazki, CSS, JS)
     elif response.mimetype and (response.mimetype.startswith('image/') or response.mimetype in ('text/css', 'application/javascript')):
         response.headers['Cache-Control'] = 'public, max-age=86400'
+
+    # Security headers
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
 
     return response
 # ============================================================
@@ -4325,7 +4331,7 @@ def wysylki_debug_sync():
     return jsonify(result)
 
 
-@app.route('/wysylki/wyslano/<int:id>')
+@app.route('/wysylki/wyslano/<int:id>', methods=['POST'])
 def wysylki_wyslano(id):
     """Oznacza zamówienie jako wysłane"""
     from modules.database import get_db, add_historia
@@ -4346,7 +4352,7 @@ def wysylki_wyslano(id):
     return redirect('/wysylki')
 
 
-@app.route('/wysylki/cofnij/<int:id>')
+@app.route('/wysylki/cofnij/<int:id>', methods=['POST'])
 def wysylki_cofnij(id):
     """Cofa status wysłania"""
     from modules.database import get_db
@@ -4465,11 +4471,11 @@ def sprzedaze_lista():
         
         # Określ przycisk akcji
         if is_manual:
-            akcja_btn = f'<a href="/sprzedaze/usun/{s["id"]}?miesiac={miesiac_filter}" onclick="return confirm(\'Usunąć tę sprzedaż i przywrócić ilość?\')" style="padding:6px 10px;background:#f97316;border-radius:6px;color:#fff;text-decoration:none;font-size:0.75rem">🗑️ Usuń</a>'
+            akcja_btn = f'<form method="POST" action="/sprzedaze/usun/{s["id"]}" style="display:inline;margin:0" onsubmit="return confirm(\'Usunąć tę sprzedaż i przywrócić ilość?\')"><input type="hidden" name="miesiac" value="{miesiac_filter}"><button type="submit" style="padding:6px 10px;background:#f97316;border-radius:6px;color:#fff;border:none;cursor:pointer;font-size:0.75rem">🗑️ Usuń</button></form>'
         elif is_zwrot:
-            akcja_btn = f'<a href="/sprzedaze/unzwrot/{s["id"]}?miesiac={miesiac_filter}" style="padding:6px 10px;background:#22c55e;border-radius:6px;color:#fff;text-decoration:none;font-size:0.75rem">Cofnij</a>'
+            akcja_btn = f'<form method="POST" action="/sprzedaze/unzwrot/{s["id"]}" style="display:inline;margin:0"><input type="hidden" name="miesiac" value="{miesiac_filter}"><button type="submit" style="padding:6px 10px;background:#22c55e;border-radius:6px;color:#fff;border:none;cursor:pointer;font-size:0.75rem">Cofnij</button></form>'
         else:
-            akcja_btn = f'<a href="/sprzedaze/zwrot/{s["id"]}?miesiac={miesiac_filter}" style="padding:6px 10px;background:#ef4444;border-radius:6px;color:#fff;text-decoration:none;font-size:0.75rem">Zwrot</a>'
+            akcja_btn = f'<form method="POST" action="/sprzedaze/zwrot/{s["id"]}" style="display:inline;margin:0"><input type="hidden" name="miesiac" value="{miesiac_filter}"><button type="submit" style="padding:6px 10px;background:#ef4444;border-radius:6px;color:#fff;border:none;cursor:pointer;font-size:0.75rem">Zwrot</button></form>'
         
         items_html += f'''
         <div style="display:flex;align-items:center;background:#12121a;border:1px solid #1e1e2e;border-radius:10px;padding:12px;margin-bottom:8px;opacity:{opacity}">
@@ -4572,7 +4578,7 @@ def sprzedaze_lista():
     return html
 
 
-@app.route('/sprzedaze/zwrot/<int:sale_id>')
+@app.route('/sprzedaze/zwrot/<int:sale_id>', methods=['POST'])
 def oznacz_zwrot(sale_id):
     """Oznacza sprzedaż jako zwrot"""
     from modules.database import get_db
@@ -4580,11 +4586,11 @@ def oznacz_zwrot(sale_id):
     conn.execute('UPDATE sprzedaze SET status = ? WHERE id = ?', ('zwrot', sale_id))
     conn.commit()
     # Zachowaj filtr miesiąca
-    miesiac = request.args.get('miesiac', '')
+    miesiac = request.form.get('miesiac', '')
     return redirect(f'/sprzedaze?miesiac={miesiac}' if miesiac else '/sprzedaze')
 
 
-@app.route('/sprzedaze/unzwrot/<int:sale_id>')
+@app.route('/sprzedaze/unzwrot/<int:sale_id>', methods=['POST'])
 def cofnij_zwrot(sale_id):
     """Cofa oznaczenie zwrotu"""
     from modules.database import get_db
@@ -4592,15 +4598,15 @@ def cofnij_zwrot(sale_id):
     conn.execute('UPDATE sprzedaze SET status = ? WHERE id = ?', ('wyslana', sale_id))
     conn.commit()
     # Zachowaj filtr miesiąca
-    miesiac = request.args.get('miesiac', '')
+    miesiac = request.form.get('miesiac', '')
     return redirect(f'/sprzedaze?miesiac={miesiac}' if miesiac else '/sprzedaze')
 
 
-@app.route('/sprzedaze/usun/<int:sale_id>')
+@app.route('/sprzedaze/usun/<int:sale_id>', methods=['POST'])
 def usun_sprzedaz(sale_id):
     """Usuwa sprzedaż (ręczną korektę) i przywraca ilość produktu"""
     from modules.database import get_db
-    miesiac = request.args.get('miesiac', '')
+    miesiac = request.form.get('miesiac', '')
     
     conn = get_db()
     
@@ -5464,15 +5470,15 @@ def sprzedaze_korekta_ilosci():
     return redirect(request.referrer or f'/palety/{produkt["paleta_id"]}')
 
 
-@app.route('/produkt/oznacz-sprzedany/<int:produkt_id>')
+@app.route('/produkt/oznacz-sprzedany/<int:produkt_id>', methods=['POST'])
 def produkt_oznacz_sprzedany(produkt_id):
     """Oznacza produkt jako sprzedany BEZ dodawania do statystyk sprzedaży Allegro.
     Zmienia ilość produktu, zapisuje ile sprzedano offline i za ile.
     """
     from modules.database import get_db
     
-    ilosc_sprzedana = request.args.get('ilosc', 1, type=int)
-    _cena_raw = request.args.get('cena', '0').replace(',', '.')
+    ilosc_sprzedana = request.form.get('ilosc', 1, type=int)
+    _cena_raw = request.form.get('cena', '0').replace(',', '.')
     try:
         cena_sprzedazy = float(_cena_raw)
     except:
@@ -5576,21 +5582,21 @@ def produkt_oznacz_sprzedany(produkt_id):
     return redirect(request.referrer or f'/palety/{produkt["paleta_id"]}')
 
 
-@app.route('/produkt/cofnij-offline/<int:produkt_id>')
+@app.route('/produkt/cofnij-offline/<int:produkt_id>', methods=['POST'])
 def produkt_cofnij_offline(produkt_id):
     """Cofa sprzedaż offline - zwraca produkty do magazynu."""
     from modules.database import get_db
     
-    ilosc_do_cofniecia = request.args.get('ilosc', 1, type=int)
-    
+    ilosc_do_cofniecia = request.form.get('ilosc', 1, type=int)
+
     conn = get_db()
-    
+
     # Pobierz produkt
     produkt = conn.execute('SELECT * FROM produkty WHERE id = ?', (produkt_id,)).fetchone()
     if not produkt:
         flash('❌ Nie znaleziono produktu', 'error')
         return redirect(request.referrer or '/')
-    
+
     # Pobierz obecne wartości offline
     try:
         obecne_szt_offline = produkt['sprzedano_offline'] or 0
@@ -5668,7 +5674,7 @@ def produkt_cofnij_offline(produkt_id):
     return redirect(request.referrer or f'/palety/{produkt["paleta_id"]}')
 
 
-@app.route('/produkt/cofnij-sprzedaz/<int:produkt_id>')
+@app.route('/produkt/cofnij-sprzedaz/<int:produkt_id>', methods=['POST'])
 def produkt_cofnij_sprzedaz(produkt_id):
     """Cofa sprzedaż produktu - przywraca ilość i oznacza sprzedaże jako zwrot"""
     from modules.database import get_db
@@ -10099,13 +10105,24 @@ def paleta_szczegoly(paleta_id):
         if (!confirm('Cofnąć ' + ilosc + ' szt. ze sprzedaży offline?\\n\\n(Produkty wrócą do magazynu)')) return;
 
         const produktId = document.getElementById('korektaProduktId').value;
-        window.location.href = '/produkt/cofnij-offline/' + produktId + '?ilosc=' + ilosc;
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/produkt/cofnij-offline/' + produktId;
+        const inp = document.createElement('input');
+        inp.type = 'hidden'; inp.name = 'ilosc'; inp.value = ilosc;
+        form.appendChild(inp);
+        document.body.appendChild(form);
+        form.submit();
     }
 
     function cofnijSprzedaz() {
         const produktId = document.getElementById('korektaProduktId').value;
         if (!confirm('Cofnąć sprzedaż tego produktu?\\n\\nProdukt wróci do magazynu, sprzedaż zostanie oznaczona jako zwrot.')) return;
-        window.location.href = '/produkt/cofnij-sprzedaz/' + produktId;
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/produkt/cofnij-sprzedaz/' + produktId;
+        document.body.appendChild(form);
+        form.submit();
     }
     
     function zapiszKorekta() {
@@ -10148,12 +10165,21 @@ def paleta_szczegoly(paleta_id):
         const produktId = document.getElementById('korektaProduktId').value;
         
         const cenaFixed = String(cena).replace(',', '.');
-        const url = '/produkt/oznacz-sprzedany/' + produktId + '?ilosc=' + ilosc + '&cena=' + cenaFixed;
-        console.log('OFFLINE SALE URL:', url);
+        console.log('OFFLINE SALE:', produktId, 'ilosc=' + ilosc, 'cena=' + cenaFixed);
         if (parseFloat(cena) <= 0) {
             if (!confirm('Cena wynosi 0 zł - czy na pewno chcesz sprzedać za darmo?')) return;
         }
-        window.location.href = url;
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/produkt/oznacz-sprzedany/' + produktId;
+        const inpIlosc = document.createElement('input');
+        inpIlosc.type = 'hidden'; inpIlosc.name = 'ilosc'; inpIlosc.value = ilosc;
+        form.appendChild(inpIlosc);
+        const inpCena = document.createElement('input');
+        inpCena.type = 'hidden'; inpCena.name = 'cena'; inpCena.value = cenaFixed;
+        form.appendChild(inpCena);
+        document.body.appendChild(form);
+        form.submit();
     }
     
     // Zamknij modal klikając poza nim

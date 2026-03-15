@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+venv/
+.venv/
+
+# Environment / secrets
+.env
+.secret_key
+gemini_config.py
+
+# Database (mounted as volume)
+*.db
+*.db-wal
+*.db-shm
+
+# Backups (mounted as volume)
+backups/
+cloud_exports/
+
+# Logs
+logs/
+
+# IDE / tools
+.claude/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore

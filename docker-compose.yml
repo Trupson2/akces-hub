@@ -1,0 +1,55 @@
+# ============================================================
+# AKCES HUB - Docker Compose (produkcja)
+# ============================================================
+# Uruchomienie:  docker compose up -d
+# Logi:          docker compose logs -f akces-hub
+# Rebuild:       docker compose up -d --build
+# ============================================================
+
+services:
+  akces-hub:
+    build: .
+    container_name: akces-hub
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - akces-data:/app/data
+      - akces-backups:/app/backups
+      - akces-cloud:/app/cloud_exports
+      - akces-logs:/app/logs
+    env_file:
+      - .env
+    environment:
+      - FLASK_ENV=production
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ---------------------------------------------------------
+  # Ngrok tunnel (opcjonalny - odkomentuj aby wlaczyc)
+  # Wymaga NGROK_AUTHTOKEN w pliku .env
+  # ---------------------------------------------------------
+  # ngrok:
+  #   image: ngrok/ngrok:latest
+  #   container_name: akces-ngrok
+  #   restart: unless-stopped
+  #   command:
+  #     - "http"
+  #     - "akces-hub:5000"
+  #     - "--domain=${NGROK_DOMAIN:-}"
+  #   environment:
+  #     - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN:-}
+  #   ports:
+  #     - "4040:4040"
+  #   depends_on:
+  #     - akces-hub
+
+volumes:
+  akces-data:
+  akces-backups:
+  akces-cloud:
+  akces-logs:
