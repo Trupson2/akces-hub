@@ -849,18 +849,32 @@
                     return;
                 }
                 if (!response.ok) throw new Error('HTTP ' + response.status);
-                warehouseData = await response.json();
+
+                const text = await response.text();
+                console.log('📦 Raw response (first 200):', text.substring(0, 200));
+
+                try {
+                    warehouseData = JSON.parse(text);
+                } catch(parseErr) {
+                    throw new Error('Odpowiedź nie jest JSON - prawdopodobnie redirect na login');
+                }
+
                 if (warehouseData.error) throw new Error(warehouseData.error);
 
-                buildWarehouse();
-                updateStats();
-                updateShelfLabels();
+                console.log('📊 Data keys:', Object.keys(warehouseData));
+                console.log('📐 Layout:', JSON.stringify(warehouseData.layout).substring(0, 200));
+                console.log('📦 Shelves:', Object.keys(warehouseData.shelves || {}));
+
+                try { buildWarehouse(); } catch(e) { console.error('❌ buildWarehouse error:', e); throw e; }
+                try { updateStats(); } catch(e) { console.error('❌ updateStats error:', e); throw e; }
+                try { updateShelfLabels(); } catch(e) { console.error('❌ updateShelfLabels error:', e); throw e; }
 
                 document.getElementById('loading').style.display = 'none';
             } catch (error) {
                 console.error('Error loading data:', error);
                 document.getElementById('loading').innerHTML =
-                    '<p style="color: #e74c3c;">Błąd ładowania danych: ' + error.message + '</p>';
+                    '<p style="color: #e74c3c;">Błąd ładowania danych: ' + error.message + '</p>' +
+                    '<p style="color: #999; font-size: 12px; margin-top: 10px;">Sprawdź konsolę (F12) po szczegóły</p>';
             }
         }
 
