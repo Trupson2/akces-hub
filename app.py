@@ -4113,20 +4113,25 @@ def ustawienia():
         <!-- AKTUALIZACJA SYSTEMU -->
         <div style="margin-top:20px;padding:15px;background:rgba(34,197,94,0.05);border:1px solid rgba(34,197,94,0.2);border-radius:12px">
             <div style="font-weight:600;margin-bottom:10px;color:#22c55e">🔄 Aktualizacja systemu</div>
-            <div style="font-size:0.85rem;color:#94a3b8;margin-bottom:15px">
-                Wgraj paczkę ZIP z nową wersją. System wykona backup, rozpakuje pliki i zrestartuje Flask.
-            </div>
-            <form action="/admin/update" method="POST" enctype="multipart/form-data" onsubmit="return confirm('Aktualizowac system? Backup zostanie wykonany automatycznie.')">
-                <input type="file" name="update_zip" accept=".zip" required
-                    style="width:100%;padding:10px;background:rgba(30,30,50,0.5);border:1px solid rgba(100,100,140,0.3);border-radius:8px;color:#e2e8f0;margin-bottom:10px;font-size:0.9rem">
+
+            <!-- Git pull (glowna metoda) -->
+            <form action="/admin/update-git" method="POST" onsubmit="return confirm('Pobrac najnowsza wersje z GitHub?')" style="margin-bottom:12px">
                 <button type="submit" style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(34,197,94,0.2),rgba(22,163,74,0.2));border:1px solid rgba(34,197,94,0.3);border-radius:12px;color:#22c55e;font-weight:600;font-size:1rem;cursor:pointer">
-                    📦 Wgraj aktualizację
+                    🔄 Aktualizuj z GitHub (git pull)
                 </button>
             </form>
-            <div style="font-size:0.75rem;color:#64748b;margin-top:8px">
-                Z komputera: spakuj folder projektu do ZIP i wgraj tutaj.<br>
-                Pomijane: venv/, backups/, __pycache__/, *.db, *.pyc
-            </div>
+
+            <!-- ZIP upload (fallback) -->
+            <details style="margin-top:8px">
+                <summary style="color:#94a3b8;font-size:0.85rem;cursor:pointer">📦 Alternatywnie: wgraj ZIP reczne</summary>
+                <form action="/admin/update" method="POST" enctype="multipart/form-data" onsubmit="return confirm('Aktualizowac system? Backup zostanie wykonany automatycznie.')" style="margin-top:10px">
+                    <input type="file" name="update_zip" accept=".zip" required
+                        style="width:100%;padding:10px;background:rgba(30,30,50,0.5);border:1px solid rgba(100,100,140,0.3);border-radius:8px;color:#e2e8f0;margin-bottom:10px;font-size:0.9rem">
+                    <button type="submit" style="width:100%;padding:12px;background:rgba(30,30,50,0.5);border:1px solid rgba(100,100,140,0.3);border-radius:12px;color:#94a3b8;font-weight:600;font-size:0.9rem;cursor:pointer">
+                        📦 Wgraj ZIP
+                    </button>
+                </form>
+            </details>
         </div>
 
         <!-- DANGER ZONE -->
@@ -6265,6 +6270,106 @@ def ustawienia_branding():
     set_config('brand_color', brand_color)
     invalidate_config_cache()
     return redirect('/ustawienia')
+
+
+@app.route('/admin/update-git', methods=['POST'])
+def admin_update_git():
+    """Aktualizacja systemu — git pull + pip install + restart"""
+    import subprocess
+    from html import escape
+
+    if session.get('rola') != 'admin':
+        return 'Brak uprawnien', 403
+
+    page_style = 'background:#0a0a0f;color:#e2e8f0;font-family:monospace;padding:40px;white-space:pre-wrap'
+    logs = []
+    back = '<a href="/ustawienia" style="color:#818cf8;text-decoration:none">← Powrot do ustawien</a>'
+
+    try:
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # 1. Backup bazy
+        logs.append('[1/4] Backup bazy...')
+        db_path = os.path.join(app_dir, 'akces_hub.db')
+        if os.path.exists(db_path):
+            import sqlite3 as sq
+            from datetime import datetime as dt
+            backup_dir = os.path.join(app_dir, 'backups')
+            os.makedirs(backup_dir, exist_ok=True)
+            ts = dt.now().strftime('%Y%m%d_%H%M%S')
+            bp = os.path.join(backup_dir, f'pre_update_{ts}.db')
+            src = sq.connect(db_path)
+            dst = sq.connect(bp)
+            src.backup(dst)
+            dst.close()
+            src.close()
+            logs.append(f'  -> Backup OK ({os.path.getsize(bp)/1024/1024:.1f} MB)')
+        else:
+            logs.append('  -> Brak bazy')
+
+        # 2. Git pull
+        logs.append('[2/4] Git pull...')
+        if not os.path.isdir(os.path.join(app_dir, '.git')):
+            logs.append('  -> Brak repo git. Inicjalizuje...')
+            subprocess.run(['git', 'init'], cwd=app_dir, capture_output=True, timeout=10)
+            subprocess.run(['git', 'remote', 'add', 'origin', 'https://github.com/Trupson2/akces-hub.git'],
+                         cwd=app_dir, capture_output=True, timeout=10)
+
+        r = subprocess.run(['git', 'pull', '--ff-only', 'origin', 'main'],
+                          cwd=app_dir, capture_output=True, text=True, timeout=60)
+        if r.returncode == 0:
+            logs.append(f'  -> {r.stdout.strip()}')
+        else:
+            # Try with reset if ff-only fails
+            subprocess.run(['git', 'fetch', 'origin'], cwd=app_dir, capture_output=True, timeout=60)
+            r2 = subprocess.run(['git', 'reset', '--hard', 'origin/main'],
+                               cwd=app_dir, capture_output=True, text=True, timeout=30)
+            if r2.returncode == 0:
+                logs.append(f'  -> Reset do origin/main OK')
+            else:
+                logs.append(f'  -> Git error: {r.stderr[:200]}')
+
+        # 3. Pip install
+        logs.append('[3/4] Pip install...')
+        req = os.path.join(app_dir, 'requirements.txt')
+        venv_pip = os.path.join(app_dir, 'venv', 'bin', 'pip')
+        if os.path.exists(req) and os.path.exists(venv_pip):
+            r = subprocess.run([venv_pip, 'install', '-r', req, '--quiet'],
+                              capture_output=True, text=True, timeout=120)
+            logs.append('  -> OK' if r.returncode == 0 else f'  -> {r.stderr[:100]}')
+        else:
+            logs.append('  -> Pomijam')
+
+        # 4. Restart
+        logs.append('[4/4] Restart Flask...')
+        r = subprocess.run(['sudo', 'systemctl', 'restart', 'akceshub.service'],
+                          capture_output=True, text=True, timeout=30)
+        if r.returncode == 0:
+            logs.append('  -> OK!')
+        else:
+            logs.append(f'  -> {r.stderr[:200]}')
+
+        logs.append('')
+        logs.append('AKTUALIZACJA ZAKONCZONA!')
+
+        content = escape('\n'.join(logs))
+        return f'''<html><head><meta charset="UTF-8"></head>
+        <body style="{page_style}">
+        <h2 style="color:#22c55e">Aktualizacja zakonczona!</h2>
+        <pre style="font-size:0.85rem">{content}</pre>
+        <p style="color:#94a3b8;margin-top:20px">Strona moze byc niedostepna przez kilka sekund po restarcie.</p>
+        {back}
+        </body></html>'''
+
+    except Exception as e:
+        logs.append(f'BLAD: {e}')
+        content = escape('\n'.join(logs))
+        return f'''<html><head><meta charset="UTF-8"></head>
+        <body style="{page_style}">
+        <h2 style="color:#ef4444">Blad aktualizacji</h2>
+        <pre style="font-size:0.85rem">{content}</pre>
+        {back}
+        </body></html>'''
 
 
 @app.route('/admin/update', methods=['POST'])
