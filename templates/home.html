@@ -128,36 +128,36 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
         <a href="/analityka" style="font-size:0.7rem;color:#3b82f6;text-decoration:none">Szczegóły →</a>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;margin-bottom:12px">
-        <div style="background:#0a2218;border:1px solid #22c55e33;border-radius:10px;padding:12px 8px">
+        <a href="/sprzedaze" style="text-decoration:none;background:#0a2218;border:1px solid #22c55e33;border-radius:10px;padding:12px 8px;transition:transform 0.15s,border-color 0.15s" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='#22c55e'" onmouseout="this.style.transform='';this.style.borderColor='#22c55e33'">
             <div style="font-size:1.3rem;font-weight:800;color:#22c55e">{{ monthly.przychod }} <span style="font-size:0.7rem">zł</span></div>
             <div style="font-size:0.65rem;color:#64748b;margin-top:2px">PRZYCHÓD</div>
-        </div>
-        <div style="background:#1c0010;border:1px solid #ef444433;border-radius:10px;padding:12px 8px">
+        </a>
+        <a href="/analityka/palety" style="text-decoration:none;background:#1c0010;border:1px solid #ef444433;border-radius:10px;padding:12px 8px;transition:transform 0.15s,border-color 0.15s" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='#ef4444'" onmouseout="this.style.transform='';this.style.borderColor='#ef444433'">
             <div style="font-size:1.3rem;font-weight:800;color:#f87171">{{ monthly.cogs }} <span style="font-size:0.7rem">zł</span></div>
             <div style="font-size:0.65rem;color:#64748b;margin-top:2px">KOSZT (COGS)</div>
-        </div>
-        <div style="background:#0a1a2e;border:1px solid #3b82f633;border-radius:10px;padding:12px 8px">
+        </a>
+        <a href="/analityka" style="text-decoration:none;background:#0a1a2e;border:1px solid #3b82f633;border-radius:10px;padding:12px 8px;transition:transform 0.15s,border-color 0.15s" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='#3b82f6'" onmouseout="this.style.transform='';this.style.borderColor='#3b82f633'">
             <div style="font-size:1.3rem;font-weight:800;color:#60a5fa">{{ monthly.zysk }} <span style="font-size:0.7rem">zł</span></div>
             <div style="font-size:0.65rem;color:#64748b;margin-top:2px">ZYSK</div>
-        </div>
+        </a>
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">
-        <div>
+        <a href="/analityka" style="text-decoration:none;padding:6px;border-radius:8px;transition:background 0.15s" onmouseover="this.style.background='#1e1e2e'" onmouseout="this.style.background='transparent'">
             <div style="font-size:0.95rem;font-weight:700;color:#a78bfa">{{ monthly.prowizja }} zł</div>
             <div style="font-size:0.6rem;color:#475569">Prowizja 11%</div>
-        </div>
-        <div>
+        </a>
+        <a href="/analityka" style="text-decoration:none;padding:6px;border-radius:8px;transition:background 0.15s" onmouseover="this.style.background='#1e1e2e'" onmouseout="this.style.background='transparent'">
             <div style="font-size:0.95rem;font-weight:700;color:#22c55e">{{ monthly.roi }}%</div>
             <div style="font-size:0.6rem;color:#475569">ROI</div>
-        </div>
-        <div>
+        </a>
+        <a href="/magazyn" style="text-decoration:none;padding:6px;border-radius:8px;transition:background 0.15s" onmouseover="this.style.background='#1e1e2e'" onmouseout="this.style.background='transparent'">
             <div style="font-size:0.95rem;font-weight:700;color:#f59e0b">{{ monthly.magazyn_wartosc }} zł</div>
             <div style="font-size:0.6rem;color:#475569">Magazyn</div>
-        </div>
-        <div>
+        </a>
+        <a href="/sprzedaze?status=zwrot" style="text-decoration:none;padding:6px;border-radius:8px;transition:background 0.15s" onmouseover="this.style.background='#1e1e2e'" onmouseout="this.style.background='transparent'">
             <div style="font-size:0.95rem;font-weight:700;color:#ef4444">{{ monthly.zwroty_cnt }}</div>
             <div style="font-size:0.6rem;color:#475569">Zwrotów</div>
-        </div>
+        </a>
     </div>
 </div>
 {% endif %}
