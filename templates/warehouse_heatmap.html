@@ -878,64 +878,43 @@
                 return;
             }
             
-            // FALLBACK: Stary hardcoded layout
+            // FALLBACK: Auto-layout z flat arrays
             console.log('📐 Rendering DEFAULT layout');
-            const config = warehouseData.config;
-            
-            // Parametry wizualne
-            const shelfSpacing = 4;      // Odstęp między regałami w rzędzie
-            const shelfWidth = 3;         // Szerokość półki w 3D
-            const shelfHeight = 2;        // Wysokość półki w 3D
-            const shelfDepth = 1.5;       // Głębokość półki w 3D
-            const corridorWidth = 12;     // Szerokość korytarza
 
-            // Renderuj SEKCJĘ 1 (główne U)
-            if (layout.section_1) {
-                // Lewa ściana (A-D) - 4 regały
-                layout.section_1.left_wall.forEach((shelfName, idx) => {
-                    const locations = warehouseData.shelves[shelfName];
-                    const xPos = -corridorWidth / 2 - 2;
-                    const zPos = -15 + (idx * shelfSpacing);
-                    renderShelf(shelfName, locations, xPos, zPos);
-                });
-                
-                // Prawa ściana (E-G) - 3 regały
-                layout.section_1.right_wall.forEach((shelfName, idx) => {
-                    const locations = warehouseData.shelves[shelfName];
-                    const xPos = corridorWidth / 2 + 2;
-                    const zPos = -15 + (idx * shelfSpacing);
-                    renderShelf(shelfName, locations, xPos, zPos);
-                });
-                
-                // Tył (H-L) - 5 regałów
-                layout.section_1.back_wall.forEach((shelfName, idx) => {
-                    const locations = warehouseData.shelves[shelfName];
-                    const xPos = -10 + (idx * shelfSpacing);
-                    const zPos = 5;
-                    renderShelf(shelfName, locations, xPos, zPos);
-                });
+            const shelfSpacing = 4;
+            const corridorWidth = 12;
+
+            function renderSection(shelfNames, offsetZ) {
+                if (!shelfNames || !Array.isArray(shelfNames)) return;
+                const count = shelfNames.length;
+                // Rozłóż regały w kształcie U: lewa, tył, prawa
+                const leftCount = Math.ceil(count / 3);
+                const rightCount = Math.ceil((count - leftCount) / 2);
+                const backCount = count - leftCount - rightCount;
+
+                let idx = 0;
+                // Lewa ściana
+                for (let i = 0; i < leftCount; i++) {
+                    const name = shelfNames[idx++];
+                    const locations = warehouseData.shelves[name];
+                    renderShelf(name, locations, -corridorWidth / 2 - 2, offsetZ + i * shelfSpacing);
+                }
+                // Prawa ściana
+                for (let i = 0; i < rightCount; i++) {
+                    const name = shelfNames[idx++];
+                    const locations = warehouseData.shelves[name];
+                    renderShelf(name, locations, corridorWidth / 2 + 2, offsetZ + i * shelfSpacing);
+                }
+                // Tył
+                for (let i = 0; i < backCount; i++) {
+                    const name = shelfNames[idx++];
+                    const locations = warehouseData.shelves[name];
+                    renderShelf(name, locations, -10 + i * shelfSpacing, offsetZ + Math.max(leftCount, rightCount) * shelfSpacing);
+                }
             }
-            
-            // Renderuj SEKCJĘ 2 (dodatkowa część)
-            if (layout.section_2) {
-                const section2OffsetZ = 15; // Przesunięcie sekcji 2
-                
-                // Lewa ściana (M-N) - 2 regały
-                layout.section_2.left_wall.forEach((shelfName, idx) => {
-                    const locations = warehouseData.shelves[shelfName];
-                    const xPos = -corridorWidth / 2 - 2;
-                    const zPos = section2OffsetZ + (idx * shelfSpacing);
-                    renderShelf(shelfName, locations, xPos, zPos);
-                });
-                
-                // Prawa ściana (P-S) - 4 regały
-                layout.section_2.right_wall.forEach((shelfName, idx) => {
-                    const locations = warehouseData.shelves[shelfName];
-                    const xPos = corridorWidth / 2 + 2;
-                    const zPos = section2OffsetZ + (idx * shelfSpacing);
-                    renderShelf(shelfName, locations, xPos, zPos);
-                });
-            }
+
+            renderSection(layout.section_1, -15);
+            renderSection(layout.section_2, 15);
             
             function renderShelf(shelfName, locations, xPos, zPos) {
                 if (!locations) return;
