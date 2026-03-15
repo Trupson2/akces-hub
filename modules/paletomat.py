@@ -751,7 +751,7 @@ def get_stats():
         'scraped': conn.execute('SELECT COUNT(*) FROM scraped').fetchone()[0],
         'aktywne': conn.execute('SELECT COUNT(*) FROM oferty WHERE status="aktywna"').fetchone()[0],
         'sprzedane': conn.execute('SELECT COUNT(*) FROM sprzedaze').fetchone()[0],
-        'przychod': conn.execute('SELECT COALESCE(SUM(CASE WHEN status != "zwrot" THEN cena*ilosc ELSE 0 END), 0) FROM sprzedaze').fetchone()[0],
+        'przychod': round(conn.execute('SELECT COALESCE(SUM(CASE WHEN status != "zwrot" THEN cena*ilosc ELSE 0 END), 0) FROM sprzedaze').fetchone()[0]),
     }
     _pal_stats_cache['data'] = stats
     _pal_stats_cache['time'] = _time.time()
