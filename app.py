@@ -4084,9 +4084,12 @@ def ustawienia():
         </div>
 
         <!-- UŻYTKOWNICY -->
-        <div style="margin-top:20px">
+        <div style="margin-top:20px;display:grid;gap:10px">
             <a href="/auth/users" style="display:block;text-align:center;padding:14px;background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(139,92,246,0.2));border:1px solid rgba(99,102,241,0.3);border-radius:12px;color:#818cf8;text-decoration:none;font-weight:600;font-size:1rem">
                 👥 Zarządzanie użytkownikami
+            </a>
+            <a href="/auth/zmien-haslo" style="display:block;text-align:center;padding:14px;background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(234,179,8,0.1));border:1px solid rgba(245,158,11,0.3);border-radius:12px;color:#f59e0b;text-decoration:none;font-weight:600;font-size:1rem">
+                🔒 Zmień hasło
             </a>
         </div>
 

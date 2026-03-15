@@ -317,6 +317,82 @@ def logout():
     return redirect(url_for('auth.login'))
 
 
+@auth_bp.route('/zmien-haslo', methods=['GET', 'POST'])
+def zmien_haslo():
+    """Zmiana hasła zalogowanego użytkownika"""
+    if not session.get('user_id'):
+        return redirect(url_for('auth.login'))
+
+    error = None
+    success = None
+
+    if request.method == 'POST':
+        stare = request.form.get('old_password', '')
+        nowe = request.form.get('new_password', '')
+        nowe2 = request.form.get('new_password2', '')
+
+        conn = _get_auth_db()
+        user = conn.execute('SELECT password_hash FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+
+        if not user:
+            error = 'Nie znaleziono użytkownika'
+        elif not _verify_password(stare, user['password_hash']):
+            error = 'Nieprawidłowe obecne hasło'
+        elif len(nowe) < 8:
+            error = 'Nowe hasło musi mieć minimum 8 znaków'
+        elif nowe != nowe2:
+            error = 'Nowe hasła nie są identyczne'
+        elif stare == nowe:
+            error = 'Nowe hasło musi być inne niż obecne'
+        else:
+            conn.execute('UPDATE users SET password_hash = ? WHERE id = ?',
+                         (_hash_password(nowe), session['user_id']))
+            conn.commit()
+            success = 'Hasło zmienione pomyślnie!'
+        conn.close()
+
+    html = '''<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Zmiana hasła</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0a0f;color:#e2e8f0;
+     display:flex;align-items:center;justify-content:center;min-height:100vh}
+.card{background:#12121a;border:1px solid #1e1e2e;border-radius:16px;padding:40px;
+      width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+h1{font-size:1.5rem;margin-bottom:24px;text-align:center}
+label{display:block;font-size:0.85rem;color:#94a3b8;margin-bottom:6px;margin-top:16px}
+input{width:100%;padding:12px;background:#1a1a2e;border:1px solid #2a2a3a;border-radius:8px;
+      color:#e2e8f0;font-size:1rem}
+input:focus{outline:none;border-color:#667eea}
+button{width:100%;padding:14px;background:linear-gradient(135deg,#667eea,#764ba2);
+       border:none;border-radius:8px;color:#fff;font-size:1rem;font-weight:600;
+       cursor:pointer;margin-top:24px}
+button:hover{opacity:0.9}
+.error{background:#ef444422;border:1px solid #ef4444;color:#fca5a5;padding:12px;
+       border-radius:8px;margin-bottom:16px;font-size:0.9rem}
+.success{background:#22c55e22;border:1px solid #22c55e;color:#86efac;padding:12px;
+         border-radius:8px;margin-bottom:16px;font-size:0.9rem}
+.back{display:block;text-align:center;margin-top:16px;color:#64748b;text-decoration:none;font-size:0.85rem}
+.back:hover{color:#e2e8f0}
+</style></head><body>
+<div class="card">
+    <h1>🔒 Zmiana hasła</h1>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    {% if success %}<div class="success">{{ success }}</div>{% endif %}
+    <form method="POST">
+        <label>Obecne hasło</label>
+        <input type="password" name="old_password" required autofocus>
+        <label>Nowe hasło (min. 8 znaków)</label>
+        <input type="password" name="new_password" required minlength="8">
+        <label>Powtórz nowe hasło</label>
+        <input type="password" name="new_password2" required minlength="8">
+        <button type="submit">Zmień hasło</button>
+    </form>
+    <a href="/ustawienia" class="back">← Wróć do ustawień</a>
+</div></body></html>'''
+    return render_template_string(html, error=error, success=success)
+
+
 # ============================================================
 # ZARZĄDZANIE UŻYTKOWNIKAMI (tylko admin)
 # ============================================================
