@@ -770,20 +770,54 @@ def get_full_stats():
         else:
             stats['srednia_zamowienie'] = 0
         
-        # === ZYSK SZACOWANY (miesiąc) ===
-        # Zysk = Przychód ze sprzedaży - Koszt palet w miesiącu - Prowizja Allegro (11%)
-        # UWAGA: cena_brutto/cena_netto w produktach to ceny detaliczne (MSRP/Amazon),
-        # NIE koszt zakupu! Prawdziwy koszt to cena_zakupu z tabeli palety.
+        # === ZYSK SZACOWANY (miesiąc) — model COGS ===
+        # Zysk = Przychód ze sprzedaży - Koszt SPRZEDANYCH produktów - Prowizja Allegro (11%)
+        # Koszt per produkt = paleta.cena_zakupu / łączna ilość sztuk z palety
+        # Dzięki temu: sprzedajesz w marcu produkt z palety kupionej w styczniu
+        # → koszt ląduje w marcu (kiedy sprzedałeś), nie w styczniu (kiedy kupiłeś)
         prowizja_msc = stats['sprzedaz_miesiac_suma'] * 0.11
 
-        # Koszt = suma cen zakupu palet kupionych w tym miesiącu
-        # To najprostsze i najdokładniejsze podejście bo:
-        # 1) Większość sprzedaży z Allegro nie ma produkt_id (brak powiązania)
-        # 2) ilosc_produktow to unikalne typy, nie sztuki (np. 1 typ = 42 szt)
-        koszt_sprzedanych = koszt_palet_msc  # z wcześniejszego query (linia ~438)
+        # COGS = koszt sprzedanych produktów w tym miesiącu
+        # Dla każdej sprzedaży: koszt = paleta.cena_zakupu / ilość_sztuk_z_palety
+        cogs_row = conn.execute('''
+            SELECT COALESCE(SUM(
+                CASE
+                    WHEN pal.cena_zakupu > 0 AND pal_total.total_szt > 0
+                    THEN (pal.cena_zakupu / pal_total.total_szt) * s.ilosc
+                    ELSE 0
+                END
+            ), 0) as cogs
+            FROM sprzedaze s
+            LEFT JOIN produkty p ON s.produkt_id = p.id
+            LEFT JOIN palety pal ON p.paleta_id = pal.id
+            LEFT JOIN (
+                SELECT pr.paleta_id,
+                    COALESCE(SUM(pr.ilosc), 0)
+                    + COALESCE(SUM(pr.sprzedano_offline), 0)
+                    + COALESCE((
+                        SELECT SUM(sp2.ilosc) FROM sprzedaze sp2
+                        JOIN produkty pp2 ON sp2.produkt_id = pp2.id
+                        WHERE pp2.paleta_id = pr.paleta_id
+                        AND sp2.status NOT IN ('zwrot','anulowane','anulowana')
+                    ), 0) as total_szt
+                FROM produkty pr GROUP BY pr.paleta_id
+            ) pal_total ON pal_total.paleta_id = pal.id
+            WHERE date(s.data_sprzedazy) >= ?
+            AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        ''', (month_start,)).fetchone()
+        cogs_miesiac = cogs_row['cogs'] or 0
+
+        # Jeśli COGS = 0 (brak powiązań produkt→paleta), fallback na koszt palet
+        # To zabezpieczenie na wypadek gdy sprzedaże nie mają produkt_id
+        if cogs_miesiac > 0:
+            koszt_sprzedanych = cogs_miesiac
+        else:
+            koszt_sprzedanych = koszt_palet_msc  # fallback
 
         stats['zysk_miesiac'] = stats['sprzedaz_miesiac_suma'] - koszt_sprzedanych - prowizja_msc
         stats['koszt_sprzedanych_msc'] = koszt_sprzedanych
+        stats['cogs_miesiac'] = cogs_miesiac
+        stats['koszt_palet_msc'] = koszt_palet_msc  # do porównania
 
         # ROI miesięczny (zysk / koszt * 100)
         if koszt_sprzedanych > 0:

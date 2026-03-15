@@ -120,6 +120,48 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
     </div>
 </div>
 
+<!-- ═══════════ STATY MIESIĄCA (admin) ═══════════ -->
+{% if session.get('rola') == 'admin' and monthly %}
+<div style="background:#12121a;border:1px solid #1e1e2e;border-radius:14px;padding:16px;margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-weight:700;font-size:0.8rem;color:#64748b">📊 {{ miesiac_nazwa }} — WYNIK</span>
+        <a href="/analityka" style="font-size:0.7rem;color:#3b82f6;text-decoration:none">Szczegóły →</a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;margin-bottom:12px">
+        <div style="background:#0a2218;border:1px solid #22c55e33;border-radius:10px;padding:12px 8px">
+            <div style="font-size:1.3rem;font-weight:800;color:#22c55e">{{ monthly.przychod }} <span style="font-size:0.7rem">zł</span></div>
+            <div style="font-size:0.65rem;color:#64748b;margin-top:2px">PRZYCHÓD</div>
+        </div>
+        <div style="background:#1c0010;border:1px solid #ef444433;border-radius:10px;padding:12px 8px">
+            <div style="font-size:1.3rem;font-weight:800;color:#f87171">{{ monthly.cogs }} <span style="font-size:0.7rem">zł</span></div>
+            <div style="font-size:0.65rem;color:#64748b;margin-top:2px">KOSZT (COGS)</div>
+        </div>
+        <div style="background:#0a1a2e;border:1px solid #3b82f633;border-radius:10px;padding:12px 8px">
+            <div style="font-size:1.3rem;font-weight:800;color:#60a5fa">{{ monthly.zysk }} <span style="font-size:0.7rem">zł</span></div>
+            <div style="font-size:0.65rem;color:#64748b;margin-top:2px">ZYSK</div>
+        </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">
+        <div>
+            <div style="font-size:0.95rem;font-weight:700;color:#a78bfa">{{ monthly.prowizja }} zł</div>
+            <div style="font-size:0.6rem;color:#475569">Prowizja 11%</div>
+        </div>
+        <div>
+            <div style="font-size:0.95rem;font-weight:700;color:#22c55e">{{ monthly.roi }}%</div>
+            <div style="font-size:0.6rem;color:#475569">ROI</div>
+        </div>
+        <div>
+            <div style="font-size:0.95rem;font-weight:700;color:#f59e0b">{{ monthly.magazyn_wartosc }} zł</div>
+            <div style="font-size:0.6rem;color:#475569">Magazyn</div>
+        </div>
+        <div>
+            <div style="font-size:0.95rem;font-weight:700;color:#ef4444">{{ monthly.zwroty_cnt }}</div>
+            <div style="font-size:0.6rem;color:#475569">Zwrotów</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- ═══════════ SZYBKIE AKCJE ═══════════ -->
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
     <a href="/wysylki/allegro" style="text-decoration:none;text-align:center;padding:14px 8px;background:#12121a;border:1px solid #1e1e2e;border-radius:12px">

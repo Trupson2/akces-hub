@@ -1672,6 +1672,21 @@ def home():
         resp.set_cookie('kiosk_mode', '1', max_age=365*24*3600)
         return resp
 
+    # Statystyki COGS do dashboardu
+    monthly_stats = {
+        'przychod': f"{miesiac_kwota:.0f}",
+        'cogs': f"{stats.get('cogs_miesiac', 0):.0f}",
+        'koszt_palet': f"{stats.get('koszt_palet_msc', 0):.0f}",
+        'prowizja': f"{miesiac_kwota * 0.11:.0f}",
+        'zysk': f"{stats.get('zysk_miesiac', 0):.0f}",
+        'roi': f"{stats.get('roi_miesiac', 0):.0f}",
+        'zwroty_cnt': stats.get('zwroty_miesiac_cnt', 0),
+        'zwroty_suma': f"{stats.get('zwroty_miesiac_suma', 0):.0f}",
+        'magazyn_wartosc': f"{stats.get('magazyn_wartosc', 0):.0f}",
+        'magazyn_sztuki': stats.get('magazyn_sztuki', 0),
+        'stojace': stats.get('stojace_30dni', 0),
+    }
+
     resp = make_response(render_template('home.html',
         version=VERSION,
         today_date=datetime.now().strftime('%d.%m.%Y'),
@@ -1683,6 +1698,7 @@ def home():
         unread_count=2,
         activity=activity,
         goal=goal,  # Hyundai i30 N Goal
+        monthly=monthly_stats,
         top_produkty=stats.get('top_produkty', []),
         top_dostawcy=stats.get('top_dostawcy', []),
         active_home='active', active_magazyn='', active_paletomat='',

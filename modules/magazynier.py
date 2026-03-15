@@ -366,89 +366,73 @@ def index():
     conn = get_db()
     products = conn.execute('SELECT * FROM produkty ORDER BY data_dodania DESC LIMIT 10').fetchall()
     
+    # Helper do renderowania kafelka
+    def tile(href, icon, label, value, bg='#1e293b', border='', valcolor='#3b82f6'):
+        bdr = f'border:1px solid {border};' if border else ''
+        return f'''<a href="{href}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 8px;background:{bg};{bdr}border-radius:12px;color:#fff;text-decoration:none;gap:4px;transition:transform 0.15s,box-shadow 0.15s" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+            <span style="font-size:1.5rem">{icon}</span>
+            <span style="font-size:0.75rem;font-weight:600">{label}</span>
+            <span style="font-size:0.7rem;color:{valcolor};font-weight:700">{value}</span>
+        </a>'''
+
     html = f'''
     <div class="hdr"><h1>📦 MAGAZYNIER</h1><small>{get_config_cached("brand_name", "AKCES HUB")}</small></div>
-    
+
+    <!-- STATYSTYKI -->
     <div class="stats">
-        <div class="stat"><div class="stat-v">{s['produkty']}</div><div class="stat-l">Produktów</div></div>
+        <div class="stat"><div class="stat-v">{s['produkty']}</div><div class="stat-l">Produktow</div></div>
         <div class="stat"><div class="stat-v">{s['sztuki']}</div><div class="stat-l">Sztuk</div></div>
         <div class="stat">
-            <div class="stat-v green">{s['wartosc_zakupu']:.0f} zł</div>
-            <div class="stat-l">💰 Brutto</div>
-            <div style="font-size:0.65rem;color:#64748b">(netto: {s['wartosc_netto']:.0f} zł)</div>
+            <div class="stat-v green">{s['wartosc_zakupu']:.0f} zl</div>
+            <div class="stat-l">Wartosc (brutto)</div>
+            <div style="font-size:0.65rem;color:#64748b">netto: {s['wartosc_netto']:.0f} zl</div>
         </div>
-        <div class="stat"><div class="stat-v green">{s['wartosc_allegro']:.0f} zł</div><div class="stat-l">💵 Allegro</div></div>
+        <div class="stat"><div class="stat-v green">{s['wartosc_allegro']:.0f} zl</div><div class="stat-l">Allegro</div></div>
     </div>
-    
-    <a href="/magazyn/skaner" class="btn btn-ok" style="font-size:1.1rem;padding:14px;margin-bottom:12px">📷 SKANER KODÓW</a>
-    
-    <div class="search"><form action="/magazyn/szukaj" method="GET">
-        <input type="text" name="q" placeholder="EAN / ASIN / MAG-kod / nazwa...">
-        <button>🔍</button>
+
+    <!-- SZUKAJ + SKANER -->
+    <div class="search"><form action="/magazyn/szukaj" method="GET" style="display:flex;gap:8px">
+        <input type="text" name="q" placeholder="EAN / ASIN / MAG-kod / nazwa..." style="flex:1">
+        <button type="submit" style="padding:14px 18px;background:var(--blue);border:none;border-radius:8px;color:#fff;font-size:1.2rem;cursor:pointer">🔍</button>
+        <a href="/magazyn/skaner" style="padding:14px 18px;background:#22c55e;border-radius:8px;color:#fff;font-size:1.2rem;display:flex;align-items:center;text-decoration:none" title="Skaner kodow">📷</a>
     </form></div>
-    
-    <div style="display:flex;gap:8px;margin-bottom:12px">
-        <a href="/magazyn/import" class="btn btn-p" style="flex:1;padding:10px">📥 Import</a>
-        <a href="/magazyn/export" class="btn btn-ok" style="flex:1;padding:10px">📤 Export</a>
-        <a href="/magazyn/fetch-images" class="btn btn-warn" style="flex:1;padding:10px">📷 Zdjęcia</a>
+
+    <!-- GLOWNE -->
+    <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin:16px 0 8px;padding-left:4px">Magazyn</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        {tile('/magazyn/produkty', '📋', 'PRODUKTY', f"{s['produkty']}", '#1e293b')}
+        {tile('/magazyn/palety', '📦', 'PALETY', f"{s['palety']}", '#2d1b69', '', '#a78bfa')}
+        {tile('/warehouse/shelves', '🗄️', 'REGALY', 'mapa + QR', '#1a0a30', '#7c3aed44', '#7c3aed')}
     </div>
-    
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        <a href="/magazyn/produkty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;background:#1e293b;border-radius:12px;color:#fff;text-decoration:none;gap:4px">
-            <span style="font-size:1.4rem">📋</span>
-            <span style="font-size:0.75rem;font-weight:600">PRODUKTY</span>
-            <span style="font-size:0.7rem;color:#3b82f6;font-weight:700">{s['produkty']}</span>
-        </a>
-        <a href="/magazyn/palety" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;background:#2d1b69;border-radius:12px;color:#fff;text-decoration:none;gap:4px">
-            <span style="font-size:1.4rem">📦</span>
-            <span style="font-size:0.75rem;font-weight:600">PALETY</span>
-            <span style="font-size:0.7rem;color:#a78bfa;font-weight:700">{s['palety']}</span>
-        </a>
-        <a href="/statystyki" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;background:#1c1600;border:1px solid #eab30844;border-radius:12px;color:#fff;text-decoration:none;gap:4px">
-            <span style="font-size:1.4rem">📊</span>
-            <span style="font-size:0.75rem;font-weight:600">STATYSTYKI</span>
-            <span style="font-size:0.7rem;color:#eab308;font-weight:700">stats</span>
-        </a>
-        <a href="/magazyn/statystyki-zakupow" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;background:#001c2d;border:1px solid #0ea5e944;border-radius:12px;color:#fff;text-decoration:none;gap:4px">
-            <span style="font-size:1.4rem">🛒</span>
-            <span style="font-size:0.75rem;font-weight:600">ZAKUPY</span>
-            <span style="font-size:0.7rem;color:#0ea5e9;font-weight:700">stats</span>
-        </a>
-        <a href="/magazyn/lezaki" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;background:#1c0a00;border:1px solid #f9731644;border-radius:12px;color:#fff;text-decoration:none;gap:4px">
-            <span style="font-size:1.4rem">⏳</span>
-            <span style="font-size:0.75rem;font-weight:600">LEŻAKI</span>
-            <span style="font-size:0.7rem;color:#f97316;font-weight:700">zalegające</span>
-        </a>
-        <a href="/magazyn/dostawcy" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;background:#1e293b;border-radius:12px;color:#fff;text-decoration:none;gap:4px">
-            <span style="font-size:1.4rem">🚚</span>
-            <span style="font-size:0.75rem;font-weight:600">DOSTAWCY</span>
-            <span style="font-size:0.7rem;color:#64748b;font-weight:700">{s['dostawcy']}</span>
-        </a>
-        <a href="/magazyn/koszty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;background:#1c0010;border:1px solid #f43f5e44;border-radius:12px;color:#fff;text-decoration:none;gap:4px">
-            <span style="font-size:1.4rem">💸</span>
-            <span style="font-size:0.75rem;font-weight:600">KOSZTY</span>
-            <span style="font-size:0.7rem;color:#f43f5e;font-weight:700">wydatki</span>
-        </a>
-        <a href="/magazyn/sprzedaz-prywatna" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;background:#1a0a2e;border:1px solid #8b5cf644;border-radius:12px;color:#fff;text-decoration:none;gap:4px">
-            <span style="font-size:1.4rem">🤝</span>
-            <span style="font-size:0.75rem;font-weight:600">PRYWATNA</span>
-            <span style="font-size:0.7rem;color:#8b5cf6;font-weight:700">sprzedaż</span>
-        </a>
-        <a href="/magazyn/remanent" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;background:#0a1a25;border:1px solid #0369a144;border-radius:12px;color:#fff;text-decoration:none;gap:4px">
-            <span style="font-size:1.4rem">📋</span>
-            <span style="font-size:0.75rem;font-weight:600">REMANENT</span>
-            <span style="font-size:0.7rem;color:#0369a1;font-weight:700">Excel</span>
-        </a>
-        <a href="/warehouse/shelves" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;background:#1a0a30;border:1px solid #7c3aed44;border-radius:12px;color:#fff;text-decoration:none;gap:4px">
-            <span style="font-size:1.4rem">🗄️</span>
-            <span style="font-size:0.75rem;font-weight:600">REGALY</span>
-            <span style="font-size:0.7rem;color:#7c3aed;font-weight:700">mapa + QR</span>
-        </a>
+
+    <!-- ANALITYKA -->
+    <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin:16px 0 8px;padding-left:4px">Analityka</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        {tile('/statystyki', '📊', 'STATYSTYKI', 'przegladaj', '#1c1600', '#eab30844', '#eab308')}
+        {tile('/magazyn/statystyki-zakupow', '🛒', 'ZAKUPY', 'analiza', '#001c2d', '#0ea5e944', '#0ea5e9')}
+        {tile('/magazyn/lezaki', '⏳', 'LEZAKI', 'zalegajace', '#1c0a00', '#f9731644', '#f97316')}
     </div>
-    <a href="/magazyn/backup" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;background:#0a2218;border:1px solid #22c55e44;border-radius:12px;color:#22c55e;text-decoration:none;font-size:0.8rem;font-weight:600;margin-bottom:8px">
-        💾 BACKUP & PRZYWRACANIE
-    </a>
-    
+
+    <!-- OPERACJE -->
+    <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin:16px 0 8px;padding-left:4px">Operacje</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        {tile('/magazyn/dostawcy', '🚚', 'DOSTAWCY', f"{s['dostawcy']}", '#1e293b', '', '#64748b')}
+        {tile('/magazyn/koszty', '💸', 'KOSZTY', 'wydatki', '#1c0010', '#f43f5e44', '#f43f5e')}
+        {tile('/magazyn/sprzedaz-prywatna', '🤝', 'PRYWATNA', 'sprzedaz', '#1a0a2e', '#8b5cf644', '#8b5cf6')}
+    </div>
+
+    <!-- NARZEDZIA -->
+    <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin:16px 0 8px;padding-left:4px">Narzedzia</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        {tile('/magazyn/import', '📥', 'IMPORT', 'CSV/dane', '#0a1a25', '#3b82f644', '#3b82f6')}
+        {tile('/magazyn/export', '📤', 'EXPORT', 'pobierz', '#0a2518', '#22c55e44', '#22c55e')}
+        {tile('/magazyn/fetch-images', '🖼️', 'ZDJECIA', 'pobierz', '#1c1600', '#eab30844', '#eab308')}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+        {tile('/magazyn/remanent', '📋', 'REMANENT', 'Excel', '#0a1a25', '#0369a144', '#0369a1')}
+        {tile('/magazyn/backup', '💾', 'BACKUP', 'przywroc', '#0a2218', '#22c55e44', '#22c55e')}
+    </div>
+
     <div class="section">🕐 OSTATNIO DODANE</div>
     '''
     

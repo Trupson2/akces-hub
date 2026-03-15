@@ -384,17 +384,16 @@ def analityka_dashboard():
         LEFT JOIN produkty p2 ON o.produkt_id = p2.id
         LEFT JOIN palety pal ON COALESCE(p.paleta_id, p2.paleta_id) = pal.id
         LEFT JOIN (
-            SELECT pal2.id as paleta_id,
-                   CASE
-                       WHEN COALESCE(SUM(s2.ilosc), 0) > pal2.ilosc_produktow
-                       THEN COALESCE(SUM(s2.ilosc), 0)
-                       ELSE pal2.ilosc_produktow
-                   END as sale_cnt
-            FROM palety pal2
-            LEFT JOIN produkty p3 ON p3.paleta_id = pal2.id
-            LEFT JOIN sprzedaze s2 ON s2.produkt_id = p3.id
-                AND s2.status NOT IN ('anulowana', 'zwrot')
-            GROUP BY pal2.id
+            SELECT pr.paleta_id,
+                COALESCE(SUM(pr.ilosc), 0)
+                + COALESCE(SUM(pr.sprzedano_offline), 0)
+                + COALESCE((
+                    SELECT SUM(sp2.ilosc) FROM sprzedaze sp2
+                    JOIN produkty pp2 ON sp2.produkt_id = pp2.id
+                    WHERE pp2.paleta_id = pr.paleta_id
+                    AND sp2.status NOT IN ('zwrot','anulowane','anulowana')
+                ), 0) as sale_cnt
+            FROM produkty pr GROUP BY pr.paleta_id
         ) sc ON pal.id = sc.paleta_id
         WHERE s.status NOT IN ('anulowana', 'zwrot')
     ''').fetchall()
@@ -495,7 +494,18 @@ def analityka_dashboard():
         FROM sprzedaze s
         LEFT JOIN produkty p2 ON s.produkt_id = p2.id
         LEFT JOIN palety pal ON p2.paleta_id = pal.id
-        LEFT JOIN (SELECT paleta_id, SUM(COALESCE(ilosc, 1)) as total_szt FROM produkty GROUP BY paleta_id) pal_sum ON p2.paleta_id = pal_sum.paleta_id
+        LEFT JOIN (
+            SELECT pr.paleta_id,
+                COALESCE(SUM(pr.ilosc), 0)
+                + COALESCE(SUM(pr.sprzedano_offline), 0)
+                + COALESCE((
+                    SELECT SUM(sp2.ilosc) FROM sprzedaze sp2
+                    JOIN produkty pp2 ON sp2.produkt_id = pp2.id
+                    WHERE pp2.paleta_id = pr.paleta_id
+                    AND sp2.status NOT IN ('zwrot','anulowane','anulowana')
+                ), 0) as total_szt
+            FROM produkty pr GROUP BY pr.paleta_id
+        ) pal_sum ON p2.paleta_id = pal_sum.paleta_id
         WHERE s.status NOT IN ('anulowana', 'zwrot')
         AND s.nazwa IS NOT NULL AND s.nazwa != ''
         GROUP BY s.nazwa
