@@ -42,7 +42,6 @@ HYBRID_AI_TEMPLATES = [
     (2, 'wym'),      # Wymiary — AI dorysowuje linie pomiarowe
     (6, 'uzycie'),   # W uzyciu — AI generuje kontekst
     (7, 'life'),     # Lifestyle — AI generuje scenerie
-    (8, 'skala'),    # Skala — AI generuje porownanie
 ]
 
 

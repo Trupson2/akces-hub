@@ -30,8 +30,8 @@ def _get_extract_allegro_params():
 
 
 def _get_auto_kategoryzuj():
-    """Pobiera auto_kategoryzuj z głównego modułu app"""
-    from app import auto_kategoryzuj
+    """Pobiera auto_kategoryzuj z shared (unika circular import)"""
+    from modules.shared import auto_kategoryzuj
     return auto_kategoryzuj
 
 

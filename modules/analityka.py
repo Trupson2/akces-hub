@@ -321,7 +321,7 @@ def analityka_dashboard():
     """Dashboard analityczny - mapa kupujących i rentowność kategorii"""
     from modules.database import get_db
     from modules.database import get_config_cached
-    from app import auto_kategoryzuj, KATEGORIE_DISPLAY
+    from modules.shared import auto_kategoryzuj, KATEGORIE_DISPLAY
     from collections import defaultdict
     import re
     
@@ -1488,8 +1488,8 @@ def analityka_palety():
 def analityka_kategorie():
     """Masowa edycja kategorii produktów"""
     from modules.database import get_db, get_config_cached
-    from app import auto_kategoryzuj, KATEGORIE_DISPLAY
-    
+    from modules.shared import auto_kategoryzuj, KATEGORIE_DISPLAY
+
     conn = get_db()
     
     # Pobierz wszystkie produkty z ich kategoriami
@@ -1750,7 +1750,7 @@ def analityka_kategorie_bulk_update():
 def analityka_kategorie_auto():
     """Automatycznie kategoryzuj wszystkie produkty"""
     from modules.database import get_db
-    from app import auto_kategoryzuj
+    from modules.shared import auto_kategoryzuj
     
     conn = get_db()
     produkty = conn.execute('SELECT id, nazwa, kategoria FROM produkty').fetchall()

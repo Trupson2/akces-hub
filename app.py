@@ -361,12 +361,12 @@ TYLKO JSON:"""
             'params': {}
         }
 
-def auto_kategoryzuj(nazwa):
-    """Automatycznie przypisz kategorię na podstawie nazwy produktu.
+# auto_kategoryzuj i KATEGORIE_DISPLAY przeniesione do modules/shared.py
+from modules.shared import auto_kategoryzuj, KATEGORIE_DISPLAY  # noqa: E402
 
-    WAŻNE: Kolejność sprawdzania ma znaczenie! Najpierw sprawdzamy specyficzne
-    wielowyrazowe frazy (żeby uniknąć false positives z krótkich słów),
-    potem bardziej ogólne kategorie.
+def _REMOVED_auto_kategoryzuj_SKIP(nazwa):
+    """USUNIĘTA - przeniesiona do modules/shared.py
+    Oryginalna funkcja ~600 linii - teraz importowana z shared.
     """
     nazwa_lower = (nazwa or '').lower()
     if not nazwa_lower.strip():
@@ -965,8 +965,8 @@ def auto_kategoryzuj(nazwa):
 
     return 'inne'
 
-# Słownik kategorii do wyświetlania
-KATEGORIE_DISPLAY = {
+# USUNIĘTE - przeniesione do modules/shared.py (importowane powyżej)
+_OLD_KATEGORIE_DISPLAY = {
     'ev_ladowarki': '⚡ Ładowarki EV',
     'foto_video': '📸 Foto/Video',
     'druk3d': '🖨️ Druk 3D',

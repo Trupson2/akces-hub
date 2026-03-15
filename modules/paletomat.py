@@ -3692,7 +3692,7 @@ def generator_enhance_gallery():
                         if (f.endswith('.jpg') or f.endswith('.png'))
                         and os.path.getsize(os.path.join(full_dir, f)) > 1024]
             # Sortuj w logicznej kolejności (nie alfabetycznie!)
-            _img_order = ['mini', 'det', 'zest', 'kat2', 'wym', 'uzycie', 'life', 'skala']
+            _img_order = ['mini', 'det', 'zest', 'kat2', 'wym', 'uzycie', 'life']
             imgs = sorted(_all_imgs, key=lambda f: (
                 _img_order.index(f.rsplit('.', 1)[0]) if f.rsplit('.', 1)[0] in _img_order else 99
             ))
@@ -3719,7 +3719,7 @@ def generator_enhance_gallery():
 
     # Template nazwy plików
     tpl_labels = {'mini': '📸 Miniaturka', 'wym': '🤖 Wymiary', 'det': '📸 Detale', 'zest': '📸 Zestaw',
-                  'kat2': '📸 Drugi kąt', 'uzycie': '🤖 W użyciu', 'life': '🤖 Lifestyle', 'skala': '🤖 Skala'}
+                  'kat2': '📸 Drugi kąt', 'uzycie': '🤖 W użyciu', 'life': '🤖 Lifestyle'}
 
     html = f'''
     <div class="hdr"><h1>🖼 GALERIA ZDJĘĆ AI</h1><small>{len(products)} produktów z wygenerowanymi zdjęciami</small></div>
