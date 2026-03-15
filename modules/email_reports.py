@@ -507,6 +507,9 @@ def generate_daily_report():
                    7:'Lipiec',8:'Sierpien',9:'Wrzesien',10:'Pazdziernik',11:'Listopad',12:'Grudzien'}
     mies_nazwa = MIESIACE_PL.get(today.month, 'Miesiac')
 
+    from .database import get_config
+    brand_name = get_config('brand_name', 'AKCES HUB')
+
     html = f'''
 <!DOCTYPE html>
 <html>
@@ -516,7 +519,7 @@ def generate_daily_report():
 
     <!-- HEADER -->
     <div style="background:linear-gradient(135deg,#0f172a,#1e1b2e);color:white;padding:25px;text-align:center">
-        <div style="font-size:24px;font-weight:800">AKCES HUB</div>
+        <div style="font-size:24px;font-weight:800">{brand_name}</div>
         <div style="font-size:13px;opacity:0.7;margin-top:5px">Raport poranny - {today.strftime('%d.%m.%Y')} ({['pon','wt','sr','czw','pt','sob','niedz'][today.weekday()]})</div>
     </div>
 
