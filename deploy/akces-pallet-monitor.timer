@@ -1,0 +1,16 @@
+[Unit]
+Description=Pallet Monitor - co godzine skan palet
+
+[Timer]
+# Co godzine o :00
+OnCalendar=*-*-* *:00:00
+# Dodatkowe skany Jobalots 8:30 i 13:00
+OnCalendar=*-*-* 08:30:00
+OnCalendar=*-*-* 13:00:00
+# Dodatkowe skany co 5 min w peak hours
+OnCalendar=*-*-* 10:00..59/5:00
+OnCalendar=*-*-* 16:00..59/5:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

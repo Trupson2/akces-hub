@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="header">
+    <h1>⚡ NARZĘDZIA</h1>
+    <small>Quick Wins</small>
+</div>
+
+<a href="/analytics/dashboard" class="tool-card" style="display:block;margin-bottom:12px">
+    <div class="tool-icon">📊</div>
+    <div class="tool-name">Dashboard KPI</div>
+    <div class="tool-desc">Statystyki, trendy, porównania sprzedaży</div>
+</a>
+
+<a href="/analytics/kalkulator-palety" class="tool-card" style="display:block;margin-bottom:12px">
+    <div class="tool-icon">🧮</div>
+    <div class="tool-name">Kalkulator opłacalności</div>
+    <div class="tool-desc">Oszacuj zysk przed zakupem palety</div>
+</a>
+
+<a href="/narzedzia/kalkulator" class="tool-card" style="display:block;margin-bottom:12px">
+    <div class="tool-icon">💰</div>
+    <div class="tool-name">Kalkulator marży</div>
+    <div class="tool-desc">Oblicz cenę sprzedaży z prowizją Allegro</div>
+</a>
+
+<a href="/narzedzia/generator" class="tool-card" style="display:block;margin-bottom:12px">
+    <div class="tool-icon">✨</div>
+    <div class="tool-name">Generator opisów AI</div>
+    <div class="tool-desc">Automatyczne opisy produktów po polsku</div>
+</a>
+
+<a href="/narzedzia/export" class="tool-card" style="display:block;margin-bottom:12px">
+    <div class="tool-icon">📤</div>
+    <div class="tool-name">Export do Allegro</div>
+    <div class="tool-desc">Generuj CSV do masowego wystawiania</div>
+</a>
+
+<a href="/narzedzia/raporty" class="tool-card" style="display:block;margin-bottom:12px">
+    <div class="tool-icon">📈</div>
+    <div class="tool-name">Raporty ROI</div>
+    <div class="tool-desc">Statystyki i zyski per paleta</div>
+</a>
+
+<a href="/narzedzia/cloud-export" class="tool-card" style="display:block;margin-bottom:12px">
+    <div class="tool-icon">☁️</div>
+    <div class="tool-name">Eksport do chmury</div>
+    <div class="tool-desc">CSV do Google Drive / Dropbox</div>
+</a>
+
+<a href="/" class="back">← Powrót</a>
+{% endblock %}

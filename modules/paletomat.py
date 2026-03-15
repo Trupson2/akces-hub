@@ -1,0 +1,6755 @@
+"""
+Paletomat module - scraper Amazon + generator ofert Allegro
+"""
+
+import os
+import re
+import json
+import sqlite3
+import threading
+import time
+from datetime import datetime
+from flask import Blueprint, render_template_string, request, redirect, jsonify, Response
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from .database import get_db, query_db, execute_db, get_config, set_config
+from .utils import get_amazon_image_url, oblicz_cene_allegro, generuj_opis_ai, generuj_opis_html_pro, scrape_amazon_product, optimize_title_seo, translate_product_name, generuj_gpsr_info
+from .inventory_utils import SmartQuantityParser
+from .title_generator_ai import generate_allegro_title_ai
+
+paletomat_bp = Blueprint('paletomat', __name__)
+
+
+def _ensure_local_images(wszystkie_zdjecia, asin, zdjecie_url=''):
+    """
+    Sprawdza czy lokalne ścieżki zdjęć istnieją.
+    Jeśli nie, re-downloaduje z CDN lub Amazona.
+    Zwraca: (lista_zdjec, log_messages)
+    """
+    logs = []
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    import requests as _req
+    _dl_headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+        'Referer': 'https://www.google.com/',
+    }
+
+    # --- Sprawdź istniejące pliki/URL-e ---
+    if wszystkie_zdjecia:
+        first_img = wszystkie_zdjecia[0] if wszystkie_zdjecia else ''
+
+        # Już URL-e - zwróć TYLKO jeśli mamy 2+ (jedno to za mało, spróbuj więcej)
+        if first_img.startswith('http') and len(wszystkie_zdjecia) >= 2:
+            return wszystkie_zdjecia, logs
+
+        # Lokalne ścieżki - sprawdź czy pliki istnieją i nie są puste
+        if not first_img.startswith('http'):
+            existing = []
+            for img in wszystkie_zdjecia:
+                norm = os.path.normpath(img)
+                if os.path.exists(norm) and os.path.getsize(norm) > 500:
+                    existing.append(norm)
+                else:
+                    abs_path = os.path.normpath(os.path.join(base_dir, img))
+                    if os.path.exists(abs_path) and os.path.getsize(abs_path) > 500:
+                        existing.append(abs_path)
+
+            if existing and len(existing) >= 2:
+                return existing, logs
+
+    # --- Pliki nie istnieją lub brak listy - pobierz ---
+
+    # KROK 1: Sprawdź cached CDN URLs w tabeli scraped
+    cached_downloaded = []
+    if asin:
+        try:
+            _conn = get_db()
+            _scraped = _conn.execute(
+                'SELECT wszystkie_zdjecia FROM scraped WHERE asin = ?', (asin,)
+            ).fetchone()
+            if _scraped and _scraped['wszystkie_zdjecia']:
+                cached_urls = json.loads(_scraped['wszystkie_zdjecia'])
+                if isinstance(cached_urls, list) and cached_urls:
+                    cdn_urls = [u for u in cached_urls if isinstance(u, str) and u.startswith('http')]
+                    if len(cdn_urls) >= 2:
+                        # Mamy 2+ URL-i w cache - pobierz je
+                        logs.append((f'📷 Znaleziono {len(cdn_urls)} zdjęć w cache (scraped)', '#8b5cf6'))
+                        asin_dir = os.path.join(base_dir, 'static', 'downloads', str(asin))
+                        os.makedirs(asin_dir, exist_ok=True)
+                        for i, url in enumerate(cdn_urls[:8], 1):
+                            try:
+                                resp = _req.get(url, headers=_dl_headers, timeout=15)
+                                if resp.status_code == 200 and len(resp.content) > 1000:
+                                    fpath = os.path.join(asin_dir, f"image_{i}.jpg")
+                                    with open(fpath, 'wb') as fw:
+                                        fw.write(resp.content)
+                                    cached_downloaded.append(fpath)
+                            except:
+                                pass
+                        if cached_downloaded:
+                            logs.append((f'✅ Pobrano {len(cached_downloaded)} zdjęć z cache CDN', '#22c55e'))
+                            return cached_downloaded, logs
+                        else:
+                            logs.append(('📷 Użyję URL-i CDN bezpośrednio', '#3b82f6'))
+                            return cdn_urls[:8], logs
+                    # Tylko 1 URL w cache - nie wracaj, spróbuj scrapować więcej (KROK 3)
+        except:
+            pass
+
+    # KROK 2: Pobierz główne zdjęcie z CDN (zabezpieczenie - przynajmniej 1 zdjęcie)
+    cdn_fallback_path = None
+    if zdjecie_url and zdjecie_url.startswith('http'):
+        try:
+            asin_dir = os.path.join(base_dir, 'static', 'downloads', str(asin or 'misc'))
+            os.makedirs(asin_dir, exist_ok=True)
+            resp = _req.get(zdjecie_url, headers=_dl_headers, timeout=15)
+            if resp.status_code == 200 and len(resp.content) > 1000:
+                cdn_fallback_path = os.path.join(asin_dir, "image_1.jpg")
+                with open(cdn_fallback_path, 'wb') as fw:
+                    fw.write(resp.content)
+                logs.append((f'✅ Pobrano główne zdjęcie z CDN ({len(resp.content)//1024} KB)', '#22c55e'))
+        except:
+            pass
+
+    if not asin:
+        if cdn_fallback_path:
+            return [cdn_fallback_path], logs
+        if zdjecie_url and zdjecie_url.startswith('http'):
+            return [zdjecie_url], [('📷 Użyję URL bezpośrednio (bez lokalnego cache)', '#3b82f6')]
+        return [], [('❌ Lokalne zdjęcia nie istnieją, brak ASIN', '#ef4444')]
+
+    # KROK 3: Scrapuj Amazon po WIĘCEJ zdjęć (amazon.pl priorytet)
+    logs.append(('🌍 Scrapuję Amazon po więcej zdjęć (amazon.pl priorytet)...', '#eab308'))
+    try:
+        from .utils import scrape_amazon_product as _scrape
+        amazon_data = _scrape(asin)
+        if amazon_data and amazon_data.get('all_images'):
+            amazon_urls = amazon_data['all_images']
+
+            # Zapisz CDN URL-e do scraped table (cache na przyszłość)
+            try:
+                _conn = get_db()
+                _conn.execute(
+                    'UPDATE scraped SET wszystkie_zdjecia = ? WHERE asin = ?',
+                    (json.dumps(amazon_urls[:8]), asin)
+                )
+                _conn.commit()
+                logs.append((f'💾 Zapisano {len(amazon_urls[:8])} URL-i CDN do cache', '#8b5cf6'))
+            except:
+                pass
+
+            asin_dir = os.path.join(base_dir, 'static', 'downloads', str(asin))
+            os.makedirs(asin_dir, exist_ok=True)
+
+            nowe = []
+            for i, url in enumerate(amazon_urls[:8], 1):
+                try:
+                    resp = _req.get(url, headers=_dl_headers, timeout=15)
+                    if resp.status_code == 200 and len(resp.content) > 1000:
+                        fpath = os.path.join(asin_dir, f"image_{i}.jpg")
+                        with open(fpath, 'wb') as fw:
+                            fw.write(resp.content)
+                        nowe.append(fpath)
+                except:
+                    pass
+
+            if nowe:
+                logs.append((f'✅ Pobrano {len(nowe)} zdjęć z Amazon', '#22c55e'))
+                return nowe, logs
+            else:
+                logs.append((f'📷 Użyję {len(amazon_urls[:8])} URL-i bezpośrednio', '#3b82f6'))
+                return amazon_urls[:8], logs
+        else:
+            # Scraping nie zwrócił zdjęć - fallback
+            if cdn_fallback_path:
+                return [cdn_fallback_path], logs
+            if zdjecie_url and zdjecie_url.startswith('http'):
+                return [zdjecie_url], logs
+    except Exception as e:
+        logs.append((f'❌ Scrape error: {str(e)[:50]}', '#ef4444'))
+
+    # Fallback - przynajmniej główne zdjęcie
+    if cdn_fallback_path:
+        return [cdn_fallback_path], logs
+    if zdjecie_url and zdjecie_url.startswith('http'):
+        return [zdjecie_url], [('📷 Fallback na główne zdjęcie URL', '#eab308')]
+    return [], logs
+
+
+def auto_kategoryzuj(nazwa):
+    """Automatycznie przypisz kategorię na podstawie nazwy produktu"""
+    nazwa_lower = (nazwa or '').lower()
+    
+    # EV / Ładowarki samochodowe (priorytet!)
+    if any(word in nazwa_lower for word in ['wallbox', 'ev ', ' ev', 'evse', 'ev charger', 'type 2', 'type2', 'type-2',
+        'ccs', 'chademo', 'tesla', 'charging station', 'stacja ładowania', 'ładowarka samochod', 'ładowarka ev',
+        'electric vehicle', 'elektromobil', 'green cell ev', 'juice booster', 'go-e', 'easee', 'zappi',
+        'mennekes', 'j1772', 'nema', '11kw', '22kw', '7kw', '3.6kw', '32a', '16a']):
+        return 'ev_ladowarki'
+    
+    # 📸 Foto / Video / Streaming
+    if any(word in nazwa_lower for word in ['softbox', 'ring light', 'lampa pierścieniowa', 'pierścieniowa', 
+        'tło fotograficzne', 'tlo fotograficzne', 'backdrop', 'greenscreen', 'green screen',
+        'gopro', 'insta360', 'dji', 'osmo', 'action cam', 'kamera sportowa',
+        'smallrig', 'cage', 'rig ', 'stabilizator', 'steadycam', 'follow focus',
+        'mikrofon', 'microphone', 'lavalier', 'shotgun mic', 'rode', 'boya',
+        'teleprompter', 'prompter', 'stojak na tło', 'statyw oświetleniowy', 'light stand',
+        'reflektor', 'panel led', 'oświetlenie fotograficzne', 'oświetlenie studyjne',
+        'transmisja', 'streaming', 'capture card', 'elgato', 'cam link']):
+        return 'foto_video'
+    
+    # 🖨️ Druk 3D
+    if any(word in nazwa_lower for word in ['filament', 'pla', 'abs', 'petg', 'tpu', 'drukarka 3d', '3d printer',
+        'druk 3d', 'nozzle', 'dysza', 'hotend', 'extruder', 'bed ', 'stół grzewczy', 'creality', 'ender',
+        'prusa', 'anycubic', 'elegoo', 'resin', 'żywica', 'szpula']):
+        return 'druk3d'
+    
+    # 📹 Smart Home / Monitoring
+    if any(word in nazwa_lower for word in ['kamera ip', 'kamera wifi', 'kamera wlan', 'monitoring', 'cctv',
+        'ezviz', 'hikvision', 'dahua', 'reolink', 'imou', 'tapo', 'arlo',
+        'smart home', 'smarthome', 'inteligentny dom', 'czujnik ruchu', 'pir',
+        'wideodomofon', 'domofon', 'dzwonek wifi', 'ring doorbell', 'alarm']):
+        return 'smart_home'
+    
+    # 🚗 Motoryzacja (rozszerzona - kamera cofania!)
+    if any(word in nazwa_lower for word in ['samochod', 'samochód', 'auto ', ' auto', 'car ', 'obd', 'diagnosty',
+        'koło', 'opona', 'silnik', 'akumulator', 'kamera cofania', 'cofania', 'backup camera', 'reversing',
+        'dash cam', 'dashcam', 'rejestrator jazdy', 'wideorejestrator', 'parkowania', 'czujnik parkowania',
+        'cb radio', 'nawigacja gps', 'uchwyt samochodowy', 'ładowarka samochodowa', 'car charger']):
+        return 'motoryzacja'
+    
+    # AGD małe
+    if any(word in nazwa_lower for word in ['mikser', 'blender', 'toster', 'czajnik', 'kettle', 'odkurzacz', 'vacuum',
+        'żelazko', 'iron', 'suszarka', 'dryer', 'golarki', 'shaver', 'depilator', 'maszynka', 'robot kuchenny',
+        'ekspres', 'coffee', 'frytkownica', 'air fryer', 'grill', 'opiekacz', 'mikrofala', 'microwave',
+        'robot sprzątający', 'roomba', 'roborock']):
+        return 'agd_male'
+    
+    # AGD duże
+    if any(word in nazwa_lower for word in ['lodówka', 'fridge', 'pralka', 'washing', 'zmywarka', 'dishwasher',
+        'piekarnik', 'oven', 'kuchenka', 'cooker', 'klimatyzator', 'air condition', 'freezer', 'zamrażar']):
+        return 'agd_duze'
+    
+    # Komputery / IT
+    if any(word in nazwa_lower for word in ['laptop', 'notebook', 'komputer', 'computer', 'pc ', ' pc', 'monitor',
+        'klawiatura', 'keyboard', 'myszka', 'mouse', 'drukarka', 'printer', 'skaner', 'scanner', 'ssd', 'hdd',
+        'ram ', ' ram', 'procesor', 'cpu', 'gpu', 'grafika', 'płyta główna', 'motherboard', 'nas ', 'server']):
+        return 'komputery'
+    
+    # Telefony / Smartfony
+    if any(word in nazwa_lower for word in ['smartfon', 'smartphone', 'iphone', 'samsung galaxy', 'xiaomi', 'redmi',
+        'huawei', 'oppo', 'realme', 'oneplus', 'google pixel', 'telefon', 'mobile phone', 'cell phone']):
+        return 'telefony'
+    
+    # Akcesoria elektroniczne (rozszerzona - statywy, selfie)
+    if any(word in nazwa_lower for word in ['ładowarka', 'charger', 'kabel', 'cable', 'słuchawki', 'headphone', 'earbuds',
+        'powerbank', 'power bank', 'bluetooth', 'adapter', 'przejściówka', 'hub usb', 'dock', 'stacja dokująca',
+        'etui', 'case', 'folia', 'szkło', 'uchwyt', 'holder', 'statyw', 'tripod', 'gimbal', 'selfi', 'selfie',
+        'monopod', 'stick', 'okular', 'obiektyw', 'lens', 'filtr']):
+        return 'akcesoria'
+    
+    # RTV / Audio-Video
+    if any(word in nazwa_lower for word in ['telewizor', 'tv ', ' tv', 'soundbar', 'głośnik', 'speaker', 'kino domowe',
+        'projektor', 'projector', 'odtwarzacz', 'player', 'amplituner', 'wzmacniacz', 'subwoofer', 'radio',
+        'dvd', 'blu-ray', 'chromecast', 'fire stick', 'apple tv', 'roku']):
+        return 'rtv'
+    
+    # Gaming
+    if any(word in nazwa_lower for word in ['playstation', 'ps4', 'ps5', 'xbox', 'nintendo', 'switch', 'konsola',
+        'gamepad', 'kontroler', 'joystick', 'gaming', 'gra ', ' gra', 'vr ', 'oculus', 'quest', 'pad perkusyjny']):
+        return 'gaming'
+    
+    # Narzędzia
+    if any(word in nazwa_lower for word in ['wiertarka', 'drill', 'wkrętarka', 'screwdriver', 'szlifierka', 'grinder',
+        'piła', 'saw', 'młotek', 'hammer', 'klucz', 'wrench', 'zestaw narzędzi', 'tool kit', 'kompresor',
+        'spawarka', 'welder', 'lutownica', 'multimetr', 'poziomica']):
+        return 'narzedzia'
+    
+    # Dom i ogród
+    if any(word in nazwa_lower for word in ['meble', 'furniture', 'ogród', 'garden', 
+        'dywan', 'carpet', 'zasłon', 'curtain', 'doniczk', 'plant', 'sofa', 'krzesło', 'chair', 'stół', 'table',
+        'kosiarka', 'mower', 'podkaszarka', 'trimmer', 'wąż ogrodowy', 'grill ogrodowy', 'parasol']):
+        return 'dom_ogrod'
+    
+    # Sport / Fitness (rozszerzona - walkingpad, bieżnia)
+    if any(word in nazwa_lower for word in ['rower', 'bike', 'hulajnoga', 'scooter', 'rolki', 'skate', 'siłownia',
+        'hantle', 'dumbbell', 'bieżnia', 'treadmill', 'orbitrek', 'rowerek', 'mata', 'yoga', 'fitness',
+        'walkingpad', 'walking pad', 'stepper', 'kettlebell', 'gryf', 'sztanga', 'ćwiczeni']):
+        return 'sport'
+    
+    # Zabawki / Dzieci
+    if any(word in nazwa_lower for word in ['zabawka', 'toy', 'klocki', 'lego', 'lalka', 'doll', 'pluszak', 'gra planszowa',
+        'puzzle', 'samochodzik', 'kolejka', 'dziecięc', 'child', 'baby', 'wózek']):
+        return 'zabawki'
+    
+    # Moda
+    if any(word in nazwa_lower for word in ['buty', 'shoes', 'ubrani', 'cloth', 'koszul', 'shirt', 'spodni', 'pants',
+        'sukienk', 'dress', 'kurtk', 'jacket', 'bluza', 'sweater', 'czapk', 'hat', 'torebk', 'bag', 'plecak']):
+        return 'moda'
+    
+    # Zdrowie / Uroda
+    if any(word in nazwa_lower for word in ['masażer', 'massager', 'ciśnieniomierz', 'termometr', 'inhalator',
+        'szczoteczka', 'toothbrush', 'suszarka do włosów', 'prostownica', 'lokówka', 'trymer']):
+        return 'zdrowie'
+    
+    # Zwierzęta
+    if any(word in nazwa_lower for word in ['karma', 'pet food', 'obroża', 'smycz', 'klatka', 'akwarium', 'terrarium',
+        'legowisko', 'kuweta', 'transporter', 'drapak']):
+        return 'zwierzeta'
+    
+    return 'inne'
+
+
+# Stan scrapera
+_scraper_running = False
+_processing_queue = []
+
+# 🚜 KOMBAJN MODE: Ustawienia równoległego przetwarzania
+# AUTO-DETECTION sprzętu dla optymalnej wydajności (opcjonalne)
+
+def detect_optimal_workers():
+    """
+    Pi = 2 workery (mniej CPU, mniej grzania)
+    PC = 5 workerów
+    """
+    import platform
+    if platform.machine().startswith('a') or 'arm' in platform.machine().lower():
+        return 2  # Raspberry Pi — oszczędzaj CPU
+    return 5  # PC
+
+# MAX_WORKERS: liczba równoległych zapytań do Amazon
+MAX_WORKERS = detect_optimal_workers()
+PROGRESS = {'current': 0, 'total': 0, 'errors': 0}
+
+def process_single_product(asin, position, total, preferred_domain=None):
+    """
+    Przetwarza pojedynczy produkt (dla ThreadPoolExecutor).
+
+    Args:
+        asin: Kod ASIN produktu
+        position: Numer produktu w kolejce
+        total: Całkowita liczba produktów
+        preferred_domain: np. 'co.uk', 'de', 'com'
+
+    Returns:
+        (asin, success, error_msg)
+    """
+    try:
+        print(f"\n{'='*50}")
+        print(f"🚜 [{position}/{total}] Processing: {asin}")
+        print(f"{'='*50}")
+
+        # Pobierz dane z Amazona
+        amazon_data = scrape_amazon_product(asin, preferred_domain=preferred_domain)
+        if not amazon_data:
+            print(f"⚠️ Could not scrape: {asin}")
+            return (asin, False, "Scraping failed")
+        
+        nazwa = amazon_data.get('title', '') or f'Produkt {asin}'
+        # Przetłumacz nazwę na polski
+        nazwa = translate_product_name(nazwa)
+        zdjecie_url = amazon_data.get('image_url', '') or get_amazon_image_url(asin)
+        wszystkie_zdjecia = amazon_data.get('all_images', []) or [zdjecie_url]
+        cena_amazon = amazon_data.get('price', 0) or 0
+        bullet_points = amazon_data.get('bullet_points', [])
+        product_specs = amazon_data.get('product_specs', {})
+        # Auto-kategoryzacja na podstawie nazwy produktu
+        kategoria = auto_kategoryzuj(nazwa)
+        
+        print(f"✅ Scraped: {nazwa[:50]}...")
+        print(f"📸 Images: {len(wszystkie_zdjecia)}")
+        print(f"📝 Features: {len(bullet_points)}")
+
+        # 🚀 NATYCHMIAST zapisz nazwę do bazy (żeby nie było "Produkt B0...")
+        try:
+            conn = get_db()
+            conn.execute('UPDATE produkty SET nazwa=?, kategoria=?, zdjecie_url=? WHERE asin=? AND (nazwa LIKE "Produkt %" OR nazwa LIKE "%" || asin || "%")',
+                (nazwa, kategoria, zdjecie_url, asin))
+            conn.execute('UPDATE scraped SET nazwa=?, kategoria=? WHERE asin=?',
+                (nazwa, kategoria, asin))
+            conn.commit()
+            print(f"📝 Nazwa zapisana od razu: {nazwa[:50]}")
+        except Exception as e:
+            print(f"⚠️ Szybki zapis nazwy: {e}")
+
+        # 📥 POBIERZ WSZYSTKIE ZDJĘCIA LOKALNIE - NOWA ORGANIZACJA KATALOGÓW
+        lokalne_zdjecia = []
+        print(f"📥 Pobieram {len(wszystkie_zdjecia)} zdjęć lokalnie...")
+        
+        # Stwórz katalog dla ASIN
+        import os
+        asin_dir = os.path.join('static', 'downloads', str(asin))
+        os.makedirs(asin_dir, exist_ok=True)
+        
+        _img_headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+            'Referer': 'https://www.google.com/',
+        }
+        for idx, img_url in enumerate(wszystkie_zdjecia[:8], 1):  # Max 8, numeruj od 1
+            try:
+                # Pobierz zdjęcie
+                import requests
+                response = requests.get(img_url, headers=_img_headers, timeout=15)
+                if response.status_code == 200 and len(response.content) > 500:
+                    # Zapisz lokalnie w NOWEJ STRUKTURZE: static/downloads/{asin}/image_N.jpg
+                    local_filename = os.path.join(asin_dir, f"image_{idx}.jpg")
+                    with open(local_filename, 'wb') as f:
+                        f.write(response.content)
+                    lokalne_zdjecia.append(local_filename)
+                    print(f"   ✓ [{idx}/{len(wszystkie_zdjecia[:8])}] Pobrano: {local_filename}")
+                else:
+                    print(f"   ✗ [{idx}/{len(wszystkie_zdjecia[:8])}] HTTP {response.status_code}")
+            except Exception as e:
+                print(f"   ✗ [{idx}/{len(wszystkie_zdjecia[:8])}] Error: {str(e)[:50]}")
+        
+        print(f"✅ Pobrano {len(lokalne_zdjecia)}/{len(wszystkie_zdjecia[:8])} zdjęć lokalnie")
+
+        # Zachowaj CDN URL-e do zapisu w scraped (do ponownego pobrania w przyszłości)
+        cdn_urls_for_cache = [u for u in wszystkie_zdjecia[:8] if isinstance(u, str) and u.startswith('http')]
+
+        # Użyj lokalnych ścieżek zamiast URL (do aktualnego opisu)
+        wszystkie_zdjecia = lokalne_zdjecia if lokalne_zdjecia else [zdjecie_url]
+
+        # === HYBRID ENHANCE: Wyczyszczone oryginały (1-4) + AI (5-8) ===
+        # Cleaner usuwa WSZYSTKO: watermarki, loga, tekst niemiecki/chiński, infografiki
+        # Oryginał po czyszczeniu = prawdziwy produkt bez śmieci
+        try:
+            from .image_enhancer import enhance_single, prepare_original_photo, GEMINI_AVAILABLE as _ENH_SCRAPE
+            from .image_enhancer import HYBRID_ORIGINAL_SLOTS, HYBRID_AI_TEMPLATES
+            from .image_cleaner import clean_image_from_bytes
+
+            if _ENH_SCRAPE and lokalne_zdjecia:
+                print(f"✨ [{position}/{total}] HYBRID: oryginały + AI dla {asin}...")
+                _enh_dir = os.path.join('static', 'enhanced', str(asin))
+                os.makedirs(_enh_dir, exist_ok=True)
+                _enh_ok = []
+
+                # --- KROK 1: Wyczyść i zapisz oryginały na sloty 1-4 ---
+                _orig_count = 0
+                for _oi, _slot_name in enumerate(HYBRID_ORIGINAL_SLOTS):
+                    if _oi >= len(lokalne_zdjecia):
+                        break
+                    try:
+                        with open(lokalne_zdjecia[_oi], 'rb') as _bf:
+                            _raw = _bf.read()
+                        # Cleaner usuwa wszystko: loga, tekst, infografiki
+                        _cb, _cm, _ce = clean_image_from_bytes(_raw)
+                        _clean = _cb if _cb else _raw
+                        _prep, _perr = prepare_original_photo(_clean)
+                        if _prep:
+                            _epath = os.path.join(_enh_dir, f'{_slot_name}.jpg')
+                            with open(_epath, 'wb') as _sf:
+                                _sf.write(_prep)
+                            _enh_ok.append(_epath)
+                            _orig_count += 1
+                            print(f"   📸 [{_orig_count}] {_slot_name} — wyczyszczony oryginał ✅")
+                        else:
+                            print(f"   ⚠️ {_slot_name}: {str(_perr)[:40]}")
+                    except Exception as _oe:
+                        print(f"   ❌ {_slot_name}: {str(_oe)[:40]}")
+
+                # Brakujące sloty → AI
+                _missing = HYBRID_ORIGINAL_SLOTS[_orig_count:]
+                _slot_to_tpl = {'mini': 1, 'det': 3, 'zest': 4, 'kat2': 5}
+
+                # Baza do AI = wyczyszczony oryginał #1
+                with open(lokalne_zdjecia[0], 'rb') as _bf:
+                    _raw_base = _bf.read()
+                _cb_base, _, _ = clean_image_from_bytes(_raw_base)
+                _base_for_ai = _cb_base if _cb_base else _raw_base
+
+                for _ms in _missing:
+                    _tid = _slot_to_tpl.get(_ms, 1)
+                    try:
+                        _ed, _em, _ee = enhance_single(_base_for_ai, _tid, nazwa[:60])
+                        if _ed:
+                            from PIL import Image as _PImg
+                            from io import BytesIO as _BIO_s
+                            _eimg = _PImg.open(_BIO_s(_ed)).convert('RGB')
+                            _epath = os.path.join(_enh_dir, f'{_ms}.jpg')
+                            if max(_eimg.width, _eimg.height) < 2560:
+                                _ur = 2560 / max(_eimg.width, _eimg.height)
+                                _eimg = _eimg.resize((int(_eimg.width * _ur), int(_eimg.height * _ur)), _PImg.LANCZOS)
+                            _eimg.save(_epath, 'JPEG', quality=95)
+                            _enh_ok.append(_epath)
+                            print(f"   🤖 {_ms} — AI ✅")
+                    except Exception:
+                        pass
+                    time.sleep(0.5)
+
+                # --- KROK 2: AI generuje wymiary, uzycie, lifestyle, skala ---
+                for _tid, _tname in HYBRID_AI_TEMPLATES:
+                    try:
+                        _ed, _em, _ee = enhance_single(_base_for_ai, _tid, nazwa[:60])
+                        if _ed:
+                            from PIL import Image as _PImg
+                            from io import BytesIO as _BIO_s
+                            _eimg = _PImg.open(_BIO_s(_ed)).convert('RGB')
+                            _epath = os.path.join(_enh_dir, f'{_tname}.jpg')
+                            if max(_eimg.width, _eimg.height) < 2560:
+                                _ur = 2560 / max(_eimg.width, _eimg.height)
+                                _eimg = _eimg.resize((int(_eimg.width * _ur), int(_eimg.height * _ur)), _PImg.LANCZOS)
+                            _eimg.save(_epath, 'JPEG', quality=95)
+                            _enh_ok.append(_epath)
+                            print(f"   🤖 {_tname} — AI ✅")
+                    except Exception:
+                        pass
+                    time.sleep(0.5)
+
+                if _enh_ok:
+                    print(f"   ✅ {len(_enh_ok)}/8 zdjęć ({_orig_count} oryg + {len(_enh_ok)-_orig_count} AI)")
+                    wszystkie_zdjecia = _enh_ok[:8]
+                else:
+                    print(f"   ⚠️ Enhance nie powiódł się, oryginalne zdjęcia")
+        except Exception as _enhx_s:
+            print(f"   ⚠️ Enhance error: {str(_enhx_s)[:60]}")
+        
+        # 🚀 TURBO: Generuj tytuł SEO używając AI (Gemini)
+        # Import klucza z gemini_config.py (jak smart_importer)
+        try:
+            from gemini_config import GEMINI_API_KEY as gemini_key
+            has_gemini = bool(gemini_key and gemini_key != 'WKLEJ_TUTAJ_SWOJ_KLUCZ')
+        except ImportError:
+            # Fallback na config z DB (stary sposób)
+            gemini_key = get_config('gemini_api_key', '')
+            has_gemini = bool(gemini_key)
+        
+        if has_gemini:
+            print(f"🤖 [AI TITLE] Generuję tytuł przez Gemini...")
+            product_data_for_title = {
+                'nazwa': nazwa,
+                'bullet_points': bullet_points,
+                'kategoria': kategoria,
+                'asin': asin
+            }
+            tytul_seo = generate_allegro_title_ai(product_data_for_title, gemini_key, max_length=75)
+            if tytul_seo and len(tytul_seo) > 5:
+                print(f"   ✅ [SUCCESS] AI Title: {tytul_seo} ({len(tytul_seo)} znaków)")
+            else:
+                print(f"   ✗ [FAILED] AI nie wygenerował - używam fallback")
+                tytul_seo = optimize_title_seo(nazwa, 75)
+                print(f"   📝 Title (fallback): {tytul_seo}")
+        else:
+            # Fallback na starą metodę jeśli brak klucza
+            print(f"⚠️  [NO API KEY] Brak klucza Gemini - używam fallback")
+            tytul_seo = optimize_title_seo(nazwa, 75)
+            print(f"   📝 Title (fallback): {tytul_seo}")
+        
+        # 🚀 TURBO: Generuj opis HTML (NOWA WERSJA - z bullet points + ASIN!)
+        try:
+            opis_html, opis_plain = generuj_opis_html_pro(nazwa, wszystkie_zdjecia, kategoria, bullet_points, gemini_key=gemini_key, asin=asin)
+            print(f"📄 Description: {len(opis_html)} chars")
+        except Exception as e:
+            print(f"⚠️ Description generation failed: {e}")
+            # Fallback - prosty opis
+            opis_html = f"<p>{nazwa}</p>"
+            if bullet_points:
+                for bp in bullet_points[:5]:
+                    opis_html += f"<p>✅ {bp}</p>"
+            if asin:
+                opis_html += f'<p><i>🔖 Kod produktu (ASIN): {asin}</i></p>'
+            opis_plain = nazwa
+        
+        # 🛡️ GPSR: Generuj informacje bezpieczeństwa
+        try:
+            gpsr = generuj_gpsr_info(nazwa, kategoria, product_specs=product_specs)
+            if gpsr:
+                print(f"🛡️ GPSR: {len(gpsr)} znaków wygenerowane")
+            else:
+                print(f"   ℹ️  GPSR: brak (produkt nie wymaga)")
+                gpsr = ""
+        except Exception as e:
+            print(f"⚠️ GPSR generation failed: {e}")
+            gpsr = ""
+        
+        # 🚀 KOMBAJN: Zapisz do bazy z retry logic
+        def save_to_db():
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute('''UPDATE scraped SET
+                nazwa=?, zdjecie_url=?, wszystkie_zdjecia=?, cena_amazon=?,
+                tytul_seo=?, opis_html=?, status='gotowy', kategoria=?, bullet_points=?, gpsr=?, product_specs=?
+                WHERE asin=?''',
+                (nazwa, zdjecie_url, json.dumps(cdn_urls_for_cache or wszystkie_zdjecia), cena_amazon,
+                 tytul_seo, opis_html, kategoria, json.dumps(bullet_points), gpsr, json.dumps(product_specs), asin))
+            
+            # Zaktualizuj w magazynie — nadpisz nazwę jeśli nowa z Amazona jest dłuższa/lepsza
+            produkty_do_aktualizacji = cursor.execute(
+                'SELECT id, nazwa FROM produkty WHERE asin=? ORDER BY data_dodania ASC',
+                (asin,)
+            ).fetchall()
+            for row in produkty_do_aktualizacji:
+                stara = row['nazwa'] or ''
+                # Aktualizuj nazwę jeśli: placeholder LUB nowa jest dłuższa (lepsza z Amazona)
+                # NIE nadpisuj śmieciowymi nazwami typu "Amazon.com: ..."
+                nazwa_ok = nazwa and len(nazwa) > 15 and not nazwa.lower().startswith('amazon')
+                nowa_nazwa = nazwa if (nazwa_ok and (len(nazwa) > len(stara) or stara.startswith('Produkt'))) else stara
+                cursor.execute('UPDATE produkty SET nazwa=?, zdjecie_url=?, kategoria=?, images=? WHERE id=?',
+                    (nowa_nazwa, zdjecie_url, kategoria, json.dumps(wszystkie_zdjecia), row['id']))
+            
+            conn.commit()
+            return True
+        
+        # Wykonaj z retry (3 próby)
+        for retry in range(3):
+            try:
+                save_to_db()
+                break
+            except sqlite3.OperationalError as e:
+                if 'locked' in str(e) and retry < 2:
+                    print(f"⚠️ DB locked, retry {retry+1}/3...")
+                    time.sleep(0.5 * (retry + 1))
+                else:
+                    raise
+        
+        print(f"💾 Saved to database")
+        print(f"✅ Completed: {asin}")
+        
+        # Update progress
+        PROGRESS['current'] += 1
+        
+        return (asin, True, None)
+        
+    except Exception as e:
+        print(f"❌ Error processing {asin}: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        PROGRESS['current'] += 1
+        PROGRESS['errors'] += 1
+        
+        return (asin, False, str(e))
+
+def auto_process_products(asins, preferred_domain=None):
+    """
+    🚜 KOMBAJN MODE: Automatycznie przetwarza produkty RÓWNOLEGLE.
+    Zamiast 1 produkt na raz, robi 5 naraz = 5x SZYBCIEJ!
+    preferred_domain: np. 'co.uk', 'de', 'com' - próbuje tę domenę jako pierwszą
+    """
+    global _processing_queue, _scraper_running, PROGRESS
+    _processing_queue.extend(asins)
+
+    _pref_domain = preferred_domain  # closure
+
+    def process_in_background():
+        global _processing_queue, _scraper_running, PROGRESS
+        _scraper_running = True
+
+        total = len(_processing_queue)
+        PROGRESS = {'current': 0, 'total': total, 'errors': 0}
+
+        print(f"\n{'='*70}")
+        print(f"🚜 KOMBAJN MODE: Processing {total} products with {MAX_WORKERS} workers")
+        if _pref_domain:
+            print(f"   Preferred domain: amazon.{_pref_domain}")
+        print(f"{'='*70}\n")
+
+        start_time = time.time()
+
+        # 🚀 RÓWNOLEGŁE PRZETWARZANIE - TO JEST KOMBAJN!
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            # Uruchom wszystkie taski
+            futures = {
+                executor.submit(process_single_product, asin, i+1, total, preferred_domain=_pref_domain): asin
+                for i, asin in enumerate(_processing_queue)
+            }
+            
+            # Zbieraj wyniki w miarę ukończenia
+            for future in as_completed(futures):
+                asin = futures[future]
+                try:
+                    result_asin, success, error = future.result()
+                    if success:
+                        print(f"✅ {result_asin} OK")
+                    else:
+                        print(f"❌ {result_asin} FAILED: {error}")
+                except Exception as e:
+                    print(f"❌ {asin} EXCEPTION: {e}")
+        
+        _processing_queue.clear()
+        _scraper_running = False
+        
+        elapsed = time.time() - start_time
+        success_count = PROGRESS['current'] - PROGRESS['errors']
+
+        print(f"\n{'='*70}")
+        print(f"🎉 KOMBAJN COMPLETE!")
+        print(f"✅ Success: {success_count}/{total}")
+        print(f"❌ Errors: {PROGRESS['errors']}/{total}")
+        print(f"⏱️  Time: {elapsed:.1f}s ({elapsed/total:.1f}s per product)")
+        print(f"🚀 Speed: {total/elapsed*60:.1f} products/min")
+        print(f"{'='*70}\n")
+
+        # 🤖 AUTO-ENHANCE: po scrapowaniu automatycznie generuj zdjęcia AI
+        if success_count > 0:
+            _auto_start_enhance_after_scrape()
+
+    # Uruchom w osobnym wątku
+    thread = threading.Thread(target=process_in_background, daemon=True)
+    thread.start()
+
+
+def _auto_start_enhance_after_scrape():
+    """
+    🤖 Auto-start generowania zdjęć AI po zakończeniu scrapingu.
+    Odpala _bg_enhance_worker z force=True w osobnym wątku.
+    Czeka 5s żeby scraper zdążył zapisać wszystko do bazy.
+    """
+    global _bg_enhance_status
+    import time as _t
+
+    # Nie startuj jeśli już działa
+    if _bg_enhance_status.get('running'):
+        print("[Auto-Enhance] ⏭️ Pomijam — generowanie już działa w tle")
+        return
+
+    print("[Auto-Enhance] ⏳ Czekam 5s przed startem generowania zdjęć...")
+    _t.sleep(5)
+
+    # Sprawdź jeszcze raz
+    if _bg_enhance_status.get('running'):
+        print("[Auto-Enhance] ⏭️ Pomijam — generowanie uruchomione w międzyczasie")
+        return
+
+    _bg_enhance_status = {
+        'running': True, 'progress': 0, 'current': 0, 'total': 0,
+        'done': 0, 'errors': 0, 'cost': 0.0, 'log': [], 'finished': False,
+        'started_at': _t.time(), 'last_update': _t.time()
+    }
+
+    print("[Auto-Enhance] 🚀 Automatyczny start generowania zdjęć AI!")
+
+    try:
+        from flask import current_app
+        app = current_app._get_current_object()
+    except RuntimeError:
+        # Jeśli nie ma kontekstu Flask (np. z wątku) — importuj app
+        import sys, os
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from app import app
+
+    t = threading.Thread(target=_bg_enhance_worker, args=(app, True), daemon=True)
+    t.start()
+
+
+# ============================================================
+# FUNKCJE POMOCNICZE
+# ============================================================
+_pal_stats_cache = {'data': None, 'time': 0}
+
+def get_stats():
+    """Zwraca statystyki Paletomatu (cached 30s)"""
+    import time as _time
+    now = _time.time()
+    if _pal_stats_cache['data'] and (now - _pal_stats_cache['time']) < 30:
+        return _pal_stats_cache['data']
+    conn = get_db()
+    stats = {
+        'scraped': conn.execute('SELECT COUNT(*) FROM scraped').fetchone()[0],
+        'aktywne': conn.execute('SELECT COUNT(*) FROM oferty WHERE status="aktywna"').fetchone()[0],
+        'sprzedane': conn.execute('SELECT COUNT(*) FROM sprzedaze').fetchone()[0],
+        'przychod': conn.execute('SELECT COALESCE(SUM(CASE WHEN status != "zwrot" THEN cena*ilosc ELSE 0 END), 0) FROM sprzedaze').fetchone()[0],
+    }
+    _pal_stats_cache['data'] = stats
+    _pal_stats_cache['time'] = _time.time()
+    return stats
+
+def scraper_status():
+    """Czy scraper jest uruchomiony"""
+    global _scraper_running
+    return _scraper_running
+
+# ============================================================
+# SZABLONY
+# ============================================================
+CSS = '''<style>
+:root{--bg:#0a0a0f;--bg-card:#12121a;--border:#1e1e2e;--text:#fff;--text-muted:#64748b;--accent:#8b5cf6;--green:#22c55e;--yellow:#eab308}
+[data-theme="light"]{--bg:#f8fafc;--bg-card:#fff;--border:#e2e8f0;--text:#1e293b;--text-muted:#64748b;--accent:#7c3aed;--green:#16a34a;--yellow:#ca8a04}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px}
+.c{max-width:1400px;margin:0 auto;padding:15px}
+.hdr{text-align:center;padding:15px 0;border-bottom:1px solid var(--border);margin-bottom:15px}
+.hdr h1{font-size:1.3rem;color:var(--accent)}
+.hdr small{color:var(--text-muted);font-size:0.75rem}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:15px}
+.stat{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
+.stat-v{font-size:1.2rem;font-weight:700;color:var(--accent)}
+.stat-v.green{color:var(--green)}
+.stat-l{font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;margin-top:2px}
+.status{display:flex;align-items:center;justify-content:space-between;padding:15px;border-radius:12px;margin-bottom:15px}
+.status.on{background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3)}
+.status.off{background:var(--bg-card);border:1px solid var(--border)}
+.status-info{display:flex;align-items:center;gap:10px}
+.status-dot{width:10px;height:10px;border-radius:50%}
+.status-dot.on{background:var(--green);animation:pulse 2s infinite}
+.status-dot.off{background:var(--text-muted)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.btn{display:block;width:100%;padding:12px;font-size:0.95rem;font-weight:600;text-align:center;text-decoration:none;border:none;border-radius:10px;cursor:pointer;margin-bottom:8px;color:#fff}
+.btn-p{background:var(--accent)}
+.btn-ok{background:var(--green)}
+.btn-2{background:var(--bg-card);border:1px solid var(--border);color:var(--text)}
+.btn-sm{padding:8px 16px;font-size:0.85rem;width:auto;display:inline-block}
+.module{display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:15px;margin-bottom:10px;text-decoration:none;color:var(--text)}
+.module:hover{border-color:var(--accent)}
+.module-icon{font-size:2rem;margin-right:15px}
+.module-info{flex:1}
+.module-name{font-weight:600;font-size:1rem}
+.module-desc{font-size:0.75rem;color:var(--text-muted);margin-top:2px}
+.module-arrow{color:var(--text-muted);font-size:1.2rem}
+.item{display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;text-decoration:none;color:var(--text)}
+.item:hover{border-color:var(--accent)}
+.item img{width:45px;height:45px;object-fit:contain;background:#fff;border-radius:6px;margin-right:10px}
+.item-dot{width:8px;height:8px;border-radius:50%;margin-right:10px}
+.item-dot.green{background:var(--green)}
+.item-dot.yellow{background:var(--yellow)}
+.item-info{flex:1;min-width:0}
+.item-name{font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-meta{font-size:0.7rem;color:var(--text-muted)}
+.item-right{text-align:right;margin-left:8px}
+.item-price{font-weight:700;color:var(--green)}
+.item-margin{font-size:0.7rem;color:var(--accent)}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:15px;margin-bottom:15px}
+.card-title{font-weight:600;margin-bottom:12px;color:var(--accent)}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px}
+.form-ctrl{width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.95rem}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.section{color:var(--accent);font-weight:600;font-size:0.85rem;margin:20px 0 10px;display:flex;align-items:center;gap:6px}
+.alert{padding:12px;border-radius:10px;margin-bottom:12px;text-align:center;font-size:0.9rem}
+.alert-ok{background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:var(--green)}
+.alert-warn{background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.3);color:var(--yellow)}
+.back{display:block;text-align:center;color:var(--text-muted);text-decoration:none;padding:12px;font-size:0.85rem}
+.badge{display:inline-block;padding:3px 8px;border-radius:12px;font-size:0.7rem;font-weight:600}
+.badge-ok{background:rgba(34,197,94,0.2);color:var(--green)}
+.badge-warn{background:rgba(234,179,8,0.2);color:var(--yellow)}
+.nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);padding:8px 0}
+.nav-inner{max-width:1600px;margin:0 auto;display:flex;justify-content:space-around}
+.nav a{text-align:center;color:var(--text-muted);text-decoration:none;padding:6px 6px;border-radius:8px;font-size:0.7rem}
+.nav a:hover,.nav a.on{color:var(--accent);background:rgba(139,92,246,0.1)}
+.nav-icon{font-size:1.4rem}
+.theme-toggle{position:fixed;top:15px;right:15px;z-index:200;background:var(--bg-card);border:1px solid var(--border);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.3rem;transition:all 0.3s}
+.theme-toggle:hover{transform:scale(1.1);border-color:var(--accent)}
+/* Responsive */
+@media(min-width:1200px){.c{max-width:1400px;padding:25px}}
+@media(max-width:1199px){.c{max-width:100%;padding:20px}}
+@media(max-width:768px){.c{padding:15px}.form-row{grid-template-columns:1fr}.theme-toggle{width:40px;height:40px;font-size:1.1rem}}
+@media(max-width:480px){.c{padding:10px;padding-bottom:80px}.btn{padding:12px;font-size:0.9rem}.hdr h1{font-size:1.3rem}.theme-toggle{top:10px;right:10px;width:36px;height:36px;font-size:1rem}.nav a{font-size:0.65rem;padding:4px 3px}.nav-icon{font-size:1.3rem}}
+</style>'''
+
+BASE = '''<!DOCTYPE html><html lang="pl" data-theme="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paletomat</title><meta name="theme-color" content="#0a0a0f">
+<script>
+const saved = localStorage.getItem('theme');
+if(saved) document.documentElement.setAttribute('data-theme', saved);
+else if(window.matchMedia('(prefers-color-scheme: light)').matches) document.documentElement.setAttribute('data-theme', 'light');
+</script>''' + CSS + '''<link rel="stylesheet" href="/static/kiosk.css"></head><body>
+<script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
+<div class="theme-toggle" onclick="toggleTheme()" title="Zmień motyw">
+    <span id="theme-icon">🌙</span>
+</div>
+<div class="c">{content}</div>
+<nav class="nav"><div class="nav-inner">
+<a href="/"><div class="nav-icon">🏠</div>Home</a>
+<a href="/magazyn"><div class="nav-icon">📦</div>Magazyn</a>
+<a href="/paletomat" class="on"><div class="nav-icon">🤖</div>Paletomat</a>
+<a href="/allegro"><div class="nav-icon">🛒</div>Allegro</a>
+<a href="/monitor"><div class="nav-icon">🔍</div>Monitor</a>
+<a href="/narzedzia"><div class="nav-icon">⚡</div>Narzędzia</a>
+</div></nav>
+<script>
+function toggleTheme(){
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    document.getElementById('theme-icon').textContent = next === 'dark' ? '🌙' : '☀️';
+    document.querySelector('meta[name="theme-color"]').content = next === 'dark' ? '#0a0a0f' : '#f8fafc';
+}
+// Set icon on load
+const theme = document.documentElement.getAttribute('data-theme');
+document.getElementById('theme-icon').textContent = theme === 'dark' ? '🌙' : '☀️';
+</script>
+</body></html>'''
+
+def render(content):
+    return BASE.replace('{content}', content)
+
+# ============================================================
+# ROUTES
+# ============================================================
+@paletomat_bp.route('/')
+def index():
+    s = get_stats()
+    is_running = scraper_status()
+    
+    # Sprawdź status kolejki auto-processingu
+    global _processing_queue, _scraper_running
+    queue_len = len(_processing_queue)
+    auto_running = _scraper_running
+    
+    # Pobierz ostatnio scrapowane
+    conn = get_db()
+    scraped = conn.execute('SELECT * FROM scraped ORDER BY data_scrape DESC LIMIT 5').fetchall()
+    oferty = conn.execute('SELECT * FROM oferty WHERE status="aktywna" ORDER BY data_aktualizacji DESC LIMIT 5').fetchall()
+    
+    status_class = 'on' if is_running else 'off'
+    
+    # Badge auto-processingu
+    auto_badge = ''
+    if auto_running or queue_len > 0:
+        auto_status_class = 'on' if auto_running else 'off'
+        auto_text = f"🔄 Przetwarzanie w tle: {queue_len} produktów" if auto_running else f"⏸️ Kolejka: {queue_len} produktów"
+        auto_badge = f'''
+        <div class="status {auto_status_class}" id="auto-status" style="margin-top:10px">
+            <div class="status-info">
+                <div class="status-dot {auto_status_class}"></div>
+                <span id="auto-text">{auto_text}</span>
+            </div>
+        </div>'''
+    
+    html = f'''
+    <div class="hdr"><h1>🤖 PALETOMAT</h1><small>v17.2 PRO</small></div>
+    
+    <div class="status {status_class}">
+        <div class="status-info">
+            <div class="status-dot {status_class}"></div>
+            <span>{'Scraper aktywny' if is_running else 'Scraper zatrzymany'}</span>
+        </div>
+        <form action="/paletomat/scraper/toggle" method="POST" style="margin:0">
+            <button type="submit" class="btn-sm {'btn-ok' if not is_running else ''}" style="background:{'#ef4444' if is_running else '#22c55e'}">
+                {'⏹️ STOP' if is_running else '▶️ START'}
+            </button>
+        </form>
+    </div>
+    
+    {auto_badge}
+    
+    <div class="stats">
+        <div class="stat"><div class="stat-v">{s['scraped']}</div><div class="stat-l">Zescrapowanych</div></div>
+        <div class="stat"><div class="stat-v">{s['aktywne']}</div><div class="stat-l">Aktywnych</div></div>
+        <div class="stat"><div class="stat-v green">{s['przychod']:.0f} zł</div><div class="stat-l">Przychód</div></div>
+    </div>
+    
+    <script>
+    // Auto-refresh status kolejki co 3 sekundy
+    setInterval(async () => {{
+        try {{
+            const res = await fetch('/paletomat/api/queue-status');
+            const data = await res.json();
+            
+            const statusDiv = document.getElementById('auto-status');
+            const textSpan = document.getElementById('auto-text');
+            
+            if (data.running || data.queue_length > 0) {{
+                if (!statusDiv) {{
+                    // Reload jeśli badge nie istnieje
+                    location.reload();
+                }} else {{
+                    // Update badge
+                    const statusClass = data.running ? 'on' : 'off';
+                    const text = data.running 
+                        ? `🔄 Przetwarzanie w tle: ${{data.queue_length}} produktów`
+                        : `⏸️ Kolejka: ${{data.queue_length}} produktów`;
+                    
+                    statusDiv.className = `status ${{statusClass}}`;
+                    statusDiv.querySelector('.status-dot').className = `status-dot ${{statusClass}}`;
+                    textSpan.textContent = text;
+                }}
+            }} else if (statusDiv) {{
+                // Ukryj badge jeśli kolejka pusta i nieaktywna
+                statusDiv.style.display = 'none';
+            }}
+        }} catch(e) {{
+            console.error('Queue status check failed:', e);
+        }}
+    }}, 3000);
+    </script>
+    
+    <div class="section">📋 MODUŁY</div>
+    
+    <a href="/paletomat/scraper" class="module">
+        <div class="module-icon">🌐</div>
+        <div class="module-info">
+            <div class="module-name">Amazon Scraper</div>
+            <div class="module-desc">Pobierz produkty z Amazon DE/UK/US</div>
+        </div>
+        <div class="module-arrow">›</div>
+    </a>
+    
+    <a href="/paletomat/generator" class="module">
+        <div class="module-icon">🏷️</div>
+        <div class="module-info">
+            <div class="module-name">Generator ofert Allegro</div>
+            <div class="module-desc">Automatyczne opisy i ceny</div>
+        </div>
+        <div class="module-arrow">›</div>
+    </a>
+    
+    <a href="/paletomat/monitoring" class="module">
+        <div class="module-icon">📊</div>
+        <div class="module-info">
+            <div class="module-name">Monitoring sprzedaży</div>
+            <div class="module-desc">Alerty i statystyki</div>
+        </div>
+        <div class="module-arrow">›</div>
+    </a>
+    
+    <a href="/paletomat/oferty" class="module">
+        <div class="module-icon">📝</div>
+        <div class="module-info">
+            <div class="module-name">Moje oferty</div>
+            <div class="module-desc">{s['aktywne']} aktywnych</div>
+        </div>
+        <div class="module-arrow">›</div>
+    </a>
+    
+    <a href="/paletomat/test-upload" class="module" style="border-color:#f59e0b">
+        <div class="module-icon">🔧</div>
+        <div class="module-info">
+            <div class="module-name">Test upload zdjęć</div>
+            <div class="module-desc">Debugowanie problemu z obrazkami</div>
+        </div>
+        <div class="module-arrow">›</div>
+    </a>
+    
+    <div class="section">📦 NARZĘDZIA</div>
+    
+    <a href="/palety/bulk-import" class="module" style="border-color:#22c55e">
+        <div class="module-icon">📊</div>
+        <div class="module-info">
+            <div class="module-name">Bulk import palet</div>
+            <div class="module-desc">Importuj wiele palet naraz z XLSX</div>
+        </div>
+        <div class="module-arrow">›</div>
+    </a>
+    
+    <a href="/telegram/live" class="module" style="border-color:#3b82f6">
+        <div class="module-icon">💰</div>
+        <div class="module-info">
+            <div class="module-name">Sprzedaż LIVE</div>
+            <div class="module-desc">Dashboard na żywo + alerty</div>
+        </div>
+        <div class="module-arrow">›</div>
+    </a>
+    '''
+    
+    if scraped:
+        html += '<div class="section">🔍 OSTATNIO ZESCRAPOWANE</div>'
+        for p in scraped:
+            status_dot = 'green' if p['status'] == 'gotowy' else 'yellow'
+            html += f'''<div class="item">
+                <div class="item-dot {status_dot}"></div>
+                <img src="{get_amazon_image_url(p['asin'])}" onerror="this.style.display='none'">
+                <div class="item-info">
+                    <div class="item-name">{(p['nazwa'] or p['asin'])[:30]}...</div>
+                    <div class="item-meta">ASIN: {p['asin']} | €{p['cena_amazon'] or 0:.2f}</div>
+                </div>
+            </div>'''
+    
+    html += '<a href="/" class="back">← Powrót</a>'
+    return render(html)
+
+@paletomat_bp.route('/scraper')
+def scraper():
+    # Pobierz listę palet z magazynu
+    conn = get_db()
+    # Pobierz palety które:
+    # 1. Mają produkty ALBO
+    # 2. Są nowe (dodane w ostatnich 30 dniach)
+    palety = conn.execute('''
+        SELECT DISTINCT p.id, p.nazwa, p.dostawca 
+        FROM palety p
+        LEFT JOIN produkty pr ON p.id = pr.paleta_id
+        WHERE pr.id IS NOT NULL 
+           OR p.data_dodania >= date('now', '-30 days')
+        ORDER BY p.data_dodania DESC
+    ''').fetchall()
+    
+    # Dropdown palet (pełny - dla formularza ASIN)
+    palety_options = '<option value="">-- Bez palety --</option>'
+    palety_options += '<option value="new">➕ Nowa paleta...</option>'
+    for p in palety:
+        palety_options += f'<option value="{p["id"]}">{p["nazwa"]} ({p["dostawca"] or "brak dostawcy"})</option>'
+    
+    # Dropdown palet (tylko lista - dla formularza FILE, bez "Bez palety" i "Nowa")
+    palety_options_clean = ''
+    for p in palety:
+        palety_options_clean += f'<option value="{p["id"]}">{p["nazwa"]} ({p["dostawca"] or "brak dostawcy"})</option>'
+    
+    html = f'''
+    <div class="hdr"><h1>🌐 AMAZON SCRAPER</h1><small>Pobierz produkty</small></div>
+    
+    <!-- FORMULARZ 1: SCRAPE PO ASIN -->
+    <div class="card">
+        <div class="card-title">🔍 SCRAPE PO ASIN (ręczny)</div>
+        <form action="/paletomat/scraper/asin" method="POST">
+            <div class="form-row" style="margin-bottom:15px;padding:10px;background:#1a1a2e;border-radius:8px;border:1px solid #8b5cf6">
+                <div class="form-group" style="margin-bottom:0">
+                    <label>📦 Paleta</label>
+                    <select name="paleta_id" class="form-ctrl" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
+                        <option value="">-- Bez palety --</option>
+                        <option value="new">➕ Nowa paleta...</option>
+                        {palety_options_clean}
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label>🏭 Dostawca</label>
+                    <select name="dostawca" class="form-ctrl">
+                        <option value="">-- Wybierz --</option>
+                        <option value="Jobalots">🇳🇱 Jobalots</option>
+                        <option value="Warrington">🇬🇧 Warrington</option>
+                        <option value="Miglo">🇵🇱 Miglo</option>
+                        <option value="Inny">📦 Inny</option>
+                    </select>
+                </div>
+            </div>
+            <input type="text" name="nowa_paleta_nazwa" class="form-ctrl" placeholder="Nazwa nowej palety" style="display:none;margin-bottom:15px">
+            
+            <div class="form-group">
+                <label>ASIN-y (format: ASIN lub ASIN,ilość)</label>
+                <input type="text" name="asins" class="form-ctrl" placeholder="B0CFQBBT7G B088ZQ6B64,3 B0ABC12345,2">
+                <div style="font-size:0.7rem;color:#64748b;margin-top:5px">Miglo: ASIN,ilość rozdzielone spacjami</div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Domena Amazon</label>
+                    <select name="domain" class="form-ctrl">
+                        <option value="de">🇩🇪 Amazon.de</option>
+                        <option value="co.uk">🇬🇧 Amazon.co.uk</option>
+                        <option value="com">🇺🇸 Amazon.com</option>
+                        <option value="pl">🇵🇱 Amazon.pl</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>💰 Cena jednostkowa (opcjonalnie)</label>
+                    <input type="number" step="0.01" name="cena_jednostkowa" class="form-ctrl" placeholder="np. 25.50">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-p" style="width:100%">🔍 SCRAPUJ ASIN-y</button>
+        </form>
+    </div>
+    
+    <!-- FORMULARZ 2: SCRAPE Z PLIKU -->
+    <div class="card">
+        <div class="card-title">📁 SCRAPE Z PLIKU (JOBALOTS/WARRINGTON)</div>
+        <form action="/paletomat/scraper/file" method="POST" enctype="multipart/form-data">
+            <div class="form-row" style="margin-bottom:15px;padding:10px;background:#1a1a2e;border-radius:8px;border:1px solid #3b82f6">
+                <div class="form-group" style="margin-bottom:0">
+                    <label>📦 Paleta</label>
+                    <select name="paleta_id" class="form-ctrl" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
+                        <option value="">-- Bez palety --</option>
+                        <option value="new">➕ Nowa paleta...</option>
+                        {palety_options_clean}
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label>🏭 Dostawca</label>
+                    <select name="dostawca" class="form-ctrl">
+                        <option value="">-- Wybierz --</option>
+                        <option value="Jobalots">🇳🇱 Jobalots</option>
+                        <option value="Warrington">🇬🇧 Warrington</option>
+                        <option value="Miglo">🇵🇱 Miglo</option>
+                        <option value="Inny">📦 Inny</option>
+                    </select>
+                </div>
+            </div>
+            <input type="text" name="nowa_paleta_nazwa" class="form-ctrl" placeholder="Nazwa nowej palety" style="display:none;margin-bottom:15px">
+            
+            <div class="form-group">
+                <label>📄 Plik Excel (.xlsx) lub CSV/TXT</label>
+                <input type="file" name="file" class="form-ctrl" accept=".txt,.csv,.xlsx,.xls" required>
+                <div style="font-size:0.7rem;color:#64748b;margin-top:5px">Automatycznie wykrywa: ASIN, cenę, ilość, EAN, zdjęcia</div>
+            </div>
+            <div class="form-group">
+                <label>💰 Cena jednostkowa brutto (opcjonalnie)</label>
+                <input type="number" step="0.01" name="cena_jednostkowa" class="form-ctrl" placeholder="Nadpisuje cenę z pliku">
+            </div>
+            <button type="submit" class="btn btn-2" style="width:100%">📤 WGRAJ I DODAJ DO MAGAZYNU</button>
+        </form>
+    </div>
+    
+    <!-- FORMULARZ 3: IMPORT MIGLO -->
+    <div class="card" style="border:1px solid #f59e0b">
+        <div class="card-title" style="color:#f59e0b">📋 IMPORT RĘCZNY (Miglo licytacje)</div>
+        <form action="/paletomat/scraper/miglo" method="POST">
+            <div class="form-row" style="margin-bottom:15px;padding:10px;background:#1a1a2e;border-radius:8px;border:1px solid #f59e0b">
+                <div class="form-group" style="margin-bottom:0">
+                    <label>📦 Paleta</label>
+                    <select name="paleta_id" class="form-ctrl" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
+                        <option value="">-- Bez palety --</option>
+                        <option value="new">➕ Nowa paleta...</option>
+                        {palety_options_clean}
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label>🏭 Dostawca</label>
+                    <select name="dostawca" class="form-ctrl">
+                        <option value="Miglo" selected>🇵🇱 Miglo</option>
+                        <option value="Jobalots">🇳🇱 Jobalots</option>
+                        <option value="Warrington">🇬🇧 Warrington</option>
+                        <option value="Inny">📦 Inny</option>
+                    </select>
+                </div>
+            </div>
+            <input type="text" name="nowa_paleta_nazwa" class="form-ctrl" placeholder="Nazwa nowej palety" style="display:none;margin-bottom:15px">
+            
+            <div class="form-group">
+                <label>Dane z tabeli Miglo</label>
+                <textarea name="miglo_data" class="form-ctrl" rows="6" placeholder="B0IL6PLPDI	5	HOME_IMPROVEMENT	1647,56	221,89
+B0IN7ENHO6	4	CAMERA	588,45	79,25
+..."></textarea>
+                <div style="font-size:0.7rem;color:#64748b;margin-top:5px">Skopiuj tabelę z Miglo (ASIN | Ilość | Kategoria | Cena | Cena netto)</div>
+            </div>
+            <button type="submit" class="btn btn-ok" style="width:100%">📥 IMPORTUJ Z MIGLO</button>
+        </form>
+    </div>
+    
+    <a href="/paletomat" class="back">← Powrót</a>
+    '''
+    return render(html)
+
+@paletomat_bp.route('/scraper/miglo', methods=['POST'])
+def scraper_miglo():
+    """Import ręczny z danych Miglo - parsuje tabelę z ASIN, ilość, cena netto"""
+    miglo_data = request.form.get('miglo_data', '')
+    paleta_id_raw = request.form.get('paleta_id', '').strip()
+    dostawca = request.form.get('dostawca', 'Miglo')
+    nowa_paleta_nazwa = request.form.get('nowa_paleta_nazwa', '').strip()
+    
+    print(f"📥 [MIGLO] paleta_id='{paleta_id_raw}', dostawca='{dostawca}', nowa_paleta='{nowa_paleta_nazwa}'")
+    
+    # Parsuj paleta_id - może być: '', 'new', lub liczba
+    paleta_id = None
+    if paleta_id_raw and paleta_id_raw.lower() not in ('new', 'nowy'):
+        try:
+            paleta_id = int(paleta_id_raw)
+        except ValueError:
+            print(f"⚠️ Nieprawidłowe ID palety: {paleta_id_raw}, używam None")
+            paleta_id = None
+    
+    if not miglo_data.strip():
+        return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-warn">Nie wklejono danych</div><a href="/paletomat/scraper" class="btn btn-p">← Powrót</a>')
+    
+    # Parsuj dane - format: ASIN | Ilość | (cokolwiek) | Cena netto
+    asin_data = {}  # {asin: {'qty': int, 'netto': float}}
+    
+    lines = miglo_data.strip().split('\n')
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        
+        # Rozbij na kolumny (tab, |, wiele spacji)
+        parts = re.split(r'\t+|\|+|\s{2,}', line)
+        parts = [p.strip() for p in parts if p.strip()]
+        
+        if len(parts) < 2:
+            continue
+        
+        # Szukaj ASIN-a (B0...) - 8-10 znaków po B0
+        asin = None
+        for p in parts:
+            match = re.search(r'[Bb]0[A-Za-z0-9]{8,10}', p)
+            if match:
+                asin = match.group().upper()
+                break
+        
+        if not asin:
+            continue
+        
+        # Szukaj ilości (pierwsza liczba całkowita po ASIN)
+        qty = 1
+        for p in parts[1:]:
+            clean = p.replace(',', '.').replace(' ', '')
+            if clean.isdigit():
+                qty = int(clean)
+                break
+            # Spróbuj jako float i zaokrąglij
+            try:
+                val = float(clean)
+                if val == int(val) and 1 <= val <= 1000:
+                    qty = int(val)
+                    break
+            except:
+                pass
+        
+        # Szukaj ceny netto (ostatnia liczba zmiennoprzecinkowa)
+        cena_netto = 0
+        for p in reversed(parts):
+            clean = p.replace(',', '.').replace(' ', '').replace('zł', '').replace('PLN', '')
+            try:
+                val = float(clean)
+                if val > 0:
+                    cena_netto = val
+                    break
+            except:
+                pass
+        
+        if asin and cena_netto > 0:
+            # Cena w tabeli Miglo to cena JEDNOSTKOWA (per sztuka)
+            asin_data[asin] = {
+                'qty': qty,
+                'netto_jednostkowa': cena_netto,
+                'netto_lacznie': cena_netto * qty,
+                'brutto_jednostkowa': round(cena_netto * 1.23, 2),
+                'brutto_lacznie': round(cena_netto * qty * 1.23, 2)
+            }
+            print(f"📦 Miglo: {asin} - {qty}szt × {cena_netto:.2f} netto = {cena_netto * qty:.2f} netto łącznie")
+    
+    if not asin_data:
+        return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-warn">Nie znaleziono prawidłowych danych.<br><br><small>Format: ASIN | Ilość | ... | Cena netto</small></div><a href="/paletomat/scraper" class="btn btn-p">← Powrót</a>')
+    
+    # Utwórz nową paletę jeśli trzeba
+    conn = get_db()
+    
+    if nowa_paleta_nazwa and not paleta_id:
+        cursor = conn.execute(
+            'INSERT INTO palety (nazwa, dostawca, data_zakupu, cena_zakupu) VALUES (?, ?, date("now"), 0)',
+            (nowa_paleta_nazwa, dostawca)
+        )
+        paleta_id = cursor.lastrowid
+        print(f"📦 Utworzono nową paletę: {nowa_paleta_nazwa} (ID: {paleta_id})")
+    
+    # paleta_id jest już int lub None - nie trzeba konwertować ponownie
+    
+    # Pobierz nazwę palety
+    paleta_nazwa = ""
+    if paleta_id:
+        p = conn.execute('SELECT nazwa FROM palety WHERE id = ?', (paleta_id,)).fetchone()
+        if p:
+            paleta_nazwa = p['nazwa']
+    
+    # Dodaj produkty do bazy
+    added = 0
+    total_netto = 0
+    total_brutto = 0
+    total_qty = 0
+    
+    for asin, data in asin_data.items():
+        qty = data['qty']
+        # Cena netto jednostkowa prosto z Miglo, brutto = netto × 1.23
+        cena_netto = data['netto_jednostkowa']
+        cena_brutto = round(cena_netto * 1.23, 2)
+        
+        try:
+            # Dodaj do scraped
+            conn.execute('''INSERT OR IGNORE INTO scraped (asin, status, zdjecie_url) 
+                VALUES (?, 'nowy', ?)''', (asin, get_amazon_image_url(asin)))
+            
+            # Oblicz cenę Allegro automatycznie (mnożnik 2.5x od brutto)
+            cena_allegro = round(cena_brutto * 2.5, 2) if cena_brutto else 0
+            
+            # Dodaj do produkty (magazyn)
+            # Szukaj produktu TYLKO w tej samej palecie (nie nadpisuj produktu z innej palety!)
+            existing = conn.execute('SELECT id, ean FROM produkty WHERE asin = ? AND paleta_id = ?', (asin, paleta_id)).fetchone()
+            if not existing:
+                conn.execute('''INSERT INTO produkty (asin, nazwa, ilosc, cena_netto, cena_brutto, cena_allegro, paleta_id, paleta, dostawca, zdjecie_url, stan) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
+                    (asin, f'Produkt {asin}', qty, cena_netto, cena_brutto, cena_allegro, paleta_id, paleta_nazwa, dostawca, get_amazon_image_url(asin), 'Nowy'))
+            else:
+                # Aktualizuj - tylko w tej palecie - SUMUJ ilość (ten sam ASIN może być w wielu wierszach)
+                conn.execute('UPDATE produkty SET cena_netto = ?, cena_brutto = ?, cena_allegro = ?, ilosc = ilosc + ?, paleta = ?, dostawca = ? WHERE id = ?',
+                    (cena_netto, cena_brutto, cena_allegro, qty, paleta_nazwa, dostawca, existing['id']))
+            
+            total_netto += data['netto_lacznie']
+            total_brutto += data['brutto_lacznie']
+            total_qty += qty
+            added += 1
+        except Exception as e:
+            print(f"❌ Błąd dodawania {asin}: {e}")
+    
+    # Zaktualizuj ilość produktów i sztuk w palecie
+    if paleta_id:
+        count = conn.execute('SELECT COUNT(*) as cnt FROM produkty WHERE paleta_id = ?', (paleta_id,)).fetchone()['cnt']
+        # AKUMULUJ cena_zakupu — NIE nadpisuj, dodaj do istniejącej (żeby sprzedaż nie zmniejszała kosztu palety)
+        stara_cena = conn.execute('SELECT COALESCE(cena_zakupu, 0) FROM palety WHERE id = ?', (paleta_id,)).fetchone()[0]
+        nowa_cena = round(stara_cena + total_brutto, 2)
+        stary_netto = conn.execute('SELECT COALESCE(cena_zakupu_netto, 0) FROM palety WHERE id = ?', (paleta_id,)).fetchone()[0]
+        nowy_netto = round(stary_netto + total_netto, 2)
+        try:
+            conn.execute('UPDATE palety SET cena_zakupu = ?, cena_zakupu_netto = ?, ilosc_produktow = ?, ilosc_sztuk = COALESCE(ilosc_sztuk, 0) + ? WHERE id = ?', (nowa_cena, nowy_netto, count, total_qty, paleta_id))
+        except:
+            conn.execute('UPDATE palety SET cena_zakupu = ?, ilosc_produktow = ? WHERE id = ?', (nowa_cena, count, paleta_id))
+    
+    conn.commit()
+    
+    # Uruchom auto-przetwarzanie w tle (z wybraną domeną)
+    auto_process_products(list(asin_data.keys()), preferred_domain=domain if domain != 'de' else None)
+
+    paleta_info = f'<br>📦 Paleta: <b>{paleta_nazwa}</b> ({dostawca})' if paleta_nazwa else ''
+    
+    return render(f'''
+        <div class="hdr"><h1>✅ IMPORT MIGLO</h1></div>
+        <div class="alert alert-ok">
+            Zaimportowano <b>{added}</b> produktów{paleta_info}
+        </div>
+        <div class="card" style="padding:15px">
+            <div style="font-weight:600;margin-bottom:10px">📊 Podsumowanie importu:</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div>Produktów: <b>{added}</b></div>
+                <div>Sztuk łącznie: <b>{total_qty}</b></div>
+                <div>Netto: <span style="color:#3b82f6"><b>{total_netto:.2f} PLN</b></span></div>
+                <div>Brutto: <span style="color:#22c55e"><b>{total_brutto:.2f} PLN</b></span></div>
+            </div>
+        </div>
+        <div class="alert" style="background:#1a1a2e;font-size:0.85rem">
+            ✅ Produkty dodane do <a href="/magazyn" style="color:#3b82f6">Magazynu</a><br>
+            🔄 <b>Auto-przetwarzanie w tle</b> - tytuły i opisy generują się automatycznie
+        </div>
+        <a href="/paletomat/scraper" class="btn btn-p">🔍 Dodaj więcej</a>
+        <a href="/magazyn" class="btn btn-ok">📦 Zobacz Magazyn</a>
+        <a href="/paletomat" class="back">← Powrót</a>
+    ''')
+
+@paletomat_bp.route('/scraper/asin', methods=['POST'])
+def scraper_asin():
+    asins_raw = request.form.get('asins', '')
+    domain = request.form.get('domain', 'de')
+    paleta_id = request.form.get('paleta_id', '')
+    dostawca = request.form.get('dostawca', '')
+    nowa_paleta_nazwa = request.form.get('nowa_paleta_nazwa', '').strip()
+    cena_jednostkowa_raw = request.form.get('cena_jednostkowa', '').strip()
+    
+    # Parsuj cenę jednostkową
+    cena_brutto = 0
+    cena_netto = 0
+    if cena_jednostkowa_raw:
+        try:
+            cena_brutto = float(cena_jednostkowa_raw.replace(',', '.'))
+            cena_netto = round(cena_brutto / 1.23, 2)
+        except:
+            pass
+    
+    # Parsuj ASIN-y z opcjonalną ilością (format: ASIN,ilość lub ASIN)
+    # Miglo daje format: B0XXXXXXXXX,2 (ASIN + ilość po przecinku)
+    asin_qty_map = {}  # {asin: qty}
+    raw_items = [a.strip() for a in asins_raw.replace('\n', ' ').replace(';', ' ').split() if a.strip()]
+    
+    for item in raw_items:
+        # Sprawdź czy to format "ASIN,ilość"
+        if ',' in item:
+            parts = item.split(',')
+            asin_part = parts[0].strip().upper()
+            qty_part = parts[1].strip() if len(parts) > 1 else '1'
+            try:
+                qty = int(qty_part)
+            except:
+                qty = 1
+        else:
+            asin_part = item.upper()
+            qty = 1
+        
+        # Sprawdź czy to prawidłowy ASIN (8-10 znaków po B0)
+        if re.match(r'^B0[A-Z0-9]{8,10}$', asin_part):
+            if asin_part in asin_qty_map:
+                asin_qty_map[asin_part] += qty
+            else:
+                asin_qty_map[asin_part] = qty
+    
+    asins = list(asin_qty_map.keys())
+    
+    if not asins:
+        return render('''
+            <div class="hdr"><h1>❌ BŁĄD</h1></div>
+            <div class="alert alert-warn">Nie podano prawidłowych ASIN-ów</div>
+            <a href="/paletomat/scraper" class="btn btn-p">← Powrót</a>
+        ''')
+    
+    conn = get_db()
+    
+    # Jeśli nowa paleta - utwórz ją
+    if paleta_id == 'new' and nowa_paleta_nazwa:
+        cursor = conn.execute(
+            'INSERT INTO palety (nazwa, dostawca) VALUES (?, ?)', 
+            (nowa_paleta_nazwa, dostawca)
+        )
+        paleta_id = cursor.lastrowid
+        conn.commit()
+    elif paleta_id and paleta_id != 'new':
+        paleta_id = int(paleta_id)
+    else:
+        paleta_id = None
+    
+    # Pobierz nazwę palety do wyświetlenia
+    paleta_nazwa = ""
+    if paleta_id:
+        p = conn.execute('SELECT nazwa FROM palety WHERE id = ?', (paleta_id,)).fetchone()
+        if p:
+            paleta_nazwa = p['nazwa']
+    
+    # Dodaj do bazy scraped + produkty
+    added = 0
+    total_value = 0
+    total_netto = 0
+    total_qty = 0
+    for asin in asins:
+        qty = asin_qty_map.get(asin, 1)
+        try:
+            # WAŻNE: cena_brutto i cena_netto to ceny JEDNOSTKOWE (za sztukę)
+            # Musimy zapisać CAŁKOWITĄ cenę zakupu = cena_jednostkowa * ilość
+            cena_brutto_total = cena_brutto * qty
+            cena_netto_total = cena_netto * qty
+            # Cena Allegro = cena JEDNOSTKOWA * 2.5 (za 1 sztukę!)
+            cena_allegro = round(cena_brutto * 2.5, 2) if cena_brutto else 0
+            
+            # Dodaj do scraped
+            conn.execute('''INSERT OR IGNORE INTO scraped (asin, status, zdjecie_url) 
+                VALUES (?, 'nowy', ?)''', (asin, get_amazon_image_url(asin)))
+            
+            # Dodaj do produkty (magazyn) - jeśli nie istnieje
+            # Szukaj produktu TYLKO w tej samej palecie (nie nadpisuj produktu z innej palety!)
+            existing = conn.execute('SELECT id FROM produkty WHERE asin = ? AND paleta_id = ?', (asin, paleta_id)).fetchone()
+            if not existing:
+                # WAŻNE: zapisujemy ceny JEDNOSTKOWE (cena_brutto, cena_netto), nie całkowite!
+                conn.execute('''INSERT INTO produkty (asin, nazwa, ilosc, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta, dostawca, zdjecie_url, stan) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
+                    (asin, f'Produkt {asin}', qty, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta_nazwa, dostawca, get_amazon_image_url(asin), 'Nowy'))
+            else:
+                # Zaktualizuj paletę, dostawcę, cenę i ilość - WHERE id = ? (tylko ten konkretny rekord)
+                if cena_brutto > 0:
+                    conn.execute('UPDATE produkty SET paleta = ?, dostawca = ?, cena_brutto = ?, cena_netto = ?, cena_allegro = ?, ilosc = ilosc + ? WHERE id = ?',
+                        (paleta_nazwa, dostawca, cena_brutto, cena_netto, cena_allegro, qty, existing['id']))
+                elif paleta_id:
+                    conn.execute('UPDATE produkty SET paleta = ?, dostawca = ?, ilosc = ilosc + ? WHERE id = ?',
+                        (paleta_nazwa, dostawca, qty, existing['id']))
+            
+            total_value += cena_brutto_total
+            total_netto += cena_netto_total
+            total_qty += qty
+            added += 1
+        except:
+            pass
+    
+    # Zaktualizuj ilość produktów i sztuk w palecie
+    if paleta_id:
+        count = conn.execute('SELECT COUNT(*) as cnt FROM produkty WHERE paleta_id = ?', (paleta_id,)).fetchone()['cnt']
+        # AKUMULUJ cena_zakupu — NIE nadpisuj, dodaj do istniejącej (żeby sprzedaż nie zmniejszała kosztu palety)
+        stara_cena = conn.execute('SELECT COALESCE(cena_zakupu, 0) FROM palety WHERE id = ?', (paleta_id,)).fetchone()[0]
+        nowa_cena = round(stara_cena + total_brutto, 2)
+        stary_netto = conn.execute('SELECT COALESCE(cena_zakupu_netto, 0) FROM palety WHERE id = ?', (paleta_id,)).fetchone()[0]
+        nowy_netto = round(stary_netto + total_netto, 2)
+        try:
+            conn.execute('UPDATE palety SET cena_zakupu = ?, cena_zakupu_netto = ?, ilosc_produktow = ?, ilosc_sztuk = COALESCE(ilosc_sztuk, 0) + ? WHERE id = ?', (nowa_cena, nowy_netto, count, total_qty, paleta_id))
+        except:
+            conn.execute('UPDATE palety SET cena_zakupu = ?, ilosc_produktow = ? WHERE id = ?', (nowa_cena, count, paleta_id))
+    
+    conn.commit()
+    
+    # Uruchom auto-przetwarzanie w tle (pobieranie tytułów i generowanie opisów)
+    auto_process_products(list(asins))
+    
+    paleta_info = f' → Paleta: <b>{paleta_nazwa}</b> ({dostawca})' if paleta_nazwa else ''
+    cena_info = f'<br>💰 Cena jednostkowa: <b>{cena_brutto:.2f} zł</b> (netto: {cena_netto:.2f} zł)' if cena_brutto > 0 else ''
+    
+    return render(f'''
+        <div class="hdr"><h1>✅ DODANO</h1></div>
+        <div class="alert alert-ok">Dodano {added} ASIN-ów do kolejki{paleta_info}{cena_info}</div>
+        <div class="alert" style="background:#1a1a2e;font-size:0.85rem">
+            ✅ Produkty dodane do <a href="/magazyn" style="color:#3b82f6">Magazynu</a><br>
+            🔄 <b>Auto-przetwarzanie w tle</b> - tytuły i opisy generują się automatycznie
+        </div>
+        <a href="/paletomat/scraper" class="btn btn-p">🔍 Dodaj więcej</a>
+        <a href="/paletomat/generator" class="btn btn-ok">🚀 Zobacz postęp</a>
+        <a href="/paletomat" class="back">← Powrót do Paletomat</a>
+    ''')
+
+@paletomat_bp.route('/scraper/file', methods=['POST'])
+def scraper_file():
+    """Import ASIN-ów z pliku (Excel lub CSV/TXT)"""
+    
+    print("="*60)
+    print("🚀 [SCRAPER FILE] START")
+    print("="*60)
+    
+    # DEBUG: Pokaż WSZYSTKO co przyszło z formularza
+    print(f"📋 Wszystkie pola formularza: {dict(request.form)}")
+    print(f"📁 Pliki: {list(request.files.keys())}")
+    
+    if 'file' not in request.files:
+        print("❌ Brak pliku w request!")
+        return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-warn">Nie wybrano pliku</div><a href="/paletomat/scraper" class="btn btn-p">← Powrót</a>')
+    
+    file = request.files['file']
+    if file.filename == '':
+        print("❌ Pusta nazwa pliku!")
+        return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-warn">Nie wybrano pliku</div><a href="/paletomat/scraper" class="btn btn-p">← Powrót</a>')
+    
+    print(f"📄 Plik: {file.filename}")
+    
+    # Pobierz dane palety
+    paleta_id = request.form.get('paleta_id', '')
+    dostawca = request.form.get('dostawca', '')
+    nowa_paleta_nazwa = request.form.get('nowa_paleta_nazwa', '').strip()
+    
+    # DEBUG: Pokaż co przyszło z formularza
+    print(f"📥 [FORM DATA]")
+    print(f"   paleta_id = '{paleta_id}'")
+    print(f"   dostawca = '{dostawca}'")
+    print(f"   nowa_paleta_nazwa = '{nowa_paleta_nazwa}'")
+    
+    # Pobierz cenę jednostkową (jako fallback jeśli nie ma w Excelu)
+    cena_jednostkowa_raw = request.form.get('cena_jednostkowa', '').strip()
+    manual_cena_brutto = 0
+    manual_cena_netto = 0
+    if cena_jednostkowa_raw:
+        try:
+            manual_cena_brutto = float(cena_jednostkowa_raw.replace(',', '.'))
+            manual_cena_netto = round(manual_cena_brutto / 1.23, 2)
+        except:
+            pass
+    
+    filename = file.filename.lower()
+    asins = set()
+    asin_prices = {}
+    
+    try:
+        if filename.endswith('.xlsx') or filename.endswith('.xls'):
+            # Import z Excela - z wykrywaniem cen
+            import openpyxl
+            import tempfile
+            
+            # Zapisz do pliku tymczasowego
+            tmp_path = os.path.join(tempfile.gettempdir(), f'paletomat_{os.getpid()}.xlsx')
+            file.save(tmp_path)
+            
+            try:
+                try:
+                    wb = openpyxl.load_workbook(tmp_path, read_only=True)
+                except ValueError:
+                    # Uszkodzone style/theme XML (np. pliki Warrington) — napraw i spróbuj ponownie
+                    print("⚠️ Uszkodzone style w Excelu, naprawiam...")
+                    import zipfile
+                    repaired_path = tmp_path.replace('.xlsx', '_repaired.xlsx')
+                    # Minimalny styles.xml z 10 pustymi stylami (wystarczy dla większości plików)
+                    min_styles = b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="1"><font><sz val="11"/></font></fonts><fills count="2"><fill><patternFill/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="10"><xf/><xf/><xf/><xf/><xf/><xf/><xf/><xf/><xf/><xf/></cellXfs></styleSheet>'
+                    with zipfile.ZipFile(tmp_path, 'r') as zin, zipfile.ZipFile(repaired_path, 'w') as zout:
+                        for item in zin.namelist():
+                            if item == 'xl/styles.xml':
+                                zout.writestr(item, min_styles)
+                            elif item == 'xl/theme/theme1.xml':
+                                continue  # Pomiń uszkodzony theme
+                            else:
+                                zout.writestr(item, zin.read(item))
+                    wb = openpyxl.load_workbook(repaired_path)
+                    try:
+                        os.remove(repaired_path)
+                    except:
+                        pass
+                ws = wb.active
+                
+                # Znajdź nagłówki - szukaj pierwszego wiersza z niepustymi komórkami
+                headers = []
+                col_asin = -1
+                col_price = -1
+                col_qty = -1
+                price_is_netto = False
+                header_row_found = False
+                rows_checked = 0
+                
+                for row in ws.iter_rows(values_only=True):
+                    rows_checked += 1
+                    
+                    if not header_row_found:
+                        # Szukamy wiersza z nagłówkami (max 10 pierwszych wierszy)
+                        if rows_checked > 10:
+                            print(f"⚠️ Nie znaleziono nagłówków w pierwszych 10 wierszach")
+                            header_row_found = True  # Kontynuuj bez nagłówków
+                            continue
+                        
+                        if not row:
+                            continue
+                        
+                        # Sprawdź czy wiersz ma niepuste komórki
+                        non_empty = [c for c in row if c is not None and str(c).strip()]
+                        if len(non_empty) < 2:
+                            # Za mało danych - to nie nagłówki
+                            continue
+                        
+                        # Sprawdź czy to wygląda jak nagłówki (tekst, nie same liczby)
+                        text_cells = [c for c in non_empty if not str(c).replace('.', '').replace(',', '').isdigit()]
+                        if len(text_cells) < 2:
+                            # Same liczby - to dane, nie nagłówki
+                            continue
+                        
+                        # Mamy potencjalne nagłówki!
+                        header_row_found = True
+                        headers = [str(c).lower().strip() if c else '' for c in row]
+                        print(f"📋 Nagłówki Excel (wiersz {rows_checked}): {[h for h in headers if h]}")
+                        
+                        col_unit_price = -1  # NAJWYŻSZY PRIORYTET: Cena jednostkowa sprzedaży
+                        col_netto = -1       # WYSOKI: Cena sprzedaży netto
+                        col_cost = -1        # ŚREDNI: Unit Cost / Cost
+                        col_rrp = -1         # NAJNIŻSZY: RRP / Retail Price (UNIKAĆ!)
+                        col_ean = -1         # Kolumna EAN
+                        col_images = -1      # NOWE: Kolumna ze zdjęciami
+                        
+                        for i, h in enumerate(headers):
+                            h_clean = h.replace(' ', '').replace('_', '').replace('-', '').replace('ó', 'o').replace('ś', 's').replace('ć', 'c')
+                            h_orig = h.lower()
+                            
+                            # Kolumna EAN
+                            if col_ean == -1 and any(x in h_clean for x in ['ean', 'barcode', 'kodkreskowy', 'gtin']):
+                                col_ean = i
+                                print(f"✅ Znaleziono kolumnę EAN: {i} ({h})")
+                            
+                            # NOWE: Kolumna ze zdjęciami
+                            if col_images == -1 and any(x in h_clean for x in ['zdjec', 'image', 'images', 'photo', 'photos', 'link', 'links', 'url', 'urls']):
+                                col_images = i
+                                print(f"📷 Znaleziono kolumnę ZDJĘCIA: {i} ({h})")
+                            
+                            # Kolumna ASIN - PRIORYTET dla dokładnego "asin", potem inne
+                            # Unikaj "product sku" - to nie jest ASIN!
+                            if h_clean == 'asin':
+                                col_asin = i
+                                print(f"✅ Znaleziono kolumnę ASIN (dokładne): {i} ({h})")
+                            elif col_asin == -1 and 'product' not in h_clean and any(x in h_clean for x in ['sku', 'kod2', 'code', 'artikelnummer', 'article']):
+                                col_asin = i
+                                print(f"✅ Znaleziono kolumnę ASIN (alternatywne): {i} ({h})")
+                            
+                            # UNIKAJ kolumn z cenami rynkowymi!
+                            if any(x in h_orig for x in ['regularn', 'rynkow', 'rrp', 'retail', 'msrp']):
+                                if 'jednostkow' not in h_orig:  # Ale nie unikaj "jednostkowa"
+                                    print(f"⚠️ Pomijam kolumnę rynkową: {i} ({h})")
+                                    continue
+                            
+                            # NAJWYŻSZY PRIORYTET: Cena jednostkowa sprzedaży (per sztuka!)
+                            if col_unit_price == -1 and 'jednostkow' in h_orig and any(x in h_orig for x in ['sprzeda', 'cena']):
+                                col_unit_price = i
+                                print(f"🏆 Znaleziono kolumnę CENA JEDNOSTKOWA: {i} ({h})")
+                            
+                            # WYSOKI PRIORYTET: Cena sprzedaży netto
+                            if col_netto == -1 and 'sprzeda' in h_orig and 'netto' in h_orig:
+                                col_netto = i
+                                print(f"✅ Znaleziono kolumnę NETTO SPRZEDAŻY: {i} ({h})")
+                            
+                            # ŚREDNI PRIORYTET: Unit Cost, Cost, Cena zakupu
+                            if col_cost == -1 and any(x in h_clean for x in ['unitcost', 'cenazakupu', 'koszt', 'einkaufspreis']):
+                                col_cost = i
+                                print(f"✅ Znaleziono kolumnę KOSZT: {i} ({h})")
+                            
+                            # NISKI PRIORYTET: Cena sprzedaży (może być łączna, nie jednostkowa)
+                            if col_price == -1 and 'sprzeda' in h_orig and 'jednostkow' not in h_orig and 'netto' not in h_orig:
+                                col_price = i
+                                print(f"✅ Znaleziono kolumnę CENA SPRZEDAŻY: {i} ({h})")
+                            
+                            # Kolumna ilości - rozszerzone wzorce
+                            if col_qty == -1 and any(x in h_clean for x in ['ilosc', 'ilość', 'qty', 'quantity', 'sztuk', 'szt', 'pcs', 'pieces', 'count', 'menge', 'anzahl', 'stueck', 'stück']):
+                                col_qty = i
+                                print(f"✅ Znaleziono kolumnę ILOŚĆ: {i} ({h})")
+                        
+                        # Wybierz najlepszą kolumnę ceny (priorytet: jednostkowa > netto > cost > sprzedaży)
+                        price_is_netto = False
+                        if col_unit_price >= 0:
+                            col_price = col_unit_price
+                            price_is_netto = True
+                            print(f"🏆 Używam kolumny JEDNOSTKOWA jako cena: {col_price} (netto ×1.23 → brutto)")
+                        elif col_netto >= 0:
+                            col_price = col_netto
+                            price_is_netto = True
+                            print(f"💰 Używam kolumny NETTO jako cena: {col_price} (×1.23 → brutto)")
+                        elif col_cost >= 0:
+                            col_price = col_cost
+                            print(f"💰 Używam kolumny KOSZT jako cena: {col_price}")
+                        # col_price już może być ustawiony na "cena sprzedaży"
+                        
+                        print(f"📊 Wykryte kolumny: ASIN={col_asin}, EAN={col_ean}, CENA={col_price}, ILOŚĆ={col_qty}")
+                        continue
+                    
+                    if not row:
+                        continue
+                    
+                    # Szukaj ASIN-ów w tym wierszu
+                    found_asins = []
+                    
+                    # Szukaj ASIN-ów TYLKO w dedykowanej kolumnie (nie w całym wierszu!)
+                    # Kolumny Image mogą zawierać ASIN-y w URL-ach co powoduje fałszywe wykrycia
+                    if col_asin >= 0 and col_asin < len(row) and row[col_asin]:
+                        cell_str = str(row[col_asin]).strip()
+                        # Szukaj ASIN-ów (case-insensitive, 8-10 znaków po B0)
+                        found_asins = re.findall(r'[Bb]0[A-Za-z0-9]{8,10}', cell_str)
+                        # Konwertuj do uppercase
+                        found_asins = [a.upper() for a in found_asins]
+                        if found_asins:
+                            print(f"   🔍 Kolumna ASIN[{col_asin}]: znaleziono {found_asins}")
+                    
+                    # Jeśli nie znaleziono i nie ma dedykowanej kolumny, szukaj w kolumnach tekstowych (NIE w Image!)
+                    if not found_asins and col_asin == -1:
+                        for i, cell in enumerate(row):
+                            # Pomiń kolumny które mogą zawierać URL-e (Image, zdjęcia, link)
+                            header = headers[i].lower() if i < len(headers) and headers[i] else ''
+                            if any(x in header for x in ['image', 'img', 'photo', 'zdjęci', 'zdjeci', 'link', 'url', 'http']):
+                                continue
+                            if cell:
+                                cell_str = str(cell).strip()
+                                # Pomiń jeśli to URL
+                                if cell_str.startswith('http'):
+                                    continue
+                                # Szukaj ASIN-ów
+                                matches = re.findall(r'[Bb]0[A-Za-z0-9]{8,10}', cell_str)
+                                found_asins.extend([m.upper() for m in matches])
+                        if found_asins:
+                            # Usuń duplikaty
+                            found_asins = list(dict.fromkeys(found_asins))
+                            print(f"   🔍 Szukanie w wierszu: znaleziono {found_asins}")
+                    
+                    # Pobierz EAN z wiersza (jeśli kolumna istnieje)
+                    ean_value = ''
+                    if col_ean >= 0 and col_ean < len(row) and row[col_ean]:
+                        ean_raw = str(row[col_ean]).strip()
+                        # Usuń .0 z floatów Excel
+                        if ean_raw.endswith('.0'):
+                            ean_raw = ean_raw[:-2]
+                        ean_raw = ean_raw.replace('.0', '').replace(' ', '')
+                        # Sprawdź czy wygląda jak EAN (tylko cyfry, 8-14 znaków)
+                        if ean_raw.isdigit() and 8 <= len(ean_raw) <= 14:
+                            ean_value = ean_raw
+                    
+                    # NOWE: Pobierz ZDJĘCIA z wiersza (jeśli kolumna istnieje)
+                    images_list = []
+                    if col_images >= 0 and col_images < len(row) and row[col_images]:
+                        images_raw = str(row[col_images]).strip()
+                        if images_raw:
+                            # Rozdziel linki po przecinkach, średnikach lub spacjach
+                            # Obsługuje formaty: "url1, url2, url3" lub "url1; url2" lub "url1 url2"
+                            separators = [',', ';', '\n']
+                            for sep in separators:
+                                if sep in images_raw:
+                                    images_list = [url.strip() for url in images_raw.split(sep) if url.strip()]
+                                    break
+                            # Jeśli nie ma separatorów, to może być jeden link
+                            if not images_list:
+                                images_list = [images_raw]
+                            
+                            # Filtruj tylko prawidłowe URL-e (http/https)
+                            images_list = [url for url in images_list if url.startswith('http')]
+                            
+                            if images_list:
+                                print(f"   📷 {len(images_list)} zdjęć: {images_list[0][:40]}... {f'(+{len(images_list)-1})' if len(images_list) > 1 else ''}")
+                    
+                    # Dodaj znalezione ASIN-y z cenami (sumuj ilości dla powtórzonych ASIN-ów)
+                    for asin in found_asins:
+                        # Pobierz cenę
+                        price = 0
+                        if col_price >= 0 and col_price < len(row) and row[col_price]:
+                            try:
+                                price_val = str(row[col_price]).replace(',', '.').replace(' ', '')
+                                price_val = re.sub(r'[^\d.]', '', price_val)
+                                price = float(price_val) if price_val else 0
+                            except:
+                                pass
+
+                        # Pobierz ilość - użyj SmartQuantityParser
+                        qty = 1
+                        if col_qty >= 0 and col_qty < len(row) and row[col_qty]:
+                            raw_qty = row[col_qty]
+                            result = SmartQuantityParser.parse(raw_qty)
+                            qty = result.value
+                            print(f"   {asin}: RAW[{col_qty}]='{raw_qty}' -> qty={qty}, cena={price}")
+
+                        if asin not in asins:
+                            asins.add(asin)
+                            asin_prices[asin] = {'price': price, 'qty': qty, 'ean': ean_value, 'images': images_list}
+                        else:
+                            # Ten sam ASIN w kolejnym wierszu — sumuj ilości
+                            asin_prices[asin]['qty'] += qty
+                            print(f"   {asin}: +{qty} szt (łącznie: {asin_prices[asin]['qty']})")
+                
+                wb.close()
+            finally:
+                try:
+                    os.remove(tmp_path)
+                except:
+                    pass
+        
+        else:
+            # Import z CSV/TXT (bez cen - tylko ASIN-y)
+            raw_data = file.read()
+            content = None
+            
+            for encoding in ['utf-8-sig', 'utf-8', 'cp1250', 'latin-1', 'iso-8859-2']:
+                try:
+                    content = raw_data.decode(encoding)
+                    break
+                except UnicodeDecodeError:
+                    continue
+            
+            if content is None:
+                return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-warn">Nie można odczytać pliku</div><a href="/paletomat/scraper" class="btn btn-p">← Powrót</a>')
+            
+            # Szukaj ASIN-ów (case insensitive, 8-10 znaków po B0)
+            found = re.findall(r'[Bb]0[A-Za-z0-9]{8,10}', content)
+            print(f"📄 CSV/TXT: znaleziono {len(found)} ASIN-ów")
+            for asin in found:
+                asin = asin.upper()
+                asins.add(asin)
+                asin_prices[asin] = {'price': 0, 'qty': 1, 'ean': '', 'images': []}
+        
+        if not asins:
+            return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-warn">Nie znaleziono ASIN-ów w pliku.<br><br><small style="color:#64748b">ASIN to kod Amazon zaczynający się od B0, np. B0CFQBBT7G</small></div><a href="/paletomat/scraper" class="btn btn-p">← Powrót</a>')
+        
+        # Dodaj do bazy
+        conn = get_db()
+        
+        # Jeśli nowa paleta - utwórz ją
+        if paleta_id == 'new' and nowa_paleta_nazwa:
+            cursor = conn.execute(
+                'INSERT INTO palety (nazwa, dostawca) VALUES (?, ?)', 
+                (nowa_paleta_nazwa, dostawca)
+            )
+            paleta_id = cursor.lastrowid
+            conn.commit()
+            print(f"📦 Utworzono NOWĄ paletę: {nowa_paleta_nazwa} (ID: {paleta_id})")
+        elif paleta_id and paleta_id != 'new':
+            paleta_id = int(paleta_id)
+            print(f"📦 Używam istniejącej palety ID: {paleta_id}")
+        else:
+            paleta_id = None
+            print(f"⚠️ BRAK palety - produkty bez przypisania!")
+        
+        # Pobierz nazwę palety
+        paleta_nazwa = ""
+        if paleta_id:
+            p = conn.execute('SELECT nazwa FROM palety WHERE id = ?', (paleta_id,)).fetchone()
+            if p:
+                paleta_nazwa = p['nazwa']
+                print(f"📦 Paleta nazwa: {paleta_nazwa}")
+        
+        added = 0
+        updated = 0
+        total_brutto = 0
+        total_netto = 0
+        
+        print(f"🔄 Przetwarzam {len(asins)} ASIN-ów...")
+        print(f"   Paleta ID: {paleta_id}, Nazwa: {paleta_nazwa}, Dostawca: {dostawca}")
+        
+        for asin in asins:
+            try:
+                # Pobierz cenę, ilość, EAN i ZDJĘCIA z pliku
+                price_data = asin_prices.get(asin, {'price': 0, 'qty': 1, 'ean': '', 'images': []})
+                cena_z_pliku = price_data['price']
+                qty = price_data['qty']
+                ean = price_data.get('ean', '')
+                images_from_file = price_data.get('images', [])
+                
+                # Użyj ręcznej ceny jako fallback jeśli nie ma w pliku
+                if cena_z_pliku == 0 and manual_cena_brutto > 0:
+                    cena_z_pliku = manual_cena_brutto
+                
+                # === PRZELICZANIE NETTO → BRUTTO ===
+                # Jeśli kolumna w Excelu to "Cena sprzedaży netto" → cena jest netto, mnóż ×1.23
+                # Jeśli inna kolumna (np. jobalots) → cena już jest brutto
+                if cena_z_pliku > 0 and price_is_netto:
+                    cena_netto = cena_z_pliku
+                    cena_brutto = round(cena_z_pliku * 1.23, 2)
+                    print(f"💰 Netto z pliku: {cena_z_pliku:.2f} × 1.23 = {cena_brutto:.2f} brutto")
+                else:
+                    # Cena z pliku jest brutto (jobalots, inne)
+                    cena_brutto = cena_z_pliku
+                    cena_netto = round(cena_brutto / 1.23, 2) if cena_brutto > 0 else 0
+                
+                # Dodaj do sumy
+                total_brutto += cena_brutto * qty
+                total_netto += cena_netto * qty
+                
+                # WAŻNE: Zapisujemy CAŁKOWITĄ cenę zakupu = cena_jednostkowa * ilość
+                cena_brutto_total = cena_brutto * qty
+                cena_netto_total = cena_netto * qty
+                # Cena Allegro = cena JEDNOSTKOWA * 2.5 (za 1 sztukę!)
+                cena_allegro = round(cena_brutto * 2.5, 2) if cena_brutto else 0
+                
+                # Przygotuj zdjęcia do zapisu (JSON)
+                images_json = ''
+                if images_from_file:
+                    images_json = json.dumps(images_from_file)
+                    print(f"📷 {asin}: zapisuję {len(images_from_file)} zdjęć do bazy")
+                
+                # Dodaj do scraped
+                conn.execute('''INSERT OR IGNORE INTO scraped (asin, status, zdjecie_url) 
+                    VALUES (?, 'nowy', ?)''', (asin, images_from_file[0] if images_from_file else get_amazon_image_url(asin)))
+                
+                # Aktualizuj zdjęcia w scraped jeśli istnieją (może nie być kolumny images)
+                if images_json:
+                    try:
+                        conn.execute('''UPDATE scraped SET images = ? WHERE asin = ?''', (images_json, asin))
+                    except Exception:
+                        pass  # Kolumna images może nie istnieć w starszych bazach
+                
+                # Dodaj do produkty (magazyn)
+                # Szukaj produktu TYLKO w tej samej palecie (nie nadpisuj produktu z innej palety!)
+                existing = conn.execute('SELECT id, ean FROM produkty WHERE asin = ? AND paleta_id = ?', (asin, paleta_id)).fetchone()
+                if not existing:
+                    print(f"➕ Nowy produkt: {asin}, paleta_id={paleta_id}, ean={ean or 'brak'}, ilość={qty}, cena_jedn={cena_brutto}, cena_allegro={cena_allegro}, zdjęć={len(images_from_file)}")
+                    try:
+                        # Próbuj z kolumną images
+                        # WAŻNE: zapisujemy ceny JEDNOSTKOWE (cena_brutto, cena_netto), nie całkowite!
+                        conn.execute('''INSERT INTO produkty (asin, ean, nazwa, ilosc, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta, dostawca, zdjecie_url, images) 
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
+                            (asin, ean, f'Produkt {asin}', qty, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta_nazwa, dostawca, 
+                             images_from_file[0] if images_from_file else get_amazon_image_url(asin), images_json))
+                    except Exception:
+                        # Fallback bez kolumny images (starsza baza)
+                        conn.execute('''INSERT INTO produkty (asin, ean, nazwa, ilosc, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta, dostawca, zdjecie_url) 
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
+                            (asin, ean, f'Produkt {asin}', qty, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta_nazwa, dostawca, 
+                             images_from_file[0] if images_from_file else get_amazon_image_url(asin)))
+                    added += 1
+                else:
+                    # Aktualizuj istniejący produkt
+                    existing_ean = existing['ean'] or ''
+                    new_ean = ean if ean and not existing_ean else existing_ean
+                    print(f"🔄 Aktualizacja: {asin}, paleta_id={paleta_id}, ean={new_ean or 'brak'}, ilość={qty}, cena_jedn={cena_brutto}, cena_allegro={cena_allegro}, zdjęć={len(images_from_file)}")
+                    
+                    # ZAWSZE aktualizuj paletę i dostawcę jeśli podane
+                    update_fields = []
+                    update_values = []
+                    
+                    # EAN - tylko jeśli jest nowy i nie było w bazie
+                    if ean and not existing_ean:
+                        update_fields.append('ean = ?')
+                        update_values.append(ean)
+                    
+                    # Cena - zapisuj JEDNOSTKOWĄ (nie całkowitą!)
+                    if cena_brutto > 0:
+                        update_fields.extend(['cena_brutto = ?', 'cena_netto = ?', 'cena_allegro = ?'])
+                        update_values.extend([cena_brutto, cena_netto, cena_allegro])
+                    
+                    # Ilość - SUMUJ (ten sam ASIN może być rozbity na wiele wierszy w Excelu)
+                    update_fields.append('ilosc = ilosc + ?')
+                    update_values.append(qty)
+                    
+                    # Paleta - zawsze jeśli podana
+                    if paleta_id:
+                        update_fields.extend(['paleta_id = ?', 'paleta = ?'])
+                        update_values.extend([paleta_id, paleta_nazwa])
+                    
+                    # Dostawca - zawsze jeśli podany
+                    if dostawca:
+                        update_fields.append('dostawca = ?')
+                        update_values.append(dostawca)
+                    
+                    # Zdjęcia - jeśli są (tylko zdjecie_url, images opcjonalnie)
+                    if images_from_file:
+                        update_fields.append('zdjecie_url = ?')
+                        update_values.append(images_from_file[0])
+                    
+                    # Wykonaj UPDATE
+                    if update_fields:
+                        update_values.append(asin)  # WHERE asin = ?
+                        sql = f"UPDATE produkty SET {', '.join(update_fields)} WHERE id = ?"
+                        # Zmień ostatni param z asin na id (WHERE id = ? jest bezpieczne - tylko konkretny rekord)
+                        update_values[-1] = existing['id']
+                        print(f"   SQL: {sql}")
+                        print(f"   VALUES: {update_values}")
+                        try:
+                            conn.execute(sql, update_values)
+                            # Spróbuj też zaktualizować images jeśli kolumna istnieje
+                            if images_from_file and images_json:
+                                try:
+                                    conn.execute('UPDATE produkty SET images = ? WHERE id = ?', (images_json, existing['id']))
+                                except Exception:
+                                    pass  # Kolumna images może nie istnieć
+                        except Exception as e:
+                            print(f"   ❌ UPDATE error: {e}")
+                        updated += 1
+                    else:
+                        print(f"   ⚠️ Brak pól do aktualizacji!")
+                
+            except Exception as e:
+                print(f"❌ BŁĄD przy {asin}: {e}")
+                import traceback
+                traceback.print_exc()
+        
+        # Zaktualizuj ilość produktów i sztuk w palecie
+        if paleta_id:
+            count = conn.execute('SELECT COUNT(*) as cnt FROM produkty WHERE paleta_id = ?', (paleta_id,)).fetchone()['cnt']
+            # AKUMULUJ cena_zakupu — NIE nadpisuj, dodaj do istniejącej
+            stara_cena = conn.execute('SELECT COALESCE(cena_zakupu, 0) FROM palety WHERE id = ?', (paleta_id,)).fetchone()[0]
+            nowa_cena = round(stara_cena + total_brutto, 2)
+            stary_netto = conn.execute('SELECT COALESCE(cena_zakupu_netto, 0) FROM palety WHERE id = ?', (paleta_id,)).fetchone()[0]
+            nowy_netto = round(stary_netto + total_netto, 2)
+            try:
+                conn.execute('UPDATE palety SET cena_zakupu = ?, cena_zakupu_netto = ?, ilosc_produktow = ?, ilosc_sztuk = COALESCE(ilosc_sztuk, 0) + ? WHERE id = ?', (nowa_cena, nowy_netto, count, total_qty, paleta_id))
+                print(f"📊 Paleta {paleta_id}: {count} produktów, {total_qty} sztuk dodanych, koszt: {nowa_cena:.2f} zł")
+            except:
+                conn.execute('UPDATE palety SET cena_zakupu = ?, ilosc_produktow = ? WHERE id = ?', (nowa_cena, count, paleta_id))
+                print(f"📊 Paleta {paleta_id}: {count} produktów")
+        
+        conn.commit()
+        print(f"✅ COMMIT wykonany - {added} nowych, {updated} zaktualizowanych")
+        
+        # Uruchom auto-przetwarzanie w tle (pobieranie tytułów i generowanie opisów)
+        auto_process_products(list(asins))
+        
+        paleta_info = f'<br>📦 Paleta: <b>{paleta_nazwa}</b> ({dostawca})' if paleta_nazwa else ''
+        
+        # Oblicz sumaryczną ilość
+        total_qty = sum(p['qty'] for p in asin_prices.values())
+        print(f"📊 DEBUG total_qty: {total_qty}, asin_prices count: {len(asin_prices)}")
+        print(f"📊 DEBUG asin_prices: {[(k, v['qty']) for k, v in asin_prices.items()]}")
+        
+        # Info o wartości
+        value_info = ''
+        if total_brutto > 0 or total_qty > len(asins):
+            value_info = f'''<br><br>
+            📊 <b>Podsumowanie importu:</b><br>
+            Produktów: <b>{len(asins)}</b> | Sztuk łącznie: <b>{total_qty}</b><br>'''
+            if total_brutto > 0:
+                value_info += f'''Brutto: <span style="color:#22c55e">{total_brutto:.2f} PLN</span> | 
+                Netto: <span style="color:#3b82f6">{total_netto:.2f} PLN</span>'''
+        
+        # Komunikat z uwzględnieniem nowych i zaktualizowanych
+        status_msg = []
+        if added > 0:
+            status_msg.append(f"dodano <b>{added}</b> nowych")
+        if updated > 0:
+            status_msg.append(f"zaktualizowano <b>{updated}</b>")
+        status_text = ", ".join(status_msg) if status_msg else "brak zmian"
+        
+        return render(f'''
+            <div class="hdr"><h1>✅ IMPORT ZAKOŃCZONY</h1></div>
+            <div class="alert alert-ok">Znaleziono {len(asins)} ASIN-ów: {status_text}{paleta_info}{value_info}</div>
+            <div class="alert" style="background:#1a1a2e;font-size:0.85rem">
+                ✅ Produkty dodane do <a href="/magazyn" style="color:#3b82f6">Magazynu</a><br>
+                🔄 <b>Auto-przetwarzanie w tle</b> - tytuły i opisy generują się automatycznie
+            </div>
+            <a href="/paletomat/scraper" class="btn btn-p">🔍 Dodaj więcej</a>
+            <a href="/paletomat/generator" class="btn btn-ok">🚀 Zobacz postęp</a>
+            <a href="/paletomat" class="back">← Powrót</a>
+        ''')
+        
+    except Exception as e:
+        return render(f'<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-warn">{str(e)}</div><a href="/paletomat/scraper" class="btn btn-p">← Powrót</a>')
+
+@paletomat_bp.route('/scraper/toggle', methods=['POST'])
+def scraper_toggle():
+    global _scraper_running
+    _scraper_running = not _scraper_running
+    return redirect('/paletomat')
+
+@paletomat_bp.route('/rescrape/<int:product_id>', methods=['POST'])
+def rescrape_product(product_id):
+    """Re-scrapuje produkt z Amazona (pobiera nazwę, zdjęcia, cechy)"""
+    conn = get_db()
+    row = conn.execute('SELECT asin FROM produkty WHERE id = ?', (product_id,)).fetchone()
+    if not row or not row['asin']:
+        flash('Brak ASIN dla tego produktu', 'error')
+        return redirect(request.referrer or '/paletomat')
+
+    asin = row['asin']
+    data = scrape_amazon_product(asin)
+
+    if data and data.get('title') and not data['title'].startswith('Produkt '):
+        conn.execute('UPDATE produkty SET nazwa = ? WHERE id = ?', (data['title'], product_id))
+        conn.execute('UPDATE scraped SET nazwa = ? WHERE asin = ?', (data['title'], asin))
+        conn.commit()
+        flash(f'Zaktualizowano: {data["title"][:60]}', 'success')
+    else:
+        flash(f'Nie udało się pobrać nazwy dla {asin}', 'error')
+
+    return redirect(request.referrer or '/paletomat')
+
+@paletomat_bp.route('/rescrape-all-fallback', methods=['POST'])
+def rescrape_all_fallback():
+    """Re-scrapuje wszystkie produkty z fallback nazwą"""
+    import time as _time
+    conn = get_db()
+    rows = conn.execute("SELECT DISTINCT asin FROM produkty WHERE nazwa LIKE 'Produkt %' AND asin IS NOT NULL AND asin != ''").fetchall()
+
+    ok, fail = 0, 0
+    for row in rows:
+        asin = row['asin']
+        data = scrape_amazon_product(asin)
+        if data and data.get('title') and not data['title'].startswith('Produkt '):
+            conn.execute('UPDATE produkty SET nazwa = ? WHERE asin = ?', (data['title'], asin))
+            conn.execute('UPDATE scraped SET nazwa = ? WHERE asin = ?', (data['title'], asin))
+            ok += 1
+        else:
+            fail += 1
+        _time.sleep(1)
+
+    conn.commit()
+    flash(f'Re-scrapowano: {ok} OK, {fail} nieudane', 'success' if ok > 0 else 'error')
+    return redirect(request.referrer or '/paletomat')
+
+@paletomat_bp.route('/generator')
+def generator():
+    # Pobierz zescrapowane produkty gotowe do generowania
+    conn = get_db()
+    products = conn.execute('SELECT * FROM scraped WHERE status IN ("nowy", "gotowy") ORDER BY data_scrape DESC LIMIT 150').fetchall()
+    wystawione = conn.execute('SELECT COUNT(*) as cnt FROM scraped WHERE status = "wystawiony"').fetchone()['cnt']
+    
+    # Policz produkty z pustymi nazwami (wymagają przetworzenia)
+    needs_processing = conn.execute('''SELECT COUNT(*) as cnt FROM scraped 
+        WHERE status IN ("nowy", "gotowy") AND (nazwa IS NULL OR nazwa = '' OR nazwa LIKE 'Produkt %')''').fetchone()['cnt']
+    
+    
+    # Sprawdź status Allegro
+    from .allegro_api import is_authenticated
+    from .database import get_config
+    allegro_ok = is_authenticated()
+    shipping_ok = bool(get_config('allegro_shipping_id', ''))
+    
+    html = '''
+    <div class="hdr"><h1>🏷️ GENERATOR OFERT</h1><small>Twórz oferty Allegro</small></div>
+    '''
+    
+    # Przyciski masowe
+    html += '<div style="display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap">'
+    
+    # Przycisk przetwarzania
+    if needs_processing > 0:
+        html += f'''<a href="/paletomat/generator/reprocess" class="btn btn-2" style="flex:1;min-width:140px" 
+            onclick="return confirm('Przetworzyć {needs_processing} produktów? (pobranie nazw, zdjęć, opisów z Amazon)')">
+            🔄 PRZETWORZ PONOWNIE ({needs_processing})</a>'''
+    
+    if allegro_ok and shipping_ok and products:
+        html += f'<a href="/paletomat/generator/mass-create" class="btn btn-ok" style="flex:1;min-width:140px" onclick="return confirm(\'Wystawić {len(products)} produktów na Allegro?\')">🚀 WYSTAW WSZYSTKIE ({len(products)})</a>'
+    elif products:
+        html += '<div class="btn btn-2" style="flex:1;min-width:140px;opacity:0.5;cursor:not-allowed">🚀 WYSTAW WSZYSTKIE (połącz Allegro)</div>'
+    
+    if wystawione > 0:
+        html += f'<a href="/paletomat/generator/cleanup" class="btn btn-warn" style="flex:1;min-width:140px" onclick="return confirm(\'Usunąć {wystawione} wystawionych szkiców?\')">🗑️ USUŃ WYSTAWIONE ({wystawione})</a>'
+    
+    html += f'<a href="/paletomat/generator/enhance-existing" class="btn" style="flex:1;min-width:140px;background:#f59e0b;color:#fff">✨ GENERUJ ZDJĘCIA AI</a>'
+
+    # Przycisk re-scrapuj fallback nazwy
+    fallback_cnt = conn.execute("SELECT COUNT(DISTINCT asin) as cnt FROM produkty WHERE nazwa LIKE 'Produkt %' AND asin IS NOT NULL").fetchone()['cnt']
+    if fallback_cnt > 0:
+        html += f'''<form method="POST" action="/paletomat/rescrape-all-fallback" style="flex:1;min-width:140px">
+            <button type="submit" class="btn" style="width:100%;background:#6366f1;color:#fff"
+            onclick="return confirm('Re-scrapować {fallback_cnt} produktów z brakującą nazwą?')">🔄 POBIERZ NAZWY ({fallback_cnt})</button></form>'''
+
+    html += '</div>'
+
+    if products:
+        html += f'<div class="alert alert-ok">{len(products)} produktów gotowych do wystawienia</div>'
+        
+        for p in products:
+            nazwa_display = (p['nazwa'] or f"Produkt {p['asin']}")[:30]
+            html += f'''<div class="item">
+                <img src="{get_amazon_image_url(p['asin'])}" onerror="this.style.display='none'">
+                <div class="item-info">
+                    <div class="item-name">{nazwa_display}...</div>
+                    <div class="item-meta">ASIN: {p['asin']}</div>
+                </div>
+                <a href="/paletomat/generator/{p['asin']}" class="btn-sm btn-p">GENERUJ</a>
+            </div>'''
+    else:
+        html += '<div class="alert alert-warn">Brak produktów do wystawienia. Najpierw użyj scrapera.</div>'
+    
+    html += '<a href="/paletomat" class="back">← Powrót</a>'
+    return render(html)
+
+def _render_stan_fields(grupy_stanow, stan_magazyn):
+    """Renderuje pola stanu - grupowo jeśli są sztuki, pojedynczo jeśli nie"""
+    stan_colors = {
+        'Nowy': ('#22c55e', '🟢'),
+        'Powystawowy': ('#3b82f6', '🔵'),
+        'Używany': ('#eab308', '🟡'),
+        'Uszkodzony': ('#ef4444', '🔴'),
+        'Odnowiony': ('#8b5cf6', '🟣'),
+    }
+    
+    if grupy_stanow:
+        # Wiele grup stanów - osobna oferta per stan
+        html = '''<div style="background:rgba(34,197,94,0.08);border:1px solid #22c55e44;border-radius:10px;padding:14px;margin-bottom:12px">
+            <div style="font-size:0.8rem;color:#22c55e;font-weight:700;margin-bottom:10px">
+                📦 Produkt rozdzielony na stany — zostaną wystawione <b>osobne oferty</b> per stan, zgrupowane ilościowo
+            </div>'''
+        for g in grupy_stanow:
+            stan = g['stan']
+            ile = g['ilosc']
+            color, icon = stan_colors.get(stan, ('#94a3b8', '⬜'))
+            html += f'''<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;background:#0a0a0f;border-radius:8px;padding:10px;border:1px solid {color}33">
+                <span style="font-size:1.1rem">{icon}</span>
+                <span style="font-weight:600;color:{color};flex:1">{stan}</span>
+                <span style="font-size:0.85rem;color:#94a3b8">ilość:</span>
+                <input type="hidden" name="stan_grupa_{stan}" value="{stan}">
+                <input type="number" name="ilosc_grupa_{stan}" value="{ile}" min="1" max="{ile}"
+                    style="width:70px;padding:6px;background:#1e1e2e;border:1px solid {color}66;border-radius:6px;color:#fff;text-align:center;font-weight:700">
+                <span style="font-size:0.75rem;color:#64748b">/ {ile} szt</span>
+            </div>'''
+        html += '<div style="font-size:0.7rem;color:#64748b;margin-top:6px">💡 Jedna oferta na Allegro = jeden stan. System wystawi tyle ofert ile masz grup.</div>'
+        html += '</div>'
+        # Hidden single stan field for non-grouped fallback
+        html += f'<input type="hidden" name="stan" value="{grupy_stanow[0]["stan"] if grupy_stanow else stan_magazyn}">'
+        return html
+    else:
+        # Brak podziału na sztuki - zwykły select
+        opts = ''
+        for stan_val, (color, icon) in stan_colors.items():
+            sel = 'selected' if stan_val == stan_magazyn else ''
+            opts += f'<option value="{stan_val}" {sel}>{icon} {stan_val}</option>'
+        return f'''<div class="form-group">
+            <label>📦 Stan produktu</label>
+            <select name="stan" class="form-ctrl" style="padding:10px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#fff">
+                {opts}
+            </select>
+            <div style="font-size:0.65rem;color:#64748b;margin-top:2px">Stan z magazynu: <b style="color:#fff">{stan_magazyn}</b></div>
+        </div>'''
+
+
+@paletomat_bp.route('/generator/mass-create')
+def generator_mass_create():
+    """Strona masowego wystawiania z progressem"""
+    from .allegro_api import is_authenticated
+    from .database import get_config
+    
+    # Sprawdź wymagania PRZED startem
+    allegro_ok = is_authenticated()
+    shipping_id = get_config('allegro_shipping_id', '')
+    
+    if not allegro_ok:
+        return render('''
+            <div class="hdr"><h1>❌ BŁĄD</h1></div>
+            <div class="alert alert-err">Nie jesteś zalogowany do Allegro!</div>
+            <p style="color:#94a3b8;margin:15px 0">Musisz najpierw połączyć konto Allegro żeby wystawiać oferty.</p>
+            <a href="/allegro" class="btn btn-ok">🔑 Połącz z Allegro</a>
+            <a href="/paletomat/generator" class="back">← Powrót</a>
+        ''')
+    
+    if not shipping_id:
+        return render('''
+            <div class="hdr"><h1>❌ BŁĄD</h1></div>
+            <div class="alert alert-err">Brak cennika wysyłki!</div>
+            <p style="color:#94a3b8;margin:15px 0">Musisz wybrać cennik wysyłki w ustawieniach Allegro.</p>
+            <a href="/allegro/config" class="btn btn-ok">⚙️ Ustawienia Allegro</a>
+            <a href="/paletomat/generator" class="back">← Powrót</a>
+        ''')
+    
+    conn = get_db()
+    products = conn.execute('SELECT * FROM scraped WHERE status IN ("nowy", "gotowy") ORDER BY data_scrape DESC LIMIT 150').fetchall()
+    
+    count = len(products)
+    
+    if count == 0:
+        return render('''
+            <div class="hdr"><h1>🚀 MASOWE WYSTAWIANIE</h1></div>
+            <div class="alert alert-warn">Brak produktów do wystawienia</div>
+            <a href="/paletomat/generator" class="back">← Powrót</a>
+        ''')
+    
+    html = f'''
+    <div class="hdr"><h1>🚀 MASOWE WYSTAWIANIE</h1><small>{count} produktów</small></div>
+    
+    <div class="alert alert-ok" style="font-size:0.85rem">
+        ✅ Allegro połączone | ✅ Cennik wysyłki OK | 🚀 Startujemy automatycznie...
+    </div>
+    
+    <div class="card" style="text-align:center;padding:30px">
+        <div id="progress-icon" style="font-size:3rem;margin-bottom:15px">
+            <div style="display:inline-block;width:48px;height:48px;border:4px solid rgba(99,102,241,0.2);border-top-color:#6366f1;border-radius:50%;animation:spin 1s linear infinite"></div>
+        </div>
+        <div id="progress-text" style="font-size:1.2rem;font-weight:600;margin-bottom:10px">Laczenie...</div>
+        <div style="background:#1e1e2e;border-radius:10px;height:20px;overflow:hidden;margin-bottom:10px">
+            <div id="progress-bar" style="background:linear-gradient(90deg,#3b82f6,#8b5cf6);height:100%;width:0%;transition:width 0.3s"></div>
+        </div>
+        <div id="progress-count" style="font-size:0.85rem;color:#64748b">0 / {count}</div>
+        <div id="timer" style="font-size:1.4rem;font-weight:700;color:#6366f1;margin-top:8px;font-variant-numeric:tabular-nums">00:00</div>
+        <div id="timer-avg" style="font-size:0.8rem;color:#94a3b8;margin-top:2px"></div>
+    </div>
+
+    <style>@keyframes spin {{ 0% {{ transform:rotate(0deg) }} 100% {{ transform:rotate(360deg) }} }}</style>
+
+    <div id="connection-error" class="alert alert-err" style="display:none;margin-bottom:15px">
+        ❌ Błąd połączenia z serwerem!<br>
+        <small>Sprawdzam ponownie za <span id="retry-countdown">5</span> sekund...</small>
+    </div>
+    
+    <div id="log" class="card" style="max-height:400px;overflow-y:auto;font-family:monospace;font-size:0.8rem">
+        <div style="color:#64748b;padding:4px 0">🔄 Inicjalizacja...</div>
+    </div>
+    
+    <div id="done-buttons" style="display:none;margin-top:15px">
+        <a href="/paletomat/generator" class="btn btn-p">← Powrót do listy</a>
+        <a href="/allegro/moje-oferty" class="btn btn-ok" style="margin-left:8px">📋 Zobacz oferty</a>
+    </div>
+    
+    <script>
+    (function() {{
+        const log = document.getElementById('log');
+        const bar = document.getElementById('progress-bar');
+        const text = document.getElementById('progress-text');
+        const count = document.getElementById('progress-count');
+        const icon = document.getElementById('progress-icon');
+        const connectionError = document.getElementById('connection-error');
+        const retryCountdown = document.getElementById('retry-countdown');
+        const doneButtons = document.getElementById('done-buttons');
+        const _timerEl = document.getElementById('timer');
+        const _timerAvg = document.getElementById('timer-avg');
+        const _totalProducts = {count};
+
+        // TIMER
+        const _startTime = Date.now();
+        const _timerInterval = setInterval(() => {{
+            const elapsed = Math.floor((Date.now() - _startTime) / 1000);
+            const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+            const s = String(elapsed % 60).padStart(2, '0');
+            _timerEl.textContent = m + ':' + s;
+        }}, 1000);
+        function _stopTimer() {{
+            clearInterval(_timerInterval);
+            const elapsed = ((Date.now() - _startTime) / 1000).toFixed(1);
+            _timerEl.textContent = elapsed + 's';
+            _timerEl.style.color = '#22c55e';
+        }}
+        function _updateAvg() {{
+            const done = sukces + bledy;
+            if (done > 0) {{
+                const elapsed = (Date.now() - _startTime) / 1000;
+                const avg = (elapsed / done).toFixed(1);
+                const remaining = _totalProducts - done;
+                const eta = Math.ceil(avg * remaining);
+                const etaM = Math.floor(eta / 60);
+                const etaS = eta % 60;
+                _timerAvg.textContent = avg + 's/oferta | ETA: ~' + (etaM > 0 ? etaM + 'min ' : '') + etaS + 's';
+            }}
+        }}
+
+        let sukces = 0, bledy = 0;
+        let evtSource = null;
+        let retryCount = 0;
+        const MAX_RETRIES = 5;
+        let retryTimer = null;
+        
+        function addLog(message, color = '#94a3b8') {{
+            log.innerHTML += `<div style="color:${{color}};padding:4px 0">${{message}}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }}
+        
+        function showConnectionError(show, retryIn = 5) {{
+            connectionError.style.display = show ? 'block' : 'none';
+            if (show) {{
+                retryCountdown.textContent = retryIn;
+            }}
+        }}
+        
+        function connectToStream() {{
+            if (retryCount >= MAX_RETRIES) {{
+                icon.textContent = '❌';
+                text.textContent = 'Nie udało się połączyć';
+                addLog('❌ Przekroczono limit prób połączenia. Sprawdź czy backend działa i ngrok jest uruchomiony!', '#ef4444');
+                showConnectionError(false);
+                doneButtons.style.display = 'flex';
+                doneButtons.style.gap = '10px';
+                return;
+            }}
+            
+            retryCount++;
+            addLog(`🔄 Próba połączenia ${{retryCount}}/${{MAX_RETRIES}}...`, '#3b82f6');
+            
+            try {{
+                if (evtSource) {{
+                    evtSource.close();
+                }}
+                
+                evtSource = new EventSource('/paletomat/generator/mass-create-stream');
+                
+                let connectionTimeout = setTimeout(() => {{
+                    addLog('⚠️ Timeout połączenia (10s) - próbuję ponownie...', '#f59e0b');
+                    if (evtSource) {{
+                        evtSource.close();
+                    }}
+                    retryWithDelay(5);
+                }}, 10000);
+                
+                evtSource.onopen = function() {{
+                    clearTimeout(connectionTimeout);
+                    addLog('✅ Połączono z serwerem!', '#22c55e');
+                    showConnectionError(false);
+                    retryCount = 0;
+                }};
+                
+                evtSource.onmessage = function(e) {{
+                    clearTimeout(connectionTimeout);
+                    
+                    try {{
+                        const data = JSON.parse(e.data);
+                        
+                        if (data.type === 'start') {{
+                            addLog('🚀 Start wystawiania ' + data.total + ' produktów...', '#3b82f6');
+                            icon.textContent = '🚀';
+                        }}
+                        else if (data.type === 'progress') {{
+                            bar.style.width = data.percent + '%';
+                            count.textContent = data.current + ' / ' + data.total;
+                            text.textContent = 'Wystawianie: ' + (data.asin || '');
+                        }}
+                        else if (data.type === 'success') {{
+                            sukces++;
+                            const zdjeciaInfo = data.zdjecia ? ` (${{data.zdjecia}} zdjec)` : '';
+                            addLog('✅ ' + data.asin + ': ' + data.title + zdjeciaInfo, '#22c55e');
+                            _updateAvg();
+                        }}
+                        else if (data.type === 'error') {{
+                            bledy++;
+                            addLog('❌ ' + data.asin + ': ' + data.error, '#ef4444');
+                            _updateAvg();
+                        }}
+                        else if (data.type === 'log') {{
+                            const logColor = data.color || '#94a3b8';
+                            addLog(data.message, logColor);
+                        }}
+                        else if (data.type === 'done') {{
+                            _stopTimer();
+                            icon.innerHTML = sukces > bledy ? '✅' : '⚠️';
+                            const totalTime = ((Date.now() - _startTime) / 1000).toFixed(1);
+                            const avg = sukces > 0 ? ((Date.now() - _startTime) / 1000 / sukces).toFixed(1) : '0';
+                            text.textContent = 'Gotowe: ' + sukces + ' OK, ' + bledy + ' bledow';
+                            _timerAvg.textContent = 'Lacznie: ' + totalTime + 's | Srednia: ' + avg + 's/oferta';
+                            bar.style.width = '100%';
+                            addLog('✅ GOTOWE! Sukces: ' + sukces + ', Bledy: ' + bledy, '#22c55e');
+                            doneButtons.style.display = 'flex';
+                            doneButtons.style.gap = '10px';
+
+                            if (evtSource) {{
+                                evtSource.close();
+                            }}
+                        }}
+                    }} catch (parseError) {{
+                        console.error('JSON parse error:', parseError, e.data);
+                        addLog('⚠️ Błąd parsowania danych: ' + parseError.message, '#f59e0b');
+                    }}
+                }};
+                
+                evtSource.onerror = function(err) {{
+                    clearTimeout(connectionTimeout);
+                    console.error('EventSource error:', err);
+                    
+                    if (evtSource.readyState === EventSource.CLOSED) {{
+                        addLog('❌ Połączenie zamknięte przez serwer', '#ef4444');
+                    }} else if (evtSource.readyState === EventSource.CONNECTING) {{
+                        addLog('🔄 Ponowne łączenie...', '#f59e0b');
+                    }} else {{
+                        addLog('❌ Błąd połączenia: ' + (err.message || 'Unknown error'), '#ef4444');
+                    }}
+                    
+                    if (evtSource) {{
+                        evtSource.close();
+                    }}
+                    
+                    retryWithDelay(5);
+                }};
+                
+            }} catch (error) {{
+                console.error('Connection error:', error);
+                addLog('❌ Błąd inicjalizacji: ' + error.message, '#ef4444');
+                retryWithDelay(5);
+            }}
+        }}
+        
+        function retryWithDelay(seconds) {{
+            if (retryCount >= MAX_RETRIES) {{
+                icon.textContent = '❌';
+                text.textContent = 'Nie udało się połączyć';
+                addLog('❌ Osiągnięto limit prób. Sprawdź logi serwera i upewnij się że backend działa!', '#ef4444');
+                doneButtons.style.display = 'flex';
+                doneButtons.style.gap = '10px';
+                return;
+            }}
+            
+            showConnectionError(true, seconds);
+            icon.textContent = '⏳';
+            text.textContent = 'Ponowne łączenie...';
+            
+            let countdown = seconds;
+            retryTimer = setInterval(() => {{
+                countdown--;
+                retryCountdown.textContent = countdown;
+                
+                if (countdown <= 0) {{
+                    clearInterval(retryTimer);
+                    showConnectionError(false);
+                    connectToStream();
+                }}
+            }}, 1000);
+        }}
+        
+        addLog('🔄 Inicjalizacja połączenia...', '#3b82f6');
+        connectToStream();
+        
+        window.addEventListener('beforeunload', function() {{
+            if (evtSource) {{
+                evtSource.close();
+            }}
+            if (retryTimer) {{
+                clearInterval(retryTimer);
+            }}
+        }});
+    }})();
+    </script>
+    '''
+    return render(html)
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# MASOWE WYSTAWIANIE Z PALETY - Adrian's custom feature v3.1.0
+# ═══════════════════════════════════════════════════════════════════════════
+
+@paletomat_bp.route('/generator/mass-create-from-paleta')
+def generator_mass_create_from_paleta():
+    """Masowe wystawianie produktów z magazynu"""
+    from .allegro_api import is_authenticated
+    from .database import get_config
+    
+    paleta_id = request.args.get('paleta_id', type=int)
+    ids_str = request.args.get('ids', '')
+    
+    if not ids_str:
+        return render('''
+            <div class="hdr"><h1>❌ BŁĄD</h1></div>
+            <div class="alert alert-err">Nie wybrano żadnych produktów!</div>
+            <a href="/palety" class="back">← Powrót</a>
+        ''')
+    
+    try:
+        product_ids = [int(x.strip()) for x in ids_str.split(',') if x.strip()]
+    except:
+        return render('''
+            <div class="hdr"><h1>❌ BŁĄD</h1></div>
+            <div class="alert alert-err">Nieprawidłowe ID produktów!</div>
+            <a href="/palety" class="back">← Powrót</a>
+        ''')
+    
+    allegro_ok = is_authenticated()
+    shipping_id = get_config('allegro_shipping_id', '')
+    
+    if not allegro_ok:
+        return render('''
+            <div class="hdr"><h1>❌ BŁĄD</h1></div>
+            <div class="alert alert-err">Nie jesteś zalogowany do Allegro!</div>
+            <a href="/allegro" class="btn btn-ok">🔑 Połącz z Allegro</a>
+            <a href="/palety" class="back">← Powrót</a>
+        ''')
+    
+    if not shipping_id:
+        return render('''
+            <div class="hdr"><h1>❌ BŁĄD</h1></div>
+            <div class="alert alert-err">Brak cennika wysyłki!</div>
+            <a href="/allegro/config" class="btn btn-ok">⚙️ Ustawienia Allegro</a>
+            <a href="/palety" class="back">← Powrót</a>
+        ''')
+    
+    count = len(product_ids)
+    
+    html = f'''
+    <div class="hdr"><h1>🚀 MASOWE WYSTAWIANIE Z PALETY</h1><small>{count} produktów</small></div>
+    
+    <div class="alert alert-ok" style="font-size:0.85rem">
+        ✅ Allegro połączone | ✅ Cennik wysyłki OK | ✅ Produkty wybrane | 🚀 Startujemy...
+    </div>
+    
+    <div class="card" style="text-align:center;padding:30px">
+        <div id="progress-icon" style="font-size:3rem;margin-bottom:15px">
+            <div style="display:inline-block;width:48px;height:48px;border:4px solid rgba(99,102,241,0.2);border-top-color:#6366f1;border-radius:50%;animation:spin 1s linear infinite"></div>
+        </div>
+        <div id="progress-text" style="font-size:1.2rem;font-weight:600;margin-bottom:10px">Laczenie...</div>
+        <div style="background:#1e1e2e;border-radius:10px;height:20px;overflow:hidden;margin-bottom:10px">
+            <div id="progress-bar" style="background:linear-gradient(90deg,#3b82f6,#8b5cf6);height:100%;width:0%;transition:width 0.3s"></div>
+        </div>
+        <div id="progress-count" style="font-size:0.85rem;color:#64748b">0 / {count}</div>
+        <div id="timer" style="font-size:1.4rem;font-weight:700;color:#6366f1;margin-top:8px;font-variant-numeric:tabular-nums">00:00</div>
+        <div id="timer-avg" style="font-size:0.8rem;color:#94a3b8;margin-top:2px"></div>
+    </div>
+
+    <style>@keyframes spin {{ 0% {{ transform:rotate(0deg) }} 100% {{ transform:rotate(360deg) }} }}</style>
+
+    <div id="log" class="card" style="max-height:400px;overflow-y:auto;font-family:monospace;font-size:0.8rem">
+        <div style="color:#64748b;padding:4px 0">🔄 Inicjalizacja...</div>
+    </div>
+
+    <div id="done-buttons" style="display:none;margin-top:15px">
+        <a href="/palety/{paleta_id}" class="btn btn-p">← Powrot do palety</a>
+        <a href="/allegro/moje-oferty" class="btn btn-ok" style="margin-left:8px">📋 Zobacz oferty na Allegro</a>
+    </div>
+
+    <script>
+    // TIMER
+    const _startTime = Date.now();
+    const _timerEl = document.getElementById('timer');
+    const _timerAvg = document.getElementById('timer-avg');
+    const _totalProducts = {count};
+    const _timerInterval = setInterval(() => {{
+        const elapsed = Math.floor((Date.now() - _startTime) / 1000);
+        const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const s = String(elapsed % 60).padStart(2, '0');
+        _timerEl.textContent = m + ':' + s;
+    }}, 1000);
+    function _stopTimer() {{
+        clearInterval(_timerInterval);
+        const elapsed = ((Date.now() - _startTime) / 1000).toFixed(1);
+        _timerEl.textContent = elapsed + 's';
+        _timerEl.style.color = '#22c55e';
+    }}
+    function _updateAvg() {{
+        const done = sukces + bledy;
+        if (done > 0) {{
+            const elapsed = (Date.now() - _startTime) / 1000;
+            const avg = (elapsed / done).toFixed(1);
+            const remaining = _totalProducts - done;
+            const eta = Math.ceil(avg * remaining);
+            const etaM = Math.floor(eta / 60);
+            const etaS = eta % 60;
+            _timerAvg.textContent = avg + 's/oferta | ETA: ~' + (etaM > 0 ? etaM + 'min ' : '') + etaS + 's';
+        }}
+    }}
+
+    const evtSource = new EventSource('/paletomat/generator/mass-create-from-paleta-stream?ids={ids_str}');
+    const log = document.getElementById('log');
+    const bar = document.getElementById('progress-bar');
+    const text = document.getElementById('progress-text');
+    const count = document.getElementById('progress-count');
+    const icon = document.getElementById('progress-icon');
+    let sukces = 0, bledy = 0;
+
+    evtSource.onmessage = function(e) {{
+        const data = JSON.parse(e.data);
+
+        if (data.type === 'start') {{
+            log.innerHTML += '<div style="color:#3b82f6;padding:4px 0">🚀 Start wystawiania ' + data.total + ' produktow z magazynu...</div>';
+        }}
+        else if (data.type === 'progress') {{
+            bar.style.width = data.percent + '%';
+            count.textContent = data.current + ' / ' + data.total;
+            text.textContent = 'Wystawianie: ' + (data.title || '').substring(0, 40);
+        }}
+        else if (data.type === 'success') {{
+            sukces++;
+            log.innerHTML += '<div style="color:#22c55e;padding:4px 0">✅ ' + data.title + ' (' + data.price + ' zl)</div>';
+            log.scrollTop = log.scrollHeight;
+            _updateAvg();
+        }}
+        else if (data.type === 'error') {{
+            bledy++;
+            log.innerHTML += '<div style="color:#ef4444;padding:4px 0">❌ ' + (data.title || 'Produkt') + ': ' + data.error + '</div>';
+            log.scrollTop = log.scrollHeight;
+            _updateAvg();
+        }}
+        else if (data.type === 'log') {{
+            const color = data.color || '#94a3b8';
+            log.innerHTML += '<div style="color:' + color + ';padding:4px 0">' + data.message + '</div>';
+            log.scrollTop = log.scrollHeight;
+        }}
+        else if (data.type === 'done') {{
+            evtSource.close();
+            _stopTimer();
+            bar.style.width = '100%';
+            icon.innerHTML = (sukces > 0 ? '✅' : '❌');
+            const totalTime = ((Date.now() - _startTime) / 1000).toFixed(1);
+            const avg = sukces > 0 ? ((Date.now() - _startTime) / 1000 / sukces).toFixed(1) : '0';
+            text.textContent = 'Gotowe! ' + sukces + ' wystawiono, ' + bledy + ' bledow';
+            _timerAvg.textContent = 'Lacznie: ' + totalTime + 's | Srednia: ' + avg + 's/oferta';
+            document.getElementById('done-buttons').style.display = 'flex';
+            document.getElementById('done-buttons').style.gap = '10px';
+        }}
+    }};
+
+    evtSource.onerror = function() {{
+        evtSource.close();
+        _stopTimer();
+        _timerEl.style.color = '#ef4444';
+        icon.innerHTML = '❌';
+        text.textContent = 'Blad polaczenia ze streamem';
+        log.innerHTML += '<div style="color:#ef4444;padding:4px 0">❌ Utracono polaczenie</div>';
+        document.getElementById('done-buttons').style.display = 'flex';
+    }};
+    </script>
+    '''
+    return render(html)
+
+
+@paletomat_bp.route('/generator/mass-create-from-paleta-stream')
+def generator_mass_create_from_paleta_stream():
+    """SSE stream dla masowego wystawiania produktów z magazynu"""
+    from .allegro_api import create_offer, is_authenticated, upload_image_to_allegro, search_categories
+    from .database import get_config
+    import time
+    import sqlite3
+    
+   # --- POPRAWIONY FRAGMENT (Wklej w miejsce starego) ---
+
+    # 1. Pobieramy dane tutaj (NAD funkcją generate), póki mamy dostęp do requestu
+    ids_str = request.args.get('ids', '')
+
+    def generate():
+        # Wewnątrz funkcji już NIE wywołujemy request.args.get
+        # Korzystamy ze zmiennej 'ids_str' pobranej wyżej
+        
+        if not ids_str:
+            yield "data: " + json.dumps({'type': 'error', 'title': 'System', 'error': 'Brak ID produktów'}) + "\n\n"
+            yield "data: " + json.dumps({'type': 'done'}) + "\n\n"
+            return
+
+        try:
+            # Tu używamy zmiennej z góry
+            product_ids = [int(x.strip()) for x in ids_str.split(',') if x.strip()]
+        except:
+            yield "data: " + json.dumps({'type': 'error', 'title': 'System', 'error': 'Nieprawidłowe ID'}) + "\n\n"
+            yield "data: " + json.dumps({'type': 'done'}) + "\n\n"
+            return
+
+        if not is_authenticated():
+            yield "data: " + json.dumps({'type': 'error', 'title': 'System', 'error': 'Nie zalogowany do Allegro'}) + "\n\n"
+            yield "data: " + json.dumps({'type': 'done'}) + "\n\n"
+            return
+            
+        # ... dalsza część kodu bez zmian ...
+        
+        conn = get_db()
+        
+        placeholders = ','.join('?' * len(product_ids))
+        products = conn.execute(f'''
+            SELECT * FROM produkty
+            WHERE id IN ({placeholders})
+            AND status NOT IN ('usuniety', 'sprzedany')
+            ORDER BY id
+        ''', product_ids).fetchall()
+
+        total = len(products)
+
+        if total == 0:
+            yield "data: " + json.dumps({'type': 'error', 'title': 'System', 'error': 'Brak produktów lub już wystawione'}) + "\n\n"
+            yield "data: " + json.dumps({'type': 'done'}) + "\n\n"
+            return
+        
+        yield "data: " + json.dumps({'type': 'start', 'total': total}) + "\n\n"
+        time.sleep(0.5)
+        
+        for i, p in enumerate(products):
+            p = dict(p)
+            product_id = p['id']
+            nazwa = p['nazwa']
+            
+            yield "data: " + json.dumps({'type': 'progress', 'current': i+1, 'total': total, 'percent': int((i+1)/total*100), 'title': nazwa[:40]}) + "\n\n"
+            
+            try:
+                cena = float(p['cena_allegro']) if p['cena_allegro'] else 99.99
+                ilosc = int(p['ilosc']) if p['ilosc'] else 1
+                ean = p.get('ean') or None
+                asin = p.get('asin') or None
+                zdjecie_url = p.get('zdjecie_url') or ''
+                kategoria = p.get('kategoria', 'inne') or 'inne'
+
+                # === DEDUPLIKACJA: sprawdź czy produkt ma już aktywną ofertę ===
+                yield "data: " + json.dumps({'type': 'log', 'message': f'🔍 Dedup: id={product_id}, ean={ean}, asin={asin}', 'color': '#6366f1'}) + "\n\n"
+
+                existing_offer = None
+                _nazwa_lower = (nazwa or '').lower()[:40]
+
+                # Pomocnicza: sprawdź czy nazwa oferty pasuje do produktu
+                def _nazwa_match(offer_tytul):
+                    """Porównaj pierwsze słowa nazwy — żeby nie łączyć różnych produktów z tym samym ASIN"""
+                    if not offer_tytul or not _nazwa_lower:
+                        return True  # brak danych = pozwól
+                    t = offer_tytul.lower()[:40]
+                    # Porównaj pierwsze 2 słowa
+                    words_p = _nazwa_lower.split()[:2]
+                    words_o = t.split()[:2]
+                    return words_p == words_o or words_p[0] == words_o[0] if words_p and words_o else True
+
+                # 1. Szukaj po produkt_id (najdokładniejsze — ten sam produkt)
+                existing_offer = conn.execute('''
+                    SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status
+                    FROM oferty o
+                    WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
+                    AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
+                    AND o.produkt_id = ?
+                    LIMIT 1
+                ''', (product_id,)).fetchone()
+
+                # 2. Szukaj po ASIN + weryfikacja nazwy
+                if asin and not existing_offer:
+                    all_prod_ids = [r['id'] for r in conn.execute('SELECT id FROM produkty WHERE asin = ?', (asin,)).fetchall()]
+                    if all_prod_ids:
+                        ph = ','.join('?' * len(all_prod_ids))
+                        candidates = conn.execute(f'''
+                            SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status
+                            FROM oferty o
+                            WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
+                            AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
+                            AND o.produkt_id IN ({ph})
+                        ''', all_prod_ids).fetchall()
+                        # Filtruj po nazwie — żeby nie łączyć pokrowców z relingami
+                        for c in candidates:
+                            if _nazwa_match(c['tytul']):
+                                existing_offer = c
+                                break
+                        yield "data: " + json.dumps({'type': 'log', 'message': f'🔍 ASIN {asin}: {len(all_prod_ids)} prod, {len(candidates)} ofert, match: {"TAK" if existing_offer else "NIE (inna nazwa)"}', 'color': '#6366f1'}) + "\n\n"
+
+                # 3. Szukaj po EAN + weryfikacja nazwy
+                if ean and not existing_offer:
+                    all_prod_ids = [r['id'] for r in conn.execute('SELECT id FROM produkty WHERE ean = ?', (ean,)).fetchall()]
+                    if all_prod_ids:
+                        ph = ','.join('?' * len(all_prod_ids))
+                        candidates = conn.execute(f'''
+                            SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status
+                            FROM oferty o
+                            WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
+                            AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
+                            AND o.produkt_id IN ({ph})
+                        ''', all_prod_ids).fetchall()
+                        for c in candidates:
+                            if _nazwa_match(c['tytul']):
+                                existing_offer = c
+                                break
+
+                if existing_offer:
+                    ex = dict(existing_offer)
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'📦 Znaleziono aktywną ofertę: {ex["allegro_id"]} ({ex["tytul"][:30]}), szt: {ex["ilosc"]}', 'color': '#f59e0b'}) + "\n\n"
+                    try:
+                        from .allegro_api import update_offer_stock
+                        obecna_ilosc = ex.get('ilosc', 0) or 0
+                        magazyn_ilosc = int(p.get('ilosc', 0) or 0)
+
+                        # Jeśli oferta ma już tyle co magazyn — pomiń
+                        if obecna_ilosc >= magazyn_ilosc and magazyn_ilosc > 0:
+                            yield "data: " + json.dumps({'type': 'log', 'message': f'⏩ Oferta #{ex["allegro_id"]} ma już {obecna_ilosc} szt (magazyn: {magazyn_ilosc}) — pomijam', 'color': '#6366f1'}) + "\n\n"
+                            yield "data: " + json.dumps({'type': 'success', 'title': nazwa[:40], 'message': f'Już wystawione ({obecna_ilosc} szt)'}) + "\n\n"
+                            time.sleep(0.3)
+                            continue
+
+                        dodaj = max(min(ilosc, magazyn_ilosc), 1)  # nie więcej niż stan magazynowy
+                        new_qty = obecna_ilosc + dodaj
+                        result, error = update_offer_stock(ex['allegro_id'], new_qty)
+                        if error and str(error).startswith('OFFER_NOT_EXISTS:'):
+                            yield "data: " + json.dumps({'type': 'log', 'message': f'🗑️ Oferta #{ex["allegro_id"]} nie istnieje — zakończona w DB, tworzę nową', 'color': '#f59e0b'}) + "\n\n"
+                        elif error:
+                            yield "data: " + json.dumps({'type': 'log', 'message': f'⚠️ Błąd dodawania do oferty: {error}', 'color': '#f59e0b'}) + "\n\n"
+                        else:
+                            yield "data: " + json.dumps({'type': 'log', 'message': f'✅ +{dodaj} szt → oferta #{ex["allegro_id"]} (było {obecna_ilosc}, teraz {new_qty})', 'color': '#22c55e'}) + "\n\n"
+                            yield "data: " + json.dumps({'type': 'success', 'title': nazwa[:40], 'message': f'Dodano {dodaj} szt do istniejącej oferty (łącznie {new_qty})'}) + "\n\n"
+                            time.sleep(0.3)
+                            continue
+                    except Exception as e:
+                        yield "data: " + json.dumps({'type': 'log', 'message': f'⚠️ Błąd dedup: {str(e)[:50]}', 'color': '#f59e0b'}) + "\n\n"
+                else:
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'🆕 Brak aktywnej oferty — tworzę nową', 'color': '#3b82f6'}) + "\n\n"
+
+                # === POPRAWKA: POBIERZ WSZYSTKIE ZDJĘCIA, NIE TYLKO GŁÓWNE ===
+                wszystkie_zdjecia = []
+                
+                # 1. Sprawdź kolumnę 'images' w produkty (JSON z listą zdjęć)
+                try:
+                    saved_images = p.get('images', '') or ''
+                    if saved_images:
+                        wszystkie_zdjecia = json.loads(saved_images)
+                        if not isinstance(wszystkie_zdjecia, list):
+                            wszystkie_zdjecia = []
+                except:
+                    pass
+                
+                # 2. FALLBACK: Pobierz z tabeli scraped (kolumna wszystkie_zdjecia)
+                if not wszystkie_zdjecia and asin:
+                    try:
+                        scraped_row = conn.execute('SELECT wszystkie_zdjecia FROM scraped WHERE asin = ?', (asin,)).fetchone()
+                        if scraped_row and scraped_row['wszystkie_zdjecia']:
+                            wszystkie_zdjecia = json.loads(scraped_row['wszystkie_zdjecia'])
+                            if not isinstance(wszystkie_zdjecia, list):
+                                wszystkie_zdjecia = []
+                            yield "data: " + json.dumps({'type': 'log', 'message': f'📷 Pobrano {len(wszystkie_zdjecia)} zdjęć z cache scraped', 'color': '#8b5cf6'}) + "\n\n"
+                    except Exception as e:
+                        pass
+                
+                # 3. Fallback: użyj głównego zdjęcia
+                if not wszystkie_zdjecia and zdjecie_url:
+                    wszystkie_zdjecia = [zdjecie_url]
+                
+                # 3.5 SPRAWDŹ: czy lokalne pliki istnieją, re-download jeśli nie
+                wszystkie_zdjecia, img_logs = _ensure_local_images(wszystkie_zdjecia, asin, zdjecie_url)
+                for msg, color in img_logs:
+                    yield "data: " + json.dumps({'type': 'log', 'message': msg, 'color': color}) + "\n\n"
+                
+                # === UŻYJ ENHANCED ZDJĘĆ (pre-generated przez scraper) ===
+                _enh_dir_check = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'enhanced', str(asin or product_id))
+                if os.path.isdir(_enh_dir_check):
+                    _enh_files2 = sorted([os.path.join(_enh_dir_check, f) for f in os.listdir(_enh_dir_check) if f.endswith('.jpg')])
+                    if _enh_files2:
+                        wszystkie_zdjecia = _enh_files2[:8]
+                        yield "data: " + json.dumps({'type': 'log', 'message': f'✨ Użyto {len(_enh_files2)} zdjęć AI (pre-generated)', 'color': '#f59e0b'}) + "\n\n"
+
+                # 3. Upload WSZYSTKICH zdjęć do Allegro (max 8)
+                zdjecia_urls = []
+                if wszystkie_zdjecia:
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'📷 {len(wszystkie_zdjecia)} zdjęć, uploaduję...', 'color': '#3b82f6'}) + "\n\n"
+
+                    for idx, img_url in enumerate(wszystkie_zdjecia[:8], 1):
+                        try:
+                            allegro_url = upload_image_to_allegro(img_url, asin=asin)
+                            if allegro_url:
+                                zdjecia_urls.append(allegro_url)
+                                yield "data: " + json.dumps({'type': 'log', 'message': f'   ✅ [{idx}/{min(len(wszystkie_zdjecia), 8)}] Uploadowano', 'color': '#22c55e'}) + "\n\n"
+                            else:
+                                yield "data: " + json.dumps({'type': 'log', 'message': f'   ❌ [{idx}] Błąd uploadu', 'color': '#ef4444'}) + "\n\n"
+                        except Exception as e:
+                            yield "data: " + json.dumps({'type': 'log', 'message': f'   ❌ [{idx}] {str(e)[:40]}', 'color': '#ef4444'}) + "\n\n"
+
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'✅ Uploadowano {len(zdjecia_urls)}/{len(wszystkie_zdjecia[:8])} zdjęć', 'color': '#22c55e'}) + "\n\n"
+                
+                kategoria_id = None
+                try:
+                    cat_result, cat_error = search_categories(nazwa[:50])
+                    if cat_result and cat_result.get('matchingCategories'):
+                        kategoria_id = cat_result['matchingCategories'][0].get('id')
+                except:
+                    pass
+                
+                from .utils import optimize_title_seo, generuj_opis_html_pro, generuj_gpsr_info
+                
+                # Pobierz klucz Gemini API
+                gemini_key = get_config('gemini_api_key', '')
+                
+                # Pobierz bullet points z produkty
+                bullet_points_raw = p.get('bullet_points') or ''
+                bullet_points = []
+                if bullet_points_raw:
+                    try:
+                        import json as json_module
+                        bullet_points = json_module.loads(bullet_points_raw) if isinstance(bullet_points_raw, str) else bullet_points_raw
+                        if not isinstance(bullet_points, list):
+                            bullet_points = []
+                    except:
+                        pass
+                
+                # FALLBACK: Pobierz bullet_points z tabeli scraped jeśli brak w produkty
+                if not bullet_points and asin:
+                    try:
+                        scraped_row = conn.execute('SELECT bullet_points FROM scraped WHERE asin = ?', (asin,)).fetchone()
+                        if scraped_row and scraped_row['bullet_points']:
+                            bp_raw = scraped_row['bullet_points']
+                            import json as json_module
+                            bullet_points = json_module.loads(bp_raw) if isinstance(bp_raw, str) else bp_raw
+                            if not isinstance(bullet_points, list):
+                                bullet_points = []
+                            if bullet_points:
+                                yield "data: " + json.dumps({'type': 'log', 'message': f'📝 Pobrano {len(bullet_points)} cech z cache scraped', 'color': '#8b5cf6'}) + "\n\n"
+                    except Exception as e:
+                        pass
+                
+                # Użyj meta_title jeśli istnieje, w przeciwnym razie optymalizuj nazwę
+                if p.get('meta_title'):
+                    tytul_seo = p['meta_title'][:75]
+                else:
+                    tytul_seo = optimize_title_seo(nazwa, 75)
+
+                # Kod magazynowy (do użytku wewnętrznego, NIE do tytułu/opisu Allegro)
+                _km = p.get('kod_magazynowy') or f"MAG-{product_id:05d}"
+
+                # Pobierz specyfikację produktu (potrzebna do GPSR)
+                product_specs = {}
+                if asin:
+                    try:
+                        _specs_row = conn.execute('SELECT product_specs FROM scraped WHERE asin = ?', (asin,)).fetchone()
+                        if _specs_row and _specs_row['product_specs']:
+                            product_specs = json.loads(_specs_row['product_specs'])
+                            if product_specs:
+                                yield "data: " + json.dumps({'type': 'log', 'message': f'📋 Specyfikacja: {len(product_specs)} parametrów', 'color': '#8b5cf6'}) + "\n\n"
+                    except:
+                        pass
+
+                # Generuj opis + GPSR RÓWNOLEGLE (oba to Gemini calls)
+                yield "data: " + json.dumps({'type': 'log', 'message': '⚡ Generuję opis + GPSR równolegle...', 'color': '#3b82f6'}) + "\n\n"
+                from concurrent.futures import ThreadPoolExecutor
+                with ThreadPoolExecutor(max_workers=2) as executor:
+                    f_opis = executor.submit(generuj_opis_html_pro,
+                        nazwa, [zdjecie_url] if zdjecie_url else [],
+                        kategoria, bullet_points, gemini_key=gemini_key, asin=asin
+                    )
+                    f_gpsr = executor.submit(generuj_gpsr_info, nazwa, kategoria, product_specs=product_specs)
+                    opis_html, _ = f_opis.result()
+                    gpsr = f_gpsr.result()
+                if gpsr:
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'🛡️ GPSR: {len(gpsr)} znaków', 'color': '#22c55e'}) + "\n\n"
+
+                # Logi diagnostyczne
+                yield "data: " + json.dumps({'type': 'log', 'message': f'📁 Kategoria: {kategoria_id or "auto-detect"}', 'color': '#6366f1'}) + "\n\n"
+                if ean:
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'📊 EAN: {ean}', 'color': '#6366f1'}) + "\n\n"
+                yield "data: " + json.dumps({'type': 'log', 'message': '🤖 Tworzę ofertę + parametry AI...', 'color': '#3b82f6'}) + "\n\n"
+
+                result, error = create_offer(
+                    nazwa=tytul_seo,
+                    opis=opis_html,
+                    cena=cena,
+                    zdjecia_urls=zdjecia_urls if zdjecia_urls else None,
+                    kategoria_id=kategoria_id,
+                    ilosc=ilosc,
+                    ean=ean,
+                    asin=asin,
+                    gpsr=gpsr,
+                    product_specs=product_specs,
+                    bullet_points=bullet_points,
+                    kod_magazynowy=_km
+                )
+
+                if error:
+                    yield "data: " + json.dumps({'type': 'error', 'title': nazwa[:40], 'error': error[:80]}) + "\n\n"
+                else:
+                    offer_id = result.get('id') if result else None
+
+                    max_db_retries = 5
+                    for db_attempt in range(max_db_retries):
+                        try:
+                            conn.execute('UPDATE produkty SET status = \'wystawiony\' WHERE id = ?', (product_id,))
+
+                            # === KLUCZOWE: Zapisz link oferta→produkt do tabeli oferty ===
+                            # Bez tego sync zamówień nie powiąże sprzedaży z produktem!
+                            if offer_id:
+                                conn.execute('''INSERT OR REPLACE INTO oferty
+                                    (tytul, opis, cena, ilosc, status, allegro_id, produkt_id, data_wystawienia)
+                                    VALUES (?, ?, ?, ?, 'aktywna', ?, ?, datetime('now'))''',
+                                    (tytul_seo[:100], '', cena, ilosc, str(offer_id), product_id))
+
+                            try:
+                                from .inventory_utils import add_historia
+                                add_historia(product_id, 'wystawiono', f'Wystawiono na Allegro za {cena:.0f} zł', {'allegro_id': offer_id, 'cena': cena})
+                            except:
+                                pass
+
+                            if (i + 1) % 5 == 0:
+                                conn.commit()
+                                yield "data: " + json.dumps({'type': 'log', 'message': f'💾 Zapisano {i+1}/{total} produktów', 'color': '#22c55e'}) + "\n\n"
+                                time.sleep(0.5)
+
+                            break
+
+                        except sqlite3.OperationalError as e:
+                            if 'database is locked' in str(e) and db_attempt < max_db_retries - 1:
+                                yield "data: " + json.dumps({'type': 'log', 'message': f'⚠️ Baza zablokowana, retry {db_attempt+1}...', 'color': '#f59e0b'}) + "\n\n"
+                                time.sleep(1 * (db_attempt + 1))
+                                continue
+                            else:
+                                yield "data: " + json.dumps({'type': 'log', 'message': f'❌ Błąd bazy: {str(e)[:40]}', 'color': '#ef4444'}) + "\n\n"
+                                break
+
+                    yield "data: " + json.dumps({'type': 'success', 'title': nazwa[:40], 'price': int(cena)}) + "\n\n"
+                
+                time.sleep(1.5)
+                
+            except Exception as e:
+                yield "data: " + json.dumps({'type': 'error', 'title': nazwa[:40], 'error': str(e)[:80]}) + "\n\n"
+        
+        try:
+            conn.commit()
+        except:
+            pass
+
+        yield "data: " + json.dumps({'type': 'done'}) + "\n\n"
+
+    return Response(generate(), mimetype='text/event-stream')
+
+@paletomat_bp.route('/generator/mass-create-stream')
+def generator_mass_create_stream():
+    """SSE stream dla masowego wystawiania"""
+    from .allegro_api import create_offer, is_authenticated, upload_image_to_allegro, get_category_parameters, search_categories
+    from .database import get_config
+    import time
+    
+    def generate():
+        # Pobierz klucz Gemini API
+        gemini_key = get_config('gemini_api_key', '')
+        
+        # Sprawdź autoryzację
+        if not is_authenticated():
+            yield f"data: {json.dumps({'type': 'error', 'asin': '-', 'error': 'Nie zalogowany do Allegro'})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            return
+        
+        shipping_id = get_config('allegro_shipping_id', '')
+        if not shipping_id:
+            yield f"data: {json.dumps({'type': 'error', 'asin': '-', 'error': 'Brak cennika wysyłki'})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            return
+        
+        conn = get_db()
+        products = conn.execute('SELECT * FROM scraped WHERE status NOT IN ("usuniety", "blad") ORDER BY data_scrape DESC LIMIT 150').fetchall()
+        total = len(products)
+        
+        if total == 0:
+            yield f"data: {json.dumps({'type': 'error', 'asin': '-', 'error': 'Brak produktów'})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            return
+        
+        # Start
+        yield f"data: {json.dumps({'type': 'start', 'total': total})}\n\n"
+        
+        for i, p in enumerate(products):
+            p = dict(p)  # Konwertuj Row na dict
+            asin = p['asin']
+            
+            # Progress
+            yield f"data: {json.dumps({'type': 'progress', 'current': i+1, 'total': total, 'percent': int((i+1)/total*100), 'asin': asin})}\n\n"
+            
+            try:
+                # Pobierz dane
+                nazwa = p['nazwa'] or f'Produkt {asin}'
+                
+                # Scrapuj jeśli brak nazwy
+                if nazwa == f'Produkt {asin}' or len(nazwa) < 10:
+                    amazon_data = scrape_amazon_product(asin)
+                    if amazon_data and amazon_data.get('title'):
+                        nazwa = amazon_data['title']
+                
+                # === ILOŚĆ, EAN I ID Z MAGAZYNU ===
+                # Szukaj w tabeli produkty po ASIN lub EAN - bierzemy z największą ilością (per paleta)
+                magazyn_produkt = conn.execute(
+                    'SELECT id, ilosc, ean FROM produkty WHERE (asin = ? OR ean = ?) AND ilosc > 0 ORDER BY ilosc DESC LIMIT 1',
+                    (asin, asin)
+                ).fetchone()
+                if magazyn_produkt:
+                    magazyn_produkt = dict(magazyn_produkt)
+                _produkt_id = magazyn_produkt['id'] if magazyn_produkt else None
+                ilosc = magazyn_produkt['ilosc'] if magazyn_produkt else 1
+                ean = magazyn_produkt.get('ean') if magazyn_produkt and magazyn_produkt.get('ean') else None
+                # Fallback EAN ze scraped jeśli brak w produkty
+                if not ean:
+                    _ean_row = conn.execute('SELECT ean FROM scraped WHERE asin = ? AND ean IS NOT NULL AND ean != ""', (asin,)).fetchone()
+                    if _ean_row:
+                        ean = _ean_row['ean']
+                
+                # Zdjęcia - FIXED: dodano szczegółowe logi
+                wszystkie_zdjecia = []
+                try:
+                    saved = p.get('wszystkie_zdjecia', '') or ''
+                    if saved:
+                        wszystkie_zdjecia = json.loads(saved)
+                        if not isinstance(wszystkie_zdjecia, list):
+                            yield f"data: {json.dumps({'type': 'log', 'message': f'⚠️ {asin}: wszystkie_zdjecia nie jest listą (typ: {type(wszystkie_zdjecia).__name__})'})}\n\n"
+                            wszystkie_zdjecia = []
+                        else:
+                            # DIAGNOSTYKA: Pokaż wszystkie URL-e
+                            yield f"data: {json.dumps({'type': 'log', 'message': f'📷 {asin}: Znaleziono {len(wszystkie_zdjecia)} zdjęć w bazie'})}\n\n"
+                            if wszystkie_zdjecia:
+                                for idx, url in enumerate(wszystkie_zdjecia[:3], 1):
+                                    yield f"data: {json.dumps({'type': 'log', 'message': f'   [{idx}] {url[:70]}...'})}\n\n"
+                                if len(wszystkie_zdjecia) > 3:
+                                    yield f"data: {json.dumps({'type': 'log', 'message': f'   ... i {len(wszystkie_zdjecia)-3} więcej'})}\n\n"
+                except json.JSONDecodeError as e:
+                    yield f"data: {json.dumps({'type': 'log', 'message': f'❌ {asin}: Błąd JSON w wszystkie_zdjecia: {str(e)[:50]}'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'log', 'message': f'   Raw: {saved[:100]}'})}\n\n"
+                except Exception as e:
+                    yield f"data: {json.dumps({'type': 'log', 'message': f'❌ {asin}: Błąd parsowania zdjęć: {str(e)[:50]}'})}\n\n"
+                
+                # Fallback na pojedyncze zdjęcie TYLKO gdy lista jest pusta
+                if not wszystkie_zdjecia:
+                    yield f"data: {json.dumps({'type': 'log', 'message': f'⚠️ {asin}: Brak zdjęć w bazie, używam fallback...'})}\n\n"
+                    img_url = p.get('zdjecie_url') or get_amazon_image_url(asin)
+                    if img_url:
+                        wszystkie_zdjecia = [img_url]
+                        yield f"data: {json.dumps({'type': 'log', 'message': f'📷 {asin}: Fallback - 1 zdjęcie z URL'})}\n\n"
+                
+                # Bullet points (cechy produktu)
+                bullet_points = []
+                try:
+                    saved_bp = p.get('bullet_points', '') or ''
+                    if saved_bp:
+                        bullet_points = json.loads(saved_bp)
+                except:
+                    pass
+                
+                # FALLBACK: Pobierz bullet_points z tabeli scraped
+                if not bullet_points and asin:
+                    try:
+                        scraped_row = conn.execute('SELECT bullet_points FROM scraped WHERE asin = ?', (asin,)).fetchone()
+                        if scraped_row and scraped_row['bullet_points']:
+                            bullet_points = json.loads(scraped_row['bullet_points'])
+                            if bullet_points:
+                                yield f"data: {json.dumps({'type': 'log', 'message': f'📝 {asin}: Pobrano {len(bullet_points)} cech z cache'})}\n\n"
+                    except:
+                        pass
+                
+                # Kategoria
+                kategoria = p.get('kategoria', 'inne') or 'inne'
+                
+                # SPRAWDŹ: czy lokalne pliki istnieją, re-download jeśli nie
+                zdjecie_url_fallback = p.get('zdjecie_url') or ''
+                wszystkie_zdjecia, img_logs = _ensure_local_images(wszystkie_zdjecia, asin, zdjecie_url_fallback)
+                for msg, color in img_logs:
+                    yield f"data: {json.dumps({'type': 'log', 'message': msg, 'color': color})}\n\n"
+                
+                # === UŻYJ ENHANCED ZDJĘĆ (pre-generated przez scraper) ===
+                _enh_dir_chk = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'enhanced', str(asin))
+                if os.path.isdir(_enh_dir_chk):
+                    _enh_fs = sorted([os.path.join(_enh_dir_chk, f) for f in os.listdir(_enh_dir_chk) if f.endswith('.jpg')])
+                    if _enh_fs:
+                        wszystkie_zdjecia = _enh_fs[:8]
+                        yield f"data: {json.dumps({'type': 'log', 'message': f'✨ {asin}: Użyto {len(_enh_fs)} zdjęć AI (pre-generated)'})}\n\n"
+
+                # UPLOAD ZDJĘĆ DO ALLEGRO
+                yield f"data: {json.dumps({'type': 'log', 'message': f'📤 {asin}: Rozpoczynam upload {len(wszystkie_zdjecia[:8])} zdjęć...'})}\n\n"
+
+                uploaded_urls = []
+                for idx, img_url in enumerate(wszystkie_zdjecia[:8], 1):  # Max 8 zdjęć
+                    try:
+                        yield f"data: {json.dumps({'type': 'log', 'message': f'   [{idx}/{len(wszystkie_zdjecia[:8])}] Uploaduję...'})}\n\n"
+                        allegro_url = upload_image_to_allegro(img_url, asin=asin)
+                        if allegro_url:
+                            uploaded_urls.append(allegro_url)
+                            yield f"data: {json.dumps({'type': 'log', 'message': f'   ✅ [{idx}] Sukces'})}\n\n"
+                        else:
+                            yield f"data: {json.dumps({'type': 'log', 'message': f'   ❌ [{idx}] Brak URL z Allegro'})}\n\n"
+                    except Exception as upload_err:
+                        yield f"data: {json.dumps({'type': 'log', 'message': f'   ❌ [{idx}] Błąd: {str(upload_err)[:40]}'})}\n\n"
+                
+                yield f"data: {json.dumps({'type': 'log', 'message': f'✅ {asin}: Uploadowano {len(uploaded_urls)}/{len(wszystkie_zdjecia[:8])} zdjęć'})}\n\n"
+                
+                # === SUGEROWANA KATEGORIA ===
+                kategoria_id = None
+                try:
+                    cat_result, cat_error = search_categories(nazwa[:50])
+                    if cat_result and cat_result.get('matchingCategories'):
+                        kategoria_id = cat_result['matchingCategories'][0].get('id')
+                except:
+                    pass
+                
+                # Generuj tytuł i opis (NOWA WERSJA - z bullet points + ASIN!)
+                tytul_seo = optimize_title_seo(nazwa, 75)
+                # Kod magazynowy (do użytku wewnętrznego, NIE do tytułu/opisu Allegro)
+                _km = p.get('kod_magazynowy') or f"MAG-{product_id:05d}"
+                # Pobierz specyfikację produktu (potrzebna do GPSR)
+                product_specs = {}
+                if asin:
+                    try:
+                        _specs_row = conn.execute('SELECT product_specs FROM scraped WHERE asin = ?', (asin,)).fetchone()
+                        if _specs_row and _specs_row['product_specs']:
+                            product_specs = json.loads(_specs_row['product_specs'])
+                            if product_specs:
+                                yield f"data: {json.dumps({'type': 'log', 'message': f'📋 Specyfikacja: {len(product_specs)} parametrów', 'color': '#8b5cf6'})}\n\n"
+                    except:
+                        pass
+
+                # Generuj opis + GPSR RÓWNOLEGLE
+                from concurrent.futures import ThreadPoolExecutor
+                with ThreadPoolExecutor(max_workers=2) as executor:
+                    f_opis = executor.submit(generuj_opis_html_pro, nazwa, uploaded_urls if uploaded_urls else wszystkie_zdjecia, kategoria, bullet_points, gemini_key=gemini_key, asin=asin)
+                    f_gpsr = executor.submit(generuj_gpsr_info, nazwa, kategoria, product_specs=product_specs)
+                    opis_html, _ = f_opis.result()
+                    gpsr = f_gpsr.result()
+
+                # Cena
+                cena_amazon = p.get('cena_amazon') or 0
+                if cena_amazon and float(cena_amazon) > 0:
+                    wynik = oblicz_cene_allegro(float(cena_amazon) * 4.35, 40, 'inne')
+                    cena = float(wynik.get('cena_sugerowana', 99.99))
+                else:
+                    cena = 99.99
+
+                # WYSTAW NA ALLEGRO z uploadowanymi URL-ami
+                result, error = create_offer(
+                    nazwa=tytul_seo,
+                    opis=opis_html,
+                    cena=cena,
+                    zdjecia_urls=uploaded_urls if uploaded_urls else None,
+                    kategoria_id=kategoria_id,
+                    ilosc=ilosc,
+                    ean=ean,
+                    asin=asin,
+                    gpsr=gpsr,
+                    product_specs=product_specs,
+                    bullet_points=bullet_points,
+                    kod_magazynowy=_km
+                )
+
+                if error:
+                    yield f"data: {json.dumps({'type': 'error', 'asin': asin, 'error': error[:80]})}\n\n"
+                else:
+                    # Dodaj info o liczbie zdjęć
+                    yield f"data: {json.dumps({'type': 'success', 'asin': asin, 'title': tytul_seo[:50], 'ilosc': ilosc, 'zdjecia': len(uploaded_urls)})}\n\n"
+                    
+                    # Zapisz link oferta→produkt
+                    _offer_id = result.get('id') if result else None
+                    if _offer_id:
+                        try:
+                            if _produkt_id:
+                                conn.execute('''INSERT OR REPLACE INTO oferty
+                                    (tytul, opis, cena, ilosc, status, allegro_id, produkt_id, data_wystawienia)
+                                    VALUES (?, ?, ?, ?, 'aktywna', ?, ?, datetime('now'))''',
+                                    (tytul_seo[:100], '', cena, ilosc, str(_offer_id), _produkt_id))
+                            else:
+                                conn.execute('''INSERT OR REPLACE INTO oferty
+                                    (tytul, cena, ilosc, status, allegro_id, data_wystawienia)
+                                    VALUES (?, ?, ?, 'aktywna', ?, datetime('now'))''',
+                                    (tytul_seo[:100], cena, ilosc, str(_offer_id)))
+                        except:
+                            pass
+
+                    # Oznacz jako wystawione
+                    max_db_retries = 5
+                    for db_attempt in range(max_db_retries):
+                        try:
+                            conn.execute('UPDATE scraped SET status="wystawiony" WHERE asin=?', (asin,))
+                            
+                            # Commit co 10 produktów
+                            if (i + 1) % 10 == 0:
+                                conn.commit()
+                                yield f"data: {json.dumps({'type': 'log', 'message': f'💾 Zapisano {i+1}/{total} produktów'})}\n\n"
+                                time.sleep(0.5)  # Opóźnienie przed ponownym otwarciem
+                                conn = get_db()  # Nowe połączenie
+                            
+                            break  # Sukces - wyjdź z retry loop
+                            
+                        except sqlite3.OperationalError as e:
+                            if 'database is locked' in str(e) and db_attempt < max_db_retries - 1:
+                                yield f"data: {json.dumps({'type': 'log', 'message': f'⚠️ Baza zablokowana, retry {db_attempt+1}/{max_db_retries}...', 'color': '#f59e0b'})}\n\n"
+                                time.sleep(1 * (db_attempt + 1))  # Exponential backoff: 1s, 2s, 3s, 4s, 5s
+                                continue
+                            else:
+                                yield f"data: {json.dumps({'type': 'log', 'message': f'❌ Błąd bazy dla {asin}: {str(e)[:40]}', 'color': '#ef4444'})}\n\n"
+                                break  # Kontynuuj z następnym produktem
+                    
+            except Exception as e:
+                yield f"data: {json.dumps({'type': 'error', 'asin': asin, 'error': str(e)[:80]})}\n\n"
+            
+            time.sleep(1)  # 1 sekunda między ofertami żeby nie przeciążyć API
+        
+        # Finalny commit (dla pozostałych produktów)
+        try:
+            conn.commit()
+            yield f"data: {json.dumps({'type': 'log', 'message': '💾 Zapisano wszystkie zmiany do bazy'})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'log', 'message': f'⚠️ Błąd zapisu: {str(e)[:50]}', 'color': '#ef4444'})}\n\n"
+        
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+    
+    return Response(generate(), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no'
+    })
+
+@paletomat_bp.route('/generator/cleanup')
+def generator_cleanup():
+    """Usuwa wystawione szkice z bazy"""
+    conn = get_db()
+    wystawione = conn.execute('SELECT COUNT(*) as cnt FROM scraped WHERE status = "wystawiony"').fetchone()['cnt']
+    conn.execute('DELETE FROM scraped WHERE status = "wystawiony"')
+    conn.commit()
+    
+    return render(f'''
+        <div class="hdr"><h1>🗑️ CZYSZCZENIE</h1></div>
+        <div class="alert alert-ok">Usunięto {wystawione} wystawionych szkiców!</div>
+        <a href="/paletomat/generator" class="btn btn-p">← Powrót do listy</a>
+    ''')
+
+@paletomat_bp.route('/generator/reprocess')
+def generator_reprocess():
+    """Ponownie przetwarza produkty z pustymi nazwami"""
+    conn = get_db()
+    
+    # Znajdź produkty wymagające przetworzenia
+    products = conn.execute('''SELECT asin FROM scraped 
+        WHERE status IN ("nowy", "gotowy") 
+        AND (nazwa IS NULL OR nazwa = '' OR nazwa LIKE 'Produkt %')''').fetchall()
+    
+    
+    asins = [p['asin'] for p in products]
+    
+    if not asins:
+        return render(f'''
+            <div class="hdr"><h1>🔄 PRZETWARZANIE</h1></div>
+            <div class="alert alert-warn">Brak produktów do przetworzenia!</div>
+            <a href="/paletomat/generator" class="btn btn-p">← Powrót do listy</a>
+        ''')
+    
+    # Uruchom auto-przetwarzanie
+    auto_process_products(asins)
+    
+    return render(f'''
+        <div class="hdr"><h1>🔄 PRZETWARZANIE</h1></div>
+        <div class="alert alert-ok">
+            Uruchomiono przetwarzanie {len(asins)} produktów!<br><br>
+            <small>Proces działa w tle. Odśwież stronę generatora za chwilę aby zobaczyć efekty.</small>
+        </div>
+        <a href="/paletomat/generator" class="btn btn-p">← Powrót do listy</a>
+        <a href="/paletomat" class="btn btn-2">🏠 Strona główna (zobacz status)</a>
+    ''')
+
+
+@paletomat_bp.route('/generator/enhance-existing')
+def generator_enhance_existing():
+    """Strona z przyciskiem do generowania zdjęć AI dla istniejących produktów"""
+    conn = get_db()
+
+    # Policz produkty z/bez enhanced
+    total = conn.execute("SELECT COUNT(*) as c FROM produkty WHERE status NOT IN ('usuniety','sprzedany') AND zdjecie_url IS NOT NULL AND zdjecie_url != ''").fetchone()['c']
+    already = 0
+    _enh_base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'enhanced')
+    if os.path.isdir(_enh_base):
+        already = len([d for d in os.listdir(_enh_base) if os.path.isdir(os.path.join(_enh_base, d))])
+    todo = max(0, total - already)
+
+    html = f'''
+    <div class="hdr"><h1>✨ GENERUJ ZDJĘCIA AI</h1><small>Dla produktów w magazynie</small></div>
+
+    <div class="card" style="padding:20px">
+        <div style="display:flex;gap:20px;justify-content:center;margin-bottom:20px">
+            <div style="text-align:center"><div style="font-size:2rem;font-weight:700;color:#3b82f6">{total}</div><div style="font-size:0.8rem;color:#64748b">Produktów</div></div>
+            <div style="text-align:center"><div style="font-size:2rem;font-weight:700;color:#22c55e">{already}</div><div style="font-size:0.8rem;color:#64748b">Ma zdjęcia AI</div></div>
+            <div style="text-align:center"><div style="font-size:2rem;font-weight:700;color:#f59e0b">{todo}</div><div style="font-size:0.8rem;color:#64748b">Do wygenerowania</div></div>
+        </div>
+        <div style="font-size:0.8rem;color:#64748b;text-align:center;margin-bottom:15px">
+            ~60 sek/produkt × {todo} = ~{todo} min
+        </div>
+        <button onclick="startEnhance(false)" id="btnStart" class="btn btn-ok" style="width:100%">✨ GENERUJ ZDJĘCIA AI ({todo} produktów)</button>
+        <button onclick="if(confirm('Usunąć wszystkie wygenerowane zdjęcia i zacząć od nowa?'))startEnhance(true)" class="btn" style="width:100%;margin-top:8px;background:#ef4444;color:#fff;font-size:0.85rem">🔄 WYCZYŚĆ I GENERUJ OD NOWA (wszystkie {total})</button>
+        <div style="margin-top:12px;border-top:1px solid #334155;padding-top:12px">
+            <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:8px;text-align:center">🌙 Tryb nocny — generuj w tle (możesz zamknąć przeglądarkę)</div>
+            <button onclick="startBgEnhance(false)" id="btnBg" class="btn" style="width:100%;background:#7c3aed;color:#fff">🌙 GENERUJ W TLE ({todo} produktów)</button>
+            <button onclick="if(confirm('Usunąć wszystko i generować od nowa w tle?'))startBgEnhance(true)" class="btn" style="width:100%;margin-top:6px;background:#581c87;color:#fff;font-size:0.8rem">🌙🔄 WYCZYŚĆ + GENERUJ W TLE (wszystkie {total})</button>
+        </div>
+    </div>
+
+    <style>
+    @keyframes spin {{ 0%{{transform:rotate(0deg)}} 100%{{transform:rotate(360deg)}} }}
+    .spinner {{ display:inline-block;width:20px;height:20px;border:3px solid #334155;border-top:3px solid #f59e0b;border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:8px }}
+    @keyframes pulse {{ 0%,100%{{opacity:1}} 50%{{opacity:0.5}} }}
+    .pulsing {{ animation:pulse 1.5s ease-in-out infinite }}
+    </style>
+
+    <div id="progressCard" class="card" style="display:none;padding:20px;text-align:center">
+        <div style="margin-bottom:10px">
+            <span id="spinnerEl" class="spinner"></span>
+            <span id="progressText" style="font-size:1.1rem;font-weight:600">Startuje...</span>
+        </div>
+        <div style="background:#1e1e2e;border-radius:10px;height:16px;overflow:hidden;margin-bottom:10px">
+            <div id="progressBar" style="background:linear-gradient(90deg,#f59e0b,#22c55e);height:100%;width:0%;transition:width 0.3s"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:#94a3b8">
+            <div>⏱ <span id="elapsed">0:00</span></div>
+            <div id="etaText"></div>
+            <div>✅ <span id="doneCount">0</span>/{todo}</div>
+        </div>
+    </div>
+
+    <div id="log" class="card" style="display:none;max-height:400px;overflow-y:auto;font-family:monospace;font-size:0.7rem;padding:10px"></div>
+
+    <script>
+    let _startTime = null;
+    let _timerInterval = null;
+    let _doneN = 0;
+    let _totalN = {todo};
+
+    function fmtTime(s) {{
+        const h = Math.floor(s/3600);
+        const m = Math.floor((s%3600)/60);
+        const sec = Math.floor(s%60);
+        if (h > 0) return h+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+        return m+':'+String(sec).padStart(2,'0');
+    }}
+
+    function updateTimer() {{
+        if (!_startTime) return;
+        const elapsed = (Date.now() - _startTime) / 1000;
+        document.getElementById('elapsed').textContent = fmtTime(elapsed);
+        if (_doneN > 0) {{
+            const perItem = elapsed / _doneN;
+            const remaining = perItem * (_totalN - _doneN);
+            document.getElementById('etaText').textContent = '⏳ Zostało ~' + fmtTime(remaining);
+        }}
+    }}
+
+    function startEnhance(force) {{
+        document.getElementById('btnStart').disabled = true;
+        document.getElementById('btnStart').innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:6px"></span>Generuję...';
+        document.getElementById('btnStart').classList.add('pulsing');
+        document.getElementById('progressCard').style.display = 'block';
+        document.getElementById('log').style.display = 'block';
+        _startTime = Date.now();
+        _timerInterval = setInterval(updateTimer, 1000);
+
+        const url = '/paletomat/generator/enhance-existing-stream' + (force ? '?force=1' : '');
+        const evtSource = new EventSource(url);
+        evtSource.onmessage = function(e) {{
+            const data = JSON.parse(e.data);
+            if (data.type === 'progress') {{
+                document.getElementById('progressText').textContent = data.message;
+                document.getElementById('progressBar').style.width = data.percent + '%';
+                if (data.current) {{
+                    _doneN = data.current;
+                    document.getElementById('doneCount').textContent = _doneN;
+                }}
+            }} else if (data.type === 'log') {{
+                const div = document.createElement('div');
+                div.style.padding = '2px 0';
+                div.style.color = data.color || '#94a3b8';
+                div.textContent = data.message;
+                document.getElementById('log').appendChild(div);
+                document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+            }} else if (data.type === 'done') {{
+                clearInterval(_timerInterval);
+                const totalTime = fmtTime((Date.now() - _startTime) / 1000);
+                document.getElementById('spinnerEl').style.display = 'none';
+                document.getElementById('btnStart').textContent = '✅ Gotowe!';
+                document.getElementById('btnStart').style.background = '#22c55e';
+                document.getElementById('btnStart').classList.remove('pulsing');
+                document.getElementById('progressBar').style.width = '100%';
+                document.getElementById('progressText').textContent = (data.message || 'Zakończono!') + ' (' + totalTime + ')';
+                document.getElementById('etaText').textContent = '🏁 Czas: ' + totalTime;
+                evtSource.close();
+            }}
+        }};
+    }}
+
+    function startBgEnhance(force) {{
+        document.getElementById('btnBg').disabled = true;
+        document.getElementById('btnBg').textContent = '⏳ Uruchamiam...';
+        fetch('/paletomat/generator/enhance-bg-start' + (force ? '?force=1' : ''))
+            .then(r => r.json())
+            .then(d => {{
+                if (d.ok) {{
+                    document.getElementById('btnBg').textContent = '✅ Działa w tle!';
+                    document.getElementById('btnBg').style.background = '#22c55e';
+                    document.getElementById('progressCard').style.display = 'block';
+                    document.getElementById('log').style.display = 'block';
+                    _startTime = Date.now();
+                    _timerInterval = setInterval(updateTimer, 1000);
+                    // Polluj status co 5 sek
+                    _bgPoll = setInterval(pollBgStatus, 5000);
+                    pollBgStatus();
+                }} else {{
+                    document.getElementById('btnBg').textContent = '❌ ' + (d.error || 'Błąd');
+                    document.getElementById('btnBg').style.background = '#ef4444';
+                    // Pokaż przycisk reset
+                    if (!document.getElementById('btnReset')) {{
+                        const resetBtn = document.createElement('button');
+                        resetBtn.id = 'btnReset';
+                        resetBtn.className = 'btn';
+                        resetBtn.style.cssText = 'width:100%;margin-top:6px;background:#dc2626;color:#fff';
+                        resetBtn.textContent = '🔄 RESETUJ STATUS (odblokuj)';
+                        resetBtn.onclick = function() {{
+                            fetch('/paletomat/generator/enhance-bg-reset')
+                                .then(r => r.json())
+                                .then(d2 => {{ if(d2.ok) location.reload(); }});
+                        }};
+                        document.getElementById('btnBg').parentNode.appendChild(resetBtn);
+                    }}
+                }}
+            }});
+    }}
+
+    let _bgPoll = null;
+    function pollBgStatus() {{
+        fetch('/paletomat/generator/enhance-bg-status')
+            .then(r => r.json())
+            .then(d => {{
+                document.getElementById('progressText').textContent = d.current + '/' + d.total + ' produktów';
+                document.getElementById('progressBar').style.width = d.progress + '%';
+                _doneN = d.done;
+                document.getElementById('doneCount').textContent = d.done;
+                // Logi
+                const logEl = document.getElementById('log');
+                logEl.innerHTML = '';
+                (d.log_last || []).forEach(msg => {{
+                    const div = document.createElement('div');
+                    div.style.padding = '2px 0';
+                    div.style.color = '#94a3b8';
+                    div.textContent = msg;
+                    logEl.appendChild(div);
+                }});
+                logEl.scrollTop = logEl.scrollHeight;
+                // Timer
+                if (d.elapsed) {{
+                    document.getElementById('elapsed').textContent = fmtTime(d.elapsed);
+                    if (d.done > 0 && d.total > 0) {{
+                        const perItem = d.elapsed / d.done;
+                        const remaining = perItem * (d.total - d.done);
+                        document.getElementById('etaText').textContent = '⏳ Zostało ~' + fmtTime(remaining);
+                    }}
+                }}
+                if (d.finished) {{
+                    clearInterval(_bgPoll);
+                    clearInterval(_timerInterval);
+                    document.getElementById('spinnerEl').style.display = 'none';
+                    document.getElementById('progressBar').style.width = '100%';
+                    document.getElementById('progressText').textContent = '🏁 Gotowe! ' + d.done + ' produktów | $' + d.cost.toFixed(2);
+                }}
+            }});
+    }}
+    </script>
+
+    <a href="/paletomat/generator/enhance-gallery" class="back" style="display:block;text-align:center;margin-top:15px">🖼 Przeglądaj wygenerowane zdjęcia</a>
+    <a href="/paletomat/generator" class="back" style="display:block;text-align:center;margin-top:10px">← Powrót</a>
+    '''
+    return render(html)
+
+
+@paletomat_bp.route('/generator/enhance-gallery')
+def generator_enhance_gallery():
+    """Galeria wygenerowanych zdjęć AI — przeglądanie po produktach"""
+    conn = get_db()
+    _enh_base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'enhanced')
+
+    products = []
+    if os.path.isdir(_enh_base):
+        for asin_dir in sorted(os.listdir(_enh_base), reverse=True):
+            full_dir = os.path.join(_enh_base, asin_dir)
+            if not os.path.isdir(full_dir):
+                continue
+            # Filtruj — tylko pliki > 1KB (odrzuć broken/puste)
+            _all_imgs = [f for f in os.listdir(full_dir)
+                        if (f.endswith('.jpg') or f.endswith('.png'))
+                        and os.path.getsize(os.path.join(full_dir, f)) > 1024]
+            # Sortuj w logicznej kolejności (nie alfabetycznie!)
+            _img_order = ['mini', 'det', 'zest', 'kat2', 'wym', 'uzycie', 'life', 'skala']
+            imgs = sorted(_all_imgs, key=lambda f: (
+                _img_order.index(f.rsplit('.', 1)[0]) if f.rsplit('.', 1)[0] in _img_order else 99
+            ))
+            if not imgs:
+                continue
+
+            # Nazwa produktu z DB
+            row = conn.execute("SELECT nazwa FROM produkty WHERE asin = ? LIMIT 1", (asin_dir,)).fetchone()
+            nazwa = row['nazwa'][:50] if row else asin_dir
+
+            products.append({
+                'asin': asin_dir,
+                'nazwa': nazwa,
+                'imgs': imgs,
+                'count': len(imgs),
+            })
+
+    # Paginacja — 10 na stronę
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    total_pages = max(1, (len(products) + per_page - 1) // per_page)
+    page = max(1, min(page, total_pages))
+    page_products = products[(page-1)*per_page : page*per_page]
+
+    # Template nazwy plików
+    tpl_labels = {'mini': '📸 Miniaturka', 'wym': '🤖 Wymiary', 'det': '📸 Detale', 'zest': '📸 Zestaw',
+                  'kat2': '📸 Drugi kąt', 'uzycie': '🤖 W użyciu', 'life': '🤖 Lifestyle', 'skala': '🤖 Skala'}
+
+    html = f'''
+    <div class="hdr"><h1>🖼 GALERIA ZDJĘĆ AI</h1><small>{len(products)} produktów z wygenerowanymi zdjęciami</small></div>
+
+    <div style="text-align:center;margin-bottom:15px">
+        <span style="color:#94a3b8">Strona {page}/{total_pages}</span>
+        {"" if page <= 1 else f' <a href="?page={page-1}" class="btn" style="font-size:0.8rem;padding:4px 12px">← Poprzednia</a>'}
+        {"" if page >= total_pages else f' <a href="?page={page+1}" class="btn" style="font-size:0.8rem;padding:4px 12px">Następna →</a>'}
+    </div>
+    '''
+
+    for p in page_products:
+        html += f'''
+    <div class="card" style="padding:15px;margin-bottom:15px">
+        <div style="font-weight:600;margin-bottom:10px;font-size:0.9rem">
+            <span style="color:#f59e0b">{p["asin"]}</span> — {p["nazwa"]}
+            <span style="color:#64748b;font-size:0.75rem">({p["count"]} zdjęć)</span>
+        </div>
+        <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px">'''
+
+        import hashlib as _hl
+        for img_name in p['imgs']:
+            base = img_name.rsplit('.', 1)[0]
+            label = tpl_labels.get(base, base)
+            # Cache-bust: użyj rozmiaru pliku jako query param
+            _fpath = os.path.join(_enh_base, p["asin"], img_name)
+            _cb = str(os.path.getsize(_fpath))[:6] if os.path.exists(_fpath) else '0'
+            html += f'''
+            <div style="flex-shrink:0;text-align:center">
+                <a href="/static/enhanced/{p["asin"]}/{img_name}?v={_cb}" target="_blank">
+                    <img src="/paletomat/generator/thumb/{p["asin"]}/{img_name}?v={_cb}" style="width:120px;height:120px;object-fit:cover;border-radius:8px;border:1px solid #334155" loading="lazy" onerror="this.parentElement.parentElement.style.display='none'">
+                </a>
+                <div style="font-size:0.65rem;color:#94a3b8;margin-top:3px">{label}</div>
+            </div>'''
+
+        html += '''
+        </div>
+    </div>'''
+
+    html += f'''
+    <div style="text-align:center;margin:15px 0">
+        {"" if page <= 1 else f'<a href="?page={page-1}" class="btn" style="font-size:0.8rem;padding:4px 12px">← Poprzednia</a>'}
+        {"" if page >= total_pages else f'<a href="?page={page+1}" class="btn" style="font-size:0.8rem;padding:4px 12px">Następna →</a>'}
+    </div>
+    <a href="/paletomat/generator/enhance-existing" class="back" style="display:block;text-align:center">← Generuj zdjęcia</a>
+    <a href="/paletomat/generator" class="back" style="display:block;text-align:center;margin-top:8px">← Generator</a>
+    '''
+    return render(html)
+
+
+@paletomat_bp.route('/generator/thumb/<asin>/<filename>')
+def generator_thumb(asin, filename):
+    """Serwuje miniaturki zdjęć enhanced — 200px zamiast pełnych 2560px"""
+    from flask import send_file
+    _enh_base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'enhanced')
+    full_path = os.path.join(_enh_base, asin, filename)
+    if not os.path.exists(full_path) or os.path.getsize(full_path) < 1024:
+        from flask import abort
+        abort(404)
+
+    # Generuj miniaturkę w pamięci
+    try:
+        from PIL import Image as _ThI
+        from io import BytesIO as _ThB
+        img = _ThI.open(full_path)
+        img.thumbnail((200, 200), _ThI.LANCZOS)
+        buf = _ThB()
+        img.save(buf, 'JPEG', quality=75)
+        buf.seek(0)
+        return send_file(buf, mimetype='image/jpeg', max_age=60)
+    except Exception:
+        return send_file(full_path, mimetype='image/jpeg')
+
+
+@paletomat_bp.route('/generator/enhance-existing-stream')
+def generator_enhance_existing_stream():
+    """SSE stream — generuje zdjęcia AI dla produktów w magazynie które ich nie mają"""
+    import time
+
+    force = request.args.get('force', '0') == '1'
+
+    def generate():
+        conn = get_db()
+
+        # Pobierz produkty które mają zdjęcie
+        products = conn.execute('''
+            SELECT id, asin, ean, nazwa, zdjecie_url, images
+            FROM produkty
+            WHERE status NOT IN ('usuniety', 'sprzedany')
+            AND zdjecie_url IS NOT NULL AND zdjecie_url != ''
+            ORDER BY data_dodania DESC
+        ''').fetchall()
+
+        _enh_base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'enhanced')
+
+        # Force mode — usuń stare foldery
+        if force and os.path.isdir(_enh_base):
+            import shutil
+            _old_count = len([d for d in os.listdir(_enh_base) if os.path.isdir(os.path.join(_enh_base, d))])
+            shutil.rmtree(_enh_base)
+            os.makedirs(_enh_base, exist_ok=True)
+            yield f"data: {json.dumps({'type': 'log', 'message': f'🗑 Usunięto {_old_count} starych folderów — generuję od nowa', 'color': '#ef4444'})}\n\n"
+
+        # Filtruj — tylko te bez enhanced (lub wszystkie jeśli force)
+        todo = []
+        for p in products:
+            p = dict(p)
+            _key = p.get('asin') or str(p['id'])
+            _dir = os.path.join(_enh_base, str(_key))
+            if not os.path.isdir(_dir) or len([f for f in os.listdir(_dir) if f.endswith('.jpg')]) < 4:
+                todo.append(p)
+
+        if not todo:
+            yield f"data: {json.dumps({'type': 'done', 'message': 'Wszystkie produkty mają już zdjęcia AI!'})}\n\n"
+            return
+
+        yield f"data: {json.dumps({'type': 'progress', 'percent': 0, 'message': f'0/{len(todo)} produktów...'})}\n\n"
+        yield f"data: {json.dumps({'type': 'log', 'message': f'Znaleziono {len(todo)} produktów bez zdjęć AI', 'color': '#f59e0b'})}\n\n"
+
+        try:
+            from .image_enhancer import enhance_single, prepare_original_photo, GEMINI_AVAILABLE
+            from .image_enhancer import HYBRID_ORIGINAL_SLOTS, HYBRID_AI_TEMPLATES
+            from .image_cleaner import clean_image_from_url, clean_image_from_bytes
+        except Exception as _ie:
+            yield f"data: {json.dumps({'type': 'log', 'message': f'Błąd importu: {_ie}', 'color': '#ef4444'})}\n\n"
+            yield f"data: {json.dumps({'type': 'done', 'message': 'Błąd!'})}\n\n"
+            return
+
+        if not GEMINI_AVAILABLE:
+            yield f"data: {json.dumps({'type': 'done', 'message': 'Gemini API niedostępne!'})}\n\n"
+            return
+
+        yield f"data: {json.dumps({'type': 'log', 'message': '📸 Tryb HYBRID: oryginały (1-4) + AI (5-8)', 'color': '#8b5cf6'})}\n\n"
+
+        ok_count = 0
+        _total_cost = 0.0
+        for i, p in enumerate(todo):
+            _key = p.get('asin') or str(p['id'])
+            nazwa = p.get('nazwa', '')[:60]
+            pct = int((i / len(todo)) * 100)
+
+            yield f"data: {json.dumps({'type': 'progress', 'percent': pct, 'current': i, 'message': f'{i+1}/{len(todo)}: {nazwa[:30]}...'})}\n\n"
+            yield f"data: {json.dumps({'type': 'log', 'message': f'[{i+1}/{len(todo)}] {_key}: {nazwa[:40]}', 'color': '#3b82f6'})}\n\n"
+
+            # Znajdź WSZYSTKIE zdjęcia (nie tylko pierwsze!)
+            _all_images = []
+            try:
+                # Spróbuj z static/downloads/{asin}/ — tu są lokalne pliki
+                _dl_dir = os.path.join('static', 'downloads', str(_key))
+                if os.path.isdir(_dl_dir):
+                    _all_images = sorted([os.path.join(_dl_dir, f) for f in os.listdir(_dl_dir) if f.endswith('.jpg')])
+
+                # Spróbuj z images JSON
+                if not _all_images and p.get('images'):
+                    try:
+                        _imgs_json = json.loads(p['images']) if isinstance(p['images'], str) else p['images']
+                        _all_images = [u for u in _imgs_json if isinstance(u, str)]
+                    except:
+                        pass
+
+                # Fallback na zdjecie_url
+                if not _all_images and p.get('zdjecie_url'):
+                    _all_images = [p['zdjecie_url']]
+
+                if not _all_images:
+                    yield f"data: {json.dumps({'type': 'log', 'message': f'   ⚠️ Brak zdjęcia', 'color': '#f59e0b'})}\n\n"
+                    continue
+
+            except Exception as _ex:
+                yield f"data: {json.dumps({'type': 'log', 'message': f'   ❌ Błąd pobierania: {str(_ex)[:40]}', 'color': '#ef4444'})}\n\n"
+                continue
+
+            # --- KROK 1: Załaduj zdjęcia i wyczyść oryginały ---
+            _enh_dir = os.path.join(_enh_base, str(_key))
+            os.makedirs(_enh_dir, exist_ok=True)
+            _ok = 0
+            _orig_count = 0
+            _slot_to_template = {'mini': 1, 'det': 3, 'zest': 4, 'kat2': 5}
+
+            # Załaduj wszystkie zdjęcia jako bytes
+            _loaded_images = []
+            for _src in _all_images:
+                try:
+                    if isinstance(_src, str) and _src.startswith('http'):
+                        import requests as _rq
+                        _raw = _rq.get(_src, timeout=20).content
+                    elif isinstance(_src, str) and os.path.exists(_src):
+                        with open(_src, 'rb') as _f:
+                            _raw = _f.read()
+                    else:
+                        _abs = os.path.abspath(_src)
+                        if os.path.exists(_abs):
+                            with open(_abs, 'rb') as _f:
+                                _raw = _f.read()
+                        else:
+                            continue
+
+                    # Walidacja
+                    from PIL import Image as _PIv
+                    from io import BytesIO as _BIv
+                    _PIv.open(_BIv(_raw)).verify()
+                    _loaded_images.append(_raw)
+                except Exception:
+                    pass
+
+            if not _loaded_images:
+                yield f"data: {json.dumps({'type': 'log', 'message': f'   ⚠️ Brak prawidłowych zdjęć', 'color': '#f59e0b'})}\n\n"
+                continue
+
+            # Wyczyść i zapisz oryginały na sloty 1-4 (cleaner usunie tekst/loga/infografiki)
+            for _oi, _slot_name in enumerate(HYBRID_ORIGINAL_SLOTS):
+                if _oi >= len(_loaded_images):
+                    break
+                try:
+                    _cb, _cm, _ce = clean_image_from_bytes(_loaded_images[_oi])
+                    _clean = _cb if _cb else _loaded_images[_oi]
+                    _prep, _perr = prepare_original_photo(_clean)
+                    if _prep:
+                        _epath = os.path.join(_enh_dir, f'{_slot_name}.jpg')
+                        with open(_epath, 'wb') as _sf:
+                            _sf.write(_prep)
+                        _ok += 1
+                        _orig_count += 1
+                except Exception:
+                    pass
+
+            if _orig_count > 0:
+                yield f"data: {json.dumps({'type': 'log', 'message': f'   📸 {_orig_count} oryginałów wyczyszczonych', 'color': '#7c3aed'})}\n\n"
+
+            # Brakujące sloty oryginałów → AI
+            _missing_orig = HYBRID_ORIGINAL_SLOTS[_orig_count:]
+
+            # Baza do AI = wyczyszczony oryginał #1
+            try:
+                _cb0, _, _ = clean_image_from_bytes(_loaded_images[0])
+                _base_for_ai = _cb0 if _cb0 else _loaded_images[0]
+
+                from PIL import Image as _PIv2
+                from io import BytesIO as _BIv2
+                _PIv2.open(_BIv2(_base_for_ai)).verify()
+            except Exception:
+                yield f"data: {json.dumps({'type': 'log', 'message': f'   ⚠️ Nieprawidłowy obrazek bazowy — pomijam', 'color': '#f59e0b'})}\n\n"
+                continue
+
+            # AI dla brakujących oryginałów
+            for _ms in _missing_orig:
+                _tid = _slot_to_template.get(_ms, 1)
+                try:
+                    _ed, _em, _ee = enhance_single(_base_for_ai, _tid, nazwa)
+                    if _ed:
+                        from PIL import Image as _PI
+                        from io import BytesIO as _BI
+                        _img = _PI.open(_BI(_ed)).convert('RGB')
+                        if max(_img.width, _img.height) < 2560:
+                            _ratio = 2560 / max(_img.width, _img.height)
+                            _img = _img.resize((int(_img.width * _ratio), int(_img.height * _ratio)), _PI.LANCZOS)
+                        _img.save(os.path.join(_enh_dir, f'{_ms}.jpg'), 'JPEG', quality=95)
+                        _ok += 1
+                except Exception:
+                    pass
+                time.sleep(0.5)
+
+            # --- KROK 2: AI sloty 5-8 ---
+            for _tid, _tname in HYBRID_AI_TEMPLATES:
+                try:
+                    _ed, _em, _ee = enhance_single(_base_for_ai, _tid, nazwa)
+                    if _ed:
+                        from PIL import Image as _PI
+                        from io import BytesIO as _BI
+                        _img = _PI.open(_BI(_ed)).convert('RGB')
+                        if max(_img.width, _img.height) < 2560:
+                            _ratio = 2560 / max(_img.width, _img.height)
+                            _img = _img.resize((int(_img.width * _ratio), int(_img.height * _ratio)), _PI.LANCZOS)
+                        _img.save(os.path.join(_enh_dir, f'{_tname}.jpg'), 'JPEG', quality=95)
+                        _ok += 1
+                    else:
+                        yield f"data: {json.dumps({'type': 'log', 'message': f'   ❌ {_tname}: {str(_ee)[:30]}', 'color': '#ef4444'})}\n\n"
+                except Exception as _te:
+                    yield f"data: {json.dumps({'type': 'log', 'message': f'   ❌ {_tname}: {str(_te)[:30]}', 'color': '#ef4444'})}\n\n"
+                time.sleep(0.5)
+
+            _ai_count = _ok - _orig_count
+            if _ok > 0:
+                ok_count += 1
+                _prod_cost = _ai_count * 0.001 + (_orig_count * 0.001 if _orig_count > 0 else 0)  # AI + clean
+                _total_cost += _prod_cost
+                yield f"data: {json.dumps({'type': 'log', 'message': f'   ✅ {_ok}/8 zdjęć ({_orig_count} oryg + {_ai_count} AI) ${_prod_cost:.3f}', 'color': '#22c55e'})}\n\n"
+            else:
+                yield f"data: {json.dumps({'type': 'log', 'message': f'   ⚠️ Żadne zdjęcie nie wygenerowane', 'color': '#f59e0b'})}\n\n"
+
+            time.sleep(1)  # Cooldown między produktami
+
+        # Loguj łączny koszt do monitor_stats
+        try:
+            conn.execute('''INSERT INTO monitor_stats (event_type, model, prompt_tokens, completion_tokens, cost_usd, extra, timestamp)
+                VALUES ('gemini', 'enhance_batch', 0, 0, ?, ?, datetime('now'))''',
+                (_total_cost, json.dumps({'products': ok_count, 'images': ok_count * 8})))
+            conn.commit()
+        except Exception:
+            pass
+
+        yield f"data: {json.dumps({'type': 'done', 'message': f'Gotowe! {ok_count}/{len(todo)} produktów | Koszt: ${_total_cost:.2f}'})}\n\n"
+
+    return Response(generate(), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no'
+    })
+
+
+# === BACKGROUND ENHANCE TASK ===
+# Generuje zdjęcia w tle na Pi — nie wymaga otwartej przeglądarki
+_bg_enhance_status = {
+    'running': False,
+    'progress': 0,
+    'current': 0,
+    'total': 0,
+    'done': 0,
+    'errors': 0,
+    'cost': 0.0,
+    'log': [],
+    'finished': False,
+    'started_at': None,
+}
+
+def _bg_enhance_worker(app, force=False):
+    """Background thread do generowania zdjęć — działa nawet po zamknięciu przeglądarki"""
+    global _bg_enhance_status
+    import time as _t
+
+    with app.app_context():
+        conn = get_db()
+        _bg_enhance_status['log'] = []
+        _bg_enhance_status['finished'] = False
+        _bg_enhance_status['started_at'] = _t.time()
+
+        def _log(msg):
+            _bg_enhance_status['log'].append(msg)
+            if len(_bg_enhance_status['log']) > 200:
+                _bg_enhance_status['log'] = _bg_enhance_status['log'][-100:]
+            print(f"[BG-ENHANCE] {msg}")
+
+        try:
+            from .image_enhancer import enhance_single, prepare_original_photo, GEMINI_AVAILABLE
+            from .image_enhancer import HYBRID_ORIGINAL_SLOTS, HYBRID_AI_TEMPLATES
+            from .image_cleaner import clean_image_from_bytes
+        except Exception as _ie:
+            _log(f"❌ Import error: {_ie}")
+            _bg_enhance_status['running'] = False
+            _bg_enhance_status['finished'] = True
+            return
+
+        if not GEMINI_AVAILABLE:
+            _log("❌ Gemini API niedostępne!")
+            _bg_enhance_status['running'] = False
+            _bg_enhance_status['finished'] = True
+            return
+
+        products = conn.execute('''
+            SELECT id, asin, ean, nazwa, zdjecie_url, images
+            FROM produkty
+            WHERE status NOT IN ('usuniety', 'sprzedany')
+            AND zdjecie_url IS NOT NULL AND zdjecie_url != ''
+            ORDER BY data_dodania DESC
+        ''').fetchall()
+
+        _enh_base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'enhanced')
+
+        if force and os.path.isdir(_enh_base):
+            import shutil
+            _old = len([d for d in os.listdir(_enh_base) if os.path.isdir(os.path.join(_enh_base, d))])
+            shutil.rmtree(_enh_base)
+            os.makedirs(_enh_base, exist_ok=True)
+            _log(f"🗑 Usunięto {_old} starych folderów")
+
+        todo = []
+        for p in products:
+            p = dict(p)
+            _key = p.get('asin') or str(p['id'])
+            _dir = os.path.join(_enh_base, str(_key))
+            if not os.path.isdir(_dir) or len([f for f in os.listdir(_dir) if f.endswith('.jpg')]) < 4:
+                todo.append(p)
+
+        _bg_enhance_status['total'] = len(todo)
+
+        if not todo:
+            _log("✅ Wszystkie produkty mają już zdjęcia!")
+            _bg_enhance_status['running'] = False
+            _bg_enhance_status['finished'] = True
+            return
+
+        _log(f"📸 Start: {len(todo)} produktów do przetworzenia")
+
+        ok_count = 0
+        total_cost = 0.0
+        _slot_to_tpl = {'mini': 1, 'det': 3, 'zest': 4, 'kat2': 5}
+
+        for i, p in enumerate(todo):
+            if not _bg_enhance_status['running']:
+                _log("⏹ Zatrzymano ręcznie")
+                break
+
+            _key = p.get('asin') or str(p['id'])
+            nazwa = p.get('nazwa', '')[:60]
+            _bg_enhance_status['current'] = i + 1
+            _bg_enhance_status['progress'] = int(((i + 1) / len(todo)) * 100)
+            _bg_enhance_status['last_update'] = _t.time()
+
+            _log(f"[{i+1}/{len(todo)}] {_key}: {nazwa[:40]}")
+
+            # Znajdź zdjęcia
+            _all_images = []
+            _dl_dir = os.path.join('static', 'downloads', str(_key))
+            if os.path.isdir(_dl_dir):
+                _all_images = sorted([os.path.join(_dl_dir, f) for f in os.listdir(_dl_dir) if f.endswith('.jpg')])
+            if not _all_images and p.get('images'):
+                try:
+                    _imgs = json.loads(p['images']) if isinstance(p['images'], str) else p['images']
+                    _all_images = [u for u in _imgs if isinstance(u, str)]
+                except:
+                    pass
+            if not _all_images and p.get('zdjecie_url'):
+                _all_images = [p['zdjecie_url']]
+            if not _all_images:
+                continue
+
+            # Załaduj bytes
+            _loaded = []
+            for _src in _all_images:
+                try:
+                    if isinstance(_src, str) and _src.startswith('http'):
+                        import requests as _rq
+                        _raw = _rq.get(_src, timeout=20).content
+                    elif os.path.exists(_src):
+                        with open(_src, 'rb') as _f:
+                            _raw = _f.read()
+                    elif os.path.exists(os.path.abspath(_src)):
+                        with open(os.path.abspath(_src), 'rb') as _f:
+                            _raw = _f.read()
+                    else:
+                        continue
+                    from PIL import Image as _PIv
+                    from io import BytesIO as _BIv
+                    _PIv.open(_BIv(_raw)).verify()
+                    _loaded.append(_raw)
+                except:
+                    pass
+
+            if not _loaded:
+                continue
+
+            _enh_dir = os.path.join(_enh_base, str(_key))
+            os.makedirs(_enh_dir, exist_ok=True)
+            _ok = 0
+            _orig_count = 0
+
+            # Oryginały na sloty 1-4
+            for _oi, _slot in enumerate(HYBRID_ORIGINAL_SLOTS):
+                if _oi >= len(_loaded):
+                    break
+                try:
+                    _cb, _, _ = clean_image_from_bytes(_loaded[_oi])
+                    _clean = _cb if _cb else _loaded[_oi]
+                    _prep, _ = prepare_original_photo(_clean)
+                    if _prep:
+                        with open(os.path.join(_enh_dir, f'{_slot}.jpg'), 'wb') as _sf:
+                            _sf.write(_prep)
+                        _ok += 1
+                        _orig_count += 1
+                except:
+                    pass
+
+            # Brakujące oryginały → AI
+            _missing = HYBRID_ORIGINAL_SLOTS[_orig_count:]
+            _cb0, _, _ = clean_image_from_bytes(_loaded[0])
+            _base_ai = _cb0 if _cb0 else _loaded[0]
+
+            for _ms in _missing:
+                try:
+                    _ed, _, _ = enhance_single(_base_ai, _slot_to_tpl.get(_ms, 1), nazwa)
+                    if _ed:
+                        from PIL import Image as _PI
+                        from io import BytesIO as _BI
+                        _img = _PI.open(_BI(_ed)).convert('RGB')
+                        if max(_img.width, _img.height) < 2560:
+                            _r = 2560 / max(_img.width, _img.height)
+                            _img = _img.resize((int(_img.width * _r), int(_img.height * _r)), _PI.LANCZOS)
+                        _img.save(os.path.join(_enh_dir, f'{_ms}.jpg'), 'JPEG', quality=95)
+                        _ok += 1
+                except:
+                    pass
+                _t.sleep(3)  # Cooldown — Pi nie przegrzewa się
+
+            # AI sloty 5-8
+            for _tid, _tname in HYBRID_AI_TEMPLATES:
+                try:
+                    _ed, _, _ = enhance_single(_base_ai, _tid, nazwa)
+                    if _ed:
+                        from PIL import Image as _PI
+                        from io import BytesIO as _BI
+                        _img = _PI.open(_BI(_ed)).convert('RGB')
+                        if max(_img.width, _img.height) < 2560:
+                            _r = 2560 / max(_img.width, _img.height)
+                            _img = _img.resize((int(_img.width * _r), int(_img.height * _r)), _PI.LANCZOS)
+                        _img.save(os.path.join(_enh_dir, f'{_tname}.jpg'), 'JPEG', quality=95)
+                        _ok += 1
+                except:
+                    pass
+                _t.sleep(3)  # Cooldown — Pi nie przegrzewa się
+
+            if _ok > 0:
+                ok_count += 1
+                _ai_cnt = _ok - _orig_count
+                _cost = _ai_cnt * 0.001 + _orig_count * 0.001
+                total_cost += _cost
+                _bg_enhance_status['done'] = ok_count
+                _bg_enhance_status['cost'] = total_cost
+                _log(f"   ✅ {_ok}/8 ({_orig_count} oryg + {_ai_cnt} AI) ${_cost:.3f}")
+            else:
+                _bg_enhance_status['errors'] += 1
+
+            _t.sleep(5)  # 5s cooldown między produktami — anti-overheat
+
+        # Loguj koszt
+        try:
+            conn.execute('''INSERT INTO monitor_stats (event_type, model, prompt_tokens, completion_tokens, cost_usd, extra, timestamp)
+                VALUES ('gemini', 'enhance_bg_batch', 0, 0, ?, ?, datetime('now'))''',
+                (total_cost, json.dumps({'products': ok_count, 'total': len(todo)})))
+            conn.commit()
+        except:
+            pass
+
+        _log(f"🏁 GOTOWE! {ok_count}/{len(todo)} produktów | Koszt: ${total_cost:.2f}")
+        _bg_enhance_status['running'] = False
+        _bg_enhance_status['finished'] = True
+
+
+@paletomat_bp.route('/generator/enhance-bg-reset')
+def enhance_bg_reset():
+    """Wymuszony reset statusu — gdyby się zawiesił"""
+    global _bg_enhance_status
+    _bg_enhance_status = {
+        'running': False, 'progress': 0, 'current': 0, 'total': 0,
+        'done': 0, 'errors': 0, 'cost': 0.0, 'log': [], 'finished': False,
+        'started_at': None
+    }
+    return jsonify({'ok': True, 'message': 'Status zresetowany!'})
+
+
+@paletomat_bp.route('/generator/enhance-bg-start')
+def enhance_bg_start():
+    """Startuje generowanie w tle — można zamknąć przeglądarkę"""
+    global _bg_enhance_status
+    import threading
+    import time as _t
+
+    # Auto-reset: jeśli "running" ale ostatnia aktywność >5 min temu = zombie
+    if _bg_enhance_status['running']:
+        started = _bg_enhance_status.get('started_at') or 0
+        last_update = _bg_enhance_status.get('last_update') or started
+        if _t.time() - max(started, last_update) > 300:  # 5 min bez aktywności
+            print("[BG-Enhance] Auto-reset — worker zombie (>5 min bez aktywności)")
+            _bg_enhance_status['running'] = False
+
+    if _bg_enhance_status['running']:
+        return jsonify({'ok': False, 'error': 'Już działa!'})
+
+    force = request.args.get('force', '0') == '1'
+    _bg_enhance_status = {
+        'running': True, 'progress': 0, 'current': 0, 'total': 0,
+        'done': 0, 'errors': 0, 'cost': 0.0, 'log': [], 'finished': False,
+        'started_at': None
+    }
+
+    from flask import current_app
+    app = current_app._get_current_object()
+    t = threading.Thread(target=_bg_enhance_worker, args=(app, force), daemon=True)
+    t.start()
+
+    return jsonify({'ok': True, 'message': 'Generowanie uruchomione w tle!'})
+
+
+@paletomat_bp.route('/generator/enhance-bg-stop')
+def enhance_bg_stop():
+    """Zatrzymuje generowanie w tle"""
+    global _bg_enhance_status
+    _bg_enhance_status['running'] = False
+    return jsonify({'ok': True, 'message': 'Zatrzymywanie...'})
+
+
+@paletomat_bp.route('/generator/enhance-bg-status')
+def enhance_bg_status():
+    """Status generowania w tle — JSON"""
+    import time as _t
+    elapsed = 0
+    if _bg_enhance_status.get('started_at'):
+        elapsed = int(_t.time() - _bg_enhance_status['started_at'])
+    return jsonify({
+        **_bg_enhance_status,
+        'elapsed': elapsed,
+        'log_last': _bg_enhance_status['log'][-20:] if _bg_enhance_status['log'] else [],
+    })
+
+
+@paletomat_bp.route('/generator/from-magazyn/<int:product_id>')
+def generator_from_magazyn(product_id):
+    """Wystawianie produktu bezpośrednio z magazynu - bez potrzeby scrapowania"""
+    conn = get_db()
+
+    # Pobierz produkt z magazynu
+    produkt = conn.execute('SELECT * FROM produkty WHERE id=?', (product_id,)).fetchone()
+
+    if not produkt:
+        return redirect('/magazyn')
+
+    p = dict(produkt)
+
+    # Ustal identyfikator (ASIN lub EAN lub ID)
+    asin = p.get('asin', '') or ''
+    ean = p.get('ean', '') or ''
+
+    if asin and asin not in ('N/A', 'None', ''):
+        identyfikator = asin
+    elif ean and ean not in ('N/A', 'None', ''):
+        identyfikator = ean
+    else:
+        identyfikator = f"MAG{product_id}"
+
+    # === SPRAWDŹ CZY PRODUKT JUŻ MA AKTYWNĄ OFERTĘ NA ALLEGRO ===
+    force_new = request.args.get('force_new', '0') == '1'
+    if not force_new:
+        existing_offer = None
+
+        # 1. Szukaj po ASIN (najdokładniejsze)
+        if asin and asin not in ('N/A', 'None', '') and not existing_offer:
+            all_prod_ids = [r['id'] for r in conn.execute('SELECT id FROM produkty WHERE asin = ?', (asin,)).fetchall()]
+            if all_prod_ids:
+                ph = ','.join('?' * len(all_prod_ids))
+                existing_offer = conn.execute(f'''
+                    SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status, o.cena
+                    FROM oferty o
+                    WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
+                    AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
+                    AND o.produkt_id IN ({ph})
+                    LIMIT 1
+                ''', all_prod_ids).fetchone()
+
+        # 2. Szukaj po EAN
+        if ean and ean not in ('N/A', 'None', '') and not existing_offer:
+            all_prod_ids = [r['id'] for r in conn.execute('SELECT id FROM produkty WHERE ean = ?', (ean,)).fetchall()]
+            if all_prod_ids:
+                ph = ','.join('?' * len(all_prod_ids))
+                existing_offer = conn.execute(f'''
+                    SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status, o.cena
+                    FROM oferty o
+                    WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
+                    AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
+                    AND o.produkt_id IN ({ph})
+                    LIMIT 1
+                ''', all_prod_ids).fetchone()
+
+        # 3. Szukaj po produkt_id
+        if not existing_offer:
+            existing_offer = conn.execute('''
+                SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status, o.cena
+                FROM oferty o
+                WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
+                AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
+                AND o.produkt_id = ?
+                LIMIT 1
+            ''', (product_id,)).fetchone()
+
+        if existing_offer:
+            o = dict(existing_offer)
+            # Automatycznie dodaj sztuki z magazynu do istniejącej oferty
+            from .allegro_api import update_offer_stock
+            magazyn_ilosc = int(p.get('ilosc', 0) or 0)
+            obecna_ilosc = o.get('ilosc', 0) or 0
+            dodaj = max(min(magazyn_ilosc, magazyn_ilosc), 1)  # nie więcej niż stan magazynowy
+            new_qty = obecna_ilosc + dodaj
+
+            result, error = update_offer_stock(o['allegro_id'], new_qty)
+
+            if error:
+                # Fallback: pokaż stronę z formularzem ręcznym
+                return render_template_string(TEMPLATE_ALREADY_LISTED,
+                                              produkt=p, oferta=o, product_id=product_id,
+                                              identyfikator=identyfikator,
+                                              error_msg=f"Blad auto-dodawania: {error}")
+
+            return render_template_string(TEMPLATE_STOCK_UPDATED,
+                                          produkt=p, oferta=o, product_id=product_id,
+                                          dodaj=dodaj, new_qty=new_qty)
+
+    # Sprawdz czy juz istnieje w scraped
+    existing = conn.execute('SELECT asin FROM scraped WHERE asin=?', (identyfikator,)).fetchone()
+
+    if not existing:
+        try:
+            conn.execute('''
+                INSERT INTO scraped (asin, nazwa, zdjecie_url, cena_amazon, status, data_scrape, ean)
+                VALUES (?, ?, ?, ?, 'nowy', datetime('now'), ?)
+            ''', (
+                identyfikator,
+                p.get('nazwa', f'Produkt {identyfikator}'),
+                p.get('zdjecie_url', ''),
+                p.get('cena_brutto', 0) or 0,
+                ean
+            ))
+        except:
+            conn.execute('''
+                INSERT INTO scraped (asin, nazwa, zdjecie_url, cena_amazon, status, data_scrape)
+                VALUES (?, ?, ?, ?, 'nowy', datetime('now'))
+            ''', (
+                identyfikator,
+                p.get('nazwa', f'Produkt {identyfikator}'),
+                p.get('zdjecie_url', ''),
+                p.get('cena_brutto', 0) or 0
+            ))
+        conn.commit()
+    else:
+        conn.execute('''
+            UPDATE scraped SET nazwa=?, zdjecie_url=?, status='nowy'
+            WHERE asin=?
+        ''', (
+            p.get('nazwa', f'Produkt {identyfikator}'),
+            p.get('zdjecie_url', ''),
+            identyfikator
+        ))
+        conn.commit()
+
+    # Przekieruj do generatora
+    return redirect(f'/paletomat/generator/{identyfikator}?produkt_id={product_id}')
+
+
+# === TEMPLATE: Produkt już wystawiony ===
+# === TEMPLATE: Automatycznie dodano sztuki ===
+TEMPLATE_STOCK_UPDATED = '''<!DOCTYPE html><html><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dodano sztuki</title>
+<link rel="stylesheet" href="/static/styles.css">
+<meta http-equiv="refresh" content="3;url=/magazyn/produkt/{{ produkt.get('kod_magazynowy','') or product_id }}">
+</head><body class="{{ 'kiosk' if request.cookies.get('kiosk') else '' }}">
+<div class="container" style="max-width:600px;margin:auto;padding:20px">
+  <div class="card" style="padding:20px;border-left:4px solid var(--green,#22c55e)">
+    <h2 style="color:var(--green,#22c55e)">Dodano {{ dodaj }} szt do oferty</h2>
+    <p><b>{{ oferta.get('tytul','')[:60] }}</b></p>
+    <p>Bylo: {{ oferta.get('ilosc',0) }} szt → teraz: <b>{{ new_qty }} szt</b></p>
+    <p style="font-size:0.85rem;opacity:0.7">Przekierowanie za 3s...</p>
+    <a href="/magazyn/produkt/{{ produkt.get('kod_magazynowy','') or product_id }}" class="btn btn-p">← Powrot</a>
+  </div>
+</div>
+</body></html>'''
+
+
+# === TEMPLATE: Fallback — ręczne dodawanie (gdy auto-dodanie się nie udało) ===
+TEMPLATE_ALREADY_LISTED = '''<!DOCTYPE html><html><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Produkt juz wystawiony</title>
+<link rel="stylesheet" href="/static/styles.css">
+</head><body class="{{ 'kiosk' if request.cookies.get('kiosk') else '' }}">
+<div class="container" style="max-width:700px;margin:auto;padding:20px">
+  <div class="card" style="padding:20px;margin-bottom:16px">
+    <h2 style="margin:0 0 12px;color:var(--accent)">⚠️ Produkt juz wystawiony na Allegro</h2>
+    {% if error_msg %}<div style="background:var(--red-bg,#3b1111);color:var(--red,#ef4444);padding:8px 12px;border-radius:8px;margin-bottom:8px;font-size:0.9rem">{{ error_msg }}</div>{% endif %}
+    <p style="margin:0 0 8px"><b>{{ produkt.get('nazwa','')[:60] }}</b></p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.9rem;margin-bottom:12px">
+      <div>EAN: <b>{{ produkt.get('ean','—') }}</b></div>
+      <div>ASIN: <b>{{ produkt.get('asin','—') }}</b></div>
+      <div>W magazynie: <b>{{ produkt.get('ilosc',0) }} szt</b></div>
+      <div>Kod: <b>{{ produkt.get('kod_magazynowy','—') }}</b></div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:20px;margin-bottom:16px;border-left:4px solid var(--green,#22c55e)">
+    <h3 style="margin:0 0 8px">Aktywna oferta Allegro</h3>
+    <p style="margin:0 0 4px"><b>{{ oferta.get('tytul','')[:70] }}</b></p>
+    <div style="display:flex;gap:16px;font-size:0.9rem;margin-bottom:12px">
+      <span>Cena: <b>{{ "%.2f"|format(oferta.get('cena',0)) }} zl</b></span>
+      <span>Ilosc: <b>{{ oferta.get('ilosc',0) }} szt</b></span>
+      <span>Status: <b>{{ oferta.get('status','?') }}</b></span>
+    </div>
+
+    <form method="POST" action="/paletomat/generator/add-stock/{{ oferta.get('id') }}"
+          style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
+      <input type="hidden" name="product_id" value="{{ product_id }}">
+      <div style="flex:1;min-width:120px">
+        <label style="font-size:0.8rem;display:block;margin-bottom:4px">Dodaj sztuki:</label>
+        <input type="number" name="dodaj_sztuki" value="1" min="1" max="999"
+               class="form-ctrl" style="width:100%">
+      </div>
+      <button type="submit" class="btn btn-p" style="min-height:48px;flex:2">
+        ➕ Dodaj sztuki do oferty
+      </button>
+    </form>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a href="/paletomat/generator/from-magazyn/{{ product_id }}?force_new=1"
+       class="btn btn-2" style="flex:1;text-align:center">
+      🆕 Wystaw jako nowa oferte
+    </a>
+    <a href="/magazyn/produkt/{{ produkt.get('kod_magazynowy','') or product_id }}"
+       class="btn" style="flex:1;text-align:center">
+      ← Powrot do produktu
+    </a>
+  </div>
+</div>
+</body></html>'''
+
+
+@paletomat_bp.route('/generator/add-stock/<int:oferta_id>', methods=['POST'])
+def generator_add_stock(oferta_id):
+    """Dodaje sztuki do istniejącej oferty Allegro zamiast tworzenia nowej"""
+    from .allegro_api import update_offer_stock
+
+    conn = get_db()
+    oferta = conn.execute('SELECT id, allegro_id, ilosc, tytul FROM oferty WHERE id = ?',
+                          (oferta_id,)).fetchone()
+
+    if not oferta:
+        return redirect('/paletomat/generator')
+
+    o = dict(oferta)
+    dodaj = int(request.form.get('dodaj_sztuki', 1))
+    product_id = request.form.get('product_id', '')
+
+    if dodaj < 1:
+        dodaj = 1
+
+    new_qty = (o.get('ilosc', 0) or 0) + dodaj
+
+    result, error = update_offer_stock(o['allegro_id'], new_qty)
+
+    if error:
+        return render_template_string('''<!DOCTYPE html><html><head>
+            <meta charset="utf-8"><link rel="stylesheet" href="/static/styles.css">
+            </head><body><div class="container" style="max-width:600px;margin:auto;padding:20px">
+            <div class="card" style="padding:20px">
+              <h2 style="color:var(--red)">Blad aktualizacji</h2>
+              <p>{{ error }}</p>
+              <a href="/magazyn" class="btn">← Magazyn</a>
+            </div></div></body></html>''', error=error)
+
+    # Sukces
+    return render_template_string('''<!DOCTYPE html><html><head>
+        <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+        <link rel="stylesheet" href="/static/styles.css">
+        <meta http-equiv="refresh" content="3;url=/magazyn/produkt/{{ kod }}">
+        </head><body><div class="container" style="max-width:600px;margin:auto;padding:20px">
+        <div class="card" style="padding:20px;border-left:4px solid var(--green,#22c55e)">
+          <h2 style="color:var(--green,#22c55e)">Zaktualizowano ilosc</h2>
+          <p><b>{{ tytul[:60] }}</b></p>
+          <p>Dodano <b>{{ dodaj }} szt</b> → nowa ilosc: <b>{{ new_qty }} szt</b></p>
+          <p style="font-size:0.85rem;opacity:0.7">Przekierowanie za 3s...</p>
+          <a href="/magazyn" class="btn btn-p">← Magazyn</a>
+        </div></div></body></html>''',
+        tytul=o.get('tytul', ''), dodaj=dodaj, new_qty=new_qty,
+        kod=request.form.get('product_id', ''))
+
+
+@paletomat_bp.route('/generator/<asin>')
+def generator_detail(asin):
+    conn = get_db()
+    p = conn.execute('SELECT * FROM scraped WHERE asin=?', (asin,)).fetchone()
+    
+    if not p:
+        return redirect('/paletomat/generator')
+    
+    p = dict(p)  # Konwertuj Row na dict
+    
+    # Scrapuj z Amazona jeśli brak nazwy
+    nazwa = p['nazwa'] or ''
+    zdjecie_url = p['zdjecie_url'] or get_amazon_image_url(asin)
+    cena_amazon = p['cena_amazon'] or 0
+    kategoria = p.get('kategoria', 'inne') or 'inne'
+    wszystkie_zdjecia = []
+    bullet_points = []
+    
+    # Pobierz zapisane zdjęcia z bazy
+    try:
+        saved_images = p.get('wszystkie_zdjecia', '') or ''
+        if saved_images:
+            wszystkie_zdjecia = json.loads(saved_images)
+    except:
+        pass
+    
+    # Pobierz zapisane bullet points z bazy
+    try:
+        saved_bp = p.get('bullet_points', '') or ''
+        if saved_bp:
+            bullet_points = json.loads(saved_bp)
+    except:
+        pass
+    
+    amazon_domain = None
+    if not nazwa or nazwa == f'Produkt {asin}':
+        amazon_data = scrape_amazon_product(asin)
+        if amazon_data:
+            nazwa = amazon_data.get('title', '') or f'Produkt {asin}'
+            # Przetłumacz nazwę na polski
+            nazwa = translate_product_name(nazwa)
+            if amazon_data.get('image_url'):
+                zdjecie_url = amazon_data['image_url']
+            if amazon_data.get('all_images'):
+                wszystkie_zdjecia = amazon_data['all_images']
+            if amazon_data.get('price') and amazon_data['price'] > 0:
+                cena_amazon = amazon_data['price']
+            if amazon_data.get('bullet_points'):
+                bullet_points = amazon_data['bullet_points']
+            if amazon_data.get('category'):
+                kategoria = amazon_data['category'] or 'inne'
+            product_specs = amazon_data.get('product_specs', {})
+            amazon_domain = amazon_data.get('domain')
+
+            # Zapisz do bazy (z wszystkimi danymi)
+            with get_db() as conn:
+                conn.execute('''UPDATE scraped SET nazwa=?, zdjecie_url=?, wszystkie_zdjecia=?,
+                               cena_amazon=?, bullet_points=?, kategoria=?, product_specs=? WHERE asin=?''',
+                            (nazwa, zdjecie_url, json.dumps(wszystkie_zdjecia), cena_amazon,
+                             json.dumps(bullet_points), kategoria, json.dumps(product_specs), asin))
+                conn.commit()
+
+    # Jeśli brak zdjęć w bazie, użyj głównego
+    if not wszystkie_zdjecia:
+        wszystkie_zdjecia = [zdjecie_url] if zdjecie_url else [get_amazon_image_url(asin)]
+
+    # Optymalizuj tytuł pod SEO (max 75 znaków)
+    tytul_seo = optimize_title_seo(nazwa, 75)
+
+    # Pobierz klucz Gemini API
+    from .database import get_config
+    gemini_key = get_config('gemini_api_key', '')
+
+    # Oblicz sugerowaną cenę — konwersja walut wg domeny Amazon (kurs NBP)
+    if cena_amazon and cena_amazon > 0:
+        from .magazynier import _amazon_price_to_pln
+        cena_pln = _amazon_price_to_pln(cena_amazon, amazon_domain)
+        wynik = oblicz_cene_allegro(cena_pln, 40, kategoria)
+    else:
+        wynik = {'cena_sugerowana': '99.99'}
+    
+    # Generuj profesjonalny opis HTML z layoutem zdjęć (NOWA WERSJA - z bullet points + ASIN!)
+    opis_html, opis_plain = generuj_opis_html_pro(nazwa, wszystkie_zdjecia, kategoria, bullet_points, gemini_key=gemini_key, asin=asin)
+    
+    # Generuj informacje o bezpieczeństwie GPSR (NOWA WERSJA - z kategorią!)
+    gpsr_info = generuj_gpsr_info(nazwa, kategoria)
+    
+    # Sprawdź czy Allegro jest połączone i czy jest cennik
+    from .allegro_api import is_authenticated, search_categories
+    from .database import get_config
+    allegro_ok = is_authenticated()
+    shipping_ok = bool(get_config('allegro_shipping_id', ''))
+    
+    # Pobierz ilość i EAN z magazynu (jeśli produkt jest w magazynie)
+    # Jeśli przyszliśmy z konkretnego produktu (/generator/from-magazyn/ID) - użyj ID
+    conn = get_db()
+    produkt_id_z_url = request.args.get('produkt_id', type=int)
+    if produkt_id_z_url:
+        magazyn_produkt = conn.execute(
+            'SELECT id, ilosc, ean, stan FROM produkty WHERE id = ?',
+            (produkt_id_z_url,)
+        ).fetchone()
+    else:
+        magazyn_produkt = conn.execute(
+            'SELECT id, ilosc, ean, stan FROM produkty WHERE (asin = ? OR ean = ?) AND ilosc > 0 ORDER BY ilosc DESC LIMIT 1',
+            (asin, asin)
+        ).fetchone()
+    ilosc_magazyn = magazyn_produkt['ilosc'] if magazyn_produkt else 1
+    ean_magazyn = magazyn_produkt['ean'] if magazyn_produkt and magazyn_produkt['ean'] else ''
+    stan_magazyn = magazyn_produkt['stan'] if magazyn_produkt and magazyn_produkt['stan'] else 'Nowy'
+    
+    # Sprawdź czy produkt ma rozdzielone sztuki wg stanu
+    grupy_stanow = []  # [{'stan': 'Nowy', 'ilosc': 3}, {'stan': 'Używany', 'ilosc': 2}]
+    if magazyn_produkt:
+        prod_id = magazyn_produkt['id']
+        sztuki_rows = conn.execute(
+            'SELECT stan, COUNT(*) as ile FROM sztuki WHERE produkt_id=? AND status="magazyn" GROUP BY stan ORDER BY stan',
+            (prod_id,)
+        ).fetchall()
+        if sztuki_rows:
+            grupy_stanow = [{'stan': r['stan'], 'ilosc': r['ile']} for r in sztuki_rows]
+    
+    # Pobierz sugerowaną kategorię z Allegro
+    detected_cat = '258682'  # Domyślna: Inne
+    detected_cat_name = 'Inne (auto)'
+    try:
+        cat_result, cat_error = search_categories(nazwa[:50])
+        if cat_result and cat_result.get('matchingCategories'):
+            first_cat = cat_result['matchingCategories'][0]
+            detected_cat = first_cat.get('id', '258682')
+            detected_cat_name = first_cat.get('name', 'Sugerowana') + ' (auto)'
+    except:
+        pass
+    
+    # Status scrapowania
+    scrape_status = ''
+    if cena_amazon and cena_amazon > 0:
+        scrape_status = f'<div class="alert alert-ok" style="font-size:0.8rem;padding:8px">✅ Scrapowano z Amazon | Cena: {cena_amazon:.2f}€ | 📷 {len(wszystkie_zdjecia)} zdjęć</div>'
+    else:
+        scrape_status = f'<div class="alert alert-warn" style="font-size:0.8rem;padding:8px">⚠️ Brak ceny z Amazon - ustaw ręcznie | 📷 {len(wszystkie_zdjecia)} zdjęć</div>'
+    
+    # Status Allegro
+    allegro_status = ''
+    if not allegro_ok:
+        allegro_status = '<div class="alert alert-err" style="font-size:0.8rem;padding:8px">❌ Nie połączono z Allegro → <a href="/allegro" style="color:#ef4444">Połącz</a></div>'
+    elif not shipping_ok:
+        allegro_status = '<div class="alert alert-err" style="font-size:0.8rem;padding:8px">❌ Brak cennika wysyłki → <a href="/allegro/config" style="color:#ef4444">Wybierz cennik</a></div>'
+    
+    # Przygotuj JSON zdjęć
+    import html as html_lib
+    zdjecia_json = json.dumps(wszystkie_zdjecia)
+    
+    # Escape HTML dla textarea i podglądu
+    opis_html_escaped = html_lib.escape(opis_html)
+    
+    # Galeria zdjęć HTML
+    gallery_html = ''
+    if len(wszystkie_zdjecia) > 1:
+        gallery_html = '<div style="display:flex;gap:8px;overflow-x:auto;padding:10px 0;margin-bottom:10px">'
+        for i, img_url in enumerate(wszystkie_zdjecia[:6]):
+            border = 'border:2px solid #22c55e' if i == 0 else 'border:1px solid #1e1e2e'
+            gallery_html += f'<img data-img-idx="{i}" src="{img_url}" style="width:60px;height:60px;object-fit:contain;background:#fff;border-radius:6px;{border}" onerror="this.style.display=\'none\'">'
+        gallery_html += '</div>'
+        gallery_html += f'<div style="font-size:0.75rem;color:#22c55e;text-align:center;margin-bottom:10px">✅ {len(wszystkie_zdjecia)} zdjęć w layoutcie opisu</div>'
+    
+    html = f'''
+    <div class="hdr"><h1>🏷️ GENERUJ OFERTĘ</h1><small>{asin}</small></div>
+
+    {scrape_status}
+    {allegro_status}
+
+    <div class="card">
+        <div style="text-align:center;margin-bottom:15px">
+            <img id="mainImg" src="{zdjecie_url}" style="max-width:200px;max-height:200px;background:#fff;border-radius:8px;padding:10px" onerror="this.src='{get_amazon_image_url(asin)}'">
+            {gallery_html}
+            <div style="margin-top:8px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;align-items:center">
+                <button type="button" onclick="cleanImages()" id="btnClean" style="padding:6px 14px;background:#7c3aed;color:#fff;border:none;border-radius:6px;font-size:0.75rem;cursor:pointer">
+                    🧹 Wyczysc z napisow
+                </button>
+                <button type="button" onclick="enhanceImages()" id="btnEnhance" style="padding:6px 14px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:0.75rem;cursor:pointer">
+                    ✨ Podrasuj 8 zdjec
+                </button>
+                <span id="cleanStatus" style="font-size:0.7rem;color:#64748b"></span>
+            </div>
+        </div>
+        
+        <form action="/paletomat/generator/{asin}/create" method="POST">
+            <div class="form-group">
+                <label>Tytuł oferty (max 75 znaków) - SEO zoptymalizowany</label>
+                <input type="text" name="tytul" class="form-ctrl" value="{tytul_seo}" maxlength="75" required>
+                <div style="font-size:0.7rem;color:#64748b;margin-top:3px">{len(tytul_seo)}/75 znaków</div>
+            </div>
+            
+            <div class="form-group">
+                <label>📁 Kategoria Allegro</label>
+                <select name="kategoria" class="form-ctrl" style="padding:10px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#fff">
+                    <option value="{detected_cat}" selected>✓ {detected_cat_name} (auto)</option>
+                    <option value="261680">Motoryzacja > Pokrowce na siedzenia</option>
+                    <option value="310037">Motoryzacja > Ładowarki EV / Wallbox</option>
+                    <option value="261647">Motoryzacja > Dywaniki samochodowe</option>
+                    <option value="261696">Motoryzacja > Maty grzewcze</option>
+                    <option value="165">Elektronika > Kable</option>
+                    <option value="20650">Elektronika > Ładowarki</option>
+                    <option value="174895">Elektronika > Powerbanki</option>
+                    <option value="258682">Inne</option>
+                </select>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Cena Amazon (€)</label>
+                    <input type="number" step="0.01" name="cena_amazon" class="form-ctrl" value="{cena_amazon:.2f}" id="cena_amazon" onchange="przeliczCene()">
+                </div>
+                <div class="form-group">
+                    <label>💵 Cena Allegro (zł)</label>
+                    <input type="number" step="0.01" name="cena_allegro" class="form-ctrl" value="{wynik['cena_sugerowana']}" id="cena_allegro" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Ilość {f'(z magazynu: {ilosc_magazyn})' if ilosc_magazyn > 1 else ''}</label>
+                    <input type="number" name="ilosc" class="form-ctrl" value="{ilosc_magazyn}" min="1" {'style="display:none"' if grupy_stanow else ''}>
+                    {'<div style="font-size:0.75rem;color:#64748b;margin-top:4px">Ilość ustawiana automatycznie z grup poniżej</div>' if grupy_stanow else ''}
+                </div>
+                <div class="form-group">
+                    <label>📊 EAN (do wpisania w Sales Center)</label>
+                    <input type="text" name="ean" class="form-ctrl" value="{ean_magazyn}" placeholder="Kod kreskowy">
+                    <div style="font-size:0.65rem;color:#eab308;margin-top:2px">⚠️ EAN nie jest wysyłany do Allegro - skopiuj i wklej w Sales Center</div>
+                </div>
+            </div>
+            
+            {_render_stan_fields(grupy_stanow, stan_magazyn)}
+            
+            <div class="form-group">
+                <label>📝 Opis HTML (profesjonalny layout ze zdjęciami)</label>
+                <div style="display:flex;gap:8px;margin-bottom:8px">
+                    <button type="button" onclick="togglePreview()" class="btn btn-2" style="padding:8px 12px;width:auto;font-size:0.8rem">👁️ Podgląd</button>
+                    <button type="button" onclick="copyHtml()" class="btn btn-2" style="padding:8px 12px;width:auto;font-size:0.8rem">📋 Kopiuj</button>
+                </div>
+                <textarea name="opis" id="opisHtml" class="form-ctrl" style="min-height:200px;font-size:0.75rem;line-height:1.4;font-family:monospace">{opis_html_escaped}</textarea>
+            </div>
+            
+            <div id="previewBox" style="display:none;background:#fff;border-radius:12px;padding:20px;margin-bottom:15px;max-height:500px;overflow-y:auto">
+                {opis_html}
+            </div>
+            
+            <input type="hidden" name="asin" value="{asin}">
+            <input type="hidden" name="zdjecia" id="zdjecia_input" value='{zdjecia_json}'>
+            <input type="hidden" name="opis_type" value="html">
+            
+            <div class="form-group">
+                <label>🛡️ Informacje o bezpieczeństwie (GPSR) - skopiuj do Sales Center</label>
+                <textarea name="gpsr" id="gpsrInfo" class="form-ctrl" style="min-height:150px;font-size:0.8rem;line-height:1.4">{gpsr_info}</textarea>
+                <div style="font-size:0.7rem;color:#eab308;margin-top:3px">⚠️ Allegro API nie obsługuje GPSR - skopiuj i wklej ręcznie w Sales Center po utworzeniu oferty</div>
+            </div>
+            
+            <input type="hidden" name="enhance_photos" value="1">
+
+            <div class="form-group" style="background:rgba(139,92,246,0.1);border:2px solid #8b5cf6;border-radius:8px;padding:15px">
+                <label style="display:flex;align-items:center;cursor:pointer;user-select:none">
+                    <input type="checkbox" name="mark_as_published" value="1" checked style="width:20px;height:20px;margin-right:10px;cursor:pointer;accent-color:#8b5cf6">
+                    <span style="font-weight:600;font-size:0.95rem">
+                        ✅ Oznacz produkt jako "wystawiony" w magazynie
+                    </span>
+                </label>
+                <div style="font-size:0.8rem;color:var(--text-dim);margin-top:8px;margin-left:30px">
+                    Po wystawieniu na Allegro, produkt zostanie automatycznie oznaczony jako "wystawiony" w magazynie.
+                    Odznacz jeśli chcesz sam kontrolować ten status później.
+                </div>
+            </div>
+            
+            <button type="submit" name="action" value="draft" class="btn btn-2">💾 ZAPISZ SZKIC</button>
+            '''
+    
+    if allegro_ok and shipping_ok:
+        html += '<button type="submit" name="action" value="allegro" class="btn btn-ok" style="margin-top:8px">🛒 WYSTAW NA ALLEGRO</button>'
+    elif allegro_ok and not shipping_ok:
+        html += '<div class="alert alert-warn" style="margin-top:10px;font-size:0.8rem">⚠️ Wybierz cennik wysyłki → <a href="/allegro/config" style="color:#eab308">Ustawienia Allegro</a></div>'
+    else:
+        html += '<div class="alert alert-warn" style="margin-top:10px;font-size:0.8rem">⚠️ Połącz się z Allegro → <a href="/allegro" style="color:#eab308">Ustawienia</a></div>'
+    
+    html += '''
+        </form>
+    </div>
+    
+    <script>
+    function przeliczCene() {
+        var eur = parseFloat(document.getElementById('cena_amazon').value) || 0;
+        var pln = Math.round((eur * 4.35 * 1.4) + 0.99);
+        document.getElementById('cena_allegro').value = pln.toFixed(2);
+    }
+    
+    function togglePreview() {
+        var box = document.getElementById('previewBox');
+        var textarea = document.getElementById('opisHtml');
+        if (box.style.display === 'none') {
+            box.innerHTML = textarea.value;
+            box.style.display = 'block';
+        } else {
+            box.style.display = 'none';
+        }
+    }
+    
+    function copyHtml() {
+        var textarea = document.getElementById('opisHtml');
+        textarea.select();
+        document.execCommand('copy');
+        alert('Skopiowano HTML!');
+    }
+
+    var allPhotos = {zdjecia_json};
+    var cleanedPhotos = {{}};
+    var cleanIdx = 0;
+
+    function cleanImages() {{
+        var btn = document.getElementById('btnClean');
+        var status = document.getElementById('cleanStatus');
+        btn.disabled = true;
+        btn.textContent = 'Czyszcze...';
+        cleanIdx = 0;
+        cleanedPhotos = {{}};
+        cleanNext(btn, status);
+    }}
+
+    function cleanNext(btn, status) {{
+        if (cleanIdx >= allPhotos.length) {{
+            btn.textContent = 'Gotowe!';
+            btn.style.background = '#22c55e';
+            status.textContent = cleanIdx + '/' + allPhotos.length + ' oczyszczonych';
+            // Zaktualizuj ukryty input ze zdjeciami
+            updateCleanedPhotos();
+            return;
+        }}
+        var url = allPhotos[cleanIdx];
+        status.textContent = (cleanIdx+1) + '/' + allPhotos.length + ' czyszcze...';
+
+        fetch('/paletomat/api/clean-image', {{
+            method: 'POST',
+            headers: {{'Content-Type': 'application/json'}},
+            body: JSON.stringify({{url: url}})
+        }})
+        .then(r => r.json())
+        .then(data => {{
+            if (data.success) {{
+                cleanedPhotos[cleanIdx] = data.cleaned_url;
+                // Podswietl miniaturke na zielono
+                var thumbs = document.querySelectorAll('[data-img-idx]');
+                if (thumbs[cleanIdx]) thumbs[cleanIdx].style.border = '2px solid #22c55e';
+            }}
+            cleanIdx++;
+            cleanNext(btn, status);
+        }})
+        .catch(err => {{
+            console.error('Clean error:', err);
+            cleanIdx++;
+            cleanNext(btn, status);
+        }});
+    }}
+
+    function updateCleanedPhotos() {{
+        // Podmien URLe na oczyszczone w ukyrtym polu
+        var updated = allPhotos.map(function(url, i) {{
+            return cleanedPhotos[i] ? (window.location.origin + cleanedPhotos[i]) : url;
+        }});
+        var input = document.getElementById('zdjecia_input');
+        if (input) input.value = JSON.stringify(updated);
+        // Podmien glowne zdjecie
+        if (cleanedPhotos[0]) {{
+            document.getElementById('mainImg').src = cleanedPhotos[0];
+        }}
+    }}
+
+    // === ENHANCE - generuj 8 zdjec Allegro ===
+    var enhanceIdx = 0;
+    var enhancedPhotos = [];
+    var templateNames = ['Miniaturka','Wymiary','Detale','Zawartosc','Specyfikacja','Montaz','Lifestyle','Porownanie'];
+
+    function enhanceImages() {{
+        var btn = document.getElementById('btnEnhance');
+        var status = document.getElementById('cleanStatus');
+
+        // Uzyj pierwszego zdjecia jako bazy (oczyszczonego jesli dostepne)
+        var baseUrl = cleanedPhotos[0] || allPhotos[0];
+        if (!baseUrl) {{
+            status.textContent = 'Brak zdjecia bazowego!';
+            return;
+        }}
+
+        btn.disabled = true;
+        btn.textContent = 'Generuje...';
+        btn.style.background = '#d97706';
+        enhanceIdx = 0;
+        enhancedPhotos = [];
+        status.textContent = '0/8 - startuje...';
+
+        enhanceNext(btn, status, baseUrl);
+    }}
+
+    function enhanceNext(btn, status, baseUrl) {{
+        if (enhanceIdx >= 8) {{
+            btn.textContent = '✨ Gotowe!';
+            btn.style.background = '#22c55e';
+            status.textContent = '8/8 wygenerowanych!';
+            updateEnhancedPhotos();
+            return;
+        }}
+
+        var templateId = enhanceIdx + 1;
+        status.textContent = (enhanceIdx+1) + '/8: ' + templateNames[enhanceIdx] + '...';
+
+        fetch('/paletomat/api/enhance-image', {{
+            method: 'POST',
+            headers: {{'Content-Type': 'application/json'}},
+            body: JSON.stringify({{
+                url: baseUrl,
+                template_id: templateId,
+                product_name: document.querySelector('[name=tytul]') ? document.querySelector('[name=tytul]').value : ''
+            }})
+        }})
+        .then(r => r.json())
+        .then(data => {{
+            if (data.success) {{
+                enhancedPhotos.push(data.enhanced_url);
+                // Podswietl miniaturke
+                var thumbs = document.querySelectorAll('[data-img-idx]');
+                if (thumbs[enhanceIdx]) {{
+                    thumbs[enhanceIdx].style.border = '2px solid #f59e0b';
+                    thumbs[enhanceIdx].src = data.enhanced_url;
+                }}
+            }} else {{
+                enhancedPhotos.push(null);
+                console.error('Enhance err:', data.error);
+            }}
+            enhanceIdx++;
+            enhanceNext(btn, status, baseUrl);
+        }})
+        .catch(err => {{
+            console.error('Enhance fetch error:', err);
+            enhancedPhotos.push(null);
+            enhanceIdx++;
+            enhanceNext(btn, status, baseUrl);
+        }});
+    }}
+
+    function updateEnhancedPhotos() {{
+        // Podmien zdjecia na wygenerowane (te ktore sie udaly)
+        var updated = enhancedPhotos.map(function(url, i) {{
+            return url ? (window.location.origin + url) : allPhotos[i] || '';
+        }});
+        // Uzupelnij do 8 jesli trzeba
+        while (updated.length < allPhotos.length) updated.push(allPhotos[updated.length]);
+
+        var input = document.getElementById('zdjecia_input');
+        if (input) input.value = JSON.stringify(updated);
+        // Podmien glowne zdjecie na miniaturke
+        if (enhancedPhotos[0]) {{
+            document.getElementById('mainImg').src = enhancedPhotos[0];
+        }}
+    }}
+    </script>
+    
+    <style>
+    #previewBox p { margin-bottom: 18px; font-size: 14px; line-height: 1.7; color: #333; }
+    #previewBox b { color: #111; font-size: 15px; }
+    #previewBox ul { background: #f5f5f5; padding: 15px 15px 15px 35px; border-radius: 8px; margin-top: 20px; }
+    #previewBox li { padding: 6px 0; color: #444; }
+    </style>
+    
+    <a href="/paletomat/ustawienia" class="btn btn-2" style="margin-top:10px">⚙️ USTAWIENIA (Gemini API)</a>
+    <a href="/paletomat/generator" class="back">← Powrót</a>
+    '''
+    return render(html)
+
+@paletomat_bp.route('/generator/<asin>/create', methods=['POST'])
+def generator_create(asin):
+    tytul = request.form.get('tytul', '')[:75]
+    cena = float(request.form.get('cena_allegro', 0) or 0)
+    ilosc = int(request.form.get('ilosc', 1) or 1)
+    opis = request.form.get('opis', '')
+    kategoria = request.form.get('kategoria', '')
+    ean = request.form.get('ean', '').strip()
+    gpsr = request.form.get('gpsr', '').strip()
+    # Auto-generuj GPSR jeśli nie podany
+    if not gpsr:
+        from .utils import generuj_gpsr_info
+        gpsr = generuj_gpsr_info(tytul or request.form.get('nazwa', ''), kategoria or '')
+    action = request.form.get('action', 'draft')
+    enhance_photos_flag = '1' if request.form.get('enhance_photos') == '1' else '0'
+    produkt_id_param = request.form.get('produkt_id', type=int)
+    
+    # Pobierz wszystkie zdjęcia z JSON
+    zdjecia_json = request.form.get('zdjecia', '[]')
+    try:
+        zdjecia = json.loads(zdjecia_json)
+        if not isinstance(zdjecia, list):
+            zdjecia = []
+    except:
+        zdjecia = []
+    
+    # Fallback na pojedyncze zdjęcie
+    if not zdjecia:
+        zdjecie = request.form.get('zdjecie', '')
+        if zdjecie:
+            zdjecia = [zdjecie]
+    
+    if action == 'allegro':
+        # Pokaż stronę z progressem
+        import html as html_lib
+        
+        zdjecia_json_safe = html_lib.escape(json.dumps(zdjecia))
+        opis_escaped = opis.replace('\\', '\\\\').replace('`', '\\`').replace('$', '\\$')
+        gpsr_escaped = gpsr.replace('\\', '\\\\').replace('`', '\\`').replace('$', '\\$').replace("'", "\\'")
+        
+        html = f'''
+        <div class="hdr"><h1>🚀 WYSTAWIANIE</h1><small>{tytul[:40]}...</small></div>
+
+        <div class="card" style="text-align:center;padding:30px">
+            <div id="progress-icon" style="font-size:3rem;margin-bottom:15px">
+                <div class="spinner-ring" style="display:inline-block;width:48px;height:48px;border:4px solid rgba(99,102,241,0.2);border-top-color:#6366f1;border-radius:50%;animation:spin 1s linear infinite"></div>
+            </div>
+            <div id="progress-text" style="font-size:1.1rem;font-weight:600;margin-bottom:10px">Przygotowywanie...</div>
+            <div style="background:#1e1e2e;border-radius:10px;height:16px;overflow:hidden;margin-bottom:10px">
+                <div id="progress-bar" style="background:linear-gradient(90deg,#3b82f6,#8b5cf6);height:100%;width:0%;transition:width 0.3s"></div>
+            </div>
+            <div id="progress-detail" style="font-size:0.8rem;color:#64748b"></div>
+            <div id="timer" style="font-size:1.4rem;font-weight:700;color:#6366f1;margin-top:8px;font-variant-numeric:tabular-nums">00:00</div>
+        </div>
+
+        <style>@keyframes spin {{ 0% {{ transform:rotate(0deg) }} 100% {{ transform:rotate(360deg) }} }}</style>
+
+        <div id="log" class="card" style="max-height:300px;overflow-y:auto;font-family:monospace;font-size:0.75rem">
+            <div style="color:#64748b;padding:4px 0">🔄 Inicjalizacja...</div>
+        </div>
+        
+        <div id="result" style="display:none"></div>
+        
+        <!-- Hidden data storage -->
+        <input type="hidden" id="zdjecia-data" value="{zdjecia_json_safe}">
+        
+        <script>
+        // TIMER
+        const _startTime = Date.now();
+        const _timerEl = document.getElementById('timer');
+        const _timerInterval = setInterval(() => {{
+            const elapsed = Math.floor((Date.now() - _startTime) / 1000);
+            const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+            const s = String(elapsed % 60).padStart(2, '0');
+            _timerEl.textContent = m + ':' + s;
+        }}, 1000);
+        function _stopTimer() {{
+            clearInterval(_timerInterval);
+            const elapsed = ((Date.now() - _startTime) / 1000).toFixed(1);
+            _timerEl.textContent = elapsed + 's';
+            _timerEl.style.color = '#22c55e';
+        }}
+
+        // Parse JSON from hidden input - SAFE!
+        const zdjeciaRaw = document.getElementById('zdjecia-data').value;
+        const zdjecia = JSON.parse(zdjeciaRaw);
+        
+        const params = new URLSearchParams();
+        params.append('tytul', `{tytul}`);
+        params.append('cena', '{cena}');
+        params.append('ilosc', '{ilosc}');
+        params.append('opis', `{opis_escaped}`);
+        params.append('kategoria', '{kategoria}');
+        params.append('zdjecia', JSON.stringify(zdjecia));  // Proper JSON encoding
+        params.append('ean', '{ean}');
+        params.append('gpsr', `{gpsr_escaped}`);
+        params.append('produkt_id', '{produkt_id_param or ''}');
+        params.append('enhance_photos', '{enhance_photos_flag}');
+        // Stan — albo z selecta (brak podzialu) albo z grup sztuk
+        const stanSelect = document.querySelector("select[name='stan']");
+        if (stanSelect) {{
+            params.append("stan", stanSelect.value || "Nowy");
+        }}
+        // Grupy stanow (gdy produkt rozdzielony na sztuki)
+        document.querySelectorAll("input[name^='ilosc_grupa_']").forEach(el => {{
+            const stanKey = el.name.replace("ilosc_grupa_", "");
+            const ile = parseInt(el.value) || 0;
+            if (ile > 0) {{
+                params.append("ilosc_grupa_" + stanKey, ile);
+                params.append("stan_grupa_" + stanKey, stanKey);
+            }}
+        }});
+        
+        console.log('🔍 DEBUG: Zdjęcia z hidden input:', zdjeciaRaw);
+        console.log('🔍 DEBUG: Zdjęcia parsed:', zdjecia);
+        console.log('🔍 DEBUG: Liczba zdjęć:', zdjecia.length);
+        console.log('🔍 DEBUG: Pierwsze 3 URL-e:', zdjecia.slice(0, 3));
+        
+        console.log('🔍 DEBUG: opis length:', params.get('opis') ? params.get('opis').length : 0);
+        console.log('🔍 DEBUG: gpsr length:', params.get('gpsr') ? params.get('gpsr').length : 0);
+        fetch('/paletomat/generator/{asin}/create-stream', {{method: 'POST', headers: {{'Content-Type': 'application/x-www-form-urlencoded'}}, body: params.toString()}})
+            .then(response => response.body.getReader())
+            .then(reader => {{
+                const decoder = new TextDecoder();
+                function read() {{
+                    reader.read().then(({{done, value}}) => {{
+                        if (done) return;
+                        const text = decoder.decode(value);
+                        const lines = text.split('\\n');
+                        lines.forEach(line => {{
+                            if (line.startsWith('data: ')) {{
+                                try {{
+                                    const data = JSON.parse(line.substring(6));
+                                    handleEvent(data);
+                                }} catch(e) {{}}
+                            }}
+                        }});
+                        read();
+                    }});
+                }}
+                read();
+            }});
+        
+        function handleEvent(data) {{
+            const bar = document.getElementById('progress-bar');
+            const text = document.getElementById('progress-text');
+            const icon = document.getElementById('progress-icon');
+            const detail = document.getElementById('progress-detail');
+            const log = document.getElementById('log');
+            const result = document.getElementById('result');
+            
+            if (data.type === 'progress') {{
+                bar.style.width = data.percent + '%';
+                text.textContent = data.message;
+                if (data.detail) detail.textContent = data.detail;
+            }}
+            else if (data.type === 'log') {{
+                log.innerHTML += '<div style="color:' + (data.color || '#64748b') + ';padding:2px 0">' + data.message + '</div>';
+                log.scrollTop = log.scrollHeight;
+            }}
+            else if (data.type === 'success') {{
+                _stopTimer();
+                bar.style.width = '100%';
+                bar.style.background = '#22c55e';
+                icon.innerHTML = '✅';
+                text.textContent = 'WYSTAWIONO!';
+                text.style.color = '#22c55e';
+                result.innerHTML = `
+                    <div class="alert alert-ok" style="margin-top:15px">
+                        <b>🎉 OFERTA UTWORZONA!</b><br>
+                        <small>ID: ${{data.offer_id}}</small>
+                    </div>
+                    <div class="alert alert-warn" style="font-size:0.85rem">⚠️ Oferta jest NIEAKTYWNA - kliknij AKTYWUJ</div>
+                    <div style="display:flex;gap:10px;margin-top:10px">
+                        <a href="/paletomat/oferty/${{data.offer_id}}/publish" class="btn btn-ok" style="flex:1">🚀 AKTYWUJ</a>
+                        <a href="/paletomat/generator" class="btn btn-2" style="flex:1">🏷️ Generuj więcej</a>
+                    </div>
+                `;
+                result.style.display = 'block';
+            }}
+            else if (data.type === 'missing_location') {{
+                // Produkt nie ma lokalizacji - pokaż UI przypisywania
+                result.innerHTML = `
+                    <div class="alert alert-warn" style="margin-top:15px">
+                        <b>📍 PRZYPISZ LOKALIZACJĘ</b><br>
+                        <small>Produkt nie ma przypisanej lokalizacji w magazynie</small>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:8px;margin-top:10px">
+                        <input type="text" id="assign-location-input" placeholder="Wpisz lokalizację (np. A11, B2...)" 
+                            style="width:100%;padding:12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:white;font-size:14px;margin-bottom:10px">
+                        <button onclick="assignLocationAndPrint(${{data.produkt_id}}, '${{data.offer_id}}')" 
+                            class="btn btn-ok" style="width:100%">
+                            🏷️ Przypisz i wydrukuj etykietę
+                        </button>
+                        <div id="assign-result" style="margin-top:10px;font-size:13px"></div>
+                    </div>
+                    <div style="display:flex;gap:10px;margin-top:10px">
+                        <a href="/paletomat/oferty/${{data.offer_id}}/publish" class="btn btn-2" style="flex:1">🚀 Aktywuj ofertę</a>
+                        <a href="/magazynier" class="btn btn-2" style="flex:1">📦 Magazynier</a>
+                    </div>
+                `;
+                result.style.display = 'block';
+            }}
+            else if (data.type === 'error') {{
+                _stopTimer();
+                bar.style.width = '100%';
+                bar.style.background = '#ef4444';
+                icon.innerHTML = '❌';
+                text.textContent = 'Błąd';
+                _timerEl.style.color = '#ef4444';
+                result.innerHTML = `
+                    <div class="alert alert-err" style="margin-top:15px">${{data.error}}</div>
+                    <a href="/paletomat/generator/{asin}" class="btn btn-p">← Spróbuj ponownie</a>
+                `;
+                result.style.display = 'block';
+            }}
+        }}
+        
+        // Funkcja do przypisania lokalizacji i drukowania
+        function assignLocationAndPrint(produktId, offerId) {{
+            const input = document.getElementById('assign-location-input');
+            const resultDiv = document.getElementById('assign-result');
+            const lokalizacja = input.value.trim().toUpperCase();
+            
+            if (!lokalizacja) {{
+                resultDiv.innerHTML = '<div style="color:#ef4444">⚠️ Wpisz lokalizację!</div>';
+                return;
+            }}
+            
+            resultDiv.innerHTML = '<div style="color:#3b82f6">🔄 Przypisuję lokalizację i drukuję...</div>';
+            
+            fetch('/paletomat/api/assign-location-and-print', {{
+                method: 'POST',
+                headers: {{'Content-Type': 'application/json'}},
+                body: JSON.stringify({{
+                    produkt_id: produktId,
+                    lokalizacja: lokalizacja,
+                    offer_id: offerId
+                }})
+            }})
+            .then(r => r.json())
+            .then(data => {{
+                if (data.success) {{
+                    if (data.printed) {{
+                        resultDiv.innerHTML = '<div style="color:#22c55e">✅ Lokalizacja przypisana: ' + lokalizacja + '<br>🖨️ Etykieta wydrukowana na Niimbot B1!</div>';
+                    }} else {{
+                        resultDiv.innerHTML = '<div style="color:#f59e0b">✅ Lokalizacja przypisana: ' + lokalizacja + '<br>⚠️ Drukarka niedostępna - wydrukuj ręcznie</div>';
+                    }}
+                }} else {{
+                    resultDiv.innerHTML = '<div style="color:#ef4444">❌ Błąd: ' + (data.error || 'Nieznany błąd') + '</div>';
+                }}
+            }})
+            .catch(err => {{
+                resultDiv.innerHTML = '<div style="color:#ef4444">❌ Błąd połączenia: ' + err.message + '</div>';
+            }});
+        }}
+        </script>
+        
+        <a href="/paletomat/generator" class="back" style="margin-top:15px">← Powrót</a>
+        '''
+        return render(html)
+    
+    else:
+        # Zapisz jako szkic
+        conn = get_db()
+        conn.execute('''INSERT INTO oferty (tytul, opis, cena, ilosc, status, data_wystawienia) 
+            VALUES (?, ?, ?, ?, 'draft', CURRENT_TIMESTAMP)''', (tytul, opis, cena, ilosc))
+        conn.execute('UPDATE scraped SET status="wystawiony" WHERE asin=?', (asin,))
+        conn.commit()
+        
+        return render('''
+            <div class="hdr"><h1>✅ ZAPISANO</h1></div>
+            <div class="alert alert-ok">Oferta zapisana jako szkic</div>
+            <a href="/paletomat/oferty" class="btn btn-p">📝 Moje oferty</a>
+            <a href="/paletomat/generator" class="btn btn-2">🏷️ Generuj więcej</a>
+            <a href="/paletomat" class="back">← Powrót</a>
+        ''')
+
+@paletomat_bp.route('/generator/<asin>/create-stream', methods=['GET', 'POST'])
+def generator_create_stream(asin):
+    """SSE stream dla pojedynczego wystawiania z progressem"""
+    from .allegro_api import create_offer, is_authenticated, upload_image_to_allegro
+    import time
+
+    # Obsługa POST (duże dane) i GET (wsteczna kompatybilność)
+    _src = request.form if request.method == 'POST' else request.args
+
+    tytul = _src.get('tytul', '')[:75]
+    cena = float(_src.get('cena', 0) or 0)
+    ilosc = int(_src.get('ilosc', 1) or 1)
+    opis = _src.get('opis', '')
+    kategoria = _src.get('kategoria', '')
+    ean = _src.get('ean', '').strip() or None
+    gpsr = _src.get('gpsr', '').strip() or None
+
+    print(f"📋 CREATE-STREAM [{asin}]: method={request.method}, opis={len(opis)} chars, gpsr={len(gpsr) if gpsr else 0} chars, tytul={tytul[:40]}")
+
+    # Auto-generuj opis + GPSR RÓWNOLEGLE (oba to Gemini API calls)
+    _need_opis = not opis or len(opis) < 50
+    _need_gpsr = not gpsr
+
+    if _need_opis and _need_gpsr:
+        from concurrent.futures import ThreadPoolExecutor
+        from .utils import generuj_opis_html_pro, generuj_gpsr_info
+        from .database import get_config
+        _gemini_key = get_config('gemini_api_key', '')
+        _nazwa_gpsr = tytul or _src.get('nazwa', '')
+        _kat_gpsr = kategoria or ''
+        print(f"⚡ Generuję opis + GPSR równolegle...")
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            f_opis = executor.submit(generuj_opis_html_pro, tytul or asin, [], kategoria, gemini_key=_gemini_key, asin=asin)
+            f_gpsr = executor.submit(generuj_gpsr_info, _nazwa_gpsr, _kat_gpsr)
+            opis, _ = f_opis.result()
+            gpsr = f_gpsr.result()
+        print(f"📝 Opis: {len(opis)} chars | GPSR: {len(gpsr) if gpsr else 0} chars")
+    elif _need_opis:
+        from .utils import generuj_opis_html_pro
+        from .database import get_config
+        print(f"⚠️ Opis pusty/za krótki ({len(opis)} chars) -> generuję automatycznie")
+        _gemini_key = get_config('gemini_api_key', '')
+        opis, _ = generuj_opis_html_pro(tytul or asin, [], kategoria, gemini_key=_gemini_key, asin=asin)
+        print(f"📝 Wygenerowany opis: {len(opis)} chars")
+    elif _need_gpsr:
+        from .utils import generuj_gpsr_info
+        _nazwa_gpsr = tytul or _src.get('nazwa', '')
+        _kat_gpsr = kategoria or ''
+        gpsr = generuj_gpsr_info(_nazwa_gpsr, _kat_gpsr)
+    mark_as_published = _src.get('mark_as_published', '0') == '1'  # Czy oznaczać jako wystawione?
+    enhance_photos = _src.get('enhance_photos', '0') == '1'  # Czy podrasować zdjęcia AI?
+    stan = _src.get('stan', 'Nowy').strip() or 'Nowy'
+    # Przekazany produkt_id — używamy do precyzyjnego update'u (unikamy pomylenia produktów z tym samym ASIN)
+    produkt_id_param = _src.get('produkt_id', type=int)
+
+    # Grupy stanów (gdy produkt rozdzielony na sztuki) — format: stan_grupa_Nowy=Nowy&ilosc_grupa_Nowy=5
+    stan_grupy = []  # [{'stan': 'Nowy', 'ilosc': 5}, {'stan': 'Używany', 'ilosc': 2}]
+    for key in _src:
+        if key.startswith('ilosc_grupa_'):
+            stan_key = key.replace('ilosc_grupa_', '')
+            ile = int(_src.get(key, 0) or 0)
+            if ile > 0:
+                stan_grupy.append({'stan': stan_key, 'ilosc': ile})
+
+    # Dopisz kod magazynowy do tytułu
+    if produkt_id_param:
+        _km_row = get_db().execute('SELECT kod_magazynowy FROM produkty WHERE id = ?', (produkt_id_param,)).fetchone()
+        _km = _km_row['kod_magazynowy'] if _km_row and _km_row['kod_magazynowy'] else f"MAG-{produkt_id_param:05d}"
+    else:
+        _km_row = get_db().execute('SELECT id, kod_magazynowy FROM produkty WHERE (asin=? OR ean=?) LIMIT 1', (asin, asin)).fetchone()
+        _km = _km_row['kod_magazynowy'] if _km_row and _km_row['kod_magazynowy'] else None
+    # _km używany tylko wewnętrznie (etykiety, QR), NIE w tytule/opisie Allegro
+
+    # Jeśli nie podano EAN w formularzu, spróbuj pobrać z magazynu
+    if not ean:
+        conn = get_db()
+        if produkt_id_param:
+            magazyn_produkt = conn.execute('SELECT ean FROM produkty WHERE id = ?', (produkt_id_param,)).fetchone()
+        else:
+            magazyn_produkt = conn.execute(
+                'SELECT ean FROM produkty WHERE (asin = ? OR ean = ?) LIMIT 1',
+                (asin, asin)
+            ).fetchone()
+        if magazyn_produkt and magazyn_produkt['ean']:
+            ean = magazyn_produkt['ean']
+    
+    # FIXED: Poprawne parsowanie URL-encoded JSON + DEBUG
+    from urllib.parse import unquote
+    
+    # DEBUG: Pokaż surowe dane
+    zdjecia_raw = _src.get('zdjecia', '[]')
+    print(f"\n{'='*70}")
+    print(f"🔍 DEBUG PARSOWANIA ZDJĘĆ:")
+    print(f"   RAW (pierwsze 200 znaków): {zdjecia_raw[:200]}")
+    print(f"   RAW (długość): {len(zdjecia_raw)} znaków")
+    
+    try:
+        # Dekoduj URL encoding
+        zdjecia_decoded = unquote(zdjecia_raw)
+        print(f"   DECODED: {zdjecia_decoded[:200]}")
+        
+        # Parsuj JSON
+        zdjecia = json.loads(zdjecia_decoded)
+        
+        if not isinstance(zdjecia, list):
+            print(f"   ❌ BŁĄD: Nie jest listą! Typ: {type(zdjecia)}")
+            zdjecia = []
+        else:
+            print(f"   ✅ SUKCES: {len(zdjecia)} zdjęć")
+            for i, img in enumerate(zdjecia[:3]):
+                print(f"      [{i}] {img[:80] if isinstance(img, str) else img}")
+                
+    except json.JSONDecodeError as e:
+        print(f"   ❌ BŁĄD JSON: {e}")
+        print(f"   Próba parsowania: {zdjecia_decoded[:100]}")
+        zdjecia = []
+    except Exception as e:
+        print(f"   ❌ BŁĄD OGÓLNY: {e}")
+        zdjecia = []
+    
+    print(f"{'='*70}\n")
+    
+    # ===================================================================
+    # POBRANIE BASE_URL PRZED GENERATOREM
+    # (żeby uniknąć "Working outside of request context")
+    # ===================================================================
+    try:
+        base_url = request.url_root.rstrip('/')
+    except (RuntimeError, AttributeError):
+        # Fallback 1: Spróbuj z configu
+        base_url = get_config('base_url')
+        if not base_url:
+            # Fallback 2: Użyj localhost
+            base_url = 'http://localhost:5000'
+    
+    # Walidacja base_url (usuń trailing slash)
+    base_url = base_url.rstrip('/')
+    
+    def generate(base_url_arg):
+        # Sprawdź autoryzację
+        yield f"data: {json.dumps({'type': 'progress', 'percent': 10, 'message': 'Sprawdzam połączenie...'})}\n\n"
+        time.sleep(0.2)
+        
+        if not is_authenticated():
+            yield f"data: {json.dumps({'type': 'error', 'error': 'Nie zalogowany do Allegro'})}\n\n"
+            return
+        
+        yield f"data: {json.dumps({'type': 'log', 'message': '✅ Allegro OK', 'color': '#22c55e'})}\n\n"
+        
+        # Info o zdjęciach
+        yield f"data: {json.dumps({'type': 'progress', 'percent': 20, 'message': f'Przygotowuję {len(zdjecia)} zdjęć...'})}\n\n"
+        
+        # Pobierz zdjecie_url z produktu (dla CDN fallback)
+        _zdjecie_url_cdn = ''
+        try:
+            _conn = get_db()
+            if produkt_id_param:
+                _p_row = _conn.execute('SELECT zdjecie_url FROM produkty WHERE id = ?', (produkt_id_param,)).fetchone()
+            else:
+                _p_row = _conn.execute('SELECT zdjecie_url FROM produkty WHERE asin = ? LIMIT 1', (asin,)).fetchone()
+            if _p_row and _p_row['zdjecie_url']:
+                _zdjecie_url_cdn = _p_row['zdjecie_url']
+        except:
+            pass
+
+        # SPRAWDŹ: czy lokalne pliki istnieją, re-download jeśli nie
+        zdjecia_do_uploadu, img_logs = _ensure_local_images(zdjecia, asin, _zdjecie_url_cdn)
+        for msg, color in img_logs:
+            yield f"data: {json.dumps({'type': 'log', 'message': msg, 'color': color})}\n\n"
+        if not zdjecia_do_uploadu:
+            zdjecia_do_uploadu = zdjecia  # fallback na oryginalne
+        
+        # Normalizuj ścieżki zdjęć
+        processed = []
+        for img_path in zdjecia_do_uploadu[:8]:
+            if img_path and isinstance(img_path, str):
+                # Jeśli to lokalna ścieżka (zaczyna się od paletomat/ lub images/)
+                if img_path.startswith(('paletomat/', 'images/', 'static/')):
+                    # LOKALNY PLIK - konwertuj na ABSOLUTNĄ ścieżkę
+                    import os as os_module
+                    abs_path = os_module.path.abspath(img_path)
+                    
+                    # Sprawdź czy plik istnieje
+                    if os_module.path.exists(abs_path):
+                        processed.append(abs_path)
+                        yield f"data: {json.dumps({'type': 'log', 'message': f'📁 Lokalny plik: {img_path}', 'color': '#8b5cf6'})}\n\n"
+                    else:
+                        yield f"data: {json.dumps({'type': 'log', 'message': f'⚠️ Plik nie istnieje: {img_path}', 'color': '#f59e0b'})}\n\n"
+                        
+                # Jeśli to już URL
+                elif img_path.startswith('http'):
+                    # Amazon URL - zostaw bez zmian
+                    # upload_image_to_allegro pobierze, zapisze i uploaduje
+                    if 'media-amazon.com' in img_path:
+                        # Optymalizuj Amazon URL do full size
+                        img_path = re.sub(r'\._[A-Z0-9_,]+_\.', '._AC_SL1500_.', img_path)
+                    processed.append(img_path)
+                    yield f"data: {json.dumps({'type': 'log', 'message': f'🌐 URL: {img_path[:50]}...', 'color': '#3b82f6'})}\n\n"
+                else:
+                    # Fallback - spróbuj jako absolutna ścieżka
+                    import os as os_module
+                    abs_path = os_module.path.abspath(img_path)
+                    if os_module.path.exists(abs_path):
+                        processed.append(abs_path)
+                    else:
+                        yield f"data: {json.dumps({'type': 'log', 'message': f'⚠️ Nieznana ścieżka: {img_path}', 'color': '#f59e0b'})}\n\n"
+        
+        yield f"data: {json.dumps({'type': 'log', 'message': f'📷 {len(processed)} zdjęć do uploadu', 'color': '#3b82f6'})}\n\n"
+        
+        # === UŻYJ ENHANCED ZDJĘĆ (pre-generated przez scraper) ===
+        _enh_dir_s = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'enhanced', str(asin))
+        if os.path.isdir(_enh_dir_s):
+            _enh_fs_s = sorted([os.path.join(_enh_dir_s, f) for f in os.listdir(_enh_dir_s) if f.endswith('.jpg')])
+            if _enh_fs_s:
+                processed = _enh_fs_s[:8]
+                yield f"data: {json.dumps({'type': 'log', 'message': f'✨ Użyto {len(_enh_fs_s)} zdjęć AI (pre-generated)', 'color': '#f59e0b'})}\n\n"
+        # UPLOAD ZDJĘĆ DO ALLEGRO - PRZED create_offer!
+        yield f"data: {json.dumps({'type': 'progress', 'percent': 55, 'message': 'Uploaduję zdjęcia...'})}\n\n"
+        
+        uploaded_urls = []
+        for i, url in enumerate(processed[:8]):
+            # Progress bar dla każdego zdjęcia
+            upload_percent = 55 + int((i / len(processed)) * 20)
+            yield f"data: {json.dumps({'type': 'progress', 'percent': upload_percent, 'message': f'Upload {i+1}/{len(processed)}...'})}\n\n"
+            
+            # Log z URL
+            short_url = url[:50] + '...' if len(url) > 50 else url
+            yield f"data: {json.dumps({'type': 'log', 'message': f'📤 [{i+1}/{len(processed)}] {short_url}', 'color': '#64748b'})}\n\n"
+            
+            try:
+                # Przekaż ASIN do upload_image_to_allegro
+                allegro_url = upload_image_to_allegro(url, asin=asin)
+                if allegro_url:
+                    uploaded_urls.append(allegro_url)
+                    yield f"data: {json.dumps({'type': 'log', 'message': f'   ✅ Uploadowano pomyślnie', 'color': '#22c55e'})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'type': 'log', 'message': f'   ❌ Upload się nie powiódł', 'color': '#ef4444'})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'type': 'log', 'message': f'   ❌ Błąd: {str(e)[:50]}', 'color': '#ef4444'})}\n\n"
+            
+            # Małe opóźnienie żeby user widział postęp
+            time.sleep(0.3)
+        
+        yield f"data: {json.dumps({'type': 'progress', 'percent': 65, 'message': f'Zdjęcia gotowe ({len(uploaded_urls)}/{len(processed)})'})}\n\n"
+        yield f"data: {json.dumps({'type': 'log', 'message': f'📷 Uploadowano {len(uploaded_urls)}/{len(processed)} zdjęć', 'color': '#3b82f6'})}\n\n"
+        
+        if not uploaded_urls:
+            yield f"data: {json.dumps({'type': 'error', 'error': 'Nie udało się uploadować żadnego zdjęcia'})}\n\n"
+            return
+        
+        yield f"data: {json.dumps({'type': 'progress', 'percent': 70, 'message': 'Tworzę ofertę...'})}\n\n"
+        yield f"data: {json.dumps({'type': 'log', 'message': '📤 Wysyłam do Allegro...', 'color': '#64748b'})}\n\n"
+        
+        kat_msg = f'📁 Kategoria: {kategoria}'
+        ean_msg = f'📊 EAN: {ean}' if ean else '📊 EAN: brak'
+        asin_msg = f'🏷️ ASIN: {asin}'
+        gpsr_msg = f'🛡️ GPSR: {len(gpsr) if gpsr else 0} znaków'
+        yield f"data: {json.dumps({'type': 'log', 'message': kat_msg, 'color': '#3b82f6'})}\n\n"
+        yield f"data: {json.dumps({'type': 'log', 'message': ean_msg, 'color': '#3b82f6'})}\n\n"
+        yield f"data: {json.dumps({'type': 'log', 'message': asin_msg, 'color': '#3b82f6'})}\n\n"
+        yield f"data: {json.dumps({'type': 'log', 'message': gpsr_msg, 'color': '#3b82f6'})}\n\n"
+        
+        # === TWORZENIE OFERTY (lub OFERT jeśli grupowanie po stanie) ===
+        yield f"data: {json.dumps({'type': 'progress', 'percent': 75, 'message': 'Wysyłam zapytanie do API...'})}\n\n"
+        
+        # Jeśli są grupy stanów → tworzymy osobną ofertę per stan z odpowiednią ilością
+        oferty_do_stworzenia = []
+        if stan_grupy:
+            for g in stan_grupy:
+                oferty_do_stworzenia.append({'stan': g['stan'], 'ilosc': g['ilosc']})
+            yield f"data: {json.dumps({'type': 'log', 'message': f'📦 Tworzę {len(oferty_do_stworzenia)} oferty pogrupowane po stanie...', 'color': '#8b5cf6'})}\n\n"
+        else:
+            oferty_do_stworzenia.append({'stan': stan, 'ilosc': ilosc})
+        
+        wszystkie_offer_ids = []
+        for oferta_info in oferty_do_stworzenia:
+            o_stan = oferta_info['stan']
+            o_ilosc = oferta_info['ilosc']
+            # Nie dodawaj stanu do tytulu - zmniejsza konwersje na Allegro
+            o_tytul = tytul
+            
+            if len(oferty_do_stworzenia) > 1:
+                yield f"data: {json.dumps({'type': 'log', 'message': f'  → Tworzę ofertę: {o_stan} x{o_ilosc}', 'color': '#94a3b8'})}\n\n"
+            
+            # Pobierz bullet_points z bazy
+            _bp_for_offer = []
+            if asin:
+                try:
+                    _bp_row = get_db().execute('SELECT bullet_points FROM scraped WHERE asin = ?', (asin,)).fetchone()
+                    if _bp_row and _bp_row['bullet_points']:
+                        _bp_for_offer = json.loads(_bp_row['bullet_points'])
+                        if not isinstance(_bp_for_offer, list):
+                            _bp_for_offer = []
+                except:
+                    pass
+            result, error = create_offer(o_tytul, opis, cena, uploaded_urls, kategoria_id=kategoria, ilosc=o_ilosc, ean=ean, asin=asin, gpsr=gpsr, stan=o_stan, bullet_points=_bp_for_offer, kod_magazynowy=_km)
+            if error:
+                yield f"data: {json.dumps({'type': 'log', 'message': f'❌ Błąd dla {o_stan}: {error}', 'color': '#ef4444'})}\n\n"
+                if len(oferty_do_stworzenia) == 1:
+                    yield f"data: {json.dumps({'type': 'error', 'error': error})}\n\n"
+                    return
+                continue
+            offer_id = result.get('id', '')
+            wszystkie_offer_ids.append(offer_id)
+            yield f"data: {json.dumps({'type': 'log', 'message': f'✅ Oferta {o_stan} x{o_ilosc} → ID: {offer_id}', 'color': '#22c55e'})}\n\n"
+        
+        # Dla kompatybilności z resztą kodu
+        offer_id = wszystkie_offer_ids[0] if wszystkie_offer_ids else ''
+        result = {'id': offer_id}
+        error = None if wszystkie_offer_ids else 'Brak udanych ofert'
+        
+        if not wszystkie_offer_ids:
+            yield f"data: {json.dumps({'type': 'log', 'message': f'❌ BŁĄD API: {error}', 'color': '#ef4444'})}\n\n"
+            yield f"data: {json.dumps({'type': 'error', 'error': error})}\n\n"
+            return
+        
+        # Sukces API!
+        yield f"data: {json.dumps({'type': 'progress', 'percent': 85, 'message': f'Utworzono {len(wszystkie_offer_ids)} ofert!'})}\n\n"
+        
+        # === ZAPIS DO BAZY ===
+        yield f"data: {json.dumps({'type': 'progress', 'percent': 90, 'message': 'Zapisuję do bazy...'})}\n\n"
+        yield f"data: {json.dumps({'type': 'log', 'message': '💾 Aktualizuję bazę danych...', 'color': '#64748b'})}\n\n"
+        
+        try:
+            # Retry logic dla zapisu do bazy
+            import time as time_mod
+            max_retries = 3
+            
+            for attempt in range(max_retries):
+                try:
+                    conn = get_db()
+                    
+                    # Status zależy od checkboxa
+                    new_status = "wystawiony" if mark_as_published else "nowy"
+                    
+                    # Podstawowe zapisy
+                    conn.execute('UPDATE scraped SET status=? WHERE asin=?', (new_status, asin))
+                    # Znajdź produkt_id — MUSI być konkretny ID żeby webhook wiedział co sprzedano
+                    produkt_id = None
+                    if produkt_id_param:
+                        produkt_id = produkt_id_param
+                    elif ean or asin:
+                        p_row = conn.execute(
+                            'SELECT id FROM produkty WHERE (ean = ? OR asin = ?) AND status != "sprzedany" ORDER BY data_dodania DESC LIMIT 1',
+                            (ean or '', asin or '')
+                        ).fetchone()
+                        if p_row:
+                            produkt_id = p_row['id']
+                    
+                    conn.execute('''INSERT OR REPLACE INTO oferty (tytul, opis, cena, ilosc, status, allegro_id, produkt_id, data_wystawienia) 
+                        VALUES (?, ?, ?, ?, 'wystawiona', ?, ?, CURRENT_TIMESTAMP)''', 
+                        (tytul, opis, cena, ilosc, offer_id, produkt_id))
+                    
+                    # Zaktualizuj produkt w magazynie używając produkt_id ustalonego wyżej
+                    if produkt_id:
+                        conn.execute('UPDATE produkty SET cena_allegro = ?, status = ? WHERE id = ?', (cena, new_status, produkt_id))
+                    
+                    # Commit i zamknij PRZED add_historia
+                    conn.commit()
+                    
+                    # Teraz dodaj historię (otworzy własne połączenie)
+                    if produkt_id:
+                        from .database import add_historia
+                        time_mod.sleep(0.1)  # Małe opóźnienie dla pewności
+                        
+                        if mark_as_published:
+                            add_historia(produkt_id, 'wystawiono', f'Wystawiono na Allegro za {cena:.0f} zł', {'allegro_id': offer_id, 'cena': cena})
+                            yield f"data: {json.dumps({'type': 'log', 'message': f'📦 Zaktualizowano magazyn: WYSTAWIONY (ID: {produkt_id})', 'color': '#22c55e'})}\n\n"
+                        else:
+                            add_historia(produkt_id, 'edytowano', f'Utworzono ofertę Allegro za {cena:.0f} zł (bez zmiany statusu)', {'allegro_id': offer_id, 'cena': cena})
+                            yield f"data: {json.dumps({'type': 'log', 'message': f'📦 Zaktualizowano magazyn: NIE ZMIENIONO statusu (ID: {produkt_id})', 'color': '#3b82f6'})}\n\n"
+                    
+                    yield f"data: {json.dumps({'type': 'log', 'message': '💾 Zapisano do bazy pomyślnie', 'color': '#22c55e'})}\n\n"
+                    break  # Sukces - wyjdź z pętli retry
+                    
+                except sqlite3.OperationalError as e:
+                    if 'database is locked' in str(e) and attempt < max_retries - 1:
+                        yield f"data: {json.dumps({'type': 'log', 'message': f'⚠️ Baza zablokowana, retry {attempt+1}/{max_retries}...', 'color': '#f59e0b'})}\n\n"
+                        time_mod.sleep(1 * (attempt + 1))  # Exponential backoff
+                        continue
+                    else:
+                        raise
+        
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'log', 'message': f'⚠️ Błąd zapisu do bazy: {str(e)[:50]}', 'color': '#f59e0b'})}\n\n"
+            # Kontynuuj mimo błędu - oferta jest na Allegro
+        
+        yield f"data: {json.dumps({'type': 'progress', 'percent': 100, 'message': 'Gotowe!'})}\n\n"
+        yield f"data: {json.dumps({'type': 'log', 'message': f'✅ Oferta utworzona: {offer_id}', 'color': '#22c55e'})}\n\n"
+        
+        # ============================================================
+        # INTEGRACJA: PALETOMAT → MAGAZYNIER + NIIMBOT
+        # ============================================================
+        try:
+            from .paletomat_magazynier_integration import trigger_auto_workflow, get_locations_for_select
+            
+            # Sprawdź czy produkt ma już przypisaną lokalizację
+            if produkt_id:
+                conn = get_db()
+                product = conn.execute('SELECT lokalizacja FROM produkty WHERE id = ?', (produkt_id,)).fetchone()
+                
+                existing_location = product['lokalizacja'] if product else None
+                
+                if existing_location and existing_location.strip():
+                    # Ma lokalizację - wydrukuj etykietę
+                    yield f"data: {json.dumps({'type': 'log', 'message': f'🏷️  Lokalizacja: {existing_location}', 'color': '#8b5cf6'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'log', 'message': '🖨️  Automatyczne drukowanie etykiety...', 'color': '#8b5cf6'})}\n\n"
+                    
+                    # Wywołaj workflow (auto_print=True - AUTOMATYCZNE DRUKOWANIE!)
+                    result = trigger_auto_workflow(
+                        produkt_id=produkt_id,
+                        offer_id=offer_id,
+                        lokalizacja=existing_location,
+                        auto_print=True  # 🖨️ AUTO-DRUKUJ ETYKIETĘ!
+                    )
+                    
+                    if result['success']:
+                        if result.get('printed'):
+                            yield f"data: {json.dumps({'type': 'log', 'message': '✅ Etykieta wydrukowana na Niimbot B1!', 'color': '#22c55e'})}\n\n"
+                        else:
+                            yield f"data: {json.dumps({'type': 'log', 'message': '✅ Integracja zapisana (drukarka niedostępna)', 'color': '#3b82f6'})}\n\n"
+                            yield f"data: {json.dumps({'type': 'log', 'message': '💡 Wydrukuj ręcznie: python quick_print.py {produkt_id} {existing_location}', 'color': '#64748b'})}\n\n"
+                    else:
+                        error_msg = result.get('error', 'Nieznany błąd')
+                        yield f"data: {json.dumps({'type': 'log', 'message': f'⚠️ Błąd drukowania: {error_msg[:50]}', 'color': '#f59e0b'})}\n\n"
+                else:
+                    # Brak lokalizacji - poinformuj użytkownika + daj link
+                    yield f"data: {json.dumps({'type': 'log', 'message': '📍 Produkt nie ma przypisanej lokalizacji', 'color': '#f59e0b'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'log', 'message': '💡 Przypisz lokalizację aby wydrukować etykietę', 'color': '#64748b'})}\n\n"
+                    
+                    # Przekaż produkt_id do frontendu żeby mógł pokazać UI przypisywania
+                    yield f"data: {json.dumps({'type': 'missing_location', 'produkt_id': produkt_id, 'offer_id': offer_id})}\n\n"
+        except Exception as e:
+            # Nie przerywaj procesu jeśli integracja nie zadziała
+            yield f"data: {json.dumps({'type': 'log', 'message': f'⚠️ Integracja Magazynier: {str(e)[:50]}', 'color': '#f59e0b'})}\n\n"
+        
+        yield f"data: {json.dumps({'type': 'log', 'message': '🎉 ZAKOŃCZONO POMYŚLNIE!', 'color': '#22c55e'})}\n\n"
+        yield f"data: {json.dumps({'type': 'success', 'offer_id': offer_id})}\n\n"
+    
+    # Wywołaj generator z przekazanym base_url
+    return Response(generate(base_url), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no'
+    })
+
+
+@paletomat_bp.route('/oferty/<offer_id>/publish')
+def publish_allegro_offer(offer_id):
+    """Aktywuje ofertę na Allegro"""
+    from .allegro_api import publish_offer
+    
+    result, error = publish_offer(offer_id)
+    
+    if error:
+        return render(f'''
+            <div class="hdr"><h1>❌ BŁĄD</h1></div>
+            <div class="alert alert-err">{error}</div>
+            <a href="/paletomat/oferty" class="back">← Powrót</a>
+        ''')
+    
+    # Zaktualizuj status w lokalnej bazie
+    conn = get_db()
+    conn.execute('UPDATE oferty SET status="aktywna" WHERE allegro_id=?', (offer_id,))
+    conn.commit()
+    
+    return render('''
+        <div class="hdr"><h1>🚀 AKTYWOWANO!</h1></div>
+        <div class="alert alert-ok">Oferta jest teraz aktywna na Allegro!</div>
+        <a href="/paletomat/oferty" class="btn btn-p">📝 Moje oferty</a>
+        <a href="/paletomat" class="back">← Powrót</a>
+    ''')
+
+@paletomat_bp.route('/ustawienia', methods=['GET', 'POST'])
+def ustawienia():
+    """Ustawienia Paletomatu (Gemini API, domyślna marża itp.)"""
+    if request.method == 'POST':
+        set_config('gemini_api_key', request.form.get('gemini_key', '').strip())
+        set_config('paletomat_marza', request.form.get('marza', '40'))
+        set_config('paletomat_kurs_eur', request.form.get('kurs_eur', '4.35'))
+        return redirect('/paletomat/ustawienia?saved=1')
+    
+    gemini_key = get_config('gemini_api_key', '')
+    marza = get_config('paletomat_marza', '40')
+    kurs_eur = get_config('paletomat_kurs_eur', '4.35')
+    saved = request.args.get('saved')
+    
+    html = f'''
+    <div class="hdr"><h1>⚙️ USTAWIENIA</h1><small>Paletomat</small></div>
+    '''
+    
+    if saved:
+        html += '<div class="alert alert-ok">Zapisano!</div>'
+    
+    html += f'''
+    <form method="POST">
+        <div class="card">
+            <div class="card-title">🤖 Gemini API (opisy AI)</div>
+            <div class="form-group">
+                <label>API Key</label>
+                <input type="password" name="gemini_key" class="form-ctrl" value="{gemini_key}" placeholder="AIza...">
+            </div>
+            <div style="font-size:0.75rem;color:#64748b">
+                Pobierz klucz z <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#8b5cf6">Google AI Studio</a> (darmowy)
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">💰 Ceny</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Domyślna marża (%)</label>
+                    <input type="number" name="marza" class="form-ctrl" value="{marza}">
+                </div>
+                <div class="form-group">
+                    <label>Kurs EUR/PLN</label>
+                    <input type="number" step="0.01" name="kurs_eur" class="form-ctrl" value="{kurs_eur}">
+                </div>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-ok">💾 ZAPISZ</button>
+    </form>
+    
+    <a href="/paletomat" class="back">← Powrót</a>
+    '''
+    return render(html)
+
+@paletomat_bp.route('/oferty')
+def oferty():
+    conn = get_db()
+    all_oferty = conn.execute('SELECT * FROM oferty ORDER BY data_aktualizacji DESC').fetchall()
+    drafts_count = conn.execute('SELECT COUNT(*) FROM oferty WHERE status="draft"').fetchone()[0]
+    aktywne_count = conn.execute('SELECT COUNT(*) FROM oferty WHERE status="aktywna"').fetchone()[0]
+    
+    # Sprawdz czy Allegro polaczone
+    from .allegro_api import is_authenticated
+    allegro_ok = is_authenticated()
+    
+    html = f'''<div class="hdr"><h1>📝 MOJE OFERTY</h1><small>{len(all_oferty)} ofert</small></div>'''
+    
+    # Przycisk synchronizacji (jeśli Allegro połączone)
+    if allegro_ok:
+        html += f'''
+        <a href="/paletomat/oferty/sync" class="btn btn-2" style="margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px">
+            <span>🔄</span>
+            <span>SYNCHRONIZUJ Z ALLEGRO</span>
+            <span style="font-size:0.7rem;opacity:0.7">(szkice: {drafts_count} | aktywne: {aktywne_count})</span>
+        </a>
+        '''
+    
+    # Przycisk masowego wystawiania
+    if drafts_count > 0:
+        html += f'''
+        <div class="card" style="background:linear-gradient(135deg,rgba(139,92,246,0.2),rgba(88,28,135,0.2));border-color:rgba(139,92,246,0.3);margin-bottom:15px">
+            <div style="font-weight:600;margin-bottom:8px">🚀 {drafts_count} szkiców do wystawienia</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+        '''
+        if allegro_ok:
+            html += '<a href="/paletomat/oferty/publish-all" class="btn btn-ok" style="flex:1">WYSTAW NA ALLEGRO</a>'
+        else:
+            html += '<a href="/allegro" class="btn btn-2" style="flex:1">POŁĄCZ ALLEGRO</a>'
+        html += '''
+                <a href="/paletomat/oferty/export-csv" class="btn btn-2" style="flex:1">📥 EKSPORT CSV</a>
+            </div>
+        </div>
+        '''
+    
+    for o in all_oferty:
+        if o['status'] == 'aktywna':
+            status_badge = 'background:#22c55e'
+            status_text = 'aktywna'
+        elif o['status'] == 'wystawiona':
+            status_badge = 'background:#3b82f6'
+            status_text = 'wystawiona'
+        else:
+            status_badge = 'background:#64748b'
+            status_text = 'szkic'
+        
+        html += f'''<a href="/paletomat/oferta/{o['id']}" class="item" style="text-decoration:none;color:#fff">
+            <div class="item-info">
+                <div class="item-name">{o['tytul'][:35]}...</div>
+                <div class="item-meta">
+                    <span style="padding:2px 8px;border-radius:4px;font-size:0.65rem;{status_badge}">{status_text}</span>
+                    | {o['ilosc']} szt
+                </div>
+            </div>
+            <div class="item-right">
+                <div class="item-price">{o['cena']:.2f} zł</div>
+            </div>
+        </a>'''
+    
+    if not all_oferty:
+        html += '<div class="alert alert-warn">Brak ofert. Użyj generatora aby utworzyć pierwszą.</div>'
+    
+    html += '''
+    <a href="/paletomat/generator" class="btn btn-p" style="margin-top:15px">🏷️ GENERUJ NOWE</a>
+    <a href="/paletomat" class="back">← Powrót</a>
+    '''
+    return render(html)
+
+@paletomat_bp.route('/oferty/export-csv')
+def export_csv():
+    """Eksportuje szkice do CSV"""
+    import csv
+    import io
+    
+    conn = get_db()
+    oferty = conn.execute('SELECT * FROM oferty WHERE status="draft"').fetchall()
+    
+    if not oferty:
+        return render('''
+            <div class="hdr"><h1>ℹ️ INFO</h1></div>
+            <div class="alert alert-warn">Brak szkiców do eksportu</div>
+            <a href="/paletomat/oferty" class="back">← Powrót</a>
+        ''')
+    
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=';')
+    
+    # Nagłówki
+    writer.writerow(['Tytuł', 'Opis', 'Cena', 'Ilość', 'Stan'])
+    
+    for o in oferty:
+        writer.writerow([
+            o['tytul'],
+            o['opis'].replace('\n', ' ').replace('\r', ''),
+            f"{o['cena']:.2f}",
+            o['ilosc'],
+            'Nowy'
+        ])
+    
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=oferty_szkice.csv'}
+    )
+
+@paletomat_bp.route('/oferty/sync')
+def sync_oferty():
+    """Synchronizuje statusy ofert z Allegro API"""
+    from .allegro_api import sync_offers_status, is_authenticated
+    
+    if not is_authenticated():
+        return render('''
+            <div class="hdr"><h1>❌ BŁĄD</h1></div>
+            <div class="alert alert-warn">Nie jesteś połączony z Allegro. Połącz konto w ustawieniach.</div>
+            <a href="/allegro" class="btn btn-p">🔗 POŁĄCZ ALLEGRO</a>
+            <a href="/paletomat/oferty" class="back">← Powrót</a>
+        ''')
+    
+    # Wywołaj synchronizację
+    stats = sync_offers_status()
+    
+    if 'error' in stats:
+        return render(f'''
+            <div class="hdr"><h1>❌ BŁĄD SYNCHRONIZACJI</h1></div>
+            <div class="alert alert-warn">{stats['error']}</div>
+            <a href="/paletomat/oferty" class="back">← Powrót</a>
+        ''')
+    
+    # Wyświetl wyniki
+    html = f'''
+    <div class="hdr"><h1>✅ SYNCHRONIZACJA ZAKOŃCZONA</h1></div>
+    
+    <div class="card">
+        <div class="card-title">📊 Statystyki</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px">
+            <div>
+                <div style="font-size:2rem;font-weight:700;color:var(--accent)">{stats['total']}</div>
+                <div style="font-size:0.8rem;color:var(--text-muted)">Wszystkich ofert</div>
+            </div>
+            <div>
+                <div style="font-size:2rem;font-weight:700;color:#64748b">{stats['draft']}</div>
+                <div style="font-size:0.8rem;color:var(--text-muted)">Szkice</div>
+            </div>
+            <div>
+                <div style="font-size:2rem;font-weight:700;color:var(--green)">{stats['active']}</div>
+                <div style="font-size:0.8rem;color:var(--text-muted)">Aktywne</div>
+            </div>
+            <div>
+                <div style="font-size:2rem;font-weight:700;color:#ef4444">{stats['ended']}</div>
+                <div style="font-size:0.8rem;color:var(--text-muted)">Zakończone</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-title">🔄 Zmiany</div>
+        <div style="padding:10px 0">
+            <div style="display:flex;justify-content:space-between;padding:8px 0">
+                <span>Zaktualizowano statusów:</span>
+                <span style="font-weight:700;color:var(--accent)">{stats['updated']}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:8px 0">
+                <span>Nowe oferty:</span>
+                <span style="font-weight:700;color:var(--green)">{stats['new']}</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="alert alert-ok">
+        Statusy ofert zostały zsynchronizowane z Allegro! Możesz teraz zobaczyć aktualne stany wszystkich ofert.
+    </div>
+    
+    <a href="/paletomat/oferty" class="btn btn-p">📝 ZOBACZ OFERTY</a>
+    <a href="/paletomat" class="back">← Powrót</a>
+    '''
+    
+    return render(html)
+
+@paletomat_bp.route('/oferta/<int:oferta_id>')
+def oferta_detail(oferta_id):
+    """Szczegoly oferty z opcja wystawienia/edycji"""
+    conn = get_db()
+    o = conn.execute('SELECT * FROM oferty WHERE id=?', (oferta_id,)).fetchone()
+    
+    if not o:
+        return redirect('/paletomat/oferty')
+    
+    from .allegro_api import is_authenticated
+    allegro_ok = is_authenticated()
+    
+    html = f'''
+    <div class="hdr"><h1>📝 OFERTA</h1><small>#{o['id']}</small></div>
+    
+    <div class="card">
+        <div style="font-weight:600;font-size:1.1rem;margin-bottom:10px">{o['tytul']}</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#22c55e;margin-bottom:15px">{o['cena']:.2f} zł</div>
+        <div style="background:#0a0a0f;border-radius:8px;padding:12px;font-size:0.85rem;max-height:200px;overflow-y:auto;white-space:pre-wrap">{o['opis'][:500]}...</div>
+    </div>
+    '''
+    
+    if o['status'] == 'draft':
+        if allegro_ok:
+            html += f'<a href="/paletomat/oferta/{o["id"]}/publish" class="btn btn-ok">🛒 WYSTAW NA ALLEGRO</a>'
+        else:
+            html += '<div class="alert alert-warn"><a href="/allegro" style="color:#eab308">Połącz Allegro</a> żeby wystawiać</div>'
+        html += f'<a href="/paletomat/oferta/{o["id"]}/delete" class="btn btn-2" style="color:#ef4444">🗑️ USUŃ</a>'
+    elif o['status'] == 'wystawiona' and o['allegro_id']:
+        html += f'<a href="/paletomat/oferty/{o["allegro_id"]}/publish" class="btn btn-ok">🚀 AKTYWUJ NA ALLEGRO</a>'
+    
+    html += '<a href="/paletomat/oferty" class="back">← Powrót</a>'
+    return render(html)
+
+@paletomat_bp.route('/oferta/<int:oferta_id>/publish')
+def publish_single_draft(oferta_id):
+    """Wystawia pojedynczy szkic na Allegro"""
+    from .allegro_api import create_offer, is_authenticated
+    
+    if not is_authenticated():
+        return render('''
+            <div class="hdr"><h1>❌ BŁĄD</h1></div>
+            <div class="alert alert-err">Nie jesteś zalogowany do Allegro</div>
+            <a href="/allegro" class="btn btn-allegro">🔑 Zaloguj</a>
+        ''')
+    
+    conn = get_db()
+    o = conn.execute('SELECT * FROM oferty WHERE id=?', (oferta_id,)).fetchone()
+    
+    if not o:
+        return redirect('/paletomat/oferty')
+    
+    # Auto-generuj GPSR
+    from .utils import generuj_gpsr_info
+    gpsr = generuj_gpsr_info(o['tytul'] or '', o.get('kategoria', '') or '')
+
+    # Wystaw na Allegro
+    result, error = create_offer(o['tytul'], o['opis'], o['cena'], ilosc=o['ilosc'], gpsr=gpsr)
+    
+    if error:
+        return render(f'''
+            <div class="hdr"><h1>❌ BŁĄD</h1></div>
+            <div class="alert alert-err">{error}</div>
+            <a href="/paletomat/oferty" class="back">← Powrót</a>
+        ''')
+    
+    allegro_id = result.get('id', '')
+    conn.execute('UPDATE oferty SET status="wystawiona", allegro_id=? WHERE id=?', (allegro_id, oferta_id))
+    conn.commit()
+    
+    return render(f'''
+        <div class="hdr"><h1>🎉 WYSTAWIONO!</h1></div>
+        <div class="alert alert-ok">Oferta wystawiona na Allegro!<br><small>ID: {allegro_id}</small></div>
+        <a href="/paletomat/oferty/{allegro_id}/publish" class="btn btn-ok">🚀 AKTYWUJ</a>
+        <a href="/paletomat/oferty" class="btn btn-2">📝 Wróć do ofert</a>
+    ''')
+
+@paletomat_bp.route('/oferta/<int:oferta_id>/delete')
+def delete_draft(oferta_id):
+    """Usuwa szkic"""
+    conn = get_db()
+    conn.execute('DELETE FROM oferty WHERE id=? AND status="draft"', (oferta_id,))
+    conn.commit()
+    return redirect('/paletomat/oferty')
+
+@paletomat_bp.route('/oferty/publish-all')
+def publish_all_drafts():
+    """Wystawia wszystkie szkice na Allegro"""
+    from .allegro_api import create_offer, is_authenticated
+    
+    if not is_authenticated():
+        return render('''
+            <div class="hdr"><h1>❌ BŁĄD</h1></div>
+            <div class="alert alert-err">Nie jesteś zalogowany do Allegro</div>
+            <a href="/allegro" class="btn btn-allegro">🔑 Zaloguj</a>
+        ''')
+    
+    conn = get_db()
+    drafts = conn.execute('SELECT * FROM oferty WHERE status="draft"').fetchall()
+    
+    if not drafts:
+        return render('''
+            <div class="hdr"><h1>ℹ️ INFO</h1></div>
+            <div class="alert alert-warn">Brak szkiców do wystawienia</div>
+            <a href="/paletomat/oferty" class="back">← Powrót</a>
+        ''')
+    
+    success = 0
+    errors = []
+    
+    from .utils import generuj_gpsr_info
+
+    for draft in drafts:
+        gpsr = generuj_gpsr_info(draft['tytul'] or '', draft.get('kategoria', '') or '')
+        result, error = create_offer(draft['tytul'], draft['opis'], draft['cena'], ilosc=draft['ilosc'], gpsr=gpsr)
+        
+        if error:
+            errors.append(f"{draft['tytul'][:30]}: {error}")
+        else:
+            allegro_id = result.get('id', '')
+            conn.execute('UPDATE oferty SET status="wystawiona", allegro_id=? WHERE id=?', (allegro_id, draft['id']))
+            success += 1
+    
+    conn.commit()
+    
+    html = f'''
+    <div class="hdr"><h1>🚀 WYSTAWIONO!</h1></div>
+    <div class="alert alert-ok">Wystawiono {success} z {len(drafts)} ofert</div>
+    '''
+    
+    if errors:
+        html += f'<div class="alert alert-err" style="font-size:0.8rem">Błędy ({len(errors)}):<br>{"<br>".join(errors[:5])}</div>'
+    
+    html += '''
+    <div class="alert alert-warn" style="font-size:0.85rem">⚠️ Oferty są NIEAKTYWNE - aktywuj je w panelu Allegro lub pojedynczo</div>
+    <a href="/paletomat/oferty" class="btn btn-p">📝 Moje oferty</a>
+    <a href="/paletomat" class="back">← Powrót</a>
+    '''
+    return render(html)
+
+@paletomat_bp.route('/monitoring')
+def monitoring():
+    s = get_stats()
+    
+    conn = get_db()
+    sprzedaze = conn.execute('SELECT * FROM sprzedaze ORDER BY data_sprzedazy DESC LIMIT 10').fetchall()
+    
+    html = f'''
+    <div class="hdr"><h1>📊 MONITORING</h1><small>Sprzedaż i statystyki</small></div>
+    
+    <div class="stats">
+        <div class="stat"><div class="stat-v green">{s['sprzedane']}</div><div class="stat-l">Sprzedanych</div></div>
+        <div class="stat"><div class="stat-v green">{s['przychod']:.0f} zł</div><div class="stat-l">Przychód</div></div>
+        <div class="stat"><div class="stat-v">{s['aktywne']}</div><div class="stat-l">Aktywnych</div></div>
+    </div>
+    
+    <div class="section">💰 OSTATNIE SPRZEDAŻE</div>
+    '''
+    
+    for sp in sprzedaze:
+        html += f'''<div class="item">
+            <div class="item-dot green"></div>
+            <div class="item-info">
+                <div class="item-name">Sprzedaż #{sp['id']}</div>
+                <div class="item-meta">{sp['data_sprzedazy']}</div>
+            </div>
+            <div class="item-price">{sp['cena']:.2f} zł</div>
+        </div>'''
+    
+    if not sprzedaze:
+        html += '<div style="text-align:center;color:#64748b;padding:20px">Brak sprzedaży</div>'
+    
+    html += '<a href="/paletomat" class="back">← Powrót</a>'
+    return render(html)
+
+# ============================================================
+# API
+# ============================================================
+@paletomat_bp.route('/api/stats')
+def api_stats():
+    return jsonify(get_stats())
+
+@paletomat_bp.route('/api/queue-status')
+def api_queue_status():
+    """Zwraca status kolejki auto-processingu + progress kombajnu"""
+    global _processing_queue, _scraper_running, PROGRESS
+    return jsonify({
+        'running': _scraper_running,
+        'queue_length': len(_processing_queue),
+        'queue': list(_processing_queue),
+        'progress': PROGRESS,  # 🚜 NOWE: pokazuje postęp
+        'workers': MAX_WORKERS  # 🚜 NOWE: ile równolegle
+    })
+
+
+# ============================================================
+# TEST UPLOAD ZDJĘĆ
+# ============================================================
+@paletomat_bp.route('/test-upload', methods=['GET', 'POST'])
+def test_upload():
+    """Strona do testowania uploadu zdjęć na Allegro"""
+    from .allegro_api import is_authenticated, upload_image_to_allegro, download_image, ensure_images_dir, IMAGES_DIR
+    import io
+    import sys
+    
+    result_html = ''
+    
+    if request.method == 'POST':
+        action = request.form.get('action', 'test')
+        
+        if action == 'clear_cache':
+            import shutil
+            try:
+                ensure_images_dir()
+                count = len(os.listdir(IMAGES_DIR))
+                shutil.rmtree(IMAGES_DIR)
+                os.makedirs(IMAGES_DIR)
+                result_html = f'<div style="background:#22c55e;color:#fff;padding:12px;border-radius:8px;margin-top:15px">✅ Wyczyszczono cache ({count} plików)</div>'
+            except Exception as e:
+                result_html = f'<div style="background:#ef4444;color:#fff;padding:12px;border-radius:8px;margin-top:15px">❌ Błąd: {e}</div>'
+        
+        else:
+            test_url = request.form.get('url', '').strip()
+            
+            if test_url:
+                old_stdout = sys.stdout
+                sys.stdout = log_capture = io.StringIO()
+                
+                try:
+                    print(f"🔍 Testuję URL: {test_url}")
+                    print(f"📡 Allegro authenticated: {is_authenticated()}")
+                    print("")
+                    
+                    print("=" * 50)
+                    print("KROK 1: Pobieranie zdjęcia")
+                    print("=" * 50)
+                    local_path = download_image(test_url)
+                    
+                    if local_path:
+                        print(f"✅ Pobrano do: {local_path}")
+                        print(f"📁 Rozmiar: {os.path.getsize(local_path)} bajtów")
+                        
+                        with open(local_path, 'rb') as f:
+                            header = f.read(10)
+                        print(f"📋 Header: {header[:4].hex()}")
+                        
+                        if header[:2] == b'\xff\xd8':
+                            print("✅ Format: JPEG")
+                        elif header[:4] == b'\x89PNG':
+                            print("⚠️ Format: PNG")
+                        else:
+                            print(f"❓ Format nieznany")
+                    else:
+                        print("❌ Nie udało się pobrać zdjęcia")
+                    
+                    print("")
+                    print("=" * 50)
+                    print("KROK 2: Upload do Allegro")
+                    print("=" * 50)
+                    
+                    allegro_url = upload_image_to_allegro(test_url, asin=None)
+                    
+                    print("")
+                    print("=" * 50)
+                    print("WYNIK")
+                    print("=" * 50)
+                    
+                    if allegro_url:
+                        print(f"✅ SUKCES!")
+                        print(f"🔗 URL: {allegro_url}")
+                    else:
+                        print("❌ BŁĄD - upload nie powiódł się")
+                        
+                except Exception as e:
+                    print(f"❌ Wyjątek: {e}")
+                    import traceback
+                    traceback.print_exc()
+                
+                logs = log_capture.getvalue()
+                sys.stdout = old_stdout
+                
+                logs_html = logs.replace('\n', '<br>').replace(' ', '&nbsp;')
+                result_html = f'''
+                <div style="background:#1e1e2e;border-radius:8px;padding:15px;margin-top:15px;font-family:monospace;font-size:0.8rem;overflow-x:auto">
+                    {logs_html}
+                </div>
+                '''
+    
+    # Cache info
+    cache_info = "brak"
+    try:
+        ensure_images_dir()
+        files = os.listdir(IMAGES_DIR)
+        total = sum(os.path.getsize(os.path.join(IMAGES_DIR, f)) for f in files if os.path.isfile(os.path.join(IMAGES_DIR, f)))
+        cache_info = f"{len(files)} plików, {total // 1024} KB"
+    except:
+        pass
+    
+    html = CSS + f'''
+    <div class="container">
+        <div class="hdr"><h1>🔧 TEST UPLOAD</h1></div>
+        
+        <form method="POST" style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;margin-bottom:15px">
+            <input type="hidden" name="action" value="test">
+            <div style="margin-bottom:12px">
+                <label style="display:block;font-size:0.8rem;color:#94a3b8;margin-bottom:5px">URL zdjęcia z Amazon</label>
+                <input type="url" name="url" placeholder="https://m.media-amazon.com/images/..." required
+                    style="width:100%;padding:12px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff">
+            </div>
+            <button type="submit" style="width:100%;padding:12px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer">
+                🧪 TESTUJ UPLOAD
+            </button>
+        </form>
+        
+        {result_html}
+        
+        <div style="background:#1e1e2e;border-radius:8px;padding:12px;margin-top:15px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <div>
+                    <div style="font-size:0.8rem;color:#94a3b8">📁 Cache: {cache_info}</div>
+                </div>
+                <form method="POST" style="margin:0">
+                    <input type="hidden" name="action" value="clear_cache">
+                    <button type="submit" onclick="return confirm('Wyczyścić cache?')" 
+                        style="padding:8px 12px;background:#ef4444;border:none;border-radius:6px;color:#fff;font-size:0.8rem;cursor:pointer">
+                        🗑️ Wyczyść cache
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <a href="/paletomat" class="back" style="display:block;text-align:center;color:#64748b;text-decoration:none;margin-top:15px">← Powrót</a>
+    </div>
+    '''
+    return html
+
+
+@paletomat_bp.route('/api/assign-location-and-print', methods=['POST'])
+def api_assign_location_and_print():
+    """
+    API endpoint: Przypisz lokalizację do produktu i od razu wydrukuj etykietę
+    Używane po wystawieniu oferty gdy produkt nie ma lokalizacji
+    """
+    try:
+        data = request.get_json()
+        produkt_id = data.get('produkt_id')
+        lokalizacja = data.get('lokalizacja', '').strip().upper()
+        offer_id = data.get('offer_id')
+        
+        if not produkt_id or not lokalizacja:
+            return jsonify({
+                'success': False,
+                'error': 'Brak wymaganych danych (produkt_id, lokalizacja)'
+            }), 400
+        
+        # Zapisz lokalizację w magazynie
+        conn = get_db()
+        conn.execute('UPDATE produkty SET lokalizacja = ? WHERE id = ?', (lokalizacja, produkt_id))
+        conn.commit()
+        
+        # Trigger workflow - auto-drukuj
+        from .paletomat_magazynier_integration import trigger_auto_workflow
+        
+        result = trigger_auto_workflow(
+            produkt_id=produkt_id,
+            offer_id=offer_id or f'manual_{produkt_id}',
+            lokalizacja=lokalizacja,
+            auto_print=True  # AUTO-DRUKUJ!
+        )
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'printed': result.get('printed', False),
+                'message': 'Lokalizacja przypisana i etykieta wydrukowana!' if result.get('printed') else 'Lokalizacja przypisana (drukarka niedostępna)'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'Nieznany błąd')
+            }), 500
+            
+    except Exception as e:
+        print(f"❌ Error in assign_location_and_print: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ============================================================
+# IMAGE CLEANER - usuwanie overlayow ze zdjec
+# ============================================================
+
+@paletomat_bp.route('/api/clean-image', methods=['POST'])
+def api_clean_image():
+    """Czysci zdjecie z overlayow (strzalki, napisy, wymiary)"""
+    from .image_cleaner import clean_image_from_url, GEMINI_AVAILABLE
+
+    if not GEMINI_AVAILABLE:
+        return jsonify({'success': False, 'error': 'Gemini API niedostepne'}), 500
+
+    data = request.get_json()
+    image_url = data.get('url', '')
+
+    if not image_url:
+        return jsonify({'success': False, 'error': 'Brak URL zdjecia'}), 400
+
+    img_bytes, mime_type, error = clean_image_from_url(image_url)
+
+    if error:
+        return jsonify({'success': False, 'error': error}), 500
+
+    # Zapisz oczyszczone zdjecie i zwroc URL
+    import hashlib
+    import base64
+    fname = hashlib.md5(image_url.encode()).hexdigest()[:12] + '_clean.jpg'
+
+    static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'cleaned')
+    os.makedirs(static_dir, exist_ok=True)
+
+    # Konwertuj na JPEG
+    from PIL import Image as PILImage
+    from io import BytesIO as BIO
+    cleaned_img = PILImage.open(BIO(img_bytes)).convert('RGB')
+    out_path = os.path.join(static_dir, fname)
+    cleaned_img.save(out_path, 'JPEG', quality=92)
+
+    return jsonify({
+        'success': True,
+        'cleaned_url': f'/static/cleaned/{fname}',
+        'original_url': image_url
+    })
+
+
+@paletomat_bp.route('/api/enhance-image', methods=['POST'])
+def api_enhance_image():
+    """Generuje pojedyncze zdjecie wg szablonu Allegro (1-8)"""
+    from .image_enhancer import enhance_single, GEMINI_AVAILABLE
+
+    if not GEMINI_AVAILABLE:
+        return jsonify({'success': False, 'error': 'Gemini API niedostepne'}), 500
+
+    data = request.get_json()
+    image_url = data.get('url', '')
+    template_id = data.get('template_id', 1)
+    product_name = data.get('product_name', '')
+
+    if not image_url:
+        return jsonify({'success': False, 'error': 'Brak URL zdjecia'}), 400
+
+    # Pobierz zdjecie (moze byc lokalne /static/cleaned/ lub zdalne)
+    import hashlib
+    try:
+        if image_url.startswith('/static/'):
+            # Lokalne zdjecie (np. po czyszczeniu)
+            local_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                image_url.lstrip('/')
+            )
+            with open(local_path, 'rb') as f:
+                img_bytes = f.read()
+        else:
+            import requests as req_lib
+            resp = req_lib.get(image_url, timeout=30)
+            resp.raise_for_status()
+            img_bytes = resp.content
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Blad pobierania: {e}'}), 500
+
+    # Generuj
+    result_bytes, mime_type, error = enhance_single(
+        img_bytes, int(template_id), product_name
+    )
+
+    if error:
+        return jsonify({'success': False, 'error': error}), 500
+
+    # Zapisz
+    fname_hash = hashlib.md5(image_url.encode()).hexdigest()[:8]
+    fname = f'{fname_hash}_t{template_id}.jpg'
+
+    static_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        'static', 'enhanced'
+    )
+    os.makedirs(static_dir, exist_ok=True)
+
+    from PIL import Image as PILImage
+    from io import BytesIO as BIO
+    enhanced_img = PILImage.open(BIO(result_bytes)).convert('RGB')
+    out_path = os.path.join(static_dir, fname)
+    enhanced_img.save(out_path, 'JPEG', quality=92)
+
+    return jsonify({
+        'success': True,
+        'enhanced_url': f'/static/enhanced/{fname}',
+        'template_id': template_id
+    })
+
+
+@paletomat_bp.route('/api/fix-names', methods=['POST'])
+def api_fix_names():
+    """Naprawia nazwy produktów — re-scrapuje tytuły z Amazona dla produktów z ASIN w nazwie lub placeholder"""
+    conn = get_db()
+    # Znajdź produkty z podejrzanymi nazwami
+    bad_products = conn.execute('''
+        SELECT id, nazwa, asin, ean FROM produkty
+        WHERE asin IS NOT NULL AND asin != ''
+        AND (
+            nazwa LIKE '%' || asin || '%'
+            OR nazwa LIKE 'Produkt %'
+            OR nazwa IS NULL
+            OR nazwa = ''
+            OR LENGTH(nazwa) < 10
+        )
+    ''').fetchall()
+
+    if not bad_products:
+        return jsonify({'success': True, 'msg': 'Wszystkie nazwy OK', 'fixed': 0})
+
+    fixed = 0
+    errors = []
+    for p in bad_products:
+        asin = p['asin']
+        if not asin:
+            continue
+        try:
+            amazon_data = scrape_amazon_product(asin)
+            if amazon_data and amazon_data.get('title'):
+                nazwa = amazon_data['title']
+                nazwa = translate_product_name(nazwa)
+                if nazwa and len(nazwa) > 15 and not nazwa.lower().startswith('amazon'):
+                    conn.execute('UPDATE produkty SET nazwa=? WHERE id=?', (nazwa, p['id']))
+                    # Zaktualizuj też scraped
+                    conn.execute('UPDATE scraped SET nazwa=? WHERE asin=?', (nazwa, asin))
+                    fixed += 1
+                else:
+                    errors.append(f"{asin}: nazwa za krótka lub zła ({nazwa[:30] if nazwa else 'None'})")
+            else:
+                errors.append(f"{asin}: scraping failed")
+            time.sleep(2)  # Nie spamuj Amazona
+        except Exception as e:
+            errors.append(f"{asin}: {str(e)[:50]}")
+
+    conn.commit()
+    return jsonify({
+        'success': True,
+        'msg': f'Naprawiono {fixed}/{len(bad_products)} nazw',
+        'fixed': fixed,
+        'total_bad': len(bad_products),
+        'errors': errors[:10]
+    })
+
+
+def _search_allegro_prices(ean=None, nazwa=None):
+    """Szuka cen konkurencji na Allegro po EAN lub nazwie produktu"""
+    from .allegro_api import allegro_request
+    prices = []
+
+    # 1. Szukaj po EAN (najdokładniejsze)
+    if ean and len(str(ean)) >= 8:
+        result, err = allegro_request('GET', '/offers/listing', params={
+            'phrase': str(ean),
+            'limit': 10,
+            'sort': 'price_asc'
+        })
+        if result and not err:
+            items = result.get('items', {})
+            for group in ['promoted', 'regular']:
+                for item in items.get(group, []):
+                    try:
+                        p = item.get('sellingMode', {}).get('price', {})
+                        cena = float(p.get('amount', 0))
+                        if cena > 0:
+                            prices.append(cena)
+                    except (ValueError, TypeError):
+                        pass
+            if prices:
+                return prices
+
+    # 2. Szukaj po nazwie (fallback)
+    if nazwa and len(nazwa) > 10:
+        # Weź pierwsze 5 słów nazwy (bez zbędnych)
+        slowa = [w for w in nazwa.split() if len(w) > 2][:5]
+        fraza = ' '.join(slowa)
+        result, err = allegro_request('GET', '/offers/listing', params={
+            'phrase': fraza,
+            'limit': 10,
+            'sort': 'price_asc'
+        })
+        if result and not err:
+            items = result.get('items', {})
+            for group in ['promoted', 'regular']:
+                for item in items.get(group, []):
+                    try:
+                        p = item.get('sellingMode', {}).get('price', {})
+                        cena = float(p.get('amount', 0))
+                        if cena > 0:
+                            prices.append(cena)
+                    except (ValueError, TypeError):
+                        pass
+
+    return prices
+
+
+@paletomat_bp.route('/api/auto-price', methods=['GET', 'POST'])
+def api_auto_price():
+    """Autowycena — sprawdza ceny konkurencji na Allegro i ustawia taniej"""
+    conn = get_db()
+    if request.method == 'POST':
+        data = request.get_json() or {}
+    else:
+        data = {}
+
+    podciecie = float(data.get('podciecie', '2'))  # O ile % taniej niż konkurencja
+    min_cena = float(data.get('min_cena', '19.99'))
+    marza_fallback = float(data.get('marza', get_config('paletomat_marza', '40')))
+
+    # Kurs EUR na fallback
+    try:
+        from .magazynier import _get_nbp_rate
+        kurs_eur = _get_nbp_rate('EUR')
+    except Exception:
+        kurs_eur = float(get_config('paletomat_kurs_eur', '4.35'))
+
+    produkty = conn.execute('''
+        SELECT p.id, p.asin, p.ean, p.nazwa, p.cena_allegro, p.kategoria,
+               s.cena_amazon
+        FROM produkty p
+        LEFT JOIN scraped s ON p.asin = s.asin
+        WHERE p.status IN ('magazyn', 'wystawiony')
+        AND p.asin IS NOT NULL AND p.asin != ''
+    ''').fetchall()
+
+    updated = 0
+    skipped = 0
+    details = []
+
+    for p in produkty:
+        stara_cena = float(p['cena_allegro'] or 0)
+        cena_amazon = float(p['cena_amazon'] or 0)
+        ean = p['ean'] or ''
+        nazwa = p['nazwa'] or ''
+        kategoria = p['kategoria'] or 'inne'
+
+        # Szukaj cen na Allegro
+        try:
+            allegro_prices = _search_allegro_prices(ean=ean, nazwa=nazwa)
+        except Exception:
+            allegro_prices = []
+
+        if allegro_prices:
+            # Najtańsza oferta na Allegro
+            min_allegro = min(allegro_prices)
+            avg_allegro = sum(allegro_prices) / len(allegro_prices)
+
+            # Ustaw cenę: najtańsza - X%
+            nowa_cena = round(min_allegro * (1 - podciecie / 100), 2)
+
+            # Zaokrągl do X.99
+            nowa_cena = int(nowa_cena) + 0.99 if nowa_cena > 10 else round(nowa_cena, 2)
+
+            zrodlo = f'allegro (min:{min_allegro:.0f}, avg:{avg_allegro:.0f}, ofert:{len(allegro_prices)})'
+        elif cena_amazon > 0:
+            # Cena Amazon jest już w PLN — obniż o 10-20%
+            # Losowy rabat 10-20% żeby ceny nie były identyczne
+            import random
+            rabat = random.uniform(0.10, 0.20)
+            nowa_cena = round(cena_amazon * (1 - rabat), 2)
+
+            # Zaokrągl do X.99
+            nowa_cena = int(nowa_cena) + 0.99 if nowa_cena > 10 else round(nowa_cena, 2)
+
+            zrodlo = f'amazon-{int(rabat*100)}%'
+        else:
+            skipped += 1
+            continue
+
+        # Minimalna cena
+        if nowa_cena < min_cena:
+            nowa_cena = min_cena
+
+        # Aktualizuj jeśli zmiana >1 zł lub brak ceny
+        if abs(nowa_cena - stara_cena) > 1 or stara_cena == 0:
+            conn.execute('UPDATE produkty SET cena_allegro=? WHERE id=?', (nowa_cena, p['id']))
+            updated += 1
+            details.append({
+                'nazwa': nazwa[:40],
+                'stara': round(stara_cena, 2),
+                'nowa': nowa_cena,
+                'zrodlo': zrodlo
+            })
+
+        # Nie spamuj API
+        if allegro_prices or not cena_amazon:
+            time.sleep(0.5)
+
+    conn.commit()
+    return jsonify({
+        'success': True,
+        'msg': f'Zaktualizowano {updated} cen (pominięto {skipped})',
+        'updated': updated,
+        'skipped': skipped,
+        'podciecie_procent': podciecie,
+        'details': details[:30]
+    })

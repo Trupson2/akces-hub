@@ -1,0 +1,223 @@
+/* ============================================
+   KIOSK MODE - Waveshare 7" Touch (1024x600)
+   Aktywne TYLKO gdy body.kiosk
+   ============================================ */
+
+/* --- Global --- */
+body.kiosk {
+    -webkit-user-select: none;
+    user-select: none;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    font-size: 17px;
+    cursor: none;
+}
+body.kiosk * {
+    cursor: none !important;
+}
+body.kiosk input, body.kiosk textarea, body.kiosk select {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* --- Container --- */
+body.kiosk .container, body.kiosk .c {
+    max-width: 100%;
+    padding: 10px;
+    padding-bottom: 72px;
+}
+
+/* --- Header --- */
+body.kiosk .header, body.kiosk .hdr {
+    padding: 8px 0;
+    margin-bottom: 8px;
+}
+body.kiosk .header h1, body.kiosk .hdr h1 {
+    font-size: 1.3rem;
+}
+
+/* --- Stats Grid: 2 kolumny --- */
+body.kiosk .stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px;
+}
+body.kiosk .stat {
+    padding: 12px;
+    min-height: 48px;
+}
+body.kiosk .stat-value, body.kiosk .stat-v {
+    font-size: 1.4rem;
+}
+body.kiosk .stat-label, body.kiosk .stat-l {
+    font-size: 0.75rem;
+}
+
+/* --- Quick Actions: 4 kolumny --- */
+body.kiosk .quick-actions {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px;
+}
+body.kiosk .quick-btn {
+    padding: 12px 6px;
+    min-height: 48px;
+}
+body.kiosk .quick-btn .icon {
+    font-size: 1.5rem;
+}
+body.kiosk .quick-btn .label {
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+/* --- Module Cards: 1 kolumna --- */
+body.kiosk .modules-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px;
+}
+body.kiosk .module {
+    padding: 14px;
+}
+
+/* --- Tools Grid: 2 kolumny --- */
+body.kiosk .tools-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px;
+}
+
+/* --- Items Grid: 1 kolumna --- */
+body.kiosk .items-grid {
+    grid-template-columns: 1fr !important;
+}
+
+/* --- Buttons: min 48px --- */
+body.kiosk .btn, body.kiosk button:not(.theme-toggle):not(#pwa-install),
+body.kiosk a.btn, body.kiosk .btn-p, body.kiosk .btn-ok,
+body.kiosk .btn-2, body.kiosk .btn-err, body.kiosk .btn-purple {
+    min-height: 48px;
+    padding: 12px;
+    font-size: 0.95rem;
+}
+body.kiosk .btn-sm {
+    min-height: 44px;
+    padding: 10px 14px;
+}
+
+/* --- Form Controls --- */
+body.kiosk input[type="text"], body.kiosk input[type="number"],
+body.kiosk input[type="email"], body.kiosk input[type="password"],
+body.kiosk input[type="search"], body.kiosk input[type="date"],
+body.kiosk select, body.kiosk textarea,
+body.kiosk .form-ctrl, body.kiosk .form-control {
+    min-height: 48px;
+    padding: 12px;
+    font-size: 1rem;
+}
+
+/* --- List Items --- */
+body.kiosk .item, body.kiosk .list-item {
+    min-height: 54px;
+    padding: 10px 12px;
+}
+
+/* --- Bottom Nav: hide only on kiosk dashboard (has .kiosk-dash) --- */
+body.kiosk:has(.kiosk-dash) .bottom-nav,
+body.kiosk:has(.kiosk-dash) .nav {
+    display: none !important;
+}
+body.kiosk:has(.kiosk-dash) .container,
+body.kiosk:has(.kiosk-dash) .c {
+    padding-bottom: 10px;
+}
+/* Subpages: show nav normally */
+body.kiosk .bottom-nav, body.kiosk .nav {
+    padding: 4px 0;
+}
+body.kiosk .nav-item, body.kiosk .nav a {
+    padding: 6px 8px;
+    min-width: 48px;
+    min-height: 48px;
+}
+body.kiosk .nav-icon {
+    font-size: 1.4rem;
+}
+body.kiosk .nav-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+}
+
+/* --- Theme toggle: bigger --- */
+body.kiosk .theme-toggle {
+    width: 44px;
+    height: 44px;
+    font-size: 1.3rem;
+}
+
+/* --- Version badge: hide --- */
+body.kiosk .version-badge {
+    display: none;
+}
+
+/* --- Cards: compact --- */
+body.kiosk .card {
+    padding: 12px;
+    margin-bottom: 8px;
+}
+
+/* --- Today stats --- */
+body.kiosk .today-stats {
+    padding: 12px;
+    margin-bottom: 10px;
+}
+
+/* --- Touch feedback --- */
+body.kiosk a:active, body.kiosk button:active,
+body.kiosk .btn:active, body.kiosk .quick-btn:active,
+body.kiosk .nav-item:active, body.kiosk .nav a:active,
+body.kiosk .item:active, body.kiosk .list-item:active,
+body.kiosk .module:active, body.kiosk .tool-card:active,
+body.kiosk .card:active {
+    transform: scale(0.97);
+    opacity: 0.85;
+    transition: transform 0.1s, opacity 0.1s;
+}
+
+/* --- Scrollbars: thin --- */
+body.kiosk ::-webkit-scrollbar {
+    width: 4px;
+}
+body.kiosk ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 4px;
+}
+body.kiosk ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* --- PWA banner: hide on kiosk --- */
+body.kiosk #pwa-banner {
+    display: none !important;
+}
+
+/* --- "Zmien konto" link: hide --- */
+body.kiosk [href="/zmien-konto"] {
+    display: none;
+}
+
+/* --- System panel: bigger on kiosk --- */
+body.kiosk #sys-panel {
+    padding: 16px;
+}
+
+/* --- Form row: single column --- */
+body.kiosk .form-row {
+    grid-template-columns: 1fr !important;
+}
+
+/* --- Search bar --- */
+body.kiosk .search input {
+    min-height: 48px;
+}
+body.kiosk .search button {
+    min-height: 48px;
+    min-width: 54px;
+}

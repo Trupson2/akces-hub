@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🖨️ Ustawienia drukowania - Akces Hub</title>
+<link rel="stylesheet" href="/static/printing_settings.css">
+<link rel="stylesheet" href="/static/kiosk.css">
+</head>
+<body>
+<script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
+    <div class="container">
+        
+        <!-- Header -->
+        <div class="page-header">
+            <h1>🖨️ Ustawienia drukowania</h1>
+            <a href="/settings" class="btn btn-secondary">← Powrót</a>
+        </div>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Formularz ustawień -->
+        <form method="POST" action="/settings/printing">
+            
+            <!-- Card 1: Automatyczne drukowanie -->
+            <div class="card">
+                <div class="card-title">⚡ Automatyczne drukowanie</div>
+                
+                <label class="checkbox-container">
+                    <input type="checkbox" name="auto_print" 
+                        {% if auto_print %}checked{% endif %}>
+                    <span class="checkbox-label">
+                        <strong>Drukuj etykietę automatycznie po wystawieniu oferty</strong>
+                        <small>Gdy włączone, po publikacji oferty na Allegro automatycznie zostanie wydrukowana etykieta</small>
+                    </span>
+                </label>
+            </div>
+
+            <!-- Card 2: Ustawienia drukarki -->
+            <div class="card">
+                <div class="card-title">🖨️ Ustawienia drukarki</div>
+                
+                <div class="form-group">
+                    <label for="printer_type">Domyślna drukarka:</label>
+                    <select name="printer_type" id="printer_type" class="form-control">
+                        <option value="niimbot" {% if printer == 'niimbot' %}selected{% endif %}>
+                            🔵 Niimbot B1 (Bluetooth)
+                        </option>
+                        <option value="vretti" {% if printer == 'vretti' %}selected{% endif %}>
+                            🟢 Vretti 420B (USB)
+                        </option>
+                    </select>
+                    <small class="form-hint">Wybierz drukarkę, która będzie używana domyślnie</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="print_copies">Liczba kopii:</label>
+                    <input type="number" name="print_copies" id="print_copies" 
+                        value="{{ copies }}" min="1" max="5" class="form-control">
+                    <small class="form-hint">Ile kopii etykiety wydrukować (1-5)</small>
+                </div>
+
+                <label class="checkbox-container">
+                    <input type="checkbox" name="ask_before_print" 
+                        {% if ask_before %}checked{% endif %}>
+                    <span class="checkbox-label">
+                        <strong>Pytaj przed każdym drukowaniem</strong>
+                        <small>Wyświetl potwierdzenie przed wydrukowaniem etykiety</small>
+                    </span>
+                </label>
+            </div>
+
+            <!-- Card 3: Test drukarki -->
+            <div class="card">
+                <div class="card-title">🧪 Test drukarki</div>
+                
+                <p>Wydrukuj testową etykietę aby sprawdzić połączenie z drukarką</p>
+                
+                <div class="button-group">
+                    <button type="button" class="btn btn-secondary" 
+                        onclick="testPrint('niimbot')">
+                        🔵 Test Niimbot B1
+                    </button>
+                    <button type="button" class="btn btn-secondary" 
+                        onclick="testPrint('vretti')">
+                        🟢 Test Vretti 420B
+                    </button>
+                </div>
+            </div>
+
+            <!-- Przyciski akcji -->
+            <div class="button-group">
+                <button type="submit" class="btn btn-primary">
+                    💾 ZAPISZ USTAWIENIA
+                </button>
+                <a href="/settings" class="btn btn-secondary">
+                    ← Anuluj
+                </a>
+            </div>
+        </form>
+
+        <!-- Info box -->
+        <div class="info-box">
+            <h3>ℹ️ Informacje</h3>
+            <ul>
+                <li><strong>Niimbot B1:</strong> Drukarka Bluetooth, wymaga sparowania z systemem</li>
+                <li><strong>Vretti 420B:</strong> Drukarka USB, wymaga podłączenia kablem</li>
+                <li><strong>Auto-drukowanie:</strong> Działa tylko przy wystawianiu ofert przez Generator</li>
+                <li><strong>Ręczne drukowanie:</strong> Zawsze dostępne w Magazynierze</li>
+            </ul>
+        </div>
+
+    </div>
+
+    <script>
+    function testPrint(printerType) {
+        // Wyślij request do testowania drukarki
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/settings/printing/test';
+        
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'printer_type';
+        input.value = printerType;
+        
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+    }
+    </script>
+</body>
+</html>

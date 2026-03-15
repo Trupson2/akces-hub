@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🗺️ Heatmapa Magazynu 3D - Akces Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar z kontrolkami */
+        .sidebar {
+            width: 320px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar h2 {
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* Legenda kolorów */
+        .legend {
+            margin-top: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 20px;
+            border-radius: 5px;
+        }
+
+        .legend-label {
+            font-size: 14px;
+        }
+
+        /* Kontrolki */
+        .controls {
+            margin-top: 20px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 5px;
+            opacity: 0.9;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        button.active {
+            background: rgba(255, 255, 255, 0.4);
+            font-weight: bold;
+        }
+
+        /* Canvas 3D */
+        .canvas-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #canvas3d {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Info popup */
+        .info-popup {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+            pointer-events: none;
+            max-width: 300px;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .info-popup.show {
+            display: block;
+        }
+
+        .info-popup h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .info-row .label {
+            opacity: 0.7;
+        }
+
+        .info-row .value {
+            font-weight: bold;
+        }
+
+        /* Loading */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 100;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2ecc71, #3498db);
+            transition: width 0.3s;
+        }
+
+        /* Shelf labels */
+        .shelf-labels {
+            margin-top: 15px;
+        }
+
+        .shelf-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .shelf-name {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .shelf-fill {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        /* Modal dla szczegółów lokalizacji */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border: 2px solid #3b82f6;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #334155;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #3b82f6;
+            font-size: 24px;
+            font-weight: 800;
+        }
+
+        .modal-close {
+            background: #ef4444;
+            border: none;
+            color: white;
+            font-size: 24px;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .modal-close:hover {
+            background: #dc2626;
+        }
+
+        .modal-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .modal-stat {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .modal-stat-label {
+            color: #94a3b8;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .modal-stat-value {
+            color: #3b82f6;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .products-section {
+            margin-top: 20px;
+        }
+
+        .products-section h3 {
+            color: #e2e8f0;
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .product-item {
+            background: rgba(59, 130, 246, 0.05);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .product-info {
+            flex: 1;
+        }
+
+        .product-name {
+            color: #e2e8f0;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .product-details {
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        .product-quantity {
+            background: #22c55e;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+        }
+
+        .empty-message {
+            color: #94a3b8;
+            text-align: center;
+            padding: 40px 20px;
+            font-size: 16px;
+        }
+    </style>
+    <link rel="stylesheet" href="/static/kiosk.css">
+</head>
+<body>
+<script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h1>🗺️ Heatmapa 3D</h1>
+            <p style="font-size: 14px; opacity: 0.8; margin-bottom: 20px;">
+                Wizualizacja zapełnienia magazynu w czasie rzeczywistym
+            </p>
+
+            <!-- Stats -->
+            <h2>📊 Statystyki</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-fill">0%</div>
+                    <div class="stat-label">Zapełnienie</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-items">0</div>
+                    <div class="stat-label">Produktów</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-empty">0</div>
+                    <div class="stat-label">Wolnych</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-full">0</div>
+                    <div class="stat-label">Pełnych</div>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+            </div>
+
+            <!-- Legenda -->
+            <h2>🎨 Legenda</h2>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #2ecc71;"></div>
+                    <div class="legend-label">Puste (0%)</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3498db;"></div>
+                    <div class="legend-label">Niskie (1-25%)</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f39c12;"></div>
+                    <div class="legend-label">Średnie (25-50%)</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #e67e22;"></div>
+                    <div class="legend-label">Wysokie (50-75%)</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #e74c3c;"></div>
+                    <div class="legend-label">Pełne (75-100%)</div>
+                </div>
+            </div>
+
+            <!-- Search Regału -->
+            <h2>🔍 Szukaj</h2>
+            
+            <!-- TAB 1: Szukaj po lokalizacji -->
+            <div style="margin-bottom: 15px;">
+                <div style="font-weight: 600; margin-bottom: 8px; font-size: 13px; opacity: 0.8;">📍 Lokalizacja (np. A11, B2):</div>
+                <input type="text" id="search-shelf" placeholder="Wpisz kod lokalizacji..." 
+                       style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; font-size: 14px;"
+                       onkeypress="if(event.key==='Enter') searchShelf()">
+                <button onclick="searchShelf()" style="width: 100%; margin-top: 8px; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer;">
+                    🔍 Znajdź Lokalizację
+                </button>
+                <div id="search-result" style="margin-top: 10px; font-size: 13px; color: #a0aec0;"></div>
+            </div>
+            
+            <!-- TAB 2: Szukaj po nazwie produktu -->
+            <div style="margin-bottom: 20px;">
+                <div style="font-weight: 600; margin-bottom: 8px; font-size: 13px; opacity: 0.8;">📦 Produkt (np. "Bieżnia", "ASIN"):</div>
+                <input type="text" id="search-product" placeholder="Wpisz nazwę, EAN, ASIN..." 
+                       style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; font-size: 14px;"
+                       onkeypress="if(event.key==='Enter') searchProduct()">
+                <button onclick="searchProduct()" style="width: 100%; margin-top: 8px; padding: 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer;">
+                    🎯 Znajdź Produkt
+                </button>
+                <div id="search-product-result" style="margin-top: 10px; font-size: 13px; color: #a0aec0;"></div>
+            </div>
+
+            <!-- Kontrolki widoku -->
+            <h2>🎮 Kontrolki</h2>
+            <div class="controls">
+                <div class="control-group">
+                    <div class="control-label">Preset Views (1-5):</div>
+                    <div class="control-buttons">
+                        <button onclick="setPresetView(1)" id="btn-view1">1️⃣ Front</button>
+                        <button onclick="setPresetView(2)" id="btn-view2">2️⃣ Top</button>
+                        <button onclick="setPresetView(3)" id="btn-view3">3️⃣ Side</button>
+                        <button onclick="setPresetView(4)" id="btn-view4">4️⃣ Corner</button>
+                        <button onclick="setPresetView(5)" id="btn-view5">5️⃣ Reset</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="control-label">Akcje:</div>
+                    <div class="control-buttons">
+                        <button onclick="resetCamera()">🔄 Reset</button>
+                        <button onclick="refreshData()">↻ Odświeź</button>
+                        <button onclick="showKeyboardHelp()">⌨️ Skróty</button>
+                        <button onclick="exportPNG()">📸 Export PNG</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kontrolki widoku -->
+            <h2>🎮 Kontrolki (stare - deprecated)</h2>
+            <div class="controls" style="display:none;">
+                <div class="control-group">
+                    <div class="control-label">Widok kamery:</div>
+                    <div class="control-buttons">
+                        <button onclick="setView('front')" class="active" id="btn-front">Przód</button>
+                        <button onclick="setView('top')" id="btn-top">Góra</button>
+                        <button onclick="setView('side')" id="btn-side">Bok</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="control-label">Akcje:</div>
+                    <div class="control-buttons">
+                        <button onclick="resetCamera()">🔄 Reset</button>
+                        <button onclick="refreshData()">↻ Odśwież</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Regały -->
+            <h2>📦 Regały</h2>
+            <div class="shelf-labels" id="shelf-labels">
+                <!-- Dynamically generated -->
+            </div>
+        </div>
+
+        <!-- Canvas 3D -->
+        <div class="canvas-container">
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 15px;">Ładowanie danych...</p>
+            </div>
+            <canvas id="canvas3d"></canvas>
+            <!-- Modal szczegółów lokalizacji -->
+            <div class="modal-overlay" id="location-modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 id="modal-title">📍 Lokalizacja</h2>
+                        <button class="modal-close" onclick="closeLocationModal()">×</button>
+                    </div>
+                    <div class="modal-stats">
+                        <div class="modal-stat">
+                            <div class="modal-stat-label">Produktów</div>
+                            <div class="modal-stat-value" id="modal-items">0</div>
+                        </div>
+                        <div class="modal-stat">
+                            <div class="modal-stat-label">Pojemność</div>
+                            <div class="modal-stat-value" id="modal-capacity">20</div>
+                        </div>
+                        <div class="modal-stat">
+                            <div class="modal-stat-label">Zapełnienie</div>
+                            <div class="modal-stat-value" id="modal-fill">0%</div>
+                        </div>
+                    </div>
+                    <div class="products-section">
+                        <h3>📦 Produkty w lokalizacji:</h3>
+                        <div id="modal-products"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-popup" id="info-popup"></div>
+        </div>
+    </div>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <script>
+        // Global variables
+        let scene, camera, renderer, controls;
+        let warehouseData = null;
+        let shelvesMeshes = [];
+        let raycaster, mouse;
+        let selectedObject = null;
+        
+        // Flying controls
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let moveUp = false, moveDown = false;
+        let flySpeed = 0.3;
+        let flyMode = true;
+
+        // Initialize
+        init();
+        loadData();
+
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+            scene.fog = new THREE.Fog(0x1a1a2e, 50, 200);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(
+                60,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(30, 25, 40);
+            camera.lookAt(0, 0, 0);
+
+            // Renderer
+            const canvas = document.getElementById('canvas3d');
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: canvas, 
+                antialias: true,
+                alpha: true 
+            });
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(50, 50, 50);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+
+            // Grid helper
+            const gridHelper = new THREE.GridHelper(100, 50, 0x667eea, 0x444466);
+            gridHelper.position.y = -0.1;
+            scene.add(gridHelper);
+
+            // OrbitControls - ręczne obracanie kamery!
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; // Smooth movement
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.minDistance = 10;
+            controls.maxDistance = 100;
+            controls.maxPolarAngle = Math.PI / 2; // Don't go under the ground
+
+            // Raycaster for mouse interaction
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // Event listeners
+            canvas.addEventListener('mousemove', onMouseMove, false);
+            canvas.addEventListener('click', onMouseClick, false);
+            window.addEventListener('resize', onWindowResize, false);
+
+            // Animation loop
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Update OrbitControls (smooth movement)
+            if (controls) {
+                controls.update();
+            }
+            
+            // BRUTAL FIX: Wymuszam scene rotację = 0 (tylko scene, nie camera!)
+            // Kamera może się obracać przez OrbitControls, ale scena stoi w miejscu!
+            scene.rotation.y = 0;
+            scene.rotation.x = 0;
+            scene.rotation.z = 0;
+            
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const canvas = document.getElementById('canvas3d');
+            camera.aspect = canvas.clientWidth / canvas.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+        }
+
+        function onMouseMove(event) {
+            const canvas = document.getElementById('canvas3d');
+            const rect = canvas.getBoundingClientRect();
+            
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            // Raycast
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(shelvesMeshes, true);
+
+            // Reset all highlights
+            shelvesMeshes.forEach(mesh => {
+                if (mesh.userData.originalEmissive) {
+                    mesh.material.emissive.copy(mesh.userData.originalEmissive);
+                }
+            });
+
+            const popup = document.getElementById('info-popup');
+
+            if (intersects.length > 0) {
+                const obj = intersects[0].object;
+                
+                // Highlight
+                if (!obj.userData.originalEmissive) {
+                    obj.userData.originalEmissive = obj.material.emissive.clone();
+                }
+                obj.material.emissive.setHex(0x666666);
+
+                // Show popup
+                if (obj.userData.location) {
+                    const loc = obj.userData.location;
+                    popup.innerHTML = `
+                        <h3>📍 ${loc.code}</h3>
+                        <div class="info-row">
+                            <span class="label">Produktów:</span>
+                            <span class="value">${loc.items} / ${loc.capacity}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">Zapełnienie:</span>
+                            <span class="value">${loc.fill_percentage}%</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">Status:</span>
+                            <span class="value">${getStatusLabel(loc.fill_status)}</span>
+                        </div>
+                    `;
+                    popup.style.left = (event.clientX + 20) + 'px';
+                    popup.style.top = (event.clientY + 20) + 'px';
+                    popup.classList.add('show');
+                }
+            } else {
+                popup.classList.remove('show');
+            }
+        }
+
+        async function onMouseClick(event) {
+            event.preventDefault();
+            
+            const mouse = new THREE.Vector2();
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(shelvesMeshes);
+            
+            if (intersects.length > 0) {
+                const obj = intersects[0].object;
+                if (obj.userData.location) {
+                    await showLocationDetails(obj.userData.location.code);
+                }
+            }
+        }
+
+        async function showLocationDetails(locationCode) {
+            try {
+                const response = await fetch(`/api/warehouse/location/${locationCode}`);
+                const data = await response.json();
+                
+                // Update modal
+                document.getElementById('modal-title').innerHTML = `📍 ${locationCode}`;
+                document.getElementById('modal-items').textContent = data.items_count || 0;
+                document.getElementById('modal-capacity').textContent = data.capacity || 20;
+                document.getElementById('modal-fill').textContent = (data.fill_percentage || 0) + '%';
+                
+                // Render products
+                const productsContainer = document.getElementById('modal-products');
+                
+                if (data.products && data.products.length > 0) {
+                    productsContainer.innerHTML = data.products.map(product => {
+                        const name = product.nazwa || `Produkt #${product.id || product.product_id}`;
+                        const quantity = product.ilosc || product.quantity || 0;
+                        const ean = product.ean || product.asin || '';
+                        const price = product.cena_allegro ? `${product.cena_allegro} zł` : '';
+                        
+                        return `
+                            <div class="product-item">
+                                <div class="product-info">
+                                    <div class="product-name">${name}</div>
+                                    <div class="product-details">
+                                        ${ean ? `EAN: ${ean}` : ''}
+                                        ${price ? ` • ${price}` : ''}
+                                    </div>
+                                </div>
+                                <div class="product-quantity">${quantity} szt</div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    productsContainer.innerHTML = `
+                        <div class="empty-message">
+                            🟢 Lokalizacja jest pusta<br>
+                            <small>Brak produktów w tej lokalizacji</small>
+                        </div>
+                    `;
+                }
+                
+                // Show modal
+                document.getElementById('location-modal').classList.add('show');
+                
+            } catch (error) {
+                console.error('Error loading location details:', error);
+                alert('Błąd ładowania szczegółów lokalizacji');
+            }
+        }
+
+        function closeLocationModal() {
+            const modal = document.getElementById('location-modal');
+            modal.style.display = 'none';
+        }
+
+        // Close modal on overlay click
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('location-modal');
+            if (event.target === modal) {
+                closeLocationModal();
+            }
+        });
+
+        // Close modal on ESC key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeLocationModal();
+            }
+        });
+
+        function getStatusLabel(status) {
+            const labels = {
+                'empty': '🟢 Puste',
+                'low': '🔵 Niskie',
+                'medium': '🟠 Średnie',
+                'high': '🟠 Wysokie',
+                'full': '🔴 Pełne'
+            };
+            return labels[status] || status;
+        }
+
+        async function loadData() {
+            try {
+                const response = await fetch('/api/warehouse/heatmap');
+                warehouseData = await response.json();
+                
+                buildWarehouse();
+                updateStats();
+                updateShelfLabels();
+                
+                document.getElementById('loading').style.display = 'none';
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('loading').innerHTML = 
+                    '<p style="color: #e74c3c;">❌ Błąd ładowania danych</p>';
+            }
+        }
+
+        function buildWarehouse() {
+            // Clear existing meshes
+            shelvesMeshes.forEach(mesh => scene.remove(mesh));
+            shelvesMeshes = [];
+
+            const layout = warehouseData.layout;
+            
+            // CHECK: Czy to custom layout z editora?
+            if (layout.from_editor && layout.shelves_config) {
+                console.log('📐 Rendering CUSTOM layout from editor!');
+                buildCustomWarehouse(layout.shelves_config);
+                return;
+            }
+            
+            // FALLBACK: Stary hardcoded layout
+            console.log('📐 Rendering DEFAULT layout');
+            const config = warehouseData.config;
+            
+            // Parametry wizualne
+            const shelfSpacing = 4;      // Odstęp między regałami w rzędzie
+            const shelfWidth = 3;         // Szerokość półki w 3D
+            const shelfHeight = 2;        // Wysokość półki w 3D
+            const shelfDepth = 1.5;       // Głębokość półki w 3D
+            const corridorWidth = 12;     // Szerokość korytarza
+
+            // Renderuj SEKCJĘ 1 (główne U)
+            if (layout.section_1) {
+                // Lewa ściana (A-D) - 4 regały
+                layout.section_1.left_wall.forEach((shelfName, idx) => {
+                    const locations = warehouseData.shelves[shelfName];
+                    const xPos = -corridorWidth / 2 - 2;
+                    const zPos = -15 + (idx * shelfSpacing);
+                    renderShelf(shelfName, locations, xPos, zPos);
+                });
+                
+                // Prawa ściana (E-G) - 3 regały
+                layout.section_1.right_wall.forEach((shelfName, idx) => {
+                    const locations = warehouseData.shelves[shelfName];
+                    const xPos = corridorWidth / 2 + 2;
+                    const zPos = -15 + (idx * shelfSpacing);
+                    renderShelf(shelfName, locations, xPos, zPos);
+                });
+                
+                // Tył (H-L) - 5 regałów
+                layout.section_1.back_wall.forEach((shelfName, idx) => {
+                    const locations = warehouseData.shelves[shelfName];
+                    const xPos = -10 + (idx * shelfSpacing);
+                    const zPos = 5;
+                    renderShelf(shelfName, locations, xPos, zPos);
+                });
+            }
+            
+            // Renderuj SEKCJĘ 2 (dodatkowa część)
+            if (layout.section_2) {
+                const section2OffsetZ = 15; // Przesunięcie sekcji 2
+                
+                // Lewa ściana (M-N) - 2 regały
+                layout.section_2.left_wall.forEach((shelfName, idx) => {
+                    const locations = warehouseData.shelves[shelfName];
+                    const xPos = -corridorWidth / 2 - 2;
+                    const zPos = section2OffsetZ + (idx * shelfSpacing);
+                    renderShelf(shelfName, locations, xPos, zPos);
+                });
+                
+                // Prawa ściana (P-S) - 4 regały
+                layout.section_2.right_wall.forEach((shelfName, idx) => {
+                    const locations = warehouseData.shelves[shelfName];
+                    const xPos = corridorWidth / 2 + 2;
+                    const zPos = section2OffsetZ + (idx * shelfSpacing);
+                    renderShelf(shelfName, locations, xPos, zPos);
+                });
+            }
+            
+            function renderShelf(shelfName, locations, xPos, zPos) {
+                if (!locations) return;
+                
+                const shelfHeight = 2;
+                const shelfWidth = 3;
+                const shelfDepth = 1.5;
+                
+                locations.forEach(loc => {
+                    // Wysokość Y - od góry do dołu
+                    const maxLevels = loc.max_levels || 6;
+                    const yPos = (maxLevels - loc.level) * (shelfHeight + 0.3);
+
+                    // Geometria półki
+                    const geometry = new THREE.BoxGeometry(
+                        shelfDepth, 
+                        shelfHeight, 
+                        shelfWidth
+                    );
+                    
+                    const material = new THREE.MeshStandardMaterial({
+                        color: loc.color,
+                        metalness: 0.4,
+                        roughness: 0.6,
+                        emissive: loc.color,
+                        emissiveIntensity: 0.2
+                    });
+
+                    const mesh = new THREE.Mesh(geometry, material);
+                    mesh.position.set(xPos, yPos + shelfHeight/2, zPos);
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+                    
+                    // Store location data
+                    mesh.userData.location = loc;
+                    mesh.userData.shelfName = shelfName;
+                    
+                    scene.add(mesh);
+                    shelvesMeshes.push(mesh);
+
+                    // Dodaj etykietę NA KAŻDEJ PÓŁCE (Request!)
+                    // Pokazuje: A1, A2, A3... zamiast tylko "A"
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.width = 256;
+                    canvas.height = 128;
+                    context.fillStyle = 'white';
+                    context.font = 'bold 48px Arial';
+                    context.textAlign = 'center';
+                    context.textBaseline = 'middle';
+                    
+                    // Etykieta: REGAŁ + POZIOM (np. "A1", "A2", "B3")
+                    const label = shelfName + loc.level;
+                    context.fillText(label, 128, 64);
+
+                    const texture = new THREE.CanvasTexture(canvas);
+                    const labelMaterial = new THREE.SpriteMaterial({ 
+                        map: texture,
+                        transparent: true
+                    });
+                    const sprite = new THREE.Sprite(labelMaterial);
+                    sprite.position.set(xPos + shelfDepth/2 + 0.5, yPos + shelfHeight/2, zPos);
+                    sprite.scale.set(1.5, 0.75, 1);
+                    scene.add(sprite);
+                });
+            }
+        }
+
+        // ============================================================
+        // BUILD CUSTOM WAREHOUSE (z editora!)
+        // ============================================================
+        function buildCustomWarehouse(shelvesConfig) {
+            console.log('🎨 Building custom warehouse from editor!', shelvesConfig);
+            
+            // Parametry konwersji z canvas do 3D
+            const gridSize = 40; // pixels in editor
+            const scale3D = 0.05; // scale factor canvas → 3D
+            const shelfHeight3D = 2; // wysokość półki w 3D
+            
+            // Dla każdego regału z editora
+            shelvesConfig.forEach(shelfConfig => {
+                const shelfName = shelfConfig.letter;
+                const locations = warehouseData.shelves[shelfName];
+                
+                if (!locations) {
+                    console.warn(`No data for shelf ${shelfName}`);
+                    return;
+                }
+                
+                // Konwertuj pozycję z canvas na 3D
+                // Editor: x,y w pixelach (0,0 = top-left)
+                // Three.js: x,y,z (0,0,0 = center)
+                const xPos = (shelfConfig.x - 400) * scale3D; // center at 400px
+                const zPos = -(shelfConfig.y - 300) * scale3D; // flip Y and center at 300px
+                
+                // Rotacja (editor: 0/90, three.js: radians)
+                const rotation = shelfConfig.rotation || 0;
+                const rotationRad = (rotation * Math.PI) / 180;
+                
+                // Wymiary z editora
+                const width3D = (shelfConfig.width || 120) * scale3D;
+                const depth3D = (shelfConfig.depth || 40) * 0.05;
+                
+                // Renderuj półki dla tego regału
+                locations.forEach(loc => {
+                    const maxLevels = loc.max_levels || 6;
+                    const yPos = (maxLevels - loc.level) * (shelfHeight3D + 0.3);
+                    
+                    // Geometria półki (rotacja uwzględniona)
+                    let geometry;
+                    if (rotation === 90) {
+                        // Obrócone: zamień szerokość z głębokością
+                        geometry = new THREE.BoxGeometry(
+                            depth3D,
+                            shelfHeight3D,
+                            width3D
+                        );
+                    } else {
+                        geometry = new THREE.BoxGeometry(
+                            width3D,
+                            shelfHeight3D,
+                            depth3D
+                        );
+                    }
+                    
+                    // Kolor: użyj koloru z editora lub fill color
+                    const shelfColor = shelfConfig.color || loc.color;
+                    
+                    const material = new THREE.MeshStandardMaterial({
+                        color: shelfColor,
+                        metalness: 0.4,
+                        roughness: 0.6,
+                        emissive: shelfColor,
+                        emissiveIntensity: 0.3
+                    });
+                    
+                    const mesh = new THREE.Mesh(geometry, material);
+                    mesh.position.set(xPos, yPos + shelfHeight3D/2, zPos);
+                    
+                    // Apply rotation
+                    mesh.rotation.y = rotationRad;
+                    
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+                    
+                    // Store data
+                    mesh.userData.location = loc;
+                    mesh.userData.shelfName = shelfName;
+                    
+                    scene.add(mesh);
+                    shelvesMeshes.push(mesh);
+                    
+                    // Etykieta TYLKO NA GÓRNEJ PÓŁCE - nazwa regału (A1, A2, B1...)
+                    // New implementation: etykieta regału, nie każdej półki!
+                    if (loc.level === 1) {
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.width = 256;
+                        canvas.height = 128;
+                        context.fillStyle = 'white';
+                        context.font = 'bold 64px Arial';
+                        context.textAlign = 'center';
+                        context.textBaseline = 'middle';
+                        
+                        // Etykieta: NAZWA REGAŁU (np. "A1", "B2", "C5")
+                        context.fillText(shelfName, 128, 64);
+                        
+                        const texture = new THREE.CanvasTexture(canvas);
+                        const labelMaterial = new THREE.SpriteMaterial({
+                            map: texture,
+                            transparent: true
+                        });
+                        const sprite = new THREE.Sprite(labelMaterial);
+                        
+                        // Pozycja: NAD regałem (górna półka)
+                        const topY = maxLevels * (shelfHeight3D + 0.3) + 1;
+                        if (rotation === 90) {
+                            sprite.position.set(xPos, topY, zPos);
+                        } else {
+                            sprite.position.set(xPos, topY, zPos);
+                        }
+                        sprite.scale.set(2, 1, 1);
+                        scene.add(sprite);
+                    }
+                });
+            });
+            
+            console.log('✅ Custom warehouse built!');
+        }
+
+        function updateStats() {
+            const stats = warehouseData.stats;
+            
+            document.getElementById('stat-fill').textContent = stats.fill_percentage + '%';
+            document.getElementById('stat-items').textContent = stats.total_items;
+            document.getElementById('stat-empty').textContent = stats.empty_locations;
+            document.getElementById('stat-full').textContent = stats.full_locations;
+            document.getElementById('progress-fill').style.width = stats.fill_percentage + '%';
+        }
+
+        function updateShelfLabels() {
+            const container = document.getElementById('shelf-labels');
+            container.innerHTML = '';
+
+            Object.keys(warehouseData.shelves).forEach(shelfName => {
+                const locations = warehouseData.shelves[shelfName];
+                const totalItems = locations.reduce((sum, loc) => sum + loc.items, 0);
+                const totalCapacity = locations.reduce((sum, loc) => sum + loc.capacity, 0);
+                const fillPct = totalCapacity > 0 ? Math.round(totalItems / totalCapacity * 100) : 0;
+
+                const div = document.createElement('div');
+                div.className = 'shelf-item';
+                div.innerHTML = `
+                    <div class="shelf-name">Regał ${shelfName}</div>
+                    <div class="shelf-fill">${fillPct}% (${totalItems}/${totalCapacity})</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function setView(view) {
+            // Remove active class from all buttons
+            document.querySelectorAll('.control-buttons button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById('btn-' + view).classList.add('active');
+
+            const distance = 40;
+            
+            switch(view) {
+                case 'front':
+                    camera.position.set(0, 15, distance);
+                    break;
+                case 'top':
+                    camera.position.set(0, distance, 0);
+                    break;
+                case 'side':
+                    camera.position.set(distance, 15, 0);
+                    break;
+            }
+            
+            camera.lookAt(0, 0, 0);
+        }
+
+        function resetCamera() {
+            camera.position.set(30, 25, 40);
+            camera.lookAt(0, 0, 0);
+            scene.rotation.y = 0;
+        }
+
+        function refreshData() {
+            document.getElementById('loading').style.display = 'block';
+            loadData();
+        }
+
+        // ============================================================
+        // SEARCH SHELF
+        // ============================================================
+        function searchShelf() {
+            const input = document.getElementById('search-shelf').value.trim().toUpperCase();
+            const resultDiv = document.getElementById('search-result');
+            
+            if (!input) {
+                resultDiv.textContent = '⚠️ Wpisz kod lokalizacji (np. A11, B2)';
+                resultDiv.style.color = '#f59e0b';
+                return;
+            }
+            
+            // NOWE: Bezpośrednio otwórz modal z produktami dla tej lokalizacji
+            resultDiv.textContent = '🔍 Szukam produktów...';
+            resultDiv.style.color = '#3498db';
+            
+            console.log('🔍 Searching for location:', input);
+            
+            // Wywołaj bezpośrednio API dla lokalizacji
+            fetch(`/api/warehouse/location/${input}`)
+                .then(response => {
+                    console.log('📡 API Response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('📦 API Response data:', data);
+                    
+                    if (data && data.products && data.products.length > 0) {
+                        // Znaleziono produkty - otwórz modal
+                        console.log(`✅ Found ${data.products.length} products`);
+                        showLocationModal(input, data);
+                        resultDiv.textContent = `✅ Znaleziono ${data.products.length} produkt(ów) w ${input}`;
+                        resultDiv.style.color = '#10b981';
+                        
+                        // Opcjonalnie: Leci kamera do regału (jeśli istnieje w 3D)
+                        const shelfLetter = input.charAt(0);
+                        const found = shelvesMeshes.find(m => m.userData.shelfName === shelfLetter);
+                        if (found) {
+                            const pos = found.position;
+                            camera.position.set(pos.x + 15, pos.y + 10, pos.z + 15);
+                            camera.lookAt(pos.x, pos.y, pos.z);
+                        }
+                    } else {
+                        // Nie znaleziono produktów
+                        console.log('❌ No products found');
+                        resultDiv.textContent = `❌ Brak produktów w lokalizacji ${input}`;
+                        resultDiv.style.color = '#ef4444';
+                        
+                        // Pokaż modal z pustą lokalizacją
+                        showLocationModal(input, {products: [], location_info: {code: input, items: 0}});
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Error searching location:', error);
+                    resultDiv.textContent = `❌ Błąd wyszukiwania: ${error.message}`;
+                    resultDiv.style.color = '#ef4444';
+                });
+        }
+        
+        // Pomocnicza funkcja do pokazania modala
+        function showLocationModal(code, data) {
+            const modal = document.getElementById('location-modal');
+            const title = document.getElementById('modal-title');
+            const items = document.getElementById('modal-items');
+            const capacity = document.getElementById('modal-capacity');
+            const fill = document.getElementById('modal-fill');
+            const productsDiv = document.getElementById('modal-products');
+            
+            // Ustaw tytuł
+            title.textContent = `📍 Lokalizacja ${code}`;
+            
+            // Ustaw statystyki
+            const productCount = data.products ? data.products.length : 0;
+            const totalItems = data.products ? data.products.reduce((sum, p) => sum + (p.ilosc || 0), 0) : 0;
+            const capacityValue = data.location_info?.capacity || data.capacity || 50;
+            
+            items.textContent = totalItems;  // FIXED: pokazuje sumę ilości, nie liczbę produktów
+            capacity.textContent = capacityValue;
+            
+            // FIXED: oblicz zapełnienie na podstawie totalItems, nie productCount
+            const fillPct = capacityValue > 0 ? Math.round(totalItems / capacityValue * 100) : 0;
+            fill.textContent = fillPct + '%';
+            
+            console.log(`📊 Modal stats: ${totalItems} items / ${capacityValue} capacity = ${fillPct}%`);
+            
+            // Wyświetl produkty
+            if (data.products && data.products.length > 0) {
+                productsDiv.innerHTML = data.products.map(product => `
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                        <div style="display: flex; gap: 15px; align-items: start;">
+                            ${product.zdjecie_url ? 
+                                `<img src="${product.zdjecie_url}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">` 
+                                : 
+                                `<div style="width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 32px;">📦</div>`
+                            }
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; margin-bottom: 5px;">${product.nazwa}</div>
+                                <div style="font-size: 13px; opacity: 0.8; margin-bottom: 5px;">
+                                    ${product.ean ? `EAN: ${product.ean}` : ''}
+                                    ${product.asin ? ` | ASIN: ${product.asin}` : ''}
+                                </div>
+                                <div style="display: flex; gap: 15px; margin-top: 8px;">
+                                    <div><strong>Ilość:</strong> ${product.ilosc || 0}</div>
+                                    ${product.cena_allegro ? `<div><strong>Cena:</strong> ${product.cena_allegro} zł</div>` : ''}
+                                    ${product.dostawca ? `<div><strong>Dostawca:</strong> ${product.dostawca}</div>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                productsDiv.innerHTML = '<div style="text-align: center; padding: 40px; opacity: 0.6;">📭 Brak produktów w tej lokalizacji</div>';
+            }
+            
+            // Pokaż modal
+            modal.style.display = 'flex';
+        }
+        
+        // ============================================================
+        // SEARCH PRODUCT BY NAME
+        // ============================================================
+        function searchProduct() {
+            const input = document.getElementById('search-product').value.trim();
+            const resultDiv = document.getElementById('search-product-result');
+            
+            if (!input || input.length < 2) {
+                resultDiv.textContent = '⚠️ Wpisz co najmniej 2 znaki';
+                resultDiv.style.color = '#f59e0b';
+                return;
+            }
+            
+            resultDiv.textContent = '🔍 Szukam produktu...';
+            resultDiv.style.color = '#3498db';
+            
+            console.log('🔍 Searching for product:', input);
+            
+            // Wywołaj API do wyszukiwania produktów
+            fetch(`/api/warehouse/search-product?q=${encodeURIComponent(input)}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('📦 Product search results:', data);
+                    
+                    if (data && data.results && data.results.length > 0) {
+                        const firstResult = data.results[0];
+                        const location = firstResult.lokalizacja;
+                        
+                        if (location) {
+                            // Znaleziono produkt z lokalizacją
+                            resultDiv.innerHTML = `✅ Znaleziono! <strong>${firstResult.nazwa.substring(0, 30)}...</strong><br>📍 Lokalizacja: <strong>${location}</strong>`;
+                            resultDiv.style.color = '#10b981';
+                            
+                            // Pokaż modal z lokalizacją
+                            fetch(`/api/warehouse/location/${location}`)
+                                .then(r => r.json())
+                                .then(locData => {
+                                    showLocationModal(location, locData);
+                                    
+                                    // Leci kamerą do regału
+                                    const shelfLetter = location.charAt(0);
+                                    const found = shelvesMeshes.find(m => m.userData.shelfName === shelfLetter);
+                                    if (found) {
+                                        const pos = found.position;
+                                        camera.position.set(pos.x + 15, pos.y + 10, pos.z + 15);
+                                        camera.lookAt(pos.x, pos.y, pos.z);
+                                        
+                                        // Highlight
+                                        const originalColor = found.material.color.getHex();
+                                        found.material.color.setHex(0xffffff);
+                                        setTimeout(() => {
+                                            found.material.color.setHex(originalColor);
+                                        }, 1000);
+                                    }
+                                });
+                        } else {
+                            resultDiv.textContent = `✅ Znaleziono "${firstResult.nazwa.substring(0, 30)}..." ale brak lokalizacji`;
+                            resultDiv.style.color = '#f59e0b';
+                        }
+                    } else {
+                        resultDiv.textContent = `❌ Nie znaleziono produktu: "${input}"`;
+                        resultDiv.style.color = '#ef4444';
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Error searching product:', error);
+                    resultDiv.textContent = `❌ Błąd wyszukiwania: ${error.message}`;
+                    resultDiv.style.color = '#ef4444';
+                });
+        }
+
+        // ============================================================
+        // PRESET CAMERA VIEWS (1-5)
+        // ============================================================
+        function setPresetView(num) {
+            switch(num) {
+                case 1: // Front view
+                    camera.position.set(0, 15, 50);
+                    camera.lookAt(0, 0, 0);
+                    break;
+                case 2: // Top view (bird's eye)
+                    camera.position.set(0, 60, 0);
+                    camera.lookAt(0, 0, 0);
+                    break;
+                case 3: // Side view
+                    camera.position.set(50, 15, 0);
+                    camera.lookAt(0, 0, 0);
+                    break;
+                case 4: // Corner view (diagonal)
+                    camera.position.set(40, 30, 40);
+                    camera.lookAt(0, 0, 0);
+                    break;
+                case 5: // Reset to default
+                    resetCamera();
+                    break;
+            }
+        }
+
+        // ============================================================
+        // KEYBOARD HELP OVERLAY
+        // ============================================================
+        function showKeyboardHelp() {
+            const helpHTML = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; align-items: center; justify-content: center;" onclick="this.remove()">
+                    <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border: 2px solid #667eea; border-radius: 16px; padding: 40px; max-width: 600px; color: white;" onclick="event.stopPropagation()">
+                        <h2 style="margin-bottom: 30px; text-align: center; font-size: 28px;">⌨️ Keyboard Shortcuts</h2>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+                            <div>
+                                <h3 style="color: #667eea; margin-bottom: 15px;">🎮 Camera Views</h3>
+                                <div style="font-size: 14px; line-height: 2;">
+                                    <div><kbd style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">1</kbd> Front View</div>
+                                    <div><kbd style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">2</kbd> Top View</div>
+                                    <div><kbd style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">3</kbd> Side View</div>
+                                    <div><kbd style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">4</kbd> Corner View</div>
+                                    <div><kbd style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">5</kbd> Reset</div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 style="color: #667eea; margin-bottom: 15px;">🔧 Actions</h3>
+                                <div style="font-size: 14px; line-height: 2;">
+                                    <div><kbd style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">R</kbd> Reset Camera</div>
+                                    <div><kbd style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">F</kbd> Refresh Data</div>
+                                    <div><kbd style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">H</kbd> This Help</div>
+                                    <div><kbd style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">ESC</kbd> Close Modal</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                            <h3 style="color: #667eea; margin-bottom: 10px;">🖱️ Mouse Controls</h3>
+                            <div style="font-size: 13px; line-height: 1.8;">
+                                <div>• <strong>Left Click + Drag</strong> - Rotate view</div>
+                                <div>• <strong>Right Click + Drag</strong> - Pan view</div>
+                                <div>• <strong>Scroll</strong> - Zoom in/out</div>
+                                <div>• <strong>Click on Shelf</strong> - Show details</div>
+                            </div>
+                        </div>
+                        
+                        <button onclick="this.parentElement.parentElement.remove()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; font-size: 14px;">
+                            Got it! 👍
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', helpHTML);
+        }
+
+        // ============================================================
+        // EXPORT PNG (Screenshot)
+        // ============================================================
+        function exportPNG() {
+            // Render current scene
+            renderer.render(scene, camera);
+            
+            // Get canvas data as PNG
+            const canvas = document.getElementById('canvas3d');
+            const dataURL = canvas.toDataURL('image/png');
+            
+            // Create download link
+            const link = document.createElement('a');
+            link.download = `warehouse_heatmap_${new Date().toISOString().slice(0,10)}.png`;
+            link.href = dataURL;
+            link.click();
+            
+            // Show notification
+            const notification = document.createElement('div');
+            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 15px 25px; border-radius: 12px; z-index: 9999; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.3);';
+            notification.textContent = '✅ Screenshot saved!';
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case '1': setPresetView(1); break;
+                case '2': setPresetView(2); break;
+                case '3': setPresetView(3); break;
+                case '4': setPresetView(4); break;
+                case '5': setPresetView(5); break;
+                case 'r': case 'R': resetCamera(); break;
+                case 'f': case 'F': refreshData(); break;
+                case 'h': case 'H': showKeyboardHelp(); break;
+                case 'Escape': closeLocationModal(); break;
+            }
+        });
+    </script>
+</body>
+</html>

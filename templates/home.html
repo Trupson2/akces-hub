@@ -1,0 +1,661 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="header">
+    <h1>⚡ AKCES HUB</h1>
+    <small>Paletomat + Magazynier + Allegro + Telegram</small>
+</div>
+
+<!-- SYSTEM STATS (Raspberry Pi) -->
+<div id="sys-panel" style="background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(59,130,246,0.08));border:1px solid rgba(99,102,241,0.3);border-radius:14px;padding:14px;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-weight:700;font-size:0.85rem;color:#818cf8">SYSTEM</div>
+        <div style="display:flex;align-items:center;gap:8px">
+            <span id="sys-uptime" style="font-size:0.75rem;color:#94a3b8">--</span>
+            <div id="sys-dot" style="width:8px;height:8px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite"></div>
+        </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        <div style="text-align:center">
+            <div id="sys-temp" style="font-size:1.3rem;font-weight:700;color:#22c55e">--</div>
+            <div style="font-size:0.65rem;color:#64748b;text-transform:uppercase;margin-top:2px">Temp</div>
+        </div>
+        <div style="text-align:center">
+            <div style="font-size:1.3rem;font-weight:700;color:#3b82f6"><span id="sys-cpu">--</span><span style="font-size:0.75rem">%</span></div>
+            <div style="font-size:0.65rem;color:#64748b;text-transform:uppercase;margin-top:2px">CPU</div>
+        </div>
+        <div style="text-align:center">
+            <div id="sys-ram" style="font-size:1.3rem;font-weight:700;color:#8b5cf6">--</div>
+            <div style="font-size:0.65rem;color:#64748b;text-transform:uppercase;margin-top:2px">RAM</div>
+        </div>
+        <div style="text-align:center">
+            <div id="sys-disk" style="font-size:1.3rem;font-weight:700;color:#f59e0b">--</div>
+            <div style="font-size:0.65rem;color:#64748b;text-transform:uppercase;margin-top:2px">Dysk</div>
+        </div>
+    </div>
+    <!-- CPU progress bar -->
+    <div style="margin-top:10px;background:rgba(0,0,0,0.2);border-radius:6px;height:6px;overflow:hidden">
+        <div id="sys-cpu-bar" style="height:100%;width:0%;background:#3b82f6;border-radius:6px;transition:width 0.5s,background 0.5s"></div>
+    </div>
+</div>
+<script>
+(function(){
+    function updSys(){
+        fetch('/api/system-stats').then(r=>r.json()).then(d=>{
+            // Temperature
+            const te=document.getElementById('sys-temp');
+            te.textContent=d.temp>0?d.temp.toFixed(0)+'\u00b0C':'N/A';
+            te.style.color=d.temp<55?'#22c55e':d.temp<70?'#eab308':'#ef4444';
+            // CPU
+            document.getElementById('sys-cpu').textContent=d.cpu.toFixed(0);
+            const bar=document.getElementById('sys-cpu-bar');
+            bar.style.width=d.cpu+'%';
+            bar.style.background=d.cpu<60?'#3b82f6':d.cpu<80?'#eab308':'#ef4444';
+            // RAM
+            document.getElementById('sys-ram').textContent=d.ram_used.toFixed(1)+'/'+d.ram_total.toFixed(0);
+            // Disk
+            document.getElementById('sys-disk').textContent=d.disk_used.toFixed(0)+'/'+d.disk_total.toFixed(0);
+            // Uptime
+            document.getElementById('sys-uptime').textContent='\u23f1\ufe0f '+d.uptime;
+        }).catch(()=>{});
+    }
+    updSys();
+    setInterval(updSys,10000);
+})();
+</script>
+
+<!-- STATUS SYPIE -->
+<div style="background:linear-gradient(135deg, {{ sypie_color }}22, {{ sypie_color }}11);border:2px solid {{ sypie_color }};border-radius:16px;padding:15px;margin-bottom:15px;text-align:center">
+    <div style="font-size:2rem;font-weight:700;color:{{ sypie_color }}">{{ sypie_text }}</div>
+    <div style="font-size:0.75rem;color:#64748b;margin-top:8px">
+        📅 {{ miesiac_nazwa }}: <strong>{{ miesiac_kwota }} zł</strong> | {{ miesiac_zamowienia }} zam. | śr. {{ miesiac_srednia }} zł/dzień
+        {% if miesiac_sypie %}<span style="color:#22c55e;margin-left:5px">✓ SYPAŁO</span>{% else %}<span style="color:#ef4444;margin-left:5px">✗ NIE SYPAŁO</span>{% endif %}
+    </div>
+</div>
+
+<!-- HYUNDAI i30 N GOAL -->
+<div style="background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(139,92,246,0.15));border:2px solid #3b82f6;border-radius:16px;padding:20px;margin-bottom:15px;position:relative;overflow:hidden">
+    <!-- Background image (semi-transparent) -->
+    <div style="position:absolute;top:0;right:0;bottom:0;width:50%;background:url('/static/goal.jpg') no-repeat center right;background-size:cover;opacity:0.15;z-index:0"></div>
+
+    <div style="position:relative;z-index:1">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
+            <div>
+                <div style="font-size:1.8rem;font-weight:800;color:#3b82f6">🚗 {{ goal['name'] }}</div>
+                <div style="font-size:0.85rem;color:#94a3b8;margin-top:5px">Marzenie do spełnienia</div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-size:2.2rem;font-weight:800;color:#22c55e">{{ "%.1f"|format(goal.get('progress', 0)) }}%</div>
+                <div style="font-size:0.75rem;color:#64748b">postęp</div>
+            </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div style="background:rgba(0,0,0,0.3);border-radius:12px;height:24px;overflow:hidden;margin-bottom:12px">
+            <div style="background:linear-gradient(90deg,#22c55e,#16a34a);height:100%;width:{{ "%.1f"|format(goal.get('progress', 0)) }}%;transition:width 0.5s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:8px">
+                <span style="color:#fff;font-weight:700;font-size:0.75rem">{{ "{:,.0f}".format(goal['current']) }} PLN</span>
+            </div>
+        </div>
+
+        <!-- Amounts -->
+        <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;gap:20px">
+                <div>
+                    <div style="font-size:0.7rem;color:#64748b">UZBIERANO</div>
+                    <div style="font-size:1.3rem;font-weight:700;color:#22c55e">{{ "{:,.0f}".format(goal['current']) }} PLN</div>
+                </div>
+                <div>
+                    <div style="font-size:0.7rem;color:#64748b">CEL</div>
+                    <div style="font-size:1.3rem;font-weight:700;color:#3b82f6">{{ "{:,.0f}".format(goal['target']) }} PLN</div>
+                </div>
+                <div>
+                    <div style="font-size:0.7rem;color:#64748b">POZOSTAŁO</div>
+                    <div style="font-size:1.3rem;font-weight:700;color:#f59e0b">{{ "{:,.0f}".format(goal['target'] - goal['current']) }} PLN</div>
+                </div>
+            </div>
+            <a href="/goal/details" style="background:#3b82f6;color:#fff;padding:10px 20px;border-radius:10px;text-decoration:none;font-weight:600;font-size:0.85rem">💰 Szczegóły</a>
+        </div>
+    </div>
+</div>
+
+
+<!-- PWA Install Banner -->
+<div id="pwa-banner" style="display:none;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15));border:1px solid rgba(59,130,246,0.3);border-radius:12px;padding:12px;margin-bottom:15px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+            <div style="font-weight:600;font-size:0.9rem">📲 Zainstaluj aplikację</div>
+            <div style="font-size:0.75rem;color:#94a3b8">Działa offline jak natywna apka</div>
+        </div>
+        <button id="pwa-install" style="background:#3b82f6;border:none;color:#fff;padding:8px 16px;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer">Instaluj</button>
+    </div>
+</div>
+<script>
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('pwa-banner').style.display='block';});
+document.getElementById('pwa-install')?.addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();const{outcome}=await deferredPrompt.userChoice;if(outcome==='accepted')document.getElementById('pwa-banner').style.display='none';deferredPrompt=null;}});
+window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner').style.display='none';});
+</script>
+
+<!-- Dzisiejsze statystyki -->
+<div class="today-stats">
+    <div class="today-header">
+        <span class="today-title">📈 DZISIAJ</span>
+        <span class="today-date">{{ today_date }}</span>
+    </div>
+    <div class="today-grid">
+        <div>
+            <div class="today-value">{{ today.sprzedaz }}</div>
+            <div class="today-label">Sprzedaży</div>
+        </div>
+        <div>
+            <div class="today-value">{{ today.przychod }} zł</div>
+            <div class="today-label">Przychód</div>
+        </div>
+        <div>
+            <div class="today-value" style="color:#eab308">{{ today.do_wyslania }}</div>
+            <div class="today-label">Do wysyłki</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="quick-actions">
+    <a href="/wysylki/allegro" class="quick-btn"><div class="icon">📦</div><div class="label">Do wysyłki</div></a>
+    <a href="/telegram/live" class="quick-btn"><div class="icon">💰</div><div class="label">Sprzedaż</div></a>
+    <a href="/statystyki" class="quick-btn"><div class="icon">📊</div><div class="label">Staty</div></a>
+    <a href="/analityka" class="quick-btn"><div class="icon">🗺️</div><div class="label">Analityka</div></a>
+    <a href="/palety" class="quick-btn"><div class="icon">📦</div><div class="label">Palety</div></a>
+    <a href="/magazyn/etykiety" class="quick-btn"><div class="icon">🏷️</div><div class="label">Etykiety</div></a>
+    <a href="/historia" class="quick-btn"><div class="icon">📜</div><div class="label">Historia</div></a>
+    <a href="/telegram" class="quick-btn {{ 'active' if telegram_online else '' }}"><div class="icon">🤖</div><div class="label">Telegram</div></a>
+    <a href="/poziom" class="quick-btn" style="border-color:#22c55e40;background:linear-gradient(135deg,#22c55e08,#22c55e03)"><div class="icon">🏆</div><div class="label" style="color:#22c55e">Poziom</div></a>
+    <a href="/ustawienia" class="quick-btn"><div class="icon">⚙️</div><div class="label">Ustawienia</div></a>
+    <a href="/warehouse/shelves" class="quick-btn" style="border-color:#7c3aed40;background:linear-gradient(135deg,#7c3aed08,#7c3aed03)"><div class="icon">🗄️</div><div class="label" style="color:#a78bfa">Regaly</div></a>
+</div>
+
+<div style="text-align:center;margin:15px 0">
+    <a href="/zmien-konto" style="color:#64748b;text-decoration:none;font-size:0.85rem">
+        🔄 Zmień użytkownika
+    </a>
+</div>
+
+<!-- Moduły główne -->
+<div class="modules-grid">
+    <a href="/paletomat" class="module purple">
+        <div class="module-header">
+            <div class="module-icon">🤖</div>
+            <div>
+                <div class="module-title">PALETOMAT</div>
+                <div class="module-desc">Scraper Amazon → Allegro</div>
+            </div>
+        </div>
+        <div class="module-stats">
+            <div class="module-stat"><strong>{{ pal.aktywne }}</strong> ofert</div>
+            <div class="module-stat"><strong>{{ pal.sprzedane }}</strong> sprzedanych</div>
+            <div class="module-stat"><strong>{{ pal.przychod }} zł</strong></div>
+        </div>
+    </a>
+
+    <a href="/magazyn" class="module blue">
+        <div class="module-header">
+            <div class="module-icon">📦</div>
+            <div>
+                <div class="module-title">MAGAZYNIER</div>
+                <div class="module-desc">Stany magazynowe</div>
+            </div>
+        </div>
+        <div class="module-stats">
+            <div class="module-stat"><strong>{{ mag.produkty }}</strong> produktów</div>
+            <div class="module-stat"><strong>{{ mag.sztuki }}</strong> sztuk</div>
+            <div class="module-stat"><strong>{{ "%.0f"|format(mag.wartosc_allegro) }} zł</strong></div>
+        </div>
+    </a>
+
+    <a href="/warehouse/editor" class="module" style="background:linear-gradient(135deg,rgba(138,43,226,0.2),rgba(75,0,130,0.2));border-color:rgba(138,43,226,0.3)">
+        <div class="module-header">
+            <div class="module-icon">📐</div>
+            <div>
+                <div class="module-title">EDITOR MAGAZYNU</div>
+                <div class="module-desc">Projektuj layout</div>
+            </div>
+        </div>
+        <div class="module-stats">
+            <div class="module-stat"><strong>Auto-numeracja</strong> regałów</div>
+            <div class="module-stat"><strong>Drag & drop</strong> interface</div>
+            <div class="module-stat"><strong>Export</strong> do 3D</div>
+        </div>
+    </a>
+
+    <a href="/warehouse/heatmap" class="module" style="background:linear-gradient(135deg,rgba(102,126,234,0.2),rgba(118,75,162,0.2));border-color:rgba(102,126,234,0.3)">
+        <div class="module-header">
+            <div class="module-icon">🗺️</div>
+            <div>
+                <div class="module-title">HEATMAPA 3D</div>
+                <div class="module-desc">Wizualizacja magazynu</div>
+            </div>
+        </div>
+        <div class="module-stats">
+            <div class="module-stat"><strong id="heatmap-locations">80</strong> lokalizacji</div>
+            <div class="module-stat"><strong id="heatmap-fill">0%</strong> zapełnienia</div>
+            <div class="module-stat"><strong>Real-time</strong> monitoring</div>
+        </div>
+    </a>
+
+    <script>
+    // Dynamicznie ładuj statystyki heatmapy
+    fetch('/api/warehouse/heatmap')
+        .then(r => r.json())
+        .then(data => {
+            if (data.stats) {
+                document.getElementById('heatmap-locations').textContent = data.stats.total_locations || '80';
+                document.getElementById('heatmap-fill').textContent = data.stats.fill_percentage + '%' || '0%';
+            }
+        })
+        .catch(e => console.log('Nie udało się załadować statystyk heatmapy'));
+    </script>
+
+    <a href="/allegro" class="module orange">
+        <div class="module-header">
+            <div class="module-icon">🛒</div>
+            <div>
+                <div class="module-title">ALLEGRO</div>
+                <div class="module-desc">Integracja API</div>
+            </div>
+        </div>
+        <div class="module-stats">
+            <div class="module-stat"><strong>{{ allegro.status }}</strong></div>
+            <div class="module-stat"><strong>{{ allegro.zamowienia }}</strong> zamówień</div>
+            <div class="module-stat"><strong>{{ allegro.oferty }}</strong> ofert</div>
+        </div>
+    </a>
+
+    <!-- OLX i Vinted kafelki ukryte -->
+
+    <a href="/telegram" class="module" style="background:linear-gradient(135deg,rgba(0,136,204,0.2),rgba(0,100,150,0.2));border-color:rgba(0,136,204,0.3)">
+        <div class="module-header">
+            <div class="module-icon">📱</div>
+            <div>
+                <div class="module-title">TELEGRAM</div>
+                <div class="module-desc">Powiadomienia i komendy</div>
+            </div>
+        </div>
+        <div class="module-stats">
+            <div class="module-stat"><strong>{{ '🟢 Online' if telegram_online else '⚪ Offline' }}</strong></div>
+            <div class="module-stat"><strong>{{ unread_count }}</strong> alertów</div>
+        </div>
+    </a>
+</div>
+
+<!-- Quick Wins -->
+<div class="section-title">⚡ QUICK WINS</div>
+<div class="tools-grid">
+    <a href="/analytics/dashboard" class="tool-card">
+        <div class="tool-icon">📊</div>
+        <div class="tool-name">Dashboard KPI</div>
+        <div class="tool-desc">Statystyki i trendy</div>
+    </a>
+    <a href="/analytics/kalkulator-palety" class="tool-card">
+        <div class="tool-icon">🧮</div>
+        <div class="tool-name">Kalkulator palety</div>
+        <div class="tool-desc">Oszacuj zysk</div>
+    </a>
+    <a href="/narzedzia/kalkulator" class="tool-card">
+        <div class="tool-icon">💰</div>
+        <div class="tool-name">Kalkulator marży</div>
+        <div class="tool-desc">Cena z prowizją</div>
+    </a>
+    <a href="/narzedzia/generator" class="tool-card">
+        <div class="tool-icon">✨</div>
+        <div class="tool-name">Generator AI</div>
+        <div class="tool-desc">Opisy produktów</div>
+    </a>
+    <a href="/analityka/czas-sprzedazy" class="tool-card" style="border-color:rgba(34,197,94,0.3);background:linear-gradient(135deg,rgba(34,197,94,0.08),rgba(16,185,129,0.05))">
+        <div class="tool-icon">⏱️</div>
+        <div class="tool-name">Czas sprzedaży</div>
+        <div class="tool-desc">Jak szybko się sprzedaje</div>
+    </a>
+    <a href="/analityka/okazje" class="tool-card" style="border-color:rgba(251,191,36,0.4);background:linear-gradient(135deg,rgba(251,191,36,0.1),rgba(245,158,11,0.05))">
+        <div class="tool-icon" id="okazje-icon">🔥</div>
+        <div class="tool-name">TOP Okazje</div>
+        <div class="tool-desc" id="okazje-desc">Najlepsze do dokupienia</div>
+    </a>
+</div>
+<a href="/narzedzia" style="display:block;text-align:center;color:#64748b;font-size:0.85rem;margin-bottom:15px;text-decoration:none">Więcej narzędzi →</a>
+
+<!-- 🏆 TOP PRODUKTY -->
+{% if top_produkty and top_produkty|length > 0 %}
+<div class="section-title">🏆 TOP PRODUKTY</div>
+<div style="background:#12121a;border-radius:12px;padding:12px;margin-bottom:15px">
+{% for p in top_produkty[:5] %}
+<div style="display:flex;align-items:center;gap:10px;padding:8px 0;{% if not loop.last %}border-bottom:1px solid #1e1e2e{% endif %}">
+    <div style="font-weight:700;color:#f59e0b;width:20px">{{ loop.index }}.</div>
+    <img src="{{ p.zdjecie_url or 'https://via.placeholder.com/40' }}" style="width:40px;height:40px;border-radius:8px;object-fit:cover">
+    <div style="flex:1;min-width:0">
+        <div style="font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.nazwa[:40] }}{% if p.nazwa|length > 40 %}...{% endif %}</div>
+        <div style="font-size:0.75rem;color:#64748b">{{ p.sprzedazy_cnt }} szt</div>
+    </div>
+    <div style="font-weight:600;color:#22c55e">{{ "%.0f"|format(p.sprzedazy_suma) }} zł</div>
+</div>
+{% endfor %}
+</div>
+{% endif %}
+
+<!-- 📈 TOP DOSTAWCY -->
+{% if top_dostawcy and top_dostawcy|length > 0 %}
+<div class="section-title">📦 TOP 5 Dostawców (ROI)</div>
+<div style="background:#12121a;border-radius:12px;padding:12px;margin-bottom:15px">
+{% for d in top_dostawcy[:5] %}
+<div style="display:flex;align-items:center;gap:10px;padding:8px 0;{% if not loop.last %}border-bottom:1px solid #1e1e2e{% endif %}">
+    <div style="font-weight:700;color:#f59e0b;width:20px">{{ loop.index }}</div>
+    <div style="flex:1">
+        <div style="font-weight:600">{{ d.dostawca }}</div>
+        <div style="font-size:0.75rem;color:#64748b">{{ d.sprzedazy_cnt }} szt | {{ "%.0f"|format(d.przychod) }} zł przychód</div>
+    </div>
+    <div style="text-align:right">
+        <div style="font-weight:700;color:{% if d.roi > 50 %}#22c55e{% elif d.roi > 20 %}#eab308{% else %}#ef4444{% endif %}">{{ "%.0f"|format(d.roi) }}%</div>
+        <div style="font-size:0.7rem;color:#64748b">koszt: {{ "%.0f"|format(d.koszt) }} zł</div>
+    </div>
+</div>
+{% endfor %}
+</div>
+{% endif %}
+
+
+<!-- 🎰 BINGO 2026 -->
+<div class="section-title">🎯 BINGO 2026</div>
+<div id="bingo2026-container" style="background:#12121a;border:1px solid #1e1e2e;border-radius:16px;padding:14px;margin-bottom:15px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:0.8rem;color:#64748b">Odkryj <span id="bingo-achieved">...</span> / 25 celów</div>
+        <div id="bingo-lines" style="font-size:0.75rem;color:#22c55e;font-weight:700"></div>
+    </div>
+    <!-- Siatka 5x5 -->
+    <div id="bingo-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px">
+        <!-- wypełniane przez JS -->
+    </div>
+    <div style="margin-top:10px;font-size:0.7rem;color:#64748b;text-align:center">Aktualizuje się automatycznie na podstawie danych w bazie</div>
+</div>
+
+<style>
+.bingo-cell {
+    aspect-ratio:1;
+    border-radius:8px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:3px;
+    cursor:default;
+    transition:all 0.3s;
+    border:1px solid #2a2a3a;
+    background:#0d0d1a;
+    position:relative;
+}
+.bingo-cell.achieved {
+    background:linear-gradient(135deg,#22c55e22,#16a34a11);
+    border-color:#22c55e66;
+    box-shadow:0 0 8px rgba(34,197,94,0.2);
+}
+.bingo-cell.achieved.free {
+    background:linear-gradient(135deg,#f59e0b22,#d97706 11%);
+    border-color:#f59e0b66;
+}
+.bingo-cell .cell-icon {font-size:1rem;line-height:1}
+.bingo-cell .cell-name {font-size:0.5rem;font-weight:700;line-height:1.1;color:#e2e8f0;margin-top:2px}
+.bingo-cell .cell-desc {font-size:0.42rem;color:#64748b;line-height:1.1}
+.bingo-cell.achieved .cell-name {color:#22c55e}
+.bingo-cell.achieved.free .cell-name {color:#f59e0b}
+.bingo-cell .check {display:none;position:absolute;top:2px;right:3px;font-size:0.6rem}
+.bingo-cell.achieved .check {display:block}
+@keyframes bingo-pop {
+    0%{transform:scale(1)} 50%{transform:scale(1.08)} 100%{transform:scale(1)}
+}
+.bingo-cell.achieved {animation: bingo-pop 0.4s ease}
+</style>
+
+<script>
+(function() {
+    fetch('/api/bingo2026')
+        .then(r => r.json())
+        .then(data => {
+            const grid = document.getElementById('bingo-grid');
+            if (!grid) return;
+
+            grid.innerHTML = data.cells.map(c => {
+                const cls = 'bingo-cell' + (c.achieved ? ' achieved' : '') + (c.id === 13 ? ' free' : '');
+                const chk = c.achieved ? '✓' : '';
+                return `<div class="${cls}" title="${c.desc}">
+                    <span class="cell-icon">${c.icon}</span>
+                    <span class="cell-name">${c.name}</span>
+                    <span class="cell-desc">${c.desc}</span>
+                    <span class="check">${chk}</span>
+                </div>`;
+            }).join('');
+
+            document.getElementById('bingo-achieved').textContent = data.achieved_count;
+
+            if (data.bingo_lines && data.bingo_lines.length > 0) {
+                document.getElementById('bingo-lines').textContent = '🎉 BINGO! ' + data.bingo_lines.join(', ');
+            }
+        })
+        .catch(e => console.log('Bingo error:', e));
+})();
+</script>
+
+<!-- Ostatnia aktywność -->
+<div class="section-title">🕐 OSTATNIA AKTYWNOŚĆ</div>
+{% for a in activity %}
+<div class="activity-item">
+    <div class="activity-dot {{ a.color }}"></div>
+    <div class="activity-content">
+        <div class="activity-msg">{{ a.msg }}</div>
+        <div class="activity-time">{{ a.time }}</div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- 🔔 POWIADOMIENIA O SPRZEDAŻY -->
+<div id="salesNotification" style="display:none;position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#22c55e,#16a34a);padding:20px 30px;border-radius:16px;z-index:9999;box-shadow:0 10px 40px rgba(34,197,94,0.4);animation:slideIn 0.5s ease">
+    <div style="display:flex;align-items:center;gap:15px">
+        <span style="font-size:2.5rem">🎉</span>
+        <div>
+            <div style="font-weight:700;font-size:1.2rem;color:#fff">SPRZEDANO!</div>
+            <div id="saleDetails" style="color:rgba(255,255,255,0.9);font-size:0.95rem"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Przycisk testowy -->
+<button onclick="testKasa()" style="position:fixed;bottom:80px;right:20px;padding:12px 16px;background:#8b5cf6;border:none;border-radius:12px;color:#fff;font-weight:600;cursor:pointer;z-index:100;box-shadow:0 4px 15px rgba(139,92,246,0.4)">
+    🔊 TEST
+</button>
+
+<style>
+@keyframes slideIn {
+    from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+@keyframes pulse {
+    0%, 100% { transform: translateX(-50%) scale(1); }
+    50% { transform: translateX(-50%) scale(1.05); }
+}
+#salesNotification {
+    animation: slideIn 0.5s ease, pulse 1s ease-in-out 0.5s infinite;
+}
+</style>
+
+<script>
+// 🔔 System powiadomień głosowych o sprzedaży
+(function() {
+    let lastCheckedIds = new Set();
+    let audioContext = null;
+
+    // Inicjalizacja Audio Context (wymaga interakcji użytkownika)
+    function initAudio() {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        return audioContext;
+    }
+
+    // Odtwórz dźwięk "KASA!" (głośny cha-ching)
+    function playChaChing() {
+        try {
+            const ctx = initAudio();
+            if (ctx.state === 'suspended') ctx.resume();
+
+            // === DZWONEK 1 - niski ton ===
+            const osc1 = ctx.createOscillator();
+            const gain1 = ctx.createGain();
+            osc1.connect(gain1);
+            gain1.connect(ctx.destination);
+            osc1.frequency.value = 523; // C5
+            osc1.type = 'triangle';
+            gain1.gain.setValueAtTime(0.8, ctx.currentTime);
+            gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+            osc1.start(ctx.currentTime);
+            osc1.stop(ctx.currentTime + 0.4);
+
+            // === DZWONEK 2 - wysoki ton ===
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.frequency.value = 784; // G5
+            osc2.type = 'triangle';
+            gain2.gain.setValueAtTime(0.8, ctx.currentTime + 0.1);
+            gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+            osc2.start(ctx.currentTime + 0.1);
+            osc2.stop(ctx.currentTime + 0.5);
+
+            // === DZWONEK 3 - najwyższy (cha-ching!) ===
+            const osc3 = ctx.createOscillator();
+            const gain3 = ctx.createGain();
+            osc3.connect(gain3);
+            gain3.connect(ctx.destination);
+            osc3.frequency.value = 1047; // C6
+            osc3.type = 'triangle';
+            gain3.gain.setValueAtTime(0.9, ctx.currentTime + 0.2);
+            gain3.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.7);
+            osc3.start(ctx.currentTime + 0.2);
+            osc3.stop(ctx.currentTime + 0.7);
+
+            // === SZUM kasy (metaliczny) ===
+            const noise = ctx.createOscillator();
+            const noiseGain = ctx.createGain();
+            noise.connect(noiseGain);
+            noiseGain.connect(ctx.destination);
+            noise.frequency.value = 2000;
+            noise.type = 'square';
+            noiseGain.gain.setValueAtTime(0.15, ctx.currentTime + 0.25);
+            noiseGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+            noise.start(ctx.currentTime + 0.25);
+            noise.stop(ctx.currentTime + 0.35);
+
+            console.log('🔔 KASA!');
+        } catch(e) {
+            console.log('Audio error:', e);
+        }
+    }
+
+    // Mów "KASA! [cena] złotych!" (głośno i wyraźnie)
+    function speak(text) {
+        if ('speechSynthesis' in window) {
+            // Anuluj poprzednie
+            speechSynthesis.cancel();
+
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'pl-PL';
+            msg.rate = 0.9;  // Trochę wolniej dla wyrazistości
+            msg.pitch = 1.2; // Wyższy ton
+            msg.volume = 1.0; // Maksymalna głośność
+
+            // Wybierz polski głos jeśli dostępny
+            const voices = speechSynthesis.getVoices();
+            const plVoice = voices.find(v => v.lang.includes('pl'));
+            if (plVoice) msg.voice = plVoice;
+
+            speechSynthesis.speak(msg);
+            console.log('🗣️ Mówię:', text);
+        }
+    }
+
+    // Pokaż powiadomienie wizualne
+    function showNotification(nazwa, cena) {
+        const notif = document.getElementById('salesNotification');
+        const details = document.getElementById('saleDetails');
+        details.textContent = nazwa + ' - ' + cena.toFixed(0) + ' zł';
+        notif.style.display = 'block';
+
+        // Schowaj po 8s
+        setTimeout(() => {
+            notif.style.display = 'none';
+        }, 8000);
+    }
+
+    // Sprawdź nowe sprzedaże
+    async function checkSales() {
+        try {
+            const response = await fetch('/api/check-sales');
+            const data = await response.json();
+
+            if (data.success && data.new_sales && data.new_sales.length > 0) {
+                for (const sale of data.new_sales) {
+                    // Sprawdź czy już powiadomiliśmy
+                    if (!lastCheckedIds.has(sale.id)) {
+                        lastCheckedIds.add(sale.id);
+
+                        // Dźwięk
+                        playChaChing();
+
+                        // Powiadomienie wizualne
+                        showNotification(sale.nazwa, sale.cena);
+
+                        // Głos - po małym opóźnieniu
+                        setTimeout(() => {
+                            const tekst = 'Kasa! ' + Math.round(sale.cena) + ' złotych!';
+                            speak(tekst);
+                        }, 600);
+
+                        // Odśwież stronę po chwili żeby pokazać nowe dane
+                        setTimeout(() => {
+                            location.reload();
+                        }, 6000);
+
+                        break; // Jedno powiadomienie na raz
+                    }
+                }
+            }
+        } catch(e) {
+            console.log('Check sales error:', e);
+        }
+    }
+
+    // Inicjalizuj głosy (potrzebne dla niektórych przeglądarek)
+    if ('speechSynthesis' in window) {
+        speechSynthesis.getVoices();
+        speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+    }
+
+    // Aktywuj audio po pierwszym kliknięciu
+    document.addEventListener('click', function initOnClick() {
+        initAudio();
+        document.removeEventListener('click', initOnClick);
+    }, { once: true });
+
+    // Sprawdzaj co 30 sekund (szybsza reakcja)
+    setInterval(checkSales, 30000);
+
+    // Pierwsze sprawdzenie po 3s
+    setTimeout(checkSales, 3000);
+
+    console.log('🔔 System powiadomień sprzedaży aktywny (sprawdzanie co 30s)');
+
+    // Funkcja testowa - dostępna globalnie
+    window.testKasa = function() {
+        playChaChing();
+        showNotification('TEST PRODUKT', 199);
+        setTimeout(() => speak('Kasa! 199 złotych!'), 800);
+    };
+})();
+</script>
+{% endblock %}

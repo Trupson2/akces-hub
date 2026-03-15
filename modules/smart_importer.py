@@ -1,0 +1,580 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+SMART IMPORTER - Inteligentne rozpoznawanie dostawcy i cen
+===========================================================
+Automatycznie wykrywa dostawcę po nazwie pliku i stosuje właściwą logikę cenową
++ Automatyczne generowanie META TITLE przez Gemini AI
+"""
+
+import os
+import re
+import json
+from typing import Dict, Any, Optional, Tuple
+
+
+def detect_stan_from_name(nazwa: str) -> str:
+    """
+    Wykrywa stan produktu z nazwy
+    
+    Returns:
+        "Nowy", "Używany", "Powystawowy", lub "Nowy" (default)
+    """
+    nazwa_lower = nazwa.lower()
+    
+    # Powystawowy / Exhibit
+    if any(word in nazwa_lower for word in [
+        'powystawowy', 'exhibit', 'ausstellungsstück', 'display', 
+        'demo', 'showroom', 'floor model'
+    ]):
+        return "Powystawowy"
+    
+    # Używany / Used
+    if any(word in nazwa_lower for word in [
+        'używany', 'used', 'gebraucht', 'refurbished', 
+        'restored', 'second hand', 'pre-owned'
+    ]):
+        return "Używany"
+    
+    # Nowy / New (default)
+    return "Nowy"
+
+
+# Import Gemini AI (opcjonalny)
+GEMINI_AVAILABLE = False
+GEMINI_CLIENT = None
+try:
+    from google import genai
+    from google.genai import types
+    try:
+        from gemini_config import GEMINI_API_KEY
+        if GEMINI_API_KEY and GEMINI_API_KEY != 'WKLEJ_TUTAJ_SWOJ_KLUCZ':
+            GEMINI_CLIENT = genai.Client(api_key=GEMINI_API_KEY)
+            GEMINI_AVAILABLE = True
+    except Exception as e:
+        print(f"⚠️  Gemini config error: {e}")
+        GEMINI_AVAILABLE = False
+except Exception as e:
+    print(f"⚠️  Gemini import error: {e}")
+    GEMINI_AVAILABLE = False
+
+
+def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin: str = '', retry_count: int = 5) -> str:
+    """
+    Generuje META TITLE używając Gemini AI
+    
+    Returns:
+        META TITLE string (zawsze coś zwraca - fallback na produkt_nazwa)
+    """
+    # Skróć nazwę dla lepszego wyświetlania
+    short_name = produkt_nazwa[:50] + '...' if len(produkt_nazwa) > 50 else produkt_nazwa
+    
+    if not GEMINI_AVAILABLE or not GEMINI_CLIENT:
+        print(f"⚠️  [AI DISABLED] Gemini niedostępny - używam oryginalnej nazwy")
+        return produkt_nazwa[:75]
+    
+    print(f"🤖 [AI REQUEST] Wysyłam do Gemini: {short_name}")
+    
+    # RETRY LOOP - 3 próby
+    for attempt in range(retry_count):
+        try:
+            prompt = f"""Wygeneruj tytuł produktu dla Allegro używając słów kluczowych dla SEO.
+
+PRODUKT: {produkt_nazwa}
+{f'EAN: {produkt_ean}' if produkt_ean else ''}
+{f'ASIN: {produkt_asin}' if produkt_asin else ''}
+
+ZASADY:
+1. NAJPIERW rodzaj produktu (Smartwatch, Statyw, Kamera, Tło)
+2. POTEM rozmiar lub model (Galaxy Watch 4, 2.5x1.8m, 63cm)
+3. POTEM najważniejsze cechy (GPS, NFC, Aluminiowy, Rustykalne)
+4. NA KOŃCU marka (Samsung, Xiaoterna) - jeśli jest znana marka
+5. MAX 75 znaków, bez przecinków, tylko spacje
+6. BEZ stanu (Nowy/Używany)
+
+PRZYKŁADY:
+"Smartwatch Galaxy Watch 4 GPS NFC Pulsometr Samsung"
+"Tło Fotograficzne 2.5x1.8m Kuchnia Salon Xiaoterna"
+"Statyw Aluminiowy 63cm Regulowany JOILCAN"
+
+Wygeneruj TYLKO tytuł, bez komentarzy:"""
+
+            # Nowy API: używamy client.models.generate_content
+            if attempt > 0:
+                print(f"   ↻ [RETRY {attempt+1}/{retry_count}] Ponawiam zapytanie...")
+            
+            response = GEMINI_CLIENT.models.generate_content(
+                model='gemini-2.0-flash',
+                contents=prompt
+            )
+            try:
+                from .pallet_monitor import log_gemini_usage
+                log_gemini_usage(response, 'meta_title')
+            except: pass
+
+            # ========== RAW RESPONSE LOGGING ==========
+            print(f"   📄 [RAW RESPONSE] Type: {type(response)}")
+            if hasattr(response, 'text'):
+                print(f"   📄 [RAW RESPONSE] Text: {response.text[:200] if response.text else 'None'}...")
+            else:
+                print(f"   📄 [RAW RESPONSE] No .text attribute")
+            
+            # WYCIĄGNIJ TEKST Z ODPOWIEDZI (różne sposoby)
+            meta_title = None
+            
+            # Sposób 1: response.text
+            if hasattr(response, 'text') and response.text:
+                meta_title = response.text.strip()
+                print(f"   ✓ [RESPONSE] Odebrano przez response.text")
+            
+            # Sposób 2: response.candidates
+            elif hasattr(response, 'candidates') and len(response.candidates) > 0:
+                candidate = response.candidates[0]
+                if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
+                    parts_text = []
+                    for part in candidate.content.parts:
+                        if hasattr(part, 'text') and part.text:
+                            parts_text.append(part.text)
+                    if parts_text:
+                        meta_title = ''.join(parts_text).strip()
+                        print(f"   ✓ [RESPONSE] Odebrano przez candidates[0].content.parts")
+            
+            # Sposób 3: str(response)
+            if not meta_title:
+                response_str = str(response)
+                if response_str and len(response_str) > 10:
+                    meta_title = response_str.strip()
+                    print(f"   ✓ [RESPONSE] Odebrano przez str(response)")
+            
+            # Jeśli nadal nic - error z debug info
+            if not meta_title:
+                print(f"   ✗ [ERROR] Gemini nie zwrócił tekstu (próba {attempt+1}/{retry_count})")
+                print(f"   🔍 [DEBUG] Response type: {type(response)}")
+                print(f"   🔍 [DEBUG] Has text: {hasattr(response, 'text')}")
+                print(f"   🔍 [DEBUG] Has candidates: {hasattr(response, 'candidates')}")
+                if hasattr(response, 'candidates'):
+                    print(f"   🔍 [DEBUG] Candidates count: {len(response.candidates)}")
+                if attempt < retry_count - 1:
+                    import time
+                    time.sleep(2)  # Poczekaj 2 sekundy przed retry (więcej czasu dla Gemini)
+                    continue
+                else:
+                    print(f"   ✗ [FALLBACK] Używam oryginalnej nazwy po {retry_count} próbach")
+                    return produkt_nazwa[:75]
+            
+            # ========== SOLIDNE CZYSZCZENIE TEKSTU ==========
+            # Usuń markdown code blocks
+            import re
+            meta_title = re.sub(r'```json\s*', '', meta_title)
+            meta_title = re.sub(r'```\s*', '', meta_title)
+            meta_title = meta_title.replace('**', '').strip()
+            
+            # Jeśli odpowiedź w JSON - wyciągnij wartość "meta_title" lub "title"
+            if meta_title.startswith('{') or 'meta_title' in meta_title.lower():
+                try:
+                    import json
+                    # Spróbuj sparsować jako JSON
+                    json_match = re.search(r'\{[^}]+\}', meta_title, re.DOTALL)
+                    if json_match:
+                        json_str = json_match.group(0)
+                        data = json.loads(json_str)
+                        # Szukaj klucza z tytułem
+                        for key in ['meta_title', 'title', 'name', 'product_title']:
+                            if key in data:
+                                meta_title = data[key]
+                                print(f"   🔧 [JSON CLEANED] Extracted '{key}': {meta_title}")
+                                break
+                except Exception as e:
+                    print(f"   ⚠️  [JSON PARSE] Nie udało się sparsować JSON: {str(e)[:50]}")
+                    # Kontynuuj z czyszczeniem tekstowym
+            
+            # Usuń cudzysłowy, newlines, etc
+            meta_title = meta_title.strip('"').strip("'").strip()
+            meta_title = meta_title.replace('\n', ' ').replace('\r', ' ')
+            
+            # Usuń wielokrotne spacje
+            meta_title = re.sub(r'\s+', ' ', meta_title)
+            
+            # Ogranicz do 75 znaków
+            if len(meta_title) > 75:
+                meta_title = meta_title[:75].rsplit(' ', 1)[0]
+            
+            # Walidacja - czy to sensowny tytuł?
+            if len(meta_title) < 5:
+                print(f"   ✗ [ERROR] Tytuł za krótki ({len(meta_title)} znaków): '{meta_title}'")
+                if attempt < retry_count - 1:
+                    import time
+                    time.sleep(2)  # Więcej czasu przed retry
+                    continue
+                else:
+                    print(f"   ✗ [FALLBACK] Używam oryginalnej nazwy")
+                    return produkt_nazwa[:75]
+            
+            # SUKCES!
+            print(f"   ✅ [SUCCESS] Wygenerowano: {meta_title}")
+            return meta_title
+            
+        except Exception as e:
+            error_msg = str(e)
+            print(f"   ✗ [ERROR] Błąd Gemini (próba {attempt+1}/{retry_count}): {error_msg[:100]}")
+            
+            # Sprawdź czy to quota error
+            if '429' in error_msg or 'quota' in error_msg.lower():
+                print(f"   ⏰ [QUOTA] Quota exceeded! Przerywam próby.")
+                break
+            
+            # Jeśli to ostatnia próba - fallback
+            if attempt >= retry_count - 1:
+                print(f"   ✗ [FALLBACK] Używam oryginalnej nazwy po błędach")
+                return produkt_nazwa[:75]
+            
+            # Czekaj przed kolejną próbą
+            import time
+            time.sleep(2)  # Więcej czasu przed retry po błędzie
+    
+    # Fallback - zawsze zwróć coś sensownego!
+    print(f"   ✗ [FALLBACK] Wszystkie próby failed - używam oryginalnej nazwy")
+    return produkt_nazwa[:75]
+
+
+def detect_vendor_from_filename(filename: str) -> Tuple[str, str]:
+    """
+    Rozpoznaje dostawcę po nazwie pliku
+    
+    Returns:
+        (vendor_name, vendor_type): np. ("Jobalots", "manifest") lub ("Warrington", "offer")
+    """
+    filename_lower = filename.lower()
+    
+    # SCENARIUSZ A: Warrington/Miglo (pliki "Oferta", "Paleta", ID)
+    if any(x in filename_lower for x in ['warrington', 'offer', 'oferta', 'pallet']):
+        if 'miglo' in filename_lower:
+            return ("Miglo", "offer")
+        return ("Warrington", "offer")
+    
+    # SCENARIUSZ B: Jobalots (pliki "Manifest")
+    if 'manifest' in filename_lower or 'jobalots' in filename_lower:
+        return ("Jobalots", "manifest")
+    
+    # Dodatkowe heurystyki
+    if 'miglo' in filename_lower:
+        return ("Miglo", "offer")
+    
+    # Domyślnie Warrington (najczęstszy)
+    return ("Warrington", "offer")
+
+
+def calculate_unit_cost_with_vat(unit_price: float, quantity: int = 1) -> float:
+    """
+    Oblicza koszt jednostkowy BRUTTO (z VAT 23%)
+    Dla Warrington/Miglo - cena z pliku * 1.23
+    
+    Args:
+        unit_price: Cena jednostkowa NETTO z Excela
+        quantity: Ilość sztuk (ignorowana - cena jest za sztukę)
+        
+    Returns:
+        Koszt jednostkowy BRUTTO
+    """
+    return unit_price * 1.23
+
+
+def calculate_proportional_cost(total_cost: float, rrp: float, all_products_rrp: list) -> float:
+    """
+    Rozdziela całkowity koszt palety proporcjonalnie do RRP produktów
+    Dla Jobalots - użytkownik podaje KOSZT CAŁKOWITY, rozdzielamy proporcjonalnie
+    
+    Args:
+        total_cost: Całkowity koszt palety BRUTTO (podany przez użytkownika)
+        rrp: RRP tego produktu
+        all_products_rrp: Lista RRP wszystkich produktów na palecie
+        
+    Returns:
+        Koszt przypadający na ten produkt
+    """
+    total_rrp = sum(all_products_rrp)
+    if total_rrp == 0:
+        # Równy podział jeśli brak RRP
+        return total_cost / len(all_products_rrp) if all_products_rrp else 0
+    
+    # Proporcjonalnie do RRP
+    proportion = rrp / total_rrp
+    return total_cost * proportion
+
+
+def smart_import_excel(
+    file_path: str,
+    filename: str,
+    paleta_id: Optional[int] = None,
+    manual_vendor: Optional[str] = None,
+    manual_total_cost: Optional[float] = None
+) -> Dict[str, Any]:
+    """
+    Główna funkcja Smart Importera
+    
+    Args:
+        file_path: Ścieżka do pliku Excel
+        filename: Nazwa pliku (do auto-detekcji)
+        paleta_id: ID palety (opcjonalne)
+        manual_vendor: Ręcznie podany dostawca (nadpisuje auto-detekcję)
+        manual_total_cost: Dla Jobalots - całkowity koszt palety BRUTTO
+        
+    Returns:
+        Dict z wynikami importu
+    """
+    from modules.inventory_utils import import_excel_manifest
+    from modules.database import get_db, execute_db
+    
+    result = {
+        "success": False,
+        "vendor_detected": "",
+        "vendor_type": "",
+        "products_imported": 0,
+        "total_cost_calculated": 0.0,
+        "errors": [],
+        "details": []
+    }
+    
+    # 1. WYKRYJ DOSTAWCĘ
+    vendor, vendor_type = detect_vendor_from_filename(filename)
+    if manual_vendor:
+        vendor = manual_vendor
+        result["details"].append(f"Użyto ręcznie podanego dostawcy: {vendor}")
+    else:
+        result["details"].append(f"Auto-wykryto dostawcę: {vendor} (typ: {vendor_type})")
+    
+    result["vendor_detected"] = vendor
+    result["vendor_type"] = vendor_type
+    
+    # 2. IMPORT PODSTAWOWY (użyj istniejącej funkcji)
+    import_result = import_excel_manifest(
+        file_path=file_path,
+        dostawca=vendor,
+        paleta_id=paleta_id,
+        update_existing=False
+    )
+    
+    if not import_result.get("success"):
+        result["errors"] = import_result.get("errors", [])
+        return result
+    
+    result["products_imported"] = import_result.get("added", 0)
+    
+    # 3. ZASTOSUJ LOGIKĘ CENOWĄ
+    try:
+        conn = get_db()
+        
+        if vendor_type == "offer":
+            # SCENARIUSZ A: Warrington/Miglo - dokładne ceny jednostkowe z VAT
+            result["details"].append(f"Zastosowano logikę: Warrington/Miglo (Unit Price * 1.23)")
+            
+            # Pobierz wszystkie produkty z tej palety
+            products = conn.execute('''
+                SELECT id, cena_netto, ilosc FROM produkty 
+                WHERE paleta_id = ? AND dostawca = ?
+            ''', (paleta_id, vendor)).fetchall()
+            
+            for p in products:
+                unit_netto = p['cena_netto'] if p['cena_netto'] > 0 else 0
+                quantity = p['ilosc'] if p['ilosc'] > 0 else 1
+                
+                # Cena BRUTTO = netto * 1.23
+                unit_brutto = calculate_unit_cost_with_vat(unit_netto, quantity)
+                total_brutto = unit_brutto * quantity
+                
+                # Aktualizuj w bazie
+                execute_db('''
+                    UPDATE produkty 
+                    SET cena_brutto = ?
+                    WHERE id = ?
+                ''', (total_brutto, p['id']))
+                
+                result["total_cost_calculated"] += total_brutto
+            
+        elif vendor_type == "manifest":
+            # SCENARIUSZ B: Jobalots - proporcjonalny podział kosztu
+            
+            if manual_total_cost is None or manual_total_cost <= 0:
+                result["errors"].append("Dla Jobalots musisz podać całkowity koszt palety BRUTTO!")
+                result["success"] = False
+                return result
+            
+            result["details"].append(f"Zastosowano logikę: Jobalots (proporcjonalny podział {manual_total_cost} zł)")
+            
+            # Pobierz wszystkie RRP z palety
+            products = conn.execute('''
+                SELECT id, cena_allegro, ilosc FROM produkty 
+                WHERE paleta_id = ? AND dostawca = ?
+            ''', (paleta_id, vendor)).fetchall()
+            
+            all_rrp = [p['cena_allegro'] * p['ilosc'] for p in products]
+            total_rrp = sum(all_rrp)
+            
+            for i, p in enumerate(products):
+                product_rrp = p['cena_allegro'] * p['ilosc']
+                
+                # Proporcjonalny koszt
+                product_cost = calculate_proportional_cost(
+                    manual_total_cost,
+                    product_rrp,
+                    all_rrp
+                )
+                
+                # Aktualizuj w bazie (całkowity koszt, nie per sztuka)
+                execute_db('''
+                    UPDATE produkty 
+                    SET cena_brutto = ?
+                    WHERE id = ?
+                ''', (product_cost, p['id']))
+            
+            result["total_cost_calculated"] = manual_total_cost
+        
+        conn.commit()
+
+        result["success"] = True
+
+        # 4. GENERUJ META TITLE (jeśli Gemini dostępne)
+        if GEMINI_AVAILABLE:
+            try:
+                print(f"\n🤖 [AI GENERATION] Rozpoczynam generowanie meta_title...")
+                result["details"].append("Generuję META TITLE przez Gemini AI...")
+                conn = get_db()
+                
+                # Pobierz wszystkie produkty z tej palety
+                products = conn.execute('''
+                    SELECT id, nazwa, ean, asin FROM produkty 
+                    WHERE paleta_id = ?
+                ''', (paleta_id,)).fetchall()
+                
+                print(f"   📦 Znaleziono {len(products)} produktów do przetworzenia")
+                
+                meta_titles_generated = 0
+                stany_detected = 0
+                gpsr_generated = 0
+                for i, p in enumerate(products, 1):
+                    try:
+                        print(f"   [{i}/{len(products)}] Product ID {p['id']}: {p['nazwa'][:40]}...")
+                        
+                        # Wykryj stan z nazwy
+                        stan = detect_stan_from_name(p['nazwa'])
+                        print(f"       📋 Stan wykryty: {stan}")
+                        
+                        # Generuj GPSR
+                        from modules.utils import generuj_gpsr_info
+                        gpsr = generuj_gpsr_info(p['nazwa'] or '', kategoria='')
+                        if gpsr:
+                            print(f"       🛡️  GPSR wygenerowany: {len(gpsr)} znaków")
+                        
+                        # Generuj meta_title
+                        meta_title = generate_meta_title(
+                            produkt_nazwa=p['nazwa'] or '',
+                            produkt_ean=p['ean'] or '',
+                            produkt_asin=p['asin'] or ''
+                        )
+                        
+                        # Zapisz meta_title, stan i GPSR do bazy
+                        if meta_title:
+                            # Aktualizuj meta_title + nazwa (zastap angielska) + parameters z stanem + GPSR
+                            params_update = '''
+                                UPDATE produkty
+                                SET meta_title = ?,
+                                    nazwa = ?,
+                                    parameters = json_set(
+                                        json_set(COALESCE(parameters, '{}'), '$.Stan', ?),
+                                        '$.GPSR', ?
+                                    )
+                                WHERE id = ?
+                            '''
+                            execute_db(params_update, (meta_title, meta_title, stan, gpsr or '', p['id']))
+                            meta_titles_generated += 1
+                            stany_detected += 1
+                            if gpsr:
+                                gpsr_generated += 1
+                            print(f"   ✓ [{i}/{len(products)}] Zapisano: {meta_title[:60]}")
+                            print(f"   ✓ Stan: {stan}")
+                            if gpsr:
+                                print(f"   ✓ GPSR: {len(gpsr)} znaków")
+                        else:
+                            print(f"   ✗ [{i}/{len(products)}] Brak meta_title (empty)")
+                            # Zapisz przynajmniej stan + GPSR
+                            params_update = '''
+                                UPDATE produkty 
+                                SET parameters = json_set(
+                                    json_set(COALESCE(parameters, '{}'), '$.Stan', ?),
+                                    '$.GPSR', ?
+                                )
+                                WHERE id = ?
+                            '''
+                            execute_db(params_update, (stan, gpsr or '', p['id']))
+                            stany_detected += 1
+                            if gpsr:
+                                gpsr_generated += 1
+                            print(f"   ✓ Stan zapisany: {stan}")
+                            if gpsr:
+                                print(f"   ✓ GPSR zapisany: {len(gpsr)} znaków")
+                        
+                        # Delay aby nie przekroczyć limitu API
+                        # AUTO-ADJUST: zaczyna od 0.1s, zwiększa gdy quota error
+                        if i < len(products):
+                            import time
+                            # API DELAY - wolniejszy = stabilniejszy
+                            # TIER 1: 2000 RPM, ale lepiej wolniej = pewniej
+                            if not hasattr(smart_import_excel, '_api_delay'):
+                                smart_import_excel._api_delay = 2.0  # 2s = ~30 req/min (BEZPIECZNY!)
+                            
+                            time.sleep(smart_import_excel._api_delay)
+                            print(f"   ⏱️  Delay: {smart_import_excel._api_delay}s (wolniej = stabilniej)")
+                    
+                    except Exception as e:
+                        # Jeśli błąd (np. quota) - kontynuuj z innymi
+                        error_msg = str(e)[:100]
+                        print(f"   ✗ [{i}/{len(products)}] ERROR: {error_msg}")
+                        
+                        # AUTO-SLOWDOWN: zwiększ delay gdy quota exceeded
+                        if '429' in error_msg or 'quota' in error_msg.lower() or 'Resource has been exhausted' in error_msg:
+                            if not hasattr(smart_import_excel, '_api_delay'):
+                                smart_import_excel._api_delay = 0.1
+                            
+                            old_delay = smart_import_excel._api_delay
+                            smart_import_excel._api_delay = min(old_delay * 2, 5.0)  # Max 5s
+                            print(f"   ⚠️  QUOTA EXCEEDED! Zwiększam delay: {old_delay}s → {smart_import_excel._api_delay}s")
+                            print(f"   💡 TIP: Dodaj kartę kredytową w Google AI Studio aby zwiększyć limit z 15 RPM → 2000 RPM!")
+                        
+                        result["details"].append(f"⚠️ Produkt {i}: {error_msg}")
+                        continue
+                
+                conn.commit()
+
+                print(f"\n✅ [AI COMPLETE] Wygenerowano {meta_titles_generated}/{len(products)} meta_title")
+                print(f"✅ [STAN COMPLETE] Wykryto stan dla {stany_detected}/{len(products)} produktów")
+                print(f"✅ [GPSR COMPLETE] Wygenerowano GPSR dla {gpsr_generated}/{len(products)} produktów")
+                
+                result["details"].append(f"✅ Wygenerowano {meta_titles_generated}/{len(products)} tytułów META TITLE")
+                result["details"].append(f"✅ Wykryto stan dla {stany_detected}/{len(products)} produktów")
+                result["details"].append(f"✅ Wygenerowano GPSR dla {gpsr_generated}/{len(products)} produktów")
+                
+            except Exception as e:
+                result["details"].append(f"⚠️  Błąd generowania META TITLE: {str(e)}")
+        else:
+            result["details"].append("⚠️  Gemini AI niedostępne - META TITLE nie wygenerowane")
+        
+    except Exception as e:
+        result["errors"].append(f"Błąd obliczania cen: {str(e)}")
+        return result
+    
+    return result
+
+
+def prompt_for_total_cost_if_jobalots(vendor_type: str) -> Optional[float]:
+    """
+    Jeśli to Jobalots, wyświetl prompt o całkowity koszt
+    
+    Returns:
+        None jeśli nie Jobalots, lub wartość float z inputu
+    """
+    if vendor_type != "manifest":
+        return None
+    
+    # To będzie wywołane z UI - Flask przekaże to jako parametr
+    # Zwracamy None tutaj, bo prompt jest w HTML formularzu
+    return None

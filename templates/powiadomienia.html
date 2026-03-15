@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="header">
+    <h1>🔔 POWIADOMIENIA</h1>
+</div>
+
+{% for n in notyfikacje %}
+<div style="display:flex;align-items:center;gap:12px;padding:15px;background:#12121a;border-radius:12px;margin-bottom:10px;border-left:3px solid {{ '#22c55e' if n.type == 'sale' else '#eab308' }}">
+    <div style="font-size:1.5rem">{{ '💰' if n.type == 'sale' else '⚠️' }}</div>
+    <div style="flex:1">
+        <div style="font-weight:600">{{ n.msg }}</div>
+        <div style="font-size:0.75rem;color:#64748b">{{ n.time }}</div>
+    </div>
+</div>
+{% endfor %}
+
+{% if not notyfikacje %}
+<div style="text-align:center;color:#64748b;padding:40px">
+    <div style="font-size:3rem;margin-bottom:15px">🔔</div>
+    <div>Brak nowych powiadomień</div>
+</div>
+{% endif %}
+
+<a href="/" class="back">← Powrót</a>
+{% endblock %}

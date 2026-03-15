@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="header">
+    <h1>🧮 KALKULATOR MARŻY</h1>
+    <small>Oblicz cenę sprzedaży Allegro</small>
+</div>
+
+<form method="POST" action="/narzedzia/kalkulator">
+<div class="card">
+    <div class="form-group">
+        <label>💰 Cena zakupu (brutto)</label>
+        <input type="number" step="0.01" name="cena_zakupu" class="form-control" value="{{ cena_zakupu or '' }}" placeholder="np. 50.00" required>
+    </div>
+    <div class="form-row">
+        <div class="form-group">
+            <label>📈 Marża (%)</label>
+            <input type="number" name="marza" class="form-control" value="{{ marza or 40 }}">
+        </div>
+        <div class="form-group">
+            <label>📁 Kategoria</label>
+            <select name="kategoria" class="form-control">
+                <option value="motoryzacja" {{ 'selected' if kategoria=='motoryzacja' else '' }}>🚗 Motoryzacja (8%)</option>
+                <option value="elektronika" {{ 'selected' if kategoria=='elektronika' else '' }}>📷 Elektronika (10%)</option>
+                <option value="inne" {{ 'selected' if kategoria=='inne' or not kategoria else '' }}>📦 Inne (11%)</option>
+                <option value="dom_ogrod" {{ 'selected' if kategoria=='dom_ogrod' else '' }}>🏠 Dom i ogród (12%)</option>
+                <option value="moda" {{ 'selected' if kategoria=='moda' else '' }}>👕 Moda (15%)</option>
+            </select>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-success">📊 OBLICZ</button>
+</div>
+</form>
+
+{% if wynik %}
+<div class="calc-result">
+    <div class="card-title" style="text-align:center;color:#3b82f6;margin-bottom:15px">📊 WYNIK</div>
+    <div class="calc-row">
+        <span class="calc-label">Cena zakupu:</span>
+        <span class="calc-value">{{ wynik.cena_zakupu }} zł</span>
+    </div>
+    <div class="calc-row">
+        <span class="calc-label">Marża ({{ wynik.marza }}%):</span>
+        <span class="calc-value green">+{{ wynik.marza_kwota }} zł</span>
+    </div>
+    <div class="calc-row">
+        <span class="calc-label">Prowizja Allegro ({{ wynik.prowizja_procent }}%):</span>
+        <span class="calc-value red">-{{ wynik.prowizja_kwota }} zł</span>
+    </div>
+    <div class="calc-row">
+        <span class="calc-label">VAT ({{ wynik.vat_procent }}%):</span>
+        <span class="calc-value red">+{{ wynik.vat_kwota }} zł</span>
+    </div>
+    <div class="calc-row">
+        <span class="calc-label">Cena netto sprzedaży:</span>
+        <span class="calc-value">{{ wynik.cena_allegro_netto }} zł</span>
+    </div>
+    <div class="calc-row calc-highlight">
+        <span class="calc-label" style="font-weight:600">💵 CENA ALLEGRO (brutto):</span>
+        <span class="calc-value green big">{{ wynik.cena_allegro }} zł</span>
+    </div>
+    <div class="calc-row">
+        <span class="calc-label">Zysk netto:</span>
+        <span class="calc-value green">{{ wynik.zysk_netto }} zł</span>
+    </div>
+</div>
+
+<div class="sugestia">
+    <div style="font-size:0.85rem;color:#94a3b8;margin-bottom:5px">💡 Sugestia (zaokrąglona do .99):</div>
+    <div class="sugestia-value">{{ wynik.cena_sugerowana }} zł</div>
+</div>
+{% endif %}
+
+<a href="/narzedzia" class="back">← Powrót</a>
+{% endblock %}

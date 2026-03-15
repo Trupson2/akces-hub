@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse Layout Editor - Akces Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .editor-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 350px;
+            grid-template-rows: 60px 1fr 50px;
+            height: 100vh;
+            gap: 0;
+        }
+
+        /* TOP BAR */
+        .top-bar {
+            grid-column: 1 / -1;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .top-bar h1 {
+            font-size: 24px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .top-bar-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        /* LEFT PANEL - REGAŁY */
+        .left-panel {
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .panel-section {
+            margin-bottom: 30px;
+        }
+
+        .panel-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #a0aec0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .shelf-palette {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .shelf-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: grab;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            font-weight: 600;
+        }
+
+        .shelf-item:hover {
+            transform: scale(1.05);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .shelf-item:active {
+            cursor: grabbing;
+        }
+
+        .templates {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .template-btn {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .template-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        /* CENTER - CANVAS */
+        .canvas-container {
+            position: relative;
+            background: rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .canvas-wrapper {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        #editor-canvas {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            cursor: crosshair;
+        }
+
+        .canvas-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            flex-direction: column;
+        }
+
+        .control-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 0, 0, 0.7);
+            transform: scale(1.1);
+        }
+
+        .canvas-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* RIGHT PANEL - PROPERTIES */
+        .right-panel {
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .property-group {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .property-group h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #a0aec0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .property-row {
+            margin-bottom: 15px;
+        }
+
+        .property-row label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 8px;
+            color: #cbd5e0;
+        }
+
+        .property-row input,
+        .property-row select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .property-row input:focus,
+        .property-row select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+        }
+
+        .radio-option {
+            flex: 1;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .radio-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .radio-option.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+            border-color: white;
+        }
+
+        .color-option.active {
+            border-width: 3px;
+            border-color: white;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+
+        /* BOTTOM BAR */
+        .bottom-bar {
+            grid-column: 1 / -1;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .bottom-bar-left {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: #cbd5e0;
+        }
+
+        .bottom-bar-right {
+            display: flex;
+            gap: 15px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #48bb78;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* MODAL */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-body textarea {
+            width: 100%;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .no-selection {
+            text-align: center;
+            padding: 40px 20px;
+            color: #a0aec0;
+        }
+
+        .no-selection-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        /* BULK OPERATIONS */
+        .bulk-panel {
+            padding: 20px;
+        }
+
+        .bulk-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .bulk-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .bulk-count {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .bulk-actions {
+            display: grid;
+            gap: 10px;
+        }
+
+        .bulk-group {
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .bulk-group-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #cbd5e0;
+        }
+
+        .selected-shelf-outline {
+            stroke: #fbbf24 !important;
+            stroke-width: 3px !important;
+        }
+
+        .drag-selection-box {
+            position: absolute;
+            border: 2px dashed #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            pointer-events: none;
+            z-index: 1000;
+        }
+    </style>
+    <link rel="stylesheet" href="/static/kiosk.css">
+</head>
+<body>
+<script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
+    <div class="editor-container">
+        <!-- TOP BAR -->
+        <div class="top-bar">
+            <h1>
+                <span>🏭</span>
+                Warehouse Layout Editor
+            </h1>
+            <div class="top-bar-actions">
+                <button class="btn btn-secondary" onclick="exportLayout()">
+                    📥 Export JSON
+                </button>
+                <button class="btn btn-secondary" onclick="importLayout()">
+                    📤 Import JSON
+                </button>
+                <button class="btn btn-primary" onclick="previewLayout()">
+                    👁️ Preview 3D
+                </button>
+                <button class="btn btn-primary" onclick="saveLayout()">
+                    💾 Zapisz Layout
+                </button>
+                <button class="btn btn-danger" onclick="clearLayout()">
+                    ❌ Reset
+                </button>
+            </div>
+        </div>
+
+        <!-- LEFT PANEL - REGAŁY -->
+        <div class="left-panel">
+            <div class="panel-section">
+                <h3>📦 Regały</h3>
+                <button class="template-btn" onclick="addNewShelf()" style="width: 100%; margin-bottom: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    ➕ Dodaj Regał (Auto-numeracja)
+                </button>
+                <div style="font-size: 12px; color: #cbd5e0; margin-bottom: 10px;">
+                    <strong>Następny:</strong> <span id="next-shelf-name">A1</span>
+                </div>
+                <div style="font-size: 11px; color: #a0aec0;">
+                    Klik aby dodać regał z automatyczną numeracją (A1, A2, B1, B2...)
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>📐 Rzędy</h3>
+                <div style="font-size: 12px; color: #cbd5e0; margin-bottom: 10px;">
+                    <label>Aktualny rząd:</label>
+                    <select id="current-row" onchange="updateNextShelfName()" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; margin-top: 5px;">
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                        <option value="E">E</option>
+                        <option value="F">F</option>
+                        <option value="G">G</option>
+                        <option value="H">H</option>
+                        <option value="I">I</option>
+                        <option value="J">J</option>
+                    </select>
+                </div>
+                <button class="template-btn" onclick="nextRow()">
+                    ⏭️ Następny rząd
+                </button>
+            </div>
+
+            <div class="panel-section">
+                <h3>📐 Templates</h3>
+                <div class="templates">
+                    <button class="template-btn" onclick="applyTemplate('u-shape')">
+                        🔲 U-Shape (14 regałów)
+                    </button>
+                    <button class="template-btn" onclick="applyTemplate('l-shape')">
+                        📐 L-Shape (10 regałów)
+                    </button>
+                    <button class="template-btn" onclick="applyTemplate('line')">
+                        ━ Line (2 rzędy naprzeciw)
+                    </button>
+                    <button class="template-btn" onclick="applyTemplate('grid')">
+                        ⊞ Grid (4x4 siatka)
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>🖼️ Tło</h3>
+                <input type="file" id="bg-upload" accept="image/*" style="display: none;">
+                <button class="template-btn" onclick="document.getElementById('bg-upload').click()">
+                    📷 Dodaj zdjęcie
+                </button>
+                <div class="property-row" style="margin-top: 10px;">
+                    <label>Przezroczystość tła</label>
+                    <input type="range" id="bg-opacity" min="0" max="100" value="30" 
+                           onchange="updateBgOpacity(this.value)">
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER - CANVAS -->
+        <div class="canvas-container">
+            <div class="canvas-wrapper">
+                <canvas id="editor-canvas" width="800" height="600"></canvas>
+            </div>
+
+            <div class="canvas-controls">
+                <button class="control-btn" onclick="zoomIn()" title="Zoom In">+</button>
+                <button class="control-btn" onclick="zoomOut()" title="Zoom Out">−</button>
+                <button class="control-btn" onclick="resetZoom()" title="Reset">⟲</button>
+                <button class="control-btn" onclick="toggleGrid()" title="Grid">⊞</button>
+            </div>
+
+            <div class="canvas-info" style="padding: 15px;">
+                <div style="font-weight: 600; font-size: 14px; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px;">📊 Statystyki</div>
+                <div><strong>Grid:</strong> <span id="info-grid">20x15</span></div>
+                <div><strong>Regałów:</strong> <span id="info-shelves">0</span></div>
+                <div><strong>Rzędów:</strong> <span id="info-rows">0</span></div>
+                <div><strong>Zoom:</strong> <span id="info-zoom">100%</span></div>
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <div><strong>Pojemność:</strong> <span id="info-capacity">0</span> prod.</div>
+                    <div style="font-size: 11px; color: #a0aec0; margin-top: 5px;">
+                        <span id="info-area">0</span> m² powierzchni
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL - PROPERTIES -->
+        <div class="right-panel" id="properties-panel">
+            <div class="no-selection">
+                <div class="no-selection-icon">🎯</div>
+                <p>Kliknij na regał aby edytować właściwości</p>
+                <p style="margin-top: 10px; font-size: 12px; color: #718096;">
+                    lub przeciągnij nowy regał z lewej strony
+                </p>
+            </div>
+        </div>
+
+        <!-- BOTTOM BAR -->
+        <div class="bottom-bar">
+            <div class="bottom-bar-left">
+                <div class="status-item">
+                    <div class="status-dot"></div>
+                    <span>Editor Ready</span>
+                </div>
+                <div class="status-item">
+                    <span>🖱️ Click - Select</span>
+                </div>
+                <div class="status-item">
+                    <span>Shift+Click - Multi-select</span>
+                </div>
+                <div class="status-item">
+                    <span>Ctrl+A - Select All</span>
+                </div>
+                <div class="status-item">
+                    <span>Del - Delete</span>
+                </div>
+            </div>
+
+            <div class="bottom-bar-right">
+                <button class="btn btn-secondary" onclick="undo()">↶ Undo</button>
+                <button class="btn btn-secondary" onclick="redo()">↷ Redo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL - Import/Export -->
+    <div class="modal-overlay" id="json-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">📥 Import Layout JSON</h3>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <textarea id="json-textarea" placeholder="Wklej JSON layout tutaj..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Anuluj</button>
+                <button class="btn btn-primary" onclick="confirmImport()">Importuj</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // STAN APLIKACJI
+        let canvas, ctx;
+        let shelves = []; // Umieszczone regały
+        let selectedShelf = null;
+        let selectedShelves = []; // BULK: Multi-select
+        let draggedShelf = null;
+        let isDragging = false;
+        let isPanning = false;
+        let panStart = { x: 0, y: 0 };
+        let offset = { x: 0, y: 0 };
+        let zoom = 1;
+        let gridSize = 40;
+        let showGrid = true;
+        let bgImage = null;
+        let bgOpacity = 0.3;
+
+        // BULK: Drag selection
+        let isDragSelecting = false;
+        let dragSelectStart = { x: 0, y: 0 };
+        let dragSelectEnd = { x: 0, y: 0 };
+
+        // Historia dla undo/redo
+        let history = [];
+        let historyIndex = -1;
+
+        // Init
+        // Auto-numeracja state
+        let currentRow = 'A';
+        let currentNumber = 1;
+        let rowCounts = {}; // Track how many shelves in each row
+        
+        window.onload = function() {
+            canvas = document.getElementById('editor-canvas');
+            ctx = canvas.getContext('2d');
+            
+            updateNextShelfName();
+            setupEventListeners();
+            render();
+        };
+
+        // Auto-add nowy regał z numeracją
+        function addNewShelf() {
+            const shelfName = currentRow + currentNumber;
+            
+            // Dodaj regał w centrum canvasu
+            const centerX = (canvas.width / zoom / 2) - gridSize * 1.5;
+            const centerY = (canvas.height / zoom / 2) - gridSize * 0.5;
+            
+            const x = Math.floor(centerX / gridSize) * gridSize;
+            const y = Math.floor(centerY / gridSize) * gridSize;
+            
+            addShelf(shelfName, x, y);
+            
+            // Increment counter
+            currentNumber++;
+            updateNextShelfName();
+        }
+        
+        // Następny rząd (A → B → C...)
+        function nextRow() {
+            // Save count for current row
+            rowCounts[currentRow] = currentNumber - 1;
+            
+            // Next row
+            currentRow = String.fromCharCode(currentRow.charCodeAt(0) + 1);
+            currentNumber = 1;
+            
+            // Update dropdown
+            document.getElementById('current-row').value = currentRow;
+            updateNextShelfName();
+        }
+        
+        // Update "Następny:" label
+        function updateNextShelfName() {
+            currentRow = document.getElementById('current-row').value;
+            const nextName = currentRow + currentNumber;
+            document.getElementById('next-shelf-name').textContent = nextName;
+        }
+
+        // Event listeners
+        function setupEventListeners() {
+            // Canvas drag & drop - DISABLED (nie używamy drag&drop już)
+            // canvas.ondragover = (e) => e.preventDefault();
+            // canvas.ondrop = handleCanvasDrop;
+            
+            // Canvas mouse events
+            canvas.onmousedown = handleMouseDown;
+            canvas.onmousemove = handleMouseMove;
+            canvas.onmouseup = handleMouseUp;
+            canvas.onwheel = handleWheel;
+            
+            // Keyboard
+            document.onkeydown = handleKeyDown;
+            
+            // Background upload
+            document.getElementById('bg-upload').onchange = handleBgUpload;
+        }
+
+        function handleCanvasDrop(e) {
+            e.preventDefault();
+            const shelfLetter = e.dataTransfer.getData('shelf');
+            if (!shelfLetter) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left - offset.x) / zoom / gridSize) * gridSize;
+            const y = Math.floor((e.clientY - rect.top - offset.y) / zoom / gridSize) * gridSize;
+            
+            addShelf(shelfLetter, x, y);
+        }
+
+        function addShelf(letter, x, y) {
+            const shelf = {
+                id: Date.now(),
+                letter: letter,
+                x: x,
+                y: y,
+                width: gridSize * 3, // 3 cells wide
+                height: gridSize * 1, // 1 cell tall
+                rotation: 0,
+                shelfHeight: 225, // cm
+                levels: 6,
+                shelfWidth: 90, // cm
+                depth: 40, // cm
+                color: '#667eea'
+            };
+            
+            shelves.push(shelf);
+            saveHistory();
+            updateInfo();
+            render();
+        }
+
+        function handleMouseDown(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left - offset.x) / zoom;
+            const y = (e.clientY - rect.top - offset.y) / zoom;
+            
+            // Check if clicked on shelf
+            let clickedShelf = null;
+            for (let i = shelves.length - 1; i >= 0; i--) {
+                const s = shelves[i];
+                if (x >= s.x && x <= s.x + s.width && y >= s.y && y <= s.y + s.height) {
+                    clickedShelf = s;
+                    break;
+                }
+            }
+            
+            // BULK: Shift+Click = multi-select
+            if (e.shiftKey && clickedShelf) {
+                const index = selectedShelves.indexOf(clickedShelf);
+                if (index > -1) {
+                    // Already selected → deselect
+                    selectedShelves.splice(index, 1);
+                } else {
+                    // Not selected → add to selection
+                    selectedShelves.push(clickedShelf);
+                }
+                selectedShelf = null;
+            } else if (clickedShelf) {
+                // Normal click
+                selectedShelf = clickedShelf;
+                selectedShelves = []; // Clear multi-select
+                isDragging = true;
+                draggedShelf = { offsetX: x - clickedShelf.x, offsetY: y - clickedShelf.y };
+            } else {
+                // Clicked on empty space
+                selectedShelf = null;
+                selectedShelves = [];
+                isPanning = true;
+                panStart = { x: e.clientX, y: e.clientY };
+            }
+            
+            updatePropertiesPanel();
+            render();
+        }
+
+        function handleMouseMove(e) {
+            if (isDragging && selectedShelf) {
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left - offset.x) / zoom;
+                const y = (e.clientY - rect.top - offset.y) / zoom;
+                
+                // Snap to grid
+                selectedShelf.x = Math.floor((x - draggedShelf.offsetX) / gridSize) * gridSize;
+                selectedShelf.y = Math.floor((y - draggedShelf.offsetY) / gridSize) * gridSize;
+                
+                render();
+            } else if (isPanning) {
+                const dx = e.clientX - panStart.x;
+                const dy = e.clientY - panStart.y;
+                offset.x += dx;
+                offset.y += dy;
+                panStart = { x: e.clientX, y: e.clientY };
+                render();
+            }
+        }
+
+        function handleMouseUp(e) {
+            if (isDragging) {
+                saveHistory();
+            }
+            isDragging = false;
+            isPanning = false;
+            draggedShelf = null;
+        }
+
+        function handleWheel(e) {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            zoom = Math.max(0.5, Math.min(2, zoom * delta));
+            updateInfo();
+            render();
+        }
+
+        function handleKeyDown(e) {
+            if (e.key === 'Delete' && selectedShelf) {
+                shelves = shelves.filter(s => s.id !== selectedShelf.id);
+                selectedShelf = null;
+                saveHistory();
+                updatePropertiesPanel();
+                updateInfo();
+                render();
+            }
+            
+            // Undo/Redo
+            if (e.ctrlKey && e.key === 'z') {
+                undo();
+            }
+            if (e.ctrlKey && e.key === 'y') {
+                redo();
+            }
+        }
+
+        function handleBgUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        bgImage = img;
+                        render();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // RENDER
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            
+            // Apply pan & zoom
+            ctx.translate(offset.x, offset.y);
+            ctx.scale(zoom, zoom);
+            
+            // Background image
+            if (bgImage) {
+                ctx.globalAlpha = bgOpacity;
+                ctx.drawImage(bgImage, 0, 0, canvas.width / zoom, canvas.height / zoom);
+                ctx.globalAlpha = 1;
+            }
+            
+            // Grid
+            if (showGrid) {
+                drawGrid();
+            }
+            
+            // Shelves
+            shelves.forEach(shelf => {
+                drawShelf(shelf);
+            });
+            
+            ctx.restore();
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1 / zoom;
+            
+            for (let x = 0; x < canvas.width / zoom; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height / zoom);
+                ctx.stroke();
+            }
+            
+            for (let y = 0; y < canvas.height / zoom; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width / zoom, y);
+                ctx.stroke();
+            }
+        }
+
+        function drawShelf(shelf) {
+            ctx.save();
+            
+            // Highlight if selected
+            // BULK: Highlight multi-selected shelves (yellow)
+            const isMultiSelected = selectedShelves.includes(shelf);
+            if (isMultiSelected) {
+                ctx.strokeStyle = '#fbbf24';
+                ctx.lineWidth = 4 / zoom;
+                ctx.strokeRect(shelf.x - 5, shelf.y - 5, shelf.width + 10, shelf.height + 10);
+            }
+            
+            // Single selection (white)
+            if (selectedShelf && selectedShelf.id === shelf.id) {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3 / zoom;
+                ctx.strokeRect(shelf.x - 5, shelf.y - 5, shelf.width + 10, shelf.height + 10);
+            }
+            
+            // Draw shelf
+            const gradient = ctx.createLinearGradient(shelf.x, shelf.y, shelf.x + shelf.width, shelf.y + shelf.height);
+            gradient.addColorStop(0, shelf.color);
+            gradient.addColorStop(1, adjustColor(shelf.color, -30));
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(shelf.x, shelf.y, shelf.width, shelf.height);
+            
+            // Border
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2 / zoom;
+            ctx.strokeRect(shelf.x, shelf.y, shelf.width, shelf.height);
+            
+            // Label
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${20 / zoom}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(shelf.letter, shelf.x + shelf.width / 2, shelf.y + shelf.height / 2);
+            
+            // Info (height)
+            ctx.font = `${12 / zoom}px Arial`;
+            ctx.fillText(`${shelf.shelfHeight}cm`, shelf.x + shelf.width / 2, shelf.y - 15 / zoom);
+            
+            ctx.restore();
+        }
+
+        function adjustColor(color, amount) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+            const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+            const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+            return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+        }
+
+        // PROPERTIES PANEL
+        function updatePropertiesPanel() {
+            const panel = document.getElementById('properties-panel');
+            
+            if (!selectedShelf) {
+                panel.innerHTML = `
+                    <div class="no-selection">
+                        <div class="no-selection-icon">🎯</div>
+                        <p>Kliknij na regał aby edytować właściwości</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            panel.innerHTML = `
+                <div class="property-group">
+                    <h4>⚙️ Regał: ${selectedShelf.letter}</h4>
+                    
+                    <div class="property-row">
+                        <label>Wysokość regału (cm)</label>
+                        <div class="radio-group">
+                            <div class="radio-option ${selectedShelf.shelfHeight === 180 ? 'active' : ''}" 
+                                 onclick="updateShelfProperty('shelfHeight', 180); updateShelfProperty('levels', 5)">
+                                180cm<br>(5 półek)
+                            </div>
+                            <div class="radio-option ${selectedShelf.shelfHeight === 225 ? 'active' : ''}"
+                                 onclick="updateShelfProperty('shelfHeight', 225); updateShelfProperty('levels', 6)">
+                                225cm<br>(6 półek)
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="property-row">
+                        <label>Szerokość (cm)</label>
+                        <div class="radio-group">
+                            <div class="radio-option ${selectedShelf.shelfWidth === 80 ? 'active' : ''}"
+                                 onclick="updateShelfProperty('shelfWidth', 80)">
+                                80cm
+                            </div>
+                            <div class="radio-option ${selectedShelf.shelfWidth === 90 ? 'active' : ''}"
+                                 onclick="updateShelfProperty('shelfWidth', 90)">
+                                90cm
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="property-row">
+                        <label>Głębokość (cm)</label>
+                        <div class="radio-group">
+                            <div class="radio-option ${selectedShelf.depth === 40 ? 'active' : ''}"
+                                 onclick="updateShelfProperty('depth', 40)">
+                                40cm
+                            </div>
+                            <div class="radio-option ${selectedShelf.depth === 45 ? 'active' : ''}"
+                                 onclick="updateShelfProperty('depth', 45)">
+                                45cm
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="property-row">
+                        <label>Rotacja</label>
+                        <div class="radio-group">
+                            <div class="radio-option ${selectedShelf.rotation === 0 ? 'active' : ''}"
+                                 onclick="updateShelfProperty('rotation', 0)">
+                                0° (↔)
+                            </div>
+                            <div class="radio-option ${selectedShelf.rotation === 90 ? 'active' : ''}"
+                                 onclick="updateShelfProperty('rotation', 90)">
+                                90° (↕)
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="property-row">
+                        <label>Kolor</label>
+                        <div class="color-picker">
+                            ${generateColorPicker()}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="property-group">
+                    <h4>🗑️ Akcje</h4>
+                    <button class="btn btn-danger" style="width: 100%;" onclick="deleteSelectedShelf()">
+                        Usuń Regał
+                    </button>
+                </div>
+            `;
+        }
+
+        function generateColorPicker() {
+            const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'];
+            return colors.map(color => 
+                `<div class="color-option ${selectedShelf.color === color ? 'active' : ''}" 
+                      style="background: ${color};" 
+                      onclick="updateShelfProperty('color', '${color}')"></div>`
+            ).join('');
+        }
+
+        function updateShelfProperty(prop, value) {
+            if (selectedShelf) {
+                selectedShelf[prop] = value;
+                saveHistory();
+                updatePropertiesPanel();
+                render();
+            }
+        }
+
+        function deleteSelectedShelf() {
+            if (selectedShelf) {
+                shelves = shelves.filter(s => s.id !== selectedShelf.id);
+                selectedShelf = null;
+                saveHistory();
+                updatePropertiesPanel();
+                updateInfo();
+                render();
+            }
+        }
+
+        // CONTROLS
+        function zoomIn() {
+            zoom = Math.min(2, zoom * 1.2);
+            updateInfo();
+            render();
+        }
+
+        function zoomOut() {
+            zoom = Math.max(0.5, zoom / 1.2);
+            updateInfo();
+            render();
+        }
+
+        function resetZoom() {
+            zoom = 1;
+            offset = { x: 0, y: 0 };
+            updateInfo();
+            render();
+        }
+
+        function toggleGrid() {
+            showGrid = !showGrid;
+            render();
+        }
+
+        function updateBgOpacity(value) {
+            bgOpacity = value / 100;
+            render();
+        }
+
+        function updateInfo() {
+            document.getElementById('info-shelves').textContent = shelves.length;
+            document.getElementById('info-zoom').textContent = Math.round(zoom * 100) + '%';
+            
+            // Count rows (unique letters)
+            const rows = new Set(shelves.map(s => s.letter.charAt(0)));
+            document.getElementById('info-rows').textContent = rows.size;
+            
+            // Calculate capacity (50 products per shelf, 6 levels per shelf)
+            const capacity = shelves.length * 50 * 6;
+            document.getElementById('info-capacity').textContent = capacity;
+            
+            // Calculate area (rough estimate: shelf width * depth)
+            const areaPerShelf = 0.9 * 0.4; // 90cm * 40cm = 0.36m²
+            const totalArea = (shelves.length * areaPerShelf).toFixed(1);
+            document.getElementById('info-area').textContent = totalArea;
+        }
+
+        // HISTORY (Undo/Redo)
+        function saveHistory() {
+            const state = JSON.stringify(shelves);
+            history = history.slice(0, historyIndex + 1);
+            history.push(state);
+            historyIndex++;
+        }
+
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                shelves = JSON.parse(history[historyIndex]);
+                selectedShelf = null;
+                updatePropertiesPanel();
+                updateInfo();
+                render();
+            }
+        }
+
+        function redo() {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                shelves = JSON.parse(history[historyIndex]);
+                selectedShelf = null;
+                updatePropertiesPanel();
+                updateInfo();
+                render();
+            }
+        }
+
+        // TEMPLATES
+        function applyTemplate(type) {
+            if (!confirm('To zastąpi obecny layout. Kontynuować?')) return;
+            
+            shelves = [];
+            
+            switch(type) {
+                case 'u-shape':
+                    // Lewa ściana (A-D)
+                    ['A', 'B', 'C', 'D'].forEach((letter, i) => {
+                        addShelf(letter, gridSize * 2, gridSize * (3 + i * 2));
+                    });
+                    // Prawa ściana (E-G)
+                    ['E', 'F', 'G'].forEach((letter, i) => {
+                        addShelf(letter, gridSize * 15, gridSize * (3 + i * 2));
+                    });
+                    // Tył (H-L)
+                    ['H', 'I', 'J', 'K', 'L'].forEach((letter, i) => {
+                        addShelf(letter, gridSize * (5 + i * 2), gridSize * 12);
+                    });
+                    break;
+                    
+                case 'l-shape':
+                    // Lewa (A-E)
+                    ['A', 'B', 'C', 'D', 'E'].forEach((letter, i) => {
+                        addShelf(letter, gridSize * 2, gridSize * (3 + i * 2));
+                    });
+                    // Dół (F-J)
+                    ['F', 'G', 'H', 'I', 'J'].forEach((letter, i) => {
+                        addShelf(letter, gridSize * (5 + i * 2), gridSize * 12);
+                    });
+                    break;
+                    
+                case 'line':
+                    // Lewa strona
+                    ['A', 'B', 'C', 'D', 'E'].forEach((letter, i) => {
+                        addShelf(letter, gridSize * 2, gridSize * (3 + i * 2));
+                    });
+                    // Prawa strona
+                    ['F', 'G', 'H', 'I', 'J'].forEach((letter, i) => {
+                        addShelf(letter, gridSize * 13, gridSize * (3 + i * 2));
+                    });
+                    break;
+                    
+                case 'grid':
+                    // 4x4 grid
+                    for (let row = 0; row < 4; row++) {
+                        for (let col = 0; col < 4; col++) {
+                            const index = row * 4 + col;
+                            const letter = String.fromCharCode(65 + index);
+                            addShelf(letter, gridSize * (3 + col * 3), gridSize * (3 + row * 3));
+                        }
+                    }
+                    break;
+            }
+            
+            saveHistory();
+            updateInfo();
+            render();
+        }
+
+        // SAVE/LOAD
+        function saveLayout() {
+            const layout = {
+                version: '1.0',
+                created: new Date().toISOString(),
+                shelves: shelves.map(s => ({
+                    letter: s.letter,
+                    x: s.x,
+                    y: s.y,
+                    width: s.width,
+                    height: s.height,
+                    rotation: s.rotation,
+                    shelfHeight: s.shelfHeight,
+                    levels: s.levels,
+                    shelfWidth: s.shelfWidth,
+                    depth: s.depth,
+                    color: s.color
+                }))
+            };
+            
+            console.log('💾 Saving layout...', layout);
+            
+            // Send to backend
+            fetch('/api/warehouse/layout/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(layout)
+            })
+            .then(res => {
+                console.log('📡 Response status:', res.status);
+                return res.json();
+            })
+            .then(data => {
+                console.log('✅ Response data:', data);
+                if (data.success) {
+                    alert(`✅ Layout zapisany!\n\nLokalizacja: ${data.path}\nRegałów: ${data.shelves_count}`);
+                } else {
+                    alert('❌ Błąd zapisu: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                console.error('❌ Fetch error:', err);
+                alert('❌ Błąd zapisu: ' + err.message);
+            });
+        }
+
+        function exportLayout() {
+            const layout = {
+                version: '1.0',
+                created: new Date().toISOString(),
+                shelves: shelves
+            };
+            
+            const json = JSON.stringify(layout, null, 2);
+            document.getElementById('json-textarea').value = json;
+            document.getElementById('modal-title').textContent = '📥 Export Layout JSON';
+            document.getElementById('json-modal').classList.add('show');
+            
+            // Select all for easy copy
+            document.getElementById('json-textarea').select();
+        }
+
+        function importLayout() {
+            document.getElementById('json-textarea').value = '';
+            document.getElementById('modal-title').textContent = '📤 Import Layout JSON';
+            document.getElementById('json-modal').classList.add('show');
+        }
+
+        function confirmImport() {
+            const json = document.getElementById('json-textarea').value;
+            
+            try {
+                const layout = JSON.parse(json);
+                
+                if (!layout.shelves || !Array.isArray(layout.shelves)) {
+                    throw new Error('Invalid layout format');
+                }
+                
+                shelves = layout.shelves.map((s, i) => ({
+                    ...s,
+                    id: Date.now() + i
+                }));
+                
+                saveHistory();
+                updateInfo();
+                render();
+                closeModal();
+                
+                alert('✅ Layout zaimportowany!');
+            } catch (err) {
+                alert('❌ Błąd importu: ' + err.message);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('json-modal').classList.remove('show');
+        }
+
+        function clearLayout() {
+            if (confirm('Czy na pewno chcesz wyczyścić layout?')) {
+                shelves = [];
+                selectedShelf = null;
+                saveHistory();
+                updatePropertiesPanel();
+                updateInfo();
+                render();
+            }
+        }
+
+        function previewLayout() {
+            // Save first
+            saveLayout();
+            // Then open heatmap in new tab
+            setTimeout(() => {
+                window.open('/warehouse/heatmap', '_blank');
+            }, 500);
+        }
+
+        // Initial state
+        saveHistory();
+        updateInfo();
+
+        // ============================================================
+        // BULK OPERATIONS
+        // ============================================================
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+A = Select All
+            if (e.ctrlKey && e.key === 'a') {
+                e.preventDefault();
+                selectAll();
+            }
+            // ESC = Deselect All
+            if (e.key === 'Escape') {
+                deselectAll();
+            }
+            // Delete = usuń zaznaczone
+            if (e.key === 'Delete' && selectedShelves.length > 0) {
+                bulkDelete();
+            }
+        });
+
+        function selectAll() {
+            selectedShelves = [...shelves];
+            selectedShelf = null;
+            updatePropertiesPanel();
+            render();
+        }
+
+        function deselectAll() {
+            selectedShelves = [];
+            selectedShelf = null;
+            updatePropertiesPanel();
+            render();
+        }
+
+        function bulkDelete() {
+            if (confirm(`Usunąć ${selectedShelves.length} regałów?`)) {
+                selectedShelves.forEach(shelf => {
+                    const index = shelves.indexOf(shelf);
+                    if (index > -1) shelves.splice(index, 1);
+                });
+                selectedShelves = [];
+                saveHistory();
+                updateInfo();
+                render();
+            }
+        }
+
+        function bulkChangeColor(color) {
+            selectedShelves.forEach(shelf => {
+                shelf.color = color;
+            });
+            saveHistory();
+            render();
+        }
+
+        function bulkChangeHeight(height) {
+            selectedShelves.forEach(shelf => {
+                shelf.shelfHeight = parseInt(height);
+                shelf.levels = height === 225 ? 6 : 5;
+            });
+            saveHistory();
+            render();
+        }
+
+        function bulkChangeRotation(rotation) {
+            selectedShelves.forEach(shelf => {
+                shelf.rotation = parseInt(rotation);
+                // Swap width/height dla 90°
+                if (rotation === 90) {
+                    [shelf.width, shelf.height] = [shelf.height, shelf.width];
+                }
+            });
+            saveHistory();
+            render();
+        }
+
+        // Update properties panel aby pokazać bulk panel gdy multi-select
+        const originalUpdatePropertiesPanel = updatePropertiesPanel;
+        updatePropertiesPanel = function() {
+            const panel = document.getElementById('properties-panel');
+            
+            if (selectedShelves.length > 1) {
+                // BULK PANEL
+                panel.innerHTML = `
+                    <div class="bulk-panel">
+                        <div class="bulk-header">
+                            <div class="bulk-title">🎯 Bulk Edit</div>
+                            <div class="bulk-count">${selectedShelves.length} regałów</div>
+                        </div>
+
+                        <div class="bulk-actions">
+                            <div class="bulk-group">
+                                <div class="bulk-group-title">Kolor</div>
+                                <div class="color-picker">
+                                    <div class="color-option" style="background:#667eea" onclick="bulkChangeColor('#667eea')"></div>
+                                    <div class="color-option" style="background:#764ba2" onclick="bulkChangeColor('#764ba2')"></div>
+                                    <div class="color-option" style="background:#f093fb" onclick="bulkChangeColor('#f093fb')"></div>
+                                    <div class="color-option" style="background:#f5576c" onclick="bulkChangeColor('#f5576c')"></div>
+                                    <div class="color-option" style="background:#4facfe" onclick="bulkChangeColor('#4facfe')"></div>
+                                    <div class="color-option" style="background:#00f2fe" onclick="bulkChangeColor('#00f2fe')"></div>
+                                    <div class="color-option" style="background:#43e97b" onclick="bulkChangeColor('#43e97b')"></div>
+                                    <div class="color-option" style="background:#38f9d7" onclick="bulkChangeColor('#38f9d7')"></div>
+                                </div>
+                            </div>
+
+                            <div class="bulk-group">
+                                <div class="bulk-group-title">Wysokość</div>
+                                <select onchange="bulkChangeHeight(this.value)" style="width:100%;padding:8px;border-radius:8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;">
+                                    <option value="">Wybierz...</option>
+                                    <option value="180">180 cm (5 półek)</option>
+                                    <option value="225">225 cm (6 półek)</option>
+                                </select>
+                            </div>
+
+                            <div class="bulk-group">
+                                <div class="bulk-group-title">Rotacja</div>
+                                <select onchange="bulkChangeRotation(this.value)" style="width:100%;padding:8px;border-radius:8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;">
+                                    <option value="">Wybierz...</option>
+                                    <option value="0">0° (poziomo)</option>
+                                    <option value="90">90° (pionowo)</option>
+                                </select>
+                            </div>
+
+                            <button onclick="bulkDelete()" style="width:100%;padding:12px;margin-top:10px;background:#ef4444;border:none;border-radius:8px;color:white;font-weight:600;cursor:pointer;">
+                                🗑️ Usuń Wszystkie (${selectedShelves.length})
+                            </button>
+
+                            <button onclick="deselectAll()" style="width:100%;padding:12px;margin-top:5px;background:rgba(255,255,255,0.1);border:none;border-radius:8px;color:white;font-weight:600;cursor:pointer;">
+                                ❌ Odznacz (ESC)
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (selectedShelf) {
+                // Normal single shelf panel
+                originalUpdatePropertiesPanel();
+            } else {
+                // No selection
+                panel.innerHTML = `
+                    <div class="no-selection">
+                        <div class="no-selection-icon">🎯</div>
+                        <p>Kliknij na regał aby edytować właściwości</p>
+                        <p style="margin-top: 10px; font-size: 12px; color: #718096;">
+                            Shift+Click = multi-select
+                        </p>
+                    </div>
+                `;
+            }
+        };
+
+    </script>
+</body>
+</html>

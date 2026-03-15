@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✏️ Edycja produktu - Akces Hub</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        
+        <!-- Header -->
+        <div class="page-header">
+            <h1>✏️ Edycja produktu</h1>
+            <a href="/generator" class="btn btn-secondary">← Powrót</a>
+        </div>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Formularz -->
+        <form method="POST" action="/generator/produkt/{{ produkt.id }}/edit">
+            
+            <!-- ═══════════════════════════════════════════════════ -->
+            <!-- PODSTAWOWE DANE (zawsze widoczne) -->
+            <!-- ═══════════════════════════════════════════════════ -->
+            <div class="card">
+                <div class="card-title">📦 Podstawowe dane</div>
+                
+                <div class="form-group">
+                    <label for="nazwa">Nazwa produktu:</label>
+                    <input type="text" name="nazwa" id="nazwa" 
+                        value="{{ produkt.nazwa }}" 
+                        class="form-control" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="asin">ASIN:</label>
+                        <input type="text" name="asin" id="asin" 
+                            value="{{ produkt.asin }}" 
+                            class="form-control" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="ean">EAN:</label>
+                        <input type="text" name="ean" id="ean" 
+                            value="{{ produkt.ean or '' }}" 
+                            class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="cena">Cena (PLN):</label>
+                    <input type="number" name="cena" id="cena" 
+                        value="{{ produkt.cena }}" 
+                        step="0.01" min="0" 
+                        class="form-control form-control-price" required>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════ -->
+            <!-- PRZYCISK ROZWIJANIA -->
+            <!-- ═══════════════════════════════════════════════════ -->
+            <button type="button" class="btn-expand" onclick="toggleAdvanced()">
+                <span id="expand-icon">▼</span>
+                <span id="expand-text">Więcej opcji</span>
+            </button>
+
+            <!-- ═══════════════════════════════════════════════════ -->
+            <!-- OPCJE ZAAWANSOWANE (ukryte domyślnie) -->
+            <!-- ═══════════════════════════════════════════════════ -->
+            <div id="advanced-options" style="display: none;">
+                
+                <!-- Stan produktu -->
+                <div class="card">
+                    <div class="card-title">🔧 Stan produktu</div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="stan_przedmiotu">Stan przedmiotu:</label>
+                            <select name="stan_przedmiotu" id="stan_przedmiotu" class="form-control">
+                                <option value="Nowy" {% if produkt.stan_przedmiotu == 'Nowy' %}selected{% endif %}>Nowy</option>
+                                <option value="Używany" {% if produkt.stan_przedmiotu == 'Używany' %}selected{% endif %}>Używany</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="stan_opakowania">Stan opakowania:</label>
+                            <select name="stan_opakowania" id="stan_opakowania" class="form-control">
+                                <option value="Oryginalne" {% if produkt.stan_opakowania == 'Oryginalne' %}selected{% endif %}>Oryginalne</option>
+                                <option value="Uszkodzone" {% if produkt.stan_opakowania == 'Uszkodzone' %}selected{% endif %}>Uszkodzone</option>
+                                <option value="Brak" {% if produkt.stan_opakowania == 'Brak' %}selected{% endif %}>Brak</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lokalizacja_regalu">Lokalizacja (regał):</label>
+                        <input type="text" name="lokalizacja_regalu" id="lokalizacja_regalu" 
+                            value="{{ produkt.lokalizacja_regalu or '' }}" 
+                            placeholder="np. A-1, PA-189-N/O-W"
+                            class="form-control">
+                        <small class="form-hint">Gdzie fizycznie znajduje się produkt w magazynie</small>
+                    </div>
+                </div>
+
+                <!-- Defekty -->
+                <div class="card">
+                    <div class="card-title">⚠️ Defekty</div>
+                    
+                    <div class="checkbox-grid">
+                        <label class="checkbox-container checkbox-defect">
+                            <input type="checkbox" name="defekt_obcieta" 
+                                {% if produkt.defekt_obcieta %}checked{% endif %}>
+                            <span class="checkbox-label">Obcięta</span>
+                        </label>
+
+                        <label class="checkbox-container checkbox-defect">
+                            <input type="checkbox" name="defekt_wgniecenia" 
+                                {% if produkt.defekt_wgniecenia %}checked{% endif %}>
+                            <span class="checkbox-label">Wgniecenia</span>
+                        </label>
+
+                        <label class="checkbox-container checkbox-defect">
+                            <input type="checkbox" name="defekt_odpryski" 
+                                {% if produkt.defekt_odpryski %}checked{% endif %}>
+                            <span class="checkbox-label">Odpryski</span>
+                        </label>
+
+                        <label class="checkbox-container checkbox-defect">
+                            <input type="checkbox" name="defekt_zabrudzenia" 
+                                {% if produkt.defekt_zabrudzenia %}checked{% endif %}>
+                            <span class="checkbox-label">Zabrudzenia</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Klasyfikacja -->
+                <div class="card">
+                    <div class="card-title">📊 Klasyfikacja</div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="klasa_jakosci">Klasa jakości:</label>
+                            <select name="klasa_jakosci" id="klasa_jakosci" class="form-control">
+                                <option value="A" {% if produkt.klasa_jakosci == 'A' %}selected{% endif %}>A</option>
+                                <option value="B" {% if produkt.klasa_jakosci == 'B' %}selected{% endif %}>B</option>
+                                <option value="B-" {% if produkt.klasa_jakosci == 'B-' %}selected{% endif %}>B-</option>
+                                <option value="C" {% if produkt.klasa_jakosci == 'C' %}selected{% endif %}>C</option>
+                                <option value="D" {% if produkt.klasa_jakosci == 'D' %}selected{% endif %}>D</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="priorytet">Priorytet:</label>
+                            <select name="priorytet" id="priorytet" class="form-control">
+                                <option value="Niski" {% if produkt.priorytet == 'Niski' %}selected{% endif %}>Niski</option>
+                                <option value="Normalny" {% if produkt.priorytet == 'Normalny' %}selected{% endif %}>Normalny</option>
+                                <option value="Wysoki" {% if produkt.priorytet == 'Wysoki' %}selected{% endif %}>Wysoki</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notatki -->
+                <div class="card">
+                    <div class="card-title">📝 Notatki</div>
+                    
+                    <div class="form-group">
+                        <label for="notatki">Dodatkowe informacje:</label>
+                        <textarea name="notatki" id="notatki" 
+                            class="form-control" 
+                            rows="4" 
+                            placeholder="Dodatkowe uwagi o produkcie...">{{ produkt.notatki or '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════ -->
+            <!-- PRZYCISKI AKCJI -->
+            <!-- ═══════════════════════════════════════════════════ -->
+            <div class="button-group">
+                <button type="submit" class="btn btn-primary">
+                    💾 ZAPISZ ZMIANY
+                </button>
+                <a href="/generator" class="btn btn-secondary">
+                    ← Anuluj
+                </a>
+            </div>
+        </form>
+
+    </div>
+
+    <script>
+    function toggleAdvanced() {
+        const advanced = document.getElementById('advanced-options');
+        const icon = document.getElementById('expand-icon');
+        const text = document.getElementById('expand-text');
+        
+        if (advanced.style.display === 'none') {
+            advanced.style.display = 'block';
+            icon.textContent = '▲';
+            text.textContent = 'Mniej opcji';
+        } else {
+            advanced.style.display = 'none';
+            icon.textContent = '▼';
+            text.textContent = 'Więcej opcji';
+        }
+    }
+    </script>
+</body>
+</html>

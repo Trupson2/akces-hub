@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="header">
+    <h1>📤 EXPORT DO ALLEGRO</h1>
+    <small>Generuj CSV do masowego wystawiania</small>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">📦 Eksportuj produkty</div>
+    </div>
+    <form method="POST" action="/narzedzia/export">
+        <div class="form-group">
+            <label>📈 Marża (%)</label>
+            <input type="number" name="marza" class="form-control" value="40">
+        </div>
+        <div class="form-group">
+            <label>📁 Kategoria</label>
+            <select name="kategoria" class="form-control">
+                <option value="">— Wszystkie —</option>
+                <option value="motoryzacja">🚗 Motoryzacja</option>
+                <option value="elektronika">📷 Elektronika</option>
+                <option value="inne">📦 Inne</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-success">📥 POBIERZ CSV</button>
+    </form>
+</div>
+
+<a href="/narzedzia" class="back">← Powrót</a>
+{% endblock %}

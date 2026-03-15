@@ -1,0 +1,1033 @@
+"""
+Database module - obsługa bazy danych SQLite
+"""
+
+import sqlite3
+import os
+import time
+import threading
+from datetime import datetime, timedelta
+from pathlib import Path
+
+# WAŻNE: Baza danych zawsze w katalogu aplikacji (nie w CWD!)
+_APP_DIR = Path(__file__).parent.parent  # Katalog główny aplikacji
+DATABASE = str(_APP_DIR / 'akces_hub.db')
+
+# KOMBAJN MODE: Connection pool + thread safety
+_connection_pool = {}
+_pool_lock = threading.Lock()
+
+def get_db():
+    """
+    Zwraca połączenie do bazy z timeoutem i WAL mode.
+    KOMBAJN MODE: Używa connection pooling dla każdego wątku.
+    """
+    thread_id = threading.get_ident()
+    
+    # Sprawdź czy wątek ma już connection
+    with _pool_lock:
+        if thread_id in _connection_pool:
+            conn = _connection_pool[thread_id]
+            try:
+                conn.execute('SELECT 1')
+                return conn
+            except:
+                # Connection zamknięty/martwy — usuń z puli
+                del _connection_pool[thread_id]
+    
+    # Stwórz nowe connection
+    conn = sqlite3.connect(DATABASE, timeout=60.0, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    
+    # Tryb WAL - bezpieczny z auto-checkpoint
+    conn.execute('PRAGMA journal_mode=WAL')
+    conn.execute('PRAGMA busy_timeout=30000')
+    conn.execute('PRAGMA synchronous=NORMAL')  # NORMAL jest bezpieczne z WAL mode
+    conn.execute('PRAGMA wal_autocheckpoint=100')  # checkpoint co 100 stron
+    conn.execute('PRAGMA cache_size=-32000')   # 32MB cache
+    conn.execute('PRAGMA temp_store=MEMORY')
+    # NIE robimy integrity_check przy każdym połączeniu - to skanuje CAŁĄ bazę
+    # i blokuje inne operacje, powodując "database is locked" 500 errors
+    
+    # Dodaj do poola
+    with _pool_lock:
+        _connection_pool[thread_id] = conn
+    
+    return conn
+
+def close_connection_pool():
+    """Zamyka wszystkie połączenia w poolu (przy shutdown)"""
+    with _pool_lock:
+        for conn in _connection_pool.values():
+            try:
+                conn.close()
+            except:
+                pass
+        _connection_pool.clear()
+
+def retry_db_operation(func, max_retries=5, delay=0.5):
+    """
+    Wykonuje operację bazodanową z retry w przypadku database locked.
+    
+    Args:
+        func: Funkcja do wykonania (lambda lub callable)
+        max_retries: Maksymalna liczba prób
+        delay: Opóźnienie między próbami w sekundach
+    
+    Returns:
+        Wynik funkcji lub None w przypadku błędu
+    """
+    import time
+    
+    for attempt in range(max_retries):
+        try:
+            return func()
+        except sqlite3.OperationalError as e:
+            if 'database is locked' in str(e) and attempt < max_retries - 1:
+                print(f"⚠️ Database locked, retry {attempt+1}/{max_retries}...")
+                time.sleep(delay * (attempt + 1))  # Zwiększające się opóźnienie
+                continue
+            else:
+                print(f"❌ Database error after {attempt+1} attempts: {e}")
+                raise
+        except Exception as e:
+            print(f"❌ Unexpected error: {e}")
+            raise
+    
+    return None
+
+def init_db():
+    """Inicjalizuje bazę danych - tworzy tabele jeśli nie istnieją"""
+    with get_db() as conn:
+        # Tabela palet (NOWA!)
+        conn.execute('''CREATE TABLE IF NOT EXISTS palety (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nazwa TEXT DEFAULT '',
+            dostawca TEXT DEFAULT '',
+            cena_zakupu REAL DEFAULT 0,
+            ilosc_produktow INTEGER DEFAULT 0,
+            data_zakupu DATE DEFAULT CURRENT_DATE,
+            notatki TEXT DEFAULT '',
+            regal TEXT DEFAULT '',
+            data_dodania TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )''')
+        
+        # Tabela produktów (Magazynier)
+        conn.execute('''CREATE TABLE IF NOT EXISTS produkty (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ean TEXT,
+            asin TEXT DEFAULT '',
+            nazwa TEXT NOT NULL,
+            krotki_tytul TEXT DEFAULT '',
+            opis_ai TEXT DEFAULT '',
+            ilosc INTEGER DEFAULT 0,
+            cena_netto REAL DEFAULT 0,
+            cena_brutto REAL DEFAULT 0,
+            cena_allegro REAL DEFAULT 0,
+            lokalizacja TEXT DEFAULT '',
+            regal TEXT DEFAULT '',
+            paleta_id INTEGER DEFAULT NULL,
+            paleta TEXT DEFAULT '',
+            dostawca TEXT DEFAULT '',
+            kategoria TEXT DEFAULT 'inne',
+            zdjecie_url TEXT DEFAULT '',
+            stan TEXT DEFAULT 'Nowy',
+            status TEXT DEFAULT 'magazyn',
+            data_dodania TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            data_sprzedazy TIMESTAMP DEFAULT NULL,
+            FOREIGN KEY (paleta_id) REFERENCES palety(id)
+        )''')
+        
+        # Tabela ofert Allegro (Paletomat)
+        conn.execute('''CREATE TABLE IF NOT EXISTS oferty (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            allegro_id TEXT UNIQUE,
+            produkt_id INTEGER,
+            tytul TEXT NOT NULL,
+            opis TEXT,
+            cena REAL DEFAULT 0,
+            ilosc INTEGER DEFAULT 1,
+            status TEXT DEFAULT 'draft',
+            wyswietlenia INTEGER DEFAULT 0,
+            obserwujacych INTEGER DEFAULT 0,
+            data_wystawienia TIMESTAMP,
+            data_aktualizacji TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (produkt_id) REFERENCES produkty(id)
+        )''')
+        
+        # Tabela sprzedaży
+        conn.execute('''CREATE TABLE IF NOT EXISTS sprzedaze (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            allegro_order_id TEXT,
+            oferta_id INTEGER,
+            produkt_id INTEGER,
+            nazwa TEXT DEFAULT '',
+            cena REAL,
+            ilosc INTEGER DEFAULT 1,
+            kupujacy TEXT,
+            adres TEXT DEFAULT '',
+            status TEXT DEFAULT 'nowa',
+            data_sprzedazy TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            notified INTEGER DEFAULT 0,
+            FOREIGN KEY (oferta_id) REFERENCES oferty(id),
+            FOREIGN KEY (produkt_id) REFERENCES produkty(id)
+        )''')
+        
+        # Migracja: dodaj kolumnę notified jeśli baza istniała przed tą zmianą
+        try:
+            conn.execute('ALTER TABLE sprzedaze ADD COLUMN notified INTEGER DEFAULT 0')
+        except:
+            pass  # Kolumna już istnieje
+        # Migracja: dodaj kolumnę nazwa
+        try:
+            conn.execute("ALTER TABLE sprzedaze ADD COLUMN nazwa TEXT DEFAULT ''")
+        except:
+            pass
+        # Migracja: dodaj kolumnę tytul do oferty jeśli brak (stare bazy)
+        try:
+            conn.execute("ALTER TABLE oferty ADD COLUMN tytul TEXT DEFAULT ''")
+        except:
+            pass
+        # Migracja: dodaj kolumnę nazwa do sprzedaze (alias dla tytul oferty)
+        try:
+            conn.execute("ALTER TABLE oferty ADD COLUMN data_wystawienia TIMESTAMP")
+        except:
+            pass
+        
+        # Tabela scrapowanych produktów (Paletomat)
+        conn.execute('''CREATE TABLE IF NOT EXISTS scraped (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            asin TEXT UNIQUE NOT NULL,
+            nazwa TEXT,
+            cena_amazon REAL DEFAULT 0,
+            waluta TEXT DEFAULT 'EUR',
+            kategoria TEXT DEFAULT '',
+            zdjecie_url TEXT DEFAULT '',
+            wszystkie_zdjecia TEXT DEFAULT '',
+            amazon_url TEXT DEFAULT '',
+            status TEXT DEFAULT 'nowy',
+            data_scrape TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )''')
+        
+        # Dodaj kolumny jeśli nie istnieją (migracje)
+        migrations = [
+            ('scraped', 'wszystkie_zdjecia', 'TEXT DEFAULT ""'),
+            ('scraped', 'tytul_seo', 'TEXT DEFAULT ""'),
+            ('scraped', 'opis_html', 'TEXT DEFAULT ""'),
+            ('scraped', 'bullet_points', 'TEXT DEFAULT ""'),
+            ('scraped', 'gpsr', 'TEXT DEFAULT ""'),  # ← NOWA! GPSR info
+            ('scraped', 'ean', 'TEXT DEFAULT ""'),  # ← NOWA! EAN kod
+            ('scraped', 'images', 'TEXT DEFAULT "[]"'),  # ← NOWA! JSON array zdjęć
+            ('scraped', 'product_specs', 'TEXT DEFAULT ""'),  # ← NOWA! JSON specs z Amazon
+            ('produkty', 'paleta_id', 'INTEGER DEFAULT NULL'),
+            ('produkty', 'asin', 'TEXT DEFAULT ""'),
+            ('produkty', 'regal', 'TEXT DEFAULT ""'),
+            ('produkty', 'status', 'TEXT DEFAULT "magazyn"'),
+            ('produkty', 'data_sprzedazy', 'TIMESTAMP DEFAULT NULL'),
+            ('produkty', 'meta_title', 'TEXT DEFAULT ""'),  # ← KRYTYCZNA! AI-generated title
+            ('produkty', 'parameters', 'TEXT DEFAULT ""'),  # JSON parameters from Gemini
+            ('produkty', 'vendor', 'TEXT DEFAULT ""'),  # Dostawca/źródło
+            ('produkty', 'service_notes', 'TEXT DEFAULT ""'),  # Notatki serwisowe
+            ('produkty', 'images', 'TEXT DEFAULT "[]"'),  # ← NOWA! JSON array wszystkich zdjęć (max 8)
+            ('produkty', 'sprzedano_offline', 'INTEGER DEFAULT 0'),  # ← NOWA! Ile sprzedano poza Allegro (bez statystyk)
+            ('produkty', 'przychod_offline', 'REAL DEFAULT 0'),  # ← NOWA! Przychód ze sprzedaży offline
+            ('sprzedaze', 'adres', 'TEXT DEFAULT ""'),
+            ('sprzedaze', 'nazwa', 'TEXT DEFAULT ""'),  # ← NOWA! Nazwa produktu z Allegro
+            ('sprzedaze', 'zdjecie_url', 'TEXT DEFAULT ""'),  # ← NOWA! Zdjęcie produktu
+            ('telegram_logs', 'message_id', 'INTEGER DEFAULT NULL'),
+            ('palety', 'regal', 'TEXT DEFAULT ""'),
+            ('palety', 'dostawca', 'TEXT DEFAULT ""'),  # ← WAŻNA! Dostawca palety
+            ('palety', 'cena_zakupu_netto', 'REAL DEFAULT 0'),  # ← NOWA! Cena netto (stała)
+            ('palety', 'ilosc_sztuk', 'INTEGER DEFAULT 0'),  # ← NOWA! Ilość sztuk zaimportowanych
+            ('palety', 'dostarczona', 'INTEGER DEFAULT 0'),  # ← NOWA! Czy paleta dostarczona
+            ('palety', 'koszt_jednostkowy', 'REAL DEFAULT 0'),  # ← NOWA! Stały koszt brutto/szt
+            ('sztuki', 'zdjecie', 'TEXT DEFAULT ""'),  # ← NOWA! Zdjęcie sztuki (base64)
+            ('produkty', 'kod_magazynowy', 'TEXT DEFAULT ""'),  # ← NOWA! Unikalny kod magazynowy MAG-XXXXX
+        ]
+        
+        for table, column, coltype in migrations:
+            try:
+                conn.execute(f'ALTER TABLE {table} ADD COLUMN {column} {coltype}')
+            except:
+                pass  # Kolumna już istnieje
+        
+        # Migracja: zamien angielskie nazwy na meta_title (polskie, AI-generated)
+        try:
+            updated = conn.execute("""
+                UPDATE produkty SET nazwa = meta_title
+                WHERE meta_title IS NOT NULL AND meta_title != '' AND LENGTH(meta_title) > 5
+                AND nazwa != meta_title
+            """).rowcount
+            if updated:
+                conn.commit()
+                print(f"[DB] Zaktualizowano {updated} nazw produktow na meta_title")
+        except:
+            pass
+
+        # Auto-generate kod_magazynowy for products that don't have one
+        try:
+            missing = conn.execute("SELECT id FROM produkty WHERE kod_magazynowy IS NULL OR kod_magazynowy = ''").fetchall()
+            for row in missing:
+                kod = f"MAG-{row[0]:05d}"
+                conn.execute('UPDATE produkty SET kod_magazynowy = ? WHERE id = ?', (kod, row[0]))
+            if missing:
+                conn.commit()
+        except:
+            pass
+
+        # Trigger: auto-generate kod_magazynowy na INSERT
+        conn.execute('''CREATE TRIGGER IF NOT EXISTS auto_kod_magazynowy
+            AFTER INSERT ON produkty
+            FOR EACH ROW
+            WHEN NEW.kod_magazynowy IS NULL OR NEW.kod_magazynowy = ''
+            BEGIN
+                UPDATE produkty SET kod_magazynowy = 'MAG-' || SUBSTR('00000' || NEW.id, -5) WHERE id = NEW.id;
+            END''')
+
+        # Auto-fix: cena_zakupu w bazie = BRUTTO, netto = brutto / 1.23
+        try:
+            conn.execute('''
+                UPDATE palety SET cena_zakupu_netto = ROUND(cena_zakupu / 1.23, 2)
+                WHERE cena_zakupu > 0 AND (cena_zakupu_netto IS NULL OR cena_zakupu_netto = 0)
+            ''')
+        except:
+            pass
+        
+        # Tabela logów Telegram
+        conn.execute('''CREATE TABLE IF NOT EXISTS telegram_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            typ TEXT,
+            wiadomosc TEXT,
+            status TEXT DEFAULT 'sent',
+            data TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )''')
+        
+        # Tabela kosztów operacyjnych
+        conn.execute('''CREATE TABLE IF NOT EXISTS koszty (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nazwa TEXT NOT NULL,
+            kwota REAL NOT NULL,
+            kategoria TEXT DEFAULT 'inne',
+            data DATE DEFAULT CURRENT_DATE,
+            notatka TEXT DEFAULT \'\',
+            data_dodania TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )''')
+        
+        # Tabela sprzedaży prywatnych (poza Allegro)
+        conn.execute('''CREATE TABLE IF NOT EXISTS sprzedaze_prywatne (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            opis TEXT NOT NULL,
+            kwota REAL NOT NULL,
+            data DATE DEFAULT CURRENT_DATE,
+            notatka TEXT DEFAULT '',
+            data_dodania TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )''')
+        
+        # Tabela historii produktu (timeline)
+        conn.execute('''CREATE TABLE IF NOT EXISTS historia_produktu (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            produkt_id INTEGER,
+            akcja TEXT,
+            opis TEXT,
+            dane_json TEXT,
+            data TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (produkt_id) REFERENCES produkty(id)
+        )''')
+        
+        # Tabela sztuk (per-unit tracking)
+        conn.execute('''CREATE TABLE IF NOT EXISTS sztuki (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            produkt_id INTEGER NOT NULL,
+            numer INTEGER NOT NULL,
+            stan TEXT DEFAULT 'Nowy',
+            status TEXT DEFAULT 'magazyn',
+            opis_naprawy TEXT DEFAULT '',
+            data_naprawy DATE DEFAULT NULL,
+            data_dodania TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (produkt_id) REFERENCES produkty(id)
+        )''')
+
+        # Tabela konfiguracji
+        conn.execute('''CREATE TABLE IF NOT EXISTS config (
+            klucz TEXT PRIMARY KEY,
+            wartosc TEXT,
+            data_aktualizacji TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )''')
+
+        # Tabela ogłoszeń OLX
+        try:
+            conn.execute('''CREATE TABLE IF NOT EXISTS olx_oferty (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                produkt_id INTEGER,
+                olx_advert_id TEXT,
+                tytul TEXT DEFAULT '',
+                cena REAL DEFAULT 0,
+                status TEXT DEFAULT 'draft',
+                data_utworzenia TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                data_aktualizacji TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (produkt_id) REFERENCES produkty(id)
+            )''')
+        except Exception as e:
+            print(f"⚠️ OLX table: {e}")
+
+        # Tabela przedmiotów Vinted
+        try:
+            conn.execute('''CREATE TABLE IF NOT EXISTS vinted_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                produkt_id INTEGER,
+                vinted_item_id TEXT,
+                tytul TEXT DEFAULT '',
+                cena REAL DEFAULT 0,
+                status TEXT DEFAULT 'in_progress',
+                data_utworzenia TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                data_aktualizacji TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (produkt_id) REFERENCES produkty(id)
+            )''')
+        except Exception as e:
+            print(f"⚠️ Vinted table: {e}")
+
+        # Tabela pallet_deals (monitoring okazji palet)
+        conn.execute('''CREATE TABLE IF NOT EXISTS pallet_deals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source TEXT NOT NULL,
+            external_id TEXT,
+            title TEXT NOT NULL,
+            url TEXT,
+            price REAL DEFAULT 0,
+            currency TEXT DEFAULT 'PLN',
+            category TEXT DEFAULT '',
+            image_url TEXT DEFAULT '',
+            items_count INTEGER DEFAULT 0,
+            market_value REAL DEFAULT 0,
+            matched_keywords TEXT DEFAULT '',
+            notified INTEGER DEFAULT 0,
+            first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(source, external_id)
+        )''')
+
+        # Domyślna konfiguracja
+        defaults = [
+            ('telegram_bot_token', ''),
+            ('telegram_chat_id', ''),
+            ('telegram_enabled', 'true'),
+            ('telegram_alert_sprzedaz', 'true'),
+            ('telegram_alert_niski_stan', 'true'),
+            ('telegram_alert_nowa_oferta', 'false'),
+            ('telegram_raport_dzienny', 'true'),
+            ('allegro_client_id', ''),
+            ('allegro_client_secret', ''),
+            ('allegro_access_token', ''),
+            ('allegro_refresh_token', ''),
+            ('allegro_token_expires', ''),
+            ('allegro_sandbox', 'false'),
+            ('allegro_redirect_uri', 'http://localhost:5000/allegro/callback'),
+            ('allegro_last_event_check', ''),
+            ('domyslna_marza', '40'),
+            ('domyslna_kategoria', 'inne'),
+            ('app_base_url', 'http://localhost:5000'),
+        ]
+        
+        for klucz, wartosc in defaults:
+            try:
+                conn.execute('INSERT INTO config (klucz, wartosc) VALUES (?, ?)', (klucz, wartosc))
+            except sqlite3.IntegrityError:
+                pass  # Już istnieje
+        
+        # === INDEKSY dla wydajności ===
+        # Sprzedaze - najczęściej skanowana tabela
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_sprzedaze_produkt_id ON sprzedaze(produkt_id)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_sprzedaze_oferta_id ON sprzedaze(oferta_id)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_sprzedaze_status ON sprzedaze(status)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_sprzedaze_data ON sprzedaze(data_sprzedazy)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_sprzedaze_allegro_order ON sprzedaze(allegro_order_id)')
+        # Produkty - FK i statusy
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_produkty_paleta_id ON produkty(paleta_id)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_produkty_status ON produkty(status)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_produkty_ean ON produkty(ean)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_produkty_asin ON produkty(asin)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_produkty_lokalizacja ON produkty(lokalizacja)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_produkty_kategoria ON produkty(kategoria)')
+        # Oferty - FK
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_oferty_produkt_id ON oferty(produkt_id)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_oferty_allegro_id ON oferty(allegro_id)')
+        # Palety - dostawca i data
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_palety_dostawca ON palety(dostawca)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_palety_data_zakupu ON palety(data_zakupu)')
+        # Composite indeksy dla dashboard queries
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_sprzedaze_status_data ON sprzedaze(status, data_sprzedazy)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_produkty_status_data ON produkty(status, data_dodania)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_produkty_paleta_status ON produkty(paleta_id, status)')
+
+        conn.commit()
+
+# === CACHE dla statystyk ===
+_stats_cache = {'data': None, 'time': 0}
+_STATS_TTL = 30  # sekund
+
+def invalidate_stats_cache():
+    """Wywołaj po operacjach zapisu (sprzedaż, nowy produkt itp.)"""
+    _stats_cache['time'] = 0
+
+def get_config(klucz, default=''):
+    """Pobiera wartość konfiguracji"""
+    conn = get_db()
+    row = conn.execute('SELECT wartosc FROM config WHERE klucz = ?', (klucz,)).fetchone()
+    return row['wartosc'] if row else default
+
+def set_config(klucz, wartosc):
+    """Ustawia wartość konfiguracji"""
+    conn = get_db()
+    conn.execute('''INSERT OR REPLACE INTO config (klucz, wartosc, data_aktualizacji)
+                    VALUES (?, ?, CURRENT_TIMESTAMP)''', (klucz, wartosc))
+    conn.commit()
+    invalidate_config_cache()
+
+
+# ============================================================
+# CONFIG CACHE — unika powtarzanych SELECT-ów na config
+# ============================================================
+_config_cache = {}
+_config_cache_time = 0
+_CONFIG_TTL = 60  # sekund
+
+def get_config_cached(klucz, default=''):
+    """Pobiera config z cache (TTL 60s)"""
+    global _config_cache, _config_cache_time
+    now = time.time()
+    if (now - _config_cache_time) > _CONFIG_TTL:
+        _config_cache = {}
+        _config_cache_time = now
+    if klucz not in _config_cache:
+        _config_cache[klucz] = get_config(klucz, default)
+    return _config_cache.get(klucz, default)
+
+def invalidate_config_cache():
+    """Czyści cache configu (wywołaj po set_config)"""
+    global _config_cache, _config_cache_time
+    _config_cache = {}
+    _config_cache_time = 0
+
+def is_module_enabled(name):
+    """Sprawdza czy moduł jest włączony. OLX/Vinted domyślnie wyłączone."""
+    default = '0' if name in ('olx', 'vinted') else '1'
+    return get_config_cached(f'module_{name}', default) == '1'
+
+
+def query_db(query, args=(), one=False):
+    """Wykonuje zapytanie i zwraca wyniki"""
+    with get_db() as conn:
+        cur = conn.execute(query, args)
+        rv = cur.fetchall()
+        return (rv[0] if rv else None) if one else rv
+
+def execute_db(query, args=()):
+    """Wykonuje zapytanie modyfikujące"""
+    with get_db() as conn:
+        conn.execute(query, args)
+        conn.commit()
+
+
+# ============================================================
+# JEDNORAZOWA MIGRACJA - reset fałszywych dat wystawienia
+# ============================================================
+def migrate_reset_fake_data_wystawienia():
+    """
+    Zeruje data_wystawienia dla ofert gdzie data była ustawiona jako CURRENT_TIMESTAMP
+    przy syncowaniu (nie prawdziwa data Allegro). Po wywołaniu tej funkcji,
+    kolejny sync z Allegro pobierze prawdziwe daty publication.startingAt.
+    
+    Heurystyka: jeśli oferta ma allegro_id (pochodzi z Allegro) ale data_wystawienia
+    wygląda jak czas synca (np. ta sama godzina dla wielu ofert) — zerujemy.
+    Bezpieczniej: zerujemy WSZYSTKIE oferty z allegro_id, niech sync wpisze prawdziwe.
+    """
+    try:
+        with get_db() as conn:
+            # Sprawdź czy migracja już była wykonana
+            done = conn.execute(
+                "SELECT value FROM config WHERE key='migr_reset_wystawienia_v1' LIMIT 1"
+            ).fetchone()
+            if done:
+                return
+            # Zeruj data_wystawienia dla wszystkich ofert z allegro_id
+            # (przy następnym syncu dostaną prawdziwą datę z Allegro API)
+            cnt = conn.execute(
+                "SELECT COUNT(*) FROM oferty WHERE allegro_id IS NOT NULL AND allegro_id != ''"
+            ).fetchone()[0]
+            conn.execute(
+                "UPDATE oferty SET data_wystawienia = NULL WHERE allegro_id IS NOT NULL AND allegro_id != ''"
+            )
+            conn.execute(
+                "INSERT OR REPLACE INTO config(key, value) VALUES('migr_reset_wystawienia_v1', '1')"
+            )
+            conn.commit()
+            print(f"✅ Migracja: zresetowano data_wystawienia dla {cnt} ofert (zostaną uzupełnione przy syncu Allegro)")
+    except Exception as e:
+        print(f"⚠️ Migracja reset wystawienia: {e}")
+
+
+def fix_product_status_integrity():
+    """
+    Naprawia niespójności statusów produktów:
+    1. REINDEX — naprawia uszkodzone indeksy SQLite
+    2. status='sprzedany' ale ilosc > 0 → status='magazyn'
+    3. status='magazyn'/'wystawiony' ale ilosc = 0 → status='sprzedany'
+    Uruchamiane przy starcie aplikacji.
+    """
+    try:
+        with get_db() as conn:
+            # Krok 0: REINDEX naprawia uszkodzone indeksy (częsty problem z SQLite WAL)
+            try:
+                conn.execute("REINDEX")
+                conn.commit()
+            except Exception as e:
+                print(f"  ⚠️ REINDEX: {e}")
+
+            # 1. Produkty ze statusem 'sprzedany' ale ilosc > 0 → przywróć do magazynu
+            fix1 = conn.execute('''
+                UPDATE produkty SET status = 'magazyn'
+                WHERE status = 'sprzedany' AND ilosc > 0
+            ''').rowcount
+
+            if fix1 > 0:
+                print(f"  🔧 Integralność: {fix1} produktów (status sprzedany→magazyn, mają ilosc>0)")
+
+            # 2. Produkty w magazynie/wystawiony ale z ilością 0 → oznacz jako sprzedane
+            fix2 = conn.execute('''
+                UPDATE produkty SET status = 'sprzedany'
+                WHERE status IN ('magazyn', 'wystawiony') AND ilosc = 0
+            ''').rowcount
+
+            if fix2 > 0:
+                print(f"  🔧 Integralność: {fix2} produktów (ilosc=0, status→sprzedany)")
+
+            if fix1 > 0 or fix2 > 0:
+                conn.commit()
+            else:
+                print("  ✅ Integralność produktów OK")
+
+    except Exception as e:
+        print(f"⚠️ Fix integralności: {e}")
+
+
+# ============================================================
+# STATYSTYKI
+# ============================================================
+
+def get_full_stats():
+    """Pobiera pełne statystyki dla dashboardu (cached 30s)"""
+    now = time.time()
+    if _stats_cache['data'] and (now - _stats_cache['time']) < _STATS_TTL:
+        return _stats_cache['data']
+
+    with get_db() as conn:
+        today = datetime.now().strftime('%Y-%m-%d')
+        month_start = datetime.now().strftime('%Y-%m-01')
+        days_30_ago = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        
+        stats = {}
+        
+        # === PALETY ===
+        # Palety w tym miesiącu
+        row = conn.execute('''
+            SELECT COUNT(*) as cnt, COALESCE(SUM(cena_zakupu), 0) as suma
+            FROM palety WHERE date(data_zakupu) >= ?
+        ''', (month_start,)).fetchone()
+        stats['palety_miesiac'] = row['cnt']
+        
+        # Koszt miesięczny = większa wartość z: palet lub produktów
+        koszt_palet_msc = row['suma'] or 0
+        koszt_produktow_msc = conn.execute('''
+            SELECT COALESCE(SUM(CASE WHEN cena_brutto > 0 THEN cena_brutto ELSE cena_netto END), 0) as suma
+            FROM produkty p
+            JOIN palety pal ON p.paleta_id = pal.id
+            WHERE date(pal.data_zakupu) >= ?
+        ''', (month_start,)).fetchone()['suma'] or 0
+        stats['palety_miesiac_koszt'] = max(koszt_palet_msc, koszt_produktow_msc)
+        
+        # Palety łącznie
+        row = conn.execute('''
+            SELECT COUNT(*) as cnt, COALESCE(SUM(cena_zakupu), 0) as suma
+            FROM palety
+        ''').fetchone()
+        stats['palety_lacznie'] = row['cnt']
+        
+        # Koszt łączny = większa wartość z: palet lub produktów
+        koszt_palet = row['suma'] or 0
+        koszt_produktow = conn.execute('''
+            SELECT COALESCE(SUM(CASE WHEN cena_brutto > 0 THEN cena_brutto ELSE cena_netto END), 0) as suma
+            FROM produkty
+        ''').fetchone()['suma'] or 0
+        stats['palety_lacznie_koszt'] = max(koszt_palet, koszt_produktow)
+        
+        # === MAGAZYN ===
+        # Produkty na magazynie — tylko statusy magazyn/wystawiony (spójnie z KPI dashboard)
+        row = conn.execute('''
+            SELECT COUNT(*) as cnt, COALESCE(SUM(ilosc), 0) as sztuki,
+                   COALESCE(SUM(cena_allegro * ilosc), 0) as wartosc
+            FROM produkty WHERE status IN ('magazyn', 'wystawiony')
+        ''').fetchone()
+        stats['magazyn_produkty'] = row['cnt']
+        stats['magazyn_sztuki'] = row['sztuki']
+        stats['magazyn_wartosc'] = row['wartosc']
+        
+        # Produkty wystawione (aktywne oferty)
+        row = conn.execute('''
+            SELECT COUNT(*) as cnt FROM produkty WHERE status = 'wystawiony'
+        ''').fetchone()
+        stats['wystawione'] = row['cnt']
+        
+        # Stojące >30 dni (bez sprzedaży)
+        row = conn.execute('''
+            SELECT COUNT(*) as cnt FROM produkty 
+            WHERE status IN ('magazyn', 'wystawiony') 
+            AND date(data_dodania) < ? AND ilosc > 0
+        ''', (days_30_ago,)).fetchone()
+        stats['stojace_30dni'] = row['cnt']
+        
+        # === SPRZEDAŻ DZIŚ ===
+        # Liczymy tylko opłacone (bez zwrotów, anulowanych i ręcznych korekt)
+        # data_sprzedazy jest już w czasie lokalnym (PL) - nie konwertujemy
+        row = conn.execute('''
+            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
+            FROM sprzedaze WHERE
+                date(REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?
+            AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+            AND (allegro_order_id IS NULL OR allegro_order_id NOT LIKE 'MANUAL-%')
+            AND (kupujacy IS NULL OR kupujacy != 'offline')
+        ''', (today,)).fetchone()
+        stats['sprzedaz_dzis_cnt'] = row['cnt']
+        stats['sprzedaz_dzis_suma'] = row['suma']
+        
+        # Zwroty dziś (do wyświetlenia)
+        row_zwroty = conn.execute('''
+            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
+            FROM sprzedaze WHERE
+                date(REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?
+            AND status = 'zwrot'
+        ''', (today,)).fetchone()
+        stats['zwroty_dzis_cnt'] = row_zwroty['cnt']
+        stats['zwroty_dzis_suma'] = row_zwroty['suma']
+        
+        # === DO WYSŁANIA (status = 'nowa') ===
+        row = conn.execute('''
+            SELECT COUNT(*) as cnt FROM sprzedaze WHERE status = 'nowa'
+        ''').fetchone()
+        stats['do_wyslania'] = row['cnt']
+        
+        # === SPRZEDAŻ W MIESIĄCU ===
+        # Tylko opłacone (bez zwrotów i anulowanych)
+        row = conn.execute('''
+            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
+            FROM sprzedaze WHERE date(data_sprzedazy) >= ? 
+            AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+            AND (kupujacy IS NULL OR kupujacy != 'offline')
+        ''', (month_start,)).fetchone()
+        stats['sprzedaz_miesiac_cnt'] = row['cnt']
+        stats['sprzedaz_miesiac_suma'] = row['suma']
+        
+        # Zwroty w miesiącu
+        row_zwroty_msc = conn.execute('''
+            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
+            FROM sprzedaze WHERE date(data_sprzedazy) >= ? AND status = 'zwrot'
+        ''', (month_start,)).fetchone()
+        stats['zwroty_miesiac_cnt'] = row_zwroty_msc['cnt']
+        stats['zwroty_miesiac_suma'] = row_zwroty_msc['suma']
+        
+        # === SPRZEDAŻ ŁĄCZNIE ===
+        # Tylko opłacone (bez zwrotów i anulowanych)
+        row = conn.execute('''
+            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
+            FROM sprzedaze WHERE status NOT IN ('zwrot', 'anulowane', 'anulowana')
+            AND (kupujacy IS NULL OR kupujacy != 'offline')
+        ''').fetchone()
+        # Dolicz sprzedaże prywatne (poza Allegro)
+        try:
+            row_pryw = conn.execute('''
+                SELECT COUNT(*) as cnt, COALESCE(SUM(kwota), 0) as suma
+                FROM sprzedaze_prywatne
+            ''').fetchone()
+            pryw_cnt = row_pryw['cnt'] or 0
+            pryw_suma = row_pryw['suma'] or 0
+        except:
+            pryw_cnt = 0
+            pryw_suma = 0
+        stats['sprzedaz_lacznie_cnt'] = row['cnt'] + pryw_cnt
+        stats['sprzedaz_lacznie_suma'] = row['suma'] + pryw_suma
+        stats['sprzedaz_lacznie_pryw_suma'] = pryw_suma
+        
+        # Zwroty łącznie
+        row_zwroty_all = conn.execute('''
+            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
+            FROM sprzedaze WHERE status = 'zwrot'
+        ''').fetchone()
+        stats['zwroty_lacznie_cnt'] = row_zwroty_all['cnt']
+        stats['zwroty_lacznie_suma'] = row_zwroty_all['suma']
+        
+        # === ŚREDNIA WARTOŚĆ ZAMÓWIENIA ===
+        if stats['sprzedaz_lacznie_cnt'] > 0:
+            stats['srednia_zamowienie'] = stats['sprzedaz_lacznie_suma'] / stats['sprzedaz_lacznie_cnt']
+        else:
+            stats['srednia_zamowienie'] = 0
+        
+        # === ZYSK SZACOWANY (miesiąc) ===
+        # Zysk = Przychód ze sprzedaży - Koszt palet w miesiącu - Prowizja Allegro (11%)
+        # UWAGA: cena_brutto/cena_netto w produktach to ceny detaliczne (MSRP/Amazon),
+        # NIE koszt zakupu! Prawdziwy koszt to cena_zakupu z tabeli palety.
+        prowizja_msc = stats['sprzedaz_miesiac_suma'] * 0.11
+
+        # Koszt = suma cen zakupu palet kupionych w tym miesiącu
+        # To najprostsze i najdokładniejsze podejście bo:
+        # 1) Większość sprzedaży z Allegro nie ma produkt_id (brak powiązania)
+        # 2) ilosc_produktow to unikalne typy, nie sztuki (np. 1 typ = 42 szt)
+        koszt_sprzedanych = koszt_palet_msc  # z wcześniejszego query (linia ~438)
+
+        stats['zysk_miesiac'] = stats['sprzedaz_miesiac_suma'] - koszt_sprzedanych - prowizja_msc
+        stats['koszt_sprzedanych_msc'] = koszt_sprzedanych
+
+        # ROI miesięczny (zysk / koszt * 100)
+        if koszt_sprzedanych > 0:
+            stats['roi_miesiac'] = (stats['zysk_miesiac'] / koszt_sprzedanych) * 100
+        else:
+            stats['roi_miesiac'] = 0
+        
+        # === TOP 5 PRODUKTÓW (najlepiej sprzedające się) ===
+        # Używa nazwa i zdjecie z sprzedaze (naprawione przez napraw-nazwy)
+        top_produkty = conn.execute('''
+            SELECT 
+                CASE 
+                    WHEN s.nazwa IS NOT NULL AND s.nazwa != '' AND s.nazwa != 'Produkt' THEN SUBSTR(s.nazwa, 1, 50)
+                    WHEN o.tytul IS NOT NULL AND o.tytul != '' THEN SUBSTR(o.tytul, 1, 50)
+                    WHEN p.nazwa IS NOT NULL AND p.nazwa != '' THEN p.nazwa
+                    ELSE 'Produkt #' || s.id
+                END as produkt_nazwa, 
+                COALESCE(s.zdjecie_url, p.zdjecie_url, '') as zdjecie_url, 
+                COUNT(s.id) as sprzedazy_cnt,
+                COALESCE(SUM(s.cena * s.ilosc), 0) as sprzedazy_suma
+            FROM sprzedaze s
+            LEFT JOIN oferty o ON s.oferta_id = o.id
+            LEFT JOIN produkty p ON COALESCE(s.produkt_id, o.produkt_id) = p.id
+            WHERE s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
+            GROUP BY produkt_nazwa
+            ORDER BY sprzedazy_cnt DESC
+            LIMIT 5
+        ''').fetchall()
+        stats['top_produkty'] = [{'nazwa': row['produkt_nazwa'], 'zdjecie_url': row['zdjecie_url'], 'sprzedazy_cnt': row['sprzedazy_cnt'], 'sprzedazy_suma': row['sprzedazy_suma']} for row in top_produkty]
+        
+        # === TOP 5 DOSTAWCÓW (najlepszy ROI) ===
+        # CTE: przychód z sprzedaży + koszt = SUM(palety.cena_zakupu) per dostawca
+        # NIE używamy cena_brutto (to RRP/MSRP, nie koszt zakupu!)
+        top_dostawcy = conn.execute('''
+            WITH dostawca_przychod AS (
+                SELECT
+                    COALESCE(
+                        NULLIF(pal.dostawca, ''),
+                        NULLIF(p.dostawca, ''),
+                        NULLIF(pal2.dostawca, ''),
+                        NULLIF(p2.dostawca, ''),
+                        'Nieznany'
+                    ) as dostawca_nazwa,
+                    COUNT(DISTINCT s.id) as produktow,
+                    COALESCE(SUM(s.cena * s.ilosc), 0) as przychod,
+                    COUNT(s.id) as sprzedazy_cnt
+                FROM sprzedaze s
+                LEFT JOIN produkty p ON s.produkt_id = p.id
+                LEFT JOIN palety pal ON p.paleta_id = pal.id
+                LEFT JOIN oferty o ON s.oferta_id = o.id
+                LEFT JOIN produkty p2 ON o.produkt_id = p2.id
+                LEFT JOIN palety pal2 ON p2.paleta_id = pal2.id
+                WHERE s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
+                GROUP BY dostawca_nazwa
+                HAVING dostawca_nazwa != 'Nieznany'
+            ),
+            dostawca_koszt AS (
+                SELECT
+                    COALESCE(NULLIF(dostawca, ''), 'Nieznany') as dostawca_nazwa,
+                    SUM(COALESCE(cena_zakupu, 0)) as koszt
+                FROM palety
+                WHERE cena_zakupu > 0
+                GROUP BY dostawca_nazwa
+            )
+            SELECT
+                dp.dostawca_nazwa,
+                dp.produktow,
+                dp.przychod,
+                COALESCE(dk.koszt, 0) as koszt,
+                dp.sprzedazy_cnt
+            FROM dostawca_przychod dp
+            LEFT JOIN dostawca_koszt dk ON dp.dostawca_nazwa = dk.dostawca_nazwa
+            ORDER BY dp.przychod DESC
+            LIMIT 5
+        ''').fetchall()
+
+        dostawcy_lista = []
+        for row in top_dostawcy:
+            d = {
+                'dostawca': row['dostawca_nazwa'],
+                'produktow': row['produktow'],
+                'przychod': row['przychod'],
+                'koszt': row['koszt'],
+                'sprzedazy_cnt': row['sprzedazy_cnt']
+            }
+            # Oblicz ROI: (przychód - koszt - prowizja) / koszt * 100
+            prowizja = d['przychod'] * 0.11
+            if d['koszt'] > 0:
+                d['roi'] = ((d['przychod'] - d['koszt'] - prowizja) / d['koszt']) * 100
+            else:
+                d['roi'] = 0
+            dostawcy_lista.append(d)
+
+        # Sortuj po ROI
+        dostawcy_lista.sort(key=lambda x: x['roi'], reverse=True)
+        stats['top_dostawcy'] = dostawcy_lista
+        
+        # === SPRZEDAŻ PER DZIEŃ (ostatnie 7 dni) ===
+        sprzedaz_dni = conn.execute('''
+            SELECT date(data_sprzedazy) as dzien,
+                   COUNT(*) as cnt,
+                   COALESCE(SUM(cena * ilosc), 0) as suma
+            FROM sprzedaze 
+            WHERE date(data_sprzedazy) >= date('now', '-7 days')
+            AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+            GROUP BY date(data_sprzedazy)
+            ORDER BY dzien DESC
+        ''').fetchall()
+        stats['sprzedaz_dni'] = [dict(row) for row in sprzedaz_dni]
+
+        _stats_cache['data'] = stats
+        _stats_cache['time'] = time.time()
+        return stats
+
+
+def get_palety_list(limit=50):
+    """Pobiera listę palet z pełnymi statystykami sprzedaży"""
+    # sprzedano_szt = MAX z (status='sprzedany', tabela sprzedaze) + sprzedano_offline
+    # żeby uniknąć podwójnego liczenia
+
+    # Sprawdź czy kolumny offline istnieją
+    conn = get_db()
+    has_offline = False
+    try:
+        conn.execute("SELECT sprzedano_offline, przychod_offline FROM produkty LIMIT 1")
+        has_offline = True
+    except:
+        pass
+
+    if has_offline:
+        # Wykluczamy produkty sprzedane offline z liczenia Allegro
+        return query_db('''
+            SELECT p.*, 
+                   (SELECT COUNT(*) FROM produkty WHERE paleta_id = p.id) as produktow,
+                   (SELECT COALESCE(SUM(CASE WHEN status IN ('sprzedany','wyslany') THEN 0 ELSE ilosc END), 0) FROM produkty WHERE paleta_id = p.id) as sztuk_w_magazynie,
+                   (SELECT COALESCE(SUM(cena_allegro * ilosc), 0) FROM produkty WHERE paleta_id = p.id) as wartosc_detalu,
+                   (SELECT COALESCE(SUM(cena_brutto), 0) FROM produkty WHERE paleta_id = p.id) as wartosc_zakupu_produktow,
+                   (SELECT COALESCE(SUM(CASE WHEN status = 'sprzedany' AND (sprzedano_offline IS NULL OR sprzedano_offline = 0) THEN 1 ELSE 0 END), 0) FROM produkty WHERE paleta_id = p.id) as sprzedano_status,
+                   COALESCE((SELECT SUM(s.ilosc) FROM sprzedaze s JOIN produkty pr ON s.produkt_id = pr.id WHERE pr.paleta_id = p.id AND s.status NOT IN ('anulowana', 'zwrot')), 0) as sprzedano_tabela,
+                   (SELECT COALESCE(SUM(CASE WHEN status = 'sprzedany' AND (sprzedano_offline IS NULL OR sprzedano_offline = 0) THEN cena_allegro ELSE 0 END), 0) FROM produkty WHERE paleta_id = p.id) as sprzedano_wartosc_status,
+                   COALESCE((SELECT SUM(s.cena * s.ilosc) FROM sprzedaze s JOIN produkty pr ON s.produkt_id = pr.id WHERE pr.paleta_id = p.id AND s.status NOT IN ('anulowana', 'zwrot')), 0) as sprzedano_wartosc_tabela,
+                   (SELECT COALESCE(SUM(CASE WHEN status = 'sprzedany' THEN cena_brutto ELSE 0 END), 0) FROM produkty WHERE paleta_id = p.id) as sprzedano_koszt,
+                   (SELECT COALESCE(SUM(CASE WHEN cena_brutto > 0 THEN cena_brutto WHEN cena_netto > 0 THEN cena_netto * 1.23 ELSE 0 END), 0) FROM produkty WHERE paleta_id = p.id) as koszt_produktow_all,
+                   (SELECT COALESCE(SUM(sprzedano_offline), 0) FROM produkty WHERE paleta_id = p.id) as sprzedano_offline,
+                   (SELECT COALESCE(SUM(przychod_offline), 0) FROM produkty WHERE paleta_id = p.id) as przychod_offline,
+                   (SELECT COALESCE(SUM(ilosc), 0) FROM produkty WHERE paleta_id = p.id) as sztuk_lacznie_total
+            FROM palety p
+            ORDER BY CAST(SUBSTR(p.nazwa, INSTR(p.nazwa,'#')+1) AS INTEGER) DESC, data_zakupu DESC
+            LIMIT ?
+        ''', (limit,))
+    else:
+        return query_db('''
+            SELECT p.*,
+                   (SELECT COUNT(*) FROM produkty WHERE paleta_id = p.id) as produktow,
+                   (SELECT COALESCE(SUM(CASE WHEN status IN ('sprzedany','wyslany') THEN 0 ELSE ilosc END), 0) FROM produkty WHERE paleta_id = p.id) as sztuk_w_magazynie,
+                   (SELECT COALESCE(SUM(cena_allegro * ilosc), 0) FROM produkty WHERE paleta_id = p.id) as wartosc_detalu,
+                   (SELECT COALESCE(SUM(cena_brutto), 0) FROM produkty WHERE paleta_id = p.id) as wartosc_zakupu_produktow,
+                   (SELECT COALESCE(SUM(CASE WHEN status = 'sprzedany' THEN 1 ELSE 0 END), 0) FROM produkty WHERE paleta_id = p.id) as sprzedano_status,
+                   COALESCE((SELECT SUM(s.ilosc) FROM sprzedaze s JOIN produkty pr ON s.produkt_id = pr.id WHERE pr.paleta_id = p.id AND s.status NOT IN ('anulowana', 'zwrot')), 0) as sprzedano_tabela,
+                   (SELECT COALESCE(SUM(CASE WHEN status = 'sprzedany' THEN cena_allegro ELSE 0 END), 0) FROM produkty WHERE paleta_id = p.id) as sprzedano_wartosc_status,
+                   COALESCE((SELECT SUM(s.cena * s.ilosc) FROM sprzedaze s JOIN produkty pr ON s.produkt_id = pr.id WHERE pr.paleta_id = p.id AND s.status NOT IN ('anulowana', 'zwrot')), 0) as sprzedano_wartosc_tabela,
+                   (SELECT COALESCE(SUM(CASE WHEN status = 'sprzedany' THEN cena_brutto ELSE 0 END), 0) FROM produkty WHERE paleta_id = p.id) as sprzedano_koszt,
+                   (SELECT COALESCE(SUM(CASE WHEN cena_brutto > 0 THEN cena_brutto WHEN cena_netto > 0 THEN cena_netto * 1.23 ELSE 0 END), 0) FROM produkty WHERE paleta_id = p.id) as koszt_produktow_all,
+                   0 as sprzedano_offline,
+                   0 as przychod_offline,
+                   (SELECT COALESCE(SUM(ilosc), 0) FROM produkty WHERE paleta_id = p.id) as sztuk_lacznie_total
+            FROM palety p
+            ORDER BY CAST(SUBSTR(p.nazwa, INSTR(p.nazwa,'#')+1) AS INTEGER) DESC, data_zakupu DESC
+            LIMIT ?
+        ''', (limit,))
+
+
+def add_paleta(nazwa, dostawca, cena_zakupu, data_zakupu=None, notatki='', regal=''):
+    """Dodaje nową paletę. cena_zakupu = brutto z faktury."""
+    if not data_zakupu:
+        data_zakupu = datetime.now().strftime('%Y-%m-%d')
+    
+    try:
+        cena_brutto = float(cena_zakupu) if cena_zakupu else 0
+    except:
+        cena_brutto = 0
+    cena_netto = round(cena_brutto / 1.23, 2) if cena_brutto > 0 else 0
+    
+    with get_db() as conn:
+        cur = conn.execute('''
+            INSERT INTO palety (nazwa, dostawca, cena_zakupu, cena_zakupu_netto, data_zakupu, notatki, regal)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (nazwa, dostawca, cena_brutto, cena_netto, data_zakupu, notatki, regal))
+        paleta_id = cur.lastrowid
+        conn.commit()
+        return paleta_id
+
+
+# ============================================================
+# HISTORIA PRODUKTU
+# ============================================================
+
+def add_historia(produkt_id, akcja, opis, dane=None):
+    """
+    Dodaje wpis do historii produktu.
+    
+    Akcje:
+    - 'dodano' - produkt dodany do magazynu
+    - 'edytowano' - edycja produktu
+    - 'wystawiono' - wystawiono na Allegro
+    - 'sprzedano' - sprzedaż
+    - 'wyslano' - wysłano do klienta
+    - 'zmiana_ceny' - zmiana ceny
+    - 'zmiana_lokalizacji' - zmiana lokalizacji
+    - 'zmiana_ilosci' - zmiana ilości
+    - 'drukowano' - wydrukowano etykietę
+    - 'skanowano' - zeskanowano produkt
+    - 'importowano' - zaimportowano z Excel/CSV
+    - 'scrapowano' - scrapowano z Amazon
+    - 'wygenerowano_opis' - wygenerowano opis AI
+    - 'dodano_zdjecia' - dodano zdjęcia
+    - 'przeniesiono' - przeniesiono między paletami
+    - 'oznaczono' - oznaczono/otagowano
+    """
+    import json
+    with get_db() as conn:
+        conn.execute('''
+            INSERT INTO historia_produktu (produkt_id, akcja, opis, dane_json)
+            VALUES (?, ?, ?, ?)
+        ''', (produkt_id, akcja, opis, json.dumps(dane) if dane else None))
+        conn.commit()
+
+
+def get_historia(produkt_id, limit=20):
+    """Pobiera historię produktu"""
+    return query_db('''
+        SELECT * FROM historia_produktu 
+        WHERE produkt_id = ? 
+        ORDER BY data DESC 
+        LIMIT ?
+    ''', (produkt_id, limit))
+
+
+def get_historia_all(limit=50):
+    """Pobiera ostatnią historię ze wszystkich produktów"""
+    return query_db('''
+        SELECT h.*, p.nazwa as produkt_nazwa
+        FROM historia_produktu h
+        LEFT JOIN produkty p ON h.produkt_id = p.id
+        ORDER BY h.data DESC
+        LIMIT ?
+    ''', (limit,))

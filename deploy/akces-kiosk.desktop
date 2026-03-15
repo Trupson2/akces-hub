@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Akces Hub Kiosk
+Comment=Auto-start Chromium kiosk for Akces Hub
+Exec=/home/pi/clean_v32/deploy/kiosk.sh
+Terminal=false
+X-GNOME-Autostart-enabled=true

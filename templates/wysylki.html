@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block content %}
+<style>.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}</style>
+<div class="header no-print">
+    <h1>📦 WYSYŁKI</h1>
+    <small>Zamówienia do spakowania i nadania</small>
+</div>
+
+<!-- Nagłówek druku -->
+<div class="print-only" style="display:none;text-align:center;margin-bottom:20px;padding-bottom:10px;border-bottom:2px solid #000">
+    <h2 style="margin:0">📦 LISTA PAKOWANIA</h2>
+    <small>{{ zamowienia_cnt }} zamówień · {{ produkty_cnt }} produktów · {{ wartosc }} zł</small>
+</div>
+
+<!-- Akcje -->
+<div class="no-print" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:8px;margin-bottom:15px">
+    <a href="/wysylki/pakowanie" class="btn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:#22c55e;border-radius:10px;color:#fff;text-decoration:none;font-weight:600;font-size:0.85rem">
+        📱 Skanuj
+    </a>
+    <a href="/wysylki/allegro?refresh=1" id="refreshBtn" onclick="this.innerHTML='<span class=\'spinner\'></span> Sync...';this.style.opacity='0.7';this.style.pointerEvents='none'" class="btn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:#3b82f6;border-radius:10px;color:#fff;text-decoration:none;font-weight:600;font-size:0.85rem">
+        🔄 Odśwież
+    </a>
+    <button id="toggleAllBtn" onclick="toggleAll(true)" class="btn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:#f59e0b;border:none;border-radius:10px;color:#fff;text-decoration:none;font-weight:600;cursor:pointer;width:100%;font-size:0.85rem">
+        ☑️ Zaznacz
+    </button>
+    <a href="/wysylki/drukuj" target="_blank" class="btn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:#8b5cf6;border-radius:10px;color:#fff;text-decoration:none;font-weight:600;cursor:pointer;font-size:0.85rem">
+        🖨️ Drukuj
+    </a>
+    <a href="/wysylki/wyczysc-all" onclick="return confirm('Oznaczyć WSZYSTKIE widoczne zamówienia jako wysłane?')" class="btn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:#ef4444;border-radius:10px;color:#fff;text-decoration:none;font-weight:600;cursor:pointer;font-size:0.85rem">
+        🗑️ Wyczyść
+    </a>
+</div>
+
+<!-- Statystyki -->
+<div class="no-print" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:15px">
+    <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:1.5rem;font-weight:700;color:#f59e0b">{{ zamowienia_cnt }}</div>
+        <div style="font-size:0.7rem;color:#64748b">DO WYSŁANIA</div>
+    </div>
+    <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:1.5rem;font-weight:700;color:#3b82f6">{{ produkty_cnt }}</div>
+        <div style="font-size:0.7rem;color:#64748b">PRODUKTÓW</div>
+    </div>
+    <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:1.5rem;font-weight:700;color:#22c55e">{{ wartosc }} zł</div>
+        <div style="font-size:0.7rem;color:#64748b">WARTOŚĆ</div>
+    </div>
+</div>
+
+<!-- Bulk akcje -->
+<div class="no-print" id="bulkBar" style="display:none;background:#1e1e2e;border:1px solid #3b82f6;border-radius:10px;padding:10px;margin-bottom:12px;text-align:center">
+    <span id="selectedCount" style="color:#3b82f6;font-weight:700;margin-right:10px">0 zaznaczonych</span>
+    <button onclick="submitBulk()" style="padding:8px 20px;background:#22c55e;border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer">✅ Wyślij zaznaczone</button>
+    <button onclick="toggleAll(false)" style="padding:8px 20px;background:#ef4444;border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;margin-left:8px">✖ Odznacz</button>
+</div>
+
+<form id="bulkForm" method="POST" action="/wysylki/bulk-wyslane-allegro">
+<!-- Lista zamówień -->
+{% for z in zamowienia %}
+<div class="order-card" style="display:flex;align-items:stretch;background:#12121a;border:1px solid #1e1e2e;border-radius:10px;margin-bottom:8px;overflow:hidden">
+    <!-- Checkbox + Numer -->
+    <div style="min-width:50px;background:#1e1e2e;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:4px">
+        <input type="checkbox" name="order_ids" value="{{ z.order_id }}" class="order-cb no-print" onchange="updateBulk()" style="width:18px;height:18px;cursor:pointer">
+        <span style="font-size:1.3rem;font-weight:700;color:#f59e0b">{{ loop.index }}</span>
+    </div>
+
+    <!-- Zdjęcia produktów -->
+    <div class="product-photos" style="display:flex;flex-direction:column;gap:4px;padding:8px;justify-content:center">
+        {% for p in z.produkty %}
+        <img src="{{ p.zdjecie_url or 'https://via.placeholder.com/45' }}"
+             style="width:50px;height:50px;object-fit:contain;border-radius:6px;background:#fff"
+             onerror="this.src='https://via.placeholder.com/45'">
+        {% endfor %}
+    </div>
+
+    <!-- Treść -->
+    <div style="flex:1;padding:10px">
+        <!-- Produkty -->
+        {% for p in z.produkty %}
+        <div style="font-weight:600;font-size:0.9rem;margin-bottom:2px">
+            {{ p.name_short }}{% if p.qty > 1 %} <span style="color:#f59e0b">(×{{ p.qty }})</span>{% endif %}
+        </div>
+        {% endfor %}
+
+        <!-- Adres -->
+        <div style="font-size:0.8rem;color:#94a3b8;margin-top:4px">
+            📍 {% if z.pickup_point %}{{ z.pickup_point }}{% else %}{{ z.address }}{% endif %}
+        </div>
+
+        <!-- Lokalizacja magazynowa -->
+        {% for p in z.produkty %}{% if p.lokalizacja %}
+        <div style="display:inline-block;background:#8b5cf6;color:#fff;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:600;margin-top:4px">📦 {{ p.lokalizacja }}</div>
+        {% endif %}{% endfor %}
+    </div>
+
+    <!-- Przyciski -->
+    <div class="no-print" style="display:flex;flex-direction:column;gap:4px;padding:8px;justify-content:center">
+        <a href="/wysylki/wyslano-order/{{ z.order_id }}" style="padding:6px 12px;background:#22c55e;border-radius:6px;color:#fff;text-decoration:none;font-size:0.75rem;font-weight:600;text-align:center">✅</a>
+        <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{{ z.order_id }}" target="_blank" style="padding:6px 12px;background:#3b82f6;border-radius:6px;color:#fff;text-decoration:none;font-size:0.75rem;text-align:center">📋</a>
+    </div>
+</div>
+{% endfor %}
+</form>
+
+{% if zamowienia_cnt == 0 %}
+<div style="text-align:center;padding:40px;color:#64748b">
+    <div style="font-size:3rem;margin-bottom:15px">✅</div>
+    <div style="font-size:1.1rem;font-weight:600">Brak zamówień do wysłania!</div>
+    <div style="font-size:0.85rem;margin-top:5px">Wszystko nadane lub brak nowych zamówień</div>
+</div>
+{% endif %}
+
+<a href="/" class="back no-print">← Powrót</a>
+
+<script>
+function updateBulk() {
+    const all = document.querySelectorAll('.order-cb');
+    const checked = document.querySelectorAll('.order-cb:checked').length;
+    document.getElementById('bulkBar').style.display = checked > 0 ? 'block' : 'none';
+    document.getElementById('selectedCount').textContent = checked + ' / ' + all.length + ' zaznaczonych';
+    // Zmień przycisk "Zaznacz" na "Odznacz" gdy wszystko zaznaczone
+    const toggleBtn = document.getElementById('toggleAllBtn');
+    if (toggleBtn) {
+        if (checked > 0 && checked === all.length) {
+            toggleBtn.textContent = '☐ Odznacz';
+            toggleBtn.style.background = '#64748b';
+        } else {
+            toggleBtn.textContent = '☑️ Zaznacz';
+            toggleBtn.style.background = '#f59e0b';
+        }
+    }
+}
+function toggleAll(state) {
+    const all = document.querySelectorAll('.order-cb');
+    const checked = document.querySelectorAll('.order-cb:checked').length;
+    // Jeśli state=true ale wszystko jest zaznaczone → odznacz
+    if (state && checked === all.length) {
+        all.forEach(cb => cb.checked = false);
+    } else {
+        all.forEach(cb => cb.checked = state);
+    }
+    updateBulk();
+}
+function submitBulk() {
+    const checked = document.querySelectorAll('.order-cb:checked').length;
+    if (checked === 0) return;
+    if (confirm('Oznaczyć ' + checked + ' zamówień jako wysłane?')) {
+        document.getElementById('bulkForm').submit();
+    }
+}
+</script>
+
+<style>
+@media print {
+    body { background: #fff !important; color: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    .order-card {
+        background: #fff !important;
+        border: 1px solid #ccc !important;
+        break-inside: avoid;
+        margin-bottom: 6px !important;
+    }
+    .order-card div[style*="background:#1e1e2e"] { background: #f0f0f0 !important; }
+    .order-card span[style*="color:#f59e0b"] { color: #000 !important; }
+    .order-card div[style*="color:#94a3b8"] { color: #333 !important; }
+    .order-card div[style*="background:#8b5cf6"] { background: #666 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .product-photos img { border: 1px solid #ccc; }
+    nav, .back { display: none !important; }
+}
+</style>
+{% endblock %}

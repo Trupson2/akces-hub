@@ -1,0 +1,63 @@
+# Secrets
+.secret_key
+.env
+gemini_config.py
+api_key.txt
+vinted_cookies.json
+email_config.json
+goal_data.json
+
+# Python
+*.pyc
+__pycache__/
+venv/
+
+# Database
+*.db
+*.db-wal
+*.db-shm
+
+# Backups & exports
+backups/
+cloud_exports/
+_update_tmp/
+
+# Test/debug files
+test_*.jpg
+test_*.png
+test_*.xlsx
+test_*.txt
+*.log
+logs/
+curl_*.txt
+server_out.*
+server_err.*
+server.log
+http_code.txt
+print_debug.log
+nul
+
+# Temp images
+enhanced_test*.jpg
+final_test*.jpg
+ev_*.jpg
+infographic_*.jpg
+pipeline_test.jpg
+vsprint_example.jpg
+watermark_test*.jpg
+debug_*.png
+allegro_*.jpg
+static/goal.jpg
+
+# IDE / tools
+.claude/
+node_modules/
+
+# Misc non-code
+modules/allegro_api.py.gz
+modules/image_cleaner.txt
+OFERTA_KLIENTA.md
+TODO_IMPROVEMENTS.md
+
+# OS
+static/downloads/

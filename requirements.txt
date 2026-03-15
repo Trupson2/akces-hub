@@ -1,0 +1,53 @@
+# Akces Hub - wymagania
+# Instalacja: pip install -r requirements.txt
+
+# Serwer web
+flask>=3.0.0
+
+# Requesty HTTP (Telegram, scraping)
+requests>=2.31.0
+
+# Excel/CSV obsługa
+openpyxl>=3.1.2
+pandas>=2.1.0
+
+# Obsługa obrazków (opcjonalnie)
+Pillow>=10.0.0
+
+# QR kody na etykietach
+qrcode>=7.4.0
+
+# Kody kreskowe EAN/Code128
+python-barcode>=0.15.0
+
+# PDF do etykiet Vretti
+reportlab>=4.0.0
+
+# Drukowanie etykiet (Bluetooth/USB)
+python-escpos>=3.1
+
+# Scheduler (raporty dzienne)
+schedule>=1.2.0
+
+# Allegro API (OAuth)
+requests-oauthlib>=1.3.1
+
+# Scraping Amazon (opcjonalnie)
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# AI opisy - Gemini (opcjonalnie)
+google-generativeai>=0.8.0
+
+# === NOWE v2.7 ===
+# Bluetooth Low Energy (drukarka Niimbot)
+bleak>=0.21.0
+
+# Niimbot bezpośrednia biblioteka (alternatywa)
+niimprint>=0.2.0
+
+# === OPCJONALNE (TURBO MODE) ===
+# Auto-detection sprzętu (CPU/RAM) dla optymalnej wydajności
+# Bez psutil: używa domyślnych ustawień (5 workerów, 64MB cache)
+# Z psutil: automatycznie dostosowuje do Twojego PC
+psutil>=5.9.0

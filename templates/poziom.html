@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poziom Adrian</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080810;
+    --card: #0f0f1a;
+    --border: #1a1a2e;
+    --green: #22c55e;
+    --yellow: #eab308;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+    --text: #e2e8f0;
+    --muted: #475569;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+  .container { max-width: 780px; margin: 0 auto; }
+
+  .header {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 28px; padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .avatar {
+    width: 54px; height: 54px;
+    background: linear-gradient(135deg, #22c55e, #3b82f6);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.7rem; flex-shrink: 0;
+  }
+  .header-info h1 { font-family: var(--mono); font-size: 1rem; color: #fff; }
+  .header-info p { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
+  .level-badge {
+    margin-left: auto;
+    background: #22c55e12; border: 1px solid #22c55e35;
+    color: var(--green); font-family: var(--mono);
+    font-size: 0.68rem; padding: 6px 12px; border-radius: 8px;
+  }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px; margin-bottom: 14px;
+  }
+  .card-red { border-color: #ef444330; }
+
+  .section-title {
+    font-family: var(--mono); font-size: 0.62rem;
+    color: var(--muted); text-transform: uppercase;
+    letter-spacing: 1.5px; margin-bottom: 14px;
+  }
+
+  /* XP */
+  .xp-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .xp-label { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .xp-nums { font-family: var(--mono); font-size: 0.72rem; color: var(--green); }
+  .bar-track { width: 100%; height: 11px; background: #12121e; border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+  .bar-fill {
+    height: 100%; border-radius: 6px; width: 0%;
+    transition: width 1.6s cubic-bezier(.16,1,.3,1);
+    position: relative;
+  }
+  .bar-fill::after {
+    content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 18px;
+    background: linear-gradient(90deg, transparent, #ffffff88);
+    animation: sh 2s infinite;
+  }
+  @keyframes sh { 0%,100%{opacity:.3} 50%{opacity:.9} }
+  .bar-green { background: linear-gradient(90deg, #22c55e, #86efac); }
+  .bar-red   { background: linear-gradient(90deg, #ef4444, #f97316); }
+  .xp-pct { font-family: var(--mono); font-size: 2rem; font-weight: 700; color: var(--green); }
+  .xp-sub { font-size: 0.7rem; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
+  /* BOSS */
+  .boss-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .boss-title { font-family: var(--mono); font-size: 0.72rem; color: var(--red); text-transform: uppercase; letter-spacing: 1px; }
+  .boss-target {
+    margin-left: auto; font-family: var(--mono); font-size: 0.75rem; color: var(--red);
+    background: #ef444412; padding: 4px 10px; border-radius: 6px; border: 1px solid #ef444330;
+  }
+  .boss-labels { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 0.62rem; color: var(--muted); }
+  .boss-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .bstat { background: #0a0a14; border: 1px solid var(--border); border-radius: 10px; padding: 10px; text-align: center; }
+  .bstat-v { font-family: var(--mono); font-size: 1rem; font-weight: 700; }
+  .bstat-l { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+  /* PROJECTIONS */
+  .proj-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid #12121e;
+  }
+  .proj-row:last-of-type { border-bottom: none; }
+  .proj-icon { font-size: 1rem; width: 26px; text-align: center; flex-shrink: 0; }
+  .proj-name { font-size: 0.8rem; flex: 1; }
+  .proj-now { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); }
+  .proj-arr { color: var(--muted); font-size: 0.65rem; }
+  .proj-target { font-family: var(--mono); font-size: 0.78rem; color: var(--yellow); font-weight: 700; }
+  .badge { font-size: 0.58rem; padding: 2px 7px; border-radius: 5px; font-family: var(--mono); flex-shrink: 0; }
+  .b-hard { background: #ef444412; color: var(--red); border: 1px solid #ef444330; }
+  .b-mid  { background: #eab30812; color: var(--yellow); border: 1px solid #eab30830; }
+  .b-easy { background: #22c55e12; color: var(--green); border: 1px solid #22c55e30; }
+  .tip-box { margin-top: 14px; padding: 12px; background: #22c55e08; border: 1px solid #22c55e20; border-radius: 10px; font-size: 0.76rem; color: #86efac; line-height: 1.6; }
+
+  /* SKILLS */
+  .sg { margin-bottom: 18px; }
+  .sg:last-child { margin-bottom: 0; }
+  .sg-title { font-family: var(--mono); font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 9px; }
+  .skill-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+  .skill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 11px; border-radius: 10px; font-size: 0.73rem;
+    border: 1px solid var(--border); background: #0a0a14;
+    cursor: pointer; user-select: none;
+    transition: all 0.18s; position: relative;
+  }
+  .skill:hover { transform: translateY(-1px); }
+  .skill.done { background: #22c55e0d; border-color: #22c55e40; color: var(--green); }
+  .skill.in-progress { background: #eab3080d; border-color: #eab30840; color: var(--yellow); }
+  .skill.locked { color: #2d2d48; border-color: #1a1a2e; }
+  .skill-tooltip {
+    display: none; position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
+    background: #1e1e2e; border: 1px solid #2a2a3e; border-radius: 8px;
+    padding: 7px 10px; font-size: 0.65rem; color: var(--text);
+    white-space: nowrap; z-index: 100; pointer-events: none;
+    font-family: var(--mono);
+  }
+  .skill:hover .skill-tooltip { display: block; }
+
+  /* ACHIEVEMENTS */
+  .ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 9px; }
+  .ach {
+    background: #0a0a14; border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 10px; text-align: center;
+    cursor: pointer; user-select: none;
+    transition: all 0.18s; position: relative;
+  }
+  .ach:hover { transform: translateY(-2px); border-color: #2a2a3e; }
+  .ach.earned { background: #22c55e08; border-color: #22c55e30; }
+  .ach.earned:hover { border-color: #22c55e60; }
+  .ach.locked-ach { opacity: 0.3; filter: grayscale(1); }
+  .ach.locked-ach:hover { opacity: 0.5; filter: grayscale(0.6); }
+  .ach-icon { font-size: 1.5rem; margin-bottom: 6px; }
+  .ach-name { font-size: 0.62rem; color: var(--muted); line-height: 1.3; }
+  .ach.earned .ach-name { color: var(--green); }
+  .ach-tooltip {
+    display: none; position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
+    background: #1e1e2e; border: 1px solid #2a2a3e; border-radius: 8px;
+    padding: 7px 10px; font-size: 0.63rem; color: var(--text);
+    white-space: nowrap; z-index: 100; pointer-events: none;
+    font-family: var(--mono); min-width: 140px; text-align: center;
+  }
+  .ach:hover .ach-tooltip { display: block; }
+
+  /* UNLOCK ANIMATION */
+  @keyframes unlock {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.15); }
+    60% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+  }
+  .just-unlocked { animation: unlock 0.4s ease; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: #1e1e2e; border: 1px solid #22c55e40; border-radius: 12px;
+    padding: 12px 20px; font-family: var(--mono); font-size: 0.75rem; color: var(--green);
+    transition: transform 0.3s cubic-bezier(.16,1,.3,1);
+    z-index: 999; pointer-events: none; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .fade-in { opacity: 0; transform: translateY(10px); transition: opacity 0.45s, transform 0.45s; }
+  .fade-in.v { opacity: 1; transform: none; }
+
+  .footer { margin-top: 28px; text-align: center; font-family: var(--mono); font-size: 0.58rem; color: #1e1e2e; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header fade-in">
+    <div class="avatar">📦</div>
+    <div class="header-info">
+      <h1>ADRIAN — PALET BOSS</h1>
+      <p>zwroty konsumenckie · allegro · family team · 2h/dzień</p>
+    </div>
+    <div class="level-badge" id="levelBadge">POZIOM 1 → 2</div>
+  </div>
+
+  <!-- XP -->
+  <div class="card fade-in">
+    <div class="xp-top">
+      <span class="xp-label">🏆 droga do miliona</span>
+      <span class="xp-nums" id="xpNums">400 000 / 1 000 000 PLN</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill bar-green" id="xpBar"></div></div>
+    <div class="xp-pct" id="xpPct">40%</div>
+    <div class="xp-sub" id="xpSub">brakuje 600 000 zł · przy obecnym tempie ~18 miesięcy · do końca 2026: możliwe przy 2.5× skali</div>
+  </div>
+
+  <!-- BOSS -->
+  <div class="card card-red fade-in">
+    <div class="boss-row">
+      <span style="font-size:1.3rem">💀</span>
+      <span class="boss-title">BOSS: cel miesięczny 2026</span>
+      <span class="boss-target">83 333 PLN / msc</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill bar-red" id="bossBar"></div></div>
+    <div class="boss-labels">
+      <span>TEN MIESIĄC: — zł</span>
+      <span>CEL: 83 333 zł/msc</span>
+    </div>
+    <div class="boss-stats">
+      <div class="bstat"><div class="bstat-v" style="color:var(--yellow)">42</div><div class="bstat-l">palet/msc potrzeba</div></div>
+      <div class="bstat"><div class="bstat-v" style="color:var(--green)">~17</div><div class="bstat-l">palet/msc teraz</div></div>
+      <div class="bstat"><div class="bstat-v" style="color:var(--red)">2.5×</div><div class="bstat-l">potrzebny wzrost</div></div>
+    </div>
+  </div>
+
+  <!-- PROJECTIONS -->
+  <div class="card fade-in">
+    <div class="section-title">📊 co trzeba zmienić żeby trafić 1M</div>
+    <div class="proj-row">
+      <span class="proj-icon">📦</span><span class="proj-name">Palety miesięcznie</span>
+      <span class="proj-now">~17</span><span class="proj-arr">→</span>
+      <span class="proj-target">42 / msc</span><span class="badge b-hard">trudne</span>
+    </div>
+    <div class="proj-row">
+      <span class="proj-icon">👥</span><span class="proj-name">Wielkość teamu</span>
+      <span class="proj-now">3 osoby</span><span class="proj-arr">→</span>
+      <span class="proj-target">5–6 osób</span><span class="badge b-mid">do rozważenia</span>
+    </div>
+    <div class="proj-row">
+      <span class="proj-icon">🤖</span><span class="proj-name">Automatyzacja</span>
+      <span class="proj-now">częściowa</span><span class="proj-arr">→</span>
+      <span class="proj-target">pełna</span><span class="badge b-easy">w toku</span>
+    </div>
+    <div class="proj-row">
+      <span class="proj-icon">🏪</span><span class="proj-name">Kanały sprzedaży</span>
+      <span class="proj-now">Allegro</span><span class="proj-arr">→</span>
+      <span class="proj-target">+ OLX + własny</span><span class="badge b-mid">opcjonalne</span>
+    </div>
+    <div class="proj-row">
+      <span class="proj-icon">💰</span><span class="proj-name">Avg przychód/paletę</span>
+      <span class="proj-now">~2 000 zł</span><span class="proj-arr">→</span>
+      <span class="proj-target">2 500 zł</span><span class="badge b-easy">realne</span>
+    </div>
+    <div class="proj-row">
+      <span class="proj-icon">⏱️</span><span class="proj-name">Czas pracy dziennie</span>
+      <span class="proj-now">2h</span><span class="proj-arr">→</span>
+      <span class="proj-target">2–3h</span><span class="badge b-easy">w normie</span>
+    </div>
+    <div class="tip-box">💡 <strong>Realna szansa na 1M?</strong> Tak — ale wymaga ~42 palet/msc zamiast 17. Przy pełnej automatyzacji i zwiększeniu zamówień od dostawców jest to wykonalne. Alternatywa: 30 palet × 3 000 zł/paletę = 1.08M rocznie.</div>
+  </div>
+
+  <!-- SKILL TREE -->
+  <div class="card fade-in">
+    <div class="section-title">⚒️ skill tree — kliknij żeby odblokować</div>
+
+    <div class="sg">
+      <div class="sg-title">📦 operacje</div>
+      <div class="skill-grid" id="skills-ops"></div>
+    </div>
+    <div class="sg">
+      <div class="sg-title">🤖 automatyzacja</div>
+      <div class="skill-grid" id="skills-auto"></div>
+    </div>
+    <div class="sg">
+      <div class="sg-title">💰 finanse</div>
+      <div class="skill-grid" id="skills-fin"></div>
+    </div>
+    <div class="sg">
+      <div class="sg-title">🌍 life</div>
+      <div class="skill-grid" id="skills-life"></div>
+    </div>
+  </div>
+
+  <!-- ACHIEVEMENTS -->
+  <div class="card fade-in">
+    <div class="section-title">🏆 osiągnięcia — kliknij żeby oznaczyć</div>
+    <div class="ach-grid" id="achGrid"></div>
+  </div>
+
+  <div class="footer">zvibecodowane przez AKCES HUB × Claude</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────
+const SKILLS = {
+  'skills-ops': [
+    { id: 's1', icon: '✅', label: 'import palet', status: 'done', tip: 'Excel import z 3 dostawców' },
+    { id: 's2', icon: '✅', label: 'magazyn', status: 'done', tip: 'AKCES HUB Magazynier' },
+    { id: 's3', icon: '✅', label: 'etykiety termiczne', status: 'done', tip: 'Niimbot + Vretti' },
+    { id: 's4', icon: '✅', label: 'InPost workflow', status: 'done', tip: 'osobiście do paczkomatu' },
+    { id: 's5', icon: '🔄', label: '20–25 palet/msc', status: 'in-progress', tip: 'CEL Q1 2026' },
+    { id: 's6', icon: '🔒', label: '40+ palet/msc', status: 'locked', tip: 'wymaga rozszerzenia teamu' },
+  ],
+  'skills-auto': [
+    { id: 's7', icon: '✅', label: 'Amazon scraper', status: 'done', tip: 'Paletomat moduł 1' },
+    { id: 's8', icon: '✅', label: 'AI opisy (Gemini)', status: 'done', tip: 'auto generowanie opisów' },
+    { id: 's9', icon: '✅', label: 'Allegro auto-listing', status: 'done', tip: 'Paletomat moduł 2' },
+    { id: 's10', icon: '✅', label: 'Telegram alerty', status: 'done', tip: 'powiadomienie przy sprzedaży' },
+    { id: 's11', icon: '🔄', label: 'Raspberry Pi 24/7', status: 'in-progress', tip: 'planowane wdrożenie' },
+    { id: 's12', icon: '🔒', label: 'pełny hands-off', status: 'locked', tip: 'wszystko automatyczne' },
+  ],
+  'skills-fin': [
+    { id: 's13', icon: '✅', label: '100k/rok', status: 'done', tip: 'zdobyte!' },
+    { id: 's14', icon: '✅', label: '400k/rok', status: 'done', tip: '~400k PLN roczny obrót' },
+    { id: 's15', icon: '✅', label: 'ROI tracking', status: 'done', tip: 'per paleta + całościowy' },
+    { id: 's16', icon: '✅', label: 'rozliczenie VAT', status: 'done', tip: '23% + podatek liniowy 19%' },
+    { id: 's17', icon: '🔄', label: '600k/rok', status: 'in-progress', tip: 'kolejny milestone' },
+    { id: 's18', icon: '🔒', label: '1 000 000 PLN', status: 'locked', tip: 'cel 2026 — THE BOSS' },
+  ],
+  'skills-life': [
+    { id: 's19', icon: '✅', label: 'własna firma', status: 'done', tip: 'JDG' },
+    { id: 's20', icon: '✅', label: 'family team', status: 'done', tip: 'dziadek + babcia' },
+    { id: 's21', icon: '🔄', label: 'sim racing setup', status: 'in-progress', tip: 'w trakcie kompletowania' },
+    { id: 's22', icon: '🔒', label: 'i30 N Performance', status: 'locked', tip: 'po przekroczeniu 600k/rok' },
+    { id: 's23', icon: '🔒', label: 'własny magazyn', status: 'locked', tip: 'przy 30+ paletach/msc' },
+    { id: 's24', icon: '🔒', label: '1. pracownik', status: 'locked', tip: 'gdy team nie wyrabia' },
+  ],
+};
+
+const ACHIEVEMENTS = [
+  // ── ZDOBYTE ──────────────────────────────────────────────────────────
+  { id: 'a1',  icon: '🌱', name: 'pierwszy krok',     earned: true,  tip: 'zacząłeś biznes od zera' },
+  { id: 'a2',  icon: '👨‍👩‍👦', name: 'family business',  earned: true,  tip: 'dziadek + babcia = family team' },
+  { id: 'a3',  icon: '🤖', name: 'własny system',     earned: true,  tip: 'AKCES HUB napisany od 0 z Claude' },
+  { id: 'a4',  icon: '📦', name: '200 palet/rok',     earned: true,  tip: '200 palet procesowanych rocznie' },
+  { id: 'a5',  icon: '⏱️', name: '2h/dzień',          earned: true,  tip: 'pełny biznes na 2 godziny dziennie' },
+  { id: 'a6',  icon: '💰', name: '400k rocznie',      earned: true,  tip: 'roczny przychód 400 000 PLN' },
+  { id: 'a7',  icon: '🔔', name: 'sprzedaż alert',    earned: true,  tip: 'Telegram bot przy każdej sprzedaży' },
+  { id: 'a8',  icon: '📊', name: 'ROI tracker',       earned: true,  tip: 'śledzenie rentowności per paleta' },
+  { id: 'a9',  icon: '🧑‍💻', name: 'vibe developer',   earned: true,  tip: 'budujesz zaawansowane systemy bez CS' },
+  { id: 'a10', icon: '🎯', name: 'palet boss',        earned: true,  tip: '20+ palet jednocześnie w obrocie' },
+  { id: 'a11', icon: '📬', name: 'InPost hunter',     earned: true,  tip: 'osobiście dostarczasz do paczkomatu — respect' },
+  { id: 'a12', icon: '🔍', name: 'deal finder',       earned: true,  tip: 'wiesz które palety warto kupić' },
+  { id: 'a13', icon: '🤝', name: 'multi-supplier',    earned: true,  tip: 'Jobalots + Warrington + Miglo' },
+
+  // ── DO ZDOBYCIA ───────────────────────────────────────────────────────
+  { id: 'a14', icon: '🚀', name: '500k rocznie',      earned: false, tip: 'przekroczenie 500 000 PLN/rok' },
+  { id: 'a15', icon: '📅', name: '30k w miesiąc',     earned: false, tip: 'jeden miesiąc ≥ 30 000 zł przychodu' },
+  { id: 'a16', icon: '💥', name: '50k w miesiąc',     earned: false, tip: 'jeden miesiąc ≥ 50 000 zł przychodu' },
+  { id: 'a17', icon: '🏁', name: 'i30 N',             earned: false, tip: 'Hyundai i30 N Performance — zasłużone' },
+  { id: 'a18', icon: '🎮', name: 'sim racing setup',  earned: false, tip: 'pełny rig: kierownica + siedzisko + pedały' },
+  { id: 'a19', icon: '🏭', name: 'własny magazyn',    earned: false, tip: 'wynajęty lub kupiony magazyn' },
+  { id: 'a20', icon: '👷', name: '1. pracownik',      earned: false, tip: 'pierwszy zatrudniony spoza rodziny' },
+  { id: 'a21', icon: '🤖', name: 'Pi 24/7',           earned: false, tip: 'Paletomat działa na Raspberry Pi non-stop' },
+  { id: 'a22', icon: '📧', name: 'mail automat',      earned: false, tip: 'bot pobiera manifest z maila automatycznie' },
+  { id: 'a23', icon: '📈', name: 'top seller',        earned: false, tip: 'status Super Sprzedawcy na Allegro' },
+  { id: 'a24', icon: '💎', name: '1 000 000 PLN',     earned: false, tip: 'THE MILLION — cel 2026 🏆' },
+  { id: 'a25', icon: '🌍', name: '2+ rynki EU',       earned: false, tip: 'sprzedaż na eBay / Amazon DE / inne' },
+  { id: 'a26', icon: '📕', name: 'ebook wydany',      earned: false, tip: 'kurs zwroty opublikowany i sprzedany' },
+  { id: 'a27', icon: '🧳', name: 'workation',         earned: false, tip: 'prowadzisz biznes z innego kraju' },
+  { id: 'a28', icon: '👑', name: 'palet empire',      earned: false, tip: '50+ palet miesięcznie w pełnym obrocie' },
+];
+
+// ─── STATE ───────────────────────────────────────────────────────────────
+let state = {
+  skills: {},
+  achievements: {},
+};
+
+// Initialize from defaults
+Object.values(SKILLS).flat().forEach(s => { state.skills[s.id] = s.status; });
+ACHIEVEMENTS.forEach(a => { state.achievements[a.id] = a.earned; });
+
+// Load from localStorage if available
+try {
+  const saved = localStorage.getItem('poziom_state');
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    // Merge skills from localStorage
+    if (parsed.skills) Object.assign(state.skills, parsed.skills);
+    // Merge achievements but NEVER unlock what defaults say is earned:true
+    if (parsed.achievements) {
+      Object.entries(parsed.achievements).forEach(([id, val]) => {
+        const def = ACHIEVEMENTS.find(a => a.id === id);
+        // If default says earned:true → always keep true, ignore localStorage false
+        if (def && def.earned) { state.achievements[id] = true; }
+        else { state.achievements[id] = val; }
+      });
+    }
+  }
+} catch(e) {}
+
+function saveState() {
+  try { localStorage.setItem('poziom_state', JSON.stringify(state)); } catch(e) {}
+}
+
+// ─── XP CALCULATION ──────────────────────────────────────────────────────
+function calcProgress() {
+  const achEarned = Object.values(state.achievements).filter(Boolean).length;
+  const achTotal = ACHIEVEMENTS.length;
+  const skillsDone = Object.values(state.skills).filter(s => s === 'done').length;
+  const skillsTotal = Object.values(SKILLS).flat().length;
+
+  // XP = czysto finansowy progress (przychod/cel), bez bonusów
+  const finPct = window.REAL_DATA ? window.REAL_DATA.xp_pct : 40;
+  const total = Math.min(99, finPct);
+  return { total, achEarned, achTotal, skillsDone, skillsTotal };
+}
+
+function updateXP() {
+  const p = calcProgress();
+  document.getElementById('xpBar').style.width = p.total + '%';
+  document.getElementById('xpPct').textContent = p.total + '%';
+
+  // Update level badge
+  let level = 1;
+  if (p.total >= 30) level = 2;
+  if (p.total >= 50) level = 3;
+  if (p.total >= 70) level = 4;
+  if (p.total >= 90) level = 5;
+  document.getElementById('levelBadge').textContent = `POZIOM ${level}`;
+
+  // Update sub text
+  const remaining = Math.max(0, 100 - p.total);
+  document.getElementById('xpSub').textContent =
+    `${p.skillsDone}/${p.skillsTotal} skills · ${p.achEarned}/${p.achTotal} osiągnięć · ${remaining}% do miliona`;
+}
+
+// ─── RENDER SKILLS ────────────────────────────────────────────────────────
+function cycleStatus(current) {
+  if (current === 'locked') return 'in-progress';
+  if (current === 'in-progress') return 'done';
+  if (current === 'done') return 'locked';
+  return 'locked';
+}
+
+function statusLabel(s) {
+  if (s === 'done') return 'done ✅';
+  if (s === 'in-progress') return 'w toku 🔄';
+  return 'locked 🔒';
+}
+
+function renderSkills() {
+  Object.entries(SKILLS).forEach(([containerId, skills]) => {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    skills.forEach(s => {
+      const status = state.skills[s.id] || s.status;
+      const icons = { done: '✅', 'in-progress': '🔄', locked: '🔒' };
+      const el = document.createElement('div');
+      el.className = `skill ${status}`;
+      el.innerHTML = `<span>${icons[status]}</span>${s.label}<div class="skill-tooltip">${s.tip} · klik → ${statusLabel(cycleStatus(status))}</div>`;
+      el.addEventListener('click', () => {
+        const next = cycleStatus(state.skills[s.id] || s.status);
+        state.skills[s.id] = next;
+        saveState();
+        renderSkills();
+        updateXP();
+        if (next === 'done') showToast(`🎉 ${s.label} — zdobyte!`);
+      });
+      container.appendChild(el);
+    });
+  });
+}
+
+// ─── RENDER ACHIEVEMENTS ──────────────────────────────────────────────────
+function renderAchievements() {
+  const grid = document.getElementById('achGrid');
+  grid.innerHTML = '';
+  ACHIEVEMENTS.forEach(a => {
+    const earned = state.achievements[a.id];
+    const el = document.createElement('div');
+    el.className = `ach ${earned ? 'earned' : 'locked-ach'}`;
+    el.id = 'ach-' + a.id;
+    el.innerHTML = `
+      <div class="ach-icon">${a.icon}</div>
+      <div class="ach-name">${a.name}</div>
+      <div class="ach-tooltip">${a.tip}<br>${earned ? '✅ zdobyte — klik = cofnij' : '🔒 zablokowane — klik = zdobądź'}</div>
+    `;
+    el.addEventListener('click', () => {
+      const wasEarned = state.achievements[a.id];
+      state.achievements[a.id] = !wasEarned;
+      saveState();
+      el.classList.toggle('earned');
+      el.classList.toggle('locked-ach');
+      el.classList.add('just-unlocked');
+      setTimeout(() => el.classList.remove('just-unlocked'), 400);
+      el.querySelector('.ach-name').style.color = state.achievements[a.id] ? 'var(--green)' : '';
+      updateXP();
+      if (!wasEarned) showToast(`🏆 OSIĄGNIĘCIE: ${a.name}!`);
+    });
+    grid.appendChild(el);
+  });
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ─── REAL DATA ────────────────────────────────────────────────────────────
+function applyRealData() {
+  const d = window.REAL_DATA;
+  if (!d) return;
+
+  // XP header numbers
+  document.getElementById('xpNums').textContent = d.przychod_rok_fmt + ' / ' + d.cel_fmt + ' PLN';
+  document.getElementById('xpPct').textContent = d.xp_pct + '%';
+  document.getElementById('xpSub').textContent =
+    'brakuje ' + d.brakuje_fmt + ' zł · przy obecnym tempie ~' + d.miesiecy_do_celu + ' miesięcy · cel ' + d.year;
+
+  // Bars
+  setTimeout(() => {
+    document.getElementById('xpBar').style.width = d.xp_pct + '%';
+    document.getElementById('bossBar').style.width = d.boss_pct + '%';
+  }, 350);
+
+  // Boss stats
+  const bv = document.querySelectorAll('.bstat-v');
+  if (bv[0]) bv[0].textContent = d.palety_potrzeba_msc;
+  if (bv[1]) bv[1].textContent = '~' + d.palety_msc;
+  if (bv[2]) bv[2].textContent = d.przychod_msc > 0 ? (83333 / d.przychod_msc).toFixed(1) + '×' : '—';
+
+  // Boss labels
+  const bl = document.querySelectorAll('.boss-labels span');
+  if (bl[0]) bl[0].textContent = 'TEN MIESIĄC: ' + d.przychod_msc_fmt + ' zł  |  ŚREDNIA: ~' + d.sredni_msc_fmt + ' zł';
+
+  // Projections row 1 (palety)
+  const pn = document.querySelectorAll('.proj-now');
+  const pt = document.querySelectorAll('.proj-target');
+  if (pn[0]) pn[0].textContent = '~' + d.palety_msc;
+  if (pt[0]) pt[0].textContent = d.palety_potrzeba_msc + ' / msc';
+  if (pn[4]) pn[4].textContent = '~' + d.avg_paleta_fmt + ' zł';
+  if (pt[4]) pt[4].textContent = Math.round(d.avg_paleta * 1.25).toLocaleString('pl') + ' zł';
+
+  // Tip box
+  const tip = document.querySelector('.tip-box');
+  if (tip) {
+    const alt = Math.ceil(1000000 / 12 / (d.avg_paleta * 1.5));
+    tip.innerHTML = '💡 <strong>Realna szansa na 1M w ' + d.year + '?</strong> ' +
+      (d.boss_pct >= 40 ? 'Jesteś na dobrej drodze! ' : 'Wymaga przyspieszenia. ') +
+      'Teraz średnio ' + d.sredni_msc_fmt + ' zł/msc. Potrzebujesz ' + d.palety_potrzeba_msc +
+      ' palet/msc (teraz ~' + d.palety_msc + '). Alternatywa: ' + alt + ' palet × ' +
+      Math.round(d.avg_paleta * 1.5).toLocaleString('pl') + ' zł avg = 1M rocznie.';
+  }
+
+  // Auto-update skill statuses na podstawie danych
+  if (d.przychod_rok >= 500000) state.achievements['a14'] = true;
+  if (d.przychod_rok >= 1000000) { state.achievements['a24'] = true; state.skills['s18'] = 'done'; }
+  if (d.palety_msc >= 20 && state.skills['s5'] === 'locked') state.skills['s5'] = 'in-progress';
+  if (d.sredni_msc >= 50000 && state.skills['s17'] === 'locked') state.skills['s17'] = 'in-progress';
+  if (d.przychod_msc >= 30000) state.achievements['a15'] = true;
+  if (d.przychod_msc >= 50000) state.achievements['a16'] = true;
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.fade-in').forEach((el, i) => {
+    setTimeout(() => el.classList.add('v'), i * 100);
+  });
+
+  renderSkills();
+  renderAchievements();
+  applyRealData();
+  setTimeout(updateXP, 400);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="header">
+    <h1>📦 STACJA PAKOWANIA</h1>
+    <small>Skanuj produkt → Zobacz zamówienie → Nadaj</small>
+</div>
+
+<!-- Skaner kamery -->
+<div id="scanner-container" style="position:relative;width:100%;max-width:400px;margin:0 auto 15px">
+    <video id="video" style="width:100%;border-radius:12px;background:#000;min-height:200px" playsinline></video>
+    <div id="scan-line" style="position:absolute;left:10%;right:10%;top:50%;height:2px;background:#22c55e;box-shadow:0 0 10px #22c55e;animation:scan 2s infinite"></div>
+</div>
+
+<style>
+    @keyframes scan { 0%,100%{opacity:1} 50%{opacity:0.3} }
+</style>
+
+<div id="scan-status" style="text-align:center;margin-bottom:15px;color:#64748b;font-size:0.9rem">
+    📷 Skieruj kamerę na kod kreskowy
+</div>
+
+<!-- Ręczne wpisywanie -->
+<div style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;margin-bottom:15px">
+    <div style="font-size:0.75rem;color:#64748b;margin-bottom:8px">Wpisz lub zeskanuj: EAN / ASIN / etykieta wysyłkowa</div>
+    <div style="display:flex;gap:8px">
+        <input type="text" id="scanInput" placeholder="EAN / etykieta / nazwa..."
+               style="flex:1;padding:12px;font-size:1rem;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#fff"
+               onkeypress="if(event.key==='Enter')szukajProduktu()">
+        <button onclick="szukajProduktu()" style="padding:12px 20px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer">
+            🔎
+        </button>
+    </div>
+</div>
+
+<!-- Wynik -->
+<div id="wynik" style="display:none">
+    <!-- Tu pojawi się zamówienie -->
+</div>
+
+<!-- Ostatnio spakowane -->
+<div id="historia" style="margin-top:20px">
+    <div style="font-size:0.85rem;color:#64748b;margin-bottom:10px">📋 Ostatnio spakowane:</div>
+    <div id="historiaLista" style="font-size:0.8rem;color:#64748b"></div>
+</div>
+
+<a href="/wysylki" class="back">← Lista wysyłek</a>
+
+<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+<script>
+let historiaSpakowanych = [];
+let lastResult = '';
+let lastTime = 0;
+
+// Inicjalizacja skanera
+const codeReader = new ZXing.BrowserMultiFormatReader();
+
+codeReader.listVideoInputDevices()
+    .then(devices => {
+        // Preferuj tylną kamerę
+        let selectedDevice = devices[0];
+        for (const device of devices) {
+            if (device.label.toLowerCase().includes('back') ||
+                device.label.toLowerCase().includes('rear') ||
+                device.label.toLowerCase().includes('environment')) {
+                selectedDevice = device;
+                break;
+            }
+        }
+
+        if (selectedDevice) {
+            startScanning(selectedDevice.deviceId);
+        } else {
+            document.getElementById('scan-status').innerHTML = '<span style="color:#ef4444">❌ Brak kamery</span>';
+        }
+    })
+    .catch(err => {
+        document.getElementById('scan-status').innerHTML = '<span style="color:#ef4444">❌ Błąd kamery: ' + err.message + '</span>';
+    });
+
+function startScanning(deviceId) {
+    codeReader.decodeFromVideoDevice(deviceId, 'video', (result, err) => {
+        if (result) {
+            const code = result.getText();
+            const now = Date.now();
+
+            // Zapobiegaj wielokrotnemu skanowaniu tego samego kodu
+            if (code !== lastResult || now - lastTime > 3000) {
+                lastResult = code;
+                lastTime = now;
+
+                // Wibracja
+                if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
+
+                // Pokaż kod
+                document.getElementById('scan-status').innerHTML = '<span style="color:#22c55e;font-weight:700">✅ Zeskanowano: ' + code + '</span>';
+                document.getElementById('scanInput').value = code;
+
+                // Szukaj zamówienia
+                szukajProduktu();
+            }
+        }
+    });
+}
+
+function szukajProduktu() {
+    const input = document.getElementById('scanInput').value.trim();
+    if (!input) return;
+
+    document.getElementById('wynik').innerHTML = '<div style="text-align:center;padding:20px;color:#64748b">🔄 Szukam...</div>';
+    document.getElementById('wynik').style.display = 'block';
+
+    fetch('/api/wysylki/szukaj?q=' + encodeURIComponent(input))
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) {
+                // Wibracja błędu
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 100]);
+
+                let html = `
+                    <div style="background:#12121a;border:2px solid #ef4444;border-radius:16px;padding:20px;text-align:center">
+                        <div style="font-size:2rem;margin-bottom:10px">❌</div>
+                        <div style="color:#ef4444;font-weight:600">${data.error}</div>`;
+
+                // Jeśli znaleziono produkt ale bez zamówienia - pokaż info
+                if (data.produkt) {
+                    const p = data.produkt;
+                    html += `
+                        <div style="background:#0a0a0f;border-radius:10px;padding:15px;margin-top:15px;text-align:left">
+                            <div style="font-size:0.75rem;color:#64748b;margin-bottom:5px">📦 PRODUKT W MAGAZYNIE:</div>
+                            <div style="color:#fff;font-weight:600">${p.nazwa}</div>
+                            <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+                                ${p.asin ? `<span style="background:#f59e0b;color:#000;padding:2px 6px;border-radius:4px;font-size:0.75rem">ASIN: ${p.asin}</span>` : ''}
+                                ${p.ean ? `<span style="background:#8b5cf6;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.75rem">EAN: ${p.ean}</span>` : ''}
+                                <span style="background:#3b82f6;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.75rem">Stan: ${p.ilosc} szt.</span>
+                                ${p.lokalizacja ? `<span style="background:#22c55e;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.75rem">📍 ${p.lokalizacja}</span>` : ''}
+                            </div>
+                        </div>`;
+                }
+
+                html += `<div style="color:#64748b;font-size:0.85rem;margin-top:10px">Spróbuj inny kod lub nazwę</div></div>`;
+                document.getElementById('wynik').innerHTML = html;
+            } else if (data.zamowienie) {
+                // Wibracja sukcesu
+                if (navigator.vibrate) navigator.vibrate([100, 50, 200]);
+
+                const z = data.zamowienie;
+
+                // Produkty - lista do spakowania z checkbox
+                let produktyHtml = '';
+                if (z.produkty && z.produkty.length > 0) {
+                    produktyHtml = '<div style="margin-bottom:12px">';
+                    produktyHtml += '<div style="font-size:0.75rem;color:#64748b;margin-bottom:8px">📋 PRODUKTY DO SPAKOWANIA:</div>';
+                    z.produkty.forEach((p, i) => {
+                        const imgSrc = p.zdjecie_url || 'https://via.placeholder.com/40';
+                        produktyHtml += `
+                            <div id="pack-item-${i}" onclick="togglePackItem(${i})" style="display:flex;align-items:center;gap:10px;padding:10px;background:#0a0a0f;border-radius:8px;margin-bottom:4px;cursor:pointer;border:1px solid #1e1e2e;transition:all 0.2s">
+                                <div id="pack-check-${i}" style="width:24px;height:24px;border:2px solid #64748b;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0"></div>
+                                <img src="${imgSrc}" onerror="this.src='https://via.placeholder.com/40'" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#fff;flex-shrink:0">
+                                <div style="flex:1">
+                                    <div style="font-weight:600;font-size:0.85rem;color:#fff">${p.nazwa}${p.qty > 1 ? ' <span style=color:#f59e0b>(×' + p.qty + ')</span>' : ''}</div>
+                                    ${p.lokalizacja ? '<div style="color:#8b5cf6;font-size:0.75rem;font-weight:600;margin-top:2px">📦 ' + p.lokalizacja + '</div>' : ''}
+                                </div>
+                            </div>`;
+                    });
+                    produktyHtml += '</div>';
+                } else {
+                    // Fallback - stary format z 1 produktem
+                    let kodInfo = '';
+                    if (z.asin) kodInfo += `<span style="background:#f59e0b;color:#000;padding:2px 6px;border-radius:4px;font-size:0.75rem;margin-right:5px">ASIN: ${z.asin}</span>`;
+                    if (z.ean) kodInfo += `<span style="background:#8b5cf6;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.75rem">EAN: ${z.ean}</span>`;
+
+                    let stanInfo = '';
+                    if (z.stan_magazynowy !== null) {
+                        const stanColor = z.stan_magazynowy > 0 ? '#22c55e' : '#ef4444';
+                        stanInfo = `<span style="color:${stanColor};font-size:0.8rem">(stan: ${z.stan_magazynowy} szt.)</span>`;
+                    }
+                    produktyHtml = `<div style="font-size:0.85rem;color:#64748b;margin-bottom:10px">${z.produkt_nazwa} ${stanInfo}</div>
+                        ${kodInfo ? '<div style="margin-bottom:10px">' + kodInfo + '</div>' : ''}`;
+                }
+
+                let lokalizacjaInfo = '';
+                if (z.lokalizacja) {
+                    lokalizacjaInfo = `<div style="background:#22c55e;color:#fff;padding:8px 12px;border-radius:8px;font-weight:700;font-size:1.1rem;text-align:center;margin-bottom:10px">📍 ${z.lokalizacja}</div>`;
+                }
+
+                document.getElementById('wynik').innerHTML = `
+                    <div style="background:#12121a;border:2px solid #22c55e;border-radius:16px;padding:20px">
+                        ${lokalizacjaInfo}
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
+                            <div>
+                                <div style="font-size:1.3rem;font-weight:700;color:#22c55e">✅ ZNALEZIONO!</div>
+                            </div>
+                            <div style="text-align:right">
+                                <div style="font-size:1.5rem;font-weight:700;color:#f59e0b">${z.total} zł</div>
+                            </div>
+                        </div>
+
+                        ${produktyHtml}
+
+                        <div style="background:#0a0a0f;border-radius:12px;padding:15px;margin-bottom:15px">
+                            <div style="font-size:0.75rem;color:#64748b;margin-bottom:5px">📦 WYSYŁKA DO:</div>
+                            <div style="font-size:1.1rem;font-weight:600;color:#fff">${z.buyer}</div>
+                            <div style="color:#94a3b8;margin-top:5px">${z.address}</div>
+                            ${z.pickup_point ? `<div style="color:#8b5cf6;margin-top:8px;font-weight:600">🏪 ${z.pickup_point}</div>` : ''}
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                            <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/${z.order_id}" target="_blank" style="display:block;padding:15px;background:#3b82f6;border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600;font-size:1rem">
+                                📦 NADAJ NA ALLEGRO
+                            </a>
+                            <button onclick="oznaczSpakowane('${z.order_id}', '${z.buyer}')" style="padding:15px;background:#22c55e;border:none;border-radius:10px;color:#fff;font-weight:600;font-size:1rem;cursor:pointer">
+                                ✅ SPAKOWANE
+                            </button>
+                        </div>
+                    </div>`;
+            }
+        })
+        .catch(err => {
+            document.getElementById('wynik').innerHTML = `
+                <div style="background:#12121a;border:2px solid #ef4444;border-radius:16px;padding:20px;text-align:center">
+                    <div style="color:#ef4444">Błąd: ${err}</div>
+                </div>`;
+        });
+}
+
+let packedItems = new Set();
+
+function togglePackItem(idx) {
+    const el = document.getElementById('pack-item-' + idx);
+    const check = document.getElementById('pack-check-' + idx);
+    if (packedItems.has(idx)) {
+        packedItems.delete(idx);
+        el.style.opacity = '1';
+        el.style.borderColor = '#1e1e2e';
+        check.innerHTML = '';
+        check.style.borderColor = '#64748b';
+        check.style.background = 'transparent';
+    } else {
+        packedItems.add(idx);
+        el.style.opacity = '0.5';
+        el.style.borderColor = '#22c55e';
+        check.innerHTML = '✓';
+        check.style.borderColor = '#22c55e';
+        check.style.background = '#22c55e';
+        check.style.color = '#fff';
+        if (navigator.vibrate) navigator.vibrate(30);
+    }
+}
+
+function oznaczSpakowane(orderId, buyer) {
+    packedItems.clear();
+    historiaSpakowanych.unshift({id: orderId, buyer: buyer, time: new Date().toLocaleTimeString()});
+    if (historiaSpakowanych.length > 10) historiaSpakowanych.pop();
+
+    document.getElementById('historiaLista').innerHTML = historiaSpakowanych
+        .map(h => `<div style="padding:5px 0;border-bottom:1px solid #1e1e2e">✅ ${h.buyer} - ${h.time}</div>`)
+        .join('');
+
+    document.getElementById('wynik').style.display = 'none';
+    document.getElementById('scanInput').value = '';
+
+    // Reset lastResult żeby można było zeskanować ten sam kod
+    lastResult = '';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,5 @@
+# Akces Hub - Bluetooth BLE permissions for Niimbot printer
+SUBSYSTEM=="bluetooth", MODE="0660", GROUP="bluetooth"
+# USB printers
+SUBSYSTEM=="usb", ATTR{idVendor}=="0416", MODE="0666"
+SUBSYSTEM=="hidraw", MODE="0666"

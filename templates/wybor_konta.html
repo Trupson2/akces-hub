@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akces Hub - Wybierz konto</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 10px;
+        }
+        h1 {
+            color: #fff;
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+        }
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 40px;
+        }
+        .account-btn {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+            padding: 25px 30px;
+            margin-bottom: 15px;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            color: #fff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .account-btn:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+        .account-btn.adrian:hover { border-color: #3b82f6; }
+        .account-btn.dziadek:hover { border-color: #22c55e; }
+        .account-icon {
+            font-size: 3rem;
+        }
+        .account-info {
+            text-align: left;
+        }
+        .account-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .account-desc {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">⚡</div>
+        <h1>AKCES HUB</h1>
+        <div class="subtitle">Kto używa?</div>
+
+        <a href="/ustaw-konto/adrian" class="account-btn adrian">
+            <div class="account-icon">👨‍💻</div>
+            <div class="account-info">
+                <div class="account-name">ADRIAN</div>
+                <div class="account-desc">Pełny dostęp do systemu</div>
+            </div>
+        </a>
+
+        <a href="/ustaw-konto/dziadek" class="account-btn dziadek">
+            <div class="account-icon">👴</div>
+            <div class="account-info">
+                <div class="account-name">DZIADEK</div>
+                <div class="account-desc">Wysyłki i etykiety</div>
+            </div>
+        </a>
+
+        <a href="/ustaw-konto/babcia" class="account-btn dziadek">
+            <div class="account-icon">👵</div>
+            <div class="account-info">
+                <div class="account-name">BABCIA</div>
+                <div class="account-desc">Wysyłki i etykiety</div>
+            </div>
+        </a>
+    </div>
+</body>
+</html>

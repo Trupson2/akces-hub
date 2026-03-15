@@ -1,0 +1,12 @@
+[Unit]
+Description=Akces Hub - Nocny Kombajn (auto drafty Allegro)
+After=akces-hub.service
+Requires=akces-hub.service
+
+[Service]
+Type=oneshot
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/clean_v32
+ExecStart=/usr/bin/python3 /home/pi/clean_v32/deploy/nocny_kombajn.py
+TimeoutStartSec=600

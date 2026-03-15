@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0a0a0f">
+    <title>Akces Hub - Wysyłki</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0f;
+            color: #fff;
+            min-height: 100vh;
+            padding: 15px;
+            padding-bottom: 100px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+        .header small {
+            color: #64748b;
+        }
+        .stats-box {
+            background: linear-gradient(135deg, #22c55e20, #16a34a20);
+            border: 1px solid #22c55e40;
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .stats-number {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #22c55e;
+        }
+        .stats-label {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        .big-btn {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+            padding: 25px;
+            margin-bottom: 15px;
+            background: #12121a;
+            border: 2px solid #1e1e2e;
+            border-radius: 16px;
+            color: #fff;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .big-btn:active {
+            transform: scale(0.98);
+            background: #1a1a25;
+        }
+        .big-btn .icon {
+            font-size: 2.5rem;
+        }
+        .big-btn .text {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        .big-btn .desc {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 3px;
+        }
+        .big-btn.primary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-color: #3b82f6;
+        }
+        .logout {
+            position: fixed;
+            bottom: 20px;
+            left: 15px;
+            right: 15px;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: #64748b;
+            text-decoration: none;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ user_icon }} {{ user_name }}</h1>
+        <small>Panel wysyłek</small>
+    </div>
+
+    <div class="stats-box">
+        <div class="stats-number">{{ do_wyslania }}</div>
+        <div class="stats-label">DO WYSŁANIA</div>
+    </div>
+
+    <a href="/wysylki/allegro" class="big-btn primary">
+        <div class="icon">📦</div>
+        <div>
+            <div class="text">DO WYSYŁKI</div>
+            <div class="desc">Lista paczek do spakowania</div>
+        </div>
+    </a>
+
+    <a href="/magazyn/skanuj" class="big-btn">
+        <div class="icon">📷</div>
+        <div>
+            <div class="text">SKANUJ</div>
+            <div class="desc">Skanuj produkty QR</div>
+        </div>
+    </a>
+
+    <a href="/magazyn/etykiety" class="big-btn">
+        <div class="icon">🏷️</div>
+        <div>
+            <div class="text">ETYKIETY</div>
+            <div class="desc">Drukuj etykiety</div>
+        </div>
+    </a>
+
+    <a href="/zmien-konto" class="logout">
+        🔄 Zmień użytkownika
+    </a>
+</body>
+</html>

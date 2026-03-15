@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Akces Hub Kiosk
+Exec=/home/akces/kiosk.sh
+X-GNOME-Autostart-enabled=true
+Comment=Launches Akces Hub in kiosk mode on Waveshare 7" touch

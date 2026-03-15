@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="header">
+    <h1>📊 RAPORTY ROI</h1>
+    <small>Statystyki i zyski per paleta</small>
+</div>
+
+{% for p in palety %}
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+            <div style="font-weight:700;font-size:1.1rem">🏆 #{{ loop.index }} {{ p.id }}</div>
+            <div style="font-size:0.8rem;color:#64748b">{{ p.dostawca }} | {{ p.cnt }} produktów | {{ p.sprzedano }} sprzedanych</div>
+        </div>
+        <div style="text-align:right">
+            <div style="font-size:1.3rem;font-weight:700;color:{% if p.roi_num > 0 %}#22c55e{% elif p.roi_num < -10 %}#ef4444{% else %}#eab308{% endif %}">{{ p.roi }}%</div>
+            <div style="font-size:0.7rem;color:#64748b">ROI</div>
+        </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center">
+        <div style="background:#0a0a0f;padding:8px;border-radius:8px">
+            <div style="font-size:0.7rem;color:#64748b">Zakup</div>
+            <div style="font-weight:600">{{ p.zakup }} zł</div>
+        </div>
+        <div style="background:#0a0a0f;padding:8px;border-radius:8px">
+            <div style="font-size:0.7rem;color:#64748b">Allegro</div>
+            <div style="font-weight:600;color:#3b82f6">{{ p.allegro }} zł</div>
+        </div>
+        <div style="background:#0a0a0f;padding:8px;border-radius:8px">
+            <div style="font-size:0.7rem;color:#64748b">Zysk</div>
+            <div style="font-weight:600;color:{% if p.zysk_num > 0 %}#22c55e{% elif p.zysk_num < 0 %}#ef4444{% else %}#64748b{% endif %}">{{ p.zysk }} zł</div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% if not palety %}
+<div style="text-align:center;color:#64748b;padding:40px">
+    <div style="font-size:3rem;margin-bottom:15px">📦</div>
+    <div>Brak danych o paletach</div>
+    <div style="font-size:0.85rem;margin-top:5px">Dodaj produkty z przypisaną paletą w Magazynie</div>
+</div>
+{% endif %}
+
+<a href="/narzedzia" class="back">← Powrót</a>
+{% endblock %}
