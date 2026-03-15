@@ -10,7 +10,7 @@ import tempfile
 from datetime import datetime
 from flask import Blueprint, render_template_string, request, redirect, Response, url_for
 
-from .database import get_db, query_db, execute_db, get_config
+from .database import get_db, query_db, execute_db, get_config, get_config_cached
 from .utils import get_amazon_image_url, get_product_image, oblicz_cene_allegro, is_code, DOSTAWCY, detect_supplier, parse_price, ALLEGRO_PROWIZJE
 
 magazynier_bp = Blueprint('magazynier', __name__)
@@ -367,7 +367,7 @@ def index():
     products = conn.execute('SELECT * FROM produkty ORDER BY data_dodania DESC LIMIT 10').fetchall()
     
     html = f'''
-    <div class="hdr"><h1>📦 MAGAZYNIER</h1><small>Akces v4.0</small></div>
+    <div class="hdr"><h1>📦 MAGAZYNIER</h1><small>{get_config_cached("brand_name", "AKCES HUB")}</small></div>
     
     <div class="stats">
         <div class="stat"><div class="stat-v">{s['produkty']}</div><div class="stat-l">Produktów</div></div>
