@@ -35,6 +35,7 @@ PUBLIC_ENDPOINTS = {
 PUBLIC_PREFIXES = [
     '/static/',
     '/api/health',
+    '/api/warehouse/',
 ]
 
 

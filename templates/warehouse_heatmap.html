@@ -843,18 +843,24 @@
 
         async function loadData() {
             try {
-                const response = await fetch('/api/warehouse/heatmap');
+                const response = await fetch('/api/warehouse/heatmap', {credentials: 'same-origin'});
+                if (response.redirected || response.status === 401 || response.status === 302) {
+                    window.location.href = '/auth/login?next=/warehouse/heatmap';
+                    return;
+                }
+                if (!response.ok) throw new Error('HTTP ' + response.status);
                 warehouseData = await response.json();
-                
+                if (warehouseData.error) throw new Error(warehouseData.error);
+
                 buildWarehouse();
                 updateStats();
                 updateShelfLabels();
-                
+
                 document.getElementById('loading').style.display = 'none';
             } catch (error) {
                 console.error('Error loading data:', error);
-                document.getElementById('loading').innerHTML = 
-                    '<p style="color: #e74c3c;">❌ Błąd ładowania danych</p>';
+                document.getElementById('loading').innerHTML =
+                    '<p style="color: #e74c3c;">Błąd ładowania danych: ' + error.message + '</p>';
             }
         }
 
