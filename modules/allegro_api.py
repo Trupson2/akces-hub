@@ -2629,7 +2629,45 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                         oferta_db_id = oferta['id']
                         produkt_id = oferta['produkt_id']
 
-                # Fallback: jeśli nie znaleziono przez ofertę, spróbuj smart matching
+                # Fallback 1: jeśli oferta ma produkt_id=NULL, spróbuj po EAN z oferty Allegro
+                if not produkt_id and oferta_db_id:
+                    try:
+                        # Pobierz EAN z oferty (external.id = GTIN/EAN na Allegro)
+                        ext = item.get('offer', {}).get('external', {})
+                        ean_allegro = ext.get('id', '') if ext else ''
+                        if ean_allegro and len(ean_allegro) >= 8:
+                            p_ean = conn.execute(
+                                'SELECT id FROM produkty WHERE ean = ? AND ilosc > 0 LIMIT 1',
+                                (ean_allegro,)).fetchone()
+                            if p_ean:
+                                produkt_id = p_ean['id']
+                                # Zaktualizuj ofertę żeby następnym razem match był bezpośredni
+                                conn.execute('UPDATE oferty SET produkt_id = ? WHERE id = ?',
+                                           (produkt_id, oferta_db_id))
+                                print(f"  🔗 EAN match: {nazwa[:40]} → produkt [{produkt_id}] (EAN: {ean_allegro})")
+                    except:
+                        pass
+
+                # Fallback 2: szukaj po ASIN w nazwie oferty (np. "B0CZ3W8SRK" w tytule)
+                if not produkt_id:
+                    try:
+                        import re as _re_asin
+                        asin_match = _re_asin.search(r'\b(B0[A-Z0-9]{8})\b', nazwa)
+                        if asin_match:
+                            asin_val = asin_match.group(1)
+                            p_asin = conn.execute(
+                                'SELECT id FROM produkty WHERE asin = ? AND ilosc > 0 LIMIT 1',
+                                (asin_val,)).fetchone()
+                            if p_asin:
+                                produkt_id = p_asin['id']
+                                if oferta_db_id:
+                                    conn.execute('UPDATE oferty SET produkt_id = ? WHERE id = ?',
+                                               (produkt_id, oferta_db_id))
+                                print(f"  🔗 ASIN match: {nazwa[:40]} → produkt [{produkt_id}] (ASIN: {asin_val})")
+                    except:
+                        pass
+
+                # Fallback 3: smart text matching po nazwie/cenie
                 if not produkt_id and nazwa and len(nazwa) > 5:
                     try:
                         if not hasattr(sync_orders, '_prod_cache'):
@@ -2976,10 +3014,39 @@ def backfill_link_sprzedaze(dry_run=False):
         AND nazwa IS NOT NULL AND LENGTH(nazwa) > 5
     ''').fetchall()
 
+    # Buduj indeksy EAN/ASIN dla szybkiego lookup
+    _ean_idx = {}
+    _asin_idx = {}
+    for pd in prod_data:
+        if pd.get('asin') and len(pd['asin']) >= 10:
+            _asin_idx[pd['asin']] = pd['id']
+    _ean_rows = conn.execute('SELECT id, ean FROM produkty WHERE ean IS NOT NULL AND LENGTH(ean) >= 8').fetchall()
+    for er in _ean_rows:
+        _ean_idx[er['ean']] = er['id']
+
+    import re as _re_bf
     direct_linked = 0
     for s in still_unlinked:
-        pid, confidence = _find_best_product_match(s['nazwa'], s['cena'], prod_data)
-        if pid and confidence >= 0.55:  # Wyższy próg dla bezpośredniego
+        pid = None
+
+        # Próba 1: ASIN w nazwie (B0XXXXXXXXX)
+        asin_m = _re_bf.search(r'\b(B0[A-Z0-9]{8})\b', s['nazwa'] or '')
+        if asin_m and asin_m.group(1) in _asin_idx:
+            pid = _asin_idx[asin_m.group(1)]
+
+        # Próba 2: EAN w nazwie (13-cyfrowy numer)
+        if not pid:
+            ean_m = _re_bf.search(r'\b(\d{13})\b', s['nazwa'] or '')
+            if ean_m and ean_m.group(1) in _ean_idx:
+                pid = _ean_idx[ean_m.group(1)]
+
+        # Próba 3: smart text matching
+        if not pid:
+            _pid, confidence = _find_best_product_match(s['nazwa'], s['cena'], prod_data)
+            if _pid and confidence >= 0.55:
+                pid = _pid
+
+        if pid:
             if not dry_run:
                 conn.execute('UPDATE sprzedaze SET produkt_id = ? WHERE id = ?', (pid, s['id']))
             direct_linked += 1
