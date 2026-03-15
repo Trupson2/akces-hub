@@ -106,6 +106,13 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', _secret_key)
 app.config['DATABASE'] = 'akces_hub.db'
 app.config['VERSION'] = VERSION
 
+# Session cookie security
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# SESSION_COOKIE_SECURE = True only when behind HTTPS (ngrok)
+if os.environ.get('FLASK_HTTPS') or os.environ.get('NGROK_DOMAIN'):
+    app.config['SESSION_COOKIE_SECURE'] = True
+
 # Loguj WSZYSTKIE błędy 500 do konsoli (Flask domyślnie je ukrywa w non-debug)
 import logging
 logging.basicConfig(level=logging.ERROR)
@@ -14641,6 +14648,8 @@ def api_sztuka_zdjecie(sztuka_id):
 
 @app.route('/debug/czas-sprzedazy')
 def debug_czas_sprzedazy():
+    if session.get('rola') != 'admin':
+        return 'Brak uprawnień', 403
     from modules.database import get_db
     conn = get_db()
     
@@ -14696,6 +14705,8 @@ def debug_czas_sprzedazy():
 @app.route('/debug/paleta-js/<int:paleta_id>')
 def debug_paleta_js(paleta_id):
     """Zwraca tylko sekcję JS ze strony palety do debugowania"""
+    if session.get('rola') != 'admin':
+        return 'Brak uprawnień', 403
     from modules.database import get_db
     conn = get_db()
     produkty = conn.execute('SELECT * FROM produkty WHERE paleta_id = ? LIMIT 3', (paleta_id,)).fetchall()
@@ -14727,6 +14738,8 @@ def debug_paleta_js(paleta_id):
 @app.route('/debug/paleta-html/<int:paleta_id>')
 def debug_paleta_html(paleta_id):
     """Render paleta page and extract script/modal sections for inspection"""
+    if session.get('rola') != 'admin':
+        return 'Brak uprawnień', 403
     import re
     from flask import Response
     # Call the actual view function

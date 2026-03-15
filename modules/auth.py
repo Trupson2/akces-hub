@@ -235,6 +235,8 @@ def login():
             # Udane logowanie — wyczysc licznik prob
             _login_attempts.pop(client_ip, None)
 
+            # Regeneracja sesji — ochrona przed session fixation
+            session.clear()
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['rola'] = user['rola']
@@ -284,8 +286,8 @@ def first_setup():
 
         if len(username) < 3:
             error = 'Login musi miec minimum 3 znaki'
-        elif len(password) < 4:
-            error = 'Haslo musi miec minimum 4 znaki'
+        elif len(password) < 8:
+            error = 'Haslo musi miec minimum 8 znaków'
         elif password != password2:
             error = 'Hasla nie sa identyczne'
         else:
@@ -340,8 +342,8 @@ def user_add():
     if len(username) < 3:
         flash('Login musi miec minimum 3 znaki', 'error')
         return redirect(url_for('auth.users_list'))
-    if len(password) < 4:
-        flash('Haslo musi miec minimum 4 znaki', 'error')
+    if len(password) < 8:
+        flash('Haslo musi miec minimum 8 znaków', 'error')
         return redirect(url_for('auth.users_list'))
     if rola not in ROLE_HIERARCHY:
         rola = 'user'
