@@ -32,11 +32,11 @@ PUBLIC_ENDPOINTS = {
     'static',
 }
 
-# Prefiksy URL bez logowania (API health, kiosk na Pi)
+# Prefiksy URL bez logowania (API health, read-only warehouse heatmap)
 PUBLIC_PREFIXES = [
     '/static/',
     '/api/health',
-    '/api/warehouse/',
+    '/api/warehouse/heatmap',  # tylko odczyt heatmapy (bez assign/remove)
 ]
 
 
@@ -249,6 +249,9 @@ def login():
             conn.close()
 
             next_url = request.args.get('next', '/')
+            # Zabezpieczenie przed Open Redirect — tylko lokalne ścieżki
+            if not next_url.startswith('/') or next_url.startswith('//'):
+                next_url = '/'
             # Zachowaj kiosk mode jesli byl w URL
             if 'kiosk=1' in request.url and 'kiosk' not in next_url:
                 sep = '&' if '?' in next_url else '?'

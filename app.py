@@ -4115,25 +4115,29 @@ def ustawienia():
             </div>
             
             <div style="display:grid;gap:10px">
-                <a href="/ustawienia/reset-sprzedaze" onclick="return confirm('Na pewno wyczyścić historię sprzedaży?')" 
-                   style="display:block;text-align:center;padding:12px;background:#ef4444;border-radius:8px;color:#fff;text-decoration:none;font-weight:600">
-                    🗑️ Wyczyść historię sprzedaży
-                </a>
-                
-                <a href="/ustawienia/reset-magazyn" onclick="return confirm('⚠️ UWAGA!\\n\\nTo usunie WSZYSTKIE produkty z magazynu!\\n\\nNa pewno kontynuować?')" 
-                   style="display:block;text-align:center;padding:12px;background:#dc2626;border-radius:8px;color:#fff;text-decoration:none;font-weight:600">
-                    🗑️ Wyczyść magazyn (produkty)
-                </a>
-                
-                <a href="/ustawienia/reset-palety" onclick="return confirm('⚠️ UWAGA!\\n\\nTo usunie WSZYSTKIE palety i powiązane produkty!\\n\\nNa pewno kontynuować?')" 
-                   style="display:block;text-align:center;padding:12px;background:#b91c1c;border-radius:8px;color:#fff;text-decoration:none;font-weight:600">
-                    🗑️ Wyczyść palety
-                </a>
-                
-                <a href="/ustawienia/reset-scraped" onclick="return confirm('Wyczyścić zescrapowane produkty z Palatomatu?')" 
-                   style="display:block;text-align:center;padding:12px;background:#991b1b;border-radius:8px;color:#fff;text-decoration:none;font-weight:600">
-                    🗑️ Wyczyść scraped (Paletomat)
-                </a>
+                <form method="POST" action="/ustawienia/reset-sprzedaze" onsubmit="return confirm('Na pewno wyczyścić historię sprzedaży?')">
+                    <button type="submit" style="width:100%;padding:12px;background:#ef4444;border-radius:8px;color:#fff;border:none;font-weight:600;cursor:pointer;font-size:0.9rem">
+                        🗑️ Wyczyść historię sprzedaży
+                    </button>
+                </form>
+
+                <form method="POST" action="/ustawienia/reset-magazyn" onsubmit="return confirm('⚠️ UWAGA!\\n\\nTo usunie WSZYSTKIE produkty z magazynu!\\n\\nNa pewno kontynuować?')">
+                    <button type="submit" style="width:100%;padding:12px;background:#dc2626;border-radius:8px;color:#fff;border:none;font-weight:600;cursor:pointer;font-size:0.9rem">
+                        🗑️ Wyczyść magazyn (produkty)
+                    </button>
+                </form>
+
+                <form method="POST" action="/ustawienia/reset-palety" onsubmit="return confirm('⚠️ UWAGA!\\n\\nTo usunie WSZYSTKIE palety i powiązane produkty!\\n\\nNa pewno kontynuować?')">
+                    <button type="submit" style="width:100%;padding:12px;background:#b91c1c;border-radius:8px;color:#fff;border:none;font-weight:600;cursor:pointer;font-size:0.9rem">
+                        🗑️ Wyczyść palety
+                    </button>
+                </form>
+
+                <form method="POST" action="/ustawienia/reset-scraped" onsubmit="return confirm('Wyczyścić zescrapowane produkty z Palatomatu?')">
+                    <button type="submit" style="width:100%;padding:12px;background:#991b1b;border-radius:8px;color:#fff;border:none;font-weight:600;cursor:pointer;font-size:0.9rem">
+                        🗑️ Wyczyść scraped (Paletomat)
+                    </button>
+                </form>
             </div>
         </div>
         
@@ -6600,9 +6604,11 @@ def raport_wyslij():
         '''
 
 
-@app.route('/ustawienia/reset-sprzedaze')
+@app.route('/ustawienia/reset-sprzedaze', methods=['POST'])
 def reset_sprzedaze():
     """Czyści historię sprzedaży"""
+    if session.get('rola') != 'admin':
+        return 'Brak uprawnień (tylko admin)', 403
     from modules.database import get_db
     conn = get_db()
     conn.execute('DELETE FROM sprzedaze')
@@ -6620,9 +6626,11 @@ def reset_sprzedaze():
     '''
 
 
-@app.route('/ustawienia/reset-magazyn')
+@app.route('/ustawienia/reset-magazyn', methods=['POST'])
 def reset_magazyn():
     """Czyści wszystkie produkty z magazynu"""
+    if session.get('rola') != 'admin':
+        return 'Brak uprawnień (tylko admin)', 403
     from modules.database import get_db
     conn = get_db()
     cnt = conn.execute('SELECT COUNT(*) FROM produkty').fetchone()[0]
@@ -6641,9 +6649,11 @@ def reset_magazyn():
     '''
 
 
-@app.route('/ustawienia/reset-palety')
+@app.route('/ustawienia/reset-palety', methods=['POST'])
 def reset_palety():
     """Czyści wszystkie palety i powiązane produkty (także ze scraped)"""
+    if session.get('rola') != 'admin':
+        return 'Brak uprawnień (tylko admin)', 403
     from modules.database import get_db
     conn = get_db()
     palety_cnt = conn.execute('SELECT COUNT(*) FROM palety').fetchone()[0]
@@ -6679,9 +6689,11 @@ def reset_palety():
     '''
 
 
-@app.route('/ustawienia/reset-scraped')
+@app.route('/ustawienia/reset-scraped', methods=['POST'])
 def reset_scraped():
     """Czyści zescrapowane produkty z Palatomatu"""
+    if session.get('rola') != 'admin':
+        return 'Brak uprawnień (tylko admin)', 403
     from modules.database import get_db
     conn = get_db()
     cnt = conn.execute('SELECT COUNT(*) FROM scraped').fetchone()[0]
