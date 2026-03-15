@@ -108,7 +108,7 @@ from flask import Flask, render_template, render_template_string, request, redir
 from flask_cors import CORS  # ← DODANO DLA NGROK!
 
 # Importy modułów
-from modules.database import init_db, get_db
+from modules.database import init_db, get_db, get_config_cached
 from modules.magazynier import magazynier_bp, get_stats as mag_stats
 from modules.paletomat import paletomat_bp, get_stats as pal_stats
 from modules.telegram_bot import telegram_bp, send_telegram, bot_status, start_bot, stop_bot
@@ -3934,7 +3934,7 @@ def ustawienia():
     <div class="container">
         <div class="header">
             <h1>⚙️ USTAWIENIA SYSTEMU</h1>
-            <small>Konfiguracja Akces Hub</small>
+            <small>Konfiguracja ''' + brand_name + '''</small>
         </div>
         
         <form action="/ustawienia/save" method="POST">
@@ -11084,7 +11084,7 @@ def analityka_dashboard():
     <!DOCTYPE html>
     <html>
     <head>
-        <title>📊 Analityka - Akces Hub</title>
+        <title>📊 Analityka - {get_config_cached("brand_name", "AKCES HUB")}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <style>
@@ -11662,7 +11662,7 @@ def analityka_palety():
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Bilans Palet - Akces Hub</title>
+        <title>Bilans Palet - {get_config_cached("brand_name", "AKCES HUB")}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <style>
@@ -12023,7 +12023,7 @@ def analityka_kategorie():
     <!DOCTYPE html>
     <html>
     <head>
-        <title>🏷️ Edycja kategorii - Akces Hub</title>
+        <title>🏷️ Edycja kategorii - {get_config_cached("brand_name", "AKCES HUB")}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
             * {{ margin: 0; padding: 0; box-sizing: border-box; }}
@@ -12562,7 +12562,7 @@ def api_magazyn_stan():
 def api_docs():
     """GET /api/docs - dokumentacja API (bez klucza)"""
     return jsonify({
-        'name': 'Akces Hub API',
+        'name': get_config_cached('brand_name', 'AKCES HUB') + ' API',
         'version': 'v1.0',
         'auth': 'Naglowek X-API-Key lub parametr ?api_key=YOUR_KEY',
         'key_endpoint': 'GET /api/key (tylko localhost)',
@@ -13094,7 +13094,7 @@ def analityka_okazje():
 <head>
 <meta charset='UTF-8'>
 <meta name='viewport' content='width=device-width,initial-scale=1'>
-<title>TOP Okazje {miesiac} - Akces Hub</title>
+<title>TOP Okazje {miesiac} - {get_config_cached("brand_name", "AKCES HUB")}</title>
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{background:#0a0a0f;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:15px;max-width:900px;margin:0 auto;padding-bottom:60px}}
