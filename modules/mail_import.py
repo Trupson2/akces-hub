@@ -103,6 +103,19 @@ def _decode_header_value(value):
     return result
 
 
+def _render_flash_messages():
+    """Renderuje flash messages jako HTML"""
+    from flask import get_flashed_messages
+    messages = get_flashed_messages(with_categories=True)
+    if not messages:
+        return ''
+    html = ''
+    for category, message in messages:
+        color = '#22c55e' if category == 'success' else '#ef4444' if category == 'error' else '#3b82f6'
+        html += f'<div style="padding:12px;margin-bottom:12px;background:rgba({",".join(str(int(color[i:i+2],16)) for i in (1,3,5))},0.15);border:1px solid {color};border-radius:8px;color:{color};font-size:0.85rem;word-break:break-all">{message}</div>'
+    return html
+
+
 def _send_telegram_alert(message):
     """Wysyła powiadomienie Telegram o imporcie"""
     try:
@@ -576,6 +589,8 @@ def mail_import_config():
             <small>Automatyczne tworzenie palet z załączników Excel</small>
         </div>
 
+        ''' + _render_flash_messages() + '''
+
         <form action="/ustawienia/mail-import/save" method="POST">
             <div class="card" style="padding:15px">
                 <div style="font-weight:600;margin-bottom:15px">📧 Konfiguracja IMAP</div>
@@ -748,16 +763,28 @@ def mail_import_test():
 @mail_import_bp.route('/ustawienia/mail-import/check')
 def mail_import_check_now():
     """Ręczne sprawdzenie poczty"""
-    result = check_mailbox(manual=True)
+    try:
+        result = check_mailbox(manual=True)
+    except Exception as e:
+        flash(f"❌ CRASH: {str(e)}", 'error')
+        return redirect('/ustawienia/mail-import')
+
+    # Debug info w flash
+    debug_parts = [f"checked={result['checked']}", f"imported={result['imported']}", f"skipped={result['skipped']}"]
+    if result.get('details'):
+        debug_parts.extend(result['details'])
+    if result.get('errors'):
+        debug_parts.extend(result['errors'])
+    debug_msg = ' | '.join(debug_parts)
 
     if result['imported'] > 0:
-        flash(f"✅ Zaimportowano {result['imported']} palet! (pominięto: {result['skipped']})", 'success')
+        flash(f"✅ Zaimportowano {result['imported']} palet! (pominięto: {result['skipped']}) | {debug_msg}", 'success')
     elif result['skipped'] > 0:
-        flash(f"⏭️ Wszystkie pliki już zaimportowane ({result['skipped']} pominięto)", 'info')
+        flash(f"⏭️ Wszystkie pliki już zaimportowane ({result['skipped']} pominięto) | {debug_msg}", 'info')
     elif result['errors']:
-        flash(f"❌ {'; '.join(result['errors'])}", 'error')
+        flash(f"❌ {debug_msg}", 'error')
     else:
-        flash(f"📭 Brak nowych maili z Excelem (sprawdzono: {result['checked']})", 'info')
+        flash(f"📭 Brak nowych maili z Excelem | {debug_msg}", 'info')
 
     return redirect('/ustawienia/mail-import')
 
