@@ -88,7 +88,7 @@ except Exception as e:
 # ============================================================
 # WERSJA I KONFIGURACJA
 # ============================================================
-VERSION = "6.1.13 MULTI IMAGES"
+VERSION = "6.1.14 MULTI IMAGES"
 APP_START_TIME = time.time()
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
