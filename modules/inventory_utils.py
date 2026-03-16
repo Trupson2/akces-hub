@@ -226,7 +226,8 @@ def import_excel_manifest(
     file_obj = None,
     dostawca: str = "",
     paleta_id: int = None,
-    update_existing: bool = True
+    update_existing: bool = True,
+    force_insert: bool = False
 ) -> Dict[str, Any]:
     """
     Importuje manifest produktów z pliku Excel z inteligentnym parserem ilości.
@@ -274,9 +275,9 @@ def import_excel_manifest(
             # Zapisz do pliku tymczasowego
             tmp_path = os.path.join(tempfile.gettempdir(), f'import_{os.getpid()}.xlsx')
             file_obj.save(tmp_path)
-            wb = openpyxl.load_workbook(tmp_path)
+            wb = openpyxl.load_workbook(tmp_path, data_only=True)
         else:
-            wb = openpyxl.load_workbook(file_path)
+            wb = openpyxl.load_workbook(file_path, data_only=True)
             
         ws = wb.active
         
@@ -547,37 +548,46 @@ def import_excel_manifest(
                         stan = "Uszkodzony"
                 
                 # --- ZAPIS DO BAZY ---
-                existing = conn.execute(
-                    'SELECT id, ilosc FROM produkty WHERE ean = ? OR (asin = ? AND asin != "")',
-                    (ean, asin)
-                ).fetchone()
-                
-                if existing:
-                    if update_existing:
-                        # Aktualizuj istniejący (dodaj ilość)
-                        new_qty = existing['ilosc'] + ilosc
-                        conn.execute('''
-                            UPDATE produkty SET
-                                nazwa = COALESCE(NULLIF(?, ''), nazwa),
-                                ilosc = ?,
-                                cena_netto = CASE WHEN ? > 0 THEN ? ELSE cena_netto END,
-                                cena_brutto = CASE WHEN ? > 0 THEN ? ELSE cena_brutto END,
-                                lokalizacja = COALESCE(NULLIF(?, ''), lokalizacja),
-                                stan = ?,
-                                dostawca = COALESCE(NULLIF(?, ''), dostawca),
-                                paleta_id = COALESCE(?, paleta_id)
-                            WHERE id = ?
-                        ''', (nazwa, new_qty, cena_netto, cena_netto, cena_brutto, cena_brutto, 
-                              lokalizacja, stan, dostawca, paleta_id, existing['id']))
-                        result["updated"] += 1
-                else:
-                    # Wstaw nowy
+                if force_insert:
+                    # Tryb mail-import: zawsze wstaw nowy (na nową paletę)
                     conn.execute('''
-                        INSERT INTO produkty 
+                        INSERT INTO produkty
                         (ean, asin, nazwa, ilosc, cena_netto, cena_brutto, lokalizacja, stan, dostawca, paleta_id, data_dodania)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ''', (ean, asin, nazwa, ilosc, cena_netto, cena_brutto, lokalizacja, stan, dostawca, paleta_id, datetime.now().isoformat()))
                     result["added"] += 1
+                else:
+                    existing = conn.execute(
+                        'SELECT id, ilosc FROM produkty WHERE ean = ? OR (asin = ? AND asin != "")',
+                        (ean, asin)
+                    ).fetchone()
+
+                    if existing:
+                        if update_existing:
+                            # Aktualizuj istniejący (dodaj ilość)
+                            new_qty = existing['ilosc'] + ilosc
+                            conn.execute('''
+                                UPDATE produkty SET
+                                    nazwa = COALESCE(NULLIF(?, ''), nazwa),
+                                    ilosc = ?,
+                                    cena_netto = CASE WHEN ? > 0 THEN ? ELSE cena_netto END,
+                                    cena_brutto = CASE WHEN ? > 0 THEN ? ELSE cena_brutto END,
+                                    lokalizacja = COALESCE(NULLIF(?, ''), lokalizacja),
+                                    stan = ?,
+                                    dostawca = COALESCE(NULLIF(?, ''), dostawca),
+                                    paleta_id = COALESCE(?, paleta_id)
+                                WHERE id = ?
+                            ''', (nazwa, new_qty, cena_netto, cena_netto, cena_brutto, cena_brutto,
+                                  lokalizacja, stan, dostawca, paleta_id, existing['id']))
+                            result["updated"] += 1
+                    else:
+                        # Wstaw nowy
+                        conn.execute('''
+                            INSERT INTO produkty
+                            (ean, asin, nazwa, ilosc, cena_netto, cena_brutto, lokalizacja, stan, dostawca, paleta_id, data_dodania)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ''', (ean, asin, nazwa, ilosc, cena_netto, cena_brutto, lokalizacja, stan, dostawca, paleta_id, datetime.now().isoformat()))
+                        result["added"] += 1
                     
             except Exception as e:
                 result["errors"].append(f"Błąd wiersza (EAN: {ean}): {str(e)}")

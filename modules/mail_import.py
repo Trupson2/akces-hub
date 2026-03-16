@@ -81,11 +81,12 @@ def _log_import(file_hash, filename, paleta_id, products_count, sender, subject,
     """Zapisuje log importu do DB"""
     from modules.database import get_db
     conn = get_db()
+    local_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     conn.execute('''
         INSERT INTO mail_import_log (file_hash, filename, paleta_id, products_count,
                                       sender, subject, status, error, data_importu)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    ''', (file_hash, filename, paleta_id, products_count, sender, subject, status, error))
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (file_hash, filename, paleta_id, products_count, sender, subject, status, error, local_now))
     conn.commit()
 
 
@@ -311,6 +312,21 @@ def _import_attachment(data, filename, file_hash, sender, subject, config):
             _log_import(file_hash, filename, None, 0, sender, subject, 'error', result["error"])
             return result
 
+        # === DEBUG: sprawdź plik przed importem ===
+        debug_info = []
+        try:
+            import openpyxl
+            wb_check = openpyxl.load_workbook(tmp_path, data_only=True)
+            ws_check = wb_check.active
+            debug_info.append(f"Arkusz: '{ws_check.title}', wierszy: {ws_check.max_row}, kolumn: {ws_check.max_column}")
+            # Pokaż pierwsze 3 wiersze
+            for r_idx in range(1, min(4, ws_check.max_row + 1)):
+                row_vals = [str(cell.value or '')[:30] for cell in ws_check[r_idx]]
+                debug_info.append(f"Wiersz {r_idx}: {row_vals}")
+            wb_check.close()
+        except Exception as dbg_e:
+            debug_info.append(f"Debug read error: {dbg_e}")
+
         # Smart import — przepuść przez istniejący parser
         logging.warning(f"[MailImport] Uruchamiam smart_import_excel: {tmp_path}, filename={filename}, paleta_id={paleta_id}, vendor={dostawca}")
         import_result = smart_import_excel(
@@ -321,28 +337,29 @@ def _import_attachment(data, filename, file_hash, sender, subject, config):
         )
 
         products_count = import_result.get('products_imported', 0)
-        logging.warning(f"[MailImport] Import result: products={products_count}, success={import_result.get('success')}")
+        debug_info.append(f"smart_import: products={products_count}, success={import_result.get('success')}")
         if import_result.get('errors'):
-            logging.warning(f"[MailImport] Import errors: {import_result['errors']}")
+            debug_info.append(f"smart_errors: {import_result['errors']}")
         if import_result.get('details'):
             for d in import_result['details']:
-                logging.warning(f"[MailImport]   detail: {d}")
+                debug_info.append(f"smart_detail: {d}")
 
         # Jeśli smart_import nie zadziałał, spróbuj bezpośrednio import_excel_manifest
         if products_count == 0:
-            logging.warning(f"[MailImport] Smart import zwrócił 0, próbuję bezpośrednio import_excel_manifest...")
             from modules.inventory_utils import import_excel_manifest
             direct_result = import_excel_manifest(
                 file_path=tmp_path,
                 dostawca=dostawca,
                 paleta_id=paleta_id,
-                update_existing=False
+                force_insert=True  # Zawsze wstaw na nową paletę
             )
-            products_count = direct_result.get('added', 0)
-            logging.warning(f"[MailImport] Direct import: added={products_count}, errors={direct_result.get('errors')}")
+            products_count = direct_result.get('added', 0) + direct_result.get('updated', 0)
+            debug_info.append(f"direct_import: added={direct_result.get('added')}, updated={direct_result.get('updated')}")
+            if direct_result.get('errors'):
+                debug_info.append(f"direct_errors: {direct_result['errors']}")
             if direct_result.get('details'):
                 for d in direct_result['details']:
-                    logging.warning(f"[MailImport]   detail: {d}")
+                    debug_info.append(f"direct_detail: {d}")
 
         # Pobierz nazwy produktów i wygeneruj nazwę palety przez Gemini
         conn = get_db()
@@ -366,8 +383,9 @@ def _import_attachment(data, filename, file_hash, sender, subject, config):
         result["paleta_id"] = paleta_id
         result["products_count"] = products_count
 
-        # Log
-        _log_import(file_hash, filename, paleta_id, products_count, sender, subject, 'success')
+        # Log z debug info — zawsze zapisuj szczegóły
+        error_debug = '\n'.join(debug_info) if debug_info else ''
+        _log_import(file_hash, filename, paleta_id, products_count, sender, subject, 'success', error_debug)
 
         # Telegram alert
         _send_telegram_alert(
@@ -381,19 +399,26 @@ def _import_attachment(data, filename, file_hash, sender, subject, config):
         )
 
         logging.warning(f"[MailImport] ✅ Zaimportowano: {paleta_nazwa} ({products_count} produktów)")
+        for di in debug_info:
+            logging.warning(f"[MailImport] DEBUG: {di}")
 
     except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
         result["error"] = str(e)
-        _log_import(file_hash, filename, None, 0, sender, subject, 'error', str(e))
-        logging.warning(f"[MailImport] ❌ Błąd: {e}")
+        _log_import(file_hash, filename, None, 0, sender, subject, 'error', f"{e}\n{tb}")
+        logging.warning(f"[MailImport] ❌ Błąd: {e}\n{tb}")
 
     finally:
-        # Cleanup tmp
+        # Nie usuwaj pliku jeśli 0 produktów (do debugowania)
         if tmp_path and os.path.exists(tmp_path):
-            try:
-                os.remove(tmp_path)
-            except:
-                pass
+            if result.get("products_count", 0) > 0:
+                try:
+                    os.remove(tmp_path)
+                except:
+                    pass
+            else:
+                logging.warning(f"[MailImport] Plik zachowany do debugowania: {tmp_path}")
 
     return result
 
@@ -566,7 +591,16 @@ def mail_import_config():
 
     logs_html = ''
     for log in logs:
-        status_icon = '✅' if log['status'] == 'success' else '❌'
+        status_icon = '✅' if log['status'] == 'success' and log['products_count'] > 0 else '⚠️' if log['status'] == 'success' else '❌'
+        error_text = log['error'] or ''
+        # Pokaż debug info jeśli jest
+        error_html = ''
+        if error_text:
+            error_color = '#ef4444' if log['status'] == 'error' else '#f59e0b'
+            error_html = f'''<details style="margin-top:4px">
+                <summary style="color:{error_color};cursor:pointer">Szczegóły</summary>
+                <pre style="color:{error_color};font-size:0.75rem;white-space:pre-wrap;margin-top:4px">{error_text}</pre>
+            </details>'''
         logs_html += f'''
         <div style="padding:10px;border-bottom:1px solid #2a2a3a;font-size:0.85rem">
             <div>{status_icon} <b>{log['filename']}</b></div>
@@ -575,7 +609,7 @@ def mail_import_config():
                 Produktów: {log['products_count']} |
                 {log['data_importu']}
             </div>
-            {f'<div style="color:#ef4444;margin-top:4px">{log["error"]}</div>' if log['error'] else ''}
+            {error_html}
         </div>
         '''
 
