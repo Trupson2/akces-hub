@@ -124,6 +124,17 @@ def ustawienia():
             </div>
         </div>
 
+        <!-- AUTO-IMPORT Z MAILI -->
+        <div style="margin-top:20px;padding:15px;background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(22,163,74,0.1));border:1px solid rgba(34,197,94,0.3);border-radius:12px">
+            <div style="font-weight:600;margin-bottom:8px;color:#22c55e">📬 Auto-import palet z maili</div>
+            <div style="font-size:0.85rem;color:#94a3b8;margin-bottom:12px">
+                Automatycznie tworzy palety z załączników Excel wysłanych mailem
+            </div>
+            <a href="/ustawienia/mail-import" style="display:block;text-align:center;padding:12px;background:#22c55e;border-radius:8px;color:#fff;text-decoration:none;font-weight:600">
+                ⚙️ Konfiguruj auto-import
+            </a>
+        </div>
+
         <!-- Ngrok Token (auto-connect na Pi) -->
         <div style="margin-top:20px;padding:15px;background:linear-gradient(135deg,rgba(139,92,246,0.1),rgba(88,28,135,0.1));border:1px solid rgba(139,92,246,0.3);border-radius:12px">
             <div style="font-weight:600;margin-bottom:10px;color:#8b5cf6">🚀 Ngrok - Zdalny dostep</div>

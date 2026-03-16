@@ -262,6 +262,15 @@ app.register_blueprint(warehouse_bp)
 from modules.palety import palety_bp
 app.register_blueprint(palety_bp)
 
+# Mail Import blueprint (auto-import palet z emaili)
+try:
+    from modules.mail_import import mail_import_bp, init_mail_import_db
+    app.register_blueprint(mail_import_bp)
+    with app.app_context():
+        init_mail_import_db()
+except Exception as e:
+    print(f"⚠️ Mail Import module not loaded: {e}")
+
 # ============================================================
 # EXTRAKTOR ALLEGRO - PARAMETRY + META TITLE
 # ============================================================
@@ -3419,6 +3428,14 @@ if __name__ == '__main__':
         log("Pallet monitor scheduler uruchomiony")
     except Exception as e:
         log_warning(f"Pallet monitor scheduler error: {e}")
+
+    # Start mail import scheduler (auto-import palet z emaili)
+    try:
+        from modules.mail_import import start_mail_import_scheduler
+        start_mail_import_scheduler()
+        log("Mail import scheduler uruchomiony")
+    except Exception as e:
+        log_warning(f"Mail import scheduler error: {e}")
     
     # ============================================================
     # AUTO-SYNC ZAMÓWIEŃ Z ALLEGRO

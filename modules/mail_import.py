@@ -1,0 +1,685 @@
+"""
+MAIL IMPORT - Automatyczny import palet z emaili
+=================================================
+Monitoruje skrzynkę IMAP, szuka maili z Excelem od skonfigurowanych nadawców,
+auto-tworzy paletę z kolejnym numerem i importuje produkty.
+
+Konfiguracja: /ustawienia/mail-import
+"""
+
+import imaplib
+import email
+import os
+import re
+import hashlib
+import tempfile
+import json
+import threading
+import time
+from datetime import datetime, timedelta
+from email.header import decode_header
+from flask import Blueprint, request, redirect, flash, jsonify, session
+
+mail_import_bp = Blueprint('mail_import', __name__)
+
+
+# ============================================================
+# HELPERS
+# ============================================================
+
+def _get_config():
+    """Pobiera konfigurację mail import z DB"""
+    from modules.database import get_config
+    return {
+        'enabled': get_config('mail_import_enabled', '0') == '1',
+        'imap_server': get_config('mail_import_imap_server', 'imap.gmail.com'),
+        'imap_port': int(get_config('mail_import_imap_port', '993')),
+        'email': get_config('mail_import_email', ''),
+        'password': get_config('mail_import_password', ''),
+        'sender_filter': get_config('mail_import_sender_filter', ''),  # email dziadka
+        'check_interval': int(get_config('mail_import_check_interval', '15')),  # minuty
+        'auto_import': get_config('mail_import_auto_import', '1') == '1',
+        'default_dostawca': get_config('mail_import_default_dostawca', 'Warrington'),
+    }
+
+
+def _get_next_paleta_number():
+    """Zwraca następny numer palety (#26, #27, etc.)"""
+    from modules.database import get_db
+    conn = get_db()
+    rows = conn.execute("SELECT nazwa FROM palety").fetchall()
+
+    max_num = 0
+    for row in rows:
+        nazwa = row['nazwa'] or ''
+        match = re.match(r'#(\d+)', nazwa)
+        if match:
+            num = int(match.group(1))
+            if num > max_num:
+                max_num = num
+
+    return max_num + 1
+
+
+def _get_attachment_hash(data):
+    """Generuje hash załącznika do wykrywania duplikatów"""
+    return hashlib.sha256(data).hexdigest()[:16]
+
+
+def _is_already_imported(file_hash):
+    """Sprawdza czy plik z tym hashem już został zaimportowany"""
+    from modules.database import get_db
+    conn = get_db()
+    row = conn.execute(
+        "SELECT id FROM mail_import_log WHERE file_hash = ?", (file_hash,)
+    ).fetchone()
+    return row is not None
+
+
+def _log_import(file_hash, filename, paleta_id, products_count, sender, subject, status='success', error=''):
+    """Zapisuje log importu do DB"""
+    from modules.database import get_db
+    conn = get_db()
+    conn.execute('''
+        INSERT INTO mail_import_log (file_hash, filename, paleta_id, products_count,
+                                      sender, subject, status, error, data_importu)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ''', (file_hash, filename, paleta_id, products_count, sender, subject, status, error))
+    conn.commit()
+
+
+def _decode_header_value(value):
+    """Dekoduje nagłówek email (obsługuje UTF-8, ISO etc.)"""
+    if not value:
+        return ''
+    decoded_parts = decode_header(value)
+    result = ''
+    for part, charset in decoded_parts:
+        if isinstance(part, bytes):
+            result += part.decode(charset or 'utf-8', errors='replace')
+        else:
+            result += part
+    return result
+
+
+def _send_telegram_alert(message):
+    """Wysyła powiadomienie Telegram o imporcie"""
+    try:
+        from modules.telegram_bot import send_telegram
+        send_telegram(message, silent=False)
+    except Exception as e:
+        print(f"[MailImport] Telegram error: {e}")
+
+
+# ============================================================
+# INIT DB TABLE
+# ============================================================
+
+def init_mail_import_db():
+    """Tworzy tabelę logów mail importu"""
+    from modules.database import get_db
+    conn = get_db()
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS mail_import_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            file_hash TEXT UNIQUE,
+            filename TEXT DEFAULT '',
+            paleta_id INTEGER,
+            products_count INTEGER DEFAULT 0,
+            sender TEXT DEFAULT '',
+            subject TEXT DEFAULT '',
+            status TEXT DEFAULT 'success',
+            error TEXT DEFAULT '',
+            data_importu TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+
+
+# ============================================================
+# CORE: CHECK MAILBOX
+# ============================================================
+
+def check_mailbox(manual=False):
+    """
+    Sprawdza skrzynkę IMAP, szuka nowych maili z Excelem.
+
+    Returns:
+        dict: {"checked": int, "imported": int, "skipped": int, "errors": list}
+    """
+    config = _get_config()
+    result = {"checked": 0, "imported": 0, "skipped": 0, "errors": [], "details": []}
+
+    if not manual and not config['enabled']:
+        result["errors"].append("Auto-import wyłączony")
+        return result
+
+    if not config['email'] or not config['password']:
+        result["errors"].append("Brak konfiguracji email (adres/hasło)")
+        return result
+
+    if not config['sender_filter']:
+        result["errors"].append("Brak filtra nadawcy (od kogo szukać maili)")
+        return result
+
+    try:
+        # Połącz z IMAP
+        mail = imaplib.IMAP4_SSL(config['imap_server'], config['imap_port'])
+        mail.login(config['email'], config['password'])
+        mail.select('INBOX')
+
+        # Szukaj maili od nadawcy z ostatnich 30 dni
+        since_date = (datetime.now() - timedelta(days=30)).strftime('%d-%b-%Y')
+        sender = config['sender_filter']
+
+        # Szukaj maili od nadawcy
+        search_criteria = f'(FROM "{sender}" SINCE {since_date})'
+        status, messages = mail.search(None, search_criteria)
+
+        if status != 'OK':
+            result["errors"].append(f"IMAP search error: {status}")
+            mail.logout()
+            return result
+
+        message_ids = messages[0].split()
+        result["checked"] = len(message_ids)
+        result["details"].append(f"Znaleziono {len(message_ids)} maili od {sender}")
+
+        for msg_id in message_ids:
+            try:
+                status, msg_data = mail.fetch(msg_id, '(RFC822)')
+                if status != 'OK':
+                    continue
+
+                msg = email.message_from_bytes(msg_data[0][1])
+                subject = _decode_header_value(msg['Subject'])
+                from_addr = _decode_header_value(msg['From'])
+
+                # Szukaj załączników Excel
+                for part in msg.walk():
+                    content_disposition = str(part.get("Content-Disposition") or '')
+                    if 'attachment' not in content_disposition:
+                        continue
+
+                    filename = part.get_filename()
+                    if not filename:
+                        continue
+
+                    filename = _decode_header_value(filename)
+
+                    # Tylko pliki Excel
+                    if not filename.lower().endswith(('.xlsx', '.xls', '.csv')):
+                        continue
+
+                    # Pobierz dane załącznika
+                    attachment_data = part.get_payload(decode=True)
+                    if not attachment_data:
+                        continue
+
+                    # Sprawdź duplikat
+                    file_hash = _get_attachment_hash(attachment_data)
+
+                    if _is_already_imported(file_hash):
+                        result["skipped"] += 1
+                        result["details"].append(f"⏭️ Pominięto (już zaimportowany): {filename}")
+                        continue
+
+                    # Zapisz do pliku tymczasowego i importuj
+                    import_result = _import_attachment(
+                        attachment_data, filename, file_hash,
+                        from_addr, subject, config
+                    )
+
+                    if import_result.get('success'):
+                        result["imported"] += 1
+                        result["details"].append(
+                            f"✅ Zaimportowano: {filename} → Paleta #{import_result['paleta_numer']} "
+                            f"({import_result['products_count']} produktów)"
+                        )
+                    else:
+                        result["errors"].append(
+                            f"❌ Błąd importu {filename}: {import_result.get('error', 'nieznany')}"
+                        )
+
+            except Exception as e:
+                result["errors"].append(f"Błąd przetwarzania maila: {str(e)}")
+
+        mail.logout()
+
+    except imaplib.IMAP4.error as e:
+        result["errors"].append(f"IMAP error: {str(e)}")
+    except Exception as e:
+        result["errors"].append(f"Błąd połączenia: {str(e)}")
+
+    return result
+
+
+def _import_attachment(data, filename, file_hash, sender, subject, config):
+    """Importuje pojedynczy załącznik Excel jako nową paletę"""
+    from modules.database import get_db, add_paleta
+    from modules.smart_importer import smart_import_excel
+
+    result = {"success": False, "paleta_numer": 0, "products_count": 0, "error": ""}
+
+    tmp_path = None
+    try:
+        # Zapisz do pliku tymczasowego
+        tmp_path = os.path.join(tempfile.gettempdir(), f'mail_import_{file_hash}.xlsx')
+        with open(tmp_path, 'wb') as f:
+            f.write(data)
+
+        # Następny numer palety
+        next_num = _get_next_paleta_number()
+
+        # Wyciągnij nazwę palety z tematu maila lub nazwy pliku
+        paleta_name = _extract_paleta_name(subject, filename)
+        paleta_nazwa = f"#{next_num} {paleta_name}"
+
+        # Dostawca z konfiguracji lub auto-detect
+        dostawca = config.get('default_dostawca', 'Warrington')
+
+        # Utwórz paletę
+        paleta_id = add_paleta(
+            nazwa=paleta_nazwa,
+            dostawca=dostawca,
+            cena_zakupu=0,  # Będzie uzupełnione przez smart_import
+            data_zakupu=datetime.now().strftime('%Y-%m-%d'),
+            notatki=f"Auto-import z maila: {subject}"
+        )
+
+        if not paleta_id:
+            result["error"] = "Nie udało się utworzyć palety"
+            _log_import(file_hash, filename, None, 0, sender, subject, 'error', result["error"])
+            return result
+
+        # Smart import — przepuść przez istniejący parser
+        import_result = smart_import_excel(
+            file_path=tmp_path,
+            filename=filename,
+            paleta_id=paleta_id,
+            manual_vendor=dostawca
+        )
+
+        products_count = import_result.get('products_imported', 0)
+
+        # Aktualizuj ilość produktów na palecie
+        conn = get_db()
+        conn.execute(
+            'UPDATE palety SET ilosc_produktow = ? WHERE id = ?',
+            (products_count, paleta_id)
+        )
+        conn.commit()
+
+        result["success"] = True
+        result["paleta_numer"] = next_num
+        result["paleta_id"] = paleta_id
+        result["products_count"] = products_count
+
+        # Log
+        _log_import(file_hash, filename, paleta_id, products_count, sender, subject, 'success')
+
+        # Telegram alert
+        _send_telegram_alert(
+            f"📬 <b>AUTO-IMPORT Z MAILA</b>\n\n"
+            f"📦 Paleta: <b>{paleta_nazwa}</b>\n"
+            f"📋 Produktów: <b>{products_count}</b>\n"
+            f"📎 Plik: {filename}\n"
+            f"✉️ Od: {sender}\n"
+            f"📝 Temat: {subject}\n\n"
+            f"⏰ {datetime.now():%H:%M:%S}"
+        )
+
+        print(f"[MailImport] ✅ Zaimportowano: {paleta_nazwa} ({products_count} produktów)")
+
+    except Exception as e:
+        result["error"] = str(e)
+        _log_import(file_hash, filename, None, 0, sender, subject, 'error', str(e))
+        print(f"[MailImport] ❌ Błąd: {e}")
+
+    finally:
+        # Cleanup tmp
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except:
+                pass
+
+    return result
+
+
+def _extract_paleta_name(subject, filename):
+    """Wyciąga nazwę palety z tematu maila lub nazwy pliku"""
+    # Najpierw spróbuj z tematu maila
+    if subject:
+        # Usuń typowe prefiksy mailowe
+        name = re.sub(r'^(Re:|Fwd?:|Odp:|PD:)\s*', '', subject, flags=re.IGNORECASE).strip()
+        if len(name) > 3:
+            return name[:60]
+
+    # Fallback — z nazwy pliku
+    name = os.path.splitext(filename)[0]
+    # Usuń typowe prefiksy plików
+    name = re.sub(r'^(offer|oferta|manifest|pallet|paleta)[\s_-]*', '', name, flags=re.IGNORECASE)
+    name = re.sub(r'[_-]+', ' ', name).strip()
+
+    return name[:60] if name else "Import z maila"
+
+
+# ============================================================
+# SCHEDULER - BACKGROUND THREAD
+# ============================================================
+
+_scheduler_thread = None
+_scheduler_running = False
+
+
+def start_mail_import_scheduler():
+    """Uruchamia scheduler sprawdzający pocztę co X minut"""
+    global _scheduler_thread, _scheduler_running
+
+    if _scheduler_running:
+        return
+
+    config = _get_config()
+    if not config['enabled']:
+        print("[MailImport] Scheduler wyłączony (mail_import_enabled=0)")
+        return
+
+    _scheduler_running = True
+    _scheduler_thread = threading.Thread(target=_scheduler_loop, daemon=True)
+    _scheduler_thread.start()
+    print(f"[MailImport] ✅ Scheduler uruchomiony (co {config['check_interval']} min)")
+
+
+def stop_mail_import_scheduler():
+    """Zatrzymuje scheduler"""
+    global _scheduler_running
+    _scheduler_running = False
+    print("[MailImport] Scheduler zatrzymany")
+
+
+def _scheduler_loop():
+    """Główna pętla schedulera"""
+    global _scheduler_running
+
+    # Poczekaj 60s na start systemu
+    time.sleep(60)
+
+    while _scheduler_running:
+        try:
+            config = _get_config()
+            if not config['enabled']:
+                _scheduler_running = False
+                break
+
+            print(f"[MailImport] Sprawdzam pocztę... ({datetime.now():%H:%M})")
+            result = check_mailbox()
+
+            if result['imported'] > 0:
+                print(f"[MailImport] Zaimportowano {result['imported']} palet")
+            if result['errors']:
+                for err in result['errors']:
+                    print(f"[MailImport] ⚠️ {err}")
+
+            # Czekaj X minut
+            interval = config.get('check_interval', 15) * 60
+            time.sleep(interval)
+
+        except Exception as e:
+            print(f"[MailImport] Scheduler error: {e}")
+            time.sleep(300)  # 5 min przy błędzie
+
+
+# ============================================================
+# ROUTES - KONFIGURACJA I MANUAL TRIGGER
+# ============================================================
+
+@mail_import_bp.route('/ustawienia/mail-import')
+def mail_import_config():
+    """Strona konfiguracji auto-importu z maili"""
+    from modules.database import get_db
+    from modules.shared import CSS
+
+    config = _get_config()
+
+    # Historia importów
+    conn = get_db()
+    logs = conn.execute('''
+        SELECT * FROM mail_import_log
+        ORDER BY data_importu DESC LIMIT 20
+    ''').fetchall()
+
+    logs_html = ''
+    for log in logs:
+        status_icon = '✅' if log['status'] == 'success' else '❌'
+        logs_html += f'''
+        <div style="padding:10px;border-bottom:1px solid #2a2a3a;font-size:0.85rem">
+            <div>{status_icon} <b>{log['filename']}</b></div>
+            <div style="color:#64748b;margin-top:4px">
+                Paleta ID: {log['paleta_id'] or '-'} |
+                Produktów: {log['products_count']} |
+                {log['data_importu']}
+            </div>
+            {f'<div style="color:#ef4444;margin-top:4px">{log["error"]}</div>' if log['error'] else ''}
+        </div>
+        '''
+
+    if not logs:
+        logs_html = '<div style="padding:20px;text-align:center;color:#64748b">Brak importów</div>'
+
+    html = CSS + f'''
+    <div class="container">
+        <div class="header">
+            <h1>📬 AUTO-IMPORT Z MAILI</h1>
+            <small>Automatyczne tworzenie palet z załączników Excel</small>
+        </div>
+
+        <form action="/ustawienia/mail-import/save" method="POST">
+            <div class="card" style="padding:15px">
+                <div style="font-weight:600;margin-bottom:15px">📧 Konfiguracja IMAP</div>
+
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:15px">
+                    <label style="font-size:0.9rem">Włączony:</label>
+                    <input type="checkbox" name="enabled" value="1"
+                           {'checked' if config['enabled'] else ''}
+                           style="width:20px;height:20px">
+                </div>
+
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.85rem;color:#94a3b8">Serwer IMAP</label>
+                    <input type="text" name="imap_server" value="{config['imap_server']}"
+                           placeholder="imap.gmail.com"
+                           class="form-ctrl" style="padding:10px;width:100%;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff">
+                </div>
+
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.85rem;color:#94a3b8">Port</label>
+                    <input type="number" name="imap_port" value="{config['imap_port']}"
+                           class="form-ctrl" style="padding:10px;width:100%;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff">
+                </div>
+
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.85rem;color:#94a3b8">Twój email</label>
+                    <input type="email" name="email" value="{config['email']}"
+                           placeholder="twoj@gmail.com"
+                           class="form-ctrl" style="padding:10px;width:100%;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff">
+                </div>
+
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.85rem;color:#94a3b8">Hasło (App Password dla Gmail)</label>
+                    <input type="password" name="password" value="{config['password']}"
+                           placeholder="xxxx xxxx xxxx xxxx"
+                           class="form-ctrl" style="padding:10px;width:100%;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff">
+                    <div style="font-size:0.75rem;color:#64748b;margin-top:4px">
+                        Gmail: Konto → Bezpieczeństwo → Hasła do aplikacji
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="padding:15px;margin-top:12px">
+                <div style="font-weight:600;margin-bottom:15px">🎯 Filtr nadawcy</div>
+
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.85rem;color:#94a3b8">Email nadawcy (od kogo szukać maili z Excelem)</label>
+                    <input type="email" name="sender_filter" value="{config['sender_filter']}"
+                           placeholder="dziadek@email.com"
+                           class="form-ctrl" style="padding:10px;width:100%;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff">
+                </div>
+
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.85rem;color:#94a3b8">Domyślny dostawca</label>
+                    <select name="default_dostawca" class="form-ctrl" style="padding:10px;width:100%;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff">
+                        <option value="Warrington" {'selected' if config['default_dostawca'] == 'Warrington' else ''}>Warrington</option>
+                        <option value="Jobalots" {'selected' if config['default_dostawca'] == 'Jobalots' else ''}>Jobalots</option>
+                        <option value="Miglo" {'selected' if config['default_dostawca'] == 'Miglo' else ''}>Miglo</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.85rem;color:#94a3b8">Sprawdzaj co (minuty)</label>
+                    <input type="number" name="check_interval" value="{config['check_interval']}" min="5" max="120"
+                           class="form-ctrl" style="padding:10px;width:100%;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff">
+                </div>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:15px">
+                <button type="submit" class="btn" style="flex:1;padding:12px;background:#6366f1;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">
+                    💾 Zapisz konfigurację
+                </button>
+            </div>
+        </form>
+
+        <div style="display:flex;gap:10px;margin-top:12px">
+            <a href="/ustawienia/mail-import/check" class="btn"
+               style="flex:1;padding:12px;background:#22c55e;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;text-align:center;text-decoration:none;display:block">
+                📬 Sprawdź pocztę teraz
+            </a>
+            <a href="/ustawienia/mail-import/test" class="btn"
+               style="flex:1;padding:12px;background:#3b82f6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;text-align:center;text-decoration:none;display:block">
+                🔌 Test połączenia
+            </a>
+        </div>
+
+        <div class="card" style="padding:15px;margin-top:12px">
+            <div style="font-weight:600;margin-bottom:15px">📋 Historia importów</div>
+            {logs_html}
+        </div>
+
+        <div class="card" style="padding:15px;margin-top:12px;background:rgba(99,102,241,0.05)">
+            <div style="font-weight:600;margin-bottom:10px">💡 Jak to działa?</div>
+            <div style="font-size:0.85rem;color:#94a3b8;line-height:1.6">
+                1. System sprawdza pocztę co {config['check_interval']} minut<br>
+                2. Szuka maili od <b>{config['sender_filter'] or '(nie ustawiony)'}</b> z załącznikiem Excel<br>
+                3. Pobiera Excel → sprawdza czy już nie był importowany (hash)<br>
+                4. Tworzy paletę z kolejnym numerem (np. #26)<br>
+                5. Importuje produkty przez Smart Importer (ten sam co ręczny import)<br>
+                6. Wysyła powiadomienie na Telegram
+            </div>
+        </div>
+
+        <a href="/ustawienia" class="back" style="display:block;margin-top:15px">← Ustawienia</a>
+    </div>
+    '''
+
+    return html
+
+
+@mail_import_bp.route('/ustawienia/mail-import/save', methods=['POST'])
+def mail_import_save():
+    """Zapisuje konfigurację"""
+    from modules.database import set_config
+
+    set_config('mail_import_enabled', '1' if request.form.get('enabled') else '0')
+    set_config('mail_import_imap_server', request.form.get('imap_server', 'imap.gmail.com'))
+    set_config('mail_import_imap_port', request.form.get('imap_port', '993'))
+    set_config('mail_import_email', request.form.get('email', ''))
+    set_config('mail_import_password', request.form.get('password', ''))
+    set_config('mail_import_sender_filter', request.form.get('sender_filter', ''))
+    set_config('mail_import_default_dostawca', request.form.get('default_dostawca', 'Warrington'))
+    set_config('mail_import_check_interval', request.form.get('check_interval', '15'))
+
+    # Restart scheduler jeśli włączony
+    enabled = request.form.get('enabled')
+    if enabled:
+        stop_mail_import_scheduler()
+        start_mail_import_scheduler()
+    else:
+        stop_mail_import_scheduler()
+
+    flash('Konfiguracja mail import zapisana!', 'success')
+    return redirect('/ustawienia/mail-import')
+
+
+@mail_import_bp.route('/ustawienia/mail-import/test')
+def mail_import_test():
+    """Test połączenia IMAP"""
+    config = _get_config()
+
+    if not config['email'] or not config['password']:
+        flash('Najpierw skonfiguruj email i hasło!', 'error')
+        return redirect('/ustawienia/mail-import')
+
+    try:
+        mail = imaplib.IMAP4_SSL(config['imap_server'], config['imap_port'])
+        mail.login(config['email'], config['password'])
+
+        # Policz maile od nadawcy
+        mail.select('INBOX')
+        count = 0
+        if config['sender_filter']:
+            since = (datetime.now() - timedelta(days=30)).strftime('%d-%b-%Y')
+            status, messages = mail.search(None, f'(FROM "{config["sender_filter"]}" SINCE {since})')
+            if status == 'OK':
+                count = len(messages[0].split()) if messages[0] else 0
+
+        mail.logout()
+        flash(f'✅ Połączenie OK! Znaleziono {count} maili od {config["sender_filter"]} (ostatnie 30 dni)', 'success')
+
+    except imaplib.IMAP4.error as e:
+        flash(f'❌ Błąd IMAP: {str(e)}', 'error')
+    except Exception as e:
+        flash(f'❌ Błąd: {str(e)}', 'error')
+
+    return redirect('/ustawienia/mail-import')
+
+
+@mail_import_bp.route('/ustawienia/mail-import/check')
+def mail_import_check_now():
+    """Ręczne sprawdzenie poczty"""
+    result = check_mailbox(manual=True)
+
+    if result['imported'] > 0:
+        flash(f"✅ Zaimportowano {result['imported']} palet! (pominięto: {result['skipped']})", 'success')
+    elif result['skipped'] > 0:
+        flash(f"⏭️ Wszystkie pliki już zaimportowane ({result['skipped']} pominięto)", 'info')
+    elif result['errors']:
+        flash(f"❌ {'; '.join(result['errors'])}", 'error')
+    else:
+        flash(f"📭 Brak nowych maili z Excelem (sprawdzono: {result['checked']})", 'info')
+
+    return redirect('/ustawienia/mail-import')
+
+
+@mail_import_bp.route('/api/mail-import/status')
+def mail_import_status():
+    """API: status schedulera i ostatni import"""
+    from modules.database import get_db
+
+    config = _get_config()
+    conn = get_db()
+    last = conn.execute(
+        'SELECT * FROM mail_import_log ORDER BY data_importu DESC LIMIT 1'
+    ).fetchone()
+
+    return jsonify({
+        "enabled": config['enabled'],
+        "scheduler_running": _scheduler_running,
+        "sender_filter": config['sender_filter'],
+        "check_interval": config['check_interval'],
+        "last_import": {
+            "filename": last['filename'] if last else None,
+            "status": last['status'] if last else None,
+            "date": last['data_importu'] if last else None,
+            "products": last['products_count'] if last else 0,
+        } if last else None
+    })
