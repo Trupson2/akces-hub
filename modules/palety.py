@@ -2042,7 +2042,7 @@ def paleta_mass_edit(paleta_id):
         fetch('/api/generate_meta_title_batch', {{
             method: 'POST',
             mode: 'cors',
-            credentials: 'omit',
+            credentials: 'same-origin',
             headers: {{ 
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
@@ -2100,7 +2100,7 @@ def paleta_mass_edit(paleta_id):
         fetch('/produkty/' + productId + '/regenerate-meta-title', {{
             method: 'POST',
             mode: 'cors',
-            credentials: 'omit',
+            credentials: 'same-origin',
             headers: {{ 
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'

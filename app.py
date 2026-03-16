@@ -2379,7 +2379,84 @@ def print_banner():
 # 1. Otwórz app.py
 # 2. Znajdź linię: 
 
-# poziom route added above
+# ═══════════════════════════════════════════════════════════════════════════
+# ROUTE: POZIOM — gamifikacja / progress tracker
+# ═══════════════════════════════════════════════════════════════════════════
+@app.route('/poziom')
+def poziom_page():
+    from modules.database import get_db
+    conn = get_db()
+    year = datetime.now().year
+
+    # Przychód roczny
+    row = conn.execute('''
+        SELECT COALESCE(SUM(cena * ilosc), 0) as total
+        FROM sprzedaze
+        WHERE strftime('%%Y', data_sprzedazy) = ?
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+    ''', (str(year),)).fetchone()
+    przychod_rok = float(row['total'] or 0)
+
+    # Przychód ten miesiąc
+    month_start = datetime.now().strftime('%Y-%m-01')
+    row2 = conn.execute('''
+        SELECT COALESCE(SUM(cena * ilosc), 0) as total
+        FROM sprzedaze
+        WHERE date(data_sprzedazy) >= ?
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+    ''', (month_start,)).fetchone()
+    przychod_msc = float(row2['total'] or 0)
+
+    # Palety w tym roku
+    row3 = conn.execute('''
+        SELECT COUNT(*) as cnt FROM palety
+        WHERE strftime('%%Y', data_zakupu) = ?
+    ''', (str(year),)).fetchone()
+    palety_rok = int(row3['cnt'] or 0)
+
+    cel = 1000000
+    xp_pct = min(99, round(przychod_rok / cel * 100, 1))
+    brakuje = max(0, cel - przychod_rok)
+    palety_msc = max(1, round(palety_rok / max(1, datetime.now().month)))
+    avg_paleta = round(przychod_rok / max(1, palety_rok))
+    sredni_msc = round(przychod_rok / max(1, datetime.now().month))
+    miesiecy_zostalo = 12 - datetime.now().month
+
+    if sredni_msc > 0:
+        miesiecy_do_celu = round(brakuje / sredni_msc)
+    else:
+        miesiecy_do_celu = 99
+
+    boss_pct = min(100, round(przychod_msc / 83333 * 100, 1))
+    palety_potrzeba = max(1, round(83333 / max(1, avg_paleta)))
+
+    real_data = {
+        'przychod_rok': przychod_rok,
+        'przychod_rok_fmt': f"{przychod_rok:,.0f}".replace(',', ' '),
+        'cel_fmt': f"{cel:,.0f}".replace(',', ' '),
+        'xp_pct': xp_pct,
+        'brakuje_fmt': f"{brakuje:,.0f}".replace(',', ' '),
+        'miesiecy_do_celu': miesiecy_do_celu,
+        'year': year,
+        'przychod_msc': przychod_msc,
+        'przychod_msc_fmt': f"{przychod_msc:,.0f}".replace(',', ' '),
+        'sredni_msc': sredni_msc,
+        'sredni_msc_fmt': f"{sredni_msc:,.0f}".replace(',', ' '),
+        'palety_msc': palety_msc,
+        'palety_potrzeba_msc': palety_potrzeba,
+        'avg_paleta': avg_paleta,
+        'avg_paleta_fmt': f"{avg_paleta:,.0f}".replace(',', ' '),
+        'boss_pct': boss_pct,
+    }
+
+    # Wstrzyknij dane do template
+    import json as _json
+    data_script = f'<script>window.REAL_DATA = {_json.dumps(real_data)};</script>'
+
+    html = render_template('poziom.html')
+    # Wstaw dane przed </head>
+    html = html.replace('</head>', data_script + '\n</head>')
+    return html
 
 # 3. PRZED TĄ LINIĄ wklej CAŁY ten kod
 # 4. Zapisz plik (Ctrl+S)
