@@ -582,6 +582,8 @@ def mail_import_config():
     if not logs:
         logs_html = '<div style="padding:20px;text-align:center;color:#64748b">Brak importów</div>'
 
+    flash_html = _render_flash_messages()
+
     html = CSS + f'''
     <div class="container">
         <div class="header">
@@ -589,7 +591,7 @@ def mail_import_config():
             <small>Automatyczne tworzenie palet z załączników Excel</small>
         </div>
 
-        ''' + _render_flash_messages() + '''
+        {flash_html}
 
         <form action="/ustawienia/mail-import/save" method="POST">
             <div class="card" style="padding:15px">
@@ -678,7 +680,11 @@ def mail_import_config():
         </div>
 
         <div class="card" style="padding:15px;margin-top:12px">
-            <div style="font-weight:600;margin-bottom:15px">📋 Historia importów</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
+                <div style="font-weight:600">📋 Historia importów</div>
+                <a href="/ustawienia/mail-import/clear-log" onclick="return confirm('Wyczyścić historię? Pliki będą mogły być ponownie zaimportowane.')"
+                   style="font-size:0.75rem;padding:4px 10px;background:#ef4444;color:#fff;border-radius:6px;text-decoration:none">🗑️ Wyczyść</a>
+            </div>
             {logs_html}
         </div>
 
@@ -786,6 +792,17 @@ def mail_import_check_now():
     else:
         flash(f"📭 Brak nowych maili z Excelem | {debug_msg}", 'info')
 
+    return redirect('/ustawienia/mail-import')
+
+
+@mail_import_bp.route('/ustawienia/mail-import/clear-log')
+def mail_import_clear_log():
+    """Czyści historię importów (pozwala ponownie zaimportować pliki)"""
+    from modules.database import get_db
+    conn = get_db()
+    conn.execute('DELETE FROM mail_import_log')
+    conn.commit()
+    flash('🗑️ Historia importów wyczyszczona — pliki mogą być ponownie zaimportowane', 'success')
     return redirect('/ustawienia/mail-import')
 
 
