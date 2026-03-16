@@ -104,6 +104,10 @@ def _format_telegram_message(info, user_message=''):
     msg += f"📦 <b>Wersja:</b> {info.get('app_version', '?')}\n"
     msg += f"🌐 <b>Ngrok:</b> {info.get('ngrok_url', '?')}\n"
 
+    kontakt = info.get('kontakt', '')
+    if kontakt:
+        msg += f"\n📋 <b>Kontakt klienta:</b>\n{kontakt}\n"
+
     if user_message:
         msg += f"\n💬 <b>Opis problemu:</b>\n{user_message}\n"
 
@@ -128,6 +132,9 @@ def support_zgloszenie():
 
     if request.method == 'POST':
         user_message = request.form.get('opis', '').strip()
+        kontakt_nazwa = request.form.get('kontakt_nazwa', '').strip()
+        kontakt_email = request.form.get('kontakt_email', '').strip()
+        kontakt_telefon = request.form.get('kontakt_telefon', '').strip()
 
         if not user_message:
             flash('Opisz problem przed wysłaniem', 'error')
@@ -135,6 +142,16 @@ def support_zgloszenie():
 
         # Zbierz info o systemie
         info = _get_system_info()
+
+        # Dodaj dane kontaktowe klienta
+        kontakt_info = ''
+        if kontakt_nazwa:
+            kontakt_info += f"👤 {kontakt_nazwa}\n"
+        if kontakt_email:
+            kontakt_info += f"📧 {kontakt_email}\n"
+        if kontakt_telefon:
+            kontakt_info += f"📱 {kontakt_telefon}\n"
+        info['kontakt'] = kontakt_info.strip()
 
         # Wyślij na Telegram
         try:
@@ -203,6 +220,23 @@ body {{ background: #0a0a0f; color: #e2e8f0; font-family: -apple-system, BlinkMa
 
     <div class="card">
         <form method="POST">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+                <div>
+                    <label style="display:block;font-weight:600;margin-bottom:6px;font-size:0.9rem">Imie / Firma</label>
+                    <input type="text" name="kontakt_nazwa" placeholder="Jan Kowalski"
+                        style="width:100%;padding:10px;background:#1a1a2e;border:1px solid #2d2d44;border-radius:8px;color:#e2e8f0;font-size:0.9rem;box-sizing:border-box">
+                </div>
+                <div>
+                    <label style="display:block;font-weight:600;margin-bottom:6px;font-size:0.9rem">Telefon</label>
+                    <input type="tel" name="kontakt_telefon" placeholder="+48 123 456 789"
+                        style="width:100%;padding:10px;background:#1a1a2e;border:1px solid #2d2d44;border-radius:8px;color:#e2e8f0;font-size:0.9rem;box-sizing:border-box">
+                </div>
+            </div>
+            <div style="margin-bottom:16px">
+                <label style="display:block;font-weight:600;margin-bottom:6px;font-size:0.9rem">Email</label>
+                <input type="email" name="kontakt_email" placeholder="jan@firma.pl"
+                    style="width:100%;padding:10px;background:#1a1a2e;border:1px solid #2d2d44;border-radius:8px;color:#e2e8f0;font-size:0.9rem;box-sizing:border-box">
+            </div>
             <div class="form-group">
                 <label>Opis problemu</label>
                 <textarea name="opis" placeholder="Co nie działa? Opisz krok po kroku co robiłeś i co się stało...&#10;&#10;Np.: Klikam 'Dodaj paletę', wpisuję dane i po kliknięciu 'Zapisz' wyskakuje błąd..." required></textarea>
@@ -215,6 +249,13 @@ body {{ background: #0a0a0f; color: #e2e8f0; font-family: -apple-system, BlinkMa
                     <li>Podaj jaki błąd wyskoczył (jeśli jakiś był)</li>
                     <li>Napisz na jakiej stronie/zakładce to się dzieje</li>
                 </ul>
+            </div>
+
+            <div style="margin-bottom:16px">
+                <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:0.8rem;color:#94a3b8;line-height:1.4">
+                    <input type="checkbox" name="rodo" required style="width:18px;height:18px;margin-top:2px;flex-shrink:0;accent-color:#6366f1">
+                    <span>Wyrazam zgode na przetwarzanie moich danych osobowych w celu obslugi zgloszenia zgodnie z <a href="/polityka-prywatnosci" target="_blank" style="color:#6366f1">Polityka Prywatnosci</a>. Dane beda przetwarzane wylacznie do rozwiazania problemu.</span>
+                </label>
             </div>
 
             <button type="submit" class="btn-send">📨 Wyślij zgłoszenie</button>
@@ -234,6 +275,64 @@ body {{ background: #0a0a0f; color: #e2e8f0; font-family: -apple-system, BlinkMa
 </body></html>'''
 
     return html
+
+
+@support_bp.route('/polityka-prywatnosci')
+def polityka_prywatnosci():
+    """Polityka prywatności RODO"""
+    from .database import get_config
+    brand = get_config('brand_name', 'AKCES HUB')
+    support_email = get_config('support_email', 'kontakt@firma.pl')
+
+    return f'''<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Polityka Prywatności — {brand}</title>
+<style>
+body {{ background:#0a0a0f;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;margin:0;padding:20px;line-height:1.6 }}
+.container {{ max-width:700px;margin:auto }}
+h1 {{ color:#fff;font-size:1.5rem }}
+h2 {{ color:#93c5fd;font-size:1.1rem;margin-top:25px }}
+a {{ color:#6366f1 }}
+.back {{ display:inline-block;margin-bottom:20px;color:#6366f1;text-decoration:none }}
+</style>
+</head><body>
+<div class="container">
+    <a href="javascript:history.back()" class="back">← Powrot</a>
+    <h1>📋 Polityka Prywatnosci</h1>
+    <p><strong>{brand}</strong> — ostatnia aktualizacja: marzec 2026</p>
+
+    <h2>1. Administrator danych</h2>
+    <p>Administratorem danych osobowych jest operator systemu {brand}. Kontakt: {support_email}</p>
+
+    <h2>2. Jakie dane zbieramy</h2>
+    <ul>
+        <li>Dane podane w formularzu zgloszenia: imie/firma, email, telefon</li>
+        <li>Dane techniczne systemu (diagnostyka serwera)</li>
+        <li>Dane logowania: login, zaszyfrowane haslo</li>
+    </ul>
+
+    <h2>3. Cel przetwarzania</h2>
+    <ul>
+        <li>Obsluga zgloszen technicznych (art. 6 ust. 1 lit. a RODO — zgoda)</li>
+        <li>Swiadczenie uslugi (art. 6 ust. 1 lit. b RODO — umowa)</li>
+        <li>Diagnostyka i naprawa bledow systemu</li>
+    </ul>
+
+    <h2>4. Okres przechowywania</h2>
+    <p>Dane ze zgloszen przechowujemy przez okres obslugi zgloszenia, nie dluzej niz 12 miesiecy od zamkniecia sprawy.</p>
+
+    <h2>5. Twoje prawa</h2>
+    <p>Masz prawo do: dostepu do danych, sprostowania, usuniecia, ograniczenia przetwarzania, przenoszenia danych oraz sprzeciwu. Kontakt: {support_email}</p>
+
+    <h2>6. Bezpieczenstwo</h2>
+    <p>Dane sa przechowywane na zabezpieczonym serwerze. Hasla sa szyfrowane. Polaczenie jest chronione przez HTTPS.</p>
+
+    <h2>7. Udostepnianie danych</h2>
+    <p>Nie udostepniamy danych osobowych podmiotom trzecim, chyba ze wymaga tego prawo.</p>
+</div>
+</body></html>'''
 
 
 @support_bp.route('/api/support/system-info')
