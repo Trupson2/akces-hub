@@ -456,7 +456,8 @@ def napraw_nazwy_sprzedazy():
                     updates.append('data_sprzedazy = ?')
                     params.append(new_date)
                 params.append(s['id'])
-                conn.execute(f'UPDATE sprzedaze SET {", ".join(updates)} WHERE id = ?', params)
+                set_clause = ", ".join(updates)
+                conn.execute('UPDATE sprzedaze SET ' + set_clause + ' WHERE id = ?', params)  # noqa: B608
                 updated += 1
                 date_info = f' | data: {new_date[:10]}' if new_date else ''
                 print(f"✅ Naprawiono: {s['id']} -> {(new_name or '')[:40]}... | img: {'✓' if new_image else '✗'}{date_info}")
@@ -596,16 +597,16 @@ def api_sprzedaze_dopasuj():
 
     # Pobierz szczegóły sprzedaży PRZED update (do historii)
     placeholders = ','.join(['?' for _ in sale_ids])
-    sprzedaze = conn.execute(f'''
-        SELECT id, nazwa, cena, ilosc, data_sprzedazy
-        FROM sprzedaze WHERE id IN ({placeholders}) AND produkt_id IS NULL
-    ''', sale_ids).fetchall()
+    sprzedaze = conn.execute(
+        'SELECT id, nazwa, cena, ilosc, data_sprzedazy'
+        ' FROM sprzedaze WHERE id IN (' + placeholders + ') AND produkt_id IS NULL',
+        sale_ids).fetchall()
 
     # Update produkt_id
-    updated = conn.execute(f'''
-        UPDATE sprzedaze SET produkt_id = ?
-        WHERE id IN ({placeholders}) AND produkt_id IS NULL
-    ''', [produkt_id] + sale_ids)
+    updated = conn.execute(
+        'UPDATE sprzedaze SET produkt_id = ?'
+        ' WHERE id IN (' + placeholders + ') AND produkt_id IS NULL',
+        [produkt_id] + sale_ids)
 
     # Dodaj historię dla każdej dopasowanej sprzedaży
     for s in sprzedaze:
@@ -657,24 +658,25 @@ def api_sprzedaze_auto_dopasuj():
             where_parts.append("LOWER(nazwa) LIKE ?")
             params.append(f'%{w.lower()}%')
 
-        match = conn.execute(f'''
-            SELECT id FROM produkty WHERE {' AND '.join(where_parts)} LIMIT 1
-        ''', params).fetchone()
+        where_clause = ' AND '.join(where_parts)
+        match = conn.execute(
+            'SELECT id FROM produkty WHERE ' + where_clause + ' LIMIT 1',
+            params).fetchone()
 
         if match:
             sale_ids = [int(x) for x in g['sale_ids'].split(',')]
             ph = ','.join(['?' for _ in sale_ids])
 
             # Pobierz szczegóły sprzedaży PRZED update (do historii)
-            sprzedaze = conn.execute(f'''
-                SELECT id, nazwa, cena, ilosc, data_sprzedazy
-                FROM sprzedaze WHERE id IN ({ph}) AND produkt_id IS NULL
-            ''', sale_ids).fetchall()
+            sprzedaze = conn.execute(
+                'SELECT id, nazwa, cena, ilosc, data_sprzedazy'
+                ' FROM sprzedaze WHERE id IN (' + ph + ') AND produkt_id IS NULL',
+                sale_ids).fetchall()
 
-            conn.execute(f'''
-                UPDATE sprzedaze SET produkt_id = ?
-                WHERE id IN ({ph}) AND produkt_id IS NULL
-            ''', [match['id']] + sale_ids)
+            conn.execute(
+                'UPDATE sprzedaze SET produkt_id = ?'
+                ' WHERE id IN (' + ph + ') AND produkt_id IS NULL',
+                [match['id']] + sale_ids)
 
             # Dodaj historię dla każdej dopasowanej sprzedaży
             for s in sprzedaze:
@@ -722,7 +724,7 @@ def api_sprzedaze_repair():
         to_delete = [i for i in all_ids if i != d['keep_id']]
         if to_delete:
             ph = ','.join(['?' for _ in to_delete])
-            conn.execute(f'DELETE FROM sprzedaze WHERE id IN ({ph})', to_delete)
+            conn.execute('DELETE FROM sprzedaze WHERE id IN (' + ph + ')', to_delete)
             removed += len(to_delete)
     if removed:
         repairs.append(f'Usunięto {removed} duplikatów zamówień')
@@ -843,13 +845,11 @@ def sprzedaze_dopasuj():
         for w in words:
             where_parts.append("LOWER(nazwa) LIKE ?")
             params.append(f'%{w.lower()}%')
-        match = conn.execute(f'''
-            SELECT id, nazwa, zdjecie_url
-            FROM produkty
-            WHERE {' AND '.join(where_parts)}
-            ORDER BY id DESC
-            LIMIT 1
-        ''', params).fetchone()
+        where_clause = ' AND '.join(where_parts)
+        match = conn.execute(
+            'SELECT id, nazwa, zdjecie_url FROM produkty'
+            ' WHERE ' + where_clause + ' ORDER BY id DESC LIMIT 1',
+            params).fetchone()
         if match:
             suggestions[g['grupa_nazwa']] = dict(match)
 

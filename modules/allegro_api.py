@@ -137,13 +137,13 @@ def download_image(url, asin=None, image_index=None, force_redownload=False):
             if image_index is not None:
                 filename = f"image_{image_index}.jpg"
             else:
-                url_hash = hashlib.md5(url.encode()).hexdigest()[:8]
+                url_hash = hashlib.md5(url.encode(), usedforsecurity=False).hexdigest()[:8]
                 filename = f"{asin}_{url_hash}.jpg"
             filepath = os.path.join(target_dir, filename)
         else:
             # Fallback: static/downloads/hash.jpg
             ensure_images_dir()
-            filename = f"{hashlib.md5(url.encode()).hexdigest()}.jpg"
+            filename = f"{hashlib.md5(url.encode(), usedforsecurity=False).hexdigest()}.jpg"
             filepath = os.path.join(DOWNLOADS_DIR, filename)
         
         # Sprawdź cache
@@ -2990,10 +2990,12 @@ def backfill_link_sprzedaze(dry_run=False):
                 if not s['oferta_id']:
                     updates['oferta_id'] = matched_oferta['id']
 
-                set_clause = ', '.join(f'{k} = ?' for k in updates.keys())
+                ALLOWED_COLS = {'produkt_id', 'oferta_id'}
+                safe_keys = [k for k in updates.keys() if k in ALLOWED_COLS]
+                set_clause = ', '.join(k + ' = ?' for k in safe_keys)
                 conn.execute(
-                    f'UPDATE sprzedaze SET {set_clause} WHERE id = ?',
-                    (*updates.values(), s['id'])
+                    'UPDATE sprzedaze SET ' + set_clause + ' WHERE id = ?',
+                    tuple(updates[k] for k in safe_keys) + (s['id'],)
                 )
             linked_via_oferty += 1
 

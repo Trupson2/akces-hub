@@ -79,16 +79,16 @@ def get_stats():
         return _mag_stats_cache['data']
     conn = get_db()
     # Filtr: status IN ('magazyn','wystawiony') — spójnie z KPI dashboard
-    _w = "status IN ('magazyn','wystawiony')"
+    _w_statuses = ('magazyn', 'wystawiony')
     stats = {
-        'produkty': conn.execute(f'SELECT COUNT(*) FROM produkty WHERE {_w}').fetchone()[0],
-        'sztuki': conn.execute(f'SELECT COALESCE(SUM(ilosc),0) FROM produkty WHERE {_w}').fetchone()[0],
-        'palety': conn.execute(f'SELECT COUNT(DISTINCT paleta) FROM produkty WHERE paleta!="" AND {_w}').fetchone()[0],
-        'dostawcy': conn.execute(f'SELECT COUNT(DISTINCT dostawca) FROM produkty WHERE dostawca!="" AND {_w}').fetchone()[0],
+        'produkty': conn.execute('SELECT COUNT(*) FROM produkty WHERE status IN (?,?)', _w_statuses).fetchone()[0],
+        'sztuki': conn.execute('SELECT COALESCE(SUM(ilosc),0) FROM produkty WHERE status IN (?,?)', _w_statuses).fetchone()[0],
+        'palety': conn.execute('SELECT COUNT(DISTINCT paleta) FROM produkty WHERE paleta!="" AND status IN (?,?)', _w_statuses).fetchone()[0],
+        'dostawcy': conn.execute('SELECT COUNT(DISTINCT dostawca) FROM produkty WHERE dostawca!="" AND status IN (?,?)', _w_statuses).fetchone()[0],
         # Wartość zakupu = avg koszt/szt z palet × sztuki w magazynie
         'wartosc_zakupu': 0,  # obliczone poniżej
         'wartosc_netto': 0,   # obliczone poniżej
-        'wartosc_allegro': round(conn.execute(f'SELECT COALESCE(SUM(cena_allegro*ilosc),0) FROM produkty WHERE {_w}').fetchone()[0] or 0, 2),
+        'wartosc_allegro': round(conn.execute('SELECT COALESCE(SUM(cena_allegro*ilosc),0) FROM produkty WHERE status IN (?,?)', _w_statuses).fetchone()[0] or 0, 2),
     }
     # Średni koszt/szt — identycznie jak w KPI dashboard (analytics.py)
     # total_items = aktualne w magazynie + sprzedane przez sprzedaze
@@ -2181,16 +2181,17 @@ def statystyki():
     conn = get_db()
     
     # FILTR: tylko opłacone (bez zwrotów i anulowanych)
-    STATUS_FILTER = "status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')"
-    
+    # STATUS_FILTER inlined in each query to avoid f-string SQL (B608)
+
     # Sprzedaż miesięcznie (bieżący rok)
     current_year = datetime.now().year
-    miesieczne = conn.execute(f'''
+    miesieczne = conn.execute('''
         SELECT strftime('%m', REPLACE(SUBSTR(data_sprzedazy,1,19), 'T', ' ')) as miesiac,
                COUNT(*) as ilosc,
                COALESCE(SUM(cena * ilosc), 0) as suma
-        FROM sprzedaze 
-        WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19), 'T', ' ')) = ? AND {STATUS_FILTER}
+        FROM sprzedaze
+        WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19), 'T', ' ')) = ?
+          AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
           AND data_sprzedazy IS NOT NULL AND data_sprzedazy != ''
         GROUP BY miesiac
         HAVING miesiac IS NOT NULL
@@ -2198,15 +2199,15 @@ def statystyki():
     ''', (str(current_year),)).fetchall()
     
     # Sprzedaż dziennie dla każdego miesiąca (do drill-down) - z ilością zamówień!
-    dzienne_all = conn.execute(f'''
-        SELECT 
+    dzienne_all = conn.execute('''
+        SELECT
             strftime('%m', REPLACE(SUBSTR(data_sprzedazy,1,19), 'T', ' ')) as miesiac,
             strftime('%d', REPLACE(SUBSTR(data_sprzedazy,1,19), 'T', ' ')) as dzien,
             COUNT(*) as cnt,
             COALESCE(SUM(cena * ilosc), 0) as suma
-        FROM sprzedaze 
-        WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19), 'T', ' ')) = ? 
-          AND {STATUS_FILTER}
+        FROM sprzedaze
+        WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19), 'T', ' ')) = ?
+          AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
           AND data_sprzedazy IS NOT NULL
           AND data_sprzedazy != ''
         GROUP BY miesiac, dzien
@@ -2227,13 +2228,13 @@ def statystyki():
         dzienne_cnt_per_miesiac[m][dzien] = int(d['cnt'])
     
     # Sprzedaż rocznie (wszystkie lata) — z prywatnym (spójne z dashboardem)
-    roczne = conn.execute(f'''
+    roczne = conn.execute('''
         SELECT rok, SUM(ilosc) as ilosc, SUM(suma) as suma FROM (
             SELECT strftime('%Y', data_sprzedazy) as rok,
                    COUNT(*) as ilosc,
                    COALESCE(SUM(cena * ilosc), 0) as suma
             FROM sprzedaze
-            WHERE {STATUS_FILTER}
+            WHERE status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
             GROUP BY rok
             UNION ALL
             SELECT strftime('%Y', data) as rok,
@@ -2245,12 +2246,12 @@ def statystyki():
     ''').fetchall()
     
     # Podsumowanie ogólne
-    podsumowanie = conn.execute(f'''
+    podsumowanie = conn.execute('''
         SELECT COUNT(*) as ilosc_transakcji,
                COALESCE(SUM(cena * ilosc), 0) as suma_total,
                COALESCE(AVG(cena * ilosc), 0) as srednia
         FROM sprzedaze
-        WHERE {STATUS_FILTER}
+        WHERE status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
     ''').fetchone()
     if podsumowanie is None:
         import sqlite3
@@ -2258,30 +2259,30 @@ def statystyki():
         podsumowanie = {'ilosc_transakcji': 0, 'suma_total': 0.0, 'srednia': 0.0}
     
     # Top 5 produktów (najczęściej sprzedawane) - bierze nazwę z sprzedaze
-    top_produkty = conn.execute(f'''
-        SELECT 
-            CASE 
+    top_produkty = conn.execute('''
+        SELECT
+            CASE
                 WHEN s.nazwa IS NOT NULL AND s.nazwa != '' AND s.nazwa != 'Produkt' THEN SUBSTR(s.nazwa, 1, 50)
                 WHEN o.tytul IS NOT NULL AND o.tytul != '' THEN SUBSTR(o.tytul, 1, 50)
                 WHEN p.nazwa IS NOT NULL AND p.nazwa != '' THEN p.nazwa
                 ELSE 'Produkt #' || s.id
-            END as produkt_nazwa, 
-            COUNT(*) as sprzedane, 
+            END as produkt_nazwa,
+            COUNT(*) as sprzedane,
             SUM(s.cena * s.ilosc) as przychod
         FROM sprzedaze s
         LEFT JOIN oferty o ON s.oferta_id = o.id
         LEFT JOIN produkty p ON COALESCE(s.produkt_id, o.produkt_id) = p.id
-        WHERE s.{STATUS_FILTER}
+        WHERE s.status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
         GROUP BY produkt_nazwa
         ORDER BY sprzedane DESC
         LIMIT 5
     ''').fetchall()
     
     # Top dostawcy - pobiera z palety przez produkt lub ofertę
-    top_dostawcy = conn.execute(f'''
-        SELECT 
-            COALESCE(pal.dostawca, pal2.dostawca, 'Allegro') as dostawca_nazwa, 
-            COUNT(*) as sprzedane, 
+    top_dostawcy = conn.execute('''
+        SELECT
+            COALESCE(pal.dostawca, pal2.dostawca, 'Allegro') as dostawca_nazwa,
+            COUNT(*) as sprzedane,
             SUM(s.cena * s.ilosc) as przychod
         FROM sprzedaze s
         LEFT JOIN produkty p ON s.produkt_id = p.id
@@ -2289,7 +2290,7 @@ def statystyki():
         LEFT JOIN oferty o ON s.oferta_id = o.id
         LEFT JOIN produkty p2 ON o.produkt_id = p2.id
         LEFT JOIN palety pal2 ON p2.paleta_id = pal2.id
-        WHERE s.{STATUS_FILTER}
+        WHERE s.status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
         GROUP BY dostawca_nazwa
         ORDER BY przychod DESC
         LIMIT 5
@@ -3854,7 +3855,7 @@ def paleta_usun(n):
         # 🔥 NOWE: Usuń te produkty ze scraped (Paletomat)
         if asiny_list:
             placeholders = ','.join(['?' for _ in asiny_list])
-            conn.execute(f'DELETE FROM scraped WHERE asin IN ({placeholders})', asiny_list)
+            conn.execute('DELETE FROM scraped WHERE asin IN (' + placeholders + ')', asiny_list)  # noqa: B608 - placeholders are only ?
             print(f"🗑️ Usunięto {len(asiny_list)} produktów ze scraped (Paletomat)")
         
         # Usuń wszystkie produkty z tej palety (Magazynier)
@@ -6264,8 +6265,11 @@ def masowa_edycja_statusu():
                 changes.append(f"cena: {p['cena_allegro'] or 0:.0f} → {new_cena_allegro:.0f} zł")
 
             if updates:
+                # updates contains only whitelisted 'column = ?' fragments (status, stan, lokalizacja, cena_allegro)
+                ALLOWED_SET_CLAUSES = {'status = ?', 'stan = ?', 'lokalizacja = ?', 'cena_allegro = ?'}
+                assert all(u in ALLOWED_SET_CLAUSES for u in updates), "Invalid SET clause"
                 vals.append(product_id)
-                conn.execute(f"UPDATE produkty SET {', '.join(updates)} WHERE id = ?", vals)
+                conn.execute("UPDATE produkty SET " + ', '.join(updates) + " WHERE id = ?", vals)
                 opis = "Masowa edycja: " + " | ".join(changes)
                 add_historia(product_id, 'edytowano', opis, {'zmiany': changes})
                 updated_count += 1
@@ -6513,8 +6517,11 @@ def api_autowycena_paleta_stream(paleta_id):
                     updates.append('nazwa = ?')
                     params.append(nowa_nazwa)
                 if updates:
+                    # updates contains only whitelisted 'column = ?' fragments (cena_allegro, nazwa)
+                    ALLOWED_SET_CLAUSES = {'cena_allegro = ?', 'nazwa = ?'}
+                    assert all(u in ALLOWED_SET_CLAUSES for u in updates), "Invalid SET clause"
                     params.append(p['id'])
-                    conn.execute(f"UPDATE produkty SET {', '.join(updates)} WHERE id = ?", params)
+                    conn.execute("UPDATE produkty SET " + ', '.join(updates) + " WHERE id = ?", params)
                     conn.commit()
                     stats['updated'] += 1
             except Exception as e:

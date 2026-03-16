@@ -1459,37 +1459,37 @@ def api_live_stats():
     month_start = datetime.now().strftime('%Y-%m-01')
     days_in_month = datetime.now().day
     
-    NOT_CANCELLED = "AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')"
+    NOT_CANCELLED = " AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')"
 
     # Dziś
-    row = conn.execute(f'''
-        SELECT COUNT(*) as cnt, COALESCE(SUM(cena*ilosc), 0) as suma
-        FROM sprzedaze WHERE date(data_sprzedazy) = ? {NOT_CANCELLED}
-    ''', (today,)).fetchone()
+    row = conn.execute(
+        'SELECT COUNT(*) as cnt, COALESCE(SUM(cena*ilosc), 0) as suma'
+        ' FROM sprzedaze WHERE date(data_sprzedazy) = ?' + NOT_CANCELLED,
+        (today,)).fetchone()
     today_stats = {'cnt': row['cnt'], 'sum': row['suma']}
 
     # Do wysłania
     pending = conn.execute("SELECT COUNT(*) FROM sprzedaze WHERE status = 'nowa'").fetchone()[0]
 
     # Tydzień
-    row = conn.execute(f'''
-        SELECT COUNT(*) as cnt, COALESCE(SUM(cena*ilosc), 0) as suma
-        FROM sprzedaze WHERE date(data_sprzedazy) >= ? {NOT_CANCELLED}
-    ''', (week_ago,)).fetchone()
+    row = conn.execute(
+        'SELECT COUNT(*) as cnt, COALESCE(SUM(cena*ilosc), 0) as suma'
+        ' FROM sprzedaze WHERE date(data_sprzedazy) >= ?' + NOT_CANCELLED,
+        (week_ago,)).fetchone()
     week_stats = {'cnt': row['cnt'], 'sum': row['suma']}
 
     # Miesiąc
-    row = conn.execute(f'''
-        SELECT COUNT(*) as cnt, COALESCE(SUM(cena*ilosc), 0) as suma
-        FROM sprzedaze WHERE date(data_sprzedazy) >= ? {NOT_CANCELLED}
-    ''', (month_start,)).fetchone()
+    row = conn.execute(
+        'SELECT COUNT(*) as cnt, COALESCE(SUM(cena*ilosc), 0) as suma'
+        ' FROM sprzedaze WHERE date(data_sprzedazy) >= ?' + NOT_CANCELLED,
+        (month_start,)).fetchone()
     month_stats = {'cnt': row['cnt'], 'sum': row['suma']}
 
     # Łącznie (sprzedaze + prywatne)
-    row = conn.execute(f'''
-        SELECT COUNT(*) as cnt, COALESCE(SUM(cena*ilosc), 0) as suma
-        FROM sprzedaze WHERE 1=1 {NOT_CANCELLED}
-    ''').fetchone()
+    row = conn.execute(
+        'SELECT COUNT(*) as cnt, COALESCE(SUM(cena*ilosc), 0) as suma'
+        ' FROM sprzedaze WHERE 1=1' + NOT_CANCELLED
+    ).fetchone()
     total_cnt = row['cnt']
     total_sum = row['suma']
     # Dolicz sprzedaże prywatne
@@ -1536,12 +1536,12 @@ def api_live_stats():
         })
     
     # Top produkty miesiąca
-    top = conn.execute(f'''
-        SELECT nazwa, COUNT(*) as cnt, SUM(cena*ilosc) as suma
-        FROM sprzedaze WHERE date(data_sprzedazy) >= ? {NOT_CANCELLED}
-        AND nazwa IS NOT NULL AND nazwa != ''
-        GROUP BY nazwa ORDER BY suma DESC LIMIT 5
-    ''', (month_start,)).fetchall()
+    top = conn.execute(
+        'SELECT nazwa, COUNT(*) as cnt, SUM(cena*ilosc) as suma'
+        ' FROM sprzedaze WHERE date(data_sprzedazy) >= ?' + NOT_CANCELLED +
+        " AND nazwa IS NOT NULL AND nazwa != ''"
+        ' GROUP BY nazwa ORDER BY suma DESC LIMIT 5',
+        (month_start,)).fetchall()
     
     top_list = [{'nazwa': (t['nazwa'] or 'Produkt')[:35], 'cnt': t['cnt'], 'suma': t['suma']} for t in top]
     

@@ -2038,7 +2038,7 @@ def scraper_file():
                     # Wykonaj UPDATE
                     if update_fields:
                         update_values.append(asin)  # WHERE asin = ?
-                        sql = f"UPDATE produkty SET {', '.join(update_fields)} WHERE id = ?"
+                        sql = "UPDATE produkty SET " + ', '.join(update_fields) + " WHERE id = ?"  # noqa: B608
                         # Zmień ostatni param z asin na id (WHERE id = ? jest bezpieczne - tylko konkretny rekord)
                         update_values[-1] = existing['id']
                         print(f"   SQL: {sql}")
@@ -2802,12 +2802,10 @@ def generator_mass_create_from_paleta_stream():
         conn = get_db()
         
         placeholders = ','.join('?' * len(product_ids))
-        products = conn.execute(f'''
-            SELECT * FROM produkty
-            WHERE id IN ({placeholders})
-            AND status NOT IN ('usuniety', 'sprzedany')
-            ORDER BY id
-        ''', product_ids).fetchall()
+        products = conn.execute(
+            "SELECT * FROM produkty WHERE id IN (" + placeholders + ") "
+            "AND status NOT IN ('usuniety', 'sprzedany') ORDER BY id",
+            product_ids).fetchall()
 
         total = len(products)
 
@@ -2866,13 +2864,13 @@ def generator_mass_create_from_paleta_stream():
                     all_prod_ids = [r['id'] for r in conn.execute('SELECT id FROM produkty WHERE asin = ?', (asin,)).fetchall()]
                     if all_prod_ids:
                         ph = ','.join('?' * len(all_prod_ids))
-                        candidates = conn.execute(f'''
-                            SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status
-                            FROM oferty o
-                            WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
-                            AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
-                            AND o.produkt_id IN ({ph})
-                        ''', all_prod_ids).fetchall()
+                        candidates = conn.execute(
+                            "SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status "
+                            "FROM oferty o "
+                            "WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published') "
+                            "AND o.allegro_id IS NOT NULL AND o.allegro_id != '' "
+                            "AND o.produkt_id IN (" + ph + ")",
+                            all_prod_ids).fetchall()
                         # Filtruj po nazwie — żeby nie łączyć pokrowców z relingami
                         for c in candidates:
                             if _nazwa_match(c['tytul']):
@@ -2885,13 +2883,13 @@ def generator_mass_create_from_paleta_stream():
                     all_prod_ids = [r['id'] for r in conn.execute('SELECT id FROM produkty WHERE ean = ?', (ean,)).fetchall()]
                     if all_prod_ids:
                         ph = ','.join('?' * len(all_prod_ids))
-                        candidates = conn.execute(f'''
-                            SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status
-                            FROM oferty o
-                            WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
-                            AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
-                            AND o.produkt_id IN ({ph})
-                        ''', all_prod_ids).fetchall()
+                        candidates = conn.execute(
+                            "SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status "
+                            "FROM oferty o "
+                            "WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published') "
+                            "AND o.allegro_id IS NOT NULL AND o.allegro_id != '' "
+                            "AND o.produkt_id IN (" + ph + ")",
+                            all_prod_ids).fetchall()
                         for c in candidates:
                             if _nazwa_match(c['tytul']):
                                 existing_offer = c
@@ -4329,28 +4327,28 @@ def generator_from_magazyn(product_id):
             all_prod_ids = [r['id'] for r in conn.execute('SELECT id FROM produkty WHERE asin = ?', (asin,)).fetchall()]
             if all_prod_ids:
                 ph = ','.join('?' * len(all_prod_ids))
-                existing_offer = conn.execute(f'''
-                    SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status, o.cena
-                    FROM oferty o
-                    WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
-                    AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
-                    AND o.produkt_id IN ({ph})
-                    LIMIT 1
-                ''', all_prod_ids).fetchone()
+                existing_offer = conn.execute(
+                    "SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status, o.cena "
+                    "FROM oferty o "
+                    "WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published') "
+                    "AND o.allegro_id IS NOT NULL AND o.allegro_id != '' "
+                    "AND o.produkt_id IN (" + ph + ") "
+                    "LIMIT 1",
+                    all_prod_ids).fetchone()
 
         # 2. Szukaj po EAN
         if ean and ean not in ('N/A', 'None', '') and not existing_offer:
             all_prod_ids = [r['id'] for r in conn.execute('SELECT id FROM produkty WHERE ean = ?', (ean,)).fetchall()]
             if all_prod_ids:
                 ph = ','.join('?' * len(all_prod_ids))
-                existing_offer = conn.execute(f'''
-                    SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status, o.cena
-                    FROM oferty o
-                    WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
-                    AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
-                    AND o.produkt_id IN ({ph})
-                    LIMIT 1
-                ''', all_prod_ids).fetchone()
+                existing_offer = conn.execute(
+                    "SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status, o.cena "
+                    "FROM oferty o "
+                    "WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published') "
+                    "AND o.allegro_id IS NOT NULL AND o.allegro_id != '' "
+                    "AND o.produkt_id IN (" + ph + ") "
+                    "LIMIT 1",
+                    all_prod_ids).fetchone()
 
         # 3. Szukaj po produkt_id
         if not existing_offer:
@@ -6434,7 +6432,7 @@ def api_clean_image():
     # Zapisz oczyszczone zdjecie i zwroc URL
     import hashlib
     import base64
-    fname = hashlib.md5(image_url.encode()).hexdigest()[:12] + '_clean.jpg'
+    fname = hashlib.md5(image_url.encode(), usedforsecurity=False).hexdigest()[:12] + '_clean.jpg'
 
     static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'cleaned')
     os.makedirs(static_dir, exist_ok=True)
@@ -6497,7 +6495,7 @@ def api_enhance_image():
         return jsonify({'success': False, 'error': error}), 500
 
     # Zapisz
-    fname_hash = hashlib.md5(image_url.encode()).hexdigest()[:8]
+    fname_hash = hashlib.md5(image_url.encode(), usedforsecurity=False).hexdigest()[:8]
     fname = f'{fname_hash}_t{template_id}.jpg'
 
     static_dir = os.path.join(

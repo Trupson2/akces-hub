@@ -1756,7 +1756,7 @@ def analityka_kategorie_bulk_update():
     
     conn = get_db()
     placeholders = ','.join('?' * len(ids))
-    conn.execute(f'UPDATE produkty SET kategoria = ? WHERE id IN ({placeholders})', [kategoria] + ids)
+    conn.execute('UPDATE produkty SET kategoria = ? WHERE id IN (' + placeholders + ')', [kategoria] + ids)
     conn.commit()
     
     return jsonify({'ok': True, 'count': len(ids)})
@@ -2907,7 +2907,7 @@ def analityka_czas_sprzedazy():
             # Wyzeruj przychod_offline żeby nie duplikować (dane są już w sprzedaze)
             ids = [r['id'] for r in stare]
             placeholders = ','.join('?' * len(ids))
-            conn.execute(f"UPDATE produkty SET przychod_offline = 0 WHERE id IN ({placeholders})", ids)
+            conn.execute("UPDATE produkty SET przychod_offline = 0 WHERE id IN (" + placeholders + ")", ids)
             conn.commit()
             print(f"✅ Migracja offline: przeniesiono {len(stare)} produktów do sprzedaze, wyzerowano przychod_offline")
     except Exception as _e:

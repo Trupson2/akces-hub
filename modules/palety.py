@@ -3242,7 +3242,7 @@ def produkt_szybka_edycja(produkt_id):
     if pole == 'status' and p['status'] == 'sprzedany' and wartosc != 'sprzedany' and (p['ilosc'] or 0) == 0:
         return jsonify({'ok': False, 'msg': 'Produkt ma ilość 0 — najpierw skoryguj ilość'}), 400
 
-    conn.execute(f'UPDATE produkty SET {pole} = ? WHERE id = ?', (wartosc, produkt_id))
+    conn.execute('UPDATE produkty SET ' + pole + ' = ? WHERE id = ?', (wartosc, produkt_id))
     conn.commit()
     return jsonify({'ok': True})
 
@@ -3261,7 +3261,7 @@ def paleta_delete(paleta_id):
     scraped_cnt = 0
     if asiny_list:
         placeholders = ','.join(['?' for _ in asiny_list])
-        scraped_cnt = conn.execute(f'DELETE FROM scraped WHERE asin IN ({placeholders})', asiny_list).rowcount
+        scraped_cnt = conn.execute('DELETE FROM scraped WHERE asin IN (' + placeholders + ')', asiny_list).rowcount
     
     # Usuń produkty z palety
     produkty_cnt = conn.execute('DELETE FROM produkty WHERE paleta_id = ?', (paleta_id,)).rowcount

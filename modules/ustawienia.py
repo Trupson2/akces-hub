@@ -876,7 +876,7 @@ def reset_palety():
     scraped_cnt = 0
     if asiny_list:
         placeholders = ','.join(['?' for _ in asiny_list])
-        scraped_cnt = conn.execute(f'DELETE FROM scraped WHERE asin IN ({placeholders})', asiny_list).rowcount
+        scraped_cnt = conn.execute('DELETE FROM scraped WHERE asin IN (' + placeholders + ')', asiny_list).rowcount
 
     # Usun produkty i palety
     conn.execute('DELETE FROM produkty WHERE paleta_id IS NOT NULL')

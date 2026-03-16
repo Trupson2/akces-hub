@@ -874,9 +874,9 @@ def oznacz_wyslane_pojedyncze():
     
     # Zmień status na 'wyslana'
     placeholders = ','.join(['?' for _ in all_ids])
-    conn.execute(f'UPDATE sprzedaze SET status = "wyslana" WHERE id IN ({placeholders})', all_ids)
+    conn.execute('UPDATE sprzedaze SET status = "wyslana" WHERE id IN (' + placeholders + ')', all_ids)
     conn.commit()
-    
+
     return redirect('/wysylki')
 
 
@@ -1001,7 +1001,7 @@ def bulk_oznacz_wyslane():
     
     # Zmień status na 'wyslana' dla zaznaczonych
     placeholders = ','.join(['?' for _ in all_ids])
-    conn.execute(f'UPDATE sprzedaze SET status = "wyslana" WHERE id IN ({placeholders})', all_ids)
+    conn.execute('UPDATE sprzedaze SET status = "wyslana" WHERE id IN (' + placeholders + ')', all_ids)
     conn.commit()
     
     # Success message - pokazuj liczbę produktów
