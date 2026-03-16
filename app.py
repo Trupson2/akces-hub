@@ -1081,10 +1081,13 @@ def home():
 def monitor_page():
     """Strona monitora okazji palet"""
     from modules.pallet_monitor import get_recent_deals, get_deal_stats, get_keywords, get_monitor_costs
+    from modules.database import get_config
     stats = get_deal_stats()
     costs = get_monitor_costs()
     deals = get_recent_deals(limit=100)
     keywords = get_keywords()
+    warrington_on = get_config('monitor_warrington_enabled', '1') == '1'
+    jobalots_on = get_config('monitor_jobalots_enabled', '1') == '1'
 
     deals_html = ''
     for d in deals:
@@ -1302,6 +1305,20 @@ def monitor_page():
         <div style="font-weight:600;margin-bottom:8px">Keywords:</div>
         <div>{kw_tags}</div>
         <a href="/monitor/keywords" style="font-size:12px;color:var(--accent-color)">Edytuj keywords</a>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
+            <form method="POST" action="/monitor/toggle-source" style="margin:0">
+                <input type="hidden" name="source" value="warrington">
+                <button type="submit" style="padding:6px 14px;border-radius:8px;border:1px solid {'#22c55e' if warrington_on else '#ef4444'};background:{'rgba(34,197,94,0.1)' if warrington_on else 'rgba(239,68,68,0.1)'};color:{'#22c55e' if warrington_on else '#ef4444'};font-size:12px;font-weight:600;cursor:pointer">
+                    🏪 Warrington: {'✅ ON' if warrington_on else '❌ OFF'}
+                </button>
+            </form>
+            <form method="POST" action="/monitor/toggle-source" style="margin:0">
+                <input type="hidden" name="source" value="jobalots">
+                <button type="submit" style="padding:6px 14px;border-radius:8px;border:1px solid {'#22c55e' if jobalots_on else '#ef4444'};background:{'rgba(34,197,94,0.1)' if jobalots_on else 'rgba(239,68,68,0.1)'};color:{'#22c55e' if jobalots_on else '#ef4444'};font-size:12px;font-weight:600;cursor:pointer">
+                    🎪 Jobalots: {'✅ ON' if jobalots_on else '❌ OFF'}
+                </button>
+            </form>
+        </div>
         <div style="font-size:11px;color:var(--text-secondary);margin-top:5px">
             Harmonogram: Warrington 10-11, 16-17 co 5min | Jobalots co 2h (8:00-22:00)
         </div>
@@ -1364,6 +1381,20 @@ def monitor_keywords():
         content=content,
         active_monitor='active', active_home='', active_magazyn='',
         active_paletomat='', active_allegro='', active_narzedzia='')
+
+@app.route('/monitor/toggle-source', methods=['POST'])
+def monitor_toggle_source():
+    """Włącz/wyłącz źródło skanowania (Warrington/Jobalots)"""
+    from modules.database import get_config, set_config
+    source = request.form.get('source', '')
+    if source in ('warrington', 'jobalots'):
+        key = f'monitor_{source}_enabled'
+        current = get_config(key, '1')
+        new_val = '0' if current == '1' else '1'
+        set_config(key, new_val)
+        state = 'włączony' if new_val == '1' else 'wyłączony'
+        return redirect(f'/monitor?msg={source.title()}+{state}')
+    return redirect('/monitor')
 
 @app.route('/narzedzia')
 def narzedzia():

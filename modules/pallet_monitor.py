@@ -1291,7 +1291,11 @@ def _scheduler_loop():
             h, m = now.hour, now.minute
 
             # === WARRINGTON: co 5 min w 10:00-11:00 i 16:00-17:00 ===
-            if (10 <= h < 11) or (16 <= h < 17):
+            from .database import get_config
+            warrington_enabled = get_config('monitor_warrington_enabled', '1') == '1'
+            jobalots_enabled = get_config('monitor_jobalots_enabled', '1') == '1'
+
+            if warrington_enabled and ((10 <= h < 11) or (16 <= h < 17)):
                 if time.time() - last_warrington_scan >= 300:  # 5 min
                     log("Scheduler: skan Warrington (harmonogram)")
                     try:
@@ -1301,7 +1305,7 @@ def _scheduler_loop():
                     last_warrington_scan = time.time()
 
             # === JOBALOTS: co 2h w godzinach 8-22 ===
-            if 8 <= h < 22:
+            if jobalots_enabled and 8 <= h < 22:
                 if time.time() - last_jobalots_scan >= _JOBALOTS_INTERVAL:
                     log(f"Scheduler: skan Jobalots (co 2h, teraz {h}:{m:02d})")
                     try:
