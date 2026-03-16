@@ -2392,7 +2392,7 @@ def poziom_page():
     row = conn.execute('''
         SELECT COALESCE(SUM(cena * ilosc), 0) as total
         FROM sprzedaze
-        WHERE strftime('%%Y', data_sprzedazy) = ?
+        WHERE strftime('%Y', data_sprzedazy) = ?
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
     ''', (str(year),)).fetchone()
     przychod_rok = float(row['total'] or 0)
@@ -2410,7 +2410,7 @@ def poziom_page():
     # Palety w tym roku
     row3 = conn.execute('''
         SELECT COUNT(*) as cnt FROM palety
-        WHERE strftime('%%Y', data_zakupu) = ?
+        WHERE strftime('%Y', data_zakupu) = ?
     ''', (str(year),)).fetchone()
     palety_rok = int(row3['cnt'] or 0)
 
