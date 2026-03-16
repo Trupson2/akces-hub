@@ -318,7 +318,8 @@ def first_setup():
             session['rola'] = 'admin'
             session.permanent = True
 
-            return redirect('/')
+            # Nowy system — przekieruj na kreator konfiguracji
+            return redirect('/ustawienia/kreator?welcome=1')
 
     return render_template_string(LOGIN_HTML, error=error, username='', first_run=True)
 
