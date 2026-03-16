@@ -15,7 +15,7 @@ def statystyki():
 
     stats = get_full_stats()
 
-    # Pobierz dane miesięczne do wykresu (przychód bez zwrotów)
+    # Pobierz dane miesięczne do wykresu (przychód bez zwrotów, spójne z widokiem szczegółowym)
     current_year = datetime.now().year
     conn = get_db()
     miesieczne = conn.execute('''
@@ -26,10 +26,22 @@ def statystyki():
         WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?
           AND data_sprzedazy IS NOT NULL AND data_sprzedazy != ''
           AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+          AND (kupujacy IS NULL OR kupujacy != 'offline')
         GROUP BY miesiac
         HAVING miesiac IS NOT NULL
         ORDER BY miesiac
     ''', (str(current_year),)).fetchall()
+
+    # Dodaj sprzedaż prywatną (z tabeli sprzedaze_prywatne) — spójne z widokiem szczegółowym
+    try:
+        pryw_miesieczne = conn.execute('''
+            SELECT strftime('%m', data) as miesiac, COALESCE(SUM(kwota), 0) as suma
+            FROM sprzedaze_prywatne
+            WHERE strftime('%Y', data) = ?
+            GROUP BY miesiac
+        ''', (str(current_year),)).fetchall()
+    except:
+        pryw_miesieczne = []
 
     nazwy_miesiecy = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paz', 'Lis', 'Gru']
     dane_miesieczne = [0] * 12
@@ -40,6 +52,12 @@ def statystyki():
         idx = int(m['miesiac']) - 1
         dane_miesieczne[idx] = float(m['suma'] or 0)
         dane_zamowienia[idx] = int(m['cnt'] or 0)
+    # Dodaj prywatne do słupków
+    for m in pryw_miesieczne:
+        if m['miesiac'] is None:
+            continue
+        idx = int(m['miesiac']) - 1
+        dane_miesieczne[idx] += float(m['suma'] or 0)
 
     chart_labels = json.dumps(nazwy_miesiecy)
     chart_data = json.dumps(dane_miesieczne)
