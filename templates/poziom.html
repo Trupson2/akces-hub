@@ -540,6 +540,38 @@ function applyRealData() {
   const bl = document.querySelectorAll('.boss-labels span');
   if (bl[0]) bl[0].textContent = 'TEN MIESIĄC: ' + d.przychod_msc_fmt + ' zł  |  ŚREDNIA: ~' + d.sredni_msc_fmt + ' zł';
 
+  // Prognoza — dodaj pod boss stats
+  const bossCard = document.querySelector('.card-red');
+  if (bossCard && d.prognoza_msc) {
+    let progEl = document.getElementById('prognoza-box');
+    if (!progEl) {
+      progEl = document.createElement('div');
+      progEl.id = 'prognoza-box';
+      progEl.style.cssText = 'margin-top:14px;padding:12px;background:#0a0a14;border:1px solid var(--border);border-radius:10px';
+      bossCard.appendChild(progEl);
+    }
+    const pctCelu = Math.round(d.prognoza_msc / 83333 * 100);
+    const progColor = pctCelu >= 80 ? '#22c55e' : pctCelu >= 50 ? '#eab308' : '#ef4444';
+    progEl.innerHTML = `
+      <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📈 PROGNOZA NA KONIEC MIESIĄCA</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div style="text-align:center">
+          <div style="font-family:var(--mono);font-size:1rem;font-weight:700;color:${progColor}">${d.prognoza_msc_fmt} zł</div>
+          <div style="font-size:0.58rem;color:var(--muted);text-transform:uppercase;margin-top:2px">prognoza msc</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-family:var(--mono);font-size:1rem;font-weight:700;color:#3b82f6">${d.srednia_dzienna_msc_fmt} zł</div>
+          <div style="font-size:0.58rem;color:var(--muted);text-transform:uppercase;margin-top:2px">średnia/dzień</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-family:var(--mono);font-size:1rem;font-weight:700;color:#a855f7">${d.prognoza_rok_fmt} zł</div>
+          <div style="font-size:0.58rem;color:var(--muted);text-transform:uppercase;margin-top:2px">prognoza rok</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:0.7rem;color:var(--muted)">${d.dzien_msc}/${d.dni_w_msc} dzień miesiąca · ${pctCelu}% celu miesięcznego</div>
+    `;
+  }
+
   // Projections row 1 (palety)
   const pn = document.querySelectorAll('.proj-now');
   const pt = document.querySelectorAll('.proj-target');

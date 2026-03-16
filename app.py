@@ -2430,6 +2430,24 @@ def poziom_page():
     boss_pct = min(100, round(przychod_msc / 83333 * 100, 1))
     palety_potrzeba = max(1, round(83333 / max(1, avg_paleta)))
 
+    # Prognoza na koniec miesiąca
+    import calendar
+    dzien_msc = datetime.now().day
+    dni_w_msc = calendar.monthrange(year, datetime.now().month)[1]
+    if dzien_msc > 0:
+        srednia_dzienna_msc = przychod_msc / dzien_msc
+        prognoza_msc = round(srednia_dzienna_msc * dni_w_msc)
+    else:
+        srednia_dzienna_msc = 0
+        prognoza_msc = 0
+
+    # Prognoza roczna na bazie dotychczasowego tempa
+    dzien_roku = datetime.now().timetuple().tm_yday
+    if dzien_roku > 0:
+        prognoza_rok = round(przychod_rok / dzien_roku * 365)
+    else:
+        prognoza_rok = 0
+
     real_data = {
         'przychod_rok': przychod_rok,
         'przychod_rok_fmt': f"{przychod_rok:,.0f}".replace(',', ' '),
@@ -2447,6 +2465,14 @@ def poziom_page():
         'avg_paleta': avg_paleta,
         'avg_paleta_fmt': f"{avg_paleta:,.0f}".replace(',', ' '),
         'boss_pct': boss_pct,
+        'prognoza_msc': prognoza_msc,
+        'prognoza_msc_fmt': f"{prognoza_msc:,.0f}".replace(',', ' '),
+        'prognoza_rok': prognoza_rok,
+        'prognoza_rok_fmt': f"{prognoza_rok:,.0f}".replace(',', ' '),
+        'srednia_dzienna_msc': round(srednia_dzienna_msc),
+        'srednia_dzienna_msc_fmt': f"{srednia_dzienna_msc:,.0f}".replace(',', ' '),
+        'dzien_msc': dzien_msc,
+        'dni_w_msc': dni_w_msc,
     }
 
     # Wstrzyknij dane do template
