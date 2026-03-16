@@ -1396,6 +1396,32 @@ def monitor_toggle_source():
         return redirect(f'/monitor?msg={source.title()}+{state}')
     return redirect('/monitor')
 
+@app.route('/system/update', methods=['POST'])
+def system_update():
+    """Git pull + restart serwisu z poziomu apki"""
+    import subprocess
+    try:
+        # Git pull
+        result = subprocess.run(
+            ['git', 'pull'], capture_output=True, text=True, timeout=30,
+            cwd=os.path.dirname(os.path.abspath(__file__))
+        )
+        pull_output = result.stdout.strip()
+        if result.returncode != 0:
+            return jsonify({'ok': False, 'error': f'Git pull failed: {result.stderr[:200]}'})
+
+        if 'Already up to date' in pull_output:
+            return jsonify({'ok': True, 'msg': 'Już aktualne, bez zmian'})
+
+        # Restart serwisu (w tle, bo sam serwis się restartuje)
+        subprocess.Popen(['sudo', 'systemctl', 'restart', 'akceshub'],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return jsonify({'ok': True, 'msg': f'Zaktualizowano! {pull_output[:100]}. Restart...'})
+    except subprocess.TimeoutExpired:
+        return jsonify({'ok': False, 'error': 'Timeout — sprawdź połączenie z internetem'})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)[:200]})
+
 @app.route('/narzedzia')
 def narzedzia():
     return render_template('narzedzia.html',

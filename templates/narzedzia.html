@@ -53,5 +53,35 @@
     <div class="tool-desc">Automatyczne palety z załączników Excel</div>
 </a>
 
+<div class="tool-card" style="display:block;margin-bottom:12px;cursor:pointer" onclick="doUpdate(this)">
+    <div class="tool-icon">🔄</div>
+    <div class="tool-name">Update systemu</div>
+    <div class="tool-desc" id="updateDesc">Git pull + restart serwisu</div>
+</div>
+<script>
+function doUpdate(el) {
+    if(!confirm('Aktualizować system? (git pull + restart)')) return;
+    el.style.opacity='0.5';
+    document.getElementById('updateDesc').textContent='Aktualizowanie...';
+    fetch('/system/update', {method:'POST'})
+        .then(r=>r.json())
+        .then(d=>{
+            if(d.ok){
+                document.getElementById('updateDesc').innerHTML='✅ '+d.msg;
+                el.style.opacity='1';
+                setTimeout(()=>{ window.location.reload(); }, 3000);
+            } else {
+                document.getElementById('updateDesc').innerHTML='❌ '+d.error;
+                el.style.opacity='1';
+            }
+        })
+        .catch(()=>{
+            document.getElementById('updateDesc').innerHTML='⏳ Restart w toku... odśwież za chwilę';
+            el.style.opacity='1';
+            setTimeout(()=>{ window.location.reload(); }, 5000);
+        });
+}
+</script>
+
 <a href="/" class="back">← Powrót</a>
 {% endblock %}
