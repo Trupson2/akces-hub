@@ -53,33 +53,55 @@
     <div class="tool-desc">Automatyczne palety z załączników Excel</div>
 </a>
 
-<div class="tool-card" style="display:block;margin-bottom:12px;cursor:pointer" onclick="doUpdate(this)">
+<div class="tool-card" style="display:block;margin-bottom:12px;cursor:pointer" id="updateCard" onclick="doUpdate()">
     <div class="tool-icon">🔄</div>
     <div class="tool-name">Update systemu</div>
     <div class="tool-desc" id="updateDesc">Git pull + restart serwisu</div>
 </div>
 <script>
-function doUpdate(el) {
+function doUpdate() {
     if(!confirm('Aktualizować system? (git pull + restart)')) return;
-    el.style.opacity='0.5';
-    document.getElementById('updateDesc').textContent='Aktualizowanie...';
-    fetch('/system/update', {method:'POST'})
-        .then(r=>r.json())
-        .then(d=>{
-            if(d.ok){
-                document.getElementById('updateDesc').innerHTML='✅ '+d.msg;
-                el.style.opacity='1';
-                setTimeout(()=>{ window.location.reload(); }, 3000);
+    var card = document.getElementById('updateCard');
+    var desc = document.getElementById('updateDesc');
+    card.style.opacity='0.5';
+    card.onclick=null;
+    desc.textContent='⏳ Aktualizowanie...';
+    var x = new XMLHttpRequest();
+    x.open('POST', '/system/update', true);
+    x.setRequestHeader('Content-Type', 'application/json');
+    x.timeout = 30000;
+    x.onload = function() {
+        try {
+            var d = JSON.parse(x.responseText);
+            if(d.ok) {
+                desc.textContent = '✅ ' + d.msg;
+                card.style.opacity='1';
+                if(d.msg.indexOf('aktualne') === -1) {
+                    desc.textContent += ' Odświeżam za 5s...';
+                    setTimeout(function(){ location.reload(); }, 5000);
+                }
             } else {
-                document.getElementById('updateDesc').innerHTML='❌ '+d.error;
-                el.style.opacity='1';
+                desc.textContent = '❌ ' + (d.error || 'Błąd');
+                card.style.opacity='1';
+                card.onclick = doUpdate;
             }
-        })
-        .catch(()=>{
-            document.getElementById('updateDesc').innerHTML='⏳ Restart w toku... odśwież za chwilę';
-            el.style.opacity='1';
-            setTimeout(()=>{ window.location.reload(); }, 5000);
-        });
+        } catch(e) {
+            desc.textContent = '⏳ Restart... odśwież za 5s';
+            card.style.opacity='1';
+            setTimeout(function(){ location.reload(); }, 5000);
+        }
+    };
+    x.onerror = function() {
+        desc.textContent = '⏳ Restart w toku... odśwież za 5s';
+        card.style.opacity='1';
+        setTimeout(function(){ location.reload(); }, 5000);
+    };
+    x.ontimeout = function() {
+        desc.textContent = '⏳ Timeout — restart w toku... odśwież za 5s';
+        card.style.opacity='1';
+        setTimeout(function(){ location.reload(); }, 5000);
+    };
+    x.send('{}');
 }
 </script>
 

@@ -1413,10 +1413,15 @@ def system_update():
         if 'Already up to date' in pull_output:
             return jsonify({'ok': True, 'msg': 'Już aktualne, bez zmian'})
 
-        # Restart serwisu (w tle, bo sam serwis się restartuje)
-        subprocess.Popen(['sudo', 'systemctl', 'restart', 'akceshub'],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return jsonify({'ok': True, 'msg': f'Zaktualizowano! {pull_output[:100]}. Restart...'})
+        # Restart serwisu z opóźnieniem 2s (żeby response zdążył dojść)
+        import threading
+        def _delayed_restart():
+            import time
+            time.sleep(2)
+            subprocess.Popen(['sudo', 'systemctl', 'restart', 'akceshub'],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        threading.Thread(target=_delayed_restart, daemon=True).start()
+        return jsonify({'ok': True, 'msg': f'Zaktualizowano! {pull_output[:100]}. Restart za 2s...'})
     except subprocess.TimeoutExpired:
         return jsonify({'ok': False, 'error': 'Timeout — sprawdź połączenie z internetem'})
     except Exception as e:

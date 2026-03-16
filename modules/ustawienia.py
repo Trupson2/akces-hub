@@ -238,28 +238,9 @@ def ustawienia():
             </a>
         </div>
 
-        <!-- AKTUALIZACJA SYSTEMU -->
-        <div style="margin-top:20px;padding:15px;background:rgba(34,197,94,0.05);border:1px solid rgba(34,197,94,0.2);border-radius:12px">
-            <div style="font-weight:600;margin-bottom:10px;color:#22c55e">🔄 Aktualizacja systemu</div>
-
-            <!-- Git pull (glowna metoda) -->
-            <form action="/admin/update-git" method="POST" onsubmit="return confirm('Pobrac najnowsza wersje z GitHub?')" style="margin-bottom:12px">
-                <button type="submit" style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(34,197,94,0.2),rgba(22,163,74,0.2));border:1px solid rgba(34,197,94,0.3);border-radius:12px;color:#22c55e;font-weight:600;font-size:1rem;cursor:pointer">
-                    🔄 Aktualizuj z GitHub (git pull)
-                </button>
-            </form>
-
-            <!-- ZIP upload (fallback) -->
-            <details style="margin-top:8px">
-                <summary style="color:#94a3b8;font-size:0.85rem;cursor:pointer">📦 Alternatywnie: wgraj ZIP reczne</summary>
-                <form action="/admin/update" method="POST" enctype="multipart/form-data" onsubmit="return confirm('Aktualizowac system? Backup zostanie wykonany automatycznie.')" style="margin-top:10px">
-                    <input type="file" name="update_zip" accept=".zip" required
-                        style="width:100%;padding:10px;background:rgba(30,30,50,0.5);border:1px solid rgba(100,100,140,0.3);border-radius:8px;color:#e2e8f0;margin-bottom:10px;font-size:0.9rem">
-                    <button type="submit" style="width:100%;padding:12px;background:rgba(30,30,50,0.5);border:1px solid rgba(100,100,140,0.3);border-radius:12px;color:#94a3b8;font-weight:600;font-size:0.9rem;cursor:pointer">
-                        📦 Wgraj ZIP
-                    </button>
-                </form>
-            </details>
+        <!-- AKTUALIZACJA SYSTEMU — przeniesiona do Narzędzia -->
+        <div style="margin-top:20px;padding:15px;background:rgba(34,197,94,0.05);border:1px solid rgba(34,197,94,0.2);border-radius:12px;text-align:center">
+            <a href="/narzedzia" style="color:#22c55e;font-weight:600;text-decoration:none;font-size:1rem">🔄 Aktualizacja systemu → Narzędzia</a>
         </div>
 
         <!-- DANGER ZONE -->
