@@ -2388,53 +2388,34 @@ def poziom_page():
     conn = get_db()
     year = datetime.now().year
 
-    # Przychód roczny — Allegro (bez offline, bez manual, bez zwrotów)
+    # Przychód roczny — identycznie jak get_full_stats() w database.py
+    # Allegro + normalne sprzedaże (bez zwrotów, bez offline, bez MANUAL)
     year_start = f'{year}-01-01'
-    row = conn.execute('''
-        SELECT COALESCE(SUM(cena * ilosc), 0) as total
-        FROM sprzedaze
-        WHERE date(data_sprzedazy) >= ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
-        AND (kupujacy IS NULL OR kupujacy != 'offline')
-        AND (allegro_order_id IS NULL OR allegro_order_id NOT LIKE 'MANUAL-%')
-    ''', (year_start,)).fetchone()
-    przychod_allegro_rok = float(row['total'] or 0)
+    month_start = datetime.now().strftime('%Y-%m-01')
 
-    # + sprzedaże prywatne z osobnej tabeli
+    row = conn.execute('''
+        SELECT
+            COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? THEN cena * ilosc ELSE 0 END), 0) as rok,
+            COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? THEN cena * ilosc ELSE 0 END), 0) as msc
+        FROM sprzedaze
+        WHERE status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND (kupujacy IS NULL OR kupujacy != 'offline')
+    ''', (year_start, month_start)).fetchone()
+    przychod_rok = float(row['rok'] or 0)
+    przychod_msc = float(row['msc'] or 0)
+
+    # + sprzedaże prywatne (offline) z osobnej tabeli
     try:
         row_pryw = conn.execute('''
-            SELECT COALESCE(SUM(kwota), 0) as total
+            SELECT
+                COALESCE(SUM(CASE WHEN date(data) >= ? THEN kwota ELSE 0 END), 0) as rok,
+                COALESCE(SUM(CASE WHEN date(data) >= ? THEN kwota ELSE 0 END), 0) as msc
             FROM sprzedaze_prywatne
-            WHERE strftime('%Y', data) = ?
-        ''', (str(year),)).fetchone()
-        przychod_pryw_rok = float(row_pryw['total'] or 0)
+        ''', (year_start, month_start)).fetchone()
+        przychod_rok += float(row_pryw['rok'] or 0)
+        przychod_msc += float(row_pryw['msc'] or 0)
     except:
-        przychod_pryw_rok = 0
-    przychod_rok = przychod_allegro_rok + przychod_pryw_rok
-
-    # Przychód ten miesiąc — Allegro
-    month_start = datetime.now().strftime('%Y-%m-01')
-    row2 = conn.execute('''
-        SELECT COALESCE(SUM(cena * ilosc), 0) as total
-        FROM sprzedaze
-        WHERE date(data_sprzedazy) >= ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
-        AND (kupujacy IS NULL OR kupujacy != 'offline')
-        AND (allegro_order_id IS NULL OR allegro_order_id NOT LIKE 'MANUAL-%')
-    ''', (month_start,)).fetchone()
-    przychod_allegro_msc = float(row2['total'] or 0)
-
-    # + prywatne ten miesiąc
-    try:
-        row_pryw2 = conn.execute('''
-            SELECT COALESCE(SUM(kwota), 0) as total
-            FROM sprzedaze_prywatne
-            WHERE date(data) >= ?
-        ''', (month_start,)).fetchone()
-        przychod_pryw_msc = float(row_pryw2['total'] or 0)
-    except:
-        przychod_pryw_msc = 0
-    przychod_msc = przychod_allegro_msc + przychod_pryw_msc
+        pass  # tabela nie istnieje — ok
 
     # Palety w tym roku
     row3 = conn.execute('''
