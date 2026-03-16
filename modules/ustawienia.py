@@ -150,6 +150,18 @@ def ustawienia():
             </div>
         </div>
 
+        <!-- KREATOR API KEYS -->
+        <div style="margin-top:20px;padding:15px;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.15));border:1px solid rgba(99,102,241,0.4);border-radius:12px">
+            <a href="/ustawienia/kreator" style="display:flex;align-items:center;gap:12px;text-decoration:none;color:#fff">
+                <div style="font-size:2rem">🔧</div>
+                <div>
+                    <div style="font-weight:700;font-size:1.05rem">Kreator konfiguracji</div>
+                    <div style="font-size:0.8rem;color:#94a3b8">Wszystkie klucze API w jednym miejscu (Allegro, Telegram, Gemini, OLX...)</div>
+                </div>
+                <div style="margin-left:auto;font-size:1.2rem;color:#6366f1">→</div>
+            </a>
+        </div>
+
         <!-- KIOSK MODE -->
         <div style="margin-top:20px;padding:15px;background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(59,130,246,0.1));border:1px solid rgba(99,102,241,0.3);border-radius:12px">
             <div style="font-weight:600;margin-bottom:8px;color:#818cf8">📺 Tryb Kiosk (Raspberry Pi)</div>
@@ -271,6 +283,275 @@ def ustawienia():
     </div>
     '''
     return html
+
+
+@ustawienia_bp.route('/ustawienia/kreator')
+def ustawienia_kreator():
+    """Kreator konfiguracji - wszystkie klucze API w jednym miejscu"""
+    from modules.database import get_config
+    from modules.shared import CSS
+
+    # Pobierz wszystkie klucze
+    cfg = {
+        'allegro_client_id': get_config('allegro_client_id', ''),
+        'allegro_client_secret': get_config('allegro_client_secret', ''),
+        'allegro_redirect_uri': get_config('allegro_redirect_uri', ''),
+        'telegram_bot_token': get_config('telegram_bot_token', ''),
+        'telegram_chat_id': get_config('telegram_chat_id', ''),
+        'support_chat_id': get_config('support_chat_id', ''),
+        'gemini_api_key': get_config('gemini_api_key', ''),
+        'perplexity_api_key': get_config('perplexity_api_key', ''),
+        'ngrok_auth_token': get_config('ngrok_auth_token', ''),
+        'ngrok_domain': get_config('ngrok_domain', ''),
+        'olx_client_id': get_config('olx_client_id', ''),
+        'olx_client_secret': get_config('olx_client_secret', ''),
+        'olx_redirect_uri': get_config('olx_redirect_uri', ''),
+    }
+
+    def status_dot(key):
+        return '🟢' if cfg.get(key) else '🔴'
+
+    def mask(val):
+        if not val:
+            return ''
+        if len(val) <= 8:
+            return '••••••••'
+        return val[:4] + '•' * (len(val) - 8) + val[-4:]
+
+    saved_count = request.args.get('saved', '')
+    saved_msg = ''
+    if saved_count:
+        saved_msg = f'<div style="padding:12px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);border-radius:10px;margin-bottom:15px;color:#22c55e;font-weight:600;text-align:center">✅ Zapisano {saved_count} kluczy API!</div>'
+
+    html = CSS + f'''
+    <div class="container" style="max-width:700px;margin:auto;padding-bottom:80px">
+        <div class="header">
+            <h1>🔧 KREATOR KONFIGURACJI</h1>
+            <small>Wszystkie klucze API w jednym miejscu</small>
+        </div>
+
+        {saved_msg}
+
+        <div style="padding:12px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:10px;margin-bottom:20px;font-size:0.85rem;color:#93c5fd">
+            💡 Wypelnij klucze API dla serwisow z ktorych korzystasz. Kazdy serwis mozna skonfigurowac niezaleznie.
+        </div>
+
+        <!-- STATUS OVERVIEW -->
+        <div class="card" style="padding:15px;margin-bottom:20px">
+            <div style="font-weight:700;margin-bottom:12px;font-size:1.1rem">📊 Status integracji</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.9rem">
+                <div>{status_dot('allegro_client_id')} Allegro</div>
+                <div>{status_dot('telegram_bot_token')} Telegram</div>
+                <div>{status_dot('gemini_api_key')} Gemini AI</div>
+                <div>{status_dot('perplexity_api_key')} Perplexity AI</div>
+                <div>{status_dot('ngrok_auth_token')} Ngrok</div>
+                <div>{status_dot('olx_client_id')} OLX</div>
+            </div>
+        </div>
+
+        <form method="POST" action="/ustawienia/kreator/save">
+
+        <!-- ALLEGRO -->
+        <details class="card" style="padding:0;margin-bottom:12px" {"open" if not cfg['allegro_client_id'] else ""}>
+            <summary style="padding:15px;cursor:pointer;font-weight:700;font-size:1rem;list-style:none;display:flex;align-items:center;gap:10px">
+                {status_dot('allegro_client_id')} 🛒 Allegro API
+                <span style="margin-left:auto;font-size:0.75rem;color:#64748b">▼</span>
+            </summary>
+            <div style="padding:0 15px 15px">
+                <div style="font-size:0.8rem;color:#64748b;margin-bottom:12px">
+                    Zarejestruj aplikacje na <a href="https://apps.developer.allegro.pl" target="_blank" style="color:#6366f1">apps.developer.allegro.pl</a>
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.8rem;color:#94a3b8">Client ID</label>
+                    <input type="text" name="allegro_client_id" value="{cfg['allegro_client_id']}"
+                        placeholder="Twoj Client ID z Allegro"
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.8rem;color:#94a3b8">Client Secret</label>
+                    <input type="password" name="allegro_client_secret" value="{cfg['allegro_client_secret']}"
+                        placeholder="Twoj Client Secret"
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
+                </div>
+                <div>
+                    <label style="font-size:0.8rem;color:#94a3b8">Redirect URI</label>
+                    <input type="text" name="allegro_redirect_uri" value="{cfg['allegro_redirect_uri']}"
+                        placeholder="https://twoja-domena.ngrok-free.dev/allegro/callback"
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
+                </div>
+            </div>
+        </details>
+
+        <!-- TELEGRAM -->
+        <details class="card" style="padding:0;margin-bottom:12px" {"open" if not cfg['telegram_bot_token'] else ""}>
+            <summary style="padding:15px;cursor:pointer;font-weight:700;font-size:1rem;list-style:none;display:flex;align-items:center;gap:10px">
+                {status_dot('telegram_bot_token')} 💬 Telegram Bot
+                <span style="margin-left:auto;font-size:0.75rem;color:#64748b">▼</span>
+            </summary>
+            <div style="padding:0 15px 15px">
+                <div style="font-size:0.8rem;color:#64748b;margin-bottom:12px">
+                    Stworz bota przez <a href="https://t.me/BotFather" target="_blank" style="color:#6366f1">@BotFather</a> na Telegramie
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.8rem;color:#94a3b8">Bot Token</label>
+                    <input type="password" name="telegram_bot_token" value="{cfg['telegram_bot_token']}"
+                        placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.8rem;color:#94a3b8">Chat ID (powiadomienia o sprzedazach)</label>
+                    <input type="text" name="telegram_chat_id" value="{cfg['telegram_chat_id']}"
+                        placeholder="-1001234567890"
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
+                </div>
+                <div>
+                    <label style="font-size:0.8rem;color:#94a3b8">Support Chat ID (Twoj prywatny, opcjonalnie)</label>
+                    <input type="text" name="support_chat_id" value="{cfg['support_chat_id']}"
+                        placeholder="123456789"
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
+                </div>
+            </div>
+        </details>
+
+        <!-- GEMINI -->
+        <details class="card" style="padding:0;margin-bottom:12px" {"open" if not cfg['gemini_api_key'] else ""}>
+            <summary style="padding:15px;cursor:pointer;font-weight:700;font-size:1rem;list-style:none;display:flex;align-items:center;gap:10px">
+                {status_dot('gemini_api_key')} ✨ Google Gemini AI
+                <span style="margin-left:auto;font-size:0.75rem;color:#64748b">▼</span>
+            </summary>
+            <div style="padding:0 15px 15px">
+                <div style="font-size:0.8rem;color:#64748b;margin-bottom:12px">
+                    Pobierz klucz z <a href="https://aistudio.google.com/apikey" target="_blank" style="color:#6366f1">aistudio.google.com/apikey</a> (darmowy!)
+                </div>
+                <div>
+                    <label style="font-size:0.8rem;color:#94a3b8">API Key</label>
+                    <input type="password" name="gemini_api_key" value="{cfg['gemini_api_key']}"
+                        placeholder="AIzaSy..."
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
+                </div>
+            </div>
+        </details>
+
+        <!-- PERPLEXITY -->
+        <details class="card" style="padding:0;margin-bottom:12px" {"open" if not cfg['perplexity_api_key'] else ""}>
+            <summary style="padding:15px;cursor:pointer;font-weight:700;font-size:1rem;list-style:none;display:flex;align-items:center;gap:10px">
+                {status_dot('perplexity_api_key')} 🔍 Perplexity AI
+                <span style="margin-left:auto;font-size:0.75rem;color:#64748b">▼</span>
+            </summary>
+            <div style="padding:0 15px 15px">
+                <div style="font-size:0.8rem;color:#64748b;margin-bottom:12px">
+                    Klucz z <a href="https://www.perplexity.ai/settings/api" target="_blank" style="color:#6366f1">perplexity.ai/settings/api</a> (do analizy okazji)
+                </div>
+                <div>
+                    <label style="font-size:0.8rem;color:#94a3b8">API Key</label>
+                    <input type="password" name="perplexity_api_key" value="{cfg['perplexity_api_key']}"
+                        placeholder="pplx-..."
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
+                </div>
+            </div>
+        </details>
+
+        <!-- NGROK -->
+        <details class="card" style="padding:0;margin-bottom:12px" {"open" if not cfg['ngrok_auth_token'] else ""}>
+            <summary style="padding:15px;cursor:pointer;font-weight:700;font-size:1rem;list-style:none;display:flex;align-items:center;gap:10px">
+                {status_dot('ngrok_auth_token')} 🚀 Ngrok (zdalny dostep)
+                <span style="margin-left:auto;font-size:0.75rem;color:#64748b">▼</span>
+            </summary>
+            <div style="padding:0 15px 15px">
+                <div style="font-size:0.8rem;color:#64748b;margin-bottom:12px">
+                    Token z <a href="https://dashboard.ngrok.com/get-started/your-authtoken" target="_blank" style="color:#6366f1">dashboard.ngrok.com</a>
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.8rem;color:#94a3b8">Auth Token</label>
+                    <input type="password" name="ngrok_auth_token" value="{cfg['ngrok_auth_token']}"
+                        placeholder="2abc...xyz"
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
+                </div>
+                <div>
+                    <label style="font-size:0.8rem;color:#94a3b8">Stala domena (opcjonalnie)</label>
+                    <input type="text" name="ngrok_domain" value="{cfg['ngrok_domain']}"
+                        placeholder="twoja-firma.ngrok-free.dev"
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
+                </div>
+            </div>
+        </details>
+
+        <!-- OLX -->
+        <details class="card" style="padding:0;margin-bottom:12px">
+            <summary style="padding:15px;cursor:pointer;font-weight:700;font-size:1rem;list-style:none;display:flex;align-items:center;gap:10px">
+                {status_dot('olx_client_id')} 📦 OLX API (opcjonalnie)
+                <span style="margin-left:auto;font-size:0.75rem;color:#64748b">▼</span>
+            </summary>
+            <div style="padding:0 15px 15px">
+                <div style="font-size:0.8rem;color:#64748b;margin-bottom:12px">
+                    Zarejestruj app na <a href="https://developer.olx.pl" target="_blank" style="color:#6366f1">developer.olx.pl</a>
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.8rem;color:#94a3b8">Client ID</label>
+                    <input type="text" name="olx_client_id" value="{cfg['olx_client_id']}"
+                        placeholder="OLX Client ID"
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.8rem;color:#94a3b8">Client Secret</label>
+                    <input type="password" name="olx_client_secret" value="{cfg['olx_client_secret']}"
+                        placeholder="OLX Client Secret"
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
+                </div>
+                <div>
+                    <label style="font-size:0.8rem;color:#94a3b8">Redirect URI</label>
+                    <input type="text" name="olx_redirect_uri" value="{cfg['olx_redirect_uri']}"
+                        placeholder="https://twoja-domena.ngrok-free.dev/olx/callback"
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
+                </div>
+            </div>
+        </details>
+
+        <!-- SAVE ALL -->
+        <button type="submit" style="width:100%;padding:16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:1.1rem;cursor:pointer;margin-top:10px;box-shadow:0 4px 15px rgba(99,102,241,0.3)">
+            💾 ZAPISZ WSZYSTKO
+        </button>
+
+        </form>
+
+        <a href="/ustawienia" style="display:block;text-align:center;color:#64748b;text-decoration:none;margin-top:20px">← Powrot do ustawien</a>
+    </div>
+    '''
+    return html
+
+
+@ustawienia_bp.route('/ustawienia/kreator/save', methods=['POST'])
+def ustawienia_kreator_save():
+    """Zapisuje wszystkie klucze API z kreatora"""
+    from modules.database import set_config, invalidate_config_cache
+
+    keys = [
+        'allegro_client_id', 'allegro_client_secret', 'allegro_redirect_uri',
+        'telegram_bot_token', 'telegram_chat_id', 'support_chat_id',
+        'gemini_api_key', 'perplexity_api_key',
+        'ngrok_auth_token', 'ngrok_domain',
+        'olx_client_id', 'olx_client_secret', 'olx_redirect_uri',
+    ]
+
+    saved = 0
+    for key in keys:
+        val = request.form.get(key, '').strip()
+        if val:
+            set_config(key, val)
+            saved += 1
+
+    invalidate_config_cache()
+
+    # Reinit Gemini client if key changed
+    gemini_key = request.form.get('gemini_api_key', '').strip()
+    if gemini_key:
+        try:
+            import google.generativeai as genai
+            current_app.config['GEMINI_CLIENT'] = genai.Client(api_key=gemini_key)
+        except Exception:
+            pass
+
+    return redirect(f'/ustawienia/kreator?saved={saved}')
 
 
 @ustawienia_bp.route('/ustawienia/save', methods=['POST'])
