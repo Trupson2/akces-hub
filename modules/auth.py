@@ -607,6 +607,9 @@ def setup_auth(app):
     from datetime import timedelta
     app.permanent_session_lifetime = timedelta(hours=24)
 
+    # Auto-logout po bezczynności (30 minut)
+    INACTIVITY_TIMEOUT = 30 * 60  # 30 minut w sekundach
+
     @app.before_request
     def check_auth():
         # Statyczne pliki — przepusc
@@ -638,6 +641,17 @@ def setup_auth(app):
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'success': False, 'error': 'Wymagane logowanie'}), 401
             return redirect(url_for('auth.login', next=request.full_path.rstrip('?')))
+
+        # Auto-logout po bezczynności
+        now = time.time()
+        last_active = session.get('last_active', now)
+        if now - last_active > INACTIVITY_TIMEOUT:
+            user_name = session.get('user_name', '')
+            session.clear()
+            flash(f'Sesja wygasła po 30 min bezczynności. Zaloguj się ponownie.', 'warning')
+            return redirect(url_for('auth.login'))
+        session['last_active'] = now
+        session.permanent = True
 
         return None
 
