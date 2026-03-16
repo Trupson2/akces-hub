@@ -2388,24 +2388,22 @@ def poziom_page():
     conn = get_db()
     year = datetime.now().year
 
-    # Przychód roczny (bez offline, bez zwrotów)
+    # Przychód roczny (cały obrót firmy — z offline)
     row = conn.execute('''
         SELECT COALESCE(SUM(cena * ilosc), 0) as total
         FROM sprzedaze
         WHERE strftime('%Y', data_sprzedazy) = ?
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
-        AND (kupujacy IS NULL OR kupujacy != 'offline')
     ''', (str(year),)).fetchone()
     przychod_rok = float(row['total'] or 0)
 
-    # Przychód ten miesiąc (bez offline, bez zwrotów)
+    # Przychód ten miesiąc (cały obrót — z offline)
     month_start = datetime.now().strftime('%Y-%m-01')
     row2 = conn.execute('''
         SELECT COALESCE(SUM(cena * ilosc), 0) as total
         FROM sprzedaze
         WHERE date(data_sprzedazy) >= ?
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
-        AND (kupujacy IS NULL OR kupujacy != 'offline')
     ''', (month_start,)).fetchone()
     przychod_msc = float(row2['total'] or 0)
 
