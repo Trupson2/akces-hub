@@ -109,7 +109,7 @@ def _send_telegram_alert(message):
         from modules.telegram_bot import send_telegram
         send_telegram(message, silent=False)
     except Exception as e:
-        logging.info(f"[MailImport] Telegram error: {e}")
+        logging.warning(f"[MailImport] Telegram error: {e}")
 
 
 # ============================================================
@@ -151,7 +151,7 @@ def check_mailbox(manual=False):
     config = _get_config()
     result = {"checked": 0, "imported": 0, "skipped": 0, "errors": [], "details": []}
 
-    logging.info(f"[MailImport] check_mailbox(manual={manual}) — email={config['email']}, sender={config['sender_filter']}, enabled={config['enabled']}")
+    logging.warning(f"[MailImport] check_mailbox(manual={manual}) — email={config['email']}, sender={config['sender_filter']}, enabled={config['enabled']}")
 
     if not manual and not config['enabled']:
         result["errors"].append("Auto-import wyłączony")
@@ -167,7 +167,7 @@ def check_mailbox(manual=False):
 
     try:
         # Połącz z IMAP
-        logging.info(f"[MailImport] Łączę z {config['imap_server']}:{config['imap_port']}...")
+        logging.warning(f"[MailImport] Łączę z {config['imap_server']}:{config['imap_port']}...")
         mail = imaplib.IMAP4_SSL(config['imap_server'], config['imap_port'])
         mail.login(config['email'], config['password'])
         mail.select('INBOX')
@@ -179,7 +179,7 @@ def check_mailbox(manual=False):
 
         # Szukaj maili od nadawcy
         search_criteria = f'(FROM "{sender}" SINCE {since_date})'
-        logging.info(f"[MailImport] IMAP search: {search_criteria}")
+        logging.warning(f"[MailImport] IMAP search: {search_criteria}")
         status, messages = mail.search(None, search_criteria)
 
         if status != 'OK':
@@ -190,7 +190,7 @@ def check_mailbox(manual=False):
         message_ids = messages[0].split()
         result["checked"] = len(message_ids)
         result["details"].append(f"Znaleziono {len(message_ids)} maili od {sender}")
-        logging.info(f"[MailImport] Znaleziono {len(message_ids)} maili od {sender}")
+        logging.warning(f"[MailImport] Znaleziono {len(message_ids)} maili od {sender}")
 
         for msg_id in message_ids:
             try:
@@ -299,7 +299,7 @@ def _import_attachment(data, filename, file_hash, sender, subject, config):
             return result
 
         # Smart import — przepuść przez istniejący parser
-        logging.info(f"[MailImport] Uruchamiam smart_import_excel: {tmp_path}, filename={filename}, paleta_id={paleta_id}, vendor={dostawca}")
+        logging.warning(f"[MailImport] Uruchamiam smart_import_excel: {tmp_path}, filename={filename}, paleta_id={paleta_id}, vendor={dostawca}")
         import_result = smart_import_excel(
             file_path=tmp_path,
             filename=filename,
@@ -308,16 +308,16 @@ def _import_attachment(data, filename, file_hash, sender, subject, config):
         )
 
         products_count = import_result.get('products_imported', 0)
-        logging.info(f"[MailImport] Import result: products={products_count}, success={import_result.get('success')}")
+        logging.warning(f"[MailImport] Import result: products={products_count}, success={import_result.get('success')}")
         if import_result.get('errors'):
-            logging.info(f"[MailImport] Import errors: {import_result['errors']}")
+            logging.warning(f"[MailImport] Import errors: {import_result['errors']}")
         if import_result.get('details'):
             for d in import_result['details']:
-                logging.info(f"[MailImport]   detail: {d}")
+                logging.warning(f"[MailImport]   detail: {d}")
 
         # Jeśli smart_import nie zadziałał, spróbuj bezpośrednio import_excel_manifest
         if products_count == 0:
-            logging.info(f"[MailImport] Smart import zwrócił 0, próbuję bezpośrednio import_excel_manifest...")
+            logging.warning(f"[MailImport] Smart import zwrócił 0, próbuję bezpośrednio import_excel_manifest...")
             from modules.inventory_utils import import_excel_manifest
             direct_result = import_excel_manifest(
                 file_path=tmp_path,
@@ -326,10 +326,10 @@ def _import_attachment(data, filename, file_hash, sender, subject, config):
                 update_existing=False
             )
             products_count = direct_result.get('added', 0)
-            logging.info(f"[MailImport] Direct import: added={products_count}, errors={direct_result.get('errors')}")
+            logging.warning(f"[MailImport] Direct import: added={products_count}, errors={direct_result.get('errors')}")
             if direct_result.get('details'):
                 for d in direct_result['details']:
-                    logging.info(f"[MailImport]   detail: {d}")
+                    logging.warning(f"[MailImport]   detail: {d}")
 
         # Pobierz nazwy produktów i wygeneruj nazwę palety przez Gemini
         conn = get_db()
@@ -367,12 +367,12 @@ def _import_attachment(data, filename, file_hash, sender, subject, config):
             f"⏰ {datetime.now():%H:%M:%S}"
         )
 
-        logging.info(f"[MailImport] ✅ Zaimportowano: {paleta_nazwa} ({products_count} produktów)")
+        logging.warning(f"[MailImport] ✅ Zaimportowano: {paleta_nazwa} ({products_count} produktów)")
 
     except Exception as e:
         result["error"] = str(e)
         _log_import(file_hash, filename, None, 0, sender, subject, 'error', str(e))
-        logging.info(f"[MailImport] ❌ Błąd: {e}")
+        logging.warning(f"[MailImport] ❌ Błąd: {e}")
 
     finally:
         # Cleanup tmp
@@ -435,11 +435,11 @@ Wygeneruj TYLKO nazwę, bez komentarzy:"""
             # Cleanup
             name = re.sub(r'^#\d+\s*', '', name)  # Usuń ewentualny #XX
             if 3 <= len(name) <= 50:
-                logging.info(f"[MailImport] 🤖 Gemini nazwa palety: {name}")
+                logging.warning(f"[MailImport] 🤖 Gemini nazwa palety: {name}")
                 return name
 
     except Exception as e:
-        logging.info(f"[MailImport] Gemini name error: {e}")
+        logging.warning(f"[MailImport] Gemini name error: {e}")
 
     return _fallback_paleta_name(product_names)
 
@@ -490,7 +490,7 @@ def start_mail_import_scheduler():
     _scheduler_running = True
     _scheduler_thread = threading.Thread(target=_scheduler_loop, daemon=True)
     _scheduler_thread.start()
-    logging.info(f"[MailImport] ✅ Scheduler uruchomiony (co {config['check_interval']} min)")
+    logging.warning(f"[MailImport] ✅ Scheduler uruchomiony (co {config['check_interval']} min)")
 
 
 def stop_mail_import_scheduler():
@@ -514,21 +514,21 @@ def _scheduler_loop():
                 _scheduler_running = False
                 break
 
-            logging.info(f"[MailImport] Sprawdzam pocztę... ({datetime.now():%H:%M})")
+            logging.warning(f"[MailImport] Sprawdzam pocztę... ({datetime.now():%H:%M})")
             result = check_mailbox()
 
             if result['imported'] > 0:
-                logging.info(f"[MailImport] Zaimportowano {result['imported']} palet")
+                logging.warning(f"[MailImport] Zaimportowano {result['imported']} palet")
             if result['errors']:
                 for err in result['errors']:
-                    logging.info(f"[MailImport] ⚠️ {err}")
+                    logging.warning(f"[MailImport] ⚠️ {err}")
 
             # Czekaj X minut
             interval = config.get('check_interval', 15) * 60
             time.sleep(interval)
 
         except Exception as e:
-            logging.info(f"[MailImport] Scheduler error: {e}")
+            logging.warning(f"[MailImport] Scheduler error: {e}")
             time.sleep(300)  # 5 min przy błędzie
 
 
