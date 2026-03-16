@@ -2388,24 +2388,53 @@ def poziom_page():
     conn = get_db()
     year = datetime.now().year
 
-    # Przychód roczny (cały obrót firmy — z offline)
+    # Przychód roczny — Allegro (bez offline, bez manual, bez zwrotów)
+    year_start = f'{year}-01-01'
     row = conn.execute('''
         SELECT COALESCE(SUM(cena * ilosc), 0) as total
         FROM sprzedaze
-        WHERE strftime('%Y', data_sprzedazy) = ?
+        WHERE date(data_sprzedazy) >= ?
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
-    ''', (str(year),)).fetchone()
-    przychod_rok = float(row['total'] or 0)
+        AND (kupujacy IS NULL OR kupujacy != 'offline')
+        AND (allegro_order_id IS NULL OR allegro_order_id NOT LIKE 'MANUAL-%')
+    ''', (year_start,)).fetchone()
+    przychod_allegro_rok = float(row['total'] or 0)
 
-    # Przychód ten miesiąc (cały obrót — z offline)
+    # + sprzedaże prywatne z osobnej tabeli
+    try:
+        row_pryw = conn.execute('''
+            SELECT COALESCE(SUM(kwota), 0) as total
+            FROM sprzedaze_prywatne
+            WHERE strftime('%Y', data) = ?
+        ''', (str(year),)).fetchone()
+        przychod_pryw_rok = float(row_pryw['total'] or 0)
+    except:
+        przychod_pryw_rok = 0
+    przychod_rok = przychod_allegro_rok + przychod_pryw_rok
+
+    # Przychód ten miesiąc — Allegro
     month_start = datetime.now().strftime('%Y-%m-01')
     row2 = conn.execute('''
         SELECT COALESCE(SUM(cena * ilosc), 0) as total
         FROM sprzedaze
         WHERE date(data_sprzedazy) >= ?
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND (kupujacy IS NULL OR kupujacy != 'offline')
+        AND (allegro_order_id IS NULL OR allegro_order_id NOT LIKE 'MANUAL-%')
     ''', (month_start,)).fetchone()
-    przychod_msc = float(row2['total'] or 0)
+    przychod_allegro_msc = float(row2['total'] or 0)
+
+    # + prywatne ten miesiąc
+    try:
+        row_pryw2 = conn.execute('''
+            SELECT COALESCE(SUM(kwota), 0) as total
+            FROM sprzedaze_prywatne
+            WHERE date(data) >= ?
+        ''', (month_start,)).fetchone()
+        przychod_pryw_msc = float(row_pryw2['total'] or 0)
+    except:
+        przychod_pryw_msc = 0
+    przychod_msc = przychod_allegro_msc + przychod_pryw_msc
 
     # Palety w tym roku
     row3 = conn.execute('''
