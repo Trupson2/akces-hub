@@ -26,7 +26,6 @@ def statystyki():
         WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?
           AND data_sprzedazy IS NOT NULL AND data_sprzedazy != ''
           AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
-          AND (kupujacy IS NULL OR kupujacy != 'offline')
         GROUP BY miesiac
         HAVING miesiac IS NOT NULL
         ORDER BY miesiac
