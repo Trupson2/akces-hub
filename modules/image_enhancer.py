@@ -16,7 +16,15 @@ import tempfile
 from PIL import Image
 from io import BytesIO
 
-# Gemini API
+# rembg (lokalne, darmowe)
+try:
+    from rembg import remove as _rembg_remove
+    REMBG_AVAILABLE = True
+    print("[image_enhancer] rembg dostepny")
+except ImportError:
+    REMBG_AVAILABLE = False
+
+# Gemini API (fallback / AI szablony)
 try:
     from google import genai
     from google.genai import types
@@ -29,6 +37,10 @@ except Exception as e:
     print(f"[image_enhancer] Gemini niedostepny: {e}")
     GEMINI_AVAILABLE = False
     _client = None
+
+# Jesli rembg dostepny — traktuj enhancer jako dostepny (miniaturki rembg)
+if REMBG_AVAILABLE and not GEMINI_AVAILABLE:
+    GEMINI_AVAILABLE = True  # hack: enhance worker sprawdza ta flage
 
 
 # === HYBRID MODE ===
@@ -244,6 +256,8 @@ def get_templates():
 def enhance_single(img_bytes, template_id, product_name=None, max_dim=2560):
     """
     Generuje jedno zdjecie wg szablonu.
+    Szablon 1 (miniaturka) — rembg (lokalne, darmowe)
+    Szablony 2-8 — Gemini Image API (fallback)
 
     Args:
         img_bytes: bytes zdjecia zrodlowego (juz wyczyszczonego)
@@ -254,8 +268,22 @@ def enhance_single(img_bytes, template_id, product_name=None, max_dim=2560):
     Returns:
         (image_bytes, mime_type, error)
     """
+    # Szablon 1 (miniaturka) — uzyj rembg (darmowe) jesli dostepny
+    if template_id == 1:
+        try:
+            from .image_cleaner import REMBG_AVAILABLE
+            if REMBG_AVAILABLE:
+                from .image_cleaner import clean_image_from_bytes
+                result_bytes, mime, err = clean_image_from_bytes(img_bytes, max_dim)
+                if result_bytes:
+                    return result_bytes, mime, None
+                # Jesli rembg zawiodl — sprobuj Gemini
+                print(f"[enhance] rembg fallback: {err}")
+        except Exception as e:
+            print(f"[enhance] rembg import error: {e}")
+
     if not GEMINI_AVAILABLE:
-        return None, None, "Gemini API niedostepne"
+        return None, None, "Gemini API niedostepne (rembg niedostepny dla tego szablonu)"
 
     template = None
     for t in TEMPLATES:

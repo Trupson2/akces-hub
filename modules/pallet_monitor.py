@@ -1314,9 +1314,8 @@ def _scheduler_loop():
                         log(f"Scheduler Jobalots error: {e}")
                     last_jobalots_scan = time.time()
 
-            # === NOCNE GENEROWANIE ZDJĘĆ AI: o 22:00 (wyłączone - za duże koszty Gemini) ===
-            auto_enhance = get_config('monitor_auto_enhance', '0') == '1'
-            if auto_enhance and h == 22 and m < 5 and not getattr(_scheduler_loop, '_enhance_done_today', False):
+            # === NOCNE GENEROWANIE ZDJĘĆ AI: o 22:00 (teraz rembg — darmowe) ===
+            if h == 22 and m < 5 and not getattr(_scheduler_loop, '_enhance_done_today', False):
                 log("Scheduler: nocne generowanie zdjęć AI (22:00)")
                 try:
                     from modules.paletomat import _bg_enhance_worker, _bg_enhance_status
