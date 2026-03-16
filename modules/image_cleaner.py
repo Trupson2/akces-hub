@@ -72,9 +72,12 @@ def _clean_rembg(image_bytes, max_dim=1024):
     try:
         start = time.time()
 
+        # Na Pi zmniejsz do 512 (szybciej, mniej RAM/CPU)
+        rembg_dim = min(max_dim, 512)
+
         # Otworz i zmniejsz jesli za duze
         img = Image.open(BytesIO(image_bytes)).convert('RGBA')
-        if max(img.width, img.height) > max_dim:
+        if max(img.width, img.height) > rembg_dim:
             ratio = max_dim / max(img.width, img.height)
             img = img.resize((int(img.width * ratio), int(img.height * ratio)), Image.LANCZOS)
 

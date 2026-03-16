@@ -4240,7 +4240,7 @@ def _bg_enhance_worker(app, force=False):
             else:
                 _bg_enhance_status['errors'] += 1
 
-            _t.sleep(5)  # 5s cooldown między produktami — anti-overheat
+            _t.sleep(10)  # 10s cooldown miedzy produktami — anti-overheat na Pi
 
         # Loguj koszt
         try:
