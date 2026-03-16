@@ -271,12 +271,11 @@ def _import_attachment(data, filename, file_hash, sender, subject, config):
         # Następny numer palety
         next_num = _get_next_paleta_number()
 
-        # Wyciągnij nazwę palety z tematu maila lub nazwy pliku
-        paleta_name = _extract_paleta_name(subject, filename)
-        paleta_nazwa = f"#{next_num} {paleta_name}"
-
         # Dostawca z konfiguracji lub auto-detect
         dostawca = config.get('default_dostawca', 'Warrington')
+
+        # Tymczasowa nazwa — zostanie zaktualizowana po imporcie przez Gemini
+        paleta_nazwa = f"#{next_num} Import"
 
         # Utwórz paletę
         paleta_id = add_paleta(
@@ -293,6 +292,7 @@ def _import_attachment(data, filename, file_hash, sender, subject, config):
             return result
 
         # Smart import — przepuść przez istniejący parser
+        print(f"[MailImport] Uruchamiam smart_import_excel: {tmp_path}, filename={filename}, paleta_id={paleta_id}, vendor={dostawca}")
         import_result = smart_import_excel(
             file_path=tmp_path,
             filename=filename,
@@ -301,12 +301,43 @@ def _import_attachment(data, filename, file_hash, sender, subject, config):
         )
 
         products_count = import_result.get('products_imported', 0)
+        print(f"[MailImport] Import result: products={products_count}, success={import_result.get('success')}")
+        if import_result.get('errors'):
+            print(f"[MailImport] Import errors: {import_result['errors']}")
+        if import_result.get('details'):
+            for d in import_result['details']:
+                print(f"[MailImport]   detail: {d}")
 
-        # Aktualizuj ilość produktów na palecie
+        # Jeśli smart_import nie zadziałał, spróbuj bezpośrednio import_excel_manifest
+        if products_count == 0:
+            print(f"[MailImport] Smart import zwrócił 0, próbuję bezpośrednio import_excel_manifest...")
+            from modules.inventory_utils import import_excel_manifest
+            direct_result = import_excel_manifest(
+                file_path=tmp_path,
+                dostawca=dostawca,
+                paleta_id=paleta_id,
+                update_existing=False
+            )
+            products_count = direct_result.get('added', 0)
+            print(f"[MailImport] Direct import: added={products_count}, errors={direct_result.get('errors')}")
+            if direct_result.get('details'):
+                for d in direct_result['details']:
+                    print(f"[MailImport]   detail: {d}")
+
+        # Pobierz nazwy produktów i wygeneruj nazwę palety przez Gemini
         conn = get_db()
+        product_rows = conn.execute(
+            'SELECT nazwa FROM produkty WHERE paleta_id = ?', (paleta_id,)
+        ).fetchall()
+        product_names = [r['nazwa'] for r in product_rows if r['nazwa']]
+
+        paleta_name = _generate_paleta_name_ai(product_names)
+        paleta_nazwa = f"#{next_num} {paleta_name}"
+
+        # Aktualizuj paletę z prawdziwą nazwą i ilością produktów
         conn.execute(
-            'UPDATE palety SET ilosc_produktow = ? WHERE id = ?',
-            (products_count, paleta_id)
+            'UPDATE palety SET nazwa = ?, ilosc_produktow = ? WHERE id = ?',
+            (paleta_nazwa, products_count, paleta_id)
         )
         conn.commit()
 
@@ -347,22 +378,86 @@ def _import_attachment(data, filename, file_hash, sender, subject, config):
     return result
 
 
-def _extract_paleta_name(subject, filename):
-    """Wyciąga nazwę palety z tematu maila lub nazwy pliku"""
-    # Najpierw spróbuj z tematu maila
-    if subject:
-        # Usuń typowe prefiksy mailowe
-        name = re.sub(r'^(Re:|Fwd?:|Odp:|PD:)\s*', '', subject, flags=re.IGNORECASE).strip()
-        if len(name) > 3:
-            return name[:60]
+def _generate_paleta_name_ai(product_names):
+    """Generuje krótką nazwę palety przez Gemini AI na podstawie listy produktów.
 
-    # Fallback — z nazwy pliku
-    name = os.path.splitext(filename)[0]
-    # Usuń typowe prefiksy plików
-    name = re.sub(r'^(offer|oferta|manifest|pallet|paleta)[\s_-]*', '', name, flags=re.IGNORECASE)
-    name = re.sub(r'[_-]+', ' ', name).strip()
+    Styl: 'Myszki i Klawiatury', 'Adaptery Bluetooth', 'Fotele Skórzane'
+    """
+    if not product_names:
+        return "Mix"
 
-    return name[:60] if name else "Import z maila"
+    try:
+        from google import genai
+        from gemini_config import GEMINI_API_KEY
+
+        if not GEMINI_API_KEY or GEMINI_API_KEY == 'WKLEJ_TUTAJ_SWOJ_KLUCZ':
+            return _fallback_paleta_name(product_names)
+
+        client = genai.Client(api_key=GEMINI_API_KEY)
+
+        # Max 20 produktów do promptu
+        sample = product_names[:20]
+        products_text = '\n'.join(f'- {name}' for name in sample)
+
+        prompt = f"""Na podstawie listy produktów z palety, wygeneruj KRÓTKĄ nazwę palety (2-3 słowa po polsku).
+
+PRODUKTY:
+{products_text}
+
+ZASADY:
+1. Max 3 słowa, po polsku
+2. Opisz główną kategorię produktów
+3. Jeśli mix — wymień 2 główne typy
+4. Styl: "Myszki i Klawiatury", "Adaptery Bluetooth", "Fotele Skórzane", "Drukarki 3D", "Poduszki Ortopedyczne"
+5. Bez numerów, bez "#", bez cudzysłowów
+
+PRZYKŁADY:
+- 10x mysz bezprzewodowa, 5x klawiatura → "Myszki i Klawiatury"
+- 20x adapter bluetooth → "Adaptery Bluetooth"
+- 5x fotel skórzany, 3x krzesło biurowe → "Fotele i Krzesła"
+
+Wygeneruj TYLKO nazwę, bez komentarzy:"""
+
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=prompt
+        )
+
+        if hasattr(response, 'text') and response.text:
+            name = response.text.strip().strip('"\'').strip()
+            # Cleanup
+            name = re.sub(r'^#\d+\s*', '', name)  # Usuń ewentualny #XX
+            if 3 <= len(name) <= 50:
+                print(f"[MailImport] 🤖 Gemini nazwa palety: {name}")
+                return name
+
+    except Exception as e:
+        print(f"[MailImport] Gemini name error: {e}")
+
+    return _fallback_paleta_name(product_names)
+
+
+def _fallback_paleta_name(product_names):
+    """Fallback — generuje nazwę bez AI, bierze najczęstsze słowo kluczowe"""
+    if not product_names:
+        return "Mix"
+
+    # Policz najczęstsze słowa (>3 znaki) z nazw produktów
+    word_count = {}
+    skip_words = {'the', 'and', 'for', 'with', 'from', 'pack', 'set', 'pcs', 'szt',
+                  'new', 'pro', 'max', 'mini', 'ultra', 'plus', 'edition', 'version'}
+    for name in product_names:
+        words = re.findall(r'[a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ]{4,}', name)
+        for w in words:
+            w_lower = w.lower()
+            if w_lower not in skip_words:
+                word_count[w_lower] = word_count.get(w_lower, 0) + 1
+
+    if word_count:
+        top = sorted(word_count.items(), key=lambda x: -x[1])[:2]
+        return ' '.join(w.capitalize() for w, _ in top)
+
+    return "Mix"
 
 
 # ============================================================
