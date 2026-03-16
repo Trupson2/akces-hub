@@ -319,9 +319,16 @@ def ustawienia_kreator():
         return val[:4] + '•' * (len(val) - 8) + val[-4:]
 
     saved_count = request.args.get('saved', '')
+    is_welcome = request.args.get('welcome', '')
     saved_msg = ''
     if saved_count:
         saved_msg = f'<div style="padding:12px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);border-radius:10px;margin-bottom:15px;color:#22c55e;font-weight:600;text-align:center">✅ Zapisano {saved_count} kluczy API!</div>'
+    elif is_welcome:
+        saved_msg = '''<div style="padding:15px;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(236,72,153,0.1));border:1px solid rgba(99,102,241,0.4);border-radius:12px;margin-bottom:15px;text-align:center">
+            <div style="font-size:1.5rem;margin-bottom:8px">👋</div>
+            <div style="font-weight:700;font-size:1.1rem;color:#fff;margin-bottom:5px">Witaj w systemie!</div>
+            <div style="font-size:0.85rem;color:#94a3b8">Skonfiguruj klucze API zeby odblokowac pelnie mozliwosci.<br>Mozesz to zrobic teraz lub wrocic pozniej z Ustawien.</div>
+        </div>'''
 
     html = CSS + f'''
     <div class="container" style="max-width:700px;margin:auto;padding-bottom:80px">

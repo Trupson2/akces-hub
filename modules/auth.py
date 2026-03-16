@@ -254,6 +254,19 @@ def login():
             # Zabezpieczenie przed Open Redirect — tylko lokalne ścieżki
             if not next_url.startswith('/') or next_url.startswith('//'):
                 next_url = '/'
+
+            # Sprawdz czy to "swiezy" system — brak kluczy API → kreator
+            if next_url == '/' and user['rola'] == 'admin':
+                try:
+                    from modules.database import get_config
+                    has_allegro = bool(get_config('allegro_client_id', ''))
+                    has_telegram = bool(get_config('telegram_bot_token', ''))
+                    has_gemini = bool(get_config('gemini_api_key', ''))
+                    if not has_allegro and not has_telegram and not has_gemini:
+                        session['show_kreator'] = True
+                except Exception:
+                    pass
+
             # Zachowaj kiosk mode jesli byl w URL
             if 'kiosk=1' in request.url and 'kiosk' not in next_url:
                 sep = '&' if '?' in next_url else '?'
@@ -613,6 +626,11 @@ def setup_auth(app):
             if request.endpoint != 'auth.first_setup':
                 return redirect(url_for('auth.first_setup'))
             return None
+
+        # Swiezy system — przekieruj admina na kreator konfiguracji
+        if session.get('show_kreator') and request.path == '/':
+            session.pop('show_kreator', None)
+            return redirect('/ustawienia/kreator?welcome=1')
 
         # Niezalogowany — kieruj na login
         if not session.get('user_id'):
