@@ -4062,20 +4062,32 @@ def _bg_enhance_worker(app, force=False):
             print(f"[BG-ENHANCE] {msg}")
 
         try:
-            from .image_enhancer import enhance_single, prepare_original_photo, GEMINI_AVAILABLE
-            from .image_enhancer import HYBRID_ORIGINAL_SLOTS, HYBRID_AI_TEMPLATES
-            from .image_cleaner import clean_image_from_bytes
+            from .image_enhancer import prepare_original_photo
+            from .image_enhancer import HYBRID_ORIGINAL_SLOTS
+            from .image_cleaner import clean_image_from_bytes, REMBG_AVAILABLE
         except Exception as _ie:
             _log(f"❌ Import error: {_ie}")
             _bg_enhance_status['running'] = False
             _bg_enhance_status['finished'] = True
             return
 
-        if not GEMINI_AVAILABLE:
-            _log("❌ Gemini API niedostępne!")
+        _vps_url = ''
+        try:
+            from .database import get_config as _gc
+            _vps_url = _gc('rembg_vps_url', '')
+        except Exception:
+            pass
+
+        if not REMBG_AVAILABLE and not _vps_url:
+            _log("❌ rembg niedostępny i VPS nie skonfigurowany!")
             _bg_enhance_status['running'] = False
             _bg_enhance_status['finished'] = True
             return
+
+        if _vps_url:
+            _log(f"🌐 Tryb VPS: {_vps_url}")
+        else:
+            _log("💻 Tryb lokalny rembg (uwaga: grzeje Pi)")
 
         products = conn.execute('''
             SELECT id, asin, ean, nazwa, zdjecie_url, images
@@ -4099,13 +4111,13 @@ def _bg_enhance_worker(app, force=False):
             p = dict(p)
             _key = p.get('asin') or str(p['id'])
             _dir = os.path.join(_enh_base, str(_key))
-            if not os.path.isdir(_dir) or len([f for f in os.listdir(_dir) if f.endswith('.jpg')]) < 4:
+            if not os.path.isdir(_dir) or len([f for f in os.listdir(_dir) if f.endswith('.jpg')]) < 1:
                 todo.append(p)
 
         _bg_enhance_status['total'] = len(todo)
 
         if not todo:
-            _log("✅ Wszystkie produkty mają już zdjęcia!")
+            _log("✅ Wszystkie produkty mają już wyczyszczone zdjęcia!")
             _bg_enhance_status['running'] = False
             _bg_enhance_status['finished'] = True
             return
@@ -4113,8 +4125,6 @@ def _bg_enhance_worker(app, force=False):
         _log(f"📸 Start: {len(todo)} produktów do przetworzenia")
 
         ok_count = 0
-        total_cost = 0.0
-        _slot_to_tpl = {'mini': 1, 'det': 3, 'zest': 4, 'kat2': 5}
 
         for i, p in enumerate(todo):
             if not _bg_enhance_status['running']:
@@ -4173,85 +4183,47 @@ def _bg_enhance_worker(app, force=False):
             _enh_dir = os.path.join(_enh_base, str(_key))
             os.makedirs(_enh_dir, exist_ok=True)
             _ok = 0
-            _orig_count = 0
 
-            # Oryginały na sloty 1-4
-            for _oi, _slot in enumerate(HYBRID_ORIGINAL_SLOTS):
+            # Czyść tło rembg na wszystkich oryginalnych zdjęciach (max 4 sloty)
+            _slots = HYBRID_ORIGINAL_SLOTS  # ['mini', 'det', 'zest', 'kat2']
+            for _oi, _slot in enumerate(_slots):
                 if _oi >= len(_loaded):
                     break
                 try:
-                    _cb, _, _ = clean_image_from_bytes(_loaded[_oi])
+                    _cb, _, _err = clean_image_from_bytes(_loaded[_oi])
                     _clean = _cb if _cb else _loaded[_oi]
                     _prep, _ = prepare_original_photo(_clean)
                     if _prep:
                         with open(os.path.join(_enh_dir, f'{_slot}.jpg'), 'wb') as _sf:
                             _sf.write(_prep)
                         _ok += 1
-                        _orig_count += 1
                 except:
                     pass
-
-            # Brakujące oryginały → AI
-            _missing = HYBRID_ORIGINAL_SLOTS[_orig_count:]
-            _cb0, _, _ = clean_image_from_bytes(_loaded[0])
-            _base_ai = _cb0 if _cb0 else _loaded[0]
-
-            for _ms in _missing:
-                try:
-                    _ed, _, _ = enhance_single(_base_ai, _slot_to_tpl.get(_ms, 1), nazwa)
-                    if _ed:
-                        from PIL import Image as _PI
-                        from io import BytesIO as _BI
-                        _img = _PI.open(_BI(_ed)).convert('RGB')
-                        if max(_img.width, _img.height) < 2560:
-                            _r = 2560 / max(_img.width, _img.height)
-                            _img = _img.resize((int(_img.width * _r), int(_img.height * _r)), _PI.LANCZOS)
-                        _img.save(os.path.join(_enh_dir, f'{_ms}.jpg'), 'JPEG', quality=95)
-                        _ok += 1
-                except:
-                    pass
-                _t.sleep(3)  # Cooldown — Pi nie przegrzewa się
-
-            # AI sloty 5-8
-            for _tid, _tname in HYBRID_AI_TEMPLATES:
-                try:
-                    _ed, _, _ = enhance_single(_base_ai, _tid, nazwa)
-                    if _ed:
-                        from PIL import Image as _PI
-                        from io import BytesIO as _BI
-                        _img = _PI.open(_BI(_ed)).convert('RGB')
-                        if max(_img.width, _img.height) < 2560:
-                            _r = 2560 / max(_img.width, _img.height)
-                            _img = _img.resize((int(_img.width * _r), int(_img.height * _r)), _PI.LANCZOS)
-                        _img.save(os.path.join(_enh_dir, f'{_tname}.jpg'), 'JPEG', quality=95)
-                        _ok += 1
-                except:
-                    pass
-                _t.sleep(3)  # Cooldown — Pi nie przegrzewa się
+                if not _vps_url:
+                    _t.sleep(2)  # Cooldown rembg lokalne — anti-overheat na Pi
 
             if _ok > 0:
                 ok_count += 1
-                _ai_cnt = _ok - _orig_count
-                _cost = _ai_cnt * 0.001 + _orig_count * 0.001
-                total_cost += _cost
                 _bg_enhance_status['done'] = ok_count
-                _bg_enhance_status['cost'] = total_cost
-                _log(f"   ✅ {_ok}/8 ({_orig_count} oryg + {_ai_cnt} AI) ${_cost:.3f}")
+                _log(f"   ✅ {_ok} zdjęć (rembg, darmowe)")
             else:
                 _bg_enhance_status['errors'] += 1
 
-            _t.sleep(10)  # 10s cooldown miedzy produktami — anti-overheat na Pi
+            if not _vps_url:
+                _t.sleep(5)  # Cooldown między produktami (tylko lokalne)
+            else:
+                _t.sleep(1)  # Minimalny cooldown VPS
 
-        # Loguj koszt
+        # Loguj statystyki (rembg = darmowe, koszt $0)
         try:
             conn.execute('''INSERT INTO monitor_stats (event_type, model, prompt_tokens, completion_tokens, cost_usd, extra, timestamp)
-                VALUES ('gemini', 'enhance_bg_batch', 0, 0, ?, ?, datetime('now'))''',
-                (total_cost, json.dumps({'products': ok_count, 'total': len(todo)})))
+                VALUES ('rembg', 'enhance_bg_batch', 0, 0, 0, ?, datetime('now'))''',
+                (json.dumps({'products': ok_count, 'total': len(todo)}),))
             conn.commit()
         except:
             pass
 
-        _log(f"🏁 GOTOWE! {ok_count}/{len(todo)} produktów | Koszt: ${total_cost:.2f}")
+        _log(f"🏁 GOTOWE! {ok_count}/{len(todo)} produktów (rembg, darmowe)")
         _bg_enhance_status['running'] = False
         _bg_enhance_status['finished'] = True
 

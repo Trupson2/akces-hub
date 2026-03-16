@@ -1314,28 +1314,11 @@ def _scheduler_loop():
                         log(f"Scheduler Jobalots error: {e}")
                     last_jobalots_scan = time.time()
 
-            # === NOCNE GENEROWANIE ZDJĘĆ AI: o 22:00 (teraz rembg — darmowe) ===
-            if h == 22 and m < 5 and not getattr(_scheduler_loop, '_enhance_done_today', False):
-                log("Scheduler: nocne generowanie zdjęć AI (22:00)")
-                try:
-                    from modules.paletomat import _bg_enhance_worker, _bg_enhance_status
-                    if not _bg_enhance_status.get('running'):
-                        import threading
-                        from flask import current_app
-                        app = current_app._get_current_object()
-                        _bg_enhance_status.update({
-                            'running': True, 'progress': 0, 'current': 0, 'total': 0,
-                            'done': 0, 'errors': 0, 'cost': 0.0, 'log': [], 'finished': False,
-                            'started_at': time.time(), 'last_update': time.time()
-                        })
-                        t = threading.Thread(target=_bg_enhance_worker, args=(app, False), daemon=True)
-                        t.start()
-                        log("Scheduler: zdjęcia AI — generowanie uruchomione w tle")
-                    else:
-                        log("Scheduler: zdjęcia AI — już działa, pomijam")
-                    _scheduler_loop._enhance_done_today = True
-                except Exception as e:
-                    log(f"Scheduler enhance error: {e}")
+            # === NOCNE GENEROWANIE ZDJĘĆ: WYŁĄCZONE ===
+            # Było: rembg o 22:00, wyłączone bo zdjęcia z Amazonu już są czyste
+            # Można włączyć ręcznie z poziomu /generator/enhance-bg-start
+            # if h == 22 and m < 5 and not getattr(_scheduler_loop, '_enhance_done_today', False):
+            #     ...
 
             # Reset flagi o północy
             if h == 0 and m < 5:

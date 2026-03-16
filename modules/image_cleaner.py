@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Czyszczenie zdjec produktowych - usuwanie tla
-Uzywa rembg (lokalne, darmowe) zamiast Gemini Image API
-
-Fallback: jesli rembg niedostepny, probuje Gemini
+Priorytet: VPS rembg > lokalne rembg > Gemini (fallback)
 """
 
 import os
@@ -12,7 +10,7 @@ import requests
 from PIL import Image
 from io import BytesIO
 
-from .database import get_db
+from .database import get_db, get_config
 
 # === REMBG (lokalne, darmowe) ===
 try:
@@ -38,6 +36,14 @@ except Exception as e:
     print(f"[image_cleaner] Gemini niedostepny (fallback): {e}")
 
 
+def _get_vps_url():
+    """Zwraca URL rembg VPS lub '' jesli nie skonfigurowany"""
+    try:
+        return get_config('rembg_vps_url', '')
+    except Exception:
+        return ''
+
+
 def clean_image_from_url(image_url, max_dim=1024):
     """
     Czysci zdjecie z URL - usuwa tlo, stawia na bialym tle.
@@ -54,17 +60,71 @@ def clean_image_from_url(image_url, max_dim=1024):
 def clean_image_from_bytes(image_bytes, max_dim=1024):
     """
     Czysci zdjecie z bytes - usuwa tlo.
+    Kolejnosc: VPS rembg > lokalne rembg > Gemini
     Zwraca (cleaned_image_bytes, mime_type, error)
     """
-    # Probuj rembg (darmowe, lokalne)
+    # 1. VPS rembg (najszybciej, nie grzeje Pi)
+    vps_url = _get_vps_url()
+    if vps_url:
+        result, mime, err = _clean_vps(image_bytes, max_dim)
+        if result:
+            return result, mime, err
+        print(f"[image_cleaner] VPS niedostepny, fallback: {err}")
+
+    # 2. Lokalne rembg (darmowe, ale grzeje Pi)
     if REMBG_AVAILABLE:
         return _clean_rembg(image_bytes, max_dim)
 
-    # Fallback: Gemini
+    # 3. Gemini (platne)
     if GEMINI_AVAILABLE:
         return _clean_gemini(image_bytes, max_dim)
 
-    return None, None, "Brak backendu: zainstaluj rembg (pip install rembg[cpu])"
+    return None, None, "Brak backendu: skonfiguruj VPS lub zainstaluj rembg"
+
+
+def _clean_vps(image_bytes, max_dim=1024):
+    """Usuwanie tla przez zdalny VPS rembg service"""
+    try:
+        start = time.time()
+        vps_url = _get_vps_url().rstrip('/')
+        vps_key = ''
+        try:
+            vps_key = get_config('rembg_vps_key', '')
+        except Exception:
+            pass
+
+        headers = {}
+        if vps_key:
+            headers['X-API-Key'] = vps_key
+
+        resp = requests.post(
+            f'{vps_url}/remove-bg',
+            files={'image': ('photo.jpg', image_bytes, 'image/jpeg')},
+            params={'max_dim': max_dim},
+            headers=headers,
+            timeout=90  # rembg moze trwac do 60s na tanim VPS
+        )
+        resp.raise_for_status()
+
+        if resp.headers.get('Content-Type', '').startswith('image/'):
+            elapsed = time.time() - start
+            proc_time = resp.headers.get('X-Processing-Time', '?')
+            print(f"[image_cleaner] VPS rembg: OK ({elapsed:.1f}s, serwer: {proc_time})")
+            return resp.content, 'image/jpeg', None
+
+        # Serwer zwrocil blad JSON
+        try:
+            err = resp.json().get('error', 'Unknown VPS error')
+        except Exception:
+            err = f'VPS HTTP {resp.status_code}'
+        return None, None, err
+
+    except requests.exceptions.ConnectionError:
+        return None, None, "VPS nieosiagalny (connection refused)"
+    except requests.exceptions.Timeout:
+        return None, None, "VPS timeout (>90s)"
+    except Exception as e:
+        return None, None, f"VPS error: {str(e)}"
 
 
 def _clean_rembg(image_bytes, max_dim=1024):
@@ -78,7 +138,7 @@ def _clean_rembg(image_bytes, max_dim=1024):
         # Otworz i zmniejsz jesli za duze
         img = Image.open(BytesIO(image_bytes)).convert('RGBA')
         if max(img.width, img.height) > rembg_dim:
-            ratio = max_dim / max(img.width, img.height)
+            ratio = rembg_dim / max(img.width, img.height)
             img = img.resize((int(img.width * ratio), int(img.height * ratio)), Image.LANCZOS)
 
         # Usun tlo
@@ -89,7 +149,7 @@ def _clean_rembg(image_bytes, max_dim=1024):
         result_bytes = rembg_remove(img_bytes.read())
         result_img = Image.open(BytesIO(result_bytes)).convert('RGBA')
 
-        # Białe tło
+        # Biale tlo
         white_bg = Image.new('RGBA', result_img.size, (255, 255, 255, 255))
         white_bg.paste(result_img, mask=result_img.split()[3])
         final = white_bg.convert('RGB')
@@ -100,7 +160,7 @@ def _clean_rembg(image_bytes, max_dim=1024):
         output.seek(0)
 
         elapsed = time.time() - start
-        print(f"[image_cleaner] rembg: OK ({elapsed:.1f}s)")
+        print(f"[image_cleaner] rembg lokalne: OK ({elapsed:.1f}s)")
 
         return output.read(), 'image/jpeg', None
 
@@ -180,9 +240,9 @@ def _clean_gemini(image_bytes, max_dim=1024):
 def needs_cleaning(image_url):
     """
     Sprawdza czy zdjecie wymaga czyszczenia (overlaye, napisy).
-    Jesli rembg dostepny — zawsze True (usun tlo z kazdego).
+    Jesli rembg/VPS dostepny — zawsze True (darmowe).
     """
-    if REMBG_AVAILABLE:
+    if REMBG_AVAILABLE or _get_vps_url():
         return True  # rembg jest darmowy, wiec czysc wszystko
 
     if not GEMINI_AVAILABLE:

@@ -309,6 +309,8 @@ def ustawienia_kreator():
         'support_email': get_config('support_email', ''),
         'support_phone': get_config('support_phone', ''),
         'support_info': get_config('support_info', ''),
+        'rembg_vps_url': get_config('rembg_vps_url', ''),
+        'rembg_vps_key': get_config('rembg_vps_key', ''),
     }
 
     def status_dot(key):
@@ -356,6 +358,7 @@ def ustawienia_kreator():
                 <div>{status_dot('perplexity_api_key')} Perplexity AI</div>
                 <div>{status_dot('ngrok_auth_token')} Ngrok</div>
                 <div>{status_dot('olx_client_id')} OLX</div>
+                <div>{status_dot('rembg_vps_url')} Rembg VPS</div>
             </div>
         </div>
 
@@ -548,6 +551,56 @@ def ustawienia_kreator():
             </div>
         </details>
 
+        <!-- REMBG VPS -->
+        <details class="card" style="padding:0;margin-bottom:12px" {"open" if not cfg['rembg_vps_url'] else ""}>
+            <summary style="padding:15px;cursor:pointer;font-weight:700;font-size:1rem;list-style:none;display:flex;align-items:center;gap:10px">
+                {status_dot('rembg_vps_url')} 🖼 Rembg VPS (usuwanie tla)
+                <span style="margin-left:auto;font-size:0.75rem;color:#64748b">▼</span>
+            </summary>
+            <div style="padding:0 15px 15px">
+                <div style="font-size:0.8rem;color:#64748b;margin-bottom:12px">
+                    Serwer VPS z rembg do usuwania tel ze zdjec (nie obciaza Pi).
+                    Postaw <code>rembg_service.py</code> na VPS i wpisz adres.
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.8rem;color:#94a3b8">URL serwera</label>
+                    <input type="text" name="rembg_vps_url" value="{cfg['rembg_vps_url']}"
+                        placeholder="http://123.45.67.89:5050"
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.8rem;color:#94a3b8">Klucz API (opcjonalny)</label>
+                    <input type="password" name="rembg_vps_key" value="{cfg['rembg_vps_key']}"
+                        placeholder="Tajny klucz (REMBG_API_KEY na VPS)"
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
+                </div>
+                <div id="vpsTestResult" style="font-size:0.8rem;margin-top:8px"></div>
+                <button type="button" onclick="testVps()" style="padding:8px 16px;background:#1e3a5f;border:1px solid #2563eb;border-radius:8px;color:#60a5fa;cursor:pointer;font-size:0.85rem;margin-top:4px">
+                    🔍 Test polaczenia
+                </button>
+            </div>
+        </details>
+        <script>
+        function testVps() {{
+            var url = document.querySelector('input[name=rembg_vps_url]').value.trim();
+            var res = document.getElementById('vpsTestResult');
+            if(!url) {{ res.innerHTML='<span style="color:#f87171">Wpisz URL!</span>'; return; }}
+            res.innerHTML='<span style="color:#fbbf24">⏳ Testowanie...</span>';
+            fetch(url.replace(/\\/$/, '') + '/health')
+                .then(r => r.json())
+                .then(d => {{
+                    if(d.status === 'ok' && d.rembg) {{
+                        res.innerHTML='<span style="color:#4ade80">✅ Polaczenie OK! Rembg dziala.</span>';
+                    }} else {{
+                        res.innerHTML='<span style="color:#f87171">⚠ Serwer odpowiada ale rembg=' + d.rembg + '</span>';
+                    }}
+                }})
+                .catch(e => {{
+                    res.innerHTML='<span style="color:#f87171">❌ Brak polaczenia: ' + e.message + '</span>';
+                }});
+        }}
+        </script>
+
         <!-- SAVE ALL -->
         <button type="submit" style="width:100%;padding:16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:1.1rem;cursor:pointer;margin-top:10px;box-shadow:0 4px 15px rgba(99,102,241,0.3)">
             💾 ZAPISZ WSZYSTKO
@@ -573,6 +626,7 @@ def ustawienia_kreator_save():
         'ngrok_auth_token', 'ngrok_domain',
         'olx_client_id', 'olx_client_secret', 'olx_redirect_uri',
         'support_email', 'support_phone', 'support_info',
+        'rembg_vps_url', 'rembg_vps_key',
     ]
 
     saved = 0
