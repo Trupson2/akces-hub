@@ -44,8 +44,8 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
     </div>
 </div>
 
-<!-- ═══════════ SYSTEM (tylko admin) ═══════════ -->
-{% if session.get('rola') == 'admin' %}
+<!-- ═══════════ SYSTEM ═══════════ -->
+{% if true %}
 <div id="sys-panel" style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:12px;padding:12px;margin-bottom:12px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div style="font-size:0.75rem;color:#64748b;font-weight:600">SYSTEM</div>
@@ -92,8 +92,8 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
 </script>
 {% endif %}
 
-<!-- ═══════════ GOAL (tylko admin) ═══════════ -->
-{% if session.get('rola') == 'admin' and goal %}
+<!-- ═══════════ GOAL ═══════════ -->
+{% if goal %}
 <a href="/goal/details" style="text-decoration:none;display:block;position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.1));border:1px solid rgba(59,130,246,0.3);border-radius:14px;padding:16px;margin-bottom:16px">
     <div style="position:absolute;top:0;right:0;bottom:0;width:45%;background:url('/static/goal.jpg') no-repeat center right;background-size:cover;opacity:0.15;z-index:0"></div>
     <div style="position:relative;z-index:1">
@@ -120,8 +120,8 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
     </div>
 </div>
 
-<!-- ═══════════ STATY MIESIĄCA (admin) ═══════════ -->
-{% if session.get('rola') == 'admin' and monthly %}
+<!-- ═══════════ STATY MIESIĄCA ═══════════ -->
+{% if monthly %}
 <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:14px;padding:16px;margin-bottom:16px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <span style="font-weight:700;font-size:0.8rem;color:#64748b">📊 {{ miesiac_nazwa }} — WYNIK</span>
@@ -249,6 +249,134 @@ fetch('/api/warehouse/heatmap').then(r=>r.json()).then(d=>{
     }
 }).catch(()=>{});
 </script>
+
+<!-- ═══════════ ANALITYKA ═══════════ -->
+<div style="font-weight:700;font-size:0.75rem;color:#f59e0b;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">ANALITYKA</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+    <a href="/analityka/statystyki" style="text-decoration:none;text-align:center;padding:16px 8px;background:linear-gradient(135deg,rgba(234,179,8,0.15),rgba(202,138,4,0.08));border:1px solid rgba(234,179,8,0.35);border-radius:14px" onclick="event.preventDefault();toggleDrilldown('dd-stats')">
+        <div style="font-size:1.5rem;margin-bottom:6px">📊</div>
+        <div style="font-size:0.8rem;font-weight:700;color:#e2e8f0">STATYSTYKI</div>
+        <div style="font-size:0.65rem;color:#f59e0b;margin-top:2px">przeglądaj</div>
+    </a>
+    <a href="/analityka/palety" style="text-decoration:none;text-align:center;padding:16px 8px;background:linear-gradient(135deg,rgba(6,182,212,0.15),rgba(8,145,178,0.08));border:1px solid rgba(6,182,212,0.35);border-radius:14px" onclick="event.preventDefault();toggleDrilldown('dd-zakupy')">
+        <div style="font-size:1.5rem;margin-bottom:6px">🛒</div>
+        <div style="font-size:0.8rem;font-weight:700;color:#e2e8f0">ZAKUPY</div>
+        <div style="font-size:0.65rem;color:#06b6d4;margin-top:2px">analiza</div>
+    </a>
+    <a href="/magazyn/lezaki" style="text-decoration:none;text-align:center;padding:16px 8px;background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(124,58,237,0.08));border:1px solid rgba(139,92,246,0.35);border-radius:14px" onclick="event.preventDefault();toggleDrilldown('dd-lezaki')">
+        <div style="font-size:1.5rem;margin-bottom:6px">⏳</div>
+        <div style="font-size:0.8rem;font-weight:700;color:#e2e8f0">LEŻAKI</div>
+        <div style="font-size:0.65rem;color:#a78bfa;margin-top:2px">zalegające</div>
+    </a>
+</div>
+
+<!-- Drill-down: STATYSTYKI -->
+<div id="dd-stats" style="display:none;background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:14px;margin-bottom:16px;animation:fadeIn 0.3s">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-weight:700;font-size:0.8rem;color:#eab308">📊 STATYSTYKI — drill down</span>
+        <span onclick="toggleDrilldown('dd-stats')" style="cursor:pointer;color:#64748b;font-size:0.8rem">✕</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <a href="/analityka/statystyki" style="text-decoration:none;padding:10px;background:#0a1a2e;border:1px solid #1e3a5f;border-radius:8px">
+            <div style="font-size:0.75rem;color:#60a5fa;font-weight:600">📈 Pełne statystyki</div>
+            <div style="font-size:0.65rem;color:#475569;margin-top:2px">Wykresy, trendy, KPI</div>
+        </a>
+        <a href="/analityka" style="text-decoration:none;padding:10px;background:#0a2218;border:1px solid #1e5f3a;border-radius:8px">
+            <div style="font-size:0.75rem;color:#22c55e;font-weight:600">💰 Zyski i przychody</div>
+            <div style="font-size:0.65rem;color:#475569;margin-top:2px">Miesiąc, rok, per produkt</div>
+        </a>
+        <a href="/analityka/kategorie" style="text-decoration:none;padding:10px;background:#1c0020;border:1px solid #5f1e5f;border-radius:8px">
+            <div style="font-size:0.75rem;color:#c084fc;font-weight:600">🏷️ Kategorie</div>
+            <div style="font-size:0.65rem;color:#475569;margin-top:2px">Co się sprzedaje najlepiej</div>
+        </a>
+        <a href="/analytics/dashboard" style="text-decoration:none;padding:10px;background:#1a1a0a;border:1px solid #5f5f1e;border-radius:8px">
+            <div style="font-size:0.75rem;color:#eab308;font-weight:600">📊 Dashboard KPI</div>
+            <div style="font-size:0.65rem;color:#475569;margin-top:2px">Porównania, raporty</div>
+        </a>
+    </div>
+</div>
+
+<!-- Drill-down: ZAKUPY -->
+<div id="dd-zakupy" style="display:none;background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:14px;margin-bottom:16px;animation:fadeIn 0.3s">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-weight:700;font-size:0.8rem;color:#06b6d4">🛒 ZAKUPY — drill down</span>
+        <span onclick="toggleDrilldown('dd-zakupy')" style="cursor:pointer;color:#64748b;font-size:0.8rem">✕</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <a href="/analityka/palety" style="text-decoration:none;padding:10px;background:#0a1a2e;border:1px solid #1e3a5f;border-radius:8px">
+            <div style="font-size:0.75rem;color:#60a5fa;font-weight:600">📦 Bilans palet</div>
+            <div style="font-size:0.65rem;color:#475569;margin-top:2px">ROI per paleta</div>
+        </a>
+        <a href="/palety" style="text-decoration:none;padding:10px;background:#0a2218;border:1px solid #1e5f3a;border-radius:8px">
+            <div style="font-size:0.75rem;color:#22c55e;font-weight:600">📋 Lista palet</div>
+            <div style="font-size:0.65rem;color:#475569;margin-top:2px">Wszystkie zakupy</div>
+        </a>
+        <a href="/analityka/okazje" style="text-decoration:none;padding:10px;background:#1a1a0a;border:1px solid #5f5f1e;border-radius:8px">
+            <div style="font-size:0.75rem;color:#eab308;font-weight:600">🔥 Okazje</div>
+            <div style="font-size:0.65rem;color:#475569;margin-top:2px">Monitoring dostawców</div>
+        </a>
+        <a href="/sprzedaze" style="text-decoration:none;padding:10px;background:#1c0010;border:1px solid #5f1e1e;border-radius:8px">
+            <div style="font-size:0.75rem;color:#f87171;font-weight:600">💳 Sprzedaże</div>
+            <div style="font-size:0.65rem;color:#475569;margin-top:2px">Historia zamówień</div>
+        </a>
+    </div>
+</div>
+
+<!-- Drill-down: LEŻAKI -->
+<div id="dd-lezaki" style="display:none;background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:14px;margin-bottom:16px;animation:fadeIn 0.3s">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-weight:700;font-size:0.8rem;color:#a78bfa">⏳ LEŻAKI — drill down</span>
+        <span onclick="toggleDrilldown('dd-lezaki')" style="cursor:pointer;color:#64748b;font-size:0.8rem">✕</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <a href="/magazyn/lezaki" style="text-decoration:none;padding:10px;background:#1c0020;border:1px solid #5f1e5f;border-radius:8px">
+            <div style="font-size:0.75rem;color:#c084fc;font-weight:600">⏳ Stojące >30 dni</div>
+            <div style="font-size:0.65rem;color:#475569;margin-top:2px">{{ monthly.stojace }} produktów</div>
+        </a>
+        <a href="/magazyn" style="text-decoration:none;padding:10px;background:#0a1a2e;border:1px solid #1e3a5f;border-radius:8px">
+            <div style="font-size:0.75rem;color:#60a5fa;font-weight:600">📦 Cały magazyn</div>
+            <div style="font-size:0.65rem;color:#475569;margin-top:2px">{{ mag.produkty }} produktów</div>
+        </a>
+        <a href="/sprzedaze?status=zwrot" style="text-decoration:none;padding:10px;background:#1c0010;border:1px solid #5f1e1e;border-radius:8px">
+            <div style="font-size:0.75rem;color:#f87171;font-weight:600">↩️ Zwroty</div>
+            <div style="font-size:0.65rem;color:#475569;margin-top:2px">{{ monthly.zwroty_cnt }} w tym miesiącu</div>
+        </a>
+        <a href="/warehouse/heatmap" style="text-decoration:none;padding:10px;background:#0a2218;border:1px solid #1e5f3a;border-radius:8px">
+            <div style="font-size:0.75rem;color:#22c55e;font-weight:600">🗺️ Mapa magazynu</div>
+            <div style="font-size:0.65rem;color:#475569;margin-top:2px">Heatmapa 3D</div>
+        </a>
+    </div>
+</div>
+
+<!-- ═══════════ OPERACJE ═══════════ -->
+<div style="font-weight:700;font-size:0.75rem;color:#f59e0b;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">OPERACJE</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+    <a href="/paletomat" style="text-decoration:none;text-align:center;padding:16px 8px;background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(37,99,235,0.06));border:1px solid rgba(59,130,246,0.3);border-radius:14px">
+        <div style="font-size:1.5rem;margin-bottom:6px">🤖</div>
+        <div style="font-size:0.8rem;font-weight:700;color:#e2e8f0">Paletomat</div>
+        <div style="font-size:0.65rem;color:#60a5fa;margin-top:2px">wystawiaj</div>
+    </a>
+    <a href="/wysylki/allegro" style="text-decoration:none;text-align:center;padding:16px 8px;background:linear-gradient(135deg,rgba(34,197,94,0.12),rgba(22,163,74,0.06));border:1px solid rgba(34,197,94,0.3);border-radius:14px">
+        <div style="font-size:1.5rem;margin-bottom:6px">📬</div>
+        <div style="font-size:0.8rem;font-weight:700;color:#e2e8f0">Wysyłki</div>
+        <div style="font-size:0.65rem;color:#22c55e;margin-top:2px">pakuj</div>
+    </a>
+    <a href="/allegro/sync" style="text-decoration:none;text-align:center;padding:16px 8px;background:linear-gradient(135deg,rgba(249,115,22,0.12),rgba(234,88,12,0.06));border:1px solid rgba(249,115,22,0.3);border-radius:14px">
+        <div style="font-size:1.5rem;margin-bottom:6px">🔄</div>
+        <div style="font-size:0.8rem;font-weight:700;color:#e2e8f0">Sync</div>
+        <div style="font-size:0.65rem;color:#fb923c;margin-top:2px">zamówienia</div>
+    </a>
+</div>
+
+<script>
+function toggleDrilldown(id){
+    const el=document.getElementById(id);
+    const all=['dd-stats','dd-zakupy','dd-lezaki'];
+    all.forEach(a=>{if(a!==id){document.getElementById(a).style.display='none'}});
+    el.style.display=el.style.display==='none'?'block':'none';
+}
+</script>
+<style>@keyframes fadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}</style>
 
 <!-- ═══════════ NARZĘDZIA (kompaktowe) ═══════════ -->
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">

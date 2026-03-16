@@ -1,5 +1,30 @@
 # CHANGELOG - AKCES HUB Enterprise
 
+## 2026-03-16 — Cleanup, error logging, stock sync, circular import fix
+
+### Naprawa circular import (/analityka 500)
+- Przeniesiono `auto_kategoryzuj` i `KATEGORIE_DISPLAY` z `app.py` do `modules/shared.py`
+- Zaktualizowano importy w `analityka.py`, `palety.py`, `app.py`
+- Eliminacja bledu 500 na Raspberry Pi (Blueprint re-registration)
+
+### Error logging
+- Flask 500/404 bledy logowane do `logs/akces_hub.log` via RotatingFileHandler
+- Bledy AJAX zwracaja JSON zamiast HTML
+
+### Stock sync — 3 nowe fallbacki
+- **Fallback EAN** — dopasowanie zamowien po kodzie EAN z oferty Allegro
+- **Fallback ASIN regex** — szukanie ASIN (B0XXXXXXXX) w tytule oferty
+- **Fallback smart text** — dopasowanie tekstowe z confidence >= 0.55
+- Backfill: 69 osieroconych sprzedazy (produkt_id=NULL) polaczono z produktami
+- Indeksy EAN/ASIN w backfill dla szybszego matchingu
+
+### Cleanup
+- Usunieto 647 linii martwego kodu z `app.py` (resztki po migracji do shared.py)
+- Usunieto slot "skala" z AI Image Enhancer (zle wygladal)
+- `app.py` skrocony z ~4147 do ~3500 linii
+
+---
+
 ## 2026-03-15 — Szablony HTML, backup Google Drive, reinstall Pi, bezpieczenstwo
 
 ### System logowania (auth)

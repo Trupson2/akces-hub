@@ -1,186 +1,245 @@
-# ❓ FAQ - Najczęściej Zadawane Pytania
+# FAQ - Najczesciej Zadawane Pytania
 
 ---
 
-## 🔧 INSTALACJA & SETUP:
+## INSTALACJA & SETUP
 
-**Q: Jakie są wymagania systemowe?**  
-A: Windows 10/11 lub Ubuntu 22.04+, Python 3.11+, 4GB RAM, 1GB dysku.
+**Q: Jakie sa wymagania systemowe?**
+A: Raspberry Pi 4 (2GB+ RAM), dowolny VPS z Linuxem, lub Windows/Mac. Python 3.7+, 2GB dysku minimum (8GB+ zalecane na zdjecia).
 
-**Q: Czy działa na Mac?**  
-A: Tak, wymaga Python 3.11+. Instalacja identyczna jak na Linux.
+**Q: Czy dziala na Raspberry Pi?**
+A: Tak — to glowna platforma docelowa. Raspbian Bookworm 64-bit, Flask + SQLite, kiosk mode (Chromium fullscreen).
 
-**Q: Czy potrzebuję internetu?**  
-A: Tak - do scrapingu Amazon i Allegro API. Praca offline ograniczona.
+**Q: Czy dziala na Mac?**
+A: Tak, wymaga Python 3.7+. Instalacja identyczna jak na Linux.
 
-**Q: Ile zajmuje instalacja?**  
-A: 15-30 minut (zależnie od prędkości internetu).
+**Q: Czy potrzebuje internetu?**
+A: Tak — do API Allegro, scrapingu Amazon, Gemini AI. Magazyn lokalnie dziala offline, ale synchronizacja wymaga sieci.
 
-**Q: Czy mogę zainstalować na serwerze?**  
-A: Tak, działa na dowolnym serwerze Linux/Windows. Port 5000 domyślnie.
+**Q: Ile zajmuje instalacja?**
+A: 15-30 minut. Na Raspberry Pi: `git clone`, `pip install -r requirements.txt`, `python app.py`.
 
----
+**Q: Jak uruchomic na nowym Raspberry Pi?**
+A:
+```bash
+git clone <repo-url> /home/pi/akces-hub
+cd /home/pi/akces-hub
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python app.py
+```
+Przy pierwszym uruchomieniu system poprosi o stworzenie konta admin.
 
-## 💰 LICENCJA & RESELLING:
-
-**Q: Czy mogę sprzedawać unlimited klientom?**  
-A: Tak, brak limitu.
-
-**Q: Czy mogę modyfikować kod?**  
-A: Tak, pełne prawa.
-
-**Q: Czy mogę zmienić branding (white-label)?**  
-A: Tak, dozwolone.
-
-**Q: Czy mogę odsprzedać kod innym resellerom?**  
-A: NIE. Licencja dla klientów końcowych, nie dla innych resellerów.
-
-**Q: Jakie prowizje płacę od sprzedaży?**  
-A: ZERO. Kupujesz raz, sprzedajesz bez limitów.
-
----
-
-## 🛠️ TECHNICZNE:
-
-**Q: Jaka baza danych?**  
-A: SQLite - plik lokalny, łatwy backup, zero konfiguracji.
-
-**Q: Czy mogę zmienić na MySQL/PostgreSQL?**  
-A: Tak, ale wymaga modyfikacji kodu. SQLite wystarcza dla 95% użytkowników.
-
-**Q: Czy dane są bezpieczne?**  
-A: Tak, wszystko lokalnie. Backup przez zwykłe kopiowanie pliku .db.
-
-**Q: Co jeśli zawiesi się system?**  
-A: Restart (Ctrl+C, potem RUN.bat). Dane zapisane, nic się nie straci.
-
-**Q: Czy mogę używać na kilku komputerach?**  
-A: Tak, skopiuj folder. Baza przenośna.
+**Q: Jak zaktualizowac system?**
+A:
+```bash
+cd /home/pi/akces-hub
+git pull
+pip install -r requirements.txt
+sudo systemctl restart akceshub
+```
 
 ---
 
-## 📦 FUNKCJE:
+## TECHNICZNE
 
-**Q: Jakie formaty Excel wspiera import?**  
-A: .xlsx, .xls, .csv. Rozpoznaje kolumny automatycznie (AI-powered).
+**Q: Jaka baza danych?**
+A: SQLite z WAL mode — plik lokalny, zero konfiguracji, connection pooling per thread.
 
-**Q: Skąd scraping pobiera dane?**  
-A: Amazon.com, Amazon.co.uk, Amazon.de. Tytuły, zdjęcia, parametry.
+**Q: Czy moge zmienic na MySQL/PostgreSQL?**
+A: Tak, ale wymaga modyfikacji kodu. SQLite wystarcza dla 95% uzytkownikow (testowane na 100k+ rekordow).
 
-**Q: Czy mogę dodawać produkty ręcznie?**  
-A: Tak, w Magazynierze.
+**Q: Czy dane sa bezpieczne?**
+A: Tak:
+- Wszystko lokalnie (twoj serwer, twoje dane)
+- Logowanie z hashowaniem SHA-256 + sol
+- Rate limiting: max 5 prob logowania na 15 min per IP
+- Auto-generowany SECRET_KEY (nie hardcoded)
+- Audyt SQL injection (bandit) — parametryzowane zapytania
+- Timeouty na wszystkich requestach HTTP
 
-**Q: Jakie drukarki etykiet działają?**  
-A: Niimbot B1 (Bluetooth), Vretti 420B (USB). Inne termiczne też mogą działać.
+**Q: Co jesli zawiesi sie system?**
+A: `sudo systemctl restart akceshub` (Pi) lub Ctrl+C + `python app.py`. Dane bezpieczne — SQLite WAL zapewnia integralnosc.
 
-**Q: Czy mogę dostosować layout etykiet?**  
-A: Tak, edytuj templates/label.html.
-
-**Q: Czy Allegro API jest płatne?**  
-A: NIE. Allegro API jest całkowicie darmowe.
-
----
-
-## 💵 SPRZEDAŻ (dla resellera):
-
-**Q: Jakie ceny polecacie?**  
-A: Setup 1500-2500 PLN, Abonament 400-600 PLN/msc, SaaS 500-800 PLN/msc.
-
-**Q: Jak szybko znajdę pierwszego klienta?**  
-A: 1-4 tygodnie (FB Groups, LinkedIn, targi, znajomi).
-
-**Q: Jak długo trwa instalacja u klienta?**  
-A: 2-4h (zdalna) lub 1 dzień (na miejscu z szkoleniem).
-
-**Q: Co jeśli klient ma problem techniczny?**  
-A: Sprawdź MANUAL.md, Google, ChatGPT. Ostateczność: kontakt ze mną (jeśli masz wsparcie).
-
-**Q: Czy muszę umieć programować?**  
-A: NIE. Wystarczy instalacja Python i uruchamianie skryptów (copy-paste).
+**Q: Czy moge uzywac na kilku komputerach?**
+A: System dziala jako serwer web — wchodzisz przez przegladarke z dowolnego urzadzenia w sieci.
 
 ---
 
-## 📊 BUSINESS:
+## MAGAZYN
 
-**Q: Ile realistycznie zarobię?**  
-A: 3 klientów setup = 6000 PLN. 10 klientów abonament = 5000 PLN/msc. Rok = 60k PLN+.
+**Q: Jak dodac produkty z palety?**
+A: 4 sposoby:
+1. **Z Amazona** — wklej ASIN w Paletomat → system sciaga zdjecia, opisy, specyfikacje
+2. **Import hurtowy** — skopiuj HTML ze strony dostawcy → system rozpozna produkty automatycznie
+3. **Recznie** — dodaj produkt w Magazynie, wpisz dane recznie
+4. **CSV import** — przygotuj plik CSV i zaimportuj hurtowo (3-krokowy wizard z podgladem)
 
-**Q: Czy to full-time biznes?**  
-A: Może być! 20+ klientów = 10-15k PLN/msc (wystarczy na życie).
+**Q: Jak dziala skanowanie?**
+A: Skanuj 3 typy kodow:
+- **EAN** (kod kreskowy) — wyszukuje produkt po EAN
+- **ASIN** (kod Amazon, np. B0CZ3W8SRK) — wyszukuje po ASIN
+- **MAG-XXXXX** (wewnetrzny) — wyszukuje po kodzie systemowym
 
-**Q: Czy konkurencja jest duża?**  
-A: Średnia. BaseLinker dominuje, ale drogi i skomplikowany. To jest nisza (palety zwrotów).
+Dzialaja skanery USB, Bluetooth, oraz kamera telefonu (przez przegladarke).
 
-**Q: Jak przekonać klienta?**  
-A: Demo na żywo (15 min), pokaz ROI (oszczędność 40h/msc), referencje (system działa produkcyjnie).
+**Q: Jakie drukarki etykiet dzialaja?**
+A: **Niimbot B1** (Bluetooth/BLE) — glowna obslugiwana. Etykiety 4x6 cali z QR kodem + nazwa + cena, 203 DPI. Adapter BT 5.0 zalecany.
 
----
-
-## 🚨 PROBLEMY:
-
-**Q: Import Excel nie działa?**  
-A: Sprawdź: format .xlsx, kolumny z nazwą/ASIN/ceną, dane w pierwszym arkuszu.
-
-**Q: Scraping Amazon nie znajduje produktów?**  
-A: Sprawdź ASIN (10 znaków), VPN może blokować, produkty usunięte z Amazon.
-
-**Q: Drukarka etykiet nie łączy się?**  
-A: Niimbot B1: sparuj Bluetooth (Windows Settings), adapter BT 5.0 zalecany. Vretti: sprawdź USB.
-
-**Q: Allegro OAuth error?**  
-A: Sprawdź Client ID/Secret, Redirect URL: http://localhost:5000/allegro/callback
-
-**Q: System wolno działa?**  
-A: Sprawdź RAM (min 4GB), zamknij inne programy, wyłącz antivirus (może skanować bazę).
+**Q: Co to jest wizualizacja 3D magazynu?**
+A: Interaktywny edytor ukladu magazynu — regaly, polki, pozycje. Kazdy produkt ma przypisana lokalizacje. Przydatne gdy masz 100+ produktow.
 
 ---
 
-## 🔄 AKTUALIZACJE:
+## PALETOMAT (wystawianie na Allegro)
 
-**Q: Czy będą aktualizacje?**  
-A: Zależy od Twojej opcji zakupu (A: 12 msc, B: lifetime, C: brak).
+**Q: Jak wystawic produkt na Allegro?**
+A:
+1. Wejdz w produkt w Magazynie → "Wystaw na Allegro"
+2. System sprawdza deduplikacje (czy nie jest juz wystawiony)
+3. Generator: gotowy tytul (SEO), opis HTML, do 8 zdjec, auto-cena
+4. Sprawdz, popraw, kliknij "Utworz oferte" → draft
+5. "Publikuj" gdy gotowe
 
-**Q: Jak zaktualizować system?**  
-A: Backup bazy (.db), zastąp pliki, uruchom. Baza kompatybilna wstecz.
+**Q: Jak dziala masowe wystawianie?**
+A: Wejdz w palete → "Wystaw cala palete". System kolejno tworzy oferty dla kazdego produktu. Postep na zywo (Server-Sent Events). 10-50 produktow w kilka minut.
 
-**Q: Co z nowymi funkcjami?**  
-A: Feature requests rozważane (priorytet: klienci z abonamentem B).
+**Q: Co to jest Nocny Kombajn?**
+A: Automatyczny cron (~2:00 w nocy):
+1. Szuka produktow bez ofert (status "magazyn")
+2. Sciaga dane z Amazona
+3. Generuje opisy via Gemini AI
+4. Tworzy drafty na Allegro
+5. Rano: przegladas, poprawiasz ceny, publikujesz
 
----
+Oszczedza 1-2h dziennie.
 
-## 📞 WSPARCIE:
+**Q: Jak dzialaja AI zdjecia?**
+A: Gemini 2.0 Flash generuje dodatkowe zdjecia:
+- **Wymiary** — produkt z liniami pomiarowymi
+- **W uzyciu** — produkt w kontekscie (np. lampa na biurku)
+- **Lifestyle** — produkt w stylowej scenerii
 
-**Q: Gdzie szukać pomocy?**  
-A: 1) MANUAL.md, 2) FAQ.md (ten plik), 3) Google error, 4) ChatGPT/Claude, 5) Kontakt (jeśli masz abonament).
+Oryginalne zdjecia z Amazona na pozycjach 1-4, AI-generowane na 5-7.
 
-**Q: Jaki czas reakcji?**  
-A: Email: do 24h (dni robocze). Telefon: w godzinach pracy (jeśli masz abonament).
+**Q: Jak dziala auto-wycena?**
+A: `cena = (koszt_jednostkowy / (1 - prowizja)) * (1 + marza)`
+- Koszt jednostkowy = cena_zakupu_palety / ilosc_produktow
+- Prowizja = 11% (Allegro, konfigurowalne per kategoria)
+- Marza = 20-40% (konfigurowalne)
 
-**Q: Czy jest forum/Discord?**  
-A: Nie w tej wersji. Kontakt bezpośredni (email/tel).
-
----
-
-## 📈 SKALOWANIE:
-
-**Q: Czy system radzi sobie z 1000+ paletami?**  
-A: Tak. SQLite wydajny do ~100k rekordów. Testowane na dużych bazach.
-
-**Q: Czy mogę mieć wielu użytkowników?**  
-A: Jednoczesny dostęp OK, ale brak systemu uprawnień (wszyscy admin).
-
-**Q: Czy mogę hostować dla wielu klientów?**  
-A: Tak (SaaS model), wymaga osobnych instancji per klient.
-
----
-
-**Nie znalazłeś odpowiedzi?**
-
-Skontaktuj się:
-- Email: [KONTAKT]
-- Telefon: [TELEFON]
-- Dostępność: Pn-Pt 9-18
+**Q: Co jesli produkt juz jest wystawiony na Allegro?**
+A: System sprawdza po EAN i ASIN. Jesli znajdzie aktywna oferte — proponuje **dodanie sztuk** do istniejacej zamiast tworzenia nowej. Mozna tez wymusic nowa oferte.
 
 ---
 
-*FAQ aktualizowane na bieżąco*
+## ALLEGRO
+
+**Q: Czy Allegro API jest platne?**
+A: NIE. Allegro REST API jest calkowicie darmowe. Potrzebujesz konta firmowego + client_id/secret z panelu deweloperskiego.
+
+**Q: Zamowienia nie synchronizuja sie — co robic?**
+A:
+1. Sprawdz token: `/allegro/check`
+2. Kliknij "Synchronizuj" na stronie zamowien
+3. System matching: oferta_id → EAN → ASIN regex → smart text (confidence >= 0.55)
+4. Recznie: `/allegro/polacz-sprzedaze`
+
+**Q: Stan magazynowy nie odejmuje sie po sprzedazy?**
+A: System odejmuje gdy sync_orders znajdzie dopasowanie zamowienia do produktu. Jesli matching zawiedzie (brak EAN/ASIN) — stan nie zostanie odjety. Rozwiazanie:
+1. Upewnij sie ze oferty maja poprawne EAN/ASIN
+2. Uruchom backfill: `/allegro/polacz-sprzedaze`
+3. Popraw recznie w karcie produktu
+
+**Q: Allegro OAuth error?**
+A: Sprawdz Client ID/Secret, Redirect URL musi byc: `http://localhost:5000/allegro/callback` (lub twoj publiczny URL). Tokeny odswiezaja sie automatycznie.
+
+---
+
+## ANALITYKA
+
+**Q: Jak sprawdzic czy paleta sie oplacila?**
+A: `/analityka/palety` — ROI per paleta:
+- **ROI > 100%** = paleta sie oplacila
+- **Koszt/sztuke** = ile zaplaciles za 1 produkt
+- **Zysk/sztuke** = ile zarabiasz srednio
+
+**Q: Co to sa "okazje"?**
+A: `/analityka/okazje` skanuje strony Twoich dostawcow palet:
+- **Monitoring dostawcow** — automatyczne skanowanie nowych ofert (konfigurowalne zrodla)
+- **Filtrowanie** — po slowach kluczowych i kategoriach
+- **Perplexity AI** — doglebna analiza konkretnej palety
+- **Przelicznik walut** — ceny GBP/EUR automatycznie na PLN (kurs NBP)
+
+---
+
+## POWIADOMIENIA
+
+**Q: Jak skonfigurowac Telegram?**
+A:
+1. @BotFather na Telegramie → `/newbot` → skopiuj token
+2. `/telegram/config` → wklej token + chat_id
+3. "Test" → powinien przyjsc komunikat
+
+**Q: Jakie powiadomienia dostane?**
+A:
+- Nowa sprzedaz — natychmiast
+- Nowa okazja paletowa — alert
+- Raport dzienny — 8:00
+- Raport tygodniowy — poniedzialki
+
+**Q: Czy jest WhatsApp?**
+A: Tak, przez TextMeBot API. Konfiguracja w `/telegram` (ten sam modul).
+
+---
+
+## BACKUP
+
+**Q: Jak dziala backup?**
+A:
+- **Co godzine** — automatyczna kopia SQLite do `/backups/`
+- **Google Drive** — sync przez rclone po kazdym backupie
+- **24 kopie rotacyjne** — ostatnie 24 godziny
+- **Restore** — `/magazyn/backup` → wybierz backup → "Przywroc"
+
+**Q: Czy moge robic backup recznie?**
+A: Tak — `/magazyn/backup` → "Utworz backup teraz". Mozesz tez wymusic sync na GDrive: `/backup/sync-gdrive`.
+
+---
+
+## OLX / VINTED
+
+**Q: Czy moge sprzedawac na OLX i Vinted?**
+A: Moduly istnieja, ale sa opcjonalne (domyslnie wylaczone). Wlacz w `/ustawienia`:
+- **OLX** — wymaga konta deweloperskiego na developer.olx.pl (OAuth2)
+- **Vinted** — wymaga konta Vinted (cookie-based auth)
+
+---
+
+## PROBLEMY
+
+**Q: Blad 500 na stronie?**
+A: Sprawdz `logs/akces_hub.log` — pelny traceback. Najczestsze przyczyny:
+- Wygasly token API (Allegro/Gemini) → `/allegro/auth`
+- Baza zablokowana → `sudo systemctl restart akceshub`
+- Brakujacy modul → `pip install -r requirements.txt`
+
+**Q: System wolno dziala na RPi?**
+A:
+- Sprawdz `htop` — CPU/RAM
+- Baza > 500MB? Archiwizuj stare dane
+- Duzo zdjec? Cleanup: `/paletomat/generator/cleanup`
+- WAL checkpoint: mozna uruchomic z poziomu `/magazyn/backup`
+
+**Q: Scraping Amazon nie znajduje produktow?**
+A: Sprawdz: ASIN to 10 znakow (zaczyna sie od B0), VPN moze blokowac, produkt moze byc usuniety z Amazona.
+
+**Q: Import CSV nie dziala?**
+A: Sprawdz: format .xlsx/.csv, kolumny z nazwa/ASIN/cena, dane w pierwszym arkuszu. Wizard importu pokazuje podglad przed wykonaniem.
+
+---
+
+*Nie znalazles odpowiedzi? Sprawdz logi (`logs/akces_hub.log`) lub napisz do supportu.*
+
+*FAQ aktualizowane: 2026-03-16*
