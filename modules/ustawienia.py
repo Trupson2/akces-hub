@@ -306,6 +306,9 @@ def ustawienia_kreator():
         'olx_client_id': get_config('olx_client_id', ''),
         'olx_client_secret': get_config('olx_client_secret', ''),
         'olx_redirect_uri': get_config('olx_redirect_uri', ''),
+        'support_email': get_config('support_email', ''),
+        'support_phone': get_config('support_phone', ''),
+        'support_info': get_config('support_info', ''),
     }
 
     def status_dot(key):
@@ -483,6 +486,37 @@ def ustawienia_kreator():
             </div>
         </details>
 
+        <!-- DANE KONTAKTOWE SUPPORTU -->
+        <details class="card" style="padding:0;margin-bottom:12px" {"open" if not cfg['support_email'] and not cfg['support_phone'] else ""}>
+            <summary style="padding:15px;cursor:pointer;font-weight:700;font-size:1rem;list-style:none;display:flex;align-items:center;gap:10px">
+                {status_dot('support_email')} 📞 Dane kontaktowe (support)
+                <span style="margin-left:auto;font-size:0.75rem;color:#64748b">▼</span>
+            </summary>
+            <div style="padding:0 15px 15px">
+                <div style="font-size:0.8rem;color:#64748b;margin-bottom:12px">
+                    Wyswietlane klientom na stronie zgloszenia problemu
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.8rem;color:#94a3b8">Email kontaktowy</label>
+                    <input type="email" name="support_email" value="{cfg['support_email']}"
+                        placeholder="support@twojafirma.pl"
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-size:0.85rem">
+                </div>
+                <div style="margin-bottom:10px">
+                    <label style="font-size:0.8rem;color:#94a3b8">Telefon</label>
+                    <input type="text" name="support_phone" value="{cfg['support_phone']}"
+                        placeholder="+48 123 456 789"
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-size:0.85rem">
+                </div>
+                <div>
+                    <label style="font-size:0.8rem;color:#94a3b8">Dodatkowa informacja (opcjonalnie)</label>
+                    <input type="text" name="support_info" value="{cfg['support_info']}"
+                        placeholder="np. Odpowiadamy pon-pt 9-17"
+                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-size:0.85rem">
+                </div>
+            </div>
+        </details>
+
         <!-- OLX -->
         <details class="card" style="padding:0;margin-bottom:12px">
             <summary style="padding:15px;cursor:pointer;font-weight:700;font-size:1rem;list-style:none;display:flex;align-items:center;gap:10px">
@@ -538,6 +572,7 @@ def ustawienia_kreator_save():
         'gemini_api_key', 'perplexity_api_key',
         'ngrok_auth_token', 'ngrok_domain',
         'olx_client_id', 'olx_client_secret', 'olx_redirect_uri',
+        'support_email', 'support_phone', 'support_info',
     ]
 
     saved = 0

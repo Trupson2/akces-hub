@@ -161,6 +161,14 @@ def support_zgloszenie():
     except:
         css = ''
 
+    # Dane kontaktowe supportu
+    s_email = get_config('support_email', '')
+    s_phone = get_config('support_phone', '')
+    s_info = get_config('support_info', '')
+    s_email_html = f'<div style="color:#93c5fd;margin-bottom:4px"><a href="mailto:{s_email}" style="color:#93c5fd;text-decoration:none">📧 {s_email}</a></div>' if s_email else ''
+    s_phone_html = f'<div style="color:#93c5fd;margin-bottom:4px"><a href="tel:{s_phone}" style="color:#93c5fd;text-decoration:none">📱 {s_phone}</a></div>' if s_phone else ''
+    s_info_html = f'<div style="color:#94a3b8;font-size:0.85rem;margin-top:8px">{s_info}</div>' if s_info else '<div style="color:#64748b;font-size:0.85rem">Odpowiadamy zazwyczaj w ciagu 24h</div>'
+
     html = f'''<!DOCTYPE html>
 <html><head>
 <meta charset="UTF-8">
@@ -214,7 +222,13 @@ body {{ background: #0a0a0f; color: #e2e8f0; font-family: -apple-system, BlinkMa
     </div>
 
     <div class="card" style="text-align: center;">
-        <p style="margin: 0; color: #94a3b8;">Po wysłaniu zgłoszenia otrzymamy powiadomienie<br>z pełną diagnostyką systemu. Nie musisz nic więcej robić.</p>
+        <p style="margin: 0 0 12px; color: #94a3b8;">Po wysłaniu zgłoszenia otrzymamy powiadomienie<br>z pełną diagnostyką systemu.</p>
+        <div style="border-top:1px solid #2d2d44;padding-top:12px;margin-top:12px">
+            <div style="font-weight:600;margin-bottom:8px;color:#e2e8f0">📞 Kontakt z supportem</div>
+            {s_email_html}
+            {s_phone_html}
+            {s_info_html}
+        </div>
     </div>
 </div>
 </body></html>'''
