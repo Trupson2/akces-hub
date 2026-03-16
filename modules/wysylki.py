@@ -193,7 +193,7 @@ def _zwroc_zamowienie(order, item, produkt_z_bazy):
 @wysylki_bp.route('/wysylki/allegro')
 def wysylki_allegro():
     """Lista zamówień do wysłania z Allegro API z lokalizacjami produktów"""
-    from app import VERSION
+    VERSION = current_app.config.get('VERSION', '')
     force = request.args.get('refresh', '') == '1'
 
     # Przy odświeżeniu — najpierw sync z Allegro (aktualizuje statusy wysłanych)
@@ -231,7 +231,7 @@ def wysylki_sync():
 @wysylki_bp.route('/wysylki/pakowanie')
 def wysylki_pakowanie():
     """Stacja pakowania ze skanerem"""
-    from app import VERSION
+    VERSION = current_app.config.get('VERSION', '')
     return render_template('pakowanie.html',
         version=VERSION,
         active_wysylki='active', active_home='', active_magazyn='',
@@ -516,7 +516,7 @@ def wysylki_lista():
     """Lista zamówień do wysyłki z checkboxami (status='nowa') - GRUPOWANE PO ZAMÓWIENIU"""
     from modules.database import get_db
     from modules.shared import CSS
-    from app import VERSION
+    VERSION = current_app.config.get('VERSION', '')
     from collections import defaultdict
     
     # Pobierz filtr użytkownika z parametru URL
