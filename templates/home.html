@@ -22,6 +22,21 @@ document.getElementById('pwa-install')?.addEventListener('click',async()=>{if(de
 window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner').style.display='none';});
 </script>
 
+<!-- ═══════════ UPDATE BANNER ═══════════ -->
+{% if update_banner %}
+<div id="update-banner" style="background:linear-gradient(135deg,rgba(34,197,94,0.15),rgba(59,130,246,0.1));border:1px solid rgba(34,197,94,0.35);border-radius:14px;padding:14px 16px;margin-bottom:16px;position:relative">
+    <button onclick="document.getElementById('update-banner').style.display='none'" style="position:absolute;top:8px;right:12px;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">&times;</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <span style="font-size:1.3rem">🔄</span>
+        <div>
+            <div style="font-weight:700;color:#22c55e;font-size:0.9rem">System zaktualizowany!</div>
+            <div style="font-size:0.72rem;color:#64748b">{{ update_banner.date }} &middot; wersja {{ update_banner.commit }}</div>
+        </div>
+    </div>
+    <div style="font-size:0.82rem;color:#e2e8f0;padding:8px 10px;background:rgba(0,0,0,0.2);border-radius:8px">{{ update_banner.message }}</div>
+</div>
+{% endif %}
+
 <!-- ═══════════ DZISIAJ ═══════════ -->
 <div style="background:linear-gradient(135deg,rgba(34,197,94,0.12),rgba(16,185,129,0.08));border:1px solid rgba(34,197,94,0.25);border-radius:16px;padding:18px;margin-bottom:16px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">

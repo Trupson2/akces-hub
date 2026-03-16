@@ -1045,6 +1045,21 @@ def home():
         'stojace': stats.get('stojace_30dni', 0),
     }
 
+    # Sprawdź czy jest nowa aktualizacja do pokazania
+    update_banner = None
+    try:
+        from modules.database import get_config, set_config
+        raw = get_config('last_update_info', '')
+        if raw:
+            ui = json.loads(raw)
+            if not ui.get('seen'):
+                update_banner = ui
+                # Oznacz jako widziane
+                ui['seen'] = True
+                set_config('last_update_info', json.dumps(ui))
+    except:
+        pass
+
     resp = make_response(render_template('home.html',
         version=VERSION,
         today_date=datetime.now().strftime('%d.%m.%Y'),
@@ -1057,6 +1072,7 @@ def home():
         activity=activity,
         goal=goal,  # Hyundai i30 N Goal
         monthly=monthly_stats,
+        update_banner=update_banner,
         top_produkty=stats.get('top_produkty', []),
         top_dostawcy=stats.get('top_dostawcy', []),
         active_home='active', active_magazyn='', active_paletomat='',
@@ -1404,6 +1420,60 @@ def system_update():
 
         if 'Already up to date' in pull_output:
             return jsonify({'ok': True, 'msg': 'Już aktualne, bez zmian'})
+
+        # Pobierz info o aktualizacji (ostatni commit)
+        try:
+            log_result = subprocess.run(
+                ['git', 'log', '-1', '--pretty=format:%s'],
+                capture_output=True, text=True, timeout=5,
+                cwd=os.path.dirname(os.path.abspath(__file__))
+            )
+            commit_msg = log_result.stdout.strip() if log_result.returncode == 0 else ''
+
+            ver_result = subprocess.run(
+                ['git', 'log', '-1', '--pretty=format:%h'],
+                capture_output=True, text=True, timeout=5,
+                cwd=os.path.dirname(os.path.abspath(__file__))
+            )
+            commit_hash = ver_result.stdout.strip() if ver_result.returncode == 0 else ''
+        except:
+            commit_msg = ''
+            commit_hash = ''
+
+        # Zapisz info o aktualizacji do config (do wyświetlenia na dashboardzie)
+        try:
+            from modules.database import set_config
+            update_info = json.dumps({
+                'date': datetime.now().strftime('%Y-%m-%d %H:%M'),
+                'commit': commit_hash,
+                'message': commit_msg[:200],
+                'seen': False
+            })
+            set_config('last_update_info', update_info)
+        except:
+            pass
+
+        # Wyślij powiadomienie na Telegram
+        try:
+            from modules.database import get_config
+            bot_token = get_config('telegram_bot_token', '')
+            chat_id = get_config('telegram_chat_id', '')
+            if bot_token and chat_id:
+                import requests as _req
+                text = (
+                    f"🔄 *AKCES HUB — Aktualizacja systemu*\n\n"
+                    f"📦 Wersja: `{commit_hash}`\n"
+                    f"📝 {commit_msg[:150]}\n"
+                    f"🕐 {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
+                    f"✅ System restartuje się za chwilę..."
+                )
+                _req.post(
+                    f'https://api.telegram.org/bot{bot_token}/sendMessage',
+                    json={'chat_id': chat_id, 'text': text, 'parse_mode': 'Markdown'},
+                    timeout=5
+                )
+        except:
+            pass
 
         # Restart serwisu z opóźnieniem 2s (żeby response zdążył dojść)
         import threading
