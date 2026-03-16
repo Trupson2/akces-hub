@@ -18,6 +18,7 @@ pandas>=2.1.0
 
 # --- Obrazki ---
 Pillow>=10.0.0
+rembg[cpu]>=2.0.0           # Lokalne usuwanie tla (darmowe, bez GPU)
 
 # --- Kody QR i kreskowe ---
 qrcode>=7.4.0
