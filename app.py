@@ -1045,16 +1045,89 @@ def home():
         'stojace': stats.get('stojace_30dni', 0),
     }
 
-    # Sprawdź czy jest nowa aktualizacja do pokazania
+    # Sprawdź czy jest nowa wersja dostępna (cache 1h)
+    update_status = None
+    try:
+        import subprocess as _sp
+        from modules.database import get_config, set_config
+
+        cache_raw = get_config('update_check_cache', '')
+        cache = json.loads(cache_raw) if cache_raw else {}
+        cache_age = time.time() - cache.get('checked_at', 0)
+
+        if cache_age > 3600:  # co 1h sprawdzaj
+            _sp.run(['git', 'fetch', 'origin', 'main', '--quiet'],
+                    capture_output=True, timeout=15,
+                    cwd=os.path.dirname(os.path.abspath(__file__)))
+
+            local = _sp.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, timeout=5,
+                            cwd=os.path.dirname(os.path.abspath(__file__))).stdout.strip()
+            remote = _sp.run(['git', 'rev-parse', 'origin/main'], capture_output=True, text=True, timeout=5,
+                             cwd=os.path.dirname(os.path.abspath(__file__))).stdout.strip()
+
+            has_update = local != remote
+            remote_msg = ''
+            remote_hash = ''
+            if has_update:
+                r = _sp.run(['git', 'log', 'HEAD..origin/main', '--pretty=format:%h — %s', '--reverse'],
+                            capture_output=True, text=True, timeout=5,
+                            cwd=os.path.dirname(os.path.abspath(__file__)))
+                remote_msg = r.stdout.strip()[:300] if r.returncode == 0 else ''
+                rh = _sp.run(['git', 'rev-parse', '--short', 'origin/main'],
+                             capture_output=True, text=True, timeout=5,
+                             cwd=os.path.dirname(os.path.abspath(__file__)))
+                remote_hash = rh.stdout.strip() if rh.returncode == 0 else ''
+
+            cache = {
+                'checked_at': time.time(),
+                'has_update': has_update,
+                'remote_msg': remote_msg,
+                'remote_hash': remote_hash,
+                'local_hash': local[:7],
+                'notified': cache.get('notified', False) if has_update else False
+            }
+            set_config('update_check_cache', json.dumps(cache))
+
+            # Wyślij TG powiadomienie o nowej wersji (raz)
+            if has_update and not cache.get('notified'):
+                try:
+                    bot_token = get_config('telegram_bot_token', '')
+                    chat_id = get_config('telegram_chat_id', '')
+                    if bot_token and chat_id:
+                        import requests as _req
+                        text = (
+                            f"📢 *Dostępna aktualizacja AKCES HUB!*\n\n"
+                            f"📦 Nowa wersja: `{remote_hash}`\n"
+                            f"📝 Zmiany:\n{remote_msg[:200]}\n\n"
+                            f"💡 Wejdź na dashboard i kliknij *Aktualizuj*"
+                        )
+                        _req.post(
+                            f'https://api.telegram.org/bot{bot_token}/sendMessage',
+                            json={'chat_id': chat_id, 'text': text, 'parse_mode': 'Markdown'},
+                            timeout=5
+                        )
+                        cache['notified'] = True
+                        set_config('update_check_cache', json.dumps(cache))
+                except:
+                    pass
+
+        update_status = {
+            'has_update': cache.get('has_update', False),
+            'remote_msg': cache.get('remote_msg', ''),
+            'remote_hash': cache.get('remote_hash', ''),
+            'local_hash': cache.get('local_hash', ''),
+        }
+    except:
+        pass
+
+    # Po aktualizacji — jednorazowy banner "zaktualizowano"
     update_banner = None
     try:
-        from modules.database import get_config, set_config
         raw = get_config('last_update_info', '')
         if raw:
             ui = json.loads(raw)
             if not ui.get('seen'):
                 update_banner = ui
-                # Oznacz jako widziane
                 ui['seen'] = True
                 set_config('last_update_info', json.dumps(ui))
     except:
@@ -1073,6 +1146,7 @@ def home():
         goal=goal,  # Hyundai i30 N Goal
         monthly=monthly_stats,
         update_banner=update_banner,
+        update_status=update_status,
         top_produkty=stats.get('top_produkty', []),
         top_dostawcy=stats.get('top_dostawcy', []),
         active_home='active', active_magazyn='', active_paletomat='',
