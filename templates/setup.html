@@ -71,6 +71,17 @@
         <input type="text" id="s-brand" value="{{ current_brand }}" placeholder="np. Moja Firma Hub" maxlength="50">
     </div>
     <div class="form-group">
+        <label>Logo firmy (opcjonalne)</label>
+        <div style="display:flex;align-items:center;gap:12px">
+            <label for="s-logo" style="display:flex;align-items:center;justify-content:center;width:80px;height:80px;background:#0f1219;border:2px dashed #1e293b;border-radius:12px;cursor:pointer;overflow:hidden" id="logo-preview-box">
+                <span id="logo-placeholder" style="color:#64748b;font-size:0.75rem;text-align:center">Kliknij<br>aby dodac</span>
+                <img id="logo-preview-img" style="display:none;max-width:100%;max-height:100%;object-fit:contain">
+            </label>
+            <input type="file" id="s-logo" accept="image/png,image/jpeg,image/svg+xml" style="display:none">
+            <div style="font-size:0.72rem;color:#64748b">PNG, JPG lub SVG<br>Maks. 500 KB</div>
+        </div>
+    </div>
+    <div class="form-group">
         <label>Kolor przewodni</label>
         <div class="color-row">
             <input type="text" id="s-color-text" value="{{ current_color }}" placeholder="#6366f1" maxlength="7">
@@ -187,23 +198,52 @@ brandInput.addEventListener('input', () => { preview.textContent = brandInput.va
 colorInput.addEventListener('input', () => { preview.style.color = colorInput.value; colorText.value = colorInput.value; });
 colorText.addEventListener('input', () => { if(/^#[0-9a-f]{6}$/i.test(colorText.value)){colorInput.value=colorText.value;preview.style.color=colorText.value;} });
 
-function finishSetup() {
+// Logo preview
+const logoInput = document.getElementById('s-logo');
+const logoPreviewImg = document.getElementById('logo-preview-img');
+const logoPlaceholder = document.getElementById('logo-placeholder');
+let logoFile = null;
+logoInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 512000) { alert('Plik za duzy (maks. 500 KB)'); return; }
+    logoFile = file;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        logoPreviewImg.src = ev.target.result;
+        logoPreviewImg.style.display = 'block';
+        logoPlaceholder.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+});
+
+async function finishSetup() {
     const btn = document.getElementById('btn-finish');
-    btn.textContent = 'Zapisuję...';
+    btn.textContent = 'Zapisuje...';
     btn.disabled = true;
-    fetch('/setup/save', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        credentials: 'same-origin',
-        body: JSON.stringify({
-            brand_name: brandInput.value || 'AKCES HUB',
-            brand_color: colorInput.value || '#6366f1'
-        })
-    }).then(r => r.json()).then(() => {
-        window.location.href = '/';
-    }).catch(() => {
-        window.location.href = '/';
-    });
+
+    // Upload logo jesli wybrane
+    if (logoFile) {
+        const fd = new FormData();
+        fd.append('logo', logoFile);
+        try {
+            await fetch('/setup/logo', {method:'POST', credentials:'same-origin', body: fd});
+        } catch(e) {}
+    }
+
+    // Zapisz branding
+    try {
+        await fetch('/setup/save', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                brand_name: brandInput.value || 'AKCES HUB',
+                brand_color: colorInput.value || '#6366f1'
+            })
+        });
+    } catch(e) {}
+    window.location.href = '/';
 }
 </script>
 {% endblock %}

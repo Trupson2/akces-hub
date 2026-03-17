@@ -1650,6 +1650,28 @@ def setup_save():
     set_config('setup_done', '1')
     return jsonify({'ok': True})
 
+@app.route('/setup/logo', methods=['POST'])
+def setup_logo():
+    """Upload logo z wizarda"""
+    from PIL import Image
+    f = request.files.get('logo')
+    if not f:
+        return jsonify({'ok': False, 'error': 'Brak pliku'}), 400
+    if f.content_length and f.content_length > 512000:
+        return jsonify({'ok': False, 'error': 'Za duzy plik'}), 400
+    try:
+        img = Image.open(f.stream)
+        if img.height > 200:
+            ratio = 200 / img.height
+            img = img.resize((int(img.width * ratio), 200), Image.LANCZOS)
+        logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'brand_logo.png')
+        img.save(logo_path, 'PNG', optimize=True)
+        from modules.database import set_config
+        set_config('brand_logo', 'brand_logo.png')
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)[:100]}), 500
+
 # ============================================================
 # CHANGELOG — historia zmian po polsku
 # ============================================================
