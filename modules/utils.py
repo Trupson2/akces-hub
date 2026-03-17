@@ -212,7 +212,7 @@ def scrape_amazon_product(asin, preferred_domain=None):
         return None
 
     # Priorytet: amazon.pl (polskie napisy na zdjeciach!), potem reszta
-    domains = ['amazon.pl', 'amazon.de', 'amazon.com', 'amazon.co.uk', 'amazon.fr', 'amazon.it', 'amazon.es']
+    domains = ['amazon.pl', 'amazon.de', 'amazon.com', 'amazon.co.uk', 'amazon.fr', 'amazon.it', 'amazon.es', 'amazon.com.tr', 'amazon.nl', 'amazon.se']
 
     # Jeśli użytkownik wybrał domenę, przenieś ją na początek
     if preferred_domain:
