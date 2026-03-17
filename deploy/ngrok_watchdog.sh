@@ -6,7 +6,7 @@
 # ===========================================
 
 NGROK_BIN="/usr/local/bin/ngrok"
-NGROK_URL="akceshub.ngrok.dev"
+NGROK_URL="unsatiating-dirgelike-audrina.ngrok-free.dev"
 FLASK_PORT=5000
 CHECK_INTERVAL=30
 MAX_FAILS=3

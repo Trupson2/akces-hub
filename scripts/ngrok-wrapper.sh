@@ -1,7 +1,7 @@
 #!/bin/bash
 # Ngrok wrapper - stabilny autostart z retry i cleanup
 
-NGROK_URL="akceshub.ngrok.dev"
+NGROK_URL="unsatiating-dirgelike-audrina.ngrok-free.dev"
 NGROK_BIN="/usr/local/bin/ngrok"
 MAX_RETRIES=5
 RETRY_DELAY=30
