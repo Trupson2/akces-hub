@@ -811,7 +811,7 @@ class PrinterManager:
                 current_line = test
         if current_line:
             lines.append(current_line)
-        lines = lines[:2]  # max 2 linie
+        lines = lines[:3]  # max 3 linie
 
         for line in lines:
             draw.text((10, y), line, font=font_title, fill=0)
