@@ -5662,18 +5662,19 @@ def etykiety_niimbot_page(products):
 
     for i, pv in enumerate(previews):
         html += f'''
-        <div class="card" style="padding:10px" id="card-{i}">
-            <div style="display:flex;gap:10px;align-items:center">
-                <img src="{pv['preview']}" style="width:70px;height:auto;border:1px solid #1e1e2e;border-radius:6px;cursor:pointer"
+        <div class="card" style="padding:12px" id="card-{i}">
+            <div style="display:flex;gap:12px;align-items:center">
+                <img src="{pv['preview']}" style="width:100px;height:auto;border:1px solid #2d2d3e;border-radius:8px;cursor:pointer;background:#fff"
                      alt="Etykieta" onclick="showPreview({pv['id']}, this.src)">
                 <div style="flex:1;min-width:0">
-                    <div style="font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{pv['nazwa'][:35]}</div>
-                    <div style="font-size:0.7rem;color:#64748b;margin-top:2px">{pv['ean'] or 'Brak EAN'} | {pv['lokalizacja'] or '-'}</div>
+                    <div style="font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{pv['nazwa'][:35]}</div>
+                    <div style="font-size:0.75rem;color:#64748b;margin-top:4px">{pv['ean'] or 'Brak EAN'} | 📍 {pv['lokalizacja'] or '—'}</div>
+                    <div style="font-size:0.7rem;color:#8b5cf6;margin-top:2px">x{pv['ilosc']} szt.</div>
                 </div>
                 <button onclick="printLabel({pv['id']}, '{(pv['ean'] or str(pv['id']))}', {i})"
-                   style="min-width:70px;padding:12px 16px;background:#22c55e;color:#fff;border:none;border-radius:10px;font-size:0.95rem;font-weight:700;cursor:pointer"
+                   style="min-width:60px;padding:14px 18px;background:#22c55e;color:#fff;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer"
                    id="btn-{i}">
-                    🖨️
+                    💾
                 </button>
             </div>
         </div>'''

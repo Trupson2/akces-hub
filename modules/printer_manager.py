@@ -1246,12 +1246,8 @@ class PrinterManager:
             img_rgb = Image.new('RGB', img.size, 'white')
             img_rgb.paste(img.convert('L'))
             
-            # Powiększ dla lepszego podglądu
-            scale = 3
-            img_rgb = img_rgb.resize(
-                (img.size[0] * scale, img.size[1] * scale),
-                Image.Resampling.NEAREST
-            )
+            # Podgląd w oryginalnym rozmiarze (576px szerokości)
+            # Skalowanie nie jest potrzebne - obraz jest już duży
             
             # Konwertuj do base64
             buffer = io.BytesIO()
