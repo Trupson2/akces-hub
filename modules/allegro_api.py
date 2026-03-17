@@ -816,8 +816,34 @@ def sync_offers_status():
             stats['new'] += 1
             print(f"  🆕 {offer_id[:8]}... dodano jako {our_status}, wystawiona: {data_wystawienia_val}")
     
+    # === KLUCZOWE: Oznacz oferty w bazie które NIE istnieją na Allegro ===
+    # (usunięte szkice, ręcznie usunięte oferty itp.)
+    allegro_ids_on_server = set()
+    for offer in allegro_offers:
+        if offer and isinstance(offer, dict) and offer.get('id'):
+            allegro_ids_on_server.add(str(offer['id']))
+
+    if allegro_ids_on_server:
+        # Znajdź "aktywne" oferty w bazie których NIE MA na Allegro
+        local_active = conn.execute(
+            "SELECT id, allegro_id, tytul FROM oferty "
+            "WHERE status IN ('active','ACTIVE','aktywna','wystawiona','published') "
+            "AND allegro_id IS NOT NULL AND allegro_id != ''"
+        ).fetchall()
+
+        orphaned = 0
+        for row in local_active:
+            if str(row['allegro_id']) not in allegro_ids_on_server:
+                conn.execute("UPDATE oferty SET status = 'zakonczona' WHERE id = ?", (row['id'],))
+                orphaned += 1
+                print(f"  🗑️ Oferta #{row['allegro_id']} ({row['tytul'][:30]}) nie istnieje na Allegro → zakończona")
+
+        if orphaned:
+            stats['orphaned'] = orphaned
+            print(f"   🗑️ Usunięto z bazy: {orphaned} ofert nieistniejących na Allegro")
+
     conn.commit()
-    
+
     print(f"\n✅ Synchronizacja zakończona:")
     print(f"   📦 Wszystkich ofert: {stats['total']}")
     print(f"   📝 Szkice: {stats['draft']}")
@@ -825,7 +851,9 @@ def sync_offers_status():
     print(f"   ⏹️ Zakończone: {stats['ended']}")
     print(f"   🔄 Zaktualizowano: {stats['updated']}")
     print(f"   🆕 Nowe: {stats['new']}")
-    
+    if stats.get('orphaned'):
+        print(f"   🗑️ Usunięte (nie istnieją na Allegro): {stats['orphaned']}")
+
     return stats
 
 
