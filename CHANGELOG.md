@@ -1,100 +1,98 @@
-# CHANGELOG - AKCES HUB Enterprise
+# Historia zmian — Akces Hub
 
-## 2026-03-16 — Cleanup, error logging, stock sync, circular import fix
+## 17.03.2026
 
-### Naprawa circular import (/analityka 500)
-- Przeniesiono `auto_kategoryzuj` i `KATEGORIE_DISPLAY` z `app.py` do `modules/shared.py`
-- Zaktualizowano importy w `analityka.py`, `palety.py`, `app.py`
-- Eliminacja bledu 500 na Raspberry Pi (Blueprint re-registration)
+### Bezpieczenstwo (OWASP ZAP)
+- Dodano naglowki bezpieczenstwa: CSP, HSTS, X-Frame-Options, X-Content-Type-Options
+- Ukryto wersje serwera w odpowiedziach HTTP
+- Ochrona CSRF dla formularzy (flask-wtf)
+- Cache-control dla prywatnych stron (no-store)
+- Rate limiting na logowanie (flask-limiter)
 
-### Error logging
-- Flask 500/404 bledy logowane do `logs/akces_hub.log` via RotatingFileHandler
-- Bledy AJAX zwracaja JSON zamiast HTML
+### System aktualizacji
+- Dashboard pokazuje status wersji: "System aktualny" lub "Dostepna aktualizacja"
+- Automatyczne sprawdzanie nowych wersji co 1 godzine
+- Przycisk "Aktualizuj" — git pull + restart z poziomu przegladarki
+- Powiadomienie Telegram o dostepnej aktualizacji
 
-### Stock sync — 3 nowe fallbacki
-- **Fallback EAN** — dopasowanie zamowien po kodzie EAN z oferty Allegro
-- **Fallback ASIN regex** — szukanie ASIN (B0XXXXXXXX) w tytule oferty
-- **Fallback smart text** — dopasowanie tekstowe z confidence >= 0.55
-- Backfill: 69 osieroconych sprzedazy (produkt_id=NULL) polaczono z produktami
-- Indeksy EAN/ASIN w backfill dla szybszego matchingu
-
-### Cleanup
-- Usunieto 647 linii martwego kodu z `app.py` (resztki po migracji do shared.py)
-- Usunieto slot "skala" z AI Image Enhancer (zle wygladal)
-- `app.py` skrocony z ~4147 do ~3500 linii
+### Nowe funkcje
+- Kreator pierwszej konfiguracji (branding, moduly) po instalacji
+- Strona changelog — historia zmian po polsku
+- Branding dostepny globalnie we wszystkich szablonach
 
 ---
 
-## 2026-03-15 — Szablony HTML, backup Google Drive, reinstall Pi, bezpieczenstwo
+## 16.03.2026
 
-### System logowania (auth)
-- Nowy modul `modules/auth.py` — Flask Blueprint z sesja
-- Hashowanie hasel SHA-256 + sol (salt)
-- Rate limiting: max 5 prob na 15 min per IP (ochrona brute-force)
+### Bezpieczenstwo (Bandit)
+- Naprawiono wszystkie podatnosci SQL injection w 9 modulach
+- Parametryzowane zapytania (OWASP Defense #1) zamiast f-stringow
+- MD5 uzywany bez kontekstu bezpieczenstwa (usedforsecurity=False)
+- Bandit: 0 HIGH, 0 nowych MEDIUM
+
+### Strona /poziom (grywalizacja)
+- Skill tree, osiagniecia, droga do 1M zlotych
+- Przychod miesieczny i roczny z bazy danych (identycznie jak dashboard)
+- Prognoza na koniec miesiaca i roku (srednia dzienna)
+- Link na dashboardzie do strony /poziom
+
+### Inne naprawy
+- Generowanie meta tytulow — naprawiono blad SyntaxError (credentials fetch)
+- Automatyczne wylogowanie po 30 minutach bezczynnosci
+- Usunieto 36 plikow testowych z katalogu glownego
+
+---
+
+## 15.03.2026
+
+### System logowania
+- Modul auth.py — sesje, hashowanie hasel SHA-256 + sol
+- Rate limiting: max 5 prob na 15 min (ochrona brute-force)
 - First-run setup — tworzenie konta admin przy pierwszym uruchomieniu
-- Middleware `before_request` wymuszajacy logowanie na wszystkich stronach
-- Publiczne endpointy: `/static/`, `/api/health`, login, setup
-- Przycisk wylogowania w `templates/base.html`
-- Sesja wygasa po 24h
-
-### Bezpieczenstwo
-- Auto-generowany `SECRET_KEY` zapisywany do `.secret_key` (nie hardcoded)
-- `.gitignore` — chroni `.secret_key`, `.env`, `akces_hub.db`, `backups/`, `gemini_config.py`
-- Audyt SQL injection (bandit): 42 f-string execute() sprawdzone — 0 prawdziwych luk
-- Naprawiono 1 prawdziwy SQL injection w `app.py:13454` (string-join IDs → parametryzowane)
-- `timeout=` dodany do WSZYSTKICH wywolan `requests.get/post/put/patch/delete` w calym projekcie
-- pip-audit: zaktualizowano wszystkie podatne pakiety do czystego stanu
+- Automatyczny SECRET_KEY zapisywany do pliku
 
 ### Szablony HTML
-- Wyciagnieto 13 szablonow HTML z `app.py` do folderu `templates/`
-- Stworzono `templates/base.html` — wspolny layout (nav, CSS, JS)
-- Pliki: home, kiosk_home, wysylki, pakowanie, narzedzia, kalkulator, generator, export, raporty, powiadomienia, wybor_konta, dziadek, offline
-- Zamieniono `render_template_string()` na `render_template()`
-- `app.py` skrocony o ~1880 linii (z ~16600 do ~14650)
+- Wyciagnieto 13 szablonow z app.py do folderu templates/
+- Wspolny layout base.html (nawigacja, CSS, JS)
+- app.py skrocony o ~1880 linii
 
 ### Backup na Google Drive
-- Dodano sync backupow do Google Drive przez `rclone` w `backup_manager.py`
-- Po kazdym backupie automatycznie wysyla kopie na GDrive (w tle)
-- Endpoint `/backup/sync-gdrive` do recznego sync
-- Cache sprawdzania rclone — sprawdza raz, nie przy kazdym uzyciu
+- Automatyczny sync backupow przez rclone
+- Endpoint /backup/sync-gdrive do recznego uruchomienia
 
-### Optymalizacja backup daemona
-- `threading.Event` zamiast busy-wait (3600x `sleep(1)`) — natychmiastowe zatrzymanie
-- Bare `except: pass` zamienione na logowanie bledow
-- Usunieto bezuzyteczny `--progress` z `capture_output`
-
-### Raspberry Pi
-- Reinstall Pi OS (Bookworm) z powodu "failed to start session"
-- Przygotowano konfiguracje kiosku (Wayfire autostart + Flask + Chromium)
+### Optymalizacja
+- Naprawa circular import (/analityka 500)
+- Logowanie bledow 500/404 do plikow
+- Stock sync — 3 nowe fallbacki (EAN, ASIN, smart text)
+- Usunieto 647 linii martwego kodu
 
 ---
 
-## 2026-03-06 — Integracje OLX i Vinted
+## 06.03.2026
 
-### OLX
-- Dodano `modules/olx_api.py` — OAuth2, OLX Partner API (developer.olx.pl)
-- Tabela DB: `olx_oferty`
-- Strona konfiguracji, tworzenie/publikacja/usuwanie ofert
+### Integracje
+- OLX Partner API — OAuth2, tworzenie/publikacja/usuwanie ofert
+- Vinted Pro API — HMAC-SHA256, tworzenie/publikacja/usuwanie ofert
+- Przyciski "Wystaw na OLX/Vinted" na stronie produktu
 
-### Vinted
-- Dodano `modules/vinted_api.py` — HMAC-SHA256, Vinted Pro API
-- Tabela DB: `vinted_items`
-- Strona konfiguracji, tworzenie/publikacja/usuwanie ofert
-
-### Wspolne
-- Przyciski "Wystaw na OLX/Vinted" na stronie szczegolowej produktu
-
----
-
-## 2026-03-06 — Optymalizacja bazy danych i naprawy
-
-### Wydajnosc bazy
-- Usunieto `PRAGMA integrity_check` z `get_db()` — skanowalo cala baze przy kazdym polaczeniu
-- Zmieniono `PRAGMA synchronous` z FULL na NORMAL (bezpieczne z WAL)
-- Usunieto 95x `conn.close()` na poolowanych polaczeniach (lamalo pool, lock contention)
-- Naprawiono 3 puste bloki `finally:` po usunieciu conn.close()
+### Optymalizacja bazy danych
+- Usunieto PRAGMA integrity_check z get_db() (skanowalo cala baze!)
+- Zmieniono PRAGMA synchronous z FULL na NORMAL
+- Usunieto 95x conn.close() na poolowanych polaczeniach
 
 ### Naprawa kalkulacji zysku
-- Blad: uzywalo `cena_brutto` (MSRP/Amazon) jako koszt zakupu
-- Poprawka: koszt = `palety.cena_zakupu` (rzeczywisty koszt palety)
-- Formula: zysk = przychod - koszt_palet_miesiaca - prowizja_11%
+- Blad: uzywano ceny detalicznej zamiast kosztu zakupu palety
+- Poprawka: zysk = przychod - koszt_palet - prowizja_11%
+
+---
+
+## Wczesniejsze wersje
+- Paletomat — automatyczne wystawianie na Allegro
+- Scraper produktow z Amazona (zdjecia, opisy, ceny)
+- Magazyn 3D z heatmapa i wizualizacja regalow
+- Generator AI opisow produktow (Gemini API)
+- Modul wysylek InPost — etykiety, sledzenie paczek
+- Telegram bot — powiadomienia o zamowieniach
+- Kalkulator rentownosci palet
+- System zarzadzania paletami zwrotow
+- Dashboard z analityka sprzedazy

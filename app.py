@@ -126,6 +126,16 @@ def csrf_protect_forms():
         if request.form.get('csrf_token'):
             csrf.protect()
 
+# Branding — dostępny globalnie we wszystkich szablonach
+@app.context_processor
+def inject_branding():
+    from modules.database import get_config_cached
+    return {
+        'brand_name': get_config_cached('brand_name', 'AKCES HUB'),
+        'brand_color': get_config_cached('brand_color', '#6366f1'),
+        'brand_logo': get_config_cached('brand_logo', ''),
+    }
+
 # Loguj WSZYSTKIE błędy 500 do konsoli (Flask domyślnie je ukrywa w non-debug)
 import logging
 logging.basicConfig(level=logging.ERROR)
@@ -922,6 +932,19 @@ def api_system_stats():
 
 @app.route('/')
 def home():
+    # Onboarding — redirect jeśli nowa instalacja (brak setup_done i brak danych)
+    from modules.database import get_config as _gc, get_db as _gdb
+    if not _gc('setup_done', ''):
+        try:
+            cnt = _gdb().execute('SELECT COUNT(*) FROM produkty').fetchone()[0]
+            if cnt > 0:
+                from modules.database import set_config as _sc
+                _sc('setup_done', '1')  # Auto-skip dla istniejacych instalacji
+            else:
+                return redirect('/setup')
+        except:
+            return redirect('/setup')
+
     # Sprawdź czy jest wybrane konto (auto-set adrian if not)
     user = request.cookies.get('akces_user')
     
@@ -1607,6 +1630,48 @@ def system_update():
         return jsonify({'ok': False, 'error': 'Timeout — sprawdź połączenie z internetem'})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)[:200]})
+
+# ============================================================
+# ONBOARDING — kreator pierwszej konfiguracji
+# ============================================================
+@app.route('/setup')
+def setup_wizard():
+    """Wizard po pierwszym logowaniu — branding, moduły, API"""
+    from modules.database import get_config
+    return render_template('setup.html',
+        version=VERSION,
+        current_brand=get_config('brand_name', 'AKCES HUB'),
+        current_color=get_config('brand_color', '#6366f1'),
+        has_allegro=bool(get_config('allegro_client_id', '')),
+        has_telegram=bool(get_config('telegram_bot_token', '')),
+    )
+
+@app.route('/setup/save', methods=['POST'])
+def setup_save():
+    """Zapisz konfigurację z wizarda"""
+    from modules.database import set_config
+    data = request.get_json() or {}
+    if data.get('brand_name'):
+        set_config('brand_name', data['brand_name'][:50])
+    if data.get('brand_color'):
+        set_config('brand_color', data['brand_color'][:7])
+    set_config('setup_done', '1')
+    return jsonify({'ok': True})
+
+# ============================================================
+# CHANGELOG — historia zmian po polsku
+# ============================================================
+@app.route('/changelog')
+def changelog():
+    """Changelog z pliku CHANGELOG.md — po polsku"""
+    content = ''
+    try:
+        cl_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'CHANGELOG.md')
+        with open(cl_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except:
+        content = '# Brak changelogu'
+    return render_template('changelog.html', content=content, version=VERSION)
 
 @app.route('/narzedzia')
 def narzedzia():

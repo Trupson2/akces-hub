@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.setup-container{max-width:540px;margin:0 auto;padding:24px 16px}
+.setup-step{display:none;animation:fadeIn .3s}
+.setup-step.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.step-header{text-align:center;margin-bottom:28px}
+.step-header h2{font-size:1.4rem;margin:0 0 6px}
+.step-header p{color:#64748b;font-size:0.85rem;margin:0}
+.step-num{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-weight:700;font-size:1rem;margin-bottom:12px}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;font-size:0.82rem;color:#94a3b8;margin-bottom:6px;font-weight:600}
+.form-group input[type="text"],.form-group input[type="color"]{width:100%;padding:12px;background:#0f1219;border:1px solid #1e293b;border-radius:10px;color:#e2e8f0;font-size:0.95rem}
+.form-group input[type="text"]:focus{border-color:#6366f1;outline:none}
+.form-group input[type="color"]{height:48px;padding:4px;cursor:pointer}
+.color-row{display:flex;gap:10px;align-items:center}
+.color-row input[type="text"]{flex:1}
+.color-row input[type="color"]{width:48px;flex:none;border-radius:10px}
+.module-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.module-card{padding:14px;background:#0f1219;border:1px solid #1e293b;border-radius:12px;cursor:pointer;transition:all .2s;text-align:center}
+.module-card:hover{border-color:#6366f1}
+.module-card.selected{border-color:#22c55e;background:rgba(34,197,94,.08)}
+.module-card .icon{font-size:1.5rem;margin-bottom:4px}
+.module-card .name{font-size:0.82rem;font-weight:600;color:#e2e8f0}
+.module-card .desc{font-size:0.7rem;color:#64748b;margin-top:2px}
+.btn-row{display:flex;gap:10px;margin-top:24px}
+.btn-next{flex:1;padding:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:12px;font-size:0.95rem;font-weight:700;cursor:pointer}
+.btn-next:hover{opacity:.9}
+.btn-skip{flex:none;padding:14px 20px;background:transparent;color:#64748b;border:1px solid #1e293b;border-radius:12px;font-size:0.85rem;cursor:pointer}
+.btn-skip:hover{border-color:#64748b}
+.progress-dots{display:flex;justify-content:center;gap:8px;margin-bottom:24px}
+.dot{width:10px;height:10px;border-radius:50%;background:#1e293b;transition:all .3s}
+.dot.active{background:#6366f1;transform:scale(1.2)}
+.dot.done{background:#22c55e}
+.preview-brand{text-align:center;padding:20px;background:#0f1219;border-radius:14px;border:1px solid #1e293b;margin-top:16px}
+.preview-brand h3{margin:0;font-size:1.3rem}
+.welcome-icon{font-size:3rem;margin-bottom:8px}
+.finish-check{font-size:4rem;margin-bottom:12px;color:#22c55e}
+</style>
+
+<div class="setup-container">
+<div class="progress-dots" id="dots">
+    <div class="dot active"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+</div>
+
+<!-- STEP 1: Powitanie -->
+<div class="setup-step active" id="step1">
+    <div class="step-header">
+        <div class="welcome-icon">🚀</div>
+        <h2>Witaj w Akces Hub!</h2>
+        <p>Skonfiguruj system w kilku krokach.<br>Zajmie to mniej niz minute.</p>
+    </div>
+    <div class="btn-row">
+        <button class="btn-next" onclick="goStep(2)">Zaczynamy →</button>
+    </div>
+</div>
+
+<!-- STEP 2: Branding -->
+<div class="setup-step" id="step2">
+    <div class="step-header">
+        <div class="step-num">1</div>
+        <h2>Twoja firma</h2>
+        <p>Jak ma sie nazywac Twoj system?</p>
+    </div>
+    <div class="form-group">
+        <label>Nazwa firmy / systemu</label>
+        <input type="text" id="s-brand" value="{{ current_brand }}" placeholder="np. Moja Firma Hub" maxlength="50">
+    </div>
+    <div class="form-group">
+        <label>Kolor przewodni</label>
+        <div class="color-row">
+            <input type="text" id="s-color-text" value="{{ current_color }}" placeholder="#6366f1" maxlength="7">
+            <input type="color" id="s-color" value="{{ current_color }}">
+        </div>
+    </div>
+    <div class="preview-brand">
+        <p style="font-size:0.7rem;color:#64748b;margin:0 0 8px">Podglad:</p>
+        <h3 id="preview-name" style="color:{{ current_color }}">{{ current_brand }}</h3>
+    </div>
+    <div class="btn-row">
+        <button class="btn-skip" onclick="goStep(3)">Pomijam</button>
+        <button class="btn-next" onclick="goStep(3)">Dalej →</button>
+    </div>
+</div>
+
+<!-- STEP 3: Moduły -->
+<div class="setup-step" id="step3">
+    <div class="step-header">
+        <div class="step-num">2</div>
+        <h2>Moduly</h2>
+        <p>Jakich funkcji potrzebujesz? (mozesz zmienic pozniej)</p>
+    </div>
+    <div class="module-grid">
+        <div class="module-card selected" data-mod="paletomat" onclick="toggleMod(this)">
+            <div class="icon">🤖</div>
+            <div class="name">Paletomat</div>
+            <div class="desc">Wystawianie na Allegro</div>
+        </div>
+        <div class="module-card selected" data-mod="magazyn" onclick="toggleMod(this)">
+            <div class="icon">📦</div>
+            <div class="name">Magazyn</div>
+            <div class="desc">Stany i lokalizacje</div>
+        </div>
+        <div class="module-card selected" data-mod="allegro" onclick="toggleMod(this)">
+            <div class="icon">🛒</div>
+            <div class="name">Allegro API</div>
+            <div class="desc">Synchronizacja zamowien</div>
+        </div>
+        <div class="module-card" data-mod="olx" onclick="toggleMod(this)">
+            <div class="icon">📋</div>
+            <div class="name">OLX</div>
+            <div class="desc">Wystawianie ofert</div>
+        </div>
+        <div class="module-card" data-mod="vinted" onclick="toggleMod(this)">
+            <div class="icon">👗</div>
+            <div class="name">Vinted</div>
+            <div class="desc">Sprzedaz odziez</div>
+        </div>
+        <div class="module-card selected" data-mod="telegram" onclick="toggleMod(this)">
+            <div class="icon">📱</div>
+            <div class="name">Telegram</div>
+            <div class="desc">Powiadomienia</div>
+        </div>
+    </div>
+    <div class="btn-row">
+        <button class="btn-skip" onclick="goStep(4)">Pomijam</button>
+        <button class="btn-next" onclick="goStep(4)">Dalej →</button>
+    </div>
+</div>
+
+<!-- STEP 4: Gotowe -->
+<div class="setup-step" id="step4">
+    <div class="step-header">
+        <div class="finish-check">✅</div>
+        <h2>Gotowe!</h2>
+        <p>System skonfigurowany. Mozesz zmienic ustawienia<br>w kazdej chwili w <strong>Ustawienia</strong>.</p>
+    </div>
+    <div style="background:#0f1219;border:1px solid #1e293b;border-radius:12px;padding:16px;margin-bottom:20px">
+        <div style="font-size:0.8rem;color:#64748b;margin-bottom:10px">Nastepne kroki:</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+            {% if not has_allegro %}
+            <a href="/ustawienia" style="display:flex;align-items:center;gap:8px;color:#e2e8f0;text-decoration:none;font-size:0.85rem">
+                <span style="color:#eab308">⚡</span> Podlacz Allegro API
+            </a>
+            {% endif %}
+            {% if not has_telegram %}
+            <a href="/ustawienia" style="display:flex;align-items:center;gap:8px;color:#e2e8f0;text-decoration:none;font-size:0.85rem">
+                <span style="color:#eab308">⚡</span> Skonfiguruj Telegram bota
+            </a>
+            {% endif %}
+            <a href="/changelog" style="display:flex;align-items:center;gap:8px;color:#e2e8f0;text-decoration:none;font-size:0.85rem">
+                <span style="color:#6366f1">📋</span> Zobacz changelog systemu
+            </a>
+        </div>
+    </div>
+    <div class="btn-row">
+        <button class="btn-next" onclick="finishSetup()" id="btn-finish">Przejdz do dashboardu →</button>
+    </div>
+</div>
+</div>
+
+<script>
+let currentStep = 1;
+function goStep(n) {
+    document.getElementById('step'+currentStep).classList.remove('active');
+    document.getElementById('step'+n).classList.add('active');
+    const dots = document.querySelectorAll('.dot');
+    dots.forEach((d,i) => {
+        d.classList.remove('active','done');
+        if (i < n-1) d.classList.add('done');
+        if (i === n-1) d.classList.add('active');
+    });
+    currentStep = n;
+}
+function toggleMod(el) { el.classList.toggle('selected'); }
+
+// Live preview branding
+const brandInput = document.getElementById('s-brand');
+const colorInput = document.getElementById('s-color');
+const colorText = document.getElementById('s-color-text');
+const preview = document.getElementById('preview-name');
+brandInput.addEventListener('input', () => { preview.textContent = brandInput.value || 'AKCES HUB'; });
+colorInput.addEventListener('input', () => { preview.style.color = colorInput.value; colorText.value = colorInput.value; });
+colorText.addEventListener('input', () => { if(/^#[0-9a-f]{6}$/i.test(colorText.value)){colorInput.value=colorText.value;preview.style.color=colorText.value;} });
+
+function finishSetup() {
+    const btn = document.getElementById('btn-finish');
+    btn.textContent = 'Zapisuję...';
+    btn.disabled = true;
+    fetch('/setup/save', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        credentials: 'same-origin',
+        body: JSON.stringify({
+            brand_name: brandInput.value || 'AKCES HUB',
+            brand_color: colorInput.value || '#6366f1'
+        })
+    }).then(r => r.json()).then(() => {
+        window.location.href = '/';
+    }).catch(() => {
+        window.location.href = '/';
+    });
+}
+</script>
+{% endblock %}
