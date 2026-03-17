@@ -1113,9 +1113,155 @@ def register_printer_routes(bp: Blueprint):
         return render(html)
     
     # ============================================================
+    # MASOWE ETYKIETY
+    # ============================================================
+
+    @bp.route('/etykiety')
+    def etykiety_masowe():
+        """Strona masowego pobierania etykiet — wybierz paletę, pobierz PNG dla każdego produktu"""
+        conn = get_db()
+        palety = conn.execute('SELECT id, nazwa, data_zakupu FROM palety ORDER BY id DESC').fetchall()
+        palety = [dict(p) for p in palety]
+
+        from .magazynier import render
+        html = '''
+        <div class="hdr"><h1>🏷️ Masowe etykiety</h1></div>
+        <a href="/" class="back" style="margin-bottom:16px;display:inline-block">← Dashboard</a>
+
+        <div style="margin-bottom:16px">
+            <label style="font-size:0.85rem;color:#94a3b8;display:block;margin-bottom:6px">Wybierz paletę:</label>
+            <select id="paleta-select" onchange="loadProducts()" style="width:100%;padding:12px;background:#0f1219;border:1px solid #1e293b;border-radius:10px;color:#e2e8f0;font-size:0.95rem">
+                <option value="">-- Wybierz paletę --</option>
+                ''' + ''.join(f'<option value="{p["id"]}">{p["nazwa"] or "Paleta #"+str(p["id"])} ({p.get("data_zakupu","")})</option>' for p in palety) + '''
+            </select>
+        </div>
+
+        <div id="products-area" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div>
+                    <button onclick="selectAll()" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:0.8rem;margin-right:6px">Zaznacz wszystkie</button>
+                    <button onclick="deselectAll()" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:0.8rem">Odznacz</button>
+                </div>
+                <span id="selected-count" style="font-size:0.8rem;color:#64748b">0 zaznaczonych</span>
+            </div>
+            <div id="products-list" style="max-height:400px;overflow-y:auto;margin-bottom:16px"></div>
+            <button onclick="downloadAll()" id="btn-download" style="width:100%;padding:16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer">
+                📥 Pobierz etykiety
+            </button>
+            <div id="download-progress" style="display:none;margin-top:12px;padding:12px;background:#0f1219;border:1px solid #1e293b;border-radius:10px">
+                <div style="font-size:0.85rem;color:#94a3b8;margin-bottom:8px">Pobieranie...</div>
+                <div style="background:#1e293b;border-radius:6px;height:8px;overflow:hidden">
+                    <div id="progress-bar" style="background:#6366f1;height:100%;width:0%;transition:width 0.3s"></div>
+                </div>
+                <div id="progress-text" style="font-size:0.75rem;color:#64748b;margin-top:6px">0 / 0</div>
+            </div>
+        </div>
+
+        <script>
+        let products = [];
+
+        async function loadProducts() {
+            const paletaId = document.getElementById('paleta-select').value;
+            if (!paletaId) { document.getElementById('products-area').style.display='none'; return; }
+
+            const resp = await fetch('/magazyn/api/etykiety/produkty?paleta_id=' + paletaId);
+            products = await resp.json();
+
+            const list = document.getElementById('products-list');
+            list.innerHTML = '';
+
+            products.forEach((p, i) => {
+                list.innerHTML += `
+                <label style="display:flex;align-items:center;gap:10px;padding:10px;background:#0f1219;border:1px solid #1e293b;border-radius:10px;margin-bottom:6px;cursor:pointer">
+                    <input type="checkbox" checked class="prod-cb" data-idx="${i}" onchange="updateCount()" style="width:18px;height:18px;accent-color:#6366f1">
+                    <div style="flex:1;min-width:0">
+                        <div style="font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nazwa}</div>
+                        <div style="font-size:0.72rem;color:#64748b">${p.ean || p.asin || 'ID:'+p.id} · ${p.ilosc || 1} szt · ${p.lokalizacja || 'brak lok.'}</div>
+                    </div>
+                </label>`;
+            });
+
+            document.getElementById('products-area').style.display = 'block';
+            updateCount();
+        }
+
+        function selectAll() { document.querySelectorAll('.prod-cb').forEach(c => c.checked = true); updateCount(); }
+        function deselectAll() { document.querySelectorAll('.prod-cb').forEach(c => c.checked = false); updateCount(); }
+        function updateCount() {
+            const cnt = document.querySelectorAll('.prod-cb:checked').length;
+            document.getElementById('selected-count').textContent = cnt + ' zaznaczonych';
+        }
+
+        async function downloadAll() {
+            const checked = document.querySelectorAll('.prod-cb:checked');
+            if (checked.length === 0) { alert('Zaznacz przynajmniej jeden produkt'); return; }
+
+            const btn = document.getElementById('btn-download');
+            btn.disabled = true;
+            btn.textContent = 'Pobieranie...';
+
+            const progress = document.getElementById('download-progress');
+            const bar = document.getElementById('progress-bar');
+            const text = document.getElementById('progress-text');
+            progress.style.display = 'block';
+
+            const total = checked.length;
+            let done = 0;
+
+            for (const cb of checked) {
+                const idx = parseInt(cb.dataset.idx);
+                const p = products[idx];
+                const code = p.ean || p.asin || p.kod_magazynowy || p.id;
+
+                try {
+                    const resp = await fetch('/magazyn/etykieta/' + encodeURIComponent(code) + '.png');
+                    const blob = await resp.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'etykieta_' + (p.ean || p.asin || p.id) + '.png';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } catch(e) { console.error('Blad pobierania etykiety:', e); }
+
+                done++;
+                bar.style.width = (done/total*100) + '%';
+                text.textContent = done + ' / ' + total;
+
+                // Male opoznienie zeby przegladarka nie zablokovala pobierania
+                if (done < total) await new Promise(r => setTimeout(r, 500));
+            }
+
+            btn.disabled = false;
+            btn.textContent = '✅ Pobrano ' + done + ' etykiet!';
+            setTimeout(() => { btn.textContent = '📥 Pobierz etykiety'; }, 3000);
+        }
+        </script>
+        '''
+        return render(html)
+
+    @bp.route('/api/etykiety/produkty')
+    def api_etykiety_produkty():
+        """API — lista produktów z palety do etykiet"""
+        paleta_id = request.args.get('paleta_id', type=int)
+        if not paleta_id:
+            return jsonify([])
+
+        conn = get_db()
+        rows = conn.execute('''
+            SELECT id, nazwa, ean, asin, kod_magazynowy, ilosc, lokalizacja
+            FROM produkty WHERE paleta_id = ?
+            ORDER BY id
+        ''', (paleta_id,)).fetchall()
+
+        return jsonify([dict(r) for r in rows])
+
+    # ============================================================
     # ULEPSZONY IMPORT EXCEL (V2)
     # ============================================================
-    
+
     @bp.route('/import/v2', methods=['GET', 'POST'])
     def import_v2():
         """Ulepszony import Excel z inteligentnym parserem"""
