@@ -932,18 +932,10 @@ def api_system_stats():
 
 @app.route('/')
 def home():
-    # Onboarding — redirect jeśli nowa instalacja (brak setup_done i brak danych)
-    from modules.database import get_config as _gc, get_db as _gdb
+    # Onboarding — redirect jeśli nie przeszedł setup
+    from modules.database import get_config as _gc
     if not _gc('setup_done', ''):
-        try:
-            cnt = _gdb().execute('SELECT COUNT(*) FROM produkty').fetchone()[0]
-            if cnt > 0:
-                from modules.database import set_config as _sc
-                _sc('setup_done', '1')  # Auto-skip dla istniejacych instalacji
-            else:
-                return redirect('/setup')
-        except:
-            return redirect('/setup')
+        return redirect('/setup')
 
     # Sprawdź czy jest wybrane konto (auto-set adrian if not)
     user = request.cookies.get('akces_user')
