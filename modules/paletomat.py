@@ -2774,6 +2774,7 @@ def generator_mass_create_from_paleta_stream():
 
     # 1. Pobieramy dane tutaj (NAD funkcją generate), póki mamy dostęp do requestu
     ids_str = request.args.get('ids', '')
+    force_new = request.args.get('force', '0') == '1'
 
     def generate():
         # Wewnątrz funkcji już NIE wywołujemy request.args.get
@@ -2814,16 +2815,30 @@ def generator_mass_create_from_paleta_stream():
             yield "data: " + json.dumps({'type': 'done'}) + "\n\n"
             return
         
+        # === SYNC: Synchronizuj statusy ofert z Allegro przed wystawianiem ===
+        try:
+            from .allegro_api import sync_offers_status
+            yield "data: " + json.dumps({'type': 'log', 'message': '🔄 Synchronizacja ofert z Allegro...', 'color': '#3b82f6'}) + "\n\n"
+            sync_result = sync_offers_status()
+            if sync_result and not sync_result.get('error'):
+                _synced = sync_result.get('updated', 0)
+                _ended = sync_result.get('ended', 0)
+                yield "data: " + json.dumps({'type': 'log', 'message': f'✅ Sync: {sync_result.get("active", 0)} aktywnych, {_ended} zakończonych, {_synced} zaktualizowanych', 'color': '#22c55e'}) + "\n\n"
+            else:
+                yield "data: " + json.dumps({'type': 'log', 'message': f'⚠️ Sync: {sync_result.get("error", "?")}', 'color': '#f59e0b'}) + "\n\n"
+        except Exception as e:
+            yield "data: " + json.dumps({'type': 'log', 'message': f'⚠️ Sync error: {str(e)[:50]}', 'color': '#f59e0b'}) + "\n\n"
+
         yield "data: " + json.dumps({'type': 'start', 'total': total}) + "\n\n"
         time.sleep(0.5)
-        
+
         for i, p in enumerate(products):
             p = dict(p)
             product_id = p['id']
             nazwa = p['nazwa']
-            
+
             yield "data: " + json.dumps({'type': 'progress', 'current': i+1, 'total': total, 'percent': int((i+1)/total*100), 'title': nazwa[:40]}) + "\n\n"
-            
+
             try:
                 cena = float(p['cena_allegro']) if p['cena_allegro'] else 99.99
                 ilosc = int(p['ilosc']) if p['ilosc'] else 1
@@ -2833,10 +2848,14 @@ def generator_mass_create_from_paleta_stream():
                 kategoria = p.get('kategoria', 'inne') or 'inne'
 
                 # === DEDUPLIKACJA: sprawdź czy produkt ma już aktywną ofertę ===
-                yield "data: " + json.dumps({'type': 'log', 'message': f'🔍 Dedup: id={product_id}, ean={ean}, asin={asin}', 'color': '#6366f1'}) + "\n\n"
+                if force_new:
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'⚡ Force: pomijam deduplikację', 'color': '#f59e0b'}) + "\n\n"
+                    existing_offer = None  # skip dedup
+                else:
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'🔍 Dedup: id={product_id}, ean={ean}, asin={asin}', 'color': '#6366f1'}) + "\n\n"
 
-                existing_offer = None
-                _nazwa_lower = (nazwa or '').lower()[:40]
+                    existing_offer = None
+                    _nazwa_lower = (nazwa or '').lower()[:40]
 
                 # Pomocnicza: sprawdź czy nazwa oferty pasuje do produktu
                 def _nazwa_match(offer_tytul):
@@ -2894,6 +2913,9 @@ def generator_mass_create_from_paleta_stream():
                             if _nazwa_match(c['tytul']):
                                 existing_offer = c
                                 break
+
+                if force_new:
+                    existing_offer = None  # wymuś nowe oferty
 
                 if existing_offer:
                     ex = dict(existing_offer)
@@ -3050,11 +3072,15 @@ def generator_mass_create_from_paleta_stream():
 
                 # Generuj opis + GPSR RÓWNOLEGLE (oba to Gemini calls)
                 yield "data: " + json.dumps({'type': 'log', 'message': '⚡ Generuję opis + GPSR równolegle...', 'color': '#3b82f6'}) + "\n\n"
+                # Użyj WSZYSTKICH uploadowanych zdjęć do opisu (nie tylko główne)
+                _zdjecia_do_opisu = zdjecia_urls if zdjecia_urls else (wszystkie_zdjecia if wszystkie_zdjecia else ([zdjecie_url] if zdjecie_url else []))
+
                 from concurrent.futures import ThreadPoolExecutor
                 with ThreadPoolExecutor(max_workers=2) as executor:
                     f_opis = executor.submit(generuj_opis_html_pro,
-                        nazwa, [zdjecie_url] if zdjecie_url else [],
-                        kategoria, bullet_points, gemini_key=gemini_key, asin=asin
+                        nazwa, _zdjecia_do_opisu,
+                        kategoria, bullet_points, gemini_key=gemini_key, asin=asin,
+                        kod_magazynowy=_km
                     )
                     f_gpsr = executor.submit(generuj_gpsr_info, nazwa, kategoria, product_specs=product_specs)
                     opis_html, _ = f_opis.result()
