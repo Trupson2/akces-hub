@@ -2719,7 +2719,7 @@ def generator_mass_create_from_paleta():
         }}
         else if (data.type === 'success') {{
             sukces++;
-            log.innerHTML += '<div style="color:#22c55e;padding:4px 0">✅ ' + data.title + ' (' + data.price + ' zl)</div>';
+            log.innerHTML += '<div style="color:#22c55e;padding:4px 0">✅ ' + data.title + (data.price ? ' (' + data.price + ' zl)' : (data.message ? ' — ' + data.message : '')) + '</div>';
             log.scrollTop = log.scrollHeight;
             _updateAvg();
         }}
