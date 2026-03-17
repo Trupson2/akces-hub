@@ -5603,9 +5603,10 @@ def etykiety_niimbot_page(products):
             if pal_row:
                 paleta_nazwa = pal_row['nazwa'] or ''
 
+        kod_mag = p.get('kod_magazynowy', '') or ''
         label = ProductLabel(
             nazwa=p['nazwa'][:70],
-            qr_data=f"MAG:{p.get('ean') or p.get('asin') or p['id']}",
+            qr_data=kod_mag if kod_mag else f"MAG:{p.get('ean') or p.get('asin') or p['id']}",
             lokalizacja=p.get('lokalizacja', ''),
             ean=p.get('ean', ''),
             ilosc=p.get('ilosc', 1) or 1,
@@ -5613,7 +5614,8 @@ def etykiety_niimbot_page(products):
             data_zakupu=p.get('data_zakupu', '') or p.get('data_dodania', '') or '',
             paleta=paleta_nazwa,
             koszt_szt=koszt_szt,
-            cena_allegro=float(p.get('cena_allegro', 0) or 0)
+            cena_allegro=float(p.get('cena_allegro', 0) or 0),
+            kod_magazynowy=kod_mag
         )
         preview = pm.generate_label_preview(label) if IMAGING_AVAILABLE else ''
         previews.append({
@@ -5837,9 +5839,10 @@ def api_print_niimbot():
             paleta_nazwa = pal_row['nazwa'] or ''
 
     # Przygotuj etykietę
+    kod_mag = p.get('kod_magazynowy', '') or ''
     label = ProductLabel(
         nazwa=p['nazwa'][:35],
-        qr_data=f"MAG:{p.get('ean') or p.get('asin') or p['id']}",
+        qr_data=kod_mag if kod_mag else f"MAG:{p.get('ean') or p.get('asin') or p['id']}",
         lokalizacja=p.get('lokalizacja', ''),
         ean=p.get('ean', ''),
         ilosc=p.get('ilosc', 1) or 1,
@@ -5847,7 +5850,8 @@ def api_print_niimbot():
         data_zakupu=p.get('data_zakupu', '') or p.get('data_dodania', '') or '',
         paleta=paleta_nazwa,
         koszt_szt=koszt_szt,
-        cena_allegro=float(p.get('cena_allegro', 0) or 0)
+        cena_allegro=float(p.get('cena_allegro', 0) or 0),
+        kod_magazynowy=kod_mag
     )
     
     # Drukuj przez BleakTransport + niimprint (prawidłowy protokół Niimbot)
@@ -5918,9 +5922,10 @@ def etykiety_niimbot_png(product_id):
 
     # Generuj etykietę
     pm = get_printer()
+    kod_mag = p.get('kod_magazynowy', '') or ''
     label = ProductLabel(
         nazwa=p['nazwa'][:35],
-        qr_data=f"MAG:{p.get('ean') or p.get('asin') or p['id']}",
+        qr_data=kod_mag if kod_mag else f"MAG:{p.get('ean') or p.get('asin') or p['id']}",
         lokalizacja=p.get('lokalizacja', ''),
         ean=p.get('ean', ''),
         ilosc=p.get('ilosc', 1),
@@ -5928,7 +5933,8 @@ def etykiety_niimbot_png(product_id):
         data_zakupu=p.get('data_zakupu', '') or p.get('data_dodania', ''),
         paleta=paleta_nazwa,
         koszt_szt=koszt_szt,
-        cena_allegro=float(p.get('cena_allegro', 0) or 0)
+        cena_allegro=float(p.get('cena_allegro', 0) or 0),
+        kod_magazynowy=kod_mag
     )
 
     # Generuj obraz
@@ -5995,14 +6001,16 @@ def etykiety_niimbot_zip():
     
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
         for i, p in enumerate(products):
+            kod_mag = p.get('kod_magazynowy', '') or ''
             label = ProductLabel(
                 nazwa=p['nazwa'][:35],
-                qr_data=f"MAG:{p.get('ean') or p.get('asin') or p['id']}",
+                qr_data=kod_mag if kod_mag else f"MAG:{p.get('ean') or p.get('asin') or p['id']}",
                 lokalizacja=p.get('lokalizacja', ''),
                 ean=p.get('ean', ''),
                 ilosc=p.get('ilosc', 1),
                 dostawca=p.get('dostawca', ''),
-                data_zakupu=p.get('data_zakupu', '') or p.get('data_dodania', '')
+                data_zakupu=p.get('data_zakupu', '') or p.get('data_dodania', ''),
+                kod_magazynowy=kod_mag
             )
             
             # Generuj obraz

@@ -994,7 +994,8 @@ def register_printer_routes(bp: Blueprint):
             data_zakupu=p.get('data_zakupu', '') or p.get('data_dodania', '') or '',
             paleta=paleta_nazwa,
             koszt_szt=koszt_szt,
-            cena_allegro=float(p.get('cena_allegro', 0) or 0)
+            cena_allegro=float(p.get('cena_allegro', 0) or 0),
+            kod_magazynowy=kod_mag
         )
         
         try:
