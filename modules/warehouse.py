@@ -582,7 +582,10 @@ def warehouse_print_labels():
     shelves_data = heatmap.get('shelves', {})
     # Uzyj TYLKO regalow z WAREHOUSE_CONFIG (nie z warehouse_layout.json)
     config_shelves = WH_CFG.get('shelves', [])
-    base_url = request.host_url.rstrip('/')
+    # Użyj ngrok domeny jeśli ustawiona w config, inaczej request.host_url
+    from modules.database import get_config
+    ngrok_domain = get_config('ngrok_domain', '')
+    base_url = f"https://{ngrok_domain}" if ngrok_domain else request.host_url.rstrip('/')
 
     html = '''<!DOCTYPE html><html lang="pl"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">

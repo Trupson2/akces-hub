@@ -607,11 +607,15 @@ def register_printer_routes(bp: Blueprint):
         # Przygotuj dane do etykiety
         nazwa_skrocona = p['nazwa'][:30] if p['nazwa'] else f"Produkt #{p['id']}"
 
-        # QR data - zawsze kod magazynowy (MAG-XXXXX)
+        # QR data - URL do produktu (skanowanie telefonem otwiera stronę)
         kod_mag = p.get('kod_magazynowy', '') or ''
         if not kod_mag:
-            kod_mag = code  # z URL: /magazyn/drukuj/<code>
-        qr_data = kod_mag
+            kod_mag = code
+        product_code = kod_mag or p.get('ean') or p.get('asin') or str(p['id'])
+        from .database import get_config as _gc
+        _ngrok = _gc('ngrok_domain', '')
+        _base = f"https://{_ngrok}" if _ngrok else request.host_url.rstrip('/')
+        qr_data = f"{_base}/magazyn/produkt/{product_code}"
 
         # Pobierz port COM i adres BT
         from .database import get_config
