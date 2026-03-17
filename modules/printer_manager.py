@@ -873,50 +873,10 @@ class PrinterManager:
 
         y += max(qr_size + 8, info_y - y + 8)
 
-        # === EAN BARCODE ===
-        barcode_code = label.ean if label.ean and len(label.ean) >= 8 else ''
-
-        if barcode_code and BARCODE_AVAILABLE:
-            try:
-                if len(barcode_code) == 13:
-                    bc_class = barcode.get_barcode_class('ean13')
-                elif len(barcode_code) == 8:
-                    bc_class = barcode.get_barcode_class('ean8')
-                else:
-                    bc_class = barcode.get_barcode_class('code128')
-
-                writer = ImageWriter()
-                writer.set_options({
-                    'module_width': 0.4,
-                    'module_height': 15.0,
-                    'font_size': 12,
-                    'text_distance': 4,
-                    'quiet_zone': 4,
-                    'write_text': True,
-                })
-                bc = bc_class(barcode_code, writer=writer)
-                bc_buffer = io.BytesIO()
-                bc.write(bc_buffer)
-                bc_buffer.seek(0)
-                bc_img = Image.open(bc_buffer).convert('L')
-
-                bc_w, bc_h = bc_img.size
-                target_w = width_px - 40
-                if bc_w > target_w:
-                    ratio = target_w / bc_w
-                    bc_img = bc_img.resize((target_w, int(bc_h * ratio)), Image.Resampling.LANCZOS)
-
-                bc_w, bc_h = bc_img.size
-                bc_x = (width_px - bc_w) // 2
-                img.paste(bc_img, (bc_x, y))
-                y += bc_h + 6
-            except Exception as bc_err:
-                print(f"   Barcode error: {bc_err}", flush=True)
-                draw.text((10, y), barcode_code, font=font_kod, fill=0)
-                y += 22
-        elif barcode_code:
-            draw.text((10, y), barcode_code, font=font_kod, fill=0)
-            y += 22
+        # === EAN jako tekst (bez barcode - zajmuje za dużo miejsca) ===
+        if label.ean and len(label.ean) >= 8:
+            draw.text((10, y), f"EAN: {label.ean}", font=font_small, fill=0)
+            y += 20
 
         # === DOLNA LINIA: kod magazynowy + data ===
         y += 6
