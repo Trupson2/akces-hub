@@ -754,31 +754,31 @@ class PrinterManager:
     
     def _generate_label_image(self, label: ProductLabel) -> Any:
         """
-        Generuje pełną etykietę magazynową dla Niimbot B1.
-        Rozmiar: 240px szerokości × do 400px wysokości (30×50mm @ 203dpi).
-        Dane wysyłane chunkami — nie ma limitu 50 linii.
+        Generuje pełną etykietę magazynową.
+        Rozmiar: 384px szerokości × do 640px wysokości (większy format do druku).
 
-        Layout (240px wide):
-        +------------------------+
-        |  NAZWA PRODUKTU        |  bold 13px, max 2 linie
-        |  (linia 2 jesli dluga) |
-        |  ---------------------- |  separator
-        |  ┌──────┐  Lok: R-A3   |  QR 80px + info obok
-        |  │  QR  │  Szt: 5      |
-        |  │ 80px │  89 zl       |
-        |  └──────┘  PAL: Mix#2  |
-        |  |||||||||||||||||||||||│  EAN barcode (jesli jest)
-        |  5901234567890          |
-        |  MAG:12345  12.03.2026 |  kod + data
-        +------------------------+  ~320-380px
+        Layout (384px wide):
+        +-------------------------------------+
+        |  NAZWA PRODUKTU                     |  bold 18px, max 2 linie
+        |  (linia 2 jesli dluga)              |
+        |  ---------------------------------- |  separator
+        |  ┌──────────┐  LOK: R-A3            |  QR 120px + info obok
+        |  │    QR    │  Szt: 5               |
+        |  │  120px   │  89 zl                |
+        |  │          │  PAL: Mix#2           |
+        |  └──────────┘  Jobalots             |
+        |  |||||||||||||||||||||||||||||||||||│  barcode (kod mag.)
+        |  MAG-00123                          |
+        |  MAG-00123  |  12.03.2026           |  kod + data
+        +-------------------------------------+
         """
         if not IMAGING_AVAILABLE:
             raise RuntimeError("Biblioteki pillow/qrcode nie sa zainstalowane")
 
         from .utils import pl_to_ascii
 
-        width_px = 240
-        max_height = 400  # 50mm @ 203dpi
+        width_px = 384
+        max_height = 640
 
         img = Image.new('L', (width_px, max_height), color=255)
         draw = ImageDraw.Draw(img)
@@ -802,23 +802,23 @@ class PrinterManager:
                     continue
             return ImageFont.load_default()
 
-        font_title = _load_font(13, bold=True)
-        font_info = _load_font(11, bold=False)
-        font_info_bold = _load_font(11, bold=True)
-        font_small = _load_font(9, bold=False)
+        font_title = _load_font(18, bold=True)
+        font_info = _load_font(15, bold=False)
+        font_info_bold = _load_font(15, bold=True)
+        font_small = _load_font(12, bold=False)
+        font_kod = _load_font(14, bold=True)
 
-        y = 4  # margin top
+        y = 8  # margin top
 
         # === NAZWA PRODUKTU — max 2 linie ===
-        nazwa = pl_to_ascii(label.nazwa or 'Produkt')[:70]
-        # Łam tekst na linie po ~28 znaków
+        nazwa = pl_to_ascii(label.nazwa or 'Produkt')[:80]
         lines = []
         words = nazwa.split()
         current_line = ''
         for word in words:
             test = (current_line + ' ' + word).strip()
             bbox = draw.textbbox((0, 0), test, font=font_title)
-            if bbox[2] - bbox[0] > width_px - 10:
+            if bbox[2] - bbox[0] > width_px - 16:
                 if current_line:
                     lines.append(current_line)
                 current_line = word
@@ -829,54 +829,50 @@ class PrinterManager:
         lines = lines[:2]  # max 2 linie
 
         for line in lines:
-            draw.text((5, y), line, font=font_title, fill=0)
-            y += 16
+            draw.text((8, y), line, font=font_title, fill=0)
+            y += 22
 
         # Separator
-        y += 2
-        draw.line([(5, y), (width_px - 5, y)], fill=0, width=1)
         y += 4
+        draw.line([(8, y), (width_px - 8, y)], fill=0, width=1)
+        y += 6
 
         # === SEKCJA ŚRODKOWA: QR + INFO ===
-        qr_size = 80
+        qr_size = 120
         qr_img = None
-        info_x = qr_size + 12  # info obok QR
+        info_x = qr_size + 16
 
-        # Generuj QR
-        if label.qr_data:
+        # Generuj QR — użyj kodu magazynowego jako danych QR
+        qr_data = label.kod_magazynowy or label.qr_data or ''
+        if qr_data:
             qr = qrcode.QRCode(
                 version=None,
-                box_size=4,
+                box_size=5,
                 border=1,
                 error_correction=qrcode.constants.ERROR_CORRECT_M
             )
-            qr.add_data(label.qr_data)
+            qr.add_data(qr_data)
             qr.make(fit=True)
             qr_img = qr.make_image(fill_color="black", back_color="white").convert('L')
             qr_w, qr_h = qr_img.size
 
-            # Skaluj do qr_size x qr_size
             if qr_w != qr_size or qr_h != qr_size:
                 qr_img = qr_img.resize((qr_size, qr_size), Image.Resampling.NEAREST)
 
-            img.paste(qr_img, (5, y))
+            img.paste(qr_img, (8, y))
 
         # Info obok QR
         info_y = y
         info_lines = []
 
         if label.lokalizacja:
-            info_lines.append(('LOK: ' + pl_to_ascii(label.lokalizacja)[:14], font_info_bold))
+            info_lines.append(('LOK: ' + pl_to_ascii(label.lokalizacja)[:18], font_info_bold))
         if label.ilosc and label.ilosc > 0:
             info_lines.append(('Szt: ' + str(label.ilosc), font_info))
         if label.cena_allegro and label.cena_allegro > 0:
             info_lines.append((str(int(label.cena_allegro)) + ' zl', font_info_bold))
-        if label.koszt_szt and label.koszt_szt > 0:
-            info_lines.append(('Koszt: ' + str(int(label.koszt_szt)) + ' zl', font_small))
         if label.paleta:
-            # Skrót palety: "#2 Mix Kamerki" → "#2 Mix"  /  "Paleta Amazon 12" → "Amazon 12"
             pal_raw = pl_to_ascii(label.paleta).strip()
-            # Weź max 2 pierwsze słowa (lub numer + 1 słowo)
             pal_words = pal_raw.split()
             if len(pal_words) <= 2:
                 pal_text = pal_raw
@@ -884,46 +880,43 @@ class PrinterManager:
                 pal_text = pal_words[0] + ' ' + pal_words[1]
             else:
                 pal_text = ' '.join(pal_words[:2])
-            info_lines.append(('PAL: ' + pal_text[:14], font_small))
-        if label.dostawca:
-            info_lines.append((pl_to_ascii(label.dostawca)[:16], font_small))
+            info_lines.append(('PAL: ' + pal_text[:18], font_small))
 
         for text, font in info_lines[:6]:
             draw.text((info_x, info_y), text, font=font, fill=0)
-            info_y += 14
+            info_y += 20
 
-        y += max(qr_size + 4, info_y - y + 4)
+        y += max(qr_size + 6, info_y - y + 6)
 
-        # === EAN BARCODE (jeśli jest) ===
-        if label.ean and len(label.ean) >= 8 and BARCODE_AVAILABLE:
+        # === EAN BARCODE ===
+        barcode_code = label.ean if label.ean and len(label.ean) >= 8 else ''
+
+        if barcode_code and BARCODE_AVAILABLE:
             try:
-                ean_code = label.ean.strip()
-                # Wybierz typ kodu
-                if len(ean_code) == 13:
+                if len(barcode_code) == 13:
                     bc_class = barcode.get_barcode_class('ean13')
-                elif len(ean_code) == 8:
+                elif len(barcode_code) == 8:
                     bc_class = barcode.get_barcode_class('ean8')
                 else:
                     bc_class = barcode.get_barcode_class('code128')
 
                 writer = ImageWriter()
                 writer.set_options({
-                    'module_width': 0.25,
-                    'module_height': 8.0,
-                    'font_size': 8,
-                    'text_distance': 2,
-                    'quiet_zone': 2,
+                    'module_width': 0.3,
+                    'module_height': 12.0,
+                    'font_size': 10,
+                    'text_distance': 3,
+                    'quiet_zone': 3,
                     'write_text': True,
                 })
-                bc = bc_class(ean_code, writer=writer)
+                bc = bc_class(barcode_code, writer=writer)
                 bc_buffer = io.BytesIO()
                 bc.write(bc_buffer)
                 bc_buffer.seek(0)
                 bc_img = Image.open(bc_buffer).convert('L')
 
-                # Skaluj do pasowania w szerokości
                 bc_w, bc_h = bc_img.size
-                target_w = width_px - 20
+                target_w = width_px - 30
                 if bc_w > target_w:
                     ratio = target_w / bc_w
                     bc_img = bc_img.resize((target_w, int(bc_h * ratio)), Image.Resampling.LANCZOS)
@@ -931,32 +924,30 @@ class PrinterManager:
                 bc_w, bc_h = bc_img.size
                 bc_x = (width_px - bc_w) // 2
                 img.paste(bc_img, (bc_x, y))
-                y += bc_h + 2
+                y += bc_h + 4
             except Exception as bc_err:
                 print(f"   Barcode error: {bc_err}", flush=True)
-                # Fallback — tekst EAN
-                draw.text((5, y), 'EAN: ' + label.ean, font=font_small, fill=0)
-                y += 12
-        elif label.ean:
-            # Brak python-barcode — pokaż tekst
-            draw.text((5, y), 'EAN: ' + label.ean, font=font_info, fill=0)
-            y += 14
+                draw.text((8, y), barcode_code, font=font_kod, fill=0)
+                y += 18
+        elif barcode_code:
+            draw.text((8, y), barcode_code, font=font_kod, fill=0)
+            y += 18
 
         # === DOLNA LINIA: kod magazynowy + data ===
-        y += 2
+        y += 4
         bottom_parts = []
         kod = label.kod_magazynowy or label.qr_data or ''
         if kod:
-            bottom_parts.append(kod[:18])
+            bottom_parts.append(kod[:22])
         if label.data_przyjecia:
             bottom_parts.append(label.data_przyjecia)
         bottom_text = '  |  '.join(bottom_parts)
         if bottom_text:
-            draw.text((5, y), bottom_text, font=font_small, fill=0)
-            y += 12
+            draw.text((8, y), bottom_text, font=font_small, fill=0)
+            y += 16
 
         # Przytnij do faktycznej wysokości
-        final_height = min(y + 6, max_height)
+        final_height = min(y + 8, max_height)
         img = img.crop((0, 0, width_px, final_height))
 
         print(f"   Label: {img.size[0]}x{img.size[1]}px, nazwa={label.nazwa[:30]}", flush=True)

@@ -493,7 +493,7 @@ def skaner():
     
     <a href="/magazyn" class="back">← Powrót</a>
     
-    <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
     <script>
     (function() {
         const video = document.getElementById('video');
@@ -5225,7 +5225,7 @@ def skanuj_kamera():
     <a href="/magazyn/dodaj" class="back">← Powrót</a>
     
     <!-- html5-qrcode library -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     
     <script>
     const baseUrl = "''' + base_url + '''";
