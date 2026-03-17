@@ -1017,7 +1017,12 @@ def register_printer_routes(bp: Blueprint):
             return Response(
                 buffer.getvalue(),
                 mimetype='image/png',
-                headers={'Content-Disposition': f'attachment; filename="{filename}"'}
+                headers={
+                    'Content-Disposition': f'attachment; filename="{filename}"',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
             )
         except Exception as e:
             return f"Błąd generowania etykiety: {e}", 500
