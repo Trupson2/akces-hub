@@ -2887,9 +2887,17 @@ def statystyki():
                 labels: nazwyMiesiecy,
                 datasets: [{{
                     label: 'Przychód (zł)',
-                    data: daneMiesieczne,
+                    data: daneMiesieczne.map((v, i) => v + danePrywatne[i]),
                     backgroundColor: 'rgba(59, 130, 246, 0.6)',
                     borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 1,
+                    borderRadius: 5,
+                    order: 2
+                }}, {{
+                    label: 'w tym prywatna',
+                    data: danePrywatne,
+                    backgroundColor: 'rgba(251, 191, 36, 0.6)',
+                    borderColor: 'rgba(251, 191, 36, 1)',
                     borderWidth: 1,
                     borderRadius: 5,
                     order: 2
