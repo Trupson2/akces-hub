@@ -1000,13 +1000,6 @@ def register_printer_routes(bp: Blueprint):
         try:
             img = pm._generate_label_image(label)
             
-            # Skaluj do 384px (Niimbot B1)
-            target_width = 384
-            if img.size[0] != target_width:
-                ratio = target_width / img.size[0]
-                new_height = int(img.size[1] * ratio)
-                img = img.resize((target_width, new_height), Image.Resampling.LANCZOS)
-            
             # Konwertuj do RGB dla lepszej kompatybilności
             if img.mode != 'RGB':
                 img_rgb = Image.new('RGB', img.size, 'white')

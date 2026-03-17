@@ -755,30 +755,15 @@ class PrinterManager:
     def _generate_label_image(self, label: ProductLabel) -> Any:
         """
         Generuje pełną etykietę magazynową.
-        Rozmiar: 384px szerokości × do 640px wysokości (większy format do druku).
-
-        Layout (384px wide):
-        +-------------------------------------+
-        |  NAZWA PRODUKTU                     |  bold 18px, max 2 linie
-        |  (linia 2 jesli dluga)              |
-        |  ---------------------------------- |  separator
-        |  ┌──────────┐  LOK: R-A3            |  QR 120px + info obok
-        |  │    QR    │  Szt: 5               |
-        |  │  120px   │  89 zl                |
-        |  │          │  PAL: Mix#2           |
-        |  └──────────┘  Jobalots             |
-        |  |||||||||||||||||||||||||||||||||||│  barcode (kod mag.)
-        |  MAG-00123                          |
-        |  MAG-00123  |  12.03.2026           |  kod + data
-        +-------------------------------------+
+        Rozmiar: 576px szerokości × do 800px wysokości (szeroki format do druku).
         """
         if not IMAGING_AVAILABLE:
             raise RuntimeError("Biblioteki pillow/qrcode nie sa zainstalowane")
 
         from .utils import pl_to_ascii
 
-        width_px = 384
-        max_height = 640
+        width_px = 576
+        max_height = 800
 
         img = Image.new('L', (width_px, max_height), color=255)
         draw = ImageDraw.Draw(img)
@@ -802,23 +787,23 @@ class PrinterManager:
                     continue
             return ImageFont.load_default()
 
-        font_title = _load_font(18, bold=True)
-        font_info = _load_font(15, bold=False)
-        font_info_bold = _load_font(15, bold=True)
-        font_small = _load_font(12, bold=False)
-        font_kod = _load_font(14, bold=True)
+        font_title = _load_font(24, bold=True)
+        font_info = _load_font(18, bold=False)
+        font_info_bold = _load_font(18, bold=True)
+        font_small = _load_font(14, bold=False)
+        font_kod = _load_font(16, bold=True)
 
-        y = 8  # margin top
+        y = 10  # margin top
 
         # === NAZWA PRODUKTU — max 2 linie ===
-        nazwa = pl_to_ascii(label.nazwa or 'Produkt')[:80]
+        nazwa = pl_to_ascii(label.nazwa or 'Produkt')[:90]
         lines = []
         words = nazwa.split()
         current_line = ''
         for word in words:
             test = (current_line + ' ' + word).strip()
             bbox = draw.textbbox((0, 0), test, font=font_title)
-            if bbox[2] - bbox[0] > width_px - 16:
+            if bbox[2] - bbox[0] > width_px - 20:
                 if current_line:
                     lines.append(current_line)
                 current_line = word
@@ -829,18 +814,18 @@ class PrinterManager:
         lines = lines[:2]  # max 2 linie
 
         for line in lines:
-            draw.text((8, y), line, font=font_title, fill=0)
-            y += 22
+            draw.text((10, y), line, font=font_title, fill=0)
+            y += 28
 
         # Separator
         y += 4
-        draw.line([(8, y), (width_px - 8, y)], fill=0, width=1)
-        y += 6
+        draw.line([(10, y), (width_px - 10, y)], fill=0, width=2)
+        y += 8
 
         # === SEKCJA ŚRODKOWA: QR + INFO ===
-        qr_size = 120
+        qr_size = 150
         qr_img = None
-        info_x = qr_size + 16
+        info_x = qr_size + 20
 
         # Generuj QR — użyj kodu magazynowego jako danych QR
         qr_data = label.kod_magazynowy or label.qr_data or ''
@@ -859,14 +844,14 @@ class PrinterManager:
             if qr_w != qr_size or qr_h != qr_size:
                 qr_img = qr_img.resize((qr_size, qr_size), Image.Resampling.NEAREST)
 
-            img.paste(qr_img, (8, y))
+            img.paste(qr_img, (10, y))
 
         # Info obok QR
         info_y = y
         info_lines = []
 
         if label.lokalizacja:
-            info_lines.append(('LOK: ' + pl_to_ascii(label.lokalizacja)[:18], font_info_bold))
+            info_lines.append(('LOK: ' + pl_to_ascii(label.lokalizacja)[:22], font_info_bold))
         if label.ilosc and label.ilosc > 0:
             info_lines.append(('Szt: ' + str(label.ilosc), font_info))
         if label.cena_allegro and label.cena_allegro > 0:
@@ -874,19 +859,19 @@ class PrinterManager:
         if label.paleta:
             pal_raw = pl_to_ascii(label.paleta).strip()
             pal_words = pal_raw.split()
-            if len(pal_words) <= 2:
+            if len(pal_words) <= 3:
                 pal_text = pal_raw
             elif pal_words[0].startswith('#'):
                 pal_text = pal_words[0] + ' ' + pal_words[1]
             else:
                 pal_text = ' '.join(pal_words[:2])
-            info_lines.append(('PAL: ' + pal_text[:18], font_small))
+            info_lines.append(('PAL: ' + pal_text[:22], font_small))
 
         for text, font in info_lines[:6]:
             draw.text((info_x, info_y), text, font=font, fill=0)
-            info_y += 20
+            info_y += 24
 
-        y += max(qr_size + 6, info_y - y + 6)
+        y += max(qr_size + 8, info_y - y + 8)
 
         # === EAN BARCODE ===
         barcode_code = label.ean if label.ean and len(label.ean) >= 8 else ''
@@ -902,11 +887,11 @@ class PrinterManager:
 
                 writer = ImageWriter()
                 writer.set_options({
-                    'module_width': 0.3,
-                    'module_height': 12.0,
-                    'font_size': 10,
-                    'text_distance': 3,
-                    'quiet_zone': 3,
+                    'module_width': 0.4,
+                    'module_height': 15.0,
+                    'font_size': 12,
+                    'text_distance': 4,
+                    'quiet_zone': 4,
                     'write_text': True,
                 })
                 bc = bc_class(barcode_code, writer=writer)
@@ -916,7 +901,7 @@ class PrinterManager:
                 bc_img = Image.open(bc_buffer).convert('L')
 
                 bc_w, bc_h = bc_img.size
-                target_w = width_px - 30
+                target_w = width_px - 40
                 if bc_w > target_w:
                     ratio = target_w / bc_w
                     bc_img = bc_img.resize((target_w, int(bc_h * ratio)), Image.Resampling.LANCZOS)
@@ -924,30 +909,30 @@ class PrinterManager:
                 bc_w, bc_h = bc_img.size
                 bc_x = (width_px - bc_w) // 2
                 img.paste(bc_img, (bc_x, y))
-                y += bc_h + 4
+                y += bc_h + 6
             except Exception as bc_err:
                 print(f"   Barcode error: {bc_err}", flush=True)
-                draw.text((8, y), barcode_code, font=font_kod, fill=0)
-                y += 18
+                draw.text((10, y), barcode_code, font=font_kod, fill=0)
+                y += 22
         elif barcode_code:
-            draw.text((8, y), barcode_code, font=font_kod, fill=0)
-            y += 18
+            draw.text((10, y), barcode_code, font=font_kod, fill=0)
+            y += 22
 
         # === DOLNA LINIA: kod magazynowy + data ===
-        y += 4
+        y += 6
         bottom_parts = []
         kod = label.kod_magazynowy or label.qr_data or ''
         if kod:
-            bottom_parts.append(kod[:22])
+            bottom_parts.append(kod[:25])
         if label.data_przyjecia:
             bottom_parts.append(label.data_przyjecia)
         bottom_text = '  |  '.join(bottom_parts)
         if bottom_text:
-            draw.text((8, y), bottom_text, font=font_small, fill=0)
-            y += 16
+            draw.text((10, y), bottom_text, font=font_small, fill=0)
+            y += 20
 
         # Przytnij do faktycznej wysokości
-        final_height = min(y + 8, max_height)
+        final_height = min(y + 10, max_height)
         img = img.crop((0, 0, width_px, final_height))
 
         print(f"   Label: {img.size[0]}x{img.size[1]}px, nazwa={label.nazwa[:30]}", flush=True)
