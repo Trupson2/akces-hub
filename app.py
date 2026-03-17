@@ -120,19 +120,11 @@ app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Wyłącz domyślnie, włącz per
 
 @app.before_request
 def csrf_protect_forms():
-    """CSRF tylko dla formularzy HTML (nie API/fetch)"""
+    """CSRF dla formularzy HTML z tokenem — pomijaj resztę"""
     if request.method in ('POST', 'PUT', 'DELETE', 'PATCH'):
-        # Pomijaj API endpointy (fetch z JS), SSE, webhook
-        if request.path.startswith('/api/') or request.path.startswith('/telegram/') \
-           or request.path.startswith('/allegro/') or request.path.startswith('/olx/') \
-           or request.path.startswith('/vinted/') or request.path.startswith('/magazyn/') \
-           or request.path.startswith('/paletomat/') or request.path.startswith('/wysylki/'):
-            return
-        # Pomijaj AJAX (XMLHttpRequest / fetch z JSON)
-        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return
-        # Dla formularzy HTML — waliduj CSRF token
-        csrf.protect()
+        # Waliduj CSRF tylko jeśli formularz wysłał token
+        if request.form.get('csrf_token'):
+            csrf.protect()
 
 # Loguj WSZYSTKIE błędy 500 do konsoli (Flask domyślnie je ukrywa w non-debug)
 import logging
