@@ -2281,14 +2281,12 @@ def generuj_gpsr_info(nazwa_produktu, kategoria='', product_specs=None):
         if eu_email:
             eu_info += f"\nKontakt: {eu_email}"
 
-    # === PRÓBA AI (Gemini) ===
+    # === PRÓBA AI (Gemini via REST API) ===
     gemini_key = get_config('gemini_api_key', '')
 
     if gemini_key:
         try:
-            import google.generativeai as genai
-            genai.configure(api_key=gemini_key)
-            model = genai.GenerativeModel('gemini-2.0-flash')
+            import requests as _req
 
             specs_text = ""
             if product_specs and isinstance(product_specs, dict):
@@ -2315,12 +2313,15 @@ WYMAGANIA:
 
 ZWRÓĆ TYLKO tekst GPSR, bez żadnych dodatkowych komentarzy."""
 
-            response = model.generate_content(prompt)
-            try:
-                from .pallet_monitor import log_gemini_usage
-                log_gemini_usage(response, 'gpsr')
-            except: pass
-            gpsr_text = response.text.strip()
+            _api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}"
+            _payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"temperature": 0.3, "maxOutputTokens": 4000}
+            }
+            _resp = _req.post(_api_url, json=_payload, timeout=60)
+            _resp.raise_for_status()
+            _data = _resp.json()
+            gpsr_text = _data['candidates'][0]['content']['parts'][0]['text'].strip()
 
             # Zamień bullet points na * (Allegro nie akceptuje •)
             gpsr_text = gpsr_text.replace('• ', '* ')
@@ -2328,6 +2329,7 @@ ZWRÓĆ TYLKO tekst GPSR, bez żadnych dodatkowych komentarzy."""
             gpsr_text = gpsr_text.replace('- ', '* ')
             gpsr_text = gpsr_text.replace('● ', '* ')
             gpsr_text = gpsr_text.replace('○ ', '* ')
+            gpsr_text = gpsr_text.replace('— ', '- ')
 
             # Dodaj dane producenta na końcu
             if producent_info:
@@ -2338,7 +2340,7 @@ ZWRÓĆ TYLKO tekst GPSR, bez żadnych dodatkowych komentarzy."""
             # Limit 5000 znaków (Allegro max)
             gpsr_text = gpsr_text[:5000]
 
-            print(f"🛡️ GPSR AI: {len(gpsr_text)} znaków wygenerowane")
+            print(f"🛡️ GPSR AI (REST): {len(gpsr_text)} znaków wygenerowane")
             return gpsr_text
 
         except Exception as e:
@@ -2349,16 +2351,16 @@ ZWRÓĆ TYLKO tekst GPSR, bez żadnych dodatkowych komentarzy."""
 
     result = f"""Lista ostrzeżeń dotyczących bezpieczeństwa produktu oparta o wymagania Rozporządzenia (UE) 2023/988 w sprawie ogólnego bezpieczeństwa produktów (GPSR).
 
-• Używaj produktu wyłącznie zgodnie z jego przeznaczeniem opisanym w instrukcji.
-• Przed pierwszym użyciem zapoznaj się z instrukcją obsługi i zachowaj ją na przyszłość.
-• Nie modyfikuj produktu na własną rękę — może to wpłynąć na bezpieczeństwo użytkowania.
-• Regularnie sprawdzaj stan produktu — w przypadku uszkodzeń, pęknięć lub zużycia zaprzestań użytkowania.
-• Przechowuj produkt w suchym miejscu, z dala od bezpośredniego działania promieni słonecznych i źródeł ciepła.
-• Produkt przechowuj poza zasięgiem dzieci, chyba że jest przeznaczony do użytku przez dzieci pod nadzorem dorosłych.
-• Nie przekraczaj maksymalnych parametrów użytkowania określonych przez producenta (obciążenie, temperatura, itp.).
-• W przypadku kontaktu z żywnością upewnij się, że produkt posiada odpowiednie atesty.
-• Utylizuj produkt zgodnie z lokalnymi przepisami dotyczącymi gospodarki odpadami.
-• W przypadku wątpliwości dotyczących bezpieczeństwa skontaktuj się z producentem lub osobą odpowiedzialną w UE.
+* Używaj produktu wyłącznie zgodnie z jego przeznaczeniem opisanym w instrukcji.
+* Przed pierwszym użyciem zapoznaj się z instrukcją obsługi i zachowaj ją na przyszłość.
+* Nie modyfikuj produktu na własną rękę - może to wpłynąć na bezpieczeństwo użytkowania.
+* Regularnie sprawdzaj stan produktu - w przypadku uszkodzeń, pęknięć lub zużycia zaprzestań użytkowania.
+* Przechowuj produkt w suchym miejscu, z dala od bezpośredniego działania promieni słonecznych i źródeł ciepła.
+* Produkt przechowuj poza zasięgiem dzieci, chyba że jest przeznaczony do użytku przez dzieci pod nadzorem dorosłych.
+* Nie przekraczaj maksymalnych parametrów użytkowania określonych przez producenta (obciążenie, temperatura, itp.).
+* W przypadku kontaktu z żywnością upewnij się, że produkt posiada odpowiednie atesty.
+* Utylizuj produkt zgodnie z lokalnymi przepisami dotyczącymi gospodarki odpadami.
+* W przypadku wątpliwości dotyczących bezpieczeństwa skontaktuj się z producentem lub osobą odpowiedzialną w UE.
 
 Używaj produktu zgodnie z przeznaczeniem i instrukcją producenta."""
 
