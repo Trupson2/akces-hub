@@ -1845,7 +1845,7 @@ def paleta_mass_edit(paleta_id):
                 <div style="font-size:0.8rem;color:var(--text-muted);flex:1;min-width:150px">
                     {p['ean'] or p['asin'] or '—'} •
                     Lokalizacja: {p['lokalizacja'] or '—'} •
-                    Ilość: {p['ilosc']}
+                    Ilość: <span data-qty-id="{p['id']}">{p['ilosc']}</span>
                 </div>
                 <div style="font-size:0.75rem;color:#ef4444">💰 {ceny_tekst}</div>
                 <div style="display:flex;align-items:center;gap:6px">
@@ -1948,8 +1948,10 @@ def paleta_mass_edit(paleta_id):
         checkboxes.forEach(cb => {{
             const productId = cb.dataset.productId;
             const priceInput = document.querySelector('.price-input[data-product-id="' + productId + '"]');
+            const qtyEl = document.querySelector('[data-qty-id="' + productId + '"]');
+            const qty = qtyEl ? (parseInt(qtyEl.textContent) || 1) : 1;
             if (priceInput) {{
-                total += parseFloat(priceInput.value) || 0;
+                total += (parseFloat(priceInput.value) || 0) * qty;
             }}
         }});
         document.getElementById('value-total').textContent = total.toFixed(0) + ' zł';
