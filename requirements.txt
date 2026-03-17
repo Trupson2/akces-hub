@@ -47,3 +47,5 @@ psutil>=5.9.0
 
 # --- Bezpieczeństwo (NOWE) ---
 python-dotenv>=1.0.0        # Ładowanie .env
+flask-wtf>=1.2.0            # CSRF protection
+flask-limiter>=3.5.0        # Rate limiting

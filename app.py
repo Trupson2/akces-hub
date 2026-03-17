@@ -44,6 +44,7 @@ import json
 
 from flask import Flask, render_template, render_template_string, request, redirect, jsonify, Response, send_from_directory, make_response, flash, url_for
 from flask_cors import CORS  # ← DODANO DLA NGROK!
+from flask_wtf.csrf import CSRFProtect
 
 # Importy modułów
 from modules.database import init_db, get_db, get_config_cached
@@ -113,6 +114,26 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 if os.environ.get('FLASK_HTTPS') or os.environ.get('NGROK_DOMAIN'):
     app.config['SESSION_COOKIE_SECURE'] = True
 
+# CSRF protection
+csrf = CSRFProtect(app)
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Wyłącz domyślnie, włącz per-route
+
+@app.before_request
+def csrf_protect_forms():
+    """CSRF tylko dla formularzy HTML (nie API/fetch)"""
+    if request.method in ('POST', 'PUT', 'DELETE', 'PATCH'):
+        # Pomijaj API endpointy (fetch z JS), SSE, webhook
+        if request.path.startswith('/api/') or request.path.startswith('/telegram/') \
+           or request.path.startswith('/allegro/') or request.path.startswith('/olx/') \
+           or request.path.startswith('/vinted/') or request.path.startswith('/magazyn/') \
+           or request.path.startswith('/paletomat/') or request.path.startswith('/wysylki/'):
+            return
+        # Pomijaj AJAX (XMLHttpRequest / fetch z JSON)
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return
+        # Dla formularzy HTML — waliduj CSRF token
+        csrf.protect()
+
 # Loguj WSZYSTKIE błędy 500 do konsoli (Flask domyślnie je ukrywa w non-debug)
 import logging
 logging.basicConfig(level=logging.ERROR)
@@ -157,6 +178,11 @@ print("""
 ╚═══════════════════════════════════════════════════════════════╝
 """)
 
+# Ukryj wersję serwera w HTTP response
+import werkzeug.serving
+werkzeug.serving.WSGIRequestHandler.server_version = "Server"
+werkzeug.serving.WSGIRequestHandler.sys_version = ""
+
 @app.after_request
 def after_request(response):
     """Dodaj CORS headers + cache control dla SSE"""
@@ -176,6 +202,19 @@ def after_request(response):
     # Cache dla statycznych plików (obrazki, CSS, JS)
     elif response.mimetype and (response.mimetype.startswith('image/') or response.mimetype in ('text/css', 'application/javascript')):
         response.headers['Cache-Control'] = 'public, max-age=86400'
+    else:
+        # Prywatne strony — nie cachuj
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+
+    # Security headers (OWASP ZAP fixes)
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://generativelanguage.googleapis.com"
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
 
     # Security headers
     response.headers['X-Content-Type-Options'] = 'nosniff'
