@@ -212,7 +212,7 @@ def scrape_amazon_product(asin, preferred_domain=None):
         return None
 
     # Priorytet: amazon.pl (polskie napisy na zdjeciach!), potem reszta
-    domains = ['amazon.pl', 'amazon.de', 'amazon.com', 'amazon.co.uk']
+    domains = ['amazon.pl', 'amazon.de', 'amazon.com', 'amazon.co.uk', 'amazon.fr', 'amazon.it', 'amazon.es']
 
     # Jeśli użytkownik wybrał domenę, przenieś ją na początek
     if preferred_domain:
@@ -233,7 +233,7 @@ def scrape_amazon_product(asin, preferred_domain=None):
         'Upgrade-Insecure-Requests': '1',
     })
 
-    for domain in domains[:2]:  # Max 2 domeny — szybciej, mniej banów
+    for domain in domains:  # Próbuj wszystkie domeny aż znajdzie
         try:
             # Krok 1: odwiedz strone glowna zeby dostac cookies (anti-CAPTCHA)
             _safe_print(f"[Amazon] Probuje: {domain}...")
