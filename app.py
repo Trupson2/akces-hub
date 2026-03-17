@@ -1580,6 +1580,20 @@ def system_update():
         except:
             pass
 
+        # Wyczyść cache update check — system jest aktualny po pull
+        try:
+            from modules.database import set_config as _sc
+            _sc('update_check_cache', json.dumps({
+                'checked_at': time.time(),
+                'has_update': False,
+                'remote_msg': '',
+                'remote_hash': commit_hash,
+                'local_hash': commit_hash,
+                'notified': False
+            }))
+        except:
+            pass
+
         # Restart serwisu z opóźnieniem 2s (żeby response zdążył dojść)
         import threading
         def _delayed_restart():
