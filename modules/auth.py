@@ -37,6 +37,8 @@ PUBLIC_PREFIXES = [
     '/static/',
     '/api/health',
     '/api/warehouse/heatmap',  # tylko odczyt heatmapy (bez assign/remove)
+    '/license',  # Aktywacja licencji — dostępna bez logowania
+    '/setup',    # Setup wizard — dostępny bez logowania
 ]
 
 
