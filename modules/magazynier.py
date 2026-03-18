@@ -2361,18 +2361,21 @@ def statystyki():
         palety_per_msc = {}
         palety_total_rok = 0
 
-    # Ilość palet kupionych (do wyświetlania)
+    # Ilość palet kupionych + kwota zakupu (do wyświetlania)
     try:
         palety_cnt_rows = conn.execute('''
-            SELECT strftime('%m', data_zakupu) as m, COUNT(*) as cnt
+            SELECT strftime('%m', data_zakupu) as m, COUNT(*) as cnt,
+                   COALESCE(SUM(cena_zakupu), 0) as suma_zakupu
             FROM palety WHERE strftime('%Y', data_zakupu) = ?
             AND data_zakupu IS NOT NULL AND data_zakupu != ''
             GROUP BY m
         ''', (str(current_year),)).fetchall()
         palety_cnt_per_msc = {int(r['m']): int(r['cnt']) for r in palety_cnt_rows}
+        palety_zakup_per_msc = {int(r['m']): float(r['suma_zakupu']) for r in palety_cnt_rows}
         palety_total_cnt_rok = sum(palety_cnt_per_msc.values())
     except:
         palety_cnt_per_msc = {}
+        palety_zakup_per_msc = {}
         palety_total_cnt_rok = 0
 
     # ROI per paleta - ta sama logika co /analityka (proporcjonalny koszt sprzedanych)
@@ -2557,6 +2560,9 @@ def statystyki():
         dane_palety[m_int - 1] = suma
     for m_int, cnt in palety_cnt_per_msc.items():
         dane_palety_cnt[m_int - 1] = cnt
+    dane_palety_zakup = [0] * 12
+    for m_int, suma in palety_zakup_per_msc.items():
+        dane_palety_zakup[m_int - 1] = suma
     
     dane_roczne_labels = [r['rok'] for r in roczne] if roczne else [str(current_year)]
     dane_roczne_values = [float(r['suma']) for r in roczne] if roczne else [0]
@@ -2822,6 +2828,8 @@ def statystyki():
     const daneKoszty = {json.dumps(dane_koszty)};
     const danePrywatne = {json.dumps(dane_prywatne)};
     const danePalety = {json.dumps(dane_palety)};
+    const danePaletyZakup = {json.dumps(dane_palety_zakup)};
+    const danePaletyCnt = {json.dumps([dane_palety_cnt[i] for i in range(12)])};
     // Łączne koszty = operacyjne + COGS (koszt sprzedanych produktów)
     const daneKosztyLacznie = daneKoszty.map((k, i) => k + danePalety[i]);
     // null dla miesięcy bez aktywności - linia nie spada do zera
@@ -2903,7 +2911,7 @@ def statystyki():
                     order: 1
                 }}, {{
                     label: 'Zakup palet (zł)',
-                    data: danePalety,
+                    data: danePaletyZakup,
                     backgroundColor: 'rgba(251, 191, 36, 0.5)',
                     borderColor: 'rgba(251, 191, 36, 1)',
                     borderWidth: 1,
@@ -2943,9 +2951,12 @@ def statystyki():
                                 const pryw = danePrywatne[i];
                                 const palety = danePalety[i];
                                 const zysk = daneMiesieczne[i] + pryw - koszty;
+                                const zakupPalet = danePaletyZakup[i];
+                                const cntPalet = danePaletyCnt[i];
                                 const lines = [cnt + ' zamowien'];
                                 if (pryw > 0) lines.push('+ ' + pryw.toFixed(0) + ' zl prywatna');
-                                if (palety > 0) lines.push('- ' + palety.toFixed(0) + ' zl palety');
+                                if (zakupPalet > 0) lines.push('🛒 ' + cntPalet + ' palet kupiono za ' + zakupPalet.toFixed(0) + ' zl');
+                                if (palety > 0) lines.push('- ' + palety.toFixed(0) + ' zl COGS (sprzedanych)');
                                 if (koszty > palety) lines.push('- ' + (koszty-palety).toFixed(0) + ' zl inne koszty');
                                 lines.push('Zysk: ' + zysk.toFixed(0) + ' zl');
                                 return lines;
@@ -3073,7 +3084,7 @@ def statystyki():
         chartMiesiace.data.datasets[0].borderColor = 'rgba(59, 130, 246, 1)';
         chartMiesiace.data.datasets[1].data = daneKosztyLacznie;
         chartMiesiace.data.datasets[1].hidden = false;
-        chartMiesiace.data.datasets[2].data = danePalety;
+        chartMiesiace.data.datasets[2].data = danePaletyZakup;
         chartMiesiace.data.datasets[2].hidden = false;
         chartMiesiace.data.datasets[3].data = daneZysk;
         chartMiesiace.data.datasets[3].hidden = false;
