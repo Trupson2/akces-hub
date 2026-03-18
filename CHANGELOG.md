@@ -1,17 +1,46 @@
 # Historia zmian — Akces Hub
 
+## 18.03.2026
+
+### Etykiety i druk
+- [NOWE] Usunięto barcode EAN z etykiet — zostaje sam QR kod (czytelniej)
+- [NOWE] EAN wyswietlany jako tekst pod QR kodem
+- [FIX] Etykiety jednolite — brak roznic miedzy produktami z/bez EAN
+
+### Wysylki
+- [NOWE] Nowy flow: nadanie etykiety → status "nadana" (nie znika z listy)
+- [NOWE] Badge "NADANA" na liscie wysylek
+- [FIX] Lokalizacja regalu widoczna w wysylkach (fallback po nazwie produktu)
+- [FIX] Stare zamowienia z produkt_id=NULL tez pokazuja lokalizacje
+
+### GPSR
+- [FIX] GPSR zmieniony z SDK google.generativeai na REST API (dzialal tylko na PC)
+- [FIX] Fallback template — zamiana znakow • na * (Allegro wymaga gwiazdek)
+
+### Statystyki i wykresy
+- [FIX] Wykres przychodu doliczal teraz prywatna sprzedaz do slupka
+- [NOWE] Zolty slupek "w tym prywatna" na wykresie miesięcznym
+- [FIX] Masowa edycja cen — wartosc mnozy cene × ilosc (nie tylko cene)
+
+### System
+- [FIX] Logowanie — database is locked nie blokuje juz logowania (timeout 30s + WAL)
+- [OPTYM.] Update checker co 15 min zamiast 1h + reset cache przy restarcie
+- [FIX] Ngrok domain zmieniony na unsatiating-dirgelike-audrina.ngrok-free.dev
+
+---
+
 ## 17.03.2026
 
 ### Bezpieczenstwo (OWASP ZAP)
-- Dodano naglowki bezpieczenstwa: CSP, HSTS, X-Frame-Options, X-Content-Type-Options
+- [NOWE] Dodano naglowki bezpieczenstwa: CSP, HSTS, X-Frame-Options, X-Content-Type-Options
 - Ukryto wersje serwera w odpowiedziach HTTP
-- Ochrona CSRF dla formularzy (flask-wtf)
+- [SECURITY] Ochrona CSRF dla formularzy (flask-wtf)
 - Cache-control dla prywatnych stron (no-store)
 - Rate limiting na logowanie (flask-limiter)
 
 ### System aktualizacji
 - Dashboard pokazuje status wersji: "System aktualny" lub "Dostepna aktualizacja"
-- Automatyczne sprawdzanie nowych wersji co 1 godzine
+- [NOWE] Automatyczne sprawdzanie nowych wersji co 15 minut
 - Przycisk "Aktualizuj" — git pull + restart z poziomu przegladarki
 - Powiadomienie Telegram o dostepnej aktualizacji
 
