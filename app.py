@@ -1671,14 +1671,52 @@ def setup_logo():
 # ============================================================
 @app.route('/changelog')
 def changelog():
-    """Changelog z pliku CHANGELOG.md — po polsku"""
+    """Changelog: CHANGELOG.md + ostatnie commity z git log"""
     content = ''
     try:
         cl_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'CHANGELOG.md')
         with open(cl_path, 'r', encoding='utf-8') as f:
             content = f.read()
     except:
-        content = '# Brak changelogu'
+        content = '# Historia zmian\n'
+
+    # Dodaj ostatnie commity z git log (auto-generated)
+    try:
+        import subprocess as _sp
+        _cwd = os.path.dirname(os.path.abspath(__file__))
+        r = _sp.run(
+            ['git', 'log', '--pretty=format:%H|%ai|%s', '-50'],
+            capture_output=True, text=True, timeout=10, cwd=_cwd
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            from collections import OrderedDict
+            days = OrderedDict()
+            for line in r.stdout.strip().split('\n'):
+                parts = line.split('|', 2)
+                if len(parts) < 3:
+                    continue
+                commit_hash, date_str, msg = parts
+                day = date_str[:10]  # YYYY-MM-DD
+                if day not in days:
+                    days[day] = []
+                # Pomijaj Co-Authored-By i merge commity
+                if msg.startswith('Merge') or 'Co-Authored' in msg:
+                    continue
+                short_hash = commit_hash[:7]
+                days[day].append(f"- `{short_hash}` {msg}")
+
+            if days:
+                git_section = "\n\n---\n\n## Ostatnie commity (auto)\n\n"
+                for day, commits in days.items():
+                    # Formatuj datę DD.MM.YYYY
+                    parts = day.split('-')
+                    formatted = f"{parts[2]}.{parts[1]}.{parts[0]}" if len(parts) == 3 else day
+                    git_section += f"### {formatted}\n"
+                    git_section += '\n'.join(commits) + '\n\n'
+                content += git_section
+    except:
+        pass
+
     return render_template('changelog.html', content=content, version=VERSION)
 
 @app.route('/narzedzia')
