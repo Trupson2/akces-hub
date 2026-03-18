@@ -39,7 +39,7 @@ def _pobierz_zamowienia_allegro(force_refresh=False):
                p.lokalizacja, p.regal, p.zdjecie_url
         FROM sprzedaze s
         LEFT JOIN produkty p ON s.produkt_id = p.id
-        WHERE s.status = 'nowa'
+        WHERE s.status IN ('nowa', 'nadana')
         ORDER BY s.data_sprzedazy DESC
     ''').fetchall()
 
@@ -444,7 +444,7 @@ def wysylki_wyczysc_all():
     conn = get_db()
     cnt = conn.execute('''
         UPDATE sprzedaze SET status = 'wyslana'
-        WHERE status IN ('nowa', 'nowe')
+        WHERE status IN ('nowa', 'nowe', 'nadana')
     ''').rowcount
     conn.commit()
     print(f"🗑️ Wyczyszczono {cnt} zamówień → wyslana")
@@ -466,7 +466,7 @@ def wysylki_debug_sync():
     # Pokaż zamówienia 'nowa'
     nowe = conn.execute('''
         SELECT id, allegro_order_id, nazwa, cena, kupujacy, data_sprzedazy, status
-        FROM sprzedaze WHERE status IN ('nowa', 'nowe')
+        FROM sprzedaze WHERE status IN ('nowa', 'nowe', 'nadana')
         ORDER BY data_sprzedazy DESC
     ''').fetchall()
 
@@ -539,7 +539,7 @@ def wysylki_lista():
         SELECT DISTINCT p.dostawca 
         FROM sprzedaze s
         LEFT JOIN produkty p ON s.produkt_id = p.id
-        WHERE s.status = 'nowa' AND p.dostawca IS NOT NULL AND p.dostawca != ''
+        WHERE s.status IN ('nowa', 'nadana') AND p.dostawca IS NOT NULL AND p.dostawca != ''
         ORDER BY p.dostawca
     ''').fetchall()
     users_list = [u['dostawca'] for u in users]
@@ -554,7 +554,7 @@ def wysylki_lista():
             FROM sprzedaze s
             LEFT JOIN produkty p ON s.produkt_id = p.id
             LEFT JOIN oferty o ON s.oferta_id = o.id
-            WHERE s.status = 'nowa' AND p.dostawca = ?
+            WHERE s.status IN ('nowa', 'nadana') AND p.dostawca = ?
             ORDER BY s.allegro_order_id DESC, s.data_sprzedazy DESC
         ''', (user_filter,)).fetchall()
     else:
@@ -566,7 +566,7 @@ def wysylki_lista():
             FROM sprzedaze s
             LEFT JOIN produkty p ON s.produkt_id = p.id
             LEFT JOIN oferty o ON s.oferta_id = o.id
-            WHERE s.status = 'nowa'
+            WHERE s.status IN ('nowa', 'nadana')
             ORDER BY s.allegro_order_id DESC, s.data_sprzedazy DESC
         ''').fetchall()
     
@@ -637,6 +637,11 @@ def wysylki_lista():
             lokalizacja = first_item['lokalizacja'] or '—'
             dostawca = first_item['dostawca'] or 'Niezdefiniowany'
             code = first_item['ean'] or first_item['asin'] or '—'
+
+            # Status badge: nadana = etykieta wydrukowana
+            status_raw = first_item.get('status', 'nowa')
+            if status_raw == 'nadana':
+                badge += ' <span style="background:#3b82f6;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.7rem;font-weight:700">📦 NADANA</span>'
             
             # Formatuj datę
             data_raw = first_item['data_sprzedazy'] or ''
@@ -776,7 +781,7 @@ def wyslano_order(order_id):
     # Oznacz wszystkie sprzedaże z tym order_id jako wysłane
     result = conn.execute('''
         UPDATE sprzedaze SET status = 'wyslana' 
-        WHERE allegro_order_id = ? AND status = 'nowa'
+        WHERE allegro_order_id = ? AND status IN ('nowa', 'nadana')
     ''', (order_id,))
     
     updated = result.rowcount
@@ -870,7 +875,7 @@ def bulk_wyslane_allegro():
     for order_id in order_ids:
         result = conn.execute('''
             UPDATE sprzedaze SET status = 'wyslana'
-            WHERE allegro_order_id = ? AND status = 'nowa'
+            WHERE allegro_order_id = ? AND status IN ('nowa', 'nadana')
         ''', (order_id,))
         total_updated += result.rowcount
 

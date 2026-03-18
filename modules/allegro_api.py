@@ -2536,19 +2536,20 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                 # Mapowanie: Allegro status → lokalny status
                 new_local_status = None
 
-                # SENT — zamówienie wysłane (sprawdzamy WSZYSTKIE warianty)
+                # SENT — etykieta nadana, ale NIE oznaczaj jako wysłane
+                # (użytkownik najpierw drukuje etykiety, pakuje, potem oznacza ręcznie)
                 if allegro_status == 'SENT':
-                    new_local_status = 'wyslana'
+                    new_local_status = 'nadana'
                 elif shipment_status in ('SENT', 'PICKED_UP'):
-                    new_local_status = 'wyslana'
+                    new_local_status = 'nadana'
                 elif delivery_picked:
-                    new_local_status = 'wyslana'
+                    new_local_status = 'wyslana'  # odebrana = faktycznie wysłana
                 # CANCELLED
                 elif allegro_status == 'CANCELLED':
                     new_local_status = 'anulowana'
                 # BOUGHT/FILLED z fulfillment SENT lub PICKED_UP
                 elif allegro_status in ('BOUGHT', 'FILLED', 'READY_FOR_PROCESSING') and shipment_status in ('SENT', 'PICKED_UP'):
-                    new_local_status = 'wyslana'
+                    new_local_status = 'nadana'
 
                 # Aktualizuj adres dostawy (pickup point lub adres odbiorcy)
                 delivery = order.get('delivery') or {}
@@ -2581,7 +2582,10 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                     for row in existing_rows:
                         cur = row['status']
                         # Aktualizuj status jeśli nie jest już docelowy
-                        if new_local_status == 'wyslana' and cur not in ('wyslana', 'wysłane', 'wyslane'):
+                        if new_local_status == 'nadana' and cur in ('nowa', 'nowe'):
+                            conn.execute('UPDATE sprzedaze SET status = ? WHERE id = ?', (new_local_status, row['id']))
+                            updated_cnt += 1
+                        elif new_local_status == 'wyslana' and cur not in ('wyslana', 'wysłane', 'wyslane'):
                             conn.execute('UPDATE sprzedaze SET status = ? WHERE id = ?', (new_local_status, row['id']))
                             updated_cnt += 1
                         elif new_local_status == 'anulowana' and cur != 'anulowana':
