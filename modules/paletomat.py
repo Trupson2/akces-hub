@@ -3445,15 +3445,22 @@ def generator_mass_create_stream():
 
 @paletomat_bp.route('/generator/cleanup')
 def generator_cleanup():
-    """Usuwa wystawione szkice z bazy"""
+    """Usuwa wystawione szkice z bazy i resetuje gotowe do regeneracji"""
     conn = get_db()
     wystawione = conn.execute('SELECT COUNT(*) as cnt FROM scraped WHERE status = "wystawiony"').fetchone()['cnt']
     conn.execute('DELETE FROM scraped WHERE status = "wystawiony"')
+    # Resetuj gotowe — żeby przy ponownym wystawieniu regenerowały opis
+    gotowe = conn.execute('SELECT COUNT(*) as cnt FROM scraped WHERE status = "gotowy"').fetchone()['cnt']
+    conn.execute("UPDATE scraped SET opis_html = '', gpsr = '', tytul_seo = '', status = 'nowy' WHERE status = 'gotowy'")
     conn.commit()
-    
+
+    msg = f'Usunięto {wystawione} wystawionych szkiców!'
+    if gotowe > 0:
+        msg += f' Zresetowano {gotowe} gotowych do regeneracji opisów.'
+
     return render(f'''
         <div class="hdr"><h1>🗑️ CZYSZCZENIE</h1></div>
-        <div class="alert alert-ok">Usunięto {wystawione} wystawionych szkiców!</div>
+        <div class="alert alert-ok">{msg}</div>
         <a href="/paletomat/generator" class="btn btn-p">← Powrót do listy</a>
     ''')
 
