@@ -39,6 +39,9 @@ PUBLIC_PREFIXES = [
     '/api/warehouse/heatmap',  # tylko odczyt heatmapy (bez assign/remove)
     '/license',  # Aktywacja licencji — dostępna bez logowania
     '/setup',    # Setup wizard — dostępny bez logowania
+    '/auth/login',        # Logowanie
+    '/auth/first_setup',  # Tworzenie pierwszego konta
+    '/auth/logout',       # Wylogowanie
 ]
 
 
