@@ -39,7 +39,7 @@ if _missing:
 
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 
 from flask import Flask, render_template, render_template_string, request, redirect, jsonify, Response, send_from_directory, make_response, flash, url_for, session
@@ -110,6 +110,7 @@ app.config['VERSION'] = VERSION
 # Session cookie security
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)  # Sesja wygasa po 12h
 # SESSION_COOKIE_SECURE = True only when behind HTTPS (ngrok)
 if os.environ.get('FLASK_HTTPS') or os.environ.get('NGROK_DOMAIN'):
     app.config['SESSION_COOKIE_SECURE'] = True
@@ -1355,8 +1356,9 @@ def monitor_page():
 
     kw_tags = ' '.join([f'<span style="display:inline-block;background:var(--accent-color);color:white;padding:2px 8px;border-radius:12px;font-size:12px;margin:2px">{k}</span>' for k in keywords[:20]])
 
-    _msg = request.args.get('msg', '')
-    _err = request.args.get('err', '')
+    import html as html_lib
+    _msg = html_lib.escape(request.args.get('msg', ''))
+    _err = html_lib.escape(request.args.get('err', ''))
     _alert = ''
     if _msg:
         _alert = f'<div style="padding:10px;margin-bottom:12px;background:rgba(0,180,0,0.1);border-radius:8px;text-align:center;font-size:14px">✅ {_msg}</div>'

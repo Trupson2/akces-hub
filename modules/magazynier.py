@@ -6300,7 +6300,8 @@ def masowa_edycja_statusu():
             if updates:
                 # updates contains only whitelisted 'column = ?' fragments (status, stan, lokalizacja, cena_allegro)
                 ALLOWED_SET_CLAUSES = {'status = ?', 'stan = ?', 'lokalizacja = ?', 'cena_allegro = ?'}
-                assert all(u in ALLOWED_SET_CLAUSES for u in updates), "Invalid SET clause"
+                if not all(u in ALLOWED_SET_CLAUSES for u in updates):
+                    return jsonify({'error': 'Niedozwolone pole'}), 400
                 vals.append(product_id)
                 conn.execute("UPDATE produkty SET " + ', '.join(updates) + " WHERE id = ?", vals)
                 opis = "Masowa edycja: " + " | ".join(changes)
@@ -6552,7 +6553,8 @@ def api_autowycena_paleta_stream(paleta_id):
                 if updates:
                     # updates contains only whitelisted 'column = ?' fragments (cena_allegro, nazwa)
                     ALLOWED_SET_CLAUSES = {'cena_allegro = ?', 'nazwa = ?'}
-                    assert all(u in ALLOWED_SET_CLAUSES for u in updates), "Invalid SET clause"
+                    if not all(u in ALLOWED_SET_CLAUSES for u in updates):
+                        continue
                     params.append(p['id'])
                     conn.execute("UPDATE produkty SET " + ', '.join(updates) + " WHERE id = ?", params)
                     conn.commit()
