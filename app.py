@@ -1095,7 +1095,7 @@ def home():
         cache = json.loads(cache_raw) if cache_raw else {}
         cache_age = time.time() - cache.get('checked_at', 0)
 
-        if cache_age > 3600:  # co 1h sprawdzaj
+        if cache_age > 900:  # co 15 min sprawdzaj
             _sp.run(['git', 'fetch', 'origin', 'main', '--quiet'],
                     capture_output=True, timeout=15,
                     cwd=os.path.dirname(os.path.abspath(__file__)))
@@ -3927,6 +3927,14 @@ if __name__ == '__main__':
                 log_warning(f"[Auto] Blad backupu: {e}")
     threading.Thread(target=hourly_backup, daemon=True).start()
     log("Auto-backup co godzine: WLACZONY")
+
+    # Reset cache aktualizacji przy starcie — żeby od razu sprawdzał
+    try:
+        from modules.database import set_config as _sc_start
+        _sc_start('update_check_cache', '')
+        log("Update cache wyczyszczony (restart)")
+    except:
+        pass
 
     log("Serwer startuje: http://0.0.0.0:5000")
     print("="*60)
