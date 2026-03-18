@@ -706,7 +706,7 @@ def setup_auth(app):
         if user_role in ROLE_ALLOWED_PATHS:
             allowed = ROLE_ALLOWED_PATHS[user_role]
             path = request.path
-            if not any(path == a or path.startswith(a + '/') or (a.endswith('/') and path.startswith(a)) for a in allowed):
+            if not any(path == a or (a != '/' and path.startswith(a + '/')) or (a != '/' and a.endswith('/') and path.startswith(a)) for a in allowed):
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return jsonify({'success': False, 'error': 'Brak uprawnień'}), 403
                 return render_template_string(ACCESS_DENIED_HTML, path=path, role=user_role), 403
