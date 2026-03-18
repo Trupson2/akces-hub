@@ -1775,7 +1775,7 @@ def changelog():
         import subprocess as _sp
         _cwd = os.path.dirname(os.path.abspath(__file__))
         r = _sp.run(
-            ['git', 'log', '--pretty=format:%H|%ai|%s', '-50'],
+            ['git', 'log', '--pretty=format:%H|%ai|%s', '-200'],
             capture_output=True, text=True, timeout=10, cwd=_cwd
         )
         if r.returncode == 0 and r.stdout.strip():
