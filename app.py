@@ -928,42 +928,91 @@ def api_system_stats():
 def home():
     # Magazynier — uproszczony dashboard z linkami do wysyłek i magazynu
     if session.get('rola') == 'magazynier':
+        from modules.database import get_db
+        conn = get_db()
+        # Statystyki dla magazyniera
+        do_wysylki = conn.execute("SELECT COUNT(*) FROM sprzedaze WHERE status IN ('nowa','nadana')").fetchone()[0]
+        wysylki_dzis = conn.execute("SELECT COUNT(*) FROM sprzedaze WHERE status = 'wyslana' AND DATE(data_sprzedazy) = DATE('now')").fetchone()[0]
+        produkty_magazyn = conn.execute("SELECT COALESCE(SUM(ilosc), 0) FROM produkty WHERE status IN ('magazyn','wystawiony')").fetchone()[0]
+        regaly_cnt = conn.execute("SELECT COUNT(DISTINCT lokalizacja) FROM produkty WHERE lokalizacja IS NOT NULL AND lokalizacja != ''").fetchone()[0]
         return render_template_string('''<!DOCTYPE html>
 <html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ brand_name }} - Panel magazyniera</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a1a;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh}
-.container{width:100%;max-width:500px;padding:20px}
-h1{text-align:center;font-size:1.5rem;margin-bottom:8px;color:#e2e8f0}
-.sub{text-align:center;color:#64748b;font-size:0.85rem;margin-bottom:30px}
-.card{display:block;background:#12122a;border:2px solid #1e1e3a;border-radius:16px;padding:30px;margin-bottom:16px;text-decoration:none;color:#fff;text-align:center;transition:all 0.2s}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a1a;color:#fff;min-height:100vh}
+.container{width:100%;max-width:600px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
+.sub{text-align:center;color:#64748b;font-size:0.85rem;margin-bottom:20px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}
+.stat{background:#12122a;border:1px solid #1e1e3a;border-radius:12px;padding:16px;text-align:center}
+.stat-val{font-size:1.8rem;font-weight:700}
+.stat-label{font-size:0.7rem;color:#64748b;margin-top:2px}
+.card{display:block;background:#12122a;border:2px solid #1e1e3a;border-radius:16px;padding:24px;margin-bottom:12px;text-decoration:none;color:#fff;transition:all 0.2s}
 .card:hover{border-color:#6366f1;transform:translateY(-2px);box-shadow:0 8px 30px rgba(99,102,241,0.2)}
-.card-icon{font-size:3rem;margin-bottom:12px}
-.card-title{font-size:1.3rem;font-weight:700;margin-bottom:4px}
-.card-desc{font-size:0.85rem;color:#94a3b8}
+.card-row{display:flex;align-items:center;gap:16px}
+.card-icon{font-size:2.5rem;min-width:50px;text-align:center}
+.card-title{font-size:1.1rem;font-weight:700;margin-bottom:2px}
+.card-desc{font-size:0.8rem;color:#94a3b8}
+.badge{display:inline-block;background:#ef4444;color:#fff;font-size:0.75rem;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px}
 .logout{display:block;text-align:center;margin-top:20px;color:#64748b;font-size:0.85rem}
+.refresh{text-align:center;margin-bottom:16px}
+.refresh a{color:#64748b;font-size:0.75rem;text-decoration:none}
 </style></head><body>
 <div class="container">
-    <h1>👋 Cześć, {{ current_user }}</h1>
+    <h1>{{ current_user }}</h1>
     <div class="sub">Panel magazyniera</div>
-    <a href="/wysylki" class="card" style="border-color:#22c55e33">
-        <div class="card-icon">📦</div>
-        <div class="card-title" style="color:#22c55e">Wysyłki</div>
-        <div class="card-desc">Pakowanie i nadawanie paczek</div>
-    </a>
-    <a href="/magazyn" class="card" style="border-color:#f59e0b33">
-        <div class="card-icon">📋</div>
-        <div class="card-title" style="color:#f59e0b">Magazyn</div>
-        <div class="card-desc">Statystyki, produkty, skaner</div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-val" style="color:{% if do_wysylki > 0 %}#ef4444{% else %}#22c55e{% endif %}">{{ do_wysylki }}</div>
+            <div class="stat-label">DO WYSYLKI</div>
+        </div>
+        <div class="stat">
+            <div class="stat-val" style="color:#22c55e">{{ wysylki_dzis }}</div>
+            <div class="stat-label">WYSLANE DZIS</div>
+        </div>
+        <div class="stat">
+            <div class="stat-val" style="color:#3b82f6">{{ produkty_magazyn }}</div>
+            <div class="stat-label">SZT W MAGAZYNIE</div>
+        </div>
+        <div class="stat">
+            <div class="stat-val" style="color:#f59e0b">{{ regaly_cnt }}</div>
+            <div class="stat-label">LOKALIZACJI</div>
+        </div>
+    </div>
+
+    <a href="/wysylki" class="card" style="border-color:{% if do_wysylki > 0 %}#ef4444{% else %}#22c55e{% endif %}33">
+        <div class="card-row">
+            <div class="card-icon">📦</div>
+            <div>
+                <div class="card-title" style="color:#22c55e">Wysylki{% if do_wysylki > 0 %}<span class="badge">{{ do_wysylki }}</span>{% endif %}</div>
+                <div class="card-desc">Pakowanie i nadawanie paczek</div>
+            </div>
+        </div>
     </a>
     <a href="/warehouse/shelves" class="card" style="border-color:#3b82f633">
-        <div class="card-icon">🗄️</div>
-        <div class="card-title" style="color:#3b82f6">Regały</div>
-        <div class="card-desc">Mapa regałów, półki, QR kody</div>
+        <div class="card-row">
+            <div class="card-icon">🗄️</div>
+            <div>
+                <div class="card-title" style="color:#3b82f6">Regaly</div>
+                <div class="card-desc">Mapa regalow, polki, skanuj QR</div>
+            </div>
+        </div>
     </a>
-    <a href="/auth/logout" class="logout">🚪 Wyloguj się</a>
-</div></body></html>''')
+    <a href="/magazyn" class="card" style="border-color:#f59e0b33">
+        <div class="card-row">
+            <div class="card-icon">📋</div>
+            <div>
+                <div class="card-title" style="color:#f59e0b">Magazyn</div>
+                <div class="card-desc">Produkty, wyszukiwarka</div>
+            </div>
+        </div>
+    </a>
+    <div class="refresh"><a href="/">🔄 Odswiez</a></div>
+    <a href="/auth/logout" class="logout">Wyloguj sie</a>
+</div></body></html>''', do_wysylki=do_wysylki, wysylki_dzis=wysylki_dzis,
+            produkty_magazyn=produkty_magazyn, regaly_cnt=regaly_cnt)
 
     # Onboarding — redirect jeśli nie przeszedł setup
     from modules.database import get_config as _gc
