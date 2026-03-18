@@ -73,8 +73,10 @@ def _verify_password(password, stored_hash):
 
 def _get_auth_db():
     """Polaczenie do bazy dla auth"""
-    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
+    conn.execute('PRAGMA journal_mode=WAL')
+    conn.execute('PRAGMA busy_timeout=30000')
     return conn
 
 
@@ -242,12 +244,15 @@ def login():
             session['rola'] = user['rola']
             session.permanent = True
 
-            # Zapisz czas logowania
-            conn.execute(
-                'UPDATE users SET ostatnie_logowanie = CURRENT_TIMESTAMP WHERE id = ?',
-                (user['id'],)
-            )
-            conn.commit()
+            # Zapisz czas logowania (nie blokuj loginu jesli baza zajeta)
+            try:
+                conn.execute(
+                    'UPDATE users SET ostatnie_logowanie = CURRENT_TIMESTAMP WHERE id = ?',
+                    (user['id'],)
+                )
+                conn.commit()
+            except sqlite3.OperationalError:
+                pass  # Nie blokuj logowania z powodu locka
             conn.close()
 
             next_url = request.args.get('next', '/')
