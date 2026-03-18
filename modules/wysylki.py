@@ -114,11 +114,21 @@ def _zwroc_zamowienie_full(order):
         lokalizacja = ''
         zdjecie_url = ''
         if offer_id:
+            # Szukaj po tabeli oferty
             p = conn.execute('''
                 SELECT p.lokalizacja, p.regal, p.zdjecie_url
                 FROM produkty p JOIN oferty o ON o.produkt_id = p.id
                 WHERE o.allegro_id = ? LIMIT 1
             ''', (offer_id,)).fetchone()
+            if not p:
+                # Fallback: szukaj po nazwie produktu (fuzzy match)
+                words = [w for w in name.split()[:4] if len(w) > 2]
+                if words:
+                    like = '%' + '%'.join(words[:3]) + '%'
+                    p = conn.execute('''
+                        SELECT lokalizacja, regal, zdjecie_url
+                        FROM produkty WHERE nazwa LIKE ? AND ilosc > 0 LIMIT 1
+                    ''', (like,)).fetchone()
             if p:
                 lokalizacja = p['lokalizacja'] or p['regal'] or ''
                 zdjecie_url = p['zdjecie_url'] or ''
@@ -561,6 +571,18 @@ def wysylki_lista():
         ''').fetchall()
     
     
+    # Uzupełnij brakujące lokalizacje — szukaj po nazwie/EAN/ASIN
+    for z in zamowienia:
+        if not z['lokalizacja']:
+            nazwa = z['produkt_nazwa'] or z['oferta_tytul'] or ''
+            words = [w for w in nazwa.split()[:4] if len(w) > 2]
+            if words:
+                like = '%' + '%'.join(words[:3]) + '%'
+                p = conn.execute('SELECT lokalizacja, regal FROM produkty WHERE nazwa LIKE ? AND lokalizacja IS NOT NULL AND lokalizacja != "" LIMIT 1', (like,)).fetchone()
+                if p:
+                    z = dict(z)
+                    z['lokalizacja'] = p['lokalizacja'] or p['regal']
+
     # Grupuj zamówienia po allegro_order_id lub kupujacy+data
     grouped_orders = defaultdict(list)
     for z in zamowienia:
