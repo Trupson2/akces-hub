@@ -18,7 +18,8 @@ pandas>=2.1.0
 
 # --- Obrazki ---
 Pillow>=10.0.0
-rembg[cpu]>=2.0.0           # Lokalne usuwanie tla (darmowe, bez GPU)
+# rembg[cpu]>=2.0.0           # Opcjonalne: lokalne usuwanie tla (500MB+)
+# Na Pi: pip install rembg[cpu]
 
 # --- Kody QR i kreskowe ---
 qrcode>=7.4.0
@@ -27,10 +28,11 @@ python-barcode>=0.15.0
 # --- PDF / Etykiety ---
 reportlab>=4.0.0
 
-# --- Drukowanie (Bluetooth/USB) ---
-python-escpos>=3.1
-bleak>=0.21.0               # BLE (Niimbot)
-niimprint>=0.2.0            # Niimbot SDK
+# --- Drukowanie (Bluetooth/USB) --- opcjonalne, tylko na Pi
+# python-escpos>=3.1
+# bleak>=0.21.0               # BLE (Niimbot)
+# niimprint>=0.2.0            # Niimbot SDK
+# Na Pi zainstaluj osobno: pip install python-escpos bleak niimprint
 
 # --- Scheduler ---
 schedule>=1.2.0

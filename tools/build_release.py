@@ -51,14 +51,20 @@ EXCLUDE_DIRS = {
     'static/downloads',
 }
 
-EXCLUDE_PATTERNS = {
+EXCLUDE_EXTENSIONS = {
     '.pyc', '.db', '.db-wal', '.db-shm', '.log',
     '.bak', '.gz',
+}
+
+EXCLUDE_PREFIXES = {
     'test_', 'debug_', 'curl_', 'pentest_',
     'enhanced_test', 'final_test', 'ev_', 'infographic_',
     'pipeline_test', 'vsprint_example', 'watermark_test',
-    'allegro_',
 }
+
+# Pliki graficzne allegro (nie allegro_api.py!)
+EXCLUDE_IMAGE_PREFIXES = {'allegro_'}
+EXCLUDE_IMAGE_EXTENSIONS = {'.jpg', '.png', '.jpeg'}
 
 
 def should_exclude(path, name):
@@ -67,8 +73,15 @@ def should_exclude(path, name):
         return True
     if name in EXCLUDE_DIRS:
         return True
-    for pat in EXCLUDE_PATTERNS:
-        if name.startswith(pat) or name.endswith(pat):
+    _, ext = os.path.splitext(name)
+    if ext in EXCLUDE_EXTENSIONS:
+        return True
+    for pat in EXCLUDE_PREFIXES:
+        if name.startswith(pat):
+            return True
+    # Obrazy allegro (allegro_*.jpg) ale NIE allegro_api.py
+    for pat in EXCLUDE_IMAGE_PREFIXES:
+        if name.startswith(pat) and ext in EXCLUDE_IMAGE_EXTENSIONS:
             return True
     # Pliki licencji JSON
     if name.startswith('license_') and name.endswith('.json'):
