@@ -116,8 +116,23 @@ def require_login(f):
     return decorated
 
 
-# Hierarchia ról: admin > manager > user
-ROLE_HIERARCHY = {'admin': 3, 'manager': 2, 'user': 1}
+# Hierarchia ról: admin > manager > user > magazynier
+ROLE_HIERARCHY = {'admin': 3, 'manager': 2, 'user': 1, 'magazynier': 0}
+
+# Dozwolone ścieżki per rola (magazynier ma ograniczony dostęp)
+ROLE_ALLOWED_PATHS = {
+    'magazynier': [
+        '/',                    # dashboard (read-only)
+        '/wysylki',             # wysyłki
+        '/magazyn',             # magazyn (regały, lokalizacje, skaner)
+        '/auth/zmien-haslo',    # zmiana hasła
+        '/auth/logout',         # wylogowanie
+        '/static/',             # pliki statyczne
+        '/api/health',          # healthcheck
+        '/api/warehouse',       # API magazynu (heatmapa, skaner)
+    ],
+    # admin, manager, user — pełny dostęp (brak ograniczeń)
+}
 
 def require_role(*roles):
     """Dekorator wymagający jednej z podanych ról (lub wyższej)"""
@@ -502,6 +517,30 @@ def user_delete(user_id):
     return redirect(url_for('auth.users_list'))
 
 
+ACCESS_DENIED_HTML = '''<!DOCTYPE html>
+<html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brak dostępu</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a1a;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.card{background:#12122a;border:1px solid #ef4444;border-radius:16px;padding:40px;text-align:center;max-width:400px}
+h1{font-size:2rem;margin-bottom:12px}
+p{color:#94a3b8;margin-bottom:8px}
+.role{color:#f59e0b;font-weight:600}
+a{display:inline-block;margin-top:20px;padding:12px 24px;background:#6366f1;color:#fff;border-radius:10px;text-decoration:none;font-weight:600}
+a:hover{opacity:0.9}
+</style></head><body>
+<div class="card">
+    <h1>🔒</h1>
+    <h1>Brak dostępu</h1>
+    <p>Twoja rola (<span class="role">{{ role }}</span>) nie ma uprawnień do tej strony.</p>
+    <p style="font-size:0.8rem;color:#64748b">{{ path }}</p>
+    <a href="/">← Dashboard</a>
+    <a href="/wysylki" style="background:#22c55e;margin-left:8px">📦 Wysyłki</a>
+    <a href="/magazyn" style="background:#f59e0b;margin-left:8px">📋 Magazyn</a>
+</div></body></html>'''
+
+
 USERS_HTML = '''<!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -554,7 +593,7 @@ select.role-select{background:#0a0a1a;border:1px solid #2a2a4a;border-radius:6px
 <div class="field"><label>Login</label><input name="username" required minlength="3"></div>
 <div class="field"><label>Haslo</label><input name="password" type="password" required minlength="4"></div>
 <div class="field"><label>Rola</label>
-<select name="rola"><option value="user">User</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
+<select name="rola"><option value="magazynier">Magazynier</option><option value="user">User</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
 </div>
 <button class="btn btn-primary" type="submit">Dodaj uzytkownika</button>
 </form>
@@ -569,6 +608,7 @@ select.role-select{background:#0a0a1a;border:1px solid #2a2a4a;border-radius:6px
 <td>
 <form method="POST" action="{{ url_for('auth.user_change_role', user_id=u.id) }}" style="display:inline">
 <select name="rola" class="role-select" onchange="this.form.submit()">
+<option value="magazynier" {{ 'selected' if u.rola=='magazynier' }}>Magazynier</option>
 <option value="user" {{ 'selected' if u.rola=='user' }}>User</option>
 <option value="manager" {{ 'selected' if u.rola=='manager' }}>Manager</option>
 <option value="admin" {{ 'selected' if u.rola=='admin' }}>Admin</option>
@@ -657,6 +697,16 @@ def setup_auth(app):
             return redirect(url_for('auth.login'))
         session['last_active'] = now
         session.permanent = True
+
+        # Ograniczenie dostępu dla roli magazynier
+        user_role = session.get('rola', 'user')
+        if user_role in ROLE_ALLOWED_PATHS:
+            allowed = ROLE_ALLOWED_PATHS[user_role]
+            path = request.path
+            if not any(path == a or path.startswith(a + '/') or (a.endswith('/') and path.startswith(a)) for a in allowed):
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': False, 'error': 'Brak uprawnień'}), 403
+                return render_template_string(ACCESS_DENIED_HTML, path=path, role=user_role), 403
 
         return None
 

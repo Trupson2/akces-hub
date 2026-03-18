@@ -926,6 +926,45 @@ def api_system_stats():
 
 @app.route('/')
 def home():
+    # Magazynier — uproszczony dashboard z linkami do wysyłek i magazynu
+    if session.get('rola') == 'magazynier':
+        return render_template_string('''<!DOCTYPE html>
+<html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ brand_name }} - Panel magazyniera</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a1a;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.container{width:100%;max-width:500px;padding:20px}
+h1{text-align:center;font-size:1.5rem;margin-bottom:8px;color:#e2e8f0}
+.sub{text-align:center;color:#64748b;font-size:0.85rem;margin-bottom:30px}
+.card{display:block;background:#12122a;border:2px solid #1e1e3a;border-radius:16px;padding:30px;margin-bottom:16px;text-decoration:none;color:#fff;text-align:center;transition:all 0.2s}
+.card:hover{border-color:#6366f1;transform:translateY(-2px);box-shadow:0 8px 30px rgba(99,102,241,0.2)}
+.card-icon{font-size:3rem;margin-bottom:12px}
+.card-title{font-size:1.3rem;font-weight:700;margin-bottom:4px}
+.card-desc{font-size:0.85rem;color:#94a3b8}
+.logout{display:block;text-align:center;margin-top:20px;color:#64748b;font-size:0.85rem}
+</style></head><body>
+<div class="container">
+    <h1>👋 Cześć, {{ current_user }}</h1>
+    <div class="sub">Panel magazyniera</div>
+    <a href="/wysylki" class="card" style="border-color:#22c55e33">
+        <div class="card-icon">📦</div>
+        <div class="card-title" style="color:#22c55e">Wysyłki</div>
+        <div class="card-desc">Pakowanie i nadawanie paczek</div>
+    </a>
+    <a href="/magazyn" class="card" style="border-color:#f59e0b33">
+        <div class="card-icon">📋</div>
+        <div class="card-title" style="color:#f59e0b">Magazyn</div>
+        <div class="card-desc">Regały, lokalizacje, skaner</div>
+    </a>
+    <a href="/magazyn/warehouse" class="card" style="border-color:#3b82f633">
+        <div class="card-icon">🏗️</div>
+        <div class="card-title" style="color:#3b82f6">Mapa regałów</div>
+        <div class="card-desc">Wizualizacja magazynu</div>
+    </a>
+    <a href="/auth/logout" class="logout">🚪 Wyloguj się</a>
+</div></body></html>''')
+
     # Onboarding — redirect jeśli nie przeszedł setup
     from modules.database import get_config as _gc
     if not _gc('setup_done', ''):
