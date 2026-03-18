@@ -746,7 +746,7 @@ def wybierz_konto():
 def ustaw_konto(user):
     """Ustawia cookie z wybranym kontem"""
     resp = make_response(redirect('/'))
-    resp.set_cookie('akces_user', user, max_age=60*60*24*365)  # 1 rok
+    resp.set_cookie('akces_user', user, max_age=60*60*24*365, httponly=True, samesite='Lax')  # 1 rok
     return resp
 
 @app.route('/zmien-konto')
@@ -1156,7 +1156,7 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
             active_monitor='',
             **sypie_data
         ))
-        resp.set_cookie('kiosk_mode', '1', max_age=365*24*3600)
+        resp.set_cookie('kiosk_mode', '1', max_age=365*24*3600, httponly=True, samesite='Lax')
         return resp
 
     # Statystyki COGS do dashboardu
@@ -1283,7 +1283,7 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
         **sypie_data
     ))
     if not request.cookies.get('akces_user'):
-        resp.set_cookie('akces_user', 'adrian', max_age=60*60*24*365)
+        resp.set_cookie('akces_user', 'adrian', max_age=60*60*24*365, httponly=True, samesite='Lax')
     return resp
 
 # === CACHE zamówień Allegro (żeby nie odpytywać API przy każdym ładowaniu) ===

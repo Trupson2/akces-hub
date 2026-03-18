@@ -576,7 +576,9 @@ def produkty():
     filter_paleta = request.args.get('paleta', '')
     filter_dostawca = request.args.get('dostawca', '')
     sort_by = request.args.get('sort', 'data')  # data, cena, nazwa, ilosc
-    sort_dir = request.args.get('dir', 'desc')  # asc, desc
+    sort_dir = request.args.get('dir', 'desc').upper()
+    if sort_dir not in ('ASC', 'DESC'):
+        sort_dir = 'DESC'
     search = request.args.get('search', '')
     msg = request.args.get('msg', '')
     
@@ -611,7 +613,7 @@ def produkty():
         'ilosc': 'ilosc'
     }
     sort_col = sort_columns.get(sort_by, 'data_dodania')
-    query += f' ORDER BY {sort_col} {sort_dir.upper()}'
+    query += f' ORDER BY {sort_col} {sort_dir}'
     
     products = conn.execute(query, params).fetchall()
 
