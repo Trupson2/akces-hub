@@ -701,6 +701,8 @@ def setup_auth(app):
 
         # Ograniczenie dostępu dla roli magazynier
         user_role = session.get('rola', 'user')
+        if request.path.startswith('/paletomat'):
+            print(f"🔒 ROLE CHECK: user={session.get('username')} role={user_role} path={request.path} in_allowed={user_role in ROLE_ALLOWED_PATHS}", flush=True)
         if user_role in ROLE_ALLOWED_PATHS:
             allowed = ROLE_ALLOWED_PATHS[user_role]
             path = request.path
