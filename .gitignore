@@ -72,3 +72,7 @@ static/downloads/
 # Security testing (dev only)
 pentest_*.py
 app.py.backup
+
+# License generator (nie dawać klientom!)
+tools/generate_license.py
+tools/license_*.json

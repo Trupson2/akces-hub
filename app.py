@@ -127,6 +127,23 @@ def csrf_protect_forms():
         if request.form.get('csrf_token'):
             csrf.protect()
 
+# Sprawdzanie licencji
+@app.before_request
+def check_license_middleware():
+    """Blokuj dostęp bez aktywnej licencji (oprócz setup, login, aktywacji)"""
+    allowed = ('/setup', '/auth', '/static', '/api/system-stats', '/license', '/favicon')
+    if any(request.path.startswith(p) for p in allowed):
+        return
+    if request.path == '/':
+        return  # Home sam sprawdzi
+    try:
+        from modules.license import check_license
+        is_valid, plan, msg = check_license()
+        if not is_valid:
+            return redirect('/license')
+    except:
+        pass  # Brak modułu = brak wymuszania (dev mode)
+
 # Branding — dostępny globalnie we wszystkich szablonach
 @app.context_processor
 def inject_branding():
@@ -1755,6 +1772,137 @@ def setup_logo():
         return jsonify({'ok': True})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)[:100]}), 500
+
+# ============================================================
+# LICENCJA — aktywacja i status
+# ============================================================
+@app.route('/license', methods=['GET', 'POST'])
+def license_page():
+    """Strona aktywacji licencji"""
+    from modules.license import get_license_display, activate_license
+    import json as _json
+
+    msg = ''
+    err = ''
+
+    if request.method == 'POST':
+        # Aktywacja z pliku JSON lub ręcznie
+        if 'license_file' in request.files:
+            f = request.files['license_file']
+            if f and f.filename:
+                try:
+                    data = _json.load(f)
+                    ok, result = activate_license(
+                        data['key'], data['client'], data['plan'],
+                        data['created'], data['expires'], data['signature']
+                    )
+                    if ok:
+                        msg = result
+                    else:
+                        err = result
+                except Exception as e:
+                    err = f'Nieprawidlowy plik licencji: {str(e)[:100]}'
+        else:
+            # Aktywacja ręczna z formularza
+            try:
+                key = request.form.get('key', '').strip()
+                client = request.form.get('client', '').strip()
+                plan = request.form.get('plan', 'pro').strip()
+                created = int(request.form.get('created', 0))
+                expires = int(request.form.get('expires', 0))
+                signature = request.form.get('signature', '').strip()
+
+                ok, result = activate_license(key, client, plan, created, expires, signature)
+                if ok:
+                    msg = result
+                else:
+                    err = result
+            except Exception as e:
+                err = f'Blad aktywacji: {str(e)[:100]}'
+
+    lic = get_license_display()
+
+    return render_template_string('''<!DOCTYPE html>
+<html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Licencja — {{ brand_name }}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a1a;color:#e2e8f0;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.container{width:100%;max-width:500px;padding:20px}
+h1{text-align:center;font-size:1.5rem;margin-bottom:20px}
+.card{background:#12122a;border:2px solid #1e1e3a;border-radius:16px;padding:24px;margin-bottom:16px}
+.status{text-align:center;padding:16px;border-radius:12px;margin-bottom:16px;font-weight:700;font-size:1.1rem}
+.status.active{background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid #22c55e33}
+.status.inactive{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid #ef444433}
+.info{font-size:0.85rem;color:#94a3b8;margin-bottom:8px}
+.info span{color:#e2e8f0;font-weight:600}
+label{display:block;font-size:0.85rem;color:#94a3b8;margin-bottom:4px;margin-top:12px}
+input,select{width:100%;padding:10px;background:#0a0a1a;border:1px solid #1e1e3a;border-radius:8px;color:#e2e8f0;font-size:0.9rem}
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:16px;color:#fff}
+.btn-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6)}
+.btn-upload{background:linear-gradient(135deg,#22c55e,#16a34a)}
+.divider{text-align:center;color:#64748b;margin:16px 0;font-size:0.8rem}
+.msg{padding:10px;border-radius:8px;margin-bottom:12px;text-align:center;font-size:0.9rem}
+.msg.ok{background:rgba(34,197,94,0.15);color:#22c55e}
+.msg.err{background:rgba(239,68,68,0.15);color:#ef4444}
+a{color:#6366f1;text-decoration:none}
+</style></head><body>
+<div class="container">
+    <h1>🔑 Licencja</h1>
+
+    {% if msg %}<div class="msg ok">✅ {{ msg }}</div>{% endif %}
+    {% if err %}<div class="msg err">❌ {{ err }}</div>{% endif %}
+
+    <div class="card">
+        <div class="status {{ 'active' if lic.active else 'inactive' }}">
+            {{ '✅ Licencja aktywna' if lic.active else '🔒 Brak aktywnej licencji' }}
+        </div>
+        {% if lic.active %}
+        <div class="info">Klient: <span>{{ lic.client }}</span></div>
+        <div class="info">Plan: <span>{{ lic.plan|upper }}</span></div>
+        <div class="info">Klucz: <span>{{ lic.key }}</span></div>
+        <div class="info">Wygasa: <span>{{ lic.expires }}</span></div>
+        <a href="/" class="btn btn-primary" style="text-align:center;text-decoration:none;margin-top:16px">← Dashboard</a>
+        {% endif %}
+    </div>
+
+    {% if not lic.active %}
+    <div class="card">
+        <div style="font-weight:700;margin-bottom:12px">📁 Aktywacja plikiem</div>
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="file" name="license_file" accept=".json" required>
+            <button type="submit" class="btn btn-upload">📤 Aktywuj z pliku</button>
+        </form>
+    </div>
+
+    <div class="divider">lub aktywuj ręcznie</div>
+
+    <div class="card">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>Klucz licencyjny</label>
+            <input type="text" name="key" placeholder="AKCES-PXXX-XXXX-XXXX-XXXX" required>
+            <label>Nazwa klienta</label>
+            <input type="text" name="client" required>
+            <label>Plan</label>
+            <select name="plan"><option value="starter">Starter</option><option value="pro" selected>Pro</option><option value="business">Business</option></select>
+            <label>Utworzona (timestamp)</label>
+            <input type="number" name="created" required>
+            <label>Wygasa (timestamp, 0=bezterminowo)</label>
+            <input type="number" name="expires" value="0">
+            <label>Sygnatura</label>
+            <input type="text" name="signature" required>
+            <button type="submit" class="btn btn-primary">🔑 Aktywuj</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <div style="text-align:center;margin-top:16px;font-size:0.75rem;color:#64748b">
+        Kontakt: support@akceshub.pl
+    </div>
+</div></body></html>''', lic=lic, msg=msg, err=err)
+
 
 # ============================================================
 # CHANGELOG — historia zmian po polsku
