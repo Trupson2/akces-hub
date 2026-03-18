@@ -571,17 +571,25 @@ def wysylki_lista():
         ''').fetchall()
     
     
-    # Uzupełnij brakujące lokalizacje — szukaj po nazwie/EAN/ASIN
+    # Uzupełnij brakujące lokalizacje — konwertuj na dict i szukaj po słowach kluczowych
+    zamowienia_list = []
     for z in zamowienia:
-        if not z['lokalizacja']:
-            nazwa = z['produkt_nazwa'] or z['oferta_tytul'] or ''
-            words = [w for w in nazwa.split()[:4] if len(w) > 2]
-            if words:
-                like = '%' + '%'.join(words[:3]) + '%'
-                p = conn.execute('SELECT lokalizacja, regal FROM produkty WHERE nazwa LIKE ? AND lokalizacja IS NOT NULL AND lokalizacja != "" LIMIT 1', (like,)).fetchone()
-                if p:
-                    z = dict(z)
+        z = dict(z)
+        if not z.get('lokalizacja'):
+            nazwa = z.get('produkt_nazwa') or z.get('oferta_tytul') or z.get('nazwa') or ''
+            # Szukaj po każdym istotnym słowie (min 4 znaki, pomijaj generyczne)
+            skip = {'produkt', 'zestaw', 'sztuk', 'nowy', 'nowa', 'nowe', 'czarny', 'bialy', 'szary'}
+            words = [w for w in nazwa.split() if len(w) >= 4 and w.lower() not in skip]
+            for w in words[:5]:
+                p = conn.execute(
+                    'SELECT lokalizacja, regal FROM produkty WHERE nazwa LIKE ? AND (lokalizacja IS NOT NULL AND lokalizacja != "" OR regal IS NOT NULL AND regal != "") LIMIT 1',
+                    (f'%{w}%',)
+                ).fetchone()
+                if p and (p['lokalizacja'] or p['regal']):
                     z['lokalizacja'] = p['lokalizacja'] or p['regal']
+                    break
+        zamowienia_list.append(z)
+    zamowienia = zamowienia_list
 
     # Grupuj zamówienia po allegro_order_id lub kupujacy+data
     grouped_orders = defaultdict(list)
