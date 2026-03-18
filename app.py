@@ -955,12 +955,12 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:8px;color:#e2e8f0}
     <a href="/magazyn" class="card" style="border-color:#f59e0b33">
         <div class="card-icon">📋</div>
         <div class="card-title" style="color:#f59e0b">Magazyn</div>
-        <div class="card-desc">Regały, lokalizacje, skaner</div>
+        <div class="card-desc">Statystyki, produkty, skaner</div>
     </a>
-    <a href="/magazyn/warehouse" class="card" style="border-color:#3b82f633">
-        <div class="card-icon">🏗️</div>
-        <div class="card-title" style="color:#3b82f6">Mapa regałów</div>
-        <div class="card-desc">Wizualizacja magazynu</div>
+    <a href="/warehouse/shelves" class="card" style="border-color:#3b82f633">
+        <div class="card-icon">🗄️</div>
+        <div class="card-title" style="color:#3b82f6">Regały</div>
+        <div class="card-desc">Mapa regałów, półki, QR kody</div>
     </a>
     <a href="/auth/logout" class="logout">🚪 Wyloguj się</a>
 </div></body></html>''')

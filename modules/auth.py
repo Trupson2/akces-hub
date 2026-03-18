@@ -124,7 +124,8 @@ ROLE_ALLOWED_PATHS = {
     'magazynier': [
         '/',                    # dashboard (read-only)
         '/wysylki',             # wysyłki
-        '/magazyn',             # magazyn (regały, lokalizacje, skaner)
+        '/magazyn',             # magazyn (statystyki, produkty, skaner)
+        '/warehouse',           # regały, półki, mapa
         '/auth/zmien-haslo',    # zmiana hasła
         '/auth/logout',         # wylogowanie
         '/static/',             # pliki statyczne
