@@ -42,7 +42,7 @@ import time
 from datetime import datetime
 import json
 
-from flask import Flask, render_template, render_template_string, request, redirect, jsonify, Response, send_from_directory, make_response, flash, url_for
+from flask import Flask, render_template, render_template_string, request, redirect, jsonify, Response, send_from_directory, make_response, flash, url_for, session
 from flask_cors import CORS  # ← DODANO DLA NGROK!
 from flask_wtf.csrf import CSRFProtect
 
