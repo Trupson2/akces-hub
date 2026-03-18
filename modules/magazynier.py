@@ -2894,18 +2894,18 @@ def statystyki():
                     borderRadius: 5,
                     order: 2
                 }}, {{
-                    label: 'w tym prywatna',
-                    data: danePrywatne,
-                    backgroundColor: 'rgba(251, 191, 36, 0.6)',
-                    borderColor: 'rgba(251, 191, 36, 1)',
-                    borderWidth: 1,
-                    borderRadius: 5,
-                    order: 2
-                }}, {{
                     label: 'Koszty (zł)',
                     data: daneKosztyLacznie,
                     backgroundColor: 'rgba(244, 63, 94, 0.5)',
                     borderColor: 'rgba(244, 63, 94, 1)',
+                    borderWidth: 1,
+                    borderRadius: 5,
+                    order: 1
+                }}, {{
+                    label: 'Zakup palet (zł)',
+                    data: danePalety,
+                    backgroundColor: 'rgba(251, 191, 36, 0.5)',
+                    borderColor: 'rgba(251, 191, 36, 1)',
                     borderWidth: 1,
                     borderRadius: 5,
                     order: 1
@@ -3000,9 +3000,12 @@ def statystyki():
         // Koszty dzienne jako słupki
         chartMiesiace.data.datasets[1].data = new Array(daysInMonth).fill(parseFloat(kosztDzienny.toFixed(2)));
         chartMiesiace.data.datasets[1].hidden = kosztMiesieczny === 0;
+        // Ukryj zakup palet w widoku dziennym
+        chartMiesiace.data.datasets[2].data = new Array(daysInMonth).fill(0);
+        chartMiesiace.data.datasets[2].hidden = true;
         // Zysk netto dzienny jako linia
-        chartMiesiace.data.datasets[2].data = dailyZysk;
-        chartMiesiace.data.datasets[2].hidden = false;
+        chartMiesiace.data.datasets[3].data = dailyZysk;
+        chartMiesiace.data.datasets[3].hidden = false;
         chartMiesiace.update();
         
         document.getElementById('chartTitle').textContent = '📅 ' + nazwyMiesiecy[month-1] + ' {current_year} - rozkład dzienny';
@@ -3065,14 +3068,16 @@ def statystyki():
         currentMonth = 0;
         
         chartMiesiace.data.labels = nazwyMiesiecy;
-        chartMiesiace.data.datasets[0].data = daneMiesieczne;
+        chartMiesiace.data.datasets[0].data = daneMiesieczne.map((v, i) => v + danePrywatne[i]);
         chartMiesiace.data.datasets[0].backgroundColor = 'rgba(59, 130, 246, 0.6)';
         chartMiesiace.data.datasets[0].borderColor = 'rgba(59, 130, 246, 1)';
         chartMiesiace.data.datasets[1].data = daneKosztyLacznie;
         chartMiesiace.data.datasets[1].hidden = false;
-        chartMiesiace.data.datasets[2].data = daneZysk;
+        chartMiesiace.data.datasets[2].data = danePalety;
         chartMiesiace.data.datasets[2].hidden = false;
-        chartMiesiace.data.datasets[2].spanGaps = false;
+        chartMiesiace.data.datasets[3].data = daneZysk;
+        chartMiesiace.data.datasets[3].hidden = false;
+        chartMiesiace.data.datasets[3].spanGaps = false;
         chartMiesiace.update();
         
         document.getElementById('chartTitle').textContent = '📅 Sprzedaż miesięcznie ({current_year})';
