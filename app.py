@@ -1909,9 +1909,9 @@ a{color:#6366f1;text-decoration:none}
 # ============================================================
 @app.route('/narzedzia/licencje', methods=['GET', 'POST'])
 def narzedzia_licencje():
-    """Panel generowania licencji — ukryty, wymaga AKCES_LICENSE_MASTER=1"""
-    if not os.environ.get('AKCES_LICENSE_MASTER'):
-        return 'Nie znaleziono strony', 404
+    """Panel generowania licencji — dostepny tylko dla admin"""
+    if session.get('rola') != 'admin':
+        return 'Brak dostepu', 403
     from modules.license import generate_license_key
     from datetime import datetime
     import json as _json

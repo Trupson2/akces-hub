@@ -3057,28 +3057,32 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="sonar-pro")
         koszt_palety = paleta_dict.get('cena_zakupu', 0) or 0
 
         prompt = (
-            f"Jesteś ekspertem od sprzedaży na Allegro i OLX w Polsce.\n"
-            f"Przeanalizuj te produkty z palety zwrotów Amazon:\n\n"
+            f"Jesteś ekspertem od resellingu palet zwrotów Amazon na Allegro i OLX w Polsce.\n\n"
+            f"KONTEKST: Kupujemy palety zwrotów z Amazon (UK/DE/US) i sprzedajemy pojedyncze produkty na Allegro.\n"
+            f"Ceny netto/brutto przy produktach to ORYGINALNE CENY DETALICZNE Amazon (RRP/MSRP) — to NIE jest nasza cena zakupu.\n"
+            f"Nasza cena zakupu to koszt całej palety podzielony na produkty.\n\n"
             f"PALETA: {paleta_dict.get('nazwa', 'Bez nazwy')}\n"
             f"Dostawca: {paleta_dict.get('dostawca', 'nieznany')}\n"
-            f"Koszt palety: {koszt_palety:.2f} zł\n"
+            f"Koszt całej palety: {koszt_palety:.2f} zł\n"
             f"Liczba typów produktów: {len(produkty_list)}\n\n"
             f"PRODUKTY:\n{produkty_txt}\n\n"
+            f"ZADANIE: Wyszukaj REALNE ceny tych produktów na Allegro.pl (aktualnie wystawione oferty).\n\n"
             f"Dla każdego produktu podaj:\n"
-            f"1. Szacowana cena sprzedaży na Allegro (PLN)\n"
-            f"2. Popyt (wysoki/średni/niski)\n"
-            f"3. Szacowany czas sprzedaży (dni)\n"
-            f"4. Uwagi (np. ryzyko podróbki, kategoria z ograniczeniami, sezonowość)\n\n"
+            f"1. REALNA cena sprzedaży na Allegro.pl — wyszukaj aktualną cenę rynkową na Allegro dla tego produktu (używając nazwy, EAN lub ASIN). Podaj cenę w PLN za jaką REALNIE się sprzedaje, nie za jaką byśmy chcieli.\n"
+            f"2. Popyt na Allegro (wysoki/średni/niski) — na podstawie ilości ofert i popularności kategorii\n"
+            f"3. Szacowany czas sprzedaży w dniach\n"
+            f"4. Uwagi (sezonowość, konkurencja, ryzyko, stan 'używany' vs 'nowy')\n\n"
             f"Na końcu podsumowanie palety:\n"
-            f"- Szacowany łączny przychód ze sprzedaży\n"
-            f"- Szacowany zysk (przychód - koszt palety {koszt_palety:.2f} zł)\n"
-            f"- ROI procentowy\n"
+            f"- Szacowany łączny przychód (suma realnych cen Allegro × ilości)\n"
+            f"- Szacowany zysk (przychód - prowizja Allegro 11% - koszt palety {koszt_palety:.2f} zł)\n"
+            f"- ROI procentowy = (zysk / koszt palety) × 100\n"
             f"- Ogólna ocena opłacalności (1-10)\n\n"
-            f"WAŻNE: Odpowiedz WYŁĄCZNIE prawidłowym JSON-em (bez markdown, bez ```json```).\n"
+            f"WAŻNE: Podawaj REALNE ceny z Allegro.pl, nie wymyślone. Jeśli nie znajdziesz produktu, oszacuj na podstawie podobnych.\n"
+            f"Odpowiedz WYŁĄCZNIE prawidłowym JSON-em (bez markdown, bez ```json```).\n"
             f"Format:\n"
-            f'{{"produkty": [{{"id": <id_produktu>, "nazwa": "...", "cena_sprzedazy": <float>, '
+            f'{{"produkty": [{{"id": <id_produktu>, "nazwa": "...", "cena_allegro": <float>, "cena_amazon_rpp": <float>, '
             f'"popyt": "wysoki|średni|niski", "czas_sprzedazy_dni": <int>, "uwagi": "..."}}, ...], '
-            f'"podsumowanie": {{"przychod": <float>, "zysk": <float>, "roi": <float>, "ocena": <int>}}}}'
+            f'"podsumowanie": {{"przychod": <float>, "prowizja_allegro": <float>, "zysk": <float>, "roi": <float>, "ocena": <int>}}}}'
         )
 
         _pallet_analysis_jobs[job_id] = {'status': 'running', 'progress': 'Czekam na odpowiedź AI...'}
@@ -3320,11 +3324,12 @@ def analizator_palet():
             var roiColor = (s.roi||0) > 0 ? 'var(--green)' : 'var(--red)';
             var ocenaBg = (s.ocena||0) >= 7 ? 'var(--green)' : (s.ocena||0) >= 4 ? 'var(--orange)' : 'var(--red)';
             html += '<div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">';
-            html += '<div class="kpi-card"><div class="kpi-label">Koszt palety</div><div class="kpi-value">' + ((pal.cena_zakupu||0)).toFixed(0) + ' zł</div></div>';
-            html += '<div class="kpi-card"><div class="kpi-label">Szac. przychód</div><div class="kpi-value">' + ((s.przychod||0)).toFixed(0) + ' zł</div></div>';
-            html += '<div class="kpi-card"><div class="kpi-label">Szac. zysk</div><div class="kpi-value" style="color:' + roiColor + '">' + ((s.zysk||0)).toFixed(0) + ' zł</div></div>';
+            html += '<div class="kpi-card green"><div class="kpi-label">Koszt palety</div><div class="kpi-value">' + ((pal.cena_zakupu||0)).toFixed(0) + ' zł</div></div>';
+            html += '<div class="kpi-card blue"><div class="kpi-label">Szac. przychód</div><div class="kpi-value">' + ((s.przychod||0)).toFixed(0) + ' zł</div></div>';
+            html += '<div class="kpi-card purple"><div class="kpi-label">Prowizja Allegro 11%</div><div class="kpi-value">' + ((s.prowizja_allegro||s.przychod*0.11||0)).toFixed(0) + ' zł</div></div>';
+            html += '<div class="kpi-card"><div class="kpi-label">Szac. zysk netto</div><div class="kpi-value" style="color:' + roiColor + '">' + ((s.zysk||0)).toFixed(0) + ' zł</div></div>';
             html += '<div class="kpi-card"><div class="kpi-label">ROI</div><div class="kpi-value" style="color:' + roiColor + '">' + ((s.roi||0)).toFixed(0) + '%</div></div>';
-            html += '<div class="kpi-card"><div class="kpi-label">Ocena</div><div class="kpi-value" style="color:' + ocenaBg + '">' + (s.ocena||'?') + '/10</div></div>';
+            html += '<div class="kpi-card orange"><div class="kpi-label">Ocena</div><div class="kpi-value" style="color:' + ocenaBg + '">' + (s.ocena||'?') + '/10</div></div>';
             html += '</div>';
         }}
         html += '</div>';
@@ -3334,16 +3339,18 @@ def analizator_palet():
             html += '<div class="card" style="margin-bottom:16px;overflow-x:auto">';
             html += '<div style="font-weight:600;margin-bottom:12px">Analiza produktów (' + parsed.produkty.length + ')</div>';
             html += '<table class="analysis-table"><thead><tr>';
-            html += '<th>#</th><th>Produkt</th><th>Cena sprzedaży</th><th>Popyt</th><th>Czas sprzedaży</th><th>Uwagi</th>';
+            html += '<th>#</th><th>Produkt</th><th>Cena Allegro</th><th>Cena Amazon</th><th>Popyt</th><th>Czas</th><th>Uwagi</th>';
             html += '</tr></thead><tbody>';
             var totalRev = 0;
             parsed.produkty.forEach(function(p, idx) {{
-                var cena = p.cena_sprzedazy || 0;
+                var cena = p.cena_allegro || p.cena_sprzedazy || 0;
+                var cenaAmz = p.cena_amazon_rpp || p.cena_brutto || 0;
                 totalRev += cena;
                 html += '<tr>';
                 html += '<td style="color:var(--text-muted)">' + (idx+1) + '</td>';
                 html += '<td style="font-weight:500;max-width:280px">' + (p.nazwa||'—') + '</td>';
-                html += '<td style="font-weight:600">' + cena.toFixed(0) + ' zł</td>';
+                html += '<td style="font-weight:700;color:var(--green)">' + cena.toFixed(0) + ' zł</td>';
+                html += '<td style="color:var(--text-muted);font-size:0.85rem">' + (cenaAmz > 0 ? cenaAmz.toFixed(0) + ' zł' : '—') + '</td>';
                 html += '<td><span class="demand-badge ' + demandClass(p.popyt) + '">' + (p.popyt||'?') + '</span></td>';
                 html += '<td>' + (p.czas_sprzedazy_dni || '?') + ' dni</td>';
                 html += '<td style="color:var(--text-muted);font-size:0.8rem;max-width:250px">' + (p.uwagi||'—') + '</td>';
