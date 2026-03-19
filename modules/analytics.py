@@ -1,279 +1,15 @@
 """
 ANALYTICS MODULE - Dashboard KPI & Kalkulator opłacalności palety
-v1.0 - Styczeń 2026
+v2.0 - Redesign with base.html template
 """
 
-from flask import Blueprint, render_template_string, request, jsonify
+from flask import Blueprint, render_template_string, request, jsonify, session, current_app
 from datetime import datetime, timedelta
 from .database import get_db
 import json
 
 analytics_bp = Blueprint('analytics', __name__)
 
-# ============================================================
-# STYLE CSS DLA ANALYTICS
-# ============================================================
-ANALYTICS_CSS = '''
-<style>
-:root {
-    --bg: #0a0a0f;
-    --card: #12121a;
-    --border: #1e1e2e;
-    --text: #e2e8f0;
-    --muted: #64748b;
-    --green: #22c55e;
-    --red: #ef4444;
-    --blue: #3b82f6;
-    --purple: #8b5cf6;
-    --yellow: #eab308;
-    --orange: #f97316;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { 
-    font-family: -apple-system, system-ui, sans-serif; 
-    background: var(--bg); 
-    color: var(--text);
-    padding: 15px;
-    max-width: 1400px;
-    margin: 0 auto;
-}
-.header { text-align: center; padding: 20px 0; }
-.header h1 { font-size: 1.8rem; margin-bottom: 5px; }
-.header small { color: var(--muted); }
-
-/* KPI Cards Grid */
-.kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin-bottom: 20px;
-}
-.kpi-card {
-    background: var(--card);
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-    border: 1px solid var(--border);
-}
-.kpi-value {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 5px;
-}
-.kpi-label {
-    color: var(--muted);
-    font-size: 0.85rem;
-}
-.kpi-trend {
-    font-size: 0.8rem;
-    margin-top: 8px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    display: inline-block;
-}
-.kpi-trend.up { background: rgba(34,197,94,0.2); color: var(--green); }
-.kpi-trend.down { background: rgba(239,68,68,0.2); color: var(--red); }
-.kpi-trend.neutral { background: rgba(100,116,139,0.2); color: var(--muted); }
-
-/* Charts */
-.chart-container {
-    background: var(--card);
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
-    border: 1px solid var(--border);
-}
-.chart-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.chart-bar {
-    display: flex;
-    align-items: center;
-    margin-bottom: 12px;
-}
-.chart-bar-label {
-    width: 80px;
-    font-size: 0.85rem;
-    color: var(--muted);
-}
-.chart-bar-track {
-    flex: 1;
-    height: 24px;
-    background: var(--border);
-    border-radius: 4px;
-    overflow: hidden;
-    margin: 0 10px;
-}
-.chart-bar-fill {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.5s ease;
-}
-.chart-bar-value {
-    width: 80px;
-    text-align: right;
-    font-weight: 600;
-}
-
-/* Alerts */
-.alert-box {
-    background: var(--card);
-    border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 20px;
-    border-left: 4px solid var(--yellow);
-}
-.alert-box.success { border-color: var(--green); }
-.alert-box.danger { border-color: var(--red); }
-.alert-box.info { border-color: var(--blue); }
-.alert-title {
-    font-weight: 600;
-    margin-bottom: 5px;
-}
-.alert-text {
-    color: var(--muted);
-    font-size: 0.9rem;
-}
-
-/* Kalkulator */
-.calc-card {
-    background: var(--card);
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
-    border: 1px solid var(--border);
-}
-.calc-title {
-    font-size: 1.2rem;
-    font-weight: 600;
-    margin-bottom: 15px;
-}
-.form-group {
-    margin-bottom: 15px;
-}
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    color: var(--muted);
-    font-size: 0.9rem;
-}
-.form-control {
-    width: 100%;
-    padding: 12px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-size: 1rem;
-}
-.form-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-}
-.btn {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.btn-primary { background: var(--blue); color: white; }
-.btn-success { background: var(--green); color: white; }
-.btn-primary:hover { opacity: 0.9; }
-
-/* Results */
-.result-card {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    border-radius: 12px;
-    padding: 20px;
-    margin-top: 20px;
-    border: 1px solid var(--blue);
-}
-.result-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-.result-header h3 {
-    font-size: 1.3rem;
-}
-.result-badge {
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-.result-badge.excellent { background: var(--green); }
-.result-badge.good { background: var(--blue); }
-.result-badge.average { background: var(--yellow); color: #000; }
-.result-badge.poor { background: var(--red); }
-
-.result-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 15px;
-}
-.result-item {
-    text-align: center;
-    padding: 15px;
-    background: rgba(0,0,0,0.3);
-    border-radius: 8px;
-}
-.result-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-}
-.result-label {
-    font-size: 0.8rem;
-    color: var(--muted);
-    margin-top: 5px;
-}
-
-.back-link {
-    display: inline-block;
-    margin-top: 20px;
-    color: var(--muted);
-    text-decoration: none;
-}
-.back-link:hover { color: var(--text); }
-
-/* Top lists */
-.top-list {
-    background: var(--card);
-    border-radius: 12px;
-    padding: 20px;
-    border: 1px solid var(--border);
-}
-.top-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border);
-}
-.top-item:last-child { border-bottom: none; }
-.top-rank {
-    width: 30px;
-    font-weight: 700;
-    color: var(--muted);
-}
-.top-rank.gold { color: #ffd700; }
-.top-rank.silver { color: #c0c0c0; }
-.top-rank.bronze { color: #cd7f32; }
-.top-info { flex: 1; }
-.top-name { font-weight: 500; }
-.top-meta { font-size: 0.8rem; color: var(--muted); }
-.top-value { font-weight: 700; }
-</style>
-'''
 
 # ============================================================
 # DASHBOARD KPI
@@ -282,7 +18,7 @@ body {
 def dashboard_kpi():
     """Zaawansowany Dashboard KPI"""
     conn = get_db()
-    
+
     today = datetime.now()
     today_str = today.strftime('%Y-%m-%d')
     yesterday_str = (today - timedelta(days=1)).strftime('%Y-%m-%d')
@@ -290,7 +26,7 @@ def dashboard_kpi():
     month_start = today.strftime('%Y-%m-01')
     last_month_start = (today.replace(day=1) - timedelta(days=1)).strftime('%Y-%m-01')
     last_month_end = (today.replace(day=1) - timedelta(days=1)).strftime('%Y-%m-%d')
-    
+
     # === KPI DZIŚ ===
     dzis = conn.execute('''
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
@@ -298,7 +34,7 @@ def dashboard_kpi():
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
         AND (kupujacy IS NULL OR kupujacy != 'offline')
     ''', (today_str,)).fetchone()
-    
+
     # === KPI WCZORAJ (do porównania) ===
     wczoraj = conn.execute('''
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
@@ -306,7 +42,7 @@ def dashboard_kpi():
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
         AND (kupujacy IS NULL OR kupujacy != 'offline')
     ''', (yesterday_str,)).fetchone()
-    
+
     # === KPI TEN TYDZIEŃ ===
     tydzien = conn.execute('''
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
@@ -314,7 +50,7 @@ def dashboard_kpi():
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
         AND (kupujacy IS NULL OR kupujacy != 'offline')
     ''', (week_ago,)).fetchone()
-    
+
     # === KPI POPRZEDNI TYDZIEŃ ===
     prev_week_start = (today - timedelta(days=14)).strftime('%Y-%m-%d')
     prev_week_end = (today - timedelta(days=7)).strftime('%Y-%m-%d')
@@ -324,7 +60,7 @@ def dashboard_kpi():
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
         AND (kupujacy IS NULL OR kupujacy != 'offline')
     ''', (prev_week_start, prev_week_end)).fetchone()
-    
+
     # === KPI TEN MIESIĄC ===
     miesiac = conn.execute('''
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
@@ -332,7 +68,7 @@ def dashboard_kpi():
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
         AND (kupujacy IS NULL OR kupujacy != 'offline')
     ''', (month_start,)).fetchone()
-    
+
     # === KPI POPRZEDNI MIESIĄC ===
     poprzedni_miesiac = conn.execute('''
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
@@ -340,7 +76,7 @@ def dashboard_kpi():
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
         AND (kupujacy IS NULL OR kupujacy != 'offline')
     ''', (last_month_start, last_month_end)).fetchone()
-    
+
     # === MAGAZYN ===
     magazyn = conn.execute('''
         SELECT COUNT(*) as produkty, COALESCE(SUM(ilosc), 0) as sztuki,
@@ -348,9 +84,8 @@ def dashboard_kpi():
                COALESCE(SUM(cena_allegro * ilosc), 0) as wartosc_sprzedazy
         FROM produkty WHERE status IN ('magazyn', 'wystawiony')
     ''').fetchone()
-    
+
     # === ROI OGÓLNE ===
-    # Przychód z tego miesiąca (tylko Allegro — offline to historyczne korekty)
     przychod_data = conn.execute('''
         SELECT COALESCE(SUM(s.cena * s.ilosc), 0) as przychod
         FROM sprzedaze s
@@ -361,9 +96,6 @@ def dashboard_kpi():
 
     przychod = przychod_data['przychod'] or 0
 
-    # Koszty = średni koszt jednostkowy ze WSZYSTKICH palet * sprzedane szt w miesiącu
-    # Dlaczego: większość sprzedaży z Allegro nie ma produkt_id (sync), nie da się
-    # powiązać bezpośrednio z paletą. Średni koszt daje najbardziej realistyczny wynik.
     avg_cost_data = conn.execute('''
         SELECT
             SUM(pal.cena_zakupu) as total_koszt,
@@ -383,7 +115,6 @@ def dashboard_kpi():
     total_palet_items = avg_cost_data['total_items'] or 1
     avg_cost_per_item = total_palet_koszt / total_palet_items if total_palet_items > 0 else 0
 
-    # Ile sztuk sprzedano na Allegro w tym miesiącu (bez offline)
     sold_this_month = conn.execute('''
         SELECT COALESCE(SUM(ilosc), 0) as s FROM sprzedaze
         WHERE date(data_sprzedazy) >= ?
@@ -392,16 +123,16 @@ def dashboard_kpi():
     ''', (month_start,)).fetchone()['s'] or 0
 
     koszty = avg_cost_per_item * sold_this_month
-    prowizja = przychod * 0.11  # prowizja Allegro ~11%
+    prowizja = przychod * 0.11
     zysk_miesiac = przychod - koszty - prowizja
     roi_miesiac = (zysk_miesiac / koszty * 100) if koszty > 0 else 0
-    
+
     # === SPRZEDAŻ PO DNIACH (ostatnie 7 dni) ===
     sprzedaz_dni = conn.execute('''
-        SELECT date(data_sprzedazy) as dzien, 
-               COUNT(*) as cnt, 
+        SELECT date(data_sprzedazy) as dzien,
+               COUNT(*) as cnt,
                COALESCE(SUM(cena * ilosc), 0) as suma
-        FROM sprzedaze 
+        FROM sprzedaze
         WHERE date(data_sprzedazy) >= ?
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
         AND (kupujacy IS NULL OR kupujacy != 'offline')
@@ -409,17 +140,17 @@ def dashboard_kpi():
         ORDER BY dzien DESC
         LIMIT 7
     ''', (week_ago,)).fetchall()
-    
+
     # === TOP 5 PRODUKTÓW ===
     top_produkty = conn.execute('''
-        SELECT 
-            CASE 
+        SELECT
+            CASE
                 WHEN s.nazwa IS NOT NULL AND s.nazwa != '' AND s.nazwa != 'Produkt' THEN SUBSTR(s.nazwa, 1, 50)
                 WHEN o.tytul IS NOT NULL AND o.tytul != '' THEN SUBSTR(o.tytul, 1, 50)
                 WHEN p.nazwa IS NOT NULL AND p.nazwa != '' THEN p.nazwa
                 ELSE 'Produkt #' || s.id
             END as produkt_nazwa,
-            COUNT(*) as sprzedane, 
+            COUNT(*) as sprzedane,
             SUM(s.cena * s.ilosc) as wartosc
         FROM sprzedaze s
         LEFT JOIN oferty o ON s.oferta_id = o.id
@@ -431,9 +162,8 @@ def dashboard_kpi():
         ORDER BY sprzedane DESC
         LIMIT 5
     ''', (month_start,)).fetchall()
-    
+
     # === TOP 5 DOSTAWCÓW (ROI) ===
-    # Podejscie: przychod z sprzedazy + koszt = suma cena_zakupu palet per dostawca
     top_dostawcy = conn.execute('''
         WITH dostawca_przychod AS (
             SELECT
@@ -470,14 +200,14 @@ def dashboard_kpi():
         ORDER BY dp.przychod DESC
         LIMIT 5
     ''', (month_start,)).fetchall()
-    
+
     # === STOJĄCE PRODUKTY ===
     stojace_30 = conn.execute('''
-        SELECT COUNT(*) as cnt FROM produkty 
-        WHERE status = 'magazyn' 
+        SELECT COUNT(*) as cnt FROM produkty
+        WHERE status = 'magazyn'
         AND date(data_dodania) <= date('now', '-30 days')
     ''').fetchone()['cnt']
-    
+
     # === OBLICZ TRENDY ===
     def calc_trend(current, previous):
         if previous == 0:
@@ -488,154 +218,171 @@ def dashboard_kpi():
         elif change < -5:
             return change, 'down'
         return change, 'neutral'
-    
+
     dzis_trend, dzis_trend_class = calc_trend(dzis['suma'] or 0, wczoraj['suma'] or 0)
     tydzien_trend, tydzien_trend_class = calc_trend(tydzien['suma'] or 0, poprzedni_tydzien['suma'] or 0)
     miesiac_trend, miesiac_trend_class = calc_trend(miesiac['suma'] or 0, poprzedni_miesiac['suma'] or 0)
-    
+
     # === MAX dla wykresów ===
     max_dzien = max([d['suma'] for d in sprzedaz_dni]) if sprzedaz_dni else 1
-    
+
     # === ALERTY ===
     alerts = []
     if stojace_30 > 10:
         alerts.append({
             'type': 'danger',
-            'title': f'⚠️ {stojace_30} produktów stoi >30 dni',
-            'text': 'Rozważ obniżenie cen lub promocję'
+            'title': f'{stojace_30} produktow stoi >30 dni',
+            'text': 'Rozwaz obnizenie cen lub promocje'
         })
     if dzis_trend < -30:
         alerts.append({
             'type': 'warning',
-            'title': '📉 Spadek sprzedaży',
-            'text': f'Dziś {abs(dzis_trend):.0f}% mniej niż wczoraj'
+            'title': 'Spadek sprzedazy',
+            'text': f'Dzis {abs(dzis_trend):.0f}% mniej niz wczoraj'
         })
     if roi_miesiac > 100:
         alerts.append({
             'type': 'success',
-            'title': f'🎯 Świetny ROI: {roi_miesiac:.0f}%',
+            'title': f'Swietny ROI: {roi_miesiac:.0f}%',
             'text': 'Tak trzymaj!'
         })
-    
-    # === RENDER ===
-    html = f'''
-<!DOCTYPE html>
-<html><head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📊 Dashboard KPI - Akces Hub</title>
-{ANALYTICS_CSS}
-</head><body>
 
-<div class="header">
-    <h1>📊 DASHBOARD KPI</h1>
-    <small>Aktualizacja: {today.strftime('%d.%m.%Y %H:%M')}</small>
-</div>
+    # === RENDER ===
+    html = '''{% extends "base.html" %}
+{% block page_title %}Dashboard KPI{% endblock %}
+{% block content %}
+<style>
+.chart-bar{display:flex;align-items:center;margin-bottom:12px}
+.chart-bar-label{width:80px;font-size:0.85rem;color:var(--text-muted)}
+.chart-bar-track{flex:1;height:24px;background:var(--border);border-radius:4px;overflow:hidden;margin:0 10px}
+.chart-bar-fill{height:100%;border-radius:4px;transition:width 0.5s ease}
+.chart-bar-value{width:80px;text-align:right;font-weight:600}
+.top-item{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.top-item:last-child{border-bottom:none}
+.top-rank{width:30px;font-weight:700;color:var(--text-muted)}
+.top-rank.gold{color:#ffd700}
+.top-rank.silver{color:#c0c0c0}
+.top-rank.bronze{color:#cd7f32}
+.top-info{flex:1}
+.top-name{font-weight:500}
+.top-meta{font-size:0.8rem;color:var(--text-muted)}
+.top-value{font-weight:700}
+</style>
+
+<div style="margin-bottom:8px;font-size:0.78rem;color:var(--text-muted)">Aktualizacja: ''' + today.strftime('%d.%m.%Y %H:%M') + '''</div>
 
 <!-- ALERTY -->
-{''.join([f'<div class="alert-box {a["type"]}"><div class="alert-title">{a["title"]}</div><div class="alert-text">{a["text"]}</div></div>' for a in alerts])}
+''' + ''.join([f'<div class="alert alert-{"error" if a["type"]=="danger" else a["type"]}">{a["title"]} &mdash; {a["text"]}</div>' for a in alerts]) + '''
 
 <!-- KPI GŁÓWNE -->
 <div class="kpi-grid">
-    <div class="kpi-card">
-        <div class="kpi-value" style="color:var(--green)">{dzis['suma'] or 0:.0f} zł</div>
-        <div class="kpi-label">Przychód DZIŚ</div>
-        <div class="kpi-trend {dzis_trend_class}">
-            {'↑' if dzis_trend > 0 else '↓' if dzis_trend < 0 else '→'} {abs(dzis_trend):.0f}% vs wczoraj
-        </div>
+    <div class="kpi-card green">
+        <div class="kpi-icon" style="background:var(--green-soft)">$</div>
+        <div class="kpi-value" style="color:var(--green)">''' + f'{dzis["suma"] or 0:.0f}' + ''' zl</div>
+        <div class="kpi-label">Przychod DZIS</div>
+        <div class="kpi-change ''' + dzis_trend_class + '''">''' + ('&uarr;' if dzis_trend > 0 else '&darr;' if dzis_trend < 0 else '&rarr;') + f' {abs(dzis_trend):.0f}' + '''% vs wczoraj</div>
     </div>
-    <div class="kpi-card">
-        <div class="kpi-value">{dzis['cnt'] or 0}</div>
-        <div class="kpi-label">Zamówień DZIŚ</div>
+    <div class="kpi-card purple">
+        <div class="kpi-icon" style="background:var(--accent-soft)">#</div>
+        <div class="kpi-value">''' + f'{dzis["cnt"] or 0}' + '''</div>
+        <div class="kpi-label">Zamowien DZIS</div>
     </div>
-    <div class="kpi-card">
-        <div class="kpi-value" style="color:var(--blue)">{tydzien['suma'] or 0:.0f} zł</div>
-        <div class="kpi-label">Przychód TYDZIEŃ</div>
-        <div class="kpi-trend {tydzien_trend_class}">
-            {'↑' if tydzien_trend > 0 else '↓' if tydzien_trend < 0 else '→'} {abs(tydzien_trend):.0f}% vs poprz.
-        </div>
+    <div class="kpi-card blue">
+        <div class="kpi-icon" style="background:var(--blue-soft)">W</div>
+        <div class="kpi-value" style="color:var(--blue)">''' + f'{tydzien["suma"] or 0:.0f}' + ''' zl</div>
+        <div class="kpi-label">Przychod TYDZIEN</div>
+        <div class="kpi-change ''' + tydzien_trend_class + '''">''' + ('&uarr;' if tydzien_trend > 0 else '&darr;' if tydzien_trend < 0 else '&rarr;') + f' {abs(tydzien_trend):.0f}' + '''% vs poprz.</div>
     </div>
-    <div class="kpi-card">
-        <div class="kpi-value" style="color:var(--purple)">{miesiac['suma'] or 0:.0f} zł</div>
-        <div class="kpi-label">Przychód MIESIĄC</div>
-        <div class="kpi-trend {miesiac_trend_class}">
-            {'↑' if miesiac_trend > 0 else '↓' if miesiac_trend < 0 else '→'} {abs(miesiac_trend):.0f}% vs poprz.
-        </div>
+    <div class="kpi-card orange">
+        <div class="kpi-icon" style="background:var(--yellow-soft)">M</div>
+        <div class="kpi-value" style="color:var(--purple)">''' + f'{miesiac["suma"] or 0:.0f}' + ''' zl</div>
+        <div class="kpi-label">Przychod MIESIAC</div>
+        <div class="kpi-change ''' + miesiac_trend_class + '''">''' + ('&uarr;' if miesiac_trend > 0 else '&darr;' if miesiac_trend < 0 else '&rarr;') + f' {abs(miesiac_trend):.0f}' + '''% vs poprz.</div>
     </div>
 </div>
 
 <div class="kpi-grid">
-    <div class="kpi-card" title="Przychód: {przychod:.0f} - Koszt: {koszty:.0f} - Prowizja: {prowizja:.0f} = {zysk_miesiac:.0f} zł">
-        <div class="kpi-value" style="color:var(--green)">{zysk_miesiac:.0f} zł</div>
-        <div class="kpi-label">Zysk netto (miesiąc)</div>
-        <div style="font-size:0.65rem;color:var(--muted);margin-top:4px">Koszt: {koszty:.0f} | Prowizja: {prowizja:.0f} zł</div>
+    <div class="kpi-card green" title="Przychod: ''' + f'{przychod:.0f}' + ''' - Koszt: ''' + f'{koszty:.0f}' + ''' - Prowizja: ''' + f'{prowizja:.0f}' + ''' = ''' + f'{zysk_miesiac:.0f}' + ''' zl">
+        <div class="kpi-icon" style="background:var(--green-soft)">Z</div>
+        <div class="kpi-value" style="color:var(--green)">''' + f'{zysk_miesiac:.0f}' + ''' zl</div>
+        <div class="kpi-label">Zysk netto (miesiac)</div>
+        <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px">Koszt: ''' + f'{koszty:.0f}' + ''' | Prowizja: ''' + f'{prowizja:.0f}' + ''' zl</div>
     </div>
-    <div class="kpi-card" title="Zysk {zysk_miesiac:.0f} / Koszt {koszty:.0f} × 100%">
-        <div class="kpi-value" style="color:{'var(--green)' if roi_miesiac > 50 else 'var(--yellow)'}">{roi_miesiac:.0f}%</div>
-        <div class="kpi-label">ROI (miesiąc)</div>
+    <div class="kpi-card blue" title="Zysk ''' + f'{zysk_miesiac:.0f}' + ''' / Koszt ''' + f'{koszty:.0f}' + ''' x 100%">
+        <div class="kpi-icon" style="background:var(--blue-soft)">%</div>
+        <div class="kpi-value" style="color:''' + ('var(--green)' if roi_miesiac > 50 else 'var(--yellow)') + '''">''' + f'{roi_miesiac:.0f}' + '''%</div>
+        <div class="kpi-label">ROI (miesiac)</div>
     </div>
-    <div class="kpi-card">
-        <div class="kpi-value">{magazyn['sztuki'] or 0}</div>
+    <div class="kpi-card purple">
+        <div class="kpi-icon" style="background:var(--accent-soft)">S</div>
+        <div class="kpi-value">''' + f'{magazyn["sztuki"] or 0}' + '''</div>
         <div class="kpi-label">Sztuk w magazynie</div>
     </div>
-    <div class="kpi-card">
-        <div class="kpi-value">{magazyn['wartosc_sprzedazy'] or 0:.0f} zł</div>
-        <div class="kpi-label">Wartość magazynu</div>
+    <div class="kpi-card orange">
+        <div class="kpi-icon" style="background:var(--yellow-soft)">V</div>
+        <div class="kpi-value">''' + f'{magazyn["wartosc_sprzedazy"] or 0:.0f}' + ''' zl</div>
+        <div class="kpi-label">Wartosc magazynu</div>
     </div>
 </div>
 
 <!-- WYKRES SPRZEDAŻY -->
-<div class="chart-container">
-    <div class="chart-title">📈 Sprzedaż ostatnie 7 dni</div>
-    {''.join([f"""
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Sprzedaz ostatnie 7 dni</div>
+    </div>
+    ''' + ''.join([f'''
     <div class="chart-bar">
         <div class="chart-bar-label">{d['dzien'][5:]}</div>
         <div class="chart-bar-track">
             <div class="chart-bar-fill" style="width:{(d['suma']/max_dzien*100) if max_dzien > 0 else 0:.0f}%;background:var(--green)"></div>
         </div>
-        <div class="chart-bar-value">{d['suma']:.0f} zł</div>
+        <div class="chart-bar-value">{d['suma']:.0f} zl</div>
     </div>
-    """ for d in reversed(sprzedaz_dni)])}
+    ''' for d in reversed(list(sprzedaz_dni))]) + '''
 </div>
 
 <!-- TOP PRODUKTY -->
-<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:20px;">
-    <div class="top-list">
-        <div class="chart-title">🏆 TOP 5 Produktów (miesiąc)</div>
-        {''.join([f"""
+<div class="dash-grid">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">TOP 5 Produktow (miesiac)</div>
+        </div>
+        ''' + ''.join([f'''
         <div class="top-item">
             <div class="top-rank {'gold' if i==0 else 'silver' if i==1 else 'bronze' if i==2 else ''}">{i+1}</div>
             <div class="top-info">
                 <div class="top-name">{(p['produkt_nazwa'] or 'Nieznany')[:30]}{'...' if len(p['produkt_nazwa'] or '')>30 else ''}</div>
                 <div class="top-meta">{p['sprzedane']} szt sprzedanych</div>
             </div>
-            <div class="top-value" style="color:var(--green)">{(p['wartosc'] or 0):.0f} zł</div>
+            <div class="top-value" style="color:var(--green)">{(p['wartosc'] or 0):.0f} zl</div>
         </div>
-        """ for i, p in enumerate(top_produkty)])}
-        {'' if top_produkty else '<div style="text-align:center;color:var(--muted);padding:20px">Brak danych</div>'}
+        ''' for i, p in enumerate(top_produkty)]) + ('' if top_produkty else '<div style="text-align:center;color:var(--text-muted);padding:20px">Brak danych</div>') + '''
     </div>
-    
-    <div class="top-list">
-        <div class="chart-title">📦 TOP 5 Dostawców (ROI)</div>
-        {''.join([f"""
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">TOP 5 Dostawcow (ROI)</div>
+        </div>
+        ''' + ''.join([f'''
         <div class="top-item">
             <div class="top-rank {'gold' if i==0 else 'silver' if i==1 else 'bronze' if i==2 else ''}">{i+1}</div>
             <div class="top-info">
                 <div class="top-name">{d['dostawca_nazwa']}</div>
-                <div class="top-meta">{d['sprzedane']} szt | {(d['przychod'] or 0):.0f} zł przychód</div>
+                <div class="top-meta">{d['sprzedane']} szt | {(d['przychod'] or 0):.0f} zl przychod</div>
             </div>
             <div class="top-value" style="color:{'var(--green)' if (d['koszty'] or 0) > 0 and ((d['przychod'] or 0)-(d['koszty'] or 0)-(d['przychod'] or 0)*0.11)/(d['koszty'] or 1)*100 > 50 else 'var(--yellow)'}">{(((d['przychod'] or 0)-(d['koszty'] or 0)-(d['przychod'] or 0)*0.11)/(d['koszty'] or 1)*100) if (d['koszty'] or 0) > 0 else 0:.0f}%</div>
         </div>
-        """ for i, d in enumerate(top_dostawcy)])}
-        {'' if top_dostawcy else '<div style="text-align:center;color:var(--muted);padding:20px">Brak danych</div>'}
+        ''' for i, d in enumerate(top_dostawcy)]) + ('' if top_dostawcy else '<div style="text-align:center;color:var(--text-muted);padding:20px">Brak danych</div>') + '''
     </div>
 </div>
 
-<a href="/" class="back-link">← Powrót do strony głównej</a>
-
-</body></html>
+{% endblock %}
 '''
-    return html
+    return render_template_string(html,
+        version=current_app.config.get('VERSION', ''),
+        brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
+        current_user=session.get('user')
+    )
 
 
 # ============================================================
@@ -644,9 +391,9 @@ def dashboard_kpi():
 @analytics_bp.route('/kalkulator-palety', methods=['GET', 'POST'])
 def kalkulator_palety():
     """Kalkulator opłacalności palety przed zakupem"""
-    
+
     result = None
-    
+
     if request.method == 'POST':
         try:
             # Pobierz dane z formularza
@@ -654,7 +401,7 @@ def kalkulator_palety():
             ilosc_produktow = int(request.form.get('ilosc_produktow', 0))
             dostawca = request.form.get('dostawca', 'Jobalots')
             kategoria = request.form.get('kategoria', 'elektronika')
-            
+
             # Szacunkowe ceny sprzedaży bazując na kategorii
             SREDNIE_CENY = {
                 'elektronika': {'min': 50, 'avg': 120, 'max': 250},
@@ -665,57 +412,57 @@ def kalkulator_palety():
                 'odziez': {'min': 20, 'avg': 45, 'max': 100},
                 'mix': {'min': 30, 'avg': 65, 'max': 140},
             }
-            
+
             ceny = SREDNIE_CENY.get(kategoria, SREDNIE_CENY['mix'])
-            
+
             # Procent sprzedawalności (bazując na dostawcy)
             SPRZEDAWALNOSC = {
-                'Jobalots': 0.75,  # 75% produktów się sprzeda
+                'Jobalots': 0.75,
                 'Warrington': 0.70,
                 'Miglo': 0.80,
                 'Amazon': 0.85,
                 'Inny': 0.65,
             }
             sprzedawalnosc = SPRZEDAWALNOSC.get(dostawca, 0.70)
-            
+
             # Obliczenia
             produkty_do_sprzedazy = int(ilosc_produktow * sprzedawalnosc)
-            
+
             # Scenariusze
             przychod_pesymistyczny = produkty_do_sprzedazy * ceny['min']
             przychod_realny = produkty_do_sprzedazy * ceny['avg']
             przychod_optymistyczny = produkty_do_sprzedazy * ceny['max']
-            
+
             # Koszty (prowizja Allegro ~11%, wysyłka ~8 zł/szt)
             prowizja = 0.11
             koszt_wysylki_szt = 8
-            
+
             koszty_dodatkowe_pesym = (przychod_pesymistyczny * prowizja) + (produkty_do_sprzedazy * koszt_wysylki_szt)
             koszty_dodatkowe_real = (przychod_realny * prowizja) + (produkty_do_sprzedazy * koszt_wysylki_szt)
             koszty_dodatkowe_optym = (przychod_optymistyczny * prowizja) + (produkty_do_sprzedazy * koszt_wysylki_szt)
-            
+
             zysk_pesymistyczny = przychod_pesymistyczny - cena_palety - koszty_dodatkowe_pesym
             zysk_realny = przychod_realny - cena_palety - koszty_dodatkowe_real
             zysk_optymistyczny = przychod_optymistyczny - cena_palety - koszty_dodatkowe_optym
-            
+
             roi_pesymistyczny = (zysk_pesymistyczny / cena_palety * 100) if cena_palety > 0 else 0
             roi_realny = (zysk_realny / cena_palety * 100) if cena_palety > 0 else 0
             roi_optymistyczny = (zysk_optymistyczny / cena_palety * 100) if cena_palety > 0 else 0
-            
+
             # Ocena
             if roi_realny >= 100:
                 ocena = 'excellent'
-                ocena_text = '🔥 ŚWIETNA OKAZJA!'
+                ocena_text = 'SWIETNA OKAZJA!'
             elif roi_realny >= 50:
                 ocena = 'good'
-                ocena_text = '👍 Dobra inwestycja'
+                ocena_text = 'Dobra inwestycja'
             elif roi_realny >= 20:
                 ocena = 'average'
-                ocena_text = '🤔 Średnia opłacalność'
+                ocena_text = 'Srednia oplacalnosc'
             else:
                 ocena = 'poor'
-                ocena_text = '⚠️ Ryzykowne'
-            
+                ocena_text = 'Ryzykowne'
+
             result = {
                 'cena_palety': cena_palety,
                 'ilosc_produktow': ilosc_produktow,
@@ -738,133 +485,139 @@ def kalkulator_palety():
             }
         except Exception as e:
             print(f"Błąd kalkulatora: {e}")
-    
-    html = f'''
-<!DOCTYPE html>
-<html><head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🧮 Kalkulator Palety - Akces Hub</title>
-{ANALYTICS_CSS}
-</head><body>
 
-<div class="header">
-    <h1>🧮 KALKULATOR OPŁACALNOŚCI</h1>
-    <small>Oszacuj zysk przed zakupem palety</small>
+    # Build result HTML block
+    result_html = ''
+    if result:
+        # Badge class mapping
+        badge_map = {'excellent': 'badge-success', 'good': 'badge-success', 'average': 'badge-warning', 'poor': 'badge-error'}
+        badge_cls = badge_map.get(result['ocena'], 'badge-warning')
+
+        result_html = f'''
+<div class="card" style="border-color:var(--accent);margin-top:20px">
+    <div class="card-header">
+        <div class="card-title">Wyniki analizy</div>
+        <span class="badge {badge_cls}">{result['ocena_text']}</span>
+    </div>
+
+    <div style="margin-bottom:20px;padding:15px;background:var(--bg);border-radius:var(--radius-sm)">
+        <div style="color:var(--text-muted);font-size:0.9rem;margin-bottom:5px">
+            {result['ilosc_produktow']} produktow x {result['sprzedawalnosc']:.0f}% sprzedawalnosc =
+            <strong style="color:var(--text)">{result['produkty_do_sprzedazy']} szt do sprzedania</strong>
+        </div>
+        <div style="color:var(--text-muted);font-size:0.9rem">
+            Srednia cena sprzedazy w kategorii: <strong style="color:var(--text)">{result['cena_avg']} zl</strong>
+        </div>
+    </div>
+
+    <div class="section-title">Scenariusze</div>
+    <div class="stat-row">
+        <div class="stat-box" style="border-color:var(--red)">
+            <div style="font-size:0.72rem;color:var(--red);margin-bottom:6px">Pesymistyczny</div>
+            <div class="stat-val {'green' if result['zysk_pesymistyczny'] > 0 else 'red'}">{result['zysk_pesymistyczny']:.0f} zl</div>
+            <div class="stat-lbl">ROI: {result['roi_pesymistyczny']:.0f}%</div>
+        </div>
+        <div class="stat-box" style="border-color:var(--blue);border-width:2px">
+            <div style="font-size:0.72rem;color:var(--blue);margin-bottom:6px">Realny</div>
+            <div class="stat-val {'green' if result['zysk_realny'] > 0 else 'red'}" style="font-size:1.5rem">{result['zysk_realny']:.0f} zl</div>
+            <div class="stat-lbl">ROI: {result['roi_realny']:.0f}%</div>
+        </div>
+        <div class="stat-box" style="border-color:var(--green)">
+            <div style="font-size:0.72rem;color:var(--green);margin-bottom:6px">Optymistyczny</div>
+            <div class="stat-val green">{result['zysk_optymistyczny']:.0f} zl</div>
+            <div class="stat-lbl">ROI: {result['roi_optymistyczny']:.0f}%</div>
+        </div>
+    </div>
+
+    <div class="stat-row" style="grid-template-columns:repeat(4,1fr);margin-top:16px">
+        <div class="stat-box">
+            <div class="stat-val">{result['cena_palety']:.0f} zl</div>
+            <div class="stat-lbl">Koszt palety</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-val blue">{result['przychod_realny']:.0f} zl</div>
+            <div class="stat-lbl">Przychod (realny)</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-val {'green' if result['zysk_realny'] > 0 else 'red'}">{result['zysk_realny']:.0f} zl</div>
+            <div class="stat-lbl">Zysk netto</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-val {'green' if result['roi_realny'] > 50 else 'orange'}">{result['roi_realny']:.0f}%</div>
+            <div class="stat-lbl">ROI</div>
+        </div>
+    </div>
 </div>
+'''
 
-<div class="calc-card">
-    <div class="calc-title">📦 Dane palety</div>
+    html = '''{% extends "base.html" %}
+{% block page_title %}Kalkulator Oplacalnosci{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Dane palety</div>
+        <span class="badge badge-success">Kalkulator</span>
+    </div>
     <form method="POST">
         <div class="form-row">
             <div class="form-group">
-                <label>💰 Cena palety (brutto PLN)</label>
-                <input type="number" step="0.01" name="cena_palety" class="form-control" 
-                       value="{result['cena_palety'] if result else ''}" placeholder="np. 2500" required>
+                <label>Cena palety (brutto PLN)</label>
+                <input type="number" step="0.01" name="cena_palety" class="form-control"
+                       value="''' + (f'{result["cena_palety"]}' if result else '') + '''" placeholder="np. 2500" required>
             </div>
             <div class="form-group">
-                <label>📦 Ilość produktów</label>
-                <input type="number" name="ilosc_produktow" class="form-control" 
-                       value="{result['ilosc_produktow'] if result else ''}" placeholder="np. 50" required>
+                <label>Ilosc produktow</label>
+                <input type="number" name="ilosc_produktow" class="form-control"
+                       value="''' + (f'{result["ilosc_produktow"]}' if result else '') + '''" placeholder="np. 50" required>
             </div>
         </div>
-        
+
         <div class="form-row">
             <div class="form-group">
-                <label>🏭 Dostawca</label>
+                <label>Dostawca</label>
                 <select name="dostawca" class="form-control">
-                    <option value="Jobalots" {'selected' if result and result['dostawca']=='Jobalots' else ''}>🇳🇱 Jobalots (75% sprzedawalność)</option>
-                    <option value="Warrington" {'selected' if result and result['dostawca']=='Warrington' else ''}>🇬🇧 Warrington (70%)</option>
-                    <option value="Miglo" {'selected' if result and result['dostawca']=='Miglo' else ''}>🇵🇱 Miglo (80%)</option>
-                    <option value="Amazon" {'selected' if result and result['dostawca']=='Amazon' else ''}>📦 Amazon Returns (85%)</option>
-                    <option value="Inny" {'selected' if result and result['dostawca']=='Inny' else ''}>❓ Inny (65%)</option>
+                    <option value="Jobalots" ''' + ('selected' if result and result['dostawca']=='Jobalots' else '') + '''>Jobalots (75% sprzedawalnosc)</option>
+                    <option value="Warrington" ''' + ('selected' if result and result['dostawca']=='Warrington' else '') + '''>Warrington (70%)</option>
+                    <option value="Miglo" ''' + ('selected' if result and result['dostawca']=='Miglo' else '') + '''>Miglo (80%)</option>
+                    <option value="Amazon" ''' + ('selected' if result and result['dostawca']=='Amazon' else '') + '''>Amazon Returns (85%)</option>
+                    <option value="Inny" ''' + ('selected' if result and result['dostawca']=='Inny' else '') + '''>Inny (65%)</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>📁 Kategoria</label>
+                <label>Kategoria</label>
                 <select name="kategoria" class="form-control">
-                    <option value="elektronika" {'selected' if result and result['kategoria']=='elektronika' else ''}>📱 Elektronika (śr. 120 zł)</option>
-                    <option value="agd" {'selected' if result and result['kategoria']=='agd' else ''}>🍳 AGD (śr. 90 zł)</option>
-                    <option value="dom_ogrod" {'selected' if result and result['kategoria']=='dom_ogrod' else ''}>🏠 Dom i ogród (śr. 70 zł)</option>
-                    <option value="motoryzacja" {'selected' if result and result['kategoria']=='motoryzacja' else ''}>🚗 Motoryzacja (śr. 85 zł)</option>
-                    <option value="zabawki" {'selected' if result and result['kategoria']=='zabawki' else ''}>🧸 Zabawki (śr. 55 zł)</option>
-                    <option value="odziez" {'selected' if result and result['kategoria']=='odziez' else ''}>👕 Odzież (śr. 45 zł)</option>
-                    <option value="mix" {'selected' if result and result['kategoria']=='mix' else ''}>🎁 Mix (śr. 65 zł)</option>
+                    <option value="elektronika" ''' + ('selected' if result and result['kategoria']=='elektronika' else '') + '''>Elektronika (sr. 120 zl)</option>
+                    <option value="agd" ''' + ('selected' if result and result['kategoria']=='agd' else '') + '''>AGD (sr. 90 zl)</option>
+                    <option value="dom_ogrod" ''' + ('selected' if result and result['kategoria']=='dom_ogrod' else '') + '''>Dom i ogrod (sr. 70 zl)</option>
+                    <option value="motoryzacja" ''' + ('selected' if result and result['kategoria']=='motoryzacja' else '') + '''>Motoryzacja (sr. 85 zl)</option>
+                    <option value="zabawki" ''' + ('selected' if result and result['kategoria']=='zabawki' else '') + '''>Zabawki (sr. 55 zl)</option>
+                    <option value="odziez" ''' + ('selected' if result and result['kategoria']=='odziez' else '') + '''>Odziez (sr. 45 zl)</option>
+                    <option value="mix" ''' + ('selected' if result and result['kategoria']=='mix' else '') + '''>Mix (sr. 65 zl)</option>
                 </select>
             </div>
         </div>
-        
-        <button type="submit" class="btn btn-primary" style="width:100%;margin-top:10px">
-            🔮 OBLICZ OPŁACALNOŚĆ
+
+        <button type="submit" class="btn btn-primary" style="margin-top:10px">
+            OBLICZ OPLACALNOSC
         </button>
     </form>
 </div>
 
-{f"""
-<div class="result-card">
-    <div class="result-header">
-        <h3>📊 Wyniki analizy</h3>
-        <div class="result-badge {result['ocena']}">{result['ocena_text']}</div>
-    </div>
-    
-    <div style="margin-bottom:20px;padding:15px;background:rgba(0,0,0,0.3);border-radius:8px">
-        <div style="color:var(--muted);font-size:0.9rem;margin-bottom:5px">
-            📦 {result['ilosc_produktow']} produktów × {result['sprzedawalnosc']:.0f}% sprzedawalność = 
-            <strong style="color:var(--text)">{result['produkty_do_sprzedazy']} szt do sprzedania</strong>
-        </div>
-        <div style="color:var(--muted);font-size:0.9rem">
-            💰 Średnia cena sprzedaży w kategorii: <strong style="color:var(--text)">{result['cena_avg']} zł</strong>
-        </div>
-    </div>
-    
-    <div style="margin-bottom:20px">
-        <div style="font-weight:600;margin-bottom:10px">📈 Scenariusze:</div>
-        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px">
-            <div style="background:rgba(239,68,68,0.1);padding:12px;border-radius:8px;text-align:center">
-                <div style="font-size:0.8rem;color:var(--red)">😟 Pesymistyczny</div>
-                <div style="font-size:1.3rem;font-weight:700;color:{'var(--green)' if result['zysk_pesymistyczny'] > 0 else 'var(--red)'}">{result['zysk_pesymistyczny']:.0f} zł</div>
-                <div style="font-size:0.8rem;color:var(--muted)">ROI: {result['roi_pesymistyczny']:.0f}%</div>
-            </div>
-            <div style="background:rgba(59,130,246,0.2);padding:12px;border-radius:8px;text-align:center;border:2px solid var(--blue)">
-                <div style="font-size:0.8rem;color:var(--blue)">🎯 Realny</div>
-                <div style="font-size:1.5rem;font-weight:700;color:{'var(--green)' if result['zysk_realny'] > 0 else 'var(--red)'}">{result['zysk_realny']:.0f} zł</div>
-                <div style="font-size:0.9rem;color:var(--muted)">ROI: {result['roi_realny']:.0f}%</div>
-            </div>
-            <div style="background:rgba(34,197,94,0.1);padding:12px;border-radius:8px;text-align:center">
-                <div style="font-size:0.8rem;color:var(--green)">🚀 Optymistyczny</div>
-                <div style="font-size:1.3rem;font-weight:700;color:var(--green)">{result['zysk_optymistyczny']:.0f} zł</div>
-                <div style="font-size:0.8rem;color:var(--muted)">ROI: {result['roi_optymistyczny']:.0f}%</div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="result-grid">
-        <div class="result-item">
-            <div class="result-value">{result['cena_palety']:.0f} zł</div>
-            <div class="result-label">Koszt palety</div>
-        </div>
-        <div class="result-item">
-            <div class="result-value" style="color:var(--blue)">{result['przychod_realny']:.0f} zł</div>
-            <div class="result-label">Przychód (realny)</div>
-        </div>
-        <div class="result-item">
-            <div class="result-value" style="color:{'var(--green)' if result['zysk_realny'] > 0 else 'var(--red)'}">{result['zysk_realny']:.0f} zł</div>
-            <div class="result-label">Zysk netto</div>
-        </div>
-        <div class="result-item">
-            <div class="result-value" style="color:{'var(--green)' if result['roi_realny'] > 50 else 'var(--yellow)'}">{result['roi_realny']:.0f}%</div>
-            <div class="result-label">ROI</div>
-        </div>
-    </div>
+''' + result_html + '''
+
+<div style="display:flex;gap:16px;margin-top:20px">
+    <a href="/analytics/dashboard" class="btn btn-sm btn-secondary">Dashboard KPI</a>
+    <a href="/analytics/profit" class="btn btn-sm btn-secondary">Profit Analyzer</a>
 </div>
-""" if result else ''}
 
-<a href="/" class="back-link">← Powrót do strony głównej</a>
-<a href="/analytics/dashboard" class="back-link" style="margin-left:20px">📊 Dashboard KPI</a>
-
-</body></html>
+{% endblock %}
 '''
-    return html
+    return render_template_string(html,
+        version=current_app.config.get('VERSION', ''),
+        brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
+        current_user=session.get('user')
+    )
 
 
 # ============================================================
@@ -874,16 +627,16 @@ def kalkulator_palety():
 def api_kpi():
     """API endpoint dla danych KPI (do odświeżania AJAX)"""
     conn = get_db()
-    
+
     today_str = datetime.now().strftime('%Y-%m-%d')
-    
+
     dzis = conn.execute('''
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
         FROM sprzedaze WHERE date(data_sprzedazy) = ?
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
         AND (kupujacy IS NULL OR kupujacy != 'offline')
     ''', (today_str,)).fetchone()
-    
+
     return jsonify({
         'dzis_przychod': dzis['suma'] or 0,
         'dzis_zamowienia': dzis['cnt'] or 0,
@@ -1177,18 +930,18 @@ def profit_analyzer():
             <td style="color:var(--red)">{m['zwroty_cnt']}</td>
         </tr>'''
 
-    # Wykres miesięczny — stacked bar (przychód vs koszty vs zysk)
+    # Wykres miesięczny
     monthly_chart = ''
     for m in monthly_data:
         pct_rev = (m['przychod'] / max_monthly * 100) if max_monthly > 0 else 0
         pct_cost = ((m['cogs'] + m['prowizja']) / max_monthly * 100) if max_monthly > 0 else 0
-        zysk_color = '#22c55e' if m['zysk_netto'] >= 0 else '#ef4444'
+        zysk_color = 'var(--green)' if m['zysk_netto'] >= 0 else 'var(--red)'
         monthly_chart += f'''
         <div style="margin-bottom:14px">
             <div style="display:flex;align-items:center;margin-bottom:4px">
-                <span style="width:60px;font-size:0.8rem;color:var(--muted)">{m['label']}</span>
+                <span style="width:60px;font-size:0.8rem;color:var(--text-muted)">{m['label']}</span>
                 <div style="flex:1;position:relative;height:28px;background:var(--border);border-radius:4px;overflow:hidden">
-                    <div style="position:absolute;height:100%;width:{pct_rev:.0f}%;background:linear-gradient(90deg,#3b82f6,#6366f1);border-radius:4px;opacity:0.8"></div>
+                    <div style="position:absolute;height:100%;width:{pct_rev:.0f}%;background:linear-gradient(90deg,var(--blue),var(--accent));border-radius:4px;opacity:0.8"></div>
                     <div style="position:absolute;height:100%;width:{pct_cost:.0f}%;background:rgba(239,68,68,0.4);border-radius:4px"></div>
                 </div>
                 <span style="width:100px;text-align:right;font-weight:700;font-size:0.85rem;color:{zysk_color}">{m['zysk_netto']:,.0f} zl</span>
@@ -1202,14 +955,14 @@ def profit_analyzer():
         lbl = d['dzien'][5:]
         daily_chart += f'''
         <div style="display:flex;align-items:center;margin-bottom:6px">
-            <span style="width:50px;font-size:0.72rem;color:var(--muted)">{lbl}</span>
+            <span style="width:50px;font-size:0.72rem;color:var(--text-muted)">{lbl}</span>
             <div style="flex:1;height:18px;background:var(--border);border-radius:3px;overflow:hidden">
                 <div style="height:100%;width:{pct:.0f}%;background:var(--green);border-radius:3px"></div>
             </div>
             <span style="width:70px;text-align:right;font-size:0.75rem;font-weight:600">{d['suma']:,.0f}</span>
         </div>'''
 
-    # Palety tabela — rozbudowana
+    # Palety tabela
     palety_rows = ''
     for p in palety_profit:
         koszt = p['cena_zakupu'] or 0
@@ -1234,7 +987,7 @@ def profit_analyzer():
         tempo = (przychod_p / dni_od) if dni_od > 0 else 0
         # Prognoza ROI: ile dni do break-even
         if tempo > 0 and zysk_p < 0:
-            dni_do_be = int(abs(zysk_p) / (tempo * 0.89))  # 0.89 = po prowizji
+            dni_do_be = int(abs(zysk_p) / (tempo * 0.89))
         else:
             dni_do_be = 0
 
@@ -1243,18 +996,18 @@ def profit_analyzer():
 
         # Status
         if (p['w_magazynie_szt'] or 0) == 0 and (p['sprzedane_szt'] or 0) > 0:
-            status_html = '<span class="pill" style="background:rgba(34,197,94,0.2);color:var(--green)">Sprzedana</span>'
+            status_html = '<span class="badge badge-success">Sprzedana</span>'
         elif sold_pct >= 50:
-            status_html = '<span class="pill" style="background:rgba(59,130,246,0.2);color:var(--blue)">W trakcie</span>'
+            status_html = '<span class="badge" style="background:var(--blue-soft);color:var(--blue)">W trakcie</span>'
         elif sold_pct > 0:
-            status_html = '<span class="pill" style="background:rgba(249,115,22,0.2);color:var(--orange)">Wolna</span>'
+            status_html = '<span class="badge badge-warning">Wolna</span>'
         else:
-            status_html = '<span class="pill" style="background:rgba(239,68,68,0.15);color:var(--red)">Stoi</span>'
+            status_html = '<span class="badge badge-error">Stoi</span>'
 
         palety_rows += f'''<tr>
             <td>
                 <div style="font-weight:600;margin-bottom:2px">{(p['nazwa'] or 'Bez nazwy')[:30]}</div>
-                <div style="font-size:0.68rem;color:var(--muted)">{p['dostawca'] or '-'} | {dni_od}d</div>
+                <div style="font-size:0.68rem;color:var(--text-muted)">{p['dostawca'] or '-'} | {dni_od}d</div>
             </td>
             <td>{koszt:,.0f}</td>
             <td style="color:var(--blue)">{przychod_p:,.0f}</td>
@@ -1339,7 +1092,7 @@ def profit_analyzer():
     # Kategorie
     max_kat = max((k['wartosc'] or 0 for k in top_kat), default=1) or 1
     kat_bars = ''
-    kat_colors = ['#6366f1', '#8b5cf6', '#3b82f6', '#22c55e', '#eab308', '#f97316', '#ef4444', '#ec4899']
+    kat_colors = ['var(--accent)', 'var(--accent2)', 'var(--blue)', 'var(--green)', 'var(--yellow)', 'var(--orange)', 'var(--red)', '#ec4899']
     total_kat_val = sum((k['wartosc'] or 0) for k in top_kat) or 1
     for idx, k in enumerate(top_kat):
         pct = ((k['wartosc'] or 0) / max_kat * 100) if max_kat > 0 else 0
@@ -1347,7 +1100,7 @@ def profit_analyzer():
         color = kat_colors[idx % len(kat_colors)]
         kat_bars += f'''
         <div style="display:flex;align-items:center;margin-bottom:8px">
-            <span style="width:110px;font-size:0.8rem;color:var(--muted)">{(k['kat'] or 'Brak')[:18]}</span>
+            <span style="width:110px;font-size:0.8rem;color:var(--text-muted)">{(k['kat'] or 'Brak')[:18]}</span>
             <div style="flex:1;height:22px;background:var(--border);border-radius:4px;overflow:hidden;position:relative">
                 <div style="height:100%;width:{pct:.0f}%;background:{color};border-radius:4px;opacity:0.8"></div>
                 <span style="position:absolute;right:8px;top:3px;font-size:0.68rem;color:var(--text)">{udzial_k:.0f}%</span>
@@ -1355,7 +1108,7 @@ def profit_analyzer():
             <span style="width:90px;text-align:right;font-size:0.82rem;font-weight:600">{(k['wartosc'] or 0):,.0f} zl</span>
         </div>'''
 
-    # Rozłożenie kosztów (donut info)
+    # Rozłożenie kosztów
     total_koszty_all = total_cogs + total_prowizja + sum(m['koszty_op'] for m in monthly_data)
     if total_koszty_all > 0:
         pct_cogs = total_cogs / total_koszty_all * 100
@@ -1364,137 +1117,16 @@ def profit_analyzer():
     else:
         pct_cogs = pct_prow = pct_op = 0
 
-    html = f'''<!DOCTYPE html>
-<html lang="pl"><head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Profit Analyzer - Akces Hub</title>
-<style>
-:root {{
-    --bg:#0a0a0f;--card:#12121a;--card2:#161625;--border:#1e1e2e;--text:#e2e8f0;
-    --muted:#64748b;--green:#22c55e;--red:#ef4444;--blue:#3b82f6;
-    --purple:#8b5cf6;--yellow:#eab308;--orange:#f97316;--cyan:#06b6d4;
-}}
-*{{box-sizing:border-box;margin:0;padding:0}}
-body{{font-family:-apple-system,system-ui,sans-serif;background:var(--bg);color:var(--text);padding:15px;max-width:1440px;margin:0 auto}}
-.header{{text-align:center;padding:24px 0 16px}}
-.header h1{{font-size:1.8rem;margin-bottom:4px;background:linear-gradient(135deg,#6366f1,#22c55e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.5px}}
-.header small{{color:var(--muted);font-size:0.82rem}}
-.nav-tabs{{display:flex;gap:8px;justify-content:center;margin-bottom:24px;flex-wrap:wrap}}
-.nav-tabs a{{padding:8px 18px;border-radius:8px;text-decoration:none;font-size:0.82rem;font-weight:600;color:var(--muted);background:var(--card);border:1px solid var(--border);transition:all 0.2s}}
-.nav-tabs a:hover,.nav-tabs a.active{{color:#fff;background:var(--purple);border-color:var(--purple)}}
-.grid2{{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px}}
-.grid3{{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}}
-.grid4{{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}}
-.card{{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px}}
-.card h2{{font-size:1.05rem;font-weight:700;margin-bottom:16px;color:var(--purple);display:flex;align-items:center;gap:8px}}
-.card h2 .cnt{{font-size:0.72rem;color:var(--muted);font-weight:400}}
-.kpi{{text-align:center;padding:18px 12px}}
-.kpi .val{{font-size:1.9rem;font-weight:800;margin-bottom:4px;letter-spacing:-0.5px}}
-.kpi .lbl{{font-size:0.78rem;color:var(--muted)}}
-.kpi .sub{{font-size:0.7rem;color:var(--muted);margin-top:4px}}
-.kpi .trend{{font-size:0.72rem;margin-top:6px;padding:3px 10px;border-radius:6px;display:inline-block;font-weight:600}}
-.trend-up{{background:rgba(34,197,94,0.15);color:var(--green)}}
-.trend-down{{background:rgba(239,68,68,0.15);color:var(--red)}}
-.trend-flat{{background:rgba(100,116,139,0.15);color:var(--muted)}}
-table{{width:100%;border-collapse:collapse;font-size:0.78rem}}
-th{{text-align:left;padding:10px 8px;color:var(--muted);border-bottom:2px solid var(--border);font-weight:600;white-space:nowrap;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px}}
-td{{padding:9px 8px;border-bottom:1px solid rgba(30,30,46,0.5)}}
-tr:hover{{background:rgba(99,102,241,0.05)}}
-.pill{{display:inline-block;padding:3px 10px;border-radius:6px;font-size:0.7rem;font-weight:700}}
-.back{{display:inline-block;color:var(--purple);text-decoration:none;font-size:0.85rem;margin-bottom:12px}}
-.waterfall{{margin:10px 0}}
-.wf-row{{display:flex;align-items:center;margin-bottom:8px}}
-.wf-label{{width:130px;font-size:0.82rem;color:var(--muted)}}
-.wf-bar{{flex:1;height:26px;border-radius:6px;position:relative}}
-.wf-val{{width:100px;text-align:right;font-size:0.88rem;font-weight:700}}
-.section-title{{font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:28px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--border)}}
-.cost-legend{{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}}
-.cost-legend-item{{display:flex;align-items:center;gap:6px;font-size:0.78rem}}
-.cost-dot{{width:10px;height:10px;border-radius:50%}}
-.cost-bar{{height:32px;border-radius:8px;display:flex;overflow:hidden;margin-bottom:8px}}
-@media(max-width:900px){{
-    .grid2,.grid3{{grid-template-columns:1fr}}
-    .grid4{{grid-template-columns:repeat(2,1fr)}}
-    table{{font-size:0.7rem}}
-    th,td{{padding:6px 4px}}
-}}
-@media(max-width:500px){{
-    .grid4{{grid-template-columns:1fr}}
-    .kpi .val{{font-size:1.4rem}}
-}}
-</style></head><body>
-
-<a href="/narzedzia" class="back">&larr; Narzedzia</a>
-
-<div class="header">
-    <h1>PROFIT ANALYZER</h1>
-    <small>Analiza zyskow i rentownosci | Dane na zywo | {today.strftime('%d.%m.%Y %H:%M')}</small>
-</div>
-
-<div class="nav-tabs">
-    <a href="/analytics/profit?months=3" {"class=active" if months_range==3 else ""}>3 mies.</a>
-    <a href="/analytics/profit?months=6" {"class=active" if months_range==6 else ""}>6 mies.</a>
-    <a href="/analytics/profit?months=12" {"class=active" if months_range==12 else ""}>12 mies.</a>
-    <a href="/analytics/dashboard">Dashboard KPI</a>
-</div>
-
-<!-- ==================== KPI GŁÓWNE ==================== -->
-<div class="section-title">Podsumowanie okresu ({months_range} mies.)</div>
-<div class="grid4">
-    <div class="card kpi">
-        <div class="val" style="color:var(--blue)">{total_przychod:,.0f} zl</div>
-        <div class="lbl">Przychod</div>
-        {f'<div class="trend {"trend-up" if curr and prev and trend_pct(curr["przychod"], prev["przychod"])>0 else "trend-down"}">{trend_pct(curr["przychod"], prev["przychod"]) if curr and prev else 0:+.0f}% m/m</div>' if curr and prev and prev["przychod"] else ''}
-    </div>
-    <div class="card kpi">
-        <div class="val" style="color:{'var(--green)' if total_zysk>=0 else 'var(--red)'}">{total_zysk:,.0f} zl</div>
-        <div class="lbl">Zysk netto</div>
-        {f'<div class="trend {"trend-up" if curr and prev and trend_pct(curr["zysk_netto"], prev["zysk_netto"])>0 else "trend-down" if curr and prev and trend_pct(curr["zysk_netto"], prev["zysk_netto"])<0 else "trend-flat"}">{trend_pct(curr["zysk_netto"], prev["zysk_netto"]) if curr and prev else 0:+.0f}% m/m</div>' if curr and prev else ''}
-    </div>
-    <div class="card kpi">
-        <div class="val" style="color:var(--purple)">{avg_marza:.1f}%</div>
-        <div class="lbl">Srednia marza netto</div>
-    </div>
-    <div class="card kpi">
-        <div class="val">{avg_order:.0f} zl</div>
-        <div class="lbl">Srednia wartosc zamowienia</div>
-    </div>
-</div>
-
-<div class="grid4">
-    <div class="card kpi">
-        <div class="val">{total_zamowienia:,}</div>
-        <div class="lbl">Zamowienia</div>
-        <div class="sub">~{daily_avg_7['avg_ord']:.0f}/dzien (7d) | ~{daily_avg_30['avg_ord']:.0f}/dzien (30d)</div>
-    </div>
-    <div class="card kpi">
-        <div class="val" style="color:var(--red)">{total_zwroty}</div>
-        <div class="lbl">Zwroty</div>
-        <div class="sub" style="color:var(--red)">{(total_zwroty/total_zamowienia*100) if total_zamowienia>0 else 0:.1f}% wskaznik zwrotow</div>
-    </div>
-    <div class="card kpi">
-        <div class="val" style="color:var(--cyan)">{daily_avg_7['avg_rev']:,.0f} zl</div>
-        <div class="lbl">Sredni przychod / dzien (7d)</div>
-        <div class="sub">{daily_avg_30['avg_rev']:,.0f} zl (30d)</div>
-    </div>
-    <div class="card kpi">
-        <div class="val" style="color:var(--orange)">{magazyn['sztuki'] or 0}</div>
-        <div class="lbl">Magazyn (szt.)</div>
-        <div class="sub">{magazyn['wystawione'] or 0} wystawione | {magazyn['stojace'] or 0} stojace &gt;30d</div>
-    </div>
-</div>
-
-<!-- ==================== RACHUNEK WYNIKÓW ==================== -->
-<div class="section-title">Rachunek wynikow</div>
-<div class="grid2">
-{f"""
+    # Build P&L waterfall for current month
+    pl_waterfall = ''
+    if curr:
+        pl_waterfall = f'''
 <div class="card">
-    <h2>P&amp;L — {curr['label']}</h2>
-    <div class="waterfall">
+    <div class="card-header"><div class="card-title">P&amp;L &mdash; {curr['label']}</div></div>
+    <div class="wf-container">
         <div class="wf-row">
             <div class="wf-label">Przychod Allegro</div>
-            <div class="wf-bar"><div style="height:100%;width:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:6px"></div></div>
+            <div class="wf-bar"><div style="height:100%;width:100%;background:linear-gradient(90deg,var(--blue),var(--accent));border-radius:6px"></div></div>
             <div class="wf-val" style="color:var(--blue)">+{curr['przychod']:,.0f}</div>
         </div>
         <div class="wf-row">
@@ -1524,57 +1156,165 @@ tr:hover{{background:rgba(99,102,241,0.05)}}
             <div class="wf-val" style="color:{'var(--green)' if curr['zysk_netto']>=0 else 'var(--red)'};font-size:1rem">{curr['zysk_netto']:,.0f}</div>
         </div>
     </div>
+</div>'''
+    else:
+        pl_waterfall = '<div class="card"><p style="color:var(--text-muted)">Brak danych</p></div>'
+
+    # Build trends for KPI cards
+    trend_przychod_html = ''
+    trend_zysk_html = ''
+    if curr and prev and prev['przychod']:
+        t = trend_pct(curr['przychod'], prev['przychod'])
+        cls = 'up' if t > 0 else 'down'
+        trend_przychod_html = f'<div class="kpi-change {cls}">{t:+.0f}% m/m</div>'
+    if curr and prev:
+        t = trend_pct(curr['zysk_netto'], prev['zysk_netto'])
+        cls = 'up' if t > 0 else 'down' if t < 0 else 'neutral'
+        trend_zysk_html = f'<div class="kpi-change {cls}">{t:+.0f}% m/m</div>'
+
+    html = '''{% extends "base.html" %}
+{% block page_title %}Profit Analyzer{% endblock %}
+{% block content %}
+<style>
+.nav-tabs{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+.nav-tabs a{padding:8px 18px;border-radius:var(--radius-sm);text-decoration:none;font-size:0.82rem;font-weight:600;color:var(--text-muted);background:var(--bg-card);border:1px solid var(--border);transition:all 0.2s}
+.nav-tabs a:hover,.nav-tabs a.active{color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:var(--accent)}
+.wf-container{margin:10px 0}
+.wf-row{display:flex;align-items:center;margin-bottom:8px}
+.wf-label{width:130px;font-size:0.82rem;color:var(--text-muted)}
+.wf-bar{flex:1;height:26px;border-radius:6px;position:relative}
+.wf-val{width:100px;text-align:right;font-size:0.88rem;font-weight:700}
+.cost-bar{height:32px;border-radius:8px;display:flex;overflow:hidden;margin-bottom:8px}
+.cost-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}
+.cost-legend-item{display:flex;align-items:center;gap:6px;font-size:0.78rem}
+.cost-dot{width:10px;height:10px;border-radius:50%}
+table{width:100%;border-collapse:collapse;font-size:0.78rem}
+th{text-align:left;padding:10px 8px;color:var(--text-muted);border-bottom:2px solid var(--border);font-weight:600;white-space:nowrap;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px}
+td{padding:9px 8px;border-bottom:1px solid var(--border-light)}
+tr:hover{background:var(--accent-soft)}
+@media(max-width:900px){
+    table{font-size:0.7rem}
+    th,td{padding:6px 4px}
+}
+</style>
+
+<div class="nav-tabs">
+    <a href="/analytics/profit?months=3" ''' + ('class="active"' if months_range==3 else '') + '''>3 mies.</a>
+    <a href="/analytics/profit?months=6" ''' + ('class="active"' if months_range==6 else '') + '''>6 mies.</a>
+    <a href="/analytics/profit?months=12" ''' + ('class="active"' if months_range==12 else '') + '''>12 mies.</a>
+    <a href="/analytics/dashboard">Dashboard KPI</a>
 </div>
-""" if curr else '<div class="card"><p style="color:var(--muted)">Brak danych</p></div>'}
+
+<!-- KPI GLOWNE -->
+<div class="section-title">Podsumowanie okresu (''' + str(months_range) + ''' mies.)</div>
+<div class="kpi-grid">
+    <div class="kpi-card blue">
+        <div class="kpi-icon" style="background:var(--blue-soft)">P</div>
+        <div class="kpi-value" style="color:var(--blue)">''' + f'{total_przychod:,.0f}' + ''' zl</div>
+        <div class="kpi-label">Przychod</div>
+        ''' + trend_przychod_html + '''
+    </div>
+    <div class="kpi-card green">
+        <div class="kpi-icon" style="background:var(--green-soft)">Z</div>
+        <div class="kpi-value" style="color:''' + ('var(--green)' if total_zysk>=0 else 'var(--red)') + '''">''' + f'{total_zysk:,.0f}' + ''' zl</div>
+        <div class="kpi-label">Zysk netto</div>
+        ''' + trend_zysk_html + '''
+    </div>
+    <div class="kpi-card purple">
+        <div class="kpi-icon" style="background:var(--accent-soft)">%</div>
+        <div class="kpi-value" style="color:var(--accent)">''' + f'{avg_marza:.1f}' + '''%</div>
+        <div class="kpi-label">Srednia marza netto</div>
+    </div>
+    <div class="kpi-card orange">
+        <div class="kpi-icon" style="background:var(--yellow-soft)">A</div>
+        <div class="kpi-value">''' + f'{avg_order:.0f}' + ''' zl</div>
+        <div class="kpi-label">Srednia wartosc zamowienia</div>
+    </div>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-card purple">
+        <div class="kpi-icon" style="background:var(--accent-soft)">#</div>
+        <div class="kpi-value">''' + f'{total_zamowienia:,}' + '''</div>
+        <div class="kpi-label">Zamowienia</div>
+        <div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px">~''' + f'{daily_avg_7["avg_ord"]:.0f}' + '''/dzien (7d) | ~''' + f'{daily_avg_30["avg_ord"]:.0f}' + '''/dzien (30d)</div>
+    </div>
+    <div class="kpi-card green">
+        <div class="kpi-icon" style="background:var(--red-soft)">R</div>
+        <div class="kpi-value" style="color:var(--red)">''' + f'{total_zwroty}' + '''</div>
+        <div class="kpi-label">Zwroty</div>
+        <div style="font-size:0.68rem;color:var(--red);margin-top:4px">''' + f'{(total_zwroty/total_zamowienia*100) if total_zamowienia>0 else 0:.1f}' + '''% wskaznik zwrotow</div>
+    </div>
+    <div class="kpi-card blue">
+        <div class="kpi-icon" style="background:var(--blue-soft)">D</div>
+        <div class="kpi-value" style="color:var(--cyan)">''' + f'{daily_avg_7["avg_rev"]:,.0f}' + ''' zl</div>
+        <div class="kpi-label">Sredni przychod / dzien (7d)</div>
+        <div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px">''' + f'{daily_avg_30["avg_rev"]:,.0f}' + ''' zl (30d)</div>
+    </div>
+    <div class="kpi-card orange">
+        <div class="kpi-icon" style="background:var(--yellow-soft)">M</div>
+        <div class="kpi-value" style="color:var(--orange)">''' + f'{magazyn["sztuki"] or 0}' + '''</div>
+        <div class="kpi-label">Magazyn (szt.)</div>
+        <div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px">''' + f'{magazyn["wystawione"] or 0}' + ''' wystawione | ''' + f'{magazyn["stojace"] or 0}' + ''' stojace &gt;30d</div>
+    </div>
+</div>
+
+<!-- RACHUNEK WYNIKOW -->
+<div class="section-title">Rachunek wynikow</div>
+<div class="dash-grid">
+''' + pl_waterfall + '''
 
 <div class="card">
-    <h2>Struktura kosztow ({months_range} mies.)</h2>
+    <div class="card-header"><div class="card-title">Struktura kosztow (''' + str(months_range) + ''' mies.)</div></div>
     <div class="cost-bar">
-        <div style="width:{pct_cogs:.0f}%;background:var(--red);opacity:0.8" title="COGS {pct_cogs:.0f}%"></div>
-        <div style="width:{pct_prow:.0f}%;background:var(--orange);opacity:0.8" title="Prowizja {pct_prow:.0f}%"></div>
-        <div style="width:{pct_op:.0f}%;background:var(--yellow);opacity:0.8" title="Operacyjne {pct_op:.0f}%"></div>
+        <div style="width:''' + f'{pct_cogs:.0f}' + '''%;background:var(--red);opacity:0.8" title="COGS ''' + f'{pct_cogs:.0f}' + '''%"></div>
+        <div style="width:''' + f'{pct_prow:.0f}' + '''%;background:var(--orange);opacity:0.8" title="Prowizja ''' + f'{pct_prow:.0f}' + '''%"></div>
+        <div style="width:''' + f'{pct_op:.0f}' + '''%;background:var(--yellow);opacity:0.8" title="Operacyjne ''' + f'{pct_op:.0f}' + '''%"></div>
     </div>
     <div class="cost-legend">
-        <div class="cost-legend-item"><div class="cost-dot" style="background:var(--red)"></div>Koszt towaru: {total_cogs:,.0f} zl ({pct_cogs:.0f}%)</div>
-        <div class="cost-legend-item"><div class="cost-dot" style="background:var(--orange)"></div>Prowizja: {total_prowizja:,.0f} zl ({pct_prow:.0f}%)</div>
-        <div class="cost-legend-item"><div class="cost-dot" style="background:var(--yellow)"></div>Operacyjne: {sum(m['koszty_op'] for m in monthly_data):,.0f} zl ({pct_op:.0f}%)</div>
+        <div class="cost-legend-item"><div class="cost-dot" style="background:var(--red)"></div>Koszt towaru: ''' + f'{total_cogs:,.0f}' + ''' zl (''' + f'{pct_cogs:.0f}' + '''%)</div>
+        <div class="cost-legend-item"><div class="cost-dot" style="background:var(--orange)"></div>Prowizja: ''' + f'{total_prowizja:,.0f}' + ''' zl (''' + f'{pct_prow:.0f}' + '''%)</div>
+        <div class="cost-legend-item"><div class="cost-dot" style="background:var(--yellow)"></div>Operacyjne: ''' + f'{sum(m["koszty_op"] for m in monthly_data):,.0f}' + ''' zl (''' + f'{pct_op:.0f}' + '''%)</div>
     </div>
     <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">
         <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:6px">
-            <span style="color:var(--muted)">Lacznie koszty:</span>
-            <span style="font-weight:700;color:var(--red)">{total_koszty_all:,.0f} zl</span>
+            <span style="color:var(--text-muted)">Lacznie koszty:</span>
+            <span style="font-weight:700;color:var(--red)">''' + f'{total_koszty_all:,.0f}' + ''' zl</span>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:6px">
-            <span style="color:var(--muted)">Przychod:</span>
-            <span style="font-weight:700;color:var(--blue)">{total_przychod:,.0f} zl</span>
+            <span style="color:var(--text-muted)">Przychod:</span>
+            <span style="font-weight:700;color:var(--blue)">''' + f'{total_przychod:,.0f}' + ''' zl</span>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:0.88rem">
             <span style="color:var(--text);font-weight:600">Zysk netto:</span>
-            <span style="font-weight:800;color:{'var(--green)' if total_zysk>=0 else 'var(--red)'}">{total_zysk:,.0f} zl</span>
+            <span style="font-weight:800;color:''' + ('var(--green)' if total_zysk>=0 else 'var(--red)') + '''">''' + f'{total_zysk:,.0f}' + ''' zl</span>
         </div>
     </div>
 </div>
 </div>
 
-<!-- ==================== WYKRESY ==================== -->
+<!-- WYKRESY -->
 <div class="section-title">Wykresy</div>
-<div class="grid2">
+<div class="dash-grid">
     <div class="card">
-        <h2>Zysk miesiecznie</h2>
-        {monthly_chart}
-        <div style="font-size:0.7rem;color:var(--muted);margin-top:10px">
+        <div class="card-header"><div class="card-title">Zysk miesiecznie</div></div>
+        ''' + monthly_chart + '''
+        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:10px">
             Niebieski = przychod | Czerwony = koszty | Wartosc = zysk netto
         </div>
     </div>
     <div class="card">
-        <h2>Przychod dzienny <span class="cnt">(30 dni)</span></h2>
+        <div class="card-header">
+            <div class="card-title">Przychod dzienny</div>
+            <span class="badge" style="background:var(--accent-soft);color:var(--accent)">30 dni</span>
+        </div>
         <div style="max-height:420px;overflow-y:auto">
-            {daily_chart}
+            ''' + daily_chart + '''
         </div>
     </div>
 </div>
 
-<!-- ==================== TABELA P&L ==================== -->
+<!-- TABELA P&L -->
 <div class="section-title">P&amp;L Miesiecznie</div>
 <div class="card">
     <div style="overflow-x:auto">
@@ -1584,110 +1324,125 @@ tr:hover{{background:rgba(99,102,241,0.05)}}
                 <th>Koszty op.</th><th>Zysk netto</th><th>Marza</th>
                 <th>Zam.</th><th>Zwroty</th>
             </tr>
-            {monthly_rows}
-            <tr style="border-top:2px solid var(--purple);font-weight:700;background:rgba(99,102,241,0.05)">
+            ''' + monthly_rows + '''
+            <tr style="border-top:2px solid var(--accent);font-weight:700;background:var(--accent-soft)">
                 <td>SUMA</td>
-                <td style="color:var(--blue)">{total_przychod:,.0f}</td>
-                <td>{total_cogs:,.0f}</td>
-                <td>{total_prowizja:,.0f}</td>
-                <td>{sum(m['koszty_op'] for m in monthly_data):,.0f}</td>
-                <td style="color:{'var(--green)' if total_zysk>=0 else 'var(--red)'}">{total_zysk:,.0f}</td>
-                <td>{avg_marza:.1f}%</td>
-                <td>{total_zamowienia}</td>
-                <td style="color:var(--red)">{total_zwroty}</td>
+                <td style="color:var(--blue)">''' + f'{total_przychod:,.0f}' + '''</td>
+                <td>''' + f'{total_cogs:,.0f}' + '''</td>
+                <td>''' + f'{total_prowizja:,.0f}' + '''</td>
+                <td>''' + f'{sum(m["koszty_op"] for m in monthly_data):,.0f}' + '''</td>
+                <td style="color:''' + ('var(--green)' if total_zysk>=0 else 'var(--red)') + '''">''' + f'{total_zysk:,.0f}' + '''</td>
+                <td>''' + f'{avg_marza:.1f}' + '''%</td>
+                <td>''' + f'{total_zamowienia}' + '''</td>
+                <td style="color:var(--red)">''' + f'{total_zwroty}' + '''</td>
             </tr>
         </table>
     </div>
 </div>
 
-<!-- ==================== TOP PRODUKTY ==================== -->
+<!-- TOP PRODUKTY -->
 <div class="section-title">Analiza produktow</div>
-<div class="grid2">
+<div class="dash-grid">
     <div class="card">
-        <h2>TOP produkty wg przychodu <span class="cnt">({len(top_produkty_profit)})</span></h2>
+        <div class="card-header">
+            <div class="card-title">TOP produkty wg przychodu</div>
+            <span class="badge" style="background:var(--accent-soft);color:var(--accent)">''' + f'{len(top_produkty_profit)}' + '''</span>
+        </div>
         <div style="overflow-x:auto">
             <table>
                 <tr><th>#</th><th>Produkt</th><th>Szt.</th><th>Przychod</th><th>Zysk</th><th>Marza</th></tr>
-                {top_prod_rows}
+                ''' + top_prod_rows + '''
             </table>
         </div>
     </div>
     <div class="card">
-        <h2>Stojace produkty <span class="cnt">({len(stojace_produkty)})</span></h2>
+        <div class="card-header">
+            <div class="card-title">Stojace produkty</div>
+            <span class="badge badge-error">''' + f'{len(stojace_produkty)}' + '''</span>
+        </div>
         <div style="overflow-x:auto">
             <table>
                 <tr><th>Produkt</th><th>Dostawca</th><th>Dni</th><th>Ilosc</th><th>Wartosc</th><th>Regal</th></tr>
-                {stojace_rows}
+                ''' + stojace_rows + '''
             </table>
         </div>
-        {f'<div style="margin-top:12px;padding:10px;background:rgba(239,68,68,0.1);border-radius:8px;font-size:0.78rem;color:var(--red)">Wartosc zamrozona w stojacych produktach: <b>{sum((s["cena_allegro"] or 0)*(s["ilosc"] or 1) for s in stojace_produkty):,.0f} zl</b></div>' if stojace_produkty else ''}
+        ''' + (f'<div class="alert alert-error" style="margin-top:12px">Wartosc zamrozona w stojacych produktach: <b>{sum((s["cena_allegro"] or 0)*(s["ilosc"] or 1) for s in stojace_produkty):,.0f} zl</b></div>' if stojace_produkty else '') + '''
     </div>
 </div>
 
-<!-- ==================== KATEGORIE ==================== -->
-{f"""
+<!-- KATEGORIE -->
+''' + (f'''
 <div class="card">
-    <h2>Przychod wg kategorii <span class="cnt">(90 dni)</span></h2>
+    <div class="card-header">
+        <div class="card-title">Przychod wg kategorii</div>
+        <span class="badge" style="background:var(--accent-soft);color:var(--accent)">90 dni</span>
+    </div>
     {kat_bars}
 </div>
-""" if top_kat else ""}
+''' if top_kat else '') + '''
 
-<!-- ==================== DOSTAWCY ==================== -->
+<!-- DOSTAWCY -->
 <div class="section-title">Dostawcy</div>
 <div class="card">
-    <h2>Rentownosc dostawcow</h2>
+    <div class="card-header"><div class="card-title">Rentownosc dostawcow</div></div>
     <div style="overflow-x:auto">
         <table>
             <tr><th>Dostawca</th><th>Palet</th><th>Inwestycja</th><th>Przychod</th><th>Zysk</th><th>ROI</th><th>Udzial</th></tr>
-            {dostawcy_rows}
+            ''' + dostawcy_rows + '''
         </table>
     </div>
 </div>
 
-<!-- ==================== PALETY ==================== -->
+<!-- PALETY -->
 <div class="section-title">Rentownosc palet</div>
 <div class="card">
-    <h2>Analiza palet <span class="cnt">(ostatnie 20)</span></h2>
+    <div class="card-header">
+        <div class="card-title">Analiza palet</div>
+        <span class="badge" style="background:var(--accent-soft);color:var(--accent)">ostatnie 20</span>
+    </div>
     <div style="overflow-x:auto">
         <table>
             <tr><th>Paleta</th><th>Koszt</th><th>Przychod</th><th>Zysk</th><th>ROI</th><th>Sprzedane</th><th>Tempo</th><th>Status</th></tr>
-            {palety_rows}
+            ''' + palety_rows + '''
         </table>
     </div>
 </div>
 
-<!-- ==================== MAGAZYN ==================== -->
+<!-- MAGAZYN -->
 <div class="section-title">Magazyn</div>
 <div class="card">
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
-        <div style="text-align:center;padding:12px;background:var(--card2);border-radius:10px">
-            <div style="font-size:1.4rem;font-weight:700">{magazyn['produkty'] or 0}</div>
-            <div style="font-size:0.72rem;color:var(--muted)">Produktow</div>
+    <div class="stat-row" style="grid-template-columns:repeat(5,1fr)">
+        <div class="stat-box">
+            <div class="stat-val">''' + f'{magazyn["produkty"] or 0}' + '''</div>
+            <div class="stat-lbl">Produktow</div>
         </div>
-        <div style="text-align:center;padding:12px;background:var(--card2);border-radius:10px">
-            <div style="font-size:1.4rem;font-weight:700">{magazyn['sztuki'] or 0}</div>
-            <div style="font-size:0.72rem;color:var(--muted)">Sztuk</div>
+        <div class="stat-box">
+            <div class="stat-val">''' + f'{magazyn["sztuki"] or 0}' + '''</div>
+            <div class="stat-lbl">Sztuk</div>
         </div>
-        <div style="text-align:center;padding:12px;background:var(--card2);border-radius:10px">
-            <div style="font-size:1.4rem;font-weight:700;color:var(--blue)">{magazyn['wystawione'] or 0}</div>
-            <div style="font-size:0.72rem;color:var(--muted)">Wystawionych</div>
+        <div class="stat-box">
+            <div class="stat-val blue">''' + f'{magazyn["wystawione"] or 0}' + '''</div>
+            <div class="stat-lbl">Wystawionych</div>
         </div>
-        <div style="text-align:center;padding:12px;background:var(--card2);border-radius:10px">
-            <div style="font-size:1.4rem;font-weight:700;color:var(--yellow)">{magazyn['wartosc_potencjalna'] or 0:,.0f} zl</div>
-            <div style="font-size:0.72rem;color:var(--muted)">Wartosc potencjalna</div>
+        <div class="stat-box">
+            <div class="stat-val orange">''' + f'{magazyn["wartosc_potencjalna"] or 0:,.0f}' + ''' zl</div>
+            <div class="stat-lbl">Wartosc potencjalna</div>
         </div>
-        <div style="text-align:center;padding:12px;background:var(--card2);border-radius:10px">
-            <div style="font-size:1.4rem;font-weight:700;color:var(--red)">{magazyn['stojace'] or 0}</div>
-            <div style="font-size:0.72rem;color:var(--muted)">Stojace &gt;30 dni</div>
+        <div class="stat-box">
+            <div class="stat-val red">''' + f'{magazyn["stojace"] or 0}' + '''</div>
+            <div class="stat-lbl">Stojace &gt;30 dni</div>
         </div>
     </div>
 </div>
 
-<div style="text-align:center;padding:24px;color:var(--muted);font-size:0.72rem">
+<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:0.72rem">
     Profit Analyzer v2.0 | Akces Hub | Dane z bazy na zywo
 </div>
 
-<a href="/narzedzia" class="back">&larr; Narzedzia</a>
-
-</body></html>'''
-    return html
+{% endblock %}
+'''
+    return render_template_string(html,
+        version=current_app.config.get('VERSION', ''),
+        brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
+        current_user=session.get('user')
+    )

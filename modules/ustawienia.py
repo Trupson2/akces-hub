@@ -1,7 +1,7 @@
 """
 Modul ustawien i administracji -- routes dla /ustawienia/*, /admin/*, /settings/*, /raport/*
 """
-from flask import Blueprint, request, redirect, session, flash, jsonify, Response, current_app, url_for, render_template
+from flask import Blueprint, request, redirect, session, flash, jsonify, Response, current_app, url_for, render_template, render_template_string
 from modules.database import get_db, get_config, set_config
 import os
 
@@ -28,268 +28,302 @@ def ustawienia():
         'vinted': {'name': 'Vinted', 'desc': 'Integracja z Vinted', 'enabled': is_module_enabled('vinted')},
         'telegram': {'name': 'Telegram', 'desc': 'Bot Telegram', 'enabled': is_module_enabled('telegram')},
     }
-    brand_name = get_config('brand_name', 'AKCES HUB')
+    brand_name_val = get_config('brand_name', 'AKCES HUB')
     brand_color = get_config('brand_color', '#6366f1')
 
     # Sprawdz czy to ngrok URL
     is_ngrok = 'ngrok' in base_url
 
-    from modules.shared import CSS
+    has_logo = os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'static', 'brand_logo.png'))
+    import time as _time
+    logo_bust = int(_time.time())
 
-    html = CSS + '''
-    <div class="container">
-        <div class="header">
-            <h1>⚙️ USTAWIENIA SYSTEMU</h1>
-            <small>Konfiguracja ''' + brand_name + '''</small>
-        </div>
+    ngrok_token = get_config('ngrok_auth_token', '')
+    ngrok_domain = get_config('ngrok_domain', '')
 
-        <form action="/ustawienia/save" method="POST">
-            <div class="card" style="padding:15px">
-                <div style="font-weight:600;margin-bottom:15px">🌐 Adres URL aplikacji (dla QR kodow)</div>
+    USTAWIENIA_TEMPLATE = '''{% extends "base.html" %}
+{% block page_title %}Ustawienia systemu{% endblock %}
+{% block content %}
+<style>
+.settings-section{margin-bottom:20px}
+.settings-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
+.settings-card-accent{position:relative;overflow:hidden}
+.settings-card-accent::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.settings-card-accent.blue::before{background:linear-gradient(90deg,var(--blue),#2563eb)}
+.settings-card-accent.purple::before{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.settings-card-accent.green::before{background:linear-gradient(90deg,var(--green),#16a34a)}
+.settings-card-accent.pink::before{background:linear-gradient(90deg,#ec4899,#a855f7)}
+.settings-card-accent.red::before{background:linear-gradient(90deg,var(--red),#dc2626)}
+.section-header{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.section-header-icon{font-size:1.2rem}
+.section-header-title{font-weight:700;font-size:0.95rem}
+.section-header-badge{font-size:0.7rem;padding:3px 10px;border-radius:10px;color:#fff;font-weight:600}
+.module-toggle{display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg);border-radius:var(--radius-sm);cursor:pointer;margin-bottom:8px;border:1px solid var(--border);transition:all 0.2s}
+.module-toggle:hover{border-color:var(--accent)}
+.module-toggle input[type=checkbox]{width:18px;height:18px;accent-color:var(--green);cursor:pointer}
+.module-name{font-weight:600;font-size:0.88rem}
+.module-desc{font-size:0.73rem;color:var(--text-muted);margin-top:2px}
+.link-card{display:flex;align-items:center;gap:12px;padding:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);text-decoration:none;color:var(--text);transition:all 0.2s;box-shadow:var(--shadow)}
+.link-card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.link-card-icon{font-size:1.5rem}
+.link-card-title{font-weight:700;font-size:0.95rem}
+.link-card-desc{font-size:0.78rem;color:var(--text-muted);margin-top:2px}
+.link-card-arrow{margin-left:auto;font-size:1.1rem;color:var(--accent)}
+.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.hint-box{padding:12px;background:var(--bg);border-radius:var(--radius-sm);font-size:0.78rem;color:var(--text-muted);margin-top:12px;line-height:1.6}
+.hint-box a{color:var(--accent)}
+.hint-box b{color:var(--text-secondary)}
+.danger-btn{width:100%;padding:12px;border-radius:var(--radius-sm);color:#fff;border:none;font-weight:600;cursor:pointer;font-size:0.88rem;transition:all 0.2s}
+.danger-btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-md)}
+</style>
 
-                <div style="padding:12px;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.3);border-radius:8px;margin-bottom:15px">
-                    <div style="font-size:0.85rem;color:#eab308">
-                        <b>⚠️ WAZNE:</b> Zeby QR kody dzialaly z telefonu, wpisz swoj adres ngrok!
-                    </div>
-                </div>
-
-                <input type="text" name="app_base_url" id="baseUrlInput" value="''' + base_url + '''"
-                    placeholder="https://xxx.ngrok-free.dev"
-                    class="form-ctrl" style="padding:12px;font-size:1rem;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;width:100%">
-
-                <div style="margin-top:10px;font-size:0.8rem;color:#64748b">
-                    ''' + ('✅ Ngrok wykryty - QR kody beda dzialac z telefonu!' if is_ngrok else '⚠️ localhost - QR kody nie beda dzialac z telefonu') + '''
-                </div>
-            </div>
-
-            <button type="submit" style="width:100%;padding:14px;background:#3b82f6;border:none;border-radius:10px;color:#fff;font-weight:600;font-size:1rem;cursor:pointer;margin-top:10px">💾 ZAPISZ</button>
-        </form>
-
-        <!-- RAPORTY EMAIL -->
-        <div style="margin-top:20px;padding:15px;background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(37,99,235,0.1));border:1px solid rgba(59,130,246,0.3);border-radius:12px">
-            <div style="font-weight:600;margin-bottom:15px;color:#3b82f6;display:flex;align-items:center;gap:10px">
-                📧 Raporty Email
-                <span style="font-size:0.75rem;padding:3px 8px;background:''' + ('#22c55e' if email_cfg.get('enabled') else '#64748b') + ''';border-radius:10px;color:#fff">
-                    ''' + ('WLACZONE' if email_cfg.get('enabled') else 'WYLACZONE') + '''
-                </span>
-            </div>
-
-            <form action="/ustawienia/email" method="POST">
-                <div style="margin-bottom:12px">
-                    <label style="font-size:0.8rem;color:#64748b">Email (Gmail)</label>
-                    <input type="email" name="email" value="''' + (email_cfg.get('email') or '') + '''"
-                        placeholder="twoj@gmail.com"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:5px">
-                </div>
-
-                <div style="margin-bottom:12px">
-                    <label style="font-size:0.8rem;color:#64748b">Haslo aplikacji (nie zwykle haslo!)</label>
-                    <input type="password" name="password" placeholder="''' + ('••••••••••••••••' if email_cfg.get('password') else 'xxxx xxxx xxxx xxxx') + '''"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:5px">
-                </div>
-
-                <div style="margin-bottom:15px">
-                    <label style="font-size:0.8rem;color:#64748b">Odbiorca (opcjonalnie, domyslnie = nadawca)</label>
-                    <input type="email" name="recipient" value="''' + (email_cfg.get('recipient') or '') + '''"
-                        placeholder="Zostaw puste jesli ten sam email"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:5px">
-                </div>
-
-                <div style="margin-bottom:15px">
-                    <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-                        <input type="checkbox" name="enabled" ''' + ('checked' if email_cfg.get('enabled') else '') + ''' style="width:18px;height:18px">
-                        <span style="color:#fff">Wlacz raporty email</span>
-                    </label>
-                </div>
-
-                <button type="submit" style="width:100%;padding:12px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer">
-                    💾 Zapisz konfiguracje email
-                </button>
-            </form>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px">
-                <a href="/raport/podglad" target="_blank" style="display:block;text-align:center;padding:10px;background:#1e1e2e;border:1px solid #3b82f6;border-radius:8px;color:#3b82f6;text-decoration:none;font-weight:600;font-size:0.85rem">
-                    👁️ Podglad raportu
-                </a>
-                <a href="/raport/wyslij" onclick="return confirm('Wyslac raport tygodniowy na email?')" style="display:block;text-align:center;padding:10px;background:#22c55e;border-radius:8px;color:#fff;text-decoration:none;font-weight:600;font-size:0.85rem">
-                    📤 Wyslij teraz
-                </a>
-            </div>
-
-            <div style="margin-top:12px;padding:10px;background:#1e1e2e;border-radius:8px;font-size:0.8rem;color:#64748b">
-                <b>💡 Jak uzyskac haslo aplikacji Gmail?</b><br>
-                1. Wejdz na <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:#3b82f6">myaccount.google.com/apppasswords</a><br>
-                2. Wybierz "Poczta" i "Windows"<br>
-                3. Skopiuj 16-znakowe haslo (bez spacji)
-            </div>
-        </div>
-
-
-        <!-- Ngrok Token (auto-connect na Pi) -->
-        <div style="margin-top:20px;padding:15px;background:linear-gradient(135deg,rgba(139,92,246,0.1),rgba(88,28,135,0.1));border:1px solid rgba(139,92,246,0.3);border-radius:12px">
-            <div style="font-weight:600;margin-bottom:10px;color:#8b5cf6">🚀 Ngrok - Zdalny dostep</div>
-            <form action="/ustawienia/ngrok-token" method="POST">
-                <div style="margin-bottom:12px">
-                    <label style="font-size:0.8rem;color:#64748b">Auth Token (z <a href="https://dashboard.ngrok.com/get-started/your-authtoken" target="_blank" style="color:#8b5cf6">dashboard.ngrok.com</a>)</label>
-                    <input type="password" name="ngrok_token" value="''' + get_config('ngrok_auth_token', '') + '''"
-                        placeholder="2abc...xyz123"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:5px;font-family:monospace">
-                </div>
-                <div style="margin-bottom:12px">
-                    <label style="font-size:0.8rem;color:#64748b">Stala domena (opcjonalnie, np. akceshub.ngrok.dev)</label>
-                    <input type="text" name="ngrok_domain" value="''' + get_config('ngrok_domain', '') + '''"
-                        placeholder="twoja-domena.ngrok-free.dev"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:5px;font-family:monospace">
-                </div>
-                <button type="submit" style="width:100%;padding:12px;background:#8b5cf6;border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer">
-                    💾 Zapisz i polacz
-                </button>
-            </form>
-            <div style="margin-top:10px;font-size:0.8rem;color:#64748b">
-                Na Raspberry Pi ngrok startuje automatycznie. Token zapisuje sie w bazie danych.
-            </div>
-        </div>
-
-        <!-- KREATOR API KEYS -->
-        <div style="margin-top:20px;padding:15px;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.15));border:1px solid rgba(99,102,241,0.4);border-radius:12px">
-            <a href="/ustawienia/kreator" style="display:flex;align-items:center;gap:12px;text-decoration:none;color:#fff">
-                <div style="font-size:2rem">🔧</div>
-                <div>
-                    <div style="font-weight:700;font-size:1.05rem">Kreator konfiguracji</div>
-                    <div style="font-size:0.8rem;color:#94a3b8">Wszystkie klucze API w jednym miejscu (Allegro, Telegram, Gemini, OLX...)</div>
-                </div>
-                <div style="margin-left:auto;font-size:1.2rem;color:#6366f1">→</div>
-            </a>
-        </div>
-
-        <!-- KIOSK MODE -->
-        <div style="margin-top:20px;padding:15px;background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(59,130,246,0.1));border:1px solid rgba(99,102,241,0.3);border-radius:12px">
-            <div style="font-weight:600;margin-bottom:8px;color:#818cf8">📺 Tryb Kiosk (Raspberry Pi)</div>
-            <div style="font-size:0.8rem;color:#94a3b8;margin-bottom:12px">
-                Optymalizacja UI dla ekranu dotykowego 7"
-            </div>
-            <div style="display:flex;gap:10px">
-                <a href="/?kiosk=1" style="flex:1;text-align:center;padding:14px;background:#6366f1;border-radius:10px;color:#fff;text-decoration:none;font-weight:600;font-size:0.95rem">
-                    ✅ Wlacz Kiosk
-                </a>
-                <a href="/?kiosk=0" style="flex:1;text-align:center;padding:14px;background:var(--bg-tertiary,#1e1e2e);border:1px solid var(--border-color,#2a2a3a);border-radius:10px;color:#fff;text-decoration:none;font-weight:600;font-size:0.95rem">
-                    ❌ Wylacz Kiosk
-                </a>
-            </div>
-        </div>
-
-        <!-- MODULY -->
-        <div style="margin-top:20px;padding:15px;background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(22,163,74,0.1));border:1px solid rgba(34,197,94,0.3);border-radius:12px">
-            <div style="font-weight:600;margin-bottom:15px;color:#22c55e">🧩 Moduly systemu</div>
-            <form action="/ustawienia/modules" method="POST">
-                <div style="display:grid;gap:10px">
-                    ''' + ''.join([f'''
-                    <label style="display:flex;align-items:center;gap:12px;padding:10px;background:#1e1e2e;border-radius:8px;cursor:pointer">
-                        <input type="checkbox" name="module_{key}" {'checked' if mod['enabled'] else ''} style="width:18px;height:18px;accent-color:#22c55e">
-                        <div>
-                            <div style="font-weight:600;font-size:0.9rem">{mod['name']}</div>
-                            <div style="font-size:0.75rem;color:#64748b">{mod['desc']}</div>
-                        </div>
-                    </label>''' for key, mod in modules_cfg.items()]) + '''
-                </div>
-                <button type="submit" style="width:100%;padding:12px;background:#22c55e;border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;margin-top:12px">
-                    💾 Zapisz moduly
-                </button>
-            </form>
-        </div>
-
-        <!-- BRANDING -->
-        <div style="margin-top:20px;padding:15px;background:linear-gradient(135deg,rgba(236,72,153,0.1),rgba(168,85,247,0.1));border:1px solid rgba(236,72,153,0.3);border-radius:12px">
-            <div style="font-weight:600;margin-bottom:15px;color:#ec4899">🎨 Branding</div>
-            <form action="/ustawienia/branding" method="POST" enctype="multipart/form-data">
-                <div style="margin-bottom:12px">
-                    <label style="font-size:0.8rem;color:#64748b">Nazwa systemu</label>
-                    <input type="text" name="brand_name" value="''' + brand_name + '''"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:5px">
-                </div>
-                <div style="margin-bottom:12px">
-                    <label style="font-size:0.8rem;color:#64748b">Logo firmy (PNG/JPG, max 500KB)</label>
-                    <div style="display:flex;gap:10px;align-items:center;margin-top:5px">
-                        ''' + (f'<img src="/static/brand_logo.png?v={int(__import__("time").time())}" style="height:40px;border-radius:6px">' if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'static', 'brand_logo.png')) else '<span style="color:#64748b;font-size:0.85rem">Brak logo</span>') + '''
-                        <input type="file" name="brand_logo" accept="image/png,image/jpeg"
-                            style="flex:1;padding:8px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#e2e8f0;font-size:0.85rem">
-                    </div>
-                </div>
-                <div style="margin-bottom:12px">
-                    <label style="font-size:0.8rem;color:#64748b">Kolor przewodni</label>
-                    <div style="display:flex;gap:10px;align-items:center;margin-top:5px">
-                        <input type="color" name="brand_color" value="''' + brand_color + '''" style="width:50px;height:38px;border:none;background:none;cursor:pointer">
-                        <input type="text" value="''' + brand_color + '''"
-                            style="flex:1;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;font-family:monospace"
-                            onchange="this.previousElementSibling.value=this.value" readonly>
-                    </div>
-                </div>
-                <button type="submit" style="width:100%;padding:12px;background:linear-gradient(135deg,#ec4899,#a855f7);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer">
-                    💾 Zapisz branding
-                </button>
-            </form>
-        </div>
-
-        <!-- UZYTKOWNICY -->
-        <div style="margin-top:20px;display:grid;gap:10px">
-            <a href="/auth/users" style="display:block;text-align:center;padding:14px;background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(139,92,246,0.2));border:1px solid rgba(99,102,241,0.3);border-radius:12px;color:#818cf8;text-decoration:none;font-weight:600;font-size:1rem">
-                👥 Zarzadzanie uzytkownikami
-            </a>
-            <a href="/auth/zmien-haslo" style="display:block;text-align:center;padding:14px;background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(234,179,8,0.1));border:1px solid rgba(245,158,11,0.3);border-radius:12px;color:#f59e0b;text-decoration:none;font-weight:600;font-size:1rem">
-                🔒 Zmien haslo
-            </a>
-        </div>
-
-        <!-- AKTUALIZACJA SYSTEMU — przeniesiona do Narzędzia -->
-        <div style="margin-top:20px;padding:15px;background:rgba(34,197,94,0.05);border:1px solid rgba(34,197,94,0.2);border-radius:12px;text-align:center">
-            <a href="/narzedzia" style="color:#22c55e;font-weight:600;text-decoration:none;font-size:1rem">🔄 Aktualizacja systemu → Narzędzia</a>
-        </div>
-
-        <!-- DANGER ZONE -->
-        <div style="margin-top:20px;padding:15px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:12px">
-            <div style="font-weight:600;margin-bottom:10px;color:#ef4444">⚠️ Strefa niebezpieczna</div>
-            <div style="font-size:0.85rem;color:#94a3b8;margin-bottom:15px">
-                Wyczysc testowe dane. Ta operacja jest nieodwracalna!
-            </div>
-
-            <div style="display:grid;gap:10px">
-                <form method="POST" action="/ustawienia/reset-sprzedaze" onsubmit="return confirm('Na pewno wyczyscic historie sprzedazy?')">
-                    <button type="submit" style="width:100%;padding:12px;background:#ef4444;border-radius:8px;color:#fff;border:none;font-weight:600;cursor:pointer;font-size:0.9rem">
-                        🗑️ Wyczysc historie sprzedazy
-                    </button>
-                </form>
-
-                <form method="POST" action="/ustawienia/reset-magazyn" onsubmit="return confirm('⚠️ UWAGA!\\n\\nTo usunie WSZYSTKIE produkty z magazynu!\\n\\nNa pewno kontynuowac?')">
-                    <button type="submit" style="width:100%;padding:12px;background:#dc2626;border-radius:8px;color:#fff;border:none;font-weight:600;cursor:pointer;font-size:0.9rem">
-                        🗑️ Wyczysc magazyn (produkty)
-                    </button>
-                </form>
-
-                <form method="POST" action="/ustawienia/reset-palety" onsubmit="return confirm('⚠️ UWAGA!\\n\\nTo usunie WSZYSTKIE palety i powiazane produkty!\\n\\nNa pewno kontynuowac?')">
-                    <button type="submit" style="width:100%;padding:12px;background:#b91c1c;border-radius:8px;color:#fff;border:none;font-weight:600;cursor:pointer;font-size:0.9rem">
-                        🗑️ Wyczysc palety
-                    </button>
-                </form>
-
-                <form method="POST" action="/ustawienia/reset-scraped" onsubmit="return confirm('Wyczyscic zescrapowane produkty z Palatomatu?')">
-                    <button type="submit" style="width:100%;padding:12px;background:#991b1b;border-radius:8px;color:#fff;border:none;font-weight:600;cursor:pointer;font-size:0.9rem">
-                        🗑️ Wyczysc scraped (Paletomat)
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <a href="/" style="display:block;text-align:center;color:#64748b;text-decoration:none;margin-top:20px">← Powrot</a>
+<!-- URL aplikacji -->
+<div class="settings-card settings-card-accent blue">
+    <div class="section-header">
+        <span class="section-header-icon">🌐</span>
+        <span class="section-header-title">Adres URL aplikacji (dla QR kodow)</span>
     </div>
-    '''
-    return html
+    <div class="alert alert-warning" style="margin-bottom:14px">
+        <b>WAZNE:</b> Zeby QR kody dzialaly z telefonu, wpisz swoj adres ngrok!
+    </div>
+    <form action="/ustawienia/save" method="POST">
+        <div class="form-group">
+            <label>Adres URL</label>
+            <input type="text" name="app_base_url" id="baseUrlInput" value="{{ base_url }}"
+                placeholder="https://xxx.ngrok-free.dev" class="form-control" style="font-family:monospace">
+        </div>
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px">
+            {% if is_ngrok %}
+                <span style="color:var(--green)">Ngrok wykryty - QR kody beda dzialac z telefonu!</span>
+            {% else %}
+                <span style="color:var(--yellow)">localhost - QR kody nie beda dzialac z telefonu</span>
+            {% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary">Zapisz adres URL</button>
+    </form>
+</div>
+
+<!-- RAPORTY EMAIL -->
+<div class="settings-card settings-card-accent blue">
+    <div class="section-header">
+        <span class="section-header-icon">📧</span>
+        <span class="section-header-title">Raporty Email</span>
+        <span class="section-header-badge" style="background:{{ '#22c55e' if email_cfg.get('enabled') else 'var(--text-muted)' }}">
+            {{ 'WLACZONE' if email_cfg.get('enabled') else 'WYLACZONE' }}
+        </span>
+    </div>
+    <form action="/ustawienia/email" method="POST">
+        <div class="form-group">
+            <label>Email (Gmail)</label>
+            <input type="email" name="email" value="{{ email_cfg.get('email') or '' }}"
+                placeholder="twoj@gmail.com" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>Haslo aplikacji (nie zwykle haslo!)</label>
+            <input type="password" name="password"
+                placeholder="{{ '••••••••••••••••' if email_cfg.get('password') else 'xxxx xxxx xxxx xxxx' }}"
+                class="form-control">
+        </div>
+        <div class="form-group">
+            <label>Odbiorca (opcjonalnie, domyslnie = nadawca)</label>
+            <input type="email" name="recipient" value="{{ email_cfg.get('recipient') or '' }}"
+                placeholder="Zostaw puste jesli ten sam email" class="form-control">
+        </div>
+        <div class="toggle-row" style="margin-bottom:14px">
+            <span style="font-size:0.88rem;font-weight:500">Wlacz raporty email</span>
+            <label style="cursor:pointer">
+                <input type="checkbox" name="enabled" {{ 'checked' if email_cfg.get('enabled') else '' }} style="width:18px;height:18px">
+            </label>
+        </div>
+        <button type="submit" class="btn btn-primary">Zapisz konfiguracje email</button>
+    </form>
+    <div class="btn-grid">
+        <a href="/raport/podglad" target="_blank" class="btn btn-secondary btn-sm" style="text-align:center;display:block;width:100%">
+            Podglad raportu
+        </a>
+        <a href="/raport/wyslij" onclick="return confirm('Wyslac raport tygodniowy na email?')" class="btn btn-success btn-sm" style="text-align:center;display:block;width:100%">
+            Wyslij teraz
+        </a>
+    </div>
+    <div class="hint-box">
+        <b>Jak uzyskac haslo aplikacji Gmail?</b><br>
+        1. Wejdz na <a href="https://myaccount.google.com/apppasswords" target="_blank">myaccount.google.com/apppasswords</a><br>
+        2. Wybierz "Poczta" i "Windows"<br>
+        3. Skopiuj 16-znakowe haslo (bez spacji)
+    </div>
+</div>
+
+<!-- NGROK -->
+<div class="settings-card settings-card-accent purple">
+    <div class="section-header">
+        <span class="section-header-icon">🚀</span>
+        <span class="section-header-title">Ngrok - Zdalny dostep</span>
+    </div>
+    <form action="/ustawienia/ngrok-token" method="POST">
+        <div class="form-group">
+            <label>Auth Token (z <a href="https://dashboard.ngrok.com/get-started/your-authtoken" target="_blank" style="color:var(--accent2)">dashboard.ngrok.com</a>)</label>
+            <input type="password" name="ngrok_token" value="{{ ngrok_token }}"
+                placeholder="2abc...xyz123" class="form-control" style="font-family:monospace">
+        </div>
+        <div class="form-group">
+            <label>Stala domena (opcjonalnie, np. akceshub.ngrok.dev)</label>
+            <input type="text" name="ngrok_domain" value="{{ ngrok_domain }}"
+                placeholder="twoja-domena.ngrok-free.dev" class="form-control" style="font-family:monospace">
+        </div>
+        <button type="submit" class="btn btn-purple">Zapisz i polacz</button>
+    </form>
+    <div style="margin-top:10px;font-size:0.78rem;color:var(--text-muted)">
+        Na Raspberry Pi ngrok startuje automatycznie. Token zapisuje sie w bazie danych.
+    </div>
+</div>
+
+<!-- KREATOR API KEYS -->
+<a href="/ustawienia/kreator" class="link-card" style="margin-bottom:16px">
+    <span class="link-card-icon">🔧</span>
+    <div>
+        <div class="link-card-title">Kreator konfiguracji</div>
+        <div class="link-card-desc">Wszystkie klucze API w jednym miejscu (Allegro, Telegram, Gemini, OLX...)</div>
+    </div>
+    <span class="link-card-arrow">→</span>
+</a>
+
+<!-- KIOSK MODE -->
+<div class="settings-card settings-card-accent purple">
+    <div class="section-header">
+        <span class="section-header-icon">📺</span>
+        <span class="section-header-title">Tryb Kiosk (Raspberry Pi)</span>
+    </div>
+    <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px">
+        Optymalizacja UI dla ekranu dotykowego 7"
+    </div>
+    <div class="btn-grid">
+        <a href="/?kiosk=1" class="btn btn-primary btn-sm" style="text-align:center;display:block;width:100%">Wlacz Kiosk</a>
+        <a href="/?kiosk=0" class="btn btn-secondary btn-sm" style="text-align:center;display:block;width:100%">Wylacz Kiosk</a>
+    </div>
+</div>
+
+<!-- MODULY -->
+<div class="settings-card settings-card-accent green">
+    <div class="section-header">
+        <span class="section-header-icon">🧩</span>
+        <span class="section-header-title">Moduly systemu</span>
+    </div>
+    <form action="/ustawienia/modules" method="POST">
+        {% for key, mod in modules_cfg.items() %}
+        <label class="module-toggle">
+            <input type="checkbox" name="module_{{ key }}" {{ 'checked' if mod.enabled else '' }}>
+            <div>
+                <div class="module-name">{{ mod.name }}</div>
+                <div class="module-desc">{{ mod.desc }}</div>
+            </div>
+        </label>
+        {% endfor %}
+        <button type="submit" class="btn btn-success" style="margin-top:8px">Zapisz moduly</button>
+    </form>
+</div>
+
+<!-- BRANDING -->
+<div class="settings-card settings-card-accent pink">
+    <div class="section-header">
+        <span class="section-header-icon">🎨</span>
+        <span class="section-header-title">Branding</span>
+    </div>
+    <form action="/ustawienia/branding" method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label>Nazwa systemu</label>
+            <input type="text" name="brand_name" value="{{ brand_name_val }}" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>Logo firmy (PNG/JPG, max 500KB)</label>
+            <div style="display:flex;gap:10px;align-items:center;margin-top:5px">
+                {% if has_logo %}
+                    <img src="/static/brand_logo.png?v={{ logo_bust }}" style="height:40px;border-radius:6px">
+                {% else %}
+                    <span style="color:var(--text-muted);font-size:0.85rem">Brak logo</span>
+                {% endif %}
+                <input type="file" name="brand_logo" accept="image/png,image/jpeg" class="form-control" style="flex:1">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Kolor przewodni</label>
+            <div style="display:flex;gap:10px;align-items:center;margin-top:5px">
+                <input type="color" name="brand_color" value="{{ brand_color }}" style="width:50px;height:38px;border:none;background:none;cursor:pointer">
+                <input type="text" value="{{ brand_color }}" class="form-control" style="flex:1;font-family:monospace"
+                    onchange="this.previousElementSibling.value=this.value" readonly>
+            </div>
+        </div>
+        <button type="submit" class="btn" style="background:linear-gradient(135deg,#ec4899,#a855f7)">Zapisz branding</button>
+    </form>
+</div>
+
+<!-- UZYTKOWNICY -->
+<div style="display:grid;gap:10px;margin-bottom:16px">
+    <a href="/auth/users" class="link-card">
+        <span class="link-card-icon">👥</span>
+        <div class="link-card-title">Zarzadzanie uzytkownikami</div>
+        <span class="link-card-arrow">→</span>
+    </a>
+    <a href="/auth/zmien-haslo" class="link-card">
+        <span class="link-card-icon">🔒</span>
+        <div class="link-card-title">Zmien haslo</div>
+        <span class="link-card-arrow">→</span>
+    </a>
+</div>
+
+<!-- AKTUALIZACJA SYSTEMU -->
+<a href="/narzedzia" class="link-card" style="margin-bottom:16px">
+    <span class="link-card-icon">🔄</span>
+    <div class="link-card-title">Aktualizacja systemu → Narzedzia</div>
+    <span class="link-card-arrow">→</span>
+</a>
+
+<!-- DANGER ZONE -->
+<div class="settings-card settings-card-accent red">
+    <div class="section-header">
+        <span class="section-header-icon">⚠️</span>
+        <span class="section-header-title" style="color:var(--red)">Strefa niebezpieczna</span>
+    </div>
+    <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px">
+        Wyczysc testowe dane. Ta operacja jest nieodwracalna!
+    </div>
+    <div style="display:grid;gap:10px">
+        <form method="POST" action="/ustawienia/reset-sprzedaze" onsubmit="return confirm('Na pewno wyczyscic historie sprzedazy?')">
+            <button type="submit" class="danger-btn" style="background:var(--red)">Wyczysc historie sprzedazy</button>
+        </form>
+        <form method="POST" action="/ustawienia/reset-magazyn" onsubmit="return confirm('UWAGA!\\n\\nTo usunie WSZYSTKIE produkty z magazynu!\\n\\nNa pewno kontynuowac?')">
+            <button type="submit" class="danger-btn" style="background:#dc2626">Wyczysc magazyn (produkty)</button>
+        </form>
+        <form method="POST" action="/ustawienia/reset-palety" onsubmit="return confirm('UWAGA!\\n\\nTo usunie WSZYSTKIE palety i powiazane produkty!\\n\\nNa pewno kontynuowac?')">
+            <button type="submit" class="danger-btn" style="background:#b91c1c">Wyczysc palety</button>
+        </form>
+        <form method="POST" action="/ustawienia/reset-scraped" onsubmit="return confirm('Wyczyscic zescrapowane produkty z Palatomatu?')">
+            <button type="submit" class="danger-btn" style="background:#991b1b">Wyczysc scraped (Paletomat)</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+'''
+    return render_template_string(USTAWIENIA_TEMPLATE,
+        version=current_app.config.get('VERSION', ''),
+        brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
+        current_user=session.get('user'),
+        base_url=base_url,
+        email_cfg=email_cfg,
+        is_ngrok=is_ngrok,
+        modules_cfg=modules_cfg,
+        brand_name_val=brand_name_val,
+        brand_color=brand_color,
+        has_logo=has_logo,
+        logo_bust=logo_bust,
+        ngrok_token=ngrok_token,
+        ngrok_domain=ngrok_domain,
+    )
 
 
 @ustawienia_bp.route('/ustawienia/kreator')
 def ustawienia_kreator():
     """Kreator konfiguracji - wszystkie klucze API w jednym miejscu"""
     from modules.database import get_config
-    from modules.shared import CSS
 
     # Pobierz wszystkie klucze
     cfg = {
@@ -316,302 +350,213 @@ def ustawienia_kreator():
     def status_dot(key):
         return '🟢' if cfg.get(key) else '🔴'
 
-    def mask(val):
-        if not val:
-            return ''
-        if len(val) <= 8:
-            return '••••••••'
-        return val[:4] + '•' * (len(val) - 8) + val[-4:]
-
     saved_count = request.args.get('saved', '')
     is_welcome = request.args.get('welcome', '')
-    saved_msg = ''
-    if saved_count:
-        saved_msg = f'<div style="padding:12px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);border-radius:10px;margin-bottom:15px;color:#22c55e;font-weight:600;text-align:center">✅ Zapisano {saved_count} kluczy API!</div>'
-    elif is_welcome:
-        saved_msg = '''<div style="padding:15px;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(236,72,153,0.1));border:1px solid rgba(99,102,241,0.4);border-radius:12px;margin-bottom:15px;text-align:center">
-            <div style="font-size:1.5rem;margin-bottom:8px">👋</div>
-            <div style="font-weight:700;font-size:1.1rem;color:#fff;margin-bottom:5px">Witaj w systemie!</div>
-            <div style="font-size:0.85rem;color:#94a3b8">Skonfiguruj klucze API zeby odblokowac pelnie mozliwosci.<br>Mozesz to zrobic teraz lub wrocic pozniej z Ustawien.</div>
-        </div>'''
 
-    html = CSS + f'''
-    <div class="container" style="max-width:700px;margin:auto;padding-bottom:80px">
-        <div class="header">
-            <h1>🔧 KREATOR KONFIGURACJI</h1>
-            <small>Wszystkie klucze API w jednym miejscu</small>
-        </div>
+    # Build status overview data
+    integrations = [
+        ('allegro_client_id', 'Allegro'),
+        ('telegram_bot_token', 'Telegram'),
+        ('gemini_api_key', 'Gemini AI'),
+        ('perplexity_api_key', 'Perplexity AI'),
+        ('ngrok_auth_token', 'Ngrok'),
+        ('olx_client_id', 'OLX'),
+        ('rembg_vps_url', 'Rembg VPS'),
+    ]
+    status_items = [(status_dot(k), name) for k, name in integrations]
 
-        {saved_msg}
+    # Build sections config for template
+    sections = [
+        {
+            'key': 'allegro_client_id', 'icon': '🛒', 'title': 'Allegro API',
+            'hint': 'Zarejestruj aplikacje na <a href="https://apps.developer.allegro.pl" target="_blank" style="color:var(--accent)">apps.developer.allegro.pl</a>',
+            'fields': [
+                {'name': 'allegro_client_id', 'label': 'Client ID', 'type': 'text', 'placeholder': 'Twoj Client ID z Allegro'},
+                {'name': 'allegro_client_secret', 'label': 'Client Secret', 'type': 'password', 'placeholder': 'Twoj Client Secret'},
+                {'name': 'allegro_redirect_uri', 'label': 'Redirect URI', 'type': 'text', 'placeholder': 'https://twoja-domena.ngrok-free.dev/allegro/callback'},
+            ]
+        },
+        {
+            'key': 'telegram_bot_token', 'icon': '💬', 'title': 'Telegram Bot',
+            'hint': 'Stworz bota przez <a href="https://t.me/BotFather" target="_blank" style="color:var(--accent)">@BotFather</a> na Telegramie',
+            'fields': [
+                {'name': 'telegram_bot_token', 'label': 'Bot Token', 'type': 'password', 'placeholder': '123456789:ABCdefGHIjklMNOpqrsTUVwxyz'},
+                {'name': 'telegram_chat_id', 'label': 'Chat ID (powiadomienia o sprzedazach)', 'type': 'text', 'placeholder': '-1001234567890'},
+                {'name': 'support_chat_id', 'label': 'Support Chat ID (Twoj prywatny, opcjonalnie)', 'type': 'text', 'placeholder': '123456789'},
+            ]
+        },
+        {
+            'key': 'gemini_api_key', 'icon': '✨', 'title': 'Google Gemini AI',
+            'hint': 'Pobierz klucz z <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/apikey</a> (darmowy!)',
+            'fields': [
+                {'name': 'gemini_api_key', 'label': 'API Key', 'type': 'password', 'placeholder': 'AIzaSy...'},
+            ]
+        },
+        {
+            'key': 'perplexity_api_key', 'icon': '🔍', 'title': 'Perplexity AI',
+            'hint': 'Klucz z <a href="https://www.perplexity.ai/settings/api" target="_blank" style="color:var(--accent)">perplexity.ai/settings/api</a> (do analizy okazji)',
+            'fields': [
+                {'name': 'perplexity_api_key', 'label': 'API Key', 'type': 'password', 'placeholder': 'pplx-...'},
+            ]
+        },
+        {
+            'key': 'ngrok_auth_token', 'icon': '🚀', 'title': 'Ngrok (zdalny dostep)',
+            'hint': 'Token z <a href="https://dashboard.ngrok.com/get-started/your-authtoken" target="_blank" style="color:var(--accent)">dashboard.ngrok.com</a>',
+            'fields': [
+                {'name': 'ngrok_auth_token', 'label': 'Auth Token', 'type': 'password', 'placeholder': '2abc...xyz'},
+                {'name': 'ngrok_domain', 'label': 'Stala domena (opcjonalnie)', 'type': 'text', 'placeholder': 'twoja-firma.ngrok-free.dev'},
+            ]
+        },
+        {
+            'key': 'support_email', 'icon': '📞', 'title': 'Dane kontaktowe (support)',
+            'hint': 'Wyswietlane klientom na stronie zgloszenia problemu',
+            'open_condition': 'support_nodata',
+            'fields': [
+                {'name': 'support_email', 'label': 'Email kontaktowy', 'type': 'email', 'placeholder': 'support@twojafirma.pl', 'mono': False},
+                {'name': 'support_phone', 'label': 'Telefon', 'type': 'text', 'placeholder': '+48 123 456 789', 'mono': False},
+                {'name': 'support_info', 'label': 'Dodatkowa informacja (opcjonalnie)', 'type': 'text', 'placeholder': 'np. Odpowiadamy pon-pt 9-17', 'mono': False},
+            ]
+        },
+        {
+            'key': 'olx_client_id', 'icon': '📦', 'title': 'OLX API (opcjonalnie)',
+            'hint': 'Zarejestruj app na <a href="https://developer.olx.pl" target="_blank" style="color:var(--accent)">developer.olx.pl</a>',
+            'always_closed': True,
+            'fields': [
+                {'name': 'olx_client_id', 'label': 'Client ID', 'type': 'text', 'placeholder': 'OLX Client ID'},
+                {'name': 'olx_client_secret', 'label': 'Client Secret', 'type': 'password', 'placeholder': 'OLX Client Secret'},
+                {'name': 'olx_redirect_uri', 'label': 'Redirect URI', 'type': 'text', 'placeholder': 'https://twoja-domena.ngrok-free.dev/olx/callback'},
+            ]
+        },
+        {
+            'key': 'rembg_vps_url', 'icon': '🖼', 'title': 'Rembg VPS (usuwanie tla)',
+            'hint': 'Serwer VPS z rembg do usuwania tel ze zdjec (nie obciaza Pi). Postaw <code>rembg_service.py</code> na VPS i wpisz adres.',
+            'has_test': True,
+            'fields': [
+                {'name': 'rembg_vps_url', 'label': 'URL serwera', 'type': 'text', 'placeholder': 'http://123.45.67.89:5050'},
+                {'name': 'rembg_vps_key', 'label': 'Klucz API (opcjonalny)', 'type': 'password', 'placeholder': 'Tajny klucz (REMBG_API_KEY na VPS)'},
+            ]
+        },
+    ]
 
-        <div style="padding:12px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:10px;margin-bottom:20px;font-size:0.85rem;color:#93c5fd">
-            💡 Wypelnij klucze API dla serwisow z ktorych korzystasz. Kazdy serwis mozna skonfigurowac niezaleznie.
-        </div>
+    # Determine open state
+    support_nodata = not cfg['support_email'] and not cfg['support_phone']
 
-        <!-- STATUS OVERVIEW -->
-        <div class="card" style="padding:15px;margin-bottom:20px">
-            <div style="font-weight:700;margin-bottom:12px;font-size:1.1rem">📊 Status integracji</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.9rem">
-                <div>{status_dot('allegro_client_id')} Allegro</div>
-                <div>{status_dot('telegram_bot_token')} Telegram</div>
-                <div>{status_dot('gemini_api_key')} Gemini AI</div>
-                <div>{status_dot('perplexity_api_key')} Perplexity AI</div>
-                <div>{status_dot('ngrok_auth_token')} Ngrok</div>
-                <div>{status_dot('olx_client_id')} OLX</div>
-                <div>{status_dot('rembg_vps_url')} Rembg VPS</div>
-            </div>
-        </div>
+    KREATOR_TEMPLATE = '''{% extends "base.html" %}
+{% block page_title %}Kreator konfiguracji{% endblock %}
+{% block content %}
+<style>
+.kreator-wrap{max-width:700px}
+.kreator-detail{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;box-shadow:var(--shadow);overflow:hidden}
+.kreator-detail summary{padding:16px;cursor:pointer;font-weight:700;font-size:0.95rem;list-style:none;display:flex;align-items:center;gap:10px;transition:background 0.2s}
+.kreator-detail summary:hover{background:var(--accent-soft)}
+.kreator-detail summary .chevron{margin-left:auto;font-size:0.7rem;color:var(--text-muted);transition:transform 0.2s}
+.kreator-detail[open] summary .chevron{transform:rotate(180deg)}
+.kreator-detail-body{padding:0 16px 16px}
+.kreator-detail-body .form-group{margin-bottom:10px}
+.kreator-detail-body .form-control{font-family:monospace;font-size:0.85rem}
+.kreator-hint{font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;line-height:1.5}
+.kreator-hint a{color:var(--accent)}
+.status-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.88rem}
+.status-grid-item{display:flex;align-items:center;gap:6px;padding:6px 0}
+</style>
 
-        <form method="POST" action="/ustawienia/kreator/save">
+<div class="kreator-wrap">
 
-        <!-- ALLEGRO -->
-        <details class="card" style="padding:0;margin-bottom:12px" {"open" if not cfg['allegro_client_id'] else ""}>
-            <summary style="padding:15px;cursor:pointer;font-weight:700;font-size:1rem;list-style:none;display:flex;align-items:center;gap:10px">
-                {status_dot('allegro_client_id')} 🛒 Allegro API
-                <span style="margin-left:auto;font-size:0.75rem;color:#64748b">▼</span>
-            </summary>
-            <div style="padding:0 15px 15px">
-                <div style="font-size:0.8rem;color:#64748b;margin-bottom:12px">
-                    Zarejestruj aplikacje na <a href="https://apps.developer.allegro.pl" target="_blank" style="color:#6366f1">apps.developer.allegro.pl</a>
-                </div>
-                <div style="margin-bottom:10px">
-                    <label style="font-size:0.8rem;color:#94a3b8">Client ID</label>
-                    <input type="text" name="allegro_client_id" value="{cfg['allegro_client_id']}"
-                        placeholder="Twoj Client ID z Allegro"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
-                </div>
-                <div style="margin-bottom:10px">
-                    <label style="font-size:0.8rem;color:#94a3b8">Client Secret</label>
-                    <input type="password" name="allegro_client_secret" value="{cfg['allegro_client_secret']}"
-                        placeholder="Twoj Client Secret"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
-                </div>
-                <div>
-                    <label style="font-size:0.8rem;color:#94a3b8">Redirect URI</label>
-                    <input type="text" name="allegro_redirect_uri" value="{cfg['allegro_redirect_uri']}"
-                        placeholder="https://twoja-domena.ngrok-free.dev/allegro/callback"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
-                </div>
-            </div>
-        </details>
+{% if saved_count %}
+<div class="alert alert-success" style="text-align:center;font-weight:600">Zapisano {{ saved_count }} kluczy API!</div>
+{% elif is_welcome %}
+<div class="card" style="text-align:center;padding:24px;background:var(--accent-soft);border-color:rgba(99,102,241,0.3)">
+    <div style="font-size:1.5rem;margin-bottom:8px">👋</div>
+    <div style="font-weight:700;font-size:1.1rem;margin-bottom:5px">Witaj w systemie!</div>
+    <div style="font-size:0.85rem;color:var(--text-muted)">Skonfiguruj klucze API zeby odblokowac pelnie mozliwosci.<br>Mozesz to zrobic teraz lub wrocic pozniej z Ustawien.</div>
+</div>
+{% endif %}
 
-        <!-- TELEGRAM -->
-        <details class="card" style="padding:0;margin-bottom:12px" {"open" if not cfg['telegram_bot_token'] else ""}>
-            <summary style="padding:15px;cursor:pointer;font-weight:700;font-size:1rem;list-style:none;display:flex;align-items:center;gap:10px">
-                {status_dot('telegram_bot_token')} 💬 Telegram Bot
-                <span style="margin-left:auto;font-size:0.75rem;color:#64748b">▼</span>
-            </summary>
-            <div style="padding:0 15px 15px">
-                <div style="font-size:0.8rem;color:#64748b;margin-bottom:12px">
-                    Stworz bota przez <a href="https://t.me/BotFather" target="_blank" style="color:#6366f1">@BotFather</a> na Telegramie
-                </div>
-                <div style="margin-bottom:10px">
-                    <label style="font-size:0.8rem;color:#94a3b8">Bot Token</label>
-                    <input type="password" name="telegram_bot_token" value="{cfg['telegram_bot_token']}"
-                        placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
-                </div>
-                <div style="margin-bottom:10px">
-                    <label style="font-size:0.8rem;color:#94a3b8">Chat ID (powiadomienia o sprzedazach)</label>
-                    <input type="text" name="telegram_chat_id" value="{cfg['telegram_chat_id']}"
-                        placeholder="-1001234567890"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
-                </div>
-                <div>
-                    <label style="font-size:0.8rem;color:#94a3b8">Support Chat ID (Twoj prywatny, opcjonalnie)</label>
-                    <input type="text" name="support_chat_id" value="{cfg['support_chat_id']}"
-                        placeholder="123456789"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
-                </div>
-            </div>
-        </details>
+<div class="alert" style="background:var(--blue-soft);border:1px solid rgba(59,130,246,0.2);color:var(--blue);margin-bottom:20px">
+    Wypelnij klucze API dla serwisow z ktorych korzystasz. Kazdy serwis mozna skonfigurowac niezaleznie.
+</div>
 
-        <!-- GEMINI -->
-        <details class="card" style="padding:0;margin-bottom:12px" {"open" if not cfg['gemini_api_key'] else ""}>
-            <summary style="padding:15px;cursor:pointer;font-weight:700;font-size:1rem;list-style:none;display:flex;align-items:center;gap:10px">
-                {status_dot('gemini_api_key')} ✨ Google Gemini AI
-                <span style="margin-left:auto;font-size:0.75rem;color:#64748b">▼</span>
-            </summary>
-            <div style="padding:0 15px 15px">
-                <div style="font-size:0.8rem;color:#64748b;margin-bottom:12px">
-                    Pobierz klucz z <a href="https://aistudio.google.com/apikey" target="_blank" style="color:#6366f1">aistudio.google.com/apikey</a> (darmowy!)
-                </div>
-                <div>
-                    <label style="font-size:0.8rem;color:#94a3b8">API Key</label>
-                    <input type="password" name="gemini_api_key" value="{cfg['gemini_api_key']}"
-                        placeholder="AIzaSy..."
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
-                </div>
-            </div>
-        </details>
-
-        <!-- PERPLEXITY -->
-        <details class="card" style="padding:0;margin-bottom:12px" {"open" if not cfg['perplexity_api_key'] else ""}>
-            <summary style="padding:15px;cursor:pointer;font-weight:700;font-size:1rem;list-style:none;display:flex;align-items:center;gap:10px">
-                {status_dot('perplexity_api_key')} 🔍 Perplexity AI
-                <span style="margin-left:auto;font-size:0.75rem;color:#64748b">▼</span>
-            </summary>
-            <div style="padding:0 15px 15px">
-                <div style="font-size:0.8rem;color:#64748b;margin-bottom:12px">
-                    Klucz z <a href="https://www.perplexity.ai/settings/api" target="_blank" style="color:#6366f1">perplexity.ai/settings/api</a> (do analizy okazji)
-                </div>
-                <div>
-                    <label style="font-size:0.8rem;color:#94a3b8">API Key</label>
-                    <input type="password" name="perplexity_api_key" value="{cfg['perplexity_api_key']}"
-                        placeholder="pplx-..."
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
-                </div>
-            </div>
-        </details>
-
-        <!-- NGROK -->
-        <details class="card" style="padding:0;margin-bottom:12px" {"open" if not cfg['ngrok_auth_token'] else ""}>
-            <summary style="padding:15px;cursor:pointer;font-weight:700;font-size:1rem;list-style:none;display:flex;align-items:center;gap:10px">
-                {status_dot('ngrok_auth_token')} 🚀 Ngrok (zdalny dostep)
-                <span style="margin-left:auto;font-size:0.75rem;color:#64748b">▼</span>
-            </summary>
-            <div style="padding:0 15px 15px">
-                <div style="font-size:0.8rem;color:#64748b;margin-bottom:12px">
-                    Token z <a href="https://dashboard.ngrok.com/get-started/your-authtoken" target="_blank" style="color:#6366f1">dashboard.ngrok.com</a>
-                </div>
-                <div style="margin-bottom:10px">
-                    <label style="font-size:0.8rem;color:#94a3b8">Auth Token</label>
-                    <input type="password" name="ngrok_auth_token" value="{cfg['ngrok_auth_token']}"
-                        placeholder="2abc...xyz"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
-                </div>
-                <div>
-                    <label style="font-size:0.8rem;color:#94a3b8">Stala domena (opcjonalnie)</label>
-                    <input type="text" name="ngrok_domain" value="{cfg['ngrok_domain']}"
-                        placeholder="twoja-firma.ngrok-free.dev"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
-                </div>
-            </div>
-        </details>
-
-        <!-- DANE KONTAKTOWE SUPPORTU -->
-        <details class="card" style="padding:0;margin-bottom:12px" {"open" if not cfg['support_email'] and not cfg['support_phone'] else ""}>
-            <summary style="padding:15px;cursor:pointer;font-weight:700;font-size:1rem;list-style:none;display:flex;align-items:center;gap:10px">
-                {status_dot('support_email')} 📞 Dane kontaktowe (support)
-                <span style="margin-left:auto;font-size:0.75rem;color:#64748b">▼</span>
-            </summary>
-            <div style="padding:0 15px 15px">
-                <div style="font-size:0.8rem;color:#64748b;margin-bottom:12px">
-                    Wyswietlane klientom na stronie zgloszenia problemu
-                </div>
-                <div style="margin-bottom:10px">
-                    <label style="font-size:0.8rem;color:#94a3b8">Email kontaktowy</label>
-                    <input type="email" name="support_email" value="{cfg['support_email']}"
-                        placeholder="support@twojafirma.pl"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-size:0.85rem">
-                </div>
-                <div style="margin-bottom:10px">
-                    <label style="font-size:0.8rem;color:#94a3b8">Telefon</label>
-                    <input type="text" name="support_phone" value="{cfg['support_phone']}"
-                        placeholder="+48 123 456 789"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-size:0.85rem">
-                </div>
-                <div>
-                    <label style="font-size:0.8rem;color:#94a3b8">Dodatkowa informacja (opcjonalnie)</label>
-                    <input type="text" name="support_info" value="{cfg['support_info']}"
-                        placeholder="np. Odpowiadamy pon-pt 9-17"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-size:0.85rem">
-                </div>
-            </div>
-        </details>
-
-        <!-- OLX -->
-        <details class="card" style="padding:0;margin-bottom:12px">
-            <summary style="padding:15px;cursor:pointer;font-weight:700;font-size:1rem;list-style:none;display:flex;align-items:center;gap:10px">
-                {status_dot('olx_client_id')} 📦 OLX API (opcjonalnie)
-                <span style="margin-left:auto;font-size:0.75rem;color:#64748b">▼</span>
-            </summary>
-            <div style="padding:0 15px 15px">
-                <div style="font-size:0.8rem;color:#64748b;margin-bottom:12px">
-                    Zarejestruj app na <a href="https://developer.olx.pl" target="_blank" style="color:#6366f1">developer.olx.pl</a>
-                </div>
-                <div style="margin-bottom:10px">
-                    <label style="font-size:0.8rem;color:#94a3b8">Client ID</label>
-                    <input type="text" name="olx_client_id" value="{cfg['olx_client_id']}"
-                        placeholder="OLX Client ID"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
-                </div>
-                <div style="margin-bottom:10px">
-                    <label style="font-size:0.8rem;color:#94a3b8">Client Secret</label>
-                    <input type="password" name="olx_client_secret" value="{cfg['olx_client_secret']}"
-                        placeholder="OLX Client Secret"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
-                </div>
-                <div>
-                    <label style="font-size:0.8rem;color:#94a3b8">Redirect URI</label>
-                    <input type="text" name="olx_redirect_uri" value="{cfg['olx_redirect_uri']}"
-                        placeholder="https://twoja-domena.ngrok-free.dev/olx/callback"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
-                </div>
-            </div>
-        </details>
-
-        <!-- REMBG VPS -->
-        <details class="card" style="padding:0;margin-bottom:12px" {"open" if not cfg['rembg_vps_url'] else ""}>
-            <summary style="padding:15px;cursor:pointer;font-weight:700;font-size:1rem;list-style:none;display:flex;align-items:center;gap:10px">
-                {status_dot('rembg_vps_url')} 🖼 Rembg VPS (usuwanie tla)
-                <span style="margin-left:auto;font-size:0.75rem;color:#64748b">▼</span>
-            </summary>
-            <div style="padding:0 15px 15px">
-                <div style="font-size:0.8rem;color:#64748b;margin-bottom:12px">
-                    Serwer VPS z rembg do usuwania tel ze zdjec (nie obciaza Pi).
-                    Postaw <code>rembg_service.py</code> na VPS i wpisz adres.
-                </div>
-                <div style="margin-bottom:10px">
-                    <label style="font-size:0.8rem;color:#94a3b8">URL serwera</label>
-                    <input type="text" name="rembg_vps_url" value="{cfg['rembg_vps_url']}"
-                        placeholder="http://123.45.67.89:5050"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
-                </div>
-                <div style="margin-bottom:10px">
-                    <label style="font-size:0.8rem;color:#94a3b8">Klucz API (opcjonalny)</label>
-                    <input type="password" name="rembg_vps_key" value="{cfg['rembg_vps_key']}"
-                        placeholder="Tajny klucz (REMBG_API_KEY na VPS)"
-                        style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:8px;color:#fff;margin-top:4px;font-family:monospace;font-size:0.85rem">
-                </div>
-                <div id="vpsTestResult" style="font-size:0.8rem;margin-top:8px"></div>
-                <button type="button" onclick="testVps()" style="padding:8px 16px;background:#1e3a5f;border:1px solid #2563eb;border-radius:8px;color:#60a5fa;cursor:pointer;font-size:0.85rem;margin-top:4px">
-                    🔍 Test polaczenia
-                </button>
-            </div>
-        </details>
-        <script>
-        function testVps() {{
-            var url = document.querySelector('input[name=rembg_vps_url]').value.trim();
-            var res = document.getElementById('vpsTestResult');
-            if(!url) {{ res.innerHTML='<span style="color:#f87171">Wpisz URL!</span>'; return; }}
-            res.innerHTML='<span style="color:#fbbf24">⏳ Testowanie...</span>';
-            fetch(url.replace(/\\/$/, '') + '/health')
-                .then(r => r.json())
-                .then(d => {{
-                    if(d.status === 'ok' && d.rembg) {{
-                        res.innerHTML='<span style="color:#4ade80">✅ Polaczenie OK! Rembg dziala.</span>';
-                    }} else {{
-                        res.innerHTML='<span style="color:#f87171">⚠ Serwer odpowiada ale rembg=' + d.rembg + '</span>';
-                    }}
-                }})
-                .catch(e => {{
-                    res.innerHTML='<span style="color:#f87171">❌ Brak polaczenia: ' + e.message + '</span>';
-                }});
-        }}
-        </script>
-
-        <!-- SAVE ALL -->
-        <button type="submit" style="width:100%;padding:16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:1.1rem;cursor:pointer;margin-top:10px;box-shadow:0 4px 15px rgba(99,102,241,0.3)">
-            💾 ZAPISZ WSZYSTKO
-        </button>
-
-        </form>
-
-        <a href="/ustawienia" style="display:block;text-align:center;color:#64748b;text-decoration:none;margin-top:20px">← Powrot do ustawien</a>
+<!-- STATUS OVERVIEW -->
+<div class="card" style="margin-bottom:20px">
+    <div class="card-header">
+        <div class="card-title">Status integracji</div>
     </div>
-    '''
-    return html
+    <div class="status-grid">
+        {% for dot, name in status_items %}
+        <div class="status-grid-item">{{ dot }} {{ name }}</div>
+        {% endfor %}
+    </div>
+</div>
+
+<form method="POST" action="/ustawienia/kreator/save">
+
+{% for section in sections %}
+<details class="kreator-detail" {% if section.get('always_closed') %}{% elif section.get('open_condition') == 'support_nodata' and support_nodata %}open{% elif not section.get('open_condition') and not cfg.get(section.key) %}open{% endif %}>
+    <summary>
+        {{ '🟢' if cfg.get(section.key) else '🔴' }} {{ section.icon }} {{ section.title }}
+        <span class="chevron">▼</span>
+    </summary>
+    <div class="kreator-detail-body">
+        <div class="kreator-hint">{{ section.hint | safe }}</div>
+        {% for field in section.fields %}
+        <div class="form-group">
+            <label>{{ field.label }}</label>
+            <input type="{{ field.type }}" name="{{ field.name }}" value="{{ cfg.get(field.name, '') }}"
+                placeholder="{{ field.placeholder }}"
+                class="form-control" {% if field.get('mono', True) %}style="font-family:monospace;font-size:0.85rem"{% endif %}>
+        </div>
+        {% endfor %}
+        {% if section.get('has_test') %}
+        <div id="vpsTestResult" style="font-size:0.8rem;margin-top:8px"></div>
+        <button type="button" onclick="testVps()" class="btn btn-secondary btn-sm" style="margin-top:6px;width:auto">
+            Test polaczenia
+        </button>
+        {% endif %}
+    </div>
+</details>
+{% endfor %}
+
+<button type="submit" class="btn btn-primary" style="font-size:1.05rem;padding:16px;margin-top:8px">ZAPISZ WSZYSTKO</button>
+
+</form>
+
+<a href="/ustawienia" class="back" style="margin-top:16px">← Powrot do ustawien</a>
+
+</div>
+
+<script>
+function testVps() {
+    var url = document.querySelector('input[name=rembg_vps_url]').value.trim();
+    var res = document.getElementById('vpsTestResult');
+    if(!url) { res.innerHTML='<span style="color:var(--red)">Wpisz URL!</span>'; return; }
+    res.innerHTML='<span style="color:var(--yellow)">Testowanie...</span>';
+    fetch(url.replace(/\/$/, '') + '/health')
+        .then(r => r.json())
+        .then(d => {
+            if(d.status === 'ok' && d.rembg) {
+                res.innerHTML='<span style="color:var(--green)">Polaczenie OK! Rembg dziala.</span>';
+            } else {
+                res.innerHTML='<span style="color:var(--red)">Serwer odpowiada ale rembg=' + d.rembg + '</span>';
+            }
+        })
+        .catch(e => {
+            res.innerHTML='<span style="color:var(--red)">Brak polaczenia: ' + e.message + '</span>';
+        });
+}
+</script>
+{% endblock %}
+'''
+    return render_template_string(KREATOR_TEMPLATE,
+        version=current_app.config.get('VERSION', ''),
+        brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
+        current_user=session.get('user'),
+        cfg=cfg,
+        saved_count=saved_count,
+        is_welcome=is_welcome,
+        status_items=status_items,
+        sections=sections,
+        support_nodata=support_nodata,
+    )
 
 
 @ustawienia_bp.route('/ustawienia/kreator/save', methods=['POST'])

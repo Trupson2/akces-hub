@@ -8,7 +8,7 @@ import csv
 import json
 import tempfile
 from datetime import datetime
-from flask import Blueprint, render_template_string, request, redirect, Response, url_for
+from flask import Blueprint, render_template_string, request, redirect, Response, url_for, session, current_app
 
 from .database import get_db, query_db, execute_db, get_config, get_config_cached
 from .utils import get_amazon_image_url, get_product_image, oblicz_cene_allegro, is_code, DOSTAWCY, detect_supplier, parse_price, ALLEGRO_PROWIZJE
@@ -123,99 +123,74 @@ def get_stats():
 # ============================================================
 # SZABLONY
 # ============================================================
-CSS = '''<style>
-:root{--bg:#0a0a0f;--bg2:#12121a;--bg3:#1e1e2e;--text:#fff;--text2:#94a3b8;--text3:#64748b;--border:#1e1e2e;--blue:#3b82f6;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--purple:#8b5cf6}
-[data-theme="light"]{--bg:#f8fafc;--bg2:#fff;--bg3:#e2e8f0;--text:#0f172a;--text2:#475569;--text3:#64748b;--border:#e2e8f0}
-*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px;transition:background 0.3s,color 0.3s}
-.c{max-width:1600px;margin:0 auto;padding:15px}
+_MAGAZYNIER_CSS = '''
+/* Magazynier module-specific styles using base.html CSS variables */
 .hdr{text-align:center;padding:15px 0;border-bottom:1px solid var(--border);margin-bottom:15px}
-.hdr h1{font-size:1.5rem;color:var(--blue)}
-.hdr small{color:var(--text3);font-size:0.8rem}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:15px}
-.stat{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;transition:all 0.3s}
-.stat:hover{transform:translateY(-2px);border-color:var(--blue)}
-.stat-v{font-size:1.4rem;font-weight:700;color:var(--blue)}
+.hdr h1{font-size:1.5rem;color:var(--accent)}
+.hdr small{color:var(--text-muted);font-size:0.8rem}
+.stat-v{font-size:1.4rem;font-weight:700;color:var(--accent)}
 .stat-v.green{color:var(--green)}
-.stat-l{font-size:0.7rem;color:var(--text3);text-transform:uppercase;margin-top:4px}
-.btn{display:block;width:100%;padding:12px;font-size:0.95rem;font-weight:600;text-align:center;text-decoration:none;border:none;border-radius:10px;cursor:pointer;margin-bottom:8px;color:#fff;transition:all 0.2s}
-.btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(59,130,246,0.3)}
-.btn:active{transform:translateY(0)}
-.btn-p{background:var(--blue)}.btn-ok{background:var(--green)}.btn-2{background:var(--bg3);border:1px solid var(--border);color:var(--text)}
-.btn-warn{background:var(--yellow);color:#000}.btn-err{background:var(--red)}.btn-purple{background:var(--purple)}
-.search{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:15px}
+.stat-l{font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;margin-top:4px}
+.btn-p{background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.btn-ok{background:var(--green)}
+.btn-2{background:var(--bg);border:1px solid var(--border);color:var(--text)}
+.btn-warn{background:var(--yellow);color:#000}
+.btn-err{background:var(--red)}
+.search{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:15px}
 .search form{display:flex;gap:10px}
-.search input{flex:1;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1rem;transition:border-color 0.3s}
-.search input:focus{outline:none;border-color:var(--blue)}
-.search button{padding:14px 20px;background:var(--blue);border:none;border-radius:8px;color:#fff;font-size:1.2rem;cursor:pointer;transition:all 0.2s}
+.search input{flex:1;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:1rem;transition:border-color 0.3s}
+.search input:focus{outline:none;border-color:var(--accent)}
+.search button{padding:14px 20px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--radius-sm);color:#fff;font-size:1.2rem;cursor:pointer;transition:all 0.2s}
 .search button:hover{transform:scale(1.05)}
 .items-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.item{display:flex;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;text-decoration:none;color:var(--text);transition:all 0.3s}
-.item:hover{border-color:var(--blue);transform:translateX(4px)}
+.item{display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;text-decoration:none;color:var(--text);transition:all 0.3s;box-shadow:var(--shadow)}
+.item:hover{border-color:var(--accent);transform:translateX(4px)}
 .item img{width:50px;height:50px;object-fit:contain;background:#fff;border-radius:6px;margin-right:12px}
 .item-info{flex:1;min-width:0}
 .item-name{font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.item-meta{font-size:0.75rem;color:var(--text3)}
+.item-meta{font-size:0.75rem;color:var(--text-muted)}
 .item-right{text-align:right;margin-left:10px}
-.item-qty{font-size:1.2rem;font-weight:700;color:var(--blue)}
+.item-qty{font-size:1.2rem;font-weight:700;color:var(--accent)}
 .item-price{font-size:0.75rem;color:var(--green)}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:15px;transition:all 0.3s;animation:fadeIn 0.3s ease-in}
-.card:hover{box-shadow:0 4px 12px rgba(59,130,246,0.2)}
 .card-img{width:100%;max-height:250px;object-fit:contain;background:#fff;padding:10px}
 .card-body{padding:15px}
 .card-name{font-size:1.15rem;font-weight:600;margin-bottom:12px}
-.loc{background:var(--bg);border:2px solid var(--blue);border-radius:10px;padding:12px;margin-bottom:12px}
-.loc-title{font-size:0.75rem;color:var(--blue);text-transform:uppercase;margin-bottom:8px}
+.loc{background:var(--bg);border:2px solid var(--accent);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px}
+.loc-title{font-size:0.75rem;color:var(--accent);text-transform:uppercase;margin-bottom:8px}
 .loc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
 .loc-v{font-size:1.1rem;font-weight:700;color:var(--green)}
-.loc-l{font-size:0.65rem;color:var(--text3)}
+.loc-l{font-size:0.65rem;color:var(--text-muted)}
 .det-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .det{background:var(--bg);padding:12px;border-radius:8px;transition:all 0.2s}
-.det:hover{background:var(--bg3)}
-.det-l{font-size:0.7rem;color:var(--text3)}
+.det:hover{background:var(--bg-card)}
+.det-l{font-size:0.7rem;color:var(--text-muted)}
 .det-v{font-size:0.95rem;font-weight:600;margin-top:2px}
 .det-v.green{color:var(--green)}
-.badge{display:inline-block;padding:4px 10px;border-radius:12px;font-size:0.8rem;font-weight:600}
-.badge-ok{background:rgba(34,197,94,0.2);color:var(--green)}
-.badge-err{background:rgba(239,68,68,0.2);color:var(--red)}
-.form-group{margin-bottom:14px}
-.form-group label{display:block;font-size:0.8rem;color:var(--text2);margin-bottom:5px}
-.form-ctrl,.form-input{width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1rem;transition:border-color 0.3s}
-.form-ctrl:focus,.form-input:focus{outline:none;border-color:var(--blue)}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.badge-ok{background:var(--green-soft);color:var(--green)}
+.badge-err{background:var(--red-soft);color:var(--red)}
+.form-ctrl,.form-input{width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:1rem;transition:border-color 0.3s}
+.form-ctrl:focus,.form-input:focus{outline:none;border-color:var(--accent)}
 .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.alert{padding:14px;border-radius:10px;margin-bottom:14px;text-align:center;font-size:0.95rem;animation:slideDown 0.3s ease-out}
-.alert-ok{background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:var(--green)}
-.alert-warn{background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.3);color:var(--yellow)}
-.alert-err{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:var(--red)}
-.back{display:block;text-align:center;color:var(--text3);text-decoration:none;padding:14px;font-size:0.9rem;transition:color 0.3s}
-.back:hover{color:var(--blue)}
-.section{color:var(--blue);font-weight:600;font-size:0.9rem;margin:18px 0 12px;display:flex;align-items:center;gap:8px}
-.nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);padding:8px 0;transition:background 0.3s;backdrop-filter:blur(10px)}
-.nav-inner{max-width:1600px;margin:0 auto;display:flex;justify-content:space-around}
-.nav a{text-align:center;color:var(--text3);text-decoration:none;padding:6px 6px;border-radius:8px;font-size:0.7rem;transition:all 0.2s}
-.nav a:hover,.nav a.on{color:var(--blue);background:rgba(59,130,246,0.1);transform:translateY(-2px)}
-.nav-icon{font-size:1.4rem}
-/* Quick Actions */
-.quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.alert-ok{background:var(--green-soft);border:1px solid rgba(34,197,94,0.3);color:var(--green)}
+.alert-warn{background:var(--yellow-soft);border:1px solid rgba(234,179,8,0.3);color:var(--yellow)}
+.alert-err{background:var(--red-soft);border:1px solid rgba(239,68,68,0.3);color:var(--red)}
+.section{color:var(--accent);font-weight:600;font-size:0.9rem;margin:18px 0 12px;display:flex;align-items:center;gap:8px}
 .quick-btn{padding:10px 5px;font-size:0.75rem;border-radius:8px;border:none;cursor:pointer;font-weight:600;color:#fff;transition:all 0.2s;text-decoration:none;display:block;text-align:center}
 .quick-btn:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.3)}
 /* Timeline / Historia */
 .timeline{position:relative;padding-left:25px;margin:15px 0}
 .timeline::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--border)}
-.timeline-item{position:relative;padding:10px 0 10px 15px;border-bottom:1px solid var(--border);animation:fadeIn 0.3s ease-in}
+.timeline-item{position:relative;padding:10px 0 10px 15px;border-bottom:1px solid var(--border)}
 .timeline-item:last-child{border-bottom:none}
-.timeline-item::before{content:'';position:absolute;left:-21px;top:14px;width:12px;height:12px;border-radius:50%;background:var(--blue);border:2px solid var(--bg)}
+.timeline-item::before{content:'';position:absolute;left:-21px;top:14px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
 .timeline-item.green::before{background:var(--green)}
 .timeline-item.yellow::before{background:var(--yellow)}
 .timeline-item.purple::before{background:var(--purple)}
-.timeline-date{font-size:0.7rem;color:var(--text3)}
+.timeline-date{font-size:0.7rem;color:var(--text-muted)}
 .timeline-text{font-size:0.85rem;margin-top:2px}
-/* Theme toggle */
-.theme-toggle{position:fixed;top:15px;right:15px;z-index:200;background:var(--bg2);border:1px solid var(--border);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.3rem;transition:all 0.3s;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
-.theme-toggle:hover{transform:scale(1.1) rotate(15deg);border-color:var(--blue)}
 /* Toast Notifications */
 .toast-container{position:fixed;top:80px;right:20px;z-index:1000;display:flex;flex-direction:column;gap:10px;max-width:400px}
-.toast{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 4px 16px rgba(0,0,0,0.3);display:flex;align-items:start;gap:12px;animation:slideInRight 0.3s ease-out;min-width:300px}
+.toast{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:var(--shadow-lg);display:flex;align-items:start;gap:12px;animation:slideInRight 0.3s ease-out;min-width:300px}
 .toast.success{border-left:4px solid var(--green)}
 .toast.error{border-left:4px solid var(--red)}
 .toast.warning{border-left:4px solid var(--yellow)}
@@ -223,139 +198,87 @@ CSS = '''<style>
 .toast-icon{font-size:1.5rem;flex-shrink:0}
 .toast-content{flex:1}
 .toast-title{font-weight:600;margin-bottom:4px;font-size:0.95rem}
-.toast-message{font-size:0.85rem;color:var(--text3)}
-.toast-close{cursor:pointer;color:var(--text3);font-size:1.2rem;flex-shrink:0;transition:color 0.2s}
+.toast-message{font-size:0.85rem;color:var(--text-muted)}
+.toast-close{cursor:pointer;color:var(--text-muted);font-size:1.2rem;flex-shrink:0;transition:color 0.2s}
 .toast-close:hover{color:var(--red)}
 .toast.removing{animation:slideOutRight 0.3s ease-in forwards}
 /* Loading Overlay */
-.loading-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:999;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease-in}
-.loading-spinner{width:60px;height:60px;border:4px solid var(--border);border-top:4px solid var(--blue);border-radius:50%;animation:spin 0.8s linear infinite}
+.loading-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:999;display:flex;align-items:center;justify-content:center}
+.loading-spinner{width:60px;height:60px;border:4px solid var(--border);border-top:4px solid var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
 .loading-text{color:#fff;margin-top:20px;font-size:1.1rem;font-weight:600;text-align:center}
 /* Animations */
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideInRight{from{opacity:0;transform:translateX(100px)}to{opacity:1;transform:translateX(0)}}
 @keyframes slideOutRight{to{opacity:0;transform:translateX(100px)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 /* Responsive */
-@media(min-width:1200px){.c{max-width:1600px;padding:25px}.items-grid{grid-template-columns:repeat(3,1fr)}.stats{grid-template-columns:repeat(4,1fr)}}
-@media(max-width:1199px){.c{max-width:100%;padding:20px}.items-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:900px){.stats{grid-template-columns:repeat(3,1fr)}.toast-container{right:10px;max-width:320px}.toast{min-width:280px}}
-@media(max-width:768px){.c{padding:12px}.stats{grid-template-columns:repeat(2,1fr)}.items-grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.quick-actions{grid-template-columns:repeat(2,1fr)}.toast-container{top:70px;right:10px;left:10px;max-width:none}.toast{min-width:auto}}
-@media(max-width:480px){.c{padding:10px;padding-bottom:80px}.stats{gap:6px}.stat{padding:10px}.stat-v{font-size:1.2rem}.hdr h1{font-size:1.3rem}.btn{padding:10px;font-size:0.9rem}.theme-toggle{width:38px;height:38px;font-size:1.1rem;top:12px;right:12px}.nav a{font-size:0.65rem;padding:4px 3px}.nav-icon{font-size:1.3rem}}
-</style>'''
+@media(min-width:1200px){.items-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){.toast-container{right:10px;max-width:320px}.toast{min-width:280px}}
+@media(max-width:768px){.items-grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.quick-actions{grid-template-columns:repeat(2,1fr)}.toast-container{top:70px;right:10px;left:10px;max-width:none}.toast{min-width:auto}}
+'''
 
-BASE = '''<!DOCTYPE html><html lang="pl" data-theme="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>Magazynier</title>
-<script>
-const saved=localStorage.getItem('theme');
-if(saved)document.documentElement.setAttribute('data-theme',saved);
-else if(window.matchMedia('(prefers-color-scheme:light)').matches)document.documentElement.setAttribute('data-theme','light');
-</script>
-''' + CSS + '''<link rel="stylesheet" href="/static/kiosk.css"></head><body>
-<script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
-<div class="theme-toggle" onclick="toggleTheme()" title="Zmień motyw"><span id="theme-icon">🌙</span></div>
-<div class="toast-container" id="toast-container"></div>
-<div class="c">{content}</div>
-<nav class="nav"><div class="nav-inner">
-<a href="/"><div class="nav-icon">🏠</div>Home</a>
-<a href="/magazyn" class="on"><div class="nav-icon">📦</div>Magazyn</a>
-<a href="/paletomat"><div class="nav-icon">🤖</div>Paletomat</a>
-<a href="/allegro"><div class="nav-icon">🛒</div>Allegro</a>
-<a href="/monitor"><div class="nav-icon">🔍</div>Monitor</a>
-<a href="/narzedzia"><div class="nav-icon">⚡</div>Narzędzia</a>
-</div></nav>
-<script>
-// Theme Toggle
-function toggleTheme(){
-    const html=document.documentElement;
-    const next=html.getAttribute('data-theme')==='dark'?'light':'dark';
-    html.setAttribute('data-theme',next);
-    localStorage.setItem('theme',next);
-    document.getElementById('theme-icon').textContent=next==='dark'?'🌙':'☀️';
-    showToast('Motyw zmieniony', next==='dark'?'Ciemny motyw':'Jasny motyw', 'success');
-}
-document.getElementById('theme-icon').textContent=document.documentElement.getAttribute('data-theme')==='dark'?'🌙':'☀️';
-
+_MAGAZYNIER_JS = '''
 // Toast Notifications System
 function showToast(title, message, type='info', duration=3000){
-    const container=document.getElementById('toast-container');
+    let container=document.getElementById('toast-container');
+    if(!container){container=document.createElement('div');container.id='toast-container';container.className='toast-container';document.body.appendChild(container);}
     const toast=document.createElement('div');
     toast.className='toast '+type;
-    
-    const icons={success:'✅',error:'❌',warning:'⚠️',info:'ℹ️'};
-    const icon=icons[type]||'ℹ️';
-    
-    toast.innerHTML=`
-        <div class="toast-icon">${icon}</div>
-        <div class="toast-content">
-            <div class="toast-title">${title}</div>
-            ${message?`<div class="toast-message">${message}</div>`:''}
-        </div>
-        <div class="toast-close" onclick="removeToast(this.parentElement)">×</div>
-    `;
-    
+    const icons={success:'\\u2705',error:'\\u274c',warning:'\\u26a0\\ufe0f',info:'\\u2139\\ufe0f'};
+    const icon=icons[type]||'\\u2139\\ufe0f';
+    toast.innerHTML='<div class="toast-icon">'+icon+'</div><div class="toast-content"><div class="toast-title">'+title+'</div>'+(message?'<div class="toast-message">'+message+'</div>':'')+'</div><div class="toast-close" onclick="removeToast(this.parentElement)">&times;</div>';
     container.appendChild(toast);
-    
-    if(duration>0){
-        setTimeout(()=>removeToast(toast),duration);
-    }
-    
+    if(duration>0){setTimeout(function(){removeToast(toast)},duration);}
     return toast;
 }
-
-function removeToast(toast){
-    toast.classList.add('removing');
-    setTimeout(()=>toast.remove(),300);
-}
+function removeToast(toast){toast.classList.add('removing');setTimeout(function(){toast.remove()},300);}
 
 // Loading Overlay System
-function showLoading(text='Ładowanie...'){
-    const existing=document.getElementById('loading-overlay');
-    if(existing)return;
-    
-    const overlay=document.createElement('div');
-    overlay.id='loading-overlay';
-    overlay.className='loading-overlay';
-    overlay.innerHTML=`
-        <div style="text-align:center">
-            <div class="loading-spinner"></div>
-            <div class="loading-text">${text}</div>
-        </div>
-    `;
+function showLoading(text){
+    text=text||'Ladowanie...';
+    if(document.getElementById('loading-overlay'))return;
+    var overlay=document.createElement('div');
+    overlay.id='loading-overlay';overlay.className='loading-overlay';
+    overlay.innerHTML='<div style="text-align:center"><div class="loading-spinner"></div><div class="loading-text">'+text+'</div></div>';
     document.body.appendChild(overlay);
 }
+function hideLoading(){var o=document.getElementById('loading-overlay');if(o){o.style.animation='fadeOut 0.2s ease-out';setTimeout(function(){o.remove()},200);}}
 
-function hideLoading(){
-    const overlay=document.getElementById('loading-overlay');
-    if(overlay){
-        overlay.style.animation='fadeOut 0.2s ease-out';
-        setTimeout(()=>overlay.remove(),200);
-    }
-}
-
-// Auto-convert browser alerts to toasts
-window.addEventListener('DOMContentLoaded', ()=>{
-    // Konwertuj alert messages z URL do toastów
-    const params=new URLSearchParams(window.location.search);
-    const msg=params.get('msg');
+// Auto-convert URL msg params to toasts
+window.addEventListener('DOMContentLoaded', function(){
+    var params=new URLSearchParams(window.location.search);
+    var msg=params.get('msg');
     if(msg){
-        const decoded=decodeURIComponent(msg.replace(/\\+/g,' '));
-        const type=decoded.includes('Błąd')||decoded.includes('❌')?'error':'success';
+        var decoded=decodeURIComponent(msg.replace(/\\+/g,' '));
+        var type=(decoded.indexOf('Blad')>=0||decoded.indexOf('\\u274c')>=0)?'error':'success';
         showToast('', decoded, type);
-        
-        // Usuń msg z URL bez przeładowania strony
-        const url=new URL(window.location);
-        url.searchParams.delete('msg');
+        var url=new URL(window.location);url.searchParams.delete('msg');
         window.history.replaceState({}, '', url);
     }
 });
-</script>
-</body></html>'''
+'''
 
-def render(content):
-    return BASE.replace('{content}', content)
+_MAGAZYNIER_TEMPLATE = '''{% extends "base.html" %}
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block content %}
+<style>{{ magazynier_css|safe }}</style>
+<div class="toast-container" id="toast-container"></div>
+{{ content_html|safe }}
+<script>{{ magazynier_js|safe }}</script>
+{% endblock %}'''
+
+def render(content, page_title='Magazynier'):
+    return render_template_string(
+        _MAGAZYNIER_TEMPLATE,
+        content_html=content,
+        page_title=page_title,
+        magazynier_css=_MAGAZYNIER_CSS,
+        magazynier_js=_MAGAZYNIER_JS,
+        version=current_app.config.get('VERSION', ''),
+        brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
+        current_user=session.get('user')
+    )
 
 # ============================================================
 # ROUTES
@@ -7541,7 +7464,7 @@ def remanent_page():
             <td style="padding:7px 10px;border-bottom:1px solid #1e293b;text-align:right;color:#22c55e">{float(k['wartosc_detal'] or 0):.0f} zł</td>
         </tr>'''
 
-    html = CSS + f'''
+    html = f'''
     <div class="hdr"><h1>📋 REMANENT</h1><small>Stan magazynu na {today}</small></div>
 
     <!-- Kafelki podsumowania -->
