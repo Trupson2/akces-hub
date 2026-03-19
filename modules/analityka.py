@@ -3012,90 +3012,149 @@ _pallet_analysis_jobs = {}
 _pallet_analysis_results = {}
 
 
-def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="sonar-pro"):
-    """Uruchamia analizę palety w tle — wysyła produkty do Perplexity, parsuje JSON."""
+def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="sonar-pro", excel_products=None):
+    """Uruchamia analizę palety w tle — wysyła produkty do Perplexity, parsuje JSON.
+    excel_products: opcjonalna lista dictów z Excela (analiza przed zakupem)"""
     import requests as _req, json as _json, sqlite3 as _sq
-    _pallet_analysis_jobs[job_id] = {'status': 'running', 'progress': 'Wysyłanie do AI...'}
+    _pallet_analysis_jobs[job_id] = {'status': 'running', 'progress': 'Przygotowywanie...'}
     try:
         conn2 = _sq.connect(db_path, timeout=30)
         conn2.row_factory = _sq.Row
 
-        paleta = conn2.execute("SELECT * FROM palety WHERE id = ?", (paleta_id,)).fetchone()
-        if not paleta:
-            _pallet_analysis_jobs[job_id] = {'status': 'error', 'error': 'Paleta nie znaleziona'}
-            conn2.close()
-            return
+        if excel_products:
+            # Analiza zakupu z Excela — nie ma palety w DB
+            produkty_list = excel_products
+            paleta_dict = {'id': 0, 'nazwa': 'Analiza przed zakupem', 'dostawca': 'Excel', 'cena_zakupu': 0, 'data_zakupu': ''}
+        else:
+            paleta = conn2.execute("SELECT * FROM palety WHERE id = ?", (paleta_id,)).fetchone()
+            if not paleta:
+                _pallet_analysis_jobs[job_id] = {'status': 'error', 'error': 'Paleta nie znaleziona'}
+                conn2.close()
+                return
 
-        produkty = conn2.execute(
-            "SELECT id, ean, asin, nazwa, ilosc, cena_netto, cena_brutto, kategoria, stan FROM produkty WHERE paleta_id = ?",
-            (paleta_id,)
-        ).fetchall()
+            produkty = conn2.execute(
+                "SELECT id, ean, asin, nazwa, ilosc, cena_netto, cena_brutto, kategoria, stan FROM produkty WHERE paleta_id = ?",
+                (paleta_id,)
+            ).fetchall()
 
-        if not produkty:
-            _pallet_analysis_jobs[job_id] = {'status': 'error', 'error': 'Brak produktów w palecie'}
-            conn2.close()
-            return
+            if not produkty:
+                _pallet_analysis_jobs[job_id] = {'status': 'error', 'error': 'Brak produktów w palecie'}
+                conn2.close()
+                return
 
-        produkty_list = [dict(p) for p in produkty]
-        paleta_dict = dict(paleta)
-
-        # Buduj listę produktów do promptu
-        produkty_txt = ""
-        for i, p in enumerate(produkty_list, 1):
-            ean_str = f", EAN: {p['ean']}" if p.get('ean') else ""
-            asin_str = f", ASIN: {p['asin']}" if p.get('asin') else ""
-            produkty_txt += (
-                f"{i}. {p['nazwa'][:80]} "
-                f"[{p.get('kategoria') or 'inne'}] "
-                f"— {p.get('ilosc', 1)} szt, "
-                f"cena netto: {p.get('cena_netto', 0):.2f} zł, "
-                f"cena brutto: {p.get('cena_brutto', 0):.2f} zł, "
-                f"stan: {p.get('stan', 'Nowy')}"
-                f"{ean_str}{asin_str}\n"
-            )
+            produkty_list = [dict(p) for p in produkty]
+            paleta_dict = dict(paleta)
 
         koszt_palety = paleta_dict.get('cena_zakupu', 0) or 0
 
-        prompt = (
-            f"Jesteś ekspertem od resellingu palet zwrotów Amazon na Allegro i OLX w Polsce.\n\n"
-            f"KONTEKST: Kupujemy palety zwrotów z Amazon (UK/DE/US) i sprzedajemy pojedyncze produkty na Allegro.\n"
-            f"Ceny netto/brutto przy produktach to ORYGINALNE CENY DETALICZNE Amazon (RRP/MSRP) — to NIE jest nasza cena zakupu.\n"
-            f"Nasza cena zakupu to koszt całej palety podzielony na produkty.\n\n"
-            f"PALETA: {paleta_dict.get('nazwa', 'Bez nazwy')}\n"
-            f"Dostawca: {paleta_dict.get('dostawca', 'nieznany')}\n"
-            f"Koszt całej palety: {koszt_palety:.2f} zł\n"
-            f"Liczba typów produktów: {len(produkty_list)}\n\n"
-            f"PRODUKTY:\n{produkty_txt}\n\n"
-            f"ZADANIE: Wyszukaj REALNE ceny tych produktów na Allegro.pl (aktualnie wystawione oferty).\n\n"
-            f"Dla każdego produktu podaj:\n"
-            f"1. REALNA cena sprzedaży na Allegro.pl — wyszukaj aktualną cenę rynkową na Allegro dla tego produktu (używając nazwy, EAN lub ASIN). Podaj cenę w PLN za jaką REALNIE się sprzedaje, nie za jaką byśmy chcieli.\n"
-            f"2. Popyt na Allegro (wysoki/średni/niski) — na podstawie ilości ofert i popularności kategorii\n"
-            f"3. Szacowany czas sprzedaży w dniach\n"
-            f"4. Uwagi (sezonowość, konkurencja, ryzyko, stan 'używany' vs 'nowy')\n\n"
-            f"Na końcu podsumowanie palety:\n"
-            f"- Szacowany łączny przychód (suma realnych cen Allegro × ilości)\n"
-            f"- Szacowany zysk (przychód - prowizja Allegro 11% - koszt palety {koszt_palety:.2f} zł)\n"
-            f"- ROI procentowy = (zysk / koszt palety) × 100\n"
-            f"- Ogólna ocena opłacalności (1-10)\n\n"
-            f"WAŻNE: Podawaj REALNE ceny z Allegro.pl, nie wymyślone. Jeśli nie znajdziesz produktu, oszacuj na podstawie podobnych.\n"
-            f"Odpowiedz WYŁĄCZNIE prawidłowym JSON-em (bez markdown, bez ```json```).\n"
-            f"Format:\n"
-            f'{{"produkty": [{{"id": <id_produktu>, "nazwa": "...", "cena_allegro": <float>, "cena_amazon_rpp": <float>, '
-            f'"popyt": "wysoki|średni|niski", "czas_sprzedazy_dni": <int>, "uwagi": "..."}}, ...], '
-            f'"podsumowanie": {{"przychod": <float>, "prowizja_allegro": <float>, "zysk": <float>, "roi": <float>, "ocena": <int>}}}}'
-        )
+        # Dziel na batche po max 15 produktów
+        BATCH_SIZE = 15
+        all_results = []
+        all_citations = []
+        batches = [produkty_list[i:i+BATCH_SIZE] for i in range(0, len(produkty_list), BATCH_SIZE)]
 
-        _pallet_analysis_jobs[job_id] = {'status': 'running', 'progress': 'Czekam na odpowiedź AI...'}
+        for batch_idx, batch in enumerate(batches):
+            _pallet_analysis_jobs[job_id] = {
+                'status': 'running',
+                'progress': f'Analizuję batch {batch_idx+1}/{len(batches)} ({len(batch)} produktów)...'
+            }
 
-        resp = _req.post(
-            "https://api.perplexity.ai/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={"model": model, "messages": [{"role": "user", "content": prompt}],
-                  "max_tokens": 4000, "return_citations": True},
-            timeout=120)
-        data = resp.json()
-        odpowiedz = data['choices'][0]['message']['content']
-        citations = data.get('citations', [])
+            # Buduj prompt dla batcha
+            batch_txt = ""
+            for i, p in enumerate(batch, 1):
+                ean_str = f", EAN: {p.get('ean','')}" if p.get('ean') else ""
+                asin_str = f", ASIN: {p.get('asin','')}" if p.get('asin') else ""
+                batch_txt += (
+                    f"{i}. {p.get('nazwa','?')[:80]} "
+                    f"[{p.get('kategoria') or 'inne'}] "
+                    f"— {p.get('ilosc', 1)} szt, "
+                    f"cena Amazon RRP: {p.get('cena_brutto', 0):.2f} zł"
+                    f"{ean_str}{asin_str}\n"
+                )
+
+            batch_prompt = (
+                f"Jesteś ekspertem od resellingu zwrotów Amazon na Allegro.pl w Polsce.\n"
+                f"Wyszukaj REALNE aktualne ceny tych produktów na Allegro.pl.\n\n"
+                f"PRODUKTY (batch {batch_idx+1}/{len(batches)}):\n{batch_txt}\n"
+                f"Dla każdego produktu podaj REALNĄ cenę na Allegro.pl, popyt i czas sprzedaży.\n\n"
+                f"Odpowiedz WYŁĄCZNIE jako JSON array (bez markdown):\n"
+                f'[{{"id": 1, "nazwa": "...", "cena_allegro": <float>, "popyt": "wysoki|średni|niski", '
+                f'"czas_sprzedazy_dni": <int>, "uwagi": "..."}}]\n'
+            )
+
+            resp = _req.post(
+                "https://api.perplexity.ai/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={"model": model, "messages": [{"role": "user", "content": batch_prompt}],
+                      "max_tokens": 8000, "return_citations": True},
+                timeout=180)
+            data = resp.json()
+            batch_answer = data['choices'][0]['message']['content']
+            batch_cit = data.get('citations', [])
+            all_citations.extend(batch_cit)
+
+            # Parsuj JSON z odpowiedzi batcha
+            batch_parsed = None
+            try:
+                clean = batch_answer.strip()
+                if clean.startswith('```'):
+                    clean = clean.split('\n', 1)[1] if '\n' in clean else clean[3:]
+                    if clean.endswith('```'):
+                        clean = clean[:-3]
+                    clean = clean.strip()
+                batch_parsed = _json.loads(clean)
+            except Exception:
+                import re as _re
+                # Szukaj JSON array [...] lub object {...}
+                match = _re.search(r'\[[\s\S]*\]', batch_answer)
+                if match:
+                    try:
+                        batch_parsed = _json.loads(match.group())
+                    except Exception:
+                        pass
+                if not batch_parsed:
+                    match = _re.search(r'\{[\s\S]*\}', batch_answer)
+                    if match:
+                        try:
+                            obj = _json.loads(match.group())
+                            batch_parsed = obj.get('produkty', [obj])
+                        except Exception:
+                            pass
+
+            if isinstance(batch_parsed, dict):
+                batch_parsed = batch_parsed.get('produkty', [batch_parsed])
+            if isinstance(batch_parsed, list):
+                # Mapuj nazwy z oryginalnych produktów
+                for j, item in enumerate(batch_parsed):
+                    if j < len(batch):
+                        item['nazwa'] = batch[j].get('nazwa', item.get('nazwa', '?'))
+                        item['cena_amazon_rpp'] = batch[j].get('cena_brutto', 0)
+                all_results.extend(batch_parsed)
+            else:
+                # Fallback — dodaj surowe wyniki
+                for p in batch:
+                    all_results.append({'nazwa': p.get('nazwa','?'), 'cena_allegro': 0,
+                                       'cena_amazon_rpp': p.get('cena_brutto', 0),
+                                       'popyt': '?', 'czas_sprzedazy_dni': 0,
+                                       'uwagi': 'Nie udało się sparsować odpowiedzi AI'})
+
+        # Podsumowanie
+        total_przychod = sum(r.get('cena_allegro', 0) for r in all_results)
+        prowizja = total_przychod * 0.11
+        zysk = total_przychod - prowizja - koszt_palety
+        roi = (zysk / koszt_palety * 100) if koszt_palety > 0 else 0
+        ocena = min(10, max(1, int(roi / 15) + 3)) if koszt_palety > 0 else 5
+
+        parsed = {
+            'produkty': all_results,
+            'podsumowanie': {
+                'przychod': total_przychod,
+                'prowizja_allegro': prowizja,
+                'zysk': zysk,
+                'roi': roi,
+                'ocena': ocena
+            }
+        }
 
         # Zapisz do cache
         conn2.execute("""CREATE TABLE IF NOT EXISTS perplexity_cache (
@@ -3103,42 +3162,22 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="sonar-pro")
             odpowiedz TEXT, citations TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
         from datetime import datetime as _dt
         cache_klucz = f'paleta_analiza_{paleta_id}'
+        odpowiedz = _json.dumps(parsed, ensure_ascii=False)
         conn2.execute(
             "INSERT OR REPLACE INTO perplexity_cache (klucz, odpowiedz, citations, created_at) VALUES (?, ?, ?, ?)",
-            (cache_klucz, odpowiedz, _json.dumps(citations), _dt.now().strftime('%Y-%m-%d %H:%M:%S')))
+            (cache_klucz, odpowiedz, _json.dumps(all_citations), _dt.now().strftime('%Y-%m-%d %H:%M:%S')))
         conn2.commit()
         conn2.close()
-
-        # Spróbuj sparsować JSON z odpowiedzi
-        parsed = None
-        try:
-            # Usuń ewentualne markdown code blocks
-            clean = odpowiedz.strip()
-            if clean.startswith('```'):
-                clean = clean.split('\n', 1)[1] if '\n' in clean else clean[3:]
-                if clean.endswith('```'):
-                    clean = clean[:-3]
-                clean = clean.strip()
-            parsed = _json.loads(clean)
-        except:
-            # Spróbuj znaleźć JSON w tekście
-            import re as _re
-            match = _re.search(r'\{[\s\S]*\}', odpowiedz)
-            if match:
-                try:
-                    parsed = _json.loads(match.group())
-                except:
-                    parsed = None
 
         _pallet_analysis_results[job_id] = {
             'raw': odpowiedz,
             'parsed': parsed,
-            'citations': citations,
+            'citations': all_citations,
             'paleta': paleta_dict,
             'produkty_db': produkty_list,
         }
         _pallet_analysis_jobs[job_id] = {'status': 'done'}
-        print(f"[Analizator Palet] {job_id} gotowe, parsed={'OK' if parsed else 'FALLBACK'}")
+        print(f"[Analizator Palet] {job_id} gotowe, {len(all_results)} produktów, ROI={roi:.0f}%")
 
     except Exception as e:
         _pallet_analysis_jobs[job_id] = {'status': 'error', 'error': str(e)}
@@ -3416,6 +3455,224 @@ def analizator_palet_analyze():
     ).start()
 
     return jsonify({'ok': True, 'job_id': job_id})
+
+
+@analityka_bp.route('/analityka/analiza-zakupu', methods=['GET', 'POST'])
+def analiza_zakupu():
+    """Analiza zakupu — wrzuć Excel z manifestem palety PRZED zakupem."""
+    import threading
+    from modules.database import get_config, DATABASE as _db_path
+
+    if request.method == 'POST':
+        api_key = get_config('perplexity_api_key', '')
+        if not api_key:
+            return jsonify({'ok': False, 'error': 'Brak klucza API Perplexity. Ustaw w Okazjach.'})
+
+        file = request.files.get('file')
+        if not file:
+            return jsonify({'ok': False, 'error': 'Nie wgrano pliku'})
+
+        koszt_palety = float(request.form.get('koszt', 0) or 0)
+
+        # Parsuj Excel
+        import openpyxl
+        import io
+        wb = openpyxl.load_workbook(io.BytesIO(file.read()), data_only=True)
+        ws = wb.active
+        rows = list(ws.iter_rows(values_only=True))
+        if not rows:
+            return jsonify({'ok': False, 'error': 'Plik jest pusty'})
+
+        # Auto-detect kolumn (nazwy w pierwszym wierszu)
+        header = [str(c).lower().strip() if c else '' for c in rows[0]]
+        col_nazwa = next((i for i, h in enumerate(header) if any(k in h for k in ['nazwa','name','title','produkt','product','opis'])), 0)
+        col_ean = next((i for i, h in enumerate(header) if any(k in h for k in ['ean','barcode','kod'])), None)
+        col_asin = next((i for i, h in enumerate(header) if 'asin' in h), None)
+        col_ilosc = next((i for i, h in enumerate(header) if any(k in h for k in ['ilosc','qty','quantity','szt','sztuk','ilość'])), None)
+        col_cena = next((i for i, h in enumerate(header) if any(k in h for k in ['cena','price','rrp','brutto','retail'])), None)
+        col_kat = next((i for i, h in enumerate(header) if any(k in h for k in ['kategoria','category','cat'])), None)
+
+        produkty = []
+        for row in rows[1:]:
+            if not row or not row[col_nazwa]:
+                continue
+            p = {
+                'nazwa': str(row[col_nazwa] or '').strip(),
+                'ean': str(row[col_ean] or '').strip() if col_ean is not None and col_ean < len(row) else '',
+                'asin': str(row[col_asin] or '').strip() if col_asin is not None and col_asin < len(row) else '',
+                'ilosc': int(float(row[col_ilosc] or 1)) if col_ilosc is not None and col_ilosc < len(row) and row[col_ilosc] else 1,
+                'cena_brutto': float(row[col_cena] or 0) if col_cena is not None and col_cena < len(row) and row[col_cena] else 0,
+                'kategoria': str(row[col_kat] or '').strip() if col_kat is not None and col_kat < len(row) else 'inne',
+            }
+            if p['nazwa']:
+                produkty.append(p)
+
+        if not produkty:
+            return jsonify({'ok': False, 'error': 'Nie znaleziono produktów w pliku'})
+
+        perp_model = get_config('perplexity_model', 'sonar-pro')
+        if perp_model == 'sonar':
+            perp_model = 'sonar-pro'
+
+        job_id = f'excel_{int(datetime.now().timestamp())}'
+
+        # Przekaż koszt palety
+        excel_paleta = {'id': 0, 'nazwa': file.filename, 'dostawca': 'Excel', 'cena_zakupu': koszt_palety}
+
+        def run_excel_analysis():
+            _run_pallet_analysis(job_id, 0, api_key, _db_path, perp_model, excel_products=produkty)
+            # Nadpisz paletę z kosztem
+            if job_id in _pallet_analysis_results:
+                _pallet_analysis_results[job_id]['paleta'] = excel_paleta
+                # Przelicz podsumowanie z kosztem
+                if _pallet_analysis_results[job_id].get('parsed', {}).get('podsumowanie'):
+                    s = _pallet_analysis_results[job_id]['parsed']['podsumowanie']
+                    s['zysk'] = s.get('przychod', 0) - s.get('prowizja_allegro', 0) - koszt_palety
+                    s['roi'] = (s['zysk'] / koszt_palety * 100) if koszt_palety > 0 else 0
+                    s['ocena'] = min(10, max(1, int(s['roi'] / 15) + 3)) if koszt_palety > 0 else 5
+
+        threading.Thread(target=run_excel_analysis, daemon=True).start()
+        return jsonify({'ok': True, 'job_id': job_id, 'produktow': len(produkty)})
+
+    # GET — strona
+    html = f'''
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">📊 Analiza zakupu — wrzuć Excel PRZED kupnem palety</span>
+        </div>
+        <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px">
+            Wgraj manifest palety (Excel/XLSX) z listą produktów. AI sprawdzi realne ceny na Allegro i powie czy warto kupić.
+        </p>
+        <form id="excel-form" enctype="multipart/form-data">
+            <div class="form-row" style="margin-bottom:14px">
+                <div class="form-group">
+                    <label>Plik Excel (XLSX)</label>
+                    <input type="file" name="file" accept=".xlsx,.xls,.csv" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Koszt palety (PLN)</label>
+                    <input type="number" name="koszt" class="form-control" placeholder="np. 3500" step="0.01" value="0">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" id="btn-analyze-excel">🔬 Analizuj przed zakupem</button>
+        </form>
+        <div id="excel-progress" style="display:none;margin-top:16px">
+            <div class="alert" style="background:var(--accent-soft);border:1px solid rgba(99,102,241,0.2);color:var(--accent)">
+                <span id="excel-progress-text">Analizuję...</span>
+            </div>
+        </div>
+    </div>
+    <div id="excel-results"></div>
+
+    <script>
+    document.getElementById('excel-form').addEventListener('submit', function(e) {{
+        e.preventDefault();
+        var btn = document.getElementById('btn-analyze-excel');
+        btn.disabled = true; btn.textContent = 'Analizuję...';
+        document.getElementById('excel-progress').style.display = 'block';
+        var fd = new FormData(this);
+        fetch('/analityka/analiza-zakupu', {{method:'POST', body:fd}})
+        .then(r => r.json()).then(function(d) {{
+            if (!d.ok) {{ alert(d.error); btn.disabled=false; btn.textContent='🔬 Analizuj'; return; }}
+            document.getElementById('excel-progress-text').textContent = 'Znaleziono ' + d.produktow + ' produktów, analizuję...';
+            pollExcelStatus(d.job_id);
+        }}).catch(function(e) {{ alert('Błąd: ' + e); btn.disabled=false; }});
+    }});
+
+    function pollExcelStatus(jobId) {{
+        fetch('/analityka/analizator-palet/status?job_id=' + jobId)
+        .then(r => r.json()).then(function(d) {{
+            if (d.status === 'running') {{
+                document.getElementById('excel-progress-text').textContent = d.progress || 'Analizuję...';
+                setTimeout(function() {{ pollExcelStatus(jobId); }}, 3000);
+            }} else if (d.status === 'done') {{
+                document.getElementById('excel-progress').style.display = 'none';
+                document.getElementById('btn-analyze-excel').disabled = false;
+                document.getElementById('btn-analyze-excel').textContent = '🔬 Analizuj przed zakupem';
+                renderResults(d);
+            }} else if (d.status === 'error') {{
+                document.getElementById('excel-progress-text').textContent = '❌ ' + (d.error || 'Błąd');
+                document.getElementById('btn-analyze-excel').disabled = false;
+                document.getElementById('btn-analyze-excel').textContent = '🔬 Analizuj';
+            }}
+        }});
+    }}
+
+    {_get_render_results_js()}
+    </script>
+    '''
+    return render(html, 'Analiza zakupu')
+
+
+def _get_render_results_js():
+    """Zwraca wspólny JS renderResults() dla obu stron analizatora."""
+    return '''
+    function demandClass(d) {
+        if (!d) return 'demand-unknown';
+        var dl = d.toLowerCase();
+        if (dl === 'wysoki') return 'demand-high';
+        if (dl === 'niski') return 'demand-low';
+        return 'demand-medium';
+    }
+    function renderResults(d) {
+        var res = document.getElementById('excel-results') || document.getElementById('analysis-results');
+        if (!res) return;
+        var pal = d.paleta || {};
+        var parsed = d.parsed;
+        var html = '<div class="card" style="margin-bottom:16px">';
+        html += '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">';
+        html += '<div style="font-weight:700;font-size:1rem">' + (pal.nazwa || 'Analiza') + '</div>';
+        html += '<div style="color:var(--text-muted);font-size:0.8rem">' + (pal.dostawca||'') + '</div>';
+        html += '</div>';
+        if (parsed && parsed.podsumowanie) {
+            var s = parsed.podsumowanie;
+            var roiColor = (s.roi||0) > 0 ? 'var(--green)' : 'var(--red)';
+            var ocenaBg = (s.ocena||0) >= 7 ? 'var(--green)' : (s.ocena||0) >= 4 ? 'var(--orange)' : 'var(--red)';
+            html += '<div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">';
+            html += '<div class="kpi-card green"><div class="kpi-label">Koszt palety</div><div class="kpi-value">' + ((pal.cena_zakupu||0)).toFixed(0) + ' zł</div></div>';
+            html += '<div class="kpi-card blue"><div class="kpi-label">Szac. przychód</div><div class="kpi-value">' + ((s.przychod||0)).toFixed(0) + ' zł</div></div>';
+            html += '<div class="kpi-card purple"><div class="kpi-label">Prowizja 11%</div><div class="kpi-value">' + ((s.prowizja_allegro||0)).toFixed(0) + ' zł</div></div>';
+            html += '<div class="kpi-card"><div class="kpi-label">Zysk netto</div><div class="kpi-value" style="color:' + roiColor + '">' + ((s.zysk||0)).toFixed(0) + ' zł</div></div>';
+            html += '<div class="kpi-card"><div class="kpi-label">ROI</div><div class="kpi-value" style="color:' + roiColor + '">' + ((s.roi||0)).toFixed(0) + '%</div></div>';
+            html += '<div class="kpi-card orange"><div class="kpi-label">Ocena</div><div class="kpi-value" style="color:' + ocenaBg + '">' + (s.ocena||'?') + '/10</div></div>';
+            html += '</div>';
+        }
+        html += '</div>';
+        if (parsed && parsed.produkty && parsed.produkty.length) {
+            html += '<div class="card" style="overflow-x:auto">';
+            html += '<div style="font-weight:600;margin-bottom:12px">Produkty (' + parsed.produkty.length + ')</div>';
+            html += '<table style="width:100%;border-collapse:collapse;font-size:0.83rem"><thead><tr style="border-bottom:2px solid var(--border)">';
+            html += '<th style="padding:8px;text-align:left">#</th><th style="padding:8px;text-align:left">Produkt</th><th style="padding:8px">Cena Allegro</th><th style="padding:8px">RRP Amazon</th><th style="padding:8px">Popyt</th><th style="padding:8px">Czas</th><th style="padding:8px;text-align:left">Uwagi</th>';
+            html += '</tr></thead><tbody>';
+            parsed.produkty.forEach(function(p, idx) {
+                var cena = p.cena_allegro || p.cena_sprzedazy || 0;
+                var cenaAmz = p.cena_amazon_rpp || 0;
+                html += '<tr style="border-bottom:1px solid var(--border)">';
+                html += '<td style="padding:8px;color:var(--text-muted)">' + (idx+1) + '</td>';
+                html += '<td style="padding:8px;font-weight:500;max-width:250px">' + (p.nazwa||'—') + '</td>';
+                html += '<td style="padding:8px;font-weight:700;color:var(--green);text-align:center">' + cena.toFixed(0) + ' zł</td>';
+                html += '<td style="padding:8px;color:var(--text-muted);text-align:center">' + (cenaAmz > 0 ? cenaAmz.toFixed(0) + ' zł' : '—') + '</td>';
+                var dc = demandClass(p.popyt);
+                var dcColor = dc === 'demand-high' ? 'var(--green)' : dc === 'demand-low' ? 'var(--red)' : 'var(--orange)';
+                html += '<td style="padding:8px;text-align:center"><span style="background:rgba(0,0,0,0.2);padding:3px 10px;border-radius:10px;font-size:0.75rem;font-weight:600;color:' + dcColor + '">' + (p.popyt||'?') + '</span></td>';
+                html += '<td style="padding:8px;text-align:center">' + (p.czas_sprzedazy_dni || '?') + ' dni</td>';
+                html += '<td style="padding:8px;color:var(--text-muted);font-size:0.78rem;max-width:200px">' + (p.uwagi||'—') + '</td>';
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
+        } else if (d.raw) {
+            html += '<div class="card"><div style="white-space:pre-wrap;font-size:0.83rem">' + d.raw.replace(/</g,'&lt;') + '</div></div>';
+        }
+        if (d.citations && d.citations.length) {
+            html += '<div class="card"><div style="font-weight:600;margin-bottom:8px;font-size:0.85rem">Źródła</div>';
+            d.citations.forEach(function(c, i) {
+                html += '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px">[' + (i+1) + '] <a href="' + c + '" target="_blank" style="color:var(--accent)">' + c + '</a></div>';
+            });
+            html += '</div>';
+        }
+        res.innerHTML = html;
+    }
+    '''
 
 
 @analityka_bp.route('/analityka/analizator-palet/status')
