@@ -4398,9 +4398,11 @@ def generator_from_magazyn(product_id):
                     "AND o.produkt_id IN (" + ph + ") "
                     "LIMIT 1",
                     all_prod_ids).fetchone()
+                if existing_offer:
+                    print(f"[DEDUP-WYSTAW] Match po ASIN {asin}: oferta={existing_offer['allegro_id']}")
 
-        # 2. Szukaj po EAN
-        if ean and ean not in ('N/A', 'None', '') and not existing_offer:
+        # 2. Szukaj po EAN (TYLKO jeśli produkt NIE MA ASIN — EAN jest mniej wiarygodny)
+        if ean and ean not in ('N/A', 'None', '') and not existing_offer and not (asin and asin not in ('N/A', 'None', '')):
             all_prod_ids = [r['id'] for r in conn.execute('SELECT id FROM produkty WHERE ean = ?', (ean,)).fetchall()]
             if all_prod_ids:
                 ph = ','.join('?' * len(all_prod_ids))
@@ -4412,17 +4414,33 @@ def generator_from_magazyn(product_id):
                     "AND o.produkt_id IN (" + ph + ") "
                     "LIMIT 1",
                     all_prod_ids).fetchone()
+                if existing_offer:
+                    print(f"[DEDUP-WYSTAW] Match po EAN {ean}: oferta={existing_offer['allegro_id']}")
 
-        # 3. Szukaj po produkt_id
+        # 3. Szukaj po produkt_id (z weryfikacją ASIN jeśli produkt ma ASIN)
         if not existing_offer:
-            existing_offer = conn.execute('''
-                SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status, o.cena
-                FROM oferty o
-                WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
-                AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
-                AND o.produkt_id = ?
-                LIMIT 1
-            ''', (product_id,)).fetchone()
+            if asin and asin not in ('N/A', 'None', ''):
+                existing_offer = conn.execute('''
+                    SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status, o.cena
+                    FROM oferty o
+                    JOIN produkty p ON p.id = o.produkt_id
+                    WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
+                    AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
+                    AND o.produkt_id = ?
+                    AND p.asin = ?
+                    LIMIT 1
+                ''', (product_id, asin)).fetchone()
+            else:
+                existing_offer = conn.execute('''
+                    SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status, o.cena
+                    FROM oferty o
+                    WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
+                    AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
+                    AND o.produkt_id = ?
+                    LIMIT 1
+                ''', (product_id,)).fetchone()
+            if existing_offer:
+                print(f"[DEDUP-WYSTAW] Match po produkt_id={product_id}: oferta={existing_offer['allegro_id']}")
 
         if existing_offer:
             o = dict(existing_offer)
