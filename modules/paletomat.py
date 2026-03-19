@@ -766,98 +766,266 @@ def scraper_status():
 # SZABLONY
 # ============================================================
 CSS = '''<style>
-:root{--bg:#0a0a0f;--bg-card:#12121a;--border:#1e1e2e;--text:#fff;--text-muted:#64748b;--accent:#8b5cf6;--green:#22c55e;--yellow:#eab308}
-[data-theme="light"]{--bg:#f8fafc;--bg-card:#fff;--border:#e2e8f0;--text:#1e293b;--text-muted:#64748b;--accent:#7c3aed;--green:#16a34a;--yellow:#ca8a04}
-*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px}
-.c{max-width:1400px;margin:0 auto;padding:15px}
-.hdr{text-align:center;padding:15px 0;border-bottom:1px solid var(--border);margin-bottom:15px}
-.hdr h1{font-size:1.3rem;color:var(--accent)}
+:root{--bg:#f0f2f5;--bg-card:#fff;--bg-sidebar:#0c0f1a;--border:#e5e7eb;--border-light:#f3f4f6;--text:#1e293b;--text-muted:#64748b;--accent:#6366f1;--accent2:#8b5cf6;--accent-soft:rgba(99,102,241,0.08);--green:#22c55e;--green-soft:rgba(34,197,94,0.08);--yellow:#eab308;--yellow-soft:rgba(234,179,8,0.08);--red:#ef4444;--red-soft:rgba(239,68,68,0.08);--blue:#3b82f6;--blue-soft:rgba(59,130,246,0.08);--cyan:#06b6d4;--shadow:0 1px 3px rgba(0,0,0,0.06);--shadow-md:0 4px 12px rgba(0,0,0,0.08);--shadow-lg:0 8px 24px rgba(0,0,0,0.12);--radius:16px;--radius-sm:10px}
+[data-theme="dark"]{--bg:#06060f;--bg-card:#0f0f1e;--bg-sidebar:#0a0a16;--border:#1a1a2e;--border-light:#151528;--text:#e2e8f0;--text-muted:#64748b;--accent-soft:rgba(99,102,241,0.12);--green-soft:rgba(34,197,94,0.12);--yellow-soft:rgba(234,179,8,0.12);--red-soft:rgba(239,68,68,0.12);--blue-soft:rgba(59,130,246,0.12);--shadow:0 1px 3px rgba(0,0,0,0.2);--shadow-md:0 4px 12px rgba(0,0,0,0.25);--shadow-lg:0 8px 24px rgba(0,0,0,0.3)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,system-ui,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* Sidebar */
+.app-layout{display:flex;min-height:100vh}
+.sidebar{width:250px;background:var(--bg-sidebar);position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;z-index:100;transition:transform 0.3s}
+.sidebar-brand{padding:24px 20px 20px;display:flex;align-items:center;gap:12px}
+.sidebar-brand-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),#22c55e);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#fff;font-weight:800}
+.sidebar-brand-text h1{font-size:0.95rem;color:#fff;font-weight:700;letter-spacing:-0.3px}
+.sidebar-brand-text small{font-size:0.62rem;color:rgba(255,255,255,0.4);display:block;margin-top:1px}
+.sidebar-nav{flex:1;padding:8px 12px;overflow-y:auto}
+.sidebar-section{font-size:0.6rem;text-transform:uppercase;letter-spacing:1.8px;color:rgba(255,255,255,0.25);padding:20px 12px 8px;font-weight:600}
+.sidebar-link{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius-sm);text-decoration:none;color:rgba(255,255,255,0.5);font-size:0.82rem;font-weight:500;transition:all 0.2s;margin-bottom:2px}
+.sidebar-link:hover{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.85)}
+.sidebar-link.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(99,102,241,0.3)}
+.sidebar-link .sl-icon{font-size:1rem;width:22px;text-align:center}
+.sidebar-link .sl-badge{margin-left:auto;background:rgba(255,255,255,0.15);color:#fff;font-size:0.58rem;padding:2px 8px;border-radius:10px;font-weight:700}
+.sidebar-link .sl-dot{margin-left:auto;width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+.sidebar-bottom{padding:12px;border-top:1px solid rgba(255,255,255,0.08)}
+.sidebar-bottom a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;text-decoration:none;color:rgba(255,255,255,0.4);font-size:0.78rem;transition:all 0.2s}
+.sidebar-bottom a:hover{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.8)}
+
+/* Main */
+.main{margin-left:250px;flex:1;min-height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;background:var(--bg-card);border-bottom:1px solid var(--border);box-shadow:var(--shadow)}
+.topbar-title{font-size:1.05rem;font-weight:700;color:var(--text)}
+.topbar-actions{display:flex;gap:10px;align-items:center}
+.c{padding:28px 32px;max-width:1200px}
+
+/* Mobile menu */
+.menu-toggle{display:none;position:fixed;top:14px;left:14px;z-index:200;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);width:42px;height:42px;align-items:center;justify-content:center;cursor:pointer;font-size:1.2rem;box-shadow:var(--shadow-md)}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;backdrop-filter:blur(2px)}
+
+/* Dashboard KPI cards */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);transition:all 0.25s;position:relative;overflow:hidden}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.kpi-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius) var(--radius) 0 0}
+.kpi-card.purple::after{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.kpi-card.green::after{background:linear-gradient(90deg,#22c55e,#16a34a)}
+.kpi-card.blue::after{background:linear-gradient(90deg,var(--blue),#2563eb)}
+.kpi-card.orange::after{background:linear-gradient(90deg,#f59e0b,#d97706)}
+.kpi-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:14px}
+.kpi-card.purple .kpi-icon{background:var(--accent-soft)}
+.kpi-card.green .kpi-icon{background:var(--green-soft)}
+.kpi-card.blue .kpi-icon{background:var(--blue-soft)}
+.kpi-card.orange .kpi-icon{background:var(--yellow-soft)}
+.kpi-value{font-size:1.6rem;font-weight:800;letter-spacing:-0.5px;color:var(--text);line-height:1}
+.kpi-label{font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:6px;font-weight:500}
+.kpi-change{display:inline-flex;align-items:center;gap:3px;font-size:0.68rem;font-weight:600;margin-top:8px;padding:2px 8px;border-radius:20px}
+.kpi-change.up{background:var(--green-soft);color:var(--green)}
+.kpi-change.down{background:var(--red-soft);color:var(--red)}
+
+/* Dashboard grid */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
+.dash-grid-3{display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:24px}
+
+/* Cards */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:20px;box-shadow:var(--shadow);transition:all 0.25s}
+.card:hover{box-shadow:var(--shadow-md)}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-weight:700;font-size:0.92rem;color:var(--text)}
+.card-subtitle{font-size:0.72rem;color:var(--text-muted)}
+.card-action{font-size:0.75rem;color:var(--accent);text-decoration:none;font-weight:600;transition:color 0.2s}
+.card-action:hover{color:var(--accent2)}
+
+/* Old compat */
+.hdr{padding:0 0 20px;margin-bottom:20px;border-bottom:1px solid var(--border)}
+.hdr h1{font-size:1.2rem;color:var(--text);font-weight:700}
 .hdr small{color:var(--text-muted);font-size:0.75rem}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:15px}
-.stat{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
-.stat-v{font-size:1.2rem;font-weight:700;color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.stat{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center;transition:all 0.25s;box-shadow:var(--shadow)}
+.stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.stat-v{font-size:1.5rem;font-weight:800;color:var(--accent);letter-spacing:-0.5px}
 .stat-v.green{color:var(--green)}
-.stat-l{font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;margin-top:2px}
-.status{display:flex;align-items:center;justify-content:space-between;padding:15px;border-radius:12px;margin-bottom:15px}
-.status.on{background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3)}
+.stat-l{font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;margin-top:4px;letter-spacing:0.5px}
+.status{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-radius:var(--radius);margin-bottom:16px;transition:all 0.25s;box-shadow:var(--shadow)}
+.status.on{background:var(--green-soft);border:1px solid rgba(34,197,94,0.2)}
 .status.off{background:var(--bg-card);border:1px solid var(--border)}
-.status-info{display:flex;align-items:center;gap:10px}
+.status-info{display:flex;align-items:center;gap:10px;font-weight:500}
 .status-dot{width:10px;height:10px;border-radius:50%}
-.status-dot.on{background:var(--green);animation:pulse 2s infinite}
+.status-dot.on{background:var(--green);box-shadow:0 0 10px rgba(34,197,94,0.4);animation:pulse 2s infinite}
 .status-dot.off{background:var(--text-muted)}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
-.btn{display:block;width:100%;padding:12px;font-size:0.95rem;font-weight:600;text-align:center;text-decoration:none;border:none;border-radius:10px;cursor:pointer;margin-bottom:8px;color:#fff}
-.btn-p{background:var(--accent)}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 10px rgba(34,197,94,0.4)}50%{opacity:0.6;box-shadow:0 0 4px rgba(34,197,94,0.2)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+
+/* Buttons */
+.btn{display:block;width:100%;padding:12px;font-size:0.92rem;font-weight:600;text-align:center;text-decoration:none;border:none;border-radius:12px;cursor:pointer;margin-bottom:8px;color:#fff;transition:all 0.2s}
+.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.btn-p{background:linear-gradient(135deg,var(--accent),var(--accent2))}
 .btn-ok{background:var(--green)}
 .btn-2{background:var(--bg-card);border:1px solid var(--border);color:var(--text)}
-.btn-sm{padding:8px 16px;font-size:0.85rem;width:auto;display:inline-block}
-.module{display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:15px;margin-bottom:10px;text-decoration:none;color:var(--text)}
-.module:hover{border-color:var(--accent)}
-.module-icon{font-size:2rem;margin-right:15px}
+.btn-sm{padding:8px 16px;font-size:0.82rem;width:auto;display:inline-block;border-radius:8px}
+
+/* Module links */
+.module{display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;text-decoration:none;color:var(--text);transition:all 0.25s;box-shadow:var(--shadow);animation:fadeIn 0.4s ease both}
+.module:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.module-icon{font-size:1.4rem;margin-right:14px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);border-radius:12px}
 .module-info{flex:1}
-.module-name{font-weight:600;font-size:1rem}
-.module-desc{font-size:0.75rem;color:var(--text-muted);margin-top:2px}
-.module-arrow{color:var(--text-muted);font-size:1.2rem}
-.item{display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;text-decoration:none;color:var(--text)}
-.item:hover{border-color:var(--accent)}
-.item img{width:45px;height:45px;object-fit:contain;background:#fff;border-radius:6px;margin-right:10px}
-.item-dot{width:8px;height:8px;border-radius:50%;margin-right:10px}
-.item-dot.green{background:var(--green)}
-.item-dot.yellow{background:var(--yellow)}
+.module-name{font-weight:700;font-size:0.92rem}
+.module-desc{font-size:0.73rem;color:var(--text-muted);margin-top:3px}
+.module-arrow{color:var(--text-muted);font-size:1.2rem;transition:transform 0.2s}
+.module:hover .module-arrow{transform:translateX(3px);color:var(--accent)}
+
+/* Items */
+.item{display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;text-decoration:none;color:var(--text);transition:all 0.2s;box-shadow:var(--shadow)}
+.item:hover{border-color:var(--accent);box-shadow:var(--shadow-md)}
+.item img{width:48px;height:48px;object-fit:contain;background:#fff;border-radius:8px;margin-right:12px}
+.item-dot{width:8px;height:8px;border-radius:50%;margin-right:10px;flex-shrink:0}
+.item-dot.green{background:var(--green);box-shadow:0 0 6px rgba(34,197,94,0.3)}
+.item-dot.yellow{background:var(--yellow);box-shadow:0 0 6px rgba(234,179,8,0.3)}
 .item-info{flex:1;min-width:0}
 .item-name{font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.item-meta{font-size:0.7rem;color:var(--text-muted)}
+.item-meta{font-size:0.7rem;color:var(--text-muted);margin-top:2px}
 .item-right{text-align:right;margin-left:8px}
 .item-price{font-weight:700;color:var(--green)}
 .item-margin{font-size:0.7rem;color:var(--accent)}
-.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:15px;margin-bottom:15px}
-.card-title{font-weight:600;margin-bottom:12px;color:var(--accent)}
+
+/* Forms */
 .form-group{margin-bottom:12px}
-.form-group label{display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px}
-.form-ctrl{width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.95rem}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.section{color:var(--accent);font-weight:600;font-size:0.85rem;margin:20px 0 10px;display:flex;align-items:center;gap:6px}
-.alert{padding:12px;border-radius:10px;margin-bottom:12px;text-align:center;font-size:0.9rem}
-.alert-ok{background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:var(--green)}
-.alert-warn{background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.3);color:var(--yellow)}
-.back{display:block;text-align:center;color:var(--text-muted);text-decoration:none;padding:12px;font-size:0.85rem}
-.badge{display:inline-block;padding:3px 8px;border-radius:12px;font-size:0.7rem;font-weight:600}
-.badge-ok{background:rgba(34,197,94,0.2);color:var(--green)}
-.badge-warn{background:rgba(234,179,8,0.2);color:var(--yellow)}
-.nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);padding:8px 0}
-.nav-inner{max-width:1600px;margin:0 auto;display:flex;justify-content:space-around}
-.nav a{text-align:center;color:var(--text-muted);text-decoration:none;padding:6px 6px;border-radius:8px;font-size:0.7rem}
-.nav a:hover,.nav a.on{color:var(--accent);background:rgba(139,92,246,0.1)}
-.nav-icon{font-size:1.4rem}
-.theme-toggle{position:fixed;top:15px;right:15px;z-index:200;background:var(--bg-card);border:1px solid var(--border);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.3rem;transition:all 0.3s}
-.theme-toggle:hover{transform:scale(1.1);border-color:var(--accent)}
+.form-group label{display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px}
+.form-ctrl{width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:0.92rem;transition:all 0.2s}
+.form-ctrl:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px rgba(99,102,241,0.1)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.section{color:var(--text);font-weight:700;font-size:0.82rem;margin:24px 0 12px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:0.5px}
+.alert{padding:14px 18px;border-radius:12px;margin-bottom:14px;text-align:center;font-size:0.88rem;font-weight:500;box-shadow:var(--shadow)}
+.alert-ok{background:var(--green-soft);border:1px solid rgba(34,197,94,0.15);color:var(--green)}
+.alert-warn{background:var(--yellow-soft);border:1px solid rgba(234,179,8,0.15);color:var(--yellow)}
+.back{display:block;text-align:center;color:var(--text-muted);text-decoration:none;padding:14px;font-size:0.85rem;transition:color 0.2s}
+.back:hover{color:var(--accent)}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:0.68rem;font-weight:700}
+.badge-ok{background:var(--green-soft);color:var(--green)}
+.badge-warn{background:var(--yellow-soft);color:var(--yellow)}
+
+/* Activity list */
+.activity-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-light)}
+.activity-item:last-child{border-bottom:none}
+.activity-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0}
+.activity-icon.green{background:var(--green-soft)}
+.activity-icon.blue{background:var(--blue-soft)}
+.activity-icon.purple{background:var(--accent-soft)}
+.activity-icon.orange{background:var(--yellow-soft)}
+.activity-text{flex:1;min-width:0}
+.activity-title{font-weight:600;font-size:0.82rem}
+.activity-time{font-size:0.7rem;color:var(--text-muted);margin-top:2px}
+
+/* Quick action buttons */
+.quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qa-btn{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);text-decoration:none;color:var(--text);font-size:0.82rem;font-weight:600;transition:all 0.2s}
+.qa-btn:hover{border-color:var(--accent);background:var(--accent-soft);transform:translateY(-1px)}
+.qa-btn .qa-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem}
+
+/* Hide old nav */
+.nav{display:none}
+
+/* Theme toggle */
+.theme-toggle{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;transition:all 0.3s}
+.theme-toggle:hover{transform:scale(1.08);border-color:var(--accent)}
+
 /* Responsive */
-@media(min-width:1200px){.c{max-width:1400px;padding:25px}}
-@media(max-width:1199px){.c{max-width:100%;padding:20px}}
-@media(max-width:768px){.c{padding:15px}.form-row{grid-template-columns:1fr}.theme-toggle{width:40px;height:40px;font-size:1.1rem}}
-@media(max-width:480px){.c{padding:10px;padding-bottom:80px}.btn{padding:12px;font-size:0.9rem}.hdr h1{font-size:1.3rem}.theme-toggle{top:10px;right:10px;width:36px;height:36px;font-size:1rem}.nav a{font-size:0.65rem;padding:4px 3px}.nav-icon{font-size:1.3rem}}
+@media(max-width:900px){
+    .sidebar{transform:translateX(-100%)}
+    .sidebar.open{transform:translateX(0)}
+    .sidebar-overlay.open{display:block}
+    .menu-toggle{display:flex}
+    .main{margin-left:0}
+    .topbar{padding-left:60px}
+    .c{padding:16px}
+    .kpi-grid{grid-template-columns:repeat(2,1fr)}
+    .dash-grid,.dash-grid-3{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+    .stats{grid-template-columns:1fr}
+    .form-row{grid-template-columns:1fr}
+    .kpi-grid{grid-template-columns:1fr}
+    .quick-actions{grid-template-columns:1fr}
+    .c{padding:12px}
+}
 </style>'''
 
-BASE = '''<!DOCTYPE html><html lang="pl" data-theme="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Paletomat</title><meta name="theme-color" content="#0a0a0f">
+BASE = '''<!DOCTYPE html><html lang="pl" data-theme="light"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paletomat</title><meta name="theme-color" content="#f0f2f5">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <script>
 const saved = localStorage.getItem('theme');
 if(saved) document.documentElement.setAttribute('data-theme', saved);
-else if(window.matchMedia('(prefers-color-scheme: light)').matches) document.documentElement.setAttribute('data-theme', 'light');
 </script>''' + CSS + '''<link rel="stylesheet" href="/static/kiosk.css"></head><body>
 <script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
-<div class="theme-toggle" onclick="toggleTheme()" title="Zmień motyw">
-    <span id="theme-icon">🌙</span>
+
+<!-- Mobile menu toggle -->
+<div class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open');document.querySelector('.sidebar-overlay').classList.toggle('open')">☰</div>
+<div class="sidebar-overlay" onclick="document.querySelector('.sidebar').classList.remove('open');this.classList.remove('open')"></div>
+
+<div class="app-layout">
+<!-- Sidebar -->
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">P</div>
+        <div class="sidebar-brand-text">
+            <h1>Paletomat</h1>
+            <small>v32.0 · <span style="color:__PLAN_COLOR__;font-weight:700">__PLAN_NAME__</span></small>
+        </div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="sidebar-section">Glowne</div>
+        <a href="/paletomat" class="sidebar-link active">
+            <span class="sl-icon">📊</span>Dashboard
+        </a>
+        <a href="/paletomat/scraper" class="sidebar-link">
+            <span class="sl-icon">🌐</span>Amazon Scraper
+        </a>
+        <a href="/paletomat/generator" class="sidebar-link">
+            <span class="sl-icon">🏷️</span>Generator ofert
+        </a>
+
+        <div class="sidebar-section">Sprzedaz</div>
+        <a href="/paletomat/oferty" class="sidebar-link">
+            <span class="sl-icon">📝</span>Moje oferty
+        </a>
+        <a href="/paletomat/monitoring" class="sidebar-link">
+            <span class="sl-icon">📈</span>Monitoring
+        </a>
+        <a href="/telegram/live" class="sidebar-link">
+            <span class="sl-icon">💰</span>Sprzedaz LIVE
+        </a>
+
+        <div class="sidebar-section">Narzedzia</div>
+        <a href="/palety/bulk-import" class="sidebar-link">
+            <span class="sl-icon">📦</span>Bulk import
+        </a>
+        <a href="/paletomat/test-upload" class="sidebar-link">
+            <span class="sl-icon">🔧</span>Test upload
+        </a>
+        <a href="/analytics/profit" class="sidebar-link">
+            <span class="sl-icon">💹</span>Profit Analyzer
+        </a>
+    </nav>
+    <div class="sidebar-bottom">
+        <a href="/narzedzia"><span class="sl-icon">⚡</span>Narzedzia</a>
+        <a href="/"><span class="sl-icon">🏠</span>Strona glowna</a>
+    </div>
+</aside>
+
+<!-- Main content -->
+<div class="main">
+<div class="topbar">
+    <div class="topbar-title">Dashboard</div>
+    <div class="topbar-actions">
+        <div class="theme-toggle" onclick="toggleTheme()" title="Zmien motyw">
+            <span id="theme-icon">🌙</span>
+        </div>
+    </div>
 </div>
 <div class="c">{content}</div>
-<nav class="nav"><div class="nav-inner">
-<a href="/"><div class="nav-icon">🏠</div>Home</a>
-<a href="/magazyn"><div class="nav-icon">📦</div>Magazyn</a>
-<a href="/paletomat" class="on"><div class="nav-icon">🤖</div>Paletomat</a>
-<a href="/allegro"><div class="nav-icon">🛒</div>Allegro</a>
-<a href="/monitor"><div class="nav-icon">🔍</div>Monitor</a>
-<a href="/narzedzia"><div class="nav-icon">⚡</div>Narzędzia</a>
-</div></nav>
+</div>
+</div>
+
 <script>
 function toggleTheme(){
     const html = document.documentElement;
@@ -866,16 +1034,45 @@ function toggleTheme(){
     html.setAttribute('data-theme', next);
     localStorage.setItem('theme', next);
     document.getElementById('theme-icon').textContent = next === 'dark' ? '🌙' : '☀️';
-    document.querySelector('meta[name="theme-color"]').content = next === 'dark' ? '#0a0a0f' : '#f8fafc';
+    document.querySelector('meta[name="theme-color"]').content = next === 'dark' ? '#06060f' : '#f1f5f9';
 }
-// Set icon on load
 const theme = document.documentElement.getAttribute('data-theme');
 document.getElementById('theme-icon').textContent = theme === 'dark' ? '🌙' : '☀️';
+
+// Highlight active sidebar link
+const path = window.location.pathname;
+document.querySelectorAll('.sidebar-link').forEach(function(link) {
+    link.classList.remove('active');
+    if (link.getAttribute('href') === path) link.classList.add('active');
+});
 </script>
 </body></html>'''
 
+_cached_plan = {'name': None, 'color': None, 'ts': 0}
+
+def _get_plan_display():
+    """Return (plan_name, plan_color) with 60s cache."""
+    import time as _time
+    now = _time.time()
+    if _cached_plan['name'] and now - _cached_plan['ts'] < 60:
+        return _cached_plan['name'], _cached_plan['color']
+    try:
+        from .license import check_license
+        _valid, _plan, _msg = check_license()
+        plan_name = (_plan or 'free').upper()
+    except Exception:
+        plan_name = 'FREE'
+    plan_colors = {'STARTER': '#64748b', 'PRO': '#6366f1', 'BUSINESS': '#22c55e', 'FREE': '#ef4444'}
+    plan_color = plan_colors.get(plan_name, '#64748b')
+    _cached_plan.update(name=plan_name, color=plan_color, ts=now)
+    return plan_name, plan_color
+
 def render(content):
-    return BASE.replace('{content}', content)
+    plan_name, plan_color = _get_plan_display()
+    html = BASE.replace('{content}', content)
+    html = html.replace('__PLAN_NAME__', plan_name)
+    html = html.replace('__PLAN_COLOR__', plan_color)
+    return html
 
 # ============================================================
 # ROUTES
@@ -910,146 +1107,171 @@ def index():
             </div>
         </div>'''
     
+    # Dodatkowe dane do dashboardu (combined query)
+    _sp = conn.execute('''
+        SELECT
+            COALESCE(SUM(CASE WHEN data_sprzedazy >= date('now', '-7 days') THEN cena * ilosc END), 0),
+            COALESCE(SUM(cena * ilosc), 0)
+        FROM sprzedaze
+        WHERE data_sprzedazy >= date('now', '-30 days')
+          AND status NOT IN ('zwrot','anulowane','anulowana')
+    ''').fetchone()
+    sprzedaz_7d, sprzedaz_30d = _sp[0], _sp[1]
+    nowe_7d = conn.execute("SELECT COUNT(*) FROM scraped WHERE data_scrape >= date('now', '-7 days')").fetchone()[0]
+
+    # Ostatnie sprzedaże
+    ostatnie_sprzedaze = conn.execute('''
+        SELECT s.cena, s.ilosc, s.data_sprzedazy,
+               COALESCE(p.nazwa, s.nazwa, 'Produkt') as nazwa
+        FROM sprzedaze s LEFT JOIN produkty p ON s.produkt_id = p.id
+        WHERE s.status NOT IN ('zwrot','anulowane','anulowana')
+        ORDER BY s.data_sprzedazy DESC LIMIT 6
+    ''').fetchall()
+
     html = f'''
-    <div class="hdr"><h1>🤖 PALETOMAT</h1><small>v17.2 PRO</small></div>
-    
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+        <div class="kpi-card purple">
+            <div class="kpi-icon">🔍</div>
+            <div class="kpi-value">{s['scraped']}</div>
+            <div class="kpi-label">Zescrapowanych</div>
+            <div class="kpi-change up">+{nowe_7d} ten tydzien</div>
+        </div>
+        <div class="kpi-card green">
+            <div class="kpi-icon">📝</div>
+            <div class="kpi-value">{s['aktywne']}</div>
+            <div class="kpi-label">Aktywnych ofert</div>
+        </div>
+        <div class="kpi-card blue">
+            <div class="kpi-icon">💰</div>
+            <div class="kpi-value">{sprzedaz_7d:,.0f} zl</div>
+            <div class="kpi-label">Sprzedaz 7 dni</div>
+        </div>
+        <div class="kpi-card orange">
+            <div class="kpi-icon">📊</div>
+            <div class="kpi-value">{sprzedaz_30d:,.0f} zl</div>
+            <div class="kpi-label">Sprzedaz 30 dni</div>
+        </div>
+    </div>
+
+    <!-- Status scraperów -->
     <div class="status {status_class}">
         <div class="status-info">
             <div class="status-dot {status_class}"></div>
             <span>{'Scraper aktywny' if is_running else 'Scraper zatrzymany'}</span>
         </div>
         <form action="/paletomat/scraper/toggle" method="POST" style="margin:0">
-            <button type="submit" class="btn-sm {'btn-ok' if not is_running else ''}" style="background:{'#ef4444' if is_running else '#22c55e'}">
+            <button type="submit" class="btn-sm" style="background:{'#ef4444' if is_running else '#22c55e'};color:#fff;border:none;cursor:pointer">
                 {'⏹️ STOP' if is_running else '▶️ START'}
             </button>
         </form>
     </div>
-    
+
     {auto_badge}
-    
-    <div class="stats">
-        <div class="stat"><div class="stat-v">{s['scraped']}</div><div class="stat-l">Zescrapowanych</div></div>
-        <div class="stat"><div class="stat-v">{s['aktywne']}</div><div class="stat-l">Aktywnych</div></div>
-        <div class="stat"><div class="stat-v green">{s['przychod']:.0f} zł</div><div class="stat-l">Przychód</div></div>
-    </div>
-    
+
     <script>
-    // Auto-refresh status kolejki co 3 sekundy
     setInterval(async () => {{
         try {{
             const res = await fetch('/paletomat/api/queue-status');
             const data = await res.json();
-            
             const statusDiv = document.getElementById('auto-status');
             const textSpan = document.getElementById('auto-text');
-            
             if (data.running || data.queue_length > 0) {{
-                if (!statusDiv) {{
-                    // Reload jeśli badge nie istnieje
-                    location.reload();
-                }} else {{
-                    // Update badge
-                    const statusClass = data.running ? 'on' : 'off';
-                    const text = data.running 
-                        ? `🔄 Przetwarzanie w tle: ${{data.queue_length}} produktów`
-                        : `⏸️ Kolejka: ${{data.queue_length}} produktów`;
-                    
-                    statusDiv.className = `status ${{statusClass}}`;
-                    statusDiv.querySelector('.status-dot').className = `status-dot ${{statusClass}}`;
-                    textSpan.textContent = text;
+                if (!statusDiv) {{ location.reload(); }}
+                else {{
+                    const sc = data.running ? 'on' : 'off';
+                    statusDiv.className = `status ${{sc}}`;
+                    statusDiv.querySelector('.status-dot').className = `status-dot ${{sc}}`;
+                    textSpan.textContent = data.running
+                        ? `🔄 Przetwarzanie: ${{data.queue_length}} produktow`
+                        : `⏸️ Kolejka: ${{data.queue_length}} produktow`;
                 }}
-            }} else if (statusDiv) {{
-                // Ukryj badge jeśli kolejka pusta i nieaktywna
-                statusDiv.style.display = 'none';
-            }}
-        }} catch(e) {{
-            console.error('Queue status check failed:', e);
-        }}
+            }} else if (statusDiv) {{ statusDiv.style.display = 'none'; }}
+        }} catch(e) {{}}
     }}, 3000);
     </script>
-    
-    <div class="section">📋 MODUŁY</div>
-    
-    <a href="/paletomat/scraper" class="module">
-        <div class="module-icon">🌐</div>
-        <div class="module-info">
-            <div class="module-name">Amazon Scraper</div>
-            <div class="module-desc">Pobierz produkty z Amazon DE/UK/US</div>
-        </div>
-        <div class="module-arrow">›</div>
-    </a>
-    
-    <a href="/paletomat/generator" class="module">
-        <div class="module-icon">🏷️</div>
-        <div class="module-info">
-            <div class="module-name">Generator ofert Allegro</div>
-            <div class="module-desc">Automatyczne opisy i ceny</div>
-        </div>
-        <div class="module-arrow">›</div>
-    </a>
-    
-    <a href="/paletomat/monitoring" class="module">
-        <div class="module-icon">📊</div>
-        <div class="module-info">
-            <div class="module-name">Monitoring sprzedaży</div>
-            <div class="module-desc">Alerty i statystyki</div>
-        </div>
-        <div class="module-arrow">›</div>
-    </a>
-    
-    <a href="/paletomat/oferty" class="module">
-        <div class="module-icon">📝</div>
-        <div class="module-info">
-            <div class="module-name">Moje oferty</div>
-            <div class="module-desc">{s['aktywne']} aktywnych</div>
-        </div>
-        <div class="module-arrow">›</div>
-    </a>
-    
-    <a href="/paletomat/test-upload" class="module" style="border-color:#f59e0b">
-        <div class="module-icon">🔧</div>
-        <div class="module-info">
-            <div class="module-name">Test upload zdjęć</div>
-            <div class="module-desc">Debugowanie problemu z obrazkami</div>
-        </div>
-        <div class="module-arrow">›</div>
-    </a>
-    
-    <div class="section">📦 NARZĘDZIA</div>
-    
-    <a href="/palety/bulk-import" class="module" style="border-color:#22c55e">
-        <div class="module-icon">📊</div>
-        <div class="module-info">
-            <div class="module-name">Bulk import palet</div>
-            <div class="module-desc">Importuj wiele palet naraz z XLSX</div>
-        </div>
-        <div class="module-arrow">›</div>
-    </a>
-    
-    <a href="/telegram/live" class="module" style="border-color:#3b82f6">
-        <div class="module-icon">💰</div>
-        <div class="module-info">
-            <div class="module-name">Sprzedaż LIVE</div>
-            <div class="module-desc">Dashboard na żywo + alerty</div>
-        </div>
-        <div class="module-arrow">›</div>
-    </a>
+
+    <!-- Dashboard grid -->
+    <div class="dash-grid-3">
+        <!-- Ostatnia aktywnosc -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Ostatnia aktywnosc</div>
+                <a href="/paletomat/oferty" class="card-action">Zobacz wszystko →</a>
+            </div>
     '''
-    
-    if scraped:
-        html += '<div class="section">🔍 OSTATNIO ZESCRAPOWANE</div>'
-        for p in scraped:
-            status_dot = 'green' if p['status'] == 'gotowy' else 'yellow'
-            html += f'''<div class="item">
-                <div class="item-dot {status_dot}"></div>
-                <img src="{get_amazon_image_url(p['asin'])}" onerror="this.style.display='none'">
-                <div class="item-info">
-                    <div class="item-name">{(p['nazwa'] or p['asin'])[:30]}...</div>
-                    <div class="item-meta">ASIN: {p['asin']} | €{p['cena_amazon'] or 0:.2f}</div>
+
+    if ostatnie_sprzedaze:
+        for sp in ostatnie_sprzedaze:
+            nazwa_short = (sp['nazwa'] or 'Produkt')[:35]
+            html += f'''
+            <div class="activity-item">
+                <div class="activity-icon green">🛒</div>
+                <div class="activity-text">
+                    <div class="activity-title">{nazwa_short}</div>
+                    <div class="activity-time">{sp['data_sprzedazy'] or 'Brak daty'} · {sp['ilosc']}x · {sp['cena']:.0f} zl</div>
                 </div>
             </div>'''
-    
-    html += '<a href="/" class="back">← Powrót</a>'
+    else:
+        html += '<div style="text-align:center;padding:30px;color:var(--text-muted);font-size:0.85rem">Brak sprzedazy</div>'
+
+    html += '''
+        </div>
+
+        <!-- Szybkie akcje -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Szybkie akcje</div>
+            </div>
+            <div class="quick-actions">
+                <a href="/paletomat/scraper" class="qa-btn">
+                    <div class="qa-icon" style="background:var(--accent-soft)">🌐</div>
+                    Scraper
+                </a>
+                <a href="/paletomat/generator" class="qa-btn">
+                    <div class="qa-icon" style="background:var(--green-soft)">🏷️</div>
+                    Generator
+                </a>
+                <a href="/paletomat/oferty" class="qa-btn">
+                    <div class="qa-icon" style="background:var(--blue-soft)">📝</div>
+                    Oferty
+                </a>
+                <a href="/paletomat/monitoring" class="qa-btn">
+                    <div class="qa-icon" style="background:var(--yellow-soft)">📈</div>
+                    Monitoring
+                </a>
+                <a href="/palety/bulk-import" class="qa-btn">
+                    <div class="qa-icon" style="background:var(--green-soft)">📦</div>
+                    Bulk import
+                </a>
+                <a href="/analytics/profit" class="qa-btn">
+                    <div class="qa-icon" style="background:var(--accent-soft)">💹</div>
+                    Profit
+                </a>
+            </div>
+        </div>
+    </div>
+    '''
+
+    # Ostatnio zescrapowane
+    if scraped:
+        html += '''<div class="card">
+            <div class="card-header">
+                <div class="card-title">Ostatnio zescrapowane</div>
+                <a href="/paletomat/scraper" class="card-action">Scraper →</a>
+            </div>'''
+        for p in scraped:
+            status_dot = 'green' if p['status'] == 'gotowy' else 'yellow'
+            html += f'''<div class="activity-item">
+                <img src="{get_amazon_image_url(p['asin'])}" style="width:40px;height:40px;object-fit:contain;background:#fff;border-radius:8px;flex-shrink:0" onerror="this.style.display='none'">
+                <div class="activity-text">
+                    <div class="activity-title">{(p['nazwa'] or p['asin'])[:40]}</div>
+                    <div class="activity-time">ASIN: {p['asin']} · €{p['cena_amazon'] or 0:.2f}</div>
+                </div>
+                <div class="item-dot {status_dot}" style="flex-shrink:0"></div>
+            </div>'''
+        html += '</div>'
+
     return render(html)
 
 @paletomat_bp.route('/scraper')
