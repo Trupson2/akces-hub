@@ -40,79 +40,60 @@ def detect_stan_from_name(nazwa: str) -> str:
     return "Nowy"
 
 
-# Import Gemini AI (opcjonalny)
-GEMINI_AVAILABLE = False
-GEMINI_CLIENT = None
-try:
-    from google import genai
-    from google.genai import types
-    try:
-        from gemini_config import GEMINI_API_KEY
-        if GEMINI_API_KEY and GEMINI_API_KEY != 'WKLEJ_TUTAJ_SWOJ_KLUCZ':
-            GEMINI_CLIENT = genai.Client(api_key=GEMINI_API_KEY)
-            GEMINI_AVAILABLE = True
-    except Exception as e:
-        print(f"⚠️  Gemini config error: {e}")
-        GEMINI_AVAILABLE = False
-except Exception as e:
-    print(f"⚠️  Gemini import error: {e}")
-    GEMINI_AVAILABLE = False
+# Gemini AI - klucz pobierany z DB config (get_config('gemini_api_key'))
 
 
-def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin: str = '', retry_count: int = 5) -> str:
+def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin: str = '', retry_count: int = 3) -> str:
     """
-    Generuje META TITLE używając Gemini AI
-    
+    Generuje META TITLE używając Gemini AI (REST API)
+
     Returns:
         META TITLE string (zawsze coś zwraca - fallback na produkt_nazwa)
     """
-    # Skróć nazwę dla lepszego wyświetlania
+    import time
+    import requests as _req
+
     short_name = produkt_nazwa[:50] + '...' if len(produkt_nazwa) > 50 else produkt_nazwa
-    
-    # Pobierz klucz Gemini z configu
+
+    # Pobierz klucz Gemini z DB config
     from .database import get_config
     _gemini_key = get_config('gemini_api_key', '')
     if not _gemini_key:
-        try:
-            from gemini_config import GEMINI_API_KEY
-            _gemini_key = GEMINI_API_KEY
-        except:
-            pass
-
-    if not _gemini_key:
-        print(f"⚠️  [AI DISABLED] Brak klucza Gemini - używam oryginalnej nazwy")
+        print(f"⚠️  [AI DISABLED] Brak klucza Gemini w config - używam oryginalnej nazwy")
         return produkt_nazwa[:75]
 
     print(f"🤖 [AI REQUEST] Wysyłam do Gemini: {short_name}")
 
-    # RETRY LOOP
     for attempt in range(retry_count):
         try:
-            prompt = f"""Wygeneruj tytuł produktu dla Allegro używając słów kluczowych dla SEO.
+            prompt = f"""Jesteś ekspertem SEO na Allegro. Stwórz polski tytuł oferty.
 
-PRODUKT: {produkt_nazwa}
+ORYGINALNA NAZWA (często po angielsku/niemiecku): {produkt_nazwa}
 {f'EAN: {produkt_ean}' if produkt_ean else ''}
 {f'ASIN: {produkt_asin}' if produkt_asin else ''}
 
 ZASADY:
-1. NAJPIERW rodzaj produktu (Smartwatch, Statyw, Kamera, Tło)
-2. POTEM rozmiar lub model (Galaxy Watch 4, 2.5x1.8m, 63cm)
-3. POTEM najważniejsze cechy (GPS, NFC, Aluminiowy, Rustykalne)
-4. NA KOŃCU marka (Samsung, Xiaoterna) - jeśli jest znana marka
-5. MAX 75 znaków, bez przecinków, tylko spacje
-6. BEZ stanu (Nowy/Używany)
+1. Tytuł MUSI być po polsku
+2. Struktura: [Rodzaj produktu] [Model/Seria] [Najważniejsze cechy] [Marka]
+3. Rodzaj produktu ZAWSZE na początku (Smartwatch, Słuchawki, Etui, Kabel, Statyw, Ładowarka, Głośnik, Klawiatura, Mysz, Plecak, Lampa, Uchwyt, Filtr, Szczotka)
+4. Przetłumacz angielskie nazwy na polski (Case→Etui, Charger→Ładowarka, Headphones→Słuchawki, Stand→Stojak, Cover→Pokrowiec, Tripod→Statyw, Keyboard→Klawiatura, Mouse→Mysz, Speaker→Głośnik, Screen Protector→Szkło Ochronne, Cable→Kabel, Holder→Uchwyt, Brush→Szczotka, Backpack→Plecak, Wallet→Portfel, Lamp→Lampa)
+5. Używaj słów kluczowych które ludzie wyszukują na Allegro
+6. MAX 75 znaków, bez przecinków, tylko spacje
+7. BEZ stanu (Nowy/Używany/Powystawowy), BEZ ceny
+8. Każde słowo z wielkiej litery
 
 PRZYKŁADY:
-"Smartwatch Galaxy Watch 4 GPS NFC Pulsometr Samsung"
-"Tło Fotograficzne 2.5x1.8m Kuchnia Salon Xiaoterna"
-"Statyw Aluminiowy 63cm Regulowany JOILCAN"
+"Samsung Galaxy Watch 4 44mm Bluetooth" → "Smartwatch Samsung Galaxy Watch 4 GPS NFC Pulsometr"
+"JOILCAN 63cm Camera Tripod Aluminum" → "Statyw Fotograficzny Aluminiowy 63cm Regulowany JOILCAN"
+"Anker USB-C Fast Charger 65W GaN" → "Ładowarka USB-C 65W Szybka GaN Anker"
+"JBL Tune 510BT Wireless Headphones" → "Słuchawki Bezprzewodowe Bluetooth JBL Tune 510BT"
+"Spigen iPhone 15 Pro Case Clear" → "Etui Ochronne iPhone 15 Pro Przezroczyste Spigen"
 
-Wygeneruj TYLKO tytuł, bez komentarzy:"""
+Odpowiedz TYLKO tytułem, nic więcej:"""
 
             if attempt > 0:
                 print(f"   ↻ [RETRY {attempt+1}/{retry_count}] Ponawiam zapytanie...")
 
-            import requests as _req
             _api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_gemini_key}"
             _resp = _req.post(_api_url, json={
                 "contents": [{"parts": [{"text": prompt}]}],
@@ -123,94 +104,75 @@ Wygeneruj TYLKO tytuł, bez komentarzy:"""
 
             if _resp.status_code == 200:
                 _data = _resp.json()
-                meta_title = _data.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '').strip()
-                if meta_title:
+                try:
+                    meta_title = _data['candidates'][0]['content']['parts'][0]['text'].strip()
                     print(f"   ✓ [RESPONSE] Odebrano: {meta_title[:100]}")
+                except (KeyError, IndexError):
+                    print(f"   ❌ [PARSE ERROR] Nieoczekiwana struktura: {str(_data)[:200]}")
+            elif _resp.status_code == 429:
+                print(f"   ⚠️  [QUOTA] Rate limit - czekam 5s...")
+                time.sleep(5)
+                continue
             else:
                 print(f"   ❌ [API ERROR] {_resp.status_code}: {_resp.text[:200]}")
-            
-            # Jeśli nadal nic - retry
+
             if not meta_title:
-                print(f"   ✗ [ERROR] Gemini nie zwrócił tekstu (próba {attempt+1}/{retry_count})")
                 if attempt < retry_count - 1:
-                    import time
                     time.sleep(2)
                     continue
-                else:
-                    print(f"   ✗ [FALLBACK] Używam oryginalnej nazwy po {retry_count} próbach")
-                    return produkt_nazwa[:75]
-            
-            # ========== SOLIDNE CZYSZCZENIE TEKSTU ==========
-            # Usuń markdown code blocks
-            import re
-            meta_title = re.sub(r'```json\s*', '', meta_title)
-            meta_title = re.sub(r'```\s*', '', meta_title)
+                print(f"   ✗ [FALLBACK] Używam oryginalnej nazwy po {retry_count} próbach")
+                return produkt_nazwa[:75]
+
+            # ========== CZYSZCZENIE TEKSTU ==========
+            meta_title = re.sub(r'```.*?```', '', meta_title, flags=re.DOTALL)
             meta_title = meta_title.replace('**', '').strip()
-            
-            # Jeśli odpowiedź w JSON - wyciągnij wartość "meta_title" lub "title"
-            if meta_title.startswith('{') or 'meta_title' in meta_title.lower():
+
+            # Jeśli odpowiedź w JSON - wyciągnij tytuł
+            if meta_title.startswith('{'):
                 try:
-                    import json
-                    # Spróbuj sparsować jako JSON
                     json_match = re.search(r'\{[^}]+\}', meta_title, re.DOTALL)
                     if json_match:
-                        json_str = json_match.group(0)
-                        data = json.loads(json_str)
-                        # Szukaj klucza z tytułem
-                        for key in ['meta_title', 'title', 'name', 'product_title']:
+                        data = json.loads(json_match.group(0))
+                        for key in ['meta_title', 'title', 'name']:
                             if key in data:
                                 meta_title = data[key]
-                                print(f"   🔧 [JSON CLEANED] Extracted '{key}': {meta_title}")
                                 break
-                except Exception as e:
-                    print(f"   ⚠️  [JSON PARSE] Nie udało się sparsować JSON: {str(e)[:50]}")
-                    # Kontynuuj z czyszczeniem tekstowym
-            
-            # Usuń cudzysłowy, newlines, etc
+                except Exception:
+                    pass
+
+            # Wyczyść cudzysłowy, newlines, wielokrotne spacje
             meta_title = meta_title.strip('"').strip("'").strip()
             meta_title = meta_title.replace('\n', ' ').replace('\r', ' ')
-            
-            # Usuń wielokrotne spacje
             meta_title = re.sub(r'\s+', ' ', meta_title)
-            
-            # Ogranicz do 75 znaków
+
+            # Ogranicz do 75 znaków (ucinaj na granicy słowa)
             if len(meta_title) > 75:
                 meta_title = meta_title[:75].rsplit(' ', 1)[0]
-            
-            # Walidacja - czy to sensowny tytuł?
+
+            # Walidacja
             if len(meta_title) < 5:
-                print(f"   ✗ [ERROR] Tytuł za krótki ({len(meta_title)} znaków): '{meta_title}'")
+                print(f"   ✗ [ERROR] Tytuł za krótki: '{meta_title}'")
                 if attempt < retry_count - 1:
-                    import time
-                    time.sleep(2)  # Więcej czasu przed retry
+                    time.sleep(2)
                     continue
-                else:
-                    print(f"   ✗ [FALLBACK] Używam oryginalnej nazwy")
-                    return produkt_nazwa[:75]
-            
-            # SUKCES!
+                return produkt_nazwa[:75]
+
             print(f"   ✅ [SUCCESS] Wygenerowano: {meta_title}")
             return meta_title
-            
+
         except Exception as e:
             error_msg = str(e)
             print(f"   ✗ [ERROR] Błąd Gemini (próba {attempt+1}/{retry_count}): {error_msg[:100]}")
-            
-            # Sprawdź czy to quota error
+
             if '429' in error_msg or 'quota' in error_msg.lower():
-                print(f"   ⏰ [QUOTA] Quota exceeded! Przerywam próby.")
+                print(f"   ⏰ [QUOTA] Quota exceeded!")
                 break
-            
-            # Jeśli to ostatnia próba - fallback
+
             if attempt >= retry_count - 1:
-                print(f"   ✗ [FALLBACK] Używam oryginalnej nazwy po błędach")
                 return produkt_nazwa[:75]
-            
-            # Czekaj przed kolejną próbą
-            import time
-            time.sleep(2)  # Więcej czasu przed retry po błędzie
-    
-    # Fallback - zawsze zwróć coś sensownego!
+
+            time.sleep(2)
+
     print(f"   ✗ [FALLBACK] Wszystkie próby failed - używam oryginalnej nazwy")
     return produkt_nazwa[:75]
 
@@ -412,7 +374,8 @@ def smart_import_excel(
         result["success"] = True
 
         # 4. GENERUJ META TITLE (jeśli Gemini dostępne)
-        if GEMINI_AVAILABLE:
+        _gemini_key = get_config('gemini_api_key', '')
+        if _gemini_key:
             try:
                 print(f"\n🤖 [AI GENERATION] Rozpoczynam generowanie meta_title...")
                 result["details"].append("Generuję META TITLE przez Gemini AI...")

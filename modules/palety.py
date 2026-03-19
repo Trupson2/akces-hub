@@ -49,24 +49,13 @@ def produkt_regenerate_meta_title(produkt_id):
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
         return response
 
-    from modules.database import get_db
+    from modules.database import get_db, get_config
 
     try:
-        # Import funkcji z gemini_config
-        try:
-            from gemini_config import GEMINI_API_KEY
-            from google import genai  # NOWE API!
-
-            if not GEMINI_API_KEY or GEMINI_API_KEY == 'WKLEJ_TUTAJ_SWOJ_KLUCZ':
-                response = jsonify({'success': False, 'error': 'Brak klucza Gemini API'})
-                response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
-                return response
-
-            # NOWE API - Client
-            client = genai.Client(api_key=GEMINI_API_KEY)
-
-        except Exception as e:
-            response = jsonify({'success': False, 'error': f'Gemini niedostępne: {str(e)}'})
+        # Sprawdź klucz Gemini z DB config
+        gemini_key = get_config('gemini_api_key', '')
+        if not gemini_key:
+            response = jsonify({'success': False, 'error': 'Brak klucza Gemini API - ustaw w Ustawieniach'})
             response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
             return response
 
@@ -143,16 +132,10 @@ def generate_meta_title_batch():
             return response
 
         # Sprawdź API key
-        try:
-            from gemini_config import GEMINI_API_KEY
-
-            if not GEMINI_API_KEY or GEMINI_API_KEY == 'WKLEJ_TUTAJ_SWOJ_KLUCZ':
-                response = jsonify({'success': False, 'error': 'Brak klucza Gemini API w gemini_config.py'})
-                response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
-                return response
-
-        except Exception as e:
-            response = jsonify({'success': False, 'error': f'Gemini niedostępne: {str(e)}'})
+        from modules.database import get_config
+        gemini_key = get_config('gemini_api_key', '')
+        if not gemini_key:
+            response = jsonify({'success': False, 'error': 'Brak klucza Gemini API - ustaw w Ustawieniach'})
             response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
             return response
 

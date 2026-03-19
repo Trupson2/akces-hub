@@ -1835,6 +1835,16 @@ WAŻNE:
 - Wymiary typu 10x2.75, 8.5x2, M365 itp. to ROZMIARY/MODELE, NIE ilosci sztuk!
 - Nie wymyslaj ilosci sztuk w zestawie jesli nie ma tego wprost w nazwie
 - Tytul produktu NIE idzie do opisu - opis zaczyna sie od tekstu opisowego
+- ABSOLUTNIE ZAKAZANE FRAZY (NIE UŻYWAJ ICH!):
+  ✗ "Wysoka jakość wykonania"
+  ✗ "Kompletny zestaw"
+  ✗ "Praktyczne zastosowanie"
+  ✗ "Przemyślany design łączy funkcjonalność z estetyką"
+  ✗ "Satysfakcja z zakupu"
+  ✗ "Bezproblemowe użytkowanie"
+  ✗ "Spełniający oczekiwania nawet najbardziej wymagających użytkowników"
+  ✗ "Solidne wykonanie i staranny dobór materiałów"
+  Zamiast tego opisuj KONKRETNE cechy produktu!
 
 Odpowiedz TYLKO w formacie JSON (bez markdown).
 """
@@ -1872,42 +1882,69 @@ def generuj_opis_html_pro(nazwa, zdjecia_urls, kategoria='inne', bullet_points=N
     features = []
     specs = []
     
-    if api_key and bullet_points and len(bullet_points) > 0:
+    if api_key:
         try:
-            # Użyj nowego meta-promptu do wygenerowania dedykowanego prompta
-            print(f"[Gemini] Generowanie opisu z dedykowanym promptem...")
-            
-            prompt = generate_product_prompt(nazwa, bullet_points, kategoria)
-            
+            if bullet_points and len(bullet_points) > 0:
+                # Z bullet points - użyj dedykowanego meta-promptu
+                print(f"[Gemini] Generowanie opisu z bullet points ({len(bullet_points)} cech)...")
+                prompt = generate_product_prompt(nazwa, bullet_points, kategoria)
+            else:
+                # Bez bullet points - generuj na podstawie nazwy
+                print(f"[Gemini] Generowanie opisu z samej nazwy (brak bullet points)...")
+                prompt = f"""Stwórz profesjonalny opis produktu na Allegro.
+
+PRODUKT: {nazwa}
+{f'KATEGORIA: {kategoria}' if kategoria and kategoria != 'inne' else ''}
+
+Odpowiedz w JSON:
+{{
+  "intro": "3-4 zdania: CO to za produkt, DO CZEGO służy, jakie PROBLEMY rozwiązuje, dla KOGO jest",
+  "features": [
+    {{"icon": "pasujące emoji", "title": "Krótki tytuł cechy (2-4 słowa)", "text": "2-3 zdania opisujące tę cechę produktu z konkretnymi detalami"}},
+    ... (wygeneruj 4-6 cech)
+  ],
+  "specs": []
+}}
+
+ZASADY:
+- Pisz po polsku
+- Bazuj na tym co WIESZ o produkcie z jego nazwy - nie wymyślaj parametrów
+- ZAKAZANE ogólniki: "wysoka jakość wykonania", "kompletny zestaw", "praktyczne zastosowanie", "przemyślany design", "satysfakcja z zakupu", "bezproblemowe użytkowanie"
+- Opisuj KONKRETNE cechy: materiał, rozmiar, funkcje, zastosowania, kompatybilność
+- Pisz jak profesjonalny sprzedawca znający produkt
+- Każda cecha musi być INNA - nie powtarzaj tych samych informacji"""
+
             response = requests.post(
                 f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}',
                 json={
                     'contents': [{'parts': [{'text': prompt}]}],
                     'generationConfig': {
-                        'temperature': 0.4,  # Niższa = mniej kreatywności, więcej faktów
-                        'maxOutputTokens': 8000  # ZWIĘKSZONE z 3000 na 8000 dla dłuższych opisów
+                        'temperature': 0.4,
+                        'maxOutputTokens': 8000
                     }
                 },
-                timeout=120  # Dłuższy timeout dla bardziej rozbudowanych opisów
+                timeout=120
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
                 text = data.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
                 if text:
-                    # Wyczyść markdown jeśli jest
                     text = text.strip()
                     if text.startswith('```'):
                         text = re.sub(r'^```json?\s*', '', text)
                         text = re.sub(r'\s*```$', '', text)
-                    
+
                     import json
                     ai_data = json.loads(text)
                     intro_text = ai_data.get('intro', '')
                     features = ai_data.get('features', [])
                     specs = ai_data.get('specs', [])
+                    print(f"[Gemini] ✅ Wygenerowano: intro={len(intro_text)} chars, {len(features)} features")
+            else:
+                print(f"[Gemini HTML] ❌ API error: {response.status_code}: {response.text[:200]}")
         except Exception as e:
-            print(f"[Gemini HTML] Błąd: {e}")
+            print(f"[Gemini HTML] ⚠️ Błąd: {e}")
     
     # Fallback - szablony dla różnych kategorii
     # Sprawdź czy mamy intro I features - oba są potrzebne
@@ -2128,7 +2165,7 @@ def generuj_opis_html_pro(nazwa, zdjecia_urls, kategoria='inne', bullet_points=N
             elif any(x in nl for x in ['uchwyt', 'holder', 'stand', 'stojak', 'mount']):
                 intro_text = f"Przedstawiamy {nazwa_clean} — praktyczny uchwyt zapewniający stabilne i wygodne pozycjonowanie urządzenia. Solidna konstrukcja i uniwersalne dopasowanie."
             else:
-                intro_text = f"Przedstawiamy {nazwa_clean} — wysokiej jakości produkt spełniający oczekiwania nawet najbardziej wymagających użytkowników. Solidne wykonanie i przemyślany design gwarantują satysfakcję z zakupu."
+                intro_text = f"Przedstawiamy {nazwa_clean} — produkt wyróżniający się solidnym wykonaniem i starannym doborem materiałów."
 
             # Jeśli są bullet points z Amazona, przetwórz je inteligentnie
             if bullet_points and len(bullet_points) > 0:
@@ -2186,11 +2223,61 @@ def generuj_opis_html_pro(nazwa, zdjecia_urls, kategoria='inne', bullet_points=N
                         {"icon": "🔧", "title": "Plug & Play", "text": "Gotowy do pracy natychmiast po podłączeniu — nie wymaga instalacji dodatkowych sterowników."},
                     ]
                 else:
-                    features = [
-                        {"icon": "✅", "title": "Wysoka jakość wykonania", "text": f"Produkt {nazwa_clean[:40]} wyróżnia się solidnym wykonaniem i starannym doborem materiałów, co gwarantuje długotrwałe i bezproblemowe użytkowanie."},
-                        {"icon": "📦", "title": "Kompletny zestaw", "text": "W zestawie znajduje się wszystko, co potrzebne do natychmiastowego rozpoczęcia użytkowania. Produkt starannie zapakowany i zabezpieczony na czas transportu."},
-                        {"icon": "🎯", "title": "Praktyczne zastosowanie", "text": "Uniwersalny produkt idealny do codziennego użytku w domu lub biurze. Przemyślany design łączy funkcjonalność z estetyką."},
-                    ]
+                    # Spróbuj wygenerować opisy przez AI na podstawie samej nazwy
+                    if api_key:
+                        try:
+                            _ai_prompt = f"""Na podstawie nazwy produktu wygeneruj profesjonalny opis na Allegro.
+
+PRODUKT: {nazwa}
+
+Odpowiedz w JSON:
+{{
+  "intro": "2-3 zdania opisujące produkt - CO to jest, DO CZEGO służy, JAKIE problemy rozwiązuje",
+  "features": [
+    {{"icon": "emoji", "title": "Krótki tytuł cechy", "text": "2-3 zdania opisujące tę cechę z konkretnymi parametrami"}},
+    ... (4-6 cech)
+  ]
+}}
+
+ZASADY:
+- Pisz po polsku
+- Opisuj KONKRETNE cechy produktu bazując na nazwie (nie ogólniki!)
+- ZAKAZANE frazy: "wysoka jakość", "kompletny zestaw", "praktyczne zastosowanie", "przemyślany design", "satysfakcja z zakupu"
+- Pisz jak profesjonalny sprzedawca który ZNA ten produkt
+- Podawaj konkretne zastosowania, parametry, korzyści
+- Każda cecha to 2-3 zdania"""
+
+                            _ai_resp = requests.post(
+                                f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}',
+                                json={
+                                    'contents': [{'parts': [{'text': _ai_prompt}]}],
+                                    'generationConfig': {'temperature': 0.4, 'maxOutputTokens': 4000}
+                                },
+                                timeout=60
+                            )
+                            if _ai_resp.status_code == 200:
+                                _ai_data = _ai_resp.json()
+                                _ai_text = _ai_data.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
+                                if _ai_text:
+                                    _ai_text = _ai_text.strip()
+                                    if _ai_text.startswith('```'):
+                                        _ai_text = re.sub(r'^```json?\s*', '', _ai_text)
+                                        _ai_text = re.sub(r'\s*```$', '', _ai_text)
+                                    import json as _json
+                                    _ai_parsed = _json.loads(_ai_text)
+                                    if _ai_parsed.get('intro'):
+                                        intro_text = _ai_parsed['intro']
+                                    if _ai_parsed.get('features'):
+                                        features = _ai_parsed['features']
+                                    print(f"[Opis AI] ✅ Wygenerowano z nazwy: {len(features)} sekcji")
+                        except Exception as _e:
+                            print(f"[Opis AI] ⚠️ Fallback z nazwy failed: {_e}")
+
+                    # Jeśli AI nie zadziałało - daj minimum (bez ogólników)
+                    if not features:
+                        features = [
+                            {"icon": "📦", "title": "Zawartość zestawu", "text": f"Produkt {nazwa_clean[:60]} dostarczany w oryginalnym opakowaniu ze wszystkimi niezbędnymi akcesoriami."},
+                        ]
 
             specs = []
     
@@ -2211,9 +2298,7 @@ def generuj_opis_html_pro(nazwa, zdjecia_urls, kategoria='inne', bullet_points=N
         # Wyczyść Amazonowe formatowanie z tekstu
         text = re.sub(r'[【】\[\]●○•·]', '', text).strip()
         text = re.sub(r'\s+', ' ', text)
-        # Dodaj więcej treści jeśli tekst jest krótki
-        if len(text) < 100:
-            text += " Ten element zapewnia wygodę użytkowania i wysoką jakość produktu."
+        # Nie dodawaj generycznych ogólników do krótkich tekstów
         html += f'<p>{icon} <b>{title}</b></p>'
         html += f'<p>{text}</p>'
     
