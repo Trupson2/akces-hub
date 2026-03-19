@@ -169,24 +169,111 @@ LOGIN_HTML = '''<!DOCTYPE html>
 <title>Logowanie - {{ brand_name }}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a1a;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh}
-.login-box{background:#12122a;border:1px solid #1e1e3a;border-radius:16px;padding:40px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
-.logo{text-align:center;margin-bottom:30px}
-.logo h1{font-size:1.8rem;background:linear-gradient(135deg,{{ brand_color }},#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.logo p{color:#666;font-size:0.85rem;margin-top:4px}
-.form-group{margin-bottom:20px}
-label{display:block;margin-bottom:6px;color:#888;font-size:0.85rem;font-weight:500}
-input{width:100%;padding:12px 16px;background:#0a0a1a;border:1px solid #2a2a4a;border-radius:10px;color:#fff;font-size:1rem;outline:none;transition:border 0.2s}
-input:focus{border-color:#6366f1}
-button{width:100%;padding:14px;background:linear-gradient(135deg,#6366f1,#818cf8);border:none;border-radius:10px;color:#fff;font-size:1rem;font-weight:600;cursor:pointer;transition:opacity 0.2s}
-button:hover{opacity:0.9}
-.error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:0.85rem}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#06060f;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow-x:hidden}
+
+/* === SCROLLING TAGS === */
+.tags-section{width:100%;margin-bottom:40px;text-align:center}
+.tags-title{font-size:1.1rem;color:#94a3b8;margin-bottom:20px;font-weight:400}
+.tags-title span{color:#8b5cf6;font-weight:700}
+.tags-track{display:flex;gap:12px;white-space:nowrap;animation:scroll-left 25s linear infinite;width:max-content}
+.tags-row{overflow:hidden;margin-bottom:10px;position:relative;width:100vw}
+.tags-row::before,.tags-row::after{content:'';position:absolute;top:0;bottom:0;width:80px;z-index:2;pointer-events:none}
+.tags-row::before{left:0;background:linear-gradient(90deg,#06060f,transparent)}
+.tags-row::after{right:0;background:linear-gradient(270deg,#06060f,transparent)}
+.tag{display:inline-block;padding:10px 20px;border-radius:10px;font-size:0.82rem;font-weight:600;border:1px solid;white-space:nowrap;flex-shrink:0}
+.tag-purple{color:#a78bfa;border-color:#a78bfa33;background:rgba(167,139,250,0.06)}
+.tag-blue{color:#60a5fa;border-color:#60a5fa33;background:rgba(96,165,250,0.06)}
+.tag-green{color:#34d399;border-color:#34d39933;background:rgba(52,211,153,0.06)}
+.tag-orange{color:#fb923c;border-color:#fb923c33;background:rgba(251,146,60,0.06)}
+.tag-pink{color:#f472b6;border-color:#f472b633;background:rgba(244,114,182,0.06)}
+.tag-cyan{color:#22d3ee;border-color:#22d3ee33;background:rgba(34,211,238,0.06)}
+.tag-yellow{color:#facc15;border-color:#facc1533;background:rgba(250,204,21,0.06)}
+.tag-red{color:#f87171;border-color:#f8717133;background:rgba(248,113,113,0.06)}
+@keyframes scroll-left{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes scroll-right{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}
+.tags-track.reverse{animation-name:scroll-right}
+
+/* === LOGIN BOX === */
+.login-box{background:#0f0f1e;border:1px solid #1e1e3a;border-radius:20px;padding:44px 40px;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,0.6),0 0 0 1px rgba(99,102,241,0.05)}
+.logo{text-align:center;margin-bottom:32px}
+.logo h1{font-size:2rem;background:linear-gradient(135deg,{{ brand_color }},#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.5px}
+.logo p{color:#4a5568;font-size:0.82rem;margin-top:6px;letter-spacing:0.5px}
+.form-group{margin-bottom:18px}
+label{display:block;margin-bottom:6px;color:#64748b;font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+input{width:100%;padding:13px 16px;background:#0a0a18;border:1px solid #1e1e3a;border-radius:12px;color:#fff;font-size:0.95rem;outline:none;transition:all 0.25s}
+input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,0.15)}
+button{width:100%;padding:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:12px;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;transition:all 0.25s;letter-spacing:0.3px}
+button:hover{opacity:0.92;transform:translateY(-1px);box-shadow:0 8px 24px rgba(99,102,241,0.3)}
+.error{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);color:#f87171;padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:0.82rem}
+.footer-text{margin-top:32px;color:#2a2a3a;font-size:0.7rem;text-align:center;letter-spacing:0.5px}
+@media(max-width:500px){.login-box{margin:0 16px;padding:32px 24px}}
 </style>
 </head>
 <body>
+
+<!-- ANIMATED TAGS -->
+<div class="tags-section">
+<div class="tags-title">Z <span>{{ brand_name }}</span> mozesz zarzadzac</div>
+<div class="tags-row">
+<div class="tags-track">
+<span class="tag tag-purple">Palety zwrotowe</span>
+<span class="tag tag-blue">Magazyn produktow</span>
+<span class="tag tag-green">Sprzedaz Allegro</span>
+<span class="tag tag-orange">Analiza zyskow</span>
+<span class="tag tag-pink">Opisy AI</span>
+<span class="tag tag-cyan">Raporty ROI</span>
+<span class="tag tag-yellow">Etykiety i QR</span>
+<span class="tag tag-red">Wysylki i paczki</span>
+<span class="tag tag-purple">Export CSV</span>
+<span class="tag tag-blue">Kalkulator marzy</span>
+<span class="tag tag-green">GPSR generator</span>
+<span class="tag tag-orange">Profit Analyzer</span>
+<!-- duplicate for seamless loop -->
+<span class="tag tag-purple">Palety zwrotowe</span>
+<span class="tag tag-blue">Magazyn produktow</span>
+<span class="tag tag-green">Sprzedaz Allegro</span>
+<span class="tag tag-orange">Analiza zyskow</span>
+<span class="tag tag-pink">Opisy AI</span>
+<span class="tag tag-cyan">Raporty ROI</span>
+<span class="tag tag-yellow">Etykiety i QR</span>
+<span class="tag tag-red">Wysylki i paczki</span>
+<span class="tag tag-purple">Export CSV</span>
+<span class="tag tag-blue">Kalkulator marzy</span>
+<span class="tag tag-green">GPSR generator</span>
+<span class="tag tag-orange">Profit Analyzer</span>
+</div>
+</div>
+<div class="tags-row">
+<div class="tags-track reverse">
+<span class="tag tag-cyan">Dashboard KPI</span>
+<span class="tag tag-yellow">OLX integracja</span>
+<span class="tag tag-red">Vinted sync</span>
+<span class="tag tag-purple">Telegram bot</span>
+<span class="tag tag-blue">Multi-channel</span>
+<span class="tag tag-green">Auto meta title</span>
+<span class="tag tag-orange">Smart import</span>
+<span class="tag tag-pink">Backup danych</span>
+<span class="tag tag-cyan">Cloud export</span>
+<span class="tag tag-yellow">Scanner kodow</span>
+<!-- duplicate -->
+<span class="tag tag-cyan">Dashboard KPI</span>
+<span class="tag tag-yellow">OLX integracja</span>
+<span class="tag tag-red">Vinted sync</span>
+<span class="tag tag-purple">Telegram bot</span>
+<span class="tag tag-blue">Multi-channel</span>
+<span class="tag tag-green">Auto meta title</span>
+<span class="tag tag-orange">Smart import</span>
+<span class="tag tag-pink">Backup danych</span>
+<span class="tag tag-cyan">Cloud export</span>
+<span class="tag tag-yellow">Scanner kodow</span>
+</div>
+</div>
+</div>
+
+<!-- LOGIN FORM -->
 <div class="login-box">
 <div class="logo">
-{% if brand_logo %}<img src="/static/brand_logo.png" style="max-height:60px;margin-bottom:10px">{% endif %}
+{% if brand_logo %}<img src="/static/brand_logo.png" style="max-height:60px;margin-bottom:12px">{% endif %}
 <h1>{{ brand_name }}</h1>
 <p>System zarzadzania magazynem</p>
 </div>
@@ -194,26 +281,28 @@ button:hover{opacity:0.9}
 <div class="error">{{ error }}</div>
 {% endif %}
 {% if first_run %}
-<p style="color:#818cf8;text-align:center;margin-bottom:20px;font-size:0.9rem">Pierwszy start — ustaw dane logowania</p>
+<p style="color:#8b5cf6;text-align:center;margin-bottom:20px;font-size:0.88rem;font-weight:500">Pierwszy start — ustaw dane logowania</p>
 {% endif %}
 <form method="POST">
 <div class="form-group">
 <label>Login</label>
-<input type="text" name="username" required autofocus value="{{ username or '' }}">
+<input type="text" name="username" required autofocus value="{{ username or '' }}" placeholder="Nazwa uzytkownika">
 </div>
 <div class="form-group">
 <label>Haslo</label>
-<input type="password" name="password" required>
+<input type="password" name="password" required placeholder="Twoje haslo">
 </div>
 {% if first_run %}
 <div class="form-group">
 <label>Powtorz haslo</label>
-<input type="password" name="password2" required>
+<input type="password" name="password2" required placeholder="Powtorz haslo">
 </div>
 {% endif %}
 <button type="submit">{% if first_run %}Utworz konto{% else %}Zaloguj{% endif %}</button>
 </form>
 </div>
+
+<div class="footer-text">{{ brand_name }} &copy; 2026</div>
 </body>
 </html>'''
 
