@@ -163,48 +163,44 @@
 
 <script>
 function doUpdate() {
-    if(!confirm('Aktualizować system? (git pull + restart)')) return;
+    console.log('[Update] Button clicked');
+    if(!confirm('Aktualizować system? (git pull + restart)')) { console.log('[Update] Cancelled by user'); return; }
     var card = document.getElementById('updateCard');
     var desc = document.getElementById('updateDesc');
-    card.style.opacity='0.5';
-    card.onclick=null;
-    desc.textContent='Aktualizowanie...';
-    var x = new XMLHttpRequest();
-    x.open('POST', '/system/update', true);
-    x.setRequestHeader('Content-Type', 'application/json');
-    x.timeout = 30000;
-    x.onload = function() {
-        try {
-            var d = JSON.parse(x.responseText);
-            if(d.ok) {
-                desc.textContent = d.msg;
-                card.style.opacity='1';
-                if(d.msg.indexOf('aktualne') === -1) {
-                    desc.textContent += ' Odswiezam za 5s...';
-                    setTimeout(function(){ location.reload(); }, 5000);
-                }
-            } else {
-                desc.textContent = d.error || 'Blad';
-                card.style.opacity='1';
-                card.onclick = doUpdate;
-            }
-        } catch(e) {
-            desc.textContent = 'Restart... odswiez za 5s';
+    card.style.opacity='0.6';
+    card.style.pointerEvents='none';
+    desc.textContent='⏳ Aktualizowanie...';
+    console.log('[Update] Sending POST /system/update');
+
+    fetch('/system/update', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: '{}'
+    })
+    .then(function(r) { console.log('[Update] Response status:', r.status); return r.json(); })
+    .then(function(d) {
+        console.log('[Update] Response data:', d);
+        if(d.ok) {
+            desc.textContent = '✅ ' + d.msg;
             card.style.opacity='1';
-            setTimeout(function(){ location.reload(); }, 5000);
+            if(d.msg.indexOf('aktualne') === -1) {
+                desc.textContent += ' Odświeżam za 5s...';
+                setTimeout(function(){ location.reload(); }, 5000);
+            } else {
+                card.style.pointerEvents='auto';
+            }
+        } else {
+            desc.textContent = '❌ ' + (d.error || 'Błąd');
+            card.style.opacity='1';
+            card.style.pointerEvents='auto';
         }
-    };
-    x.onerror = function() {
-        desc.textContent = 'Restart w toku... odswiez za 5s';
+    })
+    .catch(function(e) {
+        console.log('[Update] Catch error (likely server restart):', e);
+        desc.textContent = '🔄 Restart w toku... odświeżam za 5s';
         card.style.opacity='1';
         setTimeout(function(){ location.reload(); }, 5000);
-    };
-    x.ontimeout = function() {
-        desc.textContent = 'Timeout — restart w toku... odswiez za 5s';
-        card.style.opacity='1';
-        setTimeout(function(){ location.reload(); }, 5000);
-    };
-    x.send('{}');
+    });
 }
 </script>
 

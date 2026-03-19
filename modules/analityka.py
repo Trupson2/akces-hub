@@ -3012,8 +3012,8 @@ _pallet_analysis_jobs = {}
 _pallet_analysis_results = {}
 
 
-def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="sonar-pro", excel_products=None):
-    """Uruchamia analizę palety w tle — wysyła produkty do Perplexity, parsuje JSON.
+def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-flash", excel_products=None, provider="gemini"):
+    """Uruchamia analizę palety w tle — wysyła produkty do AI (Gemini/Perplexity), parsuje JSON.
     excel_products: opcjonalna lista dictów z Excela (analiza przed zakupem)"""
     import requests as _req, json as _json, sqlite3 as _sq
     _pallet_analysis_jobs[job_id] = {'status': 'running', 'progress': 'Przygotowywanie...'}
@@ -3082,15 +3082,35 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="sonar-pro",
                 f'"czas_sprzedazy_dni": <int>, "uwagi": "..."}}]\n'
             )
 
-            resp = _req.post(
-                "https://api.perplexity.ai/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                json={"model": model, "messages": [{"role": "user", "content": batch_prompt}],
-                      "max_tokens": 8000, "return_citations": True},
-                timeout=180)
-            data = resp.json()
-            batch_answer = data['choices'][0]['message']['content']
-            batch_cit = data.get('citations', [])
+            if provider == 'perplexity':
+                resp = _req.post(
+                    "https://api.perplexity.ai/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    json={"model": model, "messages": [{"role": "user", "content": batch_prompt}],
+                          "max_tokens": 8000, "return_citations": True},
+                    timeout=180)
+                data = resp.json()
+                if 'error' in data:
+                    raise Exception(f"Perplexity API: {data['error'].get('message', data['error'])}")
+                batch_answer = data['choices'][0]['message']['content']
+                batch_cit = data.get('citations', [])
+            else:
+                # Gemini API
+                resp = _req.post(
+                    f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}",
+                    headers={"Content-Type": "application/json"},
+                    json={
+                        "contents": [{"parts": [{"text": batch_prompt}]}],
+                        "generationConfig": {"maxOutputTokens": 8000, "temperature": 0.3}
+                    },
+                    timeout=180)
+                data = resp.json()
+                if 'error' in data:
+                    raise Exception(f"Gemini API: {data['error'].get('message', data['error'])}")
+                if 'candidates' not in data or not data['candidates']:
+                    raise Exception(f"Gemini: brak odpowiedzi. Odpowiedz API: {str(data)[:300]}")
+                batch_answer = data['candidates'][0]['content']['parts'][0]['text']
+                batch_cit = []
             all_citations.extend(batch_cit)
 
             # Parsuj JSON z odpowiedzi batcha
@@ -3199,8 +3219,15 @@ def analizator_palet():
     ).fetchall()
     palety_list = [dict(p) for p in palety]
 
-    perplexity_key = get_config('perplexity_api_key', '')
-    has_perplexity = bool(perplexity_key)
+    provider = get_config('analyzer_ai_provider', 'gemini')
+    if provider == 'perplexity':
+        ai_api_key = get_config('perplexity_api_key', '')
+        provider_name = 'Perplexity'
+    else:
+        provider = 'gemini'
+        ai_api_key = get_config('gemini_api_key', '')
+        provider_name = 'Gemini'
+    has_api_key = bool(ai_api_key)
 
     # Build palety options
     options_html = '<option value="">— Wybierz paletę —</option>'
@@ -3214,12 +3241,12 @@ def analizator_palet():
         options_html += f'<option value="{p["id"]}">{label}</option>'
 
     no_key_warning = ""
-    if not has_perplexity:
-        no_key_warning = """
+    if not has_api_key:
+        no_key_warning = f"""
         <div class='card' style='border-color:var(--red);margin-bottom:16px'>
-            <div style='color:var(--red);font-weight:600;margin-bottom:6px'>Brak klucza API Perplexity</div>
+            <div style='color:var(--red);font-weight:600;margin-bottom:6px'>Brak klucza API {provider_name}</div>
             <div style='color:var(--text-muted);font-size:0.83rem'>
-                Ustaw klucz w <a href='/ustawienia' style='color:var(--blue)'>Ustawienia</a> &rarr; Perplexity API Key
+                Ustaw klucz w <a href='/ustawienia' style='color:var(--blue)'>Ustawienia</a> &rarr; {provider_name} API Key
             </div>
         </div>"""
 
@@ -3247,7 +3274,7 @@ def analizator_palet():
                     <select id='paleta-select' class='form-control' style='flex:1;min-width:300px'>
                         {options_html}
                     </select>
-                    <button id='btn-analizuj' class='btn btn-primary' onclick='startAnalysis()' {'disabled' if not has_perplexity else ''}>
+                    <button id='btn-analizuj' class='btn btn-primary' onclick='startAnalysis()' {'disabled' if not has_api_key else ''}>
                         🔍 Analizuj
                     </button>
                 </div>
@@ -3426,21 +3453,27 @@ def analizator_palet():
 
 @analityka_bp.route('/analityka/analizator-palet/analyze', methods=['POST'])
 def analizator_palet_analyze():
-    """Rozpocznij analizę palety — uruchamia Perplexity w tle."""
+    """Rozpocznij analizę palety — uruchamia AI (Gemini/Perplexity) w tle."""
     import threading
     from modules.database import get_config, DATABASE as _db_path
 
-    api_key = get_config('perplexity_api_key', '')
+    provider = get_config('analyzer_ai_provider', 'gemini')
+    if provider == 'perplexity':
+        api_key = get_config('perplexity_api_key', '')
+        ai_model = get_config('perplexity_model', 'sonar-pro')
+        if ai_model == 'sonar':
+            ai_model = 'sonar-pro'
+    else:
+        provider = 'gemini'
+        api_key = get_config('gemini_api_key', '')
+        ai_model = get_config('gemini_model', 'gemini-2.0-flash')
+
     if not api_key:
-        return jsonify({'ok': False, 'error': 'Brak klucza API Perplexity'})
+        return jsonify({'ok': False, 'error': f'Brak klucza API {provider.title()}. Ustaw w Ustawienia.'})
 
     paleta_id = request.form.get('paleta_id', '')
     if not paleta_id:
         return jsonify({'ok': False, 'error': 'Nie wybrano palety'})
-
-    perp_model = get_config('perplexity_model', 'sonar-pro')
-    if perp_model == 'sonar':
-        perp_model = 'sonar-pro'
 
     job_id = f'paleta_{paleta_id}_{int(datetime.now().timestamp())}'
 
@@ -3451,7 +3484,8 @@ def analizator_palet_analyze():
 
     threading.Thread(
         target=_run_pallet_analysis,
-        args=(job_id, int(paleta_id), api_key, _db_path, perp_model),
+        args=(job_id, int(paleta_id), api_key, _db_path, ai_model),
+        kwargs={'provider': provider},
         daemon=True
     ).start()
 
@@ -3466,9 +3500,19 @@ def analiza_zakupu():
 
     if request.method == 'POST':
         try:
-            api_key = get_config('perplexity_api_key', '')
+            provider = get_config('analyzer_ai_provider', 'gemini')
+            if provider == 'perplexity':
+                api_key = get_config('perplexity_api_key', '')
+                ai_model = get_config('perplexity_model', 'sonar-pro')
+                if ai_model == 'sonar':
+                    ai_model = 'sonar-pro'
+            else:
+                provider = 'gemini'
+                api_key = get_config('gemini_api_key', '')
+                ai_model = get_config('gemini_model', 'gemini-2.0-flash')
+
             if not api_key:
-                return jsonify({'ok': False, 'error': 'Brak klucza API Perplexity. Ustaw w Okazjach.'})
+                return jsonify({'ok': False, 'error': f'Brak klucza API {provider.title()}. Ustaw w Ustawienia.'})
 
             file = request.files.get('file')
             if not file:
@@ -3494,6 +3538,25 @@ def analiza_zakupu():
             col_cena = next((i for i, h in enumerate(header) if any(k in h for k in ['cena','price','rrp','brutto','retail'])), None)
             col_kat = next((i for i, h in enumerate(header) if any(k in h for k in ['kategoria','category','cat'])), None)
 
+            def _parse_price(val):
+                """Parsuj cenę — obsługa 'zł169.97', '€12,50', '169,97 PLN' itp."""
+                if val is None:
+                    return 0.0
+                if isinstance(val, (int, float)):
+                    return float(val)
+                import re as _re2
+                s = str(val).strip()
+                # Usuń walutę i białe znaki
+                s = _re2.sub(r'[złPLNEURUSD€$£\s]', '', s, flags=_re2.IGNORECASE)
+                # Zamień przecinek na kropkę (format europejski)
+                s = s.replace(',', '.')
+                # Usuń wszystko oprócz cyfr, kropki i minusa
+                s = _re2.sub(r'[^\d.\-]', '', s)
+                try:
+                    return float(s) if s else 0.0
+                except ValueError:
+                    return 0.0
+
             produkty = []
             for row in rows[1:]:
                 if not row or not row[col_nazwa]:
@@ -3503,7 +3566,7 @@ def analiza_zakupu():
                     'ean': str(row[col_ean] or '').strip() if col_ean is not None and col_ean < len(row) else '',
                     'asin': str(row[col_asin] or '').strip() if col_asin is not None and col_asin < len(row) else '',
                     'ilosc': int(float(row[col_ilosc] or 1)) if col_ilosc is not None and col_ilosc < len(row) and row[col_ilosc] else 1,
-                    'cena_brutto': float(row[col_cena] or 0) if col_cena is not None and col_cena < len(row) and row[col_cena] else 0,
+                    'cena_brutto': _parse_price(row[col_cena]) if col_cena is not None and col_cena < len(row) and row[col_cena] else 0,
                     'kategoria': str(row[col_kat] or '').strip() if col_kat is not None and col_kat < len(row) else 'inne',
                 }
                 if p['nazwa']:
@@ -3512,17 +3575,13 @@ def analiza_zakupu():
             if not produkty:
                 return jsonify({'ok': False, 'error': 'Nie znaleziono produktów w pliku'})
 
-            perp_model = get_config('perplexity_model', 'sonar-pro')
-            if perp_model == 'sonar':
-                perp_model = 'sonar-pro'
-
             job_id = f'excel_{int(datetime.now().timestamp())}'
 
             # Przekaż koszt palety
             excel_paleta = {'id': 0, 'nazwa': file.filename, 'dostawca': 'Excel', 'cena_zakupu': koszt_palety}
 
             def run_excel_analysis():
-                _run_pallet_analysis(job_id, 0, api_key, _db_path, perp_model, excel_products=produkty)
+                _run_pallet_analysis(job_id, 0, api_key, _db_path, ai_model, excel_products=produkty, provider=provider)
                 # Nadpisz paletę z kosztem
                 if job_id in _pallet_analysis_results:
                     _pallet_analysis_results[job_id]['paleta'] = excel_paleta
