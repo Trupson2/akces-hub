@@ -677,9 +677,11 @@ def setup_auth(app):
             return None
 
         # Nie ma uzytkownikow — kieruj na setup
-        if not _has_any_users():
-            if request.endpoint != 'auth.first_setup':
-                return redirect(url_for('auth.first_setup'))
+        has_users = _has_any_users()
+        print(f"🔐 AUTH: path={request.path} endpoint={request.endpoint} has_users={has_users} session_user={session.get('user_id')}", flush=True)
+        if not has_users:
+            if request.path != '/auth/first_setup':
+                return redirect('/auth/first_setup')
             return None
 
         # Swiezy system — przekieruj admina na kreator konfiguracji
