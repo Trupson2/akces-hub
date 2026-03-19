@@ -3015,7 +3015,7 @@ _pallet_analysis_results = {}
 def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-flash", excel_products=None, provider="gemini"):
     """Uruchamia analizę palety w tle — wysyła produkty do AI (Gemini/Perplexity), parsuje JSON.
     excel_products: opcjonalna lista dictów z Excela (analiza przed zakupem)"""
-    import requests as _req, json as _json, sqlite3 as _sq
+    import requests as _req, json as _json, sqlite3 as _sq, re as _re
     _pallet_analysis_jobs[job_id] = {'status': 'running', 'progress': 'Przygotowywanie...'}
     try:
         conn2 = _sq.connect(db_path, timeout=30)
@@ -3159,7 +3159,6 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                     clean = clean.strip()
                 batch_parsed = _json.loads(clean)
             except Exception:
-                import re as _re
                 # Szukaj JSON array [...] lub object {...}
                 match = _re.search(r'\[[\s\S]*\]', batch_answer)
                 if match:
