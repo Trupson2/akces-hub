@@ -1,7 +1,7 @@
 """
 Moduł wysyłek — routes dla /wysylki/*
 """
-from flask import Blueprint, request, redirect, session, flash, jsonify, Response, current_app, render_template, make_response
+from flask import Blueprint, request, redirect, session, flash, jsonify, Response, current_app, render_template, render_template_string, make_response
 from datetime import datetime
 from collections import defaultdict
 import time as _time
@@ -525,7 +525,6 @@ def wysylki_cofnij(id):
 def wysylki_lista():
     """Lista zamówień do wysyłki z checkboxami (status='nowa') - GRUPOWANE PO ZAMÓWIENIU"""
     from modules.database import get_db
-    from modules.shared import CSS
     VERSION = current_app.config.get('VERSION', '')
     from collections import defaultdict
     
@@ -601,7 +600,7 @@ def wysylki_lista():
     # Buduj HTML z checkboxami - GRUPOWANE
     items_html = ''
     if len(zamowienia) == 0:
-        items_html = '<div style="text-align:center;color:#64748b;padding:30px">🎉 Wszystkie zamówienia wysłane!</div>'
+        items_html = '<div style="text-align:center;color:var(--text-muted);padding:30px">🎉 Wszystkie zamówienia wysłane!</div>'
     else:
         for order_key, items in grouped_orders.items():
             first_item = items[0]
@@ -629,7 +628,7 @@ def wysylki_lista():
             # Jeśli wiele produktów - pokaż je osobno
             if len(items) > 1:
                 products_display = '<br>'.join([f"• {n}" for n in product_names])
-                badge = f'<span style="background:#f59e0b;color:#000;padding:2px 6px;border-radius:4px;font-size:0.7rem;font-weight:700;margin-left:8px">{len(items)} produkty</span>'
+                badge = f'<span style="background:var(--orange);color:#000;padding:2px 6px;border-radius:4px;font-size:0.7rem;font-weight:700;margin-left:8px">{len(items)} produkty</span>'
             else:
                 products_display = product_names[0] if product_names else 'Produkt'
                 badge = ''
@@ -641,7 +640,7 @@ def wysylki_lista():
             # Status badge: nadana = etykieta wydrukowana
             status_raw = first_item.get('status', 'nowa')
             if status_raw == 'nadana':
-                badge += ' <span style="background:#3b82f6;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.7rem;font-weight:700">📦 NADANA</span>'
+                badge += ' <span style="background:var(--blue);color:#fff;padding:2px 6px;border-radius:4px;font-size:0.7rem;font-weight:700">📦 NADANA</span>'
             
             # Formatuj datę
             data_raw = first_item['data_sprzedazy'] or ''
@@ -651,27 +650,27 @@ def wysylki_lista():
                 data_str = data_raw[:16]
             
             items_html += f'''
-            <div style="display:flex;align-items:flex-start;background:#12121a;border:1px solid #1e1e2e;border-radius:10px;padding:12px;margin-bottom:8px">
+            <div style="display:flex;align-items:flex-start;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px">
                 <label for="chk_{first_item['id']}" style="display:flex;align-items:flex-start;flex:1;cursor:pointer">
-                    <input type="checkbox" id="chk_{first_item['id']}" name="ids" value="{all_ids}" 
-                           style="width:20px;height:20px;margin-right:12px;margin-top:4px;cursor:pointer;accent-color:#22c55e">
+                    <input type="checkbox" id="chk_{first_item['id']}" name="ids" value="{all_ids}"
+                           style="width:20px;height:20px;margin-right:12px;margin-top:4px;cursor:pointer;accent-color:var(--green)">
                     <div style="flex:1;min-width:0">
                         <div style="font-weight:600;font-size:0.9rem;line-height:1.4">{products_display}{badge}</div>
-                        <div style="font-size:0.75rem;color:#64748b;margin-top:4px">
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">
                             📍 {lokalizacja} &nbsp;|&nbsp; 👤 {dostawca} &nbsp;|&nbsp; 🏷️ {code}
                         </div>
-                        <div style="font-size:0.7rem;color:#64748b;margin-top:2px">
+                        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">
                             🛒 {first_item['kupujacy']} &nbsp;|&nbsp; 📅 {data_str}
                         </div>
                     </div>
                     <div style="text-align:right;margin-left:10px">
-                        <div style="font-weight:700;color:#22c55e;font-size:1.1rem">{total_price:.0f} zł</div>
-                        <div style="font-size:0.7rem;color:#64748b">x{total_qty}</div>
+                        <div style="font-weight:700;color:var(--green);font-size:1.1rem">{total_price:.0f} zł</div>
+                        <div style="font-size:0.7rem;color:var(--text-muted)">x{total_qty}</div>
                     </div>
                 </label>
                 <div style="display:flex;flex-direction:column;gap:4px;margin-left:10px">
-                    <a href="/wysylki/oznacz-wyslane?ids={all_ids}" style="padding:6px 10px;background:#22c55e;border-radius:6px;color:#fff;text-decoration:none;font-size:0.7rem;font-weight:600;text-align:center">✅ Wysłane</a>
-                    <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{first_item['allegro_order_id'] or ''}" target="_blank" style="padding:6px 10px;background:#3b82f6;border-radius:6px;color:#fff;text-decoration:none;font-size:0.7rem;text-align:center">Allegro</a>
+                    <a href="/wysylki/oznacz-wyslane?ids={all_ids}" style="padding:6px 10px;background:var(--green);border-radius:6px;color:#fff;text-decoration:none;font-size:0.7rem;font-weight:600;text-align:center">✅ Wysłane</a>
+                    <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{first_item['allegro_order_id'] or ''}" target="_blank" style="padding:6px 10px;background:var(--blue);border-radius:6px;color:#fff;text-decoration:none;font-size:0.7rem;text-align:center">Allegro</a>
                 </div>
             </div>
             '''
@@ -683,10 +682,10 @@ def wysylki_lista():
         user_options += f'<option value="{user}" {selected}>{user}</option>'
     
     user_selector = f'''
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:15px;background:#12121a;border:1px solid #1e1e2e;border-radius:10px;padding:12px">
-        <label style="font-size:0.85rem;color:#94a3b8;font-weight:600">👤 UŻYTKOWNIK:</label>
-        <select id="user-select" onchange="window.location.href='/wysylki?user=' + this.value" 
-                style="flex:1;background:#1a1a24;border:1px solid #2a2a3a;color:#fff;padding:8px 12px;border-radius:8px;font-size:0.9rem;cursor:pointer">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:15px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px">
+        <label style="font-size:0.85rem;color:var(--text-secondary);font-weight:600">👤 UŻYTKOWNIK:</label>
+        <select id="user-select" onchange="window.location.href='/wysylki?user=' + this.value"
+                style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:0.9rem;cursor:pointer">
             {user_options}
         </select>
     </div>
@@ -697,51 +696,44 @@ def wysylki_lista():
     products_count = len(zamowienia)
     count_info = f'{orders_count} zamówień' if orders_count != products_count else f'{orders_count} zamówień'
     if orders_count != products_count:
-        count_info += f' <span style="font-size:0.75rem;color:#64748b">({products_count} produktów)</span>'
+        count_info += f' <span style="font-size:0.75rem;color:var(--text-muted)">({products_count} produktów)</span>'
     
-    html = CSS + f'''
-    <div class="container">
-        <div class="header">
-            <h1>📦 DO WYSYŁKI</h1>
-            <small>Odhacz wysłane paczki (status: nowa)</small>
-        </div>
-        
+    html_content = f'''
         {user_selector}
-        
+
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:15px">
-            <a href="/wysylki/pakowanie" style="display:block;padding:12px;background:#f59e0b;border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">📱 Skanuj</a>
-            <a href="/sync-miesiac" onclick="startSync(this)" style="display:block;padding:12px;background:#3b82f6;border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">🔄 Sync Allegro</a>
-            <a href="/wysylki/allegro" style="display:block;padding:12px;background:#22c55e;border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">📦 Allegro Live</a>
-            <a href="/wysylki/sync-stany" style="display:block;padding:12px;background:#8b5cf6;border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">📦 Sync Stany</a>
+            <a href="/wysylki/pakowanie" style="display:block;padding:12px;background:var(--orange);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">📱 Skanuj</a>
+            <a href="/sync-miesiac" onclick="startSync(this)" style="display:block;padding:12px;background:var(--blue);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">🔄 Sync Allegro</a>
+            <a href="/wysylki/allegro" style="display:block;padding:12px;background:var(--green);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">📦 Allegro Live</a>
+            <a href="/wysylki/sync-stany" style="display:block;padding:12px;background:var(--accent2);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">📦 Sync Stany</a>
         </div>
-        
+
         <form id="bulk-form" method="POST" action="/wysylki/bulk-wyslane">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;background:#12121a;border:1px solid #1e1e2e;border-radius:10px;padding:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px">
                 <div>
-                    <span style="font-size:1.5rem;font-weight:700;color:#eab308">{orders_count}</span>
-                    <span style="font-size:0.85rem;color:#64748b;margin-left:8px">{count_info}</span>
+                    <span style="font-size:1.5rem;font-weight:700;color:var(--yellow)">{orders_count}</span>
+                    <span style="font-size:0.85rem;color:var(--text-muted);margin-left:8px">{count_info}</span>
                 </div>
                 <div style="display:flex;gap:8px">
-                    <button type="button" onclick="selectAll()" 
-                            style="background:#3b82f6;border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:0.85rem;cursor:pointer;font-weight:600">
+                    <button type="button" onclick="selectAll()"
+                            style="background:var(--blue);border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:0.85rem;cursor:pointer;font-weight:600">
                         ✓ Zaznacz wszystkie
                     </button>
-                    <button type="submit" 
-                            style="background:#22c55e;border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:0.85rem;cursor:pointer;font-weight:600">
+                    <button type="submit"
+                            style="background:var(--green);border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:0.85rem;cursor:pointer;font-weight:600">
                         ✈️ Oznacz jako wysłane
                     </button>
                 </div>
             </div>
-            
+
             {items_html}
         </form>
-        
+
         <div style="margin-top:20px;text-align:center">
-            <a href="/sprzedaze" style="color:#64748b;text-decoration:none;font-size:0.85rem">← Zobacz wszystkie sprzedaże</a>
+            <a href="/sprzedaze" style="color:var(--text-muted);text-decoration:none;font-size:0.85rem">← Zobacz wszystkie sprzedaże</a>
         </div>
-        <a href="/" style="display:block;text-align:center;color:#64748b;text-decoration:none;margin-top:10px">← Dashboard</a>
-    </div>
-    
+        <a href="/" style="display:block;text-align:center;color:var(--text-muted);text-decoration:none;margin-top:10px">← Dashboard</a>
+
     <style>@keyframes kspin{{to{{transform:rotate(360deg)}}}}</style>
     <script>
     function startSync(el) {{
@@ -753,7 +745,7 @@ def wysylki_lista():
         const allChecked = Array.from(checkboxes).every(cb => cb.checked);
         checkboxes.forEach(cb => cb.checked = !allChecked);
     }}
-    
+
     // Prevent form submit if no checkboxes selected
     document.getElementById('bulk-form').addEventListener('submit', function(e) {{
         const checked = document.querySelectorAll('input[name="ids"]:checked');
@@ -768,7 +760,16 @@ def wysylki_lista():
     }});
     </script>
     '''
-    return html
+    template = """{% extends "base.html" %}
+{% block page_title %}Do wysylki{% endblock %}
+{% block content %}
+{{ content|safe }}
+{% endblock %}"""
+    return render_template_string(template,
+        content=html_content,
+        version=current_app.config.get('VERSION', ''),
+        brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
+        current_user=session.get('user'))
 
 
 @wysylki_bp.route('/wysylki/wyslano-order/<order_id>')
