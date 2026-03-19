@@ -3059,26 +3059,61 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                 'progress': f'Analizuję batch {batch_idx+1}/{len(batches)} ({len(batch)} produktów)...'
             }
 
+            # Pre-processing: jeśli nazwa wygląda na kod (EAN/ASIN/numer), spróbuj scrapnąć z Amazona
+            import re as _re_pre
+            for p in batch:
+                nazwa = p.get('nazwa', '')
+                # Sprawdź czy nazwa to sam kod (cyfry, myślniki, brak spacji/liter)
+                is_code = bool(_re_pre.match(r'^[\d\-\.\/\s]{5,}$', nazwa.strip()))
+                asin_val = p.get('asin', '')
+                # Jeśli nazwa to ASIN (B0...), przenieś do pola asin
+                if _re_pre.match(r'^B0[A-Z0-9]{8,10}$', nazwa.strip().upper()):
+                    if not asin_val:
+                        p['asin'] = nazwa.strip().upper()
+                    is_code = True
+                # Jeśli mamy ASIN, spróbuj scrapnąć prawdziwą nazwę
+                if is_code and p.get('asin'):
+                    try:
+                        from modules.utils import scrape_amazon_product
+                        amazon = scrape_amazon_product(p['asin'])
+                        if amazon and amazon.get('title'):
+                            p['nazwa_oryginalna'] = nazwa
+                            p['nazwa'] = amazon['title'][:120]
+                            print(f"[Analizator] ASIN {p['asin']} -> {p['nazwa'][:60]}")
+                    except Exception as _e:
+                        print(f"[Analizator] Scrape fail {p.get('asin')}: {_e}")
+
             # Buduj prompt dla batcha
+            has_codes = any(bool(_re_pre.match(r'^[\d\-\.\/\s]{5,}$', p.get('nazwa','').strip())) for p in batch)
             batch_txt = ""
             for i, p in enumerate(batch, 1):
                 ean_str = f", EAN: {p.get('ean','')}" if p.get('ean') else ""
                 asin_str = f", ASIN: {p.get('asin','')}" if p.get('asin') else ""
+                nazwa_orig = f" (kod: {p.get('nazwa_oryginalna','')})" if p.get('nazwa_oryginalna') else ""
                 batch_txt += (
-                    f"{i}. {p.get('nazwa','?')[:80]} "
+                    f"{i}. {p.get('nazwa','?')[:120]}{nazwa_orig} "
                     f"[{p.get('kategoria') or 'inne'}] "
                     f"— {p.get('ilosc', 1)} szt, "
                     f"cena Amazon RRP: {float(p.get('cena_brutto', 0) or 0):.2f} zł"
                     f"{ean_str}{asin_str}\n"
                 )
 
+            code_hint = ""
+            if has_codes:
+                code_hint = (
+                    "UWAGA: Niektóre produkty mają kody zamiast nazw. "
+                    "Zidentyfikuj produkt po kodzie EAN/numer i podaj PRAWDZIWĄ nazwę produktu w polu 'nazwa'.\n\n"
+                )
+
             batch_prompt = (
                 f"Jesteś ekspertem od resellingu zwrotów Amazon na Allegro.pl w Polsce.\n"
                 f"Wyszukaj REALNE aktualne ceny tych produktów na Allegro.pl.\n\n"
+                f"{code_hint}"
                 f"PRODUKTY (batch {batch_idx+1}/{len(batches)}):\n{batch_txt}\n"
-                f"Dla każdego produktu podaj REALNĄ cenę na Allegro.pl, popyt i czas sprzedaży.\n\n"
+                f"Dla każdego produktu podaj REALNĄ cenę na Allegro.pl, popyt i czas sprzedaży.\n"
+                f"Jeśli produkt ma kod zamiast nazwy, zidentyfikuj go i podaj prawdziwą nazwę.\n\n"
                 f"Odpowiedz WYŁĄCZNIE jako JSON array (bez markdown):\n"
-                f'[{{"id": 1, "nazwa": "...", "cena_allegro": <float>, "popyt": "wysoki|średni|niski", '
+                f'[{{"id": 1, "nazwa": "PRAWDZIWA NAZWA PRODUKTU", "cena_allegro": <float>, "popyt": "wysoki|średni|niski", '
                 f'"czas_sprzedazy_dni": <int>, "uwagi": "..."}}]\n'
             )
 
@@ -3149,7 +3184,15 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                     if not isinstance(item, dict):
                         continue
                     if j < len(batch):
-                        item['nazwa'] = batch[j].get('nazwa', item.get('nazwa', '?'))
+                        orig_nazwa = batch[j].get('nazwa', '?')
+                        ai_nazwa = item.get('nazwa', '')
+                        # Użyj nazwy z AI jeśli oryginalna to kod, a AI podał prawdziwą nazwę
+                        is_orig_code = bool(_re.match(r'^[\d\-\.\/\s]{5,}$', str(orig_nazwa).strip()))
+                        if is_orig_code and ai_nazwa and len(ai_nazwa) > 5 and not _re.match(r'^[\d\-\.\/\s]{5,}$', ai_nazwa.strip()):
+                            item['nazwa'] = ai_nazwa  # AI znalazł prawdziwą nazwę
+                            item['kod_oryginalny'] = orig_nazwa
+                        else:
+                            item['nazwa'] = orig_nazwa
                         item['cena_amazon_rpp'] = float(batch[j].get('cena_brutto', 0) or 0)
                         item['ilosc'] = int(batch[j].get('ilosc', 1) or 1)
                 all_results.extend(item for item in batch_parsed if isinstance(item, dict))
@@ -3533,12 +3576,36 @@ def analiza_zakupu():
 
             # Auto-detect kolumn (nazwy w pierwszym wierszu)
             header = [str(c).lower().strip() if c else '' for c in rows[0]]
-            col_nazwa = next((i for i, h in enumerate(header) if any(k in h for k in ['nazwa','name','title','produkt','product','opis'])), 0)
-            col_ean = next((i for i, h in enumerate(header) if any(k in h for k in ['ean','barcode','kod'])), None)
+
+            # Nazwa: preferuj "product title" / "title" nad "product sku" / "product"
+            col_nazwa = None
+            # Priorytet 1: kolumny z "title" w nazwie
+            col_nazwa = next((i for i, h in enumerate(header) if 'title' in h), None)
+            # Priorytet 2: "nazwa", "name", "opis", "description" (ale nie "product description" = N/A)
+            if col_nazwa is None:
+                col_nazwa = next((i for i, h in enumerate(header) if any(k in h for k in ['nazwa','name','opis'])), None)
+            # Priorytet 3: "produkt", "product" (ale nie SKU)
+            if col_nazwa is None:
+                col_nazwa = next((i for i, h in enumerate(header) if ('product' in h or 'produkt' in h) and 'sku' not in h), None)
+            # Fallback: pierwsza kolumna
+            if col_nazwa is None:
+                col_nazwa = 0
+
+            col_ean = next((i for i, h in enumerate(header) if any(k in h for k in ['ean','barcode'])), None)
             col_asin = next((i for i, h in enumerate(header) if 'asin' in h), None)
             col_ilosc = next((i for i, h in enumerate(header) if any(k in h for k in ['ilosc','qty','quantity','szt','sztuk','ilość'])), None)
-            col_cena = next((i for i, h in enumerate(header) if any(k in h for k in ['cena','price','rrp','brutto','retail'])), None)
+            # Cena: preferuj "unit rrp" nad "total rrp"
+            col_cena = next((i for i, h in enumerate(header) if 'unit' in h and any(k in h for k in ['rrp','price','cena'])), None)
+            if col_cena is None:
+                col_cena = next((i for i, h in enumerate(header) if any(k in h for k in ['cena','price','rrp','brutto','retail']) and 'total' not in h), None)
+            if col_cena is None:
+                col_cena = next((i for i, h in enumerate(header) if any(k in h for k in ['cena','price','rrp','brutto','retail'])), None)
             col_kat = next((i for i, h in enumerate(header) if any(k in h for k in ['kategoria','category','cat'])), None)
+            col_brand = next((i for i, h in enumerate(header) if 'brand' in h), None)
+            col_condition = next((i for i, h in enumerate(header) if 'condition' in h or 'stan' in h), None)
+
+            print(f"[Analiza zakupu] Kolumny: nazwa={col_nazwa}({header[col_nazwa] if col_nazwa is not None else '?'}), "
+                  f"ean={col_ean}, asin={col_asin}, ilosc={col_ilosc}, cena={col_cena}, kat={col_kat}, brand={col_brand}")
 
             def _parse_price(val):
                 """Parsuj cenę — obsługa 'zł169.97', '€12,50', '169,97 PLN' itp."""
@@ -3561,17 +3628,36 @@ def analiza_zakupu():
 
             produkty = []
             for row in rows[1:]:
-                if not row or not row[col_nazwa]:
+                if not row:
                     continue
+                # Sprawdź czy wiersz ma jakieś dane (nie same None)
+                if col_nazwa is not None and col_nazwa < len(row) and row[col_nazwa]:
+                    nazwa = str(row[col_nazwa]).strip()
+                else:
+                    continue
+                if not nazwa or nazwa.lower() in ('n/a', 'none', 'total', ''):
+                    continue
+
                 p = {
-                    'nazwa': str(row[col_nazwa] or '').strip(),
-                    'ean': str(row[col_ean] or '').strip() if col_ean is not None and col_ean < len(row) else '',
-                    'asin': str(row[col_asin] or '').strip() if col_asin is not None and col_asin < len(row) else '',
+                    'nazwa': nazwa,
+                    'ean': str(row[col_ean] or '').strip() if col_ean is not None and col_ean < len(row) and row[col_ean] else '',
+                    'asin': str(row[col_asin] or '').strip().upper() if col_asin is not None and col_asin < len(row) and row[col_asin] else '',
                     'ilosc': int(float(row[col_ilosc] or 1)) if col_ilosc is not None and col_ilosc < len(row) and row[col_ilosc] else 1,
                     'cena_brutto': _parse_price(row[col_cena]) if col_cena is not None and col_cena < len(row) and row[col_cena] else 0,
                     'kategoria': str(row[col_kat] or '').strip() if col_kat is not None and col_kat < len(row) else 'inne',
                 }
-                if p['nazwa']:
+                # Dodaj brand do nazwy jeśli go nie zawiera
+                if col_brand is not None and col_brand < len(row) and row[col_brand]:
+                    brand = str(row[col_brand]).strip()
+                    if brand.lower() not in ('n/a', 'none', '') and brand.lower() not in p['nazwa'].lower():
+                        p['nazwa'] = f"{brand} {p['nazwa']}"
+                # Dodaj stan (condition)
+                if col_condition is not None and col_condition < len(row) and row[col_condition]:
+                    p['stan'] = str(row[col_condition]).strip()
+
+                if p['nazwa'] and p['asin'].lower() not in ('n/a', 'none', ''):
+                    produkty.append(p)
+                elif p['nazwa']:
                     produkty.append(p)
 
             if not produkty:
