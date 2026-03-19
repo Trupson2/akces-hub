@@ -3144,24 +3144,26 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
             if isinstance(batch_parsed, dict):
                 batch_parsed = batch_parsed.get('produkty', [batch_parsed])
             if isinstance(batch_parsed, list):
-                # Mapuj nazwy z oryginalnych produktów
+                # Mapuj nazwy i ilości z oryginalnych produktów
                 for j, item in enumerate(batch_parsed):
                     if not isinstance(item, dict):
                         continue
                     if j < len(batch):
                         item['nazwa'] = batch[j].get('nazwa', item.get('nazwa', '?'))
-                        item['cena_amazon_rpp'] = batch[j].get('cena_brutto', 0)
+                        item['cena_amazon_rpp'] = float(batch[j].get('cena_brutto', 0) or 0)
+                        item['ilosc'] = int(batch[j].get('ilosc', 1) or 1)
                 all_results.extend(item for item in batch_parsed if isinstance(item, dict))
             else:
                 # Fallback — dodaj surowe wyniki
                 for p in batch:
                     all_results.append({'nazwa': p.get('nazwa','?'), 'cena_allegro': 0,
-                                       'cena_amazon_rpp': p.get('cena_brutto', 0),
+                                       'cena_amazon_rpp': float(p.get('cena_brutto', 0) or 0),
+                                       'ilosc': int(p.get('ilosc', 1) or 1),
                                        'popyt': '?', 'czas_sprzedazy_dni': 0,
                                        'uwagi': 'Nie udało się sparsować odpowiedzi AI'})
 
-        # Podsumowanie
-        total_przychod = sum(r.get('cena_allegro', 0) for r in all_results)
+        # Podsumowanie — mnóż ceny przez ilość sztuk
+        total_przychod = sum(r.get('cena_allegro', 0) * r.get('ilosc', 1) for r in all_results)
         prowizja = total_przychod * 0.11
         zysk = total_przychod - prowizja - koszt_palety
         roi = (zysk / koszt_palety * 100) if koszt_palety > 0 else 0
@@ -3637,17 +3639,23 @@ def _get_render_results_js():
         html += '</div>';
         if (parsed && parsed.produkty && parsed.produkty.length) {
             html += '<div class="card" style="overflow-x:auto">';
-            html += '<div style="font-weight:600;margin-bottom:12px">Produkty (' + parsed.produkty.length + ')</div>';
+            var totalSzt = 0;
+            parsed.produkty.forEach(function(p) { totalSzt += (p.ilosc || 1); });
+            html += '<div style="font-weight:600;margin-bottom:12px">Produkty (' + parsed.produkty.length + ' typów, ' + totalSzt + ' szt.)</div>';
             html += '<table style="width:100%;border-collapse:collapse;font-size:0.83rem"><thead><tr style="border-bottom:2px solid var(--border)">';
-            html += '<th style="padding:8px;text-align:left">#</th><th style="padding:8px;text-align:left">Produkt</th><th style="padding:8px">Cena Allegro</th><th style="padding:8px">RRP Amazon</th><th style="padding:8px">Popyt</th><th style="padding:8px">Czas</th><th style="padding:8px;text-align:left">Uwagi</th>';
+            html += '<th style="padding:8px;text-align:left">#</th><th style="padding:8px;text-align:left">Produkt</th><th style="padding:8px">Szt.</th><th style="padding:8px">Cena Allegro</th><th style="padding:8px">Wartość</th><th style="padding:8px">RRP Amazon</th><th style="padding:8px">Popyt</th><th style="padding:8px">Czas</th><th style="padding:8px;text-align:left">Uwagi</th>';
             html += '</tr></thead><tbody>';
             parsed.produkty.forEach(function(p, idx) {
                 var cena = p.cena_allegro || p.cena_sprzedazy || 0;
+                var szt = p.ilosc || 1;
+                var wartosc = cena * szt;
                 var cenaAmz = p.cena_amazon_rpp || 0;
                 html += '<tr style="border-bottom:1px solid var(--border)">';
                 html += '<td style="padding:8px;color:var(--text-muted)">' + (idx+1) + '</td>';
                 html += '<td style="padding:8px;font-weight:500;max-width:250px">' + (p.nazwa||'—') + '</td>';
-                html += '<td style="padding:8px;font-weight:700;color:var(--green);text-align:center">' + cena.toFixed(0) + ' zł</td>';
+                html += '<td style="padding:8px;text-align:center;font-weight:600">' + szt + '</td>';
+                html += '<td style="padding:8px;color:var(--green);text-align:center">' + cena.toFixed(0) + ' zł</td>';
+                html += '<td style="padding:8px;font-weight:700;color:var(--green);text-align:center">' + wartosc.toFixed(0) + ' zł</td>';
                 html += '<td style="padding:8px;color:var(--text-muted);text-align:center">' + (cenaAmz > 0 ? cenaAmz.toFixed(0) + ' zł' : '—') + '</td>';
                 var dc = demandClass(p.popyt);
                 var dcColor = dc === 'demand-high' ? 'var(--green)' : dc === 'demand-low' ? 'var(--red)' : 'var(--orange)';
