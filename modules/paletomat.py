@@ -2859,14 +2859,17 @@ def generator_mass_create_from_paleta_stream():
 
                 # Pomocnicza: sprawdź czy nazwa oferty pasuje do produktu
                 def _nazwa_match(offer_tytul):
-                    """Porównaj pierwsze słowa nazwy — żeby nie łączyć różnych produktów z tym samym ASIN"""
+                    """Porównaj nazwy — żeby nie łączyć różnych produktów z tym samym EAN/ASIN"""
                     if not offer_tytul or not _nazwa_lower:
                         return True  # brak danych = pozwól
-                    t = offer_tytul.lower()[:40]
-                    # Porównaj pierwsze 2 słowa
-                    words_p = _nazwa_lower.split()[:2]
-                    words_o = t.split()[:2]
-                    return words_p == words_o or words_p[0] == words_o[0] if words_p and words_o else True
+                    t = offer_tytul.lower()[:60]
+                    # Porównaj pierwsze 3 słowa — minimum 2 muszą się zgadzać
+                    words_p = [w for w in _nazwa_lower.split() if len(w) > 2][:4]
+                    words_o = [w for w in t.split() if len(w) > 2][:4]
+                    if not words_p or not words_o:
+                        return True
+                    matching = sum(1 for w in words_p if w in words_o)
+                    return matching >= 2
 
                 # 1. Szukaj po produkt_id (najdokładniejsze — ten sam produkt)
                 existing_offer = conn.execute('''
@@ -2877,6 +2880,8 @@ def generator_mass_create_from_paleta_stream():
                     AND o.produkt_id = ?
                     LIMIT 1
                 ''', (product_id,)).fetchone()
+                if existing_offer:
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'🔍 Match po produkt_id={product_id}', 'color': '#6366f1'}) + "\n\n"
 
                 # 2. Szukaj po ASIN + weryfikacja nazwy
                 if asin and not existing_offer:
@@ -2890,15 +2895,17 @@ def generator_mass_create_from_paleta_stream():
                             "AND o.allegro_id IS NOT NULL AND o.allegro_id != '' "
                             "AND o.produkt_id IN (" + ph + ")",
                             all_prod_ids).fetchall()
-                        # Filtruj po nazwie — żeby nie łączyć pokrowców z relingami
                         for c in candidates:
                             if _nazwa_match(c['tytul']):
                                 existing_offer = c
+                                yield "data: " + json.dumps({'type': 'log', 'message': f'🔍 Match po ASIN {asin}: oferta="{c["tytul"][:40]}"', 'color': '#6366f1'}) + "\n\n"
                                 break
-                        yield "data: " + json.dumps({'type': 'log', 'message': f'🔍 ASIN {asin}: {len(all_prod_ids)} prod, {len(candidates)} ofert, match: {"TAK" if existing_offer else "NIE (inna nazwa)"}', 'color': '#6366f1'}) + "\n\n"
+                        if not existing_offer:
+                            yield "data: " + json.dumps({'type': 'log', 'message': f'🔍 ASIN {asin}: {len(candidates)} ofert ale nazwy nie pasują', 'color': '#6366f1'}) + "\n\n"
 
-                # 3. Szukaj po EAN + weryfikacja nazwy
-                if ean and not existing_offer:
+                # 3. Szukaj po EAN + weryfikacja nazwy (TYLKO jeśli produkt NIE MA ASIN)
+                # Produkty bez ASIN mają często generyczne EAN — matchowanie po EAN jest ryzykowne
+                if ean and not existing_offer and not asin:
                     all_prod_ids = [r['id'] for r in conn.execute('SELECT id FROM produkty WHERE ean = ?', (ean,)).fetchall()]
                     if all_prod_ids:
                         ph = ','.join('?' * len(all_prod_ids))
@@ -2912,6 +2919,7 @@ def generator_mass_create_from_paleta_stream():
                         for c in candidates:
                             if _nazwa_match(c['tytul']):
                                 existing_offer = c
+                                yield "data: " + json.dumps({'type': 'log', 'message': f'🔍 Match po EAN {ean}: oferta="{c["tytul"][:40]}"', 'color': '#6366f1'}) + "\n\n"
                                 break
 
                 if force_new:
