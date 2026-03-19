@@ -1905,6 +1905,232 @@ a{color:#6366f1;text-decoration:none}
 
 
 # ============================================================
+# GENERATOR LICENCJI — panel admina
+# ============================================================
+@app.route('/narzedzia/licencje', methods=['GET', 'POST'])
+def narzedzia_licencje():
+    """Panel generowania licencji dla klientów"""
+    from modules.license import generate_license_key
+    from datetime import datetime
+    import json as _json
+
+    generated = None
+    generated_json = ''
+
+    if request.method == 'POST':
+        client = request.form.get('client', '').strip()
+        plan = request.form.get('plan', 'pro')
+        duration_type = request.form.get('duration_type', 'months')
+        duration_val = int(request.form.get('duration_val', 1) or 1)
+
+        if not client:
+            client = 'Klient'
+
+        if duration_type == 'days':
+            # Ręcznie ustawiamy expires
+            import time as _time
+            created = int(_time.time())
+            expires = created + (duration_val * 24 * 3600)
+            plan_code = {'starter': 'S', 'pro': 'P', 'business': 'B'}.get(plan, 'P')
+            import hmac as _hmac, hashlib as _hl
+            from modules.license import LICENSE_SECRET
+            payload = f"{client}|{plan_code}|{created}|{expires}"
+            sig = _hmac.new(LICENSE_SECRET.encode(), payload.encode(), _hl.sha256).hexdigest()
+            sig_short = sig[:16].upper()
+            key = f"AKCES-{plan_code}{sig_short[:3]}-{sig_short[3:7]}-{sig_short[7:11]}-{sig_short[11:15]}"
+            generated = {
+                'key': key, 'client': client, 'plan': plan,
+                'created': created, 'expires': expires, 'signature': sig[:32]
+            }
+        elif duration_type == 'unlimited':
+            generated = generate_license_key(client, plan, months=0)
+        else:
+            generated = generate_license_key(client, plan, months=duration_val)
+
+        generated_json = _json.dumps(generated, indent=2, ensure_ascii=False)
+
+        # Zapisz do pliku
+        _safe_name = client.replace(' ', '_').lower()
+        _fpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools', f'license_{_safe_name}_{plan}.json')
+        try:
+            with open(_fpath, 'w', encoding='utf-8') as _f:
+                _f.write(generated_json)
+        except:
+            pass
+
+    # Lista istniejących plików licencji
+    _tools_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools')
+    existing = []
+    try:
+        for fn in sorted(os.listdir(_tools_dir)):
+            if fn.startswith('license_') and fn.endswith('.json'):
+                fpath = os.path.join(_tools_dir, fn)
+                try:
+                    with open(fpath, 'r', encoding='utf-8') as _f:
+                        data = _json.load(_f)
+                    exp_str = 'Bezterminowo'
+                    if data.get('expires', 0) > 0:
+                        exp_str = datetime.fromtimestamp(data['expires']).strftime('%d.%m.%Y')
+                    existing.append({
+                        'filename': fn,
+                        'client': data.get('client', '?'),
+                        'plan': data.get('plan', '?'),
+                        'key': data.get('key', '?'),
+                        'expires': exp_str,
+                        'json': _json.dumps(data, indent=2, ensure_ascii=False)
+                    })
+                except:
+                    pass
+    except:
+        pass
+
+    return render_template_string('''<!DOCTYPE html>
+<html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Generator licencji — {{ brand_name }}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a1a;color:#e2e8f0;min-height:100vh;padding:20px}
+.container{max-width:800px;margin:0 auto}
+h1{font-size:1.4rem;margin-bottom:20px;text-align:center}
+.card{background:#12122a;border:1px solid #1e1e3a;border-radius:12px;padding:20px;margin-bottom:16px}
+.card h2{font-size:1rem;margin-bottom:14px;color:#a78bfa}
+label{display:block;font-size:0.82rem;color:#94a3b8;margin-bottom:4px;margin-top:10px}
+input,select{width:100%;padding:9px 12px;background:#0a0a1a;border:1px solid #1e1e3a;border-radius:8px;color:#e2e8f0;font-size:0.9rem}
+.row{display:flex;gap:12px}
+.row>*{flex:1}
+.btn{display:inline-block;padding:12px 24px;border:none;border-radius:10px;font-size:0.95rem;font-weight:700;cursor:pointer;color:#fff;text-decoration:none;text-align:center}
+.btn-gen{background:linear-gradient(135deg,#6366f1,#8b5cf6);width:100%;margin-top:16px}
+.btn-gen:hover{opacity:0.9}
+.btn-sm{padding:6px 14px;font-size:0.78rem;border-radius:6px;font-weight:600}
+.btn-copy{background:#1e1e3a;color:#a78bfa;border:1px solid #2e2e4a}
+.btn-copy:hover{background:#2e2e4a}
+.btn-dl{background:#164e3e;color:#22c55e;border:1px solid #22c55e44}
+.btn-dl:hover{background:#1a5e4a}
+.result{background:#0a0a1a;border:2px solid #22c55e33;border-radius:10px;padding:16px;margin-top:16px}
+.result .key{font-size:1.3rem;font-weight:700;color:#22c55e;text-align:center;padding:12px;letter-spacing:1px}
+.result .meta{font-size:0.82rem;color:#94a3b8;margin-top:6px}
+.result .meta span{color:#e2e8f0;font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:10px}
+th{text-align:left;padding:8px 10px;color:#64748b;border-bottom:1px solid #1e1e3a;font-weight:600}
+td{padding:8px 10px;border-bottom:1px solid #1e1e3a11}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:700;text-transform:uppercase}
+.tag-pro{background:#6366f122;color:#a78bfa}
+.tag-starter{background:#22c55e22;color:#22c55e}
+.tag-business{background:#f59e0b22;color:#f59e0b}
+.back{display:inline-block;color:#6366f1;text-decoration:none;font-size:0.85rem;margin-bottom:16px}
+.actions{display:flex;gap:6px;align-items:center}
+pre{background:#0a0a1a;border:1px solid #1e1e3a;border-radius:6px;padding:10px;font-size:0.75rem;overflow-x:auto;margin-top:8px;color:#94a3b8;max-height:120px}
+</style></head><body>
+<div class="container">
+    <a href="/narzedzia" class="back">&larr; Narzedzia</a>
+    <h1>Generator licencji</h1>
+
+    <div class="card">
+        <h2>Nowa licencja</h2>
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>Nazwa klienta</label>
+            <input type="text" name="client" placeholder="np. Jan Kowalski" required>
+
+            <div class="row">
+                <div>
+                    <label>Plan</label>
+                    <select name="plan">
+                        <option value="starter">Starter</option>
+                        <option value="pro" selected>Pro</option>
+                        <option value="business">Business</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Czas trwania</label>
+                    <select name="duration_type" id="durType" onchange="toggleDur()">
+                        <option value="days">Dni</option>
+                        <option value="months" selected>Miesiace</option>
+                        <option value="unlimited">Bezterminowo</option>
+                    </select>
+                </div>
+                <div id="durValWrap">
+                    <label>Ilosc</label>
+                    <input type="number" name="duration_val" id="durVal" value="1" min="1" max="120">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-gen">Generuj licencje</button>
+        </form>
+    </div>
+
+    {% if generated %}
+    <div class="card">
+        <h2>Wygenerowana licencja</h2>
+        <div class="result">
+            <div class="key">{{ generated.key }}</div>
+            <div class="meta">Klient: <span>{{ generated.client }}</span></div>
+            <div class="meta">Plan: <span>{{ generated.plan|upper }}</span></div>
+            <div class="meta">Wygasa: <span>{{ generated_expires }}</span></div>
+            <div style="margin-top:12px;display:flex;gap:8px;justify-content:center">
+                <button class="btn btn-sm btn-copy" onclick="copyJson()">Kopiuj JSON</button>
+                <button class="btn btn-sm btn-dl" onclick="downloadJson()">Pobierz .json</button>
+            </div>
+            <pre id="jsonPre">{{ generated_json }}</pre>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if existing %}
+    <div class="card">
+        <h2>Wygenerowane licencje ({{ existing|length }})</h2>
+        <table>
+            <tr><th>Klient</th><th>Plan</th><th>Klucz</th><th>Wygasa</th><th></th></tr>
+            {% for lic in existing %}
+            <tr>
+                <td>{{ lic.client }}</td>
+                <td><span class="tag tag-{{ lic.plan }}">{{ lic.plan }}</span></td>
+                <td style="font-family:monospace;font-size:0.78rem">{{ lic.key }}</td>
+                <td>{{ lic.expires }}</td>
+                <td class="actions">
+                    <button class="btn btn-sm btn-copy" onclick="copyText(`{{ lic.json|e }}`)">Kopiuj</button>
+                    <button class="btn btn-sm btn-dl" onclick="dlText(`{{ lic.json|e }}`,`{{ lic.filename }}`)">Pobierz</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleDur(){
+    document.getElementById('durValWrap').style.display=document.getElementById('durType').value==='unlimited'?'none':'block';
+}
+function copyJson(){
+    navigator.clipboard.writeText(document.getElementById('jsonPre').textContent);
+    event.target.textContent='Skopiowano!';setTimeout(()=>event.target.textContent='Kopiuj JSON',1500);
+}
+function copyText(t){
+    navigator.clipboard.writeText(t.replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&'));
+    event.target.textContent='OK!';setTimeout(()=>event.target.textContent='Kopiuj',1500);
+}
+function downloadJson(){
+    const b=new Blob([document.getElementById('jsonPre').textContent],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='license.json';a.click();
+}
+function dlText(t,fn){
+    const b=new Blob([t.replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&')],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fn;a.click();
+}
+</script>
+</body></html>''',
+        generated=generated,
+        generated_json=generated_json,
+        generated_expires=(
+            datetime.fromtimestamp(generated['expires']).strftime('%d.%m.%Y') if generated and generated.get('expires', 0) > 0
+            else 'Bezterminowo'
+        ) if generated else '',
+        existing=existing
+    )
+
+
+# ============================================================
 # CHANGELOG — historia zmian po polsku
 # ============================================================
 @app.route('/changelog')
