@@ -3117,10 +3117,33 @@ def generator_mass_create_from_paleta_stream():
 
                 # Generuj opis + GPSR RÓWNOLEGLE (oba to Gemini calls)
                 yield "data: " + json.dumps({'type': 'log', 'message': '⚡ Generuję opis + GPSR równolegle...', 'color': '#3b82f6'}) + "\n\n"
-                # Użyj WSZYSTKICH uploadowanych zdjęć do opisu (nie tylko główne)
                 _zdjecia_do_opisu = zdjecia_urls if zdjecia_urls else (wszystkie_zdjecia if wszystkie_zdjecia else ([zdjecie_url] if zdjecie_url else []))
 
-                from concurrent.futures import ThreadPoolExecutor
+                # Helper: uruchom funkcję w wątku z keepalive co 3s
+                def _run_with_keepalive(func, *args, **kwargs):
+                    """Uruchamia blokującą funkcję w wątku, zwraca wynik"""
+                    _result_q = queue.Queue()
+                    def _worker():
+                        try:
+                            r = func(*args, **kwargs)
+                            _result_q.put(('ok', r))
+                        except Exception as e:
+                            _result_q.put(('error', e))
+                    t = threading.Thread(target=_worker, daemon=True)
+                    t.start()
+                    while True:
+                        try:
+                            status, val = _result_q.get(timeout=3)
+                            if status == 'ok':
+                                return val
+                            raise val
+                        except queue.Empty:
+                            yield ": keepalive\n\n"
+
+                # Generuj opis w tle z keepalive
+                opis_html = ''
+                gpsr = ''
+                from concurrent.futures import ThreadPoolExecutor, as_completed
                 with ThreadPoolExecutor(max_workers=2) as executor:
                     f_opis = executor.submit(generuj_opis_html_pro,
                         nazwa, _zdjecia_do_opisu,
@@ -3128,8 +3151,29 @@ def generator_mass_create_from_paleta_stream():
                         kod_magazynowy=_km
                     )
                     f_gpsr = executor.submit(generuj_gpsr_info, nazwa, kategoria, product_specs=product_specs)
-                    opis_html, _ = f_opis.result()
-                    gpsr = f_gpsr.result()
+
+                    # Keepalive podczas oczekiwania na Gemini
+                    _futures = {f_opis: 'opis', f_gpsr: 'gpsr'}
+                    _done_count = 0
+                    while _done_count < 2:
+                        _newly_done = [f for f in _futures if f.done() and _futures[f] != 'got']
+                        for f in _newly_done:
+                            _done_count += 1
+                            _futures[f] = 'got'
+                        if _done_count < 2:
+                            yield ": keepalive\n\n"
+                            time.sleep(3)
+
+                    try:
+                        _opis_result = f_opis.result()
+                        opis_html = _opis_result[0] if isinstance(_opis_result, tuple) else _opis_result
+                    except Exception as e:
+                        print(f"   ❌ Opis error: {e}")
+                    try:
+                        gpsr = f_gpsr.result()
+                    except Exception as e:
+                        print(f"   ❌ GPSR error: {e}")
+
                 if gpsr:
                     yield "data: " + json.dumps({'type': 'log', 'message': f'🛡️ GPSR: {len(gpsr)} znaków', 'color': '#22c55e'}) + "\n\n"
 
@@ -3139,20 +3183,30 @@ def generator_mass_create_from_paleta_stream():
                     yield "data: " + json.dumps({'type': 'log', 'message': f'📊 EAN: {ean}', 'color': '#6366f1'}) + "\n\n"
                 yield "data: " + json.dumps({'type': 'log', 'message': '🤖 Tworzę ofertę + parametry AI...', 'color': '#3b82f6'}) + "\n\n"
 
-                result, error = create_offer(
-                    nazwa=tytul_seo,
-                    opis=opis_html,
-                    cena=cena,
-                    zdjecia_urls=zdjecia_urls if zdjecia_urls else None,
-                    kategoria_id=kategoria_id,
-                    ilosc=ilosc,
-                    ean=ean,
-                    asin=asin,
-                    gpsr=gpsr,
-                    product_specs=product_specs,
-                    bullet_points=bullet_points,
-                    kod_magazynowy=_km
-                )
+                # create_offer w wątku z keepalive
+                _offer_q = queue.Queue()
+                def _create_offer_worker():
+                    try:
+                        r = create_offer(
+                            nazwa=tytul_seo, opis=opis_html, cena=cena,
+                            zdjecia_urls=zdjecia_urls if zdjecia_urls else None,
+                            kategoria_id=kategoria_id, ilosc=ilosc,
+                            ean=ean, asin=asin, gpsr=gpsr,
+                            product_specs=product_specs, bullet_points=bullet_points,
+                            kod_magazynowy=_km
+                        )
+                        _offer_q.put(r)
+                    except Exception as e:
+                        _offer_q.put((None, str(e)))
+
+                _offer_t = threading.Thread(target=_create_offer_worker, daemon=True)
+                _offer_t.start()
+                while True:
+                    try:
+                        result, error = _offer_q.get(timeout=3)
+                        break
+                    except queue.Empty:
+                        yield ": keepalive\n\n"
 
                 if error:
                     yield "data: " + json.dumps({'type': 'error', 'title': nazwa[:40], 'error': error[:80]}) + "\n\n"
