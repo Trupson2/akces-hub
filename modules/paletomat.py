@@ -3014,22 +3014,45 @@ def generator_mass_create_from_paleta_stream():
                         yield "data: " + json.dumps({'type': 'log', 'message': f'✨ Użyto {len(_enh_files2)} zdjęć AI (pre-generated)', 'color': '#f59e0b'}) + "\n\n"
 
                 # 3. Upload WSZYSTKICH zdjęć do Allegro (max 8)
+                # Używamy wątku + keepalive żeby SSE stream się nie zerwał
                 zdjecia_urls = []
                 if wszystkie_zdjecia:
-                    yield "data: " + json.dumps({'type': 'log', 'message': f'📷 {len(wszystkie_zdjecia)} zdjęć, uploaduję...', 'color': '#3b82f6'}) + "\n\n"
+                    _imgs_to_upload = wszystkie_zdjecia[:8]
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'📷 {len(_imgs_to_upload)} zdjęć, uploaduję...', 'color': '#3b82f6'}) + "\n\n"
 
-                    for idx, img_url in enumerate(wszystkie_zdjecia[:8], 1):
+                    import threading, queue
+                    _upload_q = queue.Queue()
+
+                    def _upload_worker():
+                        for idx, img_url in enumerate(_imgs_to_upload, 1):
+                            try:
+                                allegro_url = upload_image_to_allegro(img_url, asin=asin)
+                                _upload_q.put(('ok', idx, allegro_url))
+                            except Exception as e:
+                                _upload_q.put(('error', idx, str(e)[:40]))
+                        _upload_q.put(('done', 0, None))
+
+                    _upload_thread = threading.Thread(target=_upload_worker, daemon=True)
+                    _upload_thread.start()
+
+                    _upload_done = False
+                    while not _upload_done:
                         try:
-                            allegro_url = upload_image_to_allegro(img_url, asin=asin)
-                            if allegro_url:
-                                zdjecia_urls.append(allegro_url)
-                                yield "data: " + json.dumps({'type': 'log', 'message': f'   ✅ [{idx}/{min(len(wszystkie_zdjecia), 8)}] Uploadowano', 'color': '#22c55e'}) + "\n\n"
-                            else:
+                            status, idx, result = _upload_q.get(timeout=3)
+                            if status == 'done':
+                                _upload_done = True
+                            elif status == 'ok' and result:
+                                zdjecia_urls.append(result)
+                                yield "data: " + json.dumps({'type': 'log', 'message': f'   ✅ [{idx}/{len(_imgs_to_upload)}] Uploadowano', 'color': '#22c55e'}) + "\n\n"
+                            elif status == 'ok':
                                 yield "data: " + json.dumps({'type': 'log', 'message': f'   ❌ [{idx}] Błąd uploadu', 'color': '#ef4444'}) + "\n\n"
-                        except Exception as e:
-                            yield "data: " + json.dumps({'type': 'log', 'message': f'   ❌ [{idx}] {str(e)[:40]}', 'color': '#ef4444'}) + "\n\n"
+                            else:
+                                yield "data: " + json.dumps({'type': 'log', 'message': f'   ❌ [{idx}] {result}', 'color': '#ef4444'}) + "\n\n"
+                        except queue.Empty:
+                            # Keepalive — żeby SSE stream się nie zerwał
+                            yield ": keepalive\n\n"
 
-                    yield "data: " + json.dumps({'type': 'log', 'message': f'✅ Uploadowano {len(zdjecia_urls)}/{len(wszystkie_zdjecia[:8])} zdjęć', 'color': '#22c55e'}) + "\n\n"
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'✅ Uploadowano {len(zdjecia_urls)}/{len(_imgs_to_upload)} zdjęć', 'color': '#22c55e'}) + "\n\n"
                 
                 kategoria_id = None
                 try:
