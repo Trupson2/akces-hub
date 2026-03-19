@@ -2,6 +2,19 @@
 
 ## 19.03.2026
 
+### Dashboard SaaS Redesign
+- [NOWE] Kompletny redesign layoutu — sidebar nawigacja + topbar (styl SaaS)
+- [NOWE] Ciemny motyw domyslny z animowanym tlem (czasteczki/konstelacje tech)
+- [NOWE] Sidebar z sekcjami: Dashboard, Magazyn, Sprzedaz, Analityka + szybki dostep
+- [NOWE] KPI karty na stronie glownej (sprzedaze, przychod, do wysylki)
+- [NOWE] System panel z stat-row (Temp, CPU, RAM, Dysk)
+- [NOWE] Moduly w gridzie z badge'ami (Paletomat, Magazyn, Allegro, Magazyn 3D)
+- [NOWE] Drill-down panele dla Statystyki, Zakupy, Lezaki
+- [NOWE] CSS design system: zmienne kolorow, .kpi-card, .card, .stat-row, .module-card, .qa-btn
+- [NOWE] Responsive sidebar — hamburger menu na mobile (<900px)
+- [ZMIANA] Usunieto stary bottom-nav, przeniesiono do sidebara
+- [ZMIANA] Wszystkie hardcoded kolory zamienione na CSS variables
+
 ### Profit Analyzer
 - [NOWE] Dashboard analizy zysków w stylu vSprint (/analytics/profit)
 - [NOWE] Rachunek wyników (waterfall) — przychód, COGS, prowizja, koszty op., zysk netto

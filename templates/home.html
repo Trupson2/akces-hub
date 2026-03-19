@@ -1,18 +1,48 @@
 {% extends "base.html" %}
+{% block page_title %}Dashboard{% endblock %}
 {% block content %}
-<div class="header">
-    {% if brand_logo %}<img src="/static/brand_logo.png" style="max-height:50px;margin-bottom:8px">{% endif %}
-    <h1>{{ brand_name }}</h1>
-</div>
+
+<!-- Tech Background Canvas -->
+<canvas id="techBg" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-1;pointer-events:none"></canvas>
+<script>
+(function(){
+    const c=document.getElementById('techBg'),ctx=c.getContext('2d');
+    let w,h,particles=[];
+    function resize(){w=c.width=window.innerWidth;h=c.height=window.innerHeight;}
+    resize();window.addEventListener('resize',resize);
+    for(let i=0;i<40;i++)particles.push({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-0.5)*0.3,vy:(Math.random()-0.5)*0.3,r:Math.random()*2+1});
+    function draw(){
+        ctx.clearRect(0,0,w,h);
+        for(let i=0;i<particles.length;i++){
+            const p=particles[i];
+            p.x+=p.vx;p.y+=p.vy;
+            if(p.x<0)p.x=w;if(p.x>w)p.x=0;
+            if(p.y<0)p.y=h;if(p.y>h)p.y=0;
+            ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+            ctx.fillStyle='rgba(99,102,241,0.2)';ctx.fill();
+            for(let j=i+1;j<particles.length;j++){
+                const q=particles[j],dx=p.x-q.x,dy=p.y-q.y,dist=Math.sqrt(dx*dx+dy*dy);
+                if(dist<150){
+                    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);
+                    ctx.strokeStyle='rgba(99,102,241,'+(0.05*(1-dist/150))+')';
+                    ctx.lineWidth=0.5;ctx.stroke();
+                }
+            }
+        }
+        requestAnimationFrame(draw);
+    }
+    draw();
+})();
+</script>
 
 <!-- PWA Install Banner -->
-<div id="pwa-banner" style="display:none;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15));border:1px solid rgba(59,130,246,0.3);border-radius:12px;padding:12px;margin-bottom:15px">
+<div id="pwa-banner" class="card" style="display:none;border-color:rgba(99,102,241,0.3);background:var(--accent-soft)">
     <div style="display:flex;align-items:center;justify-content:space-between">
         <div>
             <div style="font-weight:600;font-size:0.9rem">📲 Zainstaluj aplikację</div>
-            <div style="font-size:0.75rem;color:#94a3b8">Działa offline jak natywna apka</div>
+            <div style="font-size:0.75rem;color:var(--text-muted)">Działa offline jak natywna apka</div>
         </div>
-        <button id="pwa-install" style="background:#3b82f6;border:none;color:#fff;padding:8px 16px;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer">Instaluj</button>
+        <button id="pwa-install" class="btn btn-primary btn-sm">Instaluj</button>
     </div>
 </div>
 <script>
@@ -22,42 +52,42 @@ document.getElementById('pwa-install')?.addEventListener('click',async()=>{if(de
 window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner').style.display='none';});
 </script>
 
-<!-- ═══════════ UPDATE STATUS ═══════════ -->
+<!-- Update Status -->
 {% if update_banner %}
-<div id="update-banner" style="background:linear-gradient(135deg,rgba(34,197,94,0.15),rgba(59,130,246,0.1));border:1px solid rgba(34,197,94,0.35);border-radius:14px;padding:14px 16px;margin-bottom:16px;position:relative">
-    <button onclick="document.getElementById('update-banner').style.display='none'" style="position:absolute;top:8px;right:12px;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">&times;</button>
+<div id="update-banner" class="card" style="border-color:rgba(34,197,94,0.35);background:var(--green-soft);position:relative">
+    <button onclick="document.getElementById('update-banner').style.display='none'" style="position:absolute;top:8px;right:12px;background:none;border:none;color:var(--text-muted);font-size:1.2rem;cursor:pointer">&times;</button>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
         <span style="font-size:1.3rem">✅</span>
         <div>
-            <div style="font-weight:700;color:#22c55e;font-size:0.9rem">System zaktualizowany!</div>
-            <div style="font-size:0.72rem;color:#64748b">{{ update_banner.date }} &middot; wersja {{ update_banner.commit }}</div>
+            <div style="font-weight:700;color:var(--green);font-size:0.9rem">System zaktualizowany!</div>
+            <div style="font-size:0.72rem;color:var(--text-muted)">{{ update_banner.date }} &middot; wersja {{ update_banner.commit }}</div>
         </div>
     </div>
-    <div style="font-size:0.82rem;color:#e2e8f0;padding:8px 10px;background:rgba(0,0,0,0.2);border-radius:8px">{{ update_banner.message }}</div>
+    <div style="font-size:0.82rem;color:var(--text-secondary);padding:8px 10px;background:var(--bg);border-radius:var(--radius-sm)">{{ update_banner.message }}</div>
 </div>
 {% endif %}
 
 {% if update_status %}
 {% if update_status.has_update %}
-<div style="background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(245,158,11,0.1));border:1px solid rgba(251,191,36,0.35);border-radius:14px;padding:14px 16px;margin-bottom:16px">
+<div class="card" style="border-color:rgba(234,179,8,0.35);background:var(--yellow-soft)">
     <div style="display:flex;justify-content:space-between;align-items:center">
         <div style="display:flex;align-items:center;gap:10px">
             <span style="font-size:1.3rem">📢</span>
             <div>
-                <div style="font-weight:700;color:#fbbf24;font-size:0.9rem">Dostępna aktualizacja!</div>
-                <div style="font-size:0.72rem;color:#64748b">Nowa wersja: {{ update_status.remote_hash }} &middot; Twoja: {{ update_status.local_hash }}</div>
+                <div style="font-weight:700;color:var(--yellow);font-size:0.9rem">Dostępna aktualizacja!</div>
+                <div style="font-size:0.72rem;color:var(--text-muted)">Nowa wersja: {{ update_status.remote_hash }} &middot; Twoja: {{ update_status.local_hash }}</div>
             </div>
         </div>
-        <button onclick="doSystemUpdate(this)" style="background:#fbbf24;color:#000;border:none;border-radius:8px;padding:8px 16px;font-weight:700;font-size:0.8rem;cursor:pointer">Aktualizuj</button>
+        <button onclick="doSystemUpdate(this)" class="btn btn-warning btn-sm">Aktualizuj</button>
     </div>
     {% if update_status.remote_msg %}
-    <div style="font-size:0.78rem;color:#e2e8f0;padding:8px 10px;margin-top:10px;background:rgba(0,0,0,0.2);border-radius:8px;white-space:pre-line">{{ update_status.remote_msg }}</div>
+    <div style="font-size:0.78rem;color:var(--text-secondary);padding:8px 10px;margin-top:10px;background:var(--bg);border-radius:var(--radius-sm);white-space:pre-line">{{ update_status.remote_msg }}</div>
     {% endif %}
 </div>
 {% else %}
-<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;margin-bottom:12px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:10px">
-    <span style="color:#22c55e;font-size:0.85rem">✅</span>
-    <span style="font-size:0.78rem;color:#64748b">System aktualny &middot; wersja {{ update_status.local_hash }}</span>
+<div class="alert alert-success" style="display:flex;align-items:center;gap:8px;padding:8px 14px">
+    <span>✅</span>
+    <span style="font-size:0.78rem">System aktualny &middot; wersja {{ update_status.local_hash }}</span>
 </div>
 {% endif %}
 {% endif %}
@@ -73,57 +103,76 @@ function doSystemUpdate(btn){
 }
 </script>
 
-<!-- ═══════════ DZISIAJ ═══════════ -->
-<div style="background:linear-gradient(135deg,rgba(34,197,94,0.12),rgba(16,185,129,0.08));border:1px solid rgba(34,197,94,0.25);border-radius:16px;padding:18px;margin-bottom:16px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <span style="font-weight:700;font-size:0.9rem;color:#22c55e">📈 DZISIAJ</span>
-        <span style="font-size:0.8rem;color:#64748b">{{ today_date }}</span>
+<!-- DZISIAJ KPI -->
+<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpi-card green">
+        <div class="kpi-icon">📈</div>
+        <div class="kpi-value" style="color:var(--green)">{{ today.sprzedaz }}</div>
+        <div class="kpi-label">Sprzedaży</div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center">
-        <div>
-            <div style="font-size:2rem;font-weight:800;color:#22c55e">{{ today.sprzedaz }}</div>
-            <div style="font-size:0.75rem;color:#94a3b8">Sprzedaży</div>
-        </div>
-        <div>
-            <div style="font-size:2rem;font-weight:800;color:#3b82f6">{{ today.przychod }} <span style="font-size:1rem">zł</span></div>
-            <div style="font-size:0.75rem;color:#94a3b8">Przychód</div>
-        </div>
-        <div>
-            <div style="font-size:2rem;font-weight:800;color:#eab308">{{ today.do_wyslania }}</div>
-            <div style="font-size:0.75rem;color:#94a3b8">Do wysyłki</div>
-        </div>
+    <div class="kpi-card blue">
+        <div class="kpi-icon">💰</div>
+        <div class="kpi-value" style="color:var(--blue)">{{ today.przychod }} <span style="font-size:1rem;font-weight:600">zł</span></div>
+        <div class="kpi-label">Przychód</div>
+    </div>
+    <div class="kpi-card orange">
+        <div class="kpi-icon">📬</div>
+        <div class="kpi-value" style="color:var(--orange)">{{ today.do_wyslania }}</div>
+        <div class="kpi-label">Do wysyłki</div>
     </div>
 </div>
 
-<!-- ═══════════ SYSTEM ═══════════ -->
-{% if true %}
-<div id="sys-panel" style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:12px;padding:12px;margin-bottom:12px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-size:0.75rem;color:#64748b;font-weight:600">SYSTEM</div>
-        <div style="display:flex;align-items:center;gap:6px">
-            <span id="sys-uptime" style="font-size:0.7rem;color:#64748b">--</span>
-            <div id="sys-dot" style="width:6px;height:6px;border-radius:50%;background:#22c55e"></div>
+<div class="dash-grid">
+    <!-- System Panel -->
+    <div id="sys-panel" class="card" style="padding:14px">
+        <div class="card-header" style="margin-bottom:10px">
+            <span class="card-title" style="font-size:0.75rem;color:var(--text-muted)">SYSTEM</span>
+            <div style="display:flex;align-items:center;gap:6px">
+                <span id="sys-uptime" style="font-size:0.7rem;color:var(--text-muted)">--</span>
+                <div id="sys-dot" class="status-dot online"></div>
+            </div>
+        </div>
+        <div class="stat-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:0">
+            <div class="stat-box" style="padding:10px 6px">
+                <div id="sys-temp" class="stat-val green">--</div>
+                <div class="stat-lbl">Temp</div>
+            </div>
+            <div class="stat-box" style="padding:10px 6px">
+                <div class="stat-val blue"><span id="sys-cpu">--</span>%</div>
+                <div class="stat-lbl">CPU</div>
+            </div>
+            <div class="stat-box" style="padding:10px 6px">
+                <div id="sys-ram" class="stat-val purple">--</div>
+                <div class="stat-lbl">RAM</div>
+            </div>
+            <div class="stat-box" style="padding:10px 6px">
+                <div id="sys-disk" class="stat-val orange">--</div>
+                <div class="stat-lbl">Dysk</div>
+            </div>
         </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">
-        <div>
-            <div id="sys-temp" style="font-size:1rem;font-weight:700;color:#22c55e">--</div>
-            <div style="font-size:0.6rem;color:#475569">Temp</div>
+
+    <!-- Goal Progress -->
+    {% if goal %}
+    <a href="/goal/details" class="card" style="text-decoration:none;color:var(--text);position:relative;overflow:hidden;padding:16px">
+        <div style="position:absolute;top:0;right:0;bottom:0;width:45%;background:url('/static/goal.jpg') no-repeat center right;background-size:cover;opacity:0.1;z-index:0"></div>
+        <div style="position:relative;z-index:1">
+            <div class="card-header" style="margin-bottom:10px">
+                <span class="card-title" style="color:var(--blue)">🚗 {{ goal['name'] }}</span>
+                <span style="font-weight:800;color:var(--green);font-size:1.2rem">{{ "%.1f"|format(goal.get('progress', 0)) }}%</span>
+            </div>
+            <div style="background:var(--bg);border-radius:var(--radius-sm);height:12px;overflow:hidden;margin-bottom:8px">
+                <div style="background:linear-gradient(90deg,var(--green),#16a34a);height:100%;width:{{ "%.1f"|format(goal.get('progress', 0)) }}%;border-radius:var(--radius-sm)"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem">
+                <span style="color:var(--green);font-weight:600">{{ "{:,.0f}".format(goal['current']) }} zł</span>
+                <span style="color:var(--text-muted)">cel: {{ "{:,.0f}".format(goal['target']) }} zł</span>
+            </div>
         </div>
-        <div>
-            <div style="font-size:1rem;font-weight:700;color:#3b82f6"><span id="sys-cpu">--</span>%</div>
-            <div style="font-size:0.6rem;color:#475569">CPU</div>
-        </div>
-        <div>
-            <div id="sys-ram" style="font-size:1rem;font-weight:700;color:#8b5cf6">--</div>
-            <div style="font-size:0.6rem;color:#475569">RAM</div>
-        </div>
-        <div>
-            <div id="sys-disk" style="font-size:1rem;font-weight:700;color:#f59e0b">--</div>
-            <div style="font-size:0.6rem;color:#475569">Dysk</div>
-        </div>
-    </div>
+    </a>
+    {% endif %}
 </div>
+
 <script>
 (function(){
     function updSys(){
@@ -131,7 +180,7 @@ function doSystemUpdate(btn){
             const te=document.getElementById('sys-temp');
             if(!te)return;
             te.textContent=d.temp>0?d.temp.toFixed(0)+'°C':'N/A';
-            te.style.color=d.temp<55?'#22c55e':d.temp<70?'#eab308':'#ef4444';
+            te.className='stat-val '+(d.temp<55?'green':d.temp<70?'orange':'red');
             document.getElementById('sys-cpu').textContent=d.cpu.toFixed(0);
             document.getElementById('sys-ram').textContent=d.ram_used.toFixed(1)+'/'+d.ram_total.toFixed(0);
             document.getElementById('sys-disk').textContent=d.disk_used.toFixed(0)+'/'+d.disk_total.toFixed(0);
@@ -141,167 +190,158 @@ function doSystemUpdate(btn){
     updSys();setInterval(updSys,15000);
 })();
 </script>
-{% endif %}
 
-<!-- ═══════════ GOAL ═══════════ -->
-{% if goal %}
-<a href="/goal/details" style="text-decoration:none;display:block;position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.1));border:1px solid rgba(59,130,246,0.3);border-radius:14px;padding:16px;margin-bottom:16px">
-    <div style="position:absolute;top:0;right:0;bottom:0;width:45%;background:url('/static/goal.jpg') no-repeat center right;background-size:cover;opacity:0.15;z-index:0"></div>
-    <div style="position:relative;z-index:1">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-            <div style="font-weight:700;color:#3b82f6;font-size:1rem">🚗 {{ goal['name'] }}</div>
-            <div style="font-weight:800;color:#22c55e;font-size:1.2rem">{{ "%.1f"|format(goal.get('progress', 0)) }}%</div>
-        </div>
-        <div style="background:rgba(0,0,0,0.3);border-radius:8px;height:12px;overflow:hidden;margin-bottom:8px">
-            <div style="background:linear-gradient(90deg,#22c55e,#16a34a);height:100%;width:{{ "%.1f"|format(goal.get('progress', 0)) }}%;border-radius:8px"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:0.8rem">
-            <span style="color:#22c55e;font-weight:600">{{ "{:,.0f}".format(goal['current']) }} zł</span>
-            <span style="color:#94a3b8">cel: {{ "{:,.0f}".format(goal['target']) }} zł</span>
-        </div>
+<!-- Poziom Link -->
+<a href="/poziom" class="qa-btn" style="margin-bottom:20px">
+    <div class="qa-icon" style="background:var(--green-soft)">🎮</div>
+    <div style="flex:1">
+        <div style="font-weight:700;color:var(--green)">POZIOM & PROGRESS</div>
+        <div style="font-size:0.72rem;color:var(--text-muted)">Skill tree · Osiągnięcia · Droga do 1M</div>
     </div>
-</a>
-{% endif %}
-
-<!-- ═══════════ POZIOM ═══════════ -->
-<a href="/poziom" style="text-decoration:none;display:block;background:linear-gradient(135deg,rgba(34,197,94,0.12),rgba(168,85,247,0.08));border:1px solid rgba(34,197,94,0.3);border-radius:14px;padding:14px 16px;margin-bottom:16px">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.3rem">🎮</span>
-            <div>
-                <div style="font-weight:700;color:#22c55e;font-size:0.9rem">POZIOM &amp; PROGRESS</div>
-                <div style="font-size:0.72rem;color:#64748b">Skill tree · Osiągnięcia · Droga do 1M</div>
-            </div>
-        </div>
-        <div style="color:#64748b;font-size:1.2rem">→</div>
-    </div>
+    <span style="color:var(--text-muted);font-size:1.2rem">→</span>
 </a>
 
-<!-- ═══════════ MIESIĄC ═══════════ -->
-<div style="background:linear-gradient(135deg, {{ sypie_color }}15, {{ sypie_color }}08);border:1px solid {{ sypie_color }}40;border-radius:16px;padding:16px;margin-bottom:16px;text-align:center">
+<!-- Miesiąc Summary -->
+<div class="card" style="text-align:center;border-color:{{ sypie_color }}40">
     <div style="font-size:1.6rem;font-weight:800;color:{{ sypie_color }}">{{ sypie_text }}</div>
-    <div style="font-size:0.8rem;color:#94a3b8;margin-top:6px">
-        📅 {{ miesiac_nazwa }}: <strong style="color:#e2e8f0">{{ miesiac_kwota }} zł</strong> · {{ miesiac_zamowienia }} zamówień · śr. {{ miesiac_srednia }} zł/dzień
+    <div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px">
+        📅 {{ miesiac_nazwa }}: <strong style="color:var(--text)">{{ miesiac_kwota }} zł</strong> · {{ miesiac_zamowienia }} zamówień · śr. {{ miesiac_srednia }} zł/dzień
     </div>
 </div>
 
-<!-- ═══════════ STATY MIESIĄCA ═══════════ -->
+<!-- Staty Miesiąca (WYNIK) -->
 {% if monthly %}
-<div style="background:#12121a;border:1px solid #1e1e2e;border-radius:14px;padding:16px;margin-bottom:16px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <span style="font-weight:700;font-size:0.8rem;color:#64748b">📊 {{ miesiac_nazwa }} — WYNIK</span>
-        <a href="/analityka" style="font-size:0.7rem;color:#3b82f6;text-decoration:none">Szczegóły →</a>
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">📊 {{ miesiac_nazwa }} — WYNIK</span>
+        <a href="/analityka" class="card-action">Szczegóły →</a>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;margin-bottom:12px">
-        <a href="/sprzedaze" style="text-decoration:none;background:#0a2218;border:1px solid #22c55e33;border-radius:10px;padding:12px 8px;transition:transform 0.15s,border-color 0.15s" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='#22c55e'" onmouseout="this.style.transform='';this.style.borderColor='#22c55e33'">
-            <div style="font-size:1.3rem;font-weight:800;color:#22c55e">{{ monthly.przychod }} <span style="font-size:0.7rem">zł</span></div>
-            <div style="font-size:0.65rem;color:#64748b;margin-top:2px">PRZYCHÓD</div>
-        </a>
-        <a href="/analityka/palety" style="text-decoration:none;background:#1c0010;border:1px solid #ef444433;border-radius:10px;padding:12px 8px;transition:transform 0.15s,border-color 0.15s" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='#ef4444'" onmouseout="this.style.transform='';this.style.borderColor='#ef444433'">
-            <div style="font-size:1.3rem;font-weight:800;color:#f87171">{{ monthly.cogs }} <span style="font-size:0.7rem">zł</span></div>
-            <div style="font-size:0.65rem;color:#64748b;margin-top:2px">KOSZT (COGS)</div>
-        </a>
-        <a href="/analityka" style="text-decoration:none;background:#0a1a2e;border:1px solid #3b82f633;border-radius:10px;padding:12px 8px;transition:transform 0.15s,border-color 0.15s" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='#3b82f6'" onmouseout="this.style.transform='';this.style.borderColor='#3b82f633'">
-            <div style="font-size:1.3rem;font-weight:800;color:#60a5fa">{{ monthly.zysk }} <span style="font-size:0.7rem">zł</span></div>
-            <div style="font-size:0.65rem;color:#64748b;margin-top:2px">ZYSK</div>
-        </a>
+    <div class="stat-row" style="margin-bottom:14px">
+        <div class="stat-box">
+            <a href="/sprzedaze">
+                <div class="stat-val green">{{ monthly.przychod }} <span style="font-size:0.7rem">zł</span></div>
+                <div class="stat-lbl">PRZYCHÓD</div>
+            </a>
+        </div>
+        <div class="stat-box">
+            <a href="/analityka/palety">
+                <div class="stat-val red">{{ monthly.cogs }} <span style="font-size:0.7rem">zł</span></div>
+                <div class="stat-lbl">KOSZT (COGS)</div>
+            </a>
+        </div>
+        <div class="stat-box">
+            <a href="/analityka">
+                <div class="stat-val blue">{{ monthly.zysk }} <span style="font-size:0.7rem">zł</span></div>
+                <div class="stat-lbl">ZYSK</div>
+            </a>
+        </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">
-        <a href="/analityka" style="text-decoration:none;padding:6px;border-radius:8px;transition:background 0.15s" onmouseover="this.style.background='#1e1e2e'" onmouseout="this.style.background='transparent'">
-            <div style="font-size:0.95rem;font-weight:700;color:#a78bfa">{{ monthly.prowizja }} zł</div>
-            <div style="font-size:0.6rem;color:#475569">Prowizja 11%</div>
-        </a>
-        <a href="/analityka" style="text-decoration:none;padding:6px;border-radius:8px;transition:background 0.15s" onmouseover="this.style.background='#1e1e2e'" onmouseout="this.style.background='transparent'">
-            <div style="font-size:0.95rem;font-weight:700;color:#22c55e">{{ monthly.roi }}%</div>
-            <div style="font-size:0.6rem;color:#475569">ROI</div>
-        </a>
-        <a href="/magazyn" style="text-decoration:none;padding:6px;border-radius:8px;transition:background 0.15s" onmouseover="this.style.background='#1e1e2e'" onmouseout="this.style.background='transparent'">
-            <div style="font-size:0.95rem;font-weight:700;color:#f59e0b">{{ monthly.magazyn_wartosc }} zł</div>
-            <div style="font-size:0.6rem;color:#475569">Magazyn</div>
-        </a>
-        <a href="/sprzedaze?status=zwrot" style="text-decoration:none;padding:6px;border-radius:8px;transition:background 0.15s" onmouseover="this.style.background='#1e1e2e'" onmouseout="this.style.background='transparent'">
-            <div style="font-size:0.95rem;font-weight:700;color:#ef4444">{{ monthly.zwroty_cnt }}</div>
-            <div style="font-size:0.6rem;color:#475569">Zwrotów</div>
-        </a>
+    <div class="stat-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:0">
+        <div class="stat-box">
+            <a href="/analityka">
+                <div class="stat-val purple">{{ monthly.prowizja }} zł</div>
+                <div class="stat-lbl">Prowizja 11%</div>
+            </a>
+        </div>
+        <div class="stat-box">
+            <a href="/analityka">
+                <div class="stat-val green">{{ monthly.roi }}%</div>
+                <div class="stat-lbl">ROI</div>
+            </a>
+        </div>
+        <div class="stat-box">
+            <a href="/magazyn">
+                <div class="stat-val orange">{{ monthly.magazyn_wartosc }} zł</div>
+                <div class="stat-lbl">Magazyn</div>
+            </a>
+        </div>
+        <div class="stat-box">
+            <a href="/sprzedaze?status=zwrot">
+                <div class="stat-val red">{{ monthly.zwroty_cnt }}</div>
+                <div class="stat-lbl">Zwrotów</div>
+            </a>
+        </div>
     </div>
 </div>
 {% endif %}
 
-<!-- ═══════════ SZYBKIE AKCJE ═══════════ -->
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
-    <a href="/wysylki/allegro" style="text-decoration:none;text-align:center;padding:14px 8px;background:#12121a;border:1px solid #1e1e2e;border-radius:12px">
-        <div style="font-size:1.5rem;margin-bottom:4px">📦</div>
-        <div style="font-size:0.75rem;color:#e2e8f0;font-weight:600">Wysyłki</div>
+<!-- Szybkie Akcje -->
+<div class="section-title">SZYBKIE AKCJE</div>
+<div class="quick-actions" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
+    <a href="/wysylki/allegro" class="qa-btn" style="flex-direction:column;text-align:center;padding:14px 8px">
+        <div class="qa-icon" style="background:var(--accent-soft)">📦</div>
+        <span>Wysyłki</span>
     </a>
-    <a href="/palety" style="text-decoration:none;text-align:center;padding:14px 8px;background:#12121a;border:1px solid #1e1e2e;border-radius:12px">
-        <div style="font-size:1.5rem;margin-bottom:4px">📋</div>
-        <div style="font-size:0.75rem;color:#e2e8f0;font-weight:600">Palety</div>
+    <a href="/palety" class="qa-btn" style="flex-direction:column;text-align:center;padding:14px 8px">
+        <div class="qa-icon" style="background:var(--blue-soft)">📋</div>
+        <span>Palety</span>
     </a>
-    <a href="/sprzedaze" style="text-decoration:none;text-align:center;padding:14px 8px;background:#12121a;border:1px solid #1e1e2e;border-radius:12px">
-        <div style="font-size:1.5rem;margin-bottom:4px">💰</div>
-        <div style="font-size:0.75rem;color:#e2e8f0;font-weight:600">Sprzedaż</div>
+    <a href="/sprzedaze" class="qa-btn" style="flex-direction:column;text-align:center;padding:14px 8px">
+        <div class="qa-icon" style="background:var(--green-soft)">💰</div>
+        <span>Sprzedaż</span>
     </a>
-    <a href="/analityka" style="text-decoration:none;text-align:center;padding:14px 8px;background:#12121a;border:1px solid #1e1e2e;border-radius:12px">
-        <div style="font-size:1.5rem;margin-bottom:4px">📊</div>
-        <div style="font-size:0.75rem;color:#e2e8f0;font-weight:600">Analityka</div>
+    <a href="/analityka" class="qa-btn" style="flex-direction:column;text-align:center;padding:14px 8px">
+        <div class="qa-icon" style="background:var(--yellow-soft)">📊</div>
+        <span>Analityka</span>
     </a>
 </div>
 
-<!-- ═══════════ MODUŁY (2 kolumny, czyste) ═══════════ -->
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-    <a href="/paletomat" style="text-decoration:none;background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(124,58,237,0.08));border:1px solid rgba(139,92,246,0.3);border-radius:14px;padding:16px;display:block">
+<!-- Moduły -->
+<div class="section-title">MODUŁY</div>
+<div class="dash-grid" style="margin-bottom:24px">
+    <a href="/paletomat" class="module-card">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <span style="font-size:1.3rem">🤖</span>
+            <div class="qa-icon" style="background:var(--accent-soft)">🤖</div>
             <div>
-                <div style="font-weight:700;color:#e2e8f0;font-size:0.9rem">Paletomat</div>
-                <div style="font-size:0.7rem;color:#94a3b8">Scraper → Allegro</div>
+                <div style="font-weight:700;font-size:0.9rem">Paletomat</div>
+                <div style="font-size:0.7rem;color:var(--text-muted)">Scraper → Allegro</div>
             </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span style="font-size:0.7rem;background:rgba(139,92,246,0.2);color:#a78bfa;padding:3px 8px;border-radius:6px">{{ pal.aktywne }} ofert</span>
-            <span style="font-size:0.7rem;background:rgba(34,197,94,0.15);color:#22c55e;padding:3px 8px;border-radius:6px">{{ "%.0f"|format(pal.przychod) }} zł</span>
+            <span class="badge" style="background:var(--accent-soft);color:var(--accent)">{{ pal.aktywne }} ofert</span>
+            <span class="badge badge-success">{{ "%.0f"|format(pal.przychod) }} zł</span>
         </div>
     </a>
 
-    <a href="/magazyn" style="text-decoration:none;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(37,99,235,0.08));border:1px solid rgba(59,130,246,0.3);border-radius:14px;padding:16px;display:block">
+    <a href="/magazyn" class="module-card">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <span style="font-size:1.3rem">📦</span>
+            <div class="qa-icon" style="background:var(--blue-soft)">📦</div>
             <div>
-                <div style="font-weight:700;color:#e2e8f0;font-size:0.9rem">Magazyn</div>
-                <div style="font-size:0.7rem;color:#94a3b8">Stany magazynowe</div>
+                <div style="font-weight:700;font-size:0.9rem">Magazyn</div>
+                <div style="font-size:0.7rem;color:var(--text-muted)">Stany magazynowe</div>
             </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span style="font-size:0.7rem;background:rgba(59,130,246,0.2);color:#60a5fa;padding:3px 8px;border-radius:6px">{{ mag.produkty }} produktów</span>
-            <span style="font-size:0.7rem;background:rgba(59,130,246,0.15);color:#93c5fd;padding:3px 8px;border-radius:6px">{{ mag.sztuki }} szt</span>
+            <span class="badge" style="background:var(--blue-soft);color:var(--blue)">{{ mag.produkty }} produktów</span>
+            <span class="badge" style="background:var(--blue-soft);color:var(--blue)">{{ mag.sztuki }} szt</span>
         </div>
     </a>
 
-    <a href="/allegro" style="text-decoration:none;background:linear-gradient(135deg,rgba(249,115,22,0.15),rgba(234,88,12,0.08));border:1px solid rgba(249,115,22,0.3);border-radius:14px;padding:16px;display:block">
+    <a href="/allegro" class="module-card">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <span style="font-size:1.3rem">🛒</span>
+            <div class="qa-icon" style="background:var(--yellow-soft)">🛒</div>
             <div>
-                <div style="font-weight:700;color:#e2e8f0;font-size:0.9rem">Allegro</div>
-                <div style="font-size:0.7rem;color:#94a3b8">Integracja API</div>
+                <div style="font-weight:700;font-size:0.9rem">Allegro</div>
+                <div style="font-size:0.7rem;color:var(--text-muted)">Integracja API</div>
             </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span style="font-size:0.7rem;background:rgba(249,115,22,0.2);color:#fb923c;padding:3px 8px;border-radius:6px">{{ allegro.status }}</span>
-            <span style="font-size:0.7rem;background:rgba(249,115,22,0.15);color:#fdba74;padding:3px 8px;border-radius:6px">{{ allegro.oferty }} ofert</span>
+            <span class="badge badge-warning">{{ allegro.status }}</span>
+            <span class="badge" style="background:var(--yellow-soft);color:var(--orange)">{{ allegro.oferty }} ofert</span>
         </div>
     </a>
 
-    <a href="/warehouse/heatmap" style="text-decoration:none;background:linear-gradient(135deg,rgba(102,126,234,0.15),rgba(118,75,162,0.08));border:1px solid rgba(102,126,234,0.3);border-radius:14px;padding:16px;display:block">
+    <a href="/warehouse/heatmap" class="module-card">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <span style="font-size:1.3rem">🗺️</span>
+            <div class="qa-icon" style="background:var(--accent-soft)">🗺️</div>
             <div>
-                <div style="font-weight:700;color:#e2e8f0;font-size:0.9rem">Magazyn 3D</div>
-                <div style="font-size:0.7rem;color:#94a3b8">Heatmapa + regały</div>
+                <div style="font-weight:700;font-size:0.9rem">Magazyn 3D</div>
+                <div style="font-size:0.7rem;color:var(--text-muted)">Heatmapa + regały</div>
             </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span id="hm-locs" style="font-size:0.7rem;background:rgba(102,126,234,0.2);color:#818cf8;padding:3px 8px;border-radius:6px">-- lokalizacji</span>
-            <span id="hm-fill" style="font-size:0.7rem;background:rgba(102,126,234,0.15);color:#a5b4fc;padding:3px 8px;border-radius:6px">--% zapełn.</span>
+            <span id="hm-locs" class="badge" style="background:var(--accent-soft);color:var(--accent)">-- lokalizacji</span>
+            <span id="hm-fill" class="badge" style="background:var(--accent-soft);color:var(--accent)">--% zapełn.</span>
         </div>
     </a>
 </div>
@@ -315,126 +355,162 @@ fetch('/api/warehouse/heatmap').then(r=>r.json()).then(d=>{
 }).catch(()=>{});
 </script>
 
-<!-- ═══════════ ANALITYKA ═══════════ -->
-<div style="font-weight:700;font-size:0.75rem;color:#f59e0b;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">ANALITYKA</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
-    <a href="/statystyki" style="text-decoration:none;text-align:center;padding:16px 8px;background:linear-gradient(135deg,rgba(234,179,8,0.15),rgba(202,138,4,0.08));border:1px solid rgba(234,179,8,0.35);border-radius:14px" onclick="event.preventDefault();toggleDrilldown('dd-stats')">
-        <div style="font-size:1.5rem;margin-bottom:6px">📊</div>
-        <div style="font-size:0.8rem;font-weight:700;color:#e2e8f0">STATYSTYKI</div>
-        <div style="font-size:0.65rem;color:#f59e0b;margin-top:2px">przeglądaj</div>
+<!-- Analityka -->
+<div class="section-title">ANALITYKA</div>
+<div class="quick-actions" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+    <a href="/statystyki" class="qa-btn" style="flex-direction:column;text-align:center;padding:16px 8px" onclick="event.preventDefault();toggleDrilldown('dd-stats')">
+        <div class="qa-icon" style="background:var(--yellow-soft)">📊</div>
+        <div style="font-weight:700">STATYSTYKI</div>
+        <div style="font-size:0.65rem;color:var(--orange);margin-top:2px">przeglądaj</div>
     </a>
-    <a href="/analityka/palety" style="text-decoration:none;text-align:center;padding:16px 8px;background:linear-gradient(135deg,rgba(6,182,212,0.15),rgba(8,145,178,0.08));border:1px solid rgba(6,182,212,0.35);border-radius:14px" onclick="event.preventDefault();toggleDrilldown('dd-zakupy')">
-        <div style="font-size:1.5rem;margin-bottom:6px">🛒</div>
-        <div style="font-size:0.8rem;font-weight:700;color:#e2e8f0">ZAKUPY</div>
-        <div style="font-size:0.65rem;color:#06b6d4;margin-top:2px">analiza</div>
+    <a href="/analityka/palety" class="qa-btn" style="flex-direction:column;text-align:center;padding:16px 8px" onclick="event.preventDefault();toggleDrilldown('dd-zakupy')">
+        <div class="qa-icon" style="background:var(--blue-soft)">🛒</div>
+        <div style="font-weight:700">ZAKUPY</div>
+        <div style="font-size:0.65rem;color:var(--cyan);margin-top:2px">analiza</div>
     </a>
-    <a href="/magazyn/lezaki" style="text-decoration:none;text-align:center;padding:16px 8px;background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(124,58,237,0.08));border:1px solid rgba(139,92,246,0.35);border-radius:14px" onclick="event.preventDefault();toggleDrilldown('dd-lezaki')">
-        <div style="font-size:1.5rem;margin-bottom:6px">⏳</div>
-        <div style="font-size:0.8rem;font-weight:700;color:#e2e8f0">LEŻAKI</div>
-        <div style="font-size:0.65rem;color:#a78bfa;margin-top:2px">zalegające</div>
+    <a href="/magazyn/lezaki" class="qa-btn" style="flex-direction:column;text-align:center;padding:16px 8px" onclick="event.preventDefault();toggleDrilldown('dd-lezaki')">
+        <div class="qa-icon" style="background:var(--accent-soft)">⏳</div>
+        <div style="font-weight:700">LEŻAKI</div>
+        <div style="font-size:0.65rem;color:var(--purple);margin-top:2px">zalegające</div>
     </a>
 </div>
 
 <!-- Drill-down: STATYSTYKI -->
-<div id="dd-stats" style="display:none;background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:14px;margin-bottom:16px;animation:fadeIn 0.3s">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="font-weight:700;font-size:0.8rem;color:#eab308">📊 STATYSTYKI — drill down</span>
-        <span onclick="toggleDrilldown('dd-stats')" style="cursor:pointer;color:#64748b;font-size:0.8rem">✕</span>
+<div id="dd-stats" class="card" style="display:none;animation:fadeIn 0.3s">
+    <div class="card-header">
+        <span class="card-title" style="color:var(--yellow)">📊 STATYSTYKI — drill down</span>
+        <span onclick="toggleDrilldown('dd-stats')" style="cursor:pointer;color:var(--text-muted);font-size:0.8rem">✕</span>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <a href="/statystyki" style="text-decoration:none;padding:10px;background:#0a1a2e;border:1px solid #1e3a5f;border-radius:8px">
-            <div style="font-size:0.75rem;color:#60a5fa;font-weight:600">📈 Pełne statystyki</div>
-            <div style="font-size:0.65rem;color:#475569;margin-top:2px">Wykresy, trendy, KPI</div>
+    <div class="quick-actions">
+        <a href="/statystyki" class="qa-btn">
+            <div class="qa-icon" style="background:var(--blue-soft)">📈</div>
+            <div>
+                <div style="font-weight:600;color:var(--blue)">Pełne statystyki</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Wykresy, trendy, KPI</div>
+            </div>
         </a>
-        <a href="/analityka" style="text-decoration:none;padding:10px;background:#0a2218;border:1px solid #1e5f3a;border-radius:8px">
-            <div style="font-size:0.75rem;color:#22c55e;font-weight:600">💰 Zyski i przychody</div>
-            <div style="font-size:0.65rem;color:#475569;margin-top:2px">Miesiąc, rok, per produkt</div>
+        <a href="/analityka" class="qa-btn">
+            <div class="qa-icon" style="background:var(--green-soft)">💰</div>
+            <div>
+                <div style="font-weight:600;color:var(--green)">Zyski i przychody</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Miesiąc, rok, per produkt</div>
+            </div>
         </a>
-        <a href="/analityka/kategorie" style="text-decoration:none;padding:10px;background:#1c0020;border:1px solid #5f1e5f;border-radius:8px">
-            <div style="font-size:0.75rem;color:#c084fc;font-weight:600">🏷️ Kategorie</div>
-            <div style="font-size:0.65rem;color:#475569;margin-top:2px">Co się sprzedaje najlepiej</div>
+        <a href="/analityka/kategorie" class="qa-btn">
+            <div class="qa-icon" style="background:var(--accent-soft)">🏷️</div>
+            <div>
+                <div style="font-weight:600;color:var(--purple)">Kategorie</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Co się sprzedaje najlepiej</div>
+            </div>
         </a>
-        <a href="/analytics/dashboard" style="text-decoration:none;padding:10px;background:#1a1a0a;border:1px solid #5f5f1e;border-radius:8px">
-            <div style="font-size:0.75rem;color:#eab308;font-weight:600">📊 Dashboard KPI</div>
-            <div style="font-size:0.65rem;color:#475569;margin-top:2px">Porównania, raporty</div>
+        <a href="/analytics/dashboard" class="qa-btn">
+            <div class="qa-icon" style="background:var(--yellow-soft)">📊</div>
+            <div>
+                <div style="font-weight:600;color:var(--yellow)">Dashboard KPI</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Porównania, raporty</div>
+            </div>
         </a>
     </div>
 </div>
 
 <!-- Drill-down: ZAKUPY -->
-<div id="dd-zakupy" style="display:none;background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:14px;margin-bottom:16px;animation:fadeIn 0.3s">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="font-weight:700;font-size:0.8rem;color:#06b6d4">🛒 ZAKUPY — drill down</span>
-        <span onclick="toggleDrilldown('dd-zakupy')" style="cursor:pointer;color:#64748b;font-size:0.8rem">✕</span>
+<div id="dd-zakupy" class="card" style="display:none;animation:fadeIn 0.3s">
+    <div class="card-header">
+        <span class="card-title" style="color:var(--cyan)">🛒 ZAKUPY — drill down</span>
+        <span onclick="toggleDrilldown('dd-zakupy')" style="cursor:pointer;color:var(--text-muted);font-size:0.8rem">✕</span>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <a href="/analityka/palety" style="text-decoration:none;padding:10px;background:#0a1a2e;border:1px solid #1e3a5f;border-radius:8px">
-            <div style="font-size:0.75rem;color:#60a5fa;font-weight:600">📦 Bilans palet</div>
-            <div style="font-size:0.65rem;color:#475569;margin-top:2px">ROI per paleta</div>
+    <div class="quick-actions">
+        <a href="/analityka/palety" class="qa-btn">
+            <div class="qa-icon" style="background:var(--blue-soft)">📦</div>
+            <div>
+                <div style="font-weight:600;color:var(--blue)">Bilans palet</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">ROI per paleta</div>
+            </div>
         </a>
-        <a href="/palety" style="text-decoration:none;padding:10px;background:#0a2218;border:1px solid #1e5f3a;border-radius:8px">
-            <div style="font-size:0.75rem;color:#22c55e;font-weight:600">📋 Lista palet</div>
-            <div style="font-size:0.65rem;color:#475569;margin-top:2px">Wszystkie zakupy</div>
+        <a href="/palety" class="qa-btn">
+            <div class="qa-icon" style="background:var(--green-soft)">📋</div>
+            <div>
+                <div style="font-weight:600;color:var(--green)">Lista palet</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Wszystkie zakupy</div>
+            </div>
         </a>
-        <a href="/analityka/okazje" style="text-decoration:none;padding:10px;background:#1a1a0a;border:1px solid #5f5f1e;border-radius:8px">
-            <div style="font-size:0.75rem;color:#eab308;font-weight:600">🔥 Okazje</div>
-            <div style="font-size:0.65rem;color:#475569;margin-top:2px">Monitoring dostawców</div>
+        <a href="/analityka/okazje" class="qa-btn">
+            <div class="qa-icon" style="background:var(--yellow-soft)">🔥</div>
+            <div>
+                <div style="font-weight:600;color:var(--yellow)">Okazje</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Monitoring dostawców</div>
+            </div>
         </a>
-        <a href="/sprzedaze" style="text-decoration:none;padding:10px;background:#1c0010;border:1px solid #5f1e1e;border-radius:8px">
-            <div style="font-size:0.75rem;color:#f87171;font-weight:600">💳 Sprzedaże</div>
-            <div style="font-size:0.65rem;color:#475569;margin-top:2px">Historia zamówień</div>
+        <a href="/sprzedaze" class="qa-btn">
+            <div class="qa-icon" style="background:var(--red-soft)">💳</div>
+            <div>
+                <div style="font-weight:600;color:var(--red)">Sprzedaże</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Historia zamówień</div>
+            </div>
         </a>
     </div>
 </div>
 
 <!-- Drill-down: LEŻAKI -->
-<div id="dd-lezaki" style="display:none;background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:14px;margin-bottom:16px;animation:fadeIn 0.3s">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="font-weight:700;font-size:0.8rem;color:#a78bfa">⏳ LEŻAKI — drill down</span>
-        <span onclick="toggleDrilldown('dd-lezaki')" style="cursor:pointer;color:#64748b;font-size:0.8rem">✕</span>
+<div id="dd-lezaki" class="card" style="display:none;animation:fadeIn 0.3s">
+    <div class="card-header">
+        <span class="card-title" style="color:var(--purple)">⏳ LEŻAKI — drill down</span>
+        <span onclick="toggleDrilldown('dd-lezaki')" style="cursor:pointer;color:var(--text-muted);font-size:0.8rem">✕</span>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <a href="/magazyn/lezaki" style="text-decoration:none;padding:10px;background:#1c0020;border:1px solid #5f1e5f;border-radius:8px">
-            <div style="font-size:0.75rem;color:#c084fc;font-weight:600">⏳ Stojące >30 dni</div>
-            <div style="font-size:0.65rem;color:#475569;margin-top:2px">{{ monthly.stojace }} produktów</div>
+    <div class="quick-actions">
+        <a href="/magazyn/lezaki" class="qa-btn">
+            <div class="qa-icon" style="background:var(--accent-soft)">⏳</div>
+            <div>
+                <div style="font-weight:600;color:var(--purple)">Stojące >30 dni</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">{{ monthly.stojace }} produktów</div>
+            </div>
         </a>
-        <a href="/magazyn" style="text-decoration:none;padding:10px;background:#0a1a2e;border:1px solid #1e3a5f;border-radius:8px">
-            <div style="font-size:0.75rem;color:#60a5fa;font-weight:600">📦 Cały magazyn</div>
-            <div style="font-size:0.65rem;color:#475569;margin-top:2px">{{ mag.produkty }} produktów</div>
+        <a href="/magazyn" class="qa-btn">
+            <div class="qa-icon" style="background:var(--blue-soft)">📦</div>
+            <div>
+                <div style="font-weight:600;color:var(--blue)">Cały magazyn</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">{{ mag.produkty }} produktów</div>
+            </div>
         </a>
-        <a href="/sprzedaze?status=zwrot" style="text-decoration:none;padding:10px;background:#1c0010;border:1px solid #5f1e1e;border-radius:8px">
-            <div style="font-size:0.75rem;color:#f87171;font-weight:600">↩️ Zwroty</div>
-            <div style="font-size:0.65rem;color:#475569;margin-top:2px">{{ monthly.zwroty_cnt }} w tym miesiącu</div>
+        <a href="/sprzedaze?status=zwrot" class="qa-btn">
+            <div class="qa-icon" style="background:var(--red-soft)">↩️</div>
+            <div>
+                <div style="font-weight:600;color:var(--red)">Zwroty</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">{{ monthly.zwroty_cnt }} w tym miesiącu</div>
+            </div>
         </a>
-        <a href="/warehouse/heatmap" style="text-decoration:none;padding:10px;background:#0a2218;border:1px solid #1e5f3a;border-radius:8px">
-            <div style="font-size:0.75rem;color:#22c55e;font-weight:600">🗺️ Mapa magazynu</div>
-            <div style="font-size:0.65rem;color:#475569;margin-top:2px">Heatmapa 3D</div>
+        <a href="/warehouse/heatmap" class="qa-btn">
+            <div class="qa-icon" style="background:var(--green-soft)">🗺️</div>
+            <div>
+                <div style="font-weight:600;color:var(--green)">Mapa magazynu</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Heatmapa 3D</div>
+            </div>
         </a>
     </div>
 </div>
 
-<!-- ═══════════ OPERACJE ═══════════ -->
-<div style="font-weight:700;font-size:0.75rem;color:#f59e0b;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">OPERACJE</div>
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
-    <a href="/paletomat" style="text-decoration:none;text-align:center;padding:16px 8px;background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(37,99,235,0.06));border:1px solid rgba(59,130,246,0.3);border-radius:14px">
-        <div style="font-size:1.5rem;margin-bottom:6px">🤖</div>
-        <div style="font-size:0.8rem;font-weight:700;color:#e2e8f0">Paletomat</div>
-        <div style="font-size:0.65rem;color:#60a5fa;margin-top:2px">wystawiaj</div>
+<!-- Operacje -->
+<div class="section-title">OPERACJE</div>
+<div class="quick-actions" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
+    <a href="/paletomat" class="qa-btn" style="flex-direction:column;text-align:center;padding:16px 8px">
+        <div class="qa-icon" style="background:var(--blue-soft)">🤖</div>
+        <div style="font-weight:700">Paletomat</div>
+        <div style="font-size:0.65rem;color:var(--blue);margin-top:2px">wystawiaj</div>
     </a>
-    <a href="/wysylki/allegro" style="text-decoration:none;text-align:center;padding:16px 8px;background:linear-gradient(135deg,rgba(34,197,94,0.12),rgba(22,163,74,0.06));border:1px solid rgba(34,197,94,0.3);border-radius:14px">
-        <div style="font-size:1.5rem;margin-bottom:6px">📬</div>
-        <div style="font-size:0.8rem;font-weight:700;color:#e2e8f0">Wysyłki</div>
-        <div style="font-size:0.65rem;color:#22c55e;margin-top:2px">pakuj</div>
+    <a href="/wysylki/allegro" class="qa-btn" style="flex-direction:column;text-align:center;padding:16px 8px">
+        <div class="qa-icon" style="background:var(--green-soft)">📬</div>
+        <div style="font-weight:700">Wysyłki</div>
+        <div style="font-size:0.65rem;color:var(--green);margin-top:2px">pakuj</div>
     </a>
-    <a href="/allegro/sync" style="text-decoration:none;text-align:center;padding:16px 8px;background:linear-gradient(135deg,rgba(249,115,22,0.12),rgba(234,88,12,0.06));border:1px solid rgba(249,115,22,0.3);border-radius:14px">
-        <div style="font-size:1.5rem;margin-bottom:6px">🔄</div>
-        <div style="font-size:0.8rem;font-weight:700;color:#e2e8f0">Sync</div>
-        <div style="font-size:0.65rem;color:#fb923c;margin-top:2px">zamówienia</div>
+    <a href="/allegro/sync" class="qa-btn" style="flex-direction:column;text-align:center;padding:16px 8px">
+        <div class="qa-icon" style="background:var(--yellow-soft)">🔄</div>
+        <div style="font-weight:700">Sync</div>
+        <div style="font-size:0.65rem;color:var(--orange);margin-top:2px">zamówienia</div>
     </a>
-    <a href="/magazyn/etykiety" style="text-decoration:none;text-align:center;padding:16px 8px;background:linear-gradient(135deg,rgba(168,85,247,0.12),rgba(139,92,246,0.06));border:1px solid rgba(168,85,247,0.3);border-radius:14px">
-        <div style="font-size:1.5rem;margin-bottom:6px">🏷️</div>
-        <div style="font-size:0.8rem;font-weight:700;color:#e2e8f0">Etykiety</div>
-        <div style="font-size:0.65rem;color:#a78bfa;margin-top:2px">masowe PNG</div>
+    <a href="/magazyn/etykiety" class="qa-btn" style="flex-direction:column;text-align:center;padding:16px 8px">
+        <div class="qa-icon" style="background:var(--accent-soft)">🏷️</div>
+        <div style="font-weight:700">Etykiety</div>
+        <div style="font-size:0.65rem;color:var(--purple);margin-top:2px">masowe PNG</div>
     </a>
 </div>
 
@@ -446,85 +522,92 @@ function toggleDrilldown(id){
     el.style.display=el.style.display==='none'?'block':'none';
 }
 </script>
-<style>@keyframes fadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}</style>
 
-<!-- ═══════════ NARZĘDZIA (kompaktowe) ═══════════ -->
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">
-    <a href="/narzedzia/kalkulator" style="text-decoration:none;text-align:center;padding:10px;background:#12121a;border:1px solid #1e1e2e;border-radius:10px">
-        <div style="font-size:1.2rem">💰</div>
-        <div style="font-size:0.7rem;color:#94a3b8">Kalkulator</div>
+<!-- Narzędzia -->
+<div class="quick-actions" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+    <a href="/narzedzia/kalkulator" class="qa-btn" style="flex-direction:column;text-align:center;padding:10px">
+        <span style="font-size:1.2rem">💰</span>
+        <span style="font-size:0.7rem;color:var(--text-muted)">Kalkulator</span>
     </a>
-    <a href="/narzedzia/generator" style="text-decoration:none;text-align:center;padding:10px;background:#12121a;border:1px solid #1e1e2e;border-radius:10px">
-        <div style="font-size:1.2rem">✨</div>
-        <div style="font-size:0.7rem;color:#94a3b8">Generator AI</div>
+    <a href="/narzedzia/generator" class="qa-btn" style="flex-direction:column;text-align:center;padding:10px">
+        <span style="font-size:1.2rem">✨</span>
+        <span style="font-size:0.7rem;color:var(--text-muted)">Generator AI</span>
     </a>
-    <a href="/analityka/okazje" style="text-decoration:none;text-align:center;padding:10px;background:linear-gradient(135deg,rgba(251,191,36,0.08),rgba(245,158,11,0.04));border:1px solid rgba(251,191,36,0.25);border-radius:10px">
-        <div style="font-size:1.2rem">🔥</div>
-        <div style="font-size:0.7rem;color:#fbbf24">Okazje</div>
+    <a href="/analityka/okazje" class="qa-btn" style="flex-direction:column;text-align:center;padding:10px;border-color:rgba(234,179,8,0.25)">
+        <span style="font-size:1.2rem">🔥</span>
+        <span style="font-size:0.7rem;color:var(--yellow)">Okazje</span>
     </a>
 </div>
 
-<!-- ═══════════ Więcej narzędzi link ═══════════ -->
-<div style="display:flex;justify-content:space-between;margin-bottom:16px">
-    <a href="/narzedzia" style="color:#64748b;font-size:0.8rem;text-decoration:none">Więcej narzędzi →</a>
-    <a href="/ustawienia" style="color:#64748b;font-size:0.8rem;text-decoration:none">⚙️ Ustawienia</a>
-    <a href="/changelog" style="color:#64748b;font-size:0.8rem;text-decoration:none">📋 Changelog</a>
+<!-- Więcej narzędzi -->
+<div style="display:flex;justify-content:space-between;margin-bottom:24px">
+    <a href="/narzedzia" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none">Więcej narzędzi →</a>
+    <a href="/ustawienia" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none">⚙️ Ustawienia</a>
+    <a href="/changelog" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none">📋 Changelog</a>
 </div>
 
-<!-- ═══════════ TOP PRODUKTY ═══════════ -->
+<!-- Top Produkty -->
 {% if top_produkty and top_produkty|length > 0 %}
-<div style="font-weight:700;font-size:0.85rem;color:#f59e0b;margin-bottom:8px">🏆 TOP PRODUKTY</div>
-<div style="background:#12121a;border-radius:12px;padding:12px;margin-bottom:16px">
-{% for p in top_produkty[:5] %}
-<div style="display:flex;align-items:center;gap:10px;padding:8px 0;{% if not loop.last %}border-bottom:1px solid #1e1e2e{% endif %}">
-    <div style="font-weight:700;color:#f59e0b;width:20px">{{ loop.index }}.</div>
-    <img src="{{ p.zdjecie_url or 'https://via.placeholder.com/40' }}" style="width:40px;height:40px;border-radius:8px;object-fit:cover" loading="lazy">
-    <div style="flex:1;min-width:0">
-        <div style="font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.nazwa[:40] }}{% if p.nazwa|length > 40 %}...{% endif %}</div>
-        <div style="font-size:0.75rem;color:#64748b">{{ p.sprzedazy_cnt }} szt</div>
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">🏆 TOP PRODUKTY</span>
     </div>
-    <div style="font-weight:600;color:#22c55e">{{ "%.0f"|format(p.sprzedazy_suma) }} zł</div>
-</div>
-{% endfor %}
+    {% for p in top_produkty[:5] %}
+    <div class="activity-item">
+        <div style="font-weight:700;color:var(--orange);width:20px;flex-shrink:0">{{ loop.index }}.</div>
+        <img src="{{ p.zdjecie_url or 'https://via.placeholder.com/40' }}" style="width:40px;height:40px;border-radius:var(--radius-sm);object-fit:cover;flex-shrink:0" loading="lazy">
+        <div class="activity-text">
+            <div class="activity-title">{{ p.nazwa[:40] }}{% if p.nazwa|length > 40 %}...{% endif %}</div>
+            <div class="activity-time">{{ p.sprzedazy_cnt }} szt</div>
+        </div>
+        <div style="font-weight:600;color:var(--green);flex-shrink:0">{{ "%.0f"|format(p.sprzedazy_suma) }} zł</div>
+    </div>
+    {% endfor %}
 </div>
 {% endif %}
 
-<!-- ═══════════ TOP DOSTAWCY ═══════════ -->
+<!-- Top Dostawcy -->
 {% if top_dostawcy and top_dostawcy|length > 0 %}
-<div style="font-weight:700;font-size:0.85rem;color:#f59e0b;margin-bottom:8px">📦 TOP DOSTAWCY (ROI)</div>
-<div style="background:#12121a;border-radius:12px;padding:12px;margin-bottom:16px">
-{% for d in top_dostawcy[:5] %}
-<div style="display:flex;align-items:center;gap:10px;padding:8px 0;{% if not loop.last %}border-bottom:1px solid #1e1e2e{% endif %}">
-    <div style="font-weight:700;color:#f59e0b;width:20px">{{ loop.index }}</div>
-    <div style="flex:1">
-        <div style="font-weight:600">{{ d.dostawca }}</div>
-        <div style="font-size:0.75rem;color:#64748b">{{ d.sprzedazy_cnt }} szt · {{ "%.0f"|format(d.przychod) }} zł</div>
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">📦 TOP DOSTAWCY (ROI)</span>
     </div>
-    <div style="text-align:right">
-        <div style="font-weight:700;color:{% if d.roi > 50 %}#22c55e{% elif d.roi > 20 %}#eab308{% else %}#ef4444{% endif %}">{{ "%.0f"|format(d.roi) }}%</div>
-        <div style="font-size:0.7rem;color:#64748b">koszt: {{ "%.0f"|format(d.koszt) }} zł</div>
+    {% for d in top_dostawcy[:5] %}
+    <div class="activity-item">
+        <div style="font-weight:700;color:var(--orange);width:20px;flex-shrink:0">{{ loop.index }}</div>
+        <div class="activity-text">
+            <div class="activity-title">{{ d.dostawca }}</div>
+            <div class="activity-time">{{ d.sprzedazy_cnt }} szt · {{ "%.0f"|format(d.przychod) }} zł</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+            <div style="font-weight:700;color:{% if d.roi > 50 %}var(--green){% elif d.roi > 20 %}var(--yellow){% else %}var(--red){% endif %}">{{ "%.0f"|format(d.roi) }}%</div>
+            <div style="font-size:0.7rem;color:var(--text-muted)">koszt: {{ "%.0f"|format(d.koszt) }} zł</div>
+        </div>
     </div>
-</div>
-{% endfor %}
+    {% endfor %}
 </div>
 {% endif %}
 
-<!-- ═══════════ OSTATNIA AKTYWNOŚĆ ═══════════ -->
+<!-- Ostatnia Aktywność -->
 {% if activity %}
-<div style="font-weight:700;font-size:0.85rem;color:#94a3b8;margin-bottom:8px">🕐 OSTATNIA AKTYWNOŚĆ</div>
-{% for a in activity %}
-<div class="activity-item">
-    <div class="activity-dot {{ a.color }}"></div>
-    <div class="activity-content">
-        <div class="activity-msg">{{ a.msg }}</div>
-        <div class="activity-time">{{ a.time }}</div>
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">🕐 OSTATNIA AKTYWNOŚĆ</span>
     </div>
+    {% for a in activity %}
+    <div class="activity-item">
+        <div class="activity-icon {{ a.color }}">●</div>
+        <div class="activity-text">
+            <div class="activity-title">{{ a.msg }}</div>
+            <div class="activity-time">{{ a.time }}</div>
+        </div>
+    </div>
+    {% endfor %}
 </div>
-{% endfor %}
 {% endif %}
 
-<!-- ═══════════ POWIADOMIENIE SPRZEDAŻY ═══════════ -->
-<div id="salesNotification" style="display:none;position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#22c55e,#16a34a);padding:20px 30px;border-radius:16px;z-index:9999;box-shadow:0 10px 40px rgba(34,197,94,0.4);animation:slideIn 0.5s ease">
+<!-- Sales Notification -->
+<div id="salesNotification" style="display:none;position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--green),#16a34a);padding:20px 30px;border-radius:var(--radius);z-index:9999;box-shadow:0 10px 40px rgba(34,197,94,0.4);animation:slideIn 0.5s ease">
     <div style="display:flex;align-items:center;gap:15px">
         <span style="font-size:2.5rem">🎉</span>
         <div>
