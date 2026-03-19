@@ -3001,3 +3001,446 @@ def analityka_uzupelnij_adresy():
     conn.commit()
 
     return jsonify({'ok': True, 'count': updated, 'total': len(sprzedaze_bez_adresow)})
+
+
+# ============================================================
+#  ANALIZATOR PALET — Perplexity AI analiza produktów z palety
+# ============================================================
+
+# Osobny słownik statusów i wyników dla analizatora palet
+_pallet_analysis_jobs = {}
+_pallet_analysis_results = {}
+
+
+def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="sonar-pro"):
+    """Uruchamia analizę palety w tle — wysyła produkty do Perplexity, parsuje JSON."""
+    import requests as _req, json as _json, sqlite3 as _sq
+    _pallet_analysis_jobs[job_id] = {'status': 'running', 'progress': 'Wysyłanie do AI...'}
+    try:
+        conn2 = _sq.connect(db_path, timeout=30)
+        conn2.row_factory = _sq.Row
+
+        paleta = conn2.execute("SELECT * FROM palety WHERE id = ?", (paleta_id,)).fetchone()
+        if not paleta:
+            _pallet_analysis_jobs[job_id] = {'status': 'error', 'error': 'Paleta nie znaleziona'}
+            conn2.close()
+            return
+
+        produkty = conn2.execute(
+            "SELECT id, ean, asin, nazwa, ilosc, cena_netto, cena_brutto, kategoria, stan FROM produkty WHERE paleta_id = ?",
+            (paleta_id,)
+        ).fetchall()
+
+        if not produkty:
+            _pallet_analysis_jobs[job_id] = {'status': 'error', 'error': 'Brak produktów w palecie'}
+            conn2.close()
+            return
+
+        produkty_list = [dict(p) for p in produkty]
+        paleta_dict = dict(paleta)
+
+        # Buduj listę produktów do promptu
+        produkty_txt = ""
+        for i, p in enumerate(produkty_list, 1):
+            ean_str = f", EAN: {p['ean']}" if p.get('ean') else ""
+            asin_str = f", ASIN: {p['asin']}" if p.get('asin') else ""
+            produkty_txt += (
+                f"{i}. {p['nazwa'][:80]} "
+                f"[{p.get('kategoria') or 'inne'}] "
+                f"— {p.get('ilosc', 1)} szt, "
+                f"cena netto: {p.get('cena_netto', 0):.2f} zł, "
+                f"cena brutto: {p.get('cena_brutto', 0):.2f} zł, "
+                f"stan: {p.get('stan', 'Nowy')}"
+                f"{ean_str}{asin_str}\n"
+            )
+
+        koszt_palety = paleta_dict.get('cena_zakupu', 0) or 0
+
+        prompt = (
+            f"Jesteś ekspertem od sprzedaży na Allegro i OLX w Polsce.\n"
+            f"Przeanalizuj te produkty z palety zwrotów Amazon:\n\n"
+            f"PALETA: {paleta_dict.get('nazwa', 'Bez nazwy')}\n"
+            f"Dostawca: {paleta_dict.get('dostawca', 'nieznany')}\n"
+            f"Koszt palety: {koszt_palety:.2f} zł\n"
+            f"Liczba typów produktów: {len(produkty_list)}\n\n"
+            f"PRODUKTY:\n{produkty_txt}\n\n"
+            f"Dla każdego produktu podaj:\n"
+            f"1. Szacowana cena sprzedaży na Allegro (PLN)\n"
+            f"2. Popyt (wysoki/średni/niski)\n"
+            f"3. Szacowany czas sprzedaży (dni)\n"
+            f"4. Uwagi (np. ryzyko podróbki, kategoria z ograniczeniami, sezonowość)\n\n"
+            f"Na końcu podsumowanie palety:\n"
+            f"- Szacowany łączny przychód ze sprzedaży\n"
+            f"- Szacowany zysk (przychód - koszt palety {koszt_palety:.2f} zł)\n"
+            f"- ROI procentowy\n"
+            f"- Ogólna ocena opłacalności (1-10)\n\n"
+            f"WAŻNE: Odpowiedz WYŁĄCZNIE prawidłowym JSON-em (bez markdown, bez ```json```).\n"
+            f"Format:\n"
+            f'{{"produkty": [{{"id": <id_produktu>, "nazwa": "...", "cena_sprzedazy": <float>, '
+            f'"popyt": "wysoki|średni|niski", "czas_sprzedazy_dni": <int>, "uwagi": "..."}}, ...], '
+            f'"podsumowanie": {{"przychod": <float>, "zysk": <float>, "roi": <float>, "ocena": <int>}}}}'
+        )
+
+        _pallet_analysis_jobs[job_id] = {'status': 'running', 'progress': 'Czekam na odpowiedź AI...'}
+
+        resp = _req.post(
+            "https://api.perplexity.ai/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={"model": model, "messages": [{"role": "user", "content": prompt}],
+                  "max_tokens": 4000, "return_citations": True},
+            timeout=120)
+        data = resp.json()
+        odpowiedz = data['choices'][0]['message']['content']
+        citations = data.get('citations', [])
+
+        # Zapisz do cache
+        conn2.execute("""CREATE TABLE IF NOT EXISTS perplexity_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, klucz TEXT UNIQUE,
+            odpowiedz TEXT, citations TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+        from datetime import datetime as _dt
+        cache_klucz = f'paleta_analiza_{paleta_id}'
+        conn2.execute(
+            "INSERT OR REPLACE INTO perplexity_cache (klucz, odpowiedz, citations, created_at) VALUES (?, ?, ?, ?)",
+            (cache_klucz, odpowiedz, _json.dumps(citations), _dt.now().strftime('%Y-%m-%d %H:%M:%S')))
+        conn2.commit()
+        conn2.close()
+
+        # Spróbuj sparsować JSON z odpowiedzi
+        parsed = None
+        try:
+            # Usuń ewentualne markdown code blocks
+            clean = odpowiedz.strip()
+            if clean.startswith('```'):
+                clean = clean.split('\n', 1)[1] if '\n' in clean else clean[3:]
+                if clean.endswith('```'):
+                    clean = clean[:-3]
+                clean = clean.strip()
+            parsed = _json.loads(clean)
+        except:
+            # Spróbuj znaleźć JSON w tekście
+            import re as _re
+            match = _re.search(r'\{[\s\S]*\}', odpowiedz)
+            if match:
+                try:
+                    parsed = _json.loads(match.group())
+                except:
+                    parsed = None
+
+        _pallet_analysis_results[job_id] = {
+            'raw': odpowiedz,
+            'parsed': parsed,
+            'citations': citations,
+            'paleta': paleta_dict,
+            'produkty_db': produkty_list,
+        }
+        _pallet_analysis_jobs[job_id] = {'status': 'done'}
+        print(f"[Analizator Palet] {job_id} gotowe, parsed={'OK' if parsed else 'FALLBACK'}")
+
+    except Exception as e:
+        _pallet_analysis_jobs[job_id] = {'status': 'error', 'error': str(e)}
+        print(f"[Analizator Palet] blad {job_id}: {e}")
+
+
+@analityka_bp.route('/analityka/analizator-palet')
+def analizator_palet():
+    """Strona główna analizatora palet — wybór palety + wyniki."""
+    from modules.database import get_db, get_config
+    conn = get_db()
+
+    palety = conn.execute(
+        "SELECT p.id, p.nazwa, p.dostawca, p.cena_zakupu, p.data_zakupu, "
+        "       (SELECT COUNT(*) FROM produkty pr WHERE pr.paleta_id = p.id) as cnt_produktow "
+        "FROM palety p ORDER BY p.data_zakupu DESC, p.id DESC"
+    ).fetchall()
+    palety_list = [dict(p) for p in palety]
+
+    perplexity_key = get_config('perplexity_api_key', '')
+    has_perplexity = bool(perplexity_key)
+
+    # Build palety options
+    options_html = '<option value="">— Wybierz paletę —</option>'
+    for p in palety_list:
+        nazwa = p.get('nazwa') or f"Paleta #{p['id']}"
+        dostawca = p.get('dostawca') or ''
+        data = p.get('data_zakupu') or ''
+        koszt = p.get('cena_zakupu') or 0
+        cnt = p.get('cnt_produktow') or 0
+        label = f"{nazwa} | {dostawca} | {data} | {koszt:.0f} zł | {cnt} prod."
+        options_html += f'<option value="{p["id"]}">{label}</option>'
+
+    no_key_warning = ""
+    if not has_perplexity:
+        no_key_warning = """
+        <div class='card' style='border-color:var(--red);margin-bottom:16px'>
+            <div style='color:var(--red);font-weight:600;margin-bottom:6px'>Brak klucza API Perplexity</div>
+            <div style='color:var(--text-muted);font-size:0.83rem'>
+                Ustaw klucz w <a href='/ustawienia' style='color:var(--blue)'>Ustawienia</a> &rarr; Perplexity API Key
+            </div>
+        </div>"""
+
+    content = f"""
+    <div style='max-width:1100px;margin:0 auto'>
+        <div style='display:flex;align-items:center;gap:12px;margin-bottom:20px'>
+            <div style='font-size:1.4rem'>🔬</div>
+            <div>
+                <div style='font-size:1.15rem;font-weight:700'>Analizator Palet</div>
+                <div style='color:var(--text-muted);font-size:0.82rem'>AI analizuje produkty z palety — ceny rynkowe, popyt, czas sprzedaży</div>
+            </div>
+        </div>
+
+        {no_key_warning}
+
+        <div class='card' style='margin-bottom:20px'>
+            <div style='font-weight:600;margin-bottom:12px'>Wybierz paletę do analizy</div>
+            <div style='display:flex;gap:10px;align-items:center;flex-wrap:wrap'>
+                <select id='paleta-select' class='form-control' style='flex:1;min-width:300px'>
+                    {options_html}
+                </select>
+                <button id='btn-analizuj' class='btn btn-primary' onclick='startAnalysis()' {'disabled' if not has_perplexity else ''}>
+                    🔍 Analizuj
+                </button>
+            </div>
+        </div>
+
+        <div id='analysis-status' style='display:none' class='card' style='margin-bottom:20px'>
+            <div style='display:flex;align-items:center;gap:10px'>
+                <div class='spinner' style='width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite'></div>
+                <span id='status-text' style='color:var(--text-muted);font-size:0.85rem'>Rozpoczynam analizę...</span>
+            </div>
+        </div>
+
+        <div id='analysis-results'></div>
+    </div>
+
+    <style>
+    @keyframes spin {{ 0%{{transform:rotate(0deg)}} 100%{{transform:rotate(360deg)}} }}
+    .demand-badge {{
+        display:inline-block; padding:2px 10px; border-radius:6px; font-size:0.78rem; font-weight:600;
+    }}
+    .demand-wysoki {{ background:rgba(34,197,94,0.15); color:var(--green); }}
+    .demand-sredni, .demand-\\u015bredni {{ background:rgba(245,158,11,0.15); color:var(--orange); }}
+    .demand-niski {{ background:rgba(239,68,68,0.15); color:var(--red); }}
+    .analysis-table {{
+        width:100%; border-collapse:collapse; font-size:0.83rem;
+    }}
+    .analysis-table th {{
+        text-align:left; padding:10px 12px; background:var(--bg); color:var(--text-muted);
+        font-size:0.75rem; text-transform:uppercase; letter-spacing:0.03em; font-weight:600;
+        border-bottom:1px solid var(--border);
+    }}
+    .analysis-table td {{
+        padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:top;
+    }}
+    .analysis-table tr:hover td {{ background:var(--bg); }}
+    </style>
+
+    <script>
+    var currentJobId = null;
+    var pollTimer = null;
+
+    function startAnalysis() {{
+        var sel = document.getElementById('paleta-select');
+        var paletaId = sel.value;
+        if (!paletaId) {{ alert('Wybierz paletę!'); return; }}
+
+        var btn = document.getElementById('btn-analizuj');
+        btn.disabled = true; btn.textContent = '⏳ Analizuję...';
+
+        var statusDiv = document.getElementById('analysis-status');
+        statusDiv.style.display = 'block';
+        statusDiv.className = 'card';
+        document.getElementById('analysis-results').innerHTML = '';
+
+        fetch('/analityka/analizator-palet/analyze', {{
+            method: 'POST',
+            headers: {{'Content-Type': 'application/x-www-form-urlencoded'}},
+            body: 'paleta_id=' + paletaId
+        }})
+        .then(r => r.json())
+        .then(d => {{
+            if (!d.ok) {{
+                btn.disabled = false; btn.textContent = '🔍 Analizuj';
+                statusDiv.innerHTML = '<div style="color:var(--red)">Błąd: ' + (d.error||'nieznany') + '</div>';
+                return;
+            }}
+            currentJobId = d.job_id;
+            pollStatus();
+        }})
+        .catch(e => {{
+            btn.disabled = false; btn.textContent = '🔍 Analizuj';
+            statusDiv.innerHTML = '<div style="color:var(--red)">Błąd połączenia</div>';
+        }});
+    }}
+
+    function pollStatus() {{
+        if (!currentJobId) return;
+        fetch('/analityka/analizator-palet/status?job_id=' + currentJobId)
+        .then(r => r.json())
+        .then(d => {{
+            if (d.status === 'running') {{
+                document.getElementById('status-text').textContent = d.progress || 'Analizuję...';
+                pollTimer = setTimeout(pollStatus, 2000);
+            }} else if (d.status === 'done') {{
+                document.getElementById('analysis-status').style.display = 'none';
+                document.getElementById('btn-analizuj').disabled = false;
+                document.getElementById('btn-analizuj').textContent = '🔍 Analizuj';
+                renderResults(d);
+            }} else if (d.status === 'error') {{
+                document.getElementById('analysis-status').innerHTML =
+                    '<div style="color:var(--red)">Błąd: ' + (d.error||'nieznany') + '</div>';
+                document.getElementById('btn-analizuj').disabled = false;
+                document.getElementById('btn-analizuj').textContent = '🔍 Analizuj';
+            }}
+        }})
+        .catch(() => {{ pollTimer = setTimeout(pollStatus, 3000); }});
+    }}
+
+    function demandClass(popyt) {{
+        if (!popyt) return 'demand-niski';
+        var p = popyt.toLowerCase();
+        if (p === 'wysoki') return 'demand-wysoki';
+        if (p === 'średni' || p === 'sredni') return 'demand-sredni';
+        return 'demand-niski';
+    }}
+
+    function renderResults(d) {{
+        var res = document.getElementById('analysis-results');
+        var pal = d.paleta || {{}};
+        var parsed = d.parsed;
+
+        // Header — pallet info
+        var html = '<div class="card" style="margin-bottom:16px">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">';
+        html += '<div style="font-weight:700;font-size:1rem">' + (pal.nazwa || 'Paleta #' + pal.id) + '</div>';
+        html += '<div style="color:var(--text-muted);font-size:0.8rem">' + (pal.dostawca||'') + ' | ' + (pal.data_zakupu||'') + '</div>';
+        html += '</div>';
+
+        if (parsed && parsed.podsumowanie) {{
+            var s = parsed.podsumowanie;
+            var roiColor = (s.roi||0) > 0 ? 'var(--green)' : 'var(--red)';
+            var ocenaBg = (s.ocena||0) >= 7 ? 'var(--green)' : (s.ocena||0) >= 4 ? 'var(--orange)' : 'var(--red)';
+            html += '<div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">';
+            html += '<div class="kpi-card"><div class="kpi-label">Koszt palety</div><div class="kpi-value">' + ((pal.cena_zakupu||0)).toFixed(0) + ' zł</div></div>';
+            html += '<div class="kpi-card"><div class="kpi-label">Szac. przychód</div><div class="kpi-value">' + ((s.przychod||0)).toFixed(0) + ' zł</div></div>';
+            html += '<div class="kpi-card"><div class="kpi-label">Szac. zysk</div><div class="kpi-value" style="color:' + roiColor + '">' + ((s.zysk||0)).toFixed(0) + ' zł</div></div>';
+            html += '<div class="kpi-card"><div class="kpi-label">ROI</div><div class="kpi-value" style="color:' + roiColor + '">' + ((s.roi||0)).toFixed(0) + '%</div></div>';
+            html += '<div class="kpi-card"><div class="kpi-label">Ocena</div><div class="kpi-value" style="color:' + ocenaBg + '">' + (s.ocena||'?') + '/10</div></div>';
+            html += '</div>';
+        }}
+        html += '</div>';
+
+        // Products table
+        if (parsed && parsed.produkty && parsed.produkty.length) {{
+            html += '<div class="card" style="margin-bottom:16px;overflow-x:auto">';
+            html += '<div style="font-weight:600;margin-bottom:12px">Analiza produktów (' + parsed.produkty.length + ')</div>';
+            html += '<table class="analysis-table"><thead><tr>';
+            html += '<th>#</th><th>Produkt</th><th>Cena sprzedaży</th><th>Popyt</th><th>Czas sprzedaży</th><th>Uwagi</th>';
+            html += '</tr></thead><tbody>';
+            var totalRev = 0;
+            parsed.produkty.forEach(function(p, idx) {{
+                var cena = p.cena_sprzedazy || 0;
+                totalRev += cena;
+                html += '<tr>';
+                html += '<td style="color:var(--text-muted)">' + (idx+1) + '</td>';
+                html += '<td style="font-weight:500;max-width:280px">' + (p.nazwa||'—') + '</td>';
+                html += '<td style="font-weight:600">' + cena.toFixed(0) + ' zł</td>';
+                html += '<td><span class="demand-badge ' + demandClass(p.popyt) + '">' + (p.popyt||'?') + '</span></td>';
+                html += '<td>' + (p.czas_sprzedazy_dni || '?') + ' dni</td>';
+                html += '<td style="color:var(--text-muted);font-size:0.8rem;max-width:250px">' + (p.uwagi||'—') + '</td>';
+                html += '</tr>';
+            }});
+            html += '</tbody></table></div>';
+        }} else if (d.raw) {{
+            // Fallback — raw text
+            html += '<div class="card" style="margin-bottom:16px">';
+            html += '<div style="font-weight:600;margin-bottom:10px">Odpowiedź AI (tekst)</div>';
+            html += '<div style="white-space:pre-wrap;font-size:0.83rem;line-height:1.7;color:var(--text)">' + d.raw.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+            html += '</div>';
+        }}
+
+        // Citations
+        if (d.citations && d.citations.length) {{
+            html += '<div class="card" style="margin-bottom:16px">';
+            html += '<div style="font-weight:600;margin-bottom:8px;font-size:0.85rem">Źródła</div>';
+            d.citations.forEach(function(c, i) {{
+                var url = typeof c === 'string' ? c : (c.url || c);
+                html += '<div style="font-size:0.78rem;margin-bottom:3px"><a href="' + url + '" target="_blank" style="color:var(--blue)">[' + (i+1) + '] ' + url + '</a></div>';
+            }});
+            html += '</div>';
+        }}
+
+        res.innerHTML = html;
+    }}
+    </script>
+    """
+
+    return render(content, page_title='Analizator Palet')
+
+
+@analityka_bp.route('/analityka/analizator-palet/analyze', methods=['POST'])
+def analizator_palet_analyze():
+    """Rozpocznij analizę palety — uruchamia Perplexity w tle."""
+    import threading
+    from modules.database import get_config, DATABASE as _db_path
+
+    api_key = get_config('perplexity_api_key', '')
+    if not api_key:
+        return jsonify({'ok': False, 'error': 'Brak klucza API Perplexity'})
+
+    paleta_id = request.form.get('paleta_id', '')
+    if not paleta_id:
+        return jsonify({'ok': False, 'error': 'Nie wybrano palety'})
+
+    perp_model = get_config('perplexity_model', 'sonar-pro')
+    if perp_model == 'sonar':
+        perp_model = 'sonar-pro'
+
+    job_id = f'paleta_{paleta_id}_{int(datetime.now().timestamp())}'
+
+    # Sprawdź czy już nie biegnie analiza tej palety
+    for jid, info in _pallet_analysis_jobs.items():
+        if jid.startswith(f'paleta_{paleta_id}_') and isinstance(info, dict) and info.get('status') == 'running':
+            return jsonify({'ok': True, 'job_id': jid})
+
+    threading.Thread(
+        target=_run_pallet_analysis,
+        args=(job_id, int(paleta_id), api_key, _db_path, perp_model),
+        daemon=True
+    ).start()
+
+    return jsonify({'ok': True, 'job_id': job_id})
+
+
+@analityka_bp.route('/analityka/analizator-palet/status')
+def analizator_palet_status():
+    """Sprawdź status analizy palety — polling endpoint."""
+    import json as _json
+    job_id = request.args.get('job_id', '')
+    if not job_id:
+        return jsonify({'status': 'error', 'error': 'Brak job_id'})
+
+    job_info = _pallet_analysis_jobs.get(job_id, {})
+    if not job_info:
+        return jsonify({'status': 'idle'})
+
+    status = job_info.get('status', 'idle') if isinstance(job_info, dict) else str(job_info)
+
+    if status == 'running':
+        progress = job_info.get('progress', 'Analizuję...') if isinstance(job_info, dict) else 'Analizuję...'
+        return jsonify({'status': 'running', 'progress': progress})
+
+    if status == 'error':
+        error = job_info.get('error', 'Nieznany błąd') if isinstance(job_info, dict) else 'Nieznany błąd'
+        return jsonify({'status': 'error', 'error': error})
+
+    if status == 'done':
+        result = _pallet_analysis_results.get(job_id, {})
+        return jsonify({
+            'status': 'done',
+            'parsed': result.get('parsed'),
+            'raw': result.get('raw', ''),
+            'citations': result.get('citations', []),
+            'paleta': result.get('paleta', {}),
+        })
+
+    return jsonify({'status': status})
