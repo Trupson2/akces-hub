@@ -9,21 +9,18 @@ from datetime import datetime
 GOAL_FILE = 'goal_data.json'
 
 DEFAULT_GOAL = {
-    'name': 'Hyundai i30 N',
-    'current': 25000,
-    'target': 150000,
-    'progress': 16.7,  # ← DODANO! (25000/150000 * 100)
+    'name': 'Cel finansowy',
+    'current': 0,
+    'target': 100000,
+    'progress': 0,
     'updated_at': datetime.now().isoformat()
 }
 
 
 def get_current_goal():
-    """Pobiera aktualny goal z pliku"""
+    """Pobiera aktualny goal z pliku. Zwraca None jeśli nie skonfigurowany."""
     if not os.path.exists(GOAL_FILE):
-        # Utwórz domyślny plik
-        save_goal(DEFAULT_GOAL['current'], DEFAULT_GOAL['target'], DEFAULT_GOAL['name'])
-        # Po zapisie, załaduj ponownie (będzie miał progress!)
-        return get_current_goal()
+        return None  # Nie twórz domyślnego — klient sam skonfiguruje
     
     try:
         with open(GOAL_FILE, 'r', encoding='utf-8') as f:
