@@ -2188,7 +2188,7 @@ def changelog():
 @app.route('/narzedzia')
 def narzedzia():
     return render_template('narzedzia.html',
-        version=VERSION, is_admin=bool(os.environ.get('AKCES_LICENSE_MASTER')),
+        version=VERSION, is_admin=(session.get('rola') == 'admin'),
         active_narzedzia='active', active_home='', active_magazyn='',
         active_paletomat='', active_allegro='', active_monitor='')
 
