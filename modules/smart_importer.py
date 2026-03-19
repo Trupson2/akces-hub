@@ -69,13 +69,23 @@ def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin:
     # Skróć nazwę dla lepszego wyświetlania
     short_name = produkt_nazwa[:50] + '...' if len(produkt_nazwa) > 50 else produkt_nazwa
     
-    if not GEMINI_AVAILABLE or not GEMINI_CLIENT:
-        print(f"⚠️  [AI DISABLED] Gemini niedostępny - używam oryginalnej nazwy")
+    # Pobierz klucz Gemini z configu
+    from .database import get_config
+    _gemini_key = get_config('gemini_api_key', '')
+    if not _gemini_key:
+        try:
+            from gemini_config import GEMINI_API_KEY
+            _gemini_key = GEMINI_API_KEY
+        except:
+            pass
+
+    if not _gemini_key:
+        print(f"⚠️  [AI DISABLED] Brak klucza Gemini - używam oryginalnej nazwy")
         return produkt_nazwa[:75]
-    
+
     print(f"🤖 [AI REQUEST] Wysyłam do Gemini: {short_name}")
-    
-    # RETRY LOOP - 3 próby
+
+    # RETRY LOOP
     for attempt in range(retry_count):
         try:
             prompt = f"""Wygeneruj tytuł produktu dla Allegro używając słów kluczowych dla SEO.
@@ -99,64 +109,32 @@ PRZYKŁADY:
 
 Wygeneruj TYLKO tytuł, bez komentarzy:"""
 
-            # Nowy API: używamy client.models.generate_content
             if attempt > 0:
                 print(f"   ↻ [RETRY {attempt+1}/{retry_count}] Ponawiam zapytanie...")
-            
-            response = GEMINI_CLIENT.models.generate_content(
-                model='gemini-2.0-flash',
-                contents=prompt
-            )
-            try:
-                from .pallet_monitor import log_gemini_usage
-                log_gemini_usage(response, 'meta_title')
-            except: pass
 
-            # ========== RAW RESPONSE LOGGING ==========
-            print(f"   📄 [RAW RESPONSE] Type: {type(response)}")
-            if hasattr(response, 'text'):
-                print(f"   📄 [RAW RESPONSE] Text: {response.text[:200] if response.text else 'None'}...")
-            else:
-                print(f"   📄 [RAW RESPONSE] No .text attribute")
-            
-            # WYCIĄGNIJ TEKST Z ODPOWIEDZI (różne sposoby)
+            import requests as _req
+            _api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_gemini_key}"
+            _resp = _req.post(_api_url, json={
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"temperature": 0.3, "maxOutputTokens": 100}
+            }, timeout=30)
+
             meta_title = None
+
+            if _resp.status_code == 200:
+                _data = _resp.json()
+                meta_title = _data.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '').strip()
+                if meta_title:
+                    print(f"   ✓ [RESPONSE] Odebrano: {meta_title[:100]}")
+            else:
+                print(f"   ❌ [API ERROR] {_resp.status_code}: {_resp.text[:200]}")
             
-            # Sposób 1: response.text
-            if hasattr(response, 'text') and response.text:
-                meta_title = response.text.strip()
-                print(f"   ✓ [RESPONSE] Odebrano przez response.text")
-            
-            # Sposób 2: response.candidates
-            elif hasattr(response, 'candidates') and len(response.candidates) > 0:
-                candidate = response.candidates[0]
-                if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
-                    parts_text = []
-                    for part in candidate.content.parts:
-                        if hasattr(part, 'text') and part.text:
-                            parts_text.append(part.text)
-                    if parts_text:
-                        meta_title = ''.join(parts_text).strip()
-                        print(f"   ✓ [RESPONSE] Odebrano przez candidates[0].content.parts")
-            
-            # Sposób 3: str(response)
-            if not meta_title:
-                response_str = str(response)
-                if response_str and len(response_str) > 10:
-                    meta_title = response_str.strip()
-                    print(f"   ✓ [RESPONSE] Odebrano przez str(response)")
-            
-            # Jeśli nadal nic - error z debug info
+            # Jeśli nadal nic - retry
             if not meta_title:
                 print(f"   ✗ [ERROR] Gemini nie zwrócił tekstu (próba {attempt+1}/{retry_count})")
-                print(f"   🔍 [DEBUG] Response type: {type(response)}")
-                print(f"   🔍 [DEBUG] Has text: {hasattr(response, 'text')}")
-                print(f"   🔍 [DEBUG] Has candidates: {hasattr(response, 'candidates')}")
-                if hasattr(response, 'candidates'):
-                    print(f"   🔍 [DEBUG] Candidates count: {len(response.candidates)}")
                 if attempt < retry_count - 1:
                     import time
-                    time.sleep(2)  # Poczekaj 2 sekundy przed retry (więcej czasu dla Gemini)
+                    time.sleep(2)
                     continue
                 else:
                     print(f"   ✗ [FALLBACK] Używam oryginalnej nazwy po {retry_count} próbach")
