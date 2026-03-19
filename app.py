@@ -1916,9 +1916,6 @@ def narzedzia_licencje():
     from datetime import datetime
     import json as _json
 
-    generated = None
-    generated_json = ''
-
     if request.method == 'POST':
         client = request.form.get('client', '').strip()
         plan = request.form.get('plan', 'pro')
@@ -1960,9 +1957,17 @@ def narzedzia_licencje():
         except:
             pass
 
-    # Lista istniejących plików licencji
+        # PRG: redirect żeby F5 nie generowało nowej licencji
+        flash_key = generated.get('key', '')
+        return redirect(f'/narzedzia/licencje?generated={flash_key}')
+
+    # GET handler
     _tools_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools')
     existing = []
+    generated = None
+    generated_json = ''
+    flash_key = request.args.get('generated', '')
+
     try:
         for fn in sorted(os.listdir(_tools_dir)):
             if fn.startswith('license_') and fn.endswith('.json'):
@@ -1973,129 +1978,126 @@ def narzedzia_licencje():
                     exp_str = 'Bezterminowo'
                     if data.get('expires', 0) > 0:
                         exp_str = datetime.fromtimestamp(data['expires']).strftime('%d.%m.%Y')
-                    existing.append({
+                    lic_entry = {
                         'filename': fn,
                         'client': data.get('client', '?'),
                         'plan': data.get('plan', '?'),
                         'key': data.get('key', '?'),
                         'expires': exp_str,
                         'json': _json.dumps(data, indent=2, ensure_ascii=False)
-                    })
+                    }
+                    existing.append(lic_entry)
+                    # If this matches the just-generated key, show it
+                    if flash_key and data.get('key') == flash_key:
+                        generated = data
+                        generated_json = _json.dumps(data, indent=2, ensure_ascii=False)
                 except:
                     pass
     except:
         pass
 
-    return render_template_string('''<!DOCTYPE html>
-<html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Generator licencji — {{ brand_name }}</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a1a;color:#e2e8f0;min-height:100vh;padding:20px}
-.container{max-width:800px;margin:0 auto}
-h1{font-size:1.4rem;margin-bottom:20px;text-align:center}
-.card{background:#12122a;border:1px solid #1e1e3a;border-radius:12px;padding:20px;margin-bottom:16px}
-.card h2{font-size:1rem;margin-bottom:14px;color:#a78bfa}
-label{display:block;font-size:0.82rem;color:#94a3b8;margin-bottom:4px;margin-top:10px}
-input,select{width:100%;padding:9px 12px;background:#0a0a1a;border:1px solid #1e1e3a;border-radius:8px;color:#e2e8f0;font-size:0.9rem}
-.row{display:flex;gap:12px}
-.row>*{flex:1}
-.btn{display:inline-block;padding:12px 24px;border:none;border-radius:10px;font-size:0.95rem;font-weight:700;cursor:pointer;color:#fff;text-decoration:none;text-align:center}
-.btn-gen{background:linear-gradient(135deg,#6366f1,#8b5cf6);width:100%;margin-top:16px}
-.btn-gen:hover{opacity:0.9}
-.btn-sm{padding:6px 14px;font-size:0.78rem;border-radius:6px;font-weight:600}
-.btn-copy{background:#1e1e3a;color:#a78bfa;border:1px solid #2e2e4a}
-.btn-copy:hover{background:#2e2e4a}
-.btn-dl{background:#164e3e;color:#22c55e;border:1px solid #22c55e44}
-.btn-dl:hover{background:#1a5e4a}
-.result{background:#0a0a1a;border:2px solid #22c55e33;border-radius:10px;padding:16px;margin-top:16px}
-.result .key{font-size:1.3rem;font-weight:700;color:#22c55e;text-align:center;padding:12px;letter-spacing:1px}
-.result .meta{font-size:0.82rem;color:#94a3b8;margin-top:6px}
-.result .meta span{color:#e2e8f0;font-weight:600}
-table{width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:10px}
-th{text-align:left;padding:8px 10px;color:#64748b;border-bottom:1px solid #1e1e3a;font-weight:600}
-td{padding:8px 10px;border-bottom:1px solid #1e1e3a11}
-.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:700;text-transform:uppercase}
-.tag-pro{background:#6366f122;color:#a78bfa}
-.tag-starter{background:#22c55e22;color:#22c55e}
-.tag-business{background:#f59e0b22;color:#f59e0b}
-.back{display:inline-block;color:#6366f1;text-decoration:none;font-size:0.85rem;margin-bottom:16px}
-.actions{display:flex;gap:6px;align-items:center}
-pre{background:#0a0a1a;border:1px solid #1e1e3a;border-radius:6px;padding:10px;font-size:0.75rem;overflow-x:auto;margin-top:8px;color:#94a3b8;max-height:120px}
-</style></head><body>
-<div class="container">
-    <a href="/narzedzia" class="back">&larr; Narzedzia</a>
-    <h1>Generator licencji</h1>
+    generated_expires = ''
+    if generated:
+        generated_expires = (
+            datetime.fromtimestamp(generated['expires']).strftime('%d.%m.%Y')
+            if generated.get('expires', 0) > 0 else 'Bezterminowo'
+        )
 
-    <div class="card">
-        <h2>Nowa licencja</h2>
+    return render_template_string('''{% extends "base.html" %}
+{% block page_title %}Generator licencji{% endblock %}
+{% block content %}
+<div style="max-width:800px;margin:0 auto">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+        <div style="font-size:1.4rem">&#128273;</div>
+        <div>
+            <div style="font-size:1.15rem;font-weight:700">Generator licencji</div>
+            <div style="color:var(--text-muted);font-size:0.82rem">Generuj klucze licencyjne dla klientow</div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+        <div style="font-weight:600;margin-bottom:12px;color:var(--accent)">Nowa licencja</div>
         <form method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <label>Nazwa klienta</label>
-            <input type="text" name="client" placeholder="np. Jan Kowalski" required>
-
-            <div class="row">
-                <div>
-                    <label>Plan</label>
-                    <select name="plan">
+            <div style="margin-bottom:12px">
+                <label style="display:block;font-size:0.82rem;color:var(--text-muted);margin-bottom:4px">Nazwa klienta</label>
+                <input type="text" name="client" class="form-control" placeholder="np. Jan Kowalski" required>
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+                <div style="flex:1;min-width:150px">
+                    <label style="display:block;font-size:0.82rem;color:var(--text-muted);margin-bottom:4px">Plan</label>
+                    <select name="plan" class="form-control">
                         <option value="starter">Starter</option>
                         <option value="pro" selected>Pro</option>
                         <option value="business">Business</option>
                     </select>
                 </div>
-                <div>
-                    <label>Czas trwania</label>
-                    <select name="duration_type" id="durType" onchange="toggleDur()">
+                <div style="flex:1;min-width:150px">
+                    <label style="display:block;font-size:0.82rem;color:var(--text-muted);margin-bottom:4px">Czas trwania</label>
+                    <select name="duration_type" id="durType" class="form-control" onchange="toggleDur()">
                         <option value="days">Dni</option>
                         <option value="months" selected>Miesiace</option>
                         <option value="unlimited">Bezterminowo</option>
                     </select>
                 </div>
-                <div id="durValWrap">
-                    <label>Ilosc</label>
-                    <input type="number" name="duration_val" id="durVal" value="1" min="1" max="120">
+                <div style="flex:1;min-width:100px" id="durValWrap">
+                    <label style="display:block;font-size:0.82rem;color:var(--text-muted);margin-bottom:4px">Ilosc</label>
+                    <input type="number" name="duration_val" id="durVal" class="form-control" value="1" min="1" max="120">
                 </div>
             </div>
-
-            <button type="submit" class="btn btn-gen">Generuj licencje</button>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:16px;padding:12px;font-weight:700;background:linear-gradient(135deg,var(--accent),#8b5cf6)">Generuj licencje</button>
         </form>
     </div>
 
     {% if generated %}
-    <div class="card">
-        <h2>Wygenerowana licencja</h2>
-        <div class="result">
-            <div class="key">{{ generated.key }}</div>
-            <div class="meta">Klient: <span>{{ generated.client }}</span></div>
-            <div class="meta">Plan: <span>{{ generated.plan|upper }}</span></div>
-            <div class="meta">Wygasa: <span>{{ generated_expires }}</span></div>
+    <div class="card" style="margin-bottom:16px;border-color:var(--green)">
+        <div style="font-weight:600;margin-bottom:12px;color:var(--green)">Wygenerowana licencja</div>
+        <div style="background:var(--bg);border:2px solid rgba(34,197,94,0.2);border-radius:10px;padding:16px">
+            <div style="font-size:1.3rem;font-weight:700;color:var(--green);text-align:center;padding:12px;letter-spacing:1px;font-family:monospace">{{ generated.key }}</div>
+            <div style="font-size:0.82rem;color:var(--text-muted);margin-top:6px">Klient: <span style="color:var(--text);font-weight:600">{{ generated.client }}</span></div>
+            <div style="font-size:0.82rem;color:var(--text-muted);margin-top:4px">Plan: <span style="color:var(--text);font-weight:600">{{ generated.plan|upper }}</span></div>
+            <div style="font-size:0.82rem;color:var(--text-muted);margin-top:4px">Wygasa: <span style="color:var(--text);font-weight:600">{{ generated_expires }}</span></div>
             <div style="margin-top:12px;display:flex;gap:8px;justify-content:center">
-                <button class="btn btn-sm btn-copy" onclick="copyJson()">Kopiuj JSON</button>
-                <button class="btn btn-sm btn-dl" onclick="downloadJson()">Pobierz .json</button>
+                <button class="btn" style="padding:6px 14px;font-size:0.78rem;background:var(--bg-card);border:1px solid var(--border);color:var(--accent)" onclick="copyJson()">Kopiuj JSON</button>
+                <button class="btn" style="padding:6px 14px;font-size:0.78rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--green)" onclick="downloadJson()">Pobierz .json</button>
             </div>
-            <pre id="jsonPre">{{ generated_json }}</pre>
+            <pre id="jsonPre" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:0.75rem;overflow-x:auto;margin-top:8px;color:var(--text-muted);max-height:120px">{{ generated_json }}</pre>
         </div>
     </div>
     {% endif %}
 
     {% if existing %}
     <div class="card">
-        <h2>Wygenerowane licencje ({{ existing|length }})</h2>
-        <table>
-            <tr><th>Klient</th><th>Plan</th><th>Klucz</th><th>Wygasa</th><th></th></tr>
-            {% for lic in existing %}
-            <tr>
-                <td>{{ lic.client }}</td>
-                <td><span class="tag tag-{{ lic.plan }}">{{ lic.plan }}</span></td>
-                <td style="font-family:monospace;font-size:0.78rem">{{ lic.key }}</td>
-                <td>{{ lic.expires }}</td>
-                <td class="actions">
-                    <button class="btn btn-sm btn-copy" onclick="copyText(`{{ lic.json|e }}`)">Kopiuj</button>
-                    <button class="btn btn-sm btn-dl" onclick="dlText(`{{ lic.json|e }}`,`{{ lic.filename }}`)">Pobierz</button>
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
+        <div style="font-weight:600;margin-bottom:12px">Wygenerowane licencje ({{ existing|length }})</div>
+        <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+                <thead>
+                    <tr style="border-bottom:1px solid var(--border)">
+                        <th style="padding:8px 10px;text-align:left;color:var(--text-muted);font-weight:600">Klient</th>
+                        <th style="padding:8px 10px;text-align:left;color:var(--text-muted);font-weight:600">Plan</th>
+                        <th style="padding:8px 10px;text-align:left;color:var(--text-muted);font-weight:600">Klucz</th>
+                        <th style="padding:8px 10px;text-align:left;color:var(--text-muted);font-weight:600">Wygasa</th>
+                        <th style="padding:8px 10px;color:var(--text-muted);font-weight:600"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for lic in existing %}
+                    <tr style="border-bottom:1px solid var(--border)">
+                        <td style="padding:8px 10px">{{ lic.client }}</td>
+                        <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:700;text-transform:uppercase;{% if lic.plan == 'pro' %}background:rgba(99,102,241,0.13);color:var(--accent){% elif lic.plan == 'starter' %}background:rgba(34,197,94,0.13);color:var(--green){% else %}background:rgba(245,158,11,0.13);color:var(--orange){% endif %}">{{ lic.plan }}</span></td>
+                        <td style="padding:8px 10px;font-family:monospace;font-size:0.78rem">{{ lic.key }}</td>
+                        <td style="padding:8px 10px">{{ lic.expires }}</td>
+                        <td style="padding:8px 10px">
+                            <div style="display:flex;gap:6px">
+                                <button class="btn" style="padding:4px 10px;font-size:0.72rem;background:var(--bg);border:1px solid var(--border);color:var(--accent)" onclick="copyText(this, `{{ lic.json|e }}`)">Kopiuj</button>
+                                <button class="btn" style="padding:4px 10px;font-size:0.72rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--green)" onclick="dlText(`{{ lic.json|e }}`,`{{ lic.filename }}`)">Pobierz</button>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
     {% endif %}
 </div>
@@ -2108,9 +2110,9 @@ function copyJson(){
     navigator.clipboard.writeText(document.getElementById('jsonPre').textContent);
     event.target.textContent='Skopiowano!';setTimeout(()=>event.target.textContent='Kopiuj JSON',1500);
 }
-function copyText(t){
+function copyText(btn, t){
     navigator.clipboard.writeText(t.replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&'));
-    event.target.textContent='OK!';setTimeout(()=>event.target.textContent='Kopiuj',1500);
+    btn.textContent='OK!';setTimeout(()=>btn.textContent='Kopiuj',1500);
 }
 function downloadJson(){
     const b=new Blob([document.getElementById('jsonPre').textContent],{type:'application/json'});
@@ -2121,14 +2123,14 @@ function dlText(t,fn){
     const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fn;a.click();
 }
 </script>
-</body></html>''',
+''',
         generated=generated,
         generated_json=generated_json,
-        generated_expires=(
-            datetime.fromtimestamp(generated['expires']).strftime('%d.%m.%Y') if generated and generated.get('expires', 0) > 0
-            else 'Bezterminowo'
-        ) if generated else '',
-        existing=existing
+        generated_expires=generated_expires,
+        existing=existing,
+        version=app.config.get('VERSION', ''),
+        brand_name=app.config.get('BRAND_NAME', 'Akces Hub'),
+        current_user=session.get('user')
     )
 
 

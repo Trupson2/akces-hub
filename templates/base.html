@@ -263,16 +263,19 @@ body.kiosk,body.kiosk *{cursor:none!important}
 
 /* Responsive */
 @media(max-width:900px){
+    body{overflow-x:hidden;max-width:100vw}
     .sidebar{transform:translateX(-100%)}
     .sidebar.open{transform:translateX(0)}
     .sidebar-overlay.open{display:block}
     .menu-toggle{display:flex}
-    .main-content{margin-left:0}
+    .main-content{margin-left:0 !important;padding:16px !important;max-width:100vw;overflow-x:hidden}
     .topbar{padding-left:60px}
-    .container{padding:16px}
-    .kpi-grid{grid-template-columns:repeat(2,1fr)}
+    .container{padding:16px;max-width:100%;overflow-x:hidden}
+    .kpi-grid{grid-template-columns:repeat(2,1fr) !important}
     .dash-grid,.dash-grid-3,.dash-grid-r{grid-template-columns:1fr}
     .stat-row{grid-template-columns:repeat(3,1fr)}
+    table{display:block;overflow-x:auto;max-width:100%}
+    .card{max-width:100%;overflow-x:auto}
 }
 @media(max-width:600px){
     .stats{grid-template-columns:1fr}
@@ -282,8 +285,10 @@ body.kiosk,body.kiosk *{cursor:none!important}
     .tools-grid{grid-template-columns:1fr 1fr}
     .container{padding:12px}
 }
-@media(max-width:480px){
-    .kpi-grid{grid-template-columns:1fr}
+@media(max-width:500px){
+    .kpi-grid{grid-template-columns:1fr !important}
+    .main-content{padding:12px !important}
+    .container{padding:10px}
     .stat-row{grid-template-columns:1fr 1fr 1fr}
     .tools-grid{grid-template-columns:1fr}
 }
@@ -328,6 +333,9 @@ if(localStorage.getItem('kiosk_mode')==='1'){
         <a href="/magazyn/produkty" class="sidebar-link">
             <span class="sl-icon">📋</span>Produkty
         </a>
+        <a href="/magazyn/skaner" class="sidebar-link">
+            <span class="sl-icon">📷</span>Skaner
+        </a>
         <a href="/palety" class="sidebar-link">
             <span class="sl-icon">📦</span>Palety
         </a>
@@ -362,11 +370,11 @@ if(localStorage.getItem('kiosk_mode')==='1'){
         <a href="/analityka/analizator-palet" class="sidebar-link">
             <span class="sl-icon">🔬</span>Analizator Palet
         </a>
-        <a href="/analityka/analiza-zakupu" class="sidebar-link">
-            <span class="sl-icon">📋</span>Analiza zakupu
-        </a>
         <a href="/analityka/okazje" class="sidebar-link">
             <span class="sl-icon">🔥</span>Okazje
+        </a>
+        <a href="/magazyn/koszty" class="sidebar-link">
+            <span class="sl-icon">💸</span>Koszty
         </a>
     </nav>
     <div class="sidebar-bottom">

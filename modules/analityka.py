@@ -3068,7 +3068,7 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="sonar-pro",
                     f"{i}. {p.get('nazwa','?')[:80]} "
                     f"[{p.get('kategoria') or 'inne'}] "
                     f"— {p.get('ilosc', 1)} szt, "
-                    f"cena Amazon RRP: {p.get('cena_brutto', 0):.2f} zł"
+                    f"cena Amazon RRP: {float(p.get('cena_brutto', 0) or 0):.2f} zł"
                     f"{ean_str}{asin_str}\n"
                 )
 
@@ -3126,10 +3126,12 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="sonar-pro",
             if isinstance(batch_parsed, list):
                 # Mapuj nazwy z oryginalnych produktów
                 for j, item in enumerate(batch_parsed):
+                    if not isinstance(item, dict):
+                        continue
                     if j < len(batch):
                         item['nazwa'] = batch[j].get('nazwa', item.get('nazwa', '?'))
                         item['cena_amazon_rpp'] = batch[j].get('cena_brutto', 0)
-                all_results.extend(batch_parsed)
+                all_results.extend(item for item in batch_parsed if isinstance(item, dict))
             else:
                 # Fallback — dodaj surowe wyniki
                 for p in batch:
@@ -3233,19 +3235,52 @@ def analizator_palet():
 
         {no_key_warning}
 
-        <div class='card' style='margin-bottom:20px'>
-            <div style='font-weight:600;margin-bottom:12px'>Wybierz paletę do analizy</div>
-            <div style='display:flex;gap:10px;align-items:center;flex-wrap:wrap'>
-                <select id='paleta-select' class='form-control' style='flex:1;min-width:300px'>
-                    {options_html}
-                </select>
-                <button id='btn-analizuj' class='btn btn-primary' onclick='startAnalysis()' {'disabled' if not has_perplexity else ''}>
-                    🔍 Analizuj
-                </button>
+        <div class="tab-header" style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--border)">
+            <button class="tab-btn active" onclick="switchTab('palety')" id="tab-palety">🔬 Moje palety</button>
+            <button class="tab-btn" onclick="switchTab('zakup')" id="tab-zakup">📋 Analiza zakupu</button>
+        </div>
+
+        <div id="panel-palety">
+            <div class='card' style='margin-bottom:20px'>
+                <div style='font-weight:600;margin-bottom:12px'>Wybierz paletę do analizy</div>
+                <div style='display:flex;gap:10px;align-items:center;flex-wrap:wrap'>
+                    <select id='paleta-select' class='form-control' style='flex:1;min-width:300px'>
+                        {options_html}
+                    </select>
+                    <button id='btn-analizuj' class='btn btn-primary' onclick='startAnalysis()' {'disabled' if not has_perplexity else ''}>
+                        🔍 Analizuj
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div id='analysis-status' style='display:none' class='card' style='margin-bottom:20px'>
+        <div id="panel-zakup" style="display:none">
+            <div class='card' style='margin-bottom:20px'>
+                <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px">
+                    Wgraj manifest palety (Excel/XLSX) z listą produktów. AI sprawdzi realne ceny na Allegro i powie czy warto kupić.
+                </p>
+                <form id="excel-form" enctype="multipart/form-data">
+                    <div class="form-row" style="margin-bottom:14px">
+                        <div class="form-group">
+                            <label>Plik Excel (XLSX)</label>
+                            <input type="file" name="file" accept=".xlsx,.xls,.csv" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Koszt palety (PLN)</label>
+                            <input type="number" name="koszt" class="form-control" placeholder="np. 3500" step="0.01" value="0">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="btn-analyze-excel">🔬 Analizuj przed zakupem</button>
+                </form>
+                <div id="excel-progress" style="display:none;margin-top:16px">
+                    <div class="alert" style="background:var(--accent-soft);border:1px solid rgba(99,102,241,0.2);color:var(--accent)">
+                        <span id="excel-progress-text">Analizuję...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id='analysis-status' style='display:none' class='card'>
             <div style='display:flex;align-items:center;gap:10px'>
                 <div class='spinner' style='width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite'></div>
                 <span id='status-text' style='color:var(--text-muted);font-size:0.85rem'>Rozpoczynam analizę...</span>
@@ -3257,6 +3292,8 @@ def analizator_palet():
 
     <style>
     @keyframes spin {{ 0%{{transform:rotate(0deg)}} 100%{{transform:rotate(360deg)}} }}
+    .tab-btn {{ padding:10px 20px; background:transparent; border:none; color:var(--text-muted); font-size:0.9rem; font-weight:600; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; }}
+    .tab-btn.active {{ color:var(--accent); border-bottom-color:var(--accent); }}
     .demand-badge {{
         display:inline-block; padding:2px 10px; border-radius:6px; font-size:0.78rem; font-weight:600;
     }}
@@ -3278,6 +3315,14 @@ def analizator_palet():
     </style>
 
     <script>
+    function switchTab(tab) {{
+        document.getElementById('panel-palety').style.display = tab === 'palety' ? 'block' : 'none';
+        document.getElementById('panel-zakup').style.display = tab === 'zakup' ? 'block' : 'none';
+        document.getElementById('tab-palety').className = 'tab-btn' + (tab === 'palety' ? ' active' : '');
+        document.getElementById('tab-zakup').className = 'tab-btn' + (tab === 'zakup' ? ' active' : '');
+    }}
+    if (window.location.search.includes('tab=zakup')) switchTab('zakup');
+
     var currentJobId = null;
     var pollTimer = null;
 
@@ -3338,85 +3383,41 @@ def analizator_palet():
         .catch(() => {{ pollTimer = setTimeout(pollStatus, 3000); }});
     }}
 
-    function demandClass(popyt) {{
-        if (!popyt) return 'demand-niski';
-        var p = popyt.toLowerCase();
-        if (p === 'wysoki') return 'demand-wysoki';
-        if (p === 'średni' || p === 'sredni') return 'demand-sredni';
-        return 'demand-niski';
+    document.getElementById('excel-form').addEventListener('submit', function(e) {{
+        e.preventDefault();
+        var btn = document.getElementById('btn-analyze-excel');
+        btn.disabled = true; btn.textContent = 'Analizuję...';
+        document.getElementById('excel-progress').style.display = 'block';
+        document.getElementById('analysis-results').innerHTML = '';
+        var fd = new FormData(this);
+        fetch('/analityka/analiza-zakupu', {{method:'POST', body:fd}})
+        .then(r => r.json()).then(function(d) {{
+            if (!d.ok) {{ alert(d.error); btn.disabled=false; btn.textContent='🔬 Analizuj przed zakupem'; document.getElementById('excel-progress').style.display='none'; return; }}
+            document.getElementById('excel-progress-text').textContent = 'Znaleziono ' + d.produktow + ' produktów, analizuję...';
+            pollExcelStatus(d.job_id);
+        }}).catch(function(e) {{ alert('Błąd: ' + e); btn.disabled=false; btn.textContent='🔬 Analizuj przed zakupem'; document.getElementById('excel-progress').style.display='none'; }});
+    }});
+
+    function pollExcelStatus(jobId) {{
+        fetch('/analityka/analizator-palet/status?job_id=' + jobId)
+        .then(r => r.json()).then(function(d) {{
+            if (d.status === 'running') {{
+                document.getElementById('excel-progress-text').textContent = d.progress || 'Analizuję...';
+                setTimeout(function() {{ pollExcelStatus(jobId); }}, 3000);
+            }} else if (d.status === 'done') {{
+                document.getElementById('excel-progress').style.display = 'none';
+                document.getElementById('btn-analyze-excel').disabled = false;
+                document.getElementById('btn-analyze-excel').textContent = '🔬 Analizuj przed zakupem';
+                renderResults(d);
+            }} else if (d.status === 'error') {{
+                document.getElementById('excel-progress-text').textContent = '❌ ' + (d.error || 'Błąd');
+                document.getElementById('btn-analyze-excel').disabled = false;
+                document.getElementById('btn-analyze-excel').textContent = '🔬 Analizuj przed zakupem';
+            }}
+        }});
     }}
 
-    function renderResults(d) {{
-        var res = document.getElementById('analysis-results');
-        var pal = d.paleta || {{}};
-        var parsed = d.parsed;
-
-        // Header — pallet info
-        var html = '<div class="card" style="margin-bottom:16px">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">';
-        html += '<div style="font-weight:700;font-size:1rem">' + (pal.nazwa || 'Paleta #' + pal.id) + '</div>';
-        html += '<div style="color:var(--text-muted);font-size:0.8rem">' + (pal.dostawca||'') + ' | ' + (pal.data_zakupu||'') + '</div>';
-        html += '</div>';
-
-        if (parsed && parsed.podsumowanie) {{
-            var s = parsed.podsumowanie;
-            var roiColor = (s.roi||0) > 0 ? 'var(--green)' : 'var(--red)';
-            var ocenaBg = (s.ocena||0) >= 7 ? 'var(--green)' : (s.ocena||0) >= 4 ? 'var(--orange)' : 'var(--red)';
-            html += '<div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">';
-            html += '<div class="kpi-card green"><div class="kpi-label">Koszt palety</div><div class="kpi-value">' + ((pal.cena_zakupu||0)).toFixed(0) + ' zł</div></div>';
-            html += '<div class="kpi-card blue"><div class="kpi-label">Szac. przychód</div><div class="kpi-value">' + ((s.przychod||0)).toFixed(0) + ' zł</div></div>';
-            html += '<div class="kpi-card purple"><div class="kpi-label">Prowizja Allegro 11%</div><div class="kpi-value">' + ((s.prowizja_allegro||s.przychod*0.11||0)).toFixed(0) + ' zł</div></div>';
-            html += '<div class="kpi-card"><div class="kpi-label">Szac. zysk netto</div><div class="kpi-value" style="color:' + roiColor + '">' + ((s.zysk||0)).toFixed(0) + ' zł</div></div>';
-            html += '<div class="kpi-card"><div class="kpi-label">ROI</div><div class="kpi-value" style="color:' + roiColor + '">' + ((s.roi||0)).toFixed(0) + '%</div></div>';
-            html += '<div class="kpi-card orange"><div class="kpi-label">Ocena</div><div class="kpi-value" style="color:' + ocenaBg + '">' + (s.ocena||'?') + '/10</div></div>';
-            html += '</div>';
-        }}
-        html += '</div>';
-
-        // Products table
-        if (parsed && parsed.produkty && parsed.produkty.length) {{
-            html += '<div class="card" style="margin-bottom:16px;overflow-x:auto">';
-            html += '<div style="font-weight:600;margin-bottom:12px">Analiza produktów (' + parsed.produkty.length + ')</div>';
-            html += '<table class="analysis-table"><thead><tr>';
-            html += '<th>#</th><th>Produkt</th><th>Cena Allegro</th><th>Cena Amazon</th><th>Popyt</th><th>Czas</th><th>Uwagi</th>';
-            html += '</tr></thead><tbody>';
-            var totalRev = 0;
-            parsed.produkty.forEach(function(p, idx) {{
-                var cena = p.cena_allegro || p.cena_sprzedazy || 0;
-                var cenaAmz = p.cena_amazon_rpp || p.cena_brutto || 0;
-                totalRev += cena;
-                html += '<tr>';
-                html += '<td style="color:var(--text-muted)">' + (idx+1) + '</td>';
-                html += '<td style="font-weight:500;max-width:280px">' + (p.nazwa||'—') + '</td>';
-                html += '<td style="font-weight:700;color:var(--green)">' + cena.toFixed(0) + ' zł</td>';
-                html += '<td style="color:var(--text-muted);font-size:0.85rem">' + (cenaAmz > 0 ? cenaAmz.toFixed(0) + ' zł' : '—') + '</td>';
-                html += '<td><span class="demand-badge ' + demandClass(p.popyt) + '">' + (p.popyt||'?') + '</span></td>';
-                html += '<td>' + (p.czas_sprzedazy_dni || '?') + ' dni</td>';
-                html += '<td style="color:var(--text-muted);font-size:0.8rem;max-width:250px">' + (p.uwagi||'—') + '</td>';
-                html += '</tr>';
-            }});
-            html += '</tbody></table></div>';
-        }} else if (d.raw) {{
-            // Fallback — raw text
-            html += '<div class="card" style="margin-bottom:16px">';
-            html += '<div style="font-weight:600;margin-bottom:10px">Odpowiedź AI (tekst)</div>';
-            html += '<div style="white-space:pre-wrap;font-size:0.83rem;line-height:1.7;color:var(--text)">' + d.raw.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
-            html += '</div>';
-        }}
-
-        // Citations
-        if (d.citations && d.citations.length) {{
-            html += '<div class="card" style="margin-bottom:16px">';
-            html += '<div style="font-weight:600;margin-bottom:8px;font-size:0.85rem">Źródła</div>';
-            d.citations.forEach(function(c, i) {{
-                var url = typeof c === 'string' ? c : (c.url || c);
-                html += '<div style="font-size:0.78rem;margin-bottom:3px"><a href="' + url + '" target="_blank" style="color:var(--blue)">[' + (i+1) + '] ' + url + '</a></div>';
-            }});
-            html += '</div>';
-        }}
-
-        res.innerHTML = html;
-    }}
+    {_get_render_results_js()}
     </script>
     """
 
@@ -3464,144 +3465,81 @@ def analiza_zakupu():
     from modules.database import get_config, DATABASE as _db_path
 
     if request.method == 'POST':
-        api_key = get_config('perplexity_api_key', '')
-        if not api_key:
-            return jsonify({'ok': False, 'error': 'Brak klucza API Perplexity. Ustaw w Okazjach.'})
+        try:
+            api_key = get_config('perplexity_api_key', '')
+            if not api_key:
+                return jsonify({'ok': False, 'error': 'Brak klucza API Perplexity. Ustaw w Okazjach.'})
 
-        file = request.files.get('file')
-        if not file:
-            return jsonify({'ok': False, 'error': 'Nie wgrano pliku'})
+            file = request.files.get('file')
+            if not file:
+                return jsonify({'ok': False, 'error': 'Nie wgrano pliku'})
 
-        koszt_palety = float(request.form.get('koszt', 0) or 0)
+            koszt_palety = float(request.form.get('koszt', 0) or 0)
 
-        # Parsuj Excel
-        import openpyxl
-        import io
-        wb = openpyxl.load_workbook(io.BytesIO(file.read()), data_only=True)
-        ws = wb.active
-        rows = list(ws.iter_rows(values_only=True))
-        if not rows:
-            return jsonify({'ok': False, 'error': 'Plik jest pusty'})
+            # Parsuj Excel
+            import openpyxl
+            import io
+            wb = openpyxl.load_workbook(io.BytesIO(file.read()), data_only=True)
+            ws = wb.active
+            rows = list(ws.iter_rows(values_only=True))
+            if not rows:
+                return jsonify({'ok': False, 'error': 'Plik jest pusty'})
 
-        # Auto-detect kolumn (nazwy w pierwszym wierszu)
-        header = [str(c).lower().strip() if c else '' for c in rows[0]]
-        col_nazwa = next((i for i, h in enumerate(header) if any(k in h for k in ['nazwa','name','title','produkt','product','opis'])), 0)
-        col_ean = next((i for i, h in enumerate(header) if any(k in h for k in ['ean','barcode','kod'])), None)
-        col_asin = next((i for i, h in enumerate(header) if 'asin' in h), None)
-        col_ilosc = next((i for i, h in enumerate(header) if any(k in h for k in ['ilosc','qty','quantity','szt','sztuk','ilość'])), None)
-        col_cena = next((i for i, h in enumerate(header) if any(k in h for k in ['cena','price','rrp','brutto','retail'])), None)
-        col_kat = next((i for i, h in enumerate(header) if any(k in h for k in ['kategoria','category','cat'])), None)
+            # Auto-detect kolumn (nazwy w pierwszym wierszu)
+            header = [str(c).lower().strip() if c else '' for c in rows[0]]
+            col_nazwa = next((i for i, h in enumerate(header) if any(k in h for k in ['nazwa','name','title','produkt','product','opis'])), 0)
+            col_ean = next((i for i, h in enumerate(header) if any(k in h for k in ['ean','barcode','kod'])), None)
+            col_asin = next((i for i, h in enumerate(header) if 'asin' in h), None)
+            col_ilosc = next((i for i, h in enumerate(header) if any(k in h for k in ['ilosc','qty','quantity','szt','sztuk','ilość'])), None)
+            col_cena = next((i for i, h in enumerate(header) if any(k in h for k in ['cena','price','rrp','brutto','retail'])), None)
+            col_kat = next((i for i, h in enumerate(header) if any(k in h for k in ['kategoria','category','cat'])), None)
 
-        produkty = []
-        for row in rows[1:]:
-            if not row or not row[col_nazwa]:
-                continue
-            p = {
-                'nazwa': str(row[col_nazwa] or '').strip(),
-                'ean': str(row[col_ean] or '').strip() if col_ean is not None and col_ean < len(row) else '',
-                'asin': str(row[col_asin] or '').strip() if col_asin is not None and col_asin < len(row) else '',
-                'ilosc': int(float(row[col_ilosc] or 1)) if col_ilosc is not None and col_ilosc < len(row) and row[col_ilosc] else 1,
-                'cena_brutto': float(row[col_cena] or 0) if col_cena is not None and col_cena < len(row) and row[col_cena] else 0,
-                'kategoria': str(row[col_kat] or '').strip() if col_kat is not None and col_kat < len(row) else 'inne',
-            }
-            if p['nazwa']:
-                produkty.append(p)
+            produkty = []
+            for row in rows[1:]:
+                if not row or not row[col_nazwa]:
+                    continue
+                p = {
+                    'nazwa': str(row[col_nazwa] or '').strip(),
+                    'ean': str(row[col_ean] or '').strip() if col_ean is not None and col_ean < len(row) else '',
+                    'asin': str(row[col_asin] or '').strip() if col_asin is not None and col_asin < len(row) else '',
+                    'ilosc': int(float(row[col_ilosc] or 1)) if col_ilosc is not None and col_ilosc < len(row) and row[col_ilosc] else 1,
+                    'cena_brutto': float(row[col_cena] or 0) if col_cena is not None and col_cena < len(row) and row[col_cena] else 0,
+                    'kategoria': str(row[col_kat] or '').strip() if col_kat is not None and col_kat < len(row) else 'inne',
+                }
+                if p['nazwa']:
+                    produkty.append(p)
 
-        if not produkty:
-            return jsonify({'ok': False, 'error': 'Nie znaleziono produktów w pliku'})
+            if not produkty:
+                return jsonify({'ok': False, 'error': 'Nie znaleziono produktów w pliku'})
 
-        perp_model = get_config('perplexity_model', 'sonar-pro')
-        if perp_model == 'sonar':
-            perp_model = 'sonar-pro'
+            perp_model = get_config('perplexity_model', 'sonar-pro')
+            if perp_model == 'sonar':
+                perp_model = 'sonar-pro'
 
-        job_id = f'excel_{int(datetime.now().timestamp())}'
+            job_id = f'excel_{int(datetime.now().timestamp())}'
 
-        # Przekaż koszt palety
-        excel_paleta = {'id': 0, 'nazwa': file.filename, 'dostawca': 'Excel', 'cena_zakupu': koszt_palety}
+            # Przekaż koszt palety
+            excel_paleta = {'id': 0, 'nazwa': file.filename, 'dostawca': 'Excel', 'cena_zakupu': koszt_palety}
 
-        def run_excel_analysis():
-            _run_pallet_analysis(job_id, 0, api_key, _db_path, perp_model, excel_products=produkty)
-            # Nadpisz paletę z kosztem
-            if job_id in _pallet_analysis_results:
-                _pallet_analysis_results[job_id]['paleta'] = excel_paleta
-                # Przelicz podsumowanie z kosztem
-                if _pallet_analysis_results[job_id].get('parsed', {}).get('podsumowanie'):
-                    s = _pallet_analysis_results[job_id]['parsed']['podsumowanie']
-                    s['zysk'] = s.get('przychod', 0) - s.get('prowizja_allegro', 0) - koszt_palety
-                    s['roi'] = (s['zysk'] / koszt_palety * 100) if koszt_palety > 0 else 0
-                    s['ocena'] = min(10, max(1, int(s['roi'] / 15) + 3)) if koszt_palety > 0 else 5
+            def run_excel_analysis():
+                _run_pallet_analysis(job_id, 0, api_key, _db_path, perp_model, excel_products=produkty)
+                # Nadpisz paletę z kosztem
+                if job_id in _pallet_analysis_results:
+                    _pallet_analysis_results[job_id]['paleta'] = excel_paleta
+                    # Przelicz podsumowanie z kosztem
+                    if _pallet_analysis_results[job_id].get('parsed', {}).get('podsumowanie'):
+                        s = _pallet_analysis_results[job_id]['parsed']['podsumowanie']
+                        s['zysk'] = s.get('przychod', 0) - s.get('prowizja_allegro', 0) - koszt_palety
+                        s['roi'] = (s['zysk'] / koszt_palety * 100) if koszt_palety > 0 else 0
+                        s['ocena'] = min(10, max(1, int(s['roi'] / 15) + 3)) if koszt_palety > 0 else 5
 
-        threading.Thread(target=run_excel_analysis, daemon=True).start()
-        return jsonify({'ok': True, 'job_id': job_id, 'produktow': len(produkty)})
+            threading.Thread(target=run_excel_analysis, daemon=True).start()
+            return jsonify({'ok': True, 'job_id': job_id, 'produktow': len(produkty)})
+        except Exception as e:
+            return jsonify({'ok': False, 'error': str(e)})
 
-    # GET — strona
-    html = f'''
-    <div class="card">
-        <div class="card-header">
-            <span class="card-title">📊 Analiza zakupu — wrzuć Excel PRZED kupnem palety</span>
-        </div>
-        <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px">
-            Wgraj manifest palety (Excel/XLSX) z listą produktów. AI sprawdzi realne ceny na Allegro i powie czy warto kupić.
-        </p>
-        <form id="excel-form" enctype="multipart/form-data">
-            <div class="form-row" style="margin-bottom:14px">
-                <div class="form-group">
-                    <label>Plik Excel (XLSX)</label>
-                    <input type="file" name="file" accept=".xlsx,.xls,.csv" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>Koszt palety (PLN)</label>
-                    <input type="number" name="koszt" class="form-control" placeholder="np. 3500" step="0.01" value="0">
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary" id="btn-analyze-excel">🔬 Analizuj przed zakupem</button>
-        </form>
-        <div id="excel-progress" style="display:none;margin-top:16px">
-            <div class="alert" style="background:var(--accent-soft);border:1px solid rgba(99,102,241,0.2);color:var(--accent)">
-                <span id="excel-progress-text">Analizuję...</span>
-            </div>
-        </div>
-    </div>
-    <div id="excel-results"></div>
-
-    <script>
-    document.getElementById('excel-form').addEventListener('submit', function(e) {{
-        e.preventDefault();
-        var btn = document.getElementById('btn-analyze-excel');
-        btn.disabled = true; btn.textContent = 'Analizuję...';
-        document.getElementById('excel-progress').style.display = 'block';
-        var fd = new FormData(this);
-        fetch('/analityka/analiza-zakupu', {{method:'POST', body:fd}})
-        .then(r => r.json()).then(function(d) {{
-            if (!d.ok) {{ alert(d.error); btn.disabled=false; btn.textContent='🔬 Analizuj'; return; }}
-            document.getElementById('excel-progress-text').textContent = 'Znaleziono ' + d.produktow + ' produktów, analizuję...';
-            pollExcelStatus(d.job_id);
-        }}).catch(function(e) {{ alert('Błąd: ' + e); btn.disabled=false; }});
-    }});
-
-    function pollExcelStatus(jobId) {{
-        fetch('/analityka/analizator-palet/status?job_id=' + jobId)
-        .then(r => r.json()).then(function(d) {{
-            if (d.status === 'running') {{
-                document.getElementById('excel-progress-text').textContent = d.progress || 'Analizuję...';
-                setTimeout(function() {{ pollExcelStatus(jobId); }}, 3000);
-            }} else if (d.status === 'done') {{
-                document.getElementById('excel-progress').style.display = 'none';
-                document.getElementById('btn-analyze-excel').disabled = false;
-                document.getElementById('btn-analyze-excel').textContent = '🔬 Analizuj przed zakupem';
-                renderResults(d);
-            }} else if (d.status === 'error') {{
-                document.getElementById('excel-progress-text').textContent = '❌ ' + (d.error || 'Błąd');
-                document.getElementById('btn-analyze-excel').disabled = false;
-                document.getElementById('btn-analyze-excel').textContent = '🔬 Analizuj';
-            }}
-        }});
-    }}
-
-    {_get_render_results_js()}
-    </script>
-    '''
-    return render(html, 'Analiza zakupu')
+    # GET — redirect to combined page
+    return redirect('/analityka/analizator-palet?tab=zakup')
 
 
 def _get_render_results_js():
@@ -3615,7 +3553,7 @@ def _get_render_results_js():
         return 'demand-medium';
     }
     function renderResults(d) {
-        var res = document.getElementById('excel-results') || document.getElementById('analysis-results');
+        var res = document.getElementById('analysis-results');
         if (!res) return;
         var pal = d.paleta || {};
         var parsed = d.parsed;
