@@ -1,79 +1,141 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="header">
-    <h1>⚡ NARZĘDZIA</h1>
-    <small>Quick Wins</small>
+<style>
+.narz-header{text-align:center;padding:24px 0 8px}
+.narz-header h1{font-size:1.6rem;background:linear-gradient(135deg,#6366f1,#22c55e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.narz-header small{color:var(--text-muted,#64748b);font-size:0.82rem}
+.narz-section{font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted,#64748b);margin:24px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border-color,#1e1e2e);font-weight:600}
+.narz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:8px}
+.narz-card{display:flex;align-items:center;gap:16px;background:var(--bg-secondary,#12121a);border:1px solid var(--border-color,#1e1e2e);border-radius:14px;padding:18px 20px;text-decoration:none;color:var(--text-primary,#e2e8f0);transition:all 0.25s;cursor:pointer}
+.narz-card:hover{border-color:#6366f1;transform:translateY(-2px);box-shadow:0 8px 24px rgba(99,102,241,0.15)}
+.narz-card.featured{border-color:#6366f155;background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(34,197,94,0.05))}
+.narz-card.featured:hover{border-color:#6366f1;box-shadow:0 8px 24px rgba(99,102,241,0.25)}
+.narz-card.danger{border-color:#ef444433}
+.narz-card.danger:hover{border-color:#ef4444;box-shadow:0 8px 24px rgba(239,68,68,0.15)}
+.nc-icon{font-size:1.8rem;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(99,102,241,0.1);flex-shrink:0}
+.nc-icon.green{background:rgba(34,197,94,0.1)}
+.nc-icon.orange{background:rgba(249,115,22,0.1)}
+.nc-icon.red{background:rgba(239,68,68,0.1)}
+.nc-icon.blue{background:rgba(59,130,246,0.1)}
+.nc-icon.cyan{background:rgba(6,182,212,0.1)}
+.nc-info{flex:1;min-width:0}
+.nc-name{font-weight:700;font-size:0.92rem;margin-bottom:3px}
+.nc-desc{font-size:0.75rem;color:var(--text-muted,#64748b);line-height:1.3}
+.nc-arrow{color:var(--text-muted,#64748b);font-size:1.1rem;transition:transform 0.2s}
+.narz-card:hover .nc-arrow{transform:translateX(3px);color:#6366f1}
+</style>
+
+<div class="narz-header">
+    <h1>NARZEDZIA</h1>
+    <small>Analiza, kalkulatory i automatyzacja</small>
 </div>
 
-<a href="/analytics/profit" class="tool-card" style="display:block;margin-bottom:12px;border:1px solid #6366f1">
-    <div class="tool-icon">💹</div>
-    <div class="tool-name">Profit Analyzer</div>
-    <div class="tool-desc">Analiza zysków, P&L, rentowność palet i dostawców</div>
-</a>
-
-<a href="/analytics/dashboard" class="tool-card" style="display:block;margin-bottom:12px">
-    <div class="tool-icon">📊</div>
-    <div class="tool-name">Dashboard KPI</div>
-    <div class="tool-desc">Statystyki, trendy, porównania sprzedaży</div>
-</a>
-
-<a href="/analytics/kalkulator-palety" class="tool-card" style="display:block;margin-bottom:12px">
-    <div class="tool-icon">🧮</div>
-    <div class="tool-name">Kalkulator opłacalności</div>
-    <div class="tool-desc">Oszacuj zysk przed zakupem palety</div>
-</a>
-
-<a href="/narzedzia/kalkulator" class="tool-card" style="display:block;margin-bottom:12px">
-    <div class="tool-icon">💰</div>
-    <div class="tool-name">Kalkulator marży</div>
-    <div class="tool-desc">Oblicz cenę sprzedaży z prowizją Allegro</div>
-</a>
-
-<a href="/narzedzia/generator" class="tool-card" style="display:block;margin-bottom:12px">
-    <div class="tool-icon">✨</div>
-    <div class="tool-name">Generator opisów AI</div>
-    <div class="tool-desc">Automatyczne opisy produktów po polsku</div>
-</a>
-
-<a href="/narzedzia/export" class="tool-card" style="display:block;margin-bottom:12px">
-    <div class="tool-icon">📤</div>
-    <div class="tool-name">Export do Allegro</div>
-    <div class="tool-desc">Generuj CSV do masowego wystawiania</div>
-</a>
-
-<a href="/narzedzia/raporty" class="tool-card" style="display:block;margin-bottom:12px">
-    <div class="tool-icon">📈</div>
-    <div class="tool-name">Raporty ROI</div>
-    <div class="tool-desc">Statystyki i zyski per paleta</div>
-</a>
-
-<a href="/narzedzia/cloud-export" class="tool-card" style="display:block;margin-bottom:12px">
-    <div class="tool-icon">☁️</div>
-    <div class="tool-name">Eksport do chmury</div>
-    <div class="tool-desc">CSV do Google Drive / Dropbox</div>
-</a>
-
-
-
-{% if is_admin %}
-<a href="/narzedzia/licencje" class="tool-card" style="display:block;margin-bottom:12px">
-    <div class="tool-icon">🔑</div>
-    <div class="tool-name">Generator licencji</div>
-    <div class="tool-desc">Generuj klucze licencyjne dla klientów</div>
-</a>
-{% endif %}
-
-<a href="/support/zgloszenie" class="tool-card" style="display:block;margin-bottom:12px">
-    <div class="tool-icon">🆘</div>
-    <div class="tool-name">Pomoc / Zgłoszenie</div>
-    <div class="tool-desc">Wyślij zgłoszenie do supportu</div>
-</a>
-
-<div class="tool-card" style="display:block;margin-bottom:12px;cursor:pointer" id="updateCard" onclick="doUpdate()">
-    <div class="tool-icon">🔄</div>
-    <div class="tool-name">Update systemu</div>
-    <div class="tool-desc" id="updateDesc">Git pull + restart serwisu</div>
+<div class="narz-section">Analiza i raporty</div>
+<div class="narz-grid">
+    <a href="/analytics/profit" class="narz-card featured">
+        <div class="nc-icon green">💹</div>
+        <div class="nc-info">
+            <div class="nc-name">Profit Analyzer</div>
+            <div class="nc-desc">P&L, rentownosc palet, dostawcow, produktow</div>
+        </div>
+        <div class="nc-arrow">›</div>
+    </a>
+    <a href="/analytics/dashboard" class="narz-card">
+        <div class="nc-icon blue">📊</div>
+        <div class="nc-info">
+            <div class="nc-name">Dashboard KPI</div>
+            <div class="nc-desc">Statystyki, trendy, porownania sprzedazy</div>
+        </div>
+        <div class="nc-arrow">›</div>
+    </a>
+    <a href="/narzedzia/raporty" class="narz-card">
+        <div class="nc-icon">📈</div>
+        <div class="nc-info">
+            <div class="nc-name">Raporty ROI</div>
+            <div class="nc-desc">Statystyki i zyski per paleta</div>
+        </div>
+        <div class="nc-arrow">›</div>
+    </a>
 </div>
+
+<div class="narz-section">Kalkulatory</div>
+<div class="narz-grid">
+    <a href="/analytics/kalkulator-palety" class="narz-card">
+        <div class="nc-icon orange">🧮</div>
+        <div class="nc-info">
+            <div class="nc-name">Kalkulator oplacalnosci</div>
+            <div class="nc-desc">Oszacuj zysk przed zakupem palety</div>
+        </div>
+        <div class="nc-arrow">›</div>
+    </a>
+    <a href="/narzedzia/kalkulator" class="narz-card">
+        <div class="nc-icon green">💰</div>
+        <div class="nc-info">
+            <div class="nc-name">Kalkulator marzy</div>
+            <div class="nc-desc">Oblicz cene sprzedazy z prowizja Allegro</div>
+        </div>
+        <div class="nc-arrow">›</div>
+    </a>
+</div>
+
+<div class="narz-section">Automatyzacja</div>
+<div class="narz-grid">
+    <a href="/narzedzia/generator" class="narz-card">
+        <div class="nc-icon cyan">✨</div>
+        <div class="nc-info">
+            <div class="nc-name">Generator opisow AI</div>
+            <div class="nc-desc">Automatyczne opisy produktow po polsku</div>
+        </div>
+        <div class="nc-arrow">›</div>
+    </a>
+    <a href="/narzedzia/export" class="narz-card">
+        <div class="nc-icon blue">📤</div>
+        <div class="nc-info">
+            <div class="nc-name">Export do Allegro</div>
+            <div class="nc-desc">Generuj CSV do masowego wystawiania</div>
+        </div>
+        <div class="nc-arrow">›</div>
+    </a>
+    <a href="/narzedzia/cloud-export" class="narz-card">
+        <div class="nc-icon">☁️</div>
+        <div class="nc-info">
+            <div class="nc-name">Eksport do chmury</div>
+            <div class="nc-desc">CSV do Google Drive / Dropbox</div>
+        </div>
+        <div class="nc-arrow">›</div>
+    </a>
+</div>
+
+<div class="narz-section">System</div>
+<div class="narz-grid">
+    {% if is_admin %}
+    <a href="/narzedzia/licencje" class="narz-card">
+        <div class="nc-icon orange">🔑</div>
+        <div class="nc-info">
+            <div class="nc-name">Generator licencji</div>
+            <div class="nc-desc">Generuj klucze licencyjne dla klientow</div>
+        </div>
+        <div class="nc-arrow">›</div>
+    </a>
+    {% endif %}
+    <a href="/support/zgloszenie" class="narz-card">
+        <div class="nc-icon red">🆘</div>
+        <div class="nc-info">
+            <div class="nc-name">Pomoc / Zgloszenie</div>
+            <div class="nc-desc">Wyslij zgloszenie do supportu</div>
+        </div>
+        <div class="nc-arrow">›</div>
+    </a>
+    <div class="narz-card" id="updateCard" onclick="doUpdate()">
+        <div class="nc-icon blue">🔄</div>
+        <div class="nc-info">
+            <div class="nc-name">Update systemu</div>
+            <div class="nc-desc" id="updateDesc">Git pull + restart serwisu</div>
+        </div>
+        <div class="nc-arrow">›</div>
+    </div>
+</div>
+
 <script>
 function doUpdate() {
     if(!confirm('Aktualizować system? (git pull + restart)')) return;
@@ -81,7 +143,7 @@ function doUpdate() {
     var desc = document.getElementById('updateDesc');
     card.style.opacity='0.5';
     card.onclick=null;
-    desc.textContent='⏳ Aktualizowanie...';
+    desc.textContent='Aktualizowanie...';
     var x = new XMLHttpRequest();
     x.open('POST', '/system/update', true);
     x.setRequestHeader('Content-Type', 'application/json');
@@ -90,30 +152,30 @@ function doUpdate() {
         try {
             var d = JSON.parse(x.responseText);
             if(d.ok) {
-                desc.textContent = '✅ ' + d.msg;
+                desc.textContent = d.msg;
                 card.style.opacity='1';
                 if(d.msg.indexOf('aktualne') === -1) {
-                    desc.textContent += ' Odświeżam za 5s...';
+                    desc.textContent += ' Odswiezam za 5s...';
                     setTimeout(function(){ location.reload(); }, 5000);
                 }
             } else {
-                desc.textContent = '❌ ' + (d.error || 'Błąd');
+                desc.textContent = d.error || 'Blad';
                 card.style.opacity='1';
                 card.onclick = doUpdate;
             }
         } catch(e) {
-            desc.textContent = '⏳ Restart... odśwież za 5s';
+            desc.textContent = 'Restart... odswiez za 5s';
             card.style.opacity='1';
             setTimeout(function(){ location.reload(); }, 5000);
         }
     };
     x.onerror = function() {
-        desc.textContent = '⏳ Restart w toku... odśwież za 5s';
+        desc.textContent = 'Restart w toku... odswiez za 5s';
         card.style.opacity='1';
         setTimeout(function(){ location.reload(); }, 5000);
     };
     x.ontimeout = function() {
-        desc.textContent = '⏳ Timeout — restart w toku... odśwież za 5s';
+        desc.textContent = 'Timeout — restart w toku... odswiez za 5s';
         card.style.opacity='1';
         setTimeout(function(){ location.reload(); }, 5000);
     };
@@ -121,5 +183,7 @@ function doUpdate() {
 }
 </script>
 
-<a href="/" class="back">← Powrót</a>
+<div style="margin-top:20px">
+    <a href="/" class="back">← Powrot</a>
+</div>
 {% endblock %}
