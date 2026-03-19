@@ -2859,31 +2859,54 @@ def generator_mass_create_from_paleta_stream():
 
                 # Pomocnicza: sprawdź czy nazwa oferty pasuje do produktu
                 def _nazwa_match(offer_tytul):
-                    """Porównaj nazwy — żeby nie łączyć różnych produktów z tym samym EAN/ASIN"""
+                    """Porównaj nazwy — żeby nie łączyć różnych produktów"""
                     if not offer_tytul or not _nazwa_lower:
                         return True  # brak danych = pozwól
                     t = offer_tytul.lower()[:60]
-                    # Porównaj pierwsze 3 słowa — minimum 2 muszą się zgadzać
-                    words_p = [w for w in _nazwa_lower.split() if len(w) > 2][:4]
-                    words_o = [w for w in t.split() if len(w) > 2][:4]
+                    # Wyciągnij słowa > 2 znaki (pomijaj "na", "do", "ze" itp.)
+                    # Ignoruj generyczne słowa które pasują do wielu produktów
+                    _ignore = {'uniwersalne', 'uniwersalny', 'premium', 'zestaw', 'komplet', 'sztuk', 'szt', 'nowy', 'nowe', 'nowa'}
+                    words_p = [w for w in _nazwa_lower.split() if len(w) > 2 and w not in _ignore][:5]
+                    words_o = [w for w in t.split() if len(w) > 2 and w not in _ignore][:5]
                     if not words_p or not words_o:
                         return True
-                    matching = sum(1 for w in words_p if w in words_o)
-                    return matching >= 2
+                    matching = sum(1 for w in words_p if any(w in wo or wo in w for wo in words_o))
+                    # Wymagaj >= 50% słów z produktu (minimum 2)
+                    threshold = max(2, len(words_p) // 2 + 1)
+                    result = matching >= threshold
+                    if not result:
+                        print(f"      🚫 _nazwa_match FAIL: prod={words_p} vs oferta={words_o}, match={matching}/{threshold}")
+                    return result
 
                 # 1. Szukaj po produkt_id (najdokładniejsze — ten sam produkt)
-                existing_offer = conn.execute('''
-                    SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status
-                    FROM oferty o
-                    WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
-                    AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
-                    AND o.produkt_id = ?
-                    LIMIT 1
-                ''', (product_id,)).fetchone()
+                # ALE weryfikuj ASIN — jeśli nasz produkt ma ASIN, oferta musi dotyczyć produktu z tym samym ASIN
+                existing_offer = None
+                if asin:
+                    # Produkt ma ASIN — szukaj oferty z tym samym produkt_id ALE sprawdź czy ASIN się zgadza
+                    existing_offer = conn.execute('''
+                        SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status
+                        FROM oferty o
+                        JOIN produkty p ON p.id = o.produkt_id
+                        WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
+                        AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
+                        AND o.produkt_id = ?
+                        AND p.asin = ?
+                        LIMIT 1
+                    ''', (product_id, asin)).fetchone()
+                else:
+                    # Produkt bez ASIN — szukaj po produkt_id
+                    existing_offer = conn.execute('''
+                        SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status
+                        FROM oferty o
+                        WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
+                        AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
+                        AND o.produkt_id = ?
+                        LIMIT 1
+                    ''', (product_id,)).fetchone()
                 if existing_offer:
                     yield "data: " + json.dumps({'type': 'log', 'message': f'🔍 Match po produkt_id={product_id}', 'color': '#6366f1'}) + "\n\n"
 
-                # 2. Szukaj po ASIN + weryfikacja nazwy
+                # 2. Szukaj po ASIN (najwiarygodniejszy identyfikator)
                 if asin and not existing_offer:
                     all_prod_ids = [r['id'] for r in conn.execute('SELECT id FROM produkty WHERE asin = ?', (asin,)).fetchall()]
                     if all_prod_ids:
@@ -2903,8 +2926,7 @@ def generator_mass_create_from_paleta_stream():
                         if not existing_offer:
                             yield "data: " + json.dumps({'type': 'log', 'message': f'🔍 ASIN {asin}: {len(candidates)} ofert ale nazwy nie pasują', 'color': '#6366f1'}) + "\n\n"
 
-                # 3. Szukaj po EAN + weryfikacja nazwy (TYLKO jeśli produkt NIE MA ASIN)
-                # Produkty bez ASIN mają często generyczne EAN — matchowanie po EAN jest ryzykowne
+                # 3. Szukaj po EAN (TYLKO jeśli produkt NIE MA ASIN — EAN bez ASIN jest ryzykowny)
                 if ean and not existing_offer and not asin:
                     all_prod_ids = [r['id'] for r in conn.execute('SELECT id FROM produkty WHERE ean = ?', (ean,)).fetchall()]
                     if all_prod_ids:
