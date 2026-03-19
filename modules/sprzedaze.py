@@ -1,19 +1,14 @@
 """
-Moduł sprzedaży — routes dla /sprzedaze/* i /produkt/* (sprzedaż offline)
+Modul sprzedazy — routes dla /sprzedaze/* i /produkt/* (sprzedaz offline)
 """
-from flask import Blueprint, request, redirect, session, flash, jsonify, Response, current_app
+from flask import Blueprint, request, redirect, session, flash, jsonify, Response, current_app, render_template_string
 from datetime import datetime
 
 sprzedaze_bp = Blueprint('sprzedaze', __name__)
 
 
-def _get_css():
-    from modules.shared import CSS
-    return CSS
-
-
 def _normalize_pl(text):
-    """Zamienia polskie znaki na ASCII do porównań"""
+    """Zamienia polskie znaki na ASCII do porownan"""
     if not text:
         return ''
     pl_map = str.maketrans('ąćęłńóśźżĄĆĘŁŃÓŚŹŻ', 'acelnoszzACELNOSZZ')
@@ -21,28 +16,149 @@ def _normalize_pl(text):
 
 
 # ============================================================
-# SPRZEDAŻE I ZWROTY
+# SPRZEDAZE I ZWROTY
 # ============================================================
+
+SPRZEDAZE_LISTA_TEMPLATE = '''
+{% extends "base.html" %}
+{% block page_title %}Sprzedaze{% endblock %}
+{% block content %}
+
+<!-- Filtr miesiaca -->
+<div style="margin-bottom:16px">
+    <select onchange="window.location.href='/sprzedaze?miesiac='+this.value" class="form-control">
+        {% for m in miesiace_options %}
+        <option value="{{ m.value }}" {{ 'selected' if m.value == miesiac_filter else '' }}>{{ m.label }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+<!-- Przyciski akcji -->
+<div class="quick-actions" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+    <a href="/sync-custom?from={{ miesiac_filter }}-01" class="qa-btn">
+        <span class="qa-icon" style="background:var(--yellow-soft)">🔄</span>
+        Sync miesiac
+    </a>
+    <a href="/sprzedaze/sync-zwroty?miesiac={{ miesiac_filter }}" class="qa-btn">
+        <span class="qa-icon" style="background:var(--red-soft)">🔄</span>
+        Sync zwrotow
+    </a>
+    <a href="/sprzedaze/napraw-nazwy?miesiac={{ miesiac_filter }}" class="qa-btn">
+        <span class="qa-icon" style="background:var(--blue-soft)">🔧</span>
+        Napraw dane
+    </a>
+    <a href="/sprzedaze/dopasuj" class="qa-btn">
+        <span class="qa-icon" style="background:var(--accent-soft)">🔗</span>
+        Dopasuj
+    </a>
+</div>
+
+<!-- Komunikaty -->
+{% if msg == 'success' %}
+<div class="alert alert-success" style="text-align:center">Oznaczono {{ msg_cnt }} zwrotow z Allegro</div>
+{% elif msg == 'none' %}
+<div class="alert alert-warning" style="text-align:center">Brak nowych zwrotow w Allegro</div>
+{% elif msg == 'allegro_auth' %}
+<div class="alert alert-error" style="text-align:center">Zaloguj sie do Allegro</div>
+{% elif msg == 'error' %}
+<div class="alert alert-error" style="text-align:center">Blad: {{ msg_detail }}</div>
+{% elif msg == 'naprawiono' %}
+<div class="alert alert-success" style="text-align:center">Naprawiono dane {{ msg_cnt }} produktow (nazwy + zdjecia)</div>
+{% endif %}
+
+<!-- KPI karty -->
+<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpi-card green">
+        <div class="kpi-icon">💰</div>
+        <div class="kpi-value">{{ przychod }} zl</div>
+        <div class="kpi-label">Przychod</div>
+    </div>
+    <div class="kpi-card orange">
+        <div class="kpi-icon">🔄</div>
+        <div class="kpi-value">{{ zwroty_cnt }}</div>
+        <div class="kpi-label">Zwrotow</div>
+    </div>
+    <div class="kpi-card" style="--card-color:var(--red)">
+        <div class="kpi-icon" style="background:var(--red-soft)">📉</div>
+        <div class="kpi-value" style="color:var(--red)">-{{ zwroty_suma }} zl</div>
+        <div class="kpi-label">Wartosc zwrotow</div>
+    </div>
+</div>
+
+<div class="section-title">{{ msc_nazwa|upper }} ({{ sprzedaze|length }} zamowien)</div>
+
+{% if sprzedaze %}
+{% for s in sprzedaze %}
+<div class="list-item" style="{% if s.is_zwrot %}opacity:0.5{% endif %}">
+    <div style="min-width:50px;text-align:center;margin-right:14px;padding-right:14px;border-right:1px solid var(--border)">
+        <div style="font-size:1.3rem;font-weight:700;color:var(--blue)">{{ s.dzien }}</div>
+        <div style="font-size:0.65rem;color:var(--text-muted)">{{ s.miesiac_skrot }}</div>
+    </div>
+    <div class="list-item-info">
+        <div class="list-item-title">{{ s.nazwa }}</div>
+        <div class="list-item-meta">
+            {{ s.kupujacy }}
+            {% if s.is_zwrot %}
+            <span class="badge badge-error">ZWROT</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="list-item-right">
+        <div class="list-item-value" style="color:{% if s.is_zwrot %}var(--red){% else %}var(--green){% endif %}">
+            {{ '-' if s.is_zwrot else '' }}{{ s.cena_fmt }} zl
+        </div>
+        <div class="list-item-sub">x{{ s.ilosc }}</div>
+    </div>
+    <div style="margin-left:10px">
+        {% if s.is_manual %}
+        <form method="POST" action="/sprzedaze/usun/{{ s.id }}" style="display:inline;margin:0" onsubmit="return confirm('Usunac te sprzedaz i przywrocic ilosc?')">
+            <input type="hidden" name="miesiac" value="{{ miesiac_filter }}">
+            <button type="submit" class="btn btn-warning btn-sm">🗑️ Usun</button>
+        </form>
+        {% elif s.is_zwrot %}
+        <form method="POST" action="/sprzedaze/unzwrot/{{ s.id }}" style="display:inline;margin:0">
+            <input type="hidden" name="miesiac" value="{{ miesiac_filter }}">
+            <button type="submit" class="btn btn-success btn-sm">Cofnij</button>
+        </form>
+        {% else %}
+        <form method="POST" action="/sprzedaze/zwrot/{{ s.id }}" style="display:inline;margin:0">
+            <input type="hidden" name="miesiac" value="{{ miesiac_filter }}">
+            <button type="submit" class="btn btn-danger btn-sm">Zwrot</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="card" style="text-align:center;color:var(--text-muted);padding:30px">Brak sprzedazy w tym miesiacu</div>
+{% endif %}
+
+<a href="/statystyki" class="back">&#8592; Statystyki</a>
+
+{% endblock %}
+'''
+
+
 @sprzedaze_bp.route('/sprzedaze')
 def sprzedaze_lista():
-    """Lista sprzedaży z możliwością oznaczenia zwrotów"""
+    """Lista sprzedazy z mozliwoscia oznaczenia zwrotow"""
     from modules.database import get_db
 
-    # Filtr miesiąca z query string
+    # Filtr miesiaca z query string
     miesiac_filter = request.args.get('miesiac', '')
 
-    # Komunikat z sync zwrotów
+    # Komunikat z sync zwrotow
     msg = request.args.get('msg', '')
     msg_cnt = request.args.get('cnt', '0')
     msg_detail = request.args.get('detail', '')
 
-    # Domyślnie bieżący miesiąc
+    # Domyslnie biezacy miesiac
     if not miesiac_filter:
         miesiac_filter = datetime.now().strftime('%Y-%m')
 
     conn = get_db()
 
-    # Pobierz sprzedaże z wybranego miesiąca
+    # Pobierz sprzedaze z wybranego miesiaca
     sprzedaze = conn.execute('''
         SELECT s.*,
                COALESCE(p.nazwa, s.nazwa, 'Brak nazwy') as produkt_nazwa
@@ -54,7 +170,7 @@ def sprzedaze_lista():
         ORDER BY s.data_sprzedazy DESC
     ''', (miesiac_filter,)).fetchall()
 
-    # Statystyki dla wybranego miesiąca
+    # Statystyki dla wybranego miesiaca
     stats = conn.execute('''
         SELECT
             COUNT(*) as total,
@@ -66,7 +182,7 @@ def sprzedaze_lista():
           AND (kupujacy IS NULL OR kupujacy != 'offline')
     ''', (miesiac_filter,)).fetchone()
 
-    # Lista dostępnych miesięcy
+    # Lista dostepnych miesiecy
     miesiace_db = conn.execute('''
         SELECT DISTINCT strftime('%Y-%m', data_sprzedazy) as miesiac
         FROM sprzedaze
@@ -76,28 +192,26 @@ def sprzedaze_lista():
 
     # Generuj opcje select
     miesiace_nazwy = {
-        '01': 'Styczeń', '02': 'Luty', '03': 'Marzec', '04': 'Kwiecień',
-        '05': 'Maj', '06': 'Czerwiec', '07': 'Lipiec', '08': 'Sierpień',
-        '09': 'Wrzesień', '10': 'Październik', '11': 'Listopad', '12': 'Grudzień'
+        '01': 'Styczen', '02': 'Luty', '03': 'Marzec', '04': 'Kwiecien',
+        '05': 'Maj', '06': 'Czerwiec', '07': 'Lipiec', '08': 'Sierpien',
+        '09': 'Wrzesien', '10': 'Pazdziernik', '11': 'Listopad', '12': 'Grudzien'
     }
 
-    select_options = ''
+    miesiace_options = []
     for m in miesiace_db:
         msc = m['miesiac']
         rok = msc[:4]
         msc_num = msc[5:7]
         nazwa = f"{miesiace_nazwy.get(msc_num, msc_num)} {rok}"
-        selected = 'selected' if msc == miesiac_filter else ''
-        select_options += f'<option value="{msc}" {selected}>{nazwa}</option>'
+        miesiace_options.append({'value': msc, 'label': nazwa})
 
-    items_html = ''
+    # Przygotuj dane sprzedazy dla szablonu
+    items = []
     for s in sprzedaze:
         is_zwrot = s['status'] == 'zwrot'
         is_manual = (s['allegro_order_id'] or '').startswith('MANUAL-')
-        status_badge = '<span style="color:#ef4444;font-size:0.75rem">🔄 ZWROT</span>' if is_zwrot else ''
-        opacity = '0.5' if is_zwrot else '1'
 
-        # Nazwa produktu - kilka źródeł
+        # Nazwa produktu - kilka zrodel
         try:
             nazwa = s['produkt_nazwa'] or s['nazwa'] or ''
         except (IndexError, KeyError):
@@ -106,145 +220,69 @@ def sprzedaze_lista():
             except (IndexError, KeyError):
                 nazwa = ''
         if not nazwa or nazwa == 'Produkt':
-            # Fallback - użyj kupującego ale zaznacz że brak nazwy
-            nazwa = f"Zamówienie od {s['kupujacy']}"
+            nazwa = f"Zamowienie od {s['kupujacy']}"
 
-        # Formatuj datę ładnie
+        # Formatuj date ladnie
         data_raw = s['data_sprzedazy'] or ''
         if 'T' in data_raw:
-            data_str = data_raw[:10]  # YYYY-MM-DD
+            data_str = data_raw[:10]
         else:
             data_str = data_raw[:10]
 
-        # Dzień i miesiąc
+        # Dzien i miesiac
         try:
             parts = data_str.split('-')
             dzien = parts[2] if len(parts) >= 3 else '??'
             miesiac_num = int(parts[1]) if len(parts) >= 2 else 0
-            miesiace = ['', 'STY', 'LUT', 'MAR', 'KWI', 'MAJ', 'CZE', 'LIP', 'SIE', 'WRZ', 'PAŹ', 'LIS', 'GRU']
-            miesiac = miesiace[miesiac_num] if 0 < miesiac_num <= 12 else '???'
+            miesiace_skr = ['', 'STY', 'LUT', 'MAR', 'KWI', 'MAJ', 'CZE', 'LIP', 'SIE', 'WRZ', 'PAZ', 'LIS', 'GRU']
+            miesiac_skrot = miesiace_skr[miesiac_num] if 0 < miesiac_num <= 12 else '???'
         except:
             dzien = '??'
-            miesiac = '???'
+            miesiac_skrot = '???'
 
-        # Określ przycisk akcji
-        if is_manual:
-            akcja_btn = f'<form method="POST" action="/sprzedaze/usun/{s["id"]}" style="display:inline;margin:0" onsubmit="return confirm(\'Usunąć tę sprzedaż i przywrócić ilość?\')"><input type="hidden" name="miesiac" value="{miesiac_filter}"><button type="submit" style="padding:6px 10px;background:#f97316;border-radius:6px;color:#fff;border:none;cursor:pointer;font-size:0.75rem">🗑️ Usuń</button></form>'
-        elif is_zwrot:
-            akcja_btn = f'<form method="POST" action="/sprzedaze/unzwrot/{s["id"]}" style="display:inline;margin:0"><input type="hidden" name="miesiac" value="{miesiac_filter}"><button type="submit" style="padding:6px 10px;background:#22c55e;border-radius:6px;color:#fff;border:none;cursor:pointer;font-size:0.75rem">Cofnij</button></form>'
-        else:
-            akcja_btn = f'<form method="POST" action="/sprzedaze/zwrot/{s["id"]}" style="display:inline;margin:0"><input type="hidden" name="miesiac" value="{miesiac_filter}"><button type="submit" style="padding:6px 10px;background:#ef4444;border-radius:6px;color:#fff;border:none;cursor:pointer;font-size:0.75rem">Zwrot</button></form>'
+        items.append({
+            'id': s['id'],
+            'nazwa': nazwa[:40],
+            'kupujacy': s['kupujacy'],
+            'is_zwrot': is_zwrot,
+            'is_manual': is_manual,
+            'cena_fmt': f"{s['cena']:.0f}",
+            'ilosc': s['ilosc'],
+            'dzien': dzien,
+            'miesiac_skrot': miesiac_skrot,
+        })
 
-        items_html += f'''
-        <div style="display:flex;align-items:center;background:#12121a;border:1px solid #1e1e2e;border-radius:10px;padding:12px;margin-bottom:8px;opacity:{opacity}">
-            <div style="min-width:50px;text-align:center;margin-right:12px;padding-right:12px;border-right:1px solid #2a2a3a">
-                <div style="font-size:1.3rem;font-weight:700;color:#3b82f6">{dzien}</div>
-                <div style="font-size:0.65rem;color:#64748b">{miesiac}</div>
-            </div>
-            <div style="flex:1;min-width:0">
-                <div style="font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{nazwa[:40]}</div>
-                <div style="font-size:0.75rem;color:#64748b">{s['kupujacy']} {status_badge}</div>
-            </div>
-            <div style="text-align:right;margin-left:10px">
-                <div style="font-weight:700;color:{'#ef4444' if is_zwrot else '#22c55e'}">{'-' if is_zwrot else ''}{s['cena']:.0f} zł</div>
-                <div style="font-size:0.7rem;color:#64748b">x{s['ilosc']}</div>
-            </div>
-            <div style="margin-left:10px">
-                {akcja_btn}
-            </div>
-        </div>
-        '''
-
-    # Nazwa wybranego miesiąca do wyświetlenia
+    # Nazwa wybranego miesiaca do wyswietlenia
     msc_num = miesiac_filter[5:7] if len(miesiac_filter) >= 7 else '01'
     msc_rok = miesiac_filter[:4] if len(miesiac_filter) >= 4 else '2026'
     msc_nazwa = f"{miesiace_nazwy.get(msc_num, msc_num)} {msc_rok}"
 
-    # Komunikat z sync zwrotów
-    msg_html = ''
-    if msg == 'success':
-        msg_html = f'<div style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);padding:12px;border-radius:8px;margin-bottom:15px;text-align:center;color:#22c55e">✅ Oznaczono {msg_cnt} zwrotów z Allegro</div>'
-    elif msg == 'none':
-        msg_html = '<div style="background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.3);padding:12px;border-radius:8px;margin-bottom:15px;text-align:center;color:#eab308">ℹ️ Brak nowych zwrotów w Allegro</div>'
-    elif msg == 'allegro_auth':
-        msg_html = '<div style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);padding:12px;border-radius:8px;margin-bottom:15px;text-align:center;color:#ef4444">❌ Zaloguj się do Allegro</div>'
-    elif msg == 'error':
-        msg_html = f'<div style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);padding:12px;border-radius:8px;margin-bottom:15px;text-align:center;color:#ef4444">❌ Błąd: {msg_detail}</div>'
-    elif msg == 'naprawiono':
-        msg_html = f'<div style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);padding:12px;border-radius:8px;margin-bottom:15px;text-align:center;color:#22c55e">✅ Naprawiono dane {msg_cnt} produktów (nazwy + zdjęcia)</div>'
-
-    CSS = _get_css()
-    html = CSS + f'''
-    <div class="container">
-        <div class="header">
-            <h1>💰 SPRZEDAŻE</h1>
-            <small>Lista zamówień i zwroty</small>
-        </div>
-
-        <!-- Filtr miesiąca -->
-        <div style="margin-bottom:15px">
-            <select onchange="window.location.href='/sprzedaze?miesiac='+this.value"
-                    style="width:100%;padding:12px;background:#12121a;border:1px solid #3b82f6;border-radius:8px;color:#fff;font-size:1rem;cursor:pointer">
-                {select_options}
-            </select>
-        </div>
-
-        <!-- Przyciski akcji -->
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:15px">
-            <a href="/sync-custom?from={miesiac_filter}-01"
-               style="display:block;text-align:center;padding:10px;background:#f59e0b;border-radius:8px;color:#fff;text-decoration:none;font-weight:600;font-size:0.85rem">
-                🔄 Sync miesiąc
-            </a>
-            <a href="/sprzedaze/sync-zwroty?miesiac={miesiac_filter}"
-               style="display:block;text-align:center;padding:10px;background:#ef4444;border-radius:8px;color:#fff;text-decoration:none;font-weight:600;font-size:0.85rem">
-                🔄 Sync zwrotów
-            </a>
-            <a href="/sprzedaze/napraw-nazwy?miesiac={miesiac_filter}"
-               style="display:block;text-align:center;padding:10px;background:#3b82f6;border-radius:8px;color:#fff;text-decoration:none;font-weight:600;font-size:0.85rem">
-                🔧 Napraw dane
-            </a>
-            <a href="/sprzedaze/dopasuj"
-               style="display:block;text-align:center;padding:10px;background:#8b5cf6;border-radius:8px;color:#fff;text-decoration:none;font-weight:600;font-size:0.85rem">
-                🔗 Dopasuj
-            </a>
-        </div>
-
-        {msg_html}
-
-        <!-- Statystyki miesiąca -->
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
-            <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;text-align:center">
-                <div style="font-size:1.5rem;font-weight:700;color:#22c55e">{stats['przychod'] or 0:.0f} zł</div>
-                <div style="font-size:0.7rem;color:#64748b">PRZYCHÓD</div>
-            </div>
-            <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;text-align:center">
-                <div style="font-size:1.5rem;font-weight:700;color:#ef4444">{stats['zwroty_cnt'] or 0}</div>
-                <div style="font-size:0.7rem;color:#64748b">ZWROTÓW</div>
-            </div>
-            <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;text-align:center">
-                <div style="font-size:1.5rem;font-weight:700;color:#ef4444">-{stats['zwroty_suma'] or 0:.0f} zł</div>
-                <div style="font-size:0.7rem;color:#64748b">WARTOŚĆ ZWROTÓW</div>
-            </div>
-        </div>
-
-        <div style="font-size:0.8rem;color:#64748b;margin-bottom:10px">{msc_nazwa.upper()} ({len(sprzedaze)} zamówień)</div>
-
-        {items_html if items_html else '<div style="text-align:center;color:#64748b;padding:30px">Brak sprzedaży w tym miesiącu</div>'}
-
-        <a href="/statystyki" style="display:block;text-align:center;color:#64748b;text-decoration:none;margin-top:20px">← Statystyki</a>
-    </div>
-    '''
-    return html
+    return render_template_string(
+        SPRZEDAZE_LISTA_TEMPLATE,
+        miesiac_filter=miesiac_filter,
+        miesiace_options=miesiace_options,
+        sprzedaze=items,
+        przychod=f"{stats['przychod'] or 0:.0f}",
+        zwroty_cnt=stats['zwroty_cnt'] or 0,
+        zwroty_suma=f"{stats['zwroty_suma'] or 0:.0f}",
+        msc_nazwa=msc_nazwa,
+        msg=msg,
+        msg_cnt=msg_cnt,
+        msg_detail=msg_detail,
+        version=current_app.config.get('VERSION', ''),
+        brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
+        current_user=session.get('user'),
+    )
 
 
 @sprzedaze_bp.route('/sprzedaze/zwrot/<int:sale_id>', methods=['POST'])
 def oznacz_zwrot(sale_id):
-    """Oznacza sprzedaż jako zwrot"""
+    """Oznacza sprzedaz jako zwrot"""
     from modules.database import get_db
     conn = get_db()
     conn.execute('UPDATE sprzedaze SET status = ? WHERE id = ?', ('zwrot', sale_id))
     conn.commit()
-    # Zachowaj filtr miesiąca
+    # Zachowaj filtr miesiaca
     miesiac = request.form.get('miesiac', '')
     return redirect(f'/sprzedaze?miesiac={miesiac}' if miesiac else '/sprzedaze')
 
@@ -256,32 +294,32 @@ def cofnij_zwrot(sale_id):
     conn = get_db()
     conn.execute('UPDATE sprzedaze SET status = ? WHERE id = ?', ('wyslana', sale_id))
     conn.commit()
-    # Zachowaj filtr miesiąca
+    # Zachowaj filtr miesiaca
     miesiac = request.form.get('miesiac', '')
     return redirect(f'/sprzedaze?miesiac={miesiac}' if miesiac else '/sprzedaze')
 
 
 @sprzedaze_bp.route('/sprzedaze/usun/<int:sale_id>', methods=['POST'])
 def usun_sprzedaz(sale_id):
-    """Usuwa sprzedaż (ręczną korektę) i przywraca ilość produktu"""
+    """Usuwa sprzedaz (reczna korekta) i przywraca ilosc produktu"""
     from modules.database import get_db
     miesiac = request.form.get('miesiac', '')
 
     conn = get_db()
 
-    # Pobierz dane sprzedaży
+    # Pobierz dane sprzedazy
     sprzedaz = conn.execute('SELECT * FROM sprzedaze WHERE id = ?', (sale_id,)).fetchone()
 
     if not sprzedaz:
-        flash('Nie znaleziono sprzedaży', 'error')
+        flash('Nie znaleziono sprzedazy', 'error')
         return redirect(f'/sprzedaze?miesiac={miesiac}' if miesiac else '/sprzedaze')
 
-    # Sprawdź czy to ręczna korekta
+    # Sprawdz czy to reczna korekta
     if not (sprzedaz['allegro_order_id'] or '').startswith('MANUAL-'):
-        flash('Można usuwać tylko ręczne korekty', 'error')
+        flash('Mozna usuwac tylko reczne korekty', 'error')
         return redirect(f'/sprzedaze?miesiac={miesiac}' if miesiac else '/sprzedaze')
 
-    # Przywróć ilość produktu
+    # Przywroc ilosc produktu
     if sprzedaz['produkt_id']:
         conn.execute('''
             UPDATE produkty
@@ -290,18 +328,18 @@ def usun_sprzedaz(sale_id):
             WHERE id = ?
         ''', (sprzedaz['ilosc'], sprzedaz['produkt_id']))
 
-    # Usuń wpis sprzedaży
+    # Usun wpis sprzedazy
     conn.execute('DELETE FROM sprzedaze WHERE id = ?', (sale_id,))
 
     conn.commit()
 
-    flash(f'✅ Usunięto sprzedaż i przywrócono {sprzedaz["ilosc"]} szt. do magazynu', 'success')
+    flash(f'Usunieto sprzedaz i przywrocono {sprzedaz["ilosc"]} szt. do magazynu', 'success')
     return redirect(f'/sprzedaze?miesiac={miesiac}' if miesiac else '/sprzedaze')
 
 
 @sprzedaze_bp.route('/sprzedaze/sync-zwroty')
 def sync_zwroty_allegro():
-    """Synchronizuje zwroty z Allegro API dla wybranego miesiąca"""
+    """Synchronizuje zwroty z Allegro API dla wybranego miesiaca"""
     from modules.allegro_api import sync_returns, is_authenticated
 
     miesiac = request.args.get('miesiac', '')
@@ -319,13 +357,13 @@ def sync_zwroty_allegro():
         else:
             return redirect(f'{base_url}&msg=none')
     except Exception as e:
-        print(f"❌ Błąd sync_returns: {e}")
+        print(f"Blad sync_returns: {e}")
         return redirect(f'{base_url}&msg=error&detail={str(e)[:50]}')
 
 
 @sprzedaze_bp.route('/sprzedaze/napraw-nazwy')
 def napraw_nazwy_sprzedazy():
-    """Uzupełnia brakujące nazwy, zdjęcia i daty w sprzedażach z Allegro API"""
+    """Uzupelnia brakujace nazwy, zdjecia i daty w sprzedazach z Allegro API"""
     from modules.allegro_api import is_authenticated, allegro_request
     from modules.database import get_db
 
@@ -338,7 +376,7 @@ def napraw_nazwy_sprzedazy():
 
     conn = get_db()
 
-    # Upewnij się że kolumny istnieją
+    # Upewnij sie ze kolumny istnieja
     try:
         conn.execute('ALTER TABLE sprzedaze ADD COLUMN nazwa TEXT DEFAULT ""')
     except:
@@ -348,7 +386,7 @@ def napraw_nazwy_sprzedazy():
     except:
         pass
 
-    # Pobierz sprzedaże z wybranego miesiąca bez nazwy/zdjęcia
+    # Pobierz sprzedaze z wybranego miesiaca bez nazwy/zdjecia
     try:
         sprzedaze = conn.execute('''
             SELECT s.id, s.allegro_order_id, s.nazwa, s.zdjecie_url, s.oferta_id,
@@ -376,7 +414,7 @@ def napraw_nazwy_sprzedazy():
 
     updated = 0
 
-    # Helper do bezpiecznego dostępu do sqlite3.Row
+    # Helper do bezpiecznego dostepu do sqlite3.Row
     def safe_get(row, key, default=None):
         try:
             val = row[key]
@@ -394,13 +432,13 @@ def napraw_nazwy_sprzedazy():
         if not new_name and safe_get(s, 'oferta_tytul'):
             new_name = s['oferta_tytul'][:100]
 
-        # Metoda 2: pobierz z Allegro API (nazwa + zdjęcie + popraw datę)
+        # Metoda 2: pobierz z Allegro API (nazwa + zdjecie + popraw date)
         new_date = None
         if s['allegro_order_id']:
             try:
                 order_data, err = allegro_request('GET', f"/order/checkout-forms/{s['allegro_order_id']}")
                 if order_data:
-                    # Popraw datę z boughtAt
+                    # Popraw date z boughtAt
                     bought_at = order_data.get('boughtAt', '')
                     if bought_at:
                         try:
@@ -410,10 +448,10 @@ def napraw_nazwy_sprzedazy():
                             dt_local = dt.astimezone().replace(tzinfo=None)
                             correct_date = dt_local.strftime('%Y-%m-%d %H:%M:%S')
                             current_date = safe_get(s, 'data_sprzedazy', '')
-                            # Napraw jeśli data jest inna (inny dzień)
+                            # Napraw jesli data jest inna (inny dzien)
                             if correct_date[:10] != (current_date or '')[:10]:
                                 new_date = correct_date
-                                print(f"📅 Poprawiam datę: {s['id']} {current_date[:10]} → {correct_date[:10]}")
+                                print(f"Poprawiam date: {s['id']} {current_date[:10]} -> {correct_date[:10]}")
                         except Exception as de:
                             print(f"Date parse error: {de}")
 
@@ -424,7 +462,7 @@ def napraw_nazwy_sprzedazy():
                                 name = offer.get('name', '')
                                 if name:
                                     new_name = name[:100]
-                            # Pobierz zdjęcie z oferty
+                            # Pobierz zdjecie z oferty
                             if not new_image:
                                 offer_id = offer.get('id')
                                 if offer_id:
@@ -441,7 +479,7 @@ def napraw_nazwy_sprzedazy():
             except Exception as e:
                 print(f"API error: {e}")
 
-        # Aktualizuj jeśli znaleziono coś nowego (nazwa, zdjęcie lub data)
+        # Aktualizuj jesli znaleziono cos nowego (nazwa, zdjecie lub data)
         if new_name or new_image or new_date:
             try:
                 updates = []
@@ -460,9 +498,9 @@ def napraw_nazwy_sprzedazy():
                 conn.execute('UPDATE sprzedaze SET ' + set_clause + ' WHERE id = ?', params)  # noqa: B608
                 updated += 1
                 date_info = f' | data: {new_date[:10]}' if new_date else ''
-                print(f"✅ Naprawiono: {s['id']} -> {(new_name or '')[:40]}... | img: {'✓' if new_image else '✗'}{date_info}")
+                print(f"Naprawiono: {s['id']} -> {(new_name or '')[:40]}... | img: {'ok' if new_image else 'brak'}{date_info}")
             except Exception as e:
-                print(f"❌ Błąd update: {e}")
+                print(f"Blad update: {e}")
 
     conn.commit()
 
@@ -471,14 +509,14 @@ def napraw_nazwy_sprzedazy():
 
 @sprzedaze_bp.route('/sprzedaze/dodaj-reczna', methods=['POST'])
 def sprzedaze_dodaj_reczna():
-    """Ręczne dodanie sprzedaży (korekta)"""
+    """Reczne dodanie sprzedazy (korekta)"""
     from modules.database import get_db
     from datetime import datetime
 
     produkt_id = request.form.get('produkt_id', type=int)
     ilosc = request.form.get('ilosc', 1, type=int)
     cena = request.form.get('cena', 0, type=float)
-    kupujacy = request.form.get('kupujacy', 'Ręczna korekta')
+    kupujacy = request.form.get('kupujacy', 'Reczna korekta')
 
     if not produkt_id:
         flash('Brak ID produktu', 'error')
@@ -499,7 +537,7 @@ def sprzedaze_dodaj_reczna():
         (f'MANUAL-{datetime.now().strftime("%Y%m%d%H%M%S")}', cena, ilosc, kupujacy,
          'nowa', datetime.now().isoformat(), produkt_id, produkt['nazwa']))
 
-    # Zaktualizuj ilość w produkcie
+    # Zaktualizuj ilosc w produkcie
     new_qty = max(0, produkt['ilosc'] - ilosc)
     conn.execute('''UPDATE produkty SET
         ilosc = ?,
@@ -508,7 +546,7 @@ def sprzedaze_dodaj_reczna():
 
     conn.commit()
 
-    flash(f'✅ Dodano sprzedaż: {ilosc} szt. za {cena:.0f} zł', 'success')
+    flash(f'Dodano sprzedaz: {ilosc} szt. za {cena:.0f} zl', 'success')
     return redirect(request.referrer or f'/palety/{produkt["paleta_id"]}')
 
 
@@ -524,12 +562,12 @@ def api_sprzedaze_szukaj_produkt():
 
     conn = get_db()
 
-    # Normalizuj słowa do porównań (bez polskich znaków)
+    # Normalizuj slowa do porownan (bez polskich znakow)
     words = [_normalize_pl(w) for w in q.split() if len(w) >= 2][:6]
     if not words:
         return jsonify({'results': []})
 
-    # Pobierz wszystkie produkty (188 rekordów — szybko)
+    # Pobierz wszystkie produkty (188 rekordow — szybko)
     all_products = conn.execute('''
         SELECT p.id, p.nazwa, p.ean, p.asin, p.ilosc, p.cena_allegro, p.zdjecie_url,
                COALESCE(pal.nazwa, '') as paleta_nazwa
@@ -538,10 +576,10 @@ def api_sprzedaze_szukaj_produkt():
         ORDER BY p.id DESC
     ''').fetchall()
 
-    # Filtruj w Pythonie (normalizacja polskich znaków)
+    # Filtruj w Pythonie (normalizacja polskich znakow)
     scored = []
     q_norm = _normalize_pl(q)
-    min_match = max(2, int(len(words) * 0.6))  # min 60% słów lub 2
+    min_match = max(2, int(len(words) * 0.6))  # min 60% slow lub 2
 
     for p in all_products:
         nazwa_norm = _normalize_pl(p['nazwa'] or '')
@@ -553,12 +591,12 @@ def api_sprzedaze_szukaj_produkt():
             scored.append((100, p))
             continue
 
-        # Multi-word: liczymy ile słów matchuje
+        # Multi-word: liczymy ile slow matchuje
         hits = sum(1 for w in words if w in nazwa_norm)
         if hits >= min_match:
             scored.append((hits, p))
 
-    # Sortuj: najlepsze dopasowanie na górze
+    # Sortuj: najlepsze dopasowanie na gorze
     scored.sort(key=lambda x: -x[0])
     results = [p for _, p in scored[:15]]
 
@@ -572,7 +610,7 @@ def api_sprzedaze_szukaj_produkt():
 
 @sprzedaze_bp.route('/api/sprzedaze/dopasuj', methods=['POST'])
 def api_sprzedaze_dopasuj():
-    """API - dopasowuje grupę sprzedaży do produktu + historia"""
+    """API - dopasowuje grupe sprzedazy do produktu + historia"""
     from modules.database import get_db, add_historia
 
     sale_ids_str = request.form.get('sale_ids', '')
@@ -584,10 +622,10 @@ def api_sprzedaze_dopasuj():
     try:
         sale_ids = [int(x.strip()) for x in sale_ids_str.split(',') if x.strip()]
     except ValueError:
-        return jsonify({'ok': False, 'msg': 'Nieprawidłowe ID'}), 400
+        return jsonify({'ok': False, 'msg': 'Nieprawidlowe ID'}), 400
 
     if not sale_ids:
-        return jsonify({'ok': False, 'msg': 'Brak ID sprzedaży'}), 400
+        return jsonify({'ok': False, 'msg': 'Brak ID sprzedazy'}), 400
 
     conn = get_db()
 
@@ -595,7 +633,7 @@ def api_sprzedaze_dopasuj():
     if not produkt:
         return jsonify({'ok': False, 'msg': 'Produkt nie znaleziony'}), 404
 
-    # Pobierz szczegóły sprzedaży PRZED update (do historii)
+    # Pobierz szczegoly sprzedazy PRZED update (do historii)
     placeholders = ','.join(['?' for _ in sale_ids])
     sprzedaze = conn.execute(
         'SELECT id, nazwa, cena, ilosc, data_sprzedazy'
@@ -608,12 +646,12 @@ def api_sprzedaze_dopasuj():
         ' WHERE id IN (' + placeholders + ') AND produkt_id IS NULL',
         [produkt_id] + sale_ids)
 
-    # Dodaj historię dla każdej dopasowanej sprzedaży
+    # Dodaj historie dla kazdej dopasowanej sprzedazy
     for s in sprzedaze:
         przychod = (s['cena'] or 0) * (s['ilosc'] or 1)
         try:
             add_historia(produkt_id, 'sprzedano',
-                f'Dopasowano sprzedaż #{s["id"]}: {s["ilosc"] or 1} szt. za {przychod:.0f} zł ({s["data_sprzedazy"][:10] if s["data_sprzedazy"] else "?"})',
+                f'Dopasowano sprzedaz #{s["id"]}: {s["ilosc"] or 1} szt. za {przychod:.0f} zl ({s["data_sprzedazy"][:10] if s["data_sprzedazy"] else "?"})',
                 {'sprzedaz_id': s['id'], 'cena': s['cena'], 'ilosc': s['ilosc'],
                  'data_sprzedazy': s['data_sprzedazy'], 'zrodlo': 'dopasowanie'})
         except:
@@ -667,7 +705,7 @@ def api_sprzedaze_auto_dopasuj():
             sale_ids = [int(x) for x in g['sale_ids'].split(',')]
             ph = ','.join(['?' for _ in sale_ids])
 
-            # Pobierz szczegóły sprzedaży PRZED update (do historii)
+            # Pobierz szczegoly sprzedazy PRZED update (do historii)
             sprzedaze = conn.execute(
                 'SELECT id, nazwa, cena, ilosc, data_sprzedazy'
                 ' FROM sprzedaze WHERE id IN (' + ph + ') AND produkt_id IS NULL',
@@ -678,12 +716,12 @@ def api_sprzedaze_auto_dopasuj():
                 ' WHERE id IN (' + ph + ') AND produkt_id IS NULL',
                 [match['id']] + sale_ids)
 
-            # Dodaj historię dla każdej dopasowanej sprzedaży
+            # Dodaj historie dla kazdej dopasowanej sprzedazy
             for s in sprzedaze:
                 przychod = (s['cena'] or 0) * (s['ilosc'] or 1)
                 try:
                     add_historia(match['id'], 'sprzedano',
-                        f'Auto-dopasowano sprzedaż #{s["id"]}: {s["ilosc"] or 1} szt. za {przychod:.0f} zł ({s["data_sprzedazy"][:10] if s["data_sprzedazy"] else "?"})',
+                        f'Auto-dopasowano sprzedaz #{s["id"]}: {s["ilosc"] or 1} szt. za {przychod:.0f} zl ({s["data_sprzedazy"][:10] if s["data_sprzedazy"] else "?"})',
                         {'sprzedaz_id': s['id'], 'cena': s['cena'], 'ilosc': s['ilosc'],
                          'data_sprzedazy': s['data_sprzedazy'], 'zrodlo': 'auto-dopasowanie'})
                 except:
@@ -703,12 +741,12 @@ def api_sprzedaze_auto_dopasuj():
 
 @sprzedaze_bp.route('/api/sprzedaze/repair', methods=['POST'])
 def api_sprzedaze_repair():
-    """Naprawa danych: usunięcie duplikatów + aktualizacja stanów magazynowych"""
+    """Naprawa danych: usuniecie duplikatow + aktualizacja stanow magazynowych"""
     from modules.database import get_db
     conn = get_db()
     repairs = []
 
-    # === 1. Usuń duplikaty zamówień ===
+    # === 1. Usun duplikaty zamowien ===
     dupes = conn.execute('''
         SELECT allegro_order_id, nazwa, cena, COUNT(*) as cnt,
                MIN(id) as keep_id, GROUP_CONCAT(id) as all_ids
@@ -727,9 +765,9 @@ def api_sprzedaze_repair():
             conn.execute('DELETE FROM sprzedaze WHERE id IN (' + ph + ')', to_delete)
             removed += len(to_delete)
     if removed:
-        repairs.append(f'Usunięto {removed} duplikatów zamówień')
+        repairs.append(f'Usunieto {removed} duplikatow zamowien')
 
-    # === 2. Przelicz stany magazynowe na podstawie sprzedaży ===
+    # === 2. Przelicz stany magazynowe na podstawie sprzedazy ===
     # Pobierz ile sztuk sprzedano per produkt
     sold = conn.execute('''
         SELECT produkt_id, SUM(ilosc) as sold_qty
@@ -744,7 +782,7 @@ def api_sprzedaze_repair():
         pid = s['produkt_id']
         sold_qty = s['sold_qty'] or 0
 
-        # Pobierz oryginalną ilość z palety (zakupowa)
+        # Pobierz oryginalna ilosc z palety (zakupowa)
         prod = conn.execute('''
             SELECT p.id, p.ilosc, p.nazwa, p.status,
                    COALESCE(p.ilosc + (SELECT COALESCE(SUM(sp.ilosc), 0)
@@ -756,28 +794,28 @@ def api_sprzedaze_repair():
         if not prod:
             continue
 
-        # Oblicz prawidłową ilość
-        correct_qty = max(0, prod['ilosc'])  # Obecna ilość
+        # Oblicz prawidlowa ilosc
+        correct_qty = max(0, prod['ilosc'])  # Obecna ilosc
 
-        # Jeśli status nie jest 'sprzedany' ale ilosc powinna być 0
+        # Jesli status nie jest 'sprzedany' ale ilosc powinna byc 0
         if sold_qty > 0 and prod['ilosc'] > 0:
-            # Sprawdź czy stock został odjęty - porównaj oczekiwane
-            pass  # Stock jest już odjęty przez sync
+            # Sprawdz czy stock zostal odjety - porownaj oczekiwane
+            pass  # Stock jest juz odjety przez sync
 
-        # Jeśli ilosc=0 ale status nie jest 'sprzedany'
+        # Jesli ilosc=0 ale status nie jest 'sprzedany'
         if prod['ilosc'] <= 0 and prod['status'] not in ('sprzedany', 'wysłane'):
             conn.execute("UPDATE produkty SET status = 'sprzedany' WHERE id = ?", (pid,))
             stock_fixed += 1
 
-        # Jeśli ilosc > 0 ale status jest 'sprzedany' (błędnie oznaczony)
+        # Jesli ilosc > 0 ale status jest 'sprzedany' (blednie oznaczony)
         if prod['ilosc'] > 0 and prod['status'] == 'sprzedany':
             conn.execute("UPDATE produkty SET status = 'wystawiony' WHERE id = ?", (pid,))
             stock_fixed += 1
 
     if stock_fixed:
-        repairs.append(f'Naprawiono status {stock_fixed} produktów')
+        repairs.append(f'Naprawiono status {stock_fixed} produktow')
 
-    # === 3. Linkowanie przez tabelę oferty (allegro_id → produkt_id) ===
+    # === 3. Linkowanie przez tabele oferty (allegro_id -> produkt_id) ===
     linked = 0
     unlinked = conn.execute('''
         SELECT s.id, s.allegro_order_id
@@ -791,7 +829,7 @@ def api_sprzedaze_repair():
             conn.execute('UPDATE sprzedaze SET produkt_id = ? WHERE id = ?', (oferta['produkt_id'], sale['id']))
             linked += 1
     if linked:
-        repairs.append(f'Połączono {linked} sprzedaży przez oferty')
+        repairs.append(f'Polaczono {linked} sprzedazy przez oferty')
 
     conn.commit()
 
@@ -804,15 +842,204 @@ def api_sprzedaze_repair():
     })
 
 
+DOPASUJ_TEMPLATE = '''
+{% extends "base.html" %}
+{% block page_title %}Dopasuj sprzedaze{% endblock %}
+{% block content %}
+
+<!-- KPI karty -->
+<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpi-card" style="--card-color:var(--red)">
+        <div class="kpi-icon" style="background:var(--red-soft)">🔴</div>
+        <div class="kpi-value" style="color:var(--red)">{{ total_unmatched }}</div>
+        <div class="kpi-label">Niedopasowanych</div>
+    </div>
+    <div class="kpi-card orange">
+        <div class="kpi-icon">📁</div>
+        <div class="kpi-value">{{ grupy_count }}</div>
+        <div class="kpi-label">Grup</div>
+    </div>
+    <div class="kpi-card green">
+        <div class="kpi-icon">💡</div>
+        <div class="kpi-value">{{ suggestions_count }}</div>
+        <div class="kpi-label">Sugestii</div>
+    </div>
+</div>
+
+{% if suggestions_count > 0 %}
+<button onclick="autoMatchAll()" class="btn btn-success" style="margin-bottom:20px">
+    ⚡ Auto-dopasuj {{ suggestions_count }} sugestii
+</button>
+{% endif %}
+
+<div id="grupy-lista">
+{% for g in grupy %}
+<div class="grupa-item card" style="padding:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="flex:1;min-width:0">
+            <div class="list-item-title">{{ g.nazwa_display }}</div>
+            <div class="list-item-meta">{{ g.cnt }} szt. | {{ g.wartosc_fmt }} zl</div>
+        </div>
+        <button onclick="openSearch('{{ g.nazwa_js }}', '{{ g.sale_ids }}')" class="btn btn-primary btn-sm">
+            🔍 Szukaj
+        </button>
+    </div>
+    {% if g.suggestion %}
+    <div style="background:var(--green-soft);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:8px;margin-top:8px;display:flex;align-items:center;gap:8px">
+        <img src="{{ g.suggestion.zdjecie_url }}" style="width:32px;height:32px;object-fit:contain;background:#fff;border-radius:6px" onerror="this.style.display='none'">
+        <div style="flex:1;min-width:0">
+            <div style="font-size:0.75rem;color:var(--green)">Sugestia:</div>
+            <div style="font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g.suggestion.nazwa }}</div>
+        </div>
+        <button onclick="dopasuj('{{ g.sale_ids }}', {{ g.suggestion.id }}, this)" class="btn btn-success btn-sm">
+            &#10003; Dopasuj
+        </button>
+    </div>
+    {% endif %}
+</div>
+{% endfor %}
+</div>
+
+<a href="/sprzedaze" class="back">&#8592; Powrot do sprzedazy</a>
+
+<!-- Modal szukania -->
+<div id="searchModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:1000;padding:15px;overflow-y:auto">
+    <div class="card" style="max-width:500px;margin:40px auto;padding:20px">
+        <div class="card-header">
+            <div class="card-title" style="color:var(--blue)">🔍 Szukaj produktu</div>
+            <button onclick="closeModal()" style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer">&times;</button>
+        </div>
+        <div id="modalInfo" style="background:var(--bg);padding:10px;border-radius:8px;margin-bottom:12px;font-size:0.8rem;color:var(--text-secondary)"></div>
+        <input id="szukajInput" type="text" placeholder="Szukaj po nazwie, EAN, ASIN..."
+               class="form-control" style="margin-bottom:12px"
+               oninput="debounceSearch(this.value)">
+        <div id="wyniki" style="max-height:50vh;overflow-y:auto"></div>
+    </div>
+</div>
+
+<script>
+let _saleIds = '';
+let _timer = null;
+
+function openSearch(nazwa, saleIds) {
+    _saleIds = saleIds;
+    document.getElementById('searchModal').style.display = 'block';
+    document.getElementById('modalInfo').textContent = nazwa.substring(0, 50) + ' (' + saleIds.split(',').length + ' szt.)';
+    const inp = document.getElementById('szukajInput');
+    inp.value = nazwa.substring(0, 30);
+    inp.focus();
+    debounceSearch(inp.value);
+}
+
+function closeModal() {
+    document.getElementById('searchModal').style.display = 'none';
+    _saleIds = '';
+}
+
+function debounceSearch(q) {
+    clearTimeout(_timer);
+    _timer = setTimeout(() => doSearch(q), 300);
+}
+
+function doSearch(q) {
+    if (q.length < 2) { document.getElementById('wyniki').innerHTML = ''; return; }
+    document.getElementById('wyniki').innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted)">Szukam...</div>';
+
+    fetch('/api/sprzedaze/szukaj-produkt?q=' + encodeURIComponent(q))
+        .then(r => r.json())
+        .then(data => {
+            let h = '';
+            if (data.results && data.results.length > 0) {
+                data.results.forEach(p => {
+                    h += '<div class="list-item" style="cursor:pointer;margin-bottom:8px" '
+                       + 'onclick="dopasuj(\'' + _saleIds + '\', ' + p.id + ', this)">'
+                       + '<img src="' + (p.zdjecie_url||'') + '" style="width:40px;height:40px;object-fit:contain;background:#fff;border-radius:8px;margin-right:10px" onerror="this.style.display=\'none\'">'
+                       + '<div class="list-item-info">'
+                       + '<div class="list-item-title">' + p.nazwa.substring(0,55) + '</div>'
+                       + '<div class="list-item-meta">' + (p.ean||'') + ' ' + (p.asin||'') + ' | ' + p.paleta + '</div>'
+                       + '</div>'
+                       + '<div class="list-item-right"><div class="list-item-value">' + (p.cena_allegro||0) + ' zl</div></div>'
+                       + '</div>';
+                });
+            } else {
+                h = '<div style="text-align:center;padding:20px;color:var(--text-muted)">Brak wynikow</div>';
+            }
+            document.getElementById('wyniki').innerHTML = h;
+        });
+}
+
+function dopasuj(saleIds, produktId, btn) {
+    const cnt = saleIds.split(',').length;
+    if (!confirm('Dopasowac ' + cnt + ' sprzedazy do tego produktu?')) return;
+
+    btn.style.opacity = '0.5';
+    btn.style.pointerEvents = 'none';
+
+    const fd = new FormData();
+    fd.append('sale_ids', saleIds);
+    fd.append('produkt_id', produktId);
+
+    fetch('/api/sprzedaze/dopasuj', {method: 'POST', body: fd})
+        .then(r => r.json())
+        .then(d => {
+            if (d.ok) {
+                closeModal();
+                // Ukryj dopasowana grupe
+                const items = document.querySelectorAll('.grupa-item');
+                items.forEach(el => {
+                    if (el.innerHTML.includes(saleIds.split(',')[0])) {
+                        el.style.opacity = '0.2';
+                        el.style.pointerEvents = 'none';
+                        el.innerHTML = '<div style="text-align:center;color:var(--green);padding:10px">&#10003; Dopasowano ' + d.matched + ' szt. &rarr; ' + d.product_name.substring(0,40) + '</div>';
+                    }
+                });
+            } else {
+                alert('Blad: ' + d.msg);
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+            }
+        })
+        .catch(() => {
+            alert('Blad polaczenia');
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+        });
+}
+
+function autoMatchAll() {
+    if (!confirm('Auto-dopasowac wszystkie sugestie?\nTo polaczy sprzedaze z zasugerowanymi produktami.')) return;
+
+    fetch('/api/sprzedaze/auto-dopasuj', {method: 'POST'})
+        .then(r => r.json())
+        .then(d => {
+            if (d.ok) {
+                alert('Dopasowano ' + d.matched + ' grup (' + d.total_sales + ' sprzedazy)');
+                location.reload();
+            } else {
+                alert('Blad: ' + d.msg);
+            }
+        });
+}
+
+// Zamknij modal kliknieciem w tlo
+document.getElementById('searchModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+</script>
+
+{% endblock %}
+'''
+
+
 @sprzedaze_bp.route('/sprzedaze/dopasuj')
 def sprzedaze_dopasuj():
-    """Strona dopasowywania sprzedaży do produktów"""
+    """Strona dopasowywania sprzedazy do produktow"""
     from modules.database import get_db
     import html as html_mod
 
     conn = get_db()
 
-    # Grupuj niedopasowane sprzedaże po nazwie
+    # Grupuj niedopasowane sprzedaze po nazwie
     grupy = conn.execute('''
         SELECT
             COALESCE(NULLIF(TRIM(nazwa), ''), '(brak nazwy)') as grupa_nazwa,
@@ -836,7 +1063,7 @@ def sprzedaze_dopasuj():
     for g in grupy:
         if g['grupa_nazwa'] == '(brak nazwy)':
             continue
-        # Multi-word matching: weź 3-4 kluczowe słowa i szukaj AND
+        # Multi-word matching: wez 3-4 kluczowe slowa i szukaj AND
         words = [w for w in g['grupa_nazwa'].split() if len(w) >= 3][:4]
         if len(words) < 2:
             continue
@@ -853,8 +1080,8 @@ def sprzedaze_dopasuj():
         if match:
             suggestions[g['grupa_nazwa']] = dict(match)
 
-    # Buduj HTML grup
-    groups_html = ''
+    # Przygotuj dane grup dla szablonu
+    grupy_data = []
     for g in grupy:
         nazwa = html_mod.escape(g['grupa_nazwa'])
         nazwa_js = html_mod.escape(g['grupa_nazwa']).replace("'", "\\'").replace('"', '&quot;')
@@ -863,213 +1090,38 @@ def sprzedaze_dopasuj():
         wartosc = g['wartosc'] or 0
 
         sug = suggestions.get(g['grupa_nazwa'])
-        sug_html = ''
+        sug_data = None
         if sug:
-            sug_nazwa = html_mod.escape(sug['nazwa'][:55])
-            sug_img = html_mod.escape(sug.get('zdjecie_url') or '')
-            sug_html = f'''
-            <div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:8px;margin-top:8px;display:flex;align-items:center;gap:8px">
-                <img src="{sug_img}" style="width:32px;height:32px;object-fit:contain;background:#fff;border-radius:6px" onerror="this.style.display='none'">
-                <div style="flex:1;min-width:0">
-                    <div style="font-size:0.75rem;color:#22c55e">Sugestia:</div>
-                    <div style="font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{sug_nazwa}</div>
-                </div>
-                <button onclick="dopasuj('{sale_ids}', {sug['id']}, this)"
-                        style="padding:6px 12px;background:#22c55e;border:none;border-radius:6px;color:#fff;font-size:0.75rem;cursor:pointer;white-space:nowrap">
-                    ✓ Dopasuj
-                </button>
-            </div>'''
+            sug_data = {
+                'id': sug['id'],
+                'nazwa': html_mod.escape(sug['nazwa'][:55]),
+                'zdjecie_url': html_mod.escape(sug.get('zdjecie_url') or ''),
+            }
 
-        groups_html += f'''
-        <div class="grupa-item" style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:14px;margin-bottom:10px">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-                <div style="flex:1;min-width:0">
-                    <div style="font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff">{nazwa[:60]}</div>
-                    <div style="font-size:0.75rem;color:#64748b">{cnt} szt. | {wartosc:.0f} zł</div>
-                </div>
-                <button onclick="openSearch('{nazwa_js}', '{sale_ids}')"
-                        style="padding:8px 14px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-size:0.8rem;cursor:pointer;white-space:nowrap">
-                    🔍 Szukaj
-                </button>
-            </div>
-            {sug_html}
-        </div>
-        '''
+        grupy_data.append({
+            'nazwa_display': nazwa[:60],
+            'nazwa_js': nazwa_js,
+            'sale_ids': sale_ids,
+            'cnt': cnt,
+            'wartosc_fmt': f"{wartosc:.0f}",
+            'suggestion': sug_data,
+        })
 
-    # Przycisk auto-dopasuj (tylko gdy są sugestie)
-    auto_btn_html = ''
-    if suggestions:
-        auto_btn_html = f'''
-        <button onclick="autoMatchAll()"
-                style="width:100%;padding:14px;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;border-radius:10px;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;margin-bottom:20px">
-            ⚡ Auto-dopasuj {len(suggestions)} sugestii
-        </button>
-        '''
-
-    CSS = _get_css()
-    page_html = CSS + f'''
-    <div style="max-width:700px;margin:0 auto;padding:15px 15px 100px">
-        <div style="text-align:center;margin-bottom:20px">
-            <h1 style="color:#fff;font-size:1.5rem;margin:0">🔗 DOPASUJ SPRZEDAŻE</h1>
-            <small style="color:#64748b">Połącz niedopasowane sprzedaże z produktami</small>
-        </div>
-
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
-            <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;text-align:center">
-                <div style="font-size:1.5rem;font-weight:700;color:#ef4444">{total_unmatched}</div>
-                <div style="font-size:0.7rem;color:#64748b">NIEDOPASOWANYCH</div>
-            </div>
-            <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;text-align:center">
-                <div style="font-size:1.5rem;font-weight:700;color:#f59e0b">{len(grupy)}</div>
-                <div style="font-size:0.7rem;color:#64748b">GRUP</div>
-            </div>
-            <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;text-align:center">
-                <div style="font-size:1.5rem;font-weight:700;color:#22c55e">{len(suggestions)}</div>
-                <div style="font-size:0.7rem;color:#64748b">SUGESTII</div>
-            </div>
-        </div>
-
-        {auto_btn_html}
-
-        <div id="grupy-lista">
-        {groups_html}
-        </div>
-
-        <a href="/sprzedaze" style="display:block;text-align:center;color:#64748b;text-decoration:none;margin-top:20px;padding:15px">← Powrót do sprzedaży</a>
-    </div>
-
-    <!-- Modal szukania -->
-    <div id="searchModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:1000;padding:15px;overflow-y:auto">
-        <div style="max-width:500px;margin:40px auto;background:#12121a;border:1px solid #1e1e2e;border-radius:16px;padding:20px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-                <h3 style="color:#3b82f6;margin:0;font-size:1.1rem">🔍 Szukaj produktu</h3>
-                <button onclick="closeModal()" style="background:none;border:none;color:#64748b;font-size:1.5rem;cursor:pointer">&times;</button>
-            </div>
-            <div id="modalInfo" style="background:#0a0a0f;padding:10px;border-radius:8px;margin-bottom:12px;font-size:0.8rem;color:#94a3b8"></div>
-            <input id="szukajInput" type="text" placeholder="Szukaj po nazwie, EAN, ASIN..."
-                   style="width:100%;padding:12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:10px;color:#fff;font-size:1rem;margin-bottom:12px;box-sizing:border-box"
-                   oninput="debounceSearch(this.value)">
-            <div id="wyniki" style="max-height:50vh;overflow-y:auto"></div>
-        </div>
-    </div>
-
-    <script>
-    let _saleIds = '';
-    let _timer = null;
-
-    function openSearch(nazwa, saleIds) {{
-        _saleIds = saleIds;
-        document.getElementById('searchModal').style.display = 'block';
-        document.getElementById('modalInfo').textContent = nazwa.substring(0, 50) + ' (' + saleIds.split(',').length + ' szt.)';
-        const inp = document.getElementById('szukajInput');
-        inp.value = nazwa.substring(0, 30);
-        inp.focus();
-        debounceSearch(inp.value);
-    }}
-
-    function closeModal() {{
-        document.getElementById('searchModal').style.display = 'none';
-        _saleIds = '';
-    }}
-
-    function debounceSearch(q) {{
-        clearTimeout(_timer);
-        _timer = setTimeout(() => doSearch(q), 300);
-    }}
-
-    function doSearch(q) {{
-        if (q.length < 2) {{ document.getElementById('wyniki').innerHTML = ''; return; }}
-        document.getElementById('wyniki').innerHTML = '<div style="text-align:center;padding:20px;color:#64748b">Szukam...</div>';
-
-        fetch('/api/sprzedaze/szukaj-produkt?q=' + encodeURIComponent(q))
-            .then(r => r.json())
-            .then(data => {{
-                let h = '';
-                if (data.results && data.results.length > 0) {{
-                    data.results.forEach(p => {{
-                        h += '<div style="display:flex;align-items:center;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer" '
-                           + 'onclick="dopasuj(\\'' + _saleIds + '\\', ' + p.id + ', this)">'
-                           + '<img src="' + (p.zdjecie_url||'') + '" style="width:40px;height:40px;object-fit:contain;background:#fff;border-radius:8px;margin-right:10px" onerror="this.style.display=\\'none\\'">'
-                           + '<div style="flex:1;min-width:0">'
-                           + '<div style="font-size:0.85rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + p.nazwa.substring(0,55) + '</div>'
-                           + '<div style="font-size:0.7rem;color:#64748b">' + (p.ean||'') + ' ' + (p.asin||'') + ' | ' + p.paleta + '</div>'
-                           + '</div>'
-                           + '<div style="color:#22c55e;font-weight:700;margin-left:10px;font-size:0.85rem">' + (p.cena_allegro||0) + ' zl</div>'
-                           + '</div>';
-                    }});
-                }} else {{
-                    h = '<div style="text-align:center;padding:20px;color:#64748b">Brak wyników</div>';
-                }}
-                document.getElementById('wyniki').innerHTML = h;
-            }});
-    }}
-
-    function dopasuj(saleIds, produktId, btn) {{
-        const cnt = saleIds.split(',').length;
-        if (!confirm('Dopasować ' + cnt + ' sprzedaży do tego produktu?')) return;
-
-        btn.style.opacity = '0.5';
-        btn.style.pointerEvents = 'none';
-
-        const fd = new FormData();
-        fd.append('sale_ids', saleIds);
-        fd.append('produkt_id', produktId);
-
-        fetch('/api/sprzedaze/dopasuj', {{method: 'POST', body: fd}})
-            .then(r => r.json())
-            .then(d => {{
-                if (d.ok) {{
-                    closeModal();
-                    // Ukryj dopasowaną grupę
-                    const items = document.querySelectorAll('.grupa-item');
-                    items.forEach(el => {{
-                        if (el.innerHTML.includes(saleIds.split(',')[0])) {{
-                            el.style.opacity = '0.2';
-                            el.style.pointerEvents = 'none';
-                            el.innerHTML = '<div style="text-align:center;color:#22c55e;padding:10px">✓ Dopasowano ' + d.matched + ' szt. → ' + d.product_name.substring(0,40) + '</div>';
-                        }}
-                    }});
-                }} else {{
-                    alert('Błąd: ' + d.msg);
-                    btn.style.opacity = '1';
-                    btn.style.pointerEvents = 'auto';
-                }}
-            }})
-            .catch(() => {{
-                alert('Błąd połączenia');
-                btn.style.opacity = '1';
-                btn.style.pointerEvents = 'auto';
-            }});
-    }}
-
-    function autoMatchAll() {{
-        if (!confirm('Auto-dopasować wszystkie sugestie?\\nTo połączy sprzedaże z zasugerowanymi produktami.')) return;
-
-        fetch('/api/sprzedaze/auto-dopasuj', {{method: 'POST'}})
-            .then(r => r.json())
-            .then(d => {{
-                if (d.ok) {{
-                    alert('Dopasowano ' + d.matched + ' grup (' + d.total_sales + ' sprzedaży)');
-                    location.reload();
-                }} else {{
-                    alert('Błąd: ' + d.msg);
-                }}
-            }});
-    }}
-
-    // Zamknij modal kliknięciem w tło
-    document.getElementById('searchModal').addEventListener('click', function(e) {{
-        if (e.target === this) closeModal();
-    }});
-    </script>
-    '''
-
-    return page_html
+    return render_template_string(
+        DOPASUJ_TEMPLATE,
+        total_unmatched=total_unmatched,
+        grupy_count=len(grupy),
+        suggestions_count=len(suggestions),
+        grupy=grupy_data,
+        version=current_app.config.get('VERSION', ''),
+        brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
+        current_user=session.get('user'),
+    )
 
 
 @sprzedaze_bp.route('/sprzedaze/korekta-ilosci', methods=['POST'])
 def sprzedaze_korekta_ilosci():
-    """Ręczna korekta ilości produktu - jeśli ilość rośnie, cofa też sprzedaże"""
+    """Reczna korekta ilosci produktu - jesli ilosc rosnie, cofa tez sprzedaze"""
     from modules.database import get_db
 
     produkt_id = request.form.get('produkt_id', type=int)
@@ -1088,9 +1140,9 @@ def sprzedaze_korekta_ilosci():
 
     stara_ilosc = produkt['ilosc'] or 0
 
-    # Jeśli ilość rośnie (korekta w górę) → cofnij sprzedaże i odlicz przychód
+    # Jesli ilosc rosnie (korekta w gore) -> cofnij sprzedaze i odlicz przychod
     if nowa_ilosc > stara_ilosc:
-        # Oznacz aktywne sprzedaże jako zwrot
+        # Oznacz aktywne sprzedaze jako zwrot
         sprzedaze = conn.execute('''
             SELECT id, ilosc FROM sprzedaze
             WHERE produkt_id = ? AND COALESCE(status,'') NOT IN ('zwrot','anulowane','anulowana')
@@ -1098,13 +1150,13 @@ def sprzedaze_korekta_ilosci():
         for s in sprzedaze:
             conn.execute('UPDATE sprzedaze SET status = ? WHERE id = ?', ('zwrot', s['id']))
 
-        # Wyczyść offline stats
+        # Wyczysc offline stats
         try:
             conn.execute('UPDATE produkty SET sprzedano_offline = 0, przychod_offline = 0 WHERE id = ?', (produkt_id,))
         except:
             pass
 
-    # Określ nowy status
+    # Okresl nowy status
     if nowa_ilosc == 0:
         nowy_status = 'sprzedany'
     elif produkt['status'] == 'sprzedany':
@@ -1112,20 +1164,20 @@ def sprzedaze_korekta_ilosci():
     else:
         nowy_status = produkt['status']
 
-    # Zaktualizuj ilość i status
+    # Zaktualizuj ilosc i status
     conn.execute('UPDATE produkty SET ilosc = ?, status = ? WHERE id = ?',
                  (nowa_ilosc, nowy_status, produkt_id))
 
     conn.commit()
 
-    flash(f'✅ Zaktualizowano ilość: {stara_ilosc} → {nowa_ilosc} szt.', 'success')
+    flash(f'Zaktualizowano ilosc: {stara_ilosc} -> {nowa_ilosc} szt.', 'success')
     return redirect(request.referrer or f'/palety/{produkt["paleta_id"]}')
 
 
 @sprzedaze_bp.route('/produkt/oznacz-sprzedany/<int:produkt_id>', methods=['POST'])
 def produkt_oznacz_sprzedany(produkt_id):
-    """Oznacza produkt jako sprzedany BEZ dodawania do statystyk sprzedaży Allegro.
-    Zmienia ilość produktu, zapisuje ile sprzedano offline i za ile.
+    """Oznacza produkt jako sprzedany BEZ dodawania do statystyk sprzedazy Allegro.
+    Zmienia ilosc produktu, zapisuje ile sprzedano offline i za ile.
     """
     from modules.database import get_db
 
@@ -1137,19 +1189,19 @@ def produkt_oznacz_sprzedany(produkt_id):
         cena_sprzedazy = 0.0
     przychod = ilosc_sprzedana * cena_sprzedazy
 
-    print(f"📦 OFFLINE SALE: produkt={produkt_id}, ilosc={ilosc_sprzedana}, cena={cena_sprzedazy}, przychod={przychod}")
+    print(f"OFFLINE SALE: produkt={produkt_id}, ilosc={ilosc_sprzedana}, cena={cena_sprzedazy}, przychod={przychod}")
     print(f"   args: {dict(request.args)}")
 
     conn = get_db()
 
-    # Dodaj kolumny OSOBNO jeśli nie istnieją
+    # Dodaj kolumny OSOBNO jesli nie istnieja
     try:
         conn.execute("SELECT sprzedano_offline FROM produkty LIMIT 1")
     except:
         try:
             conn.execute("ALTER TABLE produkty ADD COLUMN sprzedano_offline INTEGER DEFAULT 0")
             conn.commit()
-            print("✅ Dodano kolumnę sprzedano_offline")
+            print("Dodano kolumne sprzedano_offline")
         except:
             pass
 
@@ -1159,21 +1211,21 @@ def produkt_oznacz_sprzedany(produkt_id):
         try:
             conn.execute("ALTER TABLE produkty ADD COLUMN przychod_offline REAL DEFAULT 0")
             conn.commit()
-            print("✅ Dodano kolumnę przychod_offline")
+            print("Dodano kolumne przychod_offline")
         except Exception as e:
-            print(f"❌ Błąd dodawania przychod_offline: {e}")
+            print(f"Blad dodawania przychod_offline: {e}")
 
     # Pobierz produkt
     produkt = conn.execute('SELECT * FROM produkty WHERE id = ?', (produkt_id,)).fetchone()
     if not produkt:
-        flash('❌ Nie znaleziono produktu', 'error')
+        flash('Nie znaleziono produktu', 'error')
         return redirect(request.referrer or '/')
 
     stara_ilosc = produkt['ilosc'] or 1
     nowa_ilosc = max(0, stara_ilosc - ilosc_sprzedana)
     nowy_status = 'sprzedany' if nowa_ilosc == 0 else produkt['status']
 
-    # Pobierz obecne wartości offline (mogą być NULL lub nie istnieć)
+    # Pobierz obecne wartosci offline (moga byc NULL lub nie istniec)
     try:
         obecne_szt_offline = produkt['sprzedano_offline'] or 0
     except:
@@ -1184,28 +1236,28 @@ def produkt_oznacz_sprzedany(produkt_id):
         obecny_przychod_offline = 0
 
     nowe_szt_offline = obecne_szt_offline + ilosc_sprzedana
-    nowy_przychod_offline = obecny_przychod_offline  # NIE aktualizuj - przychód trafia do sprzedaze
+    nowy_przychod_offline = obecny_przychod_offline  # NIE aktualizuj - przychod trafia do sprzedaze
 
-    print(f"📊 UPDATE: ilosc={nowa_ilosc}, status={nowy_status}, offline_szt={nowe_szt_offline}, offline_przychod={nowy_przychod_offline}")
+    print(f"UPDATE: ilosc={nowa_ilosc}, status={nowy_status}, offline_szt={nowe_szt_offline}, offline_przychod={nowy_przychod_offline}")
 
-    # Aktualizuj produkt - ilość, status, sprzedano_offline i przychod_offline
+    # Aktualizuj produkt - ilosc, status, sprzedano_offline i przychod_offline
     try:
         conn.execute('''
             UPDATE produkty
             SET ilosc = ?, status = ?, sprzedano_offline = ?, przychod_offline = ?
             WHERE id = ?
         ''', (nowa_ilosc, nowy_status, nowe_szt_offline, nowy_przychod_offline, produkt_id))
-        print("✅ UPDATE wykonany z offline")
+        print("UPDATE wykonany z offline")
     except Exception as e:
-        print(f"❌ UPDATE failed, fallback: {e}")
-        # Fallback - tylko ilość i status
+        print(f"UPDATE failed, fallback: {e}")
+        # Fallback - tylko ilosc i status
         conn.execute('''
             UPDATE produkty
             SET ilosc = ?, status = ?
             WHERE id = ?
         ''', (nowa_ilosc, nowy_status, produkt_id))
 
-    # KLUCZOWE: Dodaj rekord do sprzedaze żeby trafił do statystyk/dashboardu
+    # KLUCZOWE: Dodaj rekord do sprzedaze zeby trafil do statystyk/dashboardu
     from datetime import datetime as _dt
     try:
         nazwa_prod = produkt['nazwa'] or f'Produkt #{produkt_id}'
@@ -1215,28 +1267,28 @@ def produkt_oznacz_sprzedany(produkt_id):
             VALUES (?, ?, ?, ?, 'sprzedana', ?, 'offline', 1)
         ''', (produkt_id, nazwa_prod, cena_sprzedazy, ilosc_sprzedana,
               _dt.now().strftime('%Y-%m-%dT%H:%M:%S')))
-        print(f"✅ Dodano do sprzedaze: {nazwa_prod} × {ilosc_sprzedana} szt. × {cena_sprzedazy:.0f} zł = {przychod:.0f} zł")
+        print(f"Dodano do sprzedaze: {nazwa_prod} x {ilosc_sprzedana} szt. x {cena_sprzedazy:.0f} zl = {przychod:.0f} zl")
     except Exception as e:
-        print(f"❌ INSERT sprzedaze failed: {e}")
+        print(f"INSERT sprzedaze failed: {e}")
 
     try:
         conn.commit()
     except Exception as e:
-        print(f"❌ COMMIT failed: {e}")
-        flash(f'❌ Błąd zapisu do bazy: {e}', 'error')
+        print(f"COMMIT failed: {e}")
+        flash(f'Blad zapisu do bazy: {e}', 'error')
         return redirect(request.referrer or f'/palety/{produkt["paleta_id"]}')
 
     if przychod > 0:
-        flash(f'✅ Sprzedano offline: {ilosc_sprzedana} szt. × {cena_sprzedazy:.0f} zł = {przychod:.0f} zł', 'success')
+        flash(f'Sprzedano offline: {ilosc_sprzedana} szt. x {cena_sprzedazy:.0f} zl = {przychod:.0f} zl', 'success')
     else:
-        flash(f'✅ Sprzedano {ilosc_sprzedana} szt. (zostało: {nowa_ilosc})', 'success')
+        flash(f'Sprzedano {ilosc_sprzedana} szt. (zostalo: {nowa_ilosc})', 'success')
 
     return redirect(request.referrer or f'/palety/{produkt["paleta_id"]}')
 
 
 @sprzedaze_bp.route('/produkt/cofnij-offline/<int:produkt_id>', methods=['POST'])
 def produkt_cofnij_offline(produkt_id):
-    """Cofa sprzedaż offline - zwraca produkty do magazynu."""
+    """Cofa sprzedaz offline - zwraca produkty do magazynu."""
     from modules.database import get_db
 
     ilosc_do_cofniecia = request.form.get('ilosc', 1, type=int)
@@ -1246,10 +1298,10 @@ def produkt_cofnij_offline(produkt_id):
     # Pobierz produkt
     produkt = conn.execute('SELECT * FROM produkty WHERE id = ?', (produkt_id,)).fetchone()
     if not produkt:
-        flash('❌ Nie znaleziono produktu', 'error')
+        flash('Nie znaleziono produktu', 'error')
         return redirect(request.referrer or '/')
 
-    # Pobierz obecne wartości offline
+    # Pobierz obecne wartosci offline
     try:
         obecne_szt_offline = produkt['sprzedano_offline'] or 0
     except:
@@ -1260,27 +1312,27 @@ def produkt_cofnij_offline(produkt_id):
         obecny_przychod_offline = 0
 
     if ilosc_do_cofniecia > obecne_szt_offline:
-        flash(f'❌ Nie można cofnąć {ilosc_do_cofniecia} szt. - sprzedano tylko {obecne_szt_offline} szt. offline', 'error')
+        flash(f'Nie mozna cofnac {ilosc_do_cofniecia} szt. - sprzedano tylko {obecne_szt_offline} szt. offline', 'error')
         return redirect(request.referrer or '/')
 
-    # Oblicz nowe wartości
+    # Oblicz nowe wartosci
     nowe_szt_offline = obecne_szt_offline - ilosc_do_cofniecia
 
-    # Proporcjonalnie zmniejsz przychód
+    # Proporcjonalnie zmniejsz przychod
     if obecne_szt_offline > 0:
         przychod_za_szt = obecny_przychod_offline / obecne_szt_offline
         nowy_przychod_offline = nowe_szt_offline * przychod_za_szt
     else:
         nowy_przychod_offline = 0
 
-    # Zwiększ ilość w magazynie
+    # Zwieksz ilosc w magazynie
     stara_ilosc = produkt['ilosc'] or 0
     nowa_ilosc = stara_ilosc + ilosc_do_cofniecia
 
-    # Zmień status jeśli produkt miał status 'sprzedany' i był sprzedany tylko offline
+    # Zmien status jesli produkt mial status 'sprzedany' i byl sprzedany tylko offline
     nowy_status = produkt['status']
     if produkt['status'] == 'sprzedany' and nowe_szt_offline == 0:
-        nowy_status = 'wystawiony'  # Wróć do wystawionego
+        nowy_status = 'wystawiony'  # Wroc do wystawionego
 
     # Aktualizuj produkt
     try:
@@ -1296,8 +1348,8 @@ def produkt_cofnij_offline(produkt_id):
             WHERE id = ?
         ''', (nowa_ilosc, nowy_status, produkt_id))
 
-    # FIX: Aktualizuj też rekordy w tabeli sprzedaze (kupujacy='offline')
-    # Bez tego cofnięcie pojedyncze nie działało — rekord sprzedaży dalej liczony w statystykach
+    # FIX: Aktualizuj tez rekordy w tabeli sprzedaze (kupujacy='offline')
+    # Bez tego cofniecie pojedyncze nie dzialalo — rekord sprzedazy dalej liczony w statystykach
     pozostalo_do_cofniecia = ilosc_do_cofniecia
     sprzedaze_offline = conn.execute('''
         SELECT id, ilosc FROM sprzedaze
@@ -1311,56 +1363,56 @@ def produkt_cofnij_offline(produkt_id):
             break
         s_ilosc = s['ilosc'] or 0
         if pozostalo_do_cofniecia >= s_ilosc:
-            # Cofamy cały rekord
+            # Cofamy caly rekord
             conn.execute('UPDATE sprzedaze SET status = ? WHERE id = ?', ('zwrot', s['id']))
             pozostalo_do_cofniecia -= s_ilosc
         else:
-            # Cofamy częściowo — zmniejsz ilość w rekordzie
+            # Cofamy czesciowo — zmniejsz ilosc w rekordzie
             conn.execute('UPDATE sprzedaze SET ilosc = ? WHERE id = ?', (s_ilosc - pozostalo_do_cofniecia, s['id']))
             pozostalo_do_cofniecia = 0
 
     conn.commit()
 
-    flash(f'🔄 Cofnięto {ilosc_do_cofniecia} szt. ze sprzedaży offline (pozostało offline: {nowe_szt_offline})', 'success')
+    flash(f'Cofnieto {ilosc_do_cofniecia} szt. ze sprzedazy offline (pozostalo offline: {nowe_szt_offline})', 'success')
 
     return redirect(request.referrer or f'/palety/{produkt["paleta_id"]}')
 
 
 @sprzedaze_bp.route('/produkt/cofnij-sprzedaz/<int:produkt_id>', methods=['POST'])
 def produkt_cofnij_sprzedaz(produkt_id):
-    """Cofa sprzedaż produktu - przywraca ilość i oznacza sprzedaże jako zwrot"""
+    """Cofa sprzedaz produktu - przywraca ilosc i oznacza sprzedaze jako zwrot"""
     from modules.database import get_db
 
     conn = get_db()
 
     produkt = conn.execute('SELECT * FROM produkty WHERE id = ?', (produkt_id,)).fetchone()
     if not produkt:
-        flash('❌ Nie znaleziono produktu', 'error')
+        flash('Nie znaleziono produktu', 'error')
         return redirect(request.referrer or '/')
 
-    # Znajdź aktywne sprzedaże dla tego produktu
+    # Znajdz aktywne sprzedaze dla tego produktu
     sprzedaze = conn.execute('''
         SELECT id, ilosc, cena FROM sprzedaze
         WHERE produkt_id = ? AND COALESCE(status,'') NOT IN ('zwrot','anulowane','anulowana')
     ''', (produkt_id,)).fetchall()
 
     if not sprzedaze:
-        flash('ℹ️ Brak sprzedaży do cofnięcia dla tego produktu', 'info')
+        flash('Brak sprzedazy do cofniecia dla tego produktu', 'info')
         return redirect(request.referrer or '/')
 
-    # Oblicz sumę cofanych sztuk
+    # Oblicz sume cofanych sztuk
     cofniete_szt = sum(s['ilosc'] for s in sprzedaze)
 
-    # Oznacz sprzedaże jako zwrot
+    # Oznacz sprzedaze jako zwrot
     for s in sprzedaze:
         conn.execute('UPDATE sprzedaze SET status = ? WHERE id = ?', ('zwrot', s['id']))
 
-    # Przywróć ilość produktu i zmień status na magazyn
+    # Przywroc ilosc produktu i zmien status na magazyn
     nowa_ilosc = (produkt['ilosc'] or 0) + cofniete_szt
     conn.execute('UPDATE produkty SET ilosc = ?, status = ? WHERE id = ?',
                  (nowa_ilosc, 'magazyn', produkt_id))
 
-    # Wyczyść offline stats jeśli istnieją
+    # Wyczysc offline stats jesli istnieja
     try:
         conn.execute('UPDATE produkty SET sprzedano_offline = 0, przychod_offline = 0 WHERE id = ?', (produkt_id,))
     except:
@@ -1368,5 +1420,5 @@ def produkt_cofnij_sprzedaz(produkt_id):
 
     conn.commit()
 
-    flash(f'🔄 Cofnięto sprzedaż: {cofniete_szt} szt. wraca do magazynu', 'success')
+    flash(f'Cofnieto sprzedaz: {cofniete_szt} szt. wraca do magazynu', 'success')
     return redirect(request.referrer or f'/palety/{produkt["paleta_id"]}')

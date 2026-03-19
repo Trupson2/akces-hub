@@ -33,6 +33,10 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('/static/sw.js
 [data-theme="dark"]{--bg:#06060f;--bg-card:#0f0f1e;--bg-sidebar:#0a0a16;--border:#1a1a2e;--border-light:#151528;--text:#e2e8f0;--text-secondary:#94a3b8;--text-muted:#64748b;--accent-soft:rgba(99,102,241,0.12);--green-soft:rgba(34,197,94,0.12);--yellow-soft:rgba(234,179,8,0.12);--red-soft:rgba(239,68,68,0.12);--blue-soft:rgba(59,130,246,0.12);--shadow:0 1px 3px rgba(0,0,0,0.2);--shadow-md:0 4px 12px rgba(0,0,0,0.25);--shadow-lg:0 8px 24px rgba(0,0,0,0.3)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,system-ui,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+body::before{content:'';position:fixed;top:-20%;left:-10%;width:50%;height:60%;background:radial-gradient(ellipse at center,rgba(99,102,241,0.08) 0%,transparent 70%);pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:50%;height:60%;background:radial-gradient(ellipse at center,rgba(139,92,246,0.06) 0%,transparent 70%);pointer-events:none;z-index:0}
+[data-theme="light"] body::before{background:radial-gradient(ellipse at center,rgba(99,102,241,0.04) 0%,transparent 70%)}
+[data-theme="light"] body::after{background:radial-gradient(ellipse at center,rgba(139,92,246,0.03) 0%,transparent 70%)}
 button,a,.btn,.card,[onclick]{-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;outline:none}
 body.kiosk,body.kiosk *{cursor:none!important}
 
@@ -53,9 +57,16 @@ body.kiosk,body.kiosk *{cursor:none!important}
 .sidebar-bottom{padding:12px;border-top:1px solid rgba(255,255,255,0.08)}
 .sidebar-bottom a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;text-decoration:none;color:rgba(255,255,255,0.4);font-size:0.78rem;transition:all 0.2s}
 .sidebar-bottom a:hover{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.8)}
+.sidebar-account{display:flex;align-items:center;gap:10px;padding:12px;margin-top:4px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);cursor:default}
+.sidebar-avatar{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--green));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:0.85rem;flex-shrink:0}
+.sidebar-account-info{flex:1;min-width:0}
+.sidebar-account-name{font-size:0.8rem;color:rgba(255,255,255,0.85);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-account-role{font-size:0.62rem;color:rgba(255,255,255,0.35);margin-top:1px}
+.sidebar-logout{color:rgba(239,68,68,0.5)!important;font-size:1rem;padding:4px!important;transition:all 0.2s;flex-shrink:0;text-decoration:none}
+.sidebar-logout:hover{color:rgba(239,68,68,0.9)!important;background:transparent!important}
 
 /* Main */
-.main-content{margin-left:250px;flex:1;min-height:100vh}
+.main-content{margin-left:250px;flex:1;min-height:100vh;position:relative;z-index:1}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;background:var(--bg-card);border-bottom:1px solid var(--border);box-shadow:var(--shadow);position:sticky;top:0;z-index:50}
 .topbar-title{font-size:1.05rem;font-weight:700;color:var(--text)}
 .topbar-actions{display:flex;gap:10px;align-items:center}
@@ -347,7 +358,14 @@ if(localStorage.getItem('kiosk_mode')==='1'){
         <a href="/narzedzia"><span class="sl-icon">⚡</span>Narzedzia</a>
         <a href="/ustawienia"><span class="sl-icon">⚙️</span>Ustawienia</a>
         {% if current_user %}
-        <a href="/auth/logout" style="color:rgba(239,68,68,0.6)"><span class="sl-icon">🚪</span>Wyloguj ({{ current_user }})</a>
+        <div class="sidebar-account">
+            <div class="sidebar-avatar">{{ current_user[0]|upper }}</div>
+            <div class="sidebar-account-info">
+                <div class="sidebar-account-name">{{ current_user }}</div>
+                <div class="sidebar-account-role">Ustawienia konta</div>
+            </div>
+            <a href="/auth/logout" class="sidebar-logout" title="Wyloguj">🚪</a>
+        </div>
         {% endif %}
     </div>
 </aside>
