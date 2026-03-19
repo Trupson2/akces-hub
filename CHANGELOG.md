@@ -1,5 +1,31 @@
 # Historia zmian — Akces Hub
 
+## 19.03.2026
+
+### Profit Analyzer
+- [NOWE] Dashboard analizy zysków w stylu vSprint (/analytics/profit)
+- [NOWE] Rachunek wyników (waterfall) — przychód, COGS, prowizja, koszty op., zysk netto
+- [NOWE] Tabela P&L miesięczna z sumami
+- [NOWE] Rentowność per paleta i per dostawca z ROI
+- [NOWE] Wykres sprzedaży dziennej (30 dni) + zysku miesięcznego
+- [NOWE] Top kategorii produktów (90 dni)
+- [NOWE] Filtr czasowy: 3 / 6 / 12 miesięcy
+
+### Generator licencji
+- [NOWE] Panel generowania licencji w GUI (/narzedzia/licencje)
+- [NOWE] Obsługa: dni, miesiące, bezterminowo
+- [NOWE] Lista wygenerowanych licencji z kopiowaniem/pobieraniem JSON
+- [FIX] Zabezpieczenie — dostęp tylko dla roli admin
+
+### SSE & Dedup (fixes z 18-19.03)
+- [FIX] SSE keepalive dla generowania opisu, GPSR i create_offer
+- [FIX] SSE keepalive podczas uploadu zdjęć
+- [FIX] Dedup: zaostrzenie matchowania nazw (ignore generic words, 50% threshold)
+- [FIX] Dedup: EAN skip gdy produkt ma ASIN
+- [FIX] Dedup: weryfikacja nazwy w kroku produkt_id + auto-odlinkowanie błędnych powiązań
+
+---
+
 ## 18.03.2026
 
 ### Etykiety i druk

@@ -1909,7 +1909,9 @@ a{color:#6366f1;text-decoration:none}
 # ============================================================
 @app.route('/narzedzia/licencje', methods=['GET', 'POST'])
 def narzedzia_licencje():
-    """Panel generowania licencji dla klientów"""
+    """Panel generowania licencji dla klientów — TYLKO ADMIN"""
+    if session.get('rola') != 'admin':
+        return 'Brak uprawnień', 403
     from modules.license import generate_license_key
     from datetime import datetime
     import json as _json
@@ -2186,7 +2188,7 @@ def changelog():
 @app.route('/narzedzia')
 def narzedzia():
     return render_template('narzedzia.html',
-        version=VERSION,
+        version=VERSION, is_admin=(session.get('rola') == 'admin'),
         active_narzedzia='active', active_home='', active_magazyn='',
         active_paletomat='', active_allegro='', active_monitor='')
 

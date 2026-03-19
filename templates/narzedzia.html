@@ -55,11 +55,13 @@
 
 
 
+{% if is_admin %}
 <a href="/narzedzia/licencje" class="tool-card" style="display:block;margin-bottom:12px">
     <div class="tool-icon">🔑</div>
     <div class="tool-name">Generator licencji</div>
     <div class="tool-desc">Generuj klucze licencyjne dla klientów</div>
 </a>
+{% endif %}
 
 <a href="/support/zgloszenie" class="tool-card" style="display:block;margin-bottom:12px">
     <div class="tool-icon">🆘</div>
