@@ -40,7 +40,7 @@ PUBLIC_PREFIXES = [
     '/license',  # Aktywacja licencji — dostępna bez logowania
     '/setup',    # Setup wizard — dostępny bez logowania
     '/auth/login',        # Logowanie
-    '/auth/first_setup',  # Tworzenie pierwszego konta
+    '/auth/setup',        # Tworzenie pierwszego konta
     '/auth/logout',       # Wylogowanie
 ]
 
@@ -769,8 +769,8 @@ def setup_auth(app):
         has_users = _has_any_users()
         print(f"🔐 AUTH: path={request.path} endpoint={request.endpoint} has_users={has_users} session_user={session.get('user_id')}", flush=True)
         if not has_users:
-            if request.path != '/auth/first_setup':
-                return redirect('/auth/first_setup')
+            if request.path != '/auth/setup':
+                return redirect('/auth/setup')
             return None
 
         # Swiezy system — przekieruj admina na kreator konfiguracji
