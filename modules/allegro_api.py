@@ -3351,71 +3351,25 @@ def sync_returns(month=None):
 
 
 # ============================================================
-# SZABLONY I ROUTES (bez zmian)
+# RENDER HELPER (extends base.html sidebar layout)
 # ============================================================
 
-CSS = '''<style>
-*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui;background:#0a0a0f;color:#fff;min-height:100vh;padding-bottom:80px}
-.c{max-width:500px;margin:0 auto;padding:15px}
-.hdr{text-align:center;padding:15px 0;border-bottom:1px solid #1e1e2e;margin-bottom:15px}
-.hdr h1{font-size:1.3rem;color:#ff5a00}
-.hdr small{color:#64748b;font-size:0.75rem}
-.status{display:flex;align-items:center;justify-content:space-between;padding:15px;border-radius:12px;margin-bottom:15px}
-.status.ok{background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3)}
-.status.warn{background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.3)}
-.status.off{background:#12121a;border:1px solid #1e1e2e}
-.status-dot{width:10px;height:10px;border-radius:50%;margin-right:10px}
-.status-dot.ok{background:#22c55e}
-.status-dot.warn{background:#eab308}
-.status-dot.off{background:#64748b}
-.btn{display:block;width:100%;padding:12px;font-size:0.95rem;font-weight:600;text-align:center;text-decoration:none;border:none;border-radius:10px;cursor:pointer;margin-bottom:8px;color:#fff}
-.btn-allegro{background:#ff5a00}
-.btn-ok{background:#22c55e}
-.btn-2{background:#1e1e2e;border:1px solid #2a2a3a}
-.card{background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;margin-bottom:15px}
-.card-title{font-weight:600;margin-bottom:12px;color:#ff5a00}
-.form-group{margin-bottom:12px}
-.form-group label{display:block;font-size:0.75rem;color:#94a3b8;margin-bottom:4px}
-.form-ctrl{width:100%;padding:10px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#fff;font-size:0.9rem}
-.alert{padding:12px;border-radius:10px;margin-bottom:12px;text-align:center;font-size:0.9rem}
-.alert-ok{background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:#22c55e}
-.alert-err{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#ef4444}
-.item{display:flex;align-items:center;background:#0a0a0f;border-radius:10px;padding:12px;margin-bottom:8px;text-decoration:none;color:#fff}
-.item-info{flex:1;min-width:0}
-.item-name{font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.item-meta{font-size:0.7rem;color:#64748b}
-.item-right{text-align:right;margin-left:8px}
-.item-price{font-weight:700;color:#22c55e}
-.user-card{display:flex;align-items:center;gap:12px;padding:15px;background:#12121a;border-radius:12px;margin-bottom:15px}
-.user-avatar{width:50px;height:50px;background:#ff5a00;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem}
-.toggle{display:flex;align-items:center;justify-content:space-between;padding:12px;background:#0a0a0f;border-radius:10px;margin-bottom:8px}
-.back{display:block;text-align:center;color:#64748b;text-decoration:none;padding:12px;font-size:0.85rem}
-.nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a0f;border-top:1px solid #1e1e2e;padding:8px 0}
-.nav-inner{max-width:1600px;margin:0 auto;display:flex;justify-content:space-around}
-.nav a{text-align:center;color:#64748b;text-decoration:none;padding:6px 6px;border-radius:8px;font-size:0.7rem}
-.nav a:hover,.nav a.on{color:#ff5a00;background:rgba(255,90,0,0.1)}
-.nav-icon{font-size:1.4rem}
-</style>'''
-
-BASE = '''<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Allegro - Akces Hub</title>''' + CSS + '''<link rel="stylesheet" href="/static/kiosk.css"></head><body>
-<script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
-<div class="c">{content}</div>
-<nav class="nav"><div class="nav-inner">
-<a href="/"><div class="nav-icon">🏠</div>Home</a>
-<a href="/magazyn"><div class="nav-icon">📦</div>Magazyn</a>
-<a href="/paletomat"><div class="nav-icon">🤖</div>Paletomat</a>
-<a href="/allegro" class="on"><div class="nav-icon">🛒</div>Allegro</a>
-<a href="/monitor"><div class="nav-icon">🔍</div>Monitor</a>
-<a href="/narzedzia"><div class="nav-icon">⚡</div>Narzędzia</a>
-</div></nav></body></html>'''
-
-def render(content):
-    return BASE.replace('{content}', content)
+def render(content, page_title='Allegro'):
+    from flask import render_template_string, session, current_app
+    template = """{% extends "base.html" %}
+{% block page_title %}""" + page_title + """{% endblock %}
+{% block content %}
+{{ content|safe }}
+{% endblock %}"""
+    return render_template_string(template,
+        content=content,
+        version=current_app.config.get('VERSION',''),
+        brand_name=current_app.config.get('BRAND_NAME','Akces Hub'),
+        current_user=session.get('user'))
 
 
 # ============================================================
-# ROUTES (skrócone - bez zmian)
+# ROUTES
 # ============================================================
 
 @allegro_bp.route('/')
@@ -3423,79 +3377,141 @@ def index():
     config = get_allegro_config()
     configured = is_configured()
     authenticated = is_authenticated()
-    
+
     if authenticated:
-        status_class, status_text, status_dot = 'ok', 'Połączono z Allegro', 'ok'
+        status_cls = 'online'
+        status_text = 'Polaczono z Allegro'
+        dot_cls = 'online'
     elif configured:
-        status_class, status_text, status_dot = 'warn', 'Wymaga autoryzacji', 'warn'
+        status_cls = ''
+        status_text = 'Wymaga autoryzacji'
+        dot_cls = ''
     else:
-        status_class, status_text, status_dot = 'off', 'Nie skonfigurowano', 'off'
-    
+        status_cls = ''
+        status_text = 'Nie skonfigurowano'
+        dot_cls = ''
+
+    # KPI stats
+    conn = get_db()
+    from datetime import date as _date
+    _today = _date.today().strftime('%Y-%m-%d')
+    _month = _date.today().strftime('%Y-%m')
+    cnt_orders_today = conn.execute("SELECT COUNT(*) as c FROM sprzedaze WHERE date(data_sprzedazy)=?", (_today,)).fetchone()['c']
+    cnt_orders_month = conn.execute("SELECT COUNT(*) as c FROM sprzedaze WHERE strftime('%Y-%m',data_sprzedazy)=?", (_month,)).fetchone()['c']
+    cnt_offers = conn.execute("SELECT COUNT(*) as c FROM oferty WHERE status IN ('aktywna','active','ACTIVE','wystawiona')").fetchone()['c']
+    revenue_month = conn.execute("SELECT COALESCE(SUM(cena*ilosc),0) as s FROM sprzedaze WHERE strftime('%Y-%m',data_sprzedazy)=? AND status!='zwrot'", (_month,)).fetchone()['s']
+
     html = f'''
-    <div class="hdr"><h1>🛒 ALLEGRO</h1><small>Integracja API v2.0</small></div>
-    <div class="status {status_class}">
-        <div style="display:flex;align-items:center"><div class="status-dot {status_dot}"></div><span>{status_text}</span></div>
+    <!-- Status bar -->
+    <div class="status-bar {'online' if authenticated else ''}">
+        <div class="status-indicator">
+            <div class="status-dot {'online' if authenticated else ''}"></div>
+            <span style="font-weight:600;font-size:0.9rem">{status_text}</span>
+        </div>
+        <span class="badge {'badge-success' if authenticated else 'badge-warning'}">{'Aktywne' if authenticated else 'Offline'}</span>
+    </div>
+
+    <!-- KPI -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi-card purple">
+            <div class="kpi-icon" style="background:var(--accent-soft)">📦</div>
+            <div class="kpi-value">{cnt_orders_today}</div>
+            <div class="kpi-label">Dzisiaj</div>
+        </div>
+        <div class="kpi-card green">
+            <div class="kpi-icon" style="background:var(--green-soft)">📋</div>
+            <div class="kpi-value">{cnt_orders_month}</div>
+            <div class="kpi-label">Ten miesiac</div>
+        </div>
+        <div class="kpi-card blue">
+            <div class="kpi-icon" style="background:var(--blue-soft)">📝</div>
+            <div class="kpi-value">{cnt_offers}</div>
+            <div class="kpi-label">Aktywne oferty</div>
+        </div>
+        <div class="kpi-card orange">
+            <div class="kpi-icon" style="background:var(--yellow-soft)">💰</div>
+            <div class="kpi-value">{revenue_month:,.0f} zl</div>
+            <div class="kpi-label">Przychod</div>
+        </div>
     </div>
     '''
-    
+
     if authenticated:
         user_info, _ = get_user_info()
         if user_info:
             html += f'''
-            <div class="user-card">
-                <div class="user-avatar">👤</div>
-                <div><h3 style="font-size:1rem">{user_info.get('login', 'Użytkownik')}</h3><p style="font-size:0.8rem;color:#64748b">Zalogowano</p></div>
+            <div class="card" style="margin-bottom:20px">
+                <div style="display:flex;align-items:center;gap:14px">
+                    <div style="width:48px;height:48px;background:linear-gradient(135deg,#ff5a00,#ff8c42);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#fff">👤</div>
+                    <div>
+                        <div style="font-weight:700;font-size:1rem">{user_info.get('login', 'Uzytkownik')}</div>
+                        <div style="font-size:0.78rem;color:var(--text-muted)">Zalogowano do Allegro</div>
+                    </div>
+                </div>
             </div>
             '''
+
         html += '''
-        <a href="/allegro/zamowienia" class="btn btn-allegro">📦 ZAMÓWIENIA</a>
-        <a href="/allegro/oferty" class="btn btn-2">📝 MOJE OFERTY</a>
-        <a href="/allegro/sync" class="btn btn-2">🔄 SYNCHRONIZUJ</a>
-        <a href="/allegro/config" class="btn btn-2">⚙️ USTAWIENIA</a>
-        <a href="/allegro/backfill-link" class="btn btn-2">🔗 POŁĄCZ SPRZEDAŻE</a>
+        <div class="section-title">Akcje</div>
+        <div class="quick-actions" style="margin-bottom:20px">
+            <a href="/allegro/zamowienia" class="qa-btn">
+                <div class="qa-icon" style="background:var(--green-soft)">📦</div>Zamowienia
+            </a>
+            <a href="/allegro/oferty" class="qa-btn">
+                <div class="qa-icon" style="background:var(--blue-soft)">📝</div>Moje oferty
+            </a>
+            <a href="/allegro/sync" class="qa-btn">
+                <div class="qa-icon" style="background:var(--accent-soft)">🔄</div>Synchronizuj
+            </a>
+            <a href="/allegro/config" class="qa-btn">
+                <div class="qa-icon" style="background:var(--yellow-soft)">⚙️</div>Ustawienia
+            </a>
+            <a href="/allegro/backfill-link" class="qa-btn">
+                <div class="qa-icon" style="background:var(--accent-soft)">🔗</div>Polacz sprzedaze
+            </a>
+        </div>
         '''
 
         # Status auto-sync
         autosync_on = get_config('allegro_autosync', 'true') == 'true'
         if autosync_on:
             html += '''
-            <div class="card" style="margin-top:15px;background:#0f3d0f;border:1px solid #22c55e">
-                <div style="display:flex;align-items:center;gap:10px">
-                    <div style="font-size:1.5rem">🔄</div>
+            <div class="card" style="border-color:rgba(34,197,94,0.3)">
+                <div style="display:flex;align-items:center;gap:12px">
+                    <div style="width:42px;height:42px;border-radius:12px;background:var(--green-soft);display:flex;align-items:center;justify-content:center;font-size:1.2rem">🔄</div>
                     <div>
-                        <div style="font-weight:600;color:#22c55e">Auto-sync aktywny</div>
-                        <div style="font-size:0.75rem;color:#86efac">Sprawdzam zamówienia co 5 min</div>
+                        <div style="font-weight:600;color:var(--green)">Auto-sync aktywny</div>
+                        <div style="font-size:0.75rem;color:var(--text-muted)">Sprawdzam zamowienia co 5 min</div>
                     </div>
                 </div>
             </div>
             '''
-        
+
         html += '''
-        <form action="/allegro/logout" method="POST" style="margin-top:20px">
-            <button type="submit" class="btn btn-2" style="color:#ef4444">🚪 WYLOGUJ</button>
+        <form action="/allegro/logout" method="POST" style="margin-top:16px">
+            <button type="submit" class="btn btn-secondary" style="color:var(--red)">🚪 Wyloguj</button>
         </form>
         '''
     elif configured:
         html += '''
         <div class="card">
-            <div class="card-title">🔐 Autoryzacja wymagana</div>
-            <p style="font-size:0.85rem;color:#94a3b8;margin-bottom:15px">Kliknij aby zalogować się do Allegro.</p>
-            <a href="/allegro/auth" class="btn btn-allegro">🔑 ZALOGUJ DO ALLEGRO</a>
+            <div class="card-header"><div class="card-title">🔐 Autoryzacja wymagana</div></div>
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:15px">Kliknij aby zalogowac sie do Allegro.</p>
+            <a href="/allegro/auth" class="btn btn-primary">🔑 Zaloguj do Allegro</a>
         </div>
-        <a href="/allegro/config" class="btn btn-2">⚙️ ZMIEŃ KONFIGURACJĘ</a>
+        <a href="/allegro/config" class="btn btn-secondary">⚙️ Zmien konfiguracje</a>
         '''
     else:
         html += '''
         <div class="card">
-            <div class="card-title">⚙️ Konfiguracja</div>
-            <p style="font-size:0.85rem;color:#94a3b8;margin-bottom:15px">
-                Potrzebujesz Client ID i Secret z <a href="https://apps.developer.allegro.pl" target="_blank" style="color:#ff5a00">apps.developer.allegro.pl</a>
+            <div class="card-header"><div class="card-title">⚙️ Konfiguracja</div></div>
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:15px">
+                Potrzebujesz Client ID i Secret z <a href="https://apps.developer.allegro.pl" target="_blank" style="color:var(--accent)">apps.developer.allegro.pl</a>
             </p>
-            <a href="/allegro/config" class="btn btn-allegro">⚙️ KONFIGURUJ</a>
+            <a href="/allegro/config" class="btn btn-primary">⚙️ Konfiguruj</a>
         </div>
         '''
-    
-    html += '<a href="/" class="back">← Powrót</a>'
+
     return render(html)
 
 
@@ -3512,7 +3528,7 @@ def config():
         set_config('allegro_postcode', request.form.get('postcode', '61-001').strip())
         set_config('allegro_autosync', 'true' if request.form.get('autosync') else 'false')
         return redirect('/allegro')
-    
+
     cfg = get_allegro_config()
     sandbox_checked = 'checked' if cfg['sandbox'] else ''
     autosync_checked = 'checked' if get_config('allegro_autosync', 'true') == 'true' else ''
@@ -3520,7 +3536,7 @@ def config():
     city = cfg.get('city', 'Poznan')
     province = cfg.get('province', 'WIELKOPOLSKIE')
     postcode = cfg.get('postcode', '61-001')
-    
+
     # Pobierz cenniki wysyłki jeśli zalogowany
     shipping_options = ''
     if is_authenticated():
@@ -3529,108 +3545,107 @@ def config():
             for rate in rates['shippingRates']:
                 selected = 'selected' if rate['id'] == shipping_id else ''
                 shipping_options += f'<option value="{rate["id"]}" {selected}>{rate["name"]}</option>'
-    
+
     html = f'''
-    <div class="hdr"><h1>⚙️ KONFIGURACJA</h1><small>Allegro API v2.0</small></div>
     <form method="POST">
     <div class="card">
-        <div class="card-title">🔑 Dane API</div>
+        <div class="card-header"><div class="card-title">🔑 Dane API</div></div>
         <div class="form-group">
             <label>Client ID</label>
-            <input type="text" name="client_id" class="form-ctrl" value="{cfg['client_id']}" placeholder="Twój Client ID">
+            <input type="text" name="client_id" class="form-control" value="{cfg['client_id']}" placeholder="Twoj Client ID">
         </div>
         <div class="form-group">
             <label>Client Secret</label>
-            <input type="password" name="client_secret" class="form-ctrl" value="{cfg['client_secret']}" placeholder="Twój Client Secret">
+            <input type="password" name="client_secret" class="form-control" value="{cfg['client_secret']}" placeholder="Twoj Client Secret">
         </div>
         <div class="form-group">
             <label>Redirect URI</label>
-            <input type="text" name="redirect_uri" class="form-ctrl" value="{cfg['redirect_uri']}">
+            <input type="text" name="redirect_uri" class="form-control" value="{cfg['redirect_uri']}">
         </div>
-        <div class="toggle">
+        <div class="toggle-row">
             <span>🧪 Tryb Sandbox</span>
             <input type="checkbox" name="sandbox" {sandbox_checked}>
         </div>
     </div>
-    
+
     <div class="card">
-        <div class="card-title">🔄 Auto-synchronizacja zamówień</div>
-        <div class="toggle">
+        <div class="card-header"><div class="card-title">🔄 Auto-synchronizacja zamowien</div></div>
+        <div class="toggle-row">
             <span>📱 Automatyczna synchronizacja co 5 min</span>
             <input type="checkbox" name="autosync" {autosync_checked}>
         </div>
-        <p style="font-size:0.75rem;color:#64748b;margin-top:10px">
-            Włączone: sprawdza nowe zamówienia co 5 minut i wysyła powiadomienia na Telegram
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:10px">
+            Wlaczone: sprawdza nowe zamowienia co 5 minut i wysyla powiadomienia na Telegram
         </p>
     </div>
-    
+
     <div class="card">
-        <div class="card-title">📦 Wysyłka i lokalizacja</div>
+        <div class="card-header"><div class="card-title">📦 Wysylka i lokalizacja</div></div>
         <div class="form-group">
-            <label>Cennik wysyłki</label>
-            {'<select name="shipping_id" class="form-ctrl"><option value="">-- Wybierz --</option>' + shipping_options + '</select>' if shipping_options else '<input type="text" name="shipping_id" class="form-ctrl" value="' + shipping_id + '" placeholder="ID cennika (zaloguj się aby pobrać listę)">'}
+            <label>Cennik wysylki</label>
+            {'<select name="shipping_id" class="form-control"><option value="">-- Wybierz --</option>' + shipping_options + '</select>' if shipping_options else '<input type="text" name="shipping_id" class="form-control" value="' + shipping_id + '" placeholder="ID cennika (zaloguj sie aby pobrac liste)">'}
         </div>
         <div class="form-group">
             <label>Miasto</label>
-            <input type="text" name="city" class="form-ctrl" value="{city}" placeholder="Poznań">
+            <input type="text" name="city" class="form-control" value="{city}" placeholder="Poznan">
         </div>
         <div class="form-group">
             <label>Kod pocztowy</label>
-            <input type="text" name="postcode" class="form-ctrl" value="{postcode}" placeholder="61-001">
+            <input type="text" name="postcode" class="form-control" value="{postcode}" placeholder="61-001">
         </div>
         <div class="form-group">
-            <label>Województwo</label>
-            <select name="province" class="form-ctrl">
-                <option value="DOLNOSLASKIE" {'selected' if province=='DOLNOSLASKIE' else ''}>Dolnośląskie</option>
+            <label>Wojewodztwo</label>
+            <select name="province" class="form-control">
+                <option value="DOLNOSLASKIE" {'selected' if province=='DOLNOSLASKIE' else ''}>Dolnoslaskie</option>
                 <option value="KUJAWSKO_POMORSKIE" {'selected' if province=='KUJAWSKO_POMORSKIE' else ''}>Kujawsko-Pomorskie</option>
                 <option value="LUBELSKIE" {'selected' if province=='LUBELSKIE' else ''}>Lubelskie</option>
                 <option value="LUBUSKIE" {'selected' if province=='LUBUSKIE' else ''}>Lubuskie</option>
-                <option value="LODZKIE" {'selected' if province=='LODZKIE' else ''}>Łódzkie</option>
-                <option value="MALOPOLSKIE" {'selected' if province=='MALOPOLSKIE' else ''}>Małopolskie</option>
+                <option value="LODZKIE" {'selected' if province=='LODZKIE' else ''}>Lodzkie</option>
+                <option value="MALOPOLSKIE" {'selected' if province=='MALOPOLSKIE' else ''}>Malopolskie</option>
                 <option value="MAZOWIECKIE" {'selected' if province=='MAZOWIECKIE' else ''}>Mazowieckie</option>
                 <option value="OPOLSKIE" {'selected' if province=='OPOLSKIE' else ''}>Opolskie</option>
                 <option value="PODKARPACKIE" {'selected' if province=='PODKARPACKIE' else ''}>Podkarpackie</option>
                 <option value="PODLASKIE" {'selected' if province=='PODLASKIE' else ''}>Podlaskie</option>
                 <option value="POMORSKIE" {'selected' if province=='POMORSKIE' else ''}>Pomorskie</option>
-                <option value="SLASKIE" {'selected' if province=='SLASKIE' else ''}>Śląskie</option>
-                <option value="SWIETOKRZYSKIE" {'selected' if province=='SWIETOKRZYSKIE' else ''}>Świętokrzyskie</option>
-                <option value="WARMINSKO_MAZURSKIE" {'selected' if province=='WARMINSKO_MAZURSKIE' else ''}>Warmińsko-Mazurskie</option>
+                <option value="SLASKIE" {'selected' if province=='SLASKIE' else ''}>Slaskie</option>
+                <option value="SWIETOKRZYSKIE" {'selected' if province=='SWIETOKRZYSKIE' else ''}>Swietokrzyskie</option>
+                <option value="WARMINSKO_MAZURSKIE" {'selected' if province=='WARMINSKO_MAZURSKIE' else ''}>Warminsko-Mazurskie</option>
                 <option value="WIELKOPOLSKIE" {'selected' if province=='WIELKOPOLSKIE' else ''}>Wielkopolskie</option>
                 <option value="ZACHODNIOPOMORSKIE" {'selected' if province=='ZACHODNIOPOMORSKIE' else ''}>Zachodniopomorskie</option>
             </select>
         </div>
     </div>
-    
-    <button type="submit" class="btn btn-allegro">💾 ZAPISZ</button>
+
+    <button type="submit" class="btn btn-primary">💾 Zapisz</button>
     </form>
     '''
-    
+
     # Sekcja zarządzania zdjęciami
     img_stats = get_images_stats()
     html += f'''
     <div class="card" style="margin-top:20px">
-        <div class="card-title">📷 Zarządzanie zdjęciami</div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:15px">
-            <div>
-                <div style="font-size:1.5rem;font-weight:700;color:#3b82f6">{img_stats['count']}</div>
-                <div style="font-size:0.75rem;color:#64748b">plików</div>
+        <div class="card-header"><div class="card-title">📷 Zarzadzanie zdjeciami</div></div>
+        <div class="stat-row" style="grid-template-columns:1fr 1fr;margin-bottom:14px">
+            <div class="stat-box">
+                <div class="stat-val blue">{img_stats['count']}</div>
+                <div class="stat-lbl">plikow</div>
             </div>
-            <div>
-                <div style="font-size:1.5rem;font-weight:700;color:#22c55e">{img_stats['size_mb']} MB</div>
-                <div style="font-size:0.75rem;color:#64748b">zajęte</div>
+            <div class="stat-box">
+                <div class="stat-val green">{img_stats['size_mb']} MB</div>
+                <div class="stat-lbl">zajete</div>
             </div>
         </div>
-        <a href="/allegro/cleanup-images" class="btn btn-2" onclick="return confirm('Usunąć zdjęcia starsze niż 7 dni?')">
-            🗑️ Wyczyść stare zdjęcia (7+ dni)
+        <a href="/allegro/cleanup-images" class="btn btn-secondary" onclick="return confirm('Usunac zdjecia starsze niz 7 dni?')">
+            🗑️ Wyczysc stare zdjecia (7+ dni)
         </a>
-        <div style="margin-top:8px;font-size:0.75rem;color:#64748b">
-            💡 Usuwa tylko zdjęcia starsze niż 7 dni. Dla pełnego czyszczenia użyj opcji na następnej stronie.
+        <div style="margin-top:8px;font-size:0.75rem;color:var(--text-muted)">
+            Usuwa tylko zdjecia starsze niz 7 dni.
         </div>
     </div>
-    
-    <a href="/allegro" class="back">← Powrót</a>
+
+    <a href="/allegro" class="back">← Powrot</a>
     '''
-    return render(html)
+    return render(html, 'Ustawienia Allegro')
 
 
 @allegro_bp.route('/cleanup-images')
@@ -3638,26 +3653,25 @@ def cleanup_images_route():
     """Czyści stare zdjęcia (7+ dni)"""
     deleted = cleanup_old_images(days=7)
     stats = get_images_stats()
-    
+
     return render(f'''
-        <div class="hdr"><h1>🗑️ CZYSZCZENIE</h1></div>
-        <div class="alert alert-ok">Usunięto {deleted} starych plików (7+ dni)!</div>
-        <div class="card" style="padding:20px;text-align:center">
-            <div style="font-size:2rem;font-weight:700;color:#22c55e">{stats['count']}</div>
-            <div style="color:#64748b">pozostałych plików ({stats['size_mb']} MB)</div>
+        <div class="alert alert-success">Usunieto {deleted} starych plikow (7+ dni)!</div>
+        <div class="card" style="text-align:center">
+            <div class="kpi-value" style="color:var(--green);margin-bottom:6px">{stats['count']}</div>
+            <div style="color:var(--text-muted)">pozostalych plikow ({stats['size_mb']} MB)</div>
         </div>
-        
-        <div class="alert alert-warn" style="margin-top:15px">
-            ⚠️ Jeśli masz wciąż dużo plików, użyj pełnego czyszczenia poniżej
+
+        <div class="alert alert-warning" style="margin-top:15px">
+            Jesli masz wciaz duzo plikow, uzyj pelnego czyszczenia ponizej
         </div>
-        
+
         <div style="display:flex;gap:10px;margin-top:15px">
-            <a href="/allegro/cleanup-images-all" class="btn btn-err" onclick="return confirm('⚠️ UWAGA!\\n\\nTo usunie WSZYSTKIE zdjęcia ({stats['count']} plików).\\n\\nOferty na Allegro NIE STRACĄ zdjęć (są już na serwerach Allegro).\\n\\nKontynuować?')" style="flex:1">
-                🗑️ Wyczyść WSZYSTKIE ({stats['count']})
+            <a href="/allegro/cleanup-images-all" class="btn btn-danger" onclick="return confirm('UWAGA!\\n\\nTo usunie WSZYSTKIE zdjecia ({stats['count']} plikow).\\n\\nOferty na Allegro NIE STRACA zdjec (sa juz na serwerach Allegro).\\n\\nKontynuowac?')" style="flex:1">
+                🗑️ Wyczysc WSZYSTKIE ({stats['count']})
             </a>
-            <a href="/allegro/config" class="btn btn-2" style="flex:1">← Powrót</a>
+            <a href="/allegro/config" class="btn btn-secondary" style="flex:1">← Powrot</a>
         </div>
-    ''')
+    ''', 'Czyszczenie zdjec')
 
 
 @allegro_bp.route('/cleanup-images-all')
@@ -3666,7 +3680,7 @@ def cleanup_images_all_route():
     try:
         ensure_images_dir()
         deleted = 0
-        
+
         # Usuń wszystkie pliki
         for filename in os.listdir(IMAGES_DIR):
             filepath = os.path.join(IMAGES_DIR, filename)
@@ -3675,32 +3689,30 @@ def cleanup_images_all_route():
                     os.remove(filepath)
                     deleted += 1
                 except Exception as e:
-                    print(f"Nie można usunąć {filename}: {e}")
-        
+                    print(f"Nie mozna usunac {filename}: {e}")
+
         stats = get_images_stats()
-        
+
         return render(f'''
-            <div class="hdr"><h1>✅ WYCZYSZCZONO</h1></div>
-            <div class="alert alert-ok">
-                <b>Usunięto {deleted} plików!</b><br>
-                <small>Folder images/ został wyczyszczony</small>
+            <div class="alert alert-success">
+                <b>Usunieto {deleted} plikow!</b><br>
+                <small>Folder images/ zostal wyczyszczony</small>
             </div>
-            <div class="card" style="padding:20px;text-align:center">
-                <div style="font-size:2rem;font-weight:700;color:#22c55e">{stats['count']}</div>
-                <div style="color:#64748b">pozostałych plików ({stats['size_mb']} MB)</div>
+            <div class="card" style="text-align:center">
+                <div class="kpi-value" style="color:var(--green);margin-bottom:6px">{stats['count']}</div>
+                <div style="color:var(--text-muted)">pozostalych plikow ({stats['size_mb']} MB)</div>
             </div>
-            <div class="alert alert-info" style="margin-top:15px">
-                ℹ️ Oferty na Allegro nie straciły zdjęć - są już na serwerach Allegro
+            <div class="alert" style="background:var(--blue-soft);border:1px solid rgba(59,130,246,0.15);color:var(--blue);margin-top:15px">
+                Oferty na Allegro nie stracily zdjec - sa juz na serwerach Allegro
             </div>
-            <a href="/allegro/config" class="btn btn-allegro">← Powrót do ustawień</a>
-        ''')
-        
+            <a href="/allegro/config" class="btn btn-primary">← Powrot do ustawien</a>
+        ''', 'Wyczyszczono')
+
     except Exception as e:
         return render(f'''
-            <div class="hdr"><h1>❌ BŁĄD</h1></div>
-            <div class="alert alert-err">Błąd czyszczenia: {str(e)}</div>
-            <a href="/allegro/config" class="btn btn-2">← Powrót</a>
-        ''')
+            <div class="alert alert-error">Blad czyszczenia: {str(e)}</div>
+            <a href="/allegro/config" class="btn btn-secondary">← Powrot</a>
+        ''', 'Blad')
 
 
 @allegro_bp.route('/auth')
@@ -3710,17 +3722,17 @@ def auth():
     Bardziej niezawodna metoda niż Device Flow
     """
     config = get_allegro_config()
-    
+
     if not config['client_id']:
         return redirect('/allegro/config')
-    
+
     auth_url, _, _ = get_api_urls()
-    
+
     # Generuj state dla bezpieczeństwa
     import secrets
     state = secrets.token_urlsafe(32)
     set_config('allegro_oauth_state', state)
-    
+
     # Buduj URL autoryzacji
     params = {
         'response_type': 'code',
@@ -3728,11 +3740,11 @@ def auth():
         'redirect_uri': config['redirect_uri'],
         'state': state,
     }
-    
+
     # Zbuduj pełny URL
     from urllib.parse import urlencode
     full_auth_url = f"{auth_url}?{urlencode(params)}"
-    
+
     # Przekieruj do Allegro
     return redirect(full_auth_url)
 
@@ -3742,10 +3754,9 @@ def check_auth():
     """Sprawdź status autoryzacji - przekieruj do auth jeśli brak tokenu"""
     if is_authenticated():
         return render('''
-            <div class="hdr"><h1>✅ POŁĄCZONO</h1></div>
-            <div class="alert alert-ok">Jesteś zalogowany do Allegro!</div>
-            <a href="/allegro" class="btn btn-allegro">🛒 PRZEJDŹ DO ALLEGRO</a>
-        ''')
+            <div class="alert alert-success">Jestes zalogowany do Allegro!</div>
+            <a href="/allegro" class="btn btn-primary">🛒 Przejdz do Allegro</a>
+        ''', 'Polaczono')
     else:
         return redirect('/allegro/auth')
 
@@ -3756,98 +3767,92 @@ def callback():
     Callback po autoryzacji Allegro - Authorization Code Flow
     """
     config = get_allegro_config()
-    
+
     # Pobierz parametry z URL
     code = request.args.get('code')
     state = request.args.get('state')
     error = request.args.get('error')
     error_description = request.args.get('error_description', '')
-    
+
     # Sprawdź błędy
     if error:
         return render(f'''
-            <div class="hdr"><h1>❌ BŁĄD AUTORYZACJI</h1></div>
-            <div class="alert alert-err">{error}: {error_description}</div>
-            <a href="/allegro" class="btn btn-allegro">← Powrót</a>
-        ''')
-    
+            <div class="alert alert-error">{error}: {error_description}</div>
+            <a href="/allegro" class="btn btn-primary">← Powrot</a>
+        ''', 'Blad autoryzacji')
+
     if not code:
         return render('''
-            <div class="hdr"><h1>❌ BŁĄD</h1></div>
-            <div class="alert alert-err">Brak kodu autoryzacji</div>
-            <a href="/allegro/auth" class="btn btn-allegro">🔑 Spróbuj ponownie</a>
-        ''')
-    
+            <div class="alert alert-error">Brak kodu autoryzacji</div>
+            <a href="/allegro/auth" class="btn btn-primary">🔑 Sprobuj ponownie</a>
+        ''', 'Blad')
+
     # Sprawdź state (ochrona przed CSRF)
     saved_state = get_config('allegro_oauth_state', '')
     if state and saved_state and state != saved_state:
         return render('''
-            <div class="hdr"><h1>❌ BŁĄD BEZPIECZEŃSTWA</h1></div>
-            <div class="alert alert-err">Nieprawidłowy state - możliwa próba ataku CSRF</div>
-            <a href="/allegro/auth" class="btn btn-allegro">🔑 Spróbuj ponownie</a>
-        ''')
-    
+            <div class="alert alert-error">Nieprawidlowy state - mozliwa proba ataku CSRF</div>
+            <a href="/allegro/auth" class="btn btn-primary">🔑 Sprobuj ponownie</a>
+        ''', 'Blad bezpieczenstwa')
+
     # Wymień kod na token
     _, token_url, _ = get_api_urls()
-    
+
     try:
         auth_string = f"{config['client_id']}:{config['client_secret']}"
         auth_bytes = base64.b64encode(auth_string.encode()).decode()
-        
+
         headers = {
             'Authorization': f'Basic {auth_bytes}',
             'Content-Type': 'application/x-www-form-urlencoded'
         }
-        
+
         data = {
             'grant_type': 'authorization_code',
             'code': code,
             'redirect_uri': config['redirect_uri']
         }
-        
+
         response = requests.post(token_url, headers=headers, data=data, timeout=30)
-        
+
         if response.status_code == 200:
             tokens = response.json()
-            
+
             # Zapisz tokeny
             set_config('allegro_access_token', tokens.get('access_token', ''))
             set_config('allegro_refresh_token', tokens.get('refresh_token', ''))
-            
+
             # Oblicz czas wygaśnięcia
             expires_in = tokens.get('expires_in', 43200)
             expires_at = datetime.now() + timedelta(seconds=expires_in - 300)
             set_config('allegro_token_expires', expires_at.isoformat())
-            
+
             # Wyczyść state
             set_config('allegro_oauth_state', '')
-            
+
             return render('''
-                <div class="hdr"><h1>✅ SUKCES!</h1></div>
-                <div class="alert alert-ok">Pomyślnie połączono z Allegro!</div>
-                <p style="color:#94a3b8;text-align:center;margin:15px 0">Teraz wybierz cennik wysyłki w ustawieniach.</p>
-                <a href="/allegro/config" class="btn btn-ok">⚙️ WYBIERZ CENNIK WYSYŁKI</a>
-                <a href="/allegro" class="btn btn-2">🛒 PRZEJDŹ DO ALLEGRO</a>
-            ''')
+                <div class="alert alert-success">Pomyslnie polaczono z Allegro!</div>
+                <p style="color:var(--text-muted);text-align:center;margin:15px 0">Teraz wybierz cennik wysylki w ustawieniach.</p>
+                <a href="/allegro/config" class="btn btn-success">⚙️ Wybierz cennik wysylki</a>
+                <a href="/allegro" class="btn btn-secondary">🛒 Przejdz do Allegro</a>
+            ''', 'Sukces')
         else:
             try:
                 err_data = response.json()
                 err_msg = err_data.get('error_description', err_data.get('error', response.text[:200]))
             except:
                 err_msg = response.text[:200]
-            
+
             return render(f'''
-                <div class="hdr"><h1>❌ BŁĄD TOKENU</h1></div>
-                <div class="alert alert-err">{err_msg}</div>
-                <a href="/allegro/auth" class="btn btn-allegro">🔑 Spróbuj ponownie</a>
-            ''')
-            
+                <div class="alert alert-error">{err_msg}</div>
+                <a href="/allegro/auth" class="btn btn-primary">🔑 Sprobuj ponownie</a>
+            ''', 'Blad tokenu')
+
     except Exception as e:
         return render(f'''
-            <div class="hdr"><h1>❌ BŁĄD</h1></div>
-            <div class="alert alert-err">{str(e)}</div>
-            <a href="/allegro" class="btn btn-allegro">← Powrót</a>
-        ''')
+            <div class="alert alert-error">{str(e)}</div>
+            <a href="/allegro" class="btn btn-primary">← Powrot</a>
+        ''', 'Blad')
 
 
 @allegro_bp.route('/logout', methods=['POST'])
@@ -3861,141 +3866,153 @@ def logout():
 @allegro_bp.route('/zamowienia')
 def zamowienia():
     orders_data, error = get_orders()
-    
-    html = '<div class="hdr"><h1>📦 ZAMÓWIENIA</h1></div>'
-    
+
+    html = ''
+
     if error:
-        html += f'<div class="alert alert-err">{error}</div>'
+        html += f'<div class="alert alert-error">{error}</div>'
     elif orders_data and 'checkoutForms' in orders_data:
         orders = orders_data['checkoutForms']
-        html += f'<div class="alert alert-ok">{len(orders)} zamówień</div>'
-        
+        html += f'<div class="alert alert-success" style="text-align:center">{len(orders)} zamowien do realizacji</div>'
+
         for order in orders:
-            buyer = order.get('buyer', {}).get('login', 'Kupujący')
+            buyer = order.get('buyer', {}).get('login', 'Kupujacy')
             total = sum(float(item['price']['amount']) * item['quantity'] for item in order.get('lineItems', []))
-            
+
             html += f'''
-            <a href="/allegro/zamowienie/{order['id']}" class="item">
-                <div class="item-info">
-                    <div class="item-name">👤 {buyer}</div>
-                    <div class="item-meta">{len(order.get('lineItems', []))} prod.</div>
+            <a href="/allegro/zamowienie/{order['id']}" class="list-item">
+                <div class="list-item-info">
+                    <div class="list-item-title">👤 {buyer}</div>
+                    <div class="list-item-meta">{len(order.get('lineItems', []))} prod.</div>
                 </div>
-                <div class="item-right"><div class="item-price">{total:.2f} zł</div></div>
+                <div class="list-item-right">
+                    <div class="list-item-value">{total:.2f} zl</div>
+                </div>
             </a>'''
     else:
-        html += '<div style="text-align:center;color:#64748b;padding:30px">Brak zamówień</div>'
-    
-    html += '<a href="/allegro" class="back">← Powrót</a>'
-    return render(html)
+        html += '<div style="text-align:center;color:var(--text-muted);padding:30px">Brak zamowien</div>'
+
+    html += '<a href="/allegro" class="back">← Powrot</a>'
+    return render(html, 'Zamowienia')
 
 
 @allegro_bp.route('/zamowienie/<order_id>')
 def zamowienie_detail(order_id):
     order_data, error = get_order_details(order_id)
-    
+
     if error:
-        return render(f'<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">{error}</div><a href="/allegro/zamowienia" class="btn btn-allegro">← Powrót</a>')
-    
+        return render(f'<div class="alert alert-error">{error}</div><a href="/allegro/zamowienia" class="btn btn-primary">← Powrot</a>', 'Blad')
+
     buyer = order_data.get('buyer', {})
     delivery = order_data.get('delivery', {}).get('address', {})
-    
+
     html = f'''
-    <div class="hdr"><h1>📦 ZAMÓWIENIE</h1><small>{order_id[:12]}...</small></div>
     <div class="card">
-        <div class="card-title">👤 Kupujący</div>
-        <div>{buyer.get('login', 'N/A')}</div>
+        <div class="card-header"><div class="card-title">👤 Kupujacy</div></div>
+        <div style="font-weight:600">{buyer.get('login', 'N/A')}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">ID: {order_id[:20]}...</div>
     </div>
     <div class="card">
-        <div class="card-title">📍 Adres</div>
-        <div style="font-size:0.85rem;color:#94a3b8">
+        <div class="card-header"><div class="card-title">📍 Adres dostawy</div></div>
+        <div style="font-size:0.85rem;color:var(--text-secondary)">
             {delivery.get('firstName', '')} {delivery.get('lastName', '')}<br>
             {delivery.get('street', '')}<br>
             {delivery.get('zipCode', '')} {delivery.get('city', '')}
         </div>
     </div>
+
+    <div class="section-title">Produkty</div>
     '''
-    
+
     total = 0
     for item in order_data.get('lineItems', []):
         price = float(item['price']['amount'])
         qty = item['quantity']
         total += price * qty
         html += f'''
-        <div class="item">
-            <div class="item-info">
-                <div class="item-name">{item.get('offer', {}).get('name', 'Produkt')[:30]}...</div>
-                <div class="item-meta">{qty} × {price:.2f} zł</div>
+        <div class="list-item">
+            <div class="list-item-info">
+                <div class="list-item-title">{item.get('offer', {{}}).get('name', 'Produkt')[:40]}</div>
+                <div class="list-item-meta">{qty} x {price:.2f} zl</div>
             </div>
-            <div class="item-right"><div class="item-price">{price*qty:.2f} zł</div></div>
+            <div class="list-item-right">
+                <div class="list-item-value">{price*qty:.2f} zl</div>
+            </div>
         </div>'''
-    
+
     html += f'''
-    <div class="card" style="background:#ff5a00;text-align:center">
-        <div style="font-size:0.8rem;opacity:0.8">SUMA</div>
-        <div style="font-size:1.5rem;font-weight:700">{total:.2f} zł</div>
+    <div class="card" style="background:linear-gradient(135deg,#ff5a00,#ff8c42);text-align:center;margin-top:16px">
+        <div style="font-size:0.8rem;opacity:0.8;color:#fff">SUMA</div>
+        <div style="font-size:1.5rem;font-weight:700;color:#fff">{total:.2f} zl</div>
     </div>
-    <a href="/allegro/zamowienia" class="back">← Powrót</a>
+    <a href="/allegro/zamowienia" class="back">← Powrot</a>
     '''
-    return render(html)
+    return render(html, 'Zamowienie')
 
 
 @allegro_bp.route('/oferty')
 def oferty():
     offers_data, error = get_my_offers()
-    
-    html = '<div class="hdr"><h1>📝 MOJE OFERTY</h1></div>'
-    
+
+    html = ''
+
     if error:
-        html += f'<div class="alert alert-err">{error}</div>'
+        html += f'<div class="alert alert-error">{error}</div>'
     elif offers_data and 'offers' in offers_data:
         offers = offers_data['offers']
-        html += f'<div class="alert alert-ok">{len(offers)} aktywnych ofert</div>'
-        
+        html += f'<div class="alert alert-success" style="text-align:center">{len(offers)} aktywnych ofert</div>'
+
         for offer in offers:
             selling_mode = offer.get('sellingMode') or {}
             price_obj = selling_mode.get('price') or {}
             price = price_obj.get('amount', '0') if isinstance(price_obj, dict) else '0'
             stock = (offer.get('stock') or {}).get('available', 0)
-            
+            pub_status = (offer.get('publication') or {}).get('status', 'INACTIVE')
+
+            badge_cls = 'badge-success' if pub_status == 'ACTIVE' else 'badge-warning'
+            badge_txt = 'Aktywna' if pub_status == 'ACTIVE' else 'Szkic'
+
             html += f'''
-            <div class="item">
-                <div class="item-info">
-                    <div class="item-name">{offer.get('name', 'Oferta')[:30]}...</div>
-                    <div class="item-meta">Stan: {stock} szt</div>
+            <div class="list-item">
+                <div class="list-item-info">
+                    <div class="list-item-title">{offer.get('name', 'Oferta')[:45]}</div>
+                    <div class="list-item-meta">{stock} szt &middot; <span class="badge {badge_cls}">{badge_txt}</span></div>
                 </div>
-                <div class="item-right"><div class="item-price">{float(price):.2f} zł</div></div>
+                <div class="list-item-right">
+                    <div class="list-item-value">{float(price):.2f} zl</div>
+                </div>
             </div>'''
     else:
-        html += '<div style="text-align:center;color:#64748b;padding:30px">Brak ofert</div>'
-    
-    html += '<a href="/allegro" class="back">← Powrót</a>'
-    return render(html)
+        html += '<div style="text-align:center;color:var(--text-muted);padding:30px">Brak ofert</div>'
+
+    html += '<a href="/allegro" class="back">← Powrot</a>'
+    return render(html, 'Moje oferty')
 
 
 @allegro_bp.route('/sync')
 def sync():
     from datetime import date
     today = date.today().strftime('%d.%m.%Y')
-    
+
     synced, error = sync_orders(today_only=True)
-    
+
     if error:
-        html = f'<div class="hdr"><h1>🔄 SYNC</h1></div><div class="alert alert-err">{error}</div>'
+        html = f'<div class="alert alert-error">{error}</div>'
     elif synced > 0:
-        html = f'''<div class="hdr"><h1>🔄 SYNC</h1></div>
-            <div class="alert alert-ok">
-                ✅ Zsynchronizowano <b>{synced}</b> nowych zamówień z {today}<br>
-                📱 Powiadomienia wysłane na Telegram
+        html = f'''
+            <div class="alert alert-success" style="text-align:center">
+                Zsynchronizowano <b>{synced}</b> nowych zamowien z {today}<br>
+                <small>Powiadomienia wyslane na Telegram</small>
             </div>'''
     else:
-        html = f'''<div class="hdr"><h1>🔄 SYNC</h1></div>
-            <div class="alert" style="background:#1a1a2e">
-                ℹ️ Brak nowych zamówień z {today}<br>
-                <small style="color:#64748b">Wszystkie zamówienia są już zsynchronizowane</small>
+        html = f'''
+            <div class="alert" style="background:var(--bg);border:1px solid var(--border);color:var(--text-secondary);text-align:center">
+                Brak nowych zamowien z {today}<br>
+                <small style="color:var(--text-muted)">Wszystkie zamowienia sa juz zsynchronizowane</small>
             </div>'''
-    
-    html += '<a href="/allegro/zamowienia" class="btn btn-allegro">📦 ZAMÓWIENIA</a><a href="/allegro" class="back">← Powrót</a>'
-    return render(html)
+
+    html += '<a href="/allegro/zamowienia" class="btn btn-primary" style="margin-top:16px">📦 Zamowienia</a><a href="/allegro" class="back">← Powrot</a>'
+    return render(html, 'Synchronizacja')
 
 
 
@@ -4004,13 +4021,13 @@ def sync_oferty_daty():
     """Synchronizuje daty wystawienia ofert z Allegro API i przekierowuje z informacją."""
     from flask import redirect, flash
     if not is_authenticated():
-        flash('❌ Nie zalogowany do Allegro', 'error')
+        flash('Nie zalogowany do Allegro', 'error')
         return redirect('/analityka/czas-sprzedazy')
     stats = sync_offers_status()
     if 'error' in stats:
-        flash(f'❌ Błąd: {stats["error"]}', 'error')
+        flash(f'Blad: {stats["error"]}', 'error')
     else:
-        flash(f'✅ Daty wystawienia zaktualizowane — pobrano {stats.get("total", 0)} ofert', 'success')
+        flash(f'Daty wystawienia zaktualizowane - pobrano {stats.get("total", 0)} ofert', 'success')
     return redirect('/analityka/czas-sprzedazy')
 
 
@@ -4022,28 +4039,30 @@ def backfill_link_route():
     total_linked = stats['sprzedaze_via_oferty'] + stats['sprzedaze_direct']
 
     html = f'''
-    <div class="hdr"><h1>🔗 ŁĄCZENIE SPRZEDAŻY</h1><small>Backfill zakończony</small></div>
-
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px">
-        <div class="card" style="text-align:center;padding:15px">
-            <div style="font-size:2rem;font-weight:700;color:#3b82f6">{stats['oferty_linked']}</div>
-            <div style="color:#94a3b8;font-size:0.8rem">Ofert polaczonych<br>z produktami</div>
+    <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr)">
+        <div class="kpi-card blue">
+            <div class="kpi-icon" style="background:var(--blue-soft)">🔗</div>
+            <div class="kpi-value">{stats['oferty_linked']}</div>
+            <div class="kpi-label">Ofert polaczonych z produktami</div>
         </div>
-        <div class="card" style="text-align:center;padding:15px">
-            <div style="font-size:2rem;font-weight:700;color:#22c55e">{total_linked}</div>
-            <div style="color:#94a3b8;font-size:0.8rem">Sprzedazy polaczonych<br>z produktami</div>
+        <div class="kpi-card green">
+            <div class="kpi-icon" style="background:var(--green-soft)">💰</div>
+            <div class="kpi-value">{total_linked}</div>
+            <div class="kpi-label">Sprzedazy polaczonych z produktami</div>
         </div>
-        <div class="card" style="text-align:center;padding:15px">
-            <div style="font-size:2rem;font-weight:700;color:#f59e0b">{stats['sprzedaze_still_unlinked']}</div>
-            <div style="color:#94a3b8;font-size:0.8rem">Nadal bez<br>produktu</div>
+        <div class="kpi-card orange">
+            <div class="kpi-icon" style="background:var(--yellow-soft)">⚠️</div>
+            <div class="kpi-value">{stats['sprzedaze_still_unlinked']}</div>
+            <div class="kpi-label">Nadal bez produktu</div>
         </div>
-        <div class="card" style="text-align:center;padding:15px">
-            <div style="font-size:2rem;font-weight:700;color:#64748b">{stats['sprzedaze_total_unlinked']}</div>
-            <div style="color:#94a3b8;font-size:0.8rem">Bylo<br>niepolaczonych</div>
+        <div class="kpi-card purple">
+            <div class="kpi-icon" style="background:var(--accent-soft)">📊</div>
+            <div class="kpi-value">{stats['sprzedaze_total_unlinked']}</div>
+            <div class="kpi-label">Bylo niepolaczonych</div>
         </div>
     </div>
 
-    <div class="alert alert-ok" style="margin-bottom:15px">
+    <div class="alert alert-success" style="margin-bottom:15px">
         <b>Podsumowanie:</b><br>
         Przez oferty: {stats['sprzedaze_via_oferty']} | Bezposrednio: {stats['sprzedaze_direct']}<br>
         Oferty: {stats['oferty_linked']} / {stats['oferty_total_unlinked']} polaczonych
@@ -4052,16 +4071,16 @@ def backfill_link_route():
 
     if stats['sprzedaze_still_unlinked'] > 0:
         html += f'''
-        <a href="/allegro/polacz-sprzedaze" class="btn btn-2" style="margin-bottom:10px">
+        <a href="/allegro/polacz-sprzedaze" class="btn btn-secondary" style="margin-bottom:10px">
             ✏️ Reczne laczenie ({stats['sprzedaze_still_unlinked']} szt)
         </a>
         '''
 
     html += '''
-    <a href="/allegro/backfill-link" class="btn btn-2">🔄 Uruchom ponownie</a>
+    <a href="/allegro/backfill-link" class="btn btn-secondary">🔄 Uruchom ponownie</a>
     <a href="/allegro" class="back">← Powrot</a>
     '''
-    return render(html)
+    return render(html, 'Laczenie sprzedazy')
 
 
 @allegro_bp.route('/polacz-sprzedaze')
@@ -4094,15 +4113,15 @@ def polacz_sprzedaze():
     total_sprz = sum(g['cnt'] for g in grupy)
 
     html = f'''
-    <div class="hdr"><h1>✏️ LACZENIE SPRZEDAZY</h1>
-        <small>{total_sprz} sprzedazy w {len(grupy)} grupach bez produktu</small>
+    <div class="alert" style="background:var(--bg);border:1px solid var(--border);color:var(--text-secondary);text-align:center;margin-bottom:16px">
+        {total_sprz} sprzedazy w {len(grupy)} grupach bez produktu
     </div>
     '''
 
     if not grupy:
-        html += '<div class="alert alert-ok">Wszystkie sprzedaze maja przypisany produkt!</div>'
+        html += '<div class="alert alert-success">Wszystkie sprzedaze maja przypisany produkt!</div>'
         html += '<a href="/allegro" class="back">← Powrot</a>'
-        return render(html)
+        return render(html, 'Laczenie sprzedazy')
 
     # Opcje produktów do select
     prod_options = '<option value="">-- wybierz produkt --</option>'
@@ -4118,14 +4137,14 @@ def polacz_sprzedaze():
         nazwa_display = (g['nazwa'] or '')[:80]
         cena_display = f"{g['cena']:.2f}" if g['cena'] else '?'
         html += f'''
-        <div class="card" style="margin-bottom:8px;padding:12px">
+        <div class="card" style="margin-bottom:8px;padding:14px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
                 <div>
                     <div style="font-weight:600;font-size:0.85rem">{nazwa_display}</div>
-                    <div style="color:#64748b;font-size:0.75rem">{g['cnt']}x sprzedaz | {g['szt']} szt | {cena_display} zl</div>
+                    <div style="color:var(--text-muted);font-size:0.75rem">{g['cnt']}x sprzedaz | {g['szt']} szt | {cena_display} zl</div>
                 </div>
             </div>
-            <select name="match_{g['ids'].split(',')[0]}" style="width:100%;padding:8px;background:#1a1a2e;border:1px solid #2d2d48;border-radius:6px;color:#e2e8f0;font-size:0.8rem">
+            <select name="match_{g['ids'].split(',')[0]}" class="form-control" style="font-size:0.8rem">
                 {prod_options}
             </select>
             <input type="hidden" name="ids_{g['ids'].split(',')[0]}" value="{g['ids']}">
@@ -4133,14 +4152,14 @@ def polacz_sprzedaze():
         '''
 
     html += '''
-        <button type="submit" class="btn btn-ok" style="margin-top:15px;width:100%;border:none;cursor:pointer">
+        <button type="submit" class="btn btn-success" style="margin-top:15px">
             💾 Zapisz polaczenia
         </button>
     </form>
-    <a href="/allegro/backfill-link" class="btn btn-2" style="margin-top:10px">🤖 Auto-matching</a>
+    <a href="/allegro/backfill-link" class="btn btn-secondary" style="margin-top:10px">🤖 Auto-matching</a>
     <a href="/allegro" class="back">← Powrot</a>
     '''
-    return render(html)
+    return render(html, 'Reczne laczenie')
 
 
 @allegro_bp.route('/polacz-sprzedaze/zapisz', methods=['POST'])
@@ -4170,12 +4189,11 @@ def polacz_sprzedaze_zapisz():
     conn.commit()
 
     html = f'''
-    <div class="hdr"><h1>💾 ZAPISANO</h1></div>
-    <div class="alert alert-ok">Polaczono {linked} sprzedazy z produktami</div>
-    <a href="/allegro/polacz-sprzedaze" class="btn btn-2">✏️ Kontynuuj laczenie</a>
+    <div class="alert alert-success">Polaczono {linked} sprzedazy z produktami</div>
+    <a href="/allegro/polacz-sprzedaze" class="btn btn-secondary">✏️ Kontynuuj laczenie</a>
     <a href="/allegro" class="back">← Powrot</a>
     '''
-    return render(html)
+    return render(html, 'Zapisano')
 
 
 @allegro_bp.route('/api/status')
