@@ -2878,33 +2878,25 @@ def generator_mass_create_from_paleta_stream():
                         print(f"      🚫 _nazwa_match FAIL: prod={words_p} vs oferta={words_o}, match={matching}/{threshold}")
                     return result
 
-                # 1. Szukaj po produkt_id (najdokładniejsze — ten sam produkt)
-                # ALE weryfikuj ASIN — jeśli nasz produkt ma ASIN, oferta musi dotyczyć produktu z tym samym ASIN
+                # 1. Szukaj po produkt_id + weryfikacja nazwy
                 existing_offer = None
-                if asin:
-                    # Produkt ma ASIN — szukaj oferty z tym samym produkt_id ALE sprawdź czy ASIN się zgadza
-                    existing_offer = conn.execute('''
-                        SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status
-                        FROM oferty o
-                        JOIN produkty p ON p.id = o.produkt_id
-                        WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
-                        AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
-                        AND o.produkt_id = ?
-                        AND p.asin = ?
-                        LIMIT 1
-                    ''', (product_id, asin)).fetchone()
-                else:
-                    # Produkt bez ASIN — szukaj po produkt_id
-                    existing_offer = conn.execute('''
-                        SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status
-                        FROM oferty o
-                        WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
-                        AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
-                        AND o.produkt_id = ?
-                        LIMIT 1
-                    ''', (product_id,)).fetchone()
-                if existing_offer:
+                _pid_candidate = conn.execute('''
+                    SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status
+                    FROM oferty o
+                    WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
+                    AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
+                    AND o.produkt_id = ?
+                    LIMIT 1
+                ''', (product_id,)).fetchone()
+                if _pid_candidate and _nazwa_match(_pid_candidate['tytul']):
+                    existing_offer = _pid_candidate
                     yield "data: " + json.dumps({'type': 'log', 'message': f'🔍 Match po produkt_id={product_id}', 'color': '#6366f1'}) + "\n\n"
+                elif _pid_candidate:
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'🚫 produkt_id={product_id} znaleziony ale nazwa nie pasuje: "{_pid_candidate["tytul"][:40]}"', 'color': '#f59e0b'}) + "\n\n"
+                    # Odlinkuj błędne powiązanie
+                    conn.execute('UPDATE oferty SET produkt_id = NULL WHERE id = ?', (_pid_candidate['id'],))
+                    conn.commit()
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'🔧 Auto-odlinkowano błędne powiązanie oferty', 'color': '#f59e0b'}) + "\n\n"
 
                 # 2. Szukaj po ASIN (najwiarygodniejszy identyfikator)
                 if asin and not existing_offer:
@@ -4417,30 +4409,32 @@ def generator_from_magazyn(product_id):
                 if existing_offer:
                     print(f"[DEDUP-WYSTAW] Match po EAN {ean}: oferta={existing_offer['allegro_id']}")
 
-        # 3. Szukaj po produkt_id (z weryfikacją ASIN jeśli produkt ma ASIN)
+        # 3. Szukaj po produkt_id + weryfikacja nazwy
         if not existing_offer:
-            if asin and asin not in ('N/A', 'None', ''):
-                existing_offer = conn.execute('''
-                    SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status, o.cena
-                    FROM oferty o
-                    JOIN produkty p ON p.id = o.produkt_id
-                    WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
-                    AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
-                    AND o.produkt_id = ?
-                    AND p.asin = ?
-                    LIMIT 1
-                ''', (product_id, asin)).fetchone()
-            else:
-                existing_offer = conn.execute('''
-                    SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status, o.cena
-                    FROM oferty o
-                    WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
-                    AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
-                    AND o.produkt_id = ?
-                    LIMIT 1
-                ''', (product_id,)).fetchone()
-            if existing_offer:
-                print(f"[DEDUP-WYSTAW] Match po produkt_id={product_id}: oferta={existing_offer['allegro_id']}")
+            _pid_candidate = conn.execute('''
+                SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status, o.cena
+                FROM oferty o
+                WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
+                AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
+                AND o.produkt_id = ?
+                LIMIT 1
+            ''', (product_id,)).fetchone()
+            if _pid_candidate:
+                # Weryfikuj nazwę — żeby nie łączyć różnych produktów
+                _nazwa_lower = (p.get('nazwa', '') or '').lower()[:40]
+                _ignore = {'uniwersalne', 'uniwersalny', 'premium', 'zestaw', 'komplet'}
+                _words_p = [w for w in _nazwa_lower.split() if len(w) > 2 and w not in _ignore][:5]
+                _words_o = [w for w in (_pid_candidate['tytul'] or '').lower()[:60].split() if len(w) > 2 and w not in _ignore][:5]
+                _matching = sum(1 for w in _words_p if any(w in wo or wo in w for wo in _words_o)) if _words_p and _words_o else 0
+                _threshold = max(2, len(_words_p) // 2 + 1) if _words_p else 2
+                if _matching >= _threshold or not _words_p:
+                    existing_offer = _pid_candidate
+                    print(f"[DEDUP-WYSTAW] Match po produkt_id={product_id}: oferta={existing_offer['allegro_id']}")
+                else:
+                    print(f"[DEDUP-WYSTAW] produkt_id={product_id} ODRZUCONY - nazwa nie pasuje: '{_pid_candidate['tytul'][:40]}' vs '{_nazwa_lower}'")
+                    # Odlinkuj błędne powiązanie
+                    conn.execute('UPDATE oferty SET produkt_id = NULL WHERE id = ?', (_pid_candidate['id'],))
+                    conn.commit()
 
         if existing_offer:
             o = dict(existing_offer)
