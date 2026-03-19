@@ -114,40 +114,48 @@
 
 <script>
 function updateBulk() {
-    const all = document.querySelectorAll('.order-cb');
-    const checked = document.querySelectorAll('.order-cb:checked').length;
+    var all = document.querySelectorAll('.order-cb');
+    var checkedEls = document.querySelectorAll('.order-cb:checked');
+    var checked = checkedEls.length;
+    var total = all.length;
     document.getElementById('bulkBar').style.display = checked > 0 ? 'block' : 'none';
-    document.getElementById('selectedCount').textContent = checked + ' / ' + all.length + ' zaznaczonych';
-    // Zmień przycisk "Zaznacz" na "Odznacz" gdy wszystko zaznaczone
-    const toggleBtn = document.getElementById('toggleAllBtn');
+    document.getElementById('selectedCount').textContent = checked + ' / ' + total + ' zaznaczonych';
+    var toggleBtn = document.getElementById('toggleAllBtn');
     if (toggleBtn) {
-        if (checked > 0 && checked === all.length) {
-            toggleBtn.textContent = '☐ Odznacz';
+        if (checked > 0) {
+            toggleBtn.innerHTML = '☐ Odznacz (' + checked + ')';
             toggleBtn.style.background = '#64748b';
         } else {
-            toggleBtn.textContent = '☑️ Zaznacz';
+            toggleBtn.innerHTML = '☑️ Zaznacz';
             toggleBtn.style.background = '#f59e0b';
         }
     }
 }
 function toggleAll(state) {
-    const all = document.querySelectorAll('.order-cb');
-    const checked = document.querySelectorAll('.order-cb:checked').length;
-    // Jeśli state=true ale wszystko jest zaznaczone → odznacz
-    if (state && checked === all.length) {
-        all.forEach(cb => cb.checked = false);
+    var all = document.querySelectorAll('.order-cb');
+    var checkedEls = document.querySelectorAll('.order-cb:checked');
+    var newState;
+    // Toggle: jesli cokolwiek zaznaczone → odznacz wszystko, inaczej zaznacz wszystko
+    if (checkedEls.length > 0) {
+        newState = false;
     } else {
-        all.forEach(cb => cb.checked = state);
+        newState = true;
     }
+    all.forEach(function(cb) { cb.checked = newState; });
     updateBulk();
 }
 function submitBulk() {
-    const checked = document.querySelectorAll('.order-cb:checked').length;
-    if (checked === 0) return;
-    if (confirm('Oznaczyć ' + checked + ' zamówień jako wysłane?')) {
+    var checkedEls = document.querySelectorAll('.order-cb:checked');
+    if (checkedEls.length === 0) {
+        alert('Zaznacz przynajmniej jedno zamówienie!');
+        return;
+    }
+    if (confirm('Oznaczyć ' + checkedEls.length + ' zamówień jako wysłane?')) {
         document.getElementById('bulkForm').submit();
     }
 }
+// Init on load
+document.addEventListener('DOMContentLoaded', function() { updateBulk(); });
 </script>
 
 <style>
