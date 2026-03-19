@@ -1891,28 +1891,59 @@ def generuj_opis_html_pro(nazwa, zdjecia_urls, kategoria='inne', bullet_points=N
             else:
                 # Bez bullet points - generuj na podstawie nazwy
                 print(f"[Gemini] Generowanie opisu z samej nazwy (brak bullet points)...")
-                prompt = f"""Stwórz profesjonalny opis produktu na Allegro.
+                prompt = f"""ZADANIE: Stwórz PROFESJONALNY, ROZBUDOWANY opis produktu dla Allegro.
 
 PRODUKT: {nazwa}
 {f'KATEGORIA: {kategoria}' if kategoria and kategoria != 'inne' else ''}
 
+=== WYMAGANIA DŁUGOŚCI (KRYTYCZNE!) ===
+
+1. INTRO: 4-6 PEŁNYCH ZDAŃ (minimum 400 znaków)
+   - Zdanie 1: CO TO jest za produkt (konkretnie, po polsku)
+   - Zdanie 2-3: DO CZEGO służy, jakie problemy rozwiązuje
+   - Zdanie 4-5: Kluczowe cechy i parametry produktu
+   - Zdanie 6: Dla kogo jest ten produkt
+
+2. KAŻDA SEKCJA FEATURES: 3-4 PEŁNE ZDANIA (minimum 150 znaków każda)
+   - Zdanie 1: Główna cecha/funkcja
+   - Zdanie 2: Jak to działa w praktyce
+   - Zdanie 3-4: Konkretne parametry i zastosowania
+
+3. GENERUJ 5-7 SEKCJI (nie mniej!)
+
 Odpowiedz w JSON:
 {{
-  "intro": "3-4 zdania: CO to za produkt, DO CZEGO służy, jakie PROBLEMY rozwiązuje, dla KOGO jest",
+  "intro": "Rozbudowane wprowadzenie (4-6 zdań, minimum 400 znaków)",
   "features": [
-    {{"icon": "pasujące emoji", "title": "Krótki tytuł cechy (2-4 słowa)", "text": "2-3 zdania opisujące tę cechę produktu z konkretnymi detalami"}},
-    ... (wygeneruj 4-6 cech)
+    {{"icon": "pasujące emoji", "title": "Konkretny tytuł cechy (2-4 słowa)", "text": "Rozbudowany opis cechy (3-4 zdania, minimum 150 znaków)"}},
+    ... (5-7 sekcji)
   ],
   "specs": []
 }}
 
-ZASADY:
+=== ZAKAZANE FRAZY (NIE UŻYWAJ!) ===
+✗ "Wysoka jakość wykonania"
+✗ "Kompletny zestaw"
+✗ "Praktyczne zastosowanie"
+✗ "Przemyślany design łączy funkcjonalność z estetyką"
+✗ "Satysfakcja z zakupu"
+✗ "Bezproblemowe użytkowanie"
+✗ "Solidne wykonanie i staranny dobór materiałów"
+✗ "Spełniający oczekiwania nawet najbardziej wymagających"
+
+=== ZASADY ===
 - Pisz po polsku
-- Bazuj na tym co WIESZ o produkcie z jego nazwy - nie wymyślaj parametrów
-- ZAKAZANE ogólniki: "wysoka jakość wykonania", "kompletny zestaw", "praktyczne zastosowanie", "przemyślany design", "satysfakcja z zakupu", "bezproblemowe użytkowanie"
+- Bazuj na tym co WIESZ o produkcie z nazwy - nie wymyślaj dokładnych parametrów których nie znasz
 - Opisuj KONKRETNE cechy: materiał, rozmiar, funkcje, zastosowania, kompatybilność
-- Pisz jak profesjonalny sprzedawca znający produkt
-- Każda cecha musi być INNA - nie powtarzaj tych samych informacji"""
+- Pisz jak profesjonalny sprzedawca który ZNA ten produkt
+- Każda cecha musi być INNA - nie powtarzaj informacji
+
+PRZYKŁAD DOBREJ DŁUGOŚCI FEATURE:
+✓ "Obiektyw 170° obejmuje 3 pasy ruchu, eliminując martwe pole widzenia po bokach pojazdu. Szeroki kąt widzenia pozwala na rejestrację zdarzeń z sąsiednich pasów ruchu oraz chodników, co jest kluczowe podczas dokumentowania kolizji drogowych."
+
+✗ ŹLE (za krótkie): "Szeroki kąt zapewnia doskonałą widoczność"
+
+Odpowiedz TYLKO w formacie JSON (bez markdown)."""
 
             response = requests.post(
                 f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}',

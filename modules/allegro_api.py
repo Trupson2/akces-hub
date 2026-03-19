@@ -1259,14 +1259,19 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
     _gpsr_ps_entry = {}  # GPSR + producent + osoba -> PATCH
     _product_ps_entry = {}  # EAN/product -> PATCH
 
-    # GPSR
+    # GPSR - upload jako PDF attachment (Allegro nie obsługuje type MANUAL/TEXT!)
+    _gpsr_attachment_id = None
     if gpsr:
-        _gpsr_ps_entry['safetyInformation'] = {
-            'type': 'MANUAL',
-            'description': gpsr[:5000]
-        }
-        _gpsr_ps_entry['marketedBeforeGPSRObligation'] = False
-        print(f"GPSR: {len(gpsr)} znakow -> PATCH po utworzeniu")
+        _gpsr_attachment_id = upload_gpsr_attachment(gpsr, nazwa)
+        if _gpsr_attachment_id:
+            _gpsr_ps_entry['safetyInformation'] = {
+                'type': 'ATTACHMENTS',
+                'attachments': [{'id': _gpsr_attachment_id}]
+            }
+            _gpsr_ps_entry['marketedBeforeGPSRObligation'] = False
+            print(f"GPSR: {len(gpsr)} znakow -> attachment {_gpsr_attachment_id}")
+        else:
+            print(f"⚠️ GPSR: upload PDF failed - GPSR nie zostanie dodany do oferty")
 
     # Producent + Osoba odpowiedzialna
     if gpsr:
@@ -1800,7 +1805,7 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
             cmd_id = str(_uuid.uuid4())
             mod_data = {
                 'modification': {
-                    'safetyInformation': {'type': 'MANUAL', 'description': gpsr[:5000]}
+                    'safetyInformation': {'type': 'ATTACHMENTS', 'attachments': [{'id': _gpsr_attachment_id}]} if _gpsr_attachment_id else {'type': 'NO_SAFETY_INFORMATION'}
                 },
                 'offerCriteria': offer_criteria
             }
@@ -1900,6 +1905,116 @@ def get_responsible_producers():
     for p in producers:
         print(f"   - {p.get('id', '?')}: {p.get('name', '?')}")
     return producers
+
+
+def upload_gpsr_attachment(gpsr_text, product_name=''):
+    """
+    Generuje PDF z tekstu GPSR i wgrywa jako attachment do Allegro.
+
+    Allegro API wymaga GPSR jako plik (PDF/JPG/PNG) - typ "ATTACHMENTS".
+    Typ "MANUAL"/"TEXT" NIE JEST obsługiwany przez API!
+
+    Args:
+        gpsr_text: Tekst GPSR do wgrania
+        product_name: Nazwa produktu (do tytułu PDF)
+
+    Returns:
+        str: attachment_id lub None jeśli upload się nie powiódł
+    """
+    if not gpsr_text or not is_authenticated():
+        return None
+
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import mm
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.lib.enums import TA_LEFT
+
+        pdf_buffer = BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=A4,
+                                topMargin=20*mm, bottomMargin=20*mm,
+                                leftMargin=20*mm, rightMargin=20*mm)
+
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'GPSRTitle', parent=styles['Heading1'],
+            fontSize=14, spaceAfter=10,
+            fontName='Helvetica-Bold'
+        )
+        body_style = ParagraphStyle(
+            'GPSRBody', parent=styles['Normal'],
+            fontSize=10, leading=14, spaceAfter=6,
+            fontName='Helvetica'
+        )
+
+        story = []
+
+        # Tytuł
+        story.append(Paragraph("Informacje o bezpieczeństwie produktu (GPSR)", title_style))
+        if product_name:
+            story.append(Paragraph(f"Produkt: {product_name[:100]}", body_style))
+        story.append(Spacer(1, 10))
+
+        # Treść GPSR - podziel na linie
+        for line in gpsr_text.split('\n'):
+            line = line.strip()
+            if not line:
+                story.append(Spacer(1, 6))
+                continue
+            # Escape HTML entities
+            line = line.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            # Bullet points
+            if line.startswith('* '):
+                line = '• ' + line[2:]
+            story.append(Paragraph(line, body_style))
+
+        doc.build(story)
+        pdf_bytes = pdf_buffer.getvalue()
+        pdf_buffer.close()
+
+        print(f"🛡️ GPSR PDF: {len(pdf_bytes)} bytes wygenerowane")
+
+        # Upload do Allegro
+        token = get_config('allegro_access_token', '')
+        env = get_config('allegro_environment', 'sandbox')
+        api_base = 'https://api.allegro.pl' if env == 'production' else 'https://api.allegro.pl.allegrosandbox.pl'
+
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Accept': 'application/vnd.allegro.public.v1+json',
+        }
+
+        filename = 'gpsr_safety_info.pdf'
+        files = {
+            'file': (filename, pdf_bytes, 'application/pdf')
+        }
+        data = {
+            'type': 'SAFETY_INFORMATION_MANUAL'
+        }
+
+        resp = requests.post(
+            f'{api_base}/sale/offer-attachments',
+            headers=headers,
+            files=files,
+            data=data,
+            timeout=60
+        )
+
+        if resp.status_code in [200, 201]:
+            result = resp.json()
+            attachment_id = result.get('id', '')
+            print(f"🛡️ GPSR attachment uploaded: {attachment_id}")
+            return attachment_id
+        else:
+            print(f"🛡️ GPSR upload error: {resp.status_code}: {resp.text[:300]}")
+            return None
+
+    except Exception as e:
+        print(f"🛡️ GPSR PDF/upload error: {e}")
+        return None
 
 
 def get_shipping_rates():
