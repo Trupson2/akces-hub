@@ -8437,41 +8437,30 @@ def ai_ocena_stanu():
         if not image_base64:
             return jsonify({'success': False, 'error': 'Brak zdjęcia'})
 
-        # Get OpenAI API key from config
+        # Get Gemini API key from config
         conn = get_db()
-        api_key = conn.execute("SELECT wartosc FROM config WHERE klucz = 'openai_api_key'").fetchone()
+        api_key = conn.execute("SELECT wartosc FROM config WHERE klucz = 'gemini_api_key'").fetchone()
         if not api_key or not api_key['wartosc']:
-            return jsonify({'success': False, 'error': 'Brak klucza OpenAI API w konfiguracji'})
+            return jsonify({'success': False, 'error': 'Brak klucza Gemini API w konfiguracji'})
 
         import requests as req
         response = req.post(
-            'https://api.openai.com/v1/chat/completions',
-            headers={
-                'Authorization': f"Bearer {api_key['wartosc']}",
-                'Content-Type': 'application/json'
-            },
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key['wartosc']}",
+            headers={'Content-Type': 'application/json'},
             json={
-                'model': 'gpt-4o-mini',
-                'messages': [
-                    {
-                        'role': 'system',
-                        'content': 'Jesteś ekspertem od oceny stanu produktów zwrotowych. Oceń stan produktu na zdjęciu. Odpowiedz w formacie:\nSTAN: [Nowy/Jak nowy/Dobry/Uszkodzony/Zniszczony]\nOPIS: [krótki opis stanu, wady, braki, uszkodzenia - max 2 zdania po polsku]'
-                    },
-                    {
-                        'role': 'user',
-                        'content': [
-                            {'type': 'text', 'text': 'Oceń stan tego produktu:'},
-                            {'type': 'image_url', 'image_url': {'url': f'data:image/jpeg;base64,{image_base64}', 'detail': 'low'}}
-                        ]
-                    }
-                ],
-                'max_tokens': 200
+                'contents': [{
+                    'parts': [
+                        {'text': 'Jesteś ekspertem od oceny stanu produktów zwrotowych. Oceń stan produktu na zdjęciu. Odpowiedz DOKŁADNIE w formacie:\nSTAN: [Nowy/Jak nowy/Dobry/Uszkodzony/Zniszczony]\nOPIS: [krótki opis stanu, wady, braki, uszkodzenia - max 2 zdania po polsku]'},
+                        {'inline_data': {'mime_type': 'image/jpeg', 'data': image_base64}}
+                    ]
+                }],
+                'generationConfig': {'maxOutputTokens': 200}
             },
             timeout=30
         )
 
         result = response.json()
-        content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+        content = result.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
 
         # Parse response
         stan = ''

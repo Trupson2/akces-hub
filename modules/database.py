@@ -427,7 +427,6 @@ def init_db():
             ('domyslna_marza', '40'),
             ('domyslna_kategoria', 'inne'),
             ('app_base_url', 'http://localhost:5000'),
-            ('openai_api_key', ''),
         ]
         
         for klucz, wartosc in defaults:
