@@ -2726,18 +2726,18 @@ def allegro_performance():
     from modules.database import get_db
     conn = get_db()
 
-    # Sync stats z Allegro (pobierz świeże dane + statystyki)
+    # Pokazuj dane z cache — sync ręcznie przyciskiem
     sync_msg = ''
     try:
-        from modules.allegro_api import sync_offers_status, is_authenticated
-        if is_authenticated():
-            result = sync_offers_status()
-            _stats_cnt = result.get('stats_updated', 0)
-            sync_msg = f"Zsyncowano {result.get('total', 0)} ofert, statystyki: {_stats_cnt}"
-        else:
-            sync_msg = "Nie zalogowany do Allegro — dane z cache"
-    except Exception as e:
-        sync_msg = f"Sync error: {e}"
+        from modules.allegro_api import is_authenticated
+        _last_sync = conn.execute("SELECT MAX(data_aktualizacji) as last FROM oferty").fetchone()
+        _last = _last_sync['last'] if _last_sync else None
+        if _last:
+            sync_msg = f"Ostatni sync: {_last[:16]}"
+        if not is_authenticated():
+            sync_msg += " (nie zalogowany do Allegro)"
+    except:
+        pass
 
     # Pobierz wszystkie oferty z bazy
     oferty = conn.execute('''
@@ -2805,6 +2805,19 @@ def allegro_performance():
         active_paletomat='', active_allegro='', active_monitor='')
 
 
+@app.route('/analytics/allegro-performance/sync', methods=['POST'])
+def allegro_performance_sync():
+    """Sync stats z Allegro — wywoływane AJAX-em z panelu."""
+    try:
+        from modules.allegro_api import sync_offers_status, is_authenticated
+        if not is_authenticated():
+            return jsonify({'ok': False, 'error': 'Nie zalogowany do Allegro'})
+        result = sync_offers_status()
+        return jsonify({'ok': True, 'total': result.get('total', 0), 'stats_updated': result.get('stats_updated', 0)})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)[:100]})
+
+
 ALLEGRO_PERF_HTML = '''{% extends "base.html" %}
 {% block page_title %}Allegro Performance{% endblock %}
 {% block content %}
@@ -2832,7 +2845,10 @@ ALLEGRO_PERF_HTML = '''{% extends "base.html" %}
 <div style="text-align:center;padding:20px 0 10px">
     <h1 style="font-size:1.5rem;background:linear-gradient(135deg,#6366f1,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent">📊 ALLEGRO PERFORMANCE</h1>
     <small style="color:var(--text-muted)">Wyswietlenia, obserwujacy, sprzedaze — wszystkie oferty</small>
-    {% if sync_msg %}<div style="font-size:0.7rem;color:#6366f1;margin-top:4px">🔄 {{ sync_msg }}</div>{% endif %}
+    <div style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:12px">
+        <button id="syncBtn" onclick="syncStats()" style="padding:6px 18px;background:linear-gradient(135deg,#6366f1,#06b6d4);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;font-size:0.78rem">🔄 Sync z Allegro</button>
+        <span id="syncMsg" style="font-size:0.7rem;color:var(--text-muted)">{{ sync_msg }}</span>
+    </div>
 </div>
 
 <!-- Totals -->
@@ -2930,6 +2946,37 @@ function filterOffers(status, btn) {
     });
     document.querySelectorAll('.ap-filter-btn').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
+}
+
+function syncStats() {
+    var btn = document.getElementById('syncBtn');
+    var msg = document.getElementById('syncMsg');
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+    btn.textContent = '⏳ Syncowanie...';
+    msg.textContent = '';
+    fetch('/analytics/allegro-performance/sync', {method: 'POST', headers: {'Content-Type': 'application/json'}})
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.ok) {
+            msg.style.color = '#22c55e';
+            msg.textContent = '✅ Zsyncowano ' + d.total + ' ofert, statystyki: ' + (d.stats_updated || 0);
+            setTimeout(function() { location.reload(); }, 1500);
+        } else {
+            msg.style.color = '#ef4444';
+            msg.textContent = '❌ ' + (d.error || 'Błąd');
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.textContent = '🔄 Sync z Allegro';
+        }
+    })
+    .catch(function(e) {
+        msg.style.color = '#ef4444';
+        msg.textContent = '❌ ' + e;
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.textContent = '🔄 Sync z Allegro';
+    });
 }
 
 var sortDir = {};
