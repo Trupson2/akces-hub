@@ -679,14 +679,13 @@ def profit_analyzer():
         m_end = m_end_dt.strftime('%Y-%m-%d')
         m_label = dt.strftime('%m/%Y')
 
-        # Przychód
+        # Przychód (WSZYSTKIE zamówienia — bez filtra offline)
         rev = conn.execute('''
             SELECT COALESCE(SUM(cena * ilosc), 0) as r, COUNT(*) as cnt,
                    COALESCE(SUM(ilosc), 0) as szt
             FROM sprzedaze
             WHERE date(data_sprzedazy) >= ? AND date(data_sprzedazy) <= ?
             AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
-            AND (kupujacy IS NULL OR kupujacy != 'offline')
         ''', (m_start, m_end)).fetchone()
 
         przychod_allegro = rev['r'] or 0
@@ -833,7 +832,6 @@ def profit_analyzer():
         FROM sprzedaze
         WHERE date(data_sprzedazy) >= date('now', '-30 days')
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
-        AND (kupujacy IS NULL OR kupujacy != 'offline')
         GROUP BY dzien ORDER BY dzien
     ''').fetchall()
 
@@ -901,7 +899,6 @@ def profit_analyzer():
             FROM sprzedaze
             WHERE date(data_sprzedazy) >= date('now','-7 days')
             AND status NOT IN ('zwrot','anulowane','anulowana')
-            AND (kupujacy IS NULL OR kupujacy != 'offline')
             GROUP BY dzien
         ) d
     ''').fetchone()
@@ -913,7 +910,6 @@ def profit_analyzer():
             FROM sprzedaze
             WHERE date(data_sprzedazy) >= date('now','-30 days')
             AND status NOT IN ('zwrot','anulowane','anulowana')
-            AND (kupujacy IS NULL OR kupujacy != 'offline')
             GROUP BY dzien
         ) d
     ''').fetchone()
@@ -1255,7 +1251,7 @@ tr:hover{background:var(--accent-soft)}
         <div class="kpi-icon" style="background:var(--red-soft)">R</div>
         <div class="kpi-value" style="color:var(--red)">''' + f'{total_zwroty}' + '''</div>
         <div class="kpi-label">Zwroty</div>
-        <div style="font-size:0.68rem;color:var(--red);margin-top:4px">''' + f'{(total_zwroty/total_zamowienia*100) if total_zamowienia>0 else 0:.1f}' + '''% wskaznik zwrotow</div>
+        <div style="font-size:0.68rem;color:var(--red);margin-top:4px">''' + f'{(total_zwroty/(total_zamowienia+total_zwroty)*100) if (total_zamowienia+total_zwroty)>0 else 0:.1f}' + '''% wskaznik zwrotow</div>
     </div>
     <div class="kpi-card blue">
         <div class="kpi-icon" style="background:var(--blue-soft)">D</div>
