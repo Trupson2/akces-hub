@@ -3220,108 +3220,102 @@ def palety():
         </a>'''
     
     html += '''<script>
-    function updateCount() {
-        var n = document.querySelectorAll('.paleta-cb:checked').length;
-        var el = document.getElementById('selectedCount');
-        if (el) el.textContent = '(' + n + ' zaznaczonych)';
-    }
-    // Event delegation — łapie WSZYSTKIE kliknięcia w checkboxy
-    document.addEventListener('click', function(e) {
-        if (e.target && e.target.classList && e.target.classList.contains('paleta-cb')) {
-            setTimeout(updateCount, 10);
+    var paletyCbs = document.getElementsByClassName("paleta-cb");
+    var countEl = document.getElementById("selectedCount");
+
+    function licz() {
+        var n = 0;
+        for (var i = 0; i < paletyCbs.length; i++) {
+            if (paletyCbs[i].checked) n++;
         }
-    });
+        countEl.innerText = "(" + n + " zaznaczonych)";
+        return n;
+    }
+
+    // Podepnij onclick na kazdy checkbox
+    for (var i = 0; i < paletyCbs.length; i++) {
+        paletyCbs[i].onclick = function(e) {
+            e.stopPropagation();
+            licz();
+        };
+    }
+
     function selectAll() {
-        document.querySelectorAll('.paleta-cb').forEach(cb => cb.checked = true);
-        updateCount();
+        for (var i = 0; i < paletyCbs.length; i++) paletyCbs[i].checked = true;
+        licz();
     }
     function selectNone() {
-        document.querySelectorAll('.paleta-cb').forEach(cb => cb.checked = false);
-        updateCount();
+        for (var i = 0; i < paletyCbs.length; i++) paletyCbs[i].checked = false;
+        licz();
     }
+
+    function getSelectedIds() {
+        var ids = [];
+        for (var i = 0; i < paletyCbs.length; i++) {
+            if (paletyCbs[i].checked) ids.push(parseInt(paletyCbs[i].getAttribute("data-id")));
+        }
+        return ids;
+    }
+
     function massUpdate(val) {
-        const ids = [...document.querySelectorAll('.paleta-cb:checked')].map(cb => parseInt(cb.dataset.id));
-        if (!ids.length) { alert('Zaznacz najpierw palety'); return; }
-        fetch('/magazyn/api/paleta-dostarczona-bulk', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+        var ids = getSelectedIds();
+        if (!ids.length) { alert("Zaznacz najpierw palety"); return; }
+        fetch("/magazyn/api/paleta-dostarczona-bulk", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ids: ids, dostarczona: val})
-        }).then(r => r.json()).then(d => {
-            if (d.ok) {
-                // Zaktualizuj przyciski wizualnie
-                ids.forEach(id => {
-                    const cb = document.querySelector('.paleta-cb[data-id="' + id + '"]');
-                    if (!cb) return;
-                    const btn = cb.closest('.item').querySelector('button[data-val]');
-                    if (!btn) return;
-                    btn.dataset.val = val;
-                    if (val == 1) {
-                        btn.textContent = '✅ Dostarczona';
-                        btn.style.borderColor = '#22c55e';
-                        btn.style.color = '#22c55e';
-                        btn.style.background = '#22c55e22';
-                    } else {
-                        btn.textContent = '🚚 W drodze';
-                        btn.style.borderColor = '#f59e0b';
-                        btn.style.color = '#f59e0b';
-                        btn.style.background = '#f59e0b22';
-                    }
-                });
-                selectNone();
-            }
+        }).then(function(r){return r.json()}).then(function(d) {
+            if (d.ok) location.reload();
         });
     }
+
     function toggleDostarczona(paletaId, btn) {
-        const newVal = btn.dataset.val == '1' ? 0 : 1;
-        fetch('/magazyn/api/paleta-dostarczona/' + paletaId, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+        var newVal = btn.getAttribute("data-val") == "1" ? 0 : 1;
+        fetch("/magazyn/api/paleta-dostarczona/" + paletaId, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify({dostarczona: newVal})
-        }).then(r => r.json()).then(d => {
+        }).then(function(r){return r.json()}).then(function(d) {
             if (d.ok) {
-                btn.dataset.val = newVal;
+                btn.setAttribute("data-val", newVal);
                 if (newVal == 1) {
-                    btn.textContent = '✅ Dostarczona';
-                    btn.style.borderColor = '#22c55e';
-                    btn.style.color = '#22c55e';
-                    btn.style.background = '#22c55e22';
+                    btn.innerText = "\\u2705 Dostarczona";
+                    btn.style.borderColor = "#22c55e";
+                    btn.style.color = "#22c55e";
+                    btn.style.background = "#22c55e22";
                 } else {
-                    btn.textContent = '🚚 W drodze';
-                    btn.style.borderColor = '#f59e0b';
-                    btn.style.color = '#f59e0b';
-                    btn.style.background = '#f59e0b22';
+                    btn.innerText = "\\ud83d\\ude9a W drodze";
+                    btn.style.borderColor = "#f59e0b";
+                    btn.style.color = "#f59e0b";
+                    btn.style.background = "#f59e0b22";
                 }
             }
         });
     }
+
     function massDelete() {
-        const ids = [...document.querySelectorAll('.paleta-cb:checked')].map(cb => parseInt(cb.dataset.id));
-        if (!ids.length) { alert('Zaznacz najpierw palety'); return; }
-        const msg = ids.length === 1 ? 'Usunąć tę paletę i jej produkty?' : 'Usunąć ' + ids.length + ' palet i ich produkty?';
-        if (!confirm('⚠️ ' + msg + '\n\nTej operacji nie można cofnąć!')) return;
-        fetch('/magazyn/api/palety-usun', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+        var ids = getSelectedIds();
+        if (!ids.length) { alert("Zaznacz najpierw palety"); return; }
+        if (!confirm("Usunac " + ids.length + " palet i ich produkty? Tej operacji nie mozna cofnac!")) return;
+        fetch("/magazyn/api/palety-usun", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ids: ids})
-        }).then(r => r.json()).then(d => {
-            if (d.ok) {
-                ids.forEach(id => {
-                    const cb = document.querySelector('.paleta-cb[data-id="' + id + '"]');
-                    if (cb) cb.closest('.item').remove();
-                });
-                selectNone();
-            } else {
-                alert('Błąd: ' + (d.error || 'nieznany'));
-            }
+        }).then(function(r){return r.json()}).then(function(d) {
+            if (d.ok) location.reload();
+            else alert("Blad: " + (d.error || "nieznany"));
         });
     }
+
     function searchPalety() {
-        const q = document.getElementById('paletaSearch').value.toLowerCase();
-        document.querySelectorAll('.item').forEach(el => {
-            const name = (el.querySelector('.item-name') || {}).textContent || '';
-            const meta = (el.querySelector('.item-meta') || {}).textContent || '';
-            el.style.display = (!q || name.toLowerCase().includes(q) || meta.toLowerCase().includes(q)) ? '' : 'none';
-        });
+        var q = document.getElementById("paletaSearch").value.toLowerCase();
+        var items = document.getElementsByClassName("item");
+        for (var i = 0; i < items.length; i++) {
+            var name = items[i].querySelector(".item-name");
+            var meta = items[i].querySelector(".item-meta");
+            var text = (name ? name.textContent : "") + (meta ? meta.textContent : "");
+            items[i].style.display = (!q || text.toLowerCase().indexOf(q) >= 0) ? "" : "none";
+        }
     }
     </script>'''
     html += '<a href="/magazyn" class="back">← Powrót</a>'
