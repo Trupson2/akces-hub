@@ -10,7 +10,45 @@ Automatycznie wykrywa dostawcę po nazwie pliku i stosuje właściwą logikę ce
 import os
 import re
 import json
+import urllib.request
 from typing import Dict, Any, Optional, Tuple
+
+
+def get_eur_pln_rate() -> float:
+    """
+    Pobiera aktualny kurs EUR/PLN z NBP API.
+    Fallback: zwraca ostatni znany kurs z config DB, lub 4.30 jeśli brak.
+    """
+    try:
+        req = urllib.request.Request(
+            'https://api.nbp.pl/api/exchangerates/rates/a/eur/?format=json',
+            headers={'Accept': 'application/json', 'User-Agent': 'AkcesHub/1.0'}
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            rate = float(data['rates'][0]['mid'])
+            # Zapisz w config jako fallback
+            try:
+                from modules.database import set_config
+                set_config('nbp_eur_pln', str(rate))
+            except:
+                pass
+            print(f"   💱 Kurs EUR/PLN z NBP: {rate:.4f}")
+            return rate
+    except Exception as e:
+        print(f"   ⚠️  Nie udało się pobrać kursu NBP: {e}")
+        # Fallback z config
+        try:
+            from modules.database import get_config
+            cached = get_config('nbp_eur_pln', '')
+            if cached:
+                rate = float(cached)
+                print(f"   💱 Kurs EUR/PLN z cache: {rate:.4f}")
+                return rate
+        except:
+            pass
+        print(f"   💱 Kurs EUR/PLN fallback: 4.30")
+        return 4.30
 
 
 def detect_stan_from_name(nazwa: str) -> str:
@@ -247,7 +285,8 @@ def smart_import_excel(
     filename: str,
     paleta_id: Optional[int] = None,
     manual_vendor: Optional[str] = None,
-    manual_total_cost: Optional[float] = None
+    manual_total_cost: Optional[float] = None,
+    currency: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Główna funkcja Smart Importera
@@ -285,7 +324,20 @@ def smart_import_excel(
     
     result["vendor_detected"] = vendor
     result["vendor_type"] = vendor_type
-    
+
+    # Waluta — z parametru lub domyślna wg dostawcy
+    if currency is None:
+        # Domyślnie: Jobalots = EUR, reszta = PLN
+        currency = 'EUR' if vendor.lower() == 'jobalots' else 'PLN'
+    currency = currency.upper()
+    is_eur = currency == 'EUR'
+    eur_rate = 1.0
+    if is_eur:
+        eur_rate = get_eur_pln_rate()
+        result["details"].append(f"💱 Waluta: EUR → PLN (kurs: {eur_rate:.4f})")
+    else:
+        result["details"].append(f"💱 Waluta: PLN (bez przeliczania)")
+
     # 2. IMPORT PODSTAWOWY (użyj istniejącej funkcji)
     import_result = import_excel_manifest(
         file_path=file_path,
@@ -306,66 +358,79 @@ def smart_import_excel(
         
         if vendor_type == "offer":
             # SCENARIUSZ A: Warrington/Miglo - dokładne ceny jednostkowe z VAT
-            result["details"].append(f"Zastosowano logikę: Warrington/Miglo (Unit Price * 1.23)")
-            
+            eur_info = f" * {eur_rate:.2f} EUR→PLN" if is_eur else ""
+            result["details"].append(f"Zastosowano logikę: Warrington/Miglo (Unit Price * 1.23{eur_info})")
+
             # Pobierz wszystkie produkty z tej palety
             products = conn.execute('''
-                SELECT id, cena_netto, ilosc FROM produkty 
+                SELECT id, cena_netto, ilosc FROM produkty
                 WHERE paleta_id = ? AND dostawca = ?
             ''', (paleta_id, vendor)).fetchall()
-            
+
             for p in products:
                 unit_netto = p['cena_netto'] if p['cena_netto'] > 0 else 0
                 quantity = p['ilosc'] if p['ilosc'] > 0 else 1
-                
-                # Cena BRUTTO = netto * 1.23
-                unit_brutto = calculate_unit_cost_with_vat(unit_netto, quantity)
+
+                # Przelicz EUR→PLN jeśli zagraniczny dostawca
+                unit_netto_pln = unit_netto * eur_rate
+
+                # Cena BRUTTO = netto_pln * 1.23
+                unit_brutto = calculate_unit_cost_with_vat(unit_netto_pln, quantity)
                 total_brutto = unit_brutto * quantity
-                
+
                 # Aktualizuj w bazie
                 execute_db('''
-                    UPDATE produkty 
+                    UPDATE produkty
                     SET cena_brutto = ?
                     WHERE id = ?
                 ''', (total_brutto, p['id']))
-                
+
                 result["total_cost_calculated"] += total_brutto
             
         elif vendor_type == "manifest":
             # SCENARIUSZ B: Jobalots - proporcjonalny podział kosztu
-            
+
             if manual_total_cost is None or manual_total_cost <= 0:
                 result["errors"].append("Dla Jobalots musisz podać całkowity koszt palety BRUTTO!")
                 result["success"] = False
                 return result
-            
-            result["details"].append(f"Zastosowano logikę: Jobalots (proporcjonalny podział {manual_total_cost} zł)")
-            
+
+            # Przelicz koszt palety EUR→PLN jeśli zagraniczny
+            cost_pln = manual_total_cost * eur_rate if is_eur else manual_total_cost
+            if is_eur:
+                result["details"].append(f"Zastosowano logikę: Jobalots (proporcjonalny podział {manual_total_cost:.2f} EUR = {cost_pln:.2f} PLN)")
+            else:
+                result["details"].append(f"Zastosowano logikę: Jobalots (proporcjonalny podział {cost_pln:.2f} zł)")
+
             # Pobierz wszystkie RRP z palety
             products = conn.execute('''
-                SELECT id, cena_allegro, ilosc FROM produkty 
+                SELECT id, cena_allegro, cena_netto, ilosc FROM produkty
                 WHERE paleta_id = ? AND dostawca = ?
             ''', (paleta_id, vendor)).fetchall()
-            
+
             all_rrp = [p['cena_allegro'] * p['ilosc'] for p in products]
             total_rrp = sum(all_rrp)
-            
+
             for i, p in enumerate(products):
                 product_rrp = p['cena_allegro'] * p['ilosc']
-                
-                # Proporcjonalny koszt
+
+                # Proporcjonalny koszt (od kosztu w PLN)
                 product_cost = calculate_proportional_cost(
-                    manual_total_cost,
+                    cost_pln,
                     product_rrp,
                     all_rrp
                 )
-                
-                # Aktualizuj w bazie (całkowity koszt, nie per sztuka)
+
+                # Przelicz ceny EUR→PLN
+                cena_allegro_pln = (p['cena_allegro'] or 0) * eur_rate if is_eur else (p['cena_allegro'] or 0)
+                cena_netto_pln = (p['cena_netto'] or 0) * eur_rate if is_eur else (p['cena_netto'] or 0)
+
+                # Aktualizuj w bazie (koszt + ceny w PLN)
                 execute_db('''
-                    UPDATE produkty 
-                    SET cena_brutto = ?
+                    UPDATE produkty
+                    SET cena_brutto = ?, cena_allegro = ?, cena_netto = ?
                     WHERE id = ?
-                ''', (product_cost, p['id']))
+                ''', (product_cost, cena_allegro_pln, cena_netto_pln, p['id']))
             
             result["total_cost_calculated"] = manual_total_cost
         

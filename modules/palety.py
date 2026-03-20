@@ -1413,11 +1413,18 @@ def paleta_bulk_import():
 
             # Pobierz wspólne ustawienia
             dostawca = request.form.get('dostawca', 'Jobalots')
+            waluta = request.form.get('waluta', 'EUR').upper()
             col_nazwa = request.form.get('col_nazwa', '')
             col_ean = request.form.get('col_ean', '')
             col_ilosc = request.form.get('col_ilosc', '')
             col_cena = request.form.get('col_cena', '')
             col_cena_detal = request.form.get('col_cena_detal', '')
+
+            # Kurs EUR→PLN
+            eur_rate = 1.0
+            if waluta == 'EUR':
+                from modules.smart_importer import get_eur_pln_rate
+                eur_rate = get_eur_pln_rate()
 
             wyniki = []
 
@@ -1445,7 +1452,8 @@ def paleta_bulk_import():
                     # Auto-nazwa z pliku
                     nazwa = file.filename.rsplit('.', 1)[0]
 
-                cena_zakupu = float(request.form.get(cena_key, 0) or 0)
+                cena_zakupu_raw = float(request.form.get(cena_key, 0) or 0)
+                cena_zakupu = round(cena_zakupu_raw * eur_rate, 2)  # EUR→PLN jeśli EUR
                 regal = request.form.get(regal_key, '').strip()
                 data_zakupu = request.form.get('data', datetime.now().strftime('%Y-%m-%d'))
 
@@ -1473,8 +1481,11 @@ def paleta_bulk_import():
                             prod_nazwa = str(row[col_idx[col_nazwa]]) if col_nazwa and col_nazwa in col_idx and row[col_idx[col_nazwa]] is not None else f'Produkt {idx+1}'
                             prod_ean = str(row[col_idx[col_ean]]) if col_ean and col_ean in col_idx and row[col_idx[col_ean]] is not None else ''
                             prod_ilosc = int(row[col_idx[col_ilosc]]) if col_ilosc and col_ilosc in col_idx and row[col_idx[col_ilosc]] is not None else 1
-                            prod_cena = float(row[col_idx[col_cena]]) if col_cena and col_cena in col_idx and row[col_idx[col_cena]] is not None else 0
-                            prod_cena_detal = float(row[col_idx[col_cena_detal]]) if col_cena_detal and col_cena_detal in col_idx and row[col_idx[col_cena_detal]] is not None else prod_cena * 2
+                            prod_cena_raw = float(row[col_idx[col_cena]]) if col_cena and col_cena in col_idx and row[col_idx[col_cena]] is not None else 0
+                            prod_cena_detal_raw = float(row[col_idx[col_cena_detal]]) if col_cena_detal and col_cena_detal in col_idx and row[col_idx[col_cena_detal]] is not None else prod_cena_raw * 2
+                            # Przelicz EUR→PLN
+                            prod_cena = round(prod_cena_raw * eur_rate, 2)
+                            prod_cena_detal = round(prod_cena_detal_raw * eur_rate, 2)
                             # cena_brutto = cena_netto * 1.23 (VAT 23%)
                             prod_cena_brutto = round(prod_cena * 1.23, 2)
 
@@ -1519,6 +1530,8 @@ def paleta_bulk_import():
             err_count = sum(1 for w in wyniki if w['status'] == 'error')
 
             results_html = ''
+            if waluta == 'EUR':
+                results_html += f'<div style="padding:10px;background:var(--blue-soft);border-radius:10px;margin-bottom:12px;font-size:0.85rem">💱 Przeliczono ceny EUR → PLN po kursie NBP: <b>{eur_rate:.4f}</b></div>'
             for w in wyniki:
                 if w['status'] == 'ok':
                     results_html += f'''
@@ -1580,6 +1593,13 @@ def paleta_bulk_import():
                     <option value="Warrington">Warrington</option>
                     <option value="Miglo">Miglo</option>
                     <option value="Inny">Inny</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Waluta cen w pliku</label>
+                <select name="waluta" class="form-control" id="waluta-select">
+                    <option value="EUR">EUR (przelicz na PLN)</option>
+                    <option value="PLN">PLN (bez przeliczania)</option>
                 </select>
             </div>
             <div class="form-group">
