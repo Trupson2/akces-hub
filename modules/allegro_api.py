@@ -941,6 +941,25 @@ def sync_offers_status():
     if stats.get('orphaned'):
         print(f"   🗑️ Usunięte (nie istnieją na Allegro): {stats['orphaned']}")
 
+    # === SYNC STATYSTYK (wyświetlenia, obserwujący) dla aktywnych ofert ===
+    # Pobiera po jednej ofercie z API — limituj do 50 żeby nie zabić API
+    try:
+        active_ids = [r['allegro_id'] for r in conn.execute(
+            "SELECT allegro_id FROM oferty WHERE status='aktywna' AND allegro_id IS NOT NULL ORDER BY data_aktualizacji DESC LIMIT 50").fetchall()]
+        if active_ids:
+            print(f"\n📊 Pobieram statystyki dla {len(active_ids)} aktywnych ofert...")
+            offer_stats = get_offer_smart_stats(active_ids)
+            _stats_updated = 0
+            for oid, s in offer_stats.items():
+                conn.execute('UPDATE oferty SET wyswietlenia=?, obserwujacych=? WHERE allegro_id=?',
+                    (s.get('views', 0), s.get('watchers', 0), oid))
+                _stats_updated += 1
+            conn.commit()
+            stats['stats_updated'] = _stats_updated
+            print(f"📊 Zaktualizowano statystyki: {_stats_updated}/{len(active_ids)} ofert")
+    except Exception as e:
+        print(f"⚠️ Stats sync error: {e}")
+
     return stats
 
 

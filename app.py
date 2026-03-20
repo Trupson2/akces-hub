@@ -2726,13 +2726,16 @@ def allegro_performance():
     from modules.database import get_db
     conn = get_db()
 
-    # Sync stats z Allegro (pobierz świeże dane)
+    # Sync stats z Allegro (pobierz świeże dane + statystyki)
     sync_msg = ''
     try:
         from modules.allegro_api import sync_offers_status, is_authenticated
         if is_authenticated():
             result = sync_offers_status()
-            sync_msg = f"Zsyncowano {result.get('total', 0)} ofert"
+            _stats_cnt = result.get('stats_updated', 0)
+            sync_msg = f"Zsyncowano {result.get('total', 0)} ofert, statystyki: {_stats_cnt}"
+        else:
+            sync_msg = "Nie zalogowany do Allegro — dane z cache"
     except Exception as e:
         sync_msg = f"Sync error: {e}"
 
