@@ -2652,6 +2652,13 @@ def paleta_szczegoly(paleta_id):
         nazwa = (p['nazwa'] or '')[:30]
         print(f"   - ID:{p['id']} | {nazwa} | status={p['status']} | ilosc={p['ilosc']} | offline_szt={offline_szt} | offline_przychod={offline_przychod}")
 
+    # Zlicz produkty bez zdjęć (do przycisku scrapuj)
+    bez_zdjec = conn.execute('''
+        SELECT COUNT(*) FROM produkty
+        WHERE paleta_id = ? AND (zdjecie_url IS NULL OR zdjecie_url = '')
+        AND asin IS NOT NULL AND asin != '' AND asin != 'nan'
+    ''', (paleta_id,)).fetchone()[0]
+
     produkty_html = ''
     for p in produkty:
         try:
@@ -2838,11 +2845,12 @@ def paleta_szczegoly(paleta_id):
         </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
         <a href="/palety/{paleta_id}/mass-edit" class="btn btn-purple" style="text-decoration:none">✏️ MASOWE WYSTAWIANIE</a>
         <a href="/magazyn/import?paleta_id={paleta_id}" class="btn" style="background:var(--blue);text-decoration:none">📥 IMPORTUJ EXCEL</a>
         <a href="/palety/{paleta_id}/edit" class="btn btn-warning" style="text-decoration:none">⚙️ EDYTUJ PALETE</a>
     </div>
+    <button type="button" onclick="scrapujZdjecia({paleta_id})" id="scrape-btn-{paleta_id}" class="btn" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);margin-bottom:15px;font-size:0.85rem">📷 SCRAPUJ ZDJĘCIA ({bez_zdjec} produktów bez zdjęć)</button>
 
     <!-- PRZEKAZ ZYSK NA CEL -->
     ''' + ('''
@@ -3392,7 +3400,58 @@ def paleta_szczegoly(paleta_id):
     });
     '''
 
+    szczegoly_js += '''
+    function scrapujZdjecia(paletaId) {
+        const btn = document.getElementById('scrape-btn-' + paletaId);
+        btn.disabled = true;
+        btn.textContent = '⏳ Uruchamiam scraper...';
+        btn.style.opacity = '0.6';
+
+        fetch('/palety/' + paletaId + '/scrape-images', {method: 'POST'})
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                btn.textContent = '✅ Scraping ' + data.count + ' produktów w tle!';
+                btn.style.background = 'var(--green)';
+            } else {
+                btn.textContent = '❌ ' + (data.error || 'Brak produktów do scrapowania');
+                btn.style.background = 'var(--red)';
+            }
+            setTimeout(() => location.reload(), 3000);
+        })
+        .catch(e => {
+            btn.textContent = '❌ Błąd: ' + e;
+            btn.disabled = false;
+            btn.style.opacity = '1';
+        });
+    }
+    '''
+
     return render(content, f'Paleta {paleta["nazwa"] or paleta_id}', extra_js=szczegoly_js)
+
+@palety_bp.route('/palety/<int:paleta_id>/scrape-images', methods=['POST'])
+def paleta_scrape_images(paleta_id):
+    """Scrapuj zdjęcia dla produktów bez zdjęć na danej palecie"""
+    from modules.database import get_db
+    try:
+        conn = get_db()
+        asins_rows = conn.execute('''
+            SELECT DISTINCT asin FROM produkty
+            WHERE paleta_id = ?
+            AND asin IS NOT NULL AND asin != '' AND asin != 'nan'
+            AND (zdjecie_url IS NULL OR zdjecie_url = '')
+        ''', (paleta_id,)).fetchall()
+        asins = [r['asin'] for r in asins_rows if r['asin'] and len(r['asin']) >= 5]
+
+        if not asins:
+            return jsonify({'ok': False, 'error': 'Brak produktów z ASIN bez zdjęć'})
+
+        from modules.paletomat import auto_process_products
+        auto_process_products(asins)
+        return jsonify({'ok': True, 'count': len(asins)})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)[:100]})
+
 
 @palety_bp.route('/produkt/<int:produkt_id>/szybka-edycja', methods=['POST'])
 def produkt_szybka_edycja(produkt_id):
