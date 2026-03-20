@@ -3419,6 +3419,9 @@ def paleta_detail_by_id(paleta_id):
         <a href="/magazyn/przyjecie/{paleta_id}" style="padding:8px 16px;border:2px solid #7c3aed;background:#7c3aed22;color:#7c3aed;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;text-decoration:none">
             📋 Przyjęcie
         </a>
+        <a href="/magazyn/etykiety?paleta_id={paleta_id}" style="padding:8px 16px;border:2px solid #8b5cf6;background:#8b5cf622;color:#8b5cf6;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;text-decoration:none">
+            🏷️ Etykiety
+        </a>
     </div>
     <script>
     function toggleDostarczona(id, btn) {{
@@ -5415,64 +5418,142 @@ def api_szukaj():
 
 @magazynier_bp.route('/etykiety')
 def etykiety():
-    """Drukowanie etykiet - wybór produktów"""
+    """Drukowanie etykiet - wybór produktów z filtrem po palecie"""
     conn = get_db()
-    products = conn.execute('SELECT * FROM produkty WHERE ilosc > 0 ORDER BY data_dodania DESC LIMIT 100').fetchall()
-    
-    html = '''
-    <div class="hdr"><h1>🏷️ ETYKIETY</h1><small>Drukuj etykiety z QR kodem</small></div>
-    
-    <div class="alert alert-ok" style="text-align:left;font-size:0.85rem">
-        <strong>Jak drukować:</strong><br>
-        1. Zaznacz produkty poniżej<br>
-        2. Kliknij przycisk drukarki na dole (VRETTI lub NIIMBOT)
+
+    # Filtr po palecie (opcjonalny)
+    paleta_filter = request.args.get('paleta_id', '')
+
+    if paleta_filter:
+        try:
+            products = conn.execute('SELECT * FROM produkty WHERE paleta_id = ? AND ilosc > 0 ORDER BY id', (int(paleta_filter),)).fetchall()
+        except:
+            products = conn.execute('SELECT * FROM produkty WHERE ilosc > 0 ORDER BY data_dodania DESC LIMIT 100').fetchall()
+    else:
+        products = conn.execute('SELECT * FROM produkty WHERE ilosc > 0 ORDER BY data_dodania DESC LIMIT 100').fetchall()
+
+    # Lista palet do filtra
+    try:
+        palety = conn.execute('SELECT id, nazwa FROM palety ORDER BY id DESC LIMIT 50').fetchall()
+    except:
+        palety = []
+
+    paleta_nazwa = ''
+    if paleta_filter:
+        try:
+            pn = conn.execute('SELECT nazwa FROM palety WHERE id = ?', (int(paleta_filter),)).fetchone()
+            if pn:
+                paleta_nazwa = pn['nazwa']
+        except:
+            pass
+
+    html = f'''
+    <div class="hdr"><h1>🏷️ ETYKIETY</h1><small>Drukuj etykiety Niimbot z QR kodem</small></div>
+
+    <!-- Filtr palety -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+        <select onchange="window.location='/magazyn/etykiety'+(this.value ? '?paleta_id='+this.value : '')"
+            style="flex:1;padding:10px 12px;background:#12121a;border:1px solid #1e293b;border-radius:10px;color:#e2e8f0;font-size:0.85rem">
+            <option value="">📦 Wszystkie produkty</option>'''
+
+    for pal in palety:
+        selected = 'selected' if str(pal['id']) == str(paleta_filter) else ''
+        html += f'<option value="{pal["id"]}" {selected}>{pal["nazwa"]}</option>'
+
+    html += f'''
+        </select>
+        <input type="text" id="searchInput" oninput="filterProducts()" placeholder="🔍 Szukaj..."
+            style="width:180px;padding:10px 12px;background:#12121a;border:1px solid #1e293b;border-radius:10px;color:#e2e8f0;font-size:0.85rem">
     </div>
-    
-    <div class="section">📦 WYBIERZ PRODUKTY DO DRUKU</div>
+
+    <!-- Akcje masowe -->
+    <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+        <button onclick="toggleAll(true)" style="padding:6px 12px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:0.8rem;cursor:pointer">☑️ Zaznacz wszystkie</button>
+        <button onclick="toggleAll(false)" style="padding:6px 12px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:0.8rem;cursor:pointer">◻️ Odznacz</button>
+        <span id="countLabel" style="flex:1;text-align:right;font-size:0.8rem;color:#64748b">0 zaznaczonych</span>
+    </div>
+
     <form action="/magazyn/etykiety/drukuj" method="POST" id="printForm">
-    <input type="hidden" name="drukarka" id="drukarkaInput" value="vretti">
+    <input type="hidden" name="drukarka" id="drukarkaInput" value="niimbot">
     '''
-    
+
+    stan_colors = {
+        'Nowy': '#22c55e', 'Jak nowy': '#3b82f6', 'Dobry': '#eab308',
+        'Uszkodzony': '#f97316', 'Zniszczony': '#ef4444'
+    }
+
     for p in products:
         img_url = p['zdjecie_url'] or ''
         img_html = f'<img src="{img_url}" style="width:50px;height:50px;object-fit:cover;border-radius:6px;background:#1e1e2e" onerror="this.style.display=\'none\'">' if img_url else '<div style="width:50px;height:50px;background:#1e1e2e;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.2rem">📦</div>'
-        html += f'''<div class="item" style="cursor:pointer;display:flex;align-items:center;gap:10px" onclick="this.querySelector('input').click()">
-            <input type="checkbox" name="produkty" value="{p['id']}" style="width:20px;height:20px;flex-shrink:0" onclick="event.stopPropagation()">
+
+        # Stan przyjęcia badge
+        try:
+            stan_p = p['stan_przyjecia'] or ''
+        except:
+            stan_p = ''
+        stan_badge = ''
+        if stan_p:
+            sc = stan_colors.get(stan_p, '#94a3b8')
+            stan_badge = f'<span style="font-size:0.65rem;color:{sc};border:1px solid {sc};padding:1px 5px;border-radius:4px;margin-left:4px">{stan_p}</span>'
+
+        html += f'''<div class="item prod-row" data-name="{p['nazwa'].lower()}" style="cursor:pointer;display:flex;align-items:center;gap:10px" onclick="this.querySelector('input').click();updateCount()">
+            <input type="checkbox" name="produkty" value="{p['id']}" style="width:20px;height:20px;flex-shrink:0" onclick="event.stopPropagation();updateCount()">
             {img_html}
             <div class="item-info" style="flex:1;min-width:0">
-                <div class="item-name">{p['nazwa'][:35]}</div>
-                <div class="item-meta">{p['ean'] or 'Brak EAN'} | 📍{p['lokalizacja'] or '—'}</div>
+                <div class="item-name">{p['nazwa'][:40]}{stan_badge}</div>
+                <div class="item-meta">{p['ean'] or 'N/A'} | 📍{p['lokalizacja'] or '—'}</div>
             </div>
             <div class="item-right" style="text-align:right;flex-shrink:0">
                 <div class="item-qty">{p['ilosc']}</div>
                 <div class="item-price">{p['cena_allegro']:.0f} zł</div>
             </div>
         </div>'''
-    
-    html += '''
+
+    html += f'''
     </form>
-    
+
     <div style="position:fixed;bottom:70px;left:0;right:0;padding:15px;background:#0a0a0f;border-top:1px solid #1e1e2e">
-        <div style="max-width:1600px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <button onclick="drukuj('vretti')" class="btn btn-p">🖨️ VRETTI</button>
-            <button onclick="drukuj('niimbot')" class="btn btn-purple">📱 NIIMBOT</button>
+        <div style="max-width:1600px;margin:0 auto">
+            <button onclick="drukuj()" class="btn btn-purple" style="width:100%;padding:16px;font-size:1.1rem;font-weight:700">📱 DRUKUJ NIIMBOT</button>
         </div>
     </div>
-    
+
     <script>
-    function drukuj(drukarka) {
+    function drukuj() {{
         var form = document.getElementById('printForm');
         var checked = form.querySelectorAll('input[name="produkty"]:checked');
-        if (checked.length === 0) {
+        if (checked.length === 0) {{
             alert('Wybierz co najmniej jeden produkt!');
             return;
-        }
-        document.getElementById('drukarkaInput').value = drukarka;
+        }}
         form.submit();
-    }
+    }}
+
+    function toggleAll(state) {{
+        document.querySelectorAll('.prod-row').forEach(row => {{
+            if (row.style.display !== 'none') {{
+                row.querySelector('input[type="checkbox"]').checked = state;
+            }}
+        }});
+        updateCount();
+    }}
+
+    function updateCount() {{
+        setTimeout(() => {{
+            const n = document.querySelectorAll('input[name="produkty"]:checked').length;
+            document.getElementById('countLabel').textContent = n + ' zaznaczonych';
+        }}, 50);
+    }}
+
+    function filterProducts() {{
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        document.querySelectorAll('.prod-row').forEach(row => {{
+            row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+        }});
+    }}
     </script>
-    
-    <div style="height:100px"></div>
+
+    <div style="height:120px"></div>
     <a href="/magazyn" class="back">← Powrót</a>
     '''
     return render(html)
@@ -5671,7 +5752,8 @@ def etykiety_niimbot_page(products):
             paleta=paleta_nazwa,
             koszt_szt=koszt_szt,
             cena_allegro=float(p.get('cena_allegro', 0) or 0),
-            kod_magazynowy=kod_mag
+            kod_magazynowy=kod_mag,
+            stan_przyjecia=p.get('stan_przyjecia', '') or ''
         )
         preview = pm.generate_label_preview(label) if IMAGING_AVAILABLE else ''
         previews.append({

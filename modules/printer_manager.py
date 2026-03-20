@@ -483,6 +483,7 @@ class ProductLabel:
     koszt_szt: float = 0               # Koszt zakupu brutto/szt z palety
     cena_allegro: float = 0            # Cena Allegro (jeśli wystawiony)
     kod_magazynowy: str = ""           # Kod magazynowy (MAG-XXXXX)
+    stan_przyjecia: str = ""           # Stan z przyjęcia (Nowy, Jak nowy, Dobry, Uszkodzony, Zniszczony)
     
     def __post_init__(self):
         if not self.data_przyjecia:
@@ -856,6 +857,8 @@ class PrinterManager:
             info_lines.append(('Szt: ' + str(label.ilosc), font_info))
         if label.cena_allegro and label.cena_allegro > 0:
             info_lines.append((str(int(label.cena_allegro)) + ' zl', font_info_bold))
+        if label.stan_przyjecia:
+            info_lines.append(('STAN: ' + pl_to_ascii(label.stan_przyjecia)[:18], font_info_bold))
         if label.paleta:
             pal_raw = pl_to_ascii(label.paleta).strip()
             pal_words = pal_raw.split()
