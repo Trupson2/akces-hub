@@ -1239,29 +1239,43 @@ def detect_category_id(nazwa):
 
 def clean_html_for_allegro(html):
     """
-    Czyści HTML do formatu akceptowanego przez Allegro.
-    Dozwolone: <p>, <b>, <strong>, <i>, <em>, <u>
+    Czyści HTML do formatu akceptowanego przez Allegro description sections.
+    Dozwolone tagi w sekcjach: h1, h2, h3, p, ul, ol, li
+    NIE dozwolone: b, strong, i, em, u, div, span, img, table, br, style
     """
     if not html:
         return ""
-    
-    # Usuń niedozwolone tagi
+
+    # Zamień div na p
     html = re.sub(r'<div[^>]*>', '<p>', html, flags=re.IGNORECASE)
     html = re.sub(r'</div>', '</p>', html, flags=re.IGNORECASE)
-    html = re.sub(r'<span[^>]*>', '', html, flags=re.IGNORECASE)
-    html = re.sub(r'</span>', '', html, flags=re.IGNORECASE)
+
+    # Usuń tagi inline formatowania (zachowaj tekst wewnątrz)
+    for tag in ['b', 'strong', 'i', 'em', 'u', 'span', 'font', 'a', 'small', 'big', 'sub', 'sup', 'mark']:
+        html = re.sub(rf'<{tag}[^>]*>', '', html, flags=re.IGNORECASE)
+        html = re.sub(rf'</{tag}>', '', html, flags=re.IGNORECASE)
+
+    # Usuń tagi blokowe niedozwolone (cała zawartość)
     html = re.sub(r'<img[^>]*/?>', '', html, flags=re.IGNORECASE)
     html = re.sub(r'<table[^>]*>.*?</table>', '', html, flags=re.IGNORECASE | re.DOTALL)
     html = re.sub(r'<br\s*/?>', ' ', html, flags=re.IGNORECASE)
+
+    # Usuń atrybuty style/class/id z dozwolonych tagów
     html = re.sub(r'style="[^"]*"', '', html, flags=re.IGNORECASE)
     html = re.sub(r"style='[^']*'", '', html, flags=re.IGNORECASE)
-    
+    html = re.sub(r'class="[^"]*"', '', html, flags=re.IGNORECASE)
+    html = re.sub(r'id="[^"]*"', '', html, flags=re.IGNORECASE)
+
+    # Wyczyść atrybuty z dozwolonych tagów (zostaw tylko czysty tag)
+    for tag in ['p', 'h1', 'h2', 'h3', 'ul', 'ol', 'li']:
+        html = re.sub(rf'<{tag}\s+[^>]*>', f'<{tag}>', html, flags=re.IGNORECASE)
+
     # Usuń puste paragrafy
     html = re.sub(r'<p>\s*</p>', '', html)
-    
+
     # Usuń wielokrotne spacje
     html = re.sub(r'\s+', ' ', html)
-    
+
     return html.strip()
 
 
@@ -1612,8 +1626,8 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
     # === Bullet points HTML ===
     bp_html = ''
     if bullet_points and isinstance(bullet_points, list) and len(bullet_points) > 0:
-        bp_lines = [f'<p>● {bp}</p>' for bp in bullet_points[:8]]
-        bp_html = ''.join(bp_lines)
+        bp_items = [f'<li>{bp}</li>' for bp in bullet_points[:8]]
+        bp_html = '<ul>' + ''.join(bp_items) + '</ul>'
 
     # === Parsuj paragrafy z opisu (pomiń tytuł - już jest w sekcji 0) ===
     paragraphs = []

@@ -3260,13 +3260,47 @@ def generator_mass_create_from_paleta_stream():
                 for msg, color in img_logs:
                     yield "data: " + json.dumps({'type': 'log', 'message': msg, 'color': color}) + "\n\n"
                 
-                # === UŻYJ ENHANCED ZDJĘĆ (pre-generated przez scraper) ===
-                _enh_dir_check = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'enhanced', str(asin or product_id))
-                if os.path.isdir(_enh_dir_check):
-                    _enh_files2 = sorted([os.path.join(_enh_dir_check, f) for f in os.listdir(_enh_dir_check) if f.endswith('.jpg')])
-                    if _enh_files2:
-                        wszystkie_zdjecia = _enh_files2[:8]
-                        yield "data: " + json.dumps({'type': 'log', 'message': f'✨ Użyto {len(_enh_files2)} zdjęć AI (pre-generated)', 'color': '#f59e0b'}) + "\n\n"
+                # === ZBIERZ ZDJĘCIA: enhanced (walidowane) + downloaded + oryginalne ===
+                _base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                _enh_dir = os.path.join(_base_dir, 'static', 'enhanced', str(asin or product_id))
+                _dl_dir = os.path.join(_base_dir, 'static', 'downloads', str(asin or product_id))
+
+                # Zbierz WSZYSTKIE dostępne lokalne zdjęcia (enhanced + downloads)
+                _local_images = []
+                _enh_count = 0
+                _dl_count = 0
+
+                # 1. Enhanced images (walidowane - plik musi istnieć i >5KB)
+                if os.path.isdir(_enh_dir):
+                    for f in sorted(os.listdir(_enh_dir)):
+                        if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
+                            fp = os.path.join(_enh_dir, f)
+                            sz = os.path.getsize(fp) if os.path.exists(fp) else 0
+                            if sz > 5000:  # min 5KB - odrzuć puste/uszkodzone
+                                _local_images.append(fp)
+                                _enh_count += 1
+                                print(f"    [IMG] Enhanced: {f} ({sz} bytes) ✓")
+                            else:
+                                print(f"    [IMG] Enhanced SKIP: {f} ({sz} bytes - za mały)")
+
+                # 2. Downloaded images (uzupełnij do 8)
+                if os.path.isdir(_dl_dir) and len(_local_images) < 8:
+                    for f in sorted(os.listdir(_dl_dir)):
+                        if len(_local_images) >= 8:
+                            break
+                        if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
+                            fp = os.path.join(_dl_dir, f)
+                            sz = os.path.getsize(fp) if os.path.exists(fp) else 0
+                            if sz > 5000 and fp not in _local_images:
+                                _local_images.append(fp)
+                                _dl_count += 1
+
+                if _local_images:
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'📁 Znaleziono {len(_local_images)} lokalnych zdjęć ({_enh_count} enhanced + {_dl_count} downloaded)', 'color': '#3b82f6'}) + "\n\n"
+                    wszystkie_zdjecia = _local_images[:8]
+
+                # Backup oryginalnych URL-i (z scraped) na wypadek fallbacku
+                _original_urls = [u for u in (wszystkie_zdjecia if wszystkie_zdjecia else []) if isinstance(u, str) and u.startswith('http')]
 
                 # 3. Upload WSZYSTKICH zdjęć do Allegro (max 8)
                 # Używamy wątku + keepalive żeby SSE stream się nie zerwał
@@ -3281,33 +3315,59 @@ def generator_mass_create_from_paleta_stream():
                     def _upload_worker():
                         for idx, img_url in enumerate(_imgs_to_upload, 1):
                             try:
+                                _is_local = not str(img_url).startswith('http')
+                                _exists = os.path.exists(img_url) if _is_local else True
+                                _size = os.path.getsize(img_url) if (_is_local and _exists) else 0
+                                print(f"    [Upload {idx}] Path: {img_url}")
+                                print(f"    [Upload {idx}] Local={_is_local} Exists={_exists} Size={_size}")
                                 allegro_url = upload_image_to_allegro(img_url, asin=asin)
-                                _upload_q.put(('ok', idx, allegro_url))
+                                _upload_q.put(('ok', idx, allegro_url, img_url))
                             except Exception as e:
-                                _upload_q.put(('error', idx, str(e)[:40]))
-                        _upload_q.put(('done', 0, None))
+                                import traceback
+                                traceback.print_exc()
+                                _upload_q.put(('error', idx, str(e)[:80], img_url))
+                        _upload_q.put(('done', 0, None, None))
 
                     _upload_thread = threading.Thread(target=_upload_worker, daemon=True)
                     _upload_thread.start()
 
                     _upload_done = False
+                    _failed_paths = []
                     while not _upload_done:
                         try:
-                            status, idx, result = _upload_q.get(timeout=3)
+                            status, idx, result, src_path = _upload_q.get(timeout=3)
                             if status == 'done':
                                 _upload_done = True
                             elif status == 'ok' and result:
                                 zdjecia_urls.append(result)
                                 yield "data: " + json.dumps({'type': 'log', 'message': f'   ✅ [{idx}/{len(_imgs_to_upload)}] Uploadowano', 'color': '#22c55e'}) + "\n\n"
                             elif status == 'ok':
-                                yield "data: " + json.dumps({'type': 'log', 'message': f'   ❌ [{idx}] Błąd uploadu', 'color': '#ef4444'}) + "\n\n"
+                                _failed_paths.append(src_path)
+                                yield "data: " + json.dumps({'type': 'log', 'message': f'   ❌ [{idx}] Upload failed (sprawdź logi serwera)', 'color': '#ef4444'}) + "\n\n"
                             else:
+                                _failed_paths.append(src_path)
                                 yield "data: " + json.dumps({'type': 'log', 'message': f'   ❌ [{idx}] {result}', 'color': '#ef4444'}) + "\n\n"
                         except queue.Empty:
-                            # Keepalive — żeby SSE stream się nie zerwał
                             yield ": keepalive\n\n"
 
-                    yield "data: " + json.dumps({'type': 'log', 'message': f'✅ Uploadowano {len(zdjecia_urls)}/{len(_imgs_to_upload)} zdjęć', 'color': '#22c55e'}) + "\n\n"
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'📷 Uploadowano {len(zdjecia_urls)}/{len(_imgs_to_upload)} zdjęć', 'color': '#22c55e' if zdjecia_urls else '#ef4444'}) + "\n\n"
+
+                    # === FALLBACK: jeśli 0 zdjęć - spróbuj oryginalne URL-e z CDN ===
+                    if not zdjecia_urls and _original_urls:
+                        yield "data: " + json.dumps({'type': 'log', 'message': f'🔄 Próbuję {len(_original_urls)} URL-i z CDN...', 'color': '#f59e0b'}) + "\n\n"
+                        for _ui, _uurl in enumerate(_original_urls[:8], 1):
+                            try:
+                                _ur = upload_image_to_allegro(_uurl, asin=asin)
+                                if _ur:
+                                    zdjecia_urls.append(_ur)
+                                    yield "data: " + json.dumps({'type': 'log', 'message': f'   ✅ [CDN {_ui}] OK', 'color': '#22c55e'}) + "\n\n"
+                                else:
+                                    yield "data: " + json.dumps({'type': 'log', 'message': f'   ❌ [CDN {_ui}] Nie przeszło', 'color': '#ef4444'}) + "\n\n"
+                            except:
+                                pass
+                            yield ": keepalive\n\n"
+                        if zdjecia_urls:
+                            yield "data: " + json.dumps({'type': 'log', 'message': f'✅ CDN fallback: {len(zdjecia_urls)} zdjęć', 'color': '#22c55e'}) + "\n\n"
                 
                 kategoria_id = None
                 try:

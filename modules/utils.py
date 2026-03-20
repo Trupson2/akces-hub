@@ -1857,10 +1857,10 @@ def generuj_opis_html_pro(nazwa, zdjecia_urls, kategoria='inne', bullet_points=N
     Generuje profesjonalny opis HTML dla Allegro.
     ZMIANA: Używa bullet_points z Amazona zamiast wymyślać ogólniki.
     
-    WAŻNE: Allegro akceptuje tylko podstawowe tagi:
-    <p>, <br>, <b>, <strong>, <i>, <em>, <u>, <ul>, <ol>, <li>, <h2>, <h3>
-    
-    NIE WOLNO używać: <div>, <span>, <img>, <table>, style=
+    WAŻNE: Allegro description sections akceptuje tylko tagi:
+    h1, h2, h3, p, ul, ol, li
+
+    NIE WOLNO używać: b, strong, i, em, u, div, span, img, table, br, style=
     
     Args:
         nazwa: nazwa produktu
@@ -2312,15 +2312,15 @@ ZASADY:
 
             specs = []
     
-    # ========== GENERUJ HTML (tylko dozwolone tagi Allegro) ==========
-    # Dozwolone: <p>, <b>, <strong>, <i>, <em>, <u>, <ul>, <ol>, <li>
-    # NIEDOZWOLONE: <div>, <span>, <img>, <table>, <br>, style=
+    # ========== GENERUJ HTML (tylko dozwolone tagi Allegro sections) ==========
+    # Dozwolone w description sections: h1, h2, h3, p, ul, ol, li
+    # NIEDOZWOLONE: b, strong, i, em, u, div, span, img, table, br, style=
     # NIE DODAJEMY Specyfikacji/Marki - Allegro może odrzucić!
-    
-    # Pogrubiony tytuł produktu na górze - zwiększa konwersję
-    html = f'<p><b>{nazwa}</b></p>'
+
+    # Tytuł produktu na górze jako h2
+    html = f'<h3>{nazwa}</h3>'
     html += f'<p>{intro_text}</p>'
-    
+
     # FEATURES SECTIONS - rozbudowane!
     for feature in features[:7]:  # Do 7 sekcji zamiast 5
         icon = feature.get('icon', '✅')
@@ -2329,8 +2329,8 @@ ZASADY:
         # Wyczyść Amazonowe formatowanie z tekstu
         text = re.sub(r'[【】\[\]●○•·]', '', text).strip()
         text = re.sub(r'\s+', ' ', text)
-        # Nie dodawaj generycznych ogólników do krótkich tekstów
-        html += f'<p>{icon} <b>{title}</b></p>'
+        # Tytuł cechy jako h3, tekst jako p (bez <b> - Allegro nie akceptuje)
+        html += f'<h3>{icon} {title}</h3>'
         html += f'<p>{text}</p>'
     
     # ========== KONIEC OPISU - bez dodatkowych sekcji ==========
