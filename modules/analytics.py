@@ -679,13 +679,14 @@ def profit_analyzer():
         m_end = m_end_dt.strftime('%Y-%m-%d')
         m_label = dt.strftime('%m/%Y')
 
-        # Przychód ze sprzedaży (Allegro + offline, bez zwrotów)
+        # Przychód ze sprzedaży (bez offline — to duplikaty auto-synca, bez zwrotów)
         rev = conn.execute('''
             SELECT COALESCE(SUM(cena * ilosc), 0) as r, COUNT(*) as cnt,
                    COALESCE(SUM(ilosc), 0) as szt
             FROM sprzedaze
             WHERE date(data_sprzedazy) >= ? AND date(data_sprzedazy) <= ?
             AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+            AND (kupujacy IS NULL OR kupujacy != 'offline')
         ''', (m_start, m_end)).fetchone()
 
         przychod_allegro = rev['r'] or 0
@@ -698,6 +699,7 @@ def profit_analyzer():
             FROM sprzedaze
             WHERE date(data_sprzedazy) >= ? AND date(data_sprzedazy) <= ?
             AND status = 'zwrot'
+            AND (kupujacy IS NULL OR kupujacy != 'offline')
         ''', (m_start, m_end)).fetchone()
 
         # Sprzedaż prywatna (offline, OLX, Vinted etc.)
@@ -833,6 +835,7 @@ def profit_analyzer():
         FROM sprzedaze
         WHERE date(data_sprzedazy) >= date('now', '-30 days')
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND (kupujacy IS NULL OR kupujacy != 'offline')
         GROUP BY dzien ORDER BY dzien
     ''').fetchall()
 
@@ -873,6 +876,7 @@ def profit_analyzer():
         JOIN produkty p ON s.produkt_id = p.id
         LEFT JOIN palety pal ON p.paleta_id = pal.id
         WHERE s.status NOT IN ('zwrot','anulowane','anulowana')
+        AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
         GROUP BY p.id
         ORDER BY przychod DESC
         LIMIT 15
@@ -900,6 +904,7 @@ def profit_analyzer():
             FROM sprzedaze
             WHERE date(data_sprzedazy) >= date('now','-7 days')
             AND status NOT IN ('zwrot','anulowane','anulowana')
+            AND (kupujacy IS NULL OR kupujacy != 'offline')
             GROUP BY dzien
         ) d
     ''').fetchone()
@@ -911,6 +916,7 @@ def profit_analyzer():
             FROM sprzedaze
             WHERE date(data_sprzedazy) >= date('now','-30 days')
             AND status NOT IN ('zwrot','anulowane','anulowana')
+            AND (kupujacy IS NULL OR kupujacy != 'offline')
             GROUP BY dzien
         ) d
     ''').fetchone()
