@@ -2233,6 +2233,224 @@ def generator():
         active_narzedzia='active', active_home='', active_magazyn='',
         active_paletomat='', active_allegro='', active_monitor='')
 
+# ANALIZA OFERTY
+
+@app.route('/narzedzia/analiza-oferty', methods=['GET', 'POST'])
+def analiza_oferty():
+    from modules.database import get_db
+    from modules.utils import ALLEGRO_PROWIZJE
+
+    analiza = None
+    query = request.form.get('query', '').strip()
+    cena_sprzedazy = request.form.get('cena_sprzedazy', '')
+
+    if request.method == 'POST' and (query or cena_sprzedazy):
+        conn = get_db()
+        produkt = None
+
+        if query:
+            # Szukaj po ID, EAN, ASIN lub nazwie
+            if query.isdigit():
+                produkt = conn.execute('SELECT p.*, pal.cena_zakupu as paleta_cena, pal.nazwa as paleta_nazwa, pal.ilosc_produktow as paleta_ilosc FROM produkty p LEFT JOIN palety pal ON pal.id=p.paleta_id WHERE p.id=?', (query,)).fetchone()
+            if not produkt:
+                produkt = conn.execute('SELECT p.*, pal.cena_zakupu as paleta_cena, pal.nazwa as paleta_nazwa, pal.ilosc_produktow as paleta_ilosc FROM produkty p LEFT JOIN palety pal ON pal.id=p.paleta_id WHERE p.ean=? OR p.asin=?', (query, query)).fetchone()
+            if not produkt:
+                produkt = conn.execute('SELECT p.*, pal.cena_zakupu as paleta_cena, pal.nazwa as paleta_nazwa, pal.ilosc_produktow as paleta_ilosc FROM produkty p LEFT JOIN palety pal ON pal.id=p.paleta_id WHERE p.nazwa LIKE ? LIMIT 1', (f'%{query}%',)).fetchone()
+
+        if produkt:
+            p = dict(produkt)
+            kat = (p.get('kategoria') or 'inne').lower()
+            prowizja_rate = ALLEGRO_PROWIZJE.get(kat, 0.11)
+
+            # Koszt jednostkowy
+            koszt_szt = float(p.get('cena_brutto') or 0)
+            if koszt_szt == 0 and p.get('paleta_cena') and p.get('paleta_ilosc'):
+                paleta_ilosc = max(int(p['paleta_ilosc']), 1)
+                total_szt = conn.execute('SELECT COALESCE(SUM(ilosc),0) FROM produkty WHERE paleta_id=?', (p.get('paleta_id'),)).fetchone()[0] or paleta_ilosc
+                koszt_szt = round(float(p['paleta_cena']) / max(total_szt, 1), 2)
+
+            cena_al = float(cena_sprzedazy) if cena_sprzedazy else float(p.get('cena_allegro') or 0)
+            prowizja = round(cena_al * prowizja_rate, 2)
+            wysylka_koszt = 15  # średni koszt wysyłki
+            zysk = round(cena_al - koszt_szt - prowizja - wysylka_koszt, 2) if cena_al > 0 else 0
+            marza_pct = round((zysk / cena_al) * 100, 1) if cena_al > 0 else 0
+            roi = round((zysk / koszt_szt) * 100, 1) if koszt_szt > 0 else 0
+
+            # Cena Amazon
+            cena_amazon = 0
+            if p.get('asin'):
+                scraped = conn.execute('SELECT cena_amazon FROM scraped WHERE asin=?', (p['asin'],)).fetchone()
+                if scraped:
+                    cena_amazon = float(scraped['cena_amazon'] or 0)
+
+            # Ile sprzedano
+            sprzedane = conn.execute('SELECT COALESCE(SUM(ilosc),0) FROM sprzedaze WHERE produkt_id=? AND COALESCE(status,"") NOT IN ("anulowana","anulowane","zwrot","") AND (kupujacy IS NULL OR kupujacy != "offline")', (p['id'],)).fetchone()[0]
+
+            # Sugerowana cena (min 30% marży)
+            if koszt_szt > 0:
+                min_cena_30 = round((koszt_szt + wysylka_koszt) / (1 - prowizja_rate - 0.30), 2)
+            else:
+                min_cena_30 = 0
+
+            analiza = {
+                'produkt': p,
+                'koszt_szt': koszt_szt,
+                'cena_allegro': cena_al,
+                'prowizja_rate': prowizja_rate,
+                'prowizja': prowizja,
+                'wysylka': wysylka_koszt,
+                'zysk': zysk,
+                'marza_pct': marza_pct,
+                'roi': roi,
+                'cena_amazon': cena_amazon,
+                'sprzedane': sprzedane,
+                'min_cena_30': min_cena_30,
+                'kategoria': kat
+            }
+
+    return render_template_string(ANALIZA_OFERTY_HTML,
+        version=VERSION, analiza=analiza, query=query, cena_sprzedazy=cena_sprzedazy,
+        active_narzedzia='active', active_home='', active_magazyn='',
+        active_paletomat='', active_allegro='', active_monitor='')
+
+
+ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
+{% block page_title %}Analiza oferty{% endblock %}
+{% block content %}
+<style>
+.ao-card{background:var(--bg-secondary,#12121a);border:1px solid var(--border-color,#1e1e2e);border-radius:14px;padding:20px;margin-bottom:15px}
+.ao-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:15px}
+.ao-stat{background:var(--bg-primary,#0a0a0f);border:1px solid var(--border-color,#1e1e2e);border-radius:12px;padding:16px;text-align:center}
+.ao-stat-val{font-size:1.4rem;font-weight:800}
+.ao-stat-lbl{font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted,#64748b);margin-top:4px}
+.ao-bar{height:8px;border-radius:4px;background:#1e1e2e;overflow:hidden;margin:8px 0}
+.ao-bar-fill{height:100%;border-radius:4px;transition:width 0.5s}
+.ao-good{color:#22c55e}.ao-bad{color:#ef4444}.ao-warn{color:#eab308}
+</style>
+
+<div style="text-align:center;padding:20px 0 10px">
+    <h1 style="font-size:1.5rem;background:linear-gradient(135deg,#06b6d4,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent">🔍 ANALIZA OFERTY</h1>
+    <small style="color:var(--text-muted)">Sprawdz oplacalnosc produktu przed wystawieniem</small>
+</div>
+
+<div class="ao-card">
+    <form method="POST" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+        <div style="flex:2;min-width:200px">
+            <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Produkt (ID / EAN / ASIN / nazwa)</label>
+            <input type="text" name="query" value="{{ query }}" placeholder="np. B0D9QGW2M6 lub 6975069304199" style="width:100%;padding:10px 14px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:10px;color:var(--text-primary);font-size:0.9rem">
+        </div>
+        <div style="flex:1;min-width:120px">
+            <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Cena sprzedazy (opcjonalnie)</label>
+            <input type="number" step="0.01" name="cena_sprzedazy" value="{{ cena_sprzedazy }}" placeholder="np. 199.00" style="width:100%;padding:10px 14px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:10px;color:var(--text-primary);font-size:0.9rem">
+        </div>
+        <button type="submit" style="padding:10px 24px;background:linear-gradient(135deg,#06b6d4,#6366f1);border:none;border-radius:10px;color:#fff;font-weight:700;cursor:pointer;font-size:0.9rem">🔍 Analizuj</button>
+    </form>
+</div>
+
+{% if analiza %}
+<div class="ao-card" style="border-color:#6366f155">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
+        <div>
+            <div style="font-size:1.1rem;font-weight:700">{{ analiza.produkt.nazwa[:80] }}</div>
+            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:3px">
+                {% if analiza.produkt.ean %}EAN: {{ analiza.produkt.ean }} • {% endif %}
+                {% if analiza.produkt.asin %}ASIN: {{ analiza.produkt.asin }} • {% endif %}
+                Kategoria: {{ analiza.kategoria }} • Prowizja: {{ (analiza.prowizja_rate * 100)|int }}%
+            </div>
+        </div>
+        <div style="text-align:right">
+            <div style="font-size:0.75rem;color:var(--text-muted)">Sprzedano</div>
+            <div style="font-size:1.2rem;font-weight:700;color:#6366f1">{{ analiza.sprzedane }} szt</div>
+        </div>
+    </div>
+
+    <div class="ao-grid">
+        <div class="ao-stat">
+            <div class="ao-stat-val" style="color:#ef4444">{{ "%.2f"|format(analiza.koszt_szt) }} zl</div>
+            <div class="ao-stat-lbl">Koszt zakupu/szt</div>
+        </div>
+        <div class="ao-stat">
+            <div class="ao-stat-val" style="color:#3b82f6">{{ "%.2f"|format(analiza.cena_allegro) }} zl</div>
+            <div class="ao-stat-lbl">Cena sprzedazy</div>
+        </div>
+        <div class="ao-stat">
+            <div class="ao-stat-val" style="color:#eab308">-{{ "%.2f"|format(analiza.prowizja) }} zl</div>
+            <div class="ao-stat-lbl">Prowizja Allegro</div>
+        </div>
+        <div class="ao-stat">
+            <div class="ao-stat-val" style="color:#f97316">-{{ "%.2f"|format(analiza.wysylka) }} zl</div>
+            <div class="ao-stat-lbl">Koszt wysylki</div>
+        </div>
+        <div class="ao-stat" style="border-color:{% if analiza.zysk >= 0 %}#22c55e55{% else %}#ef444455{% endif %}">
+            <div class="ao-stat-val {% if analiza.zysk >= 0 %}ao-good{% else %}ao-bad{% endif %}">{{ "%+.2f"|format(analiza.zysk) }} zl</div>
+            <div class="ao-stat-lbl">Zysk netto/szt</div>
+        </div>
+        <div class="ao-stat" style="border-color:{% if analiza.marza_pct >= 20 %}#22c55e55{% elif analiza.marza_pct >= 10 %}#eab30855{% else %}#ef444455{% endif %}">
+            <div class="ao-stat-val {% if analiza.marza_pct >= 20 %}ao-good{% elif analiza.marza_pct >= 10 %}ao-warn{% else %}ao-bad{% endif %}">{{ analiza.marza_pct }}%</div>
+            <div class="ao-stat-lbl">Marza</div>
+        </div>
+    </div>
+
+    <!-- Pasek marzy -->
+    <div style="margin-bottom:15px">
+        <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted)">
+            <span>Marza</span>
+            <span class="{% if analiza.marza_pct >= 20 %}ao-good{% elif analiza.marza_pct >= 10 %}ao-warn{% else %}ao-bad{% endif %}">{{ analiza.marza_pct }}%</span>
+        </div>
+        <div class="ao-bar">
+            <div class="ao-bar-fill" style="width:{{ [analiza.marza_pct, 100]|min }}%;background:{% if analiza.marza_pct >= 20 %}#22c55e{% elif analiza.marza_pct >= 10 %}#eab308{% else %}#ef4444{% endif %}"></div>
+        </div>
+    </div>
+
+    <!-- Rozklad ceny -->
+    <div class="ao-card" style="background:var(--bg-primary)">
+        <div style="font-weight:700;margin-bottom:10px;font-size:0.85rem">📊 Rozklad ceny</div>
+        {% set total = analiza.koszt_szt + analiza.prowizja + analiza.wysylka + ([analiza.zysk, 0]|max) %}
+        {% if total > 0 %}
+        <div style="display:flex;height:28px;border-radius:8px;overflow:hidden;margin-bottom:8px">
+            <div style="width:{{ (analiza.koszt_szt/total*100)|round }}%;background:#ef4444;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700">Koszt</div>
+            <div style="width:{{ (analiza.prowizja/total*100)|round }}%;background:#eab308;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700">Prow.</div>
+            <div style="width:{{ (analiza.wysylka/total*100)|round }}%;background:#f97316;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700">Wys.</div>
+            {% if analiza.zysk > 0 %}
+            <div style="width:{{ (analiza.zysk/total*100)|round }}%;background:#22c55e;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700">Zysk</div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Rekomendacje -->
+    <div class="ao-card" style="background:var(--bg-primary)">
+        <div style="font-weight:700;margin-bottom:10px;font-size:0.85rem">💡 Rekomendacje</div>
+        {% if analiza.cena_amazon > 0 %}
+        <div style="font-size:0.85rem;margin-bottom:6px">🌍 Cena Amazon: <b style="color:#3b82f6">{{ "%.2f"|format(analiza.cena_amazon) }} EUR</b> (~{{ "%.0f"|format(analiza.cena_amazon * 4.3) }} PLN)</div>
+        {% endif %}
+        {% if analiza.min_cena_30 > 0 %}
+        <div style="font-size:0.85rem;margin-bottom:6px">📈 Min. cena dla 30% marzy: <b style="color:#22c55e">{{ "%.2f"|format(analiza.min_cena_30) }} zl</b></div>
+        {% endif %}
+        <div style="font-size:0.85rem;margin-bottom:6px">📊 ROI: <b style="color:{% if analiza.roi >= 50 %}#22c55e{% elif analiza.roi >= 20 %}#eab308{% else %}#ef4444{% endif %}">{{ analiza.roi }}%</b></div>
+        {% if analiza.zysk < 0 %}
+        <div style="font-size:0.85rem;color:#ef4444;font-weight:600;margin-top:8px">⚠️ STRATA! Podniez cene powyzej {{ "%.0f"|format(analiza.min_cena_30) }} zl</div>
+        {% elif analiza.marza_pct < 10 %}
+        <div style="font-size:0.85rem;color:#eab308;font-weight:600;margin-top:8px">⚠️ Niska marza. Rozważ podniesienie ceny.</div>
+        {% elif analiza.marza_pct >= 30 %}
+        <div style="font-size:0.85rem;color:#22c55e;font-weight:600;margin-top:8px">✅ Swietna marza! Oferta bardzo oplacalna.</div>
+        {% else %}
+        <div style="font-size:0.85rem;color:#22c55e;margin-top:8px">✅ Oferta oplacalna.</div>
+        {% endif %}
+    </div>
+</div>
+{% elif query %}
+<div class="ao-card" style="text-align:center;padding:30px">
+    <div style="font-size:2rem;margin-bottom:10px">🔍</div>
+    <div style="color:var(--text-muted)">Nie znaleziono produktu "{{ query }}"</div>
+</div>
+{% endif %}
+
+<a href="/narzedzia" style="display:inline-block;margin-top:10px;color:var(--text-muted);text-decoration:none;font-size:0.85rem">← Powrot do narzedzi</a>
+{% endblock %}
+'''
+
+
 # EXPORT
 
 @app.route('/narzedzia/export', methods=['GET', 'POST'])

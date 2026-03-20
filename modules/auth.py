@@ -778,11 +778,29 @@ def setup_auth(app):
             session.pop('show_kreator', None)
             return redirect('/ustawienia/kreator?welcome=1')
 
-        # Niezalogowany — kieruj na login
+        # Niezalogowany — auto-login na Pi (localhost / sieć lokalna)
         if not session.get('user_id'):
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({'success': False, 'error': 'Wymagane logowanie'}), 401
-            return redirect(url_for('auth.login', next=request.full_path.rstrip('?')))
+            _auto = False
+            _remote = request.remote_addr or ''
+            if _remote in ('127.0.0.1', '::1') or _remote.startswith('192.168.') or _remote.startswith('10.'):
+                try:
+                    _conn = _get_auth_db()
+                    _admin = _conn.execute("SELECT id, username, rola FROM users WHERE rola='admin' AND aktywny=1 ORDER BY id LIMIT 1").fetchone()
+                    _conn.close()
+                    if _admin:
+                        session['user_id'] = _admin['id']
+                        session['username'] = _admin['username']
+                        session['rola'] = _admin['rola']
+                        session['last_active'] = time.time()
+                        session.permanent = True
+                        _auto = True
+                        print(f"🔓 AUTO-LOGIN: {_admin['username']} z {_remote}")
+                except Exception as _e:
+                    print(f"⚠️ Auto-login error: {_e}")
+            if not _auto:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': False, 'error': 'Wymagane logowanie'}), 401
+                return redirect(url_for('auth.login', next=request.full_path.rstrip('?')))
 
         # Auto-logout po bezczynności
         now = time.time()
