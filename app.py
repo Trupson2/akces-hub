@@ -1193,8 +1193,16 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
         {'msg': f"Stoi >30 dni: {stats['stojace_30dni']} szt", 'time': 'uwaga', 'color': 'yellow'},
     ]
     
-    # Kiosk mode — uproszczony dashboard (URL param lub cookie)
-    is_kiosk = request.args.get('kiosk') == '1' or request.cookies.get('kiosk_mode') == '1'
+    # Kiosk mode — tylko przez URL param ?kiosk=1 (nie sticky)
+    # Na Pi: otwórz chromium z /?kiosk=1 w autostart
+    # ?kiosk=0 wyłącza tryb kiosku (czyści cookie)
+    kiosk_param = request.args.get('kiosk', '')
+    if kiosk_param == '0':
+        # Wyłącz kiosk — usuń cookie i pokaż normalny dashboard
+        resp = make_response(redirect('/'))
+        resp.delete_cookie('kiosk_mode')
+        return resp
+    is_kiosk = kiosk_param == '1'
     if is_kiosk:
         resp = make_response(render_template('kiosk_home.html',
             version=VERSION,
@@ -1204,7 +1212,6 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
             active_monitor='',
             **sypie_data
         ))
-        resp.set_cookie('kiosk_mode', '1', max_age=365*24*3600, httponly=True, samesite='Lax')
         return resp
 
     # Statystyki COGS do dashboardu

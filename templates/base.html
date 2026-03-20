@@ -21,11 +21,7 @@
     const saved = localStorage.getItem('theme');
     if(saved) document.documentElement.setAttribute('data-theme', saved);
 })();
-(function(){
-    var p=new URLSearchParams(location.search);
-    if(p.get('kiosk')==='1')localStorage.setItem('kiosk_mode','1');
-    if(p.get('kiosk')==='0')localStorage.removeItem('kiosk_mode');
-})();
+/* kiosk mode is URL-param only now, no localStorage */
 if('serviceWorker' in navigator){navigator.serviceWorker.register('/static/sw.js').then(r=>console.log('SW OK')).catch(e=>console.log('SW fail',e));}
 </script>
 <style>
