@@ -688,20 +688,17 @@ def profit_analyzer():
             AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
         ''', (m_start, m_end)).fetchone()
 
-        przychod_brutto = rev['r'] or 0
+        przychod_allegro = rev['r'] or 0
         zamowienia = rev['cnt'] or 0
         sztuki = rev['szt'] or 0
 
-        # Zwroty (osobne rekordy — ich wartość musi być odjęta od przychodu)
+        # Zwroty (status zmieniony na 'zwrot' — JUŻ wyłączone z revenue query powyżej)
         zwroty = conn.execute('''
             SELECT COALESCE(SUM(cena * ilosc), 0) as r, COUNT(*) as cnt
             FROM sprzedaze
             WHERE date(data_sprzedazy) >= ? AND date(data_sprzedazy) <= ?
             AND status = 'zwrot'
         ''', (m_start, m_end)).fetchone()
-
-        # Przychód Allegro = sprzedaże MINUS zwroty
-        przychod_allegro = przychod_brutto - (zwroty['r'] or 0)
 
         # Sprzedaż prywatna (offline, OLX, Vinted etc.)
         prywatne = 0
@@ -750,7 +747,6 @@ def profit_analyzer():
         monthly_data.append({
             'label': m_label,
             'przychod': przychod,
-            'przychod_brutto': przychod_brutto,
             'przychod_allegro': przychod_allegro,
             'prywatne': prywatne,
             'cogs': cogs,
@@ -1141,14 +1137,12 @@ def profit_analyzer():
     <div class="card-header"><div class="card-title">P&amp;L &mdash; {curr['label']}</div></div>
     <div class="wf-container">
         <div class="wf-row">
-            <div class="wf-label">Sprzedaz brutto</div>
+            <div class="wf-label">Przychod netto</div>
             <div class="wf-bar"><div style="height:100%;width:100%;background:linear-gradient(90deg,var(--blue),var(--accent));border-radius:6px"></div></div>
-            <div class="wf-val" style="color:var(--blue)">+{curr.get('przychod_brutto', curr['przychod_allegro'] + curr['zwroty_kwota']):,.0f}</div>
+            <div class="wf-val" style="color:var(--blue)">+{curr['przychod']:,.0f}</div>
         </div>
-        <div class="wf-row">
-            <div class="wf-label">Zwroty ({curr['zwroty_cnt']})</div>
-            <div class="wf-bar"><div style="height:100%;width:{(curr['zwroty_kwota']/(curr.get('przychod_brutto', curr['przychod_allegro']+curr['zwroty_kwota']))*100) if curr.get('przychod_brutto', curr['przychod_allegro']+curr['zwroty_kwota'])>0 else 0:.0f}%;background:var(--red);border-radius:6px;opacity:0.5"></div></div>
-            <div class="wf-val" style="color:var(--red)">-{curr['zwroty_kwota']:,.0f}</div>
+        <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:8px;padding-left:132px">
+            (po odjeciu {curr['zwroty_cnt']} zwrotow: {curr['zwroty_kwota']:,.0f} zl)
         </div>
         {'<div class="wf-row"><div class="wf-label">Sprzedaz prywatna</div><div class="wf-bar"><div style="height:100%;width:' + str(int(curr['prywatne']/curr['przychod']*100) if curr['przychod']>0 else 0) + '%;background:var(--cyan);border-radius:6px;opacity:0.7"></div></div><div class="wf-val" style="color:var(--cyan)">+' + f"{curr['prywatne']:,.0f}" + '</div></div>' if curr['prywatne'] > 0 else ''}
         <div class="wf-row">
