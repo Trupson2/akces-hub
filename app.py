@@ -2315,14 +2315,38 @@ def analiza_oferty():
             if not p.get('zdjecie_url'):
                 problemy.append('Brak zdjęcia głównego!')
                 score -= 20
-            # Więcej zdjęć
-            images_json = p.get('images') or '[]'
-            try:
-                import json as _json
-                img_list = _json.loads(images_json) if isinstance(images_json, str) else images_json
-                img_count = len(img_list) if img_list else (1 if p.get('zdjecie_url') else 0)
-            except:
-                img_count = 1 if p.get('zdjecie_url') else 0
+            # Więcej zdjęć — sprawdź: 1) lokalne pliki, 2) kolumna images, 3) scraped
+            img_count = 0
+            # Lokalne pliki w static/downloads/{ASIN}/
+            if p.get('asin'):
+                import os, glob as _glob
+                asin_dir = os.path.join('static', 'downloads', str(p['asin']))
+                if os.path.isdir(asin_dir):
+                    img_count = len([f for f in os.listdir(asin_dir) if f.endswith(('.jpg', '.png', '.webp'))])
+                # Też sprawdź enhanced
+                enh_dir = os.path.join('static', 'enhanced', str(p['asin']))
+                if os.path.isdir(enh_dir):
+                    enh_count = len([f for f in os.listdir(enh_dir) if f.endswith(('.jpg', '.png', '.webp'))])
+                    img_count = max(img_count, enh_count)
+            # Fallback na kolumnę images
+            if img_count == 0:
+                images_json = p.get('images') or '[]'
+                try:
+                    import json as _json
+                    img_list = _json.loads(images_json) if isinstance(images_json, str) else images_json
+                    img_count = len(img_list) if img_list else 0
+                except:
+                    pass
+            # Fallback na scraped.wszystkie_zdjecia
+            if img_count == 0 and p.get('asin'):
+                scraped_imgs = conn.execute('SELECT wszystkie_zdjecia FROM scraped WHERE asin=?', (p['asin'],)).fetchone()
+                if scraped_imgs and scraped_imgs['wszystkie_zdjecia']:
+                    try:
+                        img_count = len(_json.loads(scraped_imgs['wszystkie_zdjecia']))
+                    except:
+                        pass
+            if img_count == 0 and p.get('zdjecie_url'):
+                img_count = 1
             if img_count < 3:
                 wskazowki.append(f'Tylko {img_count} zdjęć — dodaj min. 4-6 zdjęć')
                 score -= 10
