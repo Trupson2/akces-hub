@@ -1863,6 +1863,12 @@ a{color:#6366f1;text-decoration:none}
         <div class="info">Klucz: <span>{{ lic.key }}</span></div>
         <div class="info">Wygasa: <span>{{ lic.expires }}</span></div>
         <a href="/" class="btn btn-primary" style="text-align:center;text-decoration:none;margin-top:16px">← Dashboard</a>
+        {% if lic.plan|upper != 'ENTERPRISE' %}
+        <form action="/license/upgrade-enterprise" method="POST" style="margin-top:8px">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);text-align:center">⬆️ Upgrade do Enterprise</button>
+        </form>
+        {% endif %}
         {% endif %}
     </div>
 
@@ -1902,6 +1908,37 @@ a{color:#6366f1;text-decoration:none}
         Kontakt: support@akceshub.pl
     </div>
 </div></body></html>''', lic=lic, msg=msg, err=err)
+
+
+# ============================================================
+# UPGRADE LICENCJI DO ENTERPRISE
+# ============================================================
+@app.route('/license/upgrade-enterprise', methods=['POST'])
+def license_upgrade_enterprise():
+    """Upgrade aktualnej licencji do planu Enterprise"""
+    from modules.license import get_license_info, generate_license_key, activate_license
+    lic = get_license_info()
+    if not lic:
+        return redirect('/license')
+    # Wygeneruj nową licencję enterprise z tym samym klientem i czasem
+    client = lic.get('client', 'Klient')
+    # Oblicz ile miesięcy zostało
+    expires = lic.get('expires', 0)
+    new_lic = generate_license_key(client, 'enterprise', months=0)
+    if expires > 0:
+        import time as _t
+        new_lic['expires'] = expires  # Zachowaj oryginalny expiry
+        # Przelicz sygnaturę z nowym planem
+        import hmac as _hmac, hashlib as _hl
+        from modules.license import LICENSE_SECRET
+        plan_code = 'E'
+        payload = f"{client}|{plan_code}|{new_lic['created']}|{expires}"
+        sig = _hmac.new(LICENSE_SECRET.encode(), payload.encode(), _hl.sha256).hexdigest()
+        sig_short = sig[:16].upper()
+        new_lic['key'] = f"AKCES-{plan_code}{sig_short[:3]}-{sig_short[3:7]}-{sig_short[7:11]}-{sig_short[11:15]}"
+        new_lic['signature'] = sig[:32]
+    ok, msg = activate_license(new_lic['key'], new_lic['client'], new_lic['plan'], new_lic['created'], new_lic['expires'], new_lic['signature'])
+    return redirect('/license')
 
 
 # ============================================================
