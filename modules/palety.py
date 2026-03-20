@@ -1648,7 +1648,16 @@ def paleta_bulk_import():
                     data_rows = rows[header_row_idx + 1:]
                     for idx, row in enumerate(data_rows):
                         try:
-                            prod_nazwa = str(row[col_nazwa_i]).strip() if col_nazwa_i >= 0 and col_nazwa_i < len(row) and row[col_nazwa_i] is not None else f'Produkt {idx+1}'
+                            # Pomiń puste wiersze
+                            if not row or all(c is None or str(c).strip() == '' for c in row):
+                                continue
+
+                            # Nazwa — wymagana, pomiń jeśli brak
+                            if col_nazwa_i >= 0 and col_nazwa_i < len(row) and row[col_nazwa_i] is not None:
+                                prod_nazwa = str(row[col_nazwa_i]).strip()
+                            else:
+                                continue  # Brak nazwy = pomiń wiersz
+
                             prod_ean = str(row[col_ean_i]).strip() if col_ean_i >= 0 and col_ean_i < len(row) and row[col_ean_i] is not None else ''
                             prod_asin = str(row[col_asin_i]).strip() if col_asin_i >= 0 and col_asin_i < len(row) and row[col_asin_i] is not None else ''
                             try:
@@ -1674,6 +1683,10 @@ def paleta_bulk_import():
                                 prod_cena_brutto = round(prod_cena, 2)  # Cena już brutto
 
                             if not prod_nazwa or prod_nazwa in ('nan', 'None', '') or prod_nazwa.strip() == '':
+                                continue
+                            # Pomiń wiersze podsumowujące
+                            nazwa_lower = prod_nazwa.lower().strip()
+                            if nazwa_lower in ('total', 'razem', 'sum', 'suma', 'gesamt', 'subtotal', 'podsumowanie'):
                                 continue
 
                             # Wyczyść EAN/ASIN z 'nan'
