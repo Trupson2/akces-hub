@@ -1728,12 +1728,30 @@ def paleta_bulk_import():
 
             conn.commit()
 
-            # 🚜 AUTO-SCRAPING: zbierz ASIN-y z nowo-zaimportowanych produktów i odpal kombajn
+            # 📋 Dodaj produkty z ASIN do tabeli scraped (żeby pojawiły się w generatorze ofert)
             scrape_count = 0
             try:
                 all_paleta_ids = [w['paleta_id'] for w in wyniki if w['status'] == 'ok']
                 if all_paleta_ids:
                     placeholders = ','.join('?' * len(all_paleta_ids))
+                    new_products = conn.execute(f'''
+                        SELECT DISTINCT p.asin, p.nazwa, p.ean, p.cena_netto, p.cena_brutto, p.kategoria, p.zdjecie_url
+                        FROM produkty p
+                        WHERE p.paleta_id IN ({placeholders})
+                        AND p.asin IS NOT NULL AND p.asin != '' AND p.asin != 'nan'
+                    ''', all_paleta_ids).fetchall()
+
+                    for np_row in new_products:
+                        # Dodaj do scraped jeśli jeszcze nie istnieje
+                        exists = conn.execute('SELECT 1 FROM scraped WHERE asin=?', (np_row['asin'],)).fetchone()
+                        if not exists:
+                            conn.execute('''
+                                INSERT INTO scraped (asin, nazwa, kategoria, zdjecie_url, cena_amazon, status, data_scrape)
+                                VALUES (?, ?, ?, ?, ?, 'nowy', datetime('now'))
+                            ''', (np_row['asin'], np_row['nazwa'], np_row['kategoria'] or '', np_row['zdjecie_url'] or '', np_row['cena_brutto'] or 0))
+                    conn.commit()
+
+                    # 🚜 AUTO-SCRAPING: odpal kombajn dla produktów bez zdjęć
                     asins_rows = conn.execute(f'''
                         SELECT DISTINCT asin FROM produkty
                         WHERE paleta_id IN ({placeholders})
@@ -1747,7 +1765,7 @@ def paleta_bulk_import():
                         scrape_count = len(asins)
                         print(f"🚜 Bulk import → auto-scraping {scrape_count} produktów")
             except Exception as e:
-                print(f"⚠️ Auto-scraping error: {e}")
+                print(f"⚠️ Auto-scraping/scraped insert error: {e}")
 
             # Pokaż wyniki
             ok_count = sum(1 for w in wyniki if w['status'] == 'ok')
@@ -2847,9 +2865,7 @@ def paleta_szczegoly(paleta_id):
         <a href="/magazyn/import?paleta_id={paleta_id}" class="btn" style="background:var(--blue);text-decoration:none">📥 IMPORTUJ EXCEL</a>
         <a href="/palety/{paleta_id}/edit" class="btn btn-warning" style="text-decoration:none">⚙️ EDYTUJ PALETE</a>
     </div>
-    <style>@keyframes scrape-spin {{0%{{transform:rotate(0deg)}}100%{{transform:rotate(360deg)}}}}</style>
-    <button type="button" id="scrape-btn" class="btn" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);margin-bottom:15px;font-size:0.85rem;cursor:pointer"
-     onclick="(function(btn){{btn.disabled=true;btn.style.opacity='0.7';btn.style.pointerEvents='none';btn.innerHTML='<span style=\\'display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top:2px solid #fff;border-radius:50%;animation:scrape-spin .8s linear infinite;vertical-align:middle;margin-right:8px\\'></span> Scrapuje zdjecia...';fetch(\\'/palety/{paleta_id}/scrape-images\\',{{method:\\'POST\\'}}).then(function(r){{return r.json()}}).then(function(d){{if(d.ok){{btn.innerHTML=\\'✅ Scraping \\'+d.count+\\' produktow w tle!\\';btn.style.background=\\'var(--green)\\';btn.style.opacity=\\'1\\'}}else{{btn.innerHTML=\\'❌ \\'+d.error;btn.style.background=\\'var(--red)\\';btn.style.opacity=\\'1\\'}};setTimeout(function(){{location.reload()}},3000)}}).catch(function(e){{btn.innerHTML=\\'❌ \\'+e;btn.disabled=false;btn.style.opacity=\\'1\\';btn.style.pointerEvents=\\'auto\\'}})}})( this)">📷 SCRAPUJ ZDJECIA ({bez_zdjec} produktow bez zdjec)</button>
+    <button type="button" id="scrape-btn" data-paleta="{paleta_id}" class="btn" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);margin-bottom:15px;font-size:0.85rem;cursor:pointer">📷 SCRAPUJ ZDJECIA ({bez_zdjec} produktow bez zdjec)</button>
 
     <!-- PRZEKAZ ZYSK NA CEL -->
     ''' + ('''
@@ -3000,6 +3016,41 @@ def paleta_szczegoly(paleta_id):
     '''
 
     szczegoly_js = '''
+    // SCRAPE BUTTON
+    try {
+        var _scrBtn = document.getElementById('scrape-btn');
+        if (_scrBtn) {
+            _scrBtn.onclick = function() {
+                var btn = this;
+                btn.disabled = true;
+                btn.style.opacity = '0.7';
+                btn.style.pointerEvents = 'none';
+                btn.innerHTML = '⏳ Scrapuje zdjecia...';
+                var paletaId = btn.getAttribute('data-paleta');
+                fetch('/palety/' + paletaId + '/scrape-images', {method: 'POST'})
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    if (d.ok) {
+                        btn.innerHTML = '✅ Scraping ' + d.count + ' produktow w tle!';
+                        btn.style.background = 'var(--green)';
+                        btn.style.opacity = '1';
+                    } else {
+                        btn.innerHTML = '❌ ' + (d.error || 'Blad');
+                        btn.style.background = 'var(--red)';
+                        btn.style.opacity = '1';
+                    }
+                    setTimeout(function() { location.reload(); }, 3000);
+                })
+                .catch(function(e) {
+                    btn.innerHTML = '❌ ' + e;
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.pointerEvents = 'auto';
+                });
+            };
+        }
+    } catch(e) { console.error('scrape btn error:', e); }
+
     function pokazKorekta(produktId, aktualnaIlosc, cena, offlineSzt) {
         document.getElementById('korektaProduktId').value = produktId;
         document.getElementById('korektaIlosc').value = aktualnaIlosc;
@@ -3399,7 +3450,6 @@ def paleta_szczegoly(paleta_id):
     });
     '''
 
-    # scrapujZdjecia JS przeniesiony inline do HTML (button)
 
     return render(content, f'Paleta {paleta["nazwa"] or paleta_id}', extra_js=szczegoly_js)
 
