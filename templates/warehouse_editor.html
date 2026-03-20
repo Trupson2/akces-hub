@@ -543,23 +543,23 @@
         <div class="top-bar">
             <h1>
                 <span>🏭</span>
-                Warehouse Layout Editor
+                Edytor magazynu
             </h1>
             <div class="top-bar-actions">
                 <button class="btn btn-secondary" onclick="exportLayout()">
-                    📥 Export JSON
+                    📥 Eksport
                 </button>
                 <button class="btn btn-secondary" onclick="importLayout()">
-                    📤 Import JSON
+                    📤 Import
                 </button>
                 <button class="btn btn-primary" onclick="previewLayout()">
-                    👁️ Preview 3D
+                    👁️ Podglad 3D
                 </button>
                 <button class="btn btn-primary" onclick="saveLayout()">
-                    💾 Zapisz Layout
+                    💾 Zapisz
                 </button>
                 <button class="btn btn-danger" onclick="clearLayout()">
-                    ❌ Reset
+                    ❌ Wyczysc
                 </button>
             </div>
         </div>
@@ -602,7 +602,7 @@
             </div>
 
             <div class="panel-section">
-                <h3>📐 Templates</h3>
+                <h3>📐 Szablony
                 <div class="templates">
                     <button class="template-btn" onclick="applyTemplate('u-shape')">
                         🔲 U-Shape (14 regałów)
@@ -665,9 +665,9 @@
         <div class="right-panel" id="properties-panel">
             <div class="no-selection">
                 <div class="no-selection-icon">🎯</div>
-                <p>Kliknij na regał aby edytować właściwości</p>
+                <p>Kliknij na regal aby edytowac</p>
                 <p style="margin-top: 10px; font-size: 12px; color: #718096;">
-                    lub przeciągnij nowy regał z lewej strony
+                    lub dodaj nowy regal z lewego panelu
                 </p>
             </div>
         </div>
@@ -677,25 +677,25 @@
             <div class="bottom-bar-left">
                 <div class="status-item">
                     <div class="status-dot"></div>
-                    <span>Editor Ready</span>
+                    <span>Gotowy</span>
                 </div>
                 <div class="status-item">
-                    <span>🖱️ Click - Select</span>
+                    <span>🖱️ Klik - Zaznacz</span>
                 </div>
                 <div class="status-item">
-                    <span>Shift+Click - Multi-select</span>
+                    <span>Shift+Klik - Zaznacz wiele</span>
                 </div>
                 <div class="status-item">
-                    <span>Ctrl+A - Select All</span>
+                    <span>Ctrl+A - Zaznacz wszystko</span>
                 </div>
                 <div class="status-item">
-                    <span>Del - Delete</span>
+                    <span>Del - Usun</span>
                 </div>
             </div>
 
             <div class="bottom-bar-right">
-                <button class="btn btn-secondary" onclick="undo()">↶ Undo</button>
-                <button class="btn btn-secondary" onclick="redo()">↷ Redo</button>
+                <button class="btn btn-secondary" onclick="undo()">↶ Cofnij</button>
+                <button class="btn btn-secondary" onclick="redo()">↷ Ponow</button>
             </div>
         </div>
     </div>
@@ -1537,7 +1537,7 @@
                 panel.innerHTML = `
                     <div class="bulk-panel">
                         <div class="bulk-header">
-                            <div class="bulk-title">🎯 Bulk Edit</div>
+                            <div class="bulk-title">🎯 Edycja grupowa</div>
                             <div class="bulk-count">${selectedShelves.length} regałów</div>
                         </div>
 
