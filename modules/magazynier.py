@@ -3336,6 +3336,26 @@ def api_paleta_dostarczona_bulk():
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
 
+@magazynier_bp.route('/api/paleta-edit/<int:paleta_id>', methods=['POST'])
+def api_paleta_edit(paleta_id):
+    """Edycja danych palety"""
+    from flask import jsonify, request as req
+    conn = get_db()
+    try:
+        data = req.get_json()
+        nazwa = data.get('nazwa', '')
+        cena_zakupu = float(data.get('cena_zakupu', 0) or 0)
+        dostawca = data.get('dostawca', '')
+        regal = data.get('regal', '')
+        conn.execute('''
+            UPDATE palety SET nazwa = ?, cena_zakupu = ?, dostawca = ?, regal = ?
+            WHERE id = ?
+        ''', (nazwa, cena_zakupu, dostawca, regal, paleta_id))
+        conn.commit()
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
+
 @magazynier_bp.route('/api/palety-usun', methods=['POST'])
 def api_palety_usun():
     """Masowe usuwanie palet + ich produktów"""
@@ -3465,7 +3485,59 @@ def paleta_detail_by_id(paleta_id):
         <a href="/magazyn/etykiety?paleta_id={paleta_id}" style="padding:8px 16px;border:2px solid #8b5cf6;background:#8b5cf622;color:#8b5cf6;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;text-decoration:none">
             🏷️ Etykiety
         </a>
+        <button onclick="document.getElementById('editPaletaModal').style.display='flex'" style="padding:8px 16px;border:2px solid #f59e0b;background:#f59e0b22;color:#f59e0b;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer">
+            ✏️ Edytuj
+        </button>
     </div>
+
+    <!-- Modal edycji palety -->
+    <div id="editPaletaModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.style.display='none'">
+        <div style="background:#12121a;border:1px solid #1e293b;border-radius:16px;padding:24px;width:100%;max-width:450px">
+            <h3 style="margin:0 0 16px;font-size:1.1rem">✏️ Edytuj paletę #{paleta_id}</h3>
+            <form id="editPaletaForm" onsubmit="savePaleta(event)">
+                <div style="margin-bottom:12px">
+                    <label style="font-size:0.8rem;color:#64748b;display:block;margin-bottom:4px">Nazwa</label>
+                    <input type="text" id="ep_nazwa" value="{nazwa_palety}" style="width:100%;padding:10px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e2e8f0;font-size:0.9rem">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+                    <div>
+                        <label style="font-size:0.8rem;color:#64748b;display:block;margin-bottom:4px">💰 Cena zakupu brutto (zł)</label>
+                        <input type="number" step="0.01" id="ep_cena" value="{brutto:.2f}" style="width:100%;padding:10px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e2e8f0;font-size:0.9rem">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem;color:#64748b;display:block;margin-bottom:4px">Dostawca</label>
+                        <input type="text" id="ep_dostawca" value="{paleta_row['dostawca'] if 'dostawca' in paleta_row.keys() else ''}" style="width:100%;padding:10px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e2e8f0;font-size:0.9rem">
+                    </div>
+                </div>
+                <div style="margin-bottom:16px">
+                    <label style="font-size:0.8rem;color:#64748b;display:block;margin-bottom:4px">Regał / lokalizacja</label>
+                    <input type="text" id="ep_regal" value="{paleta_row['regal'] if 'regal' in paleta_row.keys() else ''}" style="width:100%;padding:10px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e2e8f0;font-size:0.9rem">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                    <button type="button" onclick="document.getElementById('editPaletaModal').style.display='none'" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:10px;color:#94a3b8;cursor:pointer;font-size:0.9rem">Anuluj</button>
+                    <button type="submit" style="padding:12px;background:#f59e0b;border:none;border-radius:10px;color:#000;font-weight:700;cursor:pointer;font-size:0.9rem">💾 Zapisz</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+    function savePaleta(e) {{
+        e.preventDefault();
+        fetch('/magazyn/api/paleta-edit/{paleta_id}', {{
+            method: 'POST',
+            headers: {{'Content-Type': 'application/json'}},
+            body: JSON.stringify({{
+                nazwa: document.getElementById('ep_nazwa').value,
+                cena_zakupu: parseFloat(document.getElementById('ep_cena').value) || 0,
+                dostawca: document.getElementById('ep_dostawca').value,
+                regal: document.getElementById('ep_regal').value
+            }})
+        }}).then(function(r){{return r.json()}}).then(function(d){{
+            if(d.ok) location.reload();
+            else alert('Blad: '+(d.error||''));
+        }});
+    }}
+    </script>
     <script>
     function toggleDostarczona(id, btn) {{
         const newVal = btn.dataset.val == '1' ? 0 : 1;
