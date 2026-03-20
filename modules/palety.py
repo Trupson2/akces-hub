@@ -1546,38 +1546,92 @@ def paleta_bulk_import():
                         wyniki.append({'nazwa': nazwa or file.filename, 'status': 'error', 'msg': 'Pusty plik (brak danych)'})
                         continue
 
-                    # Auto-detekcja kolumn (jak paletomat)
-                    headers = [str(c).lower().strip() if c is not None else '' for c in rows[0]]
+                    # Auto-detekcja kolumn (skopiowane z paletomat.py)
+                    # Szukaj wiersza z nagłówkami (max 10 pierwszych)
+                    headers = []
+                    header_row_idx = 0
+                    for ri, row_check in enumerate(rows[:10]):
+                        if not row_check:
+                            continue
+                        non_empty = [c for c in row_check if c is not None and str(c).strip()]
+                        if len(non_empty) < 2:
+                            continue
+                        text_cells = [c for c in non_empty if not str(c).replace('.', '').replace(',', '').isdigit()]
+                        if len(text_cells) < 2:
+                            continue
+                        headers = [str(c).lower().strip() if c else '' for c in row_check]
+                        header_row_idx = ri
+                        break
+
+                    print(f"📋 Nagłówki Excel (wiersz {header_row_idx+1}): {[h for h in headers if h]}")
+
                     col_nazwa_i = -1
                     col_ean_i = -1
+                    col_asin_i = -1
                     col_ilosc_i = -1
+                    col_unit_price = -1
+                    col_netto = -1
+                    col_cost = -1
                     col_cena_i = -1
                     col_rrp_i = -1
-                    col_asin_i = -1
 
                     for i, h in enumerate(headers):
-                        hc = h.replace(' ', '').replace('_', '').replace('-', '')
-                        # Nazwa / Description
-                        if col_nazwa_i == -1 and any(x in hc for x in ['description', 'nazwa', 'name', 'product', 'titel', 'title', 'bezeichnung', 'artikel']):
-                            if 'price' not in hc and 'cena' not in hc:
-                                col_nazwa_i = i
-                        # EAN
-                        if col_ean_i == -1 and any(x in hc for x in ['ean', 'barcode', 'gtin', 'kodkreskowy']):
-                            col_ean_i = i
-                        # ASIN / SKU
-                        if col_asin_i == -1 and any(x in hc for x in ['asin', 'sku', 'artikelnummer']):
-                            col_asin_i = i
-                        # Ilość
-                        if col_ilosc_i == -1 and any(x in hc for x in ['qty', 'quantity', 'ilosc', 'ilość', 'sztuk', 'menge', 'anzahl', 'pcs', 'pieces']):
-                            col_ilosc_i = i
-                        # Cena zakupu (unit price / cost)
-                        if col_cena_i == -1 and any(x in hc for x in ['unitprice', 'costprice', 'unitcost', 'cenazakupu', 'netto', 'einkaufspreis', 'cost']):
-                            col_cena_i = i
-                        # RRP / Detal
-                        if col_rrp_i == -1 and any(x in hc for x in ['rrp', 'retail', 'msrp', 'detal', 'cenadetaliczna', 'verkaufspreis', 'uvp']):
-                            col_rrp_i = i
+                        h_clean = h.replace(' ', '').replace('_', '').replace('-', '').replace('ó', 'o').replace('ś', 's').replace('ć', 'c')
+                        h_orig = h.lower()
 
-                    # Fallback: jeśli nie znaleziono ceny zakupu, szukaj ogólnie "price"
+                        # Nazwa / Description
+                        if col_nazwa_i == -1 and any(x in h_clean for x in ['description', 'nazwa', 'name', 'titel', 'title', 'bezeichnung']):
+                            if 'price' not in h_clean and 'cena' not in h_clean:
+                                col_nazwa_i = i
+
+                        # EAN
+                        if col_ean_i == -1 and any(x in h_clean for x in ['ean', 'barcode', 'kodkreskowy', 'gtin']):
+                            col_ean_i = i
+
+                        # ASIN / SKU
+                        if h_clean == 'asin':
+                            col_asin_i = i
+                        elif col_asin_i == -1 and 'product' not in h_clean and any(x in h_clean for x in ['sku', 'code', 'artikelnummer', 'article']):
+                            col_asin_i = i
+
+                        # UNIKAJ kolumn z cenami rynkowymi!
+                        if any(x in h_orig for x in ['regularn', 'rynkow', 'rrp', 'retail', 'msrp']):
+                            if 'jednostkow' not in h_orig:
+                                col_rrp_i = i
+                                continue
+
+                        # NAJWYŻSZY PRIORYTET: Cena jednostkowa sprzedaży
+                        if col_unit_price == -1 and 'jednostkow' in h_orig and any(x in h_orig for x in ['sprzeda', 'cena']):
+                            col_unit_price = i
+
+                        # WYSOKI: Cena sprzedaży netto
+                        if col_netto == -1 and 'sprzeda' in h_orig and 'netto' in h_orig:
+                            col_netto = i
+
+                        # ŚREDNI: Unit Cost, Cost, Cena zakupu
+                        if col_cost == -1 and any(x in h_clean for x in ['unitcost', 'cenazakupu', 'koszt', 'einkaufspreis', 'unitprice']):
+                            col_cost = i
+
+                        # NISKI: Cena sprzedaży
+                        if col_cena_i == -1 and 'sprzeda' in h_orig and 'jednostkow' not in h_orig and 'netto' not in h_orig:
+                            col_cena_i = i
+
+                        # Ilość
+                        if col_ilosc_i == -1 and any(x in h_clean for x in ['ilosc', 'ilość', 'qty', 'quantity', 'sztuk', 'szt', 'pcs', 'pieces', 'count', 'menge', 'anzahl', 'stueck', 'stuck']):
+                            col_ilosc_i = i
+
+                    # Wybierz najlepszą kolumnę ceny (priorytet jak paletomat)
+                    price_is_netto = False
+                    if col_unit_price >= 0:
+                        col_cena_i = col_unit_price
+                        price_is_netto = True
+                    elif col_netto >= 0:
+                        col_cena_i = col_netto
+                        price_is_netto = True
+                    elif col_cost >= 0:
+                        col_cena_i = col_cost
+
+                    # Fallback: szukaj ogólnie "price/cena/preis"
                     if col_cena_i == -1:
                         for i, h in enumerate(headers):
                             hc = h.replace(' ', '').replace('_', '')
@@ -1585,34 +1639,55 @@ def paleta_bulk_import():
                                 col_cena_i = i
                                 break
 
-                    print(f"📋 Bulk import kolumny: nazwa={col_nazwa_i} ean={col_ean_i} ilosc={col_ilosc_i} cena={col_cena_i} rrp={col_rrp_i}")
+                    print(f"📊 Bulk import kolumny: nazwa={col_nazwa_i} ean={col_ean_i} asin={col_asin_i} ilosc={col_ilosc_i} cena={col_cena_i} rrp={col_rrp_i}")
 
                     # Utwórz paletę
                     paleta_id = add_paleta(nazwa, dostawca, cena_zakupu, data_zakupu, f'Bulk import: {file.filename}', regal)
 
                     produkty_dodane = 0
-                    for idx, row in enumerate(rows[1:]):
+                    data_rows = rows[header_row_idx + 1:]
+                    for idx, row in enumerate(data_rows):
                         try:
-                            prod_nazwa = str(row[col_nazwa_i]) if col_nazwa_i >= 0 and row[col_nazwa_i] is not None else f'Produkt {idx+1}'
-                            prod_ean = str(row[col_ean_i]) if col_ean_i >= 0 and row[col_ean_i] is not None else ''
-                            prod_ilosc = int(float(str(row[col_ilosc_i]).replace(',', '.'))) if col_ilosc_i >= 0 and row[col_ilosc_i] is not None else 1
-                            prod_cena_raw = float(str(row[col_cena_i]).replace(',', '.')) if col_cena_i >= 0 and row[col_cena_i] is not None else 0
-                            prod_cena_detal_raw = float(str(row[col_rrp_i]).replace(',', '.')) if col_rrp_i >= 0 and row[col_rrp_i] is not None else prod_cena_raw * 2
+                            prod_nazwa = str(row[col_nazwa_i]).strip() if col_nazwa_i >= 0 and col_nazwa_i < len(row) and row[col_nazwa_i] is not None else f'Produkt {idx+1}'
+                            prod_ean = str(row[col_ean_i]).strip() if col_ean_i >= 0 and col_ean_i < len(row) and row[col_ean_i] is not None else ''
+                            prod_asin = str(row[col_asin_i]).strip() if col_asin_i >= 0 and col_asin_i < len(row) and row[col_asin_i] is not None else ''
+                            try:
+                                prod_ilosc = int(float(str(row[col_ilosc_i]).replace(',', '.'))) if col_ilosc_i >= 0 and col_ilosc_i < len(row) and row[col_ilosc_i] is not None else 1
+                            except:
+                                prod_ilosc = 1
+                            try:
+                                prod_cena_raw = float(str(row[col_cena_i]).replace(',', '.')) if col_cena_i >= 0 and col_cena_i < len(row) and row[col_cena_i] is not None else 0
+                            except:
+                                prod_cena_raw = 0
+                            try:
+                                prod_cena_detal_raw = float(str(row[col_rrp_i]).replace(',', '.')) if col_rrp_i >= 0 and col_rrp_i < len(row) and row[col_rrp_i] is not None else prod_cena_raw * 2
+                            except:
+                                prod_cena_detal_raw = prod_cena_raw * 2
+
                             # Przelicz EUR→PLN
                             prod_cena = round(prod_cena_raw * eur_rate, 2)
                             prod_cena_detal = round(prod_cena_detal_raw * eur_rate, 2)
-                            # cena_brutto = cena_netto * 1.23 (VAT 23%)
-                            prod_cena_brutto = round(prod_cena * 1.23, 2)
+                            # cena_brutto = cena_netto * 1.23 (VAT 23%) jeśli cena jest netto
+                            if price_is_netto:
+                                prod_cena_brutto = round(prod_cena * 1.23, 2)
+                            else:
+                                prod_cena_brutto = round(prod_cena, 2)  # Cena już brutto
 
-                            if not prod_nazwa or prod_nazwa in ('nan', 'None') or prod_nazwa.strip() == '':
+                            if not prod_nazwa or prod_nazwa in ('nan', 'None', '') or prod_nazwa.strip() == '':
                                 continue
+
+                            # Wyczyść EAN/ASIN z 'nan'
+                            if prod_ean in ('nan', 'None', 'none'):
+                                prod_ean = ''
+                            if prod_asin in ('nan', 'None', 'none'):
+                                prod_asin = ''
 
                             prod_kategoria = auto_kategoryzuj(prod_nazwa)
 
                             conn.execute('''
-                                INSERT INTO produkty (nazwa, ean, ilosc, cena_netto, cena_brutto, cena_allegro, paleta_id, dostawca, status, kategoria)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'magazyn', ?)
-                            ''', (prod_nazwa[:200], prod_ean, prod_ilosc, prod_cena, prod_cena_brutto, prod_cena_detal, paleta_id, dostawca, prod_kategoria))
+                                INSERT INTO produkty (nazwa, ean, asin, ilosc, cena_netto, cena_brutto, cena_allegro, paleta_id, dostawca, status, kategoria)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'magazyn', ?)
+                            ''', (prod_nazwa[:200], prod_ean, prod_asin, prod_ilosc, prod_cena, prod_cena_brutto, prod_cena_detal, paleta_id, dostawca, prod_kategoria))
 
                             produkty_dodane += 1
                         except:
