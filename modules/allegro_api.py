@@ -671,6 +671,87 @@ def get_order_details(order_id):
     return allegro_request('GET', f'/order/checkout-forms/{order_id}')
 
 
+def get_offer_visits(offer_id):
+    """Pobiera statystyki wyświetleń oferty z Allegro API."""
+    result, error = allegro_request('GET', f'/sale/offers/{offer_id}/visit-statistics')
+    if error:
+        # Fallback — spróbuj z offer-statistics
+        result, error = allegro_request('GET', f'/sale/offers/{offer_id}/statistics')
+    return result, error
+
+
+def get_offer_smart_stats(offer_ids):
+    """
+    Pobiera statystyki (wyświetlenia, obserwujący) dla wielu ofert naraz.
+    Allegro API: GET /sale/offer-events-statistics
+
+    Args:
+        offer_ids: lista ID ofert
+    Returns:
+        dict: {offer_id: {'views': int, 'watchers': int}}
+    """
+    stats = {}
+
+    # Allegro offer detail zawiera stats.watchersCount i stock.sold
+    # Pobieraj po 20 ofert naraz żeby nie zabić API
+    for i in range(0, len(offer_ids), 20):
+        batch = offer_ids[i:i+20]
+        for oid in batch:
+            try:
+                result, error = allegro_request('GET', f'/sale/offers/{oid}')
+                if result and not error:
+                    _stats = result.get('stats', {})
+                    _stock = result.get('stock', {})
+                    stats[str(oid)] = {
+                        'views': _stats.get('viewsCount', 0) or _stats.get('visitsCount', 0) or 0,
+                        'watchers': _stats.get('watchersCount', 0),
+                        'sold': _stock.get('sold', 0),
+                    }
+            except Exception as e:
+                print(f"  ⚠️ Stats for {oid}: {e}")
+
+    return stats
+
+
+def sync_offer_stats(offer_ids=None):
+    """
+    Synchronizuje statystyki (wyświetlenia, obserwujący) dla aktywnych ofert.
+
+    Args:
+        offer_ids: opcjonalnie lista konkretnych ID ofert. Jeśli None, sync aktywnych.
+    Returns:
+        dict: Statystyki synchronizacji
+    """
+    if not is_authenticated():
+        return {'error': 'Nie zalogowany do Allegro'}
+
+    from .database import get_db
+    conn = get_db()
+
+    if not offer_ids:
+        rows = conn.execute("SELECT allegro_id FROM oferty WHERE status='aktywna' AND allegro_id IS NOT NULL").fetchall()
+        offer_ids = [r['allegro_id'] for r in rows]
+
+    if not offer_ids:
+        return {'updated': 0, 'message': 'Brak aktywnych ofert'}
+
+    print(f"📊 Sync stats for {len(offer_ids)} offers...")
+    stats = get_offer_smart_stats(offer_ids)
+
+    updated = 0
+    for oid, s in stats.items():
+        try:
+            conn.execute('''UPDATE oferty SET wyswietlenia=?, obserwujacych=?, data_aktualizacji=datetime('now')
+                           WHERE allegro_id=?''', (s.get('views', 0), s.get('watchers', 0), oid))
+            updated += 1
+        except:
+            pass
+    conn.commit()
+
+    print(f"📊 Updated stats for {updated}/{len(offer_ids)} offers")
+    return {'updated': updated, 'total': len(offer_ids)}
+
+
 def sync_offers_status():
     """
     Synchronizuje statusy ofert z Allegro API.
@@ -734,7 +815,12 @@ def sync_offers_status():
         nazwa = offer.get('name', '')
         cena = float(((offer.get('sellingMode') or {}).get('price') or {}).get('amount', 0))
         ilosc = (offer.get('stock') or {}).get('available', 0)
-        
+
+        # Statystyki z offer (viewsCount, watchersCount)
+        _offer_stats = offer.get('stats') or {}
+        _views = _offer_stats.get('viewsCount', 0) or _offer_stats.get('visitsCount', 0) or 0
+        _watchers = _offer_stats.get('watchersCount', 0)
+
         # Sprawdź czy oferta już jest w bazie
         existing = conn.execute('SELECT id, status FROM oferty WHERE allegro_id = ?', (offer_id,)).fetchone()
         
@@ -757,10 +843,11 @@ def sync_offers_status():
                     data_wystawienia_update = raw_pub_date[:19].replace('T', ' ')
             
             conn.execute('''UPDATE oferty SET status = ?, tytul = ?, cena = ?, ilosc = ?,
+                wyswietlenia = ?, obserwujacych = ?,
                 data_aktualizacji = datetime('now'),
                 data_wystawienia = CASE WHEN ? IS NOT NULL THEN ? ELSE data_wystawienia END
                 WHERE allegro_id = ?''',
-                (our_status, nazwa, cena, ilosc, data_wystawienia_update, data_wystawienia_update, offer_id))
+                (our_status, nazwa, cena, ilosc, _views, _watchers, data_wystawienia_update, data_wystawienia_update, offer_id))
             if old_status != our_status:
                 stats['updated'] += 1
                 print(f"  ✅ {offer_id[:8]}... status: {old_status} → {our_status}")

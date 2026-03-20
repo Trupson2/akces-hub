@@ -2286,6 +2286,41 @@ def analiza_oferty():
             # Ile sprzedano
             sprzedane = conn.execute('SELECT COALESCE(SUM(ilosc),0) FROM sprzedaze WHERE produkt_id=? AND COALESCE(status,"") NOT IN ("anulowana","anulowane","zwrot","") AND (kupujacy IS NULL OR kupujacy != "offline")', (p['id'],)).fetchone()[0]
 
+            # === ALLEGRO PERFORMANCE ===
+            allegro_oferta = None
+            allegro_stats = {'wyswietlenia': 0, 'obserwujacych': 0, 'status': None, 'allegro_id': None, 'data_wystawienia': None, 'cena_allegro_live': 0}
+
+            # Szukaj oferty po produkt_id lub ASIN
+            _of = conn.execute('SELECT * FROM oferty WHERE produkt_id=? ORDER BY data_aktualizacji DESC LIMIT 1', (p['id'],)).fetchone()
+            if not _of and p.get('asin'):
+                # Szukaj po external.id zawierającym ASIN
+                _of = conn.execute("SELECT * FROM oferty WHERE tytul LIKE ? OR allegro_id IN (SELECT allegro_id FROM oferty WHERE tytul LIKE ?) ORDER BY data_aktualizacji DESC LIMIT 1",
+                    (f'%{p["asin"]}%', f'%{p["asin"]}%')).fetchone()
+            if _of:
+                allegro_oferta = dict(_of)
+                allegro_stats['wyswietlenia'] = _of['wyswietlenia'] or 0
+                allegro_stats['obserwujacych'] = _of['obserwujacych'] or 0
+                allegro_stats['status'] = _of['status']
+                allegro_stats['allegro_id'] = _of['allegro_id']
+                allegro_stats['data_wystawienia'] = _of['data_wystawienia']
+                allegro_stats['cena_allegro_live'] = float(_of['cena'] or 0)
+
+            # Przychód i ilość z sprzedaży
+            sprzedaz_data = conn.execute('''SELECT COALESCE(SUM(cena * ilosc), 0) as przychod,
+                COALESCE(SUM(ilosc), 0) as sztuk,
+                COUNT(*) as zamowien
+                FROM sprzedaze WHERE produkt_id=?
+                AND COALESCE(status,"") NOT IN ("anulowana","anulowane","zwrot","")''', (p['id'],)).fetchone()
+            przychod_total = float(sprzedaz_data['przychod'] or 0) if sprzedaz_data else 0
+            sprzedane_szt = int(sprzedaz_data['sztuk'] or 0) if sprzedaz_data else 0
+            zamowien = int(sprzedaz_data['zamowien'] or 0) if sprzedaz_data else 0
+
+            # Konwersja (sprzedane / wyświetlenia)
+            konwersja = round((sprzedane_szt / allegro_stats['wyswietlenia']) * 100, 2) if allegro_stats['wyswietlenia'] > 0 else 0
+
+            # Zysk total
+            zysk_total = round(przychod_total - (koszt_szt * sprzedane_szt) - (przychod_total * prowizja_rate) - (wysylka_koszt * zamowien), 2) if sprzedane_szt > 0 else 0
+
             # Sugerowana cena (min 30% marży)
             if koszt_szt > 0:
                 min_cena_30 = round((koszt_szt + wysylka_koszt) / (1 - prowizja_rate - 0.30), 2)
@@ -2374,8 +2409,8 @@ def analiza_oferty():
                 if scraped_row:
                     opis_html = scraped_row['opis_html'] or ''
             if not opis_html:
-                problemy.append('Brak opisu HTML — wygeneruj w Generatorze ofert')
-                score -= 15
+                wskazowki.append('Opis HTML zostanie wygenerowany automatycznie przez Generator ofert')
+                score -= 5  # mały minus — opis wygeneruje się przy wystawianiu
             elif len(opis_html) < 200:
                 wskazowki.append('Opis za krótki — min. 300+ znaków')
                 score -= 10
@@ -2410,7 +2445,15 @@ def analiza_oferty():
                 'wskazowki': wskazowki,
                 'img_count': img_count,
                 'has_opis': bool(opis_html),
-                'stan': stan
+                'stan': stan,
+                # Allegro performance
+                'allegro_stats': allegro_stats,
+                'has_allegro': allegro_oferta is not None,
+                'przychod_total': przychod_total,
+                'sprzedane_szt': sprzedane_szt,
+                'zamowien': zamowien,
+                'konwersja': konwersja,
+                'zysk_total': zysk_total
             }
 
     return render_template_string(ANALIZA_OFERTY_HTML,
@@ -2435,7 +2478,7 @@ ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
 
 <div style="text-align:center;padding:20px 0 10px">
     <h1 style="font-size:1.5rem;background:linear-gradient(135deg,#06b6d4,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent">🔍 ANALIZA OFERTY</h1>
-    <small style="color:var(--text-muted)">Sprawdz oplacalnosc produktu przed wystawieniem</small>
+    <small style="color:var(--text-muted)">Oplacalnosc, statystyki Allegro, jakosc oferty</small>
 </div>
 
 <div class="ao-card">
@@ -2523,6 +2566,62 @@ ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
         {% endif %}
     </div>
 
+    <!-- Allegro Performance -->
+    {% if analiza.has_allegro %}
+    <div class="ao-card" style="border-color:#6366f133">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
+            <div style="font-weight:700;font-size:0.95rem">📊 Allegro Performance</div>
+            <div style="font-size:0.75rem;padding:4px 10px;border-radius:20px;font-weight:600;
+                {% if analiza.allegro_stats.status == 'aktywna' %}background:#22c55e22;color:#22c55e
+                {% elif analiza.allegro_stats.status == 'draft' %}background:#eab30822;color:#eab308
+                {% else %}background:#64748b22;color:#64748b{% endif %}">
+                {{ analiza.allegro_stats.status|upper if analiza.allegro_stats.status else 'BRAK' }}
+            </div>
+        </div>
+
+        <div class="ao-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">
+            <div class="ao-stat">
+                <div class="ao-stat-val" style="color:#3b82f6">{{ analiza.allegro_stats.wyswietlenia }}</div>
+                <div class="ao-stat-lbl">Wyswietlenia</div>
+            </div>
+            <div class="ao-stat">
+                <div class="ao-stat-val" style="color:#f59e0b">{{ analiza.allegro_stats.obserwujacych }}</div>
+                <div class="ao-stat-lbl">Obserwujacych</div>
+            </div>
+            <div class="ao-stat">
+                <div class="ao-stat-val" style="color:#6366f1">{{ analiza.sprzedane_szt }}</div>
+                <div class="ao-stat-lbl">Sprzedanych szt</div>
+            </div>
+            <div class="ao-stat">
+                <div class="ao-stat-val" style="color:#06b6d4">{{ analiza.zamowien }}</div>
+                <div class="ao-stat-lbl">Zamowien</div>
+            </div>
+            <div class="ao-stat">
+                <div class="ao-stat-val {% if analiza.konwersja >= 3 %}ao-good{% elif analiza.konwersja >= 1 %}ao-warn{% else %}ao-bad{% endif %}">{{ analiza.konwersja }}%</div>
+                <div class="ao-stat-lbl">Konwersja</div>
+            </div>
+            <div class="ao-stat" style="border-color:{% if analiza.przychod_total > 0 %}#22c55e33{% else %}#1e1e2e{% endif %}">
+                <div class="ao-stat-val ao-good">{{ "%.0f"|format(analiza.przychod_total) }} zl</div>
+                <div class="ao-stat-lbl">Przychod total</div>
+            </div>
+        </div>
+
+        {% if analiza.zysk_total != 0 %}
+        <div style="margin-top:12px;padding:12px;background:var(--bg-primary);border-radius:10px;display:flex;justify-content:space-between;align-items:center">
+            <div style="font-size:0.8rem;color:var(--text-muted)">💰 Zysk netto (po prowizji + wysylce)</div>
+            <div style="font-size:1.2rem;font-weight:800;{% if analiza.zysk_total >= 0 %}color:#22c55e{% else %}color:#ef4444{% endif %}">{{ "%+.2f"|format(analiza.zysk_total) }} zl</div>
+        </div>
+        {% endif %}
+
+        {% if analiza.allegro_stats.data_wystawienia %}
+        <div style="margin-top:8px;font-size:0.72rem;color:var(--text-muted);text-align:right">
+            Wystawiono: {{ analiza.allegro_stats.data_wystawienia[:10] if analiza.allegro_stats.data_wystawienia else '-' }}
+            {% if analiza.allegro_stats.allegro_id %} • <a href="https://allegro.pl/oferta/{{ analiza.allegro_stats.allegro_id }}" target="_blank" style="color:#6366f1">Zobacz na Allegro ›</a>{% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <!-- Jakosc oferty -->
     <div class="ao-card" style="border-color:{{ analiza.score_color }}55">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -2542,7 +2641,7 @@ ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
             <div>{{ '✅' if analiza.produkt.ean else '❌' }} Kod EAN</div>
             <div>{{ '✅' if analiza.produkt.zdjecie_url else '❌' }} Zdjecie glowne</div>
             <div>{{ '✅' if analiza.img_count >= 4 else '⚠️' if analiza.img_count >= 2 else '❌' }} Zdjecia ({{ analiza.img_count }})</div>
-            <div>{{ '✅' if analiza.has_opis else '❌' }} Opis HTML</div>
+            <div>{{ '✅' if analiza.has_opis else 'ℹ️' }} Opis HTML{{ '' if analiza.has_opis else ' (auto)' }}</div>
             <div>{{ '✅' if analiza.cena_allegro > 0 else '❌' }} Cena</div>
             <div>{{ '✅' if analiza.kategoria not in ('inne', '') else '⚠️' }} Kategoria</div>
             <div>{{ '✅' if analiza.produkt.asin else '⚠️' }} ASIN</div>
