@@ -5522,9 +5522,9 @@ def etykiety_vretti_pdf(products):
 
                 # Info obok QR - zamień polskie znaki
                 c.setFont("Helvetica", 12)
-                c.drawString(48*mm, 95*mm, f"Cena: {product['cena_allegro']:.0f} zl")
-                c.drawString(48*mm, 85*mm, f"Polka: {pl_to_ascii(product['lokalizacja'] or '—')}")
-                c.drawString(48*mm, 75*mm, f"Stan: {pl_to_ascii(product.get('stan') or 'Nowy')}")
+                c.drawString(48*mm, 95*mm, f"Polka: {pl_to_ascii(product['lokalizacja'] or '—')}")
+                c.drawString(48*mm, 85*mm, f"Stan: {pl_to_ascii(product.get('stan') or 'Nowy')}")
+                c.drawString(48*mm, 75*mm, f"Szt: {ilosc}")
 
                 # EAN/kod
                 c.setFont("Helvetica", 10)
