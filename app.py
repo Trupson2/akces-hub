@@ -1863,7 +1863,7 @@ a{color:#6366f1;text-decoration:none}
         <div class="info">Klucz: <span>{{ lic.key }}</span></div>
         <div class="info">Wygasa: <span>{{ lic.expires }}</span></div>
         <a href="/" class="btn btn-primary" style="text-align:center;text-decoration:none;margin-top:16px">← Dashboard</a>
-        {% if lic.plan|upper != 'ENTERPRISE' %}
+        {% if is_dev and lic.plan|upper != 'ENTERPRISE' %}
         <form action="/license/upgrade-enterprise" method="POST" style="margin-top:8px">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);text-align:center">⬆️ Upgrade do Enterprise</button>
@@ -1907,7 +1907,8 @@ a{color:#6366f1;text-decoration:none}
     <div style="text-align:center;margin-top:16px;font-size:0.75rem;color:#64748b">
         Kontakt: support@akceshub.pl
     </div>
-</div></body></html>''', lic=lic, msg=msg, err=err)
+</div></body></html>''', lic=lic, msg=msg, err=err,
+        is_dev=(session.get('rola') == 'admin' and os.path.isdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools'))))
 
 
 # ============================================================
@@ -1915,7 +1916,10 @@ a{color:#6366f1;text-decoration:none}
 # ============================================================
 @app.route('/license/upgrade-enterprise', methods=['POST'])
 def license_upgrade_enterprise():
-    """Upgrade aktualnej licencji do planu Enterprise"""
+    """Upgrade aktualnej licencji do planu Enterprise — tylko dev"""
+    _tools_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools')
+    if session.get('rola') != 'admin' or not os.path.isdir(_tools_path):
+        return 'Brak dostepu', 403
     from modules.license import get_license_info, generate_license_key, activate_license
     lic = get_license_info()
     if not lic:
