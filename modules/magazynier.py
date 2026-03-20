@@ -3109,7 +3109,7 @@ def palety():
         FROM palety p
         LEFT JOIN produkty pr ON pr.paleta_id = p.id
         GROUP BY p.id
-        ORDER BY p.data_dodania DESC
+        ORDER BY p.id DESC
     ''').fetchall()
     
     # Dodaj też produkty bez palety
