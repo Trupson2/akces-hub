@@ -2598,8 +2598,6 @@ def paleta_szczegoly(paleta_id):
     except:
         przychod_offline = 0
 
-    from modules.database import get_db as _gdb_cnt
-    conn_cnt = _gdb_cnt()
     print(f"📊 STATS paleta #{paleta_id}:")
     print(f"   - sprzedano_szt_db (tabela sprzedaze): {sprzedano_szt_db}")
     print(f"   - sprzedane_produkty (status=sprzedany bez offline): {sprzedane_produkty}")
@@ -2607,13 +2605,12 @@ def paleta_szczegoly(paleta_id):
     print(f"   - przychod_offline (suma): {przychod_offline}")
 
     # Suma wszystkich źródeł sprzedaży
-    offline_w_sprzedaze = conn_cnt.execute('''
+    offline_w_sprzedaze = conn.execute('''
         SELECT COALESCE(SUM(s.ilosc),0) FROM sprzedaze s
         JOIN produkty p ON s.produkt_id=p.id
         WHERE p.paleta_id=? AND s.kupujacy='offline'
         AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot','')
     ''', (paleta_id,)).fetchone()[0] or 0
-    conn_cnt.close()
     offline_bez_sprzedaze = max(0, sprzedano_offline - offline_w_sprzedaze)
     sprzedano_szt = sprzedano_szt_db + offline_bez_sprzedaze
     print(f"   - WYNIK sprzedano_szt = {sprzedano_szt_db} (sprzedaze) + {offline_bez_sprzedaze} (offline bez sprzedaze) = {sprzedano_szt}")
