@@ -1,5 +1,55 @@
 # Historia zmian — Akces Hub
 
+## 20.03.2026
+
+### Paleta / Box rozdzielenie
+- [NOWE] Kolumna `typ` w tabeli palety — rozroznienie palet i boxow
+- [NOWE] Boxy nie sa liczone w statystykach palet (filtr COALESCE)
+- [NOWE] Badge 📫 BOX na liscie palet
+- [NOWE] Selektor typu (Paleta / Box) w formularzach importu
+
+### Przyjecie palety
+- [NOWE] Ekran przyjecia palety (/magazyn/przyjecie/<id>) — szybka ocena stanu produktow
+- [NOWE] 5 stanow: Nowy, Jak nowy, Dobry, Uszkodzony, Zniszczony
+- [NOWE] Tryb podzialu sztuk (✂️ Podziel) — rozne stany dla roznych sztuk tego samego produktu
+- [NOWE] Przy zapisie podzialu system tworzy osobne rekordy w bazie
+- [NOWE] Analiza AI zdjec (📸) przez Gemini 2.0 Flash — automatyczna ocena stanu i opis wad
+- [NOWE] Pasek postepu ocenionych produktow
+- [NOWE] Przycisk "Przyjecie" na stronie szczegalow palety
+
+### Etykiety Niimbot
+- [ZMIANA] Ukryto Vretti z UI (kod zachowany na przyszlosc)
+- [NOWE] Stan przyjecia drukowany na etykiecie Niimbot
+- [NOWE] Filtr po palecie na stronie etykiet
+- [NOWE] Zaznacz wszystkie / Odznacz + licznik zaznaczonych
+- [NOWE] Wyszukiwarka produktow na stronie etykiet
+- [NOWE] Przycisk "Etykiety" na stronie szczegalow palety (z filtrem)
+- [FIX] Przycisk DRUKUJ NIIMBOT — sticky zamiast fixed (nie naklada sie na produkty)
+
+### Licencje
+- [NOWE] Plan Enterprise (E) w systemie licencji
+- [NOWE] Przycisk upgrade do Enterprise (dev-only)
+- [FIX] Paletomat pokazywal BUSINESS zamiast ENTERPRISE
+
+### Magazynier
+- [FIX] EAN / ASIN — kliknij aby skopiowac do schowka (📋)
+- [FIX] Tekst EAN/ASIN zaznaczalny (user-select:all)
+- [ZMIANA] Etykieta ceny w importach: "Cena zakupu (aukcja/faktura)" z ostrzezeniem
+
+### Kiosk
+- [NOWE] Redesign dashboardu kiosk pod 16" monitor 1920x1200
+- [FIX] Tryb kiosk nie przecieka na PC (URL-param only, bez cookies)
+
+### Paletomat
+- [NOWE] Wykres produktow (Chart.js) z przelacznikiem dziennie/laczna
+- [FIX] Rozmiar wykresu — wrapper div z fixed height
+
+### Baza danych
+- [NOWE] Auto-migracja: typ, dostarczona, stan_przyjecia, notatki_przyjecia
+- [NOWE] Klucz openai_api_key usuniety, uzywa gemini_api_key
+
+---
+
 ## 19.03.2026
 
 ### Dashboard SaaS Redesign
