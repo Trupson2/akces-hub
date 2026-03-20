@@ -148,10 +148,33 @@ def check_license_middleware():
 @app.context_processor
 def inject_branding():
     from modules.database import get_config_cached
+    # Licencja
+    lic_plan = 'FREE'
+    lic_expires = ''
+    lic_days_left = ''
+    try:
+        from modules.license import get_license_display
+        lic = get_license_display()
+        if lic.get('active'):
+            lic_plan = (lic.get('plan', 'free')).upper()
+            lic_expires = lic.get('expires', '')
+            if lic_expires and lic_expires != 'Bezterminowo':
+                from datetime import datetime
+                exp_date = datetime.strptime(lic_expires, '%d.%m.%Y')
+                days = (exp_date - datetime.now()).days
+                if days >= 0:
+                    lic_days_left = f'{days} dni'
+                else:
+                    lic_days_left = 'Wygasla!'
+    except Exception:
+        pass
     return {
         'brand_name': get_config_cached('brand_name', 'AKCES HUB'),
         'brand_color': get_config_cached('brand_color', '#6366f1'),
         'brand_logo': get_config_cached('brand_logo', ''),
+        'lic_plan': lic_plan,
+        'lic_expires': lic_expires,
+        'lic_days_left': lic_days_left,
     }
 
 # Loguj WSZYSTKIE błędy 500 do konsoli (Flask domyślnie je ukrywa w non-debug)

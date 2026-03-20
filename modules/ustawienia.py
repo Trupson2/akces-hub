@@ -277,6 +277,26 @@ def ustawienia():
     <span class="link-card-arrow">→</span>
 </a>
 
+<!-- BAZA DANYCH -->
+<div class="settings-card" style="margin-bottom:16px">
+    <div class="section-header">
+        <span class="section-header-icon">💾</span>
+        <span class="section-header-title">Baza danych</span>
+    </div>
+    <div style="display:grid;gap:10px">
+        <form method="POST" action="/ustawienia/upload-db" enctype="multipart/form-data" onsubmit="return confirm('UWAGA!\\n\\nTo nadpisze obecna baze danych!\\nAktualny backup zostanie utworzony automatycznie.\\n\\nKontynuowac?')">
+            <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:10px">Wgraj plik bazy danych (.db) — np. od innego uzytkownika lub z backupu</div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                <input type="file" name="db_file" accept=".db" required style="flex:1;min-width:200px;font-size:0.85rem;color:var(--text)">
+                <button type="submit" style="background:#3b82f6;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600;white-space:nowrap">Wgraj baze</button>
+            </div>
+        </form>
+        <a href="/ustawienia/download-db" style="display:inline-flex;align-items:center;gap:6px;color:#22c55e;font-size:0.85rem;text-decoration:none;margin-top:4px">
+            ⬇️ Pobierz aktualna baze danych
+        </a>
+    </div>
+</div>
+
 <!-- DANGER ZONE -->
 <div class="settings-card settings-card-accent red">
     <div class="section-header">
@@ -864,6 +884,81 @@ def reset_scraped():
         </div>
     </body></html>
     '''
+
+
+# ============================================================
+# BAZA DANYCH - UPLOAD / DOWNLOAD
+# ============================================================
+@ustawienia_bp.route('/ustawienia/upload-db', methods=['POST'])
+def upload_db():
+    """Wgraj plik bazy danych"""
+    import sqlite3 as sq
+    from datetime import datetime as dt
+
+    f = request.files.get('db_file')
+    if not f or not f.filename.endswith('.db'):
+        return '<html><body style="background:#0a0a0f;color:#ef4444;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh"><div>Wybierz plik .db</div></body></html>'
+
+    app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    db_path = os.path.join(app_dir, 'akces_hub.db')
+
+    # 1. Backup aktualnej bazy
+    backup_dir = os.path.join(app_dir, 'backups')
+    os.makedirs(backup_dir, exist_ok=True)
+    ts = dt.now().strftime('%Y%m%d_%H%M%S')
+    backup_path = os.path.join(backup_dir, f'pre_upload_{ts}.db')
+    if os.path.exists(db_path):
+        try:
+            src = sq.connect(db_path)
+            dst = sq.connect(backup_path)
+            src.backup(dst)
+            dst.close()
+            src.close()
+        except Exception:
+            import shutil
+            shutil.copy2(db_path, backup_path)
+
+    # 2. Zapisz uploadowany plik do temp
+    tmp_path = db_path + '.upload_tmp'
+    f.save(tmp_path)
+
+    # 3. Sprawdz czy to poprawna baza SQLite
+    try:
+        test_conn = sq.connect(tmp_path)
+        test_conn.execute('SELECT COUNT(*) FROM palety')
+        test_conn.close()
+    except Exception as e:
+        os.remove(tmp_path)
+        return f'''<html><body style="background:#0a0a0f;color:#ef4444;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh">
+        <div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px">❌</div>
+        <div>Nieprawidlowy plik bazy: {e}</div>
+        <a href="/ustawienia" style="color:#818cf8;margin-top:20px;display:block">← Powrot</a></div></body></html>'''
+
+    # 4. Podmien baze
+    import shutil
+    shutil.move(tmp_path, db_path)
+
+    return '''<html><head><meta http-equiv="refresh" content="2;url=/ustawienia"></head>
+    <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+        <div style="text-align:center">
+            <div style="font-size:3rem;margin-bottom:20px">✅</div>
+            <div style="font-size:1.2rem">Baza danych wgrana!</div>
+            <div style="color:#64748b;margin-top:10px">Backup starej bazy zapisany. Przekierowywanie...</div>
+        </div>
+    </body></html>'''
+
+
+@ustawienia_bp.route('/ustawienia/download-db')
+def download_db():
+    """Pobierz aktualna baze danych"""
+    from flask import send_file
+    app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    db_path = os.path.join(app_dir, 'akces_hub.db')
+    if not os.path.exists(db_path):
+        return 'Brak bazy', 404
+    from datetime import datetime as dt
+    ts = dt.now().strftime('%Y%m%d_%H%M%S')
+    return send_file(db_path, as_attachment=True, download_name=f'akces_hub_{ts}.db')
 
 
 # ============================================================

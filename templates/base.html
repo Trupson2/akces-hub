@@ -310,7 +310,7 @@ if(localStorage.getItem('kiosk_mode')==='1'){
         <div class="sidebar-brand-icon">A</div>
         <div class="sidebar-brand-text">
             <h1>{{ brand_name }}</h1>
-            <small>v{{ version }} · Enterprise</small>
+            <small>v{{ version }} · {{ lic_plan }}{% if lic_days_left and lic_days_left != 'Wygasla!' %} · {{ lic_days_left }}{% endif %}</small>
         </div>
     </div>
     <nav class="sidebar-nav">
