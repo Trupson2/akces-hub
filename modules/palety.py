@@ -1728,6 +1728,27 @@ def paleta_bulk_import():
 
             conn.commit()
 
+            # 🚜 AUTO-SCRAPING: zbierz ASIN-y z nowo-zaimportowanych produktów i odpal kombajn
+            scrape_count = 0
+            try:
+                all_paleta_ids = [w['paleta_id'] for w in wyniki if w['status'] == 'ok']
+                if all_paleta_ids:
+                    placeholders = ','.join('?' * len(all_paleta_ids))
+                    asins_rows = conn.execute(f'''
+                        SELECT DISTINCT asin FROM produkty
+                        WHERE paleta_id IN ({placeholders})
+                        AND asin IS NOT NULL AND asin != '' AND asin != 'nan'
+                        AND (zdjecie_url IS NULL OR zdjecie_url = '')
+                    ''', all_paleta_ids).fetchall()
+                    asins = [r['asin'] for r in asins_rows if r['asin'] and len(r['asin']) >= 5]
+                    if asins:
+                        from modules.paletomat import auto_process_products
+                        auto_process_products(asins)
+                        scrape_count = len(asins)
+                        print(f"🚜 Bulk import → auto-scraping {scrape_count} produktów")
+            except Exception as e:
+                print(f"⚠️ Auto-scraping error: {e}")
+
             # Pokaż wyniki
             ok_count = sum(1 for w in wyniki if w['status'] == 'ok')
             err_count = sum(1 for w in wyniki if w['status'] == 'error')
@@ -1735,6 +1756,8 @@ def paleta_bulk_import():
             results_html = ''
             if waluta == 'EUR':
                 results_html += f'<div style="padding:10px;background:var(--blue-soft);border-radius:10px;margin-bottom:12px;font-size:0.85rem">💱 Przeliczono ceny EUR → PLN po kursie NBP: <b>{eur_rate:.4f}</b></div>'
+            if scrape_count > 0:
+                results_html += f'<div style="padding:10px;background:var(--green-soft);border-radius:10px;margin-bottom:12px;font-size:0.85rem">🚜 Auto-scraping uruchomiony dla <b>{scrape_count}</b> produktów z ASIN. Zdjęcia pojawią się w tle.</div>'
             for w in wyniki:
                 if w['status'] == 'ok':
                     results_html += f'''
