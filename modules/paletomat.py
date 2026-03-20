@@ -388,8 +388,12 @@ def process_single_product(asin, position, total, preferred_domain=None):
         # 🚀 NATYCHMIAST zapisz nazwę do bazy (żeby nie było "Produkt B0...")
         try:
             conn = get_db()
+            # Aktualizuj produkty z placeholder nazwami
             conn.execute('UPDATE produkty SET nazwa=?, kategoria=?, zdjecie_url=? WHERE asin=? AND (nazwa LIKE "Produkt %" OR nazwa LIKE "%" || asin || "%")',
                 (nazwa, kategoria, zdjecie_url, asin))
+            # Aktualizuj zdjecie_url dla produktów BEZ ZDJĘĆ (np. po ręcznym imporcie)
+            conn.execute('UPDATE produkty SET zdjecie_url=? WHERE asin=? AND (zdjecie_url IS NULL OR zdjecie_url = "")',
+                (zdjecie_url, asin))
             conn.execute('UPDATE scraped SET nazwa=?, kategoria=? WHERE asin=?',
                 (nazwa, kategoria, asin))
             conn.commit()
