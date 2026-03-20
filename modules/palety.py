@@ -3459,6 +3459,12 @@ def paleta_scrape_images(paleta_id):
     from modules.database import get_db
     try:
         conn = get_db()
+        # Debug: pokaż WSZYSTKIE produkty na palecie i ich ASIN-y
+        all_prods = conn.execute('SELECT id, nazwa, asin, ean, zdjecie_url FROM produkty WHERE paleta_id = ?', (paleta_id,)).fetchall()
+        print(f"🔍 SCRAPE DEBUG paleta #{paleta_id}: {len(all_prods)} produktów")
+        for p in all_prods:
+            print(f"   ID:{p['id']} | ASIN:{p['asin']!r} | EAN:{p['ean']!r} | img:{(p['zdjecie_url'] or '')[:40]!r} | {(p['nazwa'] or '')[:40]}")
+
         asins_rows = conn.execute('''
             SELECT DISTINCT asin FROM produkty
             WHERE paleta_id = ?
@@ -3466,15 +3472,21 @@ def paleta_scrape_images(paleta_id):
             AND (zdjecie_url IS NULL OR zdjecie_url = '')
         ''', (paleta_id,)).fetchall()
         asins = [r['asin'] for r in asins_rows if r['asin'] and len(r['asin']) >= 5]
+        print(f"🔍 SCRAPE: znaleziono {len(asins)} ASIN-ów do scrapowania: {asins}")
 
         if not asins:
-            return jsonify({'ok': False, 'error': 'Brak produktów z ASIN bez zdjęć'})
+            # Sprawdź czy może wszystkie już mają zdjęcia
+            with_img = conn.execute('SELECT COUNT(*) FROM produkty WHERE paleta_id = ? AND zdjecie_url IS NOT NULL AND zdjecie_url != ""', (paleta_id,)).fetchone()[0]
+            without_asin = conn.execute('SELECT COUNT(*) FROM produkty WHERE paleta_id = ? AND (asin IS NULL OR asin = "" OR asin = "nan")', (paleta_id,)).fetchone()[0]
+            return jsonify({'ok': False, 'error': f'Brak ASIN bez zdjęć (z_img:{with_img}, bez_asin:{without_asin})'})
 
         from modules.paletomat import auto_process_products
-        auto_process_products(asins)  # Already runs in background thread internally
-        return jsonify({'ok': True, 'count': len(asins)})
+        auto_process_products(asins)
+        return jsonify({'ok': True, 'count': len(asins), 'asins': asins})
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)[:100]})
+        import traceback
+        traceback.print_exc()
+        return jsonify({'ok': False, 'error': str(e)[:200]})
 
 
 @palety_bp.route('/produkt/<int:produkt_id>/szybka-edycja', methods=['POST'])
