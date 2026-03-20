@@ -3398,7 +3398,7 @@ def paleta_detail_by_id(paleta_id):
     
     # Pobierz dane palety z ceną zakupu
     try:
-        paleta_row = conn.execute('SELECT nazwa, ilosc_sztuk, cena_zakupu, cena_zakupu_netto, COALESCE(dostarczona, 0) as dostarczona FROM palety WHERE id = ?', (paleta_id,)).fetchone()
+        paleta_row = conn.execute('SELECT nazwa, dostawca, regal, ilosc_sztuk, cena_zakupu, cena_zakupu_netto, COALESCE(dostarczona, 0) as dostarczona FROM palety WHERE id = ?', (paleta_id,)).fetchone()
         ilosc_sztuk_paleta = paleta_row['ilosc_sztuk'] or 0 if paleta_row else 0
         cena_zakupu = paleta_row['cena_zakupu'] or 0 if paleta_row else 0
         try:
@@ -3411,12 +3411,12 @@ def paleta_detail_by_id(paleta_id):
             cena_zakupu_netto = round(cena_zakupu / 1.23, 2)
     except:
         try:
-            paleta_row = conn.execute('SELECT nazwa, ilosc_sztuk, cena_zakupu FROM palety WHERE id = ?', (paleta_id,)).fetchone()
+            paleta_row = conn.execute('SELECT nazwa, dostawca, regal, ilosc_sztuk, cena_zakupu FROM palety WHERE id = ?', (paleta_id,)).fetchone()
             ilosc_sztuk_paleta = paleta_row['ilosc_sztuk'] or 0 if paleta_row else 0
             cena_zakupu = paleta_row['cena_zakupu'] or 0 if paleta_row else 0
             cena_zakupu_netto = round(cena_zakupu / 1.23, 2)
         except:
-            paleta_row = conn.execute('SELECT nazwa FROM palety WHERE id = ?', (paleta_id,)).fetchone()
+            paleta_row = conn.execute('SELECT nazwa, dostawca, regal FROM palety WHERE id = ?', (paleta_id,)).fetchone()
             ilosc_sztuk_paleta = 0
             cena_zakupu = 0
             cena_zakupu_netto = 0
@@ -3472,8 +3472,12 @@ def paleta_detail_by_id(paleta_id):
     dostarczona_val = paleta_row['dostarczona'] if paleta_row and 'dostarczona' in paleta_row.keys() else 0
     dostarczona_label = '✅ Dostarczona' if dostarczona_val else '🚚 W drodze'
     dostarczona_color = '#22c55e' if dostarczona_val else '#f59e0b'
+    paleta_dostawca = paleta_row['dostawca'] if 'dostawca' in paleta_row.keys() else ''
+    paleta_regal = paleta_row['regal'] if 'regal' in paleta_row.keys() else ''
+    dostawca_badge = f' • <span style="color:#3b82f6">{paleta_dostawca}</span>' if paleta_dostawca else ''
+    regal_badge = f' • 📍 {paleta_regal}' if paleta_regal else ''
     html = f'''<div class="hdr" style="display:flex;justify-content:space-between;align-items:center">
-        <div><h1>📦 {nazwa_palety}</h1><small>{len(products)} prod. ({sztuki_display} szt.)</small></div>
+        <div><h1>📦 {nazwa_palety}</h1><small>{len(products)} prod. ({sztuki_display} szt.){dostawca_badge}{regal_badge}</small></div>
         <button id="btnDostarczona" onclick="toggleDostarczona({paleta_id}, this)"
             data-val="{dostarczona_val}"
             style="padding:8px 16px;border:2px solid {dostarczona_color};background:{dostarczona_color}22;color:{dostarczona_color};border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer">
@@ -3506,12 +3510,12 @@ def paleta_detail_by_id(paleta_id):
                     </div>
                     <div>
                         <label style="font-size:0.8rem;color:#64748b;display:block;margin-bottom:4px">Dostawca</label>
-                        <input type="text" id="ep_dostawca" value="{paleta_row['dostawca'] if 'dostawca' in paleta_row.keys() else ''}" style="width:100%;padding:10px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e2e8f0;font-size:0.9rem">
+                        <input type="text" id="ep_dostawca" value="{paleta_dostawca}" style="width:100%;padding:10px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e2e8f0;font-size:0.9rem">
                     </div>
                 </div>
                 <div style="margin-bottom:16px">
                     <label style="font-size:0.8rem;color:#64748b;display:block;margin-bottom:4px">Regał / lokalizacja</label>
-                    <input type="text" id="ep_regal" value="{paleta_row['regal'] if 'regal' in paleta_row.keys() else ''}" style="width:100%;padding:10px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e2e8f0;font-size:0.9rem">
+                    <input type="text" id="ep_regal" value="{paleta_regal}" style="width:100%;padding:10px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e2e8f0;font-size:0.9rem">
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                     <button type="button" onclick="document.getElementById('editPaletaModal').style.display='none'" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:10px;color:#94a3b8;cursor:pointer;font-size:0.9rem">Anuluj</button>

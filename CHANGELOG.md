@@ -36,6 +36,8 @@
 - [FIX] EAN / ASIN — kliknij aby skopiowac do schowka (📋)
 - [FIX] Tekst EAN/ASIN zaznaczalny (user-select:all)
 - [ZMIANA] Etykieta ceny w importach: "Cena zakupu (aukcja/faktura)" z ostrzezeniem
+- [FIX] Dostawca i regal widoczne na stronie szczegalow palety (brakowalo w zapytaniu SQL)
+- [FIX] Modal edycji palety poprawnie wyswietla dostawce i regal
 
 ### Kiosk
 - [NOWE] Redesign dashboardu kiosk pod 16" monitor 1920x1200
