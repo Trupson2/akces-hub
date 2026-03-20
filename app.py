@@ -2011,9 +2011,10 @@ def license_upgrade_enterprise():
 # ============================================================
 @app.route('/narzedzia/licencje', methods=['GET', 'POST'])
 def narzedzia_licencje():
-    """Panel generowania licencji — dostepny tylko dla dev (folder tools/ musi istniec)"""
-    _tools_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools')
-    if session.get('rola') != 'admin' or not os.path.isdir(_tools_path):
+    """Panel generowania licencji — dostepny tylko dla dev"""
+    from modules.database import get_config
+    is_dev = get_config('is_dev', '0') == '1'
+    if session.get('rola') != 'admin' or not is_dev:
         return 'Brak dostepu', 403
     from modules.license import generate_license_key
     from datetime import datetime
@@ -2297,7 +2298,7 @@ def narzedzia():
     return render_template('narzedzia.html',
         version=VERSION,
         is_admin=(session.get('rola') == 'admin'),
-        is_dev=(session.get('rola') == 'admin' and os.path.isdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools'))),
+        is_dev=(session.get('rola') == 'admin' and get_config('is_dev', '0') == '1'),
         active_narzedzia='active', active_home='', active_magazyn='',
         active_paletomat='', active_allegro='', active_monitor='')
 
