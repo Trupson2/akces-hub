@@ -1915,8 +1915,8 @@ def paleta_bulk_import():
                     <input type="text" name="nazwa_${i}" id="nazwa-${i}" placeholder="Auto z nazwy pliku" class="form-control">
                 </div>
                 <div>
-                    <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px">Cena brutto</label>
-                    <input type="number" name="cena_${i}" placeholder="0" step="0.01" class="form-control">
+                    <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px">💰 Cena zakupu (aukcja/faktura)</label>
+                    <input type="number" name="cena_${i}" placeholder="np. 144.80" step="0.01" class="form-control" title="Ile zapłaciłeś za paletę — NIE cena produktów z Excela">
                 </div>
                 <div>
                     <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px">Regał</label>
