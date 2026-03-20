@@ -912,6 +912,8 @@ def przelicz_brutto_palet():
 
 @palety_bp.route('/palety')
 def palety_lista():
+    # Redirect na Magazynier — jedna strona palet
+    return redirect('/magazyn/palety')
     from modules.database import get_palety_list, get_full_stats
 
     palety = get_palety_list(100)
