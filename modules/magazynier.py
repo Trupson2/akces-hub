@@ -3185,20 +3185,20 @@ def palety():
         dostarczona = dostarczona_map.get(p['id'], 0)
         dostarczona_label = '✅ Dostarczona' if dostarczona else '🚚 W drodze'
         dostarczona_color = '#22c55e' if dostarczona else '#f59e0b'
-        html += f'''<div class="item" style="position:relative;display:flex;align-items:center">
-            <input type="checkbox" class="paleta-cb" data-id="{p['id']}" onchange="updateCount()"
-                style="width:18px;height:18px;margin-right:8px;cursor:pointer;accent-color:#3b82f6;flex-shrink:0">
-            <a href="{link}" style="display:flex;flex:1;align-items:center;text-decoration:none;color:inherit;min-width:0">
-                <div style="font-size:1.5rem;margin-right:10px">{'📫' if p['typ'] == 'box' else '📦'}</div>
-                <div class="item-info">
+        html += f'''<div class="item paleta-row" style="position:relative;display:flex;align-items:center;cursor:pointer" onclick="toggleCb(this)" ondblclick="window.location='{link}'">
+            <input type="checkbox" class="paleta-cb" data-id="{p['id']}" onchange="updateCount()" onclick="event.stopPropagation()"
+                style="width:22px;height:22px;margin-right:10px;cursor:pointer;accent-color:#3b82f6;flex-shrink:0">
+            <div style="font-size:1.5rem;margin-right:10px">{'📫' if p['typ'] == 'box' else '📦'}</div>
+            <div class="item-info" style="flex:1;min-width:0">
+                <a href="{link}" onclick="event.stopPropagation()" style="text-decoration:none;color:inherit">
                     <div class="item-name">{p['nazwa']}{'<span style="font-size:0.65rem;background:#3b82f633;color:#3b82f6;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle">BOX</span>' if p['typ'] == 'box' else ''}</div>
-                    <div class="item-meta" style="color:{cnt_color}">{p['cnt']} prod. | {sztuki} szt{dostawca_info}{data_info}</div>
-                    <div class="item-meta">💰 Zakup: {zakup_brutto:.0f} zł</div>
-                </div>
-            </a>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:100px;flex-shrink:0">
-                <div style="color:#22c55e;font-weight:700">{p['wartosc_allegro'] or 0:.0f} zł</div>
-                <button onclick="toggleDostarczona({p['id']}, this)" 
+                </a>
+                <div class="item-meta" style="color:{cnt_color}">{p['cnt']} prod. | {sztuki} szt{dostawca_info}{data_info}</div>
+                <div class="item-meta">💰 Zakup: {zakup_brutto:.0f} zł</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:100px;flex-shrink:0" onclick="event.stopPropagation()">
+                <a href="{link}" style="color:#22c55e;font-weight:700;text-decoration:none">{p['wartosc_allegro'] or 0:.0f} zł →</a>
+                <button onclick="toggleDostarczona({p['id']}, this)"
                     data-val="{dostarczona}"
                     style="padding:4px 8px;border:1px solid {dostarczona_color};background:{dostarczona_color}22;color:{dostarczona_color};border-radius:6px;font-size:0.7rem;cursor:pointer;white-space:nowrap">
                     {dostarczona_label}
@@ -3220,6 +3220,11 @@ def palety():
         </a>'''
     
     html += '''<script>
+    function toggleCb(row) {
+        const cb = row.querySelector('.paleta-cb');
+        cb.checked = !cb.checked;
+        updateCount();
+    }
     function updateCount() {
         const n = document.querySelectorAll('.paleta-cb:checked').length;
         document.getElementById('selectedCount').textContent = '(' + n + ' zaznaczonych)';
