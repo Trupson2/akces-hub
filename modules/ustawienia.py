@@ -904,47 +904,121 @@ def admin_update_git():
         else:
             logs.append('  -> Brak bazy')
 
-        # 2. Git pull
-        logs.append('[2/4] Git pull...')
-        if not os.path.isdir(os.path.join(app_dir, '.git')):
-            logs.append('  -> Brak repo git. Inicjalizuje...')
-            subprocess.run(['git', 'init'], cwd=app_dir, capture_output=True, timeout=10)
-            subprocess.run(['git', 'remote', 'add', 'origin', 'https://github.com/Trupson2/akces-hub.git'],
-                         cwd=app_dir, capture_output=True, timeout=10)
+        # 2. Pobierz najnowszy kod
+        logs.append('[2/4] Pobieranie aktualizacji...')
+        github_repo = get_config('github_repo', 'Trupson2/akces-hub')
+        github_token = get_config('github_token', '')
 
-        r = subprocess.run(['git', 'pull', '--ff-only', 'origin', 'main'],
-                          cwd=app_dir, capture_output=True, text=True, timeout=60)
-        if r.returncode == 0:
-            logs.append(f'  -> {r.stdout.strip()}')
-        else:
-            # Try with reset if ff-only fails
-            subprocess.run(['git', 'fetch', 'origin'], cwd=app_dir, capture_output=True, timeout=60)
-            r2 = subprocess.run(['git', 'reset', '--hard', 'origin/main'],
-                               cwd=app_dir, capture_output=True, text=True, timeout=30)
-            if r2.returncode == 0:
-                logs.append(f'  -> Reset do origin/main OK')
-            else:
-                logs.append(f'  -> Git error: {r.stderr[:200]}')
+        # Najpierw probuj git pull (jesli jest repo + token)
+        updated_via_git = False
+        if os.path.isdir(os.path.join(app_dir, '.git')):
+            # Ustaw token w git URL jesli dostepny
+            if github_token:
+                remote_url = f'https://{github_token}@github.com/{github_repo}.git'
+                subprocess.run(['git', 'remote', 'set-url', 'origin', remote_url],
+                              cwd=app_dir, capture_output=True, timeout=10)
+            r = subprocess.run(['git', 'pull', '--ff-only', 'origin', 'main'],
+                              cwd=app_dir, capture_output=True, text=True, timeout=60)
+            if r.returncode == 0 and 'Already up to date' not in r.stdout:
+                logs.append(f'  -> Git pull: {r.stdout.strip()}')
+                updated_via_git = True
+            elif r.returncode == 0:
+                logs.append(f'  -> {r.stdout.strip()}')
+                updated_via_git = True
+
+        # Fallback: pobierz ZIP z tokenem (prywatne repo)
+        if not updated_via_git:
+            import urllib.request, zipfile, shutil
+            tmp_zip = os.path.join(app_dir, '_update.zip')
+            tmp_dir = os.path.join(app_dir, '_update_tmp')
+            skip_patterns = {'venv', 'backups', '__pycache__', '.git', 'akces_hub.db',
+                             'cloud_exports', '_update_tmp', 'node_modules', '.secret_key'}
+            try:
+                zip_url = f'https://api.github.com/repos/{github_repo}/zipball/main'
+                req_obj = urllib.request.Request(zip_url)
+                if github_token:
+                    req_obj.add_header('Authorization', f'token {github_token}')
+                    req_obj.add_header('Accept', 'application/vnd.github+json')
+                with urllib.request.urlopen(req_obj, timeout=60) as resp:
+                    with open(tmp_zip, 'wb') as fout:
+                        fout.write(resp.read())
+                file_size = os.path.getsize(tmp_zip)
+                if file_size < 1000:
+                    os.remove(tmp_zip)
+                    logs.append('  -> Blad: nie mozna pobrac (sprawdz github_token w config)')
+                else:
+                    logs.append(f'  -> Pobrano ({file_size/1024:.0f} KB)')
+                    if os.path.exists(tmp_dir):
+                        shutil.rmtree(tmp_dir)
+                    os.makedirs(tmp_dir)
+                    with zipfile.ZipFile(tmp_zip, 'r') as zf:
+                        zf.extractall(tmp_dir)
+                    os.remove(tmp_zip)
+
+                    extracted = os.listdir(tmp_dir)
+                    src_dir = tmp_dir
+                    if len(extracted) == 1 and os.path.isdir(os.path.join(tmp_dir, extracted[0])):
+                        src_dir = os.path.join(tmp_dir, extracted[0])
+
+                    file_count = 0
+                    for root, dirs, files in os.walk(src_dir):
+                        dirs[:] = [d for d in dirs if d not in skip_patterns]
+                        rel = os.path.relpath(root, src_dir)
+                        for fname in files:
+                            if fname.endswith(('.pyc', '.db')) or fname in skip_patterns:
+                                continue
+                            src_file = os.path.join(root, fname)
+                            if rel == '.':
+                                dst_file = os.path.join(app_dir, fname)
+                            else:
+                                dst_dir_path = os.path.join(app_dir, rel)
+                                os.makedirs(dst_dir_path, exist_ok=True)
+                                dst_file = os.path.join(dst_dir_path, fname)
+                            shutil.copy2(src_file, dst_file)
+                            file_count += 1
+                    shutil.rmtree(tmp_dir, ignore_errors=True)
+                    logs.append(f'  -> Zaktualizowano {file_count} plikow')
+            except Exception as e:
+                logs.append(f'  -> Blad pobierania: {e}')
+                if os.path.exists(tmp_zip):
+                    os.remove(tmp_zip)
+                if os.path.exists(tmp_dir):
+                    shutil.rmtree(tmp_dir, ignore_errors=True)
 
         # 3. Pip install
         logs.append('[3/4] Pip install...')
         req = os.path.join(app_dir, 'requirements.txt')
         venv_pip = os.path.join(app_dir, 'venv', 'bin', 'pip')
-        if os.path.exists(req) and os.path.exists(venv_pip):
-            r = subprocess.run([venv_pip, 'install', '-r', req, '--quiet'],
-                              capture_output=True, text=True, timeout=120)
+        sys_pip = '/usr/bin/pip3'
+        if os.path.exists(req):
+            if os.path.exists(venv_pip):
+                r = subprocess.run([venv_pip, 'install', '-r', req, '--quiet'],
+                                  capture_output=True, text=True, timeout=120)
+            else:
+                r = subprocess.run([sys_pip, 'install', '-r', req, '--quiet', '--break-system-packages'],
+                                  capture_output=True, text=True, timeout=120)
             logs.append('  -> OK' if r.returncode == 0 else f'  -> {r.stderr[:100]}')
         else:
-            logs.append('  -> Pomijam')
+            logs.append('  -> Pomijam (brak requirements.txt)')
 
-        # 4. Restart
+        # 4. Restart (wykryj nazwe serwisu automatycznie)
         logs.append('[4/4] Restart Flask...')
-        r = subprocess.run(['sudo', 'systemctl', 'restart', 'akceshub.service'],
-                          capture_output=True, text=True, timeout=30)
-        if r.returncode == 0:
-            logs.append('  -> OK!')
+        service_name = None
+        for svc in ['akces-hub.service', 'akceshub.service', 'akces-hub', 'akceshub']:
+            r = subprocess.run(['sudo', 'systemctl', 'is-enabled', svc],
+                              capture_output=True, text=True, timeout=5)
+            if r.returncode == 0:
+                service_name = svc
+                break
+        if service_name:
+            r = subprocess.run(['sudo', 'systemctl', 'restart', service_name],
+                              capture_output=True, text=True, timeout=30)
+            if r.returncode == 0:
+                logs.append(f'  -> {service_name} zrestartowany!')
+            else:
+                logs.append(f'  -> {r.stderr[:200]}')
         else:
-            logs.append(f'  -> {r.stderr[:200]}')
+            logs.append('  -> Nie znaleziono serwisu systemd. Zrestartuj recznie.')
 
         logs.append('')
         logs.append('AKTUALIZACJA ZAKONCZONA!')
@@ -1073,18 +1147,27 @@ def admin_update():
         # Cleanup tmp
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
-        # 4. Restart Flask
+        # 4. Restart (wykryj nazwe serwisu automatycznie)
         logs.append('[4/4] Restart serwisu...')
         try:
-            result = subprocess.run(
-                ['sudo', 'systemctl', 'restart', 'akceshub.service'],
-                capture_output=True, text=True, timeout=30
-            )
-            if result.returncode == 0:
-                logs.append('  -> Flask zrestartowany!')
+            service_name = None
+            for svc in ['akces-hub.service', 'akceshub.service']:
+                r2 = subprocess.run(['sudo', 'systemctl', 'is-enabled', svc],
+                                   capture_output=True, text=True, timeout=5)
+                if r2.returncode == 0:
+                    service_name = svc
+                    break
+            if service_name:
+                result = subprocess.run(
+                    ['sudo', 'systemctl', 'restart', service_name],
+                    capture_output=True, text=True, timeout=30
+                )
+                if result.returncode == 0:
+                    logs.append(f'  -> {service_name} zrestartowany!')
+                else:
+                    logs.append(f'  -> Restart blad: {result.stderr[:200]}')
             else:
-                logs.append(f'  -> Restart blad: {result.stderr[:200]}')
-                logs.append('  -> Sprobuj recznie: sudo systemctl restart akceshub.service')
+                logs.append('  -> Nie znaleziono serwisu. Zrestartuj recznie.')
         except Exception as e:
             logs.append(f'  -> Nie mozna zrestartowac automatycznie: {e}')
             logs.append('  -> Po odswiezeniu strona moze byc niedostepna przez chwile')
