@@ -679,14 +679,13 @@ def profit_analyzer():
         m_end = m_end_dt.strftime('%Y-%m-%d')
         m_label = dt.strftime('%m/%Y')
 
-        # Przychód Allegro (bez offline — bo offline/prywatne liczone osobno z sprzedaze_prywatne)
+        # Przychód ze sprzedaży (Allegro + offline, bez zwrotów)
         rev = conn.execute('''
             SELECT COALESCE(SUM(cena * ilosc), 0) as r, COUNT(*) as cnt,
                    COALESCE(SUM(ilosc), 0) as szt
             FROM sprzedaze
             WHERE date(data_sprzedazy) >= ? AND date(data_sprzedazy) <= ?
             AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
-            AND (kupujacy IS NULL OR kupujacy != 'offline')
         ''', (m_start, m_end)).fetchone()
 
         przychod_allegro = rev['r'] or 0
@@ -731,8 +730,14 @@ def profit_analyzer():
         avg_unit_cost = avg_cost['avg_unit'] or 0
 
         cogs = avg_unit_cost * sztuki
-        # Prowizja TYLKO na Allegro (prywatne sprzedaże nie mają prowizji)
-        prowizja = przychod_allegro * prowizja_pct
+        # Prowizja TYLKO na Allegro (offline i prywatne nie mają prowizji)
+        allegro_only = conn.execute('''
+            SELECT COALESCE(SUM(cena * ilosc), 0) as r FROM sprzedaze
+            WHERE date(data_sprzedazy) >= ? AND date(data_sprzedazy) <= ?
+            AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+            AND (kupujacy IS NULL OR kupujacy != 'offline')
+        ''', (m_start, m_end)).fetchone()['r'] or 0
+        prowizja = allegro_only * prowizja_pct
         zysk = przychod - cogs - prowizja
         marza = (zysk / przychod * 100) if przychod > 0 else 0
         roi = (zysk / cogs * 100) if cogs > 0 else 0
