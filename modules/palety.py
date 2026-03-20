@@ -2850,7 +2850,7 @@ def paleta_szczegoly(paleta_id):
         <a href="/magazyn/import?paleta_id={paleta_id}" class="btn" style="background:var(--blue);text-decoration:none">📥 IMPORTUJ EXCEL</a>
         <a href="/palety/{paleta_id}/edit" class="btn btn-warning" style="text-decoration:none">⚙️ EDYTUJ PALETE</a>
     </div>
-    <button type="button" onclick="scrapujZdjecia({paleta_id})" id="scrape-btn-{paleta_id}" class="btn" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);margin-bottom:15px;font-size:0.85rem">📷 SCRAPUJ ZDJĘCIA ({bez_zdjec} produktów bez zdjęć)</button>
+    <button type="button" onclick="scrapujZdjecia({paleta_id})" id="scrape-btn-{paleta_id}" class="btn" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);margin-bottom:15px;font-size:0.85rem">📷 SCRAPUJ ZDJECIA ({bez_zdjec} produktow bez zdjec)</button>
 
     <!-- PRZEKAZ ZYSK NA CEL -->
     ''' + ('''
