@@ -2290,12 +2290,31 @@ def analiza_oferty():
             allegro_oferta = None
             allegro_stats = {'wyswietlenia': 0, 'obserwujacych': 0, 'status': None, 'allegro_id': None, 'data_wystawienia': None, 'cena_allegro_live': 0}
 
-            # Szukaj oferty po produkt_id lub ASIN
+            # Szukaj oferty — kilka metod
             _of = conn.execute('SELECT * FROM oferty WHERE produkt_id=? ORDER BY data_aktualizacji DESC LIMIT 1', (p['id'],)).fetchone()
-            if not _of and p.get('asin'):
-                # Szukaj po external.id zawierającym ASIN
-                _of = conn.execute("SELECT * FROM oferty WHERE tytul LIKE ? OR allegro_id IN (SELECT allegro_id FROM oferty WHERE tytul LIKE ?) ORDER BY data_aktualizacji DESC LIMIT 1",
-                    (f'%{p["asin"]}%', f'%{p["asin"]}%')).fetchone()
+
+            # Szukaj po nazwie produktu (częste dopasowanie)
+            if not _of and p.get('nazwa'):
+                _nazwa_short = (p['nazwa'] or '')[:40]
+                if _nazwa_short:
+                    _of = conn.execute("SELECT * FROM oferty WHERE tytul LIKE ? ORDER BY data_aktualizacji DESC LIMIT 1",
+                        (f'%{_nazwa_short}%',)).fetchone()
+
+            # Live sync z Allegro jeśli nie znaleziono — spróbuj sync i szukaj ponownie
+            if not _of:
+                try:
+                    from modules.allegro_api import sync_offers_status, is_authenticated
+                    if is_authenticated():
+                        sync_offers_status()
+                        # Spróbuj ponownie po syncu
+                        _of = conn.execute('SELECT * FROM oferty WHERE produkt_id=? ORDER BY data_aktualizacji DESC LIMIT 1', (p['id'],)).fetchone()
+                        if not _of and p.get('nazwa'):
+                            _nazwa_short = (p['nazwa'] or '')[:40]
+                            if _nazwa_short:
+                                _of = conn.execute("SELECT * FROM oferty WHERE tytul LIKE ? ORDER BY data_aktualizacji DESC LIMIT 1",
+                                    (f'%{_nazwa_short}%',)).fetchone()
+                except:
+                    pass
             if _of:
                 allegro_oferta = dict(_of)
                 allegro_stats['wyswietlenia'] = _of['wyswietlenia'] or 0
