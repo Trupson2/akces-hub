@@ -89,7 +89,7 @@ except Exception as e:
 # ============================================================
 # WERSJA I KONFIGURACJA
 # ============================================================
-VERSION = "32.0"
+VERSION = "1.0.0"
 APP_START_TIME = time.time()
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
@@ -2293,12 +2293,19 @@ def changelog():
 
     return render_template('changelog.html', content=content, version=VERSION)
 
+def _is_dev_mode():
+    try:
+        from modules.database import get_config
+        return session.get('rola') == 'admin' and get_config('is_dev', '0') == '1'
+    except Exception:
+        return False
+
 @app.route('/narzedzia')
 def narzedzia():
     return render_template('narzedzia.html',
         version=VERSION,
         is_admin=(session.get('rola') == 'admin'),
-        is_dev=(session.get('rola') == 'admin' and get_config('is_dev', '0') == '1'),
+        is_dev=_is_dev_mode(),
         active_narzedzia='active', active_home='', active_magazyn='',
         active_paletomat='', active_allegro='', active_monitor='')
 
