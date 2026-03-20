@@ -13,6 +13,20 @@
 <link rel="manifest" href="/static/manifest.json">
 <link rel="apple-touch-icon" href="/static/icon-192.png">
 <title>{{ brand_name }}</title>
+<script>
+// Fix ngrok free tier — dodaj header do wszystkich fetch requestów
+(function(){
+    var _fetch = window.fetch;
+    window.fetch = function(url, opts) {
+        opts = opts || {};
+        opts.headers = opts.headers || {};
+        if (!(opts.headers instanceof Headers)) {
+            opts.headers['ngrok-skip-browser-warning'] = '1';
+        }
+        return _fetch.call(this, url, opts);
+    };
+})();
+</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">

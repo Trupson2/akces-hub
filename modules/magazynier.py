@@ -1030,7 +1030,7 @@ def produkt(code):
             var btn = event.target;
             btn.textContent = '⏳ Pobieram...';
             btn.disabled = true;
-            fetch('/magazyn/api/rescrape-image/' + produktId, {{method: 'POST'}})
+            fetch('/magazyn/api/rescrape-image/' + produktId, {{method: 'POST', headers: {{'ngrok-skip-browser-warning': '1'}}}})
                 .then(function(r) {{ return r.json(); }})
                 .then(function(d) {{
                     if (d.ok) {{
