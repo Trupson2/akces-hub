@@ -87,7 +87,7 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
 {% else %}
 <div class="alert alert-success" style="display:flex;align-items:center;gap:8px;padding:8px 14px">
     <span>✅</span>
-    <span style="font-size:0.78rem">System aktualny &middot; wersja {{ update_status.local_hash }}</span>
+    <span style="font-size:0.78rem">System aktualny &middot; v{{ version }}</span>
 </div>
 {% endif %}
 {% endif %}
