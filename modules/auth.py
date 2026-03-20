@@ -295,14 +295,40 @@ button:hover{opacity:0.92;transform:translateY(-1px);box-shadow:0 8px 24px rgba(
 {% if first_run %}
 <div class="form-group">
 <label>Powtorz haslo</label>
-<input type="password" name="password2" required placeholder="Powtorz haslo">
+<input type="password" name="password2" id="password2" required placeholder="Powtorz haslo">
+<div id="passMatch" style="font-size:0.8rem;margin-top:4px;display:none"></div>
 </div>
 {% endif %}
-<button type="submit">{% if first_run %}Utworz konto{% else %}Zaloguj{% endif %}</button>
+<button type="submit" id="submitBtn">{% if first_run %}Utworz konto{% else %}Zaloguj{% endif %}</button>
 </form>
 </div>
 
 <div class="footer-text">{{ brand_name }} &copy; 2026</div>
+{% if first_run %}
+<script>
+(function(){
+    var p1 = document.querySelector('input[name="password"]');
+    var p2 = document.getElementById('password2');
+    var msg = document.getElementById('passMatch');
+    var btn = document.getElementById('submitBtn');
+    function check(){
+        if(!p2.value) { msg.style.display='none'; btn.disabled=false; return; }
+        msg.style.display='block';
+        if(p1.value === p2.value){
+            msg.style.color='#22c55e';
+            msg.textContent='Hasla sa zgodne';
+            btn.disabled=false;
+        } else {
+            msg.style.color='#ef4444';
+            msg.textContent='Hasla nie sa zgodne';
+            btn.disabled=true;
+        }
+    }
+    p1.addEventListener('input', check);
+    p2.addEventListener('input', check);
+})();
+</script>
+{% endif %}
 </body>
 </html>'''
 
