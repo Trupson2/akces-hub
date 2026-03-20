@@ -679,13 +679,14 @@ def profit_analyzer():
         m_end = m_end_dt.strftime('%Y-%m-%d')
         m_label = dt.strftime('%m/%Y')
 
-        # Przychód (WSZYSTKIE zamówienia — bez filtra offline)
+        # Przychód Allegro (bez offline — bo offline/prywatne liczone osobno z sprzedaze_prywatne)
         rev = conn.execute('''
             SELECT COALESCE(SUM(cena * ilosc), 0) as r, COUNT(*) as cnt,
                    COALESCE(SUM(ilosc), 0) as szt
             FROM sprzedaze
             WHERE date(data_sprzedazy) >= ? AND date(data_sprzedazy) <= ?
             AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+            AND (kupujacy IS NULL OR kupujacy != 'offline')
         ''', (m_start, m_end)).fetchone()
 
         przychod_allegro = rev['r'] or 0
