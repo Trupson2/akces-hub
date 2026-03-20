@@ -992,12 +992,15 @@ def palety_lista():
         progress_color = 'var(--green)' if procent_sprzedane >= 50 else 'var(--yellow)' if procent_sprzedane >= 20 else 'var(--text-muted)'
 
         palety_html += f'''
-        <div class="paleta-card">
+        <div class="paleta-card" id="paleta-card-{p['id']}">
             <div style="display:flex;justify-content:space-between;align-items:start">
-                <div>
-                    <div style="font-weight:600">{p['nazwa'] or f"Paleta #{p['id']}"}</div>
-                    <div style="font-size:0.8rem;color:var(--text-muted)">{p['dostawca']} • {data}</div>
-                    {f'<div style="font-size:0.75rem;color:var(--purple);margin-top:2px">📍 Regal: {regal}</div>' if regal else ''}
+                <div style="display:flex;align-items:start;gap:8px">
+                    <input type="checkbox" class="paleta-cb" value="{p['id']}" onchange="updateBulkDelete()" style="margin-top:4px;width:18px;height:18px;cursor:pointer;accent-color:var(--red)">
+                    <div>
+                        <div style="font-weight:600">{p['nazwa'] or f"Paleta #{p['id']}"}</div>
+                        <div style="font-size:0.8rem;color:var(--text-muted)">{p['dostawca']} • {data}</div>
+                        {f'<div style="font-size:0.75rem;color:var(--purple);margin-top:2px">📍 Regal: {regal}</div>' if regal else ''}
+                    </div>
                 </div>
                 <div style="text-align:right">
                     <div style="font-weight:600;color:var(--red)">{koszt_palety:.0f} zł</div>
@@ -1049,7 +1052,16 @@ def palety_lista():
         </div>
     </div>
 
-    <a href="/palety/dodaj" class="btn btn-success" style="margin-bottom:10px">➕ DODAJ PALETĘ</a>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <a href="/palety/dodaj" class="btn btn-success">➕ DODAJ PALETĘ</a>
+        <button type="button" id="bulk-select-btn" onclick="toggleSelectAll()" class="btn" style="background:var(--bg-card);border:1px solid var(--border);font-size:0.8rem">☑️ Zaznacz wszystkie</button>
+    </div>
+
+    <!-- Pasek masowego usuwania -->
+    <div id="bulk-delete-bar" style="display:none;position:sticky;top:60px;z-index:50;background:linear-gradient(135deg,var(--red),#dc2626);border-radius:10px;padding:12px 16px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;box-shadow:0 4px 15px rgba(239,68,68,0.4)">
+        <span style="color:#fff;font-weight:600;font-size:0.9rem" id="bulk-delete-count">0 zaznaczonych</span>
+        <button type="button" onclick="bulkDeletePalety()" style="background:#fff;color:var(--red);border:none;padding:8px 20px;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.85rem">🗑️ USUŃ ZAZNACZONE</button>
+    </div>
 
     <a href="/palety/przelicz-brutto" style="display:block;text-align:center;color:var(--text-muted);text-decoration:none;margin-bottom:15px;font-size:0.8rem" onclick="return confirm('Przeliczyć ceny zakupu wszystkich palet na brutto (netto × 1.23)?')">🔧 Przelicz ceny na brutto (+23% VAT)</a>
 
@@ -1058,8 +1070,82 @@ def palety_lista():
     {palety_html}
 
     <a href="/statystyki" style="display:block;text-align:center;color:var(--text-muted);text-decoration:none;margin-top:15px">← Statystyki</a>
+
+    <script>
+    function updateBulkDelete() {{
+        const checked = document.querySelectorAll('.paleta-cb:checked');
+        const bar = document.getElementById('bulk-delete-bar');
+        const count = document.getElementById('bulk-delete-count');
+        if (checked.length > 0) {{
+            bar.style.display = 'flex';
+            count.textContent = checked.length + ' zaznaczonych';
+        }} else {{
+            bar.style.display = 'none';
+        }}
+    }}
+
+    function toggleSelectAll() {{
+        const cbs = document.querySelectorAll('.paleta-cb');
+        const allChecked = [...cbs].every(cb => cb.checked);
+        cbs.forEach(cb => cb.checked = !allChecked);
+        updateBulkDelete();
+    }}
+
+    function bulkDeletePalety() {{
+        const checked = document.querySelectorAll('.paleta-cb:checked');
+        const ids = [...checked].map(cb => cb.value);
+        if (ids.length === 0) return;
+        if (!confirm('Na pewno usunąć ' + ids.length + ' palet z produktami? Tej operacji nie można cofnąć!')) return;
+
+        fetch('/palety/bulk-delete', {{
+            method: 'POST',
+            headers: {{'Content-Type': 'application/json'}},
+            body: JSON.stringify({{ids: ids}})
+        }})
+        .then(r => r.json())
+        .then(data => {{
+            if (data.ok) {{
+                ids.forEach(id => {{
+                    const card = document.getElementById('paleta-card-' + id);
+                    if (card) card.remove();
+                }});
+                updateBulkDelete();
+                alert('Usunięto ' + data.deleted + ' palet');
+                location.reload();
+            }} else {{
+                alert('Błąd: ' + (data.error || 'Nieznany'));
+            }}
+        }})
+        .catch(e => alert('Błąd: ' + e));
+    }}
+    </script>
     '''
     return render(content, 'Palety')
+
+
+@palety_bp.route('/palety/bulk-delete', methods=['POST'])
+def palety_bulk_delete():
+    """Masowe usuwanie palet z produktami"""
+    from modules.database import get_db
+    try:
+        data = request.get_json()
+        ids = data.get('ids', [])
+        if not ids:
+            return jsonify({'ok': False, 'error': 'Brak palet do usunięcia'})
+
+        conn = get_db()
+        deleted = 0
+        for pid in ids:
+            pid = int(pid)
+            # Usuń produkty palety
+            conn.execute('DELETE FROM produkty WHERE paleta_id = ?', (pid,))
+            # Usuń paletę
+            conn.execute('DELETE FROM palety WHERE id = ?', (pid,))
+            deleted += 1
+        conn.commit()
+        return jsonify({'ok': True, 'deleted': deleted})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)[:100]})
 
 
 @palety_bp.route('/palety/dodaj', methods=['GET', 'POST'])
@@ -1414,11 +1500,6 @@ def paleta_bulk_import():
             # Pobierz wspólne ustawienia
             dostawca = request.form.get('dostawca', 'Jobalots')
             waluta = request.form.get('waluta', 'EUR').upper()
-            col_nazwa = request.form.get('col_nazwa', '')
-            col_ean = request.form.get('col_ean', '')
-            col_ilosc = request.form.get('col_ilosc', '')
-            col_cena = request.form.get('col_cena', '')
-            col_cena_detal = request.form.get('col_cena_detal', '')
 
             # Kurs EUR→PLN
             eur_rate = 1.0
@@ -1465,12 +1546,46 @@ def paleta_bulk_import():
                         wyniki.append({'nazwa': nazwa or file.filename, 'status': 'error', 'msg': 'Pusty plik (brak danych)'})
                         continue
 
-                    # Header row -> column index mapping
-                    header = [str(c).strip() if c is not None else '' for c in rows[0]]
-                    col_idx = {}
-                    for col_key in [col_nazwa, col_ean, col_ilosc, col_cena, col_cena_detal]:
-                        if col_key and col_key in header:
-                            col_idx[col_key] = header.index(col_key)
+                    # Auto-detekcja kolumn (jak paletomat)
+                    headers = [str(c).lower().strip() if c is not None else '' for c in rows[0]]
+                    col_nazwa_i = -1
+                    col_ean_i = -1
+                    col_ilosc_i = -1
+                    col_cena_i = -1
+                    col_rrp_i = -1
+                    col_asin_i = -1
+
+                    for i, h in enumerate(headers):
+                        hc = h.replace(' ', '').replace('_', '').replace('-', '')
+                        # Nazwa / Description
+                        if col_nazwa_i == -1 and any(x in hc for x in ['description', 'nazwa', 'name', 'product', 'titel', 'title', 'bezeichnung', 'artikel']):
+                            if 'price' not in hc and 'cena' not in hc:
+                                col_nazwa_i = i
+                        # EAN
+                        if col_ean_i == -1 and any(x in hc for x in ['ean', 'barcode', 'gtin', 'kodkreskowy']):
+                            col_ean_i = i
+                        # ASIN / SKU
+                        if col_asin_i == -1 and any(x in hc for x in ['asin', 'sku', 'artikelnummer']):
+                            col_asin_i = i
+                        # Ilość
+                        if col_ilosc_i == -1 and any(x in hc for x in ['qty', 'quantity', 'ilosc', 'ilość', 'sztuk', 'menge', 'anzahl', 'pcs', 'pieces']):
+                            col_ilosc_i = i
+                        # Cena zakupu (unit price / cost)
+                        if col_cena_i == -1 and any(x in hc for x in ['unitprice', 'costprice', 'unitcost', 'cenazakupu', 'netto', 'einkaufspreis', 'cost']):
+                            col_cena_i = i
+                        # RRP / Detal
+                        if col_rrp_i == -1 and any(x in hc for x in ['rrp', 'retail', 'msrp', 'detal', 'cenadetaliczna', 'verkaufspreis', 'uvp']):
+                            col_rrp_i = i
+
+                    # Fallback: jeśli nie znaleziono ceny zakupu, szukaj ogólnie "price"
+                    if col_cena_i == -1:
+                        for i, h in enumerate(headers):
+                            hc = h.replace(' ', '').replace('_', '')
+                            if any(x in hc for x in ['price', 'cena', 'preis']) and i != col_rrp_i:
+                                col_cena_i = i
+                                break
+
+                    print(f"📋 Bulk import kolumny: nazwa={col_nazwa_i} ean={col_ean_i} ilosc={col_ilosc_i} cena={col_cena_i} rrp={col_rrp_i}")
 
                     # Utwórz paletę
                     paleta_id = add_paleta(nazwa, dostawca, cena_zakupu, data_zakupu, f'Bulk import: {file.filename}', regal)
@@ -1478,11 +1593,11 @@ def paleta_bulk_import():
                     produkty_dodane = 0
                     for idx, row in enumerate(rows[1:]):
                         try:
-                            prod_nazwa = str(row[col_idx[col_nazwa]]) if col_nazwa and col_nazwa in col_idx and row[col_idx[col_nazwa]] is not None else f'Produkt {idx+1}'
-                            prod_ean = str(row[col_idx[col_ean]]) if col_ean and col_ean in col_idx and row[col_idx[col_ean]] is not None else ''
-                            prod_ilosc = int(row[col_idx[col_ilosc]]) if col_ilosc and col_ilosc in col_idx and row[col_idx[col_ilosc]] is not None else 1
-                            prod_cena_raw = float(row[col_idx[col_cena]]) if col_cena and col_cena in col_idx and row[col_idx[col_cena]] is not None else 0
-                            prod_cena_detal_raw = float(row[col_idx[col_cena_detal]]) if col_cena_detal and col_cena_detal in col_idx and row[col_idx[col_cena_detal]] is not None else prod_cena_raw * 2
+                            prod_nazwa = str(row[col_nazwa_i]) if col_nazwa_i >= 0 and row[col_nazwa_i] is not None else f'Produkt {idx+1}'
+                            prod_ean = str(row[col_ean_i]) if col_ean_i >= 0 and row[col_ean_i] is not None else ''
+                            prod_ilosc = int(float(str(row[col_ilosc_i]).replace(',', '.'))) if col_ilosc_i >= 0 and row[col_ilosc_i] is not None else 1
+                            prod_cena_raw = float(str(row[col_cena_i]).replace(',', '.')) if col_cena_i >= 0 and row[col_cena_i] is not None else 0
+                            prod_cena_detal_raw = float(str(row[col_rrp_i]).replace(',', '.')) if col_rrp_i >= 0 and row[col_rrp_i] is not None else prod_cena_raw * 2
                             # Przelicz EUR→PLN
                             prod_cena = round(prod_cena_raw * eur_rate, 2)
                             prod_cena_detal = round(prod_cena_detal_raw * eur_rate, 2)
@@ -1608,30 +1723,16 @@ def paleta_bulk_import():
             </div>
         </div>
 
-        <!-- MAPOWANIE KOLUMN -->
-        <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;margin:15px 0 8px;letter-spacing:1px">🔗 MAPOWANIE KOLUMN (wspólne dla wszystkich plików)</div>
-        <div class="form-row" style="margin-bottom:8px">
-            <div class="form-group">
-                <label>Kolumna NAZWA *</label>
-                <input type="text" name="col_nazwa" placeholder="np. Description" required class="form-control">
-            </div>
-            <div class="form-group">
-                <label>Kolumna EAN</label>
-                <input type="text" name="col_ean" placeholder="np. EAN" class="form-control">
-            </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-            <div class="form-group">
-                <label>Ilość</label>
-                <input type="text" name="col_ilosc" placeholder="Qty" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>Cena zakupu</label>
-                <input type="text" name="col_cena" placeholder="Unit Price" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>RRP / Detal</label>
-                <input type="text" name="col_cena_detal" placeholder="RRP" class="form-control">
+        <!-- AUTO-DETEKCJA KOLUMN -->
+        <div style="margin-top:15px;padding:12px;background:var(--bg);border-radius:10px;border:1px solid var(--border)">
+            <div style="font-size:0.8rem;font-weight:600;color:var(--green);margin-bottom:6px">🤖 AUTO-DETEKCJA KOLUMN</div>
+            <div style="font-size:0.75rem;color:var(--text-muted)">
+                System automatycznie rozpozna kolumny z Excela:<br>
+                <b>Nazwa</b> (Description, Name, Product...),
+                <b>EAN</b> (Barcode, GTIN...),
+                <b>Ilość</b> (Qty, Quantity...),
+                <b>Cena</b> (Unit Price, Cost...),
+                <b>RRP</b> (Retail, MSRP...)
             </div>
         </div>
     </div>
