@@ -3186,7 +3186,7 @@ def palety():
         dostarczona_label = '✅ Dostarczona' if dostarczona else '🚚 W drodze'
         dostarczona_color = '#22c55e' if dostarczona else '#f59e0b'
         html += f'''<div class="item" style="position:relative;display:flex;align-items:center;gap:8px">
-            <input type="checkbox" class="paleta-cb" data-id="{p['id']}" onchange="updateCount()"
+            <input type="checkbox" class="paleta-cb" data-id="{p['id']}"
                 style="width:24px;height:24px;cursor:pointer;accent-color:#3b82f6;flex-shrink:0">
             <a href="{link}" style="display:flex;flex:1;align-items:center;text-decoration:none;color:inherit;min-width:0;gap:10px">
                 <div style="font-size:1.5rem">{'📫' if p['typ'] == 'box' else '📦'}</div>
@@ -3220,18 +3220,16 @@ def palety():
         </a>'''
     
     html += '''<script>
-    console.log("✅ Palety JS zaladowany");
     function updateCount() {
-        const n = document.querySelectorAll('.paleta-cb:checked').length;
-        document.getElementById('selectedCount').textContent = '(' + n + ' zaznaczonych)';
-        console.log("Zaznaczonych: " + n);
+        var n = document.querySelectorAll('.paleta-cb:checked').length;
+        var el = document.getElementById('selectedCount');
+        if (el) el.textContent = '(' + n + ' zaznaczonych)';
     }
-    // Klik w checkbox powinien zaznaczac
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.paleta-cb').forEach(function(cb) {
-            cb.addEventListener('change', updateCount);
-        });
-        console.log("✅ Listeners dodane na " + document.querySelectorAll('.paleta-cb').length + " checkboxow");
+    // Event delegation — łapie WSZYSTKIE kliknięcia w checkboxy
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.classList && e.target.classList.contains('paleta-cb')) {
+            setTimeout(updateCount, 10);
+        }
     });
     function selectAll() {
         document.querySelectorAll('.paleta-cb').forEach(cb => cb.checked = true);
