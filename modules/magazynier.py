@@ -3157,6 +3157,7 @@ def palety():
         <div style="flex:1"></div>
         <button onclick="massUpdate(1)" style="padding:6px 12px;background:#22c55e22;border:1px solid #22c55e;border-radius:8px;color:#22c55e;font-size:0.8rem;cursor:pointer;font-weight:600">✅ Dostarczone</button>
         <button onclick="massUpdate(0)" style="padding:6px 12px;background:#f59e0b22;border:1px solid #f59e0b;border-radius:8px;color:#f59e0b;font-size:0.8rem;cursor:pointer;font-weight:600">🚚 W drodze</button>
+        <button onclick="massDelete()" style="padding:6px 12px;background:#ef444422;border:1px solid #ef4444;border-radius:8px;color:#ef4444;font-size:0.8rem;cursor:pointer;font-weight:600">🗑️ Usuń</button>
         <span id="selectedCount" style="font-size:0.75rem;color:#64748b;margin-left:4px">(0 zaznaczonych)</span>
     </div>
     <div style="margin-bottom:12px">
@@ -3286,6 +3287,27 @@ def palety():
             }
         });
     }
+    function massDelete() {
+        const ids = [...document.querySelectorAll('.paleta-cb:checked')].map(cb => parseInt(cb.dataset.id));
+        if (!ids.length) { alert('Zaznacz najpierw palety'); return; }
+        const msg = ids.length === 1 ? 'Usunąć tę paletę i jej produkty?' : 'Usunąć ' + ids.length + ' palet i ich produkty?';
+        if (!confirm('⚠️ ' + msg + '\n\nTej operacji nie można cofnąć!')) return;
+        fetch('/magazyn/api/palety-usun', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ids: ids})
+        }).then(r => r.json()).then(d => {
+            if (d.ok) {
+                ids.forEach(id => {
+                    const cb = document.querySelector('.paleta-cb[data-id="' + id + '"]');
+                    if (cb) cb.closest('.item').remove();
+                });
+                selectNone();
+            } else {
+                alert('Błąd: ' + (d.error || 'nieznany'));
+            }
+        });
+    }
     function searchPalety() {
         const q = document.getElementById('paletaSearch').value.toLowerCase();
         document.querySelectorAll('.item').forEach(el => {
@@ -3310,6 +3332,26 @@ def api_paleta_dostarczona_bulk():
             conn.execute('UPDATE palety SET dostarczona = ? WHERE id = ?', (val, int(pid)))
         conn.commit()
         return jsonify({'ok': True, 'updated': len(ids)})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
+
+@magazynier_bp.route('/api/palety-usun', methods=['POST'])
+def api_palety_usun():
+    """Masowe usuwanie palet + ich produktów"""
+    from flask import jsonify, request as req
+    conn = get_db()
+    try:
+        data = req.get_json()
+        ids = data.get('ids', [])
+        for pid in ids:
+            pid = int(pid)
+            # Usuń produkty przypisane do palety
+            conn.execute('DELETE FROM produkty WHERE paleta_id = ?', (pid,))
+            # Usuń paletę
+            conn.execute('DELETE FROM palety WHERE id = ?', (pid,))
+        conn.commit()
+        print(f"🗑️ Usunięto {len(ids)} palet z produktami")
+        return jsonify({'ok': True, 'deleted': len(ids)})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
 
