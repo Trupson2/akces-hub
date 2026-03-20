@@ -1095,7 +1095,7 @@ def _get_plan_display():
         plan_name = (_plan or 'free').upper()
     except Exception:
         plan_name = 'FREE'
-    plan_colors = {'STARTER': '#64748b', 'PRO': '#6366f1', 'BUSINESS': '#22c55e', 'FREE': '#ef4444'}
+    plan_colors = {'STARTER': '#64748b', 'PRO': '#6366f1', 'BUSINESS': '#22c55e', 'ENTERPRISE': '#f59e0b', 'FREE': '#ef4444'}
     plan_color = plan_colors.get(plan_name, '#64748b')
     _cached_plan.update(name=plan_name, color=plan_color, ts=now)
     return plan_name, plan_color

@@ -1886,7 +1886,7 @@ a{color:#6366f1;text-decoration:none}
             <label>Nazwa klienta</label>
             <input type="text" name="client" required>
             <label>Plan</label>
-            <select name="plan"><option value="starter">Starter</option><option value="pro" selected>Pro</option><option value="business">Business</option></select>
+            <select name="plan"><option value="starter">Starter</option><option value="pro" selected>Pro</option><option value="business">Business</option><option value="enterprise">Enterprise</option></select>
             <label>Utworzona (timestamp)</label>
             <input type="number" name="created" required>
             <label>Wygasa (timestamp, 0=bezterminowo)</label>
@@ -1931,7 +1931,7 @@ def narzedzia_licencje():
             import time as _time
             created = int(_time.time())
             expires = created + (duration_val * 24 * 3600)
-            plan_code = {'starter': 'S', 'pro': 'P', 'business': 'B'}.get(plan, 'P')
+            plan_code = {'starter': 'S', 'pro': 'P', 'business': 'B', 'enterprise': 'E'}.get(plan, 'P')
             import hmac as _hmac, hashlib as _hl
             from modules.license import LICENSE_SECRET
             payload = f"{client}|{plan_code}|{created}|{expires}"
@@ -2029,8 +2029,9 @@ def narzedzia_licencje():
                     <label style="display:block;font-size:0.82rem;color:var(--text-muted);margin-bottom:4px">Plan</label>
                     <select name="plan" class="form-control">
                         <option value="starter">Starter</option>
-                        <option value="pro" selected>Pro</option>
+                        <option value="pro">Pro</option>
                         <option value="business">Business</option>
+                        <option value="enterprise" selected>Enterprise</option>
                     </select>
                 </div>
                 <div style="flex:1;min-width:150px">
