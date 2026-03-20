@@ -663,7 +663,13 @@ def profit_analyzer():
     # === DANE MIESIĘCZNE (ostatnie N miesięcy) ===
     monthly_data = []
     for i in range(months_range - 1, -1, -1):
-        dt = today.replace(day=1) - timedelta(days=i * 30)
+        # Prawidłowa arytmetyka miesięcy (timedelta(days=30) przeskakuje miesiące!)
+        m = today.month - i
+        y = today.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        dt = datetime(y, m, 1)
         m_start = dt.strftime('%Y-%m-01')
         # Koniec miesiąca
         if dt.month == 12:
@@ -1645,7 +1651,7 @@ Uzyj formatowania markdown (## naglowki, **bold**, listy z - ).
         answer_safe = _re.sub(r'^### (.+)$', r'<h4 style="color:var(--accent);margin:16px 0 8px">\1</h4>', answer_safe, flags=_re.MULTILINE)
         answer_safe = _re.sub(r'^## (.+)$', r'<h3 style="color:var(--accent);margin:16px 0 8px">\1</h3>', answer_safe, flags=_re.MULTILINE)
         answer_safe = _re.sub(r'^# (.+)$', r'<h3 style="color:var(--accent);margin:16px 0 8px">\1</h3>', answer_safe, flags=_re.MULTILINE)
-        answer_safe = _re.sub(r'^- (.+)$', r'<div style="padding:4px 0 4px 16px;border-left:2px solid var(--border)">\u2022 \1</div>', answer_safe, flags=_re.MULTILINE)
+        answer_safe = _re.sub(r'^- (.+)$', '<div style="padding:4px 0 4px 16px;border-left:2px solid var(--border)">\u2022 \\1</div>', answer_safe, flags=_re.MULTILINE)
         answer_safe = _re.sub(r'^\d+\. (.+)$', r'<div style="padding:4px 0 4px 16px;border-left:2px solid var(--accent);margin-bottom:4px">\1</div>', answer_safe, flags=_re.MULTILINE)
         answer_safe = answer_safe.replace('\n\n', '<br><br>')
         answer_safe = answer_safe.replace('\n', '<br>')
