@@ -177,6 +177,22 @@ def support_zgloszenie():
     from .database import get_config
     brand = get_config('brand_name', 'AKCES HUB')
 
+    # Flash messages
+    flash_html = ''
+    try:
+        from flask import get_flashed_messages
+        messages = get_flashed_messages(with_categories=True)
+        for category, message in messages:
+            if category == 'success':
+                bg, color, border = '#064e3b', '#34d399', '#065f46'
+            elif category == 'error':
+                bg, color, border = '#450a0a', '#fca5a5', '#7f1d1d'
+            else:
+                bg, color, border = '#422006', '#fbbf24', '#713f12'
+            flash_html += f'<div style="padding:14px 18px;border-radius:10px;margin-bottom:16px;font-weight:600;background:{bg};color:{color};border:1px solid {border}">{message}</div>'
+    except Exception:
+        pass
+
     try:
         from modules.shared import CSS
         css = CSS
@@ -217,6 +233,8 @@ body {{ background: #0a0a0f; color: #e2e8f0; font-family: -apple-system, BlinkMa
 </head><body>
 <div class="container">
     <a href="/ustawienia" class="back-link">← Ustawienia</a>
+
+    {flash_html}
 
     <div class="header">
         <h1>🆘 Pomoc techniczna</h1>
