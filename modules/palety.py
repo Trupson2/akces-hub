@@ -2733,9 +2733,15 @@ def paleta_szczegoly(paleta_id):
             sel = 'selected' if (p['status'] or 'magazyn') == sv else ''
             status_opcje += f'<option value="{sv}" {sel}>{sl}</option>'
 
+        img_url = p['zdjecie_url'] or ''
+        img_html = ''
+        if img_url:
+            img_html = f'<img src="{img_url}" style="width:50px;height:50px;object-fit:contain;border-radius:8px;background:#fff;flex-shrink:0" onerror="this.style.display=\'none\'" loading="lazy">'
+
         produkty_html += f'''
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px" data-produkt-id="{p['id']}" data-ilosc="{p['ilosc']}">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px">
+                {img_html}
                 <div style="flex:1;min-width:0">
                     <div style="font-size:0.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
                         <a href="/magazyn/produkt/{p['id']}" style="color:var(--text);text-decoration:none">{p['nazwa'][:45]}</a>
