@@ -994,7 +994,7 @@ def produkt(code):
             <a href="/magazyn/produkt/{product_code}/edytuj" class="btn btn-warn">✏️ EDYTUJ</a>
             <a href="/magazyn/drukuj/{product_code}" class="btn btn-2" style="background:#8b5cf6">🖨️ DRUKUJ ETYKIETĘ</a>
             <a href="/magazyn/produkt/{product_code}/opis" class="btn btn-purple">✨ GENERUJ OPIS AI</a>
-            <button onclick="rescrapZdjecia({p['id']})" class="btn" style="background:#06b6d4">📸 POBIERZ ZDJĘCIA</button>
+            <button onclick="rescrapZdjecia({p['id']}, this)" class="btn" style="background:#06b6d4">📸 POBIERZ ZDJĘCIA</button>
             <button onclick="pokazGPSR()" class="btn" style="background:#059669">🛡️ GPSR</button>
             <button onclick="pokazRozbijProdukt({p['id']}, {p['ilosc']}, '{p['nazwa'][:40].replace(chr(39), '')}')" class="btn" style="background:#22c55e;color:#000">🎯 ROZBIJ NA SZTUKI</button>
             <button onclick="pokazNaprawaProdukt({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="btn" style="background:#f59e0b;color:#000">🔧 DO NAPRAWY</button>
@@ -1026,25 +1026,30 @@ def produkt(code):
         </div>
         
         <script>
-        function rescrapZdjecia(produktId) {{
-            var btn = event.target;
+        function rescrapZdjecia(produktId, btn) {{
             btn.textContent = '⏳ Pobieram...';
             btn.disabled = true;
-            fetch('/magazyn/api/rescrape-image/' + produktId, {{method: 'POST', headers: {{'ngrok-skip-browser-warning': '1'}}}})
-                .then(function(r) {{ return r.json(); }})
-                .then(function(d) {{
-                    if (d.ok) {{
-                        btn.textContent = '✅ Pobrano!';
-                        setTimeout(function() {{ location.reload(); }}, 1000);
-                    }} else {{
-                        btn.textContent = '❌ ' + (d.error || 'Błąd');
-                        btn.disabled = false;
-                    }}
-                }})
-                .catch(function() {{
-                    btn.textContent = '❌ Błąd sieci';
-                    btn.disabled = false;
-                }});
+            fetch('/magazyn/api/rescrape-image/' + produktId, {{
+                method: 'POST',
+                headers: {{'ngrok-skip-browser-warning': '1', 'Accept': 'application/json'}}
+            }})
+            .then(function(r) {{
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            }})
+            .then(function(d) {{
+                if (d.ok) {{
+                    btn.textContent = '✅ Pobrano!';
+                    setTimeout(function() {{ location.reload(); }}, 1000);
+                }} else {{
+                    btn.textContent = '❌ ' + (d.error || 'Błąd');
+                    setTimeout(function() {{ btn.textContent = '📸 POBIERZ ZDJĘCIA'; btn.disabled = false; }}, 3000);
+                }}
+            }})
+            .catch(function(e) {{
+                btn.textContent = '❌ ' + e.message;
+                setTimeout(function() {{ btn.textContent = '📸 POBIERZ ZDJĘCIA'; btn.disabled = false; }}, 3000);
+            }});
         }}
         async function pokazGPSR() {{
             const modal = document.getElementById('gpsrModal');
@@ -6855,10 +6860,9 @@ def api_autowycena_paleta_stream(paleta_id):
 
 @magazynier_bp.route('/api/rescrape-image/<int:product_id>', methods=['POST'])
 def api_rescrape_image(product_id):
-    """Rescrape zdjęcia dla produktu z Amazona"""
+    """Rescrape zdjęcia dla produktu z Amazona — szybka odpowiedź + scrape w tle"""
     from modules.database import get_db
-    from modules.utils import scrape_amazon_product, get_amazon_image_url
-    import os
+    import os, threading
 
     conn = get_db()
     p = conn.execute('SELECT id, asin, nazwa, zdjecie_url FROM produkty WHERE id = ?', (product_id,)).fetchone()
@@ -6867,19 +6871,30 @@ def api_rescrape_image(product_id):
 
     asin = (p['asin'] or '').strip().upper()
     if not asin or len(asin) < 10:
-        return jsonify({'ok': False, 'error': 'Brak ASIN — nie można pobrać zdjęcia'})
+        return jsonify({'ok': False, 'error': 'Brak ASIN — nie mozna pobrac zdjecia'})
 
-    try:
-        data = scrape_amazon_product(asin)
-        if data and data.get('image_url'):
-            img_url = data['image_url']
-            all_images = data.get('all_images', []) or [img_url]
+    # Szybko: ustaw Amazon CDN URL od razu (działa natychmiast)
+    cdn_url = f'https://m.media-amazon.com/images/I/{asin}._AC_SL1500_.jpg'
+    conn.execute('UPDATE produkty SET zdjecie_url = ? WHERE id = ?', (cdn_url, product_id))
+    conn.commit()
 
-            # Pobierz lokalnie
-            asin_dir = os.path.join('static', 'downloads', asin)
+    # W tle: scrape prawdziwe zdjęcia i podmień na lokalne
+    def _bg_scrape(pid, asin_code):
+        try:
+            import time
+            time.sleep(1)  # daj czas na response
+            from modules.database import get_db as _gdb
+            from modules.utils import scrape_amazon_product
+            import requests as _req
+
+            data = scrape_amazon_product(asin_code)
+            if not data or not data.get('image_url'):
+                return
+
+            all_images = data.get('all_images', []) or [data['image_url']]
+            asin_dir = os.path.join('static', 'downloads', asin_code)
             os.makedirs(asin_dir, exist_ok=True)
 
-            import requests as _req
             _headers = {'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.google.com/'}
             local_img = ''
             for idx, url in enumerate(all_images[:8], 1):
@@ -6894,18 +6909,17 @@ def api_rescrape_image(product_id):
                 except:
                     pass
 
-            final_url = local_img or img_url
-            conn.execute('UPDATE produkty SET zdjecie_url = ? WHERE id = ?', (final_url, product_id))
-            conn.commit()
-            return jsonify({'ok': True, 'img': final_url, 'count': len(all_images)})
-        else:
-            # Fallback: Amazon CDN direct
-            cdn_url = f'https://m.media-amazon.com/images/I/{asin}._AC_SL1500_.jpg'
-            conn.execute('UPDATE produkty SET zdjecie_url = ? WHERE id = ?', (cdn_url, product_id))
-            conn.commit()
-            return jsonify({'ok': True, 'img': cdn_url, 'count': 1, 'note': 'CDN fallback'})
-    except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)[:200]})
+            if local_img:
+                _conn = _gdb()
+                _conn.execute('UPDATE produkty SET zdjecie_url = ? WHERE id = ?', (local_img, pid))
+                _conn.commit()
+                print(f'📸 BG scrape done: {asin_code} -> {local_img}')
+        except Exception as e:
+            print(f'📸 BG scrape error: {e}')
+
+    threading.Thread(target=_bg_scrape, args=(product_id, asin), daemon=True).start()
+
+    return jsonify({'ok': True, 'img': cdn_url, 'count': 1, 'note': 'CDN + scrape w tle'})
 
 
 @magazynier_bp.route('/api/gpsr/<int:product_id>')
