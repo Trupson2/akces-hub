@@ -439,6 +439,9 @@ def process_single_product(asin, position, total, preferred_domain=None):
 
         # Użyj lokalnych ścieżek zamiast URL (do aktualnego opisu)
         wszystkie_zdjecia = lokalne_zdjecia if lokalne_zdjecia else [zdjecie_url]
+        # Aktualizuj zdjecie_url na lokalną ścieżkę (CDN URLs wygasają)
+        if lokalne_zdjecia:
+            zdjecie_url = '/' + lokalne_zdjecia[0]  # /static/downloads/ASIN/image_1.jpg
 
         # === HYBRID ENHANCE: Wyczyszczone oryginały (1-4) + AI (5-8) ===
         # Cleaner usuwa WSZYSTKO: watermarki, loga, tekst niemiecki/chiński, infografiki

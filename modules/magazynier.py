@@ -787,7 +787,27 @@ def produkt(code):
         p = dict(p)
 
     product_code = get_product_code(p) if not is_new else code
-    img = p['zdjecie_url'] or 'https://via.placeholder.com/400x180/12121a/fff?text=BRAK'
+    img = p['zdjecie_url'] or ''
+    # Fallback: jeśli brak zdjecie_url, spróbuj z kolumny images (lokalne pliki)
+    if not img and p.get('images'):
+        try:
+            _imgs = json.loads(p['images']) if isinstance(p['images'], str) else p['images']
+            if _imgs and len(_imgs) > 0:
+                first_img = _imgs[0]
+                if first_img.startswith('static/'):
+                    img = '/' + first_img
+                else:
+                    img = first_img
+        except:
+            pass
+    # Fallback: szukaj lokalnego pliku po ASIN
+    if not img and p.get('asin'):
+        import os
+        local_path = f"static/downloads/{p['asin']}/image_1.jpg"
+        if os.path.exists(local_path):
+            img = '/' + local_path
+    if not img:
+        img = 'https://via.placeholder.com/400x180/12121a/fff?text=BRAK'
 
     # Koszt brutto/szt = własna cena produktu (jednostkowa z importu)
     # Fallback na średnią z palety tylko gdy produkt nie ma własnej ceny
