@@ -2717,6 +2717,243 @@ ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
 '''
 
 
+# ============================================================
+# ALLEGRO PERFORMANCE PANEL
+# ============================================================
+
+@app.route('/analytics/allegro-performance')
+def allegro_performance():
+    from modules.database import get_db
+    conn = get_db()
+
+    # Sync stats z Allegro (pobierz świeże dane)
+    sync_msg = ''
+    try:
+        from modules.allegro_api import sync_offers_status, is_authenticated
+        if is_authenticated():
+            result = sync_offers_status()
+            sync_msg = f"Zsyncowano {result.get('total', 0)} ofert"
+    except Exception as e:
+        sync_msg = f"Sync error: {e}"
+
+    # Pobierz wszystkie oferty z bazy
+    oferty = conn.execute('''
+        SELECT o.*, p.asin, p.kategoria, p.cena_brutto,
+               pal.cena_zakupu as paleta_cena, pal.ilosc_produktow as paleta_ilosc
+        FROM oferty o
+        LEFT JOIN produkty p ON p.id = o.produkt_id
+        LEFT JOIN palety pal ON pal.id = p.paleta_id
+        ORDER BY o.wyswietlenia DESC, o.data_aktualizacji DESC
+    ''').fetchall()
+
+    # Zbierz sprzedaże per oferta
+    items = []
+    totals = {'wyswietlenia': 0, 'obserwujacych': 0, 'sprzedane': 0, 'przychod': 0, 'zysk': 0, 'aktywne': 0, 'draft': 0, 'zakonczone': 0}
+
+    for o in oferty:
+        o = dict(o)
+        pid = o.get('produkt_id')
+
+        # Sprzedaż
+        sp = conn.execute('''SELECT COALESCE(SUM(ilosc),0) as szt, COALESCE(SUM(cena*ilosc),0) as przychod, COUNT(*) as zamowien
+            FROM sprzedaze WHERE produkt_id=? AND COALESCE(status,"") NOT IN ("anulowana","anulowane","zwrot","")''',
+            (pid,)).fetchone() if pid else None
+        szt = int(sp['szt'] or 0) if sp else 0
+        przychod = float(sp['przychod'] or 0) if sp else 0
+        zamowien = int(sp['zamowien'] or 0) if sp else 0
+
+        views = o.get('wyswietlenia') or 0
+        watchers = o.get('obserwujacych') or 0
+        konwersja = round((szt / views) * 100, 2) if views > 0 else 0
+        status = o.get('status') or 'draft'
+
+        items.append({
+            'allegro_id': o.get('allegro_id'),
+            'tytul': (o.get('tytul') or '')[:60],
+            'cena': float(o.get('cena') or 0),
+            'status': status,
+            'wyswietlenia': views,
+            'obserwujacych': watchers,
+            'sprzedane': szt,
+            'zamowien': zamowien,
+            'przychod': przychod,
+            'konwersja': konwersja,
+            'data_wystawienia': (o.get('data_wystawienia') or '')[:10],
+            'asin': o.get('asin') or '',
+        })
+
+        totals['wyswietlenia'] += views
+        totals['obserwujacych'] += watchers
+        totals['sprzedane'] += szt
+        totals['przychod'] += przychod
+        if status == 'aktywna':
+            totals['aktywne'] += 1
+        elif status == 'draft':
+            totals['draft'] += 1
+        else:
+            totals['zakonczone'] += 1
+
+    totals['konwersja'] = round((totals['sprzedane'] / totals['wyswietlenia']) * 100, 2) if totals['wyswietlenia'] > 0 else 0
+    totals['total'] = len(items)
+
+    return render_template_string(ALLEGRO_PERF_HTML,
+        version=VERSION, items=items, totals=totals, sync_msg=sync_msg,
+        active_narzedzia='active', active_home='', active_magazyn='',
+        active_paletomat='', active_allegro='', active_monitor='')
+
+
+ALLEGRO_PERF_HTML = '''{% extends "base.html" %}
+{% block page_title %}Allegro Performance{% endblock %}
+{% block content %}
+<style>
+.ap-card{background:var(--bg-secondary,#12121a);border:1px solid var(--border-color,#1e1e2e);border-radius:14px;padding:20px;margin-bottom:15px}
+.ap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.ap-stat{background:var(--bg-primary,#0a0a0f);border:1px solid var(--border-color,#1e1e2e);border-radius:12px;padding:16px;text-align:center}
+.ap-stat-val{font-size:1.5rem;font-weight:800}
+.ap-stat-lbl{font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted,#64748b);margin-top:4px}
+.ap-table{width:100%;border-collapse:collapse;font-size:0.78rem}
+.ap-table th{text-align:left;padding:10px 8px;border-bottom:2px solid var(--border-color,#1e1e2e);color:var(--text-muted,#64748b);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;user-select:none}
+.ap-table th:hover{color:#6366f1}
+.ap-table td{padding:10px 8px;border-bottom:1px solid var(--border-color,#1e1e2e)}
+.ap-table tr:hover{background:rgba(99,102,241,0.05)}
+.ap-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.65rem;font-weight:600}
+.ap-badge.active{background:#22c55e22;color:#22c55e}
+.ap-badge.draft{background:#eab30822;color:#eab308}
+.ap-badge.ended{background:#64748b22;color:#64748b}
+.ap-good{color:#22c55e}.ap-warn{color:#eab308}.ap-bad{color:#ef4444}.ap-blue{color:#3b82f6}
+.ap-filter{display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap}
+.ap-filter-btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-muted);cursor:pointer;font-size:0.75rem;font-weight:600;transition:all 0.2s}
+.ap-filter-btn:hover,.ap-filter-btn.active{border-color:#6366f1;color:#6366f1;background:rgba(99,102,241,0.1)}
+</style>
+
+<div style="text-align:center;padding:20px 0 10px">
+    <h1 style="font-size:1.5rem;background:linear-gradient(135deg,#6366f1,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent">📊 ALLEGRO PERFORMANCE</h1>
+    <small style="color:var(--text-muted)">Wyswietlenia, obserwujacy, sprzedaze — wszystkie oferty</small>
+    {% if sync_msg %}<div style="font-size:0.7rem;color:#6366f1;margin-top:4px">🔄 {{ sync_msg }}</div>{% endif %}
+</div>
+
+<!-- Totals -->
+<div class="ap-grid">
+    <div class="ap-stat" style="border-color:#6366f133">
+        <div class="ap-stat-val" style="color:#6366f1">{{ totals.total }}</div>
+        <div class="ap-stat-lbl">Ofert ({{ totals.aktywne }} aktywnych)</div>
+    </div>
+    <div class="ap-stat">
+        <div class="ap-stat-val ap-blue">{{ "{:,}".format(totals.wyswietlenia).replace(",", " ") }}</div>
+        <div class="ap-stat-lbl">Wyswietlenia</div>
+    </div>
+    <div class="ap-stat">
+        <div class="ap-stat-val" style="color:#f59e0b">{{ totals.obserwujacych }}</div>
+        <div class="ap-stat-lbl">Obserwujacych</div>
+    </div>
+    <div class="ap-stat">
+        <div class="ap-stat-val ap-good">{{ totals.sprzedane }}</div>
+        <div class="ap-stat-lbl">Sprzedanych szt</div>
+    </div>
+    <div class="ap-stat">
+        <div class="ap-stat-val" style="color:#06b6d4">{{ "%.1f"|format(totals.konwersja) }}%</div>
+        <div class="ap-stat-lbl">Sr. konwersja</div>
+    </div>
+    <div class="ap-stat" style="border-color:#22c55e33">
+        <div class="ap-stat-val ap-good">{{ "{:,.0f}".format(totals.przychod).replace(",", " ") }} zl</div>
+        <div class="ap-stat-lbl">Przychod total</div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="ap-filter">
+    <button class="ap-filter-btn active" onclick="filterOffers('all', this)">Wszystkie ({{ totals.total }})</button>
+    <button class="ap-filter-btn" onclick="filterOffers('aktywna', this)">Aktywne ({{ totals.aktywne }})</button>
+    <button class="ap-filter-btn" onclick="filterOffers('draft', this)">Szkice ({{ totals.draft }})</button>
+    <button class="ap-filter-btn" onclick="filterOffers('zakonczona', this)">Zakonczone ({{ totals.zakonczone }})</button>
+</div>
+
+<!-- Table -->
+<div class="ap-card" style="padding:0;overflow-x:auto">
+<table class="ap-table" id="perfTable">
+    <thead>
+        <tr>
+            <th onclick="sortTable(0)">Oferta</th>
+            <th onclick="sortTable(1)" style="text-align:right">Cena</th>
+            <th onclick="sortTable(2)" style="text-align:center">Status</th>
+            <th onclick="sortTable(3)" style="text-align:right">👁 Wysw.</th>
+            <th onclick="sortTable(4)" style="text-align:right">❤ Obserwuj.</th>
+            <th onclick="sortTable(5)" style="text-align:right">🛒 Sprzedane</th>
+            <th onclick="sortTable(6)" style="text-align:right">📈 Konwersja</th>
+            <th onclick="sortTable(7)" style="text-align:right">💰 Przychod</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for item in items %}
+        <tr data-status="{{ item.status }}">
+            <td style="max-width:280px">
+                <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                    {% if item.allegro_id %}<a href="https://allegro.pl/oferta/{{ item.allegro_id }}" target="_blank" style="color:var(--text-primary);text-decoration:none" title="{{ item.tytul }}">{{ item.tytul }}</a>
+                    {% else %}{{ item.tytul }}{% endif %}
+                </div>
+                <div style="font-size:0.65rem;color:var(--text-muted)">{{ item.asin }}{% if item.data_wystawienia %} • {{ item.data_wystawienia }}{% endif %}</div>
+            </td>
+            <td style="text-align:right;font-weight:600">{{ "%.0f"|format(item.cena) }} zl</td>
+            <td style="text-align:center"><span class="ap-badge {% if item.status == 'aktywna' %}active{% elif item.status == 'draft' %}draft{% else %}ended{% endif %}">{{ item.status }}</span></td>
+            <td style="text-align:right;font-weight:700" class="ap-blue">{{ item.wyswietlenia }}</td>
+            <td style="text-align:right;font-weight:600;color:#f59e0b">{{ item.obserwujacych }}</td>
+            <td style="text-align:right;font-weight:700" class="{% if item.sprzedane > 0 %}ap-good{% endif %}">{{ item.sprzedane }}</td>
+            <td style="text-align:right;font-weight:600" class="{% if item.konwersja >= 3 %}ap-good{% elif item.konwersja >= 1 %}ap-warn{% elif item.konwersja > 0 %}ap-bad{% endif %}">{% if item.konwersja > 0 %}{{ item.konwersja }}%{% else %}-{% endif %}</td>
+            <td style="text-align:right;font-weight:700" class="{% if item.przychod > 0 %}ap-good{% endif %}">{% if item.przychod > 0 %}{{ "%.0f"|format(item.przychod) }} zl{% else %}-{% endif %}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+
+{% if not items %}
+<div class="ap-card" style="text-align:center;padding:40px">
+    <div style="font-size:2rem;margin-bottom:10px">📊</div>
+    <div style="color:var(--text-muted)">Brak ofert. Zsyncuj z Allegro lub wystaw pierwsza oferte.</div>
+</div>
+{% endif %}
+
+<a href="/narzedzia" style="display:inline-block;margin-top:10px;color:var(--text-muted);text-decoration:none;font-size:0.85rem">← Powrot do narzedzi</a>
+
+<script>
+function filterOffers(status, btn) {
+    var rows = document.querySelectorAll('#perfTable tbody tr');
+    rows.forEach(function(r) {
+        if (status === 'all' || r.getAttribute('data-status') === status) {
+            r.style.display = '';
+        } else {
+            r.style.display = 'none';
+        }
+    });
+    document.querySelectorAll('.ap-filter-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+}
+
+var sortDir = {};
+function sortTable(col) {
+    var table = document.getElementById('perfTable');
+    var tbody = table.querySelector('tbody');
+    var rows = Array.from(tbody.querySelectorAll('tr'));
+    sortDir[col] = !sortDir[col];
+    rows.sort(function(a, b) {
+        var aVal = a.cells[col].textContent.trim().replace(/[^0-9.\-]/g, '');
+        var bVal = b.cells[col].textContent.trim().replace(/[^0-9.\-]/g, '');
+        var aNum = parseFloat(aVal) || 0;
+        var bNum = parseFloat(bVal) || 0;
+        if (col === 0 || col === 2) {
+            aVal = a.cells[col].textContent.trim().toLowerCase();
+            bVal = b.cells[col].textContent.trim().toLowerCase();
+            return sortDir[col] ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+        return sortDir[col] ? aNum - bNum : bNum - aNum;
+    });
+    rows.forEach(function(r) { tbody.appendChild(r); });
+}
+</script>
+{% endblock %}
+'''
+
+
 # EXPORT
 
 @app.route('/narzedzia/export', methods=['GET', 'POST'])
