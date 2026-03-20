@@ -1517,6 +1517,7 @@ def paleta_bulk_import():
                 name_key = f'nazwa_{i}'
                 cena_key = f'cena_{i}'
                 regal_key = f'regal_{i}'
+                typ_key = f'typ_{i}'
 
                 if file_key not in request.files:
                     continue
@@ -1538,6 +1539,7 @@ def paleta_bulk_import():
                 cena_zakupu_raw = float(request.form.get(cena_key, 0) or 0)
                 cena_zakupu = round(cena_zakupu_raw * eur_rate, 2)  # EUR→PLN jeśli EUR
                 regal = request.form.get(regal_key, '').strip()
+                typ = request.form.get(typ_key, 'paleta').strip()
                 data_zakupu = request.form.get('data', datetime.now().strftime('%Y-%m-%d'))
 
                 try:
@@ -1643,8 +1645,8 @@ def paleta_bulk_import():
 
                     print(f"📊 Bulk import kolumny: nazwa={col_nazwa_i} ean={col_ean_i} asin={col_asin_i} ilosc={col_ilosc_i} cena={col_cena_i} rrp={col_rrp_i}")
 
-                    # Utwórz paletę
-                    paleta_id = add_paleta(nazwa, dostawca, cena_zakupu, data_zakupu, f'Bulk import: {file.filename}', regal)
+                    # Utwórz paletę/box
+                    paleta_id = add_paleta(nazwa, dostawca, cena_zakupu, data_zakupu, f'Bulk import: {file.filename}', regal, typ=typ)
 
                     produkty_dodane = 0
                     data_rows = rows[header_row_idx + 1:]
@@ -1909,14 +1911,21 @@ def paleta_bulk_import():
                     class="form-control">
             </div>
 
-            <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px">
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px">
                 <div>
                     <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px">Nazwa palety</label>
                     <input type="text" name="nazwa_${i}" id="nazwa-${i}" placeholder="Auto z nazwy pliku" class="form-control">
                 </div>
                 <div>
-                    <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px">💰 Cena zakupu (aukcja/faktura)</label>
-                    <input type="number" name="cena_${i}" placeholder="np. 144.80" step="0.01" class="form-control" title="Ile zapłaciłeś za paletę — NIE cena produktów z Excela">
+                    <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px">💰 Cena zakupu</label>
+                    <input type="number" name="cena_${i}" placeholder="np. 144.80" step="0.01" class="form-control" title="Ile zapłaciłeś — NIE cena z Excela">
+                </div>
+                <div>
+                    <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px">Typ</label>
+                    <select name="typ_${i}" class="form-control">
+                        <option value="paleta">📦 Paleta</option>
+                        <option value="box">📫 Box</option>
+                    </select>
                 </div>
                 <div>
                     <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px">Regał</label>

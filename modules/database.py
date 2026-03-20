@@ -109,9 +109,10 @@ def init_db():
             data_zakupu DATE DEFAULT CURRENT_DATE,
             notatki TEXT DEFAULT '',
             regal TEXT DEFAULT '',
-            data_dodania TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            data_dodania TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            typ TEXT DEFAULT 'paleta'
         )''')
-        
+
         # Tabela produktów (Magazynier)
         conn.execute('''CREATE TABLE IF NOT EXISTS produkty (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -426,6 +427,7 @@ def init_db():
             ('domyslna_marza', '40'),
             ('domyslna_kategoria', 'inne'),
             ('app_base_url', 'http://localhost:5000'),
+            ('openai_api_key', ''),
         ]
         
         for klucz, wartosc in defaults:
@@ -434,6 +436,25 @@ def init_db():
             except sqlite3.IntegrityError:
                 pass  # Już istnieje
         
+        # === AUTO-MIGRACJE ===
+        _migrate_cols = [
+            ('palety', 'typ', "ALTER TABLE palety ADD COLUMN typ TEXT DEFAULT 'paleta'"),
+            ('palety', 'dostarczona', "ALTER TABLE palety ADD COLUMN dostarczona INTEGER DEFAULT 0"),
+            ('palety', 'cena_zakupu_netto', "ALTER TABLE palety ADD COLUMN cena_zakupu_netto REAL DEFAULT 0"),
+            ('palety', 'ilosc_sztuk', "ALTER TABLE palety ADD COLUMN ilosc_sztuk INTEGER DEFAULT 0"),
+            ('produkty', 'stan_przyjecia', "ALTER TABLE produkty ADD COLUMN stan_przyjecia TEXT DEFAULT ''"),
+            ('produkty', 'notatki_przyjecia', "ALTER TABLE produkty ADD COLUMN notatki_przyjecia TEXT DEFAULT ''"),
+        ]
+        for _tbl, _col, _sql in _migrate_cols:
+            try:
+                conn.execute(f'SELECT {_col} FROM {_tbl} LIMIT 1')
+            except:
+                try:
+                    conn.execute(_sql)
+                    print(f'  ✅ Migracja: dodano {_tbl}.{_col}')
+                except:
+                    pass
+
         # === INDEKSY dla wydajności ===
         # Sprzedaze - najczęściej skanowana tabela
         conn.execute('CREATE INDEX IF NOT EXISTS idx_sprzedaze_produkt_id ON sprzedaze(produkt_id)')
@@ -631,7 +652,7 @@ def get_full_stats():
         # Palety w tym miesiącu
         row = conn.execute('''
             SELECT COUNT(*) as cnt, COALESCE(SUM(cena_zakupu), 0) as suma
-            FROM palety WHERE date(data_zakupu) >= ?
+            FROM palety WHERE date(data_zakupu) >= ? AND COALESCE(typ, 'paleta') = 'paleta'
         ''', (month_start,)).fetchone()
         stats['palety_miesiac'] = row['cnt']
         
@@ -645,10 +666,10 @@ def get_full_stats():
         ''', (month_start,)).fetchone()['suma'] or 0
         stats['palety_miesiac_koszt'] = max(koszt_palet_msc, koszt_produktow_msc)
         
-        # Palety łącznie
+        # Palety łącznie (bez boxów)
         row = conn.execute('''
             SELECT COUNT(*) as cnt, COALESCE(SUM(cena_zakupu), 0) as suma
-            FROM palety
+            FROM palety WHERE COALESCE(typ, 'paleta') = 'paleta'
         ''').fetchone()
         stats['palety_lacznie'] = row['cnt']
         
@@ -1000,22 +1021,22 @@ def get_palety_list(limit=50):
         ''', (limit,))
 
 
-def add_paleta(nazwa, dostawca, cena_zakupu, data_zakupu=None, notatki='', regal=''):
-    """Dodaje nową paletę. cena_zakupu = brutto z faktury."""
+def add_paleta(nazwa, dostawca, cena_zakupu, data_zakupu=None, notatki='', regal='', typ='paleta'):
+    """Dodaje nową paletę/box. cena_zakupu = brutto z faktury. typ = 'paleta' lub 'box'."""
     if not data_zakupu:
         data_zakupu = datetime.now().strftime('%Y-%m-%d')
-    
+
     try:
         cena_brutto = float(cena_zakupu) if cena_zakupu else 0
     except:
         cena_brutto = 0
     cena_netto = round(cena_brutto / 1.23, 2) if cena_brutto > 0 else 0
-    
+
     with get_db() as conn:
         cur = conn.execute('''
-            INSERT INTO palety (nazwa, dostawca, cena_zakupu, cena_zakupu_netto, data_zakupu, notatki, regal)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (nazwa, dostawca, cena_brutto, cena_netto, data_zakupu, notatki, regal))
+            INSERT INTO palety (nazwa, dostawca, cena_zakupu, cena_zakupu_netto, data_zakupu, notatki, regal, typ)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (nazwa, dostawca, cena_brutto, cena_netto, data_zakupu, notatki, regal, typ or 'paleta'))
         paleta_id = cur.lastrowid
         conn.commit()
         return paleta_id

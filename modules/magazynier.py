@@ -3102,7 +3102,7 @@ def palety():
     # Pobierz palety z tabeli palety + statystyki z produkty
     result = conn.execute('''
         SELECT p.id, p.nazwa, p.dostawca, p.data_zakupu, p.cena_zakupu, p.cena_zakupu_netto,
-               p.ilosc_sztuk, 0 as dostarczona,
+               p.ilosc_sztuk, 0 as dostarczona, COALESCE(p.typ, 'paleta') as typ,
                COUNT(pr.id) as cnt,
                COALESCE(SUM(pr.ilosc), 0) as items,
                COALESCE(SUM(pr.cena_allegro * pr.ilosc), 0) as wartosc_allegro
@@ -3175,9 +3175,9 @@ def palety():
             <input type="checkbox" class="paleta-cb" data-id="{p['id']}" onchange="updateCount()"
                 style="width:18px;height:18px;margin-right:8px;cursor:pointer;accent-color:#3b82f6;flex-shrink:0">
             <a href="{link}" style="display:flex;flex:1;align-items:center;text-decoration:none;color:inherit;min-width:0">
-                <div style="font-size:1.5rem;margin-right:10px">📦</div>
+                <div style="font-size:1.5rem;margin-right:10px">{'📫' if p.get('typ') == 'box' else '📦'}</div>
                 <div class="item-info">
-                    <div class="item-name">{p['nazwa']}</div>
+                    <div class="item-name">{p['nazwa']}{'<span style="font-size:0.65rem;background:#3b82f633;color:#3b82f6;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle">BOX</span>' if p.get('typ') == 'box' else ''}</div>
                     <div class="item-meta" style="color:{cnt_color}">{p['cnt']} prod. | {sztuki} szt{dostawca_info}{data_info}</div>
                     <div class="item-meta">💰 Zakup: {zakup_brutto:.0f} zł</div>
                 </div>
@@ -3403,6 +3403,9 @@ def paleta_detail_by_id(paleta_id):
             style="padding:8px 16px;border:2px solid {dostarczona_color};background:{dostarczona_color}22;color:{dostarczona_color};border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer">
             {dostarczona_label}
         </button>
+        <a href="/magazyn/przyjecie/{paleta_id}" style="padding:8px 16px;border:2px solid #7c3aed;background:#7c3aed22;color:#7c3aed;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;text-decoration:none">
+            📋 Przyjęcie
+        </a>
     </div>
     <script>
     function toggleDostarczona(id, btn) {{
@@ -4279,10 +4282,19 @@ def import_page():
                         </select>
                     </div>
                 </div>
-                <div style="margin-top:10px">
-                    <label style="font-size:0.8rem;color:#64748b">💰 Cena zakupu palety (ile zapłaciłeś, brutto PLN)</label>
-                    <input type="number" name="new_paleta_cena" class="form-ctrl" placeholder="np. 144.80" step="0.01" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:6px;color:#fff">
-                    <div style="font-size:0.7rem;color:#f59e0b;margin-top:4px">⚠️ Wpisz cenę z aukcji/faktury — NIE cenę produktów z Excela</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+                    <div>
+                        <label style="font-size:0.8rem;color:#64748b">💰 Cena zakupu (aukcja/faktura)</label>
+                        <input type="number" name="new_paleta_cena" class="form-ctrl" placeholder="np. 144.80" step="0.01" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:6px;color:#fff">
+                        <div style="font-size:0.7rem;color:#f59e0b;margin-top:4px">⚠️ NIE cenę produktów z Excela</div>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem;color:#64748b">Typ</label>
+                        <select name="new_paleta_typ" class="form-ctrl" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:6px;color:#fff">
+                            <option value="paleta">📦 Paleta</option>
+                            <option value="box">📫 Box</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
@@ -4357,8 +4369,9 @@ def import_preview():
         except:
             new_cena_f = 0
         # cena_zakupu = brutto
-        cursor = conn.execute('''INSERT INTO palety (nazwa, dostawca, cena_zakupu, cena_zakupu_netto, data_zakupu) 
-            VALUES (?, ?, ?, ?, date('now'))''', (new_nazwa, new_dostawca, new_cena_f, round(new_cena_f / 1.23, 2)))
+        new_typ = request.form.get('new_paleta_typ', 'paleta').strip()
+        cursor = conn.execute('''INSERT INTO palety (nazwa, dostawca, cena_zakupu, cena_zakupu_netto, data_zakupu, typ)
+            VALUES (?, ?, ?, ?, date('now'), ?)''', (new_nazwa, new_dostawca, new_cena_f, round(new_cena_f / 1.23, 2), new_typ or 'paleta'))
         paleta_id = str(cursor.lastrowid)
         paleta_nazwa = new_nazwa
         paleta_dostawca = new_dostawca  # NOWE: zapisz dostawcę
@@ -8147,3 +8160,339 @@ def statystyki_zakupow():
     </script>
     '''
     return render(html)
+
+
+# ============================================================
+# PRZYJĘCIE PALETY - Quick condition assessment
+# ============================================================
+
+@magazynier_bp.route('/przyjecie/<int:paleta_id>')
+def przyjecie_palety(paleta_id):
+    """Ekran przyjęcia palety - szybka ocena stanu produktów"""
+    conn = get_db()
+    paleta = conn.execute('SELECT * FROM palety WHERE id = ?', (paleta_id,)).fetchone()
+    if not paleta:
+        return redirect(url_for('magazynier.palety_lista'))
+
+    produkty = conn.execute(
+        'SELECT id, nazwa, ean, zdjecie_url, stan_przyjecia, notatki_przyjecia FROM produkty WHERE paleta_id = ? ORDER BY id',
+        (paleta_id,)
+    ).fetchall()
+
+    html = f'''
+    <div style="padding:15px;max-width:900px;margin:0 auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+            <div>
+                <h2 style="margin:0;font-size:1.3rem">📋 Przyjęcie palety #{paleta_id}</h2>
+                <div style="color:#64748b;font-size:0.85rem;margin-top:4px">{paleta['nazwa']}</div>
+            </div>
+            <a href="/magazyn/paleta/{paleta_id}" style="background:#1e293b;color:#94a3b8;padding:8px 16px;border-radius:8px;text-decoration:none;font-size:0.85rem">← Powrót</a>
+        </div>
+
+        <div id="progress-bar" style="background:#1e1e2e;border-radius:8px;height:8px;margin-bottom:20px;overflow:hidden">
+            <div id="progress-fill" style="height:100%;background:linear-gradient(90deg,#22c55e,#16a34a);width:0%;transition:width 0.3s"></div>
+        </div>
+        <div id="progress-text" style="text-align:center;color:#64748b;font-size:0.8rem;margin-bottom:20px">0 / {len(produkty)} ocenionych</div>
+
+        <div id="products-list">'''
+
+    stany = [
+        ('Nowy', '🟢', '#22c55e'),
+        ('Jak nowy', '🔵', '#3b82f6'),
+        ('Dobry', '🟡', '#eab308'),
+        ('Uszkodzony', '🟠', '#f97316'),
+        ('Zniszczony', '🔴', '#ef4444'),
+    ]
+
+    for p in produkty:
+        pid = p['id']
+        current_stan = p['stan_przyjecia'] or ''
+        current_notatki = p['notatki_przyjecia'] or ''
+        zdjecie = p['zdjecie_url'] or ''
+        img_html = f'<img src="{zdjecie}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">' if zdjecie else '<div style="width:60px;height:60px;background:#1e1e2e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem">📦</div>'
+
+        html += f'''
+        <div class="prod-card" id="prod-{pid}" style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;margin-bottom:12px">
+            <div style="display:flex;gap:12px;align-items:flex-start">
+                {img_html}
+                <div style="flex:1;min-width:0">
+                    <div style="font-size:0.9rem;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{p['nazwa']}</div>
+                    <div style="font-size:0.75rem;color:#64748b">EAN: {p['ean'] or '—'}</div>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">'''
+
+        for stan_name, stan_icon, stan_color in stany:
+            is_active = 'true' if current_stan == stan_name else 'false'
+            html += f'''
+                <button onclick="selectStan({pid}, '{stan_name}', this)"
+                    class="stan-btn-{pid}"
+                    style="padding:8px 14px;border-radius:8px;border:2px solid {stan_color if current_stan == stan_name else '#1e1e2e'};
+                    background:{'rgba(34,197,94,0.1)' if current_stan == stan_name else '#0a0a0f'};
+                    color:{stan_color};font-size:0.8rem;cursor:pointer;transition:all 0.2s;flex:1;min-width:0;text-align:center"
+                    data-active="{is_active}" data-color="{stan_color}">
+                    {stan_icon} {stan_name}
+                </button>'''
+
+        html += f'''
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+                <input type="text" id="notatki-{pid}" value="{current_notatki}" placeholder="Notatki (wady, braki...)"
+                    style="flex:1;padding:8px 12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e2e8f0;font-size:0.8rem"
+                    onchange="markChanged({pid})">
+                <button onclick="openCamera({pid})" style="padding:8px 12px;background:#7c3aed;border:none;border-radius:8px;color:white;cursor:pointer;font-size:0.85rem" title="Zrób zdjęcie i oceń AI">
+                    📸 AI
+                </button>
+            </div>
+            <div id="ai-result-{pid}" style="display:none;margin-top:8px;padding:10px;background:#0a0a0f;border:1px solid #7c3aed;border-radius:8px;font-size:0.8rem;color:#c4b5fd"></div>
+        </div>'''
+
+    html += f'''
+        </div>
+
+        <div style="position:sticky;bottom:0;padding:15px 0;background:linear-gradient(transparent, #0a0a0f 30%)">
+            <button onclick="saveAll()" id="save-btn"
+                style="width:100%;padding:14px;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;border-radius:12px;color:white;font-size:1rem;font-weight:600;cursor:pointer">
+                ✅ Zapisz oceny i oznacz jako dostarczona
+            </button>
+        </div>
+    </div>
+
+    <!-- Hidden camera input -->
+    <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event)">
+
+    <script>
+    let currentStany = {{}};
+    let currentPhotoProductId = null;
+    const totalProducts = {len(produkty)};
+
+    function selectStan(pid, stan, btn) {{
+        // Reset all buttons for this product
+        document.querySelectorAll('.stan-btn-' + pid).forEach(b => {{
+            b.style.border = '2px solid #1e1e2e';
+            b.style.background = '#0a0a0f';
+            b.dataset.active = 'false';
+        }});
+        // Activate selected
+        btn.style.border = '2px solid ' + btn.dataset.color;
+        btn.style.background = 'rgba(34,197,94,0.1)';
+        btn.dataset.active = 'true';
+        currentStany[pid] = stan;
+        updateProgress();
+    }}
+
+    function markChanged(pid) {{
+        // Just marks the product as needing save
+    }}
+
+    function updateProgress() {{
+        const assessed = Object.keys(currentStany).length;
+        const pct = totalProducts > 0 ? (assessed / totalProducts * 100) : 0;
+        document.getElementById('progress-fill').style.width = pct + '%';
+        document.getElementById('progress-text').textContent = assessed + ' / ' + totalProducts + ' ocenionych';
+    }}
+
+    function openCamera(pid) {{
+        currentPhotoProductId = pid;
+        document.getElementById('camera-input').click();
+    }}
+
+    function handlePhoto(event) {{
+        const file = event.target.files[0];
+        if (!file || !currentPhotoProductId) return;
+        const pid = currentPhotoProductId;
+
+        const resultDiv = document.getElementById('ai-result-' + pid);
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<div style="color:#a78bfa">⏳ Analizuję zdjęcie AI...</div>';
+
+        const reader = new FileReader();
+        reader.onload = function(e) {{
+            const base64 = e.target.result.split(',')[1];
+            fetch('/magazyn/api/ai-ocena-stanu', {{
+                method: 'POST',
+                headers: {{ 'Content-Type': 'application/json' }},
+                body: JSON.stringify({{ image_base64: base64, product_id: pid }})
+            }})
+            .then(r => r.json())
+            .then(data => {{
+                if (data.success) {{
+                    resultDiv.innerHTML = `
+                        <div style="margin-bottom:6px"><strong>🤖 AI ocena:</strong> <span style="color:${{data.stan_color || '#22c55e'}}">${{data.stan}}</span></div>
+                        <div style="color:#94a3b8">${{data.opis}}</div>
+                    `;
+                    // Auto-select the stan
+                    if (data.stan) {{
+                        const btns = document.querySelectorAll('.stan-btn-' + pid);
+                        btns.forEach(b => {{
+                            if (b.textContent.includes(data.stan)) {{
+                                selectStan(pid, data.stan, b);
+                            }}
+                        }});
+                    }}
+                    // Auto-fill notatki
+                    if (data.opis) {{
+                        document.getElementById('notatki-' + pid).value = data.opis;
+                    }}
+                }} else {{
+                    resultDiv.innerHTML = '<div style="color:#ef4444">❌ ' + (data.error || 'Błąd AI') + '</div>';
+                }}
+            }})
+            .catch(err => {{
+                resultDiv.innerHTML = '<div style="color:#ef4444">❌ Błąd połączenia</div>';
+            }});
+        }};
+        reader.readAsDataURL(file);
+        event.target.value = '';
+    }}
+
+    function saveAll() {{
+        const btn = document.getElementById('save-btn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Zapisuję...';
+
+        const assessments = [];
+        document.querySelectorAll('.prod-card').forEach(card => {{
+            const pid = parseInt(card.id.replace('prod-', ''));
+            const stan = currentStany[pid] || '';
+            const notatki = document.getElementById('notatki-' + pid)?.value || '';
+            assessments.push({{ product_id: pid, stan: stan, notatki: notatki }});
+        }});
+
+        fetch('/magazyn/api/przyjecie-save', {{
+            method: 'POST',
+            headers: {{ 'Content-Type': 'application/json' }},
+            body: JSON.stringify({{ paleta_id: {paleta_id}, assessments: assessments }})
+        }})
+        .then(r => r.json())
+        .then(data => {{
+            if (data.success) {{
+                btn.textContent = '✅ Zapisano!';
+                btn.style.background = '#16a34a';
+                setTimeout(() => window.location.href = '/magazyn/paleta/{paleta_id}', 1000);
+            }} else {{
+                btn.textContent = '❌ Błąd: ' + (data.error || '');
+                btn.disabled = false;
+            }}
+        }})
+        .catch(() => {{
+            btn.textContent = '❌ Błąd połączenia';
+            btn.disabled = false;
+        }});
+    }}
+
+    // Init: load already assessed
+    document.addEventListener('DOMContentLoaded', () => {{
+        document.querySelectorAll('.prod-card').forEach(card => {{
+            const pid = parseInt(card.id.replace('prod-', ''));
+            const activeBtn = card.querySelector('[data-active="true"]');
+            if (activeBtn && activeBtn.textContent.trim()) {{
+                const stanText = activeBtn.textContent.replace(/[🟢🔵🟡🟠🔴]/g, '').trim();
+                currentStany[pid] = stanText;
+            }}
+        }});
+        updateProgress();
+    }});
+    </script>
+    '''
+    return render(html)
+
+
+@magazynier_bp.route('/api/przyjecie-save', methods=['POST'])
+def przyjecie_save():
+    """Zapisz oceny stanu produktów i oznacz paletę jako dostarczoną"""
+    try:
+        data = request.get_json()
+        paleta_id = data.get('paleta_id')
+        assessments = data.get('assessments', [])
+        conn = get_db()
+
+        for a in assessments:
+            pid = a.get('product_id')
+            stan = a.get('stan', '')
+            notatki = a.get('notatki', '')
+            if pid and stan:
+                conn.execute(
+                    'UPDATE produkty SET stan_przyjecia = ?, notatki_przyjecia = ? WHERE id = ?',
+                    (stan, notatki, pid)
+                )
+
+        # Oznacz paletę jako dostarczoną
+        conn.execute('UPDATE palety SET dostarczona = 1 WHERE id = ?', (paleta_id,))
+        conn.commit()
+
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@magazynier_bp.route('/api/ai-ocena-stanu', methods=['POST'])
+def ai_ocena_stanu():
+    """AI photo analysis - ocena stanu produktu ze zdjęcia"""
+    try:
+        data = request.get_json()
+        image_base64 = data.get('image_base64', '')
+        if not image_base64:
+            return jsonify({'success': False, 'error': 'Brak zdjęcia'})
+
+        # Get OpenAI API key from config
+        conn = get_db()
+        api_key = conn.execute("SELECT wartosc FROM config WHERE klucz = 'openai_api_key'").fetchone()
+        if not api_key or not api_key['wartosc']:
+            return jsonify({'success': False, 'error': 'Brak klucza OpenAI API w konfiguracji'})
+
+        import requests as req
+        response = req.post(
+            'https://api.openai.com/v1/chat/completions',
+            headers={
+                'Authorization': f"Bearer {api_key['wartosc']}",
+                'Content-Type': 'application/json'
+            },
+            json={
+                'model': 'gpt-4o-mini',
+                'messages': [
+                    {
+                        'role': 'system',
+                        'content': 'Jesteś ekspertem od oceny stanu produktów zwrotowych. Oceń stan produktu na zdjęciu. Odpowiedz w formacie:\nSTAN: [Nowy/Jak nowy/Dobry/Uszkodzony/Zniszczony]\nOPIS: [krótki opis stanu, wady, braki, uszkodzenia - max 2 zdania po polsku]'
+                    },
+                    {
+                        'role': 'user',
+                        'content': [
+                            {'type': 'text', 'text': 'Oceń stan tego produktu:'},
+                            {'type': 'image_url', 'image_url': {'url': f'data:image/jpeg;base64,{image_base64}', 'detail': 'low'}}
+                        ]
+                    }
+                ],
+                'max_tokens': 200
+            },
+            timeout=30
+        )
+
+        result = response.json()
+        content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+
+        # Parse response
+        stan = ''
+        opis = ''
+        for line in content.split('\n'):
+            line = line.strip()
+            if line.upper().startswith('STAN:'):
+                stan = line.split(':', 1)[1].strip()
+            elif line.upper().startswith('OPIS:'):
+                opis = line.split(':', 1)[1].strip()
+
+        stan_colors = {
+            'Nowy': '#22c55e', 'Jak nowy': '#3b82f6', 'Dobry': '#eab308',
+            'Uszkodzony': '#f97316', 'Zniszczony': '#ef4444'
+        }
+
+        return jsonify({
+            'success': True,
+            'stan': stan,
+            'opis': opis or content,
+            'stan_color': stan_colors.get(stan, '#94a3b8')
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
