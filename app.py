@@ -141,8 +141,8 @@ def check_license_middleware():
         is_valid, plan, msg = check_license()
         if not is_valid:
             return redirect('/license')
-    except:
-        pass  # Brak modułu = brak wymuszania (dev mode)
+    except ImportError:
+        pass  # Brak modułu license = dev mode
 
 # Branding — dostępny globalnie we wszystkich szablonach
 @app.context_processor
