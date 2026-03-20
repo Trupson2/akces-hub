@@ -8,7 +8,7 @@ import json
 import sqlite3
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Blueprint, render_template_string, request, redirect, jsonify, Response
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -1152,6 +1152,34 @@ def index():
     sprzedaz_7d, sprzedaz_30d = _sp[0], _sp[1]
     nowe_7d = conn.execute("SELECT COUNT(*) FROM scraped WHERE data_scrape >= date('now', '-7 days')").fetchone()[0]
 
+    # Dane do wykresu — produkty dodane dziennie (ostatnie 30 dni)
+    chart_rows = conn.execute('''
+        SELECT date(data_scrape) as dzien, COUNT(*) as cnt
+        FROM scraped
+        WHERE data_scrape >= date('now', '-30 days')
+        GROUP BY date(data_scrape)
+        ORDER BY dzien
+    ''').fetchall()
+    # Buduj dane wykresu (uzupełnij brakujące dni zerami)
+    _today = datetime.now().date()
+    _chart_map = {r['dzien']: r['cnt'] for r in chart_rows}
+    chart_labels = []
+    chart_data = []
+    chart_cumulative = []
+    _running_total = s['scraped'] - sum(r['cnt'] for r in chart_rows)  # start = total - last 30d
+    for i in range(30):
+        d = (_today - timedelta(days=29 - i)).strftime('%Y-%m-%d')
+        cnt = _chart_map.get(d, 0)
+        _running_total += cnt
+        chart_labels.append(d[5:])  # MM-DD
+        chart_data.append(cnt)
+        chart_cumulative.append(_running_total)
+
+    # Statystyki do mini kart pod wykresem
+    w_magazynie = conn.execute("SELECT COUNT(*) FROM produkty WHERE status IN ('magazyn','wystawiony') AND ilosc > 0").fetchone()[0]
+    sprzedane = conn.execute("SELECT COUNT(*) FROM sprzedaze WHERE status NOT IN ('zwrot','anulowane','anulowana') AND data_sprzedazy >= date('now', '-30 days')").fetchone()[0]
+    zalegajace = conn.execute("SELECT COUNT(*) FROM produkty WHERE status IN ('magazyn','wystawiony') AND date(data_dodania) < date('now', '-30 days') AND ilosc > 0").fetchone()[0]
+
     # Ostatnie sprzedaże
     ostatnie_sprzedaze = conn.execute('''
         SELECT s.cena, s.ilosc, s.data_sprzedazy,
@@ -1186,6 +1214,87 @@ def index():
             <div class="kpi-label">Sprzedaz 30 dni</div>
         </div>
     </div>
+
+    <!-- Wykres produktow -->
+    <div class="card" style="padding:20px;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+            <div>
+                <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);font-weight:600">Wszystkie przedmioty</div>
+                <div style="font-size:2.2rem;font-weight:800;color:#fff;line-height:1.1;margin-top:4px">{s['scraped']}</div>
+            </div>
+            <div style="display:flex;gap:8px">
+                <button onclick="toggleChartMode('cumulative')" id="btn-cumul" class="btn-sm" style="background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:0.7rem;padding:4px 10px;border-radius:6px">Lacznie</button>
+                <button onclick="toggleChartMode('daily')" id="btn-daily" class="btn-sm" style="background:rgba(255,255,255,0.04);color:var(--text-muted);border:none;cursor:pointer;font-size:0.7rem;padding:4px 10px;border-radius:6px">Dziennie</button>
+            </div>
+        </div>
+        <canvas id="productChart" height="140"></canvas>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px">
+            <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.04);border-radius:10px">
+                <div style="font-size:1.4rem;font-weight:800;color:#3b82f6">{w_magazynie}</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">W MAGAZYNIE</div>
+            </div>
+            <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.04);border-radius:10px">
+                <div style="font-size:1.4rem;font-weight:800;color:#22c55e">{sprzedane}</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">SPRZEDANE (30d)</div>
+            </div>
+            <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.04);border-radius:10px">
+                <div style="font-size:1.4rem;font-weight:800;color:{('#ef4444' if zalegajace > 10 else '#f59e0b' if zalegajace > 0 else '#22c55e')}">{zalegajace}</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">ZALEGAJACE</div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+    <script>
+    var _chartLabels = {list(chart_labels)};
+    var _chartDaily = {chart_data};
+    var _chartCumul = {chart_cumulative};
+    var _chartMode = 'cumulative';
+    var _ctx = document.getElementById('productChart').getContext('2d');
+    var _gradient = _ctx.createLinearGradient(0, 0, 0, 140);
+    _gradient.addColorStop(0, 'rgba(99,102,241,0.3)');
+    _gradient.addColorStop(1, 'rgba(99,102,241,0.01)');
+    var _chart = new Chart(_ctx, {{
+        type: 'line',
+        data: {{
+            labels: _chartLabels,
+            datasets: [{{
+                data: _chartCumul,
+                borderColor: '#6366f1',
+                backgroundColor: _gradient,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHitRadius: 10,
+                pointHoverRadius: 4,
+                pointHoverBackgroundColor: '#6366f1'
+            }}]
+        }},
+        options: {{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {{ legend: {{ display: false }}, tooltip: {{
+                backgroundColor: '#1e1b2e', titleColor: '#e2e8f0', bodyColor: '#94a3b8',
+                borderColor: '#6366f1', borderWidth: 1, cornerRadius: 8, padding: 10,
+                callbacks: {{ label: function(ctx) {{ return _chartMode === 'cumulative' ? 'Lacznie: ' + ctx.parsed.y : 'Nowe: ' + ctx.parsed.y; }} }}
+            }} }},
+            scales: {{
+                x: {{ display: true, grid: {{ display: false }}, ticks: {{ color: '#475569', font: {{ size: 10 }}, maxRotation: 0, maxTicksLimit: 8 }} }},
+                y: {{ display: true, grid: {{ color: 'rgba(255,255,255,0.04)' }}, ticks: {{ color: '#475569', font: {{ size: 10 }} }}, beginAtZero: _chartMode === 'daily' }}
+            }}
+        }}
+    }});
+    function toggleChartMode(mode) {{
+        _chartMode = mode;
+        _chart.data.datasets[0].data = mode === 'cumulative' ? _chartCumul : _chartDaily;
+        _chart.options.scales.y.beginAtZero = mode === 'daily';
+        _chart.update();
+        document.getElementById('btn-cumul').style.background = mode === 'cumulative' ? 'var(--accent)' : 'rgba(255,255,255,0.04)';
+        document.getElementById('btn-cumul').style.color = mode === 'cumulative' ? '#fff' : 'var(--text-muted)';
+        document.getElementById('btn-daily').style.background = mode === 'daily' ? 'var(--accent)' : 'rgba(255,255,255,0.04)';
+        document.getElementById('btn-daily').style.color = mode === 'daily' ? '#fff' : 'var(--text-muted)';
+    }}
+    </script>
 
     <!-- Status scraperów -->
     <div class="status {status_class}">
