@@ -1227,7 +1227,7 @@ def index():
                 <button onclick="toggleChartMode('daily')" id="btn-daily" class="btn-sm" style="background:rgba(255,255,255,0.04);color:var(--text-muted);border:none;cursor:pointer;font-size:0.7rem;padding:4px 10px;border-radius:6px">Dziennie</button>
             </div>
         </div>
-        <canvas id="productChart" height="140"></canvas>
+        <div style="position:relative;height:160px;width:100%"><canvas id="productChart"></canvas></div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px">
             <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.04);border-radius:10px">
                 <div style="font-size:1.4rem;font-weight:800;color:#3b82f6">{w_magazynie}</div>
