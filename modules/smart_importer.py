@@ -402,7 +402,7 @@ def smart_import_excel(
                         
                         # Generuj GPSR
                         from modules.utils import generuj_gpsr_info
-                        gpsr = generuj_gpsr_info(p['nazwa'] or '', kategoria='')
+                        gpsr = generuj_gpsr_info(p['nazwa'] or '', p.get('kategoria') or '')
                         if gpsr:
                             print(f"       🛡️  GPSR wygenerowany: {len(gpsr)} znaków")
                         

@@ -274,31 +274,54 @@ def auto_kategoryzuj(nazwa):
         return 'dom_ogrod'
     
     # Sport / Fitness (rozszerzona - walkingpad, bieżnia)
-    if any(word in nazwa_lower for word in ['rower', 'bike', 'hulajnoga', 'scooter', 'rolki', 'skate', 'siłownia',
-        'hantle', 'dumbbell', 'bieżnia', 'treadmill', 'orbitrek', 'rowerek', 'mata', 'yoga', 'fitness',
-        'walkingpad', 'walking pad', 'stepper', 'kettlebell', 'gryf', 'sztanga', 'ćwiczeni']):
+    if any(word in nazwa_lower for word in ['rower', 'bike', 'bicycle', 'fahrrad', 'hulajnoga', 'scooter', 'roller',
+        'rolki', 'skate', 'siłownia', 'gym',
+        'hantle', 'dumbbell', 'bieżnia', 'treadmill', 'orbitrek', 'elliptical', 'rowerek', 'mata', 'yoga', 'fitness',
+        'walkingpad', 'walking pad', 'stepper', 'kettlebell', 'gryf', 'sztanga', 'ćwiczeni', 'trampolin',
+        'namiot', 'tent', 'śpiwór', 'sleeping bag', 'kajakow', 'kayak', 'wędka', 'fishing']):
         return 'sport'
-    
+
     # Zabawki / Dzieci
-    if any(word in nazwa_lower for word in ['zabawka', 'toy', 'klocki', 'lego', 'lalka', 'doll', 'pluszak', 'gra planszowa',
-        'puzzle', 'samochodzik', 'kolejka', 'dziecięc', 'child', 'baby', 'wózek']):
+    if any(word in nazwa_lower for word in ['zabawka', 'toy', 'spielzeug', 'klocki', 'lego', 'lalka', 'doll', 'pluszak',
+        'gra planszowa', 'board game', 'brettspiel',
+        'puzzle', 'samochodzik', 'kolejka', 'dziecięc', 'child', 'baby', 'wózek', 'fotelik', 'kindersitz',
+        'kojec', 'łóżeczko', 'smoczek', 'pieluchy', 'pampers', 'bobas']):
         return 'zabawki'
-    
+
     # Moda
-    if any(word in nazwa_lower for word in ['buty', 'shoes', 'ubrani', 'cloth', 'koszul', 'shirt', 'spodni', 'pants',
-        'sukienk', 'dress', 'kurtk', 'jacket', 'bluza', 'sweater', 'czapk', 'hat', 'torebk', 'bag', 'plecak']):
+    if any(word in nazwa_lower for word in ['buty', 'shoes', 'schuhe', 'ubrani', 'cloth', 'kleidung', 'koszul', 'shirt',
+        'hemd', 'spodni', 'pants', 'hose',
+        'sukienk', 'dress', 'kleid', 'kurtk', 'jacket', 'jacke', 'bluza', 'sweater', 'pullover',
+        'czapk', 'hat', 'mütze', 'torebk', 'bag', 'tasche', 'plecak', 'rucksack',
+        'zegarek', 'watch', 'uhr', 'biżuteri', 'jewelry', 'schmuck', 'okulary', 'glasses', 'brille']):
         return 'moda'
-    
+
     # Zdrowie / Uroda
-    if any(word in nazwa_lower for word in ['masażer', 'massager', 'ciśnieniomierz', 'termometr', 'inhalator',
-        'szczoteczka', 'toothbrush', 'suszarka do włosów', 'prostownica', 'lokówka', 'trymer']):
+    if any(word in nazwa_lower for word in ['masażer', 'massager', 'massagegerät', 'ciśnieniomierz', 'termometr',
+        'inhalator', 'pulsoksymetr',
+        'szczoteczka', 'toothbrush', 'zahnbürste', 'suszarka do włosów', 'hair dryer', 'haartrockner',
+        'prostownica', 'straightener', 'glätteisen', 'lokówka', 'curling', 'lockenstab',
+        'trymer', 'golarka', 'shaver', 'rasierer', 'depilator', 'epilator',
+        'waga łazienkowa', 'bathroom scale', 'personenwaage']):
         return 'zdrowie'
-    
+
     # Zwierzęta
-    if any(word in nazwa_lower for word in ['karma', 'pet food', 'obroża', 'smycz', 'klatka', 'akwarium', 'terrarium',
-        'legowisko', 'kuweta', 'transporter', 'drapak']):
+    if any(word in nazwa_lower for word in ['karma', 'pet food', 'tierfutter', 'obroża', 'collar', 'halsband',
+        'smycz', 'leash', 'leine', 'klatka', 'cage', 'käfig',
+        'akwarium', 'aquarium', 'terrarium', 'legowisko', 'pet bed', 'hundebett',
+        'kuweta', 'litter box', 'transporter', 'drapak', 'scratching', 'kratzbaum']):
         return 'zwierzeta'
-    
+
+    # Biuro
+    if any(word in nazwa_lower for word in ['krzesło biurowe', 'office chair', 'bürostuhl', 'biurko', 'desk',
+        'schreibtisch', 'niszczarka', 'shredder', 'fotel biurowy', 'laminator', 'bindownica']):
+        return 'biuro'
+
+    # Łazienka
+    if any(word in nazwa_lower for word in ['bateria łazienkowa', 'faucet', 'wasserhahn', 'prysznic', 'shower', 'dusche',
+        'lustro', 'mirror', 'spiegel', 'umywalka', 'sink', 'waschbecken', 'wanna', 'bathtub', 'badewanne']):
+        return 'lazienka'
+
     return 'inne'
 
 
