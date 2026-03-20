@@ -2866,6 +2866,33 @@ def paleta_szczegoly(paleta_id):
         <a href="/palety/{paleta_id}/edit" class="btn btn-warning" style="text-decoration:none">⚙️ EDYTUJ PALETE</a>
     </div>
     <button type="button" id="scrape-btn" data-paleta="{paleta_id}" class="btn" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);margin-bottom:15px;font-size:0.85rem;cursor:pointer">📷 SCRAPUJ ZDJECIA ({bez_zdjec} produktow bez zdjec)</button>
+    ''' + '''<script>
+    document.getElementById('scrape-btn').onclick = function() {
+        var btn = this;
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+        btn.innerHTML = '⏳ Scrapuje zdjecia...';
+        fetch('/palety/' + btn.getAttribute('data-paleta') + '/scrape-images', {method: 'POST'})
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d.ok) {
+                btn.innerHTML = '✅ Scraping ' + d.count + ' produktow w tle!';
+                btn.style.background = '#22c55e';
+                btn.style.opacity = '1';
+            } else {
+                btn.innerHTML = '❌ ' + (d.error || 'Blad');
+                btn.style.background = '#ef4444';
+                btn.style.opacity = '1';
+            }
+            setTimeout(function() { location.reload(); }, 3000);
+        })
+        .catch(function(e) {
+            btn.innerHTML = '❌ ' + e;
+            btn.disabled = false;
+            btn.style.opacity = '1';
+        });
+    };
+    </script>''' + f'''
 
     <!-- PRZEKAZ ZYSK NA CEL -->
     ''' + ('''
@@ -3016,41 +3043,6 @@ def paleta_szczegoly(paleta_id):
     '''
 
     szczegoly_js = '''
-    // SCRAPE BUTTON
-    try {
-        var _scrBtn = document.getElementById('scrape-btn');
-        if (_scrBtn) {
-            _scrBtn.onclick = function() {
-                var btn = this;
-                btn.disabled = true;
-                btn.style.opacity = '0.7';
-                btn.style.pointerEvents = 'none';
-                btn.innerHTML = '⏳ Scrapuje zdjecia...';
-                var paletaId = btn.getAttribute('data-paleta');
-                fetch('/palety/' + paletaId + '/scrape-images', {method: 'POST'})
-                .then(function(r) { return r.json(); })
-                .then(function(d) {
-                    if (d.ok) {
-                        btn.innerHTML = '✅ Scraping ' + d.count + ' produktow w tle!';
-                        btn.style.background = 'var(--green)';
-                        btn.style.opacity = '1';
-                    } else {
-                        btn.innerHTML = '❌ ' + (d.error || 'Blad');
-                        btn.style.background = 'var(--red)';
-                        btn.style.opacity = '1';
-                    }
-                    setTimeout(function() { location.reload(); }, 3000);
-                })
-                .catch(function(e) {
-                    btn.innerHTML = '❌ ' + e;
-                    btn.disabled = false;
-                    btn.style.opacity = '1';
-                    btn.style.pointerEvents = 'auto';
-                });
-            };
-        }
-    } catch(e) { console.error('scrape btn error:', e); }
-
     function pokazKorekta(produktId, aktualnaIlosc, cena, offlineSzt) {
         document.getElementById('korektaProduktId').value = produktId;
         document.getElementById('korektaIlosc').value = aktualnaIlosc;
