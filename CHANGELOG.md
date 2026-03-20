@@ -32,6 +32,7 @@
 - [FIX] Paletomat pokazywal BUSINESS zamiast ENTERPRISE
 
 ### Magazynier
+- [NOWE] Masowe usuwanie palet — przycisk 🗑️ Usuń na liscie palet (z potwierdzeniem)
 - [FIX] EAN / ASIN — kliknij aby skopiowac do schowka (📋)
 - [FIX] Tekst EAN/ASIN zaznaczalny (user-select:all)
 - [ZMIANA] Etykieta ceny w importach: "Cena zakupu (aukcja/faktura)" z ostrzezeniem
