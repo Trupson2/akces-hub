@@ -689,7 +689,7 @@ def profit_analyzer():
             AND (kupujacy IS NULL OR kupujacy != 'offline')
         ''', (m_start, m_end)).fetchone()
 
-        przychod = rev['r'] or 0
+        przychod_allegro = rev['r'] or 0
         zamowienia = rev['cnt'] or 0
         sztuki = rev['szt'] or 0
 
@@ -700,6 +700,19 @@ def profit_analyzer():
             WHERE date(data_sprzedazy) >= ? AND date(data_sprzedazy) <= ?
             AND status = 'zwrot'
         ''', (m_start, m_end)).fetchone()
+
+        # Sprzedaż prywatna (offline, OLX, Vinted etc.)
+        prywatne = 0
+        try:
+            prywatne = conn.execute('''
+                SELECT COALESCE(SUM(kwota), 0) as k FROM sprzedaze_prywatne
+                WHERE date(data) >= ? AND date(data) <= ?
+            ''', (m_start, m_end)).fetchone()['k'] or 0
+        except:
+            pass
+
+        # Łączny przychód = Allegro + prywatne (jak w "Droga do miliona")
+        przychod = przychod_allegro + prywatne
 
         # COGS — średni koszt jednostkowy * sprzedane sztuki
         # produkty.ilosc NIE jest dekrementowane przy sprzedaży, więc SUM(ilosc) = oryginalna ilość
@@ -718,7 +731,8 @@ def profit_analyzer():
         avg_unit_cost = avg_cost['avg_unit'] or 0
 
         cogs = avg_unit_cost * sztuki
-        prowizja = przychod * prowizja_pct
+        # Prowizja TYLKO na Allegro (prywatne sprzedaże nie mają prowizji)
+        prowizja = przychod_allegro * prowizja_pct
         zysk = przychod - cogs - prowizja
         marza = (zysk / przychod * 100) if przychod > 0 else 0
         roi = (zysk / cogs * 100) if cogs > 0 else 0
@@ -729,22 +743,17 @@ def profit_analyzer():
             WHERE date(data) >= ? AND date(data) <= ?
         ''', (m_start, m_end)).fetchone()['k'] or 0
 
-        # Sprzedaż prywatna
-        prywatne = conn.execute('''
-            SELECT COALESCE(SUM(kwota), 0) as k FROM sprzedaze_prywatne
-            WHERE date(data) >= ? AND date(data) <= ?
-        ''', (m_start, m_end)).fetchone()['k'] or 0
-
-        zysk_netto = zysk - koszty_op + prywatne
+        zysk_netto = zysk - koszty_op
 
         monthly_data.append({
             'label': m_label,
             'przychod': przychod,
+            'przychod_allegro': przychod_allegro,
+            'prywatne': prywatne,
             'cogs': cogs,
             'prowizja': prowizja,
             'zysk_brutto': zysk,
             'koszty_op': koszty_op,
-            'prywatne': prywatne,
             'zysk_netto': zysk_netto,
             'marza': marza,
             'roi': roi,
@@ -1133,9 +1142,10 @@ def profit_analyzer():
     <div class="wf-container">
         <div class="wf-row">
             <div class="wf-label">Przychod Allegro</div>
-            <div class="wf-bar"><div style="height:100%;width:100%;background:linear-gradient(90deg,var(--blue),var(--accent));border-radius:6px"></div></div>
-            <div class="wf-val" style="color:var(--blue)">+{curr['przychod']:,.0f}</div>
+            <div class="wf-bar"><div style="height:100%;width:{(curr['przychod_allegro']/curr['przychod']*100) if curr['przychod']>0 else 100:.0f}%;background:linear-gradient(90deg,var(--blue),var(--accent));border-radius:6px"></div></div>
+            <div class="wf-val" style="color:var(--blue)">+{curr['przychod_allegro']:,.0f}</div>
         </div>
+        {'<div class="wf-row"><div class="wf-label">Sprzedaz prywatna</div><div class="wf-bar"><div style="height:100%;width:' + str(int(curr['prywatne']/curr['przychod']*100) if curr['przychod']>0 else 0) + '%;background:var(--cyan);border-radius:6px;opacity:0.7"></div></div><div class="wf-val" style="color:var(--cyan)">+' + f"{curr['prywatne']:,.0f}" + '</div></div>' if curr['prywatne'] > 0 else ''}
         <div class="wf-row">
             <div class="wf-label">Koszt towaru (COGS)</div>
             <div class="wf-bar"><div style="height:100%;width:{(curr['cogs']/curr['przychod']*100) if curr['przychod']>0 else 0:.0f}%;background:var(--red);border-radius:6px;opacity:0.7"></div></div>
@@ -1150,11 +1160,6 @@ def profit_analyzer():
             <div class="wf-label">Koszty operacyjne</div>
             <div class="wf-bar"><div style="height:100%;width:{(curr['koszty_op']/curr['przychod']*100) if curr['przychod']>0 else 0:.0f}%;background:var(--yellow);border-radius:6px;opacity:0.7"></div></div>
             <div class="wf-val" style="color:var(--yellow)">-{curr['koszty_op']:,.0f}</div>
-        </div>
-        <div class="wf-row">
-            <div class="wf-label">Sprzedaz prywatna</div>
-            <div class="wf-bar"><div style="height:100%;width:{(curr['prywatne']/curr['przychod']*100) if curr['przychod']>0 else 0:.0f}%;background:var(--green);border-radius:6px;opacity:0.5"></div></div>
-            <div class="wf-val" style="color:var(--green)">+{curr['prywatne']:,.0f}</div>
         </div>
         <hr style="border-color:var(--border);margin:10px 0">
         <div class="wf-row">
