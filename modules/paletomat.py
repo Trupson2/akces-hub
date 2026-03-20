@@ -5259,83 +5259,80 @@ def generator_detail(asin):
         alert('Skopiowano HTML!');
     }
 
-    var allPhotos = {zdjecia_json};
+    '''
+    html += f'''var allPhotos = {zdjecia_json};
     var cleanedPhotos = {{}};
-    var cleanIdx = 0;
+    var cleanIdx = 0;'''
+    html += '''
 
-    function cleanImages() {{
+    function cleanImages() {
         var btn = document.getElementById('btnClean');
         var status = document.getElementById('cleanStatus');
         btn.disabled = true;
         btn.textContent = 'Czyszcze...';
         cleanIdx = 0;
-        cleanedPhotos = {{}};
+        cleanedPhotos = {};
         cleanNext(btn, status);
-    }}
+    }
 
-    function cleanNext(btn, status) {{
-        if (cleanIdx >= allPhotos.length) {{
+    function cleanNext(btn, status) {
+        if (cleanIdx >= allPhotos.length) {
             btn.textContent = 'Gotowe!';
             btn.style.background = '#22c55e';
             status.textContent = cleanIdx + '/' + allPhotos.length + ' oczyszczonych';
-            // Zaktualizuj ukryty input ze zdjeciami
             updateCleanedPhotos();
             return;
-        }}
+        }
         var url = allPhotos[cleanIdx];
         status.textContent = (cleanIdx+1) + '/' + allPhotos.length + ' czyszcze...';
 
-        fetch('/paletomat/api/clean-image', {{
+        fetch('/paletomat/api/clean-image', {
             method: 'POST',
-            headers: {{'Content-Type': 'application/json'}},
-            body: JSON.stringify({{url: url}})
-        }})
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({url: url})
+        })
         .then(r => r.json())
-        .then(data => {{
-            if (data.success) {{
+        .then(data => {
+            if (data.success) {
                 cleanedPhotos[cleanIdx] = data.cleaned_url;
-                // Podswietl miniaturke na zielono
                 var thumbs = document.querySelectorAll('[data-img-idx]');
                 if (thumbs[cleanIdx]) thumbs[cleanIdx].style.border = '2px solid #22c55e';
-            }}
+            }
             cleanIdx++;
             cleanNext(btn, status);
-        }})
-        .catch(err => {{
+        })
+        .catch(err => {
             console.error('Clean error:', err);
             cleanIdx++;
             cleanNext(btn, status);
-        }});
-    }}
+        });
+    }
 
-    function updateCleanedPhotos() {{
-        // Podmien URLe na oczyszczone w ukyrtym polu
-        var updated = allPhotos.map(function(url, i) {{
+    function updateCleanedPhotos() {
+        var updated = allPhotos.map(function(url, i) {
             return cleanedPhotos[i] ? (window.location.origin + cleanedPhotos[i]) : url;
-        }});
+        });
         var input = document.getElementById('zdjecia_input');
         if (input) input.value = JSON.stringify(updated);
-        // Podmien glowne zdjecie
-        if (cleanedPhotos[0]) {{
+        if (cleanedPhotos[0]) {
             document.getElementById('mainImg').src = cleanedPhotos[0];
-        }}
-    }}
+        }
+    }
 
     // === ENHANCE - generuj 8 zdjec Allegro ===
     var enhanceIdx = 0;
     var enhancedPhotos = [];
     var templateNames = ['Miniaturka','Wymiary','Detale','Zawartosc','Specyfikacja','Montaz','Lifestyle','Porownanie'];
 
-    function enhanceImages() {{
+    function enhanceImages() {
         var btn = document.getElementById('btnEnhance');
         var status = document.getElementById('cleanStatus');
 
-        // Uzyj pierwszego zdjecia jako bazy (oczyszczonego jesli dostepne)
         var baseUrl = cleanedPhotos[0] || allPhotos[0];
-        if (!baseUrl) {{
+        if (!baseUrl) {
             status.textContent = 'Brak zdjecia bazowego!';
             return;
-        }}
+        }
 
         btn.disabled = true;
         btn.textContent = 'Generuje...';
@@ -5345,69 +5342,65 @@ def generator_detail(asin):
         status.textContent = '0/8 - startuje...';
 
         enhanceNext(btn, status, baseUrl);
-    }}
+    }
 
-    function enhanceNext(btn, status, baseUrl) {{
-        if (enhanceIdx >= 8) {{
+    function enhanceNext(btn, status, baseUrl) {
+        if (enhanceIdx >= 8) {
             btn.textContent = '✨ Gotowe!';
             btn.style.background = '#22c55e';
             status.textContent = '8/8 wygenerowanych!';
             updateEnhancedPhotos();
             return;
-        }}
+        }
 
         var templateId = enhanceIdx + 1;
         status.textContent = (enhanceIdx+1) + '/8: ' + templateNames[enhanceIdx] + '...';
 
-        fetch('/paletomat/api/enhance-image', {{
+        fetch('/paletomat/api/enhance-image', {
             method: 'POST',
-            headers: {{'Content-Type': 'application/json'}},
-            body: JSON.stringify({{
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
                 url: baseUrl,
                 template_id: templateId,
                 product_name: document.querySelector('[name=tytul]') ? document.querySelector('[name=tytul]').value : ''
-            }})
-        }})
+            })
+        })
         .then(r => r.json())
-        .then(data => {{
-            if (data.success) {{
+        .then(data => {
+            if (data.success) {
                 enhancedPhotos.push(data.enhanced_url);
-                // Podswietl miniaturke
                 var thumbs = document.querySelectorAll('[data-img-idx]');
-                if (thumbs[enhanceIdx]) {{
+                if (thumbs[enhanceIdx]) {
                     thumbs[enhanceIdx].style.border = '2px solid #f59e0b';
                     thumbs[enhanceIdx].src = data.enhanced_url;
-                }}
-            }} else {{
+                }
+            } else {
                 enhancedPhotos.push(null);
                 console.error('Enhance err:', data.error);
-            }}
+            }
             enhanceIdx++;
             enhanceNext(btn, status, baseUrl);
-        }})
-        .catch(err => {{
+        })
+        .catch(err => {
             console.error('Enhance fetch error:', err);
             enhancedPhotos.push(null);
             enhanceIdx++;
             enhanceNext(btn, status, baseUrl);
-        }});
-    }}
+        });
+    }
 
-    function updateEnhancedPhotos() {{
-        // Podmien zdjecia na wygenerowane (te ktore sie udaly)
-        var updated = enhancedPhotos.map(function(url, i) {{
+    function updateEnhancedPhotos() {
+        var updated = enhancedPhotos.map(function(url, i) {
             return url ? (window.location.origin + url) : allPhotos[i] || '';
-        }});
-        // Uzupelnij do 8 jesli trzeba
+        });
         while (updated.length < allPhotos.length) updated.push(allPhotos[updated.length]);
 
         var input = document.getElementById('zdjecia_input');
         if (input) input.value = JSON.stringify(updated);
-        // Podmien glowne zdjecie na miniaturke
-        if (enhancedPhotos[0]) {{
+        if (enhancedPhotos[0]) {
             document.getElementById('mainImg').src = enhancedPhotos[0];
-        }}
-    }}
+        }
+    }
     </script>
     
     <style>
