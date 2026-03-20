@@ -966,8 +966,8 @@ def produkt(code):
             
             <div class="det-grid">
                 <div class="det" style="border:1px solid #8b5cf644;border-radius:8px"><div class="det-l">🏷️ Kod mag.</div><div class="det-v" style="color:#8b5cf6;font-weight:700">{p.get('kod_magazynowy') or f"#{p['id']}"}</div></div>
-                <div class="det"><div class="det-l">EAN</div><div class="det-v" style="font-size:0.75rem">{ean_display}</div></div>
-                <div class="det"><div class="det-l">ASIN</div><div class="det-v" style="font-size:0.7rem">{asin_display}</div></div>
+                <div class="det" onclick="navigator.clipboard.writeText('{ean_display}');this.querySelector('.det-v').style.color='#22c55e';setTimeout(()=>this.querySelector('.det-v').style.color='',800)" style="cursor:pointer" title="Kliknij aby skopiować"><div class="det-l">EAN 📋</div><div class="det-v" style="font-size:0.75rem;user-select:all">{ean_display}</div></div>
+                <div class="det" onclick="navigator.clipboard.writeText('{asin_display}');this.querySelector('.det-v').style.color='#22c55e';setTimeout(()=>this.querySelector('.det-v').style.color='',800)" style="cursor:pointer" title="Kliknij aby skopiować"><div class="det-l">ASIN 📋</div><div class="det-v" style="font-size:0.75rem;user-select:all">{asin_display}</div></div>
                 <div class="det"><div class="det-l">Ilość</div><div class="det-v"><span class="badge {badge}">{p['ilosc']} szt</span></div></div>
                 <div class="det"><div class="det-l">Stan</div><div class="det-v">{p['stan'] or 'Nowy'}</div></div>
                 <div class="det"><div class="det-l">💰 Koszt/szt brutto</div><div class="det-v">{_koszt_brutto_szt:.2f} zł</div></div>
@@ -5512,10 +5512,9 @@ def etykiety():
     html += f'''
     </form>
 
-    <div style="position:fixed;bottom:70px;left:0;right:0;padding:15px;background:#0a0a0f;border-top:1px solid #1e1e2e">
-        <div style="max-width:1600px;margin:0 auto">
-            <button onclick="drukuj()" class="btn btn-purple" style="width:100%;padding:16px;font-size:1.1rem;font-weight:700">📱 DRUKUJ NIIMBOT</button>
-        </div>
+    <div style="height:20px"></div>
+    <div style="position:sticky;bottom:0;padding:12px 0;background:linear-gradient(transparent 0%, #0a0a0f 25%);z-index:50">
+        <button onclick="drukuj()" class="btn btn-purple" style="width:100%;padding:16px;font-size:1.1rem;font-weight:700;border-radius:12px">📱 DRUKUJ NIIMBOT</button>
     </div>
 
     <script>
@@ -5553,7 +5552,6 @@ def etykiety():
     }}
     </script>
 
-    <div style="height:120px"></div>
     <a href="/magazyn" class="back">← Powrót</a>
     '''
     return render(html)
