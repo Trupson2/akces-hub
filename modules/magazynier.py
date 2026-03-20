@@ -8,7 +8,7 @@ import csv
 import json
 import tempfile
 from datetime import datetime
-from flask import Blueprint, render_template_string, request, redirect, Response, url_for, session, current_app
+from flask import Blueprint, render_template_string, request, redirect, Response, url_for, session, current_app, jsonify
 
 from .database import get_db, query_db, execute_db, get_config, get_config_cached
 from .utils import get_amazon_image_url, get_product_image, oblicz_cene_allegro, is_code, DOSTAWCY, detect_supplier, parse_price, ALLEGRO_PROWIZJE
@@ -6890,7 +6890,7 @@ def api_rescrape_image(product_id):
                         with open(path, 'wb') as f:
                             f.write(resp.content)
                         if idx == 1:
-                            local_img = '/' + path.replace('\\\\', '/')
+                            local_img = '/' + path.replace('\\', '/')
                 except:
                     pass
 
