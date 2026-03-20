@@ -1178,15 +1178,23 @@ def profit_analyzer():
     else:
         pl_waterfall = '<div class="card"><p style="color:var(--text-muted)">Brak danych</p></div>'
 
-    # Build trends for KPI cards
+    # Build trends for KPI cards (proporcjonalnie — bieżący miesiąc jeszcze trwa)
     trend_przychod_html = ''
     trend_zysk_html = ''
     if curr and prev and prev['przychod']:
-        t = trend_pct(curr['przychod'], prev['przychod'])
+        # Przelicz bieżący miesiąc na pełny (ekstrapolacja)
+        import calendar
+        days_in_month = calendar.monthrange(today.year, today.month)[1]
+        days_elapsed = today.day
+        scale = days_in_month / days_elapsed if days_elapsed > 0 else 1
+        projected_przychod = curr['przychod'] * scale
+        projected_zysk = curr['zysk_netto'] * scale
+
+        t = trend_pct(projected_przychod, prev['przychod'])
         cls = 'up' if t > 0 else 'down'
         trend_przychod_html = f'<div class="kpi-change {cls}">{t:+.0f}% m/m</div>'
-    if curr and prev:
-        t = trend_pct(curr['zysk_netto'], prev['zysk_netto'])
+
+        t = trend_pct(projected_zysk, prev['zysk_netto'])
         cls = 'up' if t > 0 else 'down' if t < 0 else 'neutral'
         trend_zysk_html = f'<div class="kpi-change {cls}">{t:+.0f}% m/m</div>'
 
