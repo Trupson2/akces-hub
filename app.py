@@ -1909,8 +1909,9 @@ a{color:#6366f1;text-decoration:none}
 # ============================================================
 @app.route('/narzedzia/licencje', methods=['GET', 'POST'])
 def narzedzia_licencje():
-    """Panel generowania licencji — dostepny tylko dla admin"""
-    if session.get('rola') != 'admin':
+    """Panel generowania licencji — dostepny tylko dla dev (folder tools/ musi istniec)"""
+    _tools_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools')
+    if session.get('rola') != 'admin' or not os.path.isdir(_tools_path):
         return 'Brak dostepu', 403
     from modules.license import generate_license_key
     from datetime import datetime
@@ -2190,7 +2191,9 @@ def changelog():
 @app.route('/narzedzia')
 def narzedzia():
     return render_template('narzedzia.html',
-        version=VERSION, is_admin=(session.get('rola') == 'admin'),
+        version=VERSION,
+        is_admin=(session.get('rola') == 'admin'),
+        is_dev=(session.get('rola') == 'admin' and os.path.isdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools'))),
         active_narzedzia='active', active_home='', active_magazyn='',
         active_paletomat='', active_allegro='', active_monitor='')
 

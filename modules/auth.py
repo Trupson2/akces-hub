@@ -206,7 +206,7 @@ button{width:100%;padding:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6
 button:hover{opacity:0.92;transform:translateY(-1px);box-shadow:0 8px 24px rgba(99,102,241,0.3)}
 .error{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);color:#f87171;padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:0.82rem}
 .footer-text{margin-top:32px;color:#2a2a3a;font-size:0.7rem;text-align:center;letter-spacing:0.5px}
-@media(max-width:500px){.login-box{margin:0 16px;padding:32px 24px}}
+@media(max-width:500px){.login-box{margin:0 16px;padding:32px 24px}.tags-section{display:none}}
 </style>
 </head>
 <body>
