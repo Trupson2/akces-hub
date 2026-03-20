@@ -444,14 +444,15 @@ def process_single_product(asin, position, total, preferred_domain=None):
             zdjecie_url = '/' + lokalne_zdjecia[0]  # /static/downloads/ASIN/image_1.jpg
 
         # === HYBRID ENHANCE: Wyczyszczone oryginały (1-4) + AI (5-8) ===
-        # Cleaner usuwa WSZYSTKO: watermarki, loga, tekst niemiecki/chiński, infografiki
-        # Oryginał po czyszczeniu = prawdziwy produkt bez śmieci
+        # Pomiń na Pi (za ciężkie - image processing + Gemini API crashuje system)
+        import platform as _plat
+        _is_pi = _plat.machine().startswith('a') or 'arm' in _plat.machine().lower()
         try:
             from .image_enhancer import enhance_single, prepare_original_photo, GEMINI_AVAILABLE as _ENH_SCRAPE
             from .image_enhancer import HYBRID_ORIGINAL_SLOTS, HYBRID_AI_TEMPLATES
             from .image_cleaner import clean_image_from_bytes
 
-            if _ENH_SCRAPE and lokalne_zdjecia:
+            if _ENH_SCRAPE and lokalne_zdjecia and not _is_pi:
                 print(f"✨ [{position}/{total}] HYBRID: oryginały + AI dla {asin}...")
                 _enh_dir = os.path.join('static', 'enhanced', str(asin))
                 os.makedirs(_enh_dir, exist_ok=True)
@@ -714,8 +715,13 @@ def auto_process_products(asins, preferred_domain=None):
         print(f"{'='*70}\n")
 
         # 🤖 AUTO-ENHANCE: po scrapowaniu automatycznie generuj zdjęcia AI
-        if success_count > 0:
+        # Pomiń na Pi (za mało RAM/CPU, crashuje system)
+        import platform
+        is_pi = platform.machine().startswith('a') or 'arm' in platform.machine().lower()
+        if success_count > 0 and not is_pi:
             _auto_start_enhance_after_scrape()
+        elif is_pi:
+            print("⚠️ Pi detected — pomijam auto-enhance (za ciężkie)")
 
     # Uruchom w osobnym wątku
     thread = threading.Thread(target=process_in_background, daemon=True)
