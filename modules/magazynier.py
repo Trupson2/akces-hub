@@ -4280,8 +4280,9 @@ def import_page():
                     </div>
                 </div>
                 <div style="margin-top:10px">
-                    <label style="font-size:0.8rem;color:#64748b">Cena zakupu palety (PLN brutto)</label>
-                    <input type="number" name="new_paleta_cena" class="form-ctrl" placeholder="0.00" step="0.01" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:6px;color:#fff">
+                    <label style="font-size:0.8rem;color:#64748b">💰 Cena zakupu palety (ile zapłaciłeś, brutto PLN)</label>
+                    <input type="number" name="new_paleta_cena" class="form-ctrl" placeholder="np. 144.80" step="0.01" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:6px;color:#fff">
+                    <div style="font-size:0.7rem;color:#f59e0b;margin-top:4px">⚠️ Wpisz cenę z aukcji/faktury — NIE cenę produktów z Excela</div>
                 </div>
             </div>
         </div>
