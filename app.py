@@ -2124,6 +2124,7 @@ function dlText(t,fn){
     const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fn;a.click();
 }
 </script>
+{% endblock %}
 ''',
         generated=generated,
         generated_json=generated_json,

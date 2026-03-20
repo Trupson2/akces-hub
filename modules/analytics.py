@@ -656,6 +656,10 @@ def profit_analyzer():
     # Parametr: zakres miesięcy (domyślnie 6)
     months_range = int(request.args.get('months', 6))
 
+    # Prowizja — konfigurowalna (domyślnie 15% = Allegro 11% + dostawa ~4%)
+    from .database import get_config
+    prowizja_pct = float(get_config('allegro_prowizja_pct', '15')) / 100
+
     # === DANE MIESIĘCZNE (ostatnie N miesięcy) ===
     monthly_data = []
     for i in range(months_range - 1, -1, -1):
@@ -692,6 +696,7 @@ def profit_analyzer():
         ''', (m_start, m_end)).fetchone()
 
         # COGS — średni koszt jednostkowy * sprzedane sztuki
+        # produkty.ilosc NIE jest dekrementowane przy sprzedaży, więc SUM(ilosc) = oryginalna ilość
         avg_cost = conn.execute('''
             SELECT
                 CASE WHEN SUM(sub.total_items) > 0
@@ -699,11 +704,7 @@ def profit_analyzer():
                      ELSE 0 END as avg_unit
             FROM (
                 SELECT pal.cena_zakupu as koszt,
-                    COALESCE((SELECT SUM(pr.ilosc) FROM produkty pr WHERE pr.paleta_id = pal.id), 0)
-                    + COALESCE((SELECT SUM(sp.ilosc) FROM sprzedaze sp
-                                JOIN produkty pp ON sp.produkt_id = pp.id
-                                WHERE pp.paleta_id = pal.id
-                                AND sp.status NOT IN ('zwrot','anulowane','anulowana')), 0)
+                    COALESCE((SELECT SUM(pr.ilosc) FROM produkty pr WHERE pr.paleta_id = pal.id), 1)
                     as total_items
                 FROM palety pal WHERE pal.cena_zakupu > 0
             ) sub
@@ -711,7 +712,7 @@ def profit_analyzer():
         avg_unit_cost = avg_cost['avg_unit'] or 0
 
         cogs = avg_unit_cost * sztuki
-        prowizja = przychod * 0.11
+        prowizja = przychod * prowizja_pct
         zysk = przychod - cogs - prowizja
         marza = (zysk / przychod * 100) if przychod > 0 else 0
         roi = (zysk / cogs * 100) if cogs > 0 else 0
@@ -967,7 +968,7 @@ def profit_analyzer():
     for p in palety_profit:
         koszt = p['cena_zakupu'] or 0
         przychod_p = p['przychod'] or 0
-        prowizja_p = przychod_p * 0.11
+        prowizja_p = przychod_p * prowizja_pct
         zysk_p = przychod_p - koszt - prowizja_p
         roi_p = (zysk_p / koszt * 100) if koszt > 0 else 0
         total_szt = (p['sprzedane_szt'] or 0) + (p['w_magazynie_szt'] or 0)
@@ -1032,7 +1033,7 @@ def profit_analyzer():
     for d in dostawcy:
         inv = d['inwestycja'] or 0
         rev_d = d['przychod'] or 0
-        prow_d = rev_d * 0.11
+        prow_d = rev_d * prowizja_pct
         zysk_d = rev_d - inv - prow_d
         roi_d = (zysk_d / inv * 100) if inv > 0 else 0
         udzial = (inv / total_dost_inv * 100) if total_dost_inv > 0 else 0
@@ -1060,7 +1061,7 @@ def profit_analyzer():
         rev_tp = tp['przychod'] or 0
         koszt_jedn = (tp['paleta_koszt'] / tp['paleta_szt']) if tp['paleta_szt'] > 0 else 0
         koszt_tp = koszt_jedn * (tp['sprzedane'] or 0)
-        prow_tp = rev_tp * 0.11
+        prow_tp = rev_tp * prowizja_pct
         zysk_tp = rev_tp - koszt_tp - prow_tp
         marza_tp = (zysk_tp / rev_tp * 100) if rev_tp > 0 else 0
         medal = ['style="color:#ffd700"', 'style="color:#c0c0c0"', 'style="color:#cd7f32"']
@@ -1135,7 +1136,7 @@ def profit_analyzer():
             <div class="wf-val" style="color:var(--red)">-{curr['cogs']:,.0f}</div>
         </div>
         <div class="wf-row">
-            <div class="wf-label">Prowizja 11%</div>
+            <div class="wf-label">Prowizja {prowizja_pct*100:.0f}%</div>
             <div class="wf-bar"><div style="height:100%;width:{(curr['prowizja']/curr['przychod']*100) if curr['przychod']>0 else 0:.0f}%;background:var(--orange);border-radius:6px;opacity:0.7"></div></div>
             <div class="wf-val" style="color:var(--orange)">-{curr['prowizja']:,.0f}</div>
         </div>
@@ -1435,8 +1436,60 @@ tr:hover{background:var(--accent-soft)}
     </div>
 </div>
 
+<!-- AI REKOMENDACJE -->
+<div class="section-title">Rekomendacje AI</div>
+<div class="card" id="ai-rec-card">
+    <div class="card-header">
+        <div class="card-title">Analiza i porady biznesowe</div>
+        <button class="btn btn-primary" id="ai-rec-btn" onclick="getAiRecommendations()" style="padding:8px 18px;font-size:0.82rem;font-weight:600">
+            Generuj rekomendacje
+        </button>
+    </div>
+    <div id="ai-rec-content" style="display:none;margin-top:12px">
+        <div id="ai-rec-loading" style="text-align:center;padding:20px;color:var(--text-muted)">
+            <div style="font-size:1.5rem;margin-bottom:8px;animation:pulse 1.5s infinite">...</div>
+            <div>Analizuje dane sprzedazowe...</div>
+        </div>
+        <div id="ai-rec-result" style="display:none;line-height:1.7;font-size:0.88rem"></div>
+    </div>
+</div>
+
+<script>
+function getAiRecommendations() {
+    var btn = document.getElementById('ai-rec-btn');
+    var content = document.getElementById('ai-rec-content');
+    var loading = document.getElementById('ai-rec-loading');
+    var result = document.getElementById('ai-rec-result');
+    btn.disabled = true;
+    btn.textContent = 'Analizuje...';
+    content.style.display = 'block';
+    loading.style.display = 'block';
+    result.style.display = 'none';
+    fetch('/analytics/ai-recommendations?months=''' + str(months_range) + '''')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            loading.style.display = 'none';
+            result.style.display = 'block';
+            if (data.ok) {
+                result.innerHTML = data.html;
+            } else {
+                result.innerHTML = '<div class="alert alert-error">' + (data.error || 'Blad') + '</div>';
+            }
+            btn.textContent = 'Odswież rekomendacje';
+            btn.disabled = false;
+        })
+        .catch(function(e) {
+            loading.style.display = 'none';
+            result.style.display = 'block';
+            result.innerHTML = '<div class="alert alert-error">Blad: ' + e.message + '</div>';
+            btn.textContent = 'Sprobuj ponownie';
+            btn.disabled = false;
+        });
+}
+</script>
+
 <div style="text-align:center;padding:24px;color:var(--text-muted);font-size:0.72rem">
-    Profit Analyzer v2.0 | Akces Hub | Dane z bazy na zywo
+    Profit Analyzer v2.1 | Akces Hub | Dane z bazy na zywo
 </div>
 
 {% endblock %}
@@ -1446,3 +1499,158 @@ tr:hover{background:var(--accent-soft)}
         brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
         current_user=session.get('user')
     )
+
+
+@analytics_bp.route('/ai-recommendations')
+def ai_recommendations():
+    """Endpoint AI: rekomendacje biznesowe na podstawie danych sprzedażowych"""
+    import requests as _req
+    import re as _re
+
+    conn = get_db()
+    from .database import get_config
+
+    api_key = get_config('gemini_api_key', '')
+    if not api_key:
+        api_key = get_config('perplexity_api_key', '')
+        provider = 'perplexity'
+    else:
+        provider = 'gemini'
+
+    if not api_key:
+        return jsonify({'ok': False, 'error': 'Brak klucza API (Gemini lub Perplexity). Ustaw w Ustawieniach.'})
+
+    months_range = int(request.args.get('months', 6))
+
+    # Zbierz dane do analizy
+    top_prod = conn.execute('''
+        SELECT COALESCE(NULLIF(p.nazwa,''), s.nazwa, 'Produkt') as nazwa,
+               SUM(s.cena * s.ilosc) as przychod, SUM(s.ilosc) as szt,
+               COALESCE(p.kategoria, '') as kategoria
+        FROM sprzedaze s
+        LEFT JOIN produkty p ON s.produkt_id = p.id
+        WHERE s.status NOT IN ('zwrot','anulowane','anulowana')
+        AND date(s.data_sprzedazy) >= date('now', ?)
+        GROUP BY COALESCE(p.id, s.nazwa)
+        ORDER BY przychod DESC LIMIT 10
+    ''', (f'-{months_range * 30} days',)).fetchall()
+
+    stojace = conn.execute('''
+        SELECT p.nazwa, p.cena_allegro, p.ilosc,
+               julianday('now') - julianday(p.data_dodania) as dni,
+               COALESCE(pal.dostawca, '-') as dostawca
+        FROM produkty p
+        LEFT JOIN palety pal ON p.paleta_id = pal.id
+        WHERE p.status IN ('magazyn','wystawiony')
+        AND p.data_dodania IS NOT NULL
+        ORDER BY dni DESC LIMIT 10
+    ''').fetchall()
+
+    dostawcy = conn.execute('''
+        SELECT COALESCE(NULLIF(pal.dostawca,''), 'Nieznany') as dostawca,
+               COUNT(DISTINCT pal.id) as palet,
+               SUM(pal.cena_zakupu) as inwestycja,
+               COALESCE((SELECT SUM(s.cena * s.ilosc) FROM sprzedaze s
+                         JOIN produkty pp ON s.produkt_id = pp.id
+                         WHERE pp.paleta_id = pal.id
+                         AND s.status NOT IN ('zwrot','anulowane','anulowana')), 0) as przychod
+        FROM palety pal WHERE pal.cena_zakupu > 0
+        GROUP BY COALESCE(NULLIF(pal.dostawca,''), 'Nieznany')
+        ORDER BY przychod DESC
+    ''').fetchall()
+
+    kategorie = conn.execute('''
+        SELECT COALESCE(NULLIF(p.kategoria,''), 'Brak') as kat,
+               COUNT(*) as cnt, SUM(s.cena * s.ilosc) as wartosc
+        FROM sprzedaze s JOIN produkty p ON s.produkt_id = p.id
+        WHERE s.status NOT IN ('zwrot','anulowane','anulowana')
+        AND date(s.data_sprzedazy) >= date('now', ?)
+        GROUP BY kat ORDER BY wartosc DESC LIMIT 8
+    ''', (f'-{months_range * 30} days',)).fetchall()
+
+    zwroty = conn.execute('''
+        SELECT COALESCE(s.nazwa, p.nazwa, '?') as nazwa, COUNT(*) as cnt,
+               SUM(s.cena * s.ilosc) as wartosc
+        FROM sprzedaze s
+        LEFT JOIN produkty p ON s.produkt_id = p.id
+        WHERE s.status = 'zwrot'
+        AND date(s.data_sprzedazy) >= date('now', ?)
+        GROUP BY COALESCE(s.nazwa, p.nazwa)
+        ORDER BY cnt DESC LIMIT 5
+    ''', (f'-{months_range * 30} days',)).fetchall()
+
+    data_summary = f"Dane z ostatnich {months_range} miesiecy sprzedazy na Allegro.\n\n"
+    data_summary += "TOP 10 produktow wg przychodu:\n"
+    for p in top_prod:
+        data_summary += f"- {p['nazwa']}: {p['przychod']:.0f} zl, {p['szt']} szt., kat: {p['kategoria'] or 'brak'}\n"
+    data_summary += "\nProdukty stojace w magazynie (najdluzej):\n"
+    for s in stojace:
+        data_summary += f"- {s['nazwa']}: {s['dni']:.0f} dni, cena {s['cena_allegro'] or 0:.0f} zl, {s['ilosc'] or 1} szt, dostawca: {s['dostawca']}\n"
+    data_summary += "\nDostawcy (inwestycja vs przychod):\n"
+    for d in dostawcy:
+        roi = ((d['przychod'] - d['inwestycja']) / d['inwestycja'] * 100) if d['inwestycja'] > 0 else 0
+        data_summary += f"- {d['dostawca']}: {d['palet']} palet, inwestycja {d['inwestycja']:.0f} zl, przychod {d['przychod']:.0f} zl, ROI {roi:.0f}%\n"
+    data_summary += "\nKategorie wg przychodu:\n"
+    for k in kategorie:
+        data_summary += f"- {k['kat']}: {k['wartosc']:.0f} zl ({k['cnt']} sprzedazy)\n"
+    if zwroty:
+        data_summary += "\nNajczesciej zwracane:\n"
+        for z in zwroty:
+            data_summary += f"- {z['nazwa']}: {z['cnt']}x zwrot, wartosc {z['wartosc']:.0f} zl\n"
+
+    prompt = f"""Jestes doradca biznesowym dla sprzedawcy palet zwrotowych na Allegro (Polska).
+Na podstawie ponizszych danych, daj KONKRETNE, praktyczne rekomendacje:
+
+1. **CO KUPOWAC WIECEJ** - jakie kategorie/typy produktow przynosza najlepszy ROI
+2. **CO ODPUSCIC** - jakie produkty/kategorie unikac, co stoi za dlugo
+3. **DOSTAWCY** - ktorych preferowac, ktorych unikac
+4. **CENY** - czy warto podniesc/obnizyc na konkretne produkty
+5. **ZWROTY** - jak zmniejszyc, ktore produkty problematyczne
+6. **AKCJE NA TEN TYDZIEN** - 3-5 konkretnych krokow
+
+Odpowiedz po polsku, konkretnie i krotko. Nie powtarzaj danych - analizuj i doradzaj.
+Uzyj formatowania markdown (## naglowki, **bold**, listy z - ).
+
+{data_summary}"""
+
+    try:
+        if provider == 'gemini':
+            model = get_config('gemini_model', 'gemini-2.0-flash')
+            resp = _req.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}",
+                headers={"Content-Type": "application/json"},
+                json={"contents": [{"parts": [{"text": prompt}]}],
+                      "generationConfig": {"maxOutputTokens": 4000, "temperature": 0.4}},
+                timeout=60)
+            data = resp.json()
+            if 'error' in data:
+                return jsonify({'ok': False, 'error': f"Gemini: {data['error'].get('message', str(data['error']))}"})
+            if 'candidates' not in data or not data['candidates']:
+                return jsonify({'ok': False, 'error': 'Gemini: brak odpowiedzi'})
+            answer = data['candidates'][0]['content']['parts'][0]['text']
+        else:
+            resp = _req.post(
+                "https://api.perplexity.ai/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={"model": "sonar", "messages": [{"role": "user", "content": prompt}],
+                      "max_tokens": 4000, "temperature": 0.4},
+                timeout=60)
+            data = resp.json()
+            answer = data['choices'][0]['message']['content']
+
+        # Konwertuj markdown na HTML
+        import html as _html
+        answer_safe = _html.escape(answer)
+        answer_safe = _re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', answer_safe)
+        answer_safe = _re.sub(r'^### (.+)$', r'<h4 style="color:var(--accent);margin:16px 0 8px">\1</h4>', answer_safe, flags=_re.MULTILINE)
+        answer_safe = _re.sub(r'^## (.+)$', r'<h3 style="color:var(--accent);margin:16px 0 8px">\1</h3>', answer_safe, flags=_re.MULTILINE)
+        answer_safe = _re.sub(r'^# (.+)$', r'<h3 style="color:var(--accent);margin:16px 0 8px">\1</h3>', answer_safe, flags=_re.MULTILINE)
+        answer_safe = _re.sub(r'^- (.+)$', r'<div style="padding:4px 0 4px 16px;border-left:2px solid var(--border)">\u2022 \1</div>', answer_safe, flags=_re.MULTILINE)
+        answer_safe = _re.sub(r'^\d+\. (.+)$', r'<div style="padding:4px 0 4px 16px;border-left:2px solid var(--accent);margin-bottom:4px">\1</div>', answer_safe, flags=_re.MULTILINE)
+        answer_safe = answer_safe.replace('\n\n', '<br><br>')
+        answer_safe = answer_safe.replace('\n', '<br>')
+
+        return jsonify({'ok': True, 'html': answer_safe})
+
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
