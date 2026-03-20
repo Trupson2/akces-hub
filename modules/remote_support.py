@@ -153,16 +153,21 @@ def support_zgloszenie():
             kontakt_info += f"📱 {kontakt_telefon}\n"
         info['kontakt'] = kontakt_info.strip()
 
-        # Wyślij na Telegram
+        # Wyślij na Telegram (hardcoded support — zawsze do właściciela)
+        SUPPORT_BOT_TOKEN = '8538336125:AAE4qMWsz2tth9RKJ3zT9SqqKetpGHyS6GY'
+        SUPPORT_CHAT_ID = '5441603126'
         try:
-            from .telegram_bot import send_telegram_support
+            import requests as _req
             msg = _format_telegram_message(info, user_message)
-            result = send_telegram_support(msg, parse_mode='HTML')
-
-            if result:
-                flash('✅ Zgłoszenie wysłane! Skontaktujemy się wkrótce.', 'success')
+            resp = _req.post(
+                f'https://api.telegram.org/bot{SUPPORT_BOT_TOKEN}/sendMessage',
+                json={'chat_id': SUPPORT_CHAT_ID, 'text': msg, 'parse_mode': 'HTML'},
+                timeout=10
+            )
+            if resp.ok and resp.json().get('ok'):
+                flash('✅ Zgłoszenie wysłane! Odpowiemy w ciągu 24h.', 'success')
             else:
-                flash('⚠️ Zgłoszenie zapisane, ale nie udało się wysłać powiadomienia. Spróbuj ponownie.', 'warning')
+                flash('⚠️ Nie udało się wysłać. Spróbuj ponownie.', 'warning')
         except Exception as e:
             flash(f'❌ Błąd wysyłania: {str(e)}', 'error')
 
