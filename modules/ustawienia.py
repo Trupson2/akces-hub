@@ -989,36 +989,50 @@ def admin_update_git():
         logs.append('[3/4] Pip install...')
         req = os.path.join(app_dir, 'requirements.txt')
         venv_pip = os.path.join(app_dir, 'venv', 'bin', 'pip')
-        sys_pip = '/usr/bin/pip3'
+        venv_pip_win = os.path.join(app_dir, 'venv', 'Scripts', 'pip.exe')
         if os.path.exists(req):
             if os.path.exists(venv_pip):
                 r = subprocess.run([venv_pip, 'install', '-r', req, '--quiet'],
                                   capture_output=True, text=True, timeout=120)
-            else:
-                r = subprocess.run([sys_pip, 'install', '-r', req, '--quiet', '--break-system-packages'],
+            elif os.path.exists(venv_pip_win):
+                r = subprocess.run([venv_pip_win, 'install', '-r', req, '--quiet'],
                                   capture_output=True, text=True, timeout=120)
+            else:
+                pip_cmd = 'pip3' if os.name != 'nt' else 'pip'
+                cmd = [pip_cmd, 'install', '-r', req, '--quiet']
+                if os.name != 'nt':
+                    cmd.append('--break-system-packages')
+                r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
             logs.append('  -> OK' if r.returncode == 0 else f'  -> {r.stderr[:100]}')
         else:
             logs.append('  -> Pomijam (brak requirements.txt)')
 
-        # 4. Restart (wykryj nazwe serwisu automatycznie)
+        # 4. Restart (wykryj platform i serwis)
         logs.append('[4/4] Restart Flask...')
-        service_name = None
-        for svc in ['akces-hub.service', 'akceshub.service', 'akces-hub', 'akceshub']:
-            r = subprocess.run(['sudo', 'systemctl', 'is-enabled', svc],
-                              capture_output=True, text=True, timeout=5)
-            if r.returncode == 0:
-                service_name = svc
-                break
-        if service_name:
-            r = subprocess.run(['sudo', 'systemctl', 'restart', service_name],
-                              capture_output=True, text=True, timeout=30)
-            if r.returncode == 0:
-                logs.append(f'  -> {service_name} zrestartowany!')
-            else:
-                logs.append(f'  -> {r.stderr[:200]}')
-        else:
-            logs.append('  -> Nie znaleziono serwisu systemd. Zrestartuj recznie.')
+        restarted = False
+
+        # Linux: probuj systemd
+        if os.name != 'nt':
+            for svc in ['akces-hub.service', 'akceshub.service']:
+                try:
+                    r = subprocess.run(['sudo', 'systemctl', 'is-enabled', svc],
+                                      capture_output=True, text=True, timeout=5)
+                    if r.returncode == 0:
+                        r = subprocess.run(['sudo', 'systemctl', 'restart', svc],
+                                          capture_output=True, text=True, timeout=30)
+                        if r.returncode == 0:
+                            logs.append(f'  -> {svc} zrestartowany!')
+                            restarted = True
+                        else:
+                            logs.append(f'  -> {r.stderr[:200]}')
+                        break
+                except Exception:
+                    pass
+
+        # Fallback: restart procesu Python (Windows/Linux bez systemd)
+        if not restarted:
+            logs.append('  -> Kod zaktualizowany! Zrestartuj aplikacje recznie.')
+            logs.append('     (zamknij i uruchom ponownie python app.py)')
 
         logs.append('')
         logs.append('AKTUALIZACJA ZAKONCZONA!')
