@@ -2074,8 +2074,14 @@ def paleta_mass_edit(paleta_id):
                 ceny_tekst = f"Za szt: {brutto_szt_w:.2f} zł brutto"
 
         img_html = ''
-        if p['zdjecie_url']:
-            img_html = f'<img src="{p["zdjecie_url"]}" style="width:50px;height:50px;object-fit:contain;border-radius:8px;background:#fff;margin-right:10px">'
+        _img_url = p['zdjecie_url'] or ''
+        if _img_url and _img_url.startswith('/static/downloads/'):
+            import os as _os
+            if not _os.path.exists(_img_url.lstrip('/')):
+                _asin_c = (p['asin'] or '').strip().upper()
+                _img_url = f'https://m.media-amazon.com/images/I/{_asin_c}._AC_SL1500_.jpg' if _asin_c and len(_asin_c) >= 10 else ''
+        if _img_url:
+            img_html = f'<img src="{_img_url}" style="width:50px;height:50px;object-fit:contain;border-radius:8px;background:#fff;margin-right:10px" onerror="this.style.display=\'none\'" loading="lazy">'
 
         cena_input = f'''
         <input type="number"
@@ -2734,9 +2740,24 @@ def paleta_szczegoly(paleta_id):
             status_opcje += f'<option value="{sv}" {sel}>{sl}</option>'
 
         img_url = p['zdjecie_url'] or ''
+        # Fallback: jeśli lokalna ścieżka nie istnieje, użyj Amazon CDN
+        if img_url and img_url.startswith('/static/downloads/'):
+            import os as _os
+            if not _os.path.exists(img_url.lstrip('/')):
+                asin_clean = (p['asin'] or '').strip().upper()
+                if asin_clean and len(asin_clean) >= 10:
+                    img_url = f'https://m.media-amazon.com/images/I/{asin_clean}._AC_SL1500_.jpg'
+                else:
+                    img_url = ''
         img_html = ''
         if img_url:
             img_html = f'<img src="{img_url}" style="width:50px;height:50px;object-fit:contain;border-radius:8px;background:#fff;flex-shrink:0" onerror="this.style.display=\'none\'" loading="lazy">'
+
+        # EAN: traktuj "N/A", "nan", puste jako brak — pokaż ASIN zamiast
+        ean_display = p['ean'] or ''
+        if ean_display.upper() in ('N/A', 'NAN', 'NONE', ''):
+            ean_display = ''
+        identyfikator = ean_display or p['asin'] or '—'
 
         produkty_html += f'''
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px" data-produkt-id="{p['id']}" data-ilosc="{p['ilosc']}">
@@ -2747,7 +2768,7 @@ def paleta_szczegoly(paleta_id):
                         <a href="/magazyn/produkt/{p['id']}" style="color:var(--text);text-decoration:none">{p['nazwa'][:45]}</a>
                     </div>
                     <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;display:flex;align-items:center;gap:4px">
-                        <span>{p['ean'] or p['asin'] or '—'} •</span>
+                        <span>{identyfikator} •</span>
                         <button onclick="szybkaMinus({p['id']},{p['ilosc']},{int(p['cena_allegro'] or 0)})" style="background:var(--red);border:none;border-radius:4px;color:#fff;width:20px;height:20px;font-size:0.7rem;cursor:pointer;padding:0;line-height:20px" {'disabled' if (p['ilosc'] or 0) == 0 else ''}>-</button>
                         <span style="color:var(--text);font-weight:600" id="ilosc-{p['id']}">{p['ilosc']}</span>
                         <button onclick="szybkaPlus({p['id']},{p['ilosc']})" style="background:var(--green);border:none;border-radius:4px;color:#fff;width:20px;height:20px;font-size:0.7rem;cursor:pointer;padding:0;line-height:20px">+</button>
