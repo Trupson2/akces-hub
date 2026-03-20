@@ -5575,15 +5575,34 @@ def etykiety_vretti_pdf(products):
                 c.drawImage(qr_reader, 8*mm, 65*mm, width=35*mm, height=35*mm)
 
                 # Info obok QR - zamień polskie znaki
-                c.setFont("Helvetica", 12)
-                c.drawString(48*mm, 95*mm, f"Polka: {pl_to_ascii(product['lokalizacja'] or '—')}")
-                c.drawString(48*mm, 85*mm, f"Stan: {pl_to_ascii(product.get('stan') or 'Nowy')}")
-                c.drawString(48*mm, 75*mm, f"Szt: {ilosc}")
+                c.setFont("Helvetica", 11)
+                y_info = 98*mm
+                c.drawString(48*mm, y_info, f"Szt: {ilosc}")
+                y_info -= 9*mm
+
+                # Stan przyjęcia (jeśli jest)
+                stan_przyjecia = product.get('stan_przyjecia') or ''
+                stan_display = stan_przyjecia or pl_to_ascii(product.get('stan') or 'Nowy')
+                c.drawString(48*mm, y_info, f"Stan: {pl_to_ascii(stan_display)}")
+                y_info -= 9*mm
+
+                c.drawString(48*mm, y_info, f"Polka: {pl_to_ascii(product['lokalizacja'] or '—')}")
+                y_info -= 9*mm
+
+                # Cena
+                cena = product.get('cena_allegro') or 0
+                if cena:
+                    c.setFont("Helvetica-Bold", 12)
+                    c.drawString(48*mm, y_info, f"{cena:.0f} zl")
+                    y_info -= 9*mm
 
                 # EAN/kod
                 c.setFont("Helvetica", 10)
                 ean = product.get('ean') or product.get('asin') or ''
-                c.drawString(10*mm, 55*mm, f"Kod: {ean}")
+                if ean:
+                    c.drawString(10*mm, 55*mm, f"EAN: {ean}")
+                else:
+                    c.drawString(10*mm, 55*mm, "Brak EAN")
 
                 # Barcode EAN (jeśli jest)
                 if ean and len(ean) >= 8:
@@ -8187,19 +8206,27 @@ def przyjecie_palety(paleta_id):
     if not paleta:
         return redirect(url_for('magazynier.palety_lista'))
 
-    produkty = conn.execute(
-        'SELECT id, nazwa, ean, zdjecie_url, stan_przyjecia, notatki_przyjecia FROM produkty WHERE paleta_id = ? ORDER BY id',
-        (paleta_id,)
-    ).fetchall()
+    try:
+        produkty = conn.execute(
+            'SELECT id, nazwa, ean, zdjecie_url, ilosc, stan_przyjecia, notatki_przyjecia FROM produkty WHERE paleta_id = ? ORDER BY id',
+            (paleta_id,)
+        ).fetchall()
+    except:
+        produkty = conn.execute(
+            'SELECT id, nazwa, ean, zdjecie_url, ilosc, "" as stan_przyjecia, "" as notatki_przyjecia FROM produkty WHERE paleta_id = ? ORDER BY id',
+            (paleta_id,)
+        ).fetchall()
+
+    total_sztuk = sum(p['ilosc'] or 1 for p in produkty)
 
     html = f'''
     <div style="padding:15px;max-width:900px;margin:0 auto">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
             <div>
                 <h2 style="margin:0;font-size:1.3rem">📋 Przyjęcie palety #{paleta_id}</h2>
-                <div style="color:#64748b;font-size:0.85rem;margin-top:4px">{paleta['nazwa']}</div>
+                <div style="color:#64748b;font-size:0.85rem;margin-top:4px">{paleta['nazwa']} • {len(produkty)} prod. • {total_sztuk} szt.</div>
             </div>
-            <a href="/magazyn/paleta/{paleta_id}" style="background:#1e293b;color:#94a3b8;padding:8px 16px;border-radius:8px;text-decoration:none;font-size:0.85rem">← Powrót</a>
+            <a href="/magazyn/paleta-id/{paleta_id}" style="background:#1e293b;color:#94a3b8;padding:8px 16px;border-radius:8px;text-decoration:none;font-size:0.85rem">← Powrót</a>
         </div>
 
         <div id="progress-bar" style="background:#1e1e2e;border-radius:8px;height:8px;margin-bottom:20px;overflow:hidden">
@@ -8219,42 +8246,80 @@ def przyjecie_palety(paleta_id):
 
     for p in produkty:
         pid = p['id']
+        ilosc = p['ilosc'] or 1
         current_stan = p['stan_przyjecia'] or ''
         current_notatki = p['notatki_przyjecia'] or ''
         zdjecie = p['zdjecie_url'] or ''
         img_html = f'<img src="{zdjecie}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">' if zdjecie else '<div style="width:60px;height:60px;background:#1e1e2e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem">📦</div>'
 
+        # Ilość badge
+        ilosc_badge = f'<span style="background:#3b82f633;color:#3b82f6;padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:700">{ilosc} szt.</span>' if ilosc > 1 else '<span style="color:#64748b;font-size:0.75rem">1 szt.</span>'
+
         html += f'''
-        <div class="prod-card" id="prod-{pid}" style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;margin-bottom:12px">
+        <div class="prod-card" id="prod-{pid}" data-ilosc="{ilosc}" style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;margin-bottom:12px">
             <div style="display:flex;gap:12px;align-items:flex-start">
                 {img_html}
                 <div style="flex:1;min-width:0">
-                    <div style="font-size:0.9rem;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{p['nazwa']}</div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                        <div style="font-size:0.9rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0">{p['nazwa']}</div>
+                        {ilosc_badge}
+                    </div>
                     <div style="font-size:0.75rem;color:#64748b">EAN: {p['ean'] or '—'}</div>
                 </div>
             </div>
 
-            <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">'''
+            <!-- Tryb prosty: 1 stan dla wszystkich sztuk -->
+            <div id="simple-mode-{pid}">
+                <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">'''
 
         for stan_name, stan_icon, stan_color in stany:
             is_active = 'true' if current_stan == stan_name else 'false'
             html += f'''
-                <button onclick="selectStan({pid}, '{stan_name}', this)"
-                    class="stan-btn-{pid}"
-                    style="padding:8px 14px;border-radius:8px;border:2px solid {stan_color if current_stan == stan_name else '#1e1e2e'};
-                    background:{'rgba(34,197,94,0.1)' if current_stan == stan_name else '#0a0a0f'};
-                    color:{stan_color};font-size:0.8rem;cursor:pointer;transition:all 0.2s;flex:1;min-width:0;text-align:center"
-                    data-active="{is_active}" data-color="{stan_color}">
-                    {stan_icon} {stan_name}
-                </button>'''
+                    <button onclick="selectStan({pid}, '{stan_name}', this)"
+                        class="stan-btn-{pid}"
+                        style="padding:8px 14px;border-radius:8px;border:2px solid {stan_color if current_stan == stan_name else '#1e1e2e'};
+                        background:{'rgba(34,197,94,0.1)' if current_stan == stan_name else '#0a0a0f'};
+                        color:{stan_color};font-size:0.8rem;cursor:pointer;transition:all 0.2s;flex:1;min-width:0;text-align:center"
+                        data-active="{is_active}" data-color="{stan_color}">
+                        {stan_icon} {stan_name}
+                    </button>'''
+
+        # Przycisk "Podziel" tylko gdy ilosc > 1
+        split_btn = ''
+        if ilosc > 1:
+            split_btn = f'''<button onclick="showSplitMode({pid}, {ilosc})" style="padding:8px 10px;border-radius:8px;border:2px solid #6366f1;background:#6366f122;color:#6366f1;font-size:0.75rem;cursor:pointer;white-space:nowrap" title="Różne stany dla poszczególnych sztuk">✂️ Podziel</button>'''
 
         html += f'''
+                    {split_btn}
+                </div>
+            </div>
+
+            <!-- Tryb podzielony: różne stany dla różnych sztuk -->
+            <div id="split-mode-{pid}" style="display:none;margin-top:12px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                    <div style="font-size:0.8rem;color:#a78bfa;font-weight:600">✂️ Podział {ilosc} szt. wg stanu:</div>
+                    <button onclick="hideSplitMode({pid})" style="padding:4px 10px;border:1px solid #334155;background:#1e293b;border-radius:6px;color:#94a3b8;font-size:0.7rem;cursor:pointer">← Prosty tryb</button>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center">'''
+
+        for stan_name, stan_icon, stan_color in stany:
+            html += f'''
+                    <div style="display:flex;align-items:center;gap:6px">
+                        <div style="width:10px;height:10px;border-radius:3px;background:{stan_color};flex-shrink:0"></div>
+                        <span style="font-size:0.8rem;color:{stan_color}">{stan_icon} {stan_name}</span>
+                    </div>
+                    <input type="number" id="split-{pid}-{stan_name.replace(' ', '_')}" min="0" max="{ilosc}" value="0"
+                        onchange="validateSplit({pid}, {ilosc})"
+                        style="width:60px;padding:6px 8px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:6px;color:#e2e8f0;font-size:0.85rem;text-align:center">'''
+
+        html += f'''
+                </div>
+                <div id="split-sum-{pid}" style="margin-top:6px;font-size:0.75rem;color:#64748b;text-align:right">Suma: 0 / {ilosc}</div>
             </div>
 
             <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
                 <input type="text" id="notatki-{pid}" value="{current_notatki}" placeholder="Notatki (wady, braki...)"
-                    style="flex:1;padding:8px 12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e2e8f0;font-size:0.8rem"
-                    onchange="markChanged({pid})">
+                    style="flex:1;padding:8px 12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e2e8f0;font-size:0.8rem">
                 <button onclick="openCamera({pid})" style="padding:8px 12px;background:#7c3aed;border:none;border-radius:8px;color:white;cursor:pointer;font-size:0.85rem" title="Zrób zdjęcie i oceń AI">
                     📸 AI
                 </button>
@@ -8278,26 +8343,68 @@ def przyjecie_palety(paleta_id):
 
     <script>
     let currentStany = {{}};
+    let splitModes = {{}};  // pid -> true if split mode active
     let currentPhotoProductId = null;
     const totalProducts = {len(produkty)};
+    const stanNames = ['Nowy', 'Jak_nowy', 'Dobry', 'Uszkodzony', 'Zniszczony'];
 
     function selectStan(pid, stan, btn) {{
-        // Reset all buttons for this product
         document.querySelectorAll('.stan-btn-' + pid).forEach(b => {{
             b.style.border = '2px solid #1e1e2e';
             b.style.background = '#0a0a0f';
             b.dataset.active = 'false';
         }});
-        // Activate selected
         btn.style.border = '2px solid ' + btn.dataset.color;
         btn.style.background = 'rgba(34,197,94,0.1)';
         btn.dataset.active = 'true';
         currentStany[pid] = stan;
+        splitModes[pid] = false;
         updateProgress();
     }}
 
-    function markChanged(pid) {{
-        // Just marks the product as needing save
+    function showSplitMode(pid, ilosc) {{
+        document.getElementById('simple-mode-' + pid).style.display = 'none';
+        document.getElementById('split-mode-' + pid).style.display = 'block';
+        splitModes[pid] = true;
+        // Jeśli był wybrany stan prosty, wstaw wszystkie szt w ten stan
+        if (currentStany[pid]) {{
+            const stanKey = currentStany[pid].replace(' ', '_');
+            const inp = document.getElementById('split-' + pid + '-' + stanKey);
+            if (inp) inp.value = ilosc;
+            validateSplit(pid, ilosc);
+        }}
+        delete currentStany[pid];
+        updateProgress();
+    }}
+
+    function hideSplitMode(pid) {{
+        document.getElementById('simple-mode-' + pid).style.display = 'block';
+        document.getElementById('split-mode-' + pid).style.display = 'none';
+        splitModes[pid] = false;
+    }}
+
+    function validateSplit(pid, maxIlosc) {{
+        let sum = 0;
+        stanNames.forEach(s => {{
+            const inp = document.getElementById('split-' + pid + '-' + s);
+            if (inp) {{
+                let v = parseInt(inp.value) || 0;
+                if (v < 0) v = 0;
+                sum += v;
+            }}
+        }});
+        const sumDiv = document.getElementById('split-sum-' + pid);
+        const ok = sum === maxIlosc;
+        sumDiv.textContent = 'Suma: ' + sum + ' / ' + maxIlosc + (ok ? ' ✅' : sum > maxIlosc ? ' ❌ za dużo!' : '');
+        sumDiv.style.color = ok ? '#22c55e' : sum > maxIlosc ? '#ef4444' : '#f59e0b';
+
+        if (ok) {{
+            currentStany[pid] = 'split';
+            updateProgress();
+        }} else {{
+            delete currentStany[pid];
+            updateProgress();
+        }}
     }}
 
     function updateProgress() {{
@@ -8336,8 +8443,7 @@ def przyjecie_palety(paleta_id):
                         <div style="margin-bottom:6px"><strong>🤖 AI ocena:</strong> <span style="color:${{data.stan_color || '#22c55e'}}">${{data.stan}}</span></div>
                         <div style="color:#94a3b8">${{data.opis}}</div>
                     `;
-                    // Auto-select the stan
-                    if (data.stan) {{
+                    if (data.stan && !splitModes[pid]) {{
                         const btns = document.querySelectorAll('.stan-btn-' + pid);
                         btns.forEach(b => {{
                             if (b.textContent.includes(data.stan)) {{
@@ -8345,7 +8451,6 @@ def przyjecie_palety(paleta_id):
                             }}
                         }});
                     }}
-                    // Auto-fill notatki
                     if (data.opis) {{
                         document.getElementById('notatki-' + pid).value = data.opis;
                     }}
@@ -8369,9 +8474,23 @@ def przyjecie_palety(paleta_id):
         const assessments = [];
         document.querySelectorAll('.prod-card').forEach(card => {{
             const pid = parseInt(card.id.replace('prod-', ''));
-            const stan = currentStany[pid] || '';
             const notatki = document.getElementById('notatki-' + pid)?.value || '';
-            assessments.push({{ product_id: pid, stan: stan, notatki: notatki }});
+
+            if (splitModes[pid]) {{
+                // Tryb podzielony — zbierz ilości per stan
+                const split = {{}};
+                stanNames.forEach(s => {{
+                    const inp = document.getElementById('split-' + pid + '-' + s);
+                    if (inp) {{
+                        const v = parseInt(inp.value) || 0;
+                        if (v > 0) split[s.replace('_', ' ')] = v;
+                    }}
+                }});
+                assessments.push({{ product_id: pid, split: split, notatki: notatki }});
+            }} else {{
+                const stan = currentStany[pid] || '';
+                assessments.push({{ product_id: pid, stan: stan, notatki: notatki }});
+            }}
         }});
 
         fetch('/magazyn/api/przyjecie-save', {{
@@ -8384,7 +8503,7 @@ def przyjecie_palety(paleta_id):
             if (data.success) {{
                 btn.textContent = '✅ Zapisano!';
                 btn.style.background = '#16a34a';
-                setTimeout(() => window.location.href = '/magazyn/paleta/{paleta_id}', 1000);
+                setTimeout(() => window.location.href = '/magazyn/paleta-id/{paleta_id}', 1000);
             }} else {{
                 btn.textContent = '❌ Błąd: ' + (data.error || '');
                 btn.disabled = false;
@@ -8415,7 +8534,8 @@ def przyjecie_palety(paleta_id):
 
 @magazynier_bp.route('/api/przyjecie-save', methods=['POST'])
 def przyjecie_save():
-    """Zapisz oceny stanu produktów i oznacz paletę jako dostarczoną"""
+    """Zapisz oceny stanu produktów i oznacz paletę jako dostarczoną.
+    Obsługuje tryb prosty (1 stan) i podzielony (split - różne stany per sztuka)."""
     try:
         data = request.get_json()
         paleta_id = data.get('paleta_id')
@@ -8424,13 +8544,49 @@ def przyjecie_save():
 
         for a in assessments:
             pid = a.get('product_id')
-            stan = a.get('stan', '')
             notatki = a.get('notatki', '')
-            if pid and stan:
-                conn.execute(
-                    'UPDATE produkty SET stan_przyjecia = ?, notatki_przyjecia = ? WHERE id = ?',
-                    (stan, notatki, pid)
-                )
+            split = a.get('split')  # dict: {"Nowy": 3, "Uszkodzony": 2} lub None
+
+            if split and isinstance(split, dict):
+                # TRYB PODZIELONY — rozdziel produkt na osobne rekordy per stan
+                orig = conn.execute('SELECT * FROM produkty WHERE id = ?', (pid,)).fetchone()
+                if not orig:
+                    continue
+
+                # Zbierz kolumny do kopiowania
+                cols = [k for k in orig.keys() if k not in ('id', 'ilosc', 'stan_przyjecia', 'notatki_przyjecia')]
+
+                first = True
+                for stan_name, qty in split.items():
+                    qty = int(qty)
+                    if qty <= 0:
+                        continue
+
+                    if first:
+                        # Pierwszy stan — aktualizuj oryginalny rekord
+                        conn.execute(
+                            'UPDATE produkty SET ilosc = ?, stan_przyjecia = ?, notatki_przyjecia = ? WHERE id = ?',
+                            (qty, stan_name, notatki, pid)
+                        )
+                        first = False
+                    else:
+                        # Kolejne stany — utwórz kopię produktu z nową ilością i stanem
+                        col_names = ', '.join(cols)
+                        placeholders = ', '.join(['?' for _ in cols])
+                        values = [orig[c] for c in cols]
+
+                        conn.execute(
+                            f'INSERT INTO produkty ({col_names}, ilosc, stan_przyjecia, notatki_przyjecia) VALUES ({placeholders}, ?, ?, ?)',
+                            values + [qty, stan_name, notatki]
+                        )
+            else:
+                # TRYB PROSTY — jeden stan dla wszystkich sztuk
+                stan = a.get('stan', '')
+                if pid and stan:
+                    conn.execute(
+                        'UPDATE produkty SET stan_przyjecia = ?, notatki_przyjecia = ? WHERE id = ?',
+                        (stan, notatki, pid)
+                    )
 
         # Oznacz paletę jako dostarczoną
         conn.execute('UPDATE palety SET dostarczona = 1 WHERE id = ?', (paleta_id,))
