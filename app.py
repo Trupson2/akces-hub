@@ -2292,6 +2292,79 @@ def analiza_oferty():
             else:
                 min_cena_30 = 0
 
+            # Analiza jakości oferty
+            problemy = []
+            wskazowki = []
+            score = 100  # punkty jakości
+
+            # Tytuł
+            nazwa = p.get('nazwa') or ''
+            if len(nazwa) < 20:
+                problemy.append('Nazwa produktu za krótka (< 20 znaków)')
+                score -= 15
+            elif len(nazwa) < 40:
+                wskazowki.append('Nazwa mogłaby być dłuższa — dodaj kluczowe cechy')
+                score -= 5
+
+            # EAN
+            if not p.get('ean') or len(str(p.get('ean', ''))) < 8:
+                problemy.append('Brak kodu EAN — oferta będzie gorzej widoczna')
+                score -= 10
+
+            # Zdjęcie
+            if not p.get('zdjecie_url'):
+                problemy.append('Brak zdjęcia głównego!')
+                score -= 20
+            # Więcej zdjęć
+            images_json = p.get('images') or '[]'
+            try:
+                import json as _json
+                img_list = _json.loads(images_json) if isinstance(images_json, str) else images_json
+                img_count = len(img_list) if img_list else (1 if p.get('zdjecie_url') else 0)
+            except:
+                img_count = 1 if p.get('zdjecie_url') else 0
+            if img_count < 3:
+                wskazowki.append(f'Tylko {img_count} zdjęć — dodaj min. 4-6 zdjęć')
+                score -= 10
+            elif img_count < 6:
+                wskazowki.append(f'{img_count} zdjęć — optymalnie 6-8')
+                score -= 5
+
+            # Cena
+            if cena_al <= 0:
+                problemy.append('Brak ceny sprzedaży!')
+                score -= 15
+            elif cena_al < koszt_szt:
+                problemy.append('Cena sprzedaży NIŻSZA niż koszt zakupu!')
+                score -= 20
+
+            # Kategoria
+            if kat in ('inne', ''):
+                wskazowki.append('Kategoria "inne" — ustaw prawidłową kategorię Allegro')
+                score -= 5
+
+            # Opis HTML (z scraped)
+            opis_html = ''
+            if p.get('asin'):
+                scraped_row = conn.execute('SELECT opis_html, tytul_seo FROM scraped WHERE asin=?', (p['asin'],)).fetchone()
+                if scraped_row:
+                    opis_html = scraped_row['opis_html'] or ''
+            if not opis_html:
+                problemy.append('Brak opisu HTML — wygeneruj w Generatorze ofert')
+                score -= 15
+            elif len(opis_html) < 200:
+                wskazowki.append('Opis za krótki — min. 300+ znaków')
+                score -= 10
+
+            # Stan
+            stan = p.get('stan') or 'Nowy'
+            if stan.lower() in ('uszkodzony', 'używany'):
+                wskazowki.append(f'Stan: {stan} — opisz dokładnie wady w opisie')
+
+            score = max(score, 0)
+            score_color = '#22c55e' if score >= 70 else '#eab308' if score >= 40 else '#ef4444'
+            score_label = 'Świetna' if score >= 80 else 'Dobra' if score >= 60 else 'Do poprawy' if score >= 40 else 'Słaba'
+
             analiza = {
                 'produkt': p,
                 'koszt_szt': koszt_szt,
@@ -2305,7 +2378,15 @@ def analiza_oferty():
                 'cena_amazon': cena_amazon,
                 'sprzedane': sprzedane,
                 'min_cena_30': min_cena_30,
-                'kategoria': kat
+                'kategoria': kat,
+                'score': score,
+                'score_color': score_color,
+                'score_label': score_label,
+                'problemy': problemy,
+                'wskazowki': wskazowki,
+                'img_count': img_count,
+                'has_opis': bool(opis_html),
+                'stan': stan
             }
 
     return render_template_string(ANALIZA_OFERTY_HTML,
@@ -2418,9 +2499,52 @@ ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
         {% endif %}
     </div>
 
-    <!-- Rekomendacje -->
+    <!-- Jakosc oferty -->
+    <div class="ao-card" style="border-color:{{ analiza.score_color }}55">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div style="font-weight:700;font-size:0.95rem">📋 Jakosc oferty</div>
+            <div style="text-align:right">
+                <div style="font-size:1.6rem;font-weight:800;color:{{ analiza.score_color }}">{{ analiza.score }}/100</div>
+                <div style="font-size:0.7rem;color:{{ analiza.score_color }}">{{ analiza.score_label }}</div>
+            </div>
+        </div>
+        <div class="ao-bar" style="height:10px;margin-bottom:15px">
+            <div class="ao-bar-fill" style="width:{{ analiza.score }}%;background:{{ analiza.score_color }}"></div>
+        </div>
+
+        <!-- Checklist -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;font-size:0.8rem">
+            <div>{{ '✅' if analiza.produkt.nazwa and analiza.produkt.nazwa|length > 20 else '❌' }} Tytul ({{ analiza.produkt.nazwa|length if analiza.produkt.nazwa else 0 }} zn.)</div>
+            <div>{{ '✅' if analiza.produkt.ean else '❌' }} Kod EAN</div>
+            <div>{{ '✅' if analiza.produkt.zdjecie_url else '❌' }} Zdjecie glowne</div>
+            <div>{{ '✅' if analiza.img_count >= 4 else '⚠️' if analiza.img_count >= 2 else '❌' }} Zdjecia ({{ analiza.img_count }})</div>
+            <div>{{ '✅' if analiza.has_opis else '❌' }} Opis HTML</div>
+            <div>{{ '✅' if analiza.cena_allegro > 0 else '❌' }} Cena</div>
+            <div>{{ '✅' if analiza.kategoria not in ('inne', '') else '⚠️' }} Kategoria</div>
+            <div>{{ '✅' if analiza.produkt.asin else '⚠️' }} ASIN</div>
+        </div>
+
+        {% if analiza.problemy %}
+        <div style="margin-bottom:10px">
+            <div style="font-weight:600;color:#ef4444;font-size:0.8rem;margin-bottom:6px">❌ Problemy:</div>
+            {% for p in analiza.problemy %}
+            <div style="font-size:0.8rem;color:#fca5a5;margin-bottom:3px;padding-left:12px">• {{ p }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if analiza.wskazowki %}
+        <div>
+            <div style="font-weight:600;color:#eab308;font-size:0.8rem;margin-bottom:6px">💡 Wskazowki:</div>
+            {% for w in analiza.wskazowki %}
+            <div style="font-size:0.8rem;color:#fde68a;margin-bottom:3px;padding-left:12px">• {{ w }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Rekomendacje cenowe -->
     <div class="ao-card" style="background:var(--bg-primary)">
-        <div style="font-weight:700;margin-bottom:10px;font-size:0.85rem">💡 Rekomendacje</div>
+        <div style="font-weight:700;margin-bottom:10px;font-size:0.85rem">💰 Rekomendacje cenowe</div>
         {% if analiza.cena_amazon > 0 %}
         <div style="font-size:0.85rem;margin-bottom:6px">🌍 Cena Amazon: <b style="color:#3b82f6">{{ "%.2f"|format(analiza.cena_amazon) }} EUR</b> (~{{ "%.0f"|format(analiza.cena_amazon * 4.3) }} PLN)</div>
         {% endif %}

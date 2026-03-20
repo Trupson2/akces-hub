@@ -5480,57 +5480,71 @@ def etykiety_vretti_pdf(products):
         c = canvas.Canvas(buffer, pagesize=(width, height))
         
         for product in products:
-            # QR kod z linkiem do produktu
-            qr = qrcode.QRCode(version=1, box_size=10, border=2)
-            qr.add_data(f"{base_url}/magazyn/qr/{product['id']}")
-            qr.make(fit=True)
-            qr_img = qr.make_image(fill_color="black", back_color="white")
-            
-            # Zapisz QR do bufora
-            qr_buffer = io.BytesIO()
-            qr_img.save(qr_buffer, format='PNG')
-            qr_buffer.seek(0)
-            
-            # Rysuj etykietę
-            c.setFont("Helvetica-Bold", 16)
-            
-            # Nazwa produktu (max 2 linie) - zamień polskie znaki
-            nazwa = pl_to_ascii(product['nazwa'][:60])
-            if len(nazwa) > 30:
-                c.drawString(10*mm, 135*mm, nazwa[:30])
-                c.drawString(10*mm, 128*mm, nazwa[30:60])
-            else:
-                c.drawString(10*mm, 135*mm, nazwa)
-            
-            # QR kod (lewa strona)
-            qr_reader = ImageReader(qr_buffer)
-            c.drawImage(qr_reader, 8*mm, 70*mm, width=35*mm, height=35*mm)
-            
-            # Info obok QR - zamień polskie znaki
-            c.setFont("Helvetica", 12)
-            c.drawString(48*mm, 100*mm, f"Cena: {product['cena_allegro']:.0f} zl")
-            c.drawString(48*mm, 90*mm, f"Polka: {pl_to_ascii(product['lokalizacja'] or '—')}")
-            c.drawString(48*mm, 80*mm, f"Szt: {product['ilosc']}")
-            
-            # EAN/kod
-            c.setFont("Helvetica", 10)
-            ean = product.get('ean') or product.get('asin') or ''
-            c.drawString(10*mm, 60*mm, f"Kod: {ean}")
-            
-            # Barcode EAN (jeśli jest)
-            if ean and len(ean) >= 8:
-                try:
-                    from reportlab.graphics.barcode import code128
-                    barcode = code128.Code128(ean, barWidth=0.4*mm, barHeight=15*mm)
-                    barcode.drawOn(c, 10*mm, 20*mm)
-                except:
-                    c.drawString(10*mm, 30*mm, ean)
-            
-            # Data wydruku
-            c.setFont("Helvetica", 8)
-            c.drawString(10*mm, 8*mm, f"ID: {product['id']} | {datetime.now().strftime('%Y-%m-%d')}")
-            
-            c.showPage()
+            ilosc = max(int(product.get('ilosc') or 1), 1)
+            mag_code = f"MAG-{product['id']:05d}"
+
+            for szt_nr in range(1, ilosc + 1):
+                # Numer seryjny: MAG-00464/1, MAG-00464/2, ...
+                serial = f"{mag_code}/{szt_nr}" if ilosc > 1 else mag_code
+
+                # QR kod z linkiem do produktu + numer seryjny
+                qr = qrcode.QRCode(version=1, box_size=10, border=2)
+                qr.add_data(f"{base_url}/magazyn/qr/{product['id']}?sn={szt_nr}")
+                qr.make(fit=True)
+                qr_img = qr.make_image(fill_color="black", back_color="white")
+
+                # Zapisz QR do bufora
+                qr_buffer = io.BytesIO()
+                qr_img.save(qr_buffer, format='PNG')
+                qr_buffer.seek(0)
+
+                # Rysuj etykietę
+                c.setFont("Helvetica-Bold", 16)
+
+                # Nazwa produktu (max 2 linie) - zamień polskie znaki
+                nazwa = pl_to_ascii(product['nazwa'][:60])
+                if len(nazwa) > 30:
+                    c.drawString(10*mm, 135*mm, nazwa[:30])
+                    c.drawString(10*mm, 128*mm, nazwa[30:60])
+                else:
+                    c.drawString(10*mm, 135*mm, nazwa)
+
+                # Numer seryjny (duży, widoczny)
+                if ilosc > 1:
+                    c.setFont("Helvetica-Bold", 14)
+                    c.drawString(10*mm, 118*mm, f"S/N: {serial}")
+                    c.setFont("Helvetica", 9)
+                    c.drawString(10*mm, 112*mm, f"Sztuka {szt_nr} z {ilosc}")
+
+                # QR kod (lewa strona)
+                qr_reader = ImageReader(qr_buffer)
+                c.drawImage(qr_reader, 8*mm, 65*mm, width=35*mm, height=35*mm)
+
+                # Info obok QR - zamień polskie znaki
+                c.setFont("Helvetica", 12)
+                c.drawString(48*mm, 95*mm, f"Cena: {product['cena_allegro']:.0f} zl")
+                c.drawString(48*mm, 85*mm, f"Polka: {pl_to_ascii(product['lokalizacja'] or '—')}")
+                c.drawString(48*mm, 75*mm, f"Stan: {pl_to_ascii(product.get('stan') or 'Nowy')}")
+
+                # EAN/kod
+                c.setFont("Helvetica", 10)
+                ean = product.get('ean') or product.get('asin') or ''
+                c.drawString(10*mm, 55*mm, f"Kod: {ean}")
+
+                # Barcode EAN (jeśli jest)
+                if ean and len(ean) >= 8:
+                    try:
+                        from reportlab.graphics.barcode import code128
+                        barcode = code128.Code128(ean, barWidth=0.4*mm, barHeight=15*mm)
+                        barcode.drawOn(c, 10*mm, 20*mm)
+                    except:
+                        c.drawString(10*mm, 30*mm, ean)
+
+                # Data wydruku + serial
+                c.setFont("Helvetica", 8)
+                c.drawString(10*mm, 8*mm, f"{serial} | {datetime.now().strftime('%Y-%m-%d')}")
+
+                c.showPage()
         
         c.save()
         buffer.seek(0)
