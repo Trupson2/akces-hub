@@ -3100,17 +3100,30 @@ def palety():
     conn = get_db()
     
     # Pobierz palety z tabeli palety + statystyki z produkty
-    result = conn.execute('''
-        SELECT p.id, p.nazwa, p.dostawca, p.data_zakupu, p.cena_zakupu, p.cena_zakupu_netto,
-               p.ilosc_sztuk, 0 as dostarczona, COALESCE(p.typ, 'paleta') as typ,
-               COUNT(pr.id) as cnt,
-               COALESCE(SUM(pr.ilosc), 0) as items,
-               COALESCE(SUM(pr.cena_allegro * pr.ilosc), 0) as wartosc_allegro
-        FROM palety p
-        LEFT JOIN produkty pr ON pr.paleta_id = p.id
-        GROUP BY p.id
-        ORDER BY p.id DESC
-    ''').fetchall()
+    try:
+        result = conn.execute('''
+            SELECT p.id, p.nazwa, p.dostawca, p.data_zakupu, p.cena_zakupu, p.cena_zakupu_netto,
+                   p.ilosc_sztuk, 0 as dostarczona, COALESCE(p.typ, 'paleta') as typ,
+                   COUNT(pr.id) as cnt,
+                   COALESCE(SUM(pr.ilosc), 0) as items,
+                   COALESCE(SUM(pr.cena_allegro * pr.ilosc), 0) as wartosc_allegro
+            FROM palety p
+            LEFT JOIN produkty pr ON pr.paleta_id = p.id
+            GROUP BY p.id
+            ORDER BY p.id DESC
+        ''').fetchall()
+    except:
+        result = conn.execute('''
+            SELECT p.id, p.nazwa, p.dostawca, p.data_zakupu, p.cena_zakupu,
+                   0 as cena_zakupu_netto, 0 as ilosc_sztuk, 0 as dostarczona, 'paleta' as typ,
+                   COUNT(pr.id) as cnt,
+                   COALESCE(SUM(pr.ilosc), 0) as items,
+                   COALESCE(SUM(pr.cena_allegro * pr.ilosc), 0) as wartosc_allegro
+            FROM palety p
+            LEFT JOIN produkty pr ON pr.paleta_id = p.id
+            GROUP BY p.id
+            ORDER BY p.id DESC
+        ''').fetchall()
     
     # Dodaj też produkty bez palety
     bez_palety = conn.execute('''
@@ -3175,9 +3188,9 @@ def palety():
             <input type="checkbox" class="paleta-cb" data-id="{p['id']}" onchange="updateCount()"
                 style="width:18px;height:18px;margin-right:8px;cursor:pointer;accent-color:#3b82f6;flex-shrink:0">
             <a href="{link}" style="display:flex;flex:1;align-items:center;text-decoration:none;color:inherit;min-width:0">
-                <div style="font-size:1.5rem;margin-right:10px">{'📫' if p.get('typ') == 'box' else '📦'}</div>
+                <div style="font-size:1.5rem;margin-right:10px">{'📫' if p['typ'] == 'box' else '📦'}</div>
                 <div class="item-info">
-                    <div class="item-name">{p['nazwa']}{'<span style="font-size:0.65rem;background:#3b82f633;color:#3b82f6;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle">BOX</span>' if p.get('typ') == 'box' else ''}</div>
+                    <div class="item-name">{p['nazwa']}{'<span style="font-size:0.65rem;background:#3b82f633;color:#3b82f6;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle">BOX</span>' if p['typ'] == 'box' else ''}</div>
                     <div class="item-meta" style="color:{cnt_color}">{p['cnt']} prod. | {sztuki} szt{dostawca_info}{data_info}</div>
                     <div class="item-meta">💰 Zakup: {zakup_brutto:.0f} zł</div>
                 </div>
