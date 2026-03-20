@@ -3450,10 +3450,8 @@ def paleta_scrape_images(paleta_id):
         if not asins:
             return jsonify({'ok': False, 'error': 'Brak produktów z ASIN bez zdjęć'})
 
-        import threading
         from modules.paletomat import auto_process_products
-        thread = threading.Thread(target=auto_process_products, args=(asins,), daemon=True)
-        thread.start()
+        auto_process_products(asins)  # Already runs in background thread internally
         return jsonify({'ok': True, 'count': len(asins)})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)[:100]})
