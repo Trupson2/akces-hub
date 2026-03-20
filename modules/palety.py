@@ -2847,7 +2847,39 @@ def paleta_szczegoly(paleta_id):
         <a href="/magazyn/import?paleta_id={paleta_id}" class="btn" style="background:var(--blue);text-decoration:none">📥 IMPORTUJ EXCEL</a>
         <a href="/palety/{paleta_id}/edit" class="btn btn-warning" style="text-decoration:none">⚙️ EDYTUJ PALETE</a>
     </div>
-    <button type="button" onclick="scrapujZdjecia({paleta_id})" id="scrape-btn-{paleta_id}" class="btn" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);margin-bottom:15px;font-size:0.85rem">📷 SCRAPUJ ZDJECIA ({bez_zdjec} produktow bez zdjec)</button>
+    <button type="button" id="scrape-btn-{paleta_id}" class="btn" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);margin-bottom:15px;font-size:0.85rem">📷 SCRAPUJ ZDJECIA ({bez_zdjec} produktow bez zdjec)</button>
+    <script>
+    document.getElementById('scrape-btn-{paleta_id}').addEventListener('click', function() {{
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<span style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top:2px solid #fff;border-radius:50%;animation:scrape-spin 0.8s linear infinite;vertical-align:middle;margin-right:8px"></span> Scrapuje zdjecia...';
+        btn.style.opacity = '0.7';
+        btn.style.pointerEvents = 'none';
+        const style = document.createElement('style');
+        style.textContent = '@keyframes scrape-spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}';
+        document.head.appendChild(style);
+        fetch('/palety/{paleta_id}/scrape-images', {{method: 'POST'}})
+        .then(r => r.json())
+        .then(data => {{
+            if (data.ok) {{
+                btn.innerHTML = '✅ Scraping ' + data.count + ' produktow w tle! Odswiezam...';
+                btn.style.background = 'var(--green)';
+                btn.style.opacity = '1';
+            }} else {{
+                btn.innerHTML = '❌ ' + (data.error || 'Brak produktow do scrapowania');
+                btn.style.background = 'var(--red)';
+                btn.style.opacity = '1';
+            }}
+            setTimeout(() => location.reload(), 3000);
+        }})
+        .catch(e => {{
+            btn.innerHTML = '❌ Blad: ' + e;
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+        }});
+    }});
+    </script>
 
     <!-- PRZEKAZ ZYSK NA CEL -->
     ''' + ('''
@@ -3397,44 +3429,7 @@ def paleta_szczegoly(paleta_id):
     });
     '''
 
-    szczegoly_js += '''
-    function scrapujZdjecia(paletaId) {
-        const btn = document.getElementById('scrape-btn-' + paletaId);
-        btn.disabled = true;
-        btn.innerHTML = '<span style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top:2px solid #fff;border-radius:50%;animation:scrape-spin 0.8s linear infinite;vertical-align:middle;margin-right:8px"></span> Scrapuję zdjęcia...';
-        btn.style.opacity = '0.7';
-        btn.style.pointerEvents = 'none';
-
-        // Dodaj animację spinnera
-        if (!document.getElementById('scrape-spin-style')) {
-            const style = document.createElement('style');
-            style.id = 'scrape-spin-style';
-            style.textContent = '@keyframes scrape-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
-            document.head.appendChild(style);
-        }
-
-        fetch('/palety/' + paletaId + '/scrape-images', {method: 'POST'})
-        .then(r => r.json())
-        .then(data => {
-            if (data.ok) {
-                btn.innerHTML = '✅ Scraping ' + data.count + ' produktów w tle! Odświeżam...';
-                btn.style.background = 'var(--green)';
-                btn.style.opacity = '1';
-            } else {
-                btn.innerHTML = '❌ ' + (data.error || 'Brak produktów do scrapowania');
-                btn.style.background = 'var(--red)';
-                btn.style.opacity = '1';
-            }
-            setTimeout(() => location.reload(), 3000);
-        })
-        .catch(e => {
-            btn.innerHTML = '❌ Błąd: ' + e;
-            btn.disabled = false;
-            btn.style.opacity = '1';
-            btn.style.pointerEvents = 'auto';
-        });
-    }
-    '''
+    # scrapujZdjecia JS przeniesiony inline do HTML (button)
 
     return render(content, f'Paleta {paleta["nazwa"] or paleta_id}', extra_js=szczegoly_js)
 
