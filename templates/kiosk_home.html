@@ -1,48 +1,57 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
+/* === KIOSK DASHBOARD — 16" 1920x1200 touchscreen === */
 *{box-sizing:border-box}
-.kd{display:flex;flex-direction:column;height:100vh;overflow:hidden;background:linear-gradient(135deg,#0f172a 0%,#1e1b2e 50%,#0f172a 100%);padding:12px;gap:10px}
+.kd{display:grid;grid-template-rows:auto auto 1fr auto;height:calc(100vh - 60px);overflow:hidden;padding:16px 20px;gap:14px}
+
 /* Header */
-.kd-head{display:flex;justify-content:space-between;align-items:flex-start}
-.kd-title{font-size:1.4rem;font-weight:800;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.kd-sub{font-size:0.65rem;color:#64748b;margin-top:1px}
+.kd-head{display:flex;justify-content:space-between;align-items:center}
+.kd-head-left{display:flex;align-items:center;gap:14px}
+.kd-title{font-size:1.6rem;font-weight:800;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.kd-sub{font-size:0.75rem;color:#64748b;margin-top:2px}
 .kd-right{text-align:right}
-.kd-time{font-size:1.1rem;font-family:monospace;font-weight:600;color:#e2e8f0}
-.kd-hw{font-size:0.65rem;color:#64748b;margin-top:2px}
-.kd-hw span{margin-left:8px}
-/* Sypie banner */
-.kd-sypie{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px}
-.kd-sypie-left{display:flex;align-items:center;gap:8px}
-.kd-sypie-txt{font-size:0.95rem;font-weight:800}
-.kd-sypie-sub{font-size:0.7rem;color:#94a3b8}
-.kd-sypie-right{font-size:0.65rem;color:#64748b;text-align:right}
-.kd-sypie-right b{color:#94a3b8}
-/* Apps grid */
-.kd-apps{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;flex:1;min-height:0}
-.kd-app{background:rgba(30,27,46,0.6);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:12px;display:flex;flex-direction:column;overflow:hidden}
-.kd-app:hover{border-color:rgba(255,255,255,0.15)}
-.kd-app-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.kd-app-icon{width:36px;height:36px;flex-shrink:0}
-.kd-app-icon svg{width:100%;height:100%}
-.kd-app-name{font-size:0.95rem;font-weight:700;color:#fff}
-.kd-app-desc{font-size:0.6rem;color:#64748b}
+.kd-time{font-size:1.5rem;font-family:'Inter',monospace;font-weight:700;color:#e2e8f0;letter-spacing:1px}
+.kd-date{font-size:0.75rem;color:#64748b;margin-top:2px}
+.kd-hw{font-size:0.7rem;color:#64748b;margin-top:4px;display:flex;gap:12px;justify-content:flex-end}
+.kd-hw-item{display:flex;align-items:center;gap:4px}
+.kd-hw-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* Sypie + Stats bar */
+.kd-stats-bar{display:grid;grid-template-columns:auto repeat(5,1fr);gap:10px;align-items:stretch}
+.kd-sypie-card{padding:14px 18px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;display:flex;flex-direction:column;justify-content:center;min-width:200px}
+.kd-sypie-txt{font-size:1.3rem;font-weight:800;line-height:1}
+.kd-sypie-sub{font-size:0.72rem;color:#94a3b8;margin-top:4px}
+.kd-stat{padding:12px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;text-align:center;display:flex;flex-direction:column;justify-content:center}
+.kd-stat-val{font-size:1.4rem;font-weight:800;line-height:1}
+.kd-stat-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-top:6px}
+
+/* Apps grid — 2x2 + side panel */
+.kd-main{display:grid;grid-template-columns:1fr 1fr 320px;gap:12px;min-height:0;overflow:hidden}
+.kd-apps{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:12px;grid-column:span 2}
+.kd-app{background:rgba(30,27,46,0.5);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px;display:flex;flex-direction:column;overflow:hidden;transition:border-color 0.2s}
+.kd-app:hover{border-color:rgba(255,255,255,0.18)}
+.kd-app-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.kd-app-icon{width:42px;height:42px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:10px}
+.kd-app-icon svg{width:28px;height:28px}
+.kd-app-name{font-size:1.05rem;font-weight:700;color:#fff}
+.kd-app-desc{font-size:0.7rem;color:#64748b;margin-top:1px}
 /* Status */
-.kd-status{display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:0.7rem}
+.kd-status{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:0.78rem;color:#94a3b8}
 .kd-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.kd-dot.on{background:#22c55e;box-shadow:0 0 6px #22c55e80;animation:pulse 2s infinite}
+.kd-dot.on{background:#22c55e;box-shadow:0 0 8px #22c55e80;animation:pulse 2s infinite}
 .kd-dot.off{background:#475569}
 .kd-dot.warn{background:#eab308;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
-/* Ngrok URL box */
-.kd-ngrok-box{padding:6px 8px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.25);border-radius:8px;margin-bottom:8px}
-.kd-ngrok-url{font-family:monospace;font-size:0.65rem;color:#c4b5fd;word-break:break-all}
-.kd-ngrok-copy{margin-top:4px;padding:4px 10px;background:#7c3aed;border:none;border-radius:6px;color:#fff;font-size:0.6rem;font-weight:600;cursor:pointer}
+/* Ngrok URL */
+.kd-ngrok-box{padding:8px 10px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:8px;margin-bottom:10px}
+.kd-ngrok-url{font-family:monospace;font-size:0.7rem;color:#c4b5fd;word-break:break-all}
+.kd-ngrok-copy{margin-top:6px;padding:6px 14px;background:#7c3aed;border:none;border-radius:6px;color:#fff;font-size:0.65rem;font-weight:600;cursor:pointer;touch-action:manipulation}
 .kd-ngrok-copy:active{transform:scale(0.95)}
 /* Buttons */
-.kd-btns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:auto}
-.kd-btn{padding:8px;border:none;border-radius:8px;font-weight:600;font-size:0.7rem;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;gap:4px;transition:all 0.12s}
-.kd-btn:active{transform:scale(0.95);opacity:0.85}
+.kd-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
+.kd-btn{padding:12px;border:none;border-radius:10px;font-weight:700;font-size:0.8rem;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.12s;touch-action:manipulation;text-decoration:none}
+.kd-btn:active{transform:scale(0.96);opacity:0.85}
 .kd-btn.open{background:linear-gradient(135deg,#3b82f6,#2563eb)}
 .kd-btn.green{background:linear-gradient(135deg,#22c55e,#16a34a)}
 .kd-btn.purple{background:linear-gradient(135deg,#8b5cf6,#7c3aed)}
@@ -50,117 +59,177 @@
 .kd-btn.red{background:linear-gradient(135deg,#ef4444,#dc2626)}
 .kd-btn.gray{background:linear-gradient(135deg,#475569,#334155)}
 .kd-btn:disabled{opacity:0.3;cursor:default;transform:none}
+
+/* Side panel — live feed */
+.kd-side{display:flex;flex-direction:column;gap:10px;min-height:0;overflow:hidden}
+.kd-side-card{background:rgba(30,27,46,0.5);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px;flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.kd-side-title{font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;font-weight:700;margin-bottom:10px}
+.kd-feed{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.kd-feed::-webkit-scrollbar{width:3px}
+.kd-feed::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
+.kd-feed-item{display:flex;align-items:center;gap:10px;padding:8px;background:rgba(255,255,255,0.02);border-radius:8px;font-size:0.78rem}
+.kd-feed-icon{font-size:1rem;flex-shrink:0}
+.kd-feed-text{flex:1;min-width:0;color:#e2e8f0}
+.kd-feed-text small{display:block;color:#64748b;font-size:0.65rem;margin-top:1px}
+.kd-feed-amt{font-weight:700;white-space:nowrap}
+.kd-month-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.78rem}
+.kd-month-row:last-child{border:none}
+.kd-month-label{color:#94a3b8}
+.kd-month-val{font-weight:700;color:#e2e8f0}
+
 /* Footer */
-.kd-foot{display:flex;gap:6px;flex-wrap:wrap}
-.kd-foot .kd-btn{flex:1;min-width:0;padding:10px 6px;font-size:0.65rem}
+.kd-foot{display:flex;gap:8px}
+.kd-foot .kd-btn{flex:1;padding:12px 8px;font-size:0.72rem}
 </style>
 
 <div class="kd kiosk-dash">
     <!-- HEADER -->
     <div class="kd-head">
-        <div style="display:flex;align-items:center;gap:12px">
-            {% if brand_logo %}<img src="/static/brand_logo.png" style="max-height:40px">{% endif %}
+        <div class="kd-head-left">
+            {% if brand_logo %}<img src="/static/brand_logo.png" style="max-height:44px;border-radius:8px">{% endif %}
             <div>
                 <div class="kd-title">{{ brand_name }}</div>
-                <div class="kd-sub">Raspberry Pi Control Center</div>
+                <div class="kd-sub">Raspberry Pi · Kiosk Mode</div>
             </div>
         </div>
         <div class="kd-right">
-            <div class="kd-time" id="k-clock">--:--</div>
+            <div class="kd-time" id="k-clock">--:--:--</div>
+            <div class="kd-date" id="k-date">--</div>
             <div class="kd-hw">
-                <span id="k-temp">--</span>
-                <span>CPU <span id="k-cpu">--</span>%</span>
-                <span>RAM <span id="k-ram">--</span></span>
+                <div class="kd-hw-item"><div class="kd-hw-dot" id="k-temp-dot" style="background:#22c55e"></div> <span id="k-temp">--</span></div>
+                <div class="kd-hw-item"><div class="kd-hw-dot" style="background:#3b82f6"></div> CPU <span id="k-cpu">--</span>%</div>
+                <div class="kd-hw-item"><div class="kd-hw-dot" style="background:#a78bfa"></div> RAM <span id="k-ram">--</span></div>
             </div>
         </div>
     </div>
 
-    <!-- SYPIE -->
-    <div class="kd-sypie">
-        <div class="kd-sypie-left">
-            <span class="kd-sypie-txt" style="color:{{ sypie_color }}">{{ sypie_text }}</span>
-            <span class="kd-sypie-sub">{{ sypie_kwota }} zl / {{ sypie_zamowienia }} zam.</span>
+    <!-- STATS BAR -->
+    <div class="kd-stats-bar">
+        <div class="kd-sypie-card">
+            <div class="kd-sypie-txt" style="color:{{ sypie_color }}">{{ sypie_text }}</div>
+            <div class="kd-sypie-sub">{{ sypie_kwota }} zl · {{ sypie_zamowienia }} zamowien</div>
         </div>
-        <div class="kd-sypie-right">{{ miesiac_nazwa }}: <b>{{ miesiac_kwota }} zl</b> / {{ miesiac_zamowienia }} zam.</div>
+        <div class="kd-stat">
+            <div class="kd-stat-val" style="color:#22c55e">{{ miesiac_kwota }}</div>
+            <div class="kd-stat-label">{{ miesiac_nazwa }}</div>
+        </div>
+        <div class="kd-stat">
+            <div class="kd-stat-val" style="color:#3b82f6">{{ miesiac_zamowienia }}</div>
+            <div class="kd-stat-label">Zamowien</div>
+        </div>
+        <div class="kd-stat">
+            <div class="kd-stat-val" style="color:#f59e0b">{{ miesiac_srednia }}</div>
+            <div class="kd-stat-label">Srednia/dzien</div>
+        </div>
+        <div class="kd-stat">
+            <div class="kd-stat-val" style="color:{% if today.do_wyslania > 0 %}#ef4444{% else %}#22c55e{% endif %}">{{ today.do_wyslania }}</div>
+            <div class="kd-stat-label">Do wyslania</div>
+        </div>
+        <div class="kd-stat">
+            <div class="kd-stat-val" style="color:#a78bfa">{{ mag.sztuk }}</div>
+            <div class="kd-stat-label">Szt w magazynie</div>
+        </div>
     </div>
 
-    <!-- APPS -->
-    <div class="kd-apps">
-        <!-- Magazyn -->
-        <div class="kd-app">
-            <div class="kd-app-head">
-                <div class="kd-app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
-                <div>
-                    <div class="kd-app-name">Magazyn</div>
-                    <div class="kd-app-desc">{{ mag.produkty }} produktow / {{ mag.sztuk }} sztuk</div>
+    <!-- MAIN: Apps + Side panel -->
+    <div class="kd-main">
+        <div class="kd-apps">
+            <!-- Magazyn -->
+            <div class="kd-app">
+                <div class="kd-app-head">
+                    <div class="kd-app-icon" style="background:rgba(59,130,246,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
+                    <div>
+                        <div class="kd-app-name">Magazyn</div>
+                        <div class="kd-app-desc">{{ mag.produkty }} produktow · {{ mag.sztuk }} sztuk</div>
+                    </div>
+                </div>
+                <div class="kd-status"><div class="kd-dot on"></div> Aktywny</div>
+                <div class="kd-btns">
+                    <a href="/magazyn" class="kd-btn open">📦 Magazyn</a>
+                    <a href="/wysylki/allegro" class="kd-btn orange">📤 {{ today.do_wyslania }} wysylek</a>
                 </div>
             </div>
-            <div class="kd-status"><div class="kd-dot on"></div> Aktywny</div>
-            <div class="kd-btns">
-                <a href="/magazyn" class="kd-btn open" style="text-decoration:none">Otworz</a>
-                <a href="/wysylki/allegro" class="kd-btn orange" style="text-decoration:none">{{ today.do_wyslania }} wysylek</a>
+
+            <!-- Paletomat -->
+            <div class="kd-app">
+                <div class="kd-app-head">
+                    <div class="kd-app-icon" style="background:rgba(139,92,246,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="9" cy="16" r="1.5" fill="#8b5cf6"/><circle cx="15" cy="16" r="1.5" fill="#8b5cf6"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div>
+                    <div>
+                        <div class="kd-app-name">Paletomat</div>
+                        <div class="kd-app-desc">Amazon → Allegro Automation</div>
+                    </div>
+                </div>
+                <div class="kd-status"><div class="kd-dot on"></div> {{ pal.aktywne }} ofert aktywnych</div>
+                <div class="kd-btns">
+                    <a href="/paletomat" class="kd-btn purple">🤖 Paletomat</a>
+                    <a href="/statystyki" class="kd-btn gray">📊 Statystyki</a>
+                </div>
+            </div>
+
+            <!-- Allegro -->
+            <div class="kd-app">
+                <div class="kd-app-head">
+                    <div class="kd-app-icon" style="background:rgba(34,197,94,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></div>
+                    <div>
+                        <div class="kd-app-name">Allegro</div>
+                        <div class="kd-app-desc">Sprzedaz i zamowienia</div>
+                    </div>
+                </div>
+                <div class="kd-status"><div class="kd-dot {{ 'on' if 'Online' in allegro.status else 'warn' }}"></div> {{ allegro.status }} · {{ allegro.oferty }} ofert</div>
+                <div class="kd-btns">
+                    <a href="/allegro" class="kd-btn green">🛒 Allegro</a>
+                    <a href="/allegro/zamowienia" class="kd-btn gray">📋 Zamowienia</a>
+                </div>
+            </div>
+
+            <!-- Ngrok Tunnel -->
+            <div class="kd-app">
+                <div class="kd-app-head">
+                    <div class="kd-app-icon" style="background:rgba(167,139,250,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg></div>
+                    <div>
+                        <div class="kd-app-name">Ngrok Tunnel</div>
+                        <div class="kd-app-desc">Zdalny dostep</div>
+                    </div>
+                </div>
+                <div class="kd-status"><div class="kd-dot" id="ng-dot"></div> <span id="ng-status">Sprawdzam...</span></div>
+                <div id="ng-url-box" class="kd-ngrok-box" style="display:none">
+                    <div class="kd-ngrok-url" id="ng-url"></div>
+                    <button class="kd-ngrok-copy" onclick="navigator.clipboard.writeText(document.getElementById('ng-url').dataset.full);this.textContent='✅ Skopiowano!';setTimeout(()=>this.textContent='📋 Kopiuj URL',1500)">📋 Kopiuj URL</button>
+                </div>
+                <div class="kd-btns">
+                    <button class="kd-btn purple" id="ng-start" onclick="ngAction('start')">▶ Start</button>
+                    <button class="kd-btn red" id="ng-stop" onclick="ngAction('stop')" disabled>⏹ Stop</button>
+                </div>
             </div>
         </div>
 
-        <!-- Paletomat -->
-        <div class="kd-app">
-            <div class="kd-app-head">
-                <div class="kd-app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="9" cy="16" r="1.5" fill="#8b5cf6"/><circle cx="15" cy="16" r="1.5" fill="#8b5cf6"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div>
-                <div>
-                    <div class="kd-app-name">Paletomat</div>
-                    <div class="kd-app-desc">Amazon &rarr; Allegro Automation</div>
+        <!-- SIDE PANEL -->
+        <div class="kd-side">
+            <!-- Ostatnie sprzedaze -->
+            <div class="kd-side-card" style="flex:2">
+                <div class="kd-side-title">🔴 Live sprzedaz</div>
+                <div class="kd-feed" id="live-feed">
+                    <div style="text-align:center;color:#475569;padding:20px;font-size:0.75rem">Ladowanie...</div>
                 </div>
             </div>
-            <div class="kd-status"><div class="kd-dot on"></div> {{ pal.aktywne }} ofert aktywnych</div>
-            <div class="kd-btns">
-                <a href="/paletomat" class="kd-btn purple" style="text-decoration:none">Otworz</a>
-                <a href="/statystyki" class="kd-btn gray" style="text-decoration:none">Statystyki</a>
-            </div>
-        </div>
-
-        <!-- Allegro -->
-        <div class="kd-app">
-            <div class="kd-app-head">
-                <div class="kd-app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></div>
-                <div>
-                    <div class="kd-app-name">Allegro</div>
-                    <div class="kd-app-desc">Sprzedaz i zamowienia online</div>
-                </div>
-            </div>
-            <div class="kd-status"><div class="kd-dot {{ 'on' if 'Online' in allegro.status else 'warn' }}"></div> {{ allegro.status }}</div>
-            <div class="kd-btns">
-                <a href="/allegro" class="kd-btn green" style="text-decoration:none">Otworz</a>
-                <a href="/allegro/zamowienia" class="kd-btn gray" style="text-decoration:none">Zamowienia</a>
-            </div>
-        </div>
-
-        <!-- Ngrok Tunnel -->
-        <div class="kd-app">
-            <div class="kd-app-head">
-                <div class="kd-app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg></div>
-                <div>
-                    <div class="kd-app-name">Ngrok Tunnel</div>
-                    <div class="kd-app-desc">Zdalny dostep przez internet</div>
-                </div>
-            </div>
-            <div class="kd-status"><div class="kd-dot" id="ng-dot"></div> <span id="ng-status">Sprawdzam...</span></div>
-            <div id="ng-url-box" class="kd-ngrok-box" style="display:none">
-                <div class="kd-ngrok-url" id="ng-url"></div>
-                <button class="kd-ngrok-copy" onclick="navigator.clipboard.writeText(document.getElementById('ng-url').dataset.full);this.textContent='Skopiowano!';setTimeout(()=>this.textContent='Kopiuj URL',1500)">Kopiuj URL</button>
-            </div>
-            <div class="kd-btns">
-                <button class="kd-btn purple" id="ng-start" onclick="ngAction('start')">Start</button>
-                <button class="kd-btn red" id="ng-stop" onclick="ngAction('stop')" disabled>Stop</button>
+            <!-- Podsumowanie miesiaca -->
+            <div class="kd-side-card" style="flex:1">
+                <div class="kd-side-title">📅 {{ miesiac_nazwa }}</div>
+                <div class="kd-month-row"><span class="kd-month-label">Przychod</span><span class="kd-month-val" style="color:#22c55e">{{ miesiac_kwota }} zl</span></div>
+                <div class="kd-month-row"><span class="kd-month-label">Zamowienia</span><span class="kd-month-val">{{ miesiac_zamowienia }}</span></div>
+                <div class="kd-month-row"><span class="kd-month-label">Srednia/dzien</span><span class="kd-month-val">{{ miesiac_srednia }} zl</span></div>
+                <div class="kd-month-row"><span class="kd-month-label">Magazyn</span><span class="kd-month-val" style="color:#3b82f6">{{ mag.sztuk }} szt</span></div>
             </div>
         </div>
     </div>
 
     <!-- FOOTER -->
     <div class="kd-foot">
-        <button class="kd-btn gray" onclick="location.reload()">Odswiez</button>
-        <a href="/ustawienia" class="kd-btn gray" style="text-decoration:none">Ustawienia</a>
-        <button class="kd-btn gray" onclick="document.documentElement.requestFullscreen()">Pelny ekran</button>
-        <button class="kd-btn red" onclick="if(confirm('Zamknac kiosk?'))fetch('/api/kiosk-exit')">Wyjscie</button>
+        <button class="kd-btn gray" onclick="location.reload()">🔄 Odswiez</button>
+        <a href="/narzedzia" class="kd-btn gray" style="text-decoration:none">🔧 Narzedzia</a>
+        <a href="/ustawienia" class="kd-btn gray" style="text-decoration:none">⚙️ Ustawienia</a>
+        <button class="kd-btn gray" onclick="document.documentElement.requestFullscreen()">⛶ Pelny ekran</button>
+        <a href="/?kiosk=0" class="kd-btn red" style="text-decoration:none">✕ Wyjscie</a>
     </div>
 </div>
 
@@ -170,20 +239,41 @@
     function upd(){
         fetch('/api/system-stats').then(r=>r.json()).then(d=>{
             var t=document.getElementById('k-temp');
-            t.textContent=d.temp>0?d.temp.toFixed(0)+'C':'--';
-            t.style.color=d.temp<55?'#22c55e':d.temp<70?'#eab308':'#ef4444';
+            var td=document.getElementById('k-temp-dot');
+            t.textContent=d.temp>0?d.temp.toFixed(0)+'°C':'--';
+            td.style.background=d.temp<55?'#22c55e':d.temp<70?'#eab308':'#ef4444';
             document.getElementById('k-cpu').textContent=d.cpu.toFixed(0);
             document.getElementById('k-ram').textContent=d.ram_used.toFixed(1)+'/'+d.ram_total.toFixed(0)+'G';
         }).catch(function(){});
     }
     upd();setInterval(upd,10000);
 
-    /* Clock */
+    /* Clock + date */
     function clk(){
         var n=new Date();
         document.getElementById('k-clock').textContent=n.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        document.getElementById('k-date').textContent=n.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
     }
     clk();setInterval(clk,1000);
+
+    /* Live feed — ostatnie sprzedaze */
+    function loadFeed(){
+        fetch('/api/live-sales').then(r=>r.json()).then(data=>{
+            var feed=document.getElementById('live-feed');
+            if(!data.sales||data.sales.length===0){
+                feed.innerHTML='<div style="text-align:center;color:#475569;padding:20px;font-size:0.8rem">Brak sprzedazy dzis</div>';
+                return;
+            }
+            feed.innerHTML='';
+            data.sales.forEach(function(s){
+                var el=document.createElement('div');
+                el.className='kd-feed-item';
+                el.innerHTML='<span class="kd-feed-icon">🛒</span><div class="kd-feed-text">'+s.nazwa+'<small>'+s.czas+'</small></div><span class="kd-feed-amt" style="color:#22c55e">'+s.kwota+' zl</span>';
+                feed.appendChild(el);
+            });
+        }).catch(function(){});
+    }
+    loadFeed();setInterval(loadFeed,30000);
 
     /* Ngrok status */
     function ng(){
@@ -213,16 +303,16 @@
     /* Ngrok start/stop */
     window.ngAction=function(act){
         var btn=document.getElementById(act==='start'?'ng-start':'ng-stop');
-        btn.textContent=act==='start'?'Laczenie...':'Zatrzymuję...';btn.disabled=true;
+        btn.textContent=act==='start'?'Laczenie...':'Zatrzymuje...';btn.disabled=true;
         fetch('/api/ngrok-control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:act})})
         .then(r=>r.json()).then(d=>{
             if(act==='start'){setTimeout(ng,3000);setTimeout(ng,6000);setTimeout(ng,10000);}
             else{setTimeout(ng,1500);}
         })
-        .catch(()=>{btn.textContent=act==='start'?'Start':'Stop';btn.disabled=false;});
+        .catch(()=>{btn.textContent=act==='start'?'▶ Start':'⏹ Stop';btn.disabled=false;});
     };
 
-    /* Auto-refresh page every 5 min for fresh sales data */
+    /* Auto-refresh every 5 min */
     setTimeout(()=>location.reload(), 300000);
 })();
 </script>

@@ -942,6 +942,37 @@ def api_system_stats():
         'uptime': uptime_str
     })
 
+@app.route('/api/live-sales')
+def api_live_sales():
+    """Ostatnie sprzedaze dzis — dla kiosk live feed"""
+    from modules.database import get_db
+    conn = get_db()
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    rows = conn.execute('''
+        SELECT s.data_sprzedazy, s.cena, s.ilosc,
+               COALESCE(p.nazwa, s.tytul_oferty, 'Zamowienie') as nazwa
+        FROM sprzedaze s
+        LEFT JOIN produkty p ON p.id = s.produkt_id
+        WHERE date(s.data_sprzedazy) = ?
+        AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        ORDER BY s.data_sprzedazy DESC
+        LIMIT 15
+    ''', (today_str,)).fetchall()
+    sales = []
+    for r in rows:
+        nazwa = r['nazwa'] or 'Zamowienie'
+        if len(nazwa) > 40:
+            nazwa = nazwa[:37] + '...'
+        kwota = round((r['cena'] or 0) * (r['ilosc'] or 1), 0)
+        czas = r['data_sprzedazy']
+        if czas and len(czas) > 10:
+            czas = czas[11:16]  # HH:MM
+        else:
+            czas = '--:--'
+        sales.append({'nazwa': nazwa, 'kwota': f"{kwota:.0f}", 'czas': czas})
+    return jsonify({'sales': sales})
+
+
 @app.route('/')
 def home():
     # Magazynier — uproszczony dashboard z linkami do wysyłek i magazynu
