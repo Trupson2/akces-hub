@@ -4914,11 +4914,23 @@ def import_upload():
     """Import pliku Excel/CSV"""
     if 'file' not in request.files:
         return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
-    
+
     file = request.files['file']
     if file.filename == '':
         return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
-    
+
+    # Pobierz paleta_id z formularza lub query string
+    paleta_id = request.form.get('paleta_id', '') or request.args.get('paleta_id', '')
+    paleta_id_int = int(paleta_id) if paleta_id and paleta_id.isdigit() else None
+
+    # Pobierz nazwę palety
+    paleta_nazwa = ''
+    if paleta_id_int:
+        conn = get_db()
+        row = conn.execute('SELECT nazwa, dostawca FROM palety WHERE id = ?', (paleta_id_int,)).fetchone()
+        if row:
+            paleta_nazwa = row[0] if row[0] else f'Paleta #{paleta_id_int}'
+
     filename = file.filename.lower()
     added = 0
     errors = []
@@ -4992,8 +5004,8 @@ def import_upload():
                     cena_calkowita = cena * ilosc
                     
                     # Zawsze INSERT — nie scalaj produktów z różnych palet
-                    conn.execute('''INSERT INTO produkty (ean, nazwa, ilosc, cena_brutto, zdjecie_url)
-                        VALUES (?, ?, ?, ?, ?)''', (ean, nazwa, ilosc, cena_calkowita, ''))
+                    conn.execute('''INSERT INTO produkty (ean, nazwa, ilosc, cena_brutto, zdjecie_url, paleta_id, paleta)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)''', (ean, nazwa, ilosc, cena_calkowita, '', paleta_id_int, paleta_nazwa))
                     added += 1
                 except Exception as e:
                     errors.append(str(e))
@@ -5093,8 +5105,8 @@ def import_upload():
                             cena_calkowita = cena * ilosc
                             
                             # Zawsze INSERT — nie scalaj produktów z różnych palet
-                            conn.execute('''INSERT INTO produkty (ean, nazwa, ilosc, cena_brutto, dostawca, zdjecie_url)
-                                VALUES (?, ?, ?, ?, ?, ?)''', (ean, nazwa, ilosc, cena_calkowita, dostawca or '', ''))
+                            conn.execute('''INSERT INTO produkty (ean, nazwa, ilosc, cena_brutto, dostawca, zdjecie_url, paleta_id, paleta)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (ean, nazwa, ilosc, cena_calkowita, dostawca or '', '', paleta_id_int, paleta_nazwa))
                             added += 1
                         except Exception as row_err:
                             errors.append(str(row_err))
@@ -5115,9 +5127,24 @@ def import_upload():
     
     except Exception as e:
         return render(f'<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">{str(e)}</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
-    
+
+    # Zaktualizuj liczbę produktów w palecie
+    if paleta_id_int and added > 0:
+        try:
+            conn = get_db()
+            conn.execute('UPDATE palety SET ilosc_produktow = ilosc_produktow + ? WHERE id = ?', (added, paleta_id_int))
+            conn.commit()
+        except:
+            pass
+
+    # Info o palecie
+    paleta_info = ''
+    if paleta_nazwa:
+        paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px">📦 Przypisano do palety: <strong>{paleta_nazwa}</strong></div>'
+
     html = f'''
     <div class="hdr"><h1>✅ IMPORT ZAKOŃCZONY</h1></div>
+    {paleta_info}
     <div class="alert alert-ok">Zaimportowano {added} produktów</div>
     '''
     if errors:
