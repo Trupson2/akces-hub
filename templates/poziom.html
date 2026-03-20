@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Poziom Adrian</title>
+<title>Poziom {{ username|default('User') }}</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -191,11 +191,12 @@
 </head>
 <body>
 <div class="container">
+  <a href="/" style="color:#fff;text-decoration:none;font-size:0.85rem;opacity:0.6;display:inline-block;margin-bottom:12px">← Powrot do dashboardu</a>
 
   <div class="header fade-in">
     <div class="avatar">📦</div>
     <div class="header-info">
-      <h1>ADRIAN — PALET BOSS</h1>
+      <h1>{{ username|default('USER')|upper }} — PALET BOSS</h1>
       <p>zwroty konsumenckie · allegro · family team · 2h/dzień</p>
     </div>
     <div class="level-badge" id="levelBadge">POZIOM 1 → 2</div>

@@ -4143,7 +4143,8 @@ def poziom_page():
     import json as _json
     data_script = f'<script>window.REAL_DATA = {_json.dumps(real_data)};</script>'
 
-    html = render_template('poziom.html')
+    username = session.get('username', 'User')
+    html = render_template('poziom.html', username=username)
     # Wstaw dane przed </head>
     html = html.replace('</head>', data_script + '\n</head>')
     return html
