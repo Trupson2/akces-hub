@@ -1401,7 +1401,8 @@ def paleta_import_xlsx():
 @palety_bp.route('/palety/bulk-import', methods=['GET', 'POST'])
 def paleta_bulk_import():
     """Import wielu palet naraz - każda z osobnym plikiem XLSX i nazwą"""
-    import pandas as pd
+    import openpyxl
+    import io
     from modules.database import get_db, add_paleta
 
     auto_kategoryzuj = _get_auto_kategoryzuj()
@@ -1449,23 +1450,35 @@ def paleta_bulk_import():
                 data_zakupu = request.form.get('data', datetime.now().strftime('%Y-%m-%d'))
 
                 try:
-                    df = pd.read_excel(file)
+                    wb = openpyxl.load_workbook(io.BytesIO(file.read()), data_only=True)
+                    ws = wb.active
+                    rows = list(ws.iter_rows(values_only=True))
+                    if len(rows) < 2:
+                        wyniki.append({'nazwa': nazwa or file.filename, 'status': 'error', 'msg': 'Pusty plik (brak danych)'})
+                        continue
+
+                    # Header row -> column index mapping
+                    header = [str(c).strip() if c is not None else '' for c in rows[0]]
+                    col_idx = {}
+                    for col_key in [col_nazwa, col_ean, col_ilosc, col_cena, col_cena_detal]:
+                        if col_key and col_key in header:
+                            col_idx[col_key] = header.index(col_key)
 
                     # Utwórz paletę
                     paleta_id = add_paleta(nazwa, dostawca, cena_zakupu, data_zakupu, f'Bulk import: {file.filename}', regal)
 
                     produkty_dodane = 0
-                    for idx, row in df.iterrows():
+                    for idx, row in enumerate(rows[1:]):
                         try:
-                            prod_nazwa = str(row[col_nazwa]) if col_nazwa and col_nazwa in df.columns else f'Produkt {idx+1}'
-                            prod_ean = str(row[col_ean]) if col_ean and col_ean in df.columns else ''
-                            prod_ilosc = int(row[col_ilosc]) if col_ilosc and col_ilosc in df.columns and pd.notna(row[col_ilosc]) else 1
-                            prod_cena = float(row[col_cena]) if col_cena and col_cena in df.columns and pd.notna(row[col_cena]) else 0
-                            prod_cena_detal = float(row[col_cena_detal]) if col_cena_detal and col_cena_detal in df.columns and pd.notna(row[col_cena_detal]) else prod_cena * 2
+                            prod_nazwa = str(row[col_idx[col_nazwa]]) if col_nazwa and col_nazwa in col_idx and row[col_idx[col_nazwa]] is not None else f'Produkt {idx+1}'
+                            prod_ean = str(row[col_idx[col_ean]]) if col_ean and col_ean in col_idx and row[col_idx[col_ean]] is not None else ''
+                            prod_ilosc = int(row[col_idx[col_ilosc]]) if col_ilosc and col_ilosc in col_idx and row[col_idx[col_ilosc]] is not None else 1
+                            prod_cena = float(row[col_idx[col_cena]]) if col_cena and col_cena in col_idx and row[col_idx[col_cena]] is not None else 0
+                            prod_cena_detal = float(row[col_idx[col_cena_detal]]) if col_cena_detal and col_cena_detal in col_idx and row[col_idx[col_cena_detal]] is not None else prod_cena * 2
                             # cena_brutto = cena_netto * 1.23 (VAT 23%)
                             prod_cena_brutto = round(prod_cena * 1.23, 2)
 
-                            if not prod_nazwa or prod_nazwa == 'nan' or prod_nazwa.strip() == '':
+                            if not prod_nazwa or prod_nazwa in ('nan', 'None') or prod_nazwa.strip() == '':
                                 continue
 
                             prod_kategoria = auto_kategoryzuj(prod_nazwa)

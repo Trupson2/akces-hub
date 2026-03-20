@@ -460,105 +460,38 @@ def _bot_loop():
 # ============================================================
 # SZABLONY
 # ============================================================
-CSS = '''<style>
-:root{--bg:#0a0a0f;--bg-card:#12121a;--border:#1e1e2e;--text:#fff;--text-muted:#64748b;--accent:#3b82f6;--green:#22c55e;--red:#ef4444}
-[data-theme="light"]{--bg:#f8fafc;--bg-card:#fff;--border:#e2e8f0;--text:#1e293b;--text-muted:#64748b;--accent:#2563eb;--green:#16a34a;--red:#dc2626}
-*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px}
-.c{max-width:1200px;margin:0 auto;padding:15px}
-.hdr{text-align:center;padding:15px 0;border-bottom:1px solid var(--border);margin-bottom:15px}
-.hdr h1{font-size:1.3rem;color:var(--accent)}
-.hdr small{color:var(--text-muted);font-size:0.75rem}
-.status{display:flex;align-items:center;justify-content:space-between;padding:15px;border-radius:12px;margin-bottom:15px}
-.status.on{background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3)}
-.status.off{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3)}
-.status-info{display:flex;align-items:center;gap:12px}
-.status-dot{width:12px;height:12px;border-radius:50%}
-.status-dot.on{background:var(--green);animation:pulse 2s infinite}
-.status-dot.off{background:var(--red)}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
-.status-text{font-weight:600}
-.status-sub{font-size:0.75rem;color:var(--text-muted)}
-.btn{display:inline-block;padding:10px 20px;font-size:0.9rem;font-weight:600;text-align:center;text-decoration:none;border:none;border-radius:10px;cursor:pointer;color:#fff}
+TELEGRAM_EXTRA_CSS = '''<style>
+.tg-status{display:flex;align-items:center;justify-content:space-between;padding:15px;border-radius:12px;margin-bottom:15px}
+.tg-status.on{background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3)}
+.tg-status.off{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3)}
+.tg-status-info{display:flex;align-items:center;gap:12px}
+.tg-status-dot{width:12px;height:12px;border-radius:50%}
+.tg-status-dot.on{background:var(--green);animation:pulse 2s infinite}
+.tg-status-dot.off{background:var(--red)}
+.tg-status-text{font-weight:600}
+.tg-status-sub{font-size:0.75rem;color:var(--text-muted)}
+.tg-section{color:var(--accent);font-weight:600;font-size:0.85rem;margin:20px 0 10px;display:flex;align-items:center;gap:6px}
 .btn-on{background:var(--green)}
 .btn-off{background:var(--red)}
-.btn-p{background:var(--accent);display:block;width:100%;padding:14px;margin-bottom:10px}
-.btn-2{background:var(--bg-card);border:1px solid var(--border);display:block;width:100%;padding:14px;margin-bottom:10px;color:var(--text)}
-.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:15px;margin-bottom:15px}
-.card-title{font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.form-group{margin-bottom:12px}
-.form-group label{display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px}
-.form-ctrl{width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.95rem}
-.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg);border-radius:10px;margin-bottom:8px}
-.toggle-label{font-size:0.9rem}
-.toggle{width:44px;height:24px;background:var(--border);border-radius:12px;padding:2px;cursor:pointer;transition:all 0.2s;border:none}
-.toggle.on{background:var(--accent)}
-.toggle-knob{width:20px;height:20px;background:#fff;border-radius:50%;transition:all 0.2s;display:block}
-.toggle.on .toggle-knob{transform:translateX(20px)}
-.section{color:var(--accent);font-weight:600;font-size:0.85rem;margin:20px 0 10px;display:flex;align-items:center;gap:6px}
-.log{display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg);border-radius:8px;margin-bottom:6px}
-.log-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem}
-.log-icon.sale{background:rgba(34,197,94,0.2)}
-.log-icon.alert{background:rgba(234,179,8,0.2)}
-.log-icon.report{background:rgba(59,130,246,0.2)}
 .log-icon.test{background:rgba(139,92,246,0.2)}
-.log-content{flex:1;min-width:0}
-.log-msg{font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.log-time{font-size:0.65rem;color:var(--text-muted)}
 .log-status{font-size:0.65rem;color:var(--green)}
-.alert{padding:12px;border-radius:10px;margin-bottom:12px;text-align:center;font-size:0.9rem}
 .alert-ok{background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:var(--green)}
-.back{display:block;text-align:center;color:var(--text-muted);text-decoration:none;padding:12px;font-size:0.85rem}
-.nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);padding:8px 0}
-.nav-inner{max-width:1600px;margin:0 auto;display:flex;justify-content:space-around}
-.nav a{text-align:center;color:var(--text-muted);text-decoration:none;padding:6px 6px;border-radius:8px;font-size:0.7rem}
-.nav a:hover,.nav a.on{color:var(--accent);background:rgba(59,130,246,0.1)}
-.nav-icon{font-size:1.4rem}
-.theme-toggle{position:fixed;top:15px;right:15px;z-index:200;background:var(--bg-card);border:1px solid var(--border);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.3rem;transition:all 0.3s}
-.theme-toggle:hover{transform:scale(1.1);border-color:var(--accent)}
-/* Responsive */
-@media(min-width:1200px){.c{max-width:1200px;padding:25px}}
-@media(max-width:1199px){.c{max-width:100%;padding:20px}}
-@media(max-width:768px){.c{padding:15px}.form-row{grid-template-columns:1fr}.theme-toggle{width:40px;height:40px;font-size:1.1rem}}
-@media(max-width:480px){.c{padding:10px;padding-bottom:80px}.btn{padding:12px;font-size:0.9rem}.hdr h1{font-size:1.3rem}.theme-toggle{top:10px;right:10px;width:36px;height:36px;font-size:1rem}.nav a{font-size:0.65rem;padding:4px 3px}.nav-icon{font-size:1.3rem}}
 </style>'''
 
-BASE = '''<!DOCTYPE html><html lang="pl" data-theme="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Powiadomienia</title><meta name="theme-color" content="#0a0a0f">
-<script>
-const saved = localStorage.getItem('theme');
-if(saved) document.documentElement.setAttribute('data-theme', saved);
-else if(window.matchMedia('(prefers-color-scheme: light)').matches) document.documentElement.setAttribute('data-theme', 'light');
-</script>''' + CSS + '''<link rel="stylesheet" href="/static/kiosk.css"></head><body>
-<script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
-<div class="theme-toggle" onclick="toggleTheme()" title="Zmień motyw">
-    <span id="theme-icon">🌙</span>
-</div>
-<div class="c">{content}</div>
-<nav class="nav"><div class="nav-inner">
-<a href="/"><div class="nav-icon">🏠</div>Home</a>
-<a href="/magazyn"><div class="nav-icon">📦</div>Magazyn</a>
-<a href="/paletomat"><div class="nav-icon">🤖</div>Paletomat</a>
-<a href="/allegro"><div class="nav-icon">🛒</div>Allegro</a>
-<a href="/narzedzia"><div class="nav-icon">⚡</div>Narzędzia</a>
-</div></nav>
-<script>
-function toggleTheme(){
-    const html = document.documentElement;
-    const current = html.getAttribute('data-theme');
-    const next = current === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-theme', next);
-    localStorage.setItem('theme', next);
-    document.getElementById('theme-icon').textContent = next === 'dark' ? '🌙' : '☀️';
-    document.querySelector('meta[name="theme-color"]').content = next === 'dark' ? '#0a0a0f' : '#f8fafc';
-}
-// Set icon on load
-const theme = document.documentElement.getAttribute('data-theme');
-document.getElementById('theme-icon').textContent = theme === 'dark' ? '🌙' : '☀️';
-</script>
-</body></html>'''
-
-def render(content):
-    return BASE.replace('{content}', content)
+def render(content, page_title='Powiadomienia'):
+    from flask import render_template_string, session
+    from flask import current_app
+    template = """{% extends "base.html" %}
+{% block page_title %}""" + page_title + """{% endblock %}
+{% block content %}
+""" + TELEGRAM_EXTRA_CSS + """
+{{ content|safe }}
+{% endblock %}"""
+    return render_template_string(template,
+        content=content,
+        version=current_app.config.get('VERSION',''),
+        brand_name=current_app.config.get('BRAND_NAME','Akces Hub'),
+        current_user=session.get('user'))
 
 # ============================================================
 # ROUTES
@@ -593,15 +526,15 @@ def index():
     wa_btn_text = 'WYŁĄCZ' if wa_on else 'WŁĄCZ'
     
     html = f'''
-    <div class="hdr"><h1>🤖 POWIADOMIENIA</h1><small>Telegram + WhatsApp</small></div>
+    <div class="header"><h1>🤖 POWIADOMIENIA</h1><small>Telegram + WhatsApp</small></div>
     
     <!-- TELEGRAM -->
-    <div class="section">📱 TELEGRAM (Adrian)</div>
-    <div class="status {status_class}">
-        <div class="status-info">
-            <div class="status-dot {status_class}"></div>
+    <div class="tg-section">📱 TELEGRAM (Adrian)</div>
+    <div class="tg-status {status_class}">
+        <div class="tg-status-info">
+            <div class="tg-status-dot {status_class}"></div>
             <div>
-                <div class="status-text">{'Aktywny' if is_on else 'Wyłączony'}</div>
+                <div class="tg-status-text">{'Aktywny' if is_on else 'Wyłączony'}</div>
             </div>
         </div>
         <form action="/telegram/toggle" method="POST" style="margin:0">
@@ -613,29 +546,29 @@ def index():
         <form action="/telegram/config" method="POST">
             <div class="form-group">
                 <label>Bot Token</label>
-                <input type="text" name="token" class="form-ctrl" value="{token}" placeholder="123456:ABC...">
+                <input type="text" name="token" class="form-control" value="{token}" placeholder="123456:ABC...">
             </div>
             <div class="form-group">
                 <label>Chat ID (powiadomienia klienta)</label>
-                <input type="text" name="chat_id" class="form-ctrl" value="{chat_id}" placeholder="123456789">
+                <input type="text" name="chat_id" class="form-control" value="{chat_id}" placeholder="123456789">
             </div>
             <div class="form-group">
                 <label>Support Chat ID (zgłoszenia → do Ciebie)</label>
-                <input type="text" name="support_chat_id" class="form-ctrl" value="{support_chat_id}" placeholder="Twój osobisty chat_id dla zgłoszeń supportu">
+                <input type="text" name="support_chat_id" class="form-control" value="{support_chat_id}" placeholder="Twój osobisty chat_id dla zgłoszeń supportu">
                 <small style="color:#94a3b8;display:block;margin-top:4px">Jeśli puste — zgłoszenia lecą na główny Chat ID</small>
             </div>
-            <button type="submit" class="btn btn-p">💾 ZAPISZ</button>
+            <button type="submit" class="btn btn-primary">💾 ZAPISZ</button>
         </form>
     </div>
     
     <!-- WHATSAPP -->
-    <div class="section">📲 WHATSAPP (Dziadek)</div>
-    <div class="status {wa_status_class}">
-        <div class="status-info">
-            <div class="status-dot {wa_status_class}"></div>
+    <div class="tg-section">📲 WHATSAPP (Dziadek)</div>
+    <div class="tg-status {wa_status_class}">
+        <div class="tg-status-info">
+            <div class="tg-status-dot {wa_status_class}"></div>
             <div>
-                <div class="status-text">{'Aktywny' if wa_on else 'Wyłączony'}</div>
-                <div class="status-sub">TextMeBot</div>
+                <div class="tg-status-text">{'Aktywny' if wa_on else 'Wyłączony'}</div>
+                <div class="tg-status-sub">TextMeBot</div>
             </div>
         </div>
         <form action="/telegram/whatsapp/toggle" method="POST" style="margin:0">
@@ -647,16 +580,16 @@ def index():
         <form action="/telegram/whatsapp/config" method="POST">
             <div class="form-group">
                 <label>Numer telefonu (z +48)</label>
-                <input type="text" name="phone" class="form-ctrl" value="{wa_phone}" placeholder="+48123456789">
+                <input type="text" name="phone" class="form-control" value="{wa_phone}" placeholder="+48123456789">
             </div>
             <div class="form-group">
                 <label>API Key (z TextMeBot)</label>
-                <input type="text" name="api_key" class="form-ctrl" value="{wa_key}" placeholder="abc123...">
+                <input type="text" name="api_key" class="form-control" value="{wa_key}" placeholder="abc123...">
             </div>
-            <button type="submit" class="btn btn-p">💾 ZAPISZ</button>
+            <button type="submit" class="btn btn-primary">💾 ZAPISZ</button>
         </form>
         <form action="/telegram/whatsapp/test" method="POST" style="margin-top:10px">
-            <button type="submit" class="btn btn-2">🧪 TEST WHATSAPP</button>
+            <button type="submit" class="btn btn-secondary">🧪 TEST WHATSAPP</button>
         </form>
     </div>
     
@@ -683,21 +616,21 @@ def index():
     html += '''
     </div>
     
-    <a href="/telegram/live" class="btn btn-p" style="margin-bottom:10px;background:linear-gradient(135deg,#22c55e,#16a34a)">📊 SPRZEDAŻ LIVE<br><small>Dashboard na żywo z auto-odświeżaniem</small></a>
+    <a href="/telegram/live" class="btn btn-primary" style="margin-bottom:10px;background:linear-gradient(135deg,#22c55e,#16a34a)">📊 SPRZEDAŻ LIVE<br><small>Dashboard na żywo z auto-odświeżaniem</small></a>
     
     <a href="/telegram/monitor" class="btn btn-ok" style="margin-bottom:10px">🔔 MONITORING SPRZEDAŻY<br><small>Automatyczne powiadomienia o nowych zamówieniach</small></a>
     
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
         <form action="/telegram/test" method="POST" style="margin:0">
-            <button type="submit" class="btn btn-2" style="width:100%;margin:0">🧪 TEST</button>
+            <button type="submit" class="btn btn-secondary" style="width:100%;margin:0">🧪 TEST</button>
         </form>
         <form action="/telegram/clear" method="POST" style="margin:0">
             <input type="hidden" name="days" value="1">
-            <button type="submit" class="btn btn-2" style="width:100%;margin:0;background:rgba(239,68,68,0.2);border-color:rgba(239,68,68,0.3)">🧹 WYCZYŚĆ CZAT</button>
+            <button type="submit" class="btn btn-secondary" style="width:100%;margin:0;background:rgba(239,68,68,0.2);border-color:rgba(239,68,68,0.3)">🧹 WYCZYŚĆ CZAT</button>
         </form>
     </div>
     
-    <div class="section">📜 OSTATNIE WIADOMOŚCI</div>
+    <div class="tg-section">📜 OSTATNIE WIADOMOŚCI</div>
     '''
     
     for log in logs:
@@ -706,7 +639,7 @@ def index():
         icon = icon_map.get(typ, '📤')
         
         html += f'''
-        <div class="log">
+        <div class="log-item">
             <div class="log-icon {typ}">{icon}</div>
             <div class="log-content">
                 <div class="log-msg">{log['wiadomosc'][:50]}...</div>
@@ -782,12 +715,12 @@ def whatsapp_test():
         return redirect('/telegram')
     else:
         return render('''
-            <div class="hdr"><h1>❌ BŁĄD</h1></div>
+            <div class="header"><h1>❌ BŁĄD</h1></div>
             <div class="alert" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#ef4444">
                 Nie udało się wysłać WhatsApp.<br>
                 Sprawdź numer i API key.
             </div>
-            <a href="/telegram" class="btn btn-p">← Powrót</a>
+            <a href="/telegram" class="btn btn-primary">← Powrót</a>
         ''')
 
 
@@ -810,12 +743,12 @@ def test():
         return redirect('/telegram')
     else:
         return render('''
-            <div class="hdr"><h1>❌ BŁĄD</h1></div>
+            <div class="header"><h1>❌ BŁĄD</h1></div>
             <div class="alert" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#ef4444">
                 Nie udało się wysłać wiadomości.<br>
                 Sprawdź token i chat ID.
             </div>
-            <a href="/telegram" class="btn btn-p">← Powrót</a>
+            <a href="/telegram" class="btn btn-primary">← Powrót</a>
         ''')
 
 
@@ -1153,7 +1086,7 @@ def monitor_page():
     last_order = get_last_order_id()
     
     html = f'''
-    <div class="hdr"><h1>🔔 MONITORING SPRZEDAŻY</h1><small>Powiadomienia Telegram o nowych zamówieniach</small></div>
+    <div class="header"><h1>🔔 MONITORING SPRZEDAŻY</h1><small>Powiadomienia Telegram o nowych zamówieniach</small></div>
     
     <div class="card" style="padding:15px;margin-bottom:15px">
         <div style="display:flex;align-items:center;justify-content:space-between">
@@ -1172,7 +1105,7 @@ def monitor_page():
     telegram_ok = bool(get_bot_token() and get_chat_id())
     
     html += f'''
-    <div class="section">📡 STATUS</div>
+    <div class="tg-section">📡 STATUS</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
         <div class="item">
             <span style="font-size:1.5rem;margin-right:10px">{'✅' if telegram_ok else '❌'}</span>
@@ -1193,22 +1126,22 @@ def monitor_page():
     
     # Ustawienia
     html += f'''
-    <div class="section">⚙️ USTAWIENIA</div>
+    <div class="tg-section">⚙️ USTAWIENIA</div>
     <form action="/telegram/monitor/settings" method="POST" class="card" style="padding:15px">
         <div class="form-group">
             <label>Częstotliwość sprawdzania (sekundy)</label>
-            <select name="interval" class="form-ctrl">
+            <select name="interval" class="form-control">
                 <option value="60" {'selected' if interval == '60' else ''}>1 minuta</option>
                 <option value="180" {'selected' if interval == '180' else ''}>3 minuty</option>
                 <option value="300" {'selected' if interval == '300' else ''}>5 minut</option>
                 <option value="600" {'selected' if interval == '600' else ''}>10 minut</option>
             </select>
         </div>
-        <button type="submit" class="btn btn-p">💾 ZAPISZ</button>
+        <button type="submit" class="btn btn-primary">💾 ZAPISZ</button>
     </form>
     
-    <div class="section">🧪 TEST</div>
-    <a href="/telegram/monitor/check" class="btn btn-2">🔍 SPRAWDŹ TERAZ</a>
+    <div class="tg-section">🧪 TEST</div>
+    <a href="/telegram/monitor/check" class="btn btn-secondary">🔍 SPRAWDŹ TERAZ</a>
     <p style="font-size:0.75rem;color:#64748b;margin-top:10px">Ostatnie znane zamówienie: {last_order[:8] if last_order else 'brak'}...</p>
     '''
     
@@ -1219,7 +1152,7 @@ def monitor_page():
         html += '<div class="alert alert-warn" style="margin-top:15px">⚠️ Najpierw zaloguj się do Allegro → <a href="/allegro" style="color:#eab308">Połącz</a></div>'
     
     html += '<a href="/telegram" class="back">← Powrót</a>'
-    return render(html)
+    return render(html, page_title='Monitoring')
 
 
 @telegram_bp.route('/monitor/start')
@@ -1256,13 +1189,13 @@ def monitor_check():
                 sent_count += 1
 
         return render(f'''
-            <div class="hdr"><h1>✅ SPRAWDZONO</h1></div>
+            <div class="header"><h1>✅ SPRAWDZONO</h1></div>
             <div class="alert alert-ok">Znaleziono {len(new_orders)} zamówień, wysłano {sent_count} nowych powiadomień.</div>
             <a href="/telegram/monitor" class="back">← Powrót</a>
         ''')
     else:
         return render('''
-            <div class="hdr"><h1>✅ SPRAWDZONO</h1></div>
+            <div class="header"><h1>✅ SPRAWDZONO</h1></div>
             <div class="alert" style="background:#1e1e2e">Brak nowych zamówień</div>
             <a href="/telegram/monitor" class="back">← Powrót</a>
         ''')
@@ -1278,7 +1211,7 @@ def live_dashboard():
     auto_monitor = get_config('telegram_auto_monitor', 'true') == 'true'
     
     html = '''
-    <div class="hdr">
+    <div class="header">
         <h1>📊 SPRZEDAŻ LIVE</h1>
         <small id="last-update">Ładowanie...</small>
     </div>
@@ -1330,21 +1263,21 @@ def live_dashboard():
     </div>
     
     <!-- OSTATNIE SPRZEDAŻE -->
-    <div class="section">🔔 OSTATNIE ZAMÓWIENIA</div>
+    <div class="tg-section">🔔 OSTATNIE ZAMÓWIENIA</div>
     <div id="recent-orders" style="margin-bottom:15px">
         <div style="text-align:center;color:var(--text-muted);padding:20px">Ładowanie...</div>
     </div>
     
     <!-- TOP PRODUKTY -->
-    <div class="section">🏆 TOP PRODUKTY (miesiąc)</div>
+    <div class="tg-section">🏆 TOP PRODUKTY (miesiąc)</div>
     <div id="top-products" style="margin-bottom:15px">
         <div style="text-align:center;color:var(--text-muted);padding:20px">Ładowanie...</div>
     </div>
     
     <!-- AKCJE -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
-        <a href="/telegram/monitor/check" class="btn btn-2" style="text-align:center;text-decoration:none">🔍 Sprawdź teraz</a>
-        <a href="/sprzedaze" class="btn btn-2" style="text-align:center;text-decoration:none">📋 Wszystkie</a>
+        <a href="/telegram/monitor/check" class="btn btn-secondary" style="text-align:center;text-decoration:none">🔍 Sprawdź teraz</a>
+        <a href="/sprzedaze" class="btn btn-secondary" style="text-align:center;text-decoration:none">📋 Wszystkie</a>
     </div>
     ''' + f'''
     <div class="toggle-row" style="margin-bottom:15px">
@@ -1396,7 +1329,7 @@ def live_dashboard():
                 ordersEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px">Brak zamówień dziś</div>';
             } else {
                 ordersEl.innerHTML = data.recent.map(o => `
-                    <div class="log" style="margin-bottom:6px">
+                    <div class="log-item" style="margin-bottom:6px">
                         <div class="log-icon sale">💰</div>
                         <div class="log-content">
                             <div class="log-msg">${o.nazwa}</div>
@@ -1436,8 +1369,8 @@ def live_dashboard():
     setInterval(refreshData, refreshInterval);
     </script>
     '''
-    
-    return render(html)
+
+    return render(html, page_title='Sprzedaz Live')
 
 
 @telegram_bp.route('/live/toggle-auto', methods=['POST'])
