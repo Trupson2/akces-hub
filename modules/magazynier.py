@@ -3220,10 +3220,19 @@ def palety():
         </a>'''
     
     html += '''<script>
+    console.log("✅ Palety JS zaladowany");
     function updateCount() {
         const n = document.querySelectorAll('.paleta-cb:checked').length;
         document.getElementById('selectedCount').textContent = '(' + n + ' zaznaczonych)';
+        console.log("Zaznaczonych: " + n);
     }
+    // Klik w checkbox powinien zaznaczac
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.paleta-cb').forEach(function(cb) {
+            cb.addEventListener('change', updateCount);
+        });
+        console.log("✅ Listeners dodane na " + document.querySelectorAll('.paleta-cb').length + " checkboxow");
+    });
     function selectAll() {
         document.querySelectorAll('.paleta-cb').forEach(cb => cb.checked = true);
         updateCount();
