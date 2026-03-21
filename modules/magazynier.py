@@ -1545,11 +1545,8 @@ def edytuj_produkt(code):
     if request.method == 'POST':
         try:
             d = {}
-            for k in ['nazwa','lokalizacja','paleta','dostawca','zdjecie_url','stan','kategoria','ean','asin']:
+            for k in ['nazwa','lokalizacja','dostawca','zdjecie_url','stan','kategoria','ean','asin']:
                 d[k] = (request.form.get(k) or '').strip()
-
-            if d['paleta'] == '__nowa__':
-                d['paleta'] = (request.form.get('paleta_nowa') or '').strip()
 
             d['ilosc'] = int(request.form.get('ilosc', 0) or 0)
 
@@ -1572,15 +1569,23 @@ def edytuj_produkt(code):
                 pid = existing['id']
                 product_code = str(pid)
 
-                # Zaktualizuj paleta_id jeśli zmieniono paletę
-                paleta_id = existing['paleta_id']
-                if d['paleta'] and d['paleta'] != (existing['paleta'] or ''):
-                    row = conn.execute(
-                        'SELECT id FROM palety WHERE nazwa=? OR paleta=?',
-                        (d['paleta'], d['paleta'])
-                    ).fetchone()
-                    if row:
-                        paleta_id = row['id']
+                # Paleta — obsłuż dropdown z ID lub nową paletę
+                paleta_id_val = request.form.get('paleta_id_select', '')
+                paleta_nazwa = ''
+                if paleta_id_val == '__nowa__':
+                    paleta_nazwa = (request.form.get('paleta_nowa') or '').strip()
+                    if paleta_nazwa:
+                        from .database import add_paleta
+                        paleta_id = add_paleta(paleta_nazwa, d.get('dostawca', ''), 0)
+                    else:
+                        paleta_id = existing['paleta_id']
+                elif paleta_id_val:
+                    paleta_id = int(paleta_id_val)
+                    row = conn.execute('SELECT nazwa FROM palety WHERE id = ?', (paleta_id,)).fetchone()
+                    paleta_nazwa = row['nazwa'] if row else ''
+                else:
+                    paleta_id = None
+                    paleta_nazwa = ''
 
                 conn.execute('''UPDATE produkty
                     SET ean=?,asin=?,nazwa=?,ilosc=?,stan=?,lokalizacja=?,
@@ -1588,7 +1593,7 @@ def edytuj_produkt(code):
                         cena_netto=?,cena_brutto=?,cena_allegro=?,kategoria=?
                     WHERE id=?''',
                     (d['ean'],d['asin'],d['nazwa'],d['ilosc'],d['stan'],d['lokalizacja'],
-                     d['paleta'],paleta_id,d['dostawca'],d['zdjecie_url'],
+                     paleta_nazwa,paleta_id,d['dostawca'],d['zdjecie_url'],
                      d['cena_netto'],d['cena_brutto'],d['cena_allegro'],d['kategoria'],
                      pid))
                 conn.commit()
@@ -1670,14 +1675,14 @@ def edytuj_produkt(code):
 
     conn2 = get_db()
     palety_lista = conn2.execute(
-        'SELECT DISTINCT paleta FROM produkty WHERE paleta IS NOT NULL AND paleta != "" ORDER BY paleta'
+        'SELECT id, nazwa FROM palety ORDER BY id DESC'
     ).fetchall()
 
+    current_paleta_id = p.get('paleta_id') or 0
     palety_options = '<option value="">-- Brak palety --</option>'
     for pr in palety_lista:
-        pn = pr['paleta']
-        sel = 'selected' if p.get('paleta') == pn else ''
-        palety_options += f'<option value="{pn}" {sel}>{pn}</option>'
+        sel = 'selected' if pr['id'] == current_paleta_id else ''
+        palety_options += f'<option value="{pr["id"]}" {sel}>{pr["nazwa"]}</option>'
 
     html = f'''
     <div class="hdr"><h1>✏️ EDYTUJ</h1></div>
@@ -1789,7 +1794,7 @@ def edytuj_produkt(code):
             </div>
             <div class="form-group">
                 <label>Paleta</label>
-                <select name="paleta" class="form-ctrl" id="paleta-select" onchange="togglePaletaInput()">
+                <select name="paleta_id_select" class="form-ctrl" id="paleta-select" onchange="togglePaletaInput()">
                     {palety_options}
                     <option value="__nowa__">✨ Nowa paleta...</option>
                 </select>
