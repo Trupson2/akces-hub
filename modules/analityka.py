@@ -3173,15 +3173,18 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                     if j < len(batch):
                         orig_nazwa = batch[j].get('nazwa', '?')
                         ai_nazwa = item.get('nazwa', '')
-                        # Użyj nazwy z AI jeśli oryginalna to kod, a AI podał prawdziwą nazwę
+                        # Użyj nazwy z AI jeśli jest lepsza (przetłumaczona na PL lub rozpoznana z kodu)
                         is_orig_code = bool(_re.match(r'^[\d\-\.\/\s]{5,}$', str(orig_nazwa).strip()))
-                        if is_orig_code and ai_nazwa and len(ai_nazwa) > 5 and not _re.match(r'^[\d\-\.\/\s]{5,}$', ai_nazwa.strip()):
-                            item['nazwa'] = ai_nazwa  # AI znalazł prawdziwą nazwę
-                            item['kod_oryginalny'] = orig_nazwa
+                        if ai_nazwa and len(ai_nazwa) > 5 and ai_nazwa != orig_nazwa:
+                            item['nazwa'] = ai_nazwa  # AI przetłumaczył/rozpoznał
+                            if is_orig_code:
+                                item['kod_oryginalny'] = orig_nazwa
                         else:
                             item['nazwa'] = orig_nazwa
                         item['cena_amazon_rpp'] = float(batch[j].get('cena_brutto', 0) or 0)
                         item['ilosc'] = int(batch[j].get('ilosc', 1) or 1)
+                        item['asin'] = batch[j].get('asin', '')
+                        item['ean'] = batch[j].get('ean', '')
                 all_results.extend(item for item in batch_parsed if isinstance(item, dict))
             else:
                 # Fallback — dodaj surowe wyniki
@@ -3189,6 +3192,7 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                     all_results.append({'nazwa': p.get('nazwa','?'), 'cena_allegro': 0,
                                        'cena_amazon_rpp': float(p.get('cena_brutto', 0) or 0),
                                        'ilosc': int(p.get('ilosc', 1) or 1),
+                                       'asin': p.get('asin', ''), 'ean': p.get('ean', ''),
                                        'popyt': '?', 'czas_sprzedazy_dni': 0,
                                        'uwagi': 'Nie udało się sparsować odpowiedzi AI'})
 
@@ -3769,6 +3773,13 @@ def analiza_zakupu():
 def _get_render_results_js():
     """Zwraca wspólny JS renderResults() dla obu stron analizatora."""
     return '''
+    function copyName(el) {
+        var txt = el.getAttribute('data-copytext');
+        navigator.clipboard.writeText(txt).then(function() {
+            el.style.outline = '2px solid #22c55e';
+            setTimeout(function() { el.style.outline = ''; }, 500);
+        });
+    }
     function demandClass(d) {
         if (!d) return 'demand-unknown';
         var dl = d.toLowerCase();
@@ -3847,7 +3858,14 @@ def _get_render_results_js():
             var corrected = p.cena_allegro_gemini ? true : false;
             h += '<tr style="border-bottom:1px solid var(--border)">';
             h += '<td style="padding:8px;color:var(--text-muted)">' + (idx+1) + '</td>';
-            h += '<td style="padding:8px;font-weight:500;max-width:250px">' + (p.nazwa||'—') + '</td>';
+            var asinLink = '';
+            if (p.asin) {
+                asinLink = '<br><a href="https://www.amazon.de/dp/' + p.asin + '" target="_blank" style="font-size:0.7rem;color:#60a5fa;text-decoration:none">🔗 ' + p.asin + '</a>';
+            } else if (p.ean) {
+                asinLink = '<br><span style="font-size:0.7rem;color:var(--text-muted)">EAN: ' + p.ean + '</span>';
+            }
+            var nazwaText = (p.nazwa||'—').replace(/"/g, '&quot;');
+            h += '<td style="padding:8px;font-weight:500;max-width:300px;cursor:pointer" onclick="copyName(this)" data-copytext="' + nazwaText + '" title="Kliknij aby skopiować"><span>' + (p.nazwa||'—') + '</span>' + asinLink + '</td>';
             h += '<td style="padding:8px;text-align:center;font-weight:600">' + szt + '</td>';
             if (corrected) {
                 h += '<td style="padding:8px;text-align:center"><span style="color:var(--green);font-weight:700">' + cena.toFixed(0) + ' zł</span><br><span style="text-decoration:line-through;color:var(--text-muted);font-size:0.7rem">AI: ' + p.cena_allegro_gemini.toFixed(0) + ' zł</span></td>';
