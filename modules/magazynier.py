@@ -8822,22 +8822,25 @@ def przyjecie_palety(paleta_id):
 
         fetch('/magazyn/api/przyjecie-save', {{
             method: 'POST',
-            headers: {{ 'Content-Type': 'application/json' }},
+            headers: {{ 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' }},
             body: JSON.stringify({{ paleta_id: {paleta_id}, assessments: assessments }})
         }})
-        .then(r => r.json())
+        .then(r => {{
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        }})
         .then(data => {{
             if (data.success) {{
                 btn.textContent = '✅ Zapisano!';
                 btn.style.background = '#16a34a';
                 setTimeout(() => window.location.href = '/magazyn/paleta-id/{paleta_id}', 1000);
             }} else {{
-                btn.textContent = '❌ Błąd: ' + (data.error || '');
+                btn.textContent = '❌ ' + (data.error || 'Błąd zapisu');
                 btn.disabled = false;
             }}
         }})
-        .catch(() => {{
-            btn.textContent = '❌ Błąd połączenia';
+        .catch(e => {{
+            btn.textContent = '❌ ' + e.message;
             btn.disabled = false;
         }});
     }}
