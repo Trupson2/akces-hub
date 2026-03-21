@@ -3190,6 +3190,13 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                                        'popyt': '?', 'czas_sprzedazy_dni': 0,
                                        'uwagi': 'Nie udało się sparsować odpowiedzi AI'})
 
+            # Update progress po batchu
+            pct = int((batch_idx + 1) / len(batches) * 100)
+            _pallet_analysis_jobs[job_id] = {
+                'status': 'running',
+                'progress': f'✅ Batch {batch_idx+1}/{len(batches)} gotowy ({pct}%) — {len(all_results)} produktów przeanalizowanych'
+            }
+
         # Podsumowanie — mnóż ceny przez ilość sztuk
         total_przychod = sum(r.get('cena_allegro', 0) * r.get('ilosc', 1) for r in all_results)
         prowizja = total_przychod * 0.11
@@ -3330,8 +3337,15 @@ def analizator_palet():
                     <button type="submit" class="btn btn-primary" id="btn-analyze-excel">🔬 Analizuj przed zakupem</button>
                 </form>
                 <div id="excel-progress" style="display:none;margin-top:16px">
-                    <div class="alert" style="background:var(--accent-soft);border:1px solid rgba(99,102,241,0.2);color:var(--accent)">
-                        <span id="excel-progress-text">Analizuję...</span>
+                    <div style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:16px">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                            <span id="excel-progress-text" style="color:var(--accent);font-weight:600;font-size:0.9rem">⏳ Analizuję...</span>
+                            <span id="excel-progress-pct" style="color:var(--green);font-weight:700;font-size:1.1rem">0%</span>
+                        </div>
+                        <div style="background:rgba(0,0,0,0.3);border-radius:8px;height:8px;overflow:hidden">
+                            <div id="excel-progress-bar" style="height:100%;background:linear-gradient(90deg,#6366f1,#22c55e);border-radius:8px;width:0%;transition:width 0.5s ease"></div>
+                        </div>
+                        <div id="excel-progress-detail" style="color:var(--text-muted);font-size:0.78rem;margin-top:8px">Przygotowywanie...</div>
                     </div>
                 </div>
             </div>
@@ -3455,23 +3469,50 @@ def analizator_palet():
         }}).catch(function(e) {{ alert('Błąd: ' + e); btn.disabled=false; btn.textContent='🔬 Analizuj przed zakupem'; document.getElementById('excel-progress').style.display='none'; }});
     }});
 
+    var excelTotalBatches = 1;
     function pollExcelStatus(jobId) {{
         fetch('/analityka/analizator-palet/status?job_id=' + jobId)
         .then(r => r.json()).then(function(d) {{
             if (d.status === 'running') {{
-                document.getElementById('excel-progress-text').textContent = d.progress || 'Analizuję...';
-                setTimeout(function() {{ pollExcelStatus(jobId); }}, 3000);
+                var prog = d.progress || 'Analizuję...';
+                document.getElementById('excel-progress-text').textContent = '⏳ ' + prog;
+                // Parsuj "batch X/Y" z progressu
+                var m = prog.match(/batch\s+(\d+)\/(\d+)/);
+                if (m) {{
+                    var cur = parseInt(m[1]);
+                    var total = parseInt(m[2]);
+                    excelTotalBatches = total;
+                    var pct = Math.round((cur - 1) / total * 100);
+                    document.getElementById('excel-progress-bar').style.width = pct + '%';
+                    document.getElementById('excel-progress-pct').textContent = pct + '%';
+                    document.getElementById('excel-progress-detail').textContent = 'Batch ' + cur + ' z ' + total + ' • Gemini analizuje ' + (m[0].match(/\((\d+)/)?.[1] || '15') + ' produktów...';
+                }}
+                // Parsuj "(X produktów)" z progressu
+                var mp = prog.match(/\((\d+)\s+produkt/);
+                if (mp) {{
+                    document.getElementById('excel-progress-detail').textContent = 'Analizuję ' + mp[1] + ' produktów w tym batchu...';
+                }}
+                setTimeout(function() {{ pollExcelStatus(jobId); }}, 2000);
             }} else if (d.status === 'done') {{
-                document.getElementById('excel-progress').style.display = 'none';
-                document.getElementById('btn-analyze-excel').disabled = false;
-                document.getElementById('btn-analyze-excel').textContent = '🔬 Analizuj przed zakupem';
-                renderResults(d);
+                document.getElementById('excel-progress-bar').style.width = '100%';
+                document.getElementById('excel-progress-pct').textContent = '100%';
+                document.getElementById('excel-progress-text').textContent = '✅ Gotowe!';
+                document.getElementById('excel-progress-detail').textContent = 'Analiza zakończona pomyślnie';
+                setTimeout(function() {{
+                    document.getElementById('excel-progress').style.display = 'none';
+                    document.getElementById('btn-analyze-excel').disabled = false;
+                    document.getElementById('btn-analyze-excel').textContent = '🔬 Analizuj przed zakupem';
+                    renderResults(d);
+                }}, 1000);
             }} else if (d.status === 'error') {{
-                document.getElementById('excel-progress-text').textContent = '❌ ' + (d.error || 'Błąd');
+                document.getElementById('excel-progress-text').textContent = '❌ Błąd';
+                document.getElementById('excel-progress-detail').textContent = d.error || 'Nieznany błąd';
+                document.getElementById('excel-progress-bar').style.width = '100%';
+                document.getElementById('excel-progress-bar').style.background = 'var(--red)';
                 document.getElementById('btn-analyze-excel').disabled = false;
                 document.getElementById('btn-analyze-excel').textContent = '🔬 Analizuj przed zakupem';
             }}
-        }});
+        }}).catch(function() {{ setTimeout(function() {{ pollExcelStatus(jobId); }}, 3000); }});
     }}
 
     {_get_render_results_js()}
