@@ -12,6 +12,13 @@ const CACHE_ASSETS = [
   '/static/manifest.json'
 ];
 
+// Odbierz wiadomość od strony (skipWaiting)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.action === 'skipWaiting') {
+    self.skipWaiting();
+  }
+});
+
 // Instalacja
 self.addEventListener('install', (event) => {
   event.waitUntil(
