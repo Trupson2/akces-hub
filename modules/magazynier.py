@@ -7024,49 +7024,28 @@ Przykład:
                     print(f"[Auto-wycena] Gemini batch error: {e}")
                     stats['errors'] += 1
 
+            print(f"[Auto-wycena] Batch {batch_idx+1}: ai_prices = {ai_prices}")
+
             # Zapisz wyniki
             for p in batch:
                 processed += 1
                 nazwa = p['nazwa'] or ''
                 cena_allegro = ai_prices.get(p['id'])
-                nowa_nazwa = None
                 zrodlo = 'gemini' if cena_allegro else None
 
                 if cena_allegro:
                     stats['from_estimate'] += 1
 
-                # Optymalizuj tytuł
-                if nazwa:
+                # Zapisz cenę do DB (bez optymalizacji tytułu — za wolne)
+                if cena_allegro:
                     try:
-                        nowa_nazwa = optimize_title_allegro(nazwa)
-                        if nowa_nazwa and nowa_nazwa != nazwa:
-                            stats['titles_optimized'] += 1
-                        else:
-                            nowa_nazwa = None
-                    except Exception:
-                        nowa_nazwa = None
-
-                # Zapisz do DB
-                try:
-                    updates = []
-                    params = []
-                    if cena_allegro:
-                        updates.append('cena_allegro = ?')
-                        params.append(cena_allegro)
-                    if nowa_nazwa:
-                        updates.append('nazwa = ?')
-                        params.append(nowa_nazwa)
-                    if updates:
-                        ALLOWED_SET_CLAUSES = {'cena_allegro = ?', 'nazwa = ?'}
-                        if not all(u in ALLOWED_SET_CLAUSES for u in updates):
-                            continue
-                        params.append(p['id'])
-                        conn.execute("UPDATE produkty SET " + ', '.join(updates) + " WHERE id = ?", params)
+                        conn.execute("UPDATE produkty SET cena_allegro = ? WHERE id = ?", (cena_allegro, p['id']))
                         conn.commit()
                         stats['updated'] += 1
-                except Exception as e:
-                    print(f"[Auto-wycena] Błąd zapisu {p['id']}: {e}")
-                    stats['errors'] += 1
+                        print(f"[Auto-wycena] Zapisano {p['id']}: {cena_allegro} zł")
+                    except Exception as e:
+                        print(f"[Auto-wycena] Błąd zapisu {p['id']}: {e}")
+                        stats['errors'] += 1
 
                 # Wyślij progress
                 ev = {
