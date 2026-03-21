@@ -1,5 +1,5 @@
 // Service Worker dla Akces Hub PWA
-const CACHE_NAME = 'akces-hub-v1';
+const CACHE_NAME = 'akces-hub-v2';
 const OFFLINE_URL = '/offline';
 
 // Zasoby do cache'owania
@@ -40,16 +40,26 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch - strategia Network First z fallback do cache
+// Fetch - dodaj ngrok header do WSZYSTKICH requestów + Network First z cache
 self.addEventListener('fetch', (event) => {
-  // Pomijamy POST requesty i API calls
-  if (event.request.method !== 'GET' || 
+  // Dodaj ngrok-skip-browser-warning do KAŻDEGO requestu (GET, POST, etc.)
+  // To naprawia biały ekran ngrok free tier
+  const modifiedHeaders = new Headers(event.request.headers);
+  modifiedHeaders.set('ngrok-skip-browser-warning', '1');
+
+  const modifiedRequest = new Request(event.request, {
+    headers: modifiedHeaders
+  });
+
+  // POST i API — przepuść z nowym headerem, bez cache
+  if (event.request.method !== 'GET' ||
       event.request.url.includes('/api/')) {
+    event.respondWith(fetch(modifiedRequest));
     return;
   }
-  
+
   event.respondWith(
-    fetch(event.request)
+    fetch(modifiedRequest)
       .then((response) => {
         // Zapisz do cache jeśli sukces
         if (response.status === 200) {
