@@ -529,6 +529,28 @@ def auto_kategoryzuj(nazwa):
     if _word_match(['wózek dziecięc', 'wózek spacer'], nazwa_lower):
         return 'zabawki'
 
+    if _word_match(['peruka', 'wig ', 'wigs', 'perücke', 'hair extension', 'doczepiany włos',
+        'syntetyczn', 'synthetic hair', 'lace front', 'lace wig', 'cosplay wig',
+        'barsdar', 'emmor'], nazwa_lower):
+        return 'uroda'
+
+    if _word_match(['manekin', 'mannequin', 'bust form', 'torso display', 'krawiecke',
+        'głowa styropianow', 'głowa do peruk'], nazwa_lower):
+        return 'moda'
+
+    if _word_match(['zgrzewarka', 'sealer', 'vacuum sealer', 'próżniowa', 'pakowarka',
+        'folia do zgrzewania', 'food saver'], nazwa_lower):
+        return 'agd_male'
+
+    if _word_match(['huśtawka ogrodn', 'huśtawka dorosł', 'huśtawka bujana', 'swing chair',
+        'brama ogrodn', 'furtka', 'bramka ogrodn', 'siatka ogrodn',
+        'huśtawka', 'swing', 'schaukel'], nazwa_lower):
+        return 'dom_ogrod'
+
+    if _word_match(['peg ', 'pegi', 'pegs', 'footpeg', 'foot peg', 'bmx peg',
+        'uchwyt rowerow'], nazwa_lower):
+        return 'sport'
+
     if _word_match(['buty', 'shoes', 'ubrani', 'koszul', 'shirt', 'spodni', 'pants',
         'sukienk', 'dress', 'kurtk', 'jacket', 'bluza', 'sweater', 'czapk',
         'torebk', 'damska', 'portfel', 'wallet', 'biżuteria', 'jewelry', 'okulary',
