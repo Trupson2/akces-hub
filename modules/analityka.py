@@ -3097,10 +3097,12 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                 f"{code_hint}"
                 f"PRODUKTY (batch {batch_idx+1}/{len(batches)}):\n{batch_txt}\n"
                 f"Dla każdego produktu podaj REALNĄ cenę na Allegro.pl, popyt i czas sprzedaży.\n"
-                f"Jeśli produkt ma kod zamiast nazwy, zidentyfikuj go i podaj prawdziwą nazwę.\n\n"
+                f"Jeśli produkt ma kod zamiast nazwy, zidentyfikuj go i podaj prawdziwą nazwę.\n"
+                f"WAŻNE: Pole 'nazwa' ZAWSZE podaj po POLSKU (przetłumacz z angielskiego jeśli trzeba).\n"
+                f"Np. 'Wheelchair ramp folding...' → 'Rampa dla wózka inwalidzka składana...'\n\n"
                 f"Odpowiedz WYŁĄCZNIE jako JSON array (bez markdown):\n"
-                f'[{{"id": 1, "nazwa": "PRAWDZIWA NAZWA PRODUKTU", "cena_allegro": <float>, "popyt": "wysoki|średni|niski", '
-                f'"czas_sprzedazy_dni": <int>, "uwagi": "..."}}]\n'
+                f'[{{"id": 1, "nazwa": "POLSKA NAZWA PRODUKTU", "cena_allegro": <float>, "popyt": "wysoki|średni|niski", '
+                f'"czas_sprzedazy_dni": <int>, "uwagi": "krótki komentarz po polsku"}}]\n'
             )
 
             if provider == 'perplexity':
