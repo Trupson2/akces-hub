@@ -62,13 +62,9 @@ def get_amazon_image_url(asin, use_scraper=False):
     if not re.match(r'^B0[A-Z0-9]{8,10}$', asin):
         return ''
     
-    # Metoda 1: Szybki URL (bez scrapowania) - działa dla większości produktów
-    # Format: https://m.media-amazon.com/images/I/{ASIN}._AC_SL1500_.jpg
-    # LUB: https://images-na.ssl-images-amazon.com/images/P/{ASIN}.01._SCLZZZZZZZ_.jpg
-    quick_url = f'https://m.media-amazon.com/images/I/{asin}._AC_SL1500_.jpg'
-    
+    # Szybki URL nie działa (Amazon CDN wymaga image ID, nie ASIN)
     if not use_scraper:
-        return quick_url
+        return ''
     
     # Metoda 2: Scraper (wolne, ale pewniejsze)
     try:
@@ -79,8 +75,7 @@ def get_amazon_image_url(asin, use_scraper=False):
     except Exception as e:
         print(f"⚠️ [ASIN] Scraper error dla {asin}: {e}")
     
-    # Fallback do szybkiego URL
-    return quick_url
+    return ''
 
 
 def get_product_image_by_ean(ean):

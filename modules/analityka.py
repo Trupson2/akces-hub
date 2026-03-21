@@ -89,7 +89,7 @@ def statystyki():
     top_prod_html = ''
     for i, p in enumerate(top_produkty[:5]):
         border = f'border-bottom:1px solid var(--border);' if i < min(len(top_produkty), 5) - 1 else ''
-        img = p.get('zdjecie_url') or 'https://via.placeholder.com/40'
+        img = p.get('zdjecie_url') or "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect fill='%2312121a' width='40' height='40'/%3E%3Ctext x='20' y='25' fill='%23555' text-anchor='middle' font-size='14'%3E📦%3C/text%3E%3C/svg%3E"
         nazwa = p['nazwa'][:40] + ('...' if len(p['nazwa']) > 40 else '')
         top_prod_html += f'''<div style="display:flex;align-items:center;gap:10px;padding:8px 0;{border}">
             <div style="font-weight:700;color:var(--orange);width:20px">{i+1}.</div>

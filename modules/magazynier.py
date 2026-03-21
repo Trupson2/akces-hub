@@ -360,11 +360,11 @@ def index():
     '''
     
     for p in products:
-        img = p['zdjecie_url'] or 'https://via.placeholder.com/45'
+        img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
         pcode = get_product_code(p)
         display_code = p['ean'] or p['asin'] or f"#{p['id']}"
         html += f'''<a href="/magazyn/produkt/{pcode}" class="item">
-            <img src="{img}" onerror="this.src='https://via.placeholder.com/45'">
+            <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
             <div class="item-info">
                 <div class="item-name">{p['nazwa'][:35]}...</div>
                 <div class="item-meta">{display_code} | 📍{p['lokalizacja'] or '—'}</div>
@@ -678,7 +678,7 @@ def produkty():
     
     # Lista produktów
     for p in products:
-        img = p['zdjecie_url'] or 'https://via.placeholder.com/45'
+        img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
         pcode = get_product_code(p)
         _km = p['kod_magazynowy'] if p['kod_magazynowy'] else f"#{p['id']}"
         display_code = f"{_km} | {p['ean'] or p['asin'] or ''}"
@@ -715,7 +715,7 @@ def produkty():
                    style="position:absolute;left:15px;top:50%;transform:translateY(-50%);width:20px;height:20px;cursor:pointer"
                    onchange="updateCount()">
             <a href="/magazyn/produkt/{pcode}" style="display:flex;align-items:center;flex:1;text-decoration:none;color:inherit">
-                <img src="{img}" onerror="this.src='https://via.placeholder.com/45'">
+                <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
                 <div class="item-info">
                     <div class="item-name">{p['nazwa'][:30]}...</div>
                     <div class="item-meta">{display_code} | 📍{p['lokalizacja'] or '—'} | 📦{p['paleta'] or '—'} | {status_badge}</div>
@@ -811,13 +811,8 @@ def produkt(code):
         local_path = f"static/downloads/{p['asin']}/image_1.jpg"
         if os.path.exists(local_path):
             img = '/' + local_path
-    # Fallback: Amazon CDN z ASIN
-    if not img and p.get('asin'):
-        _asin_c = str(p['asin']).strip().upper()
-        if _asin_c and len(_asin_c) >= 10:
-            img = f'https://m.media-amazon.com/images/I/{_asin_c}._AC_SL1500_.jpg'
     if not img:
-        img = 'https://via.placeholder.com/400x180/12121a/fff?text=BRAK'
+        img = 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27400%27 height=%27180%27%3E%3Crect fill=%27%2312121a%27 width=%27400%27 height=%27180%27/%3E%3Ctext x=%27200%27 y=%2795%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2718%27%3EBRAK ZDJECIA%3C/text%3E%3C/svg%3E'
 
     # Koszt brutto/szt = własna cena produktu (jednostkowa z importu)
     # Fallback na średnią z palety tylko gdy produkt nie ma własnej ceny
@@ -961,7 +956,7 @@ def produkt(code):
     
     html += f'''
     <div class="card">
-        <img src="{img}" class="card-img" onerror="this.src='https://via.placeholder.com/400x180/12121a/fff?text=BRAK'">
+        <img src="{img}" class="card-img" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27400%27 height=%27180%27%3E%3Crect fill=%27%2312121a%27 width=%27400%27 height=%27180%27/%3E%3Ctext x=%27200%27 y=%2795%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2718%27%3EBRAK ZDJECIA%3C/text%3E%3C/svg%3E'">
         <div class="card-body">
             <div class="card-name">{p['nazwa']}</div>
             
@@ -1876,11 +1871,11 @@ def szukaj():
     html = f'''<div class="hdr"><h1>🔍 WYNIKI</h1><small>"{q}"</small></div>'''
     
     for r in results:
-        img = r['zdjecie_url'] or 'https://via.placeholder.com/45'
+        img = r['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
         pcode = get_product_code(r)
         display_code = r['ean'] or r['asin'] or f"#{r['id']}"
         html += f'''<a href="/magazyn/produkt/{pcode}" class="item">
-            <img src="{img}" onerror="this.src='https://via.placeholder.com/45'">
+            <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
             <div class="item-info">
                 <div class="item-name">{r['nazwa']}</div>
                 <div class="item-meta">{display_code}</div>
@@ -3708,11 +3703,11 @@ def paleta_detail_by_id(paleta_id):
     html += '<div class="section">PRODUKTY</div>'
     
     for p in products:
-        img = p['zdjecie_url'] or 'https://via.placeholder.com/45'
+        img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
         pcode = get_product_code(p)
         display_code = p['ean'] or p['asin'] or f"#{p['id']}"
         html += f'''<a href="/magazyn/produkt/{pcode}" class="item">
-            <img src="{img}" onerror="this.src='https://via.placeholder.com/45'">
+            <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
             <div class="item-info">
                 <div class="item-name">{p['nazwa'][:35]}...</div>
                 <div class="item-meta">{display_code} | {p['ilosc']} szt</div>
@@ -3860,7 +3855,7 @@ def paleta_detail(n):
         html += '</div>'
     
     for p in products:
-        img = p['zdjecie_url'] or 'https://via.placeholder.com/45'
+        img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
         pcode = get_product_code(p)
         display_code = p['ean'] or p['asin'] or f"#{p['id']}"
         
@@ -3868,7 +3863,7 @@ def paleta_detail(n):
         cena_za_sztuke = p['cena_netto'] if p['cena_netto'] and p['cena_netto'] > 0 else (p['cena_brutto'] or 0)
         
         html += f'''<a href="/magazyn/produkt/{pcode}" class="item">
-            <img src="{img}" onerror="this.src='https://via.placeholder.com/45'">
+            <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
             <div class="item-info">
                 <div class="item-name">{p['nazwa'][:30]}...</div>
                 <div class="item-meta">{display_code} • Zakup: {cena_za_sztuke:.2f} zł/szt</div>
@@ -4264,11 +4259,11 @@ def dostawca_detail(n):
     html = f'''<div class="hdr"><h1>🚚 {nazwa_dostawcy}</h1><small>{len(products)} produktów</small></div>'''
     
     for p in products:
-        img = p['zdjecie_url'] or 'https://via.placeholder.com/45'
+        img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
         pcode = get_product_code(p)
         display_code = p['ean'] or p['asin'] or f"#{p['id']}"
         html += f'''<a href="/magazyn/produkt/{pcode}" class="item">
-            <img src="{img}" onerror="this.src='https://via.placeholder.com/45'">
+            <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
             <div class="item-info">
                 <div class="item-name">{p['nazwa'][:30]}...</div>
                 <div class="item-meta">{display_code} | 📦 {p['paleta'] or '—'}</div>
@@ -6860,9 +6855,10 @@ def api_autowycena_paleta_stream(paleta_id):
 
 @magazynier_bp.route('/api/rescrape-image/<int:product_id>', methods=['POST'])
 def api_rescrape_image(product_id):
-    """Rescrape zdjęcia dla produktu z Amazona — szybka odpowiedź + scrape w tle"""
+    """Rescrape zdjęcia dla produktu z Amazona"""
     from modules.database import get_db
-    import os, threading
+    from modules.utils import scrape_amazon_product
+    import os, requests as _req
 
     conn = get_db()
     p = conn.execute('SELECT id, asin, nazwa, zdjecie_url FROM produkty WHERE id = ?', (product_id,)).fetchone()
@@ -6873,33 +6869,21 @@ def api_rescrape_image(product_id):
     if not asin or len(asin) < 10:
         return jsonify({'ok': False, 'error': 'Brak ASIN — nie mozna pobrac zdjecia'})
 
-    # Szybko: ustaw Amazon CDN URL od razu (działa natychmiast)
-    cdn_url = f'https://m.media-amazon.com/images/I/{asin}._AC_SL1500_.jpg'
-    conn.execute('UPDATE produkty SET zdjecie_url = ? WHERE id = ?', (cdn_url, product_id))
-    conn.commit()
+    try:
+        data = scrape_amazon_product(asin)
+        if data and data.get('image_url'):
+            img_url = data['image_url']
+            all_images = data.get('all_images', []) or [img_url]
 
-    # W tle: scrape prawdziwe zdjęcia i podmień na lokalne
-    def _bg_scrape(pid, asin_code):
-        try:
-            import time
-            time.sleep(1)  # daj czas na response
-            from modules.database import get_db as _gdb
-            from modules.utils import scrape_amazon_product
-            import requests as _req
-
-            data = scrape_amazon_product(asin_code)
-            if not data or not data.get('image_url'):
-                return
-
-            all_images = data.get('all_images', []) or [data['image_url']]
-            asin_dir = os.path.join('static', 'downloads', asin_code)
+            # Pobierz lokalnie
+            asin_dir = os.path.join('static', 'downloads', asin)
             os.makedirs(asin_dir, exist_ok=True)
 
             _headers = {'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.google.com/'}
             local_img = ''
-            for idx, url in enumerate(all_images[:8], 1):
+            for idx, url in enumerate(all_images[:5], 1):
                 try:
-                    resp = _req.get(url, headers=_headers, timeout=15)
+                    resp = _req.get(url, headers=_headers, timeout=10)
                     if resp.status_code == 200 and len(resp.content) > 500:
                         path = os.path.join(asin_dir, f'image_{idx}.jpg')
                         with open(path, 'wb') as f:
@@ -6909,17 +6893,14 @@ def api_rescrape_image(product_id):
                 except:
                     pass
 
-            if local_img:
-                _conn = _gdb()
-                _conn.execute('UPDATE produkty SET zdjecie_url = ? WHERE id = ?', (local_img, pid))
-                _conn.commit()
-                print(f'📸 BG scrape done: {asin_code} -> {local_img}')
-        except Exception as e:
-            print(f'📸 BG scrape error: {e}')
-
-    threading.Thread(target=_bg_scrape, args=(product_id, asin), daemon=True).start()
-
-    return jsonify({'ok': True, 'img': cdn_url, 'count': 1, 'note': 'CDN + scrape w tle'})
+            final_url = local_img or img_url
+            conn.execute('UPDATE produkty SET zdjecie_url = ? WHERE id = ?', (final_url, product_id))
+            conn.commit()
+            return jsonify({'ok': True, 'img': final_url, 'count': len(all_images)})
+        else:
+            return jsonify({'ok': False, 'error': 'Amazon nie zwrocil zdjec — sprobuj ponownie'})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)[:200]})
 
 
 @magazynier_bp.route('/api/gpsr/<int:product_id>')

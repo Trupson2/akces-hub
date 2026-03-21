@@ -832,8 +832,9 @@ h1 {{ font-size:18px; text-align:center; margin-bottom:4px; }}
         names_html = ''
         locs_html = ''
         for p in z['produkty']:
-            img_src = p['zdjecie_url'] or 'https://via.placeholder.com/50'
-            imgs_html += f'<img src="{img_src}" onerror="this.src=\'https://via.placeholder.com/50\'">'
+            _placeholder = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Crect fill='%2312121a' width='50' height='50'/%3E%3Ctext x='25' y='30' fill='%23555' text-anchor='middle' font-size='16'%3E📦%3C/text%3E%3C/svg%3E"
+            img_src = p['zdjecie_url'] or _placeholder
+            imgs_html += f'<img src="{img_src}" onerror="this.src=\'{_placeholder}\'">'
             qty_str = f' <b>(×{p["qty"]})</b>' if p['qty'] > 1 else ''
             names_html += f'<div class="name">{p["name"][:60]}{qty_str}</div>'
             if p['lokalizacja']:
