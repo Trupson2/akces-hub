@@ -1,10 +1,10 @@
-version: "2"
+version: "3"
 tunnels:
   akceshub:
     addr: 5000
     proto: http
-    domain: akceshub.ngrok.dev
+    url: https://akceshub.ngrok.dev
   regaly:
     addr: 5000
     proto: http
-    domain: unsatiating-dirgelike-audrina.ngrok-free.dev
+    url: https://unsatiating-dirgelike-audrina.ngrok-free.dev
