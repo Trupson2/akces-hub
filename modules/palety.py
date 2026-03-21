@@ -1911,7 +1911,7 @@ def paleta_bulk_import():
         div.innerHTML = `
             <button type="button" onclick="removePaleta(${i})" style="position:absolute;top:10px;right:10px;background:var(--red-soft);border:none;border-radius:8px;color:var(--red);padding:4px 10px;cursor:pointer;font-size:0.8rem">✕</button>
 
-            <div style="font-weight:600;color:var(--blue);margin-bottom:10px;font-size:0.9rem">📦 Paleta #${i+1}</div>
+            <div id="slot-title-${i}" style="font-weight:600;color:var(--blue);margin-bottom:10px;font-size:0.9rem">📦 Paleta #${i+1}</div>
 
             <div style="margin-bottom:10px">
                 <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px">📁 Plik Excel</label>
@@ -1930,7 +1930,7 @@ def paleta_bulk_import():
                 </div>
                 <div>
                     <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px">Typ</label>
-                    <select name="typ_${i}" class="form-control">
+                    <select name="typ_${i}" class="form-control" onchange="updateSlotType(${i}, this.value)">
                         <option value="paleta">📦 Paleta</option>
                         <option value="box">📫 Box</option>
                     </select>
@@ -1957,6 +1957,19 @@ def paleta_bulk_import():
         if (nameField && !nameField.value && input.files.length) {
             // Auto-fill nazwa z pliku (bez rozszerzenia)
             nameField.placeholder = input.files[0].name.replace(/\\.[^.]+$/, '');
+        }
+    }
+
+    function updateSlotType(i, typ) {
+        const title = document.getElementById('slot-title-' + i);
+        if (title) {
+            if (typ === 'box') {
+                title.innerHTML = '📫 Box #' + (i+1);
+                title.style.color = '#f59e0b';
+            } else {
+                title.innerHTML = '📦 Paleta #' + (i+1);
+                title.style.color = 'var(--blue)';
+            }
         }
     }
 
