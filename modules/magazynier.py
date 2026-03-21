@@ -6943,135 +6943,133 @@ def api_autowycena_paleta(paleta_id):
 
 @magazynier_bp.route('/api/autowycena-stream/paleta/<int:paleta_id>', methods=['POST'])
 def api_autowycena_paleta_stream(paleta_id):
-    """Auto-wycena STREAMOWANA — nie timeoutuje przeglądarki"""
-    from .utils import scrape_amazon_product, optimize_title_allegro
+    """Auto-wycena STREAMOWANA — Gemini AI batch wycena"""
+    from .utils import optimize_title_allegro
     import json
     import time
+    import re
+    import requests as _req
 
     def generate():
         conn = get_db()
+        from modules.database import get_config
+        gemini_key = get_config('gemini_api_key', '')
+
         produkty = conn.execute(
             'SELECT id, asin, nazwa, ilosc, cena_brutto, cena_allegro, paleta_id FROM produkty WHERE paleta_id = ?',
             (paleta_id,)
         ).fetchall()
 
-        paleta_koszt_szt = _paleta_koszt_szt(conn, paleta_id)
         total = len(produkty)
-
         stats = {
             'type': 'done', 'total': total, 'updated': 0,
             'from_amazon': 0, 'from_estimate': 0,
             'titles_optimized': 0, 'errors': 0
         }
 
-        for i, p in enumerate(produkty, 1):
-            asin = p['asin']
-            nazwa = p['nazwa'] or ''
-            cena_brutto_szt = float(p['cena_brutto'] or 0) if p['cena_brutto'] and float(p['cena_brutto'] or 0) > 0 else 0
-            if cena_brutto_szt == 0 and paleta_koszt_szt > 0:
-                cena_brutto_szt = paleta_koszt_szt
+        # Batch Gemini AI — po 15 produktów
+        BATCH_SIZE = 15
+        batches = [produkty[i:i+BATCH_SIZE] for i in range(0, len(produkty), BATCH_SIZE)]
+        processed = 0
 
-            cena_allegro = None
-            nowa_nazwa = None
-            zrodlo = None
+        for batch_idx, batch in enumerate(batches):
+            # Zbuduj listę produktów do wyceny
+            prod_list = []
+            for p in batch:
+                nazwa = p['nazwa'] or f'Produkt #{p["id"]}'
+                prod_list.append(f'{p["id"]}. {nazwa} (szt: {p["ilosc"] or 1})')
 
-            # Próbuj Amazon (z krótkim timeout)
-            if asin:
+            prompt = f"""Jesteś ekspertem sprzedaży na Allegro.pl. Dla każdego produktu podaj realistyczną cenę sprzedaży na Allegro w PLN.
+Uwzględnij: stan nowy, koszty wysyłki wliczone, prowizję Allegro.
+Podaj cenę za którą REALNIE się sprzedaje (nie za wysoką, nie za niską).
+
+Produkty:
+{chr(10).join(prod_list)}
+
+Odpowiedz w formacie (TYLKO to, bez dodatkowego tekstu):
+ID:CENA
+np:
+123:299
+456:89.99"""
+
+            ai_prices = {}
+
+            if gemini_key:
                 try:
-                    amazon_data = scrape_amazon_product(asin)
-                    if amazon_data:
-                        if amazon_data.get('price'):
-                            cena_amazon = amazon_data['price']
-                            cena_pln = _amazon_price_to_pln(cena_amazon, amazon_data.get('domain'))
-                            cena_allegro = round(cena_pln * 0.85, 2)
-                            zrodlo = 'amazon'
-                            stats['from_amazon'] += 1
-
-                        amazon_title = amazon_data.get('title', '')
-                        if amazon_title:
-                            nowa_nazwa = optimize_title_allegro(amazon_title)
-                            if nowa_nazwa and nowa_nazwa != nazwa:
-                                stats['titles_optimized'] += 1
+                    api_url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}'
+                    resp = _req.post(
+                        api_url,
+                        json={'contents': [{'parts': [{'text': prompt}]}]},
+                        timeout=30
+                    )
+                    if resp.status_code == 200:
+                        ai_text = resp.json().get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
+                        for line in ai_text.strip().split('\n'):
+                            line = line.strip()
+                            m = re.match(r'(\d+)\s*[:\-]\s*(\d+(?:[.,]\d+)?)', line)
+                            if m:
+                                pid = int(m.group(1))
+                                price = float(m.group(2).replace(',', '.'))
+                                if 1 < price < 50000:
+                                    ai_prices[pid] = round(price * 0.95, 2)
                 except Exception as e:
-                    print(f"[Auto-wycena] Błąd {asin}: {e}")
+                    print(f"[Auto-wycena] Gemini batch error: {e}")
+                    stats['errors'] += 1
 
-                time.sleep(0.3)
+            # Zapisz wyniki
+            for p in batch:
+                processed += 1
+                nazwa = p['nazwa'] or ''
+                cena_allegro = ai_prices.get(p['id'])
+                nowa_nazwa = None
+                zrodlo = 'gemini' if cena_allegro else None
 
-            # Fallback cena z mnożnika
-            if not cena_allegro and cena_brutto_szt > 0:
-                cena_allegro = round(cena_brutto_szt * 2.5, 2)
-                zrodlo = 'estimate'
-                stats['from_estimate'] += 1
-
-            # Fallback: Gemini AI wycena po nazwie (gdy brak ASIN i brak ceny)
-            if not cena_allegro and nazwa:
-                try:
-                    from modules.database import get_config
-                    gemini_key = get_config('gemini_api_key', '')
-                    if gemini_key:
-                        import requests as _req
-                        resp = _req.post(
-                            f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}',
-                            json={'contents': [{'parts': [{'text': f'Podaj realistyczną cenę sprzedaży na Allegro.pl w PLN dla produktu: "{nazwa}". Odpowiedz TYLKO liczbą w PLN, np: 299. Bez waluty, bez tekstu.'}]}]},
-                            timeout=10
-                        )
-                        if resp.status_code == 200:
-                            ai_text = resp.json().get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '').strip()
-                            import re
-                            price_match = re.search(r'(\d+(?:[.,]\d+)?)', ai_text)
-                            if price_match:
-                                ai_price = float(price_match.group(1).replace(',', '.'))
-                                if 5 < ai_price < 50000:
-                                    cena_allegro = round(ai_price, 2)
-                                    zrodlo = 'gemini'
-                                    stats['from_estimate'] += 1
-                except Exception as e:
-                    print(f"[Auto-wycena] Gemini fallback error: {e}")
-
-            # Fallback tytuł
-            if not nowa_nazwa and nazwa:
-                try:
-                    nowa_nazwa = optimize_title_allegro(nazwa)
-                    if nowa_nazwa and nowa_nazwa != nazwa:
-                        stats['titles_optimized'] += 1
-                    else:
-                        nowa_nazwa = None
-                except Exception:
-                    nowa_nazwa = None
-
-            # Zapisz do DB
-            try:
-                updates = []
-                params = []
                 if cena_allegro:
-                    updates.append('cena_allegro = ?')
-                    params.append(cena_allegro)
-                if nowa_nazwa:
-                    updates.append('nazwa = ?')
-                    params.append(nowa_nazwa)
-                if updates:
-                    # updates contains only whitelisted 'column = ?' fragments (cena_allegro, nazwa)
-                    ALLOWED_SET_CLAUSES = {'cena_allegro = ?', 'nazwa = ?'}
-                    if not all(u in ALLOWED_SET_CLAUSES for u in updates):
-                        continue
-                    params.append(p['id'])
-                    conn.execute("UPDATE produkty SET " + ', '.join(updates) + " WHERE id = ?", params)
-                    conn.commit()
-                    stats['updated'] += 1
-            except Exception as e:
-                print(f"[Auto-wycena] Błąd zapisu {p['id']}: {e}")
-                stats['errors'] += 1
+                    stats['from_estimate'] += 1
 
-            # Wyślij progress do przeglądarki
-            ev = {
-                'type': 'progress',
-                'current': i,
-                'total': total,
-                'name': (nazwa or f'Produkt #{p["id"]}')[:50],
-                'price': cena_allegro,
-                'source': zrodlo
-            }
-            yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
+                # Optymalizuj tytuł
+                if nazwa:
+                    try:
+                        nowa_nazwa = optimize_title_allegro(nazwa)
+                        if nowa_nazwa and nowa_nazwa != nazwa:
+                            stats['titles_optimized'] += 1
+                        else:
+                            nowa_nazwa = None
+                    except Exception:
+                        nowa_nazwa = None
+
+                # Zapisz do DB
+                try:
+                    updates = []
+                    params = []
+                    if cena_allegro:
+                        updates.append('cena_allegro = ?')
+                        params.append(cena_allegro)
+                    if nowa_nazwa:
+                        updates.append('nazwa = ?')
+                        params.append(nowa_nazwa)
+                    if updates:
+                        ALLOWED_SET_CLAUSES = {'cena_allegro = ?', 'nazwa = ?'}
+                        if not all(u in ALLOWED_SET_CLAUSES for u in updates):
+                            continue
+                        params.append(p['id'])
+                        conn.execute("UPDATE produkty SET " + ', '.join(updates) + " WHERE id = ?", params)
+                        conn.commit()
+                        stats['updated'] += 1
+                except Exception as e:
+                    print(f"[Auto-wycena] Błąd zapisu {p['id']}: {e}")
+                    stats['errors'] += 1
+
+                # Wyślij progress
+                ev = {
+                    'type': 'progress',
+                    'current': processed,
+                    'total': total,
+                    'name': (nazwa or f'Produkt #{p["id"]}')[:50],
+                    'price': cena_allegro,
+                    'source': zrodlo
+                }
+                yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
 
         # Podsumowanie
         yield f"data: {json.dumps(stats, ensure_ascii=False)}\n\n"
