@@ -3317,6 +3317,7 @@ def palety():
         <button onclick="massUpdate(1)" style="padding:6px 12px;background:#22c55e22;border:1px solid #22c55e;border-radius:8px;color:#22c55e;font-size:0.8rem;cursor:pointer;font-weight:600">✅ Dostarczone</button>
         <button onclick="massUpdate(0)" style="padding:6px 12px;background:#f59e0b22;border:1px solid #f59e0b;border-radius:8px;color:#f59e0b;font-size:0.8rem;cursor:pointer;font-weight:600">🚚 W drodze</button>
         <button onclick="massDelete()" style="padding:6px 12px;background:#ef444422;border:1px solid #ef4444;border-radius:8px;color:#ef4444;font-size:0.8rem;cursor:pointer;font-weight:600">🗑️ Usuń</button>
+        <button onclick="pokazBoxPaletyModal()" style="padding:6px 12px;background:#f59e0b22;border:1px solid #f59e0b;border-radius:8px;color:#f59e0b;font-size:0.8rem;cursor:pointer;font-weight:600">📫 Zgrupuj w box</button>
         <span id="selectedCount" style="font-size:0.75rem;color:#64748b;margin-left:4px">(0 zaznaczonych)</span>
     </div>
     <div style="margin-bottom:12px">
@@ -3476,7 +3477,74 @@ def palety():
             items[i].style.display = (!q || text.toLowerCase().indexOf(q) >= 0) ? "" : "none";
         }
     }
-    </script>'''
+
+    function pokazBoxPaletyModal() {
+        var ids = getSelectedIds();
+        if (ids.length < 1) { alert("Zaznacz palety do zgrupowania w box"); return; }
+        var names = [];
+        ids.forEach(function(id) {
+            var cb = document.querySelector('.paleta-cb[data-id="'+id+'"]');
+            if (cb) {
+                var item = cb.closest('.item');
+                var name = item ? item.querySelector('.item-name') : null;
+                names.push(name ? name.textContent.trim().substring(0, 40) : '#'+id);
+            }
+        });
+        document.getElementById('boxPaletyList').innerHTML = names.map(function(n){return '<div style="padding:4px 0;border-bottom:1px solid var(--border);font-size:0.82rem">'+n+'</div>'}).join('');
+        document.getElementById('boxPaletyIds').value = JSON.stringify(ids);
+        document.getElementById('boxPaletyCount').textContent = ids.length;
+        document.getElementById('boxPaletyNazwa').value = '';
+        document.getElementById('boxPaletyCena').value = '';
+        document.getElementById('modalBoxPalety').style.display = 'flex';
+    }
+
+    function zapiszBoxPalety() {
+        var ids = JSON.parse(document.getElementById('boxPaletyIds').value);
+        var nazwa = document.getElementById('boxPaletyNazwa').value.trim();
+        var cena = parseFloat(document.getElementById('boxPaletyCena').value) || 0;
+        if (!nazwa) { alert('Podaj nazwę boxa'); return; }
+        var btn = document.getElementById('boxPaletySaveBtn');
+        btn.disabled = true; btn.textContent = '⏳ Tworzę...';
+        fetch('/magazyn/api/zgrupuj-palety-box', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({paleta_ids: ids, nazwa: nazwa, cena_sprzedazy: cena})
+        }).then(function(r){return r.json()}).then(function(d) {
+            if (d.ok) {
+                btn.textContent = '✅ Utworzono!';
+                setTimeout(function(){ window.location.href = '/palety/' + d.box_id; }, 800);
+            } else {
+                btn.textContent = '❌ ' + (d.error||'Błąd'); btn.disabled = false;
+            }
+        }).catch(function(e){ btn.textContent = '❌ ' + e.message; btn.disabled = false; });
+    }
+    </script>
+
+    <!-- Modal: Zgrupuj palety w Box -->
+    <div id="modalBoxPalety" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center">
+        <div style="background:var(--bg-card);border-radius:14px;padding:25px;max-width:450px;width:90%;max-height:80vh;overflow-y:auto;border:2px solid #f59e0b">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
+                <h3 style="margin:0;color:#f59e0b">📫 Zgrupuj w Box</h3>
+                <button onclick="document.getElementById('modalBoxPalety').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer">&times;</button>
+            </div>
+            <div style="margin-bottom:12px;padding:10px;background:#12121a;border-radius:10px">
+                <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:5px">Palety (<span id="boxPaletyCount">0</span>):</div>
+                <div id="boxPaletyList" style="max-height:120px;overflow-y:auto"></div>
+            </div>
+            <input type="hidden" id="boxPaletyIds" value="[]">
+            <div style="margin-bottom:10px">
+                <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">Nazwa boxa</label>
+                <input type="text" id="boxPaletyNazwa" placeholder="np. Box mix elektronika" style="width:100%;padding:10px;background:#12121a;border:1px solid #1e293b;border-radius:8px;color:#e2e8f0">
+            </div>
+            <div style="margin-bottom:15px">
+                <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">🛒 Cena sprzedaży (zł)</label>
+                <input type="number" id="boxPaletyCena" placeholder="Cena na Allegro" step="0.01" style="width:100%;padding:10px;background:#12121a;border:1px solid #1e293b;border-radius:8px;color:#e2e8f0">
+            </div>
+            <button id="boxPaletySaveBtn" onclick="zapiszBoxPalety()" style="width:100%;padding:12px;background:#f59e0b;border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer;font-size:1rem">
+                📫 Utwórz Box
+            </button>
+        </div>
+    </div>'''
     html += '<a href="/magazyn" class="back">← Powrót</a>'
     return render(html)
 

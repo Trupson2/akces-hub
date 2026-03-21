@@ -1731,13 +1731,47 @@ def paleta_bulk_import():
 
                     wyniki.append({
                         'nazwa': nazwa, 'status': 'ok', 'paleta_id': paleta_id,
-                        'produkty': produkty_dodane, 'plik': file.filename
+                        'produkty': produkty_dodane, 'plik': file.filename, 'typ': typ
                     })
 
                 except Exception as e:
                     wyniki.append({'nazwa': nazwa or file.filename, 'status': 'error', 'msg': str(e)[:80]})
 
             conn.commit()
+
+            # 📫 MERGE BOXES: jeśli user zaznaczył "Połącz wszystkie boxy w jeden"
+            merge_boxes = request.form.get('merge_boxes', '0') == '1'
+            if merge_boxes:
+                box_wyniki = [w for w in wyniki if w['status'] == 'ok' and w.get('typ') == 'box']
+                if len(box_wyniki) >= 2:
+                    merged_nazwa = request.form.get('merged_box_nazwa', '').strip() or 'Box mix'
+                    # Pierwszy box zostaje jako główny
+                    main_box_id = box_wyniki[0]['paleta_id']
+                    conn.execute('UPDATE palety SET nazwa = ? WHERE id = ?', (merged_nazwa, main_box_id))
+                    # Przenieś produkty z pozostałych boxów do głównego
+                    total_merged = 0
+                    for bw in box_wyniki[1:]:
+                        moved = conn.execute('UPDATE produkty SET paleta_id = ? WHERE paleta_id = ?',
+                                           (main_box_id, bw['paleta_id'])).rowcount
+                        total_merged += moved
+                        # Dodaj cenę zakupu do głównego boxa
+                        sub_cena = conn.execute('SELECT cena_zakupu FROM palety WHERE id = ?', (bw['paleta_id'],)).fetchone()
+                        if sub_cena and sub_cena[0]:
+                            conn.execute('UPDATE palety SET cena_zakupu = cena_zakupu + ? WHERE id = ?',
+                                       (sub_cena[0], main_box_id))
+                        # Usuń pusty box
+                        conn.execute('DELETE FROM palety WHERE id = ?', (bw['paleta_id'],))
+                        bw['status'] = 'merged'
+                    # Przelicz ilości w głównym boxie
+                    new_count = conn.execute('SELECT COUNT(*) FROM produkty WHERE paleta_id = ?', (main_box_id,)).fetchone()[0]
+                    new_sztuk = conn.execute('SELECT COALESCE(SUM(ilosc), 0) FROM produkty WHERE paleta_id = ?', (main_box_id,)).fetchone()[0]
+                    conn.execute('UPDATE palety SET ilosc_produktow = ?, ilosc_sztuk = ? WHERE id = ?',
+                               (new_count, new_sztuk, main_box_id))
+                    conn.commit()
+                    # Zaktualizuj wynik głównego boxa
+                    box_wyniki[0]['nazwa'] = merged_nazwa
+                    box_wyniki[0]['produkty'] = new_count
+                    print(f"📫 Merged {len(box_wyniki)} boxes into '{merged_nazwa}' (id={main_box_id}, {new_count} products)")
 
             # 📋 Dodaj produkty z ASIN do tabeli scraped (żeby pojawiły się w generatorze ofert)
             scrape_count = 0
@@ -1788,10 +1822,20 @@ def paleta_bulk_import():
             if scrape_count > 0:
                 results_html += f'<div style="padding:10px;background:var(--green-soft);border-radius:10px;margin-bottom:12px;font-size:0.85rem">🚜 Auto-scraping uruchomiony dla <b>{scrape_count}</b> produktów z ASIN. Zdjęcia pojawią się w tle.</div>'
             for w in wyniki:
-                if w['status'] == 'ok':
+                if w['status'] == 'merged':
+                    results_html += f'''
+                    <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#f59e0b11;border:1px solid #f59e0b44;border-radius:10px;margin-bottom:8px">
+                        <div style="font-size:1.5rem">📫</div>
+                        <div style="flex:1">
+                            <div style="font-weight:600;color:#f59e0b">{w['nazwa']}</div>
+                            <div style="font-size:0.8rem;color:var(--text-muted)">Połączono z głównym boxem • {w['plik']}</div>
+                        </div>
+                    </div>'''
+                elif w['status'] == 'ok':
+                    typ_icon = '📫' if w.get('typ') == 'box' else '✅'
                     results_html += f'''
                     <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--green-soft);border:1px solid rgba(34,197,94,0.3);border-radius:10px;margin-bottom:8px">
-                        <div style="font-size:1.5rem">✅</div>
+                        <div style="font-size:1.5rem">{typ_icon}</div>
                         <div style="flex:1">
                             <div style="font-weight:600">{w['nazwa']}</div>
                             <div style="font-size:0.8rem;color:var(--text-muted)">{w['produkty']} produktów • {w['plik']}</div>
@@ -1887,6 +1931,17 @@ def paleta_bulk_import():
         ➕ DODAJ PALETĘ
     </button>
 
+    <div id="merge-box-option" style="display:none;margin-bottom:12px;padding:14px;background:#f59e0b11;border:1px solid #f59e0b44;border-radius:12px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;color:#f59e0b;font-weight:600">
+            <input type="checkbox" name="merge_boxes" value="1" style="width:18px;height:18px;accent-color:#f59e0b">
+            📫 Połącz wszystkie boxy w jeden
+        </label>
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:5px;margin-left:28px">Produkty z wszystkich plików typu "Box" trafią do jednego boxa</div>
+        <div style="margin-top:8px;margin-left:28px">
+            <input type="text" name="merged_box_nazwa" placeholder="Nazwa boxa np. Box mix peruki" style="padding:8px 12px;background:#12121a;border:1px solid #1e293b;border-radius:8px;color:#e2e8f0;width:300px;font-size:0.85rem">
+        </div>
+    </div>
+
     <button type="submit" id="submit-btn" disabled class="btn btn-success" style="font-size:1.1rem;padding:16px;opacity:0.5">
         📥 IMPORTUJ WSZYSTKIE
     </button>
@@ -1971,6 +2026,7 @@ def paleta_bulk_import():
                 title.style.color = 'var(--blue)';
             }
         }
+        updateSubmitBtn();
     }
 
     function updateSubmitBtn() {
@@ -1979,6 +2035,16 @@ def paleta_bulk_import():
         btn.disabled = rows.length === 0;
         btn.style.opacity = rows.length === 0 ? '0.5' : '1';
         btn.textContent = rows.length === 0 ? '📥 DODAJ PALETY POWYŻEJ' : '📥 IMPORTUJ ' + rows.length + ' PALET';
+        // Pokaż opcję "Połącz w jeden box" jeśli >1 slot z typem box
+        let boxCount = 0;
+        rows.forEach(function(row) {
+            const sel = row.querySelector('select[name^="typ_"]');
+            if (sel && sel.value === 'box') boxCount++;
+        });
+        const mergeDiv = document.getElementById('merge-box-option');
+        if (mergeDiv) {
+            mergeDiv.style.display = boxCount >= 2 ? 'block' : 'none';
+        }
     }
 
     // Dodaj pierwszą od razu
