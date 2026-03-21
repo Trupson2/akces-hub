@@ -3059,29 +3059,15 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                 'progress': f'Analizuję batch {batch_idx+1}/{len(batches)} ({len(batch)} produktów)...'
             }
 
-            # Pre-processing: jeśli nazwa wygląda na kod (EAN/ASIN/numer), spróbuj scrapnąć z Amazona
+            # Pre-processing: rozpoznaj ASIN w nazwie (bez scrapingu — AI sam rozpozna)
             import re as _re_pre
             for p in batch:
                 nazwa = p.get('nazwa', '')
-                # Sprawdź czy nazwa to sam kod (cyfry, myślniki, brak spacji/liter)
-                is_code = bool(_re_pre.match(r'^[\d\-\.\/\s]{5,}$', nazwa.strip()))
                 asin_val = p.get('asin', '')
                 # Jeśli nazwa to ASIN (B0...), przenieś do pola asin
                 if _re_pre.match(r'^B0[A-Z0-9]{8,10}$', nazwa.strip().upper()):
                     if not asin_val:
                         p['asin'] = nazwa.strip().upper()
-                    is_code = True
-                # Jeśli mamy ASIN, spróbuj scrapnąć prawdziwą nazwę
-                if is_code and p.get('asin'):
-                    try:
-                        from modules.utils import scrape_amazon_product
-                        amazon = scrape_amazon_product(p['asin'])
-                        if amazon and amazon.get('title'):
-                            p['nazwa_oryginalna'] = nazwa
-                            p['nazwa'] = amazon['title'][:120]
-                            print(f"[Analizator] ASIN {p['asin']} -> {p['nazwa'][:60]}")
-                    except Exception as _e:
-                        print(f"[Analizator] Scrape fail {p.get('asin')}: {_e}")
 
             # Buduj prompt dla batcha
             has_codes = any(bool(_re_pre.match(r'^[\d\-\.\/\s]{5,}$', p.get('nazwa','').strip())) for p in batch)
