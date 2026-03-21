@@ -3197,6 +3197,50 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                 'progress': f'✅ Batch {batch_idx+1}/{len(batches)} gotowy ({pct}%) — {len(all_results)} produktów przeanalizowanych'
             }
 
+        # === WERYFIKACJA CEN Z ALLEGRO API ===
+        try:
+            from modules.paletomat import _search_allegro_prices
+            _pallet_analysis_jobs[job_id] = {
+                'status': 'running',
+                'progress': f'🔍 Weryfikuję ceny na Allegro (0/{len(all_results)})...'
+            }
+            allegro_verified = 0
+            allegro_corrected = 0
+            for ri, r in enumerate(all_results):
+                try:
+                    ean = r.get('ean', '') or ''
+                    nazwa = r.get('nazwa', '') or ''
+                    prices = _search_allegro_prices(ean=ean, nazwa=nazwa)
+                    if prices:
+                        # Mediana cen z Allegro
+                        prices.sort()
+                        median_price = prices[len(prices)//2]
+                        r['cena_allegro_real'] = median_price
+                        r['allegro_ofert'] = len(prices)
+                        r['allegro_min'] = min(prices)
+                        r['allegro_max'] = max(prices)
+                        # Korekta: jeśli Gemini dał cenę > 30% różnicy od mediany
+                        gemini_cena = r.get('cena_allegro', 0) or 0
+                        if gemini_cena > 0 and abs(gemini_cena - median_price) / median_price > 0.3:
+                            r['cena_allegro_gemini'] = gemini_cena
+                            r['cena_allegro'] = round(median_price, 2)
+                            allegro_corrected += 1
+                        allegro_verified += 1
+                except Exception:
+                    pass
+                if (ri + 1) % 3 == 0 or ri == len(all_results) - 1:
+                    _pallet_analysis_jobs[job_id] = {
+                        'status': 'running',
+                        'progress': f'🔍 Weryfikuję ceny na Allegro ({ri+1}/{len(all_results)})... ✅ {allegro_verified} zweryfikowanych, 🔄 {allegro_corrected} skorygowanych'
+                    }
+                import time
+                time.sleep(0.3)  # Rate limit Allegro API
+            print(f'[Analizator] Allegro verification: {allegro_verified} verified, {allegro_corrected} corrected')
+        except ImportError:
+            print('[Analizator] Allegro API not available, skipping price verification')
+        except Exception as e:
+            print(f'[Analizator] Allegro verification error: {e}')
+
         # Podsumowanie — mnóż ceny przez ilość sztuk
         total_przychod = sum(r.get('cena_allegro', 0) * r.get('ilosc', 1) for r in all_results)
         prowizja = total_przychod * 0.11
@@ -3786,20 +3830,31 @@ def _get_render_results_js():
         products.forEach(function(p) { totalSzt += (p.ilosc || 1); });
         var h = '<div id="product-table-info" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px">' + products.length + ' typów, ' + totalSzt + ' szt.</div>';
         h += '<table style="width:100%;border-collapse:collapse;font-size:0.83rem"><thead><tr style="border-bottom:2px solid var(--border)">';
-        h += '<th style="padding:8px;text-align:left">#</th><th style="padding:8px;text-align:left">Produkt</th><th style="padding:8px">Szt.</th><th style="padding:8px">Cena Allegro</th><th style="padding:8px">Wartość</th><th style="padding:8px">RRP Amazon</th><th style="padding:8px">Popyt</th><th style="padding:8px">Czas</th><th style="padding:8px;text-align:left">Uwagi</th>';
+        h += '<th style="padding:8px;text-align:left">#</th><th style="padding:8px;text-align:left">Produkt</th><th style="padding:8px">Szt.</th><th style="padding:8px">Cena Allegro</th><th style="padding:8px">Wartość</th><th style="padding:8px">RRP Amazon</th><th style="padding:8px">Allegro real</th><th style="padding:8px">Popyt</th><th style="padding:8px">Czas</th><th style="padding:8px;text-align:left">Uwagi</th>';
         h += '</tr></thead><tbody>';
         products.forEach(function(p, idx) {
             var cena = p.cena_allegro || p.cena_sprzedazy || 0;
             var szt = p.ilosc || 1;
             var wartosc = cena * szt;
             var cenaAmz = p.cena_amazon_rpp || 0;
+            var corrected = p.cena_allegro_gemini ? true : false;
             h += '<tr style="border-bottom:1px solid var(--border)">';
             h += '<td style="padding:8px;color:var(--text-muted)">' + (idx+1) + '</td>';
             h += '<td style="padding:8px;font-weight:500;max-width:250px">' + (p.nazwa||'—') + '</td>';
             h += '<td style="padding:8px;text-align:center;font-weight:600">' + szt + '</td>';
-            h += '<td style="padding:8px;color:var(--green);text-align:center">' + cena.toFixed(0) + ' zł</td>';
+            if (corrected) {
+                h += '<td style="padding:8px;text-align:center"><span style="color:var(--green);font-weight:700">' + cena.toFixed(0) + ' zł</span><br><span style="text-decoration:line-through;color:var(--text-muted);font-size:0.7rem">AI: ' + p.cena_allegro_gemini.toFixed(0) + ' zł</span></td>';
+            } else {
+                h += '<td style="padding:8px;color:var(--green);text-align:center">' + cena.toFixed(0) + ' zł</td>';
+            }
             h += '<td style="padding:8px;font-weight:700;color:var(--green);text-align:center">' + wartosc.toFixed(0) + ' zł</td>';
             h += '<td style="padding:8px;color:var(--text-muted);text-align:center">' + (cenaAmz > 0 ? cenaAmz.toFixed(0) + ' zł' : '—') + '</td>';
+            // Allegro real column
+            if (p.cena_allegro_real) {
+                h += '<td style="padding:8px;text-align:center"><span style="color:#60a5fa;font-weight:600">' + p.cena_allegro_real.toFixed(0) + ' zł</span><br><span style="font-size:0.65rem;color:var(--text-muted)">' + (p.allegro_ofert||0) + ' ofert (' + (p.allegro_min||0).toFixed(0) + '-' + (p.allegro_max||0).toFixed(0) + ')</span></td>';
+            } else {
+                h += '<td style="padding:8px;text-align:center;color:var(--text-muted)">—</td>';
+            }
             var dc = demandClass(p.popyt);
             var dcColor = dc === 'demand-high' ? 'var(--green)' : dc === 'demand-low' ? 'var(--red)' : 'var(--orange)';
             h += '<td style="padding:8px;text-align:center"><span style="background:rgba(0,0,0,0.2);padding:3px 10px;border-radius:10px;font-size:0.75rem;font-weight:600;color:' + dcColor + '">' + (p.popyt||'?') + '</span></td>';
