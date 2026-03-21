@@ -669,6 +669,9 @@ def produkty():
                 <button type="submit" class="btn btn-ok" onclick="return confirm('Zastosować zmiany dla ' + document.getElementById('count').textContent + ' produktów?')" style="flex:1">
                     ✅ Zastosuj
                 </button>
+                <button type="button" onclick="pokazBoxModal()" class="btn" style="background:#f59e0b;color:#000;flex:1">
+                    📫 Zgrupuj w box
+                </button>
             </div>
             <div id="selected-count" style="margin-top:10px;color:#8b5cf6;font-size:0.85rem;font-weight:600">
                 Zaznaczono: <span id="count">0</span> produktów
@@ -750,8 +753,98 @@ def produkty():
     document.querySelectorAll('.product-checkbox').forEach(cb => {
         cb.addEventListener('click', (e) => e.stopPropagation());
     });
+
+    // === BOX GROUPING ===
+    function pokazBoxModal() {
+        const checked = document.querySelectorAll('.product-checkbox:checked');
+        if (checked.length < 2) { alert('Zaznacz minimum 2 produkty'); return; }
+
+        let listHtml = '';
+        let ids = [];
+        checked.forEach(cb => {
+            ids.push(cb.value);
+            const card = cb.closest('.prod-item') || cb.closest('a') || cb.parentElement;
+            const name = card ? card.textContent.substring(0, 60).trim() : 'Produkt #' + cb.value;
+            listHtml += '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.82rem;color:var(--text-secondary)">' + name.substring(0, 50) + '</div>';
+        });
+
+        document.getElementById('boxProdukty').innerHTML = listHtml;
+        document.getElementById('boxIds').value = JSON.stringify(ids);
+        document.getElementById('boxNazwa').value = 'Box #' + (Math.floor(Math.random()*900)+100);
+        document.getElementById('boxCena').value = '';
+        document.getElementById('boxCount').textContent = ids.length;
+        document.getElementById('modalBox').style.display = 'block';
+    }
+
+    function zapiszBox() {
+        const ids = JSON.parse(document.getElementById('boxIds').value);
+        const nazwa = document.getElementById('boxNazwa').value.trim();
+        const cena = parseFloat(document.getElementById('boxCena').value) || 0;
+        const cena_sprzedazy = parseFloat(document.getElementById('boxCenaSprzedazy').value) || 0;
+
+        if (!nazwa) { alert('Podaj nazwę boxa'); return; }
+        if (cena <= 0) { alert('Podaj cenę zakupu'); return; }
+
+        const btn = document.getElementById('boxSaveBtn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Tworzę...';
+
+        fetch('/magazyn/api/utworz-box', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1'},
+            body: JSON.stringify({product_ids: ids, nazwa: nazwa, cena_zakupu: cena, cena_sprzedazy: cena_sprzedazy})
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.ok) {
+                btn.textContent = '✅ Utworzono!';
+                setTimeout(() => { window.location.href = '/magazyn/paleta-id/' + d.box_id; }, 800);
+            } else {
+                btn.textContent = '❌ ' + (d.error || 'Błąd');
+                btn.disabled = false;
+            }
+        })
+        .catch(e => { btn.textContent = '❌ ' + e.message; btn.disabled = false; });
+    }
     </script>
-    
+
+    <!-- Modal: Zgrupuj w Box -->
+    <div id="modalBox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:none;align-items:center;justify-content:center">
+        <div style="background:var(--bg-card);border-radius:var(--radius);padding:25px;max-width:450px;width:90%;max-height:80vh;overflow-y:auto;border:2px solid #f59e0b">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
+                <h3 style="margin:0;color:#f59e0b">📫 Nowy Box</h3>
+                <button onclick="document.getElementById('modalBox').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer">&times;</button>
+            </div>
+
+            <div style="margin-bottom:12px;padding:10px;background:var(--bg);border-radius:var(--radius-sm)">
+                <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:5px">Produkty (<span id="boxCount">0</span> szt.):</div>
+                <div id="boxProdukty" style="max-height:150px;overflow-y:auto"></div>
+            </div>
+
+            <input type="hidden" id="boxIds" value="[]">
+
+            <div style="margin-bottom:10px">
+                <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">Nazwa boxa</label>
+                <input type="text" id="boxNazwa" class="form-input" placeholder="np. Box elektronika" style="width:100%">
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
+                <div>
+                    <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">💰 Cena zakupu (zł)</label>
+                    <input type="number" id="boxCena" class="form-input" placeholder="Koszt łączny" step="0.01" min="0" style="width:100%">
+                </div>
+                <div>
+                    <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">🛒 Cena sprzedaży (zł)</label>
+                    <input type="number" id="boxCenaSprzedazy" class="form-input" placeholder="Cena Allegro" step="0.01" min="0" style="width:100%">
+                </div>
+            </div>
+
+            <button id="boxSaveBtn" onclick="zapiszBox()" class="btn" style="width:100%;background:#f59e0b;color:#000;font-weight:700;padding:12px">
+                📫 Utwórz Box
+            </button>
+        </div>
+    </div>
+
     <a href="/magazyn" class="back">← Powrót</a>
     '''
     return render(html)
@@ -6930,6 +7023,73 @@ def api_rescrape_image(product_id):
 
     threading.Thread(target=_bg_scrape, args=(product_id, asin), daemon=True).start()
     return jsonify({'ok': True, 'img': '', 'note': 'Pobieranie w tle — odśwież za ~30s'})
+
+
+@magazynier_bp.route('/api/utworz-box', methods=['POST'])
+def api_utworz_box():
+    """Utwórz nowy box z zaznaczonych produktów"""
+    try:
+        data = request.get_json()
+        product_ids = data.get('product_ids', [])
+        nazwa = data.get('nazwa', '').strip()
+        cena_zakupu = float(data.get('cena_zakupu', 0))
+        cena_sprzedazy = float(data.get('cena_sprzedazy', 0))
+
+        if not product_ids or len(product_ids) < 2:
+            return jsonify({'ok': False, 'error': 'Zaznacz minimum 2 produkty'})
+        if not nazwa:
+            return jsonify({'ok': False, 'error': 'Podaj nazwę boxa'})
+        if cena_zakupu <= 0:
+            return jsonify({'ok': False, 'error': 'Podaj cenę zakupu'})
+
+        conn = get_db()
+
+        # Policz łączną ilość sztuk
+        placeholders = ','.join(['?' for _ in product_ids])
+        rows = conn.execute(
+            f'SELECT id, ilosc, dostawca FROM produkty WHERE id IN ({placeholders})',
+            product_ids
+        ).fetchall()
+
+        if not rows:
+            return jsonify({'ok': False, 'error': 'Nie znaleziono produktów'})
+
+        ilosc_produktow = len(rows)
+        ilosc_sztuk = sum(r['ilosc'] or 1 for r in rows)
+        dostawca = rows[0]['dostawca'] or ''
+
+        # Utwórz nową paletę typu 'box'
+        from datetime import datetime
+        conn.execute('''
+            INSERT INTO palety (nazwa, dostawca, cena_zakupu, ilosc_produktow, ilosc_sztuk,
+                               data_zakupu, data_dodania, typ, cena_zakupu_netto)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'box', ?)
+        ''', (
+            nazwa, dostawca, cena_zakupu, ilosc_produktow, ilosc_sztuk,
+            datetime.now().strftime('%Y-%m-%d'),
+            datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            round(cena_zakupu / 1.23, 2)
+        ))
+        box_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
+
+        # Przenieś produkty do boxa
+        conn.execute(
+            f'UPDATE produkty SET paleta_id = ?, paleta = ? WHERE id IN ({placeholders})',
+            [box_id, nazwa] + product_ids
+        )
+
+        # Ustaw cenę allegro jeśli podana
+        if cena_sprzedazy > 0:
+            conn.execute(
+                f'UPDATE produkty SET cena_allegro = ? WHERE id IN ({placeholders})',
+                [cena_sprzedazy] + product_ids
+            )
+
+        conn.commit()
+        return jsonify({'ok': True, 'box_id': box_id})
+
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)[:200]})
 
 
 @magazynier_bp.route('/api/check-image/<int:product_id>')
