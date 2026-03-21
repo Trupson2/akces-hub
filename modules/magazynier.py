@@ -7261,6 +7261,12 @@ def api_zgrupuj_palety_box():
                 (cena_sprzedazy, box_id)
             )
 
+        # Usuń stare puste palety (produkty już przeniesione do boxa)
+        conn.execute(
+            f'DELETE FROM palety WHERE id IN ({placeholders})',
+            paleta_ids
+        )
+
         conn.commit()
         return jsonify({'ok': True, 'box_id': box_id, 'produktow': total_prod, 'sztuk': total_szt})
 
