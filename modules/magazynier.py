@@ -515,9 +515,13 @@ def produkty():
         query += ' AND status = ?'
         params.append(filter_status)
     
-    if filter_paleta:
-        query += ' AND paleta = ?'
-        params.append(filter_paleta)
+    filter_paleta_id = request.args.get('paleta_id', '')
+    if filter_paleta_id:
+        query += ' AND paleta_id = ?'
+        params.append(int(filter_paleta_id))
+    elif filter_paleta:
+        query += ' AND (paleta = ? OR paleta_id IN (SELECT id FROM palety WHERE nazwa = ?))'
+        params.extend([filter_paleta, filter_paleta])
     
     if filter_dostawca:
         query += ' AND dostawca = ?'
@@ -773,7 +777,7 @@ def produkty():
         document.getElementById('boxNazwa').value = 'Box #' + (Math.floor(Math.random()*900)+100);
         document.getElementById('boxCena').value = '';
         document.getElementById('boxCount').textContent = ids.length;
-        document.getElementById('modalBox').style.display = 'block';
+        document.getElementById('modalBox').style.display = 'flex';
     }
 
     function zapiszBox() {
@@ -809,7 +813,7 @@ def produkty():
     </script>
 
     <!-- Modal: Zgrupuj w Box -->
-    <div id="modalBox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:none;align-items:center;justify-content:center">
+    <div id="modalBox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center">
         <div style="background:var(--bg-card);border-radius:var(--radius);padding:25px;max-width:450px;width:90%;max-height:80vh;overflow-y:auto;border:2px solid #f59e0b">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
                 <h3 style="margin:0;color:#f59e0b">📫 Nowy Box</h3>

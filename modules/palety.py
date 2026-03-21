@@ -1797,6 +1797,7 @@ def paleta_bulk_import():
                             <div style="font-size:0.8rem;color:var(--text-muted)">{w['produkty']} produktów • {w['plik']}</div>
                         </div>
                         <a href="/palety/{w['paleta_id']}" style="color:var(--blue);text-decoration:none;font-size:0.85rem">Otwórz →</a>
+                        <a href="/magazyn/produkty?paleta_id={w['paleta_id']}" style="color:#f59e0b;text-decoration:none;font-size:0.8rem;margin-left:8px" title="Zgrupuj produkty w box">📫 Box</a>
                     </div>'''
                 else:
                     results_html += f'''
