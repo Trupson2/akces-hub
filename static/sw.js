@@ -1,5 +1,5 @@
 // Service Worker dla Akces Hub PWA
-const CACHE_NAME = 'akces-hub-v2';
+const CACHE_NAME = 'akces-hub-v3';
 const OFFLINE_URL = '/offline';
 
 // Zasoby do cache'owania
