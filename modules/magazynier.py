@@ -3502,13 +3502,14 @@ def palety():
         var ids = JSON.parse(document.getElementById('boxPaletyIds').value);
         var nazwa = document.getElementById('boxPaletyNazwa').value.trim();
         var cena = parseFloat(document.getElementById('boxPaletyCena').value) || 0;
+        var cenaZakupu = parseFloat(document.getElementById('boxPaletyCenaZakupu').value) || 0;
         if (!nazwa) { alert('Podaj nazwę boxa'); return; }
         var btn = document.getElementById('boxPaletySaveBtn');
         btn.disabled = true; btn.textContent = '⏳ Tworzę...';
         fetch('/magazyn/api/zgrupuj-palety-box', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({paleta_ids: ids, nazwa: nazwa, cena_sprzedazy: cena})
+            body: JSON.stringify({paleta_ids: ids, nazwa: nazwa, cena_sprzedazy: cena, cena_zakupu: cenaZakupu})
         }).then(function(r){return r.json()}).then(function(d) {
             if (d.ok) {
                 btn.textContent = '✅ Utworzono!';
@@ -3536,9 +3537,15 @@ def palety():
                 <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">Nazwa boxa</label>
                 <input type="text" id="boxPaletyNazwa" placeholder="np. Box mix elektronika" style="width:100%;padding:10px;background:#12121a;border:1px solid #1e293b;border-radius:8px;color:#e2e8f0">
             </div>
-            <div style="margin-bottom:15px">
-                <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">🛒 Cena sprzedaży (zł)</label>
-                <input type="number" id="boxPaletyCena" placeholder="Cena na Allegro" step="0.01" style="width:100%;padding:10px;background:#12121a;border:1px solid #1e293b;border-radius:8px;color:#e2e8f0">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
+                <div>
+                    <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">💰 Cena zakupu (zł)</label>
+                    <input type="number" id="boxPaletyCenaZakupu" placeholder="Ile zapłaciłeś" step="0.01" style="width:100%;padding:10px;background:#12121a;border:1px solid #1e293b;border-radius:8px;color:#e2e8f0">
+                </div>
+                <div>
+                    <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">🛒 Cena sprzedaży (zł)</label>
+                    <input type="number" id="boxPaletyCena" placeholder="Cena na Allegro" step="0.01" style="width:100%;padding:10px;background:#12121a;border:1px solid #1e293b;border-radius:8px;color:#e2e8f0">
+                </div>
             </div>
             <button id="boxPaletySaveBtn" onclick="zapiszBoxPalety()" style="width:100%;padding:12px;background:#f59e0b;border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer;font-size:1rem">
                 📫 Utwórz Box
@@ -7191,6 +7198,7 @@ def api_zgrupuj_palety_box():
         paleta_ids = [int(x) for x in data.get('paleta_ids', [])]
         nazwa = data.get('nazwa', '').strip()
         cena_sprzedazy = float(data.get('cena_sprzedazy', 0) or 0)
+        cena_zakupu_manual = float(data.get('cena_zakupu', 0) or 0)
 
         if not paleta_ids:
             return jsonify({'ok': False, 'error': 'Brak zaznaczonych palet'})
@@ -7200,12 +7208,15 @@ def api_zgrupuj_palety_box():
         conn = get_db()
         from datetime import datetime
 
-        # Oblicz łączny koszt zakupu z wybranych palet
+        # Cena zakupu: ręczna jeśli podana, lub suma z palet
         placeholders = ','.join(['?' for _ in paleta_ids])
-        total_cena = conn.execute(
-            f'SELECT COALESCE(SUM(cena_zakupu), 0) FROM palety WHERE id IN ({placeholders})',
-            paleta_ids
-        ).fetchone()[0]
+        if cena_zakupu_manual > 0:
+            total_cena = cena_zakupu_manual
+        else:
+            total_cena = conn.execute(
+                f'SELECT COALESCE(SUM(cena_zakupu), 0) FROM palety WHERE id IN ({placeholders})',
+                paleta_ids
+            ).fetchone()[0]
 
         # Policz produkty
         total_prod = conn.execute(
