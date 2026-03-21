@@ -6979,16 +6979,21 @@ def api_autowycena_paleta_stream(paleta_id):
                 nazwa = p['nazwa'] or f'Produkt #{p["id"]}'
                 prod_list.append(f'{p["id"]}. {nazwa} (szt: {p["ilosc"] or 1})')
 
-            prompt = f"""Jesteś ekspertem sprzedaży na Allegro.pl. Dla każdego produktu podaj realistyczną cenę sprzedaży na Allegro w PLN.
-Uwzględnij: stan nowy, koszty wysyłki wliczone, prowizję Allegro.
-Podaj cenę za którą REALNIE się sprzedaje (nie za wysoką, nie za niską).
+            prompt = f"""Jesteś ekspertem sprzedaży na Allegro.pl w Polsce. Dla KAŻDEGO produktu z listy podaj cenę sprzedaży na Allegro w PLN.
+
+WAŻNE:
+- Podaj cenę za jaką ten produkt AKTUALNIE się sprzedaje na Allegro.pl (nie zaniżaj!)
+- Produkty są NOWE, oryginalne, z Amazon/hurtowni
+- Uwzględnij że na Allegro ceny są często WYŻSZE niż na Amazon (bo Allegro to polski rynek)
+- Nie zaniżaj cen — sprzedawcy na Allegro mają marżę 30-100% ponad cenę zakupu
+- MUSISZ podać cenę dla KAŻDEGO produktu z listy (wszystkie {len(prod_list)} pozycji)
 
 Produkty:
 {chr(10).join(prod_list)}
 
-Odpowiedz w formacie (TYLKO to, bez dodatkowego tekstu):
+Odpowiedz DOKŁADNIE w tym formacie, po jednej linii na produkt, BEZ dodatkowego tekstu:
 ID:CENA
-np:
+Przykład:
 123:299
 456:89.99"""
 
@@ -7004,6 +7009,7 @@ np:
                     )
                     if resp.status_code == 200:
                         ai_text = resp.json().get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
+                        print(f"[Auto-wycena] Gemini batch {batch_idx+1} response:\n{ai_text}")
                         for line in ai_text.strip().split('\n'):
                             line = line.strip()
                             m = re.match(r'(\d+)\s*[:\-]\s*(\d+(?:[.,]\d+)?)', line)
@@ -7011,7 +7017,9 @@ np:
                                 pid = int(m.group(1))
                                 price = float(m.group(2).replace(',', '.'))
                                 if 1 < price < 50000:
-                                    ai_prices[pid] = round(price * 0.95, 2)
+                                    ai_prices[pid] = round(price, 2)
+                    else:
+                        print(f"[Auto-wycena] Gemini error {resp.status_code}: {resp.text[:200]}")
                 except Exception as e:
                     print(f"[Auto-wycena] Gemini batch error: {e}")
                     stats['errors'] += 1
