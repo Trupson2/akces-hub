@@ -6997,11 +6997,36 @@ def api_autowycena_paleta_stream(paleta_id):
 
                 time.sleep(0.3)
 
-            # Fallback cena
+            # Fallback cena z mnożnika
             if not cena_allegro and cena_brutto_szt > 0:
                 cena_allegro = round(cena_brutto_szt * 2.5, 2)
                 zrodlo = 'estimate'
                 stats['from_estimate'] += 1
+
+            # Fallback: Gemini AI wycena po nazwie (gdy brak ASIN i brak ceny)
+            if not cena_allegro and nazwa:
+                try:
+                    from modules.database import get_config
+                    gemini_key = get_config('gemini_api_key', '')
+                    if gemini_key:
+                        import requests as _req
+                        resp = _req.post(
+                            f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}',
+                            json={'contents': [{'parts': [{'text': f'Podaj realistyczną cenę sprzedaży na Allegro.pl w PLN dla produktu: "{nazwa}". Odpowiedz TYLKO liczbą w PLN, np: 299. Bez waluty, bez tekstu.'}]}]},
+                            timeout=10
+                        )
+                        if resp.status_code == 200:
+                            ai_text = resp.json().get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '').strip()
+                            import re
+                            price_match = re.search(r'(\d+(?:[.,]\d+)?)', ai_text)
+                            if price_match:
+                                ai_price = float(price_match.group(1).replace(',', '.'))
+                                if 5 < ai_price < 50000:
+                                    cena_allegro = round(ai_price, 2)
+                                    zrodlo = 'gemini'
+                                    stats['from_estimate'] += 1
+                except Exception as e:
+                    print(f"[Auto-wycena] Gemini fallback error: {e}")
 
             # Fallback tytuł
             if not nowa_nazwa and nazwa:
