@@ -878,6 +878,11 @@ def produkt(code):
         }
     else:
         p = dict(p)
+        # Pobierz nazwę palety z tabeli palety
+        if p.get('paleta_id') and not p.get('paleta'):
+            _pal = conn.execute('SELECT nazwa FROM palety WHERE id = ?', (p['paleta_id'],)).fetchone()
+            if _pal:
+                p['paleta'] = _pal['nazwa']
 
     product_code = get_product_code(p) if not is_new else code
     img = p['zdjecie_url'] or ''
@@ -6459,7 +6464,16 @@ def qr_product_view(product_id):
         ''')
     
     p = dict(product)
-    
+
+    # Pobierz nazwę palety z tabeli palety
+    _paleta_nazwa = ''
+    if p.get('paleta_id'):
+        _pal_row = conn.execute('SELECT nazwa FROM palety WHERE id = ?', (p['paleta_id'],)).fetchone()
+        if _pal_row:
+            _paleta_nazwa = _pal_row['nazwa']
+    if not _paleta_nazwa:
+        _paleta_nazwa = p.get('paleta', '') or ''
+
     # Sprawdź czy produkt jest sprzedany (sprawdź w Allegro - TODO)
     sprzedany = (p.get('status') or 'nowy') == 'sprzedany'
     
@@ -6494,9 +6508,9 @@ def qr_product_view(product_id):
             <div class="loc">
                 <div class="loc-title">📍 LOKALIZACJA</div>
                 <div class="loc-grid">
-                    <div><div class="loc-v">{p.get('lokalizacja', '—') or '—'}</div><div class="loc-l">Półka</div></div>
                     <div><div class="loc-v">{p.get('regal', '—') or '—'}</div><div class="loc-l">Regał</div></div>
-                    <div><div class="loc-v">{p.get('paleta', '—') or '—'}</div><div class="loc-l">Paleta</div></div>
+                    <div><div class="loc-v">{_paleta_nazwa or '—'}</div><div class="loc-l">Paleta</div></div>
+                    <div><div class="loc-v">{p.get('dostawca', '—') or '—'}</div><div class="loc-l">Dostawca</div></div>
                 </div>
             </div>
             
