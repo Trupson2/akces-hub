@@ -7183,6 +7183,80 @@ def api_utworz_box():
         return jsonify({'ok': False, 'error': str(e)[:200]})
 
 
+@magazynier_bp.route('/api/zgrupuj-palety-box', methods=['POST'])
+def api_zgrupuj_palety_box():
+    """Zgrupuj produkty z kilku palet w jeden nowy box"""
+    try:
+        data = request.get_json()
+        paleta_ids = [int(x) for x in data.get('paleta_ids', [])]
+        nazwa = data.get('nazwa', '').strip()
+        cena_sprzedazy = float(data.get('cena_sprzedazy', 0) or 0)
+
+        if not paleta_ids:
+            return jsonify({'ok': False, 'error': 'Brak zaznaczonych palet'})
+        if not nazwa:
+            return jsonify({'ok': False, 'error': 'Podaj nazwę boxa'})
+
+        conn = get_db()
+        from datetime import datetime
+
+        # Oblicz łączny koszt zakupu z wybranych palet
+        placeholders = ','.join(['?' for _ in paleta_ids])
+        total_cena = conn.execute(
+            f'SELECT COALESCE(SUM(cena_zakupu), 0) FROM palety WHERE id IN ({placeholders})',
+            paleta_ids
+        ).fetchone()[0]
+
+        # Policz produkty
+        total_prod = conn.execute(
+            f'SELECT COUNT(*) FROM produkty WHERE paleta_id IN ({placeholders})',
+            paleta_ids
+        ).fetchone()[0]
+        total_szt = conn.execute(
+            f'SELECT COALESCE(SUM(ilosc), 0) FROM produkty WHERE paleta_id IN ({placeholders})',
+            paleta_ids
+        ).fetchone()[0]
+
+        if total_prod == 0:
+            return jsonify({'ok': False, 'error': 'Brak produktów w zaznaczonych paletach'})
+
+        # Pobierz dostawcę z pierwszej palety
+        first = conn.execute('SELECT dostawca FROM palety WHERE id = ?', (paleta_ids[0],)).fetchone()
+        dostawca = first['dostawca'] if first else ''
+
+        # Utwórz nowy box
+        conn.execute('''
+            INSERT INTO palety (nazwa, dostawca, cena_zakupu, cena_zakupu_netto, ilosc_produktow, ilosc_sztuk,
+                               data_zakupu, data_dodania, typ)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'box')
+        ''', (
+            nazwa, dostawca, total_cena, round(total_cena / 1.23, 2),
+            total_prod, total_szt,
+            datetime.now().strftime('%Y-%m-%d'),
+            datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        ))
+        box_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
+
+        # Przenieś produkty do boxa
+        conn.execute(
+            f'UPDATE produkty SET paleta_id = ?, paleta = ? WHERE paleta_id IN ({placeholders})',
+            [box_id, nazwa] + paleta_ids
+        )
+
+        # Ustaw cenę allegro jeśli podana
+        if cena_sprzedazy > 0:
+            conn.execute(
+                f'UPDATE produkty SET cena_allegro = ? WHERE paleta_id = ?',
+                (cena_sprzedazy, box_id)
+            )
+
+        conn.commit()
+        return jsonify({'ok': True, 'box_id': box_id, 'produktow': total_prod, 'sztuk': total_szt})
+
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)[:200]})
+
+
 @magazynier_bp.route('/api/check-image/<int:product_id>')
 def api_check_image(product_id):
     """Sprawdza czy produkt ma lokalne zdjęcie"""
