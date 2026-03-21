@@ -3749,34 +3749,22 @@ def _get_render_results_js():
             html += '</div>';
         }
         html += '</div>';
+        // Zapisz dane globalnie do filtrowania
+        window._analysisProducts = (parsed && parsed.produkty) ? parsed.produkty : [];
+        window._analysisPaleta = d.paleta || {};
+
         if (parsed && parsed.produkty && parsed.produkty.length) {
             html += '<div class="card" style="overflow-x:auto">';
-            var totalSzt = 0;
-            parsed.produkty.forEach(function(p) { totalSzt += (p.ilosc || 1); });
-            html += '<div style="font-weight:600;margin-bottom:12px">Produkty (' + parsed.produkty.length + ' typów, ' + totalSzt + ' szt.)</div>';
-            html += '<table style="width:100%;border-collapse:collapse;font-size:0.83rem"><thead><tr style="border-bottom:2px solid var(--border)">';
-            html += '<th style="padding:8px;text-align:left">#</th><th style="padding:8px;text-align:left">Produkt</th><th style="padding:8px">Szt.</th><th style="padding:8px">Cena Allegro</th><th style="padding:8px">Wartość</th><th style="padding:8px">RRP Amazon</th><th style="padding:8px">Popyt</th><th style="padding:8px">Czas</th><th style="padding:8px;text-align:left">Uwagi</th>';
-            html += '</tr></thead><tbody>';
-            parsed.produkty.forEach(function(p, idx) {
-                var cena = p.cena_allegro || p.cena_sprzedazy || 0;
-                var szt = p.ilosc || 1;
-                var wartosc = cena * szt;
-                var cenaAmz = p.cena_amazon_rpp || 0;
-                html += '<tr style="border-bottom:1px solid var(--border)">';
-                html += '<td style="padding:8px;color:var(--text-muted)">' + (idx+1) + '</td>';
-                html += '<td style="padding:8px;font-weight:500;max-width:250px">' + (p.nazwa||'—') + '</td>';
-                html += '<td style="padding:8px;text-align:center;font-weight:600">' + szt + '</td>';
-                html += '<td style="padding:8px;color:var(--green);text-align:center">' + cena.toFixed(0) + ' zł</td>';
-                html += '<td style="padding:8px;font-weight:700;color:var(--green);text-align:center">' + wartosc.toFixed(0) + ' zł</td>';
-                html += '<td style="padding:8px;color:var(--text-muted);text-align:center">' + (cenaAmz > 0 ? cenaAmz.toFixed(0) + ' zł' : '—') + '</td>';
-                var dc = demandClass(p.popyt);
-                var dcColor = dc === 'demand-high' ? 'var(--green)' : dc === 'demand-low' ? 'var(--red)' : 'var(--orange)';
-                html += '<td style="padding:8px;text-align:center"><span style="background:rgba(0,0,0,0.2);padding:3px 10px;border-radius:10px;font-size:0.75rem;font-weight:600;color:' + dcColor + '">' + (p.popyt||'?') + '</span></td>';
-                html += '<td style="padding:8px;text-align:center">' + (p.czas_sprzedazy_dni || '?') + ' dni</td>';
-                html += '<td style="padding:8px;color:var(--text-muted);font-size:0.78rem;max-width:200px">' + (p.uwagi||'—') + '</td>';
-                html += '</tr>';
-            });
-            html += '</tbody></table></div>';
+            // Wyszukiwarka / filtr
+            html += '<div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">';
+            html += '<div style="font-weight:600">Produkty (' + parsed.produkty.length + ' typów)</div>';
+            html += '<input type="text" id="product-filter" placeholder="🔍 Filtruj np. peruka, wig, hair..." style="flex:1;min-width:200px;padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem">';
+            html += '<button onclick="filterProducts()" style="padding:8px 16px;background:var(--accent);border:none;border-radius:8px;color:#fff;cursor:pointer;font-weight:600">Filtruj</button>';
+            html += '<button onclick="clearFilter()" style="padding:8px 12px;background:rgba(255,255,255,0.1);border:none;border-radius:8px;color:var(--text-muted);cursor:pointer">Wyczyść</button>';
+            html += '</div>';
+            html += '<div id="filter-summary" style="display:none;margin-bottom:12px;padding:10px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px"></div>';
+            html += renderProductTable(parsed.produkty);
+            html += '</div>';
         } else if (d.raw) {
             html += '<div class="card"><div style="white-space:pre-wrap;font-size:0.83rem">' + d.raw.replace(/</g,'&lt;') + '</div></div>';
         }
@@ -3788,6 +3776,88 @@ def _get_render_results_js():
             html += '</div>';
         }
         res.innerHTML = html;
+        // Bind enter key na filtr
+        var fi = document.getElementById('product-filter');
+        if (fi) fi.addEventListener('keyup', function(e) { if (e.key === 'Enter') filterProducts(); });
+    }
+
+    function renderProductTable(products) {
+        var totalSzt = 0;
+        products.forEach(function(p) { totalSzt += (p.ilosc || 1); });
+        var h = '<div id="product-table-info" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px">' + products.length + ' typów, ' + totalSzt + ' szt.</div>';
+        h += '<table style="width:100%;border-collapse:collapse;font-size:0.83rem"><thead><tr style="border-bottom:2px solid var(--border)">';
+        h += '<th style="padding:8px;text-align:left">#</th><th style="padding:8px;text-align:left">Produkt</th><th style="padding:8px">Szt.</th><th style="padding:8px">Cena Allegro</th><th style="padding:8px">Wartość</th><th style="padding:8px">RRP Amazon</th><th style="padding:8px">Popyt</th><th style="padding:8px">Czas</th><th style="padding:8px;text-align:left">Uwagi</th>';
+        h += '</tr></thead><tbody>';
+        products.forEach(function(p, idx) {
+            var cena = p.cena_allegro || p.cena_sprzedazy || 0;
+            var szt = p.ilosc || 1;
+            var wartosc = cena * szt;
+            var cenaAmz = p.cena_amazon_rpp || 0;
+            h += '<tr style="border-bottom:1px solid var(--border)">';
+            h += '<td style="padding:8px;color:var(--text-muted)">' + (idx+1) + '</td>';
+            h += '<td style="padding:8px;font-weight:500;max-width:250px">' + (p.nazwa||'—') + '</td>';
+            h += '<td style="padding:8px;text-align:center;font-weight:600">' + szt + '</td>';
+            h += '<td style="padding:8px;color:var(--green);text-align:center">' + cena.toFixed(0) + ' zł</td>';
+            h += '<td style="padding:8px;font-weight:700;color:var(--green);text-align:center">' + wartosc.toFixed(0) + ' zł</td>';
+            h += '<td style="padding:8px;color:var(--text-muted);text-align:center">' + (cenaAmz > 0 ? cenaAmz.toFixed(0) + ' zł' : '—') + '</td>';
+            var dc = demandClass(p.popyt);
+            var dcColor = dc === 'demand-high' ? 'var(--green)' : dc === 'demand-low' ? 'var(--red)' : 'var(--orange)';
+            h += '<td style="padding:8px;text-align:center"><span style="background:rgba(0,0,0,0.2);padding:3px 10px;border-radius:10px;font-size:0.75rem;font-weight:600;color:' + dcColor + '">' + (p.popyt||'?') + '</span></td>';
+            h += '<td style="padding:8px;text-align:center">' + (p.czas_sprzedazy_dni || '?') + ' dni</td>';
+            h += '<td style="padding:8px;color:var(--text-muted);font-size:0.78rem;max-width:200px">' + (p.uwagi||'—') + '</td>';
+            h += '</tr>';
+        });
+        h += '</tbody></table>';
+        return h;
+    }
+
+    function filterProducts() {
+        var q = (document.getElementById('product-filter').value || '').toLowerCase().trim();
+        if (!q || !window._analysisProducts) return clearFilter();
+        var keywords = q.split(/[\s,;]+/);
+        var filtered = window._analysisProducts.filter(function(p) {
+            var txt = ((p.nazwa||'') + ' ' + (p.uwagi||'')).toLowerCase();
+            return keywords.some(function(k) { return txt.indexOf(k) >= 0; });
+        });
+        // Podsumowanie filtrowanych
+        var totalSzt = 0, totalVal = 0;
+        filtered.forEach(function(p) {
+            var szt = p.ilosc || 1;
+            totalSzt += szt;
+            totalVal += (p.cena_allegro || 0) * szt;
+        });
+        var sumEl = document.getElementById('filter-summary');
+        sumEl.style.display = 'block';
+        sumEl.innerHTML = '<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">'
+            + '<span style="font-weight:700;color:var(--green)">🔍 "' + q + '"</span>'
+            + '<span><b>' + filtered.length + '</b> typów</span>'
+            + '<span><b>' + totalSzt + '</b> szt.</span>'
+            + '<span>Wartość: <b style="color:var(--green)">' + totalVal.toFixed(0) + ' zł</b></span>'
+            + '</div>';
+        // Przerenderuj tabelę
+        var tableContainer = document.querySelector('#analysis-results .card:last-child');
+        if (tableContainer) {
+            var oldTable = tableContainer.querySelector('table');
+            var oldInfo = document.getElementById('product-table-info');
+            if (oldTable) oldTable.outerHTML = '';
+            if (oldInfo) oldInfo.outerHTML = '';
+            tableContainer.insertAdjacentHTML('beforeend', renderProductTable(filtered));
+        }
+    }
+
+    function clearFilter() {
+        document.getElementById('product-filter').value = '';
+        document.getElementById('filter-summary').style.display = 'none';
+        if (window._analysisProducts) {
+            var tableContainer = document.querySelector('#analysis-results .card:last-child');
+            if (tableContainer) {
+                var oldTable = tableContainer.querySelector('table');
+                var oldInfo = document.getElementById('product-table-info');
+                if (oldTable) oldTable.outerHTML = '';
+                if (oldInfo) oldInfo.outerHTML = '';
+                tableContainer.insertAdjacentHTML('beforeend', renderProductTable(window._analysisProducts));
+            }
+        }
     }
     '''
 
