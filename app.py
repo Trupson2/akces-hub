@@ -1776,10 +1776,19 @@ def system_update():
         def _delayed_restart():
             import time
             time.sleep(2)
-            subprocess.Popen(['sudo', 'systemctl', 'restart', 'akceshub'],
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            # Auto-detect service name
+            for svc in ['akces-hub', 'akceshub']:
+                try:
+                    r = subprocess.run(['sudo', 'systemctl', 'is-enabled', svc],
+                                       capture_output=True, text=True, timeout=5)
+                    if r.returncode == 0:
+                        subprocess.Popen(['sudo', 'systemctl', 'restart', svc],
+                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        return
+                except:
+                    pass
         threading.Thread(target=_delayed_restart, daemon=True).start()
-        return jsonify({'ok': True, 'msg': f'Zaktualizowano! {pull_output[:100]}. Restart za 2s...'})
+        return jsonify({'ok': True, 'msg': f'Zaktualizowano! {pull_output[:100]}. Restart za chwilę...'})
     except subprocess.TimeoutExpired:
         return jsonify({'ok': False, 'error': 'Timeout — sprawdź połączenie z internetem'})
     except Exception as e:

@@ -94,12 +94,43 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
 
 <script>
 function doSystemUpdate(btn){
-    btn.disabled=true; btn.textContent='Aktualizuję...';
-    fetch('/system/update',{method:'POST',credentials:'same-origin'})
+    btn.disabled=true; btn.textContent='⏳ Aktualizuję...';
+    var card = btn.closest('.card');
+    fetch('/system/update',{method:'POST',credentials:'same-origin',headers:{'ngrok-skip-browser-warning':'1'}})
     .then(r=>r.json()).then(d=>{
-        if(d.ok){btn.textContent='✅ Gotowe! Restart...'; setTimeout(()=>location.reload(),5000);}
-        else{btn.textContent='❌ Błąd'; alert(d.error||'Błąd aktualizacji');}
-    }).catch(()=>{btn.textContent='❌ Błąd sieci';});
+        if(d.ok){
+            btn.textContent='✅ Zaktualizowano!';
+            if(card){
+                card.style.borderColor='rgba(34,197,94,0.5)';
+                card.style.background='var(--green-soft)';
+                var info = document.createElement('div');
+                info.style.cssText='margin-top:10px;padding:10px;background:var(--bg);border-radius:var(--radius-sm);font-size:0.82rem;color:var(--text-secondary)';
+                info.innerHTML='📦 '+d.msg+'<br><br>⏳ Restart serwisu za chwilę...';
+                card.appendChild(info);
+            }
+            // Czekaj na restart serwisu i ponów próbę ładowania
+            var attempts=0;
+            function tryReload(){
+                attempts++;
+                fetch('/',{method:'HEAD',headers:{'ngrok-skip-browser-warning':'1'}})
+                .then(function(r){if(r.ok)location.reload();else if(attempts<15)setTimeout(tryReload,2000);})
+                .catch(function(){if(attempts<15)setTimeout(tryReload,2000);else location.reload();});
+            }
+            setTimeout(tryReload,4000);
+        } else {
+            btn.textContent='❌ Błąd';
+            btn.disabled=false;
+            if(card){
+                var err=document.createElement('div');
+                err.style.cssText='margin-top:8px;padding:8px;background:var(--red-soft);border-radius:var(--radius-sm);font-size:0.8rem;color:#fca5a5';
+                err.textContent=d.error||'Nieznany błąd';
+                card.appendChild(err);
+            }
+        }
+    }).catch(function(){
+        btn.textContent='❌ Błąd sieci';
+        btn.disabled=false;
+    });
 }
 </script>
 
