@@ -1094,7 +1094,8 @@ def produkt(code):
             <button onclick="rescrapZdjecia({p['id']}, this)" class="btn" style="background:#06b6d4">📸 POBIERZ ZDJĘCIA</button>
             <button onclick="pokazGPSR()" class="btn" style="background:#059669">🛡️ GPSR</button>
             <button onclick="pokazRozbijProdukt({p['id']}, {p['ilosc']}, '{p['nazwa'][:40].replace(chr(39), '')}')" class="btn" style="background:#22c55e;color:#000">🎯 ROZBIJ NA SZTUKI</button>
-            <button onclick="pokazNaprawaProdukt({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="btn" style="background:#f59e0b;color:#000">🔧 DO NAPRAWY</button>
+            <button onclick="pokazNaprawaProdukt({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="btn" style="background:#f59e0b;color:#000">🔧 DO NAPRAWY (szt.)</button>
+            <button onclick="wyslijDoSerwisu({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="btn" style="background:#dc2626">🔧 SERWIS</button>
         </div>
         
         <!-- SZTUKI SECTION -->
@@ -1123,6 +1124,20 @@ def produkt(code):
         </div>
         
         <script>
+        function wyslijDoSerwisu(prodId, nazwa, maxIlosc) {{
+            var opis = prompt('Opis usterki:');
+            if (opis === null) return;
+            var ilosc = prompt('Ile sztuk do serwisu? (max ' + maxIlosc + ')', '1');
+            if (ilosc === null) return;
+            fetch('/serwis/api/przyjmij/' + prodId, {{
+                method: 'POST',
+                headers: {{'Content-Type': 'application/json'}},
+                body: JSON.stringify({{opis_usterki: opis, ilosc: parseInt(ilosc) || 1}})
+            }}).then(r => r.json()).then(d => {{
+                if (d.ok) {{ alert('✅ ' + d.msg); location.reload(); }}
+                else alert('❌ ' + (d.error || 'Błąd'));
+            }});
+        }}
         function rescrapZdjecia(produktId, btn) {{
             btn.textContent = '⏳ Pobieram...';
             btn.disabled = true;

@@ -335,6 +335,21 @@ def init_db():
             FOREIGN KEY (produkt_id) REFERENCES produkty(id)
         )''')
         
+        # Tabela serwis (naprawy produktów)
+        conn.execute('''CREATE TABLE IF NOT EXISTS serwis (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            produkt_id INTEGER,
+            technik TEXT DEFAULT '',
+            opis_usterki TEXT DEFAULT '',
+            koszt_naprawy REAL DEFAULT 0,
+            ilosc_szt INTEGER DEFAULT 1,
+            status TEXT DEFAULT 'przyjety',
+            data_przyjecia TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            data_zakonczenia TIMESTAMP,
+            uwagi TEXT DEFAULT '',
+            FOREIGN KEY (produkt_id) REFERENCES produkty(id)
+        )''')
+
         # Tabela sztuk (per-unit tracking)
         conn.execute('''CREATE TABLE IF NOT EXISTS sztuki (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

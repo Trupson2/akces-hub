@@ -49,6 +49,7 @@ from flask_wtf.csrf import CSRFProtect
 # Importy modułów
 from modules.database import init_db, get_db, get_config_cached
 from modules.magazynier import magazynier_bp, get_stats as mag_stats
+from modules.serwisant import serwisant_bp
 from modules.paletomat import paletomat_bp, get_stats as pal_stats
 from modules.telegram_bot import telegram_bp, send_telegram, bot_status, start_bot, stop_bot
 from modules.allegro_api import allegro_bp
@@ -304,6 +305,7 @@ app.register_blueprint(auth_bp, url_prefix='/auth')
 setup_auth(app)
 
 app.register_blueprint(magazynier_bp, url_prefix='/magazyn')
+app.register_blueprint(serwisant_bp, url_prefix='/serwis')
 app.register_blueprint(paletomat_bp, url_prefix='/paletomat')
 app.register_blueprint(telegram_bp, url_prefix='/telegram')
 app.register_blueprint(allegro_bp, url_prefix='/allegro')
