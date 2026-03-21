@@ -1001,7 +1001,7 @@ def api_live_sales():
     today_str = datetime.now().strftime('%Y-%m-%d')
     rows = conn.execute('''
         SELECT s.data_sprzedazy, s.cena, s.ilosc,
-               COALESCE(p.nazwa, s.tytul_oferty, 'Zamowienie') as nazwa
+               COALESCE(p.nazwa, s.nazwa, 'Zamowienie') as nazwa
         FROM sprzedaze s
         LEFT JOIN produkty p ON p.id = s.produkt_id
         WHERE date(s.data_sprzedazy) = ?

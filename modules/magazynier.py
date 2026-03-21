@@ -3886,7 +3886,7 @@ def paleta_detail_by_id(paleta_id):
                 }
             }
 
-            progressDiv.innerHTML += '<br><b style="color:#10b981">✅ Gotowe! Amazon: ' + stats.from_amazon + ', Szacowane: ' + stats.from_estimate + ', Tytuły: ' + stats.titles_optimized + ', Błędy: ' + stats.errors + '</b>';
+            progressDiv.innerHTML += '<br><b style="color:#10b981">✅ Gotowe! Wycenione: ' + stats.updated + '/' + stats.total + ', Tytuły: ' + stats.titles_optimized + ', Błędy: ' + stats.errors + '</b>';
 
             if (stats.updated > 0) {
                 setTimeout(() => location.reload(), 2000);
