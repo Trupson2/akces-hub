@@ -1095,3 +1095,81 @@ def get_historia_all(limit=50):
         ORDER BY h.data DESC
         LIMIT ?
     ''', (limit,))
+
+
+def get_insights():
+    """Analiza sprzedaży — insights na dashboard"""
+    conn = get_db()
+    insights = {}
+
+    # 1. 🔥 Najszybciej schodzące (top 8, ostatnie 30 dni)
+    insights['top_sellers'] = conn.execute('''
+        SELECT p.id, p.nazwa, p.zdjecie_url, p.ilosc as stan,
+               COUNT(s.id) as sprzedano_szt,
+               COALESCE(SUM(s.cena * s.ilosc), 0) as przychod,
+               p.kategoria
+        FROM sprzedaze s
+        JOIN produkty p ON p.id = s.produkt_id
+        WHERE s.data_sprzedazy >= date('now', '-30 days')
+          AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        GROUP BY p.id
+        ORDER BY sprzedano_szt DESC
+        LIMIT 8
+    ''').fetchall()
+
+    # 2. ⚠️ Kończy się — niski stan + miały sprzedaże = warto dokupić
+    insights['low_stock'] = conn.execute('''
+        SELECT p.id, p.nazwa, p.zdjecie_url, p.ilosc as stan,
+               COUNT(s.id) as sprzedano_szt,
+               COALESCE(SUM(s.cena * s.ilosc), 0) as przychod,
+               p.kategoria, p.cena_allegro
+        FROM produkty p
+        LEFT JOIN sprzedaze s ON s.produkt_id = p.id
+            AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        WHERE p.ilosc <= 2 AND p.ilosc > 0
+          AND p.status IN ('magazyn', 'wystawiony')
+        GROUP BY p.id
+        HAVING sprzedano_szt > 0
+        ORDER BY sprzedano_szt DESC
+        LIMIT 8
+    ''').fetchall()
+
+    # 3. 💡 Warto dokupić — dostawcy/kategorie z najlepszym ROI
+    insights['best_categories'] = conn.execute('''
+        SELECT p.kategoria,
+               COUNT(DISTINCT p.id) as produktow,
+               COALESCE(SUM(s.cena * s.ilosc), 0) as przychod,
+               COUNT(s.id) as sprzedazy,
+               ROUND(AVG(julianday(s.data_sprzedazy) - julianday(p.data_dodania)), 0) as avg_dni_do_sprzedazy
+        FROM produkty p
+        JOIN sprzedaze s ON s.produkt_id = p.id
+            AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        WHERE p.kategoria IS NOT NULL AND p.kategoria != ''
+          AND s.data_sprzedazy >= date('now', '-90 days')
+        GROUP BY p.kategoria
+        HAVING sprzedazy >= 2
+        ORDER BY przychod DESC
+        LIMIT 6
+    ''').fetchall()
+
+    # 4. 🚫 Czego unikać — leżą >60 dni bez sprzedaży
+    insights['stale'] = conn.execute('''
+        SELECT p.id, p.nazwa, p.zdjecie_url, p.ilosc as stan,
+               p.cena_allegro,
+               CAST(julianday('now') - julianday(p.data_dodania) AS INTEGER) as dni_w_magazynie,
+               pal.dostawca,
+               ROUND(COALESCE(pal.cena_zakupu, 0) / NULLIF(pal.ilosc_produktow, 0), 2) as koszt_szt
+        FROM produkty p
+        LEFT JOIN palety pal ON pal.id = p.paleta_id
+        LEFT JOIN sprzedaze s ON s.produkt_id = p.id
+            AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        WHERE p.status IN ('magazyn', 'wystawiony')
+          AND p.ilosc > 0
+          AND p.data_dodania <= date('now', '-60 days')
+        GROUP BY p.id
+        HAVING COUNT(s.id) = 0
+        ORDER BY dni_w_magazynie DESC
+        LIMIT 8
+    ''').fetchall()
+
+    return insights

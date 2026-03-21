@@ -296,6 +296,114 @@ function doSystemUpdate(btn){
 </div>
 {% endif %}
 
+<!-- Insights -->
+{% if insights %}
+<div class="section-title">📊 INSIGHTS</div>
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px">
+
+    <!-- 🔥 Najszybciej schodzące -->
+    <div class="card" style="margin:0">
+        <div class="card-header" style="margin-bottom:10px">
+            <span style="font-weight:700;font-size:0.9rem">🔥 Najszybciej schodzące</span>
+            <span style="color:var(--text-muted);font-size:0.75rem">30 dni</span>
+        </div>
+        {% if insights.top_sellers %}
+        {% for p in insights.top_sellers[:5] %}
+        <a href="/magazyn/produkt/MAG-{{ '%05d'|format(p.id) }}" style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);text-decoration:none;color:inherit">
+            <img src="{{ p.zdjecie_url or '/static/placeholder.png' }}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;background:#1a1a2e" onerror="this.src='/static/placeholder.png'">
+            <div style="flex:1;min-width:0">
+                <div style="font-size:0.8rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.nazwa[:40] }}</div>
+                <div style="font-size:0.7rem;color:var(--text-muted)">{{ p.kategoria or '' }} · stan: {{ p.stan }} szt</div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-size:0.8rem;font-weight:700;color:var(--green)">{{ p.sprzedano_szt }}×</div>
+                <div style="font-size:0.7rem;color:var(--text-muted)">{{ p.przychod|int }} zł</div>
+            </div>
+        </a>
+        {% endfor %}
+        {% else %}
+        <div style="color:var(--text-muted);font-size:0.8rem;padding:10px 0">Brak danych sprzedażowych</div>
+        {% endif %}
+    </div>
+
+    <!-- ⚠️ Kończy się — DOKUP -->
+    <div class="card" style="margin:0">
+        <div class="card-header" style="margin-bottom:10px">
+            <span style="font-weight:700;font-size:0.9rem">⚠️ Kończy się — dokup!</span>
+            <span style="color:var(--text-muted);font-size:0.75rem">stan ≤ 2</span>
+        </div>
+        {% if insights.low_stock %}
+        {% for p in insights.low_stock[:5] %}
+        <a href="/magazyn/produkt/MAG-{{ '%05d'|format(p.id) }}" style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);text-decoration:none;color:inherit">
+            <img src="{{ p.zdjecie_url or '/static/placeholder.png' }}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;background:#1a1a2e" onerror="this.src='/static/placeholder.png'">
+            <div style="flex:1;min-width:0">
+                <div style="font-size:0.8rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.nazwa[:40] }}</div>
+                <div style="font-size:0.7rem;color:var(--text-muted)">sprzedano {{ p.sprzedano_szt }}× · {{ p.przychod|int }} zł</div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-size:0.8rem;font-weight:700;color:var(--orange)">{{ p.stan }} szt</div>
+                <div style="font-size:0.65rem;padding:2px 6px;background:rgba(249,115,22,0.2);color:#fb923c;border-radius:4px;font-weight:600">DOKUP</div>
+            </div>
+        </a>
+        {% endfor %}
+        {% else %}
+        <div style="color:var(--text-muted);font-size:0.8rem;padding:10px 0">Wszystko w normie 👍</div>
+        {% endif %}
+    </div>
+
+    <!-- 💡 Warto dokupić — najlepsze kategorie -->
+    <div class="card" style="margin:0">
+        <div class="card-header" style="margin-bottom:10px">
+            <span style="font-weight:700;font-size:0.9rem">💡 Najlepsze kategorie</span>
+            <span style="color:var(--text-muted);font-size:0.75rem">90 dni</span>
+        </div>
+        {% if insights.best_categories %}
+        {% for c in insights.best_categories[:5] %}
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+            <div style="width:32px;height:32px;border-radius:6px;background:rgba(99,102,241,0.2);display:flex;align-items:center;justify-content:center;font-size:0.9rem">📦</div>
+            <div style="flex:1;min-width:0">
+                <div style="font-size:0.8rem;font-weight:500">{{ c.kategoria }}</div>
+                <div style="font-size:0.7rem;color:var(--text-muted)">{{ c.produktow }} prod · {{ c.sprzedazy }}× sprzedano</div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-size:0.8rem;font-weight:700;color:var(--green)">{{ c.przychod|int }} zł</div>
+                <div style="font-size:0.7rem;color:var(--text-muted)">~{{ c.avg_dni_do_sprzedazy|int }} dni</div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div style="color:var(--text-muted);font-size:0.8rem;padding:10px 0">Za mało danych</div>
+        {% endif %}
+    </div>
+
+    <!-- 🚫 Czego unikać — leżaki -->
+    <div class="card" style="margin:0">
+        <div class="card-header" style="margin-bottom:10px">
+            <span style="font-weight:700;font-size:0.9rem">🚫 Leżaki — rozważ przecenę</span>
+            <span style="color:var(--text-muted);font-size:0.75rem">&gt;60 dni</span>
+        </div>
+        {% if insights.stale %}
+        {% for p in insights.stale[:5] %}
+        <a href="/magazyn/produkt/MAG-{{ '%05d'|format(p.id) }}" style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);text-decoration:none;color:inherit">
+            <img src="{{ p.zdjecie_url or '/static/placeholder.png' }}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;background:#1a1a2e" onerror="this.src='/static/placeholder.png'">
+            <div style="flex:1;min-width:0">
+                <div style="font-size:0.8rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.nazwa[:40] }}</div>
+                <div style="font-size:0.7rem;color:var(--text-muted)">{{ p.dostawca or '' }} · {{ p.stan }} szt</div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-size:0.8rem;font-weight:700;color:var(--red)">{{ p.dni_w_magazynie }} dni</div>
+                {% if p.koszt_szt %}<div style="font-size:0.7rem;color:var(--text-muted)">~{{ p.koszt_szt|int }} zł/szt</div>{% endif %}
+            </div>
+        </a>
+        {% endfor %}
+        {% else %}
+        <div style="color:var(--text-muted);font-size:0.8rem;padding:10px 0">Brak leżaków 🎉</div>
+        {% endif %}
+    </div>
+
+</div>
+{% endif %}
+
 <!-- Szybkie Akcje -->
 <div class="section-title">SZYBKIE AKCJE</div>
 <div class="quick-actions" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">

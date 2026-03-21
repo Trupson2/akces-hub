@@ -1024,6 +1024,14 @@ def api_live_sales():
     return jsonify({'sales': sales})
 
 
+def _get_insights_safe():
+    try:
+        from modules.database import get_insights
+        return get_insights()
+    except Exception as e:
+        print(f"[Insights] Error: {e}")
+        return {'top_sellers': [], 'low_stock': [], 'best_categories': [], 'stale': []}
+
 @app.route('/')
 def home():
     # Magazynier — uproszczony dashboard z linkami do wysyłek i magazynu
@@ -1384,6 +1392,7 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
         update_status=update_status,
         top_produkty=stats.get('top_produkty', []),
         top_dostawcy=stats.get('top_dostawcy', []),
+        insights=_get_insights_safe(),
         active_home='active', active_magazyn='', active_paletomat='',
         active_allegro='', active_monitor='', active_narzedzia='',
         **sypie_data
