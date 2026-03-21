@@ -3230,11 +3230,12 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                         allegro_verified += 1
                 except Exception:
                     pass
-                if (ri + 1) % 3 == 0 or ri == len(all_results) - 1:
-                    _pallet_analysis_jobs[job_id] = {
-                        'status': 'running',
-                        'progress': f'🔍 Weryfikuję ceny na Allegro ({ri+1}/{len(all_results)})... ✅ {allegro_verified} zweryfikowanych, 🔄 {allegro_corrected} skorygowanych'
-                    }
+                prod_nazwa = (r.get('nazwa', '') or '')[:40]
+                _pallet_analysis_jobs[job_id] = {
+                    'status': 'running',
+                    'progress': f'🔍 Weryfikuję ceny na Allegro ({ri+1}/{len(all_results)})... ✅ {allegro_verified} zweryfikowanych, 🔄 {allegro_corrected} skorygowanych',
+                    'detail': f'Sprawdzam: {prod_nazwa}...'
+                }
                 import time
                 time.sleep(0.3)  # Rate limit Allegro API
             print(f'[Analizator] Allegro verification: {allegro_verified} verified, {allegro_corrected} corrected')
@@ -3537,6 +3538,10 @@ def analizator_palet():
                 var mp = prog.match(/\((\d+)\s+produkt/);
                 if (mp) {{
                     document.getElementById('excel-progress-detail').textContent = 'Analizuję ' + mp[1] + ' produktów w tym batchu...';
+                }}
+                // Pokaż nazwę weryfikowanego produktu
+                if (d.detail) {{
+                    document.getElementById('excel-progress-detail').textContent = d.detail;
                 }}
                 setTimeout(function() {{ pollExcelStatus(jobId); }}, 2000);
             }} else if (d.status === 'done') {{
