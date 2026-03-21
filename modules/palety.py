@@ -1713,7 +1713,14 @@ def paleta_bulk_import():
                     # Aktualizuj liczbę i cenę
                     conn.execute('UPDATE palety SET ilosc_produktow = ? WHERE id = ?', (produkty_dodane, paleta_id))
 
-                    if cena_zakupu == 0:
+                    if cena_zakupu > 0:
+                        # User podał cenę zakupu — ustaw ją (nadpisz ewentualny auto-oblicz)
+                        cena_netto = round(cena_zakupu / 1.23, 2)
+                        try:
+                            conn.execute('UPDATE palety SET cena_zakupu = ?, cena_zakupu_netto = ? WHERE id = ?', (cena_zakupu, cena_netto, paleta_id))
+                        except:
+                            conn.execute('UPDATE palety SET cena_zakupu = ? WHERE id = ?', (cena_zakupu, paleta_id))
+                    else:
                         # Auto-oblicz z produktów (cena_brutto = ŁĄCZNA za produkt)
                         suma_brutto = conn.execute('SELECT COALESCE(SUM(cena_brutto), 0) FROM produkty WHERE paleta_id = ?', (paleta_id,)).fetchone()[0]
                         suma_netto = round(suma_brutto / 1.23, 2) if suma_brutto > 0 else 0
