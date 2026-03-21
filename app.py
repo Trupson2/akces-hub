@@ -89,7 +89,27 @@ except Exception as e:
 # ============================================================
 # WERSJA I KONFIGURACJA
 # ============================================================
-VERSION = "1.0.0"
+def _get_version():
+    """Wersja z pliku VERSION + git commit hash"""
+    ver = '1.0.0'
+    try:
+        vf = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'VERSION')
+        if os.path.exists(vf):
+            ver = open(vf).read().strip()
+    except:
+        pass
+    try:
+        import subprocess
+        r = subprocess.run(['git', 'log', '-1', '--pretty=format:%h'],
+                          capture_output=True, text=True, timeout=5,
+                          cwd=os.path.dirname(os.path.abspath(__file__)))
+        if r.returncode == 0 and r.stdout.strip():
+            ver += f'+{r.stdout.strip()}'
+    except:
+        pass
+    return ver
+
+VERSION = _get_version()
 APP_START_TIME = time.time()
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
@@ -118,6 +138,14 @@ if os.environ.get('FLASK_HTTPS') or os.environ.get('NGROK_DOMAIN'):
 # CSRF protection
 csrf = CSRFProtect(app)
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Wyłącz domyślnie, włącz per-route
+
+@app.after_request
+def add_ngrok_headers(response):
+    """Wymuś pomijanie ngrok interstitial + no-cache na SW"""
+    if request.path == '/static/sw.js':
+        response.headers['Cache-Control'] = 'no-cache, must-revalidate'
+        response.headers['Service-Worker-Allowed'] = '/'
+    return response
 
 @app.before_request
 def csrf_protect_forms():

@@ -1034,8 +1034,27 @@ def produkt(code):
             }})
             .then(function(d) {{
                 if (d.ok) {{
-                    btn.textContent = '✅ Pobrano!';
-                    setTimeout(function() {{ location.reload(); }}, 1000);
+                    btn.textContent = '⏳ Pobieranie w tle...';
+                    btn.style.background = '#22c55e';
+                    // Sprawdzaj co 5s czy zdjecie sie pojawilo
+                    var checks = 0;
+                    var checkInterval = setInterval(function() {{
+                        checks++;
+                        fetch('/magazyn/api/check-image/' + produktId, {{headers:{{'ngrok-skip-browser-warning':'1'}}}})
+                        .then(function(r){{return r.json();}})
+                        .then(function(d2){{
+                            if(d2.has_image) {{
+                                clearInterval(checkInterval);
+                                btn.textContent = '✅ Pobrano!';
+                                setTimeout(function(){{ location.reload(); }}, 1000);
+                            }} else if(checks >= 24) {{
+                                clearInterval(checkInterval);
+                                btn.textContent = '⏳ Trwa... odśwież';
+                                btn.disabled = false;
+                                btn.onclick = function(){{ location.reload(); }};
+                            }}
+                        }}).catch(function(){{}});
+                    }}, 5000);
                 }} else {{
                     btn.textContent = '❌ ' + (d.error || 'Błąd');
                     setTimeout(function() {{ btn.textContent = '📸 POBIERZ ZDJĘCIA'; btn.disabled = false; }}, 3000);
@@ -6869,21 +6888,29 @@ def api_rescrape_image(product_id):
     if not asin or len(asin) < 10:
         return jsonify({'ok': False, 'error': 'Brak ASIN — nie mozna pobrac zdjecia'})
 
-    try:
-        data = scrape_amazon_product(asin)
-        if data and data.get('image_url'):
-            img_url = data['image_url']
-            all_images = data.get('all_images', []) or [img_url]
+    # Scrape w tle — odpowiedz natychmiast (ngrok timeout = 60s, scraping = 30-120s)
+    import threading
 
-            # Pobierz lokalnie
-            asin_dir = os.path.join('static', 'downloads', asin)
+    def _bg_scrape(pid, asin_code):
+        try:
+            from modules.database import get_db as _gdb
+            from modules.utils import scrape_amazon_product as _scrape
+            import requests as _rq
+
+            data = _scrape(asin_code)
+            if not data or not data.get('image_url'):
+                print(f'📸 Scrape {asin_code}: brak zdjec')
+                return
+
+            all_images = data.get('all_images', []) or [data['image_url']]
+            asin_dir = os.path.join('static', 'downloads', asin_code)
             os.makedirs(asin_dir, exist_ok=True)
 
             _headers = {'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.google.com/'}
             local_img = ''
             for idx, url in enumerate(all_images[:5], 1):
                 try:
-                    resp = _req.get(url, headers=_headers, timeout=10)
+                    resp = _rq.get(url, headers=_headers, timeout=10)
                     if resp.status_code == 200 and len(resp.content) > 500:
                         path = os.path.join(asin_dir, f'image_{idx}.jpg')
                         with open(path, 'wb') as f:
@@ -6893,14 +6920,32 @@ def api_rescrape_image(product_id):
                 except:
                     pass
 
-            final_url = local_img or img_url
-            conn.execute('UPDATE produkty SET zdjecie_url = ? WHERE id = ?', (final_url, product_id))
-            conn.commit()
-            return jsonify({'ok': True, 'img': final_url, 'count': len(all_images)})
-        else:
-            return jsonify({'ok': False, 'error': 'Amazon nie zwrocil zdjec — sprobuj ponownie'})
-    except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)[:200]})
+            final_url = local_img or data['image_url']
+            _conn = _gdb()
+            _conn.execute('UPDATE produkty SET zdjecie_url = ? WHERE id = ?', (final_url, pid))
+            _conn.commit()
+            print(f'📸 Scrape OK: {asin_code} -> {final_url}')
+        except Exception as e:
+            print(f'📸 Scrape error: {e}')
+
+    threading.Thread(target=_bg_scrape, args=(product_id, asin), daemon=True).start()
+    return jsonify({'ok': True, 'img': '', 'note': 'Pobieranie w tle — odśwież za ~30s'})
+
+
+@magazynier_bp.route('/api/check-image/<int:product_id>')
+def api_check_image(product_id):
+    """Sprawdza czy produkt ma lokalne zdjęcie"""
+    import os
+    conn = get_db()
+    p = conn.execute('SELECT zdjecie_url FROM produkty WHERE id = ?', (product_id,)).fetchone()
+    if not p:
+        return jsonify({'has_image': False})
+    url = p['zdjecie_url'] or ''
+    if url.startswith('/static/downloads/'):
+        return jsonify({'has_image': os.path.exists(url.lstrip('/'))})
+    if url.startswith('http') and 'media-amazon' in url:
+        return jsonify({'has_image': True})
+    return jsonify({'has_image': bool(url)})
 
 
 @magazynier_bp.route('/api/gpsr/<int:product_id>')
