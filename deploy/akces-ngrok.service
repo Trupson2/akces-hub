@@ -10,7 +10,7 @@ User=pi
 Group=pi
 WorkingDirectory=/home/pi/clean_v32
 ExecStartPre=/bin/sleep 5
-ExecStart=/home/pi/.local/bin/ngrok start --all --config /home/pi/clean_v32/deploy/ngrok.yml --log=stdout
+ExecStart=/home/pi/.local/bin/ngrok start --all --config /home/pi/.config/ngrok/ngrok.yml --config /home/pi/clean_v32/deploy/ngrok.yml --log=stdout
 Restart=always
 RestartSec=15
 StandardOutput=journal
