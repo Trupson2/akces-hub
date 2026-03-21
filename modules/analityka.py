@@ -3773,6 +3773,31 @@ def analiza_zakupu():
 def _get_render_results_js():
     """Zwraca wspólny JS renderResults() dla obu stron analizatora."""
     return '''
+    function sortProducts() {
+        var sort = document.getElementById('product-sort').value;
+        if (!sort || !window._analysisProducts) return;
+        var prods = window._analysisProducts.slice();
+        var demandOrder = {'wysoki': 3, 'średni': 2, 'sredni': 2, 'niski': 1};
+        if (sort === 'popyt') {
+            prods.sort(function(a, b) { return (demandOrder[(b.popyt||'').toLowerCase()] || 0) - (demandOrder[(a.popyt||'').toLowerCase()] || 0); });
+        } else if (sort === 'cena_desc') {
+            prods.sort(function(a, b) { return (b.cena_allegro||0) - (a.cena_allegro||0); });
+        } else if (sort === 'cena_asc') {
+            prods.sort(function(a, b) { return (a.cena_allegro||0) - (b.cena_allegro||0); });
+        } else if (sort === 'wartosc') {
+            prods.sort(function(a, b) { return ((b.cena_allegro||0)*(b.ilosc||1)) - ((a.cena_allegro||0)*(a.ilosc||1)); });
+        } else if (sort === 'czas') {
+            prods.sort(function(a, b) { return (a.czas_sprzedazy_dni||999) - (b.czas_sprzedazy_dni||999); });
+        }
+        var tableContainer = document.querySelector('#analysis-results .card:last-child');
+        if (tableContainer) {
+            var oldTable = tableContainer.querySelector('table');
+            var oldInfo = document.getElementById('product-table-info');
+            if (oldTable) oldTable.outerHTML = '';
+            if (oldInfo) oldInfo.outerHTML = '';
+            tableContainer.insertAdjacentHTML('beforeend', renderProductTable(prods));
+        }
+    }
     function copyName(el) {
         var txt = el.getAttribute('data-copytext');
         navigator.clipboard.writeText(txt).then(function() {
@@ -3822,6 +3847,7 @@ def _get_render_results_js():
             html += '<div style="font-weight:600">Produkty (' + parsed.produkty.length + ' typów)</div>';
             html += '<input type="text" id="product-filter" placeholder="🔍 Filtruj np. peruka, wig, hair..." style="flex:1;min-width:200px;padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem">';
             html += '<button onclick="filterProducts()" style="padding:8px 16px;background:var(--accent);border:none;border-radius:8px;color:#fff;cursor:pointer;font-weight:600">Filtruj</button>';
+            html += '<select id="product-sort" onchange="sortProducts()" style="padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem"><option value="">Sortuj...</option><option value="popyt">🔥 Popyt (wysoki→niski)</option><option value="cena_desc">💰 Cena (najdroższe)</option><option value="cena_asc">💰 Cena (najtańsze)</option><option value="wartosc">📊 Wartość (najwyższa)</option><option value="czas">⏱️ Czas sprzedaży (najszybsze)</option></select>';
             html += '<button onclick="clearFilter()" style="padding:8px 12px;background:rgba(255,255,255,0.1);border:none;border-radius:8px;color:var(--text-muted);cursor:pointer">Wyczyść</button>';
             html += '</div>';
             html += '<div id="filter-summary" style="display:none;margin-bottom:12px;padding:10px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px"></div>';
