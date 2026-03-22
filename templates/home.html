@@ -134,6 +134,127 @@ function doSystemUpdate(btn){
 }
 </script>
 
+<!-- PALETOMAT OPEN Teaser -->
+<style>
+@keyframes paleoPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+    50% { box-shadow: 0 0 20px 4px rgba(99,102,241,0.2); }
+}
+</style>
+<div onclick="document.getElementById('paleoModal').style.display='flex'"
+     style="background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.15));
+            border:1px solid rgba(139,92,246,0.4);border-radius:16px;padding:20px;
+            margin-bottom:20px;cursor:pointer;text-align:center;
+            animation:paleoPulse 3s ease-in-out infinite">
+    <div style="font-size:1.3rem;font-weight:700;
+                background:linear-gradient(135deg,#6366f1,#8b5cf6,#a855f7);
+                -webkit-background-clip:text;-webkit-text-fill-color:transparent">
+        &#128640; PALETOMAT OPEN &mdash; Nadchodzi nowa era sprzedazy
+    </div>
+    <div style="color:#b0bec5;font-size:0.85rem;margin-top:6px">
+        Kliknij aby dowiedziec sie wiecej &rarr;
+    </div>
+</div>
+
+<!-- Paletomat Open Modal -->
+<div id="paleoModal" style="display:none;position:fixed;inset:0;z-index:9999;
+    background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:var(--bg-secondary, #12121a);border:1px solid rgba(139,92,246,0.4);
+        border-radius:20px;padding:32px 28px;max-width:480px;width:100%;position:relative;
+        box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+        <button onclick="document.getElementById('paleoModal').style.display='none'"
+            style="position:absolute;top:14px;right:16px;background:none;border:none;
+            color:var(--text-muted, #78909c);font-size:1.4rem;cursor:pointer;line-height:1">&times;</button>
+        <div style="text-align:center;margin-bottom:24px">
+            <div style="font-size:1.5rem;font-weight:800;
+                background:linear-gradient(135deg,#6366f1,#8b5cf6,#a855f7);
+                -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px">
+                PALETOMAT OPEN
+            </div>
+            <div style="color:var(--text-muted, #78909c);font-size:0.82rem">Platforma nowej generacji</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
+            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;
+                background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+                border-radius:12px;opacity:0.55">
+                <span style="font-size:1.6rem">&#129302;</span>
+                <div>
+                    <div style="font-weight:600;font-size:0.9rem">Auto-scraping palet</div>
+                    <div style="font-size:0.72rem;color:var(--text-muted, #78909c)">wkrotce</div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;
+                background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+                border-radius:12px;opacity:0.55">
+                <span style="font-size:1.6rem">&#128202;</span>
+                <div>
+                    <div style="font-weight:600;font-size:0.9rem">AI analiza rentownosci</div>
+                    <div style="font-size:0.72rem;color:var(--text-muted, #78909c)">wkrotce</div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;
+                background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+                border-radius:12px;opacity:0.55">
+                <span style="font-size:1.6rem">&#128279;</span>
+                <div>
+                    <div style="font-weight:600;font-size:0.9rem">Integracja z dostawcami</div>
+                    <div style="font-size:0.72rem;color:var(--text-muted, #78909c)">wkrotce</div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;
+                background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+                border-radius:12px;opacity:0.55">
+                <span style="font-size:1.6rem">&#128230;</span>
+                <div>
+                    <div style="font-weight:600;font-size:0.9rem">Automatyczne wystawianie</div>
+                    <div style="font-size:0.72rem;color:var(--text-muted, #78909c)">wkrotce</div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;
+                background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+                border-radius:12px;opacity:0.55">
+                <span style="font-size:1.6rem">&#128176;</span>
+                <div>
+                    <div style="font-weight:600;font-size:0.9rem">Kalkulator marzy</div>
+                    <div style="font-size:0.72rem;color:var(--text-muted, #78909c)">wkrotce</div>
+                </div>
+            </div>
+        </div>
+        <button id="paleoEarlyBtn" onclick="requestEarlyAccess(this)"
+            style="width:100%;padding:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);
+            border:none;border-radius:12px;color:#fff;font-size:0.95rem;font-weight:700;
+            cursor:pointer;transition:all 0.2s">
+            &#128276; Powiadom mnie jako pierwszego (Early Access)
+        </button>
+        <div id="paleoToast" style="display:none;margin-top:12px;padding:10px 14px;
+            background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);
+            border-radius:10px;text-align:center;font-size:0.85rem;color:#22c55e">
+            &#10004; Zapisano! Powiadomimy Cie jako pierwszego.
+        </div>
+    </div>
+</div>
+
+<script>
+function requestEarlyAccess(btn) {
+    btn.disabled = true;
+    btn.textContent = 'Wysylanie...';
+    fetch('/api/paletomat-early-access', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({})
+    }).then(function(r){ return r.json(); }).then(function(d){
+        document.getElementById('paleoToast').style.display = 'block';
+        btn.textContent = 'Zapisano!';
+        btn.style.background = 'linear-gradient(135deg,#22c55e,#16a34a)';
+    }).catch(function(){
+        document.getElementById('paleoToast').style.display = 'block';
+        btn.textContent = 'Zapisano!';
+        btn.style.background = 'linear-gradient(135deg,#22c55e,#16a34a)';
+    });
+}
+</script>
+
 <!-- DZISIAJ KPI -->
 <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
     <a href="/sprzedaze" class="kpi-card green" style="text-decoration:none;color:inherit;cursor:pointer">

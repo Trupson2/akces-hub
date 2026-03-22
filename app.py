@@ -192,6 +192,20 @@ def check_eula_middleware():
     except ImportError:
         pass
 
+# Sprawdzanie onboardingu (po EULA)
+@app.before_request
+def check_onboarding_middleware():
+    """Po akceptacji EULA sprawdz czy onboarding ukonczony"""
+    allowed = ('/onboarding', '/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify')
+    if any(request.path.startswith(p) for p in allowed):
+        return
+    try:
+        from modules.onboarding import is_onboarding_completed
+        if not is_onboarding_completed():
+            return redirect('/onboarding')
+    except ImportError:
+        pass
+
 # Branding — dostępny globalnie we wszystkich szablonach
 @app.context_processor
 def inject_branding():
@@ -389,6 +403,9 @@ app.register_blueprint(palety_bp)
 
 from modules.eula import eula_bp
 app.register_blueprint(eula_bp)
+
+from modules.onboarding import onboarding_bp
+app.register_blueprint(onboarding_bp)
 
 
 # ============================================================
@@ -967,6 +984,47 @@ def api_kiosk_exit():
     except:
         pass
     return jsonify({'ok': True})
+
+
+@app.route('/api/paletomat-early-access', methods=['POST'])
+def paletomat_early_access():
+    """Webhook: wyslij powiadomienie o early access na Telegram"""
+    from modules.database import get_config
+    import requests as _req
+
+    client = get_config('license_client', 'unknown')
+    key = get_config('license_key', '?')
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    msg = (
+        "<b>Early Access Request</b>\n"
+        f"Client: {client}\n"
+        f"Key: {key}\n"
+        f"Timestamp: {now}"
+    )
+
+    SUPPORT_BOT_TOKEN = '8538336125:AAE4qMWsz2tth9RKJ3zT9SqqKetpGHyS6GY'
+    SUPPORT_CHAT_ID = '5441603126'
+    try:
+        _req.post(
+            f'https://api.telegram.org/bot{SUPPORT_BOT_TOKEN}/sendMessage',
+            json={'chat_id': SUPPORT_CHAT_ID, 'text': msg, 'parse_mode': 'HTML'},
+            timeout=10
+        )
+    except Exception:
+        pass
+
+    discord_url = get_config('discord_webhook_url', '')
+    if discord_url:
+        try:
+            _req.post(discord_url, json={
+                'content': f"Early Access Request\nClient: {client}\nKey: {key}\nTimestamp: {now}"
+            }, timeout=10)
+        except Exception:
+            pass
+
+    return jsonify({'ok': True})
+
 
 @app.route('/api/system-stats')
 def api_system_stats():

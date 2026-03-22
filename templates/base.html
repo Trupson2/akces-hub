@@ -335,6 +335,16 @@ if(localStorage.getItem('kiosk_mode')==='1'){
 }
 </script>
 
+<!-- Update notification bar -->
+{% if update_available == '1' %}
+<div id="updateBar" style="position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:8px 16px;text-align:center;cursor:pointer;box-shadow:0 2px 12px rgba(99,102,241,0.4);font-size:0.82rem;color:#fff;font-weight:500;display:flex;align-items:center;justify-content:center;gap:8px" onclick="document.getElementById('updateForm').submit()">
+    <span>&#x1F4E6; Dostepna aktualizacja — kliknij aby zainstalowac</span>
+    <span style="font-size:0.7rem;opacity:0.7;margin-left:8px">&#x2715;</span>
+    <form id="updateForm" method="POST" action="/admin/update-git" style="display:none"></form>
+</div>
+<style>#updateBar ~ .app-layout .main-content .topbar{top:34px} #updateBar ~ .menu-toggle{top:48px}</style>
+{% endif %}
+
 <!-- Mobile menu -->
 <div class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open');document.querySelector('.sidebar-overlay').classList.toggle('open')">☰</div>
 <div class="sidebar-overlay" onclick="document.querySelector('.sidebar').classList.remove('open');this.classList.remove('open')"></div>

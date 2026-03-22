@@ -1212,6 +1212,13 @@ def admin_update_git():
         logs.append('')
         logs.append('AKTUALIZACJA ZAKONCZONA!')
 
+        # Wyczysc flage update_available po pomyslnej aktualizacji
+        try:
+            set_config('update_available', '0')
+            set_config('update_check_cache', '')
+        except Exception:
+            pass
+
         content = escape('\n'.join(logs))
         return f'''<html><head><meta charset="UTF-8"></head>
         <body style="{page_style}">
