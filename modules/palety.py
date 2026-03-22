@@ -1571,6 +1571,9 @@ def paleta_bulk_import():
                 # Obsługa ZIP — rozpakuj i przetwórz każdy Excel osobno
                 if file.filename.endswith('.zip'):
                     import zipfile
+                    zip_cena_raw = float(request.form.get(cena_key, 0) or 0)
+                    zip_regal = request.form.get(regal_key, '').strip() if regal_key else ''
+                    zip_data_zakupu = request.form.get('data', datetime.now().strftime('%Y-%m-%d'))
                     try:
                         zip_data = io.BytesIO(file.read())
                         with zipfile.ZipFile(zip_data) as zf:
@@ -1626,7 +1629,9 @@ def paleta_bulk_import():
                                     if col_nazwa < 0:
                                         col_nazwa = 0
                                     # Utwórz paletę
-                                    paleta_id = add_paleta(zip_nazwa, cena_zakupu_raw * eur_rate, dostawca, data_zakupu, regal=regal)
+                                    # Podziel cenę zakupu równo na pliki w ZIP (lub 0 jeśli nie podano)
+                                    zip_cena_per_file = round((zip_cena_raw * eur_rate) / max(len(excel_files), 1), 2)
+                                    paleta_id = add_paleta(zip_nazwa, zip_cena_per_file, dostawca, zip_data_zakupu, regal=zip_regal)
                                     prod_count = 0
                                     total_szt = 0
                                     for row_data in rows_zip[z_header_row + 1:]:
@@ -1658,7 +1663,7 @@ def paleta_bulk_import():
                                         prod_count += 1
                                         total_szt += prod_ilosc
                                     conn.execute('UPDATE palety SET ilosc_produktow = ? WHERE id = ?', (prod_count, paleta_id))
-                                    if cena_zakupu_raw == 0 and prod_count > 0:
+                                    if zip_cena_raw == 0 and prod_count > 0:
                                         auto_cena = conn.execute('SELECT COALESCE(SUM(cena_brutto * ilosc), 0) FROM produkty WHERE paleta_id = ?', (paleta_id,)).fetchone()[0]
                                         conn.execute('UPDATE palety SET cena_zakupu = ? WHERE id = ?', (auto_cena, paleta_id))
                                     conn.commit()
