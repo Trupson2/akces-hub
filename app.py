@@ -2076,10 +2076,17 @@ a{color:#6366f1;text-decoration:none}
         <div class="info">Klucz: <span>{{ lic.key }}</span></div>
         <div class="info">Wygasa: <span>{{ lic.expires }}</span></div>
         <a href="/" class="btn btn-primary" style="text-align:center;text-decoration:none;margin-top:16px">← Dashboard</a>
-        {% if is_dev and lic.plan|upper != 'ENTERPRISE' %}
+        {% if lic.plan|upper != 'MAX' and lic.plan|upper != 'ENTERPRISE' %}
+        <div style="margin-top:12px;padding:16px;background:linear-gradient(135deg,rgba(139,92,246,0.1),rgba(99,102,241,0.1));border:1px solid rgba(139,92,246,0.3);border-radius:12px;text-align:center">
+            <div style="font-size:0.9rem;color:#c4b5fd;margin-bottom:8px">🚀 Chcesz więcej funkcji?</div>
+            <div style="font-size:0.8rem;color:#94a3b8;margin-bottom:12px">Przejdź na plan MAX i odblokuj AI analizy, 3D magazyn, multi-marketplace</div>
+            <a href="mailto:support@akceshub.pl?subject=Upgrade%20licencji%20{{ lic.key }}&body=Chcę%20zmienić%20plan%20na%20MAX.%20Mój%20klucz%3A%20{{ lic.key }}" class="btn" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);text-align:center;text-decoration:none;display:block">📧 Napisz w sprawie upgrade</a>
+        </div>
+        {% endif %}
+        {% if is_dev %}
         <form action="/license/upgrade-enterprise" method="POST" style="margin-top:8px">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);text-align:center">⬆️ Upgrade do Enterprise</button>
+            <button type="submit" class="btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);text-align:center;width:100%">⬆️ DEV: Upgrade do Enterprise</button>
         </form>
         {% endif %}
         {% endif %}
