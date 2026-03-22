@@ -1,5 +1,97 @@
 # Historia zmian — Akces Hub
 
+## 22.03.2026
+
+### System licencji i subskrypcje
+- [NOWE] HWID Binding — licencja przypisana do konkretnego urządzenia
+- [NOWE] Heartbeat 24h — weryfikacja licencji z serwerem co 24h
+- [NOWE] Ochrona przed cofaniem zegara systemowego (2h grace period)
+- [NOWE] Ekran wygaśnięcia subskrypcji z przyciskiem "Skopiuj ID klienta"
+- [NOWE] Licznik dni do końca subskrypcji w sidebarze (kolorowy)
+- [NOWE] Panel admina `/admin/subscriptions` — zarządzanie licencjami
+- [NOWE] Przycisk "Przedłuż o 30 dni" w panelu admina
+- [NOWE] Email + Telegram powiadomienia o wygasających licencjach (7 dni przed + w dniu)
+- [NOWE] Konfiguracja SMTP w ustawieniach + test email
+- [NOWE] Tabela `licenses_issued` z HWID, planem, datą wygaśnięcia
+
+### EULA i Onboarding
+- [NOWE] Ekran EULA — wymuszony scroll, checkbox odblokowany po przeczytaniu
+- [NOWE] Onboarding Wizard 3-krokowy (Allegro API → backup → ustawienia)
+- [NOWE] Flow: Licencja → Setup konta → EULA → Onboarding → Dashboard
+
+### RODO i zgodność prawna
+- [NOWE] Anonimizacja danych kupujących jednym kliknięciem
+- [NOWE] Auto-retencja danych (3/5/7 lat) z auto-anonimizacją
+- [NOWE] Parametry integracji (DPD cennik, warunki zwrotów/reklamacji)
+
+### Auto-Updater i monitoring
+- [NOWE] Auto-check aktualizacji co 6h (GitHub API)
+- [NOWE] Fioletowy pasek "Dostępna aktualizacja" w topbarze
+- [NOWE] Silent Crash Logger — error.log + Telegram webhook
+- [NOWE] Globalna obsługa błędów z elegancką stroną 500
+
+### Paletomat Open Teaser
+- [NOWE] Pulsujący neonowy baner na dashboardzie
+- [NOWE] Modal z zapowiedziami funkcji + Early Access webhook
+- [NOWE] Lead collection przez Telegram
+
+### Feature Requests
+- [NOWE] Formularz "Zaproponuj nową funkcję" z priorytetem
+- [NOWE] Wysyłka na Telegram + Discord webhook
+- [NOWE] Podział Pomoc na "Zgłoś błąd" + "Zaproponuj funkcję"
+
+### Demo Mode
+- [NOWE] Przełącznik Demo Mode w topbarze (ikona oka)
+- [NOWE] Ukrywanie nazw dostawców na DOSTAWCA_XXX
+- [NOWE] localStorage — przetrwa odświeżanie
+- [NOWE] Działa na: palety, produkty, analityka, dashboard
+
+### Dostawcy dynamiczni
+- [NOWE] Dynamiczna lista dostawców z bazy (nie hardcoded)
+- [NOWE] "Dodaj nowego..." w dropdown — wpisz własnego dostawcę
+- [NOWE] Auto-save nowego dostawcy do przyszłych formularzy
+- [NOWE] Zarządzanie dostawcami w Ustawieniach
+
+### Bulk Import
+- [NOWE] Obsługa ZIP — wrzuć .zip z wieloma Excelami
+- [NOWE] Auto-tworzenie palety z każdego pliku w ZIP
+- [NOWE] Szybki przycisk "Import z ZIP" na górze formularza
+
+### Kategorie produktów
+- [NOWE] ~150 nowych słów kluczowych (peruki, rampy, zgrzewarki, huśtawki, pegi)
+- [NOWE] Nowe kategorie: uroda, dom_ogrod rozszerzone
+- [NOWE] Rozszerzony mapping Allegro category IDs
+
+### UI/UX
+- [ZMIANA] Brand name dynamiczny z configu (nie hardcoded)
+- [ZMIANA] Spójne nazwy na wszystkich stronach
+- [NOWE] Karta licencji na dashboardzie (plan, dni, data wygaśnięcia)
+
+### Ngrok
+- [FIX] Konfiguracja ngrok Pro (akceshub.ngrok.dev)
+- [FIX] Authtoken w serwisie systemd
+- [NOWE] Serwis autostart z `--url` flag
+
+### Auto-wycena
+- [NOWE] Gemini AI batch pricing (zamiast Amazon scrape)
+- [NOWE] Instant CDN response + background scrape zdjęć
+- [FIX] event.target → this w onclick handler
+
+### Analiza palet
+- [NOWE] Tłumaczenie nazw produktów na polski (Gemini)
+- [NOWE] Klikalny ASIN z linkiem do Amazon
+- [NOWE] Filtrowanie po słowie kluczowym (np. "peruka")
+- [NOWE] Sortowanie po popycie (wysoki na górze)
+- [NOWE] Weryfikacja cen na Allegro API
+- [NOWE] Progress bar z % i info o batchu
+
+### Zgrupuj w Box
+- [NOWE] Zaznaczanie palet → "Zgrupuj w Box"
+- [NOWE] Pole cena zakupu (ręczne zamiast auto-sumy RRP)
+- [NOWE] Stare palety usuwane po zgrupowaniu
+
+---
+
 ## 20.03.2026
 
 ### Paleta / Box rozdzielenie
