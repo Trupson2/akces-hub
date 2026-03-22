@@ -472,6 +472,11 @@ def init_db():
             ('produkty', 'stan_przyjecia', "ALTER TABLE produkty ADD COLUMN stan_przyjecia TEXT DEFAULT ''"),
             ('produkty', 'notatki_przyjecia', "ALTER TABLE produkty ADD COLUMN notatki_przyjecia TEXT DEFAULT ''"),
             ('produkty', 'klasa_jakosci', "ALTER TABLE produkty ADD COLUMN klasa_jakosci TEXT DEFAULT ''"),
+            ('licenses_issued', 'plan', "ALTER TABLE licenses_issued ADD COLUMN plan TEXT DEFAULT 'MAX'"),
+            ('licenses_issued', 'expires', "ALTER TABLE licenses_issued ADD COLUMN expires TEXT"),
+            ('licenses_issued', 'hwid', "ALTER TABLE licenses_issued ADD COLUMN hwid TEXT DEFAULT ''"),
+            ('licenses_issued', 'active', "ALTER TABLE licenses_issued ADD COLUMN active INTEGER DEFAULT 1"),
+            ('licenses_issued', 'expires_date', "ALTER TABLE licenses_issued ADD COLUMN expires_date TEXT"),
         ]
         for _tbl, _col, _sql in _migrate_cols:
             try:

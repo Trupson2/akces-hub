@@ -173,11 +173,22 @@ def verify_license(license_data):
     if not hmac.compare_digest(sig_stored, expected_sig):
         return False, 'Nieprawidlowy klucz licencyjny'
 
-    # Sprawdź wygaśnięcie
+    # Sprawdź wygaśnięcie (unix timestamp)
     if expires > 0 and time.time() > expires:
         from datetime import datetime
         exp_date = datetime.fromtimestamp(expires).strftime('%d.%m.%Y')
         return False, f'Licencja wygasla {exp_date}'
+
+    # Sprawdź wygaśnięcie (expiry_date YYYY-MM-DD — nowy format)
+    expiry_date_str = license_data.get('expiry_date', '')
+    if expiry_date_str:
+        try:
+            from datetime import datetime, date
+            exp_d = datetime.strptime(expiry_date_str, '%Y-%m-%d').date()
+            if date.today() > exp_d:
+                return False, f'Licencja wygasla {exp_d.strftime("%d.%m.%Y")}'
+        except (ValueError, TypeError):
+            pass  # Nieprawidłowy format — ignoruj
 
     # Sprawdź HWID binding (backward compatible — jeśli brak hwid, pomijamy)
     stored_hwid = license_data.get('hwid', '')
@@ -247,6 +258,16 @@ def activate_license(key, client_name, plan, created, expires, signature):
     except Exception:
         pass  # Błąd HWID nie blokuje aktywacji
 
+    # Dodaj activated_at i expiry_date (YYYY-MM-DD) dla nowego formatu
+    from datetime import datetime
+    license_data['activated_at'] = datetime.now().isoformat()
+    expires_ts = license_data.get('expires', 0)
+    if expires_ts and expires_ts > 0:
+        try:
+            license_data['expiry_date'] = datetime.fromtimestamp(expires_ts).strftime('%Y-%m-%d')
+        except (ValueError, TypeError, OSError):
+            pass
+
     save_license(license_data)
     return True, 'Licencja aktywowana!'
 
@@ -299,6 +320,85 @@ def get_license_display():
         'hwid': lic.get('hwid', ''),
         'message': msg
     }
+
+
+def get_days_remaining():
+    """
+    Oblicz ile dni pozostało do wygaśnięcia licencji.
+    Returns: int (dni) lub None (brak licencji / bezterminowa)
+    """
+    lic = get_license_info()
+    if not lic:
+        return None
+
+    from datetime import datetime, date
+
+    # Sprawdź expiry_date (YYYY-MM-DD) — nowy format
+    expiry_date_str = lic.get('expiry_date', '')
+    if expiry_date_str:
+        try:
+            exp_d = datetime.strptime(expiry_date_str, '%Y-%m-%d').date()
+            return (exp_d - date.today()).days
+        except (ValueError, TypeError):
+            pass
+
+    # Sprawdź expires (unix timestamp) — stary format
+    expires = lic.get('expires', 0)
+    if expires and expires > 0:
+        try:
+            exp_dt = datetime.fromtimestamp(expires)
+            days = (exp_dt - datetime.now()).days
+            return days
+        except (ValueError, TypeError, OSError):
+            pass
+
+    return None  # Bezterminowa
+
+
+def is_subscription_expired():
+    """
+    Sprawdź czy subskrypcja wygasła.
+    Returns: bool (True = wygasła, False = aktywna lub bezterminowa)
+    """
+    days = get_days_remaining()
+    if days is None:
+        return False  # Bezterminowa lub brak licencji (obsługiwane osobno)
+    return days < 0
+
+
+def check_time_manipulation():
+    """
+    Sprawdź czy czas systemowy nie został cofnięty (ochrona przed manipulacją).
+    Porównuje aktualny czas z ostatnim zapisanym czasem logowania.
+    Grace: 2 godziny wstecz (zmiany strefy czasowej, synchronizacja NTP).
+
+    Returns: (ok, message)
+        ok=True — czas OK
+        ok=False — wykryto manipulację
+    """
+    try:
+        from .database import get_config, set_config
+        from datetime import datetime, timedelta
+
+        last_login_str = get_config('last_successful_login_time', '')
+        now = datetime.now()
+
+        if last_login_str:
+            try:
+                last_login = datetime.fromisoformat(last_login_str)
+                # Jeśli aktualny czas jest wcześniejszy niż ostatni login minus grace
+                grace = timedelta(hours=2)
+                if now < (last_login - grace):
+                    return False, 'Wykryto manipulacje czasem systemowym. Ustaw prawidlowa date i godzine.'
+            except (ValueError, TypeError):
+                pass  # Nieprawidłowy format — ignoruj, zapisz nowy
+
+        # Zapisz aktualny czas jako ostatni udany login
+        set_config('last_successful_login_time', now.isoformat())
+        return True, 'OK'
+
+    except Exception:
+        return True, 'OK'  # Błąd sprawdzania nie blokuje aplikacji
 
 
 # ============================================================

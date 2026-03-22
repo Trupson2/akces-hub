@@ -160,7 +160,7 @@ def csrf_protect_forms():
 @app.before_request
 def check_license_middleware():
     """Blokuj dostęp bez aktywnej licencji (oprócz setup, login, aktywacji)"""
-    allowed = ('/setup', '/auth', '/static', '/api/system-stats', '/license', '/favicon', '/api/license/verify')
+    allowed = ('/setup', '/auth', '/static', '/api/system-stats', '/license', '/favicon', '/api/license/verify', '/subscription-expired', '/time-manipulation')
     if any(request.path.startswith(p) for p in allowed):
         return
     if request.path == '/':
@@ -171,10 +171,18 @@ def check_license_middleware():
         if get_config('license_blocked', '0') == '1':
             return redirect('/license?blocked=1')
 
-        from modules.license import check_license
+        from modules.license import check_license, is_subscription_expired, check_time_manipulation, get_license_info
         is_valid, plan, msg = check_license()
         if not is_valid:
+            # Sprawdź czy to wygaśnięcie subskrypcji
+            if is_subscription_expired():
+                return redirect('/subscription-expired')
             return redirect('/license')
+
+        # Sprawdź manipulację czasem
+        time_ok, time_msg = check_time_manipulation()
+        if not time_ok:
+            return redirect('/time-manipulation')
     except ImportError:
         pass  # Brak modułu license = dev mode
 
@@ -182,7 +190,7 @@ def check_license_middleware():
 @app.before_request
 def check_eula_middleware():
     """Po walidacji licencji sprawdz czy EULA zaakceptowane"""
-    allowed = ('/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify')
+    allowed = ('/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify', '/subscription-expired', '/time-manipulation')
     if any(request.path.startswith(p) for p in allowed):
         return
     try:
@@ -196,7 +204,7 @@ def check_eula_middleware():
 @app.before_request
 def check_onboarding_middleware():
     """Po akceptacji EULA sprawdz czy onboarding ukonczony"""
-    allowed = ('/onboarding', '/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify')
+    allowed = ('/onboarding', '/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify', '/subscription-expired', '/time-manipulation')
     if any(request.path.startswith(p) for p in allowed):
         return
     try:
@@ -214,20 +222,30 @@ def inject_branding():
     lic_plan = 'FREE'
     lic_expires = ''
     lic_days_left = ''
+    lic_days_left_num = None
+    lic_expired = False
     try:
-        from modules.license import get_license_display
+        from modules.license import get_license_display, get_days_remaining, is_subscription_expired
         lic = get_license_display()
         if lic.get('active'):
             lic_plan = (lic.get('plan', 'free')).upper()
             lic_expires = lic.get('expires', '')
-            if lic_expires and lic_expires != 'Bezterminowo':
-                from datetime import datetime
-                exp_date = datetime.strptime(lic_expires, '%d.%m.%Y')
-                days = (exp_date - datetime.now()).days
-                if days >= 0:
-                    lic_days_left = f'{days} dni'
+            days_rem = get_days_remaining()
+            if days_rem is not None:
+                lic_days_left_num = days_rem
+                if days_rem >= 0:
+                    lic_days_left = f'{days_rem} dni'
                 else:
                     lic_days_left = 'Wygasla!'
+                    lic_expired = True
+            # Bezterminowa — brak dni
+        else:
+            lic_expired = is_subscription_expired()
+            if lic_expired:
+                lic_days_left = 'Wygasla!'
+                days_rem = get_days_remaining()
+                if days_rem is not None:
+                    lic_days_left_num = days_rem
     except Exception:
         pass
     return {
@@ -237,6 +255,8 @@ def inject_branding():
         'lic_plan': lic_plan,
         'lic_expires': lic_expires,
         'lic_days_left': lic_days_left,
+        'lic_days_left_num': lic_days_left_num,
+        'lic_expired': lic_expired,
     }
 
 # Loguj WSZYSTKIE błędy 500 do konsoli (Flask domyślnie je ukrywa w non-debug)
@@ -2105,6 +2125,144 @@ a{color:#6366f1;text-decoration:none}
 
 
 # ============================================================
+# SUBSCRIPTION EXPIRED — ekran wygasłej subskrypcji
+# ============================================================
+@app.route('/subscription-expired')
+def subscription_expired_page():
+    """Standalone strona — subskrypcja wygasła"""
+    from modules.license import get_license_info, get_days_remaining, get_hwid
+    from modules.database import get_config
+    lic = get_license_info()
+    plan_name = ''
+    expiry_str = ''
+    hwid = ''
+    renew_url = get_config('subscription_renew_url', 'https://paletomat.app/odnow')
+
+    if lic:
+        plan_raw = (lic.get('plan', '') or '').upper()
+        plan_labels = {'STARTER': 'TRIAL', 'PRO': 'PRO', 'BUSINESS': 'MAX', 'ENTERPRISE': 'ENTERPRISE'}
+        plan_name = plan_labels.get(plan_raw, plan_raw)
+        expires_ts = lic.get('expires', 0)
+        if expires_ts and expires_ts > 0:
+            from datetime import datetime
+            expiry_str = datetime.fromtimestamp(expires_ts).strftime('%d.%m.%Y')
+        expiry_date = lic.get('expiry_date', '')
+        if expiry_date:
+            try:
+                from datetime import datetime as _dt
+                expiry_str = _dt.strptime(expiry_date, '%Y-%m-%d').strftime('%d.%m.%Y')
+            except (ValueError, TypeError):
+                pass
+        hwid = lic.get('hwid', '') or ''
+
+    if not hwid:
+        try:
+            hwid = get_hwid()
+        except Exception:
+            hwid = ''
+
+    return render_template_string('''<!DOCTYPE html>
+<html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Subskrypcja wygasla</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a14;color:#e2e8f0;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.expired-card{width:100%;max-width:480px;padding:40px 32px;background:linear-gradient(145deg,#12122a,#0e0e22);border:2px solid transparent;border-image:linear-gradient(135deg,#6366f1,#8b5cf6,#ec4899) 1;border-radius:0;position:relative}
+.expired-card::before{content:'';position:absolute;inset:-2px;border-radius:20px;background:linear-gradient(135deg,#6366f1,#8b5cf6,#ec4899);z-index:-1;opacity:0.5}
+.expired-card{border:none;border-radius:20px;background:linear-gradient(145deg,#12122a,#0e0e22);outline:2px solid rgba(99,102,241,0.3);outline-offset:0}
+.icon{text-align:center;font-size:4rem;margin-bottom:20px;filter:drop-shadow(0 0 20px rgba(99,102,241,0.4))}
+h1{text-align:center;font-size:1.5rem;font-weight:700;margin-bottom:12px;background:linear-gradient(135deg,#f87171,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.desc{text-align:center;color:#94a3b8;font-size:0.9rem;line-height:1.6;margin-bottom:28px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+.info-item{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 16px;text-align:center}
+.info-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:4px}
+.info-value{font-size:0.95rem;font-weight:600;color:#e2e8f0}
+.info-item.full{grid-column:1/3}
+.hwid-box{font-family:monospace;font-size:0.8rem;color:#94a3b8;word-break:break-all}
+.renew-link{display:block;text-align:center;padding:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;text-decoration:none;border-radius:12px;font-weight:700;font-size:1rem;margin-bottom:12px;transition:transform 0.2s,box-shadow 0.2s}
+.renew-link:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(99,102,241,0.4)}
+.copy-btn{display:block;width:100%;padding:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#94a3b8;border-radius:12px;cursor:pointer;font-size:0.85rem;font-weight:600;transition:all 0.2s}
+.copy-btn:hover{background:rgba(255,255,255,0.1);color:#e2e8f0}
+.copy-btn.copied{background:rgba(34,197,94,0.15);color:#22c55e;border-color:rgba(34,197,94,0.3)}
+</style></head><body>
+<div class="expired-card">
+    <div class="icon">&#x23F3;</div>
+    <h1>Twoja subskrypcja wygasla</h1>
+    <p class="desc">Aby zachowac dostep do Map 3D, analityki i wszystkich funkcji premium, odnow licencje.</p>
+
+    <div class="info-grid">
+        {% if plan_name %}
+        <div class="info-item">
+            <div class="info-label">Plan</div>
+            <div class="info-value">{{ plan_name }}</div>
+        </div>
+        {% endif %}
+        {% if expiry_str %}
+        <div class="info-item">
+            <div class="info-label">Wygasla</div>
+            <div class="info-value" style="color:#f87171">{{ expiry_str }}</div>
+        </div>
+        {% endif %}
+        {% if hwid %}
+        <div class="info-item full">
+            <div class="info-label">ID Klienta (HWID)</div>
+            <div class="info-value hwid-box">{{ hwid }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <a href="{{ renew_url }}" target="_blank" class="renew-link">Odnow subskrypcje</a>
+
+    {% if hwid %}
+    <button class="copy-btn" onclick="copyHwid()">&#x1F4CB; Skopiuj ID klienta</button>
+    {% endif %}
+
+    <div style="text-align:center;margin-top:16px">
+        <a href="/license" style="color:#6366f1;text-decoration:none;font-size:0.85rem">Aktywuj nowa licencje &rarr;</a>
+    </div>
+</div>
+<script>
+function copyHwid(){
+    var hw='{{ hwid }}';
+    navigator.clipboard.writeText(hw).then(function(){
+        var b=document.querySelector('.copy-btn');
+        b.textContent='\\u2705 Skopiowano!';
+        b.classList.add('copied');
+        setTimeout(function(){b.innerHTML='&#x1F4CB; Skopiuj ID klienta';b.classList.remove('copied')},2000);
+    });
+}
+</script>
+</body></html>''', plan_name=plan_name, expiry_str=expiry_str, hwid=hwid, renew_url=renew_url)
+
+
+# ============================================================
+# TIME MANIPULATION — wykryto manipulację czasem
+# ============================================================
+@app.route('/time-manipulation')
+def time_manipulation_page():
+    """Standalone strona — wykryto manipulację czasem systemowym"""
+    return render_template_string('''<!DOCTYPE html>
+<html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Blad czasu systemowego</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a14;color:#e2e8f0;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{width:100%;max-width:480px;padding:40px 32px;background:#12122a;border-radius:20px;outline:2px solid rgba(239,68,68,0.3);text-align:center}
+.icon{font-size:4rem;margin-bottom:20px}
+h1{font-size:1.3rem;font-weight:700;color:#f87171;margin-bottom:12px}
+p{color:#94a3b8;font-size:0.9rem;line-height:1.6;margin-bottom:24px}
+.btn{display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;text-decoration:none;border-radius:12px;font-weight:700;font-size:0.9rem}
+</style></head><body>
+<div class="card">
+    <div class="icon">&#x1F6A8;</div>
+    <h1>Wykryto manipulacje czasem systemowym</h1>
+    <p>Ustaw prawidlowa date i godzine, a nastepnie uruchom ponownie aplikacje.</p>
+    <a href="/" class="btn">Sprobuj ponownie</a>
+</div>
+</body></html>''')
+
+
+# ============================================================
 # UPGRADE LICENCJI DO ENTERPRISE
 # ============================================================
 @app.route('/license/upgrade-enterprise', methods=['POST'])
@@ -2404,6 +2562,257 @@ function dlText(t,fn){
         brand_name=app.config.get('BRAND_NAME', 'Akces Hub'),
         current_user=session.get('user')
     )
+
+
+# ============================================================
+# ADMIN: ZARZĄDZANIE SUBSKRYPCJAMI
+# ============================================================
+@app.route('/admin/subscriptions')
+def admin_subscriptions():
+    """Panel zarządzania subskrypcjami — tylko dla dev"""
+    from modules.database import get_config, get_db
+    is_dev = get_config('is_dev', '0') == '1'
+    if session.get('rola') != 'admin' or not is_dev:
+        return 'Brak dostepu', 403
+
+    conn = get_db()
+    try:
+        rows = conn.execute('''SELECT id, license_key, client_name, plan, hwid, expires,
+            active, last_heartbeat, created_at, expires_date FROM licenses_issued ORDER BY created_at DESC''').fetchall()
+    except Exception:
+        # Fallback: kolumna expires_date może jeszcze nie istnieć
+        rows = conn.execute('''SELECT id, license_key, client_name, plan, hwid, expires,
+            active, last_heartbeat, created_at, '' as expires_date FROM licenses_issued ORDER BY created_at DESC''').fetchall()
+
+    licenses = []
+    for r in rows:
+        key = r['license_key'] or ''
+        masked = key[:4] + '****' + key[-4:] if len(key) > 8 else key
+        exp_str = ''
+        if r['expires_date']:
+            exp_str = r['expires_date']
+        elif r['expires'] and str(r['expires']).isdigit() and int(r['expires']) > 0:
+            from datetime import datetime
+            try:
+                exp_str = datetime.fromtimestamp(int(r['expires'])).strftime('%Y-%m-%d')
+            except (ValueError, TypeError, OSError):
+                exp_str = str(r['expires'])
+        else:
+            exp_str = 'Bezterminowo'
+
+        plan_raw = (r['plan'] or 'pro').upper()
+        plan_labels = {'STARTER': 'TRIAL', 'PRO': 'PRO', 'BUSINESS': 'MAX', 'ENTERPRISE': 'ENTERPRISE'}
+        plan_display = plan_labels.get(plan_raw, plan_raw)
+
+        licenses.append({
+            'id': r['id'],
+            'key': key,
+            'masked_key': masked,
+            'client': r['client_name'] or '',
+            'plan': plan_display,
+            'plan_raw': r['plan'] or 'pro',
+            'hwid': r['hwid'] or '',
+            'expires': exp_str,
+            'active': bool(r['active']),
+            'last_heartbeat': r['last_heartbeat'] or '-',
+            'created_at': r['created_at'] or '',
+        })
+
+    return render_template_string('''{% extends "base.html" %}
+{% block page_title %}Subskrypcje{% endblock %}
+{% block content %}
+<style>
+.sub-table{width:100%;border-collapse:collapse;font-size:0.8rem}
+.sub-table th{background:rgba(99,102,241,0.1);color:#a5b4fc;text-align:left;padding:10px 12px;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid rgba(99,102,241,0.2)}
+.sub-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);vertical-align:middle}
+.sub-table tr:hover{background:rgba(255,255,255,0.03)}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.3px}
+.badge-trial{background:rgba(234,179,8,0.15);color:#eab308}
+.badge-pro{background:rgba(99,102,241,0.15);color:#818cf8}
+.badge-max{background:rgba(168,85,247,0.15);color:#a855f7}
+.badge-enterprise{background:rgba(34,197,94,0.15);color:#22c55e}
+.badge-active{background:rgba(34,197,94,0.12);color:#22c55e}
+.badge-inactive{background:rgba(239,68,68,0.12);color:#ef4444}
+.sub-edit-form{display:none;background:rgba(99,102,241,0.05);border:1px solid rgba(99,102,241,0.15);border-radius:12px;padding:16px;margin-top:8px}
+.sub-edit-form.show{display:block}
+.sub-input{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 10px;color:#e2e8f0;font-size:0.82rem;width:100%}
+.sub-btn{padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-size:0.78rem;font-weight:600;transition:all 0.2s}
+.sub-btn-save{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
+.sub-btn-extend{background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3)}
+.sub-btn-toggle{background:rgba(234,179,8,0.1);color:#eab308;border:1px solid rgba(234,179,8,0.3)}
+.hwid-cell{font-family:monospace;font-size:0.72rem;color:#94a3b8;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+</style>
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+    <h2 style="font-size:1.1rem;font-weight:700">Zarzadzanie subskrypcjami</h2>
+    <span style="color:#64748b;font-size:0.8rem">{{ licenses|length }} licencji</span>
+</div>
+
+{% if licenses %}
+<div class="card" style="overflow-x:auto;padding:0">
+    <table class="sub-table">
+        <thead>
+            <tr>
+                <th>Klucz</th>
+                <th>Klient</th>
+                <th>Plan</th>
+                <th>HWID</th>
+                <th>Wygasa</th>
+                <th>Status</th>
+                <th>Heartbeat</th>
+                <th>Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for lic in licenses %}
+            <tr>
+                <td style="font-family:monospace;font-size:0.75rem;color:#a5b4fc" title="{{ lic.key }}">{{ lic.masked_key }}</td>
+                <td style="font-weight:600">{{ lic.client }}</td>
+                <td><span class="badge badge-{{ lic.plan|lower }}">{{ lic.plan }}</span></td>
+                <td class="hwid-cell" title="{{ lic.hwid }}">{{ lic.hwid or '-' }}</td>
+                <td>{{ lic.expires }}</td>
+                <td>
+                    {% if lic.active %}
+                    <span class="badge badge-active">Aktywna</span>
+                    {% else %}
+                    <span class="badge badge-inactive">Nieaktywna</span>
+                    {% endif %}
+                </td>
+                <td style="font-size:0.72rem;color:#94a3b8">{{ lic.last_heartbeat }}</td>
+                <td>
+                    <button class="sub-btn sub-btn-toggle" onclick="toggleEdit('edit-{{ lic.id }}')" style="font-size:0.72rem;padding:4px 10px">Edytuj</button>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="8" style="padding:0;border:none">
+                    <div class="sub-edit-form" id="edit-{{ lic.id }}">
+                        <form method="POST" action="/admin/subscriptions/update" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="license_key" value="{{ lic.key }}">
+                            <div style="flex:1;min-width:140px">
+                                <label style="display:block;font-size:0.7rem;color:#64748b;margin-bottom:4px">Plan</label>
+                                <select name="new_plan" class="sub-input">
+                                    <option value="starter" {{ 'selected' if lic.plan_raw == 'starter' }}>TRIAL</option>
+                                    <option value="pro" {{ 'selected' if lic.plan_raw == 'pro' }}>PRO</option>
+                                    <option value="business" {{ 'selected' if lic.plan_raw == 'business' }}>MAX</option>
+                                    <option value="enterprise" {{ 'selected' if lic.plan_raw == 'enterprise' }}>ENTERPRISE</option>
+                                </select>
+                            </div>
+                            <div style="flex:1;min-width:160px">
+                                <label style="display:block;font-size:0.7rem;color:#64748b;margin-bottom:4px">Data wygasniecia</label>
+                                <input type="date" name="new_expiry_date" class="sub-input" value="{{ lic.expires if lic.expires != 'Bezterminowo' else '' }}">
+                            </div>
+                            <div style="flex:0;min-width:80px">
+                                <label style="display:block;font-size:0.7rem;color:#64748b;margin-bottom:4px">Aktywna</label>
+                                <select name="active" class="sub-input">
+                                    <option value="1" {{ 'selected' if lic.active }}>Tak</option>
+                                    <option value="0" {{ 'selected' if not lic.active }}>Nie</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="sub-btn sub-btn-save">Zapisz</button>
+                            <button type="submit" name="extend_30" value="1" class="sub-btn sub-btn-extend">Przedluz o 30 dni</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card" style="text-align:center;padding:40px;color:#64748b">
+    Brak wydanych licencji
+</div>
+{% endif %}
+
+<script>
+function toggleEdit(id){
+    var el=document.getElementById(id);
+    el.classList.toggle('show');
+}
+</script>
+{% endblock %}
+''', licenses=licenses)
+
+
+@app.route('/admin/subscriptions/update', methods=['POST'])
+def admin_subscriptions_update():
+    """Aktualizuj subskrypcję — plan, expiry, active"""
+    from modules.database import get_config, get_db
+    is_dev = get_config('is_dev', '0') == '1'
+    if session.get('rola') != 'admin' or not is_dev:
+        return 'Brak dostepu', 403
+
+    license_key = request.form.get('license_key', '').strip()
+    new_plan = request.form.get('new_plan', '').strip()
+    new_expiry_date = request.form.get('new_expiry_date', '').strip()
+    active = request.form.get('active', '1').strip()
+    extend_30 = request.form.get('extend_30', '')
+
+    if not license_key:
+        return redirect('/admin/subscriptions')
+
+    conn = get_db()
+
+    if extend_30:
+        # Przedłuż o 30 dni od dzisiaj lub od aktualnego expiry
+        from datetime import datetime, timedelta
+        row = conn.execute('SELECT expires, expires_date FROM licenses_issued WHERE license_key = ?', (license_key,)).fetchone()
+        base_date = datetime.now().date()
+        if row:
+            if row['expires_date']:
+                try:
+                    d = datetime.strptime(row['expires_date'], '%Y-%m-%d').date()
+                    if d > base_date:
+                        base_date = d
+                except (ValueError, TypeError):
+                    pass
+            elif row['expires'] and str(row['expires']).isdigit() and int(row['expires']) > 0:
+                try:
+                    d = datetime.fromtimestamp(int(row['expires'])).date()
+                    if d > base_date:
+                        base_date = d
+                except (ValueError, TypeError, OSError):
+                    pass
+        new_date = base_date + timedelta(days=30)
+        new_ts = int(new_date.strftime('%s')) if hasattr(new_date, 'strftime') else 0
+        try:
+            import time as _t
+            from datetime import datetime as _dt2
+            new_ts = int(_dt2.combine(new_date, _dt2.min.time()).timestamp())
+        except Exception:
+            new_ts = 0
+        conn.execute('UPDATE licenses_issued SET expires_date = ?, expires = ?, active = 1 WHERE license_key = ?',
+                     (new_date.strftime('%Y-%m-%d'), new_ts, license_key))
+        conn.commit()
+        return redirect('/admin/subscriptions')
+
+    # Standardowa aktualizacja
+    updates = []
+    params = []
+    if new_plan:
+        updates.append('plan = ?')
+        params.append(new_plan)
+    if new_expiry_date:
+        updates.append('expires_date = ?')
+        params.append(new_expiry_date)
+        # Też aktualizuj timestamp expires
+        try:
+            from datetime import datetime
+            d = datetime.strptime(new_expiry_date, '%Y-%m-%d')
+            updates.append('expires = ?')
+            params.append(int(d.timestamp()))
+        except (ValueError, TypeError):
+            pass
+    updates.append('active = ?')
+    params.append(int(active))
+    params.append(license_key)
+
+    if updates:
+        conn.execute(f'UPDATE licenses_issued SET {", ".join(updates)} WHERE license_key = ?', params)
+        conn.commit()
+
+    return redirect('/admin/subscriptions')
 
 
 # ============================================================
