@@ -1041,6 +1041,16 @@ def analityka_palety():
         else:
             prognoza = zysk
 
+        # Tempo sprzedaży (szt/dzień)
+        from datetime import datetime as _dt
+        try:
+            _data_zakupu = _dt.strptime(str(p['data_zakupu'] or '')[:10], '%Y-%m-%d')
+            _dni = max(1, (_dt.now() - _data_zakupu).days)
+        except:
+            _dni = 1
+        tempo = sprzedanych / _dni if sprzedanych > 0 else 0
+        procent = (sprzedanych / wszystkich * 100) if wszystkich > 0 else 0
+
         palety_stats.append({
             'id': p['id'],
             'nazwa': p['nazwa'] or f"Paleta #{p['id']}",
@@ -1055,6 +1065,8 @@ def analityka_palety():
             'roi': roi,
             'koszt_szt': koszt_szt,
             'prognoza': prognoza,
+            'tempo': tempo,
+            'procent': procent,
             'wszystkich': wszystkich,
             'zostalo': zostalo,
             'sprzedanych': sprzedanych,
@@ -1158,6 +1170,12 @@ def analityka_palety():
                     </select>
                 </div>
             </div>
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+                <button onclick="sortTable(9,'num');this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#1e1e2e');this.style.background='#22c55e33'" style="padding:6px 14px;background:#1e1e2e;border:1px solid #334155;border-radius:8px;color:#e2e8f0;cursor:pointer;font-size:0.8rem">🔥 Najszybciej schodzące</button>
+                <button onclick="sortTable(5,'num');this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#1e1e2e');this.style.background='#22c55e33'" style="padding:6px 14px;background:#1e1e2e;border:1px solid #334155;border-radius:8px;color:#e2e8f0;cursor:pointer;font-size:0.8rem">💰 Największy przychód</button>
+                <button onclick="sortTable(6,'num');this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#1e1e2e');this.style.background='#22c55e33'" style="padding:6px 14px;background:#1e1e2e;border:1px solid #334155;border-radius:8px;color:#e2e8f0;cursor:pointer;font-size:0.8rem">📈 Największy zysk</button>
+                <button onclick="sortTable(7,'num');this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#1e1e2e');this.style.background='#22c55e33'" style="padding:6px 14px;background:#1e1e2e;border:1px solid #334155;border-radius:8px;color:#e2e8f0;cursor:pointer;font-size:0.8rem">🏆 Najlepsze ROI</button>
+            </div>
             <div style="overflow-x:auto;">
             <table class="palety-table" id="paletyTable">
                 <thead>
@@ -1171,13 +1189,14 @@ def analityka_palety():
                         <th onclick="sortTable(6,'num')">Zysk <span class="sort-arrow"></span></th>
                         <th onclick="sortTable(7,'num')">ROI <span class="sort-arrow"></span></th>
                         <th onclick="sortTable(8,'num')">Prognoza <span class="sort-arrow"></span></th>
-                        <th>Postep</th>
+                        <th onclick="sortTable(9,'num')">Tempo <span class="sort-arrow"></span></th>
+                        <th onclick="sortTable(10,'num')">Postep <span class="sort-arrow"></span></th>
                         <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     {''.join(f"""
-                    <tr onclick="window.location='/palety/{p['id']}'" data-dostawca="{p['dostawca']}" data-vals="{p['nazwa'][:30]}|{p['dostawca']}|{p['data']}|{p['koszt']:.2f}|{p['koszt_szt']:.2f}|{p['przychod']:.2f}|{p['zysk']:.2f}|{p['roi']:.2f}|{p['prognoza']:.2f}">
+                    <tr onclick="window.location='/palety/{p['id']}'" data-dostawca="{p['dostawca']}" data-vals="{p['nazwa'][:30]}|{p['dostawca']}|{p['data']}|{p['koszt']:.2f}|{p['koszt_szt']:.2f}|{p['przychod']:.2f}|{p['zysk']:.2f}|{p['roi']:.2f}|{p['prognoza']:.2f}|{p['tempo']:.2f}|{p['procent']:.2f}">
                         <td><strong>{p['nazwa'][:30]}</strong></td>
                         <td>{p['dostawca']}</td>
                         <td>{p['data']}</td>
@@ -1187,9 +1206,10 @@ def analityka_palety():
                         <td style="color:{'var(--green)' if p['zysk'] >= 0 else 'var(--red)'}">{p['zysk']:,.0f} zl</td>
                         <td style="color:{'var(--green)' if p['roi'] >= 0 else 'var(--red)'}">{p['roi']:.0f}%</td>
                         <td class="prognoza" style="color:{'var(--green)' if p['prognoza'] >= 0 else 'var(--red)'}">{p['prognoza']:,.0f} zl</td>
+                        <td style="color:{'#22c55e' if p['tempo'] >= 1 else '#f59e0b' if p['tempo'] >= 0.3 else '#64748b'}">{'🔥 ' if p['tempo'] >= 2 else ''}{p['tempo']:.1f}/d</td>
                         <td>
                             <div class="progress-bar">
-                                <div class="progress-fill" style="width:{(p['sprzedanych']/p['wszystkich']*100) if p['wszystkich']>0 else 0}%"></div>
+                                <div class="progress-fill" style="width:{p['procent']:.0f}%"></div>
                             </div>
                             <small style="color:var(--text-muted)">{p['sprzedanych']}/{p['wszystkich']} szt.</small>
                         </td>
