@@ -4649,8 +4649,12 @@ def sync_custom():
 # WAREHOUSE HEATMAP ROUTES
 
 def print_banner():
+    try:
+        _bn = get_config_cached('brand_name', 'AKCES HUB')
+    except Exception:
+        _bn = 'AKCES HUB'
     print("\n" + "="*60)
-    print(f"  ⚡ {get_config_cached('brand_name', 'AKCES HUB')} v{VERSION}")
+    print(f"  ⚡ {_bn} v{VERSION}")
     print("  Paletomat + Magazynier + Telegram + Allegro")
     print("="*60)
     print(f"  📦 Magazynier:  /magazyn")
@@ -5734,8 +5738,6 @@ if __name__ == '__main__':
             input("Naciśnij Enter aby zamknąć...")
             exit(1)
     
-    print_banner()
-    
     # Force add offline columns
     ensure_offline_columns()
     
@@ -5817,6 +5819,7 @@ if __name__ == '__main__':
     # Inicjalizacja bazy
     init_db()
     log("Baza danych OK")
+    print_banner()
 
     # Jednorazowe migracje
     from modules.database import migrate_reset_fake_data_wystawienia, fix_product_status_integrity
