@@ -464,13 +464,23 @@ def first_setup():
                 user = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
                 conn.close()
 
+                # Invaliduj cache _has_any_users
+                _users_exist_cache['val'] = True
+                _users_exist_cache['ts'] = 0
+
                 # Zaloguj od razu
                 session['user_id'] = user['id'] if user else 1
                 session['username'] = username
                 session['rola'] = 'admin'
                 session.permanent = True
 
-                # Przekieruj na dashboard (EULA/onboarding middleware przechwyci)
+                # Przekieruj na EULA (pomijamy middleware walki)
+                try:
+                    from modules.eula import is_eula_accepted
+                    if not is_eula_accepted():
+                        return redirect('/eula')
+                except Exception:
+                    pass
                 return redirect('/')
             except Exception as e:
                 if 'UNIQUE' in str(e):
