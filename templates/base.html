@@ -229,6 +229,7 @@ body.kiosk,body.kiosk *{cursor:none!important}
 .status-dot.online{background:var(--green);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 10px rgba(34,197,94,0.4)}50%{opacity:0.6;box-shadow:0 0 4px rgba(34,197,94,0.2)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse-sub{0%,100%{opacity:1}50%{opacity:0.5}}
 
 /* List items */
 .list-item{display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;text-decoration:none;color:var(--text);transition:all 0.2s;box-shadow:var(--shadow)}
@@ -323,6 +324,21 @@ body.kiosk,body.kiosk *{cursor:none!important}
     .container{padding:10px}
     .stat-row{grid-template-columns:1fr 1fr 1fr}
     .tools-grid{grid-template-columns:1fr}
+}
+/* Demo Mode — globalny CSS */
+body.demo-active .dostawca-name,
+body.demo-active [data-dostawca],
+body.demo-active [data-field="dostawca"] {
+    font-family: monospace !important;
+    color: #64748b !important;
+    letter-spacing: 1px !important;
+}
+body.demo-active .demo-indicator::after {
+    content: ' [DEMO]';
+    font-size: 0.6rem;
+    color: #ef4444;
+    font-weight: 700;
+    margin-left: 6px;
 }
 </style>
 <link rel="stylesheet" href="/static/kiosk.css">
@@ -423,6 +439,19 @@ if(localStorage.getItem('kiosk_mode')==='1'){
         </a>
     </nav>
     <div class="sidebar-bottom">
+        {% if lic_days_left and lic_days_left != 'Wygasla!' and lic_days_left_num is not none %}
+        <div class="sidebar-subscription" style="padding:8px 12px;margin-bottom:6px;border-radius:8px;font-size:0.75rem;font-weight:600;display:flex;align-items:center;gap:6px;
+            {% if lic_days_left_num is not none and lic_days_left_num < 7 %}background:rgba(239,68,68,0.1);color:#f87171;{% elif lic_days_left_num is not none and lic_days_left_num <= 30 %}background:rgba(234,179,8,0.1);color:#eab308;{% else %}background:rgba(34,197,94,0.08);color:#22c55e;{% endif %}
+            {% if lic_days_left_num is not none and lic_days_left_num < 3 %}animation:pulse-sub 1.5s ease-in-out infinite;{% endif %}">
+            <span style="font-size:0.85rem">&#x1F4C5;</span>
+            <span>Subskrypcja: {{ lic_days_left }}</span>
+        </div>
+        {% elif lic_expired %}
+        <div class="sidebar-subscription" style="padding:8px 12px;margin-bottom:6px;border-radius:8px;font-size:0.75rem;font-weight:600;display:flex;align-items:center;gap:6px;background:rgba(239,68,68,0.15);color:#ef4444;animation:pulse-sub 1.5s ease-in-out infinite">
+            <span style="font-size:0.85rem">&#x1F512;</span>
+            <a href="/subscription-expired" style="color:inherit;text-decoration:none">Subskrypcja wygasla!</a>
+        </div>
+        {% endif %}
         <a href="/narzedzia/cloud-export"><span class="sl-icon">☁️</span>Eksport do chmury</a>
         <a href="/narzedzia"><span class="sl-icon">⚡</span>Narzedzia</a>
         <a href="/ustawienia"><span class="sl-icon">⚙️</span>Ustawienia</a>
@@ -483,12 +512,29 @@ document.querySelectorAll('.sidebar-link').forEach(function(link) {
 </script>
 
 <script>
-// Demo Mode - ukrywa wrazliwe dane dostawcow
+// Demo Mode - RADYKALNE ukrywanie danych dostawcow
 (function() {
     var DEMO_KEY = 'akces_demo_mode';
+    var SUPPLIERS = ['jobalots','warrington','amazon','lidl','aldi','kaufland','tesco',
+        'carrefour','biedronka','zabka','pepco','action','jysk','ikea','mediamarkt',
+        'rtv euro agd','netto','dino','stokrotka','leroy merlin','castorama','obi',
+        'decathlon','smyk','empik','rossmann','hebe','sephora','douglas','jobalo'];
 
-    function isDemoMode() {
-        return localStorage.getItem(DEMO_KEY) === '1';
+    function isDemoMode() { return localStorage.getItem(DEMO_KEY) === '1'; }
+
+    function hashStr(s) {
+        var h = 0;
+        for (var i = 0; i < s.length; i++) { h = ((h << 5) - h) + s.charCodeAt(i); h &= h; }
+        return Math.abs(h).toString(36).substring(0, 3).toUpperCase();
+    }
+
+    function redactText(text) {
+        var r = text;
+        SUPPLIERS.forEach(function(name) {
+            var re = new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+            if (re.test(r)) r = r.replace(re, 'DOSTAWCA_' + hashStr(name));
+        });
+        return r;
     }
 
     function applyDemoMode() {
@@ -497,107 +543,73 @@ document.querySelectorAll('.sidebar-link').forEach(function(link) {
         if (btn) {
             btn.style.opacity = active ? '1' : '0.4';
             btn.style.background = active ? 'rgba(239,68,68,0.2)' : 'none';
-            btn.title = active ? 'Demo Mode: ON (dane ukryte)' : 'Demo Mode: OFF';
+            btn.title = active ? 'Demo Mode: ON' : 'Demo Mode: OFF';
         }
+        if (active) { document.body.classList.add('demo-active'); }
+        else { document.body.classList.remove('demo-active'); }
 
-        // Find all dostawca cells and replace content
-        document.querySelectorAll('[data-dostawca]').forEach(function(el) {
+        // 1. Tagged elements
+        document.querySelectorAll('[data-dostawca], .dostawca-name, [data-field="dostawca"]').forEach(function(el) {
             if (active) {
-                if (!el.dataset.originalDostawca) {
-                    el.dataset.originalDostawca = el.textContent;
-                }
-                var hash = el.dataset.originalDostawca.split('').reduce(function(a,b) {
-                    a = ((a << 5) - a) + b.charCodeAt(0); return a & a;
-                }, 0);
-                var suffix = Math.abs(hash).toString(36).substring(0, 3).toUpperCase();
-                el.textContent = 'DOSTAWCA_' + suffix;
-                el.style.fontFamily = 'monospace';
-                el.style.color = '#64748b';
-                el.style.letterSpacing = '1px';
-            } else {
-                if (el.dataset.originalDostawca) {
-                    el.textContent = el.dataset.originalDostawca;
-                    el.style.fontFamily = '';
-                    el.style.color = '';
-                    el.style.letterSpacing = '';
-                }
+                if (!el.dataset.origDemo) el.dataset.origDemo = el.textContent;
+                el.textContent = 'DOSTAWCA_' + hashStr(el.dataset.origDemo);
+                el.style.cssText += 'font-family:monospace!important;color:#64748b!important;letter-spacing:1px!important';
+            } else if (el.dataset.origDemo) {
+                el.textContent = el.dataset.origDemo; el.style.fontFamily=''; el.style.color=''; el.style.letterSpacing='';
             }
         });
 
-        // Also handle table cells by column header detection
+        // 2. Table Dostawca columns
         document.querySelectorAll('table').forEach(function(table) {
-            var headers = table.querySelectorAll('th');
-            var dostawcaCol = -1;
-            headers.forEach(function(th, i) {
-                if (th.textContent.trim().toLowerCase().includes('dostawca')) {
-                    dostawcaCol = i;
-                }
-            });
-            if (dostawcaCol >= 0) {
-                table.querySelectorAll('tbody tr, tr').forEach(function(tr) {
-                    var cells = tr.querySelectorAll('td');
-                    if (cells[dostawcaCol]) {
-                        var cell = cells[dostawcaCol];
-                        if (active) {
-                            if (!cell.dataset.originalDostawca) {
-                                cell.dataset.originalDostawca = cell.textContent;
-                            }
-                            var h = cell.dataset.originalDostawca.split('').reduce(function(a,b) {
-                                a = ((a << 5) - a) + b.charCodeAt(0); return a & a;
-                            }, 0);
-                            var s = Math.abs(h).toString(36).substring(0, 3).toUpperCase();
-                            cell.textContent = 'DOSTAWCA_' + s;
-                            cell.style.fontFamily = 'monospace';
-                            cell.style.color = '#64748b';
-                            cell.style.letterSpacing = '1px';
-                        } else {
-                            if (cell.dataset.originalDostawca) {
-                                cell.textContent = cell.dataset.originalDostawca;
-                                cell.style.fontFamily = '';
-                                cell.style.color = '';
-                                cell.style.letterSpacing = '';
-                            }
-                        }
-                    }
+            var headers = table.querySelectorAll('th'), cols = [];
+            headers.forEach(function(th, i) { if (th.textContent.trim().toLowerCase().includes('dostawca')) cols.push(i); });
+            cols.forEach(function(ci) {
+                table.querySelectorAll('tr').forEach(function(tr) {
+                    var c = tr.querySelectorAll('td')[ci];
+                    if (!c) return;
+                    if (active) {
+                        if (!c.dataset.origDemo) c.dataset.origDemo = c.textContent;
+                        c.textContent = 'DOSTAWCA_' + hashStr(c.dataset.origDemo);
+                        c.style.cssText += 'font-family:monospace!important;color:#64748b!important';
+                    } else if (c.dataset.origDemo) { c.textContent = c.dataset.origDemo; c.style.fontFamily=''; c.style.color=''; }
                 });
+            });
+        });
+
+        // 3. RADYKALNE: skanuj WSZYSTKIE textNode w main-content i zamien znane nazwy
+        var content = document.querySelector('.main-content') || document.body;
+        var walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null, false);
+        var nodes = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode);
+        nodes.forEach(function(node) {
+            if (!node.parentElement || node.parentElement.tagName === 'SCRIPT' || node.parentElement.tagName === 'STYLE' || node.parentElement.tagName === 'INPUT' || node.parentElement.tagName === 'TEXTAREA') return;
+            if (active) {
+                var orig = node.textContent;
+                var redacted = redactText(orig);
+                if (redacted !== orig) {
+                    if (!node.parentElement.dataset.origDemoText) node.parentElement.dataset.origDemoText = orig;
+                    node.textContent = redacted;
+                }
             }
         });
 
-        // Handle inline dostawca text (e.g. in pallet cards)
-        document.querySelectorAll('.dostawca-name, [data-field="dostawca"]').forEach(function(el) {
-            if (active) {
-                if (!el.dataset.originalDostawca) {
-                    el.dataset.originalDostawca = el.textContent;
-                }
-                var h2 = el.dataset.originalDostawca.split('').reduce(function(a,b) {
-                    a = ((a << 5) - a) + b.charCodeAt(0); return a & a;
-                }, 0);
-                var s2 = Math.abs(h2).toString(36).substring(0, 3).toUpperCase();
-                el.textContent = 'DOSTAWCA_' + s2;
-                el.style.fontFamily = 'monospace';
-                el.style.color = '#64748b';
-            } else {
-                if (el.dataset.originalDostawca) {
-                    el.textContent = el.dataset.originalDostawca;
-                    el.style.fontFamily = '';
-                    el.style.color = '';
-                }
-            }
-        });
+        // 4. Restore on deactivate
+        if (!active) {
+            document.querySelectorAll('[data-orig-demo-text]').forEach(function(el) {
+                // Restored via reload
+            });
+        }
     }
 
     window.toggleDemoMode = function() {
         var current = isDemoMode();
         localStorage.setItem(DEMO_KEY, current ? '0' : '1');
-        applyDemoMode();
+        if (!current) { applyDemoMode(); } else { localStorage.setItem(DEMO_KEY,'0'); location.reload(); }
     };
 
-    // Apply on page load
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', applyDemoMode);
-    } else {
-        applyDemoMode();
-    }
+        document.addEventListener('DOMContentLoaded', function() { setTimeout(applyDemoMode, 300); });
+    } else { setTimeout(applyDemoMode, 300); }
     // Re-apply demo mode after any page mutations
     if (window.MutationObserver) {
         var _demoObserver = new MutationObserver(function() {
