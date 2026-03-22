@@ -49,7 +49,7 @@ body {
 }
 .onboarding-container {
     width: 100%;
-    max-width: 560px;
+    max-width: 800px;
     position: relative;
 }
 .onboarding-header {
@@ -99,18 +99,19 @@ body {
 
 /* Steps container */
 .steps-viewport {
-    overflow: hidden;
+    overflow: visible;
     position: relative;
 }
 .steps-track {
-    display: flex;
-    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-    width: 300%;
+    display: block;
 }
 .step {
     width: 100%;
-    flex-shrink: 0;
+    display: none;
     padding: 0 4px;
+}
+.step.active {
+    display: block;
 }
 .step-card {
     background: var(--bg-card);
@@ -271,7 +272,7 @@ body {
         <div class="steps-track" id="stepsTrack">
 
             <!-- STEP 1: Allegro API -->
-            <div class="step">
+            <div class="step active">
                 <div class="step-card">
                     <div class="step-icon">🛒</div>
                     <div class="step-title">Podpiecie API Allegro</div>
@@ -346,7 +347,11 @@ let currentStep = 1;
 
 function goStep(n) {
     currentStep = n;
-    document.getElementById('stepsTrack').style.transform = 'translateX(-' + ((n-1) * 33.333) + '%)';
+    // Show/hide steps
+    var steps = document.querySelectorAll('.step');
+    steps.forEach(function(s, idx) {
+        s.classList.toggle('active', idx === n - 1);
+    });
     document.getElementById('progLabel').textContent = n + ' / 3';
     for (let i = 1; i <= 3; i++) {
         const el = document.getElementById('prog' + i);
