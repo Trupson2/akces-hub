@@ -42,10 +42,10 @@ body {
     color: var(--text);
     min-height: 100vh;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    padding: 20px;
-    overflow: hidden;
+    padding: 40px 20px;
+    overflow-y: auto;
 }
 .onboarding-container {
     width: 100%;
