@@ -1631,7 +1631,7 @@ def paleta_bulk_import():
                                     # Utwórz paletę
                                     # Podziel cenę zakupu równo na pliki w ZIP (lub 0 jeśli nie podano)
                                     zip_cena_per_file = round((zip_cena_raw * eur_rate) / max(len(excel_files), 1), 2)
-                                    paleta_id = add_paleta(zip_nazwa, zip_cena_per_file, dostawca, zip_data_zakupu, regal=zip_regal)
+                                    paleta_id = add_paleta(zip_nazwa, dostawca, zip_cena_per_file, zip_data_zakupu, regal=zip_regal)
                                     prod_count = 0
                                     total_szt = 0
                                     for row_data in rows_zip[z_header_row + 1:]:
