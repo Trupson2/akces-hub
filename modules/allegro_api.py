@@ -4025,15 +4025,31 @@ def index():
 @allegro_bp.route('/config', methods=['GET', 'POST'])
 def config():
     if request.method == 'POST':
-        set_config('allegro_client_id', request.form.get('client_id', '').strip())
-        set_config('allegro_client_secret', request.form.get('client_secret', '').strip())
-        set_config('allegro_redirect_uri', request.form.get('redirect_uri', 'http://localhost:5000/allegro/callback').strip())
-        set_config('allegro_sandbox', 'true' if request.form.get('sandbox') else 'false')
-        set_config('allegro_shipping_id', request.form.get('shipping_id', '').strip())
-        set_config('allegro_city', request.form.get('city', 'Poznan').strip())
-        set_config('allegro_province', request.form.get('province', 'WIELKOPOLSKIE').strip())
-        set_config('allegro_postcode', request.form.get('postcode', '61-001').strip())
-        set_config('allegro_autosync', 'true' if request.form.get('autosync') else 'false')
+        import sqlite3 as _sql
+        try:
+            from modules.database import get_db
+            conn = get_db()
+            configs = {
+                'allegro_client_id': request.form.get('client_id', '').strip(),
+                'allegro_client_secret': request.form.get('client_secret', '').strip(),
+                'allegro_redirect_uri': request.form.get('redirect_uri', 'http://localhost:5000/allegro/callback').strip(),
+                'allegro_sandbox': 'true' if request.form.get('sandbox') else 'false',
+                'allegro_shipping_id': request.form.get('shipping_id', '').strip(),
+                'allegro_city': request.form.get('city', 'Poznan').strip(),
+                'allegro_province': request.form.get('province', 'WIELKOPOLSKIE').strip(),
+                'allegro_postcode': request.form.get('postcode', '61-001').strip(),
+                'allegro_autosync': 'true' if request.form.get('autosync') else 'false',
+            }
+            for k, v in configs.items():
+                conn.execute('INSERT OR REPLACE INTO config (klucz, wartosc) VALUES (?, ?)', (k, v))
+            conn.commit()
+        except _sql.OperationalError:
+            # Retry z set_config jeśli batch fail
+            for k, v in configs.items():
+                try:
+                    set_config(k, v)
+                except:
+                    pass
         return redirect('/allegro')
 
     cfg = get_allegro_config()

@@ -101,12 +101,20 @@ def init_auth_db():
     conn.close()
 
 
+_users_exist_cache = {'val': None, 'ts': 0}
+
 def _has_any_users():
-    """Sprawdza czy sa jacykolwiek uzytkownicy"""
+    """Sprawdza czy sa jacykolwiek uzytkownicy (cache 120s)"""
+    import time as _t
+    now = _t.time()
+    if _users_exist_cache['val'] is not None and (now - _users_exist_cache['ts']) < 120:
+        return _users_exist_cache['val']
     conn = _get_auth_db()
     count = conn.execute('SELECT COUNT(*) FROM users').fetchone()[0]
     conn.close()
-    return count > 0
+    _users_exist_cache['val'] = count > 0
+    _users_exist_cache['ts'] = now
+    return _users_exist_cache['val']
 
 
 def require_login(f):

@@ -121,14 +121,25 @@ def verify_license(license_data):
     return True, 'OK'
 
 
+_license_cache = {'data': None, 'ts': 0}
+
 def get_license_info():
-    """Pobierz info o licencji z bazy config."""
+    """Pobierz info o licencji z bazy config (cache 60s)."""
+    import time
+    now = time.time()
+    if _license_cache['data'] is not None and (now - _license_cache['ts']) < 60:
+        return _license_cache['data']
     try:
         from .database import get_config
         lic_json = get_config('license_data', '')
         if not lic_json:
+            _license_cache['data'] = None
+            _license_cache['ts'] = now
             return None
-        return json.loads(lic_json)
+        result = json.loads(lic_json)
+        _license_cache['data'] = result
+        _license_cache['ts'] = now
+        return result
     except:
         return None
 
