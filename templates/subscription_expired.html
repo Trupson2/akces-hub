@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Subskrypcja wygasla</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a14;color:#e2e8f0;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.expired-card{width:100%;max-width:480px;padding:40px 32px;background:linear-gradient(145deg,#12122a,#0e0e22);border:none;border-radius:20px;outline:2px solid rgba(99,102,241,0.3);outline-offset:0;position:relative}
+.expired-card::before{content:'';position:absolute;inset:-2px;border-radius:20px;background:linear-gradient(135deg,#6366f1,#8b5cf6,#ec4899);z-index:-1;opacity:0.5}
+.icon{text-align:center;font-size:4rem;margin-bottom:20px;filter:drop-shadow(0 0 20px rgba(99,102,241,0.4))}
+h1{text-align:center;font-size:1.5rem;font-weight:700;margin-bottom:12px;background:linear-gradient(135deg,#f87171,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.desc{text-align:center;color:#94a3b8;font-size:0.9rem;line-height:1.6;margin-bottom:28px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+.info-item{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 16px;text-align:center}
+.info-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:4px}
+.info-value{font-size:0.95rem;font-weight:600;color:#e2e8f0}
+.info-item.full{grid-column:1/3}
+.hwid-box{font-family:monospace;font-size:0.8rem;color:#94a3b8;word-break:break-all}
+.renew-link{display:block;text-align:center;padding:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;text-decoration:none;border-radius:12px;font-weight:700;font-size:1rem;margin-bottom:12px;transition:transform 0.2s,box-shadow 0.2s}
+.renew-link:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(99,102,241,0.4)}
+.copy-btn{display:block;width:100%;padding:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#94a3b8;border-radius:12px;cursor:pointer;font-size:0.85rem;font-weight:600;transition:all 0.2s}
+.copy-btn:hover{background:rgba(255,255,255,0.1);color:#e2e8f0}
+.copy-btn.copied{background:rgba(34,197,94,0.15);color:#22c55e;border-color:rgba(34,197,94,0.3)}
+</style></head><body>
+<div class="expired-card">
+    <div class="icon">&#x23F3;</div>
+    <h1>Twoja subskrypcja wygasla</h1>
+    <p class="desc">Aby zachowac dostep do Map 3D, analityki i wszystkich funkcji premium, odnow licencje.</p>
+
+    <div class="info-grid">
+        {% if plan_name %}
+        <div class="info-item">
+            <div class="info-label">Plan</div>
+            <div class="info-value">{{ plan_name }}</div>
+        </div>
+        {% endif %}
+        {% if expiry_str %}
+        <div class="info-item">
+            <div class="info-label">Wygasla</div>
+            <div class="info-value" style="color:#f87171">{{ expiry_str }}</div>
+        </div>
+        {% endif %}
+        {% if hwid %}
+        <div class="info-item full">
+            <div class="info-label">ID Klienta (HWID)</div>
+            <div class="info-value hwid-box">{{ hwid }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <a href="{{ renew_url }}" target="_blank" class="renew-link">Odnow subskrypcje</a>
+
+    {% if hwid %}
+    <button class="copy-btn" onclick="copyHwid()">&#x1F4CB; Skopiuj ID klienta</button>
+    {% endif %}
+
+    <div style="text-align:center;margin-top:16px">
+        <a href="/license" style="color:#6366f1;text-decoration:none;font-size:0.85rem">Aktywuj nowa licencje &rarr;</a>
+    </div>
+</div>
+<script>
+function copyHwid(){
+    var hw='{{ hwid }}';
+    navigator.clipboard.writeText(hw).then(function(){
+        var b=document.querySelector('.copy-btn');
+        b.textContent='\u2705 Skopiowano!';
+        b.classList.add('copied');
+        setTimeout(function(){b.innerHTML='&#x1F4CB; Skopiuj ID klienta';b.classList.remove('copied')},2000);
+    });
+}
+</script>
+</body></html>

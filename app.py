@@ -150,10 +150,11 @@ def add_ngrok_headers(response):
 
 @app.before_request
 def csrf_protect_forms():
-    """CSRF dla formularzy HTML z tokenem — pomijaj resztę"""
+    """CSRF dla formularzy HTML — wymuszaj na wszystkich POST/PUT/DELETE/PATCH
+    oprócz API endpointów (JSON) i webhooków które nie używają formularzy."""
     if request.method in ('POST', 'PUT', 'DELETE', 'PATCH'):
-        # Waliduj CSRF tylko jeśli formularz wysłał token
-        if request.form.get('csrf_token'):
+        CSRF_EXEMPT = ('/api/', '/webhook', '/allegro/notification')
+        if not any(request.path.startswith(p) for p in CSRF_EXEMPT):
             csrf.protect()
 
 # Sprawdzanie licencji
@@ -1532,24 +1533,32 @@ def monitor_page():
     warrington_on = get_config('monitor_warrington_enabled', '1') == '1'
     jobalots_on = get_config('monitor_jobalots_enabled', '1') == '1'
 
+    import html as html_lib
     deals_html = ''
     for d in deals:
         kw = d.get('matched_keywords', '[]')
         try:
             kw_list = json.loads(kw) if isinstance(kw, str) else kw
-            kw_str = ', '.join(kw_list[:3])
-        except:
-            kw_str = str(kw)[:50]
+            kw_str = html_lib.escape(', '.join(kw_list[:3]))
+        except Exception:
+            kw_str = html_lib.escape(str(kw)[:50])
 
         source_emoji = '🏪' if d['source'] == 'warrington' else '🎪'
         # Ceny już w PLN (API z url-accept-currency: pln)
         _dp = float(d.get('price', 0) or 0)
         price_str = f"{_dp:.0f} PLN"
-        time_str = d.get('first_seen', '')[:16] if d.get('first_seen') else ''
+        time_str = html_lib.escape(d.get('first_seen', '')[:16]) if d.get('first_seen') else ''
+
+        # Escape all DB values to prevent XSS
+        _safe_image_url = html_lib.escape(d.get('image_url', '') or '', quote=True)
+        _safe_title = html_lib.escape(d.get('title', '?')[:90])
+        _safe_url = html_lib.escape(d.get('url', '#'), quote=True)
+        _safe_category = html_lib.escape(d.get('category', '-'))
+        _safe_source = html_lib.escape(d.get('source', '').title())
 
         img_html = ''
         if d.get('image_url'):
-            img_html = f'<img src="{d["image_url"]}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.style.display=\'none\'" loading="lazy">'
+            img_html = f'<img src="{_safe_image_url}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.style.display=\'none\'" loading="lazy">'
         else:
             img_html = f'<div style="width:80px;height:80px;background:var(--border-color);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">{source_emoji}</div>'
 
@@ -1571,14 +1580,14 @@ def monitor_page():
             {img_html}
             <div style="flex:1;min-width:0">
                 <div style="font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-                    <a href="{d.get('url', '#')}" target="_blank" style="color:var(--text-color);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{d.get('title', '?')[:90]}</a>
+                    <a href="{_safe_url}" target="_blank" style="color:var(--text-color);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{_safe_title}</a>
                     {roi_badge}
                 </div>
                 <div style="font-size:12px;color:var(--text-secondary)">
-                    💵 {price_str}{rrp_str} | 📁 {d.get('category', '-')}
+                    💵 {price_str}{rrp_str} | 📁 {_safe_category}
                 </div>
                 <div style="font-size:11px;color:var(--text-secondary);margin-top:2px">
-                    {source_emoji} {d['source'].title()} | {kw_str if kw_str else '-'} | {time_str}
+                    {source_emoji} {_safe_source} | {kw_str if kw_str else '-'} | {time_str}
                 </div>
             </div>
         </div>'''
@@ -1586,9 +1595,8 @@ def monitor_page():
     if not deals_html:
         deals_html = '<div style="padding:30px;text-align:center;color:var(--text-secondary)">Brak znalezionych okazji. Uruchom skan lub poczekaj na harmonogram.</div>'
 
-    kw_tags = ' '.join([f'<span style="display:inline-block;background:var(--accent-color);color:white;padding:2px 8px;border-radius:12px;font-size:12px;margin:2px">{k}</span>' for k in keywords[:20]])
+    kw_tags = ' '.join([f'<span style="display:inline-block;background:var(--accent-color);color:white;padding:2px 8px;border-radius:12px;font-size:12px;margin:2px">{html_lib.escape(k)}</span>' for k in keywords[:20]])
 
-    import html as html_lib
     _msg = html_lib.escape(request.args.get('msg', ''))
     _err = html_lib.escape(request.args.get('err', ''))
     _alert = ''
@@ -2059,7 +2067,7 @@ def license_page():
                             _created = int(_t.time())
                             _exp = _data.get('expires_timestamp', 0)
                             _plan = _data.get('plan', 'pro')
-                            _secret = 'akces-hub-license-key-2024'
+                            from modules.license import LICENSE_SECRET as _secret
                             _sig_data = f"{key}|{client}|{_plan}|{_created}|{_exp}"
                             _sig = _hm.new(_secret.encode(), _sig_data.encode(), _hl.sha256).hexdigest()[:16]
                             ok, result = activate_license(key, client, _plan, _created, _exp, _sig)
@@ -2078,102 +2086,8 @@ def license_page():
 
     lic = get_license_display()
 
-    return render_template_string('''<!DOCTYPE html>
-<html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Licencja — {{ brand_name }}</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a1a;color:#e2e8f0;min-height:100vh;display:flex;align-items:center;justify-content:center}
-.container{width:100%;max-width:500px;padding:20px}
-h1{text-align:center;font-size:1.5rem;margin-bottom:20px}
-.card{background:#12122a;border:2px solid #1e1e3a;border-radius:16px;padding:24px;margin-bottom:16px}
-.status{text-align:center;padding:16px;border-radius:12px;margin-bottom:16px;font-weight:700;font-size:1.1rem}
-.status.active{background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid #22c55e33}
-.status.inactive{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid #ef444433}
-.info{font-size:0.85rem;color:#94a3b8;margin-bottom:8px}
-.info span{color:#e2e8f0;font-weight:600}
-label{display:block;font-size:0.85rem;color:#94a3b8;margin-bottom:4px;margin-top:12px}
-input,select{width:100%;padding:10px;background:#0a0a1a;border:1px solid #1e1e3a;border-radius:8px;color:#e2e8f0;font-size:0.9rem}
-.btn{display:block;width:100%;padding:14px;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:16px;color:#fff}
-.btn-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6)}
-.btn-upload{background:linear-gradient(135deg,#22c55e,#16a34a)}
-.divider{text-align:center;color:#64748b;margin:16px 0;font-size:0.8rem}
-.msg{padding:10px;border-radius:8px;margin-bottom:12px;text-align:center;font-size:0.9rem}
-.msg.ok{background:rgba(34,197,94,0.15);color:#22c55e}
-.msg.err{background:rgba(239,68,68,0.15);color:#ef4444}
-a{color:#6366f1;text-decoration:none}
-</style></head><body>
-<div class="container">
-    <h1>🔑 Licencja</h1>
-
-    {% if msg %}<div class="msg ok">✅ {{ msg }}</div>{% endif %}
-    {% if err %}<div class="msg err">❌ {{ err }}</div>{% endif %}
-
-    <div class="card">
-        <div class="status {{ 'active' if lic.active else 'inactive' }}">
-            {{ '✅ Licencja aktywna' if lic.active else '🔒 Brak aktywnej licencji' }}
-        </div>
-        {% if lic.active %}
-        <div class="info">Klient: <span>{{ lic.client }}</span></div>
-        <div class="info">Plan: <span>{{ lic.plan|upper }}</span></div>
-        <div class="info">Klucz: <span>{{ lic.key }}</span></div>
-        <div class="info">Wygasa: <span>{{ lic.expires }}</span></div>
-        <a href="/" class="btn btn-primary" style="text-align:center;text-decoration:none;margin-top:16px">← Dashboard</a>
-        {% if lic.plan|upper != 'MAX' and lic.plan|upper != 'ENTERPRISE' %}
-        <div style="margin-top:12px;padding:16px;background:linear-gradient(135deg,rgba(139,92,246,0.1),rgba(99,102,241,0.1));border:1px solid rgba(139,92,246,0.3);border-radius:12px;text-align:center">
-            <div style="font-size:0.9rem;color:#c4b5fd;margin-bottom:8px">🚀 Chcesz więcej funkcji?</div>
-            <div style="font-size:0.8rem;color:#94a3b8;margin-bottom:12px">Przejdź na plan MAX i odblokuj AI analizy, 3D magazyn, multi-marketplace</div>
-            <a href="mailto:support@akceshub.pl?subject=Upgrade%20licencji%20{{ lic.key }}&body=Chcę%20zmienić%20plan%20na%20MAX.%20Mój%20klucz%3A%20{{ lic.key }}" class="btn" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);text-align:center;text-decoration:none;display:block">📧 Napisz w sprawie upgrade</a>
-        </div>
-        {% endif %}
-        {% if is_dev %}
-        <form action="/license/upgrade-enterprise" method="POST" style="margin-top:8px">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);text-align:center;width:100%">⬆️ DEV: Upgrade do Enterprise</button>
-        </form>
-        {% endif %}
-        {% endif %}
-    </div>
-
-    {% if not lic.active %}
-    <div class="card">
-        <div style="font-weight:700;margin-bottom:12px">📁 Aktywacja plikiem</div>
-        <form method="POST" enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="file" name="license_file" accept=".json" required>
-            <button type="submit" class="btn btn-upload">📤 Aktywuj z pliku</button>
-        </form>
-    </div>
-
-    <div class="divider">lub wpisz klucz</div>
-
-    <div class="card">
-        <form method="POST">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <label>Klucz licencyjny</label>
-            <input type="text" name="key" placeholder="AKCES-PXXX-XXXX-XXXX-XXXX" required style="font-family:monospace;font-size:1.1rem;letter-spacing:1px">
-            <label>Nazwa firmy / klienta</label>
-            <input type="text" name="client" placeholder="Np. Firma XYZ" required>
-            {% if is_dev %}
-            <label>Plan</label>
-            <select name="plan"><option value="starter">Starter</option><option value="pro" selected>Pro</option><option value="business">Business</option><option value="enterprise">Enterprise</option></select>
-            <label>Utworzona (timestamp)</label>
-            <input type="number" name="created" required>
-            <label>Wygasa (timestamp, 0=bezterminowo)</label>
-            <input type="number" name="expires" value="0">
-            <label>Sygnatura</label>
-            <input type="text" name="signature" required>
-            {% endif %}
-            <button type="submit" class="btn btn-primary">🔑 Aktywuj licencję</button>
-        </form>
-    </div>
-    {% endif %}
-
-    <div style="text-align:center;margin-top:16px;font-size:0.75rem;color:#64748b">
-        Kontakt: support@akceshub.pl
-    </div>
-</div></body></html>''', lic=lic, msg=msg, err=err,
-        is_dev=_is_dev_mode())
+    return render_template('license.html', lic=lic, msg=msg, err=err,
+        is_dev=_is_dev_mode(), brand_name=app.config.get('BRAND_NAME', 'Akces Hub'))
 
 
 # ============================================================
@@ -2213,78 +2127,7 @@ def subscription_expired_page():
         except Exception:
             hwid = ''
 
-    return render_template_string('''<!DOCTYPE html>
-<html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Subskrypcja wygasla</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a14;color:#e2e8f0;min-height:100vh;display:flex;align-items:center;justify-content:center}
-.expired-card{width:100%;max-width:480px;padding:40px 32px;background:linear-gradient(145deg,#12122a,#0e0e22);border:2px solid transparent;border-image:linear-gradient(135deg,#6366f1,#8b5cf6,#ec4899) 1;border-radius:0;position:relative}
-.expired-card::before{content:'';position:absolute;inset:-2px;border-radius:20px;background:linear-gradient(135deg,#6366f1,#8b5cf6,#ec4899);z-index:-1;opacity:0.5}
-.expired-card{border:none;border-radius:20px;background:linear-gradient(145deg,#12122a,#0e0e22);outline:2px solid rgba(99,102,241,0.3);outline-offset:0}
-.icon{text-align:center;font-size:4rem;margin-bottom:20px;filter:drop-shadow(0 0 20px rgba(99,102,241,0.4))}
-h1{text-align:center;font-size:1.5rem;font-weight:700;margin-bottom:12px;background:linear-gradient(135deg,#f87171,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.desc{text-align:center;color:#94a3b8;font-size:0.9rem;line-height:1.6;margin-bottom:28px}
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
-.info-item{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 16px;text-align:center}
-.info-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:4px}
-.info-value{font-size:0.95rem;font-weight:600;color:#e2e8f0}
-.info-item.full{grid-column:1/3}
-.hwid-box{font-family:monospace;font-size:0.8rem;color:#94a3b8;word-break:break-all}
-.renew-link{display:block;text-align:center;padding:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;text-decoration:none;border-radius:12px;font-weight:700;font-size:1rem;margin-bottom:12px;transition:transform 0.2s,box-shadow 0.2s}
-.renew-link:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(99,102,241,0.4)}
-.copy-btn{display:block;width:100%;padding:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#94a3b8;border-radius:12px;cursor:pointer;font-size:0.85rem;font-weight:600;transition:all 0.2s}
-.copy-btn:hover{background:rgba(255,255,255,0.1);color:#e2e8f0}
-.copy-btn.copied{background:rgba(34,197,94,0.15);color:#22c55e;border-color:rgba(34,197,94,0.3)}
-</style></head><body>
-<div class="expired-card">
-    <div class="icon">&#x23F3;</div>
-    <h1>Twoja subskrypcja wygasla</h1>
-    <p class="desc">Aby zachowac dostep do Map 3D, analityki i wszystkich funkcji premium, odnow licencje.</p>
-
-    <div class="info-grid">
-        {% if plan_name %}
-        <div class="info-item">
-            <div class="info-label">Plan</div>
-            <div class="info-value">{{ plan_name }}</div>
-        </div>
-        {% endif %}
-        {% if expiry_str %}
-        <div class="info-item">
-            <div class="info-label">Wygasla</div>
-            <div class="info-value" style="color:#f87171">{{ expiry_str }}</div>
-        </div>
-        {% endif %}
-        {% if hwid %}
-        <div class="info-item full">
-            <div class="info-label">ID Klienta (HWID)</div>
-            <div class="info-value hwid-box">{{ hwid }}</div>
-        </div>
-        {% endif %}
-    </div>
-
-    <a href="{{ renew_url }}" target="_blank" class="renew-link">Odnow subskrypcje</a>
-
-    {% if hwid %}
-    <button class="copy-btn" onclick="copyHwid()">&#x1F4CB; Skopiuj ID klienta</button>
-    {% endif %}
-
-    <div style="text-align:center;margin-top:16px">
-        <a href="/license" style="color:#6366f1;text-decoration:none;font-size:0.85rem">Aktywuj nowa licencje &rarr;</a>
-    </div>
-</div>
-<script>
-function copyHwid(){
-    var hw='{{ hwid }}';
-    navigator.clipboard.writeText(hw).then(function(){
-        var b=document.querySelector('.copy-btn');
-        b.textContent='\\u2705 Skopiowano!';
-        b.classList.add('copied');
-        setTimeout(function(){b.innerHTML='&#x1F4CB; Skopiuj ID klienta';b.classList.remove('copied')},2000);
-    });
-}
-</script>
-</body></html>''', plan_name=plan_name, expiry_str=expiry_str, hwid=hwid, renew_url=renew_url)
+    return render_template('subscription_expired.html', plan_name=plan_name, expiry_str=expiry_str, hwid=hwid, renew_url=renew_url)
 
 
 # ============================================================
@@ -2293,25 +2136,7 @@ function copyHwid(){
 @app.route('/time-manipulation')
 def time_manipulation_page():
     """Standalone strona — wykryto manipulację czasem systemowym"""
-    return render_template_string('''<!DOCTYPE html>
-<html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Blad czasu systemowego</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a14;color:#e2e8f0;min-height:100vh;display:flex;align-items:center;justify-content:center}
-.card{width:100%;max-width:480px;padding:40px 32px;background:#12122a;border-radius:20px;outline:2px solid rgba(239,68,68,0.3);text-align:center}
-.icon{font-size:4rem;margin-bottom:20px}
-h1{font-size:1.3rem;font-weight:700;color:#f87171;margin-bottom:12px}
-p{color:#94a3b8;font-size:0.9rem;line-height:1.6;margin-bottom:24px}
-.btn{display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;text-decoration:none;border-radius:12px;font-weight:700;font-size:0.9rem}
-</style></head><body>
-<div class="card">
-    <div class="icon">&#x1F6A8;</div>
-    <h1>Wykryto manipulacje czasem systemowym</h1>
-    <p>Ustaw prawidlowa date i godzine, a nastepnie uruchom ponownie aplikacje.</p>
-    <a href="/" class="btn">Sprobuj ponownie</a>
-</div>
-</body></html>''')
+    return render_template('time_manipulation.html')
 
 
 # ============================================================
@@ -2479,133 +2304,7 @@ def narzedzia_licencje():
             if generated.get('expires', 0) > 0 else 'Bezterminowo'
         )
 
-    return render_template_string('''{% extends "base.html" %}
-{% block page_title %}Generator licencji{% endblock %}
-{% block content %}
-<div style="max-width:800px;margin:0 auto">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-        <div style="font-size:1.4rem">&#128273;</div>
-        <div>
-            <div style="font-size:1.15rem;font-weight:700">Generator licencji</div>
-            <div style="color:var(--text-muted);font-size:0.82rem">Generuj klucze licencyjne dla klientow</div>
-        </div>
-    </div>
-
-    <div class="card" style="margin-bottom:16px">
-        <div style="font-weight:600;margin-bottom:12px;color:var(--accent)">Nowa licencja</div>
-        <form method="POST">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div style="margin-bottom:12px">
-                <label style="display:block;font-size:0.82rem;color:var(--text-muted);margin-bottom:4px">Nazwa klienta</label>
-                <input type="text" name="client" class="form-control" placeholder="np. Jan Kowalski" required>
-            </div>
-            <div style="display:flex;gap:12px;flex-wrap:wrap">
-                <div style="flex:1;min-width:150px">
-                    <label style="display:block;font-size:0.82rem;color:var(--text-muted);margin-bottom:4px">Plan</label>
-                    <select name="plan" class="form-control">
-                        <option value="starter">Starter</option>
-                        <option value="pro">Pro</option>
-                        <option value="business">Business</option>
-                        <option value="enterprise" selected>Enterprise</option>
-                    </select>
-                </div>
-                <div style="flex:1;min-width:150px">
-                    <label style="display:block;font-size:0.82rem;color:var(--text-muted);margin-bottom:4px">Czas trwania</label>
-                    <select name="duration_type" id="durType" class="form-control" onchange="toggleDur()">
-                        <option value="days">Dni</option>
-                        <option value="months" selected>Miesiace</option>
-                        <option value="unlimited">Bezterminowo</option>
-                    </select>
-                </div>
-                <div style="flex:1;min-width:100px" id="durValWrap">
-                    <label style="display:block;font-size:0.82rem;color:var(--text-muted);margin-bottom:4px">Ilosc</label>
-                    <input type="number" name="duration_val" id="durVal" class="form-control" value="1" min="1" max="120">
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:16px;padding:12px;font-weight:700;background:linear-gradient(135deg,var(--accent),#8b5cf6)">Generuj licencje</button>
-        </form>
-    </div>
-
-    {% if generated %}
-    <div class="card" style="margin-bottom:16px;border-color:var(--green)">
-        <div style="font-weight:600;margin-bottom:12px;color:var(--green)">Wygenerowana licencja</div>
-        <div style="background:var(--bg);border:2px solid rgba(34,197,94,0.2);border-radius:10px;padding:16px">
-            <div style="font-size:1.3rem;font-weight:700;color:var(--green);text-align:center;padding:12px;letter-spacing:1px;font-family:monospace">{{ generated.key }}</div>
-            <div style="font-size:0.82rem;color:var(--text-muted);margin-top:6px">Klient: <span style="color:var(--text);font-weight:600">{{ generated.client }}</span></div>
-            <div style="font-size:0.82rem;color:var(--text-muted);margin-top:4px">Plan: <span style="color:var(--text);font-weight:600">{{ generated.plan|upper }}</span></div>
-            <div style="font-size:0.82rem;color:var(--text-muted);margin-top:4px">Wygasa: <span style="color:var(--text);font-weight:600">{{ generated_expires }}</span></div>
-            <div style="margin-top:12px;display:flex;gap:8px;justify-content:center">
-                <button class="btn" style="padding:6px 14px;font-size:0.78rem;background:var(--bg-card);border:1px solid var(--border);color:var(--accent)" onclick="copyJson()">Kopiuj JSON</button>
-                <button class="btn" style="padding:6px 14px;font-size:0.78rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--green)" onclick="downloadJson()">Pobierz .json</button>
-            </div>
-            <pre id="jsonPre" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:0.75rem;overflow-x:auto;margin-top:8px;color:var(--text-muted);max-height:120px">{{ generated_json }}</pre>
-        </div>
-    </div>
-    {% endif %}
-
-    {% if existing %}
-    <div class="card">
-        <div style="font-weight:600;margin-bottom:12px">Wygenerowane licencje ({{ existing|length }})</div>
-        <div style="overflow-x:auto">
-            <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
-                <thead>
-                    <tr style="border-bottom:1px solid var(--border)">
-                        <th style="padding:8px 10px;text-align:left;color:var(--text-muted);font-weight:600">Klient</th>
-                        <th style="padding:8px 10px;text-align:left;color:var(--text-muted);font-weight:600">Plan</th>
-                        <th style="padding:8px 10px;text-align:left;color:var(--text-muted);font-weight:600">Klucz</th>
-                        <th style="padding:8px 10px;text-align:left;color:var(--text-muted);font-weight:600">Wygasa</th>
-                        <th style="padding:8px 10px;text-align:left;color:var(--text-muted);font-weight:600">HWID</th>
-                        <th style="padding:8px 10px;text-align:left;color:var(--text-muted);font-weight:600">Heartbeat</th>
-                        <th style="padding:8px 10px;color:var(--text-muted);font-weight:600"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                {% for lic in existing %}
-                    <tr style="border-bottom:1px solid var(--border)">
-                        <td style="padding:8px 10px">{{ lic.client }}</td>
-                        <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:700;text-transform:uppercase;{% if lic.plan == 'pro' %}background:rgba(99,102,241,0.13);color:var(--accent){% elif lic.plan == 'starter' %}background:rgba(34,197,94,0.13);color:var(--green){% else %}background:rgba(245,158,11,0.13);color:var(--orange){% endif %}">{{ lic.plan }}</span></td>
-                        <td style="padding:8px 10px;font-family:monospace;font-size:0.78rem">{{ lic.key }}</td>
-                        <td style="padding:8px 10px">{{ lic.expires }}</td>
-                        <td style="padding:8px 10px;font-family:monospace;font-size:0.72rem;color:var(--text-muted)">{{ lic.hwid[:12] if lic.hwid else '-' }}</td>
-                        <td style="padding:8px 10px;font-size:0.72rem;color:var(--text-muted)">{{ lic.last_heartbeat or '-' }}</td>
-                        <td style="padding:8px 10px">
-                            <div style="display:flex;gap:6px">
-                                <button class="btn" style="padding:4px 10px;font-size:0.72rem;background:var(--bg);border:1px solid var(--border);color:var(--accent)" onclick="copyText(this, `{{ lic.json|e }}`)">Kopiuj</button>
-                                <button class="btn" style="padding:4px 10px;font-size:0.72rem;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--green)" onclick="dlText(`{{ lic.json|e }}`,`{{ lic.filename }}`)">Pobierz</button>
-                            </div>
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {% endif %}
-</div>
-
-<script>
-function toggleDur(){
-    document.getElementById('durValWrap').style.display=document.getElementById('durType').value==='unlimited'?'none':'block';
-}
-function copyJson(){
-    navigator.clipboard.writeText(document.getElementById('jsonPre').textContent);
-    event.target.textContent='Skopiowano!';setTimeout(()=>event.target.textContent='Kopiuj JSON',1500);
-}
-function copyText(btn, t){
-    navigator.clipboard.writeText(t.replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&'));
-    btn.textContent='OK!';setTimeout(()=>btn.textContent='Kopiuj',1500);
-}
-function downloadJson(){
-    const b=new Blob([document.getElementById('jsonPre').textContent],{type:'application/json'});
-    const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='license.json';a.click();
-}
-function dlText(t,fn){
-    const b=new Blob([t.replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&')],{type:'application/json'});
-    const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fn;a.click();
-}
-</script>
-{% endblock %}
-''',
+    return render_template('licencje.html',
         generated=generated,
         generated_json=generated_json,
         generated_expires=generated_expires,
@@ -2677,124 +2376,7 @@ def admin_subscriptions():
             'created_at': r['created_at'] or '',
         })
 
-    return render_template_string('''{% extends "base.html" %}
-{% block page_title %}Subskrypcje{% endblock %}
-{% block content %}
-<style>
-.sub-table{width:100%;border-collapse:collapse;font-size:0.8rem}
-.sub-table th{background:rgba(99,102,241,0.1);color:#a5b4fc;text-align:left;padding:10px 12px;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid rgba(99,102,241,0.2)}
-.sub-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);vertical-align:middle}
-.sub-table tr:hover{background:rgba(255,255,255,0.03)}
-.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.3px}
-.badge-trial{background:rgba(234,179,8,0.15);color:#eab308}
-.badge-pro{background:rgba(99,102,241,0.15);color:#818cf8}
-.badge-max{background:rgba(168,85,247,0.15);color:#a855f7}
-.badge-enterprise{background:rgba(34,197,94,0.15);color:#22c55e}
-.badge-active{background:rgba(34,197,94,0.12);color:#22c55e}
-.badge-inactive{background:rgba(239,68,68,0.12);color:#ef4444}
-.sub-edit-form{display:none;background:rgba(99,102,241,0.05);border:1px solid rgba(99,102,241,0.15);border-radius:12px;padding:16px;margin-top:8px}
-.sub-edit-form.show{display:block}
-.sub-input{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 10px;color:#e2e8f0;font-size:0.82rem;width:100%}
-.sub-btn{padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-size:0.78rem;font-weight:600;transition:all 0.2s}
-.sub-btn-save{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
-.sub-btn-extend{background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3)}
-.sub-btn-toggle{background:rgba(234,179,8,0.1);color:#eab308;border:1px solid rgba(234,179,8,0.3)}
-.hwid-cell{font-family:monospace;font-size:0.72rem;color:#94a3b8;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-</style>
-
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-    <h2 style="font-size:1.1rem;font-weight:700">Zarzadzanie subskrypcjami</h2>
-    <div style="text-align:right">
-        <span style="color:#64748b;font-size:0.8rem">{{ licenses|length }} licencji</span>
-        <div style="font-size:0.7rem;color:#64748b;margin-top:2px">HWID serwera: <code style="color:#a5b4fc">{{ server_hwid }}</code></div>
-    </div>
-</div>
-
-{% if licenses %}
-<div class="card" style="overflow-x:auto;padding:0">
-    <table class="sub-table">
-        <thead>
-            <tr>
-                <th>Klucz</th>
-                <th>Klient</th>
-                <th>Plan</th>
-                <th>HWID</th>
-                <th>Wygasa</th>
-                <th>Status</th>
-                <th>Heartbeat</th>
-                <th>Akcje</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for lic in licenses %}
-            <tr>
-                <td style="font-family:monospace;font-size:0.75rem;color:#a5b4fc" title="{{ lic.key }}">{{ lic.masked_key }}</td>
-                <td style="font-weight:600">{{ lic.client }}</td>
-                <td><span class="badge badge-{{ lic.plan|lower }}">{{ lic.plan }}</span></td>
-                <td class="hwid-cell" title="{{ lic.hwid }}">{{ lic.hwid or '-' }}</td>
-                <td>{{ lic.expires }}</td>
-                <td>
-                    {% if lic.active %}
-                    <span class="badge badge-active">Aktywna</span>
-                    {% else %}
-                    <span class="badge badge-inactive">Nieaktywna</span>
-                    {% endif %}
-                </td>
-                <td style="font-size:0.72rem;color:#94a3b8">{{ lic.last_heartbeat }}</td>
-                <td>
-                    <button class="sub-btn sub-btn-toggle" onclick="toggleEdit('edit-{{ lic.id }}')" style="font-size:0.72rem;padding:4px 10px">Edytuj</button>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="8" style="padding:0;border:none">
-                    <div class="sub-edit-form" id="edit-{{ lic.id }}">
-                        <form method="POST" action="/admin/subscriptions/update" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="license_key" value="{{ lic.key }}">
-                            <div style="flex:1;min-width:140px">
-                                <label style="display:block;font-size:0.7rem;color:#64748b;margin-bottom:4px">Plan</label>
-                                <select name="new_plan" class="sub-input">
-                                    <option value="starter" {{ 'selected' if lic.plan_raw == 'starter' }}>TRIAL</option>
-                                    <option value="pro" {{ 'selected' if lic.plan_raw == 'pro' }}>PRO</option>
-                                    <option value="business" {{ 'selected' if lic.plan_raw == 'business' }}>MAX</option>
-                                    <option value="enterprise" {{ 'selected' if lic.plan_raw == 'enterprise' }}>ENTERPRISE</option>
-                                </select>
-                            </div>
-                            <div style="flex:1;min-width:160px">
-                                <label style="display:block;font-size:0.7rem;color:#64748b;margin-bottom:4px">Data wygasniecia</label>
-                                <input type="date" name="new_expiry_date" class="sub-input" value="{{ lic.expires if lic.expires != 'Bezterminowo' else '' }}">
-                            </div>
-                            <div style="flex:0;min-width:80px">
-                                <label style="display:block;font-size:0.7rem;color:#64748b;margin-bottom:4px">Aktywna</label>
-                                <select name="active" class="sub-input">
-                                    <option value="1" {{ 'selected' if lic.active }}>Tak</option>
-                                    <option value="0" {{ 'selected' if not lic.active }}>Nie</option>
-                                </select>
-                            </div>
-                            <button type="submit" class="sub-btn sub-btn-save">Zapisz</button>
-                            <button type="submit" name="extend_30" value="1" class="sub-btn sub-btn-extend">Przedluz o 30 dni</button>
-                        </form>
-                    </div>
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% else %}
-<div class="card" style="text-align:center;padding:40px;color:#64748b">
-    Brak wydanych licencji
-</div>
-{% endif %}
-
-<script>
-function toggleEdit(id){
-    var el=document.getElementById(id);
-    el.classList.toggle('show');
-}
-</script>
-{% endblock %}
-''', licenses=licenses, server_hwid=_get_server_hwid())
+    return render_template('admin_subscriptions.html', licenses=licenses, server_hwid=_get_server_hwid())
 
 
 @app.route('/admin/subscriptions/update', methods=['POST'])
@@ -2849,7 +2431,8 @@ def admin_subscriptions_update():
         conn.commit()
         return redirect('/admin/subscriptions')
 
-    # Standardowa aktualizacja
+    # Standardowa aktualizacja — whitelist dozwolonych kolumn (ochrona przed SQL injection)
+    _ALLOWED_COLS = {'plan', 'expires_date', 'expires', 'active'}
     updates = []
     params = []
     if new_plan:
@@ -2871,6 +2454,11 @@ def admin_subscriptions_update():
     params.append(license_key)
 
     if updates:
+        # Walidacja: każdy update musi być z whitelisty
+        for u in updates:
+            col_name = u.split(' ')[0]
+            if col_name not in _ALLOWED_COLS:
+                return 'Nieprawidlowa kolumna', 400
         conn.execute(f'UPDATE licenses_issued SET {", ".join(updates)} WHERE license_key = ?', params)
         conn.commit()
 
@@ -2903,6 +2491,17 @@ def api_license_verify():
         ).fetchone()
 
         if not row:
+            # Auto-rejestracja: klucz z poprawnym formatem AKCES-XXXX-XXXX-XXXX-XXXX
+            import re
+            if key and re.match(r'^AKCES-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$', key):
+                _client = data.get('client', 'Auto-registered')
+                _plan = data.get('plan', 'pro')
+                conn.execute('''INSERT INTO licenses_issued
+                    (license_key, client_name, plan, hwid, active, created_at)
+                    VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)''',
+                    (key, _client, _plan, hwid))
+                conn.commit()
+                return jsonify({'valid': True, 'registered': True})
             return jsonify({'valid': False, 'error': 'Klucz nie istnieje'})
 
         # Sprawdź czy aktywna
@@ -2930,7 +2529,11 @@ def api_license_verify():
         )
         conn.commit()
 
-        return jsonify({'valid': True})
+        return jsonify({
+            'valid': True,
+            'plan': row['plan'] if row else 'pro',
+            'expires_timestamp': row['expires'] if row else 0
+        })
 
     except Exception as e:
         return jsonify({'valid': False, 'error': str(e)[:200]}), 500

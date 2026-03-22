@@ -1659,7 +1659,7 @@ def paleta_bulk_import():
                                         kategoria = auto_kategoryzuj(prod_nazwa) if auto_kategoryzuj else 'inne'
                                         conn.execute('''INSERT INTO produkty (nazwa, ean, asin, ilosc, cena_netto, cena_brutto, kategoria, stan, paleta_id, dostawca, data_dodania)
                                             VALUES (?,?,?,?,?,?,?,?,?,?,?)''',
-                                            (prod_nazwa, prod_ean, prod_asin, prod_ilosc, prod_cena, prod_rrp, kategoria, 'Nowy', paleta_id, dostawca, data_zakupu))
+                                            (prod_nazwa, prod_ean, prod_asin, prod_ilosc, prod_cena, prod_rrp, kategoria, 'Nowy', paleta_id, dostawca, zip_data_zakupu))
                                         prod_count += 1
                                         total_szt += prod_ilosc
                                     conn.execute('UPDATE palety SET ilosc_produktow = ? WHERE id = ?', (prod_count, paleta_id))

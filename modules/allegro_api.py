@@ -4029,9 +4029,9 @@ def config():
         try:
             from modules.database import get_db
             conn = get_db()
+            _new_secret = request.form.get('client_secret', '').strip()
             configs = {
                 'allegro_client_id': request.form.get('client_id', '').strip(),
-                'allegro_client_secret': request.form.get('client_secret', '').strip(),
                 'allegro_redirect_uri': request.form.get('redirect_uri', 'http://localhost:5000/allegro/callback').strip(),
                 'allegro_sandbox': 'true' if request.form.get('sandbox') else 'false',
                 'allegro_shipping_id': request.form.get('shipping_id', '').strip(),
@@ -4040,6 +4040,9 @@ def config():
                 'allegro_postcode': request.form.get('postcode', '61-001').strip(),
                 'allegro_autosync': 'true' if request.form.get('autosync') else 'false',
             }
+            # Client secret: nadpisuj tylko jeśli podano nowy
+            if _new_secret:
+                configs['allegro_client_secret'] = _new_secret
             for k, v in configs.items():
                 conn.execute('INSERT OR REPLACE INTO config (klucz, wartosc) VALUES (?, ?)', (k, v))
             conn.commit()
@@ -4078,8 +4081,8 @@ def config():
             <input type="text" name="client_id" class="form-control" value="{cfg['client_id']}" placeholder="Twoj Client ID">
         </div>
         <div class="form-group">
-            <label>Client Secret</label>
-            <input type="password" name="client_secret" class="form-control" value="{cfg['client_secret']}" placeholder="Twoj Client Secret">
+            <label>Client Secret {('(ustawiony: ****' + cfg['client_secret'][-4:] + ')') if cfg['client_secret'] else ''}</label>
+            <input type="password" name="client_secret" class="form-control" value="" placeholder="Wpisz nowy secret lub zostaw puste">
         </div>
         <div class="form-group">
             <label>Redirect URI</label>

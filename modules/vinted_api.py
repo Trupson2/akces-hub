@@ -248,6 +248,7 @@ def upload_photo_vinted(session, image_path_or_url, csrf_token=None):
     if csrf_token:
         session.headers['X-CSRF-Token'] = csrf_token
 
+    _file_handle = None
     try:
         # Pobierz zdjęcie jeśli URL
         if isinstance(image_path_or_url, str) and image_path_or_url.startswith('http'):
@@ -260,7 +261,8 @@ def upload_photo_vinted(session, image_path_or_url, csrf_token=None):
             photo_data = BytesIO(img_resp.content)
             filename = 'photo.jpg'
         elif isinstance(image_path_or_url, str) and os.path.exists(image_path_or_url):
-            photo_data = open(image_path_or_url, 'rb')
+            _file_handle = open(image_path_or_url, 'rb')
+            photo_data = _file_handle
             filename = os.path.basename(image_path_or_url)
         else:
             return None
@@ -278,6 +280,9 @@ def upload_photo_vinted(session, image_path_or_url, csrf_token=None):
 
     except Exception as e:
         print(f"❌ Vinted photo upload error: {e}")
+    finally:
+        if _file_handle:
+            _file_handle.close()
 
     return None
 

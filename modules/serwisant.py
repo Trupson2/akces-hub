@@ -279,6 +279,8 @@ def api_aktualizuj(serwis_id):
             return jsonify({'ok': False, 'error': 'Nieprawidłowy status'})
 
         conn = get_db()
+        # Whitelist dozwolonych kolumn (ochrona przed SQL injection)
+        _ALLOWED_COLS = {'status', 'koszt_naprawy', 'uwagi', 'data_zakonczenia'}
         updates = ['status = ?']
         params = [nowy_status]
 
@@ -290,6 +292,12 @@ def api_aktualizuj(serwis_id):
             params.append(uwagi)
         if nowy_status in ('naprawiony',):
             updates.append("data_zakonczenia = datetime('now')")
+
+        # Walidacja kolumn
+        for u in updates:
+            col_name = u.split(' ')[0]
+            if col_name not in _ALLOWED_COLS:
+                return jsonify({'ok': False, 'error': 'Nieprawidlowa kolumna'}), 400
 
         params.append(serwis_id)
         conn.execute(f"UPDATE serwis SET {', '.join(updates)} WHERE id = ?", params)

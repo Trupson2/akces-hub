@@ -426,10 +426,12 @@ def license_heartbeat():
 
         hwid = get_hwid()
 
-        # Przygotuj dane heartbeat
+        # Przygotuj dane heartbeat (client/plan dla auto-rejestracji na serwerze)
         payload = json.dumps({
             'key': key,
             'hwid': hwid,
+            'client': lic.get('client', ''),
+            'plan': lic.get('plan', 'pro'),
             'timestamp': int(time.time()),
             'version': _get_app_version()
         }).encode('utf-8')
