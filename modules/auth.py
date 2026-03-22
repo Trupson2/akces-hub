@@ -453,22 +453,30 @@ def first_setup():
         elif password != password2:
             error = 'Hasla nie sa identyczne'
         else:
-            conn = _get_auth_db()
-            conn.execute(
-                'INSERT INTO users (username, password_hash, rola) VALUES (?, ?, ?)',
-                (username, _hash_password(password), 'admin')
-            )
-            conn.commit()
-            conn.close()
+            try:
+                conn = _get_auth_db()
+                conn.execute(
+                    'INSERT INTO users (username, password_hash, rola) VALUES (?, ?, ?)',
+                    (username, _hash_password(password), 'admin')
+                )
+                conn.commit()
+                # Pobierz ID nowego użytkownika
+                user = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
+                conn.close()
 
-            # Zaloguj od razu
-            session['user_id'] = 1
-            session['username'] = username
-            session['rola'] = 'admin'
-            session.permanent = True
+                # Zaloguj od razu
+                session['user_id'] = user['id'] if user else 1
+                session['username'] = username
+                session['rola'] = 'admin'
+                session.permanent = True
 
-            # Nowy system — przekieruj na kreator konfiguracji
-            return redirect('/ustawienia/kreator?welcome=1')
+                # Przekieruj na dashboard (EULA/onboarding middleware przechwyci)
+                return redirect('/')
+            except Exception as e:
+                if 'UNIQUE' in str(e):
+                    error = 'Ta nazwa uzytkownika jest juz zajeta'
+                else:
+                    error = f'Blad tworzenia konta: {str(e)[:100]}'
 
     return render_template_string(LOGIN_HTML, error=error, username='', first_run=True)
 
