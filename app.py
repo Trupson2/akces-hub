@@ -2613,6 +2613,13 @@ function dlText(t,fn){
 # ============================================================
 # ADMIN: ZARZĄDZANIE SUBSKRYPCJAMI
 # ============================================================
+def _get_server_hwid():
+    try:
+        from modules.license import get_hwid
+        return get_hwid()
+    except:
+        return 'N/A'
+
 @app.route('/admin/subscriptions')
 def admin_subscriptions():
     """Panel zarządzania subskrypcjami — tylko dla dev"""
@@ -2691,7 +2698,10 @@ def admin_subscriptions():
 
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
     <h2 style="font-size:1.1rem;font-weight:700">Zarzadzanie subskrypcjami</h2>
-    <span style="color:#64748b;font-size:0.8rem">{{ licenses|length }} licencji</span>
+    <div style="text-align:right">
+        <span style="color:#64748b;font-size:0.8rem">{{ licenses|length }} licencji</span>
+        <div style="font-size:0.7rem;color:#64748b;margin-top:2px">HWID serwera: <code style="color:#a5b4fc">{{ server_hwid }}</code></div>
+    </div>
 </div>
 
 {% if licenses %}
@@ -2778,7 +2788,7 @@ function toggleEdit(id){
 }
 </script>
 {% endblock %}
-''', licenses=licenses)
+''', licenses=licenses, server_hwid=_get_server_hwid())
 
 
 @app.route('/admin/subscriptions/update', methods=['POST'])
