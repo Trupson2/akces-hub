@@ -971,7 +971,7 @@ def analityka_palety():
             p.data_zakupu,
             p.ilosc_produktow,
             (SELECT COUNT(*) FROM produkty WHERE paleta_id = p.id) as produktow_w_bazie,
-            (SELECT COALESCE(SUM(ilosc), 0) FROM produkty WHERE paleta_id = p.id) as aktualna_ilosc,
+            (SELECT COALESCE(SUM(CASE WHEN status IN ('sprzedany','wyslany','uszkodzony','naprawa','zlomowany') THEN 0 ELSE ilosc END), 0) FROM produkty WHERE paleta_id = p.id) as aktualna_ilosc,
             (SELECT COALESCE(SUM(cena_brutto), 0) FROM produkty WHERE paleta_id = p.id) as koszt_produktow,
             (SELECT COALESCE(SUM(cena_allegro * ilosc), 0) FROM produkty WHERE paleta_id = p.id AND status = 'dostepny') as wartosc_magazynu,
             (SELECT COALESCE(SUM(CASE WHEN status = 'sprzedany' AND (sprzedano_offline IS NULL OR sprzedano_offline = 0) THEN cena_allegro ELSE 0 END), 0) FROM produkty WHERE paleta_id = p.id) as przychod_produkty,

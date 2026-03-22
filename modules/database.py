@@ -997,7 +997,7 @@ def get_palety_list(limit=50):
         return query_db('''
             SELECT p.*, 
                    (SELECT COUNT(*) FROM produkty WHERE paleta_id = p.id) as produktow,
-                   (SELECT COALESCE(SUM(CASE WHEN status IN ('sprzedany','wyslany') THEN 0 ELSE ilosc END), 0) FROM produkty WHERE paleta_id = p.id) as sztuk_w_magazynie,
+                   (SELECT COALESCE(SUM(CASE WHEN status IN ('sprzedany','wyslany','uszkodzony','naprawa','zlomowany') THEN 0 ELSE ilosc END), 0) FROM produkty WHERE paleta_id = p.id) as sztuk_w_magazynie,
                    (SELECT COALESCE(SUM(cena_allegro * ilosc), 0) FROM produkty WHERE paleta_id = p.id) as wartosc_detalu,
                    (SELECT COALESCE(SUM(cena_brutto), 0) FROM produkty WHERE paleta_id = p.id) as wartosc_zakupu_produktow,
                    (SELECT COALESCE(SUM(CASE WHEN status = 'sprzedany' AND (sprzedano_offline IS NULL OR sprzedano_offline = 0) THEN 1 ELSE 0 END), 0) FROM produkty WHERE paleta_id = p.id) as sprzedano_status,
@@ -1017,7 +1017,7 @@ def get_palety_list(limit=50):
         return query_db('''
             SELECT p.*,
                    (SELECT COUNT(*) FROM produkty WHERE paleta_id = p.id) as produktow,
-                   (SELECT COALESCE(SUM(CASE WHEN status IN ('sprzedany','wyslany') THEN 0 ELSE ilosc END), 0) FROM produkty WHERE paleta_id = p.id) as sztuk_w_magazynie,
+                   (SELECT COALESCE(SUM(CASE WHEN status IN ('sprzedany','wyslany','uszkodzony','naprawa','zlomowany') THEN 0 ELSE ilosc END), 0) FROM produkty WHERE paleta_id = p.id) as sztuk_w_magazynie,
                    (SELECT COALESCE(SUM(cena_allegro * ilosc), 0) FROM produkty WHERE paleta_id = p.id) as wartosc_detalu,
                    (SELECT COALESCE(SUM(cena_brutto), 0) FROM produkty WHERE paleta_id = p.id) as wartosc_zakupu_produktow,
                    (SELECT COALESCE(SUM(CASE WHEN status = 'sprzedany' THEN 1 ELSE 0 END), 0) FROM produkty WHERE paleta_id = p.id) as sprzedano_status,
