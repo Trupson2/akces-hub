@@ -1341,7 +1341,7 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
                     if bot_token and chat_id:
                         import requests as _req
                         text = (
-                            f"📢 *Dostępna aktualizacja AKCES HUB!*\n\n"
+                            f"📢 *Dostępna aktualizacja {get_config_cached('brand_name', 'AKCES HUB')}!*\n\n"
                             f"📦 Nowa wersja: `{remote_hash}`\n"
                             f"📝 Zmiany:\n{remote_msg[:200]}\n\n"
                             f"💡 Wejdź na dashboard i kliknij *Aktualizuj*"
@@ -1782,7 +1782,7 @@ def system_update():
             if bot_token and chat_id:
                 import requests as _req
                 text = (
-                    f"🔄 *AKCES HUB — Aktualizacja systemu*\n\n"
+                    f"🔄 *{get_config('brand_name', 'AKCES HUB')} — Aktualizacja systemu*\n\n"
                     f"📦 Wersja: `{commit_hash}`\n"
                     f"📝 {commit_msg[:150]}\n"
                     f"🕐 {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
@@ -4064,7 +4064,7 @@ def sync_custom():
 
 def print_banner():
     print("\n" + "="*60)
-    print(f"  ⚡ AKCES HUB v{VERSION}")
+    print(f"  ⚡ {get_config_cached('brand_name', 'AKCES HUB')} v{VERSION}")
     print("  Paletomat + Magazynier + Telegram + Allegro")
     print("="*60)
     print(f"  📦 Magazynier:  /magazyn")

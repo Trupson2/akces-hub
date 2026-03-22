@@ -1514,7 +1514,7 @@ function getAiRecommendations() {
 </script>
 
 <div style="text-align:center;padding:24px;color:var(--text-muted);font-size:0.72rem">
-    Profit Analyzer v2.1 | Akces Hub | Dane z bazy na zywo
+    Profit Analyzer v2.1 | {{ brand_name|default('Akces Hub') }} | Dane z bazy na zywo
 </div>
 
 {% endblock %}

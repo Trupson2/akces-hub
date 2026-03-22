@@ -1807,6 +1807,16 @@ def edytuj_produkt(code):
                     <option {"selected" if p.get('stan')=='Odnowiony' else ''}>Odnowiony</option>
                 </select>
             </div>
+            <div class="form-group"><label>Klasa jakości</label>
+                <select name="klasa_jakosci" class="form-ctrl">
+                    <option value="" {"selected" if not p.get('klasa_jakosci') else ''}>— Brak —</option>
+                    <option value="A" {"selected" if p.get('klasa_jakosci')=='A' else ''}>🟢 A — Nowy / Fabryczny</option>
+                    <option value="A-" {"selected" if p.get('klasa_jakosci')=='A-' else ''}>🔵 A- — Otwarte opakowanie</option>
+                    <option value="B" {"selected" if p.get('klasa_jakosci')=='B' else ''}>🟡 B — Używany, dobry stan</option>
+                    <option value="C" {"selected" if p.get('klasa_jakosci')=='C' else ''}>🟠 C — Widoczne ślady użytk.</option>
+                    <option value="D" {"selected" if p.get('klasa_jakosci')=='D' else ''}>🔴 D — Uszkodzony / niekompletny</option>
+                </select>
+            </div>
             <div class="form-group"><label>Dostawca</label>
                 <select name="dostawca" class="form-ctrl"><option value="">—</option>{dostawcy_options}</select>
             </div>
@@ -2256,7 +2266,7 @@ def backup_upload():
             
             if 'produkty' not in table_names:
                 os.remove(backup_path)
-                return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Plik nie zawiera tabeli produkty - to nie jest baza Akces Hub</div><a href="/magazyn/backup" class="btn btn-p">← Powrót</a>')
+                return render(f'<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Plik nie zawiera tabeli produkty - to nie jest baza {get_config_cached("brand_name", "Akces Hub")}</div><a href="/magazyn/backup" class="btn btn-p">← Powrót</a>')
             
         except sqlite3.DatabaseError as e:
             os.remove(backup_path)

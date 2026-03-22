@@ -456,7 +456,7 @@ def register_printer_routes(bp: Blueprint):
                 from .printer_manager import ProductLabel
                 
                 test_label = ProductLabel(
-                    nazwa="TEST DRUKU Akces Hub",
+                    nazwa=f"TEST DRUKU {get_config('brand_name', 'Akces Hub')}",
                     qr_data="TEST:123456",
                     lokalizacja="POLKA-A1",
                     ean="5901234123457"

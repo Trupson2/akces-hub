@@ -708,7 +708,7 @@ def whatsapp_config():
 @telegram_bp.route('/whatsapp/test', methods=['POST'])
 def whatsapp_test():
     """Wysyła wiadomość testową na WhatsApp"""
-    msg = f"🧪 TEST z Akces Hub\n⏰ {datetime.now():%H:%M:%S}"
+    msg = f"🧪 TEST z {get_config('brand_name', 'Akces Hub')}\n⏰ {datetime.now():%H:%M:%S}"
     success = send_whatsapp(msg)
     
     if success:
@@ -736,7 +736,7 @@ def toggle_alert(key):
 @telegram_bp.route('/test', methods=['POST'])
 def test():
     """Wysyła wiadomość testową"""
-    msg = f"🧪 <b>TEST</b>\n\nWiadomość testowa z Akces Hub\n⏰ {datetime.now():%H:%M:%S}"
+    msg = f"🧪 <b>TEST</b>\n\nWiadomość testowa z {get_config('brand_name', 'Akces Hub')}\n⏰ {datetime.now():%H:%M:%S}"
     success = send_telegram(msg)
     
     if success:

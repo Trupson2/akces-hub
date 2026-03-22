@@ -63,7 +63,7 @@ def send_email(subject, html_content, recipient=None):
 
 def generate_weekly_report():
     """Generuje raport tygodniowy"""
-    from .database import get_db
+    from .database import get_db, get_config
     
     conn = get_db()
     
@@ -303,7 +303,7 @@ def generate_weekly_report():
         </div>
         
         <div class="footer">
-            Wygenerowano automatycznie przez Akces Hub<br>
+            Wygenerowano automatycznie przez {get_config('brand_name', 'Akces Hub')}<br>
             {today.strftime('%d.%m.%Y %H:%M')}
         </div>
     </div>
@@ -319,9 +319,10 @@ def send_weekly_report():
     if not config.get('enabled'):
         return False, "Email wyłączony"
 
+    from .database import get_config
     html = generate_weekly_report()
     today = datetime.now()
-    subject = f"Raport tygodniowy Akces Hub - {today.strftime('%d.%m.%Y')}"
+    subject = f"Raport tygodniowy {get_config('brand_name', 'Akces Hub')} - {today.strftime('%d.%m.%Y')}"
 
     return send_email(subject, html)
 
@@ -578,7 +579,7 @@ def generate_daily_report():
 
     <!-- FOOTER -->
     <div style="background:#f8fafc;padding:15px;text-align:center;color:#94a3b8;font-size:11px">
-        Wygenerowano automatycznie przez Akces Hub na Raspberry Pi<br>
+        Wygenerowano automatycznie przez {brand_name} na Raspberry Pi<br>
         {today.strftime('%d.%m.%Y %H:%M')}
     </div>
 </div>
@@ -594,8 +595,9 @@ def send_daily_report():
     if not config.get('enabled'):
         return False, "Email wylaczony"
 
+    from .database import get_config
     html = generate_daily_report()
     today = datetime.now()
-    subject = f"Akces Hub - Raport poranny {today.strftime('%d.%m.%Y')}"
+    subject = f"{get_config('brand_name', 'Akces Hub')} - Raport poranny {today.strftime('%d.%m.%Y')}"
 
     return send_email(subject, html)
