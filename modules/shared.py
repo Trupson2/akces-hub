@@ -751,3 +751,43 @@ KATEGORIE_DISPLAY = {
     'elektronika': '📷 Elektronika',
     'inne': '📦 Inne'
 }
+
+# ── Klasa jakości (auto-detect z nazwy/stanu) ────────────────────
+KLASA_JAKOSCI_MAP = {
+    'A': '🟢 A',
+    'A-': '🔵 A-',
+    'B': '🟡 B',
+    'C': '🟠 C',
+    'D': '🔴 D',
+}
+
+def auto_klasa_jakosci(nazwa='', stan=''):
+    """Auto-detect klasa jakości na podstawie nazwy produktu i stanu.
+    Amazon returns grading: A=new, B=like new/open box, C=used, D=damaged
+    """
+    nazwa_lower = (nazwa or '').lower()
+    stan_lower = (stan or '').lower()
+
+    # Z nazwy — Amazon grading keywords
+    if any(w in nazwa_lower for w in ['brand new', 'factory sealed', 'sealed', 'nowy fabryczny']):
+        return 'A'
+    if any(w in nazwa_lower for w in ['like new', 'open box', 'opened', 'jak nowy', 'otwarte opakowanie']):
+        return 'A-'
+    if any(w in nazwa_lower for w in ['good condition', 'dobry stan', 'lightly used', 'gently used']):
+        return 'B'
+    if any(w in nazwa_lower for w in ['fair condition', 'used', 'visible wear', 'używany', 'ślady użytkowania']):
+        return 'C'
+    if any(w in nazwa_lower for w in ['damaged', 'broken', 'defective', 'uszkodzony', 'niekompletny', 'parts only']):
+        return 'D'
+
+    # Z stanu produktu
+    if stan_lower in ['nowy']:
+        return 'A'
+    if stan_lower in ['powystawowy', 'jak nowy']:
+        return 'A-'
+    if stan_lower in ['używany', 'odnowiony']:
+        return 'B'
+    if stan_lower in ['uszkodzony']:
+        return 'D'
+
+    return ''

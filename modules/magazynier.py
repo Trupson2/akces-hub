@@ -924,6 +924,9 @@ def produkt(code):
     elif p.get('paleta_id'):
         _koszt_brutto_szt = _paleta_koszt_szt(conn, p['paleta_id'])
 
+    _klasa_map = {'A':'🟢 A','A-':'🔵 A-','B':'🟡 B','C':'🟠 C','D':'🔴 D'}
+    _klasa_display = _klasa_map.get(p.get('klasa_jakosci','') or '', '—')
+
     # Zysk per item = cena_allegro - koszt_zakupu - prowizja
     _cena_al = float(p['cena_allegro'] or 0)
     _kat = (p.get('kategoria') or 'inne').lower()
@@ -1079,6 +1082,7 @@ def produkt(code):
                 <div class="det" onclick="navigator.clipboard.writeText('{asin_display}');this.querySelector('.det-v').style.color='#22c55e';setTimeout(()=>this.querySelector('.det-v').style.color='',800)" style="cursor:pointer" title="Kliknij aby skopiować"><div class="det-l">ASIN 📋</div><div class="det-v" style="font-size:0.75rem;user-select:all">{asin_display}</div></div>
                 <div class="det"><div class="det-l">Ilość</div><div class="det-v"><span class="badge {badge}">{p['ilosc']} szt</span></div></div>
                 <div class="det"><div class="det-l">Stan</div><div class="det-v">{p['stan'] or 'Nowy'}</div></div>
+                <div class="det"><div class="det-l">Klasa</div><div class="det-v">{_klasa_display}</div></div>
                 <div class="det"><div class="det-l">💰 Koszt/szt brutto</div><div class="det-v">{_koszt_brutto_szt:.2f} zł</div></div>
                 <div class="det"><div class="det-l">💰 Koszt/szt netto</div><div class="det-v">{_koszt_brutto_szt / 1.23:.2f} zł</div></div>
                 <div class="det"><div class="det-l">💵 Cena Allegro</div><div class="det-v green">{p['cena_allegro'] or 0:.2f} zł</div></div>
@@ -1569,7 +1573,7 @@ def edytuj_produkt(code):
     if request.method == 'POST':
         try:
             d = {}
-            for k in ['nazwa','lokalizacja','dostawca','zdjecie_url','stan','kategoria','ean','asin']:
+            for k in ['nazwa','lokalizacja','dostawca','zdjecie_url','stan','kategoria','ean','asin','klasa_jakosci']:
                 d[k] = (request.form.get(k) or '').strip()
 
             d['ilosc'] = int(request.form.get('ilosc', 0) or 0)
@@ -1614,11 +1618,11 @@ def edytuj_produkt(code):
                 conn.execute('''UPDATE produkty
                     SET ean=?,asin=?,nazwa=?,ilosc=?,stan=?,lokalizacja=?,
                         paleta=?,paleta_id=?,dostawca=?,zdjecie_url=?,
-                        cena_netto=?,cena_brutto=?,cena_allegro=?,kategoria=?
+                        cena_netto=?,cena_brutto=?,cena_allegro=?,kategoria=?,klasa_jakosci=?
                     WHERE id=?''',
                     (d['ean'],d['asin'],d['nazwa'],d['ilosc'],d['stan'],d['lokalizacja'],
                      paleta_nazwa,paleta_id,d['dostawca'],d['zdjecie_url'],
-                     d['cena_netto'],d['cena_brutto'],d['cena_allegro'],d['kategoria'],
+                     d['cena_netto'],d['cena_brutto'],d['cena_allegro'],d['kategoria'],d['klasa_jakosci'],
                      pid))
                 conn.commit()
 

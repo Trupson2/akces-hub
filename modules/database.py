@@ -458,6 +458,7 @@ def init_db():
             ('palety', 'ilosc_sztuk', "ALTER TABLE palety ADD COLUMN ilosc_sztuk INTEGER DEFAULT 0"),
             ('produkty', 'stan_przyjecia', "ALTER TABLE produkty ADD COLUMN stan_przyjecia TEXT DEFAULT ''"),
             ('produkty', 'notatki_przyjecia', "ALTER TABLE produkty ADD COLUMN notatki_przyjecia TEXT DEFAULT ''"),
+            ('produkty', 'klasa_jakosci', "ALTER TABLE produkty ADD COLUMN klasa_jakosci TEXT DEFAULT ''"),
         ]
         for _tbl, _col, _sql in _migrate_cols:
             try:
