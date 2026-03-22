@@ -2095,15 +2095,16 @@ a{color:#6366f1;text-decoration:none}
         </form>
     </div>
 
-    <div class="divider">lub aktywuj ręcznie</div>
+    <div class="divider">lub wpisz klucz</div>
 
     <div class="card">
         <form method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label>Klucz licencyjny</label>
-            <input type="text" name="key" placeholder="AKCES-PXXX-XXXX-XXXX-XXXX" required>
-            <label>Nazwa klienta</label>
-            <input type="text" name="client" required>
+            <input type="text" name="key" placeholder="AKCES-PXXX-XXXX-XXXX-XXXX" required style="font-family:monospace;font-size:1.1rem;letter-spacing:1px">
+            <label>Nazwa firmy / klienta</label>
+            <input type="text" name="client" placeholder="Np. Firma XYZ" required>
+            {% if is_dev %}
             <label>Plan</label>
             <select name="plan"><option value="starter">Starter</option><option value="pro" selected>Pro</option><option value="business">Business</option><option value="enterprise">Enterprise</option></select>
             <label>Utworzona (timestamp)</label>
@@ -2112,7 +2113,8 @@ a{color:#6366f1;text-decoration:none}
             <input type="number" name="expires" value="0">
             <label>Sygnatura</label>
             <input type="text" name="signature" required>
-            <button type="submit" class="btn btn-primary">🔑 Aktywuj</button>
+            {% endif %}
+            <button type="submit" class="btn btn-primary">🔑 Aktywuj licencję</button>
         </form>
     </div>
     {% endif %}
@@ -5880,13 +5882,14 @@ if __name__ == '__main__':
     except Exception as e:
         log_warning(f"Telegram bot error: {e}")
 
-    # Start pallet monitor scheduler (Warrington 10-11, 16-17; Jobalots 8:30, 13:00)
+    # Start pallet monitor scheduler — tylko w trybie dev
     try:
-        from modules.pallet_monitor import start_scheduler as start_pallet_scheduler
-        start_pallet_scheduler()
-        log("Pallet monitor scheduler uruchomiony")
-    except Exception as e:
-        log_warning(f"Pallet monitor scheduler error: {e}")
+        from modules.database import get_config as _gc
+        if _gc('is_dev', '0') == '1':
+            from modules.pallet_monitor import start_scheduler as start_pallet_scheduler
+            start_pallet_scheduler()
+    except Exception:
+        pass
 
     # Start license heartbeat thread (co 24h)
     try:

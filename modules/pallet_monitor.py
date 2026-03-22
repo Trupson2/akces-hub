@@ -116,7 +116,7 @@ HEADERS = {
 
 
 def log(msg):
-    print(f"[{datetime.now():%H:%M:%S}] [PalletMonitor] {msg}", flush=True)
+    # Cichy tryb — loguj tylko do pliku, nie do konsoli
     try:
         from modules.logger import log as _file_log
         _file_log(f"[PalletMonitor] {msg}")
