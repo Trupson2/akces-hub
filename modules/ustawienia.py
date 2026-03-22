@@ -360,6 +360,25 @@ def ustawienia():
     </div>
 </div>
 
+<!-- ZARZADZANIE DOSTAWCAMI -->
+<div class="settings-card settings-card-accent blue">
+    <div class="section-header">
+        <span class="section-header-icon">🚚</span>
+        <span class="section-header-title">Zarzadzanie dostawcami</span>
+    </div>
+    <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px">
+        Lista dodatkowych dostawcow wyswietlanych w listach rozwijanych. Dostawcy z istniejacych palet i produktow sa dolaczani automatycznie.
+    </div>
+    <form action="/ustawienia/dostawcy" method="POST">
+        <div class="form-group">
+            <label>Dodatkowi dostawcy (oddzieleni przecinkami)</label>
+            <input type="text" name="custom_dostawcy" value="{{ custom_dostawcy or '' }}"
+                placeholder="np. Jobalots, Warrington, MojaFirma" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary">Zapisz liste dostawcow</button>
+    </form>
+</div>
+
 <!-- SMTP CONFIG (License Mailer) -->
 <div class="settings-card settings-card-accent purple">
     <div class="section-header">
@@ -453,6 +472,7 @@ def ustawienia():
         zwroty_warunki_id=zwroty_warunki_id,
         reklamacje_warunki_id=reklamacje_warunki_id,
         smtp_cfg=smtp_cfg,
+        custom_dostawcy=get_config('custom_dostawcy', ''),
     )
 
 
@@ -839,6 +859,16 @@ def ustawienia_email():
 
     save_email_config(config)
 
+    return redirect('/ustawienia')
+
+
+@ustawienia_bp.route('/ustawienia/dostawcy', methods=['POST'])
+def ustawienia_dostawcy():
+    """Zapisuje liste custom dostawcow"""
+    raw = request.form.get('custom_dostawcy', '').strip()
+    # Oczysc: usun puste, trim
+    cleaned = ','.join([d.strip() for d in raw.split(',') if d.strip()])
+    set_config('custom_dostawcy', cleaned)
     return redirect('/ustawienia')
 
 

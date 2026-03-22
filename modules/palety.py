@@ -35,6 +35,18 @@ def _get_auto_kategoryzuj():
     return auto_kategoryzuj
 
 
+def _dodaj_dostawca_options(selected=''):
+    """Generuje opcje <option> dla selecta dostawcy (dynamiczne)"""
+    from modules.database import get_dostawcy_list
+    dostawcy = get_dostawcy_list()
+    opts = ''
+    for d in dostawcy:
+        sel = ' selected' if d == selected else ''
+        opts += f'<option value="{d}"{sel}>{d}</option>'
+    opts += '<option value="__custom__">+ Dodaj nowego...</option>'
+    return opts
+
+
 # ============================================================
 # MODULE CSS & JS (like magazynier pattern)
 # ============================================================
@@ -707,6 +719,11 @@ def paleta_edit(paleta_id):
         # Pobierz dane z formularza
         nazwa = request.form.get('nazwa', '').strip()
         dostawca = request.form.get('dostawca', '').strip()
+        if dostawca == '__custom__':
+            dostawca = request.form.get('dostawca_custom', '').strip()
+            if dostawca:
+                from modules.database import save_custom_dostawca
+                save_custom_dostawca(dostawca)
         regal = request.form.get('regal', '').strip()
         cena_zakupu = float(request.form.get('cena_zakupu', 0))
         # cena_zakupu = brutto
@@ -744,12 +761,15 @@ def paleta_edit(paleta_id):
     except:
         pass
 
-    # Dostawcy
-    dostawcy = ['', 'Warrington', 'Miglo', 'Jobalots', 'Inny']
-    dostawca_opcje = ''
-    for d in dostawcy:
+    # Dostawcy - dynamiczna lista
+    from modules.database import get_dostawcy_list
+    _dostawcy_list = get_dostawcy_list()
+    dostawca_opcje = '<option value="">— Wybierz —</option>'
+    for d in _dostawcy_list:
         selected = ' selected' if d == paleta['dostawca'] else ''
-        dostawca_opcje += f'<option value="{d}"{selected}>{d or "— Wybierz —"}</option>'
+        dostawca_opcje += f'<option value="{d}"{selected}>{d}</option>'
+    # Opcja dodania nowego dostawcy
+    dostawca_opcje += '<option value="__custom__">+ Dodaj nowego...</option>'
 
     # Buduj formularz
     content = f'''
@@ -763,9 +783,10 @@ def paleta_edit(paleta_id):
 
         <div class="form-group">
             <label>Dostawca</label>
-            <select name="dostawca" class="form-control">
+            <select name="dostawca" class="form-control" onchange="if(this.value==='__custom__'){{this.nextElementSibling.style.display='block';this.nextElementSibling.focus()}}else{{this.nextElementSibling.style.display='none'}}">
                 {dostawca_opcje}
             </select>
+            <input type="text" name="dostawca_custom" placeholder="Wpisz nazwe dostawcy" style="display:none;margin-top:8px" class="form-control">
         </div>
 
         <div class="form-group">
@@ -1156,7 +1177,14 @@ def paleta_dodaj():
 
     if request.method == 'POST':
         nazwa = request.form.get('nazwa', '')
-        dostawca = request.form.get('dostawca', 'Jobalots')  # Domyślnie Jobalots
+        dostawca = request.form.get('dostawca', '')
+        if dostawca == '__custom__':
+            dostawca = request.form.get('dostawca_custom', '').strip()
+            if dostawca:
+                from modules.database import save_custom_dostawca
+                save_custom_dostawca(dostawca)
+        if not dostawca:
+            dostawca = 'Nieznany'
         regal = request.form.get('regal', '')
 
         # Bezpieczna konwersja ceny
@@ -1217,12 +1245,10 @@ def paleta_dodaj():
 
         <div class="form-group">
             <label>Dostawca</label>
-            <select name="dostawca" class="form-control">
-                <option value="Jobalots">Jobalots</option>
-                <option value="Warrington">Warrington</option>
-                <option value="Miglo">Miglo</option>
-                <option value="Inny">Inny</option>
+            <select name="dostawca" class="form-control" onchange="if(this.value==='__custom__'){this.nextElementSibling.style.display='block';this.nextElementSibling.focus()}else{this.nextElementSibling.style.display='none'}">
+                ''' + _dodaj_dostawca_options() + '''
             </select>
+            <input type="text" name="dostawca_custom" placeholder="Wpisz nazwe dostawcy" style="display:none;margin-top:8px" class="form-control">
         </div>
 
         <div class="form-group">
@@ -1279,7 +1305,14 @@ def paleta_import_xlsx():
 
             # Pobierz dane palety z formularza
             nazwa = request.form.get('nazwa', file.filename)
-            dostawca = request.form.get('dostawca', 'Jobalots')
+            dostawca = request.form.get('dostawca', '')
+            if dostawca == '__custom__':
+                dostawca = request.form.get('dostawca_custom', '').strip()
+                if dostawca:
+                    from modules.database import save_custom_dostawca
+                    save_custom_dostawca(dostawca)
+            if not dostawca:
+                dostawca = 'Nieznany'
             regal = request.form.get('regal', '')
             cena_zakupu = float(request.form.get('cena', 0) or 0)
             data_zakupu = request.form.get('data', datetime.now().strftime('%Y-%m-%d'))
@@ -1407,12 +1440,10 @@ def paleta_import_xlsx():
             </div>
             <div class="form-group">
                 <label>Dostawca</label>
-                <select name="dostawca" class="form-control">
-                    <option value="Jobalots">Jobalots</option>
-                    <option value="Warrington">Warrington</option>
-                    <option value="Miglo">Miglo</option>
-                    <option value="Inny">Inny</option>
+                <select name="dostawca" class="form-control" onchange="if(this.value==='__custom__'){{this.nextElementSibling.style.display='block';this.nextElementSibling.focus()}}else{{this.nextElementSibling.style.display='none'}}">
+                    {_dodaj_dostawca_options()}
                 </select>
+                <input type="text" name="dostawca_custom" placeholder="Wpisz nazwe dostawcy" style="display:none;margin-top:8px" class="form-control">
             </div>
         </div>
 
@@ -1500,7 +1531,14 @@ def paleta_bulk_import():
             conn = get_db()
 
             # Pobierz wspólne ustawienia
-            dostawca = request.form.get('dostawca', 'Jobalots')
+            dostawca = request.form.get('dostawca', '')
+            if dostawca == '__custom__':
+                dostawca = request.form.get('dostawca_custom', '').strip()
+                if dostawca:
+                    from modules.database import save_custom_dostawca
+                    save_custom_dostawca(dostawca)
+            if not dostawca:
+                dostawca = 'Nieznany'
             waluta = request.form.get('waluta', 'EUR').upper()
 
             # Kurs EUR→PLN
@@ -1888,12 +1926,10 @@ def paleta_bulk_import():
         <div class="form-row" style="margin-bottom:12px">
             <div class="form-group">
                 <label>Dostawca</label>
-                <select name="dostawca" class="form-control">
-                    <option value="Jobalots">Jobalots</option>
-                    <option value="Warrington">Warrington</option>
-                    <option value="Miglo">Miglo</option>
-                    <option value="Inny">Inny</option>
+                <select name="dostawca" class="form-control" onchange="if(this.value==='__custom__'){{this.nextElementSibling.style.display='block';this.nextElementSibling.focus()}}else{{this.nextElementSibling.style.display='none'}}">
+                    {_dodaj_dostawca_options()}
                 </select>
+                <input type="text" name="dostawca_custom" placeholder="Wpisz nazwe dostawcy" style="display:none;margin-top:8px" class="form-control">
             </div>
             <div class="form-group">
                 <label>Waluta cen w pliku</label>

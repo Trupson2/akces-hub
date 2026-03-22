@@ -568,6 +568,49 @@ def is_module_enabled(name):
     return get_config_cached(f'module_{name}', default) == '1'
 
 
+def get_dostawcy_list():
+    """Zwraca posortowana liste unikalnych dostawcow z bazy + custom z configu"""
+    conn = get_db()
+    # Dostawcy z istniejacych palet
+    db_dostawcy = conn.execute(
+        "SELECT DISTINCT dostawca FROM palety WHERE dostawca IS NOT NULL AND dostawca != '' ORDER BY dostawca"
+    ).fetchall()
+    dostawcy = [r[0] for r in db_dostawcy]
+
+    # Dostawcy z istniejacych produktow
+    db_prod = conn.execute(
+        "SELECT DISTINCT dostawca FROM produkty WHERE dostawca IS NOT NULL AND dostawca != '' ORDER BY dostawca"
+    ).fetchall()
+    for r in db_prod:
+        if r[0] not in dostawcy:
+            dostawcy.append(r[0])
+
+    # Custom dostawcy z configu
+    custom = get_config('custom_dostawcy', '')
+    if custom:
+        for d in custom.split(','):
+            d = d.strip()
+            if d and d not in dostawcy:
+                dostawcy.append(d)
+
+    # Domyslne sugestie dla nowych instalacji
+    if not dostawcy:
+        dostawcy = ['Jobalots', 'Warrington', 'Amazon Returns', 'Inny']
+
+    return sorted(dostawcy)
+
+
+def save_custom_dostawca(dostawca):
+    """Zapisuje nowego dostawce do listy custom w configu"""
+    if not dostawca:
+        return
+    existing = get_config('custom_dostawcy', '')
+    existing_list = [d.strip() for d in existing.split(',') if d.strip()] if existing else []
+    if dostawca not in existing_list:
+        existing_list.append(dostawca)
+        set_config('custom_dostawcy', ','.join(existing_list))
+
+
 def query_db(query, args=(), one=False):
     """Wykonuje zapytanie i zwraca wyniki"""
     with get_db() as conn:

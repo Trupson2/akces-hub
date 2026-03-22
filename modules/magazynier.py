@@ -1576,6 +1576,13 @@ def edytuj_produkt(code):
             for k in ['nazwa','lokalizacja','dostawca','zdjecie_url','stan','kategoria','ean','asin','klasa_jakosci']:
                 d[k] = (request.form.get(k) or '').strip()
 
+            # Obsluga customowego dostawcy
+            if d.get('dostawca') == '__custom__':
+                d['dostawca'] = (request.form.get('dostawca_custom') or '').strip()
+                if d['dostawca']:
+                    from modules.database import save_custom_dostawca
+                    save_custom_dostawca(d['dostawca'])
+
             d['ilosc'] = int(request.form.get('ilosc', 0) or 0)
 
             cena_netto_szt  = float(request.form.get('cena_netto',  0) or 0)
@@ -1696,10 +1703,13 @@ def edytuj_produkt(code):
         _p_brutto_szt = 0
         _p_netto_szt  = 0
 
+    from modules.database import get_dostawcy_list
+    _dlist = get_dostawcy_list()
     dostawcy_options = ''.join([
-        f'<option {"selected" if p.get("dostawca")==d else ""}>{d}</option>'
-        for d in DOSTAWCY
+        f'<option value="{d}" {"selected" if p.get("dostawca")==d else ""}>{d}</option>'
+        for d in _dlist
     ])
+    dostawcy_options += '<option value="__custom__">+ Dodaj nowego...</option>'
 
     conn2 = get_db()
     palety_lista = conn2.execute(
@@ -1822,7 +1832,8 @@ def edytuj_produkt(code):
                 </select>
             </div>
             <div class="form-group"><label>Dostawca</label>
-                <select name="dostawca" class="form-ctrl"><option value="">—</option>{dostawcy_options}</select>
+                <select name="dostawca" class="form-ctrl" onchange="if(this.value==='__custom__'){{this.nextElementSibling.style.display='block';this.nextElementSibling.focus()}}else{{this.nextElementSibling.style.display='none'}}"><option value="">—</option>{dostawcy_options}</select>
+                <input type="text" name="dostawca_custom" placeholder="Wpisz nazwe dostawcy" style="display:none;margin-top:8px" class="form-ctrl">
             </div>
         </div>
         
@@ -4631,6 +4642,17 @@ def export_csv():
         headers={'Content-Disposition': f'attachment; filename={filename}'}
     )
 
+def _mag_dostawca_options(selected=''):
+    """Generuje opcje <option> dostawcy dla formularzy magazyniera"""
+    from modules.database import get_dostawcy_list
+    _dlist = get_dostawcy_list()
+    opts = ''
+    for d in _dlist:
+        sel = ' selected' if d == selected else ''
+        opts += f'<option value="{d}"{sel}>{d}</option>'
+    opts += '<option value="__custom__">+ Dodaj nowego...</option>'
+    return opts
+
 @magazynier_bp.route('/import')
 def import_page():
     # Pobierz istniejące palety
@@ -4671,13 +4693,10 @@ def import_page():
                     </div>
                     <div>
                         <label style="font-size:0.8rem;color:#64748b">Dostawca</label>
-                        <select name="new_paleta_dostawca" class="form-ctrl" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:6px;color:#fff">
-                            <option value="Jobalots" selected>Jobalots</option>
-                            <option value="Warrington">Warrington</option>
-                            <option value="Miglo">Miglo</option>
-                            <option value="Amazon">Amazon</option>
-                            <option value="Inny">Inny</option>
+                        <select name="new_paleta_dostawca" class="form-ctrl" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:6px;color:#fff" onchange="if(this.value==='__custom__'){{this.nextElementSibling.style.display='block';this.nextElementSibling.focus()}}else{{this.nextElementSibling.style.display='none'}}">
+                            {_mag_dostawca_options()}
                         </select>
+                        <input type="text" name="new_paleta_dostawca_custom" placeholder="Wpisz nazwe dostawcy" style="display:none;margin-top:8px;width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:6px;color:#fff">
                     </div>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
@@ -4747,6 +4766,11 @@ def import_preview():
         # Utwórz nową paletę
         new_nazwa = request.form.get('new_paleta_nazwa', '').strip()
         new_dostawca = request.form.get('new_paleta_dostawca', '').strip()
+        if new_dostawca == '__custom__':
+            new_dostawca = request.form.get('new_paleta_dostawca_custom', '').strip()
+            if new_dostawca:
+                from modules.database import save_custom_dostawca
+                save_custom_dostawca(new_dostawca)
         new_cena = request.form.get('new_paleta_cena', '0').strip()
         
         try:
