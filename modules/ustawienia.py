@@ -19,6 +19,15 @@ def ustawienia():
     base_url = get_config('app_base_url', 'http://localhost:5000')
     email_cfg = get_email_config()
 
+    # SMTP config for license mailer
+    smtp_cfg = {
+        'host': get_config('smtp_host', ''),
+        'port': get_config('smtp_port', '587'),
+        'user': get_config('smtp_user', ''),
+        'password': get_config('smtp_password', ''),
+        'admin_email': get_config('admin_email', ''),
+    }
+
     # Module toggles
     modules_cfg = {
         'paletomat': {'name': 'Paletomat', 'desc': 'Skaner palet, scraping Amazon', 'enabled': is_module_enabled('paletomat')},
@@ -351,6 +360,54 @@ def ustawienia():
     </div>
 </div>
 
+<!-- SMTP CONFIG (License Mailer) -->
+<div class="settings-card settings-card-accent purple">
+    <div class="section-header">
+        <span class="section-header-icon">📧</span>
+        <span class="section-header-title">Konfiguracja Email (SMTP)</span>
+        <span class="section-header-badge" style="background:{{ '#22c55e' if smtp_cfg.get('host') and smtp_cfg.get('user') else 'var(--text-muted)' }}">
+            {{ 'SKONFIGUROWANY' if smtp_cfg.get('host') and smtp_cfg.get('user') else 'NIESKONFIGUROWANY' }}
+        </span>
+    </div>
+    <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px">
+        Ustawienia SMTP do powiadomien o wygasajacych licencjach. Codziennie sprawdzamy licencje i wysylamy powiadomienia.
+    </div>
+    <form action="/ustawienia/smtp" method="POST">
+        <div class="form-group">
+            <label>SMTP Host</label>
+            <input type="text" name="smtp_host" value="{{ smtp_cfg.get('host') or '' }}"
+                placeholder="smtp.gmail.com" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>SMTP Port</label>
+            <input type="number" name="smtp_port" value="{{ smtp_cfg.get('port') or '587' }}"
+                placeholder="587" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>SMTP User</label>
+            <input type="text" name="smtp_user" value="{{ smtp_cfg.get('user') or '' }}"
+                placeholder="email@example.com" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>SMTP Password</label>
+            <input type="password" name="smtp_password"
+                placeholder="{{ '••••••••••••' if smtp_cfg.get('password') else 'Haslo SMTP' }}"
+                class="form-control">
+        </div>
+        <div class="form-group">
+            <label>Admin Email (odbiorca powiadomien)</label>
+            <input type="email" name="admin_email" value="{{ smtp_cfg.get('admin_email') or '' }}"
+                placeholder="admin@example.com" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary">Zapisz konfiguracje SMTP</button>
+    </form>
+    <div class="btn-grid" style="margin-top:12px">
+        <form method="POST" action="/ustawienia/smtp-test" style="width:100%">
+            <button type="submit" class="btn btn-secondary btn-sm" style="width:100%">Wyslij testowy email</button>
+        </form>
+    </div>
+</div>
+
 <!-- DANGER ZONE -->
 <div class="settings-card settings-card-accent red">
     <div class="section-header">
@@ -395,6 +452,7 @@ def ustawienia():
         dpd_cennik_id=dpd_cennik_id,
         zwroty_warunki_id=zwroty_warunki_id,
         reklamacje_warunki_id=reklamacje_warunki_id,
+        smtp_cfg=smtp_cfg,
     )
 
 
@@ -782,6 +840,55 @@ def ustawienia_email():
     save_email_config(config)
 
     return redirect('/ustawienia')
+
+
+@ustawienia_bp.route('/ustawienia/smtp', methods=['POST'])
+def ustawienia_smtp():
+    """Zapisuje konfiguracje SMTP (license mailer)"""
+    from modules.database import set_config, invalidate_config_cache
+
+    smtp_host = request.form.get('smtp_host', '').strip()
+    smtp_port = request.form.get('smtp_port', '587').strip()
+    smtp_user = request.form.get('smtp_user', '').strip()
+    smtp_password = request.form.get('smtp_password', '').strip()
+    admin_email = request.form.get('admin_email', '').strip()
+
+    set_config('smtp_host', smtp_host)
+    set_config('smtp_port', smtp_port)
+    set_config('smtp_user', smtp_user)
+    if smtp_password:  # Only update if a new password was entered
+        set_config('smtp_password', smtp_password)
+    set_config('admin_email', admin_email)
+
+    invalidate_config_cache()
+    return redirect('/ustawienia')
+
+
+@ustawienia_bp.route('/ustawienia/smtp-test', methods=['POST'])
+def ustawienia_smtp_test():
+    """Wysyla testowy email SMTP"""
+    from modules.license_mailer import send_email, get_smtp_config
+
+    cfg = get_smtp_config()
+    admin_email = cfg['admin_email']
+
+    if not admin_email:
+        return '<html><body style="background:#0a0a0f;color:#ef4444;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh"><div>Brak admin_email w konfiguracji SMTP!</div></body></html>'
+
+    html_body = '''
+    <div style="font-family:Arial;max-width:600px;margin:0 auto;background:#1a1a2e;color:#e2e8f0;padding:30px;border-radius:12px">
+        <h2 style="color:#22c55e">Test SMTP</h2>
+        <p>Konfiguracja SMTP dziala poprawnie. Powiadomienia o licencjach beda wysylane na ten adres.</p>
+    </div>
+    '''
+    ok = send_email(admin_email, 'Test SMTP — Akces Hub', html_body)
+
+    if ok:
+        color, msg = '#22c55e', 'Testowy email wyslany!'
+    else:
+        color, msg = '#ef4444', 'Blad wysylania. Sprawdz konfiguracje SMTP.'
+
+    return f'<html><body style="background:#0a0a0f;color:{color};font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh"><div>{msg}</div></body></html>'
 
 
 # ============================================================

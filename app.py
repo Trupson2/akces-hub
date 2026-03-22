@@ -5951,6 +5951,7 @@ if __name__ == '__main__':
     # Auto-backup co 60 minut w tle + RODO auto-anonimizacja raz dziennie
     import threading
     _last_rodo_day = [None]
+    _last_license_check_day = [None]
 
     def hourly_backup():
         import time
@@ -5974,6 +5975,16 @@ if __name__ == '__main__':
                         log(f"[RODO] Auto-anonimizacja: {cnt} rekordow")
             except Exception as e:
                 log_warning(f"[RODO] Blad auto-anonimizacji: {e}")
+            # License expiry check raz dziennie
+            try:
+                today_lic = _date.today().isoformat()
+                if _last_license_check_day[0] != today_lic:
+                    from modules.license_mailer import check_expiring_licenses
+                    check_expiring_licenses()
+                    _last_license_check_day[0] = today_lic
+                    log("[Mailer] Sprawdzono wygasajace licencje")
+            except Exception as e:
+                log_warning(f"[Mailer] Blad sprawdzania licencji: {e}")
     threading.Thread(target=hourly_backup, daemon=True).start()
     log("Auto-backup co godzine: WLACZONY")
 
