@@ -20,7 +20,7 @@ import threading
 LICENSE_SECRET = os.environ.get('AKCES_LICENSE_SECRET', 'AkcesHub2026!SecretKeyForLicenseGeneration')
 
 # Heartbeat config
-HEARTBEAT_URL = 'https://akceshub.ngrok.dev/api/license/verify'
+HEARTBEAT_URL = 'https://unsatiating-dirgelike-audrina.ngrok-free.dev/api/license/verify'
 HEARTBEAT_INTERVAL = 86400  # 24h
 HEARTBEAT_GRACE_DAYS = 7  # Dni offline bez blokady
 
