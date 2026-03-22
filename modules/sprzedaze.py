@@ -144,7 +144,7 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
 </style>
 <script>
 function anonimizujKlienta(buyerName, btn) {
-    if (!confirm('RODO: Czy na pewno chcesz zanonimizowac dane klienta "' + buyerName + '"?\\n\\nTa operacja jest nieodwracalna. Dane osobowe zostana usiniete, ale kwoty i statystyki pozostana.')) return;
+    if (!confirm('RODO: Czy na pewno chcesz zanonimizowac dane klienta "' + buyerName + '"?\\n\\nTa operacja jest nieodwracalna. Dane osobowe zostana usuniete, ale kwoty i statystyki pozostana.')) return;
     btn.disabled = true;
     btn.textContent = '...';
     fetch('/magazyn/api/anonimizuj-klienta', {
