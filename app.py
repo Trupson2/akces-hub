@@ -2087,8 +2087,11 @@ def license_page():
 
     lic = get_license_display()
 
-    return render_template('license.html', lic=lic, msg=msg, err=err,
-        is_dev=_is_dev_mode(), brand_name=app.config.get('BRAND_NAME', 'Akces Hub'))
+    try:
+        return render_template('license.html', lic=lic, msg=msg, err=err,
+            is_dev=_is_dev_mode(), brand_name=app.config.get('BRAND_NAME', 'Akces Hub'))
+    except Exception:
+        return render_template_string('<html><body style="background:#0a0a14;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh"><div style="text-align:center"><h1>Licencja</h1><p style="color:#94a3b8">{{ msg or err or "Aktywuj licencje" }}</p></div></body></html>', msg=msg, err=err)
 
 
 # ============================================================
@@ -2128,7 +2131,10 @@ def subscription_expired_page():
         except Exception:
             hwid = ''
 
-    return render_template('subscription_expired.html', plan_name=plan_name, expiry_str=expiry_str, hwid=hwid, renew_url=renew_url)
+    try:
+        return render_template('subscription_expired.html', plan_name=plan_name, expiry_str=expiry_str, hwid=hwid, renew_url=renew_url)
+    except Exception:
+        return render_template_string('<html><body style="background:#0a0a14;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh"><div style="text-align:center"><h1 style="color:#f87171">Subskrypcja wygasla</h1><p style="color:#94a3b8">Odnow licencje.</p><a href="/license" style="color:#6366f1">Aktywuj &rarr;</a></div></body></html>')
 
 
 # ============================================================
@@ -2137,7 +2143,10 @@ def subscription_expired_page():
 @app.route('/time-manipulation')
 def time_manipulation_page():
     """Standalone strona — wykryto manipulację czasem systemowym"""
-    return render_template('time_manipulation.html')
+    try:
+        return render_template('time_manipulation.html')
+    except Exception:
+        return render_template_string('<html><body style="background:#0a0a14;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh"><div style="text-align:center"><h1 style="color:#f87171">Wykryto manipulacje czasem</h1><p style="color:#94a3b8">Ustaw prawidlowa date i godzine.</p><a href="/" style="color:#6366f1">Sprobuj ponownie</a></div></body></html>')
 
 
 # ============================================================
