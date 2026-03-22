@@ -116,12 +116,12 @@ body {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 32px 28px;
+    padding: 24px 24px;
 }
 .step-icon {
-    font-size: 2.8rem;
+    font-size: 2.4rem;
     text-align: center;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
 }
 .step-title {
     font-size: 1.15rem;
@@ -273,12 +273,7 @@ body {
             <!-- STEP 1: Allegro API -->
             <div class="step">
                 <div class="step-card">
-                    <div class="step-icon">
-                        <svg width="56" height="56" viewBox="0 0 56 56" fill="none" style="display:inline-block">
-                            <rect width="56" height="56" rx="14" fill="#FF5A00" fill-opacity="0.15"/>
-                            <text x="28" y="36" text-anchor="middle" font-size="26" font-weight="700" fill="#FF5A00">A</text>
-                        </svg>
-                    </div>
+                    <div class="step-icon">🛒</div>
                     <div class="step-title">Podpiecie API Allegro</div>
                     <div class="step-desc">Polacz konto Allegro aby synchronizowac zamowienia i oferty</div>
                     <div class="form-group">
