@@ -160,7 +160,7 @@ def csrf_protect_forms():
 @app.before_request
 def check_license_middleware():
     """Blokuj dostęp bez aktywnej licencji (oprócz setup, login, aktywacji)"""
-    allowed = ('/setup', '/auth', '/static', '/api/system-stats', '/license', '/favicon', '/api/license/verify', '/subscription-expired', '/time-manipulation')
+    allowed = ('/setup', '/auth', '/static', '/api/system-stats', '/license', '/favicon', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/eula', '/onboarding')
     if any(request.path.startswith(p) for p in allowed):
         return
     if request.path == '/':
