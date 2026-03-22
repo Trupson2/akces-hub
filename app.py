@@ -2034,7 +2034,7 @@ def license_page():
                         import requests as _rq
                         from modules.license import get_hwid
                         _hwid = get_hwid()
-                        _resp = _rq.post('https://akceshub.ngrok.dev/api/license/verify',
+                        _resp = _rq.post('https://unsatiating-dirgelike-audrina.ngrok-free.dev/api/license/verify',
                             json={'key': key, 'hwid': _hwid, 'timestamp': __import__('datetime').datetime.now().isoformat(),
                                   'version': VERSION}, timeout=15)
                         _data = _resp.json()
