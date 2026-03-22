@@ -866,6 +866,28 @@ function toggleDrilldown(id){
 </div>
 {% endif %}
 
+<!-- Licencja -->
+<div class="card" style="border-color:{% if lic_days_left == 'Wygasla!' %}var(--accent-red){% elif lic_days_left %}rgba(99,102,241,0.4){% else %}var(--border-color){% endif %}">
+    <div class="card-header">
+        <span class="card-title">🔑 LICENCJA</span>
+        <a href="/license" style="color:var(--accent-blue);font-size:0.8rem;text-decoration:none">Szczegóły →</a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:center">
+        <div>
+            <div style="font-size:1.4rem;font-weight:700;color:var(--accent-purple)">{{ lic_plan }}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">PLAN</div>
+        </div>
+        <div>
+            <div style="font-size:1.4rem;font-weight:700;color:{% if lic_days_left == 'Wygasla!' %}var(--accent-red){% else %}var(--accent-green){% endif %}">{{ lic_days_left or 'Bezterminowo' }}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">POZOSTAŁO</div>
+        </div>
+        <div>
+            <div style="font-size:1.4rem;font-weight:700;color:var(--text-secondary)">{{ lic_expires or '∞' }}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">WYGASA</div>
+        </div>
+    </div>
+</div>
+
 <!-- Sales Notification -->
 <div id="salesNotification" style="display:none;position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--green),#16a34a);padding:20px 30px;border-radius:var(--radius);z-index:9999;box-shadow:0 10px 40px rgba(34,197,94,0.4);animation:slideIn 0.5s ease">
     <div style="display:flex;align-items:center;gap:15px">
