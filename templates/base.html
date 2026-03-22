@@ -444,6 +444,11 @@ if(localStorage.getItem('kiosk_mode')==='1'){
 <div class="topbar">
     <div class="topbar-title">{% block page_title %}Dashboard{% endblock %}</div>
     <div class="topbar-actions">
+        <button onclick="toggleDemoMode()" id="demoModeBtn" title="Demo Mode"
+                style="background:none;border:none;cursor:pointer;font-size:1.2rem;padding:4px 8px;
+                       border-radius:6px;transition:all 0.3s;opacity:0.6">
+            &#x1F441;&#xFE0F;
+        </button>
         <div class="theme-toggle" onclick="toggleTheme()" title="Zmien motyw">
             <span id="theme-icon">☀️</span>
         </div>
@@ -475,6 +480,136 @@ document.querySelectorAll('.sidebar-link').forEach(function(link) {
     const href = link.getAttribute('href');
     if (href === _path || (_path === '/' && href === '/')) link.classList.add('active');
 });
+</script>
+
+<script>
+// Demo Mode - ukrywa wrazliwe dane dostawcow
+(function() {
+    var DEMO_KEY = 'akces_demo_mode';
+
+    function isDemoMode() {
+        return localStorage.getItem(DEMO_KEY) === '1';
+    }
+
+    function applyDemoMode() {
+        var active = isDemoMode();
+        var btn = document.getElementById('demoModeBtn');
+        if (btn) {
+            btn.style.opacity = active ? '1' : '0.4';
+            btn.style.background = active ? 'rgba(239,68,68,0.2)' : 'none';
+            btn.title = active ? 'Demo Mode: ON (dane ukryte)' : 'Demo Mode: OFF';
+        }
+
+        // Find all dostawca cells and replace content
+        document.querySelectorAll('[data-dostawca]').forEach(function(el) {
+            if (active) {
+                if (!el.dataset.originalDostawca) {
+                    el.dataset.originalDostawca = el.textContent;
+                }
+                var hash = el.dataset.originalDostawca.split('').reduce(function(a,b) {
+                    a = ((a << 5) - a) + b.charCodeAt(0); return a & a;
+                }, 0);
+                var suffix = Math.abs(hash).toString(36).substring(0, 3).toUpperCase();
+                el.textContent = 'DOSTAWCA_' + suffix;
+                el.style.fontFamily = 'monospace';
+                el.style.color = '#64748b';
+                el.style.letterSpacing = '1px';
+            } else {
+                if (el.dataset.originalDostawca) {
+                    el.textContent = el.dataset.originalDostawca;
+                    el.style.fontFamily = '';
+                    el.style.color = '';
+                    el.style.letterSpacing = '';
+                }
+            }
+        });
+
+        // Also handle table cells by column header detection
+        document.querySelectorAll('table').forEach(function(table) {
+            var headers = table.querySelectorAll('th');
+            var dostawcaCol = -1;
+            headers.forEach(function(th, i) {
+                if (th.textContent.trim().toLowerCase().includes('dostawca')) {
+                    dostawcaCol = i;
+                }
+            });
+            if (dostawcaCol >= 0) {
+                table.querySelectorAll('tbody tr, tr').forEach(function(tr) {
+                    var cells = tr.querySelectorAll('td');
+                    if (cells[dostawcaCol]) {
+                        var cell = cells[dostawcaCol];
+                        if (active) {
+                            if (!cell.dataset.originalDostawca) {
+                                cell.dataset.originalDostawca = cell.textContent;
+                            }
+                            var h = cell.dataset.originalDostawca.split('').reduce(function(a,b) {
+                                a = ((a << 5) - a) + b.charCodeAt(0); return a & a;
+                            }, 0);
+                            var s = Math.abs(h).toString(36).substring(0, 3).toUpperCase();
+                            cell.textContent = 'DOSTAWCA_' + s;
+                            cell.style.fontFamily = 'monospace';
+                            cell.style.color = '#64748b';
+                            cell.style.letterSpacing = '1px';
+                        } else {
+                            if (cell.dataset.originalDostawca) {
+                                cell.textContent = cell.dataset.originalDostawca;
+                                cell.style.fontFamily = '';
+                                cell.style.color = '';
+                                cell.style.letterSpacing = '';
+                            }
+                        }
+                    }
+                });
+            }
+        });
+
+        // Handle inline dostawca text (e.g. in pallet cards)
+        document.querySelectorAll('.dostawca-name, [data-field="dostawca"]').forEach(function(el) {
+            if (active) {
+                if (!el.dataset.originalDostawca) {
+                    el.dataset.originalDostawca = el.textContent;
+                }
+                var h2 = el.dataset.originalDostawca.split('').reduce(function(a,b) {
+                    a = ((a << 5) - a) + b.charCodeAt(0); return a & a;
+                }, 0);
+                var s2 = Math.abs(h2).toString(36).substring(0, 3).toUpperCase();
+                el.textContent = 'DOSTAWCA_' + s2;
+                el.style.fontFamily = 'monospace';
+                el.style.color = '#64748b';
+            } else {
+                if (el.dataset.originalDostawca) {
+                    el.textContent = el.dataset.originalDostawca;
+                    el.style.fontFamily = '';
+                    el.style.color = '';
+                }
+            }
+        });
+    }
+
+    window.toggleDemoMode = function() {
+        var current = isDemoMode();
+        localStorage.setItem(DEMO_KEY, current ? '0' : '1');
+        applyDemoMode();
+    };
+
+    // Apply on page load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyDemoMode);
+    } else {
+        applyDemoMode();
+    }
+    // Re-apply demo mode after any page mutations
+    if (window.MutationObserver) {
+        var _demoObserver = new MutationObserver(function() {
+            if (isDemoMode()) {
+                setTimeout(applyDemoMode, 100);
+            }
+        });
+        document.addEventListener('DOMContentLoaded', function() {
+            _demoObserver.observe(document.body, {childList: true, subtree: true});
+        });
+    }
+})();
 </script>
 </body>
 </html>

@@ -1000,7 +1000,7 @@ def palety_lista():
                     <input type="checkbox" class="paleta-cb" value="{p['id']}" onchange="updateBulkDelete()" style="margin-top:4px;width:18px;height:18px;cursor:pointer;accent-color:var(--red)">
                     <div>
                         <div style="font-weight:600">{p['nazwa'] or f"Paleta #{p['id']}"}</div>
-                        <div style="font-size:0.8rem;color:var(--text-muted)">{p['dostawca']} • {data}</div>
+                        <div style="font-size:0.8rem;color:var(--text-muted)"><span class="dostawca-name">{p['dostawca']}</span> • {data}</div>
                         {f'<div style="font-size:0.75rem;color:var(--purple);margin-top:2px">📍 Regal: {regal}</div>' if regal else ''}
                     </div>
                 </div>
@@ -2921,7 +2921,7 @@ def paleta_szczegoly(paleta_id):
     content = f'''
     <div class="header">
         <h1>📦 {paleta['nazwa'] or f"Paleta #{paleta['id']}"}</h1>
-        <small>{paleta['dostawca']} • {paleta['data_zakupu']}</small>
+        <small><span class="dostawca-name">{paleta['dostawca']}</span> • {paleta['data_zakupu']}</small>
         {f'<div style="margin-top:6px;font-size:0.85rem;color:var(--purple)">📍 Regal: {regal_palety}</div>' if regal_palety else ''}
     </div>
 

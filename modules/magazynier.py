@@ -1072,7 +1072,7 @@ def produkt(code):
                 <div class="loc-grid">
                     <div><div class="loc-l">Regał</div><div class="loc-v">{p['lokalizacja'] or '—'}</div></div>
                     <div><div class="loc-l">Paleta</div><div class="loc-v">{p['paleta'] or '—'}</div></div>
-                    <div><div class="loc-l">Dostawca</div><div class="loc-v">{(p['dostawca'] or '—')[:6]}</div></div>
+                    <div><div class="loc-l">Dostawca</div><div class="loc-v dostawca-name">{(p['dostawca'] or '—')[:6]}</div></div>
                 </div>
             </div>
             
@@ -2939,7 +2939,7 @@ def statystyki():
             html += f'''<div class="item">
                 <div style="font-size:1.2rem;margin-right:10px;width:25px;text-align:center">{i+1}</div>
                 <div class="item-info">
-                    <div class="item-name">{d['dostawca_nazwa']}</div>
+                    <div class="item-name dostawca-name">{d['dostawca_nazwa']}</div>
                     <div class="item-meta">Sprzedano: {d['sprzedane']}x</div>
                 </div>
                 <div class="item-right">
@@ -3356,7 +3356,7 @@ def palety():
 
     for p in result:
         link = f"/magazyn/paleta-id/{p['id']}"
-        dostawca_info = f" • {p['dostawca']}" if p['dostawca'] else ""
+        dostawca_info = f' • <span class="dostawca-name">{p["dostawca"]}</span>' if p['dostawca'] else ""
         data_info = f" • {p['data_zakupu']}" if p['data_zakupu'] else ""
         
         # Ilość sztuk: z palety (preferowane) lub z produktów
@@ -3737,7 +3737,7 @@ def paleta_detail_by_id(paleta_id):
     dostarczona_color = '#22c55e' if dostarczona_val else '#f59e0b'
     paleta_dostawca = paleta_row['dostawca'] if 'dostawca' in paleta_row.keys() else ''
     paleta_regal = paleta_row['regal'] if 'regal' in paleta_row.keys() else ''
-    dostawca_badge = f' • <span style="color:#3b82f6">{paleta_dostawca}</span>' if paleta_dostawca else ''
+    dostawca_badge = f' • <span class="dostawca-name" style="color:#3b82f6">{paleta_dostawca}</span>' if paleta_dostawca else ''
     regal_badge = f' • 📍 {paleta_regal}' if paleta_regal else ''
     html = f'''<div class="hdr" style="display:flex;justify-content:space-between;align-items:center">
         <div><h1>📦 {nazwa_palety}</h1><small>{len(products)} prod. ({sztuki_display} szt.){dostawca_badge}{regal_badge}</small></div>
@@ -4467,7 +4467,7 @@ def dostawcy():
         html += f'''<a href="/magazyn/dostawca/{d['dostawca'] or 'brak'}" class="item">
             <div style="font-size:1.5rem;margin-right:10px">🚚</div>
             <div class="item-info">
-                <div class="item-name">{d['dostawca'] or 'Nieznany'}</div>
+                <div class="item-name dostawca-name">{d['dostawca'] or 'Nieznany'}</div>
                 <div class="item-meta">{d['cnt']} produktów</div>
             </div>
             <div class="item-qty">{d['items'] or 0}</div>
@@ -6618,7 +6618,7 @@ def qr_product_view(product_id):
                 <div class="loc-grid">
                     <div><div class="loc-v">{p.get('regal', '—') or '—'}</div><div class="loc-l">Regał</div></div>
                     <div><div class="loc-v">{_paleta_nazwa or '—'}</div><div class="loc-l">Paleta</div></div>
-                    <div><div class="loc-v">{p.get('dostawca', '—') or '—'}</div><div class="loc-l">Dostawca</div></div>
+                    <div><div class="loc-v dostawca-name">{p.get('dostawca', '—') or '—'}</div><div class="loc-l">Dostawca</div></div>
                 </div>
             </div>
             
@@ -6626,7 +6626,7 @@ def qr_product_view(product_id):
                 <div class="det"><div class="det-l">Cena Allegro</div><div class="det-v green">{p['cena_allegro']:.2f} zł</div></div>
                 <div class="det"><div class="det-l">Ilość</div><div class="det-v">{p['ilosc']} szt</div></div>
                 <div class="det"><div class="det-l">EAN</div><div class="det-v">{p.get('ean', '—') or '—'}</div></div>
-                <div class="det"><div class="det-l">Dostawca</div><div class="det-v">{p.get('dostawca', '—') or '—'}</div></div>
+                <div class="det"><div class="det-l">Dostawca</div><div class="det-v dostawca-name">{p.get('dostawca', '—') or '—'}</div></div>
             </div>
         </div>
     </div>
@@ -8258,7 +8258,7 @@ def remanent_page():
         rows_palety += f'''
         <tr>
             <td style="padding:8px 10px;border-bottom:1px solid #1e293b">{p['nazwa'] or '-'}</td>
-            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;color:#64748b;font-size:0.8rem">{p['dostawca'] or '-'}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;color:#64748b;font-size:0.8rem" data-dostawca="1">{p['dostawca'] or '-'}</td>
             <td style="padding:8px 10px;border-bottom:1px solid #1e293b;color:#64748b;font-size:0.8rem">{p['data_zakupu'] or '-'}</td>
             <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:right">{cena_zak:.0f} zł</td>
             <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:center">{szt_sprz}/{szt_all} szt</td>
@@ -8775,7 +8775,7 @@ def statystyki_zakupow():
             pct = (r['suma_brutto'] / suma_m * 100) if suma_m > 0 else 0
             rows_html += f'''
             <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1e1e2e">
-                <div style="font-size:0.8rem;color:#94a3b8">{r['dostawca']}</div>
+                <div style="font-size:0.8rem;color:#94a3b8" class="dostawca-name">{r['dostawca']}</div>
                 <div style="display:flex;gap:12px;align-items:center">
                     <div style="font-size:0.7rem;color:#64748b">{r['sztuki_cnt']} szt | {r['palety_cnt']} palet</div>
                     <div style="font-size:0.85rem;font-weight:600;color:#22c55e">{r['suma_brutto']:.0f} zł</div>
@@ -8800,7 +8800,7 @@ def statystyki_zakupow():
             <div style="width:24px;height:24px;background:#1e1e2e;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:#64748b;flex-shrink:0">#{i+1}</div>
             <div style="flex:1;min-width:0">
                 <div style="font-size:0.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{(p['nazwa'] or '—')[:35]}</div>
-                <div style="font-size:0.7rem;color:#64748b">{p['dostawca'] or '—'} • {(p['data_zakupu'] or '')[:7]} • {p['sztuki_cnt'] or 0} szt</div>
+                <div style="font-size:0.7rem;color:#64748b"><span class="dostawca-name">{p['dostawca'] or '—'}</span> • {(p['data_zakupu'] or '')[:7]} • {p['sztuki_cnt'] or 0} szt</div>
             </div>
             <div style="font-weight:700;color:#f59e0b;white-space:nowrap">{p['cena_zakupu'] or 0:.0f} zł</div>
         </div>'''

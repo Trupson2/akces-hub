@@ -109,7 +109,7 @@ def statystyki():
         top_dost_html += f'''<div style="display:flex;align-items:center;gap:10px;padding:8px 0;{border}">
             <div style="font-weight:700;color:var(--orange);width:20px">{i+1}</div>
             <div style="flex:1">
-                <div style="font-weight:600">{d['dostawca']}</div>
+                <div style="font-weight:600" class="dostawca-name">{d['dostawca']}</div>
                 <div style="font-size:0.75rem;color:var(--text-muted)">{d['sprzedazy_cnt']} szt | {d['przychod']:.0f} zl przychod</div>
             </div>
             <div style="text-align:right">
@@ -1198,7 +1198,7 @@ def analityka_palety():
                     {''.join(f"""
                     <tr onclick="window.location='/palety/{p['id']}'" data-dostawca="{p['dostawca']}" data-vals="{p['nazwa'][:30]}|{p['dostawca']}|{p['data']}|{p['koszt']:.2f}|{p['koszt_szt']:.2f}|{p['przychod']:.2f}|{p['zysk']:.2f}|{p['roi']:.2f}|{p['prognoza']:.2f}|{p['tempo']:.2f}|{p['procent']:.2f}">
                         <td><strong>{p['nazwa'][:30]}</strong></td>
-                        <td>{p['dostawca']}</td>
+                        <td class="dostawca-name">{p['dostawca']}</td>
                         <td>{p['data']}</td>
                         <td>{p['koszt']:,.0f} zl</td>
                         <td>{p['koszt_szt']:,.0f} zl</td>
@@ -1663,7 +1663,7 @@ def analityka_okazje():
             <div style='background:{badge_bg};color:#000;font-weight:800;font-size:0.85rem;border-radius:8px;padding:4px 10px;min-width:52px;text-align:center'>★{score}/10</div>
             <div style='flex:1'>
               <div style='font-weight:600'>{r.get('nazwa') or 'Produkt #' + str(r.get('produkt_id','?'))}</div>
-              <div style='color:var(--text-muted);font-size:0.78rem'>{r.get('kategoria') or 'inne'} · {r.get('dostawca') or ''}</div>
+              <div style='color:var(--text-muted);font-size:0.78rem'>{r.get('kategoria') or 'inne'} · <span class="dostawca-name">{r.get('dostawca') or ''}</span></div>
             </div>
           </div>
           <div style='display:flex;gap:20px;flex-wrap:wrap;font-size:0.85rem'>
@@ -2898,7 +2898,7 @@ def analityka_czas_sprzedazy():
         for i, d in enumerate(dostawcy_wyniki[:8]):
             sep = f"border-bottom:1px solid var(--border);" if i < len(dostawcy_wyniki[:8])-1 else ""
             clr = "var(--green)" if d['srednia'] <= 14 else "var(--orange)" if d['srednia'] <= 30 else "var(--red)"
-            rows += f'<div style="display:flex;align-items:center;gap:10px;padding:8px 0;{sep}"><div style="flex:1;font-size:0.85rem;font-weight:600">{d["dostawca"]}</div><div style="font-size:0.8rem;color:var(--text-muted)">{d["cnt"]} szt</div><div style="font-weight:700;color:{clr}">{d["srednia"]:.1f} dni</div></div>'
+            rows += f'<div style="display:flex;align-items:center;gap:10px;padding:8px 0;{sep}"><div style="flex:1;font-size:0.85rem;font-weight:600" class="dostawca-name">{d["dostawca"]}</div><div style="font-size:0.8rem;color:var(--text-muted)">{d["cnt"]} szt</div><div style="font-weight:700;color:{clr}">{d["srednia"]:.1f} dni</div></div>'
         dostawcy_html = f'<div class="card"><div style="font-weight:700;color:var(--orange);margin-bottom:12px">🏭 Dostawcy — średni czas sprzedaży od zakupu palety</div>{rows}</div>'
 
     def item_row_w(r, kolor, i, total):
@@ -3840,7 +3840,7 @@ def _get_render_results_js():
         var html = '<div class="card" style="margin-bottom:16px">';
         html += '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">';
         html += '<div style="font-weight:700;font-size:1rem">' + (pal.nazwa || 'Analiza') + '</div>';
-        html += '<div style="color:var(--text-muted);font-size:0.8rem">' + (pal.dostawca||'') + '</div>';
+        html += '<div style="color:var(--text-muted);font-size:0.8rem" class="dostawca-name">' + (pal.dostawca||'') + '</div>';
         html += '</div>';
         if (parsed && parsed.podsumowanie) {
             var s = parsed.podsumowanie;
