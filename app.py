@@ -1405,6 +1405,12 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
         import subprocess as _sp
         from modules.database import get_config, set_config
 
+        # Sprawdź czy to instalacja z git (nie ZIP)
+        _app_dir = os.path.dirname(os.path.abspath(__file__))
+        if not os.path.isdir(os.path.join(_app_dir, '.git')):
+            update_status = {'has_update': False, 'remote_msg': '', 'remote_hash': '', 'local_hash': '', 'is_zip': True}
+            raise Exception('ZIP install — skip git check')
+
         cache_raw = get_config('update_check_cache', '')
         cache = json.loads(cache_raw) if cache_raw else {}
         cache_age = time.time() - cache.get('checked_at', 0)

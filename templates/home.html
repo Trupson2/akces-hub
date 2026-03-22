@@ -68,7 +68,12 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
 {% endif %}
 
 {% if update_status %}
-{% if update_status.has_update %}
+{% if update_status.is_zip is defined and update_status.is_zip %}
+<div class="alert alert-success" style="display:flex;align-items:center;gap:8px;padding:8px 14px">
+    <span>📦</span>
+    <span style="font-size:0.78rem">v{{ version }} &middot; Zainstalowano z paczki</span>
+</div>
+{% elif update_status.has_update %}
 <div class="card" style="border-color:rgba(234,179,8,0.35);background:var(--yellow-soft)">
     <div style="display:flex;justify-content:space-between;align-items:center">
         <div style="display:flex;align-items:center;gap:10px">
