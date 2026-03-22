@@ -160,18 +160,37 @@ def csrf_protect_forms():
 @app.before_request
 def check_license_middleware():
     """Blokuj dostęp bez aktywnej licencji (oprócz setup, login, aktywacji)"""
-    allowed = ('/setup', '/auth', '/static', '/api/system-stats', '/license', '/favicon')
+    allowed = ('/setup', '/auth', '/static', '/api/system-stats', '/license', '/favicon', '/api/license/verify')
     if any(request.path.startswith(p) for p in allowed):
         return
     if request.path == '/':
         return  # Home sam sprawdzi
     try:
+        # Sprawdź czy licencja nie została zablokowana przez heartbeat
+        from modules.database import get_config
+        if get_config('license_blocked', '0') == '1':
+            return redirect('/license?blocked=1')
+
         from modules.license import check_license
         is_valid, plan, msg = check_license()
         if not is_valid:
             return redirect('/license')
     except ImportError:
         pass  # Brak modułu license = dev mode
+
+# Sprawdzanie EULA
+@app.before_request
+def check_eula_middleware():
+    """Po walidacji licencji sprawdz czy EULA zaakceptowane"""
+    allowed = ('/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify')
+    if any(request.path.startswith(p) for p in allowed):
+        return
+    try:
+        from modules.eula import is_eula_accepted
+        if not is_eula_accepted():
+            return redirect('/eula')
+    except ImportError:
+        pass
 
 # Branding — dostępny globalnie we wszystkich szablonach
 @app.context_processor
@@ -367,6 +386,9 @@ app.register_blueprint(warehouse_bp)
 
 from modules.palety import palety_bp
 app.register_blueprint(palety_bp)
+
+from modules.eula import eula_bp
+app.register_blueprint(eula_bp)
 
 
 # ============================================================
@@ -1894,6 +1916,10 @@ def license_page():
     msg = ''
     err = ''
 
+    # Komunikat o blokadzie heartbeat
+    if request.args.get('blocked') == '1':
+        err = 'Licencja zostala dezaktywowana'
+
     if request.method == 'POST':
         # Aktywacja z pliku JSON lub ręcznie
         if 'license_file' in request.files:
@@ -2109,6 +2135,18 @@ def narzedzia_licencje():
         except:
             pass
 
+        # Zapisz do tabeli licenses_issued (serwer licencji)
+        try:
+            from modules.database import get_db
+            _db = get_db()
+            _db.execute('''INSERT OR REPLACE INTO licenses_issued
+                (license_key, client_name, plan, expires, active, created_at)
+                VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)''',
+                (generated.get('key', ''), client, plan, generated.get('expires', 0)))
+            _db.commit()
+        except Exception:
+            pass
+
         # PRG: redirect żeby F5 nie generowało nowej licencji
         flash_key = generated.get('key', '')
         return redirect(f'/narzedzia/licencje?generated={flash_key}')
@@ -2120,6 +2158,20 @@ def narzedzia_licencje():
     generated_json = ''
     flash_key = request.args.get('generated', '')
 
+    # Pobierz dane heartbeat/HWID z licenses_issued
+    _issued_map = {}
+    try:
+        from modules.database import get_db as _gdb
+        _irows = _gdb().execute('SELECT license_key, hwid, last_heartbeat, active FROM licenses_issued').fetchall()
+        for _ir in _irows:
+            _issued_map[_ir['license_key']] = {
+                'hwid': _ir['hwid'] or '',
+                'last_heartbeat': _ir['last_heartbeat'] or '',
+                'active': bool(_ir['active'])
+            }
+    except Exception:
+        pass
+
     try:
         for fn in sorted(os.listdir(_tools_dir)):
             if fn.startswith('license_') and fn.endswith('.json'):
@@ -2130,12 +2182,16 @@ def narzedzia_licencje():
                     exp_str = 'Bezterminowo'
                     if data.get('expires', 0) > 0:
                         exp_str = datetime.fromtimestamp(data['expires']).strftime('%d.%m.%Y')
+                    _iss = _issued_map.get(data.get('key', ''), {})
                     lic_entry = {
                         'filename': fn,
                         'client': data.get('client', '?'),
                         'plan': data.get('plan', '?'),
                         'key': data.get('key', '?'),
                         'expires': exp_str,
+                        'hwid': _iss.get('hwid', ''),
+                        'last_heartbeat': _iss.get('last_heartbeat', ''),
+                        'srv_active': _iss.get('active', None),
                         'json': _json.dumps(data, indent=2, ensure_ascii=False)
                     }
                     existing.append(lic_entry)
@@ -2230,6 +2286,8 @@ def narzedzia_licencje():
                         <th style="padding:8px 10px;text-align:left;color:var(--text-muted);font-weight:600">Plan</th>
                         <th style="padding:8px 10px;text-align:left;color:var(--text-muted);font-weight:600">Klucz</th>
                         <th style="padding:8px 10px;text-align:left;color:var(--text-muted);font-weight:600">Wygasa</th>
+                        <th style="padding:8px 10px;text-align:left;color:var(--text-muted);font-weight:600">HWID</th>
+                        <th style="padding:8px 10px;text-align:left;color:var(--text-muted);font-weight:600">Heartbeat</th>
                         <th style="padding:8px 10px;color:var(--text-muted);font-weight:600"></th>
                     </tr>
                 </thead>
@@ -2240,6 +2298,8 @@ def narzedzia_licencje():
                         <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:700;text-transform:uppercase;{% if lic.plan == 'pro' %}background:rgba(99,102,241,0.13);color:var(--accent){% elif lic.plan == 'starter' %}background:rgba(34,197,94,0.13);color:var(--green){% else %}background:rgba(245,158,11,0.13);color:var(--orange){% endif %}">{{ lic.plan }}</span></td>
                         <td style="padding:8px 10px;font-family:monospace;font-size:0.78rem">{{ lic.key }}</td>
                         <td style="padding:8px 10px">{{ lic.expires }}</td>
+                        <td style="padding:8px 10px;font-family:monospace;font-size:0.72rem;color:var(--text-muted)">{{ lic.hwid[:12] if lic.hwid else '-' }}</td>
+                        <td style="padding:8px 10px;font-size:0.72rem;color:var(--text-muted)">{{ lic.last_heartbeat or '-' }}</td>
                         <td style="padding:8px 10px">
                             <div style="display:flex;gap:6px">
                                 <button class="btn" style="padding:4px 10px;font-size:0.72rem;background:var(--bg);border:1px solid var(--border);color:var(--accent)" onclick="copyText(this, `{{ lic.json|e }}`)">Kopiuj</button>
@@ -2286,6 +2346,65 @@ function dlText(t,fn){
         brand_name=app.config.get('BRAND_NAME', 'Akces Hub'),
         current_user=session.get('user')
     )
+
+
+# ============================================================
+# LICENSE HEARTBEAT SERVER ENDPOINT
+# ============================================================
+@app.route('/api/license/verify', methods=['POST'])
+def api_license_verify():
+    """Endpoint serwera licencji — weryfikacja heartbeat od klientów."""
+    try:
+        data = request.get_json(silent=True)
+        if not data:
+            return jsonify({'valid': False, 'error': 'Brak danych'}), 400
+
+        key = data.get('key', '')
+        hwid = data.get('hwid', '')
+
+        if not key:
+            return jsonify({'valid': False, 'error': 'Brak klucza'}), 400
+
+        from modules.database import get_db
+        conn = get_db()
+
+        row = conn.execute(
+            'SELECT id, license_key, hwid, active, expires FROM licenses_issued WHERE license_key = ?',
+            (key,)
+        ).fetchone()
+
+        if not row:
+            return jsonify({'valid': False, 'error': 'Klucz nie istnieje'})
+
+        # Sprawdź czy aktywna
+        if not row['active']:
+            return jsonify({'valid': False, 'error': 'Licencja nieaktywna'})
+
+        # Sprawdź wygaśnięcie
+        if row['expires'] and row['expires'] > 0 and time.time() > row['expires']:
+            return jsonify({'valid': False, 'error': 'Licencja wygasla'})
+
+        # Sprawdź HWID — jeśli zapisany, musi się zgadzać
+        stored_hwid = row['hwid'] or ''
+        if stored_hwid and hwid and stored_hwid != hwid:
+            return jsonify({'valid': False, 'error': 'HWID mismatch'})
+
+        # Jeśli brak HWID w bazie, zapisz pierwszy
+        if not stored_hwid and hwid:
+            conn.execute('UPDATE licenses_issued SET hwid = ? WHERE id = ?', (hwid, row['id']))
+
+        # Aktualizuj last_heartbeat
+        from datetime import datetime
+        conn.execute(
+            'UPDATE licenses_issued SET last_heartbeat = ? WHERE id = ?',
+            (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), row['id'])
+        )
+        conn.commit()
+
+        return jsonify({'valid': True})
+
+    except Exception as e:
+        return jsonify({'valid': False, 'error': str(e)[:200]}), 500
 
 
 # ============================================================
@@ -5299,6 +5418,14 @@ if __name__ == '__main__':
     except Exception as e:
         log_warning(f"Pallet monitor scheduler error: {e}")
 
+    # Start license heartbeat thread (co 24h)
+    try:
+        from modules.license import start_heartbeat_thread
+        start_heartbeat_thread()
+        log("License heartbeat uruchomiony (co 24h)")
+    except Exception as e:
+        log_warning(f"License heartbeat error: {e}")
+
     # ============================================================
     # AUTO-SYNC ZAMÓWIEŃ Z ALLEGRO
     # ============================================================
@@ -5354,10 +5481,13 @@ if __name__ == '__main__':
     atexit.register(shutdown_backup)
     log("Auto-backup przy zamknieciu: WLACZONY")
     
-    # Auto-backup co 60 minut w tle
+    # Auto-backup co 60 minut w tle + RODO auto-anonimizacja raz dziennie
     import threading
+    _last_rodo_day = [None]
+
     def hourly_backup():
         import time
+        from datetime import date as _date
         while True:
             time.sleep(3600)
             try:
@@ -5366,6 +5496,17 @@ if __name__ == '__main__':
                 log("[Auto] Backup godzinny zapisany")
             except Exception as e:
                 log_warning(f"[Auto] Blad backupu: {e}")
+            # RODO auto-anonimizacja raz dziennie
+            try:
+                today = _date.today().isoformat()
+                if _last_rodo_day[0] != today:
+                    from modules.database import auto_anonymize_old_data
+                    cnt = auto_anonymize_old_data()
+                    _last_rodo_day[0] = today
+                    if cnt:
+                        log(f"[RODO] Auto-anonimizacja: {cnt} rekordow")
+            except Exception as e:
+                log_warning(f"[RODO] Blad auto-anonimizacji: {e}")
     threading.Thread(target=hourly_backup, daemon=True).start()
     log("Auto-backup co godzine: WLACZONY")
 

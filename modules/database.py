@@ -422,6 +422,19 @@ def init_db():
             UNIQUE(source, external_id)
         )''')
 
+        # Tabela wydanych licencji (serwer licencji)
+        conn.execute('''CREATE TABLE IF NOT EXISTS licenses_issued (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            license_key TEXT UNIQUE,
+            client_name TEXT,
+            plan TEXT DEFAULT 'pro',
+            hwid TEXT DEFAULT '',
+            expires INTEGER DEFAULT 0,
+            active INTEGER DEFAULT 1,
+            last_heartbeat TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )''')
+
         # Domyślna konfiguracja
         defaults = [
             ('telegram_bot_token', ''),
@@ -562,6 +575,41 @@ def execute_db(query, args=()):
     with get_db() as conn:
         conn.execute(query, args)
         conn.commit()
+
+
+def auto_anonymize_old_data():
+    """
+    RODO: Automatycznie anonimizuje dane osobowe starsze niz okres retencji.
+    Zachowuje kwoty i statystyki do celow ksiegowych.
+    Wywolywane z backup daemon (raz dziennie).
+    """
+    try:
+        retention_years = get_config('data_retention_years', '5')
+        if retention_years == '0':
+            return 0  # Wylaczone
+
+        years = int(retention_years)
+        if years <= 0:
+            return 0
+
+        conn = get_db()
+        cursor = conn.execute(
+            """UPDATE sprzedaze SET kupujacy='Dane zanonimizowane', adres='Zanonimizowane'
+               WHERE kupujacy != 'Dane zanonimizowane'
+               AND kupujacy IS NOT NULL
+               AND kupujacy != ''
+               AND kupujacy != 'offline'
+               AND data_sprzedazy < datetime('now', ? || ' years')""",
+            (f'-{years}',)
+        )
+        conn.commit()
+        count = cursor.rowcount
+        if count > 0:
+            print(f"[RODO] Zanonimizowano {count} rekordow starszych niz {years} lat")
+        return count
+    except Exception as e:
+        print(f"[RODO] Blad auto-anonimizacji: {e}")
+        return 0
 
 
 # ============================================================

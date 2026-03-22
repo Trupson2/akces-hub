@@ -40,6 +40,10 @@ def ustawienia():
 
     ngrok_token = get_config('ngrok_auth_token', '')
     ngrok_domain = get_config('ngrok_domain', '')
+    data_retention_years = get_config('data_retention_years', '5')
+    dpd_cennik_id = get_config('dpd_cennik_id', 'bf1a1cf0-6a1e-41b3-a42e-d46846b35f43')
+    zwroty_warunki_id = get_config('zwroty_warunki_id', '7b75ba63-0967-4536-a439-730f8e563a59')
+    reklamacje_warunki_id = get_config('reklamacje_warunki_id', '128af307-9341-4f8c-b406-63b9060cce7d')
 
     USTAWIENIA_TEMPLATE = '''{% extends "base.html" %}
 {% block page_title %}Ustawienia systemu{% endblock %}
@@ -277,6 +281,56 @@ def ustawienia():
     <span class="link-card-arrow">→</span>
 </a>
 
+<!-- PARAMETRY INTEGRACJI I REGULAMINY -->
+<div class="settings-card settings-card-accent blue">
+    <div class="section-header">
+        <span class="section-header-icon">📋</span>
+        <span class="section-header-title">Parametry Integracji i Regulaminy</span>
+    </div>
+    <form action="/ustawienia/integracje-parametry" method="POST">
+        <div class="form-group">
+            <label>ID cennika DPD</label>
+            <input type="text" name="dpd_cennik_id" value="{{ dpd_cennik_id }}"
+                placeholder="bf1a1cf0-6a1e-41b3-a42e-d46846b35f43" class="form-control" style="font-family:monospace;font-size:0.85rem">
+        </div>
+        <div class="form-group">
+            <label>ID warunkow zwrotow</label>
+            <input type="text" name="zwroty_warunki_id" value="{{ zwroty_warunki_id }}"
+                placeholder="7b75ba63-0967-4536-a439-730f8e563a59" class="form-control" style="font-family:monospace;font-size:0.85rem">
+        </div>
+        <div class="form-group">
+            <label>ID warunkow reklamacji</label>
+            <input type="text" name="reklamacje_warunki_id" value="{{ reklamacje_warunki_id }}"
+                placeholder="128af307-9341-4f8c-b406-63b9060cce7d" class="form-control" style="font-family:monospace;font-size:0.85rem">
+        </div>
+        <button type="submit" class="btn btn-primary">Zapisz parametry integracji</button>
+    </form>
+</div>
+
+<!-- RODO - RETENCJA DANYCH -->
+<div class="settings-card settings-card-accent green">
+    <div class="section-header">
+        <span class="section-header-icon">🛡️</span>
+        <span class="section-header-title">Retencja danych (RODO)</span>
+    </div>
+    <form action="/ustawienia/retencja" method="POST">
+        <div class="form-group">
+            <label>Okres przechowywania danych osobowych</label>
+            <select name="data_retention_years" class="form-control">
+                <option value="3" {{ 'selected' if data_retention_years == '3' else '' }}>3 lata</option>
+                <option value="5" {{ 'selected' if data_retention_years == '5' else '' }}>5 lat</option>
+                <option value="7" {{ 'selected' if data_retention_years == '7' else '' }}>7 lat</option>
+                <option value="0" {{ 'selected' if data_retention_years == '0' else '' }}>Nigdy (bez automatycznej anonimizacji)</option>
+            </select>
+        </div>
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;line-height:1.6">
+            Dane starsze niz wybrany okres zostana automatycznie zanonimizowane (nie usuniete).<br>
+            Kwoty i statystyki pozostana do celow ksiegowych.
+        </div>
+        <button type="submit" class="btn btn-primary">Zapisz ustawienia retencji</button>
+    </form>
+</div>
+
 <!-- BAZA DANYCH -->
 <div class="settings-card" style="margin-bottom:16px">
     <div class="section-header">
@@ -337,6 +391,10 @@ def ustawienia():
         logo_bust=logo_bust,
         ngrok_token=ngrok_token,
         ngrok_domain=ngrok_domain,
+        data_retention_years=data_retention_years,
+        dpd_cennik_id=dpd_cennik_id,
+        zwroty_warunki_id=zwroty_warunki_id,
+        reklamacje_warunki_id=reklamacje_warunki_id,
     )
 
 
@@ -625,6 +683,28 @@ def ustawienia_save():
 
     set_config('app_base_url', base_url)
 
+    return redirect('/ustawienia')
+
+
+@ustawienia_bp.route('/ustawienia/integracje-parametry', methods=['POST'])
+def ustawienia_integracje_parametry():
+    """Zapisuje parametry integracji (DPD cennik, warunki zwrotow/reklamacji)"""
+    from modules.database import set_config
+    for key in ('dpd_cennik_id', 'zwroty_warunki_id', 'reklamacje_warunki_id'):
+        val = request.form.get(key, '').strip()
+        if val:
+            set_config(key, val)
+    return redirect('/ustawienia')
+
+
+@ustawienia_bp.route('/ustawienia/retencja', methods=['POST'])
+def ustawienia_retencja():
+    """Zapisuje ustawienia retencji danych (RODO)"""
+    from modules.database import set_config
+    val = request.form.get('data_retention_years', '5').strip()
+    if val not in ('0', '3', '5', '7'):
+        val = '5'
+    set_config('data_retention_years', val)
     return redirect('/ustawienia')
 
 

@@ -9365,3 +9365,43 @@ def ai_ocena_stanu():
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+
+# ============================================================
+# RODO - ANONIMIZACJA DANYCH KLIENTA
+# ============================================================
+
+@magazynier_bp.route('/magazyn/api/anonimizuj-klienta', methods=['POST'])
+def anonimizuj_klienta():
+    """
+    RODO: Anonimizuje dane osobowe klienta w tabeli sprzedaze.
+    Zachowuje: cena, ilosc, data_sprzedazy, produkt_id (cele ksiegowe).
+    Accepts JSON: {buyer_name: "..."} or {sprzedaz_id: N}
+    """
+    data = request.get_json(silent=True) or {}
+    buyer_name = data.get('buyer_name', '').strip()
+    sprzedaz_id = data.get('sprzedaz_id')
+
+    if not buyer_name and not sprzedaz_id:
+        return jsonify({'ok': False, 'error': 'Podaj buyer_name lub sprzedaz_id'}), 400
+
+    conn = get_db()
+    try:
+        if sprzedaz_id:
+            # Anonimizuj po ID sprzedazy — znajdz kupujacego i anonimizuj wszystkie jego rekordy
+            row = conn.execute('SELECT kupujacy FROM sprzedaze WHERE id = ?', (int(sprzedaz_id),)).fetchone()
+            if not row:
+                return jsonify({'ok': False, 'error': 'Nie znaleziono sprzedazy o podanym ID'}), 404
+            buyer_name = row['kupujacy']
+            if not buyer_name or buyer_name == 'Dane zanonimizowane':
+                return jsonify({'ok': True, 'count': 0, 'message': 'Dane juz zanonimizowane'})
+
+        cursor = conn.execute(
+            "UPDATE sprzedaze SET kupujacy='Dane zanonimizowane', adres='Zanonimizowane' WHERE kupujacy=?",
+            (buyer_name,)
+        )
+        conn.commit()
+        count = cursor.rowcount
+        return jsonify({'ok': True, 'count': count})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500

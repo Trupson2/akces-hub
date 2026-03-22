@@ -98,6 +98,9 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
         <div class="list-item-title">{{ s.nazwa }}</div>
         <div class="list-item-meta">
             {{ s.kupujacy }}
+            {% if s.kupujacy and s.kupujacy != 'Dane zanonimizowane' and s.kupujacy != 'offline' %}
+            <button onclick="anonimizujKlienta('{{ s.kupujacy|e }}', this)" class="btn-anon" title="RODO: Anonimizuj dane klienta">&#128274; Anonimizuj</button>
+            {% endif %}
             {% if s.is_zwrot %}
             <span class="badge badge-error">ZWROT</span>
             {% endif %}
@@ -134,6 +137,39 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
 {% endif %}
 
 <a href="/statystyki" class="back">&#8592; Statystyki</a>
+
+<style>
+.btn-anon{background:none;border:1px solid var(--border-color);color:var(--text-muted);font-size:0.65rem;padding:2px 6px;border-radius:4px;cursor:pointer;margin-left:6px;transition:all 0.2s}
+.btn-anon:hover{border-color:var(--accent-red);color:var(--accent-red);background:rgba(239,68,68,0.1)}
+</style>
+<script>
+function anonimizujKlienta(buyerName, btn) {
+    if (!confirm('RODO: Czy na pewno chcesz zanonimizowac dane klienta "' + buyerName + '"?\\n\\nTa operacja jest nieodwracalna. Dane osobowe zostana usiniete, ale kwoty i statystyki pozostana.')) return;
+    btn.disabled = true;
+    btn.textContent = '...';
+    fetch('/magazyn/api/anonimizuj-klienta', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({buyer_name: buyerName})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok) {
+            alert('Zanonimizowano ' + d.count + ' rekordow klienta.');
+            location.reload();
+        } else {
+            alert('Blad: ' + (d.error || 'Nieznany blad'));
+            btn.disabled = false;
+            btn.innerHTML = '&#128274; Anonimizuj';
+        }
+    })
+    .catch(e => {
+        alert('Blad polaczenia: ' + e);
+        btn.disabled = false;
+        btn.innerHTML = '&#128274; Anonimizuj';
+    });
+}
+</script>
 
 {% endblock %}
 '''

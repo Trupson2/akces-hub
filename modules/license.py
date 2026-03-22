@@ -2,6 +2,7 @@
 System licencji AKCES HUB
 Generowanie i weryfikacja kluczy licencyjnych.
 Klucz: AKCES-XXXX-XXXX-XXXX-XXXX (HMAC-based)
+HWID binding + heartbeat do serwera licencji.
 """
 
 import hmac
@@ -9,11 +10,19 @@ import hashlib
 import time
 import json
 import os
+import platform
+import subprocess
+import threading
 
 
 # Secret do podpisywania licencji — TYLKO w Twoim generatorze
 # Klient NIE ma tego klucza, więc nie może wygenerować licencji sam
 LICENSE_SECRET = os.environ.get('AKCES_LICENSE_SECRET', 'AkcesHub2026!SecretKeyForLicenseGeneration')
+
+# Heartbeat config
+HEARTBEAT_URL = 'https://akceshub.ngrok.dev/api/license/verify'
+HEARTBEAT_INTERVAL = 86400  # 24h
+HEARTBEAT_GRACE_DAYS = 7  # Dni offline bez blokady
 
 
 def _encode_base36(num):
@@ -24,6 +33,57 @@ def _encode_base36(num):
         result = chars[num % 36] + result
         num //= 36
     return result or '0'
+
+
+def get_hwid():
+    """
+    Pobierz unikalny identyfikator sprzętowy (HWID).
+    Windows: wmic csproduct get uuid
+    Linux/RPi: /sys/class/dmi/id/product_uuid lub MAC address
+    Returns: sha256 hash pierwszych 16 znaków (short HWID)
+    """
+    try:
+        raw_uuid = None
+
+        if platform.system() == 'Windows':
+            try:
+                result = subprocess.run(
+                    ['wmic', 'csproduct', 'get', 'uuid'],
+                    capture_output=True, text=True, timeout=10,
+                    creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0)
+                )
+                for line in result.stdout.strip().split('\n'):
+                    line = line.strip()
+                    if line and line.upper() != 'UUID':
+                        raw_uuid = line
+                        break
+            except Exception:
+                pass
+        else:
+            # Linux / Raspberry Pi
+            try:
+                with open('/sys/class/dmi/id/product_uuid', 'r') as f:
+                    raw_uuid = f.read().strip()
+            except Exception:
+                pass
+
+        # Fallback: MAC address
+        if not raw_uuid:
+            try:
+                import uuid as _uuid
+                mac = _uuid.getnode()
+                raw_uuid = format(mac, '012x')
+            except Exception:
+                pass
+
+        if not raw_uuid:
+            return 'UNKNOWN'
+
+        hwid_hash = hashlib.sha256(raw_uuid.encode()).hexdigest()[:16]
+        return hwid_hash
+
+    except Exception:
+        return 'UNKNOWN'
 
 
 def generate_license_key(client_name, plan='pro', months=12):
@@ -79,6 +139,7 @@ def generate_license_key(client_name, plan='pro', months=12):
 def verify_license(license_data):
     """
     Weryfikuj licencję offline (bez serwera).
+    Sprawdza podpis HMAC, wygaśnięcie i HWID binding.
 
     Args:
         license_data: dict z danymi licencji
@@ -118,6 +179,16 @@ def verify_license(license_data):
         exp_date = datetime.fromtimestamp(expires).strftime('%d.%m.%Y')
         return False, f'Licencja wygasla {exp_date}'
 
+    # Sprawdź HWID binding (backward compatible — jeśli brak hwid, pomijamy)
+    stored_hwid = license_data.get('hwid', '')
+    if stored_hwid:
+        try:
+            current_hwid = get_hwid()
+            if current_hwid != 'UNKNOWN' and stored_hwid != current_hwid:
+                return False, 'Licencja przypisana do innego urzadzenia'
+        except Exception:
+            pass  # Błąd HWID nie blokuje — bezpieczeństwo
+
     return True, 'OK'
 
 
@@ -148,10 +219,13 @@ def save_license(license_data):
     """Zapisz licencję do bazy config."""
     from .database import set_config
     set_config('license_data', json.dumps(license_data))
+    # Invalidate cache
+    _license_cache['data'] = None
+    _license_cache['ts'] = 0
 
 
 def activate_license(key, client_name, plan, created, expires, signature):
-    """Aktywuj licencję z podanych danych."""
+    """Aktywuj licencję z podanych danych. Binduje HWID przy aktywacji."""
     license_data = {
         'key': key,
         'client': client_name,
@@ -164,6 +238,14 @@ def activate_license(key, client_name, plan, created, expires, signature):
     is_valid, msg = verify_license(license_data)
     if not is_valid:
         return False, msg
+
+    # Bind HWID przy aktywacji
+    try:
+        hwid = get_hwid()
+        if hwid != 'UNKNOWN':
+            license_data['hwid'] = hwid
+    except Exception:
+        pass  # Błąd HWID nie blokuje aktywacji
 
     save_license(license_data)
     return True, 'Licencja aktywowana!'
@@ -195,6 +277,7 @@ def get_license_display():
             'client': '',
             'plan': '',
             'expires': '',
+            'hwid': '',
             'message': 'Brak licencji'
         }
 
@@ -213,5 +296,106 @@ def get_license_display():
         'client': lic.get('client', ''),
         'plan': lic.get('plan', ''),
         'expires': expires_str,
+        'hwid': lic.get('hwid', ''),
         'message': msg
     }
+
+
+# ============================================================
+# HEARTBEAT — weryfikacja licencji z serwerem
+# ============================================================
+
+def license_heartbeat():
+    """
+    Wyślij heartbeat do serwera licencji.
+    Sprawdza ważność klucza online. Przy braku połączenia
+    pozwala na pracę offline do HEARTBEAT_GRACE_DAYS dni.
+    """
+    try:
+        import urllib.request
+        import urllib.error
+        from .database import get_config, set_config
+
+        lic = get_license_info()
+        if not lic:
+            return  # Brak licencji — nic do sprawdzenia
+
+        key = lic.get('key', '')
+        if not key:
+            return
+
+        hwid = get_hwid()
+
+        # Przygotuj dane heartbeat
+        payload = json.dumps({
+            'key': key,
+            'hwid': hwid,
+            'timestamp': int(time.time()),
+            'version': _get_app_version()
+        }).encode('utf-8')
+
+        req = urllib.request.Request(
+            HEARTBEAT_URL,
+            data=payload,
+            headers={'Content-Type': 'application/json'},
+            method='POST'
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode('utf-8'))
+
+            if data.get('valid') is False:
+                # Serwer odrzucił licencję
+                set_config('license_blocked', '1')
+                return
+
+            # Sukces — aktualizuj last_heartbeat
+            set_config('last_heartbeat', str(int(time.time())))
+            set_config('license_blocked', '0')
+
+        except (urllib.error.URLError, urllib.error.HTTPError, OSError):
+            # Serwer nieosiągalny — sprawdź grace period
+            last_hb = get_config('last_heartbeat', '')
+            if last_hb:
+                try:
+                    last_ts = int(last_hb)
+                    days_offline = (time.time() - last_ts) / 86400
+                    if days_offline > HEARTBEAT_GRACE_DAYS:
+                        set_config('license_blocked', '1')
+                except (ValueError, TypeError):
+                    pass  # Nieprawidłowy timestamp — nie blokujemy
+            # Brak last_heartbeat = pierwszy start, nie blokujemy
+
+    except Exception:
+        pass  # Heartbeat nigdy nie powinien crashować app
+
+
+def _get_app_version():
+    """Pobierz wersję aplikacji z pliku VERSION."""
+    try:
+        vf = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'VERSION')
+        with open(vf, 'r') as f:
+            return f.read().strip().split('\n')[0]
+    except Exception:
+        return 'unknown'
+
+
+def start_heartbeat_thread():
+    """
+    Uruchom wątek heartbeat w tle.
+    Wysyła heartbeat co 24h (HEARTBEAT_INTERVAL).
+    """
+    def _heartbeat_loop():
+        # Pierwsze sprawdzenie po 60s od startu (daj czas na init)
+        time.sleep(60)
+        while True:
+            try:
+                license_heartbeat()
+            except Exception:
+                pass
+            time.sleep(HEARTBEAT_INTERVAL)
+
+    t = threading.Thread(target=_heartbeat_loop, daemon=True, name='license-heartbeat')
+    t.start()
+    return t
