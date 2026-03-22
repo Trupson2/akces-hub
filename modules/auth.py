@@ -807,10 +807,18 @@ def setup_auth(app):
         if request.path == '/favicon.ico':
             return None
 
-        # Nie ma uzytkownikow — kieruj na setup
+        # Nie ma uzytkownikow — ale najpierw sprawdź licencję
         has_users = _has_any_users()
-        print(f"🔐 AUTH: path={request.path} endpoint={request.endpoint} has_users={has_users} session_user={session.get('user_id')}", flush=True)
         if not has_users:
+            # Sprawdź czy licencja aktywna — jeśli nie, kieruj na /license
+            if request.path not in ('/license', '/auth/setup') and not request.path.startswith('/static'):
+                try:
+                    from modules.license import check_license
+                    is_valid, _, _ = check_license()
+                    if not is_valid:
+                        return redirect('/license')
+                except (ImportError, Exception):
+                    pass
             if request.path != '/auth/setup':
                 return redirect('/auth/setup')
             return None
