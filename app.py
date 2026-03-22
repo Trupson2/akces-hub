@@ -248,10 +248,19 @@ def inject_branding():
                     lic_days_left_num = days_rem
     except Exception:
         pass
+    try:
+        _bn = get_config_cached('brand_name', 'AKCES HUB')
+        _bc = get_config_cached('brand_color', '#6366f1')
+        _bl = get_config_cached('brand_logo', '')
+        _ua = get_config_cached('update_available', '0')
+    except Exception:
+        _bn, _bc, _bl, _ua = 'AKCES HUB', '#6366f1', '', '0'
     return {
-        'brand_name': get_config_cached('brand_name', 'AKCES HUB'),
-        'brand_color': get_config_cached('brand_color', '#6366f1'),
-        'brand_logo': get_config_cached('brand_logo', ''),
+        'brand_name': _bn,
+        'brand_color': _bc,
+        'brand_logo': _bl,
+        'version': VERSION,
+        'update_available': _ua,
         'lic_plan': lic_plan,
         'lic_expires': lic_expires,
         'lic_days_left': lic_days_left,
