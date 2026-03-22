@@ -2020,12 +2020,40 @@ def license_page():
             try:
                 key = request.form.get('key', '').strip()
                 client = request.form.get('client', '').strip()
-                plan = request.form.get('plan', 'pro').strip()
-                created = int(request.form.get('created', 0))
-                expires = int(request.form.get('expires', 0))
+                plan = request.form.get('plan', '').strip()
+                created = request.form.get('created', '').strip()
+                expires = request.form.get('expires', '').strip()
                 signature = request.form.get('signature', '').strip()
 
-                ok, result = activate_license(key, client, plan, created, expires, signature)
+                if created and signature:
+                    # DEV mode: pełna aktywacja z wszystkimi polami
+                    ok, result = activate_license(key, client, plan or 'pro', int(created), int(expires or 0), signature)
+                else:
+                    # Klient: aktywacja kluczem przez serwer licencyjny
+                    try:
+                        import requests as _rq
+                        from modules.license import get_hwid
+                        _hwid = get_hwid()
+                        _resp = _rq.post('https://akceshub.ngrok.dev/api/license/verify',
+                            json={'key': key, 'hwid': _hwid, 'timestamp': __import__('datetime').datetime.now().isoformat(),
+                                  'version': VERSION}, timeout=15)
+                        _data = _resp.json()
+                        if _data.get('valid'):
+                            # Serwer potwierdził — aktywuj lokalnie
+                            import time as _t, hmac as _hm, hashlib as _hl
+                            _created = int(_t.time())
+                            _exp = _data.get('expires_timestamp', 0)
+                            _plan = _data.get('plan', 'pro')
+                            _secret = 'akces-hub-license-key-2024'
+                            _sig_data = f"{key}|{client}|{_plan}|{_created}|{_exp}"
+                            _sig = _hm.new(_secret.encode(), _sig_data.encode(), _hl.sha256).hexdigest()[:16]
+                            ok, result = activate_license(key, client, _plan, _created, _exp, _sig)
+                        else:
+                            ok, result = False, _data.get('error', 'Nieprawidlowy klucz licencyjny')
+                    except Exception as _e:
+                        # Serwer niedostępny — spróbuj offline
+                        ok, result = False, f'Nie mozna zweryfikowac klucza. Sprawdz polaczenie z internetem. ({str(_e)[:80]})'
+
                 if ok:
                     msg = result
                 else:
@@ -2130,7 +2158,7 @@ a{color:#6366f1;text-decoration:none}
         Kontakt: support@akceshub.pl
     </div>
 </div></body></html>''', lic=lic, msg=msg, err=err,
-        is_dev=(session.get('rola') == 'admin' and os.path.isdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools'))))
+        is_dev=_is_dev_mode())
 
 
 # ============================================================
