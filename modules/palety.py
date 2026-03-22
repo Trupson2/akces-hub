@@ -1564,8 +1564,109 @@ def paleta_bulk_import():
                 if not file or file.filename == '':
                     continue
 
-                if not file.filename.endswith(('.xlsx', '.xls')):
-                    wyniki.append({'nazwa': file.filename, 'status': 'error', 'msg': 'Nieprawidłowy format'})
+                if not file.filename.endswith(('.xlsx', '.xls', '.zip')):
+                    wyniki.append({'nazwa': file.filename, 'status': 'error', 'msg': 'Nieprawidłowy format (xlsx/zip)'})
+                    continue
+
+                # Obsługa ZIP — rozpakuj i przetwórz każdy Excel osobno
+                if file.filename.endswith('.zip'):
+                    import zipfile
+                    try:
+                        zip_data = io.BytesIO(file.read())
+                        with zipfile.ZipFile(zip_data) as zf:
+                            excel_files = [n for n in zf.namelist() if n.endswith(('.xlsx', '.xls')) and not n.startswith('__MACOSX')]
+                            if not excel_files:
+                                wyniki.append({'nazwa': file.filename, 'status': 'error', 'msg': 'ZIP nie zawiera plików Excel'})
+                                continue
+                            for excel_name in excel_files:
+                                try:
+                                    excel_data = zf.read(excel_name)
+                                    wb_zip = openpyxl.load_workbook(io.BytesIO(excel_data), data_only=True)
+                                    ws_zip = wb_zip.active
+                                    rows_zip = list(ws_zip.iter_rows(values_only=True))
+                                    if len(rows_zip) < 2:
+                                        wyniki.append({'nazwa': excel_name, 'status': 'error', 'msg': 'Pusty plik'})
+                                        continue
+                                    # Auto-nazwa z pliku Excel
+                                    zip_nazwa = excel_name.rsplit('/', 1)[-1].rsplit('.', 1)[0]
+                                    if not zip_nazwa:
+                                        zip_nazwa = excel_name
+                                    # Użyj tego samego parsera co dla normalnego pliku
+                                    # Znajdź nagłówki
+                                    z_headers = []
+                                    z_header_row = 0
+                                    for ri, rc in enumerate(rows_zip[:10]):
+                                        if not rc:
+                                            continue
+                                        ne = [c for c in rc if c is not None and str(c).strip()]
+                                        if len(ne) < 2:
+                                            continue
+                                        z_headers = [str(c).strip().lower() if c else '' for c in rc]
+                                        z_header_row = ri
+                                        break
+                                    if not z_headers:
+                                        wyniki.append({'nazwa': zip_nazwa, 'status': 'error', 'msg': 'Brak nagłówków'})
+                                        continue
+                                    # Auto-detect kolumn
+                                    col_nazwa = col_ean = col_ilosc = col_cena = col_rrp = col_asin = -1
+                                    for ci, h in enumerate(z_headers):
+                                        hl = h.lower()
+                                        if any(k in hl for k in ['description', 'name', 'product', 'nazwa', 'item', 'titel', 'bezeichnung']):
+                                            if col_nazwa < 0: col_nazwa = ci
+                                        elif any(k in hl for k in ['barcode', 'ean', 'gtin', 'upc']):
+                                            if col_ean < 0: col_ean = ci
+                                        elif any(k in hl for k in ['qty', 'quantity', 'ilosc', 'menge', 'amount']):
+                                            if col_ilosc < 0: col_ilosc = ci
+                                        elif any(k in hl for k in ['unit price', 'cost', 'price', 'cena', 'preis', 'kosten']):
+                                            if col_cena < 0: col_cena = ci
+                                        elif any(k in hl for k in ['rrp', 'retail', 'msrp', 'uvp']):
+                                            if col_rrp < 0: col_rrp = ci
+                                        elif any(k in hl for k in ['asin']):
+                                            if col_asin < 0: col_asin = ci
+                                    if col_nazwa < 0:
+                                        col_nazwa = 0
+                                    # Utwórz paletę
+                                    paleta_id = add_paleta(zip_nazwa, cena_zakupu_raw * eur_rate, dostawca, data_zakupu, regal=regal)
+                                    prod_count = 0
+                                    total_szt = 0
+                                    for row_data in rows_zip[z_header_row + 1:]:
+                                        if not row_data or all(c is None for c in row_data):
+                                            continue
+                                        prod_nazwa = str(row_data[col_nazwa] or '').strip() if col_nazwa >= 0 and col_nazwa < len(row_data) else ''
+                                        if not prod_nazwa or len(prod_nazwa) < 2:
+                                            continue
+                                        prod_ean = str(row_data[col_ean] or '').strip() if col_ean >= 0 and col_ean < len(row_data) else ''
+                                        prod_ilosc = 1
+                                        if col_ilosc >= 0 and col_ilosc < len(row_data):
+                                            try: prod_ilosc = max(1, int(float(row_data[col_ilosc] or 1)))
+                                            except: prod_ilosc = 1
+                                        prod_cena = 0
+                                        if col_cena >= 0 and col_cena < len(row_data):
+                                            try: prod_cena = round(float(row_data[col_cena] or 0) * eur_rate, 2)
+                                            except: prod_cena = 0
+                                        prod_rrp = 0
+                                        if col_rrp >= 0 and col_rrp < len(row_data):
+                                            try: prod_rrp = round(float(row_data[col_rrp] or 0) * eur_rate, 2)
+                                            except: prod_rrp = 0
+                                        prod_asin = ''
+                                        if col_asin >= 0 and col_asin < len(row_data):
+                                            prod_asin = str(row_data[col_asin] or '').strip()
+                                        kategoria = auto_kategoryzuj(prod_nazwa) if auto_kategoryzuj else 'inne'
+                                        conn.execute('''INSERT INTO produkty (nazwa, ean, asin, ilosc, cena_netto, cena_brutto, kategoria, stan, paleta_id, dostawca, data_dodania)
+                                            VALUES (?,?,?,?,?,?,?,?,?,?,?)''',
+                                            (prod_nazwa, prod_ean, prod_asin, prod_ilosc, prod_cena, prod_rrp, kategoria, 'Nowy', paleta_id, dostawca, data_zakupu))
+                                        prod_count += 1
+                                        total_szt += prod_ilosc
+                                    conn.execute('UPDATE palety SET ilosc_produktow = ? WHERE id = ?', (prod_count, paleta_id))
+                                    if cena_zakupu_raw == 0 and prod_count > 0:
+                                        auto_cena = conn.execute('SELECT COALESCE(SUM(cena_brutto * ilosc), 0) FROM produkty WHERE paleta_id = ?', (paleta_id,)).fetchone()[0]
+                                        conn.execute('UPDATE palety SET cena_zakupu = ? WHERE id = ?', (auto_cena, paleta_id))
+                                    conn.commit()
+                                    wyniki.append({'nazwa': zip_nazwa, 'status': 'ok', 'produktow': prod_count, 'szt': total_szt})
+                                except Exception as ze:
+                                    wyniki.append({'nazwa': excel_name, 'status': 'error', 'msg': str(ze)[:100]})
+                    except Exception as ze2:
+                        wyniki.append({'nazwa': file.filename, 'status': 'error', 'msg': f'Błąd ZIP: {str(ze2)[:100]}'})
                     continue
 
                 # Nazwa palety
@@ -1958,6 +2059,19 @@ def paleta_bulk_import():
         </div>
     </div>
 
+    <!-- ZIP UPLOAD -->
+    <div class="card" style="margin-bottom:15px;border:2px dashed #8b5cf6;background:#8b5cf611">
+        <div style="text-align:center;padding:10px">
+            <div style="font-size:1.1rem;font-weight:700;color:#8b5cf6;margin-bottom:6px">📦 Szybki import z ZIP</div>
+            <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px">Wrzuć plik .zip z wieloma Excelami — system automatycznie utworzy slot dla każdego</div>
+            <input type="file" id="zip-upload" accept=".zip" style="display:none" onchange="handleZipUpload(this)">
+            <button type="button" onclick="document.getElementById('zip-upload').click()" style="padding:10px 24px;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;border-radius:10px;color:#fff;font-weight:600;cursor:pointer;font-size:0.9rem">
+                📁 Wybierz plik ZIP
+            </button>
+            <span id="zip-status" style="margin-left:10px;font-size:0.8rem;color:var(--text-muted)"></span>
+        </div>
+    </div>
+
     <!-- PALETY -->
     <div class="section-title">📦 PALETY DO IMPORTU</div>
 
@@ -1990,6 +2104,32 @@ def paleta_bulk_import():
     bulk_js = '''
     let paletaCount = 0;
 
+    function handleZipUpload(input) {
+        if (!input.files.length) return;
+        var file = input.files[0];
+        var statusEl = document.getElementById('zip-status');
+        statusEl.textContent = '⏳ ' + file.name + ' — dodaję jako slot...';
+        statusEl.style.color = '#fbbf24';
+        // Dodaj jeden slot z plikiem ZIP
+        addPaleta();
+        var lastIdx = paletaCount - 1;
+        var fileInput = document.querySelector('input[name="file_' + lastIdx + '"]');
+        if (fileInput) {
+            // Zmień accept na zip
+            fileInput.accept = '.xlsx,.xls,.zip';
+            // Użyj DataTransfer żeby ustawić plik
+            var dt = new DataTransfer();
+            dt.items.add(file);
+            fileInput.files = dt.files;
+            // Ustaw nazwę
+            var nameField = document.getElementById('nazwa-' + lastIdx);
+            if (nameField) nameField.placeholder = file.name.replace(/\\.[^.]+$/, '') + ' (ZIP)';
+        }
+        statusEl.textContent = '✅ ' + file.name + ' — gotowy do importu!';
+        statusEl.style.color = '#22c55e';
+        input.value = '';
+    }
+
     function addPaleta() {
         const i = paletaCount++;
         const container = document.getElementById('palety-container');
@@ -2006,7 +2146,7 @@ def paleta_bulk_import():
 
             <div style="margin-bottom:10px">
                 <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px">📁 Plik Excel</label>
-                <input type="file" name="file_${i}" accept=".xlsx,.xls" required onchange="updateFileName(this, ${i})"
+                <input type="file" name="file_${i}" accept=".xlsx,.xls,.zip" required onchange="updateFileName(this, ${i})"
                     class="form-control">
             </div>
 
