@@ -3478,14 +3478,6 @@ def generator_mass_create_from_paleta_stream():
                         if zdjecia_urls:
                             yield "data: " + json.dumps({'type': 'log', 'message': f'✅ CDN fallback: {len(zdjecia_urls)} zdjęć', 'color': '#22c55e'}) + "\n\n"
                 
-                kategoria_id = None
-                try:
-                    cat_result, cat_error = search_categories(nazwa[:50])
-                    if cat_result and cat_result.get('matchingCategories'):
-                        kategoria_id = cat_result['matchingCategories'][0].get('id')
-                except:
-                    pass
-                
                 from .utils import optimize_title_seo, generuj_opis_html_pro, generuj_gpsr_info
                 
                 # Pobierz klucz Gemini API
@@ -3526,6 +3518,17 @@ def generator_mass_create_from_paleta_stream():
 
                 # Kod magazynowy (do użytku wewnętrznego, NIE do tytułu/opisu Allegro)
                 _km = p.get('kod_magazynowy') or f"MAG-{product_id:05d}"
+
+                # Auto-wykryj kategorię Allegro po POLSKIM tytule (nie angielskim!)
+                kategoria_id = None
+                try:
+                    _cat_search = tytul_seo[:50] if tytul_seo else nazwa[:50]
+                    cat_result, cat_error = search_categories(_cat_search)
+                    if cat_result and cat_result.get('matchingCategories'):
+                        kategoria_id = cat_result['matchingCategories'][0].get('id')
+                        print(f"📁 Kategoria z polskiego tytułu '{_cat_search}': {kategoria_id}")
+                except:
+                    pass
 
                 # Pobierz specyfikację produktu (potrzebna do GPSR)
                 product_specs = {}
@@ -3843,17 +3846,19 @@ def generator_mass_create_stream():
                 
                 yield f"data: {json.dumps({'type': 'log', 'message': f'✅ {asin}: Uploadowano {len(uploaded_urls)}/{len(wszystkie_zdjecia[:8])} zdjęć'})}\n\n"
                 
-                # === SUGEROWANA KATEGORIA ===
-                kategoria_id = None
-                try:
-                    cat_result, cat_error = search_categories(nazwa[:50])
-                    if cat_result and cat_result.get('matchingCategories'):
-                        kategoria_id = cat_result['matchingCategories'][0].get('id')
-                except:
-                    pass
-                
                 # Generuj tytuł i opis (NOWA WERSJA - z bullet points + ASIN!)
                 tytul_seo = optimize_title_seo(nazwa, 75)
+
+                # === SUGEROWANA KATEGORIA (po polskim tytule!) ===
+                kategoria_id = None
+                try:
+                    _cat_search = tytul_seo[:50] if tytul_seo else nazwa[:50]
+                    cat_result, cat_error = search_categories(_cat_search)
+                    if cat_result and cat_result.get('matchingCategories'):
+                        kategoria_id = cat_result['matchingCategories'][0].get('id')
+                        print(f"📁 Kategoria z polskiego tytułu '{_cat_search}': {kategoria_id}")
+                except:
+                    pass
                 # Kod magazynowy (do użytku wewnętrznego, NIE do tytułu/opisu Allegro)
                 _km = p.get('kod_magazynowy') or f"MAG-{product_id:05d}"
                 # Pobierz specyfikację produktu (potrzebna do GPSR)
