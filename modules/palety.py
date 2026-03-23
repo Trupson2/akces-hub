@@ -1568,12 +1568,19 @@ def paleta_bulk_import():
                     wyniki.append({'nazwa': file.filename, 'status': 'error', 'msg': 'Nieprawidłowy format (xlsx/zip)'})
                     continue
 
-                # Obsługa ZIP — rozpakuj i przetwórz każdy Excel osobno
+                # Obsługa ZIP — rozpakuj i wrzuć WSZYSTKIE produkty do JEDNEJ palety
                 if file.filename.endswith('.zip'):
                     import zipfile
                     zip_cena_raw = float(request.form.get(cena_key, 0) or 0)
                     zip_regal = request.form.get(regal_key, '').strip() if regal_key else ''
                     zip_data_zakupu = request.form.get('data', datetime.now().strftime('%Y-%m-%d'))
+                    zip_typ = request.form.get(typ_key, 'paleta').strip()
+
+                    # Nazwa palety — z formularza lub z nazwy ZIP
+                    zip_nazwa = request.form.get(name_key, '').strip()
+                    if not zip_nazwa:
+                        zip_nazwa = file.filename.rsplit('.', 1)[0]
+
                     try:
                         zip_data = io.BytesIO(file.read())
                         with zipfile.ZipFile(zip_data) as zf:
@@ -1581,6 +1588,14 @@ def paleta_bulk_import():
                             if not excel_files:
                                 wyniki.append({'nazwa': file.filename, 'status': 'error', 'msg': 'ZIP nie zawiera plików Excel'})
                                 continue
+
+                            # Utwórz JEDNĄ paletę dla całego ZIP
+                            zip_cena = round(zip_cena_raw * eur_rate, 2)
+                            paleta_id = add_paleta(zip_nazwa, dostawca, zip_cena, zip_data_zakupu, f'ZIP: {file.filename} ({len(excel_files)} plików)', zip_regal, typ=zip_typ)
+                            total_prod_count = 0
+                            total_szt = 0
+                            files_ok = 0
+
                             for excel_name in excel_files:
                                 try:
                                     excel_data = zf.read(excel_name)
@@ -1588,13 +1603,7 @@ def paleta_bulk_import():
                                     ws_zip = wb_zip.active
                                     rows_zip = list(ws_zip.iter_rows(values_only=True))
                                     if len(rows_zip) < 2:
-                                        wyniki.append({'nazwa': excel_name, 'status': 'error', 'msg': 'Pusty plik'})
                                         continue
-                                    # Auto-nazwa z pliku Excel
-                                    zip_nazwa = excel_name.rsplit('/', 1)[-1].rsplit('.', 1)[0]
-                                    if not zip_nazwa:
-                                        zip_nazwa = excel_name
-                                    # Użyj tego samego parsera co dla normalnego pliku
                                     # Znajdź nagłówki
                                     z_headers = []
                                     z_header_row = 0
@@ -1608,7 +1617,6 @@ def paleta_bulk_import():
                                         z_header_row = ri
                                         break
                                     if not z_headers:
-                                        wyniki.append({'nazwa': zip_nazwa, 'status': 'error', 'msg': 'Brak nagłówków'})
                                         continue
                                     # Auto-detect kolumn
                                     col_nazwa = col_ean = col_ilosc = col_cena = col_rrp = col_asin = -1
@@ -1628,19 +1636,21 @@ def paleta_bulk_import():
                                             if col_asin < 0: col_asin = ci
                                     if col_nazwa < 0:
                                         col_nazwa = 0
-                                    # Utwórz paletę
-                                    # Podziel cenę zakupu równo na pliki w ZIP (lub 0 jeśli nie podano)
-                                    zip_cena_per_file = round((zip_cena_raw * eur_rate) / max(len(excel_files), 1), 2)
-                                    paleta_id = add_paleta(zip_nazwa, dostawca, zip_cena_per_file, zip_data_zakupu, regal=zip_regal)
-                                    prod_count = 0
-                                    total_szt = 0
+                                    # Parsuj produkty z tego Excela
+                                    file_prod_count = 0
                                     for row_data in rows_zip[z_header_row + 1:]:
                                         if not row_data or all(c is None for c in row_data):
                                             continue
                                         prod_nazwa = str(row_data[col_nazwa] or '').strip() if col_nazwa >= 0 and col_nazwa < len(row_data) else ''
                                         if not prod_nazwa or len(prod_nazwa) < 2:
                                             continue
+                                        # Pomiń wiersze podsumowujące
+                                        nazwa_lower = prod_nazwa.lower().strip()
+                                        if nazwa_lower in ('total', 'razem', 'sum', 'suma', 'gesamt', 'subtotal', 'podsumowanie'):
+                                            continue
                                         prod_ean = str(row_data[col_ean] or '').strip() if col_ean >= 0 and col_ean < len(row_data) else ''
+                                        if prod_ean in ('nan', 'None', 'none'):
+                                            prod_ean = ''
                                         prod_ilosc = 1
                                         if col_ilosc >= 0 and col_ilosc < len(row_data):
                                             try: prod_ilosc = max(1, int(float(row_data[col_ilosc] or 1)))
@@ -1656,20 +1666,34 @@ def paleta_bulk_import():
                                         prod_asin = ''
                                         if col_asin >= 0 and col_asin < len(row_data):
                                             prod_asin = str(row_data[col_asin] or '').strip()
+                                            if prod_asin in ('nan', 'None', 'none'):
+                                                prod_asin = ''
                                         kategoria = auto_kategoryzuj(prod_nazwa) if auto_kategoryzuj else 'inne'
-                                        conn.execute('''INSERT INTO produkty (nazwa, ean, asin, ilosc, cena_netto, cena_brutto, kategoria, stan, paleta_id, dostawca, data_dodania)
-                                            VALUES (?,?,?,?,?,?,?,?,?,?,?)''',
-                                            (prod_nazwa, prod_ean, prod_asin, prod_ilosc, prod_cena, prod_rrp, kategoria, 'Nowy', paleta_id, dostawca, zip_data_zakupu))
-                                        prod_count += 1
+                                        conn.execute('''INSERT INTO produkty (nazwa, ean, asin, ilosc, cena_netto, cena_brutto, kategoria, status, paleta_id, dostawca)
+                                            VALUES (?,?,?,?,?,?,?,?,?,?)''',
+                                            (prod_nazwa, prod_ean, prod_asin, prod_ilosc, prod_cena, prod_rrp, kategoria, 'magazyn', paleta_id, dostawca))
+                                        file_prod_count += 1
                                         total_szt += prod_ilosc
-                                    conn.execute('UPDATE palety SET ilosc_produktow = ? WHERE id = ?', (prod_count, paleta_id))
-                                    if zip_cena_raw == 0 and prod_count > 0:
-                                        auto_cena = conn.execute('SELECT COALESCE(SUM(cena_brutto * ilosc), 0) FROM produkty WHERE paleta_id = ?', (paleta_id,)).fetchone()[0]
-                                        conn.execute('UPDATE palety SET cena_zakupu = ? WHERE id = ?', (auto_cena, paleta_id))
-                                    conn.commit()
-                                    wyniki.append({'nazwa': zip_nazwa, 'status': 'ok', 'produktow': prod_count, 'szt': total_szt})
+                                    total_prod_count += file_prod_count
+                                    if file_prod_count > 0:
+                                        files_ok += 1
                                 except Exception as ze:
-                                    wyniki.append({'nazwa': excel_name, 'status': 'error', 'msg': str(ze)[:100]})
+                                    print(f"⚠️ ZIP Excel error ({excel_name}): {ze}")
+                                    continue
+
+                            # Aktualizuj paletę
+                            conn.execute('UPDATE palety SET ilosc_produktow = ? WHERE id = ?', (total_prod_count, paleta_id))
+                            if zip_cena_raw == 0 and total_prod_count > 0:
+                                auto_cena = conn.execute('SELECT COALESCE(SUM(cena_brutto * ilosc), 0) FROM produkty WHERE paleta_id = ?', (paleta_id,)).fetchone()[0]
+                                conn.execute('UPDATE palety SET cena_zakupu = ? WHERE id = ?', (auto_cena, paleta_id))
+                            conn.commit()
+
+                            wyniki.append({
+                                'nazwa': zip_nazwa, 'status': 'ok', 'paleta_id': paleta_id,
+                                'produkty': total_prod_count, 'szt': total_szt,
+                                'plik': f'{file.filename} ({files_ok}/{len(excel_files)} plików)',
+                                'typ': zip_typ
+                            })
                     except Exception as ze2:
                         wyniki.append({'nazwa': file.filename, 'status': 'error', 'msg': f'Błąd ZIP: {str(ze2)[:100]}'})
                     continue
