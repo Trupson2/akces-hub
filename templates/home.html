@@ -19,12 +19,12 @@
             if(p.x<0)p.x=w;if(p.x>w)p.x=0;
             if(p.y<0)p.y=h;if(p.y>h)p.y=0;
             ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-            ctx.fillStyle='rgba(99,102,241,0.2)';ctx.fill();
+            ctx.fillStyle='rgba(127,90,240,0.25)';ctx.fill();
             for(let j=i+1;j<particles.length;j++){
                 const q=particles[j],dx=p.x-q.x,dy=p.y-q.y,dist=Math.sqrt(dx*dx+dy*dy);
                 if(dist<150){
                     ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);
-                    ctx.strokeStyle='rgba(99,102,241,'+(0.05*(1-dist/150))+')';
+                    ctx.strokeStyle='rgba(0,255,136,'+(0.04*(1-dist/150))+')';
                     ctx.lineWidth=0.5;ctx.stroke();
                 }
             }
@@ -139,25 +139,44 @@ function doSystemUpdate(btn){
 }
 </script>
 
-<!-- PALETOMAT OPEN Teaser -->
+<!-- PALETOMAT OPEN Banner — Neon Design -->
 <style>
 @keyframes paleoPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
-    50% { box-shadow: 0 0 20px 4px rgba(99,102,241,0.2); }
+    0%, 100% { box-shadow: 0 0 15px rgba(127,90,240,0.15), inset 0 0 30px rgba(127,90,240,0.05); }
+    50% { box-shadow: 0 0 30px rgba(127,90,240,0.25), inset 0 0 40px rgba(127,90,240,0.08); }
+}
+@keyframes rocketFloat {
+    0%, 100% { transform: translateY(0) rotate(-10deg); }
+    50% { transform: translateY(-8px) rotate(-5deg); }
+}
+@keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
 }
 </style>
 <div onclick="document.getElementById('paleoModal').style.display='flex'"
-     style="background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.15));
-            border:1px solid rgba(139,92,246,0.4);border-radius:16px;padding:20px;
-            margin-bottom:20px;cursor:pointer;text-align:center;
-            animation:paleoPulse 3s ease-in-out infinite">
-    <div style="font-size:1.3rem;font-weight:700;
-                background:linear-gradient(135deg,#6366f1,#8b5cf6,#a855f7);
-                -webkit-background-clip:text;-webkit-text-fill-color:transparent">
-        &#128640; PALETOMAT OPEN &mdash; Nadchodzi nowa era sprzedazy
+     style="background:linear-gradient(135deg,rgba(127,90,240,0.12) 0%,rgba(0,255,136,0.06) 50%,rgba(127,90,240,0.12) 100%);
+            border:1px solid rgba(127,90,240,0.35);border-radius:16px;padding:24px 28px;
+            margin-bottom:20px;cursor:pointer;display:flex;align-items:center;gap:20px;
+            animation:paleoPulse 3s ease-in-out infinite;position:relative;overflow:hidden">
+    <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at 20% 50%,rgba(127,90,240,0.08),transparent 60%),radial-gradient(ellipse at 80% 50%,rgba(0,255,136,0.04),transparent 60%);pointer-events:none"></div>
+    <div style="font-size:2.5rem;animation:rocketFloat 3s ease-in-out infinite;position:relative">🚀</div>
+    <div style="flex:1;position:relative">
+        <div style="font-size:1.3rem;font-weight:800;letter-spacing:0.5px;
+                    background:linear-gradient(90deg,#bf5af2,#00ff88,#00d4ff,#bf5af2);
+                    background-size:200% auto;
+                    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                    animation:shimmer 4s linear infinite">
+            PALETOMAT OPEN — The New Era of Sales is Here
+        </div>
+        <div style="color:rgba(255,255,255,0.5);font-size:0.85rem;margin-top:6px">
+            Click to learn more →
+        </div>
     </div>
-    <div style="color:#b0bec5;font-size:0.85rem;margin-top:6px">
-        Kliknij aby dowiedziec sie wiecej &rarr;
+    <div style="position:relative;display:flex;gap:3px">
+        <div style="width:3px;height:20px;background:rgba(0,255,136,0.4);border-radius:2px;animation:paleoPulse 2s ease-in-out infinite"></div>
+        <div style="width:3px;height:20px;background:rgba(127,90,240,0.4);border-radius:2px;animation:paleoPulse 2s ease-in-out 0.3s infinite"></div>
+        <div style="width:3px;height:20px;background:rgba(0,212,255,0.4);border-radius:2px;animation:paleoPulse 2s ease-in-out 0.6s infinite"></div>
     </div>
 </div>
 
