@@ -2664,8 +2664,9 @@ ZASADY:
 6. Marka/Producent → ZAWSZE wybierz "bez marki" — NIGDY nie podawaj konkretnej marki
 7. Kolor → odczytaj z tytułu/opisu (Black=Czarny, White=Biały, etc.)
 8. Materiał → odczytaj z opisu (Plastic=Tworzywo sztuczne, Metal=Metal, etc.)
-9. Wymiary/waga → przelicz na jednostki z parametru (cm, mm, kg, g)
+9. Wymiary/waga → przelicz na jednostki z parametru (cm→m, mm→cm, kg, g). Format "190x188x200" w tytule = szerokość x długość x wysokość w CM — przelicz na metry jeśli parametr wymaga metrów (np. 190cm = 1.9m)
 10. Parametry numeryczne → podaj TYLKO liczbę bez jednostki
+11. Jeśli w tytule/opisie są wymiary w formacie AxBxC — ZAWSZE wypełnij szerokość, długość, wysokość
 
 FORMAT ODPOWIEDZI (tylko JSON):
 {{
