@@ -1,46 +1,223 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="header">
-    <h1>📊 RAPORTY ROI</h1>
+<style>
+    .raporty-header {
+        text-align: center;
+        padding: 10px 0 28px;
+    }
+    .raporty-header h1 {
+        font-family: 'Space Grotesk', 'Inter', sans-serif;
+        font-size: 1.6rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        filter: drop-shadow(0 0 12px rgba(0,241,254,0.3));
+        margin-bottom: 6px;
+    }
+    .raporty-header small {
+        color: var(--text-muted);
+        font-size: 0.8rem;
+    }
+
+    .pallet-card {
+        padding: 22px;
+        margin-bottom: 18px;
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeSlideUp 0.5s ease forwards;
+    }
+    .pallet-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(0,241,254,0.2);
+    }
+
+    @keyframes fadeSlideUp {
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .pallet-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+    .pallet-rank {
+        font-family: 'Space Grotesk', 'Inter', sans-serif;
+        font-weight: 700;
+        font-size: 1.05rem;
+        color: var(--neon-primary);
+        text-shadow: 0 0 10px rgba(0,241,254,0.4);
+    }
+    .pallet-meta {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+
+    .roi-badge {
+        text-align: right;
+    }
+    .roi-value {
+        font-family: 'Space Grotesk', 'Inter', sans-serif;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+    }
+    .roi-value.positive {
+        color: var(--neon-tertiary);
+        text-shadow: 0 0 12px rgba(91,240,131,0.5);
+    }
+    .roi-value.negative {
+        color: #ef4444;
+        text-shadow: 0 0 12px rgba(239,68,68,0.5);
+    }
+    .roi-value.neutral {
+        color: #eab308;
+        text-shadow: 0 0 12px rgba(234,179,8,0.5);
+    }
+    .roi-label {
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 2px;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        text-align: center;
+    }
+    .stat-panel {
+        padding: 12px 10px;
+        border-radius: 12px;
+        transition: all 0.25s ease;
+    }
+    .stat-panel:hover {
+        border-color: rgba(0,241,254,0.15);
+        transform: translateY(-1px);
+    }
+    .stat-panel-label {
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    .stat-panel-value {
+        font-family: 'Space Grotesk', 'Inter', sans-serif;
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--text);
+    }
+    .stat-panel-value.neon-cyan {
+        color: var(--neon-primary);
+        text-shadow: 0 0 8px rgba(0,241,254,0.3);
+    }
+    .stat-panel-value.neon-green {
+        color: var(--neon-tertiary);
+        text-shadow: 0 0 8px rgba(91,240,131,0.3);
+    }
+    .stat-panel-value.neon-red {
+        color: #ef4444;
+        text-shadow: 0 0 8px rgba(239,68,68,0.3);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 50px 20px;
+    }
+    .empty-state-icon {
+        font-size: 3.5rem;
+        margin-bottom: 16px;
+        filter: drop-shadow(0 0 15px rgba(0,241,254,0.3));
+    }
+    .empty-state-title {
+        font-family: 'Space Grotesk', 'Inter', sans-serif;
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--text-secondary);
+        margin-bottom: 6px;
+    }
+    .empty-state-sub {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        padding: 10px 20px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--neon-primary);
+        text-decoration: none;
+        border-radius: var(--radius-sm);
+        transition: all 0.25s ease;
+        border: 1px solid rgba(0,241,254,0.15);
+        background: rgba(0,241,254,0.04);
+    }
+    .back-link:hover {
+        background: rgba(0,241,254,0.1);
+        border-color: rgba(0,241,254,0.3);
+        box-shadow: 0 0 15px rgba(0,241,254,0.1);
+    }
+
+    @media (max-width: 768px) {
+        .raporty-header h1 { font-size: 1.3rem; }
+        .pallet-top { flex-direction: column; align-items: flex-start; gap: 10px; }
+        .roi-badge { text-align: left; }
+        .stats-grid { grid-template-columns: 1fr; gap: 8px; }
+    }
+</style>
+
+<div class="raporty-header">
+    <h1>RAPORTY ROI</h1>
     <small>Statystyki i zyski per paleta</small>
 </div>
 
 {% for p in palety %}
-<div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<div class="glass-card pallet-card" style="animation-delay: {{ loop.index0 * 0.08 }}s">
+    <div class="pallet-top">
         <div>
-            <div style="font-weight:700;font-size:1.1rem">🏆 #{{ loop.index }} {{ p.id }}</div>
-            <div style="font-size:0.8rem;color:#64748b">{{ p.dostawca }} | {{ p.cnt }} produktów | {{ p.sprzedano }} sprzedanych</div>
+            <div class="pallet-rank">#{{ loop.index }} &middot; Paleta {{ p.id }}</div>
+            <div class="pallet-meta">{{ p.dostawca }} &middot; {{ p.cnt }} produktow &middot; {{ p.sprzedano }} sprzedanych</div>
         </div>
-        <div style="text-align:right">
-            <div style="font-size:1.3rem;font-weight:700;color:{% if p.roi_num > 0 %}#22c55e{% elif p.roi_num < -10 %}#ef4444{% else %}#eab308{% endif %}">{{ p.roi }}%</div>
-            <div style="font-size:0.7rem;color:#64748b">ROI</div>
+        <div class="roi-badge">
+            <div class="roi-value {% if p.roi_num > 0 %}positive{% elif p.roi_num < -10 %}negative{% else %}neutral{% endif %}">{{ p.roi }}%</div>
+            <div class="roi-label">ROI</div>
         </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center">
-        <div style="background:#0a0a0f;padding:8px;border-radius:8px">
-            <div style="font-size:0.7rem;color:#64748b">Zakup</div>
-            <div style="font-weight:600">{{ p.zakup }} zł</div>
+    <div class="stats-grid">
+        <div class="glass-panel stat-panel">
+            <div class="stat-panel-label">Zakup</div>
+            <div class="stat-panel-value">{{ p.zakup }} zl</div>
         </div>
-        <div style="background:#0a0a0f;padding:8px;border-radius:8px">
-            <div style="font-size:0.7rem;color:#64748b">Allegro</div>
-            <div style="font-weight:600;color:#3b82f6">{{ p.allegro }} zł</div>
+        <div class="glass-panel stat-panel">
+            <div class="stat-panel-label">Allegro</div>
+            <div class="stat-panel-value neon-cyan">{{ p.allegro }} zl</div>
         </div>
-        <div style="background:#0a0a0f;padding:8px;border-radius:8px">
-            <div style="font-size:0.7rem;color:#64748b">Zysk</div>
-            <div style="font-weight:600;color:{% if p.zysk_num > 0 %}#22c55e{% elif p.zysk_num < 0 %}#ef4444{% else %}#64748b{% endif %}">{{ p.zysk }} zł</div>
+        <div class="glass-panel stat-panel">
+            <div class="stat-panel-label">Zysk</div>
+            <div class="stat-panel-value {% if p.zysk_num > 0 %}neon-green{% elif p.zysk_num < 0 %}neon-red{% endif %}">{{ p.zysk }} zl</div>
         </div>
     </div>
 </div>
 {% endfor %}
 
 {% if not palety %}
-<div style="text-align:center;color:#64748b;padding:40px">
-    <div style="font-size:3rem;margin-bottom:15px">📦</div>
-    <div>Brak danych o paletach</div>
-    <div style="font-size:0.85rem;margin-top:5px">Dodaj produkty z przypisaną paletą w Magazynie</div>
+<div class="glass-card empty-state" style="animation: fadeSlideUp 0.5s ease forwards">
+    <div class="empty-state-icon">📦</div>
+    <div class="empty-state-title">Brak danych o paletach</div>
+    <div class="empty-state-sub">Dodaj produkty z przypisana paleta w Magazynie</div>
 </div>
 {% endif %}
 
-<a href="/narzedzia" class="back">← Powrót</a>
+<a href="/narzedzia" class="back-link">← Powrot</a>
 {% endblock %}

@@ -1,32 +1,35 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="header">
-    <h1>📦 STACJA PAKOWANIA</h1>
-    <small>Skanuj produkt → Zobacz zamówienie → Nadaj</small>
+<div class="header" style="margin-bottom:20px">
+    <h1 class="font-display neon-text-primary" style="font-size:1.6rem;margin:0">STACJA PAKOWANIA</h1>
+    <small style="color:rgba(255,255,255,0.45);font-size:0.8rem">Skanuj produkt &rarr; Zobacz zamowienie &rarr; Nadaj</small>
 </div>
 
 <!-- Skaner kamery -->
-<div id="scanner-container" style="position:relative;width:100%;max-width:400px;margin:0 auto 15px">
-    <video id="video" style="width:100%;border-radius:12px;background:#000;min-height:200px" playsinline></video>
-    <div id="scan-line" style="position:absolute;left:10%;right:10%;top:50%;height:2px;background:#22c55e;box-shadow:0 0 10px #22c55e;animation:scan 2s infinite"></div>
+<div class="glass-card neon-glow-primary" style="position:relative;width:100%;max-width:400px;margin:0 auto 15px;padding:0;overflow:hidden">
+    <video id="video" style="width:100%;display:block;background:#000;min-height:200px" playsinline></video>
+    <div id="scan-line" style="position:absolute;left:10%;right:10%;top:50%;height:2px;background:var(--neon-primary);box-shadow:0 0 10px var(--neon-primary),0 0 20px rgba(0,241,254,0.3);animation:scan 2s infinite"></div>
 </div>
 
 <style>
     @keyframes scan { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    #scanInput:focus{border-color:var(--neon-primary)!important;box-shadow:0 0 12px rgba(0,241,254,0.2),inset 0 0 6px rgba(0,241,254,0.05);outline:none}
+    .pack-btn{transition:all 0.2s ease}
+    .pack-btn:hover{filter:brightness(1.15);transform:translateY(-1px)}
 </style>
 
-<div id="scan-status" style="text-align:center;margin-bottom:15px;color:#64748b;font-size:0.9rem">
-    📷 Skieruj kamerę na kod kreskowy
+<div id="scan-status" style="text-align:center;margin-bottom:15px;color:rgba(255,255,255,0.4);font-size:0.9rem">
+    Skieruj kamere na kod kreskowy
 </div>
 
-<!-- Ręczne wpisywanie -->
-<div style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;margin-bottom:15px">
-    <div style="font-size:0.75rem;color:#64748b;margin-bottom:8px">Wpisz lub zeskanuj: EAN / ASIN / etykieta wysyłkowa</div>
+<!-- Reczne wpisywanie -->
+<div class="glass-card" style="padding:15px;margin-bottom:15px">
+    <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:8px">Wpisz lub zeskanuj: EAN / ASIN / etykieta wysylkowa</div>
     <div style="display:flex;gap:8px">
         <input type="text" id="scanInput" placeholder="EAN / etykieta / nazwa..."
-               style="flex:1;padding:12px;font-size:1rem;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#fff"
+               style="flex:1;padding:12px;font-size:1rem;background:rgba(10,10,15,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#fff;transition:all 0.3s ease"
                onkeypress="if(event.key==='Enter')szukajProduktu()">
-        <button onclick="szukajProduktu()" style="padding:12px 20px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer">
+        <button onclick="szukajProduktu()" class="pack-btn" style="padding:12px 20px;background:linear-gradient(135deg,var(--neon-primary),rgba(0,241,254,0.7));border:none;border-radius:8px;color:#000;font-weight:600;cursor:pointer;font-size:1rem">
             🔎
         </button>
     </div>
@@ -34,16 +37,16 @@
 
 <!-- Wynik -->
 <div id="wynik" style="display:none">
-    <!-- Tu pojawi się zamówienie -->
+    <!-- Tu pojawi sie zamowienie -->
 </div>
 
 <!-- Ostatnio spakowane -->
-<div id="historia" style="margin-top:20px">
-    <div style="font-size:0.85rem;color:#64748b;margin-bottom:10px">📋 Ostatnio spakowane:</div>
-    <div id="historiaLista" style="font-size:0.8rem;color:#64748b"></div>
+<div id="historia" class="glass-panel" style="margin-top:20px;padding:15px">
+    <div style="font-size:0.85rem;color:rgba(255,255,255,0.4);margin-bottom:10px">Ostatnio spakowane:</div>
+    <div id="historiaLista" style="font-size:0.8rem;color:rgba(255,255,255,0.4)"></div>
 </div>
 
-<a href="/wysylki" class="back">← Lista wysyłek</a>
+<a href="/wysylki" class="back" style="display:inline-block;margin-top:15px;color:var(--neon-primary);text-decoration:none;font-size:0.9rem;opacity:0.7;transition:opacity 0.2s">&larr; Lista wysylek</a>
 
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
 <script>
@@ -56,7 +59,7 @@ const codeReader = new ZXing.BrowserMultiFormatReader();
 
 codeReader.listVideoInputDevices()
     .then(devices => {
-        // Preferuj tylną kamerę
+        // Preferuj tylna kamere
         let selectedDevice = devices[0];
         for (const device of devices) {
             if (device.label.toLowerCase().includes('back') ||
@@ -70,11 +73,11 @@ codeReader.listVideoInputDevices()
         if (selectedDevice) {
             startScanning(selectedDevice.deviceId);
         } else {
-            document.getElementById('scan-status').innerHTML = '<span style="color:#ef4444">❌ Brak kamery</span>';
+            document.getElementById('scan-status').innerHTML = '<span style="color:#ef4444">Brak kamery</span>';
         }
     })
     .catch(err => {
-        document.getElementById('scan-status').innerHTML = '<span style="color:#ef4444">❌ Błąd kamery: ' + err.message + '</span>';
+        document.getElementById('scan-status').innerHTML = '<span style="color:#ef4444">Blad kamery: ' + err.message + '</span>';
     });
 
 function startScanning(deviceId) {
@@ -91,11 +94,11 @@ function startScanning(deviceId) {
                 // Wibracja
                 if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
 
-                // Pokaż kod
-                document.getElementById('scan-status').innerHTML = '<span style="color:#22c55e;font-weight:700">✅ Zeskanowano: ' + code + '</span>';
+                // Pokaz kod
+                document.getElementById('scan-status').innerHTML = '<span class="neon-text-tertiary" style="font-weight:700">Zeskanowano: ' + code + '</span>';
                 document.getElementById('scanInput').value = code;
 
-                // Szukaj zamówienia
+                // Szukaj zamowienia
                 szukajProduktu();
             }
         }
@@ -106,38 +109,38 @@ function szukajProduktu() {
     const input = document.getElementById('scanInput').value.trim();
     if (!input) return;
 
-    document.getElementById('wynik').innerHTML = '<div style="text-align:center;padding:20px;color:#64748b">🔄 Szukam...</div>';
+    document.getElementById('wynik').innerHTML = '<div class="glass-card" style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">Szukam...</div>';
     document.getElementById('wynik').style.display = 'block';
 
     fetch('/api/wysylki/szukaj?q=' + encodeURIComponent(input))
         .then(r => r.json())
         .then(data => {
             if (data.error) {
-                // Wibracja błędu
+                // Wibracja bledu
                 if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 100]);
 
                 let html = `
-                    <div style="background:#12121a;border:2px solid #ef4444;border-radius:16px;padding:20px;text-align:center">
-                        <div style="font-size:2rem;margin-bottom:10px">❌</div>
+                    <div class="glass-card" style="border:2px solid #ef4444;padding:20px;text-align:center;box-shadow:0 0 20px rgba(239,68,68,0.15),0 0 40px rgba(239,68,68,0.05)">
+                        <div style="font-size:2rem;margin-bottom:10px">&#10060;</div>
                         <div style="color:#ef4444;font-weight:600">${data.error}</div>`;
 
-                // Jeśli znaleziono produkt ale bez zamówienia - pokaż info
+                // Jesli znaleziono produkt ale bez zamowienia - pokaz info
                 if (data.produkt) {
                     const p = data.produkt;
                     html += `
-                        <div style="background:#0a0a0f;border-radius:10px;padding:15px;margin-top:15px;text-align:left">
-                            <div style="font-size:0.75rem;color:#64748b;margin-bottom:5px">📦 PRODUKT W MAGAZYNIE:</div>
+                        <div class="glass-panel" style="padding:15px;margin-top:15px;text-align:left">
+                            <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:5px">PRODUKT W MAGAZYNIE:</div>
                             <div style="color:#fff;font-weight:600">${p.nazwa}</div>
                             <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
-                                ${p.asin ? `<span style="background:#f59e0b;color:#000;padding:2px 6px;border-radius:4px;font-size:0.75rem">ASIN: ${p.asin}</span>` : ''}
-                                ${p.ean ? `<span style="background:#8b5cf6;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.75rem">EAN: ${p.ean}</span>` : ''}
-                                <span style="background:#3b82f6;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.75rem">Stan: ${p.ilosc} szt.</span>
-                                ${p.lokalizacja ? `<span style="background:#22c55e;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.75rem">📍 ${p.lokalizacja}</span>` : ''}
+                                ${p.asin ? `<span style="background:rgba(245,158,11,0.2);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:0.75rem;border:1px solid rgba(245,158,11,0.3)">ASIN: ${p.asin}</span>` : ''}
+                                ${p.ean ? `<span style="background:rgba(193,128,255,0.15);color:#c180ff;padding:2px 8px;border-radius:4px;font-size:0.75rem;border:1px solid rgba(193,128,255,0.3)">EAN: ${p.ean}</span>` : ''}
+                                <span style="background:rgba(0,241,254,0.12);color:var(--neon-primary);padding:2px 8px;border-radius:4px;font-size:0.75rem;border:1px solid rgba(0,241,254,0.25)">Stan: ${p.ilosc} szt.</span>
+                                ${p.lokalizacja ? `<span style="background:rgba(91,240,131,0.15);color:#5bf083;padding:2px 8px;border-radius:4px;font-size:0.75rem;border:1px solid rgba(91,240,131,0.3)">${p.lokalizacja}</span>` : ''}
                             </div>
                         </div>`;
                 }
 
-                html += `<div style="color:#64748b;font-size:0.85rem;margin-top:10px">Spróbuj inny kod lub nazwę</div></div>`;
+                html += `<div style="color:rgba(255,255,255,0.4);font-size:0.85rem;margin-top:10px">Sprobuj inny kod lub nazwe</div></div>`;
                 document.getElementById('wynik').innerHTML = html;
             } else if (data.zamowienie) {
                 // Wibracja sukcesu
@@ -149,16 +152,16 @@ function szukajProduktu() {
                 let produktyHtml = '';
                 if (z.produkty && z.produkty.length > 0) {
                     produktyHtml = '<div style="margin-bottom:12px">';
-                    produktyHtml += '<div style="font-size:0.75rem;color:#64748b;margin-bottom:8px">📋 PRODUKTY DO SPAKOWANIA:</div>';
+                    produktyHtml += '<div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:8px">PRODUKTY DO SPAKOWANIA:</div>';
                     z.produkty.forEach((p, i) => {
                         const imgSrc = p.zdjecie_url || 'https://via.placeholder.com/40';
                         produktyHtml += `
-                            <div id="pack-item-${i}" onclick="togglePackItem(${i})" style="display:flex;align-items:center;gap:10px;padding:10px;background:#0a0a0f;border-radius:8px;margin-bottom:4px;cursor:pointer;border:1px solid #1e1e2e;transition:all 0.2s">
-                                <div id="pack-check-${i}" style="width:24px;height:24px;border:2px solid #64748b;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0"></div>
-                                <img src="${imgSrc}" onerror="this.src='https://via.placeholder.com/40'" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#fff;flex-shrink:0">
+                            <div id="pack-item-${i}" onclick="togglePackItem(${i})" style="display:flex;align-items:center;gap:10px;padding:10px;background:rgba(10,10,15,0.5);border-radius:8px;margin-bottom:4px;cursor:pointer;border:1px solid rgba(255,255,255,0.06);transition:all 0.2s">
+                                <div id="pack-check-${i}" style="width:24px;height:24px;border:2px solid rgba(255,255,255,0.2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0"></div>
+                                <img src="${imgSrc}" onerror="this.src='https://via.placeholder.com/40'" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,0.9);flex-shrink:0">
                                 <div style="flex:1">
-                                    <div style="font-weight:600;font-size:0.85rem;color:#fff">${p.nazwa}${p.qty > 1 ? ' <span style=color:#f59e0b>(×' + p.qty + ')</span>' : ''}</div>
-                                    ${p.lokalizacja ? '<div style="color:#8b5cf6;font-size:0.75rem;font-weight:600;margin-top:2px">📦 ' + p.lokalizacja + '</div>' : ''}
+                                    <div style="font-weight:600;font-size:0.85rem;color:#fff">${p.nazwa}${p.qty > 1 ? ' <span style=color:#f59e0b>(x' + p.qty + ')</span>' : ''}</div>
+                                    ${p.lokalizacja ? '<div style="color:#c180ff;font-size:0.75rem;font-weight:600;margin-top:2px">' + p.lokalizacja + '</div>' : ''}
                                 </div>
                             </div>`;
                     });
@@ -166,50 +169,50 @@ function szukajProduktu() {
                 } else {
                     // Fallback - stary format z 1 produktem
                     let kodInfo = '';
-                    if (z.asin) kodInfo += `<span style="background:#f59e0b;color:#000;padding:2px 6px;border-radius:4px;font-size:0.75rem;margin-right:5px">ASIN: ${z.asin}</span>`;
-                    if (z.ean) kodInfo += `<span style="background:#8b5cf6;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.75rem">EAN: ${z.ean}</span>`;
+                    if (z.asin) kodInfo += `<span style="background:rgba(245,158,11,0.2);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:0.75rem;margin-right:5px;border:1px solid rgba(245,158,11,0.3)">ASIN: ${z.asin}</span>`;
+                    if (z.ean) kodInfo += `<span style="background:rgba(193,128,255,0.15);color:#c180ff;padding:2px 8px;border-radius:4px;font-size:0.75rem;border:1px solid rgba(193,128,255,0.3)">EAN: ${z.ean}</span>`;
 
                     let stanInfo = '';
                     if (z.stan_magazynowy !== null) {
-                        const stanColor = z.stan_magazynowy > 0 ? '#22c55e' : '#ef4444';
+                        const stanColor = z.stan_magazynowy > 0 ? '#5bf083' : '#ef4444';
                         stanInfo = `<span style="color:${stanColor};font-size:0.8rem">(stan: ${z.stan_magazynowy} szt.)</span>`;
                     }
-                    produktyHtml = `<div style="font-size:0.85rem;color:#64748b;margin-bottom:10px">${z.produkt_nazwa} ${stanInfo}</div>
+                    produktyHtml = `<div style="font-size:0.85rem;color:rgba(255,255,255,0.4);margin-bottom:10px">${z.produkt_nazwa} ${stanInfo}</div>
                         ${kodInfo ? '<div style="margin-bottom:10px">' + kodInfo + '</div>' : ''}`;
                 }
 
                 let lokalizacjaInfo = '';
                 if (z.lokalizacja) {
-                    lokalizacjaInfo = `<div style="background:#22c55e;color:#fff;padding:8px 12px;border-radius:8px;font-weight:700;font-size:1.1rem;text-align:center;margin-bottom:10px">📍 ${z.lokalizacja}</div>`;
+                    lokalizacjaInfo = `<div style="background:rgba(91,240,131,0.15);color:#5bf083;padding:8px 12px;border-radius:8px;font-weight:700;font-size:1.1rem;text-align:center;margin-bottom:10px;border:1px solid rgba(91,240,131,0.3);text-shadow:0 0 10px rgba(91,240,131,0.4)">${z.lokalizacja}</div>`;
                 }
 
                 document.getElementById('wynik').innerHTML = `
-                    <div style="background:#12121a;border:2px solid #22c55e;border-radius:16px;padding:20px">
+                    <div class="glass-card neon-glow-tertiary" style="padding:20px">
                         ${lokalizacjaInfo}
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
                             <div>
-                                <div style="font-size:1.3rem;font-weight:700;color:#22c55e">✅ ZNALEZIONO!</div>
+                                <div class="neon-text-tertiary" style="font-size:1.3rem;font-weight:700">ZNALEZIONO!</div>
                             </div>
                             <div style="text-align:right">
-                                <div style="font-size:1.5rem;font-weight:700;color:#f59e0b">${z.total} zł</div>
+                                <div style="font-size:1.5rem;font-weight:700;color:#f59e0b">${z.total} zl</div>
                             </div>
                         </div>
 
                         ${produktyHtml}
 
-                        <div style="background:#0a0a0f;border-radius:12px;padding:15px;margin-bottom:15px">
-                            <div style="font-size:0.75rem;color:#64748b;margin-bottom:5px">📦 WYSYŁKA DO:</div>
+                        <div class="glass-panel" style="padding:15px;margin-bottom:15px">
+                            <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:5px">WYSYLKA DO:</div>
                             <div style="font-size:1.1rem;font-weight:600;color:#fff">${z.buyer}</div>
-                            <div style="color:#94a3b8;margin-top:5px">${z.address}</div>
-                            ${z.pickup_point ? `<div style="color:#8b5cf6;margin-top:8px;font-weight:600">🏪 ${z.pickup_point}</div>` : ''}
+                            <div style="color:rgba(255,255,255,0.5);margin-top:5px">${z.address}</div>
+                            ${z.pickup_point ? `<div style="color:#c180ff;margin-top:8px;font-weight:600">${z.pickup_point}</div>` : ''}
                         </div>
 
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                            <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/${z.order_id}" target="_blank" style="display:block;padding:15px;background:#3b82f6;border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600;font-size:1rem">
-                                📦 NADAJ NA ALLEGRO
+                            <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/${z.order_id}" target="_blank" class="pack-btn" style="display:block;padding:15px;background:linear-gradient(135deg,var(--neon-primary),rgba(0,241,254,0.7));border-radius:10px;color:#000;text-decoration:none;text-align:center;font-weight:600;font-size:1rem">
+                                NADAJ NA ALLEGRO
                             </a>
-                            <button onclick="oznaczSpakowane('${z.order_id}', '${z.buyer}')" style="padding:15px;background:#22c55e;border:none;border-radius:10px;color:#fff;font-weight:600;font-size:1rem;cursor:pointer">
-                                ✅ SPAKOWANE
+                            <button onclick="oznaczSpakowane('${z.order_id}', '${z.buyer}')" class="pack-btn" style="padding:15px;background:linear-gradient(135deg,#5bf083,rgba(91,240,131,0.7));border:none;border-radius:10px;color:#000;font-weight:600;font-size:1rem;cursor:pointer">
+                                SPAKOWANE
                             </button>
                         </div>
                     </div>`;
@@ -217,8 +220,8 @@ function szukajProduktu() {
         })
         .catch(err => {
             document.getElementById('wynik').innerHTML = `
-                <div style="background:#12121a;border:2px solid #ef4444;border-radius:16px;padding:20px;text-align:center">
-                    <div style="color:#ef4444">Błąd: ${err}</div>
+                <div class="glass-card" style="border:2px solid #ef4444;padding:20px;text-align:center;box-shadow:0 0 20px rgba(239,68,68,0.15)">
+                    <div style="color:#ef4444">Blad: ${err}</div>
                 </div>`;
         });
 }
@@ -231,18 +234,18 @@ function togglePackItem(idx) {
     if (packedItems.has(idx)) {
         packedItems.delete(idx);
         el.style.opacity = '1';
-        el.style.borderColor = '#1e1e2e';
+        el.style.borderColor = 'rgba(255,255,255,0.06)';
         check.innerHTML = '';
-        check.style.borderColor = '#64748b';
+        check.style.borderColor = 'rgba(255,255,255,0.2)';
         check.style.background = 'transparent';
     } else {
         packedItems.add(idx);
         el.style.opacity = '0.5';
-        el.style.borderColor = '#22c55e';
+        el.style.borderColor = '#5bf083';
         check.innerHTML = '✓';
-        check.style.borderColor = '#22c55e';
-        check.style.background = '#22c55e';
-        check.style.color = '#fff';
+        check.style.borderColor = '#5bf083';
+        check.style.background = '#5bf083';
+        check.style.color = '#000';
         if (navigator.vibrate) navigator.vibrate(30);
     }
 }
@@ -253,13 +256,13 @@ function oznaczSpakowane(orderId, buyer) {
     if (historiaSpakowanych.length > 10) historiaSpakowanych.pop();
 
     document.getElementById('historiaLista').innerHTML = historiaSpakowanych
-        .map(h => `<div style="padding:5px 0;border-bottom:1px solid #1e1e2e">✅ ${h.buyer} - ${h.time}</div>`)
+        .map(h => `<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.5)">${h.buyer} - ${h.time}</div>`)
         .join('');
 
     document.getElementById('wynik').style.display = 'none';
     document.getElementById('scanInput').value = '';
 
-    // Reset lastResult żeby można było zeskanować ten sam kod
+    // Reset lastResult zeby mozna bylo zeskanowac ten sam kod
     lastResult = '';
 }
 </script>

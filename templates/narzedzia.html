@@ -3,32 +3,33 @@
 {% block content %}
 <style>
 .narz-header{text-align:center;padding:24px 0 8px}
-.narz-header h1{font-size:1.6rem;background:linear-gradient(135deg,#6366f1,#22c55e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.narz-header h1{font-size:1.6rem;margin-bottom:4px}
 .narz-header small{color:var(--text-muted,#64748b);font-size:0.82rem}
-.narz-section{font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted,#64748b);margin:24px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border-color,#1e1e2e);font-weight:600}
+.narz-section{font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--neon-primary);text-shadow:0 0 10px rgba(0,241,254,0.3);margin:24px 0 12px;padding-bottom:8px;border-bottom:1px solid rgba(0,241,254,0.12);font-weight:600}
 .narz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:8px}
-.narz-card{display:flex;align-items:center;gap:16px;background:var(--bg-secondary,#12121a);border:1px solid var(--border-color,#1e1e2e);border-radius:14px;padding:18px 20px;text-decoration:none;color:var(--text-primary,#e2e8f0);transition:all 0.25s;cursor:pointer}
-.narz-card:hover{border-color:#6366f1;transform:translateY(-2px);box-shadow:0 8px 24px rgba(99,102,241,0.15)}
-.narz-card.featured{border-color:#6366f155;background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(34,197,94,0.05))}
-.narz-card.featured:hover{border-color:#6366f1;box-shadow:0 8px 24px rgba(99,102,241,0.25)}
-.narz-card.danger{border-color:#ef444433}
-.narz-card.danger:hover{border-color:#ef4444;box-shadow:0 8px 24px rgba(239,68,68,0.15)}
-.nc-icon{font-size:1.8rem;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(99,102,241,0.1);flex-shrink:0}
-.nc-icon.green{background:rgba(34,197,94,0.1)}
+.narz-card{display:flex;align-items:center;gap:16px;border-radius:14px;padding:18px 20px;text-decoration:none;color:var(--text-primary,#e2e8f0);cursor:pointer}
+.narz-card:hover{border-color:rgba(0,241,254,0.4)!important;transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,241,254,0.12),0 0 20px rgba(0,241,254,0.06),inset 0 1px 0 rgba(0,241,254,0.08)}
+.narz-card.featured{border-color:rgba(0,241,254,0.2)!important;background:linear-gradient(135deg,rgba(0,241,254,0.06),rgba(193,128,255,0.04))}
+.narz-card.featured:hover{border-color:rgba(0,241,254,0.5)!important;box-shadow:0 8px 24px rgba(0,241,254,0.2),0 0 30px rgba(0,241,254,0.08),inset 0 1px 0 rgba(0,241,254,0.1)}
+.narz-card.danger{border-color:rgba(239,68,68,0.2)!important}
+.narz-card.danger:hover{border-color:rgba(239,68,68,0.5)!important;box-shadow:0 8px 24px rgba(239,68,68,0.15)}
+.nc-icon{font-size:1.8rem;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:var(--neon-primary-soft);flex-shrink:0}
+.nc-icon.green{background:var(--neon-tertiary-soft)}
 .nc-icon.orange{background:rgba(249,115,22,0.1)}
 .nc-icon.red{background:rgba(239,68,68,0.1)}
-.nc-icon.blue{background:rgba(59,130,246,0.1)}
-.nc-icon.cyan{background:rgba(6,182,212,0.1)}
+.nc-icon.blue{background:var(--neon-primary-soft)}
+.nc-icon.cyan{background:var(--neon-primary-soft)}
+.nc-icon.purple{background:var(--neon-secondary-soft)}
 .nc-info{flex:1;min-width:0}
 .nc-name{font-weight:700;font-size:0.92rem;margin-bottom:3px}
 .nc-desc{font-size:0.75rem;color:var(--text-muted,#64748b);line-height:1.3}
-.nc-arrow{color:var(--text-muted,#64748b);font-size:1.1rem;transition:transform 0.2s}
-.narz-card:hover .nc-arrow{transform:translateX(3px);color:#6366f1}
+.nc-arrow{color:var(--text-muted,#64748b);font-size:1.1rem;transition:transform 0.2s,color 0.2s}
+.narz-card:hover .nc-arrow{transform:translateX(3px);color:var(--neon-primary)}
 
 /* Animations */
 @keyframes fadeSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeSlideLeft{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
-@keyframes pulse-glow{0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,0)}50%{box-shadow:0 0 20px 2px rgba(99,102,241,0.15)}}
+@keyframes pulse-neon{0%,100%{box-shadow:0 0 0 0 rgba(0,241,254,0)}50%{box-shadow:0 0 20px 2px rgba(0,241,254,0.15),0 0 40px rgba(0,241,254,0.05)}}
 .narz-header{animation:fadeSlideUp 0.5s ease}
 .narz-section{animation:fadeSlideLeft 0.4s ease both}
 .narz-section:nth-of-type(2){animation-delay:0.1s}
@@ -45,22 +46,22 @@
 .narz-grid:nth-of-type(4) .narz-card:nth-child(3){animation-delay:0.3s}
 .narz-grid:nth-of-type(5) .narz-card:nth-child(1){animation-delay:0.3s}
 .narz-grid:nth-of-type(5) .narz-card:nth-child(2){animation-delay:0.35s}
-.narz-card.featured{animation:fadeSlideUp 0.5s ease, pulse-glow 3s ease-in-out infinite 1s}
+.narz-card.featured{animation:fadeSlideUp 0.5s ease, pulse-neon 3s ease-in-out infinite 1s}
 .nc-icon{transition:transform 0.3s ease}
 .narz-card:hover .nc-icon{transform:scale(1.15) rotate(-5deg)}
 .narz-card.locked{opacity:0.5;position:relative}
-.narz-card.locked:hover{transform:none;box-shadow:none;border-color:var(--border-color)}
-.plan-lock{position:absolute;top:8px;right:12px;font-size:0.65rem;padding:2px 8px;border-radius:8px;background:rgba(139,92,246,0.15);color:#a78bfa;font-weight:700;letter-spacing:0.5px}
+.narz-card.locked:hover{transform:none;box-shadow:none;border-color:rgba(255,255,255,0.08)!important}
+.plan-lock{position:absolute;top:8px;right:12px;font-size:0.65rem;padding:2px 8px;border-radius:8px;background:var(--neon-secondary-soft);color:var(--neon-secondary);font-weight:700;letter-spacing:0.5px;text-shadow:0 0 8px rgba(193,128,255,0.3)}
 </style>
 
 <div class="narz-header">
-    <h1>NARZEDZIA</h1>
+    <h1 class="font-display gradient-text-stitch">NARZEDZIA</h1>
     <small>Analiza, kalkulatory i automatyzacja</small>
 </div>
 
 <div class="narz-section">Analiza i raporty {% if plan_level < 2 %}<span class="plan-lock">PRO</span>{% endif %}</div>
 <div class="narz-grid">
-    <a href="/analytics/profit" class="narz-card featured {{ 'locked' if plan_level < 2 }}">
+    <a href="/analytics/profit" class="narz-card glass-card featured {{ 'locked' if plan_level < 2 }}">
         <div class="nc-icon green">💹</div>
         <div class="nc-info">
             <div class="nc-name">Profit Analyzer</div>
@@ -69,7 +70,7 @@
         {% if plan_level < 2 %}<span class="plan-lock">PRO</span>{% endif %}
         <div class="nc-arrow">›</div>
     </a>
-    <a href="/analytics/dashboard" class="narz-card {{ 'locked' if plan_level < 2 }}">
+    <a href="/analytics/dashboard" class="narz-card glass-card {{ 'locked' if plan_level < 2 }}">
         <div class="nc-icon blue">📊</div>
         <div class="nc-info">
             <div class="nc-name">Dashboard KPI</div>
@@ -78,7 +79,7 @@
         {% if plan_level < 2 %}<span class="plan-lock">PRO</span>{% endif %}
         <div class="nc-arrow">›</div>
     </a>
-    <a href="/narzedzia/raporty" class="narz-card {{ 'locked' if plan_level < 2 }}">
+    <a href="/narzedzia/raporty" class="narz-card glass-card {{ 'locked' if plan_level < 2 }}">
         <div class="nc-icon">📈</div>
         <div class="nc-info">
             <div class="nc-name">Raporty ROI</div>
@@ -87,7 +88,7 @@
         {% if plan_level < 2 %}<span class="plan-lock">PRO</span>{% endif %}
         <div class="nc-arrow">›</div>
     </a>
-    <a href="/analytics/allegro-performance" class="narz-card featured {{ 'locked' if plan_level < 2 }}">
+    <a href="/analytics/allegro-performance" class="narz-card glass-card featured {{ 'locked' if plan_level < 2 }}">
         <div class="nc-icon blue">📊</div>
         <div class="nc-info">
             <div class="nc-name">Allegro Performance</div>
@@ -96,7 +97,7 @@
         {% if plan_level < 2 %}<span class="plan-lock">PRO</span>{% endif %}
         <div class="nc-arrow">›</div>
     </a>
-    <a href="/narzedzia/analiza-oferty" class="narz-card {{ 'locked' if plan_level < 2 }}">
+    <a href="/narzedzia/analiza-oferty" class="narz-card glass-card {{ 'locked' if plan_level < 2 }}">
         <div class="nc-icon cyan">🔍</div>
         <div class="nc-info">
             <div class="nc-name">Analiza oferty</div>
@@ -105,7 +106,7 @@
         {% if plan_level < 2 %}<span class="plan-lock">PRO</span>{% endif %}
         <div class="nc-arrow">›</div>
     </a>
-    <a href="/analityka/analizator-palet" class="narz-card {{ 'locked' if plan_level < 2 }}">
+    <a href="/analityka/analizator-palet" class="narz-card glass-card {{ 'locked' if plan_level < 2 }}">
         <div class="nc-icon purple">🤖</div>
         <div class="nc-info">
             <div class="nc-name">Analizator palet</div>
@@ -118,7 +119,7 @@
 
 <div class="narz-section">Kalkulatory</div>
 <div class="narz-grid">
-    <a href="/analytics/kalkulator-palety" class="narz-card {{ 'locked' if plan_level < 2 }}">
+    <a href="/analytics/kalkulator-palety" class="narz-card glass-card {{ 'locked' if plan_level < 2 }}">
         <div class="nc-icon orange">🧮</div>
         <div class="nc-info">
             <div class="nc-name">Kalkulator oplacalnosci</div>
@@ -127,7 +128,7 @@
         {% if plan_level < 2 %}<span class="plan-lock">PRO</span>{% endif %}
         <div class="nc-arrow">›</div>
     </a>
-    <a href="/narzedzia/kalkulator" class="narz-card">
+    <a href="/narzedzia/kalkulator" class="narz-card glass-card">
         <div class="nc-icon green">💰</div>
         <div class="nc-info">
             <div class="nc-name">Kalkulator marzy</div>
@@ -139,7 +140,7 @@
 
 <div class="narz-section">Automatyzacja {% if plan_level < 3 %}<span class="plan-lock">MAX</span>{% endif %}</div>
 <div class="narz-grid">
-    <a href="/narzedzia/generator" class="narz-card {{ 'locked' if plan_level < 3 }}">
+    <a href="/narzedzia/generator" class="narz-card glass-card {{ 'locked' if plan_level < 3 }}">
         <div class="nc-icon cyan">✨</div>
         <div class="nc-info">
             <div class="nc-name">Generator opisow AI</div>
@@ -148,7 +149,7 @@
         {% if plan_level < 3 %}<span class="plan-lock">MAX</span>{% endif %}
         <div class="nc-arrow">›</div>
     </a>
-    <a href="/narzedzia/export" class="narz-card {{ 'locked' if plan_level < 2 }}">
+    <a href="/narzedzia/export" class="narz-card glass-card {{ 'locked' if plan_level < 2 }}">
         <div class="nc-icon blue">📤</div>
         <div class="nc-info">
             <div class="nc-name">Export do Allegro</div>
@@ -157,7 +158,7 @@
         {% if plan_level < 2 %}<span class="plan-lock">PRO</span>{% endif %}
         <div class="nc-arrow">›</div>
     </a>
-    <a href="/narzedzia/cloud-export" class="narz-card {{ 'locked' if plan_level < 2 }}">
+    <a href="/narzedzia/cloud-export" class="narz-card glass-card {{ 'locked' if plan_level < 2 }}">
         <div class="nc-icon">☁️</div>
         <div class="nc-info">
             <div class="nc-name">Eksport do chmury</div>
@@ -171,7 +172,7 @@
 <div class="narz-section">System</div>
 <div class="narz-grid">
     {% if is_dev %}
-    <a href="/narzedzia/licencje" class="narz-card">
+    <a href="/narzedzia/licencje" class="narz-card glass-card">
         <div class="nc-icon orange">🔑</div>
         <div class="nc-info">
             <div class="nc-name">Generator licencji</div>
@@ -179,7 +180,7 @@
         </div>
         <div class="nc-arrow">›</div>
     </a>
-    <a href="/admin/subscriptions" class="narz-card">
+    <a href="/admin/subscriptions" class="narz-card glass-card">
         <div class="nc-icon purple">📋</div>
         <div class="nc-info">
             <div class="nc-name">Subskrypcje</div>
@@ -188,7 +189,7 @@
         <div class="nc-arrow">›</div>
     </a>
     {% endif %}
-    <a href="/support/zgloszenie" class="narz-card">
+    <a href="/support/zgloszenie" class="narz-card glass-card">
         <div class="nc-icon red">🐛</div>
         <div class="nc-info">
             <div class="nc-name">Zgłoś błąd</div>
@@ -196,7 +197,7 @@
         </div>
         <div class="nc-arrow">›</div>
     </a>
-    <a href="/support/pomysl" class="narz-card">
+    <a href="/support/pomysl" class="narz-card glass-card">
         <div class="nc-icon green">💡</div>
         <div class="nc-info">
             <div class="nc-name">Zaproponuj funkcję</div>
@@ -204,7 +205,7 @@
         </div>
         <div class="nc-arrow">›</div>
     </a>
-    <div class="narz-card" id="updateCard" onclick="doUpdate()">
+    <div class="narz-card glass-card" id="updateCard" onclick="doUpdate()">
         <div class="nc-icon blue">🔄</div>
         <div class="nc-info">
             <div class="nc-name">Update systemu</div>

@@ -1,128 +1,242 @@
 {% extends "base.html" %}
 {% block content %}
-<style>.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}</style>
+<style>
+/* Spinner */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-<!-- Header -->
-<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px">
-    <div>
-        <h1 class="font-display" style="font-size:2rem;font-weight:800;color:var(--text);letter-spacing:-1px">
-            <span class="material-symbols-outlined" style="font-size:1.6rem;vertical-align:middle;margin-right:8px;color:#00f1fe">local_shipping</span>WYSYŁKI
-        </h1>
-        <p style="color:var(--text-muted);font-size:0.88rem;margin-top:4px">Zamówienia do spakowania i nadania</p>
-    </div>
+/* fadeSlideUp animation for cards */
+@keyframes fadeSlideUp{
+    from{opacity:0;transform:translateY(18px)}
+    to{opacity:1;transform:translateY(0)}
+}
+.fade-slide-up{animation:fadeSlideUp 0.4s ease both}
+
+/* Action grid */
+.wysylki-actions{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:18px}
+.wysylki-actions .action-btn{
+    display:flex;align-items:center;justify-content:center;gap:6px;
+    padding:10px 8px;border-radius:var(--radius-sm);
+    text-decoration:none;font-weight:600;font-size:0.85rem;
+    color:#fff;cursor:pointer;border:none;width:100%;
+    transition:all 0.25s ease;
+}
+.wysylki-actions .action-btn:hover{transform:translateY(-2px);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+
+.action-btn.scan{border:1px solid rgba(91,240,131,0.35);color:var(--neon-tertiary)}
+.action-btn.scan:hover{box-shadow:0 0 20px rgba(91,240,131,0.2)}
+.action-btn.refresh{border:1px solid rgba(0,241,254,0.35);color:var(--neon-primary)}
+.action-btn.refresh:hover{box-shadow:0 0 20px rgba(0,241,254,0.2)}
+.action-btn.select{border:1px solid rgba(234,179,8,0.35);color:var(--yellow)}
+.action-btn.select:hover{box-shadow:0 0 20px rgba(234,179,8,0.2)}
+.action-btn.print{border:1px solid rgba(193,128,255,0.35);color:var(--neon-secondary)}
+.action-btn.print:hover{box-shadow:0 0 20px rgba(193,128,255,0.2)}
+.action-btn.clear{border:1px solid rgba(239,68,68,0.35);color:var(--red)}
+.action-btn.clear:hover{box-shadow:0 0 20px rgba(239,68,68,0.2)}
+
+/* Order cards */
+.order-card{
+    display:flex;align-items:stretch;overflow:hidden;
+    margin-bottom:10px;
+    transition:all 0.3s ease;
+}
+.order-card:hover{
+    border-color:rgba(0,241,254,0.2)!important;
+    box-shadow:0 0 24px rgba(0,241,254,0.08),0 4px 24px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.order-sidebar{
+    min-width:50px;
+    background:rgba(255,255,255,0.03);
+    border-right:1px solid rgba(255,255,255,0.06);
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:6px;padding:4px;
+}
+.order-index{font-size:1.3rem;font-weight:700;color:var(--neon-primary)}
+.order-cb{width:18px;height:18px;cursor:pointer;accent-color:var(--neon-primary)}
+
+.order-photos{display:flex;flex-direction:column;gap:4px;padding:8px;justify-content:center}
+.order-photos img{width:50px;height:50px;object-fit:contain;border-radius:6px;background:#fff}
+
+.order-body{flex:1;padding:10px}
+.order-product{font-weight:600;font-size:0.9rem;margin-bottom:2px}
+.order-qty{color:var(--neon-primary);font-weight:700}
+.order-address{font-size:0.8rem;color:var(--text-muted);margin-top:4px}
+.order-location{
+    display:inline-block;padding:2px 8px;border-radius:4px;
+    font-size:0.75rem;font-weight:600;margin-top:4px;
+    background:var(--neon-secondary-soft);color:var(--neon-secondary);
+    border:1px solid rgba(193,128,255,0.2);
+}
+
+.order-actions{display:flex;flex-direction:column;gap:4px;padding:8px;justify-content:center}
+.order-actions a{
+    padding:6px 12px;border-radius:6px;
+    text-decoration:none;font-size:0.75rem;font-weight:600;text-align:center;
+    transition:all 0.2s;
+}
+.order-actions .btn-done{
+    background:rgba(91,240,131,0.12);color:var(--neon-tertiary);
+    border:1px solid rgba(91,240,131,0.2);
+}
+.order-actions .btn-done:hover{background:rgba(91,240,131,0.25)}
+.order-actions .btn-view{
+    background:rgba(0,241,254,0.12);color:var(--neon-primary);
+    border:1px solid rgba(0,241,254,0.2);
+}
+.order-actions .btn-view:hover{background:rgba(0,241,254,0.25)}
+
+/* Bulk bar */
+#bulkBar{
+    text-align:center;padding:12px;margin-bottom:14px;
+    border-color:rgba(0,241,254,0.3)!important;
+}
+#bulkBar .bulk-count{color:var(--neon-primary);font-weight:700;margin-right:10px}
+#bulkBar .bulk-btn{
+    padding:8px 20px;border:none;border-radius:8px;
+    font-weight:600;cursor:pointer;font-size:0.85rem;transition:all 0.2s;
+}
+#bulkBar .bulk-send{
+    background:rgba(91,240,131,0.15);color:var(--neon-tertiary);
+    border:1px solid rgba(91,240,131,0.3);
+}
+#bulkBar .bulk-send:hover{background:rgba(91,240,131,0.3)}
+#bulkBar .bulk-deselect{
+    background:rgba(239,68,68,0.15);color:var(--red);
+    border:1px solid rgba(239,68,68,0.3);margin-left:8px;
+}
+#bulkBar .bulk-deselect:hover{background:rgba(239,68,68,0.3)}
+
+/* Empty state */
+.empty-state{text-align:center;padding:50px 20px}
+.empty-state .empty-icon{font-size:3.5rem;margin-bottom:15px;filter:drop-shadow(0 0 12px rgba(91,240,131,0.3))}
+.empty-state .empty-title{font-size:1.1rem;font-weight:600;margin-bottom:6px}
+.empty-state .empty-sub{font-size:0.85rem;color:var(--text-muted)}
+
+/* Back link override */
+a.back-link{
+    display:block;text-align:center;padding:14px;
+    color:var(--text-muted);text-decoration:none;font-size:0.85rem;
+    transition:color 0.2s;
+}
+a.back-link:hover{color:var(--neon-primary)}
+
+/* Responsive */
+@media(max-width:600px){
+    .wysylki-actions{grid-template-columns:repeat(3,1fr)}
+    .wysylki-actions .action-btn:nth-child(4),
+    .wysylki-actions .action-btn:nth-child(5){grid-column:span 1}
+}
+</style>
+
+<!-- Page header -->
+<div class="header no-print">
+    <h1 class="font-display neon-text-primary">WYSYLKI</h1>
+    <small>Zamowienia do spakowania i nadania</small>
 </div>
 
-<!-- Nagłówek druku -->
+<!-- Print header -->
 <div class="print-only" style="display:none;text-align:center;margin-bottom:20px;padding-bottom:10px;border-bottom:2px solid #000">
-    <h2 style="margin:0">📦 LISTA PAKOWANIA</h2>
-    <small>{{ zamowienia_cnt }} zamówień · {{ produkty_cnt }} produktów · {{ wartosc }} zł</small>
+    <h2 style="margin:0">LISTA PAKOWANIA</h2>
+    <small>{{ zamowienia_cnt }} zamowien &middot; {{ produkty_cnt }} produktow &middot; {{ wartosc }} zl</small>
 </div>
 
-<!-- Action bar -->
-<div class="glass-card no-print" style="padding:14px;border-radius:var(--radius);margin-bottom:20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-    <a href="/wysylki/pakowanie" style="padding:8px 16px;background:linear-gradient(135deg,#5bf083,#22c55e);border-radius:10px;color:#000;text-decoration:none;font-weight:700;font-size:0.85rem;display:flex;align-items:center;gap:6px">
-        <span class="material-symbols-outlined" style="font-size:1rem">qr_code_scanner</span> Skanuj
+<!-- Action buttons -->
+<div class="wysylki-actions no-print">
+    <a href="/wysylki/pakowanie" class="glass-card action-btn scan">
+        Skanuj
     </a>
-    <a href="/wysylki/allegro?refresh=1" id="refreshBtn" onclick="this.innerHTML='<span class=\'spinner\'></span> Sync...';this.style.opacity='0.7';this.style.pointerEvents='none'" style="padding:8px 16px;background:rgba(0,241,254,0.1);border:1px solid rgba(0,241,254,0.3);border-radius:10px;color:#00f1fe;text-decoration:none;font-weight:700;font-size:0.85rem;display:flex;align-items:center;gap:6px">
-        <span class="material-symbols-outlined" style="font-size:1rem">sync</span> Odśwież
+    <a href="/wysylki/allegro?refresh=1" id="refreshBtn" onclick="this.innerHTML='<span class=\'spinner\'></span> Sync...';this.style.opacity='0.7';this.style.pointerEvents='none'" class="glass-card action-btn refresh">
+        Odswiez
     </a>
-    <button id="toggleAllBtn" onclick="toggleAll(true)" style="padding:8px 16px;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.3);border-radius:10px;color:#eab308;font-weight:700;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;gap:6px">
-        <span class="material-symbols-outlined" style="font-size:1rem">select_check_box</span> Zaznacz
+    <button id="toggleAllBtn" onclick="toggleAll(true)" class="glass-card action-btn select">
+        Zaznacz
     </button>
-    <a href="/wysylki/drukuj" target="_blank" style="padding:8px 16px;background:rgba(193,128,255,0.1);border:1px solid rgba(193,128,255,0.3);border-radius:10px;color:#c180ff;text-decoration:none;font-weight:700;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;gap:6px">
-        <span class="material-symbols-outlined" style="font-size:1rem">print</span> Drukuj
+    <a href="/wysylki/drukuj" target="_blank" class="glass-card action-btn print">
+        Drukuj
     </a>
-    <a href="/wysylki/wyczysc-all" onclick="return confirm('Oznaczyć WSZYSTKIE widoczne zamówienia jako wysłane?')" style="padding:8px 16px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;color:#ef4444;text-decoration:none;font-weight:700;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;gap:6px;margin-left:auto">
-        <span class="material-symbols-outlined" style="font-size:1rem">delete_sweep</span> Wyczyść
+    <a href="/wysylki/wyczysc-all" onclick="return confirm('Oznaczyc WSZYSTKIE widoczne zamowienia jako wyslane?')" class="glass-card action-btn clear">
+        Wyczysc
     </a>
 </div>
 
-<!-- KPI Stats -->
-<div class="no-print" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
-    <div class="glass-card stitch-kpi" style="text-align:center;padding:18px;border-radius:var(--radius)">
-        <div class="kpi-value" style="color:#eab308">{{ zamowienia_cnt }}</div>
-        <div class="kpi-label">Do wysłania</div>
+<!-- Stats row -->
+<div class="stat-row no-print" style="margin-bottom:18px">
+    <div class="glass-card stitch-kpi" style="text-align:center">
+        <div class="kpi-value neon-text-primary">{{ zamowienia_cnt }}</div>
+        <div class="kpi-label">DO WYSLANIA</div>
     </div>
-    <div class="glass-card stitch-kpi" style="text-align:center;padding:18px;border-radius:var(--radius)">
-        <div class="kpi-value neon-text-primary">{{ produkty_cnt }}</div>
-        <div class="kpi-label">Produktów</div>
+    <div class="glass-card stitch-kpi" style="text-align:center">
+        <div class="kpi-value neon-text-secondary">{{ produkty_cnt }}</div>
+        <div class="kpi-label">PRODUKTOW</div>
     </div>
-    <div class="glass-card stitch-kpi" style="text-align:center;padding:18px;border-radius:var(--radius)">
-        <div class="kpi-value neon-text-tertiary">{{ wartosc }} zł</div>
-        <div class="kpi-label">Wartość</div>
+    <div class="glass-card stitch-kpi" style="text-align:center">
+        <div class="kpi-value neon-text-tertiary">{{ wartosc }} zl</div>
+        <div class="kpi-label">WARTOSC</div>
     </div>
 </div>
 
-<!-- Bulk bar -->
-<div class="no-print" id="bulkBar" style="display:none;margin-bottom:14px" class="glass-card neon-glow-primary">
-    <div class="glass-card neon-glow-primary" style="padding:12px 18px;border-radius:var(--radius);text-align:center;display:flex;align-items:center;justify-content:center;gap:12px">
-        <span id="selectedCount" style="color:#00f1fe;font-weight:700;font-family:'Space Grotesk',sans-serif">0 zaznaczonych</span>
-        <button onclick="submitBulk()" style="padding:8px 20px;background:linear-gradient(135deg,#5bf083,#22c55e);border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer;font-size:0.88rem">✅ Wyślij zaznaczone</button>
-        <button onclick="toggleAll(false)" style="padding:8px 20px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:8px;color:#ef4444;font-weight:700;cursor:pointer;font-size:0.88rem">✖ Odznacz</button>
-    </div>
+<!-- Bulk actions bar -->
+<div class="no-print glass-panel neon-glow-primary" id="bulkBar" style="display:none">
+    <span id="selectedCount" class="bulk-count">0 zaznaczonych</span>
+    <button onclick="submitBulk()" class="bulk-btn bulk-send">Wyslij zaznaczone</button>
+    <button onclick="toggleAll(false)" class="bulk-btn bulk-deselect">Odznacz</button>
 </div>
 
 <form id="bulkForm" method="POST" action="/wysylki/bulk-wyslane-allegro">
-<!-- Order cards -->
+<!-- Order list -->
 {% for z in zamowienia %}
-<div class="order-card glass-card" style="display:flex;align-items:stretch;border-radius:var(--radius);margin-bottom:10px;overflow:hidden;transition:all 0.3s;border-left:3px solid rgba(0,241,254,0.3)">
+<div class="order-card glass-card fade-slide-up" style="animation-delay:{{ loop.index0 * 0.04 }}s">
     <!-- Checkbox + Number -->
-    <div style="min-width:52px;background:rgba(0,0,0,0.15);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:6px">
-        <input type="checkbox" name="order_ids" value="{{ z.order_id }}" class="order-cb no-print" onchange="updateBulk()" style="width:20px;height:20px;cursor:pointer;accent-color:#00f1fe">
-        <span class="font-display" style="font-size:1.3rem;font-weight:800;color:#eab308">{{ loop.index }}</span>
+    <div class="order-sidebar">
+        <input type="checkbox" name="order_ids" value="{{ z.order_id }}" class="order-cb no-print" onchange="updateBulk()">
+        <span class="order-index">{{ loop.index }}</span>
     </div>
 
     <!-- Product photos -->
-    <div class="product-photos" style="display:flex;flex-direction:column;gap:4px;padding:10px;justify-content:center">
+    <div class="order-photos product-photos">
         {% for p in z.produkty %}
-        <img src="{{ p.zdjecie_url or '/static/placeholder.png' }}"
-             style="width:52px;height:52px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,0.9);border:1px solid rgba(255,255,255,0.1)"
-             onerror="this.src='/static/placeholder.png'" loading="lazy">
+        <img src="{{ p.zdjecie_url or 'https://via.placeholder.com/45' }}"
+             onerror="this.src='https://via.placeholder.com/45'"
+             alt="">
         {% endfor %}
     </div>
 
     <!-- Content -->
-    <div style="flex:1;padding:12px">
+    <div class="order-body">
         {% for p in z.produkty %}
-        <div style="font-weight:600;font-size:0.95rem;margin-bottom:2px">
-            {{ p.name_short }}{% if p.qty > 1 %} <span style="color:#eab308;font-weight:700">(×{{ p.qty }})</span>{% endif %}
+        <div class="order-product">
+            {{ p.name_short }}{% if p.qty > 1 %} <span class="order-qty">(x{{ p.qty }})</span>{% endif %}
         </div>
         {% endfor %}
 
-        <div style="font-size:0.82rem;color:var(--text-muted);margin-top:6px;display:flex;align-items:center;gap:4px">
-            <span class="material-symbols-outlined" style="font-size:0.9rem">location_on</span>
+        <div class="order-address">
             {% if z.pickup_point %}{{ z.pickup_point }}{% else %}{{ z.address }}{% endif %}
         </div>
 
         {% for p in z.produkty %}{% if p.lokalizacja %}
-        <div style="display:inline-flex;align-items:center;gap:4px;background:rgba(193,128,255,0.15);color:#c180ff;padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;margin-top:6px;border:1px solid rgba(193,128,255,0.2)">
-            <span class="material-symbols-outlined" style="font-size:0.8rem">shelves</span> {{ p.lokalizacja }}
-        </div>
+        <div class="order-location">{{ p.lokalizacja }}</div>
         {% endif %}{% endfor %}
     </div>
 
     <!-- Action buttons -->
-    <div class="no-print" style="display:flex;flex-direction:column;gap:6px;padding:10px;justify-content:center">
-        <a href="/wysylki/wyslano-order/{{ z.order_id }}" style="padding:8px 14px;background:linear-gradient(135deg,#5bf083,#22c55e);border-radius:8px;color:#000;text-decoration:none;font-size:0.82rem;font-weight:700;text-align:center;display:flex;align-items:center;justify-content:center;gap:4px">
-            <span class="material-symbols-outlined" style="font-size:0.9rem">check_circle</span>
-        </a>
-        <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{{ z.order_id }}" target="_blank" style="padding:8px 14px;background:rgba(0,241,254,0.1);border:1px solid rgba(0,241,254,0.2);border-radius:8px;color:#00f1fe;text-decoration:none;font-size:0.82rem;text-align:center;display:flex;align-items:center;justify-content:center;gap:4px">
-            <span class="material-symbols-outlined" style="font-size:0.9rem">open_in_new</span>
-        </a>
+    <div class="order-actions no-print">
+        <a href="/wysylki/wyslano-order/{{ z.order_id }}" class="btn-done">OK</a>
+        <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{{ z.order_id }}" target="_blank" class="btn-view">Allegro</a>
     </div>
 </div>
 {% endfor %}
 </form>
 
 {% if zamowienia_cnt == 0 %}
-<div class="glass-card" style="text-align:center;padding:50px;border-radius:var(--radius)">
-    <div class="material-symbols-outlined neon-text-tertiary" style="font-size:3.5rem;margin-bottom:15px">check_circle</div>
-    <div class="font-display" style="font-size:1.2rem;font-weight:700;color:var(--text)">Brak zamówień do wysłania!</div>
-    <div style="font-size:0.88rem;margin-top:6px;color:var(--text-muted)">Wszystko nadane lub brak nowych zamówień</div>
+<div class="empty-state glass-card fade-slide-up">
+    <div class="empty-icon">&#10004;</div>
+    <div class="empty-title neon-text-tertiary">Brak zamowien do wyslania!</div>
+    <div class="empty-sub">Wszystko nadane lub brak nowych zamowien</div>
 </div>
 {% endif %}
 
-<a href="/" class="back no-print" style="margin-top:20px">← Powrót</a>
+<a href="/" class="back-link no-print">&larr; Powrot</a>
 
 <script>
 function updateBulk() {
@@ -135,29 +249,35 @@ function updateBulk() {
     var toggleBtn = document.getElementById('toggleAllBtn');
     if (toggleBtn) {
         if (checked > 0) {
-            toggleBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:1rem">deselect</span> Odznacz (' + checked + ')';
-            toggleBtn.style.background = 'rgba(100,116,139,0.15)';
-            toggleBtn.style.color = '#94a3b8';
-            toggleBtn.style.borderColor = 'rgba(100,116,139,0.3)';
+            toggleBtn.innerHTML = 'Odznacz (' + checked + ')';
+            toggleBtn.classList.remove('select');
+            toggleBtn.classList.add('clear');
         } else {
-            toggleBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:1rem">select_check_box</span> Zaznacz';
-            toggleBtn.style.background = 'rgba(234,179,8,0.1)';
-            toggleBtn.style.color = '#eab308';
-            toggleBtn.style.borderColor = 'rgba(234,179,8,0.3)';
+            toggleBtn.innerHTML = 'Zaznacz';
+            toggleBtn.classList.remove('clear');
+            toggleBtn.classList.add('select');
         }
     }
 }
 function toggleAll(state) {
     var all = document.querySelectorAll('.order-cb');
     var checkedEls = document.querySelectorAll('.order-cb:checked');
-    var newState = checkedEls.length > 0 ? false : true;
+    var newState;
+    if (checkedEls.length > 0) {
+        newState = false;
+    } else {
+        newState = true;
+    }
     all.forEach(function(cb) { cb.checked = newState; });
     updateBulk();
 }
 function submitBulk() {
     var checkedEls = document.querySelectorAll('.order-cb:checked');
-    if (checkedEls.length === 0) { alert('Zaznacz przynajmniej jedno zamówienie!'); return; }
-    if (confirm('Oznaczyć ' + checkedEls.length + ' zamówień jako wysłane?')) {
+    if (checkedEls.length === 0) {
+        alert('Zaznacz przynajmniej jedno zamowienie!');
+        return;
+    }
+    if (confirm('Oznaczyc ' + checkedEls.length + ' zamowien jako wyslane?')) {
         document.getElementById('bulkForm').submit();
     }
 }
@@ -165,15 +285,26 @@ document.addEventListener('DOMContentLoaded', function() { updateBulk(); });
 </script>
 
 <style>
-.order-card:hover{border-left-color:rgba(0,241,254,0.6)!important;box-shadow:0 4px 20px rgba(0,241,254,0.08)}
 @media print {
     body { background: #fff !important; color: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .no-print { display: none !important; }
     .print-only { display: block !important; }
-    .order-card { background: #fff !important; border: 1px solid #ccc !important; break-inside: avoid; margin-bottom: 6px !important; box-shadow:none!important; }
-    .order-card div[style*="background:rgba(0,0,0"] { background: #f0f0f0 !important; }
-    .product-photos img { border: 1px solid #ccc; }
-    nav, .back, .glass-card { backdrop-filter:none!important; }
+    .order-card {
+        background: #fff !important;
+        border: 1px solid #ccc !important;
+        break-inside: avoid;
+        margin-bottom: 6px !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        box-shadow: none !important;
+    }
+    .order-sidebar { background: #f0f0f0 !important; }
+    .order-index { color: #000 !important; text-shadow: none !important; }
+    .order-address { color: #333 !important; }
+    .order-location { background: #666 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .product-photos img, .order-photos img { border: 1px solid #ccc; }
+    nav, .back-link { display: none !important; }
+    .fade-slide-up { animation: none !important; }
 }
 </style>
 {% endblock %}
