@@ -7032,13 +7032,14 @@ def api_autowycena_paleta_stream(paleta_id):
                 nazwa = p['nazwa'] or f'Produkt #{p["id"]}'
                 prod_list.append(f'{p["id"]}. {nazwa} (szt: {p["ilosc"] or 1})')
 
-            prompt = f"""Jesteś ekspertem sprzedaży na Allegro.pl w Polsce. Dla KAŻDEGO produktu z listy podaj cenę sprzedaży na Allegro w PLN.
+            prompt = f"""Jesteś ekspertem sprzedaży na Allegro.pl w Polsce. Dla KAŻDEGO produktu z listy podaj REALISTYCZNĄ cenę sprzedaży na Allegro w PLN.
 
 WAŻNE:
-- Podaj cenę za jaką ten produkt AKTUALNIE się sprzedaje na Allegro.pl (nie zaniżaj!)
-- Produkty są NOWE, oryginalne, z Amazon/hurtowni
-- Uwzględnij że na Allegro ceny są często WYŻSZE niż na Amazon (bo Allegro to polski rynek)
-- Nie zaniżaj cen — sprzedawcy na Allegro mają marżę 30-100% ponad cenę zakupu
+- To są produkty ze ZWROTÓW KLIENTÓW (customer returns) — stan używany/otwarte opakowanie
+- Podaj cenę za jaką REALNIE sprzeda się ten produkt na Allegro jako "Stan: Używany" lub "Powystawowy"
+- Cena powinna być 60-80% ceny nowego produktu na Allegro (zwroty sprzedaje się taniej!)
+- NIE podawaj ceny jak za NOWY produkt — kupujący zwrotów oczekują niższej ceny
+- Sprawdź realne ceny na Allegro.pl dla tego produktu i obniż o 20-40% bo to zwrot
 - MUSISZ podać cenę dla KAŻDEGO produktu z listy (wszystkie {len(prod_list)} pozycji)
 
 Produkty:
@@ -7047,8 +7048,8 @@ Produkty:
 Odpowiedz DOKŁADNIE w tym formacie, po jednej linii na produkt, BEZ dodatkowego tekstu:
 ID:CENA
 Przykład:
-123:299
-456:89.99"""
+123:219
+456:64.99"""
 
             ai_prices = {}
 
