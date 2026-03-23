@@ -3032,7 +3032,7 @@ _pallet_analysis_jobs = {}
 _pallet_analysis_results = {}
 
 
-def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-flash", excel_products=None, provider="gemini"):
+def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.5-flash", excel_products=None, provider="gemini"):
     """Uruchamia analizę palety w tle — wysyła produkty do AI (Gemini/Perplexity), parsuje JSON.
     excel_products: opcjonalna lista dictów z Excela (analiza przed zakupem)"""
     import requests as _req, json as _json, sqlite3 as _sq, re as _re
@@ -3612,7 +3612,7 @@ def analizator_palet_analyze():
     else:
         provider = 'gemini'
         api_key = get_config('gemini_api_key', '')
-        ai_model = get_config('gemini_model', 'gemini-2.0-flash')
+        ai_model = get_config('gemini_model', 'gemini-2.5-flash')
 
     if not api_key:
         return jsonify({'ok': False, 'error': f'Brak klucza API {provider.title()}. Ustaw w Ustawienia.'})
@@ -3655,7 +3655,7 @@ def analiza_zakupu():
             else:
                 provider = 'gemini'
                 api_key = get_config('gemini_api_key', '')
-                ai_model = get_config('gemini_model', 'gemini-2.0-flash')
+                ai_model = get_config('gemini_model', 'gemini-2.5-flash')
 
             if not api_key:
                 return jsonify({'ok': False, 'error': f'Brak klucza API {provider.title()}. Ustaw w Ustawienia.'})

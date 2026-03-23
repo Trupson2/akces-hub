@@ -7007,6 +7007,7 @@ def api_autowycena_paleta_stream(paleta_id):
         conn = get_db()
         from modules.database import get_config
         gemini_key = get_config('gemini_api_key', '')
+        gemini_model = get_config('gemini_model', 'gemini-2.5-flash')
 
         produkty = conn.execute(
             'SELECT id, asin, nazwa, ilosc, cena_brutto, cena_allegro, paleta_id FROM produkty WHERE paleta_id = ?',
@@ -7055,7 +7056,7 @@ Przykład:
 
             if gemini_key:
                 try:
-                    api_url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}'
+                    api_url = f'https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={gemini_key}'
                     resp = _req.post(
                         api_url,
                         json={'contents': [{'parts': [{'text': prompt}]}]},
@@ -9349,8 +9350,10 @@ def ai_ocena_stanu():
             return jsonify({'success': False, 'error': 'Brak klucza Gemini API w konfiguracji'})
 
         import requests as req
+        from modules.database import get_config
+        gemini_model = get_config('gemini_model', 'gemini-2.5-flash')
         response = req.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key['wartosc']}",
+            f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={api_key['wartosc']}",
             headers={'Content-Type': 'application/json'},
             json={
                 'contents': [{

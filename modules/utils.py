@@ -14,6 +14,19 @@ except ImportError:
     GEMINI_SDK_AVAILABLE = False
     print("⚠️  google.genai not available")
 
+def get_gemini_model():
+    """Pobierz wybrany model Gemini z configu"""
+    try:
+        from modules.database import get_config
+        return get_config('gemini_model', 'gemini-2.5-flash')
+    except:
+        return 'gemini-2.5-flash'
+
+def get_gemini_api_url(api_key):
+    """Zwróć URL do Gemini API z wybranym modelem"""
+    model = get_gemini_model()
+    return f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}'
+
 # ============================================================
 # POLSKIE ZNAKI -> ASCII
 # ============================================================
@@ -844,7 +857,7 @@ Nazwa do tłumaczenia: {name}
 Odpowiedz TYLKO przetłumaczoną nazwą, bez cudzysłowów, bez komentarzy:"""
 
                 response = requests.post(
-                    f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}',
+                    get_gemini_api_url(api_key),
                     json={
                         'contents': [{'parts': [{'text': prompt}]}],
                         'generationConfig': {'maxOutputTokens': 100, 'temperature': 0.1}
@@ -902,7 +915,7 @@ Tekst: {text}
 Tłumaczenie:"""
 
                 response = requests.post(
-                    f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}',
+                    get_gemini_api_url(api_key),
                     json={
                         'contents': [{'parts': [{'text': prompt}]}],
                         'generationConfig': {'maxOutputTokens': 300, 'temperature': 0.1}
@@ -1061,7 +1074,7 @@ Wygeneruj BARDZO DŁUGI i SZCZEGÓŁOWY opis:"""
             try:
                 client = genai.Client(api_key=api_key)
                 response = client.models.generate_content(
-                    model='gemini-2.0-flash',
+                    model=get_gemini_model(),
                     contents=prompt,
                     config={
                         'temperature': 0.9,
@@ -1291,7 +1304,7 @@ Przykład DOBREGO dedykowanego promptu (dla kamery):
 Wygeneruj JESZCZE LEPSZY, bardziej szczegółowy prompt dla TEGO produktu:"""
 
         response = requests.post(
-            f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}',
+            get_gemini_api_url(gemini_key),
             json={
                 'contents': [{'parts': [{'text': meta_prompt}]}],
                 'generationConfig': {
@@ -1941,7 +1954,7 @@ PRZYKŁAD DOBREJ DŁUGOŚCI FEATURE:
 Odpowiedz TYLKO w formacie JSON (bez markdown)."""
 
             response = requests.post(
-                f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}',
+                get_gemini_api_url(api_key),
                 json={
                     'contents': [{'parts': [{'text': prompt}]}],
                     'generationConfig': {
@@ -2274,7 +2287,7 @@ ZASADY:
 - Każda cecha to 2-3 zdania"""
 
                             _ai_resp = requests.post(
-                                f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}',
+                                get_gemini_api_url(api_key),
                                 json={
                                     'contents': [{'parts': [{'text': _ai_prompt}]}],
                                     'generationConfig': {'temperature': 0.4, 'maxOutputTokens': 4000}
@@ -2424,7 +2437,7 @@ WYMAGANIA:
 
 ZWRÓĆ TYLKO tekst GPSR, bez żadnych dodatkowych komentarzy."""
 
-            _api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}"
+            _api_url = get_gemini_api_url(gemini_key)
             _payload = {
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {"temperature": 0.3, "maxOutputTokens": 4000}
@@ -2533,7 +2546,7 @@ Odpowiedz TYLKO zoptymalizowanym tytułem, nic więcej:"""
 
             print(f"🔧 [SEO] Wysyłam do Gemini...")
             response = requests.post(
-                f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}',
+                get_gemini_api_url(api_key),
                 json={
                     'contents': [{'parts': [{'text': prompt}]}],
                     'generationConfig': {'maxOutputTokens': 100, 'temperature': 0.3}

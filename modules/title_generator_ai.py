@@ -1,3 +1,4 @@
+from .utils import get_gemini_api_url
 """
 Moduł generowania tytułów ofert Allegro z wykorzystaniem AI (Gemini)
 Zgodny z wytycznymi SEO Allegro - maksymalizacja Trafności w wyszukiwarce
@@ -164,7 +165,7 @@ Wygeneruj tytuł:"""
     try:
         # Wywołanie API Gemini
         response = requests.post(
-            f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}',
+            get_gemini_api_url(gemini_key),
             json={
                 'contents': [{'parts': [{'text': prompt}]}],
                 'generationConfig': {

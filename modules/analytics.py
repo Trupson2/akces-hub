@@ -1640,7 +1640,7 @@ Uzyj formatowania markdown (## naglowki, **bold**, listy z - ).
 
     try:
         if provider == 'gemini':
-            model = get_config('gemini_model', 'gemini-2.0-flash')
+            model = get_config('gemini_model', 'gemini-2.5-flash')
             resp = _req.post(
                 f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}",
                 headers={"Content-Type": "application/json"},

@@ -132,7 +132,8 @@ Odpowiedz TYLKO tytułem, nic więcej:"""
             if attempt > 0:
                 print(f"   ↻ [RETRY {attempt+1}/{retry_count}] Ponawiam zapytanie...")
 
-            _api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_gemini_key}"
+            from .utils import get_gemini_api_url
+            _api_url = get_gemini_api_url(_gemini_key)
             _resp = _req.post(_api_url, json={
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {"temperature": 0.3, "maxOutputTokens": 100}

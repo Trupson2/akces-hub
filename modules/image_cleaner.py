@@ -265,8 +265,9 @@ def needs_cleaning(image_url):
 
         uploaded = _client.files.upload(file=tmp_path)
 
+        from .utils import get_gemini_model
         response = _client.models.generate_content(
-            model='gemini-2.0-flash',
+            model=get_gemini_model(),
             contents=[
                 "Does this product photo have any watermarks, store logos, promotional text, "
                 "badges, or foreign characters that should be removed? "

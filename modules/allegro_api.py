@@ -2675,8 +2675,10 @@ Bez dodatkowych komentarzy, tylko JSON."""
 
     try:
         import google.generativeai as genai
+        from modules.database import get_config
+        gemini_model_name = get_config('gemini_model', 'gemini-2.5-flash')
         genai.configure(api_key=gemini_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel(gemini_model_name)
         
         response = model.generate_content(prompt)
         try:

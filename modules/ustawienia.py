@@ -490,6 +490,7 @@ def ustawienia_kreator():
         'telegram_chat_id': get_config('telegram_chat_id', ''),
         'support_chat_id': get_config('support_chat_id', ''),
         'gemini_api_key': get_config('gemini_api_key', ''),
+        'gemini_model': get_config('gemini_model', 'gemini-2.5-flash'),
         'perplexity_api_key': get_config('perplexity_api_key', ''),
         'ngrok_auth_token': get_config('ngrok_auth_token', ''),
         'ngrok_domain': get_config('ngrok_domain', ''),
@@ -546,6 +547,13 @@ def ustawienia_kreator():
             'hint': 'Pobierz klucz z <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/apikey</a> (darmowy!)',
             'fields': [
                 {'name': 'gemini_api_key', 'label': 'API Key', 'type': 'password', 'placeholder': 'AIzaSy...'},
+                {'name': 'gemini_model', 'label': 'Model AI', 'type': 'select', 'options': [
+                    ('gemini-2.5-flash', '⚡ Gemini 2.5 Flash (zalecany, darmowy)'),
+                    ('gemini-2.5-flash-lite', '💨 Gemini 2.5 Flash Lite (szybki, najtańszy)'),
+                    ('gemini-2.0-flash', '📦 Gemini 2.0 Flash (stary, wygasa 01.06.2026)'),
+                    ('gemini-3.1-flash-lite-preview', '🚀 Gemini 3.1 Flash Lite (preview, najnowszy)'),
+                    ('gemini-3.1-pro-preview', '🧠 Gemini 3.1 Pro (preview, najlepszy, droższy)'),
+                ]},
             ]
         },
         {
@@ -657,9 +665,17 @@ def ustawienia_kreator():
         {% for field in section.fields %}
         <div class="form-group">
             <label>{{ field.label }}</label>
+            {% if field.type == 'select' %}
+            <select name="{{ field.name }}" class="form-control" style="font-size:0.9rem;padding:10px">
+                {% for val, label in field.options %}
+                <option value="{{ val }}" {{ 'selected' if cfg.get(field.name, '') == val else '' }}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            {% else %}
             <input type="{{ field.type }}" name="{{ field.name }}" value="{{ cfg.get(field.name, '') }}"
-                placeholder="{{ field.placeholder }}"
+                placeholder="{{ field.get('placeholder', '') }}"
                 class="form-control" {% if field.get('mono', True) %}style="font-family:monospace;font-size:0.85rem"{% endif %}>
+            {% endif %}
         </div>
         {% endfor %}
         {% if section.get('has_test') %}
