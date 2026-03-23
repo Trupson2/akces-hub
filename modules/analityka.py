@@ -4034,6 +4034,17 @@ def koszty_allegro():
 
     prowizja_pct = float(get_config('allegro_prowizja_pct', '15')) / 100
 
+    # Real costs from koszty table (monthly totals)
+    koszty_real = conn.execute('''
+        SELECT kategoria, SUM(kwota) as total
+        FROM koszty
+        GROUP BY kategoria
+    ''').fetchall()
+    koszty_map = {r['kategoria']: r['total'] for r in koszty_real}
+    real_allegro_fees = koszty_map.get('allegro', 0)
+    real_reklama = koszty_map.get('reklama', 0)
+    real_dostawa = koszty_map.get('wysylka', 0)
+
     # Per-product: przychod, szt, prowizja, marza
     rows = conn.execute('''
         SELECT
@@ -4077,14 +4088,27 @@ def koszty_allegro():
     total_dostawa = 0
     total_marza = 0
 
+    # First pass: compute total revenue for proportional cost allocation
+    all_przychod = sum((r['przychod'] or 0) for r in rows)
+
+    # Use real Allegro fees if available, otherwise estimate
+    use_real_fees = real_allegro_fees > 0
+
     for r in rows:
         przychod = r['przychod'] or 0
         szt = r['szt'] or 0
         koszt_szt = r['koszt_szt'] or 0
         koszt_total = koszt_szt * szt
-        prowizja = przychod * prowizja_pct
-        reklama = 0  # TODO: sync from Allegro Ads API
-        dostawa = 0  # TODO: sync from Allegro billing
+        revenue_share = (przychod / all_przychod) if all_przychod > 0 else 0
+
+        # Proportional allocation of real costs from koszty table
+        if use_real_fees:
+            prowizja = real_allegro_fees * revenue_share
+        else:
+            prowizja = przychod * prowizja_pct
+        reklama = real_reklama * revenue_share
+        dostawa = real_dostawa * revenue_share
+
         marza = przychod - koszt_total - prowizja - reklama - dostawa
         marza_pct = (marza / przychod * 100) if przychod > 0 else 0
 
@@ -4107,6 +4131,7 @@ def koszty_allegro():
 
     total_marza_pct = (total_marza / total_przychod * 100) if total_przychod > 0 else 0
     roas = (total_przychod / total_reklama) if total_reklama > 0 else 0
+    fees_source = 'realne opłaty z tabeli Koszty' if use_real_fees else f'szacunkowe {prowizja_pct*100:.0f}%'
 
     # Build HTML
     rows_html = ''
@@ -4144,7 +4169,7 @@ def koszty_allegro():
             <h1 class="font-display" style="font-size:1.4rem;font-weight:800;color:var(--neon-primary);text-shadow:0 0 10px rgba(0,241,254,0.4);margin:0">Koszty Allegro</h1>
             <div style="color:var(--text-muted);font-size:0.82rem;margin-top:4px">Analiza kosztów i rentowności per produkt</div>
         </div>
-        <div style="font-size:0.75rem;color:var(--text-muted)">Prowizja: {prowizja_pct*100:.0f}%</div>
+        <div style="font-size:0.75rem;color:var(--text-muted)">{'📊 Realne opłaty' if use_real_fees else f'📊 Prowizja {prowizja_pct*100:.0f}%'}</div>
     </div>
 
     <!-- KPI Summary -->
@@ -4220,7 +4245,7 @@ def koszty_allegro():
     </div>
 
     <div style="text-align:center;padding:16px;font-size:0.72rem;color:var(--text-muted)">
-        {len(products)} produktów · Prowizja {prowizja_pct*100:.0f}% · Reklama i dostawa: dane z API Allegro (wkrótce)
+        {len(products)} produktów · Prowizja: {fees_source} · Koszty proporcjonalne do przychodu
     </div>
     '''
 
