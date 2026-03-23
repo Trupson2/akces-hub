@@ -4116,7 +4116,7 @@ def koszty_allegro():
     # Sort parameters from query string
     sort_field = request.args.get('sort', 'przychod')
     sort_dir = request.args.get('dir', 'desc')
-    if sort_field not in ('przychod', 'szt', 'prowizja', 'reklama', 'dostawa', 'marza'):
+    if sort_field not in ('przychod', 'szt', 'prowizja', 'reklama', 'dostawa', 'koszt', 'marza'):
         sort_field = 'przychod'
     if sort_dir not in ('asc', 'desc'):
         sort_dir = 'desc'
@@ -4165,6 +4165,7 @@ def koszty_allegro():
     total_prowizja = 0
     total_reklama = 0
     total_dostawa = 0
+    total_koszt = 0
     total_marza = 0
 
     # First pass: compute total revenue for proportional cost allocation
@@ -4196,6 +4197,7 @@ def koszty_allegro():
             reklama = real_reklama * revenue_share
             dostawa = real_dostawa * revenue_share
 
+        koszt = prowizja + reklama + dostawa
         marza = przychod - koszt_total - prowizja - reklama - dostawa
         marza_pct = (marza / przychod * 100) if przychod > 0 else 0
 
@@ -4203,8 +4205,10 @@ def koszty_allegro():
         total_prowizja += prowizja
         total_reklama += reklama
         total_dostawa += dostawa
+        total_koszt += koszt
         total_marza += marza
 
+        source = 'API' if offer_billing else ('~' if use_real_fees else 'EST')
         products.append({
             'nazwa': r['nazwa'] or 'Nieznany',
             'przychod': przychod,
@@ -4214,8 +4218,10 @@ def koszty_allegro():
             'prowizja': prowizja,
             'reklama': reklama,
             'dostawa': dostawa,
+            'koszt': koszt,
             'marza': marza,
             'marza_pct': marza_pct,
+            'source': source,
         })
 
     # Server-side sort
@@ -4285,7 +4291,7 @@ def koszty_allegro():
         badge_bg = 'rgba(91,240,131,0.1)' if p['marza'] > 0 else 'rgba(239,68,68,0.1)'
         badge_text = 'DOBRZE' if p['marza'] > 0 else 'STRATA'
         koszt_szt_str = f"{p['koszt_szt']:,.0f} zł" if p['koszt_szt'] > 0 else '-'
-        rows_html += f'''<tr data-przychod="{p['przychod']}" data-szt="{p['szt']}" data-koszt="{p['koszt_szt']}" data-prowizja="{p['prowizja']}" data-reklama="{p['reklama']}" data-dostawa="{p['dostawa']}" data-marza="{p['marza']}" data-marza-pct="{p['marza_pct']}" data-nazwa="{p['nazwa'][:45]}">
+        rows_html += f'''<tr data-przychod="{p['przychod']}" data-szt="{p['szt']}" data-koszt="{p['koszt_szt']}" data-prowizja="{p['prowizja']}" data-reklama="{p['reklama']}" data-dostawa="{p['dostawa']}" data-koszt-total="{p['koszt']}" data-marza="{p['marza']}" data-marza-pct="{p['marza_pct']}" data-nazwa="{p['nazwa'][:45]}">
             <td style="padding:10px 14px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">{p['nazwa'][:45]}</td>
             <td style="padding:10px 10px;text-align:right;font-family:'Space Grotesk',sans-serif;font-weight:600">{p['przychod']:,.0f} zł</td>
             <td style="padding:10px 8px;text-align:center">{p['szt']}</td>
@@ -4293,13 +4299,15 @@ def koszty_allegro():
             <td style="padding:10px 10px;text-align:right;color:var(--neon-primary)">{p['prowizja']:,.0f} zł</td>
             <td style="padding:10px 10px;text-align:right;color:var(--neon-secondary)">{p['reklama']:,.0f} zł</td>
             <td style="padding:10px 10px;text-align:right;color:var(--text-muted)">{p['dostawa']:,.0f} zł</td>
+            <td style="padding:10px 10px;text-align:right;font-family:'Space Grotesk',sans-serif;font-weight:700;color:#f59e0b">{p['koszt']:,.0f} zł</td>
             <td style="padding:10px 10px;text-align:right;font-family:'Space Grotesk',sans-serif;font-weight:700;color:{badge_color}">{p['marza']:,.0f} zł ({p['marza_pct']:.1f}%)</td>
             <td style="padding:10px 8px;text-align:center"><span style="display:inline-block;padding:3px 10px;border-radius:6px;font-size:0.68rem;font-weight:700;background:{badge_bg};color:{badge_color}">{badge_text}</span></td>
+            <td style="padding:10px 4px;text-align:center;font-size:0.65rem;color:{'var(--neon-tertiary)' if p['source'] == 'API' else 'var(--text-muted)'}">{p['source']}</td>
         </tr>'''
 
     html = f'''
     <style>
-    .ka-summary{{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}}
+    .ka-summary{{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}}
     .ka-stat{{padding:18px;text-align:center}}
     .ka-stat-val{{font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:800;line-height:1}}
     .ka-stat-label{{font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-top:6px;font-weight:600}}
@@ -4308,7 +4316,7 @@ def koszty_allegro():
     .ka-table td{{border-bottom:1px solid rgba(255,255,255,0.04)}}
     .ka-table tr:hover{{background:rgba(0,241,254,0.02)}}
     .ka-roas{{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px}}
-    @media(max-width:900px){{.ka-summary{{grid-template-columns:1fr 1fr}}.ka-roas{{grid-template-columns:1fr}}}}
+    @media(max-width:900px){{.ka-summary{{grid-template-columns:1fr 1fr 1fr}}.ka-roas{{grid-template-columns:1fr}}}}
     </style>
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
@@ -4331,6 +4339,10 @@ def koszty_allegro():
         <div class="glass-card ka-stat">
             <div class="ka-stat-val" style="color:var(--neon-primary)">{total_prowizja:,.0f} zł</div>
             <div class="ka-stat-label">Prowizja</div>
+        </div>
+        <div class="glass-card ka-stat">
+            <div class="ka-stat-val" style="color:#f59e0b">{total_koszt:,.0f} zł</div>
+            <div class="ka-stat-label">Koszt łączny</div>
         </div>
         <div class="glass-card ka-stat">
             <div class="ka-stat-val" style="color:{'var(--neon-tertiary)' if total_marza > 0 else '#ef4444'}">{total_marza:,.0f} zł</div>
@@ -4382,6 +4394,7 @@ def koszty_allegro():
             <option value="prowizja" {'selected' if sort_field == 'prowizja' else ''}>Prowizja</option>
             <option value="reklama" {'selected' if sort_field == 'reklama' else ''}>Reklama</option>
             <option value="dostawa" {'selected' if sort_field == 'dostawa' else ''}>Dostawa</option>
+            <option value="koszt" {'selected' if sort_field == 'koszt' else ''}>Koszt</option>
             <option value="marza" {'selected' if sort_field == 'marza' else ''}>Marża</option>
         </select>
         <a href="/analityka/koszty-allegro?sort={sort_field}&dir={'asc' if sort_dir == 'desc' else 'desc'}" style="padding:8px 14px;background:rgba(0,241,254,0.08);border:1px solid rgba(0,241,254,0.2);border-radius:8px;color:var(--neon-primary);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none">{'↑ ASC' if sort_dir == 'asc' else '↓ DESC'}</a>
@@ -4399,8 +4412,10 @@ def koszty_allegro():
                     <th style="text-align:right">Prowizja</th>
                     <th style="text-align:right">Reklama</th>
                     <th style="text-align:right">Dostawa</th>
+                    <th style="text-align:right;color:#f59e0b">Koszt</th>
                     <th style="text-align:right">Marża</th>
                     <th style="text-align:center"></th>
+                    <th style="text-align:center;font-size:0.7rem;color:var(--text-muted)">Źródło</th>
                 </tr>
             </thead>
             <tbody>
