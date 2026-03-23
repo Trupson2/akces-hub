@@ -4030,20 +4030,69 @@ def analizator_palet_status():
 @analityka_bp.route('/analityka/koszty-allegro')
 def koszty_allegro():
     from modules.database import get_db, get_config
+    from datetime import datetime, timedelta
     conn = get_db()
 
     prowizja_pct = float(get_config('allegro_prowizja_pct', '15')) / 100
 
-    # Real costs from koszty table (monthly totals)
-    koszty_real = conn.execute('''
-        SELECT kategoria, SUM(kwota) as total
-        FROM koszty
-        GROUP BY kategoria
-    ''').fetchall()
-    koszty_map = {r['kategoria']: r['total'] for r in koszty_real}
-    real_allegro_fees = koszty_map.get('allegro', 0)
-    real_reklama = koszty_map.get('reklama', 0)
-    real_dostawa = koszty_map.get('wysylka', 0)
+    # ── Try Allegro Billing API first ──
+    billing_data = {'prowizja': 0, 'reklama': 0, 'dostawa': 0, 'inne': 0}
+    billing_per_offer = {}  # offer_id → {prowizja, reklama, dostawa}
+    billing_source = 'manual'
+
+    try:
+        from modules.allegro_api import get_all_billing_entries, get_allegro_config
+        config = get_allegro_config()
+        if config.get('access_token'):
+            # Last 90 days
+            date_from = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%dT00:00:00Z')
+            entries, error = get_all_billing_entries(date_from=date_from)
+            if not error and entries:
+                billing_source = 'api'
+                for e in entries:
+                    amount = abs(float(e.get('value', {}).get('amount', 0)))
+                    type_id = e.get('type', {}).get('id', '')
+                    type_name = (e.get('type', {}).get('name', '') or '').lower()
+                    offer_id = e.get('offer', {}).get('id', '')
+
+                    # Categorize by type
+                    if type_id in ('SUC', 'SUC_BUY_NOW') or 'prowizj' in type_name or 'commission' in type_name:
+                        billing_data['prowizja'] += amount
+                        cat = 'prowizja'
+                    elif 'reklam' in type_name or 'promow' in type_name or 'ads' in type_name or 'wyróżn' in type_name or type_id in ('PRO', 'PROMO', 'ADS'):
+                        billing_data['reklama'] += amount
+                        cat = 'reklama'
+                    elif 'dostaw' in type_name or 'wysyłk' in type_name or 'shipping' in type_name or 'kurier' in type_name:
+                        billing_data['dostawa'] += amount
+                        cat = 'dostawa'
+                    else:
+                        billing_data['inne'] += amount
+                        cat = 'inne'
+
+                    # Per-offer breakdown
+                    if offer_id:
+                        if offer_id not in billing_per_offer:
+                            billing_per_offer[offer_id] = {'prowizja': 0, 'reklama': 0, 'dostawa': 0}
+                        if cat in ('prowizja', 'reklama', 'dostawa'):
+                            billing_per_offer[offer_id][cat] += amount
+    except Exception as ex:
+        print(f"[Koszty Allegro] Billing API error: {ex}")
+
+    # ── Fallback: manual koszty table ──
+    if billing_source == 'manual':
+        koszty_real = conn.execute('''
+            SELECT kategoria, SUM(kwota) as total
+            FROM koszty
+            GROUP BY kategoria
+        ''').fetchall()
+        koszty_map = {r['kategoria']: r['total'] for r in koszty_real}
+        billing_data['prowizja'] = koszty_map.get('allegro', 0)
+        billing_data['reklama'] = koszty_map.get('reklama', 0)
+        billing_data['dostawa'] = koszty_map.get('wysylka', 0)
+
+    real_allegro_fees = billing_data['prowizja']
+    real_reklama = billing_data['reklama']
+    real_dostawa = billing_data['dostawa']
 
     # Per-product: przychod, szt, prowizja, marza
     rows = conn.execute('''
@@ -4054,6 +4103,7 @@ def koszty_allegro():
             SUM(s.cena * s.ilosc) as przychod,
             SUM(s.ilosc) as szt,
             COALESCE(p.cena_allegro, 0) as cena_allegro,
+            o.allegro_id as offer_allegro_id,
             CASE
                 WHEN pal.cena_zakupu > 0 AND sc.total_cnt > 0
                 THEN pal.cena_zakupu / sc.total_cnt
@@ -4061,6 +4111,7 @@ def koszty_allegro():
             END as koszt_szt
         FROM sprzedaze s
         LEFT JOIN produkty p ON s.produkt_id = p.id
+        LEFT JOIN oferty o ON o.produkt_id = p.id
         LEFT JOIN palety pal ON p.paleta_id = pal.id
         LEFT JOIN (
             SELECT p2.paleta_id,
@@ -4100,14 +4151,22 @@ def koszty_allegro():
         koszt_szt = r['koszt_szt'] or 0
         koszt_total = koszt_szt * szt
         revenue_share = (przychod / all_przychod) if all_przychod > 0 else 0
+        offer_id = r['offer_allegro_id'] or ''
 
-        # Proportional allocation of real costs from koszty table
-        if use_real_fees:
+        # Per-offer billing data from API (exact), or proportional fallback
+        offer_billing = billing_per_offer.get(offer_id, {}) if billing_source == 'api' else {}
+        if offer_billing:
+            prowizja = offer_billing.get('prowizja', 0)
+            reklama = offer_billing.get('reklama', 0)
+            dostawa = offer_billing.get('dostawa', 0)
+        elif use_real_fees:
             prowizja = real_allegro_fees * revenue_share
+            reklama = real_reklama * revenue_share
+            dostawa = real_dostawa * revenue_share
         else:
             prowizja = przychod * prowizja_pct
-        reklama = real_reklama * revenue_share
-        dostawa = real_dostawa * revenue_share
+            reklama = real_reklama * revenue_share
+            dostawa = real_dostawa * revenue_share
 
         marza = przychod - koszt_total - prowizja - reklama - dostawa
         marza_pct = (marza / przychod * 100) if przychod > 0 else 0
@@ -4131,7 +4190,16 @@ def koszty_allegro():
 
     total_marza_pct = (total_marza / total_przychod * 100) if total_przychod > 0 else 0
     roas = (total_przychod / total_reklama) if total_reklama > 0 else 0
-    fees_source = 'realne opłaty z tabeli Koszty' if use_real_fees else f'szacunkowe {prowizja_pct*100:.0f}%'
+    if billing_source == 'api':
+        fees_source = 'Allegro Billing API (90 dni)'
+        fees_icon = '🔗'
+    elif use_real_fees:
+        fees_source = 'realne opłaty z tabeli Koszty'
+        fees_icon = '📊'
+    else:
+        fees_source = f'szacunkowe {prowizja_pct*100:.0f}%'
+        fees_icon = '📊'
+    billing_inne = billing_data.get('inne', 0)
 
     # Build HTML
     rows_html = ''
@@ -4169,7 +4237,10 @@ def koszty_allegro():
             <h1 class="font-display" style="font-size:1.4rem;font-weight:800;color:var(--neon-primary);text-shadow:0 0 10px rgba(0,241,254,0.4);margin:0">Koszty Allegro</h1>
             <div style="color:var(--text-muted);font-size:0.82rem;margin-top:4px">Analiza kosztów i rentowności per produkt</div>
         </div>
-        <div style="font-size:0.75rem;color:var(--text-muted)">{'📊 Realne opłaty' if use_real_fees else f'📊 Prowizja {prowizja_pct*100:.0f}%'}</div>
+        <div style="display:flex;align-items:center;gap:10px">
+            <a href="/analityka/koszty-allegro?refresh=1" style="padding:6px 14px;border-radius:8px;background:rgba(0,241,254,0.08);border:1px solid rgba(0,241,254,0.2);color:var(--neon-primary);text-decoration:none;font-size:0.75rem;font-weight:600;transition:all 0.2s">🔄 Synchronizuj</a>
+            <span style="font-size:0.72rem;color:var(--text-muted)">{fees_icon} {fees_source}</span>
+        </div>
     </div>
 
     <!-- KPI Summary -->
@@ -4216,9 +4287,10 @@ def koszty_allegro():
                 <span style="color:var(--text-muted)">Dostawa</span>
                 <span style="font-weight:600">{total_dostawa:,.2f} zł</span>
             </div>
+            {'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)"><span style="color:var(--text-muted)">Inne opłaty</span><span style="font-weight:600">' + f"{billing_inne:,.2f} zł" + '</span></div>' if billing_inne > 0 else ''}
             <div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:700">
                 <span>Razem</span>
-                <span style="color:var(--neon-primary)">{total_prowizja + total_reklama + total_dostawa:,.2f} zł</span>
+                <span style="color:var(--neon-primary)">{total_prowizja + total_reklama + total_dostawa + billing_inne:,.2f} zł</span>
             </div>
         </div>
     </div>
@@ -4245,7 +4317,7 @@ def koszty_allegro():
     </div>
 
     <div style="text-align:center;padding:16px;font-size:0.72rem;color:var(--text-muted)">
-        {len(products)} produktów · Prowizja: {fees_source} · Koszty proporcjonalne do przychodu
+        {len(products)} produktów · Źródło: {fees_source} · {len(billing_per_offer)} ofert z danymi per-oferta
     </div>
     '''
 
