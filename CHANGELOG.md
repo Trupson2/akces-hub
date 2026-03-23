@@ -22,6 +22,15 @@
 - [ZMIANA] Responsive overrides dla stitch layout (900px, 600px breakpoints)
 - [FIX] PALETOMAT OPEN banner — gradient-clip niewidoczny na dark bg, zamieniony na neon-text
 
+### Stitch na podstronach
+- [NOWE] Magazynier (lista palet) — glass-card items, neon toolbar, cyan focus glow
+- [NOWE] Palety (szczegóły, bulk import) — glass stats, neon progress bars, blur modals
+- [NOWE] Analityka (bilans palet) — glass backgrounds, neon borders
+- [NOWE] Warehouse 3D — dark bg, Space Grotesk, cyan grid, glass sidebar
+- [NOWE] Command Center — moduły+akcje+analityka w jednej karcie glass-card
+- [ZMIANA] Bulk color replacement: stare fioletowe/niebieskie → neon cyan/purple/green
+- [ZMIANA] Container max-width 1400→1800px, fonty +15-25% na całym dashboardzie
+
 ---
 
 ## 22.03.2026
