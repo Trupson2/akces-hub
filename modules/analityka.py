@@ -4148,17 +4148,27 @@ def koszty_allegro():
                 if r2 and float(r2['p'] or 0) > 0:
                     przychod = float(r2['p']); szt = int(r2['s'])
 
-        # Sposób 3: po nazwie oferty (fuzzy match)
+        # Sposób 3: po nazwie oferty (pełna nazwa z billing)
         if przychod == 0 and o['offer_name']:
-            name_part = (o['offer_name'] or '')[:30]
-            if name_part:
+            offer_name = (o['offer_name'] or '').strip()
+            if offer_name:
                 r3 = conn.execute('''
                     SELECT COALESCE(SUM(cena * ilosc), 0) as p, COALESCE(SUM(ilosc), 0) as s
                     FROM sprzedaze WHERE nazwa LIKE ? AND data_sprzedazy >= ?
                     AND status NOT IN ('zwrot', 'anulowane')
-                ''', (f'%{name_part}%', date_from)).fetchone()
+                ''', (f'%{offer_name}%', date_from)).fetchone()
                 if r3 and float(r3['p'] or 0) > 0:
                     przychod = float(r3['p']); szt = int(r3['s'])
+                else:
+                    # Fallback: pierwsze 20 znaków
+                    short = offer_name[:20]
+                    r3b = conn.execute('''
+                        SELECT COALESCE(SUM(cena * ilosc), 0) as p, COALESCE(SUM(ilosc), 0) as s
+                        FROM sprzedaze WHERE nazwa LIKE ? AND data_sprzedazy >= ?
+                        AND status NOT IN ('zwrot', 'anulowane')
+                    ''', (f'%{short}%', date_from)).fetchone()
+                    if r3b and float(r3b['p'] or 0) > 0:
+                        przychod = float(r3b['p']); szt = int(r3b['s'])
         koszty = float(o['total_koszty'] or 0)
         marza = przychod - koszty if przychod > 0 else -koszty
         marza_pct = (marza / przychod * 100) if przychod > 0 else 0
