@@ -1,116 +1,242 @@
 {% extends "base.html" %}
 {% block content %}
-<style>.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}</style>
+<style>
+/* Spinner */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* fadeSlideUp animation for cards */
+@keyframes fadeSlideUp{
+    from{opacity:0;transform:translateY(18px)}
+    to{opacity:1;transform:translateY(0)}
+}
+.fade-slide-up{animation:fadeSlideUp 0.4s ease both}
+
+/* Action grid */
+.wysylki-actions{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:18px}
+.wysylki-actions .action-btn{
+    display:flex;align-items:center;justify-content:center;gap:6px;
+    padding:10px 8px;border-radius:var(--radius-sm);
+    text-decoration:none;font-weight:600;font-size:0.85rem;
+    color:#fff;cursor:pointer;border:none;width:100%;
+    transition:all 0.25s ease;
+}
+.wysylki-actions .action-btn:hover{transform:translateY(-2px);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+
+.action-btn.scan{border:1px solid rgba(91,240,131,0.35);color:var(--neon-tertiary)}
+.action-btn.scan:hover{box-shadow:0 0 20px rgba(91,240,131,0.2)}
+.action-btn.refresh{border:1px solid rgba(0,241,254,0.35);color:var(--neon-primary)}
+.action-btn.refresh:hover{box-shadow:0 0 20px rgba(0,241,254,0.2)}
+.action-btn.select{border:1px solid rgba(234,179,8,0.35);color:var(--yellow)}
+.action-btn.select:hover{box-shadow:0 0 20px rgba(234,179,8,0.2)}
+.action-btn.print{border:1px solid rgba(193,128,255,0.35);color:var(--neon-secondary)}
+.action-btn.print:hover{box-shadow:0 0 20px rgba(193,128,255,0.2)}
+.action-btn.clear{border:1px solid rgba(239,68,68,0.35);color:var(--red)}
+.action-btn.clear:hover{box-shadow:0 0 20px rgba(239,68,68,0.2)}
+
+/* Order cards */
+.order-card{
+    display:flex;align-items:stretch;overflow:hidden;
+    margin-bottom:10px;
+    transition:all 0.3s ease;
+}
+.order-card:hover{
+    border-color:rgba(0,241,254,0.2)!important;
+    box-shadow:0 0 24px rgba(0,241,254,0.08),0 4px 24px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.order-sidebar{
+    min-width:50px;
+    background:rgba(255,255,255,0.03);
+    border-right:1px solid rgba(255,255,255,0.06);
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:6px;padding:4px;
+}
+.order-index{font-size:1.3rem;font-weight:700;color:var(--neon-primary)}
+.order-cb{width:18px;height:18px;cursor:pointer;accent-color:var(--neon-primary)}
+
+.order-photos{display:flex;flex-direction:column;gap:4px;padding:8px;justify-content:center}
+.order-photos img{width:50px;height:50px;object-fit:contain;border-radius:6px;background:#fff}
+
+.order-body{flex:1;padding:10px}
+.order-product{font-weight:600;font-size:0.9rem;margin-bottom:2px}
+.order-qty{color:var(--neon-primary);font-weight:700}
+.order-address{font-size:0.8rem;color:var(--text-muted);margin-top:4px}
+.order-location{
+    display:inline-block;padding:2px 8px;border-radius:4px;
+    font-size:0.75rem;font-weight:600;margin-top:4px;
+    background:var(--neon-secondary-soft);color:var(--neon-secondary);
+    border:1px solid rgba(193,128,255,0.2);
+}
+
+.order-actions{display:flex;flex-direction:column;gap:4px;padding:8px;justify-content:center}
+.order-actions a{
+    padding:6px 12px;border-radius:6px;
+    text-decoration:none;font-size:0.75rem;font-weight:600;text-align:center;
+    transition:all 0.2s;
+}
+.order-actions .btn-done{
+    background:rgba(91,240,131,0.12);color:var(--neon-tertiary);
+    border:1px solid rgba(91,240,131,0.2);
+}
+.order-actions .btn-done:hover{background:rgba(91,240,131,0.25)}
+.order-actions .btn-view{
+    background:rgba(0,241,254,0.12);color:var(--neon-primary);
+    border:1px solid rgba(0,241,254,0.2);
+}
+.order-actions .btn-view:hover{background:rgba(0,241,254,0.25)}
+
+/* Bulk bar */
+#bulkBar{
+    text-align:center;padding:12px;margin-bottom:14px;
+    border-color:rgba(0,241,254,0.3)!important;
+}
+#bulkBar .bulk-count{color:var(--neon-primary);font-weight:700;margin-right:10px}
+#bulkBar .bulk-btn{
+    padding:8px 20px;border:none;border-radius:8px;
+    font-weight:600;cursor:pointer;font-size:0.85rem;transition:all 0.2s;
+}
+#bulkBar .bulk-send{
+    background:rgba(91,240,131,0.15);color:var(--neon-tertiary);
+    border:1px solid rgba(91,240,131,0.3);
+}
+#bulkBar .bulk-send:hover{background:rgba(91,240,131,0.3)}
+#bulkBar .bulk-deselect{
+    background:rgba(239,68,68,0.15);color:var(--red);
+    border:1px solid rgba(239,68,68,0.3);margin-left:8px;
+}
+#bulkBar .bulk-deselect:hover{background:rgba(239,68,68,0.3)}
+
+/* Empty state */
+.empty-state{text-align:center;padding:50px 20px}
+.empty-state .empty-icon{font-size:3.5rem;margin-bottom:15px;filter:drop-shadow(0 0 12px rgba(91,240,131,0.3))}
+.empty-state .empty-title{font-size:1.1rem;font-weight:600;margin-bottom:6px}
+.empty-state .empty-sub{font-size:0.85rem;color:var(--text-muted)}
+
+/* Back link override */
+a.back-link{
+    display:block;text-align:center;padding:14px;
+    color:var(--text-muted);text-decoration:none;font-size:0.85rem;
+    transition:color 0.2s;
+}
+a.back-link:hover{color:var(--neon-primary)}
+
+/* Responsive */
+@media(max-width:600px){
+    .wysylki-actions{grid-template-columns:repeat(3,1fr)}
+    .wysylki-actions .action-btn:nth-child(4),
+    .wysylki-actions .action-btn:nth-child(5){grid-column:span 1}
+}
+</style>
+
+<!-- Page header -->
 <div class="header no-print">
-    <h1>📦 WYSYŁKI</h1>
-    <small>Zamówienia do spakowania i nadania</small>
+    <h1 class="font-display neon-text-primary">WYSYLKI</h1>
+    <small>Zamowienia do spakowania i nadania</small>
 </div>
 
-<!-- Nagłówek druku -->
+<!-- Print header -->
 <div class="print-only" style="display:none;text-align:center;margin-bottom:20px;padding-bottom:10px;border-bottom:2px solid #000">
-    <h2 style="margin:0">📦 LISTA PAKOWANIA</h2>
-    <small>{{ zamowienia_cnt }} zamówień · {{ produkty_cnt }} produktów · {{ wartosc }} zł</small>
+    <h2 style="margin:0">LISTA PAKOWANIA</h2>
+    <small>{{ zamowienia_cnt }} zamowien &middot; {{ produkty_cnt }} produktow &middot; {{ wartosc }} zl</small>
 </div>
 
-<!-- Akcje -->
-<div class="no-print" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:8px;margin-bottom:15px">
-    <a href="/wysylki/pakowanie" class="btn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:#22c55e;border-radius:10px;color:#fff;text-decoration:none;font-weight:600;font-size:0.85rem">
-        📱 Skanuj
+<!-- Action buttons -->
+<div class="wysylki-actions no-print">
+    <a href="/wysylki/pakowanie" class="glass-card action-btn scan">
+        Skanuj
     </a>
-    <a href="/wysylki/allegro?refresh=1" id="refreshBtn" onclick="this.innerHTML='<span class=\'spinner\'></span> Sync...';this.style.opacity='0.7';this.style.pointerEvents='none'" class="btn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:#3b82f6;border-radius:10px;color:#fff;text-decoration:none;font-weight:600;font-size:0.85rem">
-        🔄 Odśwież
+    <a href="/wysylki/allegro?refresh=1" id="refreshBtn" onclick="this.innerHTML='<span class=\'spinner\'></span> Sync...';this.style.opacity='0.7';this.style.pointerEvents='none'" class="glass-card action-btn refresh">
+        Odswiez
     </a>
-    <button id="toggleAllBtn" onclick="toggleAll(true)" class="btn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:#f59e0b;border:none;border-radius:10px;color:#fff;text-decoration:none;font-weight:600;cursor:pointer;width:100%;font-size:0.85rem">
-        ☑️ Zaznacz
+    <button id="toggleAllBtn" onclick="toggleAll(true)" class="glass-card action-btn select">
+        Zaznacz
     </button>
-    <a href="/wysylki/drukuj" target="_blank" class="btn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:#8b5cf6;border-radius:10px;color:#fff;text-decoration:none;font-weight:600;cursor:pointer;font-size:0.85rem">
-        🖨️ Drukuj
+    <a href="/wysylki/drukuj" target="_blank" class="glass-card action-btn print">
+        Drukuj
     </a>
-    <a href="/wysylki/wyczysc-all" onclick="return confirm('Oznaczyć WSZYSTKIE widoczne zamówienia jako wysłane?')" class="btn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:#ef4444;border-radius:10px;color:#fff;text-decoration:none;font-weight:600;cursor:pointer;font-size:0.85rem">
-        🗑️ Wyczyść
+    <a href="/wysylki/wyczysc-all" onclick="return confirm('Oznaczyc WSZYSTKIE widoczne zamowienia jako wyslane?')" class="glass-card action-btn clear">
+        Wyczysc
     </a>
 </div>
 
-<!-- Statystyki -->
-<div class="no-print" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:15px">
-    <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:10px;padding:12px;text-align:center">
-        <div style="font-size:1.5rem;font-weight:700;color:#f59e0b">{{ zamowienia_cnt }}</div>
-        <div style="font-size:0.7rem;color:#64748b">DO WYSŁANIA</div>
+<!-- Stats row -->
+<div class="stat-row no-print" style="margin-bottom:18px">
+    <div class="glass-card stitch-kpi" style="text-align:center">
+        <div class="kpi-value neon-text-primary">{{ zamowienia_cnt }}</div>
+        <div class="kpi-label">DO WYSLANIA</div>
     </div>
-    <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:10px;padding:12px;text-align:center">
-        <div style="font-size:1.5rem;font-weight:700;color:#3b82f6">{{ produkty_cnt }}</div>
-        <div style="font-size:0.7rem;color:#64748b">PRODUKTÓW</div>
+    <div class="glass-card stitch-kpi" style="text-align:center">
+        <div class="kpi-value neon-text-secondary">{{ produkty_cnt }}</div>
+        <div class="kpi-label">PRODUKTOW</div>
     </div>
-    <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:10px;padding:12px;text-align:center">
-        <div style="font-size:1.5rem;font-weight:700;color:#22c55e">{{ wartosc }} zł</div>
-        <div style="font-size:0.7rem;color:#64748b">WARTOŚĆ</div>
+    <div class="glass-card stitch-kpi" style="text-align:center">
+        <div class="kpi-value neon-text-tertiary">{{ wartosc }} zl</div>
+        <div class="kpi-label">WARTOSC</div>
     </div>
 </div>
 
-<!-- Bulk akcje -->
-<div class="no-print" id="bulkBar" style="display:none;background:#1e1e2e;border:1px solid #3b82f6;border-radius:10px;padding:10px;margin-bottom:12px;text-align:center">
-    <span id="selectedCount" style="color:#3b82f6;font-weight:700;margin-right:10px">0 zaznaczonych</span>
-    <button onclick="submitBulk()" style="padding:8px 20px;background:#22c55e;border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer">✅ Wyślij zaznaczone</button>
-    <button onclick="toggleAll(false)" style="padding:8px 20px;background:#ef4444;border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;margin-left:8px">✖ Odznacz</button>
+<!-- Bulk actions bar -->
+<div class="no-print glass-panel neon-glow-primary" id="bulkBar" style="display:none">
+    <span id="selectedCount" class="bulk-count">0 zaznaczonych</span>
+    <button onclick="submitBulk()" class="bulk-btn bulk-send">Wyslij zaznaczone</button>
+    <button onclick="toggleAll(false)" class="bulk-btn bulk-deselect">Odznacz</button>
 </div>
 
 <form id="bulkForm" method="POST" action="/wysylki/bulk-wyslane-allegro">
-<!-- Lista zamówień -->
+<!-- Order list -->
 {% for z in zamowienia %}
-<div class="order-card" style="display:flex;align-items:stretch;background:#12121a;border:1px solid #1e1e2e;border-radius:10px;margin-bottom:8px;overflow:hidden">
-    <!-- Checkbox + Numer -->
-    <div style="min-width:50px;background:#1e1e2e;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:4px">
-        <input type="checkbox" name="order_ids" value="{{ z.order_id }}" class="order-cb no-print" onchange="updateBulk()" style="width:18px;height:18px;cursor:pointer">
-        <span style="font-size:1.3rem;font-weight:700;color:#f59e0b">{{ loop.index }}</span>
+<div class="order-card glass-card fade-slide-up" style="animation-delay:{{ loop.index0 * 0.04 }}s">
+    <!-- Checkbox + Number -->
+    <div class="order-sidebar">
+        <input type="checkbox" name="order_ids" value="{{ z.order_id }}" class="order-cb no-print" onchange="updateBulk()">
+        <span class="order-index">{{ loop.index }}</span>
     </div>
 
-    <!-- Zdjęcia produktów -->
-    <div class="product-photos" style="display:flex;flex-direction:column;gap:4px;padding:8px;justify-content:center">
+    <!-- Product photos -->
+    <div class="order-photos product-photos">
         {% for p in z.produkty %}
         <img src="{{ p.zdjecie_url or 'https://via.placeholder.com/45' }}"
-             style="width:50px;height:50px;object-fit:contain;border-radius:6px;background:#fff"
-             onerror="this.src='https://via.placeholder.com/45'">
+             onerror="this.src='https://via.placeholder.com/45'"
+             alt="">
         {% endfor %}
     </div>
 
-    <!-- Treść -->
-    <div style="flex:1;padding:10px">
-        <!-- Produkty -->
+    <!-- Content -->
+    <div class="order-body">
         {% for p in z.produkty %}
-        <div style="font-weight:600;font-size:0.9rem;margin-bottom:2px">
-            {{ p.name_short }}{% if p.qty > 1 %} <span style="color:#f59e0b">(×{{ p.qty }})</span>{% endif %}
+        <div class="order-product">
+            {{ p.name_short }}{% if p.qty > 1 %} <span class="order-qty">(x{{ p.qty }})</span>{% endif %}
         </div>
         {% endfor %}
 
-        <!-- Adres -->
-        <div style="font-size:0.8rem;color:#94a3b8;margin-top:4px">
-            📍 {% if z.pickup_point %}{{ z.pickup_point }}{% else %}{{ z.address }}{% endif %}
+        <div class="order-address">
+            {% if z.pickup_point %}{{ z.pickup_point }}{% else %}{{ z.address }}{% endif %}
         </div>
 
-        <!-- Lokalizacja magazynowa -->
         {% for p in z.produkty %}{% if p.lokalizacja %}
-        <div style="display:inline-block;background:#8b5cf6;color:#fff;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:600;margin-top:4px">📦 {{ p.lokalizacja }}</div>
+        <div class="order-location">{{ p.lokalizacja }}</div>
         {% endif %}{% endfor %}
     </div>
 
-    <!-- Przyciski -->
-    <div class="no-print" style="display:flex;flex-direction:column;gap:4px;padding:8px;justify-content:center">
-        <a href="/wysylki/wyslano-order/{{ z.order_id }}" style="padding:6px 12px;background:#22c55e;border-radius:6px;color:#fff;text-decoration:none;font-size:0.75rem;font-weight:600;text-align:center">✅</a>
-        <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{{ z.order_id }}" target="_blank" style="padding:6px 12px;background:#3b82f6;border-radius:6px;color:#fff;text-decoration:none;font-size:0.75rem;text-align:center">📋</a>
+    <!-- Action buttons -->
+    <div class="order-actions no-print">
+        <a href="/wysylki/wyslano-order/{{ z.order_id }}" class="btn-done">OK</a>
+        <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{{ z.order_id }}" target="_blank" class="btn-view">Allegro</a>
     </div>
 </div>
 {% endfor %}
 </form>
 
 {% if zamowienia_cnt == 0 %}
-<div style="text-align:center;padding:40px;color:#64748b">
-    <div style="font-size:3rem;margin-bottom:15px">✅</div>
-    <div style="font-size:1.1rem;font-weight:600">Brak zamówień do wysłania!</div>
-    <div style="font-size:0.85rem;margin-top:5px">Wszystko nadane lub brak nowych zamówień</div>
+<div class="empty-state glass-card fade-slide-up">
+    <div class="empty-icon">&#10004;</div>
+    <div class="empty-title neon-text-tertiary">Brak zamowien do wyslania!</div>
+    <div class="empty-sub">Wszystko nadane lub brak nowych zamowien</div>
 </div>
 {% endif %}
 
-<a href="/" class="back no-print">← Powrót</a>
+<a href="/" class="back-link no-print">&larr; Powrot</a>
 
 <script>
 function updateBulk() {
@@ -123,11 +249,13 @@ function updateBulk() {
     var toggleBtn = document.getElementById('toggleAllBtn');
     if (toggleBtn) {
         if (checked > 0) {
-            toggleBtn.innerHTML = '☐ Odznacz (' + checked + ')';
-            toggleBtn.style.background = '#64748b';
+            toggleBtn.innerHTML = 'Odznacz (' + checked + ')';
+            toggleBtn.classList.remove('select');
+            toggleBtn.classList.add('clear');
         } else {
-            toggleBtn.innerHTML = '☑️ Zaznacz';
-            toggleBtn.style.background = '#f59e0b';
+            toggleBtn.innerHTML = 'Zaznacz';
+            toggleBtn.classList.remove('clear');
+            toggleBtn.classList.add('select');
         }
     }
 }
@@ -135,7 +263,6 @@ function toggleAll(state) {
     var all = document.querySelectorAll('.order-cb');
     var checkedEls = document.querySelectorAll('.order-cb:checked');
     var newState;
-    // Toggle: jesli cokolwiek zaznaczone → odznacz wszystko, inaczej zaznacz wszystko
     if (checkedEls.length > 0) {
         newState = false;
     } else {
@@ -147,14 +274,13 @@ function toggleAll(state) {
 function submitBulk() {
     var checkedEls = document.querySelectorAll('.order-cb:checked');
     if (checkedEls.length === 0) {
-        alert('Zaznacz przynajmniej jedno zamówienie!');
+        alert('Zaznacz przynajmniej jedno zamowienie!');
         return;
     }
-    if (confirm('Oznaczyć ' + checkedEls.length + ' zamówień jako wysłane?')) {
+    if (confirm('Oznaczyc ' + checkedEls.length + ' zamowien jako wyslane?')) {
         document.getElementById('bulkForm').submit();
     }
 }
-// Init on load
 document.addEventListener('DOMContentLoaded', function() { updateBulk(); });
 </script>
 
@@ -168,13 +294,17 @@ document.addEventListener('DOMContentLoaded', function() { updateBulk(); });
         border: 1px solid #ccc !important;
         break-inside: avoid;
         margin-bottom: 6px !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        box-shadow: none !important;
     }
-    .order-card div[style*="background:#1e1e2e"] { background: #f0f0f0 !important; }
-    .order-card span[style*="color:#f59e0b"] { color: #000 !important; }
-    .order-card div[style*="color:#94a3b8"] { color: #333 !important; }
-    .order-card div[style*="background:#8b5cf6"] { background: #666 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .product-photos img { border: 1px solid #ccc; }
-    nav, .back { display: none !important; }
+    .order-sidebar { background: #f0f0f0 !important; }
+    .order-index { color: #000 !important; text-shadow: none !important; }
+    .order-address { color: #333 !important; }
+    .order-location { background: #666 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .product-photos img, .order-photos img { border: 1px solid #ccc; }
+    nav, .back-link { display: none !important; }
+    .fade-slide-up { animation: none !important; }
 }
 </style>
 {% endblock %}

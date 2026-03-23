@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🗺️ Heatmapa Magazynu 3D - {{ brand_name|default('Akces Hub') }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap">
     <style>
         * {
             margin: 0;
@@ -12,9 +14,9 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
+            font-family: 'Inter', 'Space Grotesk', -apple-system, system-ui, sans-serif;
+            background: #06060f;
+            color: #e2e8f0;
             overflow: hidden;
         }
 
@@ -26,26 +28,36 @@
         /* Sidebar z kontrolkami */
         .sidebar {
             width: 320px;
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
+            background: rgba(10,10,22,0.85);
+            backdrop-filter: blur(16px) saturate(1.4);
+            -webkit-backdrop-filter: blur(16px) saturate(1.4);
+            border-right: 1px solid rgba(255,255,255,0.06);
             padding: 20px;
             overflow-y: auto;
         }
 
         .sidebar h1 {
+            font-family: 'Space Grotesk', sans-serif;
             font-size: 24px;
             margin-bottom: 10px;
             display: flex;
             align-items: center;
             gap: 10px;
+            color: #00f1fe;
+            text-shadow: 0 0 10px rgba(0,241,254,0.4);
         }
 
         .sidebar h2 {
-            font-size: 18px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 16px;
             margin-top: 20px;
             margin-bottom: 10px;
             padding-bottom: 5px;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            border-bottom: 1px solid rgba(0,241,254,0.15);
+            color: #c180ff;
+            text-shadow: 0 0 8px rgba(193,128,255,0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         /* Stats */
@@ -57,21 +69,28 @@
         }
 
         .stat-card {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(15,15,30,0.65);
+            border: 1px solid rgba(255,255,255,0.06);
             padding: 15px;
-            border-radius: 10px;
+            border-radius: 12px;
             text-align: center;
+            backdrop-filter: blur(8px);
         }
 
         .stat-value {
+            font-family: 'Space Grotesk', sans-serif;
             font-size: 28px;
             font-weight: bold;
             margin-bottom: 5px;
+            color: #00f1fe;
+            text-shadow: 0 0 8px rgba(0,241,254,0.3);
         }
 
         .stat-label {
-            font-size: 12px;
-            opacity: 0.8;
+            font-size: 11px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         /* Legenda kolorów */
@@ -118,24 +137,28 @@
         }
 
         button {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
+            background: rgba(0,241,254,0.08);
+            border: 1px solid rgba(0,241,254,0.15);
+            color: #e2e8f0;
             padding: 8px 15px;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             transition: all 0.3s;
         }
 
         button:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(0,241,254,0.15);
+            border-color: rgba(0,241,254,0.3);
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,241,254,0.1);
         }
 
         button.active {
-            background: rgba(255, 255, 255, 0.4);
+            background: rgba(0,241,254,0.2);
+            border-color: #00f1fe;
             font-weight: bold;
+            color: #00f1fe;
         }
 
         /* Canvas 3D */
@@ -152,15 +175,17 @@
         /* Info popup */
         .info-popup {
             position: absolute;
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
+            background: rgba(10,10,22,0.92);
+            backdrop-filter: blur(16px);
+            color: #e2e8f0;
             padding: 15px;
-            border-radius: 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,241,254,0.2);
             display: none;
             pointer-events: none;
             max-width: 300px;
             z-index: 1000;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 15px rgba(0,241,254,0.08);
         }
 
         .info-popup.show {
@@ -213,8 +238,8 @@
         /* Progress bar */
         .progress-bar {
             width: 100%;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.2);
+            height: 6px;
+            background: rgba(255,255,255,0.06);
             border-radius: 4px;
             overflow: hidden;
             margin-top: 10px;
@@ -222,8 +247,9 @@
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #2ecc71, #3498db);
+            background: linear-gradient(90deg, #5bf083, #00f1fe);
             transition: width 0.3s;
+            box-shadow: 0 0 8px rgba(0,241,254,0.3);
         }
 
         /* Shelf labels */
@@ -232,13 +258,18 @@
         }
 
         .shelf-item {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(15,15,30,0.65);
+            border: 1px solid rgba(255,255,255,0.06);
             padding: 10px;
-            border-radius: 5px;
+            border-radius: 10px;
             margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: all 0.2s;
+        }
+        .shelf-item:hover {
+            border-color: rgba(0,241,254,0.2);
         }
 
         .shelf-name {
@@ -269,15 +300,16 @@
         }
 
         .modal-content {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            border: 2px solid #3b82f6;
+            background: rgba(10,10,22,0.92);
+            backdrop-filter: blur(20px) saturate(1.4);
+            border: 1px solid rgba(0,241,254,0.25);
             border-radius: 16px;
             padding: 24px;
             max-width: 600px;
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 30px rgba(0,241,254,0.08);
         }
 
         .modal-header {
@@ -286,12 +318,14 @@
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 16px;
-            border-bottom: 2px solid #334155;
+            border-bottom: 1px solid rgba(0,241,254,0.15);
         }
 
         .modal-header h2 {
             margin: 0;
-            color: #3b82f6;
+            font-family: 'Space Grotesk', sans-serif;
+            color: #00f1fe;
+            text-shadow: 0 0 10px rgba(0,241,254,0.4);
             font-size: 24px;
             font-weight: 800;
         }
@@ -323,21 +357,25 @@
         }
 
         .modal-stat {
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            border-radius: 8px;
+            background: rgba(0,241,254,0.05);
+            border: 1px solid rgba(0,241,254,0.15);
+            border-radius: 10px;
             padding: 12px;
             text-align: center;
         }
 
         .modal-stat-label {
-            color: #94a3b8;
-            font-size: 12px;
+            color: #64748b;
+            font-size: 11px;
             margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .modal-stat-value {
-            color: #3b82f6;
+            font-family: 'Space Grotesk', sans-serif;
+            color: #00f1fe;
+            text-shadow: 0 0 8px rgba(0,241,254,0.3);
             font-size: 20px;
             font-weight: 700;
         }
@@ -353,14 +391,18 @@
         }
 
         .product-item {
-            background: rgba(59, 130, 246, 0.05);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 8px;
+            background: rgba(15,15,30,0.65);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
             padding: 12px;
             margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: all 0.2s;
+        }
+        .product-item:hover {
+            border-color: rgba(0,241,254,0.15);
         }
 
         .product-info {
@@ -374,16 +416,18 @@
         }
 
         .product-details {
-            color: #94a3b8;
+            color: #64748b;
             font-size: 12px;
         }
 
         .product-quantity {
-            background: #22c55e;
-            color: white;
+            background: rgba(91,240,131,0.15);
+            color: #5bf083;
+            border: 1px solid rgba(91,240,131,0.25);
             padding: 6px 12px;
-            border-radius: 6px;
+            border-radius: 8px;
             font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
         }
 
         .empty-message {
@@ -463,9 +507,9 @@
             <div style="margin-bottom: 15px;">
                 <div style="font-weight: 600; margin-bottom: 8px; font-size: 13px; opacity: 0.8;">📍 Lokalizacja (np. A11, B2):</div>
                 <input type="text" id="search-shelf" placeholder="Wpisz kod lokalizacji..." 
-                       style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; font-size: 14px;"
+                       style="width: 100%; padding: 12px; background: rgba(15,15,30,0.65); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: #e2e8f0; font-size: 14px; transition: border-color 0.2s;"
                        onkeypress="if(event.key==='Enter') searchShelf()">
-                <button onclick="searchShelf()" style="width: 100%; margin-top: 8px; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer;">
+                <button onclick="searchShelf()" style="width: 100%; margin-top: 8px; padding: 12px; background: rgba(0,241,254,0.12); border: 1px solid rgba(0,241,254,0.3); border-radius: 10px; color: #00f1fe; font-weight: 600; cursor: pointer;">
                     🔍 Znajdź Lokalizację
                 </button>
                 <div id="search-result" style="margin-top: 10px; font-size: 13px; color: #a0aec0;"></div>
@@ -475,9 +519,9 @@
             <div style="margin-bottom: 20px;">
                 <div style="font-weight: 600; margin-bottom: 8px; font-size: 13px; opacity: 0.8;">📦 Produkt (np. "Bieżnia", "ASIN"):</div>
                 <input type="text" id="search-product" placeholder="Wpisz nazwę, EAN, ASIN..." 
-                       style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; font-size: 14px;"
+                       style="width: 100%; padding: 12px; background: rgba(15,15,30,0.65); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: #e2e8f0; font-size: 14px; transition: border-color 0.2s;"
                        onkeypress="if(event.key==='Enter') searchProduct()">
-                <button onclick="searchProduct()" style="width: 100%; margin-top: 8px; padding: 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer;">
+                <button onclick="searchProduct()" style="width: 100%; margin-top: 8px; padding: 12px; background: rgba(91,240,131,0.12); border: 1px solid rgba(91,240,131,0.3); border-radius: 10px; color: #5bf083; font-weight: 600; cursor: pointer;">
                     🎯 Znajdź Produkt
                 </button>
                 <div id="search-product-result" style="margin-top: 10px; font-size: 13px; color: #a0aec0;"></div>
