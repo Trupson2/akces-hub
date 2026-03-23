@@ -2667,6 +2667,7 @@ ZASADY:
 9. Wymiary/waga → przelicz na jednostki z parametru (cm→m, mm→cm, kg, g). Format "190x188x200" w tytule = szerokość x długość x wysokość w CM — przelicz na metry jeśli parametr wymaga metrów (np. 190cm = 1.9m)
 10. Parametry numeryczne → podaj TYLKO liczbę bez jednostki
 11. Jeśli w tytule/opisie są wymiary w formacie AxBxC — ZAWSZE wypełnij szerokość, długość, wysokość
+12. "Informacje o bezpieczeństwie" / "Stan opakowania" → ZAWSZE wypełnij jeśli dostępny. Bezpieczeństwo = "Zawiera oznakowanie CE" lub pierwsza dostępna opcja. Stan opakowania = "Oryginalne" jeśli dostępny
 
 FORMAT ODPOWIEDZI (tylko JSON):
 {{
