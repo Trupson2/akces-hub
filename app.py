@@ -154,7 +154,7 @@ def csrf_protect_forms():
     Formularze z csrf_token są chronione; reszta (API, legacy) przechodzi."""
     if request.method in ('POST', 'PUT', 'DELETE', 'PATCH'):
         # Waliduj CSRF jeśli formularz zawiera token LUB jest to krytyczny endpoint
-        CSRF_ENFORCED = ('/license', '/admin/', '/auth/', '/setup', '/narzedzia/licencje')
+        CSRF_ENFORCED = ('/license', '/admin/', '/setup', '/narzedzia/licencje')
         if request.form.get('csrf_token') or any(request.path.startswith(p) for p in CSRF_ENFORCED):
             csrf.protect()
 
