@@ -4088,7 +4088,17 @@ def koszty_allegro():
         ''', [date_from] + list(codes)).fetchall()
 
     top_prowizja = top10(['SUC', 'FSF', 'CSR'])
-    top_reklama = top10(['NSP', 'RET', 'ADS', 'SPO'])
+
+    # Top 10 największe koszty łącznie (per oferta)
+    top_koszty = conn.execute('''
+        SELECT offer_name, offer_id, SUM(ABS(amount)) as total
+        FROM allegro_billing
+        WHERE occurred_at >= ? AND amount < 0
+        AND offer_name IS NOT NULL AND offer_name != ''
+        GROUP BY offer_id ORDER BY total DESC LIMIT 10
+    ''', (date_from,)).fetchall()
+
+    # Top 10 dostawa per oferta
     top_dostawa = top10(['DPB', 'HB4', 'DPA', 'HLB', 'ORB', 'HB1', 'DTR', 'ITR', 'DHR'])
 
     # Per oferta: koszty + przychod
@@ -4166,7 +4176,7 @@ def koszty_allegro():
         return h
 
     top_prowizja_html = _top10_html(top_prowizja, '#ef4444')
-    top_reklama_html = _top10_html(top_reklama, '#f59e0b')
+    top_koszty_html = _top10_html(top_koszty, '#f59e0b')
     top_dostawa_html = _top10_html(top_dostawa, '#3b82f6')
 
     # Tabela ofert
@@ -4266,8 +4276,8 @@ def koszty_allegro():
                 {top_prowizja_html}
             </div>
             <div class="top10-card">
-                <div class="top10-title"><span style="color:#f59e0b">●</span> TOP 10 — REKLAMA</div>
-                {top_reklama_html}
+                <div class="top10-title"><span style="color:#f59e0b">●</span> TOP 10 — NAJWIĘKSZE KOSZTY</div>
+                {top_koszty_html}
             </div>
             <div class="top10-card">
                 <div class="top10-title"><span style="color:#3b82f6">●</span> TOP 10 — DOSTAWA</div>
