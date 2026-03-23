@@ -4114,22 +4114,51 @@ def koszty_allegro():
         GROUP BY offer_id ORDER BY total_koszty DESC LIMIT 50
     ''', (date_from,)).fetchall()
 
-    # Dołącz przychod ze sprzedaze
+    # Dołącz przychod ze sprzedaze — matchuj na 3 sposoby
     oferty_data = []
     for o in oferty_koszty:
-        przychod_row = conn.execute('''
-            SELECT COALESCE(SUM(cena * ilosc), 0) as przychod, COALESCE(SUM(ilosc), 0) as szt
-            FROM sprzedaze WHERE data_sprzedazy >= ?
-            AND (allegro_order_id IS NOT NULL OR status != 'zwrot')
-        ''', (date_from,)).fetchone()
-        # Próbuj dopasować po offer_id w oferty tabeli
-        sprzedaz = conn.execute('''
-            SELECT COALESCE(SUM(s.cena * s.ilosc), 0) as przychod, COALESCE(SUM(s.ilosc), 0) as szt
+        offer_id = o['offer_id']
+        przychod = 0
+        szt = 0
+
+        # Sposób 1: przez oferty.allegro_id → sprzedaze.oferta_id
+        r1 = conn.execute('''
+            SELECT COALESCE(SUM(s.cena * s.ilosc), 0) as p, COALESCE(SUM(s.ilosc), 0) as s
             FROM sprzedaze s JOIN oferty of ON s.oferta_id = of.id
             WHERE of.allegro_id = ? AND s.data_sprzedazy >= ?
-        ''', (o['offer_id'], date_from)).fetchone()
-        przychod = float(sprzedaz['przychod'] or 0) if sprzedaz else 0
-        szt = int(sprzedaz['szt'] or 0) if sprzedaz else 0
+            AND s.status NOT IN ('zwrot', 'anulowane')
+        ''', (offer_id, date_from)).fetchone()
+        if r1 and float(r1['p'] or 0) > 0:
+            przychod = float(r1['p']); szt = int(r1['s'])
+
+        # Sposób 2: przez order_id z billing → sprzedaze.allegro_order_id
+        if przychod == 0:
+            order_ids = conn.execute('''
+                SELECT DISTINCT order_id FROM allegro_billing
+                WHERE offer_id = ? AND order_id IS NOT NULL AND order_id != ''
+            ''', (offer_id,)).fetchall()
+            if order_ids:
+                oids = [r['order_id'] for r in order_ids]
+                placeholders = ','.join(['?' for _ in oids])
+                r2 = conn.execute(f'''
+                    SELECT COALESCE(SUM(cena * ilosc), 0) as p, COALESCE(SUM(ilosc), 0) as s
+                    FROM sprzedaze WHERE allegro_order_id IN ({placeholders})
+                    AND status NOT IN ('zwrot', 'anulowane')
+                ''', oids).fetchone()
+                if r2 and float(r2['p'] or 0) > 0:
+                    przychod = float(r2['p']); szt = int(r2['s'])
+
+        # Sposób 3: po nazwie oferty (fuzzy match)
+        if przychod == 0 and o['offer_name']:
+            name_part = (o['offer_name'] or '')[:30]
+            if name_part:
+                r3 = conn.execute('''
+                    SELECT COALESCE(SUM(cena * ilosc), 0) as p, COALESCE(SUM(ilosc), 0) as s
+                    FROM sprzedaze WHERE nazwa LIKE ? AND data_sprzedazy >= ?
+                    AND status NOT IN ('zwrot', 'anulowane')
+                ''', (f'%{name_part}%', date_from)).fetchone()
+                if r3 and float(r3['p'] or 0) > 0:
+                    przychod = float(r3['p']); szt = int(r3['s'])
         koszty = float(o['total_koszty'] or 0)
         marza = przychod - koszty if przychod > 0 else -koszty
         marza_pct = (marza / przychod * 100) if przychod > 0 else 0
