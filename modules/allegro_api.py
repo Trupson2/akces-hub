@@ -2156,234 +2156,64 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
             else:
                 print(f"📝 PATCH description+images OK!")
 
-    # === KROK 2: Weryfikacja i PATCH/modification-commands fallback ===
-
-    # Sprawdz czy POST zapisal GPSR
-    gpsr_saved = False
-    if offer_id:
-        _time.sleep(1)
+    # === KROK 2: GPSR fallback (tylko jeśli POST nie zapisał) ===
+    if offer_id and gpsr and _gpsr_ps_entry:
+        # Szybka weryfikacja — bez sleep, Allegro przetwarza synchronicznie
         verify_result, verify_error = allegro_request('GET', f'/sale/product-offers/{offer_id}')
+        gpsr_saved = False
         if not verify_error and verify_result:
-            v_ps = verify_result.get('productSet', [])
-            for ps_item in v_ps:
-                safety_val = ps_item.get('safetyInformation')
-                producer_val = ps_item.get('responsibleProducer')
-                person_val = ps_item.get('responsiblePerson')
-                print(f"POST-VERIFY safetyInformation: {str(safety_val)[:200]}")
-                print(f"POST-VERIFY responsibleProducer: {str(producer_val)[:150]}")
-                print(f"POST-VERIFY responsiblePerson: {str(person_val)[:150]}")
-                # Akceptuj GPSR jeśli jest: dict z type/description LUB string
-                if safety_val and safety_val != 'None':
-                    if isinstance(safety_val, dict) and (safety_val.get('type') or safety_val.get('description')):
-                        gpsr_saved = True
-                        print(f"GPSR SAVED via POST! (dict)")
-                    elif isinstance(safety_val, str) and len(safety_val) > 5:
-                        gpsr_saved = True
-                        print(f"GPSR SAVED via POST! (string)")
+            for ps_item in verify_result.get('productSet', []):
+                sv = ps_item.get('safetyInformation')
+                if sv and sv != 'None' and isinstance(sv, dict) and (sv.get('type') or sv.get('description')):
+                    gpsr_saved = True
+                    print(f"✅ GPSR saved via POST!")
+                    break
 
-    # Jesli POST nie zapisal GPSR -> sprobuj PATCH z productSet ŁĄCZNIE z istniejącym product
-    if not gpsr_saved and offer_id and not gpsr:
-        print(f"GPSR BRAK - nie bylo przekazane do create_offer! Nie moge dodac GPSR.")
-    if not gpsr_saved and offer_id and gpsr:
-        print(f"GPSR nie zapisany przez POST -> probuje PATCH... (gpsr={len(gpsr)} chars)")
+        # Fallback: PATCH z GPSR jeśli POST nie zapisał
+        if not gpsr_saved:
+            print(f"⚠️ GPSR nie w POST → PATCH fallback...")
+            _gpsr_patch = dict(_gpsr_ps_entry)  # kopia z attachment + producent + osoba
+            # Dodaj też MANUAL jako backup
+            if not _gpsr_attachment_id:
+                _gpsr_patch['safetyInformation'] = {'type': 'MANUAL', 'description': gpsr[:5000]}
+            _gpsr_patch['marketedBeforeGPSRObligation'] = False
 
-        # Pobierz producenta i osobę
-        _producer_id = None
-        _person_id = None
-        try:
-            producers = get_responsible_producers()
-            if producers:
-                _producer_id = producers[0]['id']
-                print(f"GPSR producer: {producers[0].get('name', '?')} ({_producer_id})")
-        except Exception as e:
-            print(f"GPSR producer error: {e}")
-        try:
-            persons = get_responsible_persons()
-            if persons:
-                _person_id = persons[0]['id']
-                print(f"GPSR person: {persons[0].get('name', '?')} ({_person_id})")
-        except Exception as e:
-            print(f"GPSR person error: {e}")
-
-        # === PRÓBA 1: PATCH z product reference + GPSR ===
-        # Allegro wymaga kontekstu product w productSet żeby zapisać GPSR
-        # WAŻNE: z product kopiuj TYLKO dozwolone pola (id, name, category, parameters, images)
-        _gpsr_patch_entry = {}
-
-        # Pobierz product reference z istniejącego productSet
-        if verify_result and not verify_error:
-            _existing_ps = verify_result.get('productSet', [])
-            if _existing_ps and isinstance(_existing_ps, list) and len(_existing_ps) > 0:
-                _existing_first = _existing_ps[0]
-                print(f"Istniejący productSet keys (full): {list(_existing_first.keys())}")
-                if 'product' in _existing_first:
-                    _existing_prod = _existing_first['product']
-                    print(f"Istniejący product keys: {list(_existing_prod.keys())}")
-                    # Użyj TYLKO product.id jako referencję (minimalne, bezpieczne)
-                    if 'id' in _existing_prod:
-                        _gpsr_patch_entry['product'] = {'id': _existing_prod['id']}
-                        print(f"Product reference: id={_existing_prod['id']}")
-                    else:
-                        # Fallback: kopiuj tylko dozwolone pola
-                        _clean_prod = {}
-                        for _pk in ['name', 'category', 'parameters', 'images']:
-                            if _pk in _existing_prod:
-                                _clean_prod[_pk] = _existing_prod[_pk]
-                        if _clean_prod:
-                            _gpsr_patch_entry['product'] = _clean_prod
-                            print(f"Product clean keys: {list(_clean_prod.keys())}")
-
-        # Dodaj GPSR pola
-        if gpsr:
-            _gpsr_patch_entry['safetyInformation'] = {'type': 'MANUAL', 'description': gpsr[:5000]}
-            _gpsr_patch_entry['marketedBeforeGPSRObligation'] = False
-        if _producer_id:
-            _gpsr_patch_entry['responsibleProducer'] = {'type': 'ID', 'id': _producer_id}
-        if _person_id:
-            _gpsr_patch_entry['responsiblePerson'] = {'id': _person_id}
-
-        if _gpsr_patch_entry:
-            patch_data = {'productSet': [_gpsr_patch_entry]}
-            # WAŻNE: zachowaj description i images w PATCH (all-or-nothing rule)
+            patch_data = {'productSet': [_gpsr_patch]}
             if offer_data.get('description'):
                 patch_data['description'] = offer_data['description']
             if offer_data.get('images'):
                 patch_data['images'] = offer_data['images']
-            print(f"PATCH #1 (product + GPSR): {list(_gpsr_patch_entry.keys())}")
+
             patch_result, patch_error = allegro_request('PATCH', f'/sale/product-offers/{offer_id}', data=patch_data)
             if patch_error:
-                print(f"PATCH #1 error: {patch_error}")
-
-                # Fallback: sprobuj PATCH z TYLKO GPSR (bez product)
-                _gpsr_only = {}
-                if gpsr:
-                    _gpsr_only['safetyInformation'] = {'type': 'MANUAL', 'description': gpsr[:5000]}
-                if _producer_id:
-                    _gpsr_only['responsibleProducer'] = {'type': 'ID', 'id': _producer_id}
-                if _person_id:
-                    _gpsr_only['responsiblePerson'] = {'id': _person_id}
-                if _gpsr_only:
-                    _patch1b_data = {'productSet': [_gpsr_only]}
-                    if offer_data.get('description'):
-                        _patch1b_data['description'] = offer_data['description']
-                    if offer_data.get('images'):
-                        _patch1b_data['images'] = offer_data['images']
-                    print(f"PATCH #1b (czyste GPSR): {list(_gpsr_only.keys())}")
-                    patch_result, patch_error = allegro_request('PATCH', f'/sale/product-offers/{offer_id}', data=_patch1b_data)
-                    if patch_error:
-                        print(f"PATCH #1b error: {patch_error}")
-                    else:
-                        print(f"PATCH #1b OK!")
+                print(f"GPSR PATCH error: {patch_error}")
+                # Ostatnia próba: modification-commands (bez sleep)
+                import uuid as _uuid
+                offer_criteria = [{'offers': [{'id': offer_id}], 'type': 'CONTAINS_OFFERS'}]
+                if _gpsr_attachment_id:
+                    cmd_id = str(_uuid.uuid4())
+                    allegro_request('PUT', f'/sale/offer-modification-commands/{cmd_id}', data={
+                        'modification': {'safetyInformation': {'type': 'ATTACHMENTS', 'attachments': [{'id': _gpsr_attachment_id}]}},
+                        'offerCriteria': offer_criteria
+                    })
+                    print(f"GPSR modification-command sent")
             else:
-                print(f"PATCH #1 OK!")
+                print(f"✅ GPSR PATCH OK!")
 
-            # Weryfikacja po 3 sekundach
-            _time.sleep(1)
-            verify2, v2_err = allegro_request('GET', f'/sale/product-offers/{offer_id}')
-            if not v2_err and verify2:
-                v2_ps = verify2.get('productSet', [])
-                print(f"VERIFY: productSet has {len(v2_ps)} entries")
-                for ps_item in v2_ps:
-                    s2 = ps_item.get('safetyInformation')
-                    p2 = ps_item.get('responsibleProducer')
-                    rp2 = ps_item.get('responsiblePerson')
-                    print(f"VERIFY safetyInfo: {str(s2)[:200]}")
-                    print(f"VERIFY producer: {str(p2)[:150]}")
-                    print(f"VERIFY person: {str(rp2)[:150]}")
-                    if s2 and s2 != 'None':
-                        if isinstance(s2, dict) and (s2.get('type') or s2.get('description')):
-                            gpsr_saved = True
-                            print(f"GPSR SAVED via PATCH! (dict)")
-                        elif isinstance(s2, str) and len(s2) > 5:
-                            gpsr_saved = True
-                            print(f"GPSR SAVED via PATCH! (string)")
-
-    # Jesli PATCH tez nie zapisal -> sprobuj offer-modification-commands
-    # WAŻNE: Allegro wymaga DOKŁADNIE 1 element w modification → wysyłaj osobno!
-    if not gpsr_saved and offer_id:
-        print(f"GPSR nie zapisany przez PATCH -> probuje modification-commands (osobno)...")
-        _time.sleep(1)
-
-        import uuid as _uuid
-        offer_criteria = [{'offers': [{'id': offer_id}], 'type': 'CONTAINS_OFFERS'}]
-
-        # 1. Safety Information
-        if gpsr:
-            cmd_id = str(_uuid.uuid4())
-            mod_data = {
-                'modification': {
-                    'safetyInformation': {'type': 'ATTACHMENTS', 'attachments': [{'id': _gpsr_attachment_id}]} if _gpsr_attachment_id else {'type': 'NO_SAFETY_INFORMATION'}
-                },
-                'offerCriteria': offer_criteria
-            }
-            print(f"PUT modification-commands [safetyInformation]: {len(gpsr)} chars")
-            mod_result, mod_error = allegro_request('PUT', f'/sale/offer-modification-commands/{cmd_id}', data=mod_data)
-            if mod_error:
-                print(f"  safetyInformation error: {mod_error}")
-            else:
-                print(f"  safetyInformation OK!")
-            _time.sleep(0.5)
-
-        # 2. Responsible Producer
-        try:
-            producers = get_responsible_producers()
-            if producers:
-                cmd_id = str(_uuid.uuid4())
-                mod_data = {
-                    'modification': {
-                        'responsibleProducer': {'type': 'ID', 'id': producers[0]['id']}
-                    },
-                    'offerCriteria': offer_criteria
-                }
-                print(f"PUT modification-commands [responsibleProducer]: {producers[0].get('name', '?')}")
-                mod_result, mod_error = allegro_request('PUT', f'/sale/offer-modification-commands/{cmd_id}', data=mod_data)
-                if mod_error:
-                    print(f"  responsibleProducer error: {mod_error}")
-                else:
-                    print(f"  responsibleProducer OK!")
-                _time.sleep(0.5)
-        except Exception as e:
-            print(f"  responsibleProducer exception: {e}")
-
-        # 3. Responsible Person
-        try:
-            persons = get_responsible_persons()
-            if persons:
-                cmd_id = str(_uuid.uuid4())
-                mod_data = {
-                    'modification': {
-                        'responsiblePerson': {'id': persons[0]['id']}
-                    },
-                    'offerCriteria': offer_criteria
-                }
-                print(f"PUT modification-commands [responsiblePerson]: {persons[0].get('name', '?')}")
-                mod_result, mod_error = allegro_request('PUT', f'/sale/offer-modification-commands/{cmd_id}', data=mod_data)
-                if mod_error:
-                    print(f"  responsiblePerson error: {mod_error}")
-                else:
-                    print(f"  responsiblePerson OK!")
-        except Exception as e:
-            print(f"  responsiblePerson exception: {e}")
-
-    # Jesli EAN nie byl w POST -> PATCH tylko EAN (osobno)
-    # Sprawdz czy product (z EAN) faktycznie byl w POST
+    # EAN PATCH jeśli nie był w POST
     _ean_was_in_post = False
     if 'productSet' in offer_data and offer_data['productSet']:
         _ean_was_in_post = 'product' in offer_data['productSet'][0]
 
     if _product_ps_entry and offer_id and not _ean_was_in_post:
-        print(f"EAN PATCH (nie byl w POST, productSet w offer_data: {'productSet' in offer_data})...")
-        _time.sleep(1)
+        print(f"EAN PATCH...")
         ean_patch = {'productSet': [_product_ps_entry]}
         if offer_data.get('description'):
             ean_patch['description'] = offer_data['description']
         if offer_data.get('images'):
             ean_patch['images'] = offer_data['images']
         ean_r, ean_e = allegro_request('PATCH', f'/sale/product-offers/{offer_id}', data=ean_patch)
-        if ean_e:
-            print(f"EAN PATCH error: {ean_e}")
-        else:
-            print(f"EAN PATCH OK!")
+        print(f"EAN PATCH: {'OK' if not ean_e else ean_e}")
 
     return result, error
 
