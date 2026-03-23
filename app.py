@@ -274,6 +274,12 @@ def inject_branding():
         _ua = get_config_cached('update_available', '0')
     except Exception:
         _bn, _bc, _bl, _ua = 'AKCES HUB', '#6366f1', '', '0'
+    # Model Gemini
+    try:
+        _gm = get_config_cached('gemini_model', 'gemini-2.5-flash')
+        _gm_short = _gm.replace('gemini-', '').replace('-preview', ' ⚠️')
+    except:
+        _gm_short = '2.5-flash'
     return {
         'brand_name': _bn,
         'brand_color': _bc,
@@ -285,6 +291,7 @@ def inject_branding():
         'lic_days_left': lic_days_left,
         'lic_days_left_num': lic_days_left_num,
         'lic_expired': lic_expired,
+        'gemini_model_short': _gm_short,
     }
 
 # Loguj WSZYSTKIE błędy 500 do konsoli (Flask domyślnie je ukrywa w non-debug)
@@ -1866,6 +1873,19 @@ def monitor_toggle_source():
         return redirect(f'/monitor?msg={source.title()}+{state}')
     return redirect('/monitor')
 
+@app.route('/system/gemini-model', methods=['POST'])
+def system_gemini_model():
+    """Szybka zmiana modelu Gemini AI"""
+    from modules.database import get_config, set_config
+    data = request.get_json(silent=True) or {}
+    model = data.get('model', '')
+    allowed = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3.1-flash-lite-preview', 'gemini-3.1-pro-preview']
+    if model not in allowed:
+        return jsonify({'ok': False, 'error': f'Nieznany model: {model}'})
+    set_config('gemini_model', model)
+    return jsonify({'ok': True, 'model': model})
+
+
 @app.route('/system/update', methods=['POST'])
 def system_update():
     """Git pull + restart serwisu z poziomu apki"""
@@ -2637,12 +2657,15 @@ def narzedzia():
         plan_level = get_plan_level(current_plan)
     except Exception:
         pass  # Brak modułu lub błąd = pokaż wszystko
+    from modules.database import get_config
+    gemini_model = get_config('gemini_model', 'gemini-2.5-flash')
     return render_template('narzedzia.html',
         version=VERSION,
         is_admin=(session.get('rola') == 'admin'),
         is_dev=_is_dev_mode(),
         plan_level=plan_level,
         current_plan=current_plan,
+        gemini_model=gemini_model,
         active_narzedzia='active', active_home='', active_magazyn='',
         active_paletomat='', active_allegro='', active_monitor='')
 

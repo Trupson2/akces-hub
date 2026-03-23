@@ -212,9 +212,37 @@
         </div>
         <div class="nc-arrow">›</div>
     </div>
+    <div class="narz-card" style="cursor:default">
+        <div class="nc-icon" style="background:rgba(139,92,246,0.1)">🧠</div>
+        <div class="nc-info">
+            <div class="nc-name">Model AI</div>
+            <select id="geminiModelSelect" onchange="changeGeminiModel(this.value)" style="margin-top:4px;width:100%;padding:6px 10px;background:var(--bg-primary,#0a0a12);border:1px solid var(--border-color,#1e1e2e);border-radius:8px;color:var(--text-primary,#e2e8f0);font-size:0.8rem;cursor:pointer">
+                <option value="gemini-2.5-flash" {{ 'selected' if gemini_model == 'gemini-2.5-flash' }}>⚡ Gemini 2.5 Flash — zalecany ✅</option>
+                <option value="gemini-2.5-flash-lite" {{ 'selected' if gemini_model == 'gemini-2.5-flash-lite' }}>💨 Gemini 2.5 Flash Lite — szybszy</option>
+                <option value="gemini-3.1-flash-lite-preview" {{ 'selected' if gemini_model == 'gemini-3.1-flash-lite-preview' }}>🚀 Gemini 3.1 Flash Lite — najnowszy ⚠️</option>
+                <option value="gemini-3.1-pro-preview" {{ 'selected' if gemini_model == 'gemini-3.1-pro-preview' }}>🧠 Gemini 3.1 Pro — najlepszy 💰</option>
+            </select>
+        </div>
+    </div>
 </div>
 
 <script>
+function changeGeminiModel(model) {
+    fetch('/system/gemini-model', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({model: model})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if(d.ok) {
+            var sel = document.getElementById('geminiModelSelect');
+            sel.style.borderColor = '#22c55e';
+            setTimeout(() => { sel.style.borderColor = ''; }, 1500);
+        }
+    });
+}
+
 function doUpdate() {
     console.log('[Update] Button clicked');
     if(!confirm('Aktualizować system? (git pull + restart)')) { console.log('[Update] Cancelled by user'); return; }

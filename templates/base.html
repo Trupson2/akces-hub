@@ -454,6 +454,9 @@ if(localStorage.getItem('kiosk_mode')==='1'){
         {% endif %}
         <a href="/narzedzia/cloud-export"><span class="sl-icon">☁️</span>Eksport do chmury</a>
         <a href="/narzedzia"><span class="sl-icon">⚡</span>Narzedzia</a>
+        <div style="padding:4px 12px 6px;margin:-2px 0 4px;font-size:0.65rem;color:var(--text-muted,#64748b);display:flex;align-items:center;gap:4px">
+            <span>🧠</span> AI: <b style="color:#a78bfa">{{ gemini_model_short }}</b>
+        </div>
         <a href="/ustawienia"><span class="sl-icon">⚙️</span>Ustawienia</a>
         {% if current_user %}
         <div class="sidebar-account">
