@@ -4445,17 +4445,13 @@ def koszty_allegro():
         var js = document.createElement('script');
         js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
         js.onload = function() {{
-            setTimeout(function() {{
+            try {{
                 var mapEl = document.getElementById('polandMap');
-                if (!mapEl || typeof L === 'undefined') return;
+                if (!mapEl) {{ console.error('Map element not found'); return; }}
 
-                var map = L.map(mapEl, {{
-                    center: [52.0, 19.5], zoom: 6,
-                    zoomControl: true, attributionControl: false
-                }});
-                L.tileLayer('https://' + '{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
-                    maxZoom: 13, minZoom: 5, subdomains: 'abcd'
-                }}).addTo(map);
+                var map = L.map(mapEl).setView([52.0, 19.5], 6);
+                var tileUrl = 'https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/' + String.fromCharCode(123) + 'z' + String.fromCharCode(125) + '/' + String.fromCharCode(123) + 'x' + String.fromCharCode(125) + '/' + String.fromCharCode(123) + 'y' + String.fromCharCode(125) + '.png';
+                L.tileLayer(tileUrl, {{ maxZoom: 13, minZoom: 5 }}).addTo(map);
 
                 var cities = {map_data_json};
                 var maxCount = cities.length > 0 ? cities[0].count : 1;
@@ -4469,8 +4465,8 @@ def koszty_allegro():
                         '<div style="text-align:center"><b style="color:#00f1fe">' + c.city + '</b><br><span style="font-size:18px;font-weight:800">' + c.count + '</span><br><small>zamówień</small></div>'
                     );
                 }});
-                setTimeout(function() {{ map.invalidateSize(); }}, 200);
-            }}, 100);
+                setTimeout(function() {{ map.invalidateSize(); }}, 300);
+            }} catch(e) {{ console.error('Map init error:', e); }}
         }};
         document.head.appendChild(js);
     }})();
