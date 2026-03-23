@@ -782,87 +782,130 @@ function toggleDrilldown(id){
 </div>
 
 <!-- ═══════════════════════════════════════════════
-     Top Products & Suppliers
+     Top Products & Suppliers — Side by Side
      ═══════════════════════════════════════════════ -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+
 {% if top_produkty and top_produkty|length > 0 %}
-<div class="glass-card" style="padding:20px;margin-bottom:20px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <span class="font-display" style="font-weight:700;font-size:0.92rem">🏆 TOP PRODUKTY</span>
+<div class="glass-card neon-glow-tertiary" style="padding:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <span class="font-display" style="font-weight:700;font-size:0.92rem">🏆 Top Produkty</span>
+        <a href="/sprzedaze" style="font-size:0.7rem;color:var(--neon-primary);text-decoration:none;font-weight:600">Wszystkie →</a>
     </div>
     {% for p in top_produkty[:5] %}
-    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04){% if loop.last %};border:none{% endif %}">
-        <div class="font-display" style="font-weight:800;color:var(--neon-secondary);width:20px;flex-shrink:0;font-size:0.9rem">{{ loop.index }}.</div>
-        <img src="{{ p.zdjecie_url or 'https://via.placeholder.com/40' }}" style="width:40px;height:40px;border-radius:10px;object-fit:cover;flex-shrink:0" loading="lazy">
-        <div style="flex:1;min-width:0">
-            <div style="font-weight:600;font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.nazwa[:40] }}{% if p.nazwa|length > 40 %}...{% endif %}</div>
-            <div style="font-size:0.7rem;color:var(--text-muted)">{{ p.sprzedazy_cnt }} szt</div>
+    <a href="/magazyn/produkt/MAG-{{ '%05d'|format(p.id) if p.id else '' }}" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);text-decoration:none;color:inherit{% if loop.last %};border:none{% endif %}">
+        <div style="position:relative">
+            <div class="font-display" style="position:absolute;top:-4px;left:-4px;width:18px;height:18px;border-radius:50%;
+                background:{% if loop.index == 1 %}linear-gradient(135deg,#ffd700,#f59e0b){% elif loop.index == 2 %}linear-gradient(135deg,#c0c0c0,#94a3b8){% elif loop.index == 3 %}linear-gradient(135deg,#cd7f32,#d97706){% else %}rgba(255,255,255,0.1){% endif %};
+                display:flex;align-items:center;justify-content:center;font-size:0.5rem;font-weight:800;color:{% if loop.index <= 3 %}#000{% else %}var(--text-muted){% endif %};z-index:1">{{ loop.index }}</div>
+            <img src="{{ p.zdjecie_url or '/static/placeholder.png' }}" style="width:40px;height:40px;border-radius:10px;object-fit:cover;
+                border:2px solid {% if loop.index == 1 %}rgba(255,215,0,0.3){% elif loop.index == 2 %}rgba(192,192,192,0.2){% else %}transparent{% endif %}" loading="lazy" onerror="this.src='/static/placeholder.png'">
         </div>
-        <div style="font-weight:700;color:var(--neon-tertiary);flex-shrink:0;font-size:0.9rem">{{ "%.0f"|format(p.sprzedazy_suma) }} zł</div>
-    </div>
+        <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.nazwa[:35] }}{% if p.nazwa|length > 35 %}...{% endif %}</div>
+            <div style="font-size:0.68rem;color:var(--text-muted)">{{ p.sprzedazy_cnt }} szt sprzedano</div>
+        </div>
+        <div class="font-display neon-text-tertiary" style="font-weight:700;flex-shrink:0;font-size:0.88rem">{{ "%.0f"|format(p.sprzedazy_suma) }} zł</div>
+    </a>
     {% endfor %}
+</div>
+{% else %}
+<div class="glass-card" style="padding:20px;display:flex;align-items:center;justify-content:center">
+    <span style="color:var(--text-muted);font-size:0.82rem">Brak danych o produktach</span>
 </div>
 {% endif %}
 
 {% if top_dostawcy and top_dostawcy|length > 0 %}
-<div class="glass-card" style="padding:20px;margin-bottom:20px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <span class="font-display" style="font-weight:700;font-size:0.92rem">📦 TOP DOSTAWCY (ROI)</span>
+<div class="glass-card" style="padding:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <span class="font-display" style="font-weight:700;font-size:0.92rem">📦 Top Dostawcy</span>
+        <span style="font-size:0.65rem;padding:3px 8px;border-radius:6px;background:var(--neon-primary-soft);color:var(--neon-primary);font-weight:600">ROI</span>
     </div>
     {% for d in top_dostawcy[:5] %}
-    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04){% if loop.last %};border:none{% endif %}">
-        <div class="font-display" style="font-weight:800;color:var(--neon-secondary);width:20px;flex-shrink:0;font-size:0.9rem">{{ loop.index }}</div>
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04){% if loop.last %};border:none{% endif %}">
+        <div style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.75rem;font-family:'Space Grotesk',sans-serif;flex-shrink:0;
+            background:{% if d.roi > 50 %}rgba(91,240,131,0.1);color:#5bf083{% elif d.roi > 20 %}rgba(234,179,8,0.1);color:#eab308{% elif d.roi > 0 %}rgba(249,115,22,0.1);color:#f97316{% else %}rgba(239,68,68,0.1);color:#ef4444{% endif %}">
+            {{ "%.0f"|format(d.roi) }}%
+        </div>
         <div style="flex:1;min-width:0">
             <div style="font-weight:600;font-size:0.82rem" class="dostawca-name">{{ d.dostawca }}</div>
-            <div style="font-size:0.7rem;color:var(--text-muted)">{{ d.sprzedazy_cnt }} szt · {{ "%.0f"|format(d.przychod) }} zł</div>
+            <div style="font-size:0.68rem;color:var(--text-muted)">{{ d.sprzedazy_cnt }} szt · {{ "%.0f"|format(d.przychod) }} zł przychodu</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
-            <div style="font-weight:700;color:{% if d.roi > 50 %}var(--neon-tertiary){% elif d.roi > 20 %}var(--orange){% else %}var(--red){% endif %}">{{ "%.0f"|format(d.roi) }}%</div>
-            <div style="font-size:0.7rem;color:var(--text-muted)">koszt: {{ "%.0f"|format(d.koszt) }} zł</div>
+            <div style="font-size:0.78rem;font-weight:600;color:var(--text-secondary)">{{ "%.0f"|format(d.koszt) }} zł</div>
+            <div style="font-size:0.6rem;color:var(--text-muted)">koszt</div>
         </div>
     </div>
     {% endfor %}
 </div>
+{% else %}
+<div class="glass-card" style="padding:20px;display:flex;align-items:center;justify-content:center">
+    <span style="color:var(--text-muted);font-size:0.82rem">Brak danych o dostawcach</span>
+</div>
 {% endif %}
+
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     Activity + License — Side by Side
+     ═══════════════════════════════════════════════ -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
 
 <!-- Activity -->
 {% if activity %}
-<div class="glass-card" style="padding:20px;margin-bottom:20px">
-    <div style="margin-bottom:14px">
-        <span class="font-display" style="font-weight:700;font-size:0.92rem">🕐 Ostatnia Aktywność</span>
+<div class="glass-card" style="padding:20px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#5bf083;box-shadow:0 0 8px rgba(91,240,131,0.5);animation:pulse 2s infinite"></div>
+        <span class="font-display" style="font-weight:700;font-size:0.92rem">Live Feed</span>
     </div>
     {% for a in activity %}
-    <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04){% if loop.last %};border:none{% endif %}">
-        <div style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;
-            background:{% if a.color == 'green' %}var(--neon-tertiary-soft){% elif a.color == 'blue' %}var(--neon-primary-soft){% elif a.color == 'yellow' %}rgba(234,179,8,0.08){% else %}var(--neon-secondary-soft){% endif %}">●</div>
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04){% if loop.last %};border:none{% endif %}">
+        <div style="width:3px;height:32px;border-radius:2px;flex-shrink:0;
+            background:{% if a.color == 'green' %}#5bf083{% elif a.color == 'blue' %}#00f1fe{% elif a.color == 'yellow' %}#eab308{% else %}#c180ff{% endif %}"></div>
         <div style="flex:1;min-width:0">
             <div style="font-weight:600;font-size:0.82rem">{{ a.msg }}</div>
-            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">{{ a.time }}</div>
+            <div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px">{{ a.time }}</div>
         </div>
+        <div style="width:6px;height:6px;border-radius:50%;flex-shrink:0;
+            background:{% if a.color == 'green' %}#5bf083{% elif a.color == 'blue' %}#00f1fe{% elif a.color == 'yellow' %}#eab308{% else %}#c180ff{% endif %};
+            box-shadow:0 0 6px {% if a.color == 'green' %}rgba(91,240,131,0.4){% elif a.color == 'blue' %}rgba(0,241,254,0.4){% elif a.color == 'yellow' %}rgba(234,179,8,0.4){% else %}rgba(193,128,255,0.4){% endif %}"></div>
     </div>
     {% endfor %}
 </div>
 {% endif %}
 
 <!-- License -->
-<div class="glass-card" style="padding:20px;border-color:{% if lic_days_left == 'Wygasla!' %}rgba(239,68,68,0.3){% elif lic_days_left %}rgba(0,241,254,0.2){% else %}rgba(255,255,255,0.06){% endif %}">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <span class="font-display" style="font-weight:700;font-size:0.92rem">🔑 Licencja</span>
-        <a href="/license" style="color:var(--neon-primary);font-size:0.78rem;text-decoration:none;font-weight:600">Szczegóły →</a>
+<div class="glass-card" style="padding:20px;position:relative;overflow:hidden;
+    border-color:{% if lic_days_left == 'Wygasla!' %}rgba(239,68,68,0.3){% elif lic_days_left %}rgba(0,241,254,0.15){% else %}rgba(255,255,255,0.06){% endif %}">
+    <!-- Subtle gradient bg -->
+    <div style="position:absolute;top:0;right:0;width:50%;height:100%;background:linear-gradient(135deg,transparent,rgba(0,241,254,0.02),rgba(193,128,255,0.03));pointer-events:none"></div>
+    <div style="position:relative;z-index:1">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+            <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,rgba(0,241,254,0.15),rgba(193,128,255,0.15));display:flex;align-items:center;justify-content:center;font-size:0.9rem">🔑</div>
+                <span class="font-display" style="font-weight:700;font-size:0.92rem">Licencja</span>
+            </div>
+            <a href="/license" style="font-size:0.72rem;color:var(--neon-primary);text-decoration:none;font-weight:600;padding:4px 10px;border-radius:6px;background:var(--neon-primary-soft)">Szczegóły →</a>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center">
+            <div class="glass-panel" style="padding:14px 10px;border-radius:12px">
+                <div class="font-display neon-text-secondary" style="font-size:1.2rem;font-weight:800">{{ lic_plan }}</div>
+                <div style="font-size:0.6rem;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:1px;font-weight:600">Plan</div>
+            </div>
+            <div class="glass-panel" style="padding:14px 10px;border-radius:12px">
+                <div class="font-display" style="font-size:1.2rem;font-weight:800;color:{% if lic_days_left == 'Wygasla!' %}var(--red){% else %}#5bf083{% endif %};
+                    {% if lic_days_left == 'Wygasla!' %}text-shadow:0 0 10px rgba(239,68,68,0.4){% else %}text-shadow:0 0 10px rgba(91,240,131,0.3){% endif %}">
+                    {{ lic_days_left or '∞' }}</div>
+                <div style="font-size:0.6rem;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:1px;font-weight:600">Pozostało</div>
+            </div>
+            <div class="glass-panel" style="padding:14px 10px;border-radius:12px">
+                <div class="font-display" style="font-size:1.2rem;font-weight:800;color:var(--text-secondary)">{{ lic_expires or '∞' }}</div>
+                <div style="font-size:0.6rem;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:1px;font-weight:600">Wygasa</div>
+            </div>
+        </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:center">
-        <div>
-            <div class="font-display" style="font-size:1.3rem;font-weight:800;color:var(--neon-secondary)">{{ lic_plan }}</div>
-            <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:1px">Plan</div>
-        </div>
-        <div>
-            <div class="font-display" style="font-size:1.3rem;font-weight:800;color:{% if lic_days_left == 'Wygasla!' %}var(--red){% else %}var(--neon-tertiary){% endif %}">{{ lic_days_left or 'Bezterminowo' }}</div>
-            <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:1px">Pozostało</div>
-        </div>
-        <div>
-            <div class="font-display" style="font-size:1.3rem;font-weight:800;color:var(--text-secondary)">{{ lic_expires or '∞' }}</div>
-            <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:1px">Wygasa</div>
-        </div>
-    </div>
+</div>
+
 </div>
 
 <!-- ═══════════════════════════════════════════════
