@@ -61,11 +61,33 @@ tailwind.config = {
 }
 </script>
 <style>
-.glass-card{background:rgba(22,26,33,0.7);backdrop-filter:blur(12px);border:1px solid rgba(153,247,255,0.05)}
-.glass-panel{background:rgba(22,26,33,0.7);backdrop-filter:blur(16px);border-top:1px solid rgba(153,247,255,0.1)}
-.neon-glow-primary{box-shadow:0 0 15px rgba(0,242,255,0.15)}
-.neon-glow-secondary{box-shadow:0 0 15px rgba(168,85,247,0.15)}
+.glass-card{background:rgba(22,26,33,0.7);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4);border:1px solid rgba(153,247,255,0.05);border-radius:var(--radius);box-shadow:0 4px 24px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.05);transition:all 0.3s ease}
+.glass-card:hover{border-color:rgba(255,255,255,0.12);box-shadow:0 8px 32px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.08)}
+.glass-panel{background:rgba(22,26,33,0.5);backdrop-filter:blur(12px) saturate(1.2);-webkit-backdrop-filter:blur(12px) saturate(1.2);border:1px solid rgba(153,247,255,0.06);border-radius:var(--radius)}
+.neon-glow-primary{box-shadow:0 0 20px rgba(0,241,254,0.15),0 0 40px rgba(0,241,254,0.05),inset 0 1px 0 rgba(0,241,254,0.1);border-color:rgba(0,241,254,0.25)!important}
+.neon-glow-secondary{box-shadow:0 0 20px rgba(193,128,255,0.15),0 0 40px rgba(193,128,255,0.05),inset 0 1px 0 rgba(193,128,255,0.1);border-color:rgba(193,128,255,0.25)!important}
+.neon-glow-tertiary{box-shadow:0 0 20px rgba(91,240,131,0.15),0 0 40px rgba(91,240,131,0.05),inset 0 1px 0 rgba(91,240,131,0.1);border-color:rgba(91,240,131,0.25)!important}
 .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
+
+/* Stitch Additions */
+.font-display{font-family:'Space Grotesk','Inter',sans-serif}
+.neon-text-primary{color:#00f1fe;text-shadow:0 0 10px rgba(0,241,254,0.4)}
+.neon-text-secondary{color:#c180ff;text-shadow:0 0 10px rgba(193,128,255,0.4)}
+.neon-text-tertiary{color:#5bf083;text-shadow:0 0 10px rgba(91,240,131,0.4)}
+.sparkline-container{height:32px;display:flex;align-items:flex-end;gap:2px}
+.sparkline-bar{flex:1;min-width:3px;border-radius:2px 2px 0 0;transition:height 0.4s ease;opacity:0.7}
+.sparkline-bar:last-child{opacity:1}
+.stitch-kpi{padding:20px;position:relative;overflow:hidden}
+.stitch-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#00f1fe,#c180ff)}
+.stitch-kpi .kpi-value{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.8rem;font-weight:800;letter-spacing:-1px;line-height:1}
+.stitch-kpi .kpi-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-top:6px;font-weight:600}
+@keyframes neonPulse{0%,100%{box-shadow:0 0 15px rgba(0,241,254,0.12),0 0 30px rgba(0,241,254,0.04)}50%{box-shadow:0 0 25px rgba(0,241,254,0.2),0 0 50px rgba(0,241,254,0.08)}}
+.neon-pulse{animation:neonPulse 3s ease-in-out infinite}
+@keyframes bannerShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.stitch-banner{position:relative;overflow:hidden;padding:24px;border-radius:var(--radius);text-align:center}
+.stitch-banner::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.04) 50%,transparent 100%);background-size:200% 100%;animation:bannerShimmer 6s linear infinite;pointer-events:none}
+.sys-gauge{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;font-family:'Space Grotesk',sans-serif;position:relative}
+.sys-gauge::before{content:'';position:absolute;inset:2px;border-radius:50%;border:2px solid rgba(255,255,255,0.06)}
 </style>
 <script>
 (function(){
