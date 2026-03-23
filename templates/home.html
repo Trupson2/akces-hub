@@ -537,138 +537,146 @@ function requestEarlyAccess(btn) {
 {% endif %}
 
 <!-- ═══════════════════════════════════════════════
-     Quick Actions + Modules
+     Command Center — Modules + Actions + Analytics in one compact block
      ═══════════════════════════════════════════════ -->
-<div class="font-display" style="font-weight:700;font-size:0.92rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">Szybkie Akcje</div>
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
-    <a href="/wysylki/allegro" class="glass-card" style="text-decoration:none;color:inherit;padding:16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
-        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem">📦</div>
-        <span class="font-display" style="font-weight:600;font-size:0.9rem">Wysyłki</span>
-    </a>
-    <a href="/palety" class="glass-card" style="text-decoration:none;color:inherit;padding:16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
-        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem">📋</div>
-        <span class="font-display" style="font-weight:600;font-size:0.9rem">Palety</span>
-    </a>
-    <a href="/sprzedaze" class="glass-card" style="text-decoration:none;color:inherit;padding:16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
-        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-tertiary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem">💰</div>
-        <span class="font-display" style="font-weight:600;font-size:0.9rem">Sprzedaż</span>
-    </a>
-    <a href="/analityka" class="glass-card" style="text-decoration:none;color:inherit;padding:16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
-        <div style="width:40px;height:40px;border-radius:12px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1.1rem">📊</div>
-        <span class="font-display" style="font-weight:600;font-size:0.9rem">Analityka</span>
-    </a>
-</div>
+<div class="glass-card" style="padding:24px;margin-bottom:24px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <span class="font-display" style="font-weight:700;font-size:1.1rem">🎛️ Command Center</span>
+        <div style="display:flex;gap:8px">
+            <a href="/narzedzia" style="font-size:0.75rem;color:var(--neon-primary);text-decoration:none;font-weight:600;padding:4px 12px;border-radius:6px;background:var(--neon-primary-soft)">Narzędzia →</a>
+            <a href="/ustawienia" style="font-size:0.75rem;color:var(--text-muted);text-decoration:none;font-weight:600;padding:4px 12px;border-radius:6px;background:rgba(255,255,255,0.04)">⚙️</a>
+        </div>
+    </div>
 
-<!-- Modules -->
-<div class="font-display" style="font-weight:700;font-size:0.92rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">Moduły</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px">
-    <a href="/paletomat" class="glass-card" style="text-decoration:none;color:inherit;padding:18px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <div style="width:38px;height:38px;border-radius:10px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">🤖</div>
-            <div>
-                <div class="font-display" style="font-weight:700;font-size:1rem">Paletomat</div>
-                <div style="font-size:0.68rem;color:var(--text-muted)">Scraper → Allegro</div>
+    <!-- Modules row — 4 column -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px">
+        <a href="/paletomat" class="glass-panel" style="text-decoration:none;color:inherit;padding:16px;border-radius:12px;display:flex;align-items:center;gap:12px">
+            <div style="width:42px;height:42px;border-radius:10px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">🤖</div>
+            <div style="flex:1;min-width:0">
+                <div class="font-display" style="font-weight:700;font-size:0.95rem">Paletomat</div>
+                <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+                    <span style="font-size:0.68rem;color:var(--neon-secondary);font-weight:600">{{ pal.aktywne }} ofert</span>
+                    <span style="font-size:0.68rem;color:var(--neon-tertiary);font-weight:600">{{ "%.0f"|format(pal.przychod) }} zł</span>
+                </div>
             </div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-secondary-soft);color:var(--neon-secondary);font-weight:600">{{ pal.aktywne }} ofert</span>
-            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-tertiary-soft);color:var(--neon-tertiary);font-weight:600">{{ "%.0f"|format(pal.przychod) }} zł</span>
-        </div>
-    </a>
-    <a href="/magazyn" class="glass-card" style="text-decoration:none;color:inherit;padding:18px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <div style="width:38px;height:38px;border-radius:10px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">📦</div>
-            <div>
-                <div class="font-display" style="font-weight:700;font-size:1rem">Magazyn</div>
-                <div style="font-size:0.68rem;color:var(--text-muted)">Stany magazynowe</div>
+        </a>
+        <a href="/magazyn" class="glass-panel" style="text-decoration:none;color:inherit;padding:16px;border-radius:12px;display:flex;align-items:center;gap:12px">
+            <div style="width:42px;height:42px;border-radius:10px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">📦</div>
+            <div style="flex:1;min-width:0">
+                <div class="font-display" style="font-weight:700;font-size:0.95rem">Magazyn</div>
+                <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+                    <span style="font-size:0.68rem;color:var(--neon-primary);font-weight:600">{{ mag.produkty }} prod</span>
+                    <span style="font-size:0.68rem;color:var(--neon-primary);font-weight:600">{{ mag.sztuki }} szt</span>
+                </div>
             </div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-primary-soft);color:var(--neon-primary);font-weight:600">{{ mag.produkty }} produktów</span>
-            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-primary-soft);color:var(--neon-primary);font-weight:600">{{ mag.sztuki }} szt</span>
-        </div>
-    </a>
-    <a href="/allegro" class="glass-card" style="text-decoration:none;color:inherit;padding:18px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <div style="width:38px;height:38px;border-radius:10px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1rem">🛒</div>
-            <div>
-                <div class="font-display" style="font-weight:700;font-size:1rem">Allegro</div>
-                <div style="font-size:0.68rem;color:var(--text-muted)">Integracja API</div>
+        </a>
+        <a href="/allegro" class="glass-panel" style="text-decoration:none;color:inherit;padding:16px;border-radius:12px;display:flex;align-items:center;gap:12px">
+            <div style="width:42px;height:42px;border-radius:10px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">🛒</div>
+            <div style="flex:1;min-width:0">
+                <div class="font-display" style="font-weight:700;font-size:0.95rem">Allegro</div>
+                <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+                    <span style="font-size:0.68rem;color:var(--neon-tertiary);font-weight:600">{{ allegro.status }}</span>
+                    <span style="font-size:0.68rem;color:var(--orange);font-weight:600">{{ allegro.oferty }} ofert</span>
+                </div>
             </div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:rgba(234,179,8,0.08);color:var(--orange);font-weight:600">{{ allegro.status }}</span>
-            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:rgba(234,179,8,0.08);color:var(--orange);font-weight:600">{{ allegro.oferty }} ofert</span>
-        </div>
-    </a>
-    <a href="/warehouse/heatmap" class="glass-card" style="text-decoration:none;color:inherit;padding:18px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <div style="width:38px;height:38px;border-radius:10px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">🗺️</div>
-            <div>
-                <div class="font-display" style="font-weight:700;font-size:1rem">Magazyn 3D</div>
-                <div style="font-size:0.68rem;color:var(--text-muted)">Heatmapa + regały</div>
+        </a>
+        <a href="/warehouse/heatmap" class="glass-panel" style="text-decoration:none;color:inherit;padding:16px;border-radius:12px;display:flex;align-items:center;gap:12px">
+            <div style="width:42px;height:42px;border-radius:10px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">🗺️</div>
+            <div style="flex:1;min-width:0">
+                <div class="font-display" style="font-weight:700;font-size:0.95rem">Magazyn 3D</div>
+                <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+                    <span id="hm-locs" style="font-size:0.68rem;color:var(--neon-secondary);font-weight:600">-- lok.</span>
+                    <span id="hm-fill" style="font-size:0.68rem;color:var(--neon-secondary);font-weight:600">--% zap.</span>
+                </div>
             </div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span id="hm-locs" style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-secondary-soft);color:var(--neon-secondary);font-weight:600">-- lokalizacji</span>
-            <span id="hm-fill" style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-secondary-soft);color:var(--neon-secondary);font-weight:600">--% zapełn.</span>
-        </div>
-    </a>
+        </a>
+    </div>
+
+    <!-- Divider -->
+    <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(0,241,254,0.15),rgba(193,128,255,0.15),transparent);margin-bottom:18px"></div>
+
+    <!-- Quick Actions + Operations + Analytics — all in one dense row -->
+    <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:10px;margin-bottom:16px">
+        <a href="/wysylki/allegro" style="text-decoration:none;color:inherit;text-align:center;padding:10px 4px;border-radius:10px;background:rgba(255,255,255,0.02);transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:5px" onmouseover="this.style.background='rgba(0,241,254,0.06)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+            <span style="font-size:1.3rem">📬</span>
+            <span style="font-size:0.72rem;font-weight:600">Wysyłki</span>
+        </a>
+        <a href="/palety" style="text-decoration:none;color:inherit;text-align:center;padding:10px 4px;border-radius:10px;background:rgba(255,255,255,0.02);transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:5px" onmouseover="this.style.background='rgba(193,128,255,0.06)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+            <span style="font-size:1.3rem">📋</span>
+            <span style="font-size:0.72rem;font-weight:600">Palety</span>
+        </a>
+        <a href="/sprzedaze" style="text-decoration:none;color:inherit;text-align:center;padding:10px 4px;border-radius:10px;background:rgba(255,255,255,0.02);transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:5px" onmouseover="this.style.background='rgba(91,240,131,0.06)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+            <span style="font-size:1.3rem">💰</span>
+            <span style="font-size:0.72rem;font-weight:600">Sprzedaż</span>
+        </a>
+        <a href="/allegro/sync" style="text-decoration:none;color:inherit;text-align:center;padding:10px 4px;border-radius:10px;background:rgba(255,255,255,0.02);transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:5px" onmouseover="this.style.background='rgba(234,179,8,0.06)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+            <span style="font-size:1.3rem">🔄</span>
+            <span style="font-size:0.72rem;font-weight:600">Sync</span>
+        </a>
+        <a href="/magazyn/etykiety" style="text-decoration:none;color:inherit;text-align:center;padding:10px 4px;border-radius:10px;background:rgba(255,255,255,0.02);transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:5px" onmouseover="this.style.background='rgba(193,128,255,0.06)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+            <span style="font-size:1.3rem">🏷️</span>
+            <span style="font-size:0.72rem;font-weight:600">Etykiety</span>
+        </a>
+        <a href="/narzedzia/kalkulator" style="text-decoration:none;color:inherit;text-align:center;padding:10px 4px;border-radius:10px;background:rgba(255,255,255,0.02);transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:5px" onmouseover="this.style.background='rgba(0,241,254,0.06)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+            <span style="font-size:1.3rem">🧮</span>
+            <span style="font-size:0.72rem;font-weight:600">Kalkulator</span>
+        </a>
+        <a href="/narzedzia/generator" style="text-decoration:none;color:inherit;text-align:center;padding:10px 4px;border-radius:10px;background:rgba(255,255,255,0.02);transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:5px" onmouseover="this.style.background='rgba(91,240,131,0.06)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+            <span style="font-size:1.3rem">✨</span>
+            <span style="font-size:0.72rem;font-weight:600">Generator AI</span>
+        </a>
+        <a href="/analityka/okazje" style="text-decoration:none;color:inherit;text-align:center;padding:10px 4px;border-radius:10px;background:rgba(255,255,255,0.02);transition:all 0.2s;border:1px solid rgba(234,179,8,0.15);display:flex;flex-direction:column;align-items:center;gap:5px" onmouseover="this.style.background='rgba(234,179,8,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+            <span style="font-size:1.3rem">🔥</span>
+            <span style="font-size:0.72rem;font-weight:600;color:var(--orange)">Okazje</span>
+        </a>
+    </div>
+
+    <!-- Divider -->
+    <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(0,241,254,0.15),rgba(193,128,255,0.15),transparent);margin-bottom:16px"></div>
+
+    <!-- Analytics drill-down triggers — inline -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <span style="font-size:0.72rem;color:var(--text-muted);font-weight:600;padding:6px 0;margin-right:4px">ANALITYKA:</span>
+        <a onclick="toggleDrilldown('dd-stats');return false" href="#" style="font-size:0.78rem;color:var(--orange);text-decoration:none;font-weight:600;padding:5px 14px;border-radius:8px;background:rgba(234,179,8,0.06);border:1px solid rgba(234,179,8,0.15);cursor:pointer;transition:all 0.2s">📊 Statystyki</a>
+        <a onclick="toggleDrilldown('dd-zakupy');return false" href="#" style="font-size:0.78rem;color:#00f1fe;text-decoration:none;font-weight:600;padding:5px 14px;border-radius:8px;background:rgba(0,241,254,0.06);border:1px solid rgba(0,241,254,0.15);cursor:pointer;transition:all 0.2s">🛒 Zakupy</a>
+        <a onclick="toggleDrilldown('dd-lezaki');return false" href="#" style="font-size:0.78rem;color:#c180ff;text-decoration:none;font-weight:600;padding:5px 14px;border-radius:8px;background:rgba(193,128,255,0.06);border:1px solid rgba(193,128,255,0.15);cursor:pointer;transition:all 0.2s">⏳ Leżaki</a>
+        <a href="/analityka" style="font-size:0.78rem;color:var(--neon-tertiary);text-decoration:none;font-weight:600;padding:5px 14px;border-radius:8px;background:rgba(91,240,131,0.06);border:1px solid rgba(91,240,131,0.15)">💹 P&L</a>
+        <a href="/analytics/allegro-performance" style="font-size:0.78rem;color:var(--text-muted);text-decoration:none;font-weight:600;padding:5px 14px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">📈 Performance</a>
+        <a href="/changelog" style="font-size:0.78rem;color:var(--text-muted);text-decoration:none;font-weight:600;padding:5px 14px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">📋 Changelog</a>
+    </div>
 </div>
 
 <script>
 fetch('/api/warehouse/heatmap').then(r=>r.json()).then(d=>{
     if(d.stats){
-        document.getElementById('hm-locs').textContent=(d.stats.total_locations||'--')+' lokalizacji';
-        document.getElementById('hm-fill').textContent=(d.stats.fill_percentage||'0')+'% zapełn.';
+        document.getElementById('hm-locs').textContent=(d.stats.total_locations||'--')+' lok.';
+        document.getElementById('hm-fill').textContent=(d.stats.fill_percentage||'0')+'% zap.';
     }
 }).catch(()=>{});
 </script>
 
-<!-- ═══════════════════════════════════════════════
-     Analytics Drill-downs
-     ═══════════════════════════════════════════════ -->
-<div class="font-display" style="font-weight:700;font-size:0.92rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">Analityka</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
-    <div onclick="toggleDrilldown('dd-stats')" class="glass-card" style="padding:16px 10px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:40px;height:40px;border-radius:12px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1.1rem">📊</div>
-        <div class="font-display" style="font-weight:700;font-size:0.92rem">Statystyki</div>
-        <div style="font-size:0.62rem;color:var(--orange)">przeglądaj</div>
-    </div>
-    <div onclick="toggleDrilldown('dd-zakupy')" class="glass-card" style="padding:16px 10px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem">🛒</div>
-        <div class="font-display" style="font-weight:700;font-size:0.92rem">Zakupy</div>
-        <div style="font-size:0.62rem;color:var(--neon-primary)">analiza</div>
-    </div>
-    <div onclick="toggleDrilldown('dd-lezaki')" class="glass-card" style="padding:16px 10px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem">⏳</div>
-        <div class="font-display" style="font-weight:700;font-size:0.92rem">Leżaki</div>
-        <div style="font-size:0.62rem;color:var(--neon-secondary)">zalegające</div>
-    </div>
-</div>
-
-<!-- Drill-down panels -->
+<!-- Drill-down panels (hidden by default) -->
 <div id="dd-stats" class="glass-card neon-glow-primary" style="display:none;padding:18px;margin-bottom:16px;animation:fadeIn 0.3s">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <span class="font-display" style="font-weight:700;color:var(--orange)">📊 Statystyki</span>
-        <span onclick="toggleDrilldown('dd-stats')" style="cursor:pointer;color:var(--text-muted);font-size:0.8rem">✕</span>
+        <span onclick="toggleDrilldown('dd-stats')" style="cursor:pointer;color:var(--text-muted);font-size:1rem;padding:4px 8px">✕</span>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <a href="/statystyki" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">📈</span>
-            <div><div style="font-weight:600;font-size:0.9rem;color:var(--neon-primary)">Pełne statystyki</div><div style="font-size:0.62rem;color:var(--text-muted)">Wykresy, trendy</div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        <a href="/statystyki" class="glass-panel" style="padding:14px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-radius:10px">
+            <span style="font-size:1.2rem">📈</span>
+            <div><div style="font-weight:600;font-size:0.88rem;color:var(--neon-primary)">Pełne statystyki</div><div style="font-size:0.68rem;color:var(--text-muted)">Wykresy, trendy</div></div>
         </a>
-        <a href="/analityka" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">💰</span>
-            <div><div style="font-weight:600;font-size:0.9rem;color:var(--neon-tertiary)">Zyski i przychody</div><div style="font-size:0.62rem;color:var(--text-muted)">Per produkt</div></div>
+        <a href="/analityka" class="glass-panel" style="padding:14px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-radius:10px">
+            <span style="font-size:1.2rem">💰</span>
+            <div><div style="font-weight:600;font-size:0.88rem;color:var(--neon-tertiary)">Zyski i przychody</div><div style="font-size:0.68rem;color:var(--text-muted)">Per produkt</div></div>
         </a>
-        <a href="/analityka/kategorie" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">🏷️</span>
-            <div><div style="font-weight:600;font-size:0.9rem;color:var(--neon-secondary)">Kategorie</div><div style="font-size:0.62rem;color:var(--text-muted)">Co sprzedaje się best</div></div>
+        <a href="/analityka/kategorie" class="glass-panel" style="padding:14px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-radius:10px">
+            <span style="font-size:1.2rem">🏷️</span>
+            <div><div style="font-weight:600;font-size:0.88rem;color:var(--neon-secondary)">Kategorie</div><div style="font-size:0.68rem;color:var(--text-muted)">Co sprzedaje się best</div></div>
         </a>
-        <a href="/analytics/dashboard" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">📊</span>
-            <div><div style="font-weight:600;font-size:0.9rem;color:var(--orange)">Dashboard KPI</div><div style="font-size:0.62rem;color:var(--text-muted)">Porównania</div></div>
+        <a href="/analytics/dashboard" class="glass-panel" style="padding:14px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-radius:10px">
+            <span style="font-size:1.2rem">📊</span>
+            <div><div style="font-weight:600;font-size:0.88rem;color:var(--orange)">Dashboard KPI</div><div style="font-size:0.68rem;color:var(--text-muted)">Porównania</div></div>
         </a>
     </div>
 </div>
@@ -676,24 +684,24 @@ fetch('/api/warehouse/heatmap').then(r=>r.json()).then(d=>{
 <div id="dd-zakupy" class="glass-card neon-glow-primary" style="display:none;padding:18px;margin-bottom:16px;animation:fadeIn 0.3s">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <span class="font-display" style="font-weight:700;color:var(--neon-primary)">🛒 Zakupy</span>
-        <span onclick="toggleDrilldown('dd-zakupy')" style="cursor:pointer;color:var(--text-muted);font-size:0.8rem">✕</span>
+        <span onclick="toggleDrilldown('dd-zakupy')" style="cursor:pointer;color:var(--text-muted);font-size:1rem;padding:4px 8px">✕</span>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <a href="/analityka/palety" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">📦</span>
-            <div><div style="font-weight:600;font-size:0.9rem;color:var(--neon-primary)">Bilans palet</div><div style="font-size:0.62rem;color:var(--text-muted)">ROI per paleta</div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        <a href="/analityka/palety" class="glass-panel" style="padding:14px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-radius:10px">
+            <span style="font-size:1.2rem">📦</span>
+            <div><div style="font-weight:600;font-size:0.88rem;color:var(--neon-primary)">Bilans palet</div><div style="font-size:0.68rem;color:var(--text-muted)">ROI per paleta</div></div>
         </a>
-        <a href="/palety" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">📋</span>
-            <div><div style="font-weight:600;font-size:0.9rem;color:var(--neon-tertiary)">Lista palet</div><div style="font-size:0.62rem;color:var(--text-muted)">Wszystkie zakupy</div></div>
+        <a href="/palety" class="glass-panel" style="padding:14px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-radius:10px">
+            <span style="font-size:1.2rem">📋</span>
+            <div><div style="font-weight:600;font-size:0.88rem;color:var(--neon-tertiary)">Lista palet</div><div style="font-size:0.68rem;color:var(--text-muted)">Wszystkie zakupy</div></div>
         </a>
-        <a href="/analityka/okazje" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">🔥</span>
-            <div><div style="font-weight:600;font-size:0.9rem;color:var(--orange)">Okazje</div><div style="font-size:0.62rem;color:var(--text-muted)">Monitoring</div></div>
+        <a href="/analityka/okazje" class="glass-panel" style="padding:14px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-radius:10px">
+            <span style="font-size:1.2rem">🔥</span>
+            <div><div style="font-weight:600;font-size:0.88rem;color:var(--orange)">Okazje</div><div style="font-size:0.68rem;color:var(--text-muted)">Monitoring dostawców</div></div>
         </a>
-        <a href="/sprzedaze" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">💳</span>
-            <div><div style="font-weight:600;font-size:0.9rem;color:var(--red)">Sprzedaże</div><div style="font-size:0.62rem;color:var(--text-muted)">Historia</div></div>
+        <a href="/sprzedaze" class="glass-panel" style="padding:14px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-radius:10px">
+            <span style="font-size:1.2rem">💳</span>
+            <div><div style="font-weight:600;font-size:0.88rem;color:var(--red)">Sprzedaże</div><div style="font-size:0.68rem;color:var(--text-muted)">Historia zamówień</div></div>
         </a>
     </div>
 </div>
@@ -701,24 +709,24 @@ fetch('/api/warehouse/heatmap').then(r=>r.json()).then(d=>{
 <div id="dd-lezaki" class="glass-card neon-glow-secondary" style="display:none;padding:18px;margin-bottom:16px;animation:fadeIn 0.3s">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <span class="font-display" style="font-weight:700;color:var(--neon-secondary)">⏳ Leżaki</span>
-        <span onclick="toggleDrilldown('dd-lezaki')" style="cursor:pointer;color:var(--text-muted);font-size:0.8rem">✕</span>
+        <span onclick="toggleDrilldown('dd-lezaki')" style="cursor:pointer;color:var(--text-muted);font-size:1rem;padding:4px 8px">✕</span>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <a href="/magazyn/lezaki" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">⏳</span>
-            <div><div style="font-weight:600;font-size:0.9rem;color:var(--neon-secondary)">Stojące >30 dni</div><div style="font-size:0.62rem;color:var(--text-muted)">{{ monthly.stojace }} produktów</div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        <a href="/magazyn/lezaki" class="glass-panel" style="padding:14px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-radius:10px">
+            <span style="font-size:1.2rem">⏳</span>
+            <div><div style="font-weight:600;font-size:0.88rem;color:var(--neon-secondary)">Stojące >30 dni</div><div style="font-size:0.68rem;color:var(--text-muted)">{{ monthly.stojace }} produktów</div></div>
         </a>
-        <a href="/magazyn" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">📦</span>
-            <div><div style="font-weight:600;font-size:0.9rem;color:var(--neon-primary)">Cały magazyn</div><div style="font-size:0.62rem;color:var(--text-muted)">{{ mag.produkty }} produktów</div></div>
+        <a href="/magazyn" class="glass-panel" style="padding:14px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-radius:10px">
+            <span style="font-size:1.2rem">📦</span>
+            <div><div style="font-weight:600;font-size:0.88rem;color:var(--neon-primary)">Cały magazyn</div><div style="font-size:0.68rem;color:var(--text-muted)">{{ mag.produkty }} produktów</div></div>
         </a>
-        <a href="/sprzedaze?status=zwrot" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">↩️</span>
-            <div><div style="font-weight:600;font-size:0.9rem;color:var(--red)">Zwroty</div><div style="font-size:0.62rem;color:var(--text-muted)">{{ monthly.zwroty_cnt }} w tym miesiącu</div></div>
+        <a href="/sprzedaze?status=zwrot" class="glass-panel" style="padding:14px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-radius:10px">
+            <span style="font-size:1.2rem">↩️</span>
+            <div><div style="font-weight:600;font-size:0.88rem;color:var(--red)">Zwroty</div><div style="font-size:0.68rem;color:var(--text-muted)">{{ monthly.zwroty_cnt }} w tym miesiącu</div></div>
         </a>
-        <a href="/warehouse/heatmap" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">🗺️</span>
-            <div><div style="font-weight:600;font-size:0.9rem;color:var(--neon-tertiary)">Mapa magazynu</div><div style="font-size:0.62rem;color:var(--text-muted)">Heatmapa 3D</div></div>
+        <a href="/warehouse/heatmap" class="glass-panel" style="padding:14px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-radius:10px">
+            <span style="font-size:1.2rem">🗺️</span>
+            <div><div style="font-weight:600;font-size:0.88rem;color:var(--neon-tertiary)">Mapa magazynu</div><div style="font-size:0.68rem;color:var(--text-muted)">Heatmapa 3D</div></div>
         </a>
     </div>
 </div>
@@ -732,54 +740,6 @@ function toggleDrilldown(id){
 }
 </script>
 
-<!-- ═══════════════════════════════════════════════
-     Operations + Tools
-     ═══════════════════════════════════════════════ -->
-<div class="font-display" style="font-weight:700;font-size:0.92rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">Operacje</div>
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
-    <a href="/paletomat" class="glass-card" style="text-decoration:none;color:inherit;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:36px;height:36px;border-radius:10px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">🤖</div>
-        <div class="font-display" style="font-weight:700;font-size:0.78rem">Paletomat</div>
-        <div style="font-size:0.6rem;color:var(--neon-primary)">wystawiaj</div>
-    </a>
-    <a href="/wysylki/allegro" class="glass-card" style="text-decoration:none;color:inherit;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:36px;height:36px;border-radius:10px;background:var(--neon-tertiary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">📬</div>
-        <div class="font-display" style="font-weight:700;font-size:0.78rem">Wysyłki</div>
-        <div style="font-size:0.6rem;color:var(--neon-tertiary)">pakuj</div>
-    </a>
-    <a href="/allegro/sync" class="glass-card" style="text-decoration:none;color:inherit;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:36px;height:36px;border-radius:10px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1rem">🔄</div>
-        <div class="font-display" style="font-weight:700;font-size:0.78rem">Sync</div>
-        <div style="font-size:0.6rem;color:var(--orange)">zamówienia</div>
-    </a>
-    <a href="/magazyn/etykiety" class="glass-card" style="text-decoration:none;color:inherit;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:36px;height:36px;border-radius:10px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">🏷️</div>
-        <div class="font-display" style="font-weight:700;font-size:0.78rem">Etykiety</div>
-        <div style="font-size:0.6rem;color:var(--neon-secondary)">masowe PNG</div>
-    </a>
-</div>
-
-<!-- Tools row -->
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
-    <a href="/narzedzia/kalkulator" class="glass-card" style="text-decoration:none;color:inherit;padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
-        <span style="font-size:1.2rem">💰</span>
-        <span style="font-size:0.7rem;color:var(--text-muted)">Kalkulator</span>
-    </a>
-    <a href="/narzedzia/generator" class="glass-card" style="text-decoration:none;color:inherit;padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
-        <span style="font-size:1.2rem">✨</span>
-        <span style="font-size:0.7rem;color:var(--text-muted)">Generator AI</span>
-    </a>
-    <a href="/analityka/okazje" class="glass-card" style="text-decoration:none;color:inherit;padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;border-color:rgba(234,179,8,0.2)">
-        <span style="font-size:1.2rem">🔥</span>
-        <span style="font-size:0.7rem;color:var(--orange)">Okazje</span>
-    </a>
-</div>
-
-<div style="display:flex;justify-content:space-between;margin-bottom:24px">
-    <a href="/narzedzia" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none">Więcej narzędzi →</a>
-    <a href="/ustawienia" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none">⚙️ Ustawienia</a>
-    <a href="/changelog" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none">📋 Changelog</a>
-</div>
 
 <!-- ═══════════════════════════════════════════════
      Top Products & Suppliers — Side by Side
