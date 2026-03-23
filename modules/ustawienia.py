@@ -548,11 +548,10 @@ def ustawienia_kreator():
             'fields': [
                 {'name': 'gemini_api_key', 'label': 'API Key', 'type': 'password', 'placeholder': 'AIzaSy...'},
                 {'name': 'gemini_model', 'label': 'Model AI', 'type': 'select', 'options': [
-                    ('gemini-2.5-flash', '⚡ Gemini 2.5 Flash (zalecany, darmowy)'),
-                    ('gemini-2.5-flash-lite', '💨 Gemini 2.5 Flash Lite (szybki, najtańszy)'),
-                    ('gemini-2.0-flash', '📦 Gemini 2.0 Flash (stary, wygasa 01.06.2026)'),
-                    ('gemini-3.1-flash-lite-preview', '🚀 Gemini 3.1 Flash Lite (preview, najnowszy)'),
-                    ('gemini-3.1-pro-preview', '🧠 Gemini 3.1 Pro (preview, najlepszy, droższy)'),
+                    ('gemini-2.5-flash', '⚡ Gemini 2.5 Flash — ZALECANY ✅ darmowy, stabilny'),
+                    ('gemini-2.5-flash-lite', '💨 Gemini 2.5 Flash Lite — szybszy, mniej dokładny'),
+                    ('gemini-3.1-flash-lite-preview', '🚀 Gemini 3.1 Flash Lite — najnowszy, testowy ⚠️'),
+                    ('gemini-3.1-pro-preview', '🧠 Gemini 3.1 Pro — najlepszy, testowy, płatny 💰'),
                 ]},
             ]
         },
