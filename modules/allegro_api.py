@@ -2661,7 +2661,7 @@ ZASADY:
 3. Parametr bez opcji (type=string) → podaj wartość tekstową
 4. Nie znasz wartości → POMIŃ parametr (nie wpisuj "brak" ani "nie dotyczy")
 5. "Stan" → zawsze "Nowy" jeśli dostępny
-6. Marka/Producent → wybierz PRAWDZIWĄ markę z tytułu (np. "UGREEN", "Anker", "Baseus"). Jeśli marka jest w tytule — UŻYJ JEJ. Tylko jeśli naprawdę nie wiadomo → "inna"
+6. Marka/Producent → ZAWSZE wybierz "bez marki" — NIGDY nie podawaj konkretnej marki
 7. Kolor → odczytaj z tytułu/opisu (Black=Czarny, White=Biały, etc.)
 8. Materiał → odczytaj z opisu (Plastic=Tworzywo sztuczne, Metal=Metal, etc.)
 9. Wymiary/waga → przelicz na jednostki z parametru (cm, mm, kg, g)
