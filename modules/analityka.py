@@ -4142,7 +4142,8 @@ def koszty_allegro():
             GROUP BY p2.paleta_id
         ) sc ON sc.paleta_id = pal.id
         WHERE s.status NOT IN ('anulowana', 'zwrot')
-        GROUP BY COALESCE(p.id, s.nazwa)
+          AND p.id IS NOT NULL
+        GROUP BY p.id
         ORDER BY przychod DESC
     ''').fetchall()
 
@@ -4225,7 +4226,7 @@ def koszty_allegro():
         badge_bg = 'rgba(91,240,131,0.1)' if p['marza'] > 0 else 'rgba(239,68,68,0.1)'
         badge_text = 'DOBRZE' if p['marza'] > 0 else 'STRATA'
         koszt_szt_str = f"{p['koszt_szt']:,.0f} zł" if p['koszt_szt'] > 0 else '-'
-        rows_html += f'''<tr>
+        rows_html += f'''<tr data-przychod="{p['przychod']}" data-szt="{p['szt']}" data-koszt="{p['koszt_szt']}" data-prowizja="{p['prowizja']}" data-reklama="{p['reklama']}" data-dostawa="{p['dostawa']}" data-marza="{p['marza']}" data-marza-pct="{p['marza_pct']}" data-nazwa="{p['nazwa'][:45]}">
             <td style="padding:10px 14px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">{p['nazwa'][:45]}</td>
             <td style="padding:10px 10px;text-align:right;font-family:'Space Grotesk',sans-serif;font-weight:600">{p['przychod']:,.0f} zł</td>
             <td style="padding:10px 8px;text-align:center">{p['szt']}</td>
@@ -4314,6 +4315,23 @@ def koszty_allegro():
         </div>
     </div>
 
+    <!-- Sort controls -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <select id="sortField" style="padding:8px 12px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text);font-size:0.82rem;backdrop-filter:blur(8px)">
+            <option value="przychod">Przychód</option>
+            <option value="szt">Sztuki</option>
+            <option value="koszt">Koszt/szt</option>
+            <option value="prowizja">Prowizja</option>
+            <option value="reklama">Reklama</option>
+            <option value="dostawa">Dostawa</option>
+            <option value="marza">Marża (zł)</option>
+            <option value="marza-pct">Marża (%)</option>
+            <option value="nazwa">Nazwa</option>
+        </select>
+        <button id="sortDir" onclick="toggleSort()" style="padding:8px 14px;background:rgba(0,241,254,0.08);border:1px solid rgba(0,241,254,0.2);border-radius:8px;color:var(--neon-primary);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s">↓ DESC</button>
+        <button onclick="doSort()" style="padding:8px 14px;background:rgba(91,240,131,0.08);border:1px solid rgba(91,240,131,0.2);border-radius:8px;color:var(--neon-tertiary);font-size:0.82rem;font-weight:600;cursor:pointer">Sortuj</button>
+    </div>
+
     <!-- Products table -->
     <div class="glass-card" style="padding:0;overflow-x:auto">
         <table class="ka-table">
@@ -4339,6 +4357,35 @@ def koszty_allegro():
     <div style="text-align:center;padding:16px;font-size:0.72rem;color:var(--text-muted)">
         {len(products)} produktów · Źródło: {fees_source} · {len(billing_per_offer)} ofert z danymi per-oferta
     </div>
+
+    <script>
+    var sortAsc = false;
+    function toggleSort() {{
+        sortAsc = !sortAsc;
+        document.getElementById('sortDir').textContent = sortAsc ? '↑ ASC' : '↓ DESC';
+        doSort();
+    }}
+    function doSort() {{
+        var field = document.getElementById('sortField').value;
+        var tbody = document.querySelector('.ka-table tbody');
+        var rows = Array.from(tbody.querySelectorAll('tr'));
+        rows.sort(function(a, b) {{
+            var va, vb;
+            if (field === 'nazwa') {{
+                va = (a.dataset.nazwa || '').toLowerCase();
+                vb = (b.dataset.nazwa || '').toLowerCase();
+                return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+            }}
+            va = parseFloat(a.dataset[field] || 0);
+            vb = parseFloat(b.dataset[field] || 0);
+            if (field === 'marza-pct') {{ va = parseFloat(a.dataset.marzaPct || 0); vb = parseFloat(b.dataset.marzaPct || 0); }}
+            return sortAsc ? va - vb : vb - va;
+        }});
+        rows.forEach(function(r) {{ tbody.appendChild(r); }});
+    }}
+    // Auto-sort on dropdown change
+    document.getElementById('sortField').addEventListener('change', doSort);
+    </script>
     '''
 
     return render(html, page_title='Koszty Allegro')
