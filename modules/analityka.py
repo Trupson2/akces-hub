@@ -975,12 +975,12 @@ def analityka_palety():
             (SELECT COALESCE(SUM(cena_brutto), 0) FROM produkty WHERE paleta_id = p.id) as koszt_produktow,
             (SELECT COALESCE(SUM(cena_allegro * ilosc), 0) FROM produkty WHERE paleta_id = p.id AND status = 'dostepny') as wartosc_magazynu,
             (SELECT COALESCE(SUM(CASE WHEN status = 'sprzedany' AND (sprzedano_offline IS NULL OR sprzedano_offline = 0) THEN cena_allegro ELSE 0 END), 0) FROM produkty WHERE paleta_id = p.id) as przychod_produkty,
-            COALESCE((SELECT SUM(s.cena * s.ilosc) FROM sprzedaze s JOIN produkty pr ON s.produkt_id = pr.id WHERE pr.paleta_id = p.id AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot','')), 0) as przychod_tabela,
+            COALESCE((SELECT SUM(s.cena * s.ilosc) FROM sprzedaze s LEFT JOIN produkty pr ON s.produkt_id = pr.id LEFT JOIN oferty o ON s.oferta_id = o.id LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = p.id AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot')), 0) as przychod_tabela,
             (SELECT COALESCE(SUM(przychod_offline), 0) FROM produkty WHERE paleta_id = p.id) as przychod_offline,
             (SELECT COALESCE(SUM(sprzedano_offline), 0) FROM produkty WHERE paleta_id = p.id) as sprzedano_offline_szt,
             (SELECT COUNT(*) FROM produkty WHERE paleta_id = p.id AND status = 'sprzedany' AND (sprzedano_offline IS NULL OR sprzedano_offline = 0)) as sprzedano_produkty,
-            COALESCE((SELECT SUM(s.ilosc) FROM sprzedaze s JOIN produkty pr ON s.produkt_id = pr.id WHERE pr.paleta_id = p.id AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot','')), 0) as sprzedano_tabela,
-            COALESCE((SELECT SUM(s.cena * s.ilosc) FROM sprzedaze s JOIN produkty pr ON s.produkt_id = pr.id WHERE pr.paleta_id = p.id AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot','') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')), 0) as przychod_allegro_only
+            COALESCE((SELECT SUM(s.ilosc) FROM sprzedaze s LEFT JOIN produkty pr ON s.produkt_id = pr.id LEFT JOIN oferty o ON s.oferta_id = o.id LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = p.id AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot')), 0) as sprzedano_tabela,
+            COALESCE((SELECT SUM(s.cena * s.ilosc) FROM sprzedaze s LEFT JOIN produkty pr ON s.produkt_id = pr.id LEFT JOIN oferty o ON s.oferta_id = o.id LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = p.id AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')), 0) as przychod_allegro_only
         FROM palety p
         ORDER BY p.data_zakupu DESC
     ''').fetchall()
@@ -4110,6 +4110,17 @@ def koszty_allegro():
     real_dostawa = billing_data['dostawa']
 
     # Per-product: przychod, szt, prowizja, marza
+    # Filter sales to same 90-day billing period
+    date_90_ago = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
+
+    # Sort parameters from query string
+    sort_field = request.args.get('sort', 'przychod')
+    sort_dir = request.args.get('dir', 'desc')
+    if sort_field not in ('przychod', 'szt', 'prowizja', 'reklama', 'dostawa', 'marza'):
+        sort_field = 'przychod'
+    if sort_dir not in ('asc', 'desc'):
+        sort_dir = 'desc'
+
     rows = conn.execute('''
         SELECT
             sp.produkt_id as id,
@@ -4128,6 +4139,7 @@ def koszty_allegro():
             SELECT produkt_id, SUM(cena * ilosc) as przychod, SUM(ilosc) as szt
             FROM sprzedaze
             WHERE status NOT IN ('anulowana', 'zwrot') AND produkt_id IS NOT NULL
+                AND date(data_sprzedazy) >= ?
             GROUP BY produkt_id
         ) sp
         JOIN produkty p ON p.id = sp.produkt_id
@@ -4145,7 +4157,7 @@ def koszty_allegro():
             GROUP BY p2.paleta_id
         ) sc ON sc.paleta_id = pal.id
         ORDER BY sp.przychod DESC
-    ''').fetchall()
+    ''', [date_90_ago]).fetchall()
 
     # Build product list
     products = []
@@ -4205,6 +4217,10 @@ def koszty_allegro():
             'marza': marza,
             'marza_pct': marza_pct,
         })
+
+    # Server-side sort
+    reverse_sort = (sort_dir == 'desc')
+    products.sort(key=lambda p: p.get(sort_field, 0), reverse=reverse_sort)
 
     total_marza_pct = (total_marza / total_przychod * 100) if total_przychod > 0 else 0
     roas = (total_przychod / total_reklama) if total_reklama > 0 else 0
@@ -4358,21 +4374,17 @@ def koszty_allegro():
         </div>
     </div>
 
-    <!-- Sort controls -->
+    <!-- Sort controls (server-side via query params) -->
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <select id="sortField" style="padding:8px 12px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text);font-size:0.82rem;backdrop-filter:blur(8px)">
-            <option value="przychod">Przychód</option>
-            <option value="szt">Sztuki</option>
-            <option value="koszt">Koszt/szt</option>
-            <option value="prowizja">Prowizja</option>
-            <option value="reklama">Reklama</option>
-            <option value="dostawa">Dostawa</option>
-            <option value="marza">Marża (zł)</option>
-            <option value="marza-pct">Marża (%)</option>
-            <option value="nazwa">Nazwa</option>
+        <select id="sortField" onchange="window.location.href='/analityka/koszty-allegro?sort='+this.value+'&dir={sort_dir}'" style="padding:8px 12px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text);font-size:0.82rem;backdrop-filter:blur(8px)">
+            <option value="przychod" {'selected' if sort_field == 'przychod' else ''}>Przychód</option>
+            <option value="szt" {'selected' if sort_field == 'szt' else ''}>Sztuki</option>
+            <option value="prowizja" {'selected' if sort_field == 'prowizja' else ''}>Prowizja</option>
+            <option value="reklama" {'selected' if sort_field == 'reklama' else ''}>Reklama</option>
+            <option value="dostawa" {'selected' if sort_field == 'dostawa' else ''}>Dostawa</option>
+            <option value="marza" {'selected' if sort_field == 'marza' else ''}>Marża</option>
         </select>
-        <button id="sortDir" onclick="toggleSort()" style="padding:8px 14px;background:rgba(0,241,254,0.08);border:1px solid rgba(0,241,254,0.2);border-radius:8px;color:var(--neon-primary);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s">↓ DESC</button>
-        <button onclick="doSort()" style="padding:8px 14px;background:rgba(91,240,131,0.08);border:1px solid rgba(91,240,131,0.2);border-radius:8px;color:var(--neon-tertiary);font-size:0.82rem;font-weight:600;cursor:pointer">Sortuj</button>
+        <a href="/analityka/koszty-allegro?sort={sort_field}&dir={'asc' if sort_dir == 'desc' else 'desc'}" style="padding:8px 14px;background:rgba(0,241,254,0.08);border:1px solid rgba(0,241,254,0.2);border-radius:8px;color:var(--neon-primary);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none">{'↑ ASC' if sort_dir == 'asc' else '↓ DESC'}</a>
     </div>
 
     <!-- Products table -->
@@ -4408,33 +4420,6 @@ def koszty_allegro():
     </div>
 
     <script>
-    var sortAsc = false;
-    function toggleSort() {{
-        sortAsc = !sortAsc;
-        document.getElementById('sortDir').textContent = sortAsc ? '↑ ASC' : '↓ DESC';
-        doSort();
-    }}
-    function doSort() {{
-        var field = document.getElementById('sortField').value;
-        var tbody = document.querySelector('.ka-table tbody');
-        var rows = Array.from(tbody.querySelectorAll('tr'));
-        rows.sort(function(a, b) {{
-            var va, vb;
-            if (field === 'nazwa') {{
-                va = (a.dataset.nazwa || '').toLowerCase();
-                vb = (b.dataset.nazwa || '').toLowerCase();
-                return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
-            }}
-            va = parseFloat(a.dataset[field] || 0);
-            vb = parseFloat(b.dataset[field] || 0);
-            if (field === 'marza-pct') {{ va = parseFloat(a.dataset.marzaPct || 0); vb = parseFloat(b.dataset.marzaPct || 0); }}
-            return sortAsc ? va - vb : vb - va;
-        }});
-        rows.forEach(function(r) {{ tbody.appendChild(r); }});
-    }}
-    // Auto-sort on dropdown change
-    document.getElementById('sortField').addEventListener('change', doSort);
-
     // ── Leaflet Map ──
     (function() {{
         var css = document.createElement('link');
