@@ -4027,56 +4027,71 @@ def analizator_palet_status():
 # KOSZTY ALLEGRO — per-product cost breakdown + ROAS
 # ═══════════════════════════════════════════════════
 
+_billing_cache = {'data': None, 'per_offer': None, 'source': None, 'ts': 0}
+
 @analityka_bp.route('/analityka/koszty-allegro')
 def koszty_allegro():
     from modules.database import get_db, get_config
     from datetime import datetime, timedelta
+    import time
     conn = get_db()
+    force_refresh = request.args.get('refresh') == '1'
 
     prowizja_pct = float(get_config('allegro_prowizja_pct', '15')) / 100
 
-    # ── Try Allegro Billing API first ──
-    billing_data = {'prowizja': 0, 'reklama': 0, 'dostawa': 0, 'inne': 0}
-    billing_per_offer = {}  # offer_id → {prowizja, reklama, dostawa}
-    billing_source = 'manual'
+    # ── Try Allegro Billing API first (with 15-min cache) ──
+    cache_ttl = 900  # 15 minutes
+    now_ts = time.time()
 
-    try:
-        from modules.allegro_api import get_all_billing_entries, get_allegro_config
-        config = get_allegro_config()
-        if config.get('access_token'):
-            # Last 90 days
-            date_from = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%dT00:00:00Z')
-            entries, error = get_all_billing_entries(date_from=date_from)
-            if not error and entries:
-                billing_source = 'api'
-                for e in entries:
-                    amount = abs(float(e.get('value', {}).get('amount', 0)))
-                    type_id = e.get('type', {}).get('id', '')
-                    type_name = (e.get('type', {}).get('name', '') or '').lower()
-                    offer_id = e.get('offer', {}).get('id', '')
+    if not force_refresh and _billing_cache['data'] and (now_ts - _billing_cache['ts']) < cache_ttl:
+        billing_data = _billing_cache['data']
+        billing_per_offer = _billing_cache['per_offer']
+        billing_source = _billing_cache['source']
+    else:
+        billing_data = {'prowizja': 0, 'reklama': 0, 'dostawa': 0, 'inne': 0}
+        billing_per_offer = {}
+        billing_source = 'manual'
 
-                    # Categorize by type
-                    if type_id in ('SUC', 'SUC_BUY_NOW') or 'prowizj' in type_name or 'commission' in type_name:
-                        billing_data['prowizja'] += amount
-                        cat = 'prowizja'
-                    elif 'reklam' in type_name or 'promow' in type_name or 'ads' in type_name or 'wyróżn' in type_name or type_id in ('PRO', 'PROMO', 'ADS'):
-                        billing_data['reklama'] += amount
-                        cat = 'reklama'
-                    elif 'dostaw' in type_name or 'wysyłk' in type_name or 'shipping' in type_name or 'kurier' in type_name:
-                        billing_data['dostawa'] += amount
-                        cat = 'dostawa'
-                    else:
-                        billing_data['inne'] += amount
-                        cat = 'inne'
+        try:
+            from modules.allegro_api import get_all_billing_entries, get_allegro_config
+            config = get_allegro_config()
+            if config.get('access_token'):
+                date_from = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%dT00:00:00Z')
+                entries, error = get_all_billing_entries(date_from=date_from, max_pages=20)
+                if not error and entries:
+                    billing_source = 'api'
+                    for e in entries:
+                        amount = abs(float(e.get('value', {}).get('amount', 0)))
+                        type_id = e.get('type', {}).get('id', '')
+                        type_name = (e.get('type', {}).get('name', '') or '').lower()
+                        offer_id = e.get('offer', {}).get('id', '')
 
-                    # Per-offer breakdown
-                    if offer_id:
-                        if offer_id not in billing_per_offer:
-                            billing_per_offer[offer_id] = {'prowizja': 0, 'reklama': 0, 'dostawa': 0}
-                        if cat in ('prowizja', 'reklama', 'dostawa'):
-                            billing_per_offer[offer_id][cat] += amount
-    except Exception as ex:
-        print(f"[Koszty Allegro] Billing API error: {ex}")
+                        if type_id in ('SUC', 'SUC_BUY_NOW') or 'prowizj' in type_name or 'commission' in type_name:
+                            billing_data['prowizja'] += amount
+                            cat = 'prowizja'
+                        elif 'reklam' in type_name or 'promow' in type_name or 'ads' in type_name or 'wyróżn' in type_name or type_id in ('PRO', 'PROMO', 'ADS'):
+                            billing_data['reklama'] += amount
+                            cat = 'reklama'
+                        elif 'dostaw' in type_name or 'wysyłk' in type_name or 'shipping' in type_name or 'kurier' in type_name:
+                            billing_data['dostawa'] += amount
+                            cat = 'dostawa'
+                        else:
+                            billing_data['inne'] += amount
+                            cat = 'inne'
+
+                        if offer_id:
+                            if offer_id not in billing_per_offer:
+                                billing_per_offer[offer_id] = {'prowizja': 0, 'reklama': 0, 'dostawa': 0}
+                            if cat in ('prowizja', 'reklama', 'dostawa'):
+                                billing_per_offer[offer_id][cat] += amount
+        except Exception as ex:
+            print(f"[Koszty Allegro] Billing API error: {ex}")
+
+        # Update cache
+        _billing_cache['data'] = billing_data
+        _billing_cache['per_offer'] = billing_per_offer
+        _billing_cache['source'] = billing_source
+        _billing_cache['ts'] = now_ts
 
     # ── Fallback: manual koszty table ──
     if billing_source == 'manual':
