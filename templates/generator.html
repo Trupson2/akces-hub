@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="header">
-    <h1>✨ GENERATOR OPISÓW AI</h1>
-    <small>Automatyczne opisy produktów</small>
+<div style="text-align:center;padding:10px 0 24px">
+    <h1 class="font-display" style="font-size:1.4rem;font-weight:800;color:var(--neon-secondary);text-shadow:0 0 10px rgba(193,128,255,0.4)">GENERATOR OPISÓW AI</h1>
+    <small style="color:var(--text-muted);font-size:0.82rem">Automatyczne opisy produktów</small>
 </div>
 
 <form method="POST" action="/narzedzia/generator">
-<div class="card">
+<div class="glass-card" style="padding:24px;margin-bottom:20px">
     <div class="form-group">
         <label>📝 Nazwa produktu</label>
         <input type="text" name="nazwa" class="form-control" value="{{ nazwa or '' }}" placeholder="np. Pokrowce na siedzenia Coverado" required>
@@ -19,14 +19,14 @@
             <option value="inne" {{ 'selected' if kategoria=='inne' or not kategoria else '' }}>📦 Inne</option>
         </select>
     </div>
-    <button type="submit" class="btn btn-purple">✨ GENERUJ OPIS</button>
+    <button type="submit" class="btn" style="background:rgba(193,128,255,0.12);border:1px solid rgba(193,128,255,0.3);color:var(--neon-secondary);font-weight:700">✨ GENERUJ OPIS</button>
 </div>
 </form>
 
 {% if opis %}
-<div class="section-title" style="color:#22c55e">📄 Wygenerowany opis:</div>
-<div class="opis-box">{{ opis }}</div>
-<button onclick="navigator.clipboard.writeText(document.querySelector('.opis-box').innerText);alert('Skopiowano!')" class="btn btn-success">📋 KOPIUJ DO SCHOWKA</button>
+<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--neon-tertiary);text-shadow:0 0 8px rgba(91,240,131,0.3);margin-bottom:12px;font-weight:600">📄 Wygenerowany opis</div>
+<div class="glass-card" style="padding:20px;white-space:pre-wrap;font-size:0.95rem;line-height:1.7;max-height:280px;overflow-y:auto;margin-bottom:16px">{{ opis }}</div>
+<button onclick="navigator.clipboard.writeText(document.querySelector('.glass-card:last-of-type').innerText);alert('Skopiowano!')" class="btn" style="background:rgba(91,240,131,0.12);border:1px solid rgba(91,240,131,0.3);color:var(--neon-tertiary);font-weight:700">📋 KOPIUJ DO SCHOWKA</button>
 {% endif %}
 
 <a href="/narzedzia" class="back">← Powrót</a>
