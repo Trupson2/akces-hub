@@ -1590,7 +1590,7 @@ def paleta_bulk_import():
                                 continue
 
                             # Utwórz JEDNĄ paletę dla całego ZIP
-                            zip_cena = round(zip_cena_raw * eur_rate, 2)
+                            zip_cena = round(zip_cena_raw, 2)  # Cena zakupu palety zawsze w PLN
                             paleta_id = add_paleta(zip_nazwa, dostawca, zip_cena, zip_data_zakupu, f'ZIP: {file.filename} ({len(excel_files)} plików)', zip_regal, typ=zip_typ)
                             total_prod_count = 0
                             total_szt = 0
@@ -1705,7 +1705,7 @@ def paleta_bulk_import():
                     nazwa = file.filename.rsplit('.', 1)[0]
 
                 cena_zakupu_raw = float(request.form.get(cena_key, 0) or 0)
-                cena_zakupu = round(cena_zakupu_raw * eur_rate, 2)  # EUR→PLN jeśli EUR
+                cena_zakupu = round(cena_zakupu_raw, 2)  # Cena zakupu palety zawsze w PLN
                 regal = request.form.get(regal_key, '').strip()
                 typ = request.form.get(typ_key, 'paleta').strip()
                 data_zakupu = request.form.get('data', datetime.now().strftime('%Y-%m-%d'))
