@@ -35,6 +35,25 @@ def _get_auto_kategoryzuj():
     return auto_kategoryzuj
 
 
+def _clean_price(val):
+    """Wyczyść wartość ceny — usuń symbole walut, spacje, zamień przecinek na kropkę."""
+    if val is None:
+        return 0.0
+    s = str(val).strip()
+    if not s or s.lower() in ('n/a', 'nan', 'none', '', '-'):
+        return 0.0
+    # Usuń symbole walut i spacje
+    import re
+    s = re.sub(r'[złZŁ€$£¥₹\s]', '', s)
+    s = s.replace(',', '.')
+    # Usuń wszystko oprócz cyfr, kropki i minusa
+    s = re.sub(r'[^\d.\-]', '', s)
+    try:
+        return float(s)
+    except (ValueError, TypeError):
+        return 0.0
+
+
 def _dodaj_dostawca_options(selected=''):
     """Generuje opcje <option> dla selecta dostawcy (dynamiczne)"""
     from modules.database import get_dostawcy_list
@@ -1620,20 +1639,34 @@ def paleta_bulk_import():
                                         continue
                                     # Auto-detect kolumn
                                     col_nazwa = col_ean = col_ilosc = col_cena = col_rrp = col_asin = -1
+                                    col_image = -1
                                     for ci, h in enumerate(z_headers):
-                                        hl = h.lower()
-                                        if any(k in hl for k in ['description', 'name', 'product', 'nazwa', 'item', 'titel', 'bezeichnung']):
+                                        hl = h.lower().strip()
+                                        hc = hl.replace(' ', '')
+                                        if any(k in hl for k in ['product title', 'description', 'nazwa', 'item']):
+                                            if col_nazwa < 0: col_nazwa = ci
+                                        elif hl in ('name', 'title', 'titel', 'bezeichnung', 'product name'):
                                             if col_nazwa < 0: col_nazwa = ci
                                         elif any(k in hl for k in ['barcode', 'ean', 'gtin', 'upc']):
                                             if col_ean < 0: col_ean = ci
-                                        elif any(k in hl for k in ['qty', 'quantity', 'ilosc', 'menge', 'amount']):
-                                            if col_ilosc < 0: col_ilosc = ci
+                                        elif any(k in hc for k in ['qty', 'quantity', 'ilosc', 'menge']):
+                                            if 'amount' not in hc:  # "amount" to zwykle cena
+                                                if col_ilosc < 0: col_ilosc = ci
+                                        elif hc == 'unitrrp' or hl == 'unit rrp':
+                                            # Unit RRP = cena za 1 szt (Jobalot format)
+                                            col_cena = ci
+                                        elif hc == 'totalrrp' or hl == 'total rrp':
+                                            pass  # Ignoruj total — chcemy unit
                                         elif any(k in hl for k in ['unit price', 'cost', 'price', 'cena', 'preis', 'kosten']):
-                                            if col_cena < 0: col_cena = ci
+                                            if 'total' not in hl:
+                                                if col_cena < 0: col_cena = ci
                                         elif any(k in hl for k in ['rrp', 'retail', 'msrp', 'uvp']):
-                                            if col_rrp < 0: col_rrp = ci
-                                        elif any(k in hl for k in ['asin']):
+                                            if 'total' not in hl:
+                                                if col_rrp < 0: col_rrp = ci
+                                        elif hl == 'asin':
                                             if col_asin < 0: col_asin = ci
+                                        elif hl == 'image 1' or hl == 'image':
+                                            col_image = ci
                                     if col_nazwa < 0:
                                         col_nazwa = 0
                                     # Sprawdź czy kolumna ceny to "total"
@@ -1663,12 +1696,10 @@ def paleta_bulk_import():
                                             except: prod_ilosc = 1
                                         prod_cena = 0
                                         if col_cena >= 0 and col_cena < len(row_data):
-                                            try: prod_cena = round(float(row_data[col_cena] or 0) * eur_rate, 2)
-                                            except: prod_cena = 0
+                                            prod_cena = round(_clean_price(row_data[col_cena]) * eur_rate, 2)
                                         prod_rrp = 0
                                         if col_rrp >= 0 and col_rrp < len(row_data):
-                                            try: prod_rrp = round(float(row_data[col_rrp] or 0) * eur_rate, 2)
-                                            except: prod_rrp = 0
+                                            prod_rrp = round(_clean_price(row_data[col_rrp]) * eur_rate, 2)
                                         prod_asin = ''
                                         if col_asin >= 0 and col_asin < len(row_data):
                                             prod_asin = str(row_data[col_asin] or '').strip()
@@ -1678,12 +1709,18 @@ def paleta_bulk_import():
                                         if z_price_is_total and prod_ilosc > 1:
                                             prod_cena = round(prod_cena / prod_ilosc, 2)
                                             prod_rrp = round(prod_rrp / prod_ilosc, 2)
+                                        # Zdjęcie z Excela (Jobalot: Image 1)
+                                        prod_image = ''
+                                        if col_image >= 0 and col_image < len(row_data):
+                                            prod_image = str(row_data[col_image] or '').strip()
+                                            if prod_image.lower() in ('n/a', 'nan', 'none', ''):
+                                                prod_image = ''
                                         # cena_allegro = sugerowana cena sprzedaży (RRP lub cena × 2)
-                                        prod_cena_allegro = prod_rrp if prod_rrp > 0 else round(prod_cena * 2, 2)
+                                        prod_cena_allegro = prod_rrp if prod_rrp > 0 else (round(prod_cena * 2, 2) if prod_cena > 0 else 0)
                                         kategoria = auto_kategoryzuj(prod_nazwa) if auto_kategoryzuj else 'inne'
-                                        conn.execute('''INSERT INTO produkty (nazwa, ean, asin, ilosc, cena_netto, cena_brutto, cena_allegro, kategoria, status, paleta_id, dostawca)
-                                            VALUES (?,?,?,?,?,?,?,?,?,?,?)''',
-                                            (prod_nazwa, prod_ean, prod_asin, prod_ilosc, prod_cena, prod_rrp, prod_cena_allegro, kategoria, 'magazyn', paleta_id, dostawca))
+                                        conn.execute('''INSERT INTO produkty (nazwa, ean, asin, ilosc, cena_netto, cena_brutto, cena_allegro, kategoria, status, paleta_id, dostawca, zdjecie_url)
+                                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''',
+                                            (prod_nazwa, prod_ean, prod_asin, prod_ilosc, prod_cena, prod_rrp, prod_cena_allegro, kategoria, 'magazyn', paleta_id, dostawca, prod_image))
                                         file_prod_count += 1
                                         total_szt += prod_ilosc
                                     total_prod_count += file_prod_count
@@ -1778,9 +1815,17 @@ def paleta_bulk_import():
                         elif col_asin_i == -1 and 'product' not in h_clean and any(x in h_clean for x in ['sku', 'code', 'artikelnummer', 'article']):
                             col_asin_i = i
 
+                        # Jobalot: "Unit RRP" = cena za 1 szt → użyj jako główną cenę
+                        if h_clean == 'unitrrp' or h_orig == 'unit rrp':
+                            col_unit_price = i
+                            continue
+                        # "Total RRP" = cena × ilość → ignoruj (nie unit price)
+                        if h_clean == 'totalrrp' or h_orig == 'total rrp':
+                            continue
+
                         # UNIKAJ kolumn z cenami rynkowymi!
                         if any(x in h_orig for x in ['regularn', 'rynkow', 'rrp', 'retail', 'msrp']):
-                            if 'jednostkow' not in h_orig:
+                            if 'total' not in h_orig and 'jednostkow' not in h_orig:
                                 col_rrp_i = i
                                 continue
 
@@ -1868,13 +1913,9 @@ def paleta_bulk_import():
                                 prod_ilosc = int(float(str(row[col_ilosc_i]).replace(',', '.'))) if col_ilosc_i >= 0 and col_ilosc_i < len(row) and row[col_ilosc_i] is not None else 1
                             except:
                                 prod_ilosc = 1
-                            try:
-                                prod_cena_raw = float(str(row[col_cena_i]).replace(',', '.')) if col_cena_i >= 0 and col_cena_i < len(row) and row[col_cena_i] is not None else 0
-                            except:
-                                prod_cena_raw = 0
-                            try:
-                                prod_cena_detal_raw = float(str(row[col_rrp_i]).replace(',', '.')) if col_rrp_i >= 0 and col_rrp_i < len(row) and row[col_rrp_i] is not None else prod_cena_raw * 2
-                            except:
+                            prod_cena_raw = _clean_price(row[col_cena_i]) if col_cena_i >= 0 and col_cena_i < len(row) else 0
+                            prod_cena_detal_raw = _clean_price(row[col_rrp_i]) if col_rrp_i >= 0 and col_rrp_i < len(row) else 0
+                            if prod_cena_detal_raw == 0:
                                 prod_cena_detal_raw = prod_cena_raw * 2
 
                             # Przelicz EUR→PLN (ceny za 1 szt)
