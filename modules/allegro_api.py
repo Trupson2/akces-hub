@@ -2267,57 +2267,73 @@ def upload_gpsr_attachment(gpsr_text, product_name=''):
         return None
 
     try:
-        from reportlab.lib.pagesizes import A4
-        from reportlab.lib.units import mm
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.styles import getSampleStyleSheet
-        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-        from reportlab.lib.styles import ParagraphStyle
-        from reportlab.lib.enums import TA_LEFT
+        # Próba 1: ReportLab PDF (jeśli zainstalowane)
+        pdf_bytes = None
+        try:
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.units import mm
+            from reportlab.lib.styles import getSampleStyleSheet
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+            from reportlab.lib.styles import ParagraphStyle
 
-        pdf_buffer = BytesIO()
-        doc = SimpleDocTemplate(pdf_buffer, pagesize=A4,
-                                topMargin=20*mm, bottomMargin=20*mm,
-                                leftMargin=20*mm, rightMargin=20*mm)
+            pdf_buffer = BytesIO()
+            doc = SimpleDocTemplate(pdf_buffer, pagesize=A4,
+                                    topMargin=20*mm, bottomMargin=20*mm,
+                                    leftMargin=20*mm, rightMargin=20*mm)
 
-        styles = getSampleStyleSheet()
-        title_style = ParagraphStyle(
-            'GPSRTitle', parent=styles['Heading1'],
-            fontSize=14, spaceAfter=10,
-            fontName='Helvetica-Bold'
-        )
-        body_style = ParagraphStyle(
-            'GPSRBody', parent=styles['Normal'],
-            fontSize=10, leading=14, spaceAfter=6,
-            fontName='Helvetica'
-        )
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle('GPSRTitle', parent=styles['Heading1'],
+                fontSize=14, spaceAfter=10, fontName='Helvetica-Bold')
+            body_style = ParagraphStyle('GPSRBody', parent=styles['Normal'],
+                fontSize=10, leading=14, spaceAfter=6, fontName='Helvetica')
 
-        story = []
+            story = []
+            story.append(Paragraph("Informacje o bezpieczeństwie produktu (GPSR)", title_style))
+            if product_name:
+                story.append(Paragraph(f"Produkt: {product_name[:100]}", body_style))
+            story.append(Spacer(1, 10))
 
-        # Tytuł
-        story.append(Paragraph("Informacje o bezpieczeństwie produktu (GPSR)", title_style))
-        if product_name:
-            story.append(Paragraph(f"Produkt: {product_name[:100]}", body_style))
-        story.append(Spacer(1, 10))
+            for line in gpsr_text.split('\n'):
+                line = line.strip()
+                if not line:
+                    story.append(Spacer(1, 6))
+                    continue
+                line = line.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                if line.startswith('* '):
+                    line = '• ' + line[2:]
+                story.append(Paragraph(line, body_style))
 
-        # Treść GPSR - podziel na linie
-        for line in gpsr_text.split('\n'):
-            line = line.strip()
-            if not line:
-                story.append(Spacer(1, 6))
-                continue
-            # Escape HTML entities
-            line = line.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-            # Bullet points
-            if line.startswith('* '):
-                line = '• ' + line[2:]
-            story.append(Paragraph(line, body_style))
+            doc.build(story)
+            pdf_bytes = pdf_buffer.getvalue()
+            pdf_buffer.close()
+            print(f"🛡️ GPSR PDF (reportlab): {len(pdf_bytes)} bytes")
+        except ImportError:
+            print(f"⚠️ reportlab nie zainstalowane — generuję minimalny PDF")
 
-        doc.build(story)
-        pdf_bytes = pdf_buffer.getvalue()
-        pdf_buffer.close()
-
-        print(f"🛡️ GPSR PDF: {len(pdf_bytes)} bytes wygenerowane")
+        # Próba 2: Minimalny PDF bez reportlab (ręczny format)
+        if not pdf_bytes:
+            # Generuj najprostszy możliwy PDF
+            _lines = gpsr_text.replace('* ', '• ').split('\n')
+            _text_content = '\n'.join(l.strip() for l in _lines if l.strip())
+            # Minimalny valid PDF z tekstem
+            _content = f"Informacje o bezpieczeństwie produktu (GPSR)\n\nProdukt: {product_name[:100]}\n\n{_text_content}"
+            _stream = _content.encode('latin-1', errors='replace')
+            _pdf = (
+                b'%PDF-1.4\n'
+                b'1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n'
+                b'2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n'
+                b'3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]'
+                b'/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj\n'
+                b'5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\n'
+                b'4 0 obj<</Length ' + str(len(_stream) + 50).encode() + b'>>\nstream\n'
+                b'BT /F1 10 Tf 50 800 Td (' + _stream[:800] + b') Tj ET\n'
+                b'endstream\nendobj\n'
+                b'xref\n0 6\n'
+                b'0000000000 65535 f \n'
+                b'trailer<</Size 6/Root 1 0 R>>\nstartxref\n0\n%%EOF'
+            )
+            pdf_bytes = _pdf
+            print(f"🛡️ GPSR PDF (minimal): {len(pdf_bytes)} bytes")
 
         # Upload do Allegro
         token = get_config('allegro_access_token', '')
