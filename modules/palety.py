@@ -1636,6 +1636,12 @@ def paleta_bulk_import():
                                             if col_asin < 0: col_asin = ci
                                     if col_nazwa < 0:
                                         col_nazwa = 0
+                                    # Sprawdź czy kolumna ceny to "total"
+                                    z_price_is_total = False
+                                    if col_cena >= 0 and col_cena < len(z_headers):
+                                        hc = z_headers[col_cena].replace(' ', '').lower()
+                                        if any(x in hc for x in ['total', 'amount', 'wartosc', 'wartość', 'lineamount', 'gesamt']):
+                                            z_price_is_total = True
                                     # Parsuj produkty z tego Excela
                                     file_prod_count = 0
                                     for row_data in rows_zip[z_header_row + 1:]:
@@ -1668,10 +1674,16 @@ def paleta_bulk_import():
                                             prod_asin = str(row_data[col_asin] or '').strip()
                                             if prod_asin in ('nan', 'None', 'none'):
                                                 prod_asin = ''
+                                        # Jeśli cena to total — podziel na 1 szt
+                                        if z_price_is_total and prod_ilosc > 1:
+                                            prod_cena = round(prod_cena / prod_ilosc, 2)
+                                            prod_rrp = round(prod_rrp / prod_ilosc, 2)
+                                        # cena_allegro = sugerowana cena sprzedaży (RRP lub cena × 2)
+                                        prod_cena_allegro = prod_rrp if prod_rrp > 0 else round(prod_cena * 2, 2)
                                         kategoria = auto_kategoryzuj(prod_nazwa) if auto_kategoryzuj else 'inne'
-                                        conn.execute('''INSERT INTO produkty (nazwa, ean, asin, ilosc, cena_netto, cena_brutto, kategoria, status, paleta_id, dostawca)
-                                            VALUES (?,?,?,?,?,?,?,?,?,?)''',
-                                            (prod_nazwa, prod_ean, prod_asin, prod_ilosc, prod_cena, prod_rrp, kategoria, 'magazyn', paleta_id, dostawca))
+                                        conn.execute('''INSERT INTO produkty (nazwa, ean, asin, ilosc, cena_netto, cena_brutto, cena_allegro, kategoria, status, paleta_id, dostawca)
+                                            VALUES (?,?,?,?,?,?,?,?,?,?,?)''',
+                                            (prod_nazwa, prod_ean, prod_asin, prod_ilosc, prod_cena, prod_rrp, prod_cena_allegro, kategoria, 'magazyn', paleta_id, dostawca))
                                         file_prod_count += 1
                                         total_szt += prod_ilosc
                                     total_prod_count += file_prod_count
@@ -1792,8 +1804,17 @@ def paleta_bulk_import():
                         if col_ilosc_i == -1 and any(x in h_clean for x in ['ilosc', 'ilość', 'qty', 'quantity', 'sztuk', 'szt', 'pcs', 'pieces', 'count', 'menge', 'anzahl', 'stueck', 'stuck']):
                             col_ilosc_i = i
 
+                    # Wykryj kolumny "total" (cena × ilość, nie unit price)
+                    col_total_price = -1
+                    for i, h in enumerate(headers):
+                        hc = h.replace(' ', '').replace('_', '').lower()
+                        if any(x in hc for x in ['totalprice', 'totalcost', 'lineamount', 'linetotal', 'gesamtpreis', 'wartosc', 'wartość', 'amount']):
+                            if 'qty' not in hc and 'quantity' not in hc and 'ilosc' not in hc:
+                                col_total_price = i
+
                     # Wybierz najlepszą kolumnę ceny (priorytet jak paletomat)
                     price_is_netto = False
+                    price_is_total = False
                     if col_unit_price >= 0:
                         col_cena_i = col_unit_price
                         price_is_netto = True
@@ -1805,13 +1826,24 @@ def paleta_bulk_import():
 
                     # Fallback: szukaj ogólnie "price/cena/preis"
                     if col_cena_i == -1:
-                        for i, h in enumerate(headers):
-                            hc = h.replace(' ', '').replace('_', '')
-                            if any(x in hc for x in ['price', 'cena', 'preis']) and i != col_rrp_i:
-                                col_cena_i = i
-                                break
+                        # Jeśli mamy total_price a nie unit — użyj go, ale oznacz jako total
+                        if col_total_price >= 0:
+                            col_cena_i = col_total_price
+                            price_is_total = True
+                        else:
+                            for i, h in enumerate(headers):
+                                hc = h.replace(' ', '').replace('_', '')
+                                if any(x in hc for x in ['price', 'cena', 'preis']) and i != col_rrp_i:
+                                    col_cena_i = i
+                                    break
 
-                    print(f"📊 Bulk import kolumny: nazwa={col_nazwa_i} ean={col_ean_i} asin={col_asin_i} ilosc={col_ilosc_i} cena={col_cena_i} rrp={col_rrp_i}")
+                    # Sprawdź czy wybrana kolumna to total (nagłówek zawiera total/amount/wartość)
+                    if col_cena_i >= 0 and not price_is_total:
+                        h_check = headers[col_cena_i].lower().replace(' ', '')
+                        if any(x in h_check for x in ['total', 'amount', 'wartosc', 'wartość', 'lineamount', 'gesamt']):
+                            price_is_total = True
+
+                    print(f"📊 Bulk import kolumny: nazwa={col_nazwa_i} ean={col_ean_i} asin={col_asin_i} ilosc={col_ilosc_i} cena={col_cena_i} rrp={col_rrp_i} total={price_is_total}")
 
                     # Utwórz paletę/box
                     paleta_id = add_paleta(nazwa, dostawca, cena_zakupu, data_zakupu, f'Bulk import: {file.filename}', regal, typ=typ)
@@ -1845,7 +1877,7 @@ def paleta_bulk_import():
                             except:
                                 prod_cena_detal_raw = prod_cena_raw * 2
 
-                            # Przelicz EUR→PLN
+                            # Przelicz EUR→PLN (ceny za 1 szt)
                             prod_cena = round(prod_cena_raw * eur_rate, 2)
                             prod_cena_detal = round(prod_cena_detal_raw * eur_rate, 2)
                             # cena_brutto = cena_netto * 1.23 (VAT 23%) jeśli cena jest netto
@@ -1853,6 +1885,12 @@ def paleta_bulk_import():
                                 prod_cena_brutto = round(prod_cena * 1.23, 2)
                             else:
                                 prod_cena_brutto = round(prod_cena, 2)  # Cena już brutto
+
+                            # Jeśli kolumna ceny to "total" (nie unit) — podziel na 1 szt
+                            if price_is_total and prod_ilosc > 1:
+                                prod_cena = round(prod_cena / prod_ilosc, 2)
+                                prod_cena_brutto = round(prod_cena_brutto / prod_ilosc, 2)
+                                prod_cena_detal = round(prod_cena_detal / prod_ilosc, 2)
 
                             if not prod_nazwa or prod_nazwa in ('nan', 'None', '') or prod_nazwa.strip() == '':
                                 continue
