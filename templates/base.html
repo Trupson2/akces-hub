@@ -79,8 +79,8 @@ tailwind.config = {
 .sparkline-bar:last-child{opacity:1}
 .stitch-kpi{padding:20px;position:relative;overflow:hidden}
 .stitch-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#00f1fe,#c180ff)}
-.stitch-kpi .kpi-value{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.8rem;font-weight:800;letter-spacing:-1px;line-height:1}
-.stitch-kpi .kpi-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-top:6px;font-weight:600}
+.stitch-kpi .kpi-value{font-family:'Space Grotesk','Inter',sans-serif;font-size:2.2rem;font-weight:800;letter-spacing:-1px;line-height:1}
+.stitch-kpi .kpi-label{font-size:0.75rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-top:8px;font-weight:600}
 @keyframes neonPulse{0%,100%{box-shadow:0 0 15px rgba(0,241,254,0.12),0 0 30px rgba(0,241,254,0.04)}50%{box-shadow:0 0 25px rgba(0,241,254,0.2),0 0 50px rgba(0,241,254,0.08)}}
 .neon-pulse{animation:neonPulse 3s ease-in-out infinite}
 @keyframes bannerShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
@@ -160,9 +160,9 @@ body.kiosk,body.kiosk *{cursor:none!important}
 /* Main */
 .main-content{margin-left:250px;flex:1;min-height:100vh;position:relative;z-index:1}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 32px;background:linear-gradient(90deg,var(--bg-card),rgba(10,10,26,0.95));border-bottom:1px solid rgba(127,90,240,0.12);box-shadow:0 2px 20px rgba(0,0,0,0.3);position:sticky;top:0;z-index:50;backdrop-filter:blur(10px)}
-.topbar-title{font-size:1.05rem;font-weight:700;color:var(--text)}
+.topbar-title{font-size:1.2rem;font-weight:700;color:var(--text)}
 .topbar-actions{display:flex;gap:10px;align-items:center}
-.container{padding:28px 32px;max-width:1400px}
+.container{padding:28px 32px;max-width:1800px}
 
 /* Mobile */
 .menu-toggle{display:none;position:fixed;top:14px;left:14px;z-index:200;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);width:42px;height:42px;align-items:center;justify-content:center;cursor:pointer;font-size:1.2rem;box-shadow:var(--shadow-md)}
@@ -196,7 +196,7 @@ body.kiosk,body.kiosk *{cursor:none!important}
 .card:hover{box-shadow:var(--shadow-md)}
 [data-theme="dark"] .card:hover{border-color:rgba(127,90,240,0.35);box-shadow:0 0 25px rgba(127,90,240,0.12),0 0 50px rgba(127,90,240,0.04)}
 .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.card-title{font-weight:700;font-size:0.92rem;color:var(--text)}
+.card-title{font-weight:700;font-size:1.05rem;color:var(--text)}
 .card-action{font-size:0.75rem;color:var(--accent);text-decoration:none;font-weight:600}
 
 /* Dashboard grids */
@@ -247,7 +247,7 @@ body.kiosk,body.kiosk *{cursor:none!important}
 .stat-lbl{font-size:0.62rem;color:var(--text-muted);text-transform:uppercase;margin-top:4px;letter-spacing:0.5px}
 
 /* Section */
-.section-title{font-weight:700;font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px}
+.section-title{font-weight:700;font-size:0.82rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px}
 
 /* Old compat */
 .header{padding:0 0 20px;margin-bottom:20px;border-bottom:1px solid var(--border)}
