@@ -33,6 +33,41 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap">
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "surface": "#0b0e14",
+        "surface-container": "#161a21",
+        "surface-container-low": "#10131a",
+        "surface-container-high": "#1c2028",
+        "surface-container-highest": "#22262f",
+        "on-surface": "#ecedf6",
+        "on-surface-variant": "#a9abb3",
+        "outline-variant": "#45484f",
+        "primary-fixed": "#00f1fe",
+        "secondary": "#c180ff",
+        "secondary-container": "#6f00be",
+        "tertiary": "#c5ffc9",
+        "tertiary-dim": "#5bf083",
+        "error": "#ff716c",
+      },
+      fontFamily: {
+        "headline": ["Space Grotesk","Inter","sans-serif"],
+      },
+    },
+  },
+}
+</script>
+<style>
+.glass-card{background:rgba(22,26,33,0.7);backdrop-filter:blur(12px);border:1px solid rgba(153,247,255,0.05)}
+.glass-panel{background:rgba(22,26,33,0.7);backdrop-filter:blur(16px);border-top:1px solid rgba(153,247,255,0.1)}
+.neon-glow-primary{box-shadow:0 0 15px rgba(0,242,255,0.15)}
+.neon-glow-secondary{box-shadow:0 0 15px rgba(168,85,247,0.15)}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
+</style>
+<script>
 (function(){
     const saved = localStorage.getItem('theme');
     if(saved) document.documentElement.setAttribute('data-theme', saved);
