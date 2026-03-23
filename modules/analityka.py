@@ -4112,39 +4112,39 @@ def koszty_allegro():
     # Per-product: przychod, szt, prowizja, marza
     rows = conn.execute('''
         SELECT
-            p.id,
-            COALESCE(p.nazwa, s.nazwa) as nazwa,
+            sp.produkt_id as id,
+            p.nazwa,
             p.zdjecie_url,
-            SUM(s.cena * s.ilosc) as przychod,
-            SUM(s.ilosc) as szt,
+            sp.przychod,
+            sp.szt,
             COALESCE(p.cena_allegro, 0) as cena_allegro,
-            o.allegro_id as offer_allegro_id,
+            (SELECT o.allegro_id FROM oferty o WHERE o.produkt_id = sp.produkt_id LIMIT 1) as offer_allegro_id,
             CASE
                 WHEN pal.cena_zakupu > 0 AND sc.total_cnt > 0
                 THEN pal.cena_zakupu / sc.total_cnt
                 ELSE 0
             END as koszt_szt
-        FROM sprzedaze s
-        LEFT JOIN produkty p ON s.produkt_id = p.id
-        LEFT JOIN oferty o ON o.produkt_id = p.id
+        FROM (
+            SELECT produkt_id, SUM(cena * ilosc) as przychod, SUM(ilosc) as szt
+            FROM sprzedaze
+            WHERE status NOT IN ('anulowana', 'zwrot') AND produkt_id IS NOT NULL
+            GROUP BY produkt_id
+        ) sp
+        JOIN produkty p ON p.id = sp.produkt_id
         LEFT JOIN palety pal ON p.paleta_id = pal.id
         LEFT JOIN (
             SELECT p2.paleta_id,
                    SUM(COALESCE(p2.ilosc, 0) + COALESCE(p2.sprzedano_offline, 0)
-                       + COALESCE(sp_cnt.cnt, 0)) as total_cnt
+                       + COALESCE(sp2.cnt, 0)) as total_cnt
             FROM produkty p2
             LEFT JOIN (
                 SELECT produkt_id, SUM(ilosc) as cnt
-                FROM sprzedaze
-                WHERE status != 'anulowana'
+                FROM sprzedaze WHERE status != 'anulowana'
                 GROUP BY produkt_id
-            ) sp_cnt ON sp_cnt.produkt_id = p2.id
+            ) sp2 ON sp2.produkt_id = p2.id
             GROUP BY p2.paleta_id
         ) sc ON sc.paleta_id = pal.id
-        WHERE s.status NOT IN ('anulowana', 'zwrot')
-          AND p.id IS NOT NULL
-        GROUP BY p.id
-        ORDER BY przychod DESC
+        ORDER BY sp.przychod DESC
     ''').fetchall()
 
     # Build product list
