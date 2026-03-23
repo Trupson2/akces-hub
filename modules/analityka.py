@@ -4403,9 +4403,8 @@ def koszty_allegro():
 
     <!-- Map -->
     <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--neon-primary);text-shadow:0 0 8px rgba(0,241,254,0.3);margin:24px 0 12px;font-weight:600">🗺️ Skąd kupują klienci</div>
-    <div class="glass-card" style="padding:0;overflow:hidden;margin-bottom:20px">
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-        <div id="polandMap" style="height:500px;background:#0a0a16"></div>
+    <div class="glass-card" style="padding:0;overflow:hidden;margin-bottom:20px;border-radius:16px">
+        <div id="polandMap" style="height:500px;background:#0a0a16;border-radius:16px"></div>
     </div>
 
     <script>
@@ -4437,41 +4436,44 @@ def koszty_allegro():
     document.getElementById('sortField').addEventListener('change', doSort);
 
     // ── Leaflet Map ──
-    var mapScript = document.createElement('script');
-    mapScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    mapScript.onload = function() {{
-        var map = L.map('polandMap', {{
-            center: [52.0, 19.5],
-            zoom: 6,
-            zoomControl: true,
-            attributionControl: false
-        }});
-        L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
-            maxZoom: 13, minZoom: 5
-        }}).addTo(map);
+    (function() {{
+        var css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(css);
 
-        var cities = {map_data_json};
-        var maxCount = cities.length > 0 ? cities[0].count : 1;
+        var js = document.createElement('script');
+        js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        js.onload = function() {{
+            setTimeout(function() {{
+                var mapEl = document.getElementById('polandMap');
+                if (!mapEl || typeof L === 'undefined') return;
 
-        cities.forEach(function(c) {{
-            var radius = Math.max(8, Math.min(40, (c.count / maxCount) * 40));
-            var opacity = Math.max(0.4, Math.min(0.9, c.count / maxCount));
-            L.circleMarker([c.lat, c.lon], {{
-                radius: radius,
-                fillColor: '#00f1fe',
-                color: '#00f1fe',
-                weight: 1,
-                opacity: 0.7,
-                fillOpacity: opacity * 0.6
-            }}).addTo(map).bindPopup(
-                '<div style="font-family:Inter,sans-serif;text-align:center">' +
-                '<div style="font-weight:700;font-size:14px;color:#00f1fe">' + c.city + '</div>' +
-                '<div style="font-size:20px;font-weight:800;margin:4px 0">' + c.count + '</div>' +
-                '<div style="font-size:11px;color:#94a3b8">zamówień</div></div>'
-            );
-        }});
-    }};
-    document.head.appendChild(mapScript);
+                var map = L.map(mapEl, {{
+                    center: [52.0, 19.5], zoom: 6,
+                    zoomControl: true, attributionControl: false
+                }});
+                L.tileLayer('https://' + '{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
+                    maxZoom: 13, minZoom: 5, subdomains: 'abcd'
+                }}).addTo(map);
+
+                var cities = {map_data_json};
+                var maxCount = cities.length > 0 ? cities[0].count : 1;
+                cities.forEach(function(c) {{
+                    var r = Math.max(8, Math.min(40, (c.count / maxCount) * 40));
+                    var op = Math.max(0.4, Math.min(0.9, c.count / maxCount));
+                    L.circleMarker([c.lat, c.lon], {{
+                        radius: r, fillColor: '#00f1fe', color: '#00f1fe',
+                        weight: 1, opacity: 0.7, fillOpacity: op * 0.6
+                    }}).addTo(map).bindPopup(
+                        '<div style="text-align:center"><b style="color:#00f1fe">' + c.city + '</b><br><span style="font-size:18px;font-weight:800">' + c.count + '</span><br><small>zamówień</small></div>'
+                    );
+                }});
+                setTimeout(function() {{ map.invalidateSize(); }}, 200);
+            }}, 100);
+        }};
+        document.head.appendChild(js);
+    }})();
     </script>
     '''
 
