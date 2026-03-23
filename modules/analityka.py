@@ -4071,7 +4071,7 @@ def koszty_allegro():
     for t in typy:
         cat = CATEGORY_MAP.get(t['type_code'], 'inne')
         totals[cat] += float(t['total'] or 0)
-    total_all = sum(totals.values())
+    total_all = sum(totals.values()) or 1  # unikaj dzielenia przez 0
 
     # Top 10 per kategoria
     def top10(codes):
