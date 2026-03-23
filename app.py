@@ -230,8 +230,8 @@ def check_plan_features():
             required = get_required_plan_display(request.path)
             current = PLAN_DISPLAY.get(get_current_plan(), 'TRIAL')
             return render_template('plan_upgrade.html', required_plan=required, current_plan=current, path=request.path), 403
-    except ImportError:
-        pass
+    except Exception:
+        pass  # Brak modułu lub błąd licencji = przepuść
 
 # Branding — dostępny globalnie we wszystkich szablonach
 @app.context_processor
@@ -2629,14 +2629,14 @@ def _is_dev_mode():
 @app.route('/narzedzia')
 def narzedzia():
     # Plan features — przekaż do szablonu info o zablokowanych funkcjach
-    plan_level = 1
-    current_plan = 'starter'
+    plan_level = 4
+    current_plan = 'enterprise'
     try:
         from modules.plan_features import get_plan_level, get_current_plan
         current_plan = get_current_plan()
         plan_level = get_plan_level(current_plan)
-    except ImportError:
-        pass
+    except Exception:
+        pass  # Brak modułu lub błąd = pokaż wszystko
     return render_template('narzedzia.html',
         version=VERSION,
         is_admin=(session.get('rola') == 'admin'),
