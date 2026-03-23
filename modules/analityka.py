@@ -4021,3 +4021,207 @@ def analizator_palet_status():
         })
 
     return jsonify({'status': status})
+
+
+# ═══════════════════════════════════════════════════
+# KOSZTY ALLEGRO — per-product cost breakdown + ROAS
+# ═══════════════════════════════════════════════════
+
+@analityka_bp.route('/analityka/koszty-allegro')
+def koszty_allegro():
+    from modules.database import get_db, get_config
+    conn = get_db()
+
+    prowizja_pct = float(get_config('allegro_prowizja_pct', '15')) / 100
+
+    # Per-product: przychod, szt, prowizja, marza
+    rows = conn.execute('''
+        SELECT
+            p.id,
+            COALESCE(p.nazwa, s.nazwa) as nazwa,
+            p.zdjecie_url,
+            SUM(s.cena * s.ilosc) as przychod,
+            SUM(s.ilosc) as szt,
+            COALESCE(p.cena_allegro, 0) as cena_allegro,
+            CASE
+                WHEN pal.cena_zakupu > 0 AND sc.total_cnt > 0
+                THEN pal.cena_zakupu / sc.total_cnt
+                ELSE 0
+            END as koszt_szt
+        FROM sprzedaze s
+        LEFT JOIN produkty p ON s.produkt_id = p.id
+        LEFT JOIN palety pal ON p.paleta_id = pal.id
+        LEFT JOIN (
+            SELECT p2.paleta_id,
+                   SUM(COALESCE(p2.ilosc, 0) + COALESCE(p2.sprzedano_offline, 0)
+                       + COALESCE(sp_cnt.cnt, 0)) as total_cnt
+            FROM produkty p2
+            LEFT JOIN (
+                SELECT produkt_id, SUM(ilosc) as cnt
+                FROM sprzedaze
+                WHERE status != 'anulowana'
+                GROUP BY produkt_id
+            ) sp_cnt ON sp_cnt.produkt_id = p2.id
+            GROUP BY p2.paleta_id
+        ) sc ON sc.paleta_id = pal.id
+        WHERE s.status NOT IN ('anulowana', 'zwrot')
+        GROUP BY COALESCE(p.id, s.nazwa)
+        ORDER BY przychod DESC
+    ''').fetchall()
+
+    # Build product list
+    products = []
+    total_przychod = 0
+    total_prowizja = 0
+    total_reklama = 0
+    total_dostawa = 0
+    total_marza = 0
+
+    for r in rows:
+        przychod = r['przychod'] or 0
+        szt = r['szt'] or 0
+        koszt_szt = r['koszt_szt'] or 0
+        koszt_total = koszt_szt * szt
+        prowizja = przychod * prowizja_pct
+        reklama = 0  # TODO: sync from Allegro Ads API
+        dostawa = 0  # TODO: sync from Allegro billing
+        marza = przychod - koszt_total - prowizja - reklama - dostawa
+        marza_pct = (marza / przychod * 100) if przychod > 0 else 0
+
+        total_przychod += przychod
+        total_prowizja += prowizja
+        total_reklama += reklama
+        total_dostawa += dostawa
+        total_marza += marza
+
+        products.append({
+            'nazwa': r['nazwa'] or 'Nieznany',
+            'przychod': przychod,
+            'szt': szt,
+            'prowizja': prowizja,
+            'reklama': reklama,
+            'dostawa': dostawa,
+            'marza': marza,
+            'marza_pct': marza_pct,
+        })
+
+    total_marza_pct = (total_marza / total_przychod * 100) if total_przychod > 0 else 0
+    roas = (total_przychod / total_reklama) if total_reklama > 0 else 0
+
+    # Build HTML
+    rows_html = ''
+    for p in products:
+        badge_color = 'var(--neon-tertiary)' if p['marza'] > 0 else '#ef4444'
+        badge_bg = 'rgba(91,240,131,0.1)' if p['marza'] > 0 else 'rgba(239,68,68,0.1)'
+        badge_text = 'DOBRZE' if p['marza'] > 0 else 'STRATA'
+        rows_html += f'''<tr>
+            <td style="padding:10px 14px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">{p['nazwa'][:50]}</td>
+            <td style="padding:10px 14px;text-align:right;font-family:'Space Grotesk',sans-serif;font-weight:600">{p['przychod']:,.0f} zł</td>
+            <td style="padding:10px 14px;text-align:center">{p['szt']}</td>
+            <td style="padding:10px 14px;text-align:right;color:var(--neon-primary)">{p['prowizja']:,.0f} zł</td>
+            <td style="padding:10px 14px;text-align:right;color:var(--text-muted)">{p['reklama']:,.0f} zł</td>
+            <td style="padding:10px 14px;text-align:right;color:var(--text-muted)">{p['dostawa']:,.0f} zł</td>
+            <td style="padding:10px 14px;text-align:right;font-family:'Space Grotesk',sans-serif;font-weight:700;color:{badge_color}">{p['marza']:,.0f} zł ({p['marza_pct']:.1f}%)</td>
+            <td style="padding:10px 8px;text-align:center"><span style="display:inline-block;padding:3px 10px;border-radius:6px;font-size:0.68rem;font-weight:700;background:{badge_bg};color:{badge_color}">{badge_text}</span></td>
+        </tr>'''
+
+    html = f'''
+    <style>
+    .ka-summary{{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}}
+    .ka-stat{{padding:18px;text-align:center}}
+    .ka-stat-val{{font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:800;line-height:1}}
+    .ka-stat-label{{font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-top:6px;font-weight:600}}
+    .ka-table{{width:100%;border-collapse:collapse;font-size:0.82rem}}
+    .ka-table th{{padding:12px 14px;text-align:left;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--neon-primary);border-bottom:1px solid rgba(0,241,254,0.15);font-weight:600}}
+    .ka-table td{{border-bottom:1px solid rgba(255,255,255,0.04)}}
+    .ka-table tr:hover{{background:rgba(0,241,254,0.02)}}
+    .ka-roas{{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px}}
+    @media(max-width:900px){{.ka-summary{{grid-template-columns:1fr 1fr}}.ka-roas{{grid-template-columns:1fr}}}}
+    </style>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+        <div>
+            <h1 class="font-display" style="font-size:1.4rem;font-weight:800;color:var(--neon-primary);text-shadow:0 0 10px rgba(0,241,254,0.4);margin:0">Koszty Allegro</h1>
+            <div style="color:var(--text-muted);font-size:0.82rem;margin-top:4px">Analiza kosztów i rentowności per produkt</div>
+        </div>
+        <div style="font-size:0.75rem;color:var(--text-muted)">Prowizja: {prowizja_pct*100:.0f}%</div>
+    </div>
+
+    <!-- KPI Summary -->
+    <div class="ka-summary">
+        <div class="glass-card ka-stat">
+            <div class="ka-stat-val" style="color:var(--text)">{total_przychod:,.0f} zł</div>
+            <div class="ka-stat-label">Przychód</div>
+        </div>
+        <div class="glass-card ka-stat">
+            <div class="ka-stat-val" style="color:var(--neon-primary)">{total_prowizja:,.0f} zł</div>
+            <div class="ka-stat-label">Prowizja</div>
+        </div>
+        <div class="glass-card ka-stat">
+            <div class="ka-stat-val" style="color:{'var(--neon-tertiary)' if total_marza > 0 else '#ef4444'}">{total_marza:,.0f} zł</div>
+            <div class="ka-stat-label">Marża netto</div>
+        </div>
+        <div class="glass-card ka-stat">
+            <div class="ka-stat-val" style="color:{'var(--neon-tertiary)' if total_marza_pct > 30 else 'var(--yellow)' if total_marza_pct > 0 else '#ef4444'}">{total_marza_pct:.1f}%</div>
+            <div class="ka-stat-label">Marża %</div>
+        </div>
+    </div>
+
+    <!-- ROAS + Reklama -->
+    <div class="ka-roas">
+        <div class="glass-card" style="padding:18px;display:flex;align-items:center;gap:16px">
+            <div style="width:52px;height:52px;border-radius:14px;background:rgba(193,128,255,0.1);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0">📊</div>
+            <div>
+                <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:600">Zwrot z reklamy (ROAS)</div>
+                <div class="font-display" style="font-size:1.8rem;font-weight:800;color:{'var(--neon-secondary)' if roas > 0 else 'var(--text-muted)'};text-shadow:0 0 10px rgba(193,128,255,0.3)">{f'{roas:.1f}x' if roas > 0 else '∞'}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted)">Wydatek: {total_reklama:,.2f} zł</div>
+            </div>
+        </div>
+        <div class="glass-card" style="padding:18px">
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;margin-bottom:10px">Szczegóły kosztów</div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+                <span style="color:var(--text-muted)">Prowizja</span>
+                <span style="font-weight:600;color:var(--neon-primary)">{total_prowizja:,.2f} zł</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+                <span style="color:var(--text-muted)">Reklama</span>
+                <span style="font-weight:600;color:var(--neon-secondary)">{total_reklama:,.2f} zł</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+                <span style="color:var(--text-muted)">Dostawa</span>
+                <span style="font-weight:600">{total_dostawa:,.2f} zł</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:700">
+                <span>Razem</span>
+                <span style="color:var(--neon-primary)">{total_prowizja + total_reklama + total_dostawa:,.2f} zł</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Products table -->
+    <div class="glass-card" style="padding:0;overflow-x:auto">
+        <table class="ka-table">
+            <thead>
+                <tr>
+                    <th>Produkt</th>
+                    <th style="text-align:right">Przychód</th>
+                    <th style="text-align:center">Szt</th>
+                    <th style="text-align:right">Prowizja</th>
+                    <th style="text-align:right">Reklama</th>
+                    <th style="text-align:right">Dostawa</th>
+                    <th style="text-align:right">Marża</th>
+                    <th style="text-align:center"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {rows_html}
+            </tbody>
+        </table>
+    </div>
+
+    <div style="text-align:center;padding:16px;font-size:0.72rem;color:var(--text-muted)">
+        {len(products)} produktów · Prowizja {prowizja_pct*100:.0f}% · Reklama i dostawa: dane z API Allegro (wkrótce)
+    </div>
+    '''
+
+    return render(html, page_title='Koszty Allegro')
