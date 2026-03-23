@@ -4021,3 +4021,420 @@ def analizator_palet_status():
         })
 
     return jsonify({'status': status})
+
+
+# ============================================================
+# KOSZTY ALLEGRO — Dashboard opłat + szczegóły per oferta
+# ============================================================
+
+@analityka_bp.route('/analityka/koszty-allegro')
+def koszty_allegro():
+    """Dashboard kosztów Allegro — prowizja, dostawa, wyróżnienia, reklama"""
+    from modules.database import get_db
+    import json
+
+    conn = get_db()
+
+    # Sprawdź czy tabela istnieje
+    try:
+        conn.execute('SELECT COUNT(*) FROM allegro_billing')
+    except:
+        conn.execute('''CREATE TABLE IF NOT EXISTS allegro_billing (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, billing_id TEXT UNIQUE,
+            type_code TEXT, type_name TEXT, offer_id TEXT, offer_name TEXT,
+            order_id TEXT, amount REAL, occurred_at TEXT, synced_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )''')
+        conn.commit()
+
+    # Zakres dat
+    days = int(request.args.get('days', 30))
+    from datetime import timedelta
+    date_from = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+
+    # Podsumowanie per typ
+    typy = conn.execute('''
+        SELECT type_code, type_name, SUM(ABS(amount)) as total, COUNT(*) as cnt
+        FROM allegro_billing
+        WHERE occurred_at >= ? AND amount < 0
+        GROUP BY type_code
+        ORDER BY total DESC
+    ''', (date_from,)).fetchall()
+
+    # Mapowanie kodów na kategorie
+    CATEGORY_MAP = {
+        'SUC': 'prowizja', 'CSR': 'prowizja',
+        'ODF': 'wyroznienia', 'ODR': 'wyroznienia', 'EMP': 'wyroznienia',
+        'ADS': 'reklama', 'SPO': 'reklama', 'PRO': 'reklama',
+        'LIS': 'listing',
+    }
+    totals = {'prowizja': 0, 'dostawa': 0, 'wyroznienia': 0, 'reklama': 0, 'listing': 0, 'inne': 0}
+    for t in typy:
+        cat = CATEGORY_MAP.get(t['type_code'], 'inne')
+        totals[cat] += float(t['total'] or 0)
+    total_all = sum(totals.values())
+
+    # Top 10 per kategoria
+    def top10(codes):
+        placeholders = ','.join(['?' for _ in codes])
+        return conn.execute(f'''
+            SELECT offer_name, offer_id, SUM(ABS(amount)) as total
+            FROM allegro_billing
+            WHERE occurred_at >= ? AND amount < 0 AND type_code IN ({placeholders})
+            AND offer_name IS NOT NULL AND offer_name != ''
+            GROUP BY offer_id ORDER BY total DESC LIMIT 10
+        ''', [date_from] + list(codes)).fetchall()
+
+    top_prowizja = top10(['SUC', 'CSR'])
+    top_reklama = top10(['ADS', 'SPO', 'PRO'])
+    top_wyroznienia = top10(['ODF', 'ODR', 'EMP'])
+
+    # Per oferta: koszty + przychod
+    oferty_koszty = conn.execute('''
+        SELECT offer_id, offer_name,
+            SUM(ABS(CASE WHEN type_code IN ('SUC','CSR') THEN amount ELSE 0 END)) as prowizja,
+            SUM(ABS(CASE WHEN type_code IN ('ADS','SPO','PRO') THEN amount ELSE 0 END)) as reklama,
+            SUM(ABS(CASE WHEN type_code IN ('ODF','ODR','EMP') THEN amount ELSE 0 END)) as wyroznienia,
+            SUM(ABS(amount)) as total_koszty
+        FROM allegro_billing
+        WHERE occurred_at >= ? AND amount < 0
+        AND offer_id IS NOT NULL AND offer_id != ''
+        GROUP BY offer_id ORDER BY total_koszty DESC LIMIT 50
+    ''', (date_from,)).fetchall()
+
+    # Dołącz przychod ze sprzedaze
+    oferty_data = []
+    for o in oferty_koszty:
+        przychod_row = conn.execute('''
+            SELECT COALESCE(SUM(cena * ilosc), 0) as przychod, COALESCE(SUM(ilosc), 0) as szt
+            FROM sprzedaze WHERE data_sprzedazy >= ?
+            AND (allegro_order_id IS NOT NULL OR status != 'zwrot')
+        ''', (date_from,)).fetchone()
+        # Próbuj dopasować po offer_id w oferty tabeli
+        sprzedaz = conn.execute('''
+            SELECT COALESCE(SUM(s.cena * s.ilosc), 0) as przychod, COALESCE(SUM(s.ilosc), 0) as szt
+            FROM sprzedaze s JOIN oferty of ON s.oferta_id = of.id
+            WHERE of.allegro_id = ? AND s.data_sprzedazy >= ?
+        ''', (o['offer_id'], date_from)).fetchone()
+        przychod = float(sprzedaz['przychod'] or 0) if sprzedaz else 0
+        szt = int(sprzedaz['szt'] or 0) if sprzedaz else 0
+        koszty = float(o['total_koszty'] or 0)
+        marza = przychod - koszty if przychod > 0 else -koszty
+        marza_pct = (marza / przychod * 100) if przychod > 0 else 0
+        oferty_data.append({
+            'id': o['offer_id'], 'name': o['offer_name'] or '?',
+            'prowizja': float(o['prowizja'] or 0), 'reklama': float(o['reklama'] or 0),
+            'wyroznienia': float(o['wyroznienia'] or 0), 'koszty': koszty,
+            'przychod': przychod, 'szt': szt, 'marza': marza, 'marza_pct': marza_pct
+        })
+
+    # Liczba wpisów
+    total_entries = conn.execute('SELECT COUNT(*) as c FROM allegro_billing WHERE occurred_at >= ?', (date_from,)).fetchone()['c']
+
+    # Oferty bez sprzedaży ale z kosztami
+    oferty_bez = [o for o in oferty_data if o['przychod'] == 0 and o['koszty'] > 0]
+    koszt_bez = sum(o['koszty'] for o in oferty_bez)
+
+    # Chart data
+    chart_labels = json.dumps(['Prowizja', 'Wyróżnienia', 'Reklama', 'Listing', 'Inne'])
+    chart_values = json.dumps([totals['prowizja'], totals['wyroznienia'], totals['reklama'], totals['listing'], totals['inne']])
+    chart_colors = json.dumps(['#ef4444', '#8b5cf6', '#f59e0b', '#3b82f6', '#64748b'])
+    oferty_json = json.dumps(oferty_data, ensure_ascii=False)
+
+    def _top10_html(rows, color, max_val=None):
+        if not rows:
+            return '<div style="padding:20px;text-align:center;color:var(--text-muted)">Brak danych</div>'
+        if not max_val:
+            max_val = max(float(r['total'] or 1) for r in rows)
+        h = ''
+        for i, r in enumerate(rows):
+            val = float(r['total'] or 0)
+            pct = (val / max_val * 100) if max_val > 0 else 0
+            name = (r['offer_name'] or '?')[:30]
+            h += f'''<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="showOfferDetail('{r['offer_id']}')">
+                <div style="width:20px;color:var(--text-muted);font-size:0.75rem;text-align:right">{i+1}.</div>
+                <div style="flex:1;min-width:0">
+                    <div style="font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{name}</div>
+                    <div style="height:4px;background:var(--border);border-radius:2px;margin-top:3px">
+                        <div style="height:100%;width:{pct:.0f}%;background:{color};border-radius:2px"></div>
+                    </div>
+                </div>
+                <div style="font-size:0.85rem;font-weight:700;white-space:nowrap">{val:,.2f} zł</div>
+            </div>'''
+        return h
+
+    top_prowizja_html = _top10_html(top_prowizja, '#ef4444')
+    top_reklama_html = _top10_html(top_reklama, '#f59e0b')
+    top_wyroznienia_html = _top10_html(top_wyroznienia, '#8b5cf6')
+
+    # Tabela ofert
+    tabela_html = ''
+    for o in oferty_data[:30]:
+        badge_color = '#22c55e' if o['marza_pct'] > 20 else ('#f59e0b' if o['marza_pct'] > 0 else '#ef4444')
+        badge = 'DOBRZE' if o['marza_pct'] > 20 else ('OK' if o['marza_pct'] > 0 else 'STRATA')
+        name = o['name'][:40]
+        tabela_html += f'''<tr style="border-bottom:1px solid var(--border);cursor:pointer" onclick="showOfferDetail('{o['id']}')">
+            <td style="padding:8px;font-size:0.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{name}</td>
+            <td style="padding:8px;text-align:right;font-size:0.85rem;color:var(--green)">{o['przychod']:,.0f} zł</td>
+            <td style="padding:8px;text-align:right;font-size:0.85rem">{o['szt']}</td>
+            <td style="padding:8px;text-align:right;font-size:0.85rem;color:#ef4444">{o['prowizja']:,.0f} zł</td>
+            <td style="padding:8px;text-align:right;font-size:0.85rem;color:#f59e0b">{o['reklama']:,.0f} zł</td>
+            <td style="padding:8px;text-align:right;font-size:0.85rem;color:#8b5cf6">{o['wyroznienia']:,.0f} zł</td>
+            <td style="padding:8px;text-align:right;font-weight:700;color:{badge_color}">{o['marza']:,.0f} zł ({o['marza_pct']:.1f}%)</td>
+            <td style="padding:8px;text-align:center"><span style="background:{badge_color};color:#fff;padding:2px 8px;border-radius:10px;font-size:0.7rem">{badge}</span></td>
+        </tr>'''
+
+    html = f'''
+    <style>
+        .koszty-kpi {{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}}
+        .koszty-kpi .kk {{background:var(--bg-card);border-radius:12px;padding:15px;border:1px solid var(--border)}}
+        .koszty-kpi .kk-label {{font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}}
+        .koszty-kpi .kk-val {{font-size:1.4rem;font-weight:800;margin-top:4px}}
+        .koszty-kpi .kk-sub {{font-size:0.7rem;color:var(--text-muted);margin-top:2px}}
+        .top10-grid {{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:20px}}
+        .top10-card {{background:var(--bg-card);border-radius:12px;padding:15px;border:1px solid var(--border)}}
+        .top10-title {{font-size:0.8rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px}}
+        @media(max-width:768px) {{
+            .koszty-kpi {{grid-template-columns:repeat(2,1fr)}}
+            .top10-grid {{grid-template-columns:1fr}}
+        }}
+        #offerModal {{display:none;position:fixed;top:0;right:0;width:420px;height:100%;background:var(--bg-card);z-index:9999;box-shadow:-5px 0 30px rgba(0,0,0,0.5);overflow-y:auto;padding:25px;border-left:1px solid var(--border)}}
+        #offerModal.open {{display:block}}
+        #modalOverlay {{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9998}}
+        #modalOverlay.open {{display:block}}
+    </style>
+
+    <!-- HEADER -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
+        <h2 style="margin:0;font-size:1.3rem">💰 Koszty Allegro</h2>
+        <div style="display:flex;gap:8px;align-items:center">
+            <select onchange="window.location='?days='+this.value" style="padding:6px 12px;border-radius:8px;background:var(--bg-card);color:var(--text);border:1px solid var(--border)">
+                <option value="7" {'selected' if days==7 else ''}>7 dni</option>
+                <option value="14" {'selected' if days==14 else ''}>14 dni</option>
+                <option value="30" {'selected' if days==30 else ''}>30 dni</option>
+                <option value="60" {'selected' if days==60 else ''}>60 dni</option>
+                <option value="90" {'selected' if days==90 else ''}>90 dni</option>
+            </select>
+            <button onclick="syncBilling()" id="syncBtn" style="padding:8px 16px;border-radius:8px;background:var(--green);color:#fff;border:none;cursor:pointer;font-weight:600">
+                🔄 Synchronizuj
+            </button>
+        </div>
+    </div>
+    <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:15px">{total_entries} wpisów od {date_from}</div>
+
+    <!-- KPI -->
+    <div class="koszty-kpi">
+        <div class="kk">
+            <div class="kk-label">Prowizja</div>
+            <div class="kk-val" style="color:#ef4444">{totals['prowizja']:,.2f} zł</div>
+            <div class="kk-sub">{totals['prowizja']/total_all*100:.1f}% opłat</div>
+        </div>
+        <div class="kk">
+            <div class="kk-label">Wyróżnienia</div>
+            <div class="kk-val" style="color:#8b5cf6">{totals['wyroznienia']:,.2f} zł</div>
+            <div class="kk-sub">{totals['wyroznienia']/total_all*100:.1f}% opłat</div>
+        </div>
+        <div class="kk">
+            <div class="kk-label">Reklama</div>
+            <div class="kk-val" style="color:#f59e0b">{totals['reklama']:,.2f} zł</div>
+            <div class="kk-sub">{totals['reklama']/total_all*100:.1f}% opłat</div>
+        </div>
+        <div class="kk">
+            <div class="kk-label">Listing</div>
+            <div class="kk-val" style="color:#3b82f6">{totals['listing']:,.2f} zł</div>
+            <div class="kk-sub">{totals['listing']/total_all*100:.1f}% opłat</div>
+        </div>
+        <div class="kk">
+            <div class="kk-label">Oferty bez sprzedaży</div>
+            <div class="kk-val" style="color:#f97316">{koszt_bez:,.2f} zł</div>
+            <div class="kk-sub">{len(oferty_bez)} ofert</div>
+        </div>
+    </div>
+
+    <!-- DONUT + TOP 10 -->
+    <div style="display:grid;grid-template-columns:300px 1fr;gap:15px;margin-bottom:20px">
+        <div style="background:var(--bg-card);border-radius:12px;padding:20px;border:1px solid var(--border)">
+            <div style="font-size:0.8rem;font-weight:700;margin-bottom:10px">STRUKTURA OPŁAT</div>
+            <canvas id="donutChart" width="240" height="240"></canvas>
+            <div id="donut-legend" style="margin-top:10px"></div>
+        </div>
+        <div class="top10-grid">
+            <div class="top10-card">
+                <div class="top10-title"><span style="color:#ef4444">●</span> TOP 10 — PROWIZJA</div>
+                {top_prowizja_html}
+            </div>
+            <div class="top10-card">
+                <div class="top10-title"><span style="color:#f59e0b">●</span> TOP 10 — REKLAMA</div>
+                {top_reklama_html}
+            </div>
+            <div class="top10-card">
+                <div class="top10-title"><span style="color:#8b5cf6">●</span> TOP 10 — WYRÓŻNIENIA</div>
+                {top_wyroznienia_html}
+            </div>
+        </div>
+    </div>
+
+    <!-- TABELA OFERT -->
+    <div style="background:var(--bg-card);border-radius:12px;padding:15px;border:1px solid var(--border)">
+        <div style="font-size:0.8rem;font-weight:700;margin-bottom:10px">WSZYSTKIE OFERTY</div>
+        <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse">
+                <thead><tr style="border-bottom:2px solid var(--border)">
+                    <th style="padding:8px;text-align:left;font-size:0.7rem;color:var(--text-muted)">OFERTA</th>
+                    <th style="padding:8px;text-align:right;font-size:0.7rem;color:var(--text-muted)">PRZYCHÓD</th>
+                    <th style="padding:8px;text-align:right;font-size:0.7rem;color:var(--text-muted)">SZT</th>
+                    <th style="padding:8px;text-align:right;font-size:0.7rem;color:var(--text-muted)">PROWIZJA</th>
+                    <th style="padding:8px;text-align:right;font-size:0.7rem;color:var(--text-muted)">REKLAMA</th>
+                    <th style="padding:8px;text-align:right;font-size:0.7rem;color:var(--text-muted)">WYRÓŻN.</th>
+                    <th style="padding:8px;text-align:right;font-size:0.7rem;color:var(--text-muted)">MARŻA</th>
+                    <th style="padding:8px;text-align:center;font-size:0.7rem;color:var(--text-muted)">STATUS</th>
+                </tr></thead>
+                <tbody>{tabela_html}</tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- MODAL SZCZEGÓŁÓW OFERTY -->
+    <div id="modalOverlay" onclick="closeModal()"></div>
+    <div id="offerModal">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+            <h3 id="modal-title" style="margin:0;font-size:1.1rem"></h3>
+            <button onclick="closeModal()" style="background:none;border:none;color:var(--text);font-size:1.5rem;cursor:pointer">✕</button>
+        </div>
+        <div id="modal-badge" style="margin-bottom:15px"></div>
+        <div id="modal-content"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    // Donut chart
+    const _labels = {chart_labels};
+    const _values = {chart_values};
+    const _colors = {chart_colors};
+    const _total = _values.reduce((a,b) => a+b, 0);
+
+    if (_total > 0) {{
+        new Chart(document.getElementById('donutChart'), {{
+            type: 'doughnut',
+            data: {{
+                labels: _labels,
+                datasets: [{{ data: _values, backgroundColor: _colors, borderColor: '#0a0a0f', borderWidth: 3, hoverOffset: 8 }}]
+            }},
+            options: {{
+                responsive: false,
+                cutout: '55%',
+                plugins: {{
+                    legend: {{ display: false }},
+                    tooltip: {{ callbacks: {{ label: (ctx) => ` ${{ctx.label}}: ${{ctx.parsed.toLocaleString('pl-PL')}} zł (${{(ctx.parsed/_total*100).toFixed(1)}}%)` }} }}
+                }}
+            }}
+        }});
+        // Legend
+        const leg = document.getElementById('donut-legend');
+        _labels.forEach((l, i) => {{
+            if (_values[i] > 0) {{
+                const pct = (_values[i]/_total*100).toFixed(1);
+                leg.innerHTML += `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.8rem">
+                    <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:2px;background:${{_colors[i]}}"></div>${{l}}</div>
+                    <div style="font-weight:600">${{_values[i].toLocaleString('pl-PL')}} zł <span style="color:var(--text-muted);font-weight:400">${{pct}}%</span></div>
+                </div>`;
+            }}
+        }});
+    }}
+
+    // Sync billing
+    async function syncBilling() {{
+        const btn = document.getElementById('syncBtn');
+        btn.disabled = true; btn.textContent = '⏳ Synchronizuję...';
+        try {{
+            const days = new URLSearchParams(window.location.search).get('days') || 30;
+            const r = await fetch('/analityka/koszty-allegro/sync?days=' + days, {{method: 'POST'}});
+            const d = await r.json();
+            if (d.error) {{ alert('Błąd: ' + d.error); }}
+            else {{ alert('Zsynchronizowano ' + d.synced + ' wpisów'); location.reload(); }}
+        }} catch(e) {{ alert('Błąd: ' + e); }}
+        btn.disabled = false; btn.textContent = '🔄 Synchronizuj';
+    }}
+
+    // Modal per oferta
+    const _oferty = {oferty_json};
+
+    function showOfferDetail(offerId) {{
+        const o = _oferty.find(x => x.id === offerId);
+        if (!o) return;
+        document.getElementById('modal-title').textContent = o.name;
+
+        const badge = o.marza_pct > 20 ? ['DOBRZE IDZIE', '#22c55e'] : (o.marza_pct > 0 ? ['OK', '#f59e0b'] : ['NAJSŁABSZE', '#ef4444']);
+        document.getElementById('modal-badge').innerHTML = `
+            <span style="background:${{badge[1]}};color:#fff;padding:4px 12px;border-radius:12px;font-size:0.75rem;font-weight:700">${{badge[0]}}</span>
+            <a href="https://allegro.pl/oferta/${{offerId}}" target="_blank" style="margin-left:8px;color:var(--blue);font-size:0.8rem">↗ Zobacz na Allegro</a>`;
+
+        const reklama_total = o.reklama + o.wyroznienia;
+        const roi = reklama_total > 0 ? (o.przychod / reklama_total).toFixed(2) : '∞';
+        const marza_per_szt = o.szt > 0 ? (o.marza / o.szt).toFixed(2) : 0;
+        const prog = marza_per_szt > 0 ? Math.ceil(reklama_total / marza_per_szt) : '∞';
+        const zwrocilo = o.szt >= prog ? '✓ Zwróciło się' : `Potrzeba jeszcze ${{prog - o.szt}} szt`;
+
+        document.getElementById('modal-content').innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
+                <div style="background:var(--bg);padding:12px;border-radius:8px">
+                    <div style="font-size:0.7rem;color:var(--text-muted)">Przychód</div>
+                    <div style="font-size:1.3rem;font-weight:800">${{o.przychod.toLocaleString('pl-PL')}} zł</div>
+                </div>
+                <div style="background:var(--bg);padding:12px;border-radius:8px">
+                    <div style="font-size:0.7rem;color:var(--text-muted)">Sprzedaż</div>
+                    <div style="font-size:1.3rem;font-weight:800">${{o.szt}} szt.</div>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
+                <div style="background:var(--bg);padding:12px;border-radius:8px">
+                    <div style="font-size:0.7rem;color:var(--text-muted)">Marża</div>
+                    <div style="font-size:1.3rem;font-weight:800;color:${{o.marza_pct > 0 ? '#22c55e' : '#ef4444'}}">${{o.marza_pct.toFixed(1)}}%</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted)">${{o.marza.toLocaleString('pl-PL')}} zł</div>
+                </div>
+                <div style="background:var(--bg);padding:12px;border-radius:8px">
+                    <div style="font-size:0.7rem;color:var(--text-muted)">Zwrot z reklamy</div>
+                    <div style="font-size:1.3rem;font-weight:800;color:#f59e0b">${{roi}}</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted)">Wydatek: ${{reklama_total.toFixed(2)}} zł</div>
+                </div>
+            </div>
+            <div style="background:var(--bg);padding:15px;border-radius:8px;margin-bottom:15px">
+                <div style="font-weight:700;font-size:0.85rem;margin-bottom:8px">PRÓG RENTOWNOŚCI</div>
+                <div style="font-size:0.85rem">Aby wyróżnienia i reklama (<b>${{reklama_total.toFixed(2)}} zł</b>) się zwróciły, trzeba sprzedać min. <b>${{prog}} szt</b>. Marża na szt.: ${{marza_per_szt}} zł.</div>
+                <div style="margin-top:6px;font-size:0.85rem;color:${{o.szt >= prog ? '#22c55e' : '#f59e0b'}}">${{zwrocilo}}</div>
+            </div>
+            <div style="background:var(--bg);padding:12px;border-radius:8px">
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px">Szczegóły kosztów</div>
+                <div style="display:flex;justify-content:space-between;font-size:0.8rem;padding:3px 0"><span>Prowizja</span><span style="color:#ef4444">${{o.prowizja.toFixed(2)}} zł</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:0.8rem;padding:3px 0"><span>Reklama</span><span style="color:#f59e0b">${{o.reklama.toFixed(2)}} zł</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:0.8rem;padding:3px 0"><span>Wyróżnienia</span><span style="color:#8b5cf6">${{o.wyroznienia.toFixed(2)}} zł</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:0.8rem;padding:3px 0;border-top:1px solid var(--border);margin-top:4px;padding-top:6px;font-weight:700"><span>Razem</span><span>${{o.koszty.toFixed(2)}} zł</span></div>
+            </div>
+            <div style="margin-top:15px;font-size:0.7rem;color:var(--text-muted)">ID Oferty: ${{offerId}}</div>`;
+
+        document.getElementById('offerModal').classList.add('open');
+        document.getElementById('modalOverlay').classList.add('open');
+    }}
+
+    function closeModal() {{
+        document.getElementById('offerModal').classList.remove('open');
+        document.getElementById('modalOverlay').classList.remove('open');
+    }}
+    document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeModal(); }});
+    </script>
+    '''
+
+    return render(html, 'Koszty Allegro')
+
+
+@analityka_bp.route('/analityka/koszty-allegro/sync', methods=['POST'])
+def koszty_allegro_sync():
+    """Synchronizuje billing z Allegro API"""
+    try:
+        from modules.allegro_api import sync_billing_to_db, is_authenticated
+        if not is_authenticated():
+            return jsonify({'error': 'Nie zalogowano do Allegro'}), 401
+        days = int(request.args.get('days', 30))
+        synced = sync_billing_to_db(days=days)
+        return jsonify({'synced': synced, 'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

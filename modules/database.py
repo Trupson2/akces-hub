@@ -315,6 +315,20 @@ def init_db():
         )''')
         
         # Tabela sprzedaży prywatnych (poza Allegro)
+        # Tabela opłat Allegro (billing) - koszty per oferta
+        conn.execute('''CREATE TABLE IF NOT EXISTS allegro_billing (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            billing_id TEXT UNIQUE,
+            type_code TEXT,
+            type_name TEXT,
+            offer_id TEXT,
+            offer_name TEXT,
+            order_id TEXT,
+            amount REAL,
+            occurred_at TEXT,
+            synced_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )''')
+
         conn.execute('''CREATE TABLE IF NOT EXISTS sprzedaze_prywatne (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             opis TEXT NOT NULL,

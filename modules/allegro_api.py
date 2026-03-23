@@ -2384,6 +2384,84 @@ def get_shipping_rates():
     return allegro_request('GET', '/sale/shipping-rates')
 
 
+def get_billing_entries(date_from=None, date_to=None, type_id=None, offer_id=None, limit=100, offset=0):
+    """Pobiera historię opłat z Allegro API"""
+    params = {'limit': min(limit, 100), 'offset': offset}
+    if date_from:
+        params['occurredAt.gte'] = date_from
+    if date_to:
+        params['occurredAt.lte'] = date_to
+    if type_id:
+        params['type.id'] = type_id
+    if offer_id:
+        params['offer.id'] = offer_id
+    return allegro_request('GET', '/billing/billing-entries', params=params)
+
+
+def get_billing_types():
+    """Pobiera listę typów opłat Allegro"""
+    return allegro_request('GET', '/billing/billing-types')
+
+
+def sync_billing_to_db(days=30):
+    """Synchronizuje opłaty z Allegro API do lokalnej bazy danych"""
+    from .database import get_db
+    from datetime import datetime, timedelta
+
+    date_from = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%dT00:00:00.000Z')
+    date_to = datetime.now().strftime('%Y-%m-%dT23:59:59.999Z')
+
+    conn = get_db()
+    total_synced = 0
+    offset = 0
+
+    while True:
+        result, error = get_billing_entries(date_from=date_from, date_to=date_to, limit=100, offset=offset)
+        if error or not result:
+            print(f"Billing sync error: {error}")
+            break
+
+        entries = result.get('billingEntries', [])
+        if not entries:
+            break
+
+        for entry in entries:
+            billing_id = entry.get('id', '')
+            if not billing_id:
+                continue
+
+            type_info = entry.get('type', {})
+            offer_info = entry.get('offer', {})
+            value_info = entry.get('value', {})
+
+            try:
+                conn.execute('''INSERT OR IGNORE INTO allegro_billing
+                    (billing_id, type_code, type_name, offer_id, offer_name, order_id, amount, occurred_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (
+                    billing_id,
+                    type_info.get('id', ''),
+                    type_info.get('name', ''),
+                    offer_info.get('id', ''),
+                    offer_info.get('name', ''),
+                    entry.get('order', {}).get('id', '') if entry.get('order') else '',
+                    float(value_info.get('amount', 0)),
+                    entry.get('occurredAt', '')
+                ))
+                total_synced += 1
+            except Exception as e:
+                print(f"Billing insert error: {e}")
+
+        conn.commit()
+        offset += len(entries)
+        print(f"Billing sync: {offset} entries processed...")
+
+        if len(entries) < 100:
+            break
+
+    print(f"Billing sync complete: {total_synced} new entries")
+    return total_synced
+
+
 def get_categories(parent_id=None):
     """Pobiera kategorie Allegro"""
     params = {'parent.id': parent_id} if parent_id else {}

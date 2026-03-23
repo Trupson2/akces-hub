@@ -1038,6 +1038,9 @@ if(saved) document.documentElement.setAttribute('data-theme', saved);
         <a href="/analytics/profit" class="sidebar-link">
             <span class="sl-icon">💹</span>Profit Analyzer
         </a>
+        <a href="/analityka/koszty-allegro" class="sidebar-link">
+            <span class="sl-icon">💰</span>Koszty Allegro
+        </a>
     </nav>
     <div class="sidebar-bottom">
         <a href="/narzedzia"><span class="sl-icon">⚡</span>Narzedzia</a>
