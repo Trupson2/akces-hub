@@ -1653,8 +1653,9 @@ def paleta_bulk_import():
                                             if 'amount' not in hc:  # "amount" to zwykle cena
                                                 if col_ilosc < 0: col_ilosc = ci
                                         elif hc == 'unitrrp' or hl == 'unit rrp':
-                                            # Unit RRP = cena za 1 szt (Jobalot format)
+                                            # Unit RRP = cena za 1 szt (Jobalot format) — to jest RRP
                                             col_cena = ci
+                                            col_rrp = ci
                                         elif hc == 'totalrrp' or hl == 'total rrp':
                                             pass  # Ignoruj total — chcemy unit
                                         elif any(k in hl for k in ['unit price', 'cost', 'price', 'cena', 'preis', 'kosten']):
