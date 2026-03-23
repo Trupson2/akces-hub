@@ -1789,14 +1789,16 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
             offer_data['parameters'] = params_result
             print(f"✅ {len(params_result)} params (legacy)")
 
-    # Zbuduj GPSR productSet entry
+    # Zbuduj GPSR productSet entry — ZAWSZE jako tekst (MANUAL), PDF attachment jako bonus
     if gpsr:
+        # Główna metoda: tekst TEXT (Allegro API wspiera type TEXT + description)
+        _gpsr_ps_entry['safetyInformation'] = {'type': 'TEXT', 'description': gpsr[:5000]}
+        _gpsr_ps_entry['marketedBeforeGPSRObligation'] = False
+        print(f"✅ GPSR: {len(gpsr)} znaków (MANUAL text)")
+        # Jeśli PDF upload się udał — nadpisz na ATTACHMENTS (lepiej wygląda)
         if _gpsr_attachment_id:
             _gpsr_ps_entry['safetyInformation'] = {'type': 'ATTACHMENTS', 'attachments': [{'id': _gpsr_attachment_id}]}
-            _gpsr_ps_entry['marketedBeforeGPSRObligation'] = False
-            print(f"✅ GPSR PDF: attachment {_gpsr_attachment_id}")
-        else:
-            print(f"⚠️ GPSR PDF upload failed")
+            print(f"✅ GPSR PDF: attachment {_gpsr_attachment_id} (upgrade z MANUAL)")
         if _producer:
             _gpsr_ps_entry['responsibleProducer'] = {'type': 'ID', 'id': _producer['id']}
             print(f"✅ Producent: {_producer.get('name', '?')}")
@@ -2177,10 +2179,9 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
         # Fallback: PATCH z GPSR jeśli POST nie zapisał
         if not gpsr_saved:
             print(f"⚠️ GPSR nie w POST → PATCH fallback...")
-            _gpsr_patch = dict(_gpsr_ps_entry)  # kopia z attachment + producent + osoba
-            # Dodaj też MANUAL jako backup
-            if not _gpsr_attachment_id:
-                _gpsr_patch['safetyInformation'] = {'type': 'MANUAL', 'description': gpsr[:5000]}
+            _gpsr_patch = dict(_gpsr_ps_entry)  # kopia z producent + osoba
+            # ZAWSZE tekst TEXT (niezawodne, Allegro API oficjalnie wspiera)
+            _gpsr_patch['safetyInformation'] = {'type': 'TEXT', 'description': gpsr[:5000]}
             _gpsr_patch['marketedBeforeGPSRObligation'] = False
 
             patch_data = {'productSet': [_gpsr_patch]}
@@ -2343,11 +2344,14 @@ def upload_gpsr_attachment(gpsr_text, product_name=''):
         headers = {
             'Authorization': f'Bearer {token}',
             'Accept': 'application/vnd.allegro.public.v1+json',
+            'Content-Type': 'multipart/form-data',
         }
+        # requests wymaga usunięcia Content-Type żeby sam ustawił boundary
+        del headers['Content-Type']
 
         filename = 'gpsr_safety_info.pdf'
         files = {
-            'file': (filename, pdf_bytes, 'application/pdf')
+            'file': (filename, BytesIO(pdf_bytes), 'application/pdf')
         }
         data = {
             'type': 'SAFETY_INFORMATION_MANUAL'
