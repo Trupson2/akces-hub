@@ -4371,7 +4371,7 @@ def koszty_allegro():
             <span style="background:${{badge[1]}};color:#fff;padding:4px 12px;border-radius:12px;font-size:0.75rem;font-weight:700">${{badge[0]}}</span>
             <a href="https://allegro.pl/oferta/${{offerId}}" target="_blank" style="margin-left:8px;color:var(--blue);font-size:0.8rem">↗ Zobacz na Allegro</a>`;
 
-        const reklama_total = o.reklama + o.wyroznienia;
+        const reklama_total = (o.reklama || 0) + (o.dostawa || 0);
         const roi = reklama_total > 0 ? (o.przychod / reklama_total).toFixed(2) : '∞';
         const marza_per_szt = o.szt > 0 ? (o.marza / o.szt).toFixed(2) : 0;
         const prog = marza_per_szt > 0 ? Math.ceil(reklama_total / marza_per_szt) : '∞';
