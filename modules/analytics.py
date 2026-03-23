@@ -254,10 +254,10 @@ def dashboard_kpi():
 <style>
 .chart-bar{display:flex;align-items:center;margin-bottom:12px}
 .chart-bar-label{width:80px;font-size:0.85rem;color:var(--text-muted)}
-.chart-bar-track{flex:1;height:24px;background:var(--border);border-radius:4px;overflow:hidden;margin:0 10px}
+.chart-bar-track{flex:1;height:24px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;margin:0 10px}
 .chart-bar-fill{height:100%;border-radius:4px;transition:width 0.5s ease}
-.chart-bar-value{width:80px;text-align:right;font-weight:600}
-.top-item{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.chart-bar-value{width:80px;text-align:right;font-weight:600;font-family:'Space Grotesk',sans-serif}
+.top-item{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
 .top-item:last-child{border-bottom:none}
 .top-rank{width:30px;font-weight:700;color:var(--text-muted)}
 .top-rank.gold{color:#ffd700}
@@ -266,7 +266,7 @@ def dashboard_kpi():
 .top-info{flex:1}
 .top-name{font-weight:500}
 .top-meta{font-size:0.8rem;color:var(--text-muted)}
-.top-value{font-weight:700}
+.top-value{font-weight:700;font-family:'Space Grotesk',sans-serif}
 </style>
 
 <div style="margin-bottom:8px;font-size:0.78rem;color:var(--text-muted)">Aktualizacja: ''' + today.strftime('%d.%m.%Y %H:%M') + '''</div>
@@ -277,25 +277,25 @@ def dashboard_kpi():
 <!-- KPI GŁÓWNE -->
 <div class="kpi-grid">
     <div class="kpi-card green">
-        <div class="kpi-icon" style="background:var(--green-soft)">$</div>
-        <div class="kpi-value" style="color:var(--green)">''' + f'{dzis["suma"] or 0:.0f}' + ''' zl</div>
+        <div class="kpi-icon" style="background:rgba(91,240,131,0.12);border:1px solid rgba(91,240,131,0.3);color:#5bf083">$</div>
+        <div class="kpi-value" style="color:#5bf083;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(91,240,131,0.4)">''' + f'{dzis["suma"] or 0:.0f}' + ''' zl</div>
         <div class="kpi-label">Przychod DZIS</div>
         <div class="kpi-change ''' + dzis_trend_class + '''">''' + ('&uarr;' if dzis_trend > 0 else '&darr;' if dzis_trend < 0 else '&rarr;') + f' {abs(dzis_trend):.0f}' + '''% vs wczoraj</div>
     </div>
     <div class="kpi-card purple">
-        <div class="kpi-icon" style="background:var(--accent-soft)">#</div>
-        <div class="kpi-value">''' + f'{dzis["cnt"] or 0}' + '''</div>
+        <div class="kpi-icon" style="background:rgba(193,128,255,0.12);border:1px solid rgba(193,128,255,0.3);color:#c180ff">#</div>
+        <div class="kpi-value" style="font-family:'Space Grotesk',sans-serif">''' + f'{dzis["cnt"] or 0}' + '''</div>
         <div class="kpi-label">Zamowien DZIS</div>
     </div>
     <div class="kpi-card blue">
-        <div class="kpi-icon" style="background:var(--blue-soft)">W</div>
-        <div class="kpi-value" style="color:var(--blue)">''' + f'{tydzien["suma"] or 0:.0f}' + ''' zl</div>
+        <div class="kpi-icon" style="background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe">W</div>
+        <div class="kpi-value" style="color:#00f1fe;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(0,241,254,0.4)">''' + f'{tydzien["suma"] or 0:.0f}' + ''' zl</div>
         <div class="kpi-label">Przychod TYDZIEN</div>
         <div class="kpi-change ''' + tydzien_trend_class + '''">''' + ('&uarr;' if tydzien_trend > 0 else '&darr;' if tydzien_trend < 0 else '&rarr;') + f' {abs(tydzien_trend):.0f}' + '''% vs poprz.</div>
     </div>
     <div class="kpi-card orange">
-        <div class="kpi-icon" style="background:var(--yellow-soft)">M</div>
-        <div class="kpi-value" style="color:var(--purple)">''' + f'{miesiac["suma"] or 0:.0f}' + ''' zl</div>
+        <div class="kpi-icon" style="background:rgba(193,128,255,0.12);border:1px solid rgba(193,128,255,0.3);color:#c180ff">M</div>
+        <div class="kpi-value" style="color:#c180ff;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(193,128,255,0.4)">''' + f'{miesiac["suma"] or 0:.0f}' + ''' zl</div>
         <div class="kpi-label">Przychod MIESIAC</div>
         <div class="kpi-change ''' + miesiac_trend_class + '''">''' + ('&uarr;' if miesiac_trend > 0 else '&darr;' if miesiac_trend < 0 else '&rarr;') + f' {abs(miesiac_trend):.0f}' + '''% vs poprz.</div>
     </div>
@@ -303,24 +303,24 @@ def dashboard_kpi():
 
 <div class="kpi-grid">
     <div class="kpi-card green" title="Przychod: ''' + f'{przychod:.0f}' + ''' - Koszt: ''' + f'{koszty:.0f}' + ''' - Prowizja: ''' + f'{prowizja:.0f}' + ''' = ''' + f'{zysk_miesiac:.0f}' + ''' zl">
-        <div class="kpi-icon" style="background:var(--green-soft)">Z</div>
-        <div class="kpi-value" style="color:var(--green)">''' + f'{zysk_miesiac:.0f}' + ''' zl</div>
+        <div class="kpi-icon" style="background:rgba(91,240,131,0.12);border:1px solid rgba(91,240,131,0.3);color:#5bf083">Z</div>
+        <div class="kpi-value" style="color:#5bf083;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(91,240,131,0.4)">''' + f'{zysk_miesiac:.0f}' + ''' zl</div>
         <div class="kpi-label">Zysk netto (miesiac)</div>
         <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px">Koszt: ''' + f'{koszty:.0f}' + ''' | Prowizja: ''' + f'{prowizja:.0f}' + ''' zl</div>
     </div>
     <div class="kpi-card blue" title="Zysk ''' + f'{zysk_miesiac:.0f}' + ''' / Koszt ''' + f'{koszty:.0f}' + ''' x 100%">
-        <div class="kpi-icon" style="background:var(--blue-soft)">%</div>
-        <div class="kpi-value" style="color:''' + ('var(--green)' if roi_miesiac > 50 else 'var(--yellow)') + '''">''' + f'{roi_miesiac:.0f}' + '''%</div>
+        <div class="kpi-icon" style="background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe">%</div>
+        <div class="kpi-value" style="color:''' + ('#5bf083' if roi_miesiac > 50 else 'var(--yellow)') + ''';font-family:\'Space Grotesk\',sans-serif">''' + f'{roi_miesiac:.0f}' + '''%</div>
         <div class="kpi-label">ROI (miesiac)</div>
     </div>
     <div class="kpi-card purple">
-        <div class="kpi-icon" style="background:var(--accent-soft)">S</div>
-        <div class="kpi-value">''' + f'{magazyn["sztuki"] or 0}' + '''</div>
+        <div class="kpi-icon" style="background:rgba(193,128,255,0.12);border:1px solid rgba(193,128,255,0.3);color:#c180ff">S</div>
+        <div class="kpi-value" style="font-family:'Space Grotesk',sans-serif">''' + f'{magazyn["sztuki"] or 0}' + '''</div>
         <div class="kpi-label">Sztuk w magazynie</div>
     </div>
     <div class="kpi-card orange">
-        <div class="kpi-icon" style="background:var(--yellow-soft)">V</div>
-        <div class="kpi-value">''' + f'{magazyn["wartosc_sprzedazy"] or 0:.0f}' + ''' zl</div>
+        <div class="kpi-icon" style="background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe">V</div>
+        <div class="kpi-value" style="font-family:'Space Grotesk',sans-serif">''' + f'{magazyn["wartosc_sprzedazy"] or 0:.0f}' + ''' zl</div>
         <div class="kpi-label">Wartosc magazynu</div>
     </div>
 </div>
@@ -334,7 +334,7 @@ def dashboard_kpi():
     <div class="chart-bar">
         <div class="chart-bar-label">{d['dzien'][5:]}</div>
         <div class="chart-bar-track">
-            <div class="chart-bar-fill" style="width:{(d['suma']/max_dzien*100) if max_dzien > 0 else 0:.0f}%;background:var(--green)"></div>
+            <div class="chart-bar-fill" style="width:{(d['suma']/max_dzien*100) if max_dzien > 0 else 0:.0f}%;background:linear-gradient(90deg,#00f1fe,#5bf083)"></div>
         </div>
         <div class="chart-bar-value">{d['suma']:.0f} zl</div>
     </div>
@@ -354,7 +354,7 @@ def dashboard_kpi():
                 <div class="top-name">{(p['produkt_nazwa'] or 'Nieznany')[:30]}{'...' if len(p['produkt_nazwa'] or '')>30 else ''}</div>
                 <div class="top-meta">{p['sprzedane']} szt sprzedanych</div>
             </div>
-            <div class="top-value" style="color:var(--green)">{(p['wartosc'] or 0):.0f} zl</div>
+            <div class="top-value" style="color:#5bf083">{(p['wartosc'] or 0):.0f} zl</div>
         </div>
         ''' for i, p in enumerate(top_produkty)]) + ('' if top_produkty else '<div style="text-align:center;color:var(--text-muted);padding:20px">Brak danych</div>') + '''
     </div>
@@ -370,7 +370,7 @@ def dashboard_kpi():
                 <div class="top-name">{d['dostawca_nazwa']}</div>
                 <div class="top-meta">{d['sprzedane']} szt | {(d['przychod'] or 0):.0f} zl przychod</div>
             </div>
-            <div class="top-value" style="color:{'var(--green)' if (d['koszty'] or 0) > 0 and ((d['przychod'] or 0)-(d['koszty'] or 0)-(d['przychod'] or 0)*0.11)/(d['koszty'] or 1)*100 > 50 else 'var(--yellow)'}">{(((d['przychod'] or 0)-(d['koszty'] or 0)-(d['przychod'] or 0)*0.11)/(d['koszty'] or 1)*100) if (d['koszty'] or 0) > 0 else 0:.0f}%</div>
+            <div class="top-value" style="color:{'#5bf083' if (d['koszty'] or 0) > 0 and ((d['przychod'] or 0)-(d['koszty'] or 0)-(d['przychod'] or 0)*0.11)/(d['koszty'] or 1)*100 > 50 else 'var(--yellow)'}">{(((d['przychod'] or 0)-(d['koszty'] or 0)-(d['przychod'] or 0)*0.11)/(d['koszty'] or 1)*100) if (d['koszty'] or 0) > 0 else 0:.0f}%</div>
         </div>
         ''' for i, d in enumerate(top_dostawcy)]) + ('' if top_dostawcy else '<div style="text-align:center;color:var(--text-muted);padding:20px">Brak danych</div>') + '''
     </div>
@@ -494,7 +494,7 @@ def kalkulator_palety():
         badge_cls = badge_map.get(result['ocena'], 'badge-warning')
 
         result_html = f'''
-<div class="card" style="border-color:var(--accent);margin-top:20px">
+<div class="card" style="border-color:rgba(0,241,254,0.3);margin-top:20px">
     <div class="card-header">
         <div class="card-title">Wyniki analizy</div>
         <span class="badge {badge_cls}">{result['ocena_text']}</span>
@@ -517,13 +517,13 @@ def kalkulator_palety():
             <div class="stat-val {'green' if result['zysk_pesymistyczny'] > 0 else 'red'}">{result['zysk_pesymistyczny']:.0f} zl</div>
             <div class="stat-lbl">ROI: {result['roi_pesymistyczny']:.0f}%</div>
         </div>
-        <div class="stat-box" style="border-color:var(--blue);border-width:2px">
-            <div style="font-size:0.72rem;color:var(--blue);margin-bottom:6px">Realny</div>
+        <div class="stat-box" style="border-color:rgba(0,241,254,0.3);border-width:2px">
+            <div style="font-size:0.72rem;color:#00f1fe;margin-bottom:6px">Realny</div>
             <div class="stat-val {'green' if result['zysk_realny'] > 0 else 'red'}" style="font-size:1.5rem">{result['zysk_realny']:.0f} zl</div>
             <div class="stat-lbl">ROI: {result['roi_realny']:.0f}%</div>
         </div>
-        <div class="stat-box" style="border-color:var(--green)">
-            <div style="font-size:0.72rem;color:var(--green);margin-bottom:6px">Optymistyczny</div>
+        <div class="stat-box" style="border-color:rgba(91,240,131,0.3)">
+            <div style="font-size:0.72rem;color:#5bf083;margin-bottom:6px">Optymistyczny</div>
             <div class="stat-val green">{result['zysk_optymistyczny']:.0f} zl</div>
             <div class="stat-lbl">ROI: {result['roi_optymistyczny']:.0f}%</div>
         </div>
@@ -939,7 +939,7 @@ def profit_analyzer():
         zysk_color = 'var(--green)' if m['zysk_netto'] >= 0 else 'var(--red)'
         monthly_rows += f'''<tr>
             <td style="font-weight:600">{m['label']}</td>
-            <td style="color:var(--blue)">{m['przychod']:,.0f}</td>
+            <td style="color:#00f1fe">{m['przychod']:,.0f}</td>
             <td>{m['cogs']:,.0f}</td>
             <td>{m['prowizja']:,.0f}</td>
             <td>{m['koszty_op']:,.0f}</td>
@@ -959,8 +959,8 @@ def profit_analyzer():
         <div style="margin-bottom:14px">
             <div style="display:flex;align-items:center;margin-bottom:4px">
                 <span style="width:60px;font-size:0.8rem;color:var(--text-muted)">{m['label']}</span>
-                <div style="flex:1;position:relative;height:28px;background:var(--border);border-radius:4px;overflow:hidden">
-                    <div style="position:absolute;height:100%;width:{pct_rev:.0f}%;background:linear-gradient(90deg,var(--blue),var(--accent));border-radius:4px;opacity:0.8"></div>
+                <div style="flex:1;position:relative;height:28px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:4px;overflow:hidden">
+                    <div style="position:absolute;height:100%;width:{pct_rev:.0f}%;background:linear-gradient(90deg,#00f1fe,#c180ff);border-radius:4px;opacity:0.8"></div>
                     <div style="position:absolute;height:100%;width:{pct_cost:.0f}%;background:rgba(239,68,68,0.4);border-radius:4px"></div>
                 </div>
                 <span style="width:100px;text-align:right;font-weight:700;font-size:0.85rem;color:{zysk_color}">{m['zysk_netto']:,.0f} zl</span>
@@ -975,8 +975,8 @@ def profit_analyzer():
         daily_chart += f'''
         <div style="display:flex;align-items:center;margin-bottom:6px">
             <span style="width:50px;font-size:0.72rem;color:var(--text-muted)">{lbl}</span>
-            <div style="flex:1;height:18px;background:var(--border);border-radius:3px;overflow:hidden">
-                <div style="height:100%;width:{pct:.0f}%;background:var(--green);border-radius:3px"></div>
+            <div style="flex:1;height:18px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:3px;overflow:hidden">
+                <div style="height:100%;width:{pct:.0f}%;background:linear-gradient(90deg,#00f1fe,#5bf083);border-radius:3px"></div>
             </div>
             <span style="width:70px;text-align:right;font-size:0.75rem;font-weight:600">{d['suma']:,.0f}</span>
         </div>'''
@@ -1017,7 +1017,7 @@ def profit_analyzer():
         if (p['w_magazynie_szt'] or 0) == 0 and (p['sprzedane_szt'] or 0) > 0:
             status_html = '<span class="badge badge-success">Sprzedana</span>'
         elif sold_pct >= 50:
-            status_html = '<span class="badge" style="background:var(--blue-soft);color:var(--blue)">W trakcie</span>'
+            status_html = '<span class="badge" style="background:var(--blue-soft);color:#00f1fe">W trakcie</span>'
         elif sold_pct > 0:
             status_html = '<span class="badge badge-warning">Wolna</span>'
         else:
@@ -1029,7 +1029,7 @@ def profit_analyzer():
                 <div style="font-size:0.68rem;color:var(--text-muted)">{p['dostawca'] or '-'} | {dni_od}d</div>
             </td>
             <td>{koszt:,.0f}</td>
-            <td style="color:var(--blue)">{przychod_p:,.0f}</td>
+            <td style="color:#00f1fe">{przychod_p:,.0f}</td>
             <td style="color:{zysk_color};font-weight:700">{zysk_p:,.0f}</td>
             <td style="color:{roi_color};font-weight:700">{roi_p:.0f}%</td>
             <td>
@@ -1060,7 +1060,7 @@ def profit_analyzer():
             <td style="font-weight:600">{d['nazwa']}</td>
             <td>{d['palet']}</td>
             <td>{inv:,.0f}</td>
-            <td style="color:var(--blue)">{rev_d:,.0f}</td>
+            <td style="color:#00f1fe">{rev_d:,.0f}</td>
             <td style="color:{'var(--green)' if zysk_d>=0 else 'var(--red)'};font-weight:600">{zysk_d:,.0f}</td>
             <td style="color:{'var(--green)' if roi_d>=50 else 'var(--yellow)' if roi_d>=0 else 'var(--red)'};font-weight:700">{roi_d:.0f}%</td>
             <td>
@@ -1088,7 +1088,7 @@ def profit_analyzer():
             <td {rank_style}><b>{idx+1}</b></td>
             <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{tp['nazwa'] or ''}">{(tp['nazwa'] or '?')[:35]}</td>
             <td>{tp['sprzedane'] or 0}</td>
-            <td style="color:var(--blue)">{rev_tp:,.0f}</td>
+            <td style="color:#00f1fe">{rev_tp:,.0f}</td>
             <td style="color:{'var(--green)' if zysk_tp>=0 else 'var(--red)'};font-weight:600">{zysk_tp:,.0f}</td>
             <td style="color:{'var(--green)' if marza_tp>=20 else 'var(--yellow)' if marza_tp>=0 else 'var(--red)'}">{marza_tp:.0f}%</td>
         </tr>'''
@@ -1111,7 +1111,7 @@ def profit_analyzer():
     # Kategorie
     max_kat = max((k['wartosc'] or 0 for k in top_kat), default=1) or 1
     kat_bars = ''
-    kat_colors = ['var(--accent)', 'var(--accent2)', 'var(--blue)', 'var(--green)', 'var(--yellow)', 'var(--orange)', 'var(--red)', '#ec4899']
+    kat_colors = ['#00f1fe', '#c180ff', '#00f1fe', '#5bf083', 'var(--yellow)', 'var(--orange)', 'var(--red)', '#ec4899']
     total_kat_val = sum((k['wartosc'] or 0) for k in top_kat) or 1
     for idx, k in enumerate(top_kat):
         pct = ((k['wartosc'] or 0) / max_kat * 100) if max_kat > 0 else 0
@@ -1145,8 +1145,8 @@ def profit_analyzer():
     <div class="wf-container">
         <div class="wf-row">
             <div class="wf-label">Przychod netto</div>
-            <div class="wf-bar"><div style="height:100%;width:100%;background:linear-gradient(90deg,var(--blue),var(--accent));border-radius:6px"></div></div>
-            <div class="wf-val" style="color:var(--blue)">+{curr['przychod']:,.0f}</div>
+            <div class="wf-bar"><div style="height:100%;width:100%;background:linear-gradient(90deg,#00f1fe,#c180ff);border-radius:6px"></div></div>
+            <div class="wf-val" style="color:#00f1fe">+{curr['przychod']:,.0f}</div>
         </div>
         <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:8px;padding-left:132px">
             (po odjeciu {curr['zwroty_cnt']} zwrotow: {curr['zwroty_kwota']:,.0f} zl)
@@ -1170,8 +1170,8 @@ def profit_analyzer():
         <hr style="border-color:var(--border);margin:10px 0">
         <div class="wf-row">
             <div class="wf-label" style="font-weight:700;color:var(--text);font-size:0.9rem">ZYSK NETTO</div>
-            <div class="wf-bar"><div style="height:100%;width:{abs(curr['zysk_netto'])/curr['przychod']*100 if curr['przychod']>0 else 0:.0f}%;background:{'var(--green)' if curr['zysk_netto']>=0 else 'var(--red)'};border-radius:6px"></div></div>
-            <div class="wf-val" style="color:{'var(--green)' if curr['zysk_netto']>=0 else 'var(--red)'};font-size:1rem">{curr['zysk_netto']:,.0f}</div>
+            <div class="wf-bar"><div style="height:100%;width:{abs(curr['zysk_netto'])/curr['przychod']*100 if curr['przychod']>0 else 0:.0f}%;background:{'#5bf083' if curr['zysk_netto']>=0 else 'var(--red)'};border-radius:6px"></div></div>
+            <div class="wf-val" style="color:{'#5bf083;text-shadow:0 0 12px rgba(91,240,131,0.5)' if curr['zysk_netto']>=0 else 'var(--red)'};font-size:1rem;font-family:'Space Grotesk',sans-serif">{curr['zysk_netto']:,.0f}</div>
         </div>
     </div>
 </div>'''
@@ -1203,21 +1203,21 @@ def profit_analyzer():
 {% block content %}
 <style>
 .nav-tabs{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
-.nav-tabs a{padding:8px 18px;border-radius:var(--radius-sm);text-decoration:none;font-size:0.82rem;font-weight:600;color:var(--text-muted);background:var(--bg-card);border:1px solid var(--border);transition:all 0.2s}
-.nav-tabs a:hover,.nav-tabs a.active{color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:var(--accent)}
+.nav-tabs a{padding:8px 18px;border-radius:var(--radius-sm);text-decoration:none;font-size:0.82rem;font-weight:600;color:var(--text-muted);background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);transition:all 0.2s}
+.nav-tabs a:hover,.nav-tabs a.active{color:#00f1fe;background:rgba(0,241,254,0.12);border-color:rgba(0,241,254,0.3);text-shadow:0 0 10px rgba(0,241,254,0.4)}
 .wf-container{margin:10px 0}
 .wf-row{display:flex;align-items:center;margin-bottom:8px}
 .wf-label{width:130px;font-size:0.82rem;color:var(--text-muted)}
 .wf-bar{flex:1;height:26px;border-radius:6px;position:relative}
-.wf-val{width:100px;text-align:right;font-size:0.88rem;font-weight:700}
-.cost-bar{height:32px;border-radius:8px;display:flex;overflow:hidden;margin-bottom:8px}
+.wf-val{width:100px;text-align:right;font-size:0.88rem;font-weight:700;font-family:'Space Grotesk',sans-serif}
+.cost-bar{height:32px;border-radius:8px;display:flex;overflow:hidden;margin-bottom:8px;border:1px solid rgba(255,255,255,0.08)}
 .cost-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}
 .cost-legend-item{display:flex;align-items:center;gap:6px;font-size:0.78rem}
 .cost-dot{width:10px;height:10px;border-radius:50%}
 table{width:100%;border-collapse:collapse;font-size:0.78rem}
-th{text-align:left;padding:10px 8px;color:var(--text-muted);border-bottom:2px solid var(--border);font-weight:600;white-space:nowrap;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px}
-td{padding:9px 8px;border-bottom:1px solid var(--border-light)}
-tr:hover{background:var(--accent-soft)}
+th{text-align:left;padding:10px 8px;color:var(--text-muted);border-bottom:2px solid rgba(255,255,255,0.08);font-weight:600;white-space:nowrap;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px}
+td{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,0.05)}
+tr:hover{background:rgba(0,241,254,0.05)}
 @media(max-width:900px){
     table{font-size:0.7rem}
     th,td{padding:6px 4px}
@@ -1235,51 +1235,51 @@ tr:hover{background:var(--accent-soft)}
 <div class="section-title">Podsumowanie okresu (''' + str(months_range) + ''' mies.)</div>
 <div class="kpi-grid">
     <div class="kpi-card blue">
-        <div class="kpi-icon" style="background:var(--blue-soft)">P</div>
-        <div class="kpi-value" style="color:var(--blue)">''' + f'{total_przychod:,.0f}' + ''' zl</div>
+        <div class="kpi-icon" style="background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe">P</div>
+        <div class="kpi-value" style="color:#00f1fe;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(0,241,254,0.4)">''' + f'{total_przychod:,.0f}' + ''' zl</div>
         <div class="kpi-label">Przychod</div>
         ''' + trend_przychod_html + '''
     </div>
     <div class="kpi-card green">
-        <div class="kpi-icon" style="background:var(--green-soft)">Z</div>
-        <div class="kpi-value" style="color:''' + ('var(--green)' if total_zysk>=0 else 'var(--red)') + '''">''' + f'{total_zysk:,.0f}' + ''' zl</div>
+        <div class="kpi-icon" style="background:rgba(91,240,131,0.12);border:1px solid rgba(91,240,131,0.3);color:#5bf083">Z</div>
+        <div class="kpi-value" style="color:''' + ('#5bf083;text-shadow:0 0 10px rgba(91,240,131,0.4)' if total_zysk>=0 else 'var(--red)') + ''';font-family:\'Space Grotesk\',sans-serif">''' + f'{total_zysk:,.0f}' + ''' zl</div>
         <div class="kpi-label">Zysk netto</div>
         ''' + trend_zysk_html + '''
     </div>
     <div class="kpi-card purple">
-        <div class="kpi-icon" style="background:var(--accent-soft)">%</div>
-        <div class="kpi-value" style="color:var(--accent)">''' + f'{avg_marza:.1f}' + '''%</div>
+        <div class="kpi-icon" style="background:rgba(193,128,255,0.12);border:1px solid rgba(193,128,255,0.3);color:#c180ff">%</div>
+        <div class="kpi-value" style="color:#c180ff;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(193,128,255,0.4)">''' + f'{avg_marza:.1f}' + '''%</div>
         <div class="kpi-label">Srednia marza netto</div>
     </div>
     <div class="kpi-card orange">
-        <div class="kpi-icon" style="background:var(--yellow-soft)">A</div>
-        <div class="kpi-value">''' + f'{avg_order:.0f}' + ''' zl</div>
+        <div class="kpi-icon" style="background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe">A</div>
+        <div class="kpi-value" style="font-family:'Space Grotesk',sans-serif">''' + f'{avg_order:.0f}' + ''' zl</div>
         <div class="kpi-label">Srednia wartosc zamowienia</div>
     </div>
 </div>
 
 <div class="kpi-grid">
     <div class="kpi-card purple">
-        <div class="kpi-icon" style="background:var(--accent-soft)">#</div>
-        <div class="kpi-value">''' + f'{total_zamowienia:,}' + '''</div>
+        <div class="kpi-icon" style="background:rgba(193,128,255,0.12);border:1px solid rgba(193,128,255,0.3);color:#c180ff">#</div>
+        <div class="kpi-value" style="font-family:'Space Grotesk',sans-serif">''' + f'{total_zamowienia:,}' + '''</div>
         <div class="kpi-label">Zamowienia</div>
         <div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px">~''' + f'{daily_avg_7["avg_ord"]:.0f}' + '''/dzien (7d) | ~''' + f'{daily_avg_30["avg_ord"]:.0f}' + '''/dzien (30d)</div>
     </div>
     <div class="kpi-card green">
-        <div class="kpi-icon" style="background:var(--red-soft)">R</div>
-        <div class="kpi-value" style="color:var(--red)">''' + f'{total_zwroty}' + '''</div>
+        <div class="kpi-icon" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:var(--red)">R</div>
+        <div class="kpi-value" style="color:var(--red);font-family:'Space Grotesk',sans-serif">''' + f'{total_zwroty}' + '''</div>
         <div class="kpi-label">Zwroty</div>
         <div style="font-size:0.68rem;color:var(--red);margin-top:4px">''' + f'{(total_zwroty/(total_zamowienia+total_zwroty)*100) if (total_zamowienia+total_zwroty)>0 else 0:.1f}' + '''% wskaznik zwrotow</div>
     </div>
     <div class="kpi-card blue">
-        <div class="kpi-icon" style="background:var(--blue-soft)">D</div>
-        <div class="kpi-value" style="color:var(--cyan)">''' + f'{daily_avg_7["avg_rev"]:,.0f}' + ''' zl</div>
+        <div class="kpi-icon" style="background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe">D</div>
+        <div class="kpi-value" style="color:#00f1fe;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(0,241,254,0.4)">''' + f'{daily_avg_7["avg_rev"]:,.0f}' + ''' zl</div>
         <div class="kpi-label">Sredni przychod / dzien (7d)</div>
         <div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px">''' + f'{daily_avg_30["avg_rev"]:,.0f}' + ''' zl (30d)</div>
     </div>
     <div class="kpi-card orange">
-        <div class="kpi-icon" style="background:var(--yellow-soft)">M</div>
-        <div class="kpi-value" style="color:var(--orange)">''' + f'{magazyn["sztuki"] or 0}' + '''</div>
+        <div class="kpi-icon" style="background:rgba(193,128,255,0.12);border:1px solid rgba(193,128,255,0.3);color:#c180ff">M</div>
+        <div class="kpi-value" style="color:#c180ff;font-family:'Space Grotesk',sans-serif">''' + f'{magazyn["sztuki"] or 0}' + '''</div>
         <div class="kpi-label">Magazyn (szt.)</div>
         <div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px">''' + f'{magazyn["wystawione"] or 0}' + ''' wystawione | ''' + f'{magazyn["stojace"] or 0}' + ''' stojace &gt;30d</div>
     </div>
@@ -1309,7 +1309,7 @@ tr:hover{background:var(--accent-soft)}
         </div>
         <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:6px">
             <span style="color:var(--text-muted)">Przychod:</span>
-            <span style="font-weight:700;color:var(--blue)">''' + f'{total_przychod:,.0f}' + ''' zl</span>
+            <span style="font-weight:700;color:#00f1fe">''' + f'{total_przychod:,.0f}' + ''' zl</span>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:0.88rem">
             <span style="color:var(--text);font-weight:600">Zysk netto:</span>
@@ -1353,7 +1353,7 @@ tr:hover{background:var(--accent-soft)}
             ''' + monthly_rows + '''
             <tr style="border-top:2px solid var(--accent);font-weight:700;background:var(--accent-soft)">
                 <td>SUMA</td>
-                <td style="color:var(--blue)">''' + f'{total_przychod:,.0f}' + '''</td>
+                <td style="color:#00f1fe">''' + f'{total_przychod:,.0f}' + '''</td>
                 <td>''' + f'{total_cogs:,.0f}' + '''</td>
                 <td>''' + f'{total_prowizja:,.0f}' + '''</td>
                 <td>''' + f'{sum(m["koszty_op"] for m in monthly_data):,.0f}' + '''</td>

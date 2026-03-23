@@ -126,55 +126,55 @@ def get_stats():
 _MAGAZYNIER_CSS = '''
 /* Magazynier module-specific styles using base.html CSS variables */
 .hdr{text-align:center;padding:15px 0;border-bottom:1px solid var(--border);margin-bottom:15px}
-.hdr h1{font-size:1.5rem;color:var(--accent)}
+.hdr h1{font-size:1.5rem;color:#00f1fe;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(0,241,254,0.4)}
 .hdr small{color:var(--text-muted);font-size:0.8rem}
-.stat-v{font-size:1.4rem;font-weight:700;color:var(--accent)}
-.stat-v.green{color:var(--green)}
+.stat-v{font-size:1.4rem;font-weight:700;color:#00f1fe}
+.stat-v.green{color:#5bf083}
 .stat-l{font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;margin-top:4px}
-.btn-p{background:linear-gradient(135deg,var(--accent),var(--accent2))}
-.btn-ok{background:var(--green)}
+.btn-p{background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe}
+.btn-ok{background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083}
 .btn-2{background:var(--bg);border:1px solid var(--border);color:var(--text)}
 .btn-warn{background:var(--yellow);color:#000}
 .btn-err{background:var(--red)}
-.search{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:15px}
+.search{backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:15px}
 .search form{display:flex;gap:10px}
 .search input{flex:1;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:1rem;transition:border-color 0.3s}
-.search input:focus{outline:none;border-color:var(--accent)}
-.search button{padding:14px 20px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--radius-sm);color:#fff;font-size:1.2rem;cursor:pointer;transition:all 0.2s}
+.search input:focus{outline:none;border-color:#00f1fe}
+.search button{padding:14px 20px;background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);border-radius:var(--radius-sm);color:#00f1fe;font-size:1.2rem;cursor:pointer;transition:all 0.2s}
 .search button:hover{transform:scale(1.05)}
 .items-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.item{display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;text-decoration:none;color:var(--text);transition:all 0.3s;box-shadow:var(--shadow)}
-.item:hover{border-color:var(--accent);transform:translateX(4px)}
+.item{display:flex;align-items:center;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;text-decoration:none;color:var(--text);transition:all 0.3s;box-shadow:var(--shadow)}
+.item:hover{border-color:#00f1fe;transform:translateX(4px)}
 .item img{width:50px;height:50px;object-fit:contain;background:#fff;border-radius:6px;margin-right:12px}
 .item-info{flex:1;min-width:0}
 .item-name{font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .item-meta{font-size:0.75rem;color:var(--text-muted)}
 .item-right{text-align:right;margin-left:10px}
-.item-qty{font-size:1.2rem;font-weight:700;color:var(--accent)}
-.item-price{font-size:0.75rem;color:var(--green)}
+.item-qty{font-size:1.2rem;font-weight:700;color:#00f1fe}
+.item-price{font-size:0.75rem;color:#5bf083}
 .card-img{width:100%;max-height:250px;object-fit:contain;background:#fff;padding:10px}
 .card-body{padding:15px}
 .card-name{font-size:1.15rem;font-weight:600;margin-bottom:12px}
-.loc{background:var(--bg);border:2px solid var(--accent);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px}
-.loc-title{font-size:0.75rem;color:var(--accent);text-transform:uppercase;margin-bottom:8px}
+.loc{background:var(--bg);border:2px solid #00f1fe;border-radius:var(--radius-sm);padding:12px;margin-bottom:12px}
+.loc-title{font-size:0.75rem;color:#00f1fe;text-transform:uppercase;margin-bottom:8px}
 .loc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
-.loc-v{font-size:1.1rem;font-weight:700;color:var(--green)}
+.loc-v{font-size:1.1rem;font-weight:700;color:#5bf083}
 .loc-l{font-size:0.65rem;color:var(--text-muted)}
 .det-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .det{background:var(--bg);padding:12px;border-radius:8px;transition:all 0.2s}
-.det:hover{background:var(--bg-card)}
+.det:hover{background:rgba(15,15,30,0.65)}
 .det-l{font-size:0.7rem;color:var(--text-muted)}
 .det-v{font-size:0.95rem;font-weight:600;margin-top:2px}
-.det-v.green{color:var(--green)}
-.badge-ok{background:var(--green-soft);color:var(--green)}
+.det-v.green{color:#5bf083}
+.badge-ok{background:rgba(91,240,131,0.1);color:#5bf083}
 .badge-err{background:var(--red-soft);color:var(--red)}
 .form-ctrl,.form-input{width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:1rem;transition:border-color 0.3s}
-.form-ctrl:focus,.form-input:focus{outline:none;border-color:var(--accent)}
+.form-ctrl:focus,.form-input:focus{outline:none;border-color:#00f1fe}
 .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.alert-ok{background:var(--green-soft);border:1px solid rgba(34,197,94,0.3);color:var(--green)}
+.alert-ok{background:rgba(91,240,131,0.1);border:1px solid rgba(91,240,131,0.3);color:#5bf083}
 .alert-warn{background:var(--yellow-soft);border:1px solid rgba(234,179,8,0.3);color:var(--yellow)}
 .alert-err{background:var(--red-soft);border:1px solid rgba(239,68,68,0.3);color:var(--red)}
-.section{color:var(--accent);font-weight:600;font-size:0.9rem;margin:18px 0 12px;display:flex;align-items:center;gap:8px}
+.section{color:#00f1fe;font-weight:600;font-size:0.9rem;margin:18px 0 12px;display:flex;align-items:center;gap:8px}
 .quick-btn{padding:10px 5px;font-size:0.75rem;border-radius:8px;border:none;cursor:pointer;font-weight:600;color:#fff;transition:all 0.2s;text-decoration:none;display:block;text-align:center}
 .quick-btn:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.3)}
 /* Timeline / Historia */
@@ -182,19 +182,19 @@ _MAGAZYNIER_CSS = '''
 .timeline::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--border)}
 .timeline-item{position:relative;padding:10px 0 10px 15px;border-bottom:1px solid var(--border)}
 .timeline-item:last-child{border-bottom:none}
-.timeline-item::before{content:'';position:absolute;left:-21px;top:14px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
-.timeline-item.green::before{background:var(--green)}
+.timeline-item::before{content:'';position:absolute;left:-21px;top:14px;width:12px;height:12px;border-radius:50%;background:#00f1fe;border:2px solid var(--bg)}
+.timeline-item.green::before{background:#5bf083}
 .timeline-item.yellow::before{background:var(--yellow)}
 .timeline-item.purple::before{background:var(--purple)}
 .timeline-date{font-size:0.7rem;color:var(--text-muted)}
 .timeline-text{font-size:0.85rem;margin-top:2px}
 /* Toast Notifications */
 .toast-container{position:fixed;top:80px;right:20px;z-index:1000;display:flex;flex-direction:column;gap:10px;max-width:400px}
-.toast{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:var(--shadow-lg);display:flex;align-items:start;gap:12px;animation:slideInRight 0.3s ease-out;min-width:300px}
-.toast.success{border-left:4px solid var(--green)}
+.toast{backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;box-shadow:var(--shadow-lg);display:flex;align-items:start;gap:12px;animation:slideInRight 0.3s ease-out;min-width:300px}
+.toast.success{border-left:4px solid #5bf083}
 .toast.error{border-left:4px solid var(--red)}
 .toast.warning{border-left:4px solid var(--yellow)}
-.toast.info{border-left:4px solid var(--blue)}
+.toast.info{border-left:4px solid #00f1fe}
 .toast-icon{font-size:1.5rem;flex-shrink:0}
 .toast-content{flex:1}
 .toast-title{font-weight:600;margin-bottom:4px;font-size:0.95rem}
@@ -204,7 +204,7 @@ _MAGAZYNIER_CSS = '''
 .toast.removing{animation:slideOutRight 0.3s ease-in forwards}
 /* Loading Overlay */
 .loading-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:999;display:flex;align-items:center;justify-content:center}
-.loading-spinner{width:60px;height:60px;border:4px solid var(--border);border-top:4px solid var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
+.loading-spinner{width:60px;height:60px;border:4px solid var(--border);border-top:4px solid #00f1fe;border-radius:50%;animation:spin 0.8s linear infinite}
 .loading-text{color:#fff;margin-top:20px;font-size:1.1rem;font-weight:600;text-align:center}
 /* Animations */
 @keyframes slideDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
@@ -290,7 +290,7 @@ def index():
     products = conn.execute('SELECT * FROM produkty ORDER BY data_dodania DESC LIMIT 10').fetchall()
     
     # Helper do renderowania kafelka
-    def tile(href, icon, label, value, bg='#1e293b', border='', valcolor='#3b82f6'):
+    def tile(href, icon, label, value, bg='#1e293b', border='', valcolor='#00f1fe'):
         bdr = f'border:1px solid {border};' if border else ''
         return f'''<a href="{href}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 8px;background:{bg};{bdr}border-radius:12px;color:#fff;text-decoration:none;gap:4px;transition:transform 0.15s,box-shadow 0.15s" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
             <span style="font-size:1.5rem">{icon}</span>
@@ -316,8 +316,8 @@ def index():
     <!-- SZUKAJ + SKANER -->
     <div class="search"><form action="/magazyn/szukaj" method="GET" style="display:flex;gap:8px">
         <input type="text" name="q" placeholder="EAN / ASIN / MAG-kod / nazwa..." style="flex:1">
-        <button type="submit" style="padding:14px 18px;background:var(--blue);border:none;border-radius:8px;color:#fff;font-size:1.2rem;cursor:pointer">🔍</button>
-        <a href="/magazyn/skaner" style="padding:14px 18px;background:#22c55e;border-radius:8px;color:#fff;font-size:1.2rem;display:flex;align-items:center;text-decoration:none" title="Skaner kodow">📷</a>
+        <button type="submit" style="padding:14px 18px;background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe;border:none;border-radius:8px;color:#fff;font-size:1.2rem;cursor:pointer">🔍</button>
+        <a href="/magazyn/skaner" style="padding:14px 18px;background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);border-radius:8px;color:#5bf083;font-size:1.2rem;display:flex;align-items:center;text-decoration:none" title="Skaner kodow">📷</a>
     </form></div>
 
     <!-- GLOWNE -->
@@ -341,19 +341,19 @@ def index():
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
         {tile('/magazyn/dostawcy', '🚚', 'DOSTAWCY', f"{s['dostawcy']}", '#1e293b', '', '#64748b')}
         {tile('/magazyn/koszty', '💸', 'KOSZTY', 'wydatki', '#1c0010', '#f43f5e44', '#f43f5e')}
-        {tile('/magazyn/sprzedaz-prywatna', '🤝', 'PRYWATNA', 'sprzedaz', '#1a0a2e', '#8b5cf644', '#8b5cf6')}
+        {tile('/magazyn/sprzedaz-prywatna', '🤝', 'PRYWATNA', 'sprzedaz', '#1a0a2e', '#c180ff44', '#c180ff')}
     </div>
 
     <!-- NARZEDZIA -->
     <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin:16px 0 8px;padding-left:4px">Narzedzia</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-        {tile('/magazyn/import', '📥', 'IMPORT', 'CSV/dane', '#0a1a25', '#3b82f644', '#3b82f6')}
-        {tile('/magazyn/export', '📤', 'EXPORT', 'pobierz', '#0a2518', '#22c55e44', '#22c55e')}
+        {tile('/magazyn/import', '📥', 'IMPORT', 'CSV/dane', '#0a1a25', '#00f1fe44', '#00f1fe')}
+        {tile('/magazyn/export', '📤', 'EXPORT', 'pobierz', '#0a2518', '#5bf08344', '#5bf083')}
         {tile('/magazyn/fetch-images', '🖼️', 'ZDJECIA', 'pobierz', '#1c1600', '#eab30844', '#eab308')}
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
         {tile('/magazyn/remanent', '📋', 'REMANENT', 'Excel', '#0a1a25', '#0369a144', '#0369a1')}
-        {tile('/magazyn/backup', '💾', 'BACKUP', 'przywroc', '#0a2218', '#22c55e44', '#22c55e')}
+        {tile('/magazyn/backup', '💾', 'BACKUP', 'przywroc', '#0a2218', '#5bf08344', '#5bf083')}
     </div>
 
     <div class="section">🕐 OSTATNIO DODANE</div>
@@ -386,7 +386,7 @@ def skaner():
     
     <div id="scanner-container" style="position:relative;width:100%;max-width:400px;margin:0 auto 15px">
         <video id="video" style="width:100%;border-radius:12px;background:#000" playsinline></video>
-        <div id="scan-line" style="position:absolute;left:10%;right:10%;top:50%;height:2px;background:#22c55e;box-shadow:0 0 10px #22c55e;animation:scan 2s infinite"></div>
+        <div id="scan-line" style="position:absolute;left:10%;right:10%;top:50%;height:2px;background:#5bf083;box-shadow:0 0 10px #5bf083;animation:scan 2s infinite"></div>
     </div>
     
     <style>
@@ -410,7 +410,7 @@ def skaner():
     <div id="last-scanned" style="display:none" class="card">
         <div style="padding:15px">
             <div style="font-size:0.75rem;color:#64748b;margin-bottom:5px">Ostatnio zeskanowany:</div>
-            <div id="last-code" style="font-size:1.2rem;font-weight:700;color:#22c55e"></div>
+            <div id="last-code" style="font-size:1.2rem;font-weight:700;color:#5bf083"></div>
         </div>
     </div>
     
@@ -469,7 +469,7 @@ def skaner():
                         if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
                         
                         // Pokaż wynik
-                        resultDiv.innerHTML = '<div style="color:#22c55e;font-size:1.2rem;font-weight:700">✅ ' + code + '</div>';
+                        resultDiv.innerHTML = '<div style="color:#5bf083;font-size:1.2rem;font-weight:700">✅ ' + code + '</div>';
                         lastScanned.style.display = 'block';
                         lastCode.textContent = code;
                         manualInput.value = code;
@@ -578,13 +578,13 @@ def produkty():
             <a href="/magazyn/produkty" class="btn {'btn-ok' if not filter_status else ''}" style="padding:8px 15px;font-size:0.85rem">
                 📋 Wszystkie ({len(products) if not filter_status else sum(status_counts.values())})
             </a>
-            <a href="/magazyn/produkty?status=nowy" class="btn {'btn-ok' if filter_status == 'nowy' else ''}" style="padding:8px 15px;font-size:0.85rem;background:var(--blue)">
+            <a href="/magazyn/produkty?status=nowy" class="btn {'btn-ok' if filter_status == 'nowy' else ''}" style="padding:8px 15px;font-size:0.85rem;background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe">
                 📦 Magazyn ({status_counts['nowy']})
             </a>
             <a href="/magazyn/produkty?status=wystawiony" class="btn {'btn-ok' if filter_status == 'wystawiony' else ''}" style="padding:8px 15px;font-size:0.85rem;background:var(--purple)">
                 🛒 Allegro ({status_counts['wystawiony']})
             </a>
-            <a href="/magazyn/produkty?status=sprzedany" class="btn {'btn-ok' if filter_status == 'sprzedany' else ''}" style="padding:8px 15px;font-size:0.85rem;background:var(--green)">
+            <a href="/magazyn/produkty?status=sprzedany" class="btn {'btn-ok' if filter_status == 'sprzedany' else ''}" style="padding:8px 15px;font-size:0.85rem;background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083">
                 💰 Sprzedane ({status_counts['sprzedany']})
             </a>
         </div>
@@ -630,8 +630,8 @@ def produkty():
     # Masowa edycja
     html += f'''
     <form id="mass-edit-form" method="POST" action="/magazyn/produkty/masowa-edycja">
-        <div class="card" style="padding:15px;margin-bottom:15px;background:rgba(139,92,246,0.1);border:2px solid #8b5cf6">
-            <div style="color:#8b5cf6;font-weight:700;font-size:0.95rem;margin-bottom:12px">⚡ MASOWA EDYCJA ZAZNACZONYCH</div>
+        <div class="card" style="padding:15px;margin-bottom:15px;background:rgba(193,128,255,0.1);border:2px solid #c180ff">
+            <div style="color:#c180ff;font-weight:700;font-size:0.95rem;margin-bottom:12px">⚡ MASOWA EDYCJA ZAZNACZONYCH</div>
             
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
                 <div>
@@ -667,7 +667,7 @@ def produkty():
             </div>
             
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-                <button type="button" onclick="toggleAll()" class="btn" style="background:var(--blue);flex:1">
+                <button type="button" onclick="toggleAll()" class="btn" style="background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe;flex:1">
                     ☑️ Zaznacz wszystkie
                 </button>
                 <button type="submit" class="btn btn-ok" onclick="return confirm('Zastosować zmiany dla ' + document.getElementById('count').textContent + ' produktów?')" style="flex:1">
@@ -677,7 +677,7 @@ def produkty():
                     📫 Zgrupuj w box
                 </button>
             </div>
-            <div id="selected-count" style="margin-top:10px;color:#8b5cf6;font-size:0.85rem;font-weight:600">
+            <div id="selected-count" style="margin-top:10px;color:#c180ff;font-size:0.85rem;font-weight:600">
                 Zaznaczono: <span id="count">0</span> produktów
             </div>
         </div>
@@ -702,10 +702,10 @@ def produkty():
         
         # Badge statusu
         status_badges = {
-            'nowy': '<span style="background:var(--blue);color:#fff;padding:3px 8px;border-radius:6px;font-size:0.7rem;font-weight:600">📦 MAGAZYN</span>',
+            'nowy': '<span style="background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe;color:#fff;padding:3px 8px;border-radius:6px;font-size:0.7rem;font-weight:600">📦 MAGAZYN</span>',
             'wystawiony': '<span style="background:var(--purple);color:#fff;padding:3px 8px;border-radius:6px;font-size:0.7rem;font-weight:600">🛒 ALLEGRO</span>',
-            'sprzedany': '<span style="background:var(--green);color:#fff;padding:3px 8px;border-radius:6px;font-size:0.7rem;font-weight:600">💰 SPRZEDANE</span>',
-            'wyslany': '<span style="background:var(--green);color:#fff;padding:3px 8px;border-radius:6px;font-size:0.7rem;font-weight:600">📮 WYSŁANE</span>',
+            'sprzedany': '<span style="background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083;padding:3px 8px;border-radius:6px;font-size:0.7rem;font-weight:600">💰 SPRZEDANE</span>',
+            'wyslany': '<span style="background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083;padding:3px 8px;border-radius:6px;font-size:0.7rem;font-weight:600">📮 WYSŁANE</span>',
             'uszkodzony': '<span style="background:var(--red);color:#fff;padding:3px 8px;border-radius:6px;font-size:0.7rem;font-weight:600">⚠️ USZKODZONY</span>',
             'zwrot': '<span style="background:var(--yellow);color:#000;padding:3px 8px;border-radius:6px;font-size:0.7rem;font-weight:600">↩️ ZWROT</span>'
         }
@@ -730,7 +730,7 @@ def produkty():
                 <div class="item-right">
                     <div class="item-qty">{p['ilosc']}</div>
                     <div class="item-price">{p['cena_allegro'] or 0:.0f} zł</div>
-                    {f'<div style="font-size:0.65rem;color:{"#22c55e" if _zy >= 0 else "#ef4444"}">{_zy:.0f} zł zysk</div>' if _zy is not None else ''}
+                    {f'<div style="font-size:0.65rem;color:{"#5bf083" if _zy >= 0 else "#ef4444"}">{_zy:.0f} zł zysk</div>' if _zy is not None else ''}
                 </div>
             </a>
         </div>'''
@@ -814,7 +814,7 @@ def produkty():
 
     <!-- Modal: Zgrupuj w Box -->
     <div id="modalBox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center">
-        <div style="background:var(--bg-card);border-radius:var(--radius);padding:25px;max-width:450px;width:90%;max-height:80vh;overflow-y:auto;border:2px solid #f59e0b">
+        <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border-radius:var(--radius);padding:25px;max-width:450px;width:90%;max-height:80vh;overflow-y:auto;border:2px solid #f59e0b">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
                 <h3 style="margin:0;color:#f59e0b">📫 Nowy Box</h3>
                 <button onclick="document.getElementById('modalBox').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer">&times;</button>
@@ -933,7 +933,7 @@ def produkt(code):
     _prowizja_rate = ALLEGRO_PROWIZJE.get(_kat, 0.11)
     _prowizja_kwota = _cena_al * _prowizja_rate
     _zysk_szt = _cena_al - _koszt_brutto_szt - _prowizja_kwota if _cena_al > 0 and _koszt_brutto_szt > 0 else 0
-    _zysk_color = '#22c55e' if _zysk_szt >= 0 else '#ef4444'
+    _zysk_color = '#5bf083' if _zysk_szt >= 0 else '#ef4444'
 
     html = f'''<div class="hdr"><h1>📦 PRODUKT</h1></div>'''
     
@@ -945,8 +945,8 @@ def produkt(code):
     # 📜 HISTORIA NA GÓRZE - PIERWSZA
     if historia:
         html += '''
-        <div class="card" style="margin-bottom:20px;border:2px solid #8b5cf6;background:rgba(139,92,246,0.05)">
-            <div style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);padding:18px;border-radius:12px 12px 0 0">
+        <div class="card" style="margin-bottom:20px;border:2px solid #c180ff;background:rgba(193,128,255,0.05)">
+            <div style="background:rgba(193,128,255,0.12);border:1px solid rgba(193,128,255,0.3);color:#c180ff;padding:18px;border-radius:12px 12px 0 0">
                 <div style="font-size:1.3rem;font-weight:700;color:#fff">📜 HISTORIA ZMIAN</div>
                 <div style="font-size:0.85rem;color:rgba(255,255,255,0.85);margin-top:6px">Ostatnie ''' + str(len(historia)) + ''' działań na tym produkcie</div>
             </div>
@@ -962,10 +962,10 @@ def produkt(code):
         }
         kolory_bg = {
             'dodano': 'rgba(59,130,246,0.1)', 'sprzedano': 'rgba(34,197,94,0.15)', 
-            'wystawiono': 'rgba(139,92,246,0.1)', 'wyslano': 'rgba(34,197,94,0.15)', 
+            'wystawiono': 'rgba(193,128,255,0.1)', 'wyslano': 'rgba(34,197,94,0.15)', 
             'zmiana_ceny': 'rgba(234,179,8,0.1)', 'skanowano': 'rgba(59,130,246,0.1)',
-            'wygenerowano_opis': 'rgba(139,92,246,0.1)', 'importowano': 'rgba(59,130,246,0.1)', 
-            'scrapowano': 'rgba(139,92,246,0.1)', 'drukowano': 'rgba(139,92,246,0.1)'
+            'wygenerowano_opis': 'rgba(193,128,255,0.1)', 'importowano': 'rgba(59,130,246,0.1)', 
+            'scrapowano': 'rgba(193,128,255,0.1)', 'drukowano': 'rgba(193,128,255,0.1)'
         }
         for h in historia:
             h = dict(h)  # Konwersja Row -> dict
@@ -980,7 +980,7 @@ def produkt(code):
                     import json
                     dane = json.loads(h['dane_json'])
                     if dane:
-                        dane_extra = '<div style="font-size:0.75rem;color:#8b5cf6;margin-top:6px">'
+                        dane_extra = '<div style="font-size:0.75rem;color:#c180ff;margin-top:6px">'
                         for k, v in dane.items():
                             if k not in ['allegro_id']:
                                 dane_extra += f'<span style="background:rgba(139,92,246,0.15);padding:3px 8px;border-radius:6px;margin-right:6px">{k}: {v}</span>'
@@ -1018,17 +1018,17 @@ def produkt(code):
         # Status badge
         current_status = p['status'] if p['status'] else 'nowy'
         status_badges = {
-            'nowy': ('📦', 'MAGAZYN', 'var(--blue)'),
+            'nowy': ('📦', 'MAGAZYN', '#00f1fe'),
             'wystawiony': ('🛒', 'ALLEGRO', 'var(--purple)'),
-            'sprzedany': ('💰', 'SPRZEDANE', 'var(--green)'),
-            'wyslany': ('📮', 'WYSŁANE', 'var(--green)'),
+            'sprzedany': ('💰', 'SPRZEDANE', '#5bf083'),
+            'wyslany': ('📮', 'WYSŁANE', '#5bf083'),
             'uszkodzony': ('⚠️', 'USZKODZONY', 'var(--red)'),
             'zwrot': ('↩️', 'ZWROT', 'var(--yellow)')
         }
-        icon, label, color = status_badges.get(current_status, ('📦', 'MAGAZYN', 'var(--blue)'))
+        icon, label, color = status_badges.get(current_status, ('📦', 'MAGAZYN', '#00f1fe'))
         
         quick_actions = f'''
-        <div style="background:rgba(139,92,246,0.05);border:2px solid {color};border-radius:10px;padding:15px;margin-bottom:15px">
+        <div style="background:rgba(193,128,255,0.05);border:2px solid {color};border-radius:10px;padding:15px;margin-bottom:15px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
                 <div>
                     <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:4px">STATUS PRODUKTU</div>
@@ -1049,10 +1049,10 @@ def produkt(code):
         </div>
         
         <div class="quick-actions">
-            <a href="/magazyn/produkt/{product_code}/sprzedaj" class="quick-btn" style="background:var(--green)">💰 -1 SZT</a>
+            <a href="/magazyn/produkt/{product_code}/sprzedaj" class="quick-btn" style="background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083">💰 -1 SZT</a>
             <a href="/magazyn/etykieta-mobilna/{product_code}" class="quick-btn" style="background:var(--purple)">📱 ETYKIETA</a>
             <a href="/magazyn/produkt/{product_code}/edytuj" class="quick-btn" style="background:var(--yellow);color:#000">✏️ EDYTUJ</a>
-            <a href="/paletomat/generator/from-magazyn/{p['id']}" class="quick-btn" style="background:var(--blue)">🛒 WYSTAW</a>
+            <a href="/paletomat/generator/from-magazyn/{p['id']}" class="quick-btn" style="background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe">🛒 WYSTAW</a>
             <form method="POST" action="/magazyn/produkt/{product_code}/usun" style="display:inline" onsubmit="return confirm('Na pewno usunąć ten produkt?')">
                 <button type="submit" class="quick-btn" style="background:var(--red);border:none;cursor:pointer">🗑️ USUŃ</button>
             </form>
@@ -1077,9 +1077,9 @@ def produkt(code):
             </div>
             
             <div class="det-grid">
-                <div class="det" style="border:1px solid #8b5cf644;border-radius:8px"><div class="det-l">🏷️ Kod mag.</div><div class="det-v" style="color:#8b5cf6;font-weight:700">{p.get('kod_magazynowy') or f"#{p['id']}"}</div></div>
-                <div class="det" onclick="navigator.clipboard.writeText('{ean_display}');this.querySelector('.det-v').style.color='#22c55e';setTimeout(()=>this.querySelector('.det-v').style.color='',800)" style="cursor:pointer" title="Kliknij aby skopiować"><div class="det-l">EAN 📋</div><div class="det-v" style="font-size:0.75rem;user-select:all">{ean_display}</div></div>
-                <div class="det" onclick="navigator.clipboard.writeText('{asin_display}');this.querySelector('.det-v').style.color='#22c55e';setTimeout(()=>this.querySelector('.det-v').style.color='',800)" style="cursor:pointer" title="Kliknij aby skopiować"><div class="det-l">ASIN 📋</div><div class="det-v" style="font-size:0.75rem;user-select:all">{asin_display}</div></div>
+                <div class="det" style="border:1px solid #c180ff44;border-radius:8px"><div class="det-l">🏷️ Kod mag.</div><div class="det-v" style="color:#c180ff;font-weight:700">{p.get('kod_magazynowy') or f"#{p['id']}"}</div></div>
+                <div class="det" onclick="navigator.clipboard.writeText('{ean_display}');this.querySelector('.det-v').style.color='#5bf083';setTimeout(()=>this.querySelector('.det-v').style.color='',800)" style="cursor:pointer" title="Kliknij aby skopiować"><div class="det-l">EAN 📋</div><div class="det-v" style="font-size:0.75rem;user-select:all">{ean_display}</div></div>
+                <div class="det" onclick="navigator.clipboard.writeText('{asin_display}');this.querySelector('.det-v').style.color='#5bf083';setTimeout(()=>this.querySelector('.det-v').style.color='',800)" style="cursor:pointer" title="Kliknij aby skopiować"><div class="det-l">ASIN 📋</div><div class="det-v" style="font-size:0.75rem;user-select:all">{asin_display}</div></div>
                 <div class="det"><div class="det-l">Ilość</div><div class="det-v"><span class="badge {badge}">{p['ilosc']} szt</span></div></div>
                 <div class="det"><div class="det-l">Stan</div><div class="det-v">{p['stan'] or 'Nowy'}</div></div>
                 <div class="det"><div class="det-l">Klasa</div><div class="det-v">{_klasa_display}</div></div>
@@ -1093,11 +1093,11 @@ def produkt(code):
         
         <div style="padding:15px;background:var(--bg)">
             <a href="/magazyn/produkt/{product_code}/edytuj" class="btn btn-warn">✏️ EDYTUJ</a>
-            <a href="/magazyn/drukuj/{product_code}" class="btn btn-2" style="background:#8b5cf6">🖨️ DRUKUJ ETYKIETĘ</a>
+            <a href="/magazyn/drukuj/{product_code}" class="btn btn-2" style="background:rgba(193,128,255,0.15);border:1px solid rgba(193,128,255,0.3);color:#c180ff">🖨️ DRUKUJ ETYKIETĘ</a>
             <a href="/magazyn/produkt/{product_code}/opis" class="btn btn-purple">✨ GENERUJ OPIS AI</a>
             <button onclick="rescrapZdjecia({p['id']}, this)" class="btn" style="background:#06b6d4">📸 POBIERZ ZDJĘCIA</button>
             <button onclick="pokazGPSR()" class="btn" style="background:#059669">🛡️ GPSR</button>
-            <button onclick="pokazRozbijProdukt({p['id']}, {p['ilosc']}, '{p['nazwa'][:40].replace(chr(39), '')}')" class="btn" style="background:#22c55e;color:#000">🎯 ROZBIJ NA SZTUKI</button>
+            <button onclick="pokazRozbijProdukt({p['id']}, {p['ilosc']}, '{p['nazwa'][:40].replace(chr(39), '')}')" class="btn" style="background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083">🎯 ROZBIJ NA SZTUKI</button>
             <button onclick="pokazNaprawaProdukt({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="btn" style="background:#f59e0b;color:#000">🔧 DO NAPRAWY (szt.)</button>
             <button onclick="wyslijDoSerwisu({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="btn" style="background:#dc2626">🔧 SERWIS</button>
         </div>
@@ -1107,7 +1107,7 @@ def produkt(code):
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
                 <div style="font-weight:700;font-size:1rem">📦 Ewidencja sztuk</div>
                 <button onclick="pokazRozbijProdukt({p['id']}, {p['ilosc']}, '{p['nazwa'][:40].replace(chr(39), '')}')" 
-                    style="padding:5px 12px;background:#22c55e22;border:1px solid #22c55e;border-radius:8px;color:#22c55e;font-size:0.75rem;cursor:pointer">🎯 Zmień rozbicie</button>
+                    style="padding:5px 12px;background:#5bf08322;border:1px solid #5bf083;border-radius:8px;color:#5bf083;font-size:0.75rem;cursor:pointer">🎯 Zmień rozbicie</button>
             </div>
             <div id="sztukiKarty"></div>
         </div>
@@ -1156,7 +1156,7 @@ def produkt(code):
             .then(function(d) {{
                 if (d.ok) {{
                     btn.textContent = '⏳ Pobieranie w tle...';
-                    btn.style.background = '#22c55e';
+                    btn.style.background = '#5bf083';
                     // Sprawdzaj co 5s czy zdjecie sie pojawilo
                     var checks = 0;
                     var checkInterval = setInterval(function() {{
@@ -1206,7 +1206,7 @@ def produkt(code):
             }}
         }}
         
-        const KOLOR_STAN = {{'Nowy':'#22c55e','Powystawowy':'#3b82f6','Używany':'#eab308','Uszkodzony':'#ef4444','Odnowiony':'#8b5cf6'}};
+        const KOLOR_STAN = {{'Nowy':'#5bf083','Powystawowy':'#00f1fe','Używany':'#eab308','Uszkodzony':'#ef4444','Odnowiony':'#c180ff'}};
         const PROD_ID = {p['id']};
         const PROD_ZDJECIE = "{p.get('zdjecie_url', '') or ''}";
         const STANY_WYMAGAJACE_FOTO = ['Powystawowy','Używany','Uszkodzony'];
@@ -1287,7 +1287,7 @@ def produkt(code):
                 </div>
                 
                 <button onclick="zapiszNotatke(${{s.id}})"
-                    style="width:100%;padding:8px;background:#3b82f622;border:1px solid #3b82f655;border-radius:8px;color:#3b82f6;font-size:0.8rem;cursor:pointer;font-weight:600">
+                    style="width:100%;padding:8px;background:#00f1fe22;border:1px solid #00f1fe55;border-radius:8px;color:#00f1fe;font-size:0.8rem;cursor:pointer;font-weight:600">
                     💾 Zapisz notatkę
                 </button>
                 ${{s.data_naprawy ? `<div style="font-size:0.7rem;color:#64748b;margin-top:6px;text-align:right">Ostatnia zmiana: ${{s.data_naprawy}}</div>` : ''}}
@@ -1333,7 +1333,7 @@ def produkt(code):
             const body = pole === 'status' ? {{status: wartosc}} : {{stan: wartosc}};
             const resp = await fetch(endpoint, {{method:'POST', headers:{{'Content-Type':'application/json'}}, body:JSON.stringify(body)}});
             if (resp.ok) {{
-                karta.style.border = '1px solid #22c55e';
+                karta.style.border = '1px solid #5bf083';
                 setTimeout(() => {{ karta.style.border = '1px solid #1e1e2e'; ladujSztuki(); }}, 800);
             }}
         }}
@@ -1346,7 +1346,7 @@ def produkt(code):
             }});
             const karta = document.getElementById('karta_' + id);
             if (resp.ok) {{
-                karta.style.border = '1px solid #22c55e';
+                karta.style.border = '1px solid #5bf083';
                 setTimeout(() => karta.style.border = '1px solid #1e1e2e', 1000);
             }}
         }}
@@ -1375,25 +1375,25 @@ def produkt(code):
       <div style="background:#1e1e2e;border-radius:16px;padding:20px;max-width:440px;margin:0 auto">
         <div style="font-size:1.2rem;font-weight:700;margin-bottom:4px">🎯 Rozbij stan na sztuki</div>
         <div id="rozbijProdNazwa" style="color:#94a3b8;font-size:0.85rem;margin-bottom:15px"></div>
-        <div style="background:#12121a;border-radius:10px;padding:12px;margin-bottom:15px">
+        <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;margin-bottom:15px">
           <div style="display:flex;justify-content:space-between;margin-bottom:4px">
             <span style="color:#94a3b8">Łącznie sztuk:</span><span id="rozbijProdLacznie" style="font-weight:700"></span>
           </div>
           <div style="display:flex;justify-content:space-between">
-            <span style="color:#94a3b8">Suma wpisanych:</span><span id="rozbijProdSuma" style="font-weight:700;color:#22c55e"></span>
+            <span style="color:#94a3b8">Suma wpisanych:</span><span id="rozbijProdSuma" style="font-weight:700;color:#5bf083"></span>
           </div>
         </div>
         <div id="rozbijProdStany"></div>
         <div style="color:#94a3b8;font-size:0.75rem;margin:10px 0 6px">Szybkie ustawienie:</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:15px">
-          <button onclick="rozbijProdSzybko('Nowy')" style="padding:6px 10px;background:#22c55e22;border:1px solid #22c55e;border-radius:8px;color:#22c55e;font-size:0.75rem;cursor:pointer">🟢 Wszystko nowe</button>
-          <button onclick="rozbijProdSzybko('Powystawowy')" style="padding:6px 10px;background:#3b82f622;border:1px solid #3b82f6;border-radius:8px;color:#3b82f6;font-size:0.75rem;cursor:pointer">🔵 Powystawowe</button>
+          <button onclick="rozbijProdSzybko('Nowy')" style="padding:6px 10px;background:#5bf08322;border:1px solid #5bf083;border-radius:8px;color:#5bf083;font-size:0.75rem;cursor:pointer">🟢 Wszystko nowe</button>
+          <button onclick="rozbijProdSzybko('Powystawowy')" style="padding:6px 10px;background:#00f1fe22;border:1px solid #00f1fe;border-radius:8px;color:#00f1fe;font-size:0.75rem;cursor:pointer">🔵 Powystawowe</button>
           <button onclick="rozbijProdSzybko('Używany')" style="padding:6px 10px;background:#eab30822;border:1px solid #eab308;border-radius:8px;color:#eab308;font-size:0.75rem;cursor:pointer">🟡 Używane</button>
           <button onclick="rozbijProdSzybko('Uszkodzony')" style="padding:6px 10px;background:#ef444422;border:1px solid #ef4444;border-radius:8px;color:#ef4444;font-size:0.75rem;cursor:pointer">🔴 Uszkodzone</button>
         </div>
         <div style="display:flex;gap:8px">
           <button onclick="document.getElementById('modalRozbijProd').style.display='none'" style="flex:1;padding:12px;background:#334155;border:none;border-radius:10px;color:#fff;cursor:pointer">Anuluj</button>
-          <button onclick="zapiszRozbijProd()" style="flex:1;padding:12px;background:#22c55e;border:none;border-radius:10px;color:#000;font-weight:700;cursor:pointer">✓ Zapisz</button>
+          <button onclick="zapiszRozbijProd()" style="flex:1;padding:12px;background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);border-radius:10px;color:#000;font-weight:700;cursor:pointer">✓ Zapisz</button>
         </div>
       </div>
     </div>
@@ -1413,7 +1413,7 @@ def produkt(code):
 
     <script>
     let _rpId=null, _rpIlosc=0;
-    const KOLORY_P = {{'Nowy':'#22c55e','Powystawowy':'#3b82f6','Używany':'#eab308','Uszkodzony':'#ef4444','Odnowiony':'#8b5cf6'}};
+    const KOLORY_P = {{'Nowy':'#5bf083','Powystawowy':'#00f1fe','Używany':'#eab308','Uszkodzony':'#ef4444','Odnowiony':'#c180ff'}};
 
     function pokazRozbijProdukt(id, ilosc, nazwa) {{
         _rpId=id; _rpIlosc=ilosc;
@@ -1434,10 +1434,10 @@ def produkt(code):
             html+=`<div style="display:flex;align-items:center;gap:10px;background:${{k}}11;border:1px solid ${{k}}44;border-radius:10px;padding:10px;margin-bottom:8px">
               <div style="width:12px;height:12px;border-radius:50%;background:${{k}};flex-shrink:0"></div>
               <div style="flex:1;font-weight:600">${{s}}</div>
-              <button onclick="zmRozP('${{s}}',-1)" style="width:34px;height:34px;background:#12121a;border:1px solid #334155;border-radius:8px;color:#fff;cursor:pointer;font-size:1.1rem">−</button>
+              <button onclick="zmRozP('${{s}}',-1)" style="width:34px;height:34px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#fff;cursor:pointer;font-size:1.1rem">−</button>
               <input type="number" id="rp_${{s}}" value="${{v}}" min="0" oninput="aktualizujSumP()"
-                style="width:55px;text-align:center;background:#12121a;border:1px solid #334155;border-radius:8px;color:#fff;padding:5px;font-size:1rem">
-              <button onclick="zmRozP('${{s}}',1)" style="width:34px;height:34px;background:#12121a;border:1px solid #334155;border-radius:8px;color:#fff;cursor:pointer;font-size:1.1rem">+</button>
+                style="width:55px;text-align:center;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#fff;padding:5px;font-size:1rem">
+              <button onclick="zmRozP('${{s}}',1)" style="width:34px;height:34px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#fff;cursor:pointer;font-size:1.1rem">+</button>
             </div>`;
         }});
         document.getElementById('rozbijProdStany').innerHTML=html;
@@ -1449,7 +1449,7 @@ def produkt(code):
         ['Nowy','Powystawowy','Używany','Uszkodzony'].forEach(s=>{{suma+=parseInt(document.getElementById('rp_'+s)?.value||0);}});
         const el=document.getElementById('rozbijProdSuma');
         el.textContent=suma+' / '+_rpIlosc;
-        el.style.color=suma===_rpIlosc?'#22c55e':'#ef4444';
+        el.style.color=suma===_rpIlosc?'#5bf083':'#ef4444';
     }}
     function rozbijProdSzybko(stan){{
         ['Nowy','Powystawowy','Używany','Uszkodzony'].forEach(s=>{{
@@ -2070,7 +2070,7 @@ def backup_page():
         <small>Zarządzanie kopiami zapasowymi bazy danych</small>
     </div>
     
-    <div class="card" style="padding:20px;margin-bottom:15px;background:rgba(34,197,94,0.1);border:2px solid #22c55e">
+    <div class="card" style="padding:20px;margin-bottom:15px;background:rgba(91,240,131,0.1);border:2px solid #5bf083">
         <div style="display:flex;align-items:center;gap:15px">
             <div style="font-size:2.5rem">💾</div>
             <div style="flex:1">
@@ -2124,7 +2124,7 @@ def backup_page():
             # Weryfikacja backupu
             is_ok, status_msg = verify_backup(backup['filename'])
             status_icon = "✅" if is_ok else "❌"
-            status_color = "var(--green)" if is_ok else "var(--red)"
+            status_color = "#5bf083" if is_ok else "#ef4444"
             
             html += f'''
             <div class="card" style="padding:15px;margin-bottom:10px">
@@ -2300,7 +2300,7 @@ def backup_upload():
         <div class="card" style="padding:20px;text-align:center">
             <div style="font-size:3rem;margin-bottom:10px">📦</div>
             <div style="font-weight:600;margin-bottom:5px">{backup_filename}</div>
-            <div style="font-size:1.3rem;color:#22c55e">{count} produktów</div>
+            <div style="font-size:1.3rem;color:#5bf083">{count} produktów</div>
             <div style="font-size:0.85rem;color:#64748b">{size_mb:.2f} MB</div>
         </div>
         
@@ -2646,14 +2646,14 @@ def statystyki():
     else:
         najszybciej_rows = ''.join([
             f'<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #1e1e2e">'
-            f'<div style="font-size:0.85rem;font-weight:700;color:#22c55e;min-width:60px">{item["czas"]}</div>'
+            f'<div style="font-size:0.85rem;font-weight:700;color:#5bf083;min-width:60px">{item["czas"]}</div>'
             f'<div style="flex:1;font-size:0.8rem;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{item["nazwa"]}</div>'
             f'<div style="font-size:0.8rem;color:#eab308;min-width:55px;text-align:right">{item["cena"]:.0f} zł</div>'
             f'</div>' for item in najszybciej_sprzedane
         ])
         histogram_html = (
             f'<canvas id="chartCzasSprzedazy" height="150" style="margin-bottom:15px"></canvas>'
-            f'<div style="font-size:0.75rem;color:#22c55e;font-weight:600;margin-bottom:8px">⚡ Najszybciej sprzedane (od wystawienia)</div>'
+            f'<div style="font-size:0.75rem;color:#5bf083;font-weight:600;margin-bottom:8px">⚡ Najszybciej sprzedane (od wystawienia)</div>'
             f'{najszybciej_rows}'
         )
 
@@ -2663,7 +2663,7 @@ def statystyki():
     przychod_total = podsumowanie['suma_total'] + pryw_total_rok
     koszty_total_lacznie = koszty_total_rok + palety_total_rok
     zysk_rok = przychod_total - koszty_total_lacznie
-    zysk_kolor = '#22c55e' if zysk_rok >= 0 else '#ef4444'
+    zysk_kolor = '#5bf083' if zysk_rok >= 0 else '#ef4444'
     
     # === KALKULACJA PODATKOWA ===
     # VAT 23%, podatek liniowy 19%
@@ -2685,7 +2685,7 @@ def statystyki():
     podatek = max(0, dochod * 0.19)
     # Prawdziwy zysk na rękę
     zysk_na_reke = dochod - podatek
-    zysk_na_reke_kolor = '#22c55e' if zysk_na_reke >= 0 else '#ef4444'
+    zysk_na_reke_kolor = '#5bf083' if zysk_na_reke >= 0 else '#ef4444'
     dane_miesieczne = [0] * 12
     dane_miesieczne_cnt = [0] * 12  # ilość zamówień per miesiąc
     dane_koszty = [0] * 12          # koszty per miesiąc
@@ -2728,10 +2728,10 @@ def statystyki():
     # 5 POZIOMÓW SYPANIA (bazowane na kwocie dziennej)
     if today_sales >= 5000:
         status_text = "🔥🔥🔥 MEGA SYPIE!"
-        status_color = "#22c55e"
+        status_color = "#5bf083"
     elif today_sales >= 3000:
         status_text = "💸 SYPIE!"
-        status_color = "#22c55e"
+        status_color = "#5bf083"
     elif today_sales >= 1500:
         status_text = "📈 Całkiem nieźle"
         status_color = "#eab308"
@@ -2777,28 +2777,28 @@ def statystyki():
     </div>
     
     <!-- HISTOGRAM CZASU SPRZEDAŻY -->
-    <div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #22c55e44">
-        <div style="font-weight:700;margin-bottom:12px;color:#22c55e">⏱️ Czas sprzedaży (od wystawienia)</div>
+    <div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #5bf08344">
+        <div style="font-weight:700;margin-bottom:12px;color:#5bf083">⏱️ Czas sprzedaży (od wystawienia)</div>
         {histogram_html}
     </div>
     
     <!-- Kalkulacja podatkowa -->
-    <div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #8b5cf644">
+    <div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #c180ff44">
         <div style="font-weight:700;margin-bottom:12px;color:#a78bfa">🧾 Rozliczenie podatkowe ({current_year})</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem">
-            <div style="background:#12121a;border-radius:8px;padding:10px">
+            <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px">
                 <div style="color:#64748b;margin-bottom:4px">Przychód brutto</div>
-                <div style="font-weight:700;color:#3b82f6">{przychod_total:.0f} zł</div>
+                <div style="font-weight:700;color:#00f1fe">{przychod_total:.0f} zł</div>
             </div>
-            <div style="background:#12121a;border-radius:8px;padding:10px">
+            <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px">
                 <div style="color:#64748b;margin-bottom:4px">Przychód netto (bez VAT)</div>
                 <div style="font-weight:700">{przychod_netto:.0f} zł</div>
             </div>
-            <div style="background:#12121a;border-radius:8px;padding:10px">
+            <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px">
                 <div style="color:#64748b;margin-bottom:4px">Koszty netto (bez VAT)</div>
                 <div style="font-weight:700;color:#f43f5e">-{koszty_netto:.0f} zł</div>
             </div>
-            <div style="background:#12121a;border-radius:8px;padding:10px">
+            <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px">
                 <div style="color:#64748b;margin-bottom:4px">Dochód do opodatkowania</div>
                 <div style="font-weight:700">{dochod:.0f} zł</div>
             </div>
@@ -2829,8 +2829,8 @@ def statystyki():
         roi_total_zysk = roi_total_przychod - roi_total_koszt
         roi_total = (roi_total_zysk / roi_total_koszt * 100) if roi_total_koszt > 0 else 0
         roi_sredni = sum(p['roi'] for p in palety_roi) / len(palety_roi)
-        roi_total_kolor = '#22c55e' if roi_total >= 0 else '#ef4444'
-        roi_sr_kolor = '#22c55e' if roi_sredni >= 0 else '#ef4444'
+        roi_total_kolor = '#5bf083' if roi_total >= 0 else '#ef4444'
+        roi_sr_kolor = '#5bf083' if roi_sredni >= 0 else '#ef4444'
         sorted_desc = sorted(palety_roi, key=lambda x: x['roi'], reverse=True)
         sorted_asc = sorted(palety_roi, key=lambda x: x['roi'])
         # Pokaż max 5 najlepszych, ale nie więcej niż połowa
@@ -2842,11 +2842,11 @@ def statystyki():
         worst_label = '📉 Najgorsze' if worst3 and worst3[0]['roi'] < 0 else '📊 Najmniej rentowne'
 
         def _roi_row(p):
-            kol = '#22c55e' if p['roi'] >= 0 else '#ef4444'
+            kol = '#5bf083' if p['roi'] >= 0 else '#ef4444'
             pct = min(100, max(0, abs(p['roi'])))
             sign = '+' if p['roi'] >= 0 else ''
             bar = f'<div style="height:5px;background:#1e1e2e;border-radius:3px;margin-top:4px"><div style="height:5px;width:{pct:.0f}%;background:{kol};border-radius:3px"></div></div>'
-            return (f'<div style="background:#12121a;border-radius:8px;padding:10px;margin-bottom:6px">'
+            return (f'<div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;margin-bottom:6px">'
                     f'<div style="display:flex;justify-content:space-between;align-items:center">'
                     f'<div style="font-size:0.8rem;color:#e2e8f0;flex:1;margin-right:8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{p["nazwa"][:35]}</div>'
                     f'<div style="font-weight:700;color:{kol};white-space:nowrap">{sign}{p["roi"]:.0f}%</div>'
@@ -2858,25 +2858,25 @@ def statystyki():
         top_html = ''.join(_roi_row(p) for p in top3)
         worst_html = ''.join(_roi_row(p) for p in worst3)
 
-        html_roi = f'''<div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #22c55e33">
-        <div style="font-weight:700;margin-bottom:12px;color:#22c55e">📦 Rentowność palet ({current_year})</div>
+        html_roi = f'''<div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #5bf08333">
+        <div style="font-weight:700;margin-bottom:12px;color:#5bf083">📦 Rentowność palet ({current_year})</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
             <div style="background:#0a1f12;border:1px solid {roi_total_kolor}44;border-radius:10px;padding:12px;text-align:center">
                 <div style="font-size:1.6rem;font-weight:700;color:{roi_total_kolor}">{roi_total:.0f}%</div>
                 <div style="font-size:0.7rem;color:#64748b;margin-top:2px">ROI całkowity</div>
             </div>
-            <div style="background:#12121a;border-radius:10px;padding:12px;text-align:center">
+            <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;text-align:center">
                 <div style="font-size:1.6rem;font-weight:700;color:#a78bfa">{len(palety_roi)}</div>
                 <div style="font-size:0.7rem;color:#64748b;margin-top:2px">Palety z danymi</div>
             </div>
-            <div style="background:#12121a;border-radius:10px;padding:12px;text-align:center">
+            <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;text-align:center">
                 <div style="font-size:1.6rem;font-weight:700;color:{roi_sr_kolor}">{roi_sredni:.0f}%</div>
                 <div style="font-size:0.7rem;color:#64748b;margin-top:2px">Średni ROI</div>
             </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
             <div>
-                <div style="font-size:0.75rem;color:#22c55e;font-weight:600;margin-bottom:6px">🏆 Najlepsze</div>
+                <div style="font-size:0.75rem;color:#5bf083;font-weight:600;margin-bottom:6px">🏆 Najlepsze</div>
                 {top_html}
             </div>
             <div>
@@ -2894,7 +2894,7 @@ def statystyki():
     palety_cells = ''
     for i in range(12):
         cnt = dane_palety_cnt[i]
-        kolor = '#3b82f6' if cnt > 0 else '#2d2d48'
+        kolor = '#00f1fe' if cnt > 0 else '#2d2d48'
         palety_cells += f'<div style="background:#1e1e2e;border-radius:8px;padding:8px;text-align:center"><div style="font-size:0.65rem;color:#64748b">{nazwy_msc[i]}</div><div style="font-size:1.1rem;font-weight:700;color:{kolor}">{cnt}</div></div>'
 
     html += f'''
@@ -2902,7 +2902,7 @@ def statystyki():
     <div class="card" style="padding:15px;margin-bottom:15px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
             <div id="chartTitle" style="font-weight:600">📅 Sprzedaż miesięcznie ({current_year})</div>
-            <button id="btnBack" onclick="showMonthlyView()" style="display:none;padding:5px 10px;background:#3b82f6;border:none;border-radius:5px;color:#fff;cursor:pointer">← Miesiące</button>
+            <button id="btnBack" onclick="showMonthlyView()" style="display:none;padding:5px 10px;background:#00f1fe;border:none;border-radius:5px;color:#fff;cursor:pointer">← Miesiące</button>
         </div>
         <div style="font-size:0.75rem;color:#64748b;margin-bottom:10px">💡 Kliknij na słupek miesiąca aby zobaczyć rozkład dzienny</div>
         <div id="monthSummary" style="display:none"></div>
@@ -2936,7 +2936,7 @@ def statystyki():
                     <div class="item-meta">Sprzedano: {p['sprzedane']}x</div>
                 </div>
                 <div class="item-right">
-                    <div class="item-qty" style="color:#22c55e">{p['przychod'] or 0:.0f} zł</div>
+                    <div class="item-qty" style="color:#5bf083">{p['przychod'] or 0:.0f} zł</div>
                 </div>
             </div>'''
     else:
@@ -2954,7 +2954,7 @@ def statystyki():
                     <div class="item-meta">Sprzedano: {d['sprzedane']}x</div>
                 </div>
                 <div class="item-right">
-                    <div class="item-qty" style="color:#22c55e">{d['przychod'] or 0:.0f} zł</div>
+                    <div class="item-qty" style="color:#5bf083">{d['przychod'] or 0:.0f} zł</div>
                 </div>
             </div>'''
     else:
@@ -3065,11 +3065,11 @@ def statystyki():
                     label: 'Zysk netto',
                     data: daneZysk,
                     type: 'line',
-                    borderColor: '#22c55e',
-                    backgroundColor: 'rgba(34,197,94,0.1)',
+                    borderColor: '#5bf083',
+                    backgroundColor: 'rgba(91,240,131,0.1)',
                     borderWidth: 2,
                     pointRadius: 4,
-                    pointBackgroundColor: '#22c55e',
+                    pointBackgroundColor: '#5bf083',
                     tension: 0.3,
                     fill: false,
                     order: 0
@@ -3171,12 +3171,12 @@ def statystyki():
         const koszty = daneKosztyLacznie[month-1] || 0;
         const kosztPalety = danePalety[month-1] || 0;
         const zysk = przychod - koszty;
-        const zyskKolor = zysk >= 0 ? '#22c55e' : '#ef4444';
+        const zyskKolor = zysk >= 0 ? '#5bf083' : '#ef4444';
         const cnt = daneMiesieczneCnt[month-1] || 0;
         document.getElementById('monthSummary').innerHTML = `
             <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
                 <div style="flex:1;min-width:100px;background:#1e1e2e;border-radius:10px;padding:10px;text-align:center">
-                    <div style="font-size:1.1rem;font-weight:700;color:#3b82f6">${{przychod.toFixed(0)}} zł</div>
+                    <div style="font-size:1.1rem;font-weight:700;color:#00f1fe">${{przychod.toFixed(0)}} zł</div>
                     <div style="font-size:0.7rem;color:#64748b;margin-top:2px">Przychód</div>
                 </div>
                 <div style="flex:1;min-width:100px;background:#1e1e2e;border-radius:10px;padding:10px;text-align:center">
@@ -3198,7 +3198,7 @@ def statystyki():
                     const dochod = przychodNetto - kosztaNetto;
                     const podatek = Math.max(0, dochod * 0.19);
                     const naReke = dochod - podatek;
-                    const kolor = naReke >= 0 ? '#22c55e' : '#ef4444';
+                    const kolor = naReke >= 0 ? '#5bf083' : '#ef4444';
                     return `
                     <div style="background:#1a1025;border:1px solid #ef444433;border-radius:8px;padding:8px;text-align:center">
                         <div style="font-size:0.95rem;font-weight:700;color:#ef4444">-${{vatDoZaplaty.toFixed(0)}} zł</div>
@@ -3349,12 +3349,12 @@ def palety():
     html = '''<div class="hdr"><h1>📦 PALETY</h1></div>
 
     <!-- Masowa edycja -->
-    <div style="background:#12121a;border:1px solid #1e293b;border-radius:12px;padding:12px;margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <div style="font-size:0.85rem;color:#64748b;margin-right:4px">Zaznaczone:</div>
         <button onclick="selectAll()" style="padding:5px 10px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#94a3b8;font-size:0.75rem;cursor:pointer">☑️ Wszystkie</button>
         <button onclick="selectNone()" style="padding:5px 10px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#94a3b8;font-size:0.75rem;cursor:pointer">◻️ Odznacz</button>
         <div style="flex:1"></div>
-        <button onclick="massUpdate(1)" style="padding:6px 12px;background:#22c55e22;border:1px solid #22c55e;border-radius:8px;color:#22c55e;font-size:0.8rem;cursor:pointer;font-weight:600">✅ Dostarczone</button>
+        <button onclick="massUpdate(1)" style="padding:6px 12px;background:#5bf08322;border:1px solid #5bf083;border-radius:8px;color:#5bf083;font-size:0.8rem;cursor:pointer;font-weight:600">✅ Dostarczone</button>
         <button onclick="massUpdate(0)" style="padding:6px 12px;background:#f59e0b22;border:1px solid #f59e0b;border-radius:8px;color:#f59e0b;font-size:0.8rem;cursor:pointer;font-weight:600">🚚 W drodze</button>
         <button onclick="massDelete()" style="padding:6px 12px;background:#ef444422;border:1px solid #ef4444;border-radius:8px;color:#ef4444;font-size:0.8rem;cursor:pointer;font-weight:600">🗑️ Usuń</button>
         <button onclick="pokazBoxPaletyModal()" style="padding:6px 12px;background:#f59e0b22;border:1px solid #f59e0b;border-radius:8px;color:#f59e0b;font-size:0.8rem;cursor:pointer;font-weight:600">📫 Zgrupuj w box</button>
@@ -3362,7 +3362,7 @@ def palety():
     </div>
     <div style="margin-bottom:12px">
         <input type="text" id="paletaSearch" oninput="searchPalety()" placeholder="🔍 Szukaj palety..."
-            style="width:100%;padding:10px 14px;background:#12121a;border:1px solid #1e293b;border-radius:10px;color:#e2e8f0;font-size:0.9rem;outline:none">
+            style="width:100%;padding:10px 14px;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e2e8f0;font-size:0.9rem;outline:none">
     </div>'''
 
     for p in result:
@@ -3377,27 +3377,27 @@ def palety():
             sztuki = p['items']
         
         # Kolory w zależności od stanu
-        cnt_color = "#22c55e" if p['cnt'] > 0 else "#ef4444"
+        cnt_color = "#5bf083" if p['cnt'] > 0 else "#ef4444"
         
         # Cena zakupu: cena_zakupu w bazie = BRUTTO z faktury
         zakup_brutto = p['cena_zakupu'] or 0
         
         dostarczona = dostarczona_map.get(p['id'], 0)
         dostarczona_label = '✅ Dostarczona' if dostarczona else '🚚 W drodze'
-        dostarczona_color = '#22c55e' if dostarczona else '#f59e0b'
+        dostarczona_color = '#5bf083' if dostarczona else '#f59e0b'
         html += f'''<div class="item" style="position:relative;display:flex;align-items:center;gap:8px">
             <input type="checkbox" class="paleta-cb" data-id="{p['id']}"
-                style="width:24px;height:24px;cursor:pointer;accent-color:#3b82f6;flex-shrink:0">
+                style="width:24px;height:24px;cursor:pointer;accent-color:#00f1fe;flex-shrink:0">
             <a href="{link}" style="display:flex;flex:1;align-items:center;text-decoration:none;color:inherit;min-width:0;gap:10px">
                 <div style="font-size:1.5rem">{'📫' if p['typ'] == 'box' else '📦'}</div>
                 <div class="item-info" style="flex:1;min-width:0">
-                    <div class="item-name">{p['nazwa']}{'<span style="font-size:0.65rem;background:#3b82f633;color:#3b82f6;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle">BOX</span>' if p['typ'] == 'box' else ''}</div>
+                    <div class="item-name">{p['nazwa']}{'<span style="font-size:0.65rem;background:#00f1fe33;color:#00f1fe;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle">BOX</span>' if p['typ'] == 'box' else ''}</div>
                     <div class="item-meta" style="color:{cnt_color}">{p['cnt']} prod. | {sztuki} szt{dostawca_info}{data_info}</div>
                     <div class="item-meta">💰 Zakup: {zakup_brutto:.0f} zł</div>
                 </div>
             </a>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:100px;flex-shrink:0">
-                <div style="color:#22c55e;font-weight:700">{p['wartosc_allegro'] or 0:.0f} zł</div>
+                <div style="color:#5bf083;font-weight:700">{p['wartosc_allegro'] or 0:.0f} zł</div>
                 <button onclick="toggleDostarczona({p['id']}, this)"
                     data-val="{dostarczona}"
                     style="padding:4px 8px;border:1px solid {dostarczona_color};background:{dostarczona_color}22;color:{dostarczona_color};border-radius:6px;font-size:0.7rem;cursor:pointer;white-space:nowrap">
@@ -3480,9 +3480,9 @@ def palety():
                 btn.setAttribute("data-val", newVal);
                 if (newVal == 1) {
                     btn.innerText = "\\u2705 Dostarczona";
-                    btn.style.borderColor = "#22c55e";
-                    btn.style.color = "#22c55e";
-                    btn.style.background = "#22c55e22";
+                    btn.style.borderColor = "#5bf083";
+                    btn.style.color = "#5bf083";
+                    btn.style.background = "#5bf08322";
                 } else {
                     btn.innerText = "\\ud83d\\ude9a W drodze";
                     btn.style.borderColor = "#f59e0b";
@@ -3563,28 +3563,28 @@ def palety():
 
     <!-- Modal: Zgrupuj palety w Box -->
     <div id="modalBoxPalety" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center">
-        <div style="background:var(--bg-card);border-radius:14px;padding:25px;max-width:450px;width:90%;max-height:80vh;overflow-y:auto;border:2px solid #f59e0b">
+        <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border-radius:14px;padding:25px;max-width:450px;width:90%;max-height:80vh;overflow-y:auto;border:2px solid #f59e0b">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
                 <h3 style="margin:0;color:#f59e0b">📫 Zgrupuj w Box</h3>
                 <button onclick="document.getElementById('modalBoxPalety').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer">&times;</button>
             </div>
-            <div style="margin-bottom:12px;padding:10px;background:#12121a;border-radius:10px">
+            <div style="margin-bottom:12px;padding:10px;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px">
                 <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:5px">Palety (<span id="boxPaletyCount">0</span>):</div>
                 <div id="boxPaletyList" style="max-height:120px;overflow-y:auto"></div>
             </div>
             <input type="hidden" id="boxPaletyIds" value="[]">
             <div style="margin-bottom:10px">
                 <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">Nazwa boxa</label>
-                <input type="text" id="boxPaletyNazwa" placeholder="np. Box mix elektronika" style="width:100%;padding:10px;background:#12121a;border:1px solid #1e293b;border-radius:8px;color:#e2e8f0">
+                <input type="text" id="boxPaletyNazwa" placeholder="np. Box mix elektronika" style="width:100%;padding:10px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#e2e8f0">
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
                 <div>
                     <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">💰 Cena zakupu (zł)</label>
-                    <input type="number" id="boxPaletyCenaZakupu" placeholder="Ile zapłaciłeś" step="0.01" style="width:100%;padding:10px;background:#12121a;border:1px solid #1e293b;border-radius:8px;color:#e2e8f0">
+                    <input type="number" id="boxPaletyCenaZakupu" placeholder="Ile zapłaciłeś" step="0.01" style="width:100%;padding:10px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#e2e8f0">
                 </div>
                 <div>
                     <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">🛒 Cena sprzedaży (zł)</label>
-                    <input type="number" id="boxPaletyCena" placeholder="Cena na Allegro" step="0.01" style="width:100%;padding:10px;background:#12121a;border:1px solid #1e293b;border-radius:8px;color:#e2e8f0">
+                    <input type="number" id="boxPaletyCena" placeholder="Cena na Allegro" step="0.01" style="width:100%;padding:10px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#e2e8f0">
                 </div>
             </div>
             <button id="boxPaletySaveBtn" onclick="zapiszBoxPalety()" style="width:100%;padding:12px;background:#f59e0b;border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer;font-size:1rem">
@@ -3745,10 +3745,10 @@ def paleta_detail_by_id(paleta_id):
     
     dostarczona_val = paleta_row['dostarczona'] if paleta_row and 'dostarczona' in paleta_row.keys() else 0
     dostarczona_label = '✅ Dostarczona' if dostarczona_val else '🚚 W drodze'
-    dostarczona_color = '#22c55e' if dostarczona_val else '#f59e0b'
+    dostarczona_color = '#5bf083' if dostarczona_val else '#f59e0b'
     paleta_dostawca = paleta_row['dostawca'] if 'dostawca' in paleta_row.keys() else ''
     paleta_regal = paleta_row['regal'] if 'regal' in paleta_row.keys() else ''
-    dostawca_badge = f' • <span class="dostawca-name" style="color:#3b82f6">{paleta_dostawca}</span>' if paleta_dostawca else ''
+    dostawca_badge = f' • <span class="dostawca-name" style="color:#00f1fe">{paleta_dostawca}</span>' if paleta_dostawca else ''
     regal_badge = f' • 📍 {paleta_regal}' if paleta_regal else ''
     html = f'''<div class="hdr" style="display:flex;justify-content:space-between;align-items:center">
         <div><h1>📦 {nazwa_palety}</h1><small>{len(products)} prod. ({sztuki_display} szt.){dostawca_badge}{regal_badge}</small></div>
@@ -3760,7 +3760,7 @@ def paleta_detail_by_id(paleta_id):
         <a href="/magazyn/przyjecie/{paleta_id}" style="padding:8px 16px;border:2px solid #7c3aed;background:#7c3aed22;color:#7c3aed;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;text-decoration:none">
             📋 Przyjęcie
         </a>
-        <a href="/magazyn/etykiety?paleta_id={paleta_id}" style="padding:8px 16px;border:2px solid #8b5cf6;background:#8b5cf622;color:#8b5cf6;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;text-decoration:none">
+        <a href="/magazyn/etykiety?paleta_id={paleta_id}" style="padding:8px 16px;border:2px solid #c180ff;background:#c180ff22;color:#c180ff;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;text-decoration:none">
             🏷️ Etykiety
         </a>
         <button onclick="document.getElementById('editPaletaModal').style.display='flex'" style="padding:8px 16px;border:2px solid #f59e0b;background:#f59e0b22;color:#f59e0b;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer">
@@ -3770,7 +3770,7 @@ def paleta_detail_by_id(paleta_id):
 
     <!-- Modal edycji palety -->
     <div id="editPaletaModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.style.display='none'">
-        <div style="background:#12121a;border:1px solid #1e293b;border-radius:16px;padding:24px;width:100%;max-width:450px">
+        <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;width:100%;max-width:450px">
             <h3 style="margin:0 0 16px;font-size:1.1rem">✏️ Edytuj paletę #{paleta_id}</h3>
             <form id="editPaletaForm" onsubmit="savePaleta(event)">
                 <div style="margin-bottom:12px">
@@ -3828,9 +3828,9 @@ def paleta_detail_by_id(paleta_id):
                 btn.dataset.val = newVal;
                 if (newVal == 1) {{
                     btn.textContent = '✅ Dostarczona';
-                    btn.style.borderColor = '#22c55e';
-                    btn.style.color = '#22c55e';
-                    btn.style.background = '#22c55e22';
+                    btn.style.borderColor = '#5bf083';
+                    btn.style.color = '#5bf083';
+                    btn.style.background = '#5bf08322';
                 }} else {{
                     btn.textContent = '🚚 W drodze';
                     btn.style.borderColor = '#f59e0b';
@@ -3851,7 +3851,7 @@ def paleta_detail_by_id(paleta_id):
             <div class="stat-v">{netto:.0f} zł</div>
             <div class="stat-l">ZAKUP NETTO</div>
         </div>
-        <div class="stat" style="border:2px solid #3b82f6;border-radius:12px">
+        <div class="stat" style="border:2px solid #00f1fe;border-radius:12px">
             <div class="stat-v">{brutto:.0f} zł</div>
             <div class="stat-l">ZAKUP BRUTTO</div>
         </div>
@@ -3860,7 +3860,7 @@ def paleta_detail_by_id(paleta_id):
             <div class="stat-l">ALLEGRO (suma)</div>
         </div>
         <div class="stat">
-            <div class="stat-v" style="color:{('#22c55e' if zysk > 0 else '#ef4444')}">{zysk:.0f} zł</div>
+            <div class="stat-v" style="color:{('#5bf083' if zysk > 0 else '#ef4444')}">{zysk:.0f} zł</div>
             <div class="stat-l">ZYSK</div>
         </div>
     </div>
@@ -4294,11 +4294,11 @@ def fetch_images_page():
     <div class="card" style="padding:15px;margin-bottom:15px">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
             <div>
-                <div style="font-size:1.8rem;font-weight:700;color:#3b82f6">{total}</div>
+                <div style="font-size:1.8rem;font-weight:700;color:#00f1fe">{total}</div>
                 <div style="font-size:0.75rem;color:#64748b">Produktów</div>
             </div>
             <div>
-                <div style="font-size:1.8rem;font-weight:700;color:#22c55e">{with_asin}</div>
+                <div style="font-size:1.8rem;font-weight:700;color:#5bf083">{with_asin}</div>
                 <div style="font-size:0.75rem;color:#64748b">Z ASIN</div>
             </div>
             <div>
@@ -4323,7 +4323,7 @@ def fetch_images_page():
             <div style="font-weight:600;margin-bottom:10px">⏳ Pobieranie w toku...</div>
             <div id="progress-text" style="font-size:0.85rem;color:#94a3b8">0 / {no_image}</div>
             <div style="background:#1e1e2e;border-radius:6px;height:10px;margin-top:10px;overflow:hidden">
-                <div id="progress-bar" style="background:#22c55e;width:0%;height:100%;transition:width 0.3s"></div>
+                <div id="progress-bar" style="background:#5bf083;width:0%;height:100%;transition:width 0.3s"></div>
             </div>
             <div id="progress-log" style="margin-top:10px;font-size:0.75rem;color:#64748b;max-height:150px;overflow-y:auto"></div>
         </div>
@@ -4922,11 +4922,11 @@ def import_preview():
         # Logi wykrywania (niebieskie)
         detection_logs = ""
         if paleta_dostawca:
-            detection_logs += f'<div style="color:#22c55e;padding:4px 0">✅ [INFO] Dostawca: <strong>{paleta_dostawca}</strong></div>'
+            detection_logs += f'<div style="color:#5bf083;padding:4px 0">✅ [INFO] Dostawca: <strong>{paleta_dostawca}</strong></div>'
         if detected_ean_col_name:
-            detection_logs += f'<div style="color:#3b82f6;padding:4px 0">ℹ️ [INFO] Wykryto kolumnę EAN: "{detected_ean_col_name}"</div>'
+            detection_logs += f'<div style="color:#00f1fe;padding:4px 0">ℹ️ [INFO] Wykryto kolumnę EAN: "{detected_ean_col_name}"</div>'
         if detected_asin_col_name and auto_asin != auto_ean:
-            detection_logs += f'<div style="color:#3b82f6;padding:4px 0">ℹ️ [INFO] Wykryto kolumnę ASIN: "{detected_asin_col_name}"</div>'
+            detection_logs += f'<div style="color:#00f1fe;padding:4px 0">ℹ️ [INFO] Wykryto kolumnę ASIN: "{detected_asin_col_name}"</div>'
         
         # Generuj opcje select
         def make_options(selected):
@@ -5859,7 +5859,7 @@ def etykiety():
     <!-- Filtr palety -->
     <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
         <select onchange="window.location='/magazyn/etykiety'+(this.value ? '?paleta_id='+this.value : '')"
-            style="flex:1;padding:10px 12px;background:#12121a;border:1px solid #1e293b;border-radius:10px;color:#e2e8f0;font-size:0.85rem">
+            style="flex:1;padding:10px 12px;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e2e8f0;font-size:0.85rem">
             <option value="">📦 Wszystkie produkty</option>'''
 
     for pal in palety:
@@ -5869,7 +5869,7 @@ def etykiety():
     html += f'''
         </select>
         <input type="text" id="searchInput" oninput="filterProducts()" placeholder="🔍 Szukaj..."
-            style="width:180px;padding:10px 12px;background:#12121a;border:1px solid #1e293b;border-radius:10px;color:#e2e8f0;font-size:0.85rem">
+            style="width:180px;padding:10px 12px;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e2e8f0;font-size:0.85rem">
     </div>
 
     <!-- Akcje masowe -->
@@ -5884,7 +5884,7 @@ def etykiety():
     '''
 
     stan_colors = {
-        'Nowy': '#22c55e', 'Jak nowy': '#3b82f6', 'Dobry': '#eab308',
+        'Nowy': '#5bf083', 'Jak nowy': '#00f1fe', 'Dobry': '#eab308',
         'Uszkodzony': '#f97316', 'Zniszczony': '#ef4444'
     }
 
@@ -6179,7 +6179,7 @@ def etykiety_niimbot_page(products):
     <div class="hdr"><h1>🏷️ ETYKIETY NIIMBOT</h1><small>{len(products)} etykiet do druku</small></div>
 
     <!-- Instrukcja -->
-    <div class="card" style="background:linear-gradient(135deg,rgba(34,197,94,0.15),rgba(59,130,246,0.15));border:1px solid rgba(34,197,94,0.3);padding:12px;margin-bottom:12px">
+    <div class="card" style="background:linear-gradient(135deg,rgba(91,240,131,0.15),rgba(0,241,254,0.15));border:1px solid rgba(91,240,131,0.3);padding:12px;margin-bottom:12px">
         <div style="font-size:0.85rem;color:#e2e8f0;line-height:1.5">
             Kliknij 🖨️ → pobierze PNG → otworz w apce Niimbot
         </div>
@@ -6211,10 +6211,10 @@ def etykiety_niimbot_page(products):
                 <div style="flex:1;min-width:0">
                     <div style="font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{pv['nazwa'][:35]}</div>
                     <div style="font-size:0.75rem;color:#64748b;margin-top:4px">{pv['ean'] or 'Brak EAN'} | 📍 {pv['lokalizacja'] or '—'}</div>
-                    <div style="font-size:0.7rem;color:#8b5cf6;margin-top:2px">x{pv['ilosc']} szt.</div>
+                    <div style="font-size:0.7rem;color:#c180ff;margin-top:2px">x{pv['ilosc']} szt.</div>
                 </div>
                 <button onclick="printLabel({pv['id']}, '{(pv['ean'] or str(pv['id']))}', {i})"
-                   style="min-width:60px;padding:14px 18px;background:#22c55e;color:#fff;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer"
+                   style="min-width:60px;padding:14px 18px;background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer"
                    id="btn-{i}">
                     💾
                 </button>
@@ -6230,18 +6230,18 @@ def etykiety_niimbot_page(products):
         <img id="previewImg" style="max-width:90%;max-height:70vh;border-radius:8px;background:#fff">
         <div style="margin-top:20px;display:flex;gap:12px">
             <a id="previewDownloadBtn" download onclick="event.stopPropagation()"
-               style="padding:16px 32px;background:#22c55e;color:#fff;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer;text-decoration:none;display:flex;align-items:center">
+               style="padding:16px 32px;background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer;text-decoration:none;display:flex;align-items:center">
                 📥 POBIERZ PNG
             </a>
             <button onclick="event.stopPropagation();openNiimbot()"
-                    style="padding:16px 32px;background:#8b5cf6;color:#fff;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer">
+                    style="padding:16px 32px;background:rgba(193,128,255,0.15);border:1px solid rgba(193,128,255,0.3);color:#c180ff;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer">
                 📱 OTWORZ NIIMBOT
             </button>
         </div>
     </div>
 
     <!-- Licznik -->
-    <div id="counter" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:10px 20px;border-radius:20px;font-weight:600;z-index:100"></div>
+    <div id="counter" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083;padding:10px 20px;border-radius:20px;font-weight:600;z-index:100"></div>
 
     <a href="/magazyn/etykiety" class="back">← Powrot</a>
 
@@ -6333,7 +6333,7 @@ def etykiety_niimbot_page(products):
         c.style.display = 'block';
         c.textContent = msg;
         if (printed >= products.length) {{
-            c.style.background = '#8b5cf6';
+            c.style.background = '#c180ff';
         }}
         clearTimeout(c._timer);
         c._timer = setTimeout(() => {{ c.style.display = 'none'; }}, 4000);
@@ -6611,7 +6611,7 @@ def qr_product_view(product_id):
     
     # Status badge
     if sprzedany:
-        status_html = '<span class="badge" style="background:#22c55e">✅ SPRZEDANY</span>'
+        status_html = '<span class="badge" style="background:#5bf083">✅ SPRZEDANY</span>'
         action_html = '''
             <div class="alert alert-ok" style="margin-bottom:15px">
                 <b>Zamówienie do wysyłki!</b><br>
@@ -6621,7 +6621,7 @@ def qr_product_view(product_id):
             <a href="#" class="btn btn-2">🖨️ DRUKUJ ETYKIETĘ INPOST</a>
         '''
     else:
-        status_html = '<span class="badge" style="background:#3b82f6">📦 W MAGAZYNIE</span>'
+        status_html = '<span class="badge" style="background:#00f1fe">📦 W MAGAZYNIE</span>'
         action_html = f'''
             <a href="/magazyn/produkt/{p['id']}/edit" class="btn btn-2">✏️ EDYTUJ</a>
             <a href="/paletomat/generator/from-magazyn/{p['id']}" class="btn btn-p">🛒 WYSTAW NA ALLEGRO</a>
@@ -7699,7 +7699,7 @@ def raport_sprzedazy_page():
         </a>
         
         <div style="margin-top:30px;text-align:left;max-width:500px;margin-left:auto;margin-right:auto">
-            <h3 style="color:#22c55e">📋 Co zawiera raport:</h3>
+            <h3 style="color:#5bf083">📋 Co zawiera raport:</h3>
             <ul style="color:#94a3b8;line-height:2">
                 <li><b>Arkusz "Podsumowanie"</b> - przychody, koszty, zyski per miesiąc</li>
                 <li><b>Arkusz "Szczegóły"</b> - wszystkie sprzedaże z datami</li>
@@ -7817,11 +7817,11 @@ def lezaki():
         else:
             img_html = '<div style="width:60px;height:60px;background:#1e1e2e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0">📦</div>'
         
-        status_color = '#3b82f6' if p['status'] == 'wystawiony' else '#eab308'
+        status_color = '#00f1fe' if p['status'] == 'wystawiony' else '#eab308'
         status_text = 'WYSTAWIONY' if p['status'] == 'wystawiony' else 'MAGAZYN'
         
         rows_html += f'''
-        <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:14px;margin-bottom:10px">
+        <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:10px">
             <div style="display:flex;gap:12px;align-items:flex-start">
                 {img_html}
                 <div style="flex:1;min-width:0">
@@ -7849,7 +7849,7 @@ def lezaki():
                         </div>
                         <div style="background:#1e1e2e;border-radius:8px;padding:8px;text-align:center">
                             <div style="font-size:0.65rem;color:#64748b;margin-bottom:2px">CENA ALLEGRO</div>
-                            <div style="font-weight:700;color:#22c55e">{cena_allegro:.2f} zł</div>
+                            <div style="font-weight:700;color:#5bf083">{cena_allegro:.2f} zł</div>
                             <div style="font-size:0.6rem;color:#475569">marża: {cena_allegro - koszt_szt_brutto:.2f} zł</div>
                         </div>
                     </div>
@@ -7877,7 +7877,7 @@ def lezaki():
     
     # Podsumowanie na górze
     html += f'''
-    <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;margin-bottom:15px">
+    <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:15px;margin-bottom:15px">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
             <div>
                 <div style="font-size:1.4rem;font-weight:700;color:#eab308">{len(produkty)}</div>
@@ -7991,7 +7991,7 @@ def koszty_page():
         kat_label = dict(KATEGORIE).get(k['kategoria'], k['kategoria'])
         notatka_html = f' • <span style="color:#94a3b8">{k["notatka"]}</span>' if k['notatka'] else ''
         koszty_html += f'''
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#12121a;border-radius:10px;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;margin-bottom:6px">
             <div style="flex:1;min-width:0">
                 <div style="font-weight:600;font-size:0.9rem">{k['nazwa']}</div>
                 <div style="font-size:0.75rem;color:#64748b;margin-top:2px">{kat_label} • {k['data']}{notatka_html}</div>
@@ -8011,7 +8011,7 @@ def koszty_page():
     # Opcje kategorii
     kat_options = ''.join([f'<option value="{v}">{l}</option>' for v, l in KATEGORIE])
     
-    msg_html = f'<div style="background:#22c55e22;border:1px solid #22c55e55;border-radius:10px;padding:10px 15px;margin-bottom:15px;color:#22c55e">{msg}</div>' if msg else ''
+    msg_html = f'<div style="background:#5bf08322;border:1px solid #5bf08355;border-radius:10px;padding:10px 15px;margin-bottom:15px;color:#5bf083">{msg}</div>' if msg else ''
     
     html = f'''
     <div class="hdr"><h1>💸 KOSZTY</h1><small>Opłaty, prowizje, wydatki operacyjne</small></div>
@@ -8128,19 +8128,19 @@ def sprzedaz_prywatna_page():
         (f'{year}-{biezacy_m:02d}',)
     ).fetchone()[0]
     
-    msg_html = f'<div style="background:#22c55e22;border:1px solid #22c55e55;border-radius:10px;padding:10px 15px;margin-bottom:15px;color:#22c55e">{msg}</div>' if msg else ''
+    msg_html = f'<div style="background:#5bf08322;border:1px solid #5bf08355;border-radius:10px;padding:10px 15px;margin-bottom:15px;color:#5bf083">{msg}</div>' if msg else ''
     
     rows_html = ''
     for s in sprzedaze:
         rows_html += f'''
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#12121a;border-radius:10px;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;margin-bottom:6px">
             <div style="flex:1">
                 <div style="font-weight:600">{s['opis']}</div>
                 <div style="font-size:0.75rem;color:#64748b">{s['data']}
                     {f' • {s["notatka"]}' if s['notatka'] else ''}
                 </div>
             </div>
-            <div style="font-weight:700;color:#22c55e;white-space:nowrap">+{s['kwota']:.2f} zł</div>
+            <div style="font-weight:700;color:#5bf083;white-space:nowrap">+{s['kwota']:.2f} zł</div>
             <form action="/magazyn/sprzedaz-prywatna" method="POST" style="margin:0">
                 <input type="hidden" name="action" value="usun">
                 <input type="hidden" name="id" value="{s['id']}">
@@ -8277,7 +8277,7 @@ def remanent_page():
         szt_all = p['szt_wszystkich']
         # ROI potencjalny: (wartość Allegro - koszt pozostałych) / koszt pozostałych
         roi = ((w_allegro - w_koszt) / w_koszt * 100) if w_koszt > 0 else (100 if w_allegro > 0 else -100)
-        roi_kolor = '#22c55e' if roi > 50 else ('#f59e0b' if roi > 0 else '#ef4444')
+        roi_kolor = '#5bf083' if roi > 50 else ('#f59e0b' if roi > 0 else '#ef4444')
         progress = (szt_sprz / szt_all * 100) if szt_all > 0 else 0
         rows_palety += f'''
         <tr>
@@ -8286,9 +8286,9 @@ def remanent_page():
             <td style="padding:8px 10px;border-bottom:1px solid #1e293b;color:#64748b;font-size:0.8rem">{p['data_zakupu'] or '-'}</td>
             <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:right">{cena_zak:.0f} zł</td>
             <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:center">{szt_sprz}/{szt_all} szt</td>
-            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:center;color:#3b82f6;font-weight:600">{szt_mag} szt</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:center;color:#00f1fe;font-weight:600">{szt_mag} szt</td>
             <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:right;color:#94a3b8">{w_koszt:.0f} zł</td>
-            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:right;color:#22c55e">{w_allegro:.0f} zł</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:right;color:#5bf083">{w_allegro:.0f} zł</td>
             <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:right;font-weight:700;color:{roi_kolor}">{roi:.0f}%</td>
         </tr>'''
 
@@ -8300,7 +8300,7 @@ def remanent_page():
             <td style="padding:7px 10px;border-bottom:1px solid #1e293b;text-align:center">{k['cnt']}</td>
             <td style="padding:7px 10px;border-bottom:1px solid #1e293b;text-align:center">{k['sztuki'] or 0}</td>
             <td style="padding:7px 10px;border-bottom:1px solid #1e293b;text-align:right;color:#94a3b8">{float(k['wartosc_netto'] or 0):.0f} zł</td>
-            <td style="padding:7px 10px;border-bottom:1px solid #1e293b;text-align:right;color:#22c55e">{float(k['wartosc_detal'] or 0):.0f} zł</td>
+            <td style="padding:7px 10px;border-bottom:1px solid #1e293b;text-align:right;color:#5bf083">{float(k['wartosc_detal'] or 0):.0f} zł</td>
         </tr>'''
 
     html = f'''
@@ -8309,7 +8309,7 @@ def remanent_page():
     <!-- Kafelki podsumowania -->
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:15px">
         <div class="card" style="padding:12px;text-align:center">
-            <div style="font-size:1.3rem;font-weight:700;color:#3b82f6">{len(palety_all)}</div>
+            <div style="font-size:1.3rem;font-weight:700;color:#00f1fe">{len(palety_all)}</div>
             <div style="font-size:0.7rem;color:#64748b;margin-top:3px">Palet</div>
         </div>
         <div class="card" style="padding:12px;text-align:center">
@@ -8325,14 +8325,14 @@ def remanent_page():
             <div style="font-size:0.7rem;color:#64748b;margin-top:3px">Wart. kosztowa mag.</div>
         </div>
         <div class="card" style="padding:12px;text-align:center">
-            <div style="font-size:1.3rem;font-weight:700;color:#22c55e">{suma_allegro:.0f} zł</div>
+            <div style="font-size:1.3rem;font-weight:700;color:#5bf083">{suma_allegro:.0f} zł</div>
             <div style="font-size:0.7rem;color:#64748b;margin-top:3px">Wart. sprzedażowa</div>
         </div>
     </div>
 
     <!-- Przycisk Excel -->
     <div style="text-align:right;margin-bottom:15px">
-        <a href="/magazyn/remanent/excel" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#22c55e;border-radius:8px;color:#fff;text-decoration:none;font-weight:700;font-size:0.9rem">
+        <a href="/magazyn/remanent/excel" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#5bf083;border-radius:8px;color:#fff;text-decoration:none;font-weight:700;font-size:0.9rem">
             📥 Pobierz Excel
         </a>
     </div>
@@ -8361,9 +8361,9 @@ def remanent_page():
                     <td colspan="3" style="padding:8px 10px;color:#94a3b8">RAZEM</td>
                     <td style="padding:8px 10px;text-align:right;color:#f43f5e">{suma_zakupu:.0f} zł</td>
                     <td style="padding:8px 10px;text-align:center;color:#64748b">{suma_sprzedano} sprz.</td>
-                    <td style="padding:8px 10px;text-align:center;color:#3b82f6">{suma_magazyn} szt</td>
+                    <td style="padding:8px 10px;text-align:center;color:#00f1fe">{suma_magazyn} szt</td>
                     <td style="padding:8px 10px;text-align:right;color:#94a3b8">{suma_kosztowa:.0f} zł</td>
-                    <td style="padding:8px 10px;text-align:right;color:#22c55e">{suma_allegro:.0f} zł</td>
+                    <td style="padding:8px 10px;text-align:right;color:#5bf083">{suma_allegro:.0f} zł</td>
                     <td></td>
                 </tr>
             </tfoot>
@@ -8771,7 +8771,7 @@ def statystyki_zakupow():
     total_zakup = sum(dostawcy_wartosci)
 
     # Kolory dla wykresu
-    COLORS = ['#3b82f6','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#ec4899','#14b8a6','#a855f7']
+    COLORS = ['#00f1fe','#5bf083','#f59e0b','#ef4444','#c180ff','#06b6d4','#f97316','#ec4899','#14b8a6','#a855f7']
 
     # Grupuj per_miesiac w słownik
     miesiace_dict = {}
@@ -8802,16 +8802,16 @@ def statystyki_zakupow():
                 <div style="font-size:0.8rem;color:#94a3b8" class="dostawca-name">{r['dostawca']}</div>
                 <div style="display:flex;gap:12px;align-items:center">
                     <div style="font-size:0.7rem;color:#64748b">{r['sztuki_cnt']} szt | {r['palety_cnt']} palet</div>
-                    <div style="font-size:0.85rem;font-weight:600;color:#22c55e">{r['suma_brutto']:.0f} zł</div>
+                    <div style="font-size:0.85rem;font-weight:600;color:#5bf083">{r['suma_brutto']:.0f} zł</div>
                     <div style="font-size:0.7rem;color:#f59e0b;width:40px;text-align:right">{pct:.0f}%</div>
                 </div>
             </div>'''
 
         miesiace_html += f'''
-        <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:14px;margin-bottom:10px">
+        <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:10px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
                 <div style="font-weight:700;color:#fff">{miesiac_label}</div>
-                <div style="font-size:0.85rem;color:#22c55e;font-weight:600">{suma_m:.0f} zł | {sztuki_m} szt</div>
+                <div style="font-size:0.85rem;color:#5bf083;font-weight:600">{suma_m:.0f} zł | {sztuki_m} szt</div>
             </div>
             {rows_html}
         </div>'''
@@ -8833,14 +8833,14 @@ def statystyki_zakupow():
     <div class="hdr"><h1>📊 STATYSTYKI ZAKUPÓW</h1></div>
 
     <!-- PODSUMOWANIE -->
-    <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;margin-bottom:15px">
+    <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:15px;margin-bottom:15px">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
             <div>
-                <div style="font-size:1.3rem;font-weight:700;color:#3b82f6">{len(per_dostawca)}</div>
+                <div style="font-size:1.3rem;font-weight:700;color:#00f1fe">{len(per_dostawca)}</div>
                 <div style="font-size:0.65rem;color:#64748b">DOSTAWCÓW</div>
             </div>
             <div>
-                <div style="font-size:1.1rem;font-weight:700;color:#22c55e">{total_zakup:.0f} zł</div>
+                <div style="font-size:1.1rem;font-weight:700;color:#5bf083">{total_zakup:.0f} zł</div>
                 <div style="font-size:0.65rem;color:#64748b">ŁĄCZNIE ZAKUP</div>
             </div>
             <div>
@@ -8851,7 +8851,7 @@ def statystyki_zakupow():
     </div>
 
     <!-- WYKRES KOŁOWY -->
-    <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;margin-bottom:15px">
+    <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:15px;margin-bottom:15px">
         <div style="font-weight:700;color:#fff;margin-bottom:15px">🥧 Podział zakupów per dostawca</div>
         <div style="display:flex;flex-direction:column;align-items:center">
             <canvas id="pieChart" width="280" height="280"></canvas>
@@ -8860,7 +8860,7 @@ def statystyki_zakupow():
     </div>
 
     <!-- TOP 10 PALET -->
-    <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;margin-bottom:15px">
+    <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:15px;margin-bottom:15px">
         <div style="font-weight:700;color:#fff;margin-bottom:12px">🏆 Top 10 najdroższych palet</div>
         {top_html}
     </div>
@@ -8917,7 +8917,7 @@ def statystyki_zakupow():
             </div>
             <div style="display:flex;gap:10px;align-items:center">
                 <div style="font-size:0.75rem;color:#64748b">${{pct}}%</div>
-                <div style="font-size:0.85rem;font-weight:600;color:#22c55e">${{values[i].toLocaleString('pl-PL')}} zł</div>
+                <div style="font-size:0.85rem;font-weight:600;color:#5bf083">${{values[i].toLocaleString('pl-PL')}} zł</div>
             </div>
         </div>`;
     }});
@@ -8962,15 +8962,15 @@ def przyjecie_palety(paleta_id):
         </div>
 
         <div id="progress-bar" style="background:#1e1e2e;border-radius:8px;height:8px;margin-bottom:20px;overflow:hidden">
-            <div id="progress-fill" style="height:100%;background:linear-gradient(90deg,#22c55e,#16a34a);width:0%;transition:width 0.3s"></div>
+            <div id="progress-fill" style="height:100%;background:linear-gradient(90deg,#5bf083,#2dd85a);width:0%;transition:width 0.3s"></div>
         </div>
         <div id="progress-text" style="text-align:center;color:#64748b;font-size:0.8rem;margin-bottom:20px">0 / {len(produkty)} ocenionych</div>
 
         <div id="products-list">'''
 
     stany = [
-        ('Nowy', '🟢', '#22c55e'),
-        ('Jak nowy', '🔵', '#3b82f6'),
+        ('Nowy', '🟢', '#5bf083'),
+        ('Jak nowy', '🔵', '#00f1fe'),
         ('Dobry', '🟡', '#eab308'),
         ('Uszkodzony', '🟠', '#f97316'),
         ('Zniszczony', '🔴', '#ef4444'),
@@ -8985,10 +8985,10 @@ def przyjecie_palety(paleta_id):
         img_html = f'<img src="{zdjecie}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">' if zdjecie else '<div style="width:60px;height:60px;background:#1e1e2e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem">📦</div>'
 
         # Ilość badge
-        ilosc_badge = f'<span style="background:#3b82f633;color:#3b82f6;padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:700">{ilosc} szt.</span>' if ilosc > 1 else '<span style="color:#64748b;font-size:0.75rem">1 szt.</span>'
+        ilosc_badge = f'<span style="background:#00f1fe33;color:#00f1fe;padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:700">{ilosc} szt.</span>' if ilosc > 1 else '<span style="color:#64748b;font-size:0.75rem">1 szt.</span>'
 
         html += f'''
-        <div class="prod-card" id="prod-{pid}" data-ilosc="{ilosc}" style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:15px;margin-bottom:12px">
+        <div class="prod-card" id="prod-{pid}" data-ilosc="{ilosc}" style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:15px;margin-bottom:12px">
             <div style="display:flex;gap:12px;align-items:flex-start">
                 {img_html}
                 <div style="flex:1;min-width:0">
@@ -9010,7 +9010,7 @@ def przyjecie_palety(paleta_id):
                     <button onclick="selectStan({pid}, '{stan_name}', this)"
                         class="stan-btn-{pid}"
                         style="padding:8px 14px;border-radius:8px;border:2px solid {stan_color if current_stan == stan_name else '#1e1e2e'};
-                        background:{'rgba(34,197,94,0.1)' if current_stan == stan_name else '#0a0a0f'};
+                        background:{'rgba(91,240,131,0.1)' if current_stan == stan_name else '#0a0a0f'};
                         color:{stan_color};font-size:0.8rem;cursor:pointer;transition:all 0.2s;flex:1;min-width:0;text-align:center"
                         data-active="{is_active}" data-color="{stan_color}">
                         {stan_icon} {stan_name}
@@ -9019,7 +9019,7 @@ def przyjecie_palety(paleta_id):
         # Przycisk "Podziel" tylko gdy ilosc > 1
         split_btn = ''
         if ilosc > 1:
-            split_btn = f'''<button onclick="showSplitMode({pid}, {ilosc})" style="padding:8px 10px;border-radius:8px;border:2px solid #6366f1;background:#6366f122;color:#6366f1;font-size:0.75rem;cursor:pointer;white-space:nowrap" title="Różne stany dla poszczególnych sztuk">✂️ Podziel</button>'''
+            split_btn = f'''<button onclick="showSplitMode({pid}, {ilosc})" style="padding:8px 10px;border-radius:8px;border:2px solid #00f1fe;background:#00f1fe22;color:#00f1fe;font-size:0.75rem;cursor:pointer;white-space:nowrap" title="Różne stany dla poszczególnych sztuk">✂️ Podziel</button>'''
 
         html += f'''
                     {split_btn}
@@ -9064,7 +9064,7 @@ def przyjecie_palety(paleta_id):
 
         <div style="position:sticky;bottom:0;padding:15px 0;background:linear-gradient(transparent, #0a0a0f 30%)">
             <button onclick="saveAll()" id="save-btn"
-                style="width:100%;padding:14px;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;border-radius:12px;color:white;font-size:1rem;font-weight:600;cursor:pointer">
+                style="width:100%;padding:14px;background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083;border:none;border-radius:12px;color:white;font-size:1rem;font-weight:600;cursor:pointer">
                 ✅ Zapisz oceny i oznacz jako dostarczona
             </button>
         </div>
@@ -9087,7 +9087,7 @@ def przyjecie_palety(paleta_id):
             b.dataset.active = 'false';
         }});
         btn.style.border = '2px solid ' + btn.dataset.color;
-        btn.style.background = 'rgba(34,197,94,0.1)';
+        btn.style.background = 'rgba(91,240,131,0.1)';
         btn.dataset.active = 'true';
         currentStany[pid] = stan;
         splitModes[pid] = false;
@@ -9128,7 +9128,7 @@ def przyjecie_palety(paleta_id):
         const sumDiv = document.getElementById('split-sum-' + pid);
         const ok = sum === maxIlosc;
         sumDiv.textContent = 'Suma: ' + sum + ' / ' + maxIlosc + (ok ? ' ✅' : sum > maxIlosc ? ' ❌ za dużo!' : '');
-        sumDiv.style.color = ok ? '#22c55e' : sum > maxIlosc ? '#ef4444' : '#f59e0b';
+        sumDiv.style.color = ok ? '#5bf083' : sum > maxIlosc ? '#ef4444' : '#f59e0b';
 
         if (ok) {{
             currentStany[pid] = 'split';
@@ -9172,7 +9172,7 @@ def przyjecie_palety(paleta_id):
             .then(data => {{
                 if (data.success) {{
                     resultDiv.innerHTML = `
-                        <div style="margin-bottom:6px"><strong>🤖 AI ocena:</strong> <span style="color:${{data.stan_color || '#22c55e'}}">${{data.stan}}</span></div>
+                        <div style="margin-bottom:6px"><strong>🤖 AI ocena:</strong> <span style="color:${{data.stan_color || '#5bf083'}}">${{data.stan}}</span></div>
                         <div style="color:#94a3b8">${{data.opis}}</div>
                     `;
                     if (data.stan && !splitModes[pid]) {{
@@ -9377,7 +9377,7 @@ def ai_ocena_stanu():
                 opis = line.split(':', 1)[1].strip()
 
         stan_colors = {
-            'Nowy': '#22c55e', 'Jak nowy': '#3b82f6', 'Dobry': '#eab308',
+            'Nowy': '#5bf083', 'Jak nowy': '#00f1fe', 'Dobry': '#eab308',
             'Uszkodzony': '#f97316', 'Zniszczony': '#ef4444'
         }
 

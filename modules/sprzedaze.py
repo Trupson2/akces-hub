@@ -44,11 +44,11 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
         Sync zwrotow
     </a>
     <a href="/sprzedaze/napraw-nazwy?miesiac={{ miesiac_filter }}" class="qa-btn">
-        <span class="qa-icon" style="background:var(--blue-soft)">🔧</span>
+        <span class="qa-icon" style="background:rgba(0,241,254,0.12)">🔧</span>
         Napraw dane
     </a>
     <a href="/sprzedaze/dopasuj" class="qa-btn">
-        <span class="qa-icon" style="background:var(--accent-soft)">🔗</span>
+        <span class="qa-icon" style="background:rgba(0,241,254,0.12)">🔗</span>
         Dopasuj
     </a>
 </div>
@@ -91,7 +91,7 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
 {% for s in sprzedaze %}
 <div class="list-item" style="{% if s.is_zwrot %}opacity:0.5{% endif %}">
     <div style="min-width:50px;text-align:center;margin-right:14px;padding-right:14px;border-right:1px solid var(--border)">
-        <div style="font-size:1.3rem;font-weight:700;color:var(--blue)">{{ s.dzien }}</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#00f1fe;font-family:'Space Grotesk',sans-serif">{{ s.dzien }}</div>
         <div style="font-size:0.65rem;color:var(--text-muted)">{{ s.miesiac_skrot }}</div>
     </div>
     <div class="list-item-info">
@@ -107,7 +107,7 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
         </div>
     </div>
     <div class="list-item-right">
-        <div class="list-item-value" style="color:{% if s.is_zwrot %}var(--red){% else %}var(--green){% endif %}">
+        <div class="list-item-value" style="color:{% if s.is_zwrot %}var(--red){% else %}#5bf083{% endif %}">
             {{ '-' if s.is_zwrot else '' }}{{ s.cena_fmt }} zl
         </div>
         <div class="list-item-sub">x{{ s.ilosc }}</div>
@@ -139,8 +139,22 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
 <a href="/statystyki" class="back">&#8592; Statystyki</a>
 
 <style>
-.btn-anon{background:none;border:1px solid var(--border-color);color:var(--text-muted);font-size:0.65rem;padding:2px 6px;border-radius:4px;cursor:pointer;margin-left:6px;transition:all 0.2s}
-.btn-anon:hover{border-color:var(--accent-red);color:var(--accent-red);background:rgba(239,68,68,0.1)}
+.btn-anon{background:none;border:1px solid rgba(255,255,255,0.08);color:var(--text-muted);font-size:0.65rem;padding:2px 6px;border-radius:4px;cursor:pointer;margin-left:6px;transition:all 0.2s}
+.btn-anon:hover{border-color:#ff4d6a;color:#ff4d6a;background:rgba(239,68,68,0.1)}
+.kpi-value{font-family:'Space Grotesk',sans-serif}
+.section-title{font-family:'Space Grotesk',sans-serif;text-shadow:0 0 20px rgba(0,241,254,0.3)}
+.kpi-card{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08)}
+.list-item{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08)}
+.card{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08)}
+.form-control:focus{border-color:#00f1fe;box-shadow:0 0 0 3px rgba(0,241,254,0.15)}
+.btn-success{background:rgba(91,240,131,0.12);border:1px solid rgba(91,240,131,0.3);color:#5bf083}
+.btn-success:hover{background:rgba(91,240,131,0.22);box-shadow:0 0 16px rgba(91,240,131,0.2)}
+.btn-primary{background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe}
+.btn-primary:hover{background:rgba(0,241,254,0.22);box-shadow:0 0 16px rgba(0,241,254,0.2)}
+.btn-danger{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#ff4d6a}
+.btn-warning{background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);color:#fbbf24}
+.qa-btn{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08)}
+.back{color:#00f1fe}
 </style>
 <script>
 function anonimizujKlienta(buyerName, btn) {
@@ -921,10 +935,10 @@ DOPASUJ_TEMPLATE = '''
         </button>
     </div>
     {% if g.suggestion %}
-    <div style="background:var(--green-soft);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:8px;margin-top:8px;display:flex;align-items:center;gap:8px">
+    <div style="background:rgba(91,240,131,0.12);border:1px solid rgba(91,240,131,0.3);border-radius:8px;padding:8px;margin-top:8px;display:flex;align-items:center;gap:8px">
         <img src="{{ g.suggestion.zdjecie_url }}" style="width:32px;height:32px;object-fit:contain;background:#fff;border-radius:6px" onerror="this.style.display='none'">
         <div style="flex:1;min-width:0">
-            <div style="font-size:0.75rem;color:var(--green)">Sugestia:</div>
+            <div style="font-size:0.75rem;color:#5bf083">Sugestia:</div>
             <div style="font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g.suggestion.nazwa }}</div>
         </div>
         <button onclick="dopasuj('{{ g.sale_ids }}', {{ g.suggestion.id }}, this)" class="btn btn-success btn-sm">
@@ -940,9 +954,9 @@ DOPASUJ_TEMPLATE = '''
 
 <!-- Modal szukania -->
 <div id="searchModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:1000;padding:15px;overflow-y:auto">
-    <div class="card" style="max-width:500px;margin:40px auto;padding:20px">
+    <div class="card" style="max-width:500px;margin:40px auto;padding:20px;background:rgba(15,15,30,0.85);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08)">
         <div class="card-header">
-            <div class="card-title" style="color:var(--blue)">🔍 Szukaj produktu</div>
+            <div class="card-title" style="color:#00f1fe;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 20px rgba(0,241,254,0.3)">🔍 Szukaj produktu</div>
             <button onclick="closeModal()" style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer">&times;</button>
         </div>
         <div id="modalInfo" style="background:var(--bg);padding:10px;border-radius:8px;margin-bottom:12px;font-size:0.8rem;color:var(--text-secondary)"></div>
@@ -1026,7 +1040,7 @@ function dopasuj(saleIds, produktId, btn) {
                     if (el.innerHTML.includes(saleIds.split(',')[0])) {
                         el.style.opacity = '0.2';
                         el.style.pointerEvents = 'none';
-                        el.innerHTML = '<div style="text-align:center;color:var(--green);padding:10px">&#10003; Dopasowano ' + d.matched + ' szt. &rarr; ' + d.product_name.substring(0,40) + '</div>';
+                        el.innerHTML = '<div style="text-align:center;color:#5bf083;padding:10px">&#10003; Dopasowano ' + d.matched + ' szt. &rarr; ' + d.product_name.substring(0,40) + '</div>';
                     }
                 });
             } else {
@@ -1062,6 +1076,19 @@ document.getElementById('searchModal').addEventListener('click', function(e) {
     if (e.target === this) closeModal();
 });
 </script>
+
+<style>
+.kpi-value{font-family:'Space Grotesk',sans-serif}
+.kpi-card{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08)}
+.card{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08)}
+.list-item{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08)}
+.section-title,.card-title{font-family:'Space Grotesk',sans-serif}
+.btn-success{background:rgba(91,240,131,0.12);border:1px solid rgba(91,240,131,0.3);color:#5bf083}
+.btn-success:hover{background:rgba(91,240,131,0.22);box-shadow:0 0 16px rgba(91,240,131,0.2)}
+.btn-primary{background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe}
+.btn-primary:hover{background:rgba(0,241,254,0.22);box-shadow:0 0 16px rgba(0,241,254,0.2)}
+.form-control:focus{border-color:#00f1fe;box-shadow:0 0 0 3px rgba(0,241,254,0.15)}
+</style>
 
 {% endblock %}
 '''
