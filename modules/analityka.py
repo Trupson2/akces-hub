@@ -4196,6 +4196,8 @@ def koszty_allegro():
             'nazwa': r['nazwa'] or 'Nieznany',
             'przychod': przychod,
             'szt': szt,
+            'koszt_szt': koszt_szt,
+            'koszt_total': koszt_total,
             'prowizja': prowizja,
             'reklama': reklama,
             'dostawa': dostawa,
@@ -4222,14 +4224,16 @@ def koszty_allegro():
         badge_color = 'var(--neon-tertiary)' if p['marza'] > 0 else '#ef4444'
         badge_bg = 'rgba(91,240,131,0.1)' if p['marza'] > 0 else 'rgba(239,68,68,0.1)'
         badge_text = 'DOBRZE' if p['marza'] > 0 else 'STRATA'
+        koszt_szt_str = f"{p['koszt_szt']:,.0f} zł" if p['koszt_szt'] > 0 else '-'
         rows_html += f'''<tr>
-            <td style="padding:10px 14px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">{p['nazwa'][:50]}</td>
-            <td style="padding:10px 14px;text-align:right;font-family:'Space Grotesk',sans-serif;font-weight:600">{p['przychod']:,.0f} zł</td>
-            <td style="padding:10px 14px;text-align:center">{p['szt']}</td>
-            <td style="padding:10px 14px;text-align:right;color:var(--neon-primary)">{p['prowizja']:,.0f} zł</td>
-            <td style="padding:10px 14px;text-align:right;color:var(--text-muted)">{p['reklama']:,.0f} zł</td>
-            <td style="padding:10px 14px;text-align:right;color:var(--text-muted)">{p['dostawa']:,.0f} zł</td>
-            <td style="padding:10px 14px;text-align:right;font-family:'Space Grotesk',sans-serif;font-weight:700;color:{badge_color}">{p['marza']:,.0f} zł ({p['marza_pct']:.1f}%)</td>
+            <td style="padding:10px 14px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">{p['nazwa'][:45]}</td>
+            <td style="padding:10px 10px;text-align:right;font-family:'Space Grotesk',sans-serif;font-weight:600">{p['przychod']:,.0f} zł</td>
+            <td style="padding:10px 8px;text-align:center">{p['szt']}</td>
+            <td style="padding:10px 10px;text-align:right;color:var(--text-muted);font-size:0.78rem">{koszt_szt_str}</td>
+            <td style="padding:10px 10px;text-align:right;color:var(--neon-primary)">{p['prowizja']:,.0f} zł</td>
+            <td style="padding:10px 10px;text-align:right;color:var(--neon-secondary)">{p['reklama']:,.0f} zł</td>
+            <td style="padding:10px 10px;text-align:right;color:var(--text-muted)">{p['dostawa']:,.0f} zł</td>
+            <td style="padding:10px 10px;text-align:right;font-family:'Space Grotesk',sans-serif;font-weight:700;color:{badge_color}">{p['marza']:,.0f} zł ({p['marza_pct']:.1f}%)</td>
             <td style="padding:10px 8px;text-align:center"><span style="display:inline-block;padding:3px 10px;border-radius:6px;font-size:0.68rem;font-weight:700;background:{badge_bg};color:{badge_color}">{badge_text}</span></td>
         </tr>'''
 
@@ -4318,6 +4322,7 @@ def koszty_allegro():
                     <th>Produkt</th>
                     <th style="text-align:right">Przychód</th>
                     <th style="text-align:center">Szt</th>
+                    <th style="text-align:right">Koszt/szt</th>
                     <th style="text-align:right">Prowizja</th>
                     <th style="text-align:right">Reklama</th>
                     <th style="text-align:right">Dostawa</th>
