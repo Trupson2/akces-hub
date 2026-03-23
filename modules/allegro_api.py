@@ -2524,6 +2524,53 @@ def upload_gpsr_attachment(gpsr_text, product_name=''):
         return None
 
 
+def get_billing_types():
+    """Pobiera listę typów operacji billingowych Allegro"""
+    return allegro_request('GET', '/billing/billing-types')
+
+
+def get_billing_entries(date_from=None, date_to=None, type_id=None, offer_id=None, limit=100, offset=0):
+    """
+    Pobiera operacje billingowe z Allegro.
+    date_from/date_to: ISO 8601 (np. '2026-03-01T00:00:00Z')
+    type_id: typ operacji (np. 'SUC' = prowizja)
+    """
+    params = {'limit': min(limit, 100), 'offset': offset}
+    if date_from:
+        params['occurredAt.gte'] = date_from
+    if date_to:
+        params['occurredAt.lte'] = date_to
+    if type_id:
+        params['type.id'] = type_id
+    if offer_id:
+        params['offer.id'] = offer_id
+    return allegro_request('GET', '/billing/billing-entries', params=params)
+
+
+def get_all_billing_entries(date_from=None, date_to=None, type_id=None, max_pages=50):
+    """
+    Pobiera WSZYSTKIE operacje billingowe (paginacja po 100).
+    Zwraca listę entries + error string.
+    """
+    all_entries = []
+    offset = 0
+    for _ in range(max_pages):
+        result, error = get_billing_entries(
+            date_from=date_from, date_to=date_to,
+            type_id=type_id, limit=100, offset=offset
+        )
+        if error:
+            return all_entries, error
+        entries = result.get('billingEntries', [])
+        if not entries:
+            break
+        all_entries.extend(entries)
+        offset += len(entries)
+        if len(entries) < 100:
+            break
+    return all_entries, None
+
+
 def get_shipping_rates():
     """Pobiera cenniki wysyłki użytkownika"""
     return allegro_request('GET', '/sale/shipping-rates')
