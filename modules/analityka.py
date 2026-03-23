@@ -1171,10 +1171,10 @@ def analityka_palety():
                 </div>
             </div>
             <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-                <button onclick="sortTable(9,'num');this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#1e1e2e');this.style.background='#22c55e33'" style="padding:6px 14px;background:#1e1e2e;border:1px solid #334155;border-radius:8px;color:#e2e8f0;cursor:pointer;font-size:0.8rem">🔥 Najszybciej schodzące</button>
-                <button onclick="sortTable(5,'num');this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#1e1e2e');this.style.background='#22c55e33'" style="padding:6px 14px;background:#1e1e2e;border:1px solid #334155;border-radius:8px;color:#e2e8f0;cursor:pointer;font-size:0.8rem">💰 Największy przychód</button>
-                <button onclick="sortTable(6,'num');this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#1e1e2e');this.style.background='#22c55e33'" style="padding:6px 14px;background:#1e1e2e;border:1px solid #334155;border-radius:8px;color:#e2e8f0;cursor:pointer;font-size:0.8rem">📈 Największy zysk</button>
-                <button onclick="sortTable(7,'num');this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#1e1e2e');this.style.background='#22c55e33'" style="padding:6px 14px;background:#1e1e2e;border:1px solid #334155;border-radius:8px;color:#e2e8f0;cursor:pointer;font-size:0.8rem">🏆 Najlepsze ROI</button>
+                <button onclick="sortTable(9,'num');this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#1e1e2e');this.style.background='#22c55e33'" style="padding:6px 14px;background:#1e1e2e;border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text);cursor:pointer;font-size:0.8rem">🔥 Najszybciej schodzące</button>
+                <button onclick="sortTable(5,'num');this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#1e1e2e');this.style.background='#22c55e33'" style="padding:6px 14px;background:#1e1e2e;border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text);cursor:pointer;font-size:0.8rem">💰 Największy przychód</button>
+                <button onclick="sortTable(6,'num');this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#1e1e2e');this.style.background='#22c55e33'" style="padding:6px 14px;background:#1e1e2e;border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text);cursor:pointer;font-size:0.8rem">📈 Największy zysk</button>
+                <button onclick="sortTable(7,'num');this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#1e1e2e');this.style.background='#22c55e33'" style="padding:6px 14px;background:#1e1e2e;border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text);cursor:pointer;font-size:0.8rem">🏆 Najlepsze ROI</button>
             </div>
             <div style="overflow-x:auto;">
             <table class="palety-table" id="paletyTable">
@@ -4277,7 +4277,7 @@ def koszty_allegro():
         </div>
         <div class="kk">
             <div class="kk-label">Wyróżnienia</div>
-            <div class="kk-val" style="color:#8b5cf6">{totals['wyroznienia']:,.2f} zł</div>
+            <div class="kk-val" style="color:#c180ff">{totals['wyroznienia']:,.2f} zł</div>
             <div class="kk-sub">{totals['wyroznienia']/total_all*100:.1f}% opłat</div>
         </div>
         <div class="kk">

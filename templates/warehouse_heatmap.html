@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🗺️ Heatmapa Magazynu 3D - {{ brand_name|default('Akces Hub') }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&display=swap">
     <style>
         * {
             margin: 0;
@@ -12,8 +14,8 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Space Grotesk','Inter',-apple-system,sans-serif;
+            background: linear-gradient(135deg, #06060f 0%, #0a0a1a 50%, #0d0d2b 100%);
             color: #fff;
             overflow: hidden;
         }
@@ -26,7 +28,7 @@
         /* Sidebar z kontrolkami */
         .sidebar {
             width: 320px;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(22, 26, 33, 0.7);
             backdrop-filter: blur(10px);
             padding: 20px;
             overflow-y: auto;
@@ -45,7 +47,7 @@
             margin-top: 20px;
             margin-bottom: 10px;
             padding-bottom: 5px;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            border-bottom: 1px solid rgba(0, 241, 254, 0.2);
         }
 
         /* Stats */
@@ -57,7 +59,7 @@
         }
 
         .stat-card {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(0, 241, 254, 0.06);
             padding: 15px;
             border-radius: 10px;
             text-align: center;
@@ -232,7 +234,7 @@
         }
 
         .shelf-item {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(0, 241, 254, 0.06);
             padding: 10px;
             border-radius: 5px;
             margin-bottom: 8px;
@@ -465,7 +467,7 @@
                 <input type="text" id="search-shelf" placeholder="Wpisz kod lokalizacji..." 
                        style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; font-size: 14px;"
                        onkeypress="if(event.key==='Enter') searchShelf()">
-                <button onclick="searchShelf()" style="width: 100%; margin-top: 8px; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer;">
+                <button onclick="searchShelf()" style="width: 100%; margin-top: 8px; padding: 12px; background: linear-gradient(135deg, #06060f 0%, #0a0a1a 50%, #0d0d2b 100%); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer;">
                     🔍 Znajdź Lokalizację
                 </button>
                 <div id="search-result" style="margin-top: 10px; font-size: 13px; color: #a0aec0;"></div>
@@ -634,7 +636,7 @@
             scene.add(directionalLight);
 
             // Grid helper
-            const gridHelper = new THREE.GridHelper(100, 50, 0x667eea, 0x444466);
+            const gridHelper = new THREE.GridHelper(100, 50, 0x00f1fe, 0x444466);
             gridHelper.position.y = -0.1;
             scene.add(gridHelper);
 
@@ -1395,12 +1397,12 @@
         function showKeyboardHelp() {
             const helpHTML = `
                 <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; align-items: center; justify-content: center;" onclick="this.remove()">
-                    <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border: 2px solid #667eea; border-radius: 16px; padding: 40px; max-width: 600px; color: white;" onclick="event.stopPropagation()">
+                    <div style="background: rgba(22,26,33,0.95);backdrop-filter:blur(16px); border: 2px solid #00f1fe; border-radius: 16px; padding: 40px; max-width: 600px; color: white;" onclick="event.stopPropagation()">
                         <h2 style="margin-bottom: 30px; text-align: center; font-size: 28px;">⌨️ Keyboard Shortcuts</h2>
                         
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
                             <div>
-                                <h3 style="color: #667eea; margin-bottom: 15px;">🎮 Camera Views</h3>
+                                <h3 style="color: #00f1fe; margin-bottom: 15px;">🎮 Camera Views</h3>
                                 <div style="font-size: 14px; line-height: 2;">
                                     <div><kbd style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">1</kbd> Front View</div>
                                     <div><kbd style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">2</kbd> Top View</div>
@@ -1411,7 +1413,7 @@
                             </div>
                             
                             <div>
-                                <h3 style="color: #667eea; margin-bottom: 15px;">🔧 Actions</h3>
+                                <h3 style="color: #00f1fe; margin-bottom: 15px;">🔧 Actions</h3>
                                 <div style="font-size: 14px; line-height: 2;">
                                     <div><kbd style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">R</kbd> Reset Camera</div>
                                     <div><kbd style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">F</kbd> Refresh Data</div>
@@ -1422,7 +1424,7 @@
                         </div>
                         
                         <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-                            <h3 style="color: #667eea; margin-bottom: 10px;">🖱️ Mouse Controls</h3>
+                            <h3 style="color: #00f1fe; margin-bottom: 10px;">🖱️ Mouse Controls</h3>
                             <div style="font-size: 13px; line-height: 1.8;">
                                 <div>• <strong>Left Click + Drag</strong> - Rotate view</div>
                                 <div>• <strong>Right Click + Drag</strong> - Pan view</div>
@@ -1431,7 +1433,7 @@
                             </div>
                         </div>
                         
-                        <button onclick="this.parentElement.parentElement.remove()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; font-size: 14px;">
+                        <button onclick="this.parentElement.parentElement.remove()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #06060f 0%, #0a0a1a 50%, #0d0d2b 100%); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; font-size: 14px;">
                             Got it! 👍
                         </button>
                     </div>

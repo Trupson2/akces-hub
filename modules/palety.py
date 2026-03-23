@@ -2173,12 +2173,12 @@ def paleta_bulk_import():
     </div>
 
     <!-- ZIP UPLOAD -->
-    <div class="card" style="margin-bottom:15px;border:2px dashed #8b5cf6;background:#8b5cf611">
+    <div class="card" style="margin-bottom:15px;border:2px dashed rgba(193,128,255,0.3);background:rgba(193,128,255,0.04)">
         <div style="text-align:center;padding:10px">
-            <div style="font-size:1.1rem;font-weight:700;color:#8b5cf6;margin-bottom:6px">📦 Szybki import z ZIP</div>
+            <div style="font-size:1.1rem;font-weight:700;color:#c180ff;margin-bottom:6px">📦 Szybki import z ZIP</div>
             <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px">Wrzuć plik .zip z wieloma Excelami — system automatycznie utworzy slot dla każdego</div>
             <input type="file" id="zip-upload" accept=".zip" style="display:none" onchange="handleZipUpload(this)">
-            <button type="button" onclick="document.getElementById('zip-upload').click()" style="padding:10px 24px;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;border-radius:10px;color:#fff;font-weight:600;cursor:pointer;font-size:0.9rem">
+            <button type="button" onclick="document.getElementById('zip-upload').click()" style="padding:10px 24px;background:linear-gradient(135deg,#c180ff,#00f1fe);border:none;border-radius:10px;color:#fff;font-weight:600;cursor:pointer;font-size:0.9rem">
                 📁 Wybierz plik ZIP
             </button>
             <span id="zip-status" style="margin-left:10px;font-size:0.8rem;color:var(--text-muted)"></span>
@@ -2201,7 +2201,7 @@ def paleta_bulk_import():
         </label>
         <div style="font-size:0.78rem;color:var(--text-muted);margin-top:5px;margin-left:28px">Produkty z wszystkich plików typu "Box" trafią do jednego boxa</div>
         <div style="margin-top:8px;margin-left:28px">
-            <input type="text" name="merged_box_nazwa" placeholder="Nazwa boxa np. Box mix peruki" style="padding:8px 12px;background:#12121a;border:1px solid #1e293b;border-radius:8px;color:#e2e8f0;width:300px;font-size:0.85rem">
+            <input type="text" name="merged_box_nazwa" placeholder="Nazwa boxa np. Box mix peruki" style="padding:8px 12px;background:rgba(22,26,33,0.7);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:var(--text);width:300px;font-size:0.85rem">
         </div>
     </div>
 
