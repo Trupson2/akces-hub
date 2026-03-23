@@ -976,99 +976,56 @@ def generuj_opis_ai(nazwa, kategoria='inne', bullet_points=None, gemini_key=None
                 'balkon', 'girlanda', 'konfetti', 'serwetka', 'obrus', 'tkanina'
             ])
             
-            # PROMPT - ROZBUDOWANE OPISY (3000+ znaków)
-            prompt = f"""Jesteś profesjonalnym copywriterem piszącym opisy na Allegro. Stwórz BARDZO DŁUGI, PROFESJONALNY i PRZEKONUJĄCY opis produktu.
+            # PROMPT - ROZBUDOWANE OPISY v3 (konkretne, bez lania wody)
+            prompt = f"""Jesteś doświadczonym sprzedawcą na Allegro. Pisz jak ekspert, który ZNA produkt — nie jak marketingowiec który wypełnia szablon.
 
 PRODUKT: {nazwa}
 
-CECHY PRODUKTU:
+CECHY Z AMAZONA (to Twoje jedyne źródło — NIE wymyślaj):
 {features_text}
 
 TYP: {'Elektronika/Urządzenie' if is_electronics else ('Dekoracja/Materiał' if is_decoration else 'Produkt fizyczny')}
 
-=== STRUKTURA OPISU (BARDZO DŁUGA!) ===
+=== STRUKTURA ===
 
-**🎯 Czym jest ten produkt?** (3-4 długie akapity)
-- Opisz produkt bardzo szczegółowo, każdy aspekt
-- Podkreśl główne zalety i korzyści dla użytkownika
-- Użyj przekonującego języka marketingowego
-- Wyjaśnij czym produkt jest i jakie problemy rozwiązuje
-- Stwórz emocjonalną więź z kupującym
-- Min. 8-10 zdań w tej sekcji
+**Wprowadzenie** (4-5 zdań)
+- Zdanie 1: Czym jest produkt (konkretnie, z parametrami)
+- Zdanie 2-3: Główne funkcje i do czego służy
+- Zdanie 4-5: Dla kogo i w jakich sytuacjach
 
-**✨ Kluczowe cechy i zalety:**
-- Wymień WSZYSTKIE ważne cechy z listy
-- Dodaj długi kontekst dlaczego każda cecha jest ważna
-- Min. 10-15 punktów z DŁUGIMI opisami
-- Każdy punkt to 2-3 zdania szczegółowo wyjaśniające
-- Rozwiń każdą cechę w pełny akapit
-- Dodaj przykłady zastosowania dla każdej cechy
+**Cechy i parametry** (8-12 punktów)
+- Każdy punkt: NAZWA CECHY → co robi → konkretna wartość/parametr z bullet points
+- Każdy punkt to 1-2 zdania, zwięzłe ale treściwe
+- TYLKO fakty z bullet points — nie wymyślaj parametrów których nie ma
 
-**💡 Zastosowanie i scenariusze użycia:**
-- Gdzie dokładnie można używać produktu (min. 8-10 miejsc)
-- Jak używać produktu - szczegółowa instrukcja
-- Konkretne przykłady użycia (min. 8-10 przykładów)
-- Kto skorzysta z produktu (różne grupy użytkowników)
-- W jakich sytuacjach się sprawdzi
-- Codzienne scenariusze użycia
-- Profesjonalne zastosowania
-- Hobby i rekreacja
+**Zastosowanie** (5-8 konkretnych scenariuszy)
+- Realne sytuacje użycia, nie ogólniki
+- Np. "w samochodzie podczas długiej trasy" zamiast "w wielu sytuacjach"
 
-**🎁 Co wyróżnia ten produkt?**
-- Unikalne cechy (rozpisz każdą na 2-3 zdania)
-- Przewaga nad konkurencją (min. 5 punktów)
-- Dlaczego warto kupić WŁAŚNIE ten produkt
-- Korzyści dla kupującego (min. 6-8 korzyści)
-- Innowacyjne rozwiązania
-- Jakość wykonania i materiałów
-- Długotrwałość i niezawodność
+**Specyfikacja**
+- Lista parametrów: wymiary, waga, materiał, kompatybilność
+- TYLKO to co wynika z bullet points
 
-**📦 Zawartość zestawu / Specyfikacja techniczna:**
-- Co dokładnie otrzymujesz (szczegółowa lista)
-- Dokładne wymiary (jeśli znane)
-- Materiał wykonania i jego zalety
-- Kolor i design
-- Parametry techniczne (jeśli elektronika) - każdy parametr z opisem
-- Kompatybilność (jeśli dotyczy)
-- Certyfikaty i normy
-- Stan: Nowy, oryginalnie zapakowany
+**Podsumowanie** (2-3 zdania)
+- Dla kogo ten produkt jest najlepszy
+- Główna przewaga
 
-**🌟 Dodatkowe informacje:**
-- Historia produktu lub technologii
-- Trendy rynkowe
-- Opinie ekspertów
-- Porównanie z innymi rozwiązaniami
-- Wskazówki użytkowania
-- Pielęgnacja i konserwacja
+=== STYL ===
+✓ Pisz po polsku, naturalnie — jak opis od kogoś kto testował produkt
+✓ Konkretne parametry i liczby (z bullet points!)
+✓ Zwięzłe zdania — każde niesie informację
+✓ 2500-4000 znaków
+✓ Pisz "ten produkt", "to urządzenie" — nie powtarzaj pełnej nazwy
 
-**✅ Dlaczego warto kupić ten produkt?**
-- Podsumowanie WSZYSTKICH najważniejszych zalet
-- Przekonaj kupującego emocjonalnie i racjonalnie
-- Min. 5-7 zdań
-- Zakończ mocnym call-to-action
+=== ZAKAZ ===
+❌ Puste frazesy: "najwyższa jakość", "wyjątkowe wykonanie", "innowacyjne rozwiązanie"
+❌ Wymyślanie parametrów których nie ma w bullet points
+❌ Sekcje: wysyłka, zwroty, kontakt, gwarancja, GPSR
+❌ Tytuł produktu na początku
+❌ Wymiary typu "10x2.75" to ROZMIARY, nie ilości sztuk
+❌ Wymyślanie ilości sztuk w zestawie jeśli nie podano
 
-=== STYL PISANIA ===
-✓ BARDZO długie, szczegółowe akapity (nie krótkie punkty)
-✓ Język przekonujący, entuzjastyczny i profesjonalny
-✓ Podkreślaj zalety i korzyści w każdym zdaniu
-✓ Używaj: "najwyższa jakość", "wyjątkowe wykonanie", "niezawodny", "innowacyjny"
-✓ Buduj zaufanie i autorytet
-✓ Rozwijaj każdy punkt na min. 2-3 zdania
-✓ Dodawaj kontekst i przykłady do wszystkiego
-✓ Min. 3500 znaków, max 5000 znaków
-✓ IM DŁUŻEJ, TYM LEPIEJ - klient chce szczegółów!
-
-=== WAZNE ZASADY ===
-- Wymiary typu 10x2.75, 8.5x2, M365 itp. to ROZMIARY/MODELE, NIE ilosci sztuk!
-- Nie wymyslaj ilosci sztuk w zestawie jesli nie ma tego wprost w nazwie
-- Jesli w nazwie jest "zestaw 5 szt" to OK, ale "10x2.75" to rozmiar opony/czesci
-- Tytul produktu NIE idzie do opisu - opis zaczyna sie od tekstu opisowego
-
-=== NIE DODAWAJ ===
-❌ Sekcji: wysyłka, zwroty, kontakt, gwarancja, GPSR
-❌ Tytulu produktu na poczatku opisu
-
-Wygeneruj BARDZO DŁUGI i SZCZEGÓŁOWY opis:"""
+Wygeneruj opis:"""
 
             # NOWE API google.genai
             try:
@@ -1442,24 +1399,22 @@ KATEGORIA: {kategoria}"""
     
     prompt += f"""
 
-CECHY Z AMAZONA (TO JEST TWOJE ŹRÓDŁO):
+CECHY Z AMAZONA (jedyne źródło danych — NIE wymyślaj!):
 {chr(10).join([f'- {bp}' for bp in bullet_points])}
 
-=== WYMAGANIA DŁUGOŚCI (KRYTYCZNE!) ===
+=== WYMAGANIA ===
 
-1. INTRO: 4-6 PEŁNYCH ZDAŃ (minimum 300 znaków)
-   - Zdanie 1: CO TO jest za produkt
-   - Zdanie 2-3: DO CZEGO służy, jakie problemy rozwiązuje
-   - Zdanie 4-5: Konkretne parametry i funkcje z cech
-   - Zdanie 6: Dla kogo jest ten produkt
+1. INTRO: 4-5 zdań (min 250 znaków)
+   - Co to jest + główne parametry z cech
+   - Do czego służy w praktyce
+   - Dla kogo jest przeznaczony
 
-2. KAŻDA SEKCJA FEATURES: 3-4 PEŁNE ZDANIA (minimum 200 znaków każda)
-   - Zdanie 1: Główna cecha/funkcja
-   - Zdanie 2: Jak to działa w praktyce
-   - Zdanie 3: Konkretne parametry/liczby z bullet points
-   - Zdanie 4: Dodatkowy kontekst lub zastosowanie
+2. FEATURES: 5-7 sekcji, każda 2-3 zdania (min 150 znaków)
+   - Zdanie 1: Konkretna cecha z parametrem
+   - Zdanie 2: Jak to działa / co daje użytkownikowi
+   - Zdanie 3: Kontekst praktyczny (opcjonalne)
 
-3. GENERUJ 5-7 SEKCJI (nie tylko 3-4!)
+3. SPECS: Parametry techniczne wyciągnięte z bullet points
 
 === INSTRUKCJE SPECYFICZNE DLA PRODUKTU ===
 """
@@ -1556,30 +1511,19 @@ SEKCJE (po 3-4 zdania każda):
     
     prompt += """
 
-=== ZASADY PISANIA (KRYTYCZNE) ===
+=== ZASADY ===
 
-1. DŁUGOŚĆ:
-   - Intro: MINIMUM 300 znaków (4-6 zdań)
-   - Każda sekcja: MINIMUM 200 znaków (3-4 zdania)
-   - 5-7 sekcji features (nie 3-4!)
+1. STYL:
+   ✓ Pisz jak ekspert — konkretnie, z parametrami
+   ✓ Każde zdanie niesie nową informację
+   ✓ Używaj danych z bullet points (liczby, wartości, jednostki)
+   ✓ Polski język, naturalny ton
 
-2. STYL:
-   - Pełne, rozbudowane zdania
-   - Kontekst i wyjaśnienia ("dzięki temu...", "pozwala to...")
-   - Konkretne liczby i parametry
-   - Praktyczne zastosowania
-
-3. BEZWZGLĘDNY ZAKAZ:
-   ✗ "wysoka jakość", "premium", "solidna konstrukcja"
-   ✗ "tysiące klientów", "bestseller"
-   ✗ "idealny", "perfekcyjny", "must-have"
-   ✗ Krótkie, telegraficzne opisy
-   
-4. OBOWIĄZKOWO:
-   ✓ Rozbudowane wprowadzenie (4-6 zdań)
-   ✓ Każda cecha opisana 3-4 zdaniami
-   ✓ Konkretne parametry z bullet points
-   ✓ Praktyczny kontekst użycia
+2. ZAKAZ:
+   ✗ Puste frazesy: "wysoka jakość", "solidna konstrukcja", "premium"
+   ✗ Wymyślanie parametrów których NIE MA w bullet points
+   ✗ "idealny", "perfekcyjny", "must-have", "bestseller"
+   ✗ Lanie wody — każde zdanie musi mieć konkret
 
 === FORMAT ODPOWIEDZI ===
 

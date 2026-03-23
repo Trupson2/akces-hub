@@ -2645,33 +2645,32 @@ def extract_parameters_with_ai(title, description, category_parameters, gemini_k
         specs_lines = [f"- {k}: {v}" for k, v in list(product_specs.items())[:20]]
         specs_section = "\n\nSPECYFIKACJA PRODUKTU:\n" + "\n".join(specs_lines)
 
-    prompt = f"""Analizuję produkt i wypełniam parametry dla Allegro.
+    prompt = f"""Wypełnij parametry oferty Allegro na podstawie danych produktu.
 
-TYTUŁ PRODUKTU:
-{title}
+TYTUŁ: {title}
 
-OPIS/CECHY:
+CECHY/OPIS:
 {description[:2000] if description else 'brak opisu'}{specs_section}
 
 PARAMETRY DO WYPEŁNIENIA:
 {params_json}
 
-INSTRUKCJE:
-1. Dla każdego parametru znajdź odpowiednią wartość z tytułu/opisu
-2. Jeśli parametr ma "options" (słownik) - wybierz ID najbardziej pasującej opcji
-3. Jeśli parametr nie ma opcji (type=string) - podaj wartość tekstową
-4. Jeśli nie możesz określić wartości - pomiń parametr
-5. Dla "Stan" wybierz "Nowy" jeśli dostępny
-6. Dla marki/producenta - ZAWSZE wybierz "bez marki" lub "inna" lub "nieokreślona" - NIGDY nie podawaj konkretnej marki
+ZASADY:
+1. Szukaj wartości w tytule, opisie i specyfikacji — NIE zgaduj
+2. Parametr z "options" → wybierz ID najlepiej pasującej opcji
+3. Parametr bez opcji (type=string) → podaj wartość tekstową
+4. Nie znasz wartości → POMIŃ parametr (nie wpisuj "brak" ani "nie dotyczy")
+5. "Stan" → zawsze "Nowy" jeśli dostępny
+6. Marka/Producent → wybierz PRAWDZIWĄ markę z tytułu (np. "UGREEN", "Anker", "Baseus"). Jeśli marka jest w tytule — UŻYJ JEJ. Tylko jeśli naprawdę nie wiadomo → "inna"
+7. Kolor → odczytaj z tytułu/opisu (Black=Czarny, White=Biały, etc.)
+8. Materiał → odczytaj z opisu (Plastic=Tworzywo sztuczne, Metal=Metal, etc.)
+9. Wymiary/waga → przelicz na jednostki z parametru (cm, mm, kg, g)
+10. Parametry numeryczne → podaj TYLKO liczbę bez jednostki
 
-ZWRÓĆ TYLKO JSON w formacie:
+FORMAT ODPOWIEDZI (tylko JSON):
 {{
-  "param_id_1": {{"value": "wartość tekstowa"}},
-  "param_id_2": {{"value_id": "id_z_opcji"}},
-  ...
-}}
-
-Bez dodatkowych komentarzy, tylko JSON."""
+  "param_id": {{"value": "tekst"}} lub {{"value_id": "id_opcji"}}
+}}"""
 
     try:
         import google.generativeai as genai
