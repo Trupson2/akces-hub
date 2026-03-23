@@ -1,12 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="header">
-    <h1>🧮 KALKULATOR MARŻY</h1>
-    <small>Oblicz cenę sprzedaży Allegro</small>
+<style>
+.calc-result-stitch{padding:24px;margin-bottom:20px}
+.calc-result-stitch .card-title{text-align:center;color:var(--neon-primary);text-shadow:0 0 10px rgba(0,241,254,0.3);margin-bottom:16px;font-family:'Space Grotesk',sans-serif;font-weight:700}
+.calc-row-s{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.calc-row-s:last-child{border:none}
+.calc-label-s{color:var(--text-secondary)}
+.calc-val-s{font-weight:700;font-family:'Space Grotesk',sans-serif}
+.calc-val-s.green{color:var(--neon-tertiary);text-shadow:0 0 8px rgba(91,240,131,0.3)}
+.calc-val-s.red{color:#ef4444;text-shadow:0 0 8px rgba(239,68,68,0.3)}
+.calc-val-s.big{font-size:1.6rem}
+.sugestia-s{text-align:center;padding:16px;margin-top:16px;border-top:1px solid rgba(0,241,254,0.1)}
+.sugestia-s .val{font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:800;color:var(--neon-primary);text-shadow:0 0 12px rgba(0,241,254,0.4)}
+</style>
+
+<div style="text-align:center;padding:10px 0 24px">
+    <h1 class="font-display" style="font-size:1.4rem;font-weight:800;color:var(--neon-primary);text-shadow:0 0 10px rgba(0,241,254,0.4)">KALKULATOR MARŻY</h1>
+    <small style="color:var(--text-muted);font-size:0.82rem">Oblicz cenę sprzedaży Allegro</small>
 </div>
 
 <form method="POST" action="/narzedzia/kalkulator">
-<div class="card">
+<div class="glass-card" style="padding:24px;margin-bottom:20px">
     <div class="form-group">
         <label>💰 Cena zakupu (brutto)</label>
         <input type="number" step="0.01" name="cena_zakupu" class="form-control" value="{{ cena_zakupu or '' }}" placeholder="np. 50.00" required>
@@ -27,46 +41,46 @@
             </select>
         </div>
     </div>
-    <button type="submit" class="btn btn-success">📊 OBLICZ</button>
+    <button type="submit" class="btn" style="background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:var(--neon-primary);font-weight:700">📊 OBLICZ</button>
 </div>
 </form>
 
 {% if wynik %}
-<div class="calc-result">
-    <div class="card-title" style="text-align:center;color:#3b82f6;margin-bottom:15px">📊 WYNIK</div>
-    <div class="calc-row">
-        <span class="calc-label">Cena zakupu:</span>
-        <span class="calc-value">{{ wynik.cena_zakupu }} zł</span>
+<div class="glass-card calc-result-stitch">
+    <div class="card-title">📊 WYNIK</div>
+    <div class="calc-row-s">
+        <span class="calc-label-s">Cena zakupu:</span>
+        <span class="calc-val-s">{{ wynik.cena_zakupu }} zł</span>
     </div>
-    <div class="calc-row">
-        <span class="calc-label">Marża ({{ wynik.marza }}%):</span>
-        <span class="calc-value green">+{{ wynik.marza_kwota }} zł</span>
+    <div class="calc-row-s">
+        <span class="calc-label-s">Marża ({{ wynik.marza }}%):</span>
+        <span class="calc-val-s green">+{{ wynik.marza_kwota }} zł</span>
     </div>
-    <div class="calc-row">
-        <span class="calc-label">Prowizja Allegro ({{ wynik.prowizja_procent }}%):</span>
-        <span class="calc-value red">-{{ wynik.prowizja_kwota }} zł</span>
+    <div class="calc-row-s">
+        <span class="calc-label-s">Prowizja Allegro ({{ wynik.prowizja_procent }}%):</span>
+        <span class="calc-val-s red">-{{ wynik.prowizja_kwota }} zł</span>
     </div>
-    <div class="calc-row">
-        <span class="calc-label">VAT ({{ wynik.vat_procent }}%):</span>
-        <span class="calc-value red">+{{ wynik.vat_kwota }} zł</span>
+    <div class="calc-row-s">
+        <span class="calc-label-s">VAT ({{ wynik.vat_procent }}%):</span>
+        <span class="calc-val-s red">+{{ wynik.vat_kwota }} zł</span>
     </div>
-    <div class="calc-row">
-        <span class="calc-label">Cena netto sprzedaży:</span>
-        <span class="calc-value">{{ wynik.cena_allegro_netto }} zł</span>
+    <div class="calc-row-s">
+        <span class="calc-label-s">Cena netto sprzedaży:</span>
+        <span class="calc-val-s">{{ wynik.cena_allegro_netto }} zł</span>
     </div>
-    <div class="calc-row calc-highlight">
-        <span class="calc-label" style="font-weight:600">💵 CENA ALLEGRO (brutto):</span>
-        <span class="calc-value green big">{{ wynik.cena_allegro }} zł</span>
+    <div class="calc-row-s">
+        <span class="calc-label-s" style="font-weight:600">💵 CENA ALLEGRO (brutto):</span>
+        <span class="calc-val-s green big">{{ wynik.cena_allegro }} zł</span>
     </div>
-    <div class="calc-row">
-        <span class="calc-label">Zysk netto:</span>
-        <span class="calc-value green">{{ wynik.zysk_netto }} zł</span>
+    <div class="calc-row-s">
+        <span class="calc-label-s">Zysk netto:</span>
+        <span class="calc-val-s green">{{ wynik.zysk_netto }} zł</span>
     </div>
-</div>
 
-<div class="sugestia">
-    <div style="font-size:0.85rem;color:#94a3b8;margin-bottom:5px">💡 Sugestia (zaokrąglona do .99):</div>
-    <div class="sugestia-value">{{ wynik.cena_sugerowana }} zł</div>
+    <div class="sugestia-s">
+        <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:6px">💡 Sugestia (zaokrąglona do .99):</div>
+        <div class="val">{{ wynik.cena_sugerowana }} zł</div>
+    </div>
 </div>
 {% endif %}
 
