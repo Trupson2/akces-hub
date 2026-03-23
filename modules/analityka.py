@@ -4060,14 +4060,17 @@ def koszty_allegro():
         ORDER BY total DESC
     ''', (date_from,)).fetchall()
 
-    # Mapowanie kodów na kategorie
+    # Mapowanie kodów na kategorie (na podstawie realnych danych z Allegro API)
     CATEGORY_MAP = {
-        'SUC': 'prowizja', 'CSR': 'prowizja',
-        'ODF': 'wyroznienia', 'ODR': 'wyroznienia', 'EMP': 'wyroznienia',
-        'ADS': 'reklama', 'SPO': 'reklama', 'PRO': 'reklama',
-        'LIS': 'listing',
+        'SUC': 'prowizja', 'FSF': 'prowizja', 'CSR': 'prowizja',
+        'NSP': 'reklama', 'RET': 'reklama', 'ADS': 'reklama', 'SPO': 'reklama',
+        'PS1': 'wyroznienia', 'ODF': 'wyroznienia', 'ODR': 'wyroznienia', 'EMP': 'wyroznienia',
+        'DPB': 'dostawa', 'HB4': 'dostawa', 'DPA': 'dostawa', 'HLB': 'dostawa',
+        'ORB': 'dostawa', 'HB1': 'dostawa', 'DTR': 'dostawa', 'ITR': 'dostawa', 'DHR': 'dostawa',
+        'LIS': 'listing', 'SB1': 'listing',
+        'REF': 'zwrot', 'PAD': 'inne', 'PB2': 'inne', 'SUM': 'inne',
     }
-    totals = {'prowizja': 0, 'dostawa': 0, 'wyroznienia': 0, 'reklama': 0, 'listing': 0, 'inne': 0}
+    totals = {'prowizja': 0, 'dostawa': 0, 'wyroznienia': 0, 'reklama': 0, 'listing': 0, 'inne': 0, 'zwrot': 0}
     for t in typy:
         cat = CATEGORY_MAP.get(t['type_code'], 'inne')
         totals[cat] += float(t['total'] or 0)
@@ -4084,16 +4087,16 @@ def koszty_allegro():
             GROUP BY offer_id ORDER BY total DESC LIMIT 10
         ''', [date_from] + list(codes)).fetchall()
 
-    top_prowizja = top10(['SUC', 'CSR'])
-    top_reklama = top10(['ADS', 'SPO', 'PRO'])
-    top_wyroznienia = top10(['ODF', 'ODR', 'EMP'])
+    top_prowizja = top10(['SUC', 'FSF', 'CSR'])
+    top_reklama = top10(['NSP', 'RET', 'ADS', 'SPO'])
+    top_dostawa = top10(['DPB', 'HB4', 'DPA', 'HLB', 'ORB', 'HB1', 'DTR', 'ITR', 'DHR'])
 
     # Per oferta: koszty + przychod
     oferty_koszty = conn.execute('''
         SELECT offer_id, offer_name,
-            SUM(ABS(CASE WHEN type_code IN ('SUC','CSR') THEN amount ELSE 0 END)) as prowizja,
-            SUM(ABS(CASE WHEN type_code IN ('ADS','SPO','PRO') THEN amount ELSE 0 END)) as reklama,
-            SUM(ABS(CASE WHEN type_code IN ('ODF','ODR','EMP') THEN amount ELSE 0 END)) as wyroznienia,
+            SUM(ABS(CASE WHEN type_code IN ('SUC','FSF','CSR') THEN amount ELSE 0 END)) as prowizja,
+            SUM(ABS(CASE WHEN type_code IN ('NSP','RET','ADS','SPO') THEN amount ELSE 0 END)) as reklama,
+            SUM(ABS(CASE WHEN type_code IN ('DPB','HB4','DPA','HLB','ORB','HB1','DTR','ITR','DHR') THEN amount ELSE 0 END)) as dostawa,
             SUM(ABS(amount)) as total_koszty
         FROM allegro_billing
         WHERE occurred_at >= ? AND amount < 0
@@ -4123,7 +4126,7 @@ def koszty_allegro():
         oferty_data.append({
             'id': o['offer_id'], 'name': o['offer_name'] or '?',
             'prowizja': float(o['prowizja'] or 0), 'reklama': float(o['reklama'] or 0),
-            'wyroznienia': float(o['wyroznienia'] or 0), 'koszty': koszty,
+            'dostawa': float(o['dostawa'] or 0), 'koszty': koszty,
             'przychod': przychod, 'szt': szt, 'marza': marza, 'marza_pct': marza_pct
         })
 
@@ -4135,9 +4138,9 @@ def koszty_allegro():
     koszt_bez = sum(o['koszty'] for o in oferty_bez)
 
     # Chart data
-    chart_labels = json.dumps(['Prowizja', 'Wyróżnienia', 'Reklama', 'Listing', 'Inne'])
-    chart_values = json.dumps([totals['prowizja'], totals['wyroznienia'], totals['reklama'], totals['listing'], totals['inne']])
-    chart_colors = json.dumps(['#ef4444', '#8b5cf6', '#f59e0b', '#3b82f6', '#64748b'])
+    chart_labels = json.dumps(['Prowizja', 'Dostawa', 'Reklama', 'Wyróżnienia', 'Listing', 'Inne'])
+    chart_values = json.dumps([totals['prowizja'], totals['dostawa'], totals['reklama'], totals['wyroznienia'], totals['listing'], totals['inne']])
+    chart_colors = json.dumps(['#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4', '#64748b'])
     oferty_json = json.dumps(oferty_data, ensure_ascii=False)
 
     def _top10_html(rows, color, max_val=None):
@@ -4164,7 +4167,7 @@ def koszty_allegro():
 
     top_prowizja_html = _top10_html(top_prowizja, '#ef4444')
     top_reklama_html = _top10_html(top_reklama, '#f59e0b')
-    top_wyroznienia_html = _top10_html(top_wyroznienia, '#8b5cf6')
+    top_dostawa_html = _top10_html(top_dostawa, '#3b82f6')
 
     # Tabela ofert
     tabela_html = ''
@@ -4178,7 +4181,7 @@ def koszty_allegro():
             <td style="padding:8px;text-align:right;font-size:0.85rem">{o['szt']}</td>
             <td style="padding:8px;text-align:right;font-size:0.85rem;color:#ef4444">{o['prowizja']:,.0f} zł</td>
             <td style="padding:8px;text-align:right;font-size:0.85rem;color:#f59e0b">{o['reklama']:,.0f} zł</td>
-            <td style="padding:8px;text-align:right;font-size:0.85rem;color:#8b5cf6">{o['wyroznienia']:,.0f} zł</td>
+            <td style="padding:8px;text-align:right;font-size:0.85rem;color:#3b82f6">{o['dostawa']:,.0f} zł</td>
             <td style="padding:8px;text-align:right;font-weight:700;color:{badge_color}">{o['marza']:,.0f} zł ({o['marza_pct']:.1f}%)</td>
             <td style="padding:8px;text-align:center"><span style="background:{badge_color};color:#fff;padding:2px 8px;border-radius:10px;font-size:0.7rem">{badge}</span></td>
         </tr>'''
@@ -4267,8 +4270,8 @@ def koszty_allegro():
                 {top_reklama_html}
             </div>
             <div class="top10-card">
-                <div class="top10-title"><span style="color:#8b5cf6">●</span> TOP 10 — WYRÓŻNIENIA</div>
-                {top_wyroznienia_html}
+                <div class="top10-title"><span style="color:#3b82f6">●</span> TOP 10 — DOSTAWA</div>
+                {top_dostawa_html}
             </div>
         </div>
     </div>
@@ -4284,7 +4287,7 @@ def koszty_allegro():
                     <th style="padding:8px;text-align:right;font-size:0.7rem;color:var(--text-muted)">SZT</th>
                     <th style="padding:8px;text-align:right;font-size:0.7rem;color:var(--text-muted)">PROWIZJA</th>
                     <th style="padding:8px;text-align:right;font-size:0.7rem;color:var(--text-muted)">REKLAMA</th>
-                    <th style="padding:8px;text-align:right;font-size:0.7rem;color:var(--text-muted)">WYRÓŻN.</th>
+                    <th style="padding:8px;text-align:right;font-size:0.7rem;color:var(--text-muted)">DOSTAWA</th>
                     <th style="padding:8px;text-align:right;font-size:0.7rem;color:var(--text-muted)">MARŻA</th>
                     <th style="padding:8px;text-align:center;font-size:0.7rem;color:var(--text-muted)">STATUS</th>
                 </tr></thead>
@@ -4406,7 +4409,7 @@ def koszty_allegro():
                 <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px">Szczegóły kosztów</div>
                 <div style="display:flex;justify-content:space-between;font-size:0.8rem;padding:3px 0"><span>Prowizja</span><span style="color:#ef4444">${{o.prowizja.toFixed(2)}} zł</span></div>
                 <div style="display:flex;justify-content:space-between;font-size:0.8rem;padding:3px 0"><span>Reklama</span><span style="color:#f59e0b">${{o.reklama.toFixed(2)}} zł</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:0.8rem;padding:3px 0"><span>Wyróżnienia</span><span style="color:#8b5cf6">${{o.wyroznienia.toFixed(2)}} zł</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:0.8rem;padding:3px 0"><span>Dostawa</span><span style="color:#3b82f6">${{o.dostawa.toFixed(2)}} zł</span></div>
                 <div style="display:flex;justify-content:space-between;font-size:0.8rem;padding:3px 0;border-top:1px solid var(--border);margin-top:4px;padding-top:6px;font-weight:700"><span>Razem</span><span>${{o.koszty.toFixed(2)}} zł</span></div>
             </div>
             <div style="margin-top:15px;font-size:0.7rem;color:var(--text-muted)">ID Oferty: ${{offerId}}</div>`;
