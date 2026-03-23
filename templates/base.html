@@ -29,7 +29,7 @@
 </script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap">
 <script>
 (function(){
     const saved = localStorage.getItem('theme');
@@ -340,6 +340,61 @@ body.demo-active .demo-indicator::after {
     font-weight: 700;
     margin-left: 6px;
 }
+
+/* ══════════════════════════════════════════════════
+   STITCH DESIGN SYSTEM — Glass + Neon
+   ══════════════════════════════════════════════════ */
+:root{--neon-primary:#00f1fe;--neon-secondary:#c180ff;--neon-tertiary:#5bf083;--neon-primary-soft:rgba(0,241,254,0.10);--neon-secondary-soft:rgba(193,128,255,0.10);--neon-tertiary-soft:rgba(91,240,131,0.10)}
+[data-theme="dark"]{--neon-primary-soft:rgba(0,241,254,0.08);--neon-secondary-soft:rgba(193,128,255,0.08);--neon-tertiary-soft:rgba(91,240,131,0.08)}
+
+.font-display{font-family:'Space Grotesk','Inter',sans-serif}
+
+/* Glass cards */
+.glass-card{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);box-shadow:0 4px 24px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.05);transition:all 0.3s ease}
+.glass-card:hover{border-color:rgba(255,255,255,0.12);box-shadow:0 8px 32px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.08)}
+[data-theme="light"] .glass-card{background:rgba(255,255,255,0.72);border-color:rgba(0,0,0,0.06);box-shadow:0 4px 24px rgba(0,0,0,0.06),inset 0 1px 0 rgba(255,255,255,0.8)}
+[data-theme="light"] .glass-card:hover{box-shadow:0 8px 32px rgba(0,0,0,0.1)}
+
+/* Glass panels (larger sections) */
+.glass-panel{background:rgba(15,15,30,0.45);backdrop-filter:blur(12px) saturate(1.2);-webkit-backdrop-filter:blur(12px) saturate(1.2);border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius);box-shadow:0 2px 16px rgba(0,0,0,0.2)}
+[data-theme="light"] .glass-panel{background:rgba(255,255,255,0.55);border-color:rgba(0,0,0,0.04)}
+
+/* Neon glow effects */
+.neon-glow-primary{box-shadow:0 0 20px rgba(0,241,254,0.15),0 0 40px rgba(0,241,254,0.05),inset 0 1px 0 rgba(0,241,254,0.1);border-color:rgba(0,241,254,0.25)!important}
+.neon-glow-secondary{box-shadow:0 0 20px rgba(193,128,255,0.15),0 0 40px rgba(193,128,255,0.05),inset 0 1px 0 rgba(193,128,255,0.1);border-color:rgba(193,128,255,0.25)!important}
+.neon-glow-tertiary{box-shadow:0 0 20px rgba(91,240,131,0.15),0 0 40px rgba(91,240,131,0.05),inset 0 1px 0 rgba(91,240,131,0.1);border-color:rgba(91,240,131,0.25)!important}
+
+/* Neon text */
+.neon-text-primary{color:var(--neon-primary);text-shadow:0 0 10px rgba(0,241,254,0.4)}
+.neon-text-secondary{color:var(--neon-secondary);text-shadow:0 0 10px rgba(193,128,255,0.4)}
+.neon-text-tertiary{color:var(--neon-tertiary);text-shadow:0 0 10px rgba(91,240,131,0.4)}
+
+/* Gradient text */
+.gradient-text-stitch{background:linear-gradient(135deg,var(--neon-primary),var(--neon-secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* Stitch sparkline container */
+.sparkline-container{height:32px;display:flex;align-items:flex-end;gap:2px}
+.sparkline-bar{flex:1;min-width:3px;border-radius:2px 2px 0 0;transition:height 0.4s ease;opacity:0.7}
+.sparkline-bar:last-child{opacity:1}
+
+/* Stitch KPI card */
+.stitch-kpi{padding:20px;position:relative;overflow:hidden}
+.stitch-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--neon-primary),var(--neon-secondary))}
+.stitch-kpi .kpi-value{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.8rem;font-weight:800;letter-spacing:-1px;line-height:1}
+.stitch-kpi .kpi-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-top:6px;font-weight:600}
+
+/* Pulse animation */
+@keyframes neonPulse{0%,100%{box-shadow:0 0 15px rgba(0,241,254,0.12),0 0 30px rgba(0,241,254,0.04)}50%{box-shadow:0 0 25px rgba(0,241,254,0.2),0 0 50px rgba(0,241,254,0.08)}}
+.neon-pulse{animation:neonPulse 3s ease-in-out infinite}
+
+/* Stitch banner */
+@keyframes bannerShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.stitch-banner{position:relative;overflow:hidden;padding:24px;border-radius:var(--radius);text-align:center}
+.stitch-banner::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.04) 50%,transparent 100%);background-size:200% 100%;animation:bannerShimmer 6s linear infinite;pointer-events:none}
+
+/* System monitor gauge */
+.sys-gauge{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;font-family:'Space Grotesk',sans-serif;position:relative}
+.sys-gauge::before{content:'';position:absolute;inset:2px;border-radius:50%;border:2px solid rgba(255,255,255,0.06)}
 </style>
 <link rel="stylesheet" href="/static/kiosk.css">
 </head>

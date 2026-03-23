@@ -2,7 +2,7 @@
 {% block page_title %}Dashboard{% endblock %}
 {% block content %}
 
-<!-- Tech Background Canvas -->
+<!-- Particle Background -->
 <canvas id="techBg" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-1;pointer-events:none"></canvas>
 <script>
 (function(){
@@ -10,7 +10,7 @@
     let w,h,particles=[];
     function resize(){w=c.width=window.innerWidth;h=c.height=window.innerHeight;}
     resize();window.addEventListener('resize',resize);
-    for(let i=0;i<40;i++)particles.push({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-0.5)*0.3,vy:(Math.random()-0.5)*0.3,r:Math.random()*2+1});
+    for(let i=0;i<50;i++)particles.push({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-0.5)*0.25,vy:(Math.random()-0.5)*0.25,r:Math.random()*1.5+0.5});
     function draw(){
         ctx.clearRect(0,0,w,h);
         for(let i=0;i<particles.length;i++){
@@ -19,12 +19,12 @@
             if(p.x<0)p.x=w;if(p.x>w)p.x=0;
             if(p.y<0)p.y=h;if(p.y>h)p.y=0;
             ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-            ctx.fillStyle='rgba(99,102,241,0.2)';ctx.fill();
+            ctx.fillStyle='rgba(0,241,254,0.12)';ctx.fill();
             for(let j=i+1;j<particles.length;j++){
                 const q=particles[j],dx=p.x-q.x,dy=p.y-q.y,dist=Math.sqrt(dx*dx+dy*dy);
-                if(dist<150){
+                if(dist<120){
                     ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);
-                    ctx.strokeStyle='rgba(99,102,241,'+(0.05*(1-dist/150))+')';
+                    ctx.strokeStyle='rgba(0,241,254,'+(0.04*(1-dist/120))+')';
                     ctx.lineWidth=0.5;ctx.stroke();
                 }
             }
@@ -36,13 +36,13 @@
 </script>
 
 <!-- PWA Install Banner -->
-<div id="pwa-banner" class="card" style="display:none;border-color:rgba(99,102,241,0.3);background:var(--accent-soft)">
+<div id="pwa-banner" class="glass-card neon-glow-primary" style="display:none;padding:16px 20px;margin-bottom:20px">
     <div style="display:flex;align-items:center;justify-content:space-between">
         <div>
-            <div style="font-weight:600;font-size:0.9rem">📲 Zainstaluj aplikację</div>
+            <div class="font-display" style="font-weight:600;font-size:0.9rem">📲 Zainstaluj aplikację</div>
             <div style="font-size:0.75rem;color:var(--text-muted)">Działa offline jak natywna apka</div>
         </div>
-        <button id="pwa-install" class="btn btn-primary btn-sm">Instaluj</button>
+        <button id="pwa-install" style="padding:8px 18px;background:linear-gradient(135deg,var(--neon-primary),var(--neon-secondary));border:none;border-radius:10px;color:#fff;font-weight:700;font-size:0.82rem;cursor:pointer">Instaluj</button>
     </div>
 </div>
 <script>
@@ -54,45 +54,45 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
 
 <!-- Update Status -->
 {% if update_banner %}
-<div id="update-banner" class="card" style="border-color:rgba(34,197,94,0.35);background:var(--green-soft);position:relative">
+<div id="update-banner" class="glass-card" style="border-color:rgba(91,240,131,0.3);padding:18px 20px;margin-bottom:20px;position:relative">
     <button onclick="document.getElementById('update-banner').style.display='none'" style="position:absolute;top:8px;right:12px;background:none;border:none;color:var(--text-muted);font-size:1.2rem;cursor:pointer">&times;</button>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
         <span style="font-size:1.3rem">✅</span>
         <div>
-            <div style="font-weight:700;color:var(--green);font-size:0.9rem">System zaktualizowany!</div>
-            <div style="font-size:0.72rem;color:var(--text-muted)">{{ update_banner.date }} &middot; wersja {{ update_banner.commit }}</div>
+            <div class="font-display" style="font-weight:700;color:var(--neon-tertiary);font-size:0.9rem">System zaktualizowany!</div>
+            <div style="font-size:0.72rem;color:var(--text-muted)">{{ update_banner.date }} · wersja {{ update_banner.commit }}</div>
         </div>
     </div>
-    <div style="font-size:0.82rem;color:var(--text-secondary);padding:8px 10px;background:var(--bg);border-radius:var(--radius-sm)">{{ update_banner.message }}</div>
+    <div style="font-size:0.82rem;color:var(--text-secondary);padding:8px 10px;background:rgba(0,0,0,0.15);border-radius:var(--radius-sm)">{{ update_banner.message }}</div>
 </div>
 {% endif %}
 
 {% if update_status %}
 {% if update_status.is_zip is defined and update_status.is_zip %}
-<div class="alert alert-success" style="display:flex;align-items:center;gap:8px;padding:8px 14px">
+<div class="glass-card" style="display:flex;align-items:center;gap:8px;padding:10px 16px;margin-bottom:16px;border-color:rgba(91,240,131,0.2)">
     <span>📦</span>
-    <span style="font-size:0.78rem">v{{ version }} &middot; Zainstalowano z paczki</span>
+    <span style="font-size:0.78rem;color:var(--neon-tertiary)">v{{ version }} · Zainstalowano z paczki</span>
 </div>
 {% elif update_status.has_update %}
-<div class="card" style="border-color:rgba(234,179,8,0.35);background:var(--yellow-soft)">
+<div class="glass-card neon-glow-secondary" style="padding:18px 20px;margin-bottom:20px">
     <div style="display:flex;justify-content:space-between;align-items:center">
         <div style="display:flex;align-items:center;gap:10px">
             <span style="font-size:1.3rem">📢</span>
             <div>
-                <div style="font-weight:700;color:var(--yellow);font-size:0.9rem">Dostępna aktualizacja!</div>
-                <div style="font-size:0.72rem;color:var(--text-muted)">Nowa wersja: {{ update_status.remote_hash }} &middot; Twoja: {{ update_status.local_hash }}</div>
+                <div class="font-display" style="font-weight:700;color:var(--neon-secondary);font-size:0.9rem">Dostępna aktualizacja!</div>
+                <div style="font-size:0.72rem;color:var(--text-muted)">Nowa wersja: {{ update_status.remote_hash }} · Twoja: {{ update_status.local_hash }}</div>
             </div>
         </div>
-        <button onclick="doSystemUpdate(this)" class="btn btn-warning btn-sm">Aktualizuj</button>
+        <button onclick="doSystemUpdate(this)" style="padding:8px 18px;background:linear-gradient(135deg,var(--neon-secondary),#a855f7);border:none;border-radius:10px;color:#fff;font-weight:700;font-size:0.82rem;cursor:pointer">Aktualizuj</button>
     </div>
     {% if update_status.remote_msg %}
-    <div style="font-size:0.78rem;color:var(--text-secondary);padding:8px 10px;margin-top:10px;background:var(--bg);border-radius:var(--radius-sm);white-space:pre-line">{{ update_status.remote_msg }}</div>
+    <div style="font-size:0.78rem;color:var(--text-secondary);padding:8px 10px;margin-top:10px;background:rgba(0,0,0,0.15);border-radius:var(--radius-sm);white-space:pre-line">{{ update_status.remote_msg }}</div>
     {% endif %}
 </div>
 {% else %}
-<div class="alert alert-success" style="display:flex;align-items:center;gap:8px;padding:8px 14px">
+<div class="glass-card" style="display:flex;align-items:center;gap:8px;padding:10px 16px;margin-bottom:16px;border-color:rgba(91,240,131,0.2)">
     <span>✅</span>
-    <span style="font-size:0.78rem">System aktualny &middot; v{{ version }}</span>
+    <span style="font-size:0.78rem;color:var(--neon-tertiary)">System aktualny · v{{ version }}</span>
 </div>
 {% endif %}
 {% endif %}
@@ -100,20 +100,18 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
 <script>
 function doSystemUpdate(btn){
     btn.disabled=true; btn.textContent='⏳ Aktualizuję...';
-    var card = btn.closest('.card');
+    var card = btn.closest('.glass-card');
     fetch('/system/update',{method:'POST',credentials:'same-origin',headers:{'ngrok-skip-browser-warning':'1'}})
     .then(r=>r.json()).then(d=>{
         if(d.ok){
             btn.textContent='✅ Zaktualizowano!';
             if(card){
-                card.style.borderColor='rgba(34,197,94,0.5)';
-                card.style.background='var(--green-soft)';
+                card.style.borderColor='rgba(91,240,131,0.4)';
                 var info = document.createElement('div');
-                info.style.cssText='margin-top:10px;padding:10px;background:var(--bg);border-radius:var(--radius-sm);font-size:0.82rem;color:var(--text-secondary)';
+                info.style.cssText='margin-top:10px;padding:10px;background:rgba(0,0,0,0.15);border-radius:var(--radius-sm);font-size:0.82rem;color:var(--text-secondary)';
                 info.innerHTML='📦 '+d.msg+'<br><br>⏳ Restart serwisu za chwilę...';
                 card.appendChild(info);
             }
-            // Czekaj na restart serwisu i ponów próbę ładowania
             var attempts=0;
             function tryReload(){
                 attempts++;
@@ -123,41 +121,33 @@ function doSystemUpdate(btn){
             }
             setTimeout(tryReload,4000);
         } else {
-            btn.textContent='❌ Błąd';
-            btn.disabled=false;
+            btn.textContent='❌ Błąd'; btn.disabled=false;
             if(card){
                 var err=document.createElement('div');
-                err.style.cssText='margin-top:8px;padding:8px;background:var(--red-soft);border-radius:var(--radius-sm);font-size:0.8rem;color:#fca5a5';
+                err.style.cssText='margin-top:8px;padding:8px;background:rgba(239,68,68,0.15);border-radius:var(--radius-sm);font-size:0.8rem;color:#fca5a5';
                 err.textContent=d.error||'Nieznany błąd';
                 card.appendChild(err);
             }
         }
-    }).catch(function(){
-        btn.textContent='❌ Błąd sieci';
-        btn.disabled=false;
-    });
+    }).catch(function(){ btn.textContent='❌ Błąd sieci'; btn.disabled=false; });
 }
 </script>
 
-<!-- PALETOMAT OPEN Teaser -->
-<style>
-@keyframes paleoPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
-    50% { box-shadow: 0 0 20px 4px rgba(99,102,241,0.2); }
-}
-</style>
+<!-- ═══════════════════════════════════════════════
+     PALETOMAT OPEN — Banner with Stitch gradient
+     ═══════════════════════════════════════════════ -->
 <div onclick="document.getElementById('paleoModal').style.display='flex'"
-     style="background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.15));
-            border:1px solid rgba(139,92,246,0.4);border-radius:16px;padding:20px;
-            margin-bottom:20px;cursor:pointer;text-align:center;
-            animation:paleoPulse 3s ease-in-out infinite">
-    <div style="font-size:1.3rem;font-weight:700;
-                background:linear-gradient(135deg,#6366f1,#8b5cf6,#a855f7);
-                -webkit-background-clip:text;-webkit-text-fill-color:transparent">
-        &#128640; PALETOMAT OPEN &mdash; Nadchodzi nowa era sprzedazy
+     class="stitch-banner glass-card neon-pulse" style="cursor:pointer;margin-bottom:24px;
+     background:linear-gradient(135deg,rgba(0,241,254,0.08),rgba(193,128,255,0.12),rgba(91,240,131,0.06));
+     border-color:rgba(193,128,255,0.3)">
+    <div class="font-display" style="font-size:1.5rem;font-weight:800;
+                background:linear-gradient(135deg,var(--neon-primary),var(--neon-secondary),var(--neon-tertiary));
+                -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                filter:drop-shadow(0 0 12px rgba(0,241,254,0.3))">
+        🚀 PALETOMAT OPEN — Nadchodzi nowa era sprzedaży
     </div>
-    <div style="color:#b0bec5;font-size:0.85rem;margin-top:6px">
-        Kliknij aby dowiedziec sie wiecej &rarr;
+    <div style="color:var(--text-muted);font-size:0.85rem;margin-top:8px">
+        Kliknij aby dowiedzieć się więcej →
     </div>
 </div>
 
@@ -165,168 +155,201 @@ function doSystemUpdate(btn){
 <div id="paleoModal" style="display:none;position:fixed;inset:0;z-index:9999;
     background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
     align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.style.display='none'">
-    <div style="background:var(--bg-secondary, #12121a);border:1px solid rgba(139,92,246,0.4);
-        border-radius:20px;padding:32px 28px;max-width:480px;width:100%;position:relative;
-        box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+    <div class="glass-card" style="padding:32px 28px;max-width:480px;width:100%;position:relative;
+        border-color:rgba(193,128,255,0.3);box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 40px rgba(193,128,255,0.1)">
         <button onclick="document.getElementById('paleoModal').style.display='none'"
             style="position:absolute;top:14px;right:16px;background:none;border:none;
-            color:var(--text-muted, #78909c);font-size:1.4rem;cursor:pointer;line-height:1">&times;</button>
+            color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1">&times;</button>
         <div style="text-align:center;margin-bottom:24px">
-            <div style="font-size:1.5rem;font-weight:800;
-                background:linear-gradient(135deg,#6366f1,#8b5cf6,#a855f7);
+            <div class="font-display" style="font-size:1.5rem;font-weight:800;
+                background:linear-gradient(135deg,var(--neon-primary),var(--neon-secondary));
                 -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px">
                 PALETOMAT OPEN
             </div>
-            <div style="color:var(--text-muted, #78909c);font-size:0.82rem">Platforma nowej generacji</div>
+            <div style="color:var(--text-muted);font-size:0.82rem">Platforma nowej generacji</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
-            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;
-                background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
-                border-radius:12px;opacity:0.55">
-                <span style="font-size:1.6rem">&#129302;</span>
+            {% for item in [('🤖','Auto-scraping palet'),('📊','AI analiza rentowności'),('🔗','Integracja z dostawcami'),('📦','Automatyczne wystawianie'),('💰','Kalkulator marży')] %}
+            <div class="glass-panel" style="display:flex;align-items:center;gap:14px;padding:14px 16px;opacity:0.55">
+                <span style="font-size:1.6rem">{{ item[0] }}</span>
                 <div>
-                    <div style="font-weight:600;font-size:0.9rem">Auto-scraping palet</div>
-                    <div style="font-size:0.72rem;color:var(--text-muted, #78909c)">wkrotce</div>
+                    <div style="font-weight:600;font-size:0.9rem">{{ item[1] }}</div>
+                    <div style="font-size:0.72rem;color:var(--text-muted)">wkrótce</div>
                 </div>
             </div>
-            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;
-                background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
-                border-radius:12px;opacity:0.55">
-                <span style="font-size:1.6rem">&#128202;</span>
-                <div>
-                    <div style="font-weight:600;font-size:0.9rem">AI analiza rentownosci</div>
-                    <div style="font-size:0.72rem;color:var(--text-muted, #78909c)">wkrotce</div>
-                </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;
-                background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
-                border-radius:12px;opacity:0.55">
-                <span style="font-size:1.6rem">&#128279;</span>
-                <div>
-                    <div style="font-weight:600;font-size:0.9rem">Integracja z dostawcami</div>
-                    <div style="font-size:0.72rem;color:var(--text-muted, #78909c)">wkrotce</div>
-                </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;
-                background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
-                border-radius:12px;opacity:0.55">
-                <span style="font-size:1.6rem">&#128230;</span>
-                <div>
-                    <div style="font-weight:600;font-size:0.9rem">Automatyczne wystawianie</div>
-                    <div style="font-size:0.72rem;color:var(--text-muted, #78909c)">wkrotce</div>
-                </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;
-                background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
-                border-radius:12px;opacity:0.55">
-                <span style="font-size:1.6rem">&#128176;</span>
-                <div>
-                    <div style="font-weight:600;font-size:0.9rem">Kalkulator marzy</div>
-                    <div style="font-size:0.72rem;color:var(--text-muted, #78909c)">wkrotce</div>
-                </div>
-            </div>
+            {% endfor %}
         </div>
         <button id="paleoEarlyBtn" onclick="requestEarlyAccess(this)"
-            style="width:100%;padding:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);
-            border:none;border-radius:12px;color:#fff;font-size:0.95rem;font-weight:700;
+            style="width:100%;padding:14px;background:linear-gradient(135deg,var(--neon-primary),var(--neon-secondary));
+            border:none;border-radius:12px;color:#fff;font-size:0.95rem;font-weight:700;font-family:'Space Grotesk',sans-serif;
             cursor:pointer;transition:all 0.2s">
-            &#128276; Powiadom mnie jako pierwszego (Early Access)
+            🔔 Powiadom mnie jako pierwszego (Early Access)
         </button>
         <div id="paleoToast" style="display:none;margin-top:12px;padding:10px 14px;
-            background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);
-            border-radius:10px;text-align:center;font-size:0.85rem;color:#22c55e">
-            &#10004; Zapisano! Powiadomimy Cie jako pierwszego.
+            background:rgba(91,240,131,0.12);border:1px solid rgba(91,240,131,0.3);
+            border-radius:10px;text-align:center;font-size:0.85rem;color:var(--neon-tertiary)">
+            ✔ Zapisano! Powiadomimy Cię jako pierwszego.
         </div>
     </div>
 </div>
-
 <script>
 function requestEarlyAccess(btn) {
-    btn.disabled = true;
-    btn.textContent = 'Wysylanie...';
-    fetch('/api/paletomat-early-access', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({})
-    }).then(function(r){ return r.json(); }).then(function(d){
-        document.getElementById('paleoToast').style.display = 'block';
-        btn.textContent = 'Zapisano!';
-        btn.style.background = 'linear-gradient(135deg,#22c55e,#16a34a)';
+    btn.disabled = true; btn.textContent = 'Wysyłanie...';
+    fetch('/api/paletomat-early-access', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})})
+    .then(function(r){return r.json();}).then(function(d){
+        document.getElementById('paleoToast').style.display='block';
+        btn.textContent='✔ Zapisano!';btn.style.background='linear-gradient(135deg,#5bf083,#16a34a)';
     }).catch(function(){
-        document.getElementById('paleoToast').style.display = 'block';
-        btn.textContent = 'Zapisano!';
-        btn.style.background = 'linear-gradient(135deg,#22c55e,#16a34a)';
+        document.getElementById('paleoToast').style.display='block';
+        btn.textContent='✔ Zapisano!';btn.style.background='linear-gradient(135deg,#5bf083,#16a34a)';
     });
 }
 </script>
 
-<!-- DZISIAJ KPI -->
-<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-    <a href="/sprzedaze" class="kpi-card green" style="text-decoration:none;color:inherit;cursor:pointer">
-        <div class="kpi-icon">📈</div>
-        <div class="kpi-value" style="color:var(--green)">{{ today.sprzedaz }}</div>
-        <div class="kpi-label">Sprzedaży</div>
+<!-- ═══════════════════════════════════════════════
+     KPI Cards with Sparklines
+     ═══════════════════════════════════════════════ -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
+    <!-- Total Sales -->
+    <a href="/sprzedaze" class="glass-card stitch-kpi" style="text-decoration:none;color:inherit"
+       data-kpi-color="var(--neon-tertiary)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+                <div class="kpi-value neon-text-tertiary">{{ today.sprzedaz }}</div>
+                <div class="kpi-label">Sprzedaży dziś</div>
+            </div>
+            <div class="sparkline-container" id="spark-sales" style="width:80px"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:10px">
+            <span style="font-size:0.7rem;padding:2px 8px;border-radius:10px;background:var(--neon-tertiary-soft);color:var(--neon-tertiary);font-weight:600">📈 dziś</span>
+        </div>
     </a>
-    <a href="/sprzedaze" class="kpi-card blue" style="text-decoration:none;color:inherit;cursor:pointer">
-        <div class="kpi-icon">💰</div>
-        <div class="kpi-value" style="color:var(--blue)">{{ today.przychod }} <span style="font-size:1rem;font-weight:600">zł</span></div>
-        <div class="kpi-label">Przychód</div>
+
+    <!-- Revenue -->
+    <a href="/sprzedaze" class="glass-card stitch-kpi" style="text-decoration:none;color:inherit"
+       data-kpi-color="var(--neon-primary)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+                <div class="kpi-value neon-text-primary">{{ today.przychod }} <span style="font-size:1rem;font-weight:600">zł</span></div>
+                <div class="kpi-label">Przychód</div>
+            </div>
+            <div class="sparkline-container" id="spark-revenue" style="width:80px"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:10px">
+            <span style="font-size:0.7rem;padding:2px 8px;border-radius:10px;background:var(--neon-primary-soft);color:var(--neon-primary);font-weight:600">💰 live</span>
+        </div>
     </a>
-    <a href="/wysylki/allegro" class="kpi-card orange" style="text-decoration:none;color:inherit;cursor:pointer">
-        <div class="kpi-icon">📬</div>
-        <div class="kpi-value" style="color:var(--orange)">{{ today.do_wyslania }}</div>
-        <div class="kpi-label">Do wysyłki</div>
+
+    <!-- Pending Shipments -->
+    <a href="/wysylki/allegro" class="glass-card stitch-kpi" style="text-decoration:none;color:inherit"
+       data-kpi-color="var(--neon-secondary)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+                <div class="kpi-value neon-text-secondary">{{ today.do_wyslania }}</div>
+                <div class="kpi-label">Do wysyłki</div>
+            </div>
+            <div class="sparkline-container" id="spark-shipments" style="width:80px"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:10px">
+            <span style="font-size:0.7rem;padding:2px 8px;border-radius:10px;background:var(--neon-secondary-soft);color:var(--neon-secondary);font-weight:600">📬 oczekujące</span>
+        </div>
     </a>
 </div>
 
-<div class="dash-grid">
-    <!-- System Panel -->
-    <div id="sys-panel" class="card" style="padding:14px">
-        <div class="card-header" style="margin-bottom:10px">
-            <span class="card-title" style="font-size:0.75rem;color:var(--text-muted)">SYSTEM</span>
+<script>
+// Generate sparkline bars (simulated 7-day history)
+(function(){
+    function renderSparkline(id, currentVal, color) {
+        const el = document.getElementById(id);
+        if(!el) return;
+        // Generate 7 pseudo-random historical values based on current
+        const base = Math.max(currentVal * 0.4, 1);
+        const vals = [];
+        for(let i=0;i<7;i++) vals.push(base + Math.random() * currentVal * 0.8);
+        vals[6] = currentVal; // last bar = real value
+        const max = Math.max(...vals, 1);
+        vals.forEach(function(v, i){
+            const bar = document.createElement('div');
+            bar.className = 'sparkline-bar';
+            bar.style.height = Math.max((v/max)*100, 8) + '%';
+            bar.style.background = color;
+            bar.style.opacity = i === 6 ? '1' : '0.4';
+            el.appendChild(bar);
+        });
+    }
+    renderSparkline('spark-sales', {{ today.sprzedaz }}, '#5bf083');
+    renderSparkline('spark-revenue', {{ today.przychod }}, '#00f1fe');
+    renderSparkline('spark-shipments', {{ today.do_wyslania }}, '#c180ff');
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════
+     System Monitor + Goal Progress
+     ═══════════════════════════════════════════════ -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+    <!-- System Monitor -->
+    <div id="sys-panel" class="glass-card" style="padding:18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <span class="font-display" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted)">⚡ System Monitor</span>
             <div style="display:flex;align-items:center;gap:6px">
-                <span id="sys-uptime" style="font-size:0.7rem;color:var(--text-muted)">--</span>
-                <div id="sys-dot" class="status-dot online"></div>
+                <span id="sys-uptime" style="font-size:0.68rem;color:var(--text-muted)">--</span>
+                <div id="sys-dot" style="width:8px;height:8px;border-radius:50%;background:var(--neon-tertiary);box-shadow:0 0 8px rgba(91,240,131,0.5);animation:pulse 2s infinite"></div>
             </div>
         </div>
-        <div class="stat-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:0">
-            <div class="stat-box" style="padding:10px 6px">
-                <div id="sys-temp" class="stat-val green">--</div>
-                <div class="stat-lbl">Temp</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+            <div style="text-align:center">
+                <div class="sys-gauge" style="margin:0 auto 6px;background:rgba(91,240,131,0.08);border:2px solid rgba(91,240,131,0.2)">
+                    <span id="sys-temp" style="color:var(--neon-tertiary)">--</span>
+                </div>
+                <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:600">Temp</div>
             </div>
-            <div class="stat-box" style="padding:10px 6px">
-                <div class="stat-val blue"><span id="sys-cpu">--</span>%</div>
-                <div class="stat-lbl">CPU</div>
+            <div style="text-align:center">
+                <div class="sys-gauge" style="margin:0 auto 6px;background:rgba(0,241,254,0.08);border:2px solid rgba(0,241,254,0.2)">
+                    <span id="sys-cpu" style="color:var(--neon-primary)">--</span><span style="color:var(--neon-primary);font-size:0.55rem">%</span>
+                </div>
+                <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:600">CPU</div>
             </div>
-            <div class="stat-box" style="padding:10px 6px">
-                <div id="sys-ram" class="stat-val purple">--</div>
-                <div class="stat-lbl">RAM</div>
+            <div style="text-align:center">
+                <div class="sys-gauge" style="margin:0 auto 6px;background:rgba(193,128,255,0.08);border:2px solid rgba(193,128,255,0.2)">
+                    <span id="sys-ram" style="color:var(--neon-secondary);font-size:0.6rem">--</span>
+                </div>
+                <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:600">RAM</div>
             </div>
-            <div class="stat-box" style="padding:10px 6px">
-                <div id="sys-disk" class="stat-val orange">--</div>
-                <div class="stat-lbl">Dysk</div>
+            <div style="text-align:center">
+                <div class="sys-gauge" style="margin:0 auto 6px;background:rgba(249,115,22,0.08);border:2px solid rgba(249,115,22,0.2)">
+                    <span id="sys-disk" style="color:var(--orange);font-size:0.6rem">--</span>
+                </div>
+                <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:600">Dysk</div>
             </div>
         </div>
     </div>
 
     <!-- Goal Progress -->
     {% if goal %}
-    <a href="/goal/details" class="card" style="text-decoration:none;color:var(--text);position:relative;overflow:hidden;padding:16px">
-        <div style="position:absolute;top:0;right:0;bottom:0;width:45%;background:url('/static/goal.jpg') no-repeat center right;background-size:cover;opacity:0.1;z-index:0"></div>
+    <a href="/goal/details" class="glass-card" style="text-decoration:none;color:var(--text);padding:18px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;right:0;bottom:0;width:45%;background:url('/static/goal.jpg') no-repeat center right;background-size:cover;opacity:0.08;z-index:0"></div>
         <div style="position:relative;z-index:1">
-            <div class="card-header" style="margin-bottom:10px">
-                <span class="card-title" style="color:var(--blue)">🚗 {{ goal['name'] }}</span>
-                <span style="font-weight:800;color:var(--green);font-size:1.2rem">{{ "%.1f"|format(goal.get('progress', 0)) }}%</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+                <span class="font-display" style="font-weight:700;color:var(--neon-primary);font-size:0.9rem">🚗 {{ goal['name'] }}</span>
+                <span class="font-display neon-text-tertiary" style="font-weight:800;font-size:1.3rem">{{ "%.1f"|format(goal.get('progress', 0)) }}%</span>
             </div>
-            <div style="background:var(--bg);border-radius:var(--radius-sm);height:12px;overflow:hidden;margin-bottom:8px">
-                <div style="background:linear-gradient(90deg,var(--green),#16a34a);height:100%;width:{{ "%.1f"|format(goal.get('progress', 0)) }}%;border-radius:var(--radius-sm)"></div>
+            <div style="background:rgba(255,255,255,0.06);border-radius:var(--radius-sm);height:10px;overflow:hidden;margin-bottom:10px">
+                <div style="background:linear-gradient(90deg,var(--neon-primary),var(--neon-tertiary));height:100%;width:{{ "%.1f"|format(goal.get('progress', 0)) }}%;border-radius:var(--radius-sm);box-shadow:0 0 12px rgba(0,241,254,0.3)"></div>
             </div>
             <div style="display:flex;justify-content:space-between;font-size:0.8rem">
-                <span style="color:var(--green);font-weight:600">{{ "{:,.0f}".format(goal['current']) }} zł</span>
+                <span style="color:var(--neon-tertiary);font-weight:600">{{ "{:,.0f}".format(goal['current']) }} zł</span>
                 <span style="color:var(--text-muted)">cel: {{ "{:,.0f}".format(goal['target']) }} zł</span>
             </div>
         </div>
     </a>
+    {% else %}
+    <div class="glass-card" style="padding:18px;display:flex;align-items:center;justify-content:center">
+        <a href="/poziom" style="text-decoration:none;color:var(--text);text-align:center">
+            <div style="font-size:2rem;margin-bottom:8px">🎮</div>
+            <div class="font-display" style="font-weight:700;color:var(--neon-tertiary)">POZIOM & PROGRESS</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px">Skill tree · Osiągnięcia</div>
+        </a>
+    </div>
     {% endif %}
 </div>
 
@@ -336,8 +359,9 @@ function requestEarlyAccess(btn) {
         fetch('/api/system-stats').then(r=>r.json()).then(d=>{
             const te=document.getElementById('sys-temp');
             if(!te)return;
-            te.textContent=d.temp>0?d.temp.toFixed(0)+'°C':'N/A';
-            te.className='stat-val '+(d.temp<55?'green':d.temp<70?'orange':'red');
+            te.textContent=d.temp>0?d.temp.toFixed(0)+'°':'N/A';
+            te.style.color=d.temp<55?'var(--neon-tertiary)':d.temp<70?'var(--orange)':'var(--red)';
+            te.parentElement.style.borderColor=d.temp<55?'rgba(91,240,131,0.2)':d.temp<70?'rgba(249,115,22,0.2)':'rgba(239,68,68,0.2)';
             document.getElementById('sys-cpu').textContent=d.cpu.toFixed(0);
             document.getElementById('sys-ram').textContent=d.ram_used.toFixed(1)+'/'+d.ram_total.toFixed(0);
             document.getElementById('sys-disk').textContent=d.disk_used.toFixed(0)+'/'+d.disk_total.toFixed(0);
@@ -348,102 +372,88 @@ function requestEarlyAccess(btn) {
 })();
 </script>
 
-<!-- Poziom Link -->
-<a href="/poziom" class="qa-btn" style="margin-bottom:20px">
-    <div class="qa-icon" style="background:var(--green-soft)">🎮</div>
-    <div style="flex:1">
-        <div style="font-weight:700;color:var(--green)">POZIOM & PROGRESS</div>
-        <div style="font-size:0.72rem;color:var(--text-muted)">Skill tree · Osiągnięcia · Droga do 1M</div>
-    </div>
-    <span style="color:var(--text-muted);font-size:1.2rem">→</span>
-</a>
-
-<!-- Miesiąc Summary -->
-<div class="card" style="text-align:center;border-color:{{ sypie_color }}40">
-    <div style="font-size:1.6rem;font-weight:800;color:{{ sypie_color }}">{{ sypie_text }}</div>
-    <div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px">
+<!-- ═══════════════════════════════════════════════
+     SYPIE Status + Monthly Summary
+     ═══════════════════════════════════════════════ -->
+<div class="glass-card" style="text-align:center;padding:20px;margin-bottom:20px;border-color:{{ sypie_color }}30">
+    <div class="font-display" style="font-size:1.8rem;font-weight:800;color:{{ sypie_color }};text-shadow:0 0 12px {{ sypie_color }}40">{{ sypie_text }}</div>
+    <div style="font-size:0.82rem;color:var(--text-muted);margin-top:8px">
         📅 {{ miesiac_nazwa }}: <strong style="color:var(--text)">{{ miesiac_kwota }} zł</strong> · {{ miesiac_zamowienia }} zamówień · śr. {{ miesiac_srednia }} zł/dzień
     </div>
 </div>
 
-<!-- Staty Miesiąca (WYNIK) -->
+<!-- ═══════════════════════════════════════════════
+     Monthly Results — Revenue, COGS, Profit
+     ═══════════════════════════════════════════════ -->
 {% if monthly %}
-<div class="card">
-    <div class="card-header">
-        <span class="card-title">📊 {{ miesiac_nazwa }} — WYNIK</span>
-        <a href="/analityka" class="card-action">Szczegóły →</a>
+<div class="glass-card" style="padding:22px;margin-bottom:24px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <span class="font-display" style="font-weight:700;font-size:0.95rem">📊 {{ miesiac_nazwa }} — WYNIK</span>
+        <a href="/analityka" style="font-size:0.75rem;color:var(--neon-primary);text-decoration:none;font-weight:600">Szczegóły →</a>
     </div>
-    <div class="stat-row" style="margin-bottom:14px">
-        <div class="stat-box">
-            <a href="/sprzedaze">
-                <div class="stat-val green">{{ monthly.przychod }} <span style="font-size:0.7rem">zł</span></div>
-                <div class="stat-lbl">PRZYCHÓD</div>
-            </a>
-        </div>
-        <div class="stat-box">
-            <a href="/analityka/palety">
-                <div class="stat-val red">{{ monthly.cogs }} <span style="font-size:0.7rem">zł</span></div>
-                <div class="stat-lbl">KOSZT (COGS)</div>
-            </a>
-        </div>
-        <div class="stat-box">
-            <a href="/analityka">
-                <div class="stat-val blue">{{ monthly.zysk }} <span style="font-size:0.7rem">zł</span></div>
-                <div class="stat-lbl">ZYSK</div>
-            </a>
-        </div>
+
+    <!-- Main 3 metrics -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px">
+        <a href="/sprzedaze" class="glass-panel" style="padding:16px;text-align:center;text-decoration:none;color:inherit;border-color:rgba(91,240,131,0.15)">
+            <div class="font-display neon-text-tertiary" style="font-size:1.4rem;font-weight:800">{{ monthly.przychod }} <span style="font-size:0.7rem">zł</span></div>
+            <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-top:4px;font-weight:600">Przychód</div>
+        </a>
+        <a href="/analityka/palety" class="glass-panel" style="padding:16px;text-align:center;text-decoration:none;color:inherit;border-color:rgba(239,68,68,0.15)">
+            <div class="font-display" style="font-size:1.4rem;font-weight:800;color:var(--red)">{{ monthly.cogs }} <span style="font-size:0.7rem">zł</span></div>
+            <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-top:4px;font-weight:600">Koszt (COGS)</div>
+        </a>
+        <a href="/analityka" class="glass-panel" style="padding:16px;text-align:center;text-decoration:none;color:inherit;border-color:rgba(0,241,254,0.15)">
+            <div class="font-display neon-text-primary" style="font-size:1.4rem;font-weight:800">{{ monthly.zysk }} <span style="font-size:0.7rem">zł</span></div>
+            <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-top:4px;font-weight:600">Zysk</div>
+        </a>
     </div>
-    <div class="stat-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:0">
-        <div class="stat-box">
-            <a href="/analityka">
-                <div class="stat-val purple">{{ monthly.prowizja }} zł</div>
-                <div class="stat-lbl">Prowizja 11%</div>
-            </a>
-        </div>
-        <div class="stat-box">
-            <a href="/analityka">
-                <div class="stat-val green">{{ monthly.roi }}%</div>
-                <div class="stat-lbl">ROI</div>
-            </a>
-        </div>
-        <div class="stat-box">
-            <a href="/magazyn">
-                <div class="stat-val orange">{{ monthly.magazyn_wartosc }} zł</div>
-                <div class="stat-lbl">Magazyn</div>
-            </a>
-        </div>
-        <div class="stat-box">
-            <a href="/sprzedaze?status=zwrot">
-                <div class="stat-val red">{{ monthly.zwroty_cnt }}</div>
-                <div class="stat-lbl">Zwrotów</div>
-            </a>
-        </div>
+
+    <!-- Secondary metrics -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        <a href="/analityka" class="glass-panel" style="padding:12px 8px;text-align:center;text-decoration:none;color:inherit">
+            <div style="font-size:1rem;font-weight:700;color:var(--neon-secondary)">{{ monthly.prowizja }} zł</div>
+            <div style="font-size:0.55rem;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-top:3px">Prowizja 11%</div>
+        </a>
+        <a href="/analityka" class="glass-panel" style="padding:12px 8px;text-align:center;text-decoration:none;color:inherit">
+            <div style="font-size:1rem;font-weight:700;color:var(--neon-tertiary)">{{ monthly.roi }}%</div>
+            <div style="font-size:0.55rem;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-top:3px">ROI</div>
+        </a>
+        <a href="/magazyn" class="glass-panel" style="padding:12px 8px;text-align:center;text-decoration:none;color:inherit">
+            <div style="font-size:1rem;font-weight:700;color:var(--orange)">{{ monthly.magazyn_wartosc }} zł</div>
+            <div style="font-size:0.55rem;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-top:3px">Magazyn</div>
+        </a>
+        <a href="/sprzedaze?status=zwrot" class="glass-panel" style="padding:12px 8px;text-align:center;text-decoration:none;color:inherit">
+            <div style="font-size:1rem;font-weight:700;color:var(--red)">{{ monthly.zwroty_cnt }}</div>
+            <div style="font-size:0.55rem;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-top:3px">Zwrotów</div>
+        </a>
     </div>
 </div>
 {% endif %}
 
-<!-- Insights -->
+<!-- ═══════════════════════════════════════════════
+     Returns & Insights Section
+     ═══════════════════════════════════════════════ -->
 {% if insights %}
-<div class="section-title">📊 INSIGHTS</div>
-<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px">
+<div class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">📊 Insights</div>
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:24px">
 
-    <!-- 🔥 Najszybciej schodzące -->
-    <div class="card" style="margin:0">
-        <div class="card-header" style="margin-bottom:10px">
-            <span style="font-weight:700;font-size:0.9rem">🔥 Najszybciej schodzące</span>
-            <span style="color:var(--text-muted);font-size:0.75rem">30 dni</span>
+    <!-- Fastest selling -->
+    <div class="glass-card" style="padding:18px;margin:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <span class="font-display" style="font-weight:700;font-size:0.88rem">🔥 Najszybciej schodzące</span>
+            <span style="color:var(--text-muted);font-size:0.7rem">30 dni</span>
         </div>
         {% if insights.top_sellers %}
         {% for p in insights.top_sellers[:5] %}
-        <a href="/magazyn/produkt/MAG-{{ '%05d'|format(p.id) }}" style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);text-decoration:none;color:inherit">
-            <img src="{{ p.zdjecie_url or '/static/placeholder.png' }}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;background:#1a1a2e" onerror="this.src='/static/placeholder.png'">
+        <a href="/magazyn/produkt/MAG-{{ '%05d'|format(p.id) }}" style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);text-decoration:none;color:inherit">
+            <img src="{{ p.zdjecie_url or '/static/placeholder.png' }}" style="width:32px;height:32px;border-radius:8px;object-fit:cover;background:rgba(255,255,255,0.03)" onerror="this.src='/static/placeholder.png'" loading="lazy">
             <div style="flex:1;min-width:0">
                 <div style="font-size:0.8rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.nazwa[:40] }}</div>
-                <div style="font-size:0.7rem;color:var(--text-muted)">{{ p.kategoria or '' }} · stan: {{ p.stan }} szt</div>
+                <div style="font-size:0.68rem;color:var(--text-muted)">{{ p.kategoria or '' }} · stan: {{ p.stan }} szt</div>
             </div>
             <div style="text-align:right">
-                <div style="font-size:0.8rem;font-weight:700;color:var(--green)">{{ p.sprzedano_szt }}×</div>
-                <div style="font-size:0.7rem;color:var(--text-muted)">{{ p.przychod|int }} zł</div>
+                <div style="font-size:0.8rem;font-weight:700;color:var(--neon-tertiary)">{{ p.sprzedano_szt }}×</div>
+                <div style="font-size:0.68rem;color:var(--text-muted)">{{ p.przychod|int }} zł</div>
             </div>
         </a>
         {% endfor %}
@@ -452,23 +462,23 @@ function requestEarlyAccess(btn) {
         {% endif %}
     </div>
 
-    <!-- ⚠️ Kończy się — DOKUP -->
-    <div class="card" style="margin:0">
-        <div class="card-header" style="margin-bottom:10px">
-            <span style="font-weight:700;font-size:0.9rem">⚠️ Kończy się — dokup!</span>
-            <span style="color:var(--text-muted);font-size:0.75rem">stan ≤ 2</span>
+    <!-- Low stock -->
+    <div class="glass-card" style="padding:18px;margin:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <span class="font-display" style="font-weight:700;font-size:0.88rem">⚠️ Kończy się — dokup!</span>
+            <span style="color:var(--text-muted);font-size:0.7rem">stan ≤ 2</span>
         </div>
         {% if insights.low_stock %}
         {% for p in insights.low_stock[:5] %}
-        <a href="/magazyn/produkt/MAG-{{ '%05d'|format(p.id) }}" style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);text-decoration:none;color:inherit">
-            <img src="{{ p.zdjecie_url or '/static/placeholder.png' }}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;background:#1a1a2e" onerror="this.src='/static/placeholder.png'">
+        <a href="/magazyn/produkt/MAG-{{ '%05d'|format(p.id) }}" style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);text-decoration:none;color:inherit">
+            <img src="{{ p.zdjecie_url or '/static/placeholder.png' }}" style="width:32px;height:32px;border-radius:8px;object-fit:cover;background:rgba(255,255,255,0.03)" onerror="this.src='/static/placeholder.png'" loading="lazy">
             <div style="flex:1;min-width:0">
                 <div style="font-size:0.8rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.nazwa[:40] }}</div>
-                <div style="font-size:0.7rem;color:var(--text-muted)">sprzedano {{ p.sprzedano_szt }}× · {{ p.przychod|int }} zł</div>
+                <div style="font-size:0.68rem;color:var(--text-muted)">sprzedano {{ p.sprzedano_szt }}× · {{ p.przychod|int }} zł</div>
             </div>
             <div style="text-align:right">
                 <div style="font-size:0.8rem;font-weight:700;color:var(--orange)">{{ p.stan }} szt</div>
-                <div style="font-size:0.65rem;padding:2px 6px;background:rgba(249,115,22,0.2);color:#fb923c;border-radius:4px;font-weight:600">DOKUP</div>
+                <div style="font-size:0.6rem;padding:2px 6px;background:rgba(249,115,22,0.15);color:#fb923c;border-radius:4px;font-weight:600">DOKUP</div>
             </div>
         </a>
         {% endfor %}
@@ -477,23 +487,23 @@ function requestEarlyAccess(btn) {
         {% endif %}
     </div>
 
-    <!-- 💡 Warto dokupić — najlepsze kategorie -->
-    <div class="card" style="margin:0">
-        <div class="card-header" style="margin-bottom:10px">
-            <span style="font-weight:700;font-size:0.9rem">💡 Najlepsze kategorie</span>
-            <span style="color:var(--text-muted);font-size:0.75rem">90 dni</span>
+    <!-- Best categories -->
+    <div class="glass-card" style="padding:18px;margin:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <span class="font-display" style="font-weight:700;font-size:0.88rem">💡 Najlepsze kategorie</span>
+            <span style="color:var(--text-muted);font-size:0.7rem">90 dni</span>
         </div>
         {% if insights.best_categories %}
         {% for c in insights.best_categories[:5] %}
-        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-            <div style="width:32px;height:32px;border-radius:6px;background:rgba(99,102,241,0.2);display:flex;align-items:center;justify-content:center;font-size:0.9rem">📦</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+            <div style="width:32px;height:32px;border-radius:8px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:0.9rem">📦</div>
             <div style="flex:1;min-width:0">
                 <div style="font-size:0.8rem;font-weight:500">{{ c.kategoria }}</div>
-                <div style="font-size:0.7rem;color:var(--text-muted)">{{ c.produktow }} prod · {{ c.sprzedazy }}× sprzedano</div>
+                <div style="font-size:0.68rem;color:var(--text-muted)">{{ c.produktow }} prod · {{ c.sprzedazy }}× sprzedano</div>
             </div>
             <div style="text-align:right">
-                <div style="font-size:0.8rem;font-weight:700;color:var(--green)">{{ c.przychod|int }} zł</div>
-                <div style="font-size:0.7rem;color:var(--text-muted)">~{{ c.avg_dni_do_sprzedazy|int }} dni</div>
+                <div style="font-size:0.8rem;font-weight:700;color:var(--neon-tertiary)">{{ c.przychod|int }} zł</div>
+                <div style="font-size:0.68rem;color:var(--text-muted)">~{{ c.avg_dni_do_sprzedazy|int }} dni</div>
             </div>
         </div>
         {% endfor %}
@@ -502,23 +512,23 @@ function requestEarlyAccess(btn) {
         {% endif %}
     </div>
 
-    <!-- 🚫 Czego unikać — leżaki -->
-    <div class="card" style="margin:0">
-        <div class="card-header" style="margin-bottom:10px">
-            <span style="font-weight:700;font-size:0.9rem">🚫 Leżaki — rozważ przecenę</span>
-            <span style="color:var(--text-muted);font-size:0.75rem">&gt;60 dni</span>
+    <!-- Stale products -->
+    <div class="glass-card" style="padding:18px;margin:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <span class="font-display" style="font-weight:700;font-size:0.88rem">🚫 Leżaki — rozważ przecenę</span>
+            <span style="color:var(--text-muted);font-size:0.7rem">&gt;60 dni</span>
         </div>
         {% if insights.stale %}
         {% for p in insights.stale[:5] %}
-        <a href="/magazyn/produkt/MAG-{{ '%05d'|format(p.id) }}" style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);text-decoration:none;color:inherit">
-            <img src="{{ p.zdjecie_url or '/static/placeholder.png' }}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;background:#1a1a2e" onerror="this.src='/static/placeholder.png'">
+        <a href="/magazyn/produkt/MAG-{{ '%05d'|format(p.id) }}" style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);text-decoration:none;color:inherit">
+            <img src="{{ p.zdjecie_url or '/static/placeholder.png' }}" style="width:32px;height:32px;border-radius:8px;object-fit:cover;background:rgba(255,255,255,0.03)" onerror="this.src='/static/placeholder.png'" loading="lazy">
             <div style="flex:1;min-width:0">
                 <div style="font-size:0.8rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.nazwa[:40] }}</div>
-                <div style="font-size:0.7rem;color:var(--text-muted)"><span class="dostawca-name">{{ p.dostawca or '' }}</span> · {{ p.stan }} szt</div>
+                <div style="font-size:0.68rem;color:var(--text-muted)"><span class="dostawca-name">{{ p.dostawca or '' }}</span> · {{ p.stan }} szt</div>
             </div>
             <div style="text-align:right">
                 <div style="font-size:0.8rem;font-weight:700;color:var(--red)">{{ p.dni_w_magazynie }} dni</div>
-                {% if p.koszt_szt %}<div style="font-size:0.7rem;color:var(--text-muted)">~{{ p.koszt_szt|int }} zł/szt</div>{% endif %}
+                {% if p.koszt_szt %}<div style="font-size:0.68rem;color:var(--text-muted)">~{{ p.koszt_szt|int }} zł/szt</div>{% endif %}
             </div>
         </a>
         {% endfor %}
@@ -526,87 +536,85 @@ function requestEarlyAccess(btn) {
         <div style="color:var(--text-muted);font-size:0.8rem;padding:10px 0">Brak leżaków 🎉</div>
         {% endif %}
     </div>
-
 </div>
 {% endif %}
 
-<!-- Szybkie Akcje -->
-<div class="section-title">SZYBKIE AKCJE</div>
-<div class="quick-actions" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
-    <a href="/wysylki/allegro" class="qa-btn" style="flex-direction:column;text-align:center;padding:14px 8px">
-        <div class="qa-icon" style="background:var(--accent-soft)">📦</div>
-        <span>Wysyłki</span>
+<!-- ═══════════════════════════════════════════════
+     Quick Actions + Modules
+     ═══════════════════════════════════════════════ -->
+<div class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">Szybkie Akcje</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+    <a href="/wysylki/allegro" class="glass-card" style="text-decoration:none;color:inherit;padding:16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem">📦</div>
+        <span class="font-display" style="font-weight:600;font-size:0.82rem">Wysyłki</span>
     </a>
-    <a href="/palety" class="qa-btn" style="flex-direction:column;text-align:center;padding:14px 8px">
-        <div class="qa-icon" style="background:var(--blue-soft)">📋</div>
-        <span>Palety</span>
+    <a href="/palety" class="glass-card" style="text-decoration:none;color:inherit;padding:16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem">📋</div>
+        <span class="font-display" style="font-weight:600;font-size:0.82rem">Palety</span>
     </a>
-    <a href="/sprzedaze" class="qa-btn" style="flex-direction:column;text-align:center;padding:14px 8px">
-        <div class="qa-icon" style="background:var(--green-soft)">💰</div>
-        <span>Sprzedaż</span>
+    <a href="/sprzedaze" class="glass-card" style="text-decoration:none;color:inherit;padding:16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-tertiary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem">💰</div>
+        <span class="font-display" style="font-weight:600;font-size:0.82rem">Sprzedaż</span>
     </a>
-    <a href="/analityka" class="qa-btn" style="flex-direction:column;text-align:center;padding:14px 8px">
-        <div class="qa-icon" style="background:var(--yellow-soft)">📊</div>
-        <span>Analityka</span>
+    <a href="/analityka" class="glass-card" style="text-decoration:none;color:inherit;padding:16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div style="width:40px;height:40px;border-radius:12px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1.1rem">📊</div>
+        <span class="font-display" style="font-weight:600;font-size:0.82rem">Analityka</span>
     </a>
 </div>
 
-<!-- Moduły -->
-<div class="section-title">MODUŁY</div>
-<div class="dash-grid" style="margin-bottom:24px">
-    <a href="/paletomat" class="module-card">
+<!-- Modules -->
+<div class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">Moduły</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px">
+    <a href="/paletomat" class="glass-card" style="text-decoration:none;color:inherit;padding:18px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <div class="qa-icon" style="background:var(--accent-soft)">🤖</div>
+            <div style="width:38px;height:38px;border-radius:10px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">🤖</div>
             <div>
-                <div style="font-weight:700;font-size:0.9rem">Paletomat</div>
-                <div style="font-size:0.7rem;color:var(--text-muted)">Scraper → Allegro</div>
+                <div class="font-display" style="font-weight:700;font-size:0.9rem">Paletomat</div>
+                <div style="font-size:0.68rem;color:var(--text-muted)">Scraper → Allegro</div>
             </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span class="badge" style="background:var(--accent-soft);color:var(--accent)">{{ pal.aktywne }} ofert</span>
-            <span class="badge badge-success">{{ "%.0f"|format(pal.przychod) }} zł</span>
+            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-secondary-soft);color:var(--neon-secondary);font-weight:600">{{ pal.aktywne }} ofert</span>
+            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-tertiary-soft);color:var(--neon-tertiary);font-weight:600">{{ "%.0f"|format(pal.przychod) }} zł</span>
         </div>
     </a>
-
-    <a href="/magazyn" class="module-card">
+    <a href="/magazyn" class="glass-card" style="text-decoration:none;color:inherit;padding:18px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <div class="qa-icon" style="background:var(--blue-soft)">📦</div>
+            <div style="width:38px;height:38px;border-radius:10px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">📦</div>
             <div>
-                <div style="font-weight:700;font-size:0.9rem">Magazyn</div>
-                <div style="font-size:0.7rem;color:var(--text-muted)">Stany magazynowe</div>
+                <div class="font-display" style="font-weight:700;font-size:0.9rem">Magazyn</div>
+                <div style="font-size:0.68rem;color:var(--text-muted)">Stany magazynowe</div>
             </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span class="badge" style="background:var(--blue-soft);color:var(--blue)">{{ mag.produkty }} produktów</span>
-            <span class="badge" style="background:var(--blue-soft);color:var(--blue)">{{ mag.sztuki }} szt</span>
+            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-primary-soft);color:var(--neon-primary);font-weight:600">{{ mag.produkty }} produktów</span>
+            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-primary-soft);color:var(--neon-primary);font-weight:600">{{ mag.sztuki }} szt</span>
         </div>
     </a>
-
-    <a href="/allegro" class="module-card">
+    <a href="/allegro" class="glass-card" style="text-decoration:none;color:inherit;padding:18px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <div class="qa-icon" style="background:var(--yellow-soft)">🛒</div>
+            <div style="width:38px;height:38px;border-radius:10px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1rem">🛒</div>
             <div>
-                <div style="font-weight:700;font-size:0.9rem">Allegro</div>
-                <div style="font-size:0.7rem;color:var(--text-muted)">Integracja API</div>
+                <div class="font-display" style="font-weight:700;font-size:0.9rem">Allegro</div>
+                <div style="font-size:0.68rem;color:var(--text-muted)">Integracja API</div>
             </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span class="badge badge-warning">{{ allegro.status }}</span>
-            <span class="badge" style="background:var(--yellow-soft);color:var(--orange)">{{ allegro.oferty }} ofert</span>
+            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:rgba(234,179,8,0.08);color:var(--orange);font-weight:600">{{ allegro.status }}</span>
+            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:rgba(234,179,8,0.08);color:var(--orange);font-weight:600">{{ allegro.oferty }} ofert</span>
         </div>
     </a>
-
-    <a href="/warehouse/heatmap" class="module-card">
+    <a href="/warehouse/heatmap" class="glass-card" style="text-decoration:none;color:inherit;padding:18px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <div class="qa-icon" style="background:var(--accent-soft)">🗺️</div>
+            <div style="width:38px;height:38px;border-radius:10px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">🗺️</div>
             <div>
-                <div style="font-weight:700;font-size:0.9rem">Magazyn 3D</div>
-                <div style="font-size:0.7rem;color:var(--text-muted)">Heatmapa + regały</div>
+                <div class="font-display" style="font-weight:700;font-size:0.9rem">Magazyn 3D</div>
+                <div style="font-size:0.68rem;color:var(--text-muted)">Heatmapa + regały</div>
             </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span id="hm-locs" class="badge" style="background:var(--accent-soft);color:var(--accent)">-- lokalizacji</span>
-            <span id="hm-fill" class="badge" style="background:var(--accent-soft);color:var(--accent)">--% zapełn.</span>
+            <span id="hm-locs" style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-secondary-soft);color:var(--neon-secondary);font-weight:600">-- lokalizacji</span>
+            <span id="hm-fill" style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-secondary-soft);color:var(--neon-secondary);font-weight:600">--% zapełn.</span>
         </div>
     </a>
 </div>
@@ -620,163 +628,102 @@ fetch('/api/warehouse/heatmap').then(r=>r.json()).then(d=>{
 }).catch(()=>{});
 </script>
 
-<!-- Analityka -->
-<div class="section-title">ANALITYKA</div>
-<div class="quick-actions" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
-    <a href="/statystyki" class="qa-btn" style="flex-direction:column;text-align:center;padding:16px 8px" onclick="event.preventDefault();toggleDrilldown('dd-stats')">
-        <div class="qa-icon" style="background:var(--yellow-soft)">📊</div>
-        <div style="font-weight:700">STATYSTYKI</div>
-        <div style="font-size:0.65rem;color:var(--orange);margin-top:2px">przeglądaj</div>
-    </a>
-    <a href="/analityka/palety" class="qa-btn" style="flex-direction:column;text-align:center;padding:16px 8px" onclick="event.preventDefault();toggleDrilldown('dd-zakupy')">
-        <div class="qa-icon" style="background:var(--blue-soft)">🛒</div>
-        <div style="font-weight:700">ZAKUPY</div>
-        <div style="font-size:0.65rem;color:var(--cyan);margin-top:2px">analiza</div>
-    </a>
-    <a href="/magazyn/lezaki" class="qa-btn" style="flex-direction:column;text-align:center;padding:16px 8px" onclick="event.preventDefault();toggleDrilldown('dd-lezaki')">
-        <div class="qa-icon" style="background:var(--accent-soft)">⏳</div>
-        <div style="font-weight:700">LEŻAKI</div>
-        <div style="font-size:0.65rem;color:var(--purple);margin-top:2px">zalegające</div>
-    </a>
+<!-- ═══════════════════════════════════════════════
+     Analytics Drill-downs
+     ═══════════════════════════════════════════════ -->
+<div class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">Analityka</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+    <div onclick="toggleDrilldown('dd-stats')" class="glass-card" style="padding:16px 10px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="width:40px;height:40px;border-radius:12px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1.1rem">📊</div>
+        <div class="font-display" style="font-weight:700;font-size:0.82rem">Statystyki</div>
+        <div style="font-size:0.62rem;color:var(--orange)">przeglądaj</div>
+    </div>
+    <div onclick="toggleDrilldown('dd-zakupy')" class="glass-card" style="padding:16px 10px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem">🛒</div>
+        <div class="font-display" style="font-weight:700;font-size:0.82rem">Zakupy</div>
+        <div style="font-size:0.62rem;color:var(--neon-primary)">analiza</div>
+    </div>
+    <div onclick="toggleDrilldown('dd-lezaki')" class="glass-card" style="padding:16px 10px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem">⏳</div>
+        <div class="font-display" style="font-weight:700;font-size:0.82rem">Leżaki</div>
+        <div style="font-size:0.62rem;color:var(--neon-secondary)">zalegające</div>
+    </div>
 </div>
 
-<!-- Drill-down: STATYSTYKI -->
-<div id="dd-stats" class="card" style="display:none;animation:fadeIn 0.3s">
-    <div class="card-header">
-        <span class="card-title" style="color:var(--yellow)">📊 STATYSTYKI — drill down</span>
+<!-- Drill-down panels -->
+<div id="dd-stats" class="glass-card neon-glow-primary" style="display:none;padding:18px;margin-bottom:16px;animation:fadeIn 0.3s">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <span class="font-display" style="font-weight:700;color:var(--orange)">📊 Statystyki</span>
         <span onclick="toggleDrilldown('dd-stats')" style="cursor:pointer;color:var(--text-muted);font-size:0.8rem">✕</span>
     </div>
-    <div class="quick-actions">
-        <a href="/statystyki" class="qa-btn">
-            <div class="qa-icon" style="background:var(--blue-soft)">📈</div>
-            <div>
-                <div style="font-weight:600;color:var(--blue)">Pełne statystyki</div>
-                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Wykresy, trendy, KPI</div>
-            </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <a href="/statystyki" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
+            <span style="font-size:1.1rem">📈</span>
+            <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-primary)">Pełne statystyki</div><div style="font-size:0.62rem;color:var(--text-muted)">Wykresy, trendy</div></div>
         </a>
-        <a href="/analityka" class="qa-btn">
-            <div class="qa-icon" style="background:var(--green-soft)">💰</div>
-            <div>
-                <div style="font-weight:600;color:var(--green)">Zyski i przychody</div>
-                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Miesiąc, rok, per produkt</div>
-            </div>
+        <a href="/analityka" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
+            <span style="font-size:1.1rem">💰</span>
+            <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-tertiary)">Zyski i przychody</div><div style="font-size:0.62rem;color:var(--text-muted)">Per produkt</div></div>
         </a>
-        <a href="/analityka/kategorie" class="qa-btn">
-            <div class="qa-icon" style="background:var(--accent-soft)">🏷️</div>
-            <div>
-                <div style="font-weight:600;color:var(--purple)">Kategorie</div>
-                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Co się sprzedaje najlepiej</div>
-            </div>
+        <a href="/analityka/kategorie" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
+            <span style="font-size:1.1rem">🏷️</span>
+            <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-secondary)">Kategorie</div><div style="font-size:0.62rem;color:var(--text-muted)">Co sprzedaje się best</div></div>
         </a>
-        <a href="/analytics/dashboard" class="qa-btn">
-            <div class="qa-icon" style="background:var(--yellow-soft)">📊</div>
-            <div>
-                <div style="font-weight:600;color:var(--yellow)">Dashboard KPI</div>
-                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Porównania, raporty</div>
-            </div>
+        <a href="/analytics/dashboard" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
+            <span style="font-size:1.1rem">📊</span>
+            <div><div style="font-weight:600;font-size:0.82rem;color:var(--orange)">Dashboard KPI</div><div style="font-size:0.62rem;color:var(--text-muted)">Porównania</div></div>
         </a>
     </div>
 </div>
 
-<!-- Drill-down: ZAKUPY -->
-<div id="dd-zakupy" class="card" style="display:none;animation:fadeIn 0.3s">
-    <div class="card-header">
-        <span class="card-title" style="color:var(--cyan)">🛒 ZAKUPY — drill down</span>
+<div id="dd-zakupy" class="glass-card neon-glow-primary" style="display:none;padding:18px;margin-bottom:16px;animation:fadeIn 0.3s">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <span class="font-display" style="font-weight:700;color:var(--neon-primary)">🛒 Zakupy</span>
         <span onclick="toggleDrilldown('dd-zakupy')" style="cursor:pointer;color:var(--text-muted);font-size:0.8rem">✕</span>
     </div>
-    <div class="quick-actions">
-        <a href="/analityka/palety" class="qa-btn">
-            <div class="qa-icon" style="background:var(--blue-soft)">📦</div>
-            <div>
-                <div style="font-weight:600;color:var(--blue)">Bilans palet</div>
-                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">ROI per paleta</div>
-            </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <a href="/analityka/palety" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
+            <span style="font-size:1.1rem">📦</span>
+            <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-primary)">Bilans palet</div><div style="font-size:0.62rem;color:var(--text-muted)">ROI per paleta</div></div>
         </a>
-        <a href="/palety" class="qa-btn">
-            <div class="qa-icon" style="background:var(--green-soft)">📋</div>
-            <div>
-                <div style="font-weight:600;color:var(--green)">Lista palet</div>
-                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Wszystkie zakupy</div>
-            </div>
+        <a href="/palety" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
+            <span style="font-size:1.1rem">📋</span>
+            <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-tertiary)">Lista palet</div><div style="font-size:0.62rem;color:var(--text-muted)">Wszystkie zakupy</div></div>
         </a>
-        <a href="/analityka/okazje" class="qa-btn">
-            <div class="qa-icon" style="background:var(--yellow-soft)">🔥</div>
-            <div>
-                <div style="font-weight:600;color:var(--yellow)">Okazje</div>
-                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Monitoring dostawców</div>
-            </div>
+        <a href="/analityka/okazje" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
+            <span style="font-size:1.1rem">🔥</span>
+            <div><div style="font-weight:600;font-size:0.82rem;color:var(--orange)">Okazje</div><div style="font-size:0.62rem;color:var(--text-muted)">Monitoring</div></div>
         </a>
-        <a href="/sprzedaze" class="qa-btn">
-            <div class="qa-icon" style="background:var(--red-soft)">💳</div>
-            <div>
-                <div style="font-weight:600;color:var(--red)">Sprzedaże</div>
-                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Historia zamówień</div>
-            </div>
+        <a href="/sprzedaze" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
+            <span style="font-size:1.1rem">💳</span>
+            <div><div style="font-weight:600;font-size:0.82rem;color:var(--red)">Sprzedaże</div><div style="font-size:0.62rem;color:var(--text-muted)">Historia</div></div>
         </a>
     </div>
 </div>
 
-<!-- Drill-down: LEŻAKI -->
-<div id="dd-lezaki" class="card" style="display:none;animation:fadeIn 0.3s">
-    <div class="card-header">
-        <span class="card-title" style="color:var(--purple)">⏳ LEŻAKI — drill down</span>
+<div id="dd-lezaki" class="glass-card neon-glow-secondary" style="display:none;padding:18px;margin-bottom:16px;animation:fadeIn 0.3s">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <span class="font-display" style="font-weight:700;color:var(--neon-secondary)">⏳ Leżaki</span>
         <span onclick="toggleDrilldown('dd-lezaki')" style="cursor:pointer;color:var(--text-muted);font-size:0.8rem">✕</span>
     </div>
-    <div class="quick-actions">
-        <a href="/magazyn/lezaki" class="qa-btn">
-            <div class="qa-icon" style="background:var(--accent-soft)">⏳</div>
-            <div>
-                <div style="font-weight:600;color:var(--purple)">Stojące >30 dni</div>
-                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">{{ monthly.stojace }} produktów</div>
-            </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <a href="/magazyn/lezaki" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
+            <span style="font-size:1.1rem">⏳</span>
+            <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-secondary)">Stojące >30 dni</div><div style="font-size:0.62rem;color:var(--text-muted)">{{ monthly.stojace }} produktów</div></div>
         </a>
-        <a href="/magazyn" class="qa-btn">
-            <div class="qa-icon" style="background:var(--blue-soft)">📦</div>
-            <div>
-                <div style="font-weight:600;color:var(--blue)">Cały magazyn</div>
-                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">{{ mag.produkty }} produktów</div>
-            </div>
+        <a href="/magazyn" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
+            <span style="font-size:1.1rem">📦</span>
+            <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-primary)">Cały magazyn</div><div style="font-size:0.62rem;color:var(--text-muted)">{{ mag.produkty }} produktów</div></div>
         </a>
-        <a href="/sprzedaze?status=zwrot" class="qa-btn">
-            <div class="qa-icon" style="background:var(--red-soft)">↩️</div>
-            <div>
-                <div style="font-weight:600;color:var(--red)">Zwroty</div>
-                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">{{ monthly.zwroty_cnt }} w tym miesiącu</div>
-            </div>
+        <a href="/sprzedaze?status=zwrot" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
+            <span style="font-size:1.1rem">↩️</span>
+            <div><div style="font-weight:600;font-size:0.82rem;color:var(--red)">Zwroty</div><div style="font-size:0.62rem;color:var(--text-muted)">{{ monthly.zwroty_cnt }} w tym miesiącu</div></div>
         </a>
-        <a href="/warehouse/heatmap" class="qa-btn">
-            <div class="qa-icon" style="background:var(--green-soft)">🗺️</div>
-            <div>
-                <div style="font-weight:600;color:var(--green)">Mapa magazynu</div>
-                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Heatmapa 3D</div>
-            </div>
+        <a href="/warehouse/heatmap" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
+            <span style="font-size:1.1rem">🗺️</span>
+            <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-tertiary)">Mapa magazynu</div><div style="font-size:0.62rem;color:var(--text-muted)">Heatmapa 3D</div></div>
         </a>
     </div>
-</div>
-
-<!-- Operacje -->
-<div class="section-title">OPERACJE</div>
-<div class="quick-actions" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
-    <a href="/paletomat" class="qa-btn" style="flex-direction:column;text-align:center;padding:16px 8px">
-        <div class="qa-icon" style="background:var(--blue-soft)">🤖</div>
-        <div style="font-weight:700">Paletomat</div>
-        <div style="font-size:0.65rem;color:var(--blue);margin-top:2px">wystawiaj</div>
-    </a>
-    <a href="/wysylki/allegro" class="qa-btn" style="flex-direction:column;text-align:center;padding:16px 8px">
-        <div class="qa-icon" style="background:var(--green-soft)">📬</div>
-        <div style="font-weight:700">Wysyłki</div>
-        <div style="font-size:0.65rem;color:var(--green);margin-top:2px">pakuj</div>
-    </a>
-    <a href="/allegro/sync" class="qa-btn" style="flex-direction:column;text-align:center;padding:16px 8px">
-        <div class="qa-icon" style="background:var(--yellow-soft)">🔄</div>
-        <div style="font-weight:700">Sync</div>
-        <div style="font-size:0.65rem;color:var(--orange);margin-top:2px">zamówienia</div>
-    </a>
-    <a href="/magazyn/etykiety" class="qa-btn" style="flex-direction:column;text-align:center;padding:16px 8px">
-        <div class="qa-icon" style="background:var(--accent-soft)">🏷️</div>
-        <div style="font-weight:700">Etykiety</div>
-        <div style="font-size:0.65rem;color:var(--purple);margin-top:2px">masowe PNG</div>
-    </a>
 </div>
 
 <script>
@@ -788,64 +735,91 @@ function toggleDrilldown(id){
 }
 </script>
 
-<!-- Narzędzia -->
-<div class="quick-actions" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
-    <a href="/narzedzia/kalkulator" class="qa-btn" style="flex-direction:column;text-align:center;padding:10px">
-        <span style="font-size:1.2rem">💰</span>
-        <span style="font-size:0.7rem;color:var(--text-muted)">Kalkulator</span>
+<!-- ═══════════════════════════════════════════════
+     Operations + Tools
+     ═══════════════════════════════════════════════ -->
+<div class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">Operacje</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+    <a href="/paletomat" class="glass-card" style="text-decoration:none;color:inherit;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">🤖</div>
+        <div class="font-display" style="font-weight:700;font-size:0.78rem">Paletomat</div>
+        <div style="font-size:0.6rem;color:var(--neon-primary)">wystawiaj</div>
     </a>
-    <a href="/narzedzia/generator" class="qa-btn" style="flex-direction:column;text-align:center;padding:10px">
-        <span style="font-size:1.2rem">✨</span>
-        <span style="font-size:0.7rem;color:var(--text-muted)">Generator AI</span>
+    <a href="/wysylki/allegro" class="glass-card" style="text-decoration:none;color:inherit;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--neon-tertiary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">📬</div>
+        <div class="font-display" style="font-weight:700;font-size:0.78rem">Wysyłki</div>
+        <div style="font-size:0.6rem;color:var(--neon-tertiary)">pakuj</div>
     </a>
-    <a href="/analityka/okazje" class="qa-btn" style="flex-direction:column;text-align:center;padding:10px;border-color:rgba(234,179,8,0.25)">
-        <span style="font-size:1.2rem">🔥</span>
-        <span style="font-size:0.7rem;color:var(--yellow)">Okazje</span>
+    <a href="/allegro/sync" class="glass-card" style="text-decoration:none;color:inherit;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1rem">🔄</div>
+        <div class="font-display" style="font-weight:700;font-size:0.78rem">Sync</div>
+        <div style="font-size:0.6rem;color:var(--orange)">zamówienia</div>
+    </a>
+    <a href="/magazyn/etykiety" class="glass-card" style="text-decoration:none;color:inherit;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">🏷️</div>
+        <div class="font-display" style="font-weight:700;font-size:0.78rem">Etykiety</div>
+        <div style="font-size:0.6rem;color:var(--neon-secondary)">masowe PNG</div>
     </a>
 </div>
 
-<!-- Więcej narzędzi -->
+<!-- Tools row -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+    <a href="/narzedzia/kalkulator" class="glass-card" style="text-decoration:none;color:inherit;padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
+        <span style="font-size:1.2rem">💰</span>
+        <span style="font-size:0.7rem;color:var(--text-muted)">Kalkulator</span>
+    </a>
+    <a href="/narzedzia/generator" class="glass-card" style="text-decoration:none;color:inherit;padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
+        <span style="font-size:1.2rem">✨</span>
+        <span style="font-size:0.7rem;color:var(--text-muted)">Generator AI</span>
+    </a>
+    <a href="/analityka/okazje" class="glass-card" style="text-decoration:none;color:inherit;padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;border-color:rgba(234,179,8,0.2)">
+        <span style="font-size:1.2rem">🔥</span>
+        <span style="font-size:0.7rem;color:var(--orange)">Okazje</span>
+    </a>
+</div>
+
 <div style="display:flex;justify-content:space-between;margin-bottom:24px">
     <a href="/narzedzia" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none">Więcej narzędzi →</a>
     <a href="/ustawienia" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none">⚙️ Ustawienia</a>
     <a href="/changelog" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none">📋 Changelog</a>
 </div>
 
-<!-- Top Produkty -->
+<!-- ═══════════════════════════════════════════════
+     Top Products & Suppliers
+     ═══════════════════════════════════════════════ -->
 {% if top_produkty and top_produkty|length > 0 %}
-<div class="card">
-    <div class="card-header">
-        <span class="card-title">🏆 TOP PRODUKTY</span>
+<div class="glass-card" style="padding:20px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <span class="font-display" style="font-weight:700;font-size:0.92rem">🏆 TOP PRODUKTY</span>
     </div>
     {% for p in top_produkty[:5] %}
-    <div class="activity-item">
-        <div style="font-weight:700;color:var(--orange);width:20px;flex-shrink:0">{{ loop.index }}.</div>
-        <img src="{{ p.zdjecie_url or 'https://via.placeholder.com/40' }}" style="width:40px;height:40px;border-radius:var(--radius-sm);object-fit:cover;flex-shrink:0" loading="lazy">
-        <div class="activity-text">
-            <div class="activity-title">{{ p.nazwa[:40] }}{% if p.nazwa|length > 40 %}...{% endif %}</div>
-            <div class="activity-time">{{ p.sprzedazy_cnt }} szt</div>
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04){% if loop.last %};border:none{% endif %}">
+        <div class="font-display" style="font-weight:800;color:var(--neon-secondary);width:20px;flex-shrink:0;font-size:0.9rem">{{ loop.index }}.</div>
+        <img src="{{ p.zdjecie_url or 'https://via.placeholder.com/40' }}" style="width:40px;height:40px;border-radius:10px;object-fit:cover;flex-shrink:0" loading="lazy">
+        <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.nazwa[:40] }}{% if p.nazwa|length > 40 %}...{% endif %}</div>
+            <div style="font-size:0.7rem;color:var(--text-muted)">{{ p.sprzedazy_cnt }} szt</div>
         </div>
-        <div style="font-weight:600;color:var(--green);flex-shrink:0">{{ "%.0f"|format(p.sprzedazy_suma) }} zł</div>
+        <div style="font-weight:700;color:var(--neon-tertiary);flex-shrink:0;font-size:0.9rem">{{ "%.0f"|format(p.sprzedazy_suma) }} zł</div>
     </div>
     {% endfor %}
 </div>
 {% endif %}
 
-<!-- Top Dostawcy -->
 {% if top_dostawcy and top_dostawcy|length > 0 %}
-<div class="card">
-    <div class="card-header">
-        <span class="card-title">📦 TOP DOSTAWCY (ROI)</span>
+<div class="glass-card" style="padding:20px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <span class="font-display" style="font-weight:700;font-size:0.92rem">📦 TOP DOSTAWCY (ROI)</span>
     </div>
     {% for d in top_dostawcy[:5] %}
-    <div class="activity-item">
-        <div style="font-weight:700;color:var(--orange);width:20px;flex-shrink:0">{{ loop.index }}</div>
-        <div class="activity-text">
-            <div class="activity-title dostawca-name">{{ d.dostawca }}</div>
-            <div class="activity-time">{{ d.sprzedazy_cnt }} szt · {{ "%.0f"|format(d.przychod) }} zł</div>
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04){% if loop.last %};border:none{% endif %}">
+        <div class="font-display" style="font-weight:800;color:var(--neon-secondary);width:20px;flex-shrink:0;font-size:0.9rem">{{ loop.index }}</div>
+        <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:0.82rem" class="dostawca-name">{{ d.dostawca }}</div>
+            <div style="font-size:0.7rem;color:var(--text-muted)">{{ d.sprzedazy_cnt }} szt · {{ "%.0f"|format(d.przychod) }} zł</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
-            <div style="font-weight:700;color:{% if d.roi > 50 %}var(--green){% elif d.roi > 20 %}var(--yellow){% else %}var(--red){% endif %}">{{ "%.0f"|format(d.roi) }}%</div>
+            <div style="font-weight:700;color:{% if d.roi > 50 %}var(--neon-tertiary){% elif d.roi > 20 %}var(--orange){% else %}var(--red){% endif %}">{{ "%.0f"|format(d.roi) }}%</div>
             <div style="font-size:0.7rem;color:var(--text-muted)">koszt: {{ "%.0f"|format(d.koszt) }} zł</div>
         </div>
     </div>
@@ -853,52 +827,57 @@ function toggleDrilldown(id){
 </div>
 {% endif %}
 
-<!-- Ostatnia Aktywność -->
+<!-- Activity -->
 {% if activity %}
-<div class="card">
-    <div class="card-header">
-        <span class="card-title">🕐 OSTATNIA AKTYWNOŚĆ</span>
+<div class="glass-card" style="padding:20px;margin-bottom:20px">
+    <div style="margin-bottom:14px">
+        <span class="font-display" style="font-weight:700;font-size:0.92rem">🕐 Ostatnia Aktywność</span>
     </div>
     {% for a in activity %}
-    <div class="activity-item">
-        <div class="activity-icon {{ a.color }}">●</div>
-        <div class="activity-text">
-            <div class="activity-title">{{ a.msg }}</div>
-            <div class="activity-time">{{ a.time }}</div>
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04){% if loop.last %};border:none{% endif %}">
+        <div style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;
+            background:{% if a.color == 'green' %}var(--neon-tertiary-soft){% elif a.color == 'blue' %}var(--neon-primary-soft){% elif a.color == 'yellow' %}rgba(234,179,8,0.08){% else %}var(--neon-secondary-soft){% endif %}">●</div>
+        <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:0.82rem">{{ a.msg }}</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">{{ a.time }}</div>
         </div>
     </div>
     {% endfor %}
 </div>
 {% endif %}
 
-<!-- Licencja -->
-<div class="card" style="border-color:{% if lic_days_left == 'Wygasla!' %}var(--accent-red){% elif lic_days_left %}rgba(99,102,241,0.4){% else %}var(--border-color){% endif %}">
-    <div class="card-header">
-        <span class="card-title">🔑 LICENCJA</span>
-        <a href="/license" style="color:var(--accent-blue);font-size:0.8rem;text-decoration:none">Szczegóły →</a>
+<!-- License -->
+<div class="glass-card" style="padding:20px;border-color:{% if lic_days_left == 'Wygasla!' %}rgba(239,68,68,0.3){% elif lic_days_left %}rgba(0,241,254,0.2){% else %}rgba(255,255,255,0.06){% endif %}">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <span class="font-display" style="font-weight:700;font-size:0.92rem">🔑 Licencja</span>
+        <a href="/license" style="color:var(--neon-primary);font-size:0.78rem;text-decoration:none;font-weight:600">Szczegóły →</a>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:center">
         <div>
-            <div style="font-size:1.4rem;font-weight:700;color:var(--accent-purple)">{{ lic_plan }}</div>
-            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">PLAN</div>
+            <div class="font-display" style="font-size:1.3rem;font-weight:800;color:var(--neon-secondary)">{{ lic_plan }}</div>
+            <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:1px">Plan</div>
         </div>
         <div>
-            <div style="font-size:1.4rem;font-weight:700;color:{% if lic_days_left == 'Wygasla!' %}var(--accent-red){% else %}var(--accent-green){% endif %}">{{ lic_days_left or 'Bezterminowo' }}</div>
-            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">POZOSTAŁO</div>
+            <div class="font-display" style="font-size:1.3rem;font-weight:800;color:{% if lic_days_left == 'Wygasla!' %}var(--red){% else %}var(--neon-tertiary){% endif %}">{{ lic_days_left or 'Bezterminowo' }}</div>
+            <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:1px">Pozostało</div>
         </div>
         <div>
-            <div style="font-size:1.4rem;font-weight:700;color:var(--text-secondary)">{{ lic_expires or '∞' }}</div>
-            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">WYGASA</div>
+            <div class="font-display" style="font-size:1.3rem;font-weight:800;color:var(--text-secondary)">{{ lic_expires or '∞' }}</div>
+            <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:1px">Wygasa</div>
         </div>
     </div>
 </div>
 
-<!-- Sales Notification -->
-<div id="salesNotification" style="display:none;position:fixed;top:20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--green),#16a34a);padding:20px 30px;border-radius:var(--radius);z-index:9999;box-shadow:0 10px 40px rgba(34,197,94,0.4);animation:slideIn 0.5s ease">
+<!-- ═══════════════════════════════════════════════
+     Sales Notification (preserved from original)
+     ═══════════════════════════════════════════════ -->
+<div id="salesNotification" style="display:none;position:fixed;top:20px;left:50%;transform:translateX(-50%);
+    background:linear-gradient(135deg,var(--neon-tertiary),#16a34a);padding:20px 30px;border-radius:var(--radius);
+    z-index:9999;box-shadow:0 10px 40px rgba(91,240,131,0.4),0 0 30px rgba(91,240,131,0.2);animation:slideIn 0.5s ease">
     <div style="display:flex;align-items:center;gap:15px">
         <span style="font-size:2.5rem">🎉</span>
         <div>
-            <div style="font-weight:700;font-size:1.2rem;color:#fff">SPRZEDANO!</div>
+            <div class="font-display" style="font-weight:800;font-size:1.2rem;color:#fff">SPRZEDANO!</div>
             <div id="saleDetails" style="color:rgba(255,255,255,0.9);font-size:0.95rem"></div>
         </div>
     </div>
@@ -908,6 +887,14 @@ function toggleDrilldown(id){
 @keyframes slideIn {
     from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
     to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+/* Responsive overrides for stitch layout */
+@media(max-width:900px){
+    .stitch-kpi .kpi-value{font-size:1.4rem}
+    .sparkline-container{width:60px!important}
+}
+@media(max-width:600px){
+    .stitch-kpi .kpi-value{font-size:1.2rem}
 }
 </style>
 
