@@ -124,34 +124,34 @@ def get_stats():
 # SZABLONY
 # ============================================================
 _MAGAZYNIER_CSS = '''
-/* Magazynier module-specific styles using base.html CSS variables */
-.hdr{text-align:center;padding:15px 0;border-bottom:1px solid var(--border);margin-bottom:15px}
-.hdr h1{font-size:1.5rem;color:var(--accent)}
-.hdr small{color:var(--text-muted);font-size:0.8rem}
-.stat-v{font-size:1.4rem;font-weight:700;color:var(--accent)}
-.stat-v.green{color:var(--green)}
-.stat-l{font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;margin-top:4px}
-.btn-p{background:linear-gradient(135deg,var(--accent),var(--accent2))}
-.btn-ok{background:var(--green)}
-.btn-2{background:var(--bg);border:1px solid var(--border);color:var(--text)}
-.btn-warn{background:var(--yellow);color:#000}
-.btn-err{background:var(--red)}
-.search{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:15px}
+/* Magazynier module — Stitch Design System */
+.hdr{text-align:center;padding:20px 0;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:20px}
+.hdr h1{font-size:1.6rem;font-family:'Space Grotesk','Inter',sans-serif;font-weight:800;color:#00f1fe;text-shadow:0 0 10px rgba(0,241,254,0.3)}
+.hdr small{color:var(--text-muted);font-size:0.85rem}
+.stat-v{font-size:1.5rem;font-weight:800;font-family:'Space Grotesk','Inter',sans-serif;color:#00f1fe}
+.stat-v.green{color:#5bf083}
+.stat-l{font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px;font-weight:600}
+.btn-p{background:linear-gradient(135deg,#00f1fe,#c180ff)}
+.btn-ok{background:linear-gradient(135deg,#5bf083,#22c55e)}
+.btn-2{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--text)}
+.btn-warn{background:linear-gradient(135deg,#eab308,#d97706);color:#000}
+.btn-err{background:linear-gradient(135deg,#ef4444,#dc2626)}
+.search{background:rgba(22,26,33,0.7);backdrop-filter:blur(12px);border:1px solid rgba(0,241,254,0.08);border-radius:var(--radius);padding:14px;margin-bottom:15px}
 .search form{display:flex;gap:10px}
-.search input{flex:1;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:1rem;transition:border-color 0.3s}
-.search input:focus{outline:none;border-color:var(--accent)}
-.search button{padding:14px 20px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--radius-sm);color:#fff;font-size:1.2rem;cursor:pointer;transition:all 0.2s}
-.search button:hover{transform:scale(1.05)}
+.search input{flex:1;padding:14px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:var(--text);font-size:1rem;transition:border-color 0.3s}
+.search input:focus{outline:none;border-color:#00f1fe;box-shadow:0 0 12px rgba(0,241,254,0.15)}
+.search button{padding:14px 20px;background:linear-gradient(135deg,#00f1fe,#c180ff);border:none;border-radius:var(--radius-sm);color:#000;font-size:1.2rem;cursor:pointer;transition:all 0.2s;font-weight:700}
+.search button:hover{transform:scale(1.05);box-shadow:0 0 20px rgba(0,241,254,0.3)}
 .items-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.item{display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;text-decoration:none;color:var(--text);transition:all 0.3s;box-shadow:var(--shadow)}
-.item:hover{border-color:var(--accent);transform:translateX(4px)}
-.item img{width:50px;height:50px;object-fit:contain;background:#fff;border-radius:6px;margin-right:12px}
+.item{display:flex;align-items:center;background:rgba(22,26,33,0.7);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius);padding:14px;margin-bottom:8px;text-decoration:none;color:var(--text);transition:all 0.3s;box-shadow:0 4px 16px rgba(0,0,0,0.2)}
+.item:hover{border-color:rgba(0,241,254,0.25);transform:translateX(4px);box-shadow:0 4px 20px rgba(0,241,254,0.1)}
+.item img{width:50px;height:50px;object-fit:contain;background:rgba(255,255,255,0.9);border-radius:8px;margin-right:12px}
 .item-info{flex:1;min-width:0}
-.item-name{font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.item-meta{font-size:0.75rem;color:var(--text-muted)}
+.item-name{font-weight:600;font-size:0.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-meta{font-size:0.78rem;color:var(--text-muted)}
 .item-right{text-align:right;margin-left:10px}
-.item-qty{font-size:1.2rem;font-weight:700;color:var(--accent)}
-.item-price{font-size:0.75rem;color:var(--green)}
+.item-qty{font-size:1.3rem;font-weight:800;font-family:'Space Grotesk','Inter',sans-serif;color:#00f1fe}
+.item-price{font-size:0.78rem;color:#5bf083}
 .card-img{width:100%;max-height:250px;object-fit:contain;background:#fff;padding:10px}
 .card-body{padding:15px}
 .card-name{font-size:1.15rem;font-weight:600;margin-bottom:12px}
@@ -3349,20 +3349,22 @@ def palety():
     html = '''<div class="hdr"><h1>📦 PALETY</h1></div>
 
     <!-- Masowa edycja -->
-    <div style="background:#12121a;border:1px solid #1e293b;border-radius:12px;padding:12px;margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <div style="font-size:0.85rem;color:#64748b;margin-right:4px">Zaznaczone:</div>
-        <button onclick="selectAll()" style="padding:5px 10px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#94a3b8;font-size:0.75rem;cursor:pointer">☑️ Wszystkie</button>
-        <button onclick="selectNone()" style="padding:5px 10px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#94a3b8;font-size:0.75rem;cursor:pointer">◻️ Odznacz</button>
+    <div class="glass-panel" style="padding:14px;margin-bottom:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-radius:var(--radius)">
+        <div style="font-size:0.85rem;color:var(--text-muted);margin-right:4px;font-weight:600">Zaznaczone:</div>
+        <button onclick="selectAll()" style="padding:5px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text-muted);font-size:0.78rem;cursor:pointer;transition:all 0.2s">☑️ Wszystkie</button>
+        <button onclick="selectNone()" style="padding:5px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text-muted);font-size:0.78rem;cursor:pointer;transition:all 0.2s">◻️ Odznacz</button>
         <div style="flex:1"></div>
-        <button onclick="massUpdate(1)" style="padding:6px 12px;background:#22c55e22;border:1px solid #22c55e;border-radius:8px;color:#22c55e;font-size:0.8rem;cursor:pointer;font-weight:600">✅ Dostarczone</button>
-        <button onclick="massUpdate(0)" style="padding:6px 12px;background:#f59e0b22;border:1px solid #f59e0b;border-radius:8px;color:#f59e0b;font-size:0.8rem;cursor:pointer;font-weight:600">🚚 W drodze</button>
-        <button onclick="massDelete()" style="padding:6px 12px;background:#ef444422;border:1px solid #ef4444;border-radius:8px;color:#ef4444;font-size:0.8rem;cursor:pointer;font-weight:600">🗑️ Usuń</button>
-        <button onclick="pokazBoxPaletyModal()" style="padding:6px 12px;background:#f59e0b22;border:1px solid #f59e0b;border-radius:8px;color:#f59e0b;font-size:0.8rem;cursor:pointer;font-weight:600">📫 Zgrupuj w box</button>
-        <span id="selectedCount" style="font-size:0.75rem;color:#64748b;margin-left:4px">(0 zaznaczonych)</span>
+        <button onclick="massUpdate(1)" style="padding:6px 14px;background:rgba(91,240,131,0.08);border:1px solid rgba(91,240,131,0.3);border-radius:8px;color:#5bf083;font-size:0.82rem;cursor:pointer;font-weight:600;transition:all 0.2s">✅ Dostarczone</button>
+        <button onclick="massUpdate(0)" style="padding:6px 14px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.3);border-radius:8px;color:#eab308;font-size:0.82rem;cursor:pointer;font-weight:600;transition:all 0.2s">🚚 W drodze</button>
+        <button onclick="massDelete()" style="padding:6px 14px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:8px;color:#ef4444;font-size:0.82rem;cursor:pointer;font-weight:600;transition:all 0.2s">🗑️ Usuń</button>
+        <button onclick="pokazBoxPaletyModal()" style="padding:6px 14px;background:rgba(193,128,255,0.08);border:1px solid rgba(193,128,255,0.3);border-radius:8px;color:#c180ff;font-size:0.82rem;cursor:pointer;font-weight:600;transition:all 0.2s">📫 Zgrupuj w box</button>
+        <span id="selectedCount" style="font-size:0.78rem;color:var(--text-muted);margin-left:4px">(0 zaznaczonych)</span>
     </div>
-    <div style="margin-bottom:12px">
+    <div style="margin-bottom:14px">
         <input type="text" id="paletaSearch" oninput="searchPalety()" placeholder="🔍 Szukaj palety..."
-            style="width:100%;padding:10px 14px;background:#12121a;border:1px solid #1e293b;border-radius:10px;color:#e2e8f0;font-size:0.9rem;outline:none">
+            style="width:100%;padding:12px 16px;background:rgba(0,0,0,0.2);border:1px solid rgba(0,241,254,0.1);border-radius:var(--radius);color:var(--text);font-size:0.95rem;outline:none;transition:border-color 0.3s"
+            onfocus="this.style.borderColor='rgba(0,241,254,0.3)';this.style.boxShadow='0 0 15px rgba(0,241,254,0.1)'"
+            onblur="this.style.borderColor='rgba(0,241,254,0.1)';this.style.boxShadow='none'">
     </div>'''
 
     for p in result:
@@ -3385,22 +3387,22 @@ def palety():
         dostarczona = dostarczona_map.get(p['id'], 0)
         dostarczona_label = '✅ Dostarczona' if dostarczona else '🚚 W drodze'
         dostarczona_color = '#22c55e' if dostarczona else '#f59e0b'
-        html += f'''<div class="item" style="position:relative;display:flex;align-items:center;gap:8px">
+        html += f'''<div class="item" style="position:relative;display:flex;align-items:center;gap:10px">
             <input type="checkbox" class="paleta-cb" data-id="{p['id']}"
-                style="width:24px;height:24px;cursor:pointer;accent-color:#3b82f6;flex-shrink:0">
-            <a href="{link}" style="display:flex;flex:1;align-items:center;text-decoration:none;color:inherit;min-width:0;gap:10px">
-                <div style="font-size:1.5rem">{'📫' if p['typ'] == 'box' else '📦'}</div>
+                style="width:22px;height:22px;cursor:pointer;accent-color:#00f1fe;flex-shrink:0">
+            <a href="{link}" style="display:flex;flex:1;align-items:center;text-decoration:none;color:inherit;min-width:0;gap:12px">
+                <div style="font-size:1.6rem;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:{'rgba(193,128,255,0.08)' if p['typ'] == 'box' else 'rgba(0,241,254,0.06)'};flex-shrink:0">{'📫' if p['typ'] == 'box' else '📦'}</div>
                 <div class="item-info" style="flex:1;min-width:0">
-                    <div class="item-name">{p['nazwa']}{'<span style="font-size:0.65rem;background:#3b82f633;color:#3b82f6;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle">BOX</span>' if p['typ'] == 'box' else ''}</div>
+                    <div class="item-name">{p['nazwa']}{'<span style="font-size:0.65rem;background:rgba(193,128,255,0.15);color:#c180ff;padding:2px 8px;border-radius:5px;margin-left:6px;vertical-align:middle;font-weight:600">BOX</span>' if p['typ'] == 'box' else ''}</div>
                     <div class="item-meta" style="color:{cnt_color}">{p['cnt']} prod. | {sztuki} szt{dostawca_info}{data_info}</div>
                     <div class="item-meta">💰 Zakup: {zakup_brutto:.0f} zł</div>
                 </div>
             </a>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:100px;flex-shrink:0">
-                <div style="color:#22c55e;font-weight:700">{p['wartosc_allegro'] or 0:.0f} zł</div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:120px;flex-shrink:0">
+                <div style="color:#5bf083;font-weight:700;font-family:'Space Grotesk',sans-serif;font-size:1.05rem;text-shadow:0 0 8px rgba(91,240,131,0.2)">{p['wartosc_allegro'] or 0:.0f} zł</div>
                 <button onclick="toggleDostarczona({p['id']}, this)"
                     data-val="{dostarczona}"
-                    style="padding:4px 8px;border:1px solid {dostarczona_color};background:{dostarczona_color}22;color:{dostarczona_color};border-radius:6px;font-size:0.7rem;cursor:pointer;white-space:nowrap">
+                    style="padding:4px 10px;border:1px solid {dostarczona_color}50;background:{dostarczona_color}15;color:{dostarczona_color};border-radius:8px;font-size:0.72rem;cursor:pointer;white-space:nowrap;font-weight:600;transition:all 0.2s">
                     {dostarczona_label}
                 </button>
             </div>
@@ -3562,8 +3564,8 @@ def palety():
     </script>
 
     <!-- Modal: Zgrupuj palety w Box -->
-    <div id="modalBoxPalety" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center">
-        <div style="background:var(--bg-card);border-radius:14px;padding:25px;max-width:450px;width:90%;max-height:80vh;overflow-y:auto;border:2px solid #f59e0b">
+    <div id="modalBoxPalety" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);z-index:999;align-items:center;justify-content:center">
+        <div class="glass-card" style="padding:25px;max-width:450px;width:90%;max-height:80vh;overflow-y:auto;border-color:rgba(193,128,255,0.3);box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 30px rgba(193,128,255,0.1)">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
                 <h3 style="margin:0;color:#f59e0b">📫 Zgrupuj w Box</h3>
                 <button onclick="document.getElementById('modalBoxPalety').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer">&times;</button>
