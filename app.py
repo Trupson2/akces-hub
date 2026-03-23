@@ -150,12 +150,11 @@ def add_ngrok_headers(response):
 
 @app.before_request
 def csrf_protect_forms():
-    """CSRF dla formularzy HTML — waliduj gdy token jest obecny w formularzu.
-    Formularze z csrf_token są chronione; reszta (API, legacy) przechodzi."""
+    """CSRF dla formularzy HTML — waliduj TYLKO gdy token jest obecny w formularzu.
+    Formularze z csrf_token są chronione; reszta (API, legacy, upload) przechodzi."""
     if request.method in ('POST', 'PUT', 'DELETE', 'PATCH'):
-        # Waliduj CSRF jeśli formularz zawiera token LUB jest to krytyczny endpoint
-        CSRF_ENFORCED = ('/license', '/admin/', '/setup', '/narzedzia/licencje')
-        if request.form.get('csrf_token') or any(request.path.startswith(p) for p in CSRF_ENFORCED):
+        # Waliduj CSRF TYLKO jeśli formularz faktycznie zawiera csrf_token
+        if request.form.get('csrf_token'):
             csrf.protect()
 
 # Sprawdzanie licencji
@@ -213,6 +212,24 @@ def check_onboarding_middleware():
         from modules.onboarding import is_onboarding_completed
         if not is_onboarding_completed():
             return redirect('/onboarding')
+    except ImportError:
+        pass
+
+# Sprawdzanie planu licencyjnego (ograniczenia funkcji per plan)
+@app.before_request
+def check_plan_features():
+    """Blokuj dostęp do funkcji wymagających wyższego planu."""
+    allowed = ('/auth', '/static', '/license', '/setup', '/favicon', '/api/', '/eula', '/onboarding', '/subscription-expired', '/time-manipulation', '/system/')
+    if any(request.path.startswith(p) for p in allowed):
+        return
+    if request.path == '/':
+        return
+    try:
+        from modules.plan_features import has_feature_access, get_required_plan_display, PLAN_DISPLAY, get_current_plan
+        if not has_feature_access(request.path):
+            required = get_required_plan_display(request.path)
+            current = PLAN_DISPLAY.get(get_current_plan(), 'TRIAL')
+            return render_template('plan_upgrade.html', required_plan=required, current_plan=current, path=request.path), 403
     except ImportError:
         pass
 
@@ -2611,10 +2628,21 @@ def _is_dev_mode():
 
 @app.route('/narzedzia')
 def narzedzia():
+    # Plan features — przekaż do szablonu info o zablokowanych funkcjach
+    plan_level = 1
+    current_plan = 'starter'
+    try:
+        from modules.plan_features import get_plan_level, get_current_plan
+        current_plan = get_current_plan()
+        plan_level = get_plan_level(current_plan)
+    except ImportError:
+        pass
     return render_template('narzedzia.html',
         version=VERSION,
         is_admin=(session.get('rola') == 'admin'),
         is_dev=_is_dev_mode(),
+        plan_level=plan_level,
+        current_plan=current_plan,
         active_narzedzia='active', active_home='', active_magazyn='',
         active_paletomat='', active_allegro='', active_monitor='')
 

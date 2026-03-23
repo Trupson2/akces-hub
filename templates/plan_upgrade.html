@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block page_title %}Wymagany wyższy plan{% endblock %}
+{% block content %}
+<style>
+.upgrade-container{max-width:500px;margin:80px auto;text-align:center}
+.upgrade-icon{font-size:4rem;margin-bottom:20px}
+.upgrade-title{font-size:1.5rem;font-weight:800;margin-bottom:10px;color:var(--text-primary)}
+.upgrade-desc{color:var(--text-muted);font-size:0.9rem;margin-bottom:30px;line-height:1.6}
+.plan-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-weight:700;font-size:0.8rem;margin:0 4px}
+.plan-current{background:rgba(100,116,139,0.2);color:#94a3b8;border:1px solid #334155}
+.plan-required{background:rgba(139,92,246,0.15);color:#a78bfa;border:1px solid #6366f1}
+.upgrade-features{background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:16px;padding:24px;margin:20px 0;text-align:left}
+.upgrade-features h3{font-size:0.85rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.plan-list{list-style:none;padding:0}
+.plan-list li{padding:8px 0;font-size:0.88rem;color:var(--text-primary);display:flex;align-items:center;gap:10px}
+.plan-list li::before{content:'✓';color:#22c55e;font-weight:700;font-size:1.1rem}
+.plan-list li.locked::before{content:'🔒';font-size:0.9rem}
+.plan-list li.locked{color:var(--text-muted)}
+.back-btn{display:inline-block;margin-top:20px;padding:10px 28px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:10px;color:var(--text-primary);text-decoration:none;font-size:0.9rem;transition:all 0.2s}
+.back-btn:hover{border-color:#6366f1;background:rgba(99,102,241,0.1)}
+.contact-btn{display:inline-block;margin-top:10px;padding:10px 28px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:10px;color:#fff;text-decoration:none;font-size:0.9rem;font-weight:600;transition:all 0.2s}
+.contact-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(99,102,241,0.3)}
+</style>
+
+<div class="upgrade-container">
+    <div class="upgrade-icon">🔒</div>
+    <div class="upgrade-title">Funkcja wymaga planu {{ required_plan }}</div>
+    <div class="upgrade-desc">
+        Twój aktualny plan: <span class="plan-badge plan-current">{{ current_plan }}</span>
+        <br>Wymagany: <span class="plan-badge plan-required">{{ required_plan }}</span>
+    </div>
+
+    <div class="upgrade-features">
+        <h3>Dostępne plany</h3>
+        <ul class="plan-list">
+            <li>TRIAL — Palety, produkty, sprzedaże, kalkulator marży</li>
+            <li {% if current_plan in ['TRIAL'] %}class="locked"{% endif %}>PRO — Analityka, raporty ROI, dashboard KPI, eksport</li>
+            <li {% if current_plan in ['TRIAL', 'PRO'] %}class="locked"{% endif %}>MAX — Allegro, Telegram, AI opisy, bulk import</li>
+            <li {% if current_plan != 'ENTERPRISE' %}class="locked"{% endif %}>ENTERPRISE — Wszystko + generator licencji, serwis, magazyn 3D</li>
+        </ul>
+    </div>
+
+    <a href="/support/pomysl" class="contact-btn">Skontaktuj się w sprawie upgradu</a>
+    <br>
+    <a href="javascript:history.back()" class="back-btn">← Powrót</a>
+</div>
+{% endblock %}
