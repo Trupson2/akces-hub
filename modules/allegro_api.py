@@ -1714,89 +1714,95 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
     if ean_clean:
         print(f"📊 EAN: {ean_clean} (będzie dodany jako parametr GTIN)")
     
-    # === PARAMETRY KATEGORII - WYPEŁNIANE PRZEZ AI ===
-    product_params = []  # Init żeby zmienna zawsze istniała
-    skip_auto_params = get_config('skip_allegro_auto_params', 'false')
-    print(f"🔧 skip_allegro_auto_params = '{skip_auto_params}' (config DB)")
-
-    # ZAWSZE buduj parametry - chyba że jawnie wyłączone
-    if skip_auto_params.lower() in ('true', '1', 'yes', 'tak'):
-        print(f"⏭️ Skip AI parameters (włącz w Ustawienia → skip_allegro_auto_params = false)")
-    else:
-        print(f"🤖 Building category parameters with AI... (kategoria: {kategoria_id})")
-        gemini_key = get_config('gemini_api_key', '')
-        if not gemini_key:
-            print(f"⚠️ Brak klucza Gemini API — parametry będą budowane bez AI (fallbacki)")
-        try:
-            params_result = build_offer_parameters_ai(
-                category_id=kategoria_id,
-                product_name=nazwa,
-                description=opis,
-                ean=ean_clean,
-                asin=asin,
-                gemini_key=gemini_key,
-                product_specs=product_specs
-            )
-
-            # Nowy format: {'offer': [...], 'product': [...]}
-            if isinstance(params_result, dict) and 'offer' in params_result:
-                offer_params = params_result.get('offer', [])
-                product_params = params_result.get('product', [])
-
-                if offer_params:
-                    offer_data['parameters'] = offer_params
-                    print(f"✅ Added {len(offer_params)} OFFER parameters")
-                if product_params:
-                    print(f"✅ Added {len(product_params)} PRODUCT parameters → productSet")
-            elif isinstance(params_result, list) and params_result:
-                # Backwards compatibility
-                offer_data['parameters'] = params_result
-                product_params = []
-                print(f"✅ Added {len(params_result)} parameters (legacy)")
-            else:
-                product_params = []
-                print(f"⚠️ build_offer_parameters_ai returned empty")
-        except Exception as e:
-            import traceback
-            print(f"❌ AI parameters ERROR: {e}")
-            traceback.print_exc()
-            product_params = []
-
-    # === productSet: NIE dodajemy do POST (ignoruje) — wszystko przez PATCH ===
-    _gpsr_ps_entry = {}  # GPSR + producent + osoba -> PATCH
-    _product_ps_entry = {}  # EAN/product -> PATCH
-
-    # GPSR - upload jako PDF attachment (Allegro nie obsługuje type MANUAL/TEXT!)
+    # === RÓWNOLEGŁY: AI parametry + GPSR upload + producent/osoba ===
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    product_params = []
+    _gpsr_ps_entry = {}
+    _product_ps_entry = {}
     _gpsr_attachment_id = None
-    if gpsr:
-        _gpsr_attachment_id = upload_gpsr_attachment(gpsr, nazwa)
-        if _gpsr_attachment_id:
-            _gpsr_ps_entry['safetyInformation'] = {
-                'type': 'ATTACHMENTS',
-                'attachments': [{'id': _gpsr_attachment_id}]
-            }
-            _gpsr_ps_entry['marketedBeforeGPSRObligation'] = False
-            print(f"GPSR: {len(gpsr)} znakow -> attachment {_gpsr_attachment_id}")
-        else:
-            print(f"⚠️ GPSR: upload PDF failed - GPSR nie zostanie dodany do oferty")
 
-    # Producent + Osoba odpowiedzialna
-    if gpsr:
+    skip_auto_params = get_config('skip_allegro_auto_params', 'false')
+    gemini_key = get_config('gemini_api_key', '')
+
+    def _task_ai_params():
+        """AI parametry kategorii (Gemini call ~10-20s)"""
+        if skip_auto_params.lower() in ('true', '1', 'yes', 'tak'):
+            return None
+        try:
+            return build_offer_parameters_ai(
+                category_id=kategoria_id, product_name=nazwa, description=opis,
+                ean=ean_clean, asin=asin, gemini_key=gemini_key, product_specs=product_specs
+            )
+        except Exception as e:
+            print(f"❌ AI params: {e}")
+            return None
+
+    def _task_gpsr_upload():
+        """Upload GPSR PDF (~2-5s)"""
+        if not gpsr:
+            return None
+        return upload_gpsr_attachment(gpsr, nazwa)
+
+    def _task_gpsr_producer():
+        """Pobierz producenta z Allegro (~1s)"""
+        if not gpsr:
+            return None
         try:
             producers = get_responsible_producers()
-            if producers:
-                _gpsr_ps_entry['responsibleProducer'] = {'type': 'ID', 'id': producers[0]['id']}
-                print(f"Producent: {producers[0].get('name', '?')} -> PATCH")
-        except Exception as e:
-            print(f"Producent error: {e}")
+            return producers[0] if producers else None
+        except:
+            return None
 
+    def _task_gpsr_person():
+        """Pobierz osobę odpowiedzialną (~1s)"""
+        if not gpsr:
+            return None
         try:
             persons = get_responsible_persons()
-            if persons:
-                _gpsr_ps_entry['responsiblePerson'] = {'id': persons[0]['id']}
-                print(f"Osoba odpowiedzialna: {persons[0].get('name', '?')} -> PATCH")
-        except Exception as e:
-            print(f"Osoba odpowiedzialna error: {e}")
+            return persons[0] if persons else None
+        except:
+            return None
+
+    # Odpal WSZYSTKO równolegle (zamiast sekwencyjnie ~25s → ~15s)
+    print(f"⚡ Równoległy start: AI params + GPSR upload + producent/osoba...")
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        f_params = executor.submit(_task_ai_params)
+        f_gpsr_upload = executor.submit(_task_gpsr_upload)
+        f_producer = executor.submit(_task_gpsr_producer)
+        f_person = executor.submit(_task_gpsr_person)
+
+        # Zbierz wyniki
+        params_result = f_params.result()
+        _gpsr_attachment_id = f_gpsr_upload.result()
+        _producer = f_producer.result()
+        _person = f_person.result()
+
+    # Przetwórz wyniki AI parametrów
+    if params_result:
+        if isinstance(params_result, dict) and 'offer' in params_result:
+            offer_params = params_result.get('offer', [])
+            product_params = params_result.get('product', [])
+            if offer_params:
+                offer_data['parameters'] = offer_params
+                print(f"✅ {len(offer_params)} OFFER params + {len(product_params)} PRODUCT params")
+        elif isinstance(params_result, list) and params_result:
+            offer_data['parameters'] = params_result
+            print(f"✅ {len(params_result)} params (legacy)")
+
+    # Zbuduj GPSR productSet entry
+    if gpsr:
+        if _gpsr_attachment_id:
+            _gpsr_ps_entry['safetyInformation'] = {'type': 'ATTACHMENTS', 'attachments': [{'id': _gpsr_attachment_id}]}
+            _gpsr_ps_entry['marketedBeforeGPSRObligation'] = False
+            print(f"✅ GPSR PDF: attachment {_gpsr_attachment_id}")
+        else:
+            print(f"⚠️ GPSR PDF upload failed")
+        if _producer:
+            _gpsr_ps_entry['responsibleProducer'] = {'type': 'ID', 'id': _producer['id']}
+            print(f"✅ Producent: {_producer.get('name', '?')}")
+        if _person:
+            _gpsr_ps_entry['responsiblePerson'] = {'id': _person['id']}
+            print(f"✅ Osoba: {_person.get('name', '?')}")
 
     # EAN/product params -> PATCH
     if product_params:
@@ -1841,7 +1847,6 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
     uploaded_images = []
 
     if zdjecia_urls:
-        from concurrent.futures import ThreadPoolExecutor, as_completed
 
         # Przygotuj listę URL do uploadu
         urls_to_process = []
