@@ -330,11 +330,16 @@ function requestEarlyAccess(btn) {
                 <span class="font-display" style="font-weight:700;color:var(--neon-primary);font-size:0.9rem">🚗 {{ goal['name'] }}</span>
                 <span class="font-display neon-text-tertiary" style="font-weight:800;font-size:1.3rem">{{ "%.1f"|format(goal.get('progress', 0)) }}%</span>
             </div>
-            <div style="background:rgba(255,255,255,0.06);border-radius:var(--radius-sm);height:10px;overflow:hidden;margin-bottom:10px">
-                <div style="background:linear-gradient(90deg,var(--neon-primary),var(--neon-tertiary));height:100%;width:{{ "%.1f"|format(goal.get('progress', 0)) }}%;border-radius:var(--radius-sm);box-shadow:0 0 12px rgba(0,241,254,0.3)"></div>
+            <div style="background:rgba(255,255,255,0.06);border-radius:10px;height:20px;overflow:hidden;margin-bottom:10px;position:relative">
+                <div style="background:linear-gradient(90deg,#00f1fe,#5bf083);height:100%;width:{{ "%.1f"|format(goal.get('progress', 0)) }}%;border-radius:10px;box-shadow:0 0 16px rgba(0,241,254,0.4),inset 0 1px 0 rgba(255,255,255,0.2);position:relative;overflow:hidden;transition:width 1s ease">
+                    <div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.15) 50%,transparent 100%);background-size:200% 100%;animation:bannerShimmer 3s linear infinite"></div>
+                </div>
+                <div style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center">
+                    <span class="font-display" style="font-size:0.65rem;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.5)">{{ "%.1f"|format(goal.get('progress', 0)) }}%</span>
+                </div>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:0.8rem">
-                <span style="color:var(--neon-tertiary);font-weight:600">{{ "{:,.0f}".format(goal['current']) }} zł</span>
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem">
+                <span class="font-display neon-text-tertiary" style="font-weight:700">{{ "{:,.0f}".format(goal['current']) }} zł</span>
                 <span style="color:var(--text-muted)">cel: {{ "{:,.0f}".format(goal['target']) }} zł</span>
             </div>
         </div>
@@ -349,6 +354,16 @@ function requestEarlyAccess(btn) {
     </div>
     {% endif %}
 </div>
+
+<!-- Poziom Link — zawsze widoczny -->
+<a href="/poziom" class="glass-card" style="display:flex;align-items:center;gap:14px;padding:14px 20px;margin-bottom:24px;text-decoration:none;color:inherit">
+    <div style="font-size:1.5rem">🎮</div>
+    <div style="flex:1">
+        <div class="font-display" style="font-weight:700;color:var(--neon-tertiary);font-size:0.95rem">POZIOM & PROGRESS</div>
+        <div style="font-size:0.75rem;color:var(--text-muted)">Skill tree · Osiągnięcia · Droga do 1M</div>
+    </div>
+    <span style="color:var(--text-muted);font-size:1.2rem">→</span>
+</a>
 
 <script>
 (function(){
