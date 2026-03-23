@@ -338,7 +338,18 @@ werkzeug.serving.WSGIRequestHandler.sys_version = ""
 
 @app.after_request
 def after_request(response):
-    """Dodaj CORS headers + cache control dla SSE"""
+    """Dodaj CORS headers + cache control + CSP dla SSE"""
+    # CSP — pozwól na Leaflet, Google Fonts, CDN
+    if response.content_type and 'text/html' in response.content_type:
+        response.headers['Content-Security-Policy'] = (
+            "default-src 'self' https:; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+            "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+            "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+            "img-src 'self' data: blob: https: http:; "
+            "connect-src 'self' https: wss: ws:; "
+            "worker-src 'self' blob:; "
+        )
     # CORS headers zarzadzane przez flask-cors — nie nadpisuj globalnie
     if 'Access-Control-Allow-Origin' not in response.headers:
         origin = request.headers.get('Origin', '')
