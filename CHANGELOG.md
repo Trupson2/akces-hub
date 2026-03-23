@@ -1,5 +1,29 @@
 # Historia zmian — Akces Hub
 
+## 23.03.2026
+
+### Stitch Design System — Dashboard Redesign
+- [NOWE] Glass-morphism UI — klasy `glass-card`, `glass-panel` z backdrop-blur i saturate
+- [NOWE] Neon color palette: cyan #00f1fe, purple #c180ff, green #5bf083
+- [NOWE] Font Space Grotesk na nagłówkach (.font-display)
+- [NOWE] Efekty neon-glow-primary/secondary/tertiary z box-shadow
+- [NOWE] Animacje: neonPulse, bannerShimmer na kartach
+- [NOWE] KPI karty ze sparkline barami (7-dniowa historia)
+- [NOWE] System Monitor — okrągłe gauges z kolorowym border (Temp/CPU/RAM/Dysk)
+- [NOWE] PALETOMAT OPEN banner — gradient shimmer + neon-pulse animation
+- [NOWE] Monthly Results — glass-panel z Przychód/COGS/Zysk + secondary metrics
+- [NOWE] Top Produkty — medale gold/silver/bronze przy rankingu
+- [NOWE] Top Dostawcy — ROI gauge circles z kolorowym kodowaniem
+- [NOWE] Ostatnia Aktywność → Live Feed z pionowymi color-barami + pulsujące dots
+- [NOWE] Licencja — gradient tło, glass-panel stats, neon accents
+- [NOWE] Top Produkty + Top Dostawcy side-by-side grid layout
+- [NOWE] Activity + Licencja side-by-side grid layout
+- [ZMIANA] Stitch CSS classes dodane do base.html (stitch-kpi, sparkline-*, sys-gauge, neon-text-*)
+- [ZMIANA] Responsive overrides dla stitch layout (900px, 600px breakpoints)
+- [FIX] PALETOMAT OPEN banner — gradient-clip niewidoczny na dark bg, zamieniony na neon-text
+
+---
+
 ## 22.03.2026
 
 ### System licencji i subskrypcje
