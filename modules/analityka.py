@@ -4439,19 +4439,19 @@ def koszty_allegro():
     (function() {{
         var css = document.createElement('link');
         css.rel = 'stylesheet';
-        css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        css.href = '/static/leaflet.css';
         document.head.appendChild(css);
 
         var js = document.createElement('script');
-        js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        js.src = '/static/leaflet.js';
         js.onload = function() {{
             try {{
                 var mapEl = document.getElementById('polandMap');
                 if (!mapEl) {{ console.error('Map element not found'); return; }}
 
                 var map = L.map(mapEl).setView([52.0, 19.5], 6);
-                var tileUrl = 'https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/' + String.fromCharCode(123) + 'z' + String.fromCharCode(125) + '/' + String.fromCharCode(123) + 'x' + String.fromCharCode(125) + '/' + String.fromCharCode(123) + 'y' + String.fromCharCode(125) + '.png';
-                L.tileLayer(tileUrl, {{ maxZoom: 13, minZoom: 5 }}).addTo(map);
+                var b = String.fromCharCode(123), e = String.fromCharCode(125);
+                L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/' + b+'z'+e + '/' + b+'x'+e + '/' + b+'y'+e + '.png', {{ maxZoom: 13, minZoom: 5, attribution: '' }}).addTo(map);
 
                 var cities = {map_data_json};
                 var maxCount = cities.length > 0 ? cities[0].count : 1;
