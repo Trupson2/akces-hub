@@ -802,8 +802,8 @@ def scraper_status():
 # SZABLONY
 # ============================================================
 CSS = '''<style>
-:root{--bg:#f0f2f5;--bg-card:#fff;--bg-sidebar:#0c0f1a;--border:#e5e7eb;--border-light:#f3f4f6;--text:#1e293b;--text-muted:#64748b;--accent:#6366f1;--accent2:#8b5cf6;--accent-soft:rgba(99,102,241,0.08);--green:#22c55e;--green-soft:rgba(34,197,94,0.08);--yellow:#eab308;--yellow-soft:rgba(234,179,8,0.08);--red:#ef4444;--red-soft:rgba(239,68,68,0.08);--blue:#3b82f6;--blue-soft:rgba(59,130,246,0.08);--cyan:#06b6d4;--shadow:0 1px 3px rgba(0,0,0,0.06);--shadow-md:0 4px 12px rgba(0,0,0,0.08);--shadow-lg:0 8px 24px rgba(0,0,0,0.12);--radius:16px;--radius-sm:10px}
-[data-theme="dark"]{--bg:#06060f;--bg-card:#0f0f1e;--bg-sidebar:#0a0a16;--border:#1a1a2e;--border-light:#151528;--text:#e2e8f0;--text-muted:#64748b;--accent-soft:rgba(99,102,241,0.12);--green-soft:rgba(34,197,94,0.12);--yellow-soft:rgba(234,179,8,0.12);--red-soft:rgba(239,68,68,0.12);--blue-soft:rgba(59,130,246,0.12);--shadow:0 1px 3px rgba(0,0,0,0.2);--shadow-md:0 4px 12px rgba(0,0,0,0.25);--shadow-lg:0 8px 24px rgba(0,0,0,0.3)}
+:root{--bg:#f0f2f5;--bg-card:rgba(15,15,30,0.65);--bg-sidebar:#0c0f1a;--border:rgba(255,255,255,0.08);--border-light:rgba(255,255,255,0.04);--text:#1e293b;--text-muted:#64748b;--accent:#00f1fe;--accent2:#c180ff;--accent-soft:rgba(0,241,254,0.08);--green:#5bf083;--green-soft:rgba(91,240,131,0.08);--yellow:#eab308;--yellow-soft:rgba(234,179,8,0.08);--red:#ef4444;--red-soft:rgba(239,68,68,0.08);--blue:#00f1fe;--blue-soft:rgba(0,241,254,0.08);--cyan:#00f1fe;--shadow:0 1px 3px rgba(0,0,0,0.06);--shadow-md:0 4px 12px rgba(0,0,0,0.08);--shadow-lg:0 8px 24px rgba(0,0,0,0.12);--radius:16px;--radius-sm:10px}
+[data-theme="dark"]{--bg:#06060f;--bg-card:rgba(15,15,30,0.65);--bg-sidebar:#0a0a16;--border:rgba(255,255,255,0.08);--border-light:rgba(255,255,255,0.04);--text:#e2e8f0;--text-muted:#64748b;--accent-soft:rgba(0,241,254,0.12);--green-soft:rgba(91,240,131,0.12);--yellow-soft:rgba(234,179,8,0.12);--red-soft:rgba(239,68,68,0.12);--blue-soft:rgba(0,241,254,0.12);--shadow:0 1px 3px rgba(0,0,0,0.2);--shadow-md:0 4px 12px rgba(0,0,0,0.25);--shadow-lg:0 8px 24px rgba(0,0,0,0.3)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,system-ui,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
@@ -811,14 +811,14 @@ body{font-family:'Inter',-apple-system,system-ui,'Segoe UI',sans-serif;backgroun
 .app-layout{display:flex;min-height:100vh}
 .sidebar{width:250px;background:var(--bg-sidebar);position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;z-index:100;transition:transform 0.3s}
 .sidebar-brand{padding:24px 20px 20px;display:flex;align-items:center;gap:12px}
-.sidebar-brand-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),#22c55e);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#fff;font-weight:800}
+.sidebar-brand-icon{width:36px;height:36px;background:linear-gradient(135deg,#00f1fe,#5bf083);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#fff;font-weight:800}
 .sidebar-brand-text h1{font-size:0.95rem;color:#fff;font-weight:700;letter-spacing:-0.3px}
 .sidebar-brand-text small{font-size:0.62rem;color:rgba(255,255,255,0.4);display:block;margin-top:1px}
 .sidebar-nav{flex:1;padding:8px 12px;overflow-y:auto}
 .sidebar-section{font-size:0.6rem;text-transform:uppercase;letter-spacing:1.8px;color:rgba(255,255,255,0.25);padding:20px 12px 8px;font-weight:600}
 .sidebar-link{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius-sm);text-decoration:none;color:rgba(255,255,255,0.5);font-size:0.82rem;font-weight:500;transition:all 0.2s;margin-bottom:2px}
 .sidebar-link:hover{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.85)}
-.sidebar-link.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(99,102,241,0.3)}
+.sidebar-link.active{background:linear-gradient(135deg,#00f1fe,#c180ff);color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(0,241,254,0.3)}
 .sidebar-link .sl-icon{font-size:1rem;width:22px;text-align:center}
 .sidebar-link .sl-badge{margin-left:auto;background:rgba(255,255,255,0.15);color:#fff;font-size:0.58rem;padding:2px 8px;border-radius:10px;font-weight:700}
 .sidebar-link .sl-dot{margin-left:auto;width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
@@ -839,19 +839,19 @@ body{font-family:'Inter',-apple-system,system-ui,'Segoe UI',sans-serif;backgroun
 
 /* Dashboard KPI cards */
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
-.kpi-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);transition:all 0.25s;position:relative;overflow:hidden}
+.kpi-card{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);transition:all 0.25s;position:relative;overflow:hidden}
 .kpi-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .kpi-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius) var(--radius) 0 0}
-.kpi-card.purple::after{background:linear-gradient(90deg,var(--accent),var(--accent2))}
-.kpi-card.green::after{background:linear-gradient(90deg,#22c55e,#16a34a)}
-.kpi-card.blue::after{background:linear-gradient(90deg,var(--blue),#2563eb)}
-.kpi-card.orange::after{background:linear-gradient(90deg,#f59e0b,#d97706)}
+.kpi-card.purple::after{background:linear-gradient(90deg,#00f1fe,#c180ff)}
+.kpi-card.green::after{background:linear-gradient(90deg,#5bf083,#00f1fe)}
+.kpi-card.blue::after{background:linear-gradient(90deg,#00f1fe,#c180ff)}
+.kpi-card.orange::after{background:linear-gradient(90deg,#c180ff,#00f1fe)}
 .kpi-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:14px}
-.kpi-card.purple .kpi-icon{background:var(--accent-soft)}
-.kpi-card.green .kpi-icon{background:var(--green-soft)}
-.kpi-card.blue .kpi-icon{background:var(--blue-soft)}
-.kpi-card.orange .kpi-icon{background:var(--yellow-soft)}
-.kpi-value{font-size:1.6rem;font-weight:800;letter-spacing:-0.5px;color:var(--text);line-height:1}
+.kpi-card.purple .kpi-icon{background:rgba(0,241,254,0.1)}
+.kpi-card.green .kpi-icon{background:rgba(91,240,131,0.1)}
+.kpi-card.blue .kpi-icon{background:rgba(0,241,254,0.08)}
+.kpi-card.orange .kpi-icon{background:rgba(193,128,255,0.1)}
+.kpi-value{font-size:1.6rem;font-weight:800;letter-spacing:-0.5px;color:var(--text);line-height:1;font-family:'Space Grotesk','Inter',sans-serif}
 .kpi-label{font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:6px;font-weight:500}
 .kpi-change{display:inline-flex;align-items:center;gap:3px;font-size:0.68rem;font-weight:600;margin-top:8px;padding:2px 8px;border-radius:20px}
 .kpi-change.up{background:var(--green-soft);color:var(--green)}
@@ -862,79 +862,79 @@ body{font-family:'Inter',-apple-system,system-ui,'Segoe UI',sans-serif;backgroun
 .dash-grid-3{display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:24px}
 
 /* Cards */
-.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:20px;box-shadow:var(--shadow);transition:all 0.25s}
-.card:hover{box-shadow:var(--shadow-md)}
+.card{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);padding:22px;margin-bottom:20px;box-shadow:var(--shadow);transition:all 0.25s}
+.card:hover{box-shadow:var(--shadow-md);border-color:rgba(0,241,254,0.15)}
 .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .card-title{font-weight:700;font-size:0.92rem;color:var(--text)}
 .card-subtitle{font-size:0.72rem;color:var(--text-muted)}
-.card-action{font-size:0.75rem;color:var(--accent);text-decoration:none;font-weight:600;transition:color 0.2s}
-.card-action:hover{color:var(--accent2)}
+.card-action{font-size:0.75rem;color:#00f1fe;text-decoration:none;font-weight:600;transition:color 0.2s}
+.card-action:hover{color:#c180ff}
 
 /* Old compat */
 .hdr{padding:0 0 20px;margin-bottom:20px;border-bottom:1px solid var(--border)}
 .hdr h1{font-size:1.2rem;color:var(--text);font-weight:700}
 .hdr small{color:var(--text-muted);font-size:0.75rem}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
-.stat{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center;transition:all 0.25s;box-shadow:var(--shadow)}
+.stat{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);padding:20px;text-align:center;transition:all 0.25s;box-shadow:var(--shadow)}
 .stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
-.stat-v{font-size:1.5rem;font-weight:800;color:var(--accent);letter-spacing:-0.5px}
+.stat-v{font-size:1.5rem;font-weight:800;color:#00f1fe;letter-spacing:-0.5px}
 .stat-v.green{color:var(--green)}
 .stat-l{font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;margin-top:4px;letter-spacing:0.5px}
 .status{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-radius:var(--radius);margin-bottom:16px;transition:all 0.25s;box-shadow:var(--shadow)}
-.status.on{background:var(--green-soft);border:1px solid rgba(34,197,94,0.2)}
+.status.on{background:rgba(91,240,131,0.06);border:1px solid rgba(91,240,131,0.2)}
 .status.off{background:var(--bg-card);border:1px solid var(--border)}
 .status-info{display:flex;align-items:center;gap:10px;font-weight:500}
 .status-dot{width:10px;height:10px;border-radius:50%}
-.status-dot.on{background:var(--green);box-shadow:0 0 10px rgba(34,197,94,0.4);animation:pulse 2s infinite}
+.status-dot.on{background:#5bf083;box-shadow:0 0 10px rgba(91,240,131,0.4);animation:pulse 2s infinite}
 .status-dot.off{background:var(--text-muted)}
-@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 10px rgba(34,197,94,0.4)}50%{opacity:0.6;box-shadow:0 0 4px rgba(34,197,94,0.2)}}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 10px rgba(91,240,131,0.4)}50%{opacity:0.6;box-shadow:0 0 4px rgba(91,240,131,0.2)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
 
 /* Buttons */
 .btn{display:block;width:100%;padding:12px;font-size:0.92rem;font-weight:600;text-align:center;text-decoration:none;border:none;border-radius:12px;cursor:pointer;margin-bottom:8px;color:#fff;transition:all 0.2s}
 .btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-md)}
-.btn-p{background:linear-gradient(135deg,var(--accent),var(--accent2))}
-.btn-ok{background:var(--green)}
+.btn-p{background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe}
+.btn-ok{background:rgba(91,240,131,0.12);border:1px solid rgba(91,240,131,0.3);color:#5bf083}
 .btn-2{background:var(--bg-card);border:1px solid var(--border);color:var(--text)}
 .btn-sm{padding:8px 16px;font-size:0.82rem;width:auto;display:inline-block;border-radius:8px}
 
 /* Module links */
-.module{display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;text-decoration:none;color:var(--text);transition:all 0.25s;box-shadow:var(--shadow);animation:fadeIn 0.4s ease both}
-.module:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow-lg)}
-.module-icon{font-size:1.4rem;margin-right:14px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);border-radius:12px}
+.module{display:flex;align-items:center;background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;text-decoration:none;color:var(--text);transition:all 0.25s;box-shadow:var(--shadow);animation:fadeIn 0.4s ease both}
+.module:hover{border-color:rgba(0,241,254,0.2);transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.module-icon{font-size:1.4rem;margin-right:14px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;background:rgba(0,241,254,0.08);border-radius:12px}
 .module-info{flex:1}
 .module-name{font-weight:700;font-size:0.92rem}
 .module-desc{font-size:0.73rem;color:var(--text-muted);margin-top:3px}
 .module-arrow{color:var(--text-muted);font-size:1.2rem;transition:transform 0.2s}
-.module:hover .module-arrow{transform:translateX(3px);color:var(--accent)}
+.module:hover .module-arrow{transform:translateX(3px);color:#00f1fe}
 
 /* Items */
-.item{display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;text-decoration:none;color:var(--text);transition:all 0.2s;box-shadow:var(--shadow)}
-.item:hover{border-color:var(--accent);box-shadow:var(--shadow-md)}
+.item{display:flex;align-items:center;background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;margin-bottom:8px;text-decoration:none;color:var(--text);transition:all 0.2s;box-shadow:var(--shadow)}
+.item:hover{border-color:rgba(0,241,254,0.15);box-shadow:var(--shadow-md)}
 .item img{width:48px;height:48px;object-fit:contain;background:#fff;border-radius:8px;margin-right:12px}
 .item-dot{width:8px;height:8px;border-radius:50%;margin-right:10px;flex-shrink:0}
-.item-dot.green{background:var(--green);box-shadow:0 0 6px rgba(34,197,94,0.3)}
+.item-dot.green{background:#5bf083;box-shadow:0 0 6px rgba(91,240,131,0.3)}
 .item-dot.yellow{background:var(--yellow);box-shadow:0 0 6px rgba(234,179,8,0.3)}
 .item-info{flex:1;min-width:0}
 .item-name{font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .item-meta{font-size:0.7rem;color:var(--text-muted);margin-top:2px}
 .item-right{text-align:right;margin-left:8px}
-.item-price{font-weight:700;color:var(--green)}
-.item-margin{font-size:0.7rem;color:var(--accent)}
+.item-price{font-weight:700;color:#5bf083}
+.item-margin{font-size:0.7rem;color:#00f1fe}
 
 /* Forms */
 .form-group{margin-bottom:12px}
 .form-group label{display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px}
 .form-ctrl{width:100%;padding:11px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:0.92rem;transition:all 0.2s}
-.form-ctrl:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px rgba(99,102,241,0.1)}
+.form-ctrl:focus{border-color:#00f1fe;outline:none;box-shadow:0 0 0 3px rgba(0,241,254,0.1)}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .section{color:var(--text);font-weight:700;font-size:0.82rem;margin:24px 0 12px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:0.5px}
 .alert{padding:14px 18px;border-radius:12px;margin-bottom:14px;text-align:center;font-size:0.88rem;font-weight:500;box-shadow:var(--shadow)}
-.alert-ok{background:var(--green-soft);border:1px solid rgba(34,197,94,0.15);color:var(--green)}
+.alert-ok{background:rgba(91,240,131,0.08);border:1px solid rgba(91,240,131,0.15);color:#5bf083}
 .alert-warn{background:var(--yellow-soft);border:1px solid rgba(234,179,8,0.15);color:var(--yellow)}
 .back{display:block;text-align:center;color:var(--text-muted);text-decoration:none;padding:14px;font-size:0.85rem;transition:color 0.2s}
-.back:hover{color:var(--accent)}
+.back:hover{color:#00f1fe}
 .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:0.68rem;font-weight:700}
 .badge-ok{background:var(--green-soft);color:var(--green)}
 .badge-warn{background:var(--yellow-soft);color:var(--yellow)}
@@ -954,7 +954,7 @@ body{font-family:'Inter',-apple-system,system-ui,'Segoe UI',sans-serif;backgroun
 /* Quick action buttons */
 .quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .qa-btn{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);text-decoration:none;color:var(--text);font-size:0.82rem;font-weight:600;transition:all 0.2s}
-.qa-btn:hover{border-color:var(--accent);background:var(--accent-soft);transform:translateY(-1px)}
+.qa-btn:hover{border-color:rgba(0,241,254,0.3);background:rgba(0,241,254,0.08);transform:translateY(-1px)}
 .qa-btn .qa-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem}
 
 /* Hide old nav */
@@ -962,7 +962,7 @@ body{font-family:'Inter',-apple-system,system-ui,'Segoe UI',sans-serif;backgroun
 
 /* Theme toggle */
 .theme-toggle{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;transition:all 0.3s}
-.theme-toggle:hover{transform:scale(1.08);border-color:var(--accent)}
+.theme-toggle:hover{transform:scale(1.08);border-color:#00f1fe}
 
 /* Responsive */
 @media(max-width:900px){
@@ -1098,7 +1098,7 @@ def _get_plan_display():
         plan_name = (_plan or 'free').upper()
     except Exception:
         plan_name = 'FREE'
-    plan_colors = {'STARTER': '#64748b', 'PRO': '#6366f1', 'BUSINESS': '#22c55e', 'ENTERPRISE': '#f59e0b', 'FREE': '#ef4444'}
+    plan_colors = {'STARTER': '#64748b', 'PRO': '#00f1fe', 'BUSINESS': '#5bf083', 'ENTERPRISE': '#f59e0b', 'FREE': '#ef4444'}
     plan_color = plan_colors.get(plan_name, '#64748b')
     _cached_plan.update(name=plan_name, color=plan_color, ts=now)
     return plan_name, plan_color
@@ -1233,15 +1233,15 @@ def index():
         <div style="position:relative;height:160px;width:100%"><canvas id="productChart"></canvas></div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px">
             <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.04);border-radius:10px">
-                <div style="font-size:1.4rem;font-weight:800;color:#3b82f6">{w_magazynie}</div>
+                <div style="font-size:1.4rem;font-weight:800;color:#00f1fe">{w_magazynie}</div>
                 <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">W MAGAZYNIE</div>
             </div>
             <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.04);border-radius:10px">
-                <div style="font-size:1.4rem;font-weight:800;color:#22c55e">{sprzedane}</div>
+                <div style="font-size:1.4rem;font-weight:800;color:#5bf083">{sprzedane}</div>
                 <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">SPRZEDANE (30d)</div>
             </div>
             <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.04);border-radius:10px">
-                <div style="font-size:1.4rem;font-weight:800;color:{('#ef4444' if zalegajace > 10 else '#f59e0b' if zalegajace > 0 else '#22c55e')}">{zalegajace}</div>
+                <div style="font-size:1.4rem;font-weight:800;color:{('#ef4444' if zalegajace > 10 else '#f59e0b' if zalegajace > 0 else '#5bf083')}">{zalegajace}</div>
                 <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">ZALEGAJACE</div>
             </div>
         </div>
@@ -1254,15 +1254,15 @@ def index():
     var _chartMode = 'cumulative';
     var _ctx = document.getElementById('productChart').getContext('2d');
     var _gradient = _ctx.createLinearGradient(0, 0, 0, 140);
-    _gradient.addColorStop(0, 'rgba(99,102,241,0.3)');
-    _gradient.addColorStop(1, 'rgba(99,102,241,0.01)');
+    _gradient.addColorStop(0, 'rgba(0,241,254,0.3)');
+    _gradient.addColorStop(1, 'rgba(0,241,254,0.01)');
     var _chart = new Chart(_ctx, {{
         type: 'line',
         data: {{
             labels: _chartLabels,
             datasets: [{{
                 data: _chartCumul,
-                borderColor: '#6366f1',
+                borderColor: '#00f1fe',
                 backgroundColor: _gradient,
                 borderWidth: 2,
                 fill: true,
@@ -1270,7 +1270,7 @@ def index():
                 pointRadius: 0,
                 pointHitRadius: 10,
                 pointHoverRadius: 4,
-                pointHoverBackgroundColor: '#6366f1'
+                pointHoverBackgroundColor: '#00f1fe'
             }}]
         }},
         options: {{
@@ -1278,7 +1278,7 @@ def index():
             maintainAspectRatio: false,
             plugins: {{ legend: {{ display: false }}, tooltip: {{
                 backgroundColor: '#1e1b2e', titleColor: '#e2e8f0', bodyColor: '#94a3b8',
-                borderColor: '#6366f1', borderWidth: 1, cornerRadius: 8, padding: 10,
+                borderColor: '#00f1fe', borderWidth: 1, cornerRadius: 8, padding: 10,
                 callbacks: {{ label: function(ctx) {{ return _chartMode === 'cumulative' ? 'Lacznie: ' + ctx.parsed.y : 'Nowe: ' + ctx.parsed.y; }} }}
             }} }},
             scales: {{
@@ -1306,7 +1306,7 @@ def index():
             <span>{'Scraper aktywny' if is_running else 'Scraper zatrzymany'}</span>
         </div>
         <form action="/paletomat/scraper/toggle" method="POST" style="margin:0">
-            <button type="submit" class="btn-sm" style="background:{'#ef4444' if is_running else '#22c55e'};color:#fff;border:none;cursor:pointer">
+            <button type="submit" class="btn-sm" style="background:{'#ef4444' if is_running else '#5bf083'};color:#fff;border:none;cursor:pointer">
                 {'⏹️ STOP' if is_running else '▶️ START'}
             </button>
         </form>
@@ -1453,7 +1453,7 @@ def scraper():
     <div class="card">
         <div class="card-title">🔍 SCRAPE PO ASIN (ręczny)</div>
         <form action="/paletomat/scraper/asin" method="POST">
-            <div class="form-row" style="margin-bottom:15px;padding:10px;background:#1a1a2e;border-radius:8px;border:1px solid #8b5cf6">
+            <div class="form-row" style="margin-bottom:15px;padding:10px;background:#1a1a2e;border-radius:8px;border:1px solid #c180ff">
                 <div class="form-group" style="margin-bottom:0">
                     <label>📦 Paleta</label>
                     <select name="paleta_id" class="form-ctrl" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
@@ -1503,7 +1503,7 @@ def scraper():
     <div class="card">
         <div class="card-title">📁 SCRAPE Z PLIKU (JOBALOTS/WARRINGTON)</div>
         <form action="/paletomat/scraper/file" method="POST" enctype="multipart/form-data">
-            <div class="form-row" style="margin-bottom:15px;padding:10px;background:#1a1a2e;border-radius:8px;border:1px solid #3b82f6">
+            <div class="form-row" style="margin-bottom:15px;padding:10px;background:#1a1a2e;border-radius:8px;border:1px solid #00f1fe">
                 <div class="form-group" style="margin-bottom:0">
                     <label>📦 Paleta</label>
                     <select name="paleta_id" class="form-ctrl" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
@@ -1758,12 +1758,12 @@ def scraper_miglo():
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div>Produktów: <b>{added}</b></div>
                 <div>Sztuk łącznie: <b>{total_qty}</b></div>
-                <div>Netto: <span style="color:#3b82f6"><b>{total_netto:.2f} PLN</b></span></div>
-                <div>Brutto: <span style="color:#22c55e"><b>{total_brutto:.2f} PLN</b></span></div>
+                <div>Netto: <span style="color:#00f1fe"><b>{total_netto:.2f} PLN</b></span></div>
+                <div>Brutto: <span style="color:#5bf083"><b>{total_brutto:.2f} PLN</b></span></div>
             </div>
         </div>
         <div class="alert" style="background:#1a1a2e;font-size:0.85rem">
-            ✅ Produkty dodane do <a href="/magazyn" style="color:#3b82f6">Magazynu</a><br>
+            ✅ Produkty dodane do <a href="/magazyn" style="color:#00f1fe">Magazynu</a><br>
             🔄 <b>Auto-przetwarzanie w tle</b> - tytuły i opisy generują się automatycznie
         </div>
         <a href="/paletomat/scraper" class="btn btn-p">🔍 Dodaj więcej</a>
@@ -1915,7 +1915,7 @@ def scraper_asin():
         <div class="hdr"><h1>✅ DODANO</h1></div>
         <div class="alert alert-ok">Dodano {added} ASIN-ów do kolejki{paleta_info}{cena_info}</div>
         <div class="alert" style="background:#1a1a2e;font-size:0.85rem">
-            ✅ Produkty dodane do <a href="/magazyn" style="color:#3b82f6">Magazynu</a><br>
+            ✅ Produkty dodane do <a href="/magazyn" style="color:#00f1fe">Magazynu</a><br>
             🔄 <b>Auto-przetwarzanie w tle</b> - tytuły i opisy generują się automatycznie
         </div>
         <a href="/paletomat/scraper" class="btn btn-p">🔍 Dodaj więcej</a>
@@ -2464,8 +2464,8 @@ def scraper_file():
             📊 <b>Podsumowanie importu:</b><br>
             Produktów: <b>{len(asins)}</b> | Sztuk łącznie: <b>{total_qty}</b><br>'''
             if total_brutto > 0:
-                value_info += f'''Brutto: <span style="color:#22c55e">{total_brutto:.2f} PLN</span> | 
-                Netto: <span style="color:#3b82f6">{total_netto:.2f} PLN</span>'''
+                value_info += f'''Brutto: <span style="color:#5bf083">{total_brutto:.2f} PLN</span> |
+                Netto: <span style="color:#00f1fe">{total_netto:.2f} PLN</span>'''
         
         # Komunikat z uwzględnieniem nowych i zaktualizowanych
         status_msg = []
@@ -2479,7 +2479,7 @@ def scraper_file():
             <div class="hdr"><h1>✅ IMPORT ZAKOŃCZONY</h1></div>
             <div class="alert alert-ok">Znaleziono {len(asins)} ASIN-ów: {status_text}{paleta_info}{value_info}</div>
             <div class="alert" style="background:#1a1a2e;font-size:0.85rem">
-                ✅ Produkty dodane do <a href="/magazyn" style="color:#3b82f6">Magazynu</a><br>
+                ✅ Produkty dodane do <a href="/magazyn" style="color:#00f1fe">Magazynu</a><br>
                 🔄 <b>Auto-przetwarzanie w tle</b> - tytuły i opisy generują się automatycznie
             </div>
             <a href="/paletomat/scraper" class="btn btn-p">🔍 Dodaj więcej</a>
@@ -2586,7 +2586,7 @@ def generator():
     fallback_cnt = conn.execute("SELECT COUNT(DISTINCT asin) as cnt FROM produkty WHERE nazwa LIKE 'Produkt %' AND asin IS NOT NULL").fetchone()['cnt']
     if fallback_cnt > 0:
         html += f'''<form method="POST" action="/paletomat/rescrape-all-fallback" style="flex:1;min-width:140px">
-            <button type="submit" class="btn" style="width:100%;background:#6366f1;color:#fff"
+            <button type="submit" class="btn" style="width:100%;background:#00f1fe;color:#fff"
             onclick="return confirm('Re-scrapować {fallback_cnt} produktów z brakującą nazwą?')">🔄 POBIERZ NAZWY ({fallback_cnt})</button></form>'''
 
     html += '</div>'
@@ -2613,16 +2613,16 @@ def generator():
 def _render_stan_fields(grupy_stanow, stan_magazyn):
     """Renderuje pola stanu - grupowo jeśli są sztuki, pojedynczo jeśli nie"""
     stan_colors = {
-        'Nowy': ('#22c55e', '🟢'),
-        'Powystawowy': ('#3b82f6', '🔵'),
+        'Nowy': ('#5bf083', '🟢'),
+        'Powystawowy': ('#00f1fe', '🔵'),
         'Używany': ('#eab308', '🟡'),
         'Uszkodzony': ('#ef4444', '🔴'),
-        'Odnowiony': ('#8b5cf6', '🟣'),
+        'Odnowiony': ('#c180ff', '🟣'),
     }
     
     if grupy_stanow:
         # Wiele grup stanów - osobna oferta per stan
-        html = '''<div style="background:rgba(34,197,94,0.08);border:1px solid #22c55e44;border-radius:10px;padding:14px;margin-bottom:12px">
+        html = '''<div style="background:rgba(91,240,131,0.08);border:1px solid #5bf08344;border-radius:10px;padding:14px;margin-bottom:12px">
             <div style="font-size:0.8rem;color:#22c55e;font-weight:700;margin-bottom:10px">
                 📦 Produkt rozdzielony na stany — zostaną wystawione <b>osobne oferty</b> per stan, zgrupowane ilościowo
             </div>'''
@@ -2708,14 +2708,14 @@ def generator_mass_create():
     
     <div class="card" style="text-align:center;padding:30px">
         <div id="progress-icon" style="font-size:3rem;margin-bottom:15px">
-            <div style="display:inline-block;width:48px;height:48px;border:4px solid rgba(99,102,241,0.2);border-top-color:#6366f1;border-radius:50%;animation:spin 1s linear infinite"></div>
+            <div style="display:inline-block;width:48px;height:48px;border:4px solid rgba(0,241,254,0.2);border-top-color:#00f1fe;border-radius:50%;animation:spin 1s linear infinite"></div>
         </div>
         <div id="progress-text" style="font-size:1.2rem;font-weight:600;margin-bottom:10px">Laczenie...</div>
         <div style="background:#1e1e2e;border-radius:10px;height:20px;overflow:hidden;margin-bottom:10px">
-            <div id="progress-bar" style="background:linear-gradient(90deg,#3b82f6,#8b5cf6);height:100%;width:0%;transition:width 0.3s"></div>
+            <div id="progress-bar" style="background:linear-gradient(90deg,#00f1fe,#c180ff);height:100%;width:0%;transition:width 0.3s"></div>
         </div>
         <div id="progress-count" style="font-size:0.85rem;color:#64748b">0 / {count}</div>
-        <div id="timer" style="font-size:1.4rem;font-weight:700;color:#6366f1;margin-top:8px;font-variant-numeric:tabular-nums">00:00</div>
+        <div id="timer" style="font-size:1.4rem;font-weight:700;color:#00f1fe;margin-top:8px;font-variant-numeric:tabular-nums">00:00</div>
         <div id="timer-avg" style="font-size:0.8rem;color:#94a3b8;margin-top:2px"></div>
     </div>
 
@@ -3012,14 +3012,14 @@ def generator_mass_create_from_paleta():
     
     <div class="card" style="text-align:center;padding:30px">
         <div id="progress-icon" style="font-size:3rem;margin-bottom:15px">
-            <div style="display:inline-block;width:48px;height:48px;border:4px solid rgba(99,102,241,0.2);border-top-color:#6366f1;border-radius:50%;animation:spin 1s linear infinite"></div>
+            <div style="display:inline-block;width:48px;height:48px;border:4px solid rgba(0,241,254,0.2);border-top-color:#00f1fe;border-radius:50%;animation:spin 1s linear infinite"></div>
         </div>
         <div id="progress-text" style="font-size:1.2rem;font-weight:600;margin-bottom:10px">Laczenie...</div>
         <div style="background:#1e1e2e;border-radius:10px;height:20px;overflow:hidden;margin-bottom:10px">
-            <div id="progress-bar" style="background:linear-gradient(90deg,#3b82f6,#8b5cf6);height:100%;width:0%;transition:width 0.3s"></div>
+            <div id="progress-bar" style="background:linear-gradient(90deg,#00f1fe,#c180ff);height:100%;width:0%;transition:width 0.3s"></div>
         </div>
         <div id="progress-count" style="font-size:0.85rem;color:#64748b">0 / {count}</div>
-        <div id="timer" style="font-size:1.4rem;font-weight:700;color:#6366f1;margin-top:8px;font-variant-numeric:tabular-nums">00:00</div>
+        <div id="timer" style="font-size:1.4rem;font-weight:700;color:#00f1fe;margin-top:8px;font-variant-numeric:tabular-nums">00:00</div>
         <div id="timer-avg" style="font-size:0.8rem;color:#94a3b8;margin-top:2px"></div>
     </div>
 
@@ -5646,14 +5646,14 @@ def generator_create(asin):
 
         <div class="card" style="text-align:center;padding:30px">
             <div id="progress-icon" style="font-size:3rem;margin-bottom:15px">
-                <div class="spinner-ring" style="display:inline-block;width:48px;height:48px;border:4px solid rgba(99,102,241,0.2);border-top-color:#6366f1;border-radius:50%;animation:spin 1s linear infinite"></div>
+                <div class="spinner-ring" style="display:inline-block;width:48px;height:48px;border:4px solid rgba(0,241,254,0.2);border-top-color:#00f1fe;border-radius:50%;animation:spin 1s linear infinite"></div>
             </div>
             <div id="progress-text" style="font-size:1.1rem;font-weight:600;margin-bottom:10px">Przygotowywanie...</div>
             <div style="background:#1e1e2e;border-radius:10px;height:16px;overflow:hidden;margin-bottom:10px">
-                <div id="progress-bar" style="background:linear-gradient(90deg,#3b82f6,#8b5cf6);height:100%;width:0%;transition:width 0.3s"></div>
+                <div id="progress-bar" style="background:linear-gradient(90deg,#00f1fe,#c180ff);height:100%;width:0%;transition:width 0.3s"></div>
             </div>
             <div id="progress-detail" style="font-size:0.8rem;color:#64748b"></div>
-            <div id="timer" style="font-size:1.4rem;font-weight:700;color:#6366f1;margin-top:8px;font-variant-numeric:tabular-nums">00:00</div>
+            <div id="timer" style="font-size:1.4rem;font-weight:700;color:#00f1fe;margin-top:8px;font-variant-numeric:tabular-nums">00:00</div>
         </div>
 
         <style>@keyframes spin {{ 0% {{ transform:rotate(0deg) }} 100% {{ transform:rotate(360deg) }} }}</style>
