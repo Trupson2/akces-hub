@@ -4929,23 +4929,33 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         if pickup_point and pickup_point.get('id'):
             print(f"   → Punkt odbioru (z zamówienia): {pickup_point['id']}")
 
-    # Nadawca — dane firmy (hardcoded AKCES jako fallback)
-    def _cfg(key, default=''):
-        v = get_config(key)
-        return v.strip() if v and v.strip() else default
+    # Nadawca — dane firmy z configu, potem hardcoded fallback
+    try:
+        from modules.database import get_config as _gc
+        _fn = (_gc('firma_nazwa') or '').strip()
+        _fi = (_gc('firma_imie') or '').strip()
+        _fna = (_gc('firma_nazwisko') or '').strip()
+        _fu = (_gc('firma_ulica') or '').strip()
+        _fc = (_gc('allegro_city') or '').strip()
+        _fp = (_gc('allegro_postcode') or '').strip()
+        _fe = (_gc('firma_email') or '').strip()
+        _ft = (_gc('firma_telefon') or '').strip()
+    except:
+        _fn = _fi = _fna = _fu = _fc = _fp = _fe = _ft = ''
 
     shipment_input['sender'] = {
-        'companyName': _cfg('firma_nazwa', 'AKCES'),
-        'firstName': _cfg('firma_imie', 'Andrzej'),
-        'lastName': _cfg('firma_nazwisko', 'Gauza'),
-        'street': _cfg('firma_ulica', 'Poniatowskiego 13'),
-        'city': _cfg('allegro_city', 'Mieszkowice'),
-        'postalCode': _cfg('allegro_postcode', '74-505'),
+        'companyName': _fn if _fn else 'AKCES',
+        'firstName': _fi if _fi else 'Andrzej',
+        'lastName': _fna if _fna else 'Gauza',
+        'street': _fu if _fu else 'Poniatowskiego 13',
+        'city': _fc if _fc else 'Mieszkowice',
+        'postalCode': _fp if _fp else '74-505',
         'countryCode': 'PL',
-        'email': _cfg('firma_email', 'agauza@interia.eu'),
-        'phone': _cfg('firma_telefon', '+48604753407'),
+        'email': _fe if _fe else 'agauza@interia.eu',
+        'phone': _ft if _ft else '+48604753407',
     }
-    print(f"   → Nadawca: {shipment_input['sender']['companyName']}, {shipment_input['sender']['firstName']} {shipment_input['sender']['lastName']}, {shipment_input['sender']['street']}")
+    print(f"   → 📬 SENDER PAYLOAD: {shipment_input['sender']}")
+    print(f"   → 📬 RECEIVER PAYLOAD: {shipment_input.get('receiver', 'BRAK!')}")
 
     payload = {
         'commandId': command_id,
