@@ -4060,6 +4060,7 @@ def koszty_allegro():
                 entries, error = get_all_billing_entries(date_from=date_from, max_pages=20)
                 if not error and entries:
                     billing_source = 'api'
+                    type_breakdown = {}
                     for e in entries:
                         amount = abs(float(e.get('value', {}).get('amount', 0)))
                         type_id = e.get('type', {}).get('id', '')
@@ -4079,11 +4080,18 @@ def koszty_allegro():
                             billing_data['inne'] += amount
                             cat = 'inne'
 
+                        # Track type breakdown for debug
+                        key = f"{type_id}|{type_name}|→{cat}"
+                        type_breakdown[key] = type_breakdown.get(key, 0) + amount
+
                         if offer_id:
                             if offer_id not in billing_per_offer:
                                 billing_per_offer[offer_id] = {'prowizja': 0, 'reklama': 0, 'dostawa': 0}
                             if cat in ('prowizja', 'reklama', 'dostawa'):
                                 billing_per_offer[offer_id][cat] += amount
+                    # Log breakdown
+                    for k, v in sorted(type_breakdown.items(), key=lambda x: -x[1]):
+                        print(f"[Billing] {k}: {v:.2f} zł")
         except Exception as ex:
             print(f"[Koszty Allegro] Billing API error: {ex}")
 
