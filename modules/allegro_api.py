@@ -514,14 +514,18 @@ def is_authenticated():
 def refresh_access_token():
     config = get_allegro_config()
     if not config['refresh_token']:
+        print("[TokenRefresh] Brak refresh_token — nie można odświeżyć")
         return False
-    
+    if not config.get('client_secret'):
+        print("[TokenRefresh] Brak client_secret — nie można odświeżyć")
+        return False
+
     _, token_url, _ = get_api_urls()
-    
+
     try:
         auth_string = f"{config['client_id']}:{config['client_secret']}"
         auth_bytes = base64.b64encode(auth_string.encode()).decode()
-        
+
         headers = {
             'Authorization': f'Basic {auth_bytes}',
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -531,9 +535,11 @@ def refresh_access_token():
             'refresh_token': config['refresh_token'],
             'redirect_uri': config['redirect_uri']
         }
-        
+
+        print(f"[TokenRefresh] POST {token_url} (client_id: {config['client_id'][:8]}...)")
         response = requests.post(token_url, headers=headers, data=data, timeout=30)
-        
+        print(f"[TokenRefresh] Status: {response.status_code}")
+
         if response.status_code == 200:
             tokens = response.json()
             set_config('allegro_access_token', tokens['access_token'])
@@ -542,37 +548,52 @@ def refresh_access_token():
             expires_in = tokens.get('expires_in', 43200)
             expires_at = datetime.now() + timedelta(seconds=expires_in - 300)
             set_config('allegro_token_expires', expires_at.isoformat())
+            print(f"[TokenRefresh] ✅ Token odświeżony, wygasa: {expires_at.isoformat()}")
             return True
+        else:
+            print(f"[TokenRefresh] ❌ Błąd: {response.text[:200]}")
         return False
-    except:
+    except Exception as e:
+        print(f"[TokenRefresh] ❌ Wyjątek: {e}")
         return False
 
 
-def allegro_request(method, endpoint, data=None, params=None):
+def allegro_request(method, endpoint, data=None, params=None, _retry=False):
     config = get_allegro_config()
     _, _, api_url = get_api_urls()
-    
+
     if not config['access_token']:
-        return None, "Brak tokenu"
-    
+        # Próba auto-refresh
+        if config.get('refresh_token') and config.get('client_secret'):
+            print("[AllegroAPI] Brak access_token, próbuję refresh...")
+            if refresh_access_token():
+                config = get_allegro_config()
+            else:
+                return None, "Brak tokenu — zaloguj się ponownie na /allegro"
+        else:
+            return None, "Brak tokenu — zaloguj się na /allegro"
+
+    # Sprawdź czy token wygasł
     if config['token_expires']:
         try:
             expires = datetime.fromisoformat(config['token_expires'])
             if datetime.now() >= expires:
-                if not refresh_access_token():
-                    return None, "Token wygasł"
-                config = get_allegro_config()
+                print(f"[AllegroAPI] Token wygasł ({config['token_expires']}), odświeżam...")
+                if refresh_access_token():
+                    config = get_allegro_config()
+                else:
+                    return None, "Token wygasł — zaloguj się ponownie na /allegro"
         except:
             pass
-    
+
     headers = {
         'Authorization': f'Bearer {config["access_token"]}',
         'Accept': 'application/vnd.allegro.public.v1+json',
         'Content-Type': 'application/vnd.allegro.public.v1+json'
     }
-    
+
     url = f"{api_url}{endpoint}"
-    
+
     try:
         if method == 'GET':
             response = requests.get(url, headers=headers, params=params, timeout=30)
@@ -586,15 +607,31 @@ def allegro_request(method, endpoint, data=None, params=None):
             response = requests.delete(url, headers=headers, timeout=30)
         else:
             return None, f"Nieznana metoda: {method}"
-        
-        if response.status_code == 401:
+
+        # Auto-refresh na 401 (max 1 retry)
+        if response.status_code == 401 and not _retry:
+            print(f"[AllegroAPI] 401 na {endpoint}, odświeżam token...")
             if refresh_access_token():
-                return allegro_request(method, endpoint, data, params)
-            return None, "Nieautoryzowany"
-        
+                return allegro_request(method, endpoint, data, params, _retry=True)
+            return None, "Nieautoryzowany — zaloguj się ponownie na /allegro"
+
+        # Auto-refresh na 403 (token może być invalid)
+        if response.status_code == 403 and not _retry:
+            print(f"[AllegroAPI] 403 na {endpoint}, próbuję odświeżyć token...")
+            if refresh_access_token():
+                return allegro_request(method, endpoint, data, params, _retry=True)
+            return None, "Brak dostępu — zaloguj się ponownie na /allegro"
+
         if response.status_code >= 400:
             error_details = f"Błąd {response.status_code}"
             try:
+                # Zabezpieczenie na non-JSON responses (np. HTML error pages)
+                content_type = response.headers.get('Content-Type', '')
+                if 'json' not in content_type and 'text/html' in content_type:
+                    error_details = f"Allegro zwróciło HTML (HTTP {response.status_code}) — prawdopodobny problem z tokenem lub uprawnieniami"
+                    print(f"🔴 {error_details}")
+                    return None, error_details
+
                 err_json = response.json()
                 errors = err_json.get('errors', [])
                 if errors:
@@ -602,23 +639,33 @@ def allegro_request(method, endpoint, data=None, params=None):
                     for e in errors[:10]:
                         msg = e.get('userMessage') or e.get('message', '')
                         path = e.get('path', '')
-                        code = e.get('code', '')
                         if path:
                             msgs.append(f"{path}: {msg}")
                         else:
                             msgs.append(msg)
                     error_details = "; ".join(msgs)
-                # Tylko loguj błędy inne niż Bad Request (400) żeby nie spamować przy nieobsługiwanych statusach
-                if response.status_code != 400:
-                    print(f"🔴 Allegro API error {response.status_code}: {error_details}")
+                print(f"🔴 Allegro API error {response.status_code}: {error_details}")
+            except ValueError:
+                # response.json() failed — not valid JSON
+                error_details = f"Allegro API HTTP {response.status_code} (odpowiedź nie jest JSON)"
+                print(f"🔴 {error_details}: {response.text[:200]}")
             except Exception as ex:
-                pass
+                print(f"🔴 Allegro API error {response.status_code}: {ex}")
             return None, error_details
-        
+
         if response.text:
-            return response.json(), None
+            try:
+                return response.json(), None
+            except ValueError:
+                # Odpowiedź 200 ale nie JSON (np. PDF label)
+                return {'raw_content': response.content, 'status': response.status_code}, None
         return {}, None
+    except requests.exceptions.Timeout:
+        return None, "Timeout — Allegro API nie odpowiada"
+    except requests.exceptions.ConnectionError:
+        return None, "Brak połączenia z Allegro API"
     except Exception as e:
+        print(f"🔴 Wyjątek allegro_request: {e}")
         return None, str(e)
 
 
@@ -4820,6 +4867,12 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None):
     """
     print(f"📦 Tworzenie przesyłki (Wysyłam z Allegro) dla: {order_id}")
 
+    # ── Stałe cenników i warunków ──
+    CREDENTIALS_DPD = 'bf1a1cf0-6a1e-41b3-a42e-d46846b35f43'
+    CREDENTIALS_INPOST = get_config('allegro_shipping_id') or CREDENTIALS_DPD
+    RETURN_POLICY_ID = '7b75ba63-0967-4536-a439-730f8e563a59'
+    WARRANTY_POLICY_ID = '128af307-9341-4f8c-b406-63b9060cce7d'
+
     # Pobierz dane zamówienia
     order, error = get_order_details(order_id)
     if error:
@@ -4845,12 +4898,19 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None):
 
     line_item_ids = [item.get('id') for item in line_items if item.get('id')]
 
+    # Rozpoznaj przewoźnika po nazwie metody dostawy
+    is_inpost = any(kw in delivery_method_name for kw in ['inpost', 'paczkomat', 'paczka w ruchu'])
+    is_dpd = any(kw in delivery_method_name for kw in ['dpd', 'kurier dpd'])
+    credentials_id = CREDENTIALS_INPOST if is_inpost else CREDENTIALS_DPD
+    print(f"   → Przewoźnik: {'InPost' if is_inpost else 'DPD/inny'}, credentialsId: {credentials_id}")
+
     # Buduj payload dla Wysyłam z Allegro
     import uuid
     command_id = str(uuid.uuid4())
 
     shipment_input = {
         'deliveryMethodId': delivery_method_id,
+        'credentialsId': credentials_id,
         'lineItemIds': line_item_ids,
     }
 
@@ -4874,6 +4934,15 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None):
             receiver['companyName'] = address['companyName']
         shipment_input['receiver'] = receiver
 
+    # Nadawca — dane firmy
+    shipment_input['sender'] = {
+        'companyName': get_config('firma_nazwa') or 'SklepAkces1',
+        'street': get_config('firma_ulica') or '',
+        'city': get_config('allegro_city') or 'Mieszkowice',
+        'zipCode': get_config('allegro_postcode') or '74-505',
+        'countryCode': 'PL',
+    }
+
     payload = {
         'commandId': command_id,
         'input': shipment_input
@@ -4888,16 +4957,9 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None):
     print(f"   → Błąd: {error}")
 
     if error:
-        print(f"   → Szczegóły błędu: {error}")
-        # Fallback: spróbuj standardowe API
-        print(f"   → Próbuję standardowe API...")
-        fallback_data = {
-            'deliveryMethodId': delivery_method_id,
-            'lineItemIds': line_item_ids
-        }
-        result, error = allegro_request('POST', f'/order/checkout-forms/{order_id}/shipments', data=fallback_data)
-        print(f"   → Fallback wynik: {result}")
-        print(f"   → Fallback błąd: {error}")
+        print(f"   → Błąd create-commands: {error}")
+        # Nie rób fallback do standardowego API — wymaga carrierId/waybill które nie mamy
+        return None, f"Błąd Wysyłam z Allegro: {error}"
 
     return result, error
 
