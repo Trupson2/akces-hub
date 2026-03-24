@@ -208,24 +208,54 @@
 
                 <!-- InPost gabaryty A/B/C -->
                 <div id="pkSizeInpost" style="display:none">
+                    <div style="font-size:10px;color:var(--pk-muted);margin-bottom:6px;text-align:center">📮 InPost Paczkomat</div>
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
                         <button onclick="pkSelectSize('A')" class="pk-size-btn" data-size="A" style="padding:14px 8px;text-align:center;background:var(--pk-card);border:2px solid var(--pk-border);cursor:pointer;transition:all 0.15s">
                             <div class="pk-headline" style="font-size:1.4rem;font-weight:900;color:var(--pk-text)">A</div>
                             <div style="font-size:10px;color:var(--pk-muted);margin-top:2px">8×38×64cm</div>
                             <div style="font-size:10px;color:var(--pk-muted)">max 25kg</div>
+                            <div class="pk-size-price" style="font-size:11px;color:var(--pk-cyan);font-weight:700;margin-top:4px" id="pkPriceA"></div>
                         </button>
                         <button onclick="pkSelectSize('B')" class="pk-size-btn" data-size="B" style="padding:14px 8px;text-align:center;background:var(--pk-card);border:2px solid var(--pk-border);cursor:pointer;transition:all 0.15s">
                             <div class="pk-headline" style="font-size:1.4rem;font-weight:900;color:var(--pk-text)">B</div>
                             <div style="font-size:10px;color:var(--pk-muted);margin-top:2px">19×38×64cm</div>
                             <div style="font-size:10px;color:var(--pk-muted)">max 25kg</div>
+                            <div class="pk-size-price" style="font-size:11px;color:var(--pk-cyan);font-weight:700;margin-top:4px" id="pkPriceB"></div>
                         </button>
                         <button onclick="pkSelectSize('C')" class="pk-size-btn" data-size="C" style="padding:14px 8px;text-align:center;background:var(--pk-card);border:2px solid var(--pk-border);cursor:pointer;transition:all 0.15s">
                             <div class="pk-headline" style="font-size:1.4rem;font-weight:900;color:var(--pk-text)">C</div>
                             <div style="font-size:10px;color:var(--pk-muted);margin-top:2px">41×38×64cm</div>
                             <div style="font-size:10px;color:var(--pk-muted)">max 25kg</div>
+                            <div class="pk-size-price" style="font-size:11px;color:var(--pk-cyan);font-weight:700;margin-top:4px" id="pkPriceC"></div>
                         </button>
                     </div>
                     <div id="pkSizeSelected" style="text-align:center;font-size:0.8rem;color:var(--pk-lime-dim);font-weight:700;min-height:20px"></div>
+                </div>
+
+                <!-- Orlen Paczka gabaryty S/M/L -->
+                <div id="pkSizeOrlen" style="display:none">
+                    <div style="font-size:10px;color:var(--pk-muted);margin-bottom:6px;text-align:center">⛽ Orlen Paczka</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+                        <button onclick="pkSelectSize('S')" class="pk-size-btn" data-size="S" style="padding:14px 8px;text-align:center;background:var(--pk-card);border:2px solid var(--pk-border);cursor:pointer;transition:all 0.15s">
+                            <div class="pk-headline" style="font-size:1.4rem;font-weight:900;color:var(--pk-text)">S</div>
+                            <div style="font-size:10px;color:var(--pk-muted);margin-top:2px">8×38×64cm</div>
+                            <div style="font-size:10px;color:var(--pk-muted)">max 15kg</div>
+                            <div class="pk-size-price" style="font-size:11px;color:var(--pk-cyan);font-weight:700;margin-top:4px" id="pkPriceS"></div>
+                        </button>
+                        <button onclick="pkSelectSize('M')" class="pk-size-btn" data-size="M" style="padding:14px 8px;text-align:center;background:var(--pk-card);border:2px solid var(--pk-border);cursor:pointer;transition:all 0.15s">
+                            <div class="pk-headline" style="font-size:1.4rem;font-weight:900;color:var(--pk-text)">M</div>
+                            <div style="font-size:10px;color:var(--pk-muted);margin-top:2px">19×38×64cm</div>
+                            <div style="font-size:10px;color:var(--pk-muted)">max 15kg</div>
+                            <div class="pk-size-price" style="font-size:11px;color:var(--pk-cyan);font-weight:700;margin-top:4px" id="pkPriceM"></div>
+                        </button>
+                        <button onclick="pkSelectSize('L')" class="pk-size-btn" data-size="L" style="padding:14px 8px;text-align:center;background:var(--pk-card);border:2px solid var(--pk-border);cursor:pointer;transition:all 0.15s">
+                            <div class="pk-headline" style="font-size:1.4rem;font-weight:900;color:var(--pk-text)">L</div>
+                            <div style="font-size:10px;color:var(--pk-muted);margin-top:2px">41×38×64cm</div>
+                            <div style="font-size:10px;color:var(--pk-muted)">max 15kg</div>
+                            <div class="pk-size-price" style="font-size:11px;color:var(--pk-cyan);font-weight:700;margin-top:4px" id="pkPriceL"></div>
+                        </button>
+                    </div>
+                    <div id="pkSizeSelectedOrlen" style="text-align:center;font-size:0.8rem;color:var(--pk-lime-dim);font-weight:700;min-height:20px"></div>
                 </div>
 
                 <!-- Kurier wymiary -->
@@ -476,12 +506,17 @@ function pkShowPackingMode(z) {
     document.getElementById('pkPackMethod').textContent = method.toUpperCase();
 
     // Show parcel size selector
-    const isInpost = method.toLowerCase().match(/inpost|paczkomat|paczka w ruchu/);
+    const methodLow = method.toLowerCase();
+    const isInpost = methodLow.match(/inpost|paczkomat|paczka w ruchu/) && !methodLow.includes('orlen');
+    const isOrlen = methodLow.match(/orlen/);
+    const isPaczkomat = isInpost || isOrlen;
     document.getElementById('pkParcelSize').style.display = 'block';
     document.getElementById('pkSizeInpost').style.display = isInpost ? 'block' : 'none';
-    document.getElementById('pkSizeCourier').style.display = isInpost ? 'none' : 'block';
-    pkSelectedSize = isInpost ? null : 'custom';
+    document.getElementById('pkSizeOrlen').style.display = isOrlen ? 'block' : 'none';
+    document.getElementById('pkSizeCourier').style.display = isPaczkomat ? 'none' : 'block';
+    pkSelectedSize = isPaczkomat ? null : 'custom';
     document.getElementById('pkSizeSelected').textContent = '';
+    document.getElementById('pkSizeSelectedOrlen').textContent = '';
     document.querySelectorAll('.pk-size-btn').forEach(b => { b.style.borderColor = 'var(--pk-border)'; b.style.background = 'var(--pk-card)'; });
 
     // Pickup point
@@ -556,6 +591,50 @@ function pkUpdateProgress(total) {
     document.getElementById('pkPackProgress').innerHTML = `${pkPackedItems.size} <span style="color:var(--pk-muted);opacity:0.3">/</span> ${total}`;
 }
 
+// ─── Cennik paczkomatów ───
+// Ceny netto Allegro "Wysyłam z Allegro" (aktualizuj w razie zmian)
+var pkPricing = {
+    inpost: { A: '6.40', B: '8.50', C: '11.50' },
+    orlen:  { S: '6.00', M: '8.00', L: '10.50' }
+};
+
+function pkLoadPricing() {
+    // Pokaż ceny na przyciskach
+    ['A','B','C'].forEach(s => {
+        const el = document.getElementById('pkPrice' + s);
+        if (el && pkPricing.inpost[s]) el.textContent = pkPricing.inpost[s] + ' zł';
+    });
+    ['S','M','L'].forEach(s => {
+        const el = document.getElementById('pkPrice' + s);
+        if (el && pkPricing.orlen[s]) el.textContent = pkPricing.orlen[s] + ' zł';
+    });
+
+    // Pobierz cennik z API (jeśli dostępny, nadpisze domyślne)
+    fetch('/api/wysylki/cennik')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+            if (!data) return;
+            if (data.inpost) {
+                pkPricing.inpost = data.inpost;
+                ['A','B','C'].forEach(s => {
+                    const el = document.getElementById('pkPrice' + s);
+                    if (el && data.inpost[s]) el.textContent = data.inpost[s] + ' zł';
+                });
+            }
+            if (data.orlen) {
+                pkPricing.orlen = data.orlen;
+                ['S','M','L'].forEach(s => {
+                    const el = document.getElementById('pkPrice' + s);
+                    if (el && data.orlen[s]) el.textContent = data.orlen[s] + ' zł';
+                });
+            }
+        })
+        .catch(() => {});
+}
+
+// Załaduj cennik przy starcie
+pkLoadPricing();
+
 // ─── Parcel Size ───
 var pkSelectedSize = null;
 function pkSelectSize(size) {
@@ -569,7 +648,10 @@ function pkSelectSize(size) {
             b.style.background = 'var(--pk-card)';
         }
     });
-    document.getElementById('pkSizeSelected').textContent = '✅ Gabaryt ' + size + ' wybrany';
+    // Update the correct status text
+    const isOrlenSize = ['S','M','L'].includes(size);
+    const statusEl = document.getElementById(isOrlenSize ? 'pkSizeSelectedOrlen' : 'pkSizeSelected');
+    statusEl.textContent = '✅ Gabaryt ' + size + ' wybrany';
     if (navigator.vibrate) navigator.vibrate(20);
 }
 
@@ -577,11 +659,16 @@ function pkSelectSize(size) {
 function pkFinalize() {
     if (!pkCurrentOrder) return;
 
-    // Walidacja gabarytu InPost
+    // Walidacja gabarytu paczkomat (InPost / Orlen)
     const method = (pkCurrentOrder.delivery_method || '').toLowerCase();
-    const isInpost = method.match(/inpost|paczkomat|paczka w ruchu/);
+    const isInpost = method.match(/inpost|paczkomat|paczka w ruchu/) && !method.includes('orlen');
+    const isOrlen = method.includes('orlen');
     if (isInpost && !pkSelectedSize) {
         document.getElementById('pkSizeSelected').innerHTML = '<span style="color:#ff716c">⚠️ Wybierz gabaryt A, B lub C!</span>';
+        return;
+    }
+    if (isOrlen && !pkSelectedSize) {
+        document.getElementById('pkSizeSelectedOrlen').innerHTML = '<span style="color:#ff716c">⚠️ Wybierz gabaryt S, M lub L!</span>';
         return;
     }
 
@@ -613,7 +700,7 @@ function pkFinalize() {
     }
     if (params.length) nadajUrl += '?' + params.join('&');
 
-    fetch(nadajUrl)
+    fetch(nadajUrl, { headers: { 'Accept': 'application/json, application/pdf' } })
         .then(r => {
             clearInterval(progressInterval);
             if (r.ok && r.headers.get('content-type')?.includes('application/pdf')) {
@@ -665,7 +752,8 @@ function pkShowReady(orderId, pdfUrl) {
     const method = (z.delivery_method || z.delivery_type || 'kurier').toLowerCase();
     let carrier = 'Kurier';
     let carrierType = 'STANDARD';
-    if (method.includes('inpost') || method.includes('paczkomat')) { carrier = 'InPost'; carrierType = 'PACZKOMAT'; }
+    if (method.includes('orlen')) { carrier = 'Orlen Paczka'; carrierType = 'PACZKOMAT'; }
+    else if (method.includes('inpost') || method.includes('paczkomat')) { carrier = 'InPost'; carrierType = 'PACZKOMAT'; }
     else if (method.includes('dpd')) { carrier = 'DPD'; carrierType = 'HOME DELIVERY'; }
     else if (method.includes('dhl')) { carrier = 'DHL'; carrierType = 'EXPRESS'; }
     else if (method.includes('gls')) { carrier = 'GLS'; carrierType = 'PARCEL'; }

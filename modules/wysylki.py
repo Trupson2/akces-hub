@@ -284,6 +284,55 @@ def wysylki_pakowanie():
         active_paletomat='', active_allegro='', active_monitor='', active_narzedzia='')
 
 
+@wysylki_bp.route('/api/wysylki/cennik')
+def api_wysylki_cennik():
+    """API - zwraca cennik paczkomatów z Allegro API"""
+    from modules.allegro_api import is_authenticated, get_shipping_rates, get_allegro_config
+
+    # Domyślne ceny (Wysyłam z Allegro standardowe stawki)
+    cennik = {
+        'inpost': {'A': '6.40', 'B': '8.50', 'C': '11.50'},
+        'orlen':  {'S': '6.00', 'M': '8.00', 'L': '10.50'}
+    }
+
+    if is_authenticated():
+        try:
+            config = get_allegro_config()
+            shipping_id = config.get('shipping_id', '')
+            if shipping_id:
+                rates, err = get_shipping_rates()
+                if rates and not err:
+                    for rate_set in rates.get('shippingRates', []):
+                        if rate_set.get('id') == shipping_id:
+                            for rate in rate_set.get('rates', []):
+                                method_name = (rate.get('deliveryMethod', {}).get('name', '') or '').lower()
+                                first_price = rate.get('firstItemRate', {}).get('amount', '')
+                                if not first_price:
+                                    continue
+                                # InPost paczkomat - wyciągnij cenę per gabaryt
+                                if 'inpost' in method_name or 'paczkomat' in method_name:
+                                    if 'orlen' not in method_name:
+                                        # Przypisz po rozmiarze w nazwie
+                                        if 'gabaryt a' in method_name or 'mały' in method_name or 'small' in method_name:
+                                            cennik['inpost']['A'] = first_price
+                                        elif 'gabaryt b' in method_name or 'średni' in method_name or 'medium' in method_name:
+                                            cennik['inpost']['B'] = first_price
+                                        elif 'gabaryt c' in method_name or 'duży' in method_name or 'large' in method_name:
+                                            cennik['inpost']['C'] = first_price
+                                # Orlen Paczka
+                                if 'orlen' in method_name:
+                                    if 'gabaryt s' in method_name or 'mały' in method_name or 'small' in method_name:
+                                        cennik['orlen']['S'] = first_price
+                                    elif 'gabaryt m' in method_name or 'średni' in method_name or 'medium' in method_name:
+                                        cennik['orlen']['M'] = first_price
+                                    elif 'gabaryt l' in method_name or 'duży' in method_name or 'large' in method_name:
+                                        cennik['orlen']['L'] = first_price
+        except Exception as e:
+            print(f"⚠️ Cennik API error: {e}")
+
+    return jsonify(cennik)
+
+
 @wysylki_bp.route('/api/wysylki/szukaj')
 def api_wysylki_szukaj():
     """API - szuka zamówienia po EAN/ASIN/nazwie/order_id (z cache)"""
@@ -493,8 +542,10 @@ def wysylki_nadaj(order_id):
         items = order.get('lineItems', [])
         buyer = order.get('buyer', {})
 
-        is_inpost = any(kw in method_name.lower() for kw in ['inpost', 'paczkomat', 'paczka w ruchu'])
-        carrier = 'InPost' if is_inpost else 'DPD/Kurier'
+        method_low = method_name.lower()
+        is_orlen = 'orlen' in method_low
+        is_inpost = any(kw in method_low for kw in ['inpost', 'paczkomat', 'paczka w ruchu']) and not is_orlen
+        carrier = 'InPost' if is_inpost else ('Orlen Paczka' if is_orlen else 'DPD/Kurier')
 
         test_data = {
             'success': True,

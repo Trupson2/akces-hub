@@ -4838,10 +4838,13 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
     line_item_ids = [item.get('id') for item in line_items if item.get('id')]
 
     # Rozpoznaj przewoźnika po nazwie metody dostawy
-    is_inpost = any(kw in delivery_method_name for kw in ['inpost', 'paczkomat', 'paczka w ruchu'])
+    is_orlen = 'orlen' in delivery_method_name
+    is_inpost = any(kw in delivery_method_name for kw in ['inpost', 'paczkomat', 'paczka w ruchu']) and not is_orlen
     is_dpd = any(kw in delivery_method_name for kw in ['dpd', 'kurier dpd'])
-    credentials_id = CREDENTIALS_INPOST if is_inpost else CREDENTIALS_DPD
-    print(f"   → Przewoźnik: {'InPost' if is_inpost else 'DPD/inny'}, credentialsId: {credentials_id}")
+    is_paczkomat = is_inpost or is_orlen
+    credentials_id = CREDENTIALS_INPOST if is_paczkomat else CREDENTIALS_DPD
+    carrier_name = 'InPost' if is_inpost else ('Orlen Paczka' if is_orlen else 'DPD/inny')
+    print(f"   → Przewoźnik: {carrier_name}, credentialsId: {credentials_id}")
 
     # Buduj payload dla Wysyłam z Allegro
     import uuid
@@ -4853,19 +4856,24 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         'lineItemIds': line_item_ids,
     }
 
-    # Gabaryt paczki
-    INPOST_SIZES = {
+    # Gabaryt paczki (paczkomaty)
+    PACZKOMAT_SIZES = {
+        # InPost A/B/C
         'A': {'length': 640, 'width': 380, 'height': 80, 'unit': 'MILLIMETERS'},
         'B': {'length': 640, 'width': 380, 'height': 190, 'unit': 'MILLIMETERS'},
         'C': {'length': 640, 'width': 380, 'height': 410, 'unit': 'MILLIMETERS'},
+        # Orlen Paczka S/M/L
+        'S': {'length': 640, 'width': 380, 'height': 80, 'unit': 'MILLIMETERS'},
+        'M': {'length': 640, 'width': 380, 'height': 190, 'unit': 'MILLIMETERS'},
+        'L': {'length': 640, 'width': 380, 'height': 410, 'unit': 'MILLIMETERS'},
     }
-    if parcel_size and parcel_size.upper() in INPOST_SIZES:
-        size_data = INPOST_SIZES[parcel_size.upper()]
+    if parcel_size and parcel_size.upper() in PACZKOMAT_SIZES:
+        size_data = PACZKOMAT_SIZES[parcel_size.upper()]
         shipment_input['packageDetails'] = {
             'size': parcel_size.upper(),
             'dimensions': size_data
         }
-        print(f"   → Gabaryt InPost: {parcel_size.upper()}")
+        print(f"   → Gabaryt paczkomat: {parcel_size.upper()}")
     elif dimensions:
         shipment_input['packageDetails'] = {
             'dimensions': {
