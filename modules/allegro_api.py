@@ -4933,10 +4933,12 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         if address.get('companyName'):
             receiver['company'] = address['companyName']
         shipment_input['receiver'] = receiver
-        print(f"   → Odbiorca: {first_name} {last_name}, {address.get('city', '')}")
-        # Pickup point dziedziczy się z zamówienia (lineItemIds) - nie wysyłamy go osobno
-        if pickup_point and pickup_point.get('id'):
-            print(f"   → Punkt odbioru (z zamówienia): {pickup_point['id']}")
+        print(f"   → Odbiorca: {receiver_name}, {address.get('city', '')}, email: {receiver_email}")
+
+    # Pickup point (paczkomat) - WYMAGANE dla InPost/Orlen
+    if pickup_point and pickup_point.get('id'):
+        shipment_input['pickupPoint'] = {'id': pickup_point['id']}
+        print(f"   → Punkt odbioru: {pickup_point['id']}")
 
     # Nadawca — dane firmy z configu, potem hardcoded fallback
     try:
