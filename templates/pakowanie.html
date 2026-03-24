@@ -631,6 +631,11 @@ function pkShowPackingMode(z) {
     const isOrlen = deliveryType === 'paczkomat_orlen' || methodLow.includes('orlen') || pickupId.startsWith('ORL') || pickupText.includes('orlen');
     const isInpost = deliveryType === 'paczkomat' || (!isOrlen && (methodLow.match(/inpost|paczkomat|paczka w ruchu/) || pickupId.length > 0 || pickupText.includes('paczkomat') || pickupText.includes('inpost')));
     const isPaczkomat = isInpost || isOrlen;
+
+    // DEBUG - pokaż w konsoli i na ekranie
+    console.log('🔍 GABARYT DEBUG:', {deliveryType, methodLow, pickupId, pickupText, isInpost, isOrlen, isPaczkomat, raw: z});
+    document.getElementById('pkPackMethod').textContent = method.toUpperCase() + (isPaczkomat ? (isInpost ? ' [INPOST]' : ' [ORLEN]') : ' [KURIER]');
+
     document.getElementById('pkParcelSize').style.display = 'block';
     document.getElementById('pkSizeInpost').style.display = isInpost ? 'block' : 'none';
     document.getElementById('pkSizeOrlen').style.display = isOrlen ? 'block' : 'none';
