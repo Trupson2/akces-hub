@@ -9315,10 +9315,16 @@ def przyjecie_palety(paleta_id):
         </div>
 
         <div style="position:sticky;bottom:0;padding:15px 0;background:linear-gradient(transparent, #0a0a0f 30%)">
-            <button onclick="saveAll()" id="save-btn"
-                style="width:100%;padding:14px;background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083;border:none;border-radius:12px;color:white;font-size:1rem;font-weight:600;cursor:pointer">
-                ✅ Zapisz oceny i oznacz jako dostarczona
-            </button>
+            <div style="display:flex;gap:10px">
+                <button onclick="savePartial()" id="save-partial-btn"
+                    style="flex:1;padding:14px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:12px;color:#f59e0b;font-size:0.9rem;font-weight:600;cursor:pointer">
+                    💾 Zapisz i wróć później
+                </button>
+                <button onclick="saveAll()" id="save-btn"
+                    style="flex:1;padding:14px;background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);border-radius:12px;color:#5bf083;font-size:0.9rem;font-weight:600;cursor:pointer">
+                    ✅ Zapisz i zakończ przyjęcie
+                </button>
+            </div>
         </div>
     </div>
 
@@ -9450,18 +9456,13 @@ def przyjecie_palety(paleta_id):
         event.target.value = '';
     }}
 
-    function saveAll() {{
-        const btn = document.getElementById('save-btn');
-        btn.disabled = true;
-        btn.textContent = '⏳ Zapisuję...';
-
+    function collectAssessments() {{
         const assessments = [];
         document.querySelectorAll('.prod-card').forEach(card => {{
             const pid = parseInt(card.id.replace('prod-', ''));
             const notatki = document.getElementById('notatki-' + pid)?.value || '';
 
             if (splitModes[pid]) {{
-                // Tryb podzielony — zbierz ilości per stan
                 const split = {{}};
                 stanNames.forEach(s => {{
                     const inp = document.getElementById('split-' + pid + '-' + s);
@@ -9473,9 +9474,41 @@ def przyjecie_palety(paleta_id):
                 assessments.push({{ product_id: pid, split: split, notatki: notatki }});
             }} else {{
                 const stan = currentStany[pid] || '';
-                assessments.push({{ product_id: pid, stan: stan, notatki: notatki }});
+                if (stan) assessments.push({{ product_id: pid, stan: stan, notatki: notatki }});
             }}
         }});
+        return assessments;
+    }}
+
+    function savePartial() {{
+        const btn = document.getElementById('save-partial-btn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Zapisuję...';
+        const assessments = collectAssessments();
+        fetch('/magazyn/api/przyjecie-save', {{
+            method: 'POST',
+            headers: {{ 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' }},
+            body: JSON.stringify({{ paleta_id: {paleta_id}, assessments: assessments, partial: true }})
+        }})
+        .then(r => {{ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }})
+        .then(data => {{
+            if (data.success) {{
+                btn.textContent = '💾 Zapisano! Wróć później...';
+                btn.style.borderColor = '#5bf083';
+                btn.style.color = '#5bf083';
+                setTimeout(() => window.location.href = '/magazyn/paleta-id/{paleta_id}', 1000);
+            }} else {{
+                btn.textContent = '❌ ' + (data.error || 'Błąd');
+                btn.disabled = false;
+            }}
+        }}).catch(e => {{ btn.textContent = '❌ ' + e.message; btn.disabled = false; }});
+    }}
+
+    function saveAll() {{
+        const btn = document.getElementById('save-btn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Zapisuję...';
+        const assessments = collectAssessments();
 
         fetch('/magazyn/api/przyjecie-save', {{
             method: 'POST',
@@ -9527,6 +9560,7 @@ def przyjecie_save():
         data = request.get_json()
         paleta_id = data.get('paleta_id')
         assessments = data.get('assessments', [])
+        is_partial = data.get('partial', False)
         conn = get_db()
 
         # Mapowanie stan_przyjecia → klasa_jakosci
@@ -9598,16 +9632,22 @@ def przyjecie_save():
                         (stan, notatki, klasa, condition, 'magazyn', pid)
                     )
 
-        # Produkty nieocenione → stan 'nieoceniony', status magazyn
-        unassessed = all_product_ids - assessed_ids
-        for uid in unassessed:
-            conn.execute(
-                "UPDATE produkty SET stan_przyjecia = 'nieoceniony', klasa_jakosci = '', stan = 'nieoceniony', status = 'magazyn' WHERE id = ? AND (stan_przyjecia IS NULL OR stan_przyjecia = '')",
-                (uid,)
-            )
+        # Produkty nieocenione → stan 'nieoceniony' tylko przy pełnym zapisie
+        if not is_partial:
+            unassessed = all_product_ids - assessed_ids
+            for uid in unassessed:
+                conn.execute(
+                    "UPDATE produkty SET stan_przyjecia = 'nieoceniony', klasa_jakosci = '', stan = 'nieoceniony', status = 'magazyn' WHERE id = ? AND (stan_przyjecia IS NULL OR stan_przyjecia = '')",
+                    (uid,)
+                )
 
         # Oznacz paletę jako dostarczoną
+        # Paleta dostarczona + status oceny
         conn.execute('UPDATE palety SET dostarczona = 1 WHERE id = ?', (paleta_id,))
+        if is_partial:
+            conn.execute("UPDATE palety SET ocena_status = 'częściowa' WHERE id = ?", (paleta_id,))
+        else:
+            conn.execute("UPDATE palety SET ocena_status = 'zakończona' WHERE id = ?", (paleta_id,))
         conn.commit()
 
         return jsonify({'success': True})
