@@ -290,6 +290,55 @@ def ustawienia():
     <span class="link-card-arrow">→</span>
 </a>
 
+<!-- DANE NADAWCY NA ETYKIECIE -->
+<div class="settings-card settings-card-accent blue" id="nadawca">
+    <div class="section-header">
+        <span class="section-header-icon">📦</span>
+        <span class="section-header-title">Dane nadawcy na etykiecie</span>
+    </div>
+    <form action="/ustawienia/nadawca/save" method="POST">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="form-group">
+                <label>Imię</label>
+                <input type="text" name="firma_imie" value="{{ firma_imie }}" placeholder="Andrzej" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Nazwisko</label>
+                <input type="text" name="firma_nazwisko" value="{{ firma_nazwisko }}" placeholder="Gauza" class="form-control">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Nazwa firmy</label>
+            <input type="text" name="firma_nazwa" value="{{ firma_nazwa }}" placeholder="AKCES" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>Ulica i numer</label>
+            <input type="text" name="firma_ulica" value="{{ firma_ulica }}" placeholder="Poniatowskiego 13" class="form-control">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px">
+            <div class="form-group">
+                <label>Kod pocztowy</label>
+                <input type="text" name="allegro_postcode" value="{{ allegro_postcode }}" placeholder="74-505" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Miejscowość</label>
+                <input type="text" name="allegro_city" value="{{ allegro_city }}" placeholder="Mieszkowice" class="form-control">
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="form-group">
+                <label>E-mail</label>
+                <input type="email" name="firma_email" value="{{ firma_email }}" placeholder="agauza@interia.eu" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Telefon</label>
+                <input type="text" name="firma_telefon" value="{{ firma_telefon }}" placeholder="+48 604 753 407" class="form-control">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Zapisz dane nadawcy</button>
+    </form>
+</div>
+
 <!-- PARAMETRY INTEGRACJI I REGULAMINY -->
 <div class="settings-card settings-card-accent blue">
     <div class="section-header">
@@ -472,6 +521,14 @@ def ustawienia():
         zwroty_warunki_id=zwroty_warunki_id,
         reklamacje_warunki_id=reklamacje_warunki_id,
         smtp_cfg=smtp_cfg,
+        firma_imie=get_config('firma_imie', ''),
+        firma_nazwisko=get_config('firma_nazwisko', ''),
+        firma_nazwa=get_config('firma_nazwa', ''),
+        firma_ulica=get_config('firma_ulica', ''),
+        allegro_postcode=get_config('allegro_postcode', ''),
+        allegro_city=get_config('allegro_city', ''),
+        firma_email=get_config('firma_email', ''),
+        firma_telefon=get_config('firma_telefon', ''),
         custom_dostawcy=get_config('custom_dostawcy', ''),
     )
 
@@ -728,6 +785,30 @@ function testVps() {
         sections=sections,
         support_nodata=support_nodata,
     )
+
+
+@ustawienia_bp.route('/ustawienia/nadawca/save', methods=['POST'])
+def ustawienia_nadawca_save():
+    """Zapisuje dane nadawcy na etykiecie wysyłkowej"""
+    from modules.database import set_config, invalidate_config_cache
+
+    fields = {
+        'firma_imie': request.form.get('firma_imie', '').strip(),
+        'firma_nazwisko': request.form.get('firma_nazwisko', '').strip(),
+        'firma_nazwa': request.form.get('firma_nazwa', '').strip(),
+        'firma_ulica': request.form.get('firma_ulica', '').strip(),
+        'allegro_postcode': request.form.get('allegro_postcode', '').strip(),
+        'allegro_city': request.form.get('allegro_city', '').strip(),
+        'firma_email': request.form.get('firma_email', '').strip(),
+        'firma_telefon': request.form.get('firma_telefon', '').strip(),
+    }
+
+    for key, val in fields.items():
+        set_config(key, val)
+
+    invalidate_config_cache()
+    flash('Dane nadawcy zapisane!', 'success')
+    return redirect('/ustawienia#nadawca')
 
 
 @ustawienia_bp.route('/ustawienia/kreator/save', methods=['POST'])
