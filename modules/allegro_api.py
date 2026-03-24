@@ -4961,11 +4961,13 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         'email': _fe if _fe else 'agauza@interia.eu',
         'phone': _ft if _ft else '+48604753407',
     }
-    # Nadanie w paczkomacie - sendingAtPoint + punkt nadania (PO senderze!)
+    # Nadanie w paczkomacie - sendingAtPoint + punkt nadania
     if is_inpost or is_orlen:
         sender_point = (get_config('sender_paczkomat') or '').strip() or 'MEZ01M'
         shipment_input['additionalServices'] = ['sendingAtPoint']
-        shipment_input['sender']['point'] = sender_point
+        # Punkt nadania na różnych poziomach (Allegro API niespójna)
+        shipment_input['sendingPoint'] = {'id': sender_point}
+        shipment_input['sender']['point'] = {'id': sender_point}
         print(f"   → Nadanie z paczkomatu: {sender_point} (sendingAtPoint)")
 
     print(f"   → 📬 SENDER PAYLOAD: {shipment_input['sender']}")
