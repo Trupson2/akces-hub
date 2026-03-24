@@ -483,6 +483,7 @@ def init_db():
             ('palety', 'dostarczona', "ALTER TABLE palety ADD COLUMN dostarczona INTEGER DEFAULT 0"),
             ('palety', 'cena_zakupu_netto', "ALTER TABLE palety ADD COLUMN cena_zakupu_netto REAL DEFAULT 0"),
             ('palety', 'ilosc_sztuk', "ALTER TABLE palety ADD COLUMN ilosc_sztuk INTEGER DEFAULT 0"),
+            ('palety', 'ocena_status', "ALTER TABLE palety ADD COLUMN ocena_status TEXT DEFAULT ''"),
             ('produkty', 'stan_przyjecia', "ALTER TABLE produkty ADD COLUMN stan_przyjecia TEXT DEFAULT ''"),
             ('produkty', 'notatki_przyjecia', "ALTER TABLE produkty ADD COLUMN notatki_przyjecia TEXT DEFAULT ''"),
             ('produkty', 'klasa_jakosci', "ALTER TABLE produkty ADD COLUMN klasa_jakosci TEXT DEFAULT ''"),
