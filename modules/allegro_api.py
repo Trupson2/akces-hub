@@ -4922,11 +4922,15 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
 
     # Nadawca — dane firmy
     shipment_input['sender'] = {
-        'companyName': get_config('firma_nazwa') or 'SklepAkces1',
-        'street': get_config('firma_ulica') or '',
+        'companyName': get_config('firma_nazwa') or 'AKCES',
+        'firstName': get_config('firma_imie') or 'Andrzej',
+        'lastName': get_config('firma_nazwisko') or 'Gauza',
+        'street': get_config('firma_ulica') or 'Poniatowskiego 13',
         'city': get_config('allegro_city') or 'Mieszkowice',
         'postalCode': get_config('allegro_postcode') or '74-505',
         'countryCode': 'PL',
+        'email': get_config('firma_email') or 'agauza@interia.eu',
+        'phone': get_config('firma_telefon') or '+48604753407',
     }
 
     payload = {

@@ -98,42 +98,79 @@
 <!-- ════════════════════════════════════════ -->
 <section id="pkDashboard" class="pk-section active">
 
-    <!-- Header -->
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:32px;flex-wrap:wrap;gap:16px">
+    <!-- Dashboard Header & Status -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:40px;flex-wrap:wrap;gap:16px">
         <div>
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
                 <div class="pk-pulse-dot" style="background:var(--pk-lime-dim)"></div>
-                <span class="pk-label" style="color:var(--pk-lime-dim);font-weight:900">System Online</span>
+                <span class="pk-label" style="color:var(--pk-lime-dim);font-weight:900">System Status: Online</span>
             </div>
-            <h1 class="pk-headline" style="font-size:clamp(2.5rem,6vw,4rem);font-weight:900;font-style:italic;letter-spacing:-0.04em;line-height:1;color:var(--pk-text)">
+            <h1 class="pk-headline" style="font-size:clamp(2.5rem,6vw,5rem);font-weight:900;font-style:italic;letter-spacing:-0.04em;line-height:1;color:var(--pk-text)">
                 PACKING <span style="color:var(--pk-cyan)">CENTER</span>
             </h1>
         </div>
+        <div style="text-align:right">
+            <div class="pk-label" style="margin-bottom:4px">Station Efficiency</div>
+            <div class="pk-headline" id="pkEfficiency" style="font-size:1.8rem;font-weight:700;color:var(--pk-lime-dim)">—</div>
+        </div>
     </div>
 
-    <!-- Scanner -->
-    <div class="pk-scanner" style="margin-bottom:16px;border:1px solid var(--pk-border)">
-        <video id="video" playsinline></video>
-        <div class="pk-scan-line"></div>
-    </div>
-    <div id="pkScanStatus" style="text-align:center;margin-bottom:16px;color:var(--pk-muted);font-size:0.85rem">
-        Skieruj kamerę na kod kreskowy
+    <!-- Stats Grid -->
+    <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;margin-bottom:40px" class="pk-grid-2">
+        <!-- Active Orders Stat -->
+        <div class="pk-card pk-glow-cyan" style="padding:32px;position:relative;overflow:hidden">
+            <div style="position:absolute;top:12px;right:12px;opacity:0.04">
+                <span class="material-symbols-outlined" style="font-size:120px;font-variation-settings:'wght' 100">inventory_2</span>
+            </div>
+            <div style="position:relative;z-index:1">
+                <div class="pk-label" style="margin-bottom:12px;letter-spacing:0.3em">Operation Queue</div>
+                <div class="pk-headline" id="pkOrderCount" style="font-size:clamp(3rem,8vw,5rem);font-weight:900;letter-spacing:-0.04em;line-height:1;margin-bottom:4px">—</div>
+                <div class="pk-headline" style="font-size:1rem;text-transform:uppercase;letter-spacing:-0.02em;color:var(--pk-cyan);font-weight:900;font-style:italic">Zamówień do spakowania</div>
+            </div>
+        </div>
+
+        <!-- Daily Progress Gauge -->
+        <div style="background:var(--pk-card);padding:24px;border-left:2px solid var(--pk-lime-dim);display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <div style="position:relative;width:140px;height:140px;display:flex;align-items:center;justify-content:center">
+                <svg style="width:100%;height:100%;transform:rotate(-90deg)">
+                    <circle cx="70" cy="70" r="62" fill="transparent" stroke="var(--pk-card4)" stroke-width="4"></circle>
+                    <circle id="pkGaugeCircle" cx="70" cy="70" r="62" fill="transparent" stroke="var(--pk-lime-dim)" stroke-width="6" stroke-linecap="round"
+                        stroke-dasharray="389.6" stroke-dashoffset="389.6" style="filter:drop-shadow(0 0 6px rgba(190,238,0,0.5));transition:stroke-dashoffset 1s"></circle>
+                </svg>
+                <div style="position:absolute;display:flex;flex-direction:column;align-items:center">
+                    <span class="pk-headline" id="pkGaugePercent" style="font-size:2rem;font-weight:900">0%</span>
+                    <span class="pk-label" style="font-size:8px">Dziś</span>
+                </div>
+            </div>
+            <div class="pk-label" style="margin-top:12px;font-weight:700;text-align:center">Dzienny postęp</div>
+        </div>
     </div>
 
-    <!-- Manual input -->
-    <div style="display:flex;gap:8px;margin-bottom:24px">
-        <input type="text" id="pkScanInput" placeholder="EAN / ASIN / etykieta / order_id..."
-               onkeypress="if(event.key==='Enter')pkSearch()">
-        <button onclick="pkSearch()" class="pk-btn pk-btn-cyan" style="padding:14px 20px;font-style:normal;font-size:1.2rem">🔎</button>
+    <!-- Scanner + Input -->
+    <div style="margin-bottom:32px">
+        <div class="pk-scanner" style="margin-bottom:12px;border:1px solid var(--pk-border)">
+            <video id="video" playsinline></video>
+            <div class="pk-scan-line"></div>
+        </div>
+        <div id="pkScanStatus" style="text-align:center;margin-bottom:12px;color:var(--pk-muted);font-size:0.85rem">
+            Skieruj kamerę na kod kreskowy
+        </div>
+        <div style="display:flex;gap:8px">
+            <input type="text" id="pkScanInput" placeholder="EAN / ASIN / etykieta / order_id..."
+                   onkeypress="if(event.key==='Enter')pkSearch()">
+            <button onclick="pkSearch()" class="pk-btn pk-btn-cyan" style="padding:14px 20px;font-style:normal;font-size:1.2rem">🔎</button>
+        </div>
     </div>
 
-    <!-- Urgent orders -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--pk-border)">
-        <h3 class="pk-headline" style="font-size:1.4rem;font-weight:900;font-style:italic;display:flex;align-items:center;gap:10px">
+    <!-- Urgent Packing Section -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--pk-border)">
+        <h3 class="pk-headline" style="font-size:1.6rem;font-weight:900;font-style:italic;display:flex;align-items:center;gap:10px">
             <span style="width:10px;height:10px;background:var(--pk-pink);border-radius:50%;animation:pk-dot-pulse 2s infinite"></span>
-            Zamówienia <span style="color:var(--pk-pink)">do wysłania</span>
+            Urgent <span style="color:var(--pk-pink)">Packing</span>
         </h3>
-        <a href="/wysylki" style="color:var(--pk-cyan);text-decoration:none;font-size:0.8rem;font-weight:700">&rarr; Wszystkie</a>
+        <div style="display:flex;align-items:center;gap:12px">
+            <a href="/wysylki" style="color:var(--pk-cyan);text-decoration:none;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em">&rarr; Wszystkie</a>
+        </div>
     </div>
 
     <div id="pkOrders" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px" class="pk-grid-2">
@@ -429,21 +466,102 @@ codeReader.listVideoInputDevices().then(devices => {
 
 // ─── Load pending orders for dashboard ───
 function pkLoadOrders() {
-    fetch('/api/wysylki/szukaj?q=_pending_orders')
+    fetch('/api/wysylki/pending')
         .then(r => r.json())
         .then(data => {
-            // Fallback — endpoint returns single order; just show scan prompt
             const el = document.getElementById('pkOrders');
-            el.innerHTML = `
+            const orders = data.orders || [];
+            const total = data.total || 0;
+            const shipped_today = data.shipped_today || 0;
+
+            // Update stats
+            document.getElementById('pkOrderCount').textContent = total;
+
+            // Daily progress gauge (assume target = total + shipped today)
+            const dailyTarget = total + shipped_today || 1;
+            const pct = Math.min(100, Math.round((shipped_today / dailyTarget) * 100));
+            document.getElementById('pkGaugePercent').textContent = pct + '%';
+            const circ = document.getElementById('pkGaugeCircle');
+            if (circ) circ.style.strokeDashoffset = 389.6 * (1 - pct / 100);
+
+            // Efficiency
+            document.getElementById('pkEfficiency').textContent = shipped_today > 0 ? shipped_today + ' wysłanych' : '—';
+
+            if (orders.length === 0) {
+                el.innerHTML = `
+                    <div class="pk-card pk-glow-cyan" style="text-align:center;padding:40px">
+                        <span class="material-symbols-outlined" style="font-size:48px;color:var(--pk-lime-dim);margin-bottom:12px;font-variation-settings:'FILL' 1">check_circle</span>
+                        <div class="pk-headline" style="font-size:1.2rem;font-weight:700;color:var(--pk-text)">Wszystko spakowane!</div>
+                        <div style="color:var(--pk-muted);font-size:0.85rem;margin-top:4px">Brak zamówień do wysłania. Zeskanuj EAN aby wyszukać.</div>
+                    </div>`;
+                return;
+            }
+
+            el.innerHTML = orders.map((o, i) => {
+                const isInpost = o.carrier === 'InPost';
+                const isOrlen = o.carrier === 'Orlen';
+                const isDPD = !isInpost && !isOrlen;
+                const borderColor = isDPD ? 'var(--pk-pink)' : 'var(--pk-cyan)';
+                const glowClass = isDPD ? 'pk-glow-pink' : 'pk-glow-cyan';
+                const badgeBg = isDPD ? 'var(--pk-pink)' : (isOrlen ? '#f97316' : 'var(--pk-cyan)');
+                const badgeColor = isDPD ? '#47001f' : (isOrlen ? '#fff' : '#005d63');
+                const shortId = (o.order_id || '').substring(0, 8).toUpperCase();
+
+                return `
+                <div class="pk-card ${glowClass}" style="border-left-color:${borderColor};padding:24px;cursor:pointer;transition:all 0.2s"
+                     onclick="pkSearchOrder('${o.order_id}')">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+                        <div>
+                            <div class="pk-label">Order Serial</div>
+                            <div class="pk-headline" style="font-size:1.4rem;font-weight:900;font-style:italic;letter-spacing:-0.03em">#${shortId}</div>
+                        </div>
+                        <div style="text-align:right">
+                            <span style="display:inline-block;padding:3px 10px;background:${badgeBg};color:${badgeColor};font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em">${o.carrier || 'Kurier'}</span>
+                            ${o.pickup_point ? `<div style="font-size:10px;color:var(--pk-cyan);font-weight:700;margin-top:2px">PACZKOMAT</div>` : ''}
+                        </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+                        ${o.pickup_point ? `
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span class="material-symbols-outlined" style="font-size:16px;color:var(--pk-cyan)">location_on</span>
+                            <div>
+                                <div class="pk-label">Paczkomat</div>
+                                <div class="pk-headline" style="font-size:0.85rem;font-weight:700">${o.pickup_point}</div>
+                            </div>
+                        </div>` : `
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span class="material-symbols-outlined" style="font-size:16px;color:var(--pk-pink)">person</span>
+                            <div>
+                                <div class="pk-label">Kupujący</div>
+                                <div class="pk-headline" style="font-size:0.85rem;font-weight:700">${o.buyer || 'Nieznany'}</div>
+                            </div>
+                        </div>`}
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span class="material-symbols-outlined" style="font-size:16px;color:var(--pk-muted)">inventory</span>
+                            <div class="pk-label">${o.items_count || '?'} produktów · ${o.total || '0'} zł</div>
+                        </div>
+                    </div>
+                    <button onclick="event.stopPropagation();pkSearchOrder('${o.order_id}')"
+                        class="pk-btn ${isDPD ? 'pk-btn-outline' : 'pk-btn-cyan'}" style="width:100%;font-size:0.95rem;padding:12px">
+                        Start Packing
+                    </button>
+                </div>`;
+            }).join('');
+        }).catch(err => {
+            console.error('pkLoadOrders error:', err);
+            document.getElementById('pkOrders').innerHTML = `
                 <div class="pk-card pk-glow-cyan" style="text-align:center;padding:40px">
                     <span class="material-symbols-outlined" style="font-size:48px;color:var(--pk-cyan);margin-bottom:12px">barcode_scanner</span>
                     <div class="pk-headline" style="font-size:1.2rem;font-weight:700;color:var(--pk-text)">Zeskanuj produkt</div>
-                    <div style="color:var(--pk-muted);font-size:0.85rem;margin-top:4px">EAN, ASIN, etykieta magazynowa lub order_id</div>
-                </div>
-            `;
-        }).catch(() => {
-            document.getElementById('pkOrders').innerHTML = '<div style="color:var(--pk-muted);text-align:center;padding:20px">Skanuj kod żeby rozpocząć</div>';
+                    <div style="color:var(--pk-muted);font-size:0.85rem;margin-top:4px">EAN, ASIN, etykieta lub order_id</div>
+                </div>`;
         });
+}
+
+// ─── Search by order_id (from card click) ───
+function pkSearchOrder(orderId) {
+    document.getElementById('pkScanInput').value = orderId;
+    pkSearch();
 }
 
 // ─── Search ───
@@ -505,14 +623,13 @@ function pkShowPackingMode(z) {
     const method = z.delivery_method || z.delivery_type || '---';
     document.getElementById('pkPackMethod').textContent = method.toUpperCase();
 
-    // Show parcel size selector - sprawdź nazwę metody I pickup point ID
+    // Show parcel size selector - użyj delivery_type z backendu (najwiarygodniejsze)
+    const deliveryType = (z.delivery_type || '').toLowerCase();
     const methodLow = method.toLowerCase();
     const pickupId = (z.pickup_point_id || '').toUpperCase();
     const pickupText = (z.pickup_point || '').toLowerCase();
-    const isOrlenPickup = pickupId.startsWith('ORL') || pickupText.includes('orlen');
-    const isInpostPickup = (pickupId.length > 0 && !isOrlenPickup) || pickupText.includes('paczkomat') || pickupText.includes('inpost');
-    const isInpost = (methodLow.match(/inpost|paczkomat|paczka w ruchu/) && !methodLow.includes('orlen')) || isInpostPickup;
-    const isOrlen = methodLow.match(/orlen/) || isOrlenPickup;
+    const isOrlen = deliveryType === 'paczkomat_orlen' || methodLow.includes('orlen') || pickupId.startsWith('ORL') || pickupText.includes('orlen');
+    const isInpost = deliveryType === 'paczkomat' || (!isOrlen && (methodLow.match(/inpost|paczkomat|paczka w ruchu/) || pickupId.length > 0 || pickupText.includes('paczkomat') || pickupText.includes('inpost')));
     const isPaczkomat = isInpost || isOrlen;
     document.getElementById('pkParcelSize').style.display = 'block';
     document.getElementById('pkSizeInpost').style.display = isInpost ? 'block' : 'none';
@@ -663,14 +780,13 @@ function pkSelectSize(size) {
 function pkFinalize() {
     if (!pkCurrentOrder) return;
 
-    // Walidacja gabarytu paczkomat (InPost / Orlen) - sprawdź też pickup point
+    // Walidacja gabarytu - użyj delivery_type z backendu
+    const dType = (pkCurrentOrder.delivery_type || '').toLowerCase();
     const method = (pkCurrentOrder.delivery_method || '').toLowerCase();
     const ppId = (pkCurrentOrder.pickup_point_id || '').toUpperCase();
     const ppText = (pkCurrentOrder.pickup_point || '').toLowerCase();
-    const isOrlenPP = ppId.startsWith('ORL') || ppText.includes('orlen');
-    const isInpostPP = (ppId.length > 0 && !isOrlenPP) || ppText.includes('paczkomat') || ppText.includes('inpost');
-    const isInpost = (method.match(/inpost|paczkomat|paczka w ruchu/) && !method.includes('orlen')) || isInpostPP;
-    const isOrlen = method.includes('orlen') || isOrlenPP;
+    const isOrlen = dType === 'paczkomat_orlen' || method.includes('orlen') || ppId.startsWith('ORL');
+    const isInpost = dType === 'paczkomat' || (!isOrlen && (method.match(/inpost|paczkomat/) || ppId.length > 0 || ppText.includes('paczkomat')));
     if (isInpost && !pkSelectedSize) {
         document.getElementById('pkSizeSelected').innerHTML = '<span style="color:#ff716c">⚠️ Wybierz gabaryt A, B lub C!</span>';
         return;

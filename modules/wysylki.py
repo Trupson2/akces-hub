@@ -299,6 +299,93 @@ def wysylki_pakowanie():
         active_paletomat='', active_allegro='', active_monitor='', active_narzedzia='')
 
 
+@wysylki_bp.route('/api/wysylki/pending')
+def api_wysylki_pending():
+    """API - zwraca listę zamówień oczekujących na pakowanie (z Allegro API + lokalna baza)"""
+    from modules.allegro_api import is_authenticated, get_orders
+    from modules.database import get_db
+
+    orders = []
+    shipped_today = 0
+
+    try:
+        conn = get_db()
+        from datetime import date
+        today = date.today().isoformat()
+        shipped_row = conn.execute("SELECT COUNT(*) as cnt FROM sprzedaze WHERE status IN ('wyslana','nadana') AND date(data_sprzedazy) = ?", (today,)).fetchone()
+        shipped_today = shipped_row['cnt'] if shipped_row else 0
+    except:
+        pass
+
+    # Próbuj Allegro API
+    if is_authenticated():
+        try:
+            raw_orders = get_orders(status='READY_FOR_PROCESSING')
+            if raw_orders:
+                for order in raw_orders.get('checkoutForms', []):
+                    order_id = order.get('id', '')
+                    buyer = order.get('buyer', {}).get('login', 'Nieznany')
+                    delivery = order.get('delivery', {})
+                    method_name = delivery.get('method', {}).get('name', '')
+                    pickup = delivery.get('pickupPoint', {})
+                    pickup_id = pickup.get('id', '')
+                    pickup_name = pickup.get('name', '')
+                    items = order.get('lineItems', [])
+                    total = sum(float(i.get('price', {}).get('amount', 0)) * int(i.get('quantity', 1)) for i in items)
+
+                    ml = method_name.lower()
+                    pid = (pickup_id or '').upper()
+                    if 'orlen' in ml or pid.startswith('ORL'):
+                        carrier = 'Orlen'
+                    elif any(x in ml for x in ['inpost', 'paczkomat', 'paczka w ruchu']) or (pid and not pid.startswith('ORL')):
+                        carrier = 'InPost'
+                    elif 'dpd' in ml:
+                        carrier = 'DPD'
+                    else:
+                        carrier = method_name[:15] or 'Kurier'
+
+                    pickup_display = ''
+                    if pickup_name:
+                        pp_addr = pickup.get('address', {})
+                        pickup_display = f"{pickup_name} - {pp_addr.get('street', '')} {pp_addr.get('city', '')}".strip()
+
+                    orders.append({
+                        'order_id': order_id,
+                        'buyer': buyer,
+                        'carrier': carrier,
+                        'method': method_name,
+                        'pickup_point': pickup_display,
+                        'items_count': len(items),
+                        'total': f"{total:.0f}",
+                    })
+        except Exception as e:
+            print(f"[api/wysylki/pending] Allegro API error: {e}")
+
+    # Fallback: lokalna baza (jeśli brak Allegro)
+    if not orders:
+        try:
+            conn = get_db()
+            rows = conn.execute('''
+                SELECT s.id, s.allegro_order_id, s.nazwa, s.kupujacy, s.cena, s.ilosc
+                FROM sprzedaze s WHERE s.status IN ('nowa', 'nadana')
+                ORDER BY s.data_sprzedazy DESC LIMIT 20
+            ''').fetchall()
+            for r in rows:
+                orders.append({
+                    'order_id': r['allegro_order_id'] or str(r['id']),
+                    'buyer': r['kupujacy'] or 'Nieznany',
+                    'carrier': 'Kurier',
+                    'method': '',
+                    'pickup_point': '',
+                    'items_count': r['ilosc'] or 1,
+                    'total': str(r['cena'] or 0),
+                })
+        except:
+            pass
+
+    return jsonify({'orders': orders, 'total': len(orders), 'shipped_today': shipped_today})
+
+
 @wysylki_bp.route('/api/wysylki/cennik')
 def api_wysylki_cennik():
     """API - zwraca cennik paczkomatów z Allegro API"""
