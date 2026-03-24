@@ -4797,10 +4797,12 @@ def get_wysylam_z_allegro_shipments(order_id):
     return result, error
 
 
-def create_wysylam_z_allegro_shipment(order_id, reference=None):
+def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None, dimensions=None):
     """
     Tworzy przesyłkę przez Wysyłam z Allegro (shipment-management API).
     POST /shipment-management/shipments/create-commands
+    parcel_size: 'A', 'B', 'C' for InPost
+    dimensions: {'length': cm, 'width': cm, 'height': cm, 'weight_kg': kg} for courier
     """
     print(f"📦 Tworzenie przesyłki (Wysyłam z Allegro) dla: {order_id}")
 
@@ -4850,6 +4852,34 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None):
         'credentialsId': credentials_id,
         'lineItemIds': line_item_ids,
     }
+
+    # Gabaryt paczki
+    INPOST_SIZES = {
+        'A': {'length': 640, 'width': 380, 'height': 80, 'unit': 'MILLIMETERS'},
+        'B': {'length': 640, 'width': 380, 'height': 190, 'unit': 'MILLIMETERS'},
+        'C': {'length': 640, 'width': 380, 'height': 410, 'unit': 'MILLIMETERS'},
+    }
+    if parcel_size and parcel_size.upper() in INPOST_SIZES:
+        size_data = INPOST_SIZES[parcel_size.upper()]
+        shipment_input['packageDetails'] = {
+            'size': parcel_size.upper(),
+            'dimensions': size_data
+        }
+        print(f"   → Gabaryt InPost: {parcel_size.upper()}")
+    elif dimensions:
+        shipment_input['packageDetails'] = {
+            'dimensions': {
+                'length': int(float(dimensions.get('length', 30)) * 10),
+                'width': int(float(dimensions.get('width', 25)) * 10),
+                'height': int(float(dimensions.get('height', 15)) * 10),
+                'unit': 'MILLIMETERS'
+            },
+            'weight': {
+                'value': float(dimensions.get('weight_kg', 1)),
+                'unit': 'KILOGRAMS'
+            }
+        }
+        print(f"   → Wymiary kuriera: {dimensions}")
 
     # Dodaj punkt odbioru (paczkomat) jeśli jest
     if pickup_point and pickup_point.get('id'):
@@ -4986,7 +5016,7 @@ def get_shipment_label(order_id):
         return None, shipment_id, f"Wyjątek: {e}"
 
 
-def create_and_get_label(order_id, reference=None):
+def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=None):
     """
     Tworzy przesyłkę i pobiera etykietę.
     Jeśli przesyłka istnieje - zwraca etykietę.
@@ -5010,7 +5040,7 @@ def create_and_get_label(order_id, reference=None):
                 reference = name.split()[0][:15] if name else 'Paczka'
         
         # Spróbuj utworzyć przez Wysyłam z Allegro
-        result, create_err = create_wysylam_z_allegro_shipment(order_id, reference)
+        result, create_err = create_wysylam_z_allegro_shipment(order_id, reference, parcel_size=parcel_size, dimensions=dimensions)
         
         if create_err:
             print(f"   → Błąd tworzenia: {create_err}")

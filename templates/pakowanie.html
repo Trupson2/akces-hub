@@ -202,6 +202,55 @@
                 </div>
             </div>
 
+            <!-- Gabaryt paczki -->
+            <div id="pkParcelSize" style="background:var(--pk-card3);padding:20px;margin-bottom:16px;display:none">
+                <div class="pk-label" style="color:var(--pk-lime-dim);margin-bottom:12px">📦 Gabaryt paczki</div>
+
+                <!-- InPost gabaryty A/B/C -->
+                <div id="pkSizeInpost" style="display:none">
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+                        <button onclick="pkSelectSize('A')" class="pk-size-btn" data-size="A" style="padding:14px 8px;text-align:center;background:var(--pk-card);border:2px solid var(--pk-border);cursor:pointer;transition:all 0.15s">
+                            <div class="pk-headline" style="font-size:1.4rem;font-weight:900;color:var(--pk-text)">A</div>
+                            <div style="font-size:10px;color:var(--pk-muted);margin-top:2px">8×38×64cm</div>
+                            <div style="font-size:10px;color:var(--pk-muted)">max 25kg</div>
+                        </button>
+                        <button onclick="pkSelectSize('B')" class="pk-size-btn" data-size="B" style="padding:14px 8px;text-align:center;background:var(--pk-card);border:2px solid var(--pk-border);cursor:pointer;transition:all 0.15s">
+                            <div class="pk-headline" style="font-size:1.4rem;font-weight:900;color:var(--pk-text)">B</div>
+                            <div style="font-size:10px;color:var(--pk-muted);margin-top:2px">19×38×64cm</div>
+                            <div style="font-size:10px;color:var(--pk-muted)">max 25kg</div>
+                        </button>
+                        <button onclick="pkSelectSize('C')" class="pk-size-btn" data-size="C" style="padding:14px 8px;text-align:center;background:var(--pk-card);border:2px solid var(--pk-border);cursor:pointer;transition:all 0.15s">
+                            <div class="pk-headline" style="font-size:1.4rem;font-weight:900;color:var(--pk-text)">C</div>
+                            <div style="font-size:10px;color:var(--pk-muted);margin-top:2px">41×38×64cm</div>
+                            <div style="font-size:10px;color:var(--pk-muted)">max 25kg</div>
+                        </button>
+                    </div>
+                    <div id="pkSizeSelected" style="text-align:center;font-size:0.8rem;color:var(--pk-lime-dim);font-weight:700;min-height:20px"></div>
+                </div>
+
+                <!-- Kurier wymiary -->
+                <div id="pkSizeCourier" style="display:none">
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+                        <div>
+                            <label class="pk-label" style="font-size:9px;display:block;margin-bottom:4px">Dł. (cm)</label>
+                            <input id="pkDim_l" type="number" value="30" min="1" max="200" style="width:100%;padding:8px;background:var(--pk-card);border:1px solid var(--pk-border);color:#fff;font-family:'Manrope',sans-serif;text-align:center">
+                        </div>
+                        <div>
+                            <label class="pk-label" style="font-size:9px;display:block;margin-bottom:4px">Szer. (cm)</label>
+                            <input id="pkDim_w" type="number" value="25" min="1" max="200" style="width:100%;padding:8px;background:var(--pk-card);border:1px solid var(--pk-border);color:#fff;font-family:'Manrope',sans-serif;text-align:center">
+                        </div>
+                        <div>
+                            <label class="pk-label" style="font-size:9px;display:block;margin-bottom:4px">Wys. (cm)</label>
+                            <input id="pkDim_h" type="number" value="15" min="1" max="200" style="width:100%;padding:8px;background:var(--pk-card);border:1px solid var(--pk-border);color:#fff;font-family:'Manrope',sans-serif;text-align:center">
+                        </div>
+                    </div>
+                    <div style="margin-top:4px">
+                        <label class="pk-label" style="font-size:9px;display:block;margin-bottom:4px">Waga (kg)</label>
+                        <input id="pkDim_kg" type="number" value="1.0" min="0.1" max="50" step="0.1" style="width:100%;padding:8px;background:var(--pk-card);border:1px solid var(--pk-border);color:#fff;font-family:'Manrope',sans-serif;text-align:center">
+                    </div>
+                </div>
+            </div>
+
             <!-- Actions -->
             <button onclick="pkFinalize()" class="pk-btn pk-btn-pink" style="width:100%;font-size:1.1rem;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">
                 Nadaj i drukuj
@@ -426,6 +475,15 @@ function pkShowPackingMode(z) {
     const method = z.delivery_method || z.delivery_type || '---';
     document.getElementById('pkPackMethod').textContent = method.toUpperCase();
 
+    // Show parcel size selector
+    const isInpost = method.toLowerCase().match(/inpost|paczkomat|paczka w ruchu/);
+    document.getElementById('pkParcelSize').style.display = 'block';
+    document.getElementById('pkSizeInpost').style.display = isInpost ? 'block' : 'none';
+    document.getElementById('pkSizeCourier').style.display = isInpost ? 'none' : 'block';
+    pkSelectedSize = isInpost ? null : 'custom';
+    document.getElementById('pkSizeSelected').textContent = '';
+    document.querySelectorAll('.pk-size-btn').forEach(b => { b.style.borderColor = 'var(--pk-border)'; b.style.background = 'var(--pk-card)'; });
+
     // Pickup point
     if (z.pickup_point) {
         document.getElementById('pkPackPickup').style.display = 'block';
@@ -498,9 +556,35 @@ function pkUpdateProgress(total) {
     document.getElementById('pkPackProgress').innerHTML = `${pkPackedItems.size} <span style="color:var(--pk-muted);opacity:0.3">/</span> ${total}`;
 }
 
+// ─── Parcel Size ───
+var pkSelectedSize = null;
+function pkSelectSize(size) {
+    pkSelectedSize = size;
+    document.querySelectorAll('.pk-size-btn').forEach(b => {
+        if (b.dataset.size === size) {
+            b.style.borderColor = 'var(--pk-lime-dim)';
+            b.style.background = 'rgba(190,238,0,0.08)';
+        } else {
+            b.style.borderColor = 'var(--pk-border)';
+            b.style.background = 'var(--pk-card)';
+        }
+    });
+    document.getElementById('pkSizeSelected').textContent = '✅ Gabaryt ' + size + ' wybrany';
+    if (navigator.vibrate) navigator.vibrate(20);
+}
+
 // ─── Finalize & Print ───
 function pkFinalize() {
     if (!pkCurrentOrder) return;
+
+    // Walidacja gabarytu InPost
+    const method = (pkCurrentOrder.delivery_method || '').toLowerCase();
+    const isInpost = method.match(/inpost|paczkomat|paczka w ruchu/);
+    if (isInpost && !pkSelectedSize) {
+        document.getElementById('pkSizeSelected').innerHTML = '<span style="color:#ff716c">⚠️ Wybierz gabaryt A, B lub C!</span>';
+        return;
+    }
+
     pkShowSection('pkSpinner');
 
     const orderId = pkCurrentOrder.order_id;
@@ -516,7 +600,20 @@ function pkFinalize() {
         bar.style.width = progress + '%';
     }, 500);
 
-    fetch('/wysylki/nadaj/' + orderId)
+    // Build URL with parcel size params
+    let nadajUrl = '/wysylki/nadaj/' + orderId;
+    const params = [];
+    if (pkSelectedSize && pkSelectedSize !== 'custom') {
+        params.push('size=' + pkSelectedSize);
+    } else if (pkSelectedSize === 'custom') {
+        params.push('dim_l=' + (document.getElementById('pkDim_l')?.value || 30));
+        params.push('dim_w=' + (document.getElementById('pkDim_w')?.value || 25));
+        params.push('dim_h=' + (document.getElementById('pkDim_h')?.value || 15));
+        params.push('dim_kg=' + (document.getElementById('pkDim_kg')?.value || 1));
+    }
+    if (params.length) nadajUrl += '?' + params.join('&');
+
+    fetch(nadajUrl)
         .then(r => {
             clearInterval(progressInterval);
             if (r.ok && r.headers.get('content-type')?.includes('application/pdf')) {
