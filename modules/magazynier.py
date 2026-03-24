@@ -525,12 +525,23 @@ def produkty():
     query = 'SELECT * FROM produkty WHERE 1=1'
     params = []
     
+    filter_stan = request.args.get('stan', '')
+    filter_klasa = request.args.get('klasa', '')
+
     if filter_status == 'nieoceniony':
         query += " AND (stan_przyjecia = 'nieoceniony' OR stan_przyjecia IS NULL OR stan_przyjecia = '')"
     elif filter_status:
         query += ' AND status = ?'
         params.append(filter_status)
-    
+
+    if filter_stan:
+        query += ' AND stan_przyjecia = ?'
+        params.append(filter_stan)
+
+    if filter_klasa:
+        query += ' AND klasa_jakosci = ?'
+        params.append(filter_klasa)
+
     filter_paleta_id = request.args.get('paleta_id', '')
     if filter_paleta_id:
         query += ' AND paleta_id = ?'
@@ -577,7 +588,21 @@ def produkty():
         count = conn.execute('SELECT COUNT(*) FROM produkty WHERE status = ? OR (status IS NULL AND ? = "nowy")', (status, status)).fetchone()[0]
         status_counts[status] = count
     nieocenione_cnt = conn.execute("SELECT COUNT(*) FROM produkty WHERE stan_przyjecia = 'nieoceniony' OR (stan_przyjecia IS NULL AND status = 'magazyn') OR stan_przyjecia = ''").fetchone()[0]
-    
+
+    # Stan przedmiotu counts
+    _stan_counts = {}
+    for _sn in ['Nowy','Jak nowy','Używany','Uszkodzony','Zniszczony','nieoceniony']:
+        if _sn == 'nieoceniony':
+            _stan_counts[_sn] = conn.execute("SELECT COUNT(*) FROM produkty WHERE stan_przyjecia = 'nieoceniony' OR stan_przyjecia IS NULL OR stan_przyjecia = ''").fetchone()[0]
+        else:
+            _stan_counts[_sn] = conn.execute("SELECT COUNT(*) FROM produkty WHERE stan_przyjecia = ?", (_sn,)).fetchone()[0]
+
+    # Klasa jakości counts
+    _klasa_counts = {}
+    for _kl in ['A','A-','B','C','D']:
+        _klasa_counts[_kl] = conn.execute("SELECT COUNT(*) FROM produkty WHERE klasa_jakosci = ?", (_kl,)).fetchone()[0]
+    _klasa_counts['brak'] = conn.execute("SELECT COUNT(*) FROM produkty WHERE klasa_jakosci IS NULL OR klasa_jakosci = ''").fetchone()[0]
+
     html = f'''
     <div class="hdr">
         <h1>📋 PRODUKTY</h1>
@@ -607,6 +632,64 @@ def produkty():
             <a href="/magazyn/produkty?status=nieoceniony" class="btn {'btn-ok' if filter_status == 'nieoceniony' else ''}" style="padding:8px 15px;font-size:0.85rem;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);color:#f59e0b">
                 ⭐ Nieocenione ({nieocenione_cnt})
             </a>
+        </div>
+    </div>
+
+    <!-- STAN PRZEDMIOTU + KLASA JAKOŚCI -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:15px">
+        <div style="background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px">
+            <div style="font-size:0.7rem;color:#64748b;font-weight:600;letter-spacing:1px;margin-bottom:10px">STAN PRZEDMIOTU</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <a href="/magazyn/produkty?stan=Nowy" style="flex:1;min-width:60px;text-align:center;padding:8px 4px;background:rgba(91,240,131,0.08);border:1px solid rgba(91,240,131,0.2);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.3rem;font-weight:800;color:#5bf083;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Nowy',0)}</div>
+                    <div style="font-size:0.6rem;color:#64748b;margin-top:2px">NOWY</div>
+                </a>
+                <a href="/magazyn/produkty?stan=Jak nowy" style="flex:1;min-width:60px;text-align:center;padding:8px 4px;background:rgba(0,241,254,0.08);border:1px solid rgba(0,241,254,0.2);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.3rem;font-weight:800;color:#00f1fe;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Jak nowy',0)}</div>
+                    <div style="font-size:0.6rem;color:#64748b;margin-top:2px">JAK NOWY</div>
+                </a>
+                <a href="/magazyn/produkty?stan=Używany" style="flex:1;min-width:60px;text-align:center;padding:8px 4px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.2);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.3rem;font-weight:800;color:#eab308;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Używany',0)}</div>
+                    <div style="font-size:0.6rem;color:#64748b;margin-top:2px">UŻYWANY</div>
+                </a>
+                <a href="/magazyn/produkty?stan=Uszkodzony" style="flex:1;min-width:60px;text-align:center;padding:8px 4px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.2);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.3rem;font-weight:800;color:#f97316;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Uszkodzony',0)}</div>
+                    <div style="font-size:0.6rem;color:#64748b;margin-top:2px">USZK.</div>
+                </a>
+                <a href="/magazyn/produkty?status=nieoceniony" style="flex:1;min-width:60px;text-align:center;padding:8px 4px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.3rem;font-weight:800;color:#64748b;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('nieoceniony',0)}</div>
+                    <div style="font-size:0.6rem;color:#64748b;margin-top:2px">BRAK</div>
+                </a>
+            </div>
+        </div>
+        <div style="background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px">
+            <div style="font-size:0.7rem;color:#64748b;font-weight:600;letter-spacing:1px;margin-bottom:10px">KLASA JAKOŚCI</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <a href="/magazyn/produkty?klasa=A" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(91,240,131,0.08);border:1px solid rgba(91,240,131,0.2);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.3rem;font-weight:800;color:#5bf083;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('A',0)}</div>
+                    <div style="font-size:0.65rem;color:#5bf083;margin-top:2px">🟢 A</div>
+                </a>
+                <a href="/magazyn/produkty?klasa=A-" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(0,241,254,0.08);border:1px solid rgba(0,241,254,0.2);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.3rem;font-weight:800;color:#00f1fe;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('A-',0)}</div>
+                    <div style="font-size:0.65rem;color:#00f1fe;margin-top:2px">🔵 A-</div>
+                </a>
+                <a href="/magazyn/produkty?klasa=B" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.2);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.3rem;font-weight:800;color:#eab308;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('B',0)}</div>
+                    <div style="font-size:0.65rem;color:#eab308;margin-top:2px">🟡 B</div>
+                </a>
+                <a href="/magazyn/produkty?klasa=C" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.2);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.3rem;font-weight:800;color:#f97316;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('C',0)}</div>
+                    <div style="font-size:0.65rem;color:#f97316;margin-top:2px">🟠 C</div>
+                </a>
+                <a href="/magazyn/produkty?klasa=D" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.3rem;font-weight:800;color:#ef4444;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('D',0)}</div>
+                    <div style="font-size:0.65rem;color:#ef4444;margin-top:2px">🔴 D</div>
+                </a>
+                <a href="/magazyn/produkty?status=nieoceniony" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.3rem;font-weight:800;color:#64748b;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('brak',0)}</div>
+                    <div style="font-size:0.65rem;color:#64748b;margin-top:2px">BRAK</div>
+                </a>
+            </div>
         </div>
     </div>
     '''
