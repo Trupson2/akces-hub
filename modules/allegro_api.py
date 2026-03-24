@@ -4903,7 +4903,7 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
 
     # Nadanie w paczkomacie - sendingAtPoint + punkt nadania
     if is_inpost or is_orlen:
-        sender_point = _cfg('sender_paczkomat', 'MEZ01M')
+        sender_point = (get_config('sender_paczkomat') or '').strip() or 'MEZ01M'
         shipment_input['additionalServices'] = ['sendingAtPoint']
         shipment_input['sender']['point'] = sender_point
         print(f"   → Nadanie z paczkomatu: {sender_point} (sendingAtPoint)")
