@@ -3587,87 +3587,8 @@ def narzedzia_cloud_export():
     except:
         files = []
         export_dir = 'cloud_exports'
-    
-    html = CSS + f'''
-    <div class="container">
-        <div class="header">
-            <h1>☁️ EKSPORT DO CHMURY</h1>
-            <small>CSV do synchronizacji z Google Drive / Dropbox</small>
-        </div>
-        
-        <div class="card" style="padding:15px;margin-bottom:15px">
-            <div style="font-weight:600;margin-bottom:10px">📁 Folder eksportów:</div>
-            <div style="font-size:0.85rem;color:#64748b;background:#0a0a0f;padding:10px;border-radius:6px;font-family:monospace">
-                {export_dir}
-            </div>
-            <div style="font-size:0.75rem;color:#94a3b8;margin-top:8px">
-                💡 Zsynchronizuj ten folder z Google Drive lub Dropbox żeby mieć automatyczny backup w chmurze
-            </div>
-        </div>
-        
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
-            <a href="/api/cloud/export/palety" class="btn" style="display:block;text-align:center;padding:15px;background:#22c55e;border-radius:10px;color:#fff;text-decoration:none;font-weight:600">
-                📦 Eksportuj palety
-            </a>
-            <a href="/api/cloud/export/produkty" class="btn" style="display:block;text-align:center;padding:15px;background:#3b82f6;border-radius:10px;color:#fff;text-decoration:none;font-weight:600">
-                📋 Eksportuj produkty
-            </a>
-        </div>
-        
-        <button onclick="doBackup()" class="btn" style="width:100%;padding:14px;background:#8b5cf6;border:none;border-radius:10px;color:#fff;font-weight:600;cursor:pointer;margin-bottom:15px">
-            💾 Zrób backup teraz (palety + produkty)
-        </button>
-        
-        <div class="section-title">📋 OSTATNIE EKSPORTY</div>
-        <div style="background:#12121a;border-radius:12px;padding:12px">
-    '''
-    
-    if files:
-        for f in files[:10]:
-            icon = '📦' if 'palety' in f['name'] else '📋'
-            html += f'''
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1e1e2e">
-                <div>
-                    <div style="font-size:0.85rem">{icon} {f['name']}</div>
-                    <div style="font-size:0.7rem;color:#64748b">{f['modified']} • {f['size_kb']:.1f} KB</div>
-                </div>
-            </div>
-            '''
-    else:
-        html += '<div style="color:#64748b;text-align:center;padding:20px">Brak eksportów</div>'
-    
-    html += '''
-        </div>
-        
-        <div class="card" style="padding:15px;margin-top:15px;background:#f59e0b22;border:1px solid #f59e0b">
-            <div style="font-weight:600;color:#f59e0b;margin-bottom:8px">⏰ Automatyczny backup</div>
-            <div style="font-size:0.85rem;color:#94a3b8">
-                • Baza danych: co 1 godzinę<br>
-                • Eksport CSV: co 6 godzin<br>
-                • Stare backupy: usuwane automatycznie (ostatnie 7)
-            </div>
-        </div>
-        
-        <a href="/narzedzia" class="back">← Powrót</a>
-    </div>
-    
-    <script>
-    function doBackup() {
-        fetch('/api/cloud/backup', {method: 'POST'})
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    alert('✅ Backup wykonany!');
-                    location.reload();
-                } else {
-                    alert('❌ Błąd: ' + (data.error || 'Nieznany'));
-                }
-            })
-            .catch(e => alert('❌ Błąd połączenia'));
-    }
-    </script>
-    '''
-    return html
+
+    return render_template('cloud_export.html', files=files, export_dir=export_dir)
 
 # ============================================================
 # GOAL (HYUNDAI i30 N) - ZARZĄDZANIE
