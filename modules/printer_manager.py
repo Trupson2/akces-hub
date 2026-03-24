@@ -855,8 +855,6 @@ class PrinterManager:
             info_lines.append(('LOK: ' + pl_to_ascii(label.lokalizacja)[:22], font_info_bold))
         if label.ilosc and label.ilosc > 0:
             info_lines.append(('Szt: ' + str(label.ilosc), font_info))
-        if label.cena_allegro and label.cena_allegro > 0:
-            info_lines.append((str(int(label.cena_allegro)) + ' zl', font_info_bold))
         if label.stan_przyjecia:
             info_lines.append(('STAN: ' + pl_to_ascii(label.stan_przyjecia)[:18], font_info_bold))
         if label.paleta:

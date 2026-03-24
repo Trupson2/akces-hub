@@ -6155,9 +6155,9 @@ def etykiety_niimbot_page(products):
             data_zakupu=p.get('data_zakupu', '') or p.get('data_dodania', '') or '',
             paleta=paleta_nazwa,
             koszt_szt=koszt_szt,
-            cena_allegro=float(p.get('cena_allegro', 0) or 0),
+            cena_allegro=0,
             kod_magazynowy=kod_mag,
-            stan_przyjecia=p.get('stan_przyjecia', '') or ''
+            stan_przyjecia=p.get('stan_przyjecia', '') or p.get('klasa_jakosci', '') or ''
         )
         preview = pm.generate_label_preview(label) if IMAGING_AVAILABLE else ''
         previews.append({
@@ -6393,8 +6393,9 @@ def api_print_niimbot():
         data_zakupu=p.get('data_zakupu', '') or p.get('data_dodania', '') or '',
         paleta=paleta_nazwa,
         koszt_szt=koszt_szt,
-        cena_allegro=float(p.get('cena_allegro', 0) or 0),
-        kod_magazynowy=kod_mag
+        cena_allegro=0,
+        kod_magazynowy=kod_mag,
+        stan_przyjecia=p.get('stan_przyjecia', '') or p.get('klasa_jakosci', '') or ''
     )
     
     # Drukuj przez BleakTransport + niimprint (prawidłowy protokół Niimbot)
@@ -6476,8 +6477,9 @@ def etykiety_niimbot_png(product_id):
         data_zakupu=p.get('data_zakupu', '') or p.get('data_dodania', ''),
         paleta=paleta_nazwa,
         koszt_szt=koszt_szt,
-        cena_allegro=float(p.get('cena_allegro', 0) or 0),
-        kod_magazynowy=kod_mag
+        cena_allegro=0,
+        kod_magazynowy=kod_mag,
+        stan_przyjecia=p.get('stan_przyjecia', '') or p.get('klasa_jakosci', '') or ''
     )
 
     # Generuj obraz
@@ -6553,7 +6555,9 @@ def etykiety_niimbot_zip():
                 ilosc=p.get('ilosc', 1),
                 dostawca=p.get('dostawca', ''),
                 data_zakupu=p.get('data_zakupu', '') or p.get('data_dodania', ''),
-                kod_magazynowy=kod_mag
+                kod_magazynowy=kod_mag,
+                cena_allegro=0,
+                stan_przyjecia=p.get('stan_przyjecia', '') or p.get('klasa_jakosci', '') or ''
             )
             
             # Generuj obraz
