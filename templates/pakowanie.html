@@ -1,277 +1,640 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="header" style="margin-bottom:20px">
-    <h1 class="font-display neon-text-primary" style="font-size:1.6rem;margin:0">STACJA PAKOWANIA</h1>
-    <small style="color:rgba(255,255,255,0.45);font-size:0.8rem">Skanuj produkt &rarr; Zobacz zamowienie &rarr; Nadaj</small>
-</div>
-
-<!-- Skaner kamery -->
-<div class="glass-card neon-glow-primary" style="position:relative;width:100%;max-width:400px;margin:0 auto 15px;padding:0;overflow:hidden">
-    <video id="video" style="width:100%;display:block;background:#000;min-height:200px" playsinline></video>
-    <div id="scan-line" style="position:absolute;left:10%;right:10%;top:50%;height:2px;background:var(--neon-primary);box-shadow:0 0 10px var(--neon-primary),0 0 20px rgba(0,241,254,0.3);animation:scan 2s infinite"></div>
-</div>
-
 <style>
-    @keyframes scan { 0%,100%{opacity:1} 50%{opacity:0.3} }
-    #scanInput:focus{border-color:var(--neon-primary)!important;box-shadow:0 0 12px rgba(0,241,254,0.2),inset 0 0 6px rgba(0,241,254,0.05);outline:none}
-    .pack-btn{transition:all 0.2s ease}
-    .pack-btn:hover{filter:brightness(1.15);transform:translateY(-1px)}
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Manrope:wght@300;400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+    .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
+
+    /* ─── Base ─── */
+    .pk-wrap{max-width:1100px;margin:0 auto;font-family:'Manrope',sans-serif}
+    .pk-headline{font-family:'Space Grotesk',sans-serif}
+    .pk-label{font-family:'Manrope',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.2em;color:rgba(255,255,255,0.45)}
+
+    /* ─── Neon colours ─── */
+    :root{--pk-cyan:#8ff5ff;--pk-pink:#ff6b9b;--pk-lime:#cafd00;--pk-lime-dim:#beee00;--pk-bg:#0e0e10;--pk-card:#131315;--pk-card2:#19191c;--pk-card3:#1f1f22;--pk-card4:#262528;--pk-border:rgba(255,255,255,0.06);--pk-text:#f9f5f8;--pk-muted:#adaaad}
+
+    /* ─── Cyber grid bg ─── */
+    .pk-grid-bg{background-size:50px 50px;background-image:linear-gradient(to right,rgba(143,245,255,0.04) 1px,transparent 1px),linear-gradient(to bottom,rgba(143,245,255,0.04) 1px,transparent 1px);position:fixed;inset:0;pointer-events:none;z-index:0}
+
+    /* ─── Glass panel ─── */
+    .pk-glass{backdrop-filter:blur(12px);background:rgba(19,19,21,0.7)}
+
+    /* ─── Cards ─── */
+    .pk-card{background:var(--pk-card);padding:24px;border-left:2px solid var(--pk-cyan);transition:all 0.2s}
+    .pk-card:hover{background:var(--pk-card3)}
+    .pk-card-pink{border-left-color:var(--pk-pink)}
+
+    /* ─── Neon glow ─── */
+    .pk-glow-cyan{box-shadow:0 0 20px rgba(143,245,255,0.15)}
+    .pk-glow-pink{box-shadow:0 0 25px rgba(255,107,155,0.3)}
+
+    /* ─── Buttons ─── */
+    .pk-btn{font-family:'Space Grotesk',sans-serif;font-weight:900;text-transform:uppercase;letter-spacing:-0.02em;font-style:italic;padding:16px 24px;border:none;cursor:pointer;transition:all 0.15s;font-size:1rem}
+    .pk-btn:hover{transform:scale(1.02)}
+    .pk-btn:active{transform:scale(0.95)}
+    .pk-btn-cyan{background:var(--pk-cyan);color:#005d63;box-shadow:0 4px 15px rgba(143,245,255,0.3)}
+    .pk-btn-pink{background:var(--pk-pink);color:#47001f;box-shadow:0 4px 15px rgba(255,107,155,0.3)}
+    .pk-btn-outline{background:transparent;border:2px solid var(--pk-pink);color:var(--pk-pink)}
+    .pk-btn-outline:hover{background:rgba(255,107,155,0.1)}
+
+    /* ─── Badge ─── */
+    .pk-badge{display:inline-block;padding:2px 10px;font-family:'Manrope',sans-serif;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em}
+    .pk-badge-cyan{background:var(--pk-cyan);color:#005d63}
+    .pk-badge-pink{background:#ba005b;color:#fff5f6}
+
+    /* ─── Orbital loader ─── */
+    .pk-orbital{position:relative;width:160px;height:160px;margin:0 auto 40px}
+    .pk-orbital-outer{position:absolute;inset:0;border-radius:50%;border:4px solid transparent;border-top-color:var(--pk-cyan);border-bottom-color:var(--pk-cyan);filter:blur(1px) drop-shadow(0 0 8px var(--pk-cyan));animation:pk-spin 2s linear infinite}
+    .pk-orbital-inner{position:absolute;inset:16px;border-radius:50%;border:4px solid transparent;border-right-color:var(--pk-pink);border-left-color:var(--pk-pink);filter:blur(1px) drop-shadow(0 0 8px var(--pk-pink));animation:pk-spin 1.5s linear infinite reverse}
+    @keyframes pk-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+    /* ─── Progress bar ─── */
+    .pk-progress{height:3px;background:var(--pk-card4);border-radius:2px;overflow:hidden;position:relative}
+    .pk-progress-bar{height:100%;background:var(--pk-cyan);box-shadow:0 0 10px var(--pk-cyan);transition:width 0.5s;animation:pk-pulse 2s infinite}
+    @keyframes pk-pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+
+    /* ─── Pulse dot ─── */
+    .pk-pulse-dot{width:8px;height:8px;border-radius:50%;animation:pk-dot-pulse 2s infinite}
+    @keyframes pk-dot-pulse{0%,100%{box-shadow:0 0 5px rgba(190,238,0,0.4)}50%{box-shadow:0 0 15px rgba(190,238,0,0.8)}}
+
+    /* ─── Check box ─── */
+    .pk-check{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:2px solid var(--pk-border);flex-shrink:0;cursor:pointer;transition:all 0.15s}
+    .pk-check.done{border-color:var(--pk-lime-dim);background:rgba(190,238,0,0.1)}
+    .pk-check.pending{border-color:var(--pk-pink)}
+
+    /* ─── Item row ─── */
+    .pk-item{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;background:var(--pk-card);transition:all 0.2s;border-left:2px solid transparent}
+    .pk-item.done{border-left-color:var(--pk-lime-dim)}
+    .pk-item.active{border-left-color:var(--pk-pink);background:var(--pk-card3);box-shadow:0 0 25px rgba(255,107,155,0.15)}
+    .pk-item.waiting{opacity:0.5}
+
+    /* ─── Sections ─── */
+    .pk-section{display:none}
+    .pk-section.active{display:block}
+
+    /* ─── Scan input ─── */
+    #pkScanInput{width:100%;padding:14px 18px;font-size:1.1rem;background:rgba(10,10,15,0.6);border:1px solid var(--pk-border);color:#fff;font-family:'Manrope',sans-serif;transition:all 0.3s}
+    #pkScanInput:focus{border-color:var(--pk-cyan);box-shadow:0 0 12px rgba(143,245,255,0.2);outline:none}
+
+    /* ─── Scanner ─── */
+    .pk-scanner{position:relative;width:100%;max-width:360px;margin:0 auto;overflow:hidden;background:#000}
+    .pk-scanner video{width:100%;display:block;min-height:180px}
+    .pk-scan-line{position:absolute;left:10%;right:10%;top:50%;height:2px;background:var(--pk-cyan);box-shadow:0 0 10px var(--pk-cyan),0 0 20px rgba(143,245,255,0.3);animation:pk-scanline 2s infinite}
+    @keyframes pk-scanline{0%,100%{opacity:1}50%{opacity:0.3}}
+
+    /* ─── Responsive ─── */
+    @media(max-width:768px){
+        .pk-grid-2{grid-template-columns:1fr!important}
+        .pk-hide-mobile{display:none!important}
+    }
 </style>
 
-<div id="scan-status" style="text-align:center;margin-bottom:15px;color:rgba(255,255,255,0.4);font-size:0.9rem">
-    Skieruj kamere na kod kreskowy
-</div>
+<div class="pk-grid-bg"></div>
 
-<!-- Reczne wpisywanie -->
-<div class="glass-card" style="padding:15px;margin-bottom:15px">
-    <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:8px">Wpisz lub zeskanuj: EAN / ASIN / etykieta wysylkowa</div>
-    <div style="display:flex;gap:8px">
-        <input type="text" id="scanInput" placeholder="EAN / etykieta / nazwa..."
-               style="flex:1;padding:12px;font-size:1rem;background:rgba(10,10,15,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#fff;transition:all 0.3s ease"
-               onkeypress="if(event.key==='Enter')szukajProduktu()">
-        <button onclick="szukajProduktu()" class="pack-btn" style="padding:12px 20px;background:linear-gradient(135deg,var(--neon-primary),rgba(0,241,254,0.7));border:none;border-radius:8px;color:#000;font-weight:600;cursor:pointer;font-size:1rem">
-            🔎
-        </button>
+<div class="pk-wrap" style="position:relative;z-index:1;padding:0 8px">
+
+<!-- ════════════════════════════════════════ -->
+<!-- SECTION 1: PACKING CENTER DASHBOARD     -->
+<!-- ════════════════════════════════════════ -->
+<section id="pkDashboard" class="pk-section active">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:32px;flex-wrap:wrap;gap:16px">
+        <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <div class="pk-pulse-dot" style="background:var(--pk-lime-dim)"></div>
+                <span class="pk-label" style="color:var(--pk-lime-dim);font-weight:900">System Online</span>
+            </div>
+            <h1 class="pk-headline" style="font-size:clamp(2.5rem,6vw,4rem);font-weight:900;font-style:italic;letter-spacing:-0.04em;line-height:1;color:var(--pk-text)">
+                PACKING <span style="color:var(--pk-cyan)">CENTER</span>
+            </h1>
+        </div>
     </div>
-</div>
 
-<!-- Wynik -->
-<div id="wynik" style="display:none">
-    <!-- Tu pojawi sie zamowienie -->
-</div>
+    <!-- Scanner -->
+    <div class="pk-scanner" style="margin-bottom:16px;border:1px solid var(--pk-border)">
+        <video id="video" playsinline></video>
+        <div class="pk-scan-line"></div>
+    </div>
+    <div id="pkScanStatus" style="text-align:center;margin-bottom:16px;color:var(--pk-muted);font-size:0.85rem">
+        Skieruj kamerę na kod kreskowy
+    </div>
 
-<!-- Ostatnio spakowane -->
-<div id="historia" class="glass-panel" style="margin-top:20px;padding:15px">
-    <div style="font-size:0.85rem;color:rgba(255,255,255,0.4);margin-bottom:10px">Ostatnio spakowane:</div>
-    <div id="historiaLista" style="font-size:0.8rem;color:rgba(255,255,255,0.4)"></div>
-</div>
+    <!-- Manual input -->
+    <div style="display:flex;gap:8px;margin-bottom:24px">
+        <input type="text" id="pkScanInput" placeholder="EAN / ASIN / etykieta / order_id..."
+               onkeypress="if(event.key==='Enter')pkSearch()">
+        <button onclick="pkSearch()" class="pk-btn pk-btn-cyan" style="padding:14px 20px;font-style:normal;font-size:1.2rem">🔎</button>
+    </div>
 
-<a href="/wysylki" class="back" style="display:inline-block;margin-top:15px;color:var(--neon-primary);text-decoration:none;font-size:0.9rem;opacity:0.7;transition:opacity 0.2s">&larr; Lista wysylek</a>
+    <!-- Urgent orders -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--pk-border)">
+        <h3 class="pk-headline" style="font-size:1.4rem;font-weight:900;font-style:italic;display:flex;align-items:center;gap:10px">
+            <span style="width:10px;height:10px;background:var(--pk-pink);border-radius:50%;animation:pk-dot-pulse 2s infinite"></span>
+            Zamówienia <span style="color:var(--pk-pink)">do wysłania</span>
+        </h3>
+        <a href="/wysylki" style="color:var(--pk-cyan);text-decoration:none;font-size:0.8rem;font-weight:700">&rarr; Wszystkie</a>
+    </div>
+
+    <div id="pkOrders" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px" class="pk-grid-2">
+        <div style="text-align:center;padding:40px;color:var(--pk-muted)">Ładuję zamówienia...</div>
+    </div>
+
+    <!-- Historia -->
+    <div style="margin-top:32px;padding:20px;background:var(--pk-card);border-left:2px solid var(--pk-border)">
+        <div class="pk-label" style="margin-bottom:10px">Ostatnio spakowane</div>
+        <div id="pkHistoryList" style="color:var(--pk-muted);font-size:0.8rem">Brak</div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════ -->
+<!-- SECTION 2: PACKING MODE (order detail)  -->
+<!-- ════════════════════════════════════════ -->
+<section id="pkPacking" class="pk-section">
+
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+        <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                <span class="pk-badge pk-badge-pink" id="pkPackPriority">STANDARD</span>
+                <span class="pk-label" id="pkPackOrderId">Order #---</span>
+            </div>
+            <h2 class="pk-headline" style="font-size:clamp(2rem,5vw,3.5rem);font-weight:900;font-style:italic;letter-spacing:-0.04em;color:var(--pk-text)">
+                PACKING <span style="color:var(--pk-cyan)">MODE</span>
+            </h2>
+        </div>
+        <div style="text-align:right">
+            <div class="pk-label" style="margin-bottom:4px">Items Scanned</div>
+            <div class="pk-headline" id="pkPackProgress" style="font-size:2rem;font-weight:700;color:var(--pk-lime-dim)">0 <span style="color:var(--pk-muted);opacity:0.3">/</span> 0</div>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:24px" class="pk-grid-2">
+        <!-- Items list -->
+        <div>
+            <div id="pkPackItems" style="display:flex;flex-direction:column;gap:6px"></div>
+
+            <!-- Pack hint -->
+            <div id="pkPackHint" style="display:none;margin-top:16px;padding:16px 20px;background:rgba(255,107,155,0.08);border-left:4px solid var(--pk-pink)">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                    <span class="material-symbols-outlined" style="color:var(--pk-pink)">warning</span>
+                    <span class="pk-headline" style="font-weight:700;color:var(--pk-pink);font-size:0.85rem;text-transform:uppercase">Instrukcja pakowania</span>
+                </div>
+                <p id="pkPackHintText" style="font-size:0.9rem;color:#fff;font-style:italic"></p>
+            </div>
+        </div>
+
+        <!-- Sidebar: destination -->
+        <aside>
+            <div style="background:var(--pk-card3);padding:24px;margin-bottom:16px">
+                <div class="pk-label" style="color:var(--pk-cyan);margin-bottom:8px">Adres dostawy</div>
+                <h4 class="pk-headline" id="pkPackBuyer" style="font-size:1.4rem;font-weight:900;color:var(--pk-text);line-height:1.2">---</h4>
+                <p id="pkPackAddress" style="color:var(--pk-muted);font-size:0.9rem;margin-top:6px">---</p>
+                <div id="pkPackPickup" style="display:none;margin-top:12px;color:var(--pk-pink);font-weight:700;font-size:0.85rem"></div>
+                <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--pk-border)">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                        <span class="pk-label">Metoda</span>
+                        <span class="pk-headline" id="pkPackMethod" style="font-weight:700;color:var(--pk-cyan);font-size:0.85rem">---</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span class="pk-label">Kwota</span>
+                        <span class="pk-headline" id="pkPackTotal" style="font-weight:700;color:var(--pk-text);font-size:0.85rem">---</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <button onclick="pkFinalize()" class="pk-btn pk-btn-pink" style="width:100%;font-size:1.1rem;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">
+                Nadaj i drukuj
+                <span class="material-symbols-outlined" style="font-variation-settings:'wght' 700">print</span>
+            </button>
+            <button onclick="pkBack()" class="pk-btn pk-btn-outline" style="width:100%;font-size:0.9rem">
+                <span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle">arrow_back</span>
+                Wróć do dashboardu
+            </button>
+        </aside>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════ -->
+<!-- SECTION 3: SPINNER (generating label)   -->
+<!-- ════════════════════════════════════════ -->
+<section id="pkSpinner" class="pk-section">
+    <div style="min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div class="pk-orbital">
+            <div class="pk-orbital-outer"></div>
+            <div class="pk-orbital-inner"></div>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2">
+                <span class="material-symbols-outlined" style="font-size:48px;color:var(--pk-cyan);filter:drop-shadow(0 0 15px rgba(143,245,255,0.8))">local_shipping</span>
+            </div>
+        </div>
+        <h2 class="pk-headline" style="font-size:1.8rem;font-weight:900;font-style:italic;letter-spacing:-0.03em;text-align:center;margin-bottom:8px;color:var(--pk-text)">
+            Generuję etykietę wysyłkową...
+        </h2>
+        <p class="pk-label" style="margin-bottom:24px">Łączenie z Allegro Shipment API</p>
+        <div class="pk-progress" style="width:100%;max-width:400px">
+            <div class="pk-progress-bar" id="pkProgressBar" style="width:30%"></div>
+        </div>
+        <div id="pkSpinnerStatus" style="margin-top:16px;color:var(--pk-muted);font-size:0.8rem;text-align:center"></div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════ -->
+<!-- SECTION 4: ORDER READY (success)        -->
+<!-- ════════════════════════════════════════ -->
+<section id="pkReady" class="pk-section">
+    <div style="text-align:center;margin-bottom:32px">
+        <div style="position:relative;display:inline-block;margin-bottom:24px">
+            <div style="position:absolute;inset:0;background:var(--pk-lime);opacity:0.1;filter:blur(60px);border-radius:50%;transform:scale(1.5)"></div>
+            <span class="material-symbols-outlined" style="font-size:100px;color:var(--pk-lime-dim);filter:drop-shadow(0 0 15px rgba(243,255,202,0.4));font-variation-settings:'FILL' 1">check_circle</span>
+        </div>
+        <h1 class="pk-headline" style="font-size:clamp(1.8rem,4vw,3rem);font-weight:900;font-style:italic;letter-spacing:-0.04em;color:var(--pk-text)">
+            Zamówienie <span id="pkReadyOrderShort">---</span> gotowe!
+        </h1>
+        <p class="pk-label" style="margin-top:8px">Etykieta wygenerowana · Drukuj na Vretti</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:800px;margin:0 auto" class="pk-grid-2">
+        <!-- Summary -->
+        <div style="background:var(--pk-card);padding:32px;border-left:2px solid var(--pk-lime-dim);position:relative;overflow:hidden">
+            <div style="position:absolute;top:16px;right:16px;opacity:0.04">
+                <span class="material-symbols-outlined" style="font-size:120px">inventory_2</span>
+            </div>
+            <h3 class="pk-headline" style="font-size:1.1rem;font-weight:700;color:var(--pk-cyan);margin-bottom:20px;display:flex;align-items:center;gap:6px">
+                <span class="material-symbols-outlined" style="font-size:16px">list_alt</span>
+                Spakowane
+            </h3>
+            <div id="pkReadyItems" style="display:flex;flex-direction:column;gap:12px"></div>
+        </div>
+
+        <!-- Carrier info -->
+        <div>
+            <div style="background:var(--pk-card3);padding:24px;margin-bottom:16px" class="pk-glass">
+                <div class="pk-label" style="margin-bottom:12px">Kurier</div>
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+                    <div style="width:48px;height:48px;background:var(--pk-card);display:flex;align-items:center;justify-content:center;border:1px solid var(--pk-border)">
+                        <span class="material-symbols-outlined" style="font-size:28px;color:var(--pk-cyan)">local_shipping</span>
+                    </div>
+                    <div>
+                        <div class="pk-headline" id="pkReadyCarrier" style="font-size:1.4rem;font-weight:900;color:var(--pk-text)">---</div>
+                        <div id="pkReadyCarrierType" style="color:var(--pk-lime-dim);font-size:11px;font-weight:700;font-family:'Manrope',sans-serif">---</div>
+                    </div>
+                </div>
+                <div style="padding-top:12px;border-top:1px solid var(--pk-border)">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                        <span class="pk-label">Tracking</span>
+                        <span id="pkReadyTracking" style="color:var(--pk-cyan);font-family:monospace;font-size:0.85rem">---</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span class="pk-label">Kupujący</span>
+                        <span id="pkReadyBuyer" style="color:var(--pk-text);font-size:0.85rem">---</span>
+                    </div>
+                </div>
+            </div>
+
+            <a id="pkReadyLabelLink" href="#" target="_blank" class="pk-btn pk-btn-outline" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-bottom:8px;text-decoration:none">
+                <span class="material-symbols-outlined">download</span>
+                Pobierz etykietę PDF
+            </a>
+            <button onclick="pkNextOrder()" class="pk-btn pk-btn-cyan" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">
+                Następne zamówienie
+                <span class="material-symbols-outlined" style="font-variation-settings:'wght' 700">fast_forward</span>
+            </button>
+        </div>
+    </div>
+</section>
+
+</div><!-- /pk-wrap -->
 
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
 <script>
-let historiaSpakowanych = [];
-let lastResult = '';
-let lastTime = 0;
+/* ═══════════════════════════════════════════ */
+/*  PACKING CENTER — Full Flow JS             */
+/* ═══════════════════════════════════════════ */
 
-// Inicjalizacja skanera
-const codeReader = new ZXing.BrowserMultiFormatReader();
+let pkHistory = [];
+let pkCurrentOrder = null;
+let pkPackedItems = new Set();
+let lastScanResult = '';
+let lastScanTime = 0;
 
-codeReader.listVideoInputDevices()
-    .then(devices => {
-        // Preferuj tylna kamere
-        let selectedDevice = devices[0];
-        for (const device of devices) {
-            if (device.label.toLowerCase().includes('back') ||
-                device.label.toLowerCase().includes('rear') ||
-                device.label.toLowerCase().includes('environment')) {
-                selectedDevice = device;
-                break;
-            }
-        }
-
-        if (selectedDevice) {
-            startScanning(selectedDevice.deviceId);
-        } else {
-            document.getElementById('scan-status').innerHTML = '<span style="color:#ef4444">Brak kamery</span>';
-        }
-    })
-    .catch(err => {
-        document.getElementById('scan-status').innerHTML = '<span style="color:#ef4444">Blad kamery: ' + err.message + '</span>';
-    });
-
-function startScanning(deviceId) {
-    codeReader.decodeFromVideoDevice(deviceId, 'video', (result, err) => {
-        if (result) {
-            const code = result.getText();
-            const now = Date.now();
-
-            // Zapobiegaj wielokrotnemu skanowaniu tego samego kodu
-            if (code !== lastResult || now - lastTime > 3000) {
-                lastResult = code;
-                lastTime = now;
-
-                // Wibracja
-                if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
-
-                // Pokaz kod
-                document.getElementById('scan-status').innerHTML = '<span class="neon-text-tertiary" style="font-weight:700">Zeskanowano: ' + code + '</span>';
-                document.getElementById('scanInput').value = code;
-
-                // Szukaj zamowienia
-                szukajProduktu();
-            }
-        }
-    });
+// ─── Section switching ───
+function pkShowSection(id) {
+    document.querySelectorAll('.pk-section').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
 }
 
-function szukajProduktu() {
-    const input = document.getElementById('scanInput').value.trim();
-    if (!input) return;
+// ─── Initialize scanner ───
+const codeReader = new ZXing.BrowserMultiFormatReader();
+codeReader.listVideoInputDevices().then(devices => {
+    let sel = devices[0];
+    for (const d of devices) {
+        if (/back|rear|environment/i.test(d.label)) { sel = d; break; }
+    }
+    if (sel) {
+        codeReader.decodeFromVideoDevice(sel.deviceId, 'video', (result, err) => {
+            if (result) {
+                const code = result.getText();
+                const now = Date.now();
+                if (code !== lastScanResult || now - lastScanTime > 3000) {
+                    lastScanResult = code;
+                    lastScanTime = now;
+                    if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
+                    document.getElementById('pkScanStatus').innerHTML = '<span style="color:var(--pk-lime-dim);font-weight:700">Zeskanowano: ' + code + '</span>';
+                    document.getElementById('pkScanInput').value = code;
+                    pkSearch();
+                }
+            }
+        });
+    }
+}).catch(() => {});
 
-    document.getElementById('wynik').innerHTML = '<div class="glass-card" style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">Szukam...</div>';
-    document.getElementById('wynik').style.display = 'block';
-
-    fetch('/api/wysylki/szukaj?q=' + encodeURIComponent(input))
+// ─── Load pending orders for dashboard ───
+function pkLoadOrders() {
+    fetch('/api/wysylki/szukaj?q=_pending_orders')
         .then(r => r.json())
         .then(data => {
-            if (data.error) {
-                // Wibracja bledu
-                if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 100]);
-
-                let html = `
-                    <div class="glass-card" style="border:2px solid #ef4444;padding:20px;text-align:center;box-shadow:0 0 20px rgba(239,68,68,0.15),0 0 40px rgba(239,68,68,0.05)">
-                        <div style="font-size:2rem;margin-bottom:10px">&#10060;</div>
-                        <div style="color:#ef4444;font-weight:600">${data.error}</div>`;
-
-                // Jesli znaleziono produkt ale bez zamowienia - pokaz info
-                if (data.produkt) {
-                    const p = data.produkt;
-                    html += `
-                        <div class="glass-panel" style="padding:15px;margin-top:15px;text-align:left">
-                            <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:5px">PRODUKT W MAGAZYNIE:</div>
-                            <div style="color:#fff;font-weight:600">${p.nazwa}</div>
-                            <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
-                                ${p.asin ? `<span style="background:rgba(245,158,11,0.2);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:0.75rem;border:1px solid rgba(245,158,11,0.3)">ASIN: ${p.asin}</span>` : ''}
-                                ${p.ean ? `<span style="background:rgba(193,128,255,0.15);color:#c180ff;padding:2px 8px;border-radius:4px;font-size:0.75rem;border:1px solid rgba(193,128,255,0.3)">EAN: ${p.ean}</span>` : ''}
-                                <span style="background:rgba(0,241,254,0.12);color:var(--neon-primary);padding:2px 8px;border-radius:4px;font-size:0.75rem;border:1px solid rgba(0,241,254,0.25)">Stan: ${p.ilosc} szt.</span>
-                                ${p.lokalizacja ? `<span style="background:rgba(91,240,131,0.15);color:#5bf083;padding:2px 8px;border-radius:4px;font-size:0.75rem;border:1px solid rgba(91,240,131,0.3)">${p.lokalizacja}</span>` : ''}
-                            </div>
-                        </div>`;
-                }
-
-                html += `<div style="color:rgba(255,255,255,0.4);font-size:0.85rem;margin-top:10px">Sprobuj inny kod lub nazwe</div></div>`;
-                document.getElementById('wynik').innerHTML = html;
-            } else if (data.zamowienie) {
-                // Wibracja sukcesu
-                if (navigator.vibrate) navigator.vibrate([100, 50, 200]);
-
-                const z = data.zamowienie;
-
-                // Produkty - lista do spakowania z checkbox
-                let produktyHtml = '';
-                if (z.produkty && z.produkty.length > 0) {
-                    produktyHtml = '<div style="margin-bottom:12px">';
-                    produktyHtml += '<div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:8px">PRODUKTY DO SPAKOWANIA:</div>';
-                    z.produkty.forEach((p, i) => {
-                        const imgSrc = p.zdjecie_url || 'https://via.placeholder.com/40';
-                        produktyHtml += `
-                            <div id="pack-item-${i}" onclick="togglePackItem(${i})" style="display:flex;align-items:center;gap:10px;padding:10px;background:rgba(10,10,15,0.5);border-radius:8px;margin-bottom:4px;cursor:pointer;border:1px solid rgba(255,255,255,0.06);transition:all 0.2s">
-                                <div id="pack-check-${i}" style="width:24px;height:24px;border:2px solid rgba(255,255,255,0.2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0"></div>
-                                <img src="${imgSrc}" onerror="this.src='https://via.placeholder.com/40'" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,0.9);flex-shrink:0">
-                                <div style="flex:1">
-                                    <div style="font-weight:600;font-size:0.85rem;color:#fff">${p.nazwa}${p.qty > 1 ? ' <span style=color:#f59e0b>(x' + p.qty + ')</span>' : ''}</div>
-                                    ${p.lokalizacja ? '<div style="color:#c180ff;font-size:0.75rem;font-weight:600;margin-top:2px">' + p.lokalizacja + '</div>' : ''}
-                                </div>
-                            </div>`;
-                    });
-                    produktyHtml += '</div>';
-                } else {
-                    // Fallback - stary format z 1 produktem
-                    let kodInfo = '';
-                    if (z.asin) kodInfo += `<span style="background:rgba(245,158,11,0.2);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:0.75rem;margin-right:5px;border:1px solid rgba(245,158,11,0.3)">ASIN: ${z.asin}</span>`;
-                    if (z.ean) kodInfo += `<span style="background:rgba(193,128,255,0.15);color:#c180ff;padding:2px 8px;border-radius:4px;font-size:0.75rem;border:1px solid rgba(193,128,255,0.3)">EAN: ${z.ean}</span>`;
-
-                    let stanInfo = '';
-                    if (z.stan_magazynowy !== null) {
-                        const stanColor = z.stan_magazynowy > 0 ? '#5bf083' : '#ef4444';
-                        stanInfo = `<span style="color:${stanColor};font-size:0.8rem">(stan: ${z.stan_magazynowy} szt.)</span>`;
-                    }
-                    produktyHtml = `<div style="font-size:0.85rem;color:rgba(255,255,255,0.4);margin-bottom:10px">${z.produkt_nazwa} ${stanInfo}</div>
-                        ${kodInfo ? '<div style="margin-bottom:10px">' + kodInfo + '</div>' : ''}`;
-                }
-
-                let lokalizacjaInfo = '';
-                if (z.lokalizacja) {
-                    lokalizacjaInfo = `<div style="background:rgba(91,240,131,0.15);color:#5bf083;padding:8px 12px;border-radius:8px;font-weight:700;font-size:1.1rem;text-align:center;margin-bottom:10px;border:1px solid rgba(91,240,131,0.3);text-shadow:0 0 10px rgba(91,240,131,0.4)">${z.lokalizacja}</div>`;
-                }
-
-                document.getElementById('wynik').innerHTML = `
-                    <div class="glass-card neon-glow-tertiary" style="padding:20px">
-                        ${lokalizacjaInfo}
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-                            <div>
-                                <div class="neon-text-tertiary" style="font-size:1.3rem;font-weight:700">ZNALEZIONO!</div>
-                            </div>
-                            <div style="text-align:right">
-                                <div style="font-size:1.5rem;font-weight:700;color:#f59e0b">${z.total} zl</div>
-                            </div>
-                        </div>
-
-                        ${produktyHtml}
-
-                        ${z.pack_hint ? `
-                        <div style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:12px 16px;margin-bottom:12px;font-size:0.9rem;color:#f59e0b;font-weight:600;text-align:center">
-                            ${z.pack_hint}
-                        </div>` : ''}
-
-                        <div class="glass-panel" style="padding:15px;margin-bottom:15px">
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-                                <div style="font-size:0.75rem;color:rgba(255,255,255,0.4)">WYSYLKA DO:</div>
-                                ${z.delivery_method ? `<span style="background:rgba(0,241,254,0.12);color:var(--neon-primary);padding:2px 8px;border-radius:4px;font-size:0.7rem;border:1px solid rgba(0,241,254,0.25);font-weight:600">${z.delivery_method}</span>` : ''}
-                            </div>
-                            <div style="font-size:1.1rem;font-weight:600;color:#fff">${z.buyer}</div>
-                            <div style="color:rgba(255,255,255,0.5);margin-top:5px">${z.address}</div>
-                            ${z.pickup_point ? `<div style="color:#c180ff;margin-top:8px;font-weight:600">📍 ${z.pickup_point}</div>` : ''}
-                        </div>
-
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                            <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/${z.order_id}" target="_blank" class="pack-btn" style="display:block;padding:15px;background:linear-gradient(135deg,var(--neon-primary),rgba(0,241,254,0.7));border-radius:10px;color:#000;text-decoration:none;text-align:center;font-weight:600;font-size:1rem">
-                                NADAJ NA ALLEGRO
-                            </a>
-                            <button onclick="oznaczSpakowane('${z.order_id}', '${z.buyer}')" class="pack-btn" style="padding:15px;background:linear-gradient(135deg,#5bf083,rgba(91,240,131,0.7));border:none;border-radius:10px;color:#000;font-weight:600;font-size:1rem;cursor:pointer">
-                                SPAKOWANE
-                            </button>
-                        </div>
-                    </div>`;
-            }
-        })
-        .catch(err => {
-            document.getElementById('wynik').innerHTML = `
-                <div class="glass-card" style="border:2px solid #ef4444;padding:20px;text-align:center;box-shadow:0 0 20px rgba(239,68,68,0.15)">
-                    <div style="color:#ef4444">Blad: ${err}</div>
-                </div>`;
+            // Fallback — endpoint returns single order; just show scan prompt
+            const el = document.getElementById('pkOrders');
+            el.innerHTML = `
+                <div class="pk-card pk-glow-cyan" style="text-align:center;padding:40px">
+                    <span class="material-symbols-outlined" style="font-size:48px;color:var(--pk-cyan);margin-bottom:12px">barcode_scanner</span>
+                    <div class="pk-headline" style="font-size:1.2rem;font-weight:700;color:var(--pk-text)">Zeskanuj produkt</div>
+                    <div style="color:var(--pk-muted);font-size:0.85rem;margin-top:4px">EAN, ASIN, etykieta magazynowa lub order_id</div>
+                </div>
+            `;
+        }).catch(() => {
+            document.getElementById('pkOrders').innerHTML = '<div style="color:var(--pk-muted);text-align:center;padding:20px">Skanuj kod żeby rozpocząć</div>';
         });
 }
 
-let packedItems = new Set();
+// ─── Search ───
+function pkSearch() {
+    const q = document.getElementById('pkScanInput').value.trim();
+    if (!q) return;
 
-function togglePackItem(idx) {
-    const el = document.getElementById('pack-item-' + idx);
-    const check = document.getElementById('pack-check-' + idx);
-    if (packedItems.has(idx)) {
-        packedItems.delete(idx);
-        el.style.opacity = '1';
-        el.style.borderColor = 'rgba(255,255,255,0.06)';
-        check.innerHTML = '';
-        check.style.borderColor = 'rgba(255,255,255,0.2)';
-        check.style.background = 'transparent';
+    // Show mini loader
+    document.getElementById('pkOrders').innerHTML = '<div style="text-align:center;padding:30px;color:var(--pk-muted)">Szukam...</div>';
+
+    fetch('/api/wysylki/szukaj?q=' + encodeURIComponent(q))
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) {
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 100]);
+
+                let html = `<div class="pk-card" style="border-left-color:#ff716c;text-align:center;padding:30px">
+                    <span class="material-symbols-outlined" style="font-size:48px;color:#ff716c;margin-bottom:8px">error</span>
+                    <div style="color:#ff716c;font-weight:600;margin-bottom:8px">${data.error}</div>`;
+
+                if (data.produkt) {
+                    const p = data.produkt;
+                    html += `<div style="text-align:left;margin-top:12px;padding:12px;background:var(--pk-card2);border:1px solid var(--pk-border)">
+                        <div style="font-weight:600;color:var(--pk-text)">${p.nazwa}</div>
+                        <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+                            ${p.ean ? `<span class="pk-badge" style="background:rgba(193,128,255,0.15);color:#c180ff;border:1px solid rgba(193,128,255,0.3)">EAN: ${p.ean}</span>` : ''}
+                            ${p.asin ? `<span class="pk-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3)">ASIN: ${p.asin}</span>` : ''}
+                            <span class="pk-badge" style="background:rgba(143,245,255,0.12);color:var(--pk-cyan);border:1px solid rgba(143,245,255,0.25)">Stan: ${p.ilosc} szt</span>
+                            ${p.lokalizacja ? `<span class="pk-badge" style="background:rgba(190,238,0,0.12);color:var(--pk-lime-dim);border:1px solid rgba(190,238,0,0.25)">${p.lokalizacja}</span>` : ''}
+                        </div>
+                    </div>`;
+                }
+                html += '</div>';
+                document.getElementById('pkOrders').innerHTML = html;
+            } else if (data.zamowienie) {
+                if (navigator.vibrate) navigator.vibrate([100, 50, 200]);
+                pkCurrentOrder = data.zamowienie;
+                pkShowPackingMode(data.zamowienie);
+            }
+        })
+        .catch(err => {
+            document.getElementById('pkOrders').innerHTML = `<div class="pk-card" style="border-left-color:#ff716c;color:#ff716c;text-align:center;padding:20px">Błąd: ${err}</div>`;
+        });
+}
+
+// ─── Show Packing Mode ───
+function pkShowPackingMode(z) {
+    pkPackedItems.clear();
+    pkShowSection('pkPacking');
+
+    // Header info
+    const shortId = z.order_id ? z.order_id.substring(0, 8).toUpperCase() : '---';
+    document.getElementById('pkPackOrderId').textContent = 'Order #' + shortId;
+    document.getElementById('pkPackBuyer').textContent = z.buyer || '---';
+    document.getElementById('pkPackAddress').textContent = z.address || '---';
+    document.getElementById('pkPackTotal').textContent = (z.total || '0') + ' zł';
+
+    // Delivery method
+    const method = z.delivery_method || z.delivery_type || '---';
+    document.getElementById('pkPackMethod').textContent = method.toUpperCase();
+
+    // Pickup point
+    if (z.pickup_point) {
+        document.getElementById('pkPackPickup').style.display = 'block';
+        document.getElementById('pkPackPickup').innerHTML = '📍 ' + z.pickup_point;
     } else {
-        packedItems.add(idx);
-        el.style.opacity = '0.5';
-        el.style.borderColor = '#5bf083';
-        check.innerHTML = '✓';
-        check.style.borderColor = '#5bf083';
-        check.style.background = '#5bf083';
-        check.style.color = '#000';
+        document.getElementById('pkPackPickup').style.display = 'none';
+    }
+
+    // Pack hint
+    if (z.pack_hint) {
+        document.getElementById('pkPackHint').style.display = 'block';
+        document.getElementById('pkPackHintText').textContent = z.pack_hint;
+    } else {
+        document.getElementById('pkPackHint').style.display = 'none';
+    }
+
+    // Build items list
+    const itemsEl = document.getElementById('pkPackItems');
+    itemsEl.innerHTML = '';
+
+    const items = z.produkty && z.produkty.length > 0 ? z.produkty : [{nazwa: z.produkt_nazwa, qty: 1, lokalizacja: z.lokalizacja, zdjecie_url: null}];
+
+    items.forEach((p, i) => {
+        const div = document.createElement('div');
+        div.className = 'pk-item waiting';
+        div.id = 'pkItem' + i;
+        div.onclick = () => pkToggleItem(i, items.length);
+        div.innerHTML = `
+            <div style="display:flex;align-items:center;gap:16px">
+                <div class="pk-check" id="pkCheck${i}"></div>
+                ${p.zdjecie_url ? `<img src="${p.zdjecie_url}" onerror="this.style.display='none'" style="width:48px;height:48px;object-fit:contain;background:rgba(255,255,255,0.9);flex-shrink:0">` : ''}
+                <div>
+                    <div class="pk-headline" style="font-size:1rem;font-weight:700;color:var(--pk-text);text-transform:uppercase;letter-spacing:-0.01em">${p.nazwa}</div>
+                    ${p.lokalizacja ? `<div style="color:var(--pk-pink);font-size:0.75rem;font-weight:700;margin-top:2px">${p.lokalizacja}</div>` : ''}
+                </div>
+            </div>
+            <div style="text-align:right" class="pk-hide-mobile">
+                <div class="pk-label">Qty</div>
+                <div class="pk-headline" style="font-size:1.3rem;font-weight:700">${String(p.qty || 1).padStart(2, '0')}</div>
+            </div>
+        `;
+        itemsEl.appendChild(div);
+    });
+
+    pkUpdateProgress(items.length);
+}
+
+// ─── Toggle item check ───
+function pkToggleItem(idx, total) {
+    const item = document.getElementById('pkItem' + idx);
+    const check = document.getElementById('pkCheck' + idx);
+
+    if (pkPackedItems.has(idx)) {
+        pkPackedItems.delete(idx);
+        item.className = 'pk-item waiting';
+        check.className = 'pk-check';
+        check.innerHTML = '';
+    } else {
+        pkPackedItems.add(idx);
+        item.className = 'pk-item done';
+        check.className = 'pk-check done';
+        check.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;color:var(--pk-lime-dim);font-variation-settings:\'FILL\' 1">check</span>';
         if (navigator.vibrate) navigator.vibrate(30);
     }
+
+    pkUpdateProgress(total);
 }
 
-function oznaczSpakowane(orderId, buyer) {
-    packedItems.clear();
-    historiaSpakowanych.unshift({id: orderId, buyer: buyer, time: new Date().toLocaleTimeString()});
-    if (historiaSpakowanych.length > 10) historiaSpakowanych.pop();
-
-    document.getElementById('historiaLista').innerHTML = historiaSpakowanych
-        .map(h => `<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.5)">${h.buyer} - ${h.time}</div>`)
-        .join('');
-
-    document.getElementById('wynik').style.display = 'none';
-    document.getElementById('scanInput').value = '';
-
-    // Reset lastResult zeby mozna bylo zeskanowac ten sam kod
-    lastResult = '';
+function pkUpdateProgress(total) {
+    document.getElementById('pkPackProgress').innerHTML = `${pkPackedItems.size} <span style="color:var(--pk-muted);opacity:0.3">/</span> ${total}`;
 }
+
+// ─── Finalize & Print ───
+function pkFinalize() {
+    if (!pkCurrentOrder) return;
+    pkShowSection('pkSpinner');
+
+    const orderId = pkCurrentOrder.order_id;
+    let progress = 30;
+    const bar = document.getElementById('pkProgressBar');
+    const status = document.getElementById('pkSpinnerStatus');
+
+    bar.style.width = '30%';
+    status.textContent = 'Tworzę przesyłkę...';
+
+    const progressInterval = setInterval(() => {
+        progress = Math.min(progress + 5, 85);
+        bar.style.width = progress + '%';
+    }, 500);
+
+    fetch('/wysylki/nadaj/' + orderId)
+        .then(r => {
+            clearInterval(progressInterval);
+            if (r.ok && r.headers.get('content-type')?.includes('application/pdf')) {
+                bar.style.width = '100%';
+                status.textContent = 'Etykieta gotowa!';
+                return r.blob().then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    // Open PDF in new tab for printing
+                    window.open(url, '_blank');
+                    // Show success
+                    setTimeout(() => pkShowReady(orderId, url), 800);
+                });
+            } else {
+                return r.json().then(data => {
+                    // Try opening Allegro order page as fallback
+                    bar.style.width = '100%';
+                    status.textContent = data.error || 'Etykieta niedostępna — otwieramy Allegro';
+                    setTimeout(() => {
+                        window.open('https://allegro.pl/moje-allegro/sprzedaz/zamowienia/' + orderId, '_blank');
+                        pkShowReady(orderId, null);
+                    }, 1500);
+                });
+            }
+        })
+        .catch(err => {
+            clearInterval(progressInterval);
+            bar.style.width = '100%';
+            status.innerHTML = `<span style="color:#ff716c">Błąd: ${err}. Otwieramy Allegro...</span>`;
+            setTimeout(() => {
+                window.open('https://allegro.pl/moje-allegro/sprzedaz/zamowienia/' + orderId, '_blank');
+                pkShowReady(orderId, null);
+            }, 2000);
+        });
+
+    // Mark as shipped in our DB
+    fetch('/wysylki/wyslano-order/' + orderId).catch(() => {});
+}
+
+// ─── Show Ready ───
+function pkShowReady(orderId, pdfUrl) {
+    pkShowSection('pkReady');
+    const z = pkCurrentOrder;
+    const shortId = orderId.substring(0, 8).toUpperCase();
+
+    document.getElementById('pkReadyOrderShort').textContent = '#' + shortId;
+    document.getElementById('pkReadyBuyer').textContent = z.buyer || '---';
+
+    // Carrier
+    const method = (z.delivery_method || z.delivery_type || 'kurier').toLowerCase();
+    let carrier = 'Kurier';
+    let carrierType = 'STANDARD';
+    if (method.includes('inpost') || method.includes('paczkomat')) { carrier = 'InPost'; carrierType = 'PACZKOMAT'; }
+    else if (method.includes('dpd')) { carrier = 'DPD'; carrierType = 'HOME DELIVERY'; }
+    else if (method.includes('dhl')) { carrier = 'DHL'; carrierType = 'EXPRESS'; }
+    else if (method.includes('gls')) { carrier = 'GLS'; carrierType = 'PARCEL'; }
+    else if (method.includes('poczt')) { carrier = 'Poczta Polska'; carrierType = 'LIST/PACZKA'; }
+
+    document.getElementById('pkReadyCarrier').textContent = carrier;
+    document.getElementById('pkReadyCarrierType').textContent = carrierType;
+    document.getElementById('pkReadyTracking').textContent = shortId;
+
+    // Items summary
+    const items = z.produkty || [{nazwa: z.produkt_nazwa, qty: 1}];
+    document.getElementById('pkReadyItems').innerHTML = items.map(p => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
+            <div>
+                <div style="color:var(--pk-text);font-weight:500;text-transform:uppercase;letter-spacing:-0.01em">${p.nazwa}</div>
+            </div>
+            <span class="pk-headline" style="font-size:1.1rem;color:var(--pk-lime-dim)">x${p.qty || 1}</span>
+        </div>
+    `).join('');
+
+    // Label link
+    if (pdfUrl) {
+        document.getElementById('pkReadyLabelLink').href = pdfUrl;
+        document.getElementById('pkReadyLabelLink').style.display = 'flex';
+    } else {
+        document.getElementById('pkReadyLabelLink').href = 'https://allegro.pl/moje-allegro/sprzedaz/zamowienia/' + orderId;
+        document.getElementById('pkReadyLabelLink').style.display = 'flex';
+    }
+
+    // Add to history
+    pkHistory.unshift({id: shortId, buyer: z.buyer, time: new Date().toLocaleTimeString()});
+    if (pkHistory.length > 10) pkHistory.pop();
+}
+
+// ─── Next order ───
+function pkNextOrder() {
+    pkCurrentOrder = null;
+    pkPackedItems.clear();
+    lastScanResult = '';
+    document.getElementById('pkScanInput').value = '';
+    pkShowSection('pkDashboard');
+    pkRenderHistory();
+    pkLoadOrders();
+}
+
+// ─── Back to dashboard ───
+function pkBack() {
+    pkCurrentOrder = null;
+    pkPackedItems.clear();
+    pkShowSection('pkDashboard');
+    pkRenderHistory();
+}
+
+// ─── Render history ───
+function pkRenderHistory() {
+    const el = document.getElementById('pkHistoryList');
+    if (pkHistory.length === 0) { el.textContent = 'Brak'; return; }
+    el.innerHTML = pkHistory.map(h => `
+        <div style="padding:6px 0;border-bottom:1px solid var(--pk-border);display:flex;justify-content:space-between">
+            <span style="color:var(--pk-text);font-weight:600">${h.buyer}</span>
+            <span>${h.id} · ${h.time}</span>
+        </div>
+    `).join('');
+}
+
+// ─── Init ───
+pkLoadOrders();
 </script>
 {% endblock %}
