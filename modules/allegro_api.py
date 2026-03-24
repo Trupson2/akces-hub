@@ -5103,13 +5103,36 @@ def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=
         # Utwórz nową przesyłkę
         print(f"📦 Brak przesyłki - tworzę nową...")
         
-        # Pobierz dane zamówienia dla referencji
+        # Pobierz dane zamówienia dla referencji (lokalizacja + nazwa produktu)
         order, ord_err = get_order_details(order_id)
         if order:
             items = order.get('lineItems', [])
             if items:
+                offer_id = items[0].get('offer', {}).get('id', '')
                 name = items[0].get('offer', {}).get('name', '')
-                reference = name[:20].strip() if name else 'Paczka'
+                # Szukaj lokalizacji w bazie
+                lok = ''
+                if offer_id:
+                    try:
+                        from modules.database import get_db
+                        conn = get_db()
+                        p = conn.execute('''
+                            SELECT p.lokalizacja, p.regal, p.kod_magazynowy
+                            FROM produkty p JOIN oferty o ON o.produkt_id = p.id
+                            WHERE o.allegro_id = ? LIMIT 1
+                        ''', (offer_id,)).fetchone()
+                        if p:
+                            lok = p['kod_magazynowy'] or p['lokalizacja'] or p['regal'] or ''
+                    except:
+                        pass
+                # Format: "LOK | Nazwa" lub "Nazwa" (max 20 znaków)
+                if lok:
+                    remaining = 20 - len(lok) - 1
+                    short_name = name[:max(remaining, 5)].strip() if name else ''
+                    reference = f"{lok}/{short_name}".strip()[:20]
+                else:
+                    reference = name[:20].strip() if name else 'Paczka'
+                print(f"   → Referencja: '{reference}'")
         
         # Spróbuj utworzyć przez Wysyłam z Allegro
         result, create_err = create_wysylam_z_allegro_shipment(order_id, reference, parcel_size=parcel_size, dimensions=dimensions)
