@@ -3602,6 +3602,7 @@ def palety():
     total_palety = len(result)
 
     html = f'''
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <style>
         .pl-label{{font-family:'Manrope',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.2em;color:rgba(255,255,255,0.45)}}
         .pl-headline{{font-family:'Space Grotesk',sans-serif}}
