@@ -4937,8 +4937,16 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
 
     # Pickup point (paczkomat) - WYMAGANE dla InPost/Orlen
     if pickup_point and pickup_point.get('id'):
-        shipment_input['pickupPoint'] = {'id': pickup_point['id']}
-        print(f"   → Punkt odbioru: {pickup_point['id']}")
+        pp_id = pickup_point['id']
+        # Allegro wymaga pickupPoint jako obiekt z id
+        shipment_input['pickupPoint'] = {
+            'id': pp_id,
+            'name': pickup_point.get('name', ''),
+            'address': pickup_point.get('address', {}),
+        }
+        print(f"   → Punkt odbioru: {pp_id} ({pickup_point.get('name', '')})")
+    elif is_paczkomat:
+        print(f"   → ⚠️ UWAGA: Paczkomat ale brak pickup_point w zamówieniu!")
 
     # Nadawca — dane firmy z configu, potem hardcoded fallback
     try:
