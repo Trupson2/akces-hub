@@ -528,9 +528,20 @@ def wysylki_nadaj(order_id):
         }
         return jsonify(test_data)
 
+    # Parsuj gabaryt z query params
+    parcel_size = request.args.get('size')  # A, B, C for InPost
+    dimensions = None
+    if request.args.get('dim_l'):
+        dimensions = {
+            'length': request.args.get('dim_l', '30'),
+            'width': request.args.get('dim_w', '25'),
+            'height': request.args.get('dim_h', '15'),
+            'weight_kg': request.args.get('dim_kg', '1'),
+        }
+
     # Spróbuj utworzyć przesyłkę i pobrać etykietę
     try:
-        label_pdf, shipment_id, error = create_and_get_label(order_id)
+        label_pdf, shipment_id, error = create_and_get_label(order_id, parcel_size=parcel_size, dimensions=dimensions)
     except Exception as e:
         error = f"Wyjątek serwera: {str(e)}"
         label_pdf, shipment_id = None, None
