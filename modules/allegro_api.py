@@ -5147,13 +5147,20 @@ def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=
                 # Fallback - spróbuj pobrać po order_id
                 print(f"   → Brak shipmentId z polling - szukam po order_id...")
 
-            # Poczekaj chwilę i pobierz etykietę
-            time.sleep(1)
-            label, shipment_id2, error = get_shipment_label(order_id)
-            if label:
-                return label, shipment_id2 or shipment_id, None
-            if error and error != "BRAK_PRZESYLKI":
-                return None, shipment_id, f"Przesyłka utworzona ({shipment_id}), etykieta: {error}"
+            # Pobierz etykietę - retry kilka razy (Allegro generuje async)
+            for label_attempt in range(5):
+                time.sleep(3)
+                print(f"   → Pobieranie etykiety (attempt {label_attempt+1}/5)...")
+                label, shipment_id2, error = get_shipment_label(order_id)
+                if label:
+                    print(f"   → ✅ Etykieta pobrana!")
+                    return label, shipment_id2 or shipment_id, None
+                if error and error != "BRAK_PRZESYLKI" and '404' not in str(error):
+                    return None, shipment_id, f"Przesyłka utworzona ({shipment_id}), etykieta: {error}"
+                print(f"   → Etykieta jeszcze niedostępna: {error}")
+
+            # Po 5 próbach - przesyłka istnieje ale etykieta niedostępna
+            return None, shipment_id, f"Przesyłka utworzona ({shipment_id}) ale etykieta jeszcze niedostępna. Spróbuj ponownie za chwilę."
     
     if error and error != "BRAK_PRZESYLKI":
         return None, shipment_id, error
