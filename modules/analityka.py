@@ -1100,178 +1100,296 @@ def analityka_palety():
         cum_zysk.append(round(running, 2))
 
     html = f'''
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <style>
-        .palety-table {{ width:100%;border-collapse:collapse;font-size:0.85rem }}
-        .palety-table th, .palety-table td {{ padding:10px 6px;text-align:left;border-bottom:1px solid var(--border) }}
-        .palety-table th {{ color:var(--text-muted);font-weight:500;font-size:0.75rem;text-transform:uppercase;cursor:pointer;user-select:none;white-space:nowrap }}
-        .palety-table th:hover {{ color:var(--text) }}
-        .palety-table th .sort-arrow {{ font-size:0.7rem;margin-left:3px;display:inline-block;min-width:10px;transition:opacity 0.15s }}
-        .palety-table tbody tr {{ cursor:pointer;transition:background 0.15s }}
-        .palety-table tbody tr:hover {{ background:var(--accent-soft) }}
-        .progress-bar {{ width:100%;height:6px;background:var(--border);border-radius:3px;overflow:hidden }}
-        .progress-fill {{ height:100%;background:linear-gradient(90deg,var(--green),var(--blue));transition:width 0.3s }}
-        .status-badge {{ padding:4px 8px;border-radius:4px;font-size:0.7rem;white-space:nowrap }}
-        .prognoza {{ color:var(--text-secondary);font-style:italic }}
-        .chart-container {{ height:300px }}
+        :root{{--bp-cyan:#8ff5ff;--bp-pink:#ff6b9b;--bp-lime:#cafd00;--bp-lime-dim:#beee00;--bp-bg:#0e0e10;--bp-surface:rgba(19,19,21,0.8);--bp-surface-high:rgba(30,30,33,0.9);--bp-surface-bright:rgba(40,40,44,0.6);--bp-border:rgba(255,255,255,0.06);--bp-text:#f9f5f8;--bp-muted:rgba(255,255,255,0.45)}}
+
+        /* Dot grid background */
+        .bp-dot-grid{{position:fixed;inset:0;pointer-events:none;z-index:0;background-image:radial-gradient(rgba(143,245,255,0.05) 1px,transparent 1px);background-size:24px 24px}}
+
+        /* Typography */
+        .bp-headline{{font-family:'Space Grotesk',sans-serif}}
+        .bp-label{{font-family:'Manrope',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.2em;color:var(--bp-muted)}}
+        .bp-value{{font-family:'Space Grotesk',sans-serif;font-weight:700;font-variant-numeric:tabular-nums}}
+
+        /* Glass panel */
+        .bp-glass{{backdrop-filter:blur(12px);background:var(--bp-surface);border:1px solid var(--bp-border)}}
+
+        /* Neon glow */
+        .bp-glow{{box-shadow:0 0 20px rgba(143,245,255,0.15)}}
+        .bp-glow-pink{{box-shadow:0 0 20px rgba(255,107,155,0.15)}}
+        .bp-glow-lime{{box-shadow:0 0 20px rgba(202,253,0,0.15)}}
+
+        /* KPI cards */
+        .bp-kpi-grid{{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:24px}}
+        @media(max-width:1200px){{.bp-kpi-grid{{grid-template-columns:repeat(3,1fr)}}}}
+        @media(max-width:768px){{.bp-kpi-grid{{grid-template-columns:repeat(2,1fr)}}}}
+        .bp-kpi{{backdrop-filter:blur(12px);background:var(--bp-surface);border:1px solid var(--bp-border);padding:20px;position:relative;transition:all 0.2s}}
+        .bp-kpi:hover{{background:var(--bp-surface-bright);box-shadow:0 0 20px rgba(143,245,255,0.1)}}
+        .bp-kpi-icon{{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;font-size:18px}}
+        .bp-kpi-icon .material-icons-round{{font-size:20px}}
+
+        /* Charts grid */
+        .bp-charts-grid{{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}}
+        @media(max-width:900px){{.bp-charts-grid{{grid-template-columns:1fr}}}}
+        .bp-chart-panel{{backdrop-filter:blur(12px);background:var(--bp-surface);border:1px solid var(--bp-border);padding:24px}}
+        .bp-chart-panel:hover{{box-shadow:0 0 20px rgba(143,245,255,0.08)}}
+        .bp-chart-container{{height:300px;position:relative}}
+
+        /* Table */
+        .bp-table-panel{{backdrop-filter:blur(12px);background:var(--bp-surface);border:1px solid var(--bp-border);padding:24px}}
+        .bp-table{{width:100%;border-collapse:collapse;font-family:'Manrope',sans-serif;font-size:0.82rem}}
+        .bp-table th{{padding:10px 8px;text-align:left;font-family:'Manrope',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.15em;color:var(--bp-muted);font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;background:var(--bp-surface-high);border-bottom:1px solid var(--bp-border)}}
+        .bp-table th:hover{{color:var(--bp-text)}}
+        .bp-table th .sort-arrow{{font-size:0.65rem;margin-left:3px;display:inline-block;min-width:10px;transition:opacity 0.15s}}
+        .bp-table td{{padding:12px 8px;border-bottom:1px solid var(--bp-border);color:var(--bp-text)}}
+        .bp-table tbody tr{{cursor:pointer;transition:all 0.15s;position:relative}}
+        .bp-table tbody tr:hover{{background:var(--bp-surface-bright)}}
+
+        /* Progress bar */
+        .bp-progress{{width:100%;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden}}
+        .bp-progress-fill{{height:100%;background:linear-gradient(90deg,var(--bp-cyan),var(--bp-lime));transition:width 0.3s;box-shadow:0 0 8px rgba(143,245,255,0.3)}}
+
+        /* ROI badge */
+        .bp-roi-badge{{display:inline-block;padding:3px 10px;font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}}
+        .bp-roi-pos{{background:rgba(202,253,0,0.15);color:var(--bp-lime)}}
+        .bp-roi-neg{{background:rgba(255,107,155,0.15);color:var(--bp-pink)}}
+
+        /* Status badge */
+        .bp-status{{padding:3px 10px;font-family:'Manrope',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap;display:inline-block}}
+
+        /* Filter buttons */
+        .bp-filter-btn{{padding:7px 16px;background:rgba(19,19,21,0.8);border:1px solid var(--bp-border);color:var(--bp-muted);cursor:pointer;font-family:'Manrope',sans-serif;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;transition:all 0.15s}}
+        .bp-filter-btn:hover{{color:var(--bp-text);border-color:rgba(143,245,255,0.3)}}
+
+        /* Search input */
+        .bp-search{{background:rgba(10,10,15,0.6);border:1px solid var(--bp-border);color:var(--bp-text);padding:9px 14px;font-family:'Manrope',sans-serif;font-size:13px;transition:all 0.2s;width:220px}}
+        .bp-search:focus{{border-color:var(--bp-cyan);box-shadow:0 0 12px rgba(143,245,255,0.15);outline:none}}
+        .bp-search::placeholder{{color:var(--bp-muted)}}
+
+        /* Select */
+        .bp-select{{background:rgba(10,10,15,0.6);border:1px solid var(--bp-border);color:var(--bp-text);padding:9px 14px;font-family:'Manrope',sans-serif;font-size:13px;transition:all 0.2s}}
+        .bp-select:focus{{border-color:var(--bp-cyan);box-shadow:0 0 12px rgba(143,245,255,0.15);outline:none}}
+
+        /* Accent bar on rows */
+        .bp-accent-bar{{position:absolute;left:0;top:0;bottom:0;width:3px}}
     </style>
 
-        <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
-            <div class="kpi-card blue">
-                <div class="kpi-icon">📦</div>
-                <div class="kpi-value">{len(palety_stats)}</div>
-                <div class="kpi-label">Palet lacznie</div>
+    <!-- Dot grid background -->
+    <div class="bp-dot-grid"></div>
+
+    <!-- Page header -->
+    <div style="position:relative;z-index:1;margin-bottom:28px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px">
+        <div>
+            <h1 class="bp-headline" style="font-size:1.8rem;font-weight:700;color:var(--bp-text);margin:0 0 4px 0;letter-spacing:-0.02em">Bilans Palet</h1>
+            <p class="bp-label" style="margin:0;font-size:11px;letter-spacing:0.18em">Warehouse Inventory & ROI Analytics</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+            <a href="/palety" style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.2);color:var(--bp-cyan);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;text-decoration:none;transition:all 0.15s">
+                <span class="material-icons-round" style="font-size:16px">inventory_2</span> Palety
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Grid -->
+    <div class="bp-kpi-grid" style="position:relative;z-index:1">
+        <!-- Total Pallets -->
+        <div class="bp-kpi bp-glow" style="border-left:2px solid var(--bp-cyan)">
+            <div class="bp-kpi-icon" style="background:rgba(143,245,255,0.1)">
+                <span class="material-icons-round" style="color:var(--bp-cyan)">inventory_2</span>
             </div>
-            <div class="kpi-card" style="border-top:3px solid var(--red)">
-                <div class="kpi-icon" style="background:var(--red-soft)">💸</div>
-                <div class="kpi-value" style="color:var(--red)">{total_koszt:,.0f} zl</div>
-                <div class="kpi-label">Koszt zakupu</div>
+            <div class="bp-value" style="font-size:1.6rem;color:var(--bp-cyan);margin-bottom:4px">{len(palety_stats)}</div>
+            <div class="bp-label">Palet lacznie</div>
+        </div>
+        <!-- Purchase Cost -->
+        <div class="bp-kpi bp-glow-pink" style="border-left:2px solid var(--bp-pink)">
+            <div class="bp-kpi-icon" style="background:rgba(255,107,155,0.1)">
+                <span class="material-icons-round" style="color:var(--bp-pink)">shopping_cart</span>
             </div>
-            <div class="kpi-card green">
-                <div class="kpi-icon">💰</div>
-                <div class="kpi-value">{total_przychod:,.0f} zl</div>
-                <div class="kpi-label">Przychod</div>
+            <div class="bp-value" style="font-size:1.6rem;color:var(--bp-pink);margin-bottom:4px">{total_koszt:,.0f} zl</div>
+            <div class="bp-label">Koszt zakupu</div>
+        </div>
+        <!-- Revenue -->
+        <div class="bp-kpi bp-glow-lime" style="border-left:2px solid var(--bp-lime)">
+            <div class="bp-kpi-icon" style="background:rgba(202,253,0,0.1)">
+                <span class="material-icons-round" style="color:var(--bp-lime)">trending_up</span>
             </div>
-            <div class="kpi-card orange">
-                <div class="kpi-icon">📊</div>
-                <div class="kpi-value">{total_prowizja:,.0f} zl</div>
-                <div class="kpi-label">Prowizje Allegro</div>
+            <div class="bp-value" style="font-size:1.6rem;color:var(--bp-lime);margin-bottom:4px">{total_przychod:,.0f} zl</div>
+            <div class="bp-label">Przychod</div>
+        </div>
+        <!-- Allegro Commission -->
+        <div class="bp-kpi" style="border-left:2px solid rgba(255,255,255,0.15)">
+            <div class="bp-kpi-icon" style="background:rgba(255,255,255,0.05)">
+                <span class="material-icons-round" style="color:var(--bp-muted)">receipt_long</span>
             </div>
-            <div class="kpi-card {'green' if total_zysk >= 0 else ''}">
-                <div class="kpi-icon" style="background:{'var(--green-soft)' if total_zysk >= 0 else 'var(--red-soft)'}">📈</div>
-                <div class="kpi-value" style="color:{'var(--green)' if total_zysk >= 0 else 'var(--red)'}">{total_zysk:,.0f} zl ({total_roi:.0f}%)</div>
-                <div class="kpi-label">Zysk netto (ROI)</div>
+            <div class="bp-value" style="font-size:1.6rem;color:var(--bp-muted);margin-bottom:4px">{total_prowizja:,.0f} zl</div>
+            <div class="bp-label">Prowizje Allegro</div>
+        </div>
+        <!-- Net Profit / ROI -->
+        <div class="bp-kpi {'bp-glow-lime' if total_zysk >= 0 else 'bp-glow-pink'}" style="border-left:2px solid {'var(--bp-lime)' if total_zysk >= 0 else 'var(--bp-pink)'}">
+            <div class="bp-kpi-icon" style="background:{'rgba(202,253,0,0.1)' if total_zysk >= 0 else 'rgba(255,107,155,0.1)'}">
+                <span class="material-icons-round" style="color:{'var(--bp-lime)' if total_zysk >= 0 else 'var(--bp-pink)'}">{'emoji_events' if total_zysk >= 0 else 'warning'}</span>
+            </div>
+            <div class="bp-value" style="font-size:1.6rem;color:{'var(--bp-lime)' if total_zysk >= 0 else 'var(--bp-pink)'};margin-bottom:4px">{total_zysk:,.0f} zl <span style="font-size:0.85rem;opacity:0.7">({total_roi:.0f}%)</span></div>
+            <div class="bp-label">Zysk netto / ROI</div>
+        </div>
+    </div>
+
+    <!-- Charts Grid -->
+    <div class="bp-charts-grid" style="position:relative;z-index:1">
+        <div class="bp-chart-panel">
+            <div style="margin-bottom:16px;display:flex;align-items:center;gap:8px">
+                <span class="material-icons-round" style="color:var(--bp-lime);font-size:18px">bar_chart</span>
+                <span class="bp-headline" style="font-size:14px;font-weight:600;color:var(--bp-text)">TOP 10 Palet wg ROI</span>
+            </div>
+            <div class="bp-chart-container">
+                <canvas id="roiChart"></canvas>
             </div>
         </div>
-
-        <div class="dash-grid" style="margin-bottom:20px">
-            <div class="card">
-                <div class="card-header"><div class="card-title">TOP 10 Palet wg ROI</div></div>
-                <div class="chart-container">
-                    <canvas id="roiChart"></canvas>
-                </div>
+        <div class="bp-chart-panel">
+            <div style="margin-bottom:16px;display:flex;align-items:center;gap:8px">
+                <span class="material-icons-round" style="color:var(--bp-cyan);font-size:18px">show_chart</span>
+                <span class="bp-headline" style="font-size:14px;font-weight:600;color:var(--bp-text)">Zysk kumulacyjny w czasie</span>
             </div>
-            <div class="card">
-                <div class="card-header"><div class="card-title">Zysk kumulacyjny w czasie</div></div>
-                <div class="chart-container">
-                    <canvas id="cumChart"></canvas>
-                </div>
+            <div class="bp-chart-container">
+                <canvas id="cumChart"></canvas>
             </div>
         </div>
+    </div>
 
-        <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px">
-                <div class="card-title">Wszystkie palety ({len(palety_stats)})</div>
-                <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-                    <input type="text" id="searchInput" oninput="filterTable()" placeholder="Szukaj palety..." class="form-control" style="width:200px;padding:8px 12px">
-                    <label style="color:var(--text-muted);font-size:0.9rem">Dostawca:</label>
-                    <select id="dostawcaFilter" onchange="filterTable()" class="form-control" style="width:auto;padding:8px 12px">
-                        <option value="">Wszyscy</option>
-                        {''.join(f'<option value="{d}">{d}</option>' for d in dostawcy)}
-                    </select>
-                </div>
+    <!-- Pallet List Table -->
+    <div class="bp-table-panel" style="position:relative;z-index:1">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px">
+            <div style="display:flex;align-items:center;gap:10px">
+                <span class="material-icons-round" style="color:var(--bp-cyan);font-size:20px">view_list</span>
+                <span class="bp-headline" style="font-size:15px;font-weight:600;color:var(--bp-text)">Wszystkie palety</span>
+                <span class="bp-label" style="background:rgba(143,245,255,0.08);padding:3px 10px;color:var(--bp-cyan);font-size:10px;letter-spacing:0.12em">{len(palety_stats)}</span>
             </div>
-            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-                <button onclick="sortTable(9,'num');this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#1e1e2e');this.style.background='#22c55e33'" style="padding:6px 14px;background:#1e1e2e;border:1px solid #334155;border-radius:8px;color:#e2e8f0;cursor:pointer;font-size:0.8rem">🔥 Najszybciej schodzące</button>
-                <button onclick="sortTable(5,'num');this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#1e1e2e');this.style.background='#22c55e33'" style="padding:6px 14px;background:#1e1e2e;border:1px solid #334155;border-radius:8px;color:#e2e8f0;cursor:pointer;font-size:0.8rem">💰 Największy przychód</button>
-                <button onclick="sortTable(6,'num');this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#1e1e2e');this.style.background='#22c55e33'" style="padding:6px 14px;background:#1e1e2e;border:1px solid #334155;border-radius:8px;color:#e2e8f0;cursor:pointer;font-size:0.8rem">📈 Największy zysk</button>
-                <button onclick="sortTable(7,'num');this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#1e1e2e');this.style.background='#22c55e33'" style="padding:6px 14px;background:#1e1e2e;border:1px solid #334155;border-radius:8px;color:#e2e8f0;cursor:pointer;font-size:0.8rem">🏆 Najlepsze ROI</button>
-            </div>
-            <div style="overflow-x:auto;">
-            <table class="palety-table" id="paletyTable">
-                <thead>
-                    <tr>
-                        <th onclick="sortTable(0,'str')">Paleta <span class="sort-arrow"></span></th>
-                        <th onclick="sortTable(1,'str')">Dostawca <span class="sort-arrow"></span></th>
-                        <th onclick="sortTable(2,'str')">Data <span class="sort-arrow"></span></th>
-                        <th onclick="sortTable(3,'num')">Koszt <span class="sort-arrow"></span></th>
-                        <th onclick="sortTable(4,'num')">Koszt/szt <span class="sort-arrow"></span></th>
-                        <th onclick="sortTable(5,'num')">Przychod <span class="sort-arrow"></span></th>
-                        <th onclick="sortTable(6,'num')">Zysk <span class="sort-arrow"></span></th>
-                        <th onclick="sortTable(7,'num')">ROI <span class="sort-arrow"></span></th>
-                        <th onclick="sortTable(8,'num')">Prognoza <span class="sort-arrow"></span></th>
-                        <th onclick="sortTable(9,'num')">Tempo <span class="sort-arrow"></span></th>
-                        <th onclick="sortTable(10,'num')">Postep <span class="sort-arrow"></span></th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {''.join(f"""
-                    <tr onclick="window.location='/palety/{p['id']}'" data-dostawca="{p['dostawca']}" data-vals="{p['nazwa'][:30]}|{p['dostawca']}|{p['data']}|{p['koszt']:.2f}|{p['koszt_szt']:.2f}|{p['przychod']:.2f}|{p['zysk']:.2f}|{p['roi']:.2f}|{p['prognoza']:.2f}|{p['tempo']:.2f}|{p['procent']:.2f}">
-                        <td><strong>{p['nazwa'][:30]}</strong></td>
-                        <td class="dostawca-name">{p['dostawca']}</td>
-                        <td>{p['data']}</td>
-                        <td>{p['koszt']:,.0f} zl</td>
-                        <td>{p['koszt_szt']:,.0f} zl</td>
-                        <td style="color:var(--green)">{p['przychod']:,.0f} zl</td>
-                        <td style="color:{'var(--green)' if p['zysk'] >= 0 else 'var(--red)'}">{p['zysk']:,.0f} zl</td>
-                        <td style="color:{'var(--green)' if p['roi'] >= 0 else 'var(--red)'}">{p['roi']:.0f}%</td>
-                        <td class="prognoza" style="color:{'var(--green)' if p['prognoza'] >= 0 else 'var(--red)'}">{p['prognoza']:,.0f} zl</td>
-                        <td style="color:{'#22c55e' if p['tempo'] >= 1 else '#f59e0b' if p['tempo'] >= 0.3 else '#64748b'}">{'🔥 ' if p['tempo'] >= 2 else ''}{p['tempo']:.1f}/d</td>
-                        <td>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width:{p['procent']:.0f}%"></div>
-                            </div>
-                            <small style="color:var(--text-muted)">{p['sprzedanych']}/{p['wszystkich']} szt.</small>
-                        </td>
-                        <td><span class="status-badge" style="background:color-mix(in srgb, {p['status_color']} 15%, transparent);color:{p['status_color']}">{p['status']}</span></td>
-                    </tr>
-                    """ for p in palety_stats) if palety_stats else '<tr><td colspan="11" style="text-align:center;color:var(--text-muted);">Brak palet w bazie</td></tr>'}
-                </tbody>
-            </table>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                <input type="text" id="searchInput" oninput="filterTable()" placeholder="Szukaj palety..." class="bp-search">
+                <span class="bp-label" style="font-size:10px;letter-spacing:0.15em">Dostawca:</span>
+                <select id="dostawcaFilter" onchange="filterTable()" class="bp-select" style="width:auto">
+                    <option value="">Wszyscy</option>
+                    {''.join(f'<option value="{d}">{d}</option>' for d in dostawcy)}
+                </select>
             </div>
         </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+            <button onclick="sortTable(9,'num');this.parentElement.querySelectorAll('button').forEach(b=>{{b.style.background='rgba(19,19,21,0.8)';b.style.borderColor='rgba(255,255,255,0.06)'}});this.style.background='rgba(143,245,255,0.08)';this.style.borderColor='rgba(143,245,255,0.3)'" class="bp-filter-btn"><span class="material-icons-round" style="font-size:13px;vertical-align:-2px;margin-right:4px">local_fire_department</span>Najszybciej schodzace</button>
+            <button onclick="sortTable(5,'num');this.parentElement.querySelectorAll('button').forEach(b=>{{b.style.background='rgba(19,19,21,0.8)';b.style.borderColor='rgba(255,255,255,0.06)'}});this.style.background='rgba(143,245,255,0.08)';this.style.borderColor='rgba(143,245,255,0.3)'" class="bp-filter-btn"><span class="material-icons-round" style="font-size:13px;vertical-align:-2px;margin-right:4px">payments</span>Najwiekszy przychod</button>
+            <button onclick="sortTable(6,'num');this.parentElement.querySelectorAll('button').forEach(b=>{{b.style.background='rgba(19,19,21,0.8)';b.style.borderColor='rgba(255,255,255,0.06)'}});this.style.background='rgba(143,245,255,0.08)';this.style.borderColor='rgba(143,245,255,0.3)'" class="bp-filter-btn"><span class="material-icons-round" style="font-size:13px;vertical-align:-2px;margin-right:4px">trending_up</span>Najwiekszy zysk</button>
+            <button onclick="sortTable(7,'num');this.parentElement.querySelectorAll('button').forEach(b=>{{b.style.background='rgba(19,19,21,0.8)';b.style.borderColor='rgba(255,255,255,0.06)'}});this.style.background='rgba(143,245,255,0.08)';this.style.borderColor='rgba(143,245,255,0.3)'" class="bp-filter-btn"><span class="material-icons-round" style="font-size:13px;vertical-align:-2px;margin-right:4px">emoji_events</span>Najlepsze ROI</button>
+        </div>
+        <div style="overflow-x:auto;">
+        <table class="bp-table" id="paletyTable">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0,'str')">Paleta <span class="sort-arrow"></span></th>
+                    <th onclick="sortTable(1,'str')">Dostawca <span class="sort-arrow"></span></th>
+                    <th onclick="sortTable(2,'str')">Data <span class="sort-arrow"></span></th>
+                    <th onclick="sortTable(3,'num')">Koszt <span class="sort-arrow"></span></th>
+                    <th onclick="sortTable(4,'num')">Koszt/szt <span class="sort-arrow"></span></th>
+                    <th onclick="sortTable(5,'num')">Przychod <span class="sort-arrow"></span></th>
+                    <th onclick="sortTable(6,'num')">Zysk <span class="sort-arrow"></span></th>
+                    <th onclick="sortTable(7,'num')">ROI <span class="sort-arrow"></span></th>
+                    <th onclick="sortTable(8,'num')">Prognoza <span class="sort-arrow"></span></th>
+                    <th onclick="sortTable(9,'num')">Tempo <span class="sort-arrow"></span></th>
+                    <th onclick="sortTable(10,'num')">Postep <span class="sort-arrow"></span></th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(f"""
+                <tr onclick="window.location='/palety/{p['id']}'" data-dostawca="{p['dostawca']}" data-vals="{p['nazwa'][:30]}|{p['dostawca']}|{p['data']}|{p['koszt']:.2f}|{p['koszt_szt']:.2f}|{p['przychod']:.2f}|{p['zysk']:.2f}|{p['roi']:.2f}|{p['prognoza']:.2f}|{p['tempo']:.2f}|{p['procent']:.2f}" style="position:relative">
+                    <td style="padding-left:14px"><div class="bp-accent-bar" style="background:{'var(--bp-lime)' if p['roi'] >= 50 else 'var(--bp-cyan)' if p['roi'] >= 0 else 'var(--bp-pink)'}"></div><strong style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:0.85rem">{p['nazwa'][:30]}</strong></td>
+                    <td><span style="color:var(--bp-muted);font-size:0.8rem">{p['dostawca']}</span></td>
+                    <td><span style="color:var(--bp-muted);font-size:0.8rem;font-variant-numeric:tabular-nums">{p['data']}</span></td>
+                    <td><span class="bp-value" style="font-size:0.82rem">{p['koszt']:,.0f} zl</span></td>
+                    <td><span class="bp-value" style="font-size:0.82rem;color:var(--bp-muted)">{p['koszt_szt']:,.0f} zl</span></td>
+                    <td><span class="bp-value" style="font-size:0.82rem;color:var(--bp-lime)">{p['przychod']:,.0f} zl</span></td>
+                    <td><span class="bp-value" style="font-size:0.82rem;color:{'var(--bp-lime)' if p['zysk'] >= 0 else 'var(--bp-pink)'}">{p['zysk']:,.0f} zl</span></td>
+                    <td><span class="bp-roi-badge {'bp-roi-pos' if p['roi'] >= 0 else 'bp-roi-neg'}">{p['roi']:.0f}%</span></td>
+                    <td><span class="bp-value" style="font-size:0.82rem;color:{'var(--bp-lime)' if p['prognoza'] >= 0 else 'var(--bp-pink)'};opacity:0.7;font-style:italic">{p['prognoza']:,.0f} zl</span></td>
+                    <td><span class="bp-value" style="font-size:0.82rem;color:{'var(--bp-lime)' if p['tempo'] >= 1 else 'var(--bp-cyan)' if p['tempo'] >= 0.3 else 'var(--bp-muted)'}">{p['tempo']:.1f}/d</span></td>
+                    <td style="min-width:90px">
+                        <div class="bp-progress">
+                            <div class="bp-progress-fill" style="width:{p['procent']:.0f}%"></div>
+                        </div>
+                        <small style="color:var(--bp-muted);font-family:'Manrope',sans-serif;font-size:10px">{p['sprzedanych']}/{p['wszystkich']} szt.</small>
+                    </td>
+                    <td><span class="bp-status" style="background:{'rgba(202,253,0,0.1)' if 'zakonczona' in p['status'] and p['zysk'] >= 0 else 'rgba(255,107,155,0.1)' if 'zakonczona' in p['status'] else 'rgba(143,245,255,0.08)'};color:{'var(--bp-lime)' if 'zakonczona' in p['status'] and p['zysk'] >= 0 else 'var(--bp-pink)' if 'zakonczona' in p['status'] else 'var(--bp-cyan)'}">{p['status']}</span></td>
+                </tr>
+                """ for p in palety_stats) if palety_stats else '<tr><td colspan="12" style="text-align:center;color:var(--bp-muted);padding:40px;font-family:Manrope,sans-serif">Brak palet w bazie</td></tr>'}
+            </tbody>
+        </table>
+        </div>
+    </div>
 
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script>
-            // Wykres ROI
-            new Chart(document.getElementById('roiChart'), {{
-                type: 'bar',
-                data: {{
-                    labels: {chart_labels},
-                    datasets: [{{
-                        label: 'ROI %',
-                        data: {chart_roi},
-                        backgroundColor: {[f"'{'#22c55e' if r >= 0 else '#ef4444'}'" for r in chart_roi]},
-                        borderRadius: 4
-                    }}]
-                }},
-                options: {{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {{ legend: {{ display: false }} }},
-                    scales: {{
-                        y: {{ grid: {{ color: 'rgba(255,255,255,0.06)' }}, ticks: {{ color: '#888', callback: v => v + '%' }} }},
-                        x: {{ grid: {{ display: false }}, ticks: {{ color: '#888', maxRotation: 45 }} }}
-                    }}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Wykres ROI
+        new Chart(document.getElementById('roiChart'), {{
+            type: 'bar',
+            data: {{
+                labels: {chart_labels},
+                datasets: [{{
+                    label: 'ROI %',
+                    data: {chart_roi},
+                    backgroundColor: {[f"'{'rgba(202,253,0,0.7)' if r >= 0 else 'rgba(255,107,155,0.7)'}'" for r in chart_roi]},
+                    borderColor: {[f"'{'#cafd00' if r >= 0 else '#ff6b9b'}'" for r in chart_roi]},
+                    borderWidth: 1,
+                    borderRadius: 2
+                }}]
+            }},
+            options: {{
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {{ legend: {{ display: false }} }},
+                scales: {{
+                    x: {{ grid: {{ color: 'rgba(255,255,255,0.04)' }}, ticks: {{ color: 'rgba(255,255,255,0.35)', font: {{ family: 'Space Grotesk' }}, callback: v => v + '%' }} }},
+                    y: {{ grid: {{ display: false }}, ticks: {{ color: 'rgba(255,255,255,0.5)', font: {{ family: 'Manrope', size: 11 }} }} }}
                 }}
-            }});
+            }}
+        }});
 
-            // Wykres kumulacyjny zysku
-            new Chart(document.getElementById('cumChart'), {{
-                type: 'line',
-                data: {{
-                    labels: {cum_dates},
-                    datasets: [{{
-                        label: 'Zysk kumulacyjny (zl)',
-                        data: {cum_zysk},
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59,130,246,0.1)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 3,
-                        pointBackgroundColor: '#3b82f6'
-                    }}]
-                }},
-                options: {{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {{ legend: {{ display: false }} }},
-                    scales: {{
-                        y: {{ grid: {{ color: 'rgba(255,255,255,0.06)' }}, ticks: {{ color: '#888', callback: v => v + ' zl' }} }},
-                        x: {{ grid: {{ display: false }}, ticks: {{ color: '#888', maxRotation: 45 }} }}
-                    }}
+        // Wykres kumulacyjny zysku
+        var cumCtx = document.getElementById('cumChart').getContext('2d');
+        var cumGradient = cumCtx.createLinearGradient(0, 0, cumCtx.canvas.width, 0);
+        cumGradient.strokeStyle = cumGradient;
+        cumGradient.addColorStop(0, '#8ff5ff');
+        cumGradient.addColorStop(1, '#ff6b9b');
+        var cumFill = cumCtx.createLinearGradient(0, 0, 0, 300);
+        cumFill.addColorStop(0, 'rgba(143,245,255,0.15)');
+        cumFill.addColorStop(1, 'rgba(143,245,255,0)');
+        new Chart(cumCtx, {{
+            type: 'line',
+            data: {{
+                labels: {cum_dates},
+                datasets: [{{
+                    label: 'Zysk kumulacyjny (zl)',
+                    data: {cum_zysk},
+                    borderColor: cumGradient,
+                    backgroundColor: cumFill,
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#8ff5ff',
+                    pointBorderColor: '#8ff5ff',
+                    borderWidth: 2
+                }}]
+            }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {{ legend: {{ display: false }} }},
+                scales: {{
+                    y: {{ grid: {{ color: 'rgba(255,255,255,0.04)' }}, ticks: {{ color: 'rgba(255,255,255,0.35)', font: {{ family: 'Space Grotesk' }}, callback: v => v + ' zl' }} }},
+                    x: {{ grid: {{ display: false }}, ticks: {{ color: 'rgba(255,255,255,0.35)', font: {{ family: 'Manrope', size: 10 }}, maxRotation: 45 }} }}
                 }}
-            }});
+            }}
+        }});
 
             // Sortowanie tabeli
             let sortCol = -1, sortAsc = true;

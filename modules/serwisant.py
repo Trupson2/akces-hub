@@ -68,58 +68,228 @@ def serwis_lista():
         'zlomowany': ('#ef4444', 'Złomowany'),
     }
 
-    # Buduj HTML
-    html = '''
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-        <h2 style="margin:0;font-size:1.3rem">🔧 Serwis</h2>
-        <span style="color:var(--text-muted);font-size:0.85rem">Zarządzanie naprawami produktów</span>
-    </div>
+    # Buduj HTML — Stitch design system
+    total_items = stats['przyjete'] + stats['w_naprawie'] + stats['naprawione'] + stats['zwrocone'] + stats['zlomowane']
 
-    <!-- Statystyki -->
-    <div class="stat-row" style="margin-bottom:20px;grid-template-columns:repeat(6,1fr)">
-        <a href="/serwis?status=przyjety" class="stat-box">
-            <div class="stat-val" style="color:#f59e0b">''' + str(stats['przyjete']) + '''</div>
-            <div class="stat-lbl">Przyjęte</div>
-        </a>
-        <a href="/serwis?status=w_naprawie" class="stat-box">
-            <div class="stat-val" style="color:#6366f1">''' + str(stats['w_naprawie']) + '''</div>
-            <div class="stat-lbl">W naprawie</div>
-        </a>
-        <a href="/serwis?status=naprawiony" class="stat-box">
-            <div class="stat-val" style="color:#22c55e">''' + str(stats['naprawione']) + '''</div>
-            <div class="stat-lbl">Naprawione</div>
-        </a>
-        <a href="/serwis?status=zwrocony" class="stat-box">
-            <div class="stat-val" style="color:#10b981">''' + str(stats['zwrocone']) + '''</div>
-            <div class="stat-lbl">Zwrócone</div>
-        </a>
-        <a href="/serwis?status=zlomowany" class="stat-box">
-            <div class="stat-val" style="color:#ef4444">''' + str(stats['zlomowane']) + '''</div>
-            <div class="stat-lbl">Złomowane</div>
-        </a>
-        <div class="stat-box">
-            <div class="stat-val" style="color:var(--orange)">''' + f"{stats['laczny_koszt']:.0f}" + ''' zł</div>
-            <div class="stat-lbl">Koszty napraw</div>
+    html = '''
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Manrope:wght@300;400;500;600;700;800&display=swap');
+
+        /* ─── Base ─── */
+        .sv-wrap{max-width:1100px;margin:0 auto;font-family:'Manrope',sans-serif;position:relative;z-index:1;padding:0 8px}
+        .sv-headline{font-family:'Space Grotesk',sans-serif}
+        .sv-label{font-family:'Manrope',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.2em;color:rgba(255,255,255,0.45)}
+
+        /* ─── Neon colours ─── */
+        :root{--sv-cyan:#8ff5ff;--sv-pink:#ff6b9b;--sv-lime:#cafd00;--sv-lime-dim:#beee00;--sv-bg:#0e0e10;--sv-card:#131315;--sv-card2:#19191c;--sv-card3:#1f1f22;--sv-card4:#262528;--sv-border:rgba(255,255,255,0.06);--sv-text:#f9f5f8;--sv-muted:#adaaad}
+
+        /* ─── Cyber grid bg ─── */
+        .sv-grid-bg{background-size:40px 40px;background-image:linear-gradient(to right,rgba(143,245,255,0.05) 1px,transparent 1px),linear-gradient(to bottom,rgba(143,245,255,0.05) 1px,transparent 1px);position:fixed;inset:0;pointer-events:none;z-index:0}
+
+        /* ─── Stat cards scroll ─── */
+        .sv-stats-scroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;scrollbar-width:thin;scrollbar-color:rgba(143,245,255,0.2) transparent;-webkit-overflow-scrolling:touch}
+        .sv-stats-scroll::-webkit-scrollbar{height:4px}
+        .sv-stats-scroll::-webkit-scrollbar-track{background:transparent}
+        .sv-stats-scroll::-webkit-scrollbar-thumb{background:rgba(143,245,255,0.2);border-radius:2px}
+        .sv-stat-card{min-width:192px;width:192px;flex-shrink:0;background:var(--sv-card);padding:16px 18px;border-left:4px solid var(--sv-cyan);transition:all 0.2s;text-decoration:none;color:var(--sv-text);display:block}
+        .sv-stat-card:hover{background:var(--sv-card3);box-shadow:0 0 15px rgba(143,245,255,0.15)}
+        .sv-stat-card .sv-stat-icon{font-size:18px;margin-bottom:6px;opacity:0.7}
+        .sv-stat-card .sv-stat-label{font-family:'Manrope',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.15em;color:var(--sv-muted);margin-bottom:4px}
+        .sv-stat-card .sv-stat-val{font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:900;letter-spacing:-0.04em;line-height:1.1}
+        .sv-stat-card .sv-progress{height:3px;background:var(--sv-card4);border-radius:2px;overflow:hidden;margin-top:10px}
+        .sv-stat-card .sv-progress-bar{height:100%;border-radius:2px;transition:width 0.5s}
+
+        /* card colour variants */
+        .sv-stat-cyan{border-left-color:var(--sv-cyan)}
+        .sv-stat-cyan .sv-stat-val{color:var(--sv-cyan)}
+        .sv-stat-cyan .sv-progress-bar{background:var(--sv-cyan);box-shadow:0 0 8px var(--sv-cyan)}
+        .sv-stat-pink{border-left-color:var(--sv-pink)}
+        .sv-stat-pink .sv-stat-val{color:var(--sv-pink)}
+        .sv-stat-pink .sv-progress-bar{background:var(--sv-pink);box-shadow:0 0 8px var(--sv-pink)}
+        .sv-stat-lime{border-left-color:var(--sv-lime)}
+        .sv-stat-lime .sv-stat-val{color:var(--sv-lime)}
+        .sv-stat-lime .sv-progress-bar{background:var(--sv-lime);box-shadow:0 0 8px var(--sv-lime)}
+        .sv-stat-outline{border-left-color:var(--sv-muted);border:1px solid var(--sv-border);border-left:4px solid var(--sv-muted)}
+        .sv-stat-outline .sv-stat-val{color:var(--sv-muted)}
+        .sv-stat-outline .sv-progress-bar{background:var(--sv-muted)}
+        .sv-stat-secondary{border-left-color:var(--sv-pink);background:rgba(255,107,155,0.05)}
+        .sv-stat-secondary .sv-stat-val{color:var(--sv-pink)}
+        .sv-stat-secondary .sv-progress-bar{background:var(--sv-pink);box-shadow:0 0 8px rgba(255,107,155,0.3)}
+        .sv-stat-cost{border-left-color:var(--sv-lime-dim)}
+        .sv-stat-cost .sv-stat-val{color:var(--sv-lime-dim);font-size:1.5rem}
+        .sv-stat-cost .sv-progress-bar{background:var(--sv-lime-dim);box-shadow:0 0 8px var(--sv-lime-dim)}
+
+        /* ─── Filter pills ─── */
+        .sv-filters{display:flex;gap:4px;overflow-x:auto;padding:4px;background:var(--sv-card);border-radius:999px;margin-bottom:20px;scrollbar-width:none;-ms-overflow-style:none}
+        .sv-filters::-webkit-scrollbar{display:none}
+        .sv-filter-pill{padding:8px 18px;font-family:'Manrope',sans-serif;font-size:0.8rem;font-weight:600;border-radius:999px;text-decoration:none;color:var(--sv-muted);background:transparent;border:none;white-space:nowrap;transition:all 0.15s;cursor:pointer}
+        .sv-filter-pill:hover{color:var(--sv-text);background:rgba(255,255,255,0.06)}
+        .sv-filter-pill.active{background:var(--sv-cyan);color:#005d63;font-weight:700}
+
+        /* ─── Empty state ─── */
+        .sv-empty{border:2px dashed rgba(143,245,255,0.15);padding:60px 30px;text-align:center;position:relative;overflow:hidden}
+        .sv-empty-watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Space Grotesk',sans-serif;font-size:clamp(3rem,8vw,6rem);font-weight:900;font-style:italic;letter-spacing:-0.04em;color:rgba(143,245,255,0.04);white-space:nowrap;pointer-events:none}
+        .sv-empty-emoji{font-size:3rem;margin-bottom:16px}
+        .sv-empty-text{font-family:'Manrope',sans-serif;font-size:1rem;color:var(--sv-muted);margin-bottom:20px}
+        .sv-btn-scan{font-family:'Space Grotesk',sans-serif;font-weight:900;text-transform:uppercase;letter-spacing:-0.02em;font-style:italic;padding:14px 28px;border:none;cursor:pointer;transition:all 0.15s;font-size:0.95rem;background:var(--sv-cyan);color:#005d63;box-shadow:0 4px 15px rgba(143,245,255,0.3)}
+        .sv-btn-scan:hover{transform:scale(1.02);box-shadow:0 4px 25px rgba(143,245,255,0.4)}
+        .sv-btn-scan:active{transform:scale(0.95)}
+
+        /* ─── List items ─── */
+        .sv-list{display:flex;flex-direction:column;gap:2px}
+        .sv-item{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--sv-card);border-left:3px solid transparent;transition:all 0.2s}
+        .sv-item:hover{background:var(--sv-card3);box-shadow:0 0 15px rgba(143,245,255,0.08)}
+        .sv-item-cyan{border-left-color:var(--sv-cyan)}
+        .sv-item-pink{border-left-color:var(--sv-pink)}
+        .sv-item-lime{border-left-color:var(--sv-lime)}
+        .sv-item-muted{border-left-color:var(--sv-muted)}
+        .sv-item-red{border-left-color:var(--sv-pink)}
+        .sv-item-img{width:52px;height:52px;border-radius:4px;object-fit:cover;background:var(--sv-card2);flex-shrink:0}
+        .sv-item-name{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--sv-text)}
+        .sv-item-name a{color:inherit;text-decoration:none}
+        .sv-item-name a:hover{color:var(--sv-cyan)}
+        .sv-item-meta{font-family:'Manrope',sans-serif;font-size:0.72rem;color:var(--sv-muted);margin-top:2px}
+        .sv-item-fault{font-family:'Manrope',sans-serif;font-size:0.78rem;color:var(--sv-pink);margin-top:3px;display:flex;align-items:center;gap:4px}
+        .sv-item-qty{font-family:'Space Grotesk',sans-serif;font-size:0.95rem;font-weight:700;text-align:center;min-width:55px;color:var(--sv-text)}
+        .sv-item-cost{font-family:'Manrope',sans-serif;font-size:0.68rem;color:var(--sv-muted)}
+
+        /* ─── Status badge ─── */
+        .sv-badge{display:inline-block;padding:4px 14px;font-family:'Manrope',sans-serif;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap}
+        .sv-badge-cyan{background:rgba(143,245,255,0.1);color:var(--sv-cyan);border:1px solid rgba(143,245,255,0.2)}
+        .sv-badge-pink{background:rgba(255,107,155,0.1);color:var(--sv-pink);border:1px solid rgba(255,107,155,0.2)}
+        .sv-badge-lime{background:rgba(202,253,0,0.1);color:var(--sv-lime);border:1px solid rgba(202,253,0,0.2)}
+        .sv-badge-muted{background:rgba(173,170,173,0.1);color:var(--sv-muted);border:1px solid rgba(173,170,173,0.2)}
+        .sv-badge-red{background:rgba(255,107,155,0.08);color:#ff4f7f;border:1px solid rgba(255,79,127,0.2)}
+
+        /* ─── Action buttons ─── */
+        .sv-act{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.02em;padding:6px 14px;border:none;cursor:pointer;transition:all 0.15s;color:#fff}
+        .sv-act:hover{transform:scale(1.03)}
+        .sv-act:active{transform:scale(0.95)}
+        .sv-act-repair{background:var(--sv-pink);color:#47001f}
+        .sv-act-done{background:var(--sv-lime);color:#1a2e00}
+        .sv-act-return{background:var(--sv-cyan);color:#005d63}
+        .sv-act-scrap{background:rgba(255,79,127,0.15);color:#ff4f7f;border:1px solid rgba(255,79,127,0.3)}
+        .sv-act-scrap:hover{background:rgba(255,79,127,0.25)}
+
+        /* ─── SYS_LOG badge ─── */
+        .sv-syslog{font-family:'Manrope',sans-serif;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;padding:2px 8px;background:rgba(143,245,255,0.08);color:rgba(143,245,255,0.5);display:inline-block;margin-bottom:4px}
+
+        /* ─── Pulse dot ─── */
+        .sv-pulse-dot{width:8px;height:8px;border-radius:50%;animation:sv-dot-pulse 2s infinite}
+        @keyframes sv-dot-pulse{0%,100%{box-shadow:0 0 5px rgba(202,253,0,0.4)}50%{box-shadow:0 0 15px rgba(202,253,0,0.8)}}
+
+        /* ─── Responsive ─── */
+        @media(max-width:768px){
+            .sv-stats-scroll{gap:8px}
+            .sv-stat-card{min-width:160px;width:160px;padding:12px 14px}
+            .sv-item{flex-wrap:wrap;gap:10px;padding:14px 16px}
+            .sv-item-actions{width:100%;display:flex;justify-content:flex-end}
+        }
+    </style>
+
+    <div class="sv-grid-bg"></div>
+
+    <div class="sv-wrap">
+
+    <!-- ═══ Header ═══ -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:32px;flex-wrap:wrap;gap:16px">
+        <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <div class="sv-pulse-dot" style="background:var(--sv-lime-dim)"></div>
+                <span class="sv-label" style="color:var(--sv-lime-dim);font-weight:900">REALTIME_FEED</span>
+            </div>
+            <h1 class="sv-headline" style="font-size:clamp(2.5rem,6vw,4rem);font-weight:900;font-style:italic;letter-spacing:-0.04em;line-height:1;color:var(--sv-text)">
+                SERVICE<span style="color:var(--sv-cyan)">_METRICS</span>
+            </h1>
         </div>
     </div>
 
-    <!-- Filtry -->
-    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-        <a href="/serwis" class="btn ''' + ('btn-primary' if not filtr else '') + '''" style="padding:6px 14px;font-size:0.8rem;border-radius:8px;text-decoration:none;background:''' + ('var(--accent)' if not filtr else 'rgba(255,255,255,0.08)') + ''';color:#fff;border:none">Aktywne</a>
-        <a href="/serwis?status=przyjety" class="btn" style="padding:6px 14px;font-size:0.8rem;border-radius:8px;text-decoration:none;background:''' + ('var(--accent)' if filtr=='przyjety' else 'rgba(255,255,255,0.08)') + ''';color:#fff;border:none">📥 Przyjęte</a>
-        <a href="/serwis?status=w_naprawie" class="btn" style="padding:6px 14px;font-size:0.8rem;border-radius:8px;text-decoration:none;background:''' + ('var(--accent)' if filtr=='w_naprawie' else 'rgba(255,255,255,0.08)') + ''';color:#fff;border:none">🔧 W naprawie</a>
-        <a href="/serwis?status=naprawiony" class="btn" style="padding:6px 14px;font-size:0.8rem;border-radius:8px;text-decoration:none;background:''' + ('var(--accent)' if filtr=='naprawiony' else 'rgba(255,255,255,0.08)') + ''';color:#fff;border:none">✅ Naprawione</a>
-        <a href="/serwis?status=zwrocony" class="btn" style="padding:6px 14px;font-size:0.8rem;border-radius:8px;text-decoration:none;background:''' + ('var(--accent)' if filtr=='zwrocony' else 'rgba(255,255,255,0.08)') + ''';color:#fff;border:none">🔄 Zwrócone</a>
-        <a href="/serwis?status=zlomowany" class="btn" style="padding:6px 14px;font-size:0.8rem;border-radius:8px;text-decoration:none;background:''' + ('var(--accent)' if filtr=='zlomowany' else 'rgba(255,255,255,0.08)') + ''';color:#fff;border:none">🗑️ Złomowane</a>
+    <!-- ═══ Stat cards (horizontal scroll) ═══ -->
+    <div class="sv-stats-scroll" style="margin-bottom:24px">
+    '''
+
+    # Stat card helper
+    def _pct(val):
+        return int((val / total_items * 100) if total_items > 0 else 0)
+
+    html += f'''
+        <a href="/serwis?status=przyjety" class="sv-stat-card sv-stat-cyan">
+            <div class="sv-stat-icon">📥</div>
+            <div class="sv-stat-label">Accepted</div>
+            <div class="sv-stat-val">{stats['przyjete']}</div>
+            <div class="sv-progress"><div class="sv-progress-bar" style="width:{_pct(stats['przyjete'])}%"></div></div>
+        </a>
+        <a href="/serwis?status=w_naprawie" class="sv-stat-card sv-stat-pink">
+            <div class="sv-stat-icon">🔧</div>
+            <div class="sv-stat-label">In Repair</div>
+            <div class="sv-stat-val">{stats['w_naprawie']}</div>
+            <div class="sv-progress"><div class="sv-progress-bar" style="width:{_pct(stats['w_naprawie'])}%"></div></div>
+        </a>
+        <a href="/serwis?status=naprawiony" class="sv-stat-card sv-stat-lime">
+            <div class="sv-stat-icon">✅</div>
+            <div class="sv-stat-label">Repaired</div>
+            <div class="sv-stat-val">{stats['naprawione']}</div>
+            <div class="sv-progress"><div class="sv-progress-bar" style="width:{_pct(stats['naprawione'])}%"></div></div>
+        </a>
+        <a href="/serwis?status=zwrocony" class="sv-stat-card sv-stat-outline">
+            <div class="sv-stat-icon">🔄</div>
+            <div class="sv-stat-label">Returned</div>
+            <div class="sv-stat-val">{stats['zwrocone']}</div>
+            <div class="sv-progress"><div class="sv-progress-bar" style="width:{_pct(stats['zwrocone'])}%"></div></div>
+        </a>
+        <a href="/serwis?status=zlomowany" class="sv-stat-card sv-stat-secondary">
+            <div class="sv-stat-icon">🗑️</div>
+            <div class="sv-stat-label">Scrapped</div>
+            <div class="sv-stat-val">{stats['zlomowane']}</div>
+            <div class="sv-progress"><div class="sv-progress-bar" style="width:{_pct(stats['zlomowane'])}%"></div></div>
+        </a>
+        <div class="sv-stat-card sv-stat-cost">
+            <div class="sv-stat-icon">💰</div>
+            <div class="sv-stat-label">Total Costs</div>
+            <div class="sv-stat-val">{stats['laczny_koszt']:.0f} zł</div>
+            <div class="sv-progress"><div class="sv-progress-bar" style="width:100%"></div></div>
+        </div>
     </div>
 
-    <!-- Lista -->
-    <div class="card">
+    <!-- ═══ Filter pills ═══ -->
+    <div class="sv-filters">
+        <a href="/serwis" class="sv-filter-pill ''' + ('active' if not filtr else '') + '''">Aktywne</a>
+        <a href="/serwis?status=przyjety" class="sv-filter-pill ''' + ('active' if filtr=='przyjety' else '') + '''">📥 Przyjęte</a>
+        <a href="/serwis?status=w_naprawie" class="sv-filter-pill ''' + ('active' if filtr=='w_naprawie' else '') + '''">🔧 W naprawie</a>
+        <a href="/serwis?status=naprawiony" class="sv-filter-pill ''' + ('active' if filtr=='naprawiony' else '') + '''">✅ Naprawione</a>
+        <a href="/serwis?status=zwrocony" class="sv-filter-pill ''' + ('active' if filtr=='zwrocony' else '') + '''">🔄 Zwrócone</a>
+        <a href="/serwis?status=zlomowany" class="sv-filter-pill ''' + ('active' if filtr=='zlomowany' else '') + '''">🗑️ Złomowane</a>
+    </div>
+
+    <!-- ═══ List ═══ -->
     '''
 
     if not items:
-        html += '<div style="text-align:center;padding:40px;color:var(--text-muted)">Brak produktów w serwisie 🎉</div>'
+        html += '''
+        <div class="sv-empty">
+            <div class="sv-empty-watermark">EMPTY_VOID</div>
+            <div class="sv-empty-emoji">🥳</div>
+            <div class="sv-empty-text">Brak produktów w serwisie</div>
+            <button class="sv-btn-scan" onclick="window.location.href='/magazyn'">Scan New Ticket</button>
+        </div>
+        '''
     else:
+        html += '<div class="sv-list">'
+        status_border = {
+            'przyjety': 'sv-item-cyan',
+            'w_naprawie': 'sv-item-pink',
+            'naprawiony': 'sv-item-lime',
+            'zwrocony': 'sv-item-muted',
+            'zlomowany': 'sv-item-red',
+        }
+        badge_class = {
+            'przyjety': 'sv-badge-cyan',
+            'w_naprawie': 'sv-badge-pink',
+            'naprawiony': 'sv-badge-lime',
+            'zwrocony': 'sv-badge-muted',
+            'zlomowany': 'sv-badge-red',
+        }
+
         for item in items:
             s_color, s_label = status_colors.get(item['status'], ('#888', item['status']))
             kod = item['kod_magazynowy'] or f"ID-{item['produkt_id']}"
@@ -133,40 +303,44 @@ def serwis_lista():
                 except:
                     pass
 
+            border_cls = status_border.get(item['status'], '')
+            badge_cls = badge_class.get(item['status'], 'sv-badge-muted')
+
             html += f'''
-            <div style="display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid rgba(255,255,255,0.06)">
-                <img src="{item['zdjecie_url'] or '/static/placeholder.png'}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;background:#1a1a2e" onerror="this.src='/static/placeholder.png'">
+            <div class="sv-item {border_cls}">
+                <img src="{item['zdjecie_url'] or '/static/placeholder.png'}" class="sv-item-img" onerror="this.src='/static/placeholder.png'">
                 <div style="flex:1;min-width:0">
-                    <div style="font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-                        <a href="/magazyn/produkt/{kod}" style="color:inherit;text-decoration:none">{(item['produkt_nazwa'] or '?')[:50]}</a>
+                    <span class="sv-syslog">SYS_LOG #{item['id']}</span>
+                    <div class="sv-item-name">
+                        <a href="/magazyn/produkt/{kod}">{(item['produkt_nazwa'] or '?')[:50]}</a>
                     </div>
-                    <div style="font-size:0.75rem;color:var(--text-muted)">{kod} · {item['dostawca'] or ''}{dni}</div>
-                    <div style="font-size:0.8rem;color:#f59e0b;margin-top:2px">⚠️ {item['opis_usterki'] or 'Brak opisu usterki'}</div>
+                    <div class="sv-item-meta">{kod} · {item['dostawca'] or ''}{dni}</div>
+                    <div class="sv-item-fault">⚡ {item['opis_usterki'] or 'Brak opisu usterki'}</div>
                 </div>
-                <div style="text-align:center;min-width:60px">
-                    <div style="font-size:0.85rem;font-weight:700">{item['ilosc_szt']} szt</div>
-                    {f'<div style="font-size:0.7rem;color:var(--text-muted)">{item["koszt_naprawy"]:.0f} zł</div>' if item['koszt_naprawy'] else ''}
+                <div style="text-align:center;min-width:55px">
+                    <div class="sv-item-qty">{item['ilosc_szt']} szt</div>
+                    {f'<div class="sv-item-cost">{item["koszt_naprawy"]:.0f} zł</div>' if item['koszt_naprawy'] else ''}
                 </div>
                 <div style="min-width:100px;text-align:center">
-                    <span style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:600;background:rgba(0,0,0,0.3);color:{s_color};border:1px solid {s_color}40">{s_label}</span>
+                    <span class="sv-badge {badge_cls}">{s_label}</span>
                 </div>
-                <div style="display:flex;gap:6px">
+                <div style="display:flex;gap:6px;flex-shrink:0" class="sv-item-actions">
             '''
 
             # Akcje zależne od statusu
             if item['status'] == 'przyjety':
                 html += f'''
-                    <button onclick="aktualizujSerwis({item['id']}, 'w_naprawie')" class="btn" style="padding:4px 10px;font-size:0.75rem;background:#6366f1;border:none;border-radius:6px;color:#fff;cursor:pointer">🔧 Naprawiaj</button>
-                    <button onclick="zlomuj({item['id']})" class="btn" style="padding:4px 10px;font-size:0.75rem;background:#ef4444;border:none;border-radius:6px;color:#fff;cursor:pointer">🗑️</button>
+                    <button onclick="aktualizujSerwis({item['id']}, 'w_naprawie')" class="sv-act sv-act-repair">🔧 Naprawiaj</button>
+                    <button onclick="zlomuj({item['id']})" class="sv-act sv-act-scrap">🗑️</button>
                 '''
             elif item['status'] == 'w_naprawie':
                 html += f'''
-                    <button onclick="zakonczNaprawe({item['id']})" class="btn" style="padding:4px 10px;font-size:0.75rem;background:#22c55e;border:none;border-radius:6px;color:#fff;cursor:pointer">✅ Naprawiony</button>
-                    <button onclick="zlomuj({item['id']})" class="btn" style="padding:4px 10px;font-size:0.75rem;background:#ef4444;border:none;border-radius:6px;color:#fff;cursor:pointer">🗑️</button>
+                    <button onclick="zakonczNaprawe({item['id']})" class="sv-act sv-act-done">✅ Naprawiony</button>
+                    <button onclick="zlomuj({item['id']})" class="sv-act sv-act-scrap">🗑️</button>
                 '''
             elif item['status'] == 'naprawiony':
                 html += f'''
-                    <button onclick="zwrocDoMagazynu({item['id']})" class="btn" style="padding:4px 10px;font-size:0.75rem;background:#10b981;border:none;border-radius:6px;color:#fff;cursor:pointer">🔄 Zwróć do mag.</button>
+                    <button onclick="zwrocDoMagazynu({item['id']})" class="sv-act sv-act-return">🔄 Zwróć do mag.</button>
                 '''
 
             html += '''
@@ -174,7 +348,9 @@ def serwis_lista():
             </div>
             '''
 
-    html += '</div>'
+        html += '</div>'
+
+    html += '</div>'  # sv-wrap
 
     # JavaScript
     html += '''

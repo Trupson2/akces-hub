@@ -8242,100 +8242,212 @@ def koszty_page():
     
     nazwy_m = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru']
     
+    # Icon mapping per category
+    KAT_ICONS = {
+        'allegro': 'shopping_cart',
+        'wysylka': 'local_shipping',
+        'reklama': 'campaign',
+        'magazyn': 'inventory',
+        'zakup': 'payments',
+        'ksiegowosc': 'receipt_long',
+        'inne': 'bolt',
+    }
+
     # Tabela kosztów HTML
     koszty_html = ''
     for k in koszty:
         kat_label = dict(KATEGORIE).get(k['kategoria'], k['kategoria'])
-        notatka_html = f' • <span style="color:#94a3b8">{k["notatka"]}</span>' if k['notatka'] else ''
+        kat_icon = KAT_ICONS.get(k['kategoria'], 'bolt')
+        notatka_html = f' • <span style="color:var(--kz-muted)">{k["notatka"]}</span>' if k['notatka'] else ''
         koszty_html += f'''
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;margin-bottom:6px">
-            <div style="flex:1;min-width:0">
-                <div style="font-weight:600;font-size:0.9rem">{k['nazwa']}</div>
-                <div style="font-size:0.75rem;color:#64748b;margin-top:2px">{kat_label} • {k['data']}{notatka_html}</div>
+        <div class="kz-list-item">
+            <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:0">
+                <div class="kz-list-icon"><span class="material-symbols-outlined" style="font-size:20px">{kat_icon}</span></div>
+                <div style="min-width:0">
+                    <div style="font-weight:600;font-size:0.9rem;color:var(--kz-text)">{k['nazwa']}</div>
+                    <div style="font-size:0.75rem;color:var(--kz-muted);margin-top:2px">{kat_label} &middot; {k['data']}{notatka_html}</div>
+                </div>
             </div>
-            <div style="font-weight:700;color:#f43f5e;white-space:nowrap">-{k['kwota']:.2f} zł</div>
+            <div style="font-weight:700;color:var(--kz-pink);white-space:nowrap;font-family:'Space Grotesk',sans-serif;font-size:0.95rem">-{k['kwota']:.2f} zl</div>
             <form action="/magazyn/koszty" method="POST" style="margin:0">
                 <input type="hidden" name="action" value="usun">
                 <input type="hidden" name="id" value="{k['id']}">
-                <button type="submit" onclick="return confirm('Usun?')" 
-                    style="background:#ef444422;border:1px solid #ef444455;border-radius:6px;color:#ef4444;padding:4px 10px;cursor:pointer;font-size:0.75rem">✕</button>
+                <button type="submit" onclick="return confirm('Usun?')" class="kz-del-btn">
+                    <span class="material-symbols-outlined" style="font-size:16px">close</span>
+                </button>
             </form>
         </div>'''
-    
+
     if not koszty_html:
-        koszty_html = '<div style="text-align:center;color:#64748b;padding:30px">Brak kosztów. Dodaj pierwszy!</div>'
+        koszty_html = '<div style="text-align:center;color:var(--kz-muted);padding:40px 20px;font-size:0.9rem">Brak kosztow. Dodaj pierwszy!</div>'
     
     # Opcje kategorii
     kat_options = ''.join([f'<option value="{v}">{l}</option>' for v, l in KATEGORIE])
     
-    msg_html = f'<div style="background:#5bf08322;border:1px solid #5bf08355;border-radius:10px;padding:10px 15px;margin-bottom:15px;color:#5bf083">{msg}</div>' if msg else ''
-    
+    msg_html = f'<div style="background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.2);border-radius:0;padding:12px 18px;margin-bottom:20px;color:var(--kz-cyan);font-family:\'Manrope\',sans-serif;font-size:0.85rem">{msg}</div>' if msg else ''
+
+    # Category breakdown pills
+    kat_pills = ''
+    if koszty_kat:
+        for r in koszty_kat:
+            pill_icon = KAT_ICONS.get(r['kategoria'], 'bolt')
+            kat_pills += f'<div style="display:inline-flex;align-items:center;gap:8px;background:var(--kz-card2);border:1px solid var(--kz-border);padding:8px 14px;margin:0 8px 8px 0;font-size:0.8rem;font-family:\'Manrope\',sans-serif"><span class="material-symbols-outlined" style="font-size:16px;color:var(--kz-pink)">{pill_icon}</span><span style="color:var(--kz-pink);font-weight:700">{float(r["suma"]):.0f} zl</span><span style="color:var(--kz-muted)">{dict(KATEGORIE).get(r["kategoria"],r["kategoria"])}</span></div>'
+
     html = f'''
-    <div class="hdr"><h1>💸 KOSZTY</h1><small>Opłaty, prowizje, wydatki operacyjne</small></div>
-    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Manrope:wght@300;400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+        .material-symbols-outlined{{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}}
+
+        :root{{
+            --kz-cyan:#8ff5ff;--kz-pink:#ff6b9b;--kz-lime:#cafd00;--kz-lime-dim:#beee00;
+            --kz-bg:#0e0e10;--kz-card:#131315;--kz-card2:#19191c;--kz-card3:#1f1f22;--kz-card4:#262528;
+            --kz-border:rgba(255,255,255,0.06);--kz-text:#f9f5f8;--kz-muted:#adaaad;
+        }}
+
+        .kz-wrap{{max-width:900px;margin:0 auto;font-family:'Manrope',sans-serif;position:relative;z-index:1;padding:0 8px}}
+        .kz-headline{{font-family:'Space Grotesk',sans-serif}}
+        .kz-label{{font-family:'Manrope',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.2em;color:var(--kz-muted)}}
+
+        /* Cyber grid bg */
+        .kz-grid-bg{{background-size:50px 50px;background-image:linear-gradient(to right,rgba(143,245,255,0.04) 1px,transparent 1px),linear-gradient(to bottom,rgba(143,245,255,0.04) 1px,transparent 1px);position:fixed;inset:0;pointer-events:none;z-index:0}}
+
+        /* Bento metric cards */
+        .kz-bento{{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}}
+        .kz-metric{{position:relative;overflow:hidden;padding:24px 20px;background:var(--kz-card);border:1px solid var(--kz-border);transition:all 0.2s}}
+        .kz-metric:hover{{background:var(--kz-card3)}}
+        .kz-metric-accent{{position:absolute;left:0;top:0;bottom:0;width:3px}}
+        .kz-metric-icon{{position:absolute;right:12px;top:12px;font-size:48px!important;opacity:0.06;color:var(--kz-text)}}
+        .kz-metric-val{{font-family:'Space Grotesk',sans-serif;font-size:1.8rem;font-weight:800;line-height:1;margin-bottom:6px}}
+        .kz-metric-label{{font-family:'Manrope',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.2em;color:var(--kz-muted)}}
+
+        /* Form section */
+        .kz-form-card{{background:var(--kz-card);border:1px solid var(--kz-border);padding:24px;margin-bottom:24px}}
+        .kz-form-header{{font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;color:var(--kz-text);margin-bottom:18px;display:flex;align-items:center;gap:10px}}
+        .kz-form-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}}
+        .kz-form-full{{grid-column:1/-1}}
+        .kz-input-label{{font-family:'Manrope',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.2em;color:var(--kz-muted);margin-bottom:6px;display:block}}
+        .kz-input{{width:100%;padding:10px 14px;background:rgba(10,10,15,0.6);border:1px solid var(--kz-border);color:var(--kz-text);font-family:'Manrope',sans-serif;font-size:0.85rem;transition:all 0.2s;box-sizing:border-box}}
+        .kz-input:focus{{border-color:var(--kz-cyan);box-shadow:0 0 12px rgba(143,245,255,0.15);outline:none}}
+        .kz-input::placeholder{{color:rgba(173,170,173,0.4)}}
+        .kz-submit{{font-family:'Space Grotesk',sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;padding:12px 28px;border:none;cursor:pointer;background:var(--kz-lime);color:#1a1a00;font-size:0.9rem;box-shadow:0 4px 20px rgba(202,253,0,0.25);transition:all 0.15s}}
+        .kz-submit:hover{{transform:scale(1.02);box-shadow:0 6px 25px rgba(202,253,0,0.35)}}
+        .kz-submit:active{{transform:scale(0.97)}}
+
+        /* List section */
+        .kz-list-header{{font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;color:var(--kz-text);margin-bottom:14px;display:flex;align-items:center;gap:10px}}
+        .kz-list-item{{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--kz-card);border:1px solid var(--kz-border);margin-bottom:6px;transition:all 0.2s}}
+        .kz-list-item:hover{{background:var(--kz-card3);border-color:rgba(255,255,255,0.1)}}
+        .kz-list-icon{{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--kz-card3);border:1px solid var(--kz-border);color:var(--kz-cyan);flex-shrink:0}}
+        .kz-del-btn{{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:rgba(255,107,155,0.08);border:1px solid rgba(255,107,155,0.15);color:var(--kz-pink);cursor:pointer;transition:all 0.15s;flex-shrink:0}}
+        .kz-del-btn:hover{{background:rgba(255,107,155,0.2);border-color:rgba(255,107,155,0.4)}}
+
+        .kz-back{{display:inline-flex;align-items:center;gap:6px;color:var(--kz-muted);text-decoration:none;font-size:0.85rem;font-family:'Manrope',sans-serif;margin-top:24px;transition:color 0.2s}}
+        .kz-back:hover{{color:var(--kz-cyan)}}
+
+        /* Responsive */
+        @media(max-width:768px){{
+            .kz-bento{{grid-template-columns:1fr}}
+            .kz-form-grid{{grid-template-columns:1fr 1fr}}
+        }}
+        @media(max-width:480px){{
+            .kz-form-grid{{grid-template-columns:1fr}}
+        }}
+    </style>
+
+    <div class="kz-grid-bg"></div>
+
+    <div class="kz-wrap">
+
+    <!-- Header -->
+    <div style="margin-bottom:28px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--kz-lime-dim);box-shadow:0 0 10px rgba(190,238,0,0.5)"></div>
+            <span class="kz-label" style="color:var(--kz-lime-dim);font-weight:900">Wydatki operacyjne</span>
+        </div>
+        <h1 class="kz-headline" style="font-size:clamp(2rem,5vw,3rem);font-weight:900;font-style:italic;letter-spacing:-0.04em;line-height:1;color:var(--kz-text);margin:0">
+            KOSZTY
+        </h1>
+    </div>
+
     {msg_html}
-    
-    <!-- Podsumowanie -->
-    <div class="stats" style="margin-bottom:15px">
-        <div class="stat">
-            <div class="stat-v" style="color:#f43f5e">{suma_total:.0f} zł</div>
-            <div class="stat-l">Łącznie (wszystkie)</div>
+
+    <!-- Bento metrics -->
+    <div class="kz-bento">
+        <div class="kz-metric">
+            <div class="kz-metric-accent" style="background:var(--kz-cyan);box-shadow:0 0 15px rgba(143,245,255,0.3)"></div>
+            <span class="material-symbols-outlined kz-metric-icon">account_balance_wallet</span>
+            <div class="kz-metric-val" style="color:var(--kz-cyan);text-shadow:0 0 20px rgba(143,245,255,0.4)">{suma_total:.0f} zl</div>
+            <div class="kz-metric-label">Lacznie koszty</div>
         </div>
-        <div class="stat">
-            <div class="stat-v" style="color:#f97316">{suma_msc:.0f} zł</div>
-            <div class="stat-l">Ten miesiąc</div>
+        <div class="kz-metric">
+            <div class="kz-metric-accent" style="background:var(--kz-pink);box-shadow:0 0 15px rgba(255,107,155,0.3)"></div>
+            <span class="material-symbols-outlined kz-metric-icon">calendar_month</span>
+            <div class="kz-metric-val" style="color:var(--kz-pink)">{suma_msc:.0f} zl</div>
+            <div class="kz-metric-label">Ten miesiac</div>
         </div>
-        <div class="stat">
-            <div class="stat-v">{len(koszty)}</div>
-            <div class="stat-l">Wpisów</div>
+        <div class="kz-metric">
+            <div class="kz-metric-accent" style="background:var(--kz-lime);box-shadow:0 0 15px rgba(202,253,0,0.3)"></div>
+            <span class="material-symbols-outlined kz-metric-icon">format_list_numbered</span>
+            <div class="kz-metric-val" style="color:var(--kz-lime)">{len(koszty)}</div>
+            <div class="kz-metric-label">Wszystkich wpisow</div>
         </div>
     </div>
-    
-    <!-- Formularz dodawania -->
-    <div class="card" style="padding:15px;margin-bottom:15px">
-        <div style="font-weight:700;margin-bottom:12px">➕ Dodaj koszt</div>
+
+    <!-- Category breakdown -->
+    <div style="margin-bottom:24px">
+        {kat_pills}
+    </div>
+
+    <!-- Add cost form -->
+    <div class="kz-form-card">
+        <div class="kz-form-header">
+            <span class="material-symbols-outlined" style="color:var(--kz-lime);font-size:22px">add_circle</span>
+            Dodaj koszt
+        </div>
         <form action="/magazyn/koszty" method="POST">
             <input type="hidden" name="action" value="dodaj">
-            <div class="form-row" style="margin-bottom:10px">
-                <div class="form-group">
-                    <label>Nazwa</label>
-                    <input type="text" name="nazwa" class="form-ctrl" placeholder="np. Prowizja Allegro Luty" required>
+            <div class="kz-form-grid">
+                <div>
+                    <label class="kz-input-label">Nazwa</label>
+                    <input type="text" name="nazwa" class="kz-input" placeholder="np. Prowizja Allegro Luty" required>
                 </div>
-                <div class="form-group">
-                    <label>Kwota (zł)</label>
-                    <input type="number" name="kwota" step="0.01" class="form-ctrl" placeholder="0.00" required>
+                <div>
+                    <label class="kz-input-label">Kwota (zl)</label>
+                    <input type="number" name="kwota" step="0.01" class="kz-input" placeholder="0.00" required>
+                </div>
+                <div>
+                    <label class="kz-input-label">Kategoria</label>
+                    <select name="kategoria" class="kz-input">{kat_options}</select>
+                </div>
+                <div>
+                    <label class="kz-input-label">Data</label>
+                    <input type="date" name="data" class="kz-input" value="{datetime.now().strftime('%Y-%m-%d')}">
+                </div>
+                <div class="kz-form-full">
+                    <label class="kz-input-label">Notatka (opcjonalnie)</label>
+                    <input type="text" name="notatka" class="kz-input" placeholder="np. faktura FV/2026/02/001">
                 </div>
             </div>
-            <div class="form-row" style="margin-bottom:10px">
-                <div class="form-group">
-                    <label>Kategoria</label>
-                    <select name="kategoria" class="form-ctrl">{kat_options}</select>
-                </div>
-                <div class="form-group">
-                    <label>Data</label>
-                    <input type="date" name="data" class="form-ctrl" value="{datetime.now().strftime('%Y-%m-%d')}">
-                </div>
-            </div>
-            <div class="form-group" style="margin-bottom:10px">
-                <label>Notatka (opcjonalnie)</label>
-                <input type="text" name="notatka" class="form-ctrl" placeholder="np. faktura FV/2026/02/001">
-            </div>
-            <button type="submit" class="btn btn-ok">💾 Dodaj</button>
+            <button type="submit" class="kz-submit">Dodaj koszt</button>
         </form>
     </div>
-    
-    <!-- Podział na kategorie -->
-    {"".join([f'<div style="display:inline-flex;align-items:center;gap:6px;background:#1e1e2e;border-radius:8px;padding:6px 12px;margin:0 6px 6px 0;font-size:0.8rem"><span style="color:#f43f5e;font-weight:700">{float(r["suma"]):.0f} zł</span><span style="color:#64748b">{dict(KATEGORIE).get(r["kategoria"],r["kategoria"])}</span></div>' for r in koszty_kat]) if koszty_kat else ""}
-    
-    <!-- Lista kosztów -->
-    <div style="margin-top:15px">
-        <div style="font-weight:700;margin-bottom:10px;display:flex;justify-content:space-between">
-            <span>📋 Wszystkie koszty</span>
+
+    <!-- Cost list -->
+    <div style="margin-bottom:20px">
+        <div class="kz-list-header">
+            <span class="material-symbols-outlined" style="color:var(--kz-cyan);font-size:22px">receipt_long</span>
+            Wszystkie koszty
         </div>
         {koszty_html}
     </div>
-    
-    <a href="/magazyn" class="back">← Powrót</a>
+
+    <a href="/magazyn" class="kz-back">
+        <span class="material-symbols-outlined" style="font-size:18px">arrow_back</span>
+        Powrot do magazynu
+    </a>
+
+    </div>
     '''
     return render(html)
 
@@ -8385,77 +8497,118 @@ def sprzedaz_prywatna_page():
         (f'{year}-{biezacy_m:02d}',)
     ).fetchone()[0]
     
-    msg_html = f'<div style="background:#5bf08322;border:1px solid #5bf08355;border-radius:10px;padding:10px 15px;margin-bottom:15px;color:#5bf083">{msg}</div>' if msg else ''
-    
+    msg_html = f'<div style="background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.2);padding:12px 18px;margin-bottom:20px;color:#8ff5ff;font-family:Manrope,sans-serif;font-size:0.85rem;font-weight:600">{msg}</div>' if msg else ''
+
     rows_html = ''
     for s in sprzedaze:
         rows_html += f'''
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;margin-bottom:6px">
-            <div style="flex:1">
-                <div style="font-weight:600">{s['opis']}</div>
-                <div style="font-size:0.75rem;color:#64748b">{s['data']}
-                    {f' • {s["notatka"]}' if s['notatka'] else ''}
-                </div>
+        <div style="display:flex;align-items:center;gap:14px;padding:18px 20px;background:#131315;border-left:3px solid #cafd00;margin-bottom:2px;transition:background 0.2s" onmouseover="this.style.background='#1f1f22'" onmouseout="this.style.background='#131315'">
+            <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:rgba(202,253,0,0.08);flex-shrink:0;font-size:1.1rem">🤝</div>
+            <div style="flex:1;min-width:0">
+                <div style="font-weight:600;font-family:Manrope,sans-serif;color:#f9f5f8;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{s['opis']}</div>
+                <div style="font-size:0.7rem;color:#adaaad;font-family:Manrope,sans-serif;margin-top:2px">{s['data']}{f' &middot; {s["notatka"]}' if s['notatka'] else ''}</div>
             </div>
-            <div style="font-weight:700;color:#5bf083;white-space:nowrap">+{s['kwota']:.2f} zł</div>
+            <div style="font-weight:800;color:#cafd00;white-space:nowrap;font-family:Space Grotesk,sans-serif;font-size:1rem;letter-spacing:-0.02em;text-shadow:0 0 20px rgba(202,253,0,0.3)">+{s['kwota']:.2f} zl</div>
             <form action="/magazyn/sprzedaz-prywatna" method="POST" style="margin:0">
                 <input type="hidden" name="action" value="usun">
                 <input type="hidden" name="id" value="{s['id']}">
                 <button type="submit" onclick="return confirm('Usuń?')"
-                    style="background:#ef444422;border:1px solid #ef444455;border-radius:6px;color:#ef4444;padding:4px 10px;cursor:pointer;font-size:0.75rem">✕</button>
+                    style="background:rgba(255,107,155,0.1);border:1px solid rgba(255,107,155,0.2);color:#ff6b9b;padding:6px 12px;cursor:pointer;font-size:0.7rem;font-family:Manrope,sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;transition:opacity 0.15s;opacity:0.7" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">&#x2715;</button>
             </form>
         </div>'''
-    
+
     if not rows_html:
-        rows_html = '<div style="text-align:center;color:#64748b;padding:30px">Brak wpisów</div>'
-    
+        rows_html = '<div style="text-align:center;color:#adaaad;padding:40px 20px;font-family:Manrope,sans-serif;font-size:0.85rem">Brak wpisów</div>'
+
     html = f'''
-    <div class="hdr"><h1>🤝 SPRZEDAŻ PRYWATNA</h1><small>Sprzedaż poza Allegro — OLX, Facebook, cash itp.</small></div>
-    {msg_html}
-    <div class="stats" style="margin-bottom:15px">
-        <div class="stat">
-            <div class="stat-v green">{suma_rok:.0f} zł</div>
-            <div class="stat-l">Rok {year}</div>
-        </div>
-        <div class="stat">
-            <div class="stat-v green">{suma_msc:.0f} zł</div>
-            <div class="stat-l">Ten miesiąc</div>
-        </div>
-        <div class="stat">
-            <div class="stat-v">{len(sprzedaze)}</div>
-            <div class="stat-l">Transakcji</div>
-        </div>
-    </div>
-    <div class="card" style="padding:15px;margin-bottom:15px">
-        <div style="font-weight:700;margin-bottom:12px">➕ Dodaj sprzedaż</div>
-        <form action="/magazyn/sprzedaz-prywatna" method="POST">
-            <input type="hidden" name="action" value="dodaj">
-            <div class="form-row" style="margin-bottom:10px">
-                <div class="form-group">
-                    <label>Opis</label>
-                    <input type="text" name="opis" class="form-ctrl" placeholder="np. Odkurzacz Dyson, OLX" required>
-                </div>
-                <div class="form-group">
-                    <label>Kwota (zł)</label>
-                    <input type="number" name="kwota" step="0.01" class="form-ctrl" placeholder="0.00" required>
-                </div>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Manrope:wght@300;400;500;600;700;800&display=swap');
+        .sp-grid-bg{{background-size:50px 50px;background-image:linear-gradient(to right,rgba(143,245,255,0.04) 1px,transparent 1px),linear-gradient(to bottom,rgba(143,245,255,0.04) 1px,transparent 1px);position:fixed;inset:0;pointer-events:none;z-index:0}}
+        .sp-wrap{{max-width:800px;margin:0 auto;position:relative;z-index:1;font-family:Manrope,sans-serif}}
+        .sp-label{{font-family:Manrope,sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.2em;color:rgba(255,255,255,0.45);font-weight:700}}
+        .sp-input{{width:100%;padding:12px 16px;background:#262528;border:1px solid rgba(255,255,255,0.06);color:#f9f5f8;font-family:Manrope,sans-serif;font-size:0.9rem;transition:all 0.2s;outline:none;box-sizing:border-box}}
+        .sp-input:focus{{border-color:#8ff5ff;box-shadow:0 0 12px rgba(143,245,255,0.15)}}
+        .sp-input::placeholder{{color:#adaaad}}
+    </style>
+    <div class="sp-grid-bg"></div>
+    <div class="sp-wrap">
+        <!-- Header -->
+        <div style="margin-bottom:32px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <div style="width:8px;height:8px;border-radius:50%;background:#beee00;box-shadow:0 0 10px rgba(190,238,0,0.5)"></div>
+                <span class="sp-label" style="color:#beee00;font-weight:900">Prywatna</span>
             </div>
-            <div class="form-row" style="margin-bottom:10px">
-                <div class="form-group">
-                    <label>Data</label>
-                    <input type="date" name="data" class="form-ctrl" value="{datetime.now().strftime('%Y-%m-%d')}">
-                </div>
-                <div class="form-group">
-                    <label>Notatka</label>
-                    <input type="text" name="notatka" class="form-ctrl" placeholder="opcjonalnie">
-                </div>
+            <h1 style="font-family:Space Grotesk,sans-serif;font-size:clamp(2rem,5vw,3rem);font-weight:900;font-style:italic;letter-spacing:-0.04em;line-height:1;color:#f9f5f8;margin:0">
+                SPRZEDAZ <span style="color:#8ff5ff">PRYWATNA</span>
+            </h1>
+            <p style="color:#adaaad;font-size:0.85rem;margin:8px 0 0;font-family:Manrope,sans-serif">Sprzedaz poza Allegro — OLX, Facebook, cash itp.</p>
+        </div>
+
+        {msg_html}
+
+        <!-- Stats bento grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;margin-bottom:28px">
+            <div style="background:#131315;padding:24px 20px;border-left:3px solid #8ff5ff">
+                <div class="sp-label" style="margin-bottom:8px">Rok {year}</div>
+                <div style="font-family:Space Grotesk,sans-serif;font-size:1.8rem;font-weight:800;color:#8ff5ff;letter-spacing:-0.03em;text-shadow:0 0 30px rgba(143,245,255,0.4),0 0 60px rgba(143,245,255,0.15)">{suma_rok:.0f} zl</div>
             </div>
-            <button type="submit" class="btn btn-ok">💾 Dodaj</button>
-        </form>
+            <div style="background:#131315;padding:24px 20px;border-left:3px solid #ff6b9b">
+                <div class="sp-label" style="margin-bottom:8px">Ten miesiac</div>
+                <div style="font-family:Space Grotesk,sans-serif;font-size:1.8rem;font-weight:800;color:#ff6b9b;letter-spacing:-0.03em;text-shadow:0 0 25px rgba(255,107,155,0.3)">{suma_msc:.0f} zl</div>
+            </div>
+            <div style="background:#131315;padding:24px 20px;border-left:3px solid #cafd00">
+                <div class="sp-label" style="margin-bottom:8px">Transakcji</div>
+                <div style="font-family:Space Grotesk,sans-serif;font-size:1.8rem;font-weight:800;color:#cafd00;letter-spacing:-0.03em;text-shadow:0 0 25px rgba(202,253,0,0.3)">{len(sprzedaze)}</div>
+            </div>
+        </div>
+
+        <!-- Add form - glass panel -->
+        <div style="backdrop-filter:blur(12px);background:rgba(19,19,21,0.8);border:1px solid rgba(255,255,255,0.06);padding:28px;margin-bottom:28px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+                <span style="font-size:1.2rem">&#x2795;</span>
+                <span style="font-family:Space Grotesk,sans-serif;font-weight:700;font-size:1rem;color:#f9f5f8;text-shadow:0 0 20px rgba(143,245,255,0.2)">Dodaj sprzedaz</span>
+            </div>
+            <form action="/magazyn/sprzedaz-prywatna" method="POST">
+                <input type="hidden" name="action" value="dodaj">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+                    <div>
+                        <label class="sp-label" style="display:block;margin-bottom:6px">Opis</label>
+                        <input type="text" name="opis" class="sp-input" placeholder="np. Odkurzacz Dyson, OLX" required>
+                    </div>
+                    <div>
+                        <label class="sp-label" style="display:block;margin-bottom:6px">Kwota (zl)</label>
+                        <input type="number" name="kwota" step="0.01" class="sp-input" placeholder="0.00" required>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+                    <div>
+                        <label class="sp-label" style="display:block;margin-bottom:6px">Data</label>
+                        <input type="date" name="data" class="sp-input" value="{datetime.now().strftime('%Y-%m-%d')}">
+                    </div>
+                    <div>
+                        <label class="sp-label" style="display:block;margin-bottom:6px">Notatka</label>
+                        <input type="text" name="notatka" class="sp-input" placeholder="opcjonalnie">
+                    </div>
+                </div>
+                <button type="submit" style="font-family:Space Grotesk,sans-serif;font-weight:900;text-transform:uppercase;letter-spacing:-0.02em;font-style:italic;padding:14px 32px;border:none;cursor:pointer;background:#cafd00;color:#0e0e10;font-size:0.95rem;box-shadow:0 4px 20px rgba(202,253,0,0.3);transition:all 0.15s" onmouseover="this.style.transform='scale(1.02)';this.style.boxShadow='0 6px 30px rgba(202,253,0,0.45)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(202,253,0,0.3)'">&#x1F4BE; DODAJ</button>
+            </form>
+        </div>
+
+        <!-- History section -->
+        <div style="margin-bottom:28px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+                <span style="font-size:1.1rem">&#x1F4CB;</span>
+                <span style="font-family:Space Grotesk,sans-serif;font-weight:700;font-size:1rem;color:#f9f5f8;text-shadow:0 0 20px rgba(143,245,255,0.2)">Historia</span>
+                <div style="flex:1;height:1px;background:rgba(255,255,255,0.06)"></div>
+            </div>
+            <div style="border:1px solid rgba(255,255,255,0.06);overflow:hidden">
+                {rows_html}
+            </div>
+        </div>
+
+        <!-- Back link -->
+        <a href="/magazyn" style="display:inline-flex;align-items:center;gap:8px;color:#adaaad;text-decoration:none;font-family:Manrope,sans-serif;font-size:0.85rem;font-weight:600;padding:10px 0;transition:color 0.15s" onmouseover="this.style.color='#8ff5ff'" onmouseout="this.style.color='#adaaad'">&larr; Powrot</a>
     </div>
-    <div style="font-weight:700;margin-bottom:10px">📋 Historia</div>
-    {rows_html}
-    <a href="/magazyn" class="back">← Powrót</a>
     '''
     return render(html)
 

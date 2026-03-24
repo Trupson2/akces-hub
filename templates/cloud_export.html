@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Manrope:wght@300;400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+    .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
+
+    /* ─── Base ─── */
+    .ce-wrap{max-width:960px;margin:0 auto;font-family:'Manrope',sans-serif;position:relative;z-index:1;padding:0 8px}
+    .ce-headline{font-family:'Space Grotesk',sans-serif}
+    .ce-label{font-family:'Manrope',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.2em;color:rgba(255,255,255,0.45)}
+
+    /* ─── Neon colours ─── */
+    :root{
+        --ce-cyan:#8ff5ff;--ce-pink:#ff6b9b;--ce-lime:#cafd00;--ce-lime-dim:#beee00;
+        --ce-bg:#0e0e10;--ce-card:#131315;--ce-card2:#19191c;--ce-card3:#1f1f22;--ce-card4:#262528;
+        --ce-border:rgba(255,255,255,0.06);--ce-text:#f9f5f8;--ce-muted:#adaaad
+    }
+
+    /* ─── Dot grid background ─── */
+    .ce-dot-grid{
+        position:fixed;inset:0;pointer-events:none;z-index:0;
+        background-image:radial-gradient(circle,rgba(143,245,255,0.05) 1px,transparent 1px);
+        background-size:28px 28px
+    }
+
+    /* ─── Glass panel ─── */
+    .ce-glass{
+        backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+        background:rgba(25,25,28,0.8);
+        border:1px solid var(--ce-border);
+        border-radius:12px
+    }
+
+    /* ─── Neon glow ─── */
+    .ce-glow-cyan{box-shadow:0 0 20px rgba(143,245,255,0.15),0 0 40px rgba(143,245,255,0.05)}
+    .ce-glow-pink{box-shadow:0 0 25px rgba(255,107,155,0.2)}
+    .ce-glow-lime{box-shadow:0 0 20px rgba(202,253,0,0.15)}
+
+    /* ─── Header ─── */
+    .ce-header{display:flex;align-items:center;gap:14px;margin-bottom:32px;padding-top:8px}
+    .ce-header-icon{
+        width:48px;height:48px;display:flex;align-items:center;justify-content:center;
+        background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.15);
+        border-radius:14px;color:var(--ce-cyan);font-size:28px
+    }
+    .ce-header h1{
+        font-family:'Space Grotesk',sans-serif;font-size:clamp(1.8rem,4vw,2.6rem);
+        font-weight:900;font-style:italic;letter-spacing:-0.04em;line-height:1;color:var(--ce-text)
+    }
+    .ce-header h1 span{color:var(--ce-cyan)}
+
+    /* ─── Hero export folder ─── */
+    .ce-hero{padding:24px;margin-bottom:24px}
+    .ce-hero-top{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+    .ce-hero-icon{color:var(--ce-cyan);font-size:32px}
+    .ce-hero-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;color:var(--ce-text)}
+    .ce-hero-sub{font-size:0.78rem;color:var(--ce-muted);margin-top:2px}
+    .ce-code-block{
+        background:rgba(10,10,15,0.7);border:1px solid rgba(143,245,255,0.1);
+        border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono','Fira Code',monospace;
+        font-size:0.82rem;color:var(--ce-cyan);word-break:break-all;
+        margin-bottom:16px
+    }
+    .ce-health-bar{height:3px;background:var(--ce-card4);border-radius:2px;overflow:hidden}
+    .ce-health-fill{height:100%;background:var(--ce-lime);box-shadow:0 0 10px var(--ce-lime);width:100%;animation:ce-pulse 2.5s infinite}
+    @keyframes ce-pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+    .ce-health-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+
+    /* ─── Action grid ─── */
+    .ce-action-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+    @media(max-width:600px){.ce-action-grid{grid-template-columns:1fr}}
+
+    .ce-action-btn{
+        position:relative;overflow:hidden;
+        display:flex;align-items:center;gap:14px;
+        padding:22px 24px;border-radius:12px;
+        text-decoration:none;cursor:pointer;
+        font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.05rem;
+        letter-spacing:-0.02em;text-transform:uppercase;
+        border:none;transition:all 0.2s
+    }
+    .ce-action-btn:hover{transform:translateY(-2px)}
+    .ce-action-btn:active{transform:scale(0.97)}
+    .ce-action-btn .ce-sweep{
+        position:absolute;top:0;left:-100%;width:100%;height:100%;
+        background:linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent);
+        transition:left 0.5s
+    }
+    .ce-action-btn:hover .ce-sweep{left:100%}
+    .ce-action-btn .material-symbols-outlined{font-size:28px}
+
+    .ce-btn-palety{background:var(--ce-cyan);color:#005d63;box-shadow:0 4px 20px rgba(143,245,255,0.25)}
+    .ce-btn-palety:hover{box-shadow:0 6px 30px rgba(143,245,255,0.4)}
+    .ce-btn-produkty{background:rgba(143,245,255,0.12);color:var(--ce-cyan);border:1px solid rgba(143,245,255,0.2)}
+    .ce-btn-produkty:hover{background:rgba(143,245,255,0.18);box-shadow:0 6px 25px rgba(143,245,255,0.15)}
+
+    /* ─── Secondary action ─── */
+    .ce-backup-btn{
+        display:flex;align-items:center;justify-content:center;gap:12px;
+        width:100%;padding:18px;border-radius:12px;border:none;cursor:pointer;
+        font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1rem;
+        text-transform:uppercase;letter-spacing:-0.01em;
+        background:rgba(255,107,155,0.1);border:1px solid rgba(255,107,155,0.25);
+        color:var(--ce-pink);transition:all 0.2s;margin-bottom:28px
+    }
+    .ce-backup-btn:hover{background:rgba(255,107,155,0.18);box-shadow:0 0 25px rgba(255,107,155,0.2);transform:translateY(-1px)}
+    .ce-backup-btn:active{transform:scale(0.97)}
+    .ce-backup-btn .material-symbols-outlined{font-size:22px}
+
+    /* ─── Recent exports ─── */
+    .ce-exports-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .ce-exports-title{
+        font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:0.82rem;
+        text-transform:uppercase;letter-spacing:0.15em;color:var(--ce-muted)
+    }
+    .ce-live-badge{
+        display:inline-flex;align-items:center;gap:6px;
+        padding:3px 12px;border-radius:20px;
+        background:rgba(202,253,0,0.1);border:1px solid rgba(202,253,0,0.2);
+        font-family:'Manrope',sans-serif;font-size:9px;font-weight:800;
+        text-transform:uppercase;letter-spacing:0.12em;color:var(--ce-lime)
+    }
+    .ce-live-dot{width:6px;height:6px;border-radius:50%;background:var(--ce-lime);animation:ce-blink 1.5s infinite}
+    @keyframes ce-blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+    .ce-export-item{
+        display:flex;align-items:center;gap:14px;
+        padding:14px 18px;background:var(--ce-card);
+        border-radius:10px;margin-bottom:6px;
+        border-left:3px solid var(--ce-lime-dim);
+        transition:all 0.15s
+    }
+    .ce-export-item:hover{background:var(--ce-card3)}
+    .ce-export-item.status-local{border-left-color:var(--ce-cyan)}
+    .ce-export-item.status-failed{border-left-color:var(--ce-pink)}
+    .ce-export-item.status-synced{border-left-color:var(--ce-lime-dim)}
+    .ce-export-icon{color:var(--ce-muted);font-size:22px;flex-shrink:0}
+    .ce-export-info{flex:1;min-width:0}
+    .ce-export-name{font-size:0.85rem;font-weight:600;color:var(--ce-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ce-export-meta{font-size:0.72rem;color:var(--ce-muted);margin-top:2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .ce-export-status{
+        font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;
+        padding:2px 8px;border-radius:4px
+    }
+    .ce-status-synced{background:rgba(202,253,0,0.12);color:var(--ce-lime)}
+    .ce-status-local{background:rgba(143,245,255,0.1);color:var(--ce-cyan)}
+    .ce-export-download{
+        display:flex;align-items:center;justify-content:center;
+        width:36px;height:36px;border-radius:8px;flex-shrink:0;
+        background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.12);
+        color:var(--ce-cyan);text-decoration:none;transition:all 0.15s;cursor:pointer
+    }
+    .ce-export-download:hover{background:rgba(143,245,255,0.15);box-shadow:0 0 12px rgba(143,245,255,0.2)}
+    .ce-export-download .material-symbols-outlined{font-size:18px}
+
+    .ce-empty{text-align:center;padding:40px 20px;color:var(--ce-muted)}
+    .ce-empty .material-symbols-outlined{font-size:48px;display:block;margin-bottom:12px;opacity:0.3}
+
+    /* ─── Info card ─── */
+    .ce-info-card{
+        padding:18px 20px;border-radius:12px;margin-top:24px;
+        background:rgba(143,245,255,0.04);border:1px solid rgba(143,245,255,0.1)
+    }
+    .ce-info-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.88rem;color:var(--ce-cyan);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+    .ce-info-text{font-size:0.82rem;color:var(--ce-muted);line-height:1.6}
+</style>
+
+<div class="ce-dot-grid"></div>
+
+<div class="ce-wrap">
+
+    <!-- ══════ HEADER ══════ -->
+    <div class="ce-header">
+        <div class="ce-header-icon">
+            <span class="material-symbols-outlined">cloud_sync</span>
+        </div>
+        <div>
+            <h1 class="ce-headline">CLOUD <span>EXPORT HUB</span></h1>
+            <div class="ce-label" style="margin-top:4px;color:var(--ce-cyan);font-weight:700">CSV & Cloud Sync</div>
+        </div>
+    </div>
+
+    <!-- ══════ HERO EXPORT FOLDER ══════ -->
+    <div class="ce-glass ce-hero ce-glow-cyan">
+        <div class="ce-hero-top">
+            <span class="material-symbols-outlined ce-hero-icon">folder_zip</span>
+            <div>
+                <div class="ce-hero-title">Active Export Directory</div>
+                <div class="ce-hero-sub">Auto-sync with Google Drive / Dropbox</div>
+            </div>
+        </div>
+        <div class="ce-code-block">{{ export_dir }}</div>
+        <div class="ce-health-label">
+            <span class="ce-label" style="font-weight:700">System Health</span>
+            <span class="ce-label" style="color:var(--ce-lime);font-weight:800">OPERATIONAL</span>
+        </div>
+        <div class="ce-health-bar">
+            <div class="ce-health-fill"></div>
+        </div>
+    </div>
+
+    <!-- ══════ PRIMARY ACTION GRID ══════ -->
+    <div class="ce-action-grid">
+        <a href="/api/cloud/export/palety" class="ce-action-btn ce-btn-palety">
+            <span class="ce-sweep"></span>
+            <span class="material-symbols-outlined">package_2</span>
+            Export Pallets
+        </a>
+        <a href="/api/cloud/export/produkty" class="ce-action-btn ce-btn-produkty">
+            <span class="ce-sweep"></span>
+            <span class="material-symbols-outlined">inventory</span>
+            Export Products
+        </a>
+    </div>
+
+    <!-- ══════ SECONDARY: MANUAL BACKUP ══════ -->
+    <button onclick="doBackup()" class="ce-backup-btn">
+        <span class="material-symbols-outlined">backup</span>
+        Manual Backup Now
+    </button>
+
+    <!-- ══════ RECENT EXPORTS ══════ -->
+    <div class="ce-exports-header">
+        <span class="ce-exports-title">Last Exports</span>
+        <span class="ce-live-badge">
+            <span class="ce-live-dot"></span>
+            Live Monitoring
+        </span>
+    </div>
+
+    <div>
+        {% if files %}
+            {% for f in files[:10] %}
+            <div class="ce-export-item {% if 'palety' in f.name %}status-synced{% else %}status-local{% endif %}">
+                <span class="material-symbols-outlined ce-export-icon">
+                    {% if 'palety' in f.name %}package_2{% else %}inventory_2{% endif %}
+                </span>
+                <div class="ce-export-info">
+                    <div class="ce-export-name">{{ f.name }}</div>
+                    <div class="ce-export-meta">
+                        <span class="ce-export-status {% if 'palety' in f.name %}ce-status-synced{% else %}ce-status-local{% endif %}">
+                            {% if 'palety' in f.name %}Synced{% else %}Local{% endif %}
+                        </span>
+                        <span>{{ f.modified }}</span>
+                        <span>{{ "%.1f"|format(f.size_kb) }} KB</span>
+                    </div>
+                </div>
+                <a href="/api/cloud/export/{% if 'palety' in f.name %}palety{% else %}produkty{% endif %}" class="ce-export-download" title="Download">
+                    <span class="material-symbols-outlined">download</span>
+                </a>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="ce-empty">
+                <span class="material-symbols-outlined">cloud_off</span>
+                Brak eksportów - wykonaj pierwszy eksport
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- ══════ INFO CARD ══════ -->
+    <div class="ce-info-card">
+        <div class="ce-info-title">
+            <span class="material-symbols-outlined" style="font-size:18px">schedule</span>
+            Automatyczny backup
+        </div>
+        <div class="ce-info-text">
+            Baza danych: co 1 godzinę &bull; Eksport CSV: co 6 godzin &bull; Stare backupy: usuwane automatycznie (ostatnie 7)
+        </div>
+    </div>
+
+</div>
+
+<script>
+function doBackup() {
+    fetch('/api/cloud/backup', {method: 'POST'})
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('Backup wykonany!');
+                location.reload();
+            } else {
+                alert('Błąd: ' + (data.error || 'Nieznany'));
+            }
+        })
+        .catch(e => alert('Błąd połączenia'));
+}
+</script>
+{% endblock %}
