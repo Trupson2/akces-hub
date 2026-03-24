@@ -1395,10 +1395,15 @@ def produkt(code):
             const hasNote = s.opis_naprawy && s.opis_naprawy.trim();
 
             const imgSrc = zdjecieSrc || PROD_ZDJECIE || '';
+            const STAN_KLASA = {{'Nowy':'A','Jak nowy':'A-','Powystawowy':'A-','Używany':'B','Uszkodzony':'C','Zniszczony':'D','Odnowiony':'B'}};
+            const KLASA_COLOR = {{'A':'#5bf083','A-':'#00f1fe','B':'#eab308','C':'#f97316','D':'#ef4444'}};
+            const klasa = STAN_KLASA[s.stan] || '?';
+            const klasaColor = KLASA_COLOR[klasa] || '#64748b';
             return `<div id="karta_${{s.id}}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:5px;background:rgba(255,255,255,0.02);border:1px solid ${{s.status==='naprawa'?'#f59e0b33':'rgba(255,255,255,0.05)'}};border-radius:10px;transition:all 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
                 ${{imgSrc ? `<img src="${{imgSrc}}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;border:2px solid ${{zdjecieSrc?k+'55':'rgba(255,255,255,0.08)'}};flex-shrink:0" onerror="this.style.display='none'" ${{zdjecieSrc?'onclick="window.open(\\\''+zdjecieSrc+'\\\',\\\'_blank\\\')" style="cursor:pointer"':''}}>` : `<div style="width:48px;height:48px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:1rem;color:#334155;flex-shrink:0">📦</div>`}}
                 <div style="width:10px;height:10px;border-radius:50%;background:${{k}};flex-shrink:0"></div>
                 <div style="font-weight:700;font-size:0.95rem;min-width:30px;color:#e2e8f0">#${{s.numer}}</div>
+                <div style="font-size:0.75rem;font-weight:800;color:${{klasaColor}};background:${{klasaColor}}15;border:1px solid ${{klasaColor}}33;padding:2px 8px;border-radius:6px;font-family:'Space Grotesk',sans-serif;min-width:24px;text-align:center">${{klasa}}</div>
                 <select onchange="zapiszPoleSztuki(${{s.id}}, 'stan', this.value)"
                     style="background:${{k}}15;border:1px solid ${{k}}33;border-radius:8px;color:${{k}};padding:6px 10px;font-size:0.85rem;font-weight:600;cursor:pointer;min-width:110px">
                     ${{['Nowy','Powystawowy','Używany','Uszkodzony','Odnowiony'].map(v =>
