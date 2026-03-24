@@ -362,7 +362,43 @@ def api_wysylki_szukaj():
                     print(f"   → ✅ Znaleziono po frazie '{fraza}'")
                     return _zwroc_zamowienie(order, item, produkt_z_bazy)
 
+    # === 4. Fallback: szukaj w bazie sprzedaze (zamówienia nowa/nowe) ===
     if produkt_z_bazy:
+        db_order = conn.execute('''
+            SELECT s.id, s.allegro_order_id, s.nazwa, s.cena, s.kupujacy, s.adres, s.ilosc
+            FROM sprzedaze s
+            WHERE s.produkt_id = ? AND s.status IN ('nowa', 'nowe')
+            ORDER BY s.data_sprzedazy DESC LIMIT 1
+        ''', (produkt_z_bazy['id'],)).fetchone()
+
+        if db_order:
+            print(f"   → ✅ Znaleziono w bazie (sprzedaze id={db_order['id']})")
+            lok = produkt_z_bazy['lokalizacja'] or produkt_z_bazy['regal'] or ''
+            return jsonify({
+                'zamowienie': {
+                    'order_id': db_order['allegro_order_id'] or str(db_order['id']),
+                    'buyer': db_order['kupujacy'] or 'Nieznany',
+                    'address': db_order['adres'] or '',
+                    'pickup_point': '',
+                    'delivery_type': 'kurier',
+                    'delivery_method': '',
+                    'pack_hint': '📦 Sprawdź metodę dostawy na Allegro',
+                    'total': str(db_order['cena'] or 0),
+                    'produkt_nazwa': db_order['nazwa'],
+                    'inne_produkty': 0,
+                    'produkty': [{
+                        'nazwa': db_order['nazwa'],
+                        'qty': db_order['ilosc'] or 1,
+                        'lokalizacja': lok,
+                        'zdjecie_url': produkt_z_bazy['zdjecie_url'] or ''
+                    }],
+                    'lokalizacja': lok,
+                    'asin': produkt_z_bazy['asin'],
+                    'ean': produkt_z_bazy['ean'],
+                    'stan_magazynowy': produkt_z_bazy['ilosc']
+                }
+            })
+
         return jsonify({
             'error': f'Produkt "{produkt_z_bazy["nazwa"][:40]}" (stan: {produkt_z_bazy["ilosc"]} szt.) - brak zamówienia do wysłania',
             'produkt': {
