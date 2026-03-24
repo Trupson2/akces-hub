@@ -466,15 +466,31 @@ def api_wysylki_szukaj():
 
 @wysylki_bp.route('/wysylki/nadaj/<order_id>')
 def wysylki_nadaj(order_id):
-    """Tworzy przesyłkę (jeśli nie istnieje) i zwraca etykietę PDF"""
+    """Tworzy przesyłkę (jeśli nie istnieje) i zwraca etykietę PDF lub JSON error"""
     from modules.allegro_api import create_and_get_label
-    
+
     print(f"🖨️ Nadawanie przesyłki dla zamówienia: {order_id}")
-    
+
+    # Sprawdź czy klient oczekuje JSON (AJAX) czy HTML
+    wants_json = request.headers.get('Accept', '').startswith('application/json') or request.args.get('format') == 'json'
+
     # Spróbuj utworzyć przesyłkę i pobrać etykietę
-    label_pdf, shipment_id, error = create_and_get_label(order_id)
-    
+    try:
+        label_pdf, shipment_id, error = create_and_get_label(order_id)
+    except Exception as e:
+        error = f"Wyjątek serwera: {str(e)}"
+        label_pdf, shipment_id = None, None
+        print(f"   → ❌ Wyjątek: {e}")
+
     if error:
+        allegro_url = f"https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{order_id}"
+        if wants_json:
+            return jsonify({
+                'success': False,
+                'error': error,
+                'order_id': order_id,
+                'allegro_url': allegro_url
+            }), 400
         return f'''
         <html>
         <head><meta charset="utf-8"><title>Błąd</title></head>
@@ -488,14 +504,22 @@ def wysylki_nadaj(order_id):
                 <li>Zamówienie już ma nadaną przesyłkę ręcznie</li>
                 <li>Problem z metodą dostawy</li>
             </ul>
-            <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{order_id}" target="_blank" style="display:inline-block;margin:20px 0;padding:12px 20px;background:#3b82f6;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">📦 Nadaj ręcznie na Allegro →</a><br>
+            <a href="{allegro_url}" target="_blank" style="display:inline-block;margin:20px 0;padding:12px 20px;background:#3b82f6;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">📦 Nadaj ręcznie na Allegro →</a><br>
             <a href="/wysylki" style="color:#64748b">← Powrót do wysyłek</a>
         </body>
         </html>
         ''', 400
-    
+
     if label_pdf:
         print(f"   → ✅ Etykieta gotowa! Rozmiar: {len(label_pdf)} bytes")
+        if wants_json:
+            import base64
+            return jsonify({
+                'success': True,
+                'shipment_id': shipment_id,
+                'label_url': f'/wysylki/etykieta/{order_id}',
+                'label_base64': base64.b64encode(label_pdf).decode('utf-8')
+            })
         # Zwróć PDF do druku
         response = make_response(label_pdf)
         response.headers['Content-Type'] = 'application/pdf'
@@ -503,6 +527,13 @@ def wysylki_nadaj(order_id):
         return response
     else:
         # Przesyłka utworzona ale brak etykiety
+        if wants_json:
+            return jsonify({
+                'success': True,
+                'shipment_id': shipment_id,
+                'label_url': f'/wysylki/etykieta/{order_id}',
+                'message': 'Przesyłka utworzona, etykieta może być dostępna za chwilę'
+            })
         return f'''
         <html>
         <head><meta charset="utf-8"><title>Przesyłka utworzona</title></head>
