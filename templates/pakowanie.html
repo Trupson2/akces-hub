@@ -505,11 +505,12 @@ function pkShowPackingMode(z) {
     const method = z.delivery_method || z.delivery_type || '---';
     document.getElementById('pkPackMethod').textContent = method.toUpperCase();
 
-    // Show parcel size selector - sprawdź nazwę metody I pickup point
+    // Show parcel size selector - sprawdź nazwę metody I pickup point ID
     const methodLow = method.toLowerCase();
-    const pickupId = (z.pickup_point || '').toUpperCase();
-    const isOrlenPickup = pickupId.startsWith('ORL');
-    const isInpostPickup = pickupId.length > 0 && !isOrlenPickup;
+    const pickupId = (z.pickup_point_id || '').toUpperCase();
+    const pickupText = (z.pickup_point || '').toLowerCase();
+    const isOrlenPickup = pickupId.startsWith('ORL') || pickupText.includes('orlen');
+    const isInpostPickup = (pickupId.length > 0 && !isOrlenPickup) || pickupText.includes('paczkomat') || pickupText.includes('inpost');
     const isInpost = (methodLow.match(/inpost|paczkomat|paczka w ruchu/) && !methodLow.includes('orlen')) || isInpostPickup;
     const isOrlen = methodLow.match(/orlen/) || isOrlenPickup;
     const isPaczkomat = isInpost || isOrlen;
@@ -664,9 +665,10 @@ function pkFinalize() {
 
     // Walidacja gabarytu paczkomat (InPost / Orlen) - sprawdź też pickup point
     const method = (pkCurrentOrder.delivery_method || '').toLowerCase();
-    const ppId = (pkCurrentOrder.pickup_point || '').toUpperCase();
-    const isOrlenPP = ppId.startsWith('ORL');
-    const isInpostPP = ppId.length > 0 && !isOrlenPP;
+    const ppId = (pkCurrentOrder.pickup_point_id || '').toUpperCase();
+    const ppText = (pkCurrentOrder.pickup_point || '').toLowerCase();
+    const isOrlenPP = ppId.startsWith('ORL') || ppText.includes('orlen');
+    const isInpostPP = (ppId.length > 0 && !isOrlenPP) || ppText.includes('paczkomat') || ppText.includes('inpost');
     const isInpost = (method.match(/inpost|paczkomat|paczka w ruchu/) && !method.includes('orlen')) || isInpostPP;
     const isOrlen = method.includes('orlen') || isOrlenPP;
     if (isInpost && !pkSelectedSize) {

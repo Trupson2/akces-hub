@@ -4915,11 +4915,10 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
             receiver['phone'] = address['phoneNumber']
         if address.get('companyName'):
             receiver['companyName'] = address['companyName']
-        # Punkt odbioru (paczkomat) - format receiver.point (od Nov 2025)
-        if pickup_point and pickup_point.get('id'):
-            receiver['point'] = {'id': pickup_point['id']}
-            print(f"   → Punkt odbioru: {pickup_point['id']}")
         shipment_input['receiver'] = receiver
+        # Pickup point dziedziczy się z zamówienia (lineItemIds) - nie wysyłamy go osobno
+        if pickup_point and pickup_point.get('id'):
+            print(f"   → Punkt odbioru (z zamówienia): {pickup_point['id']}")
 
     # Nadawca — dane firmy
     shipment_input['sender'] = {

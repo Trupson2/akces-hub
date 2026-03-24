@@ -142,6 +142,7 @@ def _get_delivery_info(order):
         'delivery_type': delivery_type,
         'address': address or 'Brak adresu',
         'pickup_point': pickup_point,
+        'pickup_point_id': pickup_id,
         'pack_hint': pack_hint,
     }
 
@@ -198,6 +199,7 @@ def _zwroc_zamowienie_full(order):
             'buyer': buyer,
             'address': del_info['address'],
             'pickup_point': del_info['pickup_point'],
+            'pickup_point_id': del_info.get('pickup_point_id', ''),
             'delivery_type': del_info['delivery_type'],
             'delivery_method': del_info['method_name'],
             'pack_hint': del_info['pack_hint'],
@@ -230,6 +232,7 @@ def _zwroc_zamowienie(order, item, produkt_z_bazy):
             'buyer': buyer,
             'address': del_info['address'],
             'pickup_point': del_info['pickup_point'],
+            'pickup_point_id': del_info.get('pickup_point_id', ''),
             'delivery_type': del_info['delivery_type'],
             'delivery_method': del_info['method_name'],
             'pack_hint': del_info['pack_hint'],
