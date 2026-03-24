@@ -4329,7 +4329,10 @@ def callback():
             'redirect_uri': config['redirect_uri']
         }
 
+        print(f"[OAuth] Token exchange: POST {token_url}")
+        print(f"[OAuth] redirect_uri: {config['redirect_uri']}")
         response = requests.post(token_url, headers=headers, data=data, timeout=30)
+        print(f"[OAuth] Response: {response.status_code} {response.text[:200]}")
 
         if response.status_code == 200:
             tokens = response.json()
