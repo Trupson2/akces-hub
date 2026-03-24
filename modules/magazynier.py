@@ -1580,12 +1580,23 @@ def produkt(code):
     ];
     function pokazOcenStan(pid, nazwa, ilosc, currentStan) {{
         _ocenPid=pid; _ocenIlosc=ilosc; _ocenStan=''; _splitMode=false;
-        document.getElementById('ocenStanNazwa').textContent=nazwa;
+        document.getElementById('ocenStanNazwa').textContent=nazwa + ' (' + ilosc + ' szt)';
         document.getElementById('ocenStanCurrent').textContent=currentStan ? 'Aktualny: '+currentStan : 'Brak oceny';
         document.getElementById('ocenSplitSection').style.display='none';
         document.getElementById('ocenStanNotatki').value='';
+        // Auto-show split hint for multi-quantity
+        const splitToggle = document.getElementById('ocenSplitToggle');
+        if (ilosc > 1) {{
+            splitToggle.textContent = '🔀 Split (' + ilosc + ' szt)';
+            splitToggle.style.display = '';
+        }} else {{
+            splitToggle.style.display = 'none';
+        }}
         const btns=document.getElementById('ocenStanBtns');
         btns.innerHTML='';
+        if (ilosc > 1) {{
+            btns.insertAdjacentHTML('beforebegin', '<div id="ocenStanHint" style="font-size:0.72rem;color:#f59e0b;margin-bottom:6px">💡 Masz '+ilosc+' szt — użyj Split żeby ocenić różne sztuki różnie</div>');
+        }}
         STANY.forEach(s=>{{
             const b=document.createElement('button');
             b.textContent=s.icon+' '+s.name;
@@ -1605,29 +1616,41 @@ def produkt(code):
         _splitMode=!_splitMode;
         const sec=document.getElementById('ocenSplitSection');
         const tog=document.getElementById('ocenSplitToggle');
+        const hint=document.getElementById('ocenStanHint');
+        if(hint) hint.style.display=_splitMode?'none':'';
         if(_splitMode) {{
             sec.style.display='block';
             tog.style.background='rgba(193,128,255,0.3)';
             const fields=document.getElementById('ocenSplitFields');
-            fields.innerHTML='';
+            fields.innerHTML='<div id="ocenSplitSum" style="font-size:0.75rem;color:#64748b;margin-bottom:8px">Suma: 0 / '+_ocenIlosc+'</div>';
             STANY.forEach(s=>{{
-                fields.innerHTML+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:${{s.color}};width:100px;font-size:0.8rem">${{s.icon}} ${{s.name}}</span><input type="number" min="0" value="0" data-stan="${{s.name}}" style="width:70px;padding:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e2e8f0;text-align:center"></div>`;
+                fields.innerHTML+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:${{s.color}};width:100px;font-size:0.8rem">${{s.icon}} ${{s.name}}</span><input type="number" min="0" value="0" data-stan="${{s.name}}" oninput="updateSplitSum()" style="width:70px;padding:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e2e8f0;text-align:center"></div>`;
             }});
         }} else {{
             sec.style.display='none';
             tog.style.background='rgba(193,128,255,0.15)';
         }}
     }}
+    function updateSplitSum() {{
+        let sum=0;
+        document.querySelectorAll('#ocenSplitFields input').forEach(inp=>{{ sum+=parseInt(inp.value)||0; }});
+        const el=document.getElementById('ocenSplitSum');
+        const ok=sum===_ocenIlosc;
+        el.textContent='Suma: '+sum+' / '+_ocenIlosc+(ok?' ✅':sum>_ocenIlosc?' ❌ za dużo!':'');
+        el.style.color=ok?'#5bf083':sum>_ocenIlosc?'#ef4444':'#f59e0b';
+    }}
     function zapiszOceneStan() {{
         const notatki=document.getElementById('ocenStanNotatki').value;
         let body={{product_id:_ocenPid,notatki:notatki}};
         if(_splitMode) {{
             const split={{}};
+            let sum=0;
             document.querySelectorAll('#ocenSplitFields input').forEach(inp=>{{
                 const v=parseInt(inp.value)||0;
-                if(v>0) split[inp.dataset.stan]=v;
+                if(v>0) {{ split[inp.dataset.stan]=v; sum+=v; }}
             }});
             if(Object.keys(split).length===0) return alert('Podaj ilości');
+            if(sum!==_ocenIlosc) return alert('Suma ('+sum+') musi być równa ilości produktu ('+_ocenIlosc+')');
             body.split=split;
         }} else {{
             if(!_ocenStan) return alert('Wybierz stan');
