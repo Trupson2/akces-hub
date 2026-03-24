@@ -49,6 +49,20 @@ def get_produkt_by_code(conn, code):
         (c, c)).fetchone()
 
 
+def _format_stan_label(stan_przyjecia, klasa_jakosci):
+    """Formatuj stan na etykietę: klasa + stan, lub 'nieoceniony'."""
+    stan = (stan_przyjecia or '').strip()
+    klasa = (klasa_jakosci or '').strip()
+    if not stan or stan == 'nieoceniony':
+        return 'NIEOCENIONY'
+    parts = []
+    if klasa:
+        parts.append(klasa)
+    if stan:
+        parts.append(stan)
+    return ' / '.join(parts) if parts else ''
+
+
 def _paleta_koszt_szt(conn, paleta_id):
     """Koszt brutto/szt = paleta.cena_zakupu (brutto) / łączna ilość sztuk."""
     if not paleta_id:
@@ -1100,6 +1114,8 @@ def produkt(code):
             <button onclick="pokazRozbijProdukt({p['id']}, {p['ilosc']}, '{p['nazwa'][:40].replace(chr(39), '')}')" class="btn" style="background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083">🎯 ROZBIJ NA SZTUKI</button>
             <button onclick="pokazNaprawaProdukt({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="btn" style="background:#f59e0b;color:#000">🔧 DO NAPRAWY (szt.)</button>
             <button onclick="wyslijDoSerwisu({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="btn" style="background:#dc2626">🔧 SERWIS</button>
+            <a href="/magazyn/etykiety/niimbot/png/{p['id']}" class="btn" style="background:rgba(0,241,254,0.15);border:1px solid rgba(0,241,254,0.3);color:#00f1fe">📋 POBIERZ ETYKIETĘ PNG</a>
+            <button onclick="pokazOcenStan({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']}, '{(p.get('stan_przyjecia','') or '').replace(chr(39), '')}')" class="btn" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#f59e0b">⭐ OCEŃ STAN</button>
         </div>
         
         <!-- SZTUKI SECTION -->
@@ -1411,9 +1427,103 @@ def produkt(code):
       </div>
     </div>
 
+    <!-- MODAL OCEN STAN -->
+    <div id="modalOcenStan" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+      <div style="background:rgba(15,15,30,0.95);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:16px;max-width:500px;width:90%;padding:24px;margin:auto;position:relative;top:20%">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div style="font-size:1.2rem;font-weight:700;font-family:'Space Grotesk',sans-serif;color:#00f1fe">⭐ Oceń stan</div>
+          <button onclick="document.getElementById('modalOcenStan').style.display='none'" style="background:none;border:none;color:#94a3b8;font-size:1.3rem;cursor:pointer">✕</button>
+        </div>
+        <div id="ocenStanNazwa" style="color:#94a3b8;font-size:0.85rem;margin-bottom:6px"></div>
+        <div id="ocenStanCurrent" style="color:#f59e0b;font-size:0.75rem;margin-bottom:15px"></div>
+        <div style="font-size:0.8rem;color:#64748b;margin-bottom:8px">Wybierz stan:</div>
+        <div id="ocenStanBtns" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
+        <div id="ocenSplitSection" style="display:none;margin-bottom:14px">
+          <div style="font-size:0.8rem;color:#64748b;margin-bottom:6px">Tryb split — podaj ilości per stan:</div>
+          <div id="ocenSplitFields"></div>
+        </div>
+        <textarea id="ocenStanNotatki" placeholder="Notatki (opcjonalne)..." style="width:100%;padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#e2e8f0;font-size:0.85rem;resize:vertical;min-height:50px;margin-bottom:12px"></textarea>
+        <div style="display:flex;gap:8px">
+          <button id="ocenStanSaveBtn" onclick="zapiszOceneStan()" style="flex:1;padding:12px;background:rgba(91,240,131,0.15);border:1px solid #5bf083;border-radius:10px;color:#5bf083;font-weight:700;cursor:pointer">💾 Zapisz ocenę</button>
+          <button onclick="toggleSplitMode()" id="ocenSplitToggle" style="padding:12px 16px;background:rgba(193,128,255,0.15);border:1px solid #c180ff;border-radius:10px;color:#c180ff;font-size:0.8rem;cursor:pointer">🔀 Split</button>
+        </div>
+      </div>
+    </div>
+
     <script>
     let _rpId=null, _rpIlosc=0;
     const KOLORY_P = {{'Nowy':'#5bf083','Powystawowy':'#00f1fe','Używany':'#eab308','Uszkodzony':'#ef4444','Odnowiony':'#c180ff'}};
+
+    // === OCEN STAN ===
+    let _ocenPid=null, _ocenIlosc=0, _ocenStan='', _splitMode=false;
+    const STANY = [
+      {{name:'Nowy',color:'#5bf083',icon:'🟢'}},
+      {{name:'Jak nowy',color:'#00f1fe',icon:'🔵'}},
+      {{name:'Dobry',color:'#eab308',icon:'🟡'}},
+      {{name:'Uszkodzony',color:'#f97316',icon:'🟠'}},
+      {{name:'Zniszczony',color:'#ef4444',icon:'🔴'}}
+    ];
+    function pokazOcenStan(pid, nazwa, ilosc, currentStan) {{
+        _ocenPid=pid; _ocenIlosc=ilosc; _ocenStan=''; _splitMode=false;
+        document.getElementById('ocenStanNazwa').textContent=nazwa;
+        document.getElementById('ocenStanCurrent').textContent=currentStan ? 'Aktualny: '+currentStan : 'Brak oceny';
+        document.getElementById('ocenSplitSection').style.display='none';
+        document.getElementById('ocenStanNotatki').value='';
+        const btns=document.getElementById('ocenStanBtns');
+        btns.innerHTML='';
+        STANY.forEach(s=>{{
+            const b=document.createElement('button');
+            b.textContent=s.icon+' '+s.name;
+            b.style.cssText='padding:10px 16px;border-radius:10px;border:2px solid '+s.color+'44;background:'+s.color+'15;color:'+s.color+';font-weight:600;cursor:pointer;font-size:0.85rem;transition:all 0.2s';
+            b.onclick=()=>{{
+                _ocenStan=s.name;
+                btns.querySelectorAll('button').forEach(x=>x.style.borderColor=x.dataset.c+'44');
+                b.style.borderColor=s.color;
+                b.style.boxShadow='0 0 12px '+s.color+'40';
+            }};
+            b.dataset.c=s.color;
+            btns.appendChild(b);
+        }});
+        document.getElementById('modalOcenStan').style.display='flex';
+    }}
+    function toggleSplitMode() {{
+        _splitMode=!_splitMode;
+        const sec=document.getElementById('ocenSplitSection');
+        const tog=document.getElementById('ocenSplitToggle');
+        if(_splitMode) {{
+            sec.style.display='block';
+            tog.style.background='rgba(193,128,255,0.3)';
+            const fields=document.getElementById('ocenSplitFields');
+            fields.innerHTML='';
+            STANY.forEach(s=>{{
+                fields.innerHTML+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:${{s.color}};width:100px;font-size:0.8rem">${{s.icon}} ${{s.name}}</span><input type="number" min="0" value="0" data-stan="${{s.name}}" style="width:70px;padding:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e2e8f0;text-align:center"></div>`;
+            }});
+        }} else {{
+            sec.style.display='none';
+            tog.style.background='rgba(193,128,255,0.15)';
+        }}
+    }}
+    function zapiszOceneStan() {{
+        const notatki=document.getElementById('ocenStanNotatki').value;
+        let body={{product_id:_ocenPid,notatki:notatki}};
+        if(_splitMode) {{
+            const split={{}};
+            document.querySelectorAll('#ocenSplitFields input').forEach(inp=>{{
+                const v=parseInt(inp.value)||0;
+                if(v>0) split[inp.dataset.stan]=v;
+            }});
+            if(Object.keys(split).length===0) return alert('Podaj ilości');
+            body.split=split;
+        }} else {{
+            if(!_ocenStan) return alert('Wybierz stan');
+            body.stan=_ocenStan;
+        }}
+        fetch('/magazyn/api/ocen-produkt',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify(body)}})
+        .then(r=>r.json()).then(d=>{{
+            if(d.success) {{ document.getElementById('modalOcenStan').style.display='none'; location.reload(); }}
+            else alert('Błąd: '+(d.error||'nieznany'));
+        }});
+    }}
 
     function pokazRozbijProdukt(id, ilosc, nazwa) {{
         _rpId=id; _rpIlosc=ilosc;
@@ -6157,7 +6267,7 @@ def etykiety_niimbot_page(products):
             koszt_szt=koszt_szt,
             cena_allegro=0,
             kod_magazynowy=kod_mag,
-            stan_przyjecia=p.get('stan_przyjecia', '') or p.get('klasa_jakosci', '') or ''
+            stan_przyjecia=_format_stan_label(p.get('stan_przyjecia', ''), p.get('klasa_jakosci', ''))
         )
         preview = pm.generate_label_preview(label) if IMAGING_AVAILABLE else ''
         previews.append({
@@ -6395,7 +6505,7 @@ def api_print_niimbot():
         koszt_szt=koszt_szt,
         cena_allegro=0,
         kod_magazynowy=kod_mag,
-        stan_przyjecia=p.get('stan_przyjecia', '') or p.get('klasa_jakosci', '') or ''
+        stan_przyjecia=_format_stan_label(p.get('stan_przyjecia', ''), p.get('klasa_jakosci', ''))
     )
     
     # Drukuj przez BleakTransport + niimprint (prawidłowy protokół Niimbot)
@@ -6479,7 +6589,7 @@ def etykiety_niimbot_png(product_id):
         koszt_szt=koszt_szt,
         cena_allegro=0,
         kod_magazynowy=kod_mag,
-        stan_przyjecia=p.get('stan_przyjecia', '') or p.get('klasa_jakosci', '') or ''
+        stan_przyjecia=_format_stan_label(p.get('stan_przyjecia', ''), p.get('klasa_jakosci', ''))
     )
 
     # Generuj obraz
@@ -6557,7 +6667,7 @@ def etykiety_niimbot_zip():
                 data_zakupu=p.get('data_zakupu', '') or p.get('data_dodania', ''),
                 kod_magazynowy=kod_mag,
                 cena_allegro=0,
-                stan_przyjecia=p.get('stan_przyjecia', '') or p.get('klasa_jakosci', '') or ''
+                stan_przyjecia=_format_stan_label(p.get('stan_przyjecia', ''), p.get('klasa_jakosci', ''))
             )
             
             # Generuj obraz
@@ -9291,6 +9401,12 @@ def przyjecie_save():
             'Uszkodzony': 'Uszkodzony', 'Zniszczony': 'Zniszczony'
         }
 
+        # Pobierz wszystkie produkty palety
+        all_product_ids = set(r['id'] for r in conn.execute(
+            'SELECT id FROM produkty WHERE paleta_id = ?', (paleta_id,)
+        ).fetchall())
+        assessed_ids = set()
+
         for a in assessments:
             pid = a.get('product_id')
             notatki = a.get('notatki', '')
@@ -9301,9 +9417,10 @@ def przyjecie_save():
                 orig = conn.execute('SELECT * FROM produkty WHERE id = ?', (pid,)).fetchone()
                 if not orig:
                     continue
+                assessed_ids.add(pid)
 
                 # Zbierz kolumny do kopiowania
-                cols = [k for k in orig.keys() if k not in ('id', 'ilosc', 'stan_przyjecia', 'notatki_przyjecia')]
+                cols = [k for k in orig.keys() if k not in ('id', 'ilosc', 'stan_przyjecia', 'notatki_przyjecia', 'klasa_jakosci', 'stan')]
 
                 first = True
                 for stan_name, qty in split.items():
@@ -9311,10 +9428,11 @@ def przyjecie_save():
                     if qty <= 0:
                         continue
 
+                    klasa = STAN_TO_KLASA.get(stan_name, '')
+                    condition = STAN_TO_CONDITION.get(stan_name, stan_name)
+
                     if first:
                         # Pierwszy stan — aktualizuj oryginalny rekord
-                        klasa = STAN_TO_KLASA.get(stan_name, '')
-                        condition = STAN_TO_CONDITION.get(stan_name, stan_name)
                         conn.execute(
                             'UPDATE produkty SET ilosc = ?, stan_przyjecia = ?, notatki_przyjecia = ?, klasa_jakosci = ?, stan = ?, status = ? WHERE id = ?',
                             (qty, stan_name, notatki, klasa, condition, 'magazyn', pid)
@@ -9322,8 +9440,6 @@ def przyjecie_save():
                         first = False
                     else:
                         # Kolejne stany — utwórz kopię produktu z nową ilością i stanem
-                        klasa = STAN_TO_KLASA.get(stan_name, '')
-                        condition = STAN_TO_CONDITION.get(stan_name, stan_name)
                         col_names = ', '.join(cols)
                         placeholders = ', '.join(['?' for _ in cols])
                         values = [orig[c] for c in cols]
@@ -9336,6 +9452,7 @@ def przyjecie_save():
                 # TRYB PROSTY — jeden stan dla wszystkich sztuk
                 stan = a.get('stan', '')
                 if pid and stan:
+                    assessed_ids.add(pid)
                     klasa = STAN_TO_KLASA.get(stan, '')
                     condition = STAN_TO_CONDITION.get(stan, stan)
                     conn.execute(
@@ -9343,10 +9460,80 @@ def przyjecie_save():
                         (stan, notatki, klasa, condition, 'magazyn', pid)
                     )
 
+        # Produkty nieocenione → stan 'nieoceniony', status magazyn
+        unassessed = all_product_ids - assessed_ids
+        for uid in unassessed:
+            conn.execute(
+                "UPDATE produkty SET stan_przyjecia = 'nieoceniony', klasa_jakosci = '', stan = 'nieoceniony', status = 'magazyn' WHERE id = ? AND (stan_przyjecia IS NULL OR stan_przyjecia = '')",
+                (uid,)
+            )
+
         # Oznacz paletę jako dostarczoną
         conn.execute('UPDATE palety SET dostarczona = 1 WHERE id = ?', (paleta_id,))
         conn.commit()
 
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@magazynier_bp.route('/api/ocen-produkt', methods=['POST'])
+def ocen_produkt():
+    """Oceń stan pojedynczego produktu (lub split na partie).
+    Pozwala wrócić do oceny nieocenionych produktów bez ponownego przyjęcia palety."""
+    try:
+        data = request.get_json()
+        pid = data.get('product_id')
+        stan = data.get('stan', '')
+        notatki = data.get('notatki', '')
+        split = data.get('split')  # {"Nowy": 3, "Uszkodzony": 2}
+        conn = get_db()
+
+        STAN_TO_KLASA = {
+            'Nowy': 'A', 'Jak nowy': 'A-', 'Dobry': 'B',
+            'Uszkodzony': 'C', 'Zniszczony': 'D'
+        }
+        STAN_TO_CONDITION = {
+            'Nowy': 'Nowy', 'Jak nowy': 'Jak nowy', 'Dobry': 'Używany',
+            'Uszkodzony': 'Uszkodzony', 'Zniszczony': 'Zniszczony'
+        }
+
+        if split and isinstance(split, dict):
+            orig = conn.execute('SELECT * FROM produkty WHERE id = ?', (pid,)).fetchone()
+            if not orig:
+                return jsonify({'success': False, 'error': 'Produkt nie znaleziony'})
+
+            cols = [k for k in orig.keys() if k not in ('id', 'ilosc', 'stan_przyjecia', 'notatki_przyjecia', 'klasa_jakosci', 'stan')]
+            first = True
+            for stan_name, qty in split.items():
+                qty = int(qty)
+                if qty <= 0:
+                    continue
+                klasa = STAN_TO_KLASA.get(stan_name, '')
+                condition = STAN_TO_CONDITION.get(stan_name, stan_name)
+                if first:
+                    conn.execute(
+                        'UPDATE produkty SET ilosc = ?, stan_przyjecia = ?, notatki_przyjecia = ?, klasa_jakosci = ?, stan = ? WHERE id = ?',
+                        (qty, stan_name, notatki, klasa, condition, pid)
+                    )
+                    first = False
+                else:
+                    col_names = ', '.join(cols)
+                    placeholders = ', '.join(['?' for _ in cols])
+                    values = [orig[c] for c in cols]
+                    conn.execute(
+                        f'INSERT INTO produkty ({col_names}, ilosc, stan_przyjecia, notatki_przyjecia, klasa_jakosci, stan, status) VALUES ({placeholders}, ?, ?, ?, ?, ?, ?)',
+                        values + [qty, stan_name, notatki, klasa, condition, 'magazyn']
+                    )
+        elif stan:
+            klasa = STAN_TO_KLASA.get(stan, '')
+            condition = STAN_TO_CONDITION.get(stan, stan)
+            conn.execute(
+                'UPDATE produkty SET stan_przyjecia = ?, notatki_przyjecia = ?, klasa_jakosci = ?, stan = ? WHERE id = ?',
+                (stan, notatki, klasa, condition, pid)
+            )
+
+        conn.commit()
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
