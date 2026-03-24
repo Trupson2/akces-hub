@@ -3477,83 +3477,88 @@ def analizator_palet():
         </div>"""
 
     content = f"""
-    <div style='max-width:1100px;margin:0 auto'>
-        <div style='display:flex;align-items:center;gap:12px;margin-bottom:20px'>
-            <div style='font-size:1.4rem'>🔬</div>
-            <div>
-                <div style='font-size:1.15rem;font-weight:700'>Analizator Palet</div>
-                <div style='color:var(--text-muted);font-size:0.82rem'>AI analizuje produkty z palety — ceny rynkowe, popyt, czas sprzedaży</div>
-            </div>
-        </div>
-
-        {no_key_warning}
-
-        <div class="tab-header" style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--border)">
-            <button class="tab-btn active" onclick="switchTab('palety')" id="tab-palety">🔬 Moje palety</button>
-            <button class="tab-btn" onclick="switchTab('zakup')" id="tab-zakup">📋 Analiza zakupu</button>
-        </div>
-
-        <div id="panel-palety">
-            <div class='card' style='margin-bottom:20px'>
-                <div style='font-weight:600;margin-bottom:12px'>Wybierz paletę do analizy</div>
-                <div style='display:flex;gap:10px;align-items:center;flex-wrap:wrap'>
-                    <select id='paleta-select' class='form-control' style='flex:1;min-width:300px'>
-                        {options_html}
-                    </select>
-                    <button id='btn-analizuj' class='btn btn-primary' onclick='startAnalysis()' {'disabled' if not has_api_key else ''}>
-                        🔍 Analizuj
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div id="panel-zakup" style="display:none">
-            <div class='card' style='margin-bottom:20px'>
-                <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px">
-                    Wgraj manifest palety (Excel/XLSX) z listą produktów. AI sprawdzi realne ceny na Allegro i powie czy warto kupić.
-                </p>
-                <form id="excel-form" enctype="multipart/form-data">
-                    <div class="form-row" style="margin-bottom:14px">
-                        <div class="form-group">
-                            <label>Plik Excel (XLSX)</label>
-                            <input type="file" name="file" accept=".xlsx,.xls,.csv" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Koszt palety (PLN)</label>
-                            <input type="number" name="koszt" class="form-control" placeholder="np. 3500" step="0.01" value="0">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary" id="btn-analyze-excel">🔬 Analizuj przed zakupem</button>
-                </form>
-                <div id="excel-progress" style="display:none;margin-top:16px">
-                    <div style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:16px">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-                            <span id="excel-progress-text" style="color:var(--accent);font-weight:600;font-size:0.9rem">⏳ Analizuję...</span>
-                            <span id="excel-progress-pct" style="color:var(--green);font-weight:700;font-size:1.1rem">0%</span>
-                        </div>
-                        <div style="background:rgba(0,0,0,0.3);border-radius:8px;height:8px;overflow:hidden">
-                            <div id="excel-progress-bar" style="height:100%;background:linear-gradient(90deg,#6366f1,#22c55e);border-radius:8px;width:0%;transition:width 0.5s ease"></div>
-                        </div>
-                        <div id="excel-progress-detail" style="color:var(--text-muted);font-size:0.78rem;margin-top:8px">Przygotowywanie...</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id='analysis-status' style='display:none' class='card'>
-            <div style='display:flex;align-items:center;gap:10px'>
-                <div class='spinner' style='width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite'></div>
-                <span id='status-text' style='color:var(--text-muted);font-size:0.85rem'>Rozpoczynam analizę...</span>
-            </div>
-        </div>
-
-        <div id='analysis-results'></div>
-    </div>
-
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Manrope:wght@300;400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+    .material-symbols-outlined{{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}}
+
+    /* ─── Stitch tokens ─── */
+    :root{{--ap-cyan:#8ff5ff;--ap-pink:#ff6b9b;--ap-lime:#cafd00;--ap-lime-dim:#beee00;--ap-bg:#0e0e10;--ap-card:#131315;--ap-card2:#19191c;--ap-card3:#1f1f22;--ap-card4:#262528;--ap-border:rgba(255,255,255,0.06);--ap-text:#f9f5f8;--ap-muted:#adaaad}}
+
+    /* ─── Dot grid bg ─── */
+    .ap-dot-grid{{position:fixed;inset:0;pointer-events:none;z-index:0;
+        background-image:radial-gradient(rgba(72,71,74,0.5) 1px,transparent 1px);
+        background-size:24px 24px}}
+
+    /* ─── Neon flares ─── */
+    .ap-flare-tl{{position:fixed;top:-120px;left:-120px;width:500px;height:500px;
+        background:radial-gradient(circle,rgba(143,245,255,0.08) 0%,transparent 70%);pointer-events:none;z-index:0}}
+    .ap-flare-br{{position:fixed;bottom:-120px;right:-120px;width:500px;height:500px;
+        background:radial-gradient(circle,rgba(255,107,155,0.06) 0%,transparent 70%);pointer-events:none;z-index:0}}
+
+    /* ─── Wrap ─── */
+    .ap-wrap{{max-width:1100px;margin:0 auto;font-family:'Manrope',sans-serif;color:var(--ap-text);position:relative;z-index:1;padding:0 8px}}
+    .ap-headline{{font-family:'Space Grotesk',sans-serif}}
+    .ap-label{{font-family:'Manrope',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.2em;color:var(--ap-muted)}}
+
+    /* ─── Glass panel ─── */
+    .ap-glass{{background:rgba(19,19,21,0.60);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-left:2px solid var(--ap-cyan);box-shadow:0 0 30px rgba(143,245,255,0.07),0 4px 24px rgba(0,0,0,0.4);padding:28px 32px;margin-bottom:20px}}
+    .ap-glass-pink{{border-left-color:var(--ap-pink);box-shadow:0 0 30px rgba(255,107,155,0.07),0 4px 24px rgba(0,0,0,0.4)}}
+
+    /* ─── Biotech icon circle ─── */
+    .ap-icon-circle{{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+        background:linear-gradient(135deg,rgba(143,245,255,0.12),rgba(143,245,255,0.04));
+        border:1px solid rgba(143,245,255,0.18);flex-shrink:0}}
+    .ap-icon-circle .material-symbols-outlined{{font-size:26px;color:var(--ap-cyan)}}
+
+    /* ─── Tab selector ─── */
+    .ap-tabs{{display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid var(--ap-border)}}
+    .tab-btn{{padding:12px 24px;background:transparent;border:none;color:var(--ap-muted);font-family:'Space Grotesk',sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.2s;letter-spacing:-0.01em}}
+    .tab-btn:hover{{color:var(--ap-text)}}
+    .tab-btn.active{{color:var(--ap-cyan);border-bottom-color:var(--ap-cyan)}}
+
+    /* ─── Stats bento ─── */
+    .ap-stats-grid{{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}}
+    .ap-stat-card{{background:var(--ap-card);padding:20px 24px;border-left:2px solid var(--ap-cyan);transition:background 0.2s}}
+    .ap-stat-card:hover{{background:var(--ap-card3)}}
+    .ap-stat-card.pink{{border-left-color:var(--ap-pink)}}
+    .ap-stat-val{{font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:700;line-height:1.1}}
+    .ap-stat-label{{font-family:'Manrope',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.18em;color:var(--ap-muted);margin-top:4px}}
+
+    /* ─── Select ─── */
+    .ap-select{{width:100%;padding:14px 18px;font-size:0.95rem;font-family:'Manrope',sans-serif;
+        background:var(--ap-card4);border:none;color:var(--ap-text);
+        appearance:none;-webkit-appearance:none;cursor:pointer;transition:all 0.2s;
+        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23adaaad' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+        background-repeat:no-repeat;background-position:right 16px center}}
+    .ap-select:focus{{outline:none;box-shadow:0 0 0 1px var(--ap-cyan),0 0 12px rgba(143,245,255,0.15)}}
+
+    /* ─── Button ─── */
+    .ap-btn{{font-family:'Space Grotesk',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:0.02em;padding:14px 28px;border:none;cursor:pointer;transition:all 0.15s;font-size:0.95rem}}
+    .ap-btn:hover{{transform:scale(1.02)}}
+    .ap-btn:active{{transform:scale(0.95)}}
+    .ap-btn:disabled{{opacity:0.4;cursor:not-allowed;transform:none}}
+    .ap-btn-cyan{{background:var(--ap-cyan);color:#005d63;box-shadow:0 4px 20px rgba(143,245,255,0.3)}}
+    .ap-btn-cyan:hover{{box-shadow:0 6px 30px rgba(143,245,255,0.45)}}
+
+    /* ─── Form inputs ─── */
+    .ap-input{{width:100%;padding:14px 18px;font-size:0.95rem;font-family:'Manrope',sans-serif;
+        background:var(--ap-card4);border:none;color:var(--ap-text);transition:all 0.2s}}
+    .ap-input:focus{{outline:none;box-shadow:0 0 0 1px var(--ap-cyan),0 0 12px rgba(143,245,255,0.15)}}
+    .ap-input::placeholder{{color:var(--ap-muted)}}
+    .ap-form-label{{display:block;font-family:'Manrope',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.18em;color:var(--ap-muted);margin-bottom:8px;font-weight:600}}
+
+    /* ─── Progress ─── */
+    .ap-progress-wrap{{background:rgba(19,19,21,0.6);backdrop-filter:blur(12px);border-left:2px solid var(--ap-cyan);padding:20px 24px;margin-top:16px}}
+    .ap-progress-bar-track{{background:var(--ap-card4);height:4px;overflow:hidden;position:relative}}
+    .ap-progress-bar-fill{{height:100%;background:var(--ap-cyan);box-shadow:0 0 12px var(--ap-cyan);transition:width 0.5s;animation:ap-pulse 2s infinite}}
+    @keyframes ap-pulse{{0%,100%{{opacity:1}}50%{{opacity:0.6}}}}
+
+    /* ─── Spinner ─── */
     @keyframes spin {{ 0%{{transform:rotate(0deg)}} 100%{{transform:rotate(360deg)}} }}
-    .tab-btn {{ padding:10px 20px; background:transparent; border:none; color:var(--text-muted); font-size:0.9rem; font-weight:600; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; }}
-    .tab-btn.active {{ color:var(--accent); border-bottom-color:var(--accent); }}
+    .ap-spinner{{width:20px;height:20px;border:2px solid var(--ap-border);border-top-color:var(--ap-cyan);border-radius:50%;animation:spin 1s linear infinite}}
+
+    /* ─── Demand badges ─── */
     .demand-badge {{
         display:inline-block; padding:2px 10px; border-radius:6px; font-size:0.78rem; font-weight:600;
     }}
@@ -3564,15 +3569,120 @@ def analizator_palet():
         width:100%; border-collapse:collapse; font-size:0.83rem;
     }}
     .analysis-table th {{
-        text-align:left; padding:10px 12px; background:var(--bg); color:var(--text-muted);
+        text-align:left; padding:10px 12px; background:var(--ap-card); color:var(--ap-muted);
         font-size:0.75rem; text-transform:uppercase; letter-spacing:0.03em; font-weight:600;
-        border-bottom:1px solid var(--border);
+        border-bottom:1px solid var(--ap-border);
     }}
     .analysis-table td {{
-        padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:top;
+        padding:10px 12px; border-bottom:1px solid var(--ap-border); vertical-align:top;
     }}
-    .analysis-table tr:hover td {{ background:var(--bg); }}
+    .analysis-table tr:hover td {{ background:var(--ap-card2); }}
+
+    /* ─── Responsive ─── */
+    @media(max-width:768px){{
+        .ap-stats-grid{{grid-template-columns:1fr!important}}
+        .ap-action-row{{flex-direction:column!important}}
+        .ap-action-row .ap-select{{min-width:0!important}}
+    }}
     </style>
+
+    <div class="ap-dot-grid"></div>
+    <div class="ap-flare-tl"></div>
+    <div class="ap-flare-br"></div>
+
+    <div class="ap-wrap">
+
+        <!-- ═══ HEADER ═══ -->
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:28px">
+            <div class="ap-icon-circle">
+                <span class="material-symbols-outlined">biotech</span>
+            </div>
+            <div>
+                <div class="ap-headline" style="font-size:1.35rem;font-weight:700;color:var(--ap-text)">Analizator Palet</div>
+                <div style="color:var(--ap-muted);font-size:0.82rem;font-family:'Manrope',sans-serif">AI analizuje produkty z palety — ceny rynkowe, popyt, czas sprzedaży</div>
+            </div>
+        </div>
+
+        {no_key_warning}
+
+        <!-- ═══ STATS BENTO ═══ -->
+        <div class="ap-stats-grid">
+            <div class="ap-stat-card">
+                <div class="ap-stat-val" style="color:var(--ap-cyan)">{len(palety_list)}</div>
+                <div class="ap-stat-label">Palet łącznie</div>
+            </div>
+            <div class="ap-stat-card pink">
+                <div class="ap-stat-val" style="color:var(--ap-pink)">0</div>
+                <div class="ap-stat-label">W trakcie analizy</div>
+            </div>
+        </div>
+
+        <!-- ═══ TABS ═══ -->
+        <div class="ap-tabs">
+            <button class="tab-btn active" onclick="switchTab('palety')" id="tab-palety">Moje palety</button>
+            <button class="tab-btn" onclick="switchTab('zakup')" id="tab-zakup">Analiza zakupu</button>
+        </div>
+
+        <!-- ═══ TAB: MOJE PALETY ═══ -->
+        <div id="panel-palety">
+            <div class="ap-glass">
+                <div class="ap-label" style="margin-bottom:14px">Wybierz paletę do analizy</div>
+                <div class="ap-action-row" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+                    <select id='paleta-select' class='ap-select' style='flex:1;min-width:300px'>
+                        {options_html}
+                    </select>
+                    <button id='btn-analizuj' class='ap-btn ap-btn-cyan' onclick='startAnalysis()' {'disabled' if not has_api_key else ''}>
+                        Analizuj
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ TAB: ANALIZA ZAKUPU ═══ -->
+        <div id="panel-zakup" style="display:none">
+            <div class="ap-glass">
+                <p style="color:var(--ap-muted);font-size:0.85rem;margin-bottom:20px;font-family:'Manrope',sans-serif">
+                    Wgraj manifest palety (Excel/XLSX) z listą produktów. AI sprawdzi realne ceny na Allegro i powie czy warto kupić.
+                </p>
+                <form id="excel-form" enctype="multipart/form-data">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">
+                        <div>
+                            <label class="ap-form-label">Plik Excel (XLSX)</label>
+                            <input type="file" name="file" accept=".xlsx,.xls,.csv" class="ap-input" required>
+                        </div>
+                        <div>
+                            <label class="ap-form-label">Koszt palety (PLN)</label>
+                            <input type="number" name="koszt" class="ap-input" placeholder="np. 3500" step="0.01" value="0">
+                        </div>
+                    </div>
+                    <button type="submit" class="ap-btn ap-btn-cyan" id="btn-analyze-excel">Analizuj przed zakupem</button>
+                </form>
+                <div id="excel-progress" style="display:none;margin-top:16px">
+                    <div class="ap-progress-wrap">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                            <span id="excel-progress-text" style="color:var(--ap-cyan);font-weight:600;font-size:0.9rem;font-family:'Space Grotesk',sans-serif">⏳ Analizuję...</span>
+                            <span id="excel-progress-pct" style="color:var(--ap-lime);font-weight:700;font-size:1.1rem;font-family:'Space Grotesk',sans-serif">0%</span>
+                        </div>
+                        <div class="ap-progress-bar-track">
+                            <div id="excel-progress-bar" class="ap-progress-bar-fill" style="width:0%"></div>
+                        </div>
+                        <div id="excel-progress-detail" style="color:var(--ap-muted);font-size:0.78rem;margin-top:8px;font-family:'Manrope',sans-serif">Przygotowywanie...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ STATUS ═══ -->
+        <div id='analysis-status' style='display:none' class='ap-glass'>
+            <div style='display:flex;align-items:center;gap:12px'>
+                <div class='ap-spinner'></div>
+                <span id='status-text' style='color:var(--ap-muted);font-size:0.85rem;font-family:Manrope,sans-serif'>Rozpoczynam analizę...</span>
+            </div>
+        </div>
+
+        <!-- ═══ RESULTS ═══ -->
+        <div id='analysis-results'></div>
+    </div>
 
     <script>
     function switchTab(tab) {{
