@@ -1150,17 +1150,29 @@ def produkt(code):
 
         {_siblings_html}
 
-        <div style="padding:15px;background:var(--bg)">
-            <a href="/magazyn/produkt/{product_code}/edytuj" class="btn btn-warn">✏️ EDYTUJ</a>
-            <a href="/magazyn/drukuj/{product_code}" class="btn btn-2" style="background:rgba(193,128,255,0.15);border:1px solid rgba(193,128,255,0.3);color:#c180ff">🖨️ DRUKUJ ETYKIETĘ</a>
-            <a href="/magazyn/produkt/{product_code}/opis" class="btn btn-purple">✨ GENERUJ OPIS AI</a>
-            <button onclick="rescrapZdjecia({p['id']}, this)" class="btn" style="background:#06b6d4">📸 POBIERZ ZDJĘCIA</button>
-            <button onclick="pokazGPSR()" class="btn" style="background:#059669">🛡️ GPSR</button>
-            <button onclick="pokazRozbijProdukt({p['id']}, {p['ilosc']}, '{p['nazwa'][:40].replace(chr(39), '')}')" class="btn" style="background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083">🎯 ROZBIJ NA SZTUKI</button>
-            <button onclick="pokazNaprawaProdukt({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="btn" style="background:#f59e0b;color:#000">🔧 DO NAPRAWY (szt.)</button>
-            <button onclick="wyslijDoSerwisu({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="btn" style="background:#dc2626">🔧 SERWIS</button>
-            <a href="/magazyn/etykiety/niimbot/png/{p['id']}" class="btn" style="background:rgba(0,241,254,0.15);border:1px solid rgba(0,241,254,0.3);color:#00f1fe">📋 POBIERZ ETYKIETĘ PNG</a>
-            <button onclick="pokazOcenStan({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']}, '{(p.get('stan_przyjecia','') or '').replace(chr(39), '')}')" class="btn" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#f59e0b">⭐ OCEŃ STAN</button>
+        <div style="padding:15px">
+            <!-- GŁÓWNE AKCJE — 2 kolumny -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+                <a href="/magazyn/produkt/{product_code}/edytuj" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:10px;color:#f59e0b;font-weight:600;font-size:0.82rem;text-decoration:none;transition:all 0.2s" onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.12)'">✏️ Edytuj</a>
+                <button onclick="pokazOcenStan({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']}, '{(p.get('stan_przyjecia','') or '').replace(chr(39), '')}')" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);border-radius:10px;color:#00f1fe;font-weight:600;font-size:0.82rem;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='rgba(0,241,254,0.2)'" onmouseout="this.style.background='rgba(0,241,254,0.12)'">⭐ Oceń stan</button>
+            </div>
+            <!-- NARZĘDZIA — kompaktowy grid 4 kolumny -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
+                <a href="/magazyn/drukuj/{product_code}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;background:rgba(193,128,255,0.08);border:1px solid rgba(193,128,255,0.15);border-radius:8px;color:#c180ff;font-size:0.65rem;text-decoration:none;text-align:center;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(193,128,255,0.4)'" onmouseout="this.style.borderColor='rgba(193,128,255,0.15)'"><span style="font-size:1.1rem">🖨️</span>Drukuj</a>
+                <a href="/magazyn/etykiety/niimbot/png/{p['id']}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;background:rgba(0,241,254,0.08);border:1px solid rgba(0,241,254,0.15);border-radius:8px;color:#00f1fe;font-size:0.65rem;text-decoration:none;text-align:center;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(0,241,254,0.4)'" onmouseout="this.style.borderColor='rgba(0,241,254,0.15)'"><span style="font-size:1.1rem">📋</span>PNG</a>
+                <a href="/magazyn/produkt/{product_code}/opis" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;background:rgba(193,128,255,0.08);border:1px solid rgba(193,128,255,0.15);border-radius:8px;color:#c180ff;font-size:0.65rem;text-decoration:none;text-align:center;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(193,128,255,0.4)'" onmouseout="this.style.borderColor='rgba(193,128,255,0.15)'"><span style="font-size:1.1rem">✨</span>Opis AI</a>
+                <button onclick="rescrapZdjecia({p['id']}, this)" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;background:rgba(6,182,212,0.08);border:1px solid rgba(6,182,212,0.15);border-radius:8px;color:#06b6d4;font-size:0.65rem;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(6,182,212,0.4)'" onmouseout="this.style.borderColor='rgba(6,182,212,0.15)'"><span style="font-size:1.1rem">📸</span>Zdjęcia</button>
+            </div>
+            <!-- ZAAWANSOWANE — collapsible -->
+            <details style="margin-bottom:4px">
+                <summary style="padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#64748b;font-size:0.75rem;cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(255,255,255,0.12)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.06)'">⚙️ Więcej akcji <span style="margin-left:auto;font-size:0.6rem">▼</span></summary>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:8px 0 0">
+                    <button onclick="pokazGPSR()" style="padding:8px;background:rgba(5,150,105,0.08);border:1px solid rgba(5,150,105,0.15);border-radius:8px;color:#059669;font-size:0.7rem;cursor:pointer">🛡️ GPSR</button>
+                    <button onclick="pokazRozbijProdukt({p['id']}, {p['ilosc']}, '{p['nazwa'][:40].replace(chr(39), '')}')" style="padding:8px;background:rgba(91,240,131,0.08);border:1px solid rgba(91,240,131,0.15);border-radius:8px;color:#5bf083;font-size:0.7rem;cursor:pointer">🎯 Rozbij</button>
+                    <button onclick="pokazNaprawaProdukt({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" style="padding:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);border-radius:8px;color:#f59e0b;font-size:0.7rem;cursor:pointer">🔧 Naprawa</button>
+                    <button onclick="wyslijDoSerwisu({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" style="padding:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.15);border-radius:8px;color:#ef4444;font-size:0.7rem;cursor:pointer">🔧 Serwis</button>
+                </div>
+            </details>
         </div>
         
         <!-- SZTUKI SECTION -->
@@ -1288,71 +1300,38 @@ def produkt(code):
         
         function renderKartaSztuki(s) {{
             const k = KOLOR_STAN[s.stan] || '#64748b';
-            const naprawaBg = s.status === 'naprawa' ? '#f59e0b15' : '#12121a';
-            const naprawaBorder = s.status === 'naprawa' ? '#f59e0b55' : '#1e1e2e';
-            const statusLabel = {{'magazyn':'📦 Magazyn','naprawa':'🔧 Naprawa','sprzedany':'✅ Sprzedany','wyslany':'🚚 Wysłany','uszkodzony':'💥 Uszkodzony'}};
+            const statusIcons = {{'magazyn':'📦','naprawa':'🔧','sprzedany':'✅','wyslany':'🚚','uszkodzony':'💥'}};
             const zdjecieSrc = s.zdjecie || '';
             const wymaga_foto = STANY_WYMAGAJACE_FOTO.includes(s.stan);
-            
-            let zdjecieHtml = '';
-            if (zdjecieSrc) {{
-                // Ma własne zdjęcie - pokaż je z opcją usunięcia
-                zdjecieHtml = `<div style="position:relative;margin-bottom:10px">
-                    <img src="${{zdjecieSrc}}" style="width:100%;max-height:220px;object-fit:contain;border-radius:10px;border:1px solid #334155;background:#0a0a0f">
-                    <button onclick="usunZdjecie(${{s.id}})" style="position:absolute;top:6px;right:6px;background:#ef444488;border:none;border-radius:6px;color:#fff;padding:4px 8px;font-size:0.7rem;cursor:pointer">✕ Usuń</button>
-                </div>`;
-            }} else if (wymaga_foto) {{
-                // Uszkodzone/Używane/Powystawowe bez zdjęcia - pokaż upload z ostrzeżeniem
-                zdjecieHtml = `<div style="margin-bottom:10px">
-                    <label for="foto_${{s.id}}" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:#f59e0b11;border:2px dashed #f59e0b55;border-radius:10px;cursor:pointer;color:#f59e0b;font-size:0.85rem">
-                        📷 Dodaj zdjęcie stanu (${{s.stan}})
-                    </label>
-                    <input type="file" id="foto_${{s.id}}" accept="image/*" capture="environment" style="display:none" onchange="uploadZdjecie(${{s.id}}, this)">
-                </div>`;
-            }}
-            // Nowy bez zdjęcia = nic nie pokazujemy (zdjęcie z Amazonu jest na stronie produktu)
-            
-            return `<div id="karta_${{s.id}}" style="background:${{naprawaBg}};border:1px solid ${{naprawaBorder}};border-radius:12px;padding:14px;margin-bottom:10px">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                    <div style="width:12px;height:12px;border-radius:50%;background:${{k}};flex-shrink:0"></div>
-                    <div style="font-weight:700;font-size:1rem;flex:1">Sztuka nr ${{s.numer}}</div>
-                    <div style="font-size:0.75rem;color:${{k}};background:${{k}}22;padding:3px 10px;border-radius:20px;border:1px solid ${{k}}44">${{s.stan}}</div>
+            const hasNote = s.opis_naprawy && s.opis_naprawy.trim();
+
+            return `<div id="karta_${{s.id}}" style="display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:3px;background:rgba(255,255,255,0.02);border:1px solid ${{s.status==='naprawa'?'#f59e0b33':'rgba(255,255,255,0.05)'}};border-radius:8px;transition:all 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+                <div style="width:8px;height:8px;border-radius:50%;background:${{k}};flex-shrink:0"></div>
+                <div style="font-weight:600;font-size:0.8rem;min-width:22px;color:#94a3b8">#${{s.numer}}</div>
+                <select onchange="zapiszPoleSztuki(${{s.id}}, 'stan', this.value)"
+                    style="background:${{k}}15;border:1px solid ${{k}}33;border-radius:6px;color:${{k}};padding:3px 6px;font-size:0.72rem;font-weight:600;cursor:pointer;min-width:90px">
+                    ${{['Nowy','Powystawowy','Używany','Uszkodzony','Odnowiony'].map(v =>
+                        `<option value="${{v}}" ${{v===s.stan?'selected':''}}>${{v}}</option>`).join('')}}
+                </select>
+                <select onchange="zapiszPoleSztuki(${{s.id}}, 'status', this.value)"
+                    style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#94a3b8;padding:3px 6px;font-size:0.72rem;cursor:pointer;min-width:80px">
+                    ${{['magazyn','naprawa','sprzedany','wyslany','uszkodzony'].map(v =>
+                        `<option value="${{v}}" ${{v===s.status?'selected':''}}>${{(statusIcons[v]||'')+' '+v}}</option>`).join('')}}
+                </select>
+                <div style="flex:1"></div>
+                ${{zdjecieSrc ? `<img src="${{zdjecieSrc}}" style="width:24px;height:24px;border-radius:4px;object-fit:cover;border:1px solid #334155;cursor:pointer" onclick="window.open('${{zdjecieSrc}}','_blank')" title="Pokaż zdjęcie">` : (wymaga_foto ? `<label for="foto_${{s.id}}" style="cursor:pointer;font-size:0.75rem;color:#f59e0b" title="Dodaj zdjęcie">📷</label><input type="file" id="foto_${{s.id}}" accept="image/*" capture="environment" style="display:none" onchange="uploadZdjecie(${{s.id}}, this)">` : '')}}
+                <button onclick="toggleNotatka(${{s.id}})" style="background:none;border:none;color:${{hasNote?'#00f1fe':'#334155'}};cursor:pointer;font-size:0.8rem;padding:2px" title="${{hasNote ? s.opis_naprawy.substring(0,50) : 'Dodaj notatkę'}}">📝</button>
+            </div>
+            <div id="notatka_wrap_${{s.id}}" style="display:none;padding:4px 10px 8px 38px">
+                <div style="display:flex;gap:6px;align-items:center">
+                    <input id="notatka_${{s.id}}" value="${{(s.opis_naprawy||'').replace(/"/g,'&quot;')}}" placeholder="Notatka..." style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#e2e8f0;padding:5px 8px;font-size:0.75rem">
+                    <button onclick="zapiszNotatke(${{s.id}})" style="background:#00f1fe15;border:1px solid #00f1fe33;border-radius:6px;color:#00f1fe;padding:4px 10px;font-size:0.7rem;cursor:pointer">💾</button>
                 </div>
-                
-                ${{zdjecieHtml}}
-                
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-                    <div>
-                        <div style="font-size:0.7rem;color:#64748b;margin-bottom:3px">STAN</div>
-                        <select onchange="zapiszPoleSztuki(${{s.id}}, 'stan', this.value)"
-                            style="width:100%;background:#0a0a0f;border:1px solid #334155;border-radius:8px;color:#fff;padding:6px 8px;font-size:0.85rem">
-                            ${{['Nowy','Powystawowy','Używany','Uszkodzony','Odnowiony'].map(v =>
-                                `<option value="${{v}}" ${{v===s.stan?'selected':''}}>${{v}}</option>`).join('')}}
-                        </select>
-                    </div>
-                    <div>
-                        <div style="font-size:0.7rem;color:#64748b;margin-bottom:3px">STATUS</div>
-                        <select onchange="zapiszPoleSztuki(${{s.id}}, 'status', this.value)"
-                            style="width:100%;background:#0a0a0f;border:1px solid #334155;border-radius:8px;color:#fff;padding:6px 8px;font-size:0.85rem">
-                            ${{['magazyn','naprawa','sprzedany','wyslany','uszkodzony'].map(v =>
-                                `<option value="${{v}}" ${{v===s.status?'selected':''}}>${{statusLabel[v]||v}}</option>`).join('')}}
-                        </select>
-                    </div>
-                </div>
-                
-                <div style="margin-bottom:8px">
-                    <div style="font-size:0.7rem;color:#64748b;margin-bottom:3px">NOTATKA</div>
-                    <textarea id="notatka_${{s.id}}" rows="2" placeholder="np. zarysowanie obudowy, brak ładowarki..."
-                        style="width:100%;background:#0a0a0f;border:1px solid #334155;border-radius:8px;color:#fff;padding:8px;font-size:0.85rem;resize:vertical;box-sizing:border-box"
-                        >${{s.opis_naprawy || ''}}</textarea>
-                </div>
-                
-                <button onclick="zapiszNotatke(${{s.id}})"
-                    style="width:100%;padding:8px;background:#00f1fe22;border:1px solid #00f1fe55;border-radius:8px;color:#00f1fe;font-size:0.8rem;cursor:pointer;font-weight:600">
-                    💾 Zapisz notatkę
-                </button>
-                ${{s.data_naprawy ? `<div style="font-size:0.7rem;color:#64748b;margin-top:6px;text-align:right">Ostatnia zmiana: ${{s.data_naprawy}}</div>` : ''}}
             </div>`;
+        }}
+        function toggleNotatka(id) {{
+            const w = document.getElementById('notatka_wrap_'+id);
+            w.style.display = w.style.display==='none' ? 'block' : 'none';
         }}
         
         async function uploadZdjecie(id, input) {{
