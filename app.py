@@ -219,7 +219,7 @@ def check_onboarding_middleware():
 @app.before_request
 def check_plan_features():
     """Blokuj dostęp do funkcji wymagających wyższego planu."""
-    allowed = ('/auth', '/static', '/license', '/setup', '/favicon', '/api/', '/eula', '/onboarding', '/subscription-expired', '/time-manipulation', '/system/')
+    allowed = ('/auth', '/static', '/license', '/setup', '/favicon', '/api/', '/eula', '/onboarding', '/subscription-expired', '/time-manipulation', '/system/', '/cennik')
     if any(request.path.startswith(p) for p in allowed):
         return
     if request.path == '/':
@@ -2600,6 +2600,14 @@ def api_license_verify():
 # ============================================================
 # CHANGELOG — historia zmian po polsku
 # ============================================================
+@app.route('/cennik')
+def cennik():
+    """Strona cennika planów"""
+    from modules.plan_features import PLAN_DISPLAY, get_current_plan
+    current = PLAN_DISPLAY.get(get_current_plan(), 'TRIAL')
+    return render_template('plan_upgrade.html', required_plan='', current_plan=current, path='/cennik')
+
+
 @app.route('/changelog')
 def changelog():
     """Changelog: CHANGELOG.md + ostatnie commity z git log"""

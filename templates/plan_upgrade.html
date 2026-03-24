@@ -35,12 +35,20 @@
 </style>
 
 <div class="upgrade-container">
+    {% if required_plan %}
     <div class="upgrade-icon">🔒</div>
     <div class="upgrade-title">Funkcja wymaga planu {{ required_plan }}</div>
     <div class="upgrade-desc">
         Twoj aktualny plan: <span class="plan-badge plan-current">{{ current_plan }}</span>
         → Wymagany: <span class="plan-badge plan-required">{{ required_plan }}</span>
     </div>
+    {% else %}
+    <div class="upgrade-icon">💎</div>
+    <div class="upgrade-title">Cennik AKCES HUB</div>
+    <div class="upgrade-desc">
+        Twoj aktualny plan: <span class="plan-badge plan-current">{{ current_plan }}</span>
+    </div>
+    {% endif %}
 
     <div class="pricing-grid">
         <!-- TRIAL -->
