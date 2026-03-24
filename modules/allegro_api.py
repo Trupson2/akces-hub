@@ -4806,7 +4806,7 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None):
 
     # ── Stałe cenników i warunków ──
     CREDENTIALS_DPD = 'bf1a1cf0-6a1e-41b3-a42e-d46846b35f43'
-    CREDENTIALS_INPOST = get_config('allegro_shipping_id') or CREDENTIALS_DPD
+    CREDENTIALS_INPOST = 'da329cd5-9819-4aef-aa77-2ee2d51abc59'
     RETURN_POLICY_ID = '7b75ba63-0967-4536-a439-730f8e563a59'
     WARRANTY_POLICY_ID = '128af307-9341-4f8c-b406-63b9060cce7d'
 
