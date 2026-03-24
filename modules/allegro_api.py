@@ -4911,9 +4911,9 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
             login = buyer.get('login', 'Kupujący')
             first_name = login
             last_name = ''
+        receiver_name = f'{first_name} {last_name}'.strip() or 'Kupujący'
         receiver = {
-            'firstName': first_name,
-            'lastName': last_name or '-',
+            'name': receiver_name,
             'street': address.get('street', '') or '-',
             'city': address.get('city', '') or '-',
             'postalCode': address.get('zipCode', '') or '00-000',
@@ -4922,7 +4922,7 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         if address.get('phoneNumber'):
             receiver['phone'] = address['phoneNumber']
         if address.get('companyName'):
-            receiver['companyName'] = address['companyName']
+            receiver['company'] = address['companyName']
         shipment_input['receiver'] = receiver
         print(f"   → Odbiorca: {first_name} {last_name}, {address.get('city', '')}")
         # Pickup point dziedziczy się z zamówienia (lineItemIds) - nie wysyłamy go osobno
@@ -4943,10 +4943,11 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
     except:
         _fn = _fi = _fna = _fu = _fc = _fp = _fe = _ft = ''
 
+    sender_first = _fi if _fi else 'Andrzej'
+    sender_last = _fna if _fna else 'Gauza'
     shipment_input['sender'] = {
-        'companyName': _fn if _fn else 'AKCES',
-        'firstName': _fi if _fi else 'Andrzej',
-        'lastName': _fna if _fna else 'Gauza',
+        'name': f'{sender_first} {sender_last}',
+        'company': _fn if _fn else 'AKCES',
         'street': _fu if _fu else 'Poniatowskiego 13',
         'city': _fc if _fc else 'Mieszkowice',
         'postalCode': _fp if _fp else '74-505',
