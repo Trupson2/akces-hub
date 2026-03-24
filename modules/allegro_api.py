@@ -4859,6 +4859,7 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         'deliveryMethodId': delivery_method_id,
         'credentialsId': credentials_id,
         'lineItemIds': line_item_ids,
+        'referenceNumber': reference[:20] if reference else None,
     }
 
     # Gabaryt paczki (paczkomaty) - wymiary w cm (API przyjmuje CENTIMETER)
@@ -5108,7 +5109,7 @@ def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=
             items = order.get('lineItems', [])
             if items:
                 name = items[0].get('offer', {}).get('name', '')
-                reference = name.split()[0][:15] if name else 'Paczka'
+                reference = name[:20].strip() if name else 'Paczka'
         
         # Spróbuj utworzyć przez Wysyłam z Allegro
         result, create_err = create_wysylam_z_allegro_shipment(order_id, reference, parcel_size=parcel_size, dimensions=dimensions)
