@@ -44,7 +44,8 @@ FEATURE_MIN_PLAN = {
     # Palety (max 3), produkty (max 50), sprzedaże ręczne (max 20), kalkulator marży
     # — domyślnie dostępne (z limitami)
 
-    # === PRO - analityka + eksport ===
+    # === PRO - Allegro (read) + analityka + eksport ===
+    '/allegro': 'pro',                           # Allegro OAuth (zamówienia, oferty)
     '/analytics/profit': 'pro',
     '/analytics/dashboard': 'pro',
     '/analytics/allegro-performance': 'pro',
@@ -55,11 +56,10 @@ FEATURE_MIN_PLAN = {
     '/analityka/analizator-palet': 'pro',
     '/analytics/kalkulator-palety': 'pro',
 
-    # === MAX (business) - integracje + automatyzacja ===
-    '/allegro': 'business',
-    '/telegram': 'business',
-    '/wysylki': 'business',                     # wysyłki/pakowanie
+    # === MAX (business) - automatyzacja + zaawansowane ===
+    '/wysylki': 'business',                     # wysyłki/pakowanie/etykiety
     '/paletomat': 'business',                    # scraper Amazon + oferty
+    '/telegram': 'business',                     # powiadomienia Telegram/WhatsApp
     '/narzedzia/generator': 'business',          # AI opisy
     '/palety/bulk-import': 'business',           # bulk import
     '/poziom': 'business',                       # gamifikacja
@@ -77,24 +77,26 @@ PLAN_FEATURES_DISPLAY = {
     'starter': [
         'Palety (max 3)',
         'Produkty (max 50)',
-        'Sprzedaże ręczne (max 20)',
-        'Kalkulator marży',
+        'Sprzedaze reczne (max 20)',
+        'Kalkulator marzy',
         'Dashboard podstawowy',
     ],
     'pro': [
-        'Wszystko z TRIAL bez limitów',
+        'Wszystko z TRIAL bez limitow',
+        'Integracja Allegro (OAuth)',
+        'Zamowienia i oferty Allegro',
         'Analityka i dashboard KPI',
-        'Raporty i eksport (CSV/Excel)',
-        'Google Sheets export',
+        'Raporty ROI palet',
+        'Export CSV/Excel/Google Sheets',
         'Analizator palet',
         'Analiza ofert',
     ],
     'business': [
         'Wszystko z PRO',
-        'Integracja Allegro (OAuth)',
-        'Wysyłki i stacja pakowania',
+        'Wysylki i stacja pakowania',
+        'Paletomat (scraper Amazon)',
+        'AI generator opisow',
         'Telegram/WhatsApp powiadomienia',
-        'AI generator opisów',
         'Bulk import palet',
         'Drukarka etykiet (Niimbot/Vretti)',
         'Gamifikacja (poziomy, bingo)',
@@ -102,8 +104,8 @@ PLAN_FEATURES_DISPLAY = {
     'enterprise': [
         'Wszystko z MAX',
         'Magazyn 3D + heatmapa',
-        'Moduł serwisowy',
-        'Zarządzanie licencjami klientów',
+        'Modul serwisowy',
+        'Zarzadzanie licencjami klientow',
         'Panel admin subskrypcji',
         'Priorytetowe wsparcie',
     ],
