@@ -525,7 +525,9 @@ def produkty():
     query = 'SELECT * FROM produkty WHERE 1=1'
     params = []
     
-    if filter_status:
+    if filter_status == 'nieoceniony':
+        query += " AND (stan_przyjecia = 'nieoceniony' OR stan_przyjecia IS NULL OR stan_przyjecia = '')"
+    elif filter_status:
         query += ' AND status = ?'
         params.append(filter_status)
     
@@ -574,6 +576,7 @@ def produkty():
     for status in ['nowy', 'wystawiony', 'sprzedany', 'wyslany', 'uszkodzony', 'zwrot']:
         count = conn.execute('SELECT COUNT(*) FROM produkty WHERE status = ? OR (status IS NULL AND ? = "nowy")', (status, status)).fetchone()[0]
         status_counts[status] = count
+    nieocenione_cnt = conn.execute("SELECT COUNT(*) FROM produkty WHERE stan_przyjecia = 'nieoceniony' OR (stan_przyjecia IS NULL AND status = 'magazyn') OR stan_przyjecia = ''").fetchone()[0]
     
     html = f'''
     <div class="hdr">
@@ -600,6 +603,9 @@ def produkty():
             </a>
             <a href="/magazyn/produkty?status=sprzedany" class="btn {'btn-ok' if filter_status == 'sprzedany' else ''}" style="padding:8px 15px;font-size:0.85rem;background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083">
                 💰 Sprzedane ({status_counts['sprzedany']})
+            </a>
+            <a href="/magazyn/produkty?status=nieoceniony" class="btn {'btn-ok' if filter_status == 'nieoceniony' else ''}" style="padding:8px 15px;font-size:0.85rem;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);color:#f59e0b">
+                ⭐ Nieocenione ({nieocenione_cnt})
             </a>
         </div>
     </div>
@@ -933,10 +939,10 @@ def produkt(code):
     # Koszt brutto/szt = własna cena produktu (jednostkowa z importu)
     # Fallback na średnią z palety tylko gdy produkt nie ma własnej ceny
     _koszt_brutto_szt = 0
-    if p.get('cena_brutto') and p['cena_brutto'] > 0:
-        _koszt_brutto_szt = float(p['cena_brutto'])
-    elif p.get('paleta_id'):
+    if p.get('paleta_id'):
         _koszt_brutto_szt = _paleta_koszt_szt(conn, p['paleta_id'])
+    if _koszt_brutto_szt <= 0 and p.get('cena_brutto') and p['cena_brutto'] > 0:
+        _koszt_brutto_szt = float(p['cena_brutto'])
 
     _klasa_map = {'A':'🟢 A','A-':'🔵 A-','B':'🟡 B','C':'🟠 C','D':'🔴 D'}
     _klasa_display = _klasa_map.get(p.get('klasa_jakosci','') or '', '—')
@@ -1305,7 +1311,9 @@ def produkt(code):
             const wymaga_foto = STANY_WYMAGAJACE_FOTO.includes(s.stan);
             const hasNote = s.opis_naprawy && s.opis_naprawy.trim();
 
-            return `<div id="karta_${{s.id}}" style="display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:3px;background:rgba(255,255,255,0.02);border:1px solid ${{s.status==='naprawa'?'#f59e0b33':'rgba(255,255,255,0.05)'}};border-radius:8px;transition:all 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+            const imgSrc = zdjecieSrc || PROD_ZDJECIE || '';
+            return `<div id="karta_${{s.id}}" style="display:flex;align-items:center;gap:8px;padding:6px 10px;margin-bottom:3px;background:rgba(255,255,255,0.02);border:1px solid ${{s.status==='naprawa'?'#f59e0b33':'rgba(255,255,255,0.05)'}};border-radius:8px;transition:all 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+                ${{imgSrc ? `<img src="${{imgSrc}}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;border:1px solid ${{zdjecieSrc?k+'55':'rgba(255,255,255,0.08)'}};flex-shrink:0" onerror="this.style.display='none'" ${{zdjecieSrc?'onclick="window.open(\\\''+zdjecieSrc+'\\\',\\\'_blank\\\')" style="cursor:pointer"':''}}>` : `<div style="width:32px;height:32px;border-radius:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#334155;flex-shrink:0">?</div>`}}
                 <div style="width:8px;height:8px;border-radius:50%;background:${{k}};flex-shrink:0"></div>
                 <div style="font-weight:600;font-size:0.8rem;min-width:22px;color:#94a3b8">#${{s.numer}}</div>
                 <select onchange="zapiszPoleSztuki(${{s.id}}, 'stan', this.value)"
@@ -1319,7 +1327,7 @@ def produkt(code):
                         `<option value="${{v}}" ${{v===s.status?'selected':''}}>${{(statusIcons[v]||'')+' '+v}}</option>`).join('')}}
                 </select>
                 <div style="flex:1"></div>
-                ${{zdjecieSrc ? `<img src="${{zdjecieSrc}}" style="width:24px;height:24px;border-radius:4px;object-fit:cover;border:1px solid #334155;cursor:pointer" onclick="window.open('${{zdjecieSrc}}','_blank')" title="Pokaż zdjęcie">` : (wymaga_foto ? `<label for="foto_${{s.id}}" style="cursor:pointer;font-size:0.75rem;color:#f59e0b" title="Dodaj zdjęcie">📷</label><input type="file" id="foto_${{s.id}}" accept="image/*" capture="environment" style="display:none" onchange="uploadZdjecie(${{s.id}}, this)">` : '')}}
+                ${{!zdjecieSrc && wymaga_foto ? `<label for="foto_${{s.id}}" style="cursor:pointer;font-size:0.75rem;color:#f59e0b" title="Dodaj zdjęcie stanu">📷</label><input type="file" id="foto_${{s.id}}" accept="image/*" capture="environment" style="display:none" onchange="uploadZdjecie(${{s.id}}, this)">` : ''}}
                 <button onclick="toggleNotatka(${{s.id}})" style="background:none;border:none;color:${{hasNote?'#00f1fe':'#334155'}};cursor:pointer;font-size:0.8rem;padding:2px" title="${{hasNote ? s.opis_naprawy.substring(0,50) : 'Dodaj notatkę'}}">📝</button>
             </div>
             <div id="notatka_wrap_${{s.id}}" style="display:none;padding:4px 10px 8px 38px">
