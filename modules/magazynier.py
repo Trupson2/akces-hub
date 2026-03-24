@@ -941,6 +941,49 @@ def produkt(code):
     _klasa_map = {'A':'🟢 A','A-':'🔵 A-','B':'🟡 B','C':'🟠 C','D':'🔴 D'}
     _klasa_display = _klasa_map.get(p.get('klasa_jakosci','') or '', '—')
 
+    # Sibling products — ten sam produkt (EAN/nazwa) z tej samej palety, rozbite na klasy
+    _siblings = []
+    _ean = p.get('ean', '') or ''
+    _nazwa_base = p['nazwa'][:30]
+    if p.get('paleta_id'):
+        if _ean and len(_ean) >= 8:
+            _siblings = conn.execute(
+                "SELECT id, nazwa, ilosc, klasa_jakosci, stan_przyjecia, stan, lokalizacja, kod_magazynowy FROM produkty WHERE paleta_id = ? AND ean = ? AND id != ? ORDER BY klasa_jakosci",
+                (p['paleta_id'], _ean, p['id'])
+            ).fetchall()
+        if not _siblings:
+            _siblings = conn.execute(
+                "SELECT id, nazwa, ilosc, klasa_jakosci, stan_przyjecia, stan, lokalizacja, kod_magazynowy FROM produkty WHERE paleta_id = ? AND nazwa = ? AND id != ? ORDER BY klasa_jakosci",
+                (p['paleta_id'], p['nazwa'], p['id'])
+            ).fetchall()
+
+    _klasa_colors = {'A':'#5bf083','A-':'#00f1fe','B':'#eab308','C':'#f97316','D':'#ef4444','':'#64748b'}
+    _siblings_html = ''
+    if _siblings:
+        _siblings_html = '<div style="margin:15px;padding:16px;background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:12px">'
+        _siblings_html += '<div style="font-family:\'Space Grotesk\',sans-serif;font-weight:700;font-size:1rem;margin-bottom:12px;color:#00f1fe">📦 Partie tego produktu (per klasa)</div>'
+        # Current product as first row
+        _cur_klasa = p.get('klasa_jakosci','') or ''
+        _cur_color = _klasa_colors.get(_cur_klasa, '#64748b')
+        _cur_stan = p.get('stan_przyjecia','') or 'nieoceniony'
+        _siblings_html += f'<div style="display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:6px;background:rgba(0,241,254,0.08);border:1px solid rgba(0,241,254,0.2);border-radius:8px">'
+        _siblings_html += f'<span style="font-size:1.4rem;font-weight:800;color:{_cur_color};font-family:\'Space Grotesk\',sans-serif;min-width:40px;text-align:center">{_cur_klasa or "?"}</span>'
+        _siblings_html += f'<div style="flex:1"><div style="font-weight:600;font-size:0.85rem">{p["ilosc"]} szt <span style="color:#64748b;font-weight:400">· {_cur_stan}</span></div>'
+        _siblings_html += f'<div style="font-size:0.7rem;color:#64748b">{p.get("lokalizacja","") or "brak lok."} · aktualny</div></div>'
+        _siblings_html += f'<span style="color:#00f1fe;font-size:0.7rem;font-weight:600">CURRENT</span></div>'
+        # Sibling rows
+        for sib in _siblings:
+            sib = dict(sib)
+            sk = sib.get('klasa_jakosci','') or ''
+            sc = _klasa_colors.get(sk, '#64748b')
+            ss = sib.get('stan_przyjecia','') or 'nieoceniony'
+            _siblings_html += f'<a href="/magazyn/produkt/{sib.get("kod_magazynowy","") or sib["id"]}" style="display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:4px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;text-decoration:none;color:inherit;transition:all 0.2s" onmouseover="this.style.borderColor=\'{sc}44\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\'">'
+            _siblings_html += f'<span style="font-size:1.4rem;font-weight:800;color:{sc};font-family:\'Space Grotesk\',sans-serif;min-width:40px;text-align:center">{sk or "?"}</span>'
+            _siblings_html += f'<div style="flex:1"><div style="font-weight:600;font-size:0.85rem">{sib["ilosc"]} szt <span style="color:#64748b;font-weight:400">· {ss}</span></div>'
+            _siblings_html += f'<div style="font-size:0.7rem;color:#64748b">{sib.get("lokalizacja","") or "brak lok."}</div></div>'
+            _siblings_html += f'<span style="color:{sc};font-size:0.7rem">→</span></a>'
+        _siblings_html += '</div>'
+
     # Zysk per item = cena_allegro - koszt_zakupu - prowizja
     _cena_al = float(p['cena_allegro'] or 0)
     _kat = (p.get('kategoria') or 'inne').lower()
@@ -1104,7 +1147,9 @@ def produkt(code):
                 <div class="det" style="border:1px solid {_zysk_color}44;border-radius:8px"><div class="det-l">💎 Zysk/szt</div><div class="det-v" style="color:{_zysk_color};font-weight:700;font-size:1.1rem">{_zysk_szt:.2f} zł</div></div>
             </div>
         </div>
-        
+
+        {_siblings_html}
+
         <div style="padding:15px;background:var(--bg)">
             <a href="/magazyn/produkt/{product_code}/edytuj" class="btn btn-warn">✏️ EDYTUJ</a>
             <a href="/magazyn/drukuj/{product_code}" class="btn btn-2" style="background:rgba(193,128,255,0.15);border:1px solid rgba(193,128,255,0.3);color:#c180ff">🖨️ DRUKUJ ETYKIETĘ</a>
