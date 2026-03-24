@@ -4856,42 +4856,50 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         'lineItemIds': line_item_ids,
     }
 
-    # Gabaryt paczki (paczkomaty)
+    # Gabaryt paczki (paczkomaty) - wymiary w cm (API przyjmuje CENTIMETER)
     PACZKOMAT_SIZES = {
         # InPost A/B/C
-        'A': {'length': 640, 'width': 380, 'height': 80, 'unit': 'MILLIMETERS'},
-        'B': {'length': 640, 'width': 380, 'height': 190, 'unit': 'MILLIMETERS'},
-        'C': {'length': 640, 'width': 380, 'height': 410, 'unit': 'MILLIMETERS'},
+        'A': {'length': 64, 'width': 38, 'height': 8, 'weight': 25},
+        'B': {'length': 64, 'width': 38, 'height': 19, 'weight': 25},
+        'C': {'length': 64, 'width': 38, 'height': 41, 'weight': 25},
         # Orlen Paczka S/M/L
-        'S': {'length': 640, 'width': 380, 'height': 80, 'unit': 'MILLIMETERS'},
-        'M': {'length': 640, 'width': 380, 'height': 190, 'unit': 'MILLIMETERS'},
-        'L': {'length': 640, 'width': 380, 'height': 410, 'unit': 'MILLIMETERS'},
+        'S': {'length': 64, 'width': 38, 'height': 8, 'weight': 15},
+        'M': {'length': 64, 'width': 38, 'height': 19, 'weight': 15},
+        'L': {'length': 64, 'width': 38, 'height': 41, 'weight': 15},
     }
     if parcel_size and parcel_size.upper() in PACZKOMAT_SIZES:
         size_data = PACZKOMAT_SIZES[parcel_size.upper()]
-        shipment_input['packageDetails'] = {
-            'size': parcel_size.upper(),
-            'dimensions': size_data
-        }
-        print(f"   → Gabaryt paczkomat: {parcel_size.upper()}")
+        shipment_input['packages'] = [{
+            'type': 'PACKAGE',
+            'length': {'value': size_data['length'], 'unit': 'CENTIMETER'},
+            'width': {'value': size_data['width'], 'unit': 'CENTIMETER'},
+            'height': {'value': size_data['height'], 'unit': 'CENTIMETER'},
+            'weight': {'value': size_data['weight'], 'unit': 'KILOGRAMS'},
+        }]
+        print(f"   → Gabaryt paczkomat: {parcel_size.upper()} ({size_data['length']}x{size_data['width']}x{size_data['height']}cm)")
     elif dimensions:
-        shipment_input['packageDetails'] = {
-            'dimensions': {
-                'length': int(float(dimensions.get('length', 30)) * 10),
-                'width': int(float(dimensions.get('width', 25)) * 10),
-                'height': int(float(dimensions.get('height', 15)) * 10),
-                'unit': 'MILLIMETERS'
-            },
-            'weight': {
-                'value': float(dimensions.get('weight_kg', 1)),
-                'unit': 'KILOGRAMS'
-            }
-        }
+        shipment_input['packages'] = [{
+            'type': 'PACKAGE',
+            'length': {'value': int(float(dimensions.get('length', 30))), 'unit': 'CENTIMETER'},
+            'width': {'value': int(float(dimensions.get('width', 25))), 'unit': 'CENTIMETER'},
+            'height': {'value': int(float(dimensions.get('height', 15))), 'unit': 'CENTIMETER'},
+            'weight': {'value': float(dimensions.get('weight_kg', 1)), 'unit': 'KILOGRAMS'},
+        }]
         print(f"   → Wymiary kuriera: {dimensions}")
+    else:
+        # Default - mała paczka
+        shipment_input['packages'] = [{
+            'type': 'PACKAGE',
+            'length': {'value': 30, 'unit': 'CENTIMETER'},
+            'width': {'value': 25, 'unit': 'CENTIMETER'},
+            'height': {'value': 15, 'unit': 'CENTIMETER'},
+            'weight': {'value': 1, 'unit': 'KILOGRAMS'},
+        }]
 
-    # Dodaj punkt odbioru (paczkomat) jeśli jest
-    if pickup_point and pickup_point.get('id'):
-        shipment_input['pickupPointId'] = pickup_point['id']
+    # Od marca 2026 InPost wymaga additionalServices sendingAtPoint
+    if is_inpost and pickup_point and pickup_point.get('id'):
+        shipment_input['additionalServices'] = ['sendingAtPoint']
+        print(f"   → additionalServices: sendingAtPoint (InPost od 03.2026)")
 
     # Adres odbiorcy
     if address:
@@ -4900,13 +4908,17 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
             'lastName': address.get('lastName', ''),
             'street': address.get('street', ''),
             'city': address.get('city', ''),
-            'zipCode': address.get('zipCode', ''),
+            'postalCode': address.get('zipCode', ''),
             'countryCode': address.get('countryCode', 'PL'),
         }
         if address.get('phoneNumber'):
             receiver['phone'] = address['phoneNumber']
         if address.get('companyName'):
             receiver['companyName'] = address['companyName']
+        # Punkt odbioru (paczkomat) - format receiver.point (od Nov 2025)
+        if pickup_point and pickup_point.get('id'):
+            receiver['point'] = {'id': pickup_point['id']}
+            print(f"   → Punkt odbioru: {pickup_point['id']}")
         shipment_input['receiver'] = receiver
 
     # Nadawca — dane firmy
@@ -4914,7 +4926,7 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         'companyName': get_config('firma_nazwa') or 'SklepAkces1',
         'street': get_config('firma_ulica') or '',
         'city': get_config('allegro_city') or 'Mieszkowice',
-        'zipCode': get_config('allegro_postcode') or '74-505',
+        'postalCode': get_config('allegro_postcode') or '74-505',
         'countryCode': 'PL',
     }
 

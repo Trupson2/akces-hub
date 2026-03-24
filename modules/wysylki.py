@@ -106,9 +106,12 @@ def _get_delivery_info(order):
 
     # Rozpoznaj typ dostawy i sugeruj pakowanie
     method_lower = method_name.lower()
-    if any(x in method_lower for x in ['paczkomat', 'inpost', 'automat']):
+    if 'orlen' in method_lower:
+        delivery_type = 'paczkomat_orlen'
+        pack_hint = '⛽ Orlen Paczka — gabaryty S/M/L, max 41×38×64cm, max 15kg.'
+    elif any(x in method_lower for x in ['paczkomat', 'inpost', 'automat', 'paczka w ruchu']):
         delivery_type = 'paczkomat'
-        pack_hint = '📦 Paczkomat — max 41×38×64cm, max 25kg. Użyj kartonu A lub foliopaku.'
+        pack_hint = '📮 InPost Paczkomat — gabaryty A/B/C, max 41×38×64cm, max 25kg.'
     elif any(x in method_lower for x in ['kurier', 'dpd', 'dhl', 'ups', 'fedex', 'gls', 'pocztex']):
         delivery_type = 'kurier'
         pack_hint = '🚚 Kurier — zabezpiecz folią bąbelkową, oklej taśmą.'
