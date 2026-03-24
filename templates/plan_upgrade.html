@@ -2,23 +2,35 @@
 {% block page_title %}Wymagany wyższy plan{% endblock %}
 {% block content %}
 <style>
-.upgrade-container{max-width:500px;margin:80px auto;text-align:center}
-.upgrade-icon{font-size:4rem;margin-bottom:20px;filter:drop-shadow(0 0 15px rgba(193,128,255,0.4))}
+.upgrade-container{max-width:800px;margin:40px auto;text-align:center}
+.upgrade-icon{font-size:3.5rem;margin-bottom:16px;filter:drop-shadow(0 0 15px rgba(193,128,255,0.4))}
 .upgrade-title{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:10px;color:var(--text)}
 .upgrade-desc{color:var(--text-muted);font-size:0.9rem;margin-bottom:30px;line-height:1.6}
 .plan-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-weight:700;font-size:0.8rem;margin:0 4px}
 .plan-current{background:rgba(100,116,139,0.15);color:#94a3b8;border:1px solid rgba(100,116,139,0.2)}
 .plan-required{background:rgba(193,128,255,0.12);color:var(--neon-secondary);border:1px solid rgba(193,128,255,0.3);text-shadow:0 0 6px rgba(193,128,255,0.3)}
-.upgrade-features{border-radius:16px;padding:24px;margin:20px 0;text-align:left}
-.upgrade-features h3{font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;font-weight:600}
-.plan-list{list-style:none;padding:0}
-.plan-list li{padding:8px 0;font-size:0.88rem;color:var(--text);display:flex;align-items:center;gap:10px}
-.plan-list li::before{content:'✓';color:var(--neon-tertiary);font-weight:700;font-size:1.1rem;text-shadow:0 0 6px rgba(91,240,131,0.3)}
-.plan-list li.locked::before{content:'🔒';font-size:0.9rem;text-shadow:none}
-.plan-list li.locked{color:var(--text-muted)}
+
+/* Pricing cards */
+.pricing-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}
+@media(max-width:768px){.pricing-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.pricing-grid{grid-template-columns:1fr}}
+.price-card{border-radius:16px;padding:20px 16px;text-align:center;border:1px solid rgba(255,255,255,0.06);background:rgba(15,15,30,0.5);transition:all 0.2s;position:relative}
+.price-card.recommended{border-color:rgba(193,128,255,0.4);box-shadow:0 0 30px rgba(193,128,255,0.1)}
+.price-card.recommended::before{content:'POLECANY';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--neon-secondary);color:#000;font-size:0.65rem;font-weight:800;padding:2px 12px;border-radius:10px;letter-spacing:0.5px}
+.price-card.current{border-color:rgba(100,116,139,0.3);opacity:0.6}
+.pc-name{font-weight:800;font-size:1rem;margin-bottom:4px;letter-spacing:-0.02em}
+.pc-price{font-size:1.8rem;font-weight:900;margin:8px 0 2px;font-family:'Space Grotesk','Inter',sans-serif}
+.pc-price small{font-size:0.7rem;font-weight:500;color:var(--text-muted)}
+.pc-yearly{font-size:0.75rem;color:var(--text-muted);margin-bottom:12px}
+.pc-features{text-align:left;list-style:none;padding:0;margin:0}
+.pc-features li{padding:4px 0;font-size:0.78rem;color:var(--text-secondary);display:flex;align-items:flex-start;gap:6px;line-height:1.3}
+.pc-features li .check{color:var(--neon-tertiary);font-weight:700;flex-shrink:0}
+.pc-features li .lock{color:#64748b;flex-shrink:0}
+.pc-divider{height:1px;background:rgba(255,255,255,0.06);margin:10px 0}
+
 .back-btn{display:inline-block;margin-top:20px;padding:10px 28px;border-radius:10px;color:var(--text);text-decoration:none;font-size:0.9rem;transition:all 0.2s;border:1px solid rgba(255,255,255,0.08);background:rgba(15,15,30,0.45)}
 .back-btn:hover{border-color:var(--neon-primary);color:var(--neon-primary)}
-.contact-btn{display:inline-block;margin-top:10px;padding:10px 28px;background:rgba(193,128,255,0.12);border:1px solid rgba(193,128,255,0.3);border-radius:10px;color:var(--neon-secondary);text-decoration:none;font-size:0.9rem;font-weight:600;transition:all 0.2s}
+.contact-btn{display:inline-block;margin-top:10px;padding:12px 32px;background:linear-gradient(135deg,rgba(193,128,255,0.2),rgba(99,102,241,0.2));border:1px solid rgba(193,128,255,0.3);border-radius:10px;color:var(--neon-secondary);text-decoration:none;font-size:0.9rem;font-weight:700;transition:all 0.2s}
 .contact-btn:hover{transform:translateY(-2px);box-shadow:0 0 20px rgba(193,128,255,0.2)}
 </style>
 
@@ -26,22 +38,81 @@
     <div class="upgrade-icon">🔒</div>
     <div class="upgrade-title">Funkcja wymaga planu {{ required_plan }}</div>
     <div class="upgrade-desc">
-        Twój aktualny plan: <span class="plan-badge plan-current">{{ current_plan }}</span>
-        <br>Wymagany: <span class="plan-badge plan-required">{{ required_plan }}</span>
+        Twoj aktualny plan: <span class="plan-badge plan-current">{{ current_plan }}</span>
+        → Wymagany: <span class="plan-badge plan-required">{{ required_plan }}</span>
     </div>
 
-    <div class="glass-card upgrade-features">
-        <h3>Dostępne plany</h3>
-        <ul class="plan-list">
-            <li>TRIAL — Palety, produkty, sprzedaże, kalkulator marży</li>
-            <li {% if current_plan in ['TRIAL'] %}class="locked"{% endif %}>PRO — Analityka, raporty ROI, dashboard KPI, eksport</li>
-            <li {% if current_plan in ['TRIAL', 'PRO'] %}class="locked"{% endif %}>MAX — Allegro, Telegram, AI opisy, bulk import</li>
-            <li {% if current_plan != 'ENTERPRISE' %}class="locked"{% endif %}>ENTERPRISE — Wszystko + generator licencji, serwis, magazyn 3D</li>
-        </ul>
+    <div class="pricing-grid">
+        <!-- TRIAL -->
+        <div class="price-card {% if current_plan == 'TRIAL' %}current{% endif %}">
+            <div class="pc-name" style="color:#94a3b8">TRIAL</div>
+            <div class="pc-price" style="color:#94a3b8">0 <small>zl</small></div>
+            <div class="pc-yearly">7 dni za darmo</div>
+            <div class="pc-divider"></div>
+            <ul class="pc-features">
+                <li><span class="check">✓</span> Palety (max 3)</li>
+                <li><span class="check">✓</span> Produkty (max 50)</li>
+                <li><span class="check">✓</span> Sprzedaze reczne (max 20)</li>
+                <li><span class="check">✓</span> Kalkulator marzy</li>
+                <li><span class="check">✓</span> Dashboard podstawowy</li>
+            </ul>
+        </div>
+
+        <!-- PRO -->
+        <div class="price-card {% if current_plan == 'PRO' %}current{% elif required_plan == 'PRO' %}recommended{% endif %}">
+            <div class="pc-name" style="color:#22d3ee">PRO</div>
+            <div class="pc-price" style="color:#22d3ee">149 <small>zl/mies</small></div>
+            <div class="pc-yearly">lub 1 490 zl/rok (oszczedzasz 298 zl)</div>
+            <div class="pc-divider"></div>
+            <ul class="pc-features">
+                <li><span class="check">✓</span> Wszystko z TRIAL bez limitow</li>
+                <li><span class="check">✓</span> Analityka i dashboard KPI</li>
+                <li><span class="check">✓</span> Raporty ROI palet</li>
+                <li><span class="check">✓</span> Export CSV/Excel</li>
+                <li><span class="check">✓</span> Google Sheets export</li>
+                <li><span class="check">✓</span> Analizator palet</li>
+                <li><span class="check">✓</span> Analiza ofert</li>
+            </ul>
+        </div>
+
+        <!-- MAX -->
+        <div class="price-card {% if current_plan == 'MAX' %}current{% elif required_plan == 'MAX' %}recommended{% endif %}">
+            <div class="pc-name" style="color:#c084fc">MAX</div>
+            <div class="pc-price" style="color:#c084fc">299 <small>zl/mies</small></div>
+            <div class="pc-yearly">lub 2 990 zl/rok (oszczedzasz 598 zl)</div>
+            <div class="pc-divider"></div>
+            <ul class="pc-features">
+                <li><span class="check">✓</span> Wszystko z PRO</li>
+                <li><span class="check">✓</span> Integracja Allegro (OAuth)</li>
+                <li><span class="check">✓</span> Wysylki i stacja pakowania</li>
+                <li><span class="check">✓</span> Paletomat (scraper Amazon)</li>
+                <li><span class="check">✓</span> AI generator opisow</li>
+                <li><span class="check">✓</span> Telegram/WhatsApp alert</li>
+                <li><span class="check">✓</span> Bulk import palet</li>
+                <li><span class="check">✓</span> Drukarka etykiet</li>
+                <li><span class="check">✓</span> Gamifikacja</li>
+            </ul>
+        </div>
+
+        <!-- ENTERPRISE -->
+        <div class="price-card {% if current_plan == 'ENTERPRISE' %}current{% elif required_plan == 'ENTERPRISE' %}recommended{% endif %}">
+            <div class="pc-name" style="color:#f59e0b">ENTERPRISE</div>
+            <div class="pc-price" style="color:#f59e0b">499 <small>zl/mies</small></div>
+            <div class="pc-yearly">indywidualnie / wielostanowiskowo</div>
+            <div class="pc-divider"></div>
+            <ul class="pc-features">
+                <li><span class="check">✓</span> Wszystko z MAX</li>
+                <li><span class="check">✓</span> Magazyn 3D + heatmapa</li>
+                <li><span class="check">✓</span> Modul serwisowy</li>
+                <li><span class="check">✓</span> Zarzadzanie licencjami</li>
+                <li><span class="check">✓</span> Panel admin subskrypcji</li>
+                <li><span class="check">✓</span> Priorytetowe wsparcie</li>
+            </ul>
+        </div>
     </div>
 
-    <a href="/support/pomysl" class="contact-btn">Skontaktuj się w sprawie upgradu</a>
+    <a href="/license" class="contact-btn">🔑 Aktywuj licencje</a>
     <br>
-    <a href="javascript:history.back()" class="back-btn">← Powrót</a>
+    <a href="javascript:history.back()" class="back-btn">← Powrot</a>
 </div>
 {% endblock %}

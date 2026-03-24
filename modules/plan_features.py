@@ -21,12 +21,28 @@ PLAN_DISPLAY = {
     'enterprise': 'ENTERPRISE',
 }
 
+# Cennik (PLN)
+PLAN_PRICING = {
+    'starter': {'monthly': 0, 'yearly': 0, 'label': 'TRIAL 7 dni'},
+    'pro': {'monthly': 149, 'yearly': 1490, 'label': '149 zł/mies'},
+    'business': {'monthly': 299, 'yearly': 2990, 'label': '299 zł/mies'},
+    'enterprise': {'monthly': 499, 'yearly': 0, 'label': 'indywidualnie'},
+}
+
+# Limity dla TRIAL (starter)
+TRIAL_LIMITS = {
+    'max_palety': 3,        # max 3 palety w systemie
+    'max_sprzedaze': 20,    # max 20 sprzedaży ręcznych
+    'max_produkty': 50,     # max 50 produktów
+    'trial_days': 7,        # 7 dni trialu
+}
+
 # Minimalne plany dla poszczególnych funkcji/stron
 # Wszystko co nie jest wymienione = dostępne od TRIAL
 FEATURE_MIN_PLAN = {
     # === TRIAL (starter) - podstawy ===
-    # Palety, produkty, sprzedaże ręczne, kalkulator marży
-    # — domyślnie dostępne
+    # Palety (max 3), produkty (max 50), sprzedaże ręczne (max 20), kalkulator marży
+    # — domyślnie dostępne (z limitami)
 
     # === PRO - analityka + eksport ===
     '/analytics/profit': 'pro',
@@ -42,16 +58,55 @@ FEATURE_MIN_PLAN = {
     # === MAX (business) - integracje + automatyzacja ===
     '/allegro': 'business',
     '/telegram': 'business',
-    '/narzedzia/generator': 'business',      # AI opisy
-    '/palety/bulk-import': 'business',        # bulk import
-    '/poziom': 'business',                    # gamifikacja
+    '/wysylki': 'business',                     # wysyłki/pakowanie
+    '/paletomat': 'business',                    # scraper Amazon + oferty
+    '/narzedzia/generator': 'business',          # AI opisy
+    '/palety/bulk-import': 'business',           # bulk import
+    '/poziom': 'business',                       # gamifikacja
     '/bingo2026': 'business',
 
     # === ENTERPRISE - wszystko ===
     '/admin/subscriptions': 'enterprise',
     '/narzedzia/licencje': 'enterprise',
     '/serwis': 'enterprise',
-    '/warehouse': 'enterprise',               # 3D heatmapa
+    '/warehouse': 'enterprise',                  # 3D heatmapa
+}
+
+# Opis funkcji per plan (do wyświetlenia na stronie upgrade)
+PLAN_FEATURES_DISPLAY = {
+    'starter': [
+        'Palety (max 3)',
+        'Produkty (max 50)',
+        'Sprzedaże ręczne (max 20)',
+        'Kalkulator marży',
+        'Dashboard podstawowy',
+    ],
+    'pro': [
+        'Wszystko z TRIAL bez limitów',
+        'Analityka i dashboard KPI',
+        'Raporty i eksport (CSV/Excel)',
+        'Google Sheets export',
+        'Analizator palet',
+        'Analiza ofert',
+    ],
+    'business': [
+        'Wszystko z PRO',
+        'Integracja Allegro (OAuth)',
+        'Wysyłki i stacja pakowania',
+        'Telegram/WhatsApp powiadomienia',
+        'AI generator opisów',
+        'Bulk import palet',
+        'Drukarka etykiet (Niimbot/Vretti)',
+        'Gamifikacja (poziomy, bingo)',
+    ],
+    'enterprise': [
+        'Wszystko z MAX',
+        'Magazyn 3D + heatmapa',
+        'Moduł serwisowy',
+        'Zarządzanie licencjami klientów',
+        'Panel admin subskrypcji',
+        'Priorytetowe wsparcie',
+    ],
 }
 
 
@@ -74,6 +129,11 @@ def get_plan_level(plan=None):
     return PLAN_LEVEL.get(plan.lower(), 1)
 
 
+def is_trial():
+    """Czy aktualny plan to trial/starter?"""
+    return get_current_plan() == 'starter'
+
+
 def has_feature_access(path, plan=None):
     """Sprawdź czy dany plan ma dostęp do ścieżki."""
     if plan is None:
@@ -93,6 +153,26 @@ def has_feature_access(path, plan=None):
 
     required_level = PLAN_LEVEL.get(required_plan, 1)
     return user_level >= required_level
+
+
+def check_trial_limit(resource_type, current_count):
+    """
+    Sprawdź limit triala. Zwraca (allowed, limit, message).
+    resource_type: 'palety', 'sprzedaze', 'produkty'
+    """
+    if not is_trial():
+        return True, None, None
+
+    limit_key = f'max_{resource_type}'
+    limit = TRIAL_LIMITS.get(limit_key)
+    if limit is None:
+        return True, None, None
+
+    if current_count >= limit:
+        plan_needed = 'PRO' if resource_type in ('palety', 'sprzedaze', 'produkty') else 'MAX'
+        return False, limit, f'Limit TRIAL: max {limit} {resource_type}. Przejdź na plan {plan_needed} aby odblokować.'
+
+    return True, limit, None
 
 
 def get_required_plan_display(path):

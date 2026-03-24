@@ -1199,6 +1199,16 @@ def paleta_dodaj():
     from modules.database import add_paleta
 
     if request.method == 'POST':
+        # Sprawdź limit triala
+        from modules.plan_features import check_trial_limit
+        from modules.database import get_db as _get_db
+        _conn = _get_db()
+        _count = _conn.execute('SELECT COUNT(*) FROM palety').fetchone()[0]
+        allowed, limit, msg = check_trial_limit('palety', _count)
+        if not allowed:
+            flash(msg, 'error')
+            return redirect('/palety')
+
         nazwa = request.form.get('nazwa', '')
         dostawca = request.form.get('dostawca', '')
         if dostawca == '__custom__':

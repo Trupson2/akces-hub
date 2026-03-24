@@ -542,6 +542,18 @@ if(localStorage.getItem('kiosk_mode')==='1'){
     </div>
 </div>
 <div class="container">
+{% if lic_plan == 'STARTER' or lic_plan == 'FREE' %}
+<div style="background:linear-gradient(135deg,#f59e0b22,#ef444422);border:1px solid #f59e0b55;border-radius:12px;padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:1.3rem">⏳</span>
+        <div>
+            <div style="color:#fbbf24;font-weight:700;font-size:0.95rem">TRIAL{% if lic_days_left %} · {{ lic_days_left }}{% endif %}</div>
+            <div style="color:#94a3b8;font-size:0.8rem">Wersja ograniczona — max 3 palety, 20 sprzedazy, brak analityki i integracji</div>
+        </div>
+    </div>
+    <a href="/license" style="background:#f59e0b;color:#000;padding:8px 18px;border-radius:8px;font-weight:700;font-size:0.85rem;text-decoration:none;white-space:nowrap">Aktywuj plan PRO</a>
+</div>
+{% endif %}
 {% block content %}{% endblock %}
 </div>
 </div>

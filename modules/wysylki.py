@@ -520,8 +520,9 @@ def wysylki_nadaj(order_id):
 
     print(f"🖨️ Nadawanie przesyłki dla zamówienia: {order_id}")
 
-    # Sprawdź czy klient oczekuje JSON (AJAX) czy HTML
-    wants_json = request.headers.get('Accept', '').startswith('application/json') or request.args.get('format') == 'json'
+    # Stacja pakowania zawsze wywołuje ten endpoint przez fetch (AJAX)
+    # Zawsze zwracaj JSON przy błędach, PDF przy sukcesie
+    wants_json = True
     test_mode = request.args.get('test') == '1'
 
     # ── TRYB TESTOWY ──

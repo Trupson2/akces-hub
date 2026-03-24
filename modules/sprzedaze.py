@@ -563,6 +563,15 @@ def sprzedaze_dodaj_reczna():
     from modules.database import get_db
     from datetime import datetime
 
+    # Sprawdź limit triala
+    from modules.plan_features import check_trial_limit
+    conn_check = get_db()
+    sale_count = conn_check.execute('SELECT COUNT(*) FROM sprzedaze WHERE allegro_order_id LIKE "MANUAL-%"').fetchone()[0]
+    allowed, limit, msg = check_trial_limit('sprzedaze', sale_count)
+    if not allowed:
+        flash(msg, 'error')
+        return redirect(request.referrer or '/palety')
+
     produkt_id = request.form.get('produkt_id', type=int)
     ilosc = request.form.get('ilosc', 1, type=int)
     cena = request.form.get('cena', 0, type=float)

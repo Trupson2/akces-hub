@@ -703,32 +703,39 @@ function pkFinalize() {
     fetch(nadajUrl, { headers: { 'Accept': 'application/json, application/pdf' } })
         .then(r => {
             clearInterval(progressInterval);
-            if (r.ok && r.headers.get('content-type')?.includes('application/pdf')) {
+            const ct = r.headers.get('content-type') || '';
+            if (r.ok && ct.includes('application/pdf')) {
                 bar.style.width = '100%';
                 status.textContent = 'Etykieta gotowa!';
                 return r.blob().then(blob => {
                     const url = URL.createObjectURL(blob);
-                    // Open PDF in new tab for printing
                     window.open(url, '_blank');
-                    // Show success
                     setTimeout(() => pkShowReady(orderId, url), 800);
                 });
-            } else {
+            } else if (ct.includes('application/json')) {
                 return r.json().then(data => {
-                    // Try opening Allegro order page as fallback
                     bar.style.width = '100%';
-                    status.textContent = data.error || 'Etykieta niedostępna — otwieramy Allegro';
+                    const errMsg = data.error || 'Etykieta niedostepna';
+                    status.innerHTML = '<span style="color:#ff716c">' + errMsg + '</span>';
                     setTimeout(() => {
-                        window.open('https://allegro.pl/moje-allegro/sprzedaz/zamowienia/' + orderId, '_blank');
+                        window.open(data.allegro_url || 'https://allegro.pl/moje-allegro/sprzedaz/zamowienia/' + orderId, '_blank');
                         pkShowReady(orderId, null);
-                    }, 1500);
+                    }, 2000);
                 });
+            } else {
+                // Backend zwrócił HTML (stary kod) — pokaż błąd i otwórz Allegro
+                bar.style.width = '100%';
+                status.innerHTML = '<span style="color:#ff716c">Blad API — otwieramy Allegro...</span>';
+                setTimeout(() => {
+                    window.open('https://allegro.pl/moje-allegro/sprzedaz/zamowienia/' + orderId, '_blank');
+                    pkShowReady(orderId, null);
+                }, 2000);
             }
         })
         .catch(err => {
             clearInterval(progressInterval);
             bar.style.width = '100%';
-            status.innerHTML = `<span style="color:#ff716c">Błąd: ${err}. Otwieramy Allegro...</span>`;
+            status.innerHTML = '<span style="color:#ff716c">Blad: ' + err.message + '. Otwieramy Allegro...</span>';
             setTimeout(() => {
                 window.open('https://allegro.pl/moje-allegro/sprzedaz/zamowienia/' + orderId, '_blank');
                 pkShowReady(orderId, null);
