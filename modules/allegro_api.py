@@ -4901,14 +4901,22 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         shipment_input['additionalServices'] = ['sendingAtPoint']
         print(f"   → additionalServices: sendingAtPoint (InPost od 03.2026)")
 
-    # Adres odbiorcy
+    # Adres odbiorcy (firstName/lastName lub companyName WYMAGANE)
+    buyer = order.get('buyer', {})
     if address:
+        first_name = address.get('firstName', '') or buyer.get('firstName', '')
+        last_name = address.get('lastName', '') or buyer.get('lastName', '')
+        # Fallback - wyciągnij z login kupującego
+        if not first_name and not last_name:
+            login = buyer.get('login', 'Kupujący')
+            first_name = login
+            last_name = ''
         receiver = {
-            'firstName': address.get('firstName', ''),
-            'lastName': address.get('lastName', ''),
-            'street': address.get('street', ''),
-            'city': address.get('city', ''),
-            'postalCode': address.get('zipCode', ''),
+            'firstName': first_name,
+            'lastName': last_name or '-',
+            'street': address.get('street', '') or '-',
+            'city': address.get('city', '') or '-',
+            'postalCode': address.get('zipCode', '') or '00-000',
             'countryCode': address.get('countryCode', 'PL'),
         }
         if address.get('phoneNumber'):
@@ -4916,6 +4924,7 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         if address.get('companyName'):
             receiver['companyName'] = address['companyName']
         shipment_input['receiver'] = receiver
+        print(f"   → Odbiorca: {first_name} {last_name}, {address.get('city', '')}")
         # Pickup point dziedziczy się z zamówienia (lineItemIds) - nie wysyłamy go osobno
         if pickup_point and pickup_point.get('id'):
             print(f"   → Punkt odbioru (z zamówienia): {pickup_point['id']}")
