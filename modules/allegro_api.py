@@ -4787,10 +4787,15 @@ def get_wysylam_z_allegro_shipments(order_id):
     """
     print(f"📦 Pobieranie przesyłek 'Wysyłam z Allegro' dla: {order_id}")
     
-    # Pobierz przesyłki z shipment-management
+    # Pobierz przesyłki z shipment-management (próbuj oba formaty parametru)
     result, error = allegro_request('GET', '/shipment-management/shipments', params={
-        'checkoutForm.id': order_id
+        'order.id': order_id
     })
+    if error and '406' in str(error):
+        print(f"   → Próbuję alternatywny parametr checkoutForm.id...")
+        result, error = allegro_request('GET', '/shipment-management/shipments', params={
+            'checkoutForm.id': order_id
+        })
     
     print(f"   → Wynik: {result}")
     print(f"   → Błąd: {error}")
@@ -4963,7 +4968,16 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         'input': shipment_input
     }
 
-    print(f"   → Payload: {payload}")
+    # Usuń None z payloadu (Allegro API nie akceptuje null wartości)
+    def _clean(d):
+        if isinstance(d, dict):
+            return {k: _clean(v) for k, v in d.items() if v is not None}
+        elif isinstance(d, list):
+            return [_clean(i) for i in d if i is not None]
+        return d
+    payload = _clean(payload)
+
+    print(f"   → Payload (cleaned): {payload}")
 
     # Wyślij do Wysyłam z Allegro API
     result, error = allegro_request('POST', '/shipment-management/shipments/create-commands', data=payload)
@@ -5095,18 +5109,42 @@ def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=
             return None, None, f"Nie można utworzyć przesyłki: {create_err}"
         
         if result:
-            shipment_id = result.get('id')
-            print(f"   → ✅ Utworzono przesyłkę: {shipment_id}")
-            
-            # Poczekaj i pobierz etykietę
+            command_id = result.get('commandId') or result.get('id')
+            print(f"   → ✅ Command utworzony: {command_id}")
+
+            # Polluj status komendy - Allegro create jest asynchroniczne
             import time
-            time.sleep(2)
-            
-            label, shipment_id, error = get_shipment_label(order_id)
-            if error and error != "BRAK_PRZESYLKI":
-                return None, shipment_id, f"Przesyłka utworzona, błąd etykiety: {error}"
+            shipment_id = None
+            for attempt in range(8):
+                time.sleep(2)
+                print(f"   → Polling command status (attempt {attempt+1}/8)...")
+                cmd_result, cmd_err = allegro_request('GET', f'/shipment-management/shipments/create-commands/{command_id}')
+                if cmd_result:
+                    cmd_status = cmd_result.get('status', '')
+                    print(f"   → Command status: {cmd_status}")
+                    if cmd_status == 'SUCCESS':
+                        shipment_id = cmd_result.get('shipmentId') or cmd_result.get('output', {}).get('shipmentId')
+                        print(f"   → ✅ Shipment ID: {shipment_id}")
+                        break
+                    elif cmd_status in ('ERROR', 'FAILED'):
+                        err_msg = cmd_result.get('errors', [{}])[0].get('message', '') if cmd_result.get('errors') else str(cmd_result)
+                        print(f"   → ❌ Command failed: {err_msg}")
+                        return None, None, f"Allegro odrzuciło przesyłkę: {err_msg}"
+                    # IN_PROGRESS - kontynuuj polling
+                elif cmd_err:
+                    print(f"   → Polling error: {cmd_err}")
+
+            if not shipment_id:
+                # Fallback - spróbuj pobrać po order_id
+                print(f"   → Brak shipmentId z polling - szukam po order_id...")
+
+            # Poczekaj chwilę i pobierz etykietę
+            time.sleep(1)
+            label, shipment_id2, error = get_shipment_label(order_id)
             if label:
-                return label, shipment_id, None
+                return label, shipment_id2 or shipment_id, None
+            if error and error != "BRAK_PRZESYLKI":
+                return None, shipment_id, f"Przesyłka utworzona ({shipment_id}), etykieta: {error}"
     
     if error and error != "BRAK_PRZESYLKI":
         return None, shipment_id, error
