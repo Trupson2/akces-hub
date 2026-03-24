@@ -4930,10 +4930,11 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         shipment_input['receiver'] = receiver
         print(f"   → Odbiorca: {receiver_name}, {address.get('city', '')}, email: {receiver_email}")
 
-    # Pickup point - Allegro powinien dziedziczyć z zamówienia (lineItemIds)
-    # NIE wysyłamy go osobno - odbiorca i punkt są w zamówieniu
+    # Pickup point ODBIORU - WYMAGANE, Allegro NIE dziedziczy z zamówienia
     if pickup_point and pickup_point.get('id'):
-        print(f"   → Punkt odbioru (z zamówienia, nie w payload): {pickup_point['id']}")
+        if 'receiver' in shipment_input:
+            shipment_input['receiver']['point'] = pickup_point['id']
+        print(f"   → Punkt odbioru (receiver.point): {pickup_point['id']}")
 
     # Nadawca — dane firmy z configu, potem hardcoded fallback
     try:
@@ -4966,7 +4967,6 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         sender_point = (get_config('sender_paczkomat') or '').strip() or 'MEZ01M'
         shipment_input['additionalServices'] = ['sendingAtPoint']
         shipment_input['sender']['point'] = sender_point
-        shipment_input['point'] = sender_point
         print(f"   → Nadanie z paczkomatu: {sender_point} (sendingAtPoint)")
 
     print(f"   → 📬 SENDER PAYLOAD: {shipment_input['sender']}")

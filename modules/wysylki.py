@@ -320,7 +320,8 @@ def api_wysylki_pending():
     # Próbuj Allegro API
     if is_authenticated():
         try:
-            raw_orders = get_orders(status='READY_FOR_PROCESSING')
+            raw_result = get_orders(status='READY_FOR_PROCESSING')
+            raw_orders = raw_result[0] if isinstance(raw_result, tuple) else raw_result
             if raw_orders:
                 for order in raw_orders.get('checkoutForms', []):
                     order_id = order.get('id', '')
