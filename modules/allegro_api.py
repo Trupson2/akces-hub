@@ -4901,10 +4901,12 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
             'weight': {'value': 1, 'unit': 'KILOGRAMS'},
         }]
 
-    # Od marca 2026 InPost wymaga additionalServices sendingAtPoint
-    if is_inpost and pickup_point and pickup_point.get('id'):
-        shipment_input['additionalServices'] = ['sendingAtPoint']
-        print(f"   → additionalServices: sendingAtPoint (InPost od 03.2026)")
+    # additionalServices sendingAtPoint = nadanie w punkcie (paczkomat/PaczkoPunkt)
+    # Wymaga podania punktu nadania (sender drop-off), nie odbioru
+    # Na razie NIE włączamy - nadanie przez kuriera/zlecenie odbioru
+    # if is_inpost:
+    #     shipment_input['additionalServices'] = ['sendingAtPoint']
+    print(f"   → additionalServices: brak (nadanie bez sendingAtPoint)")
 
     # Adres odbiorcy (firstName/lastName lub companyName WYMAGANE)
     buyer = order.get('buyer', {})
@@ -4935,14 +4937,10 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         shipment_input['receiver'] = receiver
         print(f"   → Odbiorca: {receiver_name}, {address.get('city', '')}, email: {receiver_email}")
 
-    # Pickup point (paczkomat) - WYMAGANE dla InPost/Orlen
+    # Pickup point - Allegro powinien dziedziczyć z zamówienia (lineItemIds)
+    # NIE wysyłamy go osobno - odbiorca i punkt są w zamówieniu
     if pickup_point and pickup_point.get('id'):
-        pp_id = pickup_point['id']
-        # Próbuj różne formaty - Allegro API jest niespójne
-        shipment_input['pickupPointId'] = pp_id
-        print(f"   → Punkt odbioru (pickupPointId): {pp_id}")
-    elif is_paczkomat:
-        print(f"   → ⚠️ UWAGA: Paczkomat ale brak pickup_point w zamówieniu!")
+        print(f"   → Punkt odbioru (z zamówienia, nie w payload): {pickup_point['id']}")
 
     # Nadawca — dane firmy z configu, potem hardcoded fallback
     try:
