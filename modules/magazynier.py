@@ -1312,17 +1312,17 @@ def produkt(code):
             const hasNote = s.opis_naprawy && s.opis_naprawy.trim();
 
             const imgSrc = zdjecieSrc || PROD_ZDJECIE || '';
-            return `<div id="karta_${{s.id}}" style="display:flex;align-items:center;gap:8px;padding:6px 10px;margin-bottom:3px;background:rgba(255,255,255,0.02);border:1px solid ${{s.status==='naprawa'?'#f59e0b33':'rgba(255,255,255,0.05)'}};border-radius:8px;transition:all 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
-                ${{imgSrc ? `<img src="${{imgSrc}}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;border:1px solid ${{zdjecieSrc?k+'55':'rgba(255,255,255,0.08)'}};flex-shrink:0" onerror="this.style.display='none'" ${{zdjecieSrc?'onclick="window.open(\\\''+zdjecieSrc+'\\\',\\\'_blank\\\')" style="cursor:pointer"':''}}>` : `<div style="width:32px;height:32px;border-radius:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#334155;flex-shrink:0">?</div>`}}
-                <div style="width:8px;height:8px;border-radius:50%;background:${{k}};flex-shrink:0"></div>
-                <div style="font-weight:600;font-size:0.8rem;min-width:22px;color:#94a3b8">#${{s.numer}}</div>
+            return `<div id="karta_${{s.id}}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:5px;background:rgba(255,255,255,0.02);border:1px solid ${{s.status==='naprawa'?'#f59e0b33':'rgba(255,255,255,0.05)'}};border-radius:10px;transition:all 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+                ${{imgSrc ? `<img src="${{imgSrc}}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;border:2px solid ${{zdjecieSrc?k+'55':'rgba(255,255,255,0.08)'}};flex-shrink:0" onerror="this.style.display='none'" ${{zdjecieSrc?'onclick="window.open(\\\''+zdjecieSrc+'\\\',\\\'_blank\\\')" style="cursor:pointer"':''}}>` : `<div style="width:48px;height:48px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:1rem;color:#334155;flex-shrink:0">📦</div>`}}
+                <div style="width:10px;height:10px;border-radius:50%;background:${{k}};flex-shrink:0"></div>
+                <div style="font-weight:700;font-size:0.95rem;min-width:30px;color:#e2e8f0">#${{s.numer}}</div>
                 <select onchange="zapiszPoleSztuki(${{s.id}}, 'stan', this.value)"
-                    style="background:${{k}}15;border:1px solid ${{k}}33;border-radius:6px;color:${{k}};padding:3px 6px;font-size:0.72rem;font-weight:600;cursor:pointer;min-width:90px">
+                    style="background:${{k}}15;border:1px solid ${{k}}33;border-radius:8px;color:${{k}};padding:6px 10px;font-size:0.85rem;font-weight:600;cursor:pointer;min-width:110px">
                     ${{['Nowy','Powystawowy','Używany','Uszkodzony','Odnowiony'].map(v =>
                         `<option value="${{v}}" ${{v===s.stan?'selected':''}}>${{v}}</option>`).join('')}}
                 </select>
                 <select onchange="zapiszPoleSztuki(${{s.id}}, 'status', this.value)"
-                    style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#94a3b8;padding:3px 6px;font-size:0.72rem;cursor:pointer;min-width:80px">
+                    style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#94a3b8;padding:6px 10px;font-size:0.85rem;cursor:pointer;min-width:100px">
                     ${{['magazyn','naprawa','sprzedany','wyslany','uszkodzony'].map(v =>
                         `<option value="${{v}}" ${{v===s.status?'selected':''}}>${{(statusIcons[v]||'')+' '+v}}</option>`).join('')}}
                 </select>
