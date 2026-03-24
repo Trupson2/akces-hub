@@ -467,12 +467,63 @@ def api_wysylki_szukaj():
 @wysylki_bp.route('/wysylki/nadaj/<order_id>')
 def wysylki_nadaj(order_id):
     """Tworzy przesyłkę (jeśli nie istnieje) i zwraca etykietę PDF lub JSON error"""
-    from modules.allegro_api import create_and_get_label
+    from modules.allegro_api import create_and_get_label, get_order_details
 
     print(f"🖨️ Nadawanie przesyłki dla zamówienia: {order_id}")
 
     # Sprawdź czy klient oczekuje JSON (AJAX) czy HTML
     wants_json = request.headers.get('Accept', '').startswith('application/json') or request.args.get('format') == 'json'
+    test_mode = request.args.get('test') == '1'
+
+    # ── TRYB TESTOWY ──
+    if test_mode:
+        print(f"   → 🧪 TRYB TESTOWY - nie wysyłam do Allegro API")
+        order, ord_err = get_order_details(order_id)
+        if ord_err:
+            return jsonify({'success': False, 'error': f'Nie można pobrać zamówienia: {ord_err}', 'test_mode': True}), 400
+
+        delivery = order.get('delivery', {})
+        method_name = delivery.get('method', {}).get('name', 'nieznana')
+        method_id = delivery.get('method', {}).get('id', '')
+        pickup = delivery.get('pickupPoint', {})
+        addr = delivery.get('address', {})
+        items = order.get('lineItems', [])
+        buyer = order.get('buyer', {})
+
+        is_inpost = any(kw in method_name.lower() for kw in ['inpost', 'paczkomat', 'paczka w ruchu'])
+        carrier = 'InPost' if is_inpost else 'DPD/Kurier'
+
+        test_data = {
+            'success': True,
+            'test_mode': True,
+            'order_id': order_id,
+            'carrier': carrier,
+            'delivery_method': method_name,
+            'delivery_method_id': method_id,
+            'pickup_point': pickup.get('id', 'brak'),
+            'pickup_name': pickup.get('name', ''),
+            'address': {
+                'name': f"{addr.get('firstName', '')} {addr.get('lastName', '')}".strip(),
+                'street': addr.get('street', ''),
+                'city': addr.get('city', ''),
+                'zip': addr.get('zipCode', ''),
+                'phone': addr.get('phoneNumber', ''),
+            },
+            'buyer': {
+                'login': buyer.get('login', ''),
+                'email': buyer.get('email', ''),
+            },
+            'items': [{'name': i['offer']['name'][:50], 'qty': i.get('quantity', 1), 'price': i.get('price', {}).get('amount', '0')} for i in items],
+            'total': order.get('summary', {}).get('totalToPay', {}).get('amount', '0'),
+            'payload_preview': {
+                'deliveryMethodId': method_id,
+                'credentialsId': 'bf1a1cf0-...(DPD)' if not is_inpost else 'allegro_shipping_id (InPost)',
+                'lineItemIds': [i.get('id', '') for i in items],
+                'pickupPointId': pickup.get('id') if pickup.get('id') else 'N/A',
+            },
+            'message': f'TEST OK - gotowy do nadania przez {carrier}'
+        }
+        return jsonify(test_data)
 
     # Spróbuj utworzyć przesyłkę i pobrać etykietę
     try:
