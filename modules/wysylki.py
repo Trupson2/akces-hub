@@ -471,15 +471,48 @@ def api_wysylki_szukaj():
             ''', (produkt_z_bazy['id'],)).fetchone()
             if db_order:
                 lok = produkt_z_bazy['lokalizacja'] or produkt_z_bazy['regal'] or ''
+                allegro_oid = db_order['allegro_order_id']
+
+                # Jeśli mamy allegro_order_id, pobierz szczegóły z Allegro API (delivery info)
+                if allegro_oid and raw_orders:
+                    for ao in raw_orders.get('checkoutForms', []):
+                        if ao.get('id') == allegro_oid:
+                            print(f"   → ✅ Znaleziono w Allegro API po allegro_order_id z bazy")
+                            return _zwroc_zamowienie_full(ao)
+
+                # Fallback bez Allegro API - spróbuj wykryć typ z adresu
+                adres = (db_order['adres'] or '').lower()
+                if 'paczkomat' in adres or 'inpost' in adres:
+                    del_type = 'paczkomat'
+                    del_hint = '📮 InPost Paczkomat — wybierz gabaryt A/B/C'
+                elif 'orlen' in adres:
+                    del_type = 'paczkomat_orlen'
+                    del_hint = '⛽ Orlen Paczka — wybierz gabaryt S/M/L'
+                else:
+                    del_type = 'kurier'
+                    del_hint = '📦 Sprawdź metodę dostawy na Allegro'
+
+                # Wyciągnij pickup_point z adresu jeśli jest paczkomat
+                pickup = ''
+                pickup_id = ''
+                if 'paczkomat' in adres or 'inpost' in adres or 'orlen' in adres:
+                    pickup = db_order['adres'] or ''
+                    # Spróbuj wyciągnąć ID paczkomatu (np. PNET0924)
+                    import re
+                    m = re.search(r'([A-Z]{2,5}\d{3,6}[A-Z]?)', (db_order['adres'] or '').upper())
+                    if m:
+                        pickup_id = m.group(1)
+
                 return jsonify({
                     'zamowienie': {
-                        'order_id': db_order['allegro_order_id'] or str(db_order['id']),
+                        'order_id': allegro_oid or str(db_order['id']),
                         'buyer': db_order['kupujacy'] or 'Nieznany',
                         'address': db_order['adres'] or '',
-                        'pickup_point': '',
-                        'delivery_type': 'kurier',
-                        'delivery_method': '',
-                        'pack_hint': '📦 Sprawdź metodę dostawy na Allegro',
+                        'pickup_point': pickup,
+                        'pickup_point_id': pickup_id,
+                        'delivery_type': del_type,
+                        'delivery_method': del_type,
+                        'pack_hint': del_hint,
                         'total': str(db_order['cena'] or 0),
                         'produkt_nazwa': db_order['nazwa'],
                         'inne_produkty': 0,
