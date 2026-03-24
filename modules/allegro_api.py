@@ -4901,12 +4901,12 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
             'weight': {'value': 1, 'unit': 'KILOGRAMS'},
         }]
 
-    # additionalServices sendingAtPoint = nadanie w punkcie (paczkomat/PaczkoPunkt)
-    # Wymaga podania punktu nadania (sender drop-off), nie odbioru
-    # Na razie NIE włączamy - nadanie przez kuriera/zlecenie odbioru
-    # if is_inpost:
-    #     shipment_input['additionalServices'] = ['sendingAtPoint']
-    print(f"   → additionalServices: brak (nadanie bez sendingAtPoint)")
+    # Nadanie w paczkomacie - sendingAtPoint + punkt nadania
+    if is_inpost or is_orlen:
+        sender_point = _cfg('sender_paczkomat', 'MEZ01M')
+        shipment_input['additionalServices'] = ['sendingAtPoint']
+        shipment_input['sender']['point'] = sender_point
+        print(f"   → Nadanie z paczkomatu: {sender_point} (sendingAtPoint)")
 
     # Adres odbiorcy (firstName/lastName lub companyName WYMAGANE)
     buyer = order.get('buyer', {})
