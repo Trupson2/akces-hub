@@ -4901,13 +4901,6 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
             'weight': {'value': 1, 'unit': 'KILOGRAMS'},
         }]
 
-    # Nadanie w paczkomacie - sendingAtPoint + punkt nadania
-    if is_inpost or is_orlen:
-        sender_point = (get_config('sender_paczkomat') or '').strip() or 'MEZ01M'
-        shipment_input['additionalServices'] = ['sendingAtPoint']
-        shipment_input['sender']['point'] = sender_point
-        print(f"   → Nadanie z paczkomatu: {sender_point} (sendingAtPoint)")
-
     # Adres odbiorcy (firstName/lastName lub companyName WYMAGANE)
     buyer = order.get('buyer', {})
     if address:
@@ -4968,6 +4961,13 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         'email': _fe if _fe else 'agauza@interia.eu',
         'phone': _ft if _ft else '+48604753407',
     }
+    # Nadanie w paczkomacie - sendingAtPoint + punkt nadania (PO senderze!)
+    if is_inpost or is_orlen:
+        sender_point = (get_config('sender_paczkomat') or '').strip() or 'MEZ01M'
+        shipment_input['additionalServices'] = ['sendingAtPoint']
+        shipment_input['sender']['point'] = sender_point
+        print(f"   → Nadanie z paczkomatu: {sender_point} (sendingAtPoint)")
+
     print(f"   → 📬 SENDER PAYLOAD: {shipment_input['sender']}")
     print(f"   → 📬 RECEIVER PAYLOAD: {shipment_input.get('receiver', 'BRAK!')}")
 
