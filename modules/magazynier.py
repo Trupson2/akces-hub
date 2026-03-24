@@ -9277,6 +9277,16 @@ def przyjecie_save():
         assessments = data.get('assessments', [])
         conn = get_db()
 
+        # Mapowanie stan_przyjecia → klasa_jakosci
+        STAN_TO_KLASA = {
+            'Nowy': 'A', 'Jak nowy': 'A-', 'Dobry': 'B',
+            'Uszkodzony': 'C', 'Zniszczony': 'D'
+        }
+        STAN_TO_CONDITION = {
+            'Nowy': 'Nowy', 'Jak nowy': 'Jak nowy', 'Dobry': 'Używany',
+            'Uszkodzony': 'Uszkodzony', 'Zniszczony': 'Zniszczony'
+        }
+
         for a in assessments:
             pid = a.get('product_id')
             notatki = a.get('notatki', '')
@@ -9299,28 +9309,34 @@ def przyjecie_save():
 
                     if first:
                         # Pierwszy stan — aktualizuj oryginalny rekord
+                        klasa = STAN_TO_KLASA.get(stan_name, '')
+                        condition = STAN_TO_CONDITION.get(stan_name, stan_name)
                         conn.execute(
-                            'UPDATE produkty SET ilosc = ?, stan_przyjecia = ?, notatki_przyjecia = ? WHERE id = ?',
-                            (qty, stan_name, notatki, pid)
+                            'UPDATE produkty SET ilosc = ?, stan_przyjecia = ?, notatki_przyjecia = ?, klasa_jakosci = ?, stan = ?, status = ? WHERE id = ?',
+                            (qty, stan_name, notatki, klasa, condition, 'magazyn', pid)
                         )
                         first = False
                     else:
                         # Kolejne stany — utwórz kopię produktu z nową ilością i stanem
+                        klasa = STAN_TO_KLASA.get(stan_name, '')
+                        condition = STAN_TO_CONDITION.get(stan_name, stan_name)
                         col_names = ', '.join(cols)
                         placeholders = ', '.join(['?' for _ in cols])
                         values = [orig[c] for c in cols]
 
                         conn.execute(
-                            f'INSERT INTO produkty ({col_names}, ilosc, stan_przyjecia, notatki_przyjecia) VALUES ({placeholders}, ?, ?, ?)',
-                            values + [qty, stan_name, notatki]
+                            f'INSERT INTO produkty ({col_names}, ilosc, stan_przyjecia, notatki_przyjecia, klasa_jakosci, stan, status) VALUES ({placeholders}, ?, ?, ?, ?, ?, ?)',
+                            values + [qty, stan_name, notatki, klasa, condition, 'magazyn']
                         )
             else:
                 # TRYB PROSTY — jeden stan dla wszystkich sztuk
                 stan = a.get('stan', '')
                 if pid and stan:
+                    klasa = STAN_TO_KLASA.get(stan, '')
+                    condition = STAN_TO_CONDITION.get(stan, stan)
                     conn.execute(
-                        'UPDATE produkty SET stan_przyjecia = ?, notatki_przyjecia = ? WHERE id = ?',
-                        (stan, notatki, pid)
+                        'UPDATE produkty SET stan_przyjecia = ?, notatki_przyjecia = ?, klasa_jakosci = ?, stan = ?, status = ? WHERE id = ?',
+                        (stan, notatki, klasa, condition, 'magazyn', pid)
                     )
 
         # Oznacz paletę jako dostarczoną
