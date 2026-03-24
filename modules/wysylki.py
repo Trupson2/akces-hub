@@ -477,7 +477,10 @@ def wysylki_nadaj(order_id):
 
     # ── TRYB TESTOWY ──
     if test_mode:
-        print(f"   → 🧪 TRYB TESTOWY - nie wysyłam do Allegro API")
+        # Wymaga zalogowanego usera
+        if not session.get('username'):
+            return jsonify({'success': False, 'error': 'Zaloguj się aby użyć trybu testowego'}), 403
+        print(f"   → 🧪 TRYB TESTOWY (user: {session.get('username')}) - nie wysyłam do Allegro API")
         order, ord_err = get_order_details(order_id)
         if ord_err:
             return jsonify({'success': False, 'error': f'Nie można pobrać zamówienia: {ord_err}', 'test_mode': True}), 400
