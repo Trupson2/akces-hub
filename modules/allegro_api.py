@@ -4917,12 +4917,16 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
             first_name = login
             last_name = ''
         receiver_name = f'{first_name} {last_name}'.strip() or 'Kupujący'
+        # Email odbiorcy - z adresu, buyer, lub fallback
+        receiver_email = address.get('email', '') or buyer.get('email', '') or 'noreply@allegro.pl'
+
         receiver = {
             'name': receiver_name,
             'street': address.get('street', '') or '-',
             'city': address.get('city', '') or '-',
             'postalCode': address.get('zipCode', '') or '00-000',
             'countryCode': address.get('countryCode', 'PL'),
+            'email': receiver_email,
         }
         if address.get('phoneNumber'):
             receiver['phone'] = address['phoneNumber']
