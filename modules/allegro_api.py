@@ -1632,36 +1632,42 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
     print(f"📁 Received kategoria_id: '{kategoria_id}' (type: {type(kategoria_id).__name__})")
     
     if not kategoria_id:
-        # Najpierw spróbuj lokalne dopasowanie (szybkie i dokładne)
-        _local_cat = detect_category_id(nazwa)
-        if _local_cat != '258682':  # Jeśli znalazł konkretną kategorię (nie domyślną)
-            kategoria_id = _local_cat
-            print(f"📁 Local category match: {kategoria_id}")
-        else:
-            # Spróbuj z API Allegro — wyślij kluczowe słowa, nie pełną nazwę
-            try:
-                # Wyciągnij kluczowe słowa (usuń marki, modele, numery)
-                import re as _re_cat
-                _nazwa_clean = _re_cat.sub(r'\b[A-Z0-9]{5,}\b', '', nazwa)  # Usuń kody typu ASIN
-                _nazwa_clean = _re_cat.sub(r'\b\d{4,}\b', '', _nazwa_clean)  # Usuń długie numery
-                _nazwa_clean = _re_cat.sub(r'\s+', ' ', _nazwa_clean).strip()
-                _search_name = _nazwa_clean[:50] if _nazwa_clean else nazwa[:50]
-                print(f"📁 Category search query: '{_search_name}'")
-                cat_result, _ = search_categories(_search_name)
-                if cat_result and cat_result.get('matchingCategories'):
-                    # Weź pierwszą kategorię ale wypisz top 3 do logów
-                    _matches = cat_result['matchingCategories'][:3]
-                    for _m in _matches:
-                        print(f"📁   Match: {_m.get('id')} - {_m.get('name', '?')}")
+        # === PRIORYTET 1: Allegro API matching (najdokładniejsze) ===
+        try:
+            import re as _re_cat
+            _nazwa_clean = _re_cat.sub(r'\b[A-Z0-9]{5,}\b', '', nazwa)  # Usuń kody ASIN
+            _nazwa_clean = _re_cat.sub(r'\b\d{4,}\b', '', _nazwa_clean)  # Usuń długie numery
+            _nazwa_clean = _re_cat.sub(r'\s+', ' ', _nazwa_clean).strip()
+            _search_name = _nazwa_clean[:50] if _nazwa_clean else nazwa[:50]
+            print(f"📁 Category search query: '{_search_name}'")
+            cat_result, _cat_err = search_categories(_search_name)
+            if cat_result and cat_result.get('matchingCategories'):
+                _matches = cat_result['matchingCategories']
+                # Filtruj: tylko leaf categories (bez dzieci)
+                _leaf_matches = [m for m in _matches if m.get('leaf', True)]
+                _display = _leaf_matches[:5] if _leaf_matches else _matches[:5]
+                for _m in _display:
+                    print(f"📁   Match: {_m.get('id')} - {_m.get('name', '?')} (leaf={_m.get('leaf','?')})")
+                if _leaf_matches:
+                    kategoria_id = _leaf_matches[0].get('id')
+                    print(f"📁 Auto-category from API (leaf): {kategoria_id}")
+                elif _matches:
                     kategoria_id = _matches[0].get('id')
-                    print(f"📁 Auto-category from API: {kategoria_id}")
-            except Exception as e:
-                print(f"⚠️ Category API error: {e}")
+                    print(f"📁 Auto-category from API (first): {kategoria_id}")
+            elif _cat_err:
+                print(f"⚠️ Category API returned error: {_cat_err}")
+        except Exception as e:
+            print(f"⚠️ Category API error: {e}")
 
-        # Ostateczny fallback
+        # === PRIORYTET 2: Lokalne dopasowanie (fallback) ===
         if not kategoria_id:
-            kategoria_id = detect_category_id(nazwa)
-            print(f"📁 Fallback category: {kategoria_id}")
+            _local_cat = detect_category_id(nazwa)
+            if _local_cat != '258682':
+                kategoria_id = _local_cat
+                print(f"📁 Local category fallback: {kategoria_id}")
+            else:
+                kategoria_id = '258682'
+                print(f"📁 Default category (no match): {kategoria_id}")
     
     print(f"📁 Final category ID: {kategoria_id}")
     
