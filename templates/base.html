@@ -435,67 +435,67 @@ if(localStorage.getItem('kiosk_mode')==='1'){
     <nav class="sidebar-nav">
         <div class="sidebar-section">Dashboard</div>
         <a href="/" class="sidebar-link">
-            <span class="sl-icon">🏠</span>Home
+            <span class="sl-icon material-symbols-outlined">dashboard</span>Home
         </a>
         <a href="/wysylki/allegro" class="sidebar-link">
-            <span class="sl-icon">📦</span>Wysylki
+            <span class="sl-icon material-symbols-outlined">local_shipping</span>Wysylki
         </a>
         <a href="/sprzedaze" class="sidebar-link">
-            <span class="sl-icon">💰</span>Sprzedaz
+            <span class="sl-icon material-symbols-outlined">monetization_on</span>Sprzedaz
         </a>
 
         <div class="sidebar-section">Magazyn</div>
         <a href="/magazyn/produkty" class="sidebar-link">
-            <span class="sl-icon">📋</span>Produkty
+            <span class="sl-icon material-symbols-outlined">inventory_2</span>Produkty
         </a>
         <a href="/magazyn/skaner" class="sidebar-link">
-            <span class="sl-icon">📷</span>Skaner
+            <span class="sl-icon material-symbols-outlined">qr_code_scanner</span>Skaner
         </a>
         <a href="/magazyn/palety" class="sidebar-link">
-            <span class="sl-icon">📦</span>Palety
+            <span class="sl-icon material-symbols-outlined">inventory</span>Palety
         </a>
         <a href="/warehouse/heatmap" class="sidebar-link">
-            <span class="sl-icon">🗺️</span>Mapa 3D
+            <span class="sl-icon material-symbols-outlined">layers</span>Mapa 3D
         </a>
         <a href="/serwis" class="sidebar-link">
-            <span class="sl-icon">🔧</span>Serwis
+            <span class="sl-icon material-symbols-outlined">build</span>Serwis
         </a>
         <a href="/warehouse/editor" class="sidebar-link">
-            <span class="sl-icon">📐</span>Edytor magazynu
+            <span class="sl-icon material-symbols-outlined">edit_note</span>Edytor magazynu
         </a>
         <a href="/magazyn/koszty" class="sidebar-link">
-            <span class="sl-icon">💸</span>Koszty
+            <span class="sl-icon material-symbols-outlined">payments</span>Koszty
         </a>
         <a href="/magazyn/sprzedaz-prywatna" class="sidebar-link">
-            <span class="sl-icon">🤝</span>Sprzedaz prywatna
+            <span class="sl-icon material-symbols-outlined">point_of_sale</span>Sprzedaz prywatna
         </a>
 
         <div class="sidebar-section">Sprzedaz</div>
         <a href="/paletomat" class="sidebar-link">
-            <span class="sl-icon">🤖</span>Paletomat
+            <span class="sl-icon material-symbols-outlined">precision_manufacturing</span>Paletomat
         </a>
         <a href="/allegro" class="sidebar-link">
-            <span class="sl-icon">🛒</span>Allegro
+            <span class="sl-icon material-symbols-outlined">shopping_cart</span>Allegro
         </a>
 
         <div class="sidebar-section">Analityka</div>
         <a href="/analytics/dashboard" class="sidebar-link">
-            <span class="sl-icon">📊</span>Dashboard
+            <span class="sl-icon material-symbols-outlined">analytics</span>Dashboard
         </a>
         <a href="/analytics/profit" class="sidebar-link">
-            <span class="sl-icon">💹</span>Zyski i P&L
+            <span class="sl-icon material-symbols-outlined">trending_up</span>Zyski i P&L
         </a>
         <a href="/analytics/allegro-performance" class="sidebar-link">
-            <span class="sl-icon">📈</span>Allegro Performance
+            <span class="sl-icon material-symbols-outlined">insights</span>Allegro Performance
         </a>
         <a href="/analityka/palety" class="sidebar-link">
-            <span class="sl-icon">📦</span>Bilans palet
+            <span class="sl-icon material-symbols-outlined">assessment</span>Bilans palet
         </a>
         <a href="/analityka/koszty-allegro" class="sidebar-link">
-            <span class="sl-icon">💰</span>Koszty Allegro
+            <span class="sl-icon material-symbols-outlined">receipt_long</span>Koszty Allegro
         </a>
         <a href="/monitor" class="sidebar-link">
-            <span class="sl-icon">🔥</span>Okazje
+            <span class="sl-icon material-symbols-outlined">local_fire_department</span>Okazje
         </a>
     </nav>
     <div class="sidebar-bottom">
@@ -512,9 +512,9 @@ if(localStorage.getItem('kiosk_mode')==='1'){
             <a href="/subscription-expired" style="color:inherit;text-decoration:none">Subskrypcja wygasla!</a>
         </div>
         {% endif %}
-        <a href="/narzedzia/cloud-export"><span class="sl-icon">☁️</span>Eksport do chmury</a>
-        <a href="/narzedzia"><span class="sl-icon">⚡</span>Narzedzia</a>
-        <a href="/ustawienia"><span class="sl-icon">⚙️</span>Ustawienia</a>
+        <a href="/narzedzia/cloud-export"><span class="sl-icon material-symbols-outlined">cloud_upload</span>Eksport do chmury</a>
+        <a href="/narzedzia"><span class="sl-icon material-symbols-outlined">construction</span>Narzedzia</a>
+        <a href="/ustawienia"><span class="sl-icon material-symbols-outlined">settings</span>Ustawienia</a>
         {% if current_user %}
         <div class="sidebar-account">
             <div class="sidebar-avatar">{{ current_user[0]|upper }}</div>
