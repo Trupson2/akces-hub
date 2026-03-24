@@ -65,11 +65,13 @@ FEATURE_MIN_PLAN = {
     '/poziom': 'business',                       # gamifikacja
     '/bingo2026': 'business',
 
-    # === ENTERPRISE - wszystko ===
+    # === MAX (business) - zaawansowane moduły ===
+    '/serwis': 'business',
+    '/warehouse': 'business',                    # 3D heatmapa
+
+    # === ENTERPRISE - tylko admin (wewnętrzne) ===
     '/admin/subscriptions': 'enterprise',
     '/narzedzia/licencje': 'enterprise',
-    '/serwis': 'enterprise',
-    '/warehouse': 'enterprise',                  # 3D heatmapa
 }
 
 # Opis funkcji per plan (do wyświetlenia na stronie upgrade)
@@ -99,15 +101,14 @@ PLAN_FEATURES_DISPLAY = {
         'Telegram/WhatsApp powiadomienia',
         'Bulk import palet',
         'Drukarka etykiet (Niimbot/Vretti)',
+        'Magazyn 3D + heatmapa',
+        'Modul serwisowy',
         'Gamifikacja (poziomy, bingo)',
     ],
     'enterprise': [
         'Wszystko z MAX',
-        'Magazyn 3D + heatmapa',
-        'Modul serwisowy',
-        'Zarzadzanie licencjami klientow',
+        'Zarzadzanie licencjami (admin)',
         'Panel admin subskrypcji',
-        'Priorytetowe wsparcie',
     ],
 }
 
