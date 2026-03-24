@@ -505,10 +505,13 @@ function pkShowPackingMode(z) {
     const method = z.delivery_method || z.delivery_type || '---';
     document.getElementById('pkPackMethod').textContent = method.toUpperCase();
 
-    // Show parcel size selector
+    // Show parcel size selector - sprawdź nazwę metody I pickup point
     const methodLow = method.toLowerCase();
-    const isInpost = methodLow.match(/inpost|paczkomat|paczka w ruchu/) && !methodLow.includes('orlen');
-    const isOrlen = methodLow.match(/orlen/);
+    const pickupId = (z.pickup_point || '').toUpperCase();
+    const isOrlenPickup = pickupId.startsWith('ORL');
+    const isInpostPickup = pickupId.length > 0 && !isOrlenPickup;
+    const isInpost = (methodLow.match(/inpost|paczkomat|paczka w ruchu/) && !methodLow.includes('orlen')) || isInpostPickup;
+    const isOrlen = methodLow.match(/orlen/) || isOrlenPickup;
     const isPaczkomat = isInpost || isOrlen;
     document.getElementById('pkParcelSize').style.display = 'block';
     document.getElementById('pkSizeInpost').style.display = isInpost ? 'block' : 'none';
@@ -659,10 +662,13 @@ function pkSelectSize(size) {
 function pkFinalize() {
     if (!pkCurrentOrder) return;
 
-    // Walidacja gabarytu paczkomat (InPost / Orlen)
+    // Walidacja gabarytu paczkomat (InPost / Orlen) - sprawdź też pickup point
     const method = (pkCurrentOrder.delivery_method || '').toLowerCase();
-    const isInpost = method.match(/inpost|paczkomat|paczka w ruchu/) && !method.includes('orlen');
-    const isOrlen = method.includes('orlen');
+    const ppId = (pkCurrentOrder.pickup_point || '').toUpperCase();
+    const isOrlenPP = ppId.startsWith('ORL');
+    const isInpostPP = ppId.length > 0 && !isOrlenPP;
+    const isInpost = (method.match(/inpost|paczkomat|paczka w ruchu/) && !method.includes('orlen')) || isInpostPP;
+    const isOrlen = method.includes('orlen') || isOrlenPP;
     if (isInpost && !pkSelectedSize) {
         document.getElementById('pkSizeSelected').innerHTML = '<span style="color:#ff716c">⚠️ Wybierz gabaryt A, B lub C!</span>';
         return;

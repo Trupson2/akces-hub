@@ -104,12 +104,21 @@ def _get_delivery_info(order):
         pickup_name = pp.get('name', '')
         pickup_point = f"{pickup_name} - {pp.get('address', {}).get('street', '')}"
 
-    # Rozpoznaj typ dostawy i sugeruj pakowanie
+    # Rozpoznaj typ dostawy - sprawdź ZARÓWNO nazwę metody JAK I pickup point ID
     method_lower = method_name.lower()
-    if 'orlen' in method_lower:
+    pickup_id = (delivery.get('pickupPoint', {}).get('id', '') or '').upper()
+
+    # Pickup point ID zaczyna się od prefixu przewoźnika:
+    # InPost paczkomaty: np. KRA010, PNET0924, WAW123M
+    # Orlen Paczka: np. ORL-xxx, ORLxxx
+    is_orlen_pickup = pickup_id.startswith('ORL')
+    # InPost: dowolny pickup point z literami+cyframi (nie Orlen)
+    is_inpost_pickup = bool(pickup_id) and not is_orlen_pickup
+
+    if 'orlen' in method_lower or is_orlen_pickup:
         delivery_type = 'paczkomat_orlen'
         pack_hint = '⛽ Orlen Paczka — gabaryty S/M/L, max 41×38×64cm, max 15kg.'
-    elif any(x in method_lower for x in ['paczkomat', 'inpost', 'automat', 'paczka w ruchu']):
+    elif any(x in method_lower for x in ['paczkomat', 'inpost', 'automat', 'paczka w ruchu']) or is_inpost_pickup:
         delivery_type = 'paczkomat'
         pack_hint = '📮 InPost Paczkomat — gabaryty A/B/C, max 41×38×64cm, max 25kg.'
     elif any(x in method_lower for x in ['kurier', 'dpd', 'dhl', 'ups', 'fedex', 'gls', 'pocztex']):
