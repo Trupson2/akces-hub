@@ -3599,23 +3599,74 @@ def palety():
             pass
 
     
-    html = '''<div class="hdr"><h1>📦 PALETY</h1></div>
+    total_palety = len(result)
 
-    <!-- Masowa edycja -->
-    <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <div style="font-size:0.85rem;color:#64748b;margin-right:4px">Zaznaczone:</div>
-        <button onclick="selectAll()" style="padding:5px 10px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#94a3b8;font-size:0.75rem;cursor:pointer">☑️ Wszystkie</button>
-        <button onclick="selectNone()" style="padding:5px 10px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#94a3b8;font-size:0.75rem;cursor:pointer">◻️ Odznacz</button>
-        <div style="flex:1"></div>
-        <button onclick="massUpdate(1)" style="padding:6px 12px;background:#5bf08322;border:1px solid #5bf083;border-radius:8px;color:#5bf083;font-size:0.8rem;cursor:pointer;font-weight:600">✅ Dostarczone</button>
-        <button onclick="massUpdate(0)" style="padding:6px 12px;background:#f59e0b22;border:1px solid #f59e0b;border-radius:8px;color:#f59e0b;font-size:0.8rem;cursor:pointer;font-weight:600">🚚 W drodze</button>
-        <button onclick="massDelete()" style="padding:6px 12px;background:#ef444422;border:1px solid #ef4444;border-radius:8px;color:#ef4444;font-size:0.8rem;cursor:pointer;font-weight:600">🗑️ Usuń</button>
-        <button onclick="pokazBoxPaletyModal()" style="padding:6px 12px;background:#f59e0b22;border:1px solid #f59e0b;border-radius:8px;color:#f59e0b;font-size:0.8rem;cursor:pointer;font-weight:600">📫 Zgrupuj w box</button>
-        <span id="selectedCount" style="font-size:0.75rem;color:#64748b;margin-left:4px">(0 zaznaczonych)</span>
+    html = f'''
+    <style>
+        .pl-label{{font-family:'Manrope',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.2em;color:rgba(255,255,255,0.45)}}
+        .pl-headline{{font-family:'Space Grotesk',sans-serif}}
+        .pl-card{{background:rgba(25,25,28,0.7);backdrop-filter:blur(12px);padding:20px;border:1px solid rgba(255,255,255,0.05);margin-bottom:12px;transition:all 0.2s;position:relative}}
+        .pl-card:hover{{background:rgba(31,31,34,0.9);box-shadow:0 0 15px rgba(0,0,0,0.3)}}
+        .pl-badge{{display:inline-block;padding:2px 8px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;font-family:'Manrope',sans-serif}}
+        .pl-badge-box{{background:rgba(143,245,255,0.1);color:#8ff5ff;border:1px solid rgba(143,245,255,0.2)}}
+        .pl-badge-paleta{{background:rgba(190,238,0,0.1);color:#beee00;border:1px solid rgba(190,238,0,0.2)}}
+        .pl-status-ok{{border-color:rgba(190,238,0,0.4);color:#beee00;background:rgba(190,238,0,0.05);box-shadow:0 0 5px rgba(190,238,0,0.2)}}
+        .pl-status-ship{{border-color:rgba(255,107,155,0.4);color:#ff6b9b;background:rgba(255,107,155,0.05);box-shadow:0 0 5px rgba(255,107,155,0.2)}}
+        .pl-bar-left{{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:2px}}
+        .pl-action{{flex-shrink:0;padding:6px 14px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.7);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;cursor:pointer;font-family:'Manrope',sans-serif;transition:all 0.15s;display:inline-flex;align-items:center;gap:4px;border-radius:20px}}
+        .pl-action:hover{{transform:translateY(-1px)}}
+        .pl-action-green{{border-color:rgba(190,238,0,0.3);color:#beee00}}.pl-action-green:hover{{background:rgba(190,238,0,0.1)}}
+        .pl-action-amber{{border-color:rgba(255,173,194,0.3);color:#ffadc2}}.pl-action-amber:hover{{background:rgba(255,173,194,0.1)}}
+        .pl-action-red{{border-color:rgba(255,113,108,0.3);color:#ff716c}}.pl-action-red:hover{{background:rgba(255,113,108,0.1)}}
+        .pl-action-cyan{{border-color:rgba(143,245,255,0.3);color:#8ff5ff}}.pl-action-cyan:hover{{background:rgba(143,245,255,0.1)}}
+    </style>
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+        <div style="display:flex;align-items:center;gap:12px">
+            <div style="padding:8px;background:rgba(143,245,255,0.1);border:1px solid rgba(143,245,255,0.2)">
+                <span class="material-symbols-outlined" style="font-size:28px;color:#8ff5ff">inventory_2</span>
+            </div>
+            <div>
+                <h1 class="pl-headline" style="font-size:clamp(1.8rem,4vw,2.5rem);font-weight:700;letter-spacing:-0.03em;color:#8ff5ff;margin:0;text-shadow:0 0 10px rgba(143,245,255,0.4)">PALETY</h1>
+                <div class="pl-label">Inventory Hub</div>
+            </div>
+        </div>
+        <div style="text-align:right">
+            <div class="pl-label">Total</div>
+            <div class="pl-headline" style="font-size:1.5rem;font-weight:700">{total_palety}</div>
+        </div>
     </div>
-    <div style="margin-bottom:12px">
-        <input type="text" id="paletaSearch" oninput="searchPalety()" placeholder="🔍 Szukaj palety..."
-            style="width:100%;padding:10px 14px;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e2e8f0;font-size:0.9rem;outline:none">
+
+    <!-- Actions -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+        <button onclick="selectAll()" class="pl-action pl-action-cyan">
+            <span class="material-symbols-outlined" style="font-size:14px">select_all</span> Wszystkie
+        </button>
+        <button onclick="selectNone()" class="pl-action" style="border-color:rgba(255,255,255,0.15)">
+            <span class="material-symbols-outlined" style="font-size:14px">deselect</span> Odznacz
+        </button>
+        <div style="flex:1"></div>
+        <button onclick="massUpdate(1)" class="pl-action pl-action-green">
+            <span class="material-symbols-outlined" style="font-size:14px">task_alt</span> Dostarczone
+        </button>
+        <button onclick="massUpdate(0)" class="pl-action pl-action-amber">
+            <span class="material-symbols-outlined" style="font-size:14px">local_shipping</span> W drodze
+        </button>
+        <button onclick="pokazBoxPaletyModal()" class="pl-action pl-action-cyan">
+            <span class="material-symbols-outlined" style="font-size:14px">inventory</span> Zgrupuj w box
+        </button>
+        <button onclick="massDelete()" class="pl-action pl-action-red">
+            <span class="material-symbols-outlined" style="font-size:14px">delete</span> Usuń
+        </button>
+        <span id="selectedCount" style="font-size:11px;color:rgba(255,255,255,0.4);margin-left:4px">(0)</span>
+    </div>
+
+    <!-- Search -->
+    <div style="position:relative;margin-bottom:20px">
+        <span class="material-symbols-outlined" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#8ff5ff;font-size:18px">search</span>
+        <input type="text" id="paletaSearch" oninput="searchPalety()" placeholder="SZUKAJ PALETY LUB SKU..."
+            style="width:100%;padding:14px 14px 14px 44px;background:rgba(38,37,40,0.8);border:none;border-bottom:1px solid rgba(143,245,255,0.15);color:#f9f5f8;font-size:12px;letter-spacing:0.15em;font-family:'Manrope',sans-serif;outline:none">
     </div>'''
 
     for p in result:
@@ -3638,39 +3689,71 @@ def palety():
         dostarczona = dostarczona_map.get(p['id'], 0)
         dostarczona_label = '✅ Dostarczona' if dostarczona else '🚚 W drodze'
         dostarczona_color = '#5bf083' if dostarczona else '#f59e0b'
-        html += f'''<div class="item" style="position:relative;display:flex;align-items:center;gap:8px">
-            <input type="checkbox" class="paleta-cb" data-id="{p['id']}"
-                style="width:24px;height:24px;cursor:pointer;accent-color:#00f1fe;flex-shrink:0">
-            <a href="{link}" style="display:flex;flex:1;align-items:center;text-decoration:none;color:inherit;min-width:0;gap:10px">
-                <div style="font-size:1.5rem">{'📫' if p['typ'] == 'box' else '📦'}</div>
-                <div class="item-info" style="flex:1;min-width:0">
-                    <div class="item-name">{p['nazwa']}{'<span style="font-size:0.65rem;background:#00f1fe33;color:#00f1fe;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle">BOX</span>' if p['typ'] == 'box' else ''}</div>
-                    <div class="item-meta" style="color:{cnt_color}">{p['cnt']} prod. | {sztuki} szt{dostawca_info}{data_info}</div>
-                    <div class="item-meta">💰 Zakup: {zakup_brutto:.0f} zł</div>
+        is_box = p['typ'] == 'box'
+        bar_color = '#ff6b9b' if not dostarczona else '#beee00'
+        status_class = 'pl-status-ok' if dostarczona else 'pl-status-ship'
+        badge_class = 'pl-badge-box' if is_box else 'pl-badge-paleta'
+        badge_text = 'BOX' if is_box else 'PALETA'
+        icon = 'package_2' if is_box else 'inventory'
+        wartosc = p['wartosc_allegro'] or 0
+        dostawca_txt = p['dostawca'] or ''
+        data_txt = p['data_zakupu'] or ''
+
+        html += f'''<div class="pl-card" onclick="window.location='{link}'" style="cursor:pointer;padding-left:24px">
+            <div class="pl-bar-left" style="background:{bar_color};box-shadow:0 0 10px {bar_color}80"></div>
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+                <div style="display:flex;gap:12px;align-items:flex-start;flex:1;min-width:0">
+                    <input type="checkbox" class="paleta-cb" data-id="{p['id']}" onclick="event.stopPropagation();licz()"
+                        style="width:18px;height:18px;cursor:pointer;accent-color:#8ff5ff;flex-shrink:0;margin-top:4px">
+                    <div style="min-width:0">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                            <span class="material-symbols-outlined" style="font-size:18px;color:rgba(255,255,255,0.5)">{icon}</span>
+                            <h3 class="pl-headline item-name" style="font-size:1.05rem;font-weight:700;color:#f9f5f8;margin:0;line-height:1.2">{p['nazwa']}</h3>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px">
+                            <span class="pl-badge {badge_class}">{badge_text}</span>
+                            <span style="font-size:11px;color:rgba(255,255,255,0.4)">#{p['id']}</span>
+                        </div>
+                    </div>
                 </div>
-            </a>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:100px;flex-shrink:0">
-                <div style="color:#5bf083;font-weight:700">{p['wartosc_allegro'] or 0:.0f} zł</div>
-                <button onclick="toggleDostarczona({p['id']}, this)"
-                    data-val="{dostarczona}"
-                    style="padding:4px 8px;border:1px solid {dostarczona_color};background:{dostarczona_color}22;color:{dostarczona_color};border-radius:6px;font-size:0.7rem;cursor:pointer;white-space:nowrap">
+                <button onclick="event.stopPropagation();toggleDostarczona({p['id']}, this)" data-val="{dostarczona}"
+                    style="padding:4px 10px;border:1px solid;font-size:10px;font-weight:700;text-transform:uppercase;cursor:pointer;white-space:nowrap;font-family:'Manrope',sans-serif;background:transparent" class="{status_class}">
                     {dostarczona_label}
                 </button>
+            </div>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.05);padding-top:12px">
+                <div>
+                    <div class="item-meta" style="display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">
+                        <span class="material-symbols-outlined" style="font-size:12px">list_alt</span>
+                        {p['cnt']} prod. | {sztuki} szt.
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em">
+                        <span class="material-symbols-outlined" style="font-size:12px">event</span>
+                        {dostawca_txt}{' &bull; ' + data_txt if data_txt else ''}
+                    </div>
+                </div>
+                <div style="text-align:right">
+                    <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:2px">ZAKUP: {zakup_brutto:.0f} ZŁ</div>
+                    <div class="pl-headline" style="font-size:1.5rem;font-weight:700;color:#8ff5ff;letter-spacing:-0.03em;text-shadow:0 0 8px rgba(143,245,255,0.3)">{wartosc:.0f} ZŁ</div>
+                </div>
             </div>
         </div>'''
     
     # Produkty bez palety
     if bez_palety['cnt'] > 0:
-        html += f'''<a href="/magazyn/paleta/brak" class="item" style="border-color:#f59e0b">
-            <div style="font-size:1.5rem;margin-right:10px">⚠️</div>
-            <div class="item-info">
-                <div class="item-name" style="color:#f59e0b">Bez palety</div>
-                <div class="item-meta">{bez_palety['cnt']} prod. | {bez_palety['items']} szt</div>
+        html += f'''<div class="pl-card" onclick="window.location='/magazyn/paleta/brak'" style="cursor:pointer;padding-left:24px;border-color:rgba(255,107,155,0.2)">
+            <div class="pl-bar-left" style="background:#ff716c;box-shadow:0 0 10px rgba(255,113,108,0.5)"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+                <div style="display:flex;align-items:center;gap:10px">
+                    <span class="material-symbols-outlined" style="font-size:22px;color:#ff716c">warning</span>
+                    <div>
+                        <div class="pl-headline item-name" style="font-size:1rem;font-weight:700;color:#ff716c">Bez palety</div>
+                        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em">{bez_palety['cnt']} prod. | {bez_palety['items']} szt.</div>
+                    </div>
+                </div>
+                <div class="pl-headline" style="font-size:1.3rem;font-weight:700;color:#ff716c">{bez_palety['wartosc_allegro'] or 0:.0f} ZŁ</div>
             </div>
-            <div class="item-right">
-                <div class="item-qty" style="color:#f59e0b">{bez_palety['wartosc_allegro'] or 0:.0f} zł</div>
-            </div>
-        </a>'''
+        </div>'''
     
     html += '''<script>
     var paletyCbs = document.getElementsByClassName("paleta-cb");
