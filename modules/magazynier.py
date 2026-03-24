@@ -9620,6 +9620,23 @@ def przyjecie_save():
                             f'INSERT INTO produkty ({col_names}, ilosc, stan_przyjecia, notatki_przyjecia, klasa_jakosci, stan, status) VALUES ({placeholders}, ?, ?, ?, ?, ?, ?)',
                             values + [qty, stan_name, notatki, klasa, condition, 'magazyn']
                         )
+
+                # Utwórz sztuki w tabeli ewidencji
+                conn.execute('''CREATE TABLE IF NOT EXISTS sztuki (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, produkt_id INTEGER NOT NULL,
+                    numer INTEGER NOT NULL, stan TEXT DEFAULT 'Nowy',
+                    status TEXT DEFAULT 'magazyn', opis_naprawy TEXT DEFAULT '',
+                    data_naprawy DATE DEFAULT NULL, zdjecie TEXT DEFAULT '')''')
+                conn.execute('DELETE FROM sztuki WHERE produkt_id = ?', (pid,))
+                numer = 1
+                for stan_name, qty in split.items():
+                    condition = STAN_TO_CONDITION.get(stan_name, stan_name)
+                    for _ in range(int(qty)):
+                        conn.execute(
+                            'INSERT INTO sztuki (produkt_id, numer, stan, status) VALUES (?, ?, ?, ?)',
+                            (pid, numer, condition, 'magazyn')
+                        )
+                        numer += 1
             else:
                 # TRYB PROSTY — jeden stan dla wszystkich sztuk
                 stan = a.get('stan', '')
@@ -9703,6 +9720,20 @@ def ocen_produkt():
                         f'INSERT INTO produkty ({col_names}, ilosc, stan_przyjecia, notatki_przyjecia, klasa_jakosci, stan, status) VALUES ({placeholders}, ?, ?, ?, ?, ?, ?)',
                         values + [qty, stan_name, notatki, klasa, condition, 'magazyn']
                     )
+            # Utwórz sztuki w ewidencji
+            conn.execute('''CREATE TABLE IF NOT EXISTS sztuki (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, produkt_id INTEGER NOT NULL,
+                numer INTEGER NOT NULL, stan TEXT DEFAULT 'Nowy',
+                status TEXT DEFAULT 'magazyn', opis_naprawy TEXT DEFAULT '',
+                data_naprawy DATE DEFAULT NULL, zdjecie TEXT DEFAULT '')''')
+            conn.execute('DELETE FROM sztuki WHERE produkt_id = ?', (pid,))
+            numer = 1
+            for stan_name, qty in split.items():
+                condition = STAN_TO_CONDITION.get(stan_name, stan_name)
+                for _ in range(int(qty)):
+                    conn.execute('INSERT INTO sztuki (produkt_id, numer, stan, status) VALUES (?, ?, ?, ?)',
+                        (pid, numer, condition, 'magazyn'))
+                    numer += 1
         elif stan:
             klasa = STAN_TO_KLASA.get(stan, '')
             condition = STAN_TO_CONDITION.get(stan, stan)
