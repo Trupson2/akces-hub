@@ -85,21 +85,62 @@ def _pobierz_zamowienia_allegro(force_refresh=False):
     _wysylki_cache['timestamp'] = now
     return result, raw_orders
 
+def _get_delivery_info(order):
+    """Wyciąga info o dostawie: metoda, punkt, adres, sugestia pakowania"""
+    delivery = order.get('delivery', {})
+    method = delivery.get('method', {})
+    method_name = method.get('name', '')
+    method_id = method.get('id', '')
+
+    address_data = delivery.get('address', {})
+    address = ', '.join([p for p in [
+        address_data.get('street', ''), address_data.get('city', ''), address_data.get('zipCode', '')
+    ] if p])
+
+    pickup_point = ''
+    pickup_name = ''
+    if delivery.get('pickupPoint'):
+        pp = delivery.get('pickupPoint', {})
+        pickup_name = pp.get('name', '')
+        pickup_point = f"{pickup_name} - {pp.get('address', {}).get('street', '')}"
+
+    # Rozpoznaj typ dostawy i sugeruj pakowanie
+    method_lower = method_name.lower()
+    if any(x in method_lower for x in ['paczkomat', 'inpost', 'automat']):
+        delivery_type = 'paczkomat'
+        pack_hint = '📦 Paczkomat — max 41×38×64cm, max 25kg. Użyj kartonu A lub foliopaku.'
+    elif any(x in method_lower for x in ['kurier', 'dpd', 'dhl', 'ups', 'fedex', 'gls', 'pocztex']):
+        delivery_type = 'kurier'
+        pack_hint = '🚚 Kurier — zabezpiecz folią bąbelkową, oklej taśmą.'
+    elif any(x in method_lower for x in ['list', 'poczt', 'polecony']):
+        delivery_type = 'list'
+        pack_hint = '✉️ List/poczta — koperta bąbelkowa lub mały karton.'
+    elif any(x in method_lower for x in ['odbiór', 'osobisty', 'osobist']):
+        delivery_type = 'odbior'
+        pack_hint = '🏠 Odbiór osobisty — przygotuj do wydania.'
+    elif pickup_name:
+        delivery_type = 'punkt'
+        pack_hint = f'📍 Punkt odbioru: {pickup_name} — standardowy karton.'
+    else:
+        delivery_type = 'inny'
+        pack_hint = f'📦 {method_name or "Standardowa wysyłka"} — zabezpiecz odpowiednio.'
+
+    return {
+        'method_name': method_name,
+        'delivery_type': delivery_type,
+        'address': address or 'Brak adresu',
+        'pickup_point': pickup_point,
+        'pack_hint': pack_hint,
+    }
+
+
 def _zwroc_zamowienie_full(order):
     """Helper - formatuje odpowiedź z WSZYSTKIMI produktami zamówienia (np. ze skanowanej etykiety)"""
     from modules.database import get_db
     order_id = order.get('id', '')
     buyer = order.get('buyer', {}).get('login', 'Nieznany')
 
-    delivery = order.get('delivery', {})
-    address_data = delivery.get('address', {})
-    address = ', '.join([p for p in [
-        address_data.get('street', ''), address_data.get('city', ''), address_data.get('zipCode', '')
-    ] if p])
-    pickup_point = ''
-    if delivery.get('pickupPoint'):
-        pp = delivery.get('pickupPoint', {})
-        pickup_point = f"{pp.get('name', '')} - {pp.get('address', {}).get('street', '')}"
+    del_info = _get_delivery_info(order)
 
     total = sum(float(i.get('price', {}).get('amount', 0)) * int(i.get('quantity', 1))
                for i in order.get('lineItems', []))
@@ -143,8 +184,11 @@ def _zwroc_zamowienie_full(order):
         'zamowienie': {
             'order_id': order_id,
             'buyer': buyer,
-            'address': address or 'Brak adresu',
-            'pickup_point': pickup_point,
+            'address': del_info['address'],
+            'pickup_point': del_info['pickup_point'],
+            'delivery_type': del_info['delivery_type'],
+            'delivery_method': del_info['method_name'],
+            'pack_hint': del_info['pack_hint'],
             'total': f"{total:.0f}",
             'produkt_nazwa': produkty[0]['nazwa'] if produkty else '',
             'inne_produkty': len(produkty) - 1,
@@ -161,18 +205,7 @@ def _zwroc_zamowienie(order, item, produkt_z_bazy):
     buyer = order.get('buyer', {}).get('login', 'Nieznany')
     offer_name = item.get('offer', {}).get('name', '')
 
-    delivery = order.get('delivery', {})
-    address_data = delivery.get('address', {})
-    address = ', '.join([p for p in [
-        address_data.get('street', ''),
-        address_data.get('city', ''),
-        address_data.get('zipCode', '')
-    ] if p])
-
-    pickup_point = ''
-    if delivery.get('pickupPoint'):
-        pp = delivery.get('pickupPoint', {})
-        pickup_point = f"{pp.get('name', '')} - {pp.get('address', {}).get('street', '')}"
+    del_info = _get_delivery_info(order)
 
     total = sum(float(i.get('price', {}).get('amount', 0)) * int(i.get('quantity', 1))
                for i in order.get('lineItems', []))
@@ -183,8 +216,11 @@ def _zwroc_zamowienie(order, item, produkt_z_bazy):
         'zamowienie': {
             'order_id': order_id,
             'buyer': buyer,
-            'address': address or 'Brak adresu',
-            'pickup_point': pickup_point,
+            'address': del_info['address'],
+            'pickup_point': del_info['pickup_point'],
+            'delivery_type': del_info['delivery_type'],
+            'delivery_method': del_info['method_name'],
+            'pack_hint': del_info['pack_hint'],
             'total': f"{total:.0f}",
             'produkt_nazwa': offer_name[:60],
             'inne_produkty': inne_produkty,
