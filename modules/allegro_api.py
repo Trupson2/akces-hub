@@ -4929,18 +4929,23 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         if pickup_point and pickup_point.get('id'):
             print(f"   → Punkt odbioru (z zamówienia): {pickup_point['id']}")
 
-    # Nadawca — dane firmy
+    # Nadawca — dane firmy (hardcoded AKCES jako fallback)
+    def _cfg(key, default=''):
+        v = get_config(key)
+        return v.strip() if v and v.strip() else default
+
     shipment_input['sender'] = {
-        'companyName': get_config('firma_nazwa') or 'AKCES',
-        'firstName': get_config('firma_imie') or 'Andrzej',
-        'lastName': get_config('firma_nazwisko') or 'Gauza',
-        'street': get_config('firma_ulica') or 'Poniatowskiego 13',
-        'city': get_config('allegro_city') or 'Mieszkowice',
-        'postalCode': get_config('allegro_postcode') or '74-505',
+        'companyName': _cfg('firma_nazwa', 'AKCES'),
+        'firstName': _cfg('firma_imie', 'Andrzej'),
+        'lastName': _cfg('firma_nazwisko', 'Gauza'),
+        'street': _cfg('firma_ulica', 'Poniatowskiego 13'),
+        'city': _cfg('allegro_city', 'Mieszkowice'),
+        'postalCode': _cfg('allegro_postcode', '74-505'),
         'countryCode': 'PL',
-        'email': get_config('firma_email') or 'agauza@interia.eu',
-        'phone': get_config('firma_telefon') or '+48604753407',
+        'email': _cfg('firma_email', 'agauza@interia.eu'),
+        'phone': _cfg('firma_telefon', '+48604753407'),
     }
+    print(f"   → Nadawca: {shipment_input['sender']['companyName']}, {shipment_input['sender']['firstName']} {shipment_input['sender']['lastName']}, {shipment_input['sender']['street']}")
 
     payload = {
         'commandId': command_id,
