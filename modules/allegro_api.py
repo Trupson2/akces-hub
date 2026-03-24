@@ -4815,57 +4815,90 @@ def get_wysylam_z_allegro_shipments(order_id):
 
 def create_wysylam_z_allegro_shipment(order_id, reference=None):
     """
-    Tworzy przesyłkę dla zamówienia.
-    Używa standardowego API checkout-forms shipments.
+    Tworzy przesyłkę przez Wysyłam z Allegro (shipment-management API).
+    POST /shipment-management/shipments/create-commands
     """
-    print(f"📦 Tworzenie przesyłki dla: {order_id}")
-    
+    print(f"📦 Tworzenie przesyłki (Wysyłam z Allegro) dla: {order_id}")
+
     # Pobierz dane zamówienia
     order, error = get_order_details(order_id)
     if error:
         return None, f"Nie można pobrać zamówienia: {error}"
-    
-    # Pobierz delivery method i line items
+
     delivery = order.get('delivery', {})
     delivery_method_id = delivery.get('method', {}).get('id')
+    delivery_method_name = delivery.get('method', {}).get('name', '').lower()
+    pickup_point = delivery.get('pickupPoint', {})
+    address = delivery.get('address', {})
     line_items = order.get('lineItems', [])
-    
+
     print(f"   → deliveryMethodId: {delivery_method_id}")
+    print(f"   → deliveryMethodName: {delivery_method_name}")
+    print(f"   → pickupPoint: {pickup_point.get('id', 'brak')}")
     print(f"   → lineItems: {len(line_items)}")
-    
+
     if not delivery_method_id:
         return None, "Brak metody dostawy w zamówieniu"
-    
+
     if not line_items:
         return None, "Brak produktów w zamówieniu"
-    
-    # Przygotuj dane - lineItemIds to lista ID produktów z zamówienia
+
     line_item_ids = [item.get('id') for item in line_items if item.get('id')]
-    
-    print(f"   → lineItemIds: {line_item_ids}")
-    
-    # Przygotuj dane przesyłki
-    shipment_data = {
+
+    # Buduj payload dla Wysyłam z Allegro
+    import uuid
+    command_id = str(uuid.uuid4())
+
+    shipment_input = {
         'deliveryMethodId': delivery_method_id,
-        'lineItemIds': line_item_ids
+        'lineItemIds': line_item_ids,
     }
-    
-    # Dodaj referencję jeśli podana
-    if reference:
-        shipment_data['credentialsId'] = reference[:20]  # lub senderReference
-    
-    print(f"   → Wysyłam: {shipment_data}")
-    
-    # Utwórz przesyłkę przez standardowe API
-    result, error = allegro_request('POST', f'/order/checkout-forms/{order_id}/shipments', data=shipment_data)
-    
+
+    # Dodaj punkt odbioru (paczkomat) jeśli jest
+    if pickup_point and pickup_point.get('id'):
+        shipment_input['pickupPointId'] = pickup_point['id']
+
+    # Adres odbiorcy
+    if address:
+        receiver = {
+            'firstName': address.get('firstName', ''),
+            'lastName': address.get('lastName', ''),
+            'street': address.get('street', ''),
+            'city': address.get('city', ''),
+            'zipCode': address.get('zipCode', ''),
+            'countryCode': address.get('countryCode', 'PL'),
+        }
+        if address.get('phoneNumber'):
+            receiver['phone'] = address['phoneNumber']
+        if address.get('companyName'):
+            receiver['companyName'] = address['companyName']
+        shipment_input['receiver'] = receiver
+
+    payload = {
+        'commandId': command_id,
+        'input': shipment_input
+    }
+
+    print(f"   → Payload: {payload}")
+
+    # Wyślij do Wysyłam z Allegro API
+    result, error = allegro_request('POST', '/shipment-management/shipments/create-commands', data=payload)
+
     print(f"   → Wynik: {result}")
     print(f"   → Błąd: {error}")
-    
+
     if error:
-        # Sprawdź szczegóły błędu
         print(f"   → Szczegóły błędu: {error}")
-    
+        # Fallback: spróbuj standardowe API
+        print(f"   → Próbuję standardowe API...")
+        fallback_data = {
+            'deliveryMethodId': delivery_method_id,
+            'lineItemIds': line_item_ids
+        }
+        result, error = allegro_request('POST', f'/order/checkout-forms/{order_id}/shipments', data=fallback_data)
+        print(f"   → Fallback wynik: {result}")
+        print(f"   → Fallback błąd: {error}")
+
     return result, error
 
 
