@@ -216,7 +216,7 @@
                 <div class="cyber-top-name">{{ d.nazwa }}</div>
                 <div class="cyber-top-meta">{{ d.sprzedane }} szt | {{ d.przychod }} zl przychod</div>
             </div>
-            <div class="cyber-top-value {% if d.roi > 50 %}lime{% else %}cyan{% endif %}">{{ d.roi }}%</div>
+            <div class="cyber-top-value {% if d.roi|int > 50 %}lime{% else %}cyan{% endif %}">{{ d.roi }}%</div>
         </div>
         {% else %}
         <div class="cyber-empty">Brak danych</div>
