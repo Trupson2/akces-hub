@@ -4515,40 +4515,15 @@ def zamowienie_detail(order_id):
 @allegro_bp.route('/oferty')
 def oferty():
     offers_data, error = get_my_offers()
-
-    html = ''
-
-    if error:
-        html += f'<div class="alert alert-error">{error}</div>'
-    elif offers_data and 'offers' in offers_data:
+    offers = []
+    if not error and offers_data and 'offers' in offers_data:
         offers = offers_data['offers']
-        html += f'<div class="alert alert-success" style="text-align:center">{len(offers)} aktywnych ofert</div>'
-
-        for offer in offers:
-            selling_mode = offer.get('sellingMode') or {}
-            price_obj = selling_mode.get('price') or {}
-            price = price_obj.get('amount', '0') if isinstance(price_obj, dict) else '0'
-            stock = (offer.get('stock') or {}).get('available', 0)
-            pub_status = (offer.get('publication') or {}).get('status', 'INACTIVE')
-
-            badge_cls = 'badge-success' if pub_status == 'ACTIVE' else 'badge-warning'
-            badge_txt = 'Aktywna' if pub_status == 'ACTIVE' else 'Szkic'
-
-            html += f'''
-            <div class="list-item">
-                <div class="list-item-info">
-                    <div class="list-item-title">{offer.get('name', 'Oferta')[:45]}</div>
-                    <div class="list-item-meta">{stock} szt &middot; <span class="badge {badge_cls}">{badge_txt}</span></div>
-                </div>
-                <div class="list-item-right">
-                    <div class="list-item-value">{float(price):.2f} zl</div>
-                </div>
-            </div>'''
-    else:
-        html += '<div style="text-align:center;color:var(--text-muted);padding:30px">Brak ofert</div>'
-
-    html += '<a href="/allegro" class="back">← Powrot</a>'
-    return render(html, 'Moje oferty')
+    from flask import render_template
+    return render_template('allegro_oferty.html',
+        offers=offers,
+        error=error,
+        total_count=len(offers),
+    )
 
 
 @allegro_bp.route('/napraw-zwroty')

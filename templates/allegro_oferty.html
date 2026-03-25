@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+{# Variables: offers (list), error (str or None), total_count (int) #}
+
+<!-- Header -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:6px">
+        <span style="width:2px;height:14px;background:var(--neon-primary);border-radius:1px"></span>
+        <span class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--neon-primary)">Allegro Oferty</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+        {% if total_count %}
+        <span style="font-size:0.6rem;font-weight:700;letter-spacing:0.1em;padding:3px 10px;background:rgba(143,245,255,0.08);color:var(--neon-primary)">{{ total_count }} OFERT</span>
+        {% endif %}
+        <a href="/allegro" style="font-size:0.6rem;font-weight:700;letter-spacing:0.1em;color:var(--text-muted);text-decoration:none">
+            <span class="material-symbols-outlined" style="font-size:0.7rem;vertical-align:middle">arrow_back</span> ALLEGRO
+        </a>
+    </div>
+</div>
+
+{% if error %}
+<div style="padding:14px 18px;background:rgba(239,68,68,0.08);border-left:3px solid var(--red);margin-bottom:16px;font-size:0.82rem;color:var(--red)">{{ error }}</div>
+{% endif %}
+
+{% if offers %}
+<!-- Offers table -->
+<div style="background:var(--bg-card,rgba(19,19,28,0.6));overflow:hidden">
+    <!-- Table header -->
+    <div style="display:grid;grid-template-columns:1fr 100px 80px 80px;gap:8px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05)">
+        <span style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted)">PRODUKT</span>
+        <span style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);text-align:right">CENA</span>
+        <span style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);text-align:center">STATUS</span>
+        <span style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);text-align:right">STAN</span>
+    </div>
+
+    {% for offer in offers %}
+    {% set selling_mode = offer.get('sellingMode') or {} %}
+    {% set price_obj = selling_mode.get('price') or {} %}
+    {% set price = price_obj.get('amount', '0') if price_obj is mapping else '0' %}
+    {% set stock = (offer.get('stock') or {}).get('available', 0) %}
+    {% set pub_status = (offer.get('publication') or {}).get('status', 'INACTIVE') %}
+    {% set is_active = pub_status == 'ACTIVE' %}
+
+    <div style="display:grid;grid-template-columns:1fr 100px 80px 80px;gap:8px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.02);{% if not is_active %}opacity:0.5{% endif %}">
+        <!-- Product name -->
+        <div>
+            <div class="font-display" style="font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ offer.get('name', 'Oferta')[:50] }}</div>
+            <div style="font-size:0.55rem;color:var(--text-muted);margin-top:2px">ID: {{ offer.get('id', '')[:12] }}</div>
+        </div>
+        <!-- Price -->
+        <div style="text-align:right">
+            <span class="font-display" style="font-weight:700;font-size:0.85rem">{{ "%.2f"|format(price|float) }}</span>
+            <span style="font-size:0.6rem;color:var(--text-muted)">zl</span>
+        </div>
+        <!-- Status -->
+        <div style="text-align:center">
+            {% if is_active %}
+            <span style="font-size:0.55rem;font-weight:700;letter-spacing:0.1em;padding:2px 8px;background:rgba(190,238,0,0.08);color:var(--neon-tertiary);border:1px solid rgba(190,238,0,0.2)">ACTIVE</span>
+            {% else %}
+            <span style="font-size:0.55rem;font-weight:700;letter-spacing:0.1em;padding:2px 8px;background:rgba(255,107,155,0.08);color:var(--neon-secondary);border:1px solid rgba(255,107,155,0.2)">DRAFT</span>
+            {% endif %}
+        </div>
+        <!-- Stock -->
+        <div style="text-align:right">
+            <span class="font-display" style="font-weight:700;color:{% if stock > 0 %}var(--neon-primary){% else %}var(--red){% endif %}">{{ stock }}</span>
+            <span style="font-size:0.55rem;color:var(--text-muted)">szt</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div style="text-align:center;color:var(--text-muted);padding:40px;background:var(--bg-card,rgba(19,19,28,0.6))">Brak ofert</div>
+{% endif %}
+
+<a href="/allegro" style="display:flex;align-items:center;gap:6px;color:var(--text-muted);text-decoration:none;padding:12px 0;font-size:0.8rem;margin-top:12px">
+    <span class="material-symbols-outlined" style="font-size:1rem">arrow_back</span> Powrot do Allegro
+</a>
+{% endblock %}
