@@ -444,7 +444,28 @@ def warehouse_shelf_view(code):
     all_levels = sorted(all_levels, key=lambda l: l.get('level', 0))
     total_items = sum(lv.get('items', 0) for lv in all_levels)
 
-    html = f'''<!DOCTYPE html><html lang="pl"><head>
+    # Cyberpunk template
+    levels_data = []
+    for lv in all_levels:
+        levels_data.append({
+            'code': lv.get('code', '?'),
+            'level': lv.get('level', 0),
+            'items': lv.get('items', 0),
+            'capacity': lv.get('capacity', 50),
+            'color': lv.get('color', '#64748b'),
+            'fill_percentage': lv.get('fill_percentage', 0),
+        })
+    return render_template('warehouse_shelf.html',
+        code=code,
+        levels=levels_data,
+        total_items=total_items,
+        brand_name='AKCES HUB',
+        version='4.0',
+        current_user=session.get('user', 'admin')
+    )
+
+    # OLD INLINE HTML (kept for reference, dead code below)
+    _old_html = f'''<!DOCTYPE html><html lang="pl"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>Regal {code}</title>
 <style>
