@@ -440,7 +440,7 @@ function requestEarlyAccess(btn) {
     <!-- Fastest selling -->
     <div class="glass-card" style="padding:18px;margin:0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <span class="font-display" style="font-weight:700;font-size:0.88rem">🔥 Najszybciej schodzące</span>
+            <span class="font-display" style="font-weight:700;font-size:0.88rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">local_fire_department</span> Najszybciej schodzące</span>
             <span style="color:var(--text-muted);font-size:0.7rem">30 dni</span>
         </div>
         {% if insights.top_sellers %}
@@ -483,14 +483,14 @@ function requestEarlyAccess(btn) {
         </a>
         {% endfor %}
         {% else %}
-        <div style="color:var(--text-muted);font-size:0.8rem;padding:10px 0">Wszystko w normie 👍</div>
+        <div style="color:var(--text-muted);font-size:0.8rem;padding:10px 0">Wszystko w normie </div>
         {% endif %}
     </div>
 
     <!-- Best categories -->
     <div class="glass-card" style="padding:18px;margin:0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <span class="font-display" style="font-weight:700;font-size:0.88rem">💡 Najlepsze kategorie</span>
+            <span class="font-display" style="font-weight:700;font-size:0.88rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">lightbulb</span> Najlepsze kategorie</span>
             <span style="color:var(--text-muted);font-size:0.7rem">90 dni</span>
         </div>
         {% if insights.best_categories %}
@@ -515,7 +515,7 @@ function requestEarlyAccess(btn) {
     <!-- Stale products -->
     <div class="glass-card" style="padding:18px;margin:0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <span class="font-display" style="font-weight:700;font-size:0.88rem">🚫 Leżaki — rozważ przecenę</span>
+            <span class="font-display" style="font-weight:700;font-size:0.88rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">block</span> Leżaki — rozważ przecenę</span>
             <span style="color:var(--text-muted);font-size:0.7rem">&gt;60 dni</span>
         </div>
         {% if insights.stale %}
@@ -542,79 +542,90 @@ function requestEarlyAccess(btn) {
 <!-- ═══════════════════════════════════════════════
      Quick Actions + Modules
      ═══════════════════════════════════════════════ -->
-<div class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">Szybkie Akcje</div>
+<!-- SZYBKIE AKCJE — Cyberpunk border-left tiles -->
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+    <span style="width:2px;height:14px;background:var(--neon-primary);border-radius:1px"></span>
+    <span class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--neon-primary)">Szybkie Akcje</span>
+</div>
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
-    <a href="/wysylki/allegro" class="glass-card" style="text-decoration:none;color:inherit;padding:16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
-        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span></div>
-        <span class="font-display" style="font-weight:600;font-size:0.82rem">Wysyłki</span>
+    <a href="/wysylki/allegro" style="text-decoration:none;color:inherit;padding:20px 16px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:3px solid var(--neon-primary);transition:all 0.2s">
+        <span class="material-symbols-outlined" style="font-size:1.8rem;color:var(--neon-primary);display:block;margin-bottom:10px">package</span>
+        <span class="font-display" style="font-weight:700;font-size:1rem">Wysyłki</span>
     </a>
-    <a href="/palety" class="glass-card" style="text-decoration:none;color:inherit;padding:16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
-        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">list_alt</span></div>
-        <span class="font-display" style="font-weight:600;font-size:0.82rem">Palety</span>
+    <a href="/palety" style="text-decoration:none;color:inherit;padding:20px 16px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:3px solid var(--neon-secondary);transition:all 0.2s">
+        <span class="material-symbols-outlined" style="font-size:1.8rem;color:var(--neon-secondary);display:block;margin-bottom:10px">description</span>
+        <span class="font-display" style="font-weight:700;font-size:1rem">Palety</span>
     </a>
-    <a href="/sprzedaze" class="glass-card" style="text-decoration:none;color:inherit;padding:16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
-        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-tertiary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">paid</span></div>
-        <span class="font-display" style="font-weight:600;font-size:0.82rem">Sprzedaż</span>
+    <a href="/sprzedaze" style="text-decoration:none;color:inherit;padding:20px 16px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:3px solid var(--neon-primary);transition:all 0.2s">
+        <span class="material-symbols-outlined" style="font-size:1.8rem;color:var(--neon-primary);display:block;margin-bottom:10px">payments</span>
+        <span class="font-display" style="font-weight:700;font-size:1rem">Sprzedaż</span>
     </a>
-    <a href="/analityka" class="glass-card" style="text-decoration:none;color:inherit;padding:16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
-        <div style="width:40px;height:40px;border-radius:12px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span></div>
-        <span class="font-display" style="font-weight:600;font-size:0.82rem">Analityka</span>
+    <a href="/analityka" style="text-decoration:none;color:inherit;padding:20px 16px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:3px solid var(--neon-tertiary);transition:all 0.2s">
+        <span class="material-symbols-outlined" style="font-size:1.8rem;color:var(--neon-tertiary);display:block;margin-bottom:10px">bar_chart</span>
+        <span class="font-display" style="font-weight:700;font-size:1rem">Analityka</span>
     </a>
 </div>
 
-<!-- Modules -->
-<div class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">Moduły</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px">
-    <a href="/paletomat" class="glass-card" style="text-decoration:none;color:inherit;padding:18px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <div style="width:38px;height:38px;border-radius:10px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smart_toy</span></div>
-            <div>
-                <div class="font-display" style="font-weight:700;font-size:0.9rem">Paletomat</div>
-                <div style="font-size:0.68rem;color:var(--text-muted)">Scraper → Allegro</div>
-            </div>
+<!-- AKTYWNE MODUŁY — Large detailed cards with border-bottom accent -->
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+    <span style="width:2px;height:14px;background:var(--neon-primary);border-radius:1px"></span>
+    <span class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--neon-primary)">Aktywne Moduły</span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
+    <a href="/paletomat" style="text-decoration:none;color:inherit;padding:20px;background:var(--bg-card,rgba(19,19,28,0.6));border-bottom:3px solid var(--neon-primary);position:relative;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <span class="material-symbols-outlined" style="font-size:2rem;color:var(--neon-primary)">precision_manufacturing</span>
+            <span class="font-display" style="font-weight:700;font-size:1.2rem">Paletomat</span>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-secondary-soft);color:var(--neon-secondary);font-weight:600">{{ pal.aktywne }} ofert</span>
-            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-tertiary-soft);color:var(--neon-tertiary);font-weight:600">{{ "%.0f"|format(pal.przychod) }} zł</span>
+        <div style="display:flex;justify-content:space-between;align-items:end;margin-bottom:4px">
+            <span style="font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em">Status</span>
+            <span style="font-size:0.7rem;font-weight:700;color:var(--neon-primary)">Scraper → Allegro</span>
         </div>
-    </a>
-    <a href="/magazyn" class="glass-card" style="text-decoration:none;color:inherit;padding:18px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <div style="width:38px;height:38px;border-radius:10px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span></div>
-            <div>
-                <div class="font-display" style="font-weight:700;font-size:0.9rem">Magazyn</div>
-                <div style="font-size:0.68rem;color:var(--text-muted)">Stany magazynowe</div>
-            </div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-primary-soft);color:var(--neon-primary);font-weight:600">{{ mag.produkty }} produktów</span>
-            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-primary-soft);color:var(--neon-primary);font-weight:600">{{ mag.sztuki }} szt</span>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.04);margin-top:8px">
+            <div><div class="font-display" style="font-size:1.5rem;font-weight:900">{{ pal.aktywne }}</div><div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase">Ofert</div></div>
+            <div><div class="font-display" style="font-size:1.2rem;font-weight:900;color:var(--neon-tertiary)">{{ "%.0f"|format(pal.przychod/1000) }}k</div><div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase">Wartość PLN</div></div>
         </div>
     </a>
-    <a href="/allegro" class="glass-card" style="text-decoration:none;color:inherit;padding:18px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <div style="width:38px;height:38px;border-radius:10px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">shopping_cart</span></div>
-            <div>
-                <div class="font-display" style="font-weight:700;font-size:0.9rem">Allegro</div>
-                <div style="font-size:0.68rem;color:var(--text-muted)">Integracja API</div>
-            </div>
+    <a href="/magazyn" style="text-decoration:none;color:inherit;padding:20px;background:var(--bg-card,rgba(19,19,28,0.6));border-bottom:3px solid var(--neon-secondary);position:relative">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <span class="material-symbols-outlined" style="font-size:2rem;color:var(--neon-secondary)">inventory</span>
+            <span class="font-display" style="font-weight:700;font-size:1.2rem">Magazyn</span>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:rgba(234,179,8,0.08);color:var(--orange);font-weight:600">{{ allegro.status }}</span>
-            <span style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:rgba(234,179,8,0.08);color:var(--orange);font-weight:600">{{ allegro.oferty }} ofert</span>
+        <div style="display:flex;justify-content:space-between;align-items:end;margin-bottom:4px">
+            <span style="font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em">Status</span>
+            <span style="font-size:0.7rem;font-weight:700">Stany magazynowe</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.04);margin-top:8px">
+            <div><div class="font-display" style="font-size:1.5rem;font-weight:900">{{ mag.produkty }}</div><div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase">Produktów</div></div>
+            <div><div class="font-display" style="font-size:1.5rem;font-weight:900">{{ mag.sztuki }}</div><div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase">Sztuk</div></div>
         </div>
     </a>
-    <a href="/warehouse/heatmap" class="glass-card" style="text-decoration:none;color:inherit;padding:18px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <div style="width:38px;height:38px;border-radius:10px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">map</span></div>
-            <div>
-                <div class="font-display" style="font-weight:700;font-size:0.9rem">Magazyn 3D</div>
-                <div style="font-size:0.68rem;color:var(--text-muted)">Heatmapa + regały</div>
-            </div>
+    <a href="/allegro" style="text-decoration:none;color:inherit;padding:20px;background:var(--bg-card,rgba(19,19,28,0.6));border-bottom:3px solid var(--neon-primary);opacity:0.9;position:relative">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <span class="material-symbols-outlined" style="font-size:2rem;color:var(--neon-primary);opacity:0.7">api</span>
+            <span class="font-display" style="font-weight:700;font-size:1.2rem">Allegro</span>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span id="hm-locs" style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-secondary-soft);color:var(--neon-secondary);font-weight:600">-- lokalizacji</span>
-            <span id="hm-fill" style="font-size:0.68rem;padding:3px 8px;border-radius:8px;background:var(--neon-secondary-soft);color:var(--neon-secondary);font-weight:600">--% zapełn.</span>
+        <div style="display:flex;justify-content:space-between;align-items:end;margin-bottom:4px">
+            <span style="font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em">API Link</span>
+            <span style="font-size:0.7rem;font-weight:700;color:var(--neon-primary)">{{ allegro.status }}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.04);margin-top:8px">
+            <div><div class="font-display" style="font-size:1.5rem;font-weight:900">{{ allegro.oferty }}</div><div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase">Aktywnych</div></div>
+            <div><div class="font-display" style="font-size:1.5rem;font-weight:900">0</div><div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase">Błędów</div></div>
+        </div>
+    </a>
+    <a href="/warehouse/heatmap" style="text-decoration:none;color:inherit;padding:20px;background:var(--bg-card,rgba(19,19,28,0.6));border-bottom:3px solid var(--neon-tertiary);position:relative">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <span class="material-symbols-outlined" style="font-size:2rem;color:var(--neon-tertiary)">view_in_ar</span>
+            <span class="font-display" style="font-weight:700;font-size:1.2rem">Magazyn 3D</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:end;margin-bottom:4px">
+            <span style="font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em">Viz Mode</span>
+            <span style="font-size:0.7rem;font-weight:700;color:var(--neon-tertiary)">Heatmapa + regały</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.04);margin-top:8px">
+            <div><div id="hm-locs" class="font-display" style="font-size:1.5rem;font-weight:900">--</div><div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase">Lokalizacji</div></div>
+            <div><div id="hm-fill" class="font-display" style="font-size:1.5rem;font-weight:900">--%</div><div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase">Zapełnienia</div></div>
         </div>
     </a>
 </div>
@@ -622,8 +633,8 @@ function requestEarlyAccess(btn) {
 <script>
 fetch('/api/warehouse/heatmap').then(r=>r.json()).then(d=>{
     if(d.stats){
-        document.getElementById('hm-locs').textContent=(d.stats.total_locations||'--')+' lokalizacji';
-        document.getElementById('hm-fill').textContent=(d.stats.fill_percentage||'0')+'% zapełn.';
+        document.getElementById('hm-locs').textContent=(d.stats.total_locations||'--');
+        document.getElementById('hm-fill').textContent=(d.stats.fill_percentage||'0')+'%';
     }
 }).catch(()=>{});
 </script>
@@ -691,11 +702,11 @@ fetch('/api/warehouse/heatmap').then(r=>r.json()).then(d=>{
             <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-tertiary)">Lista palet</div><div style="font-size:0.62rem;color:var(--text-muted)">Wszystkie zakupy</div></div>
         </a>
         <a href="/analityka/okazje" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">🔥</span>
+            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">local_fire_department</span></span>
             <div><div style="font-weight:600;font-size:0.82rem;color:var(--orange)">Okazje</div><div style="font-size:0.62rem;color:var(--text-muted)">Monitoring</div></div>
         </a>
         <a href="/sprzedaze" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">💳</span>
+            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">credit_card</span></span>
             <div><div style="font-weight:600;font-size:0.82rem;color:var(--red)">Sprzedaże</div><div style="font-size:0.62rem;color:var(--text-muted)">Historia</div></div>
         </a>
     </div>
@@ -773,7 +784,7 @@ function toggleDrilldown(id){
         <span style="font-size:0.7rem;color:var(--text-muted)">Generator AI</span>
     </a>
     <a href="/analityka/okazje" class="glass-card" style="text-decoration:none;color:inherit;padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;border-color:rgba(234,179,8,0.2)">
-        <span style="font-size:1.2rem">🔥</span>
+        <span style="font-size:1.2rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">local_fire_department</span></span>
         <span style="font-size:0.7rem;color:var(--orange)">Okazje</span>
     </a>
 </div>
