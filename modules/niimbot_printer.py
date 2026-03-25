@@ -294,7 +294,7 @@ async def create_product_label(
         y += 20
     
     if lokalizacja:
-        loc_text = f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">location_on</span> {lokalizacja}"
+        loc_text = f"<i class=mi>location_on</i> {lokalizacja}"
         bbox = draw.textbbox((0, 0), loc_text, font=font_small)
         x = (width - (bbox[2] - bbox[0])) // 2
         draw.text((x, y), loc_text, fill='black', font=font_small)

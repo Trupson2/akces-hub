@@ -332,5 +332,5 @@ if __name__ == "__main__":
     print("\n2⃣ Dostępne lokalizacje w magazynie:")
     locations = get_locations_for_select()
     for loc in locations[:10]:  # Pokaż pierwsze 10
-        status = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Wolne" if loc['free'] else "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Pełne"
+        status = "<i class=mi style=color:#22c55e>check_circle</i> Wolne" if loc['free'] else "<i class=mi style=color:#ef4444>cancel</i> Pełne"
         print(f"   {loc['code']}: {status} ({loc['available']}/{loc['capacity']})")

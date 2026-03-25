@@ -65,9 +65,9 @@ def send_whatsapp(message):
 
 def alert_whatsapp_sprzedaz(nazwa, miasto=''):
     """Wysyła alert o sprzedaży na WhatsApp dziadka"""
-    msg = f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> WYŚLIJ:\n{nazwa[:40]}"
+    msg = f"<i class=mi>inventory_2</i> WYŚLIJ:\n{nazwa[:40]}"
     if miasto:
-        msg += f"\n<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">location_on</span> {miasto}"
+        msg += f"\n<i class=mi>location_on</i> {miasto}"
     return send_whatsapp(msg)
 
 
@@ -197,7 +197,7 @@ def clear_telegram_chat(days_old=1, max_messages=50):
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         response = requests.post(url, data={
             'chat_id': chat_id,
-            'text': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">mop</span>'
+            'text': '<i class=mi>mop</i>'
         }, timeout=5)
         
         if response.status_code != 200:
@@ -255,31 +255,31 @@ def alert_sprzedaz(produkt_nazwa, cena, kupujacy='', lokalizacja='', regal='', p
     if get_config('telegram_alert_sprzedaz', 'true') != 'true':
         return False
 
-    msg = f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">notifications</span><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">payments</span> <b>SPRZEDAŻ!</b> <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">payments</span><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">notifications</span>\n\n"
-    msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> {produkt_nazwa}\n"
-    msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">paid</span> <b>{cena:.2f} zł</b>\n"
+    msg = f"<i class=mi>notifications</i><i class=mi>payments</i> <b>SPRZEDAŻ!</b> <i class=mi>payments</i><i class=mi>notifications</i>\n\n"
+    msg += f"<i class=mi>inventory_2</i> {produkt_nazwa}\n"
+    msg += f"<i class=mi>paid</i> <b>{cena:.2f} zł</b>\n"
     if kupujacy:
-        msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">person</span> {kupujacy}\n"
+        msg += f"<i class=mi>person</i> {kupujacy}\n"
 
     # Lokalizacja w magazynie - żeby od razu wiedzieć skąd wziąć produkt
     loc_parts = []
     if regal:
-        loc_parts.append(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">location_on</span> Regał: <b>{regal}</b>")
+        loc_parts.append(f"<i class=mi>location_on</i> Regał: <b>{regal}</b>")
     if lokalizacja:
         loc_parts.append(f"🗺 Miejsce: <b>{lokalizacja}</b>")
     if paleta:
-        loc_parts.append(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> {paleta}")
+        loc_parts.append(f"<i class=mi>inventory_2</i> {paleta}")
     if loc_parts:
         msg += f"\n{'  │  '.join(loc_parts)}\n"
 
     # Stan magazynowy po sprzedaży
     if ilosc_zostalo is not None:
         if ilosc_zostalo == 0:
-            msg += f"\n<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> <b>OSTATNIA SZTUKA — brak w magazynie!</b>"
+            msg += f"\n<i class=mi>warning</i> <b>OSTATNIA SZTUKA — brak w magazynie!</b>"
         elif ilosc_zostalo <= 3:
-            msg += f"\n<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> Zostało tylko: <b>{ilosc_zostalo} szt</b>"
+            msg += f"\n<i class=mi>warning</i> Zostało tylko: <b>{ilosc_zostalo} szt</b>"
         else:
-            msg += f"\n<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span> W magazynie: {ilosc_zostalo} szt"
+            msg += f"\n<i class=mi>bar_chart</i> W magazynie: {ilosc_zostalo} szt"
 
     msg += f"\n\n⏰ {datetime.now():%H:%M:%S}"
 
@@ -291,11 +291,11 @@ def alert_niski_stan(produkt_nazwa, ilosc, ean=''):
     if get_config('telegram_alert_niski_stan', 'true') != 'true':
         return False
     
-    msg = f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">notifications</span> <b>NISKI STAN!</b>\n\n"
-    msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> {produkt_nazwa}\n"
+    msg = f"<i class=mi>warning</i><i class=mi>notifications</i> <b>NISKI STAN!</b>\n\n"
+    msg += f"<i class=mi>inventory_2</i> {produkt_nazwa}\n"
     msg += f"🔢 Zostało: <b>{ilosc} szt</b>\n"
     if ean:
-        msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sell</span> {ean}\n"
+        msg += f"<i class=mi>sell</i> {ean}\n"
     msg += f"\n⏰ {datetime.now():%H:%M:%S}"
     
     return send_telegram(msg, silent=False)
@@ -305,9 +305,9 @@ def alert_nowa_oferta(tytul, cena):
     if get_config('telegram_alert_nowa_oferta', 'false') != 'true':
         return False
     
-    msg = f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> <b>NOWA OFERTA</b>\n\n"
-    msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">edit_note</span> {tytul}\n"
-    msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">paid</span> {cena:.2f} zł\n"
+    msg = f"<i class=mi>inventory_2</i> <b>NOWA OFERTA</b>\n\n"
+    msg += f"<i class=mi>edit_note</i> {tytul}\n"
+    msg += f"<i class=mi>paid</i> {cena:.2f} zł\n"
     msg += f"\n⏰ {datetime.now():%H:%M:%S}"
     
     # Nowe oferty bez dźwięku (nie są pilne)
@@ -367,30 +367,30 @@ def raport_dzienny():
     ''', (wczoraj,)).fetchall()
 
 
-    msg = f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span> <b>RAPORT DZIENNY</b>\n"
-    msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">today</span> {datetime.now():%d.%m.%Y (%A)}\n\n"
+    msg = f"<i class=mi>bar_chart</i> <b>RAPORT DZIENNY</b>\n"
+    msg += f"<i class=mi>today</i> {datetime.now():%d.%m.%Y (%A)}\n\n"
 
-    msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> <b>WCZORAJ:</b>\n"
+    msg += f"<i class=mi>inventory_2</i> <b>WCZORAJ:</b>\n"
     msg += f"  Sprzedaży: <b>{wczoraj_stat['cnt']}</b> szt | <b>{wczoraj_stat['suma']:.0f} zł</b>\n"
 
-    msg += f"\n<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> <b>DZIŚ:</b>\n"
+    msg += f"\n<i class=mi>inventory_2</i> <b>DZIŚ:</b>\n"
     msg += f"  Sprzedaży: <b>{dzis['cnt']}</b> szt | <b>{dzis['suma']:.0f} zł</b>\n"
 
     if top:
-        msg += f"\n<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">emoji_events</span> <b>TOP WCZORAJ:</b>\n"
+        msg += f"\n<i class=mi>emoji_events</i> <b>TOP WCZORAJ:</b>\n"
         for t in top:
             nazwa = (t['nazwa'] or 'Produkt')[:30]
             msg += f"  • {nazwa} — {t['cena']:.0f} zł x{t['ilosc']}\n"
 
-    msg += f"\n<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">trending_up</span> <b>TYDZIEŃ:</b> {tydzien['cnt']} szt | <b>{tydzien['suma']:.0f} zł</b>\n"
-    msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">today</span> <b>MIESIĄC:</b> {miesiac['cnt']} szt | <b>{miesiac['suma']:.0f} zł</b>\n\n"
+    msg += f"\n<i class=mi>trending_up</i> <b>TYDZIEŃ:</b> {tydzien['cnt']} szt | <b>{tydzien['suma']:.0f} zł</b>\n"
+    msg += f"<i class=mi>today</i> <b>MIESIĄC:</b> {miesiac['cnt']} szt | <b>{miesiac['suma']:.0f} zł</b>\n\n"
 
-    msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> Magazyn: {magazyn['cnt']} produktów ({magazyn['szt']} szt)\n"
+    msg += f"<i class=mi>inventory_2</i> Magazyn: {magazyn['cnt']} produktów ({magazyn['szt']} szt)\n"
 
     if do_wyslania > 0:
         msg += f"🚚 <b>DO WYSŁANIA: {do_wyslania}</b>\n"
 
-    msg += f"\n<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">auto_awesome</span> Miłego dnia!"
+    msg += f"\n<i class=mi>auto_awesome</i> Miłego dnia!"
     
     return send_telegram(msg, silent=True)
 
@@ -526,10 +526,10 @@ def index():
     wa_btn_text = 'WYŁĄCZ' if wa_on else 'WŁĄCZ'
     
     html = f'''
-    <div class="header"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smart_toy</span> POWIADOMIENIA</h1><small>Telegram + WhatsApp</small></div>
+    <div class="header"><h1><i class=mi>smart_toy</i> POWIADOMIENIA</h1><small>Telegram + WhatsApp</small></div>
     
     <!-- TELEGRAM -->
-    <div class="tg-section"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smartphone</span> TELEGRAM (Adrian)</div>
+    <div class="tg-section"><i class=mi>smartphone</i> TELEGRAM (Adrian)</div>
     <div class="tg-status {status_class}">
         <div class="tg-status-info">
             <div class="tg-status-dot {status_class}"></div>
@@ -557,12 +557,12 @@ def index():
                 <input type="text" name="support_chat_id" class="form-control" value="{support_chat_id}" placeholder="Twój osobisty chat_id dla zgłoszeń supportu">
                 <small style="color:#94a3b8;display:block;margin-top:4px">Jeśli puste — zgłoszenia lecą na główny Chat ID</small>
             </div>
-            <button type="submit" class="btn btn-primary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">save</span> ZAPISZ</button>
+            <button type="submit" class="btn btn-primary"><i class=mi>save</i> ZAPISZ</button>
         </form>
     </div>
     
     <!-- WHATSAPP -->
-    <div class="tg-section"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smartphone</span> WHATSAPP (Dziadek)</div>
+    <div class="tg-section"><i class=mi>smartphone</i> WHATSAPP (Dziadek)</div>
     <div class="tg-status {wa_status_class}">
         <div class="tg-status-info">
             <div class="tg-status-dot {wa_status_class}"></div>
@@ -586,22 +586,22 @@ def index():
                 <label>API Key (z TextMeBot)</label>
                 <input type="text" name="api_key" class="form-control" value="{wa_key}" placeholder="abc123...">
             </div>
-            <button type="submit" class="btn btn-primary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">save</span> ZAPISZ</button>
+            <button type="submit" class="btn btn-primary"><i class=mi>save</i> ZAPISZ</button>
         </form>
         <form action="/telegram/whatsapp/test" method="POST" style="margin-top:10px">
-            <button type="submit" class="btn btn-secondary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">science</span> TEST WHATSAPP</button>
+            <button type="submit" class="btn btn-secondary"><i class=mi>science</i> TEST WHATSAPP</button>
         </form>
     </div>
     
     <div class="card">
-        <div class="card-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">notifications</span> POWIADOMIENIA</div>
+        <div class="card-title"><i class=mi>notifications</i> POWIADOMIENIA</div>
     '''
     
     toggles = [
-        ('sprzedaz', '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">payments</span> Nowa sprzedaż', alerts['sprzedaz']),
-        ('niski_stan', '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> Niski stan magazynowy', alerts['niski_stan']),
-        ('nowa_oferta', '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> Nowa oferta wystawiona', alerts['nowa_oferta']),
-        ('raport_dzienny', '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span> Raport dzienny (9:00)', alerts['raport_dzienny']),
+        ('sprzedaz', '<i class=mi>payments</i> Nowa sprzedaż', alerts['sprzedaz']),
+        ('niski_stan', '<i class=mi>warning</i> Niski stan magazynowy', alerts['niski_stan']),
+        ('nowa_oferta', '<i class=mi>inventory_2</i> Nowa oferta wystawiona', alerts['nowa_oferta']),
+        ('raport_dzienny', '<i class=mi>bar_chart</i> Raport dzienny (9:00)', alerts['raport_dzienny']),
     ]
     
     for key, label, is_active in toggles:
@@ -616,17 +616,17 @@ def index():
     html += '''
     </div>
     
-    <a href="/telegram/live" class="btn btn-primary" style="margin-bottom:10px;background:linear-gradient(135deg,#22c55e,#16a34a)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span> SPRZEDAŻ LIVE<br><small>Dashboard na żywo z auto-odświeżaniem</small></a>
+    <a href="/telegram/live" class="btn btn-primary" style="margin-bottom:10px;background:linear-gradient(135deg,#22c55e,#16a34a)"><i class=mi>bar_chart</i> SPRZEDAŻ LIVE<br><small>Dashboard na żywo z auto-odświeżaniem</small></a>
     
-    <a href="/telegram/monitor" class="btn btn-ok" style="margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">notifications</span> MONITORING SPRZEDAŻY<br><small>Automatyczne powiadomienia o nowych zamówieniach</small></a>
+    <a href="/telegram/monitor" class="btn btn-ok" style="margin-bottom:10px"><i class=mi>notifications</i> MONITORING SPRZEDAŻY<br><small>Automatyczne powiadomienia o nowych zamówieniach</small></a>
     
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
         <form action="/telegram/test" method="POST" style="margin:0">
-            <button type="submit" class="btn btn-secondary" style="width:100%;margin:0"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">science</span> TEST</button>
+            <button type="submit" class="btn btn-secondary" style="width:100%;margin:0"><i class=mi>science</i> TEST</button>
         </form>
         <form action="/telegram/clear" method="POST" style="margin:0">
             <input type="hidden" name="days" value="1">
-            <button type="submit" class="btn btn-secondary" style="width:100%;margin:0;background:rgba(239,68,68,0.2);border-color:rgba(239,68,68,0.3)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">mop</span> WYCZYŚĆ CZAT</button>
+            <button type="submit" class="btn btn-secondary" style="width:100%;margin:0;background:rgba(239,68,68,0.2);border-color:rgba(239,68,68,0.3)"><i class=mi>mop</i> WYCZYŚĆ CZAT</button>
         </form>
     </div>
     
@@ -635,8 +635,8 @@ def index():
     
     for log in logs:
         typ = log['typ'] or 'test'
-        icon_map = {'sale': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">payments</span>', 'alert': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span>', 'report': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span>', 'test': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">science</span>', 'sent': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">upload</span>'}
-        icon = icon_map.get(typ, '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">upload</span>')
+        icon_map = {'sale': '<i class=mi>payments</i>', 'alert': '<i class=mi>warning</i>', 'report': '<i class=mi>bar_chart</i>', 'test': '<i class=mi>science</i>', 'sent': '<i class=mi>upload</i>'}
+        icon = icon_map.get(typ, '<i class=mi>upload</i>')
         
         html += f'''
         <div class="log-item">
@@ -708,14 +708,14 @@ def whatsapp_config():
 @telegram_bp.route('/whatsapp/test', methods=['POST'])
 def whatsapp_test():
     """Wysyła wiadomość testową na WhatsApp"""
-    msg = f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">science</span> TEST z {get_config('brand_name', 'Akces Hub')}\n⏰ {datetime.now():%H:%M:%S}"
+    msg = f"<i class=mi>science</i> TEST z {get_config('brand_name', 'Akces Hub')}\n⏰ {datetime.now():%H:%M:%S}"
     success = send_whatsapp(msg)
     
     if success:
         return redirect('/telegram')
     else:
         return render('''
-            <div class="header"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> BŁĄD</h1></div>
+            <div class="header"><h1><i class=mi style=color:#ef4444>cancel</i> BŁĄD</h1></div>
             <div class="alert" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#ef4444">
                 Nie udało się wysłać WhatsApp.<br>
                 Sprawdź numer i API key.
@@ -736,14 +736,14 @@ def toggle_alert(key):
 @telegram_bp.route('/test', methods=['POST'])
 def test():
     """Wysyła wiadomość testową"""
-    msg = f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">science</span> <b>TEST</b>\n\nWiadomość testowa z {get_config('brand_name', 'Akces Hub')}\n⏰ {datetime.now():%H:%M:%S}"
+    msg = f"<i class=mi>science</i> <b>TEST</b>\n\nWiadomość testowa z {get_config('brand_name', 'Akces Hub')}\n⏰ {datetime.now():%H:%M:%S}"
     success = send_telegram(msg)
     
     if success:
         return redirect('/telegram')
     else:
         return render('''
-            <div class="header"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> BŁĄD</h1></div>
+            <div class="header"><h1><i class=mi style=color:#ef4444>cancel</i> BŁĄD</h1></div>
             <div class="alert" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#ef4444">
                 Nie udało się wysłać wiadomości.<br>
                 Sprawdź token i chat ID.
@@ -767,7 +767,7 @@ def clear_chat():
     <html><head><meta http-equiv="refresh" content="1;url=/telegram"></head>
     <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
         <div style="text-align:center">
-            <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">mop</span></div>
+            <div style="font-size:3rem;margin-bottom:20px"><i class=mi>mop</i></div>
             <div style="font-size:1.2rem">Czyszczenie w tle...</div>
             <div style="color:#64748b;margin-top:10px">Sprawdź Telegram za chwilę</div>
         </div>
@@ -883,7 +883,7 @@ def format_order_notification(order):
             qty = item.get('quantity', 1)
             price = float(item.get('price', {}).get('amount', 0))
             total += price * qty
-            produkty_txt += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> {nazwa}\n   {qty} szt × {price:.2f} zł\n"
+            produkty_txt += f"<i class=mi>inventory_2</i> {nazwa}\n   {qty} szt × {price:.2f} zł\n"
         
         # Kupujący
         buyer = order.get('buyer', {})
@@ -897,22 +897,22 @@ def format_order_notification(order):
         ulica = delivery.get('street', '')
         
         # Formatuj wiadomość
-        msg = f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">celebration</span> <b>NOWA SPRZEDAŻ!</b>\n"
+        msg = f"<i class=mi>celebration</i> <b>NOWA SPRZEDAŻ!</b>\n"
         msg += f"{'━'*25}\n\n"
         msg += produkty_txt
-        msg += f"\n<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">payments</span> <b>SUMA: {total:.2f} zł</b>\n\n"
-        msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">person</span> {buyer_name}\n"
+        msg += f"\n<i class=mi>payments</i> <b>SUMA: {total:.2f} zł</b>\n\n"
+        msg += f"<i class=mi>person</i> {buyer_name}\n"
         if buyer_login:
-            msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sell</span> @{buyer_login}\n"
-        msg += f"\n<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">location_on</span> <b>WYSYŁKA:</b>\n"
+            msg += f"<i class=mi>sell</i> @{buyer_login}\n"
+        msg += f"\n<i class=mi>location_on</i> <b>WYSYŁKA:</b>\n"
         msg += f"{ulica}\n{kod} {miasto}\n\n"
-        msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">link</span> ID: <code>{order_id[:8]}...</code>\n"
+        msg += f"<i class=mi>link</i> ID: <code>{order_id[:8]}...</code>\n"
         msg += f"⏰ {datetime.now():%H:%M:%S}"
         
         return msg
         
     except Exception as e:
-        return f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">celebration</span> <b>NOWA SPRZEDAŻ!</b>\n\nBłąd parsowania: {e}"
+        return f"<i class=mi>celebration</i> <b>NOWA SPRZEDAŻ!</b>\n\nBłąd parsowania: {e}"
 
 def send_order_notification(order):
     """Wysyła powiadomienie o zamówieniu"""
@@ -1086,7 +1086,7 @@ def monitor_page():
     last_order = get_last_order_id()
     
     html = f'''
-    <div class="header"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">notifications</span> MONITORING SPRZEDAŻY</h1><small>Powiadomienia Telegram o nowych zamówieniach</small></div>
+    <div class="header"><h1><i class=mi>notifications</i> MONITORING SPRZEDAŻY</h1><small>Powiadomienia Telegram o nowych zamówieniach</small></div>
     
     <div class="card" style="padding:15px;margin-bottom:15px">
         <div style="display:flex;align-items:center;justify-content:space-between">
@@ -1105,17 +1105,17 @@ def monitor_page():
     telegram_ok = bool(get_bot_token() and get_chat_id())
     
     html += f'''
-    <div class="tg-section"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">satellite_alt</span> STATUS</div>
+    <div class="tg-section"><i class=mi>satellite_alt</i> STATUS</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
         <div class="item">
-            <span style="font-size:1.5rem;margin-right:10px">{'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>' if telegram_ok else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span>'}</span>
+            <span style="font-size:1.5rem;margin-right:10px">{'<i class=mi style=color:#22c55e>check_circle</i>' if telegram_ok else '<i class=mi style=color:#ef4444>cancel</i>'}</span>
             <div class="item-info">
                 <div class="item-name">Telegram</div>
                 <div class="item-meta">{'Skonfigurowany' if telegram_ok else 'Brak tokena/chat_id'}</div>
             </div>
         </div>
         <div class="item">
-            <span style="font-size:1.5rem;margin-right:10px">{'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>' if allegro_ok else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span>'}</span>
+            <span style="font-size:1.5rem;margin-right:10px">{'<i class=mi style=color:#22c55e>check_circle</i>' if allegro_ok else '<i class=mi style=color:#ef4444>cancel</i>'}</span>
             <div class="item-info">
                 <div class="item-name">Allegro API</div>
                 <div class="item-meta">{'Połączono' if allegro_ok else 'Niezalogowany'}</div>
@@ -1126,7 +1126,7 @@ def monitor_page():
     
     # Ustawienia
     html += f'''
-    <div class="tg-section"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">settings</span> USTAWIENIA</div>
+    <div class="tg-section"><i class=mi>settings</i> USTAWIENIA</div>
     <form action="/telegram/monitor/settings" method="POST" class="card" style="padding:15px">
         <div class="form-group">
             <label>Częstotliwość sprawdzania (sekundy)</label>
@@ -1137,19 +1137,19 @@ def monitor_page():
                 <option value="600" {'selected' if interval == '600' else ''}>10 minut</option>
             </select>
         </div>
-        <button type="submit" class="btn btn-primary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">save</span> ZAPISZ</button>
+        <button type="submit" class="btn btn-primary"><i class=mi>save</i> ZAPISZ</button>
     </form>
     
-    <div class="tg-section"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">science</span> TEST</div>
-    <a href="/telegram/monitor/check" class="btn btn-secondary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">search</span> SPRAWDŹ TERAZ</a>
+    <div class="tg-section"><i class=mi>science</i> TEST</div>
+    <a href="/telegram/monitor/check" class="btn btn-secondary"><i class=mi>search</i> SPRAWDŹ TERAZ</a>
     <p style="font-size:0.75rem;color:#64748b;margin-top:10px">Ostatnie znane zamówienie: {last_order[:8] if last_order else 'brak'}...</p>
     '''
     
     if not telegram_ok:
-        html += '<div class="alert alert-warn" style="margin-top:15px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> Najpierw skonfiguruj Telegram → <a href="/telegram" style="color:#eab308">Ustawienia</a></div>'
+        html += '<div class="alert alert-warn" style="margin-top:15px"><i class=mi>warning</i> Najpierw skonfiguruj Telegram → <a href="/telegram" style="color:#eab308">Ustawienia</a></div>'
     
     if not allegro_ok:
-        html += '<div class="alert alert-warn" style="margin-top:15px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> Najpierw zaloguj się do Allegro → <a href="/allegro" style="color:#eab308">Połącz</a></div>'
+        html += '<div class="alert alert-warn" style="margin-top:15px"><i class=mi>warning</i> Najpierw zaloguj się do Allegro → <a href="/allegro" style="color:#eab308">Połącz</a></div>'
     
     html += '<a href="/telegram" class="back">← Powrót</a>'
     return render(html, page_title='Monitoring')
@@ -1189,13 +1189,13 @@ def monitor_check():
                 sent_count += 1
 
         return render(f'''
-            <div class="header"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> SPRAWDZONO</h1></div>
+            <div class="header"><h1><i class=mi style=color:#22c55e>check_circle</i> SPRAWDZONO</h1></div>
             <div class="alert alert-ok">Znaleziono {len(new_orders)} zamówień, wysłano {sent_count} nowych powiadomień.</div>
             <a href="/telegram/monitor" class="back">← Powrót</a>
         ''')
     else:
         return render('''
-            <div class="header"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> SPRAWDZONO</h1></div>
+            <div class="header"><h1><i class=mi style=color:#22c55e>check_circle</i> SPRAWDZONO</h1></div>
             <div class="alert" style="background:#1e1e2e">Brak nowych zamówień</div>
             <a href="/telegram/monitor" class="back">← Powrót</a>
         ''')
@@ -1212,7 +1212,7 @@ def live_dashboard():
     
     html = '''
     <div class="header">
-        <h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span> SPRZEDAŻ LIVE</h1>
+        <h1><i class=mi>bar_chart</i> SPRZEDAŻ LIVE</h1>
         <small id="last-update">Ładowanie...</small>
     </div>
     
@@ -1263,25 +1263,25 @@ def live_dashboard():
     </div>
     
     <!-- OSTATNIE SPRZEDAŻE -->
-    <div class="tg-section"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">notifications</span> OSTATNIE ZAMÓWIENIA</div>
+    <div class="tg-section"><i class=mi>notifications</i> OSTATNIE ZAMÓWIENIA</div>
     <div id="recent-orders" style="margin-bottom:15px">
         <div style="text-align:center;color:var(--text-muted);padding:20px">Ładowanie...</div>
     </div>
     
     <!-- TOP PRODUKTY -->
-    <div class="tg-section"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">emoji_events</span> TOP PRODUKTY (miesiąc)</div>
+    <div class="tg-section"><i class=mi>emoji_events</i> TOP PRODUKTY (miesiąc)</div>
     <div id="top-products" style="margin-bottom:15px">
         <div style="text-align:center;color:var(--text-muted);padding:20px">Ładowanie...</div>
     </div>
     
     <!-- AKCJE -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
-        <a href="/telegram/monitor/check" class="btn btn-secondary" style="text-align:center;text-decoration:none"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">search</span> Sprawdź teraz</a>
-        <a href="/sprzedaze" class="btn btn-secondary" style="text-align:center;text-decoration:none"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">assignment</span> Wszystkie</a>
+        <a href="/telegram/monitor/check" class="btn btn-secondary" style="text-align:center;text-decoration:none"><i class=mi>search</i> Sprawdź teraz</a>
+        <a href="/sprzedaze" class="btn btn-secondary" style="text-align:center;text-decoration:none"><i class=mi>assignment</i> Wszystkie</a>
     </div>
     ''' + f'''
     <div class="toggle-row" style="margin-bottom:15px">
-        <span class="toggle-label"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span> Auto-monitoring (co 5 min)</span>
+        <span class="toggle-label"><i class=mi>sync</i> Auto-monitoring (co 5 min)</span>
         <form action="/telegram/live/toggle-auto" method="POST" style="margin:0">
             <button type="submit" class="toggle {'on' if auto_monitor else ''}"><span class="toggle-knob"></span></button>
         </form>
@@ -1305,7 +1305,7 @@ def live_dashboard():
             monEl.style.color = data.monitor_running ? '#22c55e' : '#ef4444';
             
             const allEl = document.getElementById('status-allegro');
-            allEl.textContent = data.allegro_ok ? '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Allegro' : '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Allegro';
+            allEl.textContent = data.allegro_ok ? '<i class=mi style=color:#22c55e>check_circle</i> Allegro' : '<i class=mi style=color:#ef4444>cancel</i> Allegro';
             allEl.style.background = data.allegro_ok ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)';
             allEl.style.color = data.allegro_ok ? '#22c55e' : '#ef4444';
             
@@ -1330,7 +1330,7 @@ def live_dashboard():
             } else {
                 ordersEl.innerHTML = data.recent.map(o => `
                     <div class="log-item" style="margin-bottom:6px">
-                        <div class="log-icon sale"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">payments</span></div>
+                        <div class="log-icon sale"><i class=mi>payments</i></div>
                         <div class="log-content">
                             <div class="log-msg">${o.nazwa}</div>
                             <div class="log-time">${o.kupujacy} • ${o.data}</div>
@@ -1347,7 +1347,7 @@ def live_dashboard():
             } else {
                 topEl.innerHTML = data.top_products.map((p, i) => `
                     <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg);border-radius:8px;margin-bottom:4px">
-                        <div style="font-size:1.2rem;width:30px;text-align:center">${['<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">emoji_events</span>','<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">emoji_events</span>','<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">emoji_events</span>','4⃣','5⃣'][i] || '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span>'}</div>
+                        <div style="font-size:1.2rem;width:30px;text-align:center">${['<i class=mi>emoji_events</i>','<i class=mi>emoji_events</i>','<i class=mi>emoji_events</i>','4⃣','5⃣'][i] || '<i class=mi>inventory_2</i>'}</div>
                         <div style="flex:1;min-width:0">
                             <div style="font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nazwa}</div>
                             <div style="font-size:0.65rem;color:var(--text-muted)">${p.cnt} szt</div>

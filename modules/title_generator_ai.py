@@ -92,22 +92,22 @@ PRODUKT: {nazwa}
 3. LISTA ZAKAZANA (STOP WORDS) - USUŃ BEZWZGLĘDNIE:
    
    MARKETING:
-   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Super", "Hit", "Nowy", "Okazja", "Wyprzedaż", "Sale", "Hot"
-   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Profesjonalny", "Premium", "Exclusive", "Limited"
-   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Wysoka jakość", "Najlepsza jakość", "Top quality"
-   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Bestseller", "Polecamy", "Sprawdź"
+   <i class=mi style=color:#ef4444>cancel</i> "Super", "Hit", "Nowy", "Okazja", "Wyprzedaż", "Sale", "Hot"
+   <i class=mi style=color:#ef4444>cancel</i> "Profesjonalny", "Premium", "Exclusive", "Limited"
+   <i class=mi style=color:#ef4444>cancel</i> "Wysoka jakość", "Najlepsza jakość", "Top quality"
+   <i class=mi style=color:#ef4444>cancel</i> "Bestseller", "Polecamy", "Sprawdź"
    
    ZBĘDNE ŁĄCZNIKI (chyba że niezbędne):
-   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "do", "z", "i", "dla", "na" (np. "do iPhone" → "iPhone")
-   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Wyjątek: "Etui do iPhone" (tutaj "do" jest OK)
+   <i class=mi style=color:#ef4444>cancel</i> "do", "z", "i", "dla", "na" (np. "do iPhone" → "iPhone")
+   <i class=mi style=color:#ef4444>cancel</i> Wyjątek: "Etui do iPhone" (tutaj "do" jest OK)
    
    SŁOWA OZDOBNE:
-   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Oryginalny" (chyba że to część nazwy marki)
-   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Prawdziwy", "Autentyczny", "Genuine"
-   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Uniwersalny", "Wielofunkcyjny"
+   <i class=mi style=color:#ef4444>cancel</i> "Oryginalny" (chyba że to część nazwy marki)
+   <i class=mi style=color:#ef4444>cancel</i> "Prawdziwy", "Autentyczny", "Genuine"
+   <i class=mi style=color:#ef4444>cancel</i> "Uniwersalny", "Wielofunkcyjny"
    
    ZAKAZANE ZNAKI:
-   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Emoji, cudzysłowy, nawiasy ozdobne: <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">local_fire_department</span> "" '' „" () []
+   <i class=mi style=color:#ef4444>cancel</i> Emoji, cudzysłowy, nawiasy ozdobne: <i class=mi>local_fire_department</i> "" '' „" () []
 
 4. FORMATOWANIE:
    ✓ Title Case: Wielkie litery na początku wyrazów
@@ -141,10 +141,10 @@ PRODUKT: {nazwa}
 ZWRÓĆ TYLKO TYTUŁ - NIC WIĘCEJ!
 
 NIE PISZ:
-<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Oto propozycja tytułu:"
-<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Tytuł oferty:"
-<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Sugeruję:"
-<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Jakichkolwiek dodatkowych wyjaśnień
+<i class=mi style=color:#ef4444>cancel</i> "Oto propozycja tytułu:"
+<i class=mi style=color:#ef4444>cancel</i> "Tytuł oferty:"
+<i class=mi style=color:#ef4444>cancel</i> "Sugeruję:"
+<i class=mi style=color:#ef4444>cancel</i> Jakichkolwiek dodatkowych wyjaśnień
 
 NAPISZ:
 ✓ Sam tytuł oferty (dokładnie {max_length} znaków lub mniej)

@@ -264,7 +264,7 @@ def stop_backup_daemon():
     global _backup_daemon_running
     _backup_daemon_running = False
     _stop_event.set()
-    print("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">do_not_disturb</span> Backup daemon zatrzymany")
+    print("[DO_NOT] Backup daemon zatrzymany")
 
 def _backup_loop():
     """Główna pętla backup daemon"""
@@ -400,5 +400,5 @@ if __name__ == '__main__':
     print(f"\n[ASSI] Dostępne backupy ({len(backups)}):")
     for b in backups:
         status_ok, status_msg = verify_backup(b['filename'])
-        status_icon = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>" if status_ok else "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span>"
+        status_icon = "<i class=mi style=color:#22c55e>check_circle</i>" if status_ok else "<i class=mi style=color:#ef4444>cancel</i>"
         print(f"  {status_icon} {b['filename']} - {b['size_mb']:.2f} MB - {b['created_str']} - {status_msg}")

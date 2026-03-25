@@ -481,7 +481,7 @@ a {{ color:#09b1ba; }}
 <script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
 
 <div class="header">
-    <h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">checkroom</span> Vinted Integration</h1>
+    <h1><i class=mi>checkroom</i> Vinted Integration</h1>
     <div class="subtitle">Wystawiaj produkty na Vinted.pl</div>
 </div>
 
@@ -489,8 +489,8 @@ a {{ color:#09b1ba; }}
 
     <div class="card">
         <h3>Status połączenia</h3>
-        {'<span class="badge badge-green"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Zalogowano jako ' + username + '</span>' if auth else
-         '<span class="badge badge-red"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Nie zalogowano</span>'}
+        {'<span class="badge badge-green"><i class=mi style=color:#22c55e>check_circle</i> Zalogowano jako ' + username + '</span>' if auth else
+         '<span class="badge badge-red"><i class=mi style=color:#ef4444>cancel</i> Nie zalogowano</span>'}
     </div>
 
     <div class="stats-row">
@@ -524,12 +524,12 @@ a {{ color:#09b1ba; }}
                 <label>Cookies JSON (z EditThisCookie lub ręcznie):</label>
                 <textarea name="cookies_json" placeholder='{{"_vinted_fr_session": "wartość...", "access_token_web": "wartość..."}}'></textarea>
             </div>
-            <button type="submit" class="btn btn-primary" style="width:100%"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">save</span> Zapisz cookies</button>
+            <button type="submit" class="btn btn-primary" style="width:100%"><i class=mi>save</i> Zapisz cookies</button>
         </form>
     </div>
 
     <div class="card">
-        <h3><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">steps</span> Dodaj produkt (osobisty)</h3>
+        <h3><i class=mi>steps</i> Dodaj produkt (osobisty)</h3>
         <p style="font-size:0.8rem;color:#94a3b8;margin-bottom:12px">Dodaj buty, ubrania lub inne rzeczy do sprzedaży na Vinted - osobno od paletowego magazynu.</p>
         <form method="POST" action="/vinted/add-product">
             <div class="form-group">
@@ -550,11 +550,11 @@ a {{ color:#09b1ba; }}
                 <div class="form-group">
                     <label>Kategoria</label>
                     <select name="kategoria">
-                        <option value="buty"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">steps</span> Buty</option>
-                        <option value="ubrania"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">checkroom</span> Ubrania</option>
-                        <option value="akcesoria"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">shopping_bag</span> Akcesoria</option>
-                        <option value="elektronika"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smartphone</span> Elektronika</option>
-                        <option value="inne"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> Inne</option>
+                        <option value="buty"><i class=mi>steps</i> Buty</option>
+                        <option value="ubrania"><i class=mi>checkroom</i> Ubrania</option>
+                        <option value="akcesoria"><i class=mi>shopping_bag</i> Akcesoria</option>
+                        <option value="elektronika"><i class=mi>smartphone</i> Elektronika</option>
+                        <option value="inne"><i class=mi>inventory_2</i> Inne</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -581,7 +581,7 @@ a {{ color:#09b1ba; }}
                 <label>URL zdjęcia (opcjonalnie)</label>
                 <input type="text" name="zdjecie_url" placeholder="https://... lub zostaw puste">
             </div>
-            <button type="submit" class="btn btn-green" style="width:100%;margin-top:8px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">add</span> Dodaj produkt</button>
+            <button type="submit" class="btn btn-green" style="width:100%;margin-top:8px"><i class=mi>add</i> Dodaj produkt</button>
         </form>
     </div>
 
@@ -592,13 +592,13 @@ a {{ color:#09b1ba; }}
 </div>
 
 <nav style="position:fixed;bottom:0;left:0;right:0;background:#1e293b;border-top:1px solid #334155;display:flex;justify-content:space-around;padding:8px 0;z-index:100">
-<a href="/" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">home</span></div>Home</a>
-<a href="/magazyn" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span></div>Magazyn</a>
-<a href="/paletomat" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smart_toy</span></div>Paletomat</a>
-<a href="/allegro" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">shopping_cart</span></div>Allegro</a>
-<a href="/olx" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">store</span></div>OLX</a>
-<a href="/vinted" style="text-align:center;text-decoration:none;color:#09b1ba;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">checkroom</span></div>Vinted</a>
-<a href="/narzedzia" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span></div>Narzędzia</a>
+<a href="/" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>home</i></div>Home</a>
+<a href="/magazyn" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>inventory_2</i></div>Magazyn</a>
+<a href="/paletomat" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>smart_toy</i></div>Paletomat</a>
+<a href="/allegro" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>shopping_cart</i></div>Allegro</a>
+<a href="/olx" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>store</i></div>OLX</a>
+<a href="/vinted" style="text-align:center;text-decoration:none;color:#09b1ba;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>checkroom</i></div>Vinted</a>
+<a href="/narzedzia" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>bolt</i></div>Narzędzia</a>
 </nav>
 
 </body></html>'''
@@ -609,12 +609,12 @@ def _render_moje_produkty(produkty, auth=False):
     if not produkty:
         return ''
 
-    html = '<div class="card"><h3><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">steps</span> Moje produkty (osobiste)</h3>'
+    html = '<div class="card"><h3><i class=mi>steps</i> Moje produkty (osobiste)</h3>'
     for p in produkty:
         img = p['zdjecie_url'] or ''
         if img and not img.startswith('http'):
             img = f'/static/downloads/{img}' if not img.startswith('/') else img
-        img_tag = f'<img src="{img}" class="mp-img" onerror="this.style.display=\'none\'">' if img else '<div class="mp-img" style="display:flex;align-items:center;justify-content:center;font-size:1.5rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">steps</span></div>'
+        img_tag = f'<img src="{img}" class="mp-img" onerror="this.style.display=\'none\'">' if img else '<div class="mp-img" style="display:flex;align-items:center;justify-content:center;font-size:1.5rem"><i class=mi>steps</i></div>'
 
         meta_parts = []
         if p.get('kategoria'):
@@ -623,7 +623,7 @@ def _render_moje_produkty(produkty, auth=False):
             meta_parts.append(p['stan'])
         meta = ' · '.join(meta_parts)
 
-        vinted_btn = f'<a href="/vinted/create/{p["id"]}" class="btn btn-primary" style="font-size:0.75rem;padding:6px 12px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">checkroom</span> Wystaw</a>' if auth else ''
+        vinted_btn = f'<a href="/vinted/create/{p["id"]}" class="btn btn-primary" style="font-size:0.75rem;padding:6px 12px"><i class=mi>checkroom</i> Wystaw</a>' if auth else ''
 
         html += f'''
         <div class="my-product">
@@ -636,7 +636,7 @@ def _render_moje_produkty(produkty, auth=False):
             <div class="mp-actions">
                 {vinted_btn}
                 <form method="POST" action="/vinted/delete-product/{p['id']}" style="margin:0">
-                    <button type="submit" class="btn btn-red" onclick="return confirm('Usunąć?')"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">delete</span></button>
+                    <button type="submit" class="btn btn-red" onclick="return confirm('Usunąć?')"><i class=mi>delete</i></button>
                 </form>
             </div>
         </div>'''
@@ -646,7 +646,7 @@ def _render_moje_produkty(produkty, auth=False):
 
 def _render_vinted_items(items):
     """Renderuje listę ogłoszeń Vinted"""
-    html = '<div class="card"><h3><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">assignment</span> Twoje ogłoszenia Vinted</h3>'
+    html = '<div class="card"><h3><i class=mi>assignment</i> Twoje ogłoszenia Vinted</h3>'
     for item in items:
         status_colors = {
             'active': ('badge-green', 'aktywne'),
@@ -677,7 +677,7 @@ def vinted_save_cookies():
     """Zapisuje cookies Vinted"""
     raw = request.form.get('cookies_json', '').strip()
     if not raw:
-        flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Wklej cookies JSON', 'error')
+        flash('<i class=mi style=color:#ef4444>cancel</i> Wklej cookies JSON', 'error')
         return redirect('/vinted')
 
     try:
@@ -692,7 +692,7 @@ def vinted_save_cookies():
             cookies = cookies_dict
 
         if not isinstance(cookies, dict) or len(cookies) == 0:
-            flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Nieprawidłowy format JSON. Użyj {"nazwa": "wartość", ...}', 'error')
+            flash('<i class=mi style=color:#ef4444>cancel</i> Nieprawidłowy format JSON. Użyj {"nazwa": "wartość", ...}', 'error')
             return redirect('/vinted')
 
         _save_cookies(cookies)
@@ -701,12 +701,12 @@ def vinted_save_cookies():
         if is_authenticated():
             user = get_current_user()
             name = user.get('login', '?') if user else '?'
-            flash(f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Zalogowano na Vinted jako {name}!', 'success')
+            flash(f'<i class=mi style=color:#22c55e>check_circle</i> Zalogowano na Vinted jako {name}!', 'success')
         else:
-            flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> Cookies zapisane, ale sesja nie działa. Upewnij się że jesteś zalogowany na vinted.pl i skopiuj świeże cookies.', 'warning')
+            flash('<i class=mi>warning</i> Cookies zapisane, ale sesja nie działa. Upewnij się że jesteś zalogowany na vinted.pl i skopiuj świeże cookies.', 'warning')
 
     except json.JSONDecodeError:
-        flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Nieprawidłowy JSON. Skopiuj dokładnie z EditThisCookie.', 'error')
+        flash('<i class=mi style=color:#ef4444>cancel</i> Nieprawidłowy JSON. Skopiuj dokładnie z EditThisCookie.', 'error')
 
     return redirect('/vinted')
 
@@ -724,7 +724,7 @@ def vinted_add_product():
     zdjecie_url = request.form.get('zdjecie_url', '').strip()
 
     if not nazwa or cena <= 0:
-        flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Podaj nazwę i cenę produktu', 'error')
+        flash('<i class=mi style=color:#ef4444>cancel</i> Podaj nazwę i cenę produktu', 'error')
         return redirect('/vinted')
 
     # Dodaj markę/rozmiar do nazwy jeśli podane
@@ -743,9 +743,9 @@ def vinted_add_product():
         ''', (nazwa, krotki_tytul, kategoria, stan, cena, koszt, round(koszt / 1.23, 2),
               zdjecie_url, marka))
         conn.commit()
-        flash(f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Dodano: {krotki_tytul} - {cena:.0f} zł', 'success')
+        flash(f'<i class=mi style=color:#22c55e>check_circle</i> Dodano: {krotki_tytul} - {cena:.0f} zł', 'success')
     except Exception as e:
-        flash(f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Błąd: {e}', 'error')
+        flash(f'<i class=mi style=color:#ef4444>cancel</i> Błąd: {e}', 'error')
 
     return redirect('/vinted')
 
@@ -759,9 +759,9 @@ def vinted_delete_product(produkt_id):
         conn.execute('DELETE FROM produkty WHERE id = ? AND dostawca = ? AND paleta_id IS NULL',
                      (produkt_id, 'osobiste'))
         conn.commit()
-        flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Usunięto produkt', 'success')
+        flash('<i class=mi style=color:#22c55e>check_circle</i> Usunięto produkt', 'success')
     except Exception as e:
-        flash(f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Błąd: {e}', 'error')
+        flash(f'<i class=mi style=color:#ef4444>cancel</i> Błąd: {e}', 'error')
     return redirect('/vinted')
 
 
@@ -773,7 +773,7 @@ def vinted_logout():
             os.remove(COOKIES_FILE)
     except:
         pass
-    flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Wylogowano z Vinted', 'success')
+    flash('<i class=mi style=color:#22c55e>check_circle</i> Wylogowano z Vinted', 'success')
     return redirect('/vinted')
 
 
@@ -781,14 +781,14 @@ def vinted_logout():
 def vinted_create_item_route(produkt_id):
     """Tworzy ogłoszenie na Vinted"""
     if not is_authenticated():
-        flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Najpierw zaloguj się do Vinted (wklej cookies)', 'error')
+        flash('<i class=mi style=color:#ef4444>cancel</i> Najpierw zaloguj się do Vinted (wklej cookies)', 'error')
         return redirect('/vinted')
 
     item_id, err = create_vinted_item(produkt_id)
     if err:
-        flash(f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> {err}', 'error')
+        flash(f'<i class=mi style=color:#ef4444>cancel</i> {err}', 'error')
     else:
-        flash(f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Wystawiono na Vinted! (ID: {item_id})', 'success')
+        flash(f'<i class=mi style=color:#22c55e>check_circle</i> Wystawiono na Vinted! (ID: {item_id})', 'success')
 
     return redirect(request.referrer or '/vinted')
 
@@ -797,12 +797,12 @@ def vinted_create_item_route(produkt_id):
 def vinted_delete_item(vinted_item_id):
     """Usuwa ogłoszenie z Vinted"""
     if not is_authenticated():
-        flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Najpierw zaloguj się', 'error')
+        flash('<i class=mi style=color:#ef4444>cancel</i> Najpierw zaloguj się', 'error')
         return redirect('/vinted')
 
     result, err = vinted_api_request('DELETE', f'/items/{vinted_item_id}')
     if err:
-        flash(f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> {err}', 'error')
+        flash(f'<i class=mi style=color:#ef4444>cancel</i> {err}', 'error')
     else:
         try:
             conn = get_db()
@@ -810,7 +810,7 @@ def vinted_delete_item(vinted_item_id):
             conn.commit()
         except:
             pass
-        flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Usunięto z Vinted', 'success')
+        flash('<i class=mi style=color:#22c55e>check_circle</i> Usunięto z Vinted', 'success')
 
     return redirect('/vinted')
 

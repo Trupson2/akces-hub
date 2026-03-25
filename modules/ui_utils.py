@@ -174,10 +174,10 @@ def get_ui_components():
             toast.className = `toast ${type}`;
             
             const icons = {
-                success: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>',
-                error: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span>',
-                info: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#3b82f6">info</span>',
-                warning: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span>'
+                success: '<i class=mi style=color:#22c55e>check_circle</i>',
+                error: '<i class=mi style=color:#ef4444>cancel</i>',
+                info: '<i class=mi style=color:#3b82f6>info</i>',
+                warning: '<i class=mi>warning</i>'
             };
             
             toast.innerHTML = `
@@ -231,11 +231,11 @@ def get_ui_components():
     // Automatyczne zastąpienie alertów toastami
     window.originalAlert = window.alert;
     window.alert = function(message) {
-        if (message.includes('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>') || message.toLowerCase().includes('sukces')) {
+        if (message.includes('<i class=mi style=color:#22c55e>check_circle</i>') || message.toLowerCase().includes('sukces')) {
             Toast.success(message);
-        } else if (message.includes('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span>') || message.toLowerCase().includes('błąd')) {
+        } else if (message.includes('<i class=mi style=color:#ef4444>cancel</i>') || message.toLowerCase().includes('błąd')) {
             Toast.error(message);
-        } else if (message.includes('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span>')) {
+        } else if (message.includes('<i class=mi>warning</i>')) {
             Toast.warning(message);
         } else {
             Toast.info(message);
