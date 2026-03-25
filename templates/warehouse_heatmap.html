@@ -1224,13 +1224,13 @@
             const resultDiv = document.getElementById('search-result');
             
             if (!input) {
-                resultDiv.textContent = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">warning</span> Wpisz kod lokalizacji (np. A11, B2)';
+                resultDiv.textContent = ' Wpisz kod lokalizacji (np. A11, B2)';
                 resultDiv.style.color = '#f59e0b';
                 return;
             }
             
             // NOWE: Bezpośrednio otwórz modal z produktami dla tej lokalizacji
-            resultDiv.textContent = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">search</span> Szukam produktów...';
+            resultDiv.textContent = ' Szukam produktów...';
             resultDiv.style.color = '#3498db';
             
             console.log('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">search</span> Searching for location:', input);
@@ -1248,7 +1248,7 @@
                         // Znaleziono produkty - otwórz modal
                         console.log(`<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Found ${data.products.length} products`);
                         showLocationModal(input, data);
-                        resultDiv.textContent = `<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Znaleziono ${data.products.length} produkt(ów) w ${input}`;
+                        resultDiv.textContent = ` Znaleziono ${data.products.length} produkt(ów) w ${input}`;
                         resultDiv.style.color = '#10b981';
                         
                         // Opcjonalnie: Leci kamera do regału (jeśli istnieje w 3D)
@@ -1262,7 +1262,7 @@
                     } else {
                         // Nie znaleziono produktów
                         console.log('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> No products found');
-                        resultDiv.textContent = `<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Brak produktów w lokalizacji ${input}`;
+                        resultDiv.textContent = ` Brak produktów w lokalizacji ${input}`;
                         resultDiv.style.color = '#ef4444';
                         
                         // Pokaż modal z pustą lokalizacją
@@ -1271,7 +1271,7 @@
                 })
                 .catch(error => {
                     console.error('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Error searching location:', error);
-                    resultDiv.textContent = `<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Błąd wyszukiwania: ${error.message}`;
+                    resultDiv.textContent = ` Błąd wyszukiwania: ${error.message}`;
                     resultDiv.style.color = '#ef4444';
                 });
         }
@@ -1286,7 +1286,7 @@
             const productsDiv = document.getElementById('modal-products');
             
             // Ustaw tytuł
-            title.textContent = `<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">pin_drop</span> Lokalizacja ${code}`;
+            title.textContent = ` Lokalizacja ${code}`;
             
             // Ustaw statystyki
             const productCount = data.products ? data.products.length : 0;
@@ -1343,12 +1343,12 @@
             const resultDiv = document.getElementById('search-product-result');
             
             if (!input || input.length < 2) {
-                resultDiv.textContent = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">warning</span> Wpisz co najmniej 2 znaki';
+                resultDiv.textContent = ' Wpisz co najmniej 2 znaki';
                 resultDiv.style.color = '#f59e0b';
                 return;
             }
             
-            resultDiv.textContent = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">search</span> Szukam produktu...';
+            resultDiv.textContent = ' Szukam produktu...';
             resultDiv.style.color = '#3498db';
             
             console.log('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">search</span> Searching for product:', input);
@@ -1391,17 +1391,17 @@
                                     }
                                 });
                         } else {
-                            resultDiv.textContent = `<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Znaleziono "${firstResult.nazwa.substring(0, 30)}..." ale brak lokalizacji`;
+                            resultDiv.textContent = ` Znaleziono "${firstResult.nazwa.substring(0, 30)}..." ale brak lokalizacji`;
                             resultDiv.style.color = '#f59e0b';
                         }
                     } else {
-                        resultDiv.textContent = `<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Nie znaleziono produktu: "${input}"`;
+                        resultDiv.textContent = ` Nie znaleziono produktu: "${input}"`;
                         resultDiv.style.color = '#ef4444';
                     }
                 })
                 .catch(error => {
                     console.error('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Error searching product:', error);
-                    resultDiv.textContent = `<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Błąd wyszukiwania: ${error.message}`;
+                    resultDiv.textContent = ` Błąd wyszukiwania: ${error.message}`;
                     resultDiv.style.color = '#ef4444';
                 });
         }
@@ -1504,7 +1504,7 @@
             // Show notification
             const notification = document.createElement('div');
             notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 15px 25px; border-radius: 12px; z-index: 9999; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.3);';
-            notification.textContent = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Screenshot saved!';
+            notification.textContent = ' Screenshot saved!';
             document.body.appendChild(notification);
             setTimeout(() => notification.remove(), 3000);
         }

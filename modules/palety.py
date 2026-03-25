@@ -2231,7 +2231,7 @@ def paleta_bulk_import():
         if (!input.files.length) return;
         var file = input.files[0];
         var statusEl = document.getElementById('zip-status');
-        statusEl.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> ' + file.name + ' — dodaję jako slot...';
+        statusEl.textContent = ' ' + file.name + ' — dodaję jako slot...';
         statusEl.style.color = '#fbbf24';
         // Dodaj jeden slot z plikiem ZIP
         addPaleta();
@@ -2248,7 +2248,7 @@ def paleta_bulk_import():
             var nameField = document.getElementById('nazwa-' + lastIdx);
             if (nameField) nameField.placeholder = file.name.replace(/\\.[^.]+$/, '') + ' (ZIP)';
         }
-        statusEl.textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> ' + file.name + ' — gotowy do importu!';
+        statusEl.textContent = ' ' + file.name + ' — gotowy do importu!';
         statusEl.style.color = '#22c55e';
         input.value = '';
     }
@@ -2333,7 +2333,7 @@ def paleta_bulk_import():
         const btn = document.getElementById('submit-btn');
         btn.disabled = rows.length === 0;
         btn.style.opacity = rows.length === 0 ? '0.5' : '1';
-        btn.textContent = rows.length === 0 ? '<span class=material-symbols-outlined style=font-size:1rem>download</span> DODAJ PALETY POWYŻEJ' : '<span class=material-symbols-outlined style=font-size:1rem>download</span> IMPORTUJ ' + rows.length + ' PALET';
+        btn.textContent = rows.length === 0 ? ' DODAJ PALETY POWYŻEJ' : ' IMPORTUJ ' + rows.length + ' PALET';
         // Pokaż opcję "Połącz w jeden box" jeśli >1 slot z typem box
         let boxCount = 0;
         rows.forEach(function(row) {

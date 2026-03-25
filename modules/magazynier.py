@@ -998,7 +998,7 @@ def produkty():
 
         const btn = document.getElementById('boxSaveBtn');
         btn.disabled = true;
-        btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Tworzę...';
+        btn.textContent = ' Tworzę...';
 
         fetch('/magazyn/api/utworz-box', {
             method: 'POST',
@@ -1008,14 +1008,14 @@ def produkty():
         .then(r => r.json())
         .then(d => {
             if (d.ok) {
-                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Utworzono!';
+                btn.textContent = ' Utworzono!';
                 setTimeout(() => { window.location.href = '/magazyn/paleta-id/' + d.box_id; }, 800);
             } else {
-                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + (d.error || 'Błąd');
+                btn.textContent = ' ' + (d.error || 'Błąd');
                 btn.disabled = false;
             }
         })
-        .catch(e => { btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + e.message; btn.disabled = false; });
+        .catch(e => { btn.textContent = ' ' + e.message; btn.disabled = false; });
     }
     </script>
 
@@ -1416,7 +1416,7 @@ def produkt(code):
             }});
         }}
         function rescrapZdjecia(produktId, btn) {{
-            btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Pobieram...';
+            btn.textContent = ' Pobieram...';
             btn.disabled = true;
             fetch('/magazyn/api/rescrape-image/' + produktId, {{
                 method: 'POST',
@@ -1428,7 +1428,7 @@ def produkt(code):
             }})
             .then(function(d) {{
                 if (d.ok) {{
-                    btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Pobieranie w tle...';
+                    btn.textContent = ' Pobieranie w tle...';
                     btn.style.background = '#beee00';
                     // Sprawdzaj co 5s czy zdjecie sie pojawilo
                     var checks = 0;
@@ -1439,30 +1439,30 @@ def produkt(code):
                         .then(function(d2){{
                             if(d2.has_image) {{
                                 clearInterval(checkInterval);
-                                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Pobrano!';
+                                btn.textContent = ' Pobrano!';
                                 setTimeout(function(){{ location.reload(); }}, 1000);
                             }} else if(checks >= 24) {{
                                 clearInterval(checkInterval);
-                                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Trwa... odśwież';
+                                btn.textContent = ' Trwa... odśwież';
                                 btn.disabled = false;
                                 btn.onclick = function(){{ location.reload(); }};
                             }}
                         }}).catch(function(){{}});
                     }}, 5000);
                 }} else {{
-                    btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + (d.error || 'Błąd');
-                    setTimeout(function() {{ btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> POBIERZ ZDJĘCIA'; btn.disabled = false; }}, 3000);
+                    btn.textContent = ' ' + (d.error || 'Błąd');
+                    setTimeout(function() {{ btn.textContent = ' POBIERZ ZDJĘCIA'; btn.disabled = false; }}, 3000);
                 }}
             }})
             .catch(function(e) {{
-                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + e.message;
-                setTimeout(function() {{ btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> POBIERZ ZDJĘCIA'; btn.disabled = false; }}, 3000);
+                btn.textContent = ' ' + e.message;
+                setTimeout(function() {{ btn.textContent = ' POBIERZ ZDJĘCIA'; btn.disabled = false; }}, 3000);
             }});
         }}
         async function pokazGPSR() {{
             const modal = document.getElementById('gpsrModal');
             const content = document.getElementById('gpsrContent');
-            content.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Generowanie GPSR...';
+            content.textContent = ' Generowanie GPSR...';
             modal.style.display = 'block';
             
             try {{
@@ -1472,10 +1472,10 @@ def produkt(code):
                 if (data.gpsr) {{
                     content.textContent = data.gpsr;
                 }} else {{
-                    content.textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Ten produkt nie wymaga informacji GPSR (dekoracja, odzież, papeteria)';
+                    content.textContent = ' Ten produkt nie wymaga informacji GPSR (dekoracja, odzież, papeteria)';
                 }}
             }} catch (e) {{
-                content.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> Błąd: ' + e.message;
+                content.textContent = ' Błąd: ' + e.message;
             }}
         }}
         
@@ -1703,7 +1703,7 @@ def produkt(code):
         // Auto-show split hint for multi-quantity
         const splitToggle = document.getElementById('ocenSplitToggle');
         if (ilosc > 1) {{
-            splitToggle.textContent = '<i class=mi>shuffle</i> Split (' + ilosc + ' szt)';
+            splitToggle.textContent = ' Split (' + ilosc + ' szt)';
             splitToggle.style.display = '';
         }} else {{
             splitToggle.style.display = 'none';
@@ -1752,7 +1752,7 @@ def produkt(code):
         document.querySelectorAll('#ocenSplitFields input').forEach(inp=>{{ sum+=parseInt(inp.value)||0; }});
         const el=document.getElementById('ocenSplitSum');
         const ok=sum===_ocenIlosc;
-        el.textContent='Suma: '+sum+' / '+_ocenIlosc+(ok?' <span class=material-symbols-outlined style=font-size:1rem>check_circle</span>':sum>_ocenIlosc?' <span class=material-symbols-outlined style=font-size:1rem>cancel</span> za dużo!':'');
+        el.textContent='Suma: '+sum+' / '+_ocenIlosc+(ok?' ':sum>_ocenIlosc?'  za dużo!':'');
         el.style.color=ok?'#beee00':sum>_ocenIlosc?'#ef4444':'#f59e0b';
     }}
     function zapiszOceneStan() {{
@@ -3595,7 +3595,7 @@ def statystyki():
         chartMiesiace.data.datasets[3].hidden = false;
         chartMiesiace.update();
         
-        document.getElementById('chartTitle').textContent = '<span class=material-symbols-outlined style=font-size:1rem>calendar_month</span> ' + nazwyMiesiecy[month-1] + ' {current_year} - rozkład dzienny';
+        document.getElementById('chartTitle').textContent = ' ' + nazwyMiesiecy[month-1] + ' {current_year} - rozkład dzienny';
         document.getElementById('btnBack').style.display = 'inline-block';
         
         // Podsumowanie miesiąca
@@ -3667,7 +3667,7 @@ def statystyki():
         chartMiesiace.data.datasets[3].spanGaps = false;
         chartMiesiace.update();
         
-        document.getElementById('chartTitle').textContent = '<span class=material-symbols-outlined style=font-size:1rem>calendar_month</span> Sprzedaż miesięcznie ({current_year})';
+        document.getElementById('chartTitle').textContent = ' Sprzedaż miesięcznie ({current_year})';
         document.getElementById('btnBack').style.display = 'none';
         document.getElementById('monthSummary').style.display = 'none';
         document.getElementById('monthSummary').innerHTML = '';
@@ -4061,19 +4061,19 @@ def palety():
         var cenaZakupu = parseFloat(document.getElementById('boxPaletyCenaZakupu').value) || 0;
         if (!nazwa) { alert('Podaj nazwę boxa'); return; }
         var btn = document.getElementById('boxPaletySaveBtn');
-        btn.disabled = true; btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Tworzę...';
+        btn.disabled = true; btn.textContent = ' Tworzę...';
         fetch('/magazyn/api/zgrupuj-palety-box', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({paleta_ids: ids, nazwa: nazwa, cena_sprzedazy: cena, cena_zakupu: cenaZakupu})
         }).then(function(r){return r.json()}).then(function(d) {
             if (d.ok) {
-                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Utworzono!';
+                btn.textContent = ' Utworzono!';
                 setTimeout(function(){ window.location.href = '/palety/' + d.box_id; }, 800);
             } else {
-                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + (d.error||'Błąd'); btn.disabled = false;
+                btn.textContent = ' ' + (d.error||'Błąd'); btn.disabled = false;
             }
-        }).catch(function(e){ btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + e.message; btn.disabled = false; });
+        }).catch(function(e){ btn.textContent = ' ' + e.message; btn.disabled = false; });
     }
     </script>
 
@@ -4343,12 +4343,12 @@ def paleta_detail_by_id(paleta_id):
             if (d.ok) {{
                 btn.dataset.val = newVal;
                 if (newVal == 1) {{
-                    btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Dostarczona';
+                    btn.textContent = ' Dostarczona';
                     btn.style.borderColor = '#beee00';
                     btn.style.color = '#beee00';
                     btn.style.background = '#beee0022';
                 }} else {{
-                    btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>local_shipping</span> W drodze';
+                    btn.textContent = ' W drodze';
                     btn.style.borderColor = '#f59e0b';
                     btn.style.color = '#f59e0b';
                     btn.style.background = '#f59e0b22';
@@ -6768,7 +6768,7 @@ def etykiety_niimbot_page(products):
     // Pobierz i zapisz PNG — potem user otwiera w Niimbot
     async function printLabel(productId, ean, btnIdx) {{
         const btn = document.getElementById('btn-' + btnIdx);
-        btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span>';
+        btn.textContent = '';
         btn.disabled = true;
 
         try {{
@@ -6780,11 +6780,11 @@ def etykiety_niimbot_page(products):
             link.click();
             document.body.removeChild(link);
 
-            btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span>';
+            btn.textContent = '';
             btn.style.background = '#64748b';
             markPrinted();
         }} catch(e) {{
-            btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span>';
+            btn.textContent = '';
             btn.disabled = false;
         }}
     }}
@@ -6818,15 +6818,15 @@ def etykiety_niimbot_page(products):
             document.body.removeChild(link);
 
             const cardBtn = document.getElementById('btn-' + i);
-            if (cardBtn) {{ cardBtn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span>'; cardBtn.style.background = '#64748b'; }}
+            if (cardBtn) {{ cardBtn.textContent = ''; cardBtn.style.background = '#64748b'; }}
             markPrinted();
 
-            btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> ' + (i+1) + '/' + products.length;
+            btn.textContent = ' ' + (i+1) + '/' + products.length;
             await new Promise(r => setTimeout(r, 600));
         }}
 
         btn.disabled = false;
-        btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>download</span> POBIERZ WSZ.';
+        btn.textContent = ' POBIERZ WSZ.';
         showToast('Wszystkie pobrane! Otworz apke Niimbot');
     }}
 
@@ -9806,7 +9806,7 @@ def przyjecie_palety(paleta_id):
         }});
         const sumDiv = document.getElementById('split-sum-' + pid);
         const ok = sum === maxIlosc;
-        sumDiv.textContent = 'Suma: ' + sum + ' / ' + maxIlosc + (ok ? ' <span class=material-symbols-outlined style=font-size:1rem>check_circle</span>' : sum > maxIlosc ? ' <span class=material-symbols-outlined style=font-size:1rem>cancel</span> za dużo!' : '');
+        sumDiv.textContent = 'Suma: ' + sum + ' / ' + maxIlosc + (ok ? ' ' : sum > maxIlosc ? '  za dużo!' : '');
         sumDiv.style.color = ok ? '#beee00' : sum > maxIlosc ? '#ef4444' : '#f59e0b';
 
         if (ok) {{
@@ -9904,7 +9904,7 @@ def przyjecie_palety(paleta_id):
     function savePartial() {{
         const btn = document.getElementById('save-partial-btn');
         btn.disabled = true;
-        btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Zapisuję...';
+        btn.textContent = ' Zapisuję...';
         const assessments = collectAssessments();
         fetch('/magazyn/api/przyjecie-save', {{
             method: 'POST',
@@ -9914,21 +9914,21 @@ def przyjecie_palety(paleta_id):
         .then(r => {{ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }})
         .then(data => {{
             if (data.success) {{
-                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>save</span> Zapisano! Wróć później...';
+                btn.textContent = ' Zapisano! Wróć później...';
                 btn.style.borderColor = '#beee00';
                 btn.style.color = '#beee00';
                 setTimeout(() => window.location.href = '/magazyn/paleta-id/{paleta_id}', 1000);
             }} else {{
-                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + (data.error || 'Błąd');
+                btn.textContent = ' ' + (data.error || 'Błąd');
                 btn.disabled = false;
             }}
-        }}).catch(e => {{ btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + e.message; btn.disabled = false; }});
+        }}).catch(e => {{ btn.textContent = ' ' + e.message; btn.disabled = false; }});
     }}
 
     function saveAll() {{
         const btn = document.getElementById('save-btn');
         btn.disabled = true;
-        btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Zapisuję...';
+        btn.textContent = ' Zapisuję...';
         const assessments = collectAssessments();
 
         fetch('/magazyn/api/przyjecie-save', {{
@@ -9942,16 +9942,16 @@ def przyjecie_palety(paleta_id):
         }})
         .then(data => {{
             if (data.success) {{
-                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Zapisano!';
+                btn.textContent = ' Zapisano!';
                 btn.style.background = '#16a34a';
                 setTimeout(() => window.location.href = '/magazyn/paleta-id/{paleta_id}', 1000);
             }} else {{
-                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + (data.error || 'Błąd zapisu');
+                btn.textContent = ' ' + (data.error || 'Błąd zapisu');
                 btn.disabled = false;
             }}
         }})
         .catch(e => {{
-            btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + e.message;
+            btn.textContent = ' ' + e.message;
             btn.disabled = false;
         }});
     }}
@@ -9962,7 +9962,7 @@ def przyjecie_palety(paleta_id):
             const pid = parseInt(card.id.replace('prod-', ''));
             const activeBtn = card.querySelector('[data-active="true"]');
             if (activeBtn && activeBtn.textContent.trim()) {{
-                const stanText = activeBtn.textContent.replace(/[●●●●<span class=material-symbols-outlined style=font-size:1rem>fiber_manual_record</span>]/g, '').trim();
+                const stanText = activeBtn.textContent.replace(/[●●●●]/g, '').trim();
                 currentStany[pid] = stanText;
             }}
         }});

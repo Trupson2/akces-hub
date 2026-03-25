@@ -777,7 +777,7 @@ function pkSelectSize(size) {
     // Update the correct status text
     const isOrlenSize = ['S','M','L'].includes(size);
     const statusEl = document.getElementById(isOrlenSize ? 'pkSizeSelectedOrlen' : 'pkSizeSelected');
-    statusEl.textContent = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Gabaryt ' + size + ' wybrany';
+    statusEl.textContent = ' Gabaryt ' + size + ' wybrany';
     if (navigator.vibrate) navigator.vibrate(20);
 }
 

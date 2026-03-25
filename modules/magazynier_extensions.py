@@ -1136,7 +1136,7 @@ def register_printer_routes(bp: Blueprint):
             ''').fetchall()
             
             # Dropdown opcji palet
-            palety_options = '<option value=""><i class=mi>auto_awesome</i> Nowa paleta (auto-tworzenie)</option>'
+            palety_options = '<option value=""> Nowa paleta (auto-tworzenie)</option>'
             for paleta in palety_lista:
                 nazwa_display = paleta['nazwa'] or f"Paleta #{paleta['id']}"
                 info = f"{paleta['dostawca'] or '?'} | {paleta['data_zakupu'] or '?'} | {paleta['ilosc_produktow']} prod."

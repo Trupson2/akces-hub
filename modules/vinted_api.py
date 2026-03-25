@@ -550,11 +550,11 @@ a {{ color:#09b1ba; }}
                 <div class="form-group">
                     <label>Kategoria</label>
                     <select name="kategoria">
-                        <option value="buty"><i class=mi>steps</i> Buty</option>
-                        <option value="ubrania"><i class=mi>checkroom</i> Ubrania</option>
-                        <option value="akcesoria"><i class=mi>shopping_bag</i> Akcesoria</option>
-                        <option value="elektronika"><i class=mi>smartphone</i> Elektronika</option>
-                        <option value="inne"><i class=mi>inventory_2</i> Inne</option>
+                        <option value="buty"> Buty</option>
+                        <option value="ubrania"> Ubrania</option>
+                        <option value="akcesoria"> Akcesoria</option>
+                        <option value="elektronika"> Elektronika</option>
+                        <option value="inne"> Inne</option>
                     </select>
                 </div>
                 <div class="form-group">

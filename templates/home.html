@@ -99,12 +99,12 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
 
 <script>
 function doSystemUpdate(btn){
-    btn.disabled=true; btn.textContent='<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">hourglass_top</span> Aktualizuję...';
+    btn.disabled=true; btn.textContent=' Aktualizuję...';
     var card = btn.closest('.glass-card');
     fetch('/system/update',{method:'POST',credentials:'same-origin',headers:{'ngrok-skip-browser-warning':'1'}})
     .then(r=>r.json()).then(d=>{
         if(d.ok){
-            btn.textContent='<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Zaktualizowano!';
+            btn.textContent=' Zaktualizowano!';
             if(card){
                 card.style.borderColor='rgba(190,238,0,0.4)';
                 var info = document.createElement('div');
@@ -121,7 +121,7 @@ function doSystemUpdate(btn){
             }
             setTimeout(tryReload,4000);
         } else {
-            btn.textContent='<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Błąd'; btn.disabled=false;
+            btn.textContent=' Błąd'; btn.disabled=false;
             if(card){
                 var err=document.createElement('div');
                 err.style.cssText='margin-top:8px;padding:8px;background:rgba(239,68,68,0.15);border-radius:var(--radius-sm);font-size:0.8rem;color:#fca5a5';
@@ -129,7 +129,7 @@ function doSystemUpdate(btn){
                 card.appendChild(err);
             }
         }
-    }).catch(function(){ btn.textContent='<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Błąd sieci'; btn.disabled=false; });
+    }).catch(function(){ btn.textContent=' Błąd sieci'; btn.disabled=false; });
 }
 </script>
 
@@ -198,10 +198,10 @@ function requestEarlyAccess(btn) {
     fetch('/api/paletomat-early-access', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})})
     .then(function(r){return r.json();}).then(function(d){
         document.getElementById('paleoToast').style.display='block';
-        btn.textContent='<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">check</span> Zapisano!';btn.style.background='linear-gradient(135deg,#beee00,#16a34a)';
+        btn.textContent=' Zapisano!';btn.style.background='linear-gradient(135deg,#beee00,#16a34a)';
     }).catch(function(){
         document.getElementById('paleoToast').style.display='block';
-        btn.textContent='<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">check</span> Zapisano!';btn.style.background='linear-gradient(135deg,#beee00,#16a34a)';
+        btn.textContent=' Zapisano!';btn.style.background='linear-gradient(135deg,#beee00,#16a34a)';
     });
 }
 </script>

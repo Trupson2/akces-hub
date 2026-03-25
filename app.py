@@ -349,13 +349,14 @@ def after_request(response):
     # CSP — pozwól na Leaflet, Google Fonts, CDN
     if response.content_type and 'text/html' in response.content_type:
         response.headers['Content-Security-Policy'] = (
-            "default-src 'self' https:; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
-            "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com; "
+            "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.tailwindcss.com; "
             "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
-            "img-src 'self' data: blob: https: http:; "
-            "connect-src 'self' https: wss: ws:; "
+            "img-src 'self' data: blob: https:; "
+            "connect-src 'self' https://generativelanguage.googleapis.com wss: ws:; "
             "worker-src 'self' blob:; "
+            "frame-ancestors 'self'; "
         )
     # CORS headers zarzadzane przez flask-cors — nie nadpisuj globalnie
     if 'Access-Control-Allow-Origin' not in response.headers:
@@ -383,9 +384,12 @@ def after_request(response):
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https://generativelanguage.googleapis.com"
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     response.headers['Permissions-Policy'] = 'camera=(self), microphone=(), geolocation=()'
+    # CSP already set above for HTML responses — don't overwrite with stricter one
+    # Only add fallback CSP for non-HTML responses
+    if 'Content-Security-Policy' not in response.headers:
+        response.headers['Content-Security-Policy'] = "default-src 'self'"
 
     return response
 # ============================================================
@@ -3457,7 +3461,7 @@ function syncStats() {
             msg.textContent = '[ERR] ' + (d.error || 'Błąd');
             btn.disabled = false;
             btn.style.opacity = '1';
-            btn.textContent = '<i class=mi>sync</i> Sync z Allegro';
+            btn.textContent = ' Sync z Allegro';
         }
     })
     .catch(function(e) {
@@ -3465,7 +3469,7 @@ function syncStats() {
         msg.textContent = '[ERR] ' + e;
         btn.disabled = false;
         btn.style.opacity = '1';
-        btn.textContent = '<i class=mi>sync</i> Sync z Allegro';
+        btn.textContent = ' Sync z Allegro';
     });
 }
 

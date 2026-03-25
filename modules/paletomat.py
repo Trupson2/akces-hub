@@ -988,6 +988,8 @@ body{font-family:'Inter',-apple-system,system-ui,'Segoe UI',sans-serif;backgroun
 BASE = '''<!DOCTYPE html><html lang="pl" data-theme="light"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Paletomat</title><meta name="theme-color" content="#f0f2f5">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<style>.mi{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:inherit;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-smoothing:antialiased;vertical-align:middle}</style>
 <script>
 const saved = localStorage.getItem('theme');
 if(saved) document.documentElement.setAttribute('data-theme', saved);
@@ -1069,11 +1071,11 @@ function toggleTheme(){
     const next = current === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', next);
     localStorage.setItem('theme', next);
-    document.getElementById('theme-icon').textContent = next === 'dark' ? '<i class=mi>dark_mode</i>' : '☀';
+    document.getElementById('theme-icon').textContent = next === 'dark' ? '' : '☀';
     document.querySelector('meta[name="theme-color"]').content = next === 'dark' ? '#06060f' : '#f1f5f9';
 }
 const theme = document.documentElement.getAttribute('data-theme');
-document.getElementById('theme-icon').textContent = theme === 'dark' ? '<i class=mi>dark_mode</i>' : '☀';
+document.getElementById('theme-icon').textContent = theme === 'dark' ? '' : '☀';
 
 // Highlight active sidebar link
 const path = window.location.pathname;
@@ -2796,7 +2798,7 @@ def generator_mass_create():
         
         function connectToStream() {{
             if (retryCount >= MAX_RETRIES) {{
-                icon.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span>';
+                icon.textContent = '';
                 text.textContent = 'Nie udało się połączyć';
                 addLog('<span class=material-symbols-outlined style=font-size:1rem>cancel</span> Przekroczono limit prób połączenia. Sprawdź czy backend działa i ngrok jest uruchomiony!', '#ef4444');
                 showConnectionError(false);
@@ -2838,7 +2840,7 @@ def generator_mass_create():
                         
                         if (data.type === 'start') {{
                             addLog('<span class=material-symbols-outlined style=font-size:1rem>rocket_launch</span> Start wystawiania ' + data.total + ' produktów...', '#3b82f6');
-                            icon.textContent = '<span class=material-symbols-outlined style=font-size:1rem>rocket_launch</span>';
+                            icon.textContent = '';
                         }}
                         else if (data.type === 'progress') {{
                             bar.style.width = data.percent + '%';
@@ -2910,7 +2912,7 @@ def generator_mass_create():
         
         function retryWithDelay(seconds) {{
             if (retryCount >= MAX_RETRIES) {{
-                icon.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span>';
+                icon.textContent = '';
                 text.textContent = 'Nie udało się połączyć';
                 addLog('<span class=material-symbols-outlined style=font-size:1rem>cancel</span> Osiągnięto limit prób. Sprawdź logi serwera i upewnij się że backend działa!', '#ef4444');
                 doneButtons.style.display = 'flex';
@@ -2919,7 +2921,7 @@ def generator_mass_create():
             }}
             
             showConnectionError(true, seconds);
-            icon.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span>';
+            icon.textContent = '';
             text.textContent = 'Ponowne łączenie...';
             
             let countdown = seconds;
@@ -4108,7 +4110,7 @@ def generator_enhance_existing():
         if (_doneN > 0) {{
             const perItem = elapsed / _doneN;
             const remaining = perItem * (_totalN - _doneN);
-            document.getElementById('etaText').textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Zostało ~' + fmtTime(remaining);
+            document.getElementById('etaText').textContent = ' Zostało ~' + fmtTime(remaining);
         }}
     }}
 
@@ -4143,12 +4145,12 @@ def generator_enhance_existing():
                 clearInterval(_timerInterval);
                 const totalTime = fmtTime((Date.now() - _startTime) / 1000);
                 document.getElementById('spinnerEl').style.display = 'none';
-                document.getElementById('btnStart').textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Gotowe!';
+                document.getElementById('btnStart').textContent = ' Gotowe!';
                 document.getElementById('btnStart').style.background = '#22c55e';
                 document.getElementById('btnStart').classList.remove('pulsing');
                 document.getElementById('progressBar').style.width = '100%';
                 document.getElementById('progressText').textContent = (data.message || 'Zakończono!') + ' (' + totalTime + ')';
-                document.getElementById('etaText').textContent = '<i class=mi>flag</i> Czas: ' + totalTime;
+                document.getElementById('etaText').textContent = ' Czas: ' + totalTime;
                 evtSource.close();
             }}
         }};
@@ -4156,12 +4158,12 @@ def generator_enhance_existing():
 
     function startBgEnhance(force) {{
         document.getElementById('btnBg').disabled = true;
-        document.getElementById('btnBg').textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Uruchamiam...';
+        document.getElementById('btnBg').textContent = ' Uruchamiam...';
         fetch('/paletomat/generator/enhance-bg-start' + (force ? '?force=1' : ''))
             .then(r => r.json())
             .then(d => {{
                 if (d.ok) {{
-                    document.getElementById('btnBg').textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Działa w tle!';
+                    document.getElementById('btnBg').textContent = ' Działa w tle!';
                     document.getElementById('btnBg').style.background = '#22c55e';
                     document.getElementById('progressCard').style.display = 'block';
                     document.getElementById('log').style.display = 'block';
@@ -4171,7 +4173,7 @@ def generator_enhance_existing():
                     _bgPoll = setInterval(pollBgStatus, 5000);
                     pollBgStatus();
                 }} else {{
-                    document.getElementById('btnBg').textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + (d.error || 'Błąd');
+                    document.getElementById('btnBg').textContent = ' ' + (d.error || 'Błąd');
                     document.getElementById('btnBg').style.background = '#ef4444';
                     // Pokaż przycisk reset
                     if (!document.getElementById('btnReset')) {{
@@ -4179,7 +4181,7 @@ def generator_enhance_existing():
                         resetBtn.id = 'btnReset';
                         resetBtn.className = 'btn';
                         resetBtn.style.cssText = 'width:100%;margin-top:6px;background:#dc2626;color:#fff';
-                        resetBtn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>sync</span> RESETUJ STATUS (odblokuj)';
+                        resetBtn.textContent = ' RESETUJ STATUS (odblokuj)';
                         resetBtn.onclick = function() {{
                             fetch('/paletomat/generator/enhance-bg-reset')
                                 .then(r => r.json())
@@ -4217,7 +4219,7 @@ def generator_enhance_existing():
                     if (d.done > 0 && d.total > 0) {{
                         const perItem = d.elapsed / d.done;
                         const remaining = perItem * (d.total - d.done);
-                        document.getElementById('etaText').textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Zostało ~' + fmtTime(remaining);
+                        document.getElementById('etaText').textContent = ' Zostało ~' + fmtTime(remaining);
                     }}
                 }}
                 if (d.finished) {{
@@ -4225,7 +4227,7 @@ def generator_enhance_existing():
                     clearInterval(_timerInterval);
                     document.getElementById('spinnerEl').style.display = 'none';
                     document.getElementById('progressBar').style.width = '100%';
-                    document.getElementById('progressText').textContent = '<i class=mi>flag</i> Gotowe! ' + d.done + ' produktów | $' + d.cost.toFixed(2);
+                    document.getElementById('progressText').textContent = ' Gotowe! ' + d.done + ' produktów | $' + d.cost.toFixed(2);
                 }}
             }});
     }}
@@ -5532,7 +5534,7 @@ def generator_detail(asin):
 
     function enhanceNext(btn, status, baseUrl) {
         if (enhanceIdx >= 8) {
-            btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>auto_awesome</span> Gotowe!';
+            btn.textContent = ' Gotowe!';
             btn.style.background = '#22c55e';
             status.textContent = '8/8 wygenerowanych!';
             updateEnhancedPhotos();

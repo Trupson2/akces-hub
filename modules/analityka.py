@@ -1543,11 +1543,11 @@ def analityka_okazje():
         function loadWarrington() {
           var btn = document.getElementById('btn-warrington');
           var res = document.getElementById('warrington-results');
-          btn.disabled = true; btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Ładowanie...';
+          btn.disabled = true; btn.textContent = ' Ładowanie...';
           fetch('/analityka/okazje/scrape-warrington')
             .then(r => r.json())
             .then(d => {
-              btn.disabled = false; btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>sync</span> Odśwież';
+              btn.disabled = false; btn.textContent = ' Odśwież';
               if (!d.ok) { res.innerHTML = '<span style="color:var(--red)">Błąd: ' + d.error + '</span>'; return; }
               if (!d.products.length) { res.innerHTML = '<span style="color:var(--text-muted)">Brak produktów</span>'; return; }
               var html = '<div style="max-height:280px;overflow-y:auto">';
@@ -1566,11 +1566,11 @@ def analityka_okazje():
         function loadJobalots() {
           var btn = document.getElementById('btn-jobalots');
           var res = document.getElementById('jobalots-results');
-          btn.disabled = true; btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Ładowanie...';
+          btn.disabled = true; btn.textContent = ' Ładowanie...';
           fetch('/analityka/okazje/scrape-jobalots')
             .then(r => r.json())
             .then(d => {
-              btn.disabled = false; btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>sync</span> Odśwież';
+              btn.disabled = false; btn.textContent = ' Odśwież';
               if (!d.ok) { res.innerHTML = '<span style="color:var(--red)">Błąd: ' + (d.error||'') + '</span>' + (d.fallback_url ? '<br><a href="'+d.fallback_url+'" target="_blank" style="color:var(--orange)">→ Otwórz Jobalots ↗</a>' : ''); return; }
               if (d.fallback_url && !d.products.length) {
                 res.innerHTML = '<div style="color:var(--orange);font-size:0.8rem">' + (d.note||'') + '</div><a href="' + d.fallback_url + '" target="_blank" style="color:var(--orange);font-size:0.8rem">→ Otwórz Jobalots ↗</a>';
@@ -3397,7 +3397,7 @@ def analizator_palet():
         if (!paletaId) {{ alert('Wybierz paletę!'); return; }}
 
         var btn = document.getElementById('btn-analizuj');
-        btn.disabled = true; btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Analizuję...';
+        btn.disabled = true; btn.textContent = ' Analizuję...';
 
         var statusDiv = document.getElementById('analysis-status');
         statusDiv.style.display = 'block';
@@ -3412,7 +3412,7 @@ def analizator_palet():
         .then(r => r.json())
         .then(d => {{
             if (!d.ok) {{
-                btn.disabled = false; btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>search</span> Analizuj';
+                btn.disabled = false; btn.textContent = ' Analizuj';
                 statusDiv.innerHTML = '<div style="color:var(--red)">Błąd: ' + (d.error||'nieznany') + '</div>';
                 return;
             }}
@@ -3420,7 +3420,7 @@ def analizator_palet():
             pollStatus();
         }})
         .catch(e => {{
-            btn.disabled = false; btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>search</span> Analizuj';
+            btn.disabled = false; btn.textContent = ' Analizuj';
             statusDiv.innerHTML = '<div style="color:var(--red)">Błąd połączenia</div>';
         }});
     }}
@@ -3436,13 +3436,13 @@ def analizator_palet():
             }} else if (d.status === 'done') {{
                 document.getElementById('analysis-status').style.display = 'none';
                 document.getElementById('btn-analizuj').disabled = false;
-                document.getElementById('btn-analizuj').textContent = '<span class=material-symbols-outlined style=font-size:1rem>search</span> Analizuj';
+                document.getElementById('btn-analizuj').textContent = ' Analizuj';
                 renderResults(d);
             }} else if (d.status === 'error') {{
                 document.getElementById('analysis-status').innerHTML =
                     '<div style="color:var(--red)">Błąd: ' + (d.error||'nieznany') + '</div>';
                 document.getElementById('btn-analizuj').disabled = false;
-                document.getElementById('btn-analizuj').textContent = '<span class=material-symbols-outlined style=font-size:1rem>search</span> Analizuj';
+                document.getElementById('btn-analizuj').textContent = ' Analizuj';
             }}
         }})
         .catch(() => {{ pollTimer = setTimeout(pollStatus, 3000); }});
@@ -3457,10 +3457,10 @@ def analizator_palet():
         var fd = new FormData(this);
         fetch('/analityka/analiza-zakupu', {{method:'POST', body:fd}})
         .then(r => r.json()).then(function(d) {{
-            if (!d.ok) {{ alert(d.error); btn.disabled=false; btn.textContent='<i class=mi>biotech</i> Analizuj przed zakupem'; document.getElementById('excel-progress').style.display='none'; return; }}
+            if (!d.ok) {{ alert(d.error); btn.disabled=false; btn.textContent=' Analizuj przed zakupem'; document.getElementById('excel-progress').style.display='none'; return; }}
             document.getElementById('excel-progress-text').textContent = 'Znaleziono ' + d.produktow + ' produktów, analizuję...';
             pollExcelStatus(d.job_id);
-        }}).catch(function(e) {{ alert('Błąd: ' + e); btn.disabled=false; btn.textContent='<i class=mi>biotech</i> Analizuj przed zakupem'; document.getElementById('excel-progress').style.display='none'; }});
+        }}).catch(function(e) {{ alert('Błąd: ' + e); btn.disabled=false; btn.textContent=' Analizuj przed zakupem'; document.getElementById('excel-progress').style.display='none'; }});
     }});
 
     var excelTotalBatches = 1;
@@ -3469,7 +3469,7 @@ def analizator_palet():
         .then(r => r.json()).then(function(d) {{
             if (d.status === 'running') {{
                 var prog = d.progress || 'Analizuję...';
-                document.getElementById('excel-progress-text').textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> ' + prog;
+                document.getElementById('excel-progress-text').textContent = ' ' + prog;
                 // Parsuj "batch X/Y" z progressu
                 var m = prog.match(/batch\s+(\d+)\/(\d+)/);
                 if (m) {{
@@ -3494,21 +3494,21 @@ def analizator_palet():
             }} else if (d.status === 'done') {{
                 document.getElementById('excel-progress-bar').style.width = '100%';
                 document.getElementById('excel-progress-pct').textContent = '100%';
-                document.getElementById('excel-progress-text').textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Gotowe!';
+                document.getElementById('excel-progress-text').textContent = ' Gotowe!';
                 document.getElementById('excel-progress-detail').textContent = 'Analiza zakończona pomyślnie';
                 setTimeout(function() {{
                     document.getElementById('excel-progress').style.display = 'none';
                     document.getElementById('btn-analyze-excel').disabled = false;
-                    document.getElementById('btn-analyze-excel').textContent = '<i class=mi>biotech</i> Analizuj przed zakupem';
+                    document.getElementById('btn-analyze-excel').textContent = ' Analizuj przed zakupem';
                     renderResults(d);
                 }}, 1000);
             }} else if (d.status === 'error') {{
-                document.getElementById('excel-progress-text').textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> Błąd';
+                document.getElementById('excel-progress-text').textContent = ' Błąd';
                 document.getElementById('excel-progress-detail').textContent = d.error || 'Nieznany błąd';
                 document.getElementById('excel-progress-bar').style.width = '100%';
                 document.getElementById('excel-progress-bar').style.background = 'var(--red)';
                 document.getElementById('btn-analyze-excel').disabled = false;
-                document.getElementById('btn-analyze-excel').textContent = '<i class=mi>biotech</i> Analizuj przed zakupem';
+                document.getElementById('btn-analyze-excel').textContent = ' Analizuj przed zakupem';
             }}
         }}).catch(function() {{ setTimeout(function() {{ pollExcelStatus(jobId); }}, 3000); }});
     }}

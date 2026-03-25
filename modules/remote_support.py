@@ -486,9 +486,9 @@ body {{ background: #0a0a0f; color: #e2e8f0; font-family: -apple-system, BlinkMa
             <div class="form-group">
                 <label>Priorytet</label>
                 <select name="priorytet" required>
-                    <option value="<i class=mi>lightbulb</i> Miły dodatek"><i class=mi>lightbulb</i> Miły dodatek</option>
-                    <option value="<i class=mi>bolt</i> Ważne"><i class=mi>bolt</i> Ważne</option>
-                    <option value="<i class=mi>local_fire_department</i> Zmienia zasady gry"><i class=mi>local_fire_department</i> Zmienia zasady gry</option>
+                    <option value=" Miły dodatek"> Miły dodatek</option>
+                    <option value=" Ważne"> Ważne</option>
+                    <option value=" Zmienia zasady gry"> Zmienia zasady gry</option>
                 </select>
             </div>
 

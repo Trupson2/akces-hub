@@ -14,9 +14,9 @@
     <div class="form-group">
         <label><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span> Kategoria</label>
         <select name="kategoria" class="form-control">
-            <option value="motoryzacja" {{ 'selected' if kategoria=='motoryzacja' else '' }}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">directions_car</span> Motoryzacja</option>
-            <option value="elektronika" {{ 'selected' if kategoria=='elektronika' else '' }}><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">photo_camera</span> Elektronika</option>
-            <option value="inne" {{ 'selected' if kategoria=='inne' or not kategoria else '' }}><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span> Inne</option>
+            <option value="motoryzacja" {{ 'selected' if kategoria=='motoryzacja' else '' }}> Motoryzacja</option>
+            <option value="elektronika" {{ 'selected' if kategoria=='elektronika' else '' }}> Elektronika</option>
+            <option value="inne" {{ 'selected' if kategoria=='inne' or not kategoria else '' }}> Inne</option>
         </select>
     </div>
     <button type="submit" class="btn" style="background:rgba(255,107,155,0.12);border:1px solid rgba(255,107,155,0.3);color:var(--neon-secondary);font-weight:700"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">auto_awesome</span> GENERUJ OPIS</button>

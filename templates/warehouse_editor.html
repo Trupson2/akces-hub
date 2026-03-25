@@ -1469,7 +1469,7 @@
             
             const json = JSON.stringify(layout, null, 2);
             document.getElementById('json-textarea').value = json;
-            document.getElementById('modal-title').textContent = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">download</span> Export Layout JSON';
+            document.getElementById('modal-title').textContent = ' Export Layout JSON';
             document.getElementById('json-modal').classList.add('show');
             
             // Select all for easy copy
@@ -1478,7 +1478,7 @@
 
         function importLayout() {
             document.getElementById('json-textarea').value = '';
-            document.getElementById('modal-title').textContent = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">upload</span> Import Layout JSON';
+            document.getElementById('modal-title').textContent = ' Import Layout JSON';
             document.getElementById('json-modal').classList.add('show');
         }
 
