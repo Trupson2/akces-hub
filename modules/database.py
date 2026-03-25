@@ -1224,8 +1224,17 @@ def get_historia_all(limit=50):
     ''', (limit,))
 
 
+_insights_cache = {}
+_insights_cache_time = 0
+_INSIGHTS_TTL = 60  # seconds
+
 def get_insights():
-    """Analiza sprzedaży — insights na dashboard"""
+    """Analiza sprzedaży — insights na dashboard (cached 60s)"""
+    global _insights_cache, _insights_cache_time
+    now = time.time()
+    if (now - _insights_cache_time) < _INSIGHTS_TTL and _insights_cache:
+        return _insights_cache
+
     conn = get_db()
     insights = {}
 
@@ -1299,4 +1308,6 @@ def get_insights():
         LIMIT 8
     ''').fetchall()
 
+    _insights_cache = insights
+    _insights_cache_time = time.time()
     return insights

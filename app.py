@@ -168,8 +168,8 @@ def check_license_middleware():
         return  # Home sam sprawdzi
     try:
         # Sprawdź czy licencja nie została zablokowana przez heartbeat
-        from modules.database import get_config
-        if get_config('license_blocked', '0') == '1':
+        from modules.database import get_config_cached
+        if get_config_cached('license_blocked', '0') == '1':
             return redirect('/license?blocked=1')
 
         from modules.license import check_license, is_subscription_expired, check_time_manipulation, get_license_info

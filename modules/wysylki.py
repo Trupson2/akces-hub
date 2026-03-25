@@ -120,7 +120,7 @@ def _get_delivery_info(order):
         pack_hint = '⛽ Orlen Paczka — gabaryty S/M/L, max 41×38×64cm, max 15kg.'
     elif any(x in method_lower for x in ['paczkomat', 'inpost', 'automat', 'paczka w ruchu']) or is_inpost_pickup:
         delivery_type = 'paczkomat'
-        pack_hint = '<span class=material-symbols-outlined style=font-size:1rem>markunread_mailbox</span> InPost Paczkomat — gabaryty A/B/C, max 41×38×64cm, max 25kg.'
+        pack_hint = '📬 InPost Paczkomat — gabaryty A/B/C, max 41×38×64cm, max 25kg.'
     elif any(x in method_lower for x in ['kurier', 'dpd', 'dhl', 'ups', 'fedex', 'gls', 'pocztex']):
         delivery_type = 'kurier'
         pack_hint = '<span class=material-symbols-outlined style=font-size:1rem>local_shipping</span> Kurier — zabezpiecz folią bąbelkową, oklej taśmą.'
@@ -485,7 +485,7 @@ def api_wysylki_szukaj():
                 adres = (db_order['adres'] or '').lower()
                 if 'paczkomat' in adres or 'inpost' in adres:
                     del_type = 'paczkomat'
-                    del_hint = '<span class=material-symbols-outlined style=font-size:1rem>markunread_mailbox</span> InPost Paczkomat — wybierz gabaryt A/B/C'
+                    del_hint = '📬 InPost Paczkomat — wybierz gabaryt A/B/C'
                 elif 'orlen' in adres:
                     del_type = 'paczkomat_orlen'
                     del_hint = '⛽ Orlen Paczka — wybierz gabaryt S/M/L'

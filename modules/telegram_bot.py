@@ -65,9 +65,9 @@ def send_whatsapp(message):
 
 def alert_whatsapp_sprzedaz(nazwa, miasto=''):
     """Wysyła alert o sprzedaży na WhatsApp dziadka"""
-    msg = f"<i class=mi>inventory_2</i> WYŚLIJ:\n{nazwa[:40]}"
+    msg = f"📦 WYŚLIJ:\n{nazwa[:40]}"
     if miasto:
-        msg += f"\n<i class=mi>location_on</i> {miasto}"
+        msg += f"\n📍 {miasto}"
     return send_whatsapp(msg)
 
 
@@ -197,7 +197,7 @@ def clear_telegram_chat(days_old=1, max_messages=50):
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         response = requests.post(url, data={
             'chat_id': chat_id,
-            'text': '<i class=mi>mop</i>'
+            'text': '🧹'
         }, timeout=5)
         
         if response.status_code != 200:
@@ -255,11 +255,11 @@ def alert_sprzedaz(produkt_nazwa, cena, kupujacy='', lokalizacja='', regal='', p
     if get_config('telegram_alert_sprzedaz', 'true') != 'true':
         return False
 
-    msg = f"<i class=mi>notifications</i><i class=mi>payments</i> <b>SPRZEDAŻ!</b> <i class=mi>payments</i><i class=mi>notifications</i>\n\n"
-    msg += f"<i class=mi>inventory_2</i> {produkt_nazwa}\n"
-    msg += f"<i class=mi>paid</i> <b>{cena:.2f} zł</b>\n"
+    msg = f"🔔💰 <b>SPRZEDAŻ!</b> 💰🔔\n\n"
+    msg += f"📦 {produkt_nazwa}\n"
+    msg += f"💵 <b>{cena:.2f} zł</b>\n"
     if kupujacy:
-        msg += f"<i class=mi>person</i> {kupujacy}\n"
+        msg += f"👤 {kupujacy}\n"
 
     # Lokalizacja w magazynie - żeby od razu wiedzieć skąd wziąć produkt
     loc_parts = []
@@ -275,11 +275,11 @@ def alert_sprzedaz(produkt_nazwa, cena, kupujacy='', lokalizacja='', regal='', p
     # Stan magazynowy po sprzedaży
     if ilosc_zostalo is not None:
         if ilosc_zostalo == 0:
-            msg += f"\n<i class=mi>warning</i> <b>OSTATNIA SZTUKA — brak w magazynie!</b>"
+            msg += f"\n⚠️ <b>OSTATNIA SZTUKA — brak w magazynie!</b>"
         elif ilosc_zostalo <= 3:
-            msg += f"\n<i class=mi>warning</i> Zostało tylko: <b>{ilosc_zostalo} szt</b>"
+            msg += f"\n⚠️ Zostało tylko: <b>{ilosc_zostalo} szt</b>"
         else:
-            msg += f"\n<i class=mi>bar_chart</i> W magazynie: {ilosc_zostalo} szt"
+            msg += f"\n📊 W magazynie: {ilosc_zostalo} szt"
 
     msg += f"\n\n⏰ {datetime.now():%H:%M:%S}"
 
@@ -291,11 +291,11 @@ def alert_niski_stan(produkt_nazwa, ilosc, ean=''):
     if get_config('telegram_alert_niski_stan', 'true') != 'true':
         return False
     
-    msg = f"<i class=mi>warning</i><i class=mi>notifications</i> <b>NISKI STAN!</b>\n\n"
-    msg += f"<i class=mi>inventory_2</i> {produkt_nazwa}\n"
+    msg = f"⚠️🔔 <b>NISKI STAN!</b>\n\n"
+    msg += f"📦 {produkt_nazwa}\n"
     msg += f"🔢 Zostało: <b>{ilosc} szt</b>\n"
     if ean:
-        msg += f"<i class=mi>sell</i> {ean}\n"
+        msg += f"🏷️ {ean}\n"
     msg += f"\n⏰ {datetime.now():%H:%M:%S}"
     
     return send_telegram(msg, silent=False)
@@ -305,9 +305,9 @@ def alert_nowa_oferta(tytul, cena):
     if get_config('telegram_alert_nowa_oferta', 'false') != 'true':
         return False
     
-    msg = f"<i class=mi>inventory_2</i> <b>NOWA OFERTA</b>\n\n"
-    msg += f"<i class=mi>edit_note</i> {tytul}\n"
-    msg += f"<i class=mi>paid</i> {cena:.2f} zł\n"
+    msg = f"📦 <b>NOWA OFERTA</b>\n\n"
+    msg += f"📝 {tytul}\n"
+    msg += f"💵 {cena:.2f} zł\n"
     msg += f"\n⏰ {datetime.now():%H:%M:%S}"
     
     # Nowe oferty bez dźwięku (nie są pilne)
@@ -367,30 +367,30 @@ def raport_dzienny():
     ''', (wczoraj,)).fetchall()
 
 
-    msg = f"<i class=mi>bar_chart</i> <b>RAPORT DZIENNY</b>\n"
-    msg += f"<i class=mi>today</i> {datetime.now():%d.%m.%Y (%A)}\n\n"
+    msg = f"📊 <b>RAPORT DZIENNY</b>\n"
+    msg += f"📅 {datetime.now():%d.%m.%Y (%A)}\n\n"
 
-    msg += f"<i class=mi>inventory_2</i> <b>WCZORAJ:</b>\n"
+    msg += f"📦 <b>WCZORAJ:</b>\n"
     msg += f"  Sprzedaży: <b>{wczoraj_stat['cnt']}</b> szt | <b>{wczoraj_stat['suma']:.0f} zł</b>\n"
 
-    msg += f"\n<i class=mi>inventory_2</i> <b>DZIŚ:</b>\n"
+    msg += f"\n📦 <b>DZIŚ:</b>\n"
     msg += f"  Sprzedaży: <b>{dzis['cnt']}</b> szt | <b>{dzis['suma']:.0f} zł</b>\n"
 
     if top:
-        msg += f"\n<i class=mi>emoji_events</i> <b>TOP WCZORAJ:</b>\n"
+        msg += f"\n🏆 <b>TOP WCZORAJ:</b>\n"
         for t in top:
             nazwa = (t['nazwa'] or 'Produkt')[:30]
             msg += f"  • {nazwa} — {t['cena']:.0f} zł x{t['ilosc']}\n"
 
-    msg += f"\n<i class=mi>trending_up</i> <b>TYDZIEŃ:</b> {tydzien['cnt']} szt | <b>{tydzien['suma']:.0f} zł</b>\n"
-    msg += f"<i class=mi>today</i> <b>MIESIĄC:</b> {miesiac['cnt']} szt | <b>{miesiac['suma']:.0f} zł</b>\n\n"
+    msg += f"\n📈 <b>TYDZIEŃ:</b> {tydzien['cnt']} szt | <b>{tydzien['suma']:.0f} zł</b>\n"
+    msg += f"📅 <b>MIESIĄC:</b> {miesiac['cnt']} szt | <b>{miesiac['suma']:.0f} zł</b>\n\n"
 
-    msg += f"<i class=mi>inventory_2</i> Magazyn: {magazyn['cnt']} produktów ({magazyn['szt']} szt)\n"
+    msg += f"📦 Magazyn: {magazyn['cnt']} produktów ({magazyn['szt']} szt)\n"
 
     if do_wyslania > 0:
         msg += f"🚚 <b>DO WYSŁANIA: {do_wyslania}</b>\n"
 
-    msg += f"\n<i class=mi>auto_awesome</i> Miłego dnia!"
+    msg += f"\n✨ Miłego dnia!"
     
     return send_telegram(msg, silent=True)
 
@@ -708,7 +708,7 @@ def whatsapp_config():
 @telegram_bp.route('/whatsapp/test', methods=['POST'])
 def whatsapp_test():
     """Wysyła wiadomość testową na WhatsApp"""
-    msg = f"<i class=mi>science</i> TEST z {get_config('brand_name', 'Akces Hub')}\n⏰ {datetime.now():%H:%M:%S}"
+    msg = f"🧪 TEST z {get_config('brand_name', 'Akces Hub')}\n⏰ {datetime.now():%H:%M:%S}"
     success = send_whatsapp(msg)
     
     if success:
@@ -736,7 +736,7 @@ def toggle_alert(key):
 @telegram_bp.route('/test', methods=['POST'])
 def test():
     """Wysyła wiadomość testową"""
-    msg = f"<i class=mi>science</i> <b>TEST</b>\n\nWiadomość testowa z {get_config('brand_name', 'Akces Hub')}\n⏰ {datetime.now():%H:%M:%S}"
+    msg = f"🧪 <b>TEST</b>\n\nWiadomość testowa z {get_config('brand_name', 'Akces Hub')}\n⏰ {datetime.now():%H:%M:%S}"
     success = send_telegram(msg)
     
     if success:
@@ -897,16 +897,16 @@ def format_order_notification(order):
         ulica = delivery.get('street', '')
         
         # Formatuj wiadomość
-        msg = f"<i class=mi>celebration</i> <b>NOWA SPRZEDAŻ!</b>\n"
+        msg = f"🎉 <b>NOWA SPRZEDAŻ!</b>\n"
         msg += f"{'━'*25}\n\n"
         msg += produkty_txt
-        msg += f"\n<i class=mi>payments</i> <b>SUMA: {total:.2f} zł</b>\n\n"
-        msg += f"<i class=mi>person</i> {buyer_name}\n"
+        msg += f"\n💰 <b>SUMA: {total:.2f} zł</b>\n\n"
+        msg += f"👤 {buyer_name}\n"
         if buyer_login:
-            msg += f"<i class=mi>sell</i> @{buyer_login}\n"
-        msg += f"\n<i class=mi>location_on</i> <b>WYSYŁKA:</b>\n"
+            msg += f"🏷️ @{buyer_login}\n"
+        msg += f"\n📍 <b>WYSYŁKA:</b>\n"
         msg += f"{ulica}\n{kod} {miasto}\n\n"
-        msg += f"<i class=mi>link</i> ID: <code>{order_id[:8]}...</code>\n"
+        msg += f"🔗 ID: <code>{order_id[:8]}...</code>\n"
         msg += f"⏰ {datetime.now():%H:%M:%S}"
         
         return msg

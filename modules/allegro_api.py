@@ -470,18 +470,20 @@ def get_images_stats():
 # ============================================================
 
 def get_allegro_config():
+    # Use cached config to avoid 12 separate DB queries
+    from modules.database import get_config_cached
     return {
-        'client_id': get_config('allegro_client_id', ''),
-        'client_secret': get_config('allegro_client_secret', ''),
-        'access_token': get_config('allegro_access_token', ''),
-        'refresh_token': get_config('allegro_refresh_token', ''),
-        'token_expires': get_config('allegro_token_expires', ''),
-        'sandbox': get_config('allegro_sandbox', 'false') == 'true',
-        'redirect_uri': get_config('allegro_redirect_uri', 'http://localhost:5000/allegro/callback'),
-        'shipping_id': get_config('allegro_shipping_id', ''),
-        'city': get_config('allegro_city', 'Poznan'),
-        'province': get_config('allegro_province', 'WIELKOPOLSKIE'),
-        'postcode': get_config('allegro_postcode', '61-001'),
+        'client_id': get_config_cached('allegro_client_id', ''),
+        'client_secret': get_config_cached('allegro_client_secret', ''),
+        'access_token': get_config_cached('allegro_access_token', ''),
+        'refresh_token': get_config_cached('allegro_refresh_token', ''),
+        'token_expires': get_config_cached('allegro_token_expires', ''),
+        'sandbox': get_config_cached('allegro_sandbox', 'false') == 'true',
+        'redirect_uri': get_config_cached('allegro_redirect_uri', 'http://localhost:5000/allegro/callback'),
+        'shipping_id': get_config_cached('allegro_shipping_id', ''),
+        'city': get_config_cached('allegro_city', 'Poznan'),
+        'province': get_config_cached('allegro_province', 'WIELKOPOLSKIE'),
+        'postcode': get_config_cached('allegro_postcode', '61-001'),
     }
 
 
@@ -3461,9 +3463,9 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
         try:
             # Oblicz sumę zsynchronizowanych
             total_value = sum(float((o.get('summary') or {}).get('totalToPay', {}).get('amount', 0) if o else 0) for o in all_orders[:synced])
-            msg = f"<i class=mi>sync</i> <b>SYNCHRONIZACJA</b>\n\n"
-            msg += f"<i class=mi>inventory_2</i> Zsynchronizowano: <b>{synced}</b> zamówień\n"
-            msg += f"<i class=mi>bar_chart</i> Zaktualizowano stanów: <b>{stock_updated}</b>\n"
+            msg = f"🔄 <b>SYNCHRONIZACJA</b>\n\n"
+            msg += f"📦 Zsynchronizowano: <b>{synced}</b> zamówień\n"
+            msg += f"📊 Zaktualizowano stanów: <b>{stock_updated}</b>\n"
             msg += f"\n⏰ {datetime.now():%H:%M:%S}"
             # Sync zbiorczy bez dźwięku
             send_telegram(msg, silent=True)
