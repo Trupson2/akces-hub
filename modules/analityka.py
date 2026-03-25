@@ -90,7 +90,7 @@ def statystyki():
     top_prod_html = ''
     for i, p in enumerate(top_produkty[:5]):
         border = f'border-bottom:1px solid var(--border);' if i < min(len(top_produkty), 5) - 1 else ''
-        img = p.get('zdjecie_url') or "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect fill='%2312121a' width='40' height='40'/%3E%3Ctext x='20' y='25' fill='%23555' text-anchor='middle' font-size='14'%3E<span class=material-symbols-outlined style=font-size:1rem>inventory_2</span>%3C/text%3E%3C/svg%3E"
+        img = p.get('zdjecie_url') or "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect fill='%2312121a' width='40' height='40'/%3E%3Ctext x='20' y='25' fill='%23555' text-anchor='middle' font-size='14'%3E[INVENTORY_2]%3C/text%3E%3C/svg%3E"
         nazwa = p['nazwa'][:40] + ('...' if len(p['nazwa']) > 40 else '')
         top_prod_html += f'''<div style="display:flex;align-items:center;gap:10px;padding:8px 0;{border}">
             <div style="font-weight:700;color:var(--orange);width:20px">{i+1}.</div>
@@ -140,7 +140,7 @@ def statystyki():
         <!-- TAB: DZIŚ -->
         <div id="panel-dzis" class="stat-panel">
             <div class="card" style="background:var(--green-soft);border-color:rgba(34,197,94,0.3)">
-                <div style="color:var(--green);font-weight:600;font-size:1.1rem;margin-bottom:12px"><span class=material-symbols-outlined style=font-size:1rem>calendar_month</span> DZIS ({datetime.now().strftime('%d.%m.%Y')})</div>
+                <div style="color:var(--green);font-weight:600;font-size:1.1rem;margin-bottom:12px">[CALENDAR_MONTH] DZIS ({datetime.now().strftime('%d.%m.%Y')})</div>
                 <div class="stat-row">
                     <div class="stat-box">
                         <div class="stat-val green">{stats['sprzedaz_dzis_cnt']}</div>
@@ -223,7 +223,7 @@ def statystyki():
         <!-- TAB: ALL-TIME -->
         <div id="panel-alltime" class="stat-panel" style="display:none">
             <div class="card">
-                <div style="color:var(--orange);font-weight:600;font-size:1.1rem;margin-bottom:12px"><span class=material-symbols-outlined style=font-size:1rem>trending_up</span> LACZNIE (ALL-TIME)</div>
+                <div style="color:var(--orange);font-weight:600;font-size:1.1rem;margin-bottom:12px">[TRENDING_UP] LACZNIE (ALL-TIME)</div>
                 <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
                     <div class="stat-box" style="text-align:center">
                         <div class="stat-val orange">{stats['palety_lacznie']}</div>
@@ -252,13 +252,13 @@ def statystyki():
         <!-- TAB: TOP -->
         <div id="panel-top" class="stat-panel" style="display:none">
             {'<div class="section-title" style="color:var(--orange)"><span class=material-symbols-outlined>emoji_events</span> TOP PRODUKTY</div><div class="card" style="margin-bottom:15px">' + top_prod_html + '</div>' if top_prod_html else ''}
-            {'<div class="section-title" style="color:var(--orange)"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> TOP DOSTAWCY (ROI)</div><div class="card" style="margin-bottom:15px">' + top_dost_html + '</div>' if top_dost_html else ''}
+            {'<div class="section-title" style="color:var(--orange)">[INVENTORY_2] TOP DOSTAWCY (ROI)</div><div class="card" style="margin-bottom:15px">' + top_dost_html + '</div>' if top_dost_html else ''}
         </div>
 
         <!-- WYKRES - zawsze widoczny -->
         <div class="card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-                <div style="color:var(--purple);font-weight:600;font-size:1.1rem"><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> WYKRES ({current_year})</div>
+                <div style="color:var(--purple);font-weight:600;font-size:1.1rem">[BAR_CHART] WYKRES ({current_year})</div>
                 <div style="display:flex;gap:6px">
                     <button onclick="toggleChart('przychod')" id="btn-przychod" style="padding:4px 10px;border:none;border-radius:6px;font-size:0.7rem;cursor:pointer;background:var(--purple);color:#fff">Przychod</button>
                     <button onclick="toggleChart('zamowienia')" id="btn-zamowienia" style="padding:4px 10px;border:none;border-radius:6px;font-size:0.7rem;cursor:pointer;background:var(--bg);color:var(--text-muted);border:1px solid var(--border)">Zamowienia</button>
@@ -269,9 +269,9 @@ def statystyki():
 
         <!-- Quick links -->
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:20px;margin-bottom:10px">
-            <a href="/palety" class="btn btn-primary" style="display:flex;align-items:center;justify-content:center;gap:6px"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Palety</a>
-            <a href="/sprzedaze" class="btn btn-success" style="display:flex;align-items:center;justify-content:center;gap:6px"><span class=material-symbols-outlined style=font-size:1rem>paid</span> Sprzedaze</a>
-            <a href="/analityka" class="btn btn-purple" style="display:flex;align-items:center;justify-content:center;gap:6px"><span class=material-symbols-outlined style=font-size:1rem>trending_up</span> Analityka</a>
+            <a href="/palety" class="btn btn-primary" style="display:flex;align-items:center;justify-content:center;gap:6px">[INVENTORY_2] Palety</a>
+            <a href="/sprzedaze" class="btn btn-success" style="display:flex;align-items:center;justify-content:center;gap:6px">[PAID] Sprzedaze</a>
+            <a href="/analityka" class="btn btn-purple" style="display:flex;align-items:center;justify-content:center;gap:6px">[TRENDING_UP] Analityka</a>
         </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
@@ -1196,9 +1196,9 @@ def analityka_kategorie():
                 <select id="bulkKategoria" class="form-control" style="width:auto;padding:8px">
                     {''.join(f'<option value="{k}">{v}</option>' for k, v in kategorie.items())}
                 </select>
-                <button class="btn btn-sm btn-purple" onclick="bulkUpdate()"><span class=material-symbols-outlined style=font-size:1rem>edit_note</span> Zastosuj</button>
+                <button class="btn btn-sm btn-purple" onclick="bulkUpdate()">[EDIT_NOTE] Zastosuj</button>
                 <span style="color:var(--text-muted)">|</span>
-                <button class="btn btn-sm btn-success" onclick="autoKategoryzuj()"><span class=material-symbols-outlined style=font-size:1rem>smart_toy</span> Auto-kategoryzuj wszystkie</button>
+                <button class="btn btn-sm btn-success" onclick="autoKategoryzuj()">[SMART_TOY] Auto-kategoryzuj wszystkie</button>
             </div>
         </div>
 
@@ -1326,7 +1326,7 @@ def analityka_kategorie_auto():
     conn = get_db()
     produkty = conn.execute('SELECT id, nazwa, kategoria FROM produkty').fetchall()
 
-    print(f"\n<span class=material-symbols-outlined style=font-size:1rem>search</span> Auto-kategoryzacja: {len(produkty)} produktów w bazie")
+    print(f"\n[SEARCH] Auto-kategoryzacja: {len(produkty)} produktów w bazie")
 
     count = 0
     stats = {}  # Statystyki kategorii
@@ -1343,20 +1343,20 @@ def analityka_kategorie_auto():
         if nowa_kat != obecna_kat:
             conn.execute('UPDATE produkty SET kategoria = ? WHERE id = ?', (nowa_kat, p['id']))
             count += 1
-            print(f"  <span class=material-symbols-outlined style=font-size:1rem>label</span> [{p['id']}] {obecna_kat} → {nowa_kat}: {nazwa[:50]}")
+            print(f"  [LABEL] [{p['id']}] {obecna_kat} → {nowa_kat}: {nazwa[:50]}")
 
     # Pokaż pierwsze 5 nazw produktów dla diagnostyki
-    print(f"\n<span class=material-symbols-outlined style=font-size:1rem>list_alt</span> Przykładowe nazwy produktów:")
+    print(f"\n[LIST_ALT] Przykładowe nazwy produktów:")
     for p in produkty[:5]:
         print(f"  - {p['nazwa'][:60] if p['nazwa'] else '(brak nazwy)'}")
 
-    print(f"\n<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Statystyki kategorii:")
+    print(f"\n[BAR_CHART] Statystyki kategorii:")
     for kat, cnt in sorted(stats.items(), key=lambda x: -x[1]):
         print(f"  {kat}: {cnt}")
 
     conn.commit()
 
-    print(f"\n<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Zaktualizowano {count}/{len(produkty)} produktów")
+    print(f"\n[CHECK_CIRCLE] Zaktualizowano {count}/{len(produkty)} produktów")
     return jsonify({'ok': True, 'count': count, 'total': len(produkty)})
 
 
@@ -1513,7 +1513,7 @@ def analityka_okazje():
     live_scraper_section = """
         <div class='card' style='border-color:rgba(14,165,233,0.25);margin-bottom:20px'>
           <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:14px'>
-            <div style='color:var(--cyan);font-weight:700;font-size:1rem'><span class=material-symbols-outlined style=font-size:1rem>fiber_manual_record</span> Aktualne palety — na żywo</div>
+            <div style='color:var(--cyan);font-weight:700;font-size:1rem'>[FIBER_MANUAL_RECORD] Aktualne palety — na żywo</div>
             <div style='color:var(--text-muted);font-size:0.75rem'>dane pobierane bezpośrednio ze stron dostawców</div>
           </div>
           <div style='display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px'>
@@ -1534,7 +1534,7 @@ def analityka_okazje():
           </div>
           <div id='szukaj-panel' style='background:var(--bg);border:1px solid rgba(34,197,94,0.2);border-radius:10px;padding:14px'>
             <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px'>
-              <div style='color:var(--green);font-weight:600;font-size:0.9rem'><span class=material-symbols-outlined style=font-size:1rem>shopping_cart</span> Szukaj palet pod mój profil (AI)</div>
+              <div style='color:var(--green);font-weight:600;font-size:0.9rem'>[SHOPPING_CART] Szukaj palet pod mój profil (AI)</div>
               <div style='color:var(--text-muted);font-size:0.73rem'>Perplexity analizuje Twój profil i szuka najlepszych ofert</div>
             </div>
             %%SZUKAJ_PLACEHOLDER%%
@@ -1613,7 +1613,7 @@ def analityka_okazje():
             "<div style='color:var(--text-muted);font-size:0.73rem'>Dodaj klucz Perplexity API poniżej aby aktywować</div>")
         perplexity_section = f"""
         <div class='card' style='border-color:rgba(59,130,246,0.25);margin-bottom:20px'>
-          <div style='color:var(--blue);font-weight:700;font-size:1rem;margin-bottom:12px'><span class=material-symbols-outlined style=font-size:1rem>smart_toy</span> Analiza rynkowa (Perplexity AI)</div>
+          <div style='color:var(--blue);font-weight:700;font-size:1rem;margin-bottom:12px'>[SMART_TOY] Analiza rynkowa (Perplexity AI)</div>
           <div style='color:var(--text-muted);font-size:0.85rem;margin-bottom:12px'>Dodaj klucz API Perplexity żeby otrzymać analizę rynkową produktów na podstawie Twoich trendów sprzedaży.</div>
           <form method='POST' action='/analityka/okazje/set-perplexity-key' style='display:flex;gap:8px;flex-wrap:wrap'>
             <input type='hidden' name='csrf_token' value='{generate_csrf()}'>
@@ -1658,7 +1658,7 @@ def analityka_okazje():
                 if not label or len(label) < 3:
                     domain = url.split('/')[2] if len(url.split('/')) > 2 else url
                     label = domain.replace('www.', '')
-                return f'<div style="margin:6px 0"><a href="{url}" target="_blank" style="display:inline-block;background:var(--blue);color:#fff;padding:8px 18px;border-radius:8px;text-decoration:none;font-weight:700;font-size:0.85rem"><span class=material-symbols-outlined style=font-size:1rem>link</span> {label} ↗</a> <span style="color:var(--text-muted);font-size:0.73rem">{rest}</span></div>'
+                return f'<div style="margin:6px 0"><a href="{url}" target="_blank" style="display:inline-block;background:var(--blue);color:#fff;padding:8px 18px;border-radius:8px;text-decoration:none;font-weight:700;font-size:0.85rem">[LINK] {label} ↗</a> <span style="color:var(--text-muted);font-size:0.73rem">{rest}</span></div>'
             safe = _re.sub(r'(?m)^-\s+\*{0,2}[Ll]ink:?\*{0,2}\s*(https?://[^\s<>&]+)(.*?)$', _make_link_btn, safe)
             # Bold
             safe = _re.sub(r'\*\*(.+?)\*\*', r'<strong style="color:var(--text)">\1</strong>', safe)
@@ -1676,16 +1676,16 @@ def analityka_okazje():
                     short = cv[:80] + ('...' if len(cv) > 80 else '')
                     cit_items += f"<a href='{cv}' target='_blank' style='color:var(--blue);font-size:0.72rem;display:block;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>[{ci+1}] {short}</a>"
             cit_html2 = f"<div style='margin-top:10px;padding-top:10px;border-top:1px solid var(--border)'><div style='color:var(--text-muted);font-size:0.72rem;margin-bottom:4px'>Źródła ({len(cits)}):</div>{cit_items}</div>" if cits else ''
-            btn = f"<form method='POST' action='{refresh_url}' style='margin:0'><input type='hidden' name='csrf_token' value='{generate_csrf()}'><button type='submit' style='background:var(--bg);color:var(--text-secondary);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:0.72rem;cursor:pointer'><span class=material-symbols-outlined style=font-size:1rem>sync</span> Odśwież</button></form>"
-            return f"<div style='background:var(--green-soft);border:1px solid rgba(34,197,94,0.2);border-radius:10px;padding:14px;margin-top:12px'><div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px'><div style='color:var(--green);font-size:0.78rem;font-weight:600'><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> {ts}</div>{btn}</div><div style='color:var(--text);font-size:0.83rem;line-height:1.75'>{safe}</div>{cit_html2}</div>"
+            btn = f"<form method='POST' action='{refresh_url}' style='margin:0'><input type='hidden' name='csrf_token' value='{generate_csrf()}'><button type='submit' style='background:var(--bg);color:var(--text-secondary);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:0.72rem;cursor:pointer'>[SYNC] Odśwież</button></form>"
+            return f"<div style='background:var(--green-soft);border:1px solid rgba(34,197,94,0.2);border-radius:10px;padding:14px;margin-top:12px'><div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px'><div style='color:var(--green);font-size:0.78rem;font-weight:600'>[CHECK_CIRCLE] {ts}</div>{btn}</div><div style='color:var(--text);font-size:0.83rem;line-height:1.75'>{safe}</div>{cit_html2}</div>"
 
         cached_html = _cache_block(_left_odpowiedz, _left_citations, _left_data,
             '/analityka/okazje/perplexity-analyze',
-            'Analiza sprzedaży', '<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span>')
+            'Analiza sprzedaży', '[BAR_CHART]')
 
         szukaj_html_block = _cache_block(szukaj_odpowiedz, szukaj_citations, szukaj_data,
             '/analityka/okazje/perplexity-szukaj',
-            'Okazje zakupowe', '<span class=material-symbols-outlined style=font-size:1rem>shopping_cart</span>')
+            'Okazje zakupowe', '[SHOPPING_CART]')
 
         # Wstaw przycisk "Szukaj" + wyniki do panelu w live_scraper_section
         _szukaj_panel_content = f"""<form method='POST' action='/analityka/okazje/perplexity-szukaj' onsubmit='showLoading(this,"szukaj")'>
@@ -1695,7 +1695,7 @@ def analityka_okazje():
                 </button>
               </form>
               <div id='loading-szukaj' style='display:none;text-align:center;padding:10px;color:var(--green);font-size:0.82rem'>
-                <span style='animation:spin 1s linear infinite;display:inline-block'><span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span></span> Szukam palet... (~30-45 sek)
+                <span style='animation:spin 1s linear infinite;display:inline-block'>[HOURGLASS_TOP]</span> Szukam palet... (~30-45 sek)
               </div>
               {szukaj_html_block}"""
         live_scraper_section = live_scraper_section.replace('%%SZUKAJ_PLACEHOLDER%%', _szukaj_panel_content)
@@ -1703,13 +1703,13 @@ def analityka_okazje():
         perplexity_section = f"""
         <div class='card' style='border-color:rgba(139,92,246,0.25);margin-bottom:20px'>
           <div style='display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px'>
-            <div style='color:var(--purple);font-weight:700;font-size:1rem'><span class=material-symbols-outlined style=font-size:1rem>smart_toy</span> Perplexity AI</div>
+            <div style='color:var(--purple);font-weight:700;font-size:1rem'>[SMART_TOY] Perplexity AI</div>
             <div style='display:flex;align-items:center;gap:8px'>
               <form method='POST' action='/analityka/okazje/set-perplexity-model' style='margin:0;display:flex;align-items:center;gap:6px'>
                 <input type='hidden' name='csrf_token' value='{generate_csrf()}'>
                 <span style='color:var(--text-muted);font-size:0.75rem'>Model:</span>
                 <select name='model' onchange='this.form.submit()' class='form-control' style='width:auto;padding:3px 8px;font-size:0.75rem;cursor:pointer'>
-                  <option value='sonar-pro' {{'selected' if perplexity_model in ("sonar","sonar-pro") else ""}}>Sonar Pro <span class=material-symbols-outlined style=font-size:1rem>star</span> (zalecany)</option>
+                  <option value='sonar-pro' {{'selected' if perplexity_model in ("sonar","sonar-pro") else ""}}>Sonar Pro [STAR] (zalecany)</option>
 
                   <option value='sonar-reasoning' {{'selected' if perplexity_model=="sonar-reasoning" else ""}}>Sonar Reasoning</option>
                   <option value='sonar-reasoning-pro' {{'selected' if perplexity_model=="sonar-reasoning-pro" else ""}}>Sonar Reasoning Pro</option>
@@ -1717,23 +1717,23 @@ def analityka_okazje():
               </form>
               <form method='POST' action='/analityka/okazje/remove-perplexity-key' onsubmit="return confirm('Usunąć klucz Perplexity?')" style='margin:0'>
                 <input type='hidden' name='csrf_token' value='{generate_csrf()}'>
-                <button type='submit' style='background:transparent;color:var(--text-muted);border:none;cursor:pointer;font-size:0.8rem'><span class=material-symbols-outlined style=font-size:1rem>delete</span> usuń klucz</button>
+                <button type='submit' style='background:transparent;color:var(--text-muted);border:none;cursor:pointer;font-size:0.8rem'>[DELETE] usuń klucz</button>
               </form>
             </div>
           </div>
           </div>
 
           <div class='card' style='border-color:rgba(139,92,246,0.2)'>
-              <div style='color:var(--purple);font-weight:600;font-size:0.85rem;margin-bottom:4px'><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Analiza moich sprzedaży</div>
+              <div style='color:var(--purple);font-weight:600;font-size:0.85rem;margin-bottom:4px'>[BAR_CHART] Analiza moich sprzedaży</div>
               <div style='color:var(--text-muted);font-size:0.75rem;margin-bottom:10px'>Ceny rynkowe produktów z palet/magazynu + co warto wystawiać</div>
               <form method='POST' action='/analityka/okazje/perplexity-analyze' onsubmit='showLoading(this,"analyze")'>
                 <input type='hidden' name='csrf_token' value='{generate_csrf()}'>
                 <button id='btn-analyze' type='submit' class='btn btn-purple' style='border:none;cursor:pointer;font-size:0.82rem'>
-                  <span class=material-symbols-outlined style=font-size:1rem>search</span> Analizuj moje produkty
+                  [SEARCH] Analizuj moje produkty
                 </button>
               </form>
               <div id='loading-analyze' style='display:none;text-align:center;padding:10px;color:var(--purple);font-size:0.82rem'>
-                <span style='animation:spin 1s linear infinite;display:inline-block'><span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span></span> Perplexity analizuje... (może potrwać ~30 sek)
+                <span style='animation:spin 1s linear infinite;display:inline-block'>[HOURGLASS_TOP]</span> Perplexity analizuje... (może potrwać ~30 sek)
               </div>
               {cached_html}
           </div>
@@ -1741,7 +1741,7 @@ def analityka_okazje():
 
     no_data_banner = ""
     if not has_trendy:
-        no_data_banner = "<div class='alert alert-warning'><span class=material-symbols-outlined style=font-size:1rem>warning</span> Brak danych — uruchom <code style='background:var(--bg);padding:2px 6px;border-radius:4px'>python analyze_trends.py</code></div>"
+        no_data_banner = "<div class='alert alert-warning'>[WARNING] Brak danych — uruchom <code style='background:var(--bg);padding:2px 6px;border-radius:4px'>python analyze_trends.py</code></div>"
 
     content = f"""
 <p style='color:var(--text-muted);font-size:0.85rem;margin-bottom:20px'>Miesiąc: <strong>{miesiac}</strong> · Ostatnia analiza: {ostatnia_analiza}</p>
@@ -1771,7 +1771,7 @@ def analityka_okazje():
 </div>
 
 <div>
-  <div class="section-title"><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Wszystkie produkty (top 50)</div>
+  <div class="section-title">[BAR_CHART] Wszystkie produkty (top 50)</div>
   {wszystkie_html}
 </div>
 <style>@keyframes spin{{from{{transform:rotate(0deg)}}to{{transform:rotate(360deg)}}}}</style>
@@ -1795,7 +1795,7 @@ if(loadingParam) {{
           window.location.href = '/analityka/okazje';
         }} else if(d.status === 'error') {{
           clearInterval(pollInterval);
-          document.getElementById('loading-' + loadingParam).innerHTML = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> Błąd Perplexity — sprawdź klucz API i spróbuj ponownie';
+          document.getElementById('loading-' + loadingParam).innerHTML = '[CANCEL] Błąd Perplexity — sprawdź klucz API i spróbuj ponownie';
         }}
       }});
   }}, 3000);
@@ -2065,7 +2065,7 @@ def scrape_jobalots():
                 img = manifest['product_first_image'].get('product_image_thumbnail_url', '')
             url = f'https://jobalots.com/pl/products/{sku}?currency=pln'
             sort_tag = item.get('_sort_tag', '')
-            tag_label = {'popularity': '<span class=material-symbols-outlined>local_fire_department</span>', 'most_bids': '<span class=material-symbols-outlined style=font-size:1rem>trending_up</span>', 'bid_low': '<span class=material-symbols-outlined style=font-size:1rem>paid</span>'}.get(sort_tag, '')
+            tag_label = {'popularity': '<span class=material-symbols-outlined>local_fire_department</span>', 'most_bids': '[TRENDING_UP]', 'bid_low': '[PAID]'}.get(sort_tag, '')
             products.append({
                 'title': title,
                 'price_text': f'{bid:.0f} {currency}' if bid > 0 else f'{rrp:.0f} {currency} RRP',
@@ -2082,7 +2082,7 @@ def scrape_jobalots():
             })
         total = result.get('total', len(products))
         return jsonify({'ok': True, 'products': products, 'total': total, 'source': 'api',
-            'note': f'<span class=material-symbols-outlined>local_fire_department</span> Popularne · <span class=material-symbols-outlined style=font-size:1rem>trending_up</span> Dużo ofert · <span class=material-symbols-outlined style=font-size:1rem>paid</span> Najtańsze ({total} palet łącznie)'})
+            'note': f'<span class=material-symbols-outlined>local_fire_department</span> Popularne · [TRENDING_UP] Dużo ofert · [PAID] Najtańsze ({total} palet łącznie)'})
     except Exception as e:
         _jb = 'https://jobalots.com/pl/pages/products-on-auction?page=1&currency=pln'
         categories = [
@@ -2671,8 +2671,8 @@ def analityka_czas_sprzedazy():
         </div>
         <div style="margin-top:10px;font-size:0.75rem;color:var(--text-secondary);text-align:center">{stat_w['cnt']} sprzedanych produktów</div>
         <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
-            <span class="badge badge-success"><span class=material-symbols-outlined style=font-size:1rem>bolt</span> {stat_w['w_24h']} w 24h</span>
-            <span style="background:var(--blue-soft);color:var(--blue);padding:3px 8px;border-radius:10px;font-size:0.7rem;font-weight:600"><span class=material-symbols-outlined style=font-size:1rem>calendar_month</span> {stat_w['w_7dni']} w tyg</span>
+            <span class="badge badge-success">[BOLT] {stat_w['w_24h']} w 24h</span>
+            <span style="background:var(--blue-soft);color:var(--blue);padding:3px 8px;border-radius:10px;font-size:0.7rem;font-weight:600">[CALENDAR_MONTH] {stat_w['w_7dni']} w tyg</span>
             <span class="badge badge-warning"><span class=material-symbols-outlined>calendar_month</span> {stat_w['w_30dni']} w mies</span>
             <span class="badge badge-error"><span class=material-symbols-outlined>speed</span> {stat_w['pow_30dni']} pow. 30 dni</span>
         </div>"""
@@ -2729,7 +2729,7 @@ def analityka_czas_sprzedazy():
     szybkie_html = ""
     if najszybsze:
         rows = "".join(item_row_w(r, "var(--green)", i, len(najszybsze)) for i, r in enumerate(najszybsze))
-        szybkie_html = f'<div class="card"><div style="font-weight:700;color:var(--green);margin-bottom:12px"><span class=material-symbols-outlined style=font-size:1rem>bolt</span> Najszybciej sprzedane (od dodania do systemu)</div>{rows}</div>'
+        szybkie_html = f'<div class="card"><div style="font-weight:700;color:var(--green);margin-bottom:12px">[BOLT] Najszybciej sprzedane (od dodania do systemu)</div>{rows}</div>'
 
     wolne_html = ""
     if najwolniejsze:
@@ -2740,7 +2740,7 @@ def analityka_czas_sprzedazy():
     if dw:
         chart_html = f"""
         <div class="card">
-            <div style="font-weight:700;color:var(--text-secondary);margin-bottom:12px"><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Rozkład czasu sprzedaży (od dodania do systemu)</div>
+            <div style="font-weight:700;color:var(--text-secondary);margin-bottom:12px">[BAR_CHART] Rozkład czasu sprzedaży (od dodania do systemu)</div>
             <canvas id="histChart" style="max-height:180px"></canvas>
         </div>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@3/dist/chart.min.js" integrity="sha384-9MhbyIRcBVQiiC7FSd7T38oJNj2Zh+EfxS7/vjhBi4OOT78NlHSnzM31EZRWR1LZ" crossorigin="anonymous"></script>
@@ -2761,11 +2761,11 @@ def analityka_czas_sprzedazy():
     <a href="/analityka" style="color:var(--text-muted);font-size:0.85rem;text-decoration:none;display:inline-block;margin-bottom:15px">← Wróć do analityki</a>
     <div class="dash-grid" style="margin-bottom:20px">
         <div class="card" style="border-color:rgba(34,197,94,0.4)">
-            <div style="font-weight:700;color:var(--green);margin-bottom:12px;display:flex;align-items:center;gap:8px"><span class=material-symbols-outlined style=font-size:1rem>list_alt</span> Od DODANIA DO SYSTEMU</div>
+            <div style="font-weight:700;color:var(--green);margin-bottom:12px;display:flex;align-items:center;gap:8px">[LIST_ALT] Od DODANIA DO SYSTEMU</div>
             {karta_w}
         </div>
         <div class="card" style="border-color:rgba(59,130,246,0.4)">
-            <div style="font-weight:700;color:var(--blue);margin-bottom:12px;display:flex;align-items:center;gap:8px"><span class=material-symbols-outlined style=font-size:1rem>local_shipping</span> Od ZAKUPU PALETY</div>
+            <div style="font-weight:700;color:var(--blue);margin-bottom:12px;display:flex;align-items:center;gap:8px">[LOCAL_SHIPPING] Od ZAKUPU PALETY</div>
             {karta_z}
         </div>
     </div>
@@ -2775,10 +2775,10 @@ def analityka_czas_sprzedazy():
     {wolne_html}
     <div class="card" style="border-color:rgba(59,130,246,0.25);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
       <div>
-        <div style='color:var(--blue);font-weight:600;font-size:0.85rem'><span class=material-symbols-outlined style=font-size:1rem>calendar_month</span> Daty wystawienia ofert</div>
+        <div style='color:var(--blue);font-weight:600;font-size:0.85rem'>[CALENDAR_MONTH] Daty wystawienia ofert</div>
         <div style='color:var(--text-muted);font-size:0.75rem;margin-top:3px'>Znaki <strong style='color:var(--orange)'>?</strong> = brak daty wystawienia w bazie. Zsynchronizuj oferty z Allegro żeby uzupełnić daty.</div>
       </div>
-      <a href='/allegro/sync-oferty-daty' class='btn btn-sm btn-primary' style='text-decoration:none;white-space:nowrap'><span class=material-symbols-outlined style=font-size:1rem>sync</span> Odśwież daty z Allegro</a>
+      <a href='/allegro/sync-oferty-daty' class='btn btn-sm btn-primary' style='text-decoration:none;white-space:nowrap'>[SYNC] Odśwież daty z Allegro</a>
     </div>
     <a href="/analityka" class="btn btn-secondary" style="display:block;text-align:center;margin-top:20px;text-decoration:none">← Powrót do analityki</a>
     """
@@ -3039,7 +3039,7 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
             pct = int((batch_idx + 1) / len(batches) * 100)
             _pallet_analysis_jobs[job_id] = {
                 'status': 'running',
-                'progress': f'<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Batch {batch_idx+1}/{len(batches)} gotowy ({pct}%) — {len(all_results)} produktów przeanalizowanych'
+                'progress': f'[CHECK_CIRCLE] Batch {batch_idx+1}/{len(batches)} gotowy ({pct}%) — {len(all_results)} produktów przeanalizowanych'
             }
 
         # === WERYFIKACJA CEN Z ALLEGRO API ===
@@ -3047,7 +3047,7 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
             from modules.paletomat import _search_allegro_prices
             _pallet_analysis_jobs[job_id] = {
                 'status': 'running',
-                'progress': f'<span class=material-symbols-outlined style=font-size:1rem>search</span> Weryfikuję ceny na Allegro (0/{len(all_results)})...'
+                'progress': f'[SEARCH] Weryfikuję ceny na Allegro (0/{len(all_results)})...'
             }
             allegro_verified = 0
             allegro_corrected = 0
@@ -3076,7 +3076,7 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                 prod_nazwa = (r.get('nazwa', '') or '')[:40]
                 _pallet_analysis_jobs[job_id] = {
                     'status': 'running',
-                    'progress': f'<span class=material-symbols-outlined style=font-size:1rem>search</span> Weryfikuję ceny na Allegro ({ri+1}/{len(all_results)})... <span class=material-symbols-outlined style=font-size:1rem>check_circle</span> {allegro_verified} zweryfikowanych, <span class=material-symbols-outlined style=font-size:1rem>sync</span> {allegro_corrected} skorygowanych',
+                    'progress': f'[SEARCH] Weryfikuję ceny na Allegro ({ri+1}/{len(all_results)})... [CHECK_CIRCLE] {allegro_verified} zweryfikowanych, [SYNC] {allegro_corrected} skorygowanych',
                     'detail': f'Sprawdzam: {prod_nazwa}...'
                 }
                 import time
@@ -3361,7 +3361,7 @@ def analizator_palet():
                 <div id="excel-progress" style="display:none;margin-top:16px">
                     <div class="ap-progress-wrap">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-                            <span id="excel-progress-text" style="color:var(--ap-cyan);font-weight:600;font-size:0.9rem;font-family:'Space Grotesk',sans-serif"><span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Analizuję...</span>
+                            <span id="excel-progress-text" style="color:var(--ap-cyan);font-weight:600;font-size:0.9rem;font-family:'Space Grotesk',sans-serif">[HOURGLASS_TOP] Analizuję...</span>
                             <span id="excel-progress-pct" style="color:var(--ap-lime);font-weight:700;font-size:1.1rem;font-family:'Space Grotesk',sans-serif">0%</span>
                         </div>
                         <div class="ap-progress-bar-track">
@@ -3794,9 +3794,9 @@ def _get_render_results_js():
             // Wyszukiwarka / filtr
             html += '<div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">';
             html += '<div style="font-weight:600">Produkty (' + parsed.produkty.length + ' typów)</div>';
-            html += '<input type="text" id="product-filter" placeholder="<span class=material-symbols-outlined style=font-size:1rem>search</span> Filtruj np. peruka, wig, hair..." style="flex:1;min-width:200px;padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem">';
+            html += '<input type="text" id="product-filter" placeholder="[SEARCH] Filtruj np. peruka, wig, hair..." style="flex:1;min-width:200px;padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem">';
             html += '<button onclick="filterProducts()" style="padding:8px 16px;background:var(--accent);border:none;border-radius:8px;color:#fff;cursor:pointer;font-weight:600">Filtruj</button>';
-            html += '<select id="product-sort" onchange="sortProducts()" style="padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem"><option value="">Sortuj...</option><option value="popyt"><span class=material-symbols-outlined>local_fire_department</span> Popyt (wysoki→niski)</option><option value="cena_desc"><span class=material-symbols-outlined style=font-size:1rem>paid</span> Cena (najdroższe)</option><option value="cena_asc"><span class=material-symbols-outlined style=font-size:1rem>paid</span> Cena (najtańsze)</option><option value="wartosc"><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Wartość (najwyższa)</option><option value="czas"><span class=material-symbols-outlined>timer</span> Czas sprzedaży (najszybsze)</option></select>';
+            html += '<select id="product-sort" onchange="sortProducts()" style="padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem"><option value="">Sortuj...</option><option value="popyt"><span class=material-symbols-outlined>local_fire_department</span> Popyt (wysoki→niski)</option><option value="cena_desc">[PAID] Cena (najdroższe)</option><option value="cena_asc">[PAID] Cena (najtańsze)</option><option value="wartosc">[BAR_CHART] Wartość (najwyższa)</option><option value="czas"><span class=material-symbols-outlined>timer</span> Czas sprzedaży (najszybsze)</option></select>';
             html += '<button onclick="clearFilter()" style="padding:8px 12px;background:rgba(255,255,255,0.1);border:none;border-radius:8px;color:var(--text-muted);cursor:pointer">Wyczyść</button>';
             html += '</div>';
             html += '<div id="filter-summary" style="display:none;margin-bottom:12px;padding:10px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px"></div>';
@@ -3835,7 +3835,7 @@ def _get_render_results_js():
             h += '<td style="padding:8px;color:var(--text-muted)">' + (idx+1) + '</td>';
             var asinLink = '';
             if (p.asin) {
-                asinLink = '<br><a href="https://www.amazon.de/dp/' + p.asin + '" target="_blank" style="font-size:0.7rem;color:#60a5fa;text-decoration:none"><span class=material-symbols-outlined style=font-size:1rem>link</span> ' + p.asin + '</a>';
+                asinLink = '<br><a href="https://www.amazon.de/dp/' + p.asin + '" target="_blank" style="font-size:0.7rem;color:#60a5fa;text-decoration:none">[LINK] ' + p.asin + '</a>';
             } else if (p.ean) {
                 asinLink = '<br><span style="font-size:0.7rem;color:var(--text-muted)">EAN: ' + p.ean + '</span>';
             }
@@ -3884,7 +3884,7 @@ def _get_render_results_js():
         var sumEl = document.getElementById('filter-summary');
         sumEl.style.display = 'block';
         sumEl.innerHTML = '<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">'
-            + '<span style="font-weight:700;color:var(--green)"><span class=material-symbols-outlined style=font-size:1rem>search</span> "' + q + '"</span>'
+            + '<span style="font-weight:700;color:var(--green)">[SEARCH] "' + q + '"</span>'
             + '<span><b>' + filtered.length + '</b> typów</span>'
             + '<span><b>' + totalSzt + '</b> szt.</span>'
             + '<span>Wartość: <b style="color:var(--green)">' + totalVal.toFixed(0) + ' zł</b></span>'
@@ -4271,7 +4271,7 @@ def koszty_allegro():
             </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
-            <a href="/analityka/koszty-allegro?refresh=1" style="padding:8px 16px;border-radius:10px;background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);color:#8ff5ff;text-decoration:none;font-size:0.75rem;font-weight:700;transition:all 0.2s;display:flex;align-items:center;gap:6px;font-family:'Space Grotesk',sans-serif;box-shadow:0 0 10px rgba(143,245,255,0.15)"><span class=material-symbols-outlined style=font-size:1rem>cloud_sync</span> Synchronizuj</a>
+            <a href="/analityka/koszty-allegro?refresh=1" style="padding:8px 16px;border-radius:10px;background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);color:#8ff5ff;text-decoration:none;font-size:0.75rem;font-weight:700;transition:all 0.2s;display:flex;align-items:center;gap:6px;font-family:'Space Grotesk',sans-serif;box-shadow:0 0 10px rgba(143,245,255,0.15)">[CLOUD_SYNC] Synchronizuj</a>
         </div>
     </div>
 

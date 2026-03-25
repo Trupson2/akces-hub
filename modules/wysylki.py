@@ -128,7 +128,7 @@ def _get_delivery_info(order):
         pack_hint = '📬 InPost Paczkomat — gabaryty A/B/C, max 41×38×64cm, max 25kg.'
     elif any(x in method_lower for x in ['kurier', 'dpd', 'dhl', 'ups', 'fedex', 'gls', 'pocztex']):
         delivery_type = 'kurier'
-        pack_hint = '<span class="material-symbols-outlined" style="font-size:1rem">local_shipping</span> Kurier — zabezpiecz folią bąbelkową, oklej taśmą.'
+        pack_hint = '[LOCAL_SHIPPING] Kurier — zabezpiecz folią bąbelkową, oklej taśmą.'
     elif any(x in method_lower for x in ['list', 'poczt', 'polecony']):
         delivery_type = 'list'
         pack_hint = '✉ List/poczta — koperta bąbelkowa lub mały karton.'
@@ -137,10 +137,10 @@ def _get_delivery_info(order):
         pack_hint = '<span class="material-symbols-outlined">home</span> Odbiór osobisty — przygotuj do wydania.'
     elif pickup_name:
         delivery_type = 'punkt'
-        pack_hint = f'<span class="material-symbols-outlined" style="font-size:1rem">pin_drop</span> Punkt odbioru: {pickup_name} — standardowy karton.'
+        pack_hint = f'[PIN_DROP] Punkt odbioru: {pickup_name} — standardowy karton.'
     else:
         delivery_type = 'inny'
-        pack_hint = f'<span class="material-symbols-outlined" style="font-size:1rem">inventory_2</span> {method_name or "Standardowa wysyłka"} — zabezpiecz odpowiednio.'
+        pack_hint = f'[INVENTORY_2] {method_name or "Standardowa wysyłka"} — zabezpiecz odpowiednio.'
 
     return {
         'method_name': method_name,
@@ -508,7 +508,7 @@ def api_wysylki_szukaj():
                 if allegro_oid and raw_orders:
                     for ao in raw_orders.get('checkoutForms', []):
                         if ao.get('id') == allegro_oid:
-                            print(f"   → <span class="material-symbols-outlined" style="font-size:1rem">check_circle</span> Znaleziono w Allegro API po allegro_order_id z bazy")
+                            print(f"   → [CHECK_CIRCLE] Znaleziono w Allegro API po allegro_order_id z bazy")
                             return _zwroc_zamowienie_full(ao)
 
                 # Fallback bez Allegro API - spróbuj wykryć typ z adresu
@@ -521,7 +521,7 @@ def api_wysylki_szukaj():
                     del_hint = '⛽ Orlen Paczka — wybierz gabaryt S/M/L'
                 else:
                     del_type = 'kurier'
-                    del_hint = '<span class="material-symbols-outlined" style="font-size:1rem">inventory_2</span> Sprawdź metodę dostawy na Allegro'
+                    del_hint = '[INVENTORY_2] Sprawdź metodę dostawy na Allegro'
 
                 # Wyciągnij pickup_point z adresu jeśli jest paczkomat
                 pickup = ''
@@ -580,7 +580,7 @@ def api_wysylki_szukaj():
         if order_id and (q_lower == order_id.lower() or
                         (len(q) >= 8 and q_lower in order_id.lower()) or
                         order_id.lower().startswith(q_lower)):
-            print(f"   → <span class="material-symbols-outlined" style="font-size:1rem">check_circle</span> Znaleziono po order_id: {order_id}")
+            print(f"   → [CHECK_CIRCLE] Znaleziono po order_id: {order_id}")
             items = order.get('lineItems', [])
             item = items[0] if items else {}
             return _zwroc_zamowienie_full(order)
@@ -620,12 +620,12 @@ def api_wysylki_szukaj():
             offer_id = str(item.get('offer', {}).get('id', ''))
 
             if offer_id in szukane_allegro_ids:
-                print(f"   → <span class="material-symbols-outlined" style="font-size:1rem">check_circle</span> Znaleziono po allegro_id: {offer_id}")
+                print(f"   → [CHECK_CIRCLE] Znaleziono po allegro_id: {offer_id}")
                 return _zwroc_zamowienie(order, item, produkt_z_bazy)
 
             for fraza in szukane_frazy:
                 if len(fraza) > 3 and fraza in offer_name.lower():
-                    print(f"   → <span class="material-symbols-outlined" style="font-size:1rem">check_circle</span> Znaleziono po frazie '{fraza}'")
+                    print(f"   → [CHECK_CIRCLE] Znaleziono po frazie '{fraza}'")
                     return _zwroc_zamowienie(order, item, produkt_z_bazy)
 
     # === 4. Fallback: szukaj w bazie sprzedaze (zamówienia nowa/nowe) ===
@@ -638,7 +638,7 @@ def api_wysylki_szukaj():
         ''', (produkt_z_bazy['id'],)).fetchone()
 
         if db_order:
-            print(f"   → <span class="material-symbols-outlined" style="font-size:1rem">check_circle</span> Znaleziono w bazie (sprzedaze id={db_order['id']})")
+            print(f"   → [CHECK_CIRCLE] Znaleziono w bazie (sprzedaze id={db_order['id']})")
             lok = produkt_z_bazy['lokalizacja'] or produkt_z_bazy['regal'] or ''
             return jsonify({
                 'zamowienie': {
@@ -648,7 +648,7 @@ def api_wysylki_szukaj():
                     'pickup_point': '',
                     'delivery_type': 'kurier',
                     'delivery_method': '',
-                    'pack_hint': '<span class="material-symbols-outlined" style="font-size:1rem">inventory_2</span> Sprawdź metodę dostawy na Allegro',
+                    'pack_hint': '[INVENTORY_2] Sprawdź metodę dostawy na Allegro',
                     'total': str(db_order['cena'] or 0),
                     'produkt_nazwa': db_order['nazwa'],
                     'inne_produkty': 0,
@@ -763,7 +763,7 @@ def wysylki_nadaj(order_id):
     except Exception as e:
         error = f"Wyjątek serwera: {str(e)}"
         label_pdf, shipment_id = None, None
-        print(f"   → <span class="material-symbols-outlined" style="font-size:1rem">cancel</span> Wyjątek: {e}")
+        print(f"   → [CANCEL] Wyjątek: {e}")
 
     if error:
         allegro_url = f"https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{order_id}"
@@ -779,7 +779,7 @@ def wysylki_nadaj(order_id):
         <head><meta charset="utf-8"><title>Błąd</title>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"></head>
         <body style="font-family:sans-serif;padding:40px;background:#12121a;color:#fff">
-            <h2><span class="material-symbols-outlined" style="font-size:1rem">cancel</span> Błąd nadawania przesyłki</h2>
+            <h2>[CANCEL] Błąd nadawania przesyłki</h2>
             <p style="color:#ef4444">{error}</p>
             <p>Zamówienie: {order_id[:8]}...</p>
             <p style="color:#64748b;font-size:0.9rem;margin-top:20px">Możliwe przyczyny:</p>
@@ -788,14 +788,14 @@ def wysylki_nadaj(order_id):
                 <li>Zamówienie już ma nadaną przesyłkę ręcznie</li>
                 <li>Problem z metodą dostawy</li>
             </ul>
-            <a href="{allegro_url}" target="_blank" style="display:inline-block;margin:20px 0;padding:12px 20px;background:#3b82f6;color:#fff;text-decoration:none;border-radius:8px;font-weight:600"><span class="material-symbols-outlined" style="font-size:1rem">inventory_2</span> Nadaj ręcznie na Allegro →</a><br>
+            <a href="{allegro_url}" target="_blank" style="display:inline-block;margin:20px 0;padding:12px 20px;background:#3b82f6;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">[INVENTORY_2] Nadaj ręcznie na Allegro →</a><br>
             <a href="/wysylki" style="color:#64748b">← Powrót do wysyłek</a>
         </body>
         </html>
         ''', 400
 
     if label_pdf:
-        print(f"   → <span class="material-symbols-outlined" style="font-size:1rem">check_circle</span> Etykieta gotowa! Rozmiar: {len(label_pdf)} bytes")
+        print(f"   → [CHECK_CIRCLE] Etykieta gotowa! Rozmiar: {len(label_pdf)} bytes")
         if wants_json:
             import base64
             return jsonify({
@@ -823,10 +823,10 @@ def wysylki_nadaj(order_id):
         <head><meta charset="utf-8"><title>Przesyłka utworzona</title>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"></head>
         <body style="font-family:sans-serif;padding:40px;background:#12121a;color:#fff">
-            <h2><span class="material-symbols-outlined" style="font-size:1rem">check_circle</span> Przesyłka utworzona!</h2>
+            <h2>[CHECK_CIRCLE] Przesyłka utworzona!</h2>
             <p>ID przesyłki: {shipment_id}</p>
             <p style="color:#f59e0b">Etykieta może być niedostępna od razu. Spróbuj pobrać za chwilę.</p>
-            <a href="/wysylki/etykieta/{order_id}" style="display:inline-block;margin:20px 0;padding:12px 20px;background:#22c55e;color:#fff;text-decoration:none;border-radius:8px;font-weight:600"><span class="material-symbols-outlined" style="font-size:1rem">print</span> Pobierz etykietę</a><br>
+            <a href="/wysylki/etykieta/{order_id}" style="display:inline-block;margin:20px 0;padding:12px 20px;background:#22c55e;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">[PRINT] Pobierz etykietę</a><br>
             <a href="/wysylki" style="color:#64748b">← Powrót do wysyłek</a>
         </body>
         </html>
@@ -846,9 +846,9 @@ def wysylki_etykieta(order_id):
         <head><meta charset="utf-8"><title>Brak przesyłki</title>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"></head>
         <body style="font-family:sans-serif;padding:40px;background:#12121a;color:#fff">
-            <h2><span class="material-symbols-outlined" style="font-size:1rem">inventory_2</span> Przesyłka nie została jeszcze nadana</h2>
+            <h2>[INVENTORY_2] Przesyłka nie została jeszcze nadana</h2>
             <p>Najpierw nadaj przesyłkę na Allegro, potem wróć po etykietę.</p>
-            <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{order_id}" target="_blank" style="display:inline-block;margin:20px 0;padding:12px 20px;background:#3b82f6;color:#fff;text-decoration:none;border-radius:8px;font-weight:600"><span class="material-symbols-outlined" style="font-size:1rem">inventory_2</span> Nadaj na Allegro →</a><br>
+            <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{order_id}" target="_blank" style="display:inline-block;margin:20px 0;padding:12px 20px;background:#3b82f6;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">[INVENTORY_2] Nadaj na Allegro →</a><br>
             <a href="/wysylki" style="color:#64748b">← Powrót do wysyłek</a>
         </body>
         </html>
@@ -860,9 +860,9 @@ def wysylki_etykieta(order_id):
         <head><meta charset="utf-8"><title>Błąd</title>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"></head>
         <body style="font-family:sans-serif;padding:40px;background:#12121a;color:#fff">
-            <h2><span class="material-symbols-outlined" style="font-size:1rem">cancel</span> Błąd pobierania etykiety</h2>
+            <h2>[CANCEL] Błąd pobierania etykiety</h2>
             <p style="color:#ef4444">{error}</p>
-            <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{order_id}" target="_blank" style="color:#3b82f6;display:block;margin:20px 0"><span class="material-symbols-outlined" style="font-size:1rem">inventory_2</span> Pobierz etykietę na Allegro →</a>
+            <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{order_id}" target="_blank" style="color:#3b82f6;display:block;margin:20px 0">[INVENTORY_2] Pobierz etykietę na Allegro →</a>
             <a href="/wysylki" style="color:#64748b">← Powrót do wysyłek</a>
         </body>
         </html>
@@ -1041,7 +1041,7 @@ def wysylki_lista():
     # Buduj HTML z checkboxami - GRUPOWANE
     items_html = ''
     if len(zamowienia) == 0:
-        items_html = '<div style="text-align:center;color:var(--text-muted);padding:30px"><span class="material-symbols-outlined" style="font-size:1rem">celebration</span> Wszystkie zamówienia wysłane!</div>'
+        items_html = '<div style="text-align:center;color:var(--text-muted);padding:30px">[CELEBRATION] Wszystkie zamówienia wysłane!</div>'
     else:
         for order_key, items in grouped_orders.items():
             first_item = items[0]
@@ -1081,7 +1081,7 @@ def wysylki_lista():
             # Status badge: nadana = etykieta wydrukowana
             status_raw = first_item.get('status', 'nowa')
             if status_raw == 'nadana':
-                badge += ' <span style="background:var(--blue);color:#fff;padding:2px 6px;border-radius:4px;font-size:0.7rem;font-weight:700"><span class="material-symbols-outlined" style="font-size:1rem">inventory_2</span> NADANA</span>'
+                badge += ' <span style="background:var(--blue);color:#fff;padding:2px 6px;border-radius:4px;font-size:0.7rem;font-weight:700">[INVENTORY_2] NADANA</span>'
             
             # Formatuj datę
             data_raw = first_item['data_sprzedazy'] or ''
@@ -1098,10 +1098,10 @@ def wysylki_lista():
                     <div style="flex:1;min-width:0">
                         <div style="font-weight:600;font-size:0.9rem;line-height:1.4">{products_display}{badge}</div>
                         <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">
-                            <span class="material-symbols-outlined" style="font-size:1rem">pin_drop</span> {lokalizacja} &nbsp;|&nbsp; <span class="material-symbols-outlined">person</span> {dostawca} &nbsp;|&nbsp; <span class="material-symbols-outlined" style="font-size:1rem">label</span> {code}
+                            [PIN_DROP] {lokalizacja} &nbsp;|&nbsp; <span class="material-symbols-outlined">person</span> {dostawca} &nbsp;|&nbsp; [LABEL] {code}
                         </div>
                         <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">
-                            <span class="material-symbols-outlined" style="font-size:1rem">shopping_cart</span> {first_item['kupujacy']} &nbsp;|&nbsp; <span class="material-symbols-outlined" style="font-size:1rem">calendar_month</span> {data_str}
+                            [SHOPPING_CART] {first_item['kupujacy']} &nbsp;|&nbsp; [CALENDAR_MONTH] {data_str}
                         </div>
                     </div>
                     <div style="text-align:right;margin-left:10px">
@@ -1110,7 +1110,7 @@ def wysylki_lista():
                     </div>
                 </label>
                 <div style="display:flex;flex-direction:column;gap:4px;margin-left:10px">
-                    <a href="/wysylki/oznacz-wyslane?ids={all_ids}" style="padding:6px 10px;background:var(--green);border-radius:6px;color:#fff;text-decoration:none;font-size:0.7rem;font-weight:600;text-align:center"><span class="material-symbols-outlined" style="font-size:1rem">check_circle</span> Wysłane</a>
+                    <a href="/wysylki/oznacz-wyslane?ids={all_ids}" style="padding:6px 10px;background:var(--green);border-radius:6px;color:#fff;text-decoration:none;font-size:0.7rem;font-weight:600;text-align:center">[CHECK_CIRCLE] Wysłane</a>
                     <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{first_item['allegro_order_id'] or ''}" target="_blank" style="padding:6px 10px;background:var(--blue);border-radius:6px;color:#fff;text-decoration:none;font-size:0.7rem;text-align:center">Allegro</a>
                 </div>
             </div>
@@ -1143,10 +1143,10 @@ def wysylki_lista():
         {user_selector}
 
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:15px">
-            <a href="/wysylki/pakowanie" style="display:block;padding:12px;background:var(--orange);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600"><span class="material-symbols-outlined" style="font-size:1rem">smartphone</span> Skanuj</a>
-            <a href="/sync-miesiac" onclick="startSync(this)" style="display:block;padding:12px;background:var(--blue);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600"><span class="material-symbols-outlined" style="font-size:1rem">sync</span> Sync Allegro</a>
-            <a href="/wysylki/allegro" style="display:block;padding:12px;background:var(--green);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600"><span class="material-symbols-outlined" style="font-size:1rem">inventory_2</span> Allegro Live</a>
-            <a href="/wysylki/sync-stany" style="display:block;padding:12px;background:var(--accent2);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600"><span class="material-symbols-outlined" style="font-size:1rem">inventory_2</span> Sync Stany</a>
+            <a href="/wysylki/pakowanie" style="display:block;padding:12px;background:var(--orange);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">[SMARTPHONE] Skanuj</a>
+            <a href="/sync-miesiac" onclick="startSync(this)" style="display:block;padding:12px;background:var(--blue);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">[SYNC] Sync Allegro</a>
+            <a href="/wysylki/allegro" style="display:block;padding:12px;background:var(--green);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">[INVENTORY_2] Allegro Live</a>
+            <a href="/wysylki/sync-stany" style="display:block;padding:12px;background:var(--accent2);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">[INVENTORY_2] Sync Stany</a>
         </div>
 
         <form id="bulk-form" method="POST" action="/wysylki/bulk-wyslane">
@@ -1229,7 +1229,7 @@ def wyslano_order(order_id):
     updated = result.rowcount
     conn.commit()
     
-    flash(f'<span class="material-symbols-outlined" style="font-size:1rem">check_circle</span> Oznaczono {updated} produktów jako wysłane', 'success')
+    flash(f'[CHECK_CIRCLE] Oznaczono {updated} produktów jako wysłane', 'success')
     return redirect('/wysylki/allegro')
 
 @wysylki_bp.route('/wysylki/drukuj')
@@ -1266,7 +1266,7 @@ h1 {{ font-size:18px; text-align:center; margin-bottom:4px; }}
 }}
 </style>
 </head><body>
-<h1><span class="material-symbols-outlined" style="font-size:1rem">inventory_2</span> LISTA PAKOWANIA</h1>
+<h1>[INVENTORY_2] LISTA PAKOWANIA</h1>
 <div class="summary">{len(zamowienia)} zamówień · {produkty_cnt} produktów · {wartosc:.0f} zł · {datetime.now().strftime("%d.%m.%Y %H:%M")}</div>
 '''
 
@@ -1281,7 +1281,7 @@ h1 {{ font-size:18px; text-align:center; margin-bottom:4px; }}
             qty_str = f' <b>(×{p["qty"]})</b>' if p['qty'] > 1 else ''
             names_html += f'<div class="name">{p["name"][:60]}{qty_str}</div>'
             if p['lokalizacja']:
-                locs_html += f'<span class="loc"><span class="material-symbols-outlined" style="font-size:1rem">inventory_2</span> {p["lokalizacja"]}</span> '
+                locs_html += f'<span class="loc">[INVENTORY_2] {p["lokalizacja"]}</span> '
 
         addr = z['pickup_point'] if z['pickup_point'] else z['address']
 
@@ -1291,7 +1291,7 @@ h1 {{ font-size:18px; text-align:center; margin-bottom:4px; }}
     <div class="order-img">{imgs_html}</div>
     <div class="order-info">
         {names_html}
-        <div class="addr"><span class="material-symbols-outlined" style="font-size:1rem">pin_drop</span> {addr}</div>
+        <div class="addr">[PIN_DROP] {addr}</div>
         {locs_html}
     </div>
 </div>
@@ -1326,7 +1326,7 @@ def bulk_wyslane_allegro():
 
     conn.commit()
 
-    flash(f'<span class="material-symbols-outlined" style="font-size:1rem">check_circle</span> Wysłano {len(order_ids)} zamówień ({total_updated} produktów)', 'success')
+    flash(f'[CHECK_CIRCLE] Wysłano {len(order_ids)} zamówień ({total_updated} produktów)', 'success')
     return redirect('/wysylki/allegro')
 
 
@@ -1452,7 +1452,7 @@ def sync_stany_magazynowe():
     
     conn.commit()
     
-    flash(f'<span class="material-symbols-outlined" style="font-size:1rem">check_circle</span> Zaktualizowano {updated} produktów, połączono {polaczone} sprzedaży', 'success')
+    flash(f'[CHECK_CIRCLE] Zaktualizowano {updated} produktów, połączono {polaczone} sprzedaży', 'success')
     return redirect('/wysylki')
 
 

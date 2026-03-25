@@ -36,19 +36,19 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
 <!-- Przyciski akcji -->
 <div class="quick-actions" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
     <a href="/sync-custom?from={{ miesiac_filter }}-01" class="qa-btn">
-        <span class="qa-icon" style="background:var(--yellow-soft)"><span class=material-symbols-outlined style=font-size:1rem>sync</span></span>
+        <span class="qa-icon" style="background:var(--yellow-soft)">[SYNC]</span>
         Sync miesiac
     </a>
     <a href="/sprzedaze/sync-zwroty?miesiac={{ miesiac_filter }}" class="qa-btn">
-        <span class="qa-icon" style="background:var(--red-soft)"><span class=material-symbols-outlined style=font-size:1rem>sync</span></span>
+        <span class="qa-icon" style="background:var(--red-soft)">[SYNC]</span>
         Sync zwrotow
     </a>
     <a href="/sprzedaze/napraw-nazwy?miesiac={{ miesiac_filter }}" class="qa-btn">
-        <span class="qa-icon" style="background:rgba(143,245,255,0.12)"><span class=material-symbols-outlined style=font-size:1rem>build</span></span>
+        <span class="qa-icon" style="background:rgba(143,245,255,0.12)">[BUILD]</span>
         Napraw dane
     </a>
     <a href="/sprzedaze/dopasuj" class="qa-btn">
-        <span class="qa-icon" style="background:rgba(143,245,255,0.12)"><span class=material-symbols-outlined style=font-size:1rem>link</span></span>
+        <span class="qa-icon" style="background:rgba(143,245,255,0.12)">[LINK]</span>
         Dopasuj
     </a>
 </div>
@@ -69,17 +69,17 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
 <!-- KPI karty -->
 <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
     <div class="kpi-card green">
-        <div class="kpi-icon"><span class=material-symbols-outlined style=font-size:1rem>paid</span></div>
+        <div class="kpi-icon">[PAID]</div>
         <div class="kpi-value">{{ przychod }} zl</div>
         <div class="kpi-label">Przychod</div>
     </div>
     <div class="kpi-card orange">
-        <div class="kpi-icon"><span class=material-symbols-outlined style=font-size:1rem>sync</span></div>
+        <div class="kpi-icon">[SYNC]</div>
         <div class="kpi-value">{{ zwroty_cnt }}</div>
         <div class="kpi-label">Zwrotow</div>
     </div>
     <div class="kpi-card" style="--card-color:var(--red)">
-        <div class="kpi-icon" style="background:var(--red-soft)"><span class=material-symbols-outlined style=font-size:1rem>trending_down</span></div>
+        <div class="kpi-icon" style="background:var(--red-soft)">[TRENDING_DOWN]</div>
         <div class="kpi-value" style="color:var(--red)">-{{ zwroty_suma }} zl</div>
         <div class="kpi-label">Wartosc zwrotow</div>
     </div>
@@ -117,7 +117,7 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
         <form method="POST" action="/sprzedaze/usun/{{ s.id }}" style="display:inline;margin:0" onsubmit="return confirm('Usunac te sprzedaz i przywrocic ilosc?')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="miesiac" value="{{ miesiac_filter }}">
-            <button type="submit" class="btn btn-warning btn-sm"><span class=material-symbols-outlined style=font-size:1rem>delete</span> Usun</button>
+            <button type="submit" class="btn btn-warning btn-sm">[DELETE] Usun</button>
         </form>
         {% elif s.is_zwrot %}
         <form method="POST" action="/sprzedaze/unzwrot/{{ s.id }}" style="display:inline;margin:0">
@@ -912,7 +912,7 @@ DOPASUJ_TEMPLATE = '''
 <!-- KPI karty -->
 <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
     <div class="kpi-card" style="--card-color:var(--red)">
-        <div class="kpi-icon" style="background:var(--red-soft)"><span class=material-symbols-outlined style=font-size:1rem>fiber_manual_record</span></div>
+        <div class="kpi-icon" style="background:var(--red-soft)">[FIBER_MANUAL_RECORD]</div>
         <div class="kpi-value" style="color:var(--red)">{{ total_unmatched }}</div>
         <div class="kpi-label">Niedopasowanych</div>
     </div>
@@ -930,7 +930,7 @@ DOPASUJ_TEMPLATE = '''
 
 {% if suggestions_count > 0 %}
 <button onclick="autoMatchAll()" class="btn btn-success" style="margin-bottom:20px">
-    <span class=material-symbols-outlined style=font-size:1rem>bolt</span> Auto-dopasuj {{ suggestions_count }} sugestii
+    [BOLT] Auto-dopasuj {{ suggestions_count }} sugestii
 </button>
 {% endif %}
 
@@ -943,7 +943,7 @@ DOPASUJ_TEMPLATE = '''
             <div class="list-item-meta">{{ g.cnt }} szt. | {{ g.wartosc_fmt }} zl</div>
         </div>
         <button onclick="openSearch('{{ g.nazwa_js }}', '{{ g.sale_ids }}')" class="btn btn-primary btn-sm">
-            <span class=material-symbols-outlined style=font-size:1rem>search</span> Szukaj
+            [SEARCH] Szukaj
         </button>
     </div>
     {% if g.suggestion %}
@@ -968,7 +968,7 @@ DOPASUJ_TEMPLATE = '''
 <div id="searchModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:1000;padding:15px;overflow-y:auto">
     <div class="card" style="max-width:500px;margin:40px auto;padding:20px;background:rgba(15,15,30,0.85);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08)">
         <div class="card-header">
-            <div class="card-title" style="color:#8ff5ff;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 20px rgba(143,245,255,0.3)"><span class=material-symbols-outlined style=font-size:1rem>search</span> Szukaj produktu</div>
+            <div class="card-title" style="color:#8ff5ff;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 20px rgba(143,245,255,0.3)">[SEARCH] Szukaj produktu</div>
             <button onclick="closeModal()" style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer">&times;</button>
         </div>
         <div id="modalInfo" style="background:var(--bg);padding:10px;border-radius:8px;margin-bottom:12px;font-size:0.8rem;color:var(--text-secondary)"></div>
