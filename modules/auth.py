@@ -263,7 +263,7 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min
 <!-- Branding -->
 <div style="text-align:center;margin-bottom:48px">
 <div style="margin-bottom:20px">
-<span class="material-symbols-outlined" style="font-size:3rem;color:var(--primary);font-variation-settings:'FILL' 1">sensors</span>
+<span class=material-symbols-outlined style='font-size:3rem;color:var(--primary);font-variation-settings:'FILL' 1'>sensors</span>
 </div>
 <h1 class="font-headline" style="font-size:2rem;font-weight:700;letter-spacing:-0.04em;color:var(--primary);text-shadow:0 0 10px rgba(143,245,255,0.4);margin-bottom:6px">{{ brand_name }}</h1>
 <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.3em;color:var(--text-muted);font-weight:500">System zarzadzania magazynem</p>
@@ -319,7 +319,7 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min
 
 <button type="submit" class="btn-login" id="submitBtn">
 {% if first_run %}Utworz konto{% else %}Zaloguj{% endif %}
-<span class="material-symbols-outlined" style="font-size:1.2rem">arrow_right_alt</span>
+<span class=material-symbols-outlined style=font-size:1.2rem>arrow_right_alt</span>
 </button>
 </form>
 
@@ -336,9 +336,9 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min
 <span style="font-size:10px;text-transform:uppercase;letter-spacing:0.2em;color:var(--text-muted)">Mainframe Active</span>
 </div>
 <div style="display:flex;align-items:center;gap:16px;color:rgba(118,117,119,0.6)">
-<span class="material-symbols-outlined" style="font-size:14px">wifi</span>
-<span class="material-symbols-outlined" style="font-size:14px">database</span>
-<span class="material-symbols-outlined" style="font-size:14px">lock</span>
+<span class=material-symbols-outlined style=font-size:14px>wifi</span>
+<span class=material-symbols-outlined style=font-size:14px>database</span>
+<span class=material-symbols-outlined style=font-size:14px>lock</span>
 </div>
 </div>
 </div>
@@ -591,7 +591,7 @@ button:hover{opacity:0.9}
 .back:hover{color:#e2e8f0}
 </style></head><body>
 <div class="card">
-    <h1><span class="material-symbols-outlined">lock</span> Zmiana hasła</h1>
+    <h1><span class=material-symbols-outlined>lock</span> Zmiana hasła</h1>
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
     {% if success %}<div class="success">{{ success }}</div>{% endif %}
     <form method="POST">
@@ -713,13 +713,13 @@ a{display:inline-block;margin-top:20px;padding:12px 24px;background:#6366f1;colo
 a:hover{opacity:0.9}
 </style></head><body>
 <div class="card">
-    <h1><span class="material-symbols-outlined">lock</span></h1>
+    <h1><span class=material-symbols-outlined>lock</span></h1>
     <h1>Brak dostępu</h1>
     <p>Twoja rola (<span class="role">{{ role }}</span>) nie ma uprawnień do tej strony.</p>
     <p style="font-size:0.8rem;color:#64748b">{{ path }}</p>
     <a href="/">← Dashboard</a>
-    <a href="/wysylki" style="background:#22c55e;margin-left:8px"><span class="material-symbols-outlined">inventory_2</span> Wysyłki</a>
-    <a href="/magazyn" style="background:#f59e0b;margin-left:8px"><span class="material-symbols-outlined">assignment</span> Magazyn</a>
+    <a href="/wysylki" style="background:#22c55e;margin-left:8px"><span class=material-symbols-outlined>inventory_2</span> Wysyłki</a>
+    <a href="/magazyn" style="background:#f59e0b;margin-left:8px"><span class=material-symbols-outlined>assignment</span> Magazyn</a>
 </div></body></html>'''
 
 

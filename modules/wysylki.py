@@ -134,7 +134,7 @@ def _get_delivery_info(order):
         pack_hint = '✉ List/poczta — koperta bąbelkowa lub mały karton.'
     elif any(x in method_lower for x in ['odbiór', 'osobisty', 'osobist']):
         delivery_type = 'odbior'
-        pack_hint = '<span class="material-symbols-outlined">home</span> Odbiór osobisty — przygotuj do wydania.'
+        pack_hint = '<span class=material-symbols-outlined>home</span> Odbiór osobisty — przygotuj do wydania.'
     elif pickup_name:
         delivery_type = 'punkt'
         pack_hint = f'<span class=material-symbols-outlined style=font-size:1rem>pin_drop</span> Punkt odbioru: {pickup_name} — standardowy karton.'
@@ -1094,7 +1094,7 @@ def wysylki_lista():
                     <div style="flex:1;min-width:0">
                         <div style="font-weight:600;font-size:0.9rem;line-height:1.4">{products_display}{badge}</div>
                         <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">
-                            <span class=material-symbols-outlined style=font-size:1rem>pin_drop</span> {lokalizacja} &nbsp;|&nbsp; <span class="material-symbols-outlined">person</span> {dostawca} &nbsp;|&nbsp; <span class=material-symbols-outlined style=font-size:1rem>label</span> {code}
+                            <span class=material-symbols-outlined style=font-size:1rem>pin_drop</span> {lokalizacja} &nbsp;|&nbsp; <span class=material-symbols-outlined>person</span> {dostawca} &nbsp;|&nbsp; <span class=material-symbols-outlined style=font-size:1rem>label</span> {code}
                         </div>
                         <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">
                             <span class=material-symbols-outlined style=font-size:1rem>shopping_cart</span> {first_item['kupujacy']} &nbsp;|&nbsp; <span class=material-symbols-outlined style=font-size:1rem>calendar_month</span> {data_str}
@@ -1120,7 +1120,7 @@ def wysylki_lista():
     
     user_selector = f'''
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:15px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px">
-        <label style="font-size:0.85rem;color:var(--text-secondary);font-weight:600"><span class="material-symbols-outlined">person</span> UŻYTKOWNIK:</label>
+        <label style="font-size:0.85rem;color:var(--text-secondary);font-weight:600"><span class=material-symbols-outlined>person</span> UŻYTKOWNIK:</label>
         <select id="user-select" onchange="window.location.href='/wysylki?user=' + this.value"
                 style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:0.9rem;cursor:pointer">
             {user_options}

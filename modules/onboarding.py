@@ -274,7 +274,7 @@ body {
             <!-- STEP 1: Allegro API -->
             <div class="step active">
                 <div class="step-card">
-                    <div class="step-icon"><span class="material-symbols-outlined">shopping_cart</span></div>
+                    <div class="step-icon"><span class=material-symbols-outlined>shopping_cart</span></div>
                     <div class="step-title">Podpiecie API Allegro</div>
                     <div class="step-desc">Polacz konto Allegro aby synchronizowac zamowienia i oferty</div>
                     <div class="form-group">

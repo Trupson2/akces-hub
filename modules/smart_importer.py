@@ -335,9 +335,9 @@ def smart_import_excel(
     eur_rate = 1.0
     if is_eur:
         eur_rate = get_eur_pln_rate()
-        result["details"].append(f"<span class="material-symbols-outlined">currency_exchange</span> Waluta: EUR → PLN (kurs: {eur_rate:.4f})")
+        result["details"].append(f"<span class=material-symbols-outlined>currency_exchange</span> Waluta: EUR → PLN (kurs: {eur_rate:.4f})")
     else:
-        result["details"].append(f"<span class="material-symbols-outlined">currency_exchange</span> Waluta: PLN (bez przeliczania)")
+        result["details"].append(f"<span class=material-symbols-outlined>currency_exchange</span> Waluta: PLN (bez przeliczania)")
 
     # 2. IMPORT PODSTAWOWY (użyj istniejącej funkcji)
     import_result = import_excel_manifest(
@@ -547,7 +547,7 @@ def smart_import_excel(
                             print(f"   [WARN]  QUOTA EXCEEDED! Zwiększam delay: {old_delay}s → {smart_import_excel._api_delay}s")
                             print(f"   [LIGH] TIP: Dodaj kartę kredytową w Google AI Studio aby zwiększyć limit z 15 RPM → 2000 RPM!")
                         
-                        result["details"].append(f"<span class="material-symbols-outlined">warning</span> Produkt {i}: {error_msg}")
+                        result["details"].append(f"<span class=material-symbols-outlined>warning</span> Produkt {i}: {error_msg}")
                         continue
                 
                 conn.commit()
@@ -556,14 +556,14 @@ def smart_import_excel(
                 print(f"[OK] [STAN COMPLETE] Wykryto stan dla {stany_detected}/{len(products)} produktów")
                 print(f"[OK] [GPSR COMPLETE] Wygenerowano GPSR dla {gpsr_generated}/{len(products)} produktów")
                 
-                result["details"].append(f"<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Wygenerowano {meta_titles_generated}/{len(products)} tytułów META TITLE")
-                result["details"].append(f"<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Wykryto stan dla {stany_detected}/{len(products)} produktów")
-                result["details"].append(f"<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Wygenerowano GPSR dla {gpsr_generated}/{len(products)} produktów")
+                result["details"].append(f"<span class=material-symbols-outlined style=color:#22c55e>check_circle</span> Wygenerowano {meta_titles_generated}/{len(products)} tytułów META TITLE")
+                result["details"].append(f"<span class=material-symbols-outlined style=color:#22c55e>check_circle</span> Wykryto stan dla {stany_detected}/{len(products)} produktów")
+                result["details"].append(f"<span class=material-symbols-outlined style=color:#22c55e>check_circle</span> Wygenerowano GPSR dla {gpsr_generated}/{len(products)} produktów")
                 
             except Exception as e:
-                result["details"].append(f"<span class="material-symbols-outlined">warning</span>  Błąd generowania META TITLE: {str(e)}")
+                result["details"].append(f"<span class=material-symbols-outlined>warning</span>  Błąd generowania META TITLE: {str(e)}")
         else:
-            result["details"].append("<span class="material-symbols-outlined">warning</span>  Gemini AI niedostępne - META TITLE nie wygenerowane")
+            result["details"].append("<span class=material-symbols-outlined>warning</span>  Gemini AI niedostępne - META TITLE nie wygenerowane")
         
     except Exception as e:
         result["errors"].append(f"Błąd obliczania cen: {str(e)}")

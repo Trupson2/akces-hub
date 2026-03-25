@@ -400,5 +400,5 @@ if __name__ == '__main__':
     print(f"\n[ASSI] Dostępne backupy ({len(backups)}):")
     for b in backups:
         status_ok, status_msg = verify_backup(b['filename'])
-        status_icon = "<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>" if status_ok else "<span class="material-symbols-outlined" style="color:#ef4444">cancel</span>"
+        status_icon = "<span class=material-symbols-outlined style=color:#22c55e>check_circle</span>" if status_ok else "<span class=material-symbols-outlined style=color:#ef4444>cancel</span>"
         print(f"  {status_icon} {b['filename']} - {b['size_mb']:.2f} MB - {b['created_str']} - {status_msg}")

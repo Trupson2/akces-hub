@@ -429,7 +429,7 @@ a {{ color:#38bdf8; }}
 <script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
 
 <div class="header">
-    <h1><span class="material-symbols-outlined">store</span> OLX Integration</h1>
+    <h1><span class=material-symbols-outlined>store</span> OLX Integration</h1>
     <div class="subtitle">Zarządzaj ogłoszeniami na OLX.pl</div>
 </div>
 
@@ -438,10 +438,10 @@ a {{ color:#38bdf8; }}
     <!-- Status -->
     <div class="status-card">
         <h3>Status połączenia</h3>
-        {'<span class="status-badge badge-green"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Połączono</span>' if auth else
-         '<span class="status-badge badge-yellow"><span class="material-symbols-outlined">warning</span> Skonfigurowano - wymaga logowania</span>' if is_configured() else
-         '<span class="status-badge badge-red"><span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Nie skonfigurowano</span>'}
-        {f'<br><br><a href="/olx/auth" class="btn btn-primary"><span class="material-symbols-outlined">key</span> Zaloguj do OLX</a>' if is_configured() and not auth else ''}
+        {'<span class="status-badge badge-green"><span class=material-symbols-outlined style=color:#22c55e>check_circle</span> Połączono</span>' if auth else
+         '<span class="status-badge badge-yellow"><span class=material-symbols-outlined>warning</span> Skonfigurowano - wymaga logowania</span>' if is_configured() else
+         '<span class="status-badge badge-red"><span class=material-symbols-outlined style=color:#ef4444>cancel</span> Nie skonfigurowano</span>'}
+        {f'<br><br><a href="/olx/auth" class="btn btn-primary"><span class=material-symbols-outlined>key</span> Zaloguj do OLX</a>' if is_configured() and not auth else ''}
     </div>
 
     <!-- Stats -->
@@ -462,7 +462,7 @@ a {{ color:#38bdf8; }}
 
     <!-- Config form -->
     <div class="config-form">
-        <h3><span class="material-symbols-outlined">settings</span> Konfiguracja OLX API</h3>
+        <h3><span class=material-symbols-outlined>settings</span> Konfiguracja OLX API</h3>
         <p style="color:#94a3b8;font-size:0.8rem;margin:8px 0">
             Zarejestruj się na <a href="https://developer.olx.pl" target="_blank">developer.olx.pl</a>
             i utwórz aplikację aby uzyskać Client ID i Secret.
@@ -494,7 +494,7 @@ a {{ color:#38bdf8; }}
             <input type="text" name="longitude" value="{cfg['longitude']}" placeholder="np. 16.9252">
 
             <br><br>
-            <button type="submit" class="btn btn-primary" style="width:100%"><span class="material-symbols-outlined">save</span> Zapisz konfigurację</button>
+            <button type="submit" class="btn btn-primary" style="width:100%"><span class=material-symbols-outlined>save</span> Zapisz konfigurację</button>
         </form>
     </div>
 
@@ -504,13 +504,13 @@ a {{ color:#38bdf8; }}
 </div>
 
 <nav style="position:fixed;bottom:0;left:0;right:0;background:#1e293b;border-top:1px solid #334155;display:flex;justify-content:space-around;padding:8px 0;z-index:100">
-<a href="/" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">home</span></div>Home</a>
-<a href="/magazyn" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">inventory_2</span></div>Magazyn</a>
-<a href="/paletomat" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">smart_toy</span></div>Paletomat</a>
-<a href="/allegro" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">shopping_cart</span></div>Allegro</a>
-<a href="/olx" style="text-align:center;text-decoration:none;color:#38bdf8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">store</span></div>OLX</a>
-<a href="/vinted" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">checkroom</span></div>Vinted</a>
-<a href="/narzedzia" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">bolt</span></div>Narzędzia</a>
+<a href="/" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class=material-symbols-outlined>home</span></div>Home</a>
+<a href="/magazyn" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class=material-symbols-outlined>inventory_2</span></div>Magazyn</a>
+<a href="/paletomat" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class=material-symbols-outlined>smart_toy</span></div>Paletomat</a>
+<a href="/allegro" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class=material-symbols-outlined>shopping_cart</span></div>Allegro</a>
+<a href="/olx" style="text-align:center;text-decoration:none;color:#38bdf8;font-size:0.7rem"><div style="font-size:1.4rem"><span class=material-symbols-outlined>store</span></div>OLX</a>
+<a href="/vinted" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class=material-symbols-outlined>checkroom</span></div>Vinted</a>
+<a href="/narzedzia" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class=material-symbols-outlined>bolt</span></div>Narzędzia</a>
 </nav>
 
 </body></html>'''
@@ -518,7 +518,7 @@ a {{ color:#38bdf8; }}
 
 def _render_olx_offers(oferty):
     """Renderuje listę ofert OLX"""
-    html = '<div class="status-card"><h3><span class="material-symbols-outlined">assignment</span> Twoje ogłoszenia OLX</h3>'
+    html = '<div class="status-card"><h3><span class=material-symbols-outlined>assignment</span> Twoje ogłoszenia OLX</h3>'
     for o in oferty:
         status_badge = {
             'active': '<span class="status-badge badge-green">aktywne</span>',
@@ -555,7 +555,7 @@ def olx_config_save():
     set_config('olx_city', request.form.get('city', '').strip())
     set_config('olx_latitude', request.form.get('latitude', '').strip())
     set_config('olx_longitude', request.form.get('longitude', '').strip())
-    flash('<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Konfiguracja OLX zapisana', 'success')
+    flash('<span class=material-symbols-outlined style=color:#22c55e>check_circle</span> Konfiguracja OLX zapisana', 'success')
     return redirect('/olx')
 
 
@@ -564,7 +564,7 @@ def olx_auth():
     """Rozpoczyna OAuth2 flow z OLX"""
     cfg = get_olx_config()
     if not cfg['client_id']:
-        flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Najpierw skonfiguruj Client ID i Secret', 'error')
+        flash('<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Najpierw skonfiguruj Client ID i Secret', 'error')
         return redirect('/olx')
 
     # Generuj state dla bezpieczeństwa
@@ -591,17 +591,17 @@ def olx_callback():
     error = request.args.get('error')
 
     if error:
-        flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> OLX auth error: {error}', 'error')
+        flash(f'<span class=material-symbols-outlined style=color:#ef4444>cancel</span> OLX auth error: {error}', 'error')
         return redirect('/olx')
 
     if not code:
-        flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Brak kodu autoryzacji', 'error')
+        flash('<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Brak kodu autoryzacji', 'error')
         return redirect('/olx')
 
     # Weryfikuj state
     saved_state = get_config('olx_oauth_state', '')
     if state != saved_state:
-        flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Nieprawidłowy state - możliwy atak CSRF', 'error')
+        flash('<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Nieprawidłowy state - możliwy atak CSRF', 'error')
         return redirect('/olx')
 
     cfg = get_olx_config()
@@ -623,12 +623,12 @@ def olx_callback():
                 set_config('olx_refresh_token', tokens['refresh_token'])
             expires_at = datetime.now() + timedelta(seconds=tokens.get('expires_in', 3600))
             set_config('olx_token_expires', expires_at.isoformat())
-            flash('<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Zalogowano do OLX!', 'success')
+            flash('<span class=material-symbols-outlined style=color:#22c55e>check_circle</span> Zalogowano do OLX!', 'success')
         else:
-            flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Błąd tokena OLX: {response.status_code} {response.text[:200]}', 'error')
+            flash(f'<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Błąd tokena OLX: {response.status_code} {response.text[:200]}', 'error')
 
     except Exception as e:
-        flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Błąd połączenia z OLX: {e}', 'error')
+        flash(f'<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Błąd połączenia z OLX: {e}', 'error')
 
     return redirect('/olx')
 
@@ -639,7 +639,7 @@ def olx_logout():
     set_config('olx_access_token', '')
     set_config('olx_refresh_token', '')
     set_config('olx_token_expires', '')
-    flash('<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Wylogowano z OLX', 'success')
+    flash('<span class=material-symbols-outlined style=color:#22c55e>check_circle</span> Wylogowano z OLX', 'success')
     return redirect('/olx')
 
 
@@ -647,14 +647,14 @@ def olx_logout():
 def olx_create_listing(produkt_id):
     """Tworzy ogłoszenie OLX z produktu"""
     if not is_authenticated():
-        flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Najpierw zaloguj się do OLX', 'error')
+        flash('<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Najpierw zaloguj się do OLX', 'error')
         return redirect('/olx')
 
     advert_id, err = create_olx_listing(produkt_id)
     if err:
-        flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> {err}', 'error')
+        flash(f'<span class=material-symbols-outlined style=color:#ef4444>cancel</span> {err}', 'error')
     else:
-        flash(f'<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Utworzono ogłoszenie OLX (ID: {advert_id}) - draft. Kliknij "Opublikuj" aby aktywować.', 'success')
+        flash(f'<span class=material-symbols-outlined style=color:#22c55e>check_circle</span> Utworzono ogłoszenie OLX (ID: {advert_id}) - draft. Kliknij "Opublikuj" aby aktywować.', 'success')
 
     return redirect(request.referrer or '/olx')
 
@@ -663,14 +663,14 @@ def olx_create_listing(produkt_id):
 def olx_publish_listing(advert_id):
     """Publikuje ogłoszenie OLX"""
     if not is_authenticated():
-        flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Najpierw zaloguj się do OLX', 'error')
+        flash('<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Najpierw zaloguj się do OLX', 'error')
         return redirect('/olx')
 
     success, err = publish_olx_listing(advert_id)
     if err:
-        flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> {err}', 'error')
+        flash(f'<span class=material-symbols-outlined style=color:#ef4444>cancel</span> {err}', 'error')
     else:
-        flash('<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Ogłoszenie opublikowane na OLX!', 'success')
+        flash('<span class=material-symbols-outlined style=color:#22c55e>check_circle</span> Ogłoszenie opublikowane na OLX!', 'success')
 
     return redirect('/olx')
 
@@ -679,12 +679,12 @@ def olx_publish_listing(advert_id):
 def olx_delete_listing(advert_id):
     """Usuwa ogłoszenie OLX"""
     if not is_authenticated():
-        flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Najpierw zaloguj się do OLX', 'error')
+        flash('<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Najpierw zaloguj się do OLX', 'error')
         return redirect('/olx')
 
     result, err = olx_api_request('DELETE', f'/adverts/{advert_id}')
     if err:
-        flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> {err}', 'error')
+        flash(f'<span class=material-symbols-outlined style=color:#ef4444>cancel</span> {err}', 'error')
     else:
         try:
             conn = get_db()
@@ -692,7 +692,7 @@ def olx_delete_listing(advert_id):
             conn.commit()
         except:
             pass
-        flash('<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Ogłoszenie usunięte z OLX', 'success')
+        flash('<span class=material-symbols-outlined style=color:#22c55e>check_circle</span> Ogłoszenie usunięte z OLX', 'success')
 
     return redirect('/olx')
 

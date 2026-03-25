@@ -344,7 +344,7 @@ function showToast(title, message, type, duration){
     toast.className='toast '+type;
     var icons={success:'check_circle',error:'error',warning:'warning',info:'info'};
     var icon=icons[type]||'info';
-    toast.innerHTML='<span class="material-symbols-outlined">'+icon+'</span><div class="toast-content"><div class="toast-title">'+title+'</div>'+(message?'<div class="toast-message">'+message+'</div>':'')+'</div><div class="toast-close" onclick="removeToast(this.parentElement)">&times;</div>';
+    toast.innerHTML='<span class=material-symbols-outlined>'+icon+'</span><div class="toast-content"><div class="toast-title">'+title+'</div>'+(message?'<div class="toast-message">'+message+'</div>':'')+'</div><div class="toast-close" onclick="removeToast(this.parentElement)">&times;</div>';
     container.appendChild(toast);
     if(duration>0){setTimeout(function(){removeToast(toast)},duration);}
     return toast;
@@ -420,7 +420,7 @@ def index():
 def skaner():
     """Skaner kodów kreskowych z kamery"""
     html = '''
-    <div class="hdr"><h1><span class="material-symbols-outlined">qr_code_scanner</span> SKANER KODÓW</h1><small>Zeskanuj EAN/ASIN</small></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined>qr_code_scanner</span> SKANER KODÓW</h1><small>Zeskanuj EAN/ASIN</small></div>
 
     <div id="scanner-container" style="position:relative;width:100%;max-width:400px;margin:0 auto 15px">
         <video id="video" style="width:100%;border-radius:12px;background:#000" playsinline></video>
@@ -440,7 +440,7 @@ def skaner():
             <label style="font-size:0.8rem;color:#64748b">Lub wpisz ręcznie:</label>
             <form action="/magazyn/szukaj" method="GET" style="display:flex;gap:8px;margin-top:8px">
                 <input type="text" name="q" id="manual-input" class="form-ctrl" placeholder="EAN / ASIN..." style="flex:1;padding:12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#fff">
-                <button type="submit" class="btn btn-p" style="width:auto;padding:12px 20px;margin:0"><span class="material-symbols-outlined" style="font-size:1.1rem">search</span></button>
+                <button type="submit" class="btn btn-p" style="width:auto;padding:12px 20px;margin:0"><span class=material-symbols-outlined style=font-size:1.1rem>search</span></button>
             </form>
         </div>
     </div>
@@ -507,7 +507,7 @@ def skaner():
                         if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
                         
                         // Pokaż wynik
-                        resultDiv.innerHTML = '<div style="color:#beee00;font-size:1.2rem;font-weight:700"><span class="material-symbols-outlined" style="vertical-align:middle">check_circle</span> ' + code + '</div>';
+                        resultDiv.innerHTML = '<div style="color:#beee00;font-size:1.2rem;font-weight:700"><span class=material-symbols-outlined style=vertical-align:middle>check_circle</span> ' + code + '</div>';
                         lastScanned.style.display = 'block';
                         lastCode.textContent = code;
                         manualInput.value = code;
@@ -629,7 +629,7 @@ def produkty():
 
     html = f'''
     <div class="hdr">
-        <h1><span class="material-symbols-outlined">list_alt</span> PRODUKTY</h1>
+        <h1><span class=material-symbols-outlined>list_alt</span> PRODUKTY</h1>
         <small>{len(products)} pozycji</small>
     </div>
     '''
@@ -642,19 +642,19 @@ def produkty():
     <div style="padding:10px;margin-bottom:15px;background:rgba(10,10,22,0.6);border:1px solid rgba(255,255,255,0.04);border-radius:12px">
         <div style="display:flex;gap:8px;flex-wrap:wrap">
             <a href="/magazyn/produkty" class="btn {'btn-ok' if not filter_status else ''}" style="padding:8px 15px;font-size:0.82rem;display:flex;align-items:center;gap:4px;border-radius:8px">
-                <span class="material-symbols-outlined" style="font-size:0.95rem">list_alt</span> Wszystkie ({len(products) if not filter_status else sum(status_counts.values())})
+                <span class=material-symbols-outlined style=font-size:0.95rem>list_alt</span> Wszystkie ({len(products) if not filter_status else sum(status_counts.values())})
             </a>
             <a href="/magazyn/produkty?status=nowy" style="padding:8px 15px;font-size:0.82rem;background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.20);color:#8ff5ff;border-radius:8px;text-decoration:none;display:flex;align-items:center;gap:4px{';;font-weight:700' if filter_status == 'nowy' else ''}">
-                <span class="material-symbols-outlined" style="font-size:0.95rem">inventory_2</span> Magazyn ({status_counts['nowy']})
+                <span class=material-symbols-outlined style=font-size:0.95rem>inventory_2</span> Magazyn ({status_counts['nowy']})
             </a>
             <a href="/magazyn/produkty?status=wystawiony" style="padding:8px 15px;font-size:0.82rem;background:rgba(255,107,155,0.10);border:1px solid rgba(255,107,155,0.20);color:#ff6b9b;border-radius:8px;text-decoration:none;display:flex;align-items:center;gap:4px">
-                <span class="material-symbols-outlined" style="font-size:0.95rem">shopping_cart</span> Allegro ({status_counts['wystawiony']})
+                <span class=material-symbols-outlined style=font-size:0.95rem>shopping_cart</span> Allegro ({status_counts['wystawiony']})
             </a>
             <a href="/magazyn/produkty?status=sprzedany" style="padding:8px 15px;font-size:0.82rem;background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.20);color:#beee00;border-radius:8px;text-decoration:none;display:flex;align-items:center;gap:4px">
-                <span class="material-symbols-outlined" style="font-size:0.95rem">paid</span> Sprzedane ({status_counts['sprzedany']})
+                <span class=material-symbols-outlined style=font-size:0.95rem>paid</span> Sprzedane ({status_counts['sprzedany']})
             </a>
             <a href="/magazyn/produkty?status=nieoceniony" style="padding:8px 15px;font-size:0.82rem;background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.20);color:#f59e0b;border-radius:8px;text-decoration:none;display:flex;align-items:center;gap:4px">
-                <span class="material-symbols-outlined" style="font-size:0.95rem">star</span> Nieocenione ({nieocenione_cnt})
+                <span class=material-symbols-outlined style=font-size:0.95rem>star</span> Nieocenione ({nieocenione_cnt})
             </a>
         </div>
     </div>
@@ -742,8 +742,8 @@ def produkty():
                 <option value="desc" {"selected" if sort_dir == "desc" else ""}>Malejąco</option>
                 <option value="asc" {"selected" if sort_dir == "asc" else ""}>Rosnąco</option>
             </select>
-            <button type="submit" class="btn btn-ok" style="display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:1rem">filter_list</span> Filtruj</button>
-            <a href="/magazyn/produkty" class="btn" style="display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:1rem">clear_all</span> Wyczyść</a>
+            <button type="submit" class="btn btn-ok" style="display:flex;align-items:center;gap:4px"><span class=material-symbols-outlined style=font-size:1rem>filter_list</span> Filtruj</button>
+            <a href="/magazyn/produkty" class="btn" style="display:flex;align-items:center;gap:4px"><span class=material-symbols-outlined style=font-size:1rem>clear_all</span> Wyczyść</a>
         </form>
     </div>
     '''
@@ -752,7 +752,7 @@ def produkty():
     html += f'''
     <form id="mass-edit-form" method="POST" action="/magazyn/produkty/masowa-edycja">
         <div style="padding:15px;margin-bottom:15px;background:rgba(255,107,155,0.05);border:1px solid rgba(255,107,155,0.15);border-radius:12px">
-            <div style="color:#ff6b9b;font-weight:700;font-size:0.92rem;margin-bottom:12px;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:1.1rem">bolt</span> MASOWA EDYCJA ZAZNACZONYCH</div>
+            <div style="color:#ff6b9b;font-weight:700;font-size:0.92rem;margin-bottom:12px;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px"><span class=material-symbols-outlined style=font-size:1.1rem>bolt</span> MASOWA EDYCJA ZAZNACZONYCH</div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
                 <div>
@@ -789,13 +789,13 @@ def produkty():
 
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
                 <button type="button" onclick="toggleAll()" class="btn" style="background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);color:#8ff5ff;flex:1;display:flex;align-items:center;justify-content:center;gap:4px">
-                    <span class="material-symbols-outlined" style="font-size:1rem">check_box</span> Zaznacz wszystkie
+                    <span class=material-symbols-outlined style=font-size:1rem>check_box</span> Zaznacz wszystkie
                 </button>
                 <button type="submit" class="btn btn-ok" onclick="return confirm('Zastosować zmiany dla ' + document.getElementById('count').textContent + ' produktów?')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px">
-                    <span class="material-symbols-outlined" style="font-size:1rem">check_circle</span> Zastosuj
+                    <span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Zastosuj
                 </button>
                 <button type="button" onclick="pokazBoxModal()" class="btn" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.25);color:#f59e0b;flex:1;display:flex;align-items:center;justify-content:center;gap:4px">
-                    <span class="material-symbols-outlined" style="font-size:1rem">inbox</span> Zgrupuj w box
+                    <span class=material-symbols-outlined style=font-size:1rem>inbox</span> Zgrupuj w box
                 </button>
             </div>
             <div id="selected-count" style="margin-top:10px;color:#ff6b9b;font-size:0.85rem;font-weight:600;font-family:'Space Grotesk',sans-serif">
@@ -1068,7 +1068,7 @@ def produkt(code):
     _siblings_html = ''
     if _siblings:
         _siblings_html = '<div class="siblings-panel">'
-        _siblings_html += '<div class="siblings-title"><span class="material-symbols-outlined">inventory_2</span> Partie tego produktu (per klasa)</div>'
+        _siblings_html += '<div class="siblings-title"><span class=material-symbols-outlined>inventory_2</span> Partie tego produktu (per klasa)</div>'
         # Current product as first row
         _cur_klasa = p.get('klasa_jakosci','') or ''
         _cur_color = _klasa_colors.get(_cur_klasa, '#64748b')
@@ -1088,7 +1088,7 @@ def produkt(code):
             _siblings_html += f'<span class="sib-klasa" style="color:{sc}">{sk or "?"}</span>'
             _siblings_html += f'<div style="flex:1"><div style="font-weight:600;font-size:0.85rem">{sib["ilosc"]} szt <span style="color:#64748b;font-weight:400">· {ss}</span></div>'
             _siblings_html += f'<div style="font-size:0.7rem;color:#64748b">{sib.get("lokalizacja","") or "brak lok."}</div></div>'
-            _siblings_html += f'<span class="material-symbols-outlined" style="color:{sc};font-size:1rem">chevron_right</span></a>'
+            _siblings_html += f'<span class=material-symbols-outlined style=color:{sc};font-size:1rem>chevron_right</span></a>'
         _siblings_html += '</div>'
 
     # Zysk per item = cena_allegro - koszt_zakupu - prowizja
@@ -1099,19 +1099,19 @@ def produkt(code):
     _zysk_szt = _cena_al - _koszt_brutto_szt - _prowizja_kwota if _cena_al > 0 and _koszt_brutto_szt > 0 else 0
     _zysk_color = '#beee00' if _zysk_szt >= 0 else '#ef4444'
 
-    html = f'''<div class="hdr"><h1><span class="material-symbols-outlined">inventory_2</span> PRODUKT</h1></div>'''
+    html = f'''<div class="hdr"><h1><span class=material-symbols-outlined>inventory_2</span> PRODUKT</h1></div>'''
 
     if is_new:
-        html += '<div class="alert alert-warn"><span class="material-symbols-outlined" style="font-size:1.1rem">add_circle</span> NOWY PRODUKT - kliknij EDYTUJ aby dodać</div>'
+        html += '<div class="alert alert-warn"><span class=material-symbols-outlined style=font-size:1.1rem>add_circle</span> NOWY PRODUKT - kliknij EDYTUJ aby dodać</div>'
     if msg:
-        html += f'<div class="alert alert-ok"><span class="material-symbols-outlined" style="font-size:1.1rem">check_circle</span> {msg}</div>'
+        html += f'<div class="alert alert-ok"><span class=material-symbols-outlined style=font-size:1.1rem>check_circle</span> {msg}</div>'
     
     # HISTORIA NA GÓRZE - PIERWSZA
     if historia:
         html += '''
         <div class="hist-card">
             <div class="hist-header">
-                <span class="material-symbols-outlined">history</span>
+                <span class=material-symbols-outlined>history</span>
                 <div>
                     <h3>HISTORIA ZMIAN</h3>
                     <small>Ostatnie ''' + str(len(historia)) + ''' działań na tym produkcie</small>
@@ -1158,7 +1158,7 @@ def produkt(code):
             <div class="hist-entry">
                 <div style="display:flex;align-items:start;gap:10px;flex:1;min-width:0">
                     <div class="hist-icon" style="background:{icon_color}15;border:1px solid {icon_color}33">
-                        <span class="material-symbols-outlined" style="color:{icon_color}">{ms_icon}</span>
+                        <span class=material-symbols-outlined style=color:{icon_color}>{ms_icon}</span>
                     </div>
                     <div style="flex:1;min-width:0">
                         <div class="hist-text">{h['opis']}</div>
@@ -1168,8 +1168,8 @@ def produkt(code):
                 <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
                     <span class="hist-date">{data_str}</span>
                     <div class="hist-actions">
-                        <a href="/magazyn/historia/{h['id']}/edytuj" title="Edytuj"><span class="material-symbols-outlined">edit</span></a>
-                        <a href="/magazyn/historia/{h['id']}/usun?redirect=/magazyn/produkt/{product_code}" onclick="return confirm('Usunąć ten wpis z historii?')" title="Usuń"><span class="material-symbols-outlined">delete</span></a>
+                        <a href="/magazyn/historia/{h['id']}/edytuj" title="Edytuj"><span class=material-symbols-outlined>edit</span></a>
+                        <a href="/magazyn/historia/{h['id']}/usun?redirect=/magazyn/produkt/{product_code}" onclick="return confirm('Usunąć ten wpis z historii?')" title="Usuń"><span class=material-symbols-outlined>delete</span></a>
                     </div>
                 </div>
             </div>'''
@@ -1203,7 +1203,7 @@ def produkt(code):
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
                 <div>
                     <div class="status-label">STATUS PRODUKTU</div>
-                    <div class="status-value" style="color:{color}"><span class="material-symbols-outlined">{icon}</span> {label}</div>
+                    <div class="status-value" style="color:{color}"><span class=material-symbols-outlined>{icon}</span> {label}</div>
                 </div>
                 <form method="POST" action="/magazyn/produkt/{product_code}/zmien-status" style="display:flex;gap:8px;align-items:center">
                     <input type="hidden" name="csrf_token" value="{generate_csrf()}">
@@ -1221,13 +1221,13 @@ def produkt(code):
         </div>
 
         <div class="quick-actions">
-            <a href="/magazyn/produkt/{product_code}/sprzedaj" class="quick-btn" style="background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.25);color:#beee00"><span class="material-symbols-outlined">remove_shopping_cart</span> -1 SZT</a>
-            <a href="/magazyn/etykieta-mobilna/{product_code}" class="quick-btn" style="background:rgba(255,107,155,0.15);border:1px solid rgba(255,107,155,0.25);color:#ff6b9b"><span class="material-symbols-outlined">label</span> ETYKIETA</a>
-            <a href="/magazyn/produkt/{product_code}/edytuj" class="quick-btn" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.25);color:#f59e0b"><span class="material-symbols-outlined">edit</span> EDYTUJ</a>
-            <a href="/paletomat/generator/from-magazyn/{p['id']}" class="quick-btn" style="background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);color:#8ff5ff"><span class="material-symbols-outlined">storefront</span> WYSTAW</a>
+            <a href="/magazyn/produkt/{product_code}/sprzedaj" class="quick-btn" style="background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.25);color:#beee00"><span class=material-symbols-outlined>remove_shopping_cart</span> -1 SZT</a>
+            <a href="/magazyn/etykieta-mobilna/{product_code}" class="quick-btn" style="background:rgba(255,107,155,0.15);border:1px solid rgba(255,107,155,0.25);color:#ff6b9b"><span class=material-symbols-outlined>label</span> ETYKIETA</a>
+            <a href="/magazyn/produkt/{product_code}/edytuj" class="quick-btn" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.25);color:#f59e0b"><span class=material-symbols-outlined>edit</span> EDYTUJ</a>
+            <a href="/paletomat/generator/from-magazyn/{p['id']}" class="quick-btn" style="background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);color:#8ff5ff"><span class=material-symbols-outlined>storefront</span> WYSTAW</a>
             <form method="POST" action="/magazyn/produkt/{product_code}/usun" style="display:inline" onsubmit="return confirm('Na pewno usunąć ten produkt?')">
                 <input type="hidden" name="csrf_token" value="{generate_csrf()}">
-                <button type="submit" class="quick-btn" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.25);color:#ef4444;width:100%;cursor:pointer"><span class="material-symbols-outlined">delete</span> USUŃ</button>
+                <button type="submit" class="quick-btn" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.25);color:#ef4444;width:100%;cursor:pointer"><span class=material-symbols-outlined>delete</span> USUŃ</button>
             </form>
         </div>
         '''
@@ -1241,7 +1241,7 @@ def produkt(code):
             {quick_actions}
             
             <div class="loc">
-                <div class="loc-title"><span class="material-symbols-outlined">pin_drop</span> Lokalizacja</div>
+                <div class="loc-title"><span class=material-symbols-outlined>pin_drop</span> Lokalizacja</div>
                 <div class="loc-grid">
                     <div><div class="loc-l">Regał</div><div class="loc-v">{p['lokalizacja'] or '—'}</div></div>
                     <div><div class="loc-l">Paleta</div><div class="loc-v">{p['paleta'] or '—'}</div></div>
@@ -1250,17 +1250,17 @@ def produkt(code):
             </div>
 
             <div class="det-grid">
-                <div class="det" style="border:1px solid rgba(255,107,155,0.2)"><div class="det-l"><span class="material-symbols-outlined" style="color:#ff6b9b">label</span> Kod mag.</div><div class="det-v" style="color:#ff6b9b;font-weight:700">{p.get('kod_magazynowy') or f"#{p['id']}"}</div></div>
-                <div class="det" onclick="navigator.clipboard.writeText('{ean_display}');this.querySelector('.det-v').style.color='#beee00';setTimeout(()=>this.querySelector('.det-v').style.color='',800)" style="cursor:pointer" title="Kliknij aby skopiować"><div class="det-l"><span class="material-symbols-outlined">content_copy</span> EAN</div><div class="det-v" style="font-size:0.75rem;user-select:all">{ean_display}</div></div>
-                <div class="det" onclick="navigator.clipboard.writeText('{asin_display}');this.querySelector('.det-v').style.color='#beee00';setTimeout(()=>this.querySelector('.det-v').style.color='',800)" style="cursor:pointer" title="Kliknij aby skopiować"><div class="det-l"><span class="material-symbols-outlined">content_copy</span> ASIN</div><div class="det-v" style="font-size:0.75rem;user-select:all">{asin_display}</div></div>
-                <div class="det"><div class="det-l"><span class="material-symbols-outlined">inventory</span> Ilość</div><div class="det-v"><span class="badge {badge}">{p['ilosc']} szt</span></div></div>
-                <div class="det"><div class="det-l"><span class="material-symbols-outlined">grade</span> Stan</div><div class="det-v">{p['stan'] or 'Nowy'}</div></div>
-                <div class="det"><div class="det-l"><span class="material-symbols-outlined">stars</span> Klasa</div><div class="det-v">{_klasa_display}</div></div>
-                <div class="det"><div class="det-l"><span class="material-symbols-outlined">payments</span> Koszt/szt brutto</div><div class="det-v">{_koszt_brutto_szt:.2f} zł</div></div>
-                <div class="det"><div class="det-l"><span class="material-symbols-outlined">payments</span> Koszt/szt netto</div><div class="det-v">{_koszt_brutto_szt / 1.23:.2f} zł</div></div>
-                <div class="det"><div class="det-l"><span class="material-symbols-outlined">storefront</span> Cena Allegro</div><div class="det-v green">{p['cena_allegro'] or 0:.2f} zł</div></div>
-                <div class="det"><div class="det-l"><span class="material-symbols-outlined">percent</span> Prowizja ({int(_prowizja_rate*100)}%)</div><div class="det-v" style="color:#f59e0b">{_prowizja_kwota:.2f} zł</div></div>
-                <div class="det" style="border:1px solid {_zysk_color}33"><div class="det-l"><span class="material-symbols-outlined" style="color:{_zysk_color}">diamond</span> Zysk/szt</div><div class="det-v" style="color:{_zysk_color};font-weight:700;font-size:1.1rem">{_zysk_szt:.2f} zł</div></div>
+                <div class="det" style="border:1px solid rgba(255,107,155,0.2)"><div class="det-l"><span class=material-symbols-outlined style=color:#ff6b9b>label</span> Kod mag.</div><div class="det-v" style="color:#ff6b9b;font-weight:700">{p.get('kod_magazynowy') or f"#{p['id']}"}</div></div>
+                <div class="det" onclick="navigator.clipboard.writeText('{ean_display}');this.querySelector('.det-v').style.color='#beee00';setTimeout(()=>this.querySelector('.det-v').style.color='',800)" style="cursor:pointer" title="Kliknij aby skopiować"><div class="det-l"><span class=material-symbols-outlined>content_copy</span> EAN</div><div class="det-v" style="font-size:0.75rem;user-select:all">{ean_display}</div></div>
+                <div class="det" onclick="navigator.clipboard.writeText('{asin_display}');this.querySelector('.det-v').style.color='#beee00';setTimeout(()=>this.querySelector('.det-v').style.color='',800)" style="cursor:pointer" title="Kliknij aby skopiować"><div class="det-l"><span class=material-symbols-outlined>content_copy</span> ASIN</div><div class="det-v" style="font-size:0.75rem;user-select:all">{asin_display}</div></div>
+                <div class="det"><div class="det-l"><span class=material-symbols-outlined>inventory</span> Ilość</div><div class="det-v"><span class="badge {badge}">{p['ilosc']} szt</span></div></div>
+                <div class="det"><div class="det-l"><span class=material-symbols-outlined>grade</span> Stan</div><div class="det-v">{p['stan'] or 'Nowy'}</div></div>
+                <div class="det"><div class="det-l"><span class=material-symbols-outlined>stars</span> Klasa</div><div class="det-v">{_klasa_display}</div></div>
+                <div class="det"><div class="det-l"><span class=material-symbols-outlined>payments</span> Koszt/szt brutto</div><div class="det-v">{_koszt_brutto_szt:.2f} zł</div></div>
+                <div class="det"><div class="det-l"><span class=material-symbols-outlined>payments</span> Koszt/szt netto</div><div class="det-v">{_koszt_brutto_szt / 1.23:.2f} zł</div></div>
+                <div class="det"><div class="det-l"><span class=material-symbols-outlined>storefront</span> Cena Allegro</div><div class="det-v green">{p['cena_allegro'] or 0:.2f} zł</div></div>
+                <div class="det"><div class="det-l"><span class=material-symbols-outlined>percent</span> Prowizja ({int(_prowizja_rate*100)}%)</div><div class="det-v" style="color:#f59e0b">{_prowizja_kwota:.2f} zł</div></div>
+                <div class="det" style="border:1px solid {_zysk_color}33"><div class="det-l"><span class=material-symbols-outlined style=color:{_zysk_color}>diamond</span> Zysk/szt</div><div class="det-v" style="color:{_zysk_color};font-weight:700;font-size:1.1rem">{_zysk_szt:.2f} zł</div></div>
             </div>
         </div>
 
@@ -1269,24 +1269,24 @@ def produkt(code):
         <div style="padding:15px">
             <!-- GŁÓWNE AKCJE — 2 kolumny -->
             <div class="act-grid act-grid-2">
-                <a href="/magazyn/produkt/{product_code}/edytuj" class="act-btn" style="background:rgba(245,158,11,0.10);border-color:rgba(245,158,11,0.25);color:#f59e0b"><span class="material-symbols-outlined">edit</span> Edytuj</a>
-                <button onclick="pokazOcenStan({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']}, '{(p.get('stan_przyjecia','') or '').replace(chr(39), '')}')" class="act-btn" style="background:rgba(143,245,255,0.10);border-color:rgba(143,245,255,0.25);color:#8ff5ff"><span class="material-symbols-outlined">star</span> Oceń stan</button>
+                <a href="/magazyn/produkt/{product_code}/edytuj" class="act-btn" style="background:rgba(245,158,11,0.10);border-color:rgba(245,158,11,0.25);color:#f59e0b"><span class=material-symbols-outlined>edit</span> Edytuj</a>
+                <button onclick="pokazOcenStan({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']}, '{(p.get('stan_przyjecia','') or '').replace(chr(39), '')}')" class="act-btn" style="background:rgba(143,245,255,0.10);border-color:rgba(143,245,255,0.25);color:#8ff5ff"><span class=material-symbols-outlined>star</span> Oceń stan</button>
             </div>
             <!-- NARZĘDZIA — kompaktowy grid 4 kolumny -->
             <div class="act-grid act-grid-4">
-                <a href="/magazyn/drukuj/{product_code}" class="act-btn-sm" style="background:rgba(255,107,155,0.06);border-color:rgba(255,107,155,0.15);color:#ff6b9b"><span class="material-symbols-outlined">print</span>Drukuj</a>
-                <a href="/magazyn/etykiety/niimbot/png/{p['id']}" class="act-btn-sm" style="background:rgba(143,245,255,0.06);border-color:rgba(143,245,255,0.15);color:#8ff5ff"><span class="material-symbols-outlined">image</span>PNG</a>
-                <a href="/magazyn/produkt/{product_code}/opis" class="act-btn-sm" style="background:rgba(255,107,155,0.06);border-color:rgba(255,107,155,0.15);color:#ff6b9b"><span class="material-symbols-outlined">auto_awesome</span>Opis AI</a>
-                <button onclick="rescrapZdjecia({p['id']}, this)" class="act-btn-sm" style="background:rgba(143,245,255,0.06);border-color:rgba(143,245,255,0.15);color:#8ff5ff"><span class="material-symbols-outlined">photo_camera</span>Zdjęcia</button>
+                <a href="/magazyn/drukuj/{product_code}" class="act-btn-sm" style="background:rgba(255,107,155,0.06);border-color:rgba(255,107,155,0.15);color:#ff6b9b"><span class=material-symbols-outlined>print</span>Drukuj</a>
+                <a href="/magazyn/etykiety/niimbot/png/{p['id']}" class="act-btn-sm" style="background:rgba(143,245,255,0.06);border-color:rgba(143,245,255,0.15);color:#8ff5ff"><span class=material-symbols-outlined>image</span>PNG</a>
+                <a href="/magazyn/produkt/{product_code}/opis" class="act-btn-sm" style="background:rgba(255,107,155,0.06);border-color:rgba(255,107,155,0.15);color:#ff6b9b"><span class=material-symbols-outlined>auto_awesome</span>Opis AI</a>
+                <button onclick="rescrapZdjecia({p['id']}, this)" class="act-btn-sm" style="background:rgba(143,245,255,0.06);border-color:rgba(143,245,255,0.15);color:#8ff5ff"><span class=material-symbols-outlined>photo_camera</span>Zdjęcia</button>
             </div>
             <!-- ZAAWANSOWANE — collapsible -->
             <details style="margin-bottom:4px">
-                <summary style="padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;color:#64748b;font-size:0.75rem;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;transition:all 0.2s;font-family:'Space Grotesk',sans-serif"><span class="material-symbols-outlined" style="font-size:1rem">settings</span> Więcej akcji <span class="material-symbols-outlined" style="margin-left:auto;font-size:0.9rem">expand_more</span></summary>
+                <summary style="padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;color:#64748b;font-size:0.75rem;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;transition:all 0.2s;font-family:'Space Grotesk',sans-serif"><span class=material-symbols-outlined style=font-size:1rem>settings</span> Więcej akcji <span class=material-symbols-outlined style=margin-left:auto;font-size:0.9rem>expand_more</span></summary>
                 <div class="act-grid act-grid-3" style="padding:8px 0 0">
-                    <button onclick="pokazGPSR()" class="act-btn-sm" style="background:rgba(5,150,105,0.06);border-color:rgba(5,150,105,0.15);color:#059669"><span class="material-symbols-outlined">shield</span>GPSR</button>
-                    <button onclick="pokazRozbijProdukt({p['id']}, {p['ilosc']}, '{p['nazwa'][:40].replace(chr(39), '')}')" class="act-btn-sm" style="background:rgba(190,238,0,0.06);border-color:rgba(190,238,0,0.15);color:#beee00"><span class="material-symbols-outlined">call_split</span>Rozbij</button>
-                    <button onclick="pokazNaprawaProdukt({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="act-btn-sm" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.15);color:#f59e0b"><span class="material-symbols-outlined">build</span>Naprawa</button>
-                    <button onclick="wyslijDoSerwisu({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="act-btn-sm" style="background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.15);color:#ef4444"><span class="material-symbols-outlined">handyman</span>Serwis</button>
+                    <button onclick="pokazGPSR()" class="act-btn-sm" style="background:rgba(5,150,105,0.06);border-color:rgba(5,150,105,0.15);color:#059669"><span class=material-symbols-outlined>shield</span>GPSR</button>
+                    <button onclick="pokazRozbijProdukt({p['id']}, {p['ilosc']}, '{p['nazwa'][:40].replace(chr(39), '')}')" class="act-btn-sm" style="background:rgba(190,238,0,0.06);border-color:rgba(190,238,0,0.15);color:#beee00"><span class=material-symbols-outlined>call_split</span>Rozbij</button>
+                    <button onclick="pokazNaprawaProdukt({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="act-btn-sm" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.15);color:#f59e0b"><span class=material-symbols-outlined>build</span>Naprawa</button>
+                    <button onclick="wyslijDoSerwisu({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="act-btn-sm" style="background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.15);color:#ef4444"><span class=material-symbols-outlined>handyman</span>Serwis</button>
                 </div>
             </details>
         </div>
@@ -1294,9 +1294,9 @@ def produkt(code):
         <!-- SZTUKI SECTION -->
         <div id="sztukiSekcja" style="margin:0 15px 15px;display:none">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-                <div style="font-weight:700;font-size:1rem;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="color:#8ff5ff;font-size:1.2rem">inventory_2</span> Ewidencja sztuk</div>
+                <div style="font-weight:700;font-size:1rem;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px"><span class=material-symbols-outlined style=color:#8ff5ff;font-size:1.2rem>inventory_2</span> Ewidencja sztuk</div>
                 <button onclick="pokazRozbijProdukt({p['id']}, {p['ilosc']}, '{p['nazwa'][:40].replace(chr(39), '')}')"
-                    style="padding:5px 12px;background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.25);border-radius:8px;color:#beee00;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:0.9rem">call_split</span> Zmień rozbicie</button>
+                    style="padding:5px 12px;background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.25);border-radius:8px;color:#beee00;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;gap:4px"><span class=material-symbols-outlined style=font-size:0.9rem>call_split</span> Zmień rozbicie</button>
             </div>
             <div id="sztukiKarty"></div>
         </div>
@@ -1305,12 +1305,12 @@ def produkt(code):
         <div id="gpsrModal" class="cyber-modal">
             <div class="cyber-modal-inner" style="max-width:600px">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-                    <div class="cyber-modal-title" style="color:#059669"><span class="material-symbols-outlined">shield</span> GPSR - Bezpieczeństwo</div>
+                    <div class="cyber-modal-title" style="color:#059669"><span class=material-symbols-outlined>shield</span> GPSR - Bezpieczeństwo</div>
                     <button onclick="document.getElementById('gpsrModal').style.display='none'" class="cyber-modal-close">&times;</button>
                 </div>
                 <div id="gpsrContent" style="background:rgba(10,10,22,0.6);padding:15px;border-radius:10px;white-space:pre-wrap;font-family:monospace;font-size:13px;max-height:400px;overflow:auto;border:1px solid rgba(255,255,255,0.05)"></div>
                 <div style="margin-top:15px;display:flex;gap:10px">
-                    <button onclick="kopiujGPSR()" style="flex:1;padding:12px;background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.25);border-radius:10px;color:#beee00;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Space Grotesk',sans-serif"><span class="material-symbols-outlined" style="font-size:1rem">content_copy</span> KOPIUJ</button>
+                    <button onclick="kopiujGPSR()" style="flex:1;padding:12px;background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.25);border-radius:10px;color:#beee00;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Space Grotesk',sans-serif"><span class=material-symbols-outlined style=font-size:1rem>content_copy</span> KOPIUJ</button>
                     <button onclick="document.getElementById('gpsrModal').style.display='none'" style="flex:1;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#64748b;cursor:pointer;font-family:'Space Grotesk',sans-serif">Zamknij</button>
                 </div>
             </div>
@@ -1442,13 +1442,13 @@ def produkt(code):
                         `<option value="${{v}}" ${{v===s.status?'selected':''}}>${{(statusIcons[v]||'')+' '+v}}</option>`).join('')}}
                 </select>
                 <div style="flex:1"></div>
-                ${{!zdjecieSrc && wymaga_foto ? `<label for="foto_${{s.id}}" style="cursor:pointer;color:#f59e0b" title="Dodaj zdjęcie stanu"><span class="material-symbols-outlined" style="font-size:1.1rem">photo_camera</span></label><input type="file" id="foto_${{s.id}}" accept="image/*" capture="environment" style="display:none" onchange="uploadZdjecie(${{s.id}}, this)">` : ''}}
-                <button onclick="toggleNotatka(${{s.id}})" style="background:none;border:none;color:${{hasNote?'#8ff5ff':'#334155'}};cursor:pointer;padding:2px" title="${{hasNote ? s.opis_naprawy.substring(0,50) : 'Dodaj notatkę'}}"><span class="material-symbols-outlined" style="font-size:1.1rem">edit_note</span></button>
+                ${{!zdjecieSrc && wymaga_foto ? `<label for="foto_${{s.id}}" style="cursor:pointer;color:#f59e0b" title="Dodaj zdjęcie stanu"><span class=material-symbols-outlined style=font-size:1.1rem>photo_camera</span></label><input type="file" id="foto_${{s.id}}" accept="image/*" capture="environment" style="display:none" onchange="uploadZdjecie(${{s.id}}, this)">` : ''}}
+                <button onclick="toggleNotatka(${{s.id}})" style="background:none;border:none;color:${{hasNote?'#8ff5ff':'#334155'}};cursor:pointer;padding:2px" title="${{hasNote ? s.opis_naprawy.substring(0,50) : 'Dodaj notatkę'}}"><span class=material-symbols-outlined style=font-size:1.1rem>edit_note</span></button>
             </div>
             <div id="notatka_wrap_${{s.id}}" style="display:none;padding:4px 10px 8px 38px">
                 <div style="display:flex;gap:6px;align-items:center">
                     <input id="notatka_${{s.id}}" value="${{(s.opis_naprawy||'').replace(/"/g,'&quot;')}}" placeholder="Notatka..." style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#e2e8f0;padding:5px 8px;font-size:0.75rem">
-                    <button onclick="zapiszNotatke(${{s.id}})" style="background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.2);border-radius:6px;color:#8ff5ff;padding:4px 10px;font-size:0.7rem;cursor:pointer"><span class="material-symbols-outlined" style="font-size:0.9rem">save</span></button>
+                    <button onclick="zapiszNotatke(${{s.id}})" style="background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.2);border-radius:6px;color:#8ff5ff;padding:4px 10px;font-size:0.7rem;cursor:pointer"><span class=material-symbols-outlined style=font-size:0.9rem>save</span></button>
                 </div>
             </div>`;
         }}
@@ -1536,7 +1536,7 @@ def produkt(code):
     <!-- MODAL ROZBIJ -->
     <div id="modalRozbijProd" class="cyber-modal">
       <div class="cyber-modal-inner">
-        <div class="cyber-modal-title" style="color:#beee00"><span class="material-symbols-outlined">call_split</span> Rozbij stan na sztuki</div>
+        <div class="cyber-modal-title" style="color:#beee00"><span class=material-symbols-outlined>call_split</span> Rozbij stan na sztuki</div>
         <div id="rozbijProdNazwa" style="color:#94a3b8;font-size:0.85rem;margin-bottom:15px"></div>
         <div style="background:rgba(10,10,22,0.6);border:1px solid rgba(143,245,255,0.08);border-radius:10px;padding:12px;margin-bottom:15px">
           <div style="display:flex;justify-content:space-between;margin-bottom:4px">
@@ -1556,7 +1556,7 @@ def produkt(code):
         </div>
         <div style="display:flex;gap:8px">
           <button onclick="document.getElementById('modalRozbijProd').style.display='none'" style="flex:1;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#fff;cursor:pointer;font-family:'Space Grotesk',sans-serif">Anuluj</button>
-          <button onclick="zapiszRozbijProd()" style="flex:1;padding:12px;background:rgba(190,238,0,0.15);border:1px solid rgba(190,238,0,0.3);border-radius:10px;color:#beee00;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px"><span class="material-symbols-outlined" style="font-size:1rem">check</span> Zapisz</button>
+          <button onclick="zapiszRozbijProd()" style="flex:1;padding:12px;background:rgba(190,238,0,0.15);border:1px solid rgba(190,238,0,0.3);border-radius:10px;color:#beee00;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px"><span class=material-symbols-outlined style=font-size:1rem>check</span> Zapisz</button>
         </div>
       </div>
     </div>
@@ -1565,7 +1565,7 @@ def produkt(code):
     <div id="modalNaprawaProd" class="cyber-modal">
       <div class="cyber-modal-inner">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <div class="cyber-modal-title" style="color:#f59e0b"><span class="material-symbols-outlined">build</span> Do naprawy</div>
+          <div class="cyber-modal-title" style="color:#f59e0b"><span class=material-symbols-outlined>build</span> Do naprawy</div>
           <button onclick="document.getElementById('modalNaprawaProd').style.display='none'" class="cyber-modal-close">&times;</button>
         </div>
         <div id="naprawaProdNazwa" style="color:#94a3b8;font-size:0.85rem;margin-bottom:15px"></div>
@@ -1578,7 +1578,7 @@ def produkt(code):
     <div id="modalOcenStan" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);align-items:center;justify-content:center">
       <div class="cyber-modal-inner" style="width:90%;position:relative;top:20%;margin:auto">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <div class="cyber-modal-title" style="color:#8ff5ff"><span class="material-symbols-outlined">star</span> Oceń stan</div>
+          <div class="cyber-modal-title" style="color:#8ff5ff"><span class=material-symbols-outlined>star</span> Oceń stan</div>
           <button onclick="document.getElementById('modalOcenStan').style.display='none'" class="cyber-modal-close">&times;</button>
         </div>
         <div id="ocenStanNazwa" style="color:#94a3b8;font-size:0.85rem;margin-bottom:6px"></div>
@@ -1591,8 +1591,8 @@ def produkt(code):
         </div>
         <textarea id="ocenStanNotatki" placeholder="Notatki (opcjonalne)..." style="width:100%;padding:10px;background:rgba(10,10,22,0.6);border:1px solid rgba(143,245,255,0.10);border-radius:10px;color:#e2e8f0;font-size:0.85rem;resize:vertical;min-height:50px;margin-bottom:12px;font-family:'Space Grotesk',sans-serif"></textarea>
         <div style="display:flex;gap:8px">
-          <button id="ocenStanSaveBtn" onclick="zapiszOceneStan()" style="flex:1;padding:12px;background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);border-radius:10px;color:#beee00;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px"><span class="material-symbols-outlined" style="font-size:1rem">save</span> Zapisz ocenę</button>
-          <button onclick="toggleSplitMode()" id="ocenSplitToggle" style="padding:12px 16px;background:rgba(255,107,155,0.12);border:1px solid rgba(255,107,155,0.3);border-radius:10px;color:#ff6b9b;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:'Space Grotesk',sans-serif"><span class="material-symbols-outlined" style="font-size:1rem">call_split</span> Split</button>
+          <button id="ocenStanSaveBtn" onclick="zapiszOceneStan()" style="flex:1;padding:12px;background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);border-radius:10px;color:#beee00;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px"><span class=material-symbols-outlined style=font-size:1rem>save</span> Zapisz ocenę</button>
+          <button onclick="toggleSplitMode()" id="ocenSplitToggle" style="padding:12px 16px;background:rgba(255,107,155,0.12);border:1px solid rgba(255,107,155,0.3);border-radius:10px;color:#ff6b9b;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:'Space Grotesk',sans-serif"><span class=material-symbols-outlined style=font-size:1rem>call_split</span> Split</button>
         </div>
       </div>
     </div>
@@ -1627,7 +1627,7 @@ def produkt(code):
         const btns=document.getElementById('ocenStanBtns');
         btns.innerHTML='';
         if (ilosc > 1) {{
-            btns.insertAdjacentHTML('beforebegin', '<div id="ocenStanHint" style="font-size:0.72rem;color:#f59e0b;margin-bottom:6px"><span class="material-symbols-outlined">lightbulb</span> Masz '+ilosc+' szt — użyj Split żeby ocenić różne sztuki różnie</div>');
+            btns.insertAdjacentHTML('beforebegin', '<div id="ocenStanHint" style="font-size:0.72rem;color:#f59e0b;margin-bottom:6px"><span class=material-symbols-outlined>lightbulb</span> Masz '+ilosc+' szt — użyj Split żeby ocenić różne sztuki różnie</div>');
         }}
         STANY.forEach(s=>{{
             const b=document.createElement('button');
@@ -2043,52 +2043,52 @@ def edytuj_produkt(code):
                     <option value="ev_ladowarki" {"selected" if p.get('kategoria')=='ev_ladowarki' else ''}><span class=material-symbols-outlined style=font-size:1rem>bolt</span> Ładowarki EV</option>
                     <option value="foto_video" {"selected" if p.get('kategoria')=='foto_video' else ''}><span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> Foto/Video</option>
                     <option value="druk3d" {"selected" if p.get('kategoria')=='druk3d' else ''}><span class=material-symbols-outlined style=font-size:1rem>print</span> Druk 3D</option>
-                    <option value="smart_home" {"selected" if p.get('kategoria')=='smart_home' else ''}><span class="material-symbols-outlined">videocam</span> Smart Home</option>
-                    <option value="motoryzacja" {"selected" if p.get('kategoria')=='motoryzacja' else ''}><span class="material-symbols-outlined">directions_car</span> Motoryzacja</option>
-                    <option value="optyka" {"selected" if p.get('kategoria')=='optyka' else ''}><span class="material-symbols-outlined">explore</span> Optyka</option>
-                    <option value="rolnictwo" {"selected" if p.get('kategoria')=='rolnictwo' else''}><span class="material-symbols-outlined">agriculture</span> Rolnictwo</option>
-                    <option value="dekoracje" {"selected" if p.get('kategoria')=='dekoracje' else ''}><span class="material-symbols-outlined">park</span> Dekoracje</option>
-                    <option value="oswietlenie" {"selected" if p.get('kategoria')=='oswietlenie' else ''}><span class="material-symbols-outlined">lightbulb</span> Oświetlenie</option>
-                    <option value="kuchnia" {"selected" if p.get('kategoria')=='kuchnia' else ''}><span class="material-symbols-outlined">restaurant</span> Kuchnia</option>
-                    <option value="budowa" {"selected" if p.get('kategoria')=='budowa' else ''}><span class="material-symbols-outlined">handyman</span> Budowa</option>
-                    <option value="biuro" {"selected" if p.get('kategoria')=='biuro' else ''}><span class="material-symbols-outlined">work</span> Biuro</option>
-                    <option value="outdoor" {"selected" if p.get('kategoria')=='outdoor' else ''}><span class="material-symbols-outlined">hiking</span> Outdoor</option>
-                    <option value="rehabilitacja" {"selected" if p.get('kategoria')=='rehabilitacja' else ''}><span class="material-symbols-outlined">accessible</span> Rehabilitacja</option>
-                    <option value="tekstylia" {"selected" if p.get('kategoria')=='tekstylia' else ''}><span class="material-symbols-outlined">bed</span> Tekstylia</option>
-                    <option value="kosmetyki" {"selected" if p.get('kategoria')=='kosmetyki' else ''}><span class="material-symbols-outlined">sanitizer</span> Kosmetyki</option>
-                    <option value="ksiazki" {"selected" if p.get('kategoria')=='ksiazki' else ''}><span class="material-symbols-outlined">menu_book</span> Książki</option>
-                    <option value="prezenty" {"selected" if p.get('kategoria')=='prezenty' else ''}><span class="material-symbols-outlined">redeem</span> Prezenty</option>
-                    <option value="bezpieczenstwo" {"selected" if p.get('kategoria')=='bezpieczenstwo' else ''}><span class="material-symbols-outlined">lock</span> Bezpieczeństwo</option>
-                    <option value="bagaz" {"selected" if p.get('kategoria')=='bagaz' else ''}><span class="material-symbols-outlined">luggage</span> Bagaż</option>
-                    <option value="silownia" {"selected" if p.get('kategoria')=='silownia' else ''}><span class="material-symbols-outlined">fitness_center</span> Siłownia</option>
-                    <option value="rowery" {"selected" if p.get('kategoria')=='rowery' else ''}><span class="material-symbols-outlined">directions_bike</span> Rowery</option>
-                    <option value="hulajnogi" {"selected" if p.get('kategoria')=='hulajnogi' else ''}><span class="material-symbols-outlined">electric_scooter</span> Hulajnogi</option>
+                    <option value="smart_home" {"selected" if p.get('kategoria')=='smart_home' else ''}><span class=material-symbols-outlined>videocam</span> Smart Home</option>
+                    <option value="motoryzacja" {"selected" if p.get('kategoria')=='motoryzacja' else ''}><span class=material-symbols-outlined>directions_car</span> Motoryzacja</option>
+                    <option value="optyka" {"selected" if p.get('kategoria')=='optyka' else ''}><span class=material-symbols-outlined>explore</span> Optyka</option>
+                    <option value="rolnictwo" {"selected" if p.get('kategoria')=='rolnictwo' else''}><span class=material-symbols-outlined>agriculture</span> Rolnictwo</option>
+                    <option value="dekoracje" {"selected" if p.get('kategoria')=='dekoracje' else ''}><span class=material-symbols-outlined>park</span> Dekoracje</option>
+                    <option value="oswietlenie" {"selected" if p.get('kategoria')=='oswietlenie' else ''}><span class=material-symbols-outlined>lightbulb</span> Oświetlenie</option>
+                    <option value="kuchnia" {"selected" if p.get('kategoria')=='kuchnia' else ''}><span class=material-symbols-outlined>restaurant</span> Kuchnia</option>
+                    <option value="budowa" {"selected" if p.get('kategoria')=='budowa' else ''}><span class=material-symbols-outlined>handyman</span> Budowa</option>
+                    <option value="biuro" {"selected" if p.get('kategoria')=='biuro' else ''}><span class=material-symbols-outlined>work</span> Biuro</option>
+                    <option value="outdoor" {"selected" if p.get('kategoria')=='outdoor' else ''}><span class=material-symbols-outlined>hiking</span> Outdoor</option>
+                    <option value="rehabilitacja" {"selected" if p.get('kategoria')=='rehabilitacja' else ''}><span class=material-symbols-outlined>accessible</span> Rehabilitacja</option>
+                    <option value="tekstylia" {"selected" if p.get('kategoria')=='tekstylia' else ''}><span class=material-symbols-outlined>bed</span> Tekstylia</option>
+                    <option value="kosmetyki" {"selected" if p.get('kategoria')=='kosmetyki' else ''}><span class=material-symbols-outlined>sanitizer</span> Kosmetyki</option>
+                    <option value="ksiazki" {"selected" if p.get('kategoria')=='ksiazki' else ''}><span class=material-symbols-outlined>menu_book</span> Książki</option>
+                    <option value="prezenty" {"selected" if p.get('kategoria')=='prezenty' else ''}><span class=material-symbols-outlined>redeem</span> Prezenty</option>
+                    <option value="bezpieczenstwo" {"selected" if p.get('kategoria')=='bezpieczenstwo' else ''}><span class=material-symbols-outlined>lock</span> Bezpieczeństwo</option>
+                    <option value="bagaz" {"selected" if p.get('kategoria')=='bagaz' else ''}><span class=material-symbols-outlined>luggage</span> Bagaż</option>
+                    <option value="silownia" {"selected" if p.get('kategoria')=='silownia' else ''}><span class=material-symbols-outlined>fitness_center</span> Siłownia</option>
+                    <option value="rowery" {"selected" if p.get('kategoria')=='rowery' else ''}><span class=material-symbols-outlined>directions_bike</span> Rowery</option>
+                    <option value="hulajnogi" {"selected" if p.get('kategoria')=='hulajnogi' else ''}><span class=material-symbols-outlined>electric_scooter</span> Hulajnogi</option>
                     <option value="elektronika" {"selected" if p.get('kategoria')=='elektronika' else ''}><span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> Elektronika</option>
-                    <option value="akcesoria" {"selected" if p.get('kategoria')=='akcesoria' else ''}><span class="material-symbols-outlined">battery_full</span> Akcesoria</option>
-                    <option value="agd_male" {"selected" if p.get('kategoria')=='agd_male' else ''}><span class="material-symbols-outlined">power</span> AGD małe</option>
-                    <option value="agd_duze" {"selected" if p.get('kategoria')=='agd_duze' else ''}><span class="material-symbols-outlined">home</span> AGD duże</option>
-                    <option value="komputery" {"selected" if p.get('kategoria')=='komputery' else ''}><span class="material-symbols-outlined">computer</span> Komputery</option>
+                    <option value="akcesoria" {"selected" if p.get('kategoria')=='akcesoria' else ''}><span class=material-symbols-outlined>battery_full</span> Akcesoria</option>
+                    <option value="agd_male" {"selected" if p.get('kategoria')=='agd_male' else ''}><span class=material-symbols-outlined>power</span> AGD małe</option>
+                    <option value="agd_duze" {"selected" if p.get('kategoria')=='agd_duze' else ''}><span class=material-symbols-outlined>home</span> AGD duże</option>
+                    <option value="komputery" {"selected" if p.get('kategoria')=='komputery' else ''}><span class=material-symbols-outlined>computer</span> Komputery</option>
                     <option value="telefony" {"selected" if p.get('kategoria')=='telefony' else ''}><span class=material-symbols-outlined style=font-size:1rem>smartphone</span> Telefony</option>
-                    <option value="rtv" {"selected" if p.get('kategoria')=='rtv' else ''}><span class="material-symbols-outlined">tv</span> RTV/Audio</option>
-                    <option value="gaming" {"selected" if p.get('kategoria')=='gaming' else ''}><span class="material-symbols-outlined">sports_esports</span> Gaming</option>
+                    <option value="rtv" {"selected" if p.get('kategoria')=='rtv' else ''}><span class=material-symbols-outlined>tv</span> RTV/Audio</option>
+                    <option value="gaming" {"selected" if p.get('kategoria')=='gaming' else ''}><span class=material-symbols-outlined>sports_esports</span> Gaming</option>
                     <option value="narzedzia" {"selected" if p.get('kategoria')=='narzedzia' else ''}><span class=material-symbols-outlined style=font-size:1rem>build</span> Narzędzia</option>
-                    <option value="dom_ogrod" {"selected" if p.get('kategoria')=='dom_ogrod' else ''}><span class="material-symbols-outlined">cottage</span> Dom/Ogród</option>
+                    <option value="dom_ogrod" {"selected" if p.get('kategoria')=='dom_ogrod' else ''}><span class=material-symbols-outlined>cottage</span> Dom/Ogród</option>
                     <option value="sport" {"selected" if p.get('kategoria')=='sport' else ''}>⚽ Sport</option>
-                    <option value="moda" {"selected" if p.get('kategoria')=='moda' else ''}><span class="material-symbols-outlined">checkroom</span> Moda</option>
-                    <option value="zabawki" {"selected" if p.get('kategoria')=='zabawki' else ''}><span class="material-symbols-outlined">toys</span> Zabawki</option>
-                    <option value="zdrowie" {"selected" if p.get('kategoria')=='zdrowie' else ''}><span class="material-symbols-outlined">medication</span> Zdrowie</option>
-                    <option value="zwierzeta" {"selected" if p.get('kategoria')=='zwierzeta' else ''}><span class="material-symbols-outlined">pets</span> Zwierzęta</option>
-                    <option value="muzyka" {"selected" if p.get('kategoria')=='muzyka' else ''}><span class="material-symbols-outlined">music_note</span> Muzyka</option>
-                    <option value="elektronarzedzia" {"selected" if p.get('kategoria')=='elektronarzedzia' else ''}><span class="material-symbols-outlined">handyman</span> Elektronarzędzia</option>
-                    <option value="hobby" {"selected" if p.get('kategoria')=='hobby' else ''}><span class="material-symbols-outlined">palette</span> Hobby</option>
-                    <option value="niemowleta" {"selected" if p.get('kategoria')=='niemowleta' else ''}><span class="material-symbols-outlined">child_care</span> Niemowlęta</option>
-                    <option value="car_audio" {"selected" if p.get('kategoria')=='car_audio' else ''}><span class="material-symbols-outlined">volume_up</span> Car Audio</option>
-                    <option value="klimatyzacja" {"selected" if p.get('kategoria')=='klimatyzacja' else ''}><span class="material-symbols-outlined">thermostat</span> Klimatyzacja</option>
+                    <option value="moda" {"selected" if p.get('kategoria')=='moda' else ''}><span class=material-symbols-outlined>checkroom</span> Moda</option>
+                    <option value="zabawki" {"selected" if p.get('kategoria')=='zabawki' else ''}><span class=material-symbols-outlined>toys</span> Zabawki</option>
+                    <option value="zdrowie" {"selected" if p.get('kategoria')=='zdrowie' else ''}><span class=material-symbols-outlined>medication</span> Zdrowie</option>
+                    <option value="zwierzeta" {"selected" if p.get('kategoria')=='zwierzeta' else ''}><span class=material-symbols-outlined>pets</span> Zwierzęta</option>
+                    <option value="muzyka" {"selected" if p.get('kategoria')=='muzyka' else ''}><span class=material-symbols-outlined>music_note</span> Muzyka</option>
+                    <option value="elektronarzedzia" {"selected" if p.get('kategoria')=='elektronarzedzia' else ''}><span class=material-symbols-outlined>handyman</span> Elektronarzędzia</option>
+                    <option value="hobby" {"selected" if p.get('kategoria')=='hobby' else ''}><span class=material-symbols-outlined>palette</span> Hobby</option>
+                    <option value="niemowleta" {"selected" if p.get('kategoria')=='niemowleta' else ''}><span class=material-symbols-outlined>child_care</span> Niemowlęta</option>
+                    <option value="car_audio" {"selected" if p.get('kategoria')=='car_audio' else ''}><span class=material-symbols-outlined>volume_up</span> Car Audio</option>
+                    <option value="klimatyzacja" {"selected" if p.get('kategoria')=='klimatyzacja' else ''}><span class=material-symbols-outlined>thermostat</span> Klimatyzacja</option>
                     <option value="hydroponika" {"selected" if p.get('kategoria')=='hydroponika' else ''}>🪴 Hydroponika</option>
-                    <option value="wedkarstwo" {"selected" if p.get('kategoria')=='wedkarstwo' else ''}><span class="material-symbols-outlined">phishing</span> Wędkarstwo</option>
-                    <option value="laboratorium" {"selected" if p.get('kategoria')=='laboratorium' else ''}><span class="material-symbols-outlined">biotech</span> Laboratorium</option>
-                    <option value="event" {"selected" if p.get('kategoria')=='event' else ''}><span class="material-symbols-outlined">storefront</span> Event</option>
-                    <option value="cb_radio" {"selected" if p.get('kategoria')=='cb_radio' else ''}><span class="material-symbols-outlined">satellite_alt</span> CB/Radio</option>
+                    <option value="wedkarstwo" {"selected" if p.get('kategoria')=='wedkarstwo' else ''}><span class=material-symbols-outlined>phishing</span> Wędkarstwo</option>
+                    <option value="laboratorium" {"selected" if p.get('kategoria')=='laboratorium' else ''}><span class=material-symbols-outlined>biotech</span> Laboratorium</option>
+                    <option value="event" {"selected" if p.get('kategoria')=='event' else ''}><span class=material-symbols-outlined>storefront</span> Event</option>
+                    <option value="cb_radio" {"selected" if p.get('kategoria')=='cb_radio' else ''}><span class=material-symbols-outlined>satellite_alt</span> CB/Radio</option>
                     <option value="inne" {"selected" if p.get('kategoria')=='inne' or not p.get('kategoria') else ''}><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Inne</option>
                 </select>
             </div>
@@ -2332,7 +2332,7 @@ def szukaj():
     if not results:
         html += '<div class="alert alert-warn">Brak wyników</div>'
         if is_code(q):
-            html += f'<a href="/magazyn/produkt/{q}" class="btn btn-ok"><span class="material-symbols-outlined">add</span> DODAJ NOWY</a>'
+            html += f'<a href="/magazyn/produkt/{q}" class="btn btn-ok"><span class=material-symbols-outlined>add</span> DODAJ NOWY</a>'
     
     html += '<a href="/magazyn" class="back">← Powrót</a>'
     return render(html)
@@ -2379,7 +2379,7 @@ def backup_page():
                     <input type="file" id="backupFile" name="backup_file" accept=".db" style="display:none" onchange="updateFileName()">
                     <div onclick="document.getElementById('backupFile').click()" 
                          style="padding:12px 15px;background:#0a0a0f;border:1px dashed #f97316;border-radius:8px;cursor:pointer;text-align:center;color:#94a3b8">
-                        <span id="fileNameDisplay"><span class="material-symbols-outlined">folder</span> Kliknij aby wybrać plik .db</span>
+                        <span id="fileNameDisplay"><span class=material-symbols-outlined>folder</span> Kliknij aby wybrać plik .db</span>
                     </div>
                 </div>
                 <button type="submit" class="btn" style="background:#f97316;padding:12px 20px" id="uploadBtn" disabled>
@@ -2439,11 +2439,11 @@ def backup_page():
         if (input.files.length > 0) {
             var file = input.files[0];
             var sizeMB = (file.size / 1024 / 1024).toFixed(2);
-            display.innerHTML = '<span class="material-symbols-outlined">folder</span> ' + file.name + ' (' + sizeMB + ' MB)';
+            display.innerHTML = '<span class=material-symbols-outlined>folder</span> ' + file.name + ' (' + sizeMB + ' MB)';
             display.style.color = '#f97316';
             btn.disabled = false;
         } else {
-            display.innerHTML = '<span class="material-symbols-outlined">folder</span> Kliknij aby wybrać plik .db';
+            display.innerHTML = '<span class=material-symbols-outlined>folder</span> Kliknij aby wybrać plik .db';
             display.style.color = '#94a3b8';
             btn.disabled = true;
         }
@@ -3132,13 +3132,13 @@ def statystyki():
     
     <!-- HISTOGRAM CZASU SPRZEDAŻY -->
     <div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #beee0044">
-        <div style="font-weight:700;margin-bottom:12px;color:#beee00"><span class="material-symbols-outlined">timer</span> Czas sprzedaży (od wystawienia)</div>
+        <div style="font-weight:700;margin-bottom:12px;color:#beee00"><span class=material-symbols-outlined>timer</span> Czas sprzedaży (od wystawienia)</div>
         {histogram_html}
     </div>
     
     <!-- Kalkulacja podatkowa -->
     <div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #ff6b9b44">
-        <div style="font-weight:700;margin-bottom:12px;color:#a78bfa"><span class="material-symbols-outlined">receipt_long</span> Rozliczenie podatkowe ({current_year})</div>
+        <div style="font-weight:700;margin-bottom:12px;color:#a78bfa"><span class=material-symbols-outlined>receipt_long</span> Rozliczenie podatkowe ({current_year})</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem">
             <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px">
                 <div style="color:#64748b;margin-bottom:4px">Przychód brutto</div>
@@ -3230,7 +3230,7 @@ def statystyki():
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
             <div>
-                <div style="font-size:0.75rem;color:#beee00;font-weight:600;margin-bottom:6px"><span class="material-symbols-outlined">emoji_events</span> Najlepsze</div>
+                <div style="font-size:0.75rem;color:#beee00;font-weight:600;margin-bottom:6px"><span class=material-symbols-outlined>emoji_events</span> Najlepsze</div>
                 {top_html}
             </div>
             <div>
@@ -3258,7 +3258,7 @@ def statystyki():
             <div id="chartTitle" style="font-weight:600"><span class=material-symbols-outlined style=font-size:1rem>calendar_month</span> Sprzedaż miesięcznie ({current_year})</div>
             <button id="btnBack" onclick="showMonthlyView()" style="display:none;padding:5px 10px;background:#8ff5ff;border:none;border-radius:5px;color:#fff;cursor:pointer">← Miesiące</button>
         </div>
-        <div style="font-size:0.75rem;color:#64748b;margin-bottom:10px"><span class="material-symbols-outlined">lightbulb</span> Kliknij na słupek miesiąca aby zobaczyć rozkład dzienny</div>
+        <div style="font-size:0.75rem;color:#64748b;margin-bottom:10px"><span class=material-symbols-outlined>lightbulb</span> Kliknij na słupek miesiąca aby zobaczyć rozkład dzienny</div>
         <div id="monthSummary" style="display:none"></div>
         <canvas id="chartMiesiace" height="200"></canvas>
     </div>
@@ -3278,7 +3278,7 @@ def statystyki():
     </div>
 
     <!-- Top produkty -->
-    <div class="section"><span class="material-symbols-outlined">emoji_events</span> TOP 5 PRODUKTÓW</div>
+    <div class="section"><span class=material-symbols-outlined>emoji_events</span> TOP 5 PRODUKTÓW</div>
     '''
     
     if top_produkty:
@@ -3727,7 +3727,7 @@ def palety():
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
         <div style="display:flex;align-items:center;gap:12px">
             <div style="padding:8px;background:rgba(143,245,255,0.1);border:1px solid rgba(143,245,255,0.2)">
-                <span class="material-symbols-outlined" style="font-size:28px;color:#8ff5ff">inventory_2</span>
+                <span class=material-symbols-outlined style=font-size:28px;color:#8ff5ff>inventory_2</span>
             </div>
             <div>
                 <h1 class="pl-headline" style="font-size:clamp(1.8rem,4vw,2.5rem);font-weight:700;letter-spacing:-0.03em;color:#8ff5ff;margin:0;text-shadow:0 0 10px rgba(143,245,255,0.4)">PALETY</h1>
@@ -3743,30 +3743,30 @@ def palety():
     <!-- Actions -->
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
         <button onclick="selectAll()" class="pl-action pl-action-cyan">
-            <span class="material-symbols-outlined" style="font-size:14px">select_all</span> Wszystkie
+            <span class=material-symbols-outlined style=font-size:14px>select_all</span> Wszystkie
         </button>
         <button onclick="selectNone()" class="pl-action" style="border-color:rgba(255,255,255,0.15)">
-            <span class="material-symbols-outlined" style="font-size:14px">deselect</span> Odznacz
+            <span class=material-symbols-outlined style=font-size:14px>deselect</span> Odznacz
         </button>
         <div style="flex:1"></div>
         <button onclick="massUpdate(1)" class="pl-action pl-action-green">
-            <span class="material-symbols-outlined" style="font-size:14px">task_alt</span> Dostarczone
+            <span class=material-symbols-outlined style=font-size:14px>task_alt</span> Dostarczone
         </button>
         <button onclick="massUpdate(0)" class="pl-action pl-action-amber">
-            <span class="material-symbols-outlined" style="font-size:14px">local_shipping</span> W drodze
+            <span class=material-symbols-outlined style=font-size:14px>local_shipping</span> W drodze
         </button>
         <button onclick="pokazBoxPaletyModal()" class="pl-action pl-action-cyan">
-            <span class="material-symbols-outlined" style="font-size:14px">inventory</span> Zgrupuj w box
+            <span class=material-symbols-outlined style=font-size:14px>inventory</span> Zgrupuj w box
         </button>
         <button onclick="massDelete()" class="pl-action pl-action-red">
-            <span class="material-symbols-outlined" style="font-size:14px">delete</span> Usuń
+            <span class=material-symbols-outlined style=font-size:14px>delete</span> Usuń
         </button>
         <span id="selectedCount" style="font-size:11px;color:rgba(255,255,255,0.4);margin-left:4px">(0)</span>
     </div>
 
     <!-- Search -->
     <div style="position:relative;margin-bottom:20px">
-        <span class="material-symbols-outlined" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#8ff5ff;font-size:18px">search</span>
+        <span class=material-symbols-outlined style=position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#8ff5ff;font-size:18px>search</span>
         <input type="text" id="paletaSearch" oninput="searchPalety()" placeholder="SZUKAJ PALETY LUB SKU..."
             style="width:100%;padding:14px 14px 14px 44px;background:rgba(38,37,40,0.8);border:none;border-bottom:1px solid rgba(143,245,255,0.15);color:#f9f5f8;font-size:12px;letter-spacing:0.15em;font-family:'Manrope',sans-serif;outline:none">
     </div>'''
@@ -3809,7 +3809,7 @@ def palety():
                         style="width:18px;height:18px;cursor:pointer;accent-color:#8ff5ff;flex-shrink:0;margin-top:4px">
                     <div style="min-width:0">
                         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-                            <span class="material-symbols-outlined" style="font-size:18px;color:rgba(255,255,255,0.5)">{icon}</span>
+                            <span class=material-symbols-outlined style=font-size:18px;color:rgba(255,255,255,0.5)>{icon}</span>
                             <h3 class="pl-headline item-name" style="font-size:1.05rem;font-weight:700;color:#f9f5f8;margin:0;line-height:1.2">{p['nazwa']}</h3>
                         </div>
                         <div style="display:flex;align-items:center;gap:6px">
@@ -3826,11 +3826,11 @@ def palety():
             <div style="display:flex;align-items:flex-end;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.05);padding-top:12px">
                 <div>
                     <div class="item-meta" style="display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">
-                        <span class="material-symbols-outlined" style="font-size:12px">list_alt</span>
+                        <span class=material-symbols-outlined style=font-size:12px>list_alt</span>
                         {p['cnt']} prod. | {sztuki} szt.
                     </div>
                     <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em">
-                        <span class="material-symbols-outlined" style="font-size:12px">event</span>
+                        <span class=material-symbols-outlined style=font-size:12px>event</span>
                         {dostawca_txt}{' &bull; ' + data_txt if data_txt else ''}
                     </div>
                 </div>
@@ -3847,7 +3847,7 @@ def palety():
             <div class="pl-bar-left" style="background:#ff716c;box-shadow:0 0 10px rgba(255,113,108,0.5)"></div>
             <div style="display:flex;align-items:center;justify-content:space-between">
                 <div style="display:flex;align-items:center;gap:10px">
-                    <span class="material-symbols-outlined" style="font-size:22px;color:#ff716c">warning</span>
+                    <span class=material-symbols-outlined style=font-size:22px;color:#ff716c>warning</span>
                     <div>
                         <div class="pl-headline item-name" style="font-size:1rem;font-weight:700;color:#ff716c">Bez palety</div>
                         <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em">{bez_palety['cnt']} prod. | {bez_palety['items']} szt.</div>
@@ -5099,7 +5099,7 @@ def import_page():
     
     # Generuj opcje palet
     palety_options = '<option value="">-- Bez palety (luźne produkty) --</option>'
-    palety_options += '<option value="__NEW__"><span class="material-symbols-outlined">add</span> Utwórz nową paletę...</option>'
+    palety_options += '<option value="__NEW__"><span class=material-symbols-outlined>add</span> Utwórz nową paletę...</option>'
     for p in palety:
         p_id, p_nazwa, p_dostawca, p_data = p
         label = f"{p_nazwa}" if p_nazwa else f"Paleta #{p_id}"
@@ -5156,7 +5156,7 @@ def import_page():
         
         <!-- WYBÓR PLIKU -->
         <div class="card" style="padding:30px;text-align:center;cursor:pointer" onclick="document.getElementById('file').click()">
-            <div style="font-size:3rem;margin-bottom:10px"><span class="material-symbols-outlined">folder</span></div>
+            <div style="font-size:3rem;margin-bottom:10px"><span class=material-symbols-outlined>folder</span></div>
             <div style="font-weight:600">Wybierz plik Excel</div>
             <div style="font-size:0.8rem;color:#64748b;margin-top:5px">.xlsx, .csv</div>
             <input type="file" id="file" name="file" style="display:none" accept=".xlsx,.csv" onchange="this.form.submit()">
@@ -5164,7 +5164,7 @@ def import_page():
     </form>
     
     <div class="card" style="padding:15px;margin-top:15px">
-        <div style="font-weight:600;color:#eab308;margin-bottom:10px"><span class="material-symbols-outlined">lightbulb</span> Obsługiwane formaty:</div>
+        <div style="font-weight:600;color:#eab308;margin-bottom:10px"><span class=material-symbols-outlined>lightbulb</span> Obsługiwane formaty:</div>
         <div style="font-size:0.85rem;color:#94a3b8">
             • <strong>Warrington</strong> - auto-detekcja kolumn<br>
             • <strong>Miglo</strong> - ASIN, nazwa, ilość<br>
@@ -5362,9 +5362,9 @@ def import_preview():
         if paleta_dostawca:
             detection_logs += f'<div style="color:#beee00;padding:4px 0"><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> [INFO] Dostawca: <strong>{paleta_dostawca}</strong></div>'
         if detected_ean_col_name:
-            detection_logs += f'<div style="color:#8ff5ff;padding:4px 0"><span class="material-symbols-outlined" style="color:#3b82f6">info</span> [INFO] Wykryto kolumnę EAN: "{detected_ean_col_name}"</div>'
+            detection_logs += f'<div style="color:#8ff5ff;padding:4px 0"><span class=material-symbols-outlined style=color:#3b82f6>info</span> [INFO] Wykryto kolumnę EAN: "{detected_ean_col_name}"</div>'
         if detected_asin_col_name and auto_asin != auto_ean:
-            detection_logs += f'<div style="color:#8ff5ff;padding:4px 0"><span class="material-symbols-outlined" style="color:#3b82f6">info</span> [INFO] Wykryto kolumnę ASIN: "{detected_asin_col_name}"</div>'
+            detection_logs += f'<div style="color:#8ff5ff;padding:4px 0"><span class=material-symbols-outlined style=color:#3b82f6>info</span> [INFO] Wykryto kolumnę ASIN: "{detected_asin_col_name}"</div>'
         
         # Generuj opcje select
         def make_options(selected):
@@ -5504,7 +5504,7 @@ def import_execute():
     
     <form action="/magazyn/import/final?col_ean={col_ean}&col_asin={col_asin}&col_nazwa={col_nazwa}&col_ilosc={col_ilosc}&col_cena={col_cena}&paleta_id={paleta_id}&dostawca={dostawca}" method="POST" enctype="multipart/form-data">
         <div class="card" style="padding:30px;text-align:center;cursor:pointer" onclick="document.getElementById('file2').click()">
-            <div style="font-size:3rem;margin-bottom:10px"><span class="material-symbols-outlined">folder</span></div>
+            <div style="font-size:3rem;margin-bottom:10px"><span class=material-symbols-outlined>folder</span></div>
             <div style="font-weight:600">Wybierz ten sam plik</div>
             <input type="file" id="file2" name="file" style="display:none" accept=".xlsx,.csv" onchange="this.form.submit()">
         </div>
@@ -6034,7 +6034,7 @@ def import_upload():
 def dodaj():
     """Przekierowanie do dodawania produktu"""
     html = '''
-    <div class="hdr"><h1><span class="material-symbols-outlined">add</span> DODAJ PRODUKT</h1></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined>add</span> DODAJ PRODUKT</h1></div>
     
     <div class="card" style="padding:15px">
         <form action="/magazyn/szukaj" method="GET">
@@ -6079,7 +6079,7 @@ def skanuj_kamera():
     <div id="notFound" class="alert alert-warn" style="display:none;margin-top:15px">
         <span class=material-symbols-outlined style=font-size:1rem>warning</span> Nie znaleziono produktu o tym kodzie
         <div style="margin-top:10px">
-            <a id="addNewLink" href="#" class="btn btn-p" style="display:inline-block;padding:10px 20px"><span class="material-symbols-outlined">add</span> DODAJ NOWY</a>
+            <a id="addNewLink" href="#" class="btn btn-p" style="display:inline-block;padding:10px 20px"><span class=material-symbols-outlined>add</span> DODAJ NOWY</a>
         </div>
     </div>
     
@@ -8420,7 +8420,7 @@ def koszty_page():
         ('allegro', '<span class=material-symbols-outlined style=font-size:1rem>shopping_cart</span> Prowizje Allegro'),
         ('wysylka', '<span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Wysyłka / InPost'),
         ('reklama', '📣 Reklama'),
-        ('magazyn', '<span class="material-symbols-outlined">factory</span> Magazyn / najem'),
+        ('magazyn', '<span class=material-symbols-outlined>factory</span> Magazyn / najem'),
         ('zakup', '<span class=material-symbols-outlined style=font-size:1rem>paid</span> Zakup towaru'),
         ('ksiegowosc', '<span class=material-symbols-outlined style=font-size:1rem>list_alt</span> Księgowość / ZUS'),
         ('inne', '<span class=material-symbols-outlined style=font-size:1rem>bolt</span> Inne'),
@@ -8448,7 +8448,7 @@ def koszty_page():
         koszty_html += f'''
         <div class="kz-list-item">
             <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:0">
-                <div class="kz-list-icon"><span class="material-symbols-outlined" style="font-size:20px">{kat_icon}</span></div>
+                <div class="kz-list-icon"><span class=material-symbols-outlined style=font-size:20px>{kat_icon}</span></div>
                 <div style="min-width:0">
                     <div style="font-weight:600;font-size:0.9rem;color:var(--kz-text)">{k['nazwa']}</div>
                     <div style="font-size:0.75rem;color:var(--kz-muted);margin-top:2px">{kat_label} &middot; {k['data']}{notatka_html}</div>
@@ -8459,7 +8459,7 @@ def koszty_page():
                 <input type="hidden" name="action" value="usun">
                 <input type="hidden" name="id" value="{k['id']}">
                 <button type="submit" onclick="return confirm('Usun?')" class="kz-del-btn">
-                    <span class="material-symbols-outlined" style="font-size:16px">close</span>
+                    <span class=material-symbols-outlined style=font-size:16px>close</span>
                 </button>
             </form>
         </div>'''
@@ -8477,7 +8477,7 @@ def koszty_page():
     if koszty_kat:
         for r in koszty_kat:
             pill_icon = KAT_ICONS.get(r['kategoria'], 'bolt')
-            kat_pills += f'<div style="display:inline-flex;align-items:center;gap:8px;background:var(--kz-card2);border:1px solid var(--kz-border);padding:8px 14px;margin:0 8px 8px 0;font-size:0.8rem;font-family:\'Manrope\',sans-serif"><span class="material-symbols-outlined" style="font-size:16px;color:var(--kz-pink)">{pill_icon}</span><span style="color:var(--kz-pink);font-weight:700">{float(r["suma"]):.0f} zl</span><span style="color:var(--kz-muted)">{dict(KATEGORIE).get(r["kategoria"],r["kategoria"])}</span></div>'
+            kat_pills += f'<div style="display:inline-flex;align-items:center;gap:8px;background:var(--kz-card2);border:1px solid var(--kz-border);padding:8px 14px;margin:0 8px 8px 0;font-size:0.8rem;font-family:\'Manrope\',sans-serif"><span class=material-symbols-outlined style=font-size:16px;color:var(--kz-pink)>{pill_icon}</span><span style="color:var(--kz-pink);font-weight:700">{float(r["suma"]):.0f} zl</span><span style="color:var(--kz-muted)">{dict(KATEGORIE).get(r["kategoria"],r["kategoria"])}</span></div>'
 
     html = f'''
     <style>
@@ -8588,7 +8588,7 @@ def koszty_page():
     <!-- Add cost form -->
     <div class="kz-form-card">
         <div class="kz-form-header">
-            <span class="material-symbols-outlined" style="color:var(--kz-lime);font-size:22px">add_circle</span>
+            <span class=material-symbols-outlined style=color:var(--kz-lime);font-size:22px>add_circle</span>
             Dodaj koszt
         </div>
         <form action="/magazyn/koszty" method="POST">
@@ -8622,14 +8622,14 @@ def koszty_page():
     <!-- Cost list -->
     <div style="margin-bottom:20px">
         <div class="kz-list-header">
-            <span class="material-symbols-outlined" style="color:var(--kz-cyan);font-size:22px">receipt_long</span>
+            <span class=material-symbols-outlined style=color:var(--kz-cyan);font-size:22px>receipt_long</span>
             Wszystkie koszty
         </div>
         {koszty_html}
     </div>
 
     <a href="/magazyn" class="kz-back">
-        <span class="material-symbols-outlined" style="font-size:18px">arrow_back</span>
+        <span class=material-symbols-outlined style=font-size:18px>arrow_back</span>
         Powrot do magazynu
     </a>
 
@@ -9349,7 +9349,7 @@ def statystyki_zakupow():
 
     <!-- TOP 10 PALET -->
     <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:15px;margin-bottom:15px">
-        <div style="font-weight:700;color:#fff;margin-bottom:12px"><span class="material-symbols-outlined">emoji_events</span> Top 10 najdroższych palet</div>
+        <div style="font-weight:700;color:#fff;margin-bottom:12px"><span class=material-symbols-outlined>emoji_events</span> Top 10 najdroższych palet</div>
         {top_html}
     </div>
 

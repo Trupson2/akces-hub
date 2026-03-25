@@ -4108,7 +4108,7 @@ def config():
     <form method="POST">
     <input type="hidden" name="csrf_token" value="{generate_csrf()}">
     <div class="card">
-        <div class="card-header"><div class="card-title"><span class="material-symbols-outlined">key</span> Dane API</div></div>
+        <div class="card-header"><div class="card-title"><span class=material-symbols-outlined>key</span> Dane API</div></div>
         <div class="form-group">
             <label>Client ID</label>
             <input type="text" name="client_id" class="form-control" value="{cfg['client_id']}" placeholder="Twoj Client ID">
@@ -4122,15 +4122,15 @@ def config():
             <input type="text" name="redirect_uri" class="form-control" value="{cfg['redirect_uri']}">
         </div>
         <div class="toggle-row">
-            <span><span class="material-symbols-outlined">science</span> Tryb Sandbox</span>
+            <span><span class=material-symbols-outlined>science</span> Tryb Sandbox</span>
             <input type="checkbox" name="sandbox" {sandbox_checked}>
         </div>
     </div>
 
     <div class="card">
-        <div class="card-header"><div class="card-title"><span class="material-symbols-outlined">sync</span> Auto-synchronizacja zamowien</div></div>
+        <div class="card-header"><div class="card-title"><span class=material-symbols-outlined>sync</span> Auto-synchronizacja zamowien</div></div>
         <div class="toggle-row">
-            <span><span class="material-symbols-outlined">smartphone</span> Automatyczna synchronizacja co 5 min</span>
+            <span><span class=material-symbols-outlined>smartphone</span> Automatyczna synchronizacja co 5 min</span>
             <input type="checkbox" name="autosync" {autosync_checked}>
         </div>
         <p style="font-size:0.75rem;color:var(--text-muted);margin-top:10px">
@@ -4139,7 +4139,7 @@ def config():
     </div>
 
     <div class="card">
-        <div class="card-header"><div class="card-title"><span class="material-symbols-outlined">inventory_2</span> Wysylka i lokalizacja</div></div>
+        <div class="card-header"><div class="card-title"><span class=material-symbols-outlined>inventory_2</span> Wysylka i lokalizacja</div></div>
         <div class="form-group">
             <label>Cennik wysylki</label>
             {'<select name="shipping_id" class="form-control"><option value="">-- Wybierz --</option>' + shipping_options + '</select>' if shipping_options else '<input type="text" name="shipping_id" class="form-control" value="' + shipping_id + '" placeholder="ID cennika (zaloguj sie aby pobrac liste)">'}
@@ -4175,7 +4175,7 @@ def config():
         </div>
     </div>
 
-    <button type="submit" class="btn btn-primary"><span class="material-symbols-outlined">save</span> Zapisz</button>
+    <button type="submit" class="btn btn-primary"><span class=material-symbols-outlined>save</span> Zapisz</button>
     </form>
     '''
 
@@ -4183,7 +4183,7 @@ def config():
     img_stats = get_images_stats()
     html += f'''
     <div class="card" style="margin-top:20px">
-        <div class="card-header"><div class="card-title"><span class="material-symbols-outlined">photo_camera</span> Zarzadzanie zdjeciami</div></div>
+        <div class="card-header"><div class="card-title"><span class=material-symbols-outlined>photo_camera</span> Zarzadzanie zdjeciami</div></div>
         <div class="stat-row" style="grid-template-columns:1fr 1fr;margin-bottom:14px">
             <div class="stat-box">
                 <div class="stat-val blue">{img_stats['count']}</div>
@@ -4195,7 +4195,7 @@ def config():
             </div>
         </div>
         <a href="/allegro/cleanup-images" class="btn btn-secondary" onclick="return confirm('Usunac zdjecia starsze niz 7 dni?')">
-            <span class="material-symbols-outlined">delete</span> Wyczysc stare zdjecia (7+ dni)
+            <span class=material-symbols-outlined>delete</span> Wyczysc stare zdjecia (7+ dni)
         </a>
         <div style="margin-top:8px;font-size:0.75rem;color:var(--text-muted)">
             Usuwa tylko zdjecia starsze niz 7 dni.
@@ -4226,7 +4226,7 @@ def cleanup_images_route():
 
         <div style="display:flex;gap:10px;margin-top:15px">
             <a href="/allegro/cleanup-images-all" class="btn btn-danger" onclick="return confirm('UWAGA!\\n\\nTo usunie WSZYSTKIE zdjecia ({stats['count']} plikow).\\n\\nOferty na Allegro NIE STRACA zdjec (sa juz na serwerach Allegro).\\n\\nKontynuowac?')" style="flex:1">
-                <span class="material-symbols-outlined">delete</span> Wyczysc WSZYSTKIE ({stats['count']})
+                <span class=material-symbols-outlined>delete</span> Wyczysc WSZYSTKIE ({stats['count']})
             </a>
             <a href="/allegro/config" class="btn btn-secondary" style="flex:1">← Powrot</a>
         </div>
@@ -4314,7 +4314,7 @@ def check_auth():
     if is_authenticated():
         return render('''
             <div class="alert alert-success">Jestes zalogowany do Allegro!</div>
-            <a href="/allegro" class="btn btn-primary"><span class="material-symbols-outlined">shopping_cart</span> Przejdz do Allegro</a>
+            <a href="/allegro" class="btn btn-primary"><span class=material-symbols-outlined>shopping_cart</span> Przejdz do Allegro</a>
         ''', 'Polaczono')
     else:
         return redirect('/allegro/auth')
@@ -4343,7 +4343,7 @@ def callback():
     if not code:
         return render('''
             <div class="alert alert-error">Brak kodu autoryzacji</div>
-            <a href="/allegro/auth" class="btn btn-primary"><span class="material-symbols-outlined">key</span> Sprobuj ponownie</a>
+            <a href="/allegro/auth" class="btn btn-primary"><span class=material-symbols-outlined>key</span> Sprobuj ponownie</a>
         ''', 'Blad')
 
     # Sprawdź state (ochrona przed CSRF)
@@ -4351,7 +4351,7 @@ def callback():
     if state and saved_state and state != saved_state:
         return render('''
             <div class="alert alert-error">Nieprawidlowy state - mozliwa proba ataku CSRF</div>
-            <a href="/allegro/auth" class="btn btn-primary"><span class="material-symbols-outlined">key</span> Sprobuj ponownie</a>
+            <a href="/allegro/auth" class="btn btn-primary"><span class=material-symbols-outlined>key</span> Sprobuj ponownie</a>
         ''', 'Blad bezpieczenstwa')
 
     # Wymień kod na token
@@ -4395,8 +4395,8 @@ def callback():
             return render('''
                 <div class="alert alert-success">Pomyslnie polaczono z Allegro!</div>
                 <p style="color:var(--text-muted);text-align:center;margin:15px 0">Teraz wybierz cennik wysylki w ustawieniach.</p>
-                <a href="/allegro/config" class="btn btn-success"><span class="material-symbols-outlined">settings</span> Wybierz cennik wysylki</a>
-                <a href="/allegro" class="btn btn-secondary"><span class="material-symbols-outlined">shopping_cart</span> Przejdz do Allegro</a>
+                <a href="/allegro/config" class="btn btn-success"><span class=material-symbols-outlined>settings</span> Wybierz cennik wysylki</a>
+                <a href="/allegro" class="btn btn-secondary"><span class=material-symbols-outlined>shopping_cart</span> Przejdz do Allegro</a>
             ''', 'Sukces')
         else:
             try:
@@ -4407,7 +4407,7 @@ def callback():
 
             return render(f'''
                 <div class="alert alert-error">{err_msg}</div>
-                <a href="/allegro/auth" class="btn btn-primary"><span class="material-symbols-outlined">key</span> Sprobuj ponownie</a>
+                <a href="/allegro/auth" class="btn btn-primary"><span class=material-symbols-outlined>key</span> Sprobuj ponownie</a>
             ''', 'Blad tokenu')
 
     except Exception as e:
@@ -4444,7 +4444,7 @@ def zamowienia():
             html += f'''
             <a href="/allegro/zamowienie/{order['id']}" class="list-item">
                 <div class="list-item-info">
-                    <div class="list-item-title"><span class="material-symbols-outlined">person</span> {buyer}</div>
+                    <div class="list-item-title"><span class=material-symbols-outlined>person</span> {buyer}</div>
                     <div class="list-item-meta">{len(order.get('lineItems', []))} prod.</div>
                 </div>
                 <div class="list-item-right">
@@ -4470,12 +4470,12 @@ def zamowienie_detail(order_id):
 
     html = f'''
     <div class="card">
-        <div class="card-header"><div class="card-title"><span class="material-symbols-outlined">person</span> Kupujacy</div></div>
+        <div class="card-header"><div class="card-title"><span class=material-symbols-outlined>person</span> Kupujacy</div></div>
         <div style="font-weight:600">{buyer.get('login', 'N/A')}</div>
         <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">ID: {order_id[:20]}...</div>
     </div>
     <div class="card">
-        <div class="card-header"><div class="card-title"><span class="material-symbols-outlined">location_on</span> Adres dostawy</div></div>
+        <div class="card-header"><div class="card-title"><span class=material-symbols-outlined>location_on</span> Adres dostawy</div></div>
         <div style="font-size:0.85rem;color:var(--text-secondary)">
             {delivery.get('firstName', '')} {delivery.get('lastName', '')}<br>
             {delivery.get('street', '')}<br>
@@ -4560,7 +4560,7 @@ def sync():
                 <small style="color:var(--text-muted)">Wszystkie zamowienia sa juz zsynchronizowane</small>
             </div>'''
 
-    html += '<a href="/allegro/zamowienia" class="btn btn-primary" style="margin-top:16px"><span class="material-symbols-outlined">inventory_2</span> Zamowienia</a><a href="/allegro" class="back">← Powrot</a>'
+    html += '<a href="/allegro/zamowienia" class="btn btn-primary" style="margin-top:16px"><span class=material-symbols-outlined>inventory_2</span> Zamowienia</a><a href="/allegro" class="back">← Powrot</a>'
     return render(html, 'Synchronizacja')
 
 
@@ -4590,22 +4590,22 @@ def backfill_link_route():
     html = f'''
     <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr)">
         <div class="kpi-card blue">
-            <div class="kpi-icon" style="background:var(--blue-soft)"><span class="material-symbols-outlined">link</span></div>
+            <div class="kpi-icon" style="background:var(--blue-soft)"><span class=material-symbols-outlined>link</span></div>
             <div class="kpi-value">{stats['oferty_linked']}</div>
             <div class="kpi-label">Ofert polaczonych z produktami</div>
         </div>
         <div class="kpi-card green">
-            <div class="kpi-icon" style="background:var(--green-soft)"><span class="material-symbols-outlined">payments</span></div>
+            <div class="kpi-icon" style="background:var(--green-soft)"><span class=material-symbols-outlined>payments</span></div>
             <div class="kpi-value">{total_linked}</div>
             <div class="kpi-label">Sprzedazy polaczonych z produktami</div>
         </div>
         <div class="kpi-card orange">
-            <div class="kpi-icon" style="background:var(--yellow-soft)"><span class="material-symbols-outlined">warning</span></div>
+            <div class="kpi-icon" style="background:var(--yellow-soft)"><span class=material-symbols-outlined>warning</span></div>
             <div class="kpi-value">{stats['sprzedaze_still_unlinked']}</div>
             <div class="kpi-label">Nadal bez produktu</div>
         </div>
         <div class="kpi-card purple">
-            <div class="kpi-icon" style="background:var(--accent-soft)"><span class="material-symbols-outlined">bar_chart</span></div>
+            <div class="kpi-icon" style="background:var(--accent-soft)"><span class=material-symbols-outlined>bar_chart</span></div>
             <div class="kpi-value">{stats['sprzedaze_total_unlinked']}</div>
             <div class="kpi-label">Bylo niepolaczonych</div>
         </div>
@@ -4621,12 +4621,12 @@ def backfill_link_route():
     if stats['sprzedaze_still_unlinked'] > 0:
         html += f'''
         <a href="/allegro/polacz-sprzedaze" class="btn btn-secondary" style="margin-bottom:10px">
-            <span class="material-symbols-outlined">edit</span> Reczne laczenie ({stats['sprzedaze_still_unlinked']} szt)
+            <span class=material-symbols-outlined>edit</span> Reczne laczenie ({stats['sprzedaze_still_unlinked']} szt)
         </a>
         '''
 
     html += '''
-    <a href="/allegro/backfill-link" class="btn btn-secondary"><span class="material-symbols-outlined">sync</span> Uruchom ponownie</a>
+    <a href="/allegro/backfill-link" class="btn btn-secondary"><span class=material-symbols-outlined>sync</span> Uruchom ponownie</a>
     <a href="/allegro" class="back">← Powrot</a>
     '''
     return render(html, 'Laczenie sprzedazy')
@@ -4702,10 +4702,10 @@ def polacz_sprzedaze():
 
     html += '''
         <button type="submit" class="btn btn-success" style="margin-top:15px">
-            <span class="material-symbols-outlined">save</span> Zapisz polaczenia
+            <span class=material-symbols-outlined>save</span> Zapisz polaczenia
         </button>
     </form>
-    <a href="/allegro/backfill-link" class="btn btn-secondary" style="margin-top:10px"><span class="material-symbols-outlined">smart_toy</span> Auto-matching</a>
+    <a href="/allegro/backfill-link" class="btn btn-secondary" style="margin-top:10px"><span class=material-symbols-outlined>smart_toy</span> Auto-matching</a>
     <a href="/allegro" class="back">← Powrot</a>
     '''
     return render(html, 'Reczne laczenie')
@@ -4739,7 +4739,7 @@ def polacz_sprzedaze_zapisz():
 
     html = f'''
     <div class="alert alert-success">Polaczono {linked} sprzedazy z produktami</div>
-    <a href="/allegro/polacz-sprzedaze" class="btn btn-secondary"><span class="material-symbols-outlined">edit</span> Kontynuuj laczenie</a>
+    <a href="/allegro/polacz-sprzedaze" class="btn btn-secondary"><span class=material-symbols-outlined>edit</span> Kontynuuj laczenie</a>
     <a href="/allegro" class="back">← Powrot</a>
     '''
     return render(html, 'Zapisano')

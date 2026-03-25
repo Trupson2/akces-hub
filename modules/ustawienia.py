@@ -93,7 +93,7 @@ def ustawienia():
 <!-- URL aplikacji -->
 <div class="settings-card settings-card-accent blue">
     <div class="section-header">
-        <span class="section-header-icon"><span class="material-symbols-outlined">language</span></span>
+        <span class="section-header-icon"><span class=material-symbols-outlined>language</span></span>
         <span class="section-header-title">Adres URL aplikacji (dla QR kodow)</span>
     </div>
     <div class="alert alert-warning" style="margin-bottom:14px">
@@ -119,7 +119,7 @@ def ustawienia():
 <!-- RAPORTY EMAIL -->
 <div class="settings-card settings-card-accent blue">
     <div class="section-header">
-        <span class="section-header-icon"><span class="material-symbols-outlined">email</span></span>
+        <span class="section-header-icon"><span class=material-symbols-outlined>email</span></span>
         <span class="section-header-title">Raporty Email</span>
         <span class="section-header-badge" style="background:{{ '#22c55e' if email_cfg.get('enabled') else 'var(--text-muted)' }}">
             {{ 'WLACZONE' if email_cfg.get('enabled') else 'WYLACZONE' }}
@@ -169,7 +169,7 @@ def ustawienia():
 <!-- NGROK -->
 <div class="settings-card settings-card-accent purple">
     <div class="section-header">
-        <span class="section-header-icon"><span class="material-symbols-outlined">rocket_launch</span></span>
+        <span class="section-header-icon"><span class=material-symbols-outlined>rocket_launch</span></span>
         <span class="section-header-title">Ngrok - Zdalny dostep</span>
     </div>
     <form action="/ustawienia/ngrok-token" method="POST">
@@ -192,7 +192,7 @@ def ustawienia():
 
 <!-- KREATOR API KEYS -->
 <a href="/ustawienia/kreator" class="link-card" style="margin-bottom:16px">
-    <span class="link-card-icon"><span class="material-symbols-outlined">build</span></span>
+    <span class="link-card-icon"><span class=material-symbols-outlined>build</span></span>
     <div>
         <div class="link-card-title">Kreator konfiguracji</div>
         <div class="link-card-desc">Wszystkie klucze API w jednym miejscu (Allegro, Telegram, Gemini, OLX...)</div>
@@ -203,7 +203,7 @@ def ustawienia():
 <!-- KIOSK MODE -->
 <div class="settings-card settings-card-accent purple">
     <div class="section-header">
-        <span class="section-header-icon"><span class="material-symbols-outlined">tv</span></span>
+        <span class="section-header-icon"><span class=material-symbols-outlined>tv</span></span>
         <span class="section-header-title">Tryb Kiosk (Raspberry Pi)</span>
     </div>
     <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px">
@@ -238,7 +238,7 @@ def ustawienia():
 <!-- BRANDING -->
 <div class="settings-card settings-card-accent pink">
     <div class="section-header">
-        <span class="section-header-icon"><span class="material-symbols-outlined">palette</span></span>
+        <span class="section-header-icon"><span class=material-symbols-outlined>palette</span></span>
         <span class="section-header-title">Branding</span>
     </div>
     <form action="/ustawienia/branding" method="POST" enctype="multipart/form-data">
@@ -277,7 +277,7 @@ def ustawienia():
         <span class="link-card-arrow">→</span>
     </a>
     <a href="/auth/zmien-haslo" class="link-card">
-        <span class="link-card-icon"><span class="material-symbols-outlined">lock</span></span>
+        <span class="link-card-icon"><span class=material-symbols-outlined>lock</span></span>
         <div class="link-card-title">Zmien haslo</div>
         <span class="link-card-arrow">→</span>
     </a>
@@ -285,7 +285,7 @@ def ustawienia():
 
 <!-- AKTUALIZACJA SYSTEMU -->
 <a href="/narzedzia" class="link-card" style="margin-bottom:16px">
-    <span class="link-card-icon"><span class="material-symbols-outlined">sync</span></span>
+    <span class="link-card-icon"><span class=material-symbols-outlined>sync</span></span>
     <div class="link-card-title">Aktualizacja systemu → Narzedzia</div>
     <span class="link-card-arrow">→</span>
 </a>
@@ -293,7 +293,7 @@ def ustawienia():
 <!-- DANE NADAWCY NA ETYKIECIE -->
 <div class="settings-card settings-card-accent blue" id="nadawca">
     <div class="section-header">
-        <span class="section-header-icon"><span class="material-symbols-outlined">inventory_2</span></span>
+        <span class="section-header-icon"><span class=material-symbols-outlined>inventory_2</span></span>
         <span class="section-header-title">Dane nadawcy na etykiecie</span>
     </div>
     <form action="/ustawienia/nadawca/save" method="POST">
@@ -342,7 +342,7 @@ def ustawienia():
 <!-- PARAMETRY INTEGRACJI I REGULAMINY -->
 <div class="settings-card settings-card-accent blue">
     <div class="section-header">
-        <span class="section-header-icon"><span class="material-symbols-outlined">assignment</span></span>
+        <span class="section-header-icon"><span class=material-symbols-outlined>assignment</span></span>
         <span class="section-header-title">Parametry Integracji i Regulaminy</span>
     </div>
     <form action="/ustawienia/integracje-parametry" method="POST">
@@ -368,7 +368,7 @@ def ustawienia():
 <!-- RODO - RETENCJA DANYCH -->
 <div class="settings-card settings-card-accent green">
     <div class="section-header">
-        <span class="section-header-icon"><span class="material-symbols-outlined">shield</span></span>
+        <span class="section-header-icon"><span class=material-symbols-outlined>shield</span></span>
         <span class="section-header-title">Retencja danych (RODO)</span>
     </div>
     <form action="/ustawienia/retencja" method="POST">
@@ -392,7 +392,7 @@ def ustawienia():
 <!-- BAZA DANYCH -->
 <div class="settings-card" style="margin-bottom:16px">
     <div class="section-header">
-        <span class="section-header-icon"><span class="material-symbols-outlined">save</span></span>
+        <span class="section-header-icon"><span class=material-symbols-outlined>save</span></span>
         <span class="section-header-title">Baza danych</span>
     </div>
     <div style="display:grid;gap:10px">
@@ -432,7 +432,7 @@ def ustawienia():
 <!-- SMTP CONFIG (License Mailer) -->
 <div class="settings-card settings-card-accent purple">
     <div class="section-header">
-        <span class="section-header-icon"><span class="material-symbols-outlined">email</span></span>
+        <span class="section-header-icon"><span class=material-symbols-outlined>email</span></span>
         <span class="section-header-title">Konfiguracja Email (SMTP)</span>
         <span class="section-header-badge" style="background:{{ '#22c55e' if smtp_cfg.get('host') and smtp_cfg.get('user') else 'var(--text-muted)' }}">
             {{ 'SKONFIGUROWANY' if smtp_cfg.get('host') and smtp_cfg.get('user') else 'NIESKONFIGUROWANY' }}
@@ -481,7 +481,7 @@ def ustawienia():
 <!-- DANGER ZONE -->
 <div class="settings-card settings-card-accent red">
     <div class="section-header">
-        <span class="section-header-icon"><span class="material-symbols-outlined">warning</span></span>
+        <span class="section-header-icon"><span class=material-symbols-outlined>warning</span></span>
         <span class="section-header-title" style="color:var(--red)">Strefa niebezpieczna</span>
     </div>
     <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px">
@@ -588,7 +588,7 @@ def ustawienia_kreator():
     # Build sections config for template
     sections = [
         {
-            'key': 'allegro_client_id', 'icon': '<span class="material-symbols-outlined">shopping_cart</span>', 'title': 'Allegro API',
+            'key': 'allegro_client_id', 'icon': '<span class=material-symbols-outlined>shopping_cart</span>', 'title': 'Allegro API',
             'hint': 'Zarejestruj aplikacje na <a href="https://apps.developer.allegro.pl" target="_blank" style="color:var(--accent)">apps.developer.allegro.pl</a>',
             'fields': [
                 {'name': 'allegro_client_id', 'label': 'Client ID', 'type': 'text', 'placeholder': 'Twoj Client ID z Allegro'},
@@ -597,7 +597,7 @@ def ustawienia_kreator():
             ]
         },
         {
-            'key': 'telegram_bot_token', 'icon': '<span class="material-symbols-outlined">chat</span>', 'title': 'Telegram Bot',
+            'key': 'telegram_bot_token', 'icon': '<span class=material-symbols-outlined>chat</span>', 'title': 'Telegram Bot',
             'hint': 'Stworz bota przez <a href="https://t.me/BotFather" target="_blank" style="color:var(--accent)">@BotFather</a> na Telegramie',
             'fields': [
                 {'name': 'telegram_bot_token', 'label': 'Bot Token', 'type': 'password', 'placeholder': '123456789:ABCdefGHIjklMNOpqrsTUVwxyz'},
@@ -606,27 +606,27 @@ def ustawienia_kreator():
             ]
         },
         {
-            'key': 'gemini_api_key', 'icon': '<span class="material-symbols-outlined">auto_awesome</span>', 'title': 'Google Gemini AI',
+            'key': 'gemini_api_key', 'icon': '<span class=material-symbols-outlined>auto_awesome</span>', 'title': 'Google Gemini AI',
             'hint': 'Pobierz klucz z <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/apikey</a> (darmowy!)',
             'fields': [
                 {'name': 'gemini_api_key', 'label': 'API Key', 'type': 'password', 'placeholder': 'AIzaSy...'},
                 {'name': 'gemini_model', 'label': 'Model AI', 'type': 'select', 'options': [
-                    ('gemini-2.5-flash', '<span class="material-symbols-outlined">bolt</span> Gemini 2.5 Flash — ZALECANY <span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> darmowy, stabilny'),
-                    ('gemini-2.5-flash-lite', '<span class="material-symbols-outlined">air</span> Gemini 2.5 Flash Lite — szybszy, mniej dokładny'),
-                    ('gemini-3.1-flash-lite-preview', '<span class="material-symbols-outlined">rocket_launch</span> Gemini 3.1 Flash Lite — najnowszy, testowy <span class="material-symbols-outlined">warning</span>'),
-                    ('gemini-3.1-pro-preview', '<span class="material-symbols-outlined">psychology</span> Gemini 3.1 Pro — najlepszy, testowy, płatny <span class="material-symbols-outlined">payments</span>'),
+                    ('gemini-2.5-flash', '<span class=material-symbols-outlined>bolt</span> Gemini 2.5 Flash — ZALECANY <span class=material-symbols-outlined style=color:#22c55e>check_circle</span> darmowy, stabilny'),
+                    ('gemini-2.5-flash-lite', '<span class=material-symbols-outlined>air</span> Gemini 2.5 Flash Lite — szybszy, mniej dokładny'),
+                    ('gemini-3.1-flash-lite-preview', '<span class=material-symbols-outlined>rocket_launch</span> Gemini 3.1 Flash Lite — najnowszy, testowy <span class=material-symbols-outlined>warning</span>'),
+                    ('gemini-3.1-pro-preview', '<span class=material-symbols-outlined>psychology</span> Gemini 3.1 Pro — najlepszy, testowy, płatny <span class=material-symbols-outlined>payments</span>'),
                 ]},
             ]
         },
         {
-            'key': 'perplexity_api_key', 'icon': '<span class="material-symbols-outlined">search</span>', 'title': 'Perplexity AI',
+            'key': 'perplexity_api_key', 'icon': '<span class=material-symbols-outlined>search</span>', 'title': 'Perplexity AI',
             'hint': 'Klucz z <a href="https://www.perplexity.ai/settings/api" target="_blank" style="color:var(--accent)">perplexity.ai/settings/api</a> (do analizy okazji)',
             'fields': [
                 {'name': 'perplexity_api_key', 'label': 'API Key', 'type': 'password', 'placeholder': 'pplx-...'},
             ]
         },
         {
-            'key': 'ngrok_auth_token', 'icon': '<span class="material-symbols-outlined">rocket_launch</span>', 'title': 'Ngrok (zdalny dostep)',
+            'key': 'ngrok_auth_token', 'icon': '<span class=material-symbols-outlined>rocket_launch</span>', 'title': 'Ngrok (zdalny dostep)',
             'hint': 'Token z <a href="https://dashboard.ngrok.com/get-started/your-authtoken" target="_blank" style="color:var(--accent)">dashboard.ngrok.com</a>',
             'fields': [
                 {'name': 'ngrok_auth_token', 'label': 'Auth Token', 'type': 'password', 'placeholder': '2abc...xyz'},
@@ -634,7 +634,7 @@ def ustawienia_kreator():
             ]
         },
         {
-            'key': 'support_email', 'icon': '<span class="material-symbols-outlined">call</span>', 'title': 'Dane kontaktowe (support)',
+            'key': 'support_email', 'icon': '<span class=material-symbols-outlined>call</span>', 'title': 'Dane kontaktowe (support)',
             'hint': 'Wyswietlane klientom na stronie zgloszenia problemu',
             'open_condition': 'support_nodata',
             'fields': [
@@ -644,7 +644,7 @@ def ustawienia_kreator():
             ]
         },
         {
-            'key': 'olx_client_id', 'icon': '<span class="material-symbols-outlined">inventory_2</span>', 'title': 'OLX API (opcjonalnie)',
+            'key': 'olx_client_id', 'icon': '<span class=material-symbols-outlined>inventory_2</span>', 'title': 'OLX API (opcjonalnie)',
             'hint': 'Zarejestruj app na <a href="https://developer.olx.pl" target="_blank" style="color:var(--accent)">developer.olx.pl</a>',
             'always_closed': True,
             'fields': [
@@ -654,7 +654,7 @@ def ustawienia_kreator():
             ]
         },
         {
-            'key': 'rembg_vps_url', 'icon': '<span class="material-symbols-outlined">image</span>', 'title': 'Rembg VPS (usuwanie tla)',
+            'key': 'rembg_vps_url', 'icon': '<span class=material-symbols-outlined>image</span>', 'title': 'Rembg VPS (usuwanie tla)',
             'hint': 'Serwer VPS z rembg do usuwania tel ze zdjec (nie obciaza Pi). Postaw <code>rembg_service.py</code> na VPS i wpisz adres.',
             'has_test': True,
             'fields': [
@@ -1062,7 +1062,7 @@ def raport_wyslij():
         <html><head><meta http-equiv="refresh" content="3;url=/ustawienia"></head>
         <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
-                <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined">warning</span></div>
+                <div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined>warning</span></div>
                 <div style="font-size:1.2rem;color:#f59e0b">Email nie jest wlaczony!</div>
                 <div style="color:#64748b;margin-top:10px">Wlacz w ustawieniach</div>
             </div>
@@ -1076,7 +1076,7 @@ def raport_wyslij():
         <html><head><meta http-equiv="refresh" content="3;url=/ustawienia"></head>
         <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
-                <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span></div>
+                <div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=color:#22c55e>check_circle</span></div>
                 <div style="font-size:1.2rem">Raport wyslany!</div>
                 <div style="color:#64748b;margin-top:10px">Sprawdz email: {config.get('recipient') or config.get('email')}</div>
             </div>
@@ -1087,7 +1087,7 @@ def raport_wyslij():
         <html><head><meta http-equiv="refresh" content="5;url=/ustawienia"></head>
         <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
-                <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#ef4444">cancel</span></div>
+                <div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=color:#ef4444>cancel</span></div>
                 <div style="font-size:1.2rem;color:#ef4444">Blad wysylania!</div>
                 <div style="color:#64748b;margin-top:10px;max-width:400px">{msg}</div>
             </div>
@@ -1112,7 +1112,7 @@ def reset_sprzedaze():
     <html><head><meta http-equiv="refresh" content="2;url=/ustawienia"></head>
     <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
         <div style="text-align:center">
-            <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span></div>
+            <div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=color:#22c55e>check_circle</span></div>
             <div style="font-size:1.2rem">Historia sprzedazy wyczyszczona!</div>
             <div style="color:#64748b;margin-top:10px">Przekierowuje...</div>
         </div>
@@ -1135,7 +1135,7 @@ def reset_magazyn():
     <html><head><meta http-equiv="refresh" content="2;url=/ustawienia"></head>
     <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
         <div style="text-align:center">
-            <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span></div>
+            <div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=color:#22c55e>check_circle</span></div>
             <div style="font-size:1.2rem">Magazyn wyczyszczony!</div>
             <div style="color:#64748b;margin-top:10px">Usunieto {cnt} produktow</div>
         </div>
@@ -1172,7 +1172,7 @@ def reset_palety():
     <html><head><meta http-equiv="refresh" content="3;url=/ustawienia"></head>
     <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
         <div style="text-align:center">
-            <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span></div>
+            <div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=color:#22c55e>check_circle</span></div>
             <div style="font-size:1.2rem">Palety wyczyszczone!</div>
             <div style="color:#64748b;margin-top:10px">
                 Usunieto {palety_cnt} palet, {produkty_cnt} produktow z magazynu
@@ -1198,7 +1198,7 @@ def reset_scraped():
     <html><head><meta http-equiv="refresh" content="2;url=/ustawienia"></head>
     <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
         <div style="text-align:center">
-            <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span></div>
+            <div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=color:#22c55e>check_circle</span></div>
             <div style="font-size:1.2rem">Scraped wyczyszczony!</div>
             <div style="color:#64748b;margin-top:10px">Usunieto {cnt} zescrapowanych produktow</div>
         </div>
@@ -1250,7 +1250,7 @@ def upload_db():
     except Exception as e:
         os.remove(tmp_path)
         return f'''<html><body style="background:#0a0a0f;color:#ef4444;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh">
-        <div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#ef4444">cancel</span></div>
+        <div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=color:#ef4444>cancel</span></div>
         <div>Nieprawidlowy plik bazy: {e}</div>
         <a href="/ustawienia" style="color:#818cf8;margin-top:20px;display:block">← Powrot</a></div></body></html>'''
 
@@ -1261,7 +1261,7 @@ def upload_db():
     return '''<html><head><meta http-equiv="refresh" content="2;url=/ustawienia"></head>
     <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
         <div style="text-align:center">
-            <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span></div>
+            <div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=color:#22c55e>check_circle</span></div>
             <div style="font-size:1.2rem">Baza danych wgrana!</div>
             <div style="color:#64748b;margin-top:10px">Backup starej bazy zapisany. Przekierowywanie...</div>
         </div>
@@ -1661,7 +1661,7 @@ def admin_deploy():
     select,input,button{padding:10px;margin:8px 0;width:100%;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#fff;font-size:1rem}
     button{background:#22c55e;cursor:pointer;font-weight:600;border:none}
     #result{margin-top:20px;padding:15px;border-radius:8px;display:none}</style></head>
-    <body><h1><span class="material-symbols-outlined">inventory_2</span> Deploy modulu</h1>
+    <body><h1><span class=material-symbols-outlined>inventory_2</span> Deploy modulu</h1>
     <form id="f" enctype="multipart/form-data">
     <label>Modul:</label>
     <select name="target">
@@ -1674,7 +1674,7 @@ def admin_deploy():
     <option value="app.py">app.py</option>
     </select>
     <label>Plik:</label><input type="file" name="file" accept=".py">
-    <button type="submit"><span class="material-symbols-outlined">rocket_launch</span> Deploy</button></form>
+    <button type="submit"><span class=material-symbols-outlined>rocket_launch</span> Deploy</button></form>
     <div id="result"></div>
     <script>document.getElementById('f').onsubmit=async e=>{e.preventDefault();
     const r=document.getElementById('result');r.style.display='block';r.style.background='#1e293b';r.textContent='Wysylanie...';
@@ -1728,7 +1728,7 @@ def admin_przelicz_palety():
         <style>body{{background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;gap:16px}}</style>
     </head>
     <body>
-        <div style="font-size:3rem"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span></div>
+        <div style="font-size:3rem"><span class=material-symbols-outlined style=color:#22c55e>check_circle</span></div>
         <div style="font-size:1.4rem;font-weight:700">Przeliczono {updated} palet!</div>
         <div style="color:#64748b;font-size:0.9rem">cena_zakupu = suma cena_netto x 1.23 (wartosc z importu, stala)</div>
         <div style="color:#3b82f6;font-size:0.85rem">Przekierowanie za 3 sekundy...</div>
@@ -1760,9 +1760,9 @@ def printing_settings():
         config['ask_before_print'] = ask_before
 
         if save_full_config(config):
-            flash('<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Ustawienia drukowania zapisane!', 'success')
+            flash('<span class=material-symbols-outlined style=color:#22c55e>check_circle</span> Ustawienia drukowania zapisane!', 'success')
         else:
-            flash('<span class="material-symbols-outlined">warning</span> Blad zapisywania ustawien', 'error')
+            flash('<span class=material-symbols-outlined>warning</span> Blad zapisywania ustawien', 'error')
 
         return redirect(url_for('ustawienia.printing_settings'))
 
@@ -1787,16 +1787,16 @@ def test_print():
         if printer_type == 'niimbot':
             from modules.niimbot_print import test_print as niimbot_test
             niimbot_test()
-            flash(f'<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Test drukowania na Niimbot B1 zakonczony!', 'success')
+            flash(f'<span class=material-symbols-outlined style=color:#22c55e>check_circle</span> Test drukowania na Niimbot B1 zakonczony!', 'success')
         elif printer_type == 'vretti':
             from modules.vretti_print import test_print as vretti_test
             vretti_test()
-            flash(f'<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Test drukowania na Vretti 420B zakonczony!', 'success')
+            flash(f'<span class=material-symbols-outlined style=color:#22c55e>check_circle</span> Test drukowania na Vretti 420B zakonczony!', 'success')
         else:
-            flash(f'<span class="material-symbols-outlined">warning</span> Nieznany typ drukarki: {printer_type}', 'error')
+            flash(f'<span class=material-symbols-outlined>warning</span> Nieznany typ drukarki: {printer_type}', 'error')
     except ImportError as e:
-        flash(f'<span class="material-symbols-outlined">warning</span> Modul drukarki nie znaleziony: {e}', 'error')
+        flash(f'<span class=material-symbols-outlined>warning</span> Modul drukarki nie znaleziony: {e}', 'error')
     except Exception as e:
-        flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Blad drukowania: {e}', 'error')
+        flash(f'<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Blad drukowania: {e}', 'error')
 
     return redirect(url_for('ustawienia.printing_settings'))
