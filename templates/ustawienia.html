@@ -1,0 +1,611 @@
+{% extends "base.html" %}
+{% block page_title %}Ustawienia systemu{% endblock %}
+{% block content %}
+<style>
+/* ── Cyberpunk Settings ── */
+.ust-header{text-align:center;padding:20px 0 8px;animation:fadeSlideUp 0.5s ease}
+.ust-header h1{font-size:1.5rem;margin-bottom:4px;letter-spacing:0.15em;text-transform:uppercase}
+.ust-header small{color:var(--text-muted);font-size:0.78rem;letter-spacing:0.05em}
+
+.ust-grid{display:grid;grid-template-columns:4fr 8fr;gap:18px;margin-bottom:24px}
+@media(max-width:900px){.ust-grid{grid-template-columns:1fr}}
+
+.ust-section-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--neon-primary);font-family:'Space Grotesk','Inter',sans-serif;font-weight:700;margin:0 0 14px;text-shadow:0 0 12px rgba(143,245,255,0.25)}
+
+.ust-panel{background:rgba(19,19,28,0.6);border:1px solid rgba(143,245,255,0.08);padding:22px;margin-bottom:16px;position:relative;transition:border-color 0.3s}
+.ust-panel:hover{border-color:rgba(143,245,255,0.18)}
+
+.ust-panel.accent-right-cyan{border-right:3px solid var(--neon-primary)}
+.ust-panel.accent-top-pink{border-top:3px solid var(--neon-secondary)}
+.ust-panel.accent-left-cyan{border-left:3px solid var(--neon-primary)}
+.ust-panel.accent-left-pink{border-left:3px solid var(--neon-secondary)}
+.ust-panel.accent-left-lime{border-left:3px solid var(--neon-tertiary)}
+.ust-panel.accent-top-lime{border-top:3px solid var(--neon-tertiary)}
+.ust-panel.accent-left-red{border-left:3px solid #ef4444}
+.ust-panel.accent-top-red{border-top:3px solid #ef4444}
+
+.ust-panel-title{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.ust-panel-title .material-symbols-outlined{font-size:1.15rem;color:var(--neon-primary)}
+.ust-panel-title.pink .material-symbols-outlined{color:var(--neon-secondary)}
+.ust-panel-title.lime .material-symbols-outlined{color:var(--neon-tertiary)}
+.ust-panel-title.red .material-symbols-outlined{color:#ef4444}
+.ust-panel-title h3{font-size:0.82rem;text-transform:uppercase;letter-spacing:0.12em;font-family:'Space Grotesk','Inter',sans-serif;font-weight:700;margin:0}
+.ust-panel-title .ust-badge{font-size:0.62rem;padding:3px 10px;color:#fff;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-left:auto}
+.ust-badge.on{background:var(--green)}
+.ust-badge.off{background:var(--text-muted)}
+
+/* Form elements */
+.ust-form-group{margin-bottom:14px}
+.ust-form-group label{display:block;font-size:0.78rem;color:var(--text-secondary);margin-bottom:5px;font-weight:600;letter-spacing:0.03em}
+.ust-input{width:100%;padding:10px 14px;background:rgba(14,14,16,0.8);border:1px solid rgba(143,245,255,0.1);color:var(--text);font-size:0.88rem;transition:all 0.25s;font-family:'Inter',sans-serif}
+.ust-input:focus{border-color:var(--neon-primary);outline:none;box-shadow:0 0 0 2px rgba(143,245,255,0.08),0 0 16px rgba(143,245,255,0.06)}
+.ust-input::placeholder{color:var(--text-muted);opacity:0.6}
+.ust-input.mono{font-family:'Space Mono','Courier New',monospace;font-size:0.82rem}
+
+.ust-input-icon{position:relative}
+.ust-input-icon .material-symbols-outlined{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:1.1rem;color:var(--text-muted);pointer-events:none}
+.ust-input-icon .ust-input{padding-left:40px}
+
+select.ust-input{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238ff5ff' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+
+/* Buttons */
+.ust-btn{display:block;width:100%;padding:11px;font-size:0.84rem;font-weight:700;text-align:center;text-decoration:none;border:none;cursor:pointer;text-transform:uppercase;letter-spacing:0.1em;font-family:'Space Grotesk','Inter',sans-serif;transition:all 0.25s;color:#fff}
+.ust-btn:hover{transform:translateY(-1px)}
+.ust-btn-cyan{background:var(--neon-primary);color:#0a0a16;box-shadow:0 0 20px rgba(143,245,255,0.2),0 0 40px rgba(143,245,255,0.06)}
+.ust-btn-cyan:hover{box-shadow:0 0 30px rgba(143,245,255,0.35),0 0 60px rgba(143,245,255,0.1)}
+.ust-btn-pink{background:transparent;border:1px solid var(--neon-secondary);color:var(--neon-secondary)}
+.ust-btn-pink:hover{background:rgba(255,107,155,0.08);box-shadow:0 0 20px rgba(255,107,155,0.15)}
+.ust-btn-pink-fill{background:var(--neon-secondary);color:#0a0a16}
+.ust-btn-pink-fill:hover{box-shadow:0 0 25px rgba(255,107,155,0.3)}
+.ust-btn-lime{background:var(--neon-tertiary);color:#0a0a16}
+.ust-btn-lime:hover{box-shadow:0 0 25px rgba(190,238,0,0.3)}
+.ust-btn-ghost{background:transparent;border:1px solid rgba(143,245,255,0.15);color:var(--text-secondary)}
+.ust-btn-ghost:hover{border-color:rgba(143,245,255,0.35);color:var(--neon-primary);background:rgba(143,245,255,0.04)}
+.ust-btn-red{background:#ef4444;color:#fff}
+.ust-btn-red:hover{box-shadow:0 0 25px rgba(239,68,68,0.3)}
+.ust-btn-sm{padding:8px 14px;font-size:0.76rem;width:auto;display:inline-block}
+.ust-btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+
+/* Toggle switch */
+.ust-toggle{display:flex;align-items:center;gap:12px;margin-bottom:14px;cursor:pointer}
+.ust-toggle input[type=checkbox]{width:18px;height:18px;accent-color:var(--neon-primary);cursor:pointer}
+.ust-toggle span{font-size:0.84rem;font-weight:600}
+
+/* Hint box */
+.ust-hint{padding:12px;background:rgba(14,14,16,0.6);border-left:2px solid rgba(143,245,255,0.15);font-size:0.75rem;color:var(--text-muted);margin-top:12px;line-height:1.7}
+.ust-hint a{color:var(--neon-primary)}
+.ust-hint b{color:var(--text-secondary)}
+
+/* Status text */
+.ust-status{font-size:0.75rem;margin-bottom:10px}
+.ust-status.ok{color:var(--green)}
+.ust-status.warn{color:var(--yellow)}
+
+/* Link card */
+.ust-link{display:flex;align-items:center;gap:14px;padding:16px;background:rgba(19,19,28,0.6);border:1px solid rgba(143,245,255,0.08);text-decoration:none;color:var(--text);transition:all 0.25s;margin-bottom:12px}
+.ust-link:hover{border-color:rgba(143,245,255,0.3);transform:translateY(-1px);box-shadow:0 4px 20px rgba(143,245,255,0.08)}
+.ust-link .material-symbols-outlined{font-size:1.4rem;color:var(--neon-primary)}
+.ust-link-info{flex:1}
+.ust-link-title{font-weight:700;font-size:0.88rem;font-family:'Space Grotesk','Inter',sans-serif}
+.ust-link-desc{font-size:0.72rem;color:var(--text-muted);margin-top:2px}
+.ust-link-arrow{color:var(--text-muted);font-size:0.9rem;transition:transform 0.2s,color 0.2s}
+.ust-link:hover .ust-link-arrow{transform:translateX(4px);color:var(--neon-primary)}
+
+/* Module toggle */
+.ust-module{display:flex;align-items:center;gap:12px;padding:12px;background:rgba(14,14,16,0.5);border:1px solid rgba(143,245,255,0.06);cursor:pointer;margin-bottom:6px;transition:all 0.2s}
+.ust-module:hover{border-color:rgba(143,245,255,0.2)}
+.ust-module input[type=checkbox]{width:18px;height:18px;accent-color:var(--neon-tertiary);cursor:pointer}
+.ust-module-name{font-weight:700;font-size:0.84rem}
+.ust-module-desc{font-size:0.7rem;color:var(--text-muted);margin-top:2px}
+
+/* Danger zone */
+.ust-danger-zone{margin-top:24px;border:1px solid rgba(239,68,68,0.15);padding:22px;background:rgba(239,68,68,0.03)}
+.ust-danger-btn{width:100%;padding:11px;border:none;color:#fff;font-weight:700;cursor:pointer;font-size:0.82rem;transition:all 0.25s;text-transform:uppercase;letter-spacing:0.08em;font-family:'Space Grotesk','Inter',sans-serif;margin-bottom:8px}
+.ust-danger-btn:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(239,68,68,0.25)}
+.ust-danger-btn:last-child{margin-bottom:0}
+
+/* Two-col grid inside panel */
+.ust-row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ust-row-13{display:grid;grid-template-columns:1fr 2fr;gap:12px}
+
+/* Branding color picker */
+.ust-color-row{display:flex;gap:10px;align-items:center;margin-top:5px}
+.ust-color-row input[type=color]{width:48px;height:38px;border:1px solid rgba(143,245,255,0.1);background:none;cursor:pointer;padding:2px}
+
+/* Flash messages */
+.ust-flash{padding:14px 18px;margin-bottom:16px;font-size:0.84rem;font-weight:600;border-left:3px solid var(--neon-primary);background:rgba(143,245,255,0.06)}
+.ust-flash.success{border-left-color:var(--green);background:rgba(34,197,94,0.06);color:var(--green)}
+.ust-flash.error{border-left-color:#ef4444;background:rgba(239,68,68,0.06);color:#ef4444}
+.ust-flash.warning{border-left-color:var(--yellow);background:rgba(234,179,8,0.06);color:var(--yellow)}
+
+/* Animations */
+@keyframes fadeSlideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeSlideLeft{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
+.ust-panel{animation:fadeSlideUp 0.4s ease both}
+.ust-grid .ust-panel:nth-child(1){animation-delay:0.05s}
+.ust-grid .ust-panel:nth-child(2){animation-delay:0.1s}
+.ust-grid .ust-panel:nth-child(3){animation-delay:0.15s}
+.ust-grid .ust-panel:nth-child(4){animation-delay:0.2s}
+</style>
+
+<!-- Flash messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for category, message in messages %}
+<div class="ust-flash {{ category }}">{{ message }}</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
+
+<!-- Header -->
+<div class="ust-header">
+    <h1 class="font-display gradient-text-stitch">USTAWIENIA</h1>
+    <small>Konfiguracja systemu i integracji</small>
+</div>
+
+<!-- ═══════════ MAIN GRID ═══════════ -->
+<div class="ust-grid">
+
+    <!-- ─── LEFT COLUMN ─── -->
+    <div>
+
+        <!-- APP URL -->
+        <div class="ust-panel accent-right-cyan">
+            <div class="ust-panel-title">
+                <span class="material-symbols-outlined">language</span>
+                <h3>Adres URL aplikacji</h3>
+            </div>
+            <form action="/ustawienia/save" method="POST">
+                <div class="ust-form-group">
+                    <label>URL (dla QR kodow)</label>
+                    <input type="text" name="app_base_url" class="ust-input mono" value="{{ base_url }}"
+                        placeholder="https://xxx.ngrok-free.dev">
+                </div>
+                <div class="ust-status {{ 'ok' if is_ngrok else 'warn' }}">
+                    {% if is_ngrok %}
+                    <span class="material-symbols-outlined" style="font-size:0.85rem;vertical-align:middle">check_circle</span>
+                    Ngrok wykryty - QR kody beda dzialac z telefonu
+                    {% else %}
+                    <span class="material-symbols-outlined" style="font-size:0.85rem;vertical-align:middle">warning</span>
+                    localhost - QR kody nie beda dzialac z telefonu
+                    {% endif %}
+                </div>
+                <button type="submit" class="ust-btn ust-btn-cyan">Zapisz adres URL</button>
+            </form>
+        </div>
+
+        <!-- INTEGRATION PARAMETERS -->
+        <div class="ust-panel accent-top-pink">
+            <div class="ust-panel-title pink">
+                <span class="material-symbols-outlined">assignment</span>
+                <h3>Parametry integracji</h3>
+            </div>
+            <form action="/ustawienia/integracje-parametry" method="POST">
+                <div class="ust-form-group">
+                    <label>ID cennika DPD</label>
+                    <input type="text" name="dpd_cennik_id" class="ust-input mono" value="{{ dpd_cennik_id }}"
+                        placeholder="bf1a1cf0-6a1e-41b3-a42e-d46846b35f43">
+                </div>
+                <div class="ust-form-group">
+                    <label>ID warunkow zwrotow</label>
+                    <input type="text" name="zwroty_warunki_id" class="ust-input mono" value="{{ zwroty_warunki_id }}"
+                        placeholder="7b75ba63-0967-4536-a439-730f8e563a59">
+                </div>
+                <div class="ust-form-group">
+                    <label>ID warunkow reklamacji</label>
+                    <input type="text" name="reklamacje_warunki_id" class="ust-input mono" value="{{ reklamacje_warunki_id }}"
+                        placeholder="128af307-9341-4f8c-b406-63b9060cce7d">
+                </div>
+                <button type="submit" class="ust-btn ust-btn-pink">Zapisz parametry</button>
+            </form>
+        </div>
+
+        <!-- NGROK -->
+        <div class="ust-panel accent-left-cyan">
+            <div class="ust-panel-title">
+                <span class="material-symbols-outlined">rocket_launch</span>
+                <h3>Ngrok - Zdalny dostep</h3>
+            </div>
+            <form action="/ustawienia/ngrok-token" method="POST">
+                <div class="ust-form-group">
+                    <label>Auth Token (<a href="https://dashboard.ngrok.com/get-started/your-authtoken" target="_blank" style="color:var(--neon-primary)">dashboard.ngrok.com</a>)</label>
+                    <input type="password" name="ngrok_token" class="ust-input mono" value="{{ ngrok_token }}"
+                        placeholder="2abc...xyz123">
+                </div>
+                <div class="ust-form-group">
+                    <label>Stala domena (opcjonalnie)</label>
+                    <input type="text" name="ngrok_domain" class="ust-input mono" value="{{ ngrok_domain }}"
+                        placeholder="twoja-domena.ngrok-free.dev">
+                </div>
+                <button type="submit" class="ust-btn ust-btn-cyan">Zapisz i polacz</button>
+            </form>
+            <div class="ust-hint">
+                Na Raspberry Pi ngrok startuje automatycznie. Token zapisuje sie w bazie danych.
+            </div>
+        </div>
+
+        <!-- KIOSK MODE -->
+        <div class="ust-panel">
+            <div class="ust-panel-title">
+                <span class="material-symbols-outlined">tv</span>
+                <h3>Tryb Kiosk (Raspberry Pi)</h3>
+            </div>
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px">
+                Optymalizacja UI dla ekranu dotykowego 7"
+            </div>
+            <div class="ust-btn-grid">
+                <a href="/?kiosk=1" class="ust-btn ust-btn-cyan ust-btn-sm" style="text-align:center">Wlacz Kiosk</a>
+                <a href="/?kiosk=0" class="ust-btn ust-btn-ghost ust-btn-sm" style="text-align:center">Wylacz Kiosk</a>
+            </div>
+        </div>
+
+    </div><!-- /left column -->
+
+    <!-- ─── RIGHT COLUMN ─── -->
+    <div>
+
+        <!-- EMAIL REPORTS -->
+        <div class="ust-panel accent-left-cyan">
+            <div class="ust-panel-title">
+                <span class="material-symbols-outlined">email</span>
+                <h3>Raporty Email</h3>
+                <span class="ust-badge {{ 'on' if email_cfg.get('enabled') else 'off' }}">
+                    {{ 'WLACZONE' if email_cfg.get('enabled') else 'WYLACZONE' }}
+                </span>
+            </div>
+            <form action="/ustawienia/email" method="POST">
+                <label class="ust-toggle">
+                    <input type="checkbox" name="enabled" {{ 'checked' if email_cfg.get('enabled') else '' }}>
+                    <span>Wlacz raporty email</span>
+                </label>
+                <div class="ust-form-group">
+                    <label>Email (Gmail SMTP)</label>
+                    <div class="ust-input-icon">
+                        <span class="material-symbols-outlined">person</span>
+                        <input type="email" name="email" class="ust-input" value="{{ email_cfg.get('email') or '' }}"
+                            placeholder="twoj@gmail.com">
+                    </div>
+                </div>
+                <div class="ust-form-group">
+                    <label>Haslo aplikacji</label>
+                    <div class="ust-input-icon">
+                        <span class="material-symbols-outlined">lock</span>
+                        <input type="password" name="password" class="ust-input"
+                            placeholder="{{ '••••••••••••••••' if email_cfg.get('password') else 'xxxx xxxx xxxx xxxx' }}">
+                    </div>
+                </div>
+                <div class="ust-form-group">
+                    <label>Domyslny odbiorca (opcjonalnie)</label>
+                    <div class="ust-input-icon">
+                        <span class="material-symbols-outlined">send</span>
+                        <input type="email" name="recipient" class="ust-input" value="{{ email_cfg.get('recipient') or '' }}"
+                            placeholder="Zostaw puste jesli ten sam email">
+                    </div>
+                </div>
+                <button type="submit" class="ust-btn ust-btn-pink-fill">Zapisz konfiguracje</button>
+            </form>
+            <div class="ust-btn-grid">
+                <a href="/raport/podglad" target="_blank" class="ust-btn ust-btn-ghost ust-btn-sm" style="text-align:center">
+                    <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">visibility</span>
+                    Podglad raportu
+                </a>
+                <a href="/raport/wyslij" onclick="return confirm('Wyslac raport tygodniowy na email?')" class="ust-btn ust-btn-ghost ust-btn-sm" style="text-align:center">
+                    <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">send</span>
+                    Wyslij teraz
+                </a>
+            </div>
+            <div class="ust-hint">
+                <b>Jak uzyskac haslo aplikacji Gmail?</b><br>
+                1. Wejdz na <a href="https://myaccount.google.com/apppasswords" target="_blank">myaccount.google.com/apppasswords</a><br>
+                2. Wybierz "Poczta" i "Windows"<br>
+                3. Skopiuj 16-znakowe haslo (bez spacji)
+            </div>
+        </div>
+
+        <!-- DATA RETENTION (RODO) -->
+        <div class="ust-panel accent-left-lime">
+            <div class="ust-panel-title lime">
+                <span class="material-symbols-outlined">shield</span>
+                <h3>Retencja danych (RODO)</h3>
+            </div>
+            <form action="/ustawienia/retencja" method="POST">
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
+                    Dane starsze niz wybrany okres zostana automatycznie zanonimizowane (nie usuniete).
+                    Kwoty i statystyki pozostana do celow ksiegowych.
+                </div>
+                <div class="ust-form-group">
+                    <label>Okres przechowywania danych osobowych</label>
+                    <select name="data_retention_years" class="ust-input">
+                        <option value="1" {{ 'selected' if data_retention_years == '1' else '' }}>1 rok</option>
+                        <option value="2" {{ 'selected' if data_retention_years == '2' else '' }}>2 lata</option>
+                        <option value="3" {{ 'selected' if data_retention_years == '3' else '' }}>3 lata</option>
+                        <option value="5" {{ 'selected' if data_retention_years == '5' else '' }}>5 lat</option>
+                        <option value="7" {{ 'selected' if data_retention_years == '7' else '' }}>7 lat</option>
+                        <option value="10" {{ 'selected' if data_retention_years == '10' else '' }}>10 lat</option>
+                        <option value="0" {{ 'selected' if data_retention_years == '0' else '' }}>Bezterminowo</option>
+                    </select>
+                </div>
+                <button type="submit" class="ust-btn ust-btn-lime">Zapisz ustawienia retencji</button>
+            </form>
+        </div>
+
+        <!-- DANE NADAWCY -->
+        <div class="ust-panel accent-left-cyan" id="nadawca">
+            <div class="ust-panel-title">
+                <span class="material-symbols-outlined">inventory_2</span>
+                <h3>Dane nadawcy na etykiecie</h3>
+            </div>
+            <form action="/ustawienia/nadawca/save" method="POST">
+                <div class="ust-row-2">
+                    <div class="ust-form-group">
+                        <label>Imie</label>
+                        <input type="text" name="firma_imie" class="ust-input" value="{{ firma_imie }}" placeholder="Andrzej">
+                    </div>
+                    <div class="ust-form-group">
+                        <label>Nazwisko</label>
+                        <input type="text" name="firma_nazwisko" class="ust-input" value="{{ firma_nazwisko }}" placeholder="Gauza">
+                    </div>
+                </div>
+                <div class="ust-form-group">
+                    <label>Nazwa firmy</label>
+                    <input type="text" name="firma_nazwa" class="ust-input" value="{{ firma_nazwa }}" placeholder="AKCES">
+                </div>
+                <div class="ust-form-group">
+                    <label>Ulica i numer</label>
+                    <input type="text" name="firma_ulica" class="ust-input" value="{{ firma_ulica }}" placeholder="Poniatowskiego 13">
+                </div>
+                <div class="ust-row-13">
+                    <div class="ust-form-group">
+                        <label>Kod pocztowy</label>
+                        <input type="text" name="allegro_postcode" class="ust-input" value="{{ allegro_postcode }}" placeholder="74-505">
+                    </div>
+                    <div class="ust-form-group">
+                        <label>Miejscowosc</label>
+                        <input type="text" name="allegro_city" class="ust-input" value="{{ allegro_city }}" placeholder="Mieszkowice">
+                    </div>
+                </div>
+                <div class="ust-row-2">
+                    <div class="ust-form-group">
+                        <label>E-mail</label>
+                        <input type="email" name="firma_email" class="ust-input" value="{{ firma_email }}" placeholder="agauza@interia.eu">
+                    </div>
+                    <div class="ust-form-group">
+                        <label>Telefon</label>
+                        <input type="text" name="firma_telefon" class="ust-input" value="{{ firma_telefon }}" placeholder="+48 604 753 407">
+                    </div>
+                </div>
+                <button type="submit" class="ust-btn ust-btn-cyan">Zapisz dane nadawcy</button>
+            </form>
+        </div>
+
+        <!-- SMTP CONFIG -->
+        <div class="ust-panel accent-left-pink">
+            <div class="ust-panel-title pink">
+                <span class="material-symbols-outlined">email</span>
+                <h3>SMTP (Powiadomienia licencji)</h3>
+                <span class="ust-badge {{ 'on' if smtp_cfg.get('host') and smtp_cfg.get('user') else 'off' }}">
+                    {{ 'SKONFIGUROWANY' if smtp_cfg.get('host') and smtp_cfg.get('user') else 'NIESKONFIGUROWANY' }}
+                </span>
+            </div>
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px">
+                Ustawienia SMTP do powiadomien o wygasajacych licencjach.
+            </div>
+            <form action="/ustawienia/smtp" method="POST">
+                <div class="ust-row-2">
+                    <div class="ust-form-group">
+                        <label>SMTP Host</label>
+                        <input type="text" name="smtp_host" class="ust-input" value="{{ smtp_cfg.get('host') or '' }}"
+                            placeholder="smtp.gmail.com">
+                    </div>
+                    <div class="ust-form-group">
+                        <label>SMTP Port</label>
+                        <input type="number" name="smtp_port" class="ust-input" value="{{ smtp_cfg.get('port') or '587' }}"
+                            placeholder="587">
+                    </div>
+                </div>
+                <div class="ust-form-group">
+                    <label>SMTP User</label>
+                    <input type="text" name="smtp_user" class="ust-input" value="{{ smtp_cfg.get('user') or '' }}"
+                        placeholder="email@example.com">
+                </div>
+                <div class="ust-form-group">
+                    <label>SMTP Password</label>
+                    <input type="password" name="smtp_password" class="ust-input"
+                        placeholder="{{ '••••••••••••' if smtp_cfg.get('password') else 'Haslo SMTP' }}">
+                </div>
+                <div class="ust-form-group">
+                    <label>Admin Email (odbiorca powiadomien)</label>
+                    <input type="email" name="admin_email" class="ust-input" value="{{ smtp_cfg.get('admin_email') or '' }}"
+                        placeholder="admin@example.com">
+                </div>
+                <button type="submit" class="ust-btn ust-btn-pink">Zapisz konfiguracje SMTP</button>
+            </form>
+            <div class="ust-btn-grid" style="margin-top:12px">
+                <form method="POST" action="/ustawienia/smtp-test" style="width:100%">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="ust-btn ust-btn-ghost ust-btn-sm" style="width:100%">Wyslij testowy email</button>
+                </form>
+            </div>
+        </div>
+
+    </div><!-- /right column -->
+
+</div><!-- /ust-grid -->
+
+<!-- ═══════════ FULL-WIDTH SECTIONS BELOW GRID ═══════════ -->
+
+<!-- QUICK LINKS -->
+<div class="ust-section-label">Szybkie skroty</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:20px">
+    <a href="/ustawienia/kreator" class="ust-link">
+        <span class="material-symbols-outlined">build</span>
+        <div class="ust-link-info">
+            <div class="ust-link-title">Kreator konfiguracji</div>
+            <div class="ust-link-desc">Wszystkie klucze API w jednym miejscu</div>
+        </div>
+        <span class="ust-link-arrow">&rarr;</span>
+    </a>
+    <a href="/auth/users" class="ust-link">
+        <span class="material-symbols-outlined">group</span>
+        <div class="ust-link-info">
+            <div class="ust-link-title">Zarzadzanie uzytkownikami</div>
+            <div class="ust-link-desc">Role, uprawnienia, konta</div>
+        </div>
+        <span class="ust-link-arrow">&rarr;</span>
+    </a>
+    <a href="/auth/zmien-haslo" class="ust-link">
+        <span class="material-symbols-outlined">lock</span>
+        <div class="ust-link-info">
+            <div class="ust-link-title">Zmien haslo</div>
+            <div class="ust-link-desc">Bezpieczenstwo konta</div>
+        </div>
+        <span class="ust-link-arrow">&rarr;</span>
+    </a>
+    <a href="/narzedzia" class="ust-link">
+        <span class="material-symbols-outlined">sync</span>
+        <div class="ust-link-info">
+            <div class="ust-link-title">Aktualizacja systemu</div>
+            <div class="ust-link-desc">Narzedzia i diagnostyka</div>
+        </div>
+        <span class="ust-link-arrow">&rarr;</span>
+    </a>
+</div>
+
+<!-- MODULES -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px">
+    <div class="ust-panel accent-top-lime">
+        <div class="ust-panel-title lime">
+            <span class="material-symbols-outlined">extension</span>
+            <h3>Moduly systemu</h3>
+        </div>
+        <form action="/ustawienia/modules" method="POST">
+            {% for key, mod in modules_cfg.items() %}
+            <label class="ust-module">
+                <input type="checkbox" name="module_{{ key }}" {{ 'checked' if mod.enabled else '' }}>
+                <div>
+                    <div class="ust-module-name">{{ mod.name }}</div>
+                    <div class="ust-module-desc">{{ mod.desc }}</div>
+                </div>
+            </label>
+            {% endfor %}
+            <button type="submit" class="ust-btn ust-btn-lime" style="margin-top:10px">Zapisz moduly</button>
+        </form>
+    </div>
+
+    <!-- BRANDING -->
+    <div class="ust-panel accent-top-pink">
+        <div class="ust-panel-title pink">
+            <span class="material-symbols-outlined">palette</span>
+            <h3>Branding</h3>
+        </div>
+        <form action="/ustawienia/branding" method="POST" enctype="multipart/form-data">
+            <div class="ust-form-group">
+                <label>Nazwa systemu</label>
+                <input type="text" name="brand_name" class="ust-input" value="{{ brand_name_val }}">
+            </div>
+            <div class="ust-form-group">
+                <label>Logo firmy (PNG/JPG, max 500KB)</label>
+                <div style="display:flex;gap:10px;align-items:center;margin-top:5px">
+                    {% if has_logo %}
+                    <img src="/static/brand_logo.png?v={{ logo_bust }}" style="height:36px">
+                    {% else %}
+                    <span style="color:var(--text-muted);font-size:0.82rem">Brak logo</span>
+                    {% endif %}
+                    <input type="file" name="brand_logo" accept="image/png,image/jpeg" class="ust-input" style="flex:1;padding:8px">
+                </div>
+            </div>
+            <div class="ust-form-group">
+                <label>Kolor przewodni</label>
+                <div class="ust-color-row">
+                    <input type="color" name="brand_color" value="{{ brand_color }}">
+                    <input type="text" value="{{ brand_color }}" class="ust-input mono" style="flex:1"
+                        onchange="this.previousElementSibling.value=this.value" readonly>
+                </div>
+            </div>
+            <button type="submit" class="ust-btn ust-btn-pink-fill">Zapisz branding</button>
+        </form>
+    </div>
+</div>
+
+<!-- DOSTAWCY -->
+<div class="ust-panel accent-left-cyan" style="margin-bottom:20px">
+    <div class="ust-panel-title">
+        <span class="material-symbols-outlined">local_shipping</span>
+        <h3>Zarzadzanie dostawcami</h3>
+    </div>
+    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px">
+        Lista dodatkowych dostawcow wyswietlanych w listach rozwijanych. Dostawcy z istniejacych palet i produktow sa dolaczani automatycznie.
+    </div>
+    <form action="/ustawienia/dostawcy" method="POST">
+        <div class="ust-form-group">
+            <label>Dodatkowi dostawcy (oddzieleni przecinkami)</label>
+            <input type="text" name="custom_dostawcy" class="ust-input" value="{{ custom_dostawcy or '' }}"
+                placeholder="np. Jobalots, Warrington, MojaFirma">
+        </div>
+        <button type="submit" class="ust-btn ust-btn-cyan">Zapisz liste dostawcow</button>
+    </form>
+</div>
+
+<!-- DATABASE -->
+<div class="ust-panel" style="margin-bottom:20px">
+    <div class="ust-panel-title">
+        <span class="material-symbols-outlined">save</span>
+        <h3>Baza danych</h3>
+    </div>
+    <div style="display:grid;gap:12px">
+        <form method="POST" action="/ustawienia/upload-db" enctype="multipart/form-data" onsubmit="return confirm('UWAGA!\n\nTo nadpisze obecna baze danych!\nAktualny backup zostanie utworzony automatycznie.\n\nKontynuowac?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px">Wgraj plik bazy danych (.db) — np. od innego uzytkownika lub z backupu</div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                <input type="file" name="db_file" accept=".db" required class="ust-input" style="flex:1;min-width:200px;padding:8px">
+                <button type="submit" class="ust-btn ust-btn-cyan ust-btn-sm">Wgraj baze</button>
+            </div>
+        </form>
+        <a href="/ustawienia/download-db" style="display:inline-flex;align-items:center;gap:6px;color:var(--neon-primary);font-size:0.82rem;text-decoration:none">
+            <span class="material-symbols-outlined" style="font-size:1rem">download</span> Pobierz aktualna baze danych
+        </a>
+    </div>
+</div>
+
+<!-- ═══════════ DANGER ZONE ═══════════ -->
+<div class="ust-section-label" style="color:#ef4444;text-shadow:0 0 12px rgba(239,68,68,0.3);border-bottom-color:rgba(239,68,68,0.12)">
+    <span class="material-symbols-outlined" style="font-size:0.85rem;vertical-align:middle">warning</span>
+    Strefa niebezpieczna
+</div>
+<div class="ust-danger-zone">
+    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px">
+        Wyczysc testowe dane. Te operacje sa nieodwracalne!
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <form method="POST" action="/ustawienia/reset-sprzedaze" onsubmit="return confirm('Na pewno wyczyscic historie sprzedazy?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="ust-danger-btn" style="background:#ef4444">
+                <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">delete</span>
+                Wyczysc sprzedaze
+            </button>
+        </form>
+        <form method="POST" action="/ustawienia/reset-magazyn" onsubmit="return confirm('UWAGA!\n\nTo usunie WSZYSTKIE produkty z magazynu!\n\nNa pewno kontynuowac?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="ust-danger-btn" style="background:#dc2626">
+                <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">delete_forever</span>
+                Wyczysc magazyn
+            </button>
+        </form>
+        <form method="POST" action="/ustawienia/reset-palety" onsubmit="return confirm('UWAGA!\n\nTo usunie WSZYSTKIE palety i powiazane produkty!\n\nNa pewno kontynuowac?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="ust-danger-btn" style="background:#b91c1c">
+                <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">delete_sweep</span>
+                Wyczysc palety
+            </button>
+        </form>
+        <form method="POST" action="/ustawienia/reset-scraped" onsubmit="return confirm('Wyczyscic zescrapowane produkty z Palatomatu?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="ust-danger-btn" style="background:#991b1b">
+                <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">cleaning_services</span>
+                Wyczysc scraped
+            </button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
