@@ -4511,133 +4511,147 @@ def koszty_allegro():
 
     if billing_source == 'api':
         fees_source = 'Allegro Billing API (90 dni)'
-        fees_icon = '🔗'
+        fees_icon = 'cloud_sync'
     elif use_real_fees:
         fees_source = 'realne opłaty z tabeli Koszty'
-        fees_icon = '📊'
+        fees_icon = 'table_chart'
     else:
         fees_source = f'szacunkowe {prowizja_pct*100:.0f}%'
-        fees_icon = '📊'
+        fees_icon = 'calculate'
     billing_inne = billing_data.get('inne', 0)
 
     # Build HTML
     rows_html = ''
     for p in products:
-        badge_color = 'var(--neon-tertiary)' if p['marza'] > 0 else '#ef4444'
-        badge_bg = 'rgba(91,240,131,0.1)' if p['marza'] > 0 else 'rgba(239,68,68,0.1)'
+        badge_color = '#beee00' if p['marza'] > 0 else '#ef4444'
+        badge_bg = 'rgba(190,238,0,0.08)' if p['marza'] > 0 else 'rgba(239,68,68,0.08)'
+        badge_border = 'rgba(190,238,0,0.20)' if p['marza'] > 0 else 'rgba(239,68,68,0.20)'
         badge_text = 'DOBRZE' if p['marza'] > 0 else 'STRATA'
         koszt_szt_str = f"{p['koszt_szt']:,.0f} zł" if p['koszt_szt'] > 0 else '-'
-        rows_html += f'''<tr data-przychod="{p['przychod']}" data-szt="{p['szt']}" data-koszt="{p['koszt_szt']}" data-prowizja="{p['prowizja']}" data-reklama="{p['reklama']}" data-dostawa="{p['dostawa']}" data-koszt-total="{p['koszt']}" data-marza="{p['marza']}" data-marza-pct="{p['marza_pct']}" data-nazwa="{p['nazwa'][:45]}">
+        rows_html += f'''<tr>
             <td style="padding:10px 14px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">{p['nazwa'][:45]}</td>
-            <td style="padding:10px 10px;text-align:right;font-family:'Space Grotesk',sans-serif;font-weight:600">{p['przychod']:,.0f} zł</td>
+            <td style="padding:10px 10px;text-align:right;font-family:'Space Grotesk',sans-serif;font-weight:600;color:#8ff5ff">{p['przychod']:,.0f} zł</td>
             <td style="padding:10px 8px;text-align:center">{p['szt']}</td>
             <td style="padding:10px 10px;text-align:right;color:var(--text-muted);font-size:0.78rem">{koszt_szt_str}</td>
-            <td style="padding:10px 10px;text-align:right;color:var(--neon-primary)">{p['prowizja']:,.0f} zł</td>
-            <td style="padding:10px 10px;text-align:right;color:var(--neon-secondary)">{p['reklama']:,.0f} zł</td>
+            <td style="padding:10px 10px;text-align:right;color:#8ff5ff">{p['prowizja']:,.0f} zł</td>
+            <td style="padding:10px 10px;text-align:right;color:#ff6b9b">{p['reklama']:,.0f} zł</td>
             <td style="padding:10px 10px;text-align:right;color:var(--text-muted)">{p['dostawa']:,.0f} zł</td>
             <td style="padding:10px 10px;text-align:right;font-family:'Space Grotesk',sans-serif;font-weight:700;color:#f59e0b">{p['koszt']:,.0f} zł</td>
             <td style="padding:10px 10px;text-align:right;font-family:'Space Grotesk',sans-serif;font-weight:700;color:{badge_color}">{p['marza']:,.0f} zł ({p['marza_pct']:.1f}%)</td>
-            <td style="padding:10px 8px;text-align:center"><span style="display:inline-block;padding:3px 10px;border-radius:6px;font-size:0.68rem;font-weight:700;background:{badge_bg};color:{badge_color}">{badge_text}</span></td>
-            <td style="padding:10px 4px;text-align:center;font-size:0.65rem;color:{'var(--neon-tertiary)' if p['source'] == 'API' else 'var(--text-muted)'}">{p['source']}</td>
+            <td style="padding:10px 8px;text-align:center"><span style="display:inline-block;padding:3px 10px;border-radius:6px;font-size:0.65rem;font-weight:700;background:{badge_bg};color:{badge_color};border:1px solid {badge_border}">{badge_text}</span></td>
+            <td style="padding:10px 4px;text-align:center;font-size:0.65rem;color:{'#beee00' if p['source'] == 'API' else 'var(--text-muted)'}">{p['source']}</td>
         </tr>'''
 
     html = f'''
     <style>
-    .ka-summary{{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}}
-    .ka-stat{{padding:18px;text-align:center}}
-    .ka-stat-val{{font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:800;line-height:1}}
-    .ka-stat-label{{font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-top:6px;font-weight:600}}
+    .ka-summary{{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}}
+    .ka-stat{{padding:18px;background:rgba(10,10,22,0.6);border:1px solid rgba(143,245,255,0.06);border-radius:12px}}
+    .ka-stat-val{{font-family:'Space Grotesk',sans-serif;font-size:1.8rem;font-weight:800;line-height:1;letter-spacing:-0.02em}}
+    .ka-stat-label{{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;font-weight:600;font-family:'Space Grotesk',sans-serif}}
+    .ka-stat.featured{{grid-column:span 2;border-left:3px solid #8ff5ff;box-shadow:0 0 20px rgba(143,245,255,0.08)}}
+    .ka-stat.accent-lime{{border-top:2px solid #beee00}}
     .ka-table{{width:100%;border-collapse:collapse;font-size:0.82rem}}
-    .ka-table th{{padding:12px 14px;text-align:left;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--neon-primary);border-bottom:1px solid rgba(0,241,254,0.15);font-weight:600}}
-    .ka-table td{{border-bottom:1px solid rgba(255,255,255,0.04)}}
-    .ka-table tr:hover{{background:rgba(0,241,254,0.02)}}
+    .ka-table th{{padding:12px 14px;text-align:left;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:#8ff5ff;border-bottom:1px solid rgba(143,245,255,0.12);font-weight:600;font-family:'Space Grotesk',sans-serif}}
+    .ka-table td{{border-bottom:1px solid rgba(255,255,255,0.03)}}
+    .ka-table tr:hover{{background:rgba(143,245,255,0.02)}}
     .ka-roas{{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px}}
-    @media(max-width:900px){{.ka-summary{{grid-template-columns:1fr 1fr 1fr}}.ka-roas{{grid-template-columns:1fr}}}}
+    .ka-detail-row{{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.88rem}}
+    .ka-detail-row:last-child{{border-bottom:none;padding-top:12px}}
+    @media(max-width:900px){{.ka-summary{{grid-template-columns:1fr 1fr}}.ka-stat.featured{{grid-column:span 2}}.ka-roas{{grid-template-columns:1fr}}}}
     </style>
 
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
-        <div>
-            <h1 class="font-display" style="font-size:1.4rem;font-weight:800;color:var(--neon-primary);text-shadow:0 0 10px rgba(0,241,254,0.4);margin:0">Koszty Allegro</h1>
-            <div style="color:var(--text-muted);font-size:0.82rem;margin-top:4px">Analiza kosztów i rentowności per produkt</div>
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:10px">
+            <span class="material-symbols-outlined" style="color:#8ff5ff;font-size:1.4rem">analytics</span>
+            <div>
+                <h1 style="font-size:1.4rem;font-weight:800;color:#8ff5ff;text-shadow:0 0 15px rgba(143,245,255,0.3);margin:0;font-family:'Space Grotesk',sans-serif;letter-spacing:0.03em">Koszty Allegro</h1>
+                <div style="color:var(--text-muted);font-size:0.8rem;margin-top:2px">Analiza kosztów i rentowności per produkt</div>
+            </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
-            <a href="/analityka/koszty-allegro?refresh=1" style="padding:6px 14px;border-radius:8px;background:rgba(0,241,254,0.08);border:1px solid rgba(0,241,254,0.2);color:var(--neon-primary);text-decoration:none;font-size:0.75rem;font-weight:600;transition:all 0.2s">🔄 Synchronizuj</a>
-            <span style="font-size:0.72rem;color:var(--text-muted)">{fees_icon} {fees_source}</span>
+            <a href="/analityka/koszty-allegro?refresh=1" style="padding:8px 16px;border-radius:10px;background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);color:#8ff5ff;text-decoration:none;font-size:0.75rem;font-weight:700;transition:all 0.2s;display:flex;align-items:center;gap:6px;font-family:'Space Grotesk',sans-serif;box-shadow:0 0 10px rgba(143,245,255,0.15)"><span class="material-symbols-outlined" style="font-size:1rem">cloud_sync</span> Synchronizuj</a>
         </div>
     </div>
 
-    <!-- KPI Summary -->
+    <!-- API Sync Status -->
+    <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,22,0.6);padding:14px 18px;border-radius:12px;border-left:2px solid #8ff5ff;margin-bottom:16px">
+        <div>
+            <div style="font-size:0.62rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em">Status połączenia</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:0.88rem;font-weight:700;color:#8ff5ff;margin-top:2px">{fees_source}</div>
+        </div>
+        <span class="material-symbols-outlined" style="color:#8ff5ff;font-size:1.2rem">{fees_icon}</span>
+    </div>
+
+    <!-- KPI Summary — Bento Grid -->
     <div class="ka-summary">
-        <div class="glass-card ka-stat">
-            <div class="ka-stat-val" style="color:var(--text)">{total_przychod:,.0f} zł</div>
-            <div class="ka-stat-label">Przychód</div>
+        <div class="ka-stat featured">
+            <div class="ka-stat-label"><span class="material-symbols-outlined" style="font-size:0.8rem;vertical-align:middle;margin-right:2px;opacity:0.5">payments</span> PRZYCHÓD</div>
+            <div class="ka-stat-val" style="color:#8ff5ff">{total_przychod:,.0f}<span style="font-size:1rem;margin-left:4px;opacity:0.7">zł</span></div>
         </div>
-        <div class="glass-card ka-stat">
-            <div class="ka-stat-val" style="color:var(--neon-primary)">{total_prowizja:,.0f} zł</div>
-            <div class="ka-stat-label">Prowizja</div>
+        <div class="ka-stat">
+            <div class="ka-stat-label">PROWIZJA</div>
+            <div class="ka-stat-val" style="font-size:1.3rem">{total_prowizja:,.0f}<span style="font-size:0.85rem;margin-left:4px;opacity:0.5">zł</span></div>
         </div>
-        <div class="glass-card ka-stat">
-            <div class="ka-stat-val" style="color:#f59e0b">{total_koszt:,.0f} zł</div>
-            <div class="ka-stat-label">Koszt łączny</div>
+        <div class="ka-stat">
+            <div class="ka-stat-label">KOSZT ŁĄCZNY</div>
+            <div class="ka-stat-val" style="font-size:1.3rem;color:#ff6b9b">{total_koszt:,.0f}<span style="font-size:0.85rem;margin-left:4px;opacity:0.5">zł</span></div>
         </div>
-        <div class="glass-card ka-stat">
-            <div class="ka-stat-val" style="color:{'var(--neon-tertiary)' if total_marza > 0 else '#ef4444'}">{total_marza:,.0f} zł</div>
-            <div class="ka-stat-label">Marża netto</div>
+        <div class="ka-stat accent-lime">
+            <div class="ka-stat-label" style="color:#beee00">MARŻA NETTO</div>
+            <div class="ka-stat-val" style="font-size:1.3rem;color:{'#beee00' if total_marza > 0 else '#ef4444'}">{total_marza:,.0f}<span style="font-size:0.85rem;margin-left:4px;opacity:0.5">zł</span></div>
         </div>
-        <div class="glass-card ka-stat">
-            <div class="ka-stat-val" style="color:{'var(--neon-tertiary)' if total_marza_pct > 30 else 'var(--yellow)' if total_marza_pct > 0 else '#ef4444'}">{total_marza_pct:.1f}%</div>
-            <div class="ka-stat-label">Marża %</div>
+        <div class="ka-stat accent-lime">
+            <div class="ka-stat-label" style="color:#beee00">MARŻA %</div>
+            <div class="ka-stat-val" style="font-size:1.3rem;color:{'#beee00' if total_marza_pct > 30 else '#f59e0b' if total_marza_pct > 0 else '#ef4444'}">{total_marza_pct:.1f}%</div>
         </div>
     </div>
 
-    <!-- ROAS + Reklama -->
+    <!-- ROAS + Cost Details -->
     <div class="ka-roas">
-        <div class="glass-card" style="padding:18px;display:flex;align-items:center;gap:16px">
-            <div style="width:52px;height:52px;border-radius:14px;background:rgba(193,128,255,0.1);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0">📊</div>
-            <div>
-                <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:600">Zwrot z reklamy (ROAS)</div>
-                <div class="font-display" style="font-size:1.8rem;font-weight:800;color:{'var(--neon-secondary)' if roas > 0 else 'var(--text-muted)'};text-shadow:0 0 10px rgba(193,128,255,0.3)">{f'{roas:.1f}x' if roas > 0 else '∞'}</div>
-                <div style="font-size:0.72rem;color:var(--text-muted)">Wydatek: {total_reklama:,.2f} zł</div>
-            </div>
+        <div style="padding:24px;background:rgba(10,10,22,0.6);border:1px solid rgba(255,107,155,0.12);border-radius:16px;box-shadow:0 0 30px rgba(255,107,155,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+            <div style="font-size:0.62rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;font-family:'Space Grotesk',sans-serif">ZWROT Z REKLAMY (ROAS)</div>
+            <div style="font-size:3.5rem;font-weight:900;color:#ff6b9b;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 20px rgba(255,107,155,0.3);line-height:1">{f'{roas:.1f}' if roas > 0 else '∞'}<span style="font-size:1.5rem;font-weight:700;margin-left:4px">x</span></div>
         </div>
-        <div class="glass-card" style="padding:18px">
-            <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;margin-bottom:10px">Szczegóły kosztów</div>
-            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-                <span style="color:var(--text-muted)">Prowizja</span>
-                <span style="font-weight:600;color:var(--neon-primary)">{total_prowizja:,.2f} zł</span>
+        <div style="padding:20px;background:rgba(10,10,22,0.6);border:1px solid rgba(143,245,255,0.06);border-radius:16px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+                <span class="material-symbols-outlined" style="color:#8ff5ff;font-size:1rem">list_alt</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.88rem;letter-spacing:0.05em">Szczegóły kosztów</span>
             </div>
-            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-                <span style="color:var(--text-muted)">Reklama</span>
-                <span style="font-weight:600;color:var(--neon-secondary)">{total_reklama:,.2f} zł</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-                <span style="color:var(--text-muted)">Dostawa</span>
-                <span style="font-weight:600">{total_dostawa:,.2f} zł</span>
-            </div>
-            {'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)"><span style="color:var(--text-muted)">Inne opłaty</span><span style="font-weight:600">' + f"{billing_inne:,.2f} zł" + '</span></div>' if billing_inne > 0 else ''}
-            <div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:700">
-                <span>Razem</span>
-                <span style="color:var(--neon-primary)">{total_prowizja + total_reklama + total_dostawa + billing_inne:,.2f} zł</span>
+            <div class="ka-detail-row"><span style="color:var(--text-muted)">Prowizja</span><span style="font-weight:600;font-family:monospace;font-size:0.85rem">{total_prowizja:,.2f} zł</span></div>
+            <div class="ka-detail-row"><span style="color:var(--text-muted)">Reklama</span><span style="font-weight:600;font-family:monospace;font-size:0.85rem">{total_reklama:,.2f} zł</span></div>
+            <div class="ka-detail-row"><span style="color:var(--text-muted)">Dostawa</span><span style="font-weight:600;font-family:monospace;font-size:0.85rem">{total_dostawa:,.2f} zł</span></div>
+            {'<div class="ka-detail-row"><span style="color:var(--text-muted)">Inne opłaty</span><span style="font-weight:600;font-family:monospace;font-size:0.85rem">' + f"{billing_inne:,.2f} zł" + '</span></div>' if billing_inne > 0 else ''}
+            <div class="ka-detail-row" style="font-weight:700">
+                <span style="color:#8ff5ff;text-transform:uppercase;font-size:0.72rem;letter-spacing:0.1em;font-family:'Space Grotesk',sans-serif">Razem</span>
+                <span style="color:#8ff5ff;font-family:'Space Grotesk',sans-serif;font-size:1.1rem;text-shadow:0 0 8px rgba(143,245,255,0.3)">{total_prowizja + total_reklama + total_dostawa + billing_inne:,.2f} zł</span>
             </div>
         </div>
     </div>
 
-    <!-- Sort controls (server-side via query params) -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <select id="sortField" onchange="window.location.href='/analityka/koszty-allegro?sort='+this.value+'&dir={sort_dir}'" style="padding:8px 12px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text);font-size:0.82rem;backdrop-filter:blur(8px)">
-            <option value="przychod" {'selected' if sort_field == 'przychod' else ''}>Przychód</option>
-            <option value="szt" {'selected' if sort_field == 'szt' else ''}>Sztuki</option>
-            <option value="prowizja" {'selected' if sort_field == 'prowizja' else ''}>Prowizja</option>
-            <option value="reklama" {'selected' if sort_field == 'reklama' else ''}>Reklama</option>
-            <option value="dostawa" {'selected' if sort_field == 'dostawa' else ''}>Dostawa</option>
-            <option value="koszt" {'selected' if sort_field == 'koszt' else ''}>Koszt</option>
-            <option value="marza" {'selected' if sort_field == 'marza' else ''}>Marża</option>
-        </select>
-        <a href="/analityka/koszty-allegro?sort={sort_field}&dir={'asc' if sort_dir == 'desc' else 'desc'}" style="padding:8px 14px;background:rgba(0,241,254,0.08);border:1px solid rgba(0,241,254,0.2);border-radius:8px;color:var(--neon-primary);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none">{'↑ ASC' if sort_dir == 'asc' else '↓ DESC'}</a>
+    <!-- Products Section Header + Sort -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:3px;height:20px;background:#8ff5ff;border-radius:2px"></div>
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:800;letter-spacing:0.05em">PRODUKTY</span>
+            <span style="font-size:0.65rem;color:var(--text-muted);background:rgba(255,255,255,0.05);padding:2px 8px;border-radius:4px">{len(products)} SKUS</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+            <select id="sortField" onchange="window.location.href='/analityka/koszty-allegro?sort='+this.value+'&dir={sort_dir}'" style="padding:8px 12px;background:rgba(10,10,22,0.8);border:1px solid rgba(143,245,255,0.10);border-radius:8px;color:var(--text);font-size:0.8rem;font-family:'Space Grotesk',sans-serif">
+                <option value="przychod" {'selected' if sort_field == 'przychod' else ''}>Przychód</option>
+                <option value="szt" {'selected' if sort_field == 'szt' else ''}>Sztuki</option>
+                <option value="prowizja" {'selected' if sort_field == 'prowizja' else ''}>Prowizja</option>
+                <option value="reklama" {'selected' if sort_field == 'reklama' else ''}>Reklama</option>
+                <option value="dostawa" {'selected' if sort_field == 'dostawa' else ''}>Dostawa</option>
+                <option value="koszt" {'selected' if sort_field == 'koszt' else ''}>Koszt</option>
+                <option value="marza" {'selected' if sort_field == 'marza' else ''}>Marża</option>
+            </select>
+            <a href="/analityka/koszty-allegro?sort={sort_field}&dir={'asc' if sort_dir == 'desc' else 'desc'}" style="padding:8px 12px;background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.15);border-radius:8px;color:#8ff5ff;font-size:0.8rem;font-weight:600;text-decoration:none;display:flex;align-items:center;gap:4px;font-family:'Space Grotesk',sans-serif"><span class="material-symbols-outlined" style="font-size:1rem">{'arrow_upward' if sort_dir == 'asc' else 'arrow_downward'}</span> {'ASC' if sort_dir == 'asc' else 'DESC'}</a>
+        </div>
     </div>
 
     <!-- Products table -->
-    <div class="glass-card" style="padding:0;overflow-x:auto">
+    <div style="background:rgba(10,10,22,0.6);border:1px solid rgba(143,245,255,0.06);border-radius:14px;padding:0;overflow-x:auto;margin-bottom:20px">
         <table class="ka-table">
             <thead>
                 <tr>
@@ -4651,7 +4665,7 @@ def koszty_allegro():
                     <th style="text-align:right;color:#f59e0b">Koszt</th>
                     <th style="text-align:right">Marża</th>
                     <th style="text-align:center"></th>
-                    <th style="text-align:center;font-size:0.7rem;color:var(--text-muted)">Źródło</th>
+                    <th style="text-align:center;font-size:0.65rem;color:var(--text-muted)">Źródło</th>
                 </tr>
             </thead>
             <tbody>
@@ -4665,9 +4679,12 @@ def koszty_allegro():
     </div>
 
     <!-- Map -->
-    <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--neon-primary);text-shadow:0 0 8px rgba(0,241,254,0.3);margin:24px 0 12px;font-weight:600">🗺️ Skąd kupują klienci</div>
-    <div class="glass-card" style="padding:0;overflow:hidden;margin-bottom:20px;border-radius:16px">
-        <div id="polandMap" style="height:500px;background:#0a0a16;border-radius:16px"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin:24px 0 12px">
+        <span class="material-symbols-outlined" style="color:#8ff5ff;font-size:1.1rem">map</span>
+        <span style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:#8ff5ff;font-weight:700;font-family:'Space Grotesk',sans-serif">Skąd kupują klienci</span>
+    </div>
+    <div style="background:rgba(10,10,22,0.6);border:1px solid rgba(143,245,255,0.06);border-radius:14px;padding:0;overflow:hidden;margin-bottom:20px">
+        <div id="polandMap" style="height:500px;background:#0a0a16;border-radius:14px"></div>
     </div>
 
     <script>
@@ -4695,10 +4712,10 @@ def koszty_allegro():
                     var r = Math.max(8, Math.min(40, (c.count / maxCount) * 40));
                     var op = Math.max(0.4, Math.min(0.9, c.count / maxCount));
                     L.circleMarker([c.lat, c.lon], {{
-                        radius: r, fillColor: '#00f1fe', color: '#00f1fe',
+                        radius: r, fillColor: '#8ff5ff', color: '#8ff5ff',
                         weight: 1, opacity: 0.7, fillOpacity: op * 0.6
                     }}).addTo(map).bindPopup(
-                        '<div style="text-align:center"><b style="color:#00f1fe">' + c.city + '</b><br><span style="font-size:18px;font-weight:800">' + c.count + '</span><br><small>zamówień</small></div>'
+                        '<div style="text-align:center"><b style="color:#8ff5ff">' + c.city + '</b><br><span style="font-size:18px;font-weight:800">' + c.count + '</span><br><small>zamówień</small></div>'
                     );
                 }});
                 setTimeout(function() {{ map.invalidateSize(); }}, 300);
