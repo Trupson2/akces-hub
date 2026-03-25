@@ -153,11 +153,18 @@ def add_ngrok_headers(response):
 
 @app.before_request
 def csrf_protect_forms():
-    """CSRF dla formularzy HTML — waliduj TYLKO gdy token jest obecny w formularzu.
-    Formularze z csrf_token są chronione; reszta (API, legacy, upload) przechodzi."""
+    """CSRF dla formularzy HTML — waliduj dla form submissions.
+    Skip JSON API requests i file uploads bez form data (np. SSE, webhooks)."""
     if request.method in ('POST', 'PUT', 'DELETE', 'PATCH'):
-        # Waliduj CSRF TYLKO jeśli formularz faktycznie zawiera csrf_token
-        if request.form.get('csrf_token'):
+        content_type = request.content_type or ''
+        # Skip CSRF for JSON API requests (AJAX z fetch/XMLHttpRequest)
+        if 'application/json' in content_type:
+            return
+        # Skip CSRF for SSE and webhook endpoints
+        if request.path.startswith(('/api/', '/allegro/callback', '/olx/callback')):
+            return
+        # Enforce CSRF for all HTML form submissions
+        if request.form or 'multipart/form-data' in content_type:
             csrf.protect()
 
 # Sprawdzanie licencji

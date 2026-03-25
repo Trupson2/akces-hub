@@ -2,6 +2,7 @@
 Modul analityki -- routes dla /analityka/*, /statystyki
 """
 from flask import Blueprint, request, redirect, session, flash, jsonify, Response, current_app
+from flask_wtf.csrf import generate_csrf
 from datetime import datetime
 import os
 
@@ -1615,6 +1616,7 @@ def analityka_okazje():
           <div style='color:var(--blue);font-weight:700;font-size:1rem;margin-bottom:12px'><span class=material-symbols-outlined style=font-size:1rem>smart_toy</span> Analiza rynkowa (Perplexity AI)</div>
           <div style='color:var(--text-muted);font-size:0.85rem;margin-bottom:12px'>Dodaj klucz API Perplexity żeby otrzymać analizę rynkową produktów na podstawie Twoich trendów sprzedaży.</div>
           <form method='POST' action='/analityka/okazje/set-perplexity-key' style='display:flex;gap:8px;flex-wrap:wrap'>
+            <input type='hidden' name='csrf_token' value='{generate_csrf()}'>
             <input type='password' name='api_key' placeholder='pplx-xxxxxxxxxxxxxxxx' class='form-control' style='flex:1;min-width:220px'>
             <button type='submit' class='btn btn-sm btn-primary' style='border:none;cursor:pointer'>Zapisz klucz</button>
           </form>
@@ -1674,7 +1676,7 @@ def analityka_okazje():
                     short = cv[:80] + ('...' if len(cv) > 80 else '')
                     cit_items += f"<a href='{cv}' target='_blank' style='color:var(--blue);font-size:0.72rem;display:block;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>[{ci+1}] {short}</a>"
             cit_html2 = f"<div style='margin-top:10px;padding-top:10px;border-top:1px solid var(--border)'><div style='color:var(--text-muted);font-size:0.72rem;margin-bottom:4px'>Źródła ({len(cits)}):</div>{cit_items}</div>" if cits else ''
-            btn = f"<form method='POST' action='{refresh_url}' style='margin:0'><button type='submit' style='background:var(--bg);color:var(--text-secondary);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:0.72rem;cursor:pointer'><span class=material-symbols-outlined style=font-size:1rem>sync</span> Odśwież</button></form>"
+            btn = f"<form method='POST' action='{refresh_url}' style='margin:0'><input type='hidden' name='csrf_token' value='{generate_csrf()}'><button type='submit' style='background:var(--bg);color:var(--text-secondary);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:0.72rem;cursor:pointer'><span class=material-symbols-outlined style=font-size:1rem>sync</span> Odśwież</button></form>"
             return f"<div style='background:var(--green-soft);border:1px solid rgba(34,197,94,0.2);border-radius:10px;padding:14px;margin-top:12px'><div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px'><div style='color:var(--green);font-size:0.78rem;font-weight:600'><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> {ts}</div>{btn}</div><div style='color:var(--text);font-size:0.83rem;line-height:1.75'>{safe}</div>{cit_html2}</div>"
 
         cached_html = _cache_block(_left_odpowiedz, _left_citations, _left_data,
@@ -1687,6 +1689,7 @@ def analityka_okazje():
 
         # Wstaw przycisk "Szukaj" + wyniki do panelu w live_scraper_section
         _szukaj_panel_content = f"""<form method='POST' action='/analityka/okazje/perplexity-szukaj' onsubmit='showLoading(this,"szukaj")'>
+                <input type='hidden' name='csrf_token' value='{generate_csrf()}'>
                 <button id='btn-szukaj' type='submit' class='btn btn-success' style='border:none;cursor:pointer;font-size:0.82rem'>
                   <i class=mi>search</i> Szukaj teraz
                 </button>
@@ -1703,6 +1706,7 @@ def analityka_okazje():
             <div style='color:var(--purple);font-weight:700;font-size:1rem'><span class=material-symbols-outlined style=font-size:1rem>smart_toy</span> Perplexity AI</div>
             <div style='display:flex;align-items:center;gap:8px'>
               <form method='POST' action='/analityka/okazje/set-perplexity-model' style='margin:0;display:flex;align-items:center;gap:6px'>
+                <input type='hidden' name='csrf_token' value='{generate_csrf()}'>
                 <span style='color:var(--text-muted);font-size:0.75rem'>Model:</span>
                 <select name='model' onchange='this.form.submit()' class='form-control' style='width:auto;padding:3px 8px;font-size:0.75rem;cursor:pointer'>
                   <option value='sonar-pro' {{'selected' if perplexity_model in ("sonar","sonar-pro") else ""}}>Sonar Pro <span class=material-symbols-outlined style=font-size:1rem>star</span> (zalecany)</option>
@@ -1712,6 +1716,7 @@ def analityka_okazje():
                 </select>
               </form>
               <form method='POST' action='/analityka/okazje/remove-perplexity-key' onsubmit="return confirm('Usunąć klucz Perplexity?')" style='margin:0'>
+                <input type='hidden' name='csrf_token' value='{generate_csrf()}'>
                 <button type='submit' style='background:transparent;color:var(--text-muted);border:none;cursor:pointer;font-size:0.8rem'><span class=material-symbols-outlined style=font-size:1rem>delete</span> usuń klucz</button>
               </form>
             </div>
@@ -1722,6 +1727,7 @@ def analityka_okazje():
               <div style='color:var(--purple);font-weight:600;font-size:0.85rem;margin-bottom:4px'><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Analiza moich sprzedaży</div>
               <div style='color:var(--text-muted);font-size:0.75rem;margin-bottom:10px'>Ceny rynkowe produktów z palet/magazynu + co warto wystawiać</div>
               <form method='POST' action='/analityka/okazje/perplexity-analyze' onsubmit='showLoading(this,"analyze")'>
+                <input type='hidden' name='csrf_token' value='{generate_csrf()}'>
                 <button id='btn-analyze' type='submit' class='btn btn-purple' style='border:none;cursor:pointer;font-size:0.82rem'>
                   <span class=material-symbols-outlined style=font-size:1rem>search</span> Analizuj moje produkty
                 </button>

@@ -2,6 +2,7 @@
 Moduł palet — routes dla /palety/*, /produkt/* (edycja), /produkty/* (meta)
 """
 from flask import Blueprint, request, redirect, session, flash, jsonify, Response, current_app, render_template, render_template_string
+from flask_wtf.csrf import generate_csrf
 from datetime import datetime
 import os
 import json
@@ -799,6 +800,7 @@ def paleta_edit(paleta_id):
     <div class="header"><h1>&#x270F; Edytuj Palete</h1><small>ID: {paleta_id}</small></div>
 
     <form method="POST" class="card">
+        <input type="hidden" name="csrf_token" value="{generate_csrf()}">
         <div class="form-group">
             <label>Nazwa palety</label>
             <input type="text" name="nazwa" value="{paleta['nazwa'] or ''}" class="form-control">
@@ -1271,6 +1273,7 @@ def paleta_dodaj():
     <div style="text-align:center;color:var(--text-muted);font-size:0.8rem;margin-bottom:15px">— lub dodaj ręcznie —</div>
 
     <form method="POST" class="card">
+        <input type="hidden" name="csrf_token" value="{generate_csrf()}">
         <div class="form-group">
             <label>Nazwa / Opis</label>
             <input type="text" name="nazwa" placeholder="np. Mix elektronika #15" class="form-control">
@@ -1456,6 +1459,7 @@ def paleta_import_xlsx():
     {error_html}
 
     <form method="POST" enctype="multipart/form-data" class="card">
+        <input type="hidden" name="csrf_token" value="{generate_csrf()}">
 
         <!-- PLIK -->
         <div class="form-group">
@@ -2142,6 +2146,7 @@ def paleta_bulk_import():
     {error_html}
 
     <form method="POST" enctype="multipart/form-data" id="bulk-form">
+    <input type="hidden" name="csrf_token" value="{generate_csrf()}">
 
     <!-- WSPÓLNE USTAWIENIA -->
     <div class="card" style="margin-bottom:15px">
@@ -3343,6 +3348,7 @@ def paleta_szczegoly(paleta_id):
     ''' + produkty_html + '''
 
     <form method="POST" action="/palety/''' + str(paleta_id) + '''/delete" style="margin-top:20px" onsubmit="return confirm('<span class=material-symbols-outlined style=font-size:1rem>warning</span> UWAGA!\\n\\nTo usunie tę paletę i wszystkie jej produkty (''' + str(stats['cnt']) + ''' szt.)\\n\\nNa pewno kontynuować?')">
+        <input type="hidden" name="csrf_token" value="''' + generate_csrf() + '''">
         <button type="submit" class="btn btn-danger">
             <span class=material-symbols-outlined style=font-size:1rem>delete</span> USUŃ PALETĘ
         </button>
@@ -3357,6 +3363,7 @@ def paleta_szczegoly(paleta_id):
 
             <!-- KOREKTA ILOŚCI -->
             <form method="POST" action="/sprzedaze/korekta-ilosci">
+                <input type="hidden" name="csrf_token" value="''' + generate_csrf() + '''">
                 <input type="hidden" name="produkt_id" id="korektaProduktId" value="">
                 <div class="form-group">
                     <label>Zmień ilość na:</label>

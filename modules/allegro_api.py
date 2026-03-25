@@ -13,6 +13,7 @@ import hashlib
 import re
 from datetime import datetime, timedelta
 from flask import Blueprint, request, redirect, jsonify
+from flask_wtf.csrf import generate_csrf
 from io import BytesIO
 
 from .database import get_db, get_config, set_config
@@ -3822,17 +3823,25 @@ def sync_returns(month=None):
         print(f"   [ASSI] Znaleziono {len(refunds_list)} refundów")
         
         for i, ref in enumerate(refunds_list):
-            # Klucz 'order' zawiera dane zamówienia
+            # CRITICAL: Only count COMPLETED/SUCCESS refunds, not pending/rejected
+            ref_status = ref.get('status', '').upper()
+            ref_type = ref.get('type', '')
+
+            if i < 5:
+                print(f"      [{i}] status={ref_status} type={ref_type}")
+
+            # Skip non-finalized refunds
+            if ref_status not in ('SUCCESS', 'COMPLETED', 'RETURNED', 'FINISHED', ''):
+                if i < 5:
+                    print(f"         SKIP - not finalized (status={ref_status})")
+                continue
+
             order = ref.get('order', {})
             order_id = order.get('id')
-            
-            if i < 3:
-                print(f"      → order.id: {order_id[:12] if order_id else 'brak'}...")
-            
+
             if order_id:
                 refunded_order_ids.add(order_id)
-            
-            # Sprawdź też lineItems
+
             for item in ref.get('lineItems', []):
                 checkout_id = item.get('checkoutForm', {}).get('id')
                 if checkout_id:
@@ -3853,14 +3862,22 @@ def sync_returns(month=None):
         print(f"   [ASSI] Znaleziono {len(claims_list)} refund claims")
         
         for i, claim in enumerate(claims_list):
-            # 'lineItem' (pojedynczo) zawiera checkoutForm
+            # CRITICAL: Only count claims with status RETURNED (buyer returned item)
+            # Skip CREATED, IN_PROGRESS, REJECTED etc.
+            claim_status = claim.get('status', '').upper()
+
+            if i < 5:
+                print(f"      [{i}] claim status={claim_status}")
+
+            if claim_status not in ('RETURNED', 'COMPLETED', 'APPROVED', 'FINISHED'):
+                if i < 5:
+                    print(f"         SKIP claim - not finalized (status={claim_status})")
+                continue
+
             line_item = claim.get('lineItem', {})
             checkout_form = line_item.get('checkoutForm', {})
             checkout_id = checkout_form.get('id')
-            
-            if i < 3:
-                print(f"      → lineItem.checkoutForm.id: {checkout_id[:12] if checkout_id else 'brak'}...")
-            
+
             if checkout_id:
                 refunded_order_ids.add(checkout_id)
     
@@ -3894,6 +3911,76 @@ def sync_returns(month=None):
     
     print(f"[OK] Oznaczono {updated} zwrotów za {month}")
     return updated, None
+
+
+def repair_false_returns(month=None):
+    """
+    Napraw fałszywe zwroty - ponownie sprawdź status każdego 'zwrot' w Allegro API.
+    Zamówienia które NIE są faktycznie zwrócone cofnij na 'wyslana'.
+    """
+    from datetime import date
+
+    if not month:
+        month = date.today().strftime('%Y-%m')
+
+    conn = get_db()
+
+    # Pobierz PRAWDZIWE zwroty z API (tylko finalized)
+    real_refund_ids = set()
+
+    from_date = f"{month}-01T00:00:00Z"
+
+    # Metoda 1: payments/refunds - only SUCCESS
+    refunds_data, _ = allegro_request('GET', '/payments/refunds', params={
+        'occurredAt.gte': from_date, 'limit': 100
+    })
+    if refunds_data:
+        for ref in refunds_data.get('refunds', []):
+            ref_status = ref.get('status', '').upper()
+            if ref_status in ('SUCCESS', 'COMPLETED', 'RETURNED', 'FINISHED', ''):
+                order = ref.get('order', {})
+                if order.get('id'):
+                    real_refund_ids.add(order['id'])
+                for item in ref.get('lineItems', []):
+                    cid = item.get('checkoutForm', {}).get('id')
+                    if cid:
+                        real_refund_ids.add(cid)
+
+    # Metoda 2: refund-claims - only RETURNED
+    claims_data, _ = allegro_request('GET', '/order/refund-claims', params={
+        'createdAt.gte': from_date, 'limit': 100
+    })
+    if claims_data:
+        for claim in claims_data.get('refundClaims', []):
+            claim_status = claim.get('status', '').upper()
+            if claim_status in ('RETURNED', 'COMPLETED', 'APPROVED', 'FINISHED'):
+                cid = claim.get('lineItem', {}).get('checkoutForm', {}).get('id')
+                if cid:
+                    real_refund_ids.add(cid)
+
+    print(f"[REPAIR] Prawdziwe zwroty z API: {len(real_refund_ids)}")
+
+    # Znajdź zamówienia w bazie oznaczone jako 'zwrot' które NIE są w real_refund_ids
+    false_returns = conn.execute('''
+        SELECT id, allegro_order_id, nazwa, kupujacy, cena, ilosc
+        FROM sprzedaze
+        WHERE status = 'zwrot' AND strftime('%Y-%m', data_sprzedazy) = ?
+        AND allegro_order_id IS NOT NULL
+    ''', (month,)).fetchall()
+
+    repaired = 0
+    for row in false_returns:
+        if row['allegro_order_id'] not in real_refund_ids:
+            conn.execute(
+                'UPDATE sprzedaze SET status = ? WHERE id = ?',
+                ('wyslana', row['id'])
+            )
+            repaired += 1
+            print(f"   [FIX] Cofnięto zwrot: {row['kupujacy']} - {(row['nazwa'] or '')[:30]} ({row['cena']}zl)")
+
+    conn.commit()
+    print(f"[OK] Naprawiono {repaired} fałszywych zwrotów z {len(false_returns)} oznaczonych")
+    return repaired
 
 
 # ============================================================
@@ -4019,6 +4106,7 @@ def config():
 
     html = f'''
     <form method="POST">
+    <input type="hidden" name="csrf_token" value="{generate_csrf()}">
     <div class="card">
         <div class="card-header"><div class="card-title"><i class=mi>key</i> Dane API</div></div>
         <div class="form-group">
@@ -4463,6 +4551,18 @@ def oferty():
     return render(html, 'Moje oferty')
 
 
+@allegro_bp.route('/napraw-zwroty')
+def napraw_zwroty_route():
+    """Napraw fałszywe zwroty - cofnij zamówienia błędnie oznaczone jako zwrot."""
+    from datetime import date
+    month = request.args.get('month', date.today().strftime('%Y-%m'))
+    try:
+        repaired = repair_false_returns(month)
+        return f'<html><head><meta http-equiv="refresh" content="3;url=/sprzedaze"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:1.5rem;color:#beee00;padding:40px">Naprawiono {repaired} fałszywych zwrotów za {month}</div><div style="color:#64748b">Przekierowanie...</div></div></body></html>'
+    except Exception as e:
+        return f'<html><body style="background:#0a0a0f;color:#ef4444;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div>Błąd: {e}</div></body></html>'
+
+
 @allegro_bp.route('/sync')
 def sync():
     from datetime import date
@@ -4605,7 +4705,7 @@ def polacz_sprzedaze():
         nazwa_short = (p['nazwa'] or '')[:60]
         prod_options += f'<option value="{p["id"]}">{nazwa_short}{cena}{pal}</option>'
 
-    html += '''<form method="POST" action="/allegro/polacz-sprzedaze/zapisz">'''
+    html += f'''<form method="POST" action="/allegro/polacz-sprzedaze/zapisz"><input type="hidden" name="csrf_token" value="{generate_csrf()}">'''
 
     for g in grupy[:50]:  # Limit do 50 grup
         nazwa_display = (g['nazwa'] or '')[:80]

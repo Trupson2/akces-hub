@@ -115,16 +115,19 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
     <div style="margin-left:10px">
         {% if s.is_manual %}
         <form method="POST" action="/sprzedaze/usun/{{ s.id }}" style="display:inline;margin:0" onsubmit="return confirm('Usunac te sprzedaz i przywrocic ilosc?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="miesiac" value="{{ miesiac_filter }}">
             <button type="submit" class="btn btn-warning btn-sm"><span class=material-symbols-outlined style=font-size:1rem>delete</span> Usun</button>
         </form>
         {% elif s.is_zwrot %}
         <form method="POST" action="/sprzedaze/unzwrot/{{ s.id }}" style="display:inline;margin:0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="miesiac" value="{{ miesiac_filter }}">
             <button type="submit" class="btn btn-success btn-sm">Cofnij</button>
         </form>
         {% else %}
         <form method="POST" action="/sprzedaze/zwrot/{{ s.id }}" style="display:inline;margin:0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="miesiac" value="{{ miesiac_filter }}">
             <button type="submit" class="btn btn-danger btn-sm">Zwrot</button>
         </form>

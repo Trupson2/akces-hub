@@ -216,6 +216,7 @@ body {
         <div class="scroll-hint" id="scrollHint">▼ Przescrolluj regulamin do konca, aby kontynuowac ▼</div>
 
         <form method="POST" action="/eula">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label class="eula-checkbox" style="opacity:0.4;pointer-events:none" id="eulaLabel">
                 <input type="checkbox" id="eulaCheck" disabled onchange="document.getElementById('eulaSubmit').disabled = !this.checked">
                 <span class="eula-checkbox-text">

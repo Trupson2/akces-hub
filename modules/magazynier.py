@@ -9,6 +9,7 @@ import json
 import tempfile
 from datetime import datetime
 from flask import Blueprint, render_template_string, request, redirect, Response, url_for, session, current_app, jsonify
+from flask_wtf.csrf import generate_csrf
 
 from .database import get_db, query_db, execute_db, get_config, get_config_cached
 from .utils import get_amazon_image_url, get_product_image, oblicz_cene_allegro, is_code, DOSTAWCY, detect_supplier, parse_price, ALLEGRO_PROWIZJE
@@ -1292,6 +1293,7 @@ def produkt(code):
                     <div class="status-value" style="color:{color}"><span class="material-symbols-outlined">{icon}</span> {label}</div>
                 </div>
                 <form method="POST" action="/magazyn/produkt/{product_code}/zmien-status" style="display:flex;gap:8px;align-items:center">
+                    <input type="hidden" name="csrf_token" value="{generate_csrf()}">
                     <select name="new_status" class="form-input" style="padding:8px 12px;font-size:0.85rem;min-width:150px" onchange="this.form.submit()">
                         <option value="">-- Zmień na --</option>
                         <option value="nowy" {'selected' if current_status == 'nowy' else ''}>Magazyn</option>
@@ -1311,6 +1313,7 @@ def produkt(code):
             <a href="/magazyn/produkt/{product_code}/edytuj" class="quick-btn" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.25);color:#f59e0b"><span class="material-symbols-outlined">edit</span> EDYTUJ</a>
             <a href="/paletomat/generator/from-magazyn/{p['id']}" class="quick-btn" style="background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);color:#8ff5ff"><span class="material-symbols-outlined">storefront</span> WYSTAW</a>
             <form method="POST" action="/magazyn/produkt/{product_code}/usun" style="display:inline" onsubmit="return confirm('Na pewno usunąć ten produkt?')">
+                <input type="hidden" name="csrf_token" value="{generate_csrf()}">
                 <button type="submit" class="quick-btn" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.25);color:#ef4444;width:100%;cursor:pointer"><span class="material-symbols-outlined">delete</span> USUŃ</button>
             </form>
         </div>
@@ -7250,6 +7253,7 @@ def edytuj_historie(historia_id):
     <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>edit</span> EDYCJA WPISU HISTORII</h1></div>
     
     <form method="POST" class="card">
+        <input type="hidden" name="csrf_token" value="{generate_csrf()}">
         <div class="form-g">
             <label>Typ akcji</label>
             <select name="akcja" class="form-input">

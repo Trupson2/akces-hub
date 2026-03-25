@@ -11,6 +11,7 @@ import re
 import requests
 from datetime import datetime, timedelta
 from flask import Blueprint, request, redirect, jsonify, flash
+from flask_wtf.csrf import generate_csrf
 from pathlib import Path
 
 from .database import get_db, get_config, set_config
@@ -520,6 +521,7 @@ a {{ color:#09b1ba; }}
     <div class="card">
         <h3>🍪 Wklej cookies z Vinted</h3>
         <form method="POST" action="/vinted/save-cookies">
+            <input type="hidden" name="csrf_token" value="{generate_csrf()}">
             <div class="form-group">
                 <label>Cookies JSON (z EditThisCookie lub ręcznie):</label>
                 <textarea name="cookies_json" placeholder='{{"_vinted_fr_session": "wartość...", "access_token_web": "wartość..."}}'></textarea>
@@ -532,6 +534,7 @@ a {{ color:#09b1ba; }}
         <h3><i class=mi>steps</i> Dodaj produkt (osobisty)</h3>
         <p style="font-size:0.8rem;color:#94a3b8;margin-bottom:12px">Dodaj buty, ubrania lub inne rzeczy do sprzedaży na Vinted - osobno od paletowego magazynu.</p>
         <form method="POST" action="/vinted/add-product">
+            <input type="hidden" name="csrf_token" value="{generate_csrf()}">
             <div class="form-group">
                 <label>Nazwa produktu *</label>
                 <input type="text" name="nazwa" required placeholder="np. Nike Air Max 90 rozmiar 42">
@@ -636,6 +639,7 @@ def _render_moje_produkty(produkty, auth=False):
             <div class="mp-actions">
                 {vinted_btn}
                 <form method="POST" action="/vinted/delete-product/{p['id']}" style="margin:0">
+                    <input type="hidden" name="csrf_token" value="{generate_csrf()}">
                     <button type="submit" class="btn btn-red" onclick="return confirm('Usunąć?')"><i class=mi>delete</i></button>
                 </form>
             </div>

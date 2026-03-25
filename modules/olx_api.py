@@ -10,6 +10,7 @@ import requests
 import hashlib
 from datetime import datetime, timedelta
 from flask import Blueprint, request, redirect, jsonify, flash
+from flask_wtf.csrf import generate_csrf
 from urllib.parse import urlencode
 
 from .database import get_db, get_config, set_config
@@ -467,6 +468,7 @@ a {{ color:#38bdf8; }}
             i utwórz aplikację aby uzyskać Client ID i Secret.
         </p>
         <form method="POST" action="/olx/config">
+            <input type="hidden" name="csrf_token" value="{generate_csrf()}">
             <label>Client ID</label>
             <input type="text" name="client_id" value="{cfg['client_id']}" placeholder="Twój OLX Client ID">
 

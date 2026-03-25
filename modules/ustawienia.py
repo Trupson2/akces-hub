@@ -397,6 +397,7 @@ def ustawienia():
     </div>
     <div style="display:grid;gap:10px">
         <form method="POST" action="/ustawienia/upload-db" enctype="multipart/form-data" onsubmit="return confirm('UWAGA!\\n\\nTo nadpisze obecna baze danych!\\nAktualny backup zostanie utworzony automatycznie.\\n\\nKontynuowac?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:10px">Wgraj plik bazy danych (.db) — np. od innego uzytkownika lub z backupu</div>
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
                 <input type="file" name="db_file" accept=".db" required style="flex:1;min-width:200px;font-size:0.85rem;color:var(--text)">
@@ -471,6 +472,7 @@ def ustawienia():
     </form>
     <div class="btn-grid" style="margin-top:12px">
         <form method="POST" action="/ustawienia/smtp-test" style="width:100%">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-secondary btn-sm" style="width:100%">Wyslij testowy email</button>
         </form>
     </div>
@@ -487,15 +489,19 @@ def ustawienia():
     </div>
     <div style="display:grid;gap:10px">
         <form method="POST" action="/ustawienia/reset-sprzedaze" onsubmit="return confirm('Na pewno wyczyscic historie sprzedazy?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="danger-btn" style="background:var(--red)">Wyczysc historie sprzedazy</button>
         </form>
         <form method="POST" action="/ustawienia/reset-magazyn" onsubmit="return confirm('UWAGA!\\n\\nTo usunie WSZYSTKIE produkty z magazynu!\\n\\nNa pewno kontynuowac?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="danger-btn" style="background:#dc2626">Wyczysc magazyn (produkty)</button>
         </form>
         <form method="POST" action="/ustawienia/reset-palety" onsubmit="return confirm('UWAGA!\\n\\nTo usunie WSZYSTKIE palety i powiazane produkty!\\n\\nNa pewno kontynuowac?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="danger-btn" style="background:#b91c1c">Wyczysc palety</button>
         </form>
         <form method="POST" action="/ustawienia/reset-scraped" onsubmit="return confirm('Wyczyscic zescrapowane produkty z Palatomatu?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="danger-btn" style="background:#991b1b">Wyczysc scraped (Paletomat)</button>
         </form>
     </div>
@@ -709,6 +715,7 @@ def ustawienia_kreator():
 </div>
 
 <form method="POST" action="/ustawienia/kreator/save">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
 {% for section in sections %}
 <details class="kreator-detail" {% if section.get('always_closed') %}{% elif section.get('open_condition') == 'support_nodata' and support_nodata %}open{% elif not section.get('open_condition') and not cfg.get(section.key) %}open{% endif %}>

@@ -6,6 +6,7 @@ import platform
 import subprocess
 from datetime import datetime
 from flask import Blueprint, request, redirect, session, flash, jsonify, current_app
+from flask_wtf.csrf import generate_csrf
 
 support_bp = Blueprint('support', __name__)
 
@@ -255,6 +256,7 @@ body {{ background: #0a0a0f; color: #e2e8f0; font-family: -apple-system, BlinkMa
 
     <div class="card">
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="{generate_csrf()}">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
                 <div>
                     <label style="display:block;font-weight:600;margin-bottom:6px;font-size:0.9rem">Imie / Firma</label>
@@ -478,6 +480,7 @@ body {{ background: #0a0a0f; color: #e2e8f0; font-family: -apple-system, BlinkMa
 
     <div class="card">
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="{generate_csrf()}">
             <div class="form-group">
                 <label>Tytuł pomysłu</label>
                 <input type="text" name="tytul" placeholder="Np. Masowe przypisywanie gabarytów" required>

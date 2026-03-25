@@ -10,6 +10,7 @@ import threading
 import time
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template_string, request, redirect, jsonify, Response
+from flask_wtf.csrf import generate_csrf
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .database import get_db, query_db, execute_db, get_config, set_config
@@ -2588,6 +2589,7 @@ def generator():
     fallback_cnt = conn.execute("SELECT COUNT(DISTINCT asin) as cnt FROM produkty WHERE nazwa LIKE 'Produkt %' AND asin IS NOT NULL").fetchone()['cnt']
     if fallback_cnt > 0:
         html += f'''<form method="POST" action="/paletomat/rescrape-all-fallback" style="flex:1;min-width:140px">
+            <input type="hidden" name="csrf_token" value="{generate_csrf()}">
             <button type="submit" class="btn" style="width:100%;background:#8ff5ff;color:#fff"
             onclick="return confirm('Re-scrapować {fallback_cnt} produktów z brakującą nazwą?')"><span class=material-symbols-outlined style=font-size:1rem>sync</span> POBIERZ NAZWY ({fallback_cnt})</button></form>'''
 
@@ -5060,6 +5062,7 @@ TEMPLATE_ALREADY_LISTED = '''<!DOCTYPE html><html><head>
 
     <form method="POST" action="/paletomat/generator/add-stock/{{ oferta.get('id') }}"
           style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="product_id" value="{{ product_id }}">
       <div style="flex:1;min-width:120px">
         <label style="font-size:0.8rem;display:block;margin-bottom:4px">Dodaj sztuki:</label>
@@ -6377,6 +6380,7 @@ def ustawienia():
     
     html += f'''
     <form method="POST">
+        <input type="hidden" name="csrf_token" value="{generate_csrf()}">
         <div class="card">
             <div class="card-title"><span class=material-symbols-outlined style=font-size:1rem>smart_toy</span> Gemini API (opisy AI)</div>
             <div class="form-group">

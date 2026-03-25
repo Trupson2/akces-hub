@@ -560,6 +560,7 @@ def kalkulator_palety():
         <span class="badge badge-success">Kalkulator</span>
     </div>
     <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-row">
             <div class="form-group">
                 <label>Cena palety (brutto PLN)</label>
