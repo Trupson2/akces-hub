@@ -1,5 +1,28 @@
 # Historia zmian — Akces Hub
 
+## 25.03.2026
+
+### Karta produktu — Cyberpunk Redesign
+- [NOWE] Szablon `produkt_detail.html` — pełny cyberpunk design (pd-* CSS classes)
+- [NOWE] Hero section z produktem: zdjęcie, nazwa, status panel z neon border
+- [NOWE] Quick actions grid: -1 SZT, ETYKIETA, EDYTUJ, WYSTAW, USUŃ
+- [NOWE] Location panel z gradient top-border (cyan→pink→lime)
+- [NOWE] Details grid: kod mag, EAN, ASIN, ilość, stan, klasa, koszty, zysk/szt
+- [NOWE] Profit highlight card (full-width, kolorowany zielony/czerwony)
+- [NOWE] Siblings panel — partie tego samego produktu per klasa
+- [NOWE] Modals: GPSR, Rozbij na sztuki, Naprawa, Oceń stan — cyberpunk style
+- [NOWE] Ewidencja sztuk z inline edycją stanu/statusu/notatek
+- [NOWE] Filtr Jinja2 `parse_json` dla historii zmian produktu
+- [ZMIANA] Ekstrakcja ~700 linii inline HTML z magazynier.py do szablonu Jinja2
+- [ZMIANA] Route `produkt()` używa `render_template()` zamiast f-string budowania
+
+### EAN/ASIN Display Fix
+- [FIX] EAN "N/A"/"NAN"/"NONE" traktowane jako brak — fallback na ASIN
+- [FIX] Poprawka w 5 miejscach: palety.py, magazynier.py (4x), magazyn_index.html
+- [FIX] Kolumna `klasa_jakosci` nie istniała w DB — naprawione SQL queries w siblings
+
+---
+
 ## 23.03.2026
 
 ### Stitch Design System — Dashboard Redesign
