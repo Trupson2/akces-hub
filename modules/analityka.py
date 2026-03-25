@@ -614,343 +614,38 @@ def analityka_dashboard():
     allegro_zysk = sum(k['zysk'] for k in kategorie_stats)
     laczny_zysk = allegro_zysk + prywatne_suma
 
-    # Warning HTML - musi być poza f-stringiem
-    warning_html = ''
-    if produkty_bez_kat > 0:
-        warning_html = f'<div class="alert alert-warning" style="display:flex;justify-content:space-between;align-items:center"><span>&#9888; <strong>{produkty_bez_kat}</strong> produktow bez kategorii</span><a href="/analityka/kategorie" class="btn btn-sm btn-purple">Przypisz kategorie</a></div>'
+    from flask import render_template
 
-    html = f'''
-    <style>
-        .stats-table {{ width:100%;border-collapse:collapse;font-size:0.85rem }}
-        .stats-table th, .stats-table td {{ padding:10px;text-align:left;border-bottom:1px solid var(--border) }}
-        .stats-table th {{ color:var(--text-muted);font-weight:500 }}
-        .stats-table tr:hover {{ background:var(--accent-soft) }}
-        .positive {{ color:var(--green) }}
-        .negative {{ color:var(--red) }}
-        .chart-container {{ position:relative;height:300px }}
-        .analityka-grid {{ display:grid;grid-template-columns:repeat(auto-fit,minmax(500px,1fr));gap:20px }}
-        @media(max-width:768px) {{ .analityka-grid {{ grid-template-columns:1fr }} }}
-    </style>
-
-        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px">
-            <button onclick="uzupelnijAdresy()" class="btn btn-sm btn-success" style="border:none;cursor:pointer">&#x1F4CD; Uzupelnij adresy</button>
-            <button onclick="autoKategoryzujWszystkie()" class="btn btn-sm btn-warning" style="border:none;cursor:pointer">&#x1F916; Auto-kategorie</button>
-            <a href="/analityka/palety" class="btn btn-sm btn-primary" style="text-decoration:none"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Bilans palet</a>
-            <a href="/analityka/kategorie" class="btn btn-sm btn-purple" style="text-decoration:none">&#x1F3F7; Edytuj kategorie</a>
-            <a href="/analityka/czas-sprzedazy" class="btn btn-sm btn-success" style="text-decoration:none"><i class=mi>timer</i> Czas sprzedaży</a>
-            <a href="/magazyn/raport-sprzedazy" class="btn btn-sm" style="background:#059669;text-decoration:none;color:#fff"><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Eksport Excel</a>
-        </div>
-
-        ''' + warning_html + f'''
-
-        <div class="kpi-grid">
-            <div class="kpi-card purple">
-                <div class="kpi-icon"><i class=mi>location_city</i></div>
-                <div class="kpi-value">{len(miasta_stats)}</div>
-                <div class="kpi-label">MIAST</div>
-            </div>
-            <div class="kpi-card blue">
-                <div class="kpi-icon"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span></div>
-                <div class="kpi-value">{sum(m[1]['zamowienia'] for m in miasta_stats.items())}</div>
-                <div class="kpi-label">ZAMOWIEN</div>
-            </div>
-            <div class="kpi-card orange">
-                <div class="kpi-icon"><i class=mi>folder</i></div>
-                <div class="kpi-value">{len(kategorie_stats)}</div>
-                <div class="kpi-label">KATEGORII</div>
-            </div>
-            <div class="kpi-card green">
-                <div class="kpi-icon"><span class=material-symbols-outlined style=font-size:1rem>paid</span></div>
-                <div class="kpi-value">{laczny_zysk:.0f} zl</div>
-                <div class="kpi-label">LACZNY ZYSK</div>
-                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px">{allegro_zysk:.0f} Allegro{f' + {prywatne_suma:.0f} prywatne' if prywatne_suma > 0 else ''}</div>
-            </div>
-        </div>
-
-        <div class="analityka-grid">
-            <!-- MAPA KUPUJĄCYCH -->
-            <div class="card">
-                <div class="card-header"><div class="card-title"><span class=material-symbols-outlined style=font-size:1rem>map</span> Skąd kupują klienci (TOP 20)</div></div>
-                <div class="chart-container">
-                    <canvas id="miastaChart"></canvas>
-                </div>
-            </div>
-
-            <!-- RENTOWNOŚĆ KATEGORII -->
-            <div class="card">
-                <div class="card-header"><div class="card-title"><span class=material-symbols-outlined style=font-size:1rem>paid</span> Rentowność kategorii (TOP 10)</div></div>
-                <div class="chart-container">
-                    <canvas id="kategorieChart"></canvas>
-                </div>
-            </div>
-
-            <!-- SPRZEDAŻ W CZASIE -->
-            <div class="card">
-                <div class="card-header"><div class="card-title">&#x1F4C8; Przychod (ostatnie 30 dni)</div></div>
-                <div class="chart-container">
-                    <canvas id="czasChart"></canvas>
-                </div>
-            </div>
-
-            <!-- TOP/FLOP PRODUKTY -->
-            <div class="card" style="grid-column: span 2;">
-                <div class="card-header"><div class="card-title"><i class=mi>emoji_events</i> TOP 10 Bestsellerów vs <span class=material-symbols-outlined style=font-size:1rem>trending_down</span> FLOP (najdłużej w magazynie)</div></div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
-                    <!-- TOP 10 -->
-                    <div>
-                        <h3 style="color: var(--green); margin-bottom: 15px; font-size:0.95rem"><i class=mi>emoji_events</i> Bestsellery (wg przychodu)</h3>
-                        <table class="stats-table">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Produkt</th>
-                                    <th>Szt.</th>
-                                    <th>Przychód</th>
-                                    <th>Zakup</th>
-                                    <th>Prowizja</th>
-                                    <th>Zysk</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {''.join(f"""
-                                <tr>
-                                    <td style="color: {'#ffd700' if i==0 else '#c0c0c0' if i==1 else '#cd7f32' if i==2 else 'var(--text-muted)'};">
-                                        {'<i class=mi>emoji_events</i>' if i==0 else '<i class=mi>emoji_events</i>' if i==1 else '<i class=mi>emoji_events</i>' if i==2 else str(i+1)}
-                                    </td>
-                                    <td title="{p['nazwa']}">{p['nazwa'][:30]}{'...' if len(p['nazwa'])>30 else ''}</td>
-                                    <td>{p['ilosc']}</td>
-                                    <td style="color: var(--green);">{p['przychod']:.0f} zł</td>
-                                    <td style="color: {'var(--red)' if p['has_koszt'] else 'var(--text-muted)'};">{p['koszt_total']:.0f}{' zł' if p['has_koszt'] else ' ?'}</td>
-                                    <td style="color: var(--orange);">{p['prowizja']:.0f} zł</td>
-                                    <td style="color: {'var(--green)' if p['zysk']>0 else 'var(--red)'}; font-weight:700;">{p['zysk']:.0f} zł</td>
-                                </tr>
-                                """ for i, p in enumerate(top_produkty))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- FLOP -->
-                    <div>
-                        <h3 style="color: var(--red); margin-bottom: 15px; font-size:0.95rem"><span class=material-symbols-outlined style=font-size:1rem>trending_down</span> Najdłużej w magazynie</h3>
-                        <table class="stats-table">
-                            <thead>
-                                <tr>
-                                    <th>Produkt</th>
-                                    <th>Dni</th>
-                                    <th>Zakup</th>
-                                    <th>Cena</th>
-                                    <th>Kategoria</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {''.join(f"""
-                                <tr>
-                                    <td title="{p['nazwa']}">{p['nazwa'][:30]}{'...' if len(p['nazwa'])>30 else ''}</td>
-                                    <td style="color: {'var(--red)' if p['dni']>60 else 'var(--orange)' if p['dni']>30 else 'var(--text-muted)'};">
-                                        {p['dni']} dni
-                                    </td>
-                                    <td>{p['cena_zakupu']:.0f} zł</td>
-                                    <td>{p['cena_sprzedazy']:.0f} zł</td>
-                                    <td style="font-size: 0.85em;">{p['kategoria'][:15]}</td>
-                                </tr>
-                                """ for p in flop_lista) if flop_lista else '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">Brak danych</td></tr>'}
-                            </tbody>
-                        </table>
-                        <p style="font-size: 0.8em; color: var(--text-muted); margin-top: 10px;">
-                            <i class=mi>lightbulb</i> Produkty > 60 dni warto przecenić lub wystawić na OLX/Vinted
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TABELA MIAST -->
-            <div class="card">
-                <div class="card-header"><div class="card-title"><i class=mi>location_city</i> Szczegóły miast</div></div>
-                <table class="stats-table">
-                    <thead>
-                        <tr>
-                            <th>Miasto</th>
-                            <th>Zamówienia</th>
-                            <th>Przychód</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {''.join(f"""
-                        <tr>
-                            <td>{m[0]}</td>
-                            <td>{m[1]['zamowienia']}</td>
-                            <td class="positive">{m[1]['przychod']:.0f} zł</td>
-                        </tr>
-                        """ for m in miasta_sorted[:15]) if miasta_sorted else '<tr><td colspan="3" style="text-align:center;color:var(--text-muted)">Brak danych o miastach</td></tr>'}
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- TABELA KATEGORII -->
-            <div class="card" style="grid-column: span 2;">
-                <div class="card-header"><div class="card-title"><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Szczegóły kategorii</div></div>
-                <table class="stats-table">
-                    <thead>
-                        <tr>
-                            <th>Kategoria</th>
-                            <th>Szt.</th>
-                            <th>Przychód</th>
-                            <th>Zakup</th>
-                            <th>Prowizja</th>
-                            <th>Zysk</th>
-                            <th>Marża</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {''.join(f"""
-                        <tr>
-                            <td>{k['kategoria']}</td>
-                            <td>{k['sprzedazy']}</td>
-                            <td style="color:var(--green)">{k['przychod']:.0f} zł</td>
-                            <td style="color:var(--red)">-{k['koszt']:.0f} zł</td>
-                            <td style="color:var(--orange)">-{k['prowizja']:.0f} zł</td>
-                            <td class="{'positive' if k['zysk'] >= 0 else 'negative'}" style="font-weight:700">{k['zysk']:.0f} zł</td>
-                            <td class="{'positive' if k['marza'] >= 0 else 'negative'}">{k['marza']:.1f}%</td>
-                        </tr>
-                        """ for k in kategorie_stats) if kategorie_stats else '<tr><td colspan="7" style="text-align:center;color:var(--text-muted)">Brak danych o sprzedażach</td></tr>'}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script>
-            // Wykres miast
-            new Chart(document.getElementById('miastaChart'), {{
-                type: 'bar',
-                data: {{
-                    labels: {miasta_labels},
-                    datasets: [{{
-                        label: 'Zamówienia',
-                        data: {miasta_values},
-                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                        borderRadius: 4
-                    }}]
-                }},
-                options: {{
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {{ legend: {{ display: false }} }},
-                    scales: {{
-                        x: {{ grid: {{ color: 'rgba(255,255,255,0.06)' }}, ticks: {{ color: '#64748b' }} }},
-                        y: {{ grid: {{ display: false }}, ticks: {{ color: '#e2e8f0' }} }}
-                    }}
-                }}
-            }});
-
-            // Wykres kategorii
-            new Chart(document.getElementById('kategorieChart'), {{
-                type: 'bar',
-                data: {{
-                    labels: {kategorie_labels},
-                    datasets: [{{
-                        label: 'Zysk (zł)',
-                        data: {kategorie_zysk},
-                        backgroundColor: {kategorie_zysk}.map(v => v >= 0 ? 'rgba(34, 197, 94, 0.8)' : 'rgba(239, 68, 68, 0.8)'),
-                        borderRadius: 4
-                    }}]
-                }},
-                options: {{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {{ legend: {{ display: false }} }},
-                    scales: {{
-                        x: {{ grid: {{ display: false }}, ticks: {{ color: '#e2e8f0', maxRotation: 45 }} }},
-                        y: {{ grid: {{ color: 'rgba(255,255,255,0.06)' }}, ticks: {{ color: '#64748b' }} }}
-                    }}
-                }}
-            }});
-
-            // Wykres czasowy - dzienny z kumulowanym
-            new Chart(document.getElementById('czasChart'), {{
-                type: 'line',
-                data: {{
-                    labels: {dni_labels},
-                    datasets: [
-                        {{
-                            label: 'Narastajaco (zl)',
-                            data: {dni_kumulowany},
-                            borderColor: '#22c55e',
-                            backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                            fill: true,
-                            tension: 0.3,
-                            pointRadius: 4,
-                            pointBackgroundColor: '#22c55e',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 2,
-                            order: 1
-                        }},
-                        {{
-                            label: 'Dziennie (zl)',
-                            data: {dni_przychod},
-                            borderColor: '#8b5cf6',
-                            backgroundColor: 'rgba(139, 92, 246, 0.3)',
-                            fill: false,
-                            tension: 0,
-                            pointRadius: 5,
-                            pointBackgroundColor: '#8b5cf6',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 2,
-                            type: 'bar',
-                            order: 2
-                        }}
-                    ]
-                }},
-                options: {{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {{
-                        legend: {{ display: true, position: 'top', labels: {{ color: '#e2e8f0' }} }}
-                    }},
-                    scales: {{
-                        x: {{ grid: {{ color: 'rgba(255,255,255,0.06)' }}, ticks: {{ color: '#64748b', maxRotation: 45 }} }},
-                        y: {{ grid: {{ color: 'rgba(255,255,255,0.06)' }}, ticks: {{ color: '#64748b' }} }}
-                    }}
-                }}
-            }});
-
-            // Funkcja uzupełniania adresów
-            function uzupelnijAdresy() {{
-                if (!confirm('Pobrac adresy z Allegro dla istniejacych zamowien?')) return;
-
-                fetch('/analityka/uzupelnij-adresy', {{method: 'POST'}})
-                    .then(r => r.json())
-                    .then(data => {{
-                        if (data.ok) {{
-                            alert('Zaktualizowano ' + data.count + ' adresow z ' + data.total);
-                            location.reload();
-                        }} else {{
-                            alert('Blad: ' + (data.error || 'Nieznany'));
-                        }}
-                    }})
-                    .catch(e => alert('Blad: ' + e));
-            }}
-
-            // Funkcja auto-kategoryzacji wszystkich produktów
-            function autoKategoryzujWszystkie() {{
-                if (!confirm('Automatycznie przypisac kategorie do WSZYSTKICH produktow na podstawie nazw?')) return;
-
-                fetch('/analityka/kategorie/auto', {{method: 'POST'}})
-                    .then(r => r.json())
-                    .then(data => {{
-                        if (data.ok) {{
-                            alert('Zaktualizowano ' + data.count + ' produktow!');
-                            location.reload();
-                        }} else {{
-                            alert('Blad: ' + (data.error || 'Nieznany'));
-                        }}
-                    }})
-                    .catch(e => alert('Blad: ' + e));
-            }}
-        </script>
-    '''
-    return render(html, 'Analityka sprzedazy')
+    return render_template('analityka.html',
+        # KPI values
+        miasta_count=len(miasta_stats),
+        zamowien_total=sum(m[1]['zamowienia'] for m in miasta_stats.items()),
+        kategorie_count=len(kategorie_stats),
+        laczny_zysk=laczny_zysk,
+        allegro_zysk=allegro_zysk,
+        prywatne_suma=prywatne_suma,
+        prywatne_cnt=prywatne_cnt,
+        produkty_bez_kat=produkty_bez_kat,
+        # Tables data
+        miasta_sorted=miasta_sorted,
+        kategorie_stats=kategorie_stats,
+        top_produkty=top_produkty,
+        flop_lista=flop_lista,
+        # Chart data
+        miasta_labels=miasta_labels,
+        miasta_values=miasta_values,
+        miasta_przychod=miasta_przychod,
+        kategorie_labels=kategorie_labels,
+        kategorie_zysk=kategorie_zysk,
+        kategorie_marza=kategorie_marza,
+        dni_labels=dni_labels,
+        dni_przychod=dni_przychod,
+        dni_kumulowany=dni_kumulowany,
+        # Base template vars
+        version=current_app.config.get('VERSION', ''),
+        brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
+        current_user=session.get('user')
+    )
 
 
 

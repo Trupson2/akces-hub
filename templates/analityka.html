@@ -1,0 +1,514 @@
+{# ============================================================
+   Template variables passed from analityka_dashboard():
+   - miasta_count        : int - number of unique cities
+   - zamowien_total      : int - total orders across all cities
+   - kategorie_count     : int - number of categories
+   - laczny_zysk         : float - total profit (allegro + private)
+   - allegro_zysk        : float - profit from allegro only
+   - prywatne_suma       : float - private sales total
+   - prywatne_cnt        : int - private sales count
+   - produkty_bez_kat    : int - products without category
+   - miasta_sorted       : list of (city_name, {zamowienia, przychod})
+   - kategorie_stats     : list of dicts {kategoria, sprzedazy, przychod, koszt, prowizja, zysk, marza}
+   - top_produkty        : list of dicts {nazwa, ilosc, przychod, srednia_cena, koszt_total, prowizja, zysk, has_koszt}
+   - flop_lista          : list of dicts {nazwa, cena_zakupu, cena_sprzedazy, stan, dni, kategoria}
+   - miasta_labels       : list of str - city names for chart
+   - miasta_values       : list of int - order counts for chart
+   - miasta_przychod     : list of float - revenue per city
+   - kategorie_labels    : list of str - category names for chart (top 10)
+   - kategorie_zysk      : list of float - profit per category for chart
+   - kategorie_marza     : list of float - margin per category
+   - dni_labels          : list of str - day labels (MM-DD)
+   - dni_przychod        : list of float - daily revenue
+   - dni_kumulowany      : list of float - cumulative revenue
+   ============================================================ #}
+{% extends "base.html" %}
+{% block page_title %}Analityka sprzedazy{% endblock %}
+{% block content %}
+
+<style>
+/* === ANALITYKA CYBERPUNK DASHBOARD === */
+.an-header{display:flex;align-items:center;justify-content:space-between;padding:10px 0 24px}
+.an-header h1{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.5rem;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(135deg,var(--neon-primary),var(--neon-secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 12px rgba(143,245,255,0.3))}
+
+/* Section headers */
+.an-section{display:flex;align-items:center;gap:8px;margin:28px 0 14px;padding:0}
+.an-section-bar{width:2px;height:14px;background:var(--neon-primary);flex-shrink:0}
+.an-section-bar.pink{background:var(--neon-secondary)}
+.an-section-bar.lime{background:var(--neon-tertiary)}
+.an-section-label{font-family:'Space Grotesk','Inter',sans-serif;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted)}
+
+/* Action buttons */
+.an-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.an-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--bg-card,rgba(19,19,28,0.6));border:1px solid rgba(143,245,255,0.15);color:var(--neon-primary);font-size:0.78rem;font-weight:600;text-decoration:none;transition:all 0.2s;font-family:'Space Grotesk','Inter',sans-serif;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer}
+.an-btn:hover{background:rgba(143,245,255,0.08);border-color:rgba(143,245,255,0.3);box-shadow:0 0 15px rgba(143,245,255,0.1)}
+.an-btn.pink{border-color:rgba(255,107,155,0.15);color:var(--neon-secondary)}
+.an-btn.pink:hover{background:rgba(255,107,155,0.08);border-color:rgba(255,107,155,0.3);box-shadow:0 0 15px rgba(255,107,155,0.1)}
+.an-btn.lime{border-color:rgba(190,238,0,0.15);color:var(--neon-tertiary)}
+.an-btn.lime:hover{background:rgba(190,238,0,0.08);border-color:rgba(190,238,0,0.3);box-shadow:0 0 15px rgba(190,238,0,0.1)}
+
+/* Warning panel */
+.an-warning{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:3px solid var(--neon-secondary);margin-bottom:20px}
+.an-warning-text{font-size:0.85rem;color:var(--neon-secondary);font-weight:600}
+
+/* KPI strip */
+.an-kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
+.an-kpi{padding:18px 16px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:3px solid rgba(143,245,255,0.2);transition:all 0.2s}
+.an-kpi:hover{border-left-color:var(--neon-primary);background:rgba(19,19,28,0.8)}
+.an-kpi-icon{font-size:1.2rem;color:var(--neon-primary);margin-bottom:8px}
+.an-kpi-val{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.35rem;font-weight:800;letter-spacing:-0.5px;color:var(--text);line-height:1}
+.an-kpi-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);font-weight:600;margin-top:6px;font-family:'Space Grotesk','Inter',sans-serif}
+.an-kpi-sub{font-size:0.65rem;color:var(--text-muted);margin-top:4px}
+.an-kpi.accent-pink{border-left-color:var(--neon-secondary)}
+.an-kpi.accent-lime{border-left-color:var(--neon-tertiary)}
+.an-kpi.accent-cyan{border-left-color:var(--neon-primary)}
+.an-kpi.accent-green{border-left-color:var(--green)}
+.an-kpi.highlight{border-left-width:4px;box-shadow:0 0 20px rgba(190,238,0,0.1),inset 0 0 30px rgba(190,238,0,0.03)}
+
+/* Grid layout */
+.an-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(500px,1fr));gap:20px}
+.an-grid-full{grid-column:1 / -1}
+@media(max-width:768px){.an-grid{grid-template-columns:1fr}.an-kpi-strip{grid-template-columns:repeat(2,1fr)}}
+
+/* Panel (card without border-radius) */
+.an-panel{background:var(--bg-card,rgba(19,19,28,0.6));padding:22px;border-left:3px solid rgba(143,245,255,0.1)}
+.an-panel-header{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.an-panel-title{font-family:'Space Grotesk','Inter',sans-serif;font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted)}
+.an-panel-title i.mi{font-size:1rem;vertical-align:middle;color:var(--neon-primary)}
+
+/* Chart container */
+.an-chart{position:relative;height:300px}
+
+/* Tables */
+.an-table{width:100%;border-collapse:collapse;font-size:0.82rem}
+.an-table th,.an-table td{padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.04)}
+.an-table th{color:var(--text-muted);font-weight:600;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.8px;font-family:'Space Grotesk','Inter',sans-serif}
+.an-table tr:hover{background:rgba(143,245,255,0.03)}
+.an-table .positive{color:var(--green)}
+.an-table .negative{color:var(--red)}
+
+/* Top/Flop sub-grid */
+.an-topflop-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px}
+@media(max-width:900px){.an-topflop-grid{grid-template-columns:1fr}}
+
+.an-sub-title{font-family:'Space Grotesk','Inter',sans-serif;font-size:0.82rem;font-weight:700;margin-bottom:15px;display:flex;align-items:center;gap:6px}
+
+/* Bar visualization for cities */
+.an-city-bar{height:6px;background:rgba(255,255,255,0.06);overflow:hidden;margin-top:4px}
+.an-city-bar-fill{height:100%;background:linear-gradient(90deg,var(--neon-primary),var(--neon-secondary));transition:width 0.6s ease}
+
+/* Medal colors */
+.an-medal-gold{color:#ffd700}
+.an-medal-silver{color:#c0c0c0}
+.an-medal-bronze{color:#cd7f32}
+</style>
+
+<!-- ═══════════════════════════════════════
+     HEADER
+     ═══════════════════════════════════════ -->
+<div class="an-header">
+    <h1><i class="mi" style="font-size:1.3rem;vertical-align:middle">analytics</i> Analityka sprzedazy</h1>
+</div>
+
+<!-- ═══════════════════════════════════════
+     ACTION BUTTONS
+     ═══════════════════════════════════════ -->
+<div class="an-actions">
+    <button onclick="uzupelnijAdresy()" class="an-btn"><i class="mi" style="font-size:1rem">pin_drop</i> Uzupelnij adresy</button>
+    <button onclick="autoKategoryzujWszystkie()" class="an-btn pink"><i class="mi" style="font-size:1rem">smart_toy</i> Auto-kategorie</button>
+    <a href="/analityka/palety" class="an-btn lime"><i class="mi" style="font-size:1rem">inventory_2</i> Bilans palet</a>
+    <a href="/analityka/kategorie" class="an-btn pink"><i class="mi" style="font-size:1rem">label</i> Edytuj kategorie</a>
+    <a href="/analityka/czas-sprzedazy" class="an-btn lime"><i class="mi" style="font-size:1rem">timer</i> Czas sprzedazy</a>
+    <a href="/magazyn/raport-sprzedazy" class="an-btn"><i class="mi" style="font-size:1rem">bar_chart</i> Eksport Excel</a>
+</div>
+
+<!-- ═══════════════════════════════════════
+     WARNING: PRODUCTS WITHOUT CATEGORY
+     ═══════════════════════════════════════ -->
+{% if produkty_bez_kat > 0 %}
+<div class="an-warning">
+    <span class="an-warning-text"><i class="mi" style="font-size:1rem;vertical-align:middle">warning</i> <strong>{{ produkty_bez_kat }}</strong> produktow bez kategorii</span>
+    <a href="/analityka/kategorie" class="an-btn pink" style="margin:0">Przypisz kategorie</a>
+</div>
+{% endif %}
+
+<!-- ═══════════════════════════════════════
+     KPI STRIP
+     ═══════════════════════════════════════ -->
+<div class="an-section">
+    <span class="an-section-bar"></span>
+    <span class="an-section-label font-display">Podsumowanie</span>
+</div>
+
+<div class="an-kpi-strip">
+    <div class="an-kpi accent-pink">
+        <div class="an-kpi-icon"><i class="mi">location_city</i></div>
+        <div class="an-kpi-val">{{ miasta_count }}</div>
+        <div class="an-kpi-label">Miast</div>
+    </div>
+    <div class="an-kpi accent-cyan">
+        <div class="an-kpi-icon"><i class="mi">inventory_2</i></div>
+        <div class="an-kpi-val">{{ zamowien_total }}</div>
+        <div class="an-kpi-label">Zamowien</div>
+    </div>
+    <div class="an-kpi accent-lime">
+        <div class="an-kpi-icon"><i class="mi">folder</i></div>
+        <div class="an-kpi-val">{{ kategorie_count }}</div>
+        <div class="an-kpi-label">Kategorii</div>
+    </div>
+    <div class="an-kpi accent-green highlight">
+        <div class="an-kpi-icon"><i class="mi">paid</i></div>
+        <div class="an-kpi-val">{{ laczny_zysk|int }} zl</div>
+        <div class="an-kpi-label">Laczny zysk</div>
+        <div class="an-kpi-sub">{{ allegro_zysk|int }} Allegro{% if prywatne_suma > 0 %} + {{ prywatne_suma|int }} prywatne{% endif %}</div>
+    </div>
+    <div class="an-kpi accent-pink">
+        <div class="an-kpi-icon"><i class="mi">person</i></div>
+        <div class="an-kpi-val">{{ prywatne_cnt }}</div>
+        <div class="an-kpi-label">Prywatne</div>
+        <div class="an-kpi-sub">{{ prywatne_suma|int }} zl</div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     CHARTS SECTION
+     ═══════════════════════════════════════ -->
+<div class="an-section">
+    <span class="an-section-bar pink"></span>
+    <span class="an-section-label font-display">Wykresy</span>
+</div>
+
+<div class="an-grid">
+    <!-- MIASTA CHART -->
+    <div class="an-panel">
+        <div class="an-panel-header">
+            <span class="an-section-bar"></span>
+            <span class="an-panel-title"><i class="mi">map</i> Skad kupuja klienci (TOP 20)</span>
+        </div>
+        <div class="an-chart">
+            <canvas id="miastaChart"></canvas>
+        </div>
+    </div>
+
+    <!-- KATEGORIE CHART -->
+    <div class="an-panel">
+        <div class="an-panel-header">
+            <span class="an-section-bar pink"></span>
+            <span class="an-panel-title"><i class="mi">paid</i> Rentownosc kategorii (TOP 10)</span>
+        </div>
+        <div class="an-chart">
+            <canvas id="kategorieChart"></canvas>
+        </div>
+    </div>
+
+    <!-- CZAS CHART -->
+    <div class="an-panel">
+        <div class="an-panel-header">
+            <span class="an-section-bar lime"></span>
+            <span class="an-panel-title"><i class="mi">trending_up</i> Przychod (ostatnie 30 dni)</span>
+        </div>
+        <div class="an-chart">
+            <canvas id="czasChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     TOP / FLOP PRODUCTS
+     ═══════════════════════════════════════ -->
+<div class="an-section">
+    <span class="an-section-bar lime"></span>
+    <span class="an-section-label font-display">Top / Flop produkty</span>
+</div>
+
+<div class="an-panel" style="border-left-color:rgba(190,238,0,0.15)">
+    <div class="an-panel-header">
+        <span class="an-section-bar lime"></span>
+        <span class="an-panel-title"><i class="mi">emoji_events</i> TOP 10 Bestsellerow vs <i class="mi">trending_down</i> FLOP</span>
+    </div>
+    <div class="an-topflop-grid">
+        <!-- TOP 10 -->
+        <div>
+            <div class="an-sub-title" style="color:var(--green)"><i class="mi">emoji_events</i> Bestsellery (wg przychodu)</div>
+            <table class="an-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Produkt</th>
+                        <th>Szt.</th>
+                        <th>Przychod</th>
+                        <th>Zakup</th>
+                        <th>Prowizja</th>
+                        <th>Zysk</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in top_produkty %}
+                    <tr>
+                        <td class="{% if loop.index0 == 0 %}an-medal-gold{% elif loop.index0 == 1 %}an-medal-silver{% elif loop.index0 == 2 %}an-medal-bronze{% endif %}">
+                            {% if loop.index0 < 3 %}<i class="mi">emoji_events</i>{% else %}{{ loop.index }}{% endif %}
+                        </td>
+                        <td title="{{ p.nazwa }}">{{ p.nazwa[:30] }}{% if p.nazwa|length > 30 %}...{% endif %}</td>
+                        <td>{{ p.ilosc }}</td>
+                        <td style="color:var(--green)">{{ p.przychod|int }} zl</td>
+                        <td style="color:{% if p.has_koszt %}var(--red){% else %}var(--text-muted){% endif %}">{{ p.koszt_total|int }}{% if p.has_koszt %} zl{% else %} ?{% endif %}</td>
+                        <td style="color:var(--neon-secondary)">{{ p.prowizja|int }} zl</td>
+                        <td style="color:{% if p.zysk > 0 %}var(--green){% else %}var(--red){% endif %};font-weight:700">{{ p.zysk|int }} zl</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- FLOP -->
+        <div>
+            <div class="an-sub-title" style="color:var(--red)"><i class="mi">trending_down</i> Najdluzej w magazynie</div>
+            <table class="an-table">
+                <thead>
+                    <tr>
+                        <th>Produkt</th>
+                        <th>Dni</th>
+                        <th>Zakup</th>
+                        <th>Cena</th>
+                        <th>Kategoria</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if flop_lista %}
+                    {% for p in flop_lista %}
+                    <tr>
+                        <td title="{{ p.nazwa }}">{{ p.nazwa[:30] }}{% if p.nazwa|length > 30 %}...{% endif %}</td>
+                        <td style="color:{% if p.dni > 60 %}var(--red){% elif p.dni > 30 %}var(--neon-secondary){% else %}var(--text-muted){% endif %}">{{ p.dni }} dni</td>
+                        <td>{{ p.cena_zakupu|int }} zl</td>
+                        <td>{{ p.cena_sprzedazy|int }} zl</td>
+                        <td style="font-size:0.8em">{{ p.kategoria[:15] }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Brak danych</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+            <p style="font-size:0.78rem;color:var(--text-muted);margin-top:10px">
+                <i class="mi" style="font-size:0.9rem;vertical-align:middle">lightbulb</i> Produkty > 60 dni warto przecenic lub wystawic na OLX/Vinted
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MIASTA TABLE
+     ═══════════════════════════════════════ -->
+<div class="an-section">
+    <span class="an-section-bar"></span>
+    <span class="an-section-label font-display">Szczegoly miast</span>
+</div>
+
+<div class="an-grid">
+    <div class="an-panel">
+        <div class="an-panel-header">
+            <span class="an-section-bar"></span>
+            <span class="an-panel-title"><i class="mi">location_city</i> Szczegoly miast</span>
+        </div>
+        <table class="an-table">
+            <thead>
+                <tr>
+                    <th>Miasto</th>
+                    <th>Zamowienia</th>
+                    <th>Przychod</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if miasta_sorted %}
+                {% for miasto, data in miasta_sorted[:15] %}
+                <tr>
+                    <td>{{ miasto }}</td>
+                    <td>{{ data.zamowienia }}</td>
+                    <td class="positive">{{ data.przychod|int }} zl</td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr><td colspan="3" style="text-align:center;color:var(--text-muted)">Brak danych o miastach</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         KATEGORIE TABLE
+         ═══════════════════════════════════════ -->
+    <div class="an-panel an-grid-full" style="border-left-color:rgba(255,107,155,0.15)">
+        <div class="an-panel-header">
+            <span class="an-section-bar pink"></span>
+            <span class="an-panel-title"><i class="mi">bar_chart</i> Szczegoly kategorii</span>
+        </div>
+        <table class="an-table">
+            <thead>
+                <tr>
+                    <th>Kategoria</th>
+                    <th>Szt.</th>
+                    <th>Przychod</th>
+                    <th>Zakup</th>
+                    <th>Prowizja</th>
+                    <th>Zysk</th>
+                    <th>Marza</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if kategorie_stats %}
+                {% for k in kategorie_stats %}
+                <tr>
+                    <td>{{ k.kategoria }}</td>
+                    <td>{{ k.sprzedazy }}</td>
+                    <td style="color:var(--green)">{{ k.przychod|int }} zl</td>
+                    <td style="color:var(--red)">-{{ k.koszt|int }} zl</td>
+                    <td style="color:var(--neon-secondary)">-{{ k.prowizja|int }} zl</td>
+                    <td class="{% if k.zysk >= 0 %}positive{% else %}negative{% endif %}" style="font-weight:700">{{ k.zysk|int }} zl</td>
+                    <td class="{% if k.marza >= 0 %}positive{% else %}negative{% endif %}">{{ "%.1f"|format(k.marza) }}%</td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr><td colspan="7" style="text-align:center;color:var(--text-muted)">Brak danych o sprzedazach</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     CHART.JS
+     ═══════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Wykres miast
+new Chart(document.getElementById('miastaChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ miasta_labels|tojson }},
+        datasets: [{
+            label: 'Zamowienia',
+            data: {{ miasta_values|tojson }},
+            backgroundColor: 'rgba(143,245,255,0.6)',
+            borderColor: 'rgba(143,245,255,0.8)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b' } },
+            y: { grid: { display: false }, ticks: { color: '#e2e8f0', font: { family: 'Space Grotesk' } } }
+        }
+    }
+});
+
+// Wykres kategorii
+var kategorieZyskData = {{ kategorie_zysk|tojson }};
+new Chart(document.getElementById('kategorieChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ kategorie_labels|tojson }},
+        datasets: [{
+            label: 'Zysk (zl)',
+            data: kategorieZyskData,
+            backgroundColor: kategorieZyskData.map(function(v){ return v >= 0 ? 'rgba(190,238,0,0.7)' : 'rgba(255,107,155,0.7)'; }),
+            borderColor: kategorieZyskData.map(function(v){ return v >= 0 ? 'rgba(190,238,0,1)' : 'rgba(255,107,155,1)'; }),
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { display: false }, ticks: { color: '#e2e8f0', maxRotation: 45, font: { family: 'Space Grotesk' } } },
+            y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b' } }
+        }
+    }
+});
+
+// Wykres czasowy - dzienny z kumulowanym
+new Chart(document.getElementById('czasChart'), {
+    type: 'line',
+    data: {
+        labels: {{ dni_labels|tojson }},
+        datasets: [
+            {
+                label: 'Narastajaco (zl)',
+                data: {{ dni_kumulowany|tojson }},
+                borderColor: 'rgba(190,238,0,1)',
+                backgroundColor: 'rgba(190,238,0,0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4,
+                pointBackgroundColor: '#beee00',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                order: 1
+            },
+            {
+                label: 'Dziennie (zl)',
+                data: {{ dni_przychod|tojson }},
+                borderColor: 'rgba(143,245,255,1)',
+                backgroundColor: 'rgba(143,245,255,0.25)',
+                fill: false,
+                tension: 0,
+                pointRadius: 5,
+                pointBackgroundColor: '#8ff5ff',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                type: 'bar',
+                order: 2
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: true, position: 'top', labels: { color: '#e2e8f0', font: { family: 'Space Grotesk' } } }
+        },
+        scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b', maxRotation: 45 } },
+            y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b' } }
+        }
+    }
+});
+
+// Funkcja uzupelniania adresow
+function uzupelnijAdresy() {
+    if (!confirm('Pobrac adresy z Allegro dla istniejacych zamowien?')) return;
+    fetch('/analityka/uzupelnij-adresy', {method: 'POST'})
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+            if (data.ok) {
+                alert('Zaktualizowano ' + data.count + ' adresow z ' + data.total);
+                location.reload();
+            } else {
+                alert('Blad: ' + (data.error || 'Nieznany'));
+            }
+        })
+        .catch(function(e){ alert('Blad: ' + e); });
+}
+
+// Funkcja auto-kategoryzacji wszystkich produktow
+function autoKategoryzujWszystkie() {
+    if (!confirm('Automatycznie przypisac kategorie do WSZYSTKICH produktow na podstawie nazw?')) return;
+    fetch('/analityka/kategorie/auto', {method: 'POST'})
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+            if (data.ok) {
+                alert('Zaktualizowano ' + data.count + ' produktow!');
+                location.reload();
+            } else {
+                alert('Blad: ' + (data.error || 'Nieznany'));
+            }
+        })
+        .catch(function(e){ alert('Blad: ' + e); });
+}
+</script>
+
+{% endblock %}
