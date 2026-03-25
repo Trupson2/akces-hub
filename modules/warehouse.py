@@ -152,271 +152,32 @@ def warehouse_shelves_map():
     wall_groups = {}
     for sec_letter, sec_data in wh_sections.items():
         group_name = f"{sec_letter} \u2014 {sec_data['name']}"
-        wall_groups[group_name] = sec_data['racks']  # Wszystkie regaly z sekcji
+        wall_groups[group_name] = sec_data['racks']
 
     total_shelves = len(config_shelves)
     total_items = sum(s['total_items'] for s in shelves_js.values())
     empty_shelves = sum(1 for s in shelves_js.values() if s['total_items'] == 0)
     occupied = total_shelves - empty_shelves
 
-    html = '''<!DOCTYPE html><html lang="pl"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>Mapa Magazynu</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;padding-bottom:80px}
-.top{position:sticky;top:0;z-index:100;background:#1e293b;padding:12px 16px;border-bottom:1px solid #334155;display:flex;align-items:center;gap:12px}
-.top h1{font-size:1.1rem;flex:1}
-.top a{color:#94a3b8;text-decoration:none;font-size:1.2rem}
-.stats-row{display:flex;gap:8px;padding:12px 16px;overflow-x:auto}
-.stat{flex:0 0 auto;background:#1e293b;border-radius:10px;padding:10px 14px;text-align:center;min-width:80px}
-.stat .n{font-size:1.3rem;font-weight:700;color:#22c55e}
-.stat .l{font-size:0.65rem;color:#94a3b8}
-.section-label{padding:8px 16px;font-size:0.75rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:1px}
-.shelves-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;padding:0 12px 12px}
-.shelf-card{background:#1e293b;border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;border:2px solid transparent;transition:all 0.2s}
-.shelf-card:active{transform:scale(0.95)}
-.shelf-card .letter{font-size:1.6rem;font-weight:800}
-.shelf-card .cnt{font-size:0.7rem;color:#94a3b8;margin-top:2px}
-.shelf-card .levels-cnt{font-size:0.6rem;color:#475569;margin-top:1px}
-.shelf-card .bar{height:4px;background:#334155;border-radius:2px;margin-top:6px;overflow:hidden}
-.shelf-card .bar-fill{height:100%;border-radius:2px;transition:width 0.3s}
-.panel-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:200}
-.panel-overlay.open{display:block}
-.panel{position:fixed;bottom:0;left:0;right:0;max-height:85vh;background:#1e293b;border-radius:20px 20px 0 0;z-index:201;overflow-y:auto;transform:translateY(100%);transition:transform 0.3s ease}
-.panel.open{transform:translateY(0)}
-.panel-handle{width:40px;height:4px;background:#475569;border-radius:2px;margin:10px auto}
-.panel-header{padding:0 16px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #334155}
-.panel-header h2{flex:1;font-size:1.2rem}
-.panel-close{background:none;border:none;color:#94a3b8;font-size:1.5rem;cursor:pointer;padding:4px 8px}
-.level-row{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #33415522;cursor:pointer}
-.level-row:active{background:#334155}
-.level-badge{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;color:#fff}
-.level-info{flex:1}
-.level-info .code{font-weight:600;font-size:0.9rem}
-.level-info .detail{font-size:0.7rem;color:#94a3b8}
-.level-arrow{color:#475569;font-size:1.2rem}
-.products-list{padding:8px 16px 20px}
-.prod-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #33415544;text-decoration:none;color:inherit}
-.prod-item:active{background:#33415533}
-.prod-img{width:50px;height:50px;border-radius:8px;object-fit:cover;background:#334155}
-.prod-img-placeholder{width:50px;height:50px;border-radius:8px;background:#334155;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
-.prod-info{flex:1;min-width:0}
-.prod-info .name{font-size:0.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.prod-info .meta{font-size:0.65rem;color:#94a3b8}
-.prod-qty{font-weight:700;color:#22c55e;font-size:0.9rem;white-space:nowrap}
-.bottom-bar{position:fixed;bottom:0;left:0;right:0;background:#1e293b;border-top:1px solid #334155;padding:8px 16px;display:flex;gap:8px;z-index:50}
-.bottom-bar a{flex:1;text-align:center;padding:10px;border-radius:10px;text-decoration:none;color:#e2e8f0;font-size:0.75rem;font-weight:600}
-.bb-print{background:#7c3aed}
-.bb-heat{background:#0ea5e9}
-.bb-back{background:#334155}
-.empty-msg{text-align:center;padding:30px;color:#64748b;font-size:0.85rem}
-.back-btn{display:inline-block;padding:6px 14px;background:#334155;border-radius:8px;color:#e2e8f0;font-size:0.75rem;text-decoration:none;margin:8px 16px}
-</style></head><body>
+    # Pre-compute max_fill for each shelf (used by Jinja2 template)
+    for rack_key, sdata in shelves_js.items():
+        levels = sdata.get('levels', [])
+        sdata['max_fill'] = max((lv.get('fill_percentage', 0) for lv in levels), default=0)
 
-<div class="top">
-    <a href="/magazyn">&#8592;</a>
-    <h1>Mapa Magazynu</h1>
-    <a href="/warehouse/print-labels">&#128424;</a>
-</div>
-
-<div class="stats-row">'''
-
-    html += f'''
-    <div class="stat"><div class="n">{total_shelves}</div><div class="l">Regalow</div></div>
-    <div class="stat"><div class="n" style="color:#3b82f6">{total_items}</div><div class="l">Produktow</div></div>
-    <div class="stat"><div class="n" style="color:#22c55e">{empty_shelves}</div><div class="l">Pustych</div></div>
-    <div class="stat"><div class="n" style="color:#ef4444">{total_shelves - empty_shelves}</div><div class="l">Zajetych</div></div>
-</div>
-
-<div style="padding:8px 12px">
-    <div style="position:relative">
-        <input type="text" id="searchInput" placeholder="Szukaj (nazwa, EAN, ASIN, kod mag...)"
-            style="width:100%;padding:12px 16px 12px 40px;background:#1e293b;border:2px solid #334155;border-radius:12px;color:#e2e8f0;font-size:0.9rem;outline:none"
-            oninput="searchProducts(this.value)" onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#334155'">
-        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#64748b">&#128269;</span>
-    </div>
-    <div id="searchResults" style="display:none;margin-top:8px;background:#1e293b;border-radius:12px;overflow:hidden;max-height:50vh;overflow-y:auto"></div>
-</div>'''
-
-    def get_shelf_color(letter):
-        s = shelves_js.get(letter, {})
-        levels = s.get('levels', [])
-        if not levels:
-            return '#22c55e'
-        max_fill = max((lv.get('fill_percentage', 0) for lv in levels), default=0)
-        if max_fill == 0: return '#22c55e'
-        elif max_fill < 25: return '#3b82f6'
-        elif max_fill < 50: return '#f59e0b'
-        elif max_fill < 75: return '#fb923c'
-        else: return '#ef4444'
-
-    def render_shelf_card(letter):
-        s = shelves_js.get(letter, {'total_items': 0, 'levels': []})
-        items = s['total_items']
-        color = get_shelf_color(letter)
-        n_levels = len(s.get('levels', []))
-        max_fill = max((lv.get('fill_percentage', 0) for lv in s.get('levels', [])), default=0)
-        return f'''<div class="shelf-card" onclick="openShelf('{letter}')" style="border-color:{color}40">
-            <div class="letter" style="color:{color}">{letter}</div>
-            <div class="cnt">{items} szt</div>
-            <div class="levels-cnt">{n_levels} polek</div>
-            <div class="bar"><div class="bar-fill" style="width:{min(max_fill,100)}%;background:{color}"></div></div>
-        </div>'''
-
-    # Render wg grup scian (z custom layout) lub wszystkie naraz
-    if wall_groups:
-        for wall_name, letters in wall_groups.items():
-            html += f'<div class="section-label">{wall_name}</div><div class="shelves-grid">'
-            for letter in letters:
-                html += render_shelf_card(letter)
-            html += '</div>'
-    else:
-        html += '<div class="section-label">Wszystkie regaly</div><div class="shelves-grid">'
-        for letter in shelf_letters_ordered:
-            html += render_shelf_card(letter)
-        html += '</div>'
-
-    # Bottom sheet panel + JS
     shelves_json = _json.dumps(shelves_js, ensure_ascii=False)
 
-    html += '''
-<div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
-<div class="panel" id="shelfPanel">
-    <div class="panel-handle"></div>
-    <div class="panel-header">
-        <h2 id="panelTitle">Regal</h2>
-        <button class="panel-close" onclick="closePanel()">&times;</button>
-    </div>
-    <div id="panelContent"></div>
-</div>
-
-<div class="bottom-bar">
-    <a href="/magazyn" class="bb-back">Magazyn</a>
-    <a href="/warehouse/print-labels" class="bb-print">Drukuj kartki</a>
-    <a href="/warehouse/heatmap" class="bb-heat">Heatmapa 3D</a>
-</div>
-
-<script>
-const shelvesData = ''' + shelves_json + ''';
-
-function openShelf(letter) {
-    var shelf = shelvesData[letter];
-    document.getElementById("panelTitle").textContent = "Regal " + letter;
-    var h = "";
-    if (!shelf || !shelf.levels || shelf.levels.length === 0) {
-        h = '<div class="empty-msg">Brak polek</div>';
-    } else {
-        var levels = shelf.levels.slice().sort(function(a,b){return a.level - b.level});
-        for (var i = 0; i < levels.length; i++) {
-            var lv = levels[i];
-            var c = lv.color || "#64748b";
-            h += '<div class="level-row" onclick="openLevel(\\x27' + lv.code + '\\x27)">';
-            h += '<div class="level-badge" style="background:' + c + '">' + lv.level + '</div>';
-            h += '<div class="level-info"><div class="code">' + lv.code + '</div>';
-            h += '<div class="detail">' + lv.items + ' szt / ' + lv.capacity + ' max</div></div>';
-            h += '<div class="level-arrow">&#8250;</div></div>';
-        }
-    }
-    document.getElementById("panelContent").innerHTML = h;
-    document.getElementById("panelOverlay").classList.add("open");
-    document.getElementById("shelfPanel").classList.add("open");
-}
-
-function closePanel() {
-    document.getElementById("panelOverlay").classList.remove("open");
-    document.getElementById("shelfPanel").classList.remove("open");
-}
-
-function openLevel(code) {
-    document.getElementById("panelTitle").textContent = "Polka " + code;
-    document.getElementById("panelContent").innerHTML = '<div class="empty-msg">Ladowanie...</div>';
-
-    fetch("/api/warehouse/location/" + code)
-        .then(function(r){return r.json()})
-        .then(function(data) {
-            if (data.error) {
-                document.getElementById("panelContent").innerHTML = '<div class="empty-msg">' + data.error + '</div>';
-                return;
-            }
-            var h = "";
-            var products = data.products || [];
-            if (products.length === 0) {
-                h = '<div class="empty-msg">Polka pusta</div>';
-            } else {
-                var shelfCode = code.replace(/\\d+$/, '').length > 1 ? code.slice(0, -1) : code.charAt(0);
-                // Znajdz regal w shelvesData
-                for (var sk in shelvesData) { if (shelvesData[sk].levels) { for (var li=0;li<shelvesData[sk].levels.length;li++) { if (shelvesData[sk].levels[li].code === code) { shelfCode = sk; break; }}}}
-                h = '<a class="back-btn" href="javascript:void(0)" onclick="openShelf(\\x27' + shelfCode + '\\x27)">&#8592; Wroc do regalu</a>';
-                h += '<div class="products-list">';
-                for (var i = 0; i < products.length; i++) {
-                    var p = products[i];
-                    var img = p.zdjecie_url
-                        ? '<img class="prod-img" src="' + p.zdjecie_url + '" onerror="this.style.display=\\x27none\\x27">'
-                        : '<div class="prod-img-placeholder">&#128230;</div>';
-                    var name = (p.nazwa || "Brak nazwy").substring(0, 60);
-                    var ean = p.ean || p.asin || "";
-                    h += '<a href="/magazyn/produkt/' + p.id + '" class="prod-item">';
-                    h += img;
-                    h += '<div class="prod-info"><div class="name">' + name + '</div>';
-                    h += '<div class="meta">' + ean + '</div></div>';
-                    h += '<div class="prod-qty">' + (p.ilosc || 0) + ' szt</div>';
-                    h += '</a>';
-                }
-                h += '</div>';
-            }
-            document.getElementById("panelContent").innerHTML = h;
-        })
-        .catch(function(err) {
-            document.getElementById("panelContent").innerHTML = '<div class="empty-msg">Blad: ' + err + '</div>';
-        });
-}
-
-var searchTimer = null;
-function searchProducts(q) {
-    var box = document.getElementById("searchResults");
-    if (!q || q.length < 2) {
-        box.style.display = "none";
-        box.innerHTML = "";
-        return;
-    }
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(function() {
-        fetch("/api/warehouse/search-product?q=" + encodeURIComponent(q))
-            .then(function(r){return r.json()})
-            .then(function(data) {
-                var results = data.results || [];
-                if (results.length === 0) {
-                    box.innerHTML = '<div style="padding:16px;color:#64748b;text-align:center">Nie znaleziono</div>';
-                    box.style.display = "block";
-                    return;
-                }
-                var h = "";
-                for (var i = 0; i < results.length; i++) {
-                    var p = results[i];
-                    var img = p.zdjecie_url
-                        ? '<img style="width:40px;height:40px;border-radius:8px;object-fit:cover;background:#334155" src="'+p.zdjecie_url+'" onerror="this.style.display=\\x27none\\x27">'
-                        : '<div style="width:40px;height:40px;border-radius:8px;background:#334155;display:flex;align-items:center;justify-content:center">&#128230;</div>';
-                    var name = (p.nazwa || "?").substring(0, 50);
-                    var loc = p.lokalizacja || "brak";
-                    var ean = p.ean || p.asin || "";
-                    h += '<a href="/magazyn/produkt/'+p.id+'" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #33415544;text-decoration:none;color:#e2e8f0">';
-                    h += img;
-                    h += '<div style="flex:1;min-width:0"><div style="font-size:0.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+name+'</div>';
-                    h += '<div style="font-size:0.65rem;color:#94a3b8">'+ean+'</div></div>';
-                    h += '<div style="text-align:right;flex-shrink:0"><div style="font-weight:700;color:#22c55e;font-size:0.85rem">'+(p.ilosc||0)+' szt</div>';
-                    h += '<div style="font-size:0.65rem;color:#a78bfa;font-weight:600">'+loc+'</div></div>';
-                    h += '</a>';
-                }
-                box.innerHTML = h;
-                box.style.display = "block";
-            });
-    }, 300);
-}
-</script>
-</body></html>'''
-
-    return html
+    return render_template('warehouse_shelves.html',
+        wall_groups=wall_groups,
+        shelves_js=shelves_js,
+        shelf_letters_ordered=shelf_letters_ordered,
+        wh_colors=wh_colors,
+        total_shelves=total_shelves,
+        total_items=total_items,
+        empty_shelves=empty_shelves,
+        occupied=occupied,
+        config_shelves=config_shelves,
+        shelves_json=shelves_json
+    )
 
 
 @warehouse_bp.route('/warehouse/shelf/<code>')

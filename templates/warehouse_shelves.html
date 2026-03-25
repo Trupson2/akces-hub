@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+{% block page_title %}Mapa Magazynu{% endblock %}
+{% block content %}
+<style>
+/* ── Cyberpunk HUD Warehouse Map ── */
+.wh-map{padding:0;max-width:100%}
+
+/* Title section */
+.wh-header{margin-bottom:24px}
+.wh-header h1{font-family:'Space Grotesk','Inter',sans-serif;font-weight:900;font-size:2rem;letter-spacing:0.08em;text-transform:uppercase;color:#8ff5ff;line-height:1.1}
+.wh-subtitle{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:0.72rem;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;font-weight:600}
+.wh-pulse{width:8px;height:8px;background:#8ff5ff;animation:wh-pulse-anim 2s ease-in-out infinite}
+@keyframes wh-pulse-anim{0%,100%{opacity:1;box-shadow:0 0 4px #8ff5ff}50%{opacity:0.4;box-shadow:0 0 12px #8ff5ff}}
+
+/* KPI badges */
+.wh-kpi-row{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.wh-kpi{display:flex;align-items:center;gap:10px;background:rgba(19,19,28,0.6);border:1px solid var(--border);padding:12px 18px;flex:1;min-width:140px}
+.wh-kpi .material-symbols-outlined{font-size:1.3rem}
+.wh-kpi-val{font-family:'Space Grotesk','Inter',sans-serif;font-weight:800;font-size:1.4rem;line-height:1}
+.wh-kpi-lbl{font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.wh-kpi.cyan .wh-kpi-val,.wh-kpi.cyan .material-symbols-outlined{color:#8ff5ff}
+.wh-kpi.lime .wh-kpi-val,.wh-kpi.lime .material-symbols-outlined{color:#beee00}
+.wh-kpi.pink .wh-kpi-val,.wh-kpi.pink .material-symbols-outlined{color:#ff6b9b}
+.wh-kpi.orange .wh-kpi-val,.wh-kpi.orange .material-symbols-outlined{color:#f59e0b}
+
+/* Search */
+.wh-search-wrap{position:relative;margin-bottom:24px}
+.wh-search-wrap input{width:100%;padding:14px 16px 14px 46px;background:rgba(19,19,28,0.6);border:1px solid var(--border);color:var(--text);font-size:0.9rem;font-family:'Inter',sans-serif;outline:none;transition:border-color 0.2s}
+.wh-search-wrap input:focus{border-color:#8ff5ff;box-shadow:0 0 0 1px rgba(143,245,255,0.2)}
+.wh-search-wrap input::placeholder{color:var(--text-muted)}
+.wh-search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:1.2rem;pointer-events:none}
+#searchResults{display:none;margin-top:4px;background:rgba(19,19,28,0.95);border:1px solid var(--border);overflow:hidden;max-height:50vh;overflow-y:auto}
+#searchResults a{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(51,65,85,0.25);text-decoration:none;color:var(--text);transition:background 0.15s}
+#searchResults a:hover{background:rgba(143,245,255,0.05)}
+
+/* Section headers */
+.wh-section{margin-bottom:24px}
+.wh-section-hdr{display:flex;align-items:center;gap:10px;padding:0 0 10px 0;border-left:2px solid var(--text-muted);padding-left:12px;margin-bottom:12px}
+.wh-section-hdr h3{font-family:'Space Grotesk','Inter',sans-serif;font-weight:700;font-size:0.85rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text)}
+
+/* Shelf grid */
+.wh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.wh-card{background:rgba(19,19,28,0.6);border:1px solid var(--border);padding:14px 10px 10px;text-align:center;cursor:pointer;transition:all 0.15s;border-left:2px solid var(--text-muted);position:relative;text-decoration:none;color:var(--text);display:block}
+.wh-card:hover{background:rgba(143,245,255,0.04);border-color:rgba(143,245,255,0.2)}
+.wh-card:active{transform:scale(0.97)}
+.wh-card-code{font-family:'Space Grotesk','Inter',sans-serif;font-weight:900;font-size:1.5rem;line-height:1}
+.wh-card-cnt{font-size:0.7rem;color:var(--text-muted);margin-top:4px}
+.wh-card-levels{font-size:0.6rem;color:var(--text-muted);margin-top:2px;opacity:0.7}
+.wh-card-bar{height:3px;background:rgba(255,255,255,0.06);margin-top:8px;overflow:hidden}
+.wh-card-bar-fill{height:100%;transition:width 0.3s}
+
+/* Panel overlay */
+.wh-panel-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:200;backdrop-filter:blur(2px)}
+.wh-panel-overlay.open{display:block}
+
+/* Slide-up panel */
+.wh-panel{position:fixed;bottom:0;left:0;right:0;max-height:85vh;background:#13131c;border-top:1px solid rgba(143,245,255,0.15);z-index:201;overflow-y:auto;transform:translateY(100%);transition:transform 0.3s ease}
+.wh-panel.open{transform:translateY(0)}
+.wh-panel-handle{width:40px;height:3px;background:var(--text-muted);margin:10px auto}
+.wh-panel-header{padding:0 16px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
+.wh-panel-header h2{flex:1;font-family:'Space Grotesk','Inter',sans-serif;font-weight:800;font-size:1.15rem;color:#8ff5ff}
+.wh-panel-close{background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;padding:4px 8px;transition:color 0.2s}
+.wh-panel-close:hover{color:#ff6b9b}
+
+/* Level rows in panel */
+.wh-level-row{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid rgba(51,65,85,0.15);cursor:pointer;transition:background 0.15s}
+.wh-level-row:hover,.wh-level-row:active{background:rgba(143,245,255,0.04)}
+.wh-level-badge{width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;color:#fff;border-left:2px solid}
+.wh-level-info{flex:1}
+.wh-level-code{font-weight:600;font-size:0.9rem}
+.wh-level-detail{font-size:0.7rem;color:var(--text-muted)}
+.wh-level-arrow{color:var(--text-muted);font-size:1rem}
+
+/* Products list in panel */
+.wh-products{padding:8px 16px 20px}
+.wh-prod{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(51,65,85,0.2);text-decoration:none;color:inherit;transition:background 0.15s}
+.wh-prod:hover{background:rgba(143,245,255,0.03)}
+.wh-prod-img{width:50px;height:50px;object-fit:cover;background:rgba(51,65,85,0.4);flex-shrink:0}
+.wh-prod-placeholder{width:50px;height:50px;background:rgba(51,65,85,0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.wh-prod-placeholder .material-symbols-outlined{font-size:1.3rem;color:var(--text-muted)}
+.wh-prod-info{flex:1;min-width:0}
+.wh-prod-name{font-size:0.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wh-prod-meta{font-size:0.65rem;color:var(--text-muted)}
+.wh-prod-qty{font-weight:700;color:#beee00;font-size:0.9rem;white-space:nowrap}
+.wh-empty{text-align:center;padding:30px;color:var(--text-muted);font-size:0.85rem}
+.wh-back-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(51,65,85,0.3);border:1px solid var(--border);color:var(--text);font-size:0.75rem;text-decoration:none;margin:10px 16px;transition:all 0.15s}
+.wh-back-btn:hover{border-color:#8ff5ff;color:#8ff5ff}
+
+/* Bottom nav */
+.wh-bottom{display:flex;gap:8px;margin-top:28px;padding-top:20px;border-top:1px solid var(--border)}
+.wh-bottom a{flex:1;text-align:center;padding:12px;text-decoration:none;color:var(--text);font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s}
+.wh-bottom a.wh-btn-back{background:rgba(51,65,85,0.3);border:1px solid var(--border)}
+.wh-bottom a.wh-btn-back:hover{border-color:#8ff5ff;color:#8ff5ff}
+.wh-bottom a.wh-btn-print{background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);color:#a78bfa}
+.wh-bottom a.wh-btn-print:hover{background:rgba(139,92,246,0.25)}
+.wh-bottom a.wh-btn-heat{background:rgba(143,245,255,0.1);border:1px solid rgba(143,245,255,0.2);color:#8ff5ff}
+.wh-bottom a.wh-btn-heat:hover{background:rgba(143,245,255,0.2)}
+
+/* Mobile */
+@media(max-width:768px){
+    .wh-header h1{font-size:1.4rem}
+    .wh-kpi-row{gap:6px}
+    .wh-kpi{padding:10px 12px;min-width:0}
+    .wh-kpi-val{font-size:1.1rem}
+    .wh-grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px}
+    .wh-card-code{font-size:1.25rem}
+}
+</style>
+
+<div class="wh-map">
+    <!-- Header -->
+    <div class="wh-header">
+        <h1>MAPA MAGAZYNU</h1>
+        <div class="wh-subtitle">
+            <span class="wh-pulse"></span>
+            LIVE WAREHOUSE MAP
+        </div>
+    </div>
+
+    <!-- KPI row -->
+    <div class="wh-kpi-row">
+        <div class="wh-kpi cyan">
+            <span class="material-symbols-outlined">shelves</span>
+            <div>
+                <div class="wh-kpi-val">{{ total_shelves }}</div>
+                <div class="wh-kpi-lbl">Regalow</div>
+            </div>
+        </div>
+        <div class="wh-kpi lime">
+            <span class="material-symbols-outlined">inventory_2</span>
+            <div>
+                <div class="wh-kpi-val">{{ total_items }}</div>
+                <div class="wh-kpi-lbl">Produktow</div>
+            </div>
+        </div>
+        <div class="wh-kpi pink">
+            <span class="material-symbols-outlined">check_box_outline_blank</span>
+            <div>
+                <div class="wh-kpi-val">{{ empty_shelves }}</div>
+                <div class="wh-kpi-lbl">Pustych</div>
+            </div>
+        </div>
+        <div class="wh-kpi orange">
+            <span class="material-symbols-outlined">deployed_code</span>
+            <div>
+                <div class="wh-kpi-val">{{ occupied }}</div>
+                <div class="wh-kpi-lbl">Zajetych</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="wh-search-wrap">
+        <span class="material-symbols-outlined wh-search-icon">search</span>
+        <input type="text" id="searchInput" placeholder="Szukaj (nazwa, EAN, ASIN, kod mag...)"
+               oninput="searchProducts(this.value)" autocomplete="off">
+        <div id="searchResults"></div>
+    </div>
+
+    <!-- Wall sections with shelf grids -->
+    {% if wall_groups %}
+        {% for wall_name, letters in wall_groups.items() %}
+        <div class="wh-section">
+            <div class="wh-section-hdr" style="border-left-color:{{ wh_colors.get(wall_name.split(' ')[0], '#64748b') }}">
+                <h3>{{ wall_name }}</h3>
+            </div>
+            <div class="wh-grid">
+                {% for letter in letters %}
+                    {% set s = shelves_js.get(letter, {'total_items': 0, 'levels': []}) %}
+                    {% set items = s.total_items %}
+                    {% set n_levels = s.levels|length %}
+                    {% set max_fill = s.get('max_fill', 0) %}
+                    {% if max_fill < 50 %}
+                        {% set fill_color = '#8ff5ff' %}
+                    {% elif max_fill < 80 %}
+                        {% set fill_color = '#beee00' %}
+                    {% elif max_fill < 95 %}
+                        {% set fill_color = '#f59e0b' %}
+                    {% else %}
+                        {% set fill_color = '#ff6b9b' %}
+                    {% endif %}
+                    <div class="wh-card" onclick="openShelf('{{ letter }}')"
+                         style="border-left-color:{{ fill_color }}40">
+                        <div class="wh-card-code" style="color:{{ fill_color }}">{{ letter }}</div>
+                        <div class="wh-card-cnt">{{ items }} szt</div>
+                        <div class="wh-card-levels">{{ n_levels }} polek</div>
+                        <div class="wh-card-bar">
+                            <div class="wh-card-bar-fill" style="width:{{ [max_fill, 100]|min }}%;background:{{ fill_color }}"></div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="wh-section">
+            <div class="wh-section-hdr">
+                <h3>Wszystkie regaly</h3>
+            </div>
+            <div class="wh-grid">
+                {% for letter in shelf_letters_ordered %}
+                    {% set s = shelves_js.get(letter, {'total_items': 0, 'levels': []}) %}
+                    {% set items = s.total_items %}
+                    {% set n_levels = s.levels|length %}
+                    {% set max_fill = s.get('max_fill', 0) %}
+                    {% if max_fill < 50 %}
+                        {% set fill_color = '#8ff5ff' %}
+                    {% elif max_fill < 80 %}
+                        {% set fill_color = '#beee00' %}
+                    {% elif max_fill < 95 %}
+                        {% set fill_color = '#f59e0b' %}
+                    {% else %}
+                        {% set fill_color = '#ff6b9b' %}
+                    {% endif %}
+                    <div class="wh-card" onclick="openShelf('{{ letter }}')"
+                         style="border-left-color:{{ fill_color }}40">
+                        <div class="wh-card-code" style="color:{{ fill_color }}">{{ letter }}</div>
+                        <div class="wh-card-cnt">{{ items }} szt</div>
+                        <div class="wh-card-levels">{{ n_levels }} polek</div>
+                        <div class="wh-card-bar">
+                            <div class="wh-card-bar-fill" style="width:{{ [max_fill, 100]|min }}%;background:{{ fill_color }}"></div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Bottom nav -->
+    <div class="wh-bottom">
+        <a href="/magazyn" class="wh-btn-back">
+            <span class="material-symbols-outlined" style="font-size:1rem">warehouse</span>
+            Magazyn
+        </a>
+        <a href="/warehouse/print-labels" class="wh-btn-print">
+            <span class="material-symbols-outlined" style="font-size:1rem">print</span>
+            Drukuj kartki
+        </a>
+        <a href="/warehouse/heatmap" class="wh-btn-heat">
+            <span class="material-symbols-outlined" style="font-size:1rem">view_in_ar</span>
+            Heatmapa 3D
+        </a>
+    </div>
+</div>
+
+<!-- Panel overlay -->
+<div class="wh-panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
+<div class="wh-panel" id="shelfPanel">
+    <div class="wh-panel-handle"></div>
+    <div class="wh-panel-header">
+        <h2 id="panelTitle">Regal</h2>
+        <button class="wh-panel-close" onclick="closePanel()">&times;</button>
+    </div>
+    <div id="panelContent"></div>
+</div>
+
+<script>
+const shelvesData = {{ shelves_json|safe }};
+
+function openShelf(letter) {
+    var shelf = shelvesData[letter];
+    document.getElementById("panelTitle").textContent = "Regal " + letter;
+    var h = "";
+    if (!shelf || !shelf.levels || shelf.levels.length === 0) {
+        h = '<div class="wh-empty">Brak polek</div>';
+    } else {
+        var levels = shelf.levels.slice().sort(function(a,b){return a.level - b.level});
+        for (var i = 0; i < levels.length; i++) {
+            var lv = levels[i];
+            var c = lv.color || "#64748b";
+            h += '<div class="wh-level-row" onclick="openLevel(\x27' + lv.code + '\x27)">';
+            h += '<div class="wh-level-badge" style="background:' + c + '33;border-left-color:' + c + '">' + lv.level + '</div>';
+            h += '<div class="wh-level-info"><div class="wh-level-code">' + lv.code + '</div>';
+            h += '<div class="wh-level-detail">' + lv.items + ' szt / ' + lv.capacity + ' max</div></div>';
+            h += '<div class="wh-level-arrow"><span class="material-symbols-outlined" style="font-size:1rem">chevron_right</span></div></div>';
+        }
+    }
+    document.getElementById("panelContent").innerHTML = h;
+    document.getElementById("panelOverlay").classList.add("open");
+    document.getElementById("shelfPanel").classList.add("open");
+}
+
+function closePanel() {
+    document.getElementById("panelOverlay").classList.remove("open");
+    document.getElementById("shelfPanel").classList.remove("open");
+}
+
+function openLevel(code) {
+    document.getElementById("panelTitle").textContent = "Polka " + code;
+    document.getElementById("panelContent").innerHTML = '<div class="wh-empty">Ladowanie...</div>';
+
+    fetch("/api/warehouse/location/" + code)
+        .then(function(r){return r.json()})
+        .then(function(data) {
+            if (data.error) {
+                document.getElementById("panelContent").innerHTML = '<div class="wh-empty">' + data.error + '</div>';
+                return;
+            }
+            var h = "";
+            var products = data.products || [];
+            if (products.length === 0) {
+                h = '<div class="wh-empty">Polka pusta</div>';
+            } else {
+                var shelfCode = code.replace(/\d+$/, '').length > 1 ? code.slice(0, -1) : code.charAt(0);
+                for (var sk in shelvesData) { if (shelvesData[sk].levels) { for (var li=0;li<shelvesData[sk].levels.length;li++) { if (shelvesData[sk].levels[li].code === code) { shelfCode = sk; break; }}}}
+                h = '<a class="wh-back-btn" href="javascript:void(0)" onclick="openShelf(\x27' + shelfCode + '\x27)"><span class="material-symbols-outlined" style="font-size:.9rem">arrow_back</span> Wroc do regalu</a>';
+                h += '<div class="wh-products">';
+                for (var i = 0; i < products.length; i++) {
+                    var p = products[i];
+                    var img = p.zdjecie_url
+                        ? '<img class="wh-prod-img" src="' + p.zdjecie_url + '" onerror="this.style.display=\x27none\x27">'
+                        : '<div class="wh-prod-placeholder"><span class="material-symbols-outlined">package_2</span></div>';
+                    var name = (p.nazwa || "Brak nazwy").substring(0, 60);
+                    var ean = p.ean || p.asin || "";
+                    h += '<a href="/magazyn/produkt/' + p.id + '" class="wh-prod">';
+                    h += img;
+                    h += '<div class="wh-prod-info"><div class="wh-prod-name">' + name + '</div>';
+                    h += '<div class="wh-prod-meta">' + ean + '</div></div>';
+                    h += '<div class="wh-prod-qty">' + (p.ilosc || 0) + ' szt</div>';
+                    h += '</a>';
+                }
+                h += '</div>';
+            }
+            document.getElementById("panelContent").innerHTML = h;
+        })
+        .catch(function(err) {
+            document.getElementById("panelContent").innerHTML = '<div class="wh-empty">Blad: ' + err + '</div>';
+        });
+}
+
+var searchTimer = null;
+function searchProducts(q) {
+    var box = document.getElementById("searchResults");
+    if (!q || q.length < 2) {
+        box.style.display = "none";
+        box.innerHTML = "";
+        return;
+    }
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function() {
+        fetch("/api/warehouse/search-product?q=" + encodeURIComponent(q))
+            .then(function(r){return r.json()})
+            .then(function(data) {
+                var results = data.results || [];
+                if (results.length === 0) {
+                    box.innerHTML = '<div style="padding:16px;color:var(--text-muted);text-align:center">Nie znaleziono</div>';
+                    box.style.display = "block";
+                    return;
+                }
+                var h = "";
+                for (var i = 0; i < results.length; i++) {
+                    var p = results[i];
+                    var img = p.zdjecie_url
+                        ? '<img style="width:40px;height:40px;object-fit:cover;background:rgba(51,65,85,0.4)" src="'+p.zdjecie_url+'" onerror="this.style.display=\x27none\x27">'
+                        : '<div style="width:40px;height:40px;background:rgba(51,65,85,0.4);display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:1.1rem;color:var(--text-muted)">package_2</span></div>';
+                    var name = (p.nazwa || "?").substring(0, 50);
+                    var loc = p.lokalizacja || "brak";
+                    var ean = p.ean || p.asin || "";
+                    h += '<a href="/magazyn/produkt/'+p.id+'">';
+                    h += img;
+                    h += '<div style="flex:1;min-width:0"><div style="font-size:0.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+name+'</div>';
+                    h += '<div style="font-size:0.65rem;color:var(--text-muted)">'+ean+'</div></div>';
+                    h += '<div style="text-align:right;flex-shrink:0"><div style="font-weight:700;color:#beee00;font-size:0.85rem">'+(p.ilosc||0)+' szt</div>';
+                    h += '<div style="font-size:0.65rem;color:#a78bfa;font-weight:600">'+loc+'</div></div>';
+                    h += '</a>';
+                }
+                box.innerHTML = h;
+                box.style.display = "block";
+            });
+    }, 300);
+}
+</script>
+{% endblock %}
