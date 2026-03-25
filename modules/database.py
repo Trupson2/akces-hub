@@ -951,7 +951,7 @@ def get_full_stats():
         # Koszt per produkt = paleta.cena_zakupu / łączna ilość sztuk z palety
         # Dzięki temu: sprzedajesz w marcu produkt z palety kupionej w styczniu
         # → koszt ląduje w marcu (kiedy sprzedałeś), nie w styczniu (kiedy kupiłeś)
-        prowizja_msc = stats['sprzedaz_miesiac_suma'] * 0.11
+        # prowizja obliczona niżej po odjęciu zwrotów
 
         # COGS = koszt sprzedanych produktów w tym miesiącu
         # Dla każdej sprzedaży: koszt = paleta.cena_zakupu / ilość_sztuk_z_palety
@@ -990,7 +990,10 @@ def get_full_stats():
         else:
             koszt_sprzedanych = koszt_palet_msc  # fallback
 
-        stats['zysk_miesiac'] = stats['sprzedaz_miesiac_suma'] - koszt_sprzedanych - prowizja_msc
+        zwroty_msc_suma = float(stats.get('zwroty_miesiac_suma', 0))
+        przychod_po_zwrotach = stats['sprzedaz_miesiac_suma'] - zwroty_msc_suma
+        prowizja_msc = przychod_po_zwrotach * 0.11  # prowizja od przychodu po zwrotach
+        stats['zysk_miesiac'] = przychod_po_zwrotach - koszt_sprzedanych - prowizja_msc
         stats['koszt_sprzedanych_msc'] = koszt_sprzedanych
         stats['cogs_miesiac'] = cogs_miesiac
         stats['koszt_palet_msc'] = koszt_palet_msc  # do porównania

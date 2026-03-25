@@ -1443,15 +1443,18 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
         return resp
 
     # Statystyki COGS do dashboardu
+    zwroty_suma = float(stats.get('zwroty_miesiac_suma', 0))
+    przychod_netto = miesiac_kwota - zwroty_suma  # przychód minus zwroty
     monthly_stats = {
-        'przychod': f"{miesiac_kwota:.0f}",
+        'przychod': f"{przychod_netto:.0f}",
+        'przychod_brutto': f"{miesiac_kwota:.0f}",
         'cogs': f"{stats.get('cogs_miesiac', 0):.0f}",
         'koszt_palet': f"{stats.get('koszt_palet_msc', 0):.0f}",
-        'prowizja': f"{miesiac_kwota * 0.11:.0f}",
+        'prowizja': f"{przychod_netto * 0.11:.0f}",
         'zysk': f"{stats.get('zysk_miesiac', 0):.0f}",
         'roi': f"{stats.get('roi_miesiac', 0):.0f}",
         'zwroty_cnt': stats.get('zwroty_miesiac_cnt', 0),
-        'zwroty_suma': f"{stats.get('zwroty_miesiac_suma', 0):.0f}",
+        'zwroty_suma': f"{zwroty_suma:.0f}",
         'magazyn_wartosc': f"{stats.get('magazyn_wartosc', 0):.0f}",
         'magazyn_sztuki': stats.get('magazyn_sztuki', 0),
         'stojace': stats.get('stojace_30dni', 0),
