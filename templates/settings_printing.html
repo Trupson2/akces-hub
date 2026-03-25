@@ -30,6 +30,7 @@
 
         <!-- Formularz ustawień -->
         <form method="POST" action="/settings/printing">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             
             <!-- Card 1: Automatyczne drukowanie -->
             <div class="card">

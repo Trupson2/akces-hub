@@ -123,7 +123,7 @@
 <!-- ═══════════════ SECTION 2: STATUS SYPIE ═══════════════ -->
 <div class="st-status" style="border-left-color:{{ status_color }}">
     <div class="st-status-dot" style="background:{{ status_color }};box-shadow:0 0 10px {{ status_color }}"></div>
-    <div class="st-status-text" style="color:{{ status_color }}">{{ status_text }}</div>
+    <div class="st-status-text" style="color:{{ status_color }}"><span class="material-symbols-outlined" style="font-size:1.5rem;vertical-align:middle">{{ status_icon }}</span> {{ status_text }}</div>
     <div class="st-status-vals">
         <div>Dzisiaj: <strong style="color:{{ status_color }}">{{ "%.2f"|format(today_sales) }} zl</strong></div>
         <div style="font-size:0.7rem;color:var(--text-muted)">{{ today_cnt }} {{ 'zamowienie' if today_cnt == 1 else ('zamowienia' if today_cnt < 5 else 'zamowien') }}</div>
@@ -391,7 +391,7 @@
 </div>
 
 <!-- ═══════════════ SECTION 11: CHART.JS SCRIPTS ═══════════════ -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
 <script>
 // === DATA FROM PYTHON ===
 const nazwyMiesiecy = {{ nazwy_miesiecy_json|safe }};

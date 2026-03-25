@@ -28,6 +28,7 @@
 
         <!-- Formularz -->
         <form method="POST" action="/generator/produkt/{{ produkt.id }}/edit">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             
             <!-- ═══════════════════════════════════════════════════ -->
             <!-- PODSTAWOWE DANE (zawsze widoczne) -->

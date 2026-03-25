@@ -278,6 +278,7 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min
 {% endif %}
 
 <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <div class="form-group">
 <label class="form-label">LOGIN</label>
 <div class="input-wrap">
@@ -594,6 +595,7 @@ button:hover{opacity:0.9}
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
     {% if success %}<div class="success">{{ success }}</div>{% endif %}
     <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label>Obecne hasło</label>
         <input type="password" name="old_password" required autofocus>
         <label>Nowe hasło (min. 8 znaków)</label>
@@ -787,6 +789,7 @@ select.role-select{background:#0a0a1a;border:1px solid #2a2a4a;border-radius:6px
 <td>{{ u.username }}</td>
 <td>
 <form method="POST" action="{{ url_for('auth.user_change_role', user_id=u.id) }}" style="display:inline">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <select name="rola" class="role-select" onchange="this.form.submit()">
 <option value="magazynier" {{ 'selected' if u.rola=='magazynier' }}>Magazynier</option>
 <option value="user" {{ 'selected' if u.rola=='user' }}>User</option>
@@ -806,9 +809,11 @@ select.role-select{background:#0a0a1a;border:1px solid #2a2a4a;border-radius:6px
 <td>{{ u.ostatnie_logowanie or 'Nigdy' }}</td>
 <td>
 <form method="POST" action="{{ url_for('auth.user_toggle', user_id=u.id) }}" style="display:inline">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <button class="btn btn-sm btn-warn">{{ 'Dezaktywuj' if u.aktywny else 'Aktywuj' }}</button>
 </form>
 <form method="POST" action="{{ url_for('auth.user_delete', user_id=u.id) }}" style="display:inline" onsubmit="return confirm('Na pewno usunac?')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <button class="btn btn-sm btn-danger">Usun</button>
 </form>
 </td>

@@ -273,7 +273,7 @@ def statystyki():
             <a href="/analityka" class="btn btn-purple" style="display:flex;align-items:center;justify-content:center;gap:6px"><span class=material-symbols-outlined style=font-size:1rem>trending_up</span> Analityka</a>
         </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
     <script>
     const chartLabels = {chart_labels};
     const chartPrzychod = {chart_data};
@@ -1021,7 +1021,7 @@ def analityka_palety():
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
     <script>
         // Wykres ROI
         new Chart(document.getElementById('roiChart'), {{
@@ -2737,7 +2737,7 @@ def analityka_czas_sprzedazy():
             <div style="font-weight:700;color:var(--text-secondary);margin-bottom:12px"><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Rozkład czasu sprzedaży (od dodania do systemu)</div>
             <canvas id="histChart" style="max-height:180px"></canvas>
         </div>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js@3/dist/chart.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@3/dist/chart.min.js" integrity="sha384-9MhbyIRcBVQiiC7FSd7T38oJNj2Zh+EfxS7/vjhBi4OOT78NlHSnzM31EZRWR1LZ" crossorigin="anonymous"></script>
         <script>
         new Chart(document.getElementById('histChart').getContext('2d'),{{
             type:'bar',

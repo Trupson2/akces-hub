@@ -8,6 +8,7 @@
 <div class="glass-card" style="padding:24px;margin-bottom:20px">
     <div style="font-weight:700;font-size:0.92rem;margin-bottom:16px;color:var(--neon-secondary);text-shadow:0 0 8px rgba(255,107,155,0.3)"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span> Eksportuj produkty</div>
     <form method="POST" action="/narzedzia/export">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group">
             <label><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">trending_up</span> Marża (%)</label>
             <input type="number" name="marza" class="form-control" value="40">

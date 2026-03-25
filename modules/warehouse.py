@@ -692,7 +692,7 @@ body{font-family:'Segoe UI',sans-serif;background:#fff;color:#000}
     # JS: lokalny generator QR (bez zewnetrznego serwera)
     shelf_letters_js = str(all_rack_keys)
     html += f'''
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" integrity="sha384-lQXOAyZwHXE55JFyrOMB7nY2Wv+m5ZWNtJcHrd1rceRQXAYNLak8ukN5TjBTcIwz" crossorigin="anonymous"></script>
 <script>
 // Generuj QR kody lokalnie
 document.querySelectorAll('.qr-placeholder').forEach(function(el) {{

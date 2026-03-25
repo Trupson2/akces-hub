@@ -44,7 +44,7 @@ import json
 
 from flask import Flask, render_template, render_template_string, request, redirect, jsonify, Response, send_from_directory, make_response, flash, url_for, session
 from flask_cors import CORS  # ← DODANO DLA NGROK!
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect, generate_csrf
 
 # Importy modułów
 from modules.database import init_db, get_db, get_config_cached
@@ -131,10 +131,13 @@ app.config['VERSION'] = VERSION
 # Session cookie security
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_NAME'] = '__Host-akces_session'
+app.config['SESSION_COOKIE_SECURE'] = True  # Default secure; most deployments use HTTPS/ngrok
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)  # Sesja wygasa po 12h
-# SESSION_COOKIE_SECURE = True only when behind HTTPS (ngrok)
-if os.environ.get('FLASK_HTTPS') or os.environ.get('NGROK_DOMAIN'):
-    app.config['SESSION_COOKIE_SECURE'] = True
+# Allow non-secure cookies only for explicit local development
+if os.environ.get('FLASK_LOCAL_DEV'):
+    app.config['SESSION_COOKIE_SECURE'] = False
+    app.config['SESSION_COOKIE_NAME'] = 'akces_session'  # __Host- requires Secure
 
 # CSRF protection
 csrf = CSRFProtect(app)
@@ -350,6 +353,7 @@ def after_request(response):
     if response.content_type and 'text/html' in response.content_type:
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; "
+            # unsafe-eval required by Chart.js (uses new Function() for tooltip callbacks)
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com; "
             "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.tailwindcss.com; "
             "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
@@ -357,6 +361,8 @@ def after_request(response):
             "connect-src 'self' https://generativelanguage.googleapis.com wss: ws:; "
             "worker-src 'self' blob:; "
             "frame-ancestors 'self'; "
+            "base-uri 'self'; "
+            "form-action 'self'; "
         )
     # CORS headers zarzadzane przez flask-cors — nie nadpisuj globalnie
     if 'Access-Control-Allow-Origin' not in response.headers:
@@ -1799,12 +1805,14 @@ def monitor_page():
         <a href="/monitor/keywords" style="font-size:12px;color:var(--accent-color)">Edytuj keywords</a>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
             <form method="POST" action="/monitor/toggle-source" style="margin:0">
+                <input type="hidden" name="csrf_token" value="{generate_csrf()}">
                 <input type="hidden" name="source" value="warrington">
                 <button type="submit" style="padding:6px 14px;border-radius:8px;border:1px solid {'#22c55e' if warrington_on else '#ef4444'};background:{'rgba(34,197,94,0.1)' if warrington_on else 'rgba(239,68,68,0.1)'};color:{'#22c55e' if warrington_on else '#ef4444'};font-size:12px;font-weight:600;cursor:pointer">
                     <i class=mi>store</i> Warrington: {'ON' if warrington_on else '<i class=mi style=color:#ef4444>cancel</i> OFF'}
                 </button>
             </form>
             <form method="POST" action="/monitor/toggle-source" style="margin:0">
+                <input type="hidden" name="csrf_token" value="{generate_csrf()}">
                 <input type="hidden" name="source" value="jobalots">
                 <button type="submit" style="padding:6px 14px;border-radius:8px;border:1px solid {'#22c55e' if jobalots_on else '#ef4444'};background:{'rgba(34,197,94,0.1)' if jobalots_on else 'rgba(239,68,68,0.1)'};color:{'#22c55e' if jobalots_on else '#ef4444'};font-size:12px;font-weight:600;cursor:pointer">
                     <i class=mi>storefront</i> Jobalots: {'ON' if jobalots_on else '<i class=mi style=color:#ef4444>cancel</i> OFF'}
@@ -1863,6 +1871,7 @@ def monitor_keywords():
 
     content = '<div class="hdr"><h1>Keywords Monitora</h1></div>'
     content += '<form method="POST" class="card" style="padding:15px">'
+    content += f'<input type="hidden" name="csrf_token" value="{generate_csrf()}">'
     content += '<p style="font-size:13px;color:var(--text-secondary)">Jedno slowo kluczowe na linie (PL lub EN):</p>'
     content += '<textarea name="keywords" rows="15" style="width:100%;padding:10px;border:1px solid var(--border-color);border-radius:8px;font-size:14px;background:var(--card-bg);color:var(--text-color)">' + kw_text + '</textarea>'
     content += '<button type="submit" class="btn btn-p" style="width:100%;margin-top:10px">Zapisz</button>'
@@ -2996,6 +3005,7 @@ ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
 
 <div class="ao-card">
     <form method="POST" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div style="flex:2;min-width:200px">
             <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Produkt (ID / EAN / ASIN / nazwa)</label>
             <input type="text" name="query" value="{{ query }}" placeholder="np. B0D9QGW2M6 lub 6975069304199" style="width:100%;padding:10px 14px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:10px;color:var(--text-primary);font-size:0.9rem">
@@ -4191,7 +4201,7 @@ def sync_historyczny():
         return f'<html><head><meta http-equiv="refresh" content="4;url=/magazyn/statystyki"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:1.5rem;color:{kolor};padding:40px">{msg}</div><div style="color:#64748b">Przekierowanie...</div></div></body></html>'
     
     miesiac_temu = (date.today().replace(day=1) - timedelta(days=1)).replace(day=1).strftime('%Y-%m-%d')
-    return f'<html><head><title>Sync historyczny</title></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="background:#12121a;border-radius:16px;padding:30px;min-width:320px"><h2 style="margin:0 0 15px"><i class=mi>sync</i> Sync historyczny</h2><p style="color:#64748b;margin-bottom:20px">Pobierz zamowienia od wybranej daty (np. poprzedni miesiac)</p><form method="POST"><label style="display:block;color:#94a3b8;margin-bottom:6px">Data od:</label><input type="date" name="from_date" value="{miesiac_temu}" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #334155;border-radius:8px;color:#fff;font-size:1rem;box-sizing:border-box;margin-bottom:15px"><button type="submit" style="width:100%;padding:12px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-size:1rem;font-weight:600;cursor:pointer"><i class=mi>sync</i> Synchronizuj</button></form><a href="/magazyn/statystyki" style="display:block;text-align:center;margin-top:15px;color:#64748b;font-size:0.85rem">Anuluj</a></div></body></html>'
+    return f'<html><head><title>Sync historyczny</title></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="background:#12121a;border-radius:16px;padding:30px;min-width:320px"><h2 style="margin:0 0 15px"><i class=mi>sync</i> Sync historyczny</h2><p style="color:#64748b;margin-bottom:20px">Pobierz zamowienia od wybranej daty (np. poprzedni miesiac)</p><form method="POST"><input type="hidden" name="csrf_token" value="{generate_csrf()}"><label style="display:block;color:#94a3b8;margin-bottom:6px">Data od:</label><input type="date" name="from_date" value="{miesiac_temu}" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #334155;border-radius:8px;color:#fff;font-size:1rem;box-sizing:border-box;margin-bottom:15px"><button type="submit" style="width:100%;padding:12px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-size:1rem;font-weight:600;cursor:pointer"><i class=mi>sync</i> Synchronizuj</button></form><a href="/magazyn/statystyki" style="display:block;text-align:center;margin-top:15px;color:#64748b;font-size:0.85rem">Anuluj</a></div></body></html>'
 
 @app.route('/sync-miesiac')
 def sync_miesiac():

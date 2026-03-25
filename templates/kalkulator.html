@@ -20,6 +20,7 @@
 </div>
 
 <form method="POST" action="/narzedzia/kalkulator">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <div class="glass-card" style="padding:24px;margin-bottom:20px">
     <div class="form-group">
         <label><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">paid</span> Cena zakupu (brutto)</label>

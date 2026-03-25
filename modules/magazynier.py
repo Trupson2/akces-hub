@@ -540,7 +540,7 @@ def skaner():
     
     <a href="/magazyn" class="back">← Powrót</a>
     
-    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js" integrity="sha384-NyKHkzm0aj4yWFC3Hh4cp1VflBgCLfStVlAK6WJOdXAht/pj6RHbMcZgUj48rcAs" crossorigin="anonymous"></script>
     <script>
     (function() {
         const video = document.getElementById('video');
@@ -3091,19 +3091,24 @@ def statystyki():
     
     # 5 POZIOMÓW SYPANIA (bazowane na kwocie dziennej)
     if today_sales >= 5000:
-        status_text = "<i class=mi>local_fire_department</i><i class=mi>local_fire_department</i><i class=mi>local_fire_department</i> MEGA SYPIE!"
+        status_text = "MEGA SYPIE!"
+        status_icon = "local_fire_department"
         status_color = "#beee00"
     elif today_sales >= 3000:
-        status_text = "<span class=material-symbols-outlined style=font-size:1rem>money_off</span> SYPIE!"
+        status_text = "SYPIE!"
+        status_icon = "trending_up"
         status_color = "#beee00"
     elif today_sales >= 1500:
-        status_text = "<span class=material-symbols-outlined style=font-size:1rem>trending_up</span> Całkiem nieźle"
+        status_text = "Calkiem niezle"
+        status_icon = "trending_up"
         status_color = "#eab308"
     elif today_sales >= 500:
-        status_text = '<i class=mi>speed</i> Sypie troche'
+        status_text = "Sypie troche"
+        status_icon = "speed"
         status_color = "#f97316"
     else:
-        status_text = '<i class=mi>bedtime</i> NIE SYPIE'
+        status_text = "NIE SYPIE"
+        status_icon = "bedtime"
         status_color = "#ef4444"
 
     # === ROI calculations for template ===
@@ -3129,6 +3134,7 @@ def statystyki():
         today_sales=today_sales,
         today_cnt=today_cnt,
         status_text=status_text,
+        status_icon=status_icon,
         status_color=status_color,
         podsumowanie=podsumowanie,
         przychod_total=przychod_total,
@@ -3395,7 +3401,7 @@ def statystyki():
     html += f'''
     <a href="/magazyn" class="back">← Powrót</a>
     
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
     <script>
     // Dane
     const nazwyMiesiecy = {json.dumps(nazwy_miesiecy)};
@@ -6173,7 +6179,7 @@ def skanuj_kamera():
     <a href="/magazyn/dodaj" class="back">← Powrót</a>
     
     <!-- html5-qrcode library -->
-    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" integrity="sha384-c9d8RFSL+u3exBOJ4Yp3HUJXS4znl9f+z66d1y54ig+ea249SpqR+w1wyvXz/lk+" crossorigin="anonymous"></script>
     
     <script>
     const baseUrl = "''' + base_url + '''";
@@ -9544,7 +9550,7 @@ def statystyki_zakupow():
 
     <a href="/magazyn" class="back">← Powrót do Magazynu</a>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" integrity="sha384-DhxhYObIMeMNGyAG7iK11OHzBIKyEIeRL0ad1iFPAOwZB8iirUlTT0O/WJJUk8+o" crossorigin="anonymous"></script>
     <script>
     const labels = {json.dumps(dostawcy_labels)};
     const values = {json.dumps(dostawcy_wartosci)};
