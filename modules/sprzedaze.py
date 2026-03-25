@@ -44,7 +44,7 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
         Sync zwrotow
     </a>
     <a href="/sprzedaze/napraw-nazwy?miesiac={{ miesiac_filter }}" class="qa-btn">
-        <span class="qa-icon" style="background:rgba(143,245,255,0.12)">[BUILD]</span>
+        <span class="qa-icon" style="background:rgba(143,245,255,0.12)"><span class=material-symbols-outlined>build</span></span>
         Napraw dane
     </a>
     <a href="/sprzedaze/dopasuj" class="qa-btn">
@@ -69,7 +69,7 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
 <!-- KPI karty -->
 <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
     <div class="kpi-card green">
-        <div class="kpi-icon">[PAID]</div>
+        <div class="kpi-icon"><span class=material-symbols-outlined>paid</span></div>
         <div class="kpi-value">{{ przychod }} zl</div>
         <div class="kpi-label">Przychod</div>
     </div>
@@ -912,7 +912,7 @@ DOPASUJ_TEMPLATE = '''
 <!-- KPI karty -->
 <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
     <div class="kpi-card" style="--card-color:var(--red)">
-        <div class="kpi-icon" style="background:var(--red-soft)">[FIBER_MANUAL_RECORD]</div>
+        <div class="kpi-icon" style="background:var(--red-soft)"><span class=material-symbols-outlined>fiber_manual_record</span></div>
         <div class="kpi-value" style="color:var(--red)">{{ total_unmatched }}</div>
         <div class="kpi-label">Niedopasowanych</div>
     </div>

@@ -956,7 +956,7 @@ def produkty():
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
                 <div>
-                    <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">[PAID] Cena zakupu (zł)</label>
+                    <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px"><span class=material-symbols-outlined>paid</span> Cena zakupu (zł)</label>
                     <input type="number" id="boxCena" class="form-input" placeholder="Koszt łączny" step="0.01" min="0" style="width:100%">
                 </div>
                 <div>
@@ -1330,10 +1330,10 @@ def edytuj_produkt(code):
             </div>
         </div>
         <div class="form-row-3">
-            <div class="form-group"><label>[PAID] Netto/szt</label>
+            <div class="form-group"><label><span class=material-symbols-outlined>paid</span> Netto/szt</label>
                 <input type="number" step="0.01" name="cena_netto" class="form-ctrl" value="{_p_netto_szt:.2f}">
             </div>
-            <div class="form-group"><label>[PAID] Brutto/szt</label>
+            <div class="form-group"><label><span class=material-symbols-outlined>paid</span> Brutto/szt</label>
                 <input type="number" step="0.01" name="cena_brutto" class="form-ctrl" value="{_p_brutto_szt:.2f}">
             </div>
             <div class="form-group"><label><span class=material-symbols-outlined>payments</span> Cena Allegro</label>
@@ -1375,7 +1375,7 @@ def edytuj_produkt(code):
                     <option value="telefony" {"selected" if p.get('kategoria')=='telefony' else ''}>[SMARTPHONE] Telefony</option>
                     <option value="rtv" {"selected" if p.get('kategoria')=='rtv' else ''}><span class=material-symbols-outlined>tv</span> RTV/Audio</option>
                     <option value="gaming" {"selected" if p.get('kategoria')=='gaming' else ''}><span class=material-symbols-outlined>sports_esports</span> Gaming</option>
-                    <option value="narzedzia" {"selected" if p.get('kategoria')=='narzedzia' else ''}>[BUILD] Narzędzia</option>
+                    <option value="narzedzia" {"selected" if p.get('kategoria')=='narzedzia' else ''}><span class=material-symbols-outlined>build</span> Narzędzia</option>
                     <option value="dom_ogrod" {"selected" if p.get('kategoria')=='dom_ogrod' else ''}><span class=material-symbols-outlined>cottage</span> Dom/Ogród</option>
                     <option value="sport" {"selected" if p.get('kategoria')=='sport' else ''}>⚽ Sport</option>
                     <option value="moda" {"selected" if p.get('kategoria')=='moda' else ''}><span class=material-symbols-outlined>checkroom</span> Moda</option>
@@ -1393,7 +1393,7 @@ def edytuj_produkt(code):
                     <option value="laboratorium" {"selected" if p.get('kategoria')=='laboratorium' else ''}><span class=material-symbols-outlined>biotech</span> Laboratorium</option>
                     <option value="event" {"selected" if p.get('kategoria')=='event' else ''}><span class=material-symbols-outlined>storefront</span> Event</option>
                     <option value="cb_radio" {"selected" if p.get('kategoria')=='cb_radio' else ''}><span class=material-symbols-outlined>satellite_alt</span> CB/Radio</option>
-                    <option value="inne" {"selected" if p.get('kategoria')=='inne' or not p.get('kategoria') else ''}>[INVENTORY_2] Inne</option>
+                    <option value="inne" {"selected" if p.get('kategoria')=='inne' or not p.get('kategoria') else ''}><span class=material-symbols-outlined>inventory_2</span> Inne</option>
                 </select>
             </div>
             <div class="form-group"><label>Stan</label>
@@ -1412,7 +1412,7 @@ def edytuj_produkt(code):
                     <option value="A-" {"selected" if p.get('klasa_jakosci')=='A-' else ''}>● A- — Otwarte opakowanie</option>
                     <option value="B" {"selected" if p.get('klasa_jakosci')=='B' else ''}>● B — Używany, dobry stan</option>
                     <option value="C" {"selected" if p.get('klasa_jakosci')=='C' else ''}>● C — Widoczne ślady użytk.</option>
-                    <option value="D" {"selected" if p.get('klasa_jakosci')=='D' else ''}>[FIBER_MANUAL_RECORD] D — Uszkodzony / niekompletny</option>
+                    <option value="D" {"selected" if p.get('klasa_jakosci')=='D' else ''}><span class=material-symbols-outlined>fiber_manual_record</span> D — Uszkodzony / niekompletny</option>
                 </select>
             </div>
             <div class="form-group"><label>Dostawca</label>
@@ -1429,7 +1429,7 @@ def edytuj_produkt(code):
                 <label>Paleta</label>
                 <select name="paleta_id_select" class="form-ctrl" id="paleta-select" onchange="togglePaletaInput()">
                     {palety_options}
-                    <option value="__nowa__">[AUTO_AWESOME] Nowa paleta...</option>
+                    <option value="__nowa__"><span class=material-symbols-outlined>auto_awesome</span> Nowa paleta...</option>
                 </select>
                 <input type="text" name="paleta_nowa" id="paleta-nowa" class="form-ctrl" 
                        placeholder="Wpisz nazwę nowej palety" 
@@ -1581,7 +1581,7 @@ def produkt_opis(code):
     opis = generuj_opis_ai(p['nazwa'], p['kategoria'] or 'inne')
     
     html = f'''
-    <div class="hdr"><h1>[AUTO_AWESOME] OPIS AI</h1><small>{display_code}</small></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined>auto_awesome</span> OPIS AI</h1><small>{display_code}</small></div>
     
     <div class="card" style="padding:15px">
         <div style="font-weight:600;margin-bottom:10px">{p['nazwa']}</div>
@@ -1700,7 +1700,7 @@ def backup_page():
     if not backups:
         html += '''
         <div class="card" style="padding:30px;text-align:center">
-            <div style="font-size:3rem;opacity:0.3;margin-bottom:10px">[INVENTORY_2]</div>
+            <div style="font-size:3rem;opacity:0.3;margin-bottom:10px"><span class=material-symbols-outlined>inventory_2</span></div>
             <div style="opacity:0.6">Brak backupów</div>
         </div>
         '''
@@ -1883,7 +1883,7 @@ def backup_upload():
         </div>
         
         <div class="card" style="padding:20px;text-align:center">
-            <div style="font-size:3rem;margin-bottom:10px">[INVENTORY_2]</div>
+            <div style="font-size:3rem;margin-bottom:10px"><span class=material-symbols-outlined>inventory_2</span></div>
             <div style="font-weight:600;margin-bottom:5px">{backup_filename}</div>
             <div style="font-size:1.3rem;color:#beee00">{count} produktów</div>
             <div style="font-size:0.85rem;color:#64748b">{size_mb:.2f} MB</div>
@@ -2427,7 +2427,7 @@ def statystyki():
         </div>
         <div class="stat">
             <div class="stat-v" style="color:#f43f5e">-{koszty_total_lacznie:.0f} zł</div>
-            <div class="stat-l">Koszty ({current_year}) <span style="font-size:0.65rem;color:#64748b">(w tym [INVENTORY_2] {palety_total_rok:.0f} zł palety)</span> <a href="/magazyn/koszty" style="color:#64748b;font-size:0.7rem;margin-left:4px">+dodaj</a></div>
+            <div class="stat-l">Koszty ({current_year}) <span style="font-size:0.65rem;color:#64748b">(w tym <span class=material-symbols-outlined>inventory_2</span> {palety_total_rok:.0f} zł palety)</span> <a href="/magazyn/koszty" style="color:#64748b;font-size:0.7rem;margin-left:4px">+dodaj</a></div>
         </div>
         <div class="stat">
             <div class="stat-v" style="color:{zysk_kolor}">{zysk_rok:.0f} zł</div>
@@ -2473,7 +2473,7 @@ def statystyki():
             </div>
         </div>
         <div style="margin-top:12px;padding:12px;background:#0a1f12;border:2px solid {zysk_na_reke_kolor}55;border-radius:10px;display:flex;justify-content:space-between;align-items:center">
-            <div style="color:#94a3b8;font-size:0.9rem">[PAID] Zysk na rękę (po VAT i podatku)</div>
+            <div style="color:#94a3b8;font-size:0.9rem"><span class=material-symbols-outlined>paid</span> Zysk na rękę (po VAT i podatku)</div>
             <div style="font-size:1.4rem;font-weight:700;color:{zysk_na_reke_kolor}">{zysk_na_reke:.0f} zł</div>
         </div>
         <div style="font-size:0.7rem;color:#475569;margin-top:8px;text-align:center"><span class=material-symbols-outlined>warning</span> Szacunkowe — skonsultuj z księgową. Nie uwzględnia ZUS, ulg i odpisów.</div>
@@ -2518,7 +2518,7 @@ def statystyki():
         worst_html = ''.join(_roi_row(p) for p in worst3)
 
         html_roi = f'''<div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #beee0033">
-        <div style="font-weight:700;margin-bottom:12px;color:#beee00">[INVENTORY_2] Rentowność palet ({current_year})</div>
+        <div style="font-weight:700;margin-bottom:12px;color:#beee00"><span class=material-symbols-outlined>inventory_2</span> Rentowność palet ({current_year})</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
             <div style="background:#0a1f12;border:1px solid {roi_total_kolor}44;border-radius:10px;padding:12px;text-align:center">
                 <div style="font-size:1.6rem;font-weight:700;color:{roi_total_kolor}">{roi_total:.0f}%</div>
@@ -2576,7 +2576,7 @@ def statystyki():
 
     <!-- Palety kupione per miesiąc -->
     <div class="card" style="padding:15px;margin-bottom:15px">
-        <div style="font-weight:600;margin-bottom:10px">[INVENTORY_2] Palety kupione ({current_year}) — łącznie {palety_total_cnt_rok} szt.</div>
+        <div style="font-weight:600;margin-bottom:10px"><span class=material-symbols-outlined>inventory_2</span> Palety kupione ({current_year}) — łącznie {palety_total_cnt_rok} szt.</div>
         <div style="display:grid;grid-template-columns:repeat(6, 1fr);gap:6px">
             {palety_cells}
         </div>
@@ -3322,7 +3322,7 @@ def palety():
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
                 <div>
-                    <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">[PAID] Cena zakupu (zł)</label>
+                    <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px"><span class=material-symbols-outlined>paid</span> Cena zakupu (zł)</label>
                     <input type="number" id="boxPaletyCenaZakupu" placeholder="Ile zapłaciłeś" step="0.01" style="width:100%;padding:10px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#e2e8f0">
                 </div>
                 <div>
@@ -3494,7 +3494,7 @@ def paleta_detail_by_id(paleta_id):
     dostawca_badge = f' • <span class="dostawca-name" style="color:#8ff5ff">{paleta_dostawca}</span>' if paleta_dostawca else ''
     regal_badge = f' • <span class=material-symbols-outlined>pin_drop</span> {paleta_regal}' if paleta_regal else ''
     html = f'''<div class="hdr" style="display:flex;justify-content:space-between;align-items:center">
-        <div><h1>[INVENTORY_2] {nazwa_palety}</h1><small>{len(products)} prod. ({sztuki_display} szt.){dostawca_badge}{regal_badge}</small></div>
+        <div><h1><span class=material-symbols-outlined>inventory_2</span> {nazwa_palety}</h1><small>{len(products)} prod. ({sztuki_display} szt.){dostawca_badge}{regal_badge}</small></div>
         <button id="btnDostarczona" onclick="toggleDostarczona({paleta_id}, this)"
             data-val="{dostarczona_val}"
             style="padding:8px 16px;border:2px solid {dostarczona_color};background:{dostarczona_color}22;color:{dostarczona_color};border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer">
@@ -3522,7 +3522,7 @@ def paleta_detail_by_id(paleta_id):
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
                     <div>
-                        <label style="font-size:0.8rem;color:#64748b;display:block;margin-bottom:4px">[PAID] Cena zakupu brutto (zł)</label>
+                        <label style="font-size:0.8rem;color:#64748b;display:block;margin-bottom:4px"><span class=material-symbols-outlined>paid</span> Cena zakupu brutto (zł)</label>
                         <input type="number" step="0.01" id="ep_cena" value="{brutto:.2f}" style="width:100%;padding:10px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e2e8f0;font-size:0.9rem">
                     </div>
                     <div>
@@ -3613,7 +3613,7 @@ def paleta_detail_by_id(paleta_id):
     html += '<div style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap">'
     html += f'<a href="/palety/{paleta_id}/mass-edit" class="btn" style="background:var(--purple);flex:1"><span class=material-symbols-outlined>shopping_cart</span> Wystaw bezpośrednio</a>'
     html += f'<a href="/magazyn/paleta-id/{paleta_id}/to-paletomat" class="btn btn-ok" style="flex:1"><span class=material-symbols-outlined>sync</span> PALETOMAT (scrapuj)</a>'
-    html += f'<button onclick="autoWycenaPaleta({paleta_id})" class="btn" style="background:#f59e0b;flex:1">[PAID] Auto-wycena</button>'
+    html += f'<button onclick="autoWycenaPaleta({paleta_id})" class="btn" style="background:#f59e0b;flex:1"><span class=material-symbols-outlined>paid</span> Auto-wycena</button>'
     html += '</div>'
     
     # Script dla Auto-wyceny (streamowane)
@@ -3679,7 +3679,7 @@ def paleta_detail_by_id(paleta_id):
         }
 
         btn.disabled = false;
-        btn.innerHTML = '[PAID] Auto-wycena';
+        btn.innerHTML = '<span class=material-symbols-outlined>paid</span> Auto-wycena';
     }
     </script>
     '''
@@ -3801,7 +3801,7 @@ def paleta_detail(n):
     
     paleta_encoded = quote(nazwa_palety, safe='')
     
-    html = f'''<div class="hdr"><h1>[INVENTORY_2] {nazwa_palety}</h1><small>{len(products)} produktów</small></div>
+    html = f'''<div class="hdr"><h1><span class=material-symbols-outlined>inventory_2</span> {nazwa_palety}</h1><small>{len(products)} produktów</small></div>
     
     <div class="stats" style="margin-bottom:15px">
         <div class="stat">
@@ -3941,14 +3941,14 @@ def paleta_to_paletomat(n):
     <div class="hdr"><h1><span class=material-symbols-outlined>check_circle</span> PRZENIESIONO DO PALETOMAT</h1></div>
     
     <div class="alert alert-ok">
-        [INVENTORY_2] Paleta: {n}<br>
+        <span class=material-symbols-outlined>inventory_2</span> Paleta: {n}<br>
         <span class=material-symbols-outlined>check_circle</span> Dodano: {added_count} produktów<br>
         <span class=material-symbols-outlined>sync</span> Zaktualizowano: {updated_count} produktów<br>
         ⏭ Pominięto: {skipped_count} produktów
     </div>
     
     <div class="card" style="padding:15px;margin-top:15px">
-        <div style="font-weight:600;margin-bottom:12px">[TARGET] CO DALEJ?</div>
+        <div style="font-weight:600;margin-bottom:12px"><span class=material-symbols-outlined>target</span> CO DALEJ?</div>
         <div style="color:#64748b;font-size:0.85rem;margin-bottom:15px">
             1. Przejdź do Paletomat → Generator<br>
             2. Zobaczysz swoje produkty<br>
@@ -4253,7 +4253,7 @@ def dostawca_detail(n):
             <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
             <div class="item-info">
                 <div class="item-name">{p['nazwa'][:30]}...</div>
-                <div class="item-meta">{display_code} | [INVENTORY_2] {p['paleta'] or '—'}</div>
+                <div class="item-meta">{display_code} | <span class=material-symbols-outlined>inventory_2</span> {p['paleta'] or '—'}</div>
             </div>
             <div class="item-qty">{p['ilosc']}</div>
         </a>'''
@@ -4424,14 +4424,14 @@ def import_page():
         
         <!-- WYBÓR PALETY -->
         <div class="card" style="padding:15px;margin-bottom:15px">
-            <div style="font-weight:600;margin-bottom:10px;color:#f59e0b">[INVENTORY_2] Przypisz do palety:</div>
+            <div style="font-weight:600;margin-bottom:10px;color:#f59e0b"><span class=material-symbols-outlined>inventory_2</span> Przypisz do palety:</div>
             <select name="paleta_id" id="paletaSelect" class="form-ctrl" style="width:100%;padding:12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#fff;font-size:1rem" onchange="toggleNewPaleta()">
                 {palety_options}
             </select>
             
             <!-- NOWA PALETA -->
             <div id="newPaletaFields" style="display:none;margin-top:15px;padding:15px;background:#0a0a0f;border-radius:8px;border:1px solid #f59e0b">
-                <div style="font-weight:600;margin-bottom:10px;color:#f59e0b">[AUTO_AWESOME] Nowa paleta:</div>
+                <div style="font-weight:600;margin-bottom:10px;color:#f59e0b"><span class=material-symbols-outlined>auto_awesome</span> Nowa paleta:</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                     <div>
                         <label style="font-size:0.8rem;color:#64748b">Nazwa palety</label>
@@ -4447,14 +4447,14 @@ def import_page():
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
                     <div>
-                        <label style="font-size:0.8rem;color:#64748b">[PAID] Cena zakupu (aukcja/faktura)</label>
+                        <label style="font-size:0.8rem;color:#64748b"><span class=material-symbols-outlined>paid</span> Cena zakupu (aukcja/faktura)</label>
                         <input type="number" name="new_paleta_cena" class="form-ctrl" placeholder="np. 144.80" step="0.01" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:6px;color:#fff">
                         <div style="font-size:0.7rem;color:#f59e0b;margin-top:4px"><span class=material-symbols-outlined>warning</span> NIE cenę produktów z Excela</div>
                     </div>
                     <div>
                         <label style="font-size:0.8rem;color:#64748b">Typ</label>
                         <select name="new_paleta_typ" class="form-ctrl" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:6px;color:#fff">
-                            <option value="paleta">[INVENTORY_2] Paleta</option>
+                            <option value="paleta"><span class=material-symbols-outlined>inventory_2</span> Paleta</option>
                             <option value="box">[INBOX] Box</option>
                         </select>
                     </div>
@@ -4699,7 +4699,7 @@ def import_preview():
         # Info o palecie
         paleta_info = ''
         if paleta_id:
-            paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px">[INVENTORY_2] Produkty zostaną przypisane do: <strong>{paleta_nazwa}</strong></div>'
+            paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px"><span class=material-symbols-outlined>inventory_2</span> Produkty zostaną przypisane do: <strong>{paleta_nazwa}</strong></div>'
         else:
             paleta_info = '<div class="alert" style="background:#64748b22;border:1px solid #64748b;color:#94a3b8;padding:10px;border-radius:8px;margin-bottom:15px"><span class=material-symbols-outlined>warning</span> Produkty będą bez przypisanej palety (luźne)</div>'
         
@@ -4723,7 +4723,7 @@ def import_preview():
             <input type="hidden" name="dostawca" value="{paleta_dostawca}">
             
             <div class="card" style="padding:15px">
-                <div style="font-weight:600;margin-bottom:15px">[BUILD] Mapowanie kolumn:</div>
+                <div style="font-weight:600;margin-bottom:15px"><span class=material-symbols-outlined>build</span> Mapowanie kolumn:</div>
                 
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                     <div class="form-group">
@@ -4796,7 +4796,7 @@ def import_execute():
         conn = get_db()
         row = conn.execute('SELECT nazwa FROM palety WHERE id = ?', (paleta_id,)).fetchone()
         paleta_nazwa = row[0] if row else f'Paleta #{paleta_id}'
-        paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px">[INVENTORY_2] Produkty zostaną przypisane do: <strong>{paleta_nazwa}</strong></div>'
+        paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px"><span class=material-symbols-outlined>inventory_2</span> Produkty zostaną przypisane do: <strong>{paleta_nazwa}</strong></div>'
     
     # Mapowanie info
     ean_info = f'EAN=kol.{int(col_ean)+1}' if int(col_ean) >= 0 else 'EAN=brak'
@@ -5075,7 +5075,7 @@ def import_final():
     paleta_info = ''
     if paleta_nazwa:
         dostawca_info = f' ({dostawca})' if dostawca else ''
-        paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px">[INVENTORY_2] Przypisano do palety: <strong>{paleta_nazwa}</strong>{dostawca_info}</div>'
+        paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px"><span class=material-symbols-outlined>inventory_2</span> Przypisano do palety: <strong>{paleta_nazwa}</strong>{dostawca_info}</div>'
     
     html = f'''
     <div class="hdr"><h1><span class=material-symbols-outlined>check_circle</span> IMPORT ZAKOŃCZONY</h1></div>
@@ -5086,7 +5086,7 @@ def import_final():
         html += f'<div class="alert alert-warn">Błędy: {len(errors)}</div>'
     html += '''
     <a href="/magazyn/import" class="btn btn-p"><span class=material-symbols-outlined>download</span> Importuj więcej</a>
-    <a href="/magazyn" class="btn btn-2">[INVENTORY_2] Magazyn</a>
+    <a href="/magazyn" class="btn btn-2"><span class=material-symbols-outlined>inventory_2</span> Magazyn</a>
     <a href="/magazyn" class="back">← Powrót</a>
     '''
     return render(html)
@@ -5322,7 +5322,7 @@ def import_upload():
     # Info o palecie
     paleta_info = ''
     if paleta_nazwa:
-        paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px">[INVENTORY_2] Przypisano do palety: <strong>{paleta_nazwa}</strong></div>'
+        paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px"><span class=material-symbols-outlined>inventory_2</span> Przypisano do palety: <strong>{paleta_nazwa}</strong></div>'
 
     html = f'''
     <div class="hdr"><h1><span class=material-symbols-outlined>check_circle</span> IMPORT ZAKOŃCZONY</h1></div>
@@ -5333,7 +5333,7 @@ def import_upload():
         html += f'<div class="alert alert-warn">Błędy: {len(errors)}</div>'
     html += '''
     <a href="/magazyn/import" class="btn btn-p"><span class=material-symbols-outlined>download</span> Importuj więcej</a>
-    <a href="/magazyn" class="btn btn-2">[INVENTORY_2] Magazyn</a>
+    <a href="/magazyn" class="btn btn-2"><span class=material-symbols-outlined>inventory_2</span> Magazyn</a>
     <a href="/magazyn" class="back">← Powrót</a>
     '''
     return render(html)
@@ -5380,7 +5380,7 @@ def skanuj_kamera():
     </div>
     
     <div id="result" class="card" style="display:none;padding:15px;margin-top:15px">
-        <div style="font-weight:600;margin-bottom:8px">[INVENTORY_2] Znaleziono:</div>
+        <div style="font-weight:600;margin-bottom:8px"><span class=material-symbols-outlined>inventory_2</span> Znaleziono:</div>
         <div id="resultText" style="font-size:1.1rem;word-break:break-all"></div>
     </div>
     
@@ -5606,7 +5606,7 @@ def etykiety():
     <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
         <select onchange="window.location='/magazyn/etykiety'+(this.value ? '?paleta_id='+this.value : '')"
             style="flex:1;padding:10px 12px;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e2e8f0;font-size:0.85rem">
-            <option value="">[INVENTORY_2] Wszystkie produkty</option>'''
+            <option value=""><span class=material-symbols-outlined>inventory_2</span> Wszystkie produkty</option>'''
 
     for pal in palety:
         selected = 'selected' if str(pal['id']) == str(paleta_filter) else ''
@@ -5636,7 +5636,7 @@ def etykiety():
 
     for p in products:
         img_url = p['zdjecie_url'] or ''
-        img_html = f'<img src="{img_url}" style="width:50px;height:50px;object-fit:cover;border-radius:6px;background:#1e1e2e" onerror="this.style.display=\'none\'">' if img_url else '<div style="width:50px;height:50px;background:#1e1e2e;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.2rem">[INVENTORY_2]</div>'
+        img_html = f'<img src="{img_url}" style="width:50px;height:50px;object-fit:cover;border-radius:6px;background:#1e1e2e" onerror="this.style.display=\'none\'">' if img_url else '<div style="width:50px;height:50px;background:#1e1e2e;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.2rem"><span class=material-symbols-outlined>inventory_2</span></div>'
 
         # Stan przyjęcia badge
         try:
@@ -5937,7 +5937,7 @@ def etykiety_niimbot_page(products):
             <span class=material-symbols-outlined>download</span> POBIERZ WSZ.
         </button>
         <a href="/magazyn/etykiety/niimbot/zip?ids={','.join(str(p['id']) for p in products)}" class="btn btn-2" style="padding:14px;font-size:0.95rem;display:flex;align-items:center;justify-content:center;text-decoration:none">
-            [INVENTORY_2] ZIP
+            <span class=material-symbols-outlined>inventory_2</span> ZIP
         </a>
         <button onclick="openNiimbot()" class="btn btn-purple" style="padding:14px;font-size:0.95rem">
             [SMARTPHONE] NIIMBOT
@@ -6367,11 +6367,11 @@ def qr_product_view(product_id):
                 <b>Zamówienie do wysyłki!</b><br>
                 <span id="buyerInfo">Ładowanie danych kupującego...</span>
             </div>
-            <a href="#" class="btn btn-ok">[INVENTORY_2] OZNACZ JAKO WYSŁANE</a>
+            <a href="#" class="btn btn-ok"><span class=material-symbols-outlined>inventory_2</span> OZNACZ JAKO WYSŁANE</a>
             <a href="#" class="btn btn-2"><span class=material-symbols-outlined>print</span> DRUKUJ ETYKIETĘ INPOST</a>
         '''
     else:
-        status_html = '<span class="badge" style="background:#8ff5ff">[INVENTORY_2] W MAGAZYNIE</span>'
+        status_html = '<span class="badge" style="background:#8ff5ff"><span class=material-symbols-outlined>inventory_2</span> W MAGAZYNIE</span>'
         action_html = f'''
             <a href="/magazyn/produkt/{p['id']}/edit" class="btn btn-2"><span class=material-symbols-outlined>edit</span> EDYTUJ</a>
             <a href="/paletomat/generator/from-magazyn/{p['id']}" class="btn btn-p"><span class=material-symbols-outlined>shopping_cart</span> WYSTAW NA ALLEGRO</a>
@@ -6379,7 +6379,7 @@ def qr_product_view(product_id):
     
     html = f'''
     <div class="hdr">
-        <h1>[INVENTORY_2] PRODUKT</h1>
+        <h1><span class=material-symbols-outlined>inventory_2</span> PRODUKT</h1>
         {status_html}
     </div>
     
@@ -6452,8 +6452,8 @@ def edytuj_historie(historia_id):
         ('dodano', '<span class=material-symbols-outlined>download</span> Dodano'),
         ('edytowano', '<span class=material-symbols-outlined>edit</span> Edytowano'),
         ('wystawiono', '<span class=material-symbols-outlined>shopping_cart</span> Wystawiono'),
-        ('sprzedano', '[PAID] Sprzedano'),
-        ('wyslano', '[INVENTORY_2] Wysłano'),
+        ('sprzedano', '<span class=material-symbols-outlined>paid</span> Sprzedano'),
+        ('wyslano', '<span class=material-symbols-outlined>inventory_2</span> Wysłano'),
         ('zmiana_ceny', '<span class=material-symbols-outlined>payments</span> Zmiana ceny'),
         ('zmiana_lokalizacji', '<span class=material-symbols-outlined>pin_drop</span> Zmiana lokalizacji'),
         ('zmiana_ilosci', '<span class=material-symbols-outlined>bar_chart</span> Zmiana ilości'),
@@ -6461,7 +6461,7 @@ def edytuj_historie(historia_id):
         ('skanowano', '[SMARTPHONE] Skanowano'),
         ('importowano', '[FOLDER] Importowano'),
         ('scrapowano', '<span class=material-symbols-outlined>search</span> Scrapowano'),
-        ('wygenerowano_opis', '[AUTO_AWESOME] Wygenerowano opis'),
+        ('wygenerowano_opis', '<span class=material-symbols-outlined>auto_awesome</span> Wygenerowano opis'),
         ('dodano_zdjecia', '<span class=material-symbols-outlined>photo_camera</span> Dodano zdjęcia'),
         ('przeniesiono', '<span class=material-symbols-outlined>sync</span> Przeniesiono'),
         ('oznaczono', '<span class=material-symbols-outlined>label</span> Oznaczono')
@@ -7539,7 +7539,7 @@ def lezaki():
         elif dni < 90:
             obnizka_pct = 30
             obnizka_kolor = '#ef4444'
-            obnizka_ikona = '[FIBER_MANUAL_RECORD]'
+            obnizka_ikona = '<span class=material-symbols-outlined>fiber_manual_record</span>'
         else:
             obnizka_pct = 40
             obnizka_kolor = '#dc2626'
@@ -7566,7 +7566,7 @@ def lezaki():
         if p['zdjecie_url']:
             img_html = f'<img src="{p["zdjecie_url"]}" style="width:60px;height:60px;object-fit:contain;border-radius:8px;background:#0a0a0f;flex-shrink:0">'
         else:
-            img_html = '<div style="width:60px;height:60px;background:#1e1e2e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0">[INVENTORY_2]</div>'
+            img_html = '<div style="width:60px;height:60px;background:#1e1e2e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0"><span class=material-symbols-outlined>inventory_2</span></div>'
         
         status_color = '#8ff5ff' if p['status'] == 'wystawiony' else '#eab308'
         status_text = 'WYSTAWIONY' if p['status'] == 'wystawiony' else 'MAGAZYN'
@@ -7648,7 +7648,7 @@ def lezaki():
     <div style="display:flex;gap:8px;margin-bottom:15px">
         <div style="background:#eab30822;border:1px solid #eab308;border-radius:8px;padding:6px 12px;font-size:0.72rem;color:#eab308">● &lt;45 dni → -10%</div>
         <div style="background:#f9731622;border:1px solid #f97316;border-radius:8px;padding:6px 12px;font-size:0.72rem;color:#f97316">● &lt;60 dni → -20%</div>
-        <div style="background:#ef444422;border:1px solid #ef4444;border-radius:8px;padding:6px 12px;font-size:0.72rem;color:#ef4444">[FIBER_MANUAL_RECORD] &lt;90 dni → -30%</div>
+        <div style="background:#ef444422;border:1px solid #ef4444;border-radius:8px;padding:6px 12px;font-size:0.72rem;color:#ef4444"><span class=material-symbols-outlined>fiber_manual_record</span> &lt;90 dni → -30%</div>
         <div style="background:#dc262622;border:1px solid #dc2626;border-radius:8px;padding:6px 12px;font-size:0.72rem;color:#dc2626">🚨 90+ dni → -40%</div>
     </div>
     '''
@@ -7726,10 +7726,10 @@ def koszty_page():
     
     KATEGORIE = [
         ('allegro', '<span class=material-symbols-outlined>shopping_cart</span> Prowizje Allegro'),
-        ('wysylka', '[INVENTORY_2] Wysyłka / InPost'),
+        ('wysylka', '<span class=material-symbols-outlined>inventory_2</span> Wysyłka / InPost'),
         ('reklama', '📣 Reklama'),
         ('magazyn', '<span class=material-symbols-outlined>factory</span> Magazyn / najem'),
-        ('zakup', '[PAID] Zakup towaru'),
+        ('zakup', '<span class=material-symbols-outlined>paid</span> Zakup towaru'),
         ('ksiegowosc', '<span class=material-symbols-outlined>list_alt</span> Księgowość / ZUS'),
         ('inne', '<span class=material-symbols-outlined>bolt</span> Inne'),
     ]
@@ -8769,7 +8769,7 @@ def przyjecie_palety(paleta_id):
         ('Jak nowy', '●', '#8ff5ff'),
         ('Dobry', '●', '#eab308'),
         ('Uszkodzony', '●', '#f97316'),
-        ('Zniszczony', '[FIBER_MANUAL_RECORD]', '#ef4444'),
+        ('Zniszczony', '<span class=material-symbols-outlined>fiber_manual_record</span>', '#ef4444'),
     ]
 
     for p in produkty:
@@ -8778,7 +8778,7 @@ def przyjecie_palety(paleta_id):
         current_stan = p['stan_przyjecia'] or ''
         current_notatki = p['notatki_przyjecia'] or ''
         zdjecie = p['zdjecie_url'] or ''
-        img_html = f'<img src="{zdjecie}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">' if zdjecie else '<div style="width:60px;height:60px;background:#1e1e2e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem">[INVENTORY_2]</div>'
+        img_html = f'<img src="{zdjecie}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">' if zdjecie else '<div style="width:60px;height:60px;background:#1e1e2e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem"><span class=material-symbols-outlined>inventory_2</span></div>'
 
         # Ilość badge
         ilosc_badge = f'<span style="background:#8ff5ff33;color:#8ff5ff;padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:700">{ilosc} szt.</span>' if ilosc > 1 else '<span style="color:#64748b;font-size:0.75rem">1 szt.</span>'

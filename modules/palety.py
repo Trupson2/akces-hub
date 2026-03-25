@@ -472,7 +472,7 @@ def produkt_extract_params(produkt_id):
 
     <!-- ORYGINALNA NAZWA -->
     <div class="card" style="margin-bottom:20px">
-        <div class="section-title">[INVENTORY_2] ORYGINALNA NAZWA</div>
+        <div class="section-title"><span class=material-symbols-outlined>inventory_2</span> ORYGINALNA NAZWA</div>
         <div style="color:var(--text);font-size:0.9rem">{produkt['nazwa'] or 'Brak nazwy'}</div>
     </div>
 
@@ -1065,11 +1065,11 @@ def palety_lista():
                 <div class="progress-bar-wrap">
                     <div class="progress-bar-fill" style="background:{progress_color};width:{procent_sprzedane:.0f}%"></div>
                 </div>
-                {f'<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:0.7rem"><span style="color:var(--green)">[PAID] Zysk: {zysk_netto:+.0f} zł</span><span style="color:var(--text-muted)">({procent_sprzedane:.0f}%)</span></div>' if sprzedano_szt > 0 else ''}
+                {f'<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:0.7rem"><span style="color:var(--green)"><span class=material-symbols-outlined>paid</span> Zysk: {zysk_netto:+.0f} zł</span><span style="color:var(--text-muted)">({procent_sprzedane:.0f}%)</span></div>' if sprzedano_szt > 0 else ''}
             </div>
 
             <div style="margin-top:8px;display:flex;justify-content:space-between;font-size:0.75rem">
-                <span style="color:var(--red)">[PAID] Zakup: {koszt_palety:.0f} zł</span>
+                <span style="color:var(--red)"><span class=material-symbols-outlined>paid</span> Zakup: {koszt_palety:.0f} zł</span>
                 <span style="color:var(--green)">Detal: {p['wartosc_detalu']:.0f} zł</span>
             </div>
             <a href="/palety/{p['id']}" style="display:block;text-align:center;color:var(--blue);margin-top:8px;font-size:0.8rem;text-decoration:none">Szczegóły →</a>
@@ -1081,7 +1081,7 @@ def palety_lista():
 
     content = f'''
     <div class="header">
-        <h1>[INVENTORY_2] PALETY</h1>
+        <h1><span class=material-symbols-outlined>inventory_2</span> PALETY</h1>
         <small>Zarządzaj zakupami</small>
     </div>
 
@@ -1111,7 +1111,7 @@ def palety_lista():
         <button type="button" onclick="bulkDeletePalety()" style="background:#fff;color:var(--red);border:none;padding:8px 20px;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.85rem"><span class=material-symbols-outlined>delete</span> USUŃ ZAZNACZONE</button>
     </div>
 
-    <a href="/palety/przelicz-brutto" style="display:block;text-align:center;color:var(--text-muted);text-decoration:none;margin-bottom:15px;font-size:0.8rem" onclick="return confirm('Przeliczyć ceny zakupu wszystkich palet na brutto (netto × 1.23)?')">[BUILD] Przelicz ceny na brutto (+23% VAT)</a>
+    <a href="/palety/przelicz-brutto" style="display:block;text-align:center;color:var(--text-muted);text-decoration:none;margin-bottom:15px;font-size:0.8rem" onclick="return confirm('Przeliczyć ceny zakupu wszystkich palet na brutto (netto × 1.23)?')"><span class=material-symbols-outlined>build</span> Przelicz ceny na brutto (+23% VAT)</a>
 
     <div class="section-title">OSTATNIE PALETY</div>
 
@@ -1261,7 +1261,7 @@ def paleta_dodaj():
 
     <a href="/palety/bulk-import" class="import-link" style="background:linear-gradient(135deg,var(--blue),#2563eb)">
         <div class="import-link-inner">
-            <div class="import-link-icon">[INVENTORY_2]</div>
+            <div class="import-link-icon"><span class=material-symbols-outlined>inventory_2</span></div>
             <div>
                 <div style="font-weight:600;font-size:1rem">BULK IMPORT (wiele palet)</div>
                 <div style="font-size:0.75rem;opacity:0.9">Importuj kilka palet naraz z osobnymi plikami</div>
@@ -1468,7 +1468,7 @@ def paleta_import_xlsx():
         </div>
 
         <!-- DANE PALETY -->
-        <div class="section-title" style="margin-top:20px">[INVENTORY_2] DANE PALETY</div>
+        <div class="section-title" style="margin-top:20px"><span class=material-symbols-outlined>inventory_2</span> DANE PALETY</div>
 
         <div class="form-row" style="margin-bottom:12px">
             <div class="form-group">
@@ -2125,7 +2125,7 @@ def paleta_bulk_import():
                 <small>Zaimportowano {ok_count} palet{', błędy: ' + str(err_count) if err_count else ''}</small>
             </div>
             {results_html}
-            <a href="/palety" class="btn" style="background:var(--blue);margin-top:15px">[INVENTORY_2] Przejdź do palet</a>
+            <a href="/palety" class="btn" style="background:var(--blue);margin-top:15px"><span class=material-symbols-outlined>inventory_2</span> Przejdź do palet</a>
             <a href="/palety/bulk-import" style="display:block;text-align:center;color:var(--text-muted);text-decoration:none;margin-top:10px"><span class=material-symbols-outlined>bar_chart</span> Importuj kolejne</a>
             '''
             return render(content, 'Wyniki importu')
@@ -2190,7 +2190,7 @@ def paleta_bulk_import():
     <!-- ZIP UPLOAD -->
     <div class="card" style="margin-bottom:15px;border:2px dashed rgba(255,107,155,0.3);background:rgba(255,107,155,0.04)">
         <div style="text-align:center;padding:10px">
-            <div style="font-size:1.1rem;font-weight:700;color:#ff6b9b;margin-bottom:6px">[INVENTORY_2] Szybki import z ZIP</div>
+            <div style="font-size:1.1rem;font-weight:700;color:#ff6b9b;margin-bottom:6px"><span class=material-symbols-outlined>inventory_2</span> Szybki import z ZIP</div>
             <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px">Wrzuć plik .zip z wieloma Excelami — system automatycznie utworzy slot dla każdego</div>
             <input type="file" id="zip-upload" accept=".zip" style="display:none" onchange="handleZipUpload(this)">
             <button type="button" onclick="document.getElementById('zip-upload').click()" style="padding:10px 24px;background:linear-gradient(135deg,#ff6b9b,#8ff5ff);border:none;border-radius:10px;color:#fff;font-weight:600;cursor:pointer;font-size:0.9rem">
@@ -2201,7 +2201,7 @@ def paleta_bulk_import():
     </div>
 
     <!-- PALETY -->
-    <div class="section-title">[INVENTORY_2] PALETY DO IMPORTU</div>
+    <div class="section-title"><span class=material-symbols-outlined>inventory_2</span> PALETY DO IMPORTU</div>
 
     <div id="palety-container"></div>
 
@@ -2270,7 +2270,7 @@ def paleta_bulk_import():
         div.innerHTML = `
             <button type="button" onclick="removePaleta(${i})" style="position:absolute;top:10px;right:10px;background:var(--red-soft);border:none;border-radius:8px;color:var(--red);padding:4px 10px;cursor:pointer;font-size:0.8rem">✕</button>
 
-            <div id="slot-title-${i}" style="font-weight:600;color:var(--blue);margin-bottom:10px;font-size:0.9rem">[INVENTORY_2] Paleta #${i+1}</div>
+            <div id="slot-title-${i}" style="font-weight:600;color:var(--blue);margin-bottom:10px;font-size:0.9rem"><span class=material-symbols-outlined>inventory_2</span> Paleta #${i+1}</div>
 
             <div style="margin-bottom:10px">
                 <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px"><span class=material-symbols-outlined>folder</span> Plik Excel</label>
@@ -2284,13 +2284,13 @@ def paleta_bulk_import():
                     <input type="text" name="nazwa_${i}" id="nazwa-${i}" placeholder="Auto z nazwy pliku" class="form-control">
                 </div>
                 <div>
-                    <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px">[PAID] Cena zakupu</label>
+                    <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px"><span class=material-symbols-outlined>paid</span> Cena zakupu</label>
                     <input type="number" name="cena_${i}" placeholder="np. 144.80" step="0.01" class="form-control" title="Ile zapłaciłeś — NIE cena z Excela">
                 </div>
                 <div>
                     <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px">Typ</label>
                     <select name="typ_${i}" class="form-control" onchange="updateSlotType(${i}, this.value)">
-                        <option value="paleta">[INVENTORY_2] Paleta</option>
+                        <option value="paleta"><span class=material-symbols-outlined>inventory_2</span> Paleta</option>
                         <option value="box">[INBOX] Box</option>
                     </select>
                 </div>
@@ -2326,7 +2326,7 @@ def paleta_bulk_import():
                 title.innerHTML = '[INBOX] Box #' + (i+1);
                 title.style.color = '#f59e0b';
             } else {
-                title.innerHTML = '[INVENTORY_2] Paleta #' + (i+1);
+                title.innerHTML = '<span class=material-symbols-outlined>inventory_2</span> Paleta #' + (i+1);
                 title.style.color = 'var(--blue)';
             }
         }
@@ -2500,7 +2500,7 @@ def paleta_mass_edit(paleta_id):
                 <div style="font-size:0.85rem;color:var(--red);flex:1;font-weight:600"><span class=material-symbols-outlined>warning</span> Brak META TITLE</div>
                 <button onclick="regenerateMetaTitle({p["id"]}, this)"
                         style="padding:8px 14px;background:var(--green);border:none;border-radius:8px;color:#fff;font-size:0.8rem;cursor:pointer;white-space:nowrap;min-height:36px">
-                    [AUTO_AWESOME] Generuj
+                    <span class=material-symbols-outlined>auto_awesome</span> Generuj
                 </button>
             </div>
             ''') + f'''
@@ -2524,7 +2524,7 @@ def paleta_mass_edit(paleta_id):
                     Lokalizacja: {p['lokalizacja'] or '—'} •
                     Ilość: <span data-qty-id="{p['id']}">{p['ilosc']}</span>
                 </div>
-                <div style="font-size:0.75rem;color:var(--red)">[PAID] {ceny_tekst}</div>
+                <div style="font-size:0.75rem;color:var(--red)"><span class=material-symbols-outlined>paid</span> {ceny_tekst}</div>
                 <div style="display:flex;align-items:center;gap:6px">
                     <span style="font-size:0.75rem;color:var(--text-muted)">CENA:</span>
                     {cena_input}
@@ -2576,7 +2576,7 @@ def paleta_mass_edit(paleta_id):
             </div>
             <div class="me-bottom-row">
                 <button id="btn-batch-meta" class="me-btn me-btn-meta" onclick="batchGenerateMetaTitles()">
-                    [AUTO_AWESOME] Generuj META (<span id="count-meta-btn">{wybrane_count}</span>)
+                    <span class=material-symbols-outlined>auto_awesome</span> Generuj META (<span id="count-meta-btn">{wybrane_count}</span>)
                 </button>
                 <button id="btn-wystaw" class="me-btn me-btn-wystaw" onclick="wystawZaznaczone()">
                     [ROCKET_LAUNCH] Wystaw (<span id="count-btn">{wybrane_count}</span>)
@@ -3099,7 +3099,7 @@ def paleta_szczegoly(paleta_id):
             status_text = 'WYSTAWIONY'
         elif p['status'] == 'magazyn':
             status_color = 'var(--yellow)'
-            status_icon = '[INVENTORY_2]'
+            status_icon = '<span class=material-symbols-outlined>inventory_2</span>'
             status_text = 'MAGAZYN'
         else:
             status_color = 'var(--text-muted)'
@@ -3125,7 +3125,7 @@ def paleta_szczegoly(paleta_id):
             stan_opcje += f'<option value="{s}" {sel}>{s}</option>'
 
         status_opcje = ''
-        statusy = [('magazyn','[INVENTORY_2] Magazyn'),('wystawiony','<span class=material-symbols-outlined>shopping_cart</span> Wystawiony'),('sprzedany','[PAID] Sprzedany'),('uszkodzony','<span class=material-symbols-outlined>warning</span> Uszkodzony'),('zwrot','[UNDO] Zwrot')]
+        statusy = [('magazyn','<span class=material-symbols-outlined>inventory_2</span> Magazyn'),('wystawiony','<span class=material-symbols-outlined>shopping_cart</span> Wystawiony'),('sprzedany','<span class=material-symbols-outlined>paid</span> Sprzedany'),('uszkodzony','<span class=material-symbols-outlined>warning</span> Uszkodzony'),('zwrot','[UNDO] Zwrot')]
         for sv, sl in statusy:
             sel = 'selected' if (p['status'] or 'magazyn') == sv else ''
             status_opcje += f'<option value="{sv}" {sel}>{sl}</option>'
@@ -3183,7 +3183,7 @@ def paleta_szczegoly(paleta_id):
                     </select>
                 </div>
                 <div>
-                    <div style="font-size:0.6rem;color:var(--text-muted);margin-bottom:3px">[INVENTORY_2] STATUS</div>
+                    <div style="font-size:0.6rem;color:var(--text-muted);margin-bottom:3px"><span class=material-symbols-outlined>inventory_2</span> STATUS</div>
                     <select onchange="zapiszPole({p['id']}, 'status', this.value, this)"
                         style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 6px;font-size:0.72rem">
                         {status_opcje}
@@ -3224,7 +3224,7 @@ def paleta_szczegoly(paleta_id):
 
     content = f'''
     <div class="header">
-        <h1>[INVENTORY_2] {paleta['nazwa'] or f"Paleta #{paleta['id']}"}</h1>
+        <h1><span class=material-symbols-outlined>inventory_2</span> {paleta['nazwa'] or f"Paleta #{paleta['id']}"}</h1>
         <small><span class="dostawca-name">{paleta['dostawca']}</span> • {paleta['data_zakupu']}</small>
         {f'<div style="margin-top:6px;font-size:0.85rem;color:var(--purple)"><span class=material-symbols-outlined>pin_drop</span> Regal: {regal_palety}</div>' if regal_palety else ''}
     </div>
@@ -3280,7 +3280,7 @@ def paleta_szczegoly(paleta_id):
             <div class="stat-lbl">WYSTAWIONE</div>
         </div>
         <div class="stat-box" style="background:var(--yellow-soft);border-color:rgba(234,179,8,0.3)">
-            <div class="stat-val" style="color:var(--yellow)">[INVENTORY_2] {stats['magazyn'] or 0}</div>
+            <div class="stat-val" style="color:var(--yellow)"><span class=material-symbols-outlined>inventory_2</span> {stats['magazyn'] or 0}</div>
             <div class="stat-lbl">W MAGAZYNIE</div>
         </div>
         <div class="stat-box" style="background:var(--red-soft);border-color:rgba(239,68,68,0.3)">
@@ -3376,7 +3376,7 @@ def paleta_szczegoly(paleta_id):
             </form>
 
             <div style="border-top:1px solid var(--border);padding-top:15px;margin-top:10px">
-                <label style="display:block;font-size:0.8rem;color:var(--orange);margin-bottom:8px">[INVENTORY_2] Sprzedaż offline (bez statystyk Allegro):</label>
+                <label style="display:block;font-size:0.8rem;color:var(--orange);margin-bottom:8px"><span class=material-symbols-outlined>inventory_2</span> Sprzedaż offline (bez statystyk Allegro):</label>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
                     <div>
                         <label style="font-size:0.7rem;color:var(--text-muted)">Ile szt.:</label>
@@ -3387,7 +3387,7 @@ def paleta_szczegoly(paleta_id):
                         <input type="number" id="sprzedajCena" min="0.01" step="0.01" required placeholder="Wpisz cenę zł" class="form-control" style="text-align:center;border-color:var(--orange)">
                     </div>
                 </div>
-                <button onclick="oznaczSprzedany()" class="btn btn-warning" style="margin:0">[INVENTORY_2] Sprzedaj offline</button>
+                <button onclick="oznaczSprzedany()" class="btn btn-warning" style="margin:0"><span class=material-symbols-outlined>inventory_2</span> Sprzedaj offline</button>
                 <div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center">
                     Dolicza do przychodu palety, ale NIE do statystyk sprzedaży Allegro
                 </div>
@@ -3423,7 +3423,7 @@ def paleta_szczegoly(paleta_id):
     <!-- MODAL: ROZBIJ NA SZTUKI -->
     <div id="modalRozbij" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;overflow-y:auto;padding:20px">
       <div style="background:var(--bg-card);border-radius:var(--radius);padding:20px;max-width:440px;margin:0 auto">
-        <div style="font-size:1.2rem;font-weight:700;margin-bottom:4px">[TARGET] Rozbij stan na sztuki</div>
+        <div style="font-size:1.2rem;font-weight:700;margin-bottom:4px"><span class=material-symbols-outlined>target</span> Rozbij stan na sztuki</div>
         <div id="rozbijNazwa" style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:15px"></div>
         <div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:15px">
           <div style="display:flex;justify-content:space-between;margin-bottom:4px">
@@ -3441,7 +3441,7 @@ def paleta_szczegoly(paleta_id):
           <button onclick="rozbijSzybko('Nowy')" style="padding:6px 12px;background:var(--green-soft);border:1px solid var(--green);border-radius:8px;color:var(--green);font-size:0.78rem;cursor:pointer">● Wszystko nowe</button>
           <button onclick="rozbijSzybko('Powystawowy')" style="padding:6px 12px;background:var(--blue-soft);border:1px solid var(--blue);border-radius:8px;color:var(--blue);font-size:0.78rem;cursor:pointer">● Powystawowe</button>
           <button onclick="rozbijSzybko('Używany')" style="padding:6px 12px;background:var(--yellow-soft);border:1px solid var(--yellow);border-radius:8px;color:var(--yellow);font-size:0.78rem;cursor:pointer">● Używane</button>
-          <button onclick="rozbijSzybko('Uszkodzony')" style="padding:6px 12px;background:var(--red-soft);border:1px solid var(--red);border-radius:8px;color:var(--red);font-size:0.78rem;cursor:pointer">[FIBER_MANUAL_RECORD] Uszkodzone</button>
+          <button onclick="rozbijSzybko('Uszkodzony')" style="padding:6px 12px;background:var(--red-soft);border:1px solid var(--red);border-radius:8px;color:var(--red);font-size:0.78rem;cursor:pointer"><span class=material-symbols-outlined>fiber_manual_record</span> Uszkodzone</button>
         </div>
         <div style="display:flex;gap:8px">
           <button onclick="rozbijWyczysc()" class="btn btn-secondary" style="flex:1;margin:0">Wyczyść</button>
@@ -3455,7 +3455,7 @@ def paleta_szczegoly(paleta_id):
     <div id="modalNaprawa" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;overflow-y:auto;padding:20px">
       <div style="background:var(--bg-card);border-radius:var(--radius);padding:20px;max-width:440px;margin:0 auto">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <div style="font-size:1.2rem;font-weight:700">[BUILD] Do naprawy</div>
+          <div style="font-size:1.2rem;font-weight:700"><span class=material-symbols-outlined>build</span> Do naprawy</div>
           <button onclick="zamknijNaprawa()" style="background:none;border:none;color:var(--text-secondary);font-size:1.3rem;cursor:pointer">✕</button>
         </div>
         <div id="naprawaNazwa" style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:15px"></div>
@@ -3748,7 +3748,7 @@ def paleta_szczegoly(paleta_id):
             if(s.status === 'naprawa') {
                 html += '<div style="background:var(--yellow-soft);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:12px;margin-bottom:8px">' +
                   '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
-                    '<div style="font-weight:700;color:var(--orange)">[BUILD] szt. '+s.numer+' <span style="font-size:0.7rem">DO NAPRAWY</span></div>' +
+                    '<div style="font-weight:700;color:var(--orange)"><span class=material-symbols-outlined>build</span> szt. '+s.numer+' <span style="font-size:0.7rem">DO NAPRAWY</span></div>' +
                     '<div style="display:flex;gap:6px">' +
                       '<button onclick="edytujNaprawa('+s.id+', \''+((s.opis_naprawy||'').replace(/'/g,"\\'"))+'\')" style="padding:4px 10px;background:var(--purple);border:none;border-radius:6px;color:#fff;font-size:0.72rem;cursor:pointer"><span class=material-symbols-outlined>edit</span> Edytuj</button>' +
                       '<button onclick="cofnijNaprawa('+s.id+')" style="padding:4px 10px;background:var(--red-soft);border:1px solid var(--red);border-radius:6px;color:var(--red);font-size:0.72rem;cursor:pointer">↩ Cofnij</button>' +
@@ -3823,11 +3823,11 @@ def paleta_szczegoly(paleta_id):
         document.getElementById('menuStatusy').innerHTML =
             '<div onclick="menuStatus(\'sprzedany\')" class="menu-item"><span class=material-symbols-outlined>check_circle</span> Sprzedane</div>' +
             '<div onclick="menuStatus(\'sprzedany_uszkodzony\')" class="menu-item"><span class=material-symbols-outlined>warning</span> Sprzedane uszkodzone</div>' +
-            '<div onclick="menuNaprawyModal('+produktId+', \''+nazwa.replace(/'/g,"\\'")+'\', '+ilosc+')" class="menu-item">[BUILD] Do naprawy...</div>' +
+            '<div onclick="menuNaprawyModal('+produktId+', \''+nazwa.replace(/'/g,"\\'")+'\', '+ilosc+')" class="menu-item"><span class=material-symbols-outlined>build</span> Do naprawy...</div>' +
             '<div onclick="menuStatus(\'wyrzucenie\')" class="menu-item"><span class=material-symbols-outlined>delete</span> Do wyrzucenia</div>' +
             '<div onclick="menuStatus(\'zwrot\')" class="menu-item">[UNDO] Oddane (zwrot)</div>';
         document.getElementById('menuInne').innerHTML =
-            '<div onclick="pokazRozbij('+produktId+', '+ilosc+', \''+nazwa.replace(/'/g,"\\'")+'\'); zamknijMenu()" class="menu-item">[TARGET] Rozbij na sztuki</div>' +
+            '<div onclick="pokazRozbij('+produktId+', '+ilosc+', \''+nazwa.replace(/'/g,"\\'")+'\'); zamknijMenu()" class="menu-item"><span class=material-symbols-outlined>target</span> Rozbij na sztuki</div>' +
             '<a href="/magazyn/produkt/'+produktId+'/edytuj" class="menu-item" style="text-decoration:none;display:block;color:var(--text)"><span class=material-symbols-outlined>edit</span> Edytuj produkt</a>';
         const rect = evt.target.getBoundingClientRect();
         menu.style.display = 'block';
@@ -3864,7 +3864,7 @@ def paleta_szczegoly(paleta_id):
                 html += '<span style="background:'+kolor+'33;border:1px solid '+kolor+';color:'+kolor+';border-radius:20px;padding:1px 7px;font-size:0.62rem;font-weight:700">●'+k.slice(0,3)+' '+v+'</span>';
             });
             if(naprawy > 0) {
-                html += '<span style="background:#f9730333;border:1px solid #f97316;color:#f97316;border-radius:20px;padding:1px 7px;font-size:0.62rem;font-weight:700">[BUILD]'+naprawy+'</span>';
+                html += '<span style="background:#f9730333;border:1px solid #f97316;color:#f97316;border-radius:20px;padding:1px 7px;font-size:0.62rem;font-weight:700"><span class=material-symbols-outlined>build</span>'+naprawy+'</span>';
             }
             html += '</div>';
             const dotsEl = el.querySelector('.sztuki-dots');

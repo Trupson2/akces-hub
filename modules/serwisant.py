@@ -220,7 +220,7 @@ def serwis_lista():
             <div class="sv-progress"><div class="sv-progress-bar" style="width:{_pct(stats['przyjete'])}%"></div></div>
         </a>
         <a href="/serwis?status=w_naprawie" class="sv-stat-card sv-stat-pink">
-            <div class="sv-stat-icon">[BUILD]</div>
+            <div class="sv-stat-icon"><span class=material-symbols-outlined>build</span></div>
             <div class="sv-stat-label">In Repair</div>
             <div class="sv-stat-val">{stats['w_naprawie']}</div>
             <div class="sv-progress"><div class="sv-progress-bar" style="width:{_pct(stats['w_naprawie'])}%"></div></div>
@@ -244,7 +244,7 @@ def serwis_lista():
             <div class="sv-progress"><div class="sv-progress-bar" style="width:{_pct(stats['zlomowane'])}%"></div></div>
         </a>
         <div class="sv-stat-card sv-stat-cost">
-            <div class="sv-stat-icon">[PAID]</div>
+            <div class="sv-stat-icon"><span class=material-symbols-outlined>paid</span></div>
             <div class="sv-stat-label">Total Costs</div>
             <div class="sv-stat-val">{stats['laczny_koszt']:.0f} zł</div>
             <div class="sv-progress"><div class="sv-progress-bar" style="width:100%"></div></div>
@@ -255,7 +255,7 @@ def serwis_lista():
     <div class="sv-filters">
         <a href="/serwis" class="sv-filter-pill ''' + ('active' if not filtr else '') + '''">Aktywne</a>
         <a href="/serwis?status=przyjety" class="sv-filter-pill ''' + ('active' if filtr=='przyjety' else '') + '''"><span class=material-symbols-outlined>download</span> Przyjęte</a>
-        <a href="/serwis?status=w_naprawie" class="sv-filter-pill ''' + ('active' if filtr=='w_naprawie' else '') + '''">[BUILD] W naprawie</a>
+        <a href="/serwis?status=w_naprawie" class="sv-filter-pill ''' + ('active' if filtr=='w_naprawie' else '') + '''"><span class=material-symbols-outlined>build</span> W naprawie</a>
         <a href="/serwis?status=naprawiony" class="sv-filter-pill ''' + ('active' if filtr=='naprawiony' else '') + '''"><span class=material-symbols-outlined>check_circle</span> Naprawione</a>
         <a href="/serwis?status=zwrocony" class="sv-filter-pill ''' + ('active' if filtr=='zwrocony' else '') + '''"><span class=material-symbols-outlined>sync</span> Zwrócone</a>
         <a href="/serwis?status=zlomowany" class="sv-filter-pill ''' + ('active' if filtr=='zlomowany' else '') + '''"><span class=material-symbols-outlined>delete</span> Złomowane</a>
@@ -330,7 +330,7 @@ def serwis_lista():
             # Akcje zależne od statusu
             if item['status'] == 'przyjety':
                 html += f'''
-                    <button onclick="aktualizujSerwis({item['id']}, 'w_naprawie')" class="sv-act sv-act-repair">[BUILD] Naprawiaj</button>
+                    <button onclick="aktualizujSerwis({item['id']}, 'w_naprawie')" class="sv-act sv-act-repair"><span class=material-symbols-outlined>build</span> Naprawiaj</button>
                     <button onclick="zlomuj({item['id']})" class="sv-act sv-act-scrap"><span class=material-symbols-outlined>delete</span></button>
                 '''
             elif item['status'] == 'w_naprawie':

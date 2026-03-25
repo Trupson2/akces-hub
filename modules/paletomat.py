@@ -1031,18 +1031,18 @@ if(saved) document.documentElement.setAttribute('data-theme', saved);
             <span class="sl-icon"><span class=material-symbols-outlined>trending_up</span></span>Monitoring
         </a>
         <a href="/telegram/live" class="sidebar-link">
-            <span class="sl-icon">[PAID]</span>Sprzedaz LIVE
+            <span class="sl-icon"><span class=material-symbols-outlined>paid</span></span>Sprzedaz LIVE
         </a>
 
         <div class="sidebar-section">Narzedzia</div>
         <a href="/palety/bulk-import" class="sidebar-link">
-            <span class="sl-icon">[INVENTORY_2]</span>Bulk import
+            <span class="sl-icon"><span class=material-symbols-outlined>inventory_2</span></span>Bulk import
         </a>
         <a href="/analytics/profit" class="sidebar-link">
             <span class="sl-icon">💹</span>Profit Analyzer
         </a>
         <a href="/analityka/koszty-allegro" class="sidebar-link">
-            <span class="sl-icon">[PAID]</span>Koszty Allegro
+            <span class="sl-icon"><span class=material-symbols-outlined>paid</span></span>Koszty Allegro
         </a>
     </nav>
     <div class="sidebar-bottom">
@@ -1250,7 +1250,7 @@ def scraper():
         <form action="/paletomat/scraper/asin" method="POST">
             <div class="form-row" style="margin-bottom:15px;padding:10px;background:#1a1a2e;border-radius:8px;border:1px solid #ff6b9b">
                 <div class="form-group" style="margin-bottom:0">
-                    <label>[INVENTORY_2] Paleta</label>
+                    <label><span class=material-symbols-outlined>inventory_2</span> Paleta</label>
                     <select name="paleta_id" class="form-ctrl" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
                         <option value="">-- Bez palety --</option>
                         <option value="new"><span class=material-symbols-outlined>add</span> Nowa paleta...</option>
@@ -1264,7 +1264,7 @@ def scraper():
                         <option value="Jobalots">🇳🇱 Jobalots</option>
                         <option value="Warrington">🇬🇧 Warrington</option>
                         <option value="Miglo">🇵🇱 Miglo</option>
-                        <option value="Inny">[INVENTORY_2] Inny</option>
+                        <option value="Inny"><span class=material-symbols-outlined>inventory_2</span> Inny</option>
                     </select>
                 </div>
             </div>
@@ -1286,7 +1286,7 @@ def scraper():
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>[PAID] Cena jednostkowa (opcjonalnie)</label>
+                    <label><span class=material-symbols-outlined>paid</span> Cena jednostkowa (opcjonalnie)</label>
                     <input type="number" step="0.01" name="cena_jednostkowa" class="form-ctrl" placeholder="np. 25.50">
                 </div>
             </div>
@@ -1300,7 +1300,7 @@ def scraper():
         <form action="/paletomat/scraper/file" method="POST" enctype="multipart/form-data">
             <div class="form-row" style="margin-bottom:15px;padding:10px;background:#1a1a2e;border-radius:8px;border:1px solid #8ff5ff">
                 <div class="form-group" style="margin-bottom:0">
-                    <label>[INVENTORY_2] Paleta</label>
+                    <label><span class=material-symbols-outlined>inventory_2</span> Paleta</label>
                     <select name="paleta_id" class="form-ctrl" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
                         <option value="">-- Bez palety --</option>
                         <option value="new"><span class=material-symbols-outlined>add</span> Nowa paleta...</option>
@@ -1314,7 +1314,7 @@ def scraper():
                         <option value="Jobalots">🇳🇱 Jobalots</option>
                         <option value="Warrington">🇬🇧 Warrington</option>
                         <option value="Miglo">🇵🇱 Miglo</option>
-                        <option value="Inny">[INVENTORY_2] Inny</option>
+                        <option value="Inny"><span class=material-symbols-outlined>inventory_2</span> Inny</option>
                     </select>
                 </div>
             </div>
@@ -1326,7 +1326,7 @@ def scraper():
                 <div style="font-size:0.7rem;color:#64748b;margin-top:5px">Automatycznie wykrywa: ASIN, cenę, ilość, EAN, zdjęcia</div>
             </div>
             <div class="form-group">
-                <label>[PAID] Cena jednostkowa brutto (opcjonalnie)</label>
+                <label><span class=material-symbols-outlined>paid</span> Cena jednostkowa brutto (opcjonalnie)</label>
                 <input type="number" step="0.01" name="cena_jednostkowa" class="form-ctrl" placeholder="Nadpisuje cenę z pliku">
             </div>
             <button type="submit" class="btn btn-2" style="width:100%"><span class=material-symbols-outlined>upload</span> WGRAJ I DODAJ DO MAGAZYNU</button>
@@ -1339,7 +1339,7 @@ def scraper():
         <form action="/paletomat/scraper/miglo" method="POST">
             <div class="form-row" style="margin-bottom:15px;padding:10px;background:#1a1a2e;border-radius:8px;border:1px solid #f59e0b">
                 <div class="form-group" style="margin-bottom:0">
-                    <label>[INVENTORY_2] Paleta</label>
+                    <label><span class=material-symbols-outlined>inventory_2</span> Paleta</label>
                     <select name="paleta_id" class="form-ctrl" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
                         <option value="">-- Bez palety --</option>
                         <option value="new"><span class=material-symbols-outlined>add</span> Nowa paleta...</option>
@@ -1352,7 +1352,7 @@ def scraper():
                         <option value="Miglo" selected>🇵🇱 Miglo</option>
                         <option value="Jobalots">🇳🇱 Jobalots</option>
                         <option value="Warrington">🇬🇧 Warrington</option>
-                        <option value="Inny">[INVENTORY_2] Inny</option>
+                        <option value="Inny"><span class=material-symbols-outlined>inventory_2</span> Inny</option>
                     </select>
                 </div>
             </div>
@@ -1541,7 +1541,7 @@ def scraper_miglo():
     # Uruchom auto-przetwarzanie w tle (z wybraną domeną)
     auto_process_products(list(asin_data.keys()), preferred_domain=domain if domain != 'de' else None)
 
-    paleta_info = f'<br>[INVENTORY_2] Paleta: <b>{paleta_nazwa}</b> ({dostawca})' if paleta_nazwa else ''
+    paleta_info = f'<br><span class=material-symbols-outlined>inventory_2</span> Paleta: <b>{paleta_nazwa}</b> ({dostawca})' if paleta_nazwa else ''
     
     return render(f'''
         <div class="hdr"><h1><span class=material-symbols-outlined>check_circle</span> IMPORT MIGLO</h1></div>
@@ -1562,7 +1562,7 @@ def scraper_miglo():
             <span class=material-symbols-outlined>sync</span> <b>Auto-przetwarzanie w tle</b> - tytuły i opisy generują się automatycznie
         </div>
         <a href="/paletomat/scraper" class="btn btn-p"><span class=material-symbols-outlined>search</span> Dodaj więcej</a>
-        <a href="/magazyn" class="btn btn-ok">[INVENTORY_2] Zobacz Magazyn</a>
+        <a href="/magazyn" class="btn btn-ok"><span class=material-symbols-outlined>inventory_2</span> Zobacz Magazyn</a>
         <a href="/paletomat" class="back">← Powrót</a>
     ''')
 
@@ -1704,7 +1704,7 @@ def scraper_asin():
     auto_process_products(list(asins))
     
     paleta_info = f' → Paleta: <b>{paleta_nazwa}</b> ({dostawca})' if paleta_nazwa else ''
-    cena_info = f'<br>[PAID] Cena jednostkowa: <b>{cena_brutto:.2f} zł</b> (netto: {cena_netto:.2f} zł)' if cena_brutto > 0 else ''
+    cena_info = f'<br><span class=material-symbols-outlined>paid</span> Cena jednostkowa: <b>{cena_brutto:.2f} zł</b> (netto: {cena_netto:.2f} zł)' if cena_brutto > 0 else ''
     
     return render(f'''
         <div class="hdr"><h1><span class=material-symbols-outlined>check_circle</span> DODANO</h1></div>
@@ -2245,7 +2245,7 @@ def scraper_file():
         # Uruchom auto-przetwarzanie w tle (pobieranie tytułów i generowanie opisów)
         auto_process_products(list(asins))
         
-        paleta_info = f'<br>[INVENTORY_2] Paleta: <b>{paleta_nazwa}</b> ({dostawca})' if paleta_nazwa else ''
+        paleta_info = f'<br><span class=material-symbols-outlined>inventory_2</span> Paleta: <b>{paleta_nazwa}</b> ({dostawca})' if paleta_nazwa else ''
         
         # Oblicz sumaryczną ilość
         total_qty = sum(p['qty'] for p in asin_prices.values())
@@ -2375,7 +2375,7 @@ def generator():
     if wystawione > 0:
         html += f'<a href="/paletomat/generator/cleanup" class="btn btn-warn" style="flex:1;min-width:140px" onclick="return confirm(\'Usunąć {wystawione} wystawionych szkiców?\')"><span class=material-symbols-outlined>delete</span> USUŃ WYSTAWIONE ({wystawione})</a>'
     
-    html += f'<a href="/paletomat/generator/enhance-existing" class="btn" style="flex:1;min-width:140px;background:#f59e0b;color:#fff">[AUTO_AWESOME] GENERUJ ZDJĘCIA AI</a>'
+    html += f'<a href="/paletomat/generator/enhance-existing" class="btn" style="flex:1;min-width:140px;background:#f59e0b;color:#fff"><span class=material-symbols-outlined>auto_awesome</span> GENERUJ ZDJĘCIA AI</a>'
 
     # Przycisk re-scrapuj fallback nazwy
     fallback_cnt = conn.execute("SELECT COUNT(DISTINCT asin) as cnt FROM produkty WHERE nazwa LIKE 'Produkt %' AND asin IS NOT NULL").fetchone()['cnt']
@@ -2412,7 +2412,7 @@ def _render_stan_fields(grupy_stanow, stan_magazyn):
         'Nowy': ('#beee00', '●'),
         'Powystawowy': ('#8ff5ff', '●'),
         'Używany': ('#eab308', '●'),
-        'Uszkodzony': ('#ef4444', '[FIBER_MANUAL_RECORD]'),
+        'Uszkodzony': ('#ef4444', '<span class=material-symbols-outlined>fiber_manual_record</span>'),
         'Odnowiony': ('#ff6b9b', '●'),
     }
     
@@ -2420,7 +2420,7 @@ def _render_stan_fields(grupy_stanow, stan_magazyn):
         # Wiele grup stanów - osobna oferta per stan
         html = '''<div style="background:rgba(190,238,0,0.08);border:1px solid #beee0044;border-radius:10px;padding:14px;margin-bottom:12px">
             <div style="font-size:0.8rem;color:#22c55e;font-weight:700;margin-bottom:10px">
-                [INVENTORY_2] Produkt rozdzielony na stany — zostaną wystawione <b>osobne oferty</b> per stan, zgrupowane ilościowo
+                <span class=material-symbols-outlined>inventory_2</span> Produkt rozdzielony na stany — zostaną wystawione <b>osobne oferty</b> per stan, zgrupowane ilościowo
             </div>'''
         for g in grupy_stanow:
             stan = g['stan']
@@ -2447,7 +2447,7 @@ def _render_stan_fields(grupy_stanow, stan_magazyn):
             sel = 'selected' if stan_val == stan_magazyn else ''
             opts += f'<option value="{stan_val}" {sel}>{icon} {stan_val}</option>'
         return f'''<div class="form-group">
-            <label>[INVENTORY_2] Stan produktu</label>
+            <label><span class=material-symbols-outlined>inventory_2</span> Stan produktu</label>
             <select name="stan" class="form-ctrl" style="padding:10px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#fff">
                 {opts}
             </select>
@@ -3059,7 +3059,7 @@ def generator_mass_create_from_paleta_stream():
                     # Odlinkuj błędne powiązanie
                     conn.execute('UPDATE oferty SET produkt_id = NULL WHERE id = ?', (_pid_candidate['id'],))
                     conn.commit()
-                    yield "data: " + json.dumps({'type': 'log', 'message': f'[BUILD] Auto-odlinkowano błędne powiązanie oferty', 'color': '#f59e0b'}) + "\n\n"
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>build</span> Auto-odlinkowano błędne powiązanie oferty', 'color': '#f59e0b'}) + "\n\n"
 
                 # 2. Szukaj po ASIN (najwiarygodniejszy identyfikator)
                 if asin and not existing_offer:
@@ -3104,7 +3104,7 @@ def generator_mass_create_from_paleta_stream():
 
                 if existing_offer:
                     ex = dict(existing_offer)
-                    yield "data: " + json.dumps({'type': 'log', 'message': f'[INVENTORY_2] Znaleziono aktywną ofertę: {ex["allegro_id"]} ({ex["tytul"][:30]}), szt: {ex["ilosc"]}', 'color': '#f59e0b'}) + "\n\n"
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>inventory_2</span> Znaleziono aktywną ofertę: {ex["allegro_id"]} ({ex["tytul"][:30]}), szt: {ex["ilosc"]}', 'color': '#f59e0b'}) + "\n\n"
                     try:
                         from .allegro_api import update_offer_stock
                         obecna_ilosc = ex.get('ilosc', 0) or 0
@@ -3401,7 +3401,7 @@ def generator_mass_create_from_paleta_stream():
                         print(f"   [CANCEL] GPSR error: {e}")
 
                 if gpsr:
-                    yield "data: " + json.dumps({'type': 'log', 'message': f'[SHIELD] GPSR: {len(gpsr)} znaków', 'color': '#22c55e'}) + "\n\n"
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>shield</span> GPSR: {len(gpsr)} znaków', 'color': '#22c55e'}) + "\n\n"
 
                 # Logi diagnostyczne
                 yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>folder</span> Kategoria: {kategoria_id or "auto-detect"}', 'color': '#6366f1'}) + "\n\n"
@@ -3625,7 +3625,7 @@ def generator_mass_create_stream():
                     _enh_fs = sorted([os.path.join(_enh_dir_chk, f) for f in os.listdir(_enh_dir_chk) if f.endswith('.jpg')])
                     if _enh_fs:
                         wszystkie_zdjecia = _enh_fs[:8]
-                        yield f"data: {json.dumps({'type': 'log', 'message': f'[AUTO_AWESOME] {asin}: Użyto {len(_enh_fs)} zdjęć AI (pre-generated)'})}\n\n"
+                        yield f"data: {json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>auto_awesome</span> {asin}: Użyto {len(_enh_fs)} zdjęć AI (pre-generated)'})}\n\n"
 
                 # UPLOAD ZDJĘĆ DO ALLEGRO
                 yield f"data: {json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>upload</span> {asin}: Rozpoczynam upload {len(wszystkie_zdjecia[:8])} zdjęć...'})}\n\n"
@@ -3839,7 +3839,7 @@ def generator_enhance_existing():
     todo = max(0, total - already)
 
     html = f'''
-    <div class="hdr"><h1>[AUTO_AWESOME] GENERUJ ZDJĘCIA AI</h1><small>Dla produktów w magazynie</small></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined>auto_awesome</span> GENERUJ ZDJĘCIA AI</h1><small>Dla produktów w magazynie</small></div>
 
     <div class="card" style="padding:20px">
         <div style="display:flex;gap:20px;justify-content:center;margin-bottom:20px">
@@ -3850,7 +3850,7 @@ def generator_enhance_existing():
         <div style="font-size:0.8rem;color:#64748b;text-align:center;margin-bottom:15px">
             ~60 sek/produkt × {todo} = ~{todo} min
         </div>
-        <button onclick="startEnhance(false)" id="btnStart" class="btn btn-ok" style="width:100%">[AUTO_AWESOME] GENERUJ ZDJĘCIA AI ({todo} produktów)</button>
+        <button onclick="startEnhance(false)" id="btnStart" class="btn btn-ok" style="width:100%"><span class=material-symbols-outlined>auto_awesome</span> GENERUJ ZDJĘCIA AI ({todo} produktów)</button>
         <button onclick="if(confirm('Usunąć wszystkie wygenerowane zdjęcia i zacząć od nowa?'))startEnhance(true)" class="btn" style="width:100%;margin-top:8px;background:#ef4444;color:#fff;font-size:0.85rem"><span class=material-symbols-outlined>sync</span> WYCZYŚĆ I GENERUJ OD NOWA (wszystkie {total})</button>
         <div style="margin-top:12px;border-top:1px solid #334155;padding-top:12px">
             <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:8px;text-align:center"><span class=material-symbols-outlined>dark_mode</span> Tryb nocny — generuj w tle (możesz zamknąć przeglądarkę)</div>
@@ -5314,7 +5314,7 @@ def generator_create(asin):
                     </div>
                     <div style="display:flex;gap:10px;margin-top:10px">
                         <a href="/paletomat/oferty/${{data.offer_id}}/publish" class="btn btn-2" style="flex:1">[ROCKET_LAUNCH] Aktywuj ofertę</a>
-                        <a href="/magazynier" class="btn btn-2" style="flex:1">[INVENTORY_2] Magazynier</a>
+                        <a href="/magazynier" class="btn btn-2" style="flex:1"><span class=material-symbols-outlined>inventory_2</span> Magazynier</a>
                     </div>
                 `;
                 result.style.display = 'block';
@@ -5610,7 +5610,7 @@ def generator_create_stream(asin):
             _enh_fs_s = sorted([os.path.join(_enh_dir_s, f) for f in os.listdir(_enh_dir_s) if f.endswith('.jpg')])
             if _enh_fs_s:
                 processed = _enh_fs_s[:8]
-                yield f"data: {json.dumps({'type': 'log', 'message': f'[AUTO_AWESOME] Użyto {len(_enh_fs_s)} zdjęć AI (pre-generated)', 'color': '#f59e0b'})}\n\n"
+                yield f"data: {json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>auto_awesome</span> Użyto {len(_enh_fs_s)} zdjęć AI (pre-generated)', 'color': '#f59e0b'})}\n\n"
         # UPLOAD ZDJĘĆ DO ALLEGRO - PRZED create_offer!
         yield f"data: {json.dumps({'type': 'progress', 'percent': 55, 'message': 'Uploaduję zdjęcia...'})}\n\n"
         
@@ -5651,7 +5651,7 @@ def generator_create_stream(asin):
         kat_msg = f'<span class=material-symbols-outlined>folder</span> Kategoria: {kategoria}'
         ean_msg = f'<span class=material-symbols-outlined>bar_chart</span> EAN: {ean}' if ean else '<span class=material-symbols-outlined>bar_chart</span> EAN: brak'
         asin_msg = f'<span class=material-symbols-outlined>label</span> ASIN: {asin}'
-        gpsr_msg = f'[SHIELD] GPSR: {len(gpsr) if gpsr else 0} znaków'
+        gpsr_msg = f'<span class=material-symbols-outlined>shield</span> GPSR: {len(gpsr) if gpsr else 0} znaków'
         yield f"data: {json.dumps({'type': 'log', 'message': kat_msg, 'color': '#3b82f6'})}\n\n"
         yield f"data: {json.dumps({'type': 'log', 'message': ean_msg, 'color': '#3b82f6'})}\n\n"
         yield f"data: {json.dumps({'type': 'log', 'message': asin_msg, 'color': '#3b82f6'})}\n\n"
@@ -5665,7 +5665,7 @@ def generator_create_stream(asin):
         if stan_grupy:
             for g in stan_grupy:
                 oferty_do_stworzenia.append({'stan': g['stan'], 'ilosc': g['ilosc']})
-            yield f"data: {json.dumps({'type': 'log', 'message': f'[INVENTORY_2] Tworzę {len(oferty_do_stworzenia)} oferty pogrupowane po stanie...', 'color': '#8b5cf6'})}\n\n"
+            yield f"data: {json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>inventory_2</span> Tworzę {len(oferty_do_stworzenia)} oferty pogrupowane po stanie...', 'color': '#8b5cf6'})}\n\n"
         else:
             oferty_do_stworzenia.append({'stan': stan, 'ilosc': ilosc})
         
@@ -5762,10 +5762,10 @@ def generator_create_stream(asin):
                         
                         if mark_as_published:
                             add_historia(produkt_id, 'wystawiono', f'Wystawiono na Allegro za {cena:.0f} zł', {'allegro_id': offer_id, 'cena': cena})
-                            yield f"data: {json.dumps({'type': 'log', 'message': f'[INVENTORY_2] Zaktualizowano magazyn: WYSTAWIONY (ID: {produkt_id})', 'color': '#22c55e'})}\n\n"
+                            yield f"data: {json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>inventory_2</span> Zaktualizowano magazyn: WYSTAWIONY (ID: {produkt_id})', 'color': '#22c55e'})}\n\n"
                         else:
                             add_historia(produkt_id, 'edytowano', f'Utworzono ofertę Allegro za {cena:.0f} zł (bez zmiany statusu)', {'allegro_id': offer_id, 'cena': cena})
-                            yield f"data: {json.dumps({'type': 'log', 'message': f'[INVENTORY_2] Zaktualizowano magazyn: NIE ZMIENIONO statusu (ID: {produkt_id})', 'color': '#3b82f6'})}\n\n"
+                            yield f"data: {json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>inventory_2</span> Zaktualizowano magazyn: NIE ZMIENIONO statusu (ID: {produkt_id})', 'color': '#3b82f6'})}\n\n"
                     
                     yield f"data: {json.dumps({'type': 'log', 'message': '<span class=material-symbols-outlined>save</span> Zapisano do bazy pomyślnie', 'color': '#22c55e'})}\n\n"
                     break  # Sukces - wyjdź z pętli retry
@@ -5903,7 +5903,7 @@ def ustawienia():
         </div>
         
         <div class="card">
-            <div class="card-title">[PAID] Ceny</div>
+            <div class="card-title"><span class=material-symbols-outlined>paid</span> Ceny</div>
             <div class="form-row">
                 <div class="form-group">
                     <label>Domyślna marża (%)</label>
@@ -6263,7 +6263,7 @@ def monitoring():
         <div class="stat"><div class="stat-v">{s['aktywne']}</div><div class="stat-l">Aktywnych</div></div>
     </div>
     
-    <div class="section">[PAID] OSTATNIE SPRZEDAŻE</div>
+    <div class="section"><span class=material-symbols-outlined>paid</span> OSTATNIE SPRZEDAŻE</div>
     '''
     
     for sp in sprzedaze:

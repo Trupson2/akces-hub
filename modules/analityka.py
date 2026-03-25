@@ -90,7 +90,7 @@ def statystyki():
     top_prod_html = ''
     for i, p in enumerate(top_produkty[:5]):
         border = f'border-bottom:1px solid var(--border);' if i < min(len(top_produkty), 5) - 1 else ''
-        img = p.get('zdjecie_url') or "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect fill='%2312121a' width='40' height='40'/%3E%3Ctext x='20' y='25' fill='%23555' text-anchor='middle' font-size='14'%3E[INVENTORY_2]%3C/text%3E%3C/svg%3E"
+        img = p.get('zdjecie_url') or "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect fill='%2312121a' width='40' height='40'/%3E%3Ctext x='20' y='25' fill='%23555' text-anchor='middle' font-size='14'%3E<span class=material-symbols-outlined>inventory_2</span>%3C/text%3E%3C/svg%3E"
         nazwa = p['nazwa'][:40] + ('...' if len(p['nazwa']) > 40 else '')
         top_prod_html += f'''<div style="display:flex;align-items:center;gap:10px;padding:8px 0;{border}">
             <div style="font-weight:700;color:var(--orange);width:20px">{i+1}.</div>
@@ -252,7 +252,7 @@ def statystyki():
         <!-- TAB: TOP -->
         <div id="panel-top" class="stat-panel" style="display:none">
             {'<div class="section-title" style="color:var(--orange)"><span class=material-symbols-outlined>emoji_events</span> TOP PRODUKTY</div><div class="card" style="margin-bottom:15px">' + top_prod_html + '</div>' if top_prod_html else ''}
-            {'<div class="section-title" style="color:var(--orange)">[INVENTORY_2] TOP DOSTAWCY (ROI)</div><div class="card" style="margin-bottom:15px">' + top_dost_html + '</div>' if top_dost_html else ''}
+            {'<div class="section-title" style="color:var(--orange)"><span class=material-symbols-outlined>inventory_2</span> TOP DOSTAWCY (ROI)</div><div class="card" style="margin-bottom:15px">' + top_dost_html + '</div>' if top_dost_html else ''}
         </div>
 
         <!-- WYKRES - zawsze widoczny -->
@@ -269,8 +269,8 @@ def statystyki():
 
         <!-- Quick links -->
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:20px;margin-bottom:10px">
-            <a href="/palety" class="btn btn-primary" style="display:flex;align-items:center;justify-content:center;gap:6px">[INVENTORY_2] Palety</a>
-            <a href="/sprzedaze" class="btn btn-success" style="display:flex;align-items:center;justify-content:center;gap:6px">[PAID] Sprzedaze</a>
+            <a href="/palety" class="btn btn-primary" style="display:flex;align-items:center;justify-content:center;gap:6px"><span class=material-symbols-outlined>inventory_2</span> Palety</a>
+            <a href="/sprzedaze" class="btn btn-success" style="display:flex;align-items:center;justify-content:center;gap:6px"><span class=material-symbols-outlined>paid</span> Sprzedaze</a>
             <a href="/analityka" class="btn btn-purple" style="display:flex;align-items:center;justify-content:center;gap:6px"><span class=material-symbols-outlined>trending_up</span> Analityka</a>
         </div>
 
@@ -1513,7 +1513,7 @@ def analityka_okazje():
     live_scraper_section = """
         <div class='card' style='border-color:rgba(14,165,233,0.25);margin-bottom:20px'>
           <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:14px'>
-            <div style='color:var(--cyan);font-weight:700;font-size:1rem'>[FIBER_MANUAL_RECORD] Aktualne palety — na żywo</div>
+            <div style='color:var(--cyan);font-weight:700;font-size:1rem'><span class=material-symbols-outlined>fiber_manual_record</span> Aktualne palety — na żywo</div>
             <div style='color:var(--text-muted);font-size:0.75rem'>dane pobierane bezpośrednio ze stron dostawców</div>
           </div>
           <div style='display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px'>
@@ -2065,7 +2065,7 @@ def scrape_jobalots():
                 img = manifest['product_first_image'].get('product_image_thumbnail_url', '')
             url = f'https://jobalots.com/pl/products/{sku}?currency=pln'
             sort_tag = item.get('_sort_tag', '')
-            tag_label = {'popularity': '<span class=material-symbols-outlined>local_fire_department</span>', 'most_bids': '<span class=material-symbols-outlined>trending_up</span>', 'bid_low': '[PAID]'}.get(sort_tag, '')
+            tag_label = {'popularity': '<span class=material-symbols-outlined>local_fire_department</span>', 'most_bids': '<span class=material-symbols-outlined>trending_up</span>', 'bid_low': '<span class=material-symbols-outlined>paid</span>'}.get(sort_tag, '')
             products.append({
                 'title': title,
                 'price_text': f'{bid:.0f} {currency}' if bid > 0 else f'{rrp:.0f} {currency} RRP',
@@ -2082,7 +2082,7 @@ def scrape_jobalots():
             })
         total = result.get('total', len(products))
         return jsonify({'ok': True, 'products': products, 'total': total, 'source': 'api',
-            'note': f'<span class=material-symbols-outlined>local_fire_department</span> Popularne · <span class=material-symbols-outlined>trending_up</span> Dużo ofert · [PAID] Najtańsze ({total} palet łącznie)'})
+            'note': f'<span class=material-symbols-outlined>local_fire_department</span> Popularne · <span class=material-symbols-outlined>trending_up</span> Dużo ofert · <span class=material-symbols-outlined>paid</span> Najtańsze ({total} palet łącznie)'})
     except Exception as e:
         _jb = 'https://jobalots.com/pl/pages/products-on-auction?page=1&currency=pln'
         categories = [
@@ -3796,7 +3796,7 @@ def _get_render_results_js():
             html += '<div style="font-weight:600">Produkty (' + parsed.produkty.length + ' typów)</div>';
             html += '<input type="text" id="product-filter" placeholder="<span class=material-symbols-outlined>search</span> Filtruj np. peruka, wig, hair..." style="flex:1;min-width:200px;padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem">';
             html += '<button onclick="filterProducts()" style="padding:8px 16px;background:var(--accent);border:none;border-radius:8px;color:#fff;cursor:pointer;font-weight:600">Filtruj</button>';
-            html += '<select id="product-sort" onchange="sortProducts()" style="padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem"><option value="">Sortuj...</option><option value="popyt"><span class=material-symbols-outlined>local_fire_department</span> Popyt (wysoki→niski)</option><option value="cena_desc">[PAID] Cena (najdroższe)</option><option value="cena_asc">[PAID] Cena (najtańsze)</option><option value="wartosc"><span class=material-symbols-outlined>bar_chart</span> Wartość (najwyższa)</option><option value="czas"><span class=material-symbols-outlined>timer</span> Czas sprzedaży (najszybsze)</option></select>';
+            html += '<select id="product-sort" onchange="sortProducts()" style="padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem"><option value="">Sortuj...</option><option value="popyt"><span class=material-symbols-outlined>local_fire_department</span> Popyt (wysoki→niski)</option><option value="cena_desc"><span class=material-symbols-outlined>paid</span> Cena (najdroższe)</option><option value="cena_asc"><span class=material-symbols-outlined>paid</span> Cena (najtańsze)</option><option value="wartosc"><span class=material-symbols-outlined>bar_chart</span> Wartość (najwyższa)</option><option value="czas"><span class=material-symbols-outlined>timer</span> Czas sprzedaży (najszybsze)</option></select>';
             html += '<button onclick="clearFilter()" style="padding:8px 12px;background:rgba(255,255,255,0.1);border:none;border-radius:8px;color:var(--text-muted);cursor:pointer">Wyczyść</button>';
             html += '</div>';
             html += '<div id="filter-summary" style="display:none;margin-bottom:12px;padding:10px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px"></div>';

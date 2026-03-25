@@ -140,7 +140,7 @@ def _get_delivery_info(order):
         pack_hint = f'<span class=material-symbols-outlined>pin_drop</span> Punkt odbioru: {pickup_name} — standardowy karton.'
     else:
         delivery_type = 'inny'
-        pack_hint = f'[INVENTORY_2] {method_name or "Standardowa wysyłka"} — zabezpiecz odpowiednio.'
+        pack_hint = f'<span class=material-symbols-outlined>inventory_2</span> {method_name or "Standardowa wysyłka"} — zabezpiecz odpowiednio.'
 
     return {
         'method_name': method_name,
@@ -521,7 +521,7 @@ def api_wysylki_szukaj():
                     del_hint = '⛽ Orlen Paczka — wybierz gabaryt S/M/L'
                 else:
                     del_type = 'kurier'
-                    del_hint = '[INVENTORY_2] Sprawdź metodę dostawy na Allegro'
+                    del_hint = '<span class=material-symbols-outlined>inventory_2</span> Sprawdź metodę dostawy na Allegro'
 
                 # Wyciągnij pickup_point z adresu jeśli jest paczkomat
                 pickup = ''
@@ -648,7 +648,7 @@ def api_wysylki_szukaj():
                     'pickup_point': '',
                     'delivery_type': 'kurier',
                     'delivery_method': '',
-                    'pack_hint': '[INVENTORY_2] Sprawdź metodę dostawy na Allegro',
+                    'pack_hint': '<span class=material-symbols-outlined>inventory_2</span> Sprawdź metodę dostawy na Allegro',
                     'total': str(db_order['cena'] or 0),
                     'produkt_nazwa': db_order['nazwa'],
                     'inne_produkty': 0,
@@ -788,7 +788,7 @@ def wysylki_nadaj(order_id):
                 <li>Zamówienie już ma nadaną przesyłkę ręcznie</li>
                 <li>Problem z metodą dostawy</li>
             </ul>
-            <a href="{allegro_url}" target="_blank" style="display:inline-block;margin:20px 0;padding:12px 20px;background:#3b82f6;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">[INVENTORY_2] Nadaj ręcznie na Allegro →</a><br>
+            <a href="{allegro_url}" target="_blank" style="display:inline-block;margin:20px 0;padding:12px 20px;background:#3b82f6;color:#fff;text-decoration:none;border-radius:8px;font-weight:600"><span class=material-symbols-outlined>inventory_2</span> Nadaj ręcznie na Allegro →</a><br>
             <a href="/wysylki" style="color:#64748b">← Powrót do wysyłek</a>
         </body>
         </html>
@@ -846,9 +846,9 @@ def wysylki_etykieta(order_id):
         <head><meta charset="utf-8"><title>Brak przesyłki</title>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"></head>
         <body style="font-family:sans-serif;padding:40px;background:#12121a;color:#fff">
-            <h2>[INVENTORY_2] Przesyłka nie została jeszcze nadana</h2>
+            <h2><span class=material-symbols-outlined>inventory_2</span> Przesyłka nie została jeszcze nadana</h2>
             <p>Najpierw nadaj przesyłkę na Allegro, potem wróć po etykietę.</p>
-            <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{order_id}" target="_blank" style="display:inline-block;margin:20px 0;padding:12px 20px;background:#3b82f6;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">[INVENTORY_2] Nadaj na Allegro →</a><br>
+            <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{order_id}" target="_blank" style="display:inline-block;margin:20px 0;padding:12px 20px;background:#3b82f6;color:#fff;text-decoration:none;border-radius:8px;font-weight:600"><span class=material-symbols-outlined>inventory_2</span> Nadaj na Allegro →</a><br>
             <a href="/wysylki" style="color:#64748b">← Powrót do wysyłek</a>
         </body>
         </html>
@@ -862,7 +862,7 @@ def wysylki_etykieta(order_id):
         <body style="font-family:sans-serif;padding:40px;background:#12121a;color:#fff">
             <h2><span class=material-symbols-outlined>cancel</span> Błąd pobierania etykiety</h2>
             <p style="color:#ef4444">{error}</p>
-            <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{order_id}" target="_blank" style="color:#3b82f6;display:block;margin:20px 0">[INVENTORY_2] Pobierz etykietę na Allegro →</a>
+            <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{order_id}" target="_blank" style="color:#3b82f6;display:block;margin:20px 0"><span class=material-symbols-outlined>inventory_2</span> Pobierz etykietę na Allegro →</a>
             <a href="/wysylki" style="color:#64748b">← Powrót do wysyłek</a>
         </body>
         </html>
@@ -1081,7 +1081,7 @@ def wysylki_lista():
             # Status badge: nadana = etykieta wydrukowana
             status_raw = first_item.get('status', 'nowa')
             if status_raw == 'nadana':
-                badge += ' <span style="background:var(--blue);color:#fff;padding:2px 6px;border-radius:4px;font-size:0.7rem;font-weight:700">[INVENTORY_2] NADANA</span>'
+                badge += ' <span style="background:var(--blue);color:#fff;padding:2px 6px;border-radius:4px;font-size:0.7rem;font-weight:700"><span class=material-symbols-outlined>inventory_2</span> NADANA</span>'
             
             # Formatuj datę
             data_raw = first_item['data_sprzedazy'] or ''
@@ -1145,8 +1145,8 @@ def wysylki_lista():
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:15px">
             <a href="/wysylki/pakowanie" style="display:block;padding:12px;background:var(--orange);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">[SMARTPHONE] Skanuj</a>
             <a href="/sync-miesiac" onclick="startSync(this)" style="display:block;padding:12px;background:var(--blue);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600"><span class=material-symbols-outlined>sync</span> Sync Allegro</a>
-            <a href="/wysylki/allegro" style="display:block;padding:12px;background:var(--green);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">[INVENTORY_2] Allegro Live</a>
-            <a href="/wysylki/sync-stany" style="display:block;padding:12px;background:var(--accent2);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">[INVENTORY_2] Sync Stany</a>
+            <a href="/wysylki/allegro" style="display:block;padding:12px;background:var(--green);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600"><span class=material-symbols-outlined>inventory_2</span> Allegro Live</a>
+            <a href="/wysylki/sync-stany" style="display:block;padding:12px;background:var(--accent2);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600"><span class=material-symbols-outlined>inventory_2</span> Sync Stany</a>
         </div>
 
         <form id="bulk-form" method="POST" action="/wysylki/bulk-wyslane">
@@ -1266,7 +1266,7 @@ h1 {{ font-size:18px; text-align:center; margin-bottom:4px; }}
 }}
 </style>
 </head><body>
-<h1>[INVENTORY_2] LISTA PAKOWANIA</h1>
+<h1><span class=material-symbols-outlined>inventory_2</span> LISTA PAKOWANIA</h1>
 <div class="summary">{len(zamowienia)} zamówień · {produkty_cnt} produktów · {wartosc:.0f} zł · {datetime.now().strftime("%d.%m.%Y %H:%M")}</div>
 '''
 
@@ -1281,7 +1281,7 @@ h1 {{ font-size:18px; text-align:center; margin-bottom:4px; }}
             qty_str = f' <b>(×{p["qty"]})</b>' if p['qty'] > 1 else ''
             names_html += f'<div class="name">{p["name"][:60]}{qty_str}</div>'
             if p['lokalizacja']:
-                locs_html += f'<span class="loc">[INVENTORY_2] {p["lokalizacja"]}</span> '
+                locs_html += f'<span class="loc"><span class=material-symbols-outlined>inventory_2</span> {p["lokalizacja"]}</span> '
 
         addr = z['pickup_point'] if z['pickup_point'] else z['address']
 
