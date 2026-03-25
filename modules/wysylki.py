@@ -10,6 +10,11 @@ import json
 wysylki_bp = Blueprint('wysylki', __name__)
 
 # ============================================================
+# Packed orders tracking (hide from pending list after packing)
+# ============================================================
+_packed_orders = set()  # order_ids that have been packed but not yet shipped
+
+# ============================================================
 # CACHE zamówień Allegro
 # ============================================================
 _wysylki_cache = {'data': None, 'timestamp': 0, 'raw': None}
@@ -350,6 +355,9 @@ def api_wysylki_pending():
                         pp_addr = pickup.get('address', {})
                         pickup_display = f"{pickup_name} - {pp_addr.get('street', '')} {pp_addr.get('city', '')}".strip()
 
+                    # Skip orders already packed locally
+                    if order_id in _packed_orders:
+                        continue
                     orders.append({
                         'order_id': order_id,
                         'buyer': buyer,
@@ -434,6 +442,28 @@ def api_wysylki_cennik():
             print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> Cennik API error: {e}")
 
     return jsonify(cennik)
+
+
+@wysylki_bp.route('/api/wysylki/mark-packed', methods=['POST'])
+def api_mark_packed():
+    """Mark order as packed (hides from pending list until shipped/nadana)."""
+    global _packed_orders
+    data = request.get_json(silent=True) or {}
+    order_id = data.get('order_id', '')
+    if not order_id:
+        return jsonify({'error': 'Brak order_id'}), 400
+    _packed_orders.add(order_id)
+    return jsonify({'ok': True, 'packed': list(_packed_orders)})
+
+
+@wysylki_bp.route('/api/wysylki/unpack', methods=['POST'])
+def api_unpack():
+    """Remove order from packed list (show again in pending)."""
+    global _packed_orders
+    data = request.get_json(silent=True) or {}
+    order_id = data.get('order_id', '')
+    _packed_orders.discard(order_id)
+    return jsonify({'ok': True})
 
 
 @wysylki_bp.route('/api/wysylki/szukaj')

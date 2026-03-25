@@ -836,6 +836,8 @@ function pkFinalize() {
             if (r.ok && ct.includes('application/pdf')) {
                 bar.style.width = '100%';
                 status.textContent = 'Etykieta gotowa!';
+                // Mark as packed so it disappears from pending list
+                fetch('/api/wysylki/mark-packed', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId})}).catch(()=>{});
                 return r.blob().then(blob => {
                     const url = URL.createObjectURL(blob);
                     window.open(url, '_blank');
@@ -846,6 +848,8 @@ function pkFinalize() {
                     bar.style.width = '100%';
                     const errMsg = data.error || 'Etykieta niedostepna';
                     status.innerHTML = '<span style="color:#ff716c">' + errMsg + '</span>';
+                    // Still mark as packed even if label failed
+                    fetch('/api/wysylki/mark-packed', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId})}).catch(()=>{});
                     setTimeout(() => {
                         window.open(data.allegro_url || 'https://allegro.pl/moje-allegro/sprzedaz/zamowienia/' + orderId, '_blank');
                         pkShowReady(orderId, null);
