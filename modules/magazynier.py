@@ -8,7 +8,7 @@ import csv
 import json
 import tempfile
 from datetime import datetime
-from flask import Blueprint, render_template_string, request, redirect, Response, url_for, session, current_app, jsonify
+from flask import Blueprint, render_template, render_template_string, request, redirect, Response, url_for, session, current_app, jsonify
 from flask_wtf.csrf import generate_csrf
 
 from .database import get_db, query_db, execute_db, get_config, get_config_cached
@@ -405,103 +405,16 @@ def index():
     s = get_stats()
     conn = get_db()
     products = conn.execute('SELECT * FROM produkty ORDER BY data_dodania DESC LIMIT 10').fetchall()
-    
-    # Helper do renderowania kafelka — cyberpunk Material Symbols
-    def tile(href, ms_icon, label, value, accent='#8ff5ff'):
-        return f'''<a href="{href}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 8px;background:rgba(10,10,22,0.6);border:1px solid {accent}18;border-radius:12px;color:#fff;text-decoration:none;gap:6px;transition:all 0.25s" onmouseover="this.style.borderColor='{accent}44';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.3)'" onmouseout="this.style.borderColor='{accent}18';this.style.transform='';this.style.boxShadow=''">
-            <span class="material-symbols-outlined" style="font-size:1.6rem;color:{accent}">{ms_icon}</span>
-            <span style="font-size:0.72rem;font-weight:600;font-family:'Space Grotesk',sans-serif;letter-spacing:0.05em">{label}</span>
-            <span style="font-size:0.7rem;color:{accent};font-weight:700;font-family:'Space Grotesk',sans-serif">{value}</span>
-        </a>'''
-
-    html = f'''
-    <div class="hdr"><h1><span class="material-symbols-outlined">inventory_2</span> MAGAZYNIER</h1><small>{get_config_cached("brand_name", "AKCES HUB")}</small></div>
-
-    <!-- STATYSTYKI — bento grid -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
-        <div style="background:rgba(10,10,22,0.6);border:1px solid rgba(143,245,255,0.08);border-radius:12px;padding:16px;border-left:3px solid #8ff5ff">
-            <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Produkty</div>
-            <div class="stat-v">{s['produkty']}</div>
-        </div>
-        <div style="background:rgba(10,10,22,0.6);border:1px solid rgba(143,245,255,0.08);border-radius:12px;padding:16px;border-left:3px solid #8ff5ff">
-            <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Sztuk</div>
-            <div class="stat-v">{s['sztuki']}</div>
-        </div>
-        <div style="background:rgba(10,10,22,0.6);border:1px solid rgba(190,238,0,0.08);border-radius:12px;padding:16px;border-left:3px solid #beee00">
-            <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Wartosc (brutto)</div>
-            <div class="stat-v green">{s['wartosc_zakupu']:.0f} zl</div>
-            <div style="font-size:0.6rem;color:#64748b;margin-top:2px">netto: {s['wartosc_netto']:.0f} zl</div>
-        </div>
-        <div style="background:rgba(10,10,22,0.6);border:1px solid rgba(190,238,0,0.08);border-radius:12px;padding:16px;border-left:3px solid #beee00">
-            <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Allegro</div>
-            <div class="stat-v green">{s['wartosc_allegro']:.0f} zl</div>
-        </div>
-    </div>
-
-    <!-- SZUKAJ + SKANER -->
-    <div class="search"><form action="/magazyn/szukaj" method="GET" style="display:flex;gap:8px">
-        <input type="text" name="q" placeholder="EAN / ASIN / MAG-kod / nazwa..." style="flex:1">
-        <button type="submit" style="padding:14px 18px;background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);border-radius:10px;color:#8ff5ff;font-size:1.1rem;cursor:pointer;display:flex;align-items:center"><span class="material-symbols-outlined">search</span></button>
-        <a href="/magazyn/skaner" style="padding:14px 18px;background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.25);border-radius:10px;color:#beee00;display:flex;align-items:center;text-decoration:none" title="Skaner kodow"><span class="material-symbols-outlined">qr_code_scanner</span></a>
-    </form></div>
-
-    <!-- MAGAZYN -->
-    <div style="font-size:0.68rem;color:#8ff5ff;text-transform:uppercase;font-weight:700;letter-spacing:0.1em;margin:16px 0 8px;padding-left:4px;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:0.9rem">warehouse</span> Magazyn</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-        {tile('/magazyn/produkty', 'list_alt', 'PRODUKTY', f"{s['produkty']}", '#8ff5ff')}
-        {tile('/magazyn/palety', 'inventory', 'PALETY', f"{s['palety']}", '#ff6b9b')}
-        {tile('/warehouse/shelves', 'shelves', 'REGALY', 'mapa + QR', '#ff6b9b')}
-    </div>
-
-    <!-- ANALITYKA -->
-    <div style="font-size:0.68rem;color:#beee00;text-transform:uppercase;font-weight:700;letter-spacing:0.1em;margin:16px 0 8px;padding-left:4px;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:0.9rem">analytics</span> Analityka</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-        {tile('/statystyki', 'bar_chart', 'STATYSTYKI', 'przegladaj', '#eab308')}
-        {tile('/magazyn/statystyki-zakupow', 'shopping_cart', 'ZAKUPY', 'analiza', '#0ea5e9')}
-        {tile('/magazyn/lezaki', 'hourglass_top', 'LEZAKI', 'zalegajace', '#f97316')}
-    </div>
-
-    <!-- OPERACJE -->
-    <div style="font-size:0.68rem;color:#ff6b9b;text-transform:uppercase;font-weight:700;letter-spacing:0.1em;margin:16px 0 8px;padding-left:4px;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:0.9rem">settings</span> Operacje</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-        {tile('/magazyn/dostawcy', 'local_shipping', 'DOSTAWCY', f"{s['dostawcy']}", '#64748b')}
-        {tile('/magazyn/koszty', 'payments', 'KOSZTY', 'wydatki', '#f43f5e')}
-        {tile('/magazyn/sprzedaz-prywatna', 'point_of_sale', 'PRYWATNA', 'sprzedaz', '#ff6b9b')}
-    </div>
-
-    <!-- NARZEDZIA -->
-    <div style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;letter-spacing:0.1em;margin:16px 0 8px;padding-left:4px;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:0.9rem">construction</span> Narzedzia</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-        {tile('/magazyn/import', 'upload_file', 'IMPORT', 'CSV/dane', '#8ff5ff')}
-        {tile('/magazyn/export', 'download', 'EXPORT', 'pobierz', '#beee00')}
-        {tile('/magazyn/fetch-images', 'photo_library', 'ZDJECIA', 'pobierz', '#eab308')}
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
-        {tile('/magazyn/remanent', 'fact_check', 'REMANENT', 'Excel', '#0ea5e9')}
-        {tile('/magazyn/backup', 'backup', 'BACKUP', 'przywroc', '#beee00')}
-    </div>
-
-    <div class="section"><span class="material-symbols-outlined" style="font-size:1rem">schedule</span> OSTATNIO DODANE</div>
-    '''
-
-    for p in products:
-        img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2712%27%3EIMG%3C/text%3E%3C/svg%3E'
-        pcode = get_product_code(p)
-        display_code = p['ean'] or p['asin'] or f"#{p['id']}"
-        html += f'''<a href="/magazyn/produkt/{pcode}" class="item">
-            <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2712%27%3EIMG%3C/text%3E%3C/svg%3E'">
-            <div class="item-info">
-                <div class="item-name">{p['nazwa'][:35]}...</div>
-                <div class="item-meta">{display_code} <span class="material-symbols-outlined" style="font-size:0.7rem;vertical-align:middle">pin_drop</span> {p['lokalizacja'] or '—'}</div>
-            </div>
-            <div class="item-right">
-                <div class="item-qty">{p['ilosc']}</div>
-                <div class="item-price">{p['cena_allegro'] or 0:.0f} zł</div>
-            </div>
-        </a>'''
-
-    html += '<a href="/" style="display:flex;align-items:center;gap:6px;color:#64748b;text-decoration:none;padding:12px;font-size:0.85rem;margin-top:8px"><span class="material-symbols-outlined" style="font-size:1rem">arrow_back</span> Powrót</a>'
-    return render(html)
+    # Convert Row objects to dicts for Jinja2 template access
+    products = [dict(p) for p in products]
+    return render_template(
+        'magazyn_index.html',
+        stats=s,
+        products=products,
+        brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
+        version=current_app.config.get('VERSION', ''),
+        current_user=session.get('user')
+    )
 
 @magazynier_bp.route('/skaner')
 def skaner():

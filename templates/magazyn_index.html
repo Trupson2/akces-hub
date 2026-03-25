@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% block page_title %}Magazynier{% endblock %}
+{% block content %}
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   Magazyn Index — Cyberpunk Dashboard
+   ═══════════════════════════════════════════════════════════════ */
+
+/* --- Header --- */
+.mag-hdr{text-align:center;padding:20px 0;border-bottom:1px solid rgba(143,245,255,0.12);margin-bottom:15px}
+.mag-hdr h1{font-size:1.5rem;color:var(--neon-primary,#8ff5ff);font-weight:700;text-shadow:0 0 20px rgba(143,245,255,0.35);letter-spacing:0.05em;display:flex;align-items:center;justify-content:center;gap:10px}
+.mag-hdr h1 .material-symbols-outlined{font-size:1.6rem;color:var(--neon-secondary,#ff6b9b)}
+.mag-hdr small{color:var(--text-muted);font-size:0.8rem}
+
+/* --- KPI Stats --- */
+.mag-kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.mag-kpi-card{background:var(--bg-card,rgba(19,19,28,0.6));padding:16px;border-left:3px solid var(--neon-primary,#8ff5ff)}
+.mag-kpi-card.accent-lime{border-left-color:var(--neon-tertiary,#beee00)}
+.mag-kpi-label{font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px}
+.mag-kpi-val{font-size:1.4rem;font-weight:700;color:var(--neon-primary,#8ff5ff);font-family:'Space Grotesk',sans-serif}
+.mag-kpi-val.green{color:var(--neon-tertiary,#beee00)}
+.mag-kpi-sub{font-size:0.6rem;color:#64748b;margin-top:2px}
+
+/* --- Search --- */
+.mag-search{background:var(--bg-card,rgba(19,19,28,0.6));border-left:3px solid var(--neon-primary,#8ff5ff);padding:14px;margin-bottom:15px}
+.mag-search form{display:flex;gap:8px}
+.mag-search input{flex:1;padding:14px;background:rgba(14,14,20,0.8);border:1px solid rgba(143,245,255,0.10);color:var(--text);font-size:1rem;transition:all 0.3s;font-family:'Space Grotesk',sans-serif}
+.mag-search input:focus{outline:none;border-color:var(--neon-primary,#8ff5ff);box-shadow:0 0 16px rgba(143,245,255,0.12)}
+.mag-search-btn{padding:14px 18px;background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);color:var(--neon-primary,#8ff5ff);font-size:1.1rem;cursor:pointer;display:flex;align-items:center}
+.mag-scanner-btn{padding:14px 18px;background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.25);color:var(--neon-tertiary,#beee00);display:flex;align-items:center;text-decoration:none}
+
+/* --- Section Header --- */
+.mag-section{display:flex;align-items:center;gap:6px;margin:16px 0 8px;padding-left:4px}
+.mag-section-bar{width:3px;height:14px;display:inline-block}
+.mag-section-label{font-size:0.68rem;text-transform:uppercase;font-weight:700;letter-spacing:0.1em;font-family:'Space Grotesk',sans-serif}
+.mag-section .material-symbols-outlined{font-size:0.9rem}
+
+/* --- Tile Grid --- */
+.mag-tiles{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.mag-tiles-2{grid-template-columns:1fr 1fr}
+.mag-tile{text-decoration:none;color:inherit;padding:16px 8px;background:var(--bg-card,rgba(19,19,28,0.6));border-top:2px solid var(--neon-primary,#8ff5ff);text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.25s}
+.mag-tile:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+.mag-tile-icon{font-size:1.3rem}
+.mag-tile-label{font-weight:700;font-size:0.72rem;letter-spacing:0.05em;font-family:'Space Grotesk',sans-serif}
+.mag-tile-value{font-size:0.65rem;color:var(--text-muted);font-family:'Space Grotesk',sans-serif}
+
+/* --- Product List --- */
+.mag-item{display:flex;align-items:center;background:var(--bg-card,rgba(19,19,28,0.6));border-left:3px solid var(--neon-primary,#8ff5ff);padding:12px;margin-bottom:8px;text-decoration:none;color:var(--text);transition:all 0.3s;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
+.mag-item:hover{border-left-color:var(--neon-secondary,#ff6b9b);transform:translateX(4px);box-shadow:0 0 16px rgba(143,245,255,0.08)}
+.mag-item img{width:50px;height:50px;object-fit:contain;background:rgba(255,255,255,0.95);margin-right:12px}
+.mag-item-info{flex:1;min-width:0}
+.mag-item-name{font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Space Grotesk',sans-serif}
+.mag-item-meta{font-size:0.75rem;color:var(--text-muted)}
+.mag-item-right{text-align:right;margin-left:10px}
+.mag-item-qty{font-size:1.2rem;font-weight:700;color:var(--neon-primary,#8ff5ff);font-family:'Space Grotesk',sans-serif}
+.mag-item-price{font-size:0.75rem;color:var(--neon-tertiary,#beee00)}
+</style>
+
+<div class="toast-container" id="toast-container"></div>
+
+<!-- HEADER -->
+<div class="mag-hdr">
+    <h1><span class="material-symbols-outlined">inventory_2</span> MAGAZYNIER</h1>
+    <small>{{ brand_name }}</small>
+</div>
+
+<!-- KPI STRIP -->
+<div class="mag-kpi">
+    <div class="mag-kpi-card">
+        <div class="mag-kpi-label">Produkty</div>
+        <div class="mag-kpi-val">{{ stats.produkty }}</div>
+    </div>
+    <div class="mag-kpi-card">
+        <div class="mag-kpi-label">Sztuk</div>
+        <div class="mag-kpi-val">{{ stats.sztuki }}</div>
+    </div>
+    <div class="mag-kpi-card accent-lime">
+        <div class="mag-kpi-label">Wartosc (brutto)</div>
+        <div class="mag-kpi-val green">{{ stats.wartosc_zakupu|round(0)|int }} zl</div>
+        <div class="mag-kpi-sub">netto: {{ stats.wartosc_netto|round(0)|int }} zl</div>
+    </div>
+    <div class="mag-kpi-card accent-lime">
+        <div class="mag-kpi-label">Allegro</div>
+        <div class="mag-kpi-val green">{{ stats.wartosc_allegro|round(0)|int }} zl</div>
+    </div>
+</div>
+
+<!-- SEARCH + SCANNER -->
+<div class="mag-search">
+    <form action="/magazyn/szukaj" method="GET">
+        <input type="text" name="q" placeholder="EAN / ASIN / MAG-kod / nazwa...">
+        <button type="submit" class="mag-search-btn"><span class="material-symbols-outlined">search</span></button>
+        <a href="/magazyn/skaner" class="mag-scanner-btn" title="Skaner kodow"><span class="material-symbols-outlined">qr_code_scanner</span></a>
+    </form>
+</div>
+
+<!-- MAGAZYN -->
+<div class="mag-section">
+    <span class="material-symbols-outlined" style="color:var(--neon-primary,#8ff5ff)">warehouse</span>
+    <span class="mag-section-label" style="color:var(--neon-primary,#8ff5ff)">Magazyn</span>
+</div>
+<div class="mag-tiles">
+    <a href="/magazyn/produkty" class="mag-tile" style="border-top-color:var(--neon-primary,#8ff5ff)">
+        <span class="material-symbols-outlined mag-tile-icon" style="color:var(--neon-primary,#8ff5ff)">list_alt</span>
+        <span class="mag-tile-label">PRODUKTY</span>
+        <span class="mag-tile-value">{{ stats.produkty }}</span>
+    </a>
+    <a href="/magazyn/palety" class="mag-tile" style="border-top-color:var(--neon-secondary,#ff6b9b)">
+        <span class="material-symbols-outlined mag-tile-icon" style="color:var(--neon-secondary,#ff6b9b)">inventory</span>
+        <span class="mag-tile-label">PALETY</span>
+        <span class="mag-tile-value">{{ stats.palety }}</span>
+    </a>
+    <a href="/warehouse/shelves" class="mag-tile" style="border-top-color:var(--neon-secondary,#ff6b9b)">
+        <span class="material-symbols-outlined mag-tile-icon" style="color:var(--neon-secondary,#ff6b9b)">shelves</span>
+        <span class="mag-tile-label">REGALY</span>
+        <span class="mag-tile-value">mapa + QR</span>
+    </a>
+</div>
+
+<!-- ANALITYKA -->
+<div class="mag-section">
+    <span class="material-symbols-outlined" style="color:var(--neon-tertiary,#beee00)">analytics</span>
+    <span class="mag-section-label" style="color:var(--neon-tertiary,#beee00)">Analityka</span>
+</div>
+<div class="mag-tiles">
+    <a href="/statystyki" class="mag-tile" style="border-top-color:#eab308">
+        <span class="material-symbols-outlined mag-tile-icon" style="color:#eab308">bar_chart</span>
+        <span class="mag-tile-label">STATYSTYKI</span>
+        <span class="mag-tile-value">przegladaj</span>
+    </a>
+    <a href="/magazyn/statystyki-zakupow" class="mag-tile" style="border-top-color:#0ea5e9">
+        <span class="material-symbols-outlined mag-tile-icon" style="color:#0ea5e9">shopping_cart</span>
+        <span class="mag-tile-label">ZAKUPY</span>
+        <span class="mag-tile-value">analiza</span>
+    </a>
+    <a href="/magazyn/lezaki" class="mag-tile" style="border-top-color:#f97316">
+        <span class="material-symbols-outlined mag-tile-icon" style="color:#f97316">hourglass_top</span>
+        <span class="mag-tile-label">LEZAKI</span>
+        <span class="mag-tile-value">zalegajace</span>
+    </a>
+</div>
+
+<!-- OPERACJE -->
+<div class="mag-section">
+    <span class="material-symbols-outlined" style="color:var(--neon-secondary,#ff6b9b)">settings</span>
+    <span class="mag-section-label" style="color:var(--neon-secondary,#ff6b9b)">Operacje</span>
+</div>
+<div class="mag-tiles">
+    <a href="/magazyn/dostawcy" class="mag-tile" style="border-top-color:#64748b">
+        <span class="material-symbols-outlined mag-tile-icon" style="color:#64748b">local_shipping</span>
+        <span class="mag-tile-label">DOSTAWCY</span>
+        <span class="mag-tile-value">{{ stats.dostawcy }}</span>
+    </a>
+    <a href="/magazyn/koszty" class="mag-tile" style="border-top-color:#f43f5e">
+        <span class="material-symbols-outlined mag-tile-icon" style="color:#f43f5e">payments</span>
+        <span class="mag-tile-label">KOSZTY</span>
+        <span class="mag-tile-value">wydatki</span>
+    </a>
+    <a href="/magazyn/sprzedaz-prywatna" class="mag-tile" style="border-top-color:var(--neon-secondary,#ff6b9b)">
+        <span class="material-symbols-outlined mag-tile-icon" style="color:var(--neon-secondary,#ff6b9b)">point_of_sale</span>
+        <span class="mag-tile-label">PRYWATNA</span>
+        <span class="mag-tile-value">sprzedaz</span>
+    </a>
+</div>
+
+<!-- NARZEDZIA -->
+<div class="mag-section">
+    <span class="material-symbols-outlined" style="color:var(--text-muted)">construction</span>
+    <span class="mag-section-label" style="color:var(--text-muted)">Narzedzia</span>
+</div>
+<div class="mag-tiles">
+    <a href="/magazyn/import" class="mag-tile" style="border-top-color:var(--neon-primary,#8ff5ff)">
+        <span class="material-symbols-outlined mag-tile-icon" style="color:var(--neon-primary,#8ff5ff)">upload_file</span>
+        <span class="mag-tile-label">IMPORT</span>
+        <span class="mag-tile-value">CSV/dane</span>
+    </a>
+    <a href="/magazyn/export" class="mag-tile" style="border-top-color:var(--neon-tertiary,#beee00)">
+        <span class="material-symbols-outlined mag-tile-icon" style="color:var(--neon-tertiary,#beee00)">download</span>
+        <span class="mag-tile-label">EXPORT</span>
+        <span class="mag-tile-value">pobierz</span>
+    </a>
+    <a href="/magazyn/fetch-images" class="mag-tile" style="border-top-color:#eab308">
+        <span class="material-symbols-outlined mag-tile-icon" style="color:#eab308">photo_library</span>
+        <span class="mag-tile-label">ZDJECIA</span>
+        <span class="mag-tile-value">pobierz</span>
+    </a>
+</div>
+<div class="mag-tiles mag-tiles-2">
+    <a href="/magazyn/remanent" class="mag-tile" style="border-top-color:#0ea5e9">
+        <span class="material-symbols-outlined mag-tile-icon" style="color:#0ea5e9">fact_check</span>
+        <span class="mag-tile-label">REMANENT</span>
+        <span class="mag-tile-value">Excel</span>
+    </a>
+    <a href="/magazyn/backup" class="mag-tile" style="border-top-color:var(--neon-tertiary,#beee00)">
+        <span class="material-symbols-outlined mag-tile-icon" style="color:var(--neon-tertiary,#beee00)">backup</span>
+        <span class="mag-tile-label">BACKUP</span>
+        <span class="mag-tile-value">przywroc</span>
+    </a>
+</div>
+
+<!-- OSTATNIO DODANE -->
+<div class="mag-section">
+    <span class="material-symbols-outlined" style="color:var(--neon-primary,#8ff5ff)">schedule</span>
+    <span class="mag-section-label" style="color:var(--neon-primary,#8ff5ff)">Ostatnio dodane</span>
+</div>
+
+{% for p in products %}
+{% set img = p.zdjecie_url or "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='45' height='45'%3E%3Crect fill='%2312121a' width='45' height='45'/%3E%3Ctext x='22' y='28' fill='%23555' text-anchor='middle' font-size='12'%3EIMG%3C/text%3E%3C/svg%3E" %}
+{% set display_code = p.ean or p.asin or ('#' ~ p.id) %}
+{% set pcode = p.kod_magazynowy or p.id %}
+<a href="/magazyn/produkt/{{ pcode }}" class="mag-item">
+    <img src="{{ img }}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2712%27%3EIMG%3C/text%3E%3C/svg%3E'">
+    <div class="mag-item-info">
+        <div class="mag-item-name">{{ p.nazwa[:35] }}...</div>
+        <div class="mag-item-meta">{{ display_code }} <span class="material-symbols-outlined" style="font-size:0.7rem;vertical-align:middle">pin_drop</span> {{ p.lokalizacja or '—' }}</div>
+    </div>
+    <div class="mag-item-right">
+        <div class="mag-item-qty">{{ p.ilosc }}</div>
+        <div class="mag-item-price">{{ (p.cena_allegro or 0)|round(0)|int }} zl</div>
+    </div>
+</a>
+{% endfor %}
+
+<a href="/" style="display:flex;align-items:center;gap:6px;color:#64748b;text-decoration:none;padding:12px;font-size:0.85rem;margin-top:8px">
+    <span class="material-symbols-outlined" style="font-size:1rem">arrow_back</span> Powrot
+</a>
+
+{% endblock %}
