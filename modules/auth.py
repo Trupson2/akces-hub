@@ -13,7 +13,7 @@ from collections import defaultdict
 from functools import wraps
 from pathlib import Path
 
-from flask import Blueprint, request, redirect, url_for, session, render_template_string, jsonify, abort, flash
+from flask import Blueprint, request, redirect, url_for, session, render_template_string, render_template, jsonify, abort, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 
 auth_bp = Blueprint('auth', __name__)
@@ -392,7 +392,7 @@ def login():
         if _is_rate_limited(client_ip):
             remaining = int(LOGIN_COOLDOWN - (time.time() - min(_login_attempts[client_ip])))
             error = f'Za duzo prob logowania. Sprobuj za {remaining // 60} min.'
-            return render_template_string(LOGIN_HTML, error=error, username='', first_run=False)
+            return render_template('login.html', error=error, username='', first_run=False)
 
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
@@ -464,7 +464,7 @@ def login():
                 error = f'Konto zablokowane na {LOGIN_COOLDOWN // 60} minut'
         conn.close()
 
-    return render_template_string(LOGIN_HTML, error=error, username=username, first_run=False)
+    return render_template('login.html', error=error, username=username, first_run=False)
 
 
 @auth_bp.route('/setup', methods=['GET', 'POST'])
@@ -522,7 +522,7 @@ def first_setup():
                 else:
                     error = f'Blad tworzenia konta: {str(e)[:100]}'
 
-    return render_template_string(LOGIN_HTML, error=error, username='', first_run=True)
+    return render_template('login.html', error=error, username='', first_run=True)
 
 
 @auth_bp.route('/logout')
