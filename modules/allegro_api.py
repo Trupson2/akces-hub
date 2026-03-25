@@ -3668,7 +3668,7 @@ def backfill_link_sprzedaze(dry_run=False):
         SELECT id, nazwa, cena, oferta_id
         FROM sprzedaze
         WHERE produkt_id IS NULL
-        AND COALESCE(kupujacy,'') != 'offline'
+       
         AND nazwa IS NOT NULL AND LENGTH(nazwa) > 5
     ''').fetchall()
     stats['sprzedaze_total_unlinked'] = len(sprz_unlinked)
@@ -3706,7 +3706,7 @@ def backfill_link_sprzedaze(dry_run=False):
         SELECT id, nazwa, cena
         FROM sprzedaze
         WHERE produkt_id IS NULL
-        AND COALESCE(kupujacy,'') != 'offline'
+       
         AND nazwa IS NOT NULL AND LENGTH(nazwa) > 5
     ''').fetchall()
 
@@ -3756,7 +3756,7 @@ def backfill_link_sprzedaze(dry_run=False):
     remaining = conn.execute('''
         SELECT COUNT(*) as cnt FROM sprzedaze
         WHERE produkt_id IS NULL
-        AND COALESCE(kupujacy,'') != 'offline'
+       
     ''').fetchone()
     stats['sprzedaze_still_unlinked'] = remaining['cnt']
 
@@ -4643,7 +4643,7 @@ def polacz_sprzedaze():
                GROUP_CONCAT(id) as ids
         FROM sprzedaze
         WHERE produkt_id IS NULL
-        AND COALESCE(kupujacy,'') != 'offline'
+       
         AND nazwa IS NOT NULL AND LENGTH(nazwa) > 5
         AND nazwa NOT LIKE 'Zamówienie%'
         GROUP BY nazwa

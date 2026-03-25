@@ -1392,7 +1392,7 @@ def api_live_stats():
     month_start = datetime.now().strftime('%Y-%m-01')
     days_in_month = datetime.now().day
     
-    NOT_CANCELLED = " AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')"
+    NOT_CANCELLED = " AND status NOT IN ('zwrot', 'anulowane', 'anulowana')"
 
     # Dziś
     row = conn.execute(
@@ -1446,7 +1446,7 @@ def api_live_stats():
         LEFT JOIN produkty p ON s.produkt_id = p.id
         WHERE date(s.data_sprzedazy) >= ?
           AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
-          AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
+         
         ORDER BY s.data_sprzedazy DESC LIMIT 15
     ''', (week_ago,)).fetchall()
 

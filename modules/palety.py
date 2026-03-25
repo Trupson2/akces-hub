@@ -2985,7 +2985,7 @@ def paleta_szczegoly(paleta_id):
         SELECT COALESCE(SUM(s.cena * s.ilosc), 0)
         FROM sprzedaze s
         JOIN produkty p ON s.produkt_id = p.id
-        WHERE p.paleta_id = ? AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
+        WHERE p.paleta_id = ?
           AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot','')
     ''', (paleta_id,)).fetchone()[0] or 0
 

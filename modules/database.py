@@ -661,7 +661,7 @@ def auto_anonymize_old_data():
                WHERE kupujacy != 'Dane zanonimizowane'
                AND kupujacy IS NOT NULL
                AND kupujacy != ''
-               AND kupujacy != 'offline'
+              
                AND data_sprzedazy < datetime('now', ? || ' years')""",
             (f'-{years}',)
         )
@@ -841,7 +841,7 @@ def get_full_stats():
                 date(REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?
             AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
             AND (allegro_order_id IS NULL OR allegro_order_id NOT LIKE 'MANUAL-%')
-            AND (kupujacy IS NULL OR kupujacy != 'offline')
+           
         ''', (today,)).fetchone()
         stats['sprzedaz_dzis_cnt'] = row['cnt']
         stats['sprzedaz_dzis_suma'] = row['suma']
@@ -868,7 +868,7 @@ def get_full_stats():
             SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
             FROM sprzedaze WHERE date(data_sprzedazy) >= ? 
             AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
-            AND (kupujacy IS NULL OR kupujacy != 'offline')
+           
         ''', (month_start,)).fetchone()
         stats['sprzedaz_miesiac_cnt'] = row['cnt']
         stats['sprzedaz_miesiac_suma'] = row['suma']
@@ -886,7 +886,7 @@ def get_full_stats():
         row = conn.execute('''
             SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
             FROM sprzedaze WHERE status NOT IN ('zwrot', 'anulowane', 'anulowana')
-            AND (kupujacy IS NULL OR kupujacy != 'offline')
+           
         ''').fetchone()
         # Dolicz sprzedaże prywatne (poza Allegro)
         try:

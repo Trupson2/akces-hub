@@ -41,7 +41,7 @@ def statystyki():
         WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?
           AND data_sprzedazy IS NOT NULL AND data_sprzedazy != ''
           AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
-          AND (kupujacy IS NULL OR kupujacy != 'offline')
+         
         GROUP BY miesiac
         HAVING miesiac IS NOT NULL
         ORDER BY miesiac
@@ -676,7 +676,7 @@ def analityka_palety():
             (SELECT COALESCE(SUM(sprzedano_offline), 0) FROM produkty WHERE paleta_id = p.id) as sprzedano_offline_szt,
             (SELECT COUNT(*) FROM produkty WHERE paleta_id = p.id AND status = 'sprzedany' AND (sprzedano_offline IS NULL OR sprzedano_offline = 0)) as sprzedano_produkty,
             COALESCE((SELECT SUM(s.ilosc) FROM sprzedaze s LEFT JOIN produkty pr ON s.produkt_id = pr.id LEFT JOIN oferty o ON s.oferta_id = o.id LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = p.id AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot')), 0) as sprzedano_tabela,
-            COALESCE((SELECT SUM(s.cena * s.ilosc) FROM sprzedaze s LEFT JOIN produkty pr ON s.produkt_id = pr.id LEFT JOIN oferty o ON s.oferta_id = o.id LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = p.id AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')), 0) as przychod_allegro_only
+            COALESCE((SELECT SUM(s.cena * s.ilosc) FROM sprzedaze s LEFT JOIN produkty pr ON s.produkt_id = pr.id LEFT JOIN oferty o ON s.oferta_id = o.id LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = p.id AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot')), 0) as przychod_allegro_only
         FROM palety p
         ORDER BY p.data_zakupu DESC
     ''').fetchall()
@@ -2129,7 +2129,7 @@ def okazje_perplexity_analyze():
             LEFT JOIN produkty p ON s.produkt_id = p.id
             LEFT JOIN palety pal ON p.paleta_id = pal.id
             WHERE s.status NOT IN ('zwrot','anulowane','anulowana')
-              AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
+             
               AND s.data_sprzedazy >= date('now', '-60 days')
             GROUP BY COALESCE(p.nazwa, s.nazwa)
             ORDER BY przychod DESC
@@ -2153,7 +2153,7 @@ def okazje_perplexity_analyze():
             FROM sprzedaze s
             LEFT JOIN produkty p ON s.produkt_id = p.id
             WHERE s.status NOT IN ('zwrot','anulowane','anulowana')
-              AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
+             
               AND s.data_sprzedazy >= date('now', '-60 days')
             GROUP BY kategoria ORDER BY przychod DESC LIMIT 5
         """).fetchall()
@@ -2212,7 +2212,7 @@ def okazje_perplexity_szukaj():
             LEFT JOIN produkty p ON s.produkt_id = p.id
             LEFT JOIN palety pal ON p.paleta_id = pal.id
             WHERE s.status NOT IN ('zwrot','anulowane','anulowana')
-              AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
+             
               AND s.data_sprzedazy >= date('now', '-60 days')
             ORDER BY s.cena DESC
             LIMIT 10
@@ -2225,7 +2225,7 @@ def okazje_perplexity_szukaj():
             FROM sprzedaze s
             LEFT JOIN produkty p ON s.produkt_id = p.id
             WHERE s.status NOT IN ('zwrot','anulowane','anulowana')
-              AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
+             
               AND s.data_sprzedazy >= date('now', '-60 days')
             GROUP BY kategoria ORDER BY przychod DESC LIMIT 5
         """).fetchall()
@@ -2238,7 +2238,7 @@ def okazje_perplexity_szukaj():
             LEFT JOIN produkty p ON p.paleta_id = pal.id
             LEFT JOIN sprzedaze s ON s.produkt_id = p.id
               AND s.status NOT IN ('zwrot','anulowane','anulowana')
-              AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
+             
             GROUP BY pal.id
             ORDER BY pal.data_zakupu DESC
             LIMIT 8
@@ -2551,7 +2551,7 @@ def analityka_czas_sprzedazy():
         LEFT JOIN oferty o2 ON o2.produkt_id = s.produkt_id AND s.oferta_id IS NULL
         WHERE s.status NOT IN ('zwrot','anulowane','anulowana')
           AND s.data_sprzedazy IS NOT NULL AND s.data_sprzedazy != ''
-          AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
+         
         ORDER BY dni_od_wystawienia ASC
     """).fetchall()
 
@@ -2568,7 +2568,7 @@ def analityka_czas_sprzedazy():
         JOIN palety pal ON p.paleta_id = pal.id
         WHERE s.status NOT IN ('zwrot','anulowane','anulowana')
           AND s.data_sprzedazy IS NOT NULL AND s.data_sprzedazy != ''
-          AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
+         
           AND pal.data_zakupu IS NOT NULL
           AND (julianday(REPLACE(SUBSTR(s.data_sprzedazy,1,19),'T',' '))
                - julianday(pal.data_zakupu)) >= 0

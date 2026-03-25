@@ -219,7 +219,7 @@ def sprzedaze_lista():
         LEFT JOIN produkty p ON s.produkt_id = p.id
         LEFT JOIN oferty o ON s.oferta_id = o.id
         WHERE strftime('%Y-%m', s.data_sprzedazy) = ?
-          AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
+         
         ORDER BY s.data_sprzedazy DESC
     ''', (miesiac_filter,)).fetchall()
 
@@ -232,7 +232,7 @@ def sprzedaze_lista():
             SUM(CASE WHEN status = 'zwrot' THEN cena * ilosc ELSE 0 END) as zwroty_suma
         FROM sprzedaze
         WHERE strftime('%Y-%m', data_sprzedazy) = ?
-          AND (kupujacy IS NULL OR kupujacy != 'offline')
+         
     ''', (miesiac_filter,)).fetchone()
 
     # Lista dostepnych miesiecy

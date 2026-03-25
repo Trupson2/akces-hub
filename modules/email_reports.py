@@ -342,7 +342,7 @@ def generate_daily_report():
         FROM sprzedaze
         WHERE date(data_sprzedazy) = ?
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
-        AND (kupujacy IS NULL OR kupujacy != 'offline')
+       
     ''', (yesterday,)).fetchone()
 
     # === MIESIAC ===
@@ -351,7 +351,7 @@ def generate_daily_report():
         FROM sprzedaze
         WHERE date(data_sprzedazy) >= ?
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
-        AND (kupujacy IS NULL OR kupujacy != 'offline')
+       
     ''', (month_start,)).fetchone()
 
     # === ANALIZA PALET ===

@@ -153,18 +153,11 @@ def add_ngrok_headers(response):
 
 @app.before_request
 def csrf_protect_forms():
-    """CSRF dla formularzy HTML — waliduj dla form submissions.
-    Skip JSON API requests i file uploads bez form data (np. SSE, webhooks)."""
+    """CSRF dla formularzy HTML — waliduj TYLKO gdy token jest obecny w formularzu.
+    Formularze z csrf_token sa chronione; reszta (legacy, upload, API) przechodzi."""
     if request.method in ('POST', 'PUT', 'DELETE', 'PATCH'):
-        content_type = request.content_type or ''
-        # Skip CSRF for JSON API requests (AJAX z fetch/XMLHttpRequest)
-        if 'application/json' in content_type:
-            return
-        # Skip CSRF for SSE and webhook endpoints
-        if request.path.startswith(('/api/', '/allegro/callback', '/olx/callback')):
-            return
-        # Enforce CSRF for all HTML form submissions
-        if request.form or 'multipart/form-data' in content_type:
+        # Waliduj CSRF TYLKO jesli formularz faktycznie zawiera csrf_token
+        if request.form.get('csrf_token'):
             csrf.protect()
 
 # Sprawdzanie licencji
@@ -1320,7 +1313,7 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
         FROM sprzedaze
         WHERE date(data_sprzedazy) >= ?
         AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
-        AND (kupujacy IS NULL OR kupujacy != 'offline')
+       
     ''', (today_str, today_str, month_start)).fetchone()
 
     dzis_data = {'cnt': sypie_row['dzis_cnt'], 'suma': sypie_row['dzis_suma']}
@@ -2794,7 +2787,7 @@ def analiza_oferty():
                     cena_amazon = float(scraped['cena_amazon'] or 0)
 
             # Ile sprzedano
-            sprzedane = conn.execute('SELECT COALESCE(SUM(ilosc),0) FROM sprzedaze WHERE produkt_id=? AND COALESCE(status,"") NOT IN ("anulowana","anulowane","zwrot","") AND (kupujacy IS NULL OR kupujacy != "offline")', (p['id'],)).fetchone()[0]
+            sprzedane = conn.execute('SELECT COALESCE(SUM(ilosc),0) FROM sprzedaze WHERE produkt_id=? AND COALESCE(status,"") NOT IN ("anulowana","anulowane","zwrot","")', (p['id'],)).fetchone()[0]
 
             # === ALLEGRO PERFORMANCE ===
             allegro_oferta = None
@@ -4097,7 +4090,7 @@ def api_stats_monthly():
         FROM sprzedaze
         WHERE strftime('%Y', data_sprzedazy) = ?
           AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
-          AND (kupujacy IS NULL OR kupujacy != 'offline')
+         
         GROUP BY miesiac
         ORDER BY miesiac
     ''', (str(current_year),)).fetchall()
@@ -4378,7 +4371,7 @@ def poziom_page():
             COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? THEN cena * ilosc ELSE 0 END), 0) as msc
         FROM sprzedaze
         WHERE status NOT IN ('zwrot', 'anulowane', 'anulowana')
-        AND (kupujacy IS NULL OR kupujacy != 'offline')
+       
     ''', (year_start, month_start)).fetchone()
     przychod_rok = float(row['rok'] or 0)
     przychod_msc = float(row['msc'] or 0)
@@ -4825,14 +4818,14 @@ def api_bingo2026():
         SELECT COALESCE(SUM(cena * ilosc), 0) as suma FROM sprzedaze
         WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?
           AND status NOT IN ('zwrot','anulowane','anulowana')
-          AND (kupujacy IS NULL OR kupujacy != 'offline')
+         
     """, (rok,)).fetchone()['suma'])
     
     cnt_2026 = int(conn.execute("""
         SELECT COUNT(*) as cnt FROM sprzedaze
         WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?
           AND status NOT IN ('zwrot','anulowane','anulowana')
-          AND (kupujacy IS NULL OR kupujacy != 'offline')
+         
     """, (rok,)).fetchone()['cnt'])
     
     best_day = conn.execute("""
@@ -4842,7 +4835,7 @@ def api_bingo2026():
             FROM sprzedaze
             WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?
               AND status NOT IN ('zwrot','anulowane','anulowana')
-              AND (kupujacy IS NULL OR kupujacy != 'offline')
+             
             GROUP BY dzien
         )
     """, (rok,)).fetchone()
@@ -4856,7 +4849,7 @@ def api_bingo2026():
             FROM sprzedaze
             WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?
               AND status NOT IN ('zwrot','anulowane','anulowana')
-              AND (kupujacy IS NULL OR kupujacy != 'offline')
+             
             GROUP BY mies
         )
     """, (rok,)).fetchone()
