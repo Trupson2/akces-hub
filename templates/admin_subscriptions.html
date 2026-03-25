@@ -2,42 +2,97 @@
 {% block page_title %}Subskrypcje{% endblock %}
 {% block content %}
 <style>
-.sub-table{width:100%;border-collapse:collapse;font-size:0.8rem}
-.sub-table th{background:rgba(143,245,255,0.06);color:var(--neon-primary);text-align:left;padding:10px 12px;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(143,245,255,0.15)}
-.sub-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle}
-.sub-table tr:hover{background:rgba(143,245,255,0.02)}
-.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.3px}
-.badge-trial{background:rgba(234,179,8,0.12);color:#eab308}
-.badge-pro{background:rgba(143,245,255,0.1);color:var(--neon-primary)}
-.badge-max{background:rgba(255,107,155,0.1);color:var(--neon-secondary)}
-.badge-enterprise{background:rgba(190,238,0,0.1);color:var(--neon-tertiary)}
-.badge-active{background:rgba(190,238,0,0.1);color:var(--neon-tertiary)}
-.badge-inactive{background:rgba(239,68,68,0.1);color:#ef4444}
-.sub-edit-form{display:none;background:rgba(143,245,255,0.03);border:1px solid rgba(143,245,255,0.1);border-radius:12px;padding:16px;margin-top:8px}
-.sub-edit-form.show{display:block}
-.sub-input{background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;color:var(--text);font-size:0.82rem;width:100%;transition:border-color 0.2s}
-.sub-input:focus{border-color:var(--neon-primary);outline:none}
-.sub-btn{padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-size:0.78rem;font-weight:600;transition:all 0.2s}
-.sub-btn-save{background:rgba(255,107,155,0.12);border:1px solid rgba(255,107,155,0.3);color:var(--neon-secondary)}
-.sub-btn-save:hover{box-shadow:0 0 12px rgba(255,107,155,0.15)}
-.sub-btn-extend{background:rgba(190,238,0,0.1);color:var(--neon-tertiary);border:1px solid rgba(190,238,0,0.25)}
-.sub-btn-extend:hover{box-shadow:0 0 12px rgba(190,238,0,0.15)}
-.sub-btn-toggle{background:rgba(143,245,255,0.08);color:var(--neon-primary);border:1px solid rgba(143,245,255,0.2)}
-.sub-btn-toggle:hover{box-shadow:0 0 12px rgba(143,245,255,0.15)}
-.hwid-cell{font-family:monospace;font-size:0.72rem;color:var(--text-muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Admin Subscriptions — Cyberpunk */
+.asub-hdr{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:24px}
+.asub-hdr h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;letter-spacing:-0.04em;display:flex;align-items:center;gap:12px}
+.asub-hdr h1 .material-symbols-outlined{font-size:1.8rem;color:#ff6b9b;filter:drop-shadow(0 0 10px rgba(255,107,155,0.4))}
+.asub-hdr-meta{text-align:right}
+.asub-hdr-count{font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:800;color:#8ff5ff}
+.asub-hdr-hwid{font-size:0.6rem;color:#adaaad;margin-top:2px}
+.asub-hdr-hwid code{color:#ff6b9b;font-size:0.65rem}
+
+/* Status card */
+.asub-status{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+.asub-stat{background:rgba(19,19,28,0.7);padding:20px;border-left:3px solid}
+.asub-stat.cyan{border-color:#8ff5ff}
+.asub-stat.lime{border-color:#beee00}
+.asub-stat.pink{border-color:#ff6b9b}
+.asub-stat-label{font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#adaaad;margin-bottom:4px}
+.asub-stat-val{font-family:'Space Grotesk',sans-serif;font-size:1.8rem;font-weight:800}
+
+/* Table */
+.asub-table-wrap{background:rgba(19,19,28,0.7);border:1px solid rgba(72,71,74,0.1);overflow-x:auto}
+.asub-table{width:100%;border-collapse:collapse;font-size:0.8rem}
+.asub-table th{background:rgba(38,37,40,0.5);color:#8ff5ff;text-align:left;padding:12px 16px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;border-bottom:1px solid rgba(143,245,255,0.1);font-family:'Space Grotesk',sans-serif}
+.asub-table td{padding:12px 16px;border-bottom:1px solid rgba(72,71,74,0.08);vertical-align:middle}
+.asub-table tr:hover{background:rgba(143,245,255,0.02)}
+
+/* Badges */
+.asub-badge{display:inline-block;padding:3px 10px;font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;font-family:'Space Grotesk',sans-serif}
+.asub-badge.trial{background:rgba(234,179,8,0.12);color:#eab308}
+.asub-badge.pro{background:rgba(143,245,255,0.1);color:#8ff5ff}
+.asub-badge.max{background:rgba(255,107,155,0.1);color:#ff6b9b}
+.asub-badge.enterprise{background:rgba(190,238,0,0.1);color:#beee00}
+.asub-badge.active{background:rgba(190,238,0,0.1);color:#beee00}
+.asub-badge.inactive{background:rgba(239,68,68,0.1);color:#ef4444}
+
+.asub-key{font-family:monospace;font-size:0.72rem;color:#ff6b9b}
+.asub-client{font-weight:700;font-family:'Space Grotesk',sans-serif}
+.asub-hwid{font-family:monospace;font-size:0.68rem;color:#adaaad;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.asub-date{font-size:0.75rem;color:#adaaad}
+
+/* Edit button */
+.asub-edit-btn{padding:6px 14px;background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.2);color:#8ff5ff;font-size:0.65rem;font-weight:700;font-family:'Space Grotesk',sans-serif;text-transform:uppercase;letter-spacing:0.05em;cursor:pointer;transition:all 0.2s}
+.asub-edit-btn:hover{background:rgba(143,245,255,0.15);box-shadow:0 0 10px rgba(143,245,255,0.1)}
+
+/* Edit form */
+.asub-edit{display:none;background:rgba(143,245,255,0.03);border:1px solid rgba(143,245,255,0.08);padding:16px;margin-top:4px}
+.asub-edit.show{display:block}
+.asub-edit-inner{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.asub-edit-field{flex:1;min-width:140px}
+.asub-edit-field label{display:block;font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#adaaad;margin-bottom:4px}
+.asub-edit-input{width:100%;padding:10px;background:rgba(14,14,16,0.8);border:1px solid rgba(72,71,74,0.2);color:#f9f5f8;font-size:0.82rem;font-family:'Space Grotesk',sans-serif}
+.asub-edit-input:focus{outline:none;border-color:#8ff5ff}
+.asub-form-btn{padding:10px 18px;border:1px solid;font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;transition:all 0.2s}
+.asub-form-btn:hover{filter:brightness(1.1)}
+.asub-form-btn.save{background:rgba(255,107,155,0.12);border-color:rgba(255,107,155,0.3);color:#ff6b9b}
+.asub-form-btn.extend{background:rgba(190,238,0,0.1);border-color:rgba(190,238,0,0.25);color:#beee00}
+
+/* Empty state */
+.asub-empty{text-align:center;padding:60px 20px;color:#adaaad;font-size:0.88rem}
+.asub-empty .material-symbols-outlined{font-size:3rem;color:#48474a;margin-bottom:12px;display:block}
 </style>
 
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-    <h2 class="font-display" style="font-size:1.1rem;font-weight:700;color:var(--neon-primary);text-shadow:0 0 10px rgba(143,245,255,0.4)">Zarzadzanie subskrypcjami</h2>
-    <div style="text-align:right">
-        <span style="color:var(--text-muted);font-size:0.8rem">{{ licenses|length }} licencji</span>
-        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">HWID serwera: <code style="color:var(--neon-secondary)">{{ server_hwid }}</code></div>
+<!-- Header -->
+<div class="asub-hdr">
+    <h1><span class="material-symbols-outlined">card_membership</span> SUBSKRYPCJE</h1>
+    <div class="asub-hdr-meta">
+        <div class="asub-hdr-count">{{ licenses|length }}</div>
+        <div class="asub-hdr-hwid">HWID serwera: <code>{{ server_hwid }}</code></div>
+    </div>
+</div>
+
+<!-- Stats -->
+{% set active_count = licenses|selectattr('active')|list|length %}
+{% set inactive_count = licenses|length - active_count %}
+<div class="asub-status">
+    <div class="asub-stat cyan">
+        <div class="asub-stat-label">Wszystkie</div>
+        <div class="asub-stat-val" style="color:#8ff5ff">{{ licenses|length }}</div>
+    </div>
+    <div class="asub-stat lime">
+        <div class="asub-stat-label">Aktywne</div>
+        <div class="asub-stat-val" style="color:#beee00">{{ active_count }}</div>
+    </div>
+    <div class="asub-stat pink">
+        <div class="asub-stat-label">Nieaktywne</div>
+        <div class="asub-stat-val" style="color:#ff6b9b">{{ inactive_count }}</div>
     </div>
 </div>
 
 {% if licenses %}
-<div class="glass-card" style="overflow-x:auto;padding:0">
-    <table class="sub-table">
+<div class="asub-table-wrap">
+    <table class="asub-table">
         <thead>
             <tr>
                 <th>Klucz</th>
@@ -53,51 +108,53 @@
         <tbody>
         {% for lic in licenses %}
             <tr>
-                <td style="font-family:monospace;font-size:0.75rem;color:var(--neon-secondary)" title="{{ lic.key }}">{{ lic.masked_key }}</td>
-                <td style="font-weight:600">{{ lic.client }}</td>
-                <td><span class="badge badge-{{ lic.plan|lower }}">{{ lic.plan }}</span></td>
-                <td class="hwid-cell" title="{{ lic.hwid }}">{{ lic.hwid or '-' }}</td>
-                <td>{{ lic.expires }}</td>
+                <td><span class="asub-key" title="{{ lic.key }}">{{ lic.masked_key }}</span></td>
+                <td><span class="asub-client">{{ lic.client }}</span></td>
+                <td><span class="asub-badge {{ lic.plan|lower }}">{{ lic.plan }}</span></td>
+                <td><span class="asub-hwid" title="{{ lic.hwid }}">{{ lic.hwid or '—' }}</span></td>
+                <td><span class="asub-date">{{ lic.expires }}</span></td>
                 <td>
                     {% if lic.active %}
-                    <span class="badge badge-active">Aktywna</span>
+                    <span class="asub-badge active"><span class="material-symbols-outlined" style="font-size:0.7rem;vertical-align:middle">check_circle</span> Aktywna</span>
                     {% else %}
-                    <span class="badge badge-inactive">Nieaktywna</span>
+                    <span class="asub-badge inactive"><span class="material-symbols-outlined" style="font-size:0.7rem;vertical-align:middle">cancel</span> Nieaktywna</span>
                     {% endif %}
                 </td>
-                <td style="font-size:0.72rem;color:var(--text-muted)">{{ lic.last_heartbeat }}</td>
+                <td><span class="asub-date">{{ lic.last_heartbeat }}</span></td>
                 <td>
-                    <button class="sub-btn sub-btn-toggle" onclick="toggleEdit('edit-{{ lic.id }}')" style="font-size:0.72rem;padding:4px 10px">Edytuj</button>
+                    <button class="asub-edit-btn" onclick="toggleEdit('edit-{{ lic.id }}')">
+                        <span class="material-symbols-outlined" style="font-size:0.8rem;vertical-align:middle">edit</span> Edytuj
+                    </button>
                 </td>
             </tr>
             <tr>
                 <td colspan="8" style="padding:0;border:none">
-                    <div class="sub-edit-form" id="edit-{{ lic.id }}">
-                        <form method="POST" action="/admin/subscriptions/update" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+                    <div class="asub-edit" id="edit-{{ lic.id }}">
+                        <form method="POST" action="/admin/subscriptions/update" class="asub-edit-inner">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="license_key" value="{{ lic.key }}">
-                            <div style="flex:1;min-width:140px">
-                                <label style="display:block;font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;font-weight:600">Plan</label>
-                                <select name="new_plan" class="sub-input">
+                            <div class="asub-edit-field">
+                                <label>Plan</label>
+                                <select name="new_plan" class="asub-edit-input">
                                     <option value="starter" {{ 'selected' if lic.plan_raw == 'starter' }}>TRIAL</option>
                                     <option value="pro" {{ 'selected' if lic.plan_raw == 'pro' }}>PRO</option>
                                     <option value="business" {{ 'selected' if lic.plan_raw == 'business' }}>MAX</option>
                                     <option value="enterprise" {{ 'selected' if lic.plan_raw == 'enterprise' }}>ENTERPRISE</option>
                                 </select>
                             </div>
-                            <div style="flex:1;min-width:160px">
-                                <label style="display:block;font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;font-weight:600">Data wygasniecia</label>
-                                <input type="date" name="new_expiry_date" class="sub-input" value="{{ lic.expires if lic.expires != 'Bezterminowo' else '' }}">
+                            <div class="asub-edit-field">
+                                <label>Data wygasniecia</label>
+                                <input type="date" name="new_expiry_date" class="asub-edit-input" value="{{ lic.expires if lic.expires != 'Bezterminowo' else '' }}">
                             </div>
-                            <div style="flex:0;min-width:80px">
-                                <label style="display:block;font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;font-weight:600">Aktywna</label>
-                                <select name="active" class="sub-input">
+                            <div class="asub-edit-field" style="min-width:80px;flex:0">
+                                <label>Aktywna</label>
+                                <select name="active" class="asub-edit-input">
                                     <option value="1" {{ 'selected' if lic.active }}>Tak</option>
                                     <option value="0" {{ 'selected' if not lic.active }}>Nie</option>
                                 </select>
                             </div>
-                            <button type="submit" class="sub-btn sub-btn-save">Zapisz</button>
-                            <button type="submit" name="extend_30" value="1" class="sub-btn sub-btn-extend">Przedluz o 30 dni</button>
+                            <button type="submit" class="asub-form-btn save"><span class="material-symbols-outlined" style="font-size:0.8rem;vertical-align:middle">save</span> Zapisz</button>
+                            <button type="submit" name="extend_30" value="1" class="asub-form-btn extend"><span class="material-symbols-outlined" style="font-size:0.8rem;vertical-align:middle">add</span> +30 dni</button>
                         </form>
                     </div>
                 </td>
@@ -107,15 +164,15 @@
     </table>
 </div>
 {% else %}
-<div class="glass-card" style="text-align:center;padding:40px;color:var(--text-muted)">
+<div class="asub-empty">
+    <span class="material-symbols-outlined">card_membership</span>
     Brak wydanych licencji
 </div>
 {% endif %}
 
+<a href="/" style="display:flex;align-items:center;gap:6px;color:#64748b;text-decoration:none;font-size:0.82rem;margin-top:20px"><span class="material-symbols-outlined" style="font-size:1rem">arrow_back</span> Dashboard</a>
+
 <script>
-function toggleEdit(id){
-    var el=document.getElementById(id);
-    el.classList.toggle('show');
-}
+function toggleEdit(id){document.getElementById(id).classList.toggle('show');}
 </script>
 {% endblock %}

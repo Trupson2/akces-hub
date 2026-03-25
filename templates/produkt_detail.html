@@ -632,7 +632,7 @@ function renderKartaSztuki(s) {
         <select onchange="zapiszPoleSztuki(${s.id}, 'status', this.value)"
             style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#94a3b8;padding:6px 10px;font-size:0.85rem;cursor:pointer;min-width:100px">
             ${['magazyn','naprawa','sprzedany','wyslany','uszkodzony'].map(v =>
-                `<option value="${v}" ${v===s.status?'selected':''}>${(statusIcons[v]||'')+' '+v}</option>`).join('')}
+                `<option value="${v}" ${v===s.status?'selected':''}>${v}</option>`).join('')}
         </select>
         <div style="flex:1"></div>
         ${!zdjecieSrc && wymaga_foto ? `<label for="foto_${s.id}" style="cursor:pointer;color:#f59e0b" title="Dodaj zdjecie stanu"><span class="material-symbols-outlined" style="font-size:1.1rem">photo_camera</span></label><input type="file" id="foto_${s.id}" accept="image/*" capture="environment" style="display:none" onchange="uploadZdjecie(${s.id}, this)">` : ''}

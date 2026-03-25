@@ -2,6 +2,12 @@
 
 ## 25.03.2026
 
+### Admin Subscriptions — Cyberpunk Redesign
+- [NOWE] Stats strip: wszystkie/aktywne/nieaktywne z kolorowym border-left
+- [NOWE] Tabela z cyberpunk styling: asub-badge per plan, ikony statusu
+- [NOWE] Inline edit form z cyberpunk inputami
+- [ZMIANA] CSS classes z prefixem asub-* (unikanie kolizji)
+
 ### User Management — Cyberpunk Card Grid
 - [NOWE] Szablon `users.html` — karty userow z avatar, rola badge, status online/offline
 - [NOWE] Add user form (collapsible), search filter, role select inline
