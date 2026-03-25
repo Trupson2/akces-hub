@@ -388,7 +388,7 @@ def produkt_extract_params(produkt_id):
     if not GEMINI_CLIENT:
         content = f'''
         <div class="header">
-            <h1><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>warning</span> Extraktor Allegro</h1>
+            <h1><span class=material-symbols-outlined>warning</span> Extraktor Allegro</h1>
             <small>Gemini AI niedostępne</small>
         </div>
         <div class="card" style="margin-bottom:20px">
@@ -427,7 +427,7 @@ def produkt_extract_params(produkt_id):
     if 'error' in result and result['error']:
         content = f'''
         <div class="header">
-            <h1><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>cancel</span> Błąd Extraktora</h1>
+            <h1><span class=material-symbols-outlined>cancel</span> Błąd Extraktora</h1>
             <small>Produkt #{produkt_id}</small>
         </div>
         <div class="card" style="margin-bottom:20px">
@@ -456,13 +456,13 @@ def produkt_extract_params(produkt_id):
     # Strona wyników
     content = f'''
     <div class="header">
-        <h1><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>smart_toy</span> Extraktor Allegro</h1>
+        <h1><span class=material-symbols-outlined>smart_toy</span> Extraktor Allegro</h1>
         <small>Produkt #{produkt_id}</small>
     </div>
 
     <!-- META TITLE -->
     <div style="background:var(--green-soft);border:2px solid rgba(34,197,94,0.5);border-radius:12px;padding:20px;margin-bottom:20px">
-        <div class="section-title"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>edit_note</span> META TYTUŁ ALLEGRO (Skopiuj poniżej)</div>
+        <div class="section-title"><span class=material-symbols-outlined>edit_note</span> META TYTUŁ ALLEGRO (Skopiuj poniżej)</div>
         <div style="background:var(--bg-card);padding:15px;border-radius:8px;font-size:1.1rem;font-weight:600;color:var(--green);cursor:pointer"
              onclick="navigator.clipboard.writeText(this.innerText); alert('Skopiowano do schowka!')">
             {meta_title or 'Brak tytułu'}
@@ -477,7 +477,7 @@ def produkt_extract_params(produkt_id):
     </div>
 
     <!-- PARAMETRY TECHNICZNE -->
-    <div class="section-title"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>settings</span> PARAMETRY TECHNICZNE</div>
+    <div class="section-title"><span class=material-symbols-outlined>settings</span> PARAMETRY TECHNICZNE</div>
     <div class="card" style="padding:0;overflow:hidden;margin-bottom:20px">
         <table style="width:100%;border-collapse:collapse">
             {params_html}
@@ -493,10 +493,10 @@ def produkt_extract_params(produkt_id):
             </button>
         </form>
         <button onclick="window.print()" class="btn" style="background:var(--blue);margin:0">
-            <span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>print</span> Drukuj
+            <span class=material-symbols-outlined>print</span> Drukuj
         </button>
         <button onclick="window.location.reload()" class="btn btn-purple" style="margin:0">
-            <span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>sync</span> Regeneruj
+            <span class=material-symbols-outlined>sync</span> Regeneruj
         </button>
     </div>
 
@@ -522,7 +522,7 @@ def produkt_quick_draft(produkt_id):
     if not is_authenticated():
         content = f'''
         <div class="header">
-            <h1><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>cancel</span> Błąd Allegro</h1>
+            <h1><span class=material-symbols-outlined>cancel</span> Błąd Allegro</h1>
             <small>Produkt #{produkt_id}</small>
         </div>
         <div class="card" style="margin-bottom:20px">
@@ -686,7 +686,7 @@ def produkt_quick_draft(produkt_id):
             # Sukces!
             content = f'''
             <div class="header">
-                <h1><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span> Szkic utworzony!</h1>
+                <h1><span class=material-symbols-outlined>check_circle</span> Szkic utworzony!</h1>
                 <small>Produkt #{produkt_id}</small>
             </div>
 
@@ -699,13 +699,13 @@ def produkt_quick_draft(produkt_id):
                 </div>
                 <a href="https://allegro.pl/moje-allegro/sprzedaz/drafted/{offer_id}" target="_blank"
                    class="btn btn-success" style="display:inline-block;width:auto;padding:12px 24px">
-                    <span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>edit_note</span> Zobacz szkic na Allegro
+                    <span class=material-symbols-outlined>edit_note</span> Zobacz szkic na Allegro
                 </a>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
                 <a href="/produkty/{produkt_id}/extract-params" class="btn" style="background:var(--blue)">
-                    <span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>sync</span> Wygeneruj ponownie
+                    <span class=material-symbols-outlined>sync</span> Wygeneruj ponownie
                 </a>
                 <a href="javascript:history.back()" class="btn btn-secondary">
                     ← Powrót
@@ -720,7 +720,7 @@ def produkt_quick_draft(produkt_id):
         # Błąd
         content = f'''
         <div class="header">
-            <h1><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>cancel</span> Błąd wystawiania</h1>
+            <h1><span class=material-symbols-outlined>cancel</span> Błąd wystawiania</h1>
             <small>Produkt #{produkt_id}</small>
         </div>
         <div class="card" style="margin-bottom:20px">
@@ -815,7 +815,7 @@ def paleta_edit(paleta_id):
         </div>
 
         <div class="form-group">
-            <label><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>pin_drop</span> Regal / Lokalizacja</label>
+            <label><span class=material-symbols-outlined>pin_drop</span> Regal / Lokalizacja</label>
             <input type="text" name="regal" value="{regal_value}" placeholder="np. Migło, Regał A1" class="form-control">
         </div>
 
@@ -907,7 +907,7 @@ def napraw_ceny_palet():
 
     content = f'''
     <div style="text-align:center;padding:60px 20px">
-        <div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span></div>
+        <div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined>check_circle</span></div>
         <div style="font-size:1.2rem">Naprawiono {updated} palet!</div>
         <div style="color:var(--text-muted);margin-top:10px">Ceny zakupu (netto + brutto) zostały uzupełnione</div>
         <a href="/palety" class="btn btn-primary" style="display:inline-block;width:auto;margin-top:20px;padding:12px 24px">Powrót do palet</a>
@@ -946,7 +946,7 @@ def przelicz_brutto_palet():
 
     content = f'''
     <div style="text-align:center;padding:60px 20px">
-        <div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span></div>
+        <div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined>check_circle</span></div>
         <div style="font-size:1.2rem">Przeliczono {updated} palet!</div>
         <div style="color:var(--text-muted);margin-top:10px">Wszystkie ceny zakupu = suma netto × 1.23 (brutto)</div>
         <a href="/palety" class="btn btn-primary" style="display:inline-block;width:auto;margin-top:20px;padding:12px 24px">Powrót do palet</a>
@@ -1047,7 +1047,7 @@ def palety_lista():
                     <div>
                         <div style="font-weight:600">{p['nazwa'] or f"Paleta #{p['id']}"}</div>
                         <div style="font-size:0.8rem;color:var(--text-muted)"><span class="dostawca-name">{p['dostawca']}</span> • {data}</div>
-                        {f'<div style="font-size:0.75rem;color:var(--purple);margin-top:2px"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>pin_drop</span> Regal: {regal}</div>' if regal else ''}
+                        {f'<div style="font-size:0.75rem;color:var(--purple);margin-top:2px"><span class=material-symbols-outlined>pin_drop</span> Regal: {regal}</div>' if regal else ''}
                     </div>
                 </div>
                 <div style="text-align:right">
@@ -1059,7 +1059,7 @@ def palety_lista():
             <!-- PASEK SPRZEDAŻY -->
             <div style="margin-top:10px;background:var(--bg);border-radius:6px;padding:8px">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                    <span style="font-size:0.75rem;color:var(--text-secondary)"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>bar_chart</span> Sprzedano:</span>
+                    <span style="font-size:0.75rem;color:var(--text-secondary)"><span class=material-symbols-outlined>bar_chart</span> Sprzedano:</span>
                     <span style="font-size:0.85rem;font-weight:700;color:{progress_color}">{sprzedano_szt} / {sztuk_lacznie} szt</span>
                 </div>
                 <div class="progress-bar-wrap">
@@ -1108,7 +1108,7 @@ def palety_lista():
     <!-- Pasek masowego usuwania -->
     <div id="bulk-delete-bar" style="display:none;position:sticky;top:60px;z-index:50;background:linear-gradient(135deg,var(--red),#dc2626);border-radius:10px;padding:12px 16px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;box-shadow:0 4px 15px rgba(239,68,68,0.4)">
         <span style="color:#fff;font-weight:600;font-size:0.9rem" id="bulk-delete-count">0 zaznaczonych</span>
-        <button type="button" onclick="bulkDeletePalety()" style="background:#fff;color:var(--red);border:none;padding:8px 20px;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.85rem"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>delete</span> USUŃ ZAZNACZONE</button>
+        <button type="button" onclick="bulkDeletePalety()" style="background:#fff;color:var(--red);border:none;padding:8px 20px;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.85rem"><span class=material-symbols-outlined>delete</span> USUŃ ZAZNACZONE</button>
     </div>
 
     <a href="/palety/przelicz-brutto" style="display:block;text-align:center;color:var(--text-muted);text-decoration:none;margin-bottom:15px;font-size:0.8rem" onclick="return confirm('Przeliczyć ceny zakupu wszystkich palet na brutto (netto × 1.23)?')">[BUILD] Przelicz ceny na brutto (+23% VAT)</a>
@@ -1250,7 +1250,7 @@ def paleta_dodaj():
     <!-- IMPORT Z EXCEL -->
     <a href="/palety/import-xlsx" class="import-link" style="background:linear-gradient(135deg,var(--green),#16a34a)">
         <div class="import-link-inner">
-            <div class="import-link-icon"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>bar_chart</span></div>
+            <div class="import-link-icon"><span class=material-symbols-outlined>bar_chart</span></div>
             <div>
                 <div class="import-link-title">IMPORT Z EXCEL</div>
                 <div class="import-link-sub">Wrzuć plik XLSX z listą produktów</div>
@@ -1288,7 +1288,7 @@ def paleta_dodaj():
         </div>
 
         <div class="form-group">
-            <label><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>pin_drop</span> Regal / Lokalizacja</label>
+            <label><span class=material-symbols-outlined>pin_drop</span> Regal / Lokalizacja</label>
             <input type="text" name="regal" placeholder="np. Migło, Regał A1, itp." class="form-control">
         </div>
 
@@ -1308,7 +1308,7 @@ def paleta_dodaj():
             <textarea name="notatki" rows="2" placeholder="Opcjonalne uwagi..." class="form-control" style="resize:vertical"></textarea>
         </div>
 
-        <button type="submit" class="btn btn-success"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>save</span> ZAPISZ PALETĘ</button>
+        <button type="submit" class="btn btn-success"><span class=material-symbols-outlined>save</span> ZAPISZ PALETĘ</button>
     </form>
 
     <a href="/palety" style="display:block;text-align:center;color:var(--text-muted);text-decoration:none;margin-top:15px">← Anuluj</a>
@@ -1448,11 +1448,11 @@ def paleta_import_xlsx():
     error = request.args.get('error', '')
     error_html = ''
     if error:
-        error_html = f'<div class="alert alert-error" style="margin-bottom:15px"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>warning</span> Błąd: {error}</div>'
+        error_html = f'<div class="alert alert-error" style="margin-bottom:15px"><span class=material-symbols-outlined>warning</span> Błąd: {error}</div>'
 
     content = f'''
     <div class="header">
-        <h1><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>bar_chart</span> IMPORT Z EXCEL</h1>
+        <h1><span class=material-symbols-outlined>bar_chart</span> IMPORT Z EXCEL</h1>
         <small>Wrzuć plik XLSX z produktami</small>
     </div>
 
@@ -1496,12 +1496,12 @@ def paleta_import_xlsx():
         </div>
 
         <div class="form-group">
-            <label><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>pin_drop</span> Regal / Lokalizacja</label>
+            <label><span class=material-symbols-outlined>pin_drop</span> Regal / Lokalizacja</label>
             <input type="text" name="regal" placeholder="np. Migło, Regał A1, itp." class="form-control">
         </div>
 
         <!-- MAPOWANIE KOLUMN -->
-        <div class="section-title" style="margin-top:20px"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>link</span> MAPOWANIE KOLUMN</div>
+        <div class="section-title" style="margin-top:20px"><span class=material-symbols-outlined>link</span> MAPOWANIE KOLUMN</div>
         <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px">Wpisz nazwy kolumn z Twojego Excela (dokładnie jak w nagłówku)</div>
 
         <div class="form-row" style="margin-bottom:12px">
@@ -1531,7 +1531,7 @@ def paleta_import_xlsx():
         </div>
 
         <button type="submit" class="btn btn-success">
-            <span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>download</span> IMPORTUJ PALETĘ
+            <span class=material-symbols-outlined>download</span> IMPORTUJ PALETĘ
         </button>
     </form>
 
@@ -2039,7 +2039,7 @@ def paleta_bulk_import():
                     box_wyniki[0]['produkty'] = new_count
                     print(f"[INBOX] Merged {len(box_wyniki)} boxes into '{merged_nazwa}' (id={main_box_id}, {new_count} products)")
 
-            # <span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>list_alt</span> Dodaj produkty z ASIN do tabeli scraped (żeby pojawiły się w generatorze ofert)
+            # <span class=material-symbols-outlined>list_alt</span> Dodaj produkty z ASIN do tabeli scraped (żeby pojawiły się w generatorze ofert)
             scrape_count = 0
             try:
                 all_paleta_ids = [w['paleta_id'] for w in wyniki if w['status'] == 'ok']
@@ -2098,7 +2098,7 @@ def paleta_bulk_import():
                         </div>
                     </div>'''
                 elif w['status'] == 'ok':
-                    typ_icon = '[INBOX]' if w.get('typ') == 'box' else '<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span>'
+                    typ_icon = '[INBOX]' if w.get('typ') == 'box' else '<span class=material-symbols-outlined>check_circle</span>'
                     results_html += f'''
                     <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--green-soft);border:1px solid rgba(34,197,94,0.3);border-radius:10px;margin-bottom:8px">
                         <div style="font-size:1.5rem">{typ_icon}</div>
@@ -2112,7 +2112,7 @@ def paleta_bulk_import():
                 else:
                     results_html += f'''
                     <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--red-soft);border:1px solid rgba(239,68,68,0.3);border-radius:10px;margin-bottom:8px">
-                        <div style="font-size:1.5rem"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>cancel</span></div>
+                        <div style="font-size:1.5rem"><span class=material-symbols-outlined>cancel</span></div>
                         <div style="flex:1">
                             <div style="font-weight:600">{w['nazwa']}</div>
                             <div style="font-size:0.8rem;color:var(--red)">{w.get('msg', 'Błąd')}</div>
@@ -2121,12 +2121,12 @@ def paleta_bulk_import():
 
             content = f'''
             <div class="header">
-                <h1><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>bar_chart</span> WYNIKI IMPORTU</h1>
+                <h1><span class=material-symbols-outlined>bar_chart</span> WYNIKI IMPORTU</h1>
                 <small>Zaimportowano {ok_count} palet{', błędy: ' + str(err_count) if err_count else ''}</small>
             </div>
             {results_html}
             <a href="/palety" class="btn" style="background:var(--blue);margin-top:15px">[INVENTORY_2] Przejdź do palet</a>
-            <a href="/palety/bulk-import" style="display:block;text-align:center;color:var(--text-muted);text-decoration:none;margin-top:10px"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>bar_chart</span> Importuj kolejne</a>
+            <a href="/palety/bulk-import" style="display:block;text-align:center;color:var(--text-muted);text-decoration:none;margin-top:10px"><span class=material-symbols-outlined>bar_chart</span> Importuj kolejne</a>
             '''
             return render(content, 'Wyniki importu')
 
@@ -2135,11 +2135,11 @@ def paleta_bulk_import():
 
     # === GET - formularz ===
     error = request.args.get('error', '')
-    error_html = f'<div class="alert alert-error" style="margin-bottom:15px"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>warning</span> {error}</div>' if error else ''
+    error_html = f'<div class="alert alert-error" style="margin-bottom:15px"><span class=material-symbols-outlined>warning</span> {error}</div>' if error else ''
 
     content = f'''
     <div class="header">
-        <h1><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>bar_chart</span> BULK IMPORT PALET</h1>
+        <h1><span class=material-symbols-outlined>bar_chart</span> BULK IMPORT PALET</h1>
         <small>Importuj wiele palet naraz — każda z osobnym plikiem XLSX</small>
     </div>
 
@@ -2150,7 +2150,7 @@ def paleta_bulk_import():
 
     <!-- WSPÓLNE USTAWIENIA -->
     <div class="card" style="margin-bottom:15px">
-        <div class="section-title"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>settings</span> WSPÓLNE USTAWIENIA</div>
+        <div class="section-title"><span class=material-symbols-outlined>settings</span> WSPÓLNE USTAWIENIA</div>
 
         <div class="form-row" style="margin-bottom:12px">
             <div class="form-group">
@@ -2175,7 +2175,7 @@ def paleta_bulk_import():
 
         <!-- AUTO-DETEKCJA KOLUMN -->
         <div style="margin-top:15px;padding:12px;background:var(--bg);border-radius:10px;border:1px solid var(--border)">
-            <div style="font-size:0.8rem;font-weight:600;color:var(--green);margin-bottom:6px"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>smart_toy</span> AUTO-DETEKCJA KOLUMN</div>
+            <div style="font-size:0.8rem;font-weight:600;color:var(--green);margin-bottom:6px"><span class=material-symbols-outlined>smart_toy</span> AUTO-DETEKCJA KOLUMN</div>
             <div style="font-size:0.75rem;color:var(--text-muted)">
                 System automatycznie rozpozna kolumny z Excela:<br>
                 <b>Nazwa</b> (Description, Name, Product...),
@@ -2221,7 +2221,7 @@ def paleta_bulk_import():
     </div>
 
     <button type="submit" id="submit-btn" disabled class="btn btn-success" style="font-size:1.1rem;padding:16px;opacity:0.5">
-        <span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>download</span> IMPORTUJ WSZYSTKIE
+        <span class=material-symbols-outlined>download</span> IMPORTUJ WSZYSTKIE
     </button>
 
     </form>
@@ -2400,13 +2400,13 @@ def paleta_mass_edit(paleta_id):
     if not produkty or len(produkty) == 0:
         content = f'''
         <div class="header">
-            <h1><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>warning</span> Brak produktów</h1>
+            <h1><span class=material-symbols-outlined>warning</span> Brak produktów</h1>
             <small>Paleta #{paleta_id}</small>
         </div>
         <div class="alert alert-warning">
             Ta paleta nie ma jeszcze żadnych produktów. Najpierw zaimportuj produkty z Excel.
         </div>
-        <a href="/magazyn/import?paleta_id={paleta_id}" class="btn btn-primary"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>download</span> Importuj produkty</a>
+        <a href="/magazyn/import?paleta_id={paleta_id}" class="btn btn-primary"><span class=material-symbols-outlined>download</span> Importuj produkty</a>
         <a href="/palety/{paleta_id}" class="btn btn-secondary">← Powrót</a>
         '''
         return render(content, 'Brak produktów')
@@ -2418,7 +2418,7 @@ def paleta_mass_edit(paleta_id):
     for p in produkty:
         # Kolory statusów
         if p['status'] == 'wystawiony':
-            status_badge = '<span class="badge badge-success"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span> WYSTAWIONE</span>'
+            status_badge = '<span class="badge badge-success"><span class=material-symbols-outlined>check_circle</span> WYSTAWIONE</span>'
             row_bg = 'var(--green-soft)'
             checkbox_disabled = 'disabled'
             checkbox_checked = ''
@@ -2429,7 +2429,7 @@ def paleta_mass_edit(paleta_id):
             checkbox_checked = 'checked'
             wybrane_count += 1
         elif p['status'] == 'szkic':
-            status_badge = '<span class="badge" style="background:var(--accent-soft);color:var(--purple)"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>edit_note</span> SZKIC</span>'
+            status_badge = '<span class="badge" style="background:var(--accent-soft);color:var(--purple)"><span class=material-symbols-outlined>edit_note</span> SZKIC</span>'
             row_bg = 'var(--accent-soft)'
             checkbox_disabled = ''
             checkbox_checked = 'checked'
@@ -2489,15 +2489,15 @@ def paleta_mass_edit(paleta_id):
         <div class="product-row" style="background:{row_bg}">
             ''' + (f'''
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 10px;background:var(--green-soft);border-radius:8px">
-                <div style="font-size:0.85rem;color:var(--green);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>edit_note</span> {str(p["meta_title"])[:80]}</div>
+                <div style="font-size:0.85rem;color:var(--green);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600"><span class=material-symbols-outlined>edit_note</span> {str(p["meta_title"])[:80]}</div>
                 <button onclick="regenerateMetaTitle({p["id"]}, this)"
                         style="padding:8px 14px;background:var(--purple);border:none;border-radius:8px;color:#fff;font-size:0.8rem;cursor:pointer;white-space:nowrap;min-height:36px">
-                    <span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>sync</span> Regeneruj
+                    <span class=material-symbols-outlined>sync</span> Regeneruj
                 </button>
             </div>
             ''' if 'meta_title' in p.keys() and p['meta_title'] else f'''
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 10px;background:var(--red-soft);border-radius:8px">
-                <div style="font-size:0.85rem;color:var(--red);flex:1;font-weight:600"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>warning</span> Brak META TITLE</div>
+                <div style="font-size:0.85rem;color:var(--red);flex:1;font-weight:600"><span class=material-symbols-outlined>warning</span> Brak META TITLE</div>
                 <button onclick="regenerateMetaTitle({p["id"]}, this)"
                         style="padding:8px 14px;background:var(--green);border:none;border-radius:8px;color:#fff;font-size:0.8rem;cursor:pointer;white-space:nowrap;min-height:36px">
                     [AUTO_AWESOME] Generuj
@@ -2535,7 +2535,7 @@ def paleta_mass_edit(paleta_id):
 
     content = f'''
     <div class="header">
-        <h1><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>edit</span> Masowa edycja cen</h1>
+        <h1><span class=material-symbols-outlined>edit</span> Masowa edycja cen</h1>
         <small>{paleta['nazwa'] or f"Paleta #{paleta_id}"}</small>
     </div>
 
@@ -2671,7 +2671,7 @@ def paleta_mass_edit(paleta_id):
         // BATCH LIMIT (zwiększony dla paid tier)
         const MAX_BATCH = 100;  // Zwiększone z 10 na 100
         if (checked.length > MAX_BATCH) {{
-            alert('<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>cancel</span> Zbyt dużo produktów!\\n\\nZaznaczono: ' + checked.length + '\\nMax: ' + MAX_BATCH + '\\n\\nZaznacz mniej produktów lub podziel na mniejsze batche.');
+            alert('<span class=material-symbols-outlined>cancel</span> Zbyt dużo produktów!\\n\\nZaznaczono: ' + checked.length + '\\nMax: ' + MAX_BATCH + '\\n\\nZaznacz mniej produktów lub podziel na mniejsze batche.');
             return;
         }}
 
@@ -2681,7 +2681,7 @@ def paleta_mass_edit(paleta_id):
         const seconds = estimatedTime % 60;
         const timeStr = minutes > 0 ? minutes + 'min ' + seconds + 's' : seconds + 's';
 
-        if (!confirm('<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>smart_toy</span> Wygenerować META TITLE dla ' + checked.length + ' produktów?\\n\\n<span class=material-symbols-outlined>timer</span>  Szacowany czas: ~' + timeStr + '\\n<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>warning</span>  5s opóźnienie między produktami (safe rate limiting)\\n\\nKontynuować?')) {{
+        if (!confirm('<span class=material-symbols-outlined>smart_toy</span> Wygenerować META TITLE dla ' + checked.length + ' produktów?\\n\\n<span class=material-symbols-outlined>timer</span>  Szacowany czas: ~' + timeStr + '\\n<span class=material-symbols-outlined>warning</span>  5s opóźnienie między produktami (safe rate limiting)\\n\\nKontynuować?')) {{
             return;
         }}
 
@@ -2709,10 +2709,10 @@ def paleta_mass_edit(paleta_id):
                 // Sprawdź czy były błędy quota
                 const quotaErrors = data.details ? data.details.filter(d => d.error && d.error.includes('Quota')).length : 0;
 
-                let msg = '<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span> Gotowe!\\n\\nWygenerowano: ' + data.generated + '\\nBłędy: ' + data.failed;
+                let msg = '<span class=material-symbols-outlined>check_circle</span> Gotowe!\\n\\nWygenerowano: ' + data.generated + '\\nBłędy: ' + data.failed;
 
                 if (quotaErrors > 0) {{
-                    msg += '\\n\\n<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>warning</span>  Quota exceeded!\\nPoczekaj do jutra (reset o 9:00 AM)\\nlub upgrade do paid tier.';
+                    msg += '\\n\\n<span class=material-symbols-outlined>warning</span>  Quota exceeded!\\nPoczekaj do jutra (reset o 9:00 AM)\\nlub upgrade do paid tier.';
                 }}
 
                 alert(msg);
@@ -2722,16 +2722,16 @@ def paleta_mass_edit(paleta_id):
                 let errorMsg = data.error || 'Nieznany błąd';
 
                 if (errorMsg.includes('Zbyt dużo')) {{
-                    errorMsg = '<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>cancel</span> ' + errorMsg + '\\n\\nTIP: Zaznacz max 10 produktów lub poczekaj do jutra na reset quota.';
+                    errorMsg = '<span class=material-symbols-outlined>cancel</span> ' + errorMsg + '\\n\\nTIP: Zaznacz max 10 produktów lub poczekaj do jutra na reset quota.';
                 }}
 
-                alert('<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>cancel</span> Błąd:\\n\\n' + errorMsg);
+                alert('<span class=material-symbols-outlined>cancel</span> Błąd:\\n\\n' + errorMsg);
                 button.disabled = false;
                 button.innerHTML = originalText;
             }}
         }})
         .catch(err => {{
-            alert('<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>cancel</span> Błąd połączenia:\\n\\n' + err + '\\n\\nSprawdź console (F12) dla szczegółów.');
+            alert('<span class=material-symbols-outlined>cancel</span> Błąd połączenia:\\n\\n' + err + '\\n\\nSprawdź console (F12) dla szczegółów.');
             button.disabled = false;
             button.innerHTML = originalText;
         }});
@@ -3091,7 +3091,7 @@ def paleta_szczegoly(paleta_id):
 
         if p['status'] == 'sprzedany':
             status_color = 'var(--green)'
-            status_icon = '<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span>'
+            status_icon = '<span class=material-symbols-outlined>check_circle</span>'
             status_text = 'SPRZEDANY'
         elif p['status'] == 'wystawiony':
             status_color = 'var(--blue)'
@@ -3125,7 +3125,7 @@ def paleta_szczegoly(paleta_id):
             stan_opcje += f'<option value="{s}" {sel}>{s}</option>'
 
         status_opcje = ''
-        statusy = [('magazyn','[INVENTORY_2] Magazyn'),('wystawiony','<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>shopping_cart</span> Wystawiony'),('sprzedany','[PAID] Sprzedany'),('uszkodzony','<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>warning</span> Uszkodzony'),('zwrot','[UNDO] Zwrot')]
+        statusy = [('magazyn','[INVENTORY_2] Magazyn'),('wystawiony','<span class=material-symbols-outlined>shopping_cart</span> Wystawiony'),('sprzedany','[PAID] Sprzedany'),('uszkodzony','<span class=material-symbols-outlined>warning</span> Uszkodzony'),('zwrot','[UNDO] Zwrot')]
         for sv, sl in statusy:
             sel = 'selected' if (p['status'] or 'magazyn') == sv else ''
             status_opcje += f'<option value="{sv}" {sel}>{sl}</option>'
@@ -3176,7 +3176,7 @@ def paleta_szczegoly(paleta_id):
             <!-- INLINE EDYCJA STANU I STATUSU -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
                 <div>
-                    <div style="font-size:0.6rem;color:var(--text-muted);margin-bottom:3px"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>label</span> STAN</div>
+                    <div style="font-size:0.6rem;color:var(--text-muted);margin-bottom:3px"><span class=material-symbols-outlined>label</span> STAN</div>
                     <select onchange="zapiszPole({p['id']}, 'stan', this.value, this)"
                         style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 6px;font-size:0.72rem">
                         {stan_opcje}
@@ -3195,7 +3195,7 @@ def paleta_szczegoly(paleta_id):
                 <button type="button"
                    onclick="document.getElementById('korektaProduktId').value='{p['id']}';document.getElementById('korektaIlosc').value={p['ilosc'] or 0};document.getElementById('maxIlosc').value={p['ilosc'] or 0};document.getElementById('sprzedajIlosc').value=1;document.getElementById('sprzedajIlosc').max={p['ilosc'] or 0};document.getElementById('sprzedajCena').value='{int(p['cena_allegro'] or p['cena_brutto'] or 0)}';document.getElementById('offlineSzt').value='{int(p_offline_szt)}';var cs=document.getElementById('cofnijOfflineSection');if({int(p_offline_szt)}>0){{cs.style.display='block';document.getElementById('offlineInfo').textContent='{int(p_offline_szt)} szt.';document.getElementById('cofnijIlosc').value=1;document.getElementById('cofnijIlosc').max={int(p_offline_szt)}}}else{{cs.style.display='none'}};document.getElementById('modalKorekta').style.display='block'"
                    style="padding:6px 10px;background:var(--orange);border:none;border-radius:6px;color:#fff;font-size:0.65rem;font-weight:600;cursor:pointer;flex:1">
-                    <span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>edit</span> Korekta
+                    <span class=material-symbols-outlined>edit</span> Korekta
                 </button>
                 <a href="/magazyn/produkt/{p['id']}/edytuj"
                    style="padding:6px 10px;background:var(--blue);border-radius:6px;color:#fff;text-decoration:none;font-size:0.65rem;font-weight:600;text-align:center;flex:1">
@@ -3226,13 +3226,13 @@ def paleta_szczegoly(paleta_id):
     <div class="header">
         <h1>[INVENTORY_2] {paleta['nazwa'] or f"Paleta #{paleta['id']}"}</h1>
         <small><span class="dostawca-name">{paleta['dostawca']}</span> • {paleta['data_zakupu']}</small>
-        {f'<div style="margin-top:6px;font-size:0.85rem;color:var(--purple)"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>pin_drop</span> Regal: {regal_palety}</div>' if regal_palety else ''}
+        {f'<div style="margin-top:6px;font-size:0.85rem;color:var(--purple)"><span class=material-symbols-outlined>pin_drop</span> Regal: {regal_palety}</div>' if regal_palety else ''}
     </div>
 
     <!-- GŁÓWNE STATYSTYKI SPRZEDAŻY -->
     <div class="sale-banner">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-            <div class="sale-banner-label"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>bar_chart</span> SPRZEDAŻ Z PALETY</div>
+            <div class="sale-banner-label"><span class=material-symbols-outlined>bar_chart</span> SPRZEDAŻ Z PALETY</div>
             <div style="font-size:1.8rem;font-weight:800;color:#fff">{sprzedano_szt} <span style="font-size:0.9rem;color:#6ee7b7">/ {(stats['sztuki'] or 0) + sprzedano_szt} szt</span></div>
         </div>
         <div class="sale-grid">
@@ -3276,7 +3276,7 @@ def paleta_szczegoly(paleta_id):
 
     <div class="stat-row" style="margin-bottom:15px">
         <div class="stat-box" style="background:var(--green-soft);border-color:rgba(34,197,94,0.3)">
-            <div class="stat-val green"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span> {stats['wystawione'] or 0}</div>
+            <div class="stat-val green"><span class=material-symbols-outlined>check_circle</span> {stats['wystawione'] or 0}</div>
             <div class="stat-lbl">WYSTAWIONE</div>
         </div>
         <div class="stat-box" style="background:var(--yellow-soft);border-color:rgba(234,179,8,0.3)">
@@ -3284,17 +3284,17 @@ def paleta_szczegoly(paleta_id):
             <div class="stat-lbl">W MAGAZYNIE</div>
         </div>
         <div class="stat-box" style="background:var(--red-soft);border-color:rgba(239,68,68,0.3)">
-            <div class="stat-val red"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>bar_chart</span> {roi:.1f}%</div>
+            <div class="stat-val red"><span class=material-symbols-outlined>bar_chart</span> {roi:.1f}%</div>
             <div class="stat-lbl">ROI</div>
         </div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
-        <a href="/palety/{paleta_id}/mass-edit" class="btn btn-purple" style="text-decoration:none"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>edit</span> MASOWE WYSTAWIANIE</a>
-        <a href="/magazyn/import?paleta_id={paleta_id}" class="btn" style="background:var(--blue);text-decoration:none"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>download</span> IMPORTUJ EXCEL</a>
-        <a href="/palety/{paleta_id}/edit" class="btn btn-warning" style="text-decoration:none"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>settings</span> EDYTUJ PALETE</a>
+        <a href="/palety/{paleta_id}/mass-edit" class="btn btn-purple" style="text-decoration:none"><span class=material-symbols-outlined>edit</span> MASOWE WYSTAWIANIE</a>
+        <a href="/magazyn/import?paleta_id={paleta_id}" class="btn" style="background:var(--blue);text-decoration:none"><span class=material-symbols-outlined>download</span> IMPORTUJ EXCEL</a>
+        <a href="/palety/{paleta_id}/edit" class="btn btn-warning" style="text-decoration:none"><span class=material-symbols-outlined>settings</span> EDYTUJ PALETE</a>
     </div>
-    <button type="button" id="scrape-btn" data-paleta="{paleta_id}" class="btn" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);margin-bottom:15px;font-size:0.85rem;cursor:pointer"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>photo_camera</span> SCRAPUJ ZDJECIA ({bez_zdjec} produktow bez zdjec)</button>
+    <button type="button" id="scrape-btn" data-paleta="{paleta_id}" class="btn" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);margin-bottom:15px;font-size:0.85rem;cursor:pointer"><span class=material-symbols-outlined>photo_camera</span> SCRAPUJ ZDJECIA ({bez_zdjec} produktow bez zdjec)</button>
     ''' + '''<script>
     document.getElementById('scrape-btn').onclick = function() {
         var btn = this;
@@ -3305,18 +3305,18 @@ def paleta_szczegoly(paleta_id):
         .then(function(r) { return r.json(); })
         .then(function(d) {
             if (d.ok) {
-                btn.innerHTML = '<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span> Scraping ' + d.count + ' produktow w tle!';
+                btn.innerHTML = '<span class=material-symbols-outlined>check_circle</span> Scraping ' + d.count + ' produktow w tle!';
                 btn.style.background = '#22c55e';
                 btn.style.opacity = '1';
             } else {
-                btn.innerHTML = '<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>cancel</span> ' + (d.error || 'Blad');
+                btn.innerHTML = '<span class=material-symbols-outlined>cancel</span> ' + (d.error || 'Blad');
                 btn.style.background = '#ef4444';
                 btn.style.opacity = '1';
             }
             setTimeout(function() { location.reload(); }, 3000);
         })
         .catch(function(e) {
-            btn.innerHTML = '<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>cancel</span> ' + e;
+            btn.innerHTML = '<span class=material-symbols-outlined>cancel</span> ' + e;
             btn.disabled = false;
             btn.style.opacity = '1';
         });
@@ -3347,10 +3347,10 @@ def paleta_szczegoly(paleta_id):
 
     ''' + produkty_html + '''
 
-    <form method="POST" action="/palety/''' + str(paleta_id) + '''/delete" style="margin-top:20px" onsubmit="return confirm('<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>warning</span> UWAGA!\\n\\nTo usunie tę paletę i wszystkie jej produkty (''' + str(stats['cnt']) + ''' szt.)\\n\\nNa pewno kontynuować?')">
+    <form method="POST" action="/palety/''' + str(paleta_id) + '''/delete" style="margin-top:20px" onsubmit="return confirm('<span class=material-symbols-outlined>warning</span> UWAGA!\\n\\nTo usunie tę paletę i wszystkie jej produkty (''' + str(stats['cnt']) + ''' szt.)\\n\\nNa pewno kontynuować?')">
         <input type="hidden" name="csrf_token" value="''' + generate_csrf() + '''">
         <button type="submit" class="btn btn-danger">
-            <span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>delete</span> USUŃ PALETĘ
+            <span class=material-symbols-outlined>delete</span> USUŃ PALETĘ
         </button>
     </form>
 
@@ -3359,7 +3359,7 @@ def paleta_szczegoly(paleta_id):
     <!-- MODAL KOREKTY ILOŚCI -->
     <div id="modalKorekta" onclick="if(event.target===this)this.style.display='none'" class="modal-overlay" style="display:none">
         <div class="modal-box" style="max-width:400px;margin:50px auto">
-            <h3 style="margin:0 0 15px"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>edit</span> Korekta produktu</h3>
+            <h3 style="margin:0 0 15px"><span class=material-symbols-outlined>edit</span> Korekta produktu</h3>
 
             <!-- KOREKTA ILOŚCI -->
             <form method="POST" action="/sprzedaze/korekta-ilosci">
@@ -3370,7 +3370,7 @@ def paleta_szczegoly(paleta_id):
                     <input type="number" name="nowa_ilosc" id="korektaIlosc" min="0" class="form-control">
                 </div>
                 <div style="display:flex;gap:10px;margin-bottom:15px">
-                    <button type="submit" class="btn" style="flex:1;background:var(--blue);margin:0"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>save</span> Zapisz ilość</button>
+                    <button type="submit" class="btn" style="flex:1;background:var(--blue);margin:0"><span class=material-symbols-outlined>save</span> Zapisz ilość</button>
                     <button type="button" onclick="document.getElementById('modalKorekta').style.display='none'" class="btn btn-secondary" style="flex:0;width:auto;padding:12px 16px;margin:0">✕</button>
                 </div>
             </form>
@@ -3395,21 +3395,21 @@ def paleta_szczegoly(paleta_id):
 
             <!-- COFNIJ OFFLINE -->
             <div id="cofnijOfflineSection" style="display:none;border-top:1px solid var(--border);padding-top:15px;margin-top:15px">
-                <label style="display:block;font-size:0.8rem;color:var(--red);margin-bottom:8px"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>sync</span> Cofnij sprzedaż offline:</label>
+                <label style="display:block;font-size:0.8rem;color:var(--red);margin-bottom:8px"><span class=material-symbols-outlined>sync</span> Cofnij sprzedaż offline:</label>
                 <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
                     <span style="font-size:0.75rem;color:var(--text-muted)">Sprzedano offline:</span>
                     <span id="offlineInfo" style="color:var(--orange);font-weight:600">0 szt.</span>
                 </div>
                 <div style="display:flex;gap:10px">
                     <input type="number" id="cofnijIlosc" min="1" value="1" class="form-control" style="flex:1;text-align:center;border-color:var(--red)">
-                    <button onclick="cofnijOffline()" class="btn btn-danger" style="width:auto;padding:12px 20px;margin:0"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>sync</span> Cofnij</button>
+                    <button onclick="cofnijOffline()" class="btn btn-danger" style="width:auto;padding:12px 20px;margin:0"><span class=material-symbols-outlined>sync</span> Cofnij</button>
                 </div>
             </div>
 
             <!-- COFNIJ SPRZEDAŻ -->
             <div style="border-top:1px solid var(--border);padding-top:15px;margin-top:15px">
-                <label style="display:block;font-size:0.8rem;color:var(--red);margin-bottom:8px"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>sync</span> Cofnij sprzedaż (przywróć do magazynu):</label>
-                <button onclick="cofnijSprzedaz()" class="btn btn-danger" style="margin:0"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>sync</span> Cofnij sprzedaż</button>
+                <label style="display:block;font-size:0.8rem;color:var(--red);margin-bottom:8px"><span class=material-symbols-outlined>sync</span> Cofnij sprzedaż (przywróć do magazynu):</label>
+                <button onclick="cofnijSprzedaz()" class="btn btn-danger" style="margin:0"><span class=material-symbols-outlined>sync</span> Cofnij sprzedaż</button>
                 <div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;text-align:center">
                     Cofa sprzedaż, przywraca ilość i zmienia status produktu na magazyn
                 </div>
@@ -3750,11 +3750,11 @@ def paleta_szczegoly(paleta_id):
                   '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
                     '<div style="font-weight:700;color:var(--orange)">[BUILD] szt. '+s.numer+' <span style="font-size:0.7rem">DO NAPRAWY</span></div>' +
                     '<div style="display:flex;gap:6px">' +
-                      '<button onclick="edytujNaprawa('+s.id+', \''+((s.opis_naprawy||'').replace(/'/g,"\\'"))+'\')" style="padding:4px 10px;background:var(--purple);border:none;border-radius:6px;color:#fff;font-size:0.72rem;cursor:pointer"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>edit</span> Edytuj</button>' +
+                      '<button onclick="edytujNaprawa('+s.id+', \''+((s.opis_naprawy||'').replace(/'/g,"\\'"))+'\')" style="padding:4px 10px;background:var(--purple);border:none;border-radius:6px;color:#fff;font-size:0.72rem;cursor:pointer"><span class=material-symbols-outlined>edit</span> Edytuj</button>' +
                       '<button onclick="cofnijNaprawa('+s.id+')" style="padding:4px 10px;background:var(--red-soft);border:1px solid var(--red);border-radius:6px;color:var(--red);font-size:0.72rem;cursor:pointer">↩ Cofnij</button>' +
                     '</div>' +
                   '</div>' +
-                  '<div style="background:var(--bg-card);border-radius:6px;padding:8px;font-size:0.8rem"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>edit_note</span> '+(s.opis_naprawy || '—')+'</div>' +
+                  '<div style="background:var(--bg-card);border-radius:6px;padding:8px;font-size:0.8rem"><span class=material-symbols-outlined>edit_note</span> '+(s.opis_naprawy || '—')+'</div>' +
                   (s.data_naprawy ? '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px">'+s.data_naprawy+'</div>' : '') +
                 '</div>';
             } else {
@@ -3821,14 +3821,14 @@ def paleta_szczegoly(paleta_id):
         const menu = document.getElementById('menuKontekst');
         document.getElementById('menuNaglowek').textContent = 'ZMIEŃ STATUS (dostępne: ' + ilosc + '/' + ilosc + ')';
         document.getElementById('menuStatusy').innerHTML =
-            '<div onclick="menuStatus(\'sprzedany\')" class="menu-item"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span> Sprzedane</div>' +
-            '<div onclick="menuStatus(\'sprzedany_uszkodzony\')" class="menu-item"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>warning</span> Sprzedane uszkodzone</div>' +
+            '<div onclick="menuStatus(\'sprzedany\')" class="menu-item"><span class=material-symbols-outlined>check_circle</span> Sprzedane</div>' +
+            '<div onclick="menuStatus(\'sprzedany_uszkodzony\')" class="menu-item"><span class=material-symbols-outlined>warning</span> Sprzedane uszkodzone</div>' +
             '<div onclick="menuNaprawyModal('+produktId+', \''+nazwa.replace(/'/g,"\\'")+'\', '+ilosc+')" class="menu-item">[BUILD] Do naprawy...</div>' +
-            '<div onclick="menuStatus(\'wyrzucenie\')" class="menu-item"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>delete</span> Do wyrzucenia</div>' +
+            '<div onclick="menuStatus(\'wyrzucenie\')" class="menu-item"><span class=material-symbols-outlined>delete</span> Do wyrzucenia</div>' +
             '<div onclick="menuStatus(\'zwrot\')" class="menu-item">[UNDO] Oddane (zwrot)</div>';
         document.getElementById('menuInne').innerHTML =
             '<div onclick="pokazRozbij('+produktId+', '+ilosc+', \''+nazwa.replace(/'/g,"\\'")+'\'); zamknijMenu()" class="menu-item">[TARGET] Rozbij na sztuki</div>' +
-            '<a href="/magazyn/produkt/'+produktId+'/edytuj" class="menu-item" style="text-decoration:none;display:block;color:var(--text)"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>edit</span> Edytuj produkt</a>';
+            '<a href="/magazyn/produkt/'+produktId+'/edytuj" class="menu-item" style="text-decoration:none;display:block;color:var(--text)"><span class=material-symbols-outlined>edit</span> Edytuj produkt</a>';
         const rect = evt.target.getBoundingClientRect();
         menu.style.display = 'block';
         menu.style.top = (rect.bottom + window.scrollY + 4) + 'px';
@@ -3981,7 +3981,7 @@ def paleta_delete(paleta_id):
 
     content = f'''
     <div style="text-align:center;padding:60px 20px">
-        <div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span></div>
+        <div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined>check_circle</span></div>
         <div style="font-size:1.2rem">Paleta usunięta!</div>
         <div style="color:var(--text-muted);margin-top:10px">
             Usunięto {produkty_cnt} produktów{f' i {scraped_cnt} z Palatomatu' if scraped_cnt > 0 else ''}

@@ -36,11 +36,11 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
 <!-- Przyciski akcji -->
 <div class="quick-actions" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
     <a href="/sync-custom?from={{ miesiac_filter }}-01" class="qa-btn">
-        <span class="qa-icon" style="background:var(--yellow-soft)"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>sync</span></span>
+        <span class="qa-icon" style="background:var(--yellow-soft)"><span class=material-symbols-outlined>sync</span></span>
         Sync miesiac
     </a>
     <a href="/sprzedaze/sync-zwroty?miesiac={{ miesiac_filter }}" class="qa-btn">
-        <span class="qa-icon" style="background:var(--red-soft)"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>sync</span></span>
+        <span class="qa-icon" style="background:var(--red-soft)"><span class=material-symbols-outlined>sync</span></span>
         Sync zwrotow
     </a>
     <a href="/sprzedaze/napraw-nazwy?miesiac={{ miesiac_filter }}" class="qa-btn">
@@ -48,7 +48,7 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
         Napraw dane
     </a>
     <a href="/sprzedaze/dopasuj" class="qa-btn">
-        <span class="qa-icon" style="background:rgba(143,245,255,0.12)"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>link</span></span>
+        <span class="qa-icon" style="background:rgba(143,245,255,0.12)"><span class=material-symbols-outlined>link</span></span>
         Dopasuj
     </a>
 </div>
@@ -74,12 +74,12 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
         <div class="kpi-label">Przychod</div>
     </div>
     <div class="kpi-card orange">
-        <div class="kpi-icon"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>sync</span></div>
+        <div class="kpi-icon"><span class=material-symbols-outlined>sync</span></div>
         <div class="kpi-value">{{ zwroty_cnt }}</div>
         <div class="kpi-label">Zwrotow</div>
     </div>
     <div class="kpi-card" style="--card-color:var(--red)">
-        <div class="kpi-icon" style="background:var(--red-soft)"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>trending_down</span></div>
+        <div class="kpi-icon" style="background:var(--red-soft)"><span class=material-symbols-outlined>trending_down</span></div>
         <div class="kpi-value" style="color:var(--red)">-{{ zwroty_suma }} zl</div>
         <div class="kpi-label">Wartosc zwrotow</div>
     </div>
@@ -117,7 +117,7 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
         <form method="POST" action="/sprzedaze/usun/{{ s.id }}" style="display:inline;margin:0" onsubmit="return confirm('Usunac te sprzedaz i przywrocic ilosc?')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="miesiac" value="{{ miesiac_filter }}">
-            <button type="submit" class="btn btn-warning btn-sm"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>delete</span> Usun</button>
+            <button type="submit" class="btn btn-warning btn-sm"><span class=material-symbols-outlined>delete</span> Usun</button>
         </form>
         {% elif s.is_zwrot %}
         <form method="POST" action="/sprzedaze/unzwrot/{{ s.id }}" style="display:inline;margin:0">
@@ -930,7 +930,7 @@ DOPASUJ_TEMPLATE = '''
 
 {% if suggestions_count > 0 %}
 <button onclick="autoMatchAll()" class="btn btn-success" style="margin-bottom:20px">
-    <span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>bolt</span> Auto-dopasuj {{ suggestions_count }} sugestii
+    <span class=material-symbols-outlined>bolt</span> Auto-dopasuj {{ suggestions_count }} sugestii
 </button>
 {% endif %}
 
@@ -943,7 +943,7 @@ DOPASUJ_TEMPLATE = '''
             <div class="list-item-meta">{{ g.cnt }} szt. | {{ g.wartosc_fmt }} zl</div>
         </div>
         <button onclick="openSearch('{{ g.nazwa_js }}', '{{ g.sale_ids }}')" class="btn btn-primary btn-sm">
-            <span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>search</span> Szukaj
+            <span class=material-symbols-outlined>search</span> Szukaj
         </button>
     </div>
     {% if g.suggestion %}
@@ -968,7 +968,7 @@ DOPASUJ_TEMPLATE = '''
 <div id="searchModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:1000;padding:15px;overflow-y:auto">
     <div class="card" style="max-width:500px;margin:40px auto;padding:20px;background:rgba(15,15,30,0.85);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08)">
         <div class="card-header">
-            <div class="card-title" style="color:#8ff5ff;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 20px rgba(143,245,255,0.3)"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>search</span> Szukaj produktu</div>
+            <div class="card-title" style="color:#8ff5ff;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 20px rgba(143,245,255,0.3)"><span class=material-symbols-outlined>search</span> Szukaj produktu</div>
             <button onclick="closeModal()" style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer">&times;</button>
         </div>
         <div id="modalInfo" style="background:var(--bg);padding:10px;border-radius:8px;margin-bottom:12px;font-size:0.8rem;color:var(--text-secondary)"></div>

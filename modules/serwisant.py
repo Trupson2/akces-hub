@@ -214,7 +214,7 @@ def serwis_lista():
 
     html += f'''
         <a href="/serwis?status=przyjety" class="sv-stat-card sv-stat-cyan">
-            <div class="sv-stat-icon"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>download</span></div>
+            <div class="sv-stat-icon"><span class=material-symbols-outlined>download</span></div>
             <div class="sv-stat-label">Accepted</div>
             <div class="sv-stat-val">{stats['przyjete']}</div>
             <div class="sv-progress"><div class="sv-progress-bar" style="width:{_pct(stats['przyjete'])}%"></div></div>
@@ -226,19 +226,19 @@ def serwis_lista():
             <div class="sv-progress"><div class="sv-progress-bar" style="width:{_pct(stats['w_naprawie'])}%"></div></div>
         </a>
         <a href="/serwis?status=naprawiony" class="sv-stat-card sv-stat-lime">
-            <div class="sv-stat-icon"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span></div>
+            <div class="sv-stat-icon"><span class=material-symbols-outlined>check_circle</span></div>
             <div class="sv-stat-label">Repaired</div>
             <div class="sv-stat-val">{stats['naprawione']}</div>
             <div class="sv-progress"><div class="sv-progress-bar" style="width:{_pct(stats['naprawione'])}%"></div></div>
         </a>
         <a href="/serwis?status=zwrocony" class="sv-stat-card sv-stat-outline">
-            <div class="sv-stat-icon"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>sync</span></div>
+            <div class="sv-stat-icon"><span class=material-symbols-outlined>sync</span></div>
             <div class="sv-stat-label">Returned</div>
             <div class="sv-stat-val">{stats['zwrocone']}</div>
             <div class="sv-progress"><div class="sv-progress-bar" style="width:{_pct(stats['zwrocone'])}%"></div></div>
         </a>
         <a href="/serwis?status=zlomowany" class="sv-stat-card sv-stat-secondary">
-            <div class="sv-stat-icon"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>delete</span></div>
+            <div class="sv-stat-icon"><span class=material-symbols-outlined>delete</span></div>
             <div class="sv-stat-label">Scrapped</div>
             <div class="sv-stat-val">{stats['zlomowane']}</div>
             <div class="sv-progress"><div class="sv-progress-bar" style="width:{_pct(stats['zlomowane'])}%"></div></div>
@@ -254,11 +254,11 @@ def serwis_lista():
     <!-- ═══ Filter pills ═══ -->
     <div class="sv-filters">
         <a href="/serwis" class="sv-filter-pill ''' + ('active' if not filtr else '') + '''">Aktywne</a>
-        <a href="/serwis?status=przyjety" class="sv-filter-pill ''' + ('active' if filtr=='przyjety' else '') + '''"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>download</span> Przyjęte</a>
+        <a href="/serwis?status=przyjety" class="sv-filter-pill ''' + ('active' if filtr=='przyjety' else '') + '''"><span class=material-symbols-outlined>download</span> Przyjęte</a>
         <a href="/serwis?status=w_naprawie" class="sv-filter-pill ''' + ('active' if filtr=='w_naprawie' else '') + '''">[BUILD] W naprawie</a>
-        <a href="/serwis?status=naprawiony" class="sv-filter-pill ''' + ('active' if filtr=='naprawiony' else '') + '''"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span> Naprawione</a>
-        <a href="/serwis?status=zwrocony" class="sv-filter-pill ''' + ('active' if filtr=='zwrocony' else '') + '''"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>sync</span> Zwrócone</a>
-        <a href="/serwis?status=zlomowany" class="sv-filter-pill ''' + ('active' if filtr=='zlomowany' else '') + '''"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>delete</span> Złomowane</a>
+        <a href="/serwis?status=naprawiony" class="sv-filter-pill ''' + ('active' if filtr=='naprawiony' else '') + '''"><span class=material-symbols-outlined>check_circle</span> Naprawione</a>
+        <a href="/serwis?status=zwrocony" class="sv-filter-pill ''' + ('active' if filtr=='zwrocony' else '') + '''"><span class=material-symbols-outlined>sync</span> Zwrócone</a>
+        <a href="/serwis?status=zlomowany" class="sv-filter-pill ''' + ('active' if filtr=='zlomowany' else '') + '''"><span class=material-symbols-outlined>delete</span> Złomowane</a>
     </div>
 
     <!-- ═══ List ═══ -->
@@ -315,7 +315,7 @@ def serwis_lista():
                         <a href="/magazyn/produkt/{kod}">{(item['produkt_nazwa'] or '?')[:50]}</a>
                     </div>
                     <div class="sv-item-meta">{kod} · {item['dostawca'] or ''}{dni}</div>
-                    <div class="sv-item-fault"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>bolt</span> {item['opis_usterki'] or 'Brak opisu usterki'}</div>
+                    <div class="sv-item-fault"><span class=material-symbols-outlined>bolt</span> {item['opis_usterki'] or 'Brak opisu usterki'}</div>
                 </div>
                 <div style="text-align:center;min-width:55px">
                     <div class="sv-item-qty">{item['ilosc_szt']} szt</div>
@@ -331,16 +331,16 @@ def serwis_lista():
             if item['status'] == 'przyjety':
                 html += f'''
                     <button onclick="aktualizujSerwis({item['id']}, 'w_naprawie')" class="sv-act sv-act-repair">[BUILD] Naprawiaj</button>
-                    <button onclick="zlomuj({item['id']})" class="sv-act sv-act-scrap"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>delete</span></button>
+                    <button onclick="zlomuj({item['id']})" class="sv-act sv-act-scrap"><span class=material-symbols-outlined>delete</span></button>
                 '''
             elif item['status'] == 'w_naprawie':
                 html += f'''
-                    <button onclick="zakonczNaprawe({item['id']})" class="sv-act sv-act-done"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span> Naprawiony</button>
-                    <button onclick="zlomuj({item['id']})" class="sv-act sv-act-scrap"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>delete</span></button>
+                    <button onclick="zakonczNaprawe({item['id']})" class="sv-act sv-act-done"><span class=material-symbols-outlined>check_circle</span> Naprawiony</button>
+                    <button onclick="zlomuj({item['id']})" class="sv-act sv-act-scrap"><span class=material-symbols-outlined>delete</span></button>
                 '''
             elif item['status'] == 'naprawiony':
                 html += f'''
-                    <button onclick="zwrocDoMagazynu({item['id']})" class="sv-act sv-act-return"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>sync</span> Zwróć do mag.</button>
+                    <button onclick="zwrocDoMagazynu({item['id']})" class="sv-act sv-act-return"><span class=material-symbols-outlined>sync</span> Zwróć do mag.</button>
                 '''
 
             html += '''

@@ -21,7 +21,7 @@ _logger.setLevel(logging.DEBUG)
 
 # Prevent duplicate handlers if module is imported multiple times
 if not _logger.handlers:
-    # Format: [2026-03-14 22:30:00] <span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>info</span> message
+    # Format: [2026-03-14 22:30:00] <span class=material-symbols-outlined>info</span> message
     _formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s',
                                    datefmt='%Y-%m-%d %H:%M:%S')
 
