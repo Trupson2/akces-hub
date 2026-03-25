@@ -9,7 +9,7 @@ import sqlite3
 import threading
 import time
 from datetime import datetime, timedelta
-from flask import Blueprint, render_template, render_template_string, request, redirect, jsonify, Response
+from flask import Blueprint, render_template, render_template_string, request, redirect, jsonify, Response, current_app, session
 from flask_wtf.csrf import generate_csrf
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -5065,12 +5065,12 @@ def generator_detail(asin):
     except:
         pass
     
-    # Status scrapowania
-    scrape_status = ''
-    if cena_amazon and cena_amazon > 0:
-        scrape_status = f'<div class="alert alert-ok" style="font-size:0.8rem;padding:8px"><span class=material-symbols-outlined>check_circle</span> Scrapowano z Amazon | Cena: {cena_amazon:.2f}€ | <span class=material-symbols-outlined>photo_camera</span> {len(wszystkie_zdjecia)} zdjęć</div>'
-    else:
-        scrape_status = f'<div class="alert alert-warn" style="font-size:0.8rem;padding:8px"><span class=material-symbols-outlined>warning</span> Brak ceny z Amazon - ustaw ręcznie | <span class=material-symbols-outlined>photo_camera</span> {len(wszystkie_zdjecia)} zdjęć</div>'
+    # Pobierz listę produktów z magazynu (dla lewego panelu)
+    magazyn_products = conn.execute(
+        'SELECT id, nazwa, ilosc, cena_allegro, zdjecie_url, kod_magazynowy, stan FROM produkty WHERE ilosc > 0 ORDER BY data_dodania DESC LIMIT 50'
+    ).fetchall()
+    magazyn_products = [dict(mp) for mp in magazyn_products]
+    current_product_id = produkt_id_z_url or (magazyn_produkt['id'] if magazyn_produkt else 0)
     
     # Status Allegro
     allegro_status = ''
@@ -5082,321 +5082,39 @@ def generator_detail(asin):
     # Przygotuj JSON zdjęć
     import html as html_lib
     zdjecia_json = json.dumps(wszystkie_zdjecia)
-    
-    # Escape HTML dla textarea i podglądu
     opis_html_escaped = html_lib.escape(opis_html)
+
+    # Render stan fields HTML
+    stan_fields_html = _render_stan_fields(grupy_stanow, stan_magazyn)
+
+    return render_template('paletomat_generator.html',
+        asin=asin,
+        product=p,
+        zdjecie_url=zdjecie_url,
+        images=wszystkie_zdjecia,
+        cena_amazon=cena_amazon,
+        tytul_seo=tytul_seo,
+        cena_sugerowana=wynik['cena_sugerowana'],
+        detected_cat=detected_cat,
+        detected_cat_name=detected_cat_name,
+        ilosc_magazyn=ilosc_magazyn,
+        ean_magazyn=ean_magazyn,
+        stan_magazyn=stan_magazyn,
+        grupy_stanow=grupy_stanow,
+        stan_fields_html=stan_fields_html,
+        opis_html=opis_html,
+        opis_html_escaped=opis_html_escaped,
+        gpsr_info=gpsr_info,
+        zdjecia_json=zdjecia_json,
+        allegro_ok=allegro_ok,
+        shipping_ok=shipping_ok,
+        magazyn_products=magazyn_products,
+        current_product_id=current_product_id,
+        product_count=len(magazyn_products),
+        brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
+        current_user=session.get('user')
+    )
     
-    # Galeria zdjęć HTML
-    gallery_html = ''
-    if len(wszystkie_zdjecia) > 1:
-        gallery_html = '<div style="display:flex;gap:8px;overflow-x:auto;padding:10px 0;margin-bottom:10px">'
-        for i, img_url in enumerate(wszystkie_zdjecia[:6]):
-            border = 'border:2px solid #22c55e' if i == 0 else 'border:1px solid #1e1e2e'
-            gallery_html += f'<img data-img-idx="{i}" src="{img_url}" style="width:60px;height:60px;object-fit:contain;background:#fff;border-radius:6px;{border}" onerror="this.style.display=\'none\'">'
-        gallery_html += '</div>'
-        gallery_html += f'<div style="font-size:0.75rem;color:#22c55e;text-align:center;margin-bottom:10px"><span class=material-symbols-outlined>check_circle</span> {len(wszystkie_zdjecia)} zdjęć w layoutcie opisu</div>'
-    
-    html = f'''
-    <div class="hdr"><h1><span class=material-symbols-outlined>label</span> GENERUJ OFERTĘ</h1><small>{asin}</small></div>
-
-    {scrape_status}
-    {allegro_status}
-
-    <div class="card">
-        <div style="text-align:center;margin-bottom:15px">
-            <img id="mainImg" src="{zdjecie_url}" style="max-width:200px;max-height:200px;background:#fff;border-radius:8px;padding:10px" onerror="this.src='{get_amazon_image_url(asin)}'">
-            {gallery_html}
-            <div style="margin-top:8px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;align-items:center">
-                <button type="button" onclick="cleanImages()" id="btnClean" style="padding:6px 14px;background:#7c3aed;color:#fff;border:none;border-radius:6px;font-size:0.75rem;cursor:pointer">
-                    <span class=material-symbols-outlined>mop</span> Wyczysc z napisow
-                </button>
-                <button type="button" onclick="enhanceImages()" id="btnEnhance" style="padding:6px 14px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:0.75rem;cursor:pointer">
-                    [AUTO_AWESOME] Podrasuj 8 zdjec
-                </button>
-                <span id="cleanStatus" style="font-size:0.7rem;color:#64748b"></span>
-            </div>
-        </div>
-        
-        <form action="/paletomat/generator/{asin}/create" method="POST">
-            <div class="form-group">
-                <label>Tytuł oferty (max 75 znaków) - SEO zoptymalizowany</label>
-                <input type="text" name="tytul" class="form-ctrl" value="{tytul_seo}" maxlength="75" required>
-                <div style="font-size:0.7rem;color:#64748b;margin-top:3px">{len(tytul_seo)}/75 znaków</div>
-            </div>
-            
-            <div class="form-group">
-                <label><span class=material-symbols-outlined>folder</span> Kategoria Allegro</label>
-                <select name="kategoria" class="form-ctrl" style="padding:10px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#fff">
-                    <option value="{detected_cat}" selected>✓ {detected_cat_name} (auto)</option>
-                    <option value="261680">Motoryzacja > Pokrowce na siedzenia</option>
-                    <option value="310037">Motoryzacja > Ładowarki EV / Wallbox</option>
-                    <option value="261647">Motoryzacja > Dywaniki samochodowe</option>
-                    <option value="261696">Motoryzacja > Maty grzewcze</option>
-                    <option value="165">Elektronika > Kable</option>
-                    <option value="20650">Elektronika > Ładowarki</option>
-                    <option value="174895">Elektronika > Powerbanki</option>
-                    <option value="258682">Inne</option>
-                </select>
-            </div>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Cena Amazon (€)</label>
-                    <input type="number" step="0.01" name="cena_amazon" class="form-ctrl" value="{cena_amazon:.2f}" id="cena_amazon" onchange="przeliczCene()">
-                </div>
-                <div class="form-group">
-                    <label><span class=material-symbols-outlined>payments</span> Cena Allegro (zł)</label>
-                    <input type="number" step="0.01" name="cena_allegro" class="form-ctrl" value="{wynik['cena_sugerowana']}" id="cena_allegro" required>
-                </div>
-            </div>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Ilość {f'(z magazynu: {ilosc_magazyn})' if ilosc_magazyn > 1 else ''}</label>
-                    <input type="number" name="ilosc" class="form-ctrl" value="{ilosc_magazyn}" min="1" {'style="display:none"' if grupy_stanow else ''}>
-                    {'<div style="font-size:0.75rem;color:#64748b;margin-top:4px">Ilość ustawiana automatycznie z grup poniżej</div>' if grupy_stanow else ''}
-                </div>
-                <div class="form-group">
-                    <label><span class=material-symbols-outlined>bar_chart</span> EAN (do wpisania w Sales Center)</label>
-                    <input type="text" name="ean" class="form-ctrl" value="{ean_magazyn}" placeholder="Kod kreskowy">
-                    <div style="font-size:0.65rem;color:#eab308;margin-top:2px"><span class=material-symbols-outlined>warning</span> EAN nie jest wysyłany do Allegro - skopiuj i wklej w Sales Center</div>
-                </div>
-            </div>
-            
-            {_render_stan_fields(grupy_stanow, stan_magazyn)}
-            
-            <div class="form-group">
-                <label><span class=material-symbols-outlined>edit_note</span> Opis HTML (profesjonalny layout ze zdjęciami)</label>
-                <div style="display:flex;gap:8px;margin-bottom:8px">
-                    <button type="button" onclick="togglePreview()" class="btn btn-2" style="padding:8px 12px;width:auto;font-size:0.8rem"><span class=material-symbols-outlined>visibility</span> Podgląd</button>
-                    <button type="button" onclick="copyHtml()" class="btn btn-2" style="padding:8px 12px;width:auto;font-size:0.8rem"><span class=material-symbols-outlined>list_alt</span> Kopiuj</button>
-                </div>
-                <textarea name="opis" id="opisHtml" class="form-ctrl" style="min-height:200px;font-size:0.75rem;line-height:1.4;font-family:monospace">{opis_html_escaped}</textarea>
-            </div>
-            
-            <div id="previewBox" style="display:none;background:#fff;border-radius:12px;padding:20px;margin-bottom:15px;max-height:500px;overflow-y:auto">
-                {opis_html}
-            </div>
-            
-            <input type="hidden" name="asin" value="{asin}">
-            <input type="hidden" name="zdjecia" id="zdjecia_input" value='{zdjecia_json}'>
-            <input type="hidden" name="opis_type" value="html">
-            
-            <div class="form-group">
-                <label>[SHIELD] Informacje o bezpieczeństwie (GPSR) - skopiuj do Sales Center</label>
-                <textarea name="gpsr" id="gpsrInfo" class="form-ctrl" style="min-height:150px;font-size:0.8rem;line-height:1.4">{gpsr_info}</textarea>
-                <div style="font-size:0.7rem;color:#eab308;margin-top:3px"><span class=material-symbols-outlined>warning</span> Allegro API nie obsługuje GPSR - skopiuj i wklej ręcznie w Sales Center po utworzeniu oferty</div>
-            </div>
-            
-            <input type="hidden" name="enhance_photos" value="1">
-
-            <div class="form-group" style="background:rgba(139,92,246,0.1);border:2px solid #8b5cf6;border-radius:8px;padding:15px">
-                <label style="display:flex;align-items:center;cursor:pointer;user-select:none">
-                    <input type="checkbox" name="mark_as_published" value="1" checked style="width:20px;height:20px;margin-right:10px;cursor:pointer;accent-color:#8b5cf6">
-                    <span style="font-weight:600;font-size:0.95rem">
-                        <span class=material-symbols-outlined>check_circle</span> Oznacz produkt jako "wystawiony" w magazynie
-                    </span>
-                </label>
-                <div style="font-size:0.8rem;color:var(--text-dim);margin-top:8px;margin-left:30px">
-                    Po wystawieniu na Allegro, produkt zostanie automatycznie oznaczony jako "wystawiony" w magazynie.
-                    Odznacz jeśli chcesz sam kontrolować ten status później.
-                </div>
-            </div>
-            
-            <button type="submit" name="action" value="draft" class="btn btn-2"><span class=material-symbols-outlined>save</span> ZAPISZ SZKIC</button>
-            '''
-    
-    if allegro_ok and shipping_ok:
-        html += '<button type="submit" name="action" value="allegro" class="btn btn-ok" style="margin-top:8px"><span class=material-symbols-outlined>shopping_cart</span> WYSTAW NA ALLEGRO</button>'
-    elif allegro_ok and not shipping_ok:
-        html += '<div class="alert alert-warn" style="margin-top:10px;font-size:0.8rem"><span class=material-symbols-outlined>warning</span> Wybierz cennik wysyłki → <a href="/allegro/config" style="color:#eab308">Ustawienia Allegro</a></div>'
-    else:
-        html += '<div class="alert alert-warn" style="margin-top:10px;font-size:0.8rem"><span class=material-symbols-outlined>warning</span> Połącz się z Allegro → <a href="/allegro" style="color:#eab308">Ustawienia</a></div>'
-    
-    html += '''
-        </form>
-    </div>
-    
-    <script>
-    function przeliczCene() {
-        var eur = parseFloat(document.getElementById('cena_amazon').value) || 0;
-        var pln = Math.round((eur * 4.35 * 1.4) + 0.99);
-        document.getElementById('cena_allegro').value = pln.toFixed(2);
-    }
-    
-    function togglePreview() {
-        var box = document.getElementById('previewBox');
-        var textarea = document.getElementById('opisHtml');
-        if (box.style.display === 'none') {
-            box.innerHTML = textarea.value;
-            box.style.display = 'block';
-        } else {
-            box.style.display = 'none';
-        }
-    }
-    
-    function copyHtml() {
-        var textarea = document.getElementById('opisHtml');
-        textarea.select();
-        document.execCommand('copy');
-        alert('Skopiowano HTML!');
-    }
-
-    '''
-    html += f'''var allPhotos = {zdjecia_json};
-    var cleanedPhotos = {{}};
-    var cleanIdx = 0;'''
-    html += '''
-
-    function cleanImages() {
-        var btn = document.getElementById('btnClean');
-        var status = document.getElementById('cleanStatus');
-        btn.disabled = true;
-        btn.textContent = 'Czyszcze...';
-        cleanIdx = 0;
-        cleanedPhotos = {};
-        cleanNext(btn, status);
-    }
-
-    function cleanNext(btn, status) {
-        if (cleanIdx >= allPhotos.length) {
-            btn.textContent = 'Gotowe!';
-            btn.style.background = '#22c55e';
-            status.textContent = cleanIdx + '/' + allPhotos.length + ' oczyszczonych';
-            updateCleanedPhotos();
-            return;
-        }
-        var url = allPhotos[cleanIdx];
-        status.textContent = (cleanIdx+1) + '/' + allPhotos.length + ' czyszcze...';
-
-        fetch('/paletomat/api/clean-image', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({url: url})
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                cleanedPhotos[cleanIdx] = data.cleaned_url;
-                var thumbs = document.querySelectorAll('[data-img-idx]');
-                if (thumbs[cleanIdx]) thumbs[cleanIdx].style.border = '2px solid #22c55e';
-            }
-            cleanIdx++;
-            cleanNext(btn, status);
-        })
-        .catch(err => {
-            console.error('Clean error:', err);
-            cleanIdx++;
-            cleanNext(btn, status);
-        });
-    }
-
-    function updateCleanedPhotos() {
-        var updated = allPhotos.map(function(url, i) {
-            return cleanedPhotos[i] ? (window.location.origin + cleanedPhotos[i]) : url;
-        });
-        var input = document.getElementById('zdjecia_input');
-        if (input) input.value = JSON.stringify(updated);
-        if (cleanedPhotos[0]) {
-            document.getElementById('mainImg').src = cleanedPhotos[0];
-        }
-    }
-
-    // === ENHANCE - generuj 8 zdjec Allegro ===
-    var enhanceIdx = 0;
-    var enhancedPhotos = [];
-    var templateNames = ['Miniaturka','Wymiary','Detale','Zawartosc','Specyfikacja','Montaz','Lifestyle','Porownanie'];
-
-    function enhanceImages() {
-        var btn = document.getElementById('btnEnhance');
-        var status = document.getElementById('cleanStatus');
-
-        var baseUrl = cleanedPhotos[0] || allPhotos[0];
-        if (!baseUrl) {
-            status.textContent = 'Brak zdjecia bazowego!';
-            return;
-        }
-
-        btn.disabled = true;
-        btn.textContent = 'Generuje...';
-        btn.style.background = '#d97706';
-        enhanceIdx = 0;
-        enhancedPhotos = [];
-        status.textContent = '0/8 - startuje...';
-
-        enhanceNext(btn, status, baseUrl);
-    }
-
-    function enhanceNext(btn, status, baseUrl) {
-        if (enhanceIdx >= 8) {
-            btn.textContent = ' Gotowe!';
-            btn.style.background = '#22c55e';
-            status.textContent = '8/8 wygenerowanych!';
-            updateEnhancedPhotos();
-            return;
-        }
-
-        var templateId = enhanceIdx + 1;
-        status.textContent = (enhanceIdx+1) + '/8: ' + templateNames[enhanceIdx] + '...';
-
-        fetch('/paletomat/api/enhance-image', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                url: baseUrl,
-                template_id: templateId,
-                product_name: document.querySelector('[name=tytul]') ? document.querySelector('[name=tytul]').value : ''
-            })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                enhancedPhotos.push(data.enhanced_url);
-                var thumbs = document.querySelectorAll('[data-img-idx]');
-                if (thumbs[enhanceIdx]) {
-                    thumbs[enhanceIdx].style.border = '2px solid #f59e0b';
-                    thumbs[enhanceIdx].src = data.enhanced_url;
-                }
-            } else {
-                enhancedPhotos.push(null);
-                console.error('Enhance err:', data.error);
-            }
-            enhanceIdx++;
-            enhanceNext(btn, status, baseUrl);
-        })
-        .catch(err => {
-            console.error('Enhance fetch error:', err);
-            enhancedPhotos.push(null);
-            enhanceIdx++;
-            enhanceNext(btn, status, baseUrl);
-        });
-    }
-
-    function updateEnhancedPhotos() {
-        var updated = enhancedPhotos.map(function(url, i) {
-            return url ? (window.location.origin + url) : allPhotos[i] || '';
-        });
-        while (updated.length < allPhotos.length) updated.push(allPhotos[updated.length]);
-
-        var input = document.getElementById('zdjecia_input');
-        if (input) input.value = JSON.stringify(updated);
-        if (enhancedPhotos[0]) {
-            document.getElementById('mainImg').src = enhancedPhotos[0];
-        }
-    }
-    </script>
-    
-    <style>
-    #previewBox p { margin-bottom: 18px; font-size: 14px; line-height: 1.7; color: #333; }
-    #previewBox b { color: #111; font-size: 15px; }
-    #previewBox ul { background: #f5f5f5; padding: 15px 15px 15px 35px; border-radius: 8px; margin-top: 20px; }
-    #previewBox li { padding: 6px 0; color: #444; }
-    </style>
-    
-    <a href="/paletomat/ustawienia" class="btn btn-2" style="margin-top:10px"><span class=material-symbols-outlined>settings</span> USTAWIENIA (Gemini API)</a>
-    <a href="/paletomat/generator" class="back">← Powrót</a>
-    '''
-    return render(html)
 
 @paletomat_bp.route('/generator/<asin>/create', methods=['POST'])
 def generator_create(asin):

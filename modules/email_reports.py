@@ -14,7 +14,22 @@ from pathlib import Path
 CONFIG_FILE = Path(__file__).parent.parent / 'email_config.json'
 
 def get_email_config():
-    """Pobiera konfigurację email"""
+    """Pobiera konfigurację email — najpierw z DB config, fallback na JSON file"""
+    try:
+        from .database import get_config
+        host = get_config('smtp_host', '')
+        if host:
+            return {
+                'smtp_server': host,
+                'smtp_port': int(get_config('smtp_port', '587')),
+                'email': get_config('smtp_user', ''),
+                'password': get_config('smtp_password', ''),
+                'recipient': get_config('admin_email', ''),
+                'enabled': bool(host)
+            }
+    except:
+        pass
+    # Fallback: JSON file
     if CONFIG_FILE.exists():
         with open(CONFIG_FILE, 'r') as f:
             return json.load(f)
@@ -22,7 +37,7 @@ def get_email_config():
         'smtp_server': 'smtp.gmail.com',
         'smtp_port': 587,
         'email': '',
-        'password': '',  # App password dla Gmail
+        'password': '',
         'recipient': '',
         'enabled': False
     }
@@ -119,7 +134,7 @@ def generate_weekly_report():
     # Trend
     prev_przychod = prev_week['przychod'] or 1
     trend = ((przychod - prev_przychod) / prev_przychod * 100) if prev_przychod > 0 else 0
-    trend_icon = "<span class=material-symbols-outlined>trending_up</span>" if trend > 0 else "<span class=material-symbols-outlined>trending_down</span>" if trend < 0 else "➡"
+    trend_icon = "📈" if trend > 0 else "📉" if trend < 0 else "➡"
     trend_color = "#22c55e" if trend > 0 else "#ef4444" if trend < 0 else "#64748b"
     
     # === TOP 5 PRODUKTÓW ===
@@ -172,7 +187,7 @@ def generate_weekly_report():
     # === GENERUJ HTML ===
     top_produkty_html = ""
     for i, p in enumerate(top_produkty):
-        medal = "<span class=material-symbols-outlined>emoji_events</span>" if i == 0 else "<span class=material-symbols-outlined>emoji_events</span>" if i == 1 else "<span class=material-symbols-outlined>emoji_events</span>" if i == 2 else f"{i+1}."
+        medal = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else f"{i+1}."
         top_produkty_html += f'''
         <tr>
             <td style="padding:8px;border-bottom:1px solid #eee">{medal}</td>
@@ -220,7 +235,7 @@ def generate_weekly_report():
 <body>
     <div class="container">
         <div class="header">
-            <h1><span class=material-symbols-outlined>bar_chart</span> Raport Tygodniowy</h1>
+            <h1>📊 Raport Tygodniowy</h1>
             <p>{(today - timedelta(days=7)).strftime('%d.%m')} - {today.strftime('%d.%m.%Y')}</p>
         </div>
         
@@ -249,11 +264,11 @@ def generate_weekly_report():
             </div>
             
             <!-- Alert o zwrotach -->
-            {f'<div class="alert"><span class=material-symbols-outlined>warning</span> <strong>{week_stats["zwroty"]} zwrotów</strong> w tym tygodniu</div>' if week_stats['zwroty'] > 0 else ''}
+            {f'<div class="alert">⚠️ <strong>{week_stats["zwroty"]} zwrotów</strong> w tym tygodniu</div>' if week_stats['zwroty'] > 0 else ''}
             
             <!-- TOP 5 Produktów -->
             <div class="section">
-                <div class="section-title"><span class=material-symbols-outlined>emoji_events</span> TOP 5 Produktów</div>
+                <div class="section-title">🏆 TOP 5 Produktów</div>
                 <table>
                     <tr>
                         <th style="width:30px"></th>
@@ -267,7 +282,7 @@ def generate_weekly_report():
             
             <!-- TOP Dostawcy -->
             <div class="section">
-                <div class="section-title"><span class=material-symbols-outlined>inventory_2</span> Dostawcy</div>
+                <div class="section-title">📦 Dostawcy</div>
                 <table>
                     <tr>
                         <th>Dostawca</th>
@@ -280,7 +295,7 @@ def generate_weekly_report():
             
             <!-- Podsumowanie -->
             <div class="section">
-                <div class="section-title"><span class=material-symbols-outlined>assignment</span> Podsumowanie</div>
+                <div class="section-title">📋 Podsumowanie</div>
                 <table>
                     <tr>
                         <td style="padding:8px 0;color:#64748b">Koszty zakupu</td>

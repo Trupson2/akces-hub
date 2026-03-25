@@ -2,6 +2,19 @@
 
 ## 25.03.2026
 
+### Generator Allegro AI — Cyberpunk 3-Panel Redesign
+- [NOWE] Szablon `paletomat_generator.html` — 3-panelowy layout (Magazyn + AI Editor + Live Preview)
+- [NOWE] Lewy panel: lista produktow z magazynu z szukajka, kodami SKU, stanami
+- [NOWE] Srodkowy panel: AI Editor Core — tytul, cena, kategoria, galeria, opis, GPSR
+- [NOWE] Prawy panel: Live Allegro Preview z synchem tytulu/ceny w real-time
+- [NOWE] Image tools: czyszczenie z napisow + generowanie 8 zdjec AI
+- [ZMIANA] Ekstrakcja ~300 linii inline HTML z paletomat.py do szablonu Jinja2
+
+### Email Reports — Fix ikon i SMTP
+- [FIX] Material Symbols zamienione na emoji Unicode w emailach (email clienty nie renderuja web fontow)
+- [FIX] Medale w TOP 5: teraz zloto/srebro/braz zamiast identycznych ikon
+- [FIX] SMTP config czyta z DB config (ustawienia) zamiast JSON file — formularz w ustawieniach teraz dziala
+
 ### Oceń stan — Split tworzy osobne produkty
 - [NOWE] Split mode w "Oceń stan" tworzy osobne rekordy produktów w bazie per stan
 - [NOWE] Każdy split produkt dostaje auto-generated kod_magazynowy (MAG-XXXXX)

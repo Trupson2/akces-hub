@@ -1,0 +1,456 @@
+{% extends "base.html" %}
+{% block page_title %}Generator AI{% endblock %}
+{% block content %}
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   Allegro AI Generator — Cyberpunk 3-Panel
+   ═══════════════════════════════════════════════════════════════ */
+.gen-layout{display:grid;grid-template-columns:1fr;gap:16px;height:calc(100vh - 140px);overflow:hidden}
+@media(min-width:1024px){.gen-layout{grid-template-columns:280px 1fr 360px}}
+@media(min-width:1280px){.gen-layout{grid-template-columns:300px 1fr 400px}}
+
+/* Panels */
+.gen-panel{background:rgba(19,19,28,0.7);border:1px solid rgba(72,71,74,0.1);display:flex;flex-direction:column;overflow:hidden}
+.gen-panel-hdr{padding:12px 16px;border-bottom:1px solid rgba(72,71,74,0.15);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.gen-panel-title{font-family:'Space Grotesk',sans-serif;font-size:0.85rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em}
+.gen-panel-badge{font-size:0.6rem;font-weight:700;background:rgba(143,245,255,0.1);color:#8ff5ff;padding:2px 8px;text-transform:uppercase;letter-spacing:0.05em}
+.gen-panel-body{flex:1;overflow-y:auto;padding:12px}
+.gen-panel-body::-webkit-scrollbar{width:4px}
+.gen-panel-body::-webkit-scrollbar-track{background:transparent}
+.gen-panel-body::-webkit-scrollbar-thumb{background:#48474a}
+
+/* Left: Product list */
+.gen-search{width:100%;padding:10px 12px 10px 36px;background:rgba(38,37,40,0.8);border:1px solid rgba(72,71,74,0.2);color:#f9f5f8;font-size:0.78rem;font-family:'Space Grotesk',sans-serif;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px}
+.gen-search:focus{outline:none;border-color:#8ff5ff;box-shadow:0 0 8px rgba(143,245,255,0.1)}
+.gen-search-wrap{position:relative}
+.gen-search-wrap .material-symbols-outlined{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#adaaad;font-size:1rem}
+.gen-prod{display:flex;gap:10px;padding:10px;margin-bottom:8px;background:rgba(19,19,28,0.5);border-left:2px solid transparent;cursor:pointer;transition:all 0.2s}
+.gen-prod:hover{background:rgba(38,37,40,0.6);border-left-color:#8ff5ff}
+.gen-prod.active{background:rgba(38,37,40,0.8);border-left-color:#8ff5ff;box-shadow:0 0 12px rgba(143,245,255,0.08)}
+.gen-prod-img{width:48px;height:48px;background:#262528;flex-shrink:0;object-fit:cover}
+.gen-prod-info{flex:1;min-width:0}
+.gen-prod-sku{font-size:0.55rem;font-weight:700;color:#8ff5ff;text-transform:uppercase;letter-spacing:0.1em}
+.gen-prod-name{font-size:0.72rem;font-weight:700;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:2px 0}
+.gen-prod-meta{display:flex;justify-content:space-between;font-size:0.6rem;color:#adaaad}
+.gen-prod-meta .qty{color:#beee00}
+.gen-prod-meta .price{font-family:'Space Grotesk',sans-serif}
+
+/* Center: AI Editor */
+.gen-editor-section{margin-bottom:16px}
+.gen-editor-label{font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:rgba(143,245,255,0.6);margin-bottom:8px;display:block}
+.gen-ai-prompt{width:100%;padding:12px;background:rgba(38,37,40,0.8);border:none;border-bottom:2px solid rgba(143,245,255,0.2);color:#f9f5f8;font-size:0.82rem;resize:none;font-family:'Manrope',sans-serif}
+.gen-ai-prompt:focus{outline:none;border-bottom-color:#8ff5ff}
+.gen-ai-prompt::placeholder{color:rgba(72,71,74,0.6)}
+.gen-ai-btn{position:absolute;bottom:8px;right:8px;display:flex;align-items:center;gap:6px;background:#8ff5ff;color:#005d63;padding:6px 14px;border:none;font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;font-family:'Space Grotesk',sans-serif}
+.gen-ai-btn:hover{filter:brightness(1.1)}
+.gen-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.gen-input{width:100%;padding:10px;background:rgba(38,37,40,0.8);border:1px solid rgba(72,71,74,0.2);color:#f9f5f8;font-size:0.85rem;font-family:'Space Grotesk',sans-serif}
+.gen-input:focus{outline:none;border-color:#8ff5ff;box-shadow:0 0 8px rgba(143,245,255,0.1)}
+.gen-input-unit{font-size:0.72rem;color:#adaaad;font-family:'Space Grotesk',sans-serif}
+.gen-select{width:100%;padding:10px;background:rgba(38,37,40,0.8);border:1px solid rgba(72,71,74,0.2);color:#f9f5f8;font-size:0.7rem;text-transform:uppercase}
+
+/* Templates */
+.gen-templates{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px}
+.gen-tpl{width:80px;height:80px;flex-shrink:0;border:2px solid rgba(72,71,74,0.3);background:rgba(38,37,40,0.8);display:flex;align-items:center;justify-content:center;font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#adaaad;cursor:pointer;text-align:center;padding:4px;transition:all 0.2s}
+.gen-tpl:hover{border-color:#adaaad}
+.gen-tpl.active{border-color:#8ff5ff;color:#8ff5ff}
+.gen-tpl.active::after{content:'';position:absolute;bottom:4px;right:4px}
+
+/* Description preview */
+.gen-desc-preview{background:rgba(38,37,40,0.8);padding:14px;flex:1;font-size:0.82rem;color:#adaaad;overflow-y:auto;line-height:1.6;min-height:120px;max-height:200px}
+.gen-desc-preview h2{color:#f9f5f8;font-weight:700;text-transform:uppercase;margin-bottom:8px;font-size:0.9rem}
+.gen-desc-preview p{margin-bottom:10px}
+.gen-desc-preview ul{padding-left:16px;margin-top:8px}
+.gen-desc-preview li{display:flex;align-items:center;gap:6px;padding:4px 0}
+.gen-desc-preview li::before{content:'';width:4px;height:4px;background:#8ff5ff;border-radius:50%;flex-shrink:0}
+
+/* Action buttons */
+.gen-act-row{display:flex;gap:8px;margin-top:12px}
+.gen-act{flex:1;padding:14px;font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;border:1px solid;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s}
+.gen-act:hover{filter:brightness(1.1)}
+.gen-act-draft{background:rgba(38,37,40,0.8);border-color:rgba(72,71,74,0.3);color:#adaaad}
+.gen-act-draft:hover{border-color:#f9f5f8;color:#f9f5f8}
+.gen-act-ai{background:transparent;border-color:rgba(255,107,155,0.3);color:#ff6b9b}
+.gen-act-ai:hover{background:rgba(255,107,155,0.08)}
+
+/* Right: Preview */
+.gen-preview-img{width:100%;aspect-ratio:1;background:#262528;object-fit:cover;position:relative;overflow:hidden}
+.gen-preview-img img{width:100%;height:100%;object-fit:cover}
+.gen-preview-dots{position:absolute;bottom:8px;right:8px;display:flex;gap:4px}
+.gen-preview-dots span{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.4)}
+.gen-preview-dots span:first-child{background:#fff}
+.gen-preview-cat{font-size:0.6rem;color:#adaaad;text-transform:uppercase;letter-spacing:0.1em;margin:12px 16px 4px}
+.gen-preview-title{font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:-0.02em;padding:0 16px;line-height:1.2}
+.gen-preview-price{display:flex;align-items:baseline;gap:4px;padding:12px 16px}
+.gen-preview-price .val{font-family:'Space Grotesk',sans-serif;font-size:1.8rem;font-weight:700}
+.gen-preview-price .cur{font-size:0.85rem;color:#adaaad;font-family:'Space Grotesk',sans-serif}
+.gen-preview-delivery{margin:0 16px;padding:10px;background:#262528;display:flex;justify-content:space-between;align-items:center}
+.gen-preview-delivery span:first-child{font-size:0.65rem;text-transform:uppercase}
+.gen-preview-delivery .free{font-size:0.65rem;font-weight:700;color:#beee00;text-transform:uppercase}
+.gen-preview-desc{padding:12px 16px;border-top:1px solid rgba(72,71,74,0.1);font-size:0.78rem;color:#adaaad;line-height:1.6}
+.gen-preview-desc strong{color:#f9f5f8;font-weight:700;text-transform:uppercase;display:block;margin-bottom:4px;font-size:0.68rem}
+
+/* Submit button */
+.gen-submit{width:100%;padding:18px;background:#8ff5ff;color:#005d63;font-family:'Space Grotesk',sans-serif;font-weight:900;font-size:1rem;text-transform:uppercase;letter-spacing:0.15em;border:none;cursor:pointer;box-shadow:0 0 30px rgba(143,245,255,0.3);transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.gen-submit:hover{filter:brightness(1.1)}
+.gen-submit:active{transform:scale(0.98)}
+.gen-submit:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none}
+.gen-prowizja{text-align:center;font-size:0.55rem;color:#adaaad;text-transform:uppercase;letter-spacing:0.1em;margin-top:6px}
+
+/* Gallery row */
+.gen-gallery{display:flex;gap:6px;overflow-x:auto;padding:8px 0;margin-bottom:8px}
+.gen-gallery img{width:48px;height:48px;object-fit:contain;background:#fff;flex-shrink:0;border:1px solid rgba(72,71,74,0.3);cursor:pointer}
+.gen-gallery img.active{border:2px solid #8ff5ff}
+
+/* Image tools */
+.gen-img-tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.gen-img-btn{padding:6px 12px;font-size:0.65rem;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:'Space Grotesk',sans-serif;text-transform:uppercase;letter-spacing:0.05em}
+.gen-img-btn.clean{background:rgba(124,58,237,0.15);color:#a78bfa}
+.gen-img-btn.enhance{background:rgba(245,158,11,0.15);color:#f59e0b}
+
+/* Stan fields */
+.gen-stan-box{background:rgba(190,238,0,0.05);border:1px solid rgba(190,238,0,0.15);padding:12px;margin:12px 0}
+.gen-stan-info{font-size:0.72rem;color:#beee00;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.gen-stan-row{display:flex;align-items:center;gap:8px;padding:8px;background:rgba(14,14,16,0.6);margin-bottom:6px}
+.gen-stan-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.gen-stan-name{flex:1;font-weight:600;font-size:0.82rem}
+.gen-stan-input{width:60px;padding:5px;background:rgba(30,30,46,0.8);border:1px solid;text-align:center;color:#fff;font-weight:700;font-size:0.9rem}
+.gen-stan-max{font-size:0.7rem;color:#64748b}
+
+/* Alerts */
+.gen-alert{padding:10px 14px;font-size:0.75rem;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.gen-alert.ok{background:rgba(190,238,0,0.06);border-left:2px solid #beee00;color:#beee00}
+.gen-alert.warn{background:rgba(245,158,11,0.06);border-left:2px solid #f59e0b;color:#f59e0b}
+.gen-alert.err{background:rgba(239,68,68,0.06);border-left:2px solid #ef4444;color:#ef4444}
+
+/* GPSR */
+.gen-gpsr{margin-top:12px}
+.gen-gpsr textarea{width:100%;padding:10px;background:rgba(38,37,40,0.8);border:1px solid rgba(72,71,74,0.2);color:#f9f5f8;font-size:0.75rem;line-height:1.4;resize:vertical;min-height:100px;font-family:'Space Grotesk',sans-serif}
+
+/* Checkbox */
+.gen-checkbox-wrap{background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);padding:12px;margin:12px 0;display:flex;align-items:flex-start;gap:10px}
+.gen-checkbox-wrap input{width:18px;height:18px;accent-color:#8b5cf6;cursor:pointer;flex-shrink:0;margin-top:2px}
+.gen-checkbox-wrap label{font-size:0.78rem;font-weight:600;cursor:pointer}
+.gen-checkbox-wrap small{display:block;font-size:0.68rem;color:#64748b;margin-top:4px}
+
+/* Mobile */
+@media(max-width:1023px){
+    .gen-layout{height:auto;overflow:visible}
+    .gen-panel{max-height:none}
+    .gen-panel-body{max-height:400px}
+    .gen-left-panel{display:none}
+}
+</style>
+
+<div class="gen-layout">
+    <form id="genForm" action="/paletomat/generator/{{ asin }}/create" method="POST" style="display:contents">
+
+    <!-- LEFT PANEL: Product List -->
+    <div class="gen-panel gen-left-panel">
+        <div class="gen-panel-hdr">
+            <span class="gen-panel-title"><span class="material-symbols-outlined" style="font-size:1rem;color:#8ff5ff">inventory_2</span> Magazyn</span>
+            <span class="gen-panel-badge">{{ product_count }} SKUs</span>
+        </div>
+        <div class="gen-panel-body">
+            <div class="gen-search-wrap">
+                <span class="material-symbols-outlined">search</span>
+                <input type="text" class="gen-search" placeholder="Szukaj SKU / EAN..." id="genSearchInput" onkeyup="filterProducts(this.value)">
+            </div>
+            {% for mp in magazyn_products %}
+            <a href="/paletomat/generator/from-magazyn/{{ mp.id }}" class="gen-prod {{ 'active' if mp.id == current_product_id else '' }}" style="text-decoration:none;color:inherit">
+                <img src="{{ mp.zdjecie_url or '' }}" class="gen-prod-img" onerror="this.style.display='none'">
+                <div class="gen-prod-info">
+                    <div class="gen-prod-sku">{{ mp.kod_magazynowy or ('#' ~ mp.id) }}</div>
+                    <div class="gen-prod-name">{{ mp.nazwa[:30] }}</div>
+                    <div class="gen-prod-meta">
+                        <span>STAN: <span class="qty">{{ mp.ilosc }} szt.</span></span>
+                        <span class="price">{{ '%.0f'|format(mp.cena_allegro or 0) }} zl</span>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- CENTER PANEL: AI Editor -->
+    <div class="gen-panel">
+        <div class="gen-panel-hdr">
+            <span class="gen-panel-title"><span class="material-symbols-outlined" style="font-size:1rem;color:#8ff5ff;font-variation-settings:'FILL' 1">auto_awesome</span> AI Editor Core</span>
+            <span style="font-size:0.55rem;border:1px solid rgba(72,71,74,0.3);padding:2px 8px;text-transform:uppercase;letter-spacing:0.1em;color:#adaaad">Mode: High Precision</span>
+        </div>
+        <div class="gen-panel-body">
+            <!-- Alerts -->
+            {% if cena_amazon and cena_amazon > 0 %}
+            <div class="gen-alert ok"><span class="material-symbols-outlined" style="font-size:1rem">check_circle</span> Amazon: {{ '%.2f'|format(cena_amazon) }}€ | {{ images|length }} zdjec</div>
+            {% else %}
+            <div class="gen-alert warn"><span class="material-symbols-outlined" style="font-size:1rem">warning</span> Brak ceny Amazon — ustaw recznie</div>
+            {% endif %}
+            {% if not allegro_ok %}
+            <div class="gen-alert err"><span class="material-symbols-outlined" style="font-size:1rem">cancel</span> Nie polaczono z Allegro — <a href="/allegro" style="color:#ef4444">Polacz</a></div>
+            {% elif not shipping_ok %}
+            <div class="gen-alert err"><span class="material-symbols-outlined" style="font-size:1rem">cancel</span> Brak cennika wysylki — <a href="/allegro/config" style="color:#ef4444">Wybierz</a></div>
+            {% endif %}
+
+            <!-- Image Gallery + Tools -->
+            <div class="gen-editor-section">
+                <div style="text-align:center;margin-bottom:8px">
+                    <img id="mainImg" src="{{ zdjecie_url }}" style="max-width:180px;max-height:160px;background:#fff;padding:8px">
+                </div>
+                {% if images|length > 1 %}
+                <div class="gen-gallery">
+                    {% for img_url in images[:6] %}
+                    <img data-img-idx="{{ loop.index0 }}" src="{{ img_url }}" class="{{ 'active' if loop.index0 == 0 else '' }}">
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="gen-img-tools">
+                    <button type="button" onclick="cleanImages()" id="btnClean" class="gen-img-btn clean"><span class="material-symbols-outlined" style="font-size:0.9rem">mop</span> Wyczysc</button>
+                    <button type="button" onclick="enhanceImages()" id="btnEnhance" class="gen-img-btn enhance"><span class="material-symbols-outlined" style="font-size:0.9rem">auto_awesome</span> 8 zdjec AI</button>
+                    <span id="cleanStatus" style="font-size:0.65rem;color:#64748b"></span>
+                </div>
+            </div>
+
+            <!-- Title -->
+            <div class="gen-editor-section">
+                <label class="gen-editor-label">Tytul oferty (max 75 zn)</label>
+                <input type="text" name="tytul" class="gen-input" value="{{ tytul_seo }}" maxlength="75" required>
+                <div style="font-size:0.6rem;color:#64748b;margin-top:2px">{{ tytul_seo|length }}/75</div>
+            </div>
+
+            <!-- Price + Category Grid -->
+            <div class="gen-form-grid" style="margin-bottom:12px">
+                <div>
+                    <label class="gen-editor-label">Cena sprzedazy</label>
+                    <div style="display:flex;align-items:center;gap:4px">
+                        <input type="number" step="0.01" name="cena_allegro" class="gen-input" value="{{ cena_sugerowana }}" id="cena_allegro" required>
+                        <span class="gen-input-unit">PLN</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="gen-editor-label">Kategoria Allegro</label>
+                    <select name="kategoria" class="gen-select">
+                        <option value="{{ detected_cat }}" selected>{{ detected_cat_name }}</option>
+                        <option value="261680">Motoryzacja > Pokrowce</option>
+                        <option value="310037">Motoryzacja > Ladowarki EV</option>
+                        <option value="165">Elektronika > Kable</option>
+                        <option value="20650">Elektronika > Ladowarki</option>
+                        <option value="174895">Elektronika > Powerbanki</option>
+                        <option value="258682">Inne</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Quantity + EAN -->
+            <div class="gen-form-grid" style="margin-bottom:12px">
+                <div>
+                    <label class="gen-editor-label">Ilosc{{ ' (mag: %d)' % ilosc_magazyn if ilosc_magazyn > 1 else '' }}</label>
+                    <input type="number" name="ilosc" class="gen-input" value="{{ ilosc_magazyn }}" min="1" {{ 'style=display:none' if grupy_stanow else '' }}>
+                    {% if grupy_stanow %}<div style="font-size:0.6rem;color:#64748b">Auto z grup stanow</div>{% endif %}
+                </div>
+                <div>
+                    <label class="gen-editor-label">EAN</label>
+                    <input type="text" name="ean" class="gen-input" value="{{ ean_magazyn }}" placeholder="Kod kreskowy">
+                </div>
+            </div>
+
+            <!-- Stan fields (grouped or single) -->
+            {{ stan_fields_html|safe }}
+
+            <!-- Cena Amazon (hidden helper) -->
+            <input type="hidden" name="cena_amazon" value="{{ '%.2f'|format(cena_amazon) }}" id="cena_amazon">
+
+            <!-- Description -->
+            <div class="gen-editor-section">
+                <label class="gen-editor-label">Podglad tekstu</label>
+                <div class="gen-desc-preview" id="previewBox">{{ opis_html|safe }}</div>
+                <textarea name="opis" id="opisHtml" style="display:none">{{ opis_html_escaped }}</textarea>
+                <div style="display:flex;gap:6px;margin-top:6px">
+                    <button type="button" onclick="toggleEditMode()" class="gen-img-btn clean" style="font-size:0.6rem"><span class="material-symbols-outlined" style="font-size:0.8rem">edit</span> Edytuj HTML</button>
+                    <button type="button" onclick="copyHtml()" class="gen-img-btn clean" style="font-size:0.6rem"><span class="material-symbols-outlined" style="font-size:0.8rem">content_copy</span> Kopiuj</button>
+                </div>
+            </div>
+
+            <!-- GPSR -->
+            <div class="gen-gpsr">
+                <label class="gen-editor-label"><span class="material-symbols-outlined" style="font-size:0.8rem">shield</span> GPSR (Safety)</label>
+                <textarea name="gpsr" id="gpsrInfo">{{ gpsr_info }}</textarea>
+                <div style="font-size:0.55rem;color:#f59e0b;margin-top:2px"><span class="material-symbols-outlined" style="font-size:0.7rem">warning</span> Skopiuj do Sales Center recznie</div>
+            </div>
+
+            <!-- Mark as published -->
+            <div class="gen-checkbox-wrap">
+                <input type="checkbox" name="mark_as_published" value="1" checked id="markPublished">
+                <div>
+                    <label for="markPublished"><span class="material-symbols-outlined" style="font-size:0.9rem">check_circle</span> Oznacz jako "wystawiony"</label>
+                    <small>Po wystawieniu produkt zmieni status w magazynie</small>
+                </div>
+            </div>
+
+            <!-- Hidden fields -->
+            <input type="hidden" name="asin" value="{{ asin }}">
+            <input type="hidden" name="zdjecia" id="zdjecia_input" value='{{ zdjecia_json }}'>
+            <input type="hidden" name="opis_type" value="html">
+            <input type="hidden" name="enhance_photos" value="1">
+
+            <!-- Action buttons -->
+            <div class="gen-act-row">
+                <button type="submit" name="action" value="draft" class="gen-act gen-act-draft"><span class="material-symbols-outlined" style="font-size:0.9rem">save</span> Zapisz szkic</button>
+                <button type="button" onclick="regenerateOpis()" class="gen-act gen-act-ai"><span class="material-symbols-outlined" style="font-size:0.9rem">magic_button</span> Popraw AI</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL: Live Preview -->
+    <div class="gen-panel">
+        <div class="gen-panel-hdr">
+            <span class="gen-panel-title" style="color:#adaaad">Live Allegro Preview</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:#beee00;box-shadow:0 0 6px #beee00"></span><span style="font-size:0.55rem;color:#beee00;text-transform:uppercase">Synchro</span></span>
+        </div>
+        <div class="gen-panel-body" style="padding:0">
+            <div class="gen-preview-img">
+                <img id="previewMainImg" src="{{ zdjecie_url }}" onerror="this.src='{{ zdjecie_url }}'">
+                <div class="gen-preview-dots"><span></span><span></span><span></span></div>
+            </div>
+            <div class="gen-preview-cat" id="previewCat">{{ detected_cat_name }}</div>
+            <div class="gen-preview-title" id="previewTitle">{{ tytul_seo }}</div>
+            <div class="gen-preview-price">
+                <span class="val" id="previewPrice">{{ cena_sugerowana }}</span>
+                <span class="cur">zl</span>
+            </div>
+            <div class="gen-preview-delivery">
+                <span>Dostawa jutro</span>
+                <span class="free">GRATIS SMART!</span>
+            </div>
+            <div class="gen-preview-desc">
+                <strong>Opis produktu</strong>
+                <div id="previewDesc">{{ opis_html|safe|truncate(200) }}</div>
+            </div>
+
+            <div style="padding:12px 16px">
+                {% if allegro_ok and shipping_ok %}
+                <button type="submit" name="action" value="allegro" class="gen-submit"><span class="material-symbols-outlined">shopping_cart</span> Wystaw oferte</button>
+                {% else %}
+                <button type="button" class="gen-submit" disabled>
+                    <span class="material-symbols-outlined">lock</span>
+                    {% if not allegro_ok %}Polacz z Allegro{% else %}Wybierz cennik wysylki{% endif %}
+                </button>
+                {% endif %}
+                <div class="gen-prowizja">Prowizja: ~{{ '%.0f'|format((cena_sugerowana|float * 0.11)) }} PLN (11%)</div>
+            </div>
+        </div>
+    </div>
+
+    </form>
+</div>
+
+<div style="margin-top:12px;display:flex;gap:8px">
+    <a href="/paletomat/ustawienia" style="font-size:0.72rem;color:#64748b;text-decoration:none;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:0.9rem">settings</span> Ustawienia Gemini</a>
+    <a href="/paletomat/generator" style="font-size:0.72rem;color:#64748b;text-decoration:none;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:0.9rem">arrow_back</span> Powrot</a>
+</div>
+
+<script>
+/* === Live Preview Sync === */
+var titleInput = document.querySelector('[name=tytul]');
+var priceInput = document.getElementById('cena_allegro');
+if(titleInput) titleInput.addEventListener('input', function(){ document.getElementById('previewTitle').textContent = this.value; });
+if(priceInput) priceInput.addEventListener('input', function(){ document.getElementById('previewPrice').textContent = parseFloat(this.value).toFixed(2); });
+
+/* === Toggle Edit/Preview mode for description === */
+var editMode = false;
+function toggleEditMode(){
+    var preview = document.getElementById('previewBox');
+    var textarea = document.getElementById('opisHtml');
+    if(!editMode){
+        textarea.style.display='block';
+        textarea.value = preview.innerHTML;
+        preview.style.display='none';
+        editMode=true;
+    } else {
+        preview.innerHTML = textarea.value;
+        preview.style.display='block';
+        textarea.style.display='none';
+        editMode=false;
+    }
+}
+
+function copyHtml(){
+    var textarea = document.getElementById('opisHtml');
+    var text = editMode ? textarea.value : document.getElementById('previewBox').innerHTML;
+    navigator.clipboard.writeText(text).then(function(){ alert('Skopiowano HTML!'); });
+}
+
+/* Ensure opis is synced on submit */
+document.getElementById('genForm').addEventListener('submit', function(){
+    if(!editMode){
+        document.getElementById('opisHtml').value = document.getElementById('previewBox').innerHTML;
+    }
+});
+
+/* === Product search filter === */
+function filterProducts(q){
+    q = q.toLowerCase();
+    document.querySelectorAll('.gen-prod').forEach(function(el){
+        var text = el.textContent.toLowerCase();
+        el.style.display = text.includes(q) ? '' : 'none';
+    });
+}
+
+/* === Image Processing === */
+var allPhotos = {{ zdjecia_json|safe }};
+var cleanedPhotos = {};
+var cleanIdx = 0;
+
+function cleanImages(){
+    var btn=document.getElementById('btnClean');
+    var status=document.getElementById('cleanStatus');
+    btn.disabled=true; btn.textContent='Czyszcze...';
+    cleanIdx=0; cleanedPhotos={};
+    cleanNext(btn,status);
+}
+function cleanNext(btn,status){
+    if(cleanIdx>=allPhotos.length){btn.textContent='Gotowe!';btn.style.color='#beee00';status.textContent=cleanIdx+'/'+allPhotos.length+' oczyszczonych';updateCleanedPhotos();return;}
+    status.textContent=(cleanIdx+1)+'/'+allPhotos.length+' czyszcze...';
+    fetch('/paletomat/api/clean-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:allPhotos[cleanIdx]})})
+    .then(function(r){return r.json();}).then(function(data){
+        if(data.success){cleanedPhotos[cleanIdx]=data.cleaned_url;var t=document.querySelectorAll('[data-img-idx]');if(t[cleanIdx])t[cleanIdx].style.border='2px solid #beee00';}
+        cleanIdx++;cleanNext(btn,status);
+    }).catch(function(){cleanIdx++;cleanNext(btn,status);});
+}
+function updateCleanedPhotos(){
+    var updated=allPhotos.map(function(url,i){return cleanedPhotos[i]?(window.location.origin+cleanedPhotos[i]):url;});
+    var input=document.getElementById('zdjecia_input');if(input)input.value=JSON.stringify(updated);
+    if(cleanedPhotos[0]){document.getElementById('mainImg').src=cleanedPhotos[0];document.getElementById('previewMainImg').src=cleanedPhotos[0];}
+}
+
+var enhanceIdx=0,enhancedPhotos=[],templateNames=['Miniaturka','Wymiary','Detale','Zawartosc','Specyfikacja','Montaz','Lifestyle','Porownanie'];
+function enhanceImages(){
+    var btn=document.getElementById('btnEnhance'),status=document.getElementById('cleanStatus');
+    var baseUrl=cleanedPhotos[0]||allPhotos[0];
+    if(!baseUrl){status.textContent='Brak zdjecia!';return;}
+    btn.disabled=true;btn.textContent='Generuje...';btn.style.color='#d97706';
+    enhanceIdx=0;enhancedPhotos=[];status.textContent='0/8';
+    enhanceNext(btn,status,baseUrl);
+}
+function enhanceNext(btn,status,baseUrl){
+    if(enhanceIdx>=8){btn.textContent='Gotowe!';btn.style.color='#beee00';status.textContent='8/8!';updateEnhancedPhotos();return;}
+    status.textContent=(enhanceIdx+1)+'/8: '+templateNames[enhanceIdx]+'...';
+    fetch('/paletomat/api/enhance-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:baseUrl,template_id:enhanceIdx+1,product_name:document.querySelector('[name=tytul]')?document.querySelector('[name=tytul]').value:''})})
+    .then(function(r){return r.json();}).then(function(data){
+        if(data.success){enhancedPhotos.push(data.enhanced_url);var t=document.querySelectorAll('[data-img-idx]');if(t[enhanceIdx]){t[enhanceIdx].style.border='2px solid #f59e0b';t[enhanceIdx].src=data.enhanced_url;}}
+        else enhancedPhotos.push(null);
+        enhanceIdx++;enhanceNext(btn,status,baseUrl);
+    }).catch(function(){enhancedPhotos.push(null);enhanceIdx++;enhanceNext(btn,status,baseUrl);});
+}
+function updateEnhancedPhotos(){
+    var updated=enhancedPhotos.map(function(url,i){return url?(window.location.origin+url):(allPhotos[i]||'');});
+    while(updated.length<allPhotos.length)updated.push(allPhotos[updated.length]);
+    var input=document.getElementById('zdjecia_input');if(input)input.value=JSON.stringify(updated);
+    if(enhancedPhotos[0]){document.getElementById('mainImg').src=enhancedPhotos[0];document.getElementById('previewMainImg').src=enhancedPhotos[0];}
+}
+
+function regenerateOpis(){
+    alert('Regenerowanie opisu AI... (wymaga klucza Gemini w ustawieniach)');
+    // TODO: AJAX call to regenerate description
+}
+</script>
+{% endblock %}
