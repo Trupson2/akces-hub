@@ -206,14 +206,14 @@ def auto_kategoryzuj(nazwa):
         'prusa', 'anycubic', 'elegoo', 'resin', 'żywica', 'szpula']):
         return 'druk3d'
     
-    # 📹 Smart Home / Monitoring
+    # [VIDE] Smart Home / Monitoring
     if any(word in nazwa_lower for word in ['kamera ip', 'kamera wifi', 'kamera wlan', 'monitoring', 'cctv',
         'ezviz', 'hikvision', 'dahua', 'reolink', 'imou', 'tapo', 'arlo',
         'smart home', 'smarthome', 'inteligentny dom', 'czujnik ruchu', 'pir',
         'wideodomofon', 'domofon', 'dzwonek wifi', 'ring doorbell', 'alarm']):
         return 'smart_home'
     
-    # 🚗 Motoryzacja (rozszerzona - kamera cofania!)
+    # [DIRE] Motoryzacja (rozszerzona - kamera cofania!)
     if any(word in nazwa_lower for word in ['samochod', 'samochód', 'auto ', ' auto', 'car ', 'obd', 'diagnosty',
         'koło', 'opona', 'silnik', 'akumulator', 'kamera cofania', 'cofania', 'backup camera', 'reversing',
         'dash cam', 'dashcam', 'rejestrator jazdy', 'wideorejestrator', 'parkowania', 'czujnik parkowania',
@@ -329,7 +329,7 @@ def auto_kategoryzuj(nazwa):
 _scraper_running = False
 _processing_queue = []
 
-# 🚜 KOMBAJN MODE: Ustawienia równoległego przetwarzania
+# [AGRI] KOMBAJN MODE: Ustawienia równoległego przetwarzania
 # AUTO-DETECTION sprzętu dla optymalnej wydajności (opcjonalne)
 
 def detect_optimal_workers():
@@ -361,7 +361,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
     """
     try:
         print(f"\n{'='*50}")
-        print(f"🚜 [{position}/{total}] Processing: {asin}")
+        print(f"[AGRI] [{position}/{total}] Processing: {asin}")
         print(f"{'='*50}")
 
         # Pobierz dane z Amazona
@@ -572,7 +572,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
         # <span class=material-symbols-outlined style=font-size:1rem>rocket_launch</span> TURBO: Generuj opis HTML (NOWA WERSJA - z bullet points + ASIN!)
         try:
             opis_html, opis_plain = generuj_opis_html_pro(nazwa, wszystkie_zdjecia, kategoria, bullet_points, gemini_key=gemini_key, asin=asin)
-            print(f"📄 Description: {len(opis_html)} chars")
+            print(f"[DESC] Description: {len(opis_html)} chars")
         except Exception as e:
             print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> Description generation failed: {e}")
             # Fallback - prosty opis
@@ -581,7 +581,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
                 for bp in bullet_points[:5]:
                     opis_html += f"<p><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> {bp}</p>"
             if asin:
-                opis_html += f'<p><i>🔖 Kod produktu (ASIN): {asin}</i></p>'
+                opis_html += f'<p><i><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bookmark</span> Kod produktu (ASIN): {asin}</i></p>'
             opis_plain = nazwa
         
         # <span class=material-symbols-outlined style=font-size:1rem>shield</span> GPSR: Generuj informacje bezpieczeństwa
@@ -590,7 +590,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
             if gpsr:
                 print(f"<span class=material-symbols-outlined style=font-size:1rem>shield</span> GPSR: {len(gpsr)} znaków wygenerowane")
             else:
-                print(f"   ℹ️  GPSR: brak (produkt nie wymaga)")
+                print(f"   ℹ  GPSR: brak (produkt nie wymaga)")
                 gpsr = ""
         except Exception as e:
             print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> GPSR generation failed: {e}")
@@ -656,7 +656,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
 
 def auto_process_products(asins, preferred_domain=None):
     """
-    🚜 KOMBAJN MODE: Automatycznie przetwarza produkty RÓWNOLEGLE.
+    <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">agriculture</span> KOMBAJN MODE: Automatycznie przetwarza produkty RÓWNOLEGLE.
     Zamiast 1 produkt na raz, robi 5 naraz = 5x SZYBCIEJ!
     preferred_domain: np. 'co.uk', 'de', 'com' - próbuje tę domenę jako pierwszą
     """
@@ -673,7 +673,7 @@ def auto_process_products(asins, preferred_domain=None):
         PROGRESS = {'current': 0, 'total': total, 'errors': 0}
 
         print(f"\n{'='*70}")
-        print(f"🚜 KOMBAJN MODE: Processing {total} products with {MAX_WORKERS} workers")
+        print(f"[AGRI] KOMBAJN MODE: Processing {total} products with {MAX_WORKERS} workers")
         if _pref_domain:
             print(f"   Preferred domain: amazon.{_pref_domain}")
         print(f"{'='*70}\n")
@@ -710,7 +710,7 @@ def auto_process_products(asins, preferred_domain=None):
         print(f"<span class=material-symbols-outlined style=font-size:1rem>celebration</span> KOMBAJN COMPLETE!")
         print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Success: {success_count}/{total}")
         print(f"<span class=material-symbols-outlined style=font-size:1rem>cancel</span> Errors: {PROGRESS['errors']}/{total}")
-        print(f"⏱️  Time: {elapsed:.1f}s ({elapsed/total:.1f}s per product)")
+        print(f"[TIME]  Time: {elapsed:.1f}s ({elapsed/total:.1f}s per product)")
         print(f"<span class=material-symbols-outlined style=font-size:1rem>rocket_launch</span> Speed: {total/elapsed*60:.1f} products/min")
         print(f"{'='*70}\n")
 
@@ -739,7 +739,7 @@ def _auto_start_enhance_after_scrape():
 
     # Nie startuj jeśli już działa
     if _bg_enhance_status.get('running'):
-        print("[Auto-Enhance] ⏭️ Pomijam — generowanie już działa w tle")
+        print("[Auto-Enhance] ⏭ Pomijam — generowanie już działa w tle")
         return
 
     print("[Auto-Enhance] <span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Czekam 5s przed startem generowania zdjęć...")
@@ -747,7 +747,7 @@ def _auto_start_enhance_after_scrape():
 
     # Sprawdź jeszcze raz
     if _bg_enhance_status.get('running'):
-        print("[Auto-Enhance] ⏭️ Pomijam — generowanie uruchomione w międzyczasie")
+        print("[Auto-Enhance] ⏭ Pomijam — generowanie uruchomione w międzyczasie")
         return
 
     _bg_enhance_status = {
@@ -1014,7 +1014,7 @@ if(saved) document.documentElement.setAttribute('data-theme', saved);
             <span class="sl-icon"><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span></span>Dashboard
         </a>
         <a href="/paletomat/scraper" class="sidebar-link">
-            <span class="sl-icon">🌐</span>Amazon Scraper
+            <span class="sl-icon"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">language</span></span>Amazon Scraper
         </a>
         <a href="/paletomat/generator" class="sidebar-link">
             <span class="sl-icon"><span class=material-symbols-outlined style=font-size:1rem>label</span></span>Generator ofert
@@ -1044,7 +1044,7 @@ if(saved) document.documentElement.setAttribute('data-theme', saved);
     </nav>
     <div class="sidebar-bottom">
         <a href="/narzedzia"><span class="sl-icon"><span class=material-symbols-outlined style=font-size:1rem>bolt</span></span>Narzedzia</a>
-        <a href="/"><span class="sl-icon">🏠</span>Strona glowna</a>
+        <a href="/"><span class="sl-icon"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">home</span></span>Strona glowna</a>
     </div>
 </aside>
 
@@ -1054,7 +1054,7 @@ if(saved) document.documentElement.setAttribute('data-theme', saved);
     <div class="topbar-title">Dashboard</div>
     <div class="topbar-actions">
         <div class="theme-toggle" onclick="toggleTheme()" title="Zmien motyw">
-            <span id="theme-icon">🌙</span>
+            <span id="theme-icon"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">dark_mode</span></span>
         </div>
     </div>
 </div>
@@ -1069,11 +1069,11 @@ function toggleTheme(){
     const next = current === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', next);
     localStorage.setItem('theme', next);
-    document.getElementById('theme-icon').textContent = next === 'dark' ? '🌙' : '☀️';
+    document.getElementById('theme-icon').textContent = next === 'dark' ? '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">dark_mode</span>' : '☀';
     document.querySelector('meta[name="theme-color"]').content = next === 'dark' ? '#06060f' : '#f1f5f9';
 }
 const theme = document.documentElement.getAttribute('data-theme');
-document.getElementById('theme-icon').textContent = theme === 'dark' ? '🌙' : '☀️';
+document.getElementById('theme-icon').textContent = theme === 'dark' ? '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">dark_mode</span>' : '☀';
 
 // Highlight active sidebar link
 const path = window.location.pathname;
@@ -1134,7 +1134,7 @@ def index():
     auto_badge = ''
     if auto_running or queue_len > 0:
         auto_status_class = 'on' if auto_running else 'off'
-        auto_text = f"<span class=material-symbols-outlined style=font-size:1rem>sync</span> Przetwarzanie w tle: {queue_len} produktów" if auto_running else f"⏸️ Kolejka: {queue_len} produktów"
+        auto_text = f"<span class=material-symbols-outlined style=font-size:1rem>sync</span> Przetwarzanie w tle: {queue_len} produktów" if auto_running else f"⏸ Kolejka: {queue_len} produktów"
         auto_badge = f'''
         <div class="status {auto_status_class}" id="auto-status" style="margin-top:10px">
             <div class="status-info">
@@ -1307,7 +1307,7 @@ def index():
         </div>
         <form action="/paletomat/scraper/toggle" method="POST" style="margin:0">
             <button type="submit" class="btn-sm" style="background:{'#ef4444' if is_running else '#beee00'};color:#fff;border:none;cursor:pointer">
-                {'⏹️ STOP' if is_running else '▶️ START'}
+                {'⏹ STOP' if is_running else '▶ START'}
             </button>
         </form>
     </div>
@@ -1329,7 +1329,7 @@ def index():
                     statusDiv.querySelector('.status-dot').className = `status-dot ${{sc}}`;
                     textSpan.textContent = data.running
                         ? `<span class=material-symbols-outlined style=font-size:1rem>sync</span> Przetwarzanie: ${{data.queue_length}} produktow`
-                        : `⏸️ Kolejka: ${{data.queue_length}} produktow`;
+                        : `⏸ Kolejka: ${{data.queue_length}} produktow`;
                 }}
             }} else if (statusDiv) {{ statusDiv.style.display = 'none'; }}
         }} catch(e) {{}}
@@ -1370,7 +1370,7 @@ def index():
             </div>
             <div class="quick-actions">
                 <a href="/paletomat/scraper" class="qa-btn">
-                    <div class="qa-icon" style="background:var(--accent-soft)">🌐</div>
+                    <div class="qa-icon" style="background:var(--accent-soft)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">language</span></div>
                     Scraper
                 </a>
                 <a href="/paletomat/generator" class="qa-btn">
@@ -1437,7 +1437,7 @@ def scraper():
     
     # Dropdown palet (pełny - dla formularza ASIN)
     palety_options = '<option value="">-- Bez palety --</option>'
-    palety_options += '<option value="new">➕ Nowa paleta...</option>'
+    palety_options += '<option value="new"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">add</span> Nowa paleta...</option>'
     for p in palety:
         palety_options += f'<option value="{p["id"]}">{p["nazwa"]} ({p["dostawca"] or "brak dostawcy"})</option>'
     
@@ -1447,7 +1447,7 @@ def scraper():
         palety_options_clean += f'<option value="{p["id"]}">{p["nazwa"]} ({p["dostawca"] or "brak dostawcy"})</option>'
     
     html = f'''
-    <div class="hdr"><h1>🌐 AMAZON SCRAPER</h1><small>Pobierz produkty</small></div>
+    <div class="hdr"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">language</span> AMAZON SCRAPER</h1><small>Pobierz produkty</small></div>
     
     <!-- FORMULARZ 1: SCRAPE PO ASIN -->
     <div class="card">
@@ -1458,12 +1458,12 @@ def scraper():
                     <label><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Paleta</label>
                     <select name="paleta_id" class="form-ctrl" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
                         <option value="">-- Bez palety --</option>
-                        <option value="new">➕ Nowa paleta...</option>
+                        <option value="new"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">add</span> Nowa paleta...</option>
                         {palety_options_clean}
                     </select>
                 </div>
                 <div class="form-group" style="margin-bottom:0">
-                    <label>🏭 Dostawca</label>
+                    <label><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">factory</span> Dostawca</label>
                     <select name="dostawca" class="form-ctrl">
                         <option value="">-- Wybierz --</option>
                         <option value="Jobalots">🇳🇱 Jobalots</option>
@@ -1501,19 +1501,19 @@ def scraper():
     
     <!-- FORMULARZ 2: SCRAPE Z PLIKU -->
     <div class="card">
-        <div class="card-title">📁 SCRAPE Z PLIKU (JOBALOTS/WARRINGTON)</div>
+        <div class="card-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span> SCRAPE Z PLIKU (JOBALOTS/WARRINGTON)</div>
         <form action="/paletomat/scraper/file" method="POST" enctype="multipart/form-data">
             <div class="form-row" style="margin-bottom:15px;padding:10px;background:#1a1a2e;border-radius:8px;border:1px solid #8ff5ff">
                 <div class="form-group" style="margin-bottom:0">
                     <label><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Paleta</label>
                     <select name="paleta_id" class="form-ctrl" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
                         <option value="">-- Bez palety --</option>
-                        <option value="new">➕ Nowa paleta...</option>
+                        <option value="new"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">add</span> Nowa paleta...</option>
                         {palety_options_clean}
                     </select>
                 </div>
                 <div class="form-group" style="margin-bottom:0">
-                    <label>🏭 Dostawca</label>
+                    <label><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">factory</span> Dostawca</label>
                     <select name="dostawca" class="form-ctrl">
                         <option value="">-- Wybierz --</option>
                         <option value="Jobalots">🇳🇱 Jobalots</option>
@@ -1526,7 +1526,7 @@ def scraper():
             <input type="text" name="nowa_paleta_nazwa" class="form-ctrl" placeholder="Nazwa nowej palety" style="display:none;margin-bottom:15px">
             
             <div class="form-group">
-                <label>📄 Plik Excel (.xlsx) lub CSV/TXT</label>
+                <label><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">description</span> Plik Excel (.xlsx) lub CSV/TXT</label>
                 <input type="file" name="file" class="form-ctrl" accept=".txt,.csv,.xlsx,.xls" required>
                 <div style="font-size:0.7rem;color:#64748b;margin-top:5px">Automatycznie wykrywa: ASIN, cenę, ilość, EAN, zdjęcia</div>
             </div>
@@ -1547,12 +1547,12 @@ def scraper():
                     <label><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Paleta</label>
                     <select name="paleta_id" class="form-ctrl" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
                         <option value="">-- Bez palety --</option>
-                        <option value="new">➕ Nowa paleta...</option>
+                        <option value="new"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">add</span> Nowa paleta...</option>
                         {palety_options_clean}
                     </select>
                 </div>
                 <div class="form-group" style="margin-bottom:0">
-                    <label>🏭 Dostawca</label>
+                    <label><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">factory</span> Dostawca</label>
                     <select name="dostawca" class="form-ctrl">
                         <option value="Miglo" selected>🇵🇱 Miglo</option>
                         <option value="Jobalots">🇳🇱 Jobalots</option>
@@ -1933,7 +1933,7 @@ def scraper_file():
     
     # DEBUG: Pokaż WSZYSTKO co przyszło z formularza
     print(f"<span class=material-symbols-outlined style=font-size:1rem>list_alt</span> Wszystkie pola formularza: {dict(request.form)}")
-    print(f"📁 Pliki: {list(request.files.keys())}")
+    print(f"[FOLD] Pliki: {list(request.files.keys())}")
     
     if 'file' not in request.files:
         print("<span class=material-symbols-outlined style=font-size:1rem>cancel</span> Brak pliku w request!")
@@ -1944,7 +1944,7 @@ def scraper_file():
         print("<span class=material-symbols-outlined style=font-size:1rem>cancel</span> Pusta nazwa pliku!")
         return render('<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-warn">Nie wybrano pliku</div><a href="/paletomat/scraper" class="btn btn-p">← Powrót</a>')
     
-    print(f"📄 Plik: {file.filename}")
+    print(f"[DESC] Plik: {file.filename}")
     
     # Pobierz dane palety
     paleta_id = request.form.get('paleta_id', '')
@@ -2085,7 +2085,7 @@ def scraper_file():
                             # NAJWYŻSZY PRIORYTET: Cena jednostkowa sprzedaży (per sztuka!)
                             if col_unit_price == -1 and 'jednostkow' in h_orig and any(x in h_orig for x in ['sprzeda', 'cena']):
                                 col_unit_price = i
-                                print(f"🏆 Znaleziono kolumnę CENA JEDNOSTKOWA: {i} ({h})")
+                                print(f"[EMOJ] Znaleziono kolumnę CENA JEDNOSTKOWA: {i} ({h})")
                             
                             # WYSOKI PRIORYTET: Cena sprzedaży netto
                             if col_netto == -1 and 'sprzeda' in h_orig and 'netto' in h_orig:
@@ -2112,7 +2112,7 @@ def scraper_file():
                         if col_unit_price >= 0:
                             col_price = col_unit_price
                             price_is_netto = True
-                            print(f"🏆 Używam kolumny JEDNOSTKOWA jako cena: {col_price} (netto ×1.23 → brutto)")
+                            print(f"[EMOJ] Używam kolumny JEDNOSTKOWA jako cena: {col_price} (netto ×1.23 → brutto)")
                         elif col_netto >= 0:
                             col_price = col_netto
                             price_is_netto = True
@@ -2248,7 +2248,7 @@ def scraper_file():
             
             # Szukaj ASIN-ów (case insensitive, 8-10 znaków po B0)
             found = re.findall(r'[Bb]0[A-Za-z0-9]{8,10}', content)
-            print(f"📄 CSV/TXT: znaleziono {len(found)} ASIN-ów")
+            print(f"[DESC] CSV/TXT: znaleziono {len(found)} ASIN-ów")
             for asin in found:
                 asin = asin.upper()
                 asins.add(asin)
@@ -2613,11 +2613,11 @@ def generator():
 def _render_stan_fields(grupy_stanow, stan_magazyn):
     """Renderuje pola stanu - grupowo jeśli są sztuki, pojedynczo jeśli nie"""
     stan_colors = {
-        'Nowy': ('#beee00', '🟢'),
-        'Powystawowy': ('#8ff5ff', '🔵'),
-        'Używany': ('#eab308', '🟡'),
+        'Nowy': ('#beee00', '●'),
+        'Powystawowy': ('#8ff5ff', '●'),
+        'Używany': ('#eab308', '●'),
         'Uszkodzony': ('#ef4444', '<span class=material-symbols-outlined style=font-size:1rem>fiber_manual_record</span>'),
-        'Odnowiony': ('#ff6b9b', '🟣'),
+        'Odnowiony': ('#ff6b9b', '●'),
     }
     
     if grupy_stanow:
@@ -2639,7 +2639,7 @@ def _render_stan_fields(grupy_stanow, stan_magazyn):
                     style="width:70px;padding:6px;background:#1e1e2e;border:1px solid {color}66;border-radius:6px;color:#fff;text-align:center;font-weight:700">
                 <span style="font-size:0.75rem;color:#64748b">/ {ile} szt</span>
             </div>'''
-        html += '<div style="font-size:0.7rem;color:#64748b;margin-top:6px">💡 Jedna oferta na Allegro = jeden stan. System wystawi tyle ofert ile masz grup.</div>'
+        html += '<div style="font-size:0.7rem;color:#64748b;margin-top:6px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Jedna oferta na Allegro = jeden stan. System wystawi tyle ofert ile masz grup.</div>'
         html += '</div>'
         # Hidden single stan field for non-grouped fallback
         html += f'<input type="hidden" name="stan" value="{grupy_stanow[0]["stan"] if grupy_stanow else stan_magazyn}">'
@@ -3242,7 +3242,7 @@ def generator_mass_create_from_paleta_stream():
                     threshold = max(2, len(words_p) // 2 + 1)
                     result = matching >= threshold
                     if not result:
-                        print(f"      🚫 _nazwa_match FAIL: prod={words_p} vs oferta={words_o}, match={matching}/{threshold}")
+                        print(f"      [BLOC] _nazwa_match FAIL: prod={words_p} vs oferta={words_o}, match={matching}/{threshold}")
                     return result
 
                 # 1. Szukaj po produkt_id + weryfikacja nazwy
@@ -3259,7 +3259,7 @@ def generator_mass_create_from_paleta_stream():
                     existing_offer = _pid_candidate
                     yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined style=font-size:1rem>search</span> Match po produkt_id={product_id}', 'color': '#6366f1'}) + "\n\n"
                 elif _pid_candidate:
-                    yield "data: " + json.dumps({'type': 'log', 'message': f'🚫 produkt_id={product_id} znaleziony ale nazwa nie pasuje: "{_pid_candidate["tytul"][:40]}"', 'color': '#f59e0b'}) + "\n\n"
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">block</span> produkt_id={product_id} znaleziony ale nazwa nie pasuje: "{_pid_candidate["tytul"][:40]}"', 'color': '#f59e0b'}) + "\n\n"
                     # Odlinkuj błędne powiązanie
                     conn.execute('UPDATE oferty SET produkt_id = NULL WHERE id = ?', (_pid_candidate['id'],))
                     conn.commit()
@@ -3408,7 +3408,7 @@ def generator_mass_create_from_paleta_stream():
                                 _dl_count += 1
 
                 if _local_images:
-                    yield "data: " + json.dumps({'type': 'log', 'message': f'📁 Znaleziono {len(_local_images)} lokalnych zdjęć ({_enh_count} enhanced + {_dl_count} downloaded)', 'color': '#3b82f6'}) + "\n\n"
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span> Znaleziono {len(_local_images)} lokalnych zdjęć ({_enh_count} enhanced + {_dl_count} downloaded)', 'color': '#3b82f6'}) + "\n\n"
                     wszystkie_zdjecia = _local_images[:8]
 
                 # Backup oryginalnych URL-i (z scraped) na wypadek fallbacku
@@ -3529,7 +3529,7 @@ def generator_mass_create_from_paleta_stream():
                     cat_result, cat_error = search_categories(_cat_search)
                     if cat_result and cat_result.get('matchingCategories'):
                         kategoria_id = cat_result['matchingCategories'][0].get('id')
-                        print(f"📁 Kategoria z polskiego tytułu '{_cat_search}': {kategoria_id}")
+                        print(f"[FOLD] Kategoria z polskiego tytułu '{_cat_search}': {kategoria_id}")
                 except:
                     pass
 
@@ -3608,7 +3608,7 @@ def generator_mass_create_from_paleta_stream():
                     yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined style=font-size:1rem>shield</span> GPSR: {len(gpsr)} znaków', 'color': '#22c55e'}) + "\n\n"
 
                 # Logi diagnostyczne
-                yield "data: " + json.dumps({'type': 'log', 'message': f'📁 Kategoria: {kategoria_id or "auto-detect"}', 'color': '#6366f1'}) + "\n\n"
+                yield "data: " + json.dumps({'type': 'log', 'message': f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span> Kategoria: {kategoria_id or "auto-detect"}', 'color': '#6366f1'}) + "\n\n"
                 if ean:
                     yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> EAN: {ean}', 'color': '#6366f1'}) + "\n\n"
                 yield "data: " + json.dumps({'type': 'log', 'message': '<span class=material-symbols-outlined style=font-size:1rem>smart_toy</span> Tworzę ofertę + parametry AI...', 'color': '#3b82f6'}) + "\n\n"
@@ -3859,7 +3859,7 @@ def generator_mass_create_stream():
                     cat_result, cat_error = search_categories(_cat_search)
                     if cat_result and cat_result.get('matchingCategories'):
                         kategoria_id = cat_result['matchingCategories'][0].get('id')
-                        print(f"📁 Kategoria z polskiego tytułu '{_cat_search}': {kategoria_id}")
+                        print(f"[FOLD] Kategoria z polskiego tytułu '{_cat_search}': {kategoria_id}")
                 except:
                     pass
                 # Kod magazynowy (do użytku wewnętrznego, NIE do tytułu/opisu Allegro)
@@ -4025,7 +4025,7 @@ def generator_reprocess():
             <small>Proces działa w tle. Odśwież stronę generatora za chwilę aby zobaczyć efekty.</small>
         </div>
         <a href="/paletomat/generator" class="btn btn-p">← Powrót do listy</a>
-        <a href="/paletomat" class="btn btn-2">🏠 Strona główna (zobacz status)</a>
+        <a href="/paletomat" class="btn btn-2"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">home</span> Strona główna (zobacz status)</a>
     ''')
 
 
@@ -4057,9 +4057,9 @@ def generator_enhance_existing():
         <button onclick="startEnhance(false)" id="btnStart" class="btn btn-ok" style="width:100%"><span class=material-symbols-outlined style=font-size:1rem>auto_awesome</span> GENERUJ ZDJĘCIA AI ({todo} produktów)</button>
         <button onclick="if(confirm('Usunąć wszystkie wygenerowane zdjęcia i zacząć od nowa?'))startEnhance(true)" class="btn" style="width:100%;margin-top:8px;background:#ef4444;color:#fff;font-size:0.85rem"><span class=material-symbols-outlined style=font-size:1rem>sync</span> WYCZYŚĆ I GENERUJ OD NOWA (wszystkie {total})</button>
         <div style="margin-top:12px;border-top:1px solid #334155;padding-top:12px">
-            <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:8px;text-align:center">🌙 Tryb nocny — generuj w tle (możesz zamknąć przeglądarkę)</div>
-            <button onclick="startBgEnhance(false)" id="btnBg" class="btn" style="width:100%;background:#7c3aed;color:#fff">🌙 GENERUJ W TLE ({todo} produktów)</button>
-            <button onclick="if(confirm('Usunąć wszystko i generować od nowa w tle?'))startBgEnhance(true)" class="btn" style="width:100%;margin-top:6px;background:#581c87;color:#fff;font-size:0.8rem">🌙<span class=material-symbols-outlined style=font-size:1rem>sync</span> WYCZYŚĆ + GENERUJ W TLE (wszystkie {total})</button>
+            <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:8px;text-align:center"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">dark_mode</span> Tryb nocny — generuj w tle (możesz zamknąć przeglądarkę)</div>
+            <button onclick="startBgEnhance(false)" id="btnBg" class="btn" style="width:100%;background:#7c3aed;color:#fff"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">dark_mode</span> GENERUJ W TLE ({todo} produktów)</button>
+            <button onclick="if(confirm('Usunąć wszystko i generować od nowa w tle?'))startBgEnhance(true)" class="btn" style="width:100%;margin-top:6px;background:#581c87;color:#fff;font-size:0.8rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">dark_mode</span><span class=material-symbols-outlined style=font-size:1rem>sync</span> WYCZYŚĆ + GENERUJ W TLE (wszystkie {total})</button>
         </div>
     </div>
 
@@ -4079,7 +4079,7 @@ def generator_enhance_existing():
             <div id="progressBar" style="background:linear-gradient(90deg,#f59e0b,#22c55e);height:100%;width:0%;transition:width 0.3s"></div>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:#94a3b8">
-            <div>⏱ <span id="elapsed">0:00</span></div>
+            <div><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">timer</span> <span id="elapsed">0:00</span></div>
             <div id="etaText"></div>
             <div><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> <span id="doneCount">0</span>/{todo}</div>
         </div>
@@ -4148,7 +4148,7 @@ def generator_enhance_existing():
                 document.getElementById('btnStart').classList.remove('pulsing');
                 document.getElementById('progressBar').style.width = '100%';
                 document.getElementById('progressText').textContent = (data.message || 'Zakończono!') + ' (' + totalTime + ')';
-                document.getElementById('etaText').textContent = '🏁 Czas: ' + totalTime;
+                document.getElementById('etaText').textContent = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">flag</span> Czas: ' + totalTime;
                 evtSource.close();
             }}
         }};
@@ -4225,13 +4225,13 @@ def generator_enhance_existing():
                     clearInterval(_timerInterval);
                     document.getElementById('spinnerEl').style.display = 'none';
                     document.getElementById('progressBar').style.width = '100%';
-                    document.getElementById('progressText').textContent = '🏁 Gotowe! ' + d.done + ' produktów | $' + d.cost.toFixed(2);
+                    document.getElementById('progressText').textContent = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">flag</span> Gotowe! ' + d.done + ' produktów | $' + d.cost.toFixed(2);
                 }}
             }});
     }}
     </script>
 
-    <a href="/paletomat/generator/enhance-gallery" class="back" style="display:block;text-align:center;margin-top:15px">🖼 Przeglądaj wygenerowane zdjęcia</a>
+    <a href="/paletomat/generator/enhance-gallery" class="back" style="display:block;text-align:center;margin-top:15px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">image</span> Przeglądaj wygenerowane zdjęcia</a>
     <a href="/paletomat/generator" class="back" style="display:block;text-align:center;margin-top:10px">← Powrót</a>
     '''
     return render(html)
@@ -4284,7 +4284,7 @@ def generator_enhance_gallery():
                   'kat2': '<span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> Drugi kąt', 'uzycie': '<span class=material-symbols-outlined style=font-size:1rem>smart_toy</span> W użyciu', 'life': '<span class=material-symbols-outlined style=font-size:1rem>smart_toy</span> Lifestyle'}
 
     html = f'''
-    <div class="hdr"><h1>🖼 GALERIA ZDJĘĆ AI</h1><small>{len(products)} produktów z wygenerowanymi zdjęciami</small></div>
+    <div class="hdr"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">image</span> GALERIA ZDJĘĆ AI</h1><small>{len(products)} produktów z wygenerowanymi zdjęciami</small></div>
 
     <div style="text-align:center;margin-bottom:15px">
         <span style="color:#94a3b8">Strona {page}/{total_pages}</span>
@@ -4383,7 +4383,7 @@ def generator_enhance_existing_stream():
             _old_count = len([d for d in os.listdir(_enh_base) if os.path.isdir(os.path.join(_enh_base, d))])
             shutil.rmtree(_enh_base)
             os.makedirs(_enh_base, exist_ok=True)
-            yield f"data: {json.dumps({'type': 'log', 'message': f'🗑 Usunięto {_old_count} starych folderów — generuję od nowa', 'color': '#ef4444'})}\n\n"
+            yield f"data: {json.dumps({'type': 'log', 'message': f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">delete</span> Usunięto {_old_count} starych folderów — generuję od nowa', 'color': '#ef4444'})}\n\n"
 
         # Filtruj — tylko te bez enhanced (lub wszystkie jeśli force)
         todo = []
@@ -4647,9 +4647,9 @@ def _bg_enhance_worker(app, force=False):
             return
 
         if _vps_url:
-            _log(f"🌐 Tryb VPS: {_vps_url}")
+            _log(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">language</span> Tryb VPS: {_vps_url}")
         else:
-            _log("💻 Tryb lokalny rembg (uwaga: grzeje Pi)")
+            _log("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">computer</span> Tryb lokalny rembg (uwaga: grzeje Pi)")
 
         products = conn.execute('''
             SELECT id, asin, ean, nazwa, zdjecie_url, images
@@ -4666,7 +4666,7 @@ def _bg_enhance_worker(app, force=False):
             _old = len([d for d in os.listdir(_enh_base) if os.path.isdir(os.path.join(_enh_base, d))])
             shutil.rmtree(_enh_base)
             os.makedirs(_enh_base, exist_ok=True)
-            _log(f"🗑 Usunięto {_old} starych folderów")
+            _log(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">delete</span> Usunięto {_old} starych folderów")
 
         todo = []
         for p in products:
@@ -4785,7 +4785,7 @@ def _bg_enhance_worker(app, force=False):
         except:
             pass
 
-        _log(f"🏁 GOTOWE! {ok_count}/{len(todo)} produktów (rembg, darmowe)")
+        _log(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">flag</span> GOTOWE! {ok_count}/{len(todo)} produktów (rembg, darmowe)")
         _bg_enhance_status['running'] = False
         _bg_enhance_status['finished'] = True
 
@@ -5065,7 +5065,7 @@ TEMPLATE_ALREADY_LISTED = '''<!DOCTYPE html><html><head>
                class="form-ctrl" style="width:100%">
       </div>
       <button type="submit" class="btn btn-p" style="min-height:48px;flex:2">
-        ➕ Dodaj sztuki do oferty
+        <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">add</span> Dodaj sztuki do oferty
       </button>
     </form>
   </div>
@@ -5311,7 +5311,7 @@ def generator_detail(asin):
             {gallery_html}
             <div style="margin-top:8px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;align-items:center">
                 <button type="button" onclick="cleanImages()" id="btnClean" style="padding:6px 14px;background:#7c3aed;color:#fff;border:none;border-radius:6px;font-size:0.75rem;cursor:pointer">
-                    🧹 Wyczysc z napisow
+                    <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">mop</span> Wyczysc z napisow
                 </button>
                 <button type="button" onclick="enhanceImages()" id="btnEnhance" style="padding:6px 14px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:0.75rem;cursor:pointer">
                     <span class=material-symbols-outlined style=font-size:1rem>auto_awesome</span> Podrasuj 8 zdjec
@@ -5328,7 +5328,7 @@ def generator_detail(asin):
             </div>
             
             <div class="form-group">
-                <label>📁 Kategoria Allegro</label>
+                <label><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span> Kategoria Allegro</label>
                 <select name="kategoria" class="form-ctrl" style="padding:10px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#fff">
                     <option value="{detected_cat}" selected>✓ {detected_cat_name} (auto)</option>
                     <option value="261680">Motoryzacja > Pokrowce na siedzenia</option>
@@ -5371,7 +5371,7 @@ def generator_detail(asin):
             <div class="form-group">
                 <label><span class=material-symbols-outlined style=font-size:1rem>edit_note</span> Opis HTML (profesjonalny layout ze zdjęciami)</label>
                 <div style="display:flex;gap:8px;margin-bottom:8px">
-                    <button type="button" onclick="togglePreview()" class="btn btn-2" style="padding:8px 12px;width:auto;font-size:0.8rem">👁️ Podgląd</button>
+                    <button type="button" onclick="togglePreview()" class="btn btn-2" style="padding:8px 12px;width:auto;font-size:0.8rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">visibility</span> Podgląd</button>
                     <button type="button" onclick="copyHtml()" class="btn btn-2" style="padding:8px 12px;width:auto;font-size:0.8rem"><span class=material-symbols-outlined style=font-size:1rem>list_alt</span> Kopiuj</button>
                 </div>
                 <textarea name="opis" id="opisHtml" class="form-ctrl" style="min-height:200px;font-size:0.75rem;line-height:1.4;font-family:monospace">{opis_html_escaped}</textarea>
@@ -6065,7 +6065,7 @@ def generator_create_stream(asin):
                     # Sprawdź czy plik istnieje
                     if os_module.path.exists(abs_path):
                         processed.append(abs_path)
-                        yield f"data: {json.dumps({'type': 'log', 'message': f'📁 Lokalny plik: {img_path}', 'color': '#8b5cf6'})}\n\n"
+                        yield f"data: {json.dumps({'type': 'log', 'message': f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span> Lokalny plik: {img_path}', 'color': '#8b5cf6'})}\n\n"
                     else:
                         yield f"data: {json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined style=font-size:1rem>warning</span> Plik nie istnieje: {img_path}', 'color': '#f59e0b'})}\n\n"
                         
@@ -6077,7 +6077,7 @@ def generator_create_stream(asin):
                         # Optymalizuj Amazon URL do full size
                         img_path = re.sub(r'\._[A-Z0-9_,]+_\.', '._AC_SL1500_.', img_path)
                     processed.append(img_path)
-                    yield f"data: {json.dumps({'type': 'log', 'message': f'🌐 URL: {img_path[:50]}...', 'color': '#3b82f6'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'log', 'message': f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">language</span> URL: {img_path[:50]}...', 'color': '#3b82f6'})}\n\n"
                 else:
                     # Fallback - spróbuj jako absolutna ścieżka
                     import os as os_module
@@ -6133,7 +6133,7 @@ def generator_create_stream(asin):
         yield f"data: {json.dumps({'type': 'progress', 'percent': 70, 'message': 'Tworzę ofertę...'})}\n\n"
         yield f"data: {json.dumps({'type': 'log', 'message': '<span class=material-symbols-outlined style=font-size:1rem>upload</span> Wysyłam do Allegro...', 'color': '#64748b'})}\n\n"
         
-        kat_msg = f'📁 Kategoria: {kategoria}'
+        kat_msg = f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span> Kategoria: {kategoria}'
         ean_msg = f'<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> EAN: {ean}' if ean else '<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> EAN: brak'
         asin_msg = f'<span class=material-symbols-outlined style=font-size:1rem>label</span> ASIN: {asin}'
         gpsr_msg = f'<span class=material-symbols-outlined style=font-size:1rem>shield</span> GPSR: {len(gpsr) if gpsr else 0} znaków'
@@ -6301,14 +6301,14 @@ def generator_create_stream(asin):
                             yield f"data: {json.dumps({'type': 'log', 'message': '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Etykieta wydrukowana na Niimbot B1!', 'color': '#22c55e'})}\n\n"
                         else:
                             yield f"data: {json.dumps({'type': 'log', 'message': '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Integracja zapisana (drukarka niedostępna)', 'color': '#3b82f6'})}\n\n"
-                            yield f"data: {json.dumps({'type': 'log', 'message': '💡 Wydrukuj ręcznie: python quick_print.py {produkt_id} {existing_location}', 'color': '#64748b'})}\n\n"
+                            yield f"data: {json.dumps({'type': 'log', 'message': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Wydrukuj ręcznie: python quick_print.py {produkt_id} {existing_location}', 'color': '#64748b'})}\n\n"
                     else:
                         error_msg = result.get('error', 'Nieznany błąd')
                         yield f"data: {json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined style=font-size:1rem>warning</span> Błąd drukowania: {error_msg[:50]}', 'color': '#f59e0b'})}\n\n"
                 else:
                     # Brak lokalizacji - poinformuj użytkownika + daj link
                     yield f"data: {json.dumps({'type': 'log', 'message': '<span class=material-symbols-outlined style=font-size:1rem>pin_drop</span> Produkt nie ma przypisanej lokalizacji', 'color': '#f59e0b'})}\n\n"
-                    yield f"data: {json.dumps({'type': 'log', 'message': '💡 Przypisz lokalizację aby wydrukować etykietę', 'color': '#64748b'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'log', 'message': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Przypisz lokalizację aby wydrukować etykietę', 'color': '#64748b'})}\n\n"
                     
                     # Przekaż produkt_id do frontendu żeby mógł pokazać UI przypisywania
                     yield f"data: {json.dumps({'type': 'missing_location', 'produkt_id': produkt_id, 'offer_id': offer_id})}\n\n"
@@ -6491,7 +6491,7 @@ def export_csv():
     
     if not oferty:
         return render('''
-            <div class="hdr"><h1>ℹ️ INFO</h1></div>
+            <div class="hdr"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#3b82f6">info</span> INFO</h1></div>
             <div class="alert alert-warn">Brak szkiców do eksportu</div>
             <a href="/paletomat/oferty" class="back">← Powrót</a>
         ''')
@@ -6693,7 +6693,7 @@ def publish_all_drafts():
     
     if not drafts:
         return render('''
-            <div class="hdr"><h1>ℹ️ INFO</h1></div>
+            <div class="hdr"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#3b82f6">info</span> INFO</h1></div>
             <div class="alert alert-warn">Brak szkiców do wystawienia</div>
             <a href="/paletomat/oferty" class="back">← Powrót</a>
         ''')
@@ -6781,8 +6781,8 @@ def api_queue_status():
         'running': _scraper_running,
         'queue_length': len(_processing_queue),
         'queue': list(_processing_queue),
-        'progress': PROGRESS,  # 🚜 NOWE: pokazuje postęp
-        'workers': MAX_WORKERS  # 🚜 NOWE: ile równolegle
+        'progress': PROGRESS,  # <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">agriculture</span> NOWE: pokazuje postęp
+        'workers': MAX_WORKERS  # <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">agriculture</span> NOWE: ile równolegle
     })
 
 

@@ -443,7 +443,7 @@ def import_excel_manifest(
             conn_temp.commit()
 
             result["paleta_id"] = paleta_id  # Zapisz ID palety w wyniku
-            result["details"].append(f"✅ Utworzono paletę: {nazwa_palety} (ID: {paleta_id})")
+            result["details"].append(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Utworzono paletę: {nazwa_palety} (ID: {paleta_id})")
         elif paleta_id:
             result["paleta_id"] = paleta_id  # Użyto istniejącej palety
         
@@ -512,7 +512,7 @@ def import_excel_manifest(
                     # Log dla niskiej pewności
                     if qty_result.confidence < 0.5:
                         result["details"].append(
-                            f"⚠️ Niska pewność ilości dla '{ean}': "
+                            f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> Niska pewność ilości dla '{ean}': "
                             f"'{qty_result.original}' -> {ilosc} (metoda: {method})"
                         )
                 
@@ -596,7 +596,7 @@ def import_excel_manifest(
         if paleta_id:
             count = conn.execute('SELECT COUNT(*) FROM produkty WHERE paleta_id = ?', (paleta_id,)).fetchone()[0]
             conn.execute('UPDATE palety SET ilosc_produktow = ? WHERE id = ?', (count, paleta_id))
-            result["details"].append(f"📦 Zaktualizowano paletę: {count} produktów")
+            result["details"].append(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> Zaktualizowano paletę: {count} produktów")
                 
         conn.commit()
 
@@ -724,7 +724,7 @@ def update_stock_on_sale(
         result["message"] = f"Zaktualizowano stan: {result['old_stock']} -> {new_stock}"
         
         # Log
-        print(f"📦 Stock update: {product['nazwa'][:30]} ({result['old_stock']} -> {new_stock})")
+        print(f"[INVE] Stock update: {product['nazwa'][:30]} ({result['old_stock']} -> {new_stock})")
         
     except Exception as e:
         result["message"] = f"Błąd aktualizacji: {str(e)}"
@@ -877,7 +877,7 @@ def sync_orders_with_stock(today_only: bool = True) -> Dict[str, Any]:
                 
     conn.commit()
 
-    print(f"✅ Zsync: {result['synced']}, Stock updates: {len(result['stock_updates'])}")
+    print(f"[OK] Zsync: {result['synced']}, Stock updates: {len(result['stock_updates'])}")
     return result
 
 
@@ -886,7 +886,7 @@ def sync_orders_with_stock(today_only: bool = True) -> Dict[str, Any]:
 # ============================================================
 
 if __name__ == "__main__":
-    print("🧪 Test SmartQuantityParser")
+    print("[SCIE] Test SmartQuantityParser")
     
     test_values = [
         "5",
@@ -910,5 +910,5 @@ if __name__ == "__main__":
     
     for val in test_values:
         result = SmartQuantityParser.parse(val)
-        status = "✅" if result.confidence >= 0.7 else "⚠️"
+        status = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>" if result.confidence >= 0.7 else "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span>"
         print(f"  {status} '{val}' -> {result.value} (conf: {result.confidence:.2f}, method: {result.method})")

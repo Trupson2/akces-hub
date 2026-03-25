@@ -339,7 +339,7 @@ def generate_meta_title_batch():
                     generate_meta_title_batch._api_delay = min(old_delay * 2, 10.0)  # Max 10s
 
                     print(f"   <span class=material-symbols-outlined style=font-size:1rem>warning</span>  QUOTA EXCEEDED! Zwiększam delay: {old_delay}s → {generate_meta_title_batch._api_delay}s")
-                    print(f"   💡 WOLNIEJ = STABILNIEJ!")
+                    print(f"   [LIGH] WOLNIEJ = STABILNIEJ!")
 
                     results['failed'] += 1
                     results['details'].append({
@@ -466,7 +466,7 @@ def produkt_extract_params(produkt_id):
              onclick="navigator.clipboard.writeText(this.innerText); alert('Skopiowano do schowka!')">
             {meta_title or 'Brak tytułu'}
         </div>
-        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:8px">💡 Kliknij aby skopiować</div>
+        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:8px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Kliknij aby skopiować</div>
     </div>
 
     <!-- ORYGINALNA NAZWA -->
@@ -1099,7 +1099,7 @@ def palety_lista():
     </div>
 
     <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-        <a href="/palety/dodaj" class="btn btn-success">➕ DODAJ PALETĘ</a>
+        <a href="/palety/dodaj" class="btn btn-success"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">add</span> DODAJ PALETĘ</a>
         <button type="button" id="bulk-select-btn" onclick="toggleSelectAll()" class="btn" style="background:var(--bg-card);border:1px solid var(--border);font-size:0.8rem"><span class=material-symbols-outlined style=font-size:1rem>check_box</span> Zaznacz wszystkie</button>
     </div>
 
@@ -1241,7 +1241,7 @@ def paleta_dodaj():
 
     content = '''
     <div class="header">
-        <h1>➕ NOWA PALETA</h1>
+        <h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">add</span> NOWA PALETA</h1>
         <small>Dodaj zakupioną paletę</small>
     </div>
 
@@ -1459,7 +1459,7 @@ def paleta_import_xlsx():
 
         <!-- PLIK -->
         <div class="form-group">
-            <label>📁 Plik Excel (.xlsx)</label>
+            <label><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span> Plik Excel (.xlsx)</label>
             <input type="file" name="file" accept=".xlsx,.xls" required class="form-control">
         </div>
 
@@ -1533,7 +1533,7 @@ def paleta_import_xlsx():
 
     <!-- PRZYKŁADOWE NAZWY KOLUMN -->
     <div class="card" style="margin-top:15px">
-        <div style="font-weight:600;margin-bottom:10px;color:var(--text-secondary)">💡 Przykładowe nazwy kolumn</div>
+        <div style="font-weight:600;margin-bottom:10px;color:var(--text-secondary)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Przykładowe nazwy kolumn</div>
         <div style="font-size:0.85rem;color:var(--text-muted)">
             <b>Jobalots:</b> Description, EAN, Qty, Unit Price, RRP<br>
             <b>Warrington:</b> Item Description, Barcode, Quantity, Cost, Retail<br>
@@ -2058,7 +2058,7 @@ def paleta_bulk_import():
                             ''', (np_row['asin'], np_row['nazwa'], np_row['kategoria'] or '', np_row['zdjecie_url'] or '', np_row['cena_brutto'] or 0))
                     conn.commit()
 
-                    # 🚜 AUTO-SCRAPING: odpal kombajn dla produktów bez zdjęć
+                    # [AGRI] AUTO-SCRAPING: odpal kombajn dla produktów bez zdjęć
                     asins_rows = conn.execute(f'''
                         SELECT DISTINCT asin FROM produkty
                         WHERE paleta_id IN ({placeholders})
@@ -2070,7 +2070,7 @@ def paleta_bulk_import():
                         from modules.paletomat import auto_process_products
                         auto_process_products(asins)
                         scrape_count = len(asins)
-                        print(f"🚜 Bulk import → auto-scraping {scrape_count} produktów")
+                        print(f"[AGRI] Bulk import → auto-scraping {scrape_count} produktów")
             except Exception as e:
                 print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> Auto-scraping/scraped insert error: {e}")
 
@@ -2080,9 +2080,9 @@ def paleta_bulk_import():
 
             results_html = ''
             if waluta == 'EUR':
-                results_html += f'<div style="padding:10px;background:var(--blue-soft);border-radius:10px;margin-bottom:12px;font-size:0.85rem">💱 Przeliczono ceny EUR → PLN po kursie NBP: <b>{eur_rate:.4f}</b></div>'
+                results_html += f'<div style="padding:10px;background:var(--blue-soft);border-radius:10px;margin-bottom:12px;font-size:0.85rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">currency_exchange</span> Przeliczono ceny EUR → PLN po kursie NBP: <b>{eur_rate:.4f}</b></div>'
             if scrape_count > 0:
-                results_html += f'<div style="padding:10px;background:var(--green-soft);border-radius:10px;margin-bottom:12px;font-size:0.85rem">🚜 Auto-scraping uruchomiony dla <b>{scrape_count}</b> produktów z ASIN. Zdjęcia pojawią się w tle.</div>'
+                results_html += f'<div style="padding:10px;background:var(--green-soft);border-radius:10px;margin-bottom:12px;font-size:0.85rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">agriculture</span> Auto-scraping uruchomiony dla <b>{scrape_count}</b> produktów z ASIN. Zdjęcia pojawią się w tle.</div>'
             for w in wyniki:
                 if w['status'] == 'merged':
                     results_html += f'''
@@ -2189,7 +2189,7 @@ def paleta_bulk_import():
             <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px">Wrzuć plik .zip z wieloma Excelami — system automatycznie utworzy slot dla każdego</div>
             <input type="file" id="zip-upload" accept=".zip" style="display:none" onchange="handleZipUpload(this)">
             <button type="button" onclick="document.getElementById('zip-upload').click()" style="padding:10px 24px;background:linear-gradient(135deg,#ff6b9b,#8ff5ff);border:none;border-radius:10px;color:#fff;font-weight:600;cursor:pointer;font-size:0.9rem">
-                📁 Wybierz plik ZIP
+                <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span> Wybierz plik ZIP
             </button>
             <span id="zip-status" style="margin-left:10px;font-size:0.8rem;color:var(--text-muted)"></span>
         </div>
@@ -2201,7 +2201,7 @@ def paleta_bulk_import():
     <div id="palety-container"></div>
 
     <button type="button" onclick="addPaleta()" style="width:100%;padding:14px;background:var(--bg-card);border:2px dashed var(--blue);border-radius:12px;color:var(--blue);font-weight:600;cursor:pointer;margin-bottom:15px;font-size:0.95rem">
-        ➕ DODAJ PALETĘ
+        <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">add</span> DODAJ PALETĘ
     </button>
 
     <div id="merge-box-option" style="display:none;margin-bottom:12px;padding:14px;background:#f59e0b11;border:1px solid #f59e0b44;border-radius:12px">
@@ -2268,7 +2268,7 @@ def paleta_bulk_import():
             <div id="slot-title-${i}" style="font-weight:600;color:var(--blue);margin-bottom:10px;font-size:0.9rem"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Paleta #${i+1}</div>
 
             <div style="margin-bottom:10px">
-                <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px">📁 Plik Excel</label>
+                <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span> Plik Excel</label>
                 <input type="file" name="file_${i}" accept=".xlsx,.xls,.zip" required onchange="updateFileName(this, ${i})"
                     class="form-control">
             </div>
@@ -2418,7 +2418,7 @@ def paleta_mass_edit(paleta_id):
             checkbox_disabled = 'disabled'
             checkbox_checked = ''
         elif p['status'] == 'magazyn':
-            status_badge = '<span class="badge" style="background:var(--blue-soft);color:var(--blue)">🔵 MAGAZYN</span>'
+            status_badge = '<span class="badge" style="background:var(--blue-soft);color:var(--blue)">● MAGAZYN</span>'
             row_bg = 'var(--blue-soft)'
             checkbox_disabled = ''
             checkbox_checked = 'checked'
@@ -2430,7 +2430,7 @@ def paleta_mass_edit(paleta_id):
             checkbox_checked = 'checked'
             wybrane_count += 1
         else:
-            status_badge = '<span class="badge" style="background:rgba(100,116,139,0.1);color:var(--text-muted)">⚪ NOWY</span>'
+            status_badge = '<span class="badge" style="background:rgba(100,116,139,0.1);color:var(--text-muted)">● NOWY</span>'
             row_bg = 'rgba(100,116,139,0.05)'
             checkbox_disabled = ''
             checkbox_checked = ''
@@ -2554,7 +2554,7 @@ def paleta_mass_edit(paleta_id):
     </div>
 
     <div class="me-info">
-        💡 Zaznacz produkty → edytuj ceny → kliknij <b>Wystaw</b>. Wystawione (zielone) nie można zaznaczyć.
+        <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Zaznacz produkty → edytuj ceny → kliknij <b>Wystaw</b>. Wystawione (zielone) nie można zaznaczyć.
     </div>
 
     <div id="products-list" style="padding-bottom:140px">
@@ -2676,7 +2676,7 @@ def paleta_mass_edit(paleta_id):
         const seconds = estimatedTime % 60;
         const timeStr = minutes > 0 ? minutes + 'min ' + seconds + 's' : seconds + 's';
 
-        if (!confirm('<span class=material-symbols-outlined style=font-size:1rem>smart_toy</span> Wygenerować META TITLE dla ' + checked.length + ' produktów?\\n\\n⏱️  Szacowany czas: ~' + timeStr + '\\n<span class=material-symbols-outlined style=font-size:1rem>warning</span>  5s opóźnienie między produktami (safe rate limiting)\\n\\nKontynuować?')) {{
+        if (!confirm('<span class=material-symbols-outlined style=font-size:1rem>smart_toy</span> Wygenerować META TITLE dla ' + checked.length + ' produktów?\\n\\n<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">timer</span>  Szacowany czas: ~' + timeStr + '\\n<span class=material-symbols-outlined style=font-size:1rem>warning</span>  5s opóźnienie między produktami (safe rate limiting)\\n\\nKontynuować?')) {{
             return;
         }}
 
@@ -3090,7 +3090,7 @@ def paleta_szczegoly(paleta_id):
             status_text = 'SPRZEDANY'
         elif p['status'] == 'wystawiony':
             status_color = 'var(--blue)'
-            status_icon = '🔵'
+            status_icon = '●'
             status_text = 'WYSTAWIONY'
         elif p['status'] == 'magazyn':
             status_color = 'var(--yellow)'
@@ -3098,7 +3098,7 @@ def paleta_szczegoly(paleta_id):
             status_text = 'MAGAZYN'
         else:
             status_color = 'var(--text-muted)'
-            status_icon = '⚪'
+            status_icon = '●'
             status_text = 'NOWY'
 
         # Cena jednostkowa zakupu
@@ -3194,7 +3194,7 @@ def paleta_szczegoly(paleta_id):
                 </button>
                 <a href="/magazyn/produkt/{p['id']}/edytuj"
                    style="padding:6px 10px;background:var(--blue);border-radius:6px;color:#fff;text-decoration:none;font-size:0.65rem;font-weight:600;text-align:center;flex:1">
-                    🖊️ Edytuj
+                    🖊 Edytuj
                 </a>
                 <button onclick="pokazMenu(event, {p['id']}, {p['ilosc']}, '{p['nazwa'][:30].replace(chr(39), chr(96)).replace(chr(34), chr(96))}', this)"
                    style="padding:6px 10px;background:var(--text-muted);border:none;border-radius:6px;color:#fff;font-size:0.65rem;font-weight:600;cursor:pointer;flex:1">
@@ -3431,9 +3431,9 @@ def paleta_szczegoly(paleta_id):
         <div id="rozbijStany"></div>
         <div style="color:var(--text-secondary);font-size:0.75rem;margin:12px 0 8px">Szybkie ustawienie:</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px">
-          <button onclick="rozbijSzybko('Nowy')" style="padding:6px 12px;background:var(--green-soft);border:1px solid var(--green);border-radius:8px;color:var(--green);font-size:0.78rem;cursor:pointer">🟢 Wszystko nowe</button>
-          <button onclick="rozbijSzybko('Powystawowy')" style="padding:6px 12px;background:var(--blue-soft);border:1px solid var(--blue);border-radius:8px;color:var(--blue);font-size:0.78rem;cursor:pointer">🔵 Powystawowe</button>
-          <button onclick="rozbijSzybko('Używany')" style="padding:6px 12px;background:var(--yellow-soft);border:1px solid var(--yellow);border-radius:8px;color:var(--yellow);font-size:0.78rem;cursor:pointer">🟡 Używane</button>
+          <button onclick="rozbijSzybko('Nowy')" style="padding:6px 12px;background:var(--green-soft);border:1px solid var(--green);border-radius:8px;color:var(--green);font-size:0.78rem;cursor:pointer">● Wszystko nowe</button>
+          <button onclick="rozbijSzybko('Powystawowy')" style="padding:6px 12px;background:var(--blue-soft);border:1px solid var(--blue);border-radius:8px;color:var(--blue);font-size:0.78rem;cursor:pointer">● Powystawowe</button>
+          <button onclick="rozbijSzybko('Używany')" style="padding:6px 12px;background:var(--yellow-soft);border:1px solid var(--yellow);border-radius:8px;color:var(--yellow);font-size:0.78rem;cursor:pointer">● Używane</button>
           <button onclick="rozbijSzybko('Uszkodzony')" style="padding:6px 12px;background:var(--red-soft);border:1px solid var(--red);border-radius:8px;color:var(--red);font-size:0.78rem;cursor:pointer"><span class=material-symbols-outlined style=font-size:1rem>fiber_manual_record</span> Uszkodzone</button>
         </div>
         <div style="display:flex;gap:8px">

@@ -94,13 +94,13 @@ def refresh_olx_token():
                 set_config('olx_refresh_token', tokens['refresh_token'])
             expires_at = datetime.now() + timedelta(seconds=tokens.get('expires_in', 3600))
             set_config('olx_token_expires', expires_at.isoformat())
-            print("✅ OLX token refreshed")
+            print("[OK] OLX token refreshed")
             return True
         else:
-            print(f"❌ OLX token refresh failed: {response.status_code} {response.text}")
+            print(f"[ERR] OLX token refresh failed: {response.status_code} {response.text}")
             return False
     except Exception as e:
-        print(f"❌ OLX token refresh error: {e}")
+        print(f"[ERR] OLX token refresh error: {e}")
         return False
 
 
@@ -148,7 +148,7 @@ def olx_api_request(method, endpoint, data=None, files=None):
             if resp.status_code == 429:
                 # Rate limited
                 wait = int(resp.headers.get('Retry-After', 60))
-                print(f"⚠️ OLX rate limit, waiting {wait}s...")
+                print(f"[WARN] OLX rate limit, waiting {wait}s...")
                 time.sleep(wait)
                 continue
 
@@ -283,7 +283,7 @@ def create_olx_listing(produkt_id):
         try:
             upload_image_to_olx(advert_id, img_url)
         except Exception as e:
-            print(f"⚠️ OLX image upload failed: {e}")
+            print(f"[WARN] OLX image upload failed: {e}")
 
     # 3. Zapisz w bazie
     try:
@@ -294,7 +294,7 @@ def create_olx_listing(produkt_id):
         ''', (produkt_id, str(advert_id), nazwa, cena))
         conn.commit()
     except Exception as e:
-        print(f"⚠️ OLX DB save: {e}")
+        print(f"[WARN] OLX DB save: {e}")
 
     return advert_id, None
 
@@ -428,7 +428,7 @@ a {{ color:#38bdf8; }}
 <script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
 
 <div class="header">
-    <h1>🏪 OLX Integration</h1>
+    <h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">store</span> OLX Integration</h1>
     <div class="subtitle">Zarządzaj ogłoszeniami na OLX.pl</div>
 </div>
 
@@ -437,10 +437,10 @@ a {{ color:#38bdf8; }}
     <!-- Status -->
     <div class="status-card">
         <h3>Status połączenia</h3>
-        {'<span class="status-badge badge-green">✅ Połączono</span>' if auth else
-         '<span class="status-badge badge-yellow">⚠️ Skonfigurowano - wymaga logowania</span>' if is_configured() else
-         '<span class="status-badge badge-red">❌ Nie skonfigurowano</span>'}
-        {f'<br><br><a href="/olx/auth" class="btn btn-primary">🔑 Zaloguj do OLX</a>' if is_configured() and not auth else ''}
+        {'<span class="status-badge badge-green"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Połączono</span>' if auth else
+         '<span class="status-badge badge-yellow"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> Skonfigurowano - wymaga logowania</span>' if is_configured() else
+         '<span class="status-badge badge-red"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Nie skonfigurowano</span>'}
+        {f'<br><br><a href="/olx/auth" class="btn btn-primary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">key</span> Zaloguj do OLX</a>' if is_configured() and not auth else ''}
     </div>
 
     <!-- Stats -->
@@ -461,7 +461,7 @@ a {{ color:#38bdf8; }}
 
     <!-- Config form -->
     <div class="config-form">
-        <h3>⚙️ Konfiguracja OLX API</h3>
+        <h3><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">settings</span> Konfiguracja OLX API</h3>
         <p style="color:#94a3b8;font-size:0.8rem;margin:8px 0">
             Zarejestruj się na <a href="https://developer.olx.pl" target="_blank">developer.olx.pl</a>
             i utwórz aplikację aby uzyskać Client ID i Secret.
@@ -492,7 +492,7 @@ a {{ color:#38bdf8; }}
             <input type="text" name="longitude" value="{cfg['longitude']}" placeholder="np. 16.9252">
 
             <br><br>
-            <button type="submit" class="btn btn-primary" style="width:100%">💾 Zapisz konfigurację</button>
+            <button type="submit" class="btn btn-primary" style="width:100%"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">save</span> Zapisz konfigurację</button>
         </form>
     </div>
 
@@ -502,13 +502,13 @@ a {{ color:#38bdf8; }}
 </div>
 
 <nav style="position:fixed;bottom:0;left:0;right:0;background:#1e293b;border-top:1px solid #334155;display:flex;justify-content:space-around;padding:8px 0;z-index:100">
-<a href="/" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem">🏠</div>Home</a>
-<a href="/magazyn" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem">📦</div>Magazyn</a>
-<a href="/paletomat" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem">🤖</div>Paletomat</a>
-<a href="/allegro" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem">🛒</div>Allegro</a>
-<a href="/olx" style="text-align:center;text-decoration:none;color:#38bdf8;font-size:0.7rem"><div style="font-size:1.4rem">🏪</div>OLX</a>
-<a href="/vinted" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem">👗</div>Vinted</a>
-<a href="/narzedzia" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem">⚡</div>Narzędzia</a>
+<a href="/" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">home</span></div>Home</a>
+<a href="/magazyn" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span></div>Magazyn</a>
+<a href="/paletomat" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smart_toy</span></div>Paletomat</a>
+<a href="/allegro" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">shopping_cart</span></div>Allegro</a>
+<a href="/olx" style="text-align:center;text-decoration:none;color:#38bdf8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">store</span></div>OLX</a>
+<a href="/vinted" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">checkroom</span></div>Vinted</a>
+<a href="/narzedzia" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span></div>Narzędzia</a>
 </nav>
 
 </body></html>'''
@@ -516,7 +516,7 @@ a {{ color:#38bdf8; }}
 
 def _render_olx_offers(oferty):
     """Renderuje listę ofert OLX"""
-    html = '<div class="status-card"><h3>📋 Twoje ogłoszenia OLX</h3>'
+    html = '<div class="status-card"><h3><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">assignment</span> Twoje ogłoszenia OLX</h3>'
     for o in oferty:
         status_badge = {
             'active': '<span class="status-badge badge-green">aktywne</span>',
@@ -553,7 +553,7 @@ def olx_config_save():
     set_config('olx_city', request.form.get('city', '').strip())
     set_config('olx_latitude', request.form.get('latitude', '').strip())
     set_config('olx_longitude', request.form.get('longitude', '').strip())
-    flash('✅ Konfiguracja OLX zapisana', 'success')
+    flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Konfiguracja OLX zapisana', 'success')
     return redirect('/olx')
 
 
@@ -562,7 +562,7 @@ def olx_auth():
     """Rozpoczyna OAuth2 flow z OLX"""
     cfg = get_olx_config()
     if not cfg['client_id']:
-        flash('❌ Najpierw skonfiguruj Client ID i Secret', 'error')
+        flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Najpierw skonfiguruj Client ID i Secret', 'error')
         return redirect('/olx')
 
     # Generuj state dla bezpieczeństwa
@@ -589,17 +589,17 @@ def olx_callback():
     error = request.args.get('error')
 
     if error:
-        flash(f'❌ OLX auth error: {error}', 'error')
+        flash(f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> OLX auth error: {error}', 'error')
         return redirect('/olx')
 
     if not code:
-        flash('❌ Brak kodu autoryzacji', 'error')
+        flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Brak kodu autoryzacji', 'error')
         return redirect('/olx')
 
     # Weryfikuj state
     saved_state = get_config('olx_oauth_state', '')
     if state != saved_state:
-        flash('❌ Nieprawidłowy state - możliwy atak CSRF', 'error')
+        flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Nieprawidłowy state - możliwy atak CSRF', 'error')
         return redirect('/olx')
 
     cfg = get_olx_config()
@@ -621,12 +621,12 @@ def olx_callback():
                 set_config('olx_refresh_token', tokens['refresh_token'])
             expires_at = datetime.now() + timedelta(seconds=tokens.get('expires_in', 3600))
             set_config('olx_token_expires', expires_at.isoformat())
-            flash('✅ Zalogowano do OLX!', 'success')
+            flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Zalogowano do OLX!', 'success')
         else:
-            flash(f'❌ Błąd tokena OLX: {response.status_code} {response.text[:200]}', 'error')
+            flash(f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Błąd tokena OLX: {response.status_code} {response.text[:200]}', 'error')
 
     except Exception as e:
-        flash(f'❌ Błąd połączenia z OLX: {e}', 'error')
+        flash(f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Błąd połączenia z OLX: {e}', 'error')
 
     return redirect('/olx')
 
@@ -637,7 +637,7 @@ def olx_logout():
     set_config('olx_access_token', '')
     set_config('olx_refresh_token', '')
     set_config('olx_token_expires', '')
-    flash('✅ Wylogowano z OLX', 'success')
+    flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Wylogowano z OLX', 'success')
     return redirect('/olx')
 
 
@@ -645,14 +645,14 @@ def olx_logout():
 def olx_create_listing(produkt_id):
     """Tworzy ogłoszenie OLX z produktu"""
     if not is_authenticated():
-        flash('❌ Najpierw zaloguj się do OLX', 'error')
+        flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Najpierw zaloguj się do OLX', 'error')
         return redirect('/olx')
 
     advert_id, err = create_olx_listing(produkt_id)
     if err:
-        flash(f'❌ {err}', 'error')
+        flash(f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> {err}', 'error')
     else:
-        flash(f'✅ Utworzono ogłoszenie OLX (ID: {advert_id}) - draft. Kliknij "Opublikuj" aby aktywować.', 'success')
+        flash(f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Utworzono ogłoszenie OLX (ID: {advert_id}) - draft. Kliknij "Opublikuj" aby aktywować.', 'success')
 
     return redirect(request.referrer or '/olx')
 
@@ -661,14 +661,14 @@ def olx_create_listing(produkt_id):
 def olx_publish_listing(advert_id):
     """Publikuje ogłoszenie OLX"""
     if not is_authenticated():
-        flash('❌ Najpierw zaloguj się do OLX', 'error')
+        flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Najpierw zaloguj się do OLX', 'error')
         return redirect('/olx')
 
     success, err = publish_olx_listing(advert_id)
     if err:
-        flash(f'❌ {err}', 'error')
+        flash(f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> {err}', 'error')
     else:
-        flash('✅ Ogłoszenie opublikowane na OLX!', 'success')
+        flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Ogłoszenie opublikowane na OLX!', 'success')
 
     return redirect('/olx')
 
@@ -677,12 +677,12 @@ def olx_publish_listing(advert_id):
 def olx_delete_listing(advert_id):
     """Usuwa ogłoszenie OLX"""
     if not is_authenticated():
-        flash('❌ Najpierw zaloguj się do OLX', 'error')
+        flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Najpierw zaloguj się do OLX', 'error')
         return redirect('/olx')
 
     result, err = olx_api_request('DELETE', f'/adverts/{advert_id}')
     if err:
-        flash(f'❌ {err}', 'error')
+        flash(f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> {err}', 'error')
     else:
         try:
             conn = get_db()
@@ -690,7 +690,7 @@ def olx_delete_listing(advert_id):
             conn.commit()
         except:
             pass
-        flash('✅ Ogłoszenie usunięte z OLX', 'success')
+        flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Ogłoszenie usunięte z OLX', 'success')
 
     return redirect('/olx')
 

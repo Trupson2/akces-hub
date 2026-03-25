@@ -84,14 +84,14 @@ def retry_db_operation(func, max_retries=5, delay=0.5):
             return func()
         except sqlite3.OperationalError as e:
             if 'database is locked' in str(e) and attempt < max_retries - 1:
-                print(f"⚠️ Database locked, retry {attempt+1}/{max_retries}...")
+                print(f"[WARN] Database locked, retry {attempt+1}/{max_retries}...")
                 time.sleep(delay * (attempt + 1))  # Zwiększające się opóźnienie
                 continue
             else:
-                print(f"❌ Database error after {attempt+1} attempts: {e}")
+                print(f"[ERR] Database error after {attempt+1} attempts: {e}")
                 raise
         except Exception as e:
-            print(f"❌ Unexpected error: {e}")
+            print(f"[ERR] Unexpected error: {e}")
             raise
     
     return None
@@ -398,7 +398,7 @@ def init_db():
                 FOREIGN KEY (produkt_id) REFERENCES produkty(id)
             )''')
         except Exception as e:
-            print(f"⚠️ OLX table: {e}")
+            print(f"[WARN] OLX table: {e}")
 
         # Tabela przedmiotów Vinted
         try:
@@ -414,7 +414,7 @@ def init_db():
                 FOREIGN KEY (produkt_id) REFERENCES produkty(id)
             )''')
         except Exception as e:
-            print(f"⚠️ Vinted table: {e}")
+            print(f"[WARN] Vinted table: {e}")
 
         # Tabela pallet_deals (monitoring okazji palet)
         conn.execute('''CREATE TABLE IF NOT EXISTS pallet_deals (
@@ -499,7 +499,7 @@ def init_db():
             except:
                 try:
                     conn.execute(_sql)
-                    print(f'  ✅ Migracja: dodano {_tbl}.{_col}')
+                    print(f'  [OK] Migracja: dodano {_tbl}.{_col}')
                 except:
                     pass
 
@@ -708,9 +708,9 @@ def migrate_reset_fake_data_wystawienia():
                 "INSERT OR REPLACE INTO config(key, value) VALUES('migr_reset_wystawienia_v1', '1')"
             )
             conn.commit()
-            print(f"✅ Migracja: zresetowano data_wystawienia dla {cnt} ofert (zostaną uzupełnione przy syncu Allegro)")
+            print(f"[OK] Migracja: zresetowano data_wystawienia dla {cnt} ofert (zostaną uzupełnione przy syncu Allegro)")
     except Exception as e:
-        print(f"⚠️ Migracja reset wystawienia: {e}")
+        print(f"[WARN] Migracja reset wystawienia: {e}")
 
 
 def fix_product_status_integrity():
@@ -728,7 +728,7 @@ def fix_product_status_integrity():
                 conn.execute("REINDEX")
                 conn.commit()
             except Exception as e:
-                print(f"  ⚠️ REINDEX: {e}")
+                print(f"  [WARN] REINDEX: {e}")
 
             # 1. Produkty ze statusem 'sprzedany' ale ilosc > 0 → przywróć do magazynu
             fix1 = conn.execute('''
@@ -737,7 +737,7 @@ def fix_product_status_integrity():
             ''').rowcount
 
             if fix1 > 0:
-                print(f"  🔧 Integralność: {fix1} produktów (status sprzedany→magazyn, mają ilosc>0)")
+                print(f"  [BUIL] Integralność: {fix1} produktów (status sprzedany→magazyn, mają ilosc>0)")
 
             # 2. Produkty w magazynie/wystawiony ale z ilością 0 → oznacz jako sprzedane
             fix2 = conn.execute('''
@@ -746,15 +746,15 @@ def fix_product_status_integrity():
             ''').rowcount
 
             if fix2 > 0:
-                print(f"  🔧 Integralność: {fix2} produktów (ilosc=0, status→sprzedany)")
+                print(f"  [BUIL] Integralność: {fix2} produktów (ilosc=0, status→sprzedany)")
 
             if fix1 > 0 or fix2 > 0:
                 conn.commit()
             else:
-                print("  ✅ Integralność produktów OK")
+                print("  [OK] Integralność produktów OK")
 
     except Exception as e:
-        print(f"⚠️ Fix integralności: {e}")
+        print(f"[WARN] Fix integralności: {e}")
 
 
 # ============================================================
@@ -1229,7 +1229,7 @@ def get_insights():
     conn = get_db()
     insights = {}
 
-    # 1. 🔥 Najszybciej schodzące (top 8, ostatnie 30 dni)
+    # 1. [LOCA] Najszybciej schodzące (top 8, ostatnie 30 dni)
     insights['top_sellers'] = conn.execute('''
         SELECT p.id, p.nazwa, p.zdjecie_url, p.ilosc as stan,
                COUNT(s.id) as sprzedano_szt,
@@ -1244,7 +1244,7 @@ def get_insights():
         LIMIT 8
     ''').fetchall()
 
-    # 2. ⚠️ Kończy się — niski stan + miały sprzedaże = warto dokupić
+    # 2. [WARN] Kończy się — niski stan + miały sprzedaże = warto dokupić
     insights['low_stock'] = conn.execute('''
         SELECT p.id, p.nazwa, p.zdjecie_url, p.ilosc as stan,
                COUNT(s.id) as sprzedano_szt,
@@ -1261,7 +1261,7 @@ def get_insights():
         LIMIT 8
     ''').fetchall()
 
-    # 3. 💡 Warto dokupić — dostawcy/kategorie z najlepszym ROI
+    # 3. [LIGH] Warto dokupić — dostawcy/kategorie z najlepszym ROI
     insights['best_categories'] = conn.execute('''
         SELECT p.kategoria,
                COUNT(DISTINCT p.id) as produktow,
@@ -1279,7 +1279,7 @@ def get_insights():
         LIMIT 6
     ''').fetchall()
 
-    # 4. 🚫 Czego unikać — leżą >60 dni bez sprzedaży
+    # 4. [BLOC] Czego unikać — leżą >60 dni bez sprzedaży
     insights['stale'] = conn.execute('''
         SELECT p.id, p.nazwa, p.zdjecie_url, p.ilosc as stan,
                p.cena_allegro,

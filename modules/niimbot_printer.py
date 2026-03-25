@@ -46,16 +46,16 @@ class NiimbotPrinter:
         
     async def find_printer(self) -> Optional[str]:
         """Skanuje i znajduje drukarkę Niimbot"""
-        print("🔍 Skanowanie drukarek Niimbot...")
+        print("[SEAR] Skanowanie drukarek Niimbot...")
         
         devices = await BleakScanner.discover(timeout=10.0)
         
         for device in devices:
             if device.name and any(kw in device.name.upper() for kw in ['NIIMBOT', 'B1', 'D11', 'B21']):
-                print(f"✅ Znaleziono: {device.name} ({device.address})")
+                print(f"[OK] Znaleziono: {device.name} ({device.address})")
                 return device.address
         
-        print("❌ Nie znaleziono drukarki Niimbot")
+        print("[ERR] Nie znaleziono drukarki Niimbot")
         return None
     
     async def connect(self) -> bool:
@@ -67,19 +67,19 @@ class NiimbotPrinter:
                 if not self.device_address:
                     return False
             
-            print(f"📡 Łączenie z {self.device_address}...")
+            print(f"[SATE] Łączenie z {self.device_address}...")
             self.client = BleakClient(self.device_address, timeout=30.0)
             await self.client.connect()
             
             if self.client.is_connected:
-                print("✅ Połączono z drukarką Niimbot!")
+                print("[OK] Połączono z drukarką Niimbot!")
                 return True
             else:
-                print("❌ Nie udało się połączyć")
+                print("[ERR] Nie udało się połączyć")
                 return False
                 
         except Exception as e:
-            print(f"❌ Błąd połączenia: {e}")
+            print(f"[ERR] Błąd połączenia: {e}")
             return False
     
     async def disconnect(self):
@@ -92,7 +92,7 @@ class NiimbotPrinter:
         """Wysyła komendę do drukarki z retry logic dla Windows BLE"""
         try:
             if not self.client or not self.client.is_connected:
-                print("❌ Drukarka nie jest połączona")
+                print("[ERR] Drukarka nie jest połączona")
                 return False
             
             # RETRY LOGIC - Windows może anulować pierwsze próby
@@ -106,20 +106,20 @@ class NiimbotPrinter:
                     error_msg = str(e)
                     if 'anulowana' in error_msg or 'cancelled' in error_msg.lower() or '2147023673' in error_msg:
                         if attempt < max_retries - 1:
-                            print(f"⚠️ Windows anulował - retry {attempt + 1}/{max_retries}")
+                            print(f"[WARN] Windows anulował - retry {attempt + 1}/{max_retries}")
                             await asyncio.sleep(0.5)
                             continue
                         else:
-                            print(f"❌ Windows anulował {max_retries}x")
+                            print(f"[ERR] Windows anulował {max_retries}x")
                             return False
                     else:
-                        print(f"❌ Błąd wysyłania komendy: {e}")
+                        print(f"[ERR] Błąd wysyłania komendy: {e}")
                         return False
             
             return False
             
         except Exception as e:
-            print(f"❌ Błąd wysyłania komendy: {e}")
+            print(f"[ERR] Błąd wysyłania komendy: {e}")
             return False
     
     async def print_image(self, image: Image.Image) -> bool:
@@ -131,15 +131,15 @@ class NiimbotPrinter:
         """
         try:
             if not self.client or not self.client.is_connected:
-                print("❌ Drukarka nie jest połączona")
+                print("[ERR] Drukarka nie jest połączona")
                 return False
             
             # Przygotuj obraz
-            print("🖼️ Przygotowywanie obrazu...")
+            print("[IMAG] Przygotowywanie obrazu...")
             img = self._prepare_image(image)
             
             # Rozpocznij drukowanie
-            print("🖨️ Rozpoczynam drukowanie...")
+            print("[PRIN] Rozpoczynam drukowanie...")
             
             # Krok 1: Ustaw parametry etykiety
             await self.send_command(CMD_SET_LABEL_TYPE + bytes([self.config.label_type]))
@@ -150,18 +150,18 @@ class NiimbotPrinter:
             await self.send_command(CMD_START_PAGE)
             
             # Krok 3: Wyślij dane obrazu
-            print("📤 Wysyłanie danych obrazu...")
+            print("[UPLO] Wysyłanie danych obrazu...")
             await self._send_image_data(img)
             
             # Krok 4: Zakończ drukowanie
             await self.send_command(CMD_END_PAGE)
             await self.send_command(CMD_END_PRINT)
             
-            print("✅ Drukowanie zakończone!")
+            print("[OK] Drukowanie zakończone!")
             return True
             
         except Exception as e:
-            print(f"❌ Błąd drukowania: {e}")
+            print(f"[ERR] Błąd drukowania: {e}")
             import traceback
             traceback.print_exc()
             return False
@@ -294,7 +294,7 @@ async def create_product_label(
         y += 20
     
     if lokalizacja:
-        loc_text = f"📍 {lokalizacja}"
+        loc_text = f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">location_on</span> {lokalizacja}"
         bbox = draw.textbbox((0, 0), loc_text, font=font_small)
         x = (width - (bbox[2] - bbox[0])) // 2
         draw.text((x, y), loc_text, fill='black', font=font_small)
@@ -329,7 +329,7 @@ async def test_print(device_address: Optional[str] = None):
         
         # Zapisz dla podglądu
         label.save("test_label_preview.png")
-        print("💾 Zapisano podgląd: test_label_preview.png")
+        print("[SAVE] Zapisano podgląd: test_label_preview.png")
         
         # Drukuj
         success = await printer.print_image(label)
@@ -338,7 +338,7 @@ async def test_print(device_address: Optional[str] = None):
         return success
         
     except Exception as e:
-        print(f"❌ Błąd testu: {e}")
+        print(f"[ERR] Błąd testu: {e}")
         import traceback
         traceback.print_exc()
         await printer.disconnect()
@@ -383,7 +383,7 @@ async def print_product_label(
         return success
         
     except Exception as e:
-        print(f"❌ Błąd drukowania: {e}")
+        print(f"[ERR] Błąd drukowania: {e}")
         await printer.disconnect()
         return False
 

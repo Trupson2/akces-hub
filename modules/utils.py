@@ -12,7 +12,7 @@ try:
     GEMINI_SDK_AVAILABLE = True
 except ImportError:
     GEMINI_SDK_AVAILABLE = False
-    print("⚠️  google.genai not available")
+    print("[WARN]  google.genai not available")
 
 def get_gemini_model():
     """Pobierz wybrany model Gemini z configu"""
@@ -83,10 +83,10 @@ def get_amazon_image_url(asin, use_scraper=False):
     try:
         result = scrape_amazon_product(asin)
         if result and result.get('image_url'):
-            print(f"✅ [ASIN] Pobrano zdjęcie z Amazon: {asin}")
+            print(f"[OK] [ASIN] Pobrano zdjęcie z Amazon: {asin}")
             return result['image_url']
     except Exception as e:
-        print(f"⚠️ [ASIN] Scraper error dla {asin}: {e}")
+        print(f"[WARN] [ASIN] Scraper error dla {asin}: {e}")
     
     return ''
 
@@ -129,10 +129,10 @@ def get_product_image_by_ean(ean):
             if data.get('items') and len(data['items']) > 0:
                 images = data['items'][0].get('images', [])
                 if images:
-                    print(f"✅ [EAN] Znaleziono zdjęcie w UPCitemdb: {ean}")
+                    print(f"[OK] [EAN] Znaleziono zdjęcie w UPCitemdb: {ean}")
                     return images[0]
     except Exception as e:
-        print(f"⚠️ [EAN] UPCitemdb error: {e}")
+        print(f"[WARN] [EAN] UPCitemdb error: {e}")
     
     # === 2. Open Food Facts (dla żywności) ===
     try:
@@ -141,10 +141,10 @@ def get_product_image_by_ean(ean):
         if response.status_code == 200:
             data = response.json()
             if data.get('status') == 1 and data.get('product', {}).get('image_url'):
-                print(f"✅ [EAN] Znaleziono zdjęcie w OpenFoodFacts: {ean}")
+                print(f"[OK] [EAN] Znaleziono zdjęcie w OpenFoodFacts: {ean}")
                 return data['product']['image_url']
     except Exception as e:
-        print(f"⚠️ [EAN] OpenFoodFacts error: {e}")
+        print(f"[WARN] [EAN] OpenFoodFacts error: {e}")
     
     # === 3. Open Beauty Facts (dla kosmetyków) ===
     try:
@@ -153,12 +153,12 @@ def get_product_image_by_ean(ean):
         if response.status_code == 200:
             data = response.json()
             if data.get('status') == 1 and data.get('product', {}).get('image_url'):
-                print(f"✅ [EAN] Znaleziono zdjęcie w OpenBeautyFacts: {ean}")
+                print(f"[OK] [EAN] Znaleziono zdjęcie w OpenBeautyFacts: {ean}")
                 return data['product']['image_url']
     except Exception as e:
         pass
     
-    print(f"⚠️ [EAN] Nie znaleziono zdjęcia dla: {ean}")
+    print(f"[WARN] [EAN] Nie znaleziono zdjęcia dla: {ean}")
     return ''
 
 
@@ -872,7 +872,7 @@ Odpowiedz TYLKO przetłumaczoną nazwą, bez cudzysłowów, bez komentarzy:"""
                         if translated and len(translated) > 5:
                             return translated
             except Exception as e:
-                print(f"⚠️ Błąd tłumaczenia AI: {e}")
+                print(f"[WARN] Błąd tłumaczenia AI: {e}")
     
     return name
 
@@ -930,7 +930,7 @@ Tłumaczenie:"""
                         if translated and len(translated) > 3:
                             return translated
             except Exception as e:
-                print(f"⚠️ Błąd tłumaczenia tekstu AI: {e}")
+                print(f"[WARN] Błąd tłumaczenia tekstu AI: {e}")
     
     return text
 
@@ -1018,12 +1018,12 @@ TYP: {'Elektronika/Urządzenie' if is_electronics else ('Dekoracja/Materiał' if
 ✓ Pisz "ten produkt", "to urządzenie" — nie powtarzaj pełnej nazwy
 
 === ZAKAZ ===
-❌ Puste frazesy: "najwyższa jakość", "wyjątkowe wykonanie", "innowacyjne rozwiązanie"
-❌ Wymyślanie parametrów których nie ma w bullet points
-❌ Sekcje: wysyłka, zwroty, kontakt, gwarancja, GPSR
-❌ Tytuł produktu na początku
-❌ Wymiary typu "10x2.75" to ROZMIARY, nie ilości sztuk
-❌ Wymyślanie ilości sztuk w zestawie jeśli nie podano
+<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Puste frazesy: "najwyższa jakość", "wyjątkowe wykonanie", "innowacyjne rozwiązanie"
+<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Wymyślanie parametrów których nie ma w bullet points
+<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Sekcje: wysyłka, zwroty, kontakt, gwarancja, GPSR
+<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Tytuł produktu na początku
+<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Wymiary typu "10x2.75" to ROZMIARY, nie ilości sztuk
+<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Wymyślanie ilości sztuk w zestawie jeśli nie podano
 
 Wygeneruj opis:"""
 
@@ -1532,12 +1532,12 @@ SEKCJE (po 3-4 zdania każda):
     "intro": "DŁUGIE wprowadzenie 4-6 PEŁNYCH ZDAŃ opisujące co to jest, do czego służy, kluczowe parametry i dla kogo. MINIMUM 300 znaków!",
     "features": [
         {
-            "icon": "📦",
+            "icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span>",
             "title": "Konkretny tytuł",
             "text": "DŁUGI opis 3-4 PEŁNYCH ZDAŃ. Pierwsze zdanie opisuje cechę. Drugie wyjaśnia jak to działa w praktyce. Trzecie podaje konkretne parametry. Czwarte dodaje kontekst. MINIMUM 200 znaków!"
         },
         {
-            "icon": "⚡",
+            "icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span>",
             "title": "Konkretny tytuł",
             "text": "DŁUGI opis 3-4 zdań z konkretnymi parametrami i wyjaśnieniami..."
         },
@@ -1754,14 +1754,14 @@ OGÓLNY PRODUKT - skup się na:
 {
     "intro": "BARDZO DŁUGIE wprowadzenie (4-6 akapitów, minimum 800 znaków). Każdy akapit to 3-5 zdań z konkretnymi faktami i parametrami z cech produktu. Opisz dokładnie CO TO jest, JAK działa, JAKIE MA funkcje, DO CZEGO służy, CO zawiera zestaw.",
     "features": [
-        {"icon": "📦", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
-        {"icon": "⚡", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
-        {"icon": "🎯", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
-        {"icon": "✅", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
-        {"icon": "🔧", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
-        {"icon": "💡", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
-        {"icon": "🔋", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
-        {"icon": "📱", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"}
+        {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
+        {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
+        {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">adjust</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
+        {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
+        {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">build</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
+        {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
+        {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">battery_full</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
+        {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smartphone</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"}
     ],
     "specs": [
         {"label": "Parametr", "value": "TYLKO JEŚLI W CECHACH"},
@@ -1923,11 +1923,11 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
                     intro_text = ai_data.get('intro', '')
                     features = ai_data.get('features', [])
                     specs = ai_data.get('specs', [])
-                    print(f"[Gemini] ✅ Wygenerowano: intro={len(intro_text)} chars, {len(features)} features")
+                    print(f"[Gemini] [OK] Wygenerowano: intro={len(intro_text)} chars, {len(features)} features")
             else:
-                print(f"[Gemini HTML] ❌ API error: {response.status_code}: {response.text[:200]}")
+                print(f"[Gemini HTML] [ERR] API error: {response.status_code}: {response.text[:200]}")
         except Exception as e:
-            print(f"[Gemini HTML] ⚠️ Błąd: {e}")
+            print(f"[Gemini HTML] [WARN] Błąd: {e}")
     
     # Fallback - szablony dla różnych kategorii
     # Sprawdź czy mamy intro I features - oba są potrzebne
@@ -1935,11 +1935,11 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
         if 'pokrowc' in nazwa.lower() or 'seat' in nazwa.lower() or 'cover' in nazwa.lower():
             intro_text = "Chcesz szybko odświeżyć wnętrze swojego samochodu i zabezpieczyć oryginalną tapicerkę przed zużyciem? Prezentowany zestaw pokrowców to idealne rozwiązanie łączące estetykę ze skuteczną ochroną. Dzięki uniwersalnemu krojowi i wytrzymałym materiałom, Twoje fotele zyskają nowoczesny, sportowy wygląd, a Ty komfort podróżowania bez obaw o zabrudzenia."
             features = [
-                {"icon": "📦", "title": "Kompletny Zestaw 5-Miejscowy", "text": "Otrzymujesz pełen pakiet ochronny: pokrowce na dwa przednie fotele, pełne pokrycie tylnej kanapy (siedzisko i oparcie) oraz komplet 5 zagłówków. To spójna stylizacja całego wnętrza pojazdu."},
-                {"icon": "🛡️", "title": "Ochrona i Trwałość", "text": "Wykonane z wytrzymałej tkaniny poliestrowej, która jest odporna na przecieranie i codzienne użytkowanie. Materiał skutecznie chroni oryginalną tapicerkę przed sierścią zwierząt, okruchami, plamami i blaknięciem od słońca."},
-                {"icon": "🎯", "title": "Uniwersalne Dopasowanie", "text": "Elastyczny materiał sprawia, że pokrowce dopasowują się do kształtu większości standardowych foteli kubełkowych w autach osobowych. Klasyczny krój z osobnymi zagłówkami zapewnia estetyczny wygląd bez efektu 'worka'."},
-                {"icon": "🚗", "title": "Komfort Podróży", "text": "Tkanina posiada właściwości oddychające, co zwiększa komfort jazdy zarówno latem, jak i zimą. Środek pokrowca jest przyjemny w dotyku, a piankowe podłoże zapobiega przesuwaniu się materiału po fotelu."},
-                {"icon": "🔧", "title": "Łatwy i Szybki Montaż", "text": "System gumek i haczyków montażowych pozwala na sprawną instalację bez konieczności demontażu foteli. W razie zabrudzenia pokrowce można łatwo zdjąć i uprać w pralce (program delikatny 30°C)."},
+                {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span>", "title": "Kompletny Zestaw 5-Miejscowy", "text": "Otrzymujesz pełen pakiet ochronny: pokrowce na dwa przednie fotele, pełne pokrycie tylnej kanapy (siedzisko i oparcie) oraz komplet 5 zagłówków. To spójna stylizacja całego wnętrza pojazdu."},
+                {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">shield</span>", "title": "Ochrona i Trwałość", "text": "Wykonane z wytrzymałej tkaniny poliestrowej, która jest odporna na przecieranie i codzienne użytkowanie. Materiał skutecznie chroni oryginalną tapicerkę przed sierścią zwierząt, okruchami, plamami i blaknięciem od słońca."},
+                {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">adjust</span>", "title": "Uniwersalne Dopasowanie", "text": "Elastyczny materiał sprawia, że pokrowce dopasowują się do kształtu większości standardowych foteli kubełkowych w autach osobowych. Klasyczny krój z osobnymi zagłówkami zapewnia estetyczny wygląd bez efektu 'worka'."},
+                {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">directions_car</span>", "title": "Komfort Podróży", "text": "Tkanina posiada właściwości oddychające, co zwiększa komfort jazdy zarówno latem, jak i zimą. Środek pokrowca jest przyjemny w dotyku, a piankowe podłoże zapobiega przesuwaniu się materiału po fotelu."},
+                {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">build</span>", "title": "Łatwy i Szybki Montaż", "text": "System gumek i haczyków montażowych pozwala na sprawną instalację bez konieczności demontażu foteli. W razie zabrudzenia pokrowce można łatwo zdjąć i uprać w pralce (program delikatny 30°C)."},
             ]
             specs = [
                 {"label": "Marka", "value": "Uniwersalna / OEM"},
@@ -1953,9 +1953,9 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
             # Szablon TYLKO dla dywaników glamour z kryształkami
             intro_text = "Chcesz nadać wnętrzu swojego samochodu niepowtarzalny blask i charakter? Prezentowany zestaw dywaników to idealne połączenie stylu glamour z funkcjonalną ochroną tapicerki. Dzięki nim każda podróż stanie się bardziej ekskluzywna, a wnętrze Twojego auta zyska zupełnie nowy, luksusowy wygląd."
             features = [
-                {"icon": "💎", "title": "Wyjątkowy Design Glamour", "text": "Boczne krawędzie wykończone tysiącami mieniących się kryształków w kolorze czerwonym przyciągają wzrok i nadają wnętrzu luksusowy charakter."},
-                {"icon": "🛡️", "title": "Wzmocniona Strefa Kierowcy", "text": "Dywanik kierowcy posiada specjalną, gumowaną nakładkę pod piętę zapobiegającą szybkiemu przecieraniu."},
-                {"icon": "🎯", "title": "Uniwersalne Dopasowanie", "text": "Zoptymalizowany kształt dywaników sprawia, że pasują do większości modeli samochodów osobowych."},
+                {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">diamond</span>", "title": "Wyjątkowy Design Glamour", "text": "Boczne krawędzie wykończone tysiącami mieniących się kryształków w kolorze czerwonym przyciągają wzrok i nadają wnętrzu luksusowy charakter."},
+                {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">shield</span>", "title": "Wzmocniona Strefa Kierowcy", "text": "Dywanik kierowcy posiada specjalną, gumowaną nakładkę pod piętę zapobiegającą szybkiemu przecieraniu."},
+                {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">adjust</span>", "title": "Uniwersalne Dopasowanie", "text": "Zoptymalizowany kształt dywaników sprawia, że pasują do większości modeli samochodów osobowych."},
             ]
             specs = []
         
@@ -1966,7 +1966,7 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
             
             # Inteligentne generowanie sekcji z bullet_points
             features = []
-            icons_default = ["🏃", "⚡", "📱", "📏", "🔧", "🛡️", "💪"]
+            icons_default = ["🏃", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span>", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smartphone</span>", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">straighten</span>", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">build</span>", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">shield</span>", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">fitness_center</span>"]
             titles_default = ["Trening cardio", "Silnik i moc", "Wyświetlacz", "Wymiary", "Montaż", "Bezpieczeństwo", "Komfort"]
             
             if bullet_points:
@@ -1975,19 +1975,19 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
                     
                     # Wykryj typ informacji i przypisz ikonę
                     if any(x in bp_lower for x in ['speed', 'prędkość', 'km/h', 'mph', 'motor', 'silnik', 'hp', 'kw']):
-                        icon, title = "⚡", "Silnik i prędkość"
+                        icon, title = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span>", "Silnik i prędkość"
                     elif any(x in bp_lower for x in ['display', 'wyświetlacz', 'lcd', 'led', 'screen', 'ekran']):
-                        icon, title = "📱", "Wyświetlacz i dane"
+                        icon, title = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smartphone</span>", "Wyświetlacz i dane"
                     elif any(x in bp_lower for x in ['size', 'wymiar', 'cm', 'mm', 'inch', 'długość', 'szerokość']):
-                        icon, title = "📏", "Wymiary i powierzchnia"
+                        icon, title = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">straighten</span>", "Wymiary i powierzchnia"
                     elif any(x in bp_lower for x in ['fold', 'składan', 'compact', 'storage', 'przechow']):
-                        icon, title = "🔧", "Składanie i przechowywanie"
+                        icon, title = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">build</span>", "Składanie i przechowywanie"
                     elif any(x in bp_lower for x in ['weight', 'waga', 'kg', 'lb', 'max', 'capacity']):
-                        icon, title = "🛡️", "Nośność i bezpieczeństwo"
+                        icon, title = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">shield</span>", "Nośność i bezpieczeństwo"
                     elif any(x in bp_lower for x in ['program', 'mode', 'tryb', 'workout']):
-                        icon, title = "💪", "Programy treningowe"
+                        icon, title = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">fitness_center</span>", "Programy treningowe"
                     elif any(x in bp_lower for x in ['incline', 'nachylenie', 'slope', 'angle']):
-                        icon, title = "📐", "Regulacja nachylenia"
+                        icon, title = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">straighten</span>", "Regulacja nachylenia"
                     elif any(x in bp_lower for x in ['quiet', 'cichy', 'noise', 'silent', 'głośność']):
                         icon, title = "🔇", "Cicha praca"
                     else:
@@ -1998,10 +1998,10 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
             else:
                 features = [
                     {"icon": "🏃", "title": "Domowy trening cardio", "text": "Idealna do ćwiczeń w domu - oszczędza czas i pieniądze na siłownię. Regularne ćwiczenia poprawiają kondycję i pomagają utrzymać zdrową wagę."},
-                    {"icon": "📏", "title": "Kompaktowa konstrukcja", "text": "Łatwa do przechowywania dzięki składanej konstrukcji. Można schować pod łóżko, kanapę lub w szafie. Idealna do małych mieszkań."},
-                    {"icon": "📱", "title": "Wyświetlacz", "text": "Panel sterowania z wyświetlaczem pokazującym podstawowe parametry treningu: czas, dystans, prędkość, spalone kalorie."},
+                    {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">straighten</span>", "title": "Kompaktowa konstrukcja", "text": "Łatwa do przechowywania dzięki składanej konstrukcji. Można schować pod łóżko, kanapę lub w szafie. Idealna do małych mieszkań."},
+                    {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smartphone</span>", "title": "Wyświetlacz", "text": "Panel sterowania z wyświetlaczem pokazującym podstawowe parametry treningu: czas, dystans, prędkość, spalone kalorie."},
                     {"icon": "🔇", "title": "Cicha praca", "text": "Zaprojektowana z myślą o użytkowaniu w mieszkaniu. Cichy silnik nie przeszkadza domownikom ani sąsiadom."},
-                    {"icon": "🛡️", "title": "Bezpieczeństwo", "text": "Wyposażona w funkcje bezpieczeństwa: klucz awaryjny, antypoślizgowa powierzchnia, stabilna podstawa."},
+                    {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">shield</span>", "title": "Bezpieczeństwo", "text": "Wyposażona w funkcje bezpieczeństwa: klucz awaryjny, antypoślizgowa powierzchnia, stabilna podstawa."},
                 ]
             specs = []
         
@@ -2024,12 +2024,12 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
             intro_text += "Kompatybilna z popularnymi urządzeniami mobilnymi, zapewnia bezpieczne i efektywne ładowanie dzięki zaawansowanym zabezpieczeniom przed przeciążeniem, przegrzaniem i zwarciem."
             
             features = []
-            icons = ["⚡", "🔌", "🛡️", "📱", "🔄"]
+            icons = ["<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span>", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">power</span>", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">shield</span>", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smartphone</span>", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span>"]
             titles = ["Moc i wydajność", "Złącza", "Bezpieczeństwo", "Kompatybilność", "Dodatkowe funkcje"]
             
             if bullet_points:
                 for i, bp in enumerate(bullet_points[:5]):
-                    features.append({"icon": icons[i] if i < len(icons) else "✅", "title": titles[i] if i < len(titles) else "Specyfikacja", "text": bp})
+                    features.append({"icon": icons[i] if i < len(icons) else "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>", "title": titles[i] if i < len(titles) else "Specyfikacja", "text": bp})
             
             specs = []
         
@@ -2050,7 +2050,7 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
             features = []
             if bullet_points:
                 for i, bp in enumerate(bullet_points[:5]):
-                    features.append({"icon": "🔌", "title": f"Parametr {i+1}", "text": bp})
+                    features.append({"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">power</span>", "title": f"Parametr {i+1}", "text": bp})
             
             specs = []
         elif 'kamera' in nazwa.lower() or 'dashcam' in nazwa.lower() or 'dash cam' in nazwa.lower() or 'wideorejestrator' in nazwa.lower():
@@ -2086,7 +2086,7 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
             
             # Inteligentne przetworzenie bullet points
             features = []
-            icons = ["📹", "🎯", "💾", "🔄", "⚡"]
+            icons = ["<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">videocam</span>", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">adjust</span>", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">save</span>", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span>", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span>"]
             titles = ["Nagrywanie wideo", "Funkcje", "Pamięć i zapis", "Dodatkowe możliwości", "Zasilanie i montaż"]
             
             if bullet_points and len(bullet_points) > 0:
@@ -2094,35 +2094,35 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
                     # Wyciągnij kluczowe info z bullet point
                     if any(x in bp.lower() for x in ['rozdzielcz', 'resolution', '4k', '1080', '720', 'fps']):
                         title = "Jakość nagrania"
-                        icon = "📹"
+                        icon = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">videocam</span>"
                     elif any(x in bp.lower() for x in ['ekran', 'screen', 'monitor', 'lcd', 'wyświetlacz']):
                         title = "Wyświetlacz"
-                        icon = "📺"
+                        icon = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">tv</span>"
                     elif any(x in bp.lower() for x in ['karta', 'card', 'sd', 'pamięć', 'storage', 'gb']):
                         title = "Pamięć"
-                        icon = "💾"
+                        icon = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">save</span>"
                     elif any(x in bp.lower() for x in ['night', 'nocn', 'ir', 'infrared', 'widoczność']):
                         title = "Nagrywanie nocne"
-                        icon = "🌙"
+                        icon = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">dark_mode</span>"
                     elif any(x in bp.lower() for x in ['sensor', 'czujnik', 'g-sensor', 'parking']):
                         title = "Czujniki i funkcje"
-                        icon = "🎯"
+                        icon = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">adjust</span>"
                     elif any(x in bp.lower() for x in ['kąt', 'angle', 'wide', 'szeroki', 'obiektyw']):
                         title = "Kąt widzenia"
-                        icon = "👁️"
+                        icon = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">visibility</span>"
                     elif any(x in bp.lower() for x in ['gps', 'lokalizacja', 'location']):
                         title = "GPS i lokalizacja"
-                        icon = "📍"
+                        icon = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">location_on</span>"
                     else:
                         title = titles[i] if i < len(titles) else "Specyfikacja"
-                        icon = icons[i] if i < len(icons) else "✅"
+                        icon = icons[i] if i < len(icons) else "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>"
                     
                     features.append({"icon": icon, "title": title, "text": bp})
             else:
                 features = [
-                    {"icon": "📹", "title": "Wideorejestrator", "text": "Profesjonalne nagrywanie podczas jazdy z wysoką jakością obrazu"},
-                    {"icon": "💾", "title": "Zapis nagrań", "text": "Automatyczny zapis na kartę SD z funkcją zapisu w pętli"},
-                    {"icon": "🎯", "title": "Szeroki kąt", "text": "Szerokokątny obiektyw obejmujący cały pas ruchu"},
+                    {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">videocam</span>", "title": "Wideorejestrator", "text": "Profesjonalne nagrywanie podczas jazdy z wysoką jakością obrazu"},
+                    {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">save</span>", "title": "Zapis nagrań", "text": "Automatyczny zapis na kartę SD z funkcją zapisu w pętli"},
+                    {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">adjust</span>", "title": "Szeroki kąt", "text": "Szerokokątny obiektyw obejmujący cały pas ruchu"},
                 ]
             
             specs = []
@@ -2153,7 +2153,7 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
             # Jeśli są bullet points z Amazona, przetwórz je inteligentnie
             if bullet_points and len(bullet_points) > 0:
                 features = []
-                icons_default = ["✅", "📦", "⚡", "🎯", "💡"]
+                icons_default = ["<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span>", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span>", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">adjust</span>", "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span>"]
                 for i, bp in enumerate(bullet_points[:5]):
                     # Wyczyść Amazonowe formatowanie
                     bp = re.sub(r'[【】\[\]●○•·]', '', bp).strip()
@@ -2164,25 +2164,25 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
                     if any(x in bp_lower for x in ['materiał', 'material', 'wykonany', 'tkanina', 'metal', 'plastik', 'steel', 'skóra', 'leather', 'pu']):
                         icon, title = "🧵", "Materiał i wykonanie"
                     elif any(x in bp_lower for x in ['wymiar', 'rozmiar', 'size', 'cm', 'mm', 'cal', 'inch']):
-                        icon, title = "📏", "Wymiary"
+                        icon, title = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">straighten</span>", "Wymiary"
                     elif any(x in bp_lower for x in ['kolor', 'color', 'barwa', 'czarny', 'biały', 'black', 'white']):
-                        icon, title = "🎨", "Wygląd"
+                        icon, title = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">palette</span>", "Wygląd"
                     elif any(x in bp_lower for x in ['zestaw', 'zawiera', 'includes', 'package', 'w zestawie']):
-                        icon, title = "📦", "W zestawie"
+                        icon, title = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span>", "W zestawie"
                     elif any(x in bp_lower for x in ['funkcja', 'feature', 'możliwość', 'zastosowanie', 'use']):
-                        icon, title = "⚡", "Funkcje"
+                        icon, title = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span>", "Funkcje"
                     elif any(x in bp_lower for x in ['kompatybil', 'compatible', 'pasuje', 'fit', 'universal']):
-                        icon, title = "🔗", "Kompatybilność"
+                        icon, title = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">link</span>", "Kompatybilność"
                     elif any(x in bp_lower for x in ['moc', 'power', 'watt', 'voltage', 'prąd', 'volt']):
-                        icon, title = "⚡", "Parametry"
+                        icon, title = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span>", "Parametry"
                     elif any(x in bp_lower for x in ['łatw', 'easy', 'simple', 'prosty', 'montaż', 'install']):
-                        icon, title = "🔧", "Montaż"
+                        icon, title = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">build</span>", "Montaż"
                     elif any(x in bp_lower for x in ['ergonomic', 'komfort', 'comfort', 'wygod', 'podłokiet', 'oparcie']):
                         icon, title = "🪑", "Ergonomia i komfort"
                     elif any(x in bp_lower for x in ['regulacja', 'adjust', 'regulowan', 'height', 'tilt']):
-                        icon, title = "🔧", "Regulacja"
+                        icon, title = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">build</span>", "Regulacja"
                     elif any(x in bp_lower for x in ['gwarancja', 'warranty', 'jakość', 'quality']):
-                        icon, title = "✅", "Jakość"
+                        icon, title = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>", "Jakość"
                     else:
                         icon = icons_default[i % len(icons_default)]
                         title = f"Cecha {i+1}"
@@ -2195,15 +2195,15 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
                     features = [
                         {"icon": "🪑", "title": "Ergonomiczna konstrukcja", "text": "Fotel zaprojektowany z myślą o wielogodzinnym komforcie siedzenia. Anatomiczny kształt oparcia wspiera prawidłową postawę kręgosłupa."},
                         {"icon": "🧵", "title": "Wysokiej jakości materiały", "text": "Staranny dobór materiałów wykończeniowych zapewnia trwałość, łatwość czyszczenia i elegancki wygląd na lata użytkowania."},
-                        {"icon": "🔧", "title": "Regulacja i dopasowanie", "text": "Możliwość regulacji wysokości i kąta oparcia pozwala dopasować fotel do indywidualnych potrzeb każdego użytkownika."},
-                        {"icon": "💪", "title": "Solidna konstrukcja", "text": "Wzmocniona podstawa i wytrzymały mechanizm gazowy gwarantują stabilność i bezpieczeństwo użytkowania."},
-                        {"icon": "📦", "title": "Łatwy montaż", "text": "Produkt dostarczany z czytelną instrukcją i wszystkimi niezbędnymi narzędziami do samodzielnego montażu."},
+                        {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">build</span>", "title": "Regulacja i dopasowanie", "text": "Możliwość regulacji wysokości i kąta oparcia pozwala dopasować fotel do indywidualnych potrzeb każdego użytkownika."},
+                        {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">fitness_center</span>", "title": "Solidna konstrukcja", "text": "Wzmocniona podstawa i wytrzymały mechanizm gazowy gwarantują stabilność i bezpieczeństwo użytkowania."},
+                        {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span>", "title": "Łatwy montaż", "text": "Produkt dostarczany z czytelną instrukcją i wszystkimi niezbędnymi narzędziami do samodzielnego montażu."},
                     ]
                 elif any(x in nl for x in ['hub', 'adapter', 'switch', 'splitter']):
                     features = [
-                        {"icon": "🔌", "title": "Wielofunkcyjne złącza", "text": "Rozbudowane portfolio portów pozwala podłączyć wszystkie potrzebne urządzenia peryferyjne jednocześnie."},
-                        {"icon": "⚡", "title": "Szybki transfer danych", "text": "Nowoczesne standardy transmisji zapewniają błyskawiczny transfer plików i stabilne połączenie."},
-                        {"icon": "🔧", "title": "Plug & Play", "text": "Gotowy do pracy natychmiast po podłączeniu — nie wymaga instalacji dodatkowych sterowników."},
+                        {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">power</span>", "title": "Wielofunkcyjne złącza", "text": "Rozbudowane portfolio portów pozwala podłączyć wszystkie potrzebne urządzenia peryferyjne jednocześnie."},
+                        {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span>", "title": "Szybki transfer danych", "text": "Nowoczesne standardy transmisji zapewniają błyskawiczny transfer plików i stabilne połączenie."},
+                        {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">build</span>", "title": "Plug & Play", "text": "Gotowy do pracy natychmiast po podłączeniu — nie wymaga instalacji dodatkowych sterowników."},
                     ]
                 else:
                     # Spróbuj wygenerować opisy przez AI na podstawie samej nazwy
@@ -2252,14 +2252,14 @@ ZASADY:
                                         intro_text = _ai_parsed['intro']
                                     if _ai_parsed.get('features'):
                                         features = _ai_parsed['features']
-                                    print(f"[Opis AI] ✅ Wygenerowano z nazwy: {len(features)} sekcji")
+                                    print(f"[Opis AI] [OK] Wygenerowano z nazwy: {len(features)} sekcji")
                         except Exception as _e:
-                            print(f"[Opis AI] ⚠️ Fallback z nazwy failed: {_e}")
+                            print(f"[Opis AI] [WARN] Fallback z nazwy failed: {_e}")
 
                     # Jeśli AI nie zadziałało - daj minimum (bez ogólników)
                     if not features:
                         features = [
-                            {"icon": "📦", "title": "Zawartość zestawu", "text": f"Produkt {nazwa_clean[:60]} dostarczany w oryginalnym opakowaniu ze wszystkimi niezbędnymi akcesoriami."},
+                            {"icon": "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span>", "title": "Zawartość zestawu", "text": f"Produkt {nazwa_clean[:60]} dostarczany w oryginalnym opakowaniu ze wszystkimi niezbędnymi akcesoriami."},
                         ]
 
             specs = []
@@ -2275,7 +2275,7 @@ ZASADY:
 
     # FEATURES SECTIONS - rozbudowane!
     for feature in features[:7]:  # Do 7 sekcji zamiast 5
-        icon = feature.get('icon', '✅')
+        icon = feature.get('icon', '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>')
         title = feature.get('title', '')
         text = feature.get('text', '')
         # Wyczyść Amazonowe formatowanie z tekstu
@@ -2293,7 +2293,7 @@ ZASADY:
     # ========== GENERUJ PLAIN TEXT (fallback) ==========
     plain_text = f"{nazwa}\n\n{intro_text}\n\n"
     for feature in features[:7]:
-        plain_text += f"{feature.get('icon', '✅')} **{feature.get('title', '')}**\n{feature.get('text', '')}\n\n"
+        plain_text += f"{feature.get('icon', '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>')} **{feature.get('title', '')}**\n{feature.get('text', '')}\n\n"
     
     # ASIN usunięty z opisów — nie pokazujemy pochodzenia produktu
     
@@ -2408,11 +2408,11 @@ ZWRÓĆ TYLKO tekst GPSR, bez żadnych dodatkowych komentarzy."""
             # Limit 5000 znaków (Allegro max)
             gpsr_text = gpsr_text[:5000]
 
-            print(f"🛡️ GPSR AI (REST): {len(gpsr_text)} znaków wygenerowane")
+            print(f"[SHIE] GPSR AI (REST): {len(gpsr_text)} znaków wygenerowane")
             return gpsr_text
 
         except Exception as e:
-            print(f"⚠️ GPSR AI error: {e} — fallback do szablonu")
+            print(f"[WARN] GPSR AI error: {e} — fallback do szablonu")
 
     # === FALLBACK: Szablon bez AI ===
     nazwa_lower = (nazwa_produktu or "").lower()
@@ -2458,8 +2458,8 @@ def optimize_title_allegro(title: str, brand: str = '', category: str = '') -> s
     
     api_key = get_config('gemini_api_key', '')
     
-    print(f"🔧 [SEO] Optymalizacja: '{title[:50]}...'")
-    print(f"🔧 [SEO] API key present: {bool(api_key)}")
+    print(f"[BUIL] [SEO] Optymalizacja: '{title[:50]}...'")
+    print(f"[BUIL] [SEO] API key present: {bool(api_key)}")
     
     if api_key:
         try:
@@ -2488,7 +2488,7 @@ PRZYKŁADY:
 
 Odpowiedz TYLKO zoptymalizowanym tytułem, nic więcej:"""
 
-            print(f"🔧 [SEO] Wysyłam do Gemini...")
+            print(f"[BUIL] [SEO] Wysyłam do Gemini...")
             response = requests.post(
                 get_gemini_api_url(api_key),
                 json={
@@ -2498,7 +2498,7 @@ Odpowiedz TYLKO zoptymalizowanym tytułem, nic więcej:"""
                 timeout=15
             )
             
-            print(f"🔧 [SEO] Response status: {response.status_code}")
+            print(f"[BUIL] [SEO] Response status: {response.status_code}")
             
             if response.status_code == 200:
                 data = response.json()
@@ -2506,21 +2506,21 @@ Odpowiedz TYLKO zoptymalizowanym tytułem, nic więcej:"""
                     optimized = data['candidates'][0]['content']['parts'][0]['text'].strip()
                     # Usuń cudzysłowy jeśli są
                     optimized = optimized.strip('"\'')
-                    print(f"🔧 [SEO] AI response: '{optimized}'")
+                    print(f"[BUIL] [SEO] AI response: '{optimized}'")
                     # Sprawdź czy sensowny
                     if optimized and 10 < len(optimized) <= 80:
-                        print(f"✅ AI optymalizacja: '{title[:40]}...' → '{optimized}'")
+                        print(f"[OK] AI optymalizacja: '{title[:40]}...' → '{optimized}'")
                         return optimized
                     else:
-                        print(f"⚠️ [SEO] AI response za długi lub za krótki: {len(optimized)} znaków")
+                        print(f"[WARN] [SEO] AI response za długi lub za krótki: {len(optimized)} znaków")
             else:
-                print(f"⚠️ [SEO] API error: {response.text[:200]}")
+                print(f"[WARN] [SEO] API error: {response.text[:200]}")
                     
         except Exception as e:
-            print(f"⚠️ Błąd AI optymalizacji: {e}")
+            print(f"[WARN] Błąd AI optymalizacji: {e}")
     else:
-        print(f"⚠️ [SEO] Brak klucza Gemini API!")
+        print(f"[WARN] [SEO] Brak klucza Gemini API!")
     
     # Fallback: użyj lokalnej optymalizacji
-    print(f"🔧 [SEO] Używam lokalnej optymalizacji (fallback)")
+    print(f"[BUIL] [SEO] Używam lokalnej optymalizacji (fallback)")
     return optimize_title_seo(title, max_length=75)

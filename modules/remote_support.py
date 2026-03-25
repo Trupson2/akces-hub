@@ -99,19 +99,19 @@ def _format_telegram_message(info, user_message=''):
 
     msg = f"🆘 <b>ZGŁOSZENIE SUPPORTU</b>\n"
     msg += f"━━━━━━━━━━━━━━━━━━\n"
-    msg += f"📍 <b>Instancja:</b> {brand} ({info.get('hostname', '?')})\n"
-    msg += f"🕐 <b>Czas:</b> {info.get('time', '?')}\n"
-    msg += f"📦 <b>Wersja:</b> {info.get('app_version', '?')}\n"
-    msg += f"🌐 <b>Ngrok:</b> {info.get('ngrok_url', '?')}\n"
+    msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">location_on</span> <b>Instancja:</b> {brand} ({info.get('hostname', '?')})\n"
+    msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">schedule</span> <b>Czas:</b> {info.get('time', '?')}\n"
+    msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> <b>Wersja:</b> {info.get('app_version', '?')}\n"
+    msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">language</span> <b>Ngrok:</b> {info.get('ngrok_url', '?')}\n"
 
     kontakt = info.get('kontakt', '')
     if kontakt:
-        msg += f"\n📋 <b>Kontakt klienta:</b>\n{kontakt}\n"
+        msg += f"\n<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">assignment</span> <b>Kontakt klienta:</b>\n{kontakt}\n"
 
     if user_message:
-        msg += f"\n💬 <b>Opis problemu:</b>\n{user_message}\n"
+        msg += f"\n<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">chat</span> <b>Opis problemu:</b>\n{user_message}\n"
 
-    msg += f"\n📊 <b>System:</b>\n"
+    msg += f"\n<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span> <b>System:</b>\n"
     msg += f"  CPU: {info.get('cpu_percent', '?')} | Temp: {info.get('cpu_temp', '?')}\n"
     msg += f"  RAM: {info.get('ram_used', '?')}\n"
     msg += f"  Dysk: {info.get('disk_used', '?')}\n"
@@ -120,7 +120,7 @@ def _format_telegram_message(info, user_message=''):
 
     errors = info.get('recent_errors', '')
     if errors and errors != 'brak bledow' and errors != 'brak dostepu do journalctl':
-        msg += f"\n🔴 <b>Ostatnie bledy:</b>\n<code>{errors[:300]}</code>\n"
+        msg += f"\n● <b>Ostatnie bledy:</b>\n<code>{errors[:300]}</code>\n"
 
     msg += f"\n━━━━━━━━━━━━━━━━━━"
     return msg
@@ -146,11 +146,11 @@ def support_zgloszenie():
         # Dodaj dane kontaktowe klienta
         kontakt_info = ''
         if kontakt_nazwa:
-            kontakt_info += f"👤 {kontakt_nazwa}\n"
+            kontakt_info += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">person</span> {kontakt_nazwa}\n"
         if kontakt_email:
-            kontakt_info += f"📧 {kontakt_email}\n"
+            kontakt_info += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">email</span> {kontakt_email}\n"
         if kontakt_telefon:
-            kontakt_info += f"📱 {kontakt_telefon}\n"
+            kontakt_info += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smartphone</span> {kontakt_telefon}\n"
         info['kontakt'] = kontakt_info.strip()
 
         # Wyślij na Telegram (hardcoded support — zawsze do właściciela)
@@ -165,11 +165,11 @@ def support_zgloszenie():
                 timeout=10
             )
             if resp.ok and resp.json().get('ok'):
-                flash('✅ Zgłoszenie wysłane! Odpowiemy w ciągu 24h.', 'success')
+                flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Zgłoszenie wysłane! Odpowiemy w ciągu 24h.', 'success')
             else:
-                flash('⚠️ Nie udało się wysłać. Spróbuj ponownie.', 'warning')
+                flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> Nie udało się wysłać. Spróbuj ponownie.', 'warning')
         except Exception as e:
-            flash(f'❌ Błąd wysyłania: {str(e)}', 'error')
+            flash(f'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Błąd wysyłania: {str(e)}', 'error')
 
         return redirect('/support/zgloszenie')
 
@@ -203,8 +203,8 @@ def support_zgloszenie():
     s_email = get_config('support_email', '')
     s_phone = get_config('support_phone', '')
     s_info = get_config('support_info', '')
-    s_email_html = f'<div style="color:#93c5fd;margin-bottom:4px"><a href="mailto:{s_email}" style="color:#93c5fd;text-decoration:none">📧 {s_email}</a></div>' if s_email else ''
-    s_phone_html = f'<div style="color:#93c5fd;margin-bottom:4px"><a href="tel:{s_phone}" style="color:#93c5fd;text-decoration:none">📱 {s_phone}</a></div>' if s_phone else ''
+    s_email_html = f'<div style="color:#93c5fd;margin-bottom:4px"><a href="mailto:{s_email}" style="color:#93c5fd;text-decoration:none"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">email</span> {s_email}</a></div>' if s_email else ''
+    s_phone_html = f'<div style="color:#93c5fd;margin-bottom:4px"><a href="tel:{s_phone}" style="color:#93c5fd;text-decoration:none"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smartphone</span> {s_phone}</a></div>' if s_phone else ''
     s_info_html = f'<div style="color:#94a3b8;font-size:0.85rem;margin-top:8px">{s_info}</div>' if s_info else '<div style="color:#64748b;font-size:0.85rem">Odpowiadamy zazwyczaj w ciagu 24h</div>'
 
     html = f'''<!DOCTYPE html>
@@ -243,7 +243,7 @@ body {{ background: #0a0a0f; color: #e2e8f0; font-family: -apple-system, BlinkMa
 
     <div class="tabs">
         <a href="/support/zgloszenie" class="tab active">🐛 Zgłoś błąd</a>
-        <a href="/support/pomysl" class="tab">💡 Zaproponuj funkcję</a>
+        <a href="/support/pomysl" class="tab"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Zaproponuj funkcję</a>
     </div>
 
     {flash_html}
@@ -278,7 +278,7 @@ body {{ background: #0a0a0f; color: #e2e8f0; font-family: -apple-system, BlinkMa
             </div>
 
             <div class="tips" style="margin-bottom: 16px;">
-                <p style="margin-bottom: 6px;"><b>💡 Wskazówki:</b></p>
+                <p style="margin-bottom: 6px;"><b><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Wskazówki:</b></p>
                 <ul style="margin: 0; padding-left: 20px;">
                     <li>Opisz dokładnie co klikałeś</li>
                     <li>Podaj jaki błąd wyskoczył (jeśli jakiś był)</li>
@@ -300,7 +300,7 @@ body {{ background: #0a0a0f; color: #e2e8f0; font-family: -apple-system, BlinkMa
     <div class="card" style="text-align: center;">
         <p style="margin: 0 0 12px; color: #94a3b8;">Po wysłaniu zgłoszenia otrzymamy powiadomienie<br>z pełną diagnostyką systemu.</p>
         <div style="border-top:1px solid #2d2d44;padding-top:12px;margin-top:12px">
-            <div style="font-weight:600;margin-bottom:8px;color:#e2e8f0">📞 Kontakt z supportem</div>
+            <div style="font-weight:600;margin-bottom:8px;color:#e2e8f0"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">call</span> Kontakt z supportem</div>
             {s_email_html}
             {s_phone_html}
             {s_info_html}
@@ -346,15 +346,15 @@ def support_pomysl():
         SUPPORT_CHAT_ID = '5441603126'
 
         tg_msg = (
-            f"💡 <b>Nowy pomysł od {client_name}</b>\n"
+            f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> <b>Nowy pomysł od {client_name}</b>\n"
             f"━━━━━━━━━━━━━━━━━━\n"
-            f"📌 <b>Tytuł:</b> {tytul}\n"
-            f"🔥 <b>Priorytet:</b> {priorytet}\n"
-            f"📝 <b>Opis:</b>\n{opis}\n"
+            f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">push_pin</span> <b>Tytuł:</b> {tytul}\n"
+            f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">local_fire_department</span> <b>Priorytet:</b> {priorytet}\n"
+            f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">edit_note</span> <b>Opis:</b>\n{opis}\n"
             f"━━━━━━━━━━━━━━━━━━\n"
-            f"📍 Instancja: {brand}\n"
-            f"🔑 Klucz: {license_key[:16]}...\n"
-            f"🕐 {timestamp}"
+            f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">location_on</span> Instancja: {brand}\n"
+            f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">key</span> Klucz: {license_key[:16]}...\n"
+            f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">schedule</span> {timestamp}"
         )
 
         sent_tg = False
@@ -378,7 +378,7 @@ def support_pomysl():
                 import requests as _req
                 dc_payload = {
                     'content': (
-                        f"💡 **Nowy pomysł od {client_name}**\n"
+                        f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> **Nowy pomysł od {client_name}**\n"
                         f"**Tytuł:** {tytul}\n"
                         f"**Priorytet:** {priorytet}\n"
                         f"**Opis:**\n{opis}\n"
@@ -393,9 +393,9 @@ def support_pomysl():
             pass
 
         if sent_tg or sent_discord:
-            flash('🎉 Dzięki! Twój pomysł trafił prosto do naszego zespołu.', 'success')
+            flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">celebration</span> Dzięki! Twój pomysł trafił prosto do naszego zespołu.', 'success')
         else:
-            flash('⚠️ Nie udało się wysłać. Spróbuj ponownie.', 'warning')
+            flash('<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> Nie udało się wysłać. Spróbuj ponownie.', 'warning')
 
         return redirect('/support/pomysl')
 
@@ -466,13 +466,13 @@ body {{ background: #0a0a0f; color: #e2e8f0; font-family: -apple-system, BlinkMa
 
     <div class="tabs">
         <a href="/support/zgloszenie" class="tab">🐛 Zgłoś błąd</a>
-        <a href="/support/pomysl" class="tab active">💡 Zaproponuj funkcję</a>
+        <a href="/support/pomysl" class="tab active"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Zaproponuj funkcję</a>
     </div>
 
     {flash_html}
 
     <div class="header">
-        <h1>💡 Zaproponuj nową funkcję</h1>
+        <h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Zaproponuj nową funkcję</h1>
         <p>Masz pomysł jak ulepszyć system? Daj nam znać!</p>
     </div>
 
@@ -486,9 +486,9 @@ body {{ background: #0a0a0f; color: #e2e8f0; font-family: -apple-system, BlinkMa
             <div class="form-group">
                 <label>Priorytet</label>
                 <select name="priorytet" required>
-                    <option value="💡 Miły dodatek">💡 Miły dodatek</option>
-                    <option value="⚡ Ważne">⚡ Ważne</option>
-                    <option value="🔥 Zmienia zasady gry">🔥 Zmienia zasady gry</option>
+                    <option value="<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Miły dodatek"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Miły dodatek</option>
+                    <option value="<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span> Ważne"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span> Ważne</option>
+                    <option value="<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">local_fire_department</span> Zmienia zasady gry"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">local_fire_department</span> Zmienia zasady gry</option>
                 </select>
             </div>
 
@@ -497,7 +497,7 @@ body {{ background: #0a0a0f; color: #e2e8f0; font-family: -apple-system, BlinkMa
                 <textarea name="opis" placeholder="Np. Przydałaby się funkcja masowego przypisywania nietypowych gabarytów do produktów z pozycji 15 (słupki odgradzające), żeby łatwiej zarządzać długimi paczkami." required></textarea>
             </div>
 
-            <button type="submit" class="btn-send">📤 Wyślij pomysł</button>
+            <button type="submit" class="btn-send"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">upload</span> Wyślij pomysł</button>
         </form>
     </div>
 </div>
@@ -536,7 +536,7 @@ a {{ color:#6366f1 }}
 </head><body>
 <div class="container">
     <a href="javascript:history.back()" class="back">← Powrot</a>
-    <h1>📋 Polityka Prywatnosci</h1>
+    <h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">assignment</span> Polityka Prywatnosci</h1>
     <p><strong>{brand}</strong> — ostatnia aktualizacja: marzec 2026</p>
 
     <h2>1. Administrator danych</h2>

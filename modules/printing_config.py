@@ -18,7 +18,7 @@ def load_config():
             config = json.load(f)
         return config
     except Exception as e:
-        print(f"⚠️ Błąd wczytywania config: {e}")
+        print(f"[WARN] Błąd wczytywania config: {e}")
         return get_default_config()
 
 def save_config(key, value):
@@ -31,7 +31,7 @@ def save_config(key, value):
             json.dump(config, f, indent=2, ensure_ascii=False)
         return True
     except Exception as e:
-        print(f"⚠️ Błąd zapisywania config: {e}")
+        print(f"[WARN] Błąd zapisywania config: {e}")
         return False
 
 def save_full_config(config_dict):
@@ -41,7 +41,7 @@ def save_full_config(config_dict):
             json.dump(config_dict, f, indent=2, ensure_ascii=False)
         return True
     except Exception as e:
-        print(f"⚠️ Błąd zapisywania config: {e}")
+        print(f"[WARN] Błąd zapisywania config: {e}")
         return False
 
 def get_default_config():

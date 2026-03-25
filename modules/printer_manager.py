@@ -265,11 +265,11 @@ class BleakTransport:
                 if niimbot_tx in char_uuid:
                     self._write_char = char.uuid
                     self._write_char_obj = char  # GATT object z prawidłowym handle
-                    print(f"  📝 Niimbot TX: {char.uuid} handle={char.handle} props={props}")
+                    print(f"  [EDIT] Niimbot TX: {char.uuid} handle={char.handle} props={props}")
                 # Notify in Niimbot service
                 if is_niimbot_svc and "notify" in props and not self._notify_char:
                     self._notify_char = char.uuid
-                    print(f"  📡 Niimbot RX: {char.uuid} props={props}")
+                    print(f"  [SATE] Niimbot RX: {char.uuid} props={props}")
                 # Fallbacks (any writable/notify char)
                 if ("write-without-response" in props or "write" in props) and not fallback_write:
                     fallback_write = char.uuid
@@ -279,10 +279,10 @@ class BleakTransport:
         # Use fallbacks only if Niimbot-specific not found
         if not self._write_char and fallback_write:
             self._write_char = fallback_write
-            print(f"  📝 Write char (fallback): {fallback_write}")
+            print(f"  [EDIT] Write char (fallback): {fallback_write}")
         if not self._notify_char and fallback_notify:
             self._notify_char = fallback_notify
-            print(f"  📡 Notify char (fallback): {fallback_notify}")
+            print(f"  [SATE] Notify char (fallback): {fallback_notify}")
 
         if not self._write_char:
             raise RuntimeError("Nie znaleziono charakterystyki write na drukarce BLE")
@@ -290,15 +290,15 @@ class BleakTransport:
         # Subscribe to notifications for receiving responses
         if self._notify_char:
             await self._client.start_notify(self._notify_char, self._on_notification)
-            print(f"  ✅ Subskrypcja notyfikacji aktywna")
+            print(f"  [OK] Subskrypcja notyfikacji aktywna")
         else:
-            print(f"  ⚠️ Brak notify - odpowiedzi drukarki mogą nie dochodzić")
+            print(f"  [WARN] Brak notify - odpowiedzi drukarki mogą nie dochodzić")
 
     def _on_notification(self, sender, data: bytearray):
         """Callback for BLE notifications (runs in BLE thread)"""
         self._recv_buffer.extend(data)
         self._recv_event.set()
-        print(f"  📡 [NOTIF] {len(data)}B from {sender}: {bytes(data).hex()}", flush=True)
+        print(f"  [SATE] [NOTIF] {len(data)}B from {sender}: {bytes(data).hex()}", flush=True)
 
     def read(self, length: int) -> bytes:
         """Read data from BLE (niimprint calls this for responses)"""
@@ -377,8 +377,8 @@ class BleakTransport:
         mtu = getattr(self._client, 'mtu_size', '?')
         connected = self._client.is_connected if self._client else False
         n_chunks = (total + chunk_size - 1) // chunk_size
-        print(f"   🔍 BLE: connected={connected}, MTU={mtu}", flush=True)
-        print(f"   🔍 SEND: {total} lines, {n_chunks} chunks of {chunk_size}, "
+        print(f"   [SEAR] BLE: connected={connected}, MTU={mtu}", flush=True)
+        print(f"   [SEAR] SEND: {total} lines, {n_chunks} chunks of {chunk_size}, "
               f"pause={chunk_pause}s", flush=True)
 
         # Wysyłaj w porcjach
@@ -394,7 +394,7 @@ class BleakTransport:
                 except Exception as e:
                     errors.append((idx, str(e)))
                     if len(errors) <= 3:
-                        print(f"   ❌ WRITE ERROR line {idx}: {e}", flush=True)
+                        print(f"   [ERR] WRITE ERROR line {idx}: {e}", flush=True)
 
                 # Mikro-pauza między pakietami w chunk (BLE flow control)
                 await asyncio.sleep(0.005)
@@ -406,11 +406,11 @@ class BleakTransport:
             # Progress log
             elapsed = _t.time() - t0
             chunk_num = chunk_start // chunk_size + 1
-            print(f"   📊 Chunk {chunk_num}/{n_chunks}: sent {chunk_end}/{total} "
+            print(f"   [BAR_] Chunk {chunk_num}/{n_chunks}: sent {chunk_end}/{total} "
                   f"({elapsed:.1f}s, errors={len(errors)})", flush=True)
 
         elapsed = _t.time() - t0
-        print(f"   ✅ SEND COMPLETE: {total} lines in {elapsed:.1f}s, "
+        print(f"   [OK] SEND COMPLETE: {total} lines in {elapsed:.1f}s, "
               f"errors={len(errors)}", flush=True)
 
         # Poczekaj na notyfikacje
@@ -419,16 +419,16 @@ class BleakTransport:
             notif_data = bytes(self._recv_buffer)
             self._recv_buffer.clear()
             self._recv_event.clear()
-            print(f"   📡 NOTIF after send: {notif_data.hex()}", flush=True)
+            print(f"   [SATE] NOTIF after send: {notif_data.hex()}", flush=True)
 
     def close(self):
         """Disconnect BLE"""
         try:
             if self._client and self._client.is_connected:
                 self._run(self._client.disconnect(), timeout=5)
-                print("🔌 BleakTransport: rozłączono")
+                print("[POWE] BleakTransport: rozłączono")
         except Exception as e:
-            print(f"⚠️ BleakTransport close: {e}")
+            print(f"[WARN] BleakTransport close: {e}")
 
 
 # ============================================================
@@ -531,7 +531,7 @@ class PrinterManager:
             return [{"error": "Biblioteka bleak nie jest zainstalowana"}]
         
         printers = []
-        print(f"🔍 Skanowanie drukarek Bluetooth ({timeout}s)...")
+        print(f"[SEAR] Skanowanie drukarek Bluetooth ({timeout}s)...")
         
         try:
             devices = await BleakScanner.discover(timeout=timeout)
@@ -550,17 +550,17 @@ class PrinterManager:
                         "address": device.address,
                         "rssi": getattr(device, 'rssi', None)
                     })
-                    print(f"  ✅ Znaleziono: {name} ({device.address})")
+                    print(f"  [OK] Znaleziono: {name} ({device.address})")
                     
             if not printers:
-                print("  ⚠️ Nie znaleziono drukarek Niimbot")
+                print("  [WARN] Nie znaleziono drukarek Niimbot")
                 # Pokaż wszystkie urządzenia BLE dla debugowania
-                print("  📋 Wszystkie urządzenia BLE:")
+                print("  [ASSI] Wszystkie urządzenia BLE:")
                 for d in devices[:10]:
                     print(f"     - {d.name or 'N/A'}: {d.address}")
                     
         except Exception as e:
-            print(f"❌ Błąd skanowania: {e}")
+            print(f"[ERR] Błąd skanowania: {e}")
             printers.append({"error": str(e)})
             
         return printers
@@ -573,18 +573,18 @@ class PrinterManager:
             address: Adres MAC drukarki. Jeśli None, użyje pierwszej znalezionej.
         """
         if not BLEAK_AVAILABLE:
-            print("❌ Biblioteka bleak nie jest zainstalowana")
+            print("[ERR] Biblioteka bleak nie jest zainstalowana")
             print("   Zainstaluj: pip install bleak --break-system-packages")
             return False
         
         if not address:
-            print("❌ Nie podano adresu drukarki")
+            print("[ERR] Nie podano adresu drukarki")
             return False
         
         # Zapisz adres dla niimprint
         self.device_address = address
             
-        print(f"🔗 Łączenie z drukarką: {address}...")
+        print(f"[LINK] Łączenie z drukarką: {address}...")
         
         try:
             self.client = BleakClient(address)
@@ -597,7 +597,7 @@ class PrinterManager:
                 try:
                     await self._setup_notifications()
                 except Exception as e:
-                    print(f"  ⚠️ Nie udało się ustawić notyfikacji: {e}")
+                    print(f"  [WARN] Nie udało się ustawić notyfikacji: {e}")
                 
                 # Pobierz info o drukarce
                 try:
@@ -605,16 +605,16 @@ class PrinterManager:
                     self.device_name = info.get('name', 'Niimbot')
                 except Exception as e:
                     self.device_name = 'Niimbot'
-                    print(f"  ⚠️ Nie udało się pobrać info: {e}")
+                    print(f"  [WARN] Nie udało się pobrać info: {e}")
                 
-                print(f"✅ Połączono z {self.device_name}")
+                print(f"[OK] Połączono z {self.device_name}")
                 return True
             else:
-                print("❌ Nie udało się połączyć")
+                print("[ERR] Nie udało się połączyć")
                 return False
                 
         except Exception as e:
-            print(f"❌ Błąd połączenia: {e}")
+            print(f"[ERR] Błąd połączenia: {e}")
             import traceback
             traceback.print_exc()
             self.connected = False
@@ -625,9 +625,9 @@ class PrinterManager:
         if self.client and self.connected:
             try:
                 await self.client.disconnect()
-                print("🔌 Rozłączono z drukarką")
+                print("[POWE] Rozłączono z drukarką")
             except Exception as e:
-                print(f"⚠️ Błąd rozłączania: {e}")
+                print(f"[WARN] Błąd rozłączania: {e}")
         self.connected = False
         self.client = None
         
@@ -643,10 +643,10 @@ class PrinterManager:
                 for char in service.characteristics:
                     if "notify" in char.properties:
                         await self.client.start_notify(char.uuid, notification_handler)
-                        print(f"  📡 Subskrypcja notyfikacji: {char.uuid[:8]}...")
+                        print(f"  [SATE] Subskrypcja notyfikacji: {char.uuid[:8]}...")
                         return
         except Exception as e:
-            print(f"  ⚠️ Nie można ustawić notyfikacji: {e}")
+            print(f"  [WARN] Nie można ustawić notyfikacji: {e}")
             
     # ============================================================
     # PROTOKÓŁ KOMUNIKACJI
@@ -702,11 +702,11 @@ class PrinterManager:
                 write_char = fallback_char
                     
             if not write_char:
-                print("❌ Nie znaleziono charakterystyki do zapisu")
+                print("[ERR] Nie znaleziono charakterystyki do zapisu")
                 return None
             
             # Debug
-            # print(f"  📤 Wysyłam {len(packet)} bajtów do {write_char}")
+            # print(f"  [UPLO] Wysyłam {len(packet)} bajtów do {write_char}")
                 
             # Użyj write-without-response od razu (unika problemów z uprawnieniami Windows)
             try:
@@ -716,7 +716,7 @@ class PrinterManager:
                 try:
                     await self.client.write_gatt_char(write_char, packet, response=True)
                 except:
-                    print(f"⚠️  Błąd zapisu BLE: {e}")
+                    print(f"[WARN]  Błąd zapisu BLE: {e}")
                     pass
             
             if wait_response:
@@ -730,7 +730,7 @@ class PrinterManager:
             return b''
             
         except Exception as e:
-            print(f"❌ Błąd wysyłania: {e}")
+            print(f"[ERR] Błąd wysyłania: {e}")
             import traceback
             traceback.print_exc()
             return None
@@ -962,29 +962,29 @@ class PrinterManager:
         
         # Ścieżka 1: USB przez niimprint (jeśli mamy USB port)
         if NIIMPRINT_AVAILABLE and self.connection_type == 'usb' and self.usb_port:
-            print("📌 Używam niimprint USB (SerialTransport)")
+            print("[PUSH] Używam niimprint USB (SerialTransport)")
             return await self.print_label_niimprint(label, copies, use_usb=True, com_port=self.usb_port)
         
         # Ścieżka 2: BLE przez bleak (dla Niimbot B1 i innych BLE)
         if BLEAK_AVAILABLE and self.device_address:
             # Połącz przez bleak jeśli nie połączony
             if not self.connected:
-                print(f"📌 Łączenie BLE przez bleak ({self.device_address})...")
+                print(f"[PUSH] Łączenie BLE przez bleak ({self.device_address})...")
                 connected = await self.connect(self.device_address)
                 if not connected:
-                    print("❌ Nie udało się połączyć przez BLE")
+                    print("[ERR] Nie udało się połączyć przez BLE")
                     return False
-            print("📌 Drukuję przez BLE (bleak)")
+            print("[PUSH] Drukuję przez BLE (bleak)")
             return await self._print_label_ble(label, copies)
         
         # Ścieżka 3: niimprint USB auto-detect
         if NIIMPRINT_AVAILABLE and SerialTransport:
-            print("📌 Próbuję niimprint USB (auto-detect COM)")
+            print("[PUSH] Próbuję niimprint USB (auto-detect COM)")
             return await self.print_label_niimprint(label, copies, use_usb=True)
         
         # Brak opcji
-        print("❌ Drukarka nie jest połączona")
-        print("   💡 Wskazówki:")
+        print("[ERR] Drukarka nie jest połączona")
+        print("   [LIGH] Wskazówki:")
         print("   - Upewnij się że Niimbot jest włączony i w zasięgu BT")
         print("   - Przejdź do Magazyn → Drukarka → Skanuj")
         if not BLEAK_AVAILABLE:
@@ -992,27 +992,27 @@ class PrinterManager:
         return False
             
         if not IMAGING_AVAILABLE:
-            print("❌ Brak bibliotek do generowania obrazu")
+            print("[ERR] Brak bibliotek do generowania obrazu")
             return False
         
-        print("❌ Brak możliwości drukowania - sprawdź połączenie")
+        print("[ERR] Brak możliwości drukowania - sprawdź połączenie")
         return False
     
     async def _print_label_ble(self, label: ProductLabel, copies: int = 1) -> bool:
         """
         Drukuje etykietę przez BLE (bleak) - fallback gdy brak niimprint.
         """
-        print(f"🖨️ Drukowanie etykiety (BLE): {label.nazwa[:30]}...")
+        print(f"[PRIN] Drukowanie etykiety (BLE): {label.nazwa[:30]}...")
         
         try:
             # 1. Generuj obraz
             img = self._generate_label_image(label)
             width_px, height_px = img.size
 
-            print(f"  📐 Rozmiar: {width_px}x{height_px} px")
+            print(f"  [STRA] Rozmiar: {width_px}x{height_px} px")
 
             # 2. Konfiguruj drukarkę
-            print("  ⚙️ Konfiguruję drukarkę...")
+            print("  [SETT] Konfiguruję drukarkę...")
             await self._send_command(NiimbotCommand.SET_LABEL_TYPE, bytes([self.config.label_type]))
             await self._send_command(NiimbotCommand.SET_LABEL_DENSITY, bytes([self.config.density]))
 
@@ -1024,7 +1024,7 @@ class PrinterManager:
             # 3. Drukuj kopie
             for copy in range(copies):
                 if copies > 1:
-                    print(f"  📄 Kopia {copy + 1}/{copies}")
+                    print(f"  [DESC] Kopia {copy + 1}/{copies}")
                     
                 # Start druku
                 await self._send_command(NiimbotCommand.START_PRINT, bytes([1]))
@@ -1034,7 +1034,7 @@ class PrinterManager:
                 print_data = self._image_to_print_data(img)
                 total_chunks = (len(print_data) + 199) // 200
 
-                print(f"  📤 Wysyłam {len(print_data)} bajtów ({total_chunks} pakietów)...")
+                print(f"  [UPLO] Wysyłam {len(print_data)} bajtów ({total_chunks} pakietów)...")
 
                 # Podziel na pakiety (max 200 bajtów na pakiet)
                 chunk_size = 200
@@ -1056,11 +1056,11 @@ class PrinterManager:
                 # Krótka pauza na druk mechaniczny
                 await asyncio.sleep(0.5)
                 
-            print(f"✅ Wydrukowano {copies} etykiet(ę)")
+            print(f"[OK] Wydrukowano {copies} etykiet(ę)")
             return True
             
         except Exception as e:
-            print(f"❌ Błąd drukowania: {e}")
+            print(f"[ERR] Błąd drukowania: {e}")
             import traceback
             traceback.print_exc()
             return False
@@ -1079,23 +1079,23 @@ class PrinterManager:
             True jeśli sukces
         """
         if not NIIMPRINT_AVAILABLE:
-            print("❌ Biblioteka niimprint nie jest zainstalowana")
+            print("[ERR] Biblioteka niimprint nie jest zainstalowana")
             print("   Zainstaluj: py -3.11 -m pip install niimprint")
             return False
             
         if not IMAGING_AVAILABLE:
-            print("❌ Brak bibliotek do generowania obrazu")
+            print("[ERR] Brak bibliotek do generowania obrazu")
             return False
         
         # Auto-scan jeśli nie mamy adresu BT
         if not self.device_address and BluetoothTransport:
-            print("🔍 Brak adresu drukarki - automatyczne skanowanie...")
+            print("[SEAR] Brak adresu drukarki - automatyczne skanowanie...")
             try:
                 printers = await self.scan_printers(timeout=10)
                 if printers:
                     self.device_address = printers[0].get('address')
                     self.device_name = printers[0].get('name', 'Niimbot')
-                    print(f"  ✅ Znaleziono: {self.device_name} ({self.device_address})")
+                    print(f"  [OK] Znaleziono: {self.device_name} ({self.device_address})")
                     # Zapisz adres do bazy config żeby przetrwał restart
                     try:
                         from .database import get_db
@@ -1104,23 +1104,23 @@ class PrinterManager:
                                         ('niimbot_address', self.device_address))
                             conn.commit()
                     except Exception as e:
-                        print(f"  ⚠️ Nie udało się zapisać adresu: {e}")
+                        print(f"  [WARN] Nie udało się zapisać adresu: {e}")
                 else:
-                    print("  ❌ Nie znaleziono drukarek Niimbot w zasięgu BT")
+                    print("  [ERR] Nie znaleziono drukarek Niimbot w zasięgu BT")
             except Exception as e:
-                print(f"  ⚠️ Błąd skanowania: {e}")
+                print(f"  [WARN] Błąd skanowania: {e}")
             
-        print(f"🖨️ [niimprint] Drukowanie: {label.nazwa[:30]}...")
+        print(f"[PRIN] [niimprint] Drukowanie: {label.nazwa[:30]}...")
         
         transport = None
         try:
             # 1. Generuj obraz
             img = self._generate_label_image(label)
             original_size = img.size
-            print(f"  📐 Obraz oryginalny: {original_size[0]}x{original_size[1]} px, mode={img.mode}")
+            print(f"  [STRA] Obraz oryginalny: {original_size[0]}x{original_size[1]} px, mode={img.mode}")
             
             # 2. Obraz jest już portrait 240×384 — bez rotacji
-            print(f"  📐 Portrait {img.size[0]}x{img.size[1]} px")
+            print(f"  [STRA] Portrait {img.size[0]}x{img.size[1]} px")
             
             # 3. Konwertuj do grayscale (niimprint wymaga L lub 1)
             if img.mode == '1':
@@ -1128,7 +1128,7 @@ class PrinterManager:
             elif img.mode != 'L':
                 img = img.convert('L')
             
-            print(f"  🎨 Format: {img.mode}, rozmiar: {img.size}")
+            print(f"  [PALE] Format: {img.mode}, rozmiar: {img.size}")
             
             # 4. Połącz - auto-detect: Bluetooth preferred, USB fallback
             # Określ tryb połączenia
@@ -1142,20 +1142,20 @@ class PrinterManager:
                     use_usb = False  # spróbuj BT mimo wszystko
             
             if not use_usb and BluetoothTransport and self.device_address:
-                print(f"  🔗 Łączenie przez Bluetooth ({self.device_address})...")
+                print(f"  [LINK] Łączenie przez Bluetooth ({self.device_address})...")
                 transport = BluetoothTransport(self.device_address)
             elif use_usb and SerialTransport:
                 port = com_port or self.usb_port or "COM5"
-                print(f"  🔗 Łączenie przez USB ({port})...")
+                print(f"  [LINK] Łączenie przez USB ({port})...")
                 transport = SerialTransport(port)
             elif BluetoothTransport and self.device_address:
                 # Fallback na BT jeśli USB nie działa
-                print(f"  🔗 Fallback: Bluetooth ({self.device_address})...")
+                print(f"  [LINK] Fallback: Bluetooth ({self.device_address})...")
                 transport = BluetoothTransport(self.device_address)
             else:
-                print("❌ Brak dostępnego transportu (USB/Bluetooth)")
+                print("[ERR] Brak dostępnego transportu (USB/Bluetooth)")
                 if not self.device_address:
-                    print("   💡 Najpierw sparuj drukarkę: Skanuj → Połącz w ustawieniach drukarki")
+                    print("   [LIGH] Najpierw sparuj drukarkę: Skanuj → Połącz w ustawieniach drukarki")
                 return False
                 
             printer = PrinterClient(transport)
@@ -1163,30 +1163,30 @@ class PrinterManager:
             # 5. Drukuj kopie
             for i in range(copies):
                 if copies > 1:
-                    print(f"  📄 Kopia {i+1}/{copies}")
+                    print(f"  [DESC] Kopia {i+1}/{copies}")
                     
-                print("  📤 Wysyłam do drukarki...")
+                print("  [UPLO] Wysyłam do drukarki...")
                 
                 density = min(max(self.config.density, 1), 5)
                 printer.print_image(img, density=density)
                 
-                print(f"  ✅ Wysłano kopię {i+1}")
+                print(f"  [OK] Wysłano kopię {i+1}")
                 
                 if i < copies - 1:
                     await asyncio.sleep(2)
                     
-            print(f"✅ Wydrukowano {copies} etykiet(ę) przez niimprint")
+            print(f"[OK] Wydrukowano {copies} etykiet(ę) przez niimprint")
             return True
             
         except Exception as e:
-            print(f"❌ Błąd niimprint: {e}")
+            print(f"[ERR] Błąd niimprint: {e}")
             import traceback
             traceback.print_exc()
             return False
         finally:
             if transport:
                 try:
-                    print("  🔌 Zamykam połączenie...")
+                    print("  [POWE] Zamykam połączenie...")
                     transport.close()
                 except:
                     pass
@@ -1218,7 +1218,7 @@ class PrinterManager:
             return f"data:image/png;base64,{b64}"
             
         except Exception as e:
-            print(f"❌ Błąd generowania podglądu: {e}")
+            print(f"[ERR] Błąd generowania podglądu: {e}")
             return ""
     
     # ============================================================
@@ -1265,7 +1265,7 @@ def get_printer_manager() -> PrinterManager:
             row = conn.execute("SELECT value FROM config WHERE key = 'niimbot_address'").fetchone()
             if row and row['value']:
                 get_printer_manager._instance.device_address = row['value']
-                print(f"📱 Niimbot adres BT z config: {row['value']}")
+                print(f"[SMAR] Niimbot adres BT z config: {row['value']}")
         except Exception:
             pass
     return get_printer_manager._instance
@@ -1439,12 +1439,12 @@ def print_niimbot_ble_sync(
 
     transport = None
     try:
-        print(f"🖨️ [BLE+niimprint] Drukowanie: {nazwa[:30]}...")
+        print(f"[PRIN] [BLE+niimprint] Drukowanie: {nazwa[:30]}...")
         print(f"   Adres BLE: {bt_address}, Kopie: {copies}")
 
         # 1. Generuj obraz etykiety
         img = pm._generate_label_image(label)
-        print(f"   📐 Obraz: {img.size[0]}x{img.size[1]} px, mode={img.mode}")
+        print(f"   [STRA] Obraz: {img.size[0]}x{img.size[1]} px, mode={img.mode}")
 
         # 2. Konwertuj do grayscale (niimprint wymaga L)
         if img.mode != 'L':
@@ -1459,21 +1459,21 @@ def print_niimbot_ble_sync(
             pass
 
         # 4. Połącz przez BleakTransport (BLE via bleak)
-        print(f"   🔗 Łączenie BLE z {bt_address}...")
+        print(f"   [LINK] Łączenie BLE z {bt_address}...")
         transport = BleakTransport(bt_address)
         printer = PrinterClient(transport)
-        print(f"   ✅ Transport BLE aktywny")
+        print(f"   [OK] Transport BLE aktywny")
 
         import struct as _struct
         import time as _time
         density = min(max(pm.config.density, 1), 5)
 
         w_px, h_px = img.size
-        print(f"   📐 Image: {w_px}x{h_px}, density={density}", flush=True)
+        print(f"   [STRA] Image: {w_px}x{h_px}, density={density}", flush=True)
 
         for i in range(copies):
             if copies > 1:
-                print(f"   📄 Kopia {i + 1}/{copies}")
+                print(f"   [DESC] Kopia {i + 1}/{copies}")
 
             # === PROTOKÓŁ B1 (ręczny — niimprint natywny nie działa z B1) ===
             # 1. Density + label type
@@ -1483,7 +1483,7 @@ def print_niimbot_ble_sync(
             # 2. PrintStart — B1 wymaga 7 bajtów
             start_data = _struct.pack(">HBBBBB", 1, 0, 0, 0, 0, 0)
             printer._transceive(0x01, start_data)
-            print(f"   🔧 PrintStart OK", flush=True)
+            print(f"   [BUIL] PrintStart OK", flush=True)
 
             # 3. StartPagePrint
             printer.start_page_print()
@@ -1491,7 +1491,7 @@ def print_niimbot_ble_sync(
             # 4. SetPageSize — B1: 6 bajtów (h, w, copies)
             page_data = _struct.pack(">HHH", h_px, w_px, 1)
             printer._transceive(0x13, page_data)
-            print(f"   🔧 SetPageSize h={h_px} w={w_px} OK", flush=True)
+            print(f"   [BUIL] SetPageSize h={h_px} w={w_px} OK", flush=True)
 
             # 5. SetQuantity
             printer.set_quantity(1)
@@ -1499,7 +1499,7 @@ def print_niimbot_ble_sync(
             # 6. Koduj obraz przez niimprint
             all_packets = list(printer._encode_image(img))
             total_lines = len(all_packets)
-            print(f"   📦 {total_lines} linii do wysłania", flush=True)
+            print(f"   [INVE] {total_lines} linii do wysłania", flush=True)
 
             # 7. Wyślij linia po linii z pauzami co BATCH linii
             #    Drukarka B1 ma mały bufor — bez pauz ucina wydruk
@@ -1514,7 +1514,7 @@ def print_niimbot_ble_sync(
                     _time.sleep(BATCH_PAUSE)
 
                 if (idx + 1) % 50 == 0 or idx == total_lines - 1:
-                    print(f"   📊 Sent {idx+1}/{total_lines}", flush=True)
+                    print(f"   [BAR_] Sent {idx+1}/{total_lines}", flush=True)
 
             # 8. Zakończ stronę i druk
             _time.sleep(0.5)
@@ -1538,22 +1538,22 @@ def print_niimbot_ble_sync(
                     pass
                 _time.sleep(0.3)
 
-            print(f"   ✅ Kopia {i + 1} gotowa", flush=True)
+            print(f"   [OK] Kopia {i + 1} gotowa", flush=True)
             if i < copies - 1:
                 _time.sleep(2)
 
-        print(f"✅ Wydrukowano {copies} etykiet(ę) przez BLE")
+        print(f"[OK] Wydrukowano {copies} etykiet(ę) przez BLE")
         return {"success": True, "message": f"Wydrukowano {copies} etykiet przez BLE"}
 
     except TimeoutError:
-        print(f"❌ Timeout BLE")
+        print(f"[ERR] Timeout BLE")
         return {"success": False, "message": "Timeout — drukarka nie odpowiada. Sprawdź czy jest włączona i w zasięgu."}
     except ValueError as e:
-        print(f"❌ Błąd protokołu Niimbot: {e}")
+        print(f"[ERR] Błąd protokołu Niimbot: {e}")
         return {"success": False, "message": f"Błąd protokołu: {e}. Spróbuj wyłączyć i włączyć drukarkę."}
     except Exception as e:
         msg = str(e)
-        print(f"❌ BLE print error: {e}")
+        print(f"[ERR] BLE print error: {e}")
         import traceback
         traceback.print_exc()
         if "not connected" in msg.lower() or "disconnect" in msg.lower():
@@ -1634,7 +1634,7 @@ def print_niimbot_usb_sync(
 
     transport = None
     try:
-        print(f"🖨️ [USB] Drukowanie: {nazwa[:30]}...")
+        print(f"[PRIN] [USB] Drukowanie: {nazwa[:30]}...")
         print(f"   Port: {com_port}, Kopie: {copies}")
         
         # Generuj obraz
@@ -1662,11 +1662,11 @@ def print_niimbot_usb_sync(
         transport.close()
         transport = None
         
-        print(f"✅ Wydrukowano {copies} etykiet")
+        print(f"[OK] Wydrukowano {copies} etykiet")
         return {"success": True, "message": f"Wydrukowano {copies} etykiet"}
         
     except Exception as e:
-        print(f"❌ Błąd USB: {e}")
+        print(f"[ERR] Błąd USB: {e}")
         import traceback
         traceback.print_exc()
         return {"success": False, "message": str(e)}
@@ -1733,7 +1733,7 @@ def print_niimbot_bt_sync(
 
     transport = None
     try:
-        print(f"🖨️ [BT] Drukowanie: {nazwa[:30]}...")
+        print(f"[PRIN] [BT] Drukowanie: {nazwa[:30]}...")
         print(f"   Adres BT: {bt_address}, Kopie: {copies}")
 
         # Generuj obraz
@@ -1759,11 +1759,11 @@ def print_niimbot_bt_sync(
         transport.close()
         transport = None
 
-        print(f"✅ [BT] Wydrukowano {copies} etykiet")
+        print(f"[OK] [BT] Wydrukowano {copies} etykiet")
         return {"success": True, "message": f"Wydrukowano {copies} etykiet przez Bluetooth"}
 
     except Exception as e:
-        print(f"❌ Błąd BT: {e}")
+        print(f"[ERR] Błąd BT: {e}")
         import traceback
         traceback.print_exc()
         msg = str(e)
@@ -2015,7 +2015,7 @@ class VrettiPrinter:
             
             return f"data:image/png;base64,{b64}"
         except Exception as e:
-            print(f"❌ Błąd podglądu Vretti: {e}")
+            print(f"[ERR] Błąd podglądu Vretti: {e}")
             return ""
     
     def print_label(self, label: ProductLabel, printer_name: str = None, copies: int = 1) -> dict:
@@ -2180,11 +2180,11 @@ def list_system_printers_sync() -> list:
             str: Port COM (np. 'COM5') lub None jeśli nie znaleziono
         """
         if not SERIAL_AVAILABLE:
-            print("❌ Biblioteka pyserial nie jest zainstalowana")
+            print("[ERR] Biblioteka pyserial nie jest zainstalowana")
             print("   Zainstaluj: pip install pyserial --break-system-packages")
             return None
         
-        print("🔍 Szukam drukarki Niimbot B1 na USB...")
+        print("[SEAR] Szukam drukarki Niimbot B1 na USB...")
         
         try:
             ports = serial.tools.list_ports.comports()
@@ -2192,21 +2192,21 @@ def list_system_printers_sync() -> list:
             for port in ports:
                 # Niimbot B1 ma VID 0x3513 (13587 w decimal)
                 if port.vid == 0x3513:
-                    print(f"✅ Znaleziono drukarkę Niimbot B1")
+                    print(f"[OK] Znaleziono drukarkę Niimbot B1")
                     print(f"   Port: {port.device}")
                     print(f"   Opis: {port.description}")
                     print(f"   VID:PID = {hex(port.vid)}:{hex(port.pid)}")
                     return port.device
             
-            print("⚠️  Nie znaleziono drukarki Niimbot na USB")
-            print("💡 Sprawdź:")
+            print("[WARN]  Nie znaleziono drukarki Niimbot na USB")
+            print("[LIGH] Sprawdź:")
             print("   1. Czy drukarka jest podłączona przez USB-C")
             print("   2. Czy drukarka jest włączona")
             print("   3. Czy Windows wykryło urządzenie (Menedżer urządzeń)")
             return None
             
         except Exception as e:
-            print(f"❌ Błąd skanowania USB: {e}")
+            print(f"[ERR] Błąd skanowania USB: {e}")
             return None
     
     def connect_usb(self, port='COM5', baudrate=115200):
@@ -2221,11 +2221,11 @@ def list_system_printers_sync() -> list:
             bool: True jeśli połączono, False w przeciwnym wypadku
         """
         if not SERIAL_AVAILABLE:
-            print("❌ Biblioteka pyserial nie jest zainstalowana")
+            print("[ERR] Biblioteka pyserial nie jest zainstalowana")
             return False
         
         try:
-            print(f"🔌 Łączę się z drukarką na {port}...")
+            print(f"[POWE] Łączę się z drukarką na {port}...")
             
             # Stwórz połączenie serial
             self.usb_connection = serial.Serial(
@@ -2240,18 +2240,18 @@ def list_system_printers_sync() -> list:
             import time
             time.sleep(0.5)  # Daj czas na inicjalizację
             
-            print(f"✅ Połączono przez USB: {port}")
+            print(f"[OK] Połączono przez USB: {port}")
             self.connection_type = 'usb'
             self.usb_port = port
             self.connected = True
             return True
             
         except serial.SerialException as e:
-            print(f"❌ Błąd połączenia USB: {e}")
+            print(f"[ERR] Błąd połączenia USB: {e}")
             self.usb_connection = None
             return False
         except Exception as e:
-            print(f"❌ Błąd: {e}")
+            print(f"[ERR] Błąd: {e}")
             self.usb_connection = None
             return False
     
@@ -2262,12 +2262,12 @@ def list_system_printers_sync() -> list:
         try:
             if self.usb_connection and self.usb_connection.is_open:
                 self.usb_connection.close()
-                print("✅ Rozłączono USB")
+                print("[OK] Rozłączono USB")
                 self.connected = False
                 self.connection_type = 'bluetooth'
                 return True
         except Exception as e:
-            print(f"⚠️  Błąd rozłączania USB: {e}")
+            print(f"[WARN]  Błąd rozłączania USB: {e}")
         
         return False
     
@@ -2286,7 +2286,7 @@ def list_system_printers_sync() -> list:
             bytes: Odpowiedź od drukarki lub None
         """
         if not self.usb_connection or not self.usb_connection.is_open:
-            print("❌ Brak połączenia USB")
+            print("[ERR] Brak połączenia USB")
             return None
         
         try:
@@ -2320,7 +2320,7 @@ def list_system_printers_sync() -> list:
             return None
             
         except Exception as e:
-            print(f"❌ Błąd wysyłania komendy USB: {e}")
+            print(f"[ERR] Błąd wysyłania komendy USB: {e}")
             return None
     
     async def print_label_usb(self, label, copies=1):
@@ -2334,37 +2334,37 @@ def list_system_printers_sync() -> list:
         Returns:
             bool: True jeśli wydrukowano pomyślnie
         """
-        print(f"\n🖨️  Drukowanie przez USB (kopii: {copies})...")
+        print(f"\n[PRIN]  Drukowanie przez USB (kopii: {copies})...")
         
         try:
             # Sprawdź połączenie
             if not self.usb_connection:
                 port = self.find_usb_printer()
                 if not port:
-                    print("❌ Nie znaleziono drukarki USB")
+                    print("[ERR] Nie znaleziono drukarki USB")
                     return False
                 
                 if not self.connect_usb(port):
-                    print("❌ Nie udało się połączyć przez USB")
+                    print("[ERR] Nie udało się połączyć przez USB")
                     return False
             
             # Generuj obraz etykiety
-            print("🎨 Generuję etykietę...")
+            print("[PALE] Generuję etykietę...")
             img = self._generate_label_image(label)
             if not img:
-                print("❌ Nie udało się wygenerować etykiety")
+                print("[ERR] Nie udało się wygenerować etykiety")
                 return False
             
             width_px, height_px = img.size
-            print(f"✅ Etykieta wygenerowana: {width_px}x{height_px} px")
+            print(f"[OK] Etykieta wygenerowana: {width_px}x{height_px} px")
             
             # Drukuj dla każdej kopii
             for copy in range(copies):
                 if copies > 1:
-                    print(f"\n📄 Kopia {copy + 1}/{copies}")
+                    print(f"\n[DESC] Kopia {copy + 1}/{copies}")
                 
                 # 1. Konfiguracja drukarki
-                print("⚙️  Konfiguruję drukarkę...")
+                print("[SETT]  Konfiguruję drukarkę...")
                 self.send_usb_command(0x21, bytes([self.config.density]))
                 import time
                 time.sleep(0.1)
@@ -2378,7 +2378,7 @@ def list_system_printers_sync() -> list:
                 time.sleep(0.2)
                 
                 # 3. Start drukowania
-                print("▶️  Rozpoczynam druk...")
+                print("▶  Rozpoczynam druk...")
                 self.send_usb_command(0x01, bytes([1]))
                 time.sleep(0.1)
                 self.send_usb_command(0x03, bytes([1]))
@@ -2388,7 +2388,7 @@ def list_system_printers_sync() -> list:
                 print_data = self._image_to_print_data(img)
                 total_chunks = (len(print_data) + 199) // 200
                 
-                print(f"📤 Wysyłam dane ({len(print_data)} bajtów, {total_chunks} pakietów)...")
+                print(f"[UPLO] Wysyłam dane ({len(print_data)} bajtów, {total_chunks} pakietów)...")
                 
                 chunk_size = 200
                 for i in range(0, len(print_data), chunk_size):
@@ -2398,24 +2398,24 @@ def list_system_printers_sync() -> list:
                     
                     if (i // chunk_size) % 10 == 0:
                         progress = int((i / len(print_data)) * 100)
-                        print(f"  📊 Progress: {progress}%")
+                        print(f"  [BAR_] Progress: {progress}%")
                 
-                print("  ✅ 100% - dane wysłane")
+                print("  [OK] 100% - dane wysłane")
                 
                 # 5. Zakończ drukowanie
-                print("⏹️  Kończę druk...")
+                print("⏹  Kończę druk...")
                 time.sleep(0.2)
                 self.send_usb_command(0xE3, bytes([1]))
                 time.sleep(0.1)
                 self.send_usb_command(0x83, bytes([1]))
                 time.sleep(0.3)
             
-            print("\n✅ WYDRUKOWANO!")
-            print("💡 Sprawdź drukarkę - etykieta powinna wyjechać!\n")
+            print("\n[OK] WYDRUKOWANO!")
+            print("[LIGH] Sprawdź drukarkę - etykieta powinna wyjechać!\n")
             return True
             
         except Exception as e:
-            print(f"❌ Błąd drukowania USB: {e}")
+            print(f"[ERR] Błąd drukowania USB: {e}")
             import traceback
             traceback.print_exc()
             return False
@@ -2428,21 +2428,21 @@ def list_system_printers_sync() -> list:
         Returns:
             dict: Informacje o drukarce lub None
         """
-        print("\n📋 Pobieram informacje o drukarce (USB)...")
+        print("\n[ASSI] Pobieram informacje o drukarce (USB)...")
         
         try:
             # Komenda 0xC3 = Get Printer Info
             response = self.send_usb_command(0xC3)
             
             if response:
-                print(f"✅ Otrzymano odpowiedź ({len(response)} bajtów)")
+                print(f"[OK] Otrzymano odpowiedź ({len(response)} bajtów)")
                 return {"raw_response": response.hex(), "port": self.usb_port}
             else:
-                print("⚠️  Brak odpowiedzi")
+                print("[WARN]  Brak odpowiedzi")
                 return None
                 
         except Exception as e:
-            print(f"❌ Błąd: {e}")
+            print(f"[ERR] Błąd: {e}")
             return None
     
     async def connect_auto(self, prefer_usb=True):
@@ -2455,22 +2455,22 @@ def list_system_printers_sync() -> list:
         Returns:
             bool: True jeśli połączono
         """
-        print("\n🔌 Automatyczne łączenie z drukarką...")
+        print("\n[POWE] Automatyczne łączenie z drukarką...")
         
         if prefer_usb and SERIAL_AVAILABLE:
             # Najpierw spróbuj USB
             port = self.find_usb_printer()
             if port:
                 if self.connect_usb(port):
-                    print("✅ Połączono przez USB")
+                    print("[OK] Połączono przez USB")
                     return True
             
             # Jeśli USB nie działa, spróbuj Bluetooth
-            print("\n⚠️  USB niedostępny, próbuję Bluetooth...")
+            print("\n[WARN]  USB niedostępny, próbuję Bluetooth...")
         
         # Fallback na Bluetooth
         if BLEAK_AVAILABLE:
-            print("🔍 Skanowanie drukarek Bluetooth...")
+            print("[SEAR] Skanowanie drukarek Bluetooth...")
             printers = await self.scan_printers(timeout=5.0)
             
             if printers and not printers[0].get('error'):
@@ -2478,7 +2478,7 @@ def list_system_printers_sync() -> list:
                 if address:
                     return await self.connect(address)
         
-        print("❌ Nie udało się połączyć ani przez USB ani Bluetooth")
+        print("[ERR] Nie udało się połączyć ani przez USB ani Bluetooth")
         return False
 
 
@@ -2487,10 +2487,10 @@ def list_system_printers_sync() -> list:
 # ============================================================
 
 if __name__ == "__main__":
-    print("🖨️ Test PrinterManager")
-    print(f"  Bleak: {'✅' if BLEAK_AVAILABLE else '❌'}")
-    print(f"  Imaging: {'✅' if IMAGING_AVAILABLE else '❌'}")
-    print(f"  Niimprint: {'✅' if NIIMPRINT_AVAILABLE else '❌'}")
+    print("[PRIN] Test PrinterManager")
+    print(f"  Bleak: {'[OK]' if BLEAK_AVAILABLE else '[ERR]'}")
+    print(f"  Imaging: {'[OK]' if IMAGING_AVAILABLE else '[ERR]'}")
+    print(f"  Niimprint: {'[OK]' if NIIMPRINT_AVAILABLE else '[ERR]'}")
     
     if not NIIMPRINT_AVAILABLE:
         status = get_niimprint_status()
@@ -2509,6 +2509,6 @@ if __name__ == "__main__":
         
         preview = pm.generate_label_preview(label)
         if preview:
-            print(f"  ✅ Wygenerowano podgląd ({len(preview)} bajtów)")
+            print(f"  [OK] Wygenerowano podgląd ({len(preview)} bajtów)")
         else:
-            print("  ❌ Nie udało się wygenerować podglądu")
+            print("  [ERR] Nie udało się wygenerować podglądu")

@@ -47,7 +47,7 @@ def generate_allegro_title_ai(product_data: Dict, gemini_key: str, max_length: i
 
     # Jeśli nazwa to fallback scrapera (nie pobrano z Amazona), nie generuj AI tytułu
     if nazwa.startswith('Produkt Amazon ') or nazwa.startswith('Amazon Product '):
-        print(f"[TITLE AI] ⚠️ Nazwa to fallback scrapera — pomijam AI, zostawiam do ręcznej edycji")
+        print(f"[TITLE AI] [WARN] Nazwa to fallback scrapera — pomijam AI, zostawiam do ręcznej edycji")
         return _fallback_title(nazwa, max_length)
     
     # Przygotuj dane dodatkowe
@@ -92,22 +92,22 @@ PRODUKT: {nazwa}
 3. LISTA ZAKAZANA (STOP WORDS) - USUŃ BEZWZGLĘDNIE:
    
    MARKETING:
-   ❌ "Super", "Hit", "Nowy", "Okazja", "Wyprzedaż", "Sale", "Hot"
-   ❌ "Profesjonalny", "Premium", "Exclusive", "Limited"
-   ❌ "Wysoka jakość", "Najlepsza jakość", "Top quality"
-   ❌ "Bestseller", "Polecamy", "Sprawdź"
+   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Super", "Hit", "Nowy", "Okazja", "Wyprzedaż", "Sale", "Hot"
+   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Profesjonalny", "Premium", "Exclusive", "Limited"
+   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Wysoka jakość", "Najlepsza jakość", "Top quality"
+   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Bestseller", "Polecamy", "Sprawdź"
    
    ZBĘDNE ŁĄCZNIKI (chyba że niezbędne):
-   ❌ "do", "z", "i", "dla", "na" (np. "do iPhone" → "iPhone")
-   ❌ Wyjątek: "Etui do iPhone" (tutaj "do" jest OK)
+   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "do", "z", "i", "dla", "na" (np. "do iPhone" → "iPhone")
+   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Wyjątek: "Etui do iPhone" (tutaj "do" jest OK)
    
    SŁOWA OZDOBNE:
-   ❌ "Oryginalny" (chyba że to część nazwy marki)
-   ❌ "Prawdziwy", "Autentyczny", "Genuine"
-   ❌ "Uniwersalny", "Wielofunkcyjny"
+   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Oryginalny" (chyba że to część nazwy marki)
+   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Prawdziwy", "Autentyczny", "Genuine"
+   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Uniwersalny", "Wielofunkcyjny"
    
    ZAKAZANE ZNAKI:
-   ❌ Emoji, cudzysłowy, nawiasy ozdobne: 🔥 "" '' „" () []
+   <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Emoji, cudzysłowy, nawiasy ozdobne: <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">local_fire_department</span> "" '' „" () []
 
 4. FORMATOWANIE:
    ✓ Title Case: Wielkie litery na początku wyrazów
@@ -141,10 +141,10 @@ PRODUKT: {nazwa}
 ZWRÓĆ TYLKO TYTUŁ - NIC WIĘCEJ!
 
 NIE PISZ:
-❌ "Oto propozycja tytułu:"
-❌ "Tytuł oferty:"
-❌ "Sugeruję:"
-❌ Jakichkolwiek dodatkowych wyjaśnień
+<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Oto propozycja tytułu:"
+<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Tytuł oferty:"
+<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> "Sugeruję:"
+<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Jakichkolwiek dodatkowych wyjaśnień
 
 NAPISZ:
 ✓ Sam tytuł oferty (dokładnie {max_length} znaków lub mniej)
@@ -191,20 +191,20 @@ Wygeneruj tytuł:"""
                     print(f"[TITLE AI] Tytuł za długi ({len(title)} znaków), ucinam do {max_length}")
                     title = _smart_truncate(title, max_length)
                 
-                print(f"[TITLE AI] ✅ Wygenerowano: {title} ({len(title)} znaków)")
+                print(f"[TITLE AI] [OK] Wygenerowano: {title} ({len(title)} znaków)")
                 return title
             else:
-                print(f"[TITLE AI] ⚠️ Brak odpowiedzi z API, używam fallback")
+                print(f"[TITLE AI] [WARN] Brak odpowiedzi z API, używam fallback")
                 return _fallback_title(nazwa, max_length)
         else:
-            print(f"[TITLE AI] ❌ Błąd API: {response.status_code} - {response.text[:200]}")
+            print(f"[TITLE AI] [ERR] Błąd API: {response.status_code} - {response.text[:200]}")
             return _fallback_title(nazwa, max_length)
             
     except requests.exceptions.Timeout:
-        print(f"[TITLE AI] ⏱️ Timeout API, używam fallback")
+        print(f"[TITLE AI] [TIME] Timeout API, używam fallback")
         return _fallback_title(nazwa, max_length)
     except Exception as e:
-        print(f"[TITLE AI] ❌ Wyjątek: {e}")
+        print(f"[TITLE AI] [ERR] Wyjątek: {e}")
         return _fallback_title(nazwa, max_length)
 
 

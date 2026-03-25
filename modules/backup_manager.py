@@ -35,7 +35,7 @@ def create_backup():
         ensure_backup_dir()
         
         if not DB_PATH.exists():
-            print(f"❌ Baza nie istnieje: {DB_PATH}")
+            print(f"[ERR] Baza nie istnieje: {DB_PATH}")
             return None
         
         # Nazwa backupu z timestampem
@@ -53,7 +53,7 @@ def create_backup():
         source_conn.close()
         backup_conn.close()
         
-        print(f"✅ Backup utworzony: {backup_name}")
+        print(f"[OK] Backup utworzony: {backup_name}")
 
         # Usuń stare backupy
         cleanup_old_backups()
@@ -64,7 +64,7 @@ def create_backup():
         return backup_path
         
     except Exception as e:
-        print(f"❌ Błąd tworzenia backupu: {e}")
+        print(f"[ERR] Błąd tworzenia backupu: {e}")
         return None
 
 def _check_rclone():
@@ -78,10 +78,10 @@ def _check_rclone():
         )
         _rclone_available = (result.returncode == 0 and f'{GDRIVE_REMOTE}:' in result.stdout)
         if not _rclone_available:
-            print(f"⚠️ rclone remote '{GDRIVE_REMOTE}' nie skonfigurowany. Uruchom: rclone config")
+            print(f"[WARN] rclone remote '{GDRIVE_REMOTE}' nie skonfigurowany. Uruchom: rclone config")
     except (FileNotFoundError, subprocess.TimeoutExpired):
         _rclone_available = False
-        print("⚠️ rclone nie znaleziony lub timeout")
+        print("[WARN] rclone nie znaleziony lub timeout")
     return _rclone_available
 
 
@@ -100,17 +100,17 @@ def sync_to_gdrive(backup_path=None):
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
 
         if result.returncode == 0:
-            print(f"☁️ Backup zsynchronizowany z Google Drive ({GDRIVE_BACKUP_FOLDER}/)")
+            print(f"[CLOU] Backup zsynchronizowany z Google Drive ({GDRIVE_BACKUP_FOLDER}/)")
             return True
         else:
-            print(f"⚠️ rclone error: {result.stderr}")
+            print(f"[WARN] rclone error: {result.stderr}")
             return False
 
     except subprocess.TimeoutExpired:
-        print("⚠️ rclone timeout (>5min)")
+        print("[WARN] rclone timeout (>5min)")
         return False
     except Exception as e:
-        print(f"⚠️ Błąd sync do Google Drive: {e}")
+        print(f"[WARN] Błąd sync do Google Drive: {e}")
         return False
 
 
@@ -124,10 +124,10 @@ def cleanup_old_backups():
         # Usuń backupy powyżej limitu
         for old_backup in backups[MAX_BACKUPS:]:
             old_backup.unlink()
-            print(f"🗑️  Usunięto stary backup: {old_backup.name}")
+            print(f"[DELE]  Usunięto stary backup: {old_backup.name}")
             
     except Exception as e:
-        print(f"⚠️  Błąd czyszczenia starych backupów: {e}")
+        print(f"[WARN]  Błąd czyszczenia starych backupów: {e}")
 
 def get_backups():
     """Pobiera listę dostępnych backupów (zarówno nowych jak i starych)"""
@@ -169,7 +169,7 @@ def restore_backup(backup_filename):
             test_cursor.execute("SELECT COUNT(*) FROM produkty")
             count = test_cursor.fetchone()[0]
             test_conn.close()
-            print(f"✅ Backup zweryfikowany: {count} produktów")
+            print(f"[OK] Backup zweryfikowany: {count} produktów")
         except Exception as e:
             return False, f"Backup jest uszkodzony: {e}"
         
@@ -185,9 +185,9 @@ def restore_backup(backup_filename):
                 source_conn.backup(safety_conn)
                 safety_conn.close()
                 source_conn.close()
-                print(f"💾 Bezpieczeństwo: stworzono backup przed przywracaniem: {safety_backup_name}")
+                print(f"[SAVE] Bezpieczeństwo: stworzono backup przed przywracaniem: {safety_backup_name}")
             except Exception as e:
-                print(f"⚠️ Nie udało się stworzyć safety backup: {e}")
+                print(f"[WARN] Nie udało się stworzyć safety backup: {e}")
         
         # Wymuś garbage collection żeby zamknąć ewentualne połączenia
         gc.collect()
@@ -200,22 +200,22 @@ def restore_backup(backup_filename):
             dest_conn.close()
             backup_conn.close()
             
-            print(f"✅ Przywrócono bazę z backupu: {backup_filename}")
+            print(f"[OK] Przywrócono bazę z backupu: {backup_filename}")
             return True, f"Przywrócono bazę z backupu: {backup_filename}. Odśwież stronę."
         except Exception as e:
             # Fallback do shutil.copy2 jeśli backup API nie działa
-            print(f"⚠️ SQLite backup API failed, próbuję shutil.copy2: {e}")
+            print(f"[WARN] SQLite backup API failed, próbuję shutil.copy2: {e}")
             shutil.copy2(backup_path, DB_PATH)
-            print(f"✅ Przywrócono bazę z backupu (fallback): {backup_filename}")
+            print(f"[OK] Przywrócono bazę z backupu (fallback): {backup_filename}")
             return True, f"Przywrócono bazę z backupu: {backup_filename}. Odśwież stronę."
         
     except PermissionError as e:
         error_msg = f"Brak uprawnień do pliku bazy danych. Zrestartuj aplikację i spróbuj ponownie."
-        print(f"❌ {error_msg}: {e}")
+        print(f"[ERR] {error_msg}: {e}")
         return False, error_msg
     except Exception as e:
         error_msg = f"Błąd przywracania: {str(e)}"
-        print(f"❌ {error_msg}")
+        print(f"[ERR] {error_msg}")
         return False, error_msg
 
 def verify_backup(backup_filename):
@@ -250,26 +250,26 @@ def start_backup_daemon():
     global _backup_daemon_running, _backup_thread
     
     if _backup_daemon_running:
-        print("⚠️  Backup daemon już działa")
+        print("[WARN]  Backup daemon już działa")
         return
     
     _stop_event.clear()
     _backup_daemon_running = True
     _backup_thread = threading.Thread(target=_backup_loop, daemon=True)
     _backup_thread.start()
-    print(f"🚀 Backup daemon uruchomiony (backup co {BACKUP_INTERVAL//60} minut)")
+    print(f"[ROCK] Backup daemon uruchomiony (backup co {BACKUP_INTERVAL//60} minut)")
 
 def stop_backup_daemon():
     """Zatrzymuje daemon backupu"""
     global _backup_daemon_running
     _backup_daemon_running = False
     _stop_event.set()
-    print("🛑 Backup daemon zatrzymany")
+    print("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">do_not_disturb</span> Backup daemon zatrzymany")
 
 def _backup_loop():
     """Główna pętla backup daemon"""
     # Wykonaj backup od razu przy starcie
-    print("🔄 Wykonuję pierwszy backup...")
+    print("[SYNC] Wykonuję pierwszy backup...")
     create_backup()
     
     # Eksport CSV do folderu cloud_exports (co 6 godzin)
@@ -292,13 +292,13 @@ def _backup_loop():
                     last_cloud_export = 0
                     try:
                         from .cloud_export import scheduled_backup
-                        print("☁️ Eksport do cloud_exports...")
+                        print("[CLOU] Eksport do cloud_exports...")
                         scheduled_backup()
                     except Exception as e:
-                        print(f"⚠️ Cloud export error: {e}")
+                        print(f"[WARN] Cloud export error: {e}")
                 
         except Exception as e:
-            print(f"❌ Błąd w backup daemon: {e}")
+            print(f"[ERR] Błąd w backup daemon: {e}")
             time.sleep(60)  # Odczekaj minutę po błędzie
 
 # ============================================================
@@ -350,7 +350,7 @@ try:
             from .database import close_connection_pool
             close_connection_pool()
         except Exception as e:
-            print(f"⚠️ Nie udało się zamknąć connection pool: {e}")
+            print(f"[WARN] Nie udało się zamknąć connection pool: {e}")
 
         # Wymuś garbage collection
         gc.collect()
@@ -362,7 +362,7 @@ try:
             from .database import close_connection_pool
             close_connection_pool()
         except Exception as e:
-            print(f"⚠️ Nie udało się zamknąć connection pool po przywracaniu: {e}")
+            print(f"[WARN] Nie udało się zamknąć connection pool po przywracaniu: {e}")
         
         return jsonify({'success': success, 'message': message})
     
@@ -386,19 +386,19 @@ except ImportError:
 
 if __name__ == '__main__':
     # Test modułu
-    print("🧪 Test modułu backup...")
-    print(f"📁 Folder backupów: {BACKUP_DIR}")
-    print(f"💾 Baza danych: {DB_PATH}")
+    print("[SCIE] Test modułu backup...")
+    print(f"[FOLD] Folder backupów: {BACKUP_DIR}")
+    print(f"[SAVE] Baza danych: {DB_PATH}")
     
     # Utwórz backup
     backup = create_backup()
     if backup:
-        print(f"✅ Backup utworzony: {backup}")
+        print(f"[OK] Backup utworzony: {backup}")
     
     # Pokaż listę backupów
     backups = get_backups()
-    print(f"\n📋 Dostępne backupy ({len(backups)}):")
+    print(f"\n[ASSI] Dostępne backupy ({len(backups)}):")
     for b in backups:
         status_ok, status_msg = verify_backup(b['filename'])
-        status_icon = "✅" if status_ok else "❌"
+        status_icon = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>" if status_ok else "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span>"
         print(f"  {status_icon} {b['filename']} - {b['size_mb']:.2f} MB - {b['created_str']} - {status_msg}")

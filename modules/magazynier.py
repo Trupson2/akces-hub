@@ -1703,7 +1703,7 @@ def produkt(code):
         // Auto-show split hint for multi-quantity
         const splitToggle = document.getElementById('ocenSplitToggle');
         if (ilosc > 1) {{
-            splitToggle.textContent = '🔀 Split (' + ilosc + ' szt)';
+            splitToggle.textContent = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">shuffle</span> Split (' + ilosc + ' szt)';
             splitToggle.style.display = '';
         }} else {{
             splitToggle.style.display = 'none';
@@ -1711,7 +1711,7 @@ def produkt(code):
         const btns=document.getElementById('ocenStanBtns');
         btns.innerHTML='';
         if (ilosc > 1) {{
-            btns.insertAdjacentHTML('beforebegin', '<div id="ocenStanHint" style="font-size:0.72rem;color:#f59e0b;margin-bottom:6px">💡 Masz '+ilosc+' szt — użyj Split żeby ocenić różne sztuki różnie</div>');
+            btns.insertAdjacentHTML('beforebegin', '<div id="ocenStanHint" style="font-size:0.72rem;color:#f59e0b;margin-bottom:6px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Masz '+ilosc+' szt — użyj Split żeby ocenić różne sztuki różnie</div>');
         }}
         STANY.forEach(s=>{{
             const b=document.createElement('button');
@@ -2127,52 +2127,52 @@ def edytuj_produkt(code):
                     <option value="ev_ladowarki" {"selected" if p.get('kategoria')=='ev_ladowarki' else ''}><span class=material-symbols-outlined style=font-size:1rem>bolt</span> Ładowarki EV</option>
                     <option value="foto_video" {"selected" if p.get('kategoria')=='foto_video' else ''}><span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> Foto/Video</option>
                     <option value="druk3d" {"selected" if p.get('kategoria')=='druk3d' else ''}><span class=material-symbols-outlined style=font-size:1rem>print</span> Druk 3D</option>
-                    <option value="smart_home" {"selected" if p.get('kategoria')=='smart_home' else ''}>📹 Smart Home</option>
-                    <option value="motoryzacja" {"selected" if p.get('kategoria')=='motoryzacja' else ''}>🚗 Motoryzacja</option>
-                    <option value="optyka" {"selected" if p.get('kategoria')=='optyka' else ''}>🔭 Optyka</option>
-                    <option value="rolnictwo" {"selected" if p.get('kategoria')=='rolnictwo' else''}>🐣 Rolnictwo</option>
-                    <option value="dekoracje" {"selected" if p.get('kategoria')=='dekoracje' else ''}>🎄 Dekoracje</option>
-                    <option value="oswietlenie" {"selected" if p.get('kategoria')=='oswietlenie' else ''}>💡 Oświetlenie</option>
-                    <option value="kuchnia" {"selected" if p.get('kategoria')=='kuchnia' else ''}>🍳 Kuchnia</option>
-                    <option value="budowa" {"selected" if p.get('kategoria')=='budowa' else ''}>🛠️ Budowa</option>
-                    <option value="biuro" {"selected" if p.get('kategoria')=='biuro' else ''}>💼 Biuro</option>
-                    <option value="outdoor" {"selected" if p.get('kategoria')=='outdoor' else ''}>🎒 Outdoor</option>
-                    <option value="rehabilitacja" {"selected" if p.get('kategoria')=='rehabilitacja' else ''}>♿ Rehabilitacja</option>
-                    <option value="tekstylia" {"selected" if p.get('kategoria')=='tekstylia' else ''}>🛏️ Tekstylia</option>
-                    <option value="kosmetyki" {"selected" if p.get('kategoria')=='kosmetyki' else ''}>🧴 Kosmetyki</option>
-                    <option value="ksiazki" {"selected" if p.get('kategoria')=='ksiazki' else ''}>📚 Książki</option>
-                    <option value="prezenty" {"selected" if p.get('kategoria')=='prezenty' else ''}>🎁 Prezenty</option>
-                    <option value="bezpieczenstwo" {"selected" if p.get('kategoria')=='bezpieczenstwo' else ''}>🔒 Bezpieczeństwo</option>
-                    <option value="bagaz" {"selected" if p.get('kategoria')=='bagaz' else ''}>🧳 Bagaż</option>
-                    <option value="silownia" {"selected" if p.get('kategoria')=='silownia' else ''}>🏋️ Siłownia</option>
-                    <option value="rowery" {"selected" if p.get('kategoria')=='rowery' else ''}>🚴 Rowery</option>
-                    <option value="hulajnogi" {"selected" if p.get('kategoria')=='hulajnogi' else ''}>🛴 Hulajnogi</option>
+                    <option value="smart_home" {"selected" if p.get('kategoria')=='smart_home' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">videocam</span> Smart Home</option>
+                    <option value="motoryzacja" {"selected" if p.get('kategoria')=='motoryzacja' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">directions_car</span> Motoryzacja</option>
+                    <option value="optyka" {"selected" if p.get('kategoria')=='optyka' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">explore</span> Optyka</option>
+                    <option value="rolnictwo" {"selected" if p.get('kategoria')=='rolnictwo' else''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">agriculture</span> Rolnictwo</option>
+                    <option value="dekoracje" {"selected" if p.get('kategoria')=='dekoracje' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">park</span> Dekoracje</option>
+                    <option value="oswietlenie" {"selected" if p.get('kategoria')=='oswietlenie' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Oświetlenie</option>
+                    <option value="kuchnia" {"selected" if p.get('kategoria')=='kuchnia' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">restaurant</span> Kuchnia</option>
+                    <option value="budowa" {"selected" if p.get('kategoria')=='budowa' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">handyman</span> Budowa</option>
+                    <option value="biuro" {"selected" if p.get('kategoria')=='biuro' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">work</span> Biuro</option>
+                    <option value="outdoor" {"selected" if p.get('kategoria')=='outdoor' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">hiking</span> Outdoor</option>
+                    <option value="rehabilitacja" {"selected" if p.get('kategoria')=='rehabilitacja' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">accessible</span> Rehabilitacja</option>
+                    <option value="tekstylia" {"selected" if p.get('kategoria')=='tekstylia' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bed</span> Tekstylia</option>
+                    <option value="kosmetyki" {"selected" if p.get('kategoria')=='kosmetyki' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sanitizer</span> Kosmetyki</option>
+                    <option value="ksiazki" {"selected" if p.get('kategoria')=='ksiazki' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">menu_book</span> Książki</option>
+                    <option value="prezenty" {"selected" if p.get('kategoria')=='prezenty' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">redeem</span> Prezenty</option>
+                    <option value="bezpieczenstwo" {"selected" if p.get('kategoria')=='bezpieczenstwo' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span> Bezpieczeństwo</option>
+                    <option value="bagaz" {"selected" if p.get('kategoria')=='bagaz' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">luggage</span> Bagaż</option>
+                    <option value="silownia" {"selected" if p.get('kategoria')=='silownia' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">fitness_center</span> Siłownia</option>
+                    <option value="rowery" {"selected" if p.get('kategoria')=='rowery' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">directions_bike</span> Rowery</option>
+                    <option value="hulajnogi" {"selected" if p.get('kategoria')=='hulajnogi' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">electric_scooter</span> Hulajnogi</option>
                     <option value="elektronika" {"selected" if p.get('kategoria')=='elektronika' else ''}><span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> Elektronika</option>
-                    <option value="akcesoria" {"selected" if p.get('kategoria')=='akcesoria' else ''}>🔋 Akcesoria</option>
-                    <option value="agd_male" {"selected" if p.get('kategoria')=='agd_male' else ''}>🔌 AGD małe</option>
-                    <option value="agd_duze" {"selected" if p.get('kategoria')=='agd_duze' else ''}>🏠 AGD duże</option>
-                    <option value="komputery" {"selected" if p.get('kategoria')=='komputery' else ''}>💻 Komputery</option>
+                    <option value="akcesoria" {"selected" if p.get('kategoria')=='akcesoria' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">battery_full</span> Akcesoria</option>
+                    <option value="agd_male" {"selected" if p.get('kategoria')=='agd_male' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">power</span> AGD małe</option>
+                    <option value="agd_duze" {"selected" if p.get('kategoria')=='agd_duze' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">home</span> AGD duże</option>
+                    <option value="komputery" {"selected" if p.get('kategoria')=='komputery' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">computer</span> Komputery</option>
                     <option value="telefony" {"selected" if p.get('kategoria')=='telefony' else ''}><span class=material-symbols-outlined style=font-size:1rem>smartphone</span> Telefony</option>
-                    <option value="rtv" {"selected" if p.get('kategoria')=='rtv' else ''}>📺 RTV/Audio</option>
-                    <option value="gaming" {"selected" if p.get('kategoria')=='gaming' else ''}>🎮 Gaming</option>
+                    <option value="rtv" {"selected" if p.get('kategoria')=='rtv' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">tv</span> RTV/Audio</option>
+                    <option value="gaming" {"selected" if p.get('kategoria')=='gaming' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sports_esports</span> Gaming</option>
                     <option value="narzedzia" {"selected" if p.get('kategoria')=='narzedzia' else ''}><span class=material-symbols-outlined style=font-size:1rem>build</span> Narzędzia</option>
-                    <option value="dom_ogrod" {"selected" if p.get('kategoria')=='dom_ogrod' else ''}>🏡 Dom/Ogród</option>
+                    <option value="dom_ogrod" {"selected" if p.get('kategoria')=='dom_ogrod' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">cottage</span> Dom/Ogród</option>
                     <option value="sport" {"selected" if p.get('kategoria')=='sport' else ''}>⚽ Sport</option>
-                    <option value="moda" {"selected" if p.get('kategoria')=='moda' else ''}>👕 Moda</option>
-                    <option value="zabawki" {"selected" if p.get('kategoria')=='zabawki' else ''}>🧸 Zabawki</option>
-                    <option value="zdrowie" {"selected" if p.get('kategoria')=='zdrowie' else ''}>💊 Zdrowie</option>
-                    <option value="zwierzeta" {"selected" if p.get('kategoria')=='zwierzeta' else ''}>🐾 Zwierzęta</option>
-                    <option value="muzyka" {"selected" if p.get('kategoria')=='muzyka' else ''}>🎸 Muzyka</option>
-                    <option value="elektronarzedzia" {"selected" if p.get('kategoria')=='elektronarzedzia' else ''}>🧰 Elektronarzędzia</option>
-                    <option value="hobby" {"selected" if p.get('kategoria')=='hobby' else ''}>🎨 Hobby</option>
-                    <option value="niemowleta" {"selected" if p.get('kategoria')=='niemowleta' else ''}>🍼 Niemowlęta</option>
-                    <option value="car_audio" {"selected" if p.get('kategoria')=='car_audio' else ''}>🔊 Car Audio</option>
-                    <option value="klimatyzacja" {"selected" if p.get('kategoria')=='klimatyzacja' else ''}>🌡️ Klimatyzacja</option>
+                    <option value="moda" {"selected" if p.get('kategoria')=='moda' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">checkroom</span> Moda</option>
+                    <option value="zabawki" {"selected" if p.get('kategoria')=='zabawki' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">toys</span> Zabawki</option>
+                    <option value="zdrowie" {"selected" if p.get('kategoria')=='zdrowie' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">medication</span> Zdrowie</option>
+                    <option value="zwierzeta" {"selected" if p.get('kategoria')=='zwierzeta' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">pets</span> Zwierzęta</option>
+                    <option value="muzyka" {"selected" if p.get('kategoria')=='muzyka' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">music_note</span> Muzyka</option>
+                    <option value="elektronarzedzia" {"selected" if p.get('kategoria')=='elektronarzedzia' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">handyman</span> Elektronarzędzia</option>
+                    <option value="hobby" {"selected" if p.get('kategoria')=='hobby' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">palette</span> Hobby</option>
+                    <option value="niemowleta" {"selected" if p.get('kategoria')=='niemowleta' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">child_care</span> Niemowlęta</option>
+                    <option value="car_audio" {"selected" if p.get('kategoria')=='car_audio' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">volume_up</span> Car Audio</option>
+                    <option value="klimatyzacja" {"selected" if p.get('kategoria')=='klimatyzacja' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">thermostat</span> Klimatyzacja</option>
                     <option value="hydroponika" {"selected" if p.get('kategoria')=='hydroponika' else ''}>🪴 Hydroponika</option>
-                    <option value="wedkarstwo" {"selected" if p.get('kategoria')=='wedkarstwo' else ''}>🎣 Wędkarstwo</option>
-                    <option value="laboratorium" {"selected" if p.get('kategoria')=='laboratorium' else ''}>🔬 Laboratorium</option>
-                    <option value="event" {"selected" if p.get('kategoria')=='event' else ''}>🎪 Event</option>
-                    <option value="cb_radio" {"selected" if p.get('kategoria')=='cb_radio' else ''}>📡 CB/Radio</option>
+                    <option value="wedkarstwo" {"selected" if p.get('kategoria')=='wedkarstwo' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">phishing</span> Wędkarstwo</option>
+                    <option value="laboratorium" {"selected" if p.get('kategoria')=='laboratorium' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">biotech</span> Laboratorium</option>
+                    <option value="event" {"selected" if p.get('kategoria')=='event' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">storefront</span> Event</option>
+                    <option value="cb_radio" {"selected" if p.get('kategoria')=='cb_radio' else ''}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">satellite_alt</span> CB/Radio</option>
                     <option value="inne" {"selected" if p.get('kategoria')=='inne' or not p.get('kategoria') else ''}><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Inne</option>
                 </select>
             </div>
@@ -2188,10 +2188,10 @@ def edytuj_produkt(code):
             <div class="form-group"><label>Klasa jakości</label>
                 <select name="klasa_jakosci" class="form-ctrl">
                     <option value="" {"selected" if not p.get('klasa_jakosci') else ''}>— Brak —</option>
-                    <option value="A" {"selected" if p.get('klasa_jakosci')=='A' else ''}>🟢 A — Nowy / Fabryczny</option>
-                    <option value="A-" {"selected" if p.get('klasa_jakosci')=='A-' else ''}>🔵 A- — Otwarte opakowanie</option>
-                    <option value="B" {"selected" if p.get('klasa_jakosci')=='B' else ''}>🟡 B — Używany, dobry stan</option>
-                    <option value="C" {"selected" if p.get('klasa_jakosci')=='C' else ''}>🟠 C — Widoczne ślady użytk.</option>
+                    <option value="A" {"selected" if p.get('klasa_jakosci')=='A' else ''}>● A — Nowy / Fabryczny</option>
+                    <option value="A-" {"selected" if p.get('klasa_jakosci')=='A-' else ''}>● A- — Otwarte opakowanie</option>
+                    <option value="B" {"selected" if p.get('klasa_jakosci')=='B' else ''}>● B — Używany, dobry stan</option>
+                    <option value="C" {"selected" if p.get('klasa_jakosci')=='C' else ''}>● C — Widoczne ślady użytk.</option>
                     <option value="D" {"selected" if p.get('klasa_jakosci')=='D' else ''}><span class=material-symbols-outlined style=font-size:1rem>fiber_manual_record</span> D — Uszkodzony / niekompletny</option>
                 </select>
             </div>
@@ -2416,7 +2416,7 @@ def szukaj():
     if not results:
         html += '<div class="alert alert-warn">Brak wyników</div>'
         if is_code(q):
-            html += f'<a href="/magazyn/produkt/{q}" class="btn btn-ok">➕ DODAJ NOWY</a>'
+            html += f'<a href="/magazyn/produkt/{q}" class="btn btn-ok"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">add</span> DODAJ NOWY</a>'
     
     html += '<a href="/magazyn" class="back">← Powrót</a>'
     return render(html)
@@ -2463,7 +2463,7 @@ def backup_page():
                     <input type="file" id="backupFile" name="backup_file" accept=".db" style="display:none" onchange="updateFileName()">
                     <div onclick="document.getElementById('backupFile').click()" 
                          style="padding:12px 15px;background:#0a0a0f;border:1px dashed #f97316;border-radius:8px;cursor:pointer;text-align:center;color:#94a3b8">
-                        <span id="fileNameDisplay">📁 Kliknij aby wybrać plik .db</span>
+                        <span id="fileNameDisplay"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span> Kliknij aby wybrać plik .db</span>
                     </div>
                 </div>
                 <button type="submit" class="btn" style="background:#f97316;padding:12px 20px" id="uploadBtn" disabled>
@@ -2523,11 +2523,11 @@ def backup_page():
         if (input.files.length > 0) {
             var file = input.files[0];
             var sizeMB = (file.size / 1024 / 1024).toFixed(2);
-            display.innerHTML = '📁 ' + file.name + ' (' + sizeMB + ' MB)';
+            display.innerHTML = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span> ' + file.name + ' (' + sizeMB + ' MB)';
             display.style.color = '#f97316';
             btn.disabled = false;
         } else {
-            display.innerHTML = '📁 Kliknij aby wybrać plik .db';
+            display.innerHTML = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span> Kliknij aby wybrać plik .db';
             display.style.color = '#94a3b8';
             btn.disabled = true;
         }
@@ -3091,7 +3091,7 @@ def statystyki():
     
     # 5 POZIOMÓW SYPANIA (bazowane na kwocie dziennej)
     if today_sales >= 5000:
-        status_text = "🔥🔥🔥 MEGA SYPIE!"
+        status_text = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">local_fire_department</span><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">local_fire_department</span><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">local_fire_department</span> MEGA SYPIE!"
         status_color = "#beee00"
     elif today_sales >= 3000:
         status_text = "<span class=material-symbols-outlined style=font-size:1rem>money_off</span> SYPIE!"
@@ -3142,13 +3142,13 @@ def statystyki():
     
     <!-- HISTOGRAM CZASU SPRZEDAŻY -->
     <div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #beee0044">
-        <div style="font-weight:700;margin-bottom:12px;color:#beee00">⏱️ Czas sprzedaży (od wystawienia)</div>
+        <div style="font-weight:700;margin-bottom:12px;color:#beee00"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">timer</span> Czas sprzedaży (od wystawienia)</div>
         {histogram_html}
     </div>
     
     <!-- Kalkulacja podatkowa -->
     <div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #ff6b9b44">
-        <div style="font-weight:700;margin-bottom:12px;color:#a78bfa">🧾 Rozliczenie podatkowe ({current_year})</div>
+        <div style="font-weight:700;margin-bottom:12px;color:#a78bfa"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">receipt_long</span> Rozliczenie podatkowe ({current_year})</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem">
             <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px">
                 <div style="color:#64748b;margin-bottom:4px">Przychód brutto</div>
@@ -3240,7 +3240,7 @@ def statystyki():
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
             <div>
-                <div style="font-size:0.75rem;color:#beee00;font-weight:600;margin-bottom:6px">🏆 Najlepsze</div>
+                <div style="font-size:0.75rem;color:#beee00;font-weight:600;margin-bottom:6px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">emoji_events</span> Najlepsze</div>
                 {top_html}
             </div>
             <div>
@@ -3268,7 +3268,7 @@ def statystyki():
             <div id="chartTitle" style="font-weight:600"><span class=material-symbols-outlined style=font-size:1rem>calendar_month</span> Sprzedaż miesięcznie ({current_year})</div>
             <button id="btnBack" onclick="showMonthlyView()" style="display:none;padding:5px 10px;background:#8ff5ff;border:none;border-radius:5px;color:#fff;cursor:pointer">← Miesiące</button>
         </div>
-        <div style="font-size:0.75rem;color:#64748b;margin-bottom:10px">💡 Kliknij na słupek miesiąca aby zobaczyć rozkład dzienny</div>
+        <div style="font-size:0.75rem;color:#64748b;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Kliknij na słupek miesiąca aby zobaczyć rozkład dzienny</div>
         <div id="monthSummary" style="display:none"></div>
         <canvas id="chartMiesiace" height="200"></canvas>
     </div>
@@ -3288,7 +3288,7 @@ def statystyki():
     </div>
 
     <!-- Top produkty -->
-    <div class="section">🏆 TOP 5 PRODUKTÓW</div>
+    <div class="section"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">emoji_events</span> TOP 5 PRODUKTÓW</div>
     '''
     
     if top_produkty:
@@ -4647,7 +4647,7 @@ def paleta_to_paletomat(n):
         <span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Paleta: {n}<br>
         <span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Dodano: {added_count} produktów<br>
         <span class=material-symbols-outlined style=font-size:1rem>sync</span> Zaktualizowano: {updated_count} produktów<br>
-        ⏭️ Pominięto: {skipped_count} produktów
+        ⏭ Pominięto: {skipped_count} produktów
     </div>
     
     <div class="card" style="padding:15px;margin-top:15px">
@@ -4677,11 +4677,11 @@ def paleta_usun(n):
     
     conn = get_db()
     if n and n != 'brak':
-        # 🔥 NOWE: Pobierz ASINy produktów z tej palety
+        # [LOCA] NOWE: Pobierz ASINy produktów z tej palety
         asiny = conn.execute('SELECT DISTINCT asin FROM produkty WHERE paleta = ? AND asin != ""', (n,)).fetchall()
         asiny_list = [row[0] for row in asiny if row[0]]
         
-        # 🔥 NOWE: Usuń te produkty ze scraped (Paletomat)
+        # [LOCA] NOWE: Usuń te produkty ze scraped (Paletomat)
         if asiny_list:
             placeholders = ','.join(['?' for _ in asiny_list])
             conn.execute('DELETE FROM scraped WHERE asin IN (' + placeholders + ')', asiny_list)  # noqa: B608 - placeholders are only ?
@@ -5109,7 +5109,7 @@ def import_page():
     
     # Generuj opcje palet
     palety_options = '<option value="">-- Bez palety (luźne produkty) --</option>'
-    palety_options += '<option value="__NEW__">➕ Utwórz nową paletę...</option>'
+    palety_options += '<option value="__NEW__"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">add</span> Utwórz nową paletę...</option>'
     for p in palety:
         p_id, p_nazwa, p_dostawca, p_data = p
         label = f"{p_nazwa}" if p_nazwa else f"Paleta #{p_id}"
@@ -5166,7 +5166,7 @@ def import_page():
         
         <!-- WYBÓR PLIKU -->
         <div class="card" style="padding:30px;text-align:center;cursor:pointer" onclick="document.getElementById('file').click()">
-            <div style="font-size:3rem;margin-bottom:10px">📁</div>
+            <div style="font-size:3rem;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span></div>
             <div style="font-weight:600">Wybierz plik Excel</div>
             <div style="font-size:0.8rem;color:#64748b;margin-top:5px">.xlsx, .csv</div>
             <input type="file" id="file" name="file" style="display:none" accept=".xlsx,.csv" onchange="this.form.submit()">
@@ -5174,7 +5174,7 @@ def import_page():
     </form>
     
     <div class="card" style="padding:15px;margin-top:15px">
-        <div style="font-weight:600;color:#eab308;margin-bottom:10px">💡 Obsługiwane formaty:</div>
+        <div style="font-weight:600;color:#eab308;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Obsługiwane formaty:</div>
         <div style="font-size:0.85rem;color:#94a3b8">
             • <strong>Warrington</strong> - auto-detekcja kolumn<br>
             • <strong>Miglo</strong> - ASIN, nazwa, ilość<br>
@@ -5372,9 +5372,9 @@ def import_preview():
         if paleta_dostawca:
             detection_logs += f'<div style="color:#beee00;padding:4px 0"><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> [INFO] Dostawca: <strong>{paleta_dostawca}</strong></div>'
         if detected_ean_col_name:
-            detection_logs += f'<div style="color:#8ff5ff;padding:4px 0">ℹ️ [INFO] Wykryto kolumnę EAN: "{detected_ean_col_name}"</div>'
+            detection_logs += f'<div style="color:#8ff5ff;padding:4px 0"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#3b82f6">info</span> [INFO] Wykryto kolumnę EAN: "{detected_ean_col_name}"</div>'
         if detected_asin_col_name and auto_asin != auto_ean:
-            detection_logs += f'<div style="color:#8ff5ff;padding:4px 0">ℹ️ [INFO] Wykryto kolumnę ASIN: "{detected_asin_col_name}"</div>'
+            detection_logs += f'<div style="color:#8ff5ff;padding:4px 0"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#3b82f6">info</span> [INFO] Wykryto kolumnę ASIN: "{detected_asin_col_name}"</div>'
         
         # Generuj opcje select
         def make_options(selected):
@@ -5514,7 +5514,7 @@ def import_execute():
     
     <form action="/magazyn/import/final?col_ean={col_ean}&col_asin={col_asin}&col_nazwa={col_nazwa}&col_ilosc={col_ilosc}&col_cena={col_cena}&paleta_id={paleta_id}&dostawca={dostawca}" method="POST" enctype="multipart/form-data">
         <div class="card" style="padding:30px;text-align:center;cursor:pointer" onclick="document.getElementById('file2').click()">
-            <div style="font-size:3rem;margin-bottom:10px">📁</div>
+            <div style="font-size:3rem;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span></div>
             <div style="font-weight:600">Wybierz ten sam plik</div>
             <input type="file" id="file2" name="file" style="display:none" accept=".xlsx,.csv" onchange="this.form.submit()">
         </div>
@@ -6044,7 +6044,7 @@ def import_upload():
 def dodaj():
     """Przekierowanie do dodawania produktu"""
     html = '''
-    <div class="hdr"><h1>➕ DODAJ PRODUKT</h1></div>
+    <div class="hdr"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">add</span> DODAJ PRODUKT</h1></div>
     
     <div class="card" style="padding:15px">
         <form action="/magazyn/szukaj" method="GET">
@@ -6089,7 +6089,7 @@ def skanuj_kamera():
     <div id="notFound" class="alert alert-warn" style="display:none;margin-top:15px">
         <span class=material-symbols-outlined style=font-size:1rem>warning</span> Nie znaleziono produktu o tym kodzie
         <div style="margin-top:10px">
-            <a id="addNewLink" href="#" class="btn btn-p" style="display:inline-block;padding:10px 20px">➕ DODAJ NOWY</a>
+            <a id="addNewLink" href="#" class="btn btn-p" style="display:inline-block;padding:10px 20px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">add</span> DODAJ NOWY</a>
         </div>
     </div>
     
@@ -6323,7 +6323,7 @@ def etykiety():
     <!-- Akcje masowe -->
     <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
         <button onclick="toggleAll(true)" style="padding:6px 12px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:0.8rem;cursor:pointer"><span class=material-symbols-outlined style=font-size:1rem>check_box</span> Zaznacz wszystkie</button>
-        <button onclick="toggleAll(false)" style="padding:6px 12px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:0.8rem;cursor:pointer">◻️ Odznacz</button>
+        <button onclick="toggleAll(false)" style="padding:6px 12px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:0.8rem;cursor:pointer">◻ Odznacz</button>
         <span id="countLabel" style="flex:1;text-align:right;font-size:0.8rem;color:#64748b">0 zaznaczonych</span>
     </div>
 
@@ -8232,11 +8232,11 @@ def lezaki():
         if dni < 45:
             obnizka_pct = 10
             obnizka_kolor = '#eab308'
-            obnizka_ikona = '🟡'
+            obnizka_ikona = '●'
         elif dni < 60:
             obnizka_pct = 20
             obnizka_kolor = '#f97316'
-            obnizka_ikona = '🟠'
+            obnizka_ikona = '●'
         elif dni < 90:
             obnizka_pct = 30
             obnizka_kolor = '#ef4444'
@@ -8347,8 +8347,8 @@ def lezaki():
     </div>
     
     <div style="display:flex;gap:8px;margin-bottom:15px">
-        <div style="background:#eab30822;border:1px solid #eab308;border-radius:8px;padding:6px 12px;font-size:0.72rem;color:#eab308">🟡 &lt;45 dni → -10%</div>
-        <div style="background:#f9731622;border:1px solid #f97316;border-radius:8px;padding:6px 12px;font-size:0.72rem;color:#f97316">🟠 &lt;60 dni → -20%</div>
+        <div style="background:#eab30822;border:1px solid #eab308;border-radius:8px;padding:6px 12px;font-size:0.72rem;color:#eab308">● &lt;45 dni → -10%</div>
+        <div style="background:#f9731622;border:1px solid #f97316;border-radius:8px;padding:6px 12px;font-size:0.72rem;color:#f97316">● &lt;60 dni → -20%</div>
         <div style="background:#ef444422;border:1px solid #ef4444;border-radius:8px;padding:6px 12px;font-size:0.72rem;color:#ef4444"><span class=material-symbols-outlined style=font-size:1rem>fiber_manual_record</span> &lt;90 dni → -30%</div>
         <div style="background:#dc262622;border:1px solid #dc2626;border-radius:8px;padding:6px 12px;font-size:0.72rem;color:#dc2626">🚨 90+ dni → -40%</div>
     </div>
@@ -8429,7 +8429,7 @@ def koszty_page():
         ('allegro', '<span class=material-symbols-outlined style=font-size:1rem>shopping_cart</span> Prowizje Allegro'),
         ('wysylka', '<span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Wysyłka / InPost'),
         ('reklama', '📣 Reklama'),
-        ('magazyn', '🏭 Magazyn / najem'),
+        ('magazyn', '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">factory</span> Magazyn / najem'),
         ('zakup', '<span class=material-symbols-outlined style=font-size:1rem>paid</span> Zakup towaru'),
         ('ksiegowosc', '<span class=material-symbols-outlined style=font-size:1rem>list_alt</span> Księgowość / ZUS'),
         ('inne', '<span class=material-symbols-outlined style=font-size:1rem>bolt</span> Inne'),
@@ -9466,7 +9466,7 @@ def statystyki_zakupow():
 
     <!-- TOP 10 PALET -->
     <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:15px;margin-bottom:15px">
-        <div style="font-weight:700;color:#fff;margin-bottom:12px">🏆 Top 10 najdroższych palet</div>
+        <div style="font-weight:700;color:#fff;margin-bottom:12px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">emoji_events</span> Top 10 najdroższych palet</div>
         {top_html}
     </div>
 
@@ -9574,10 +9574,10 @@ def przyjecie_palety(paleta_id):
         <div id="products-list">'''
 
     stany = [
-        ('Nowy', '🟢', '#beee00'),
-        ('Jak nowy', '🔵', '#8ff5ff'),
-        ('Dobry', '🟡', '#eab308'),
-        ('Uszkodzony', '🟠', '#f97316'),
+        ('Nowy', '●', '#beee00'),
+        ('Jak nowy', '●', '#8ff5ff'),
+        ('Dobry', '●', '#eab308'),
+        ('Uszkodzony', '●', '#f97316'),
         ('Zniszczony', '<span class=material-symbols-outlined style=font-size:1rem>fiber_manual_record</span>', '#ef4444'),
     ]
 
@@ -9624,7 +9624,7 @@ def przyjecie_palety(paleta_id):
         # Przycisk "Podziel" tylko gdy ilosc > 1
         split_btn = ''
         if ilosc > 1:
-            split_btn = f'''<button onclick="showSplitMode({pid}, {ilosc})" style="padding:8px 10px;border-radius:8px;border:2px solid #8ff5ff;background:#8ff5ff22;color:#8ff5ff;font-size:0.75rem;cursor:pointer;white-space:nowrap" title="Różne stany dla poszczególnych sztuk">✂️ Podziel</button>'''
+            split_btn = f'''<button onclick="showSplitMode({pid}, {ilosc})" style="padding:8px 10px;border-radius:8px;border:2px solid #8ff5ff;background:#8ff5ff22;color:#8ff5ff;font-size:0.75rem;cursor:pointer;white-space:nowrap" title="Różne stany dla poszczególnych sztuk">✂ Podziel</button>'''
 
         html += f'''
                     {split_btn}
@@ -9634,7 +9634,7 @@ def przyjecie_palety(paleta_id):
             <!-- Tryb podzielony: różne stany dla różnych sztuk -->
             <div id="split-mode-{pid}" style="display:none;margin-top:12px">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                    <div style="font-size:0.8rem;color:#a78bfa;font-weight:600">✂️ Podział {ilosc} szt. wg stanu:</div>
+                    <div style="font-size:0.8rem;color:#a78bfa;font-weight:600">✂ Podział {ilosc} szt. wg stanu:</div>
                     <button onclick="hideSplitMode({pid})" style="padding:4px 10px;border:1px solid #334155;background:#1e293b;border-radius:6px;color:#94a3b8;font-size:0.7rem;cursor:pointer">← Prosty tryb</button>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center">'''
@@ -9894,7 +9894,7 @@ def przyjecie_palety(paleta_id):
             const pid = parseInt(card.id.replace('prod-', ''));
             const activeBtn = card.querySelector('[data-active="true"]');
             if (activeBtn && activeBtn.textContent.trim()) {{
-                const stanText = activeBtn.textContent.replace(/[🟢🔵🟡🟠<span class=material-symbols-outlined style=font-size:1rem>fiber_manual_record</span>]/g, '').trim();
+                const stanText = activeBtn.textContent.replace(/[●●●●<span class=material-symbols-outlined style=font-size:1rem>fiber_manual_record</span>]/g, '').trim();
                 currentStany[pid] = stanText;
             }}
         }});

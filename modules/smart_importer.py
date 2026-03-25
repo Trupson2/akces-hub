@@ -33,21 +33,21 @@ def get_eur_pln_rate() -> float:
                 set_config('nbp_eur_pln', str(rate))
             except:
                 pass
-            print(f"   💱 Kurs EUR/PLN z NBP: {rate:.4f}")
+            print(f"   [CURR] Kurs EUR/PLN z NBP: {rate:.4f}")
             return rate
     except Exception as e:
-        print(f"   ⚠️  Nie udało się pobrać kursu NBP: {e}")
+        print(f"   [WARN]  Nie udało się pobrać kursu NBP: {e}")
         # Fallback z config
         try:
             from modules.database import get_config
             cached = get_config('nbp_eur_pln', '')
             if cached:
                 rate = float(cached)
-                print(f"   💱 Kurs EUR/PLN z cache: {rate:.4f}")
+                print(f"   [CURR] Kurs EUR/PLN z cache: {rate:.4f}")
                 return rate
         except:
             pass
-        print(f"   💱 Kurs EUR/PLN fallback: 4.30")
+        print(f"   [CURR] Kurs EUR/PLN fallback: 4.30")
         return 4.30
 
 
@@ -97,10 +97,10 @@ def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin:
     from .database import get_config
     _gemini_key = get_config('gemini_api_key', '')
     if not _gemini_key:
-        print(f"⚠️  [AI DISABLED] Brak klucza Gemini w config - używam oryginalnej nazwy")
+        print(f"[WARN]  [AI DISABLED] Brak klucza Gemini w config - używam oryginalnej nazwy")
         return produkt_nazwa[:75]
 
-    print(f"🤖 [AI REQUEST] Wysyłam do Gemini: {short_name}")
+    print(f"[SMAR] [AI REQUEST] Wysyłam do Gemini: {short_name}")
 
     for attempt in range(retry_count):
         try:
@@ -147,13 +147,13 @@ Odpowiedz TYLKO tytułem, nic więcej:"""
                     meta_title = _data['candidates'][0]['content']['parts'][0]['text'].strip()
                     print(f"   ✓ [RESPONSE] Odebrano: {meta_title[:100]}")
                 except (KeyError, IndexError):
-                    print(f"   ❌ [PARSE ERROR] Nieoczekiwana struktura: {str(_data)[:200]}")
+                    print(f"   [ERR] [PARSE ERROR] Nieoczekiwana struktura: {str(_data)[:200]}")
             elif _resp.status_code == 429:
-                print(f"   ⚠️  [QUOTA] Rate limit - czekam 5s...")
+                print(f"   [WARN]  [QUOTA] Rate limit - czekam 5s...")
                 time.sleep(5)
                 continue
             else:
-                print(f"   ❌ [API ERROR] {_resp.status_code}: {_resp.text[:200]}")
+                print(f"   [ERR] [API ERROR] {_resp.status_code}: {_resp.text[:200]}")
 
             if not meta_title:
                 if attempt < retry_count - 1:
@@ -196,7 +196,7 @@ Odpowiedz TYLKO tytułem, nic więcej:"""
                     continue
                 return produkt_nazwa[:75]
 
-            print(f"   ✅ [SUCCESS] Wygenerowano: {meta_title}")
+            print(f"   [OK] [SUCCESS] Wygenerowano: {meta_title}")
             return meta_title
 
         except Exception as e:
@@ -335,9 +335,9 @@ def smart_import_excel(
     eur_rate = 1.0
     if is_eur:
         eur_rate = get_eur_pln_rate()
-        result["details"].append(f"💱 Waluta: EUR → PLN (kurs: {eur_rate:.4f})")
+        result["details"].append(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">currency_exchange</span> Waluta: EUR → PLN (kurs: {eur_rate:.4f})")
     else:
-        result["details"].append(f"💱 Waluta: PLN (bez przeliczania)")
+        result["details"].append(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">currency_exchange</span> Waluta: PLN (bez przeliczania)")
 
     # 2. IMPORT PODSTAWOWY (użyj istniejącej funkcji)
     import_result = import_excel_manifest(
@@ -443,7 +443,7 @@ def smart_import_excel(
         _gemini_key = get_config('gemini_api_key', '')
         if _gemini_key:
             try:
-                print(f"\n🤖 [AI GENERATION] Rozpoczynam generowanie meta_title...")
+                print(f"\n[SMAR] [AI GENERATION] Rozpoczynam generowanie meta_title...")
                 result["details"].append("Generuję META TITLE przez Gemini AI...")
                 conn = get_db()
                 
@@ -453,7 +453,7 @@ def smart_import_excel(
                     WHERE paleta_id = ?
                 ''', (paleta_id,)).fetchall()
                 
-                print(f"   📦 Znaleziono {len(products)} produktów do przetworzenia")
+                print(f"   [INVE] Znaleziono {len(products)} produktów do przetworzenia")
                 
                 meta_titles_generated = 0
                 stany_detected = 0
@@ -464,13 +464,13 @@ def smart_import_excel(
                         
                         # Wykryj stan z nazwy
                         stan = detect_stan_from_name(p['nazwa'])
-                        print(f"       📋 Stan wykryty: {stan}")
+                        print(f"       [ASSI] Stan wykryty: {stan}")
                         
                         # Generuj GPSR
                         from modules.utils import generuj_gpsr_info
                         gpsr = generuj_gpsr_info(p['nazwa'] or '', p.get('kategoria') or '')
                         if gpsr:
-                            print(f"       🛡️  GPSR wygenerowany: {len(gpsr)} znaków")
+                            print(f"       [SHIE]  GPSR wygenerowany: {len(gpsr)} znaków")
                         
                         # Generuj meta_title
                         meta_title = generate_meta_title(
@@ -530,7 +530,7 @@ def smart_import_excel(
                                 smart_import_excel._api_delay = 2.0  # 2s = ~30 req/min (BEZPIECZNY!)
                             
                             time.sleep(smart_import_excel._api_delay)
-                            print(f"   ⏱️  Delay: {smart_import_excel._api_delay}s (wolniej = stabilniej)")
+                            print(f"   [TIME]  Delay: {smart_import_excel._api_delay}s (wolniej = stabilniej)")
                     
                     except Exception as e:
                         # Jeśli błąd (np. quota) - kontynuuj z innymi
@@ -544,26 +544,26 @@ def smart_import_excel(
                             
                             old_delay = smart_import_excel._api_delay
                             smart_import_excel._api_delay = min(old_delay * 2, 5.0)  # Max 5s
-                            print(f"   ⚠️  QUOTA EXCEEDED! Zwiększam delay: {old_delay}s → {smart_import_excel._api_delay}s")
-                            print(f"   💡 TIP: Dodaj kartę kredytową w Google AI Studio aby zwiększyć limit z 15 RPM → 2000 RPM!")
+                            print(f"   [WARN]  QUOTA EXCEEDED! Zwiększam delay: {old_delay}s → {smart_import_excel._api_delay}s")
+                            print(f"   [LIGH] TIP: Dodaj kartę kredytową w Google AI Studio aby zwiększyć limit z 15 RPM → 2000 RPM!")
                         
-                        result["details"].append(f"⚠️ Produkt {i}: {error_msg}")
+                        result["details"].append(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> Produkt {i}: {error_msg}")
                         continue
                 
                 conn.commit()
 
-                print(f"\n✅ [AI COMPLETE] Wygenerowano {meta_titles_generated}/{len(products)} meta_title")
-                print(f"✅ [STAN COMPLETE] Wykryto stan dla {stany_detected}/{len(products)} produktów")
-                print(f"✅ [GPSR COMPLETE] Wygenerowano GPSR dla {gpsr_generated}/{len(products)} produktów")
+                print(f"\n[OK] [AI COMPLETE] Wygenerowano {meta_titles_generated}/{len(products)} meta_title")
+                print(f"[OK] [STAN COMPLETE] Wykryto stan dla {stany_detected}/{len(products)} produktów")
+                print(f"[OK] [GPSR COMPLETE] Wygenerowano GPSR dla {gpsr_generated}/{len(products)} produktów")
                 
-                result["details"].append(f"✅ Wygenerowano {meta_titles_generated}/{len(products)} tytułów META TITLE")
-                result["details"].append(f"✅ Wykryto stan dla {stany_detected}/{len(products)} produktów")
-                result["details"].append(f"✅ Wygenerowano GPSR dla {gpsr_generated}/{len(products)} produktów")
+                result["details"].append(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Wygenerowano {meta_titles_generated}/{len(products)} tytułów META TITLE")
+                result["details"].append(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Wykryto stan dla {stany_detected}/{len(products)} produktów")
+                result["details"].append(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Wygenerowano GPSR dla {gpsr_generated}/{len(products)} produktów")
                 
             except Exception as e:
-                result["details"].append(f"⚠️  Błąd generowania META TITLE: {str(e)}")
+                result["details"].append(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span>  Błąd generowania META TITLE: {str(e)}")
         else:
-            result["details"].append("⚠️  Gemini AI niedostępne - META TITLE nie wygenerowane")
+            result["details"].append("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span>  Gemini AI niedostępne - META TITLE nie wygenerowane")
         
     except Exception as e:
         result["errors"].append(f"Błąd obliczania cen: {str(e)}")

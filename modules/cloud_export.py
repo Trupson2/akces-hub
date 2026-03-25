@@ -40,9 +40,9 @@ def ensure_export_dir():
 # Log przy imporcie żeby wiedzieć gdzie trafiają pliki
 try:
     _test = ensure_export_dir()
-    print(f"☁️  Cloud exports → {EXPORT_DIR}")
+    print(f"[CLOU]  Cloud exports → {EXPORT_DIR}")
 except Exception as _e:
-    print(f"⚠️  Cloud exports folder error: {_e}")
+    print(f"[WARN]  Cloud exports folder error: {_e}")
 
 
 def export_palety_csv(conn=None):
@@ -108,11 +108,11 @@ def export_palety_csv(conn=None):
                     p['notatki'] or ''
                 ])
         
-        print(f"✅ Eksportowano palety do: {filepath}")
+        print(f"[OK] Eksportowano palety do: {filepath}")
         return str(filepath)
         
     except Exception as e:
-        print(f"❌ Błąd eksportu palet: {e}")
+        print(f"[ERR] Błąd eksportu palet: {e}")
         return None
 
 
@@ -183,11 +183,11 @@ def export_produkty_csv(paleta_id=None, conn=None):
                     p['lokalizacja'] or ''
                 ])
         
-        print(f"✅ Eksportowano produkty do: {filepath}")
+        print(f"[OK] Eksportowano produkty do: {filepath}")
         return str(filepath)
         
     except Exception as e:
-        print(f"❌ Błąd eksportu produktów: {e}")
+        print(f"[ERR] Błąd eksportu produktów: {e}")
         return None
 
 
@@ -275,14 +275,14 @@ def export_to_google_sheets(spreadsheet_id, credentials_path):
                 p['status'] or 'magazyn', p['dostawca'] or '', p['paleta_nazwa'] or ''
             ])
 
-        print(f"✅ Eksportowano do Google Sheets: {spreadsheet_id}")
+        print(f"[OK] Eksportowano do Google Sheets: {spreadsheet_id}")
         return True
         
     except ImportError:
-        print("❌ Brak biblioteki gspread. Zainstaluj: pip install gspread oauth2client")
+        print("[ERR] Brak biblioteki gspread. Zainstaluj: pip install gspread oauth2client")
         return False
     except Exception as e:
-        print(f"❌ Błąd eksportu do Google Sheets: {e}")
+        print(f"[ERR] Błąd eksportu do Google Sheets: {e}")
         return False
 
 
@@ -291,7 +291,7 @@ def scheduled_backup():
     Wykonuje zaplanowany backup (do wywołania przez scheduler).
     Tworzy CSV w folderze cloud_exports który można zsynchronizować z chmurą.
     """
-    print(f"🔄 [{datetime.now().strftime('%Y-%m-%d %H:%M')}] Rozpoczynam zaplanowany backup...")
+    print(f"[SYNC] [{datetime.now().strftime('%Y-%m-%d %H:%M')}] Rozpoczynam zaplanowany backup...")
     
     # Eksportuj do CSV
     palety_file = export_palety_csv()
@@ -301,7 +301,7 @@ def scheduled_backup():
     cleanup_old_exports(keep_last=7)
     
     if palety_file and produkty_file:
-        print(f"✅ Backup zakończony: {EXPORT_DIR}")
+        print(f"[OK] Backup zakończony: {EXPORT_DIR}")
         return True
     return False
 
@@ -320,14 +320,14 @@ def cleanup_old_exports(keep_last=7):
         
         for old_file in palety_files[keep_last:]:
             old_file.unlink()
-            print(f"🗑️ Usunięto stary backup: {old_file.name}")
+            print(f"[DELE] Usunięto stary backup: {old_file.name}")
         
         for old_file in produkty_files[keep_last:]:
             old_file.unlink()
-            print(f"🗑️ Usunięto stary backup: {old_file.name}")
+            print(f"[DELE] Usunięto stary backup: {old_file.name}")
             
     except Exception as e:
-        print(f"⚠️ Błąd czyszczenia: {e}")
+        print(f"[WARN] Błąd czyszczenia: {e}")
 
 
 def get_export_files():
@@ -387,14 +387,14 @@ except ImportError:
 
 
 if __name__ == '__main__':
-    print("🧪 Test modułu cloud_export...")
-    print(f"📁 Folder eksportów: {EXPORT_DIR}")
+    print("[SCIE] Test modułu cloud_export...")
+    print(f"[FOLD] Folder eksportów: {EXPORT_DIR}")
     
     # Test eksportu
     scheduled_backup()
     
     # Pokaż pliki
     files = get_export_files()
-    print(f"\n📋 Pliki eksportu ({len(files)}):")
+    print(f"\n[ASSI] Pliki eksportu ({len(files)}):")
     for f in files:
         print(f"  • {f['name']} - {f['size_kb']:.1f} KB - {f['modified']}")

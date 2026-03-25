@@ -134,21 +134,21 @@ class PaletomatMagazynierBridge:
             # Pobierz dane produktu
             product = self.get_product_data(produkt_id)
             if not product:
-                print(f"❌ Nie znaleziono produktu {produkt_id}")
+                print(f"[ERR] Nie znaleziono produktu {produkt_id}")
                 return False
             
-            print(f"📦 Przygotowywanie etykiety dla: {product['nazwa']}")
+            print(f"[INVE] Przygotowywanie etykiety dla: {product['nazwa']}")
             
             # Jeśli nie wymuszono druku, tylko zapisz
             if not force_print:
-                print("ℹ️ Etykieta przygotowana (druk ręczny)")
+                print("ℹ Etykieta przygotowana (druk ręczny)")
                 return True
             
             # Import Niimbot (tylko jeśli drukujemy)
             from niimbot_printer import print_product_label
             
             # Drukuj
-            print(f"🖨️ Drukowanie etykiety na Niimbot...")
+            print(f"[PRIN] Drukowanie etykiety na Niimbot...")
             success = await print_product_label(
                 nazwa=product['nazwa'][:50],  # Max 50 znaków
                 cena=product['cena_sprzedazy'] or 0.0,
@@ -158,14 +158,14 @@ class PaletomatMagazynierBridge:
             )
             
             if success:
-                print("✅ Etykieta wydrukowana!")
+                print("[OK] Etykieta wydrukowana!")
             else:
-                print("⚠️ Nie udało się wydrukować etykiety")
+                print("[WARN] Nie udało się wydrukować etykiety")
             
             return success
             
         except Exception as e:
-            print(f"❌ Błąd drukowania: {e}")
+            print(f"[ERR] Błąd drukowania: {e}")
             import traceback
             traceback.print_exc()
             return False
@@ -312,7 +312,7 @@ if __name__ == "__main__":
     print("=== TEST INTEGRACJI PALETOMAT → MAGAZYNIER ===\n")
     
     # Symulacja wystawienia oferty w Paletomatcie
-    print("1️⃣ Paletomat wystawił ofertę na Allegro...")
+    print("1⃣ Paletomat wystawił ofertę na Allegro...")
     
     result = trigger_auto_workflow(
         produkt_id=123,
@@ -321,16 +321,16 @@ if __name__ == "__main__":
         auto_print=True  # Zmień na False żeby tylko zapisać bez druku
     )
     
-    print(f"\n✅ Rezultat: {result}")
+    print(f"\n[OK] Rezultat: {result}")
     
     if result['printed']:
-        print("🖨️ Etykieta została wydrukowana!")
+        print("[PRIN] Etykieta została wydrukowana!")
     else:
-        print("ℹ️ Etykieta przygotowana (druk ręczny)")
+        print("ℹ Etykieta przygotowana (druk ręczny)")
     
     # Pobierz dostępne lokalizacje
-    print("\n2️⃣ Dostępne lokalizacje w magazynie:")
+    print("\n2⃣ Dostępne lokalizacje w magazynie:")
     locations = get_locations_for_select()
     for loc in locations[:10]:  # Pokaż pierwsze 10
-        status = "✅ Wolne" if loc['free'] else "❌ Pełne"
+        status = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Wolne" if loc['free'] else "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Pełne"
         print(f"   {loc['code']}: {status} ({loc['available']}/{loc['capacity']})")

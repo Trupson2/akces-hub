@@ -557,7 +557,7 @@ button:hover{opacity:0.9}
 .back:hover{color:#e2e8f0}
 </style></head><body>
 <div class="card">
-    <h1>🔒 Zmiana hasła</h1>
+    <h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span> Zmiana hasła</h1>
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
     {% if success %}<div class="success">{{ success }}</div>{% endif %}
     <form method="POST">
@@ -678,13 +678,13 @@ a{display:inline-block;margin-top:20px;padding:12px 24px;background:#6366f1;colo
 a:hover{opacity:0.9}
 </style></head><body>
 <div class="card">
-    <h1>🔒</h1>
+    <h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span></h1>
     <h1>Brak dostępu</h1>
     <p>Twoja rola (<span class="role">{{ role }}</span>) nie ma uprawnień do tej strony.</p>
     <p style="font-size:0.8rem;color:#64748b">{{ path }}</p>
     <a href="/">← Dashboard</a>
-    <a href="/wysylki" style="background:#22c55e;margin-left:8px">📦 Wysyłki</a>
-    <a href="/magazyn" style="background:#f59e0b;margin-left:8px">📋 Magazyn</a>
+    <a href="/wysylki" style="background:#22c55e;margin-left:8px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> Wysyłki</a>
+    <a href="/magazyn" style="background:#f59e0b;margin-left:8px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">assignment</span> Magazyn</a>
 </div></body></html>'''
 
 
@@ -854,9 +854,9 @@ def setup_auth(app):
                         session['last_active'] = time.time()
                         session.permanent = True
                         _auto = True
-                        print(f"🔓 AUTO-LOGIN: {_admin['username']} z {_remote}")
+                        print(f"[LOCK] AUTO-LOGIN: {_admin['username']} z {_remote}")
                 except Exception as _e:
-                    print(f"⚠️ Auto-login error: {_e}")
+                    print(f"[WARN] Auto-login error: {_e}")
             if not _auto:
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return jsonify({'success': False, 'error': 'Wymagane logowanie'}), 401
@@ -876,7 +876,7 @@ def setup_auth(app):
         # Ograniczenie dostępu dla roli magazynier
         user_role = session.get('rola', 'user')
         if request.path.startswith('/paletomat'):
-            print(f"🔒 ROLE CHECK: user={session.get('username')} role={user_role} path={request.path} in_allowed={user_role in ROLE_ALLOWED_PATHS}", flush=True)
+            print(f"[LOCK] ROLE CHECK: user={session.get('username')} role={user_role} path={request.path} in_allowed={user_role in ROLE_ALLOWED_PATHS}", flush=True)
         if user_role in ROLE_ALLOWED_PATHS:
             allowed = ROLE_ALLOWED_PATHS[user_role]
             path = request.path

@@ -34,7 +34,7 @@ def get_current_goal():
         
         return data
     except Exception as e:
-        print(f"⚠️ Error loading goal: {e}")
+        print(f"[WARN] Error loading goal: {e}")
         # W przypadku błędu, zwróć DEFAULT_GOAL z obliczonym progress
         goal = DEFAULT_GOAL.copy()
         if goal['target'] > 0:
@@ -56,10 +56,10 @@ def save_goal(current, target, name='Hyundai i30 N'):
     try:
         with open(GOAL_FILE, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
-        print(f"✅ Goal saved: {current}/{target} PLN")
+        print(f"[OK] Goal saved: {current}/{target} PLN")
         return True
     except Exception as e:
-        print(f"❌ Error saving goal: {e}")
+        print(f"[ERR] Error saving goal: {e}")
         return False
 
 

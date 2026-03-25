@@ -102,7 +102,7 @@ def register_printer_routes(bp: Blueprint):
         for port in all_ports:
             is_bt = 'Bluetooth' in (port.description or '') or 'BTHENUM' in (port.hwid or '')
             is_current = port.device == com_port
-            icon = '📶' if is_bt else '🔌'
+            icon = '📶' if is_bt else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">power</span>'
             label = f'{icon} {port.device}'
             if is_bt:
                 label += ' (Bluetooth)'
@@ -111,29 +111,29 @@ def register_printer_routes(bp: Blueprint):
             color = '#22c55e' if is_current else ('#8b5cf6' if is_bt else '#64748b')
             bg = f'{color}22'
             border = color
-            check = ' ✅' if is_current else ''
+            check = ' <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>' if is_current else ''
             ports_html += f'''<button type="submit" name="com_port" value="{port.device}"
                 style="display:flex;align-items:center;gap:8px;width:100%;padding:12px 16px;background:{bg};border:2px solid {border};border-radius:10px;color:{color};font-size:0.95rem;font-weight:600;cursor:pointer;margin-bottom:8px;text-align:left">
                 {label}{check}</button>'''
 
         if not ports_html:
-            ports_html = '<div style="color:#ef4444;padding:12px">❌ Brak portów COM — podłącz drukarkę USB lub sparuj Bluetooth</div>'
+            ports_html = '<div style="color:#ef4444;padding:12px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Brak portów COM — podłącz drukarkę USB lub sparuj Bluetooth</div>'
 
         html = f'''
-        <div class="hdr"><h1>🖨️ DRUKARKA</h1><small>Niimbot B1</small></div>
+        <div class="hdr"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">print</span> DRUKARKA</h1><small>Niimbot B1</small></div>
 
         <div class="card" style="padding:15px">
-            <div style="font-weight:600;margin-bottom:12px">🖨️ Wybierz port drukarki</div>
+            <div style="font-weight:600;margin-bottom:12px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">print</span> Wybierz port drukarki</div>
             <div style="font-size:0.85rem;color:#64748b;margin-bottom:12px">
                 Aktualny: <strong style="color:#22c55e">{com_port}</strong>
-                {'📶 (Bluetooth)' if any('BTHENUM' in (p.hwid or '') for p in all_ports if p.device == com_port) else '🔌 (USB)'}
+                {'📶 (Bluetooth)' if any('BTHENUM' in (p.hwid or '') for p in all_ports if p.device == com_port) else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">power</span> (USB)'}
             </div>
             <form action="/magazyn/drukarka/ustaw-port" method="POST">
                 {ports_html}
             </form>
             <div style="font-size:0.75rem;color:#475569;margin-top:8px;line-height:1.5">
-                💡 <strong>Bluetooth</strong>: sparuj Niimbot w Windows → pojawi się port COM<br>
-                💡 <strong>USB</strong>: podłącz kablem → port pojawi się automatycznie
+                <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> <strong>Bluetooth</strong>: sparuj Niimbot w Windows → pojawi się port COM<br>
+                <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> <strong>USB</strong>: podłącz kablem → port pojawi się automatycznie
             </div>
         </div>
         
@@ -143,19 +143,19 @@ def register_printer_routes(bp: Blueprint):
             <div class="det-grid">
                 <div class="det">
                     <div class="det-l">niimprint (USB)</div>
-                    <div class="det-v">{'✅ OK' if status['niimprint_usb'] else '❌ Brak'}</div>
+                    <div class="det-v">{'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> OK' if status['niimprint_usb'] else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Brak'}</div>
                 </div>
                 <div class="det">
                     <div class="det-l">niimprint (BT)</div>
-                    <div class="det-v">{'✅ OK' if status['niimprint'] else '❌ Brak'}</div>
+                    <div class="det-v">{'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> OK' if status['niimprint'] else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Brak'}</div>
                 </div>
                 <div class="det">
                     <div class="det-l">pillow/qrcode</div>
-                    <div class="det-v">{'✅ OK' if status['imaging'] else '❌ Brak'}</div>
+                    <div class="det-v">{'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> OK' if status['imaging'] else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Brak'}</div>
                 </div>
                 <div class="det">
                     <div class="det-l">python-barcode</div>
-                    <div class="det-v">{'✅ OK' if status['barcode'] else '⚠️ Brak'}</div>
+                    <div class="det-v">{'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> OK' if status['barcode'] else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> Brak'}</div>
                 </div>
             </div>
         </div>
@@ -165,7 +165,7 @@ def register_printer_routes(bp: Blueprint):
         if not status['niimprint']:
             html += f'''
             <div class="card" style="padding:15px;margin-top:10px;border-color:#ef4444">
-                <div style="font-weight:600;margin-bottom:12px;color:#ef4444">⚠️ Brak biblioteki niimprint</div>
+                <div style="font-weight:600;margin-bottom:12px;color:#ef4444"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> Brak biblioteki niimprint</div>
                 <div style="color:#64748b;font-size:0.85rem;margin-bottom:10px">
                     {'Błąd: ' + status['niimprint_error'] if status['niimprint_error'] else 'Biblioteka nie jest zainstalowana'}
                 </div>
@@ -203,15 +203,15 @@ def register_printer_routes(bp: Blueprint):
         if missing:
             html += f'''
             <div class="alert alert-warn">
-                ⚠️ Brakujące biblioteki: {', '.join(missing)}<br>
+                <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> Brakujące biblioteki: {', '.join(missing)}<br>
                 <small style="font-family:monospace">pip install {' '.join(missing)} --break-system-packages</small>
             </div>
             '''
         
         # Przyciski
         html += '''
-        <a href="/magazyn/drukarka/test" class="btn btn-ok">🧪 TEST DRUKU (USB)</a>
-        <a href="/magazyn/drukarka/skanuj" class="btn btn-2">🔍 Skanuj Bluetooth</a>
+        <a href="/magazyn/drukarka/test" class="btn btn-ok"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">science</span> TEST DRUKU (USB)</a>
+        <a href="/magazyn/drukarka/skanuj" class="btn btn-2"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">search</span> Skanuj Bluetooth</a>
         '''
         
         html += '<a href="/magazyn" class="back">← Powrót</a>'
@@ -262,7 +262,7 @@ def register_printer_routes(bp: Blueprint):
             pass
 
         html = '''
-        <div class="hdr"><h1>🔍 SKANOWANIE</h1><small>Szukanie drukarek...</small></div>
+        <div class="hdr"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">search</span> SKANOWANIE</h1><small>Szukanie drukarek...</small></div>
         '''
 
         # Sekcja BLE
@@ -270,11 +270,11 @@ def register_printer_routes(bp: Blueprint):
         bt_error = printers and len(printers) > 0 and 'error' in printers[0]
 
         if bt_found:
-            html += '<div style="font-weight:600;margin:15px 0 8px;color:#3b82f6">📡 Bluetooth</div>'
+            html += '<div style="font-weight:600;margin:15px 0 8px;color:#3b82f6"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">satellite_alt</span> Bluetooth</div>'
             for p in printers:
                 html += f'''
                 <a href="/magazyn/drukarka/polacz?addr={p['address']}" class="item">
-                    <div style="font-size:1.5rem;margin-right:12px">🖨️</div>
+                    <div style="font-size:1.5rem;margin-right:12px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">print</span></div>
                     <div class="item-info">
                         <div class="item-name">{p['name']}</div>
                         <div class="item-meta">{p['address']}</div>
@@ -286,13 +286,13 @@ def register_printer_routes(bp: Blueprint):
                 '''
         elif bt_error:
             html += f'''<div class="alert alert-warn" style="margin-top:10px">
-                📡 Bluetooth: {printers[0]["error"]}</div>'''
+                <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">satellite_alt</span> Bluetooth: {printers[0]["error"]}</div>'''
         else:
-            html += '<div class="alert alert-warn" style="margin-top:10px">📡 Nie znaleziono drukarek Bluetooth</div>'
+            html += '<div class="alert alert-warn" style="margin-top:10px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">satellite_alt</span> Nie znaleziono drukarek Bluetooth</div>'
 
         # Sekcja COM/USB
         if com_ports:
-            html += '<div style="font-weight:600;margin:20px 0 8px;color:#22c55e">🔌 Porty USB (COM)</div>'
+            html += '<div style="font-weight:600;margin:20px 0 8px;color:#22c55e"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">power</span> Porty USB (COM)</div>'
             from .database import set_config, get_config
             current_port = get_config('niimbot_com_port') or 'COM5'
             for cp in com_ports:
@@ -300,7 +300,7 @@ def register_printer_routes(bp: Blueprint):
                 badge = ' <span style="color:#22c55e;font-size:0.75rem">AKTYWNY</span>' if is_current else ''
                 html += f'''
                 <a href="/magazyn/drukarka/ustaw-com?port={cp['port']}" class="item" style="{'border:1px solid rgba(34,197,94,0.3);' if is_current else ''}">
-                    <div style="font-size:1.5rem;margin-right:12px">🔌</div>
+                    <div style="font-size:1.5rem;margin-right:12px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">power</span></div>
                     <div class="item-info">
                         <div class="item-name">{cp['port']}{badge}</div>
                         <div class="item-meta">{cp['desc']}</div>
@@ -311,12 +311,12 @@ def register_printer_routes(bp: Blueprint):
                 </a>
                 '''
         else:
-            html += '<div class="alert" style="margin-top:15px;background:rgba(100,116,139,0.1);color:#94a3b8">🔌 Brak portów COM (USB)</div>'
+            html += '<div class="alert" style="margin-top:15px;background:rgba(100,116,139,0.1);color:#94a3b8"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">power</span> Brak portów COM (USB)</div>'
 
         if not bt_found and not com_ports:
             html += '''
             <div class="card" style="margin-top:15px;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15));border:1px solid rgba(59,130,246,0.3)">
-                <div style="font-weight:600;margin-bottom:10px">💡 Wskazówki</div>
+                <div style="font-weight:600;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Wskazówki</div>
                 <div style="font-size:0.85rem;color:#94a3b8;line-height:1.6">
                     <strong>USB:</strong> Podłącz Niimbot kablem USB i odśwież stronę<br>
                     <strong>Bluetooth:</strong> Sprawdź czy BT jest włączony w Windows<br>
@@ -326,7 +326,7 @@ def register_printer_routes(bp: Blueprint):
             '''
 
         html += '''
-        <a href="/magazyn/drukarka/skanuj" class="btn btn-2" style="margin-top:15px">🔄 Skanuj ponownie</a>
+        <a href="/magazyn/drukarka/skanuj" class="btn btn-2" style="margin-top:15px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span> Skanuj ponownie</a>
         <a href="/magazyn/drukarka" class="back">← Powrót</a>
         '''
 
@@ -432,7 +432,7 @@ def register_printer_routes(bp: Blueprint):
         if not pm.device_address:
             from .magazynier import render
             return render('''
-                <div class="hdr"><h1>🧪 TEST DRUKU</h1></div>
+                <div class="hdr"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">science</span> TEST DRUKU</h1></div>
                 <div class="alert alert-err">Najpierw połącz z drukarką (skanuj → połącz)</div>
                 <a href="/magazyn/drukarka" class="btn btn-p">← Powrót</a>
             ''')
@@ -462,14 +462,14 @@ def register_printer_routes(bp: Blueprint):
                     ean="5901234123457"
                 )
                 
-                log_capture(f"📌 Adres drukarki: {pm.device_address}")
-                log_capture(f"📌 Nazwa drukarki: {pm.device_name or 'Niimbot'}")
-                log_capture(f"📌 Status connected: {pm.connected}")
+                log_capture(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">push_pin</span> Adres drukarki: {pm.device_address}")
+                log_capture(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">push_pin</span> Nazwa drukarki: {pm.device_name or 'Niimbot'}")
+                log_capture(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">push_pin</span> Status connected: {pm.connected}")
                 
                 # Pobierz port COM z konfiguracji
                 from .database import get_config
                 com_port = get_config('niimbot_com_port', 'COM5')
-                log_capture(f"📌 Port USB: {com_port}")
+                log_capture(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">push_pin</span> Port USB: {com_port}")
                 
                 # Sprawdź niimprint
                 niimprint_available = False
@@ -478,21 +478,21 @@ def register_printer_routes(bp: Blueprint):
                     from niimprint import SerialTransport, PrinterClient
                     niimprint_available = True
                     serial_transport = SerialTransport
-                    log_capture("✅ niimprint dostępny (USB)")
+                    log_capture("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> niimprint dostępny (USB)")
                 except ImportError:
                     try:
                         from niimprint import BluetoothTransport, PrinterClient
                         niimprint_available = True
-                        log_capture("✅ niimprint dostępny (Bluetooth only)")
+                        log_capture("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> niimprint dostępny (Bluetooth only)")
                     except ImportError:
-                        log_capture("⚠️ niimprint niedostępny")
+                        log_capture("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> niimprint niedostępny")
                 
                 if niimprint_available and serial_transport:
                     # Druk przez niimprint USB
                     try:
-                        log_capture("🔄 Generuję obraz etykiety...")
+                        log_capture("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span> Generuję obraz etykiety...")
                         img = pm._generate_label_image(test_label)
-                        log_capture(f"✅ Obraz: {img.size[0]}x{img.size[1]} px, mode={img.mode}")
+                        log_capture(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Obraz: {img.size[0]}x{img.size[1]} px, mode={img.mode}")
                         
                         # Konwersja
                         target_width = 384
@@ -501,41 +501,41 @@ def register_printer_routes(bp: Blueprint):
                             new_height = int(img.size[1] * ratio)
                             from PIL import Image
                             img = img.resize((target_width, new_height), Image.Resampling.LANCZOS)
-                            log_capture(f"📏 Przeskalowano do: {img.size[0]}x{img.size[1]}")
+                            log_capture(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">straighten</span> Przeskalowano do: {img.size[0]}x{img.size[1]}")
                         
                         if img.mode == '1':
                             img = img.convert('L')
                         elif img.mode != 'L':
                             img = img.convert('L')
                         
-                        log_capture(f"🔗 Łączenie przez USB ({com_port})...")
+                        log_capture(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">link</span> Łączenie przez USB ({com_port})...")
                         transport = serial_transport(com_port)
                         printer = PrinterClient(transport)
                         
-                        log_capture("📤 Wysyłam do drukarki...")
+                        log_capture("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">upload</span> Wysyłam do drukarki...")
                         printer.print_image(img, density=3)
                         
-                        log_capture("🔌 Zamykam połączenie...")
+                        log_capture("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">power</span> Zamykam połączenie...")
                         transport.close()
                         
-                        log_capture("✅ DRUK ZAKOŃCZONY!")
+                        log_capture("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> DRUK ZAKOŃCZONY!")
                         result_holder['success'] = True
                     except Exception as e:
-                        log_capture(f"❌ Błąd niimprint USB: {e}")
+                        log_capture(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Błąd niimprint USB: {e}")
                         result_holder['error'] = str(e)
                 elif niimprint_available:
                     # Fallback na Bluetooth
-                    log_capture("⚠️ USB niedostępny, próbuję Bluetooth...")
+                    log_capture("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> USB niedostępny, próbuję Bluetooth...")
                     result_holder['error'] = "USB niedostępny - podłącz drukarkę kablem"
                 else:
-                    log_capture("❌ niimprint nie jest zainstalowany")
-                    log_capture("💡 Zainstaluj: py -3.11 -m pip install niimprint")
+                    log_capture("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> niimprint nie jest zainstalowany")
+                    log_capture("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Zainstaluj: py -3.11 -m pip install niimprint")
                     result_holder['error'] = "Brak niimprint"
                 
                 loop.close()
                 
             except Exception as e:
-                log_capture(f"❌ Krytyczny błąd: {e}")
+                log_capture(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Krytyczny błąd: {e}")
                 result_holder['error'] = str(e)
         
         # Uruchom test
@@ -544,32 +544,32 @@ def register_printer_routes(bp: Blueprint):
                 future = executor.submit(test_print_thread)
                 future.result(timeout=60)
         except FuturesTimeoutError:
-            logs.append("❌ Timeout - drukarka nie odpowiada po 60s")
+            logs.append("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Timeout - drukarka nie odpowiada po 60s")
             result_holder['error'] = "Timeout"
         except Exception as e:
-            logs.append(f"❌ Błąd: {e}")
+            logs.append(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Błąd: {e}")
         
         # Wyświetl wynik
         from .magazynier import render
         
         status_class = "alert-ok" if result_holder['success'] else "alert-err"
-        status_text = "✅ SUKCES!" if result_holder['success'] else f"❌ BŁĄD: {result_holder['error']}"
+        status_text = "<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> SUKCES!" if result_holder['success'] else f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> BŁĄD: {result_holder['error']}"
         
         logs_html = "<br>".join(logs)
         
         html = f'''
-        <div class="hdr"><h1>🧪 TEST DRUKU</h1></div>
+        <div class="hdr"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">science</span> TEST DRUKU</h1></div>
         
         <div class="alert {status_class}">{status_text}</div>
         
         <div class="card" style="padding:15px">
-            <div style="font-weight:600;margin-bottom:10px">📋 Logi:</div>
+            <div style="font-weight:600;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">assignment</span> Logi:</div>
             <div style="font-family:monospace;font-size:0.8rem;background:#0a0a0f;padding:10px;border-radius:5px;white-space:pre-wrap">
 {logs_html}
             </div>
         </div>
         
-        <a href="/magazyn/drukarka/test" class="btn btn-p">🔄 Powtórz test</a>
+        <a href="/magazyn/drukarka/test" class="btn btn-p"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span> Powtórz test</a>
         <a href="/magazyn/drukarka" class="btn btn-2">← Powrót</a>
         '''
         
@@ -648,7 +648,7 @@ def register_printer_routes(bp: Blueprint):
         _js_km = kod_mag.replace("'", "\\'")
 
         html = f'''
-        <div class="hdr"><h1>🖨️ DRUKUJ</h1><small>{p['nazwa'][:40]}</small></div>
+        <div class="hdr"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">print</span> DRUKUJ</h1><small>{p['nazwa'][:40]}</small></div>
 
         <!-- PODGLĄD ETYKIETY -->
         <div class="card" style="padding:15px;text-align:center;background:#fff;margin-bottom:15px">
@@ -687,7 +687,7 @@ def register_printer_routes(bp: Blueprint):
 
         <!-- DRUKUJ 1 -->
         <button id="btnPrint1" onclick="drukujEtykiete(1)" class="btn btn-ok" style="font-size:1.5rem;padding:20px;width:100%;margin-bottom:10px">
-            🖨️ DRUKUJ 1 ETYKIETĘ
+            <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">print</span> DRUKUJ 1 ETYKIETĘ
         </button>
 
         <!-- KOPIE -->
@@ -698,7 +698,7 @@ def register_printer_routes(bp: Blueprint):
             <button onclick="drukujEtykiete(10)" class="btn btn-2" style="flex:1;padding:12px">×10</button>
         </div>
 
-        <a href="/magazyn/drukarka" class="btn btn-2" style="margin-top:8px">🔧 Ustawienia drukarki</a>
+        <a href="/magazyn/drukarka" class="btn btn-2" style="margin-top:8px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">build</span> Ustawienia drukarki</a>
         <a href="/magazyn/produkt/{code}" class="back">← Powrót</a>
 
         <script>
@@ -739,12 +739,12 @@ def register_printer_routes(bp: Blueprint):
                     status.style.background = '#22c55e22';
                     status.style.border = '2px solid #22c55e';
                     status.style.color = '#22c55e';
-                    status.innerHTML = '✅ Wydrukowano ' + copies + (copies === 1 ? ' etykietę' : ' etykiet') + '!';
+                    status.innerHTML = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Wydrukowano ' + copies + (copies === 1 ? ' etykietę' : ' etykiet') + '!';
                 }} else {{
                     status.style.background = '#ef444422';
                     status.style.border = '2px solid #ef4444';
                     status.style.color = '#ef4444';
-                    status.innerHTML = '❌ ' + (data.message || 'Błąd druku — sprawdź drukarkę');
+                    status.innerHTML = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> ' + (data.message || 'Błąd druku — sprawdź drukarkę');
                 }}
             }})
             .catch(err => {{
@@ -752,11 +752,11 @@ def register_printer_routes(bp: Blueprint):
                 status.style.background = '#ef444422';
                 status.style.border = '2px solid #ef4444';
                 status.style.color = '#ef4444';
-                status.innerHTML = '❌ Błąd połączenia: ' + err.message;
+                status.innerHTML = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Błąd połączenia: ' + err.message;
             }})
             .finally(() => {{
                 document.querySelectorAll('button').forEach(b => b.disabled = false);
-                btn.innerHTML = '🖨️ DRUKUJ 1 ETYKIETĘ';
+                btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">print</span> DRUKUJ 1 ETYKIETĘ';
                 btn.style.opacity = '1';
             }});
         }}
@@ -941,14 +941,14 @@ def register_printer_routes(bp: Blueprint):
             except:
                 pass
             
-            return redirect(f'/magazyn/produkt/{code}?msg=✅ Wydrukowano!')
+            return redirect(f'/magazyn/produkt/{code}?msg=<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Wydrukowano!')
         else:
             from .magazynier import render
             html = f'''
-            <div class="hdr"><h1>❌ BŁĄD DRUKU</h1></div>
+            <div class="hdr"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> BŁĄD DRUKU</h1></div>
             <div class="alert alert-err">{result['message']}</div>
-            <a href="/magazyn/drukuj-szybko/{code}" class="btn btn-ok" style="font-size:1.3rem;padding:15px">🔄 SPRÓBUJ PONOWNIE</a>
-            <a href="/magazyn/drukarka" class="btn btn-2">🔧 Ustawienia drukarki</a>
+            <a href="/magazyn/drukuj-szybko/{code}" class="btn btn-ok" style="font-size:1.3rem;padding:15px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span> SPRÓBUJ PONOWNIE</a>
+            <a href="/magazyn/drukarka" class="btn btn-2"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">build</span> Ustawienia drukarki</a>
             <a href="/magazyn/produkt/{code}" class="back">← Powrót</a>
             '''
             return render(html)
@@ -1073,7 +1073,7 @@ def register_printer_routes(bp: Blueprint):
         )
         
         html = f'''
-        <div class="hdr"><h1>📱 ETYKIETA</h1><small>{p['nazwa'][:35]}</small></div>
+        <div class="hdr"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smartphone</span> ETYKIETA</h1><small>{p['nazwa'][:35]}</small></div>
         
         <!-- PODGLĄD -->
         <div class="card" style="padding:15px;text-align:center;background:#fff;margin-bottom:15px">
@@ -1089,12 +1089,12 @@ def register_printer_routes(bp: Blueprint):
         
         <!-- INSTRUKCJA -->
         <div class="card" style="padding:15px;margin-bottom:15px">
-            <div style="font-weight:600;margin-bottom:10px">📋 Jak wydrukować:</div>
+            <div style="font-weight:600;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">assignment</span> Jak wydrukować:</div>
             <div style="font-size:0.9rem;color:#64748b;line-height:1.6">
                 1. Kliknij <b>"Pobierz etykietę"</b> poniżej<br>
                 2. Otwórz aplikację <b>NIIMBOT</b> na telefonie<br>
                 3. Wybierz pobrany obrazek<br>
-                4. Drukuj! 🖨️
+                4. Drukuj! <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">print</span>
             </div>
         </div>
         
@@ -1103,7 +1103,7 @@ def register_printer_routes(bp: Blueprint):
            class="btn btn-ok" 
            style="font-size:1.4rem;padding:20px;width:100%;display:block;text-align:center;margin-bottom:15px"
            download="etykieta_{p['ean'] or p['id']}.png">
-            📥 POBIERZ ETYKIETĘ
+            <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">download</span> POBIERZ ETYKIETĘ
         </a>
         
         <div style="text-align:center;color:#64748b;font-size:0.85rem;margin-bottom:20px">
@@ -1136,7 +1136,7 @@ def register_printer_routes(bp: Blueprint):
             ''').fetchall()
             
             # Dropdown opcji palet
-            palety_options = '<option value="">✨ Nowa paleta (auto-tworzenie)</option>'
+            palety_options = '<option value=""><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">auto_awesome</span> Nowa paleta (auto-tworzenie)</option>'
             for paleta in palety_lista:
                 nazwa_display = paleta['nazwa'] or f"Paleta #{paleta['id']}"
                 info = f"{paleta['dostawca'] or '?'} | {paleta['data_zakupu'] or '?'} | {paleta['ilosc_produktow']} prod."
@@ -1144,16 +1144,16 @@ def register_printer_routes(bp: Blueprint):
                 palety_options += f'<option value="{pid}">{nazwa_display} ({info})</option>'
             
             html = f'''
-            <div class="hdr"><h1>📥 IMPORT V2</h1><small>Inteligentny parser</small></div>
+            <div class="hdr"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">download</span> IMPORT V2</h1><small>Inteligentny parser</small></div>
             
             <div class="card" style="padding:15px">
                 <div style="font-weight:600;margin-bottom:12px">Ulepszony import Excel</div>
                 <div style="color:#64748b;font-size:0.85rem;margin-bottom:15px">
-                    ✅ Auto-wykrywanie kolumn ilości<br>
-                    ✅ Obsługa formatów: "5 szt.", "5.0", "qty: 5"<br>
-                    ✅ Auto-detekcja dostawcy<br>
-                    ✅ Auto-tworzenie palety<br>
-                    ✅ Statystyki parsowania
+                    <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Auto-wykrywanie kolumn ilości<br>
+                    <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Obsługa formatów: "5 szt.", "5.0", "qty: 5"<br>
+                    <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Auto-detekcja dostawcy<br>
+                    <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Auto-tworzenie palety<br>
+                    <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Statystyki parsowania
                 </div>
                 
                 <form action="/magazyn/import/v2" method="POST" enctype="multipart/form-data">
@@ -1176,7 +1176,7 @@ def register_printer_routes(bp: Blueprint):
                             {palety_options}
                         </select>
                         <small style="color:#64748b;font-size:0.75rem;margin-top:4px;display:block">
-                            ✨ Nowa paleta = automatycznie stworzy paletę z nazwą "{'{'}Dostawca{'}'} {'{'}Data{'}'}"
+                            <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">auto_awesome</span> Nowa paleta = automatycznie stworzy paletę z nazwą "{'{'}Dostawca{'}'} {'{'}Data{'}'}"
                         </small>
                     </div>
                     
@@ -1185,11 +1185,11 @@ def register_printer_routes(bp: Blueprint):
                         <span>Aktualizuj istniejące produkty (dodaj ilości)</span>
                     </label>
                     
-                    <button type="submit" class="btn btn-ok">📥 IMPORTUJ</button>
+                    <button type="submit" class="btn btn-ok"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">download</span> IMPORTUJ</button>
                 </form>
             </div>
             
-            <a href="/magazyn/import" class="btn btn-2">📥 Klasyczny import</a>
+            <a href="/magazyn/import" class="btn btn-2"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">download</span> Klasyczny import</a>
             <a href="/magazyn" class="back">← Powrót</a>
             '''
             return render(html)
@@ -1217,7 +1217,7 @@ def register_printer_routes(bp: Blueprint):
         
         # Pokaż wyniki
         html = f'''
-        <div class="hdr"><h1>{'✅' if result['success'] else '❌'} IMPORT ZAKOŃCZONY</h1></div>
+        <div class="hdr"><h1>{'<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>' if result['success'] else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span>'} IMPORT ZAKOŃCZONY</h1></div>
         '''
         
         if result['success']:
@@ -1231,7 +1231,7 @@ def register_printer_routes(bp: Blueprint):
             if result.get('paleta_id'):
                 html += f'''
                 <div class="card" style="padding:15px;margin-top:15px;background:rgba(139,92,246,0.1);border:2px solid #8b5cf6">
-                    <div style="font-weight:600;margin-bottom:8px;color:#8b5cf6">📦 PALETA UTWORZONA</div>
+                    <div style="font-weight:600;margin-bottom:8px;color:#8b5cf6"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> PALETA UTWORZONA</div>
                     <a href="/magazyn/paleta/{result['paleta_id']}" class="btn btn-ok" style="width:100%">
                         Zobacz paletę
                     </a>
@@ -1245,7 +1245,7 @@ def register_printer_routes(bp: Blueprint):
         if qty_stats.get('total_parsed', 0) > 0:
             html += f'''
             <div class="card" style="padding:15px">
-                <div style="font-weight:600;margin-bottom:12px">📊 Statystyki parsowania ilości</div>
+                <div style="font-weight:600;margin-bottom:12px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span> Statystyki parsowania ilości</div>
                 <div class="det-grid">
                     <div class="det">
                         <div class="det-l">Przetworzone</div>
@@ -1272,21 +1272,21 @@ def register_printer_routes(bp: Blueprint):
         
         # Szczegóły
         if result.get('details'):
-            html += '<div class="section">📋 Szczegóły</div><div class="card" style="padding:15px">'
+            html += '<div class="section"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">assignment</span> Szczegóły</div><div class="card" style="padding:15px">'
             for detail in result['details'][:10]:  # Max 10
                 html += f'<div style="font-size:0.85rem;color:#64748b;margin-bottom:4px">{detail}</div>'
             html += '</div>'
         
         # Błędy
         if result.get('errors'):
-            html += '<div class="section" style="color:#ef4444">❌ Błędy</div><div class="card" style="padding:15px">'
+            html += '<div class="section" style="color:#ef4444"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Błędy</div><div class="card" style="padding:15px">'
             for error in result['errors'][:5]:  # Max 5
                 html += f'<div style="font-size:0.85rem;color:#ef4444;margin-bottom:4px">{error[:200]}</div>'
             html += '</div>'
         
         html += '''
-        <a href="/magazyn/import/v2" class="btn btn-p">📥 Importuj kolejny</a>
-        <a href="/magazyn" class="btn btn-2">📦 Magazyn</a>
+        <a href="/magazyn/import/v2" class="btn btn-p"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">download</span> Importuj kolejny</a>
+        <a href="/magazyn" class="btn btn-2"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> Magazyn</a>
         <a href="/magazyn" class="back">← Powrót</a>
         '''
         
@@ -1328,7 +1328,7 @@ def register_printer_routes(bp: Blueprint):
         printers = scan_printers_sync()
         return jsonify({"printers": printers})
     
-    print("✅ Printer routes registered")
+    print("[OK] Printer routes registered")
 
 
 # ============================================================
@@ -1337,7 +1337,7 @@ def register_printer_routes(bp: Blueprint):
 
 PRINT_BUTTON_HTML = '''
 <a href="/magazyn/drukuj/{code}" class="btn btn-2" style="background:#8b5cf6">
-    🖨️ DRUKUJ ETYKIETĘ
+    <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">print</span> DRUKUJ ETYKIETĘ
 </a>
 '''
 

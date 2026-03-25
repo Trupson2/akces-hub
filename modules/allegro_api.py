@@ -150,10 +150,10 @@ def download_image(url, asin=None, image_index=None, force_redownload=False):
         if not force_redownload and os.path.exists(filepath):
             file_size = os.path.getsize(filepath)
             if file_size > 5000:
-                print(f"    📁 Cache hit: {filepath} ({file_size} bytes)")
+                print(f"    [FOLD] Cache hit: {filepath} ({file_size} bytes)")
                 return filepath
             else:
-                print(f"    ⚠️ Cache file too small ({file_size} bytes), redownloading...")
+                print(f"    [WARN] Cache file too small ({file_size} bytes), redownloading...")
                 try:
                     os.remove(filepath)
                 except:
@@ -176,7 +176,7 @@ def download_image(url, asin=None, image_index=None, force_redownload=False):
         
         for attempt in range(MAX_RETRIES):
             try:
-                print(f"    📥 Download attempt {attempt + 1}/{MAX_RETRIES}: {url[:60]}...")
+                print(f"    [DOWN] Download attempt {attempt + 1}/{MAX_RETRIES}: {url[:60]}...")
                 response = requests.get(url, headers=headers, timeout=60)  # Zwiększono z 30 do 60s dla ngrok
                 
                 if response.status_code == 200 and len(response.content) > 1000:
@@ -193,17 +193,17 @@ def download_image(url, asin=None, image_index=None, force_redownload=False):
                 time.sleep(RETRY_DELAY)
         
         if not response or response.status_code != 200:
-            print(f"    ❌ Download failed: {last_error}")
+            print(f"    [ERR] Download failed: {last_error}")
             return None
         
         if len(response.content) < 1000:
-            print(f"    ❌ Image too small: {len(response.content)} bytes")
+            print(f"    [ERR] Image too small: {len(response.content)} bytes")
             return None
         
         # Konwertuj do JPEG
         try:
             img = Image.open(BytesIO(response.content))
-            print(f"    📐 Image: {img.size}, format={img.format}, mode={img.mode}")
+            print(f"    [STRA] Image: {img.size}, format={img.format}, mode={img.mode}")
             
             # Konwertuj do RGB
             if img.mode in ('RGBA', 'P', 'LA', 'PA'):
@@ -224,17 +224,17 @@ def download_image(url, asin=None, image_index=None, force_redownload=False):
             # Zapisz jako JPEG
             img.save(filepath, 'JPEG', quality=90, optimize=True)
             final_size = os.path.getsize(filepath)
-            print(f"    ✅ Saved: {filepath} ({final_size} bytes)")
+            print(f"    [OK] Saved: {filepath} ({final_size} bytes)")
             return filepath
             
         except Exception as e:
-            print(f"    ⚠️ Pillow error: {e}, saving raw...")
+            print(f"    [WARN] Pillow error: {e}, saving raw...")
             with open(filepath, 'wb') as f:
                 f.write(response.content)
             return filepath
         
     except Exception as e:
-        print(f"    ❌ Download exception: {e}")
+        print(f"    [ERR] Download exception: {e}")
         import traceback
         traceback.print_exc()
         return None
@@ -254,7 +254,7 @@ def upload_image_to_allegro(image_path_or_url, asin=None):
     from PIL import Image
     
     if not is_authenticated():
-        print("    ❌ Upload: nie zalogowany do Allegro")
+        print("    [ERR] Upload: nie zalogowany do Allegro")
         return None
     
     try:
@@ -264,24 +264,24 @@ def upload_image_to_allegro(image_path_or_url, asin=None):
         if isinstance(image_path_or_url, str) and image_path_or_url.startswith('http'):
             # Sprawdź czy już na Allegro
             if is_allegro_url(image_path_or_url):
-                print(f"    ✅ Already on Allegro: {image_path_or_url[:50]}...")
+                print(f"    [OK] Already on Allegro: {image_path_or_url[:50]}...")
                 return image_path_or_url
             
             # Waliduj URL
             is_valid, clean_url, reason = validate_image_url(image_path_or_url)
             if not is_valid:
-                print(f"    ❌ Invalid URL: {reason}")
+                print(f"    [ERR] Invalid URL: {reason}")
                 return None
             
-            print(f"    📥 Downloading: {clean_url[:60]}...")
+            print(f"    [DOWN] Downloading: {clean_url[:60]}...")
             
             # PRZEKAŻ ASIN do download_image
-            print(f"    🏷️ ASIN: {asin if asin else '(brak - użyje hash)'}")
+            print(f"    [SELL] ASIN: {asin if asin else '(brak - użyje hash)'}")
             local_path = download_image(clean_url, asin=asin)
             if not local_path:
-                print(f"    ⚠️ Download failed")
+                print(f"    [WARN] Download failed")
                 return None
-            print(f"    ✅ Downloaded to: {local_path}")
+            print(f"    [OK] Downloaded to: {local_path}")
         else:
             local_path = image_path_or_url
         
@@ -297,24 +297,24 @@ def upload_image_to_allegro(image_path_or_url, asin=None):
                 abs_path = os.path.normpath(abs_path)
                 if os.path.exists(abs_path):
                     local_path = abs_path
-                    print(f"    📁 Found at absolute path: {local_path}")
+                    print(f"    [FOLD] Found at absolute path: {local_path}")
                 else:
-                    print(f"    ⚠️ File not found: {local_path} (tried also: {abs_path})")
+                    print(f"    [WARN] File not found: {local_path} (tried also: {abs_path})")
                     return None
             else:
-                print(f"    ⚠️ File not found: {local_path}")
+                print(f"    [WARN] File not found: {local_path}")
                 return None
         
         # Sprawdź rozmiar
         file_size = os.path.getsize(local_path)
-        print(f"    📁 File size: {file_size} bytes")
+        print(f"    [FOLD] File size: {file_size} bytes")
         
         if file_size < 1000:
-            print(f"    ⚠️ File too small: {file_size} bytes")
+            print(f"    [WARN] File too small: {file_size} bytes")
             return None
         
         if file_size > 10 * 1024 * 1024:
-            print(f"    ⚠️ File too large: {file_size} bytes (max 10MB)")
+            print(f"    [WARN] File too large: {file_size} bytes (max 10MB)")
             return None
         
         # Wczytaj plik
@@ -323,7 +323,7 @@ def upload_image_to_allegro(image_path_or_url, asin=None):
         
         # Sprawdź czy to JPEG
         if not image_data[:2] == b'\xff\xd8':
-            print(f"    ⚠️ Not JPEG, converting...")
+            print(f"    [WARN] Not JPEG, converting...")
             try:
                 img = Image.open(local_path)
                 if img.mode in ('RGBA', 'P', 'LA', 'PA'):
@@ -341,9 +341,9 @@ def upload_image_to_allegro(image_path_or_url, asin=None):
                 buffer = BytesIO()
                 img.save(buffer, 'JPEG', quality=90)
                 image_data = buffer.getvalue()
-                print(f"    ✅ Converted to JPEG: {len(image_data)} bytes")
+                print(f"    [OK] Converted to JPEG: {len(image_data)} bytes")
             except Exception as e:
-                print(f"    ❌ Conversion failed: {e}")
+                print(f"    [ERR] Conversion failed: {e}")
                 return None
         
         # Upload do Allegro z retry
@@ -360,7 +360,7 @@ def upload_image_to_allegro(image_path_or_url, asin=None):
         
         for attempt in range(MAX_RETRIES):
             try:
-                print(f"    📤 Upload attempt {attempt + 1}/{MAX_RETRIES}...")
+                print(f"    [UPLO] Upload attempt {attempt + 1}/{MAX_RETRIES}...")
                 
                 response = requests.post(
                     f"{api_url}/sale/images",
@@ -369,13 +369,13 @@ def upload_image_to_allegro(image_path_or_url, asin=None):
                     timeout=60
                 )
                 
-                print(f"    📡 Response: {response.status_code}")
+                print(f"    [SATE] Response: {response.status_code}")
                 
                 if response.status_code in [200, 201]:
                     # Allegro zwraca URL w nagłówku Location
                     allegro_url = response.headers.get('Location')
                     if allegro_url:
-                        print(f"    ✅ Success: {allegro_url[:60]}...")
+                        print(f"    [OK] Success: {allegro_url[:60]}...")
                         return allegro_url
                     
                     # Fallback - sprawdź body
@@ -383,16 +383,16 @@ def upload_image_to_allegro(image_path_or_url, asin=None):
                         data = response.json()
                         allegro_url = data.get('location') or data.get('externalUrl') or data.get('url')
                         if allegro_url:
-                            print(f"    ✅ Success (body): {allegro_url[:60]}...")
+                            print(f"    [OK] Success (body): {allegro_url[:60]}...")
                             return allegro_url
-                        print(f"    ⚠️ Response without URL: {data}")
+                        print(f"    [WARN] Response without URL: {data}")
                     except:
-                        print(f"    ⚠️ Cannot parse response")
+                        print(f"    [WARN] Cannot parse response")
                     
                     last_error = "No URL in response"
                     
                 elif response.status_code == 401:
-                    print(f"    ❌ Unauthorized - token expired?")
+                    print(f"    [ERR] Unauthorized - token expired?")
                     # Spróbuj odświeżyć token
                     if refresh_access_token():
                         config = get_allegro_config()
@@ -411,21 +411,21 @@ def upload_image_to_allegro(image_path_or_url, asin=None):
                     except:
                         last_error = response.text[:200]
                     
-                    print(f"    ❌ Allegro error: {last_error}")
+                    print(f"    [ERR] Allegro error: {last_error}")
                     
             except requests.RequestException as e:
                 last_error = str(e)
-                print(f"    ❌ Request error: {e}")
+                print(f"    [ERR] Request error: {e}")
             
             if attempt < MAX_RETRIES - 1:
                 print(f"    ⏳ Waiting {RETRY_DELAY}s before retry...")
                 time.sleep(RETRY_DELAY)
         
-        print(f"    ❌ Upload failed after {MAX_RETRIES} attempts: {last_error}")
+        print(f"    [ERR] Upload failed after {MAX_RETRIES} attempts: {last_error}")
         return None
             
     except Exception as e:
-        print(f"    ❌ Upload exception: {e}")
+        print(f"    [ERR] Upload exception: {e}")
         import traceback
         traceback.print_exc()
         return None
@@ -548,13 +548,13 @@ def refresh_access_token():
             expires_in = tokens.get('expires_in', 43200)
             expires_at = datetime.now() + timedelta(seconds=expires_in - 300)
             set_config('allegro_token_expires', expires_at.isoformat())
-            print(f"[TokenRefresh] ✅ Token odświeżony, wygasa: {expires_at.isoformat()}")
+            print(f"[TokenRefresh] [OK] Token odświeżony, wygasa: {expires_at.isoformat()}")
             return True
         else:
-            print(f"[TokenRefresh] ❌ Błąd: {response.text[:200]}")
+            print(f"[TokenRefresh] [ERR] Błąd: {response.text[:200]}")
         return False
     except Exception as e:
-        print(f"[TokenRefresh] ❌ Wyjątek: {e}")
+        print(f"[TokenRefresh] [ERR] Wyjątek: {e}")
         return False
 
 
@@ -629,7 +629,7 @@ def allegro_request(method, endpoint, data=None, params=None, _retry=False):
                 content_type = response.headers.get('Content-Type', '')
                 if 'json' not in content_type and 'text/html' in content_type:
                     error_details = f"Allegro zwróciło HTML (HTTP {response.status_code}) — prawdopodobny problem z tokenem lub uprawnieniami"
-                    print(f"🔴 {error_details}")
+                    print(f"* {error_details}")
                     return None, error_details
 
                 err_json = response.json()
@@ -644,13 +644,13 @@ def allegro_request(method, endpoint, data=None, params=None, _retry=False):
                         else:
                             msgs.append(msg)
                     error_details = "; ".join(msgs)
-                print(f"🔴 Allegro API error {response.status_code}: {error_details}")
+                print(f"* Allegro API error {response.status_code}: {error_details}")
             except ValueError:
                 # response.json() failed — not valid JSON
                 error_details = f"Allegro API HTTP {response.status_code} (odpowiedź nie jest JSON)"
-                print(f"🔴 {error_details}: {response.text[:200]}")
+                print(f"* {error_details}: {response.text[:200]}")
             except Exception as ex:
-                print(f"🔴 Allegro API error {response.status_code}: {ex}")
+                print(f"* Allegro API error {response.status_code}: {ex}")
             return None, error_details
 
         if response.text:
@@ -665,7 +665,7 @@ def allegro_request(method, endpoint, data=None, params=None, _retry=False):
     except requests.exceptions.ConnectionError:
         return None, "Brak połączenia z Allegro API"
     except Exception as e:
-        print(f"🔴 Wyjątek allegro_request: {e}")
+        print(f"* Wyjątek allegro_request: {e}")
         return None, str(e)
 
 
@@ -704,7 +704,7 @@ def get_orders(status='READY_FOR_PROCESSING', limit=100, fetch_all=True, from_da
         all_orders.extend(orders)
         
         total = result.get('totalCount', len(orders))
-        print(f"📋 Pobrano {len(all_orders)}/{total} zamówień...")
+        print(f"[ASSI] Pobrano {len(all_orders)}/{total} zamówień...")
         
         if not fetch_all or len(all_orders) >= total or not orders:
             break
@@ -755,7 +755,7 @@ def get_offer_smart_stats(offer_ids):
                         'sold': _stock.get('sold', 0),
                     }
             except Exception as e:
-                print(f"  ⚠️ Stats for {oid}: {e}")
+                print(f"  [WARN] Stats for {oid}: {e}")
 
     return stats
 
@@ -782,7 +782,7 @@ def sync_offer_stats(offer_ids=None):
     if not offer_ids:
         return {'updated': 0, 'message': 'Brak aktywnych ofert'}
 
-    print(f"📊 Sync stats for {len(offer_ids)} offers...")
+    print(f"[BAR_] Sync stats for {len(offer_ids)} offers...")
     stats = get_offer_smart_stats(offer_ids)
 
     updated = 0
@@ -795,7 +795,7 @@ def sync_offer_stats(offer_ids=None):
             pass
     conn.commit()
 
-    print(f"📊 Updated stats for {updated}/{len(offer_ids)} offers")
+    print(f"[BAR_] Updated stats for {updated}/{len(offer_ids)} offers")
     return {'updated': updated, 'total': len(offer_ids)}
 
 
@@ -810,7 +810,7 @@ def sync_offers_status():
     if not is_authenticated():
         return {'error': 'Nie zalogowany do Allegro'}
     
-    print(f"🔄 Synchronizacja ofert z Allegro...")
+    print(f"[SYNC] Synchronizacja ofert z Allegro...")
     
     # Pobierz wszystkie oferty z Allegro
     result, error = get_my_offers(limit=100, fetch_all=True)
@@ -819,7 +819,7 @@ def sync_offers_status():
         return {'error': f'Błąd API: {error}'}
     
     allegro_offers = result.get('offers', [])
-    print(f"📦 Pobrano {len(allegro_offers)} ofert z Allegro")
+    print(f"[INVE] Pobrano {len(allegro_offers)} ofert z Allegro")
     
     from .database import get_db
     conn = get_db()
@@ -897,7 +897,7 @@ def sync_offers_status():
                 (our_status, nazwa, cena, ilosc, _views, _watchers, data_wystawienia_update, data_wystawienia_update, offer_id))
             if old_status != our_status:
                 stats['updated'] += 1
-                print(f"  ✅ {offer_id[:8]}... status: {old_status} → {our_status}")
+                print(f"  [OK] {offer_id[:8]}... status: {old_status} → {our_status}")
         else:
             # Dodaj nową ofertę
             # Spróbuj znaleźć produkt po nazwie lub external.id (ASIN)
@@ -925,7 +925,7 @@ def sync_offers_status():
                     pid, conf = _find_best_product_match(nazwa, cena, sync_offers_status._prod_cache)
                     if pid and conf >= 0.5:
                         produkt_id = pid
-                        print(f"  🔍 Smart match: {nazwa[:40]} → produkt [{pid}] ({conf:.0%})")
+                        print(f"  [SEAR] Smart match: {nazwa[:40]} → produkt [{pid}] ({conf:.0%})")
                 except:
                     pass
             
@@ -970,23 +970,23 @@ def sync_offers_status():
             if str(row['allegro_id']) not in allegro_ids_on_server:
                 conn.execute("UPDATE oferty SET status = 'zakonczona' WHERE id = ?", (row['id'],))
                 orphaned += 1
-                print(f"  🗑️ Oferta #{row['allegro_id']} ({row['tytul'][:30]}) nie istnieje na Allegro → zakończona")
+                print(f"  [DELE] Oferta #{row['allegro_id']} ({row['tytul'][:30]}) nie istnieje na Allegro → zakończona")
 
         if orphaned:
             stats['orphaned'] = orphaned
-            print(f"   🗑️ Usunięto z bazy: {orphaned} ofert nieistniejących na Allegro")
+            print(f"   [DELE] Usunięto z bazy: {orphaned} ofert nieistniejących na Allegro")
 
     conn.commit()
 
-    print(f"\n✅ Synchronizacja zakończona:")
-    print(f"   📦 Wszystkich ofert: {stats['total']}")
-    print(f"   📝 Szkice: {stats['draft']}")
-    print(f"   ✅ Aktywne: {stats['active']}")
-    print(f"   ⏹️ Zakończone: {stats['ended']}")
-    print(f"   🔄 Zaktualizowano: {stats['updated']}")
+    print(f"\n[OK] Synchronizacja zakończona:")
+    print(f"   [INVE] Wszystkich ofert: {stats['total']}")
+    print(f"   [EDIT] Szkice: {stats['draft']}")
+    print(f"   [OK] Aktywne: {stats['active']}")
+    print(f"   ⏹ Zakończone: {stats['ended']}")
+    print(f"   [SYNC] Zaktualizowano: {stats['updated']}")
     print(f"   🆕 Nowe: {stats['new']}")
     if stats.get('orphaned'):
-        print(f"   🗑️ Usunięte (nie istnieją na Allegro): {stats['orphaned']}")
+        print(f"   [DELE] Usunięte (nie istnieją na Allegro): {stats['orphaned']}")
 
     # === SYNC STATYSTYK (wyświetlenia, obserwujący) dla aktywnych ofert ===
     # Pobiera po jednej ofercie z API — limituj do 50 żeby nie zabić API
@@ -994,7 +994,7 @@ def sync_offers_status():
         active_ids = [r['allegro_id'] for r in conn.execute(
             "SELECT allegro_id FROM oferty WHERE status='aktywna' AND allegro_id IS NOT NULL ORDER BY data_aktualizacji DESC LIMIT 50").fetchall()]
         if active_ids:
-            print(f"\n📊 Pobieram statystyki dla {len(active_ids)} aktywnych ofert...")
+            print(f"\n[BAR_] Pobieram statystyki dla {len(active_ids)} aktywnych ofert...")
             offer_stats = get_offer_smart_stats(active_ids)
             _stats_updated = 0
             for oid, s in offer_stats.items():
@@ -1003,9 +1003,9 @@ def sync_offers_status():
                 _stats_updated += 1
             conn.commit()
             stats['stats_updated'] = _stats_updated
-            print(f"📊 Zaktualizowano statystyki: {_stats_updated}/{len(active_ids)} ofert")
+            print(f"[BAR_] Zaktualizowano statystyki: {_stats_updated}/{len(active_ids)} ofert")
     except Exception as e:
-        print(f"⚠️ Stats sync error: {e}")
+        print(f"[WARN] Stats sync error: {e}")
 
     return stats
 
@@ -1026,7 +1026,7 @@ def get_my_offers(limit=100, fetch_all=True):
         all_offers.extend(offers)
         
         total = result.get('totalCount', 0)
-        print(f"📦 Pobrano {len(all_offers)}/{total} ofert...")
+        print(f"[INVE] Pobrano {len(all_offers)}/{total} ofert...")
         
         if not fetch_all or len(all_offers) >= total or not offers:
             break
@@ -1630,7 +1630,7 @@ def update_offer_condition(offer_id, stan):
     # Allegro API nie obsługuje condition przez product-offers ani sale/offers
     # Stan trzeba ustawić ręcznie w Sales Center
     condition_value = _map_stan_to_condition(stan)
-    print(f"ℹ️ Stan oferty {offer_id}: {condition_value} (ustaw ręcznie w Sales Center)")
+    print(f"ℹ Stan oferty {offer_id}: {condition_value} (ustaw ręcznie w Sales Center)")
     return None
 
 
@@ -1676,7 +1676,7 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
         return None, "BRAK CENNIKA WYSYŁKI! Wejdź w Allegro → Ustawienia i wybierz cennik."
     
     # Auto-wykryj kategorię jeśli nie podano
-    print(f"📁 Received kategoria_id: '{kategoria_id}' (type: {type(kategoria_id).__name__})")
+    print(f"[FOLD] Received kategoria_id: '{kategoria_id}' (type: {type(kategoria_id).__name__})")
     
     if not kategoria_id:
         # === PRIORYTET 1: Allegro API matching (najdokładniejsze) ===
@@ -1686,7 +1686,7 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
             _nazwa_clean = _re_cat.sub(r'\b\d{4,}\b', '', _nazwa_clean)  # Usuń długie numery
             _nazwa_clean = _re_cat.sub(r'\s+', ' ', _nazwa_clean).strip()
             _search_name = _nazwa_clean[:50] if _nazwa_clean else nazwa[:50]
-            print(f"📁 Category search query: '{_search_name}'")
+            print(f"[FOLD] Category search query: '{_search_name}'")
             cat_result, _cat_err = search_categories(_search_name)
             if cat_result and cat_result.get('matchingCategories'):
                 _matches = cat_result['matchingCategories']
@@ -1694,41 +1694,41 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
                 _leaf_matches = [m for m in _matches if m.get('leaf', True)]
                 _display = _leaf_matches[:5] if _leaf_matches else _matches[:5]
                 for _m in _display:
-                    print(f"📁   Match: {_m.get('id')} - {_m.get('name', '?')} (leaf={_m.get('leaf','?')})")
+                    print(f"[FOLD]   Match: {_m.get('id')} - {_m.get('name', '?')} (leaf={_m.get('leaf','?')})")
                 if _leaf_matches:
                     kategoria_id = _leaf_matches[0].get('id')
-                    print(f"📁 Auto-category from API (leaf): {kategoria_id}")
+                    print(f"[FOLD] Auto-category from API (leaf): {kategoria_id}")
                 elif _matches:
                     kategoria_id = _matches[0].get('id')
-                    print(f"📁 Auto-category from API (first): {kategoria_id}")
+                    print(f"[FOLD] Auto-category from API (first): {kategoria_id}")
             elif _cat_err:
-                print(f"⚠️ Category API returned error: {_cat_err}")
+                print(f"[WARN] Category API returned error: {_cat_err}")
         except Exception as e:
-            print(f"⚠️ Category API error: {e}")
+            print(f"[WARN] Category API error: {e}")
 
         # === PRIORYTET 2: Lokalne dopasowanie (fallback) ===
         if not kategoria_id:
             _local_cat = detect_category_id(nazwa)
             if _local_cat != '258682':
                 kategoria_id = _local_cat
-                print(f"📁 Local category fallback: {kategoria_id}")
+                print(f"[FOLD] Local category fallback: {kategoria_id}")
             else:
                 kategoria_id = '258682'
-                print(f"📁 Default category (no match): {kategoria_id}")
+                print(f"[FOLD] Default category (no match): {kategoria_id}")
     
-    print(f"📁 Final category ID: {kategoria_id}")
+    print(f"[FOLD] Final category ID: {kategoria_id}")
     
     # === EAN i ASIN (info) ===
     ean_clean = None
     if ean:
         ean_clean = str(ean).strip().replace(' ', '').replace('-', '')
         if not (ean_clean.isdigit() and len(ean_clean) in [8, 12, 13, 14]):
-            print(f"⚠️ Invalid EAN format: {ean_clean}")
+            print(f"[WARN] Invalid EAN format: {ean_clean}")
             ean_clean = None
     
     # Przygotuj opis HTML
     opis_html = clean_html_for_allegro(opis) if opis else ""
-    print(f"📝 Opis input: {len(opis)} chars -> cleaned: {len(opis_html)} chars")
+    print(f"[EDIT] Opis input: {len(opis)} chars -> cleaned: {len(opis_html)} chars")
     
     # === PAYLOAD OFERTY ===
     
@@ -1761,11 +1761,11 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
         _ext_id_parts.append(str(kod_magazynowy))
     if _ext_id_parts:
         offer_data['external'] = {'id': ' / '.join(_ext_id_parts)}
-        print(f"🏷️ external.id (sygnatura): {offer_data['external']['id']}")
+        print(f"[SELL] external.id (sygnatura): {offer_data['external']['id']}")
     
     # === EAN - będzie dodany jako parametr GTIN ===
     if ean_clean:
-        print(f"📊 EAN: {ean_clean} (będzie dodany jako parametr GTIN)")
+        print(f"[BAR_] EAN: {ean_clean} (będzie dodany jako parametr GTIN)")
     
     # === RÓWNOLEGŁY: AI parametry + GPSR upload + producent/osoba ===
     from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -1787,7 +1787,7 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
                 ean=ean_clean, asin=asin, gemini_key=gemini_key, product_specs=product_specs
             )
         except Exception as e:
-            print(f"❌ AI params: {e}")
+            print(f"[ERR] AI params: {e}")
             return None
 
     def _task_gpsr_upload():
@@ -1817,7 +1817,7 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
             return None
 
     # Odpal WSZYSTKO równolegle (zamiast sekwencyjnie ~25s → ~15s)
-    print(f"⚡ Równoległy start: AI params + GPSR upload + producent/osoba...")
+    print(f"[BOLT] Równoległy start: AI params + GPSR upload + producent/osoba...")
     with ThreadPoolExecutor(max_workers=4) as executor:
         f_params = executor.submit(_task_ai_params)
         f_gpsr_upload = executor.submit(_task_gpsr_upload)
@@ -1837,27 +1837,27 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
             product_params = params_result.get('product', [])
             if offer_params:
                 offer_data['parameters'] = offer_params
-                print(f"✅ {len(offer_params)} OFFER params + {len(product_params)} PRODUCT params")
+                print(f"[OK] {len(offer_params)} OFFER params + {len(product_params)} PRODUCT params")
         elif isinstance(params_result, list) and params_result:
             offer_data['parameters'] = params_result
-            print(f"✅ {len(params_result)} params (legacy)")
+            print(f"[OK] {len(params_result)} params (legacy)")
 
     # Zbuduj GPSR productSet entry — ZAWSZE jako tekst (MANUAL), PDF attachment jako bonus
     if gpsr:
         # Główna metoda: tekst TEXT (Allegro API wspiera type TEXT + description)
         _gpsr_ps_entry['safetyInformation'] = {'type': 'TEXT', 'description': gpsr[:5000]}
         _gpsr_ps_entry['marketedBeforeGPSRObligation'] = False
-        print(f"✅ GPSR: {len(gpsr)} znaków (MANUAL text)")
+        print(f"[OK] GPSR: {len(gpsr)} znaków (MANUAL text)")
         # Jeśli PDF upload się udał — nadpisz na ATTACHMENTS (lepiej wygląda)
         if _gpsr_attachment_id:
             _gpsr_ps_entry['safetyInformation'] = {'type': 'ATTACHMENTS', 'attachments': [{'id': _gpsr_attachment_id}]}
-            print(f"✅ GPSR PDF: attachment {_gpsr_attachment_id} (upgrade z MANUAL)")
+            print(f"[OK] GPSR PDF: attachment {_gpsr_attachment_id} (upgrade z MANUAL)")
         if _producer:
             _gpsr_ps_entry['responsibleProducer'] = {'type': 'ID', 'id': _producer['id']}
-            print(f"✅ Producent: {_producer.get('name', '?')}")
+            print(f"[OK] Producent: {_producer.get('name', '?')}")
         if _person:
             _gpsr_ps_entry['responsiblePerson'] = {'id': _person['id']}
-            print(f"✅ Osoba: {_person.get('name', '?')}")
+            print(f"[OK] Osoba: {_person.get('name', '?')}")
 
     # EAN/product params -> PATCH
     if product_params:
@@ -1909,7 +1909,7 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
             if url and isinstance(url, str) and url.strip():
                 urls_to_process.append(url.strip())
 
-        print(f"📷 Processing {len(urls_to_process)} images (parallel)...")
+        print(f"[PHOT] Processing {len(urls_to_process)} images (parallel)...")
 
         def _upload_single(idx_url):
             idx, url = idx_url
@@ -1939,15 +1939,15 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
         results.sort(key=lambda x: x[0])
         uploaded_images = [url for _, url in results if url]
 
-        print(f"📷 Result: {len(uploaded_images)}/{len(urls_to_process)} images ready")
+        print(f"[PHOT] Result: {len(uploaded_images)}/{len(urls_to_process)} images ready")
 
         if uploaded_images:
-            print(f"📷 Images: {len(uploaded_images)} URLs ready for description sections")
+            print(f"[PHOT] Images: {len(uploaded_images)} URLs ready for description sections")
 
     # === GALERIA ZDJĘĆ OFERTY (osobne od description sections!) ===
     if uploaded_images:
         offer_data['images'] = uploaded_images[:16]
-        print(f"📷 Gallery images added to offer: {len(offer_data['images'])}")
+        print(f"[PHOT] Gallery images added to offer: {len(offer_data['images'])}")
 
     # ============================================================
     # OPIS Z OBRAZKAMI - ŁADNY LAYOUT (zdjęcia przeplatane z tekstem)
@@ -2081,24 +2081,24 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
 
     if sections:
         offer_data['description'] = {'sections': sections}
-        print(f"📝 Description: {len(sections)} sections (mixed layout)")
+        print(f"[EDIT] Description: {len(sections)} sections (mixed layout)")
 
     # Wyślij ofertę
-    print(f"📤 Sending offer: {nazwa[:40]}...")
-    print(f"📷 Images in payload: {len(uploaded_images)}")
+    print(f"[UPLO] Sending offer: {nazwa[:40]}...")
+    print(f"[PHOT] Images in payload: {len(uploaded_images)}")
     
     # DEBUG: Pokaż pełny payload
     if uploaded_images:
-        print(f"📷 Image URLs being sent:")
+        print(f"[PHOT] Image URLs being sent:")
         for i, img in enumerate(uploaded_images):
             print(f"   [{i+1}] {img[:80]}...")
-        print(f"📷 Images structure: {offer_data.get('images', 'NONE')}")
+        print(f"[PHOT] Images structure: {offer_data.get('images', 'NONE')}")
     
     import json as _json
-    print(f"📦 FULL PAYLOAD KEYS: {list(offer_data.keys())}")
-    print(f"📦 condition: {offer_data.get('condition')}")
-    print(f"📦 payments: {offer_data.get('payments')}")
-    print(f"📦 delivery keys: {list(offer_data.get('delivery', {}).keys())}")
+    print(f"[INVE] FULL PAYLOAD KEYS: {list(offer_data.keys())}")
+    print(f"[INVE] condition: {offer_data.get('condition')}")
+    print(f"[INVE] payments: {offer_data.get('payments')}")
+    print(f"[INVE] delivery keys: {list(offer_data.get('delivery', {}).keys())}")
     result, error = allegro_request('POST', '/sale/product-offers', data=offer_data)
 
     # Retry: usuń problematyczne parametry — szuka w OBIE listy (offer + product)
@@ -2110,43 +2110,43 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
 
     # EXPLICIT retry logging
     _offer_param_ids = [str(p.get('id')) for p in offer_data.get('parameters', [])]
-    print(f"🔄 RETRY CHECK: error={bool(error)}, offer_params={_offer_param_ids}, retry_count={retry_count}")
+    print(f"[SYNC] RETRY CHECK: error={bool(error)}, offer_params={_offer_param_ids}, retry_count={retry_count}")
 
     while error and ('parameters' in offer_data) and retry_count < 8:
         error_str = str(error)
-        print(f"🔄 RETRY LOOP #{retry_count}: error='{error_str[:80]}'")
+        print(f"[SYNC] RETRY LOOP #{retry_count}: error='{error_str[:80]}'")
 
         # Wyciągnij ID problematycznego parametru z błędu
         bad_param = _re.search(r'Parameter\s*`?(\d+)', error_str)
-        print(f"🔄 Regex match: {bad_param.group(0) if bad_param else 'NO MATCH'}")
+        print(f"[SYNC] Regex match: {bad_param.group(0) if bad_param else 'NO MATCH'}")
 
         if bad_param:
             bad_id = bad_param.group(1)
             old_len = len(offer_data.get('parameters', []))
             offer_data['parameters'] = [p for p in offer_data.get('parameters', []) if str(p.get('id')) != bad_id]
             new_len = len(offer_data['parameters'])
-            print(f"🔄 Usunięto param {bad_id}: {old_len} → {new_len}")
+            print(f"[SYNC] Usunięto param {bad_id}: {old_len} → {new_len}")
 
             if new_len < old_len:
                 if not offer_data['parameters']:
                     del offer_data['parameters']
-                    print(f"🔄 Brak parametrów — usunięto klucz 'parameters'")
+                    print(f"[SYNC] Brak parametrów — usunięto klucz 'parameters'")
                 result, error = allegro_request('POST', '/sale/product-offers', data=offer_data)
                 retry_count += 1
                 if not error:
-                    print(f"✅ Retry #{retry_count} SUKCES!")
+                    print(f"[OK] Retry #{retry_count} SUKCES!")
                 continue
             else:
-                print(f"⚠️ Param {bad_id} NIE znaleziony w offer params {_offer_param_ids}")
+                print(f"[WARN] Param {bad_id} NIE znaleziony w offer params {_offer_param_ids}")
                 break
 
         elif 'should not be specified' in error_str.lower():
-            print(f"⚠️ Nie sparsowano ID — usuwam WSZYSTKIE parametry")
+            print(f"[WARN] Nie sparsowano ID — usuwam WSZYSTKIE parametry")
             offer_data.pop('parameters', None)
             result, error = allegro_request('POST', '/sale/product-offers', data=offer_data)
             break
         else:
-            print(f"🔄 Error nie dotyczy parametrów — break")
+            print(f"[SYNC] Error nie dotyczy parametrów — break")
             break
 
     # Retry productSet errors - zamiast usuwać cały productSet, zachowaj GPSR
@@ -2192,7 +2192,7 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
 
     # Zdjęcia galerii — w description.sections + 1 z productSet
     if offer_id and uploaded_images:
-        print(f"📷 {len(uploaded_images)} zdjęć w description sections")
+        print(f"[PHOT] {len(uploaded_images)} zdjęć w description sections")
 
     # === KROK 1.5: PATCH description + images (bo POST może je ignorować) ===
     if offer_id:
@@ -2202,19 +2202,19 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
         if offer_data.get('images'):
             _desc_patch['images'] = offer_data['images']
         if _desc_patch:
-            print(f"📝 PATCH description+images na {offer_id}...")
+            print(f"[EDIT] PATCH description+images na {offer_id}...")
             _dp_result, _dp_error = allegro_request('PATCH', f'/sale/product-offers/{offer_id}', data=_desc_patch)
             if _dp_error:
-                print(f"📝 PATCH description error: {_dp_error}")
+                print(f"[EDIT] PATCH description error: {_dp_error}")
                 # Spróbuj osobno description i images
                 if offer_data.get('description'):
                     _d2, _e2 = allegro_request('PATCH', f'/sale/product-offers/{offer_id}', data={'description': offer_data['description']})
-                    print(f"📝 PATCH description only: {'OK' if not _e2 else _e2}")
+                    print(f"[EDIT] PATCH description only: {'OK' if not _e2 else _e2}")
                 if offer_data.get('images'):
                     _d3, _e3 = allegro_request('PATCH', f'/sale/product-offers/{offer_id}', data={'images': offer_data['images']})
-                    print(f"📷 PATCH images only: {'OK' if not _e3 else _e3}")
+                    print(f"[PHOT] PATCH images only: {'OK' if not _e3 else _e3}")
             else:
-                print(f"📝 PATCH description+images OK!")
+                print(f"[EDIT] PATCH description+images OK!")
 
     # === KROK 2: GPSR fallback (tylko jeśli POST nie zapisał) ===
     if offer_id and gpsr and _gpsr_ps_entry:
@@ -2226,12 +2226,12 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
                 sv = ps_item.get('safetyInformation')
                 if sv and sv != 'None' and isinstance(sv, dict) and (sv.get('type') or sv.get('description')):
                     gpsr_saved = True
-                    print(f"✅ GPSR saved via POST!")
+                    print(f"[OK] GPSR saved via POST!")
                     break
 
         # Fallback: PATCH z GPSR jeśli POST nie zapisał
         if not gpsr_saved:
-            print(f"⚠️ GPSR nie w POST → PATCH fallback...")
+            print(f"[WARN] GPSR nie w POST → PATCH fallback...")
             _gpsr_patch = dict(_gpsr_ps_entry)  # kopia z producent + osoba
             # ZAWSZE tekst TEXT (niezawodne, Allegro API oficjalnie wspiera)
             _gpsr_patch['safetyInformation'] = {'type': 'TEXT', 'description': gpsr[:5000]}
@@ -2257,7 +2257,7 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
                     })
                     print(f"GPSR modification-command sent")
             else:
-                print(f"✅ GPSR PATCH OK!")
+                print(f"[OK] GPSR PATCH OK!")
 
     # EAN PATCH jeśli nie był w POST
     _ean_was_in_post = False
@@ -2281,10 +2281,10 @@ def get_responsible_persons():
     """Pobiera listę osób odpowiedzialnych (GPSR) z Allegro"""
     result, error = allegro_request('GET', '/sale/responsible-persons')
     if error:
-        print(f"⚠️ GET responsible-persons error: {error}")
+        print(f"[WARN] GET responsible-persons error: {error}")
         return []
     persons = result.get('responsiblePersons', [])
-    print(f"👤 Responsible persons: {len(persons)}")
+    print(f"[PERS] Responsible persons: {len(persons)}")
     for p in persons:
         print(f"   - {p.get('id', '?')}: {p.get('name', '?')} ({p.get('address', {}).get('city', '?')})")
     return persons
@@ -2294,10 +2294,10 @@ def get_responsible_producers():
     """Pobiera listę producentów (GPSR) z Allegro"""
     result, error = allegro_request('GET', '/sale/responsible-producers')
     if error:
-        print(f"⚠️ GET responsible-producers error: {error}")
+        print(f"[WARN] GET responsible-producers error: {error}")
         return []
     producers = result.get('responsibleProducers', [])
-    print(f"🏭 Responsible producers: {len(producers)}")
+    print(f"[FACT] Responsible producers: {len(producers)}")
     for p in producers:
         print(f"   - {p.get('id', '?')}: {p.get('name', '?')}")
     return producers
@@ -2360,9 +2360,9 @@ def upload_gpsr_attachment(gpsr_text, product_name=''):
             doc.build(story)
             pdf_bytes = pdf_buffer.getvalue()
             pdf_buffer.close()
-            print(f"🛡️ GPSR PDF (reportlab): {len(pdf_bytes)} bytes")
+            print(f"[SHIE] GPSR PDF (reportlab): {len(pdf_bytes)} bytes")
         except ImportError:
-            print(f"⚠️ reportlab nie zainstalowane — generuję minimalny PDF")
+            print(f"[WARN] reportlab nie zainstalowane — generuję minimalny PDF")
 
         # Próba 2: Minimalny PDF bez reportlab (ręczny format)
         if not pdf_bytes:
@@ -2387,7 +2387,7 @@ def upload_gpsr_attachment(gpsr_text, product_name=''):
                 b'trailer<</Size 6/Root 1 0 R>>\nstartxref\n0\n%%EOF'
             )
             pdf_bytes = _pdf
-            print(f"🛡️ GPSR PDF (minimal): {len(pdf_bytes)} bytes")
+            print(f"[SHIE] GPSR PDF (minimal): {len(pdf_bytes)} bytes")
 
         # Upload do Allegro
         token = get_config('allegro_access_token', '')
@@ -2421,14 +2421,14 @@ def upload_gpsr_attachment(gpsr_text, product_name=''):
         if resp.status_code in [200, 201]:
             result = resp.json()
             attachment_id = result.get('id', '')
-            print(f"🛡️ GPSR attachment uploaded: {attachment_id}")
+            print(f"[SHIE] GPSR attachment uploaded: {attachment_id}")
             return attachment_id
         else:
-            print(f"🛡️ GPSR upload error: {resp.status_code}: {resp.text[:300]}")
+            print(f"[SHIE] GPSR upload error: {resp.status_code}: {resp.text[:300]}")
             return None
 
     except Exception as e:
-        print(f"🛡️ GPSR PDF/upload error: {e}")
+        print(f"[SHIE] GPSR PDF/upload error: {e}")
         return None
 
 
@@ -2595,7 +2595,7 @@ def find_ean_parameter_id(category_id):
         
         # Szukaj parametru o nazwie zawierającej EAN, GTIN, kod kreskowy
         if any(x in param_name for x in ['ean', 'gtin', 'kod kreskowy', 'barcode']):
-            print(f"📊 Found EAN parameter: {param.get('name')} (ID: {param_id}, type: {param_type})")
+            print(f"[BAR_] Found EAN parameter: {param.get('name')} (ID: {param_id}, type: {param_type})")
             return param_id, param_type
     
     return None, None
@@ -2619,7 +2619,7 @@ def extract_parameters_with_ai(title, description, category_parameters, gemini_k
         gemini_key = get_config('gemini_api_key', '')
     
     if not gemini_key:
-        print("⚠️ Brak klucza Gemini API - pomijam ekstrakcję AI")
+        print("[WARN] Brak klucza Gemini API - pomijam ekstrakcję AI")
         return {}
     
     # Przygotuj listę parametrów do ekstrakcji
@@ -2729,19 +2729,19 @@ FORMAT ODPOWIEDZI (tylko JSON):
             response_text = response_text.split('```')[1].split('```')[0].strip()
         
         extracted = json.loads(response_text)
-        print(f"🤖 AI wyekstrahował {len(extracted)} parametrów")
+        print(f"[SMAR] AI wyekstrahował {len(extracted)} parametrów")
         
         # Debug - pokaż co wyekstrahowano
         for param_id, data in extracted.items():
             if 'value_id' in data:
-                print(f"   ✅ {param_id}: value_id={data['value_id']}")
+                print(f"   [OK] {param_id}: value_id={data['value_id']}")
             elif 'value' in data:
-                print(f"   ✅ {param_id}: value={data['value']}")
+                print(f"   [OK] {param_id}: value={data['value']}")
         
         return extracted
         
     except Exception as e:
-        print(f"❌ Błąd AI ekstrakcji: {e}")
+        print(f"[ERR] Błąd AI ekstrakcji: {e}")
         return {}
 
 
@@ -2761,7 +2761,7 @@ def build_offer_parameters_ai(category_id, product_name="", description="", ean=
     # Pobierz parametry kategorii
     params_result, error = get_category_parameters(category_id)
     if error or not params_result:
-        print(f"⚠️ Could not get parameters for category {category_id}")
+        print(f"[WARN] Could not get parameters for category {category_id}")
         return {'offer': [], 'product': []}
     
     category_params = params_result.get('parameters', [])
@@ -2821,14 +2821,14 @@ def build_offer_parameters_ai(category_id, product_name="", description="", ean=
                 break
 
         if _skip_section:
-            print(f"   ⏭️ Skip (sekcja off): {param_name} [{param_id}]")
+            print(f"   ⏭ Skip (sekcja off): {param_name} [{param_id}]")
             continue
 
         # DEBUG: loguj sekcje dla pierwszych 5 parametrów (żeby zrozumieć strukturę)
         if len(offer_parameters) + len(product_parameters) < 3:
             _dbg = {k: param.get(k) for k in ('section', 'restrictions', 'options') if param.get(k)}
             if _dbg:
-                print(f"   🔍 DEBUG {param_name}: {str(_dbg)[:200]}")
+                print(f"   [SEAR] DEBUG {param_name}: {str(_dbg)[:200]}")
 
         # === Rozdziel: produktowy vs ofertowy ===
         # WAŻNE: describesProduct jest kluczową flagą z API — Rodzaj, Typ, Przeznaczenie itp. mają ją ustawioną
@@ -2848,13 +2848,13 @@ def build_offer_parameters_ai(category_id, product_name="", description="", ean=
             if any(x in param_name_lower for x in ['ean', 'gtin', 'kod kreskowy', 'barcode']):
                 if ean and param_id not in added_param_ids:
                     _built = {'id': param_id, 'values': [str(ean)]}
-                    print(f"   📦 Product: {param_name} = {ean}")
+                    print(f"   [INVE] Product: {param_name} = {ean}")
 
             # Numer katalogowy → ASIN
             elif any(x in param_name_lower for x in ['numer katalogowy', 'mpn', 'part number']):
                 if asin and param_id not in added_param_ids:
                     _built = {'id': param_id, 'values': [str(asin)]}
-                    print(f"   📦 Product: {param_name} = {asin}")
+                    print(f"   [INVE] Product: {param_name} = {asin}")
 
             # Producent/Marka → ZAWSZE "bez marki" / "inna" / "nieokreślona"
             elif any(x in param_name_lower for x in ['producent', 'manufacturer', 'marka', 'brand']):
@@ -2866,21 +2866,21 @@ def build_offer_parameters_ai(category_id, product_name="", description="", ean=
                             dvl = dv.get('value', '').lower().strip()
                             if dvl in _no_brand_keywords:
                                 _built = {'id': param_id, 'valuesIds': [str(dv['id'])]}
-                                print(f"   📦 Product: {param_name} = {dv['value']} (bez marki)")
+                                print(f"   [INVE] Product: {param_name} = {dv['value']} (bez marki)")
                                 break
                         # 2. Sprawdź ambiguousValueId
                         if not _built and options.get('ambiguousValueId'):
                             _amb_id = str(options['ambiguousValueId'])
                             _built = {'id': param_id, 'valuesIds': [_amb_id]}
-                            print(f"   📦 Product: {param_name} = ambiguousValueId={_amb_id}")
+                            print(f"   [INVE] Product: {param_name} = ambiguousValueId={_amb_id}")
                         # 3. Fallback: pierwsza wartość ze słownika
                         if not _built:
                             _built = {'id': param_id, 'valuesIds': [str(dictionary[0]['id'])]}
-                            print(f"   📦 Product: {param_name} = {dictionary[0].get('value','?')} (first dict fallback)")
+                            print(f"   [INVE] Product: {param_name} = {dictionary[0].get('value','?')} (first dict fallback)")
                     else:
                         # Brak słownika - custom value
                         _built = {'id': param_id, 'values': ['bez marki']}
-                        print(f"   📦 Product: {param_name} = bez marki (custom value)")
+                        print(f"   [INVE] Product: {param_name} = bez marki (custom value)")
                     print(f"   DEBUG {param_name} dict[0:3]: {[d.get('value','') for d in (dictionary or [])[:3]]}, ambiguous: {options.get('ambiguousValueId')}")
 
             # Inne produktowe (Rodzaj, Typ, Przeznaczenie, Cechy dodatkowe itp.)
@@ -2893,7 +2893,7 @@ def build_offer_parameters_ai(category_id, product_name="", description="", ean=
                         if vid in valid:
                             _built = {'id': param_id, 'valuesIds': [vid]}
                             vname = next((d.get('value') for d in dictionary if str(d.get('id')) == vid), vid)
-                            print(f"   📦 Product AI: {param_name} = {vname}")
+                            print(f"   [INVE] Product AI: {param_name} = {vname}")
                 elif param_id in ai_extracted and 'value' in ai_extracted[param_id]:
                     _val = str(ai_extracted[param_id]['value'])
                     if dictionary:
@@ -2902,11 +2902,11 @@ def build_offer_parameters_ai(category_id, product_name="", description="", ean=
                         for dv in dictionary:
                             if dv.get('value', '').lower().strip() == _val_lower:
                                 _built = {'id': param_id, 'valuesIds': [str(dv['id'])]}
-                                print(f"   📦 Product AI match: {param_name} = {dv['value']}")
+                                print(f"   [INVE] Product AI match: {param_name} = {dv['value']}")
                                 break
                     if not _built and not dictionary:
                         _built = {'id': param_id, 'values': [_val]}
-                        print(f"   📦 Product AI text: {param_name} = {_val}")
+                        print(f"   [INVE] Product AI text: {param_name} = {_val}")
 
                 # 2. Fallback: szukaj domyślnej wartości w słowniku
                 if not _built and dictionary:
@@ -2915,19 +2915,19 @@ def build_offer_parameters_ai(category_id, product_name="", description="", ean=
                         dvl = dv.get('value', '').lower()
                         if dvl in _default_keywords or any(x == dvl for x in _default_keywords):
                             _built = {'id': param_id, 'valuesIds': [str(dv['id'])]}
-                            print(f"   📦 Product default: {param_name} = {dv['value']}")
+                            print(f"   [INVE] Product default: {param_name} = {dv['value']}")
                             break
 
                 # 3. Ostatni fallback: pierwszy element słownika (dla wymaganych)
                 if not _built and dictionary and required:
                     _built = {'id': param_id, 'valuesIds': [str(dictionary[0]['id'])]}
-                    print(f"   📦 Product first: {param_name} = {dictionary[0].get('value', '?')} (required fallback)")
+                    print(f"   [INVE] Product first: {param_name} = {dictionary[0].get('value', '?')} (required fallback)")
 
             if _built:
                 product_parameters.append(_built)
                 added_param_ids.add(param_id)
             elif required:
-                print(f"   ⚠️ Product REQUIRED but no value: {param_name} [{param_id}]")
+                print(f"   [WARN] Product REQUIRED but no value: {param_name} [{param_id}]")
             continue
 
         # === PARAMETR OFERTOWY === (Stan, Kolor, Materiał, Rozmiar itd.)
@@ -2947,17 +2947,17 @@ def build_offer_parameters_ai(category_id, product_name="", description="", ean=
                     offer_parameters.append({'id': param_id, 'valuesIds': [value_id]})
                     added_param_ids.add(param_id)
                     value_name = next((d.get('value') for d in dictionary if str(d.get('id')) == value_id), value_id)
-                    print(f"   🤖 AI: {param_name} = {value_name}")
+                    print(f"   [SMAR] AI: {param_name} = {value_name}")
                     continue
                 else:
-                    print(f"   ⚠️ AI nieprawidłowe ID: {value_id} dla {param_name}")
+                    print(f"   [WARN] AI nieprawidłowe ID: {value_id} dla {param_name}")
 
             elif 'value' in ai_data and param_type == 'string':
                 value = str(ai_data['value'])[:50]
                 if value and value != '--':
                     offer_parameters.append({'id': param_id, 'values': [value]})
                     added_param_ids.add(param_id)
-                    print(f"   🤖 AI: {param_name} = {value}")
+                    print(f"   [SMAR] AI: {param_name} = {value}")
                     continue
 
         # === Fallback: Stan → "Nowy" ===
@@ -2968,7 +2968,7 @@ def build_offer_parameters_ai(category_id, product_name="", description="", ean=
                     value_id = dict_value.get('id')
                     offer_parameters.append({'id': param_id, 'valuesIds': [str(value_id)]})
                     added_param_ids.add(param_id)
-                    print(f"   ✅ Stan: Nowy")
+                    print(f"   [OK] Stan: Nowy")
                     break
             if param_id in added_param_ids:
                 continue
@@ -2981,7 +2981,7 @@ def build_offer_parameters_ai(category_id, product_name="", description="", ean=
                     value_id = dict_value.get('id')
                     offer_parameters.append({'id': param_id, 'valuesIds': [str(value_id)]})
                     added_param_ids.add(param_id)
-                    print(f"   ⚠️ Fallback: {param_name} = {dict_value.get('value')}")
+                    print(f"   [WARN] Fallback: {param_name} = {dict_value.get('value')}")
                     break
 
         # === Fallback: Pierwszy z listy (wymagane) ===
@@ -2990,7 +2990,7 @@ def build_offer_parameters_ai(category_id, product_name="", description="", ean=
             value_id = first.get('id')
             offer_parameters.append({'id': param_id, 'valuesIds': [str(value_id)]})
             added_param_ids.add(param_id)
-            print(f"   ⚠️ First: {param_name} = {first.get('value')}")
+            print(f"   [WARN] First: {param_name} = {first.get('value')}")
 
         # === Fallback: Tekstowe wymagane — tylko z AI ===
         if required and param_type == 'string' and not dictionary and param_id not in added_param_ids:
@@ -2999,9 +2999,9 @@ def build_offer_parameters_ai(category_id, product_name="", description="", ean=
                 if val and val != '--':
                     offer_parameters.append({'id': param_id, 'values': [val]})
                     added_param_ids.add(param_id)
-                    print(f"   🤖 AI text: {param_name} = {val}")
+                    print(f"   [SMAR] AI text: {param_name} = {val}")
 
-    print(f"📋 Built: {len(offer_parameters)} offer + {len(product_parameters)} product params (AI: {len(ai_extracted)})")
+    print(f"[ASSI] Built: {len(offer_parameters)} offer + {len(product_parameters)} product params (AI: {len(ai_extracted)})")
     return {'offer': offer_parameters, 'product': product_parameters}
 
 
@@ -3071,15 +3071,15 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
             col_existed = False
             _mig_conn.execute("ALTER TABLE sprzedaze ADD COLUMN notified INTEGER DEFAULT 0")
             _mig_conn.commit()
-            print("✅ Migracja: dodano kolumnę notified")
+            print("[OK] Migracja: dodano kolumnę notified")
         if not col_existed:
             # Kolumna dopiero dodana - oznacz WSZYSTKIE istniejące zamówienia jako notified
             # żeby nie spamować starymi powiadomieniami
             _mig_conn.execute("UPDATE sprzedaze SET notified=1 WHERE notified=0")
             _mig_conn.commit()
-            print("✅ Migracja: oznaczono istniejące zamówienia jako notified")
+            print("[OK] Migracja: oznaczono istniejące zamówienia jako notified")
     except Exception as _e:
-        print(f"⚠️ Migracja notified: {_e}")
+        print(f"[WARN] Migracja notified: {_e}")
 
     # Auto-cleanup: zamówienia starsze niż 2 dni ze statusem 'nowa' → 'wyslana'
     # (jeśli po 2 dniach nie nadałeś ręcznie, to albo już wysłane albo pominięte)
@@ -3091,7 +3091,7 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
             WHERE status IN ('nowa','nowe','wyslana','wyslane','wysłane')
             GROUP BY status
         ''').fetchall()
-        print(f"📊 DB statusy: {dict((r['status'], r['cnt']) for r in _diag)}")
+        print(f"[BAR_] DB statusy: {dict((r['status'], r['cnt']) for r in _diag)}")
 
         # Normalizuj wszystkie warianty do 'wyslana' (ASCII)
         _norm = _cleanup_conn.execute('''
@@ -3100,7 +3100,7 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
         ''').rowcount
         if _norm > 0:
             _cleanup_conn.commit()
-            print(f"🔧 Znormalizowano {_norm} statusów → 'wyslana'")
+            print(f"[BUIL] Znormalizowano {_norm} statusów → 'wyslana'")
 
         _stale = _cleanup_conn.execute('''
             UPDATE sprzedaze SET status = 'wyslana'
@@ -3109,30 +3109,30 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
         ''').rowcount
         if _stale > 0:
             _cleanup_conn.commit()
-            print(f"🧹 Auto-cleanup: {_stale} starych zamówień 'nowa' → 'wyslana'")
+            print(f"[MOP] Auto-cleanup: {_stale} starych zamówień 'nowa' → 'wyslana'")
     except Exception as _ce:
-        print(f"⚠️ Cleanup error: {_ce}")
+        print(f"[WARN] Cleanup error: {_ce}")
 
     # Przy ręcznym sync historycznym NIE wysyłaj powiadomień
     # Ale auto-sync z from_date_str MOŻE mieć notify=True (przekazane jawnie)
     if not today_only and not from_date_str:
         notify = False
-        print("📵 Powiadomienia wyłączone (sync całego miesiąca)")
+        print("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">phonelink_off</span> Powiadomienia wyłączone (sync całego miesiąca)")
     
     # Filtruj po dacie
     from_date = None
     if from_date_str:
         # Własna data od użytkownika
         from_date = f"{from_date_str}T00:00:00Z"
-        print(f"🔄 Synchronizacja zamówień od: {from_date}")
+        print(f"[SYNC] Synchronizacja zamówień od: {from_date}")
     elif today_only:
         from_date = date.today().strftime('%Y-%m-%dT00:00:00Z')
-        print(f"🔄 Synchronizacja zamówień od: {from_date}")
+        print(f"[SYNC] Synchronizacja zamówień od: {from_date}")
     else:
         # Pobierz z początku miesiąca
         first_of_month = date.today().replace(day=1)
         from_date = first_of_month.strftime('%Y-%m-%dT00:00:00Z')
-        print(f"🔄 Synchronizacja zamówień od początku miesiąca: {from_date}")
+        print(f"[SYNC] Synchronizacja zamówień od początku miesiąca: {from_date}")
     
     # Pobierz zamówienia w różnych statusach
     # Tylko statusy które Allegro faktycznie obsługuje z filtrem daty
@@ -3252,14 +3252,14 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                             updated_cnt += 1
                     if updated_cnt > 0:
                         conn.commit()  # Commit NATYCHMIAST po każdym zamówieniu
-                        print(f"  ✅ Zaktualizowano {updated_cnt}/{len(existing_rows)} items → {new_local_status}")
+                        print(f"  [OK] Zaktualizowano {updated_cnt}/{len(existing_rows)} items → {new_local_status}")
                     else:
                         conn.commit()  # Commit adres update
-                        print(f"  ⏭️ Już {new_local_status} ({len(existing_rows)} items)")
+                        print(f"  ⏭ Już {new_local_status} ({len(existing_rows)} items)")
                 else:
-                    print(f"  ⚠️ Brak mapowania: allegro={allegro_status} fulfill={shipment_status}")
+                    print(f"  [WARN] Brak mapowania: allegro={allegro_status} fulfill={shipment_status}")
             except Exception as _upd_err:
-                print(f"  ❌ Błąd aktualizacji statusu: {_upd_err}")
+                print(f"  [ERR] Błąd aktualizacji statusu: {_upd_err}")
             continue
         
         # Pobierz datę zamówienia z Allegro
@@ -3335,7 +3335,7 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                                 # Zaktualizuj ofertę żeby następnym razem match był bezpośredni
                                 conn.execute('UPDATE oferty SET produkt_id = ? WHERE id = ?',
                                            (produkt_id, oferta_db_id))
-                                print(f"  🔗 EAN match: {nazwa[:40]} → produkt [{produkt_id}] (EAN: {ean_allegro})")
+                                print(f"  [LINK] EAN match: {nazwa[:40]} → produkt [{produkt_id}] (EAN: {ean_allegro})")
                     except:
                         pass
 
@@ -3354,7 +3354,7 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                                 if oferta_db_id:
                                     conn.execute('UPDATE oferty SET produkt_id = ? WHERE id = ?',
                                                (produkt_id, oferta_db_id))
-                                print(f"  🔗 ASIN match: {nazwa[:40]} → produkt [{produkt_id}] (ASIN: {asin_val})")
+                                print(f"  [LINK] ASIN match: {nazwa[:40]} → produkt [{produkt_id}] (ASIN: {asin_val})")
                     except:
                         pass
 
@@ -3366,7 +3366,7 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                         pid, conf = _find_best_product_match(nazwa, cena, sync_orders._prod_cache)
                         if pid and conf >= 0.55:
                             produkt_id = pid
-                            print(f"  🔍 Smart match: {nazwa[:40]} → produkt [{pid}] ({conf:.0%})")
+                            print(f"  [SEAR] Smart match: {nazwa[:40]} → produkt [{pid}] ({conf:.0%})")
                     except:
                         pass
                 
@@ -3376,7 +3376,7 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                     (order_id, nazwa, cena)
                 ).fetchone()
                 if _dup:
-                    print(f"  ⏭️ Skip duplikat: {nazwa[:30]} ({order_id[:12]}...)")
+                    print(f"  ⏭ Skip duplikat: {nazwa[:30]} ({order_id[:12]}...)")
                     continue
 
                 # Zapisz do bazy - z produkt_id, oferta_id, nazwą i adresem
@@ -3409,7 +3409,7 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                             WHERE id = ?
                         ''', (new_qty, new_qty, new_qty, datetime.now().isoformat(), produkt['id']))
                         stock_updated += 1
-                        print(f"📦 Stock: {produkt['nazwa'][:30]} ({produkt['ilosc']} -> {new_qty})")
+                        print(f"[INVE] Stock: {produkt['nazwa'][:30]} ({produkt['ilosc']} -> {new_qty})")
 
                         # Dodaj historię sprzedaży do produktu
                         try:
@@ -3434,9 +3434,9 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                         alert_sprzedaz(nazwa, cena, kupujacy, lokalizacja=_lok, regal=_reg, paleta=_pal, ilosc_zostalo=_zostalo)
                         notified += 1
                         conn.execute('UPDATE sprzedaze SET notified=1 WHERE allegro_order_id=? AND nazwa=?', (order_id, nazwa))
-                        print(f"📱 Telegram: {nazwa} - {cena} zł")
+                        print(f"[SMAR] Telegram: {nazwa} - {cena} zł")
                     except Exception as e:
-                        print(f"⚠️ Błąd Telegram: {e}")
+                        print(f"[WARN] Błąd Telegram: {e}")
                     
                     # WhatsApp dla dziadka
                     try:
@@ -3446,12 +3446,12 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                             address = delivery.get('address', {})
                             miasto = address.get('city', '')
                             alert_whatsapp_sprzedaz(nazwa, miasto)
-                            print(f"📲 WhatsApp: {nazwa} -> {miasto}")
+                            print(f"[SMAR] WhatsApp: {nazwa} -> {miasto}")
                     except Exception as e:
-                        print(f"⚠️ Błąd WhatsApp: {e}")
+                        print(f"[WARN] Błąd WhatsApp: {e}")
                     
             except Exception as e:
-                print(f"❌ Błąd przy zapisie zamówienia: {e}")
+                print(f"[ERR] Błąd przy zapisie zamówienia: {e}")
     
     conn.commit()
     conn.execute('PRAGMA wal_checkpoint(PASSIVE)')
@@ -3461,16 +3461,16 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
         try:
             # Oblicz sumę zsynchronizowanych
             total_value = sum(float((o.get('summary') or {}).get('totalToPay', {}).get('amount', 0) if o else 0) for o in all_orders[:synced])
-            msg = f"🔄 <b>SYNCHRONIZACJA</b>\n\n"
-            msg += f"📦 Zsynchronizowano: <b>{synced}</b> zamówień\n"
-            msg += f"📊 Zaktualizowano stanów: <b>{stock_updated}</b>\n"
+            msg = f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span> <b>SYNCHRONIZACJA</b>\n\n"
+            msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> Zsynchronizowano: <b>{synced}</b> zamówień\n"
+            msg += f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span> Zaktualizowano stanów: <b>{stock_updated}</b>\n"
             msg += f"\n⏰ {datetime.now():%H:%M:%S}"
             # Sync zbiorczy bez dźwięku
             send_telegram(msg, silent=True)
         except:
             pass
     
-    print(f"✅ Zsynchronizowano {synced} zamówień, wysłano {notified} powiadomień, zaktualizowano {stock_updated} stanów")
+    print(f"[OK] Zsynchronizowano {synced} zamówień, wysłano {notified} powiadomień, zaktualizowano {stock_updated} stanów")
     return synced, None
 
 
@@ -3637,7 +3637,7 @@ def backfill_link_sprzedaze(dry_run=False):
             if not dry_run:
                 conn.execute('UPDATE oferty SET produkt_id = ? WHERE id = ?', (pid, o['id']))
             stats['oferty_linked'] += 1
-            print(f"  🔗 Oferta [{o['id']}] → Produkt [{pid}] (pewność: {confidence:.0%})")
+            print(f"  [LINK] Oferta [{o['id']}] → Produkt [{pid}] (pewność: {confidence:.0%})")
 
     if not dry_run and stats['oferty_linked'] > 0:
         conn.commit()
@@ -3782,7 +3782,7 @@ def sync_returns(month=None):
     if not month:
         month = date.today().strftime('%Y-%m')
     
-    print(f"🔄 Sprawdzam zwroty za {month}...")
+    print(f"[SYNC] Sprawdzam zwroty za {month}...")
     
     conn = get_db()
     
@@ -3797,7 +3797,7 @@ def sync_returns(month=None):
         WHERE status = 'zwrot' AND strftime('%Y-%m', data_sprzedazy) = ?
     ''', (month,)).fetchone()['cnt']
     
-    print(f"📊 W bazie: {total_orders} zamówień, {already_zwrot} już zwrotów")
+    print(f"[BAR_] W bazie: {total_orders} zamówień, {already_zwrot} już zwrotów")
     
     updated = 0
     from_date = f"{month}-01T00:00:00Z"
@@ -3806,7 +3806,7 @@ def sync_returns(month=None):
     refunded_order_ids = set()
     
     # METODA 1: /payments/refunds - tu jest 'order' z 'id'
-    print(f"📥 Pobieram payments/refunds...")
+    print(f"[DOWN] Pobieram payments/refunds...")
     
     refunds_data, error = allegro_request('GET', '/payments/refunds', params={
         'occurredAt.gte': from_date,
@@ -3814,10 +3814,10 @@ def sync_returns(month=None):
     })
     
     if error:
-        print(f"   ⚠️ Błąd payments/refunds: {error}")
+        print(f"   [WARN] Błąd payments/refunds: {error}")
     elif refunds_data:
         refunds_list = refunds_data.get('refunds', [])
-        print(f"   📋 Znaleziono {len(refunds_list)} refundów")
+        print(f"   [ASSI] Znaleziono {len(refunds_list)} refundów")
         
         for i, ref in enumerate(refunds_list):
             # Klucz 'order' zawiera dane zamówienia
@@ -3837,7 +3837,7 @@ def sync_returns(month=None):
                     refunded_order_ids.add(checkout_id)
     
     # METODA 2: /order/refund-claims - tu jest 'lineItem' (pojedynczo!)
-    print(f"📥 Pobieram refund-claims...")
+    print(f"[DOWN] Pobieram refund-claims...")
     
     claims_data, error2 = allegro_request('GET', '/order/refund-claims', params={
         'createdAt.gte': from_date,
@@ -3845,10 +3845,10 @@ def sync_returns(month=None):
     })
     
     if error2:
-        print(f"   ⚠️ Błąd refund-claims: {error2}")
+        print(f"   [WARN] Błąd refund-claims: {error2}")
     elif claims_data:
         claims_list = claims_data.get('refundClaims', [])
-        print(f"   📋 Znaleziono {len(claims_list)} refund claims")
+        print(f"   [ASSI] Znaleziono {len(claims_list)} refund claims")
         
         for i, claim in enumerate(claims_list):
             # 'lineItem' (pojedynczo) zawiera checkoutForm
@@ -3862,7 +3862,7 @@ def sync_returns(month=None):
             if checkout_id:
                 refunded_order_ids.add(checkout_id)
     
-    print(f"📊 Unikalne order_id ze zwrotów: {len(refunded_order_ids)}")
+    print(f"[BAR_] Unikalne order_id ze zwrotów: {len(refunded_order_ids)}")
     
     # Teraz zaktualizuj w bazie — COMMIT po każdym uaktualnieniu
     # (żeby nie stracić danych przy restarcie/wgrywaniu nowej wersji)
@@ -3888,9 +3888,9 @@ def sync_returns(month=None):
                     (order_id,)
                 ).fetchone()
                 if info:
-                    print(f"   ✅ Zwrot: {info['kupujacy']}")
+                    print(f"   [OK] Zwrot: {info['kupujacy']}")
     
-    print(f"✅ Oznaczono {updated} zwrotów za {month}")
+    print(f"[OK] Oznaczono {updated} zwrotów za {month}")
     return updated, None
 
 
@@ -3958,22 +3958,22 @@ def index():
     <!-- KPI -->
     <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
         <div class="kpi-card purple">
-            <div class="kpi-icon" style="background:var(--accent-soft)">📦</div>
+            <div class="kpi-icon" style="background:var(--accent-soft)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span></div>
             <div class="kpi-value">{cnt_orders_today}</div>
             <div class="kpi-label">Dzisiaj</div>
         </div>
         <div class="kpi-card green">
-            <div class="kpi-icon" style="background:var(--green-soft)">📋</div>
+            <div class="kpi-icon" style="background:var(--green-soft)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">assignment</span></div>
             <div class="kpi-value">{cnt_orders_month}</div>
             <div class="kpi-label">Ten miesiac</div>
         </div>
         <div class="kpi-card blue">
-            <div class="kpi-icon" style="background:var(--blue-soft)">📝</div>
+            <div class="kpi-icon" style="background:var(--blue-soft)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">edit_note</span></div>
             <div class="kpi-value">{cnt_offers}</div>
             <div class="kpi-label">Aktywne oferty</div>
         </div>
         <div class="kpi-card orange">
-            <div class="kpi-icon" style="background:var(--yellow-soft)">💰</div>
+            <div class="kpi-icon" style="background:var(--yellow-soft)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">payments</span></div>
             <div class="kpi-value">{revenue_month:,.0f} zl</div>
             <div class="kpi-label">Przychod</div>
         </div>
@@ -3986,7 +3986,7 @@ def index():
             html += f'''
             <div class="card" style="margin-bottom:20px">
                 <div style="display:flex;align-items:center;gap:14px">
-                    <div style="width:48px;height:48px;background:linear-gradient(135deg,#ff5a00,#ff8c42);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#fff">👤</div>
+                    <div style="width:48px;height:48px;background:linear-gradient(135deg,#ff5a00,#ff8c42);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#fff"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">person</span></div>
                     <div>
                         <div style="font-weight:700;font-size:1rem">{user_info.get('login', 'Uzytkownik')}</div>
                         <div style="font-size:0.78rem;color:var(--text-muted)">Zalogowano do Allegro</div>
@@ -3999,19 +3999,19 @@ def index():
         <div class="section-title">Akcje</div>
         <div class="quick-actions" style="margin-bottom:20px">
             <a href="/allegro/zamowienia" class="qa-btn">
-                <div class="qa-icon" style="background:var(--green-soft)">📦</div>Zamowienia
+                <div class="qa-icon" style="background:var(--green-soft)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span></div>Zamowienia
             </a>
             <a href="/allegro/oferty" class="qa-btn">
-                <div class="qa-icon" style="background:var(--blue-soft)">📝</div>Moje oferty
+                <div class="qa-icon" style="background:var(--blue-soft)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">edit_note</span></div>Moje oferty
             </a>
             <a href="/allegro/sync" class="qa-btn">
-                <div class="qa-icon" style="background:var(--accent-soft)">🔄</div>Synchronizuj
+                <div class="qa-icon" style="background:var(--accent-soft)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span></div>Synchronizuj
             </a>
             <a href="/allegro/config" class="qa-btn">
-                <div class="qa-icon" style="background:var(--yellow-soft)">⚙️</div>Ustawienia
+                <div class="qa-icon" style="background:var(--yellow-soft)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">settings</span></div>Ustawienia
             </a>
             <a href="/allegro/backfill-link" class="qa-btn">
-                <div class="qa-icon" style="background:var(--accent-soft)">🔗</div>Polacz sprzedaze
+                <div class="qa-icon" style="background:var(--accent-soft)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">link</span></div>Polacz sprzedaze
             </a>
         </div>
         '''
@@ -4022,7 +4022,7 @@ def index():
             html += '''
             <div class="card" style="border-color:rgba(34,197,94,0.3)">
                 <div style="display:flex;align-items:center;gap:12px">
-                    <div style="width:42px;height:42px;border-radius:12px;background:var(--green-soft);display:flex;align-items:center;justify-content:center;font-size:1.2rem">🔄</div>
+                    <div style="width:42px;height:42px;border-radius:12px;background:var(--green-soft);display:flex;align-items:center;justify-content:center;font-size:1.2rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span></div>
                     <div>
                         <div style="font-weight:600;color:var(--green)">Auto-sync aktywny</div>
                         <div style="font-size:0.75rem;color:var(--text-muted)">Sprawdzam zamowienia co 5 min</div>
@@ -4033,26 +4033,26 @@ def index():
 
         html += '''
         <form action="/allegro/logout" method="POST" style="margin-top:16px">
-            <button type="submit" class="btn btn-secondary" style="color:var(--red)">🚪 Wyloguj</button>
+            <button type="submit" class="btn btn-secondary" style="color:var(--red)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">logout</span> Wyloguj</button>
         </form>
         '''
     elif configured:
         html += '''
         <div class="card">
-            <div class="card-header"><div class="card-title">🔐 Autoryzacja wymagana</div></div>
+            <div class="card-header"><div class="card-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">enhanced_encryption</span> Autoryzacja wymagana</div></div>
             <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:15px">Kliknij aby zalogowac sie do Allegro.</p>
-            <a href="/allegro/auth" class="btn btn-primary">🔑 Zaloguj do Allegro</a>
+            <a href="/allegro/auth" class="btn btn-primary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">key</span> Zaloguj do Allegro</a>
         </div>
-        <a href="/allegro/config" class="btn btn-secondary">⚙️ Zmien konfiguracje</a>
+        <a href="/allegro/config" class="btn btn-secondary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">settings</span> Zmien konfiguracje</a>
         '''
     else:
         html += '''
         <div class="card">
-            <div class="card-header"><div class="card-title">⚙️ Konfiguracja</div></div>
+            <div class="card-header"><div class="card-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">settings</span> Konfiguracja</div></div>
             <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:15px">
                 Potrzebujesz Client ID i Secret z <a href="https://apps.developer.allegro.pl" target="_blank" style="color:var(--accent)">apps.developer.allegro.pl</a>
             </p>
-            <a href="/allegro/config" class="btn btn-primary">⚙️ Konfiguruj</a>
+            <a href="/allegro/config" class="btn btn-primary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">settings</span> Konfiguruj</a>
         </div>
         '''
 
@@ -4112,7 +4112,7 @@ def config():
     html = f'''
     <form method="POST">
     <div class="card">
-        <div class="card-header"><div class="card-title">🔑 Dane API</div></div>
+        <div class="card-header"><div class="card-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">key</span> Dane API</div></div>
         <div class="form-group">
             <label>Client ID</label>
             <input type="text" name="client_id" class="form-control" value="{cfg['client_id']}" placeholder="Twoj Client ID">
@@ -4126,15 +4126,15 @@ def config():
             <input type="text" name="redirect_uri" class="form-control" value="{cfg['redirect_uri']}">
         </div>
         <div class="toggle-row">
-            <span>🧪 Tryb Sandbox</span>
+            <span><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">science</span> Tryb Sandbox</span>
             <input type="checkbox" name="sandbox" {sandbox_checked}>
         </div>
     </div>
 
     <div class="card">
-        <div class="card-header"><div class="card-title">🔄 Auto-synchronizacja zamowien</div></div>
+        <div class="card-header"><div class="card-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span> Auto-synchronizacja zamowien</div></div>
         <div class="toggle-row">
-            <span>📱 Automatyczna synchronizacja co 5 min</span>
+            <span><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smartphone</span> Automatyczna synchronizacja co 5 min</span>
             <input type="checkbox" name="autosync" {autosync_checked}>
         </div>
         <p style="font-size:0.75rem;color:var(--text-muted);margin-top:10px">
@@ -4143,7 +4143,7 @@ def config():
     </div>
 
     <div class="card">
-        <div class="card-header"><div class="card-title">📦 Wysylka i lokalizacja</div></div>
+        <div class="card-header"><div class="card-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> Wysylka i lokalizacja</div></div>
         <div class="form-group">
             <label>Cennik wysylki</label>
             {'<select name="shipping_id" class="form-control"><option value="">-- Wybierz --</option>' + shipping_options + '</select>' if shipping_options else '<input type="text" name="shipping_id" class="form-control" value="' + shipping_id + '" placeholder="ID cennika (zaloguj sie aby pobrac liste)">'}
@@ -4179,7 +4179,7 @@ def config():
         </div>
     </div>
 
-    <button type="submit" class="btn btn-primary">💾 Zapisz</button>
+    <button type="submit" class="btn btn-primary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">save</span> Zapisz</button>
     </form>
     '''
 
@@ -4187,7 +4187,7 @@ def config():
     img_stats = get_images_stats()
     html += f'''
     <div class="card" style="margin-top:20px">
-        <div class="card-header"><div class="card-title">📷 Zarzadzanie zdjeciami</div></div>
+        <div class="card-header"><div class="card-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">photo_camera</span> Zarzadzanie zdjeciami</div></div>
         <div class="stat-row" style="grid-template-columns:1fr 1fr;margin-bottom:14px">
             <div class="stat-box">
                 <div class="stat-val blue">{img_stats['count']}</div>
@@ -4199,7 +4199,7 @@ def config():
             </div>
         </div>
         <a href="/allegro/cleanup-images" class="btn btn-secondary" onclick="return confirm('Usunac zdjecia starsze niz 7 dni?')">
-            🗑️ Wyczysc stare zdjecia (7+ dni)
+            <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">delete</span> Wyczysc stare zdjecia (7+ dni)
         </a>
         <div style="margin-top:8px;font-size:0.75rem;color:var(--text-muted)">
             Usuwa tylko zdjecia starsze niz 7 dni.
@@ -4230,7 +4230,7 @@ def cleanup_images_route():
 
         <div style="display:flex;gap:10px;margin-top:15px">
             <a href="/allegro/cleanup-images-all" class="btn btn-danger" onclick="return confirm('UWAGA!\\n\\nTo usunie WSZYSTKIE zdjecia ({stats['count']} plikow).\\n\\nOferty na Allegro NIE STRACA zdjec (sa juz na serwerach Allegro).\\n\\nKontynuowac?')" style="flex:1">
-                🗑️ Wyczysc WSZYSTKIE ({stats['count']})
+                <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">delete</span> Wyczysc WSZYSTKIE ({stats['count']})
             </a>
             <a href="/allegro/config" class="btn btn-secondary" style="flex:1">← Powrot</a>
         </div>
@@ -4318,7 +4318,7 @@ def check_auth():
     if is_authenticated():
         return render('''
             <div class="alert alert-success">Jestes zalogowany do Allegro!</div>
-            <a href="/allegro" class="btn btn-primary">🛒 Przejdz do Allegro</a>
+            <a href="/allegro" class="btn btn-primary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">shopping_cart</span> Przejdz do Allegro</a>
         ''', 'Polaczono')
     else:
         return redirect('/allegro/auth')
@@ -4347,7 +4347,7 @@ def callback():
     if not code:
         return render('''
             <div class="alert alert-error">Brak kodu autoryzacji</div>
-            <a href="/allegro/auth" class="btn btn-primary">🔑 Sprobuj ponownie</a>
+            <a href="/allegro/auth" class="btn btn-primary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">key</span> Sprobuj ponownie</a>
         ''', 'Blad')
 
     # Sprawdź state (ochrona przed CSRF)
@@ -4355,7 +4355,7 @@ def callback():
     if state and saved_state and state != saved_state:
         return render('''
             <div class="alert alert-error">Nieprawidlowy state - mozliwa proba ataku CSRF</div>
-            <a href="/allegro/auth" class="btn btn-primary">🔑 Sprobuj ponownie</a>
+            <a href="/allegro/auth" class="btn btn-primary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">key</span> Sprobuj ponownie</a>
         ''', 'Blad bezpieczenstwa')
 
     # Wymień kod na token
@@ -4399,8 +4399,8 @@ def callback():
             return render('''
                 <div class="alert alert-success">Pomyslnie polaczono z Allegro!</div>
                 <p style="color:var(--text-muted);text-align:center;margin:15px 0">Teraz wybierz cennik wysylki w ustawieniach.</p>
-                <a href="/allegro/config" class="btn btn-success">⚙️ Wybierz cennik wysylki</a>
-                <a href="/allegro" class="btn btn-secondary">🛒 Przejdz do Allegro</a>
+                <a href="/allegro/config" class="btn btn-success"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">settings</span> Wybierz cennik wysylki</a>
+                <a href="/allegro" class="btn btn-secondary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">shopping_cart</span> Przejdz do Allegro</a>
             ''', 'Sukces')
         else:
             try:
@@ -4411,7 +4411,7 @@ def callback():
 
             return render(f'''
                 <div class="alert alert-error">{err_msg}</div>
-                <a href="/allegro/auth" class="btn btn-primary">🔑 Sprobuj ponownie</a>
+                <a href="/allegro/auth" class="btn btn-primary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">key</span> Sprobuj ponownie</a>
             ''', 'Blad tokenu')
 
     except Exception as e:
@@ -4448,7 +4448,7 @@ def zamowienia():
             html += f'''
             <a href="/allegro/zamowienie/{order['id']}" class="list-item">
                 <div class="list-item-info">
-                    <div class="list-item-title">👤 {buyer}</div>
+                    <div class="list-item-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">person</span> {buyer}</div>
                     <div class="list-item-meta">{len(order.get('lineItems', []))} prod.</div>
                 </div>
                 <div class="list-item-right">
@@ -4474,12 +4474,12 @@ def zamowienie_detail(order_id):
 
     html = f'''
     <div class="card">
-        <div class="card-header"><div class="card-title">👤 Kupujacy</div></div>
+        <div class="card-header"><div class="card-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">person</span> Kupujacy</div></div>
         <div style="font-weight:600">{buyer.get('login', 'N/A')}</div>
         <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">ID: {order_id[:20]}...</div>
     </div>
     <div class="card">
-        <div class="card-header"><div class="card-title">📍 Adres dostawy</div></div>
+        <div class="card-header"><div class="card-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">location_on</span> Adres dostawy</div></div>
         <div style="font-size:0.85rem;color:var(--text-secondary)">
             {delivery.get('firstName', '')} {delivery.get('lastName', '')}<br>
             {delivery.get('street', '')}<br>
@@ -4577,7 +4577,7 @@ def sync():
                 <small style="color:var(--text-muted)">Wszystkie zamowienia sa juz zsynchronizowane</small>
             </div>'''
 
-    html += '<a href="/allegro/zamowienia" class="btn btn-primary" style="margin-top:16px">📦 Zamowienia</a><a href="/allegro" class="back">← Powrot</a>'
+    html += '<a href="/allegro/zamowienia" class="btn btn-primary" style="margin-top:16px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> Zamowienia</a><a href="/allegro" class="back">← Powrot</a>'
     return render(html, 'Synchronizacja')
 
 
@@ -4607,22 +4607,22 @@ def backfill_link_route():
     html = f'''
     <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr)">
         <div class="kpi-card blue">
-            <div class="kpi-icon" style="background:var(--blue-soft)">🔗</div>
+            <div class="kpi-icon" style="background:var(--blue-soft)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">link</span></div>
             <div class="kpi-value">{stats['oferty_linked']}</div>
             <div class="kpi-label">Ofert polaczonych z produktami</div>
         </div>
         <div class="kpi-card green">
-            <div class="kpi-icon" style="background:var(--green-soft)">💰</div>
+            <div class="kpi-icon" style="background:var(--green-soft)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">payments</span></div>
             <div class="kpi-value">{total_linked}</div>
             <div class="kpi-label">Sprzedazy polaczonych z produktami</div>
         </div>
         <div class="kpi-card orange">
-            <div class="kpi-icon" style="background:var(--yellow-soft)">⚠️</div>
+            <div class="kpi-icon" style="background:var(--yellow-soft)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span></div>
             <div class="kpi-value">{stats['sprzedaze_still_unlinked']}</div>
             <div class="kpi-label">Nadal bez produktu</div>
         </div>
         <div class="kpi-card purple">
-            <div class="kpi-icon" style="background:var(--accent-soft)">📊</div>
+            <div class="kpi-icon" style="background:var(--accent-soft)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span></div>
             <div class="kpi-value">{stats['sprzedaze_total_unlinked']}</div>
             <div class="kpi-label">Bylo niepolaczonych</div>
         </div>
@@ -4638,12 +4638,12 @@ def backfill_link_route():
     if stats['sprzedaze_still_unlinked'] > 0:
         html += f'''
         <a href="/allegro/polacz-sprzedaze" class="btn btn-secondary" style="margin-bottom:10px">
-            ✏️ Reczne laczenie ({stats['sprzedaze_still_unlinked']} szt)
+            <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">edit</span> Reczne laczenie ({stats['sprzedaze_still_unlinked']} szt)
         </a>
         '''
 
     html += '''
-    <a href="/allegro/backfill-link" class="btn btn-secondary">🔄 Uruchom ponownie</a>
+    <a href="/allegro/backfill-link" class="btn btn-secondary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span> Uruchom ponownie</a>
     <a href="/allegro" class="back">← Powrot</a>
     '''
     return render(html, 'Laczenie sprzedazy')
@@ -4719,10 +4719,10 @@ def polacz_sprzedaze():
 
     html += '''
         <button type="submit" class="btn btn-success" style="margin-top:15px">
-            💾 Zapisz polaczenia
+            <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">save</span> Zapisz polaczenia
         </button>
     </form>
-    <a href="/allegro/backfill-link" class="btn btn-secondary" style="margin-top:10px">🤖 Auto-matching</a>
+    <a href="/allegro/backfill-link" class="btn btn-secondary" style="margin-top:10px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smart_toy</span> Auto-matching</a>
     <a href="/allegro" class="back">← Powrot</a>
     '''
     return render(html, 'Reczne laczenie')
@@ -4756,7 +4756,7 @@ def polacz_sprzedaze_zapisz():
 
     html = f'''
     <div class="alert alert-success">Polaczono {linked} sprzedazy z produktami</div>
-    <a href="/allegro/polacz-sprzedaze" class="btn btn-secondary">✏️ Kontynuuj laczenie</a>
+    <a href="/allegro/polacz-sprzedaze" class="btn btn-secondary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">edit</span> Kontynuuj laczenie</a>
     <a href="/allegro" class="back">← Powrot</a>
     '''
     return render(html, 'Zapisano')
@@ -4773,7 +4773,7 @@ def api_status():
 
 def get_shipment_methods(order_id):
     """Pobiera istniejące przesyłki dla zamówienia"""
-    print(f"📦 Pobieranie przesyłek dla zamówienia: {order_id}")
+    print(f"[INVE] Pobieranie przesyłek dla zamówienia: {order_id}")
     result, error = allegro_request('GET', f'/order/checkout-forms/{order_id}/shipments')
     print(f"   → Wynik: {result}")
     print(f"   → Błąd: {error}")
@@ -4785,7 +4785,7 @@ def get_wysylam_z_allegro_shipments(order_id):
     Pobiera przesyłki 'Wysyłam z Allegro' dla zamówienia.
     Używa endpointu shipment-management.
     """
-    print(f"📦 Pobieranie przesyłek 'Wysyłam z Allegro' dla: {order_id}")
+    print(f"[INVE] Pobieranie przesyłek 'Wysyłam z Allegro' dla: {order_id}")
     
     # Pobierz przesyłki z shipment-management (próbuj oba formaty parametru)
     result, error = allegro_request('GET', '/shipment-management/shipments', params={
@@ -4809,7 +4809,7 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
     parcel_size: 'A', 'B', 'C' for InPost
     dimensions: {'length': cm, 'width': cm, 'height': cm, 'weight_kg': kg} for courier
     """
-    print(f"📦 Tworzenie przesyłki (Wysyłam z Allegro) dla: {order_id}")
+    print(f"[INVE] Tworzenie przesyłki (Wysyłam z Allegro) dla: {order_id}")
 
     # ── Stałe cenników i warunków ──
     CREDENTIALS_DPD = 'bf1a1cf0-6a1e-41b3-a42e-d46846b35f43'
@@ -4970,8 +4970,8 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         shipment_input['sender']['point'] = sender_point
         print(f"   → Nadanie z paczkomatu: {sender_point} (sendingAtPoint)")
 
-    print(f"   → 📬 SENDER PAYLOAD: {shipment_input['sender']}")
-    print(f"   → 📬 RECEIVER PAYLOAD: {shipment_input.get('receiver', 'BRAK!')}")
+    print(f"   → [MAIL] SENDER PAYLOAD: {shipment_input['sender']}")
+    print(f"   → [MAIL] RECEIVER PAYLOAD: {shipment_input.get('receiver', 'BRAK!')}")
 
     payload = {
         'commandId': command_id,
@@ -5038,12 +5038,12 @@ def get_shipment_label(order_id):
                 print(f"   → HTTP Status: {response.status_code}")
 
                 if response.status_code == 200:
-                    print(f"   → ✅ Etykieta pobrana! Rozmiar: {len(response.content)} bytes")
+                    print(f"   → [OK] Etykieta pobrana! Rozmiar: {len(response.content)} bytes")
                     return response.content, shipment_id, None
                 else:
-                    print(f"   → ❌ Błąd: {response.text[:200]}")
+                    print(f"   → [ERR] Błąd: {response.text[:200]}")
             except Exception as e:
-                print(f"   → ❌ Wyjątek: {e}")
+                print(f"   → [ERR] Wyjątek: {e}")
     
     # METODA 2: Sprawdź standardowe API (checkout-forms shipments)
     result, error = get_shipment_methods(order_id)
@@ -5078,13 +5078,13 @@ def get_shipment_label(order_id):
         print(f"   → HTTP Status: {response.status_code}")
 
         if response.status_code == 200:
-            print(f"   → ✅ Etykieta pobrana! Rozmiar: {len(response.content)} bytes")
+            print(f"   → [OK] Etykieta pobrana! Rozmiar: {len(response.content)} bytes")
             return response.content, shipment_id, None
         else:
-            print(f"   → ❌ Błąd: {response.text[:200]}")
+            print(f"   → [ERR] Błąd: {response.text[:200]}")
             return None, shipment_id, f"Błąd pobierania etykiety: HTTP {response.status_code}"
     except Exception as e:
-        print(f"   → ❌ Wyjątek: {e}")
+        print(f"   → [ERR] Wyjątek: {e}")
         return None, shipment_id, f"Wyjątek: {e}"
 
 
@@ -5101,7 +5101,7 @@ def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=
     
     if error == "BRAK_PRZESYLKI":
         # Utwórz nową przesyłkę
-        print(f"📦 Brak przesyłki - tworzę nową...")
+        print(f"[INVE] Brak przesyłki - tworzę nową...")
         
         # Pobierz dane zamówienia dla referencji (lokalizacja + nazwa produktu)
         order, ord_err = get_order_details(order_id)
@@ -5143,7 +5143,7 @@ def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=
         
         if result:
             command_id = result.get('commandId') or result.get('id')
-            print(f"   → ✅ Command utworzony: {command_id}")
+            print(f"   → [OK] Command utworzony: {command_id}")
 
             # Polluj status komendy - Allegro create jest asynchroniczne
             import time
@@ -5157,11 +5157,11 @@ def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=
                     print(f"   → Command status: {cmd_status}")
                     if cmd_status == 'SUCCESS':
                         shipment_id = cmd_result.get('shipmentId') or cmd_result.get('output', {}).get('shipmentId')
-                        print(f"   → ✅ Shipment ID: {shipment_id}")
+                        print(f"   → [OK] Shipment ID: {shipment_id}")
                         break
                     elif cmd_status in ('ERROR', 'FAILED'):
                         err_msg = cmd_result.get('errors', [{}])[0].get('message', '') if cmd_result.get('errors') else str(cmd_result)
-                        print(f"   → ❌ Command failed: {err_msg}")
+                        print(f"   → [ERR] Command failed: {err_msg}")
                         return None, None, f"Allegro odrzuciło przesyłkę: {err_msg}"
                     # IN_PROGRESS - kontynuuj polling
                 elif cmd_err:
@@ -5177,7 +5177,7 @@ def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=
                 print(f"   → Pobieranie etykiety (attempt {label_attempt+1}/5)...")
                 label, shipment_id2, error = get_shipment_label(order_id)
                 if label:
-                    print(f"   → ✅ Etykieta pobrana!")
+                    print(f"   → [OK] Etykieta pobrana!")
                     return label, shipment_id2 or shipment_id, None
                 if error and error != "BRAK_PRZESYLKI" and '404' not in str(error):
                     return None, shipment_id, f"Przesyłka utworzona ({shipment_id}), etykieta: {error}"

@@ -17,14 +17,14 @@ from .utils import (
 try:
     from .magazynier import magazynier_bp, get_stats as mag_stats
 except ImportError as e:
-    print(f"⚠️ magazynier: {e}")
+    print(f"[WARN] magazynier: {e}")
     magazynier_bp = None
     mag_stats = lambda: {}
 
 try:
     from .paletomat import paletomat_bp, get_stats as pal_stats
 except ImportError as e:
-    print(f"⚠️ paletomat: {e}")
+    print(f"[WARN] paletomat: {e}")
     paletomat_bp = None
     pal_stats = lambda: {}
 
@@ -41,7 +41,7 @@ try:
         raport_dzienny
     )
 except ImportError as e:
-    print(f"⚠️ telegram_bot: {e}")
+    print(f"[WARN] telegram_bot: {e}")
     telegram_bp = None
     send_telegram = lambda *a, **k: None
     bot_status = lambda: {'running': False}
@@ -61,7 +61,7 @@ try:
         extract_parameters_with_ai
     )
 except ImportError as e:
-    print(f"⚠️ allegro_api: {e}")
+    print(f"[WARN] allegro_api: {e}")
     allegro_bp = None
     allegro_configured = allegro_authenticated = lambda: False
     allegro_sync = lambda *a, **k: (0, None)
@@ -83,7 +83,7 @@ try:
         IMAGING_AVAILABLE
     )
 except ImportError as e:
-    print(f"⚠️ printer_manager: {e}")
+    print(f"[WARN] printer_manager: {e}")
     PrinterManager = ProductLabel = LabelConfig = None
     print_product_label_sync = generate_label_preview_sync = scan_printers_sync = lambda *a, **k: None
     get_printer_manager = lambda: None
@@ -98,14 +98,14 @@ try:
         sync_orders_with_stock
     )
 except ImportError as e:
-    print(f"⚠️ inventory_utils: {e}")
+    print(f"[WARN] inventory_utils: {e}")
     SmartQuantityParser = None
     import_excel_manifest = update_stock_on_sale = sync_orders_with_stock = lambda *a, **k: None
 
 try:
     from .magazynier_extensions import register_printer_routes
 except ImportError as e:
-    print(f"⚠️ magazynier_extensions: {e}")
+    print(f"[WARN] magazynier_extensions: {e}")
     register_printer_routes = lambda *a, **k: None
 
 __all__ = [

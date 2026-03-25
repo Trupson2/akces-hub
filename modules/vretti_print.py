@@ -14,7 +14,7 @@ def test_print():
     Testowe drukowanie na drukarce Vretti 420B
     """
     print("\n" + "="*60)
-    print("🖨️  TEST DRUKARKI VRETTI 420B (USB)")
+    print("[PRIN]  TEST DRUKARKI VRETTI 420B (USB)")
     print("="*60)
     
     try:
@@ -22,23 +22,23 @@ def test_print():
         try:
             import usb.core
             import usb.util
-            print("✅ Moduł pyusb zainstalowany")
+            print("[OK] Moduł pyusb zainstalowany")
         except ImportError:
-            print("⚠️  Moduł pyusb NIE jest zainstalowany")
-            print("💡 Zainstaluj: pip install pyusb --break-system-packages")
+            print("[WARN]  Moduł pyusb NIE jest zainstalowany")
+            print("[LIGH] Zainstaluj: pip install pyusb --break-system-packages")
             return False
         
         # Sprawdź czy PIL/Pillow jest dostępny
         try:
             from PIL import Image
-            print("✅ Moduł Pillow zainstalowany")
+            print("[OK] Moduł Pillow zainstalowany")
         except ImportError:
-            print("⚠️  Moduł Pillow NIE jest zainstalowany")
-            print("💡 Zainstaluj: pip install pillow --break-system-packages")
+            print("[WARN]  Moduł Pillow NIE jest zainstalowany")
+            print("[LIGH] Zainstaluj: pip install pillow --break-system-packages")
             return False
         
         # Spróbuj znaleźć drukarkę
-        print("\n🔍 Szukam drukarki Vretti 420B...")
+        print("\n[SEAR] Szukam drukarki Vretti 420B...")
         
         # Vretti 420B używa standardowego protokołu ESC/POS
         # Vendor ID i Product ID mogą się różnić - to przykładowe wartości
@@ -48,20 +48,20 @@ def test_print():
         device = usb.core.find(idVendor=VENDOR_ID, idProduct=PRODUCT_ID)
         
         if device is None:
-            print("⚠️  Drukarka nie została znaleziona przez USB")
-            print("💡 Sprawdź czy drukarka jest podłączona i włączona")
-            print("💡 Na Windows może być potrzebny driver libusb")
+            print("[WARN]  Drukarka nie została znaleziona przez USB")
+            print("[LIGH] Sprawdź czy drukarka jest podłączona i włączona")
+            print("[LIGH] Na Windows może być potrzebny driver libusb")
         else:
-            print(f"✅ Znaleziono urządzenie USB: {device}")
+            print(f"[OK] Znaleziono urządzenie USB: {device}")
         
-        print("\n📋 Test został zakończony pomyślnie!")
-        print("🔧 Drukarka Vretti 420B gotowa do użycia")
+        print("\n[ASSI] Test został zakończony pomyślnie!")
+        print("[BUIL] Drukarka Vretti 420B gotowa do użycia")
         print("="*60 + "\n")
         
         return True
         
     except Exception as e:
-        print(f"\n❌ Błąd testu: {e}")
+        print(f"\n[ERR] Błąd testu: {e}")
         traceback.print_exc()
         print("="*60 + "\n")
         return False
@@ -75,7 +75,7 @@ def print_vretti_usb(produkt):
         produkt: Row object z bazy danych zawierający dane produktu
     """
     print("\n" + "="*60)
-    print(f"🖨️  DRUKOWANIE: {produkt['nazwa'][:50]}")
+    print(f"[PRIN]  DRUKOWANIE: {produkt['nazwa'][:50]}")
     print("="*60)
     
     try:
@@ -85,8 +85,8 @@ def print_vretti_usb(produkt):
             import usb.util
             from PIL import Image, ImageDraw, ImageFont
         except ImportError as e:
-            print(f"⚠️  Brak wymaganych modułów: {e}")
-            print("💡 Zainstaluj: pip install pyusb pillow --break-system-packages")
+            print(f"[WARN]  Brak wymaganych modułów: {e}")
+            print("[LIGH] Zainstaluj: pip install pyusb pillow --break-system-packages")
             return False
         
         # Przygotuj dane do druku
@@ -103,9 +103,9 @@ def print_vretti_usb(produkt):
         except (KeyError, IndexError):
             cena = '0.00'
         
-        print(f"📦 SKU: {sku}")
-        print(f"💰 Cena: {cena} PLN")
-        print(f"📅 Data: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        print(f"[INVE] SKU: {sku}")
+        print(f"[PAYM] Cena: {cena} PLN")
+        print(f"[TODA] Data: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
         
         # TODO: Implementacja faktycznego drukowania przez USB
         # Vretti 420B używa protokołu ESC/POS
@@ -113,15 +113,15 @@ def print_vretti_usb(produkt):
         # - ESC @ (0x1B 0x40) - inicjalizacja drukarki
         # - GS V (0x1D 0x56) - cięcie papieru
         
-        print("\n✅ Etykieta przygotowana do druku")
-        print("🔧 Łączenie z drukarką Vretti 420B przez USB...")
-        print("💡 UWAGA: Implementacja faktycznego drukowania wymaga aktywnej drukarki")
+        print("\n[OK] Etykieta przygotowana do druku")
+        print("[BUIL] Łączenie z drukarką Vretti 420B przez USB...")
+        print("[LIGH] UWAGA: Implementacja faktycznego drukowania wymaga aktywnej drukarki")
         print("="*60 + "\n")
         
         return True
         
     except Exception as e:
-        print(f"\n❌ Błąd drukowania: {e}")
+        print(f"\n[ERR] Błąd drukowania: {e}")
         traceback.print_exc()
         print("="*60 + "\n")
         return False
@@ -134,7 +134,7 @@ def print_label(data):
     Args:
         data: Dict z danymi etykiety (nazwa, sku, cena, etc.)
     """
-    print("\n🖨️  Drukowanie etykiety Vretti 420B...")
+    print("\n[PRIN]  Drukowanie etykiety Vretti 420B...")
     print(f"Nazwa: {data.get('nazwa', 'N/A')}")
     print(f"SKU: {data.get('sku', 'N/A')}")
     print(f"Cena: {data.get('cena', 'N/A')} PLN")
@@ -155,7 +155,7 @@ def send_esc_pos_command(device, command):
         endpoint.write(command)
         return True
     except Exception as e:
-        print(f"❌ Błąd wysyłania komendy: {e}")
+        print(f"[ERR] Błąd wysyłania komendy: {e}")
         return False
 
 

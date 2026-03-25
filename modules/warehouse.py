@@ -26,21 +26,21 @@ def save_warehouse_layout():
         layout = request.json
 
         print("=" * 60)
-        print("📥 SAVE LAYOUT REQUEST")
+        print("[DOWN] SAVE LAYOUT REQUEST")
         print(f"Received data: {layout is not None}")
 
         # Validate
         if not layout or 'shelves' not in layout:
-            print("❌ Invalid layout - missing shelves")
+            print("[ERR] Invalid layout - missing shelves")
             return jsonify({'error': 'Invalid layout'}), 400
 
-        print(f"✅ Valid layout with {len(layout['shelves'])} shelves")
+        print(f"[OK] Valid layout with {len(layout['shelves'])} shelves")
 
         # Save to file - ABSOLUTE PATH
         app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         layout_path = os.path.join(app_dir, 'warehouse_layout.json')
 
-        print(f"📁 Saving to: {layout_path}")
+        print(f"[FOLD] Saving to: {layout_path}")
 
         with open(layout_path, 'w', encoding='utf-8') as f:
             json.dump(layout, f, indent=2, ensure_ascii=False)
@@ -48,9 +48,9 @@ def save_warehouse_layout():
         # Verify file exists
         if os.path.exists(layout_path):
             file_size = os.path.getsize(layout_path)
-            print(f"✅ File saved successfully! Size: {file_size} bytes")
+            print(f"[OK] File saved successfully! Size: {file_size} bytes")
         else:
-            print("❌ File NOT saved!")
+            print("[ERR] File NOT saved!")
             return jsonify({'error': 'File save failed'}), 500
 
         print("=" * 60)
@@ -63,7 +63,7 @@ def save_warehouse_layout():
         })
 
     except Exception as e:
-        print(f"❌ ERROR: {str(e)}")
+        print(f"[ERR] ERROR: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
@@ -746,7 +746,7 @@ def api_warehouse_heatmap():
         data = get_heatmap_data()
         return jsonify(data)
     except Exception as e:
-        print(f"❌ Error getting heatmap data: {e}")
+        print(f"[ERR] Error getting heatmap data: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -773,7 +773,7 @@ def api_warehouse_locations():
             ]
         })
     except Exception as e:
-        print(f"❌ Error getting locations: {e}")
+        print(f"[ERR] Error getting locations: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -789,7 +789,7 @@ def api_warehouse_location_details(location_code):
 
         return jsonify(details)
     except Exception as e:
-        print(f"❌ Error getting location details: {e}")
+        print(f"[ERR] Error getting location details: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -821,7 +821,7 @@ def api_warehouse_assign_product():
             return jsonify({'success': False, 'error': 'Failed to assign product'}), 500
 
     except Exception as e:
-        print(f"❌ Error assigning product: {e}")
+        print(f"[ERR] Error assigning product: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -849,7 +849,7 @@ def api_warehouse_remove_product():
             return jsonify({'success': False, 'error': 'Failed to remove product'}), 500
 
     except Exception as e:
-        print(f"❌ Error removing product: {e}")
+        print(f"[ERR] Error removing product: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -867,7 +867,7 @@ def api_warehouse_empty_locations():
             'count': len(locations)
         })
     except Exception as e:
-        print(f"❌ Error finding empty locations: {e}")
+        print(f"[ERR] Error finding empty locations: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -879,7 +879,7 @@ def api_warehouse_stats():
         stats = get_location_stats()
         return jsonify(stats)
     except Exception as e:
-        print(f"❌ Error getting warehouse stats: {e}")
+        print(f"[ERR] Error getting warehouse stats: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -933,7 +933,7 @@ def api_warehouse_search_product():
         return jsonify({'results': products, 'query': query})
 
     except Exception as e:
-        print(f"❌ Error searching product: {e}")
+        print(f"[ERR] Error searching product: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e), 'results': []}), 500

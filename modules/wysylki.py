@@ -126,10 +126,10 @@ def _get_delivery_info(order):
         pack_hint = '<span class=material-symbols-outlined style=font-size:1rem>local_shipping</span> Kurier — zabezpiecz folią bąbelkową, oklej taśmą.'
     elif any(x in method_lower for x in ['list', 'poczt', 'polecony']):
         delivery_type = 'list'
-        pack_hint = '✉️ List/poczta — koperta bąbelkowa lub mały karton.'
+        pack_hint = '✉ List/poczta — koperta bąbelkowa lub mały karton.'
     elif any(x in method_lower for x in ['odbiór', 'osobisty', 'osobist']):
         delivery_type = 'odbior'
-        pack_hint = '🏠 Odbiór osobisty — przygotuj do wydania.'
+        pack_hint = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">home</span> Odbiór osobisty — przygotuj do wydania.'
     elif pickup_name:
         delivery_type = 'punkt'
         pack_hint = f'<span class=material-symbols-outlined style=font-size:1rem>pin_drop</span> Punkt odbioru: {pickup_name} — standardowy karton.'
@@ -666,7 +666,7 @@ def wysylki_nadaj(order_id):
         # Wymaga zalogowanego usera
         if not session.get('username'):
             return jsonify({'success': False, 'error': 'Zaloguj się aby użyć trybu testowego'}), 403
-        print(f"   → 🧪 TRYB TESTOWY (user: {session.get('username')}) - nie wysyłam do Allegro API")
+        print(f"   → [SCIE] TRYB TESTOWY (user: {session.get('username')}) - nie wysyłam do Allegro API")
         order, ord_err = get_order_details(order_id)
         if ord_err:
             return jsonify({'success': False, 'error': f'Nie można pobrać zamówienia: {ord_err}', 'test_mode': True}), 400
@@ -1064,7 +1064,7 @@ def wysylki_lista():
                     <div style="flex:1;min-width:0">
                         <div style="font-weight:600;font-size:0.9rem;line-height:1.4">{products_display}{badge}</div>
                         <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">
-                            <span class=material-symbols-outlined style=font-size:1rem>pin_drop</span> {lokalizacja} &nbsp;|&nbsp; 👤 {dostawca} &nbsp;|&nbsp; <span class=material-symbols-outlined style=font-size:1rem>label</span> {code}
+                            <span class=material-symbols-outlined style=font-size:1rem>pin_drop</span> {lokalizacja} &nbsp;|&nbsp; <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">person</span> {dostawca} &nbsp;|&nbsp; <span class=material-symbols-outlined style=font-size:1rem>label</span> {code}
                         </div>
                         <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">
                             <span class=material-symbols-outlined style=font-size:1rem>shopping_cart</span> {first_item['kupujacy']} &nbsp;|&nbsp; <span class=material-symbols-outlined style=font-size:1rem>calendar_month</span> {data_str}
@@ -1090,7 +1090,7 @@ def wysylki_lista():
     
     user_selector = f'''
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:15px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px">
-        <label style="font-size:0.85rem;color:var(--text-secondary);font-weight:600">👤 UŻYTKOWNIK:</label>
+        <label style="font-size:0.85rem;color:var(--text-secondary);font-weight:600"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">person</span> UŻYTKOWNIK:</label>
         <select id="user-select" onchange="window.location.href='/wysylki?user=' + this.value"
                 style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:0.9rem;cursor:pointer">
             {user_options}
@@ -1128,7 +1128,7 @@ def wysylki_lista():
                     </button>
                     <button type="submit"
                             style="background:var(--green);border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:0.85rem;cursor:pointer;font-weight:600">
-                        ✈️ Oznacz jako wysłane
+                        ✈ Oznacz jako wysłane
                     </button>
                 </div>
             </div>
@@ -1453,7 +1453,7 @@ def bulk_oznacz_wyslane():
     <html><head><meta http-equiv="refresh" content="2;url=/wysylki"></head>
     <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
         <div style="text-align:center">
-            <div style="font-size:3rem;margin-bottom:20px">✈️</div>
+            <div style="font-size:3rem;margin-bottom:20px">✈</div>
             <div style="font-size:1.2rem">Oznaczono {len(all_ids)} produktów jako wysłane!</div>
             <div style="color:#64748b;margin-top:10px">Przekierowuję...</div>
         </div>

@@ -914,12 +914,12 @@ DOPASUJ_TEMPLATE = '''
         <div class="kpi-label">Niedopasowanych</div>
     </div>
     <div class="kpi-card orange">
-        <div class="kpi-icon">📁</div>
+        <div class="kpi-icon"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span></div>
         <div class="kpi-value">{{ grupy_count }}</div>
         <div class="kpi-label">Grup</div>
     </div>
     <div class="kpi-card green">
-        <div class="kpi-icon">💡</div>
+        <div class="kpi-icon"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span></div>
         <div class="kpi-value">{{ suggestions_count }}</div>
         <div class="kpi-label">Sugestii</div>
     </div>

@@ -44,14 +44,14 @@ def get_token_info():
 def refresh_allegro_token():
     """Odświeża token Allegro używając refresh_token"""
     try:
-        print("🔄 Odświeżanie tokena Allegro...")
+        print("[SYNC] Odświeżanie tokena Allegro...")
         
         refresh_token = get_config('allegro_refresh_token', '')
         client_id = get_config('allegro_client_id', '')
         client_secret = get_config('allegro_client_secret', '')
         
         if not all([refresh_token, client_id, client_secret]):
-            print("❌ Brak wymaganych danych do odświeżenia tokena")
+            print("[ERR] Brak wymaganych danych do odświeżenia tokena")
             return False
         
         # Allegro OAuth2 token refresh endpoint
@@ -80,34 +80,34 @@ def refresh_allegro_token():
             set_config('allegro_refresh_token', new_refresh_token)
             set_config('allegro_token_expires_at', expires_at.isoformat())
             
-            print(f"✅ Token odświeżony! Wygasa: {expires_at.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"[OK] Token odświeżony! Wygasa: {expires_at.strftime('%Y-%m-%d %H:%M:%S')}")
             
             # Wyślij powiadomienie Telegram jeśli dostępne
             try:
                 from modules.telegram_bot import send_telegram
-                send_telegram(f"✅ Token Allegro odświeżony\nWygasa: {expires_at.strftime('%Y-%m-%d %H:%M')}")
+                send_telegram(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Token Allegro odświeżony\nWygasa: {expires_at.strftime('%Y-%m-%d %H:%M')}")
             except:
                 pass
             
             return True
         else:
-            print(f"❌ Błąd odświeżania tokena: {response.status_code} - {response.text}")
+            print(f"[ERR] Błąd odświeżania tokena: {response.status_code} - {response.text}")
             
             # Wyślij powiadomienie o błędzie
             try:
                 from modules.telegram_bot import send_telegram
-                send_telegram(f"❌ Błąd odświeżania tokena Allegro\nKod: {response.status_code}\nMusisz zalogować się ponownie!")
+                send_telegram(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Błąd odświeżania tokena Allegro\nKod: {response.status_code}\nMusisz zalogować się ponownie!")
             except:
                 pass
             
             return False
             
     except Exception as e:
-        print(f"❌ Wyjątek podczas odświeżania tokena: {e}")
+        print(f"[ERR] Wyjątek podczas odświeżania tokena: {e}")
         
         try:
             from modules.telegram_bot import send_telegram
-            send_telegram(f"❌ Błąd odświeżania tokena Allegro\n{str(e)}\nMusisz zalogować się ponownie!")
+            send_telegram(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Błąd odświeżania tokena Allegro\n{str(e)}\nMusisz zalogować się ponownie!")
         except:
             pass
         
@@ -118,29 +118,29 @@ def start_token_refresh_daemon():
     global _refresh_daemon_running, _refresh_thread
     
     if _refresh_daemon_running:
-        print("⚠️  Token refresh daemon już działa")
+        print("[WARN]  Token refresh daemon już działa")
         return
     
     _refresh_daemon_running = True
     _refresh_thread = threading.Thread(target=_token_refresh_loop, daemon=True)
     _refresh_thread.start()
-    print("🚀 Token refresh daemon uruchomiony")
+    print("[ROCK] Token refresh daemon uruchomiony")
 
 def stop_token_refresh_daemon():
     """Zatrzymuje daemon odświeżania tokena"""
     global _refresh_daemon_running
     _refresh_daemon_running = False
-    print("🛑 Token refresh daemon zatrzymany")
+    print("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">do_not_disturb</span> Token refresh daemon zatrzymany")
 
 def _token_refresh_loop():
     """Główna pętla token refresh daemon"""
     # Sprawdź od razu przy starcie
     token_info = get_token_info()
     if token_info:
-        print(f"ℹ️  Token wygasa: {token_info['expires_at_str']} (za {token_info['time_left_hours']:.1f}h)")
+        print(f"ℹ  Token wygasa: {token_info['expires_at_str']} (za {token_info['time_left_hours']:.1f}h)")
         
         if token_info['needs_refresh']:
-            print("⚠️  Token wymaga odświeżenia!")
+            print("[WARN]  Token wymaga odświeżenia!")
             refresh_allegro_token()
     
     while _refresh_daemon_running:
@@ -168,17 +168,17 @@ def _token_refresh_loop():
                 
                 if success:
                     # Po udanym odświeżeniu czekaj 11 godzin
-                    print(f"✅ Token odświeżony, następne odświeżenie za {REFRESH_INTERVAL//3600}h")
+                    print(f"[OK] Token odświeżony, następne odświeżenie za {REFRESH_INTERVAL//3600}h")
                 else:
                     # Po błędzie spróbuj ponownie za 10 minut
-                    print("❌ Błąd odświeżania, ponowna próba za 10 minut")
+                    print("[ERR] Błąd odświeżania, ponowna próba za 10 minut")
                     for _ in range(600):
                         if not _refresh_daemon_running:
                             break
                         time.sleep(1)
                         
         except Exception as e:
-            print(f"❌ Błąd w token refresh daemon: {e}")
+            print(f"[ERR] Błąd w token refresh daemon: {e}")
             time.sleep(60)  # Odczekaj minutę po błędzie
 
 # ============================================================
@@ -220,18 +220,18 @@ except ImportError:
 
 if __name__ == '__main__':
     # Test modułu
-    print("🧪 Test modułu token refresh...")
+    print("[SCIE] Test modułu token refresh...")
     
     token_info = get_token_info()
     if token_info:
-        print(f"📋 Status tokena:")
+        print(f"[ASSI] Status tokena:")
         print(f"  Wygasa: {token_info['expires_at_str']}")
         print(f"  Zostało: {token_info['time_left_hours']:.1f} godzin")
         print(f"  Wymaga odświeżenia: {'TAK' if token_info['needs_refresh'] else 'NIE'}")
         
         if token_info['needs_refresh']:
-            print("\n🔄 Odświeżam token...")
+            print("\n[SYNC] Odświeżam token...")
             success = refresh_allegro_token()
-            print(f"Wynik: {'✅ Sukces' if success else '❌ Błąd'}")
+            print(f"Wynik: {'[OK] Sukces' if success else '[ERR] Błąd'}")
     else:
-        print("❌ Brak tokena lub nieprawidłowe dane")
+        print("[ERR] Brak tokena lub nieprawidłowe dane")

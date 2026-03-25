@@ -187,7 +187,7 @@ def init_warehouse_tables():
     # Wygeneruj wszystkie lokalizacje jeśli ich nie ma
     _generate_default_locations()
     
-    print("✅ Warehouse tables initialized")
+    print("[OK] Warehouse tables initialized")
 
 
 def _generate_default_locations():
@@ -228,7 +228,7 @@ def _generate_default_locations():
     ''', locations)
     
     conn.commit()
-    print(f"✅ Generated {len(locations)} warehouse locations")
+    print(f"[OK] Generated {len(locations)} warehouse locations")
 
 
 # ============================================================
@@ -298,7 +298,7 @@ def get_all_locations() -> List[WarehouseLocation]:
                         ''', (f"% {location_code} %", f"% {location_code}-%")).fetchone()[0]
                     
                 except Exception as e:
-                    print(f"⚠️ Error counting items for {location_code}: {e}")
+                    print(f"[WARN] Error counting items for {location_code}: {e}")
                     items_count = 0
                 
                 loc = WarehouseLocation(
@@ -353,7 +353,7 @@ def get_products_from_magazynier(location_code: str) -> List[Dict]:
         # Normalizuj kod lokalizacji (A1, A2, B3, etc.)
         normalized = location_code.upper().strip()
         
-        print(f"🔍 Searching for location: '{normalized}'")
+        print(f"[SEAR] Searching for location: '{normalized}'")
         
         # ROZSZERZONE WYSZUKIWANIE - znajdzie nawet jeśli lokalizacja ma dodatkowy tekst
         # Przykłady: "A11", "A1-1", "Półka A11", "Regał A półka 1", itp.
@@ -532,7 +532,7 @@ def assign_product_to_location(product_id: int, location_code: str,
         ).fetchone()
         
         if not loc:
-            print(f"❌ Location {location_code} not found")
+            print(f"[ERR] Location {location_code} not found")
             return False
         
         capacity = loc[0]
@@ -545,7 +545,7 @@ def assign_product_to_location(product_id: int, location_code: str,
         ''', (location_code,)).fetchone()[0]
         
         if current + quantity > capacity:
-            print(f"❌ Location {location_code} would exceed capacity ({current + quantity} > {capacity})")
+            print(f"[ERR] Location {location_code} would exceed capacity ({current + quantity} > {capacity})")
             return False
         
         # Dodaj przypisanie
@@ -563,11 +563,11 @@ def assign_product_to_location(product_id: int, location_code: str,
         ''', (location_code,))
         
         conn.commit()
-        print(f"✅ Product {product_id} assigned to {location_code} (qty: {quantity})")
+        print(f"[OK] Product {product_id} assigned to {location_code} (qty: {quantity})")
         return True
         
     except Exception as e:
-        print(f"❌ Error assigning product: {e}")
+        print(f"[ERR] Error assigning product: {e}")
         conn.rollback()
         return False
 
@@ -602,7 +602,7 @@ def remove_product_from_location(product_id: int, location_code: str = None) -> 
         return True
         
     except Exception as e:
-        print(f"❌ Error removing product: {e}")
+        print(f"[ERR] Error removing product: {e}")
         conn.rollback()
         return False
 
@@ -653,9 +653,9 @@ def get_heatmap_data() -> Dict:
         try:
             with open(layout_file, 'r') as f:
                 custom_layout = json.load(f)
-            print(f"✅ Loaded custom layout from {layout_file}")
+            print(f"[OK] Loaded custom layout from {layout_file}")
         except Exception as e:
-            print(f"⚠️ Error loading custom layout: {e}")
+            print(f"[WARN] Error loading custom layout: {e}")
     
     # Jeśli mamy custom layout - użyj go!
     if custom_layout and 'shelves' in custom_layout:
@@ -689,7 +689,7 @@ def get_heatmap_data() -> Dict:
     full_count = sum(1 for loc in locations if loc.fill_percentage >= 0.75)
     
     # DEBUG
-    print(f"🔍 WAREHOUSE STATS DEBUG:")
+    print(f"[SEAR] WAREHOUSE STATS DEBUG:")
     print(f"   Total locations: {len(locations)}")
     print(f"   Total capacity: {total_capacity}")
     print(f"   Total items: {total_items}")
@@ -699,7 +699,7 @@ def get_heatmap_data() -> Dict:
     # Pokaż kilka lokalizacji z items > 0
     with_items = [loc for loc in locations if loc.items_count > 0]
     if with_items:
-        print(f"   ⚠️ LOCATIONS WITH ITEMS:")
+        print(f"   [WARN] LOCATIONS WITH ITEMS:")
         for loc in with_items[:10]:
             print(f"      {loc.code}: {loc.items_count} items")
     
