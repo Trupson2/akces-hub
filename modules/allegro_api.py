@@ -3945,118 +3945,24 @@ def index():
     cnt_offers = conn.execute("SELECT COUNT(*) as c FROM oferty WHERE status IN ('aktywna','active','ACTIVE','wystawiona')").fetchone()['c']
     revenue_month = conn.execute("SELECT COALESCE(SUM(cena*ilosc),0) as s FROM sprzedaze WHERE strftime('%Y-%m',data_sprzedazy)=? AND status!='zwrot'", (_month,)).fetchone()['s']
 
-    html = f'''
-    <!-- Status bar -->
-    <div class="status-bar {'online' if authenticated else ''}">
-        <div class="status-indicator">
-            <div class="status-dot {'online' if authenticated else ''}"></div>
-            <span style="font-weight:600;font-size:0.9rem">{status_text}</span>
-        </div>
-        <span class="badge {'badge-success' if authenticated else 'badge-warning'}">{'Aktywne' if authenticated else 'Offline'}</span>
-    </div>
-
-    <!-- KPI -->
-    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-        <div class="kpi-card purple">
-            <div class="kpi-icon" style="background:var(--accent-soft)"><i class=mi>inventory_2</i></div>
-            <div class="kpi-value">{cnt_orders_today}</div>
-            <div class="kpi-label">Dzisiaj</div>
-        </div>
-        <div class="kpi-card green">
-            <div class="kpi-icon" style="background:var(--green-soft)"><i class=mi>assignment</i></div>
-            <div class="kpi-value">{cnt_orders_month}</div>
-            <div class="kpi-label">Ten miesiac</div>
-        </div>
-        <div class="kpi-card blue">
-            <div class="kpi-icon" style="background:var(--blue-soft)"><i class=mi>edit_note</i></div>
-            <div class="kpi-value">{cnt_offers}</div>
-            <div class="kpi-label">Aktywne oferty</div>
-        </div>
-        <div class="kpi-card orange">
-            <div class="kpi-icon" style="background:var(--yellow-soft)"><i class=mi>payments</i></div>
-            <div class="kpi-value">{revenue_month:,.0f} zl</div>
-            <div class="kpi-label">Przychod</div>
-        </div>
-    </div>
-    '''
-
+    user_info = None
+    autosync_on = False
     if authenticated:
         user_info, _ = get_user_info()
-        if user_info:
-            html += f'''
-            <div class="card" style="margin-bottom:20px">
-                <div style="display:flex;align-items:center;gap:14px">
-                    <div style="width:48px;height:48px;background:linear-gradient(135deg,#ff5a00,#ff8c42);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#fff"><i class=mi>person</i></div>
-                    <div>
-                        <div style="font-weight:700;font-size:1rem">{user_info.get('login', 'Uzytkownik')}</div>
-                        <div style="font-size:0.78rem;color:var(--text-muted)">Zalogowano do Allegro</div>
-                    </div>
-                </div>
-            </div>
-            '''
-
-        html += '''
-        <div class="section-title">Akcje</div>
-        <div class="quick-actions" style="margin-bottom:20px">
-            <a href="/allegro/zamowienia" class="qa-btn">
-                <div class="qa-icon" style="background:var(--green-soft)"><i class=mi>inventory_2</i></div>Zamowienia
-            </a>
-            <a href="/allegro/oferty" class="qa-btn">
-                <div class="qa-icon" style="background:var(--blue-soft)"><i class=mi>edit_note</i></div>Moje oferty
-            </a>
-            <a href="/allegro/sync" class="qa-btn">
-                <div class="qa-icon" style="background:var(--accent-soft)"><i class=mi>sync</i></div>Synchronizuj
-            </a>
-            <a href="/allegro/config" class="qa-btn">
-                <div class="qa-icon" style="background:var(--yellow-soft)"><i class=mi>settings</i></div>Ustawienia
-            </a>
-            <a href="/allegro/backfill-link" class="qa-btn">
-                <div class="qa-icon" style="background:var(--accent-soft)"><i class=mi>link</i></div>Polacz sprzedaze
-            </a>
-        </div>
-        '''
-
-        # Status auto-sync
         autosync_on = get_config('allegro_autosync', 'true') == 'true'
-        if autosync_on:
-            html += '''
-            <div class="card" style="border-color:rgba(34,197,94,0.3)">
-                <div style="display:flex;align-items:center;gap:12px">
-                    <div style="width:42px;height:42px;border-radius:12px;background:var(--green-soft);display:flex;align-items:center;justify-content:center;font-size:1.2rem"><i class=mi>sync</i></div>
-                    <div>
-                        <div style="font-weight:600;color:var(--green)">Auto-sync aktywny</div>
-                        <div style="font-size:0.75rem;color:var(--text-muted)">Sprawdzam zamowienia co 5 min</div>
-                    </div>
-                </div>
-            </div>
-            '''
 
-        html += '''
-        <form action="/allegro/logout" method="POST" style="margin-top:16px">
-            <button type="submit" class="btn btn-secondary" style="color:var(--red)"><i class=mi>logout</i> Wyloguj</button>
-        </form>
-        '''
-    elif configured:
-        html += '''
-        <div class="card">
-            <div class="card-header"><div class="card-title"><i class=mi>enhanced_encryption</i> Autoryzacja wymagana</div></div>
-            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:15px">Kliknij aby zalogowac sie do Allegro.</p>
-            <a href="/allegro/auth" class="btn btn-primary"><i class=mi>key</i> Zaloguj do Allegro</a>
-        </div>
-        <a href="/allegro/config" class="btn btn-secondary"><i class=mi>settings</i> Zmien konfiguracje</a>
-        '''
-    else:
-        html += '''
-        <div class="card">
-            <div class="card-header"><div class="card-title"><i class=mi>settings</i> Konfiguracja</div></div>
-            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:15px">
-                Potrzebujesz Client ID i Secret z <a href="https://apps.developer.allegro.pl" target="_blank" style="color:var(--accent)">apps.developer.allegro.pl</a>
-            </p>
-            <a href="/allegro/config" class="btn btn-primary"><i class=mi>settings</i> Konfiguruj</a>
-        </div>
-        '''
-
-    return render(html)
+    from flask import render_template
+    return render_template('allegro_dashboard.html',
+        authenticated=authenticated,
+        configured=configured,
+        status_text=status_text,
+        cnt_orders_today=cnt_orders_today,
+        cnt_orders_month=cnt_orders_month,
+        cnt_offers=cnt_offers,
+        revenue_month=revenue_month,
+        user_info=user_info,
+        autosync_on=autosync_on,
+    )
 
 
 @allegro_bp.route('/config', methods=['GET', 'POST'])

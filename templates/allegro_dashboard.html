@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block content %}
+{# Variables: authenticated, configured, status_text, cnt_orders_today, cnt_orders_month, cnt_offers, revenue_month, user_info, autosync_on #}
+
+<!-- Status indicator -->
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;margin-bottom:20px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:3px solid {% if authenticated %}var(--neon-tertiary){% elif configured %}var(--orange){% else %}var(--text-muted){% endif %}">
+    <div style="display:flex;align-items:center;gap:10px">
+        <span style="width:8px;height:8px;border-radius:50%;background:{% if authenticated %}var(--neon-tertiary);box-shadow:0 0 8px rgba(190,238,0,0.6){% elif configured %}var(--orange){% else %}var(--text-muted){% endif %}{% if authenticated %};animation:neonPulse 2s infinite{% endif %}"></span>
+        <span class="font-display" style="font-weight:700;font-size:0.85rem">{{ status_text }}</span>
+    </div>
+    <span style="font-size:0.6rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;padding:3px 10px;{% if authenticated %}background:rgba(190,238,0,0.1);color:var(--neon-tertiary){% elif configured %}background:rgba(234,179,8,0.1);color:var(--orange){% else %}background:rgba(255,255,255,0.04);color:var(--text-muted){% endif %}">{% if authenticated %}ACTIVE LINK{% elif configured %}AUTH REQUIRED{% else %}OFFLINE{% endif %}</span>
+</div>
+
+<!-- KPI Strip -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px">
+    <div style="background:var(--bg-card,rgba(19,19,28,0.6));padding:16px;border-top:2px solid var(--neon-primary)">
+        <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);margin-bottom:8px">DZISIAJ</div>
+        <div class="font-display" style="font-size:1.8rem;font-weight:900;color:var(--neon-primary)">{{ cnt_orders_today }}</div>
+        <div style="font-size:0.55rem;color:var(--text-muted);margin-top:4px">ZAMOWIEN</div>
+    </div>
+    <div style="background:var(--bg-card,rgba(19,19,28,0.6));padding:16px;border-top:2px solid var(--neon-tertiary)">
+        <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);margin-bottom:8px">TEN MIESIAC</div>
+        <div class="font-display" style="font-size:1.8rem;font-weight:900;color:var(--neon-tertiary)">{{ cnt_orders_month }}</div>
+        <div style="font-size:0.55rem;color:var(--text-muted);margin-top:4px">ZAMOWIEN</div>
+    </div>
+    <div style="background:var(--bg-card,rgba(19,19,28,0.6));padding:16px;border-top:2px solid var(--neon-secondary)">
+        <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);margin-bottom:8px">AKTYWNE OFERTY</div>
+        <div class="font-display" style="font-size:1.8rem;font-weight:900">{{ cnt_offers }}</div>
+        <div style="font-size:0.55rem;color:var(--text-muted);margin-top:4px">NA ALLEGRO</div>
+    </div>
+    <div style="background:var(--bg-card,rgba(19,19,28,0.6));padding:16px;border-top:2px solid var(--orange)">
+        <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);margin-bottom:8px">PRZYCHOD</div>
+        <div class="font-display" style="font-size:1.8rem;font-weight:900;color:var(--orange)">{{ '{:,.0f}'.format(revenue_month) }} zl</div>
+        <div style="font-size:0.55rem;color:var(--text-muted);margin-top:4px">W TYM MIESIACU</div>
+    </div>
+</div>
+
+{% if authenticated %}
+    {% if user_info %}
+    <!-- User info -->
+    <div style="display:flex;align-items:center;gap:14px;padding:16px 18px;margin-bottom:16px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:2px solid var(--neon-primary)">
+        <div style="width:42px;height:42px;background:linear-gradient(135deg,#ff5a00,#ff8c42);display:flex;align-items:center;justify-content:center"><i class=mi style="color:#fff">person</i></div>
+        <div>
+            <div class="font-display" style="font-weight:700;font-size:0.95rem">{{ user_info.get('login', 'Uzytkownik') }}</div>
+            <div style="font-size:0.7rem;color:var(--text-muted)">Zalogowano do Allegro</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick actions -->
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+        <span style="width:2px;height:14px;background:var(--neon-primary);border-radius:1px"></span>
+        <span class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--neon-primary)">Akcje</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:20px">
+        <a href="/allegro/zamowienia" style="text-decoration:none;color:inherit;padding:14px 8px;background:var(--bg-card,rgba(19,19,28,0.6));border-top:2px solid var(--neon-tertiary);text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
+            <i class=mi style="font-size:1.3rem;color:var(--neon-tertiary)">inventory_2</i>
+            <span class="font-display" style="font-weight:700;font-size:0.65rem;letter-spacing:0.05em">ZAMOWIENIA</span>
+        </a>
+        <a href="/allegro/oferty" style="text-decoration:none;color:inherit;padding:14px 8px;background:var(--bg-card,rgba(19,19,28,0.6));border-top:2px solid var(--neon-primary);text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
+            <i class=mi style="font-size:1.3rem;color:var(--neon-primary)">edit_note</i>
+            <span class="font-display" style="font-weight:700;font-size:0.65rem;letter-spacing:0.05em">OFERTY</span>
+        </a>
+        <a href="/allegro/sync" style="text-decoration:none;color:inherit;padding:14px 8px;background:var(--bg-card,rgba(19,19,28,0.6));border-top:2px solid var(--orange);text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
+            <i class=mi style="font-size:1.3rem;color:var(--orange)">sync</i>
+            <span class="font-display" style="font-weight:700;font-size:0.65rem;letter-spacing:0.05em">SYNC</span>
+        </a>
+        <a href="/allegro/config" style="text-decoration:none;color:inherit;padding:14px 8px;background:var(--bg-card,rgba(19,19,28,0.6));border-top:2px solid var(--text-muted);text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
+            <i class=mi style="font-size:1.3rem;color:var(--text-muted)">settings</i>
+            <span class="font-display" style="font-weight:700;font-size:0.65rem;letter-spacing:0.05em">USTAWIENIA</span>
+        </a>
+        <a href="/allegro/backfill-link" style="text-decoration:none;color:inherit;padding:14px 8px;background:var(--bg-card,rgba(19,19,28,0.6));border-top:2px solid var(--neon-secondary);text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
+            <i class=mi style="font-size:1.3rem;color:var(--neon-secondary)">link</i>
+            <span class="font-display" style="font-weight:700;font-size:0.65rem;letter-spacing:0.05em">POLACZ</span>
+        </a>
+    </div>
+
+    {% if autosync_on %}
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:2px solid var(--neon-tertiary);margin-bottom:16px">
+        <span style="width:8px;height:8px;border-radius:50%;background:var(--neon-tertiary);animation:neonPulse 2s infinite"></span>
+        <div>
+            <div class="font-display" style="font-weight:700;font-size:0.82rem;color:var(--neon-tertiary)">Auto-sync aktywny</div>
+            <div style="font-size:0.65rem;color:var(--text-muted)">Sprawdzam zamowienia co 5 min</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <form action="/allegro/logout" method="POST" style="margin-top:16px">
+        <button type="submit" style="padding:8px 16px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);color:var(--red);font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.65rem;letter-spacing:0.1em;cursor:pointer"><i class=mi>logout</i> WYLOGUJ</button>
+    </form>
+
+{% elif configured %}
+    <div style="background:var(--bg-card,rgba(19,19,28,0.6));padding:24px;border-left:3px solid var(--orange);margin-bottom:16px">
+        <div class="font-display" style="font-weight:700;font-size:0.85rem;margin-bottom:10px"><i class=mi>enhanced_encryption</i> Autoryzacja wymagana</div>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px">Kliknij aby zalogowac sie do Allegro.</p>
+        <a href="/allegro/auth" style="display:inline-block;padding:10px 20px;background:var(--neon-primary);color:#005d63;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.65rem;letter-spacing:0.1em;text-decoration:none"><i class=mi>key</i> ZALOGUJ DO ALLEGRO</a>
+    </div>
+    <a href="/allegro/config" style="display:inline-block;padding:8px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.65rem;letter-spacing:0.1em;text-decoration:none"><i class=mi>settings</i> ZMIEN KONFIGURACJE</a>
+
+{% else %}
+    <div style="background:var(--bg-card,rgba(19,19,28,0.6));padding:24px;border-left:3px solid var(--text-muted);margin-bottom:16px">
+        <div class="font-display" style="font-weight:700;font-size:0.85rem;margin-bottom:10px"><i class=mi>settings</i> Konfiguracja</div>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px">Potrzebujesz Client ID i Secret z <a href="https://apps.developer.allegro.pl" target="_blank" style="color:var(--neon-primary)">apps.developer.allegro.pl</a></p>
+        <a href="/allegro/config" style="display:inline-block;padding:10px 20px;background:var(--neon-primary);color:#005d63;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.65rem;letter-spacing:0.1em;text-decoration:none"><i class=mi>settings</i> KONFIGURUJ</a>
+    </div>
+{% endif %}
+{% endblock %}
