@@ -3,7 +3,7 @@ ANALYTICS MODULE - Dashboard KPI & Kalkulator opłacalności palety
 v2.0 - Redesign with base.html template
 """
 
-from flask import Blueprint, render_template_string, request, jsonify, session, current_app
+from flask import Blueprint, render_template, render_template_string, request, jsonify, session, current_app
 from datetime import datetime, timedelta
 from .database import get_db
 import json
@@ -247,141 +247,54 @@ def dashboard_kpi():
             'text': 'Tak trzymaj!'
         })
 
-    # === RENDER ===
-    html = '''{% extends "base.html" %}
-{% block page_title %}Dashboard KPI{% endblock %}
-{% block content %}
-<style>
-.chart-bar{display:flex;align-items:center;margin-bottom:12px}
-.chart-bar-label{width:80px;font-size:0.85rem;color:var(--text-muted)}
-.chart-bar-track{flex:1;height:24px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;margin:0 10px}
-.chart-bar-fill{height:100%;border-radius:4px;transition:width 0.5s ease}
-.chart-bar-value{width:80px;text-align:right;font-weight:600;font-family:'Space Grotesk',sans-serif}
-.top-item{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
-.top-item:last-child{border-bottom:none}
-.top-rank{width:30px;font-weight:700;color:var(--text-muted)}
-.top-rank.gold{color:#ffd700}
-.top-rank.silver{color:#c0c0c0}
-.top-rank.bronze{color:#cd7f32}
-.top-info{flex:1}
-.top-name{font-weight:500}
-.top-meta{font-size:0.8rem;color:var(--text-muted)}
-.top-value{font-weight:700;font-family:'Space Grotesk',sans-serif}
-</style>
+    # === PREPARE TEMPLATE DATA ===
+    # Pre-compute dostawcy ROI for template
+    top_dostawcy_data = []
+    for d in top_dostawcy:
+        p_val = d['przychod'] or 0
+        k_val = d['koszty'] or 0
+        if k_val > 0:
+            roi_val = ((p_val - k_val - p_val * 0.11) / k_val * 100)
+        else:
+            roi_val = 0
+        top_dostawcy_data.append({
+            'nazwa': d['dostawca_nazwa'],
+            'sprzedane': d['sprzedane'],
+            'przychod': f'{p_val:.0f}',
+            'roi': f'{roi_val:.0f}'
+        })
 
-<div style="margin-bottom:8px;font-size:0.78rem;color:var(--text-muted)">Aktualizacja: ''' + today.strftime('%d.%m.%Y %H:%M') + '''</div>
-
-<!-- ALERTY -->
-''' + ''.join([f'<div class="alert alert-{"error" if a["type"]=="danger" else a["type"]}">{a["title"]} &mdash; {a["text"]}</div>' for a in alerts]) + '''
-
-<!-- KPI GŁÓWNE -->
-<div class="kpi-grid">
-    <div class="kpi-card green">
-        <div class="kpi-icon" style="background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);color:#beee00">$</div>
-        <div class="kpi-value" style="color:#beee00;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(190,238,0,0.4)">''' + f'{dzis["suma"] or 0:.0f}' + ''' zl</div>
-        <div class="kpi-label">Przychod DZIS</div>
-        <div class="kpi-change ''' + dzis_trend_class + '''">''' + ('&uarr;' if dzis_trend > 0 else '&darr;' if dzis_trend < 0 else '&rarr;') + f' {abs(dzis_trend):.0f}' + '''% vs wczoraj</div>
-    </div>
-    <div class="kpi-card purple">
-        <div class="kpi-icon" style="background:rgba(255,107,155,0.12);border:1px solid rgba(255,107,155,0.3);color:#ff6b9b">#</div>
-        <div class="kpi-value" style="font-family:'Space Grotesk',sans-serif">''' + f'{dzis["cnt"] or 0}' + '''</div>
-        <div class="kpi-label">Zamowien DZIS</div>
-    </div>
-    <div class="kpi-card blue">
-        <div class="kpi-icon" style="background:rgba(143,245,255,0.12);border:1px solid rgba(143,245,255,0.3);color:#8ff5ff">W</div>
-        <div class="kpi-value" style="color:#8ff5ff;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(143,245,255,0.4)">''' + f'{tydzien["suma"] or 0:.0f}' + ''' zl</div>
-        <div class="kpi-label">Przychod TYDZIEN</div>
-        <div class="kpi-change ''' + tydzien_trend_class + '''">''' + ('&uarr;' if tydzien_trend > 0 else '&darr;' if tydzien_trend < 0 else '&rarr;') + f' {abs(tydzien_trend):.0f}' + '''% vs poprz.</div>
-    </div>
-    <div class="kpi-card orange">
-        <div class="kpi-icon" style="background:rgba(255,107,155,0.12);border:1px solid rgba(255,107,155,0.3);color:#ff6b9b">M</div>
-        <div class="kpi-value" style="color:#ff6b9b;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(255,107,155,0.4)">''' + f'{miesiac["suma"] or 0:.0f}' + ''' zl</div>
-        <div class="kpi-label">Przychod MIESIAC</div>
-        <div class="kpi-change ''' + miesiac_trend_class + '''">''' + ('&uarr;' if miesiac_trend > 0 else '&darr;' if miesiac_trend < 0 else '&rarr;') + f' {abs(miesiac_trend):.0f}' + '''% vs poprz.</div>
-    </div>
-</div>
-
-<div class="kpi-grid">
-    <div class="kpi-card green" title="Przychod: ''' + f'{przychod:.0f}' + ''' - Koszt: ''' + f'{koszty:.0f}' + ''' - Prowizja: ''' + f'{prowizja:.0f}' + ''' = ''' + f'{zysk_miesiac:.0f}' + ''' zl">
-        <div class="kpi-icon" style="background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);color:#beee00">Z</div>
-        <div class="kpi-value" style="color:#beee00;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(190,238,0,0.4)">''' + f'{zysk_miesiac:.0f}' + ''' zl</div>
-        <div class="kpi-label">Zysk netto (miesiac)</div>
-        <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px">Koszt: ''' + f'{koszty:.0f}' + ''' | Prowizja: ''' + f'{prowizja:.0f}' + ''' zl</div>
-    </div>
-    <div class="kpi-card blue" title="Zysk ''' + f'{zysk_miesiac:.0f}' + ''' / Koszt ''' + f'{koszty:.0f}' + ''' x 100%">
-        <div class="kpi-icon" style="background:rgba(143,245,255,0.12);border:1px solid rgba(143,245,255,0.3);color:#8ff5ff">%</div>
-        <div class="kpi-value" style="color:''' + ('#beee00' if roi_miesiac > 50 else 'var(--yellow)') + ''';font-family:\'Space Grotesk\',sans-serif">''' + f'{roi_miesiac:.0f}' + '''%</div>
-        <div class="kpi-label">ROI (miesiac)</div>
-    </div>
-    <div class="kpi-card purple">
-        <div class="kpi-icon" style="background:rgba(255,107,155,0.12);border:1px solid rgba(255,107,155,0.3);color:#ff6b9b">S</div>
-        <div class="kpi-value" style="font-family:'Space Grotesk',sans-serif">''' + f'{magazyn["sztuki"] or 0}' + '''</div>
-        <div class="kpi-label">Sztuk w magazynie</div>
-    </div>
-    <div class="kpi-card orange">
-        <div class="kpi-icon" style="background:rgba(143,245,255,0.12);border:1px solid rgba(143,245,255,0.3);color:#8ff5ff">V</div>
-        <div class="kpi-value" style="font-family:'Space Grotesk',sans-serif">''' + f'{magazyn["wartosc_sprzedazy"] or 0:.0f}' + ''' zl</div>
-        <div class="kpi-label">Wartosc magazynu</div>
-    </div>
-</div>
-
-<!-- WYKRES SPRZEDAŻY -->
-<div class="card">
-    <div class="card-header">
-        <div class="card-title">Sprzedaz ostatnie 7 dni</div>
-    </div>
-    ''' + ''.join([f'''
-    <div class="chart-bar">
-        <div class="chart-bar-label">{d['dzien'][5:]}</div>
-        <div class="chart-bar-track">
-            <div class="chart-bar-fill" style="width:{(d['suma']/max_dzien*100) if max_dzien > 0 else 0:.0f}%;background:linear-gradient(90deg,#8ff5ff,#beee00)"></div>
-        </div>
-        <div class="chart-bar-value">{d['suma']:.0f} zl</div>
-    </div>
-    ''' for d in reversed(list(sprzedaz_dni))]) + '''
-</div>
-
-<!-- TOP PRODUKTY -->
-<div class="dash-grid">
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">TOP 5 Produktow (miesiac)</div>
-        </div>
-        ''' + ''.join([f'''
-        <div class="top-item">
-            <div class="top-rank {'gold' if i==0 else 'silver' if i==1 else 'bronze' if i==2 else ''}">{i+1}</div>
-            <div class="top-info">
-                <div class="top-name">{(p['produkt_nazwa'] or 'Nieznany')[:30]}{'...' if len(p['produkt_nazwa'] or '')>30 else ''}</div>
-                <div class="top-meta">{p['sprzedane']} szt sprzedanych</div>
-            </div>
-            <div class="top-value" style="color:#beee00">{(p['wartosc'] or 0):.0f} zl</div>
-        </div>
-        ''' for i, p in enumerate(top_produkty)]) + ('' if top_produkty else '<div style="text-align:center;color:var(--text-muted);padding:20px">Brak danych</div>') + '''
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">TOP 5 Dostawcow (ROI)</div>
-        </div>
-        ''' + ''.join([f'''
-        <div class="top-item">
-            <div class="top-rank {'gold' if i==0 else 'silver' if i==1 else 'bronze' if i==2 else ''}">{i+1}</div>
-            <div class="top-info">
-                <div class="top-name">{d['dostawca_nazwa']}</div>
-                <div class="top-meta">{d['sprzedane']} szt | {(d['przychod'] or 0):.0f} zl przychod</div>
-            </div>
-            <div class="top-value" style="color:{'#beee00' if (d['koszty'] or 0) > 0 and ((d['przychod'] or 0)-(d['koszty'] or 0)-(d['przychod'] or 0)*0.11)/(d['koszty'] or 1)*100 > 50 else 'var(--yellow)'}">{(((d['przychod'] or 0)-(d['koszty'] or 0)-(d['przychod'] or 0)*0.11)/(d['koszty'] or 1)*100) if (d['koszty'] or 0) > 0 else 0:.0f}%</div>
-        </div>
-        ''' for i, d in enumerate(top_dostawcy)]) + ('' if top_dostawcy else '<div style="text-align:center;color:var(--text-muted);padding:20px">Brak danych</div>') + '''
-    </div>
-</div>
-
-{% endblock %}
-'''
-    return render_template_string(html,
+    return render_template('dashboard_kpi.html',
         version=current_app.config.get('VERSION', ''),
         brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
-        current_user=session.get('user')
+        current_user=session.get('user'),
+        timestamp=today.strftime('%d.%m.%Y %H:%M'),
+        alerts=alerts,
+        dzis_suma=f'{dzis["suma"] or 0:.0f}',
+        dzis_cnt=dzis['cnt'] or 0,
+        dzis_trend=dzis_trend,
+        dzis_trend_abs=f'{abs(dzis_trend):.0f}',
+        dzis_trend_class=dzis_trend_class,
+        tydzien_suma=f'{tydzien["suma"] or 0:.0f}',
+        tydzien_trend=tydzien_trend,
+        tydzien_trend_abs=f'{abs(tydzien_trend):.0f}',
+        tydzien_trend_class=tydzien_trend_class,
+        miesiac_suma=f'{miesiac["suma"] or 0:.0f}',
+        miesiac_trend=miesiac_trend,
+        miesiac_trend_abs=f'{abs(miesiac_trend):.0f}',
+        miesiac_trend_class=miesiac_trend_class,
+        przychod_f=f'{przychod:.0f}',
+        koszty_f=f'{koszty:.0f}',
+        prowizja_f=f'{prowizja:.0f}',
+        zysk_f=f'{zysk_miesiac:.0f}',
+        roi_miesiac=roi_miesiac,
+        roi_f=f'{roi_miesiac:.0f}',
+        magazyn_sztuki=magazyn['sztuki'] or 0,
+        magazyn_wartosc=f'{magazyn["wartosc_sprzedazy"] or 0:.0f}',
+        sprzedaz_dni_rev=list(reversed(list(sprzedaz_dni))),
+        max_dzien=max_dzien,
+        top_produkty=top_produkty,
+        top_dostawcy_data=top_dostawcy_data,
     )
 
 

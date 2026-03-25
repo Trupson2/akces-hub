@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block page_title %}Dashboard KPI{% endblock %}
+{% block content %}
+<style>
+/* ── CYBERPUNK KPI DASHBOARD ── */
+.cyber-kpi-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.cyber-kpi-header h2{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;text-transform:uppercase;letter-spacing:2px;color:var(--neon-cyan);margin:0}
+.cyber-live{display:inline-flex;align-items:center;gap:6px;font-family:'Space Grotesk',sans-serif;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--neon-lime);padding:4px 12px;border:1px solid rgba(190,238,0,0.3);background:rgba(190,238,0,0.06)}
+.cyber-live-dot{width:7px;height:7px;background:var(--neon-lime);box-shadow:0 0 8px var(--neon-lime);animation:livePulse 1.5s ease-in-out infinite}
+@keyframes livePulse{0%,100%{opacity:1;box-shadow:0 0 6px var(--neon-lime)}50%{opacity:0.4;box-shadow:0 0 2px var(--neon-lime)}}
+.cyber-timestamp{font-size:0.72rem;color:var(--text-muted);font-family:'Space Grotesk',sans-serif;letter-spacing:0.5px}
+
+/* KPI CARDS */
+.cyber-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.cyber-kpi-card{background:rgba(19,19,28,0.6);border:1px solid rgba(143,245,255,0.08);border-left:3px solid var(--neon-cyan);padding:20px;position:relative;overflow:hidden;transition:all 0.25s}
+.cyber-kpi-card:hover{border-color:rgba(143,245,255,0.2);box-shadow:0 0 20px rgba(143,245,255,0.06)}
+.cyber-kpi-card:nth-child(2){border-left-color:var(--neon-pink)}
+.cyber-kpi-card:nth-child(3){border-left-color:var(--neon-lime)}
+.cyber-kpi-card:nth-child(4){border-left-color:var(--neon-cyan)}
+.cyber-kpi-card:nth-child(5){border-left-color:var(--neon-lime)}
+.cyber-kpi-card:nth-child(6){border-left-color:var(--neon-cyan)}
+.cyber-kpi-card:nth-child(7){border-left-color:var(--neon-pink)}
+.cyber-kpi-card:nth-child(8){border-left-color:var(--neon-lime)}
+.cyber-kpi-card::before{content:'';position:absolute;top:0;right:0;width:60px;height:60px;background:radial-gradient(circle at top right,rgba(143,245,255,0.04),transparent 70%);pointer-events:none}
+.cyber-kpi-card:nth-child(2)::before,.cyber-kpi-card:nth-child(7)::before{background:radial-gradient(circle at top right,rgba(255,107,155,0.04),transparent 70%)}
+.cyber-kpi-card:nth-child(3)::before,.cyber-kpi-card:nth-child(5)::before,.cyber-kpi-card:nth-child(8)::before{background:radial-gradient(circle at top right,rgba(190,238,0,0.04),transparent 70%)}
+
+.cyber-kpi-icon{width:38px;height:38px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;border:1px solid rgba(143,245,255,0.2);background:rgba(143,245,255,0.06)}
+.cyber-kpi-icon .material-symbols-outlined{font-size:1.15rem;color:var(--neon-cyan)}
+.cyber-kpi-card:nth-child(2) .cyber-kpi-icon,.cyber-kpi-card:nth-child(7) .cyber-kpi-icon{border-color:rgba(255,107,155,0.2);background:rgba(255,107,155,0.06)}
+.cyber-kpi-card:nth-child(2) .cyber-kpi-icon .material-symbols-outlined,.cyber-kpi-card:nth-child(7) .cyber-kpi-icon .material-symbols-outlined{color:var(--neon-pink)}
+.cyber-kpi-card:nth-child(3) .cyber-kpi-icon,.cyber-kpi-card:nth-child(5) .cyber-kpi-icon,.cyber-kpi-card:nth-child(8) .cyber-kpi-icon{border-color:rgba(190,238,0,0.2);background:rgba(190,238,0,0.06)}
+.cyber-kpi-card:nth-child(3) .cyber-kpi-icon .material-symbols-outlined,.cyber-kpi-card:nth-child(5) .cyber-kpi-icon .material-symbols-outlined,.cyber-kpi-card:nth-child(8) .cyber-kpi-icon .material-symbols-outlined{color:var(--neon-lime)}
+
+.cyber-kpi-val{font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:800;letter-spacing:-0.5px;line-height:1;color:var(--neon-cyan)}
+.cyber-kpi-card:nth-child(2) .cyber-kpi-val,.cyber-kpi-card:nth-child(7) .cyber-kpi-val{color:var(--neon-pink)}
+.cyber-kpi-card:nth-child(3) .cyber-kpi-val,.cyber-kpi-card:nth-child(5) .cyber-kpi-val,.cyber-kpi-card:nth-child(8) .cyber-kpi-val{color:var(--neon-lime)}
+.cyber-kpi-val.neon-cyan{color:var(--neon-cyan);text-shadow:0 0 12px rgba(143,245,255,0.3)}
+.cyber-kpi-val.neon-pink{color:var(--neon-pink);text-shadow:0 0 12px rgba(255,107,155,0.3)}
+.cyber-kpi-val.neon-lime{color:var(--neon-lime);text-shadow:0 0 12px rgba(190,238,0,0.3)}
+
+.cyber-kpi-lbl{font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;margin-top:6px;font-weight:600;font-family:'Space Grotesk',sans-serif}
+.cyber-kpi-sub{font-size:0.62rem;color:var(--text-muted);margin-top:4px}
+
+.cyber-trend{display:inline-flex;align-items:center;gap:3px;font-size:0.66rem;font-weight:700;margin-top:8px;padding:2px 8px;font-family:'Space Grotesk',sans-serif;letter-spacing:0.5px}
+.cyber-trend.up{background:rgba(190,238,0,0.08);border:1px solid rgba(190,238,0,0.2);color:var(--neon-lime)}
+.cyber-trend.down{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:#ef4444}
+.cyber-trend.neutral{background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.15);color:var(--text-muted)}
+
+/* ALERTS */
+.cyber-alert{padding:14px 18px;margin-bottom:12px;border:1px solid rgba(143,245,255,0.08);background:rgba(19,19,28,0.5);font-size:0.84rem;display:flex;align-items:center;gap:10px}
+.cyber-alert-bar{width:3px;min-height:28px;flex-shrink:0}
+.cyber-alert.danger .cyber-alert-bar{background:var(--red)}
+.cyber-alert.warning .cyber-alert-bar{background:var(--yellow)}
+.cyber-alert.success .cyber-alert-bar{background:var(--neon-lime);box-shadow:0 0 8px rgba(190,238,0,0.3)}
+.cyber-alert .material-symbols-outlined{font-size:1.1rem}
+.cyber-alert.danger .material-symbols-outlined{color:var(--red)}
+.cyber-alert.warning .material-symbols-outlined{color:var(--yellow)}
+.cyber-alert.success .material-symbols-outlined{color:var(--neon-lime)}
+.cyber-alert-content{flex:1}
+.cyber-alert-title{font-weight:700;font-size:0.82rem}
+.cyber-alert-text{font-size:0.72rem;color:var(--text-muted);margin-top:2px}
+
+/* CHART */
+.cyber-section{background:rgba(19,19,28,0.6);border:1px solid rgba(143,245,255,0.08);padding:22px;margin-bottom:20px}
+.cyber-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.cyber-section-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.82rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text)}
+.cyber-bar{display:flex;align-items:center;margin-bottom:10px}
+.cyber-bar-label{width:56px;font-size:0.78rem;color:var(--text-muted);font-family:'Space Grotesk',sans-serif;font-weight:600}
+.cyber-bar-track{flex:1;height:22px;background:rgba(255,255,255,0.03);border:1px solid rgba(143,245,255,0.06);overflow:hidden;margin:0 10px}
+.cyber-bar-fill{height:100%;background:linear-gradient(90deg,rgba(143,245,255,0.8),rgba(190,238,0,0.8));box-shadow:0 0 10px rgba(143,245,255,0.2);transition:width 0.6s ease}
+.cyber-bar-value{width:80px;text-align:right;font-weight:700;font-family:'Space Grotesk',sans-serif;font-size:0.82rem;color:var(--neon-cyan)}
+
+/* TOP LISTS */
+.cyber-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+.cyber-top-item{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid rgba(143,245,255,0.05)}
+.cyber-top-item:last-child{border-bottom:none}
+.cyber-top-rank{width:28px;font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:0.85rem;color:var(--text-muted)}
+.cyber-top-rank.r1{color:#ffd700;text-shadow:0 0 8px rgba(255,215,0,0.4)}
+.cyber-top-rank.r2{color:#c0c0c0}
+.cyber-top-rank.r3{color:#cd7f32}
+.cyber-top-info{flex:1;min-width:0}
+.cyber-top-name{font-weight:600;font-size:0.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cyber-top-meta{font-size:0.72rem;color:var(--text-muted);margin-top:2px}
+.cyber-top-value{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:0.9rem;margin-left:10px;white-space:nowrap}
+.cyber-top-value.lime{color:var(--neon-lime)}
+.cyber-top-value.cyan{color:var(--neon-cyan)}
+
+.cyber-empty{text-align:center;color:var(--text-muted);padding:24px;font-size:0.82rem;font-style:italic}
+
+/* RESPONSIVE */
+@media(max-width:900px){.cyber-kpi-grid{grid-template-columns:repeat(2,1fr)}.cyber-grid-2{grid-template-columns:1fr}}
+@media(max-width:600px){.cyber-kpi-grid{grid-template-columns:1fr}}
+</style>
+
+<!-- HEADER -->
+<div class="cyber-kpi-header">
+    <h2><span class="material-symbols-outlined" style="font-size:1.2rem;vertical-align:middle;margin-right:6px">analytics</span> Dashboard KPI</h2>
+    <div style="display:flex;align-items:center;gap:14px">
+        <div class="cyber-timestamp">{{ timestamp }}</div>
+        <div class="cyber-live"><div class="cyber-live-dot"></div> LIVE</div>
+    </div>
+</div>
+
+<!-- ALERTS -->
+{% for a in alerts %}
+<div class="cyber-alert {{ a.type }}">
+    <div class="cyber-alert-bar"></div>
+    <span class="material-symbols-outlined">{% if a.type == 'danger' %}error{% elif a.type == 'warning' %}warning{% else %}check_circle{% endif %}</span>
+    <div class="cyber-alert-content">
+        <div class="cyber-alert-title">{{ a.title }}</div>
+        <div class="cyber-alert-text">{{ a.text }}</div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- KPI ROW 1 -->
+<div class="cyber-kpi-grid">
+    <div class="cyber-kpi-card">
+        <div class="cyber-kpi-icon"><span class="material-symbols-outlined">payments</span></div>
+        <div class="cyber-kpi-val neon-lime">{{ dzis_suma }} zl</div>
+        <div class="cyber-kpi-lbl">Przychod DZIS</div>
+        <div class="cyber-trend {{ dzis_trend_class }}">{% if dzis_trend > 0 %}&uarr;{% elif dzis_trend < 0 %}&darr;{% else %}&rarr;{% endif %} {{ dzis_trend_abs }}% vs wczoraj</div>
+    </div>
+    <div class="cyber-kpi-card">
+        <div class="cyber-kpi-icon"><span class="material-symbols-outlined">orders</span></div>
+        <div class="cyber-kpi-val neon-pink">{{ dzis_cnt }}</div>
+        <div class="cyber-kpi-lbl">Zamowien DZIS</div>
+    </div>
+    <div class="cyber-kpi-card">
+        <div class="cyber-kpi-icon"><span class="material-symbols-outlined">trending_up</span></div>
+        <div class="cyber-kpi-val neon-cyan">{{ tydzien_suma }} zl</div>
+        <div class="cyber-kpi-lbl">Przychod TYDZIEN</div>
+        <div class="cyber-trend {{ tydzien_trend_class }}">{% if tydzien_trend > 0 %}&uarr;{% elif tydzien_trend < 0 %}&darr;{% else %}&rarr;{% endif %} {{ tydzien_trend_abs }}% vs poprz.</div>
+    </div>
+    <div class="cyber-kpi-card">
+        <div class="cyber-kpi-icon"><span class="material-symbols-outlined">calendar_month</span></div>
+        <div class="cyber-kpi-val neon-pink">{{ miesiac_suma }} zl</div>
+        <div class="cyber-kpi-lbl">Przychod MIESIAC</div>
+        <div class="cyber-trend {{ miesiac_trend_class }}">{% if miesiac_trend > 0 %}&uarr;{% elif miesiac_trend < 0 %}&darr;{% else %}&rarr;{% endif %} {{ miesiac_trend_abs }}% vs poprz.</div>
+    </div>
+</div>
+
+<!-- KPI ROW 2 -->
+<div class="cyber-kpi-grid">
+    <div class="cyber-kpi-card" title="Przychod: {{ przychod_f }} - Koszt: {{ koszty_f }} - Prowizja: {{ prowizja_f }} = {{ zysk_f }} zl">
+        <div class="cyber-kpi-icon"><span class="material-symbols-outlined">account_balance</span></div>
+        <div class="cyber-kpi-val neon-lime">{{ zysk_f }} zl</div>
+        <div class="cyber-kpi-lbl">Zysk netto (miesiac)</div>
+        <div class="cyber-kpi-sub">Koszt: {{ koszty_f }} | Prowizja: {{ prowizja_f }} zl</div>
+    </div>
+    <div class="cyber-kpi-card" title="Zysk {{ zysk_f }} / Koszt {{ koszty_f }} x 100%">
+        <div class="cyber-kpi-icon"><span class="material-symbols-outlined">percent</span></div>
+        <div class="cyber-kpi-val {% if roi_miesiac > 50 %}neon-lime{% else %}neon-cyan{% endif %}">{{ roi_f }}%</div>
+        <div class="cyber-kpi-lbl">ROI (miesiac)</div>
+    </div>
+    <div class="cyber-kpi-card">
+        <div class="cyber-kpi-icon"><span class="material-symbols-outlined">inventory</span></div>
+        <div class="cyber-kpi-val neon-pink">{{ magazyn_sztuki }}</div>
+        <div class="cyber-kpi-lbl">Sztuk w magazynie</div>
+    </div>
+    <div class="cyber-kpi-card">
+        <div class="cyber-kpi-icon"><span class="material-symbols-outlined">warehouse</span></div>
+        <div class="cyber-kpi-val neon-lime">{{ magazyn_wartosc }} zl</div>
+        <div class="cyber-kpi-lbl">Wartosc magazynu</div>
+    </div>
+</div>
+
+<!-- CHART: SPRZEDAZ 7 DNI -->
+<div class="cyber-section">
+    <div class="cyber-section-header">
+        <div class="cyber-section-title"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle;margin-right:6px">bar_chart</span> Sprzedaz ostatnie 7 dni</div>
+    </div>
+    {% for d in sprzedaz_dni_rev %}
+    <div class="cyber-bar">
+        <div class="cyber-bar-label">{{ d.dzien[5:] }}</div>
+        <div class="cyber-bar-track">
+            <div class="cyber-bar-fill" style="width:{{ (d.suma / max_dzien * 100)|int if max_dzien > 0 else 0 }}%"></div>
+        </div>
+        <div class="cyber-bar-value">{{ d.suma|int }} zl</div>
+    </div>
+    {% endfor %}
+    {% if not sprzedaz_dni_rev %}
+    <div class="cyber-empty">Brak danych sprzedazy</div>
+    {% endif %}
+</div>
+
+<!-- TOP PRODUKTY + DOSTAWCY -->
+<div class="cyber-grid-2">
+    <div class="cyber-section">
+        <div class="cyber-section-header">
+            <div class="cyber-section-title"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle;margin-right:6px">emoji_events</span> TOP 5 Produktow (miesiac)</div>
+        </div>
+        {% for p in top_produkty %}
+        <div class="cyber-top-item">
+            <div class="cyber-top-rank {% if loop.index == 1 %}r1{% elif loop.index == 2 %}r2{% elif loop.index == 3 %}r3{% endif %}">{{ loop.index }}</div>
+            <div class="cyber-top-info">
+                <div class="cyber-top-name">{{ (p.produkt_nazwa or 'Nieznany')[:30] }}{% if (p.produkt_nazwa or '')|length > 30 %}...{% endif %}</div>
+                <div class="cyber-top-meta">{{ p.sprzedane }} szt sprzedanych</div>
+            </div>
+            <div class="cyber-top-value lime">{{ (p.wartosc or 0)|int }} zl</div>
+        </div>
+        {% else %}
+        <div class="cyber-empty">Brak danych</div>
+        {% endfor %}
+    </div>
+
+    <div class="cyber-section">
+        <div class="cyber-section-header">
+            <div class="cyber-section-title"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle;margin-right:6px">local_shipping</span> TOP 5 Dostawcow (ROI)</div>
+        </div>
+        {% for d in top_dostawcy_data %}
+        <div class="cyber-top-item">
+            <div class="cyber-top-rank {% if loop.index == 1 %}r1{% elif loop.index == 2 %}r2{% elif loop.index == 3 %}r3{% endif %}">{{ loop.index }}</div>
+            <div class="cyber-top-info">
+                <div class="cyber-top-name">{{ d.nazwa }}</div>
+                <div class="cyber-top-meta">{{ d.sprzedane }} szt | {{ d.przychod }} zl przychod</div>
+            </div>
+            <div class="cyber-top-value {% if d.roi > 50 %}lime{% else %}cyan{% endif %}">{{ d.roi }}%</div>
+        </div>
+        {% else %}
+        <div class="cyber-empty">Brak danych</div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}
