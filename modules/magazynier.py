@@ -795,7 +795,7 @@ def produkty():
                     <span class=material-symbols-outlined>check_circle</span> Zastosuj
                 </button>
                 <button type="button" onclick="pokazBoxModal()" class="btn" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.25);color:#f59e0b;flex:1;display:flex;align-items:center;justify-content:center;gap:4px">
-                    [INBOX] Zgrupuj w box
+                    <span class=material-symbols-outlined>inbox</span> Zgrupuj w box
                 </button>
             </div>
             <div id="selected-count" style="margin-top:10px;color:#ff6b9b;font-size:0.85rem;font-weight:600;font-family:'Space Grotesk',sans-serif">
@@ -938,7 +938,7 @@ def produkty():
     <div id="modalBox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center">
         <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border-radius:var(--radius);padding:25px;max-width:450px;width:90%;max-height:80vh;overflow-y:auto;border:2px solid #f59e0b">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-                <h3 style="margin:0;color:#f59e0b">[INBOX] Nowy Box</h3>
+                <h3 style="margin:0;color:#f59e0b"><span class=material-symbols-outlined>inbox</span> Nowy Box</h3>
                 <button onclick="document.getElementById('modalBox').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer">&times;</button>
             </div>
 
@@ -966,7 +966,7 @@ def produkty():
             </div>
 
             <button id="boxSaveBtn" onclick="zapiszBox()" class="btn" style="width:100%;background:#f59e0b;color:#000;font-weight:700;padding:12px">
-                [INBOX] Utwórz Box
+                <span class=material-symbols-outlined>inbox</span> Utwórz Box
             </button>
         </div>
     </div>
@@ -3308,7 +3308,7 @@ def palety():
     <div id="modalBoxPalety" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center">
         <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border-radius:14px;padding:25px;max-width:450px;width:90%;max-height:80vh;overflow-y:auto;border:2px solid #f59e0b">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-                <h3 style="margin:0;color:#f59e0b">[INBOX] Zgrupuj w Box</h3>
+                <h3 style="margin:0;color:#f59e0b"><span class=material-symbols-outlined>inbox</span> Zgrupuj w Box</h3>
                 <button onclick="document.getElementById('modalBoxPalety').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer">&times;</button>
             </div>
             <div style="margin-bottom:12px;padding:10px;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px">
@@ -3331,7 +3331,7 @@ def palety():
                 </div>
             </div>
             <button id="boxPaletySaveBtn" onclick="zapiszBoxPalety()" style="width:100%;padding:12px;background:#f59e0b;border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer;font-size:1rem">
-                [INBOX] Utwórz Box
+                <span class=material-symbols-outlined>inbox</span> Utwórz Box
             </button>
         </div>
     </div>'''
@@ -4455,7 +4455,7 @@ def import_page():
                         <label style="font-size:0.8rem;color:#64748b">Typ</label>
                         <select name="new_paleta_typ" class="form-ctrl" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:6px;color:#fff">
                             <option value="paleta"><span class=material-symbols-outlined>inventory_2</span> Paleta</option>
-                            <option value="box">[INBOX] Box</option>
+                            <option value="box">inbox Box</option>
                         </select>
                     </div>
                 </div>

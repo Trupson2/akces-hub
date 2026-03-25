@@ -575,9 +575,9 @@ function showDailyView(monthIdx) {
     const totalCnt = dailyCnt.reduce((a, b) => a + b, 0);
     const avgDay = daily.length ? (totalMonth / daily.length) : 0;
     document.getElementById('monthSummary').innerHTML =
-        '<i class="mi" style="font-size:0.7rem">info</i> ' +
-        monthName + ': <strong>' + totalMonth.toFixed(2) + ' zl</strong> | ' +
-        totalCnt + ' transakcji | srednia: ' + avgDay.toFixed(2) + ' zl/dzien';
+        '<span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;color:#8ff5ff">info</span> ' +
+        monthName + ': <strong style="color:#beee00;font-size:1rem">' + totalMonth.toFixed(0) + ' zl</strong> | ' +
+        totalCnt + ' transakcji | srednia: <strong>' + avgDay.toFixed(0) + ' zl/dzien</strong>';
 
     monthlyChart.data.labels = labels;
     monthlyChart.data.datasets = [{

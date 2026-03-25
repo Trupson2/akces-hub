@@ -2091,14 +2091,14 @@ def paleta_bulk_import():
                 if w['status'] == 'merged':
                     results_html += f'''
                     <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#f59e0b11;border:1px solid #f59e0b44;border-radius:10px;margin-bottom:8px">
-                        <div style="font-size:1.5rem">[INBOX]</div>
+                        <div style="font-size:1.5rem"><span class=material-symbols-outlined>inbox</span></div>
                         <div style="flex:1">
                             <div style="font-weight:600;color:#f59e0b">{w['nazwa']}</div>
                             <div style="font-size:0.8rem;color:var(--text-muted)">Połączono z głównym boxem • {w['plik']}</div>
                         </div>
                     </div>'''
                 elif w['status'] == 'ok':
-                    typ_icon = '[INBOX]' if w.get('typ') == 'box' else '<span class=material-symbols-outlined>check_circle</span>'
+                    typ_icon = '<span class=material-symbols-outlined>inbox</span>' if w.get('typ') == 'box' else '<span class=material-symbols-outlined>check_circle</span>'
                     results_html += f'''
                     <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--green-soft);border:1px solid rgba(34,197,94,0.3);border-radius:10px;margin-bottom:8px">
                         <div style="font-size:1.5rem">{typ_icon}</div>
@@ -2107,7 +2107,7 @@ def paleta_bulk_import():
                             <div style="font-size:0.8rem;color:var(--text-muted)">{w['produkty']} produktów • {w['plik']}</div>
                         </div>
                         <a href="/palety/{w['paleta_id']}" style="color:var(--blue);text-decoration:none;font-size:0.85rem">Otwórz →</a>
-                        <a href="/magazyn/produkty?paleta_id={w['paleta_id']}" style="color:#f59e0b;text-decoration:none;font-size:0.8rem;margin-left:8px" title="Zgrupuj produkty w box">[INBOX] Box</a>
+                        <a href="/magazyn/produkty?paleta_id={w['paleta_id']}" style="color:#f59e0b;text-decoration:none;font-size:0.8rem;margin-left:8px" title="Zgrupuj produkty w box"><span class=material-symbols-outlined>inbox</span> Box</a>
                     </div>'''
                 else:
                     results_html += f'''
@@ -2212,7 +2212,7 @@ def paleta_bulk_import():
     <div id="merge-box-option" style="display:none;margin-bottom:12px;padding:14px;background:#f59e0b11;border:1px solid #f59e0b44;border-radius:12px">
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;color:#f59e0b;font-weight:600">
             <input type="checkbox" name="merge_boxes" value="1" style="width:18px;height:18px;accent-color:#f59e0b">
-            [INBOX] Połącz wszystkie boxy w jeden
+            <span class=material-symbols-outlined>inbox</span> Połącz wszystkie boxy w jeden
         </label>
         <div style="font-size:0.78rem;color:var(--text-muted);margin-top:5px;margin-left:28px">Produkty z wszystkich plików typu "Box" trafią do jednego boxa</div>
         <div style="margin-top:8px;margin-left:28px">
@@ -2290,8 +2290,8 @@ def paleta_bulk_import():
                 <div>
                     <label style="display:block;font-size:0.75rem;color:var(--text-secondary);margin-bottom:3px">Typ</label>
                     <select name="typ_${i}" class="form-control" onchange="updateSlotType(${i}, this.value)">
-                        <option value="paleta"><span class=material-symbols-outlined>inventory_2</span> Paleta</option>
-                        <option value="box">[INBOX] Box</option>
+                        <option value="paleta">Paleta</option>
+                        <option value="box">Box</option>
                     </select>
                 </div>
                 <div>
@@ -2323,7 +2323,7 @@ def paleta_bulk_import():
         const title = document.getElementById('slot-title-' + i);
         if (title) {
             if (typ === 'box') {
-                title.innerHTML = '[INBOX] Box #' + (i+1);
+                title.innerHTML = '<span class=material-symbols-outlined>inbox</span> Box #' + (i+1);
                 title.style.color = '#f59e0b';
             } else {
                 title.innerHTML = '<span class=material-symbols-outlined>inventory_2</span> Paleta #' + (i+1);
