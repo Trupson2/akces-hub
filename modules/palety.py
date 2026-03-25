@@ -901,7 +901,7 @@ def napraw_ceny_palet():
             else:
                 conn.execute('UPDATE palety SET cena_zakupu = ? WHERE id = ?', (suma_brutto, p['id']))
             updated += 1
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Naprawiono paletę {p['id']}: {p['nazwa']} -> {suma_netto:.0f} netto | {suma_brutto:.0f} brutto")
+            print(f"[CHECK_CIRCLE] Naprawiono paletę {p['id']}: {p['nazwa']} -> {suma_netto:.0f} netto | {suma_brutto:.0f} brutto")
 
     conn.commit()
 
@@ -940,7 +940,7 @@ def przelicz_brutto_palet():
             stara_cena = p['cena_zakupu'] or 0
             conn.execute('UPDATE palety SET cena_zakupu = ?, cena_zakupu_netto = ? WHERE id = ?', (suma_brutto, suma_netto, p['id']))
             updated += 1
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Paleta {p['id']}: {p['nazwa']} -> {stara_cena:.0f} → {suma_brutto:.0f} zł brutto")
+            print(f"[CHECK_CIRCLE] Paleta {p['id']}: {p['nazwa']} -> {stara_cena:.0f} → {suma_brutto:.0f} zł brutto")
 
     conn.commit()
 
@@ -1233,11 +1233,11 @@ def paleta_dodaj():
         notatki = request.form.get('notatki', '')
 
         # Debug log
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Dodaję paletę: nazwa={nazwa}, dostawca={dostawca}, cena={cena}")
+        print(f"[INVENTORY_2] Dodaję paletę: nazwa={nazwa}, dostawca={dostawca}, cena={cena}")
 
         paleta_id = add_paleta(nazwa, dostawca, cena, data, notatki, regal)
 
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Utworzono paletę ID: {paleta_id}")
+        print(f"[CHECK_CIRCLE] Utworzono paletę ID: {paleta_id}")
 
         return redirect(f'/palety/{paleta_id}')
 
@@ -1427,7 +1427,7 @@ def paleta_import_xlsx():
                     (nowa_brutto, nowa_netto, paleta_id))
             except:
                 conn.execute('UPDATE palety SET cena_zakupu = ? WHERE id = ?', (nowa_brutto, paleta_id))
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>paid</span> Cena zakupu palety (stała): {nowa_netto:.2f} netto | {nowa_brutto:.2f} brutto")
+            print(f"[PAID] Cena zakupu palety (stała): {nowa_netto:.2f} netto | {nowa_brutto:.2f} brutto")
 
             conn.commit()
 
@@ -1746,7 +1746,7 @@ def paleta_bulk_import():
                                     if file_prod_count > 0:
                                         files_ok += 1
                                 except Exception as ze:
-                                    print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> ZIP Excel error ({excel_name}): {ze}")
+                                    print(f"[WARNING] ZIP Excel error ({excel_name}): {ze}")
                                     continue
 
                             # Aktualizuj paletę
@@ -1803,7 +1803,7 @@ def paleta_bulk_import():
                         header_row_idx = ri
                         break
 
-                    print(f"<span class=material-symbols-outlined style=font-size:1rem>list_alt</span> Nagłówki Excel (wiersz {header_row_idx+1}): {[h for h in headers if h]}")
+                    print(f"[LIST_ALT] Nagłówki Excel (wiersz {header_row_idx+1}): {[h for h in headers if h]}")
 
                     col_nazwa_i = -1
                     col_ean_i = -1
@@ -1907,7 +1907,7 @@ def paleta_bulk_import():
                         if any(x in h_check for x in ['total', 'amount', 'wartosc', 'wartość', 'lineamount', 'gesamt']):
                             price_is_total = True
 
-                    print(f"<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Bulk import kolumny: nazwa={col_nazwa_i} ean={col_ean_i} asin={col_asin_i} ilosc={col_ilosc_i} cena={col_cena_i} rrp={col_rrp_i} total={price_is_total}")
+                    print(f"[BAR_CHART] Bulk import kolumny: nazwa={col_nazwa_i} ean={col_ean_i} asin={col_asin_i} ilosc={col_ilosc_i} cena={col_cena_i} rrp={col_rrp_i} total={price_is_total}")
 
                     # Utwórz paletę/box
                     paleta_id = add_paleta(nazwa, dostawca, cena_zakupu, data_zakupu, f'Bulk import: {file.filename}', regal, typ=typ)
@@ -2037,7 +2037,7 @@ def paleta_bulk_import():
                     # Zaktualizuj wynik głównego boxa
                     box_wyniki[0]['nazwa'] = merged_nazwa
                     box_wyniki[0]['produkty'] = new_count
-                    print(f"<span class=material-symbols-outlined style=font-size:1rem>inbox</span> Merged {len(box_wyniki)} boxes into '{merged_nazwa}' (id={main_box_id}, {new_count} products)")
+                    print(f"[INBOX] Merged {len(box_wyniki)} boxes into '{merged_nazwa}' (id={main_box_id}, {new_count} products)")
 
             # <span class=material-symbols-outlined style=font-size:1rem>list_alt</span> Dodaj produkty z ASIN do tabeli scraped (żeby pojawiły się w generatorze ofert)
             scrape_count = 0
@@ -2076,7 +2076,7 @@ def paleta_bulk_import():
                         scrape_count = len(asins)
                         print(f"[AGRI] Bulk import → auto-scraping {scrape_count} produktów")
             except Exception as e:
-                print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> Auto-scraping/scraped insert error: {e}")
+                print(f"[WARNING] Auto-scraping/scraped insert error: {e}")
 
             # Pokaż wyniki
             ok_count = sum(1 for w in wyniki if w['status'] == 'ok')
@@ -2854,9 +2854,9 @@ def paleta_szczegoly(paleta_id):
             conn.execute("UPDATE produkty SET przychod_offline=0 WHERE id=?", (row['id'],))
         if stare_offline:
             conn.commit()
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Migracja palety {paleta_id}: {len(stare_offline)} offline -> sprzedaze")
+            print(f"[CHECK_CIRCLE] Migracja palety {paleta_id}: {len(stare_offline)} offline -> sprzedaze")
     except Exception as _em:
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> Migracja palety: {_em}")
+        print(f"[WARNING] Migracja palety: {_em}")
 
     # Zeruj przychod_offline I sprzedano_offline dla produktów które mają już rekord w sprzedaze (cleanup)
     # FIX: zeruj OBA pola — wcześniej tylko przychod_offline, co powodowało mismatch (+1 sprzedanych)
@@ -2956,7 +2956,7 @@ def paleta_szczegoly(paleta_id):
             conn.commit()
             cena_zakupu = suma_brutto
             cena_zakupu_netto = suma_netto
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>paid</span> Auto-naprawiono cenę zakupu palety #{paleta_id}: {suma_netto:.2f} netto | {suma_brutto:.2f} brutto")
+            print(f"[PAID] Auto-naprawiono cenę zakupu palety #{paleta_id}: {suma_netto:.2f} netto | {suma_brutto:.2f} brutto")
 
     # Przychód offline ze sprzedaze (nowe rekordy po migracji)
     przychod_offline_sprzedaze = conn.execute('''
@@ -3006,7 +3006,7 @@ def paleta_szczegoly(paleta_id):
             try:
                 conn.execute('UPDATE palety SET koszt_jednostkowy = ? WHERE id = ?', (_kj_netto, paleta_id))
                 conn.commit()
-                print(f"<span class=material-symbols-outlined style=font-size:1rem>paid</span> Auto-set koszt_jednostkowy palety #{paleta_id}: {_kj_netto:.2f} zł/szt netto")
+                print(f"[PAID] Auto-set koszt_jednostkowy palety #{paleta_id}: {_kj_netto:.2f} zł/szt netto")
             except:
                 pass
     koszt_jednostkowy_netto = _kj_netto
@@ -3024,7 +3024,7 @@ def paleta_szczegoly(paleta_id):
     except:
         przychod_offline = 0
 
-    print(f"<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> STATS paleta #{paleta_id}:")
+    print(f"[BAR_CHART] STATS paleta #{paleta_id}:")
     print(f"   - sprzedano_szt_db (tabela sprzedaze): {sprzedano_szt_db}")
     print(f"   - sprzedane_produkty (status=sprzedany bez offline): {sprzedane_produkty}")
     print(f"   - sprzedano_offline (suma): {sprzedano_offline}")
@@ -3048,7 +3048,7 @@ def paleta_szczegoly(paleta_id):
     przychod_rzeczywisty = przychod_allegro_db + przychod_offline_sprzedaze + przychod_offline_stare
     przychod_z_sprzedazy = przychod_allegro_db + przychod_offline_sprzedaze
 
-    print(f"<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> PRZYCHOD: z_produktow={przychod_z_produktow}, z_sprzedazy={przychod_z_sprzedazy}, offline={przychod_offline}, SUMA={przychod_rzeczywisty}")
+    print(f"[BAR_CHART] PRZYCHOD: z_produktow={przychod_z_produktow}, z_sprzedazy={przychod_z_sprzedazy}, offline={przychod_offline}, SUMA={przychod_rzeczywisty}")
 
     # Koszt sprzedanych
     wszystkie_szt = (stats['sztuki'] or 0) + sprzedano_szt
@@ -3062,7 +3062,7 @@ def paleta_szczegoly(paleta_id):
     zysk_rzeczywisty = przychod_rzeczywisty - koszt_sprzedanych
 
     # DEBUG
-    print(f"<span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> PRODUKTY na palecie #{paleta_id}:")
+    print(f"[INVENTORY_2] PRODUKTY na palecie #{paleta_id}:")
     for p in produkty:
         try:
             offline_szt = p['sprzedano_offline'] or 0
@@ -3884,7 +3884,7 @@ def paleta_scrape_images(paleta_id):
         conn = get_db()
         # Debug: pokaż WSZYSTKIE produkty na palecie i ich ASIN-y
         all_prods = conn.execute('SELECT id, nazwa, asin, ean, zdjecie_url FROM produkty WHERE paleta_id = ?', (paleta_id,)).fetchall()
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>search</span> SCRAPE DEBUG paleta #{paleta_id}: {len(all_prods)} produktów")
+        print(f"[SEARCH] SCRAPE DEBUG paleta #{paleta_id}: {len(all_prods)} produktów")
         for p in all_prods:
             print(f"   ID:{p['id']} | ASIN:{p['asin']!r} | EAN:{p['ean']!r} | img:{(p['zdjecie_url'] or '')[:40]!r} | {(p['nazwa'] or '')[:40]}")
 
@@ -3895,7 +3895,7 @@ def paleta_scrape_images(paleta_id):
             AND (zdjecie_url IS NULL OR zdjecie_url = '')
         ''', (paleta_id,)).fetchall()
         asins = [r['asin'] for r in asins_rows if r['asin'] and len(r['asin']) >= 5]
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>search</span> SCRAPE: znaleziono {len(asins)} ASIN-ów do scrapowania: {asins}")
+        print(f"[SEARCH] SCRAPE: znaleziono {len(asins)} ASIN-ów do scrapowania: {asins}")
 
         if not asins:
             # Sprawdź czy może wszystkie już mają zdjęcia

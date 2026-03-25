@@ -4083,7 +4083,7 @@ def api_palety_usun():
             # Usuń paletę
             conn.execute('DELETE FROM palety WHERE id = ?', (pid,))
         conn.commit()
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>delete</span> Usunięto {len(ids)} palet z produktami")
+        print(f"[DELETE] Usunięto {len(ids)} palet z produktami")
         return jsonify({'ok': True, 'deleted': len(ids)})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
@@ -4675,13 +4675,13 @@ def paleta_usun(n):
         if asiny_list:
             placeholders = ','.join(['?' for _ in asiny_list])
             conn.execute('DELETE FROM scraped WHERE asin IN (' + placeholders + ')', asiny_list)  # noqa: B608 - placeholders are only ?
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>delete</span> Usunięto {len(asiny_list)} produktów ze scraped (Paletomat)")
+            print(f"[DELETE] Usunięto {len(asiny_list)} produktów ze scraped (Paletomat)")
         
         # Usuń wszystkie produkty z tej palety (Magazynier)
         conn.execute('DELETE FROM produkty WHERE paleta = ?', (n,))
         
         conn.commit()
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Usunięto paletę: {n}")
+        print(f"[CHECK_CIRCLE] Usunięto paletę: {n}")
     
     return redirect('/magazyn/palety')
 

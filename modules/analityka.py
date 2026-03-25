@@ -2416,9 +2416,9 @@ def analityka_czas_sprzedazy():
             placeholders = ','.join('?' * len(ids))
             conn.execute("UPDATE produkty SET przychod_offline = 0 WHERE id IN (" + placeholders + ")", ids)
             conn.commit()
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Migracja offline: przeniesiono {len(stare)} produktów do sprzedaze, wyzerowano przychod_offline")
+            print(f"[CHECK_CIRCLE] Migracja offline: przeniesiono {len(stare)} produktów do sprzedaze, wyzerowano przychod_offline")
     except Exception as _e:
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> Migracja offline: {_e}")
+        print(f"[WARNING] Migracja offline: {_e}")
 
     # Napraw rekordy offline w sprzedaze które mają cena=0
     try:
@@ -2434,9 +2434,9 @@ def analityka_czas_sprzedazy():
         naprawione = conn.execute("SELECT changes()").fetchone()[0]
         if naprawione:
             conn.commit()
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Naprawiono ceny offline: {naprawione} rekordów")
+            print(f"[CHECK_CIRCLE] Naprawiono ceny offline: {naprawione} rekordów")
     except Exception as _e:
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> Naprawa cen offline: {_e}")
+        print(f"[WARNING] Naprawa cen offline: {_e}")
 
     # Backfill data_syncu
     try:

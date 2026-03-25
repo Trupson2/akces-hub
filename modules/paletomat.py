@@ -368,7 +368,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
         # Pobierz dane z Amazona
         amazon_data = scrape_amazon_product(asin, preferred_domain=preferred_domain)
         if not amazon_data:
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> Could not scrape: {asin}")
+            print(f"[WARNING] Could not scrape: {asin}")
             return (asin, False, "Scraping failed")
         
         nazwa = amazon_data.get('title', '') or f'Produkt {asin}'
@@ -382,9 +382,9 @@ def process_single_product(asin, position, total, preferred_domain=None):
         # Auto-kategoryzacja na podstawie nazwy produktu
         kategoria = auto_kategoryzuj(nazwa)
         
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Scraped: {nazwa[:50]}...")
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> Images: {len(wszystkie_zdjecia)}")
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>edit_note</span> Features: {len(bullet_points)}")
+        print(f"[CHECK_CIRCLE] Scraped: {nazwa[:50]}...")
+        print(f"[PHOTO_CAMERA] Images: {len(wszystkie_zdjecia)}")
+        print(f"[EDIT_NOTE] Features: {len(bullet_points)}")
 
         # <span class=material-symbols-outlined style=font-size:1rem>rocket_launch</span> NATYCHMIAST zapisz nazwę do bazy (żeby nie było "Produkt B0...")
         try:
@@ -398,13 +398,13 @@ def process_single_product(asin, position, total, preferred_domain=None):
             conn.execute('UPDATE scraped SET nazwa=?, kategoria=? WHERE asin=?',
                 (nazwa, kategoria, asin))
             conn.commit()
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>edit_note</span> Nazwa zapisana od razu: {nazwa[:50]}")
+            print(f"[EDIT_NOTE] Nazwa zapisana od razu: {nazwa[:50]}")
         except Exception as e:
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> Szybki zapis nazwy: {e}")
+            print(f"[WARNING] Szybki zapis nazwy: {e}")
 
         # <span class=material-symbols-outlined style=font-size:1rem>download</span> POBIERZ WSZYSTKIE ZDJĘCIA LOKALNIE - NOWA ORGANIZACJA KATALOGÓW
         lokalne_zdjecia = []
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>download</span> Pobieram {len(wszystkie_zdjecia)} zdjęć lokalnie...")
+        print(f"[DOWNLOAD] Pobieram {len(wszystkie_zdjecia)} zdjęć lokalnie...")
         
         # Stwórz katalog dla ASIN
         import os
@@ -433,7 +433,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
             except Exception as e:
                 print(f"   ✗ [{idx}/{len(wszystkie_zdjecia[:8])}] Error: {str(e)[:50]}")
         
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Pobrano {len(lokalne_zdjecia)}/{len(wszystkie_zdjecia[:8])} zdjęć lokalnie")
+        print(f"[CHECK_CIRCLE] Pobrano {len(lokalne_zdjecia)}/{len(wszystkie_zdjecia[:8])} zdjęć lokalnie")
 
         # Zachowaj CDN URL-e do zapisu w scraped (do ponownego pobrania w przyszłości)
         cdn_urls_for_cache = [u for u in wszystkie_zdjecia[:8] if isinstance(u, str) and u.startswith('http')]
@@ -454,7 +454,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
             from .image_cleaner import clean_image_from_bytes
 
             if _ENH_SCRAPE and lokalne_zdjecia and not _is_pi:
-                print(f"<span class=material-symbols-outlined style=font-size:1rem>auto_awesome</span> [{position}/{total}] HYBRID: oryginały + AI dla {asin}...")
+                print(f"[AUTO_AWESOME] [{position}/{total}] HYBRID: oryginały + AI dla {asin}...")
                 _enh_dir = os.path.join('static', 'enhanced', str(asin))
                 os.makedirs(_enh_dir, exist_ok=True)
                 _enh_ok = []
@@ -550,7 +550,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
             has_gemini = bool(gemini_key)
         
         if has_gemini:
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>smart_toy</span> [AI TITLE] Generuję tytuł przez Gemini...")
+            print(f"[SMART_TOY] [AI TITLE] Generuję tytuł przez Gemini...")
             product_data_for_title = {
                 'nazwa': nazwa,
                 'bullet_points': bullet_points,
@@ -566,7 +566,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
                 print(f"   <span class=material-symbols-outlined style=font-size:1rem>edit_note</span> Title (fallback): {tytul_seo}")
         else:
             # Fallback na starą metodę jeśli brak klucza
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span>  [NO API KEY] Brak klucza Gemini - używam fallback")
+            print(f"[WARNING]  [NO API KEY] Brak klucza Gemini - używam fallback")
             tytul_seo = optimize_title_seo(nazwa, 75)
             print(f"   <span class=material-symbols-outlined style=font-size:1rem>edit_note</span> Title (fallback): {tytul_seo}")
         
@@ -575,7 +575,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
             opis_html, opis_plain = generuj_opis_html_pro(nazwa, wszystkie_zdjecia, kategoria, bullet_points, gemini_key=gemini_key, asin=asin)
             print(f"[DESC] Description: {len(opis_html)} chars")
         except Exception as e:
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> Description generation failed: {e}")
+            print(f"[WARNING] Description generation failed: {e}")
             # Fallback - prosty opis
             opis_html = f"<p>{nazwa}</p>"
             if bullet_points:
@@ -589,12 +589,12 @@ def process_single_product(asin, position, total, preferred_domain=None):
         try:
             gpsr = generuj_gpsr_info(nazwa, kategoria, product_specs=product_specs)
             if gpsr:
-                print(f"<span class=material-symbols-outlined style=font-size:1rem>shield</span> GPSR: {len(gpsr)} znaków wygenerowane")
+                print(f"[SHIELD] GPSR: {len(gpsr)} znaków wygenerowane")
             else:
                 print(f"   ℹ  GPSR: brak (produkt nie wymaga)")
                 gpsr = ""
         except Exception as e:
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> GPSR generation failed: {e}")
+            print(f"[WARNING] GPSR generation failed: {e}")
             gpsr = ""
         
         # <span class=material-symbols-outlined style=font-size:1rem>rocket_launch</span> KOMBAJN: Zapisz do bazy z retry logic
@@ -632,13 +632,13 @@ def process_single_product(asin, position, total, preferred_domain=None):
                 break
             except sqlite3.OperationalError as e:
                 if 'locked' in str(e) and retry < 2:
-                    print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> DB locked, retry {retry+1}/3...")
+                    print(f"[WARNING] DB locked, retry {retry+1}/3...")
                     time.sleep(0.5 * (retry + 1))
                 else:
                     raise
         
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>save</span> Saved to database")
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Completed: {asin}")
+        print(f"[SAVE] Saved to database")
+        print(f"[CHECK_CIRCLE] Completed: {asin}")
         
         # Update progress
         PROGRESS['current'] += 1
@@ -646,7 +646,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
         return (asin, True, None)
         
     except Exception as e:
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>cancel</span> Error processing {asin}: {e}")
+        print(f"[CANCEL] Error processing {asin}: {e}")
         import traceback
         traceback.print_exc()
         
@@ -695,11 +695,11 @@ def auto_process_products(asins, preferred_domain=None):
                 try:
                     result_asin, success, error = future.result()
                     if success:
-                        print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> {result_asin} OK")
+                        print(f"[CHECK_CIRCLE] {result_asin} OK")
                     else:
-                        print(f"<span class=material-symbols-outlined style=font-size:1rem>cancel</span> {result_asin} FAILED: {error}")
+                        print(f"[CANCEL] {result_asin} FAILED: {error}")
                 except Exception as e:
-                    print(f"<span class=material-symbols-outlined style=font-size:1rem>cancel</span> {asin} EXCEPTION: {e}")
+                    print(f"[CANCEL] {asin} EXCEPTION: {e}")
         
         _processing_queue.clear()
         _scraper_running = False
@@ -708,11 +708,11 @@ def auto_process_products(asins, preferred_domain=None):
         success_count = PROGRESS['current'] - PROGRESS['errors']
 
         print(f"\n{'='*70}")
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>celebration</span> KOMBAJN COMPLETE!")
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Success: {success_count}/{total}")
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>cancel</span> Errors: {PROGRESS['errors']}/{total}")
+        print(f"[CELEBRATION] KOMBAJN COMPLETE!")
+        print(f"[CHECK_CIRCLE] Success: {success_count}/{total}")
+        print(f"[CANCEL] Errors: {PROGRESS['errors']}/{total}")
         print(f"[TIME]  Time: {elapsed:.1f}s ({elapsed/total:.1f}s per product)")
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>rocket_launch</span> Speed: {total/elapsed*60:.1f} products/min")
+        print(f"[ROCKET_LAUNCH] Speed: {total/elapsed*60:.1f} products/min")
         print(f"{'='*70}\n")
 
         # <span class=material-symbols-outlined style=font-size:1rem>smart_toy</span> AUTO-ENHANCE: po scrapowaniu automatycznie generuj zdjęcia AI
@@ -1381,7 +1381,7 @@ def scraper_miglo():
     dostawca = request.form.get('dostawca', 'Miglo')
     nowa_paleta_nazwa = request.form.get('nowa_paleta_nazwa', '').strip()
     
-    print(f"<span class=material-symbols-outlined style=font-size:1rem>download</span> [MIGLO] paleta_id='{paleta_id_raw}', dostawca='{dostawca}', nowa_paleta='{nowa_paleta_nazwa}'")
+    print(f"[DOWNLOAD] [MIGLO] paleta_id='{paleta_id_raw}', dostawca='{dostawca}', nowa_paleta='{nowa_paleta_nazwa}'")
     
     # Parsuj paleta_id - może być: '', 'new', lub liczba
     paleta_id = None
@@ -1389,7 +1389,7 @@ def scraper_miglo():
         try:
             paleta_id = int(paleta_id_raw)
         except ValueError:
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> Nieprawidłowe ID palety: {paleta_id_raw}, używam None")
+            print(f"[WARNING] Nieprawidłowe ID palety: {paleta_id_raw}, używam None")
             paleta_id = None
     
     if not miglo_data.strip():
@@ -1459,7 +1459,7 @@ def scraper_miglo():
                 'brutto_jednostkowa': round(cena_netto * 1.23, 2),
                 'brutto_lacznie': round(cena_netto * qty * 1.23, 2)
             }
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Miglo: {asin} - {qty}szt × {cena_netto:.2f} netto = {cena_netto * qty:.2f} netto łącznie")
+            print(f"[INVENTORY_2] Miglo: {asin} - {qty}szt × {cena_netto:.2f} netto = {cena_netto * qty:.2f} netto łącznie")
     
     if not asin_data:
         return render('<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-warn">Nie znaleziono prawidłowych danych.<br><br><small>Format: ASIN | Ilość | ... | Cena netto</small></div><a href="/paletomat/scraper" class="btn btn-p">← Powrót</a>')
@@ -1473,7 +1473,7 @@ def scraper_miglo():
             (nowa_paleta_nazwa, dostawca)
         )
         paleta_id = cursor.lastrowid
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Utworzono nową paletę: {nowa_paleta_nazwa} (ID: {paleta_id})")
+        print(f"[INVENTORY_2] Utworzono nową paletę: {nowa_paleta_nazwa} (ID: {paleta_id})")
     
     # paleta_id jest już int lub None - nie trzeba konwertować ponownie
     
@@ -1521,7 +1521,7 @@ def scraper_miglo():
             total_qty += qty
             added += 1
         except Exception as e:
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>cancel</span> Błąd dodawania {asin}: {e}")
+            print(f"[CANCEL] Błąd dodawania {asin}: {e}")
     
     # Zaktualizuj ilość produktów i sztuk w palecie
     if paleta_id:
@@ -1727,7 +1727,7 @@ def scraper_file():
     print("="*60)
     
     # DEBUG: Pokaż WSZYSTKO co przyszło z formularza
-    print(f"<span class=material-symbols-outlined style=font-size:1rem>list_alt</span> Wszystkie pola formularza: {dict(request.form)}")
+    print(f"[LIST_ALT] Wszystkie pola formularza: {dict(request.form)}")
     print(f"[FOLD] Pliki: {list(request.files.keys())}")
     
     if 'file' not in request.files:
@@ -1747,7 +1747,7 @@ def scraper_file():
     nowa_paleta_nazwa = request.form.get('nowa_paleta_nazwa', '').strip()
     
     # DEBUG: Pokaż co przyszło z formularza
-    print(f"<span class=material-symbols-outlined style=font-size:1rem>download</span> [FORM DATA]")
+    print(f"[DOWNLOAD] [FORM DATA]")
     print(f"   paleta_id = '{paleta_id}'")
     print(f"   dostawca = '{dostawca}'")
     print(f"   nowa_paleta_nazwa = '{nowa_paleta_nazwa}'")
@@ -1817,7 +1817,7 @@ def scraper_file():
                     if not header_row_found:
                         # Szukamy wiersza z nagłówkami (max 10 pierwszych wierszy)
                         if rows_checked > 10:
-                            print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> Nie znaleziono nagłówków w pierwszych 10 wierszach")
+                            print(f"[WARNING] Nie znaleziono nagłówków w pierwszych 10 wierszach")
                             header_row_found = True  # Kontynuuj bez nagłówków
                             continue
                         
@@ -1839,7 +1839,7 @@ def scraper_file():
                         # Mamy potencjalne nagłówki!
                         header_row_found = True
                         headers = [str(c).lower().strip() if c else '' for c in row]
-                        print(f"<span class=material-symbols-outlined style=font-size:1rem>list_alt</span> Nagłówki Excel (wiersz {rows_checked}): {[h for h in headers if h]}")
+                        print(f"[LIST_ALT] Nagłówki Excel (wiersz {rows_checked}): {[h for h in headers if h]}")
                         
                         col_unit_price = -1  # NAJWYŻSZY PRIORYTET: Cena jednostkowa sprzedaży
                         col_netto = -1       # WYSOKI: Cena sprzedaży netto
@@ -1855,26 +1855,26 @@ def scraper_file():
                             # Kolumna EAN
                             if col_ean == -1 and any(x in h_clean for x in ['ean', 'barcode', 'kodkreskowy', 'gtin']):
                                 col_ean = i
-                                print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Znaleziono kolumnę EAN: {i} ({h})")
+                                print(f"[CHECK_CIRCLE] Znaleziono kolumnę EAN: {i} ({h})")
                             
                             # NOWE: Kolumna ze zdjęciami
                             if col_images == -1 and any(x in h_clean for x in ['zdjec', 'image', 'images', 'photo', 'photos', 'link', 'links', 'url', 'urls']):
                                 col_images = i
-                                print(f"<span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> Znaleziono kolumnę ZDJĘCIA: {i} ({h})")
+                                print(f"[PHOTO_CAMERA] Znaleziono kolumnę ZDJĘCIA: {i} ({h})")
                             
                             # Kolumna ASIN - PRIORYTET dla dokładnego "asin", potem inne
                             # Unikaj "product sku" - to nie jest ASIN!
                             if h_clean == 'asin':
                                 col_asin = i
-                                print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Znaleziono kolumnę ASIN (dokładne): {i} ({h})")
+                                print(f"[CHECK_CIRCLE] Znaleziono kolumnę ASIN (dokładne): {i} ({h})")
                             elif col_asin == -1 and 'product' not in h_clean and any(x in h_clean for x in ['sku', 'kod2', 'code', 'artikelnummer', 'article']):
                                 col_asin = i
-                                print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Znaleziono kolumnę ASIN (alternatywne): {i} ({h})")
+                                print(f"[CHECK_CIRCLE] Znaleziono kolumnę ASIN (alternatywne): {i} ({h})")
                             
                             # UNIKAJ kolumn z cenami rynkowymi!
                             if any(x in h_orig for x in ['regularn', 'rynkow', 'rrp', 'retail', 'msrp']):
                                 if 'jednostkow' not in h_orig:  # Ale nie unikaj "jednostkowa"
-                                    print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> Pomijam kolumnę rynkową: {i} ({h})")
+                                    print(f"[WARNING] Pomijam kolumnę rynkową: {i} ({h})")
                                     continue
                             
                             # NAJWYŻSZY PRIORYTET: Cena jednostkowa sprzedaży (per sztuka!)
@@ -1885,22 +1885,22 @@ def scraper_file():
                             # WYSOKI PRIORYTET: Cena sprzedaży netto
                             if col_netto == -1 and 'sprzeda' in h_orig and 'netto' in h_orig:
                                 col_netto = i
-                                print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Znaleziono kolumnę NETTO SPRZEDAŻY: {i} ({h})")
+                                print(f"[CHECK_CIRCLE] Znaleziono kolumnę NETTO SPRZEDAŻY: {i} ({h})")
                             
                             # ŚREDNI PRIORYTET: Unit Cost, Cost, Cena zakupu
                             if col_cost == -1 and any(x in h_clean for x in ['unitcost', 'cenazakupu', 'koszt', 'einkaufspreis']):
                                 col_cost = i
-                                print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Znaleziono kolumnę KOSZT: {i} ({h})")
+                                print(f"[CHECK_CIRCLE] Znaleziono kolumnę KOSZT: {i} ({h})")
                             
                             # NISKI PRIORYTET: Cena sprzedaży (może być łączna, nie jednostkowa)
                             if col_price == -1 and 'sprzeda' in h_orig and 'jednostkow' not in h_orig and 'netto' not in h_orig:
                                 col_price = i
-                                print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Znaleziono kolumnę CENA SPRZEDAŻY: {i} ({h})")
+                                print(f"[CHECK_CIRCLE] Znaleziono kolumnę CENA SPRZEDAŻY: {i} ({h})")
                             
                             # Kolumna ilości - rozszerzone wzorce
                             if col_qty == -1 and any(x in h_clean for x in ['ilosc', 'ilość', 'qty', 'quantity', 'sztuk', 'szt', 'pcs', 'pieces', 'count', 'menge', 'anzahl', 'stueck', 'stück']):
                                 col_qty = i
-                                print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Znaleziono kolumnę ILOŚĆ: {i} ({h})")
+                                print(f"[CHECK_CIRCLE] Znaleziono kolumnę ILOŚĆ: {i} ({h})")
                         
                         # Wybierz najlepszą kolumnę ceny (priorytet: jednostkowa > netto > cost > sprzedaży)
                         price_is_netto = False
@@ -1911,13 +1911,13 @@ def scraper_file():
                         elif col_netto >= 0:
                             col_price = col_netto
                             price_is_netto = True
-                            print(f"<span class=material-symbols-outlined style=font-size:1rem>paid</span> Używam kolumny NETTO jako cena: {col_price} (×1.23 → brutto)")
+                            print(f"[PAID] Używam kolumny NETTO jako cena: {col_price} (×1.23 → brutto)")
                         elif col_cost >= 0:
                             col_price = col_cost
-                            print(f"<span class=material-symbols-outlined style=font-size:1rem>paid</span> Używam kolumny KOSZT jako cena: {col_price}")
+                            print(f"[PAID] Używam kolumny KOSZT jako cena: {col_price}")
                         # col_price już może być ustawiony na "cena sprzedaży"
                         
-                        print(f"<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Wykryte kolumny: ASIN={col_asin}, EAN={col_ean}, CENA={col_price}, ILOŚĆ={col_qty}")
+                        print(f"[BAR_CHART] Wykryte kolumny: ASIN={col_asin}, EAN={col_ean}, CENA={col_price}, ILOŚĆ={col_qty}")
                         continue
                     
                     if not row:
@@ -2063,13 +2063,13 @@ def scraper_file():
             )
             paleta_id = cursor.lastrowid
             conn.commit()
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Utworzono NOWĄ paletę: {nowa_paleta_nazwa} (ID: {paleta_id})")
+            print(f"[INVENTORY_2] Utworzono NOWĄ paletę: {nowa_paleta_nazwa} (ID: {paleta_id})")
         elif paleta_id and paleta_id != 'new':
             paleta_id = int(paleta_id)
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Używam istniejącej palety ID: {paleta_id}")
+            print(f"[INVENTORY_2] Używam istniejącej palety ID: {paleta_id}")
         else:
             paleta_id = None
-            print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> BRAK palety - produkty bez przypisania!")
+            print(f"[WARNING] BRAK palety - produkty bez przypisania!")
         
         # Pobierz nazwę palety
         paleta_nazwa = ""
@@ -2077,14 +2077,14 @@ def scraper_file():
             p = conn.execute('SELECT nazwa FROM palety WHERE id = ?', (paleta_id,)).fetchone()
             if p:
                 paleta_nazwa = p['nazwa']
-                print(f"<span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Paleta nazwa: {paleta_nazwa}")
+                print(f"[INVENTORY_2] Paleta nazwa: {paleta_nazwa}")
         
         added = 0
         updated = 0
         total_brutto = 0
         total_netto = 0
         
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>sync</span> Przetwarzam {len(asins)} ASIN-ów...")
+        print(f"[SYNC] Przetwarzam {len(asins)} ASIN-ów...")
         print(f"   Paleta ID: {paleta_id}, Nazwa: {paleta_nazwa}, Dostawca: {dostawca}")
         
         for asin in asins:
@@ -2106,7 +2106,7 @@ def scraper_file():
                 if cena_z_pliku > 0 and price_is_netto:
                     cena_netto = cena_z_pliku
                     cena_brutto = round(cena_z_pliku * 1.23, 2)
-                    print(f"<span class=material-symbols-outlined style=font-size:1rem>paid</span> Netto z pliku: {cena_z_pliku:.2f} × 1.23 = {cena_brutto:.2f} brutto")
+                    print(f"[PAID] Netto z pliku: {cena_z_pliku:.2f} × 1.23 = {cena_brutto:.2f} brutto")
                 else:
                     # Cena z pliku jest brutto (jobalots, inne)
                     cena_brutto = cena_z_pliku
@@ -2126,7 +2126,7 @@ def scraper_file():
                 images_json = ''
                 if images_from_file:
                     images_json = json.dumps(images_from_file)
-                    print(f"<span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> {asin}: zapisuję {len(images_from_file)} zdjęć do bazy")
+                    print(f"[PHOTO_CAMERA] {asin}: zapisuję {len(images_from_file)} zdjęć do bazy")
                 
                 # Dodaj do scraped
                 conn.execute('''INSERT OR IGNORE INTO scraped (asin, status, zdjecie_url) 
@@ -2162,7 +2162,7 @@ def scraper_file():
                     # Aktualizuj istniejący produkt
                     existing_ean = existing['ean'] or ''
                     new_ean = ean if ean and not existing_ean else existing_ean
-                    print(f"<span class=material-symbols-outlined style=font-size:1rem>sync</span> Aktualizacja: {asin}, paleta_id={paleta_id}, ean={new_ean or 'brak'}, ilość={qty}, cena_jedn={cena_brutto}, cena_allegro={cena_allegro}, zdjęć={len(images_from_file)}")
+                    print(f"[SYNC] Aktualizacja: {asin}, paleta_id={paleta_id}, ean={new_ean or 'brak'}, ilość={qty}, cena_jedn={cena_brutto}, cena_allegro={cena_allegro}, zdjęć={len(images_from_file)}")
                     
                     # ZAWSZE aktualizuj paletę i dostawcę jeśli podane
                     update_fields = []
@@ -2220,7 +2220,7 @@ def scraper_file():
                         print(f"   <span class=material-symbols-outlined style=font-size:1rem>warning</span> Brak pól do aktualizacji!")
                 
             except Exception as e:
-                print(f"<span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD przy {asin}: {e}")
+                print(f"[CANCEL] BŁĄD przy {asin}: {e}")
                 import traceback
                 traceback.print_exc()
         
@@ -2234,13 +2234,13 @@ def scraper_file():
             nowy_netto = round(stary_netto + total_netto, 2)
             try:
                 conn.execute('UPDATE palety SET cena_zakupu = ?, cena_zakupu_netto = ?, ilosc_produktow = ?, ilosc_sztuk = COALESCE(ilosc_sztuk, 0) + ? WHERE id = ?', (nowa_cena, nowy_netto, count, total_qty, paleta_id))
-                print(f"<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Paleta {paleta_id}: {count} produktów, {total_qty} sztuk dodanych, koszt: {nowa_cena:.2f} zł")
+                print(f"[BAR_CHART] Paleta {paleta_id}: {count} produktów, {total_qty} sztuk dodanych, koszt: {nowa_cena:.2f} zł")
             except:
                 conn.execute('UPDATE palety SET cena_zakupu = ?, ilosc_produktow = ? WHERE id = ?', (nowa_cena, count, paleta_id))
-                print(f"<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Paleta {paleta_id}: {count} produktów")
+                print(f"[BAR_CHART] Paleta {paleta_id}: {count} produktów")
         
         conn.commit()
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> COMMIT wykonany - {added} nowych, {updated} zaktualizowanych")
+        print(f"[CHECK_CIRCLE] COMMIT wykonany - {added} nowych, {updated} zaktualizowanych")
         
         # Uruchom auto-przetwarzanie w tle (pobieranie tytułów i generowanie opisów)
         auto_process_products(list(asins))
@@ -2249,8 +2249,8 @@ def scraper_file():
         
         # Oblicz sumaryczną ilość
         total_qty = sum(p['qty'] for p in asin_prices.values())
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> DEBUG total_qty: {total_qty}, asin_prices count: {len(asin_prices)}")
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> DEBUG asin_prices: {[(k, v['qty']) for k, v in asin_prices.items()]}")
+        print(f"[BAR_CHART] DEBUG total_qty: {total_qty}, asin_prices count: {len(asin_prices)}")
+        print(f"[BAR_CHART] DEBUG asin_prices: {[(k, v['qty']) for k, v in asin_prices.items()]}")
         
         # Info o wartości
         value_info = ''
@@ -5693,7 +5693,7 @@ def generator_create_stream(asin):
     ean = _src.get('ean', '').strip() or None
     gpsr = _src.get('gpsr', '').strip() or None
 
-    print(f"<span class=material-symbols-outlined style=font-size:1rem>list_alt</span> CREATE-STREAM [{asin}]: method={request.method}, opis={len(opis)} chars, gpsr={len(gpsr) if gpsr else 0} chars, tytul={tytul[:40]}")
+    print(f"[LIST_ALT] CREATE-STREAM [{asin}]: method={request.method}, opis={len(opis)} chars, gpsr={len(gpsr) if gpsr else 0} chars, tytul={tytul[:40]}")
 
     # Auto-generuj opis + GPSR RÓWNOLEGLE (oba to Gemini API calls)
     _need_opis = not opis or len(opis) < 50
@@ -5706,21 +5706,21 @@ def generator_create_stream(asin):
         _gemini_key = get_config('gemini_api_key', '')
         _nazwa_gpsr = tytul or _src.get('nazwa', '')
         _kat_gpsr = kategoria or ''
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>bolt</span> Generuję opis + GPSR równolegle...")
+        print(f"[BOLT] Generuję opis + GPSR równolegle...")
 
         with ThreadPoolExecutor(max_workers=2) as executor:
             f_opis = executor.submit(generuj_opis_html_pro, tytul or asin, [], kategoria, gemini_key=_gemini_key, asin=asin)
             f_gpsr = executor.submit(generuj_gpsr_info, _nazwa_gpsr, _kat_gpsr)
             opis, _ = f_opis.result()
             gpsr = f_gpsr.result()
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>edit_note</span> Opis: {len(opis)} chars | GPSR: {len(gpsr) if gpsr else 0} chars")
+        print(f"[EDIT_NOTE] Opis: {len(opis)} chars | GPSR: {len(gpsr) if gpsr else 0} chars")
     elif _need_opis:
         from .utils import generuj_opis_html_pro
         from .database import get_config
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>warning</span> Opis pusty/za krótki ({len(opis)} chars) -> generuję automatycznie")
+        print(f"[WARNING] Opis pusty/za krótki ({len(opis)} chars) -> generuję automatycznie")
         _gemini_key = get_config('gemini_api_key', '')
         opis, _ = generuj_opis_html_pro(tytul or asin, [], kategoria, gemini_key=_gemini_key, asin=asin)
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>edit_note</span> Wygenerowany opis: {len(opis)} chars")
+        print(f"[EDIT_NOTE] Wygenerowany opis: {len(opis)} chars")
     elif _need_gpsr:
         from .utils import generuj_gpsr_info
         _nazwa_gpsr = tytul or _src.get('nazwa', '')
@@ -5769,7 +5769,7 @@ def generator_create_stream(asin):
     # DEBUG: Pokaż surowe dane
     zdjecia_raw = _src.get('zdjecia', '[]')
     print(f"\n{'='*70}")
-    print(f"<span class=material-symbols-outlined style=font-size:1rem>search</span> DEBUG PARSOWANIA ZDJĘĆ:")
+    print(f"[SEARCH] DEBUG PARSOWANIA ZDJĘĆ:")
     print(f"   RAW (pierwsze 200 znaków): {zdjecia_raw[:200]}")
     print(f"   RAW (długość): {len(zdjecia_raw)} znaków")
     
@@ -6632,7 +6632,7 @@ def api_assign_location_and_print():
             }), 500
             
     except Exception as e:
-        print(f"<span class=material-symbols-outlined style=font-size:1rem>cancel</span> Error in assign_location_and_print: {e}")
+        print(f"[CANCEL] Error in assign_location_and_print: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({

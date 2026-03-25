@@ -439,7 +439,7 @@ def api_wysylki_cennik():
                                     elif 'gabaryt l' in method_name or 'duży' in method_name or 'large' in method_name:
                                         cennik['orlen']['L'] = first_price
         except Exception as e:
-            print(f"<span class="material-symbols-outlined" style="font-size:1rem">warning</span> Cennik API error: {e}")
+            print(f"[WARN] Cennik API error: {e}")
 
     return jsonify(cennik)
 
@@ -479,7 +479,7 @@ def api_wysylki_szukaj():
     if not is_authenticated():
         return jsonify({'error': 'Nie zalogowano do Allegro'})
 
-    print(f"<span class="material-symbols-outlined" style="font-size:1rem">search</span> Szukam zamówienia dla: {q}")
+    print(f"[SEARCH] Szukam zamówienia dla: {q}")
 
     # Pobierz zamówienia z cache (szybko!)
     result, raw_orders = _pobierz_zamowienia_allegro()
@@ -684,7 +684,7 @@ def wysylki_nadaj(order_id):
     """Tworzy przesyłkę (jeśli nie istnieje) i zwraca etykietę PDF lub JSON error"""
     from modules.allegro_api import create_and_get_label, get_order_details
 
-    print(f"<span class="material-symbols-outlined" style="font-size:1rem">print</span> Nadawanie przesyłki dla zamówienia: {order_id}")
+    print(f"[PRINT] Nadawanie przesyłki dla zamówienia: {order_id}")
 
     # Stacja pakowania zawsze wywołuje ten endpoint przez fetch (AJAX)
     # Zawsze zwracaj JSON przy błędach, PDF przy sukcesie
@@ -888,7 +888,7 @@ def wysylki_wyczysc_all():
         WHERE status IN ('nowa', 'nowe', 'nadana')
     ''').rowcount
     conn.commit()
-    print(f"<span class="material-symbols-outlined" style="font-size:1rem">delete</span> Wyczyszczono {cnt} zamówień → wyslana")
+    print(f"[DELETE] Wyczyszczono {cnt} zamówień → wyslana")
     return redirect('/wysylki/allegro')
 
 
@@ -1448,7 +1448,7 @@ def sync_stany_magazynowe():
             ''', (prod['id'],))
             
             updated += 1
-            print(f"<span class="material-symbols-outlined" style="font-size:1rem">inventory_2</span> Stock: {prod['nazwa'][:30]} ({prod['ilosc']} -> {new_qty})")
+            print(f"[INVENTORY_2] Stock: {prod['nazwa'][:30]} ({prod['ilosc']} -> {new_qty})")
     
     conn.commit()
     
