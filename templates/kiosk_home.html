@@ -8,7 +8,7 @@
 /* Header */
 .kd-head{display:flex;justify-content:space-between;align-items:center}
 .kd-head-left{display:flex;align-items:center;gap:14px}
-.kd-title{font-size:1.6rem;font-weight:800;font-family:'Space Grotesk','Inter',sans-serif;background:linear-gradient(135deg,#00f1fe,#c180ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.kd-title{font-size:1.6rem;font-weight:900;font-family:'Space Grotesk',sans-serif;color:#8ff5ff;text-shadow:0 0 20px rgba(143,245,255,0.3);letter-spacing:-0.02em}
 .kd-sub{font-size:0.75rem;color:#64748b;margin-top:2px}
 .kd-right{text-align:right}
 .kd-time{font-size:1.5rem;font-family:'Inter',monospace;font-weight:700;color:#e2e8f0;letter-spacing:1px}
@@ -30,7 +30,7 @@
 .kd-main{display:grid;grid-template-columns:1fr 1fr 320px;gap:12px;min-height:0;overflow:hidden}
 .kd-apps{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:12px;grid-column:span 2}
 .kd-app{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px;display:flex;flex-direction:column;overflow:hidden;transition:border-color 0.2s}
-.kd-app:hover{border-color:rgba(0,241,254,0.2)}
+.kd-app:hover{border-color:rgba(143,245,255,0.2)}
 .kd-app-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
 .kd-app-icon{width:42px;height:42px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:10px}
 .kd-app-icon svg{width:28px;height:28px}
@@ -39,25 +39,25 @@
 /* Status */
 .kd-status{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:0.78rem;color:#94a3b8}
 .kd-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.kd-dot.on{background:#5bf083;box-shadow:0 0 8px rgba(91,240,131,0.5);animation:pulse 2s infinite}
+.kd-dot.on{background:#beee00;box-shadow:0 0 8px rgba(190,238,0,0.5);animation:pulse 2s infinite}
 .kd-dot.off{background:#475569}
 .kd-dot.warn{background:#eab308;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
 /* Ngrok URL */
-.kd-ngrok-box{padding:8px 10px;background:rgba(193,128,255,0.08);border:1px solid rgba(193,128,255,0.2);border-radius:8px;margin-bottom:10px}
-.kd-ngrok-url{font-family:monospace;font-size:0.7rem;color:#c4b5fd;word-break:break-all}
-.kd-ngrok-copy{margin-top:6px;padding:6px 14px;background:#7c3aed;border:none;border-radius:6px;color:#fff;font-size:0.65rem;font-weight:600;cursor:pointer;touch-action:manipulation}
+.kd-ngrok-box{padding:8px 10px;background:rgba(255,107,155,0.08);border:1px solid rgba(255,107,155,0.2);border-radius:8px;margin-bottom:10px}
+.kd-ngrok-url{font-family:monospace;font-size:0.7rem;color:#8ff5ff;word-break:break-all}
+.kd-ngrok-copy{margin-top:6px;padding:6px 14px;background:rgba(143,245,255,0.15);border:1px solid rgba(143,245,255,0.25);border-radius:6px;color:#8ff5ff;font-size:0.65rem;font-weight:600;cursor:pointer;touch-action:manipulation}
 .kd-ngrok-copy:active{transform:scale(0.95)}
 /* Buttons */
 .kd-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
 .kd-btn{padding:12px;border:none;border-radius:10px;font-weight:700;font-size:0.8rem;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.12s;touch-action:manipulation;text-decoration:none}
 .kd-btn:active{transform:scale(0.96);opacity:0.85}
-.kd-btn.open{background:rgba(0,241,254,0.15);border:1px solid rgba(0,241,254,0.3);color:#00f1fe;text-shadow:0 0 8px rgba(0,241,254,0.3)}
-.kd-btn.open:hover{background:rgba(0,241,254,0.25);box-shadow:0 0 12px rgba(0,241,254,0.2)}
-.kd-btn.green{background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083;text-shadow:0 0 8px rgba(91,240,131,0.3)}
-.kd-btn.green:hover{background:rgba(91,240,131,0.25);box-shadow:0 0 12px rgba(91,240,131,0.2)}
-.kd-btn.purple{background:rgba(193,128,255,0.15);border:1px solid rgba(193,128,255,0.3);color:#c180ff;text-shadow:0 0 8px rgba(193,128,255,0.3)}
-.kd-btn.purple:hover{background:rgba(193,128,255,0.25);box-shadow:0 0 12px rgba(193,128,255,0.2)}
+.kd-btn.open{background:rgba(143,245,255,0.15);border:1px solid rgba(143,245,255,0.3);color:#8ff5ff;text-shadow:0 0 8px rgba(143,245,255,0.3)}
+.kd-btn.open:hover{background:rgba(143,245,255,0.25);box-shadow:0 0 12px rgba(143,245,255,0.2)}
+.kd-btn.green{background:rgba(190,238,0,0.15);border:1px solid rgba(190,238,0,0.3);color:#beee00;text-shadow:0 0 8px rgba(190,238,0,0.3)}
+.kd-btn.green:hover{background:rgba(190,238,0,0.25);box-shadow:0 0 12px rgba(190,238,0,0.2)}
+.kd-btn.purple{background:rgba(255,107,155,0.15);border:1px solid rgba(255,107,155,0.3);color:#ff6b9b;text-shadow:0 0 8px rgba(255,107,155,0.3)}
+.kd-btn.purple:hover{background:rgba(255,107,155,0.25);box-shadow:0 0 12px rgba(255,107,155,0.2)}
 .kd-btn.orange{background:linear-gradient(135deg,#f97316,#ea580c)}
 .kd-btn.red{background:linear-gradient(135deg,#ef4444,#dc2626)}
 .kd-btn.gray{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#94a3b8}
@@ -67,7 +67,7 @@
 /* Side panel — live feed */
 .kd-side{display:flex;flex-direction:column;gap:10px;min-height:0;overflow:hidden}
 .kd-side-card{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px;flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
-.kd-side-title{font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:#00f1fe;font-weight:700;margin-bottom:10px;text-shadow:0 0 10px rgba(0,241,254,0.3)}
+.kd-side-title{font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:#8ff5ff;font-weight:700;margin-bottom:10px;text-shadow:0 0 10px rgba(143,245,255,0.3)}
 .kd-feed{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
 .kd-feed::-webkit-scrollbar{width:3px}
 .kd-feed::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
@@ -100,9 +100,9 @@
             <div class="kd-time" id="k-clock">--:--:--</div>
             <div class="kd-date" id="k-date">--</div>
             <div class="kd-hw">
-                <div class="kd-hw-item"><div class="kd-hw-dot" id="k-temp-dot" style="background:#22c55e"></div> <span id="k-temp">--</span></div>
-                <div class="kd-hw-item"><div class="kd-hw-dot" style="background:#3b82f6"></div> CPU <span id="k-cpu">--</span>%</div>
-                <div class="kd-hw-item"><div class="kd-hw-dot" style="background:#a78bfa"></div> RAM <span id="k-ram">--</span></div>
+                <div class="kd-hw-item"><div class="kd-hw-dot" id="k-temp-dot" style="background:#beee00"></div> <span id="k-temp">--</span></div>
+                <div class="kd-hw-item"><div class="kd-hw-dot" style="background:#8ff5ff"></div> CPU <span id="k-cpu">--</span>%</div>
+                <div class="kd-hw-item"><div class="kd-hw-dot" style="background:#ff6b9b"></div> RAM <span id="k-ram">--</span></div>
             </div>
         </div>
     </div>
@@ -114,11 +114,11 @@
             <div class="kd-sypie-sub">{{ sypie_kwota }} zl · {{ sypie_zamowienia }} zamowien</div>
         </div>
         <div class="kd-stat">
-            <div class="kd-stat-val" style="color:#22c55e">{{ miesiac_kwota }}</div>
+            <div class="kd-stat-val" style="color:#beee00">{{ miesiac_kwota }}</div>
             <div class="kd-stat-label">{{ miesiac_nazwa }}</div>
         </div>
         <div class="kd-stat">
-            <div class="kd-stat-val" style="color:#3b82f6">{{ miesiac_zamowienia }}</div>
+            <div class="kd-stat-val" style="color:#8ff5ff">{{ miesiac_zamowienia }}</div>
             <div class="kd-stat-label">Zamowien</div>
         </div>
         <div class="kd-stat">
@@ -126,11 +126,11 @@
             <div class="kd-stat-label">Srednia/dzien</div>
         </div>
         <div class="kd-stat">
-            <div class="kd-stat-val" style="color:{% if today.do_wyslania > 0 %}#ef4444{% else %}#22c55e{% endif %}">{{ today.do_wyslania }}</div>
+            <div class="kd-stat-val" style="color:{% if today.do_wyslania > 0 %}#ef4444{% else %}#beee00{% endif %}">{{ today.do_wyslania }}</div>
             <div class="kd-stat-label">Do wyslania</div>
         </div>
         <div class="kd-stat">
-            <div class="kd-stat-val" style="color:#a78bfa">{{ mag.sztuk }}</div>
+            <div class="kd-stat-val" style="color:#ff6b9b">{{ mag.sztuk }}</div>
             <div class="kd-stat-label">Szt w magazynie</div>
         </div>
     </div>
@@ -141,7 +141,7 @@
             <!-- Magazyn -->
             <div class="kd-app">
                 <div class="kd-app-head">
-                    <div class="kd-app-icon" style="background:rgba(59,130,246,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
+                    <div class="kd-app-icon" style="background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.15)"><span class="material-symbols-outlined" style="font-size:1.6rem;color:#8ff5ff">inventory_2</span></div>
                     <div>
                         <div class="kd-app-name">Magazyn</div>
                         <div class="kd-app-desc">{{ mag.produkty }} produktow · {{ mag.sztuk }} sztuk</div>
@@ -149,15 +149,15 @@
                 </div>
                 <div class="kd-status"><div class="kd-dot on"></div> Aktywny</div>
                 <div class="kd-btns">
-                    <a href="/magazyn" class="kd-btn open">📦 Magazyn</a>
-                    <a href="/wysylki/allegro" class="kd-btn orange">📤 {{ today.do_wyslania }} wysylek</a>
+                    <a href="/magazyn" class="kd-btn open"><span class="material-symbols-outlined" style="font-size:1.1rem">inventory_2</span> Magazyn</a>
+                    <a href="/wysylki/allegro" class="kd-btn orange"><span class="material-symbols-outlined" style="font-size:1.1rem">local_shipping</span> {{ today.do_wyslania }} wysylek</a>
                 </div>
             </div>
 
             <!-- Paletomat -->
             <div class="kd-app">
                 <div class="kd-app-head">
-                    <div class="kd-app-icon" style="background:rgba(139,92,246,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="9" cy="16" r="1.5" fill="#8b5cf6"/><circle cx="15" cy="16" r="1.5" fill="#8b5cf6"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div>
+                    <div class="kd-app-icon" style="background:rgba(255,107,155,0.10);border:1px solid rgba(255,107,155,0.15)"><span class="material-symbols-outlined" style="font-size:1.6rem;color:#ff6b9b">precision_manufacturing</span></div>
                     <div>
                         <div class="kd-app-name">Paletomat</div>
                         <div class="kd-app-desc">Amazon → Allegro Automation</div>
@@ -165,15 +165,15 @@
                 </div>
                 <div class="kd-status"><div class="kd-dot on"></div> {{ pal.aktywne }} ofert aktywnych</div>
                 <div class="kd-btns">
-                    <a href="/paletomat" class="kd-btn purple">🤖 Paletomat</a>
-                    <a href="/statystyki" class="kd-btn gray">📊 Statystyki</a>
+                    <a href="/paletomat" class="kd-btn purple"><span class="material-symbols-outlined" style="font-size:1.1rem">precision_manufacturing</span> Paletomat</a>
+                    <a href="/statystyki" class="kd-btn gray"><span class="material-symbols-outlined" style="font-size:1.1rem">analytics</span> Statystyki</a>
                 </div>
             </div>
 
             <!-- Allegro -->
             <div class="kd-app">
                 <div class="kd-app-head">
-                    <div class="kd-app-icon" style="background:rgba(34,197,94,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></div>
+                    <div class="kd-app-icon" style="background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.15)"><span class="material-symbols-outlined" style="font-size:1.6rem;color:#beee00">shopping_cart</span></div>
                     <div>
                         <div class="kd-app-name">Allegro</div>
                         <div class="kd-app-desc">Sprzedaz i zamowienia</div>
@@ -181,15 +181,15 @@
                 </div>
                 <div class="kd-status"><div class="kd-dot {{ 'on' if 'Online' in allegro.status else 'warn' }}"></div> {{ allegro.status }} · {{ allegro.oferty }} ofert</div>
                 <div class="kd-btns">
-                    <a href="/allegro" class="kd-btn green">🛒 Allegro</a>
-                    <a href="/allegro/zamowienia" class="kd-btn gray">📋 Zamowienia</a>
+                    <a href="/allegro" class="kd-btn green"><span class="material-symbols-outlined" style="font-size:1.1rem">shopping_cart</span> Allegro</a>
+                    <a href="/allegro/zamowienia" class="kd-btn gray"><span class="material-symbols-outlined" style="font-size:1.1rem">list_alt</span> Zamowienia</a>
                 </div>
             </div>
 
             <!-- Ngrok Tunnel -->
             <div class="kd-app">
                 <div class="kd-app-head">
-                    <div class="kd-app-icon" style="background:rgba(167,139,250,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg></div>
+                    <div class="kd-app-icon" style="background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.10)"><span class="material-symbols-outlined" style="font-size:1.6rem;color:#8ff5ff;opacity:0.7">hub</span></div>
                     <div>
                         <div class="kd-app-name">Ngrok Tunnel</div>
                         <div class="kd-app-desc">Zdalny dostep</div>
@@ -201,8 +201,8 @@
                     <button class="kd-ngrok-copy" onclick="navigator.clipboard.writeText(document.getElementById('ng-url').dataset.full);this.textContent='✅ Skopiowano!';setTimeout(()=>this.textContent='📋 Kopiuj URL',1500)">📋 Kopiuj URL</button>
                 </div>
                 <div class="kd-btns">
-                    <button class="kd-btn purple" id="ng-start" onclick="ngAction('start')">▶ Start</button>
-                    <button class="kd-btn red" id="ng-stop" onclick="ngAction('stop')" disabled>⏹ Stop</button>
+                    <button class="kd-btn purple" id="ng-start" onclick="ngAction('start')"><span class="material-symbols-outlined" style="font-size:1rem">play_arrow</span> Start</button>
+                    <button class="kd-btn red" id="ng-stop" onclick="ngAction('stop')" disabled><span class="material-symbols-outlined" style="font-size:1rem">stop</span> Stop</button>
                 </div>
             </div>
         </div>
@@ -211,29 +211,29 @@
         <div class="kd-side">
             <!-- Ostatnie sprzedaze -->
             <div class="kd-side-card" style="flex:2">
-                <div class="kd-side-title">🔴 Live sprzedaz</div>
+                <div class="kd-side-title"><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;margin-right:4px;color:#ff6b9b">fiber_manual_record</span> Live sprzedaz</div>
                 <div class="kd-feed" id="live-feed">
                     <div style="text-align:center;color:#475569;padding:20px;font-size:0.75rem">Ladowanie...</div>
                 </div>
             </div>
             <!-- Podsumowanie miesiaca -->
             <div class="kd-side-card" style="flex:1">
-                <div class="kd-side-title">📅 {{ miesiac_nazwa }}</div>
-                <div class="kd-month-row"><span class="kd-month-label">Przychod</span><span class="kd-month-val" style="color:#22c55e">{{ miesiac_kwota }} zl</span></div>
+                <div class="kd-side-title"><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;margin-right:4px">calendar_month</span> {{ miesiac_nazwa }}</div>
+                <div class="kd-month-row"><span class="kd-month-label">Przychod</span><span class="kd-month-val" style="color:#beee00">{{ miesiac_kwota }} zl</span></div>
                 <div class="kd-month-row"><span class="kd-month-label">Zamowienia</span><span class="kd-month-val">{{ miesiac_zamowienia }}</span></div>
                 <div class="kd-month-row"><span class="kd-month-label">Srednia/dzien</span><span class="kd-month-val">{{ miesiac_srednia }} zl</span></div>
-                <div class="kd-month-row"><span class="kd-month-label">Magazyn</span><span class="kd-month-val" style="color:#3b82f6">{{ mag.sztuk }} szt</span></div>
+                <div class="kd-month-row"><span class="kd-month-label">Magazyn</span><span class="kd-month-val" style="color:#8ff5ff">{{ mag.sztuk }} szt</span></div>
             </div>
         </div>
     </div>
 
     <!-- FOOTER -->
     <div class="kd-foot">
-        <button class="kd-btn gray" onclick="location.reload()">🔄 Odswiez</button>
-        <a href="/narzedzia" class="kd-btn gray" style="text-decoration:none">🔧 Narzedzia</a>
-        <a href="/ustawienia" class="kd-btn gray" style="text-decoration:none">⚙️ Ustawienia</a>
-        <button class="kd-btn gray" onclick="document.documentElement.requestFullscreen()">⛶ Pelny ekran</button>
-        <a href="/?kiosk=0" class="kd-btn red" style="text-decoration:none">✕ Wyjscie</a>
+        <button class="kd-btn gray" onclick="location.reload()"><span class="material-symbols-outlined" style="font-size:1rem">refresh</span> Odswiez</button>
+        <a href="/narzedzia" class="kd-btn gray" style="text-decoration:none"><span class="material-symbols-outlined" style="font-size:1rem">build</span> Narzedzia</a>
+        <a href="/ustawienia" class="kd-btn gray" style="text-decoration:none"><span class="material-symbols-outlined" style="font-size:1rem">settings</span> Ustawienia</a>
+        <button class="kd-btn gray" onclick="document.documentElement.requestFullscreen()"><span class="material-symbols-outlined" style="font-size:1rem">fullscreen</span> Pelny ekran</button>
+        <a href="/?kiosk=0" class="kd-btn red" style="text-decoration:none"><span class="material-symbols-outlined" style="font-size:1rem">close</span> Wyjscie</a>
     </div>
 </div>
 
@@ -245,7 +245,7 @@
             var t=document.getElementById('k-temp');
             var td=document.getElementById('k-temp-dot');
             t.textContent=d.temp>0?d.temp.toFixed(0)+'°C':'--';
-            td.style.background=d.temp<55?'#22c55e':d.temp<70?'#eab308':'#ef4444';
+            td.style.background=d.temp<55?'#beee00':d.temp<70?'#eab308':'#ef4444';
             document.getElementById('k-cpu').textContent=d.cpu.toFixed(0);
             document.getElementById('k-ram').textContent=d.ram_used.toFixed(1)+'/'+d.ram_total.toFixed(0)+'G';
         }).catch(function(){});
@@ -272,7 +272,7 @@
             data.sales.forEach(function(s){
                 var el=document.createElement('div');
                 el.className='kd-feed-item';
-                el.innerHTML='<span class="kd-feed-icon">🛒</span><div class="kd-feed-text">'+s.nazwa+'<small>'+s.czas+'</small></div><span class="kd-feed-amt" style="color:#22c55e">'+s.kwota+' zl</span>';
+                el.innerHTML='<span class="material-symbols-outlined kd-feed-icon" style="color:#ff6b9b">shopping_bag</span><div class="kd-feed-text">'+s.nazwa+'<small>'+s.czas+'</small></div><span class="kd-feed-amt" style="color:#8ff5ff">'+s.kwota+' zl</span>';
                 feed.appendChild(el);
             });
         }).catch(function(){});
@@ -290,7 +290,7 @@
             var btnStop=document.getElementById('ng-stop');
             if(d.url){
                 dot.className='kd-dot on';
-                st.textContent='Online';st.style.color='#22c55e';
+                st.textContent='Online';st.style.color='#beee00';
                 box.style.display='block';
                 url.textContent=d.url;url.dataset.full=d.url;
                 btnStart.disabled=true;btnStop.disabled=false;
