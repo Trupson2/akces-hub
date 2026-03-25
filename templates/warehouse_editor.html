@@ -5,7 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Warehouse Layout Editor - {{ brand_name|default('Akces Hub') }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
     <style>
+        :root {
+            --neon-primary: #8ff5ff;
+            --neon-secondary: #ff6b9b;
+            --neon-tertiary: #beee00;
+            --bg-card: rgba(19, 19, 28, 0.6);
+            --bg-deep: #06060f;
+            --bg-panel: rgba(12, 12, 22, 0.85);
+            --border-dim: rgba(143, 245, 255, 0.08);
+            --border-accent: rgba(143, 245, 255, 0.25);
+            --text-primary: #e2e8f0;
+            --text-muted: #64748b;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -14,159 +28,181 @@
 
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #06060f;
-            color: #e2e8f0;
+            background: var(--bg-deep);
+            color: var(--text-primary);
             overflow: hidden;
             height: 100vh;
+        }
+
+        .font-display {
+            font-family: 'Space Grotesk', 'Inter', sans-serif;
         }
 
         .editor-container {
             display: grid;
             grid-template-columns: 300px 1fr 350px;
-            grid-template-rows: 60px 1fr 50px;
+            grid-template-rows: 56px 1fr 44px;
             height: 100vh;
             gap: 0;
         }
 
-        /* TOP BAR */
+        /* ── TOP BAR ── */
         .top-bar {
             grid-column: 1 / -1;
-            background: rgba(15, 15, 30, 0.65);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: var(--bg-panel);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 30px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 0 24px;
+            border-bottom: 1px solid var(--border-dim);
         }
 
         .top-bar h1 {
             font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 24px;
-            font-weight: 600;
+            font-size: 20px;
+            font-weight: 700;
             display: flex;
             align-items: center;
-            gap: 12px;
-            color: #e2e8f0;
+            gap: 10px;
+            color: var(--neon-primary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .top-bar h1 .material-symbols-outlined {
+            font-size: 24px;
+            color: var(--neon-primary);
         }
 
         .top-bar-actions {
             display: flex;
-            gap: 12px;
+            gap: 8px;
         }
 
+        /* ── BUTTONS ── */
         .btn {
-            padding: 10px 20px;
+            padding: 8px 16px;
             border: none;
-            border-radius: 8px;
+            border-radius: 0;
             font-family: 'Inter', sans-serif;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.2s;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .btn-primary {
             background: transparent;
-            color: #8ff5ff;
-            border: 1px solid rgba(0, 241, 254, 0.4);
+            color: var(--neon-primary);
+            border: 1px solid rgba(143, 245, 255, 0.3);
         }
 
         .btn-primary:hover {
-            transform: translateY(-2px);
-            background: rgba(0, 241, 254, 0.1);
-            border-color: #8ff5ff;
-            box-shadow: 0 0 20px rgba(0, 241, 254, 0.2), 0 5px 15px rgba(0, 241, 254, 0.15);
+            background: rgba(143, 245, 255, 0.1);
+            border-color: var(--neon-primary);
+            box-shadow: 0 0 16px rgba(143, 245, 255, 0.15), inset 0 0 16px rgba(143, 245, 255, 0.05);
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.04);
-            color: #e2e8f0;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-primary);
+            border: 1px solid var(--border-dim);
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.06);
             border-color: rgba(255, 255, 255, 0.15);
         }
 
         .btn-danger {
             background: transparent;
             color: #f5576c;
-            border: 1px solid rgba(245, 87, 108, 0.4);
+            border: 1px solid rgba(245, 87, 108, 0.3);
         }
 
         .btn-danger:hover {
             background: rgba(245, 87, 108, 0.1);
             border-color: #f5576c;
-            box-shadow: 0 0 20px rgba(245, 87, 108, 0.2);
+            box-shadow: 0 0 16px rgba(245, 87, 108, 0.15);
         }
 
         .btn-success {
             background: transparent;
-            color: #beee00;
-            border: 1px solid rgba(91, 240, 131, 0.4);
+            color: var(--neon-tertiary);
+            border: 1px solid rgba(190, 238, 0, 0.3);
         }
 
         .btn-success:hover {
-            background: rgba(91, 240, 131, 0.1);
-            border-color: #beee00;
-            box-shadow: 0 0 20px rgba(91, 240, 131, 0.2);
+            background: rgba(190, 238, 0, 0.1);
+            border-color: var(--neon-tertiary);
+            box-shadow: 0 0 16px rgba(190, 238, 0, 0.15);
         }
 
-        /* LEFT PANEL - REGALY */
+        /* ── LEFT PANEL ── */
         .left-panel {
-            background: rgba(15, 15, 30, 0.65);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-right: 1px solid rgba(255, 255, 255, 0.06);
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border-dim);
             overflow-y: auto;
-            padding: 20px;
+            padding: 0;
         }
 
         .panel-section {
-            margin-bottom: 30px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-dim);
         }
 
-        .panel-section h3 {
+        .panel-section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--neon-primary);
+        }
+
+        .panel-section-header h3 {
             font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #8ff5ff;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--neon-primary);
             text-transform: uppercase;
-            letter-spacing: 1px;
-            text-shadow: 0 0 20px rgba(0, 241, 254, 0.3);
+            letter-spacing: 2px;
+        }
+
+        .panel-section-header .material-symbols-outlined {
+            font-size: 18px;
+            color: var(--neon-primary);
         }
 
         .shelf-palette {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
+            gap: 8px;
         }
 
         .shelf-item {
-            background: rgba(15, 15, 30, 0.65);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-radius: 8px;
-            padding: 15px;
+            background: var(--bg-card);
+            border-radius: 0;
+            padding: 12px;
             text-align: center;
             cursor: grab;
-            transition: all 0.3s;
-            border: 1px solid rgba(0, 241, 254, 0.15);
+            transition: all 0.2s;
+            border: 1px solid var(--border-dim);
+            border-left: 3px solid var(--neon-primary);
             font-weight: 600;
-            color: #e2e8f0;
+            font-size: 13px;
+            color: var(--text-primary);
         }
 
         .shelf-item:hover {
-            transform: scale(1.05);
-            border-color: #8ff5ff;
-            box-shadow: 0 0 20px rgba(0, 241, 254, 0.15);
+            border-color: var(--neon-primary);
+            background: rgba(143, 245, 255, 0.05);
+            box-shadow: 0 0 12px rgba(143, 245, 255, 0.1);
         }
 
         .shelf-item:active {
@@ -176,32 +212,65 @@
         .templates {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 6px;
         }
 
         .template-btn {
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            color: #e2e8f0;
+            padding: 10px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-left: 3px solid var(--neon-secondary);
+            border-radius: 0;
+            color: var(--text-primary);
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.2s;
             font-family: 'Inter', sans-serif;
             font-weight: 500;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .template-btn:hover {
-            background: rgba(0, 241, 254, 0.08);
-            border-color: rgba(0, 241, 254, 0.3);
-            transform: translateX(5px);
+            background: rgba(255, 107, 155, 0.06);
+            border-color: rgba(255, 107, 155, 0.3);
+            border-left-color: var(--neon-secondary);
         }
 
-        /* CENTER - CANVAS */
+        .template-btn .material-symbols-outlined {
+            font-size: 18px;
+            color: var(--neon-secondary);
+        }
+
+        .add-shelf-btn {
+            border-left-color: var(--neon-tertiary) !important;
+            color: var(--neon-tertiary) !important;
+            background: rgba(190, 238, 0, 0.06) !important;
+            border-color: rgba(190, 238, 0, 0.2) !important;
+        }
+
+        .add-shelf-btn:hover {
+            background: rgba(190, 238, 0, 0.12) !important;
+            border-color: rgba(190, 238, 0, 0.4) !important;
+            box-shadow: 0 0 12px rgba(190, 238, 0, 0.1);
+        }
+
+        /* ── CENTER CANVAS ── */
         .canvas-container {
             position: relative;
-            background: rgba(6, 6, 15, 0.8);
             overflow: hidden;
+            background:
+                linear-gradient(rgba(143, 245, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(143, 245, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(rgba(143, 245, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(143, 245, 255, 0.015) 1px, transparent 1px),
+                var(--bg-deep);
+            background-size:
+                100px 100px,
+                100px 100px,
+                20px 20px,
+                20px 20px;
         }
 
         .canvas-wrapper {
@@ -212,239 +281,300 @@
         }
 
         #editor-canvas {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(0, 241, 254, 0.15);
-            border-radius: 12px;
+            background: rgba(143, 245, 255, 0.02);
+            border: 1px solid var(--border-accent);
+            border-radius: 0;
             cursor: crosshair;
         }
 
         .canvas-controls {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 16px;
+            left: 16px;
             display: flex;
-            gap: 10px;
+            gap: 4px;
             flex-direction: column;
         }
 
         .control-btn {
-            width: 40px;
-            height: 40px;
-            background: rgba(15, 15, 30, 0.65);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            color: #e2e8f0;
+            width: 36px;
+            height: 36px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 0;
+            color: var(--text-primary);
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 18px;
-            transition: all 0.3s;
+            font-size: 16px;
+            transition: all 0.2s;
         }
 
         .control-btn:hover {
-            background: rgba(0, 241, 254, 0.1);
-            border-color: rgba(0, 241, 254, 0.3);
-            transform: scale(1.1);
-            color: #8ff5ff;
+            background: rgba(143, 245, 255, 0.08);
+            border-color: var(--border-accent);
+            color: var(--neon-primary);
+            box-shadow: 0 0 10px rgba(143, 245, 255, 0.1);
+        }
+
+        .control-btn .material-symbols-outlined {
+            font-size: 20px;
         }
 
         .canvas-info {
             position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(15, 15, 30, 0.65);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            padding: 10px 15px;
-            border-radius: 8px;
+            bottom: 16px;
+            left: 16px;
+            background: var(--bg-card);
+            padding: 14px 18px;
+            border-radius: 0;
             font-size: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            color: #e2e8f0;
+            border: 1px solid var(--border-dim);
+            border-left: 3px solid var(--neon-tertiary);
+            color: var(--text-primary);
+            min-width: 180px;
         }
 
-        /* RIGHT PANEL - PROPERTIES */
+        .canvas-info-header {
+            font-family: 'Space Grotesk', 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-dim);
+            color: var(--neon-tertiary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .canvas-info-header .material-symbols-outlined {
+            font-size: 16px;
+        }
+
+        .canvas-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+        }
+
+        .canvas-info-row strong {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .canvas-info-row span {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .canvas-info-divider {
+            margin: 8px 0;
+            border-top: 1px solid var(--border-dim);
+        }
+
+        /* ── RIGHT PANEL ── */
         .right-panel {
-            background: rgba(15, 15, 30, 0.65);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-left: 1px solid rgba(255, 255, 255, 0.06);
+            background: var(--bg-panel);
+            border-left: 1px solid var(--border-dim);
             overflow-y: auto;
-            padding: 20px;
+            padding: 0;
         }
 
         .property-group {
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: var(--bg-card);
+            border-radius: 0;
+            padding: 16px 20px;
+            margin: 0;
+            border-bottom: 1px solid var(--border-dim);
+            border-left: 3px solid var(--neon-secondary);
         }
 
         .property-group h4 {
             font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #ff6b9b;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-dim);
+            color: var(--neon-secondary);
             text-transform: uppercase;
-            letter-spacing: 1px;
-            text-shadow: 0 0 20px rgba(193, 128, 255, 0.3);
-        }
-
-        .property-row {
-            margin-bottom: 15px;
-        }
-
-        .property-row label {
-            display: block;
-            font-size: 13px;
-            margin-bottom: 8px;
-            color: #64748b;
-        }
-
-        .property-row input,
-        .property-row select {
-            width: 100%;
-            padding: 10px;
-            background: rgba(15, 15, 30, 0.65);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            color: #e2e8f0;
-            font-family: 'Inter', sans-serif;
-            font-size: 14px;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-
-        .property-row input:focus,
-        .property-row select:focus {
-            outline: none;
-            border-color: #8ff5ff;
-            background: rgba(0, 241, 254, 0.05);
-            box-shadow: 0 0 15px rgba(0, 241, 254, 0.1);
-        }
-
-        .radio-group {
-            display: flex;
-            gap: 15px;
-        }
-
-        .radio-option {
-            flex: 1;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 2px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            color: #e2e8f0;
-        }
-
-        .radio-option:hover {
-            background: rgba(0, 241, 254, 0.05);
-            border-color: rgba(0, 241, 254, 0.2);
-        }
-
-        .radio-option.active {
-            background: rgba(0, 241, 254, 0.1);
-            border-color: #8ff5ff;
-            color: #8ff5ff;
-            box-shadow: 0 0 15px rgba(0, 241, 254, 0.15);
-        }
-
-        .color-picker {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .color-option {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            cursor: pointer;
-            border: 2px solid rgba(255, 255, 255, 0.15);
-            transition: all 0.3s;
-        }
-
-        .color-option:hover {
-            transform: scale(1.1);
-            border-color: rgba(255, 255, 255, 0.5);
-        }
-
-        .color-option.active {
-            border-width: 3px;
-            border-color: #8ff5ff;
-            box-shadow: 0 0 15px rgba(0, 241, 254, 0.4);
-        }
-
-        /* BOTTOM BAR */
-        .bottom-bar {
-            grid-column: 1 / -1;
-            background: rgba(15, 15, 30, 0.65);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 30px;
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
-        }
-
-        .bottom-bar-left {
-            display: flex;
-            gap: 20px;
-            font-size: 13px;
-            color: #64748b;
-        }
-
-        .bottom-bar-right {
-            display: flex;
-            gap: 15px;
-        }
-
-        .status-item {
+            letter-spacing: 2px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
+        .property-group h4 .material-symbols-outlined {
+            font-size: 18px;
+        }
+
+        .property-group--actions {
+            border-left-color: #f5576c;
+        }
+
+        .property-group--actions h4 {
+            color: #f5576c;
+        }
+
+        .property-row {
+            margin-bottom: 14px;
+        }
+
+        .property-row label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .property-row input,
+        .property-row select {
+            width: 100%;
+            padding: 8px 10px;
+            background: rgba(6, 6, 15, 0.6);
+            border: 1px solid var(--border-dim);
+            border-radius: 0;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .property-row input:focus,
+        .property-row select:focus {
+            outline: none;
+            border-color: var(--neon-primary);
+            background: rgba(143, 245, 255, 0.03);
+            box-shadow: 0 0 12px rgba(143, 245, 255, 0.08);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .radio-option {
+            flex: 1;
+            padding: 10px;
+            background: rgba(6, 6, 15, 0.5);
+            border: 1px solid var(--border-dim);
+            border-radius: 0;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .radio-option:hover {
+            background: rgba(143, 245, 255, 0.03);
+            border-color: var(--border-accent);
+        }
+
+        .radio-option.active {
+            background: rgba(143, 245, 255, 0.08);
+            border-color: var(--neon-primary);
+            color: var(--neon-primary);
+            box-shadow: 0 0 10px rgba(143, 245, 255, 0.1);
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .color-option {
+            width: 36px;
+            height: 36px;
+            border-radius: 0;
+            cursor: pointer;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .color-option.active {
+            border-width: 2px;
+            border-color: var(--neon-primary);
+            box-shadow: 0 0 12px rgba(143, 245, 255, 0.3);
+        }
+
+        /* ── BOTTOM BAR ── */
+        .bottom-bar {
+            grid-column: 1 / -1;
+            background: var(--bg-panel);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            border-top: 1px solid var(--border-dim);
+        }
+
+        .bottom-bar-left {
+            display: flex;
+            gap: 16px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .bottom-bar-right {
+            display: flex;
+            gap: 8px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+        }
+
         .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #beee00;
-            box-shadow: 0 0 10px rgba(91, 240, 131, 0.5);
+            width: 6px;
+            height: 6px;
+            border-radius: 0;
+            background: var(--neon-tertiary);
+            box-shadow: 0 0 8px rgba(190, 238, 0, 0.5);
             animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            50% { opacity: 0.4; }
         }
 
-        /* SCROLLBAR */
+        /* ── SCROLLBAR ── */
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
 
         ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(255, 255, 255, 0.01);
         }
 
         ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
+            background: rgba(143, 245, 255, 0.1);
+            border-radius: 0;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(143, 245, 255, 0.2);
         }
 
-        /* MODAL */
+        /* ── MODAL ── */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -452,9 +582,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(6, 6, 15, 0.85);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            background: rgba(6, 6, 15, 0.9);
             z-index: 1000;
             align-items: center;
             justify-content: center;
@@ -465,41 +593,52 @@
         }
 
         .modal-content {
-            background: rgba(15, 15, 30, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-radius: 16px;
-            padding: 30px;
+            background: var(--bg-panel);
+            border-radius: 0;
+            padding: 0;
             max-width: 600px;
             width: 90%;
-            border: 1px solid rgba(0, 241, 254, 0.15);
-            box-shadow: 0 0 40px rgba(0, 241, 254, 0.08);
+            border: 1px solid var(--border-accent);
+            box-shadow: 0 0 40px rgba(143, 245, 255, 0.06);
         }
 
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-dim);
         }
 
         .modal-header h3 {
             font-family: 'Space Grotesk', 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--neon-primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-header h3 .material-symbols-outlined {
             font-size: 20px;
-            font-weight: 600;
-            color: #e2e8f0;
         }
 
         .modal-close {
             width: 32px;
             height: 32px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            color: #e2e8f0;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-dim);
+            border-radius: 0;
+            color: var(--text-muted);
             cursor: pointer;
-            font-size: 20px;
-            transition: all 0.3s;
+            font-size: 18px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .modal-close:hover {
@@ -509,95 +648,119 @@
         }
 
         .modal-body {
-            margin-bottom: 20px;
+            padding: 20px 24px;
         }
 
         .modal-body textarea {
             width: 100%;
             height: 200px;
-            background: rgba(6, 6, 15, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            color: #e2e8f0;
-            padding: 15px;
+            background: rgba(6, 6, 15, 0.8);
+            border: 1px solid var(--border-dim);
+            border-radius: 0;
+            color: var(--neon-primary);
+            padding: 14px;
             font-family: 'Courier New', monospace;
-            font-size: 13px;
+            font-size: 12px;
             resize: vertical;
-            transition: border-color 0.3s, box-shadow 0.3s;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
         .modal-body textarea:focus {
             outline: none;
-            border-color: #8ff5ff;
-            box-shadow: 0 0 15px rgba(0, 241, 254, 0.1);
+            border-color: var(--neon-primary);
+            box-shadow: 0 0 12px rgba(143, 245, 255, 0.08);
         }
 
         .modal-footer {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             justify-content: flex-end;
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-dim);
         }
 
         .no-selection {
             text-align: center;
-            padding: 40px 20px;
-            color: #64748b;
+            padding: 60px 20px;
+            color: var(--text-muted);
         }
 
         .no-selection-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-            opacity: 0.5;
+            margin-bottom: 12px;
         }
 
-        /* BULK OPERATIONS */
+        .no-selection-icon .material-symbols-outlined {
+            font-size: 48px;
+            opacity: 0.3;
+            color: var(--neon-primary);
+        }
+
+        .no-selection p {
+            font-size: 13px;
+        }
+
+        /* ── BULK OPERATIONS ── */
         .bulk-panel {
-            padding: 20px;
+            padding: 0;
         }
 
         .bulk-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid rgba(0, 241, 254, 0.15);
+            padding: 16px 20px;
+            border-bottom: 2px solid var(--neon-primary);
+            background: rgba(143, 245, 255, 0.03);
         }
 
         .bulk-title {
             font-family: 'Space Grotesk', 'Inter', sans-serif;
-            font-size: 16px;
-            font-weight: 600;
-            color: #e2e8f0;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--neon-primary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bulk-title .material-symbols-outlined {
+            font-size: 18px;
         }
 
         .bulk-count {
-            background: rgba(0, 241, 254, 0.1);
-            border: 1px solid rgba(0, 241, 254, 0.3);
-            color: #8ff5ff;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 13px;
-            font-weight: 600;
+            background: rgba(143, 245, 255, 0.1);
+            border: 1px solid rgba(143, 245, 255, 0.3);
+            color: var(--neon-primary);
+            padding: 3px 10px;
+            border-radius: 0;
+            font-size: 12px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
         }
 
         .bulk-actions {
             display: grid;
-            gap: 10px;
+            gap: 0;
         }
 
         .bulk-group {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 8px;
-            padding: 15px;
+            background: var(--bg-card);
+            border: none;
+            border-bottom: 1px solid var(--border-dim);
+            border-left: 3px solid var(--neon-secondary);
+            border-radius: 0;
+            padding: 14px 20px;
         }
 
         .bulk-group-title {
-            font-size: 13px;
-            font-weight: 600;
+            font-size: 10px;
+            font-weight: 700;
             margin-bottom: 10px;
-            color: #64748b;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .selected-shelf-outline {
@@ -607,8 +770,8 @@
 
         .drag-selection-box {
             position: absolute;
-            border: 2px dashed #8ff5ff;
-            background: rgba(0, 241, 254, 0.08);
+            border: 1px solid var(--neon-primary);
+            background: rgba(143, 245, 255, 0.06);
             pointer-events: none;
             z-index: 1000;
         }
@@ -616,7 +779,55 @@
         /* Select option styling for dark backgrounds */
         select option {
             background: #0f0f1e;
-            color: #e2e8f0;
+            color: var(--text-primary);
+        }
+
+        /* ── BACK LINK ── */
+        .back-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--neon-primary);
+        }
+
+        .back-link .material-symbols-outlined {
+            font-size: 22px;
+        }
+
+        /* ── PANEL SELECT ── */
+        .panel-select {
+            width: 100%;
+            padding: 8px 10px;
+            background: rgba(6, 6, 15, 0.6);
+            border: 1px solid var(--border-dim);
+            border-radius: 0;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            margin-top: 6px;
+            transition: border-color 0.2s;
+        }
+
+        .panel-select:focus {
+            outline: none;
+            border-color: var(--neon-primary);
+        }
+
+        .panel-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+
+        .panel-meta strong {
+            color: var(--neon-tertiary);
         }
     </style>
     <link rel="stylesheet" href="/static/kiosk.css">
@@ -624,52 +835,59 @@
 <body>
 <script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
     <div class="editor-container">
-        <!-- TOP BAR -->
+
+        <!-- ── TOP BAR ── -->
         <div class="top-bar">
             <h1>
-                <a href="/" style="color:#fff;text-decoration:none;margin-right:8px;font-size:0.8em">←</a>
-                <span>🏭</span>
+                <a href="/" class="back-link"><span class="material-symbols-outlined">arrow_back</span></a>
+                <span class="material-symbols-outlined">warehouse</span>
                 Edytor magazynu
             </h1>
             <div class="top-bar-actions">
                 <button class="btn btn-secondary" onclick="exportLayout()">
-                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">download</span> Eksport
+                    <span class="material-symbols-outlined" style="font-size:18px">download</span> Eksport
                 </button>
                 <button class="btn btn-secondary" onclick="importLayout()">
-                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">upload</span> Import
+                    <span class="material-symbols-outlined" style="font-size:18px">upload</span> Import
                 </button>
                 <button class="btn btn-primary" onclick="previewLayout()">
-                    👁 Podglad 3D
+                    <span class="material-symbols-outlined" style="font-size:18px">visibility</span> Podglad 3D
                 </button>
-                <button class="btn btn-primary" onclick="saveLayout()">
-                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">save</span> Zapisz
+                <button class="btn btn-success" onclick="saveLayout()">
+                    <span class="material-symbols-outlined" style="font-size:18px">save</span> Zapisz
                 </button>
                 <button class="btn btn-danger" onclick="clearLayout()">
-                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Wyczysc
+                    <span class="material-symbols-outlined" style="font-size:18px">delete_forever</span> Wyczysc
                 </button>
             </div>
         </div>
 
-        <!-- LEFT PANEL - REGAŁY -->
+        <!-- ── LEFT PANEL ── -->
         <div class="left-panel">
             <div class="panel-section">
-                <h3><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span> Regały</h3>
-                <button class="template-btn" onclick="addNewShelf()" style="width: 100%; margin-bottom: 15px; background: rgba(0, 241, 254, 0.1); border-color: rgba(0, 241, 254, 0.4); color: #8ff5ff;">
-                    ➕ Dodaj Regał (Auto-numeracja)
-                </button>
-                <div style="font-size: 12px; color: #cbd5e0; margin-bottom: 10px;">
-                    <strong>Następny:</strong> <span id="next-shelf-name">A1</span>
+                <div class="panel-section-header">
+                    <span class="material-symbols-outlined">inventory_2</span>
+                    <h3>Regaly</h3>
                 </div>
-                <div style="font-size: 11px; color: #a0aec0;">
-                    Klik aby dodać regał z automatyczną numeracją (A1, A2, B1, B2...)
+                <button class="template-btn add-shelf-btn" onclick="addNewShelf()" style="width:100%;margin-bottom:12px;">
+                    <span class="material-symbols-outlined" style="font-size:18px;color:var(--neon-tertiary)">add_box</span> Dodaj Regal (Auto-numeracja)
+                </button>
+                <div class="panel-meta">
+                    <strong>Nastepny:</strong> <span id="next-shelf-name">A1</span>
+                </div>
+                <div class="panel-meta" style="color:var(--text-muted);">
+                    Klik aby dodac regal z automatyczna numeracja (A1, A2, B1, B2...)
                 </div>
             </div>
 
             <div class="panel-section">
-                <h3>📐 Rzędy</h3>
-                <div style="font-size: 12px; color: #cbd5e0; margin-bottom: 10px;">
-                    <label>Aktualny rząd:</label>
-                    <select id="current-row" onchange="updateNextShelfName()" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; margin-top: 5px;">
+                <div class="panel-section-header">
+                    <span class="material-symbols-outlined">view_column</span>
+                    <h3>Rzedy</h3>
+                </div>
+                <div style="margin-bottom:10px;">
+                    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Aktualny rzad</label>
+                    <select id="current-row" onchange="updateNextShelfName()" class="panel-select">
                         <option value="A">A</option>
                         <option value="B">B</option>
                         <option value="C">C</option>
@@ -683,82 +901,98 @@
                     </select>
                 </div>
                 <button class="template-btn" onclick="nextRow()">
-                    ⏭ Następny rząd
+                    <span class="material-symbols-outlined" style="font-size:18px;color:var(--neon-secondary)">skip_next</span> Nastepny rzad
                 </button>
             </div>
 
             <div class="panel-section">
-                <h3>📐 Szablony
+                <div class="panel-section-header">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    <h3>Szablony</h3>
+                </div>
                 <div class="templates">
                     <button class="template-btn" onclick="applyTemplate('u-shape')">
-                        🔲 U-Shape (14 regałów)
+                        <span class="material-symbols-outlined" style="font-size:18px;color:var(--neon-secondary)">crop_square</span> U-Shape (14 regalow)
                     </button>
                     <button class="template-btn" onclick="applyTemplate('l-shape')">
-                        📐 L-Shape (10 regałów)
+                        <span class="material-symbols-outlined" style="font-size:18px;color:var(--neon-secondary)">square_foot</span> L-Shape (10 regalow)
                     </button>
                     <button class="template-btn" onclick="applyTemplate('line')">
-                        ━ Line (2 rzędy naprzeciw)
+                        <span class="material-symbols-outlined" style="font-size:18px;color:var(--neon-secondary)">horizontal_rule</span> Line (2 rzedy naprzeciw)
                     </button>
                     <button class="template-btn" onclick="applyTemplate('grid')">
-                        ⊞ Grid (4x4 siatka)
+                        <span class="material-symbols-outlined" style="font-size:18px;color:var(--neon-secondary)">grid_view</span> Grid (4x4 siatka)
                     </button>
                 </div>
             </div>
 
             <div class="panel-section">
-                <h3><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">photo_library</span> Tło</h3>
-                <input type="file" id="bg-upload" accept="image/*" style="display: none;">
+                <div class="panel-section-header">
+                    <span class="material-symbols-outlined">image</span>
+                    <h3>Tlo</h3>
+                </div>
+                <input type="file" id="bg-upload" accept="image/*" style="display:none;">
                 <button class="template-btn" onclick="document.getElementById('bg-upload').click()">
-                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">photo_camera</span> Dodaj zdjęcie
+                    <span class="material-symbols-outlined" style="font-size:18px;color:var(--neon-secondary)">add_photo_alternate</span> Dodaj zdjecie
                 </button>
-                <div class="property-row" style="margin-top: 10px;">
-                    <label>Przezroczystość tła</label>
-                    <input type="range" id="bg-opacity" min="0" max="100" value="30" 
-                           onchange="updateBgOpacity(this.value)">
+                <div class="property-row" style="margin-top:12px;margin-bottom:0;">
+                    <label>Przezroczystosc tla</label>
+                    <input type="range" id="bg-opacity" min="0" max="100" value="30"
+                           onchange="updateBgOpacity(this.value)"
+                           style="border:none;padding:0;background:transparent;">
                 </div>
             </div>
         </div>
 
-        <!-- CENTER - CANVAS -->
+        <!-- ── CENTER CANVAS ── -->
         <div class="canvas-container">
             <div class="canvas-wrapper">
                 <canvas id="editor-canvas" width="800" height="600"></canvas>
             </div>
 
             <div class="canvas-controls">
-                <button class="control-btn" onclick="zoomIn()" title="Zoom In">+</button>
-                <button class="control-btn" onclick="zoomOut()" title="Zoom Out">−</button>
-                <button class="control-btn" onclick="resetZoom()" title="Reset">⟲</button>
-                <button class="control-btn" onclick="toggleGrid()" title="Grid">⊞</button>
+                <button class="control-btn" onclick="zoomIn()" title="Zoom In">
+                    <span class="material-symbols-outlined">add</span>
+                </button>
+                <button class="control-btn" onclick="zoomOut()" title="Zoom Out">
+                    <span class="material-symbols-outlined">remove</span>
+                </button>
+                <button class="control-btn" onclick="resetZoom()" title="Reset">
+                    <span class="material-symbols-outlined">restart_alt</span>
+                </button>
+                <button class="control-btn" onclick="toggleGrid()" title="Grid">
+                    <span class="material-symbols-outlined">grid_on</span>
+                </button>
             </div>
 
-            <div class="canvas-info" style="padding: 15px;">
-                <div style="font-weight: 600; font-size: 14px; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px;"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span> Statystyki</div>
-                <div><strong>Grid:</strong> <span id="info-grid">20x15</span></div>
-                <div><strong>Regałów:</strong> <span id="info-shelves">0</span></div>
-                <div><strong>Rzędów:</strong> <span id="info-rows">0</span></div>
-                <div><strong>Zoom:</strong> <span id="info-zoom">100%</span></div>
-                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <div><strong>Pojemność:</strong> <span id="info-capacity">0</span> prod.</div>
-                    <div style="font-size: 11px; color: #a0aec0; margin-top: 5px;">
-                        <span id="info-area">0</span> m² powierzchni
-                    </div>
+            <div class="canvas-info">
+                <div class="canvas-info-header">
+                    <span class="material-symbols-outlined">analytics</span> Statystyki
+                </div>
+                <div class="canvas-info-row"><strong>Grid</strong> <span id="info-grid">20x15</span></div>
+                <div class="canvas-info-row"><strong>Regalow</strong> <span id="info-shelves">0</span></div>
+                <div class="canvas-info-row"><strong>Rzedow</strong> <span id="info-rows">0</span></div>
+                <div class="canvas-info-row"><strong>Zoom</strong> <span id="info-zoom">100%</span></div>
+                <div class="canvas-info-divider"></div>
+                <div class="canvas-info-row"><strong>Pojemnosc</strong> <span id="info-capacity">0</span></div>
+                <div class="panel-meta" style="text-align:right;margin-top:4px;">
+                    <span id="info-area">0</span> m2 powierzchni
                 </div>
             </div>
         </div>
 
-        <!-- RIGHT PANEL - PROPERTIES -->
+        <!-- ── RIGHT PANEL ── -->
         <div class="right-panel" id="properties-panel">
             <div class="no-selection">
-                <div class="no-selection-icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">target</span></div>
+                <div class="no-selection-icon"><span class="material-symbols-outlined">target</span></div>
                 <p>Kliknij na regal aby edytowac</p>
-                <p style="margin-top: 10px; font-size: 12px; color: #718096;">
+                <p style="margin-top:10px;font-size:11px;color:var(--text-muted);">
                     lub dodaj nowy regal z lewego panelu
                 </p>
             </div>
         </div>
 
-        <!-- BOTTOM BAR -->
+        <!-- ── BOTTOM BAR ── -->
         <div class="bottom-bar">
             <div class="bottom-bar-left">
                 <div class="status-item">
@@ -766,7 +1000,8 @@
                     <span>Gotowy</span>
                 </div>
                 <div class="status-item">
-                    <span>🖱 Klik - Zaznacz</span>
+                    <span class="material-symbols-outlined" style="font-size:14px">mouse</span>
+                    <span>Klik - Zaznacz</span>
                 </div>
                 <div class="status-item">
                     <span>Shift+Klik - Zaznacz wiele</span>
@@ -780,18 +1015,24 @@
             </div>
 
             <div class="bottom-bar-right">
-                <button class="btn btn-secondary" onclick="undo()">↶ Cofnij</button>
-                <button class="btn btn-secondary" onclick="redo()">↷ Ponow</button>
+                <button class="btn btn-secondary" onclick="undo()">
+                    <span class="material-symbols-outlined" style="font-size:16px">undo</span> Cofnij
+                </button>
+                <button class="btn btn-secondary" onclick="redo()">
+                    <span class="material-symbols-outlined" style="font-size:16px">redo</span> Ponow
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL - Import/Export -->
+    <!-- ── MODAL - Import/Export ── -->
     <div class="modal-overlay" id="json-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modal-title"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">download</span> Import Layout JSON</h3>
-                <button class="modal-close" onclick="closeModal()">×</button>
+                <h3 id="modal-title"><span class="material-symbols-outlined">download</span> Import Layout JSON</h3>
+                <button class="modal-close" onclick="closeModal()">
+                    <span class="material-symbols-outlined" style="font-size:18px">close</span>
+                </button>
             </div>
             <div class="modal-body">
                 <textarea id="json-textarea" placeholder="Wklej JSON layout tutaj..."></textarea>
@@ -834,11 +1075,11 @@
         let currentRow = 'A';
         let currentNumber = 1;
         let rowCounts = {}; // Track how many shelves in each row
-        
+
         window.onload = function() {
             canvas = document.getElementById('editor-canvas');
             ctx = canvas.getContext('2d');
-            
+
             updateNextShelfName();
             setupEventListeners();
             render();
@@ -847,35 +1088,35 @@
         // Auto-add nowy regał z numeracją
         function addNewShelf() {
             const shelfName = currentRow + currentNumber;
-            
+
             // Dodaj regał w centrum canvasu
             const centerX = (canvas.width / zoom / 2) - gridSize * 1.5;
             const centerY = (canvas.height / zoom / 2) - gridSize * 0.5;
-            
+
             const x = Math.floor(centerX / gridSize) * gridSize;
             const y = Math.floor(centerY / gridSize) * gridSize;
-            
+
             addShelf(shelfName, x, y);
-            
+
             // Increment counter
             currentNumber++;
             updateNextShelfName();
         }
-        
+
         // Następny rząd (A → B → C...)
         function nextRow() {
             // Save count for current row
             rowCounts[currentRow] = currentNumber - 1;
-            
+
             // Next row
             currentRow = String.fromCharCode(currentRow.charCodeAt(0) + 1);
             currentNumber = 1;
-            
+
             // Update dropdown
             document.getElementById('current-row').value = currentRow;
             updateNextShelfName();
         }
-        
+
         // Update "Następny:" label
         function updateNextShelfName() {
             currentRow = document.getElementById('current-row').value;
@@ -888,16 +1129,16 @@
             // Canvas drag & drop - DISABLED (nie używamy drag&drop już)
             // canvas.ondragover = (e) => e.preventDefault();
             // canvas.ondrop = handleCanvasDrop;
-            
+
             // Canvas mouse events
             canvas.onmousedown = handleMouseDown;
             canvas.onmousemove = handleMouseMove;
             canvas.onmouseup = handleMouseUp;
             canvas.onwheel = handleWheel;
-            
+
             // Keyboard
             document.onkeydown = handleKeyDown;
-            
+
             // Background upload
             document.getElementById('bg-upload').onchange = handleBgUpload;
         }
@@ -906,11 +1147,11 @@
             e.preventDefault();
             const shelfLetter = e.dataTransfer.getData('shelf');
             if (!shelfLetter) return;
-            
+
             const rect = canvas.getBoundingClientRect();
             const x = Math.floor((e.clientX - rect.left - offset.x) / zoom / gridSize) * gridSize;
             const y = Math.floor((e.clientY - rect.top - offset.y) / zoom / gridSize) * gridSize;
-            
+
             addShelf(shelfLetter, x, y);
         }
 
@@ -929,7 +1170,7 @@
                 depth: 40, // cm
                 color: '#667eea'
             };
-            
+
             shelves.push(shelf);
             saveHistory();
             updateInfo();
@@ -940,7 +1181,7 @@
             const rect = canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left - offset.x) / zoom;
             const y = (e.clientY - rect.top - offset.y) / zoom;
-            
+
             // Check if clicked on shelf
             let clickedShelf = null;
             for (let i = shelves.length - 1; i >= 0; i--) {
@@ -950,7 +1191,7 @@
                     break;
                 }
             }
-            
+
             // BULK: Shift+Click = multi-select
             if (e.shiftKey && clickedShelf) {
                 const index = selectedShelves.indexOf(clickedShelf);
@@ -975,7 +1216,7 @@
                 isPanning = true;
                 panStart = { x: e.clientX, y: e.clientY };
             }
-            
+
             updatePropertiesPanel();
             render();
         }
@@ -985,11 +1226,11 @@
                 const rect = canvas.getBoundingClientRect();
                 const x = (e.clientX - rect.left - offset.x) / zoom;
                 const y = (e.clientY - rect.top - offset.y) / zoom;
-                
+
                 // Snap to grid
                 selectedShelf.x = Math.floor((x - draggedShelf.offsetX) / gridSize) * gridSize;
                 selectedShelf.y = Math.floor((y - draggedShelf.offsetY) / gridSize) * gridSize;
-                
+
                 render();
             } else if (isPanning) {
                 const dx = e.clientX - panStart.x;
@@ -1027,7 +1268,7 @@
                 updateInfo();
                 render();
             }
-            
+
             // Undo/Redo
             if (e.ctrlKey && e.key === 'z') {
                 undo();
@@ -1057,42 +1298,42 @@
         function render() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
-            
+
             // Apply pan & zoom
             ctx.translate(offset.x, offset.y);
             ctx.scale(zoom, zoom);
-            
+
             // Background image
             if (bgImage) {
                 ctx.globalAlpha = bgOpacity;
                 ctx.drawImage(bgImage, 0, 0, canvas.width / zoom, canvas.height / zoom);
                 ctx.globalAlpha = 1;
             }
-            
+
             // Grid
             if (showGrid) {
                 drawGrid();
             }
-            
+
             // Shelves
             shelves.forEach(shelf => {
                 drawShelf(shelf);
             });
-            
+
             ctx.restore();
         }
 
         function drawGrid() {
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
             ctx.lineWidth = 1 / zoom;
-            
+
             for (let x = 0; x < canvas.width / zoom; x += gridSize) {
                 ctx.beginPath();
                 ctx.moveTo(x, 0);
                 ctx.lineTo(x, canvas.height / zoom);
                 ctx.stroke();
             }
-            
+
             for (let y = 0; y < canvas.height / zoom; y += gridSize) {
                 ctx.beginPath();
                 ctx.moveTo(0, y);
@@ -1103,7 +1344,7 @@
 
         function drawShelf(shelf) {
             ctx.save();
-            
+
             // Highlight if selected
             // BULK: Highlight multi-selected shelves (yellow)
             const isMultiSelected = selectedShelves.includes(shelf);
@@ -1112,38 +1353,38 @@
                 ctx.lineWidth = 4 / zoom;
                 ctx.strokeRect(shelf.x - 5, shelf.y - 5, shelf.width + 10, shelf.height + 10);
             }
-            
+
             // Single selection (white)
             if (selectedShelf && selectedShelf.id === shelf.id) {
                 ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 3 / zoom;
                 ctx.strokeRect(shelf.x - 5, shelf.y - 5, shelf.width + 10, shelf.height + 10);
             }
-            
+
             // Draw shelf
             const gradient = ctx.createLinearGradient(shelf.x, shelf.y, shelf.x + shelf.width, shelf.y + shelf.height);
             gradient.addColorStop(0, shelf.color);
             gradient.addColorStop(1, adjustColor(shelf.color, -30));
-            
+
             ctx.fillStyle = gradient;
             ctx.fillRect(shelf.x, shelf.y, shelf.width, shelf.height);
-            
+
             // Border
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
             ctx.lineWidth = 2 / zoom;
             ctx.strokeRect(shelf.x, shelf.y, shelf.width, shelf.height);
-            
+
             // Label
             ctx.fillStyle = '#fff';
             ctx.font = `bold ${20 / zoom}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(shelf.letter, shelf.x + shelf.width / 2, shelf.y + shelf.height / 2);
-            
+
             // Info (height)
             ctx.font = `${12 / zoom}px Arial`;
             ctx.fillText(`${shelf.shelfHeight}cm`, shelf.x + shelf.width / 2, shelf.y - 15 / zoom);
-            
+
             ctx.restore();
         }
 
@@ -1158,37 +1399,37 @@
         // PROPERTIES PANEL
         function updatePropertiesPanel() {
             const panel = document.getElementById('properties-panel');
-            
+
             if (!selectedShelf) {
                 panel.innerHTML = `
                     <div class="no-selection">
-                        <div class="no-selection-icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">target</span></div>
-                        <p>Kliknij na regał aby edytować właściwości</p>
+                        <div class="no-selection-icon"><span class="material-symbols-outlined">target</span></div>
+                        <p>Kliknij na regal aby edytowac wlasciwosci</p>
                     </div>
                 `;
                 return;
             }
-            
+
             panel.innerHTML = `
                 <div class="property-group">
-                    <h4><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">settings</span> Regał: ${selectedShelf.letter}</h4>
-                    
+                    <h4><span class="material-symbols-outlined">settings</span> Regal: ${selectedShelf.letter}</h4>
+
                     <div class="property-row">
-                        <label>Wysokość regału (cm)</label>
+                        <label>Wysokosc regalu (cm)</label>
                         <div class="radio-group">
-                            <div class="radio-option ${selectedShelf.shelfHeight === 180 ? 'active' : ''}" 
+                            <div class="radio-option ${selectedShelf.shelfHeight === 180 ? 'active' : ''}"
                                  onclick="updateShelfProperty('shelfHeight', 180); updateShelfProperty('levels', 5)">
-                                180cm<br>(5 półek)
+                                180cm<br>(5 polek)
                             </div>
                             <div class="radio-option ${selectedShelf.shelfHeight === 225 ? 'active' : ''}"
                                  onclick="updateShelfProperty('shelfHeight', 225); updateShelfProperty('levels', 6)">
-                                225cm<br>(6 półek)
+                                225cm<br>(6 polek)
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="property-row">
-                        <label>Szerokość (cm)</label>
+                        <label>Szerokosc (cm)</label>
                         <div class="radio-group">
                             <div class="radio-option ${selectedShelf.shelfWidth === 80 ? 'active' : ''}"
                                  onclick="updateShelfProperty('shelfWidth', 80)">
@@ -1200,9 +1441,9 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="property-row">
-                        <label>Głębokość (cm)</label>
+                        <label>Glebokosc (cm)</label>
                         <div class="radio-group">
                             <div class="radio-option ${selectedShelf.depth === 40 ? 'active' : ''}"
                                  onclick="updateShelfProperty('depth', 40)">
@@ -1214,21 +1455,21 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="property-row">
                         <label>Rotacja</label>
                         <div class="radio-group">
                             <div class="radio-option ${selectedShelf.rotation === 0 ? 'active' : ''}"
                                  onclick="updateShelfProperty('rotation', 0)">
-                                0° (↔)
+                                0°
                             </div>
                             <div class="radio-option ${selectedShelf.rotation === 90 ? 'active' : ''}"
                                  onclick="updateShelfProperty('rotation', 90)">
-                                90° (↕)
+                                90°
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="property-row">
                         <label>Kolor</label>
                         <div class="color-picker">
@@ -1236,11 +1477,11 @@
                         </div>
                     </div>
                 </div>
-                
-                <div class="property-group">
-                    <h4><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">delete</span> Akcje</h4>
-                    <button class="btn btn-danger" style="width: 100%;" onclick="deleteSelectedShelf()">
-                        Usuń Regał
+
+                <div class="property-group property-group--actions">
+                    <h4><span class="material-symbols-outlined">delete</span> Akcje</h4>
+                    <button class="btn btn-danger" style="width:100%;" onclick="deleteSelectedShelf()">
+                        <span class="material-symbols-outlined" style="font-size:18px">delete_forever</span> Usun Regal
                     </button>
                 </div>
             `;
@@ -1248,9 +1489,9 @@
 
         function generateColorPicker() {
             const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'];
-            return colors.map(color => 
-                `<div class="color-option ${selectedShelf.color === color ? 'active' : ''}" 
-                      style="background: ${color};" 
+            return colors.map(color =>
+                `<div class="color-option ${selectedShelf.color === color ? 'active' : ''}"
+                      style="background: ${color};"
                       onclick="updateShelfProperty('color', '${color}')"></div>`
             ).join('');
         }
@@ -1308,15 +1549,15 @@
         function updateInfo() {
             document.getElementById('info-shelves').textContent = shelves.length;
             document.getElementById('info-zoom').textContent = Math.round(zoom * 100) + '%';
-            
+
             // Count rows (unique letters)
             const rows = new Set(shelves.map(s => s.letter.charAt(0)));
             document.getElementById('info-rows').textContent = rows.size;
-            
+
             // Calculate capacity (50 products per shelf, 6 levels per shelf)
             const capacity = shelves.length * 50 * 6;
             document.getElementById('info-capacity').textContent = capacity;
-            
+
             // Calculate area (rough estimate: shelf width * depth)
             const areaPerShelf = 0.9 * 0.4; // 90cm * 40cm = 0.36m²
             const totalArea = (shelves.length * areaPerShelf).toFixed(1);
@@ -1356,9 +1597,9 @@
         // TEMPLATES
         function applyTemplate(type) {
             if (!confirm('To zastąpi obecny layout. Kontynuować?')) return;
-            
+
             shelves = [];
-            
+
             switch(type) {
                 case 'u-shape':
                     // Lewa ściana (A-D)
@@ -1374,7 +1615,7 @@
                         addShelf(letter, gridSize * (5 + i * 2), gridSize * 12);
                     });
                     break;
-                    
+
                 case 'l-shape':
                     // Lewa (A-E)
                     ['A', 'B', 'C', 'D', 'E'].forEach((letter, i) => {
@@ -1385,7 +1626,7 @@
                         addShelf(letter, gridSize * (5 + i * 2), gridSize * 12);
                     });
                     break;
-                    
+
                 case 'line':
                     // Lewa strona
                     ['A', 'B', 'C', 'D', 'E'].forEach((letter, i) => {
@@ -1396,7 +1637,7 @@
                         addShelf(letter, gridSize * 13, gridSize * (3 + i * 2));
                     });
                     break;
-                    
+
                 case 'grid':
                     // 4x4 grid
                     for (let row = 0; row < 4; row++) {
@@ -1408,7 +1649,7 @@
                     }
                     break;
             }
-            
+
             saveHistory();
             updateInfo();
             render();
@@ -1433,9 +1674,9 @@
                     color: s.color
                 }))
             };
-            
-            console.log('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">save</span> Saving layout...', layout);
-            
+
+            console.log('Saving layout...', layout);
+
             // Send to backend
             fetch('/api/warehouse/layout/save', {
                 method: 'POST',
@@ -1443,20 +1684,20 @@
                 body: JSON.stringify(layout)
             })
             .then(res => {
-                console.log('📡 Response status:', res.status);
+                console.log('Response status:', res.status);
                 return res.json();
             })
             .then(data => {
-                console.log('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Response data:', data);
+                console.log('Response data:', data);
                 if (data.success) {
-                    alert(`<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Layout zapisany!\n\nLokalizacja: ${data.path}\nRegałów: ${data.shelves_count}`);
+                    alert(`Layout zapisany!\n\nLokalizacja: ${data.path}\nRegalow: ${data.shelves_count}`);
                 } else {
-                    alert('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Błąd zapisu: ' + (data.error || 'Unknown error'));
+                    alert('Blad zapisu: ' + (data.error || 'Unknown error'));
                 }
             })
             .catch(err => {
-                console.error('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Fetch error:', err);
-                alert('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Błąd zapisu: ' + err.message);
+                console.error('Fetch error:', err);
+                alert('Blad zapisu: ' + err.message);
             });
         }
 
@@ -1466,12 +1707,12 @@
                 created: new Date().toISOString(),
                 shelves: shelves
             };
-            
+
             const json = JSON.stringify(layout, null, 2);
             document.getElementById('json-textarea').value = json;
             document.getElementById('modal-title').textContent = ' Export Layout JSON';
             document.getElementById('json-modal').classList.add('show');
-            
+
             // Select all for easy copy
             document.getElementById('json-textarea').select();
         }
@@ -1484,27 +1725,27 @@
 
         function confirmImport() {
             const json = document.getElementById('json-textarea').value;
-            
+
             try {
                 const layout = JSON.parse(json);
-                
+
                 if (!layout.shelves || !Array.isArray(layout.shelves)) {
                     throw new Error('Invalid layout format');
                 }
-                
+
                 shelves = layout.shelves.map((s, i) => ({
                     ...s,
                     id: Date.now() + i
                 }));
-                
+
                 saveHistory();
                 updateInfo();
                 render();
                 closeModal();
-                
-                alert('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Layout zaimportowany!');
+
+                alert('Layout zaimportowany!');
             } catch (err) {
-                alert('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Błąd importu: ' + err.message);
+                alert('Blad importu: ' + err.message);
             }
         }
 
@@ -1513,7 +1754,7 @@
         }
 
         function clearLayout() {
-            if (confirm('Czy na pewno chcesz wyczyścić layout?')) {
+            if (confirm('Czy na pewno chcesz wyczyscic layout?')) {
                 shelves = [];
                 selectedShelf = null;
                 saveHistory();
@@ -1539,7 +1780,7 @@
         // ============================================================
         // BULK OPERATIONS
         // ============================================================
-        
+
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             // Ctrl+A = Select All
@@ -1572,7 +1813,7 @@
         }
 
         function bulkDelete() {
-            if (confirm(`Usunąć ${selectedShelves.length} regałów?`)) {
+            if (confirm(`Usunac ${selectedShelves.length} regalow?`)) {
                 selectedShelves.forEach(shelf => {
                     const index = shelves.indexOf(shelf);
                     if (index > -1) shelves.splice(index, 1);
@@ -1617,14 +1858,14 @@
         const originalUpdatePropertiesPanel = updatePropertiesPanel;
         updatePropertiesPanel = function() {
             const panel = document.getElementById('properties-panel');
-            
+
             if (selectedShelves.length > 1) {
                 // BULK PANEL
                 panel.innerHTML = `
                     <div class="bulk-panel">
                         <div class="bulk-header">
-                            <div class="bulk-title"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">target</span> Edycja grupowa</div>
-                            <div class="bulk-count">${selectedShelves.length} regałów</div>
+                            <div class="bulk-title"><span class="material-symbols-outlined">select_all</span> Edycja grupowa</div>
+                            <div class="bulk-count">${selectedShelves.length} regalow</div>
                         </div>
 
                         <div class="bulk-actions">
@@ -1643,30 +1884,34 @@
                             </div>
 
                             <div class="bulk-group">
-                                <div class="bulk-group-title">Wysokość</div>
-                                <select onchange="bulkChangeHeight(this.value)" style="width:100%;padding:8px;border-radius:8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;">
+                                <div class="bulk-group-title">Wysokosc</div>
+                                <select onchange="bulkChangeHeight(this.value)" class="panel-select" style="margin-top:0;">
                                     <option value="">Wybierz...</option>
-                                    <option value="180">180 cm (5 półek)</option>
-                                    <option value="225">225 cm (6 półek)</option>
+                                    <option value="180">180 cm (5 polek)</option>
+                                    <option value="225">225 cm (6 polek)</option>
                                 </select>
                             </div>
 
                             <div class="bulk-group">
                                 <div class="bulk-group-title">Rotacja</div>
-                                <select onchange="bulkChangeRotation(this.value)" style="width:100%;padding:8px;border-radius:8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;">
+                                <select onchange="bulkChangeRotation(this.value)" class="panel-select" style="margin-top:0;">
                                     <option value="">Wybierz...</option>
                                     <option value="0">0° (poziomo)</option>
                                     <option value="90">90° (pionowo)</option>
                                 </select>
                             </div>
 
-                            <button onclick="bulkDelete()" style="width:100%;padding:12px;margin-top:10px;background:#ef4444;border:none;border-radius:8px;color:white;font-weight:600;cursor:pointer;">
-                                <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">delete</span> Usuń Wszystkie (${selectedShelves.length})
-                            </button>
+                            <div style="padding:14px 20px;border-left:3px solid #f5576c;background:var(--bg-card);border-bottom:1px solid var(--border-dim);">
+                                <button onclick="bulkDelete()" class="btn btn-danger" style="width:100%;justify-content:center;">
+                                    <span class="material-symbols-outlined" style="font-size:18px">delete_forever</span> Usun Wszystkie (${selectedShelves.length})
+                                </button>
+                            </div>
 
-                            <button onclick="deselectAll()" style="width:100%;padding:12px;margin-top:5px;background:rgba(255,255,255,0.1);border:none;border-radius:8px;color:white;font-weight:600;cursor:pointer;">
-                                <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Odznacz (ESC)
-                            </button>
+                            <div style="padding:14px 20px;background:var(--bg-card);">
+                                <button onclick="deselectAll()" class="btn btn-secondary" style="width:100%;justify-content:center;">
+                                    <span class="material-symbols-outlined" style="font-size:18px">deselect</span> Odznacz (ESC)
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -1677,9 +1922,9 @@
                 // No selection
                 panel.innerHTML = `
                     <div class="no-selection">
-                        <div class="no-selection-icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">target</span></div>
-                        <p>Kliknij na regał aby edytować właściwości</p>
-                        <p style="margin-top: 10px; font-size: 12px; color: #718096;">
+                        <div class="no-selection-icon"><span class="material-symbols-outlined">target</span></div>
+                        <p>Kliknij na regal aby edytowac wlasciwosci</p>
+                        <p style="margin-top:10px;font-size:11px;color:var(--text-muted);">
                             Shift+Click = multi-select
                         </p>
                     </div>
