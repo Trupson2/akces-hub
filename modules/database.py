@@ -305,7 +305,14 @@ def init_db():
 
         # Migracja: uppercase all existing ASINs
         conn.execute("UPDATE produkty SET asin = UPPER(asin) WHERE asin IS NOT NULL AND asin != '' AND asin != UPPER(asin)")
-        conn.execute("UPDATE scraped SET asin = UPPER(asin) WHERE asin IS NOT NULL AND asin != '' AND asin != UPPER(asin)")
+        # scraped has UNIQUE constraint on asin — delete lowercase duplicates first, then uppercase
+        try:
+            conn.execute("""DELETE FROM scraped WHERE rowid NOT IN (
+                SELECT MIN(rowid) FROM scraped GROUP BY UPPER(asin)
+            ) AND asin != UPPER(asin)""")
+            conn.execute("UPDATE scraped SET asin = UPPER(asin) WHERE asin IS NOT NULL AND asin != '' AND asin != UPPER(asin)")
+        except Exception:
+            pass  # Safe to skip if already uppercase
 
         # Auto-fix: cena_zakupu w bazie = BRUTTO, netto = brutto / 1.23
         try:
