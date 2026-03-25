@@ -2742,7 +2742,11 @@ def extract_parameters_with_ai(title, description, category_parameters, gemini_k
         
         # Jeśli ma słownik - podaj opcje
         if dictionary:
-            param_info['options'] = [{'id': d.get('id'), 'value': d.get('value')} for d in dictionary[:20]]  # Max 20 opcji
+            param_info['options'] = [{'id': d.get('id'), 'value': d.get('value')} for d in dictionary[:40]]  # Max 40 opcji
+
+        # Oznacz parametry wielowartościowe (checkboxy)
+        if restrictions.get('multipleChoices') or options.get('multipleChoices'):
+            param_info['multi'] = True
         
         params_for_ai.append(param_info)
     
@@ -2755,37 +2759,47 @@ def extract_parameters_with_ai(title, description, category_parameters, gemini_k
     # Build specs section for AI
     specs_section = ""
     if product_specs and isinstance(product_specs, dict):
-        specs_lines = [f"- {k}: {v}" for k, v in list(product_specs.items())[:20]]
-        specs_section = "\n\nSPECYFIKACJA PRODUKTU:\n" + "\n".join(specs_lines)
+        specs_lines = [f"- {k}: {v}" for k, v in list(product_specs.items())[:30]]
+        specs_section = "\n\nSPECYFIKACJA PRODUKTU (z Amazon — Funkcje, Szczegóły, Dodatkowe szczegóły):\n" + "\n".join(specs_lines)
 
-    prompt = f"""Wypełnij parametry oferty Allegro na podstawie danych produktu.
+    prompt = f"""Wypełnij WSZYSTKIE możliwe parametry oferty Allegro na podstawie danych produktu.
+Zagłębiaj się w specyfikację — każdy szczegół jest ważny.
 
 TYTUŁ: {title}
 
 CECHY/OPIS:
-{description[:2000] if description else 'brak opisu'}{specs_section}
+{description[:3000] if description else 'brak opisu'}{specs_section}
 
 PARAMETRY DO WYPEŁNIENIA:
 {params_json}
 
 ZASADY:
-1. Szukaj wartości w tytule, opisie i specyfikacji — NIE zgaduj
+1. Analizuj DOKŁADNIE tytuł, opis, bullet points i specyfikację — wyciągaj KAŻDĄ możliwą wartość
 2. Parametr z "options" → wybierz ID najlepiej pasującej opcji
-3. Parametr bez opcji (type=string) → podaj wartość tekstową
+3. Parametr bez opcji (type=string/float/integer) → podaj wartość
 4. Nie znasz wartości → POMIŃ parametr (nie wpisuj "brak" ani "nie dotyczy")
 5. "Stan" → zawsze "Nowy" jeśli dostępny
-6. Marka/Producent → ZAWSZE wybierz "bez marki" — NIGDY nie podawaj konkretnej marki
-7. Kolor → odczytaj z tytułu/opisu (Black=Czarny, White=Biały, etc.)
-8. Materiał → odczytaj z opisu (Plastic=Tworzywo sztuczne, Metal=Metal, etc.)
-9. Wymiary/waga → przelicz na jednostki z parametru (cm→m, mm→cm, kg, g). Format "190x188x200" w tytule = szerokość x długość x wysokość w CM — przelicz na metry jeśli parametr wymaga metrów (np. 190cm = 1.9m)
-10. Parametry numeryczne → podaj TYLKO liczbę bez jednostki
-11. Jeśli w tytule/opisie są wymiary w formacie AxBxC — ZAWSZE wypełnij szerokość, długość, wysokość
-12. "Informacje o bezpieczeństwie" → ZAWSZE wypełnij. Wybierz opcję "Produkt posiada oznakowanie CE" lub "Zawiera oznakowanie CE" jeśli dostępna
-13. "Stan opakowania" → NIE wypełniaj, pomiń ten parametr
+6. Marka/Producent → ZAWSZE "bez marki" — NIGDY konkretna marka
+7. Kolor → z tytułu/opisu/specs (Black=Czarny, White=Biały, Grey=Szary, etc.)
+8. Materiał → z opisu/specs (Plastic=Tworzywo sztuczne, Metal=Metal, Memory Foam=Pianka, etc.)
+9. Wymiary → PRZELICZ JEDNOSTKI:
+   - Cale na centymetry: 1" = 2.54cm (np. 28"x16"x5" = 71x41x13 cm)
+   - cm na metry jeśli parametr wymaga metrów (190cm = 1.9m)
+   - mm na cm jeśli trzeba
+10. Parametry numeryczne → TYLKO liczba bez jednostki
+11. Wymiary AxBxC → ZAWSZE wypełnij szerokość, długość, wysokość osobno
+12. "Informacje o bezpieczeństwie" → ZAWSZE wypełnij (CE jeśli dostępne)
+13. "Stan opakowania" → POMIŃ
+14. PARAMETRY WIELOWARTOŚCIOWE (multi=true) → możesz wybrać KILKA opcji naraz!
+    Np. "Cechy dodatkowe" poduszki: antyalergiczna + spanie na boku + spanie na plecach + zdejmowany pokrowiec
+    Format: {{"value_ids": ["id1", "id2", "id3"]}}
+15. Waga → przelicz: lbs na kg (1 lb = 0.45 kg), oz na g (1 oz = 28.35g)
+16. Pojemność → przelicz: galony na litry, fl oz na ml
+17. WYPEŁNIAJ MAKSYMALNIE DUŻO parametrów — lepiej więcej niż mniej
 
-FORMAT ODPOWIEDZI (tylko JSON):
+FORMAT ODPOWIEDZI (tylko JSON, bez komentarzy):
 {{
-  "param_id": {{"value": "tekst"}} lub {{"value_id": "id_opcji"}}
+  "param_id": {{"value": "tekst"}} lub {{"value_id": "id_opcji"}} lub {{"value_ids": ["id1", "id2"]}}
 }}"""
 
     try:
@@ -2813,11 +2827,13 @@ FORMAT ODPOWIEDZI (tylko JSON):
         
         # Debug - pokaż co wyekstrahowano
         for param_id, data in extracted.items():
-            if 'value_id' in data:
+            if 'value_ids' in data:
+                print(f"   [OK] {param_id}: value_ids={data['value_ids']} (multi)")
+            elif 'value_id' in data:
                 print(f"   [OK] {param_id}: value_id={data['value_id']}")
             elif 'value' in data:
                 print(f"   [OK] {param_id}: value={data['value']}")
-        
+
         return extracted
         
     except Exception as e:
@@ -2966,7 +2982,18 @@ def build_offer_parameters_ai(category_id, product_name="", description="", ean=
             # Inne produktowe (Rodzaj, Typ, Przeznaczenie, Cechy dodatkowe itp.)
             elif param_id not in added_param_ids:
                 # 1. Spróbuj AI extraction
-                if param_id in ai_extracted and 'value_id' in ai_extracted[param_id]:
+                # 1a. Multi-value (checkboxy: value_ids)
+                if param_id in ai_extracted and 'value_ids' in ai_extracted[param_id]:
+                    vids = [str(v) for v in ai_extracted[param_id]['value_ids']]
+                    if dictionary:
+                        valid = [str(d.get('id')) for d in dictionary]
+                        valid_vids = [v for v in vids if v in valid]
+                        if valid_vids:
+                            _built = {'id': param_id, 'valuesIds': valid_vids}
+                            vnames = [next((d.get('value') for d in dictionary if str(d.get('id')) == v), v) for v in valid_vids]
+                            print(f"   [INVE] Product AI multi: {param_name} = {vnames}")
+                # 1b. Single value_id
+                elif param_id in ai_extracted and 'value_id' in ai_extracted[param_id]:
                     vid = str(ai_extracted[param_id]['value_id'])
                     if dictionary:
                         valid = [str(d.get('id')) for d in dictionary]
@@ -2974,6 +3001,7 @@ def build_offer_parameters_ai(category_id, product_name="", description="", ean=
                             _built = {'id': param_id, 'valuesIds': [vid]}
                             vname = next((d.get('value') for d in dictionary if str(d.get('id')) == vid), vid)
                             print(f"   [INVE] Product AI: {param_name} = {vname}")
+                # 1c. Text value
                 elif param_id in ai_extracted and 'value' in ai_extracted[param_id]:
                     _val = str(ai_extracted[param_id]['value'])
                     if dictionary:
@@ -3020,7 +3048,20 @@ def build_offer_parameters_ai(category_id, product_name="", description="", ean=
         if param_id in ai_extracted:
             ai_data = ai_extracted[param_id]
 
-            if 'value_id' in ai_data:
+            # Multi-value (checkboxy: value_ids)
+            if 'value_ids' in ai_data:
+                vids = [str(v) for v in ai_data['value_ids']]
+                valid_ids = [str(d.get('id')) for d in dictionary]
+                valid_vids = [v for v in vids if v in valid_ids]
+                if valid_vids:
+                    offer_parameters.append({'id': param_id, 'valuesIds': valid_vids})
+                    added_param_ids.add(param_id)
+                    vnames = [next((d.get('value') for d in dictionary if str(d.get('id')) == v), v) for v in valid_vids]
+                    print(f"   [SMAR] AI multi: {param_name} = {vnames}")
+                    continue
+
+            # Single value_id
+            elif 'value_id' in ai_data:
                 value_id = str(ai_data['value_id'])
                 valid_ids = [str(d.get('id')) for d in dictionary]
                 if value_id in valid_ids:
@@ -3032,13 +3073,28 @@ def build_offer_parameters_ai(category_id, product_name="", description="", ean=
                 else:
                     print(f"   [WARN] AI nieprawidłowe ID: {value_id} dla {param_name}")
 
-            elif 'value' in ai_data and param_type == 'string':
+            # Text/numeric value
+            elif 'value' in ai_data:
                 value = str(ai_data['value'])[:50]
                 if value and value != '--':
-                    offer_parameters.append({'id': param_id, 'values': [value]})
-                    added_param_ids.add(param_id)
-                    print(f"   [SMAR] AI: {param_name} = {value}")
-                    continue
+                    if dictionary:
+                        # Try to match text to dictionary
+                        _val_lower = value.lower().strip()
+                        _matched = False
+                        for dv in dictionary:
+                            if dv.get('value', '').lower().strip() == _val_lower:
+                                offer_parameters.append({'id': param_id, 'valuesIds': [str(dv['id'])]})
+                                added_param_ids.add(param_id)
+                                print(f"   [SMAR] AI dict match: {param_name} = {dv['value']}")
+                                _matched = True
+                                break
+                        if _matched:
+                            continue
+                    if param_type in ('string', 'float', 'integer', None):
+                        offer_parameters.append({'id': param_id, 'values': [value]})
+                        added_param_ids.add(param_id)
+                        print(f"   [SMAR] AI: {param_name} = {value}")
+                        continue
 
         # === Fallback: Stan → "Nowy" ===
         if 'stan' in param_name_lower and dictionary:
