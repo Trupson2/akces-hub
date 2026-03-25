@@ -2134,10 +2134,12 @@ def statystyki():
         palety_cnt_per_msc = {int(r['m']): int(r['cnt']) for r in palety_cnt_rows}
         palety_zakup_per_msc = {int(r['m']): float(r['suma_zakupu']) for r in palety_cnt_rows}
         palety_total_cnt_rok = sum(palety_cnt_per_msc.values())
+        palety_zakup_total_rok = sum(palety_zakup_per_msc.values())
     except:
         palety_cnt_per_msc = {}
         palety_zakup_per_msc = {}
         palety_total_cnt_rok = 0
+        palety_zakup_total_rok = 0
 
     # ROI per paleta - ta sama logika co /analityka (proporcjonalny koszt sprzedanych)
     try:
@@ -2278,7 +2280,7 @@ def statystyki():
     # Przygotuj dane do wykresów
     nazwy_miesiecy = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru']
     przychod_total = podsumowanie['suma_total'] + pryw_total_rok
-    koszty_total_lacznie = koszty_total_rok + palety_total_rok
+    koszty_total_lacznie = koszty_total_rok + palety_zakup_total_rok  # koszty operacyjne + REALNE zakupy palet (cashflow)
     zysk_rok = przychod_total - koszty_total_lacznie
     zysk_kolor = '#beee00' if zysk_rok >= 0 else '#ef4444'
     
@@ -2395,6 +2397,7 @@ def statystyki():
         koszty_total_lacznie=koszty_total_lacznie,
         koszty_netto=koszty_netto,
         palety_total_rok=palety_total_rok,
+        palety_zakup_total_rok=palety_zakup_total_rok,
         pryw_total_rok=pryw_total_rok,
         zysk_rok=zysk_rok,
         zysk_kolor=zysk_kolor,

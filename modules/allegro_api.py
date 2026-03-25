@@ -4165,7 +4165,9 @@ def index():
     cnt_orders_today = conn.execute("SELECT COUNT(*) as c FROM sprzedaze WHERE date(data_sprzedazy)=?", (_today,)).fetchone()['c']
     cnt_orders_month = conn.execute("SELECT COUNT(*) as c FROM sprzedaze WHERE strftime('%Y-%m',data_sprzedazy)=?", (_month,)).fetchone()['c']
     cnt_offers = conn.execute("SELECT COUNT(*) as c FROM oferty WHERE status IN ('aktywna','active','ACTIVE','wystawiona')").fetchone()['c']
-    revenue_month = conn.execute("SELECT COALESCE(SUM(cena*ilosc),0) as s FROM sprzedaze WHERE strftime('%Y-%m',data_sprzedazy)=? AND status!='zwrot'", (_month,)).fetchone()['s']
+    revenue_brutto = conn.execute("SELECT COALESCE(SUM(cena*ilosc),0) as s FROM sprzedaze WHERE strftime('%Y-%m',data_sprzedazy)=? AND status NOT IN ('zwrot','anulowane','anulowana')", (_month,)).fetchone()['s']
+    zwroty_suma = conn.execute("SELECT COALESCE(SUM(cena*ilosc),0) as s FROM sprzedaze WHERE strftime('%Y-%m',data_sprzedazy)=? AND status='zwrot'", (_month,)).fetchone()['s']
+    revenue_month = revenue_brutto - zwroty_suma  # przychód netto (po odliczeniu zwrotów)
 
     user_info = None
     autosync_on = False
