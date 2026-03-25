@@ -1920,13 +1920,13 @@ def statystyki():
                COALESCE(SUM(cena * ilosc), 0) as suma
         FROM sprzedaze
         WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19), 'T', ' ')) = ?
-          AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
+          AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
           AND data_sprzedazy IS NOT NULL AND data_sprzedazy != ''
         GROUP BY miesiac
         HAVING miesiac IS NOT NULL
         ORDER BY miesiac
     ''', (str(current_year),)).fetchall()
-    
+
     # Sprzedaż dziennie dla każdego miesiąca (do drill-down) - z ilością zamówień!
     dzienne_all = conn.execute('''
         SELECT
@@ -1936,7 +1936,7 @@ def statystyki():
             COALESCE(SUM(cena * ilosc), 0) as suma
         FROM sprzedaze
         WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19), 'T', ' ')) = ?
-          AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
+          AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
           AND data_sprzedazy IS NOT NULL
           AND data_sprzedazy != ''
         GROUP BY miesiac, dzien
@@ -2081,7 +2081,7 @@ def statystyki():
                 FROM produkty pr GROUP BY pr.paleta_id
             ) pal_total ON pal_total.paleta_id = pal.id
             WHERE strftime('%Y', s.data_sprzedazy) = ?
-            AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
+            AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
             GROUP BY m
         ''', (str(current_year),)).fetchall()
         palety_per_msc = {int(r['m']): float(r['cogs'] or 0) for r in cogs_msc_rows}
