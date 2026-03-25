@@ -170,148 +170,181 @@ def require_role(*roles):
 # ============================================================
 
 LOGIN_HTML = '''<!DOCTYPE html>
-<html lang="pl">
+<html class="dark" lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Logowanie - {{ brand_name }}</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
+<title>{{ brand_name }} - Login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#06060f;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow-x:hidden}
+:root{--bg:#0e0e10;--surface:#19191c;--surface-high:#1f1f22;--surface-highest:#262528;--primary:#8ff5ff;--secondary:#ff6b9b;--tertiary:#beee00;--text:#f9f5f8;--text-muted:#adaaad;--outline:#767577}
+body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.font-headline{font-family:'Space Grotesk',sans-serif}
 
-/* === SCROLLING TAGS === */
-.tags-section{width:100%;margin-bottom:40px;text-align:center}
-.tags-title{font-size:1.1rem;color:#94a3b8;margin-bottom:20px;font-weight:400}
-.tags-title span{color:#8b5cf6;font-weight:700}
-.tags-track{display:flex;gap:12px;white-space:nowrap;animation:scroll-left 25s linear infinite;width:max-content}
-.tags-row{overflow:hidden;margin-bottom:10px;position:relative;width:100vw}
-.tags-row::before,.tags-row::after{content:'';position:absolute;top:0;bottom:0;width:80px;z-index:2;pointer-events:none}
-.tags-row::before{left:0;background:linear-gradient(90deg,#06060f,transparent)}
-.tags-row::after{right:0;background:linear-gradient(270deg,#06060f,transparent)}
-.tag{display:inline-block;padding:10px 20px;border-radius:10px;font-size:0.82rem;font-weight:600;border:1px solid;white-space:nowrap;flex-shrink:0}
-.tag-purple{color:#a78bfa;border-color:#a78bfa33;background:rgba(167,139,250,0.06)}
-.tag-blue{color:#60a5fa;border-color:#60a5fa33;background:rgba(96,165,250,0.06)}
-.tag-green{color:#34d399;border-color:#34d39933;background:rgba(52,211,153,0.06)}
-.tag-orange{color:#fb923c;border-color:#fb923c33;background:rgba(251,146,60,0.06)}
-.tag-pink{color:#f472b6;border-color:#f472b633;background:rgba(244,114,182,0.06)}
-.tag-cyan{color:#22d3ee;border-color:#22d3ee33;background:rgba(34,211,238,0.06)}
-.tag-yellow{color:#facc15;border-color:#facc1533;background:rgba(250,204,21,0.06)}
-.tag-red{color:#f87171;border-color:#f8717133;background:rgba(248,113,113,0.06)}
-@keyframes scroll-left{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-@keyframes scroll-right{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}
-.tags-track.reverse{animation-name:scroll-right}
+/* Cyber grid bg */
+.cyber-grid{position:fixed;inset:0;background-image:linear-gradient(to right,rgba(143,245,255,0.05) 1px,transparent 1px),linear-gradient(to bottom,rgba(143,245,255,0.05) 1px,transparent 1px);background-size:40px 40px;z-index:0}
 
-/* === LOGIN BOX === */
-.login-box{background:#0f0f1e;border:1px solid #1e1e3a;border-radius:20px;padding:44px 40px;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,0.6),0 0 0 1px rgba(99,102,241,0.05)}
-.logo{text-align:center;margin-bottom:32px}
-.logo h1{font-size:2rem;background:linear-gradient(135deg,{{ brand_color }},#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.5px}
-.logo p{color:#4a5568;font-size:0.82rem;margin-top:6px;letter-spacing:0.5px}
-.form-group{margin-bottom:18px}
-label{display:block;margin-bottom:6px;color:#64748b;font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
-input{width:100%;padding:13px 16px;background:#0a0a18;border:1px solid #1e1e3a;border-radius:12px;color:#fff;font-size:0.95rem;outline:none;transition:all 0.25s}
-input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,0.15)}
-button{width:100%;padding:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:12px;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;transition:all 0.25s;letter-spacing:0.3px}
-button:hover{opacity:0.92;transform:translateY(-1px);box-shadow:0 8px 24px rgba(99,102,241,0.3)}
-.error{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);color:#f87171;padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:0.82rem}
-.footer-text{margin-top:32px;color:#2a2a3a;font-size:0.7rem;text-align:center;letter-spacing:0.5px}
-@media(max-width:500px){.login-box{margin:0 16px;padding:32px 24px}.tags-section{display:none}}
+/* Floating keywords */
+.floating-text{position:fixed;inset:0;z-index:1;user-select:none;pointer-events:none;overflow:hidden}
+.floating-text span{position:absolute;font-family:'Space Grotesk',sans-serif;opacity:0.35}
+
+/* Login card */
+.login-card{position:relative;z-index:10;width:100%;max-width:440px;padding:0 24px}
+.card-inner{background:rgba(25,25,28,0.8);backdrop-filter:blur(20px);border-left:4px solid var(--primary);padding:48px;box-shadow:0 0 40px rgba(143,245,255,0.1)}
+
+/* Form */
+.form-group{margin-bottom:28px}
+.form-label{display:block;font-family:'Manrope',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.2em;color:var(--text-muted);margin-bottom:8px;transition:color 0.2s}
+.form-input{width:100%;background:var(--surface-highest);border:none;color:var(--text);padding:16px;font-family:'Manrope',sans-serif;font-size:0.95rem;outline:none;transition:background 0.2s}
+.form-input:focus{background:rgba(44,44,47,1)}
+.form-input::placeholder{color:rgba(118,117,119,0.4)}
+.input-wrap{position:relative}
+.input-line{position:absolute;bottom:0;left:0;width:0;height:2px;background:var(--primary);transition:width 0.3s}
+.form-input:focus ~ .input-line{width:100%}
+.form-group:focus-within .form-label{color:var(--primary)}
+
+/* Button */
+.btn-login{width:100%;padding:18px;background:var(--primary);color:#005d63;font-family:'Space Grotesk',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;font-size:0.85rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 0 20px rgba(143,245,255,0.3);transition:all 0.2s}
+.btn-login:hover{box-shadow:0 0 35px rgba(143,245,255,0.5)}
+.btn-login:active{transform:scale(0.98)}
+
+/* Error */
+.error-box{background:rgba(255,107,155,0.08);border-left:3px solid var(--secondary);color:var(--secondary);padding:12px 16px;margin-bottom:20px;font-size:0.82rem}
+
+/* First run */
+.first-run-msg{color:var(--primary);text-align:center;margin-bottom:20px;font-size:0.85rem;font-weight:600;letter-spacing:0.05em}
+
+/* Toggle */
+.toggle-wrap{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+.toggle{position:relative;width:36px;height:20px;background:var(--surface-highest);border-radius:10px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-dot{position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform 0.2s}
+.toggle input:checked ~ .toggle-dot{transform:translateX(16px)}
+.toggle input:checked ~ .toggle-bg{background:var(--primary)}
+.toggle-bg{position:absolute;inset:0;border-radius:10px;transition:background 0.2s}
+.toggle-text{font-size:10px;text-transform:uppercase;letter-spacing:0.2em;color:var(--text-muted)}
+
+/* Status HUD */
+.status-hud{margin-top:32px;display:flex;justify-content:space-between;padding:0 8px}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--tertiary);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* Footer */
+.footer{margin-top:40px;padding-top:32px;border-top:1px solid rgba(72,71,74,0.1);text-align:center}
+.footer-text{font-size:9px;text-transform:uppercase;letter-spacing:0.3em;color:var(--outline)}
+
+/* Glow blobs */
+.blob-primary{position:fixed;top:-250px;right:-250px;width:500px;height:500px;background:rgba(143,245,255,0.05);border-radius:50%;filter:blur(120px);z-index:-1}
+.blob-secondary{position:fixed;bottom:-200px;left:-200px;width:400px;height:400px;background:rgba(255,107,155,0.05);border-radius:50%;filter:blur(100px);z-index:-1}
+
+@media(max-width:500px){.card-inner{padding:32px 24px}.floating-text{display:none}}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
 </style>
 </head>
 <body>
+<div class="cyber-grid"></div>
 
-<!-- ANIMATED TAGS -->
-<div class="tags-section">
-<div class="tags-title">Z <span>{{ brand_name }}</span> mozesz zarzadzac</div>
-<div class="tags-row">
-<div class="tags-track">
-<span class="tag tag-purple">Palety zwrotowe</span>
-<span class="tag tag-blue">Magazyn produktow</span>
-<span class="tag tag-green">Sprzedaz Allegro</span>
-<span class="tag tag-orange">Analiza zyskow</span>
-<span class="tag tag-pink">Opisy AI</span>
-<span class="tag tag-cyan">Raporty ROI</span>
-<span class="tag tag-yellow">Etykiety i QR</span>
-<span class="tag tag-red">Wysylki i paczki</span>
-<span class="tag tag-purple">Export CSV</span>
-<span class="tag tag-blue">Kalkulator marzy</span>
-<span class="tag tag-green">GPSR generator</span>
-<span class="tag tag-orange">Profit Analyzer</span>
-<!-- duplicate for seamless loop -->
-<span class="tag tag-purple">Palety zwrotowe</span>
-<span class="tag tag-blue">Magazyn produktow</span>
-<span class="tag tag-green">Sprzedaz Allegro</span>
-<span class="tag tag-orange">Analiza zyskow</span>
-<span class="tag tag-pink">Opisy AI</span>
-<span class="tag tag-cyan">Raporty ROI</span>
-<span class="tag tag-yellow">Etykiety i QR</span>
-<span class="tag tag-red">Wysylki i paczki</span>
-<span class="tag tag-purple">Export CSV</span>
-<span class="tag tag-blue">Kalkulator marzy</span>
-<span class="tag tag-green">GPSR generator</span>
-<span class="tag tag-orange">Profit Analyzer</span>
-</div>
-</div>
-<div class="tags-row">
-<div class="tags-track reverse">
-<span class="tag tag-cyan">Dashboard KPI</span>
-<span class="tag tag-yellow">OLX integracja</span>
-<span class="tag tag-red">Vinted sync</span>
-<span class="tag tag-purple">Telegram bot</span>
-<span class="tag tag-blue">Multi-channel</span>
-<span class="tag tag-green">Auto meta title</span>
-<span class="tag tag-orange">Smart import</span>
-<span class="tag tag-pink">Backup danych</span>
-<span class="tag tag-cyan">Cloud export</span>
-<span class="tag tag-yellow">Scanner kodow</span>
-<!-- duplicate -->
-<span class="tag tag-cyan">Dashboard KPI</span>
-<span class="tag tag-yellow">OLX integracja</span>
-<span class="tag tag-red">Vinted sync</span>
-<span class="tag tag-purple">Telegram bot</span>
-<span class="tag tag-blue">Multi-channel</span>
-<span class="tag tag-green">Auto meta title</span>
-<span class="tag tag-orange">Smart import</span>
-<span class="tag tag-pink">Backup danych</span>
-<span class="tag tag-cyan">Cloud export</span>
-<span class="tag tag-yellow">Scanner kodow</span>
-</div>
-</div>
+<!-- Floating keywords -->
+<div class="floating-text">
+<span style="top:10%;left:5%;font-size:1.1rem;color:var(--primary);letter-spacing:0.2em;filter:blur(1px)">Analiza zyskow</span>
+<span style="top:15%;right:10%;font-size:1.4rem;color:var(--secondary);letter-spacing:-0.02em;filter:blur(0.5px)">Opisy AI</span>
+<span style="bottom:20%;left:15%;font-size:1rem;color:var(--tertiary);letter-spacing:0.2em;opacity:0.6">Raporty ROI</span>
+<span style="top:40%;right:5%;font-size:1.6rem;color:rgba(0,222,236,0.4);font-weight:700;letter-spacing:-0.02em;transform:rotate(12deg);filter:blur(2px)">DATA STREAM</span>
+<span style="bottom:10%;right:20%;font-size:1.1rem;color:rgba(227,0,113,0.4);letter-spacing:0.2em;text-transform:uppercase">E-commerce Sync</span>
+<span style="top:60%;left:2%;font-size:0.8rem;color:var(--outline);letter-spacing:0.2em;transform:rotate(-90deg)">LOGISTICS_CORE_v4.0</span>
 </div>
 
-<!-- LOGIN FORM -->
-<div class="login-box">
-<div class="logo">
-{% if brand_logo %}<img src="/static/brand_logo.png" style="max-height:60px;margin-bottom:12px">{% endif %}
-<h1>{{ brand_name }}</h1>
-<p>System zarzadzania magazynem</p>
+<!-- Login -->
+<div class="login-card">
+<div class="card-inner">
+<!-- Branding -->
+<div style="text-align:center;margin-bottom:48px">
+<div style="margin-bottom:20px">
+<span class="material-symbols-outlined" style="font-size:3rem;color:var(--primary);font-variation-settings:'FILL' 1">sensors</span>
 </div>
+<h1 class="font-headline" style="font-size:2rem;font-weight:700;letter-spacing:-0.04em;color:var(--primary);text-shadow:0 0 10px rgba(143,245,255,0.4);margin-bottom:6px">{{ brand_name }}</h1>
+<p style="font-size:10px;text-transform:uppercase;letter-spacing:0.3em;color:var(--text-muted);font-weight:500">System zarzadzania magazynem</p>
+</div>
+
 {% if error %}
-<div class="error">{{ error }}</div>
+<div class="error-box">{{ error }}</div>
 {% endif %}
+
 {% if first_run %}
-<p style="color:#8b5cf6;text-align:center;margin-bottom:20px;font-size:0.88rem;font-weight:500">Pierwszy start — ustaw dane logowania</p>
+<div class="first-run-msg">Pierwszy start — ustaw dane logowania</div>
 {% endif %}
+
 <form method="POST">
 <div class="form-group">
-<label>Login</label>
-<input type="text" name="username" required autofocus value="{{ username or '' }}" placeholder="Nazwa uzytkownika">
+<label class="form-label">LOGIN</label>
+<div class="input-wrap">
+<input class="form-input" type="text" name="username" required autofocus value="{{ username or '' }}" placeholder="Wprowadz identyfikator">
+<div class="input-line"></div>
+</div>
 </div>
 <div class="form-group">
-<label>Haslo</label>
-<input type="password" name="password" required placeholder="Twoje haslo">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<label class="form-label" style="margin-bottom:0">HASLO</label>
 </div>
-{% if first_run %}
-<div class="form-group">
-<label>Powtorz haslo</label>
-<input type="password" name="password2" id="password2" required placeholder="Powtorz haslo">
-<div id="passMatch" style="font-size:0.8rem;margin-top:4px;display:none"></div>
+<div class="input-wrap" style="margin-top:8px">
+<input class="form-input" type="password" name="password" required placeholder="••••••••">
+<div class="input-line"></div>
 </div>
-{% endif %}
-<button type="submit" id="submitBtn">{% if first_run %}Utworz konto{% else %}Zaloguj{% endif %}</button>
-</form>
 </div>
 
-<div class="footer-text">{{ brand_name }} &copy; 2026</div>
+{% if first_run %}
+<div class="form-group">
+<label class="form-label">POWTORZ HASLO</label>
+<div class="input-wrap">
+<input class="form-input" type="password" name="password2" id="password2" required placeholder="Powtorz haslo">
+<div class="input-line"></div>
+</div>
+<div id="passMatch" style="font-size:0.78rem;margin-top:6px;display:none"></div>
+</div>
+{% endif %}
+
+<!-- Remember toggle -->
+<div class="toggle-wrap">
+<label class="toggle">
+<input type="checkbox" name="remember" value="1">
+<div class="toggle-bg"></div>
+<div class="toggle-dot"></div>
+</label>
+<span class="toggle-text">Zapamietaj sesje</span>
+</div>
+
+<button type="submit" class="btn-login" id="submitBtn">
+{% if first_run %}Utworz konto{% else %}Zaloguj{% endif %}
+<span class="material-symbols-outlined" style="font-size:1.2rem">arrow_right_alt</span>
+</button>
+</form>
+
+<!-- Footer -->
+<div class="footer">
+<p class="footer-text">{{ brand_name }} v4.2 &bull; &copy; 2026</p>
+</div>
+</div>
+
+<!-- Status HUD -->
+<div class="status-hud">
+<div style="display:flex;align-items:center;gap:8px">
+<div class="status-dot"></div>
+<span style="font-size:10px;text-transform:uppercase;letter-spacing:0.2em;color:var(--text-muted)">Mainframe Active</span>
+</div>
+<div style="display:flex;align-items:center;gap:16px;color:rgba(118,117,119,0.6)">
+<span class="material-symbols-outlined" style="font-size:14px">wifi</span>
+<span class="material-symbols-outlined" style="font-size:14px">database</span>
+<span class="material-symbols-outlined" style="font-size:14px">lock</span>
+</div>
+</div>
+</div>
+
+<div class="blob-primary"></div>
+<div class="blob-secondary"></div>
+
 {% if first_run %}
 <script>
 (function(){
@@ -323,11 +356,11 @@ button:hover{opacity:0.92;transform:translateY(-1px);box-shadow:0 8px 24px rgba(
         if(!p2.value) { msg.style.display='none'; btn.disabled=false; return; }
         msg.style.display='block';
         if(p1.value === p2.value){
-            msg.style.color='#22c55e';
+            msg.style.color='#beee00';
             msg.textContent='Hasla sa zgodne';
             btn.disabled=false;
         } else {
-            msg.style.color='#ef4444';
+            msg.style.color='#ff6b9b';
             msg.textContent='Hasla nie sa zgodne';
             btn.disabled=true;
         }
