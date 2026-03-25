@@ -438,10 +438,12 @@ def skaner():
     <div class="card" style="padding:15px">
         <div class="form-group">
             <label style="font-size:0.8rem;color:#64748b">Lub wpisz ręcznie:</label>
-            <form action="/magazyn/szukaj" method="GET" style="display:flex;gap:8px;margin-top:8px">
-                <input type="text" name="q" id="manual-input" class="form-ctrl" placeholder="EAN / ASIN..." style="flex:1;padding:12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#fff">
+            <form action="/magazyn/szukaj" method="GET" id="manualForm" style="display:flex;gap:8px;margin-top:8px">
+                <input type="text" name="q" id="manual-input" class="form-ctrl" placeholder="EAN / ASIN / MAG-kod..." style="flex:1;padding:12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#fff" autofocus
+                    inputmode="text" autocomplete="off">
                 <button type="submit" class="btn btn-p" style="width:auto;padding:12px 20px;margin:0"><span class=material-symbols-outlined style=font-size:1.1rem>search</span></button>
             </form>
+            <div id="manualHint" style="font-size:0.7rem;color:#64748b;margin-top:4px;display:none"></div>
         </div>
     </div>
     
@@ -524,6 +526,36 @@ def skaner():
         // Zatrzymaj skaner przy opuszczaniu strony
         window.addEventListener('beforeunload', () => {
             codeReader.reset();
+        });
+
+        // === AUTO-SEARCH: szukaj po wpisaniu kodu ręcznie (debounce 800ms) ===
+        let searchTimer = null;
+        manualInput.addEventListener('input', function() {
+            clearTimeout(searchTimer);
+            const val = this.value.trim();
+            const hint = document.getElementById('manualHint');
+            if (val.length >= 3) {
+                hint.style.display = 'block';
+                hint.textContent = 'Szukam...';
+                hint.style.color = '#8ff5ff';
+                searchTimer = setTimeout(function() {
+                    window.location.href = '/magazyn/szukaj?q=' + encodeURIComponent(val);
+                }, 800);
+            } else {
+                hint.style.display = 'none';
+            }
+        });
+
+        // Enter = natychmiastowe szukanie
+        manualInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                clearTimeout(searchTimer);
+                var val = this.value.trim();
+                if (val) {
+                    e.preventDefault();
+                    window.location.href = '/magazyn/szukaj?q=' + encodeURIComponent(val);
+                }
+            }
         });
     })();
     </script>
