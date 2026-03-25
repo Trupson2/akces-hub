@@ -107,19 +107,19 @@
      HEADER
      ═══════════════════════════════════════ -->
 <div class="an-header">
-    <h1><i class="mi" style="font-size:1.3rem;vertical-align:middle">analytics</i> Analityka sprzedazy</h1>
+    <h1><span class="material-symbols-outlined" style="font-size:1.3rem;vertical-align:middle">analytics</span> Analityka sprzedazy</h1>
 </div>
 
 <!-- ═══════════════════════════════════════
      ACTION BUTTONS
      ═══════════════════════════════════════ -->
 <div class="an-actions">
-    <button onclick="uzupelnijAdresy()" class="an-btn"><i class="mi" style="font-size:1rem">pin_drop</i> Uzupelnij adresy</button>
-    <button onclick="autoKategoryzujWszystkie()" class="an-btn pink"><i class="mi" style="font-size:1rem">smart_toy</i> Auto-kategorie</button>
-    <a href="/analityka/palety" class="an-btn lime"><i class="mi" style="font-size:1rem">inventory_2</i> Bilans palet</a>
-    <a href="/analityka/kategorie" class="an-btn pink"><i class="mi" style="font-size:1rem">label</i> Edytuj kategorie</a>
-    <a href="/analityka/czas-sprzedazy" class="an-btn lime"><i class="mi" style="font-size:1rem">timer</i> Czas sprzedazy</a>
-    <a href="/magazyn/raport-sprzedazy" class="an-btn"><i class="mi" style="font-size:1rem">bar_chart</i> Eksport Excel</a>
+    <button onclick="uzupelnijAdresy()" class="an-btn"><span class="material-symbols-outlined" style="font-size:1rem">pin_drop</span> Uzupelnij adresy</button>
+    <button onclick="autoKategoryzujWszystkie()" class="an-btn pink"><span class="material-symbols-outlined" style="font-size:1rem">smart_toy</span> Auto-kategorie</button>
+    <a href="/analityka/palety" class="an-btn lime"><span class="material-symbols-outlined" style="font-size:1rem">inventory_2</span> Bilans palet</a>
+    <a href="/analityka/kategorie" class="an-btn pink"><span class="material-symbols-outlined" style="font-size:1rem">label</span> Edytuj kategorie</a>
+    <a href="/analityka/czas-sprzedazy" class="an-btn lime"><span class="material-symbols-outlined" style="font-size:1rem">timer</span> Czas sprzedazy</a>
+    <a href="/magazyn/raport-sprzedazy" class="an-btn"><span class="material-symbols-outlined" style="font-size:1rem">bar_chart</span> Eksport Excel</a>
 </div>
 
 <!-- ═══════════════════════════════════════
@@ -127,7 +127,7 @@
      ═══════════════════════════════════════ -->
 {% if produkty_bez_kat > 0 %}
 <div class="an-warning">
-    <span class="an-warning-text"><i class="mi" style="font-size:1rem;vertical-align:middle">warning</i> <strong>{{ produkty_bez_kat }}</strong> produktow bez kategorii</span>
+    <span class="an-warning-text"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">warning</span> <strong>{{ produkty_bez_kat }}</strong> produktow bez kategorii</span>
     <a href="/analityka/kategorie" class="an-btn pink" style="margin:0">Przypisz kategorie</a>
 </div>
 {% endif %}
@@ -142,28 +142,28 @@
 
 <div class="an-kpi-strip">
     <div class="an-kpi accent-pink">
-        <div class="an-kpi-icon"><i class="mi">location_city</i></div>
+        <div class="an-kpi-icon"><span class="material-symbols-outlined">location_city</span></div>
         <div class="an-kpi-val">{{ miasta_count }}</div>
         <div class="an-kpi-label">Miast</div>
     </div>
     <div class="an-kpi accent-cyan">
-        <div class="an-kpi-icon"><i class="mi">inventory_2</i></div>
+        <div class="an-kpi-icon"><span class="material-symbols-outlined">inventory_2</span></div>
         <div class="an-kpi-val">{{ zamowien_total }}</div>
         <div class="an-kpi-label">Zamowien</div>
     </div>
     <div class="an-kpi accent-lime">
-        <div class="an-kpi-icon"><i class="mi">folder</i></div>
+        <div class="an-kpi-icon"><span class="material-symbols-outlined">folder</span></div>
         <div class="an-kpi-val">{{ kategorie_count }}</div>
         <div class="an-kpi-label">Kategorii</div>
     </div>
     <div class="an-kpi accent-green highlight">
-        <div class="an-kpi-icon"><i class="mi">paid</i></div>
+        <div class="an-kpi-icon"><span class="material-symbols-outlined">paid</span></div>
         <div class="an-kpi-val">{{ laczny_zysk|int }} zl</div>
         <div class="an-kpi-label">Laczny zysk</div>
         <div class="an-kpi-sub">{{ allegro_zysk|int }} Allegro{% if prywatne_suma > 0 %} + {{ prywatne_suma|int }} prywatne{% endif %}</div>
     </div>
     <div class="an-kpi accent-pink">
-        <div class="an-kpi-icon"><i class="mi">person</i></div>
+        <div class="an-kpi-icon"><span class="material-symbols-outlined">person</span></div>
         <div class="an-kpi-val">{{ prywatne_cnt }}</div>
         <div class="an-kpi-label">Prywatne</div>
         <div class="an-kpi-sub">{{ prywatne_suma|int }} zl</div>
@@ -183,7 +183,7 @@
     <div class="an-panel">
         <div class="an-panel-header">
             <span class="an-section-bar"></span>
-            <span class="an-panel-title"><i class="mi">map</i> Skad kupuja klienci (TOP 20)</span>
+            <span class="an-panel-title"><span class="material-symbols-outlined">map</span> Skad kupuja klienci (TOP 20)</span>
         </div>
         <div class="an-chart">
             <canvas id="miastaChart"></canvas>
@@ -194,7 +194,7 @@
     <div class="an-panel">
         <div class="an-panel-header">
             <span class="an-section-bar pink"></span>
-            <span class="an-panel-title"><i class="mi">paid</i> Rentownosc kategorii (TOP 10)</span>
+            <span class="an-panel-title"><span class="material-symbols-outlined">paid</span> Rentownosc kategorii (TOP 10)</span>
         </div>
         <div class="an-chart">
             <canvas id="kategorieChart"></canvas>
@@ -205,7 +205,7 @@
     <div class="an-panel">
         <div class="an-panel-header">
             <span class="an-section-bar lime"></span>
-            <span class="an-panel-title"><i class="mi">trending_up</i> Przychod (ostatnie 30 dni)</span>
+            <span class="an-panel-title"><span class="material-symbols-outlined">trending_up</span> Przychod (ostatnie 30 dni)</span>
         </div>
         <div class="an-chart">
             <canvas id="czasChart"></canvas>
@@ -224,12 +224,12 @@
 <div class="an-panel" style="border-left-color:rgba(190,238,0,0.15)">
     <div class="an-panel-header">
         <span class="an-section-bar lime"></span>
-        <span class="an-panel-title"><i class="mi">emoji_events</i> TOP 10 Bestsellerow vs <i class="mi">trending_down</i> FLOP</span>
+        <span class="an-panel-title"><span class="material-symbols-outlined">emoji_events</span> TOP 10 Bestsellerow vs <span class="material-symbols-outlined">trending_down</span> FLOP</span>
     </div>
     <div class="an-topflop-grid">
         <!-- TOP 10 -->
         <div>
-            <div class="an-sub-title" style="color:var(--green)"><i class="mi">emoji_events</i> Bestsellery (wg przychodu)</div>
+            <div class="an-sub-title" style="color:var(--green)"><span class="material-symbols-outlined">emoji_events</span> Bestsellery (wg przychodu)</div>
             <table class="an-table">
                 <thead>
                     <tr>
@@ -246,7 +246,7 @@
                     {% for p in top_produkty %}
                     <tr>
                         <td class="{% if loop.index0 == 0 %}an-medal-gold{% elif loop.index0 == 1 %}an-medal-silver{% elif loop.index0 == 2 %}an-medal-bronze{% endif %}">
-                            {% if loop.index0 < 3 %}<i class="mi">emoji_events</i>{% else %}{{ loop.index }}{% endif %}
+                            {% if loop.index0 < 3 %}<span class="material-symbols-outlined">emoji_events</span>{% else %}{{ loop.index }}{% endif %}
                         </td>
                         <td title="{{ p.nazwa }}">{{ p.nazwa[:30] }}{% if p.nazwa|length > 30 %}...{% endif %}</td>
                         <td>{{ p.ilosc }}</td>
@@ -262,7 +262,7 @@
 
         <!-- FLOP -->
         <div>
-            <div class="an-sub-title" style="color:var(--red)"><i class="mi">trending_down</i> Najdluzej w magazynie</div>
+            <div class="an-sub-title" style="color:var(--red)"><span class="material-symbols-outlined">trending_down</span> Najdluzej w magazynie</div>
             <table class="an-table">
                 <thead>
                     <tr>
@@ -290,7 +290,7 @@
                 </tbody>
             </table>
             <p style="font-size:0.78rem;color:var(--text-muted);margin-top:10px">
-                <i class="mi" style="font-size:0.9rem;vertical-align:middle">lightbulb</i> Produkty > 60 dni warto przecenic lub wystawic na OLX/Vinted
+                <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">lightbulb</span> Produkty > 60 dni warto przecenic lub wystawic na OLX/Vinted
             </p>
         </div>
     </div>
@@ -308,7 +308,7 @@
     <div class="an-panel">
         <div class="an-panel-header">
             <span class="an-section-bar"></span>
-            <span class="an-panel-title"><i class="mi">location_city</i> Szczegoly miast</span>
+            <span class="an-panel-title"><span class="material-symbols-outlined">location_city</span> Szczegoly miast</span>
         </div>
         <table class="an-table">
             <thead>
@@ -340,7 +340,7 @@
     <div class="an-panel an-grid-full" style="border-left-color:rgba(255,107,155,0.15)">
         <div class="an-panel-header">
             <span class="an-section-bar pink"></span>
-            <span class="an-panel-title"><i class="mi">bar_chart</i> Szczegoly kategorii</span>
+            <span class="an-panel-title"><span class="material-symbols-outlined">bar_chart</span> Szczegoly kategorii</span>
         </div>
         <table class="an-table">
             <thead>

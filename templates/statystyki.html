@@ -116,7 +116,7 @@
         <small>Sprzedaz i przychody &middot; {{ current_year }}</small>
     </div>
     <a href="/statystyki/sync-historyczny" class="st-sync-btn">
-        <i class="mi">sync</i> Sync historyczny
+        <span class="material-symbols-outlined">sync</span> Sync historyczny
     </a>
 </div>
 
@@ -138,27 +138,27 @@
 
 <div class="st-kpi-strip">
     <div class="st-kpi accent-cyan">
-        <div class="st-kpi-label"><i class="mi" style="font-size:0.7rem">trending_up</i> Przychod</div>
+        <div class="st-kpi-label"><span class="material-symbols-outlined" style="font-size:0.7rem">trending_up</span> Przychod</div>
         <div class="st-kpi-val" style="color:var(--neon-primary)">{{ "%.0f"|format(przychod_total) }} zl</div>
     </div>
     <div class="st-kpi accent-pink">
-        <div class="st-kpi-label"><i class="mi" style="font-size:0.7rem">trending_down</i> Koszty</div>
+        <div class="st-kpi-label"><span class="material-symbols-outlined" style="font-size:0.7rem">trending_down</span> Koszty</div>
         <div class="st-kpi-val" style="color:var(--neon-secondary)">{{ "%.0f"|format(koszty_total_lacznie) }} zl</div>
     </div>
     <div class="st-kpi accent-cyan">
-        <div class="st-kpi-label"><i class="mi" style="font-size:0.7rem">receipt_long</i> Transakcji</div>
+        <div class="st-kpi-label"><span class="material-symbols-outlined" style="font-size:0.7rem">receipt_long</span> Transakcji</div>
         <div class="st-kpi-val">{{ podsumowanie.ilosc_transakcji }}</div>
     </div>
     <div class="st-kpi accent-pink">
-        <div class="st-kpi-label"><i class="mi" style="font-size:0.7rem">account_balance</i> VAT</div>
+        <div class="st-kpi-label"><span class="material-symbols-outlined" style="font-size:0.7rem">account_balance</span> VAT</div>
         <div class="st-kpi-val" style="color:var(--neon-secondary)">{{ "%.0f"|format(vat_do_zaplaty) }} zl</div>
     </div>
     <div class="st-kpi accent-pink">
-        <div class="st-kpi-label"><i class="mi" style="font-size:0.7rem">gavel</i> Podatek</div>
+        <div class="st-kpi-label"><span class="material-symbols-outlined" style="font-size:0.7rem">gavel</span> Podatek</div>
         <div class="st-kpi-val" style="color:var(--neon-secondary)">{{ "%.0f"|format(podatek) }} zl</div>
     </div>
     <div class="st-kpi accent-lime highlight">
-        <div class="st-kpi-label"><i class="mi" style="font-size:0.7rem">wallet</i> Zysk na reke</div>
+        <div class="st-kpi-label"><span class="material-symbols-outlined" style="font-size:0.7rem">wallet</span> Zysk na reke</div>
         <div class="st-kpi-val" style="color:{{ zysk_na_reke_kolor }}">{{ "%.2f"|format(zysk_na_reke) }} zl</div>
     </div>
 </div>
@@ -199,7 +199,7 @@
     <div class="st-tax-highlight">
         <div>
             <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);font-weight:600;margin-bottom:4px">
-                <i class="mi" style="font-size:0.7rem">stars</i> Zysk na reke
+                <span class="material-symbols-outlined" style="font-size:0.7rem">stars</span> Zysk na reke
             </div>
             <div style="font-size:0.72rem;color:var(--text-muted)">Po odliczeniu VAT i podatku</div>
         </div>
@@ -294,10 +294,10 @@
 <div class="st-card">
     <div class="st-chart-ctrl">
         <button class="st-chart-btn" id="btnMonthly" onclick="showMonthlyView()" style="opacity:0.5">
-            <i class="mi" style="font-size:0.7rem">calendar_month</i> Miesiace
+            <span class="material-symbols-outlined" style="font-size:0.7rem">calendar_month</span> Miesiace
         </button>
         <button class="st-chart-btn" id="btnDrillInfo" style="display:none" onclick="showMonthlyView()">
-            <i class="mi" style="font-size:0.7rem">arrow_back</i> Wroc
+            <span class="material-symbols-outlined" style="font-size:0.7rem">arrow_back</span> Wroc
         </button>
         <span id="drillLabel" style="font-size:0.72rem;color:var(--text-muted);font-family:'Space Grotesk',sans-serif"></span>
     </div>
