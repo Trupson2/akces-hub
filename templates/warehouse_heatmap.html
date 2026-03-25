@@ -841,6 +841,88 @@
             </div>
 
             <div class="info-popup" id="info-popup"></div>
+
+            <!-- Left HUD Stats -->
+            <div class="hud-left" style="position:absolute;left:0;top:80px;z-index:20;width:200px;display:flex;flex-direction:column;gap:12px;margin-left:12px">
+                <div style="background:rgba(19,19,28,0.85);backdrop-filter:blur(8px);padding:16px;border-left:3px solid #8ff5ff">
+                    <div style="font-size:0.55rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#adaaad;margin-bottom:4px">SYSTEM LOAD</div>
+                    <div style="font-family:'Space Grotesk',sans-serif;font-size:2.5rem;font-weight:900;color:#8ff5ff" id="hud-load">0<span style="font-size:1rem;opacity:0.5">%</span></div>
+                    <div style="height:2px;width:100%;background:rgba(255,255,255,0.04);margin-top:8px;overflow:hidden">
+                        <div id="hud-load-bar" style="height:100%;background:#8ff5ff;width:0%;box-shadow:0 0 6px #8ff5ff"></div>
+                    </div>
+                </div>
+                <div style="background:rgba(19,19,28,0.85);backdrop-filter:blur(8px);padding:16px;border-left:3px solid #48474a">
+                    <div style="display:flex;justify-content:space-between;align-items:end;margin-bottom:12px">
+                        <div>
+                            <div style="font-size:0.55rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#adaaad">ACTIVE INVENTORY</div>
+                            <div style="font-family:'Space Grotesk',sans-serif;font-size:1.8rem;font-weight:900" id="hud-inventory">--</div>
+                        </div>
+                        <span class="material-symbols-outlined" style="color:#48474a;font-size:1.2rem">inventory</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:end">
+                        <div>
+                            <div style="font-size:0.55rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#adaaad">EMPTY SLOTS</div>
+                            <div style="font-family:'Space Grotesk',sans-serif;font-size:1.8rem;font-weight:900" id="hud-empty">--</div>
+                        </div>
+                        <span class="material-symbols-outlined" style="color:#48474a;font-size:1.2rem">tab_unselected</span>
+                    </div>
+                </div>
+                <div style="background:rgba(19,19,28,0.85);backdrop-filter:blur(8px);padding:12px;border-left:3px solid #beee00;display:flex;align-items:center;gap:10px">
+                    <span class="material-symbols-outlined" style="color:#beee00">check_circle</span>
+                    <div>
+                        <div style="font-size:0.55rem;color:#adaaad;text-transform:uppercase">STATUS</div>
+                        <div id="hud-status-text" style="font-size:0.7rem;font-weight:700;color:#beee00;letter-spacing:0.05em">OPTIMAL FLOW</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Detail Panel -->
+            <div id="hud-detail" style="position:absolute;right:20px;top:80px;z-index:20;width:280px;background:rgba(19,19,28,0.92);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.05);display:none;flex-direction:column">
+                <div style="padding:16px;border-bottom:1px solid rgba(255,255,255,0.05)">
+                    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+                        <span style="padding:2px 8px;background:rgba(143,245,255,0.15);color:#8ff5ff;font-size:0.55rem;font-weight:700;letter-spacing:0.1em">NODE_SELECTED</span>
+                        <span class="material-symbols-outlined" style="cursor:pointer;color:#adaaad;font-size:1rem" onclick="closeHudDetail()">close</span>
+                    </div>
+                    <div style="font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:900" id="hud-detail-name">--</div>
+                    <div style="font-size:0.55rem;color:#adaaad;text-transform:uppercase;letter-spacing:0.1em" id="hud-detail-zone">--</div>
+                </div>
+                <div style="padding:16px;display:flex;flex-direction:column;gap:16px">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div>
+                            <div style="font-size:0.55rem;color:#adaaad;text-transform:uppercase;margin-bottom:4px">CURRENT LOAD</div>
+                            <div style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:900;color:#8ff5ff" id="hud-detail-fill">--%</div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.55rem;color:#adaaad;text-transform:uppercase;margin-bottom:4px">CAPACITY</div>
+                            <div style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:900" id="hud-detail-capacity">--</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.55rem;color:#adaaad;text-transform:uppercase;margin-bottom:8px">LEVELS</div>
+                        <div id="hud-detail-levels" style="display:flex;flex-direction:column;gap:4px">
+                        </div>
+                    </div>
+                </div>
+                <div style="padding:16px;background:rgba(143,245,255,0.03)">
+                    <a id="hud-detail-link" href="#" style="display:block;text-align:center;padding:10px;background:#8ff5ff;color:#005d63;font-family:'Space Grotesk',sans-serif;font-weight:900;font-size:0.7rem;letter-spacing:0.15em;text-transform:uppercase;text-decoration:none">
+                        <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">open_in_new</span> VIEW SHELF
+                    </a>
+                </div>
+            </div>
+
+            <!-- Bottom Controls -->
+            <div style="position:absolute;bottom:20px;left:12px;right:20px;z-index:20;display:flex;justify-content:space-between;align-items:center">
+                <div style="display:flex;gap:4px">
+                    <button onclick="controls.dollyIn(1.2)" style="width:36px;height:36px;background:rgba(19,19,28,0.85);border:1px solid rgba(255,255,255,0.08);color:#adaaad;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0"><span class="material-symbols-outlined" style="font-size:1rem">zoom_in</span></button>
+                    <button onclick="controls.dollyOut(1.2)" style="width:36px;height:36px;background:rgba(19,19,28,0.85);border:1px solid rgba(255,255,255,0.08);color:#adaaad;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0"><span class="material-symbols-outlined" style="font-size:1rem">zoom_out</span></button>
+                    <button onclick="controls.reset()" style="width:36px;height:36px;background:rgba(19,19,28,0.85);border:1px solid rgba(255,255,255,0.08);color:#adaaad;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0"><span class="material-symbols-outlined" style="font-size:1rem">3d_rotation</span></button>
+                </div>
+                <div style="display:flex;gap:16px;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);padding:8px 20px;border:1px solid rgba(255,255,255,0.05)">
+                    <div style="display:flex;align-items:center;gap:6px"><div style="width:6px;height:6px;background:#8ff5ff;box-shadow:0 0 8px #8ff5ff"></div><span style="font-size:0.55rem;text-transform:uppercase;letter-spacing:0.15em;color:#adaaad">Optimal</span></div>
+                    <div style="display:flex;align-items:center;gap:6px"><div style="width:6px;height:6px;background:#beee00;box-shadow:0 0 8px #beee00"></div><span style="font-size:0.55rem;text-transform:uppercase;letter-spacing:0.15em;color:#adaaad">Warning</span></div>
+                    <div style="display:flex;align-items:center;gap:6px"><div style="width:6px;height:6px;background:#ff6b9b;box-shadow:0 0 8px #ff6b9b"></div><span style="font-size:0.55rem;text-transform:uppercase;letter-spacing:0.15em;color:#adaaad">Overload</span></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1022,6 +1104,12 @@
             if (intersects.length > 0) {
                 const obj = intersects[0].object;
                 if (obj.userData.location) {
+                    // Show HUD detail panel for the shelf
+                    const shelfName = obj.userData.shelfName;
+                    if (shelfName && warehouseData && warehouseData.shelves[shelfName]) {
+                        showHudDetail(shelfName, warehouseData.shelves[shelfName]);
+                    }
+                    // Also show the existing location modal
                     await showLocationDetails(obj.userData.location.code);
                 }
             }
@@ -1293,14 +1381,38 @@
                         );
                     }
 
-                    const shelfColor = shelfConfig.color || loc.color;
+                    // Cyberpunk heatmap coloring based on fill percentage
+                    const fillPct = loc.fill_percentage || 0;
+                    let shelfColor;
+                    let emissiveIntensity = 0.15;
+                    if (fillPct === 0) {
+                        shelfColor = 0x1a1a2e; // dark empty
+                        emissiveIntensity = 0.05;
+                    } else if (fillPct < 25) {
+                        shelfColor = 0x8ff5ff; // cyan - low
+                        emissiveIntensity = 0.2;
+                    } else if (fillPct < 50) {
+                        shelfColor = 0x00deec; // cyan dim - medium
+                        emissiveIntensity = 0.25;
+                    } else if (fillPct < 75) {
+                        shelfColor = 0xbeee00; // lime - high
+                        emissiveIntensity = 0.3;
+                    } else if (fillPct < 95) {
+                        shelfColor = 0xff9500; // orange - very high
+                        emissiveIntensity = 0.35;
+                    } else {
+                        shelfColor = 0xff6b9b; // pink - full/overload
+                        emissiveIntensity = 0.4;
+                    }
 
                     const material = new THREE.MeshStandardMaterial({
                         color: shelfColor,
-                        metalness: 0.4,
-                        roughness: 0.6,
+                        metalness: 0.5,
+                        roughness: 0.4,
                         emissive: shelfColor,
-                        emissiveIntensity: 0.3
+                        emissiveIntensity: emissiveIntensity,
+                        transparent: fillPct === 0,
+                        opacity: fillPct === 0 ? 0.3 : 0.85
                     });
 
                     const mesh = new THREE.Mesh(geometry, material);
@@ -1359,6 +1471,9 @@
             document.getElementById('stat-empty').textContent = stats.empty_locations;
             document.getElementById('stat-full').textContent = stats.full_locations;
             document.getElementById('progress-fill').style.width = stats.fill_percentage + '%';
+
+            // Update HUD overlay stats
+            updateHudStats(stats);
         }
 
         function updateShelfLabels() {
@@ -1692,6 +1807,96 @@
             setTimeout(() => notification.remove(), 3000);
         }
 
+        // ============================================================
+        // HUD OVERLAY FUNCTIONS
+        // ============================================================
+        function updateHudStats(stats) {
+            const fillPct = stats.fill_percentage || 0;
+            document.getElementById('hud-load').innerHTML = fillPct + '<span style="font-size:1rem;opacity:0.5">%</span>';
+            document.getElementById('hud-load-bar').style.width = fillPct + '%';
+            document.getElementById('hud-inventory').textContent = stats.total_items || 0;
+            document.getElementById('hud-empty').textContent = stats.empty_locations || 0;
+
+            // Update status based on fill percentage
+            const statusEl = document.getElementById('hud-status-text');
+            const statusParent = statusEl.parentElement.parentElement;
+            const statusIcon = statusParent.querySelector('.material-symbols-outlined');
+            if (fillPct >= 90) {
+                statusEl.textContent = 'CRITICAL LOAD';
+                statusEl.style.color = '#ff6b9b';
+                statusIcon.style.color = '#ff6b9b';
+                statusParent.style.borderLeftColor = '#ff6b9b';
+                statusIcon.textContent = 'warning';
+            } else if (fillPct >= 70) {
+                statusEl.textContent = 'HIGH LOAD';
+                statusEl.style.color = '#ff9500';
+                statusIcon.style.color = '#ff9500';
+                statusParent.style.borderLeftColor = '#ff9500';
+                statusIcon.textContent = 'info';
+            } else {
+                statusEl.textContent = 'OPTIMAL FLOW';
+                statusEl.style.color = '#beee00';
+                statusIcon.style.color = '#beee00';
+                statusParent.style.borderLeftColor = '#beee00';
+                statusIcon.textContent = 'check_circle';
+            }
+
+            // Update load bar color based on fill
+            const loadBar = document.getElementById('hud-load-bar');
+            if (fillPct >= 90) {
+                loadBar.style.background = '#ff6b9b';
+                loadBar.style.boxShadow = '0 0 6px #ff6b9b';
+            } else if (fillPct >= 70) {
+                loadBar.style.background = '#ff9500';
+                loadBar.style.boxShadow = '0 0 6px #ff9500';
+            } else {
+                loadBar.style.background = '#8ff5ff';
+                loadBar.style.boxShadow = '0 0 6px #8ff5ff';
+            }
+        }
+
+        function showHudDetail(shelfName, locations) {
+            const panel = document.getElementById('hud-detail');
+            panel.style.display = 'flex';
+            document.getElementById('hud-detail-name').textContent = shelfName;
+
+            const totalItems = locations.reduce((s, l) => s + l.items, 0);
+            const totalCap = locations.reduce((s, l) => s + l.capacity, 0);
+            const fill = totalCap > 0 ? Math.round(totalItems / totalCap * 100) : 0;
+
+            document.getElementById('hud-detail-fill').textContent = fill + '%';
+            document.getElementById('hud-detail-capacity').textContent = totalCap + ' szt';
+            document.getElementById('hud-detail-zone').textContent = 'Regal ' + shelfName;
+            document.getElementById('hud-detail-link').href = '/magazyn/warehouse/shelf/' + encodeURIComponent(shelfName);
+
+            // Color the fill value based on percentage
+            const fillEl = document.getElementById('hud-detail-fill');
+            if (fill >= 90) fillEl.style.color = '#ff6b9b';
+            else if (fill >= 70) fillEl.style.color = '#ff9500';
+            else if (fill >= 40) fillEl.style.color = '#beee00';
+            else fillEl.style.color = '#8ff5ff';
+
+            // Render levels
+            const levelsDiv = document.getElementById('hud-detail-levels');
+            levelsDiv.innerHTML = '';
+            locations.slice().sort((a, b) => a.level - b.level).forEach(loc => {
+                const lFill = loc.capacity > 0 ? Math.round(loc.items / loc.capacity * 100) : 0;
+                let levelColor = '#8ff5ff';
+                if (lFill >= 90) levelColor = '#ff6b9b';
+                else if (lFill >= 70) levelColor = '#ff9500';
+                else if (lFill >= 40) levelColor = '#beee00';
+                levelsDiv.innerHTML += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(255,255,255,0.02)">' +
+                    '<div style="width:3px;height:20px;background:' + levelColor + '"></div>' +
+                    '<div style="flex:1"><div style="font-size:0.7rem;font-weight:700">' + loc.code + '</div></div>' +
+                    '<div style="font-size:0.65rem;color:#adaaad">' + loc.items + '/' + loc.capacity + '</div>' +
+                    '</div>';
+            });
+        }
+
+        function closeHudDetail() {
+            document.getElementById('hud-detail').style.display = 'none';
+        }
+
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             switch(e.key) {
@@ -1703,7 +1908,7 @@
                 case 'r': case 'R': resetCamera(); break;
                 case 'f': case 'F': refreshData(); break;
                 case 'h': case 'H': showKeyboardHelp(); break;
-                case 'Escape': closeLocationModal(); break;
+                case 'Escape': closeLocationModal(); closeHudDetail(); break;
             }
         });
     </script>
