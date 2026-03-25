@@ -1373,10 +1373,14 @@
 
                 const div = document.createElement('div');
                 div.className = 'shelf-item';
+                div.style.cursor = 'pointer';
                 div.innerHTML = `
                     <div class="shelf-name">Regal ${shelfName}</div>
                     <div class="shelf-fill">${fillPct}% (${totalItems}/${totalCapacity})</div>
                 `;
+                div.addEventListener('click', () => {
+                    window.location.href = '/magazyn/warehouse/shelf/' + encodeURIComponent(shelfName);
+                });
                 container.appendChild(div);
             });
         }
