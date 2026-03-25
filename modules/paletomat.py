@@ -4741,6 +4741,21 @@ def generator_from_magazyn(product_id):
                     conn.execute('UPDATE oferty SET produkt_id = NULL WHERE id = ?', (_pid_candidate['id'],))
                     conn.commit()
 
+        # 4. FALLBACK: Sprawdź bezpośrednio na Allegro API (łapie oferty z Sales Center)
+        if not existing_offer:
+            from .allegro_api import find_active_offer_on_allegro
+            api_match = find_active_offer_on_allegro(asin=asin, ean=ean, nazwa=p.get('nazwa', ''))
+            if api_match:
+                existing_offer = {
+                    'id': None,
+                    'allegro_id': api_match['allegro_id'],
+                    'tytul': api_match['tytul'],
+                    'ilosc': api_match['ilosc'],
+                    'status': 'aktywna',
+                    'cena': api_match['cena']
+                }
+                print(f"[DEDUP-WYSTAW] Match z Allegro API: {api_match['allegro_id']}")
+
         if existing_offer:
             o = dict(existing_offer)
             # Automatycznie dodaj sztuki z magazynu do istniejącej oferty

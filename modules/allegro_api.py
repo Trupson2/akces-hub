@@ -1039,6 +1039,83 @@ def get_my_offers(limit=100, fetch_all=True):
     return {'offers': all_offers, 'totalCount': len(all_offers)}, None
 
 
+def find_active_offer_on_allegro(asin=None, ean=None, nazwa=None):
+    """Szuka aktywnej oferty BEZPOŚREDNIO na Allegro API (nie w lokalnej bazie).
+    Sprawdza external.id (sygnatura ASIN) i nazwę oferty.
+    Returns: dict {allegro_id, tytul, ilosc, cena} lub None
+    """
+    if not is_authenticated():
+        return None
+
+    try:
+        # Pobierz aktywne oferty (limit 100 najnowszych)
+        params = {'limit': 100, 'offset': 0,
+                  'publication.status': 'ACTIVE'}
+        result, error = allegro_request('GET', '/sale/offers', params=params)
+        if error or not result:
+            return None
+
+        offers = result.get('offers', [])
+        asin_upper = asin.upper().strip() if asin else ''
+        ean_clean = ean.strip() if ean else ''
+
+        for offer in offers:
+            if not offer:
+                continue
+            offer_id = offer.get('id', '')
+            offer_name = offer.get('name', '')
+            ext_id = ((offer.get('external') or {}).get('id', '') or '').upper()
+            offer_price = float(((offer.get('sellingMode') or {}).get('price') or {}).get('amount', 0))
+            offer_stock = (offer.get('stock') or {}).get('available', 0)
+
+            matched = False
+
+            # Match by ASIN in external.id
+            if asin_upper and asin_upper in ext_id:
+                matched = True
+                print(f"[DEDUP-API] Match po external.id: {asin_upper} in {ext_id}")
+
+            # Match by EAN in external.id
+            if not matched and ean_clean and ean_clean in ext_id:
+                matched = True
+                print(f"[DEDUP-API] Match po EAN w external.id: {ean_clean}")
+
+            # Match by name similarity (80%+ words match)
+            if not matched and nazwa and len(nazwa) > 10:
+                _ignore = {'uniwersalne', 'uniwersalny', 'premium', 'zestaw', 'komplet', 'nowy', 'nowa'}
+                _words_n = [w.lower() for w in nazwa.split() if len(w) > 2 and w.lower() not in _ignore][:6]
+                _words_o = [w.lower() for w in offer_name.split() if len(w) > 2 and w.lower() not in _ignore][:6]
+                if _words_n and _words_o:
+                    _match_cnt = sum(1 for w in _words_n if any(w in wo or wo in w for wo in _words_o))
+                    if _match_cnt >= max(3, len(_words_n) * 0.7):
+                        matched = True
+                        print(f"[DEDUP-API] Match po nazwie: '{offer_name[:40]}' ({_match_cnt}/{len(_words_n)} words)")
+
+            if matched:
+                # Zaimportuj ofertę do lokalnej bazy jeśli jej nie ma
+                from .database import get_db
+                conn = get_db()
+                existing_local = conn.execute('SELECT id FROM oferty WHERE allegro_id = ?', (str(offer_id),)).fetchone()
+                if not existing_local:
+                    conn.execute('''INSERT INTO oferty (allegro_id, tytul, cena, ilosc, status, data_aktualizacji)
+                        VALUES (?, ?, ?, ?, 'aktywna', datetime('now'))''',
+                        (str(offer_id), offer_name, offer_price, offer_stock))
+                    conn.commit()
+                    print(f"[DEDUP-API] Zaimportowano ofertę {offer_id} do lokalnej bazy")
+
+                return {
+                    'allegro_id': str(offer_id),
+                    'tytul': offer_name,
+                    'ilosc': offer_stock,
+                    'cena': offer_price
+                }
+
+        return None
+    except Exception as e:
+        print(f"[DEDUP-API] Błąd: {e}")
+        return None
+
+
 def detect_category_id(nazwa):
     """Wykrywa kategorię Allegro na podstawie nazwy produktu"""
     nazwa_lower = nazwa.lower()
