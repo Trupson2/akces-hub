@@ -138,110 +138,212 @@ def get_stats():
 # SZABLONY
 # ============================================================
 _MAGAZYNIER_CSS = '''
-/* Magazynier module-specific styles using base.html CSS variables */
-.hdr{text-align:center;padding:15px 0;border-bottom:1px solid var(--border);margin-bottom:15px}
-.hdr h1{font-size:1.5rem;color:#00f1fe;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(0,241,254,0.4)}
+/* ═══════════════════════════════════════════════════════════════
+   AKCES HUB · Magazynier Module — Cyberpunk Design System
+   Colors: Cyan #8ff5ff · Pink #ff6b9b · Lime #beee00
+   Font: Space Grotesk · Icons: Material Symbols
+   ═══════════════════════════════════════════════════════════════ */
+
+/* --- Header --- */
+.hdr{text-align:center;padding:20px 0;border-bottom:1px solid rgba(143,245,255,0.12);margin-bottom:15px}
+.hdr h1{font-size:1.5rem;color:#8ff5ff;font-family:'Space Grotesk',sans-serif;font-weight:700;text-shadow:0 0 20px rgba(143,245,255,0.35);letter-spacing:0.05em;display:flex;align-items:center;justify-content:center;gap:10px}
+.hdr h1 .material-symbols-outlined{font-size:1.6rem;color:#ff6b9b}
 .hdr small{color:var(--text-muted);font-size:0.8rem}
-.stat-v{font-size:1.4rem;font-weight:700;color:#00f1fe}
-.stat-v.green{color:#5bf083}
-.stat-l{font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;margin-top:4px}
-.btn-p{background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe}
-.btn-ok{background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083}
+
+/* --- Stats --- */
+.stat-v{font-size:1.4rem;font-weight:700;color:#8ff5ff;font-family:'Space Grotesk',sans-serif}
+.stat-v.green{color:#beee00}
+.stat-l{font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-top:4px}
+
+/* --- Buttons --- */
+.btn-p{background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);color:#8ff5ff;transition:all 0.2s}
+.btn-p:hover{background:rgba(143,245,255,0.18);box-shadow:0 0 12px rgba(143,245,255,0.15)}
+.btn-ok{background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.25);color:#beee00}
+.btn-ok:hover{background:rgba(190,238,0,0.20)}
 .btn-2{background:var(--bg);border:1px solid var(--border);color:var(--text)}
 .btn-warn{background:var(--yellow);color:#000}
 .btn-err{background:var(--red)}
-.search{backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:15px}
+
+/* --- Search --- */
+.search{backdrop-filter:blur(20px);background:rgba(10,10,22,0.70);border:1px solid rgba(143,245,255,0.08);border-radius:14px;padding:14px;margin-bottom:15px}
 .search form{display:flex;gap:10px}
-.search input{flex:1;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:1rem;transition:border-color 0.3s}
-.search input:focus{outline:none;border-color:#00f1fe}
-.search button{padding:14px 20px;background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);border-radius:var(--radius-sm);color:#00f1fe;font-size:1.2rem;cursor:pointer;transition:all 0.2s}
-.search button:hover{transform:scale(1.05)}
+.search input{flex:1;padding:14px;background:rgba(14,14,20,0.8);border:1px solid rgba(143,245,255,0.10);border-radius:10px;color:var(--text);font-size:1rem;transition:all 0.3s;font-family:'Space Grotesk',sans-serif}
+.search input:focus{outline:none;border-color:#8ff5ff;box-shadow:0 0 16px rgba(143,245,255,0.12)}
+.search button{padding:14px 20px;background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);border-radius:10px;color:#8ff5ff;font-size:1.2rem;cursor:pointer;transition:all 0.2s}
+.search button:hover{transform:scale(1.05);box-shadow:0 0 12px rgba(143,245,255,0.2)}
+
+/* --- Product Grid --- */
 .items-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.item{display:flex;align-items:center;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;text-decoration:none;color:var(--text);transition:all 0.3s;box-shadow:var(--shadow)}
-.item:hover{border-color:#00f1fe;transform:translateX(4px)}
-.item img{width:50px;height:50px;object-fit:contain;background:#fff;border-radius:6px;margin-right:12px}
+.item{display:flex;align-items:center;backdrop-filter:blur(20px);background:rgba(10,10,22,0.70);border:1px solid rgba(143,245,255,0.06);border-radius:12px;padding:12px;margin-bottom:8px;text-decoration:none;color:var(--text);transition:all 0.3s;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
+.item:hover{border-color:#8ff5ff;transform:translateX(4px);box-shadow:0 0 16px rgba(143,245,255,0.08)}
+.item img{width:50px;height:50px;object-fit:contain;background:rgba(255,255,255,0.95);border-radius:8px;margin-right:12px}
 .item-info{flex:1;min-width:0}
-.item-name{font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-name{font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Space Grotesk',sans-serif}
 .item-meta{font-size:0.75rem;color:var(--text-muted)}
 .item-right{text-align:right;margin-left:10px}
-.item-qty{font-size:1.2rem;font-weight:700;color:#00f1fe}
-.item-price{font-size:0.75rem;color:#5bf083}
-.card-img{width:100%;max-height:250px;object-fit:contain;background:#fff;padding:10px}
+.item-qty{font-size:1.2rem;font-weight:700;color:#8ff5ff;font-family:'Space Grotesk',sans-serif}
+.item-price{font-size:0.75rem;color:#beee00}
+
+/* --- Product Card --- */
+.card-img{width:100%;max-height:250px;object-fit:contain;background:rgba(255,255,255,0.95);padding:10px;border-radius:14px 14px 0 0}
 .card-body{padding:15px}
-.card-name{font-size:1.15rem;font-weight:600;margin-bottom:12px}
-.loc{background:var(--bg);border:2px solid #00f1fe;border-radius:var(--radius-sm);padding:12px;margin-bottom:12px}
-.loc-title{font-size:0.75rem;color:#00f1fe;text-transform:uppercase;margin-bottom:8px}
+.card-name{font-size:1.2rem;font-weight:700;margin-bottom:14px;font-family:'Space Grotesk',sans-serif;line-height:1.3}
+
+/* --- Location Panel --- */
+.loc{background:rgba(10,10,22,0.6);border:2px solid rgba(143,245,255,0.20);border-radius:12px;padding:14px;margin-bottom:14px;position:relative;overflow:hidden}
+.loc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#8ff5ff,#ff6b9b,#beee00);opacity:0.6}
+.loc-title{font-size:0.72rem;color:#8ff5ff;text-transform:uppercase;margin-bottom:10px;font-weight:600;letter-spacing:0.1em;display:flex;align-items:center;gap:6px}
+.loc-title .material-symbols-outlined{font-size:1rem}
 .loc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
-.loc-v{font-size:1.1rem;font-weight:700;color:#5bf083}
-.loc-l{font-size:0.65rem;color:var(--text-muted)}
-.det-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.det{background:var(--bg);padding:12px;border-radius:8px;transition:all 0.2s}
-.det:hover{background:rgba(15,15,30,0.65)}
-.det-l{font-size:0.7rem;color:var(--text-muted)}
-.det-v{font-size:0.95rem;font-weight:600;margin-top:2px}
-.det-v.green{color:#5bf083}
-.badge-ok{background:rgba(91,240,131,0.1);color:#5bf083}
-.badge-err{background:var(--red-soft);color:var(--red)}
-.form-ctrl,.form-input{width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:1rem;transition:border-color 0.3s}
-.form-ctrl:focus,.form-input:focus{outline:none;border-color:#00f1fe}
+.loc-v{font-size:1.1rem;font-weight:700;color:#beee00;font-family:'Space Grotesk',sans-serif}
+.loc-l{font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em}
+
+/* --- Detail Grid --- */
+.det-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.det{background:rgba(10,10,22,0.5);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);transition:all 0.25s}
+.det:hover{background:rgba(143,245,255,0.04);border-color:rgba(143,245,255,0.10)}
+.det-l{font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:center;gap:4px}
+.det-l .material-symbols-outlined{font-size:0.85rem;color:#8ff5ff}
+.det-v{font-size:0.95rem;font-weight:600;margin-top:3px;font-family:'Space Grotesk',sans-serif}
+.det-v.green{color:#beee00}
+.badge-ok{background:rgba(190,238,0,0.10);color:#beee00;padding:3px 8px;border-radius:6px;font-weight:700}
+.badge-err{background:var(--red-soft);color:var(--red);padding:3px 8px;border-radius:6px;font-weight:700}
+
+/* --- Forms --- */
+.form-ctrl,.form-input{width:100%;padding:12px;background:rgba(14,14,20,0.8);border:1px solid rgba(143,245,255,0.10);border-radius:10px;color:var(--text);font-size:1rem;transition:all 0.3s;font-family:'Space Grotesk',sans-serif}
+.form-ctrl:focus,.form-input:focus{outline:none;border-color:#8ff5ff;box-shadow:0 0 16px rgba(143,245,255,0.12)}
 .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.alert-ok{background:rgba(91,240,131,0.1);border:1px solid rgba(91,240,131,0.3);color:#5bf083}
-.alert-warn{background:var(--yellow-soft);border:1px solid rgba(234,179,8,0.3);color:var(--yellow)}
-.alert-err{background:var(--red-soft);border:1px solid rgba(239,68,68,0.3);color:var(--red)}
-.section{color:#00f1fe;font-weight:600;font-size:0.9rem;margin:18px 0 12px;display:flex;align-items:center;gap:8px}
-.quick-btn{padding:10px 5px;font-size:0.75rem;border-radius:8px;border:none;cursor:pointer;font-weight:600;color:#fff;transition:all 0.2s;text-decoration:none;display:block;text-align:center}
-.quick-btn:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.3)}
-/* Timeline / Historia */
+
+/* --- Alerts --- */
+.alert-ok{background:rgba(190,238,0,0.08);border:1px solid rgba(190,238,0,0.25);color:#beee00;padding:12px 16px;border-radius:10px;margin-bottom:12px;font-size:0.9rem;display:flex;align-items:center;gap:8px}
+.alert-warn{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);color:var(--yellow);padding:12px 16px;border-radius:10px;margin-bottom:12px;font-size:0.9rem;display:flex;align-items:center;gap:8px}
+.alert-err{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);color:var(--red);padding:12px 16px;border-radius:10px;margin-bottom:12px;font-size:0.9rem;display:flex;align-items:center;gap:8px}
+
+/* --- Sections --- */
+.section{color:#8ff5ff;font-weight:600;font-size:0.9rem;margin:18px 0 12px;display:flex;align-items:center;gap:8px;font-family:'Space Grotesk',sans-serif;letter-spacing:0.05em}
+
+/* --- Quick Actions --- */
+.quick-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.quick-btn{padding:10px 5px;font-size:0.75rem;border-radius:10px;border:none;cursor:pointer;font-weight:600;color:#fff;transition:all 0.25s;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:5px;text-align:center}
+.quick-btn .material-symbols-outlined{font-size:1rem}
+.quick-btn:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,0.4)}
+
+/* --- Action Grid (Tool buttons) --- */
+.act-grid{display:grid;gap:6px;margin-bottom:10px}
+.act-grid-2{grid-template-columns:1fr 1fr}
+.act-grid-4{grid-template-columns:repeat(4,1fr)}
+.act-grid-3{grid-template-columns:repeat(3,1fr)}
+.act-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-radius:10px;font-weight:600;font-size:0.82rem;text-decoration:none;transition:all 0.25s;cursor:pointer;border:1px solid;font-family:'Space Grotesk',sans-serif}
+.act-btn:hover{transform:translateY(-1px)}
+.act-btn .material-symbols-outlined{font-size:1.1rem}
+.act-btn-sm{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:10px;font-size:0.65rem;text-decoration:none;text-align:center;transition:all 0.25s;cursor:pointer;border:1px solid;font-weight:500}
+.act-btn-sm .material-symbols-outlined{font-size:1.2rem}
+.act-btn-sm:hover{transform:translateY(-1px)}
+
+/* --- Status Panel --- */
+.status-panel{background:rgba(10,10,22,0.6);border:2px solid;border-radius:12px;padding:16px;margin-bottom:15px;position:relative;overflow:hidden}
+.status-panel::after{content:'';position:absolute;top:0;right:0;width:60px;height:60px;border-radius:0 0 0 60px;opacity:0.06}
+.status-label{font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.1em}
+.status-value{font-size:1.3rem;font-weight:700;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:8px}
+.status-value .material-symbols-outlined{font-size:1.4rem}
+
+/* --- Timeline / Historia --- */
 .timeline{position:relative;padding-left:25px;margin:15px 0}
-.timeline::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--border)}
-.timeline-item{position:relative;padding:10px 0 10px 15px;border-bottom:1px solid var(--border)}
+.timeline::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,#8ff5ff,#ff6b9b,#beee00)}
+.timeline-item{position:relative;padding:10px 0 10px 15px;border-bottom:1px solid rgba(255,255,255,0.04)}
 .timeline-item:last-child{border-bottom:none}
-.timeline-item::before{content:'';position:absolute;left:-21px;top:14px;width:12px;height:12px;border-radius:50%;background:#00f1fe;border:2px solid var(--bg)}
-.timeline-item.green::before{background:#5bf083}
+.timeline-item::before{content:'';position:absolute;left:-21px;top:14px;width:12px;height:12px;border-radius:50%;background:#8ff5ff;border:2px solid var(--bg);box-shadow:0 0 8px rgba(143,245,255,0.3)}
+.timeline-item.green::before{background:#beee00;box-shadow:0 0 8px rgba(190,238,0,0.3)}
 .timeline-item.yellow::before{background:var(--yellow)}
-.timeline-item.purple::before{background:var(--purple)}
+.timeline-item.pink::before{background:#ff6b9b;box-shadow:0 0 8px rgba(255,107,155,0.3)}
 .timeline-date{font-size:0.7rem;color:var(--text-muted)}
 .timeline-text{font-size:0.85rem;margin-top:2px}
-/* Toast Notifications */
+
+/* --- Historia Card --- */
+.hist-card{backdrop-filter:blur(20px);background:rgba(10,10,22,0.70);border:1px solid rgba(255,107,155,0.15);border-radius:14px;margin-bottom:20px;overflow:hidden}
+.hist-header{background:linear-gradient(135deg,rgba(255,107,155,0.12),rgba(143,245,255,0.06));border-bottom:1px solid rgba(255,107,155,0.15);padding:18px;display:flex;align-items:center;gap:12px}
+.hist-header .material-symbols-outlined{font-size:1.5rem;color:#ff6b9b}
+.hist-header h3{font-size:1.15rem;font-weight:700;color:#fff;font-family:'Space Grotesk',sans-serif;margin:0}
+.hist-header small{font-size:0.82rem;color:rgba(255,255,255,0.65);margin-top:2px}
+.hist-entry{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;justify-content:space-between;align-items:start;gap:12px;transition:background 0.2s}
+.hist-entry:hover{background:rgba(143,245,255,0.03)}
+.hist-entry:last-child{border-bottom:none}
+.hist-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hist-icon .material-symbols-outlined{font-size:1.1rem}
+.hist-text{font-size:0.9rem;font-weight:500;color:#e2e8f0}
+.hist-date{font-size:0.75rem;color:#64748b;white-space:nowrap}
+.hist-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.hist-tag{font-size:0.7rem;padding:2px 8px;border-radius:6px;background:rgba(255,107,155,0.10);color:#ff6b9b}
+.hist-actions{display:flex;gap:6px;margin-left:8px;flex-shrink:0}
+.hist-actions a{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;text-decoration:none}
+.hist-actions a .material-symbols-outlined{font-size:0.95rem}
+.hist-actions a:first-child{background:rgba(245,158,11,0.10);color:#fbbf24}
+.hist-actions a:first-child:hover{background:rgba(245,158,11,0.20)}
+.hist-actions a:last-child{background:rgba(239,68,68,0.10);color:#ef4444}
+.hist-actions a:last-child:hover{background:rgba(239,68,68,0.20)}
+
+/* --- Siblings Panel --- */
+.siblings-panel{margin:15px;padding:16px;backdrop-filter:blur(20px);background:rgba(10,10,22,0.70);border:1px solid rgba(143,245,255,0.08);border-radius:14px}
+.siblings-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;margin-bottom:12px;color:#8ff5ff;display:flex;align-items:center;gap:8px}
+.siblings-title .material-symbols-outlined{font-size:1.2rem}
+.sib-row{display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:4px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;text-decoration:none;color:inherit;transition:all 0.25s}
+.sib-row:hover{background:rgba(143,245,255,0.04)}
+.sib-row.current{background:rgba(143,245,255,0.06);border-color:rgba(143,245,255,0.15)}
+.sib-klasa{font-size:1.4rem;font-weight:800;font-family:'Space Grotesk',sans-serif;min-width:40px;text-align:center}
+
+/* --- Modals --- */
+.cyber-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:1000;overflow-y:auto;padding:20px}
+.cyber-modal-inner{background:rgba(15,15,30,0.95);backdrop-filter:blur(20px);border:1px solid rgba(143,245,255,0.10);border-radius:16px;padding:24px;max-width:480px;margin:40px auto;position:relative;overflow:hidden}
+.cyber-modal-inner::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#8ff5ff,#ff6b9b,#beee00)}
+.cyber-modal-title{font-size:1.2rem;font-weight:700;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.cyber-modal-close{background:none;border:none;color:#64748b;font-size:1.3rem;cursor:pointer;transition:color 0.2s;padding:4px}
+.cyber-modal-close:hover{color:#ff6b9b}
+
+/* --- Toast Notifications --- */
 .toast-container{position:fixed;top:80px;right:20px;z-index:1000;display:flex;flex-direction:column;gap:10px;max-width:400px}
-.toast{backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;box-shadow:var(--shadow-lg);display:flex;align-items:start;gap:12px;animation:slideInRight 0.3s ease-out;min-width:300px}
-.toast.success{border-left:4px solid #5bf083}
-.toast.error{border-left:4px solid var(--red)}
-.toast.warning{border-left:4px solid var(--yellow)}
-.toast.info{border-left:4px solid #00f1fe}
-.toast-icon{font-size:1.5rem;flex-shrink:0}
+.toast{backdrop-filter:blur(20px);background:rgba(10,10,22,0.85);border:1px solid rgba(143,245,255,0.08);border-radius:12px;padding:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4);display:flex;align-items:start;gap:12px;animation:slideInRight 0.3s ease-out;min-width:300px}
+.toast .material-symbols-outlined{font-size:1.3rem;flex-shrink:0;margin-top:2px}
+.toast.success{border-left:3px solid #beee00}.toast.success .material-symbols-outlined{color:#beee00}
+.toast.error{border-left:3px solid var(--red)}.toast.error .material-symbols-outlined{color:var(--red)}
+.toast.warning{border-left:3px solid var(--yellow)}.toast.warning .material-symbols-outlined{color:var(--yellow)}
+.toast.info{border-left:3px solid #8ff5ff}.toast.info .material-symbols-outlined{color:#8ff5ff}
 .toast-content{flex:1}
-.toast-title{font-weight:600;margin-bottom:4px;font-size:0.95rem}
+.toast-title{font-weight:600;margin-bottom:4px;font-size:0.95rem;font-family:'Space Grotesk',sans-serif}
 .toast-message{font-size:0.85rem;color:var(--text-muted)}
 .toast-close{cursor:pointer;color:var(--text-muted);font-size:1.2rem;flex-shrink:0;transition:color 0.2s}
-.toast-close:hover{color:var(--red)}
+.toast-close:hover{color:#ff6b9b}
 .toast.removing{animation:slideOutRight 0.3s ease-in forwards}
-/* Loading Overlay */
+
+/* --- Loading Overlay --- */
 .loading-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:999;display:flex;align-items:center;justify-content:center}
-.loading-spinner{width:60px;height:60px;border:4px solid var(--border);border-top:4px solid #00f1fe;border-radius:50%;animation:spin 0.8s linear infinite}
-.loading-text{color:#fff;margin-top:20px;font-size:1.1rem;font-weight:600;text-align:center}
-/* Animations */
+.loading-spinner{width:60px;height:60px;border:3px solid rgba(143,245,255,0.15);border-top:3px solid #8ff5ff;border-radius:50%;animation:spin 0.8s linear infinite}
+.loading-text{color:#8ff5ff;margin-top:20px;font-size:1.1rem;font-weight:600;text-align:center;font-family:'Space Grotesk',sans-serif}
+
+/* --- Animations --- */
 @keyframes slideDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideInRight{from{opacity:0;transform:translateX(100px)}to{opacity:1;transform:translateX(0)}}
 @keyframes slideOutRight{to{opacity:0;transform:translateX(100px)}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-/* Responsive */
+@keyframes neonPulse{0%,100%{box-shadow:0 0 8px rgba(143,245,255,0.2)}50%{box-shadow:0 0 20px rgba(143,245,255,0.4)}}
+@keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+/* --- Responsive --- */
 @media(min-width:1200px){.items-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.toast-container{right:10px;max-width:320px}.toast{min-width:280px}}
-@media(max-width:768px){.items-grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.quick-actions{grid-template-columns:repeat(2,1fr)}.toast-container{top:70px;right:10px;left:10px;max-width:none}.toast{min-width:auto}}
+@media(max-width:768px){.items-grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.quick-actions{grid-template-columns:repeat(2,1fr)}.act-grid-4{grid-template-columns:repeat(2,1fr)}.toast-container{top:70px;right:10px;left:10px;max-width:none}.toast{min-width:auto}}
 '''
 
 _MAGAZYNIER_JS = '''
-// Toast Notifications System
-function showToast(title, message, type='info', duration=3000){
-    let container=document.getElementById('toast-container');
+// Toast Notifications System — Material Symbols
+function showToast(title, message, type, duration){
+    type=type||'info'; duration=duration===undefined?3000:duration;
+    var container=document.getElementById('toast-container');
     if(!container){container=document.createElement('div');container.id='toast-container';container.className='toast-container';document.body.appendChild(container);}
-    const toast=document.createElement('div');
+    var toast=document.createElement('div');
     toast.className='toast '+type;
-    const icons={success:'\\u2705',error:'\\u274c',warning:'\\u26a0\\ufe0f',info:'\\u2139\\ufe0f'};
-    const icon=icons[type]||'\\u2139\\ufe0f';
-    toast.innerHTML='<div class="toast-icon">'+icon+'</div><div class="toast-content"><div class="toast-title">'+title+'</div>'+(message?'<div class="toast-message">'+message+'</div>':'')+'</div><div class="toast-close" onclick="removeToast(this.parentElement)">&times;</div>';
+    var icons={success:'check_circle',error:'error',warning:'warning',info:'info'};
+    var icon=icons[type]||'info';
+    toast.innerHTML='<span class="material-symbols-outlined">'+icon+'</span><div class="toast-content"><div class="toast-title">'+title+'</div>'+(message?'<div class="toast-message">'+message+'</div>':'')+'</div><div class="toast-close" onclick="removeToast(this.parentElement)">&times;</div>';
     container.appendChild(toast);
     if(duration>0){setTimeout(function(){removeToast(toast)},duration);}
     return toast;
@@ -303,104 +405,112 @@ def index():
     conn = get_db()
     products = conn.execute('SELECT * FROM produkty ORDER BY data_dodania DESC LIMIT 10').fetchall()
     
-    # Helper do renderowania kafelka
-    def tile(href, icon, label, value, bg='#1e293b', border='', valcolor='#00f1fe'):
-        bdr = f'border:1px solid {border};' if border else ''
-        return f'''<a href="{href}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 8px;background:{bg};{bdr}border-radius:12px;color:#fff;text-decoration:none;gap:4px;transition:transform 0.15s,box-shadow 0.15s" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
-            <span style="font-size:1.5rem">{icon}</span>
-            <span style="font-size:0.75rem;font-weight:600">{label}</span>
-            <span style="font-size:0.7rem;color:{valcolor};font-weight:700">{value}</span>
+    # Helper do renderowania kafelka — cyberpunk Material Symbols
+    def tile(href, ms_icon, label, value, accent='#8ff5ff'):
+        return f'''<a href="{href}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 8px;background:rgba(10,10,22,0.6);border:1px solid {accent}18;border-radius:12px;color:#fff;text-decoration:none;gap:6px;transition:all 0.25s" onmouseover="this.style.borderColor='{accent}44';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.3)'" onmouseout="this.style.borderColor='{accent}18';this.style.transform='';this.style.boxShadow=''">
+            <span class="material-symbols-outlined" style="font-size:1.6rem;color:{accent}">{ms_icon}</span>
+            <span style="font-size:0.72rem;font-weight:600;font-family:'Space Grotesk',sans-serif;letter-spacing:0.05em">{label}</span>
+            <span style="font-size:0.7rem;color:{accent};font-weight:700;font-family:'Space Grotesk',sans-serif">{value}</span>
         </a>'''
 
     html = f'''
-    <div class="hdr"><h1>📦 MAGAZYNIER</h1><small>{get_config_cached("brand_name", "AKCES HUB")}</small></div>
+    <div class="hdr"><h1><span class="material-symbols-outlined">inventory_2</span> MAGAZYNIER</h1><small>{get_config_cached("brand_name", "AKCES HUB")}</small></div>
 
-    <!-- STATYSTYKI -->
-    <div class="stats">
-        <div class="stat"><div class="stat-v">{s['produkty']}</div><div class="stat-l">Produktow</div></div>
-        <div class="stat"><div class="stat-v">{s['sztuki']}</div><div class="stat-l">Sztuk</div></div>
-        <div class="stat">
-            <div class="stat-v green">{s['wartosc_zakupu']:.0f} zl</div>
-            <div class="stat-l">Wartosc (brutto)</div>
-            <div style="font-size:0.65rem;color:#64748b">netto: {s['wartosc_netto']:.0f} zl</div>
+    <!-- STATYSTYKI — bento grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+        <div style="background:rgba(10,10,22,0.6);border:1px solid rgba(143,245,255,0.08);border-radius:12px;padding:16px;border-left:3px solid #8ff5ff">
+            <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Produkty</div>
+            <div class="stat-v">{s['produkty']}</div>
         </div>
-        <div class="stat"><div class="stat-v green">{s['wartosc_allegro']:.0f} zl</div><div class="stat-l">Allegro</div></div>
+        <div style="background:rgba(10,10,22,0.6);border:1px solid rgba(143,245,255,0.08);border-radius:12px;padding:16px;border-left:3px solid #8ff5ff">
+            <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Sztuk</div>
+            <div class="stat-v">{s['sztuki']}</div>
+        </div>
+        <div style="background:rgba(10,10,22,0.6);border:1px solid rgba(190,238,0,0.08);border-radius:12px;padding:16px;border-left:3px solid #beee00">
+            <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Wartosc (brutto)</div>
+            <div class="stat-v green">{s['wartosc_zakupu']:.0f} zl</div>
+            <div style="font-size:0.6rem;color:#64748b;margin-top:2px">netto: {s['wartosc_netto']:.0f} zl</div>
+        </div>
+        <div style="background:rgba(10,10,22,0.6);border:1px solid rgba(190,238,0,0.08);border-radius:12px;padding:16px;border-left:3px solid #beee00">
+            <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Allegro</div>
+            <div class="stat-v green">{s['wartosc_allegro']:.0f} zl</div>
+        </div>
     </div>
 
     <!-- SZUKAJ + SKANER -->
     <div class="search"><form action="/magazyn/szukaj" method="GET" style="display:flex;gap:8px">
         <input type="text" name="q" placeholder="EAN / ASIN / MAG-kod / nazwa..." style="flex:1">
-        <button type="submit" style="padding:14px 18px;background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe;border:none;border-radius:8px;color:#fff;font-size:1.2rem;cursor:pointer">🔍</button>
-        <a href="/magazyn/skaner" style="padding:14px 18px;background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);border-radius:8px;color:#5bf083;font-size:1.2rem;display:flex;align-items:center;text-decoration:none" title="Skaner kodow">📷</a>
+        <button type="submit" style="padding:14px 18px;background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);border-radius:10px;color:#8ff5ff;font-size:1.1rem;cursor:pointer;display:flex;align-items:center"><span class="material-symbols-outlined">search</span></button>
+        <a href="/magazyn/skaner" style="padding:14px 18px;background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.25);border-radius:10px;color:#beee00;display:flex;align-items:center;text-decoration:none" title="Skaner kodow"><span class="material-symbols-outlined">qr_code_scanner</span></a>
     </form></div>
 
-    <!-- GLOWNE -->
-    <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin:16px 0 8px;padding-left:4px">Magazyn</div>
+    <!-- MAGAZYN -->
+    <div style="font-size:0.68rem;color:#8ff5ff;text-transform:uppercase;font-weight:700;letter-spacing:0.1em;margin:16px 0 8px;padding-left:4px;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:0.9rem">warehouse</span> Magazyn</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-        {tile('/magazyn/produkty', '📋', 'PRODUKTY', f"{s['produkty']}", '#1e293b')}
-        {tile('/magazyn/palety', '📦', 'PALETY', f"{s['palety']}", '#2d1b69', '', '#a78bfa')}
-        {tile('/warehouse/shelves', '🗄️', 'REGALY', 'mapa + QR', '#1a0a30', '#7c3aed44', '#7c3aed')}
+        {tile('/magazyn/produkty', 'list_alt', 'PRODUKTY', f"{s['produkty']}", '#8ff5ff')}
+        {tile('/magazyn/palety', 'inventory', 'PALETY', f"{s['palety']}", '#ff6b9b')}
+        {tile('/warehouse/shelves', 'shelves', 'REGALY', 'mapa + QR', '#ff6b9b')}
     </div>
 
     <!-- ANALITYKA -->
-    <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin:16px 0 8px;padding-left:4px">Analityka</div>
+    <div style="font-size:0.68rem;color:#beee00;text-transform:uppercase;font-weight:700;letter-spacing:0.1em;margin:16px 0 8px;padding-left:4px;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:0.9rem">analytics</span> Analityka</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-        {tile('/statystyki', '📊', 'STATYSTYKI', 'przegladaj', '#1c1600', '#eab30844', '#eab308')}
-        {tile('/magazyn/statystyki-zakupow', '🛒', 'ZAKUPY', 'analiza', '#001c2d', '#0ea5e944', '#0ea5e9')}
-        {tile('/magazyn/lezaki', '⏳', 'LEZAKI', 'zalegajace', '#1c0a00', '#f9731644', '#f97316')}
+        {tile('/statystyki', 'bar_chart', 'STATYSTYKI', 'przegladaj', '#eab308')}
+        {tile('/magazyn/statystyki-zakupow', 'shopping_cart', 'ZAKUPY', 'analiza', '#0ea5e9')}
+        {tile('/magazyn/lezaki', 'hourglass_top', 'LEZAKI', 'zalegajace', '#f97316')}
     </div>
 
     <!-- OPERACJE -->
-    <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin:16px 0 8px;padding-left:4px">Operacje</div>
+    <div style="font-size:0.68rem;color:#ff6b9b;text-transform:uppercase;font-weight:700;letter-spacing:0.1em;margin:16px 0 8px;padding-left:4px;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:0.9rem">settings</span> Operacje</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-        {tile('/magazyn/dostawcy', '🚚', 'DOSTAWCY', f"{s['dostawcy']}", '#1e293b', '', '#64748b')}
-        {tile('/magazyn/koszty', '💸', 'KOSZTY', 'wydatki', '#1c0010', '#f43f5e44', '#f43f5e')}
-        {tile('/magazyn/sprzedaz-prywatna', '🤝', 'PRYWATNA', 'sprzedaz', '#1a0a2e', '#c180ff44', '#c180ff')}
+        {tile('/magazyn/dostawcy', 'local_shipping', 'DOSTAWCY', f"{s['dostawcy']}", '#64748b')}
+        {tile('/magazyn/koszty', 'payments', 'KOSZTY', 'wydatki', '#f43f5e')}
+        {tile('/magazyn/sprzedaz-prywatna', 'point_of_sale', 'PRYWATNA', 'sprzedaz', '#ff6b9b')}
     </div>
 
     <!-- NARZEDZIA -->
-    <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin:16px 0 8px;padding-left:4px">Narzedzia</div>
+    <div style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;letter-spacing:0.1em;margin:16px 0 8px;padding-left:4px;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:0.9rem">construction</span> Narzedzia</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-        {tile('/magazyn/import', '📥', 'IMPORT', 'CSV/dane', '#0a1a25', '#00f1fe44', '#00f1fe')}
-        {tile('/magazyn/export', '📤', 'EXPORT', 'pobierz', '#0a2518', '#5bf08344', '#5bf083')}
-        {tile('/magazyn/fetch-images', '🖼️', 'ZDJECIA', 'pobierz', '#1c1600', '#eab30844', '#eab308')}
+        {tile('/magazyn/import', 'upload_file', 'IMPORT', 'CSV/dane', '#8ff5ff')}
+        {tile('/magazyn/export', 'download', 'EXPORT', 'pobierz', '#beee00')}
+        {tile('/magazyn/fetch-images', 'photo_library', 'ZDJECIA', 'pobierz', '#eab308')}
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
-        {tile('/magazyn/remanent', '📋', 'REMANENT', 'Excel', '#0a1a25', '#0369a144', '#0369a1')}
-        {tile('/magazyn/backup', '💾', 'BACKUP', 'przywroc', '#0a2218', '#5bf08344', '#5bf083')}
+        {tile('/magazyn/remanent', 'fact_check', 'REMANENT', 'Excel', '#0ea5e9')}
+        {tile('/magazyn/backup', 'backup', 'BACKUP', 'przywroc', '#beee00')}
     </div>
 
-    <div class="section">🕐 OSTATNIO DODANE</div>
+    <div class="section"><span class="material-symbols-outlined" style="font-size:1rem">schedule</span> OSTATNIO DODANE</div>
     '''
-    
+
     for p in products:
-        img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
+        img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2712%27%3EIMG%3C/text%3E%3C/svg%3E'
         pcode = get_product_code(p)
         display_code = p['ean'] or p['asin'] or f"#{p['id']}"
         html += f'''<a href="/magazyn/produkt/{pcode}" class="item">
-            <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
+            <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2712%27%3EIMG%3C/text%3E%3C/svg%3E'">
             <div class="item-info">
                 <div class="item-name">{p['nazwa'][:35]}...</div>
-                <div class="item-meta">{display_code} | 📍{p['lokalizacja'] or '—'}</div>
+                <div class="item-meta">{display_code} <span class="material-symbols-outlined" style="font-size:0.7rem;vertical-align:middle">pin_drop</span> {p['lokalizacja'] or '—'}</div>
             </div>
             <div class="item-right">
                 <div class="item-qty">{p['ilosc']}</div>
                 <div class="item-price">{p['cena_allegro'] or 0:.0f} zł</div>
             </div>
         </a>'''
-    
-    html += '<a href="/" class="back">← Powrót</a>'
+
+    html += '<a href="/" style="display:flex;align-items:center;gap:6px;color:#64748b;text-decoration:none;padding:12px;font-size:0.85rem;margin-top:8px"><span class="material-symbols-outlined" style="font-size:1rem">arrow_back</span> Powrót</a>'
     return render(html)
 
 @magazynier_bp.route('/skaner')
 def skaner():
     """Skaner kodów kreskowych z kamery"""
     html = '''
-    <div class="hdr"><h1>📷 SKANER KODÓW</h1><small>Zeskanuj EAN/ASIN</small></div>
-    
+    <div class="hdr"><h1><span class="material-symbols-outlined">qr_code_scanner</span> SKANER KODÓW</h1><small>Zeskanuj EAN/ASIN</small></div>
+
     <div id="scanner-container" style="position:relative;width:100%;max-width:400px;margin:0 auto 15px">
         <video id="video" style="width:100%;border-radius:12px;background:#000" playsinline></video>
-        <div id="scan-line" style="position:absolute;left:10%;right:10%;top:50%;height:2px;background:#5bf083;box-shadow:0 0 10px #5bf083;animation:scan 2s infinite"></div>
+        <div id="scan-line" style="position:absolute;left:10%;right:10%;top:50%;height:2px;background:#beee00;box-shadow:0 0 10px #beee00;animation:scan 2s infinite"></div>
     </div>
     
     <style>
@@ -416,7 +526,7 @@ def skaner():
             <label style="font-size:0.8rem;color:#64748b">Lub wpisz ręcznie:</label>
             <form action="/magazyn/szukaj" method="GET" style="display:flex;gap:8px;margin-top:8px">
                 <input type="text" name="q" id="manual-input" class="form-ctrl" placeholder="EAN / ASIN..." style="flex:1;padding:12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#fff">
-                <button type="submit" class="btn btn-p" style="width:auto;padding:12px 20px;margin:0">🔍</button>
+                <button type="submit" class="btn btn-p" style="width:auto;padding:12px 20px;margin:0"><span class="material-symbols-outlined" style="font-size:1.1rem">search</span></button>
             </form>
         </div>
     </div>
@@ -424,7 +534,7 @@ def skaner():
     <div id="last-scanned" style="display:none" class="card">
         <div style="padding:15px">
             <div style="font-size:0.75rem;color:#64748b;margin-bottom:5px">Ostatnio zeskanowany:</div>
-            <div id="last-code" style="font-size:1.2rem;font-weight:700;color:#5bf083"></div>
+            <div id="last-code" style="font-size:1.2rem;font-weight:700;color:#beee00"></div>
         </div>
     </div>
     
@@ -483,7 +593,7 @@ def skaner():
                         if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
                         
                         // Pokaż wynik
-                        resultDiv.innerHTML = '<div style="color:#5bf083;font-size:1.2rem;font-weight:700">✅ ' + code + '</div>';
+                        resultDiv.innerHTML = '<div style="color:#beee00;font-size:1.2rem;font-weight:700"><span class="material-symbols-outlined" style="vertical-align:middle">check_circle</span> ' + code + '</div>';
                         lastScanned.style.display = 'block';
                         lastCode.textContent = code;
                         manualInput.value = code;
@@ -605,87 +715,87 @@ def produkty():
 
     html = f'''
     <div class="hdr">
-        <h1>📋 PRODUKTY</h1>
+        <h1><span class="material-symbols-outlined">list_alt</span> PRODUKTY</h1>
         <small>{len(products)} pozycji</small>
     </div>
     '''
-    
+
     if msg:
         html += f'<script>Toast.success("{msg}");</script>'
-    
+
     # Zakładki statusów
     html += f'''
-    <div class="card" style="padding:10px;margin-bottom:15px">
+    <div style="padding:10px;margin-bottom:15px;background:rgba(10,10,22,0.6);border:1px solid rgba(255,255,255,0.04);border-radius:12px">
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <a href="/magazyn/produkty" class="btn {'btn-ok' if not filter_status else ''}" style="padding:8px 15px;font-size:0.85rem">
-                📋 Wszystkie ({len(products) if not filter_status else sum(status_counts.values())})
+            <a href="/magazyn/produkty" class="btn {'btn-ok' if not filter_status else ''}" style="padding:8px 15px;font-size:0.82rem;display:flex;align-items:center;gap:4px;border-radius:8px">
+                <span class="material-symbols-outlined" style="font-size:0.95rem">list_alt</span> Wszystkie ({len(products) if not filter_status else sum(status_counts.values())})
             </a>
-            <a href="/magazyn/produkty?status=nowy" class="btn {'btn-ok' if filter_status == 'nowy' else ''}" style="padding:8px 15px;font-size:0.85rem;background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe">
-                📦 Magazyn ({status_counts['nowy']})
+            <a href="/magazyn/produkty?status=nowy" style="padding:8px 15px;font-size:0.82rem;background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.20);color:#8ff5ff;border-radius:8px;text-decoration:none;display:flex;align-items:center;gap:4px{';;font-weight:700' if filter_status == 'nowy' else ''}">
+                <span class="material-symbols-outlined" style="font-size:0.95rem">inventory_2</span> Magazyn ({status_counts['nowy']})
             </a>
-            <a href="/magazyn/produkty?status=wystawiony" class="btn {'btn-ok' if filter_status == 'wystawiony' else ''}" style="padding:8px 15px;font-size:0.85rem;background:var(--purple)">
-                🛒 Allegro ({status_counts['wystawiony']})
+            <a href="/magazyn/produkty?status=wystawiony" style="padding:8px 15px;font-size:0.82rem;background:rgba(255,107,155,0.10);border:1px solid rgba(255,107,155,0.20);color:#ff6b9b;border-radius:8px;text-decoration:none;display:flex;align-items:center;gap:4px">
+                <span class="material-symbols-outlined" style="font-size:0.95rem">shopping_cart</span> Allegro ({status_counts['wystawiony']})
             </a>
-            <a href="/magazyn/produkty?status=sprzedany" class="btn {'btn-ok' if filter_status == 'sprzedany' else ''}" style="padding:8px 15px;font-size:0.85rem;background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083">
-                💰 Sprzedane ({status_counts['sprzedany']})
+            <a href="/magazyn/produkty?status=sprzedany" style="padding:8px 15px;font-size:0.82rem;background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.20);color:#beee00;border-radius:8px;text-decoration:none;display:flex;align-items:center;gap:4px">
+                <span class="material-symbols-outlined" style="font-size:0.95rem">paid</span> Sprzedane ({status_counts['sprzedany']})
             </a>
-            <a href="/magazyn/produkty?status=nieoceniony" class="btn {'btn-ok' if filter_status == 'nieoceniony' else ''}" style="padding:8px 15px;font-size:0.85rem;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);color:#f59e0b">
-                ⭐ Nieocenione ({nieocenione_cnt})
+            <a href="/magazyn/produkty?status=nieoceniony" style="padding:8px 15px;font-size:0.82rem;background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.20);color:#f59e0b;border-radius:8px;text-decoration:none;display:flex;align-items:center;gap:4px">
+                <span class="material-symbols-outlined" style="font-size:0.95rem">star</span> Nieocenione ({nieocenione_cnt})
             </a>
         </div>
     </div>
 
     <!-- STAN PRZEDMIOTU + KLASA JAKOŚCI -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:15px">
-        <div style="background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px">
-            <div style="font-size:0.7rem;color:#64748b;font-weight:600;letter-spacing:1px;margin-bottom:10px">STAN PRZEDMIOTU</div>
+        <div style="background:rgba(10,10,22,0.6);backdrop-filter:blur(20px);border:1px solid rgba(143,245,255,0.06);border-radius:12px;padding:14px">
+            <div style="font-size:0.68rem;color:#8ff5ff;font-weight:600;letter-spacing:0.1em;margin-bottom:10px;font-family:'Space Grotesk',sans-serif">STAN PRZEDMIOTU</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-                <a href="/magazyn/produkty?stan=Nowy" style="flex:1;min-width:60px;text-align:center;padding:8px 4px;background:rgba(91,240,131,0.08);border:1px solid rgba(91,240,131,0.2);border-radius:8px;text-decoration:none">
-                    <div style="font-size:1.3rem;font-weight:800;color:#5bf083;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Nowy',0)}</div>
+                <a href="/magazyn/produkty?stan=Nowy" style="flex:1;min-width:55px;text-align:center;padding:8px 4px;background:rgba(190,238,0,0.06);border:1px solid rgba(190,238,0,0.15);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.3rem;font-weight:800;color:#beee00;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Nowy',0)}</div>
                     <div style="font-size:0.6rem;color:#64748b;margin-top:2px">NOWY</div>
                 </a>
-                <a href="/magazyn/produkty?stan=Jak nowy" style="flex:1;min-width:60px;text-align:center;padding:8px 4px;background:rgba(0,241,254,0.08);border:1px solid rgba(0,241,254,0.2);border-radius:8px;text-decoration:none">
-                    <div style="font-size:1.3rem;font-weight:800;color:#00f1fe;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Jak nowy',0)}</div>
+                <a href="/magazyn/produkty?stan=Jak nowy" style="flex:1;min-width:55px;text-align:center;padding:8px 4px;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.15);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.3rem;font-weight:800;color:#8ff5ff;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Jak nowy',0)}</div>
                     <div style="font-size:0.6rem;color:#64748b;margin-top:2px">JAK NOWY</div>
                 </a>
-                <a href="/magazyn/produkty?stan=Używany" style="flex:1;min-width:60px;text-align:center;padding:8px 4px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.2);border-radius:8px;text-decoration:none">
+                <a href="/magazyn/produkty?stan=Używany" style="flex:1;min-width:55px;text-align:center;padding:8px 4px;background:rgba(234,179,8,0.06);border:1px solid rgba(234,179,8,0.15);border-radius:8px;text-decoration:none">
                     <div style="font-size:1.3rem;font-weight:800;color:#eab308;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Używany',0)}</div>
                     <div style="font-size:0.6rem;color:#64748b;margin-top:2px">UŻYWANY</div>
                 </a>
-                <a href="/magazyn/produkty?stan=Uszkodzony" style="flex:1;min-width:60px;text-align:center;padding:8px 4px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.2);border-radius:8px;text-decoration:none">
+                <a href="/magazyn/produkty?stan=Uszkodzony" style="flex:1;min-width:55px;text-align:center;padding:8px 4px;background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.15);border-radius:8px;text-decoration:none">
                     <div style="font-size:1.3rem;font-weight:800;color:#f97316;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Uszkodzony',0)}</div>
                     <div style="font-size:0.6rem;color:#64748b;margin-top:2px">USZK.</div>
                 </a>
-                <a href="/magazyn/produkty?status=nieoceniony" style="flex:1;min-width:60px;text-align:center;padding:8px 4px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;text-decoration:none">
+                <a href="/magazyn/produkty?status=nieoceniony" style="flex:1;min-width:55px;text-align:center;padding:8px 4px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;text-decoration:none">
                     <div style="font-size:1.3rem;font-weight:800;color:#64748b;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('nieoceniony',0)}</div>
                     <div style="font-size:0.6rem;color:#64748b;margin-top:2px">BRAK</div>
                 </a>
             </div>
         </div>
-        <div style="background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px">
-            <div style="font-size:0.7rem;color:#64748b;font-weight:600;letter-spacing:1px;margin-bottom:10px">KLASA JAKOŚCI</div>
+        <div style="background:rgba(10,10,22,0.6);backdrop-filter:blur(20px);border:1px solid rgba(143,245,255,0.06);border-radius:12px;padding:14px">
+            <div style="font-size:0.68rem;color:#ff6b9b;font-weight:600;letter-spacing:0.1em;margin-bottom:10px;font-family:'Space Grotesk',sans-serif">KLASA JAKOŚCI</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-                <a href="/magazyn/produkty?klasa=A" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(91,240,131,0.08);border:1px solid rgba(91,240,131,0.2);border-radius:8px;text-decoration:none">
-                    <div style="font-size:1.3rem;font-weight:800;color:#5bf083;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('A',0)}</div>
-                    <div style="font-size:0.65rem;color:#5bf083;margin-top:2px">🟢 A</div>
+                <a href="/magazyn/produkty?klasa=A" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(190,238,0,0.06);border:1px solid rgba(190,238,0,0.15);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.3rem;font-weight:800;color:#beee00;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('A',0)}</div>
+                    <div style="font-size:0.65rem;color:#beee00;margin-top:2px">A</div>
                 </a>
-                <a href="/magazyn/produkty?klasa=A-" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(0,241,254,0.08);border:1px solid rgba(0,241,254,0.2);border-radius:8px;text-decoration:none">
-                    <div style="font-size:1.3rem;font-weight:800;color:#00f1fe;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('A-',0)}</div>
-                    <div style="font-size:0.65rem;color:#00f1fe;margin-top:2px">🔵 A-</div>
+                <a href="/magazyn/produkty?klasa=A-" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.15);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.3rem;font-weight:800;color:#8ff5ff;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('A-',0)}</div>
+                    <div style="font-size:0.65rem;color:#8ff5ff;margin-top:2px">A-</div>
                 </a>
-                <a href="/magazyn/produkty?klasa=B" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.2);border-radius:8px;text-decoration:none">
+                <a href="/magazyn/produkty?klasa=B" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(234,179,8,0.06);border:1px solid rgba(234,179,8,0.15);border-radius:8px;text-decoration:none">
                     <div style="font-size:1.3rem;font-weight:800;color:#eab308;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('B',0)}</div>
-                    <div style="font-size:0.65rem;color:#eab308;margin-top:2px">🟡 B</div>
+                    <div style="font-size:0.65rem;color:#eab308;margin-top:2px">B</div>
                 </a>
-                <a href="/magazyn/produkty?klasa=C" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.2);border-radius:8px;text-decoration:none">
+                <a href="/magazyn/produkty?klasa=C" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.15);border-radius:8px;text-decoration:none">
                     <div style="font-size:1.3rem;font-weight:800;color:#f97316;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('C',0)}</div>
-                    <div style="font-size:0.65rem;color:#f97316;margin-top:2px">🟠 C</div>
+                    <div style="font-size:0.65rem;color:#f97316;margin-top:2px">C</div>
                 </a>
-                <a href="/magazyn/produkty?klasa=D" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;text-decoration:none">
+                <a href="/magazyn/produkty?klasa=D" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:8px;text-decoration:none">
                     <div style="font-size:1.3rem;font-weight:800;color:#ef4444;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('D',0)}</div>
-                    <div style="font-size:0.65rem;color:#ef4444;margin-top:2px">🔴 D</div>
+                    <div style="font-size:0.65rem;color:#ef4444;margin-top:2px">D</div>
                 </a>
-                <a href="/magazyn/produkty?status=nieoceniony" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;text-decoration:none">
+                <a href="/magazyn/produkty?status=nieoceniony" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;text-decoration:none">
                     <div style="font-size:1.3rem;font-weight:800;color:#64748b;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('brak',0)}</div>
                     <div style="font-size:0.65rem;color:#64748b;margin-top:2px">BRAK</div>
                 </a>
@@ -696,91 +806,85 @@ def produkty():
     
     # Filtry i sortowanie
     html += f'''
-    <div class="card" style="padding:15px;margin-bottom:15px">
+    <div style="padding:15px;margin-bottom:15px;background:rgba(10,10,22,0.6);border:1px solid rgba(255,255,255,0.04);border-radius:12px">
         <form method="GET" action="/magazyn/produkty" style="display:flex;gap:10px;flex-wrap:wrap">
             <input type="hidden" name="status" value="{filter_status}">
-            
-            <input type="text" name="search" value="{search}" placeholder="🔍 Szukaj..." class="form-input" style="flex:1;min-width:150px">
-            
+            <input type="text" name="search" value="{search}" placeholder="Szukaj..." class="form-input" style="flex:1;min-width:150px">
             <select name="paleta" class="form-input" style="min-width:120px">
-                <option value="">📦 Paleta</option>
+                <option value="">Paleta</option>
                 {"".join([f'<option value="{p}" {"selected" if filter_paleta == p else ""}>{p}</option>' for p in palety])}
             </select>
-            
             <select name="dostawca" class="form-input" style="min-width:120px">
-                <option value="">🏢 Dostawca</option>
+                <option value="">Dostawca</option>
                 {"".join([f'<option value="{d}" {"selected" if filter_dostawca == d else ""}>{d}</option>' for d in dostawcy])}
             </select>
-            
             <select name="sort" class="form-input" style="min-width:120px">
-                <option value="data" {"selected" if sort_by == "data" else ""}>📅 Data</option>
-                <option value="cena" {"selected" if sort_by == "cena" else ""}>💰 Cena</option>
-                <option value="nazwa" {"selected" if sort_by == "nazwa" else ""}>📝 Nazwa</option>
-                <option value="ilosc" {"selected" if sort_by == "ilosc" else ""}>📊 Ilość</option>
+                <option value="data" {"selected" if sort_by == "data" else ""}>Data</option>
+                <option value="cena" {"selected" if sort_by == "cena" else ""}>Cena</option>
+                <option value="nazwa" {"selected" if sort_by == "nazwa" else ""}>Nazwa</option>
+                <option value="ilosc" {"selected" if sort_by == "ilosc" else ""}>Ilość</option>
             </select>
-            
             <select name="dir" class="form-input" style="min-width:100px">
-                <option value="desc" {"selected" if sort_dir == "desc" else ""}>⬇️ Malejąco</option>
-                <option value="asc" {"selected" if sort_dir == "asc" else ""}>⬆️ Rosnąco</option>
+                <option value="desc" {"selected" if sort_dir == "desc" else ""}>Malejąco</option>
+                <option value="asc" {"selected" if sort_dir == "asc" else ""}>Rosnąco</option>
             </select>
-            
-            <button type="submit" class="btn btn-ok">Filtruj</button>
-            <a href="/magazyn/produkty" class="btn">Wyczyść</a>
+            <button type="submit" class="btn btn-ok" style="display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:1rem">filter_list</span> Filtruj</button>
+            <a href="/magazyn/produkty" class="btn" style="display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:1rem">clear_all</span> Wyczyść</a>
         </form>
     </div>
     '''
-    
+
     # Masowa edycja
     html += f'''
     <form id="mass-edit-form" method="POST" action="/magazyn/produkty/masowa-edycja">
-        <div class="card" style="padding:15px;margin-bottom:15px;background:rgba(193,128,255,0.1);border:2px solid #c180ff">
-            <div style="color:#c180ff;font-weight:700;font-size:0.95rem;margin-bottom:12px">⚡ MASOWA EDYCJA ZAZNACZONYCH</div>
-            
+        <div style="padding:15px;margin-bottom:15px;background:rgba(255,107,155,0.05);border:1px solid rgba(255,107,155,0.15);border-radius:12px">
+            <div style="color:#ff6b9b;font-weight:700;font-size:0.92rem;margin-bottom:12px;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:1.1rem">bolt</span> MASOWA EDYCJA ZAZNACZONYCH</div>
+
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
                 <div>
-                    <label style="display:block;color:#94a3b8;font-size:0.75rem;margin-bottom:4px">🔄 Status</label>
+                    <label style="display:block;color:#94a3b8;font-size:0.72rem;margin-bottom:4px;letter-spacing:0.05em">STATUS</label>
                     <select name="new_status" class="form-input" style="width:100%;font-size:0.85rem">
                         <option value="">-- bez zmiany --</option>
-                        <option value="magazyn">📦 Magazyn</option>
-                        <option value="wystawiony">🛒 Wystawiony (Allegro)</option>
-                        <option value="sprzedany">💰 Sprzedany</option>
-                        <option value="uszkodzony">⚠️ Uszkodzony</option>
-                        <option value="zwrot">↩️ Zwrot</option>
+                        <option value="magazyn">Magazyn</option>
+                        <option value="wystawiony">Wystawiony (Allegro)</option>
+                        <option value="sprzedany">Sprzedany</option>
+                        <option value="uszkodzony">Uszkodzony</option>
+                        <option value="zwrot">Zwrot</option>
                     </select>
                 </div>
                 <div>
-                    <label style="display:block;color:#94a3b8;font-size:0.75rem;margin-bottom:4px">🏷️ Stan</label>
+                    <label style="display:block;color:#94a3b8;font-size:0.72rem;margin-bottom:4px;letter-spacing:0.05em">STAN</label>
                     <select name="new_stan" class="form-input" style="width:100%;font-size:0.85rem">
                         <option value="">-- bez zmiany --</option>
-                        <option value="Nowy">✨ Nowy</option>
-                        <option value="Nowy w otwartym opakowaniu">📦 Nowy w otwartym opak.</option>
-                        <option value="Używany">🔄 Używany</option>
-                        <option value="Uszkodzony">💥 Uszkodzony</option>
-                        <option value="Odnowiony">♻️ Odnowiony</option>
+                        <option value="Nowy">Nowy</option>
+                        <option value="Nowy w otwartym opakowaniu">Nowy w otwartym opak.</option>
+                        <option value="Używany">Używany</option>
+                        <option value="Uszkodzony">Uszkodzony</option>
+                        <option value="Odnowiony">Odnowiony</option>
                     </select>
                 </div>
                 <div>
-                    <label style="display:block;color:#94a3b8;font-size:0.75rem;margin-bottom:4px">📍 Lokalizacja</label>
+                    <label style="display:block;color:#94a3b8;font-size:0.72rem;margin-bottom:4px;letter-spacing:0.05em">LOKALIZACJA</label>
                     <input type="text" name="new_lokalizacja" class="form-input" placeholder="np. A1, B2 (puste = bez zmiany)" style="width:100%;font-size:0.85rem">
                 </div>
                 <div>
-                    <label style="display:block;color:#94a3b8;font-size:0.75rem;margin-bottom:4px">💵 Cena Allegro (zł)</label>
+                    <label style="display:block;color:#94a3b8;font-size:0.72rem;margin-bottom:4px;letter-spacing:0.05em">CENA ALLEGRO (ZŁ)</label>
                     <input type="number" name="new_cena_allegro" class="form-input" placeholder="puste = bez zmiany" step="0.01" min="0" style="width:100%;font-size:0.85rem">
                 </div>
             </div>
-            
+
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-                <button type="button" onclick="toggleAll()" class="btn" style="background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe;flex:1">
-                    ☑️ Zaznacz wszystkie
+                <button type="button" onclick="toggleAll()" class="btn" style="background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);color:#8ff5ff;flex:1;display:flex;align-items:center;justify-content:center;gap:4px">
+                    <span class="material-symbols-outlined" style="font-size:1rem">check_box</span> Zaznacz wszystkie
                 </button>
-                <button type="submit" class="btn btn-ok" onclick="return confirm('Zastosować zmiany dla ' + document.getElementById('count').textContent + ' produktów?')" style="flex:1">
-                    ✅ Zastosuj
+                <button type="submit" class="btn btn-ok" onclick="return confirm('Zastosować zmiany dla ' + document.getElementById('count').textContent + ' produktów?')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px">
+                    <span class="material-symbols-outlined" style="font-size:1rem">check_circle</span> Zastosuj
                 </button>
-                <button type="button" onclick="pokazBoxModal()" class="btn" style="background:#f59e0b;color:#000;flex:1">
-                    📫 Zgrupuj w box
+                <button type="button" onclick="pokazBoxModal()" class="btn" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.25);color:#f59e0b;flex:1;display:flex;align-items:center;justify-content:center;gap:4px">
+                    <span class="material-symbols-outlined" style="font-size:1rem">inbox</span> Zgrupuj w box
                 </button>
             </div>
-            <div id="selected-count" style="margin-top:10px;color:#c180ff;font-size:0.85rem;font-weight:600">
+            <div id="selected-count" style="margin-top:10px;color:#ff6b9b;font-size:0.85rem;font-weight:600;font-family:'Space Grotesk',sans-serif">
                 Zaznaczono: <span id="count">0</span> produktów
             </div>
         </div>
@@ -805,12 +909,12 @@ def produkty():
         
         # Badge statusu
         status_badges = {
-            'nowy': '<span style="background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe;color:#fff;padding:3px 8px;border-radius:6px;font-size:0.7rem;font-weight:600">📦 MAGAZYN</span>',
-            'wystawiony': '<span style="background:var(--purple);color:#fff;padding:3px 8px;border-radius:6px;font-size:0.7rem;font-weight:600">🛒 ALLEGRO</span>',
-            'sprzedany': '<span style="background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083;padding:3px 8px;border-radius:6px;font-size:0.7rem;font-weight:600">💰 SPRZEDANE</span>',
-            'wyslany': '<span style="background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083;padding:3px 8px;border-radius:6px;font-size:0.7rem;font-weight:600">📮 WYSŁANE</span>',
-            'uszkodzony': '<span style="background:var(--red);color:#fff;padding:3px 8px;border-radius:6px;font-size:0.7rem;font-weight:600">⚠️ USZKODZONY</span>',
-            'zwrot': '<span style="background:var(--yellow);color:#000;padding:3px 8px;border-radius:6px;font-size:0.7rem;font-weight:600">↩️ ZWROT</span>'
+            'nowy': '<span style="background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.20);color:#8ff5ff;padding:3px 8px;border-radius:6px;font-size:0.65rem;font-weight:600">MAGAZYN</span>',
+            'wystawiony': '<span style="background:rgba(255,107,155,0.10);border:1px solid rgba(255,107,155,0.20);color:#ff6b9b;padding:3px 8px;border-radius:6px;font-size:0.65rem;font-weight:600">ALLEGRO</span>',
+            'sprzedany': '<span style="background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.20);color:#beee00;padding:3px 8px;border-radius:6px;font-size:0.65rem;font-weight:600">SPRZEDANE</span>',
+            'wyslany': '<span style="background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.20);color:#beee00;padding:3px 8px;border-radius:6px;font-size:0.65rem;font-weight:600">WYSŁANE</span>',
+            'uszkodzony': '<span style="background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.20);color:#ef4444;padding:3px 8px;border-radius:6px;font-size:0.65rem;font-weight:600">USZKODZONY</span>',
+            'zwrot': '<span style="background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.20);color:#f59e0b;padding:3px 8px;border-radius:6px;font-size:0.65rem;font-weight:600">ZWROT</span>'
         }
         product_status = p['status'] if p['status'] else 'nowy'
         status_badge = status_badges.get(product_status, '')
@@ -828,12 +932,12 @@ def produkty():
                 <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
                 <div class="item-info">
                     <div class="item-name">{p['nazwa'][:30]}...</div>
-                    <div class="item-meta">{display_code} | 📍{p['lokalizacja'] or '—'} | 📦{p['paleta'] or '—'} | {status_badge}</div>
+                    <div class="item-meta">{display_code} | {p['lokalizacja'] or '—'} | {p['paleta'] or '—'} | {status_badge}</div>
                 </div>
                 <div class="item-right">
                     <div class="item-qty">{p['ilosc']}</div>
                     <div class="item-price">{p['cena_allegro'] or 0:.0f} zł</div>
-                    {f'<div style="font-size:0.65rem;color:{"#5bf083" if _zy >= 0 else "#ef4444"}">{_zy:.0f} zł zysk</div>' if _zy is not None else ''}
+                    {f'<div style="font-size:0.65rem;color:{"#beee00" if _zy >= 0 else "#ef4444"}">{_zy:.0f} zł zysk</div>' if _zy is not None else ''}
                 </div>
             </a>
         </div>'''
@@ -1027,7 +1131,7 @@ def produkt(code):
     if _koszt_brutto_szt <= 0 and p.get('cena_brutto') and p['cena_brutto'] > 0:
         _koszt_brutto_szt = float(p['cena_brutto'])
 
-    _klasa_map = {'A':'🟢 A','A-':'🔵 A-','B':'🟡 B','C':'🟠 C','D':'🔴 D'}
+    _klasa_map = {'A':'<span style="color:#beee00">A</span>','A-':'<span style="color:#8ff5ff">A-</span>','B':'<span style="color:#eab308">B</span>','C':'<span style="color:#f97316">C</span>','D':'<span style="color:#ef4444">D</span>'}
     _klasa_display = _klasa_map.get(p.get('klasa_jakosci','') or '', '—')
 
     # Sibling products — ten sam produkt (EAN/nazwa) z tej samej palety, rozbite na klasy
@@ -1046,31 +1150,31 @@ def produkt(code):
                 (p['paleta_id'], p['nazwa'], p['id'])
             ).fetchall()
 
-    _klasa_colors = {'A':'#5bf083','A-':'#00f1fe','B':'#eab308','C':'#f97316','D':'#ef4444','':'#64748b'}
+    _klasa_colors = {'A':'#beee00','A-':'#8ff5ff','B':'#eab308','C':'#f97316','D':'#ef4444','':'#64748b'}
     _siblings_html = ''
     if _siblings:
-        _siblings_html = '<div style="margin:15px;padding:16px;background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:12px">'
-        _siblings_html += '<div style="font-family:\'Space Grotesk\',sans-serif;font-weight:700;font-size:1rem;margin-bottom:12px;color:#00f1fe">📦 Partie tego produktu (per klasa)</div>'
+        _siblings_html = '<div class="siblings-panel">'
+        _siblings_html += '<div class="siblings-title"><span class="material-symbols-outlined">inventory_2</span> Partie tego produktu (per klasa)</div>'
         # Current product as first row
         _cur_klasa = p.get('klasa_jakosci','') or ''
         _cur_color = _klasa_colors.get(_cur_klasa, '#64748b')
         _cur_stan = p.get('stan_przyjecia','') or 'nieoceniony'
-        _siblings_html += f'<div style="display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:6px;background:rgba(0,241,254,0.08);border:1px solid rgba(0,241,254,0.2);border-radius:8px">'
-        _siblings_html += f'<span style="font-size:1.4rem;font-weight:800;color:{_cur_color};font-family:\'Space Grotesk\',sans-serif;min-width:40px;text-align:center">{_cur_klasa or "?"}</span>'
+        _siblings_html += f'<div class="sib-row current">'
+        _siblings_html += f'<span class="sib-klasa" style="color:{_cur_color}">{_cur_klasa or "?"}</span>'
         _siblings_html += f'<div style="flex:1"><div style="font-weight:600;font-size:0.85rem">{p["ilosc"]} szt <span style="color:#64748b;font-weight:400">· {_cur_stan}</span></div>'
         _siblings_html += f'<div style="font-size:0.7rem;color:#64748b">{p.get("lokalizacja","") or "brak lok."} · aktualny</div></div>'
-        _siblings_html += f'<span style="color:#00f1fe;font-size:0.7rem;font-weight:600">CURRENT</span></div>'
+        _siblings_html += f'<span style="color:#8ff5ff;font-size:0.7rem;font-weight:600;background:rgba(143,245,255,0.10);padding:2px 8px;border-radius:6px">CURRENT</span></div>'
         # Sibling rows
         for sib in _siblings:
             sib = dict(sib)
             sk = sib.get('klasa_jakosci','') or ''
             sc = _klasa_colors.get(sk, '#64748b')
             ss = sib.get('stan_przyjecia','') or 'nieoceniony'
-            _siblings_html += f'<a href="/magazyn/produkt/{sib.get("kod_magazynowy","") or sib["id"]}" style="display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:4px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;text-decoration:none;color:inherit;transition:all 0.2s" onmouseover="this.style.borderColor=\'{sc}44\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\'">'
-            _siblings_html += f'<span style="font-size:1.4rem;font-weight:800;color:{sc};font-family:\'Space Grotesk\',sans-serif;min-width:40px;text-align:center">{sk or "?"}</span>'
+            _siblings_html += f'<a href="/magazyn/produkt/{sib.get("kod_magazynowy","") or sib["id"]}" class="sib-row">'
+            _siblings_html += f'<span class="sib-klasa" style="color:{sc}">{sk or "?"}</span>'
             _siblings_html += f'<div style="flex:1"><div style="font-weight:600;font-size:0.85rem">{sib["ilosc"]} szt <span style="color:#64748b;font-weight:400">· {ss}</span></div>'
             _siblings_html += f'<div style="font-size:0.7rem;color:#64748b">{sib.get("lokalizacja","") or "brak lok."}</div></div>'
-            _siblings_html += f'<span style="color:{sc};font-size:0.7rem">→</span></a>'
+            _siblings_html += f'<span class="material-symbols-outlined" style="color:{sc};font-size:1rem">chevron_right</span></a>'
         _siblings_html += '</div>'
 
     # Zysk per item = cena_allegro - koszt_zakupu - prowizja
@@ -1079,72 +1183,79 @@ def produkt(code):
     _prowizja_rate = ALLEGRO_PROWIZJE.get(_kat, 0.11)
     _prowizja_kwota = _cena_al * _prowizja_rate
     _zysk_szt = _cena_al - _koszt_brutto_szt - _prowizja_kwota if _cena_al > 0 and _koszt_brutto_szt > 0 else 0
-    _zysk_color = '#5bf083' if _zysk_szt >= 0 else '#ef4444'
+    _zysk_color = '#beee00' if _zysk_szt >= 0 else '#ef4444'
 
-    html = f'''<div class="hdr"><h1>📦 PRODUKT</h1></div>'''
-    
+    html = f'''<div class="hdr"><h1><span class="material-symbols-outlined">inventory_2</span> PRODUKT</h1></div>'''
+
     if is_new:
-        html += '<div class="alert alert-warn">🆕 NOWY PRODUKT - kliknij EDYTUJ aby dodać</div>'
+        html += '<div class="alert alert-warn"><span class="material-symbols-outlined" style="font-size:1.1rem">add_circle</span> NOWY PRODUKT - kliknij EDYTUJ aby dodać</div>'
     if msg:
-        html += f'<div class="alert alert-ok">{msg}</div>'
+        html += f'<div class="alert alert-ok"><span class="material-symbols-outlined" style="font-size:1.1rem">check_circle</span> {msg}</div>'
     
-    # 📜 HISTORIA NA GÓRZE - PIERWSZA
+    # HISTORIA NA GÓRZE - PIERWSZA
     if historia:
         html += '''
-        <div class="card" style="margin-bottom:20px;border:2px solid #c180ff;background:rgba(193,128,255,0.05)">
-            <div style="background:rgba(193,128,255,0.12);border:1px solid rgba(193,128,255,0.3);color:#c180ff;padding:18px;border-radius:12px 12px 0 0">
-                <div style="font-size:1.3rem;font-weight:700;color:#fff">📜 HISTORIA ZMIAN</div>
-                <div style="font-size:0.85rem;color:rgba(255,255,255,0.85);margin-top:6px">Ostatnie ''' + str(len(historia)) + ''' działań na tym produkcie</div>
+        <div class="hist-card">
+            <div class="hist-header">
+                <span class="material-symbols-outlined">history</span>
+                <div>
+                    <h3>HISTORIA ZMIAN</h3>
+                    <small>Ostatnie ''' + str(len(historia)) + ''' działań na tym produkcie</small>
+                </div>
             </div>
-            <div style="padding:15px;max-height:400px;overflow-y:auto">'''
-        
-        ikony = {
-            'dodano': '📥', 'edytowano': '✏️', 'wystawiono': '🛒', 
-            'sprzedano': '💰', 'wyslano': '📦', 'zmiana_ceny': '💵',
-            'zmiana_lokalizacji': '📍', 'zmiana_ilosci': '📊',
-            'drukowano': '🏷️', 'skanowano': '📱', 'importowano': '📂',
-            'scrapowano': '🔍', 'wygenerowano_opis': '✨', 'dodano_zdjecia': '📷',
-            'przeniesiono': '🔄', 'oznaczono': '🏷️'
+            <div style="padding:8px;max-height:400px;overflow-y:auto">'''
+
+        ikony_ms = {
+            'dodano': 'download', 'edytowano': 'edit', 'wystawiono': 'shopping_cart',
+            'sprzedano': 'paid', 'wyslano': 'local_shipping', 'zmiana_ceny': 'price_change',
+            'zmiana_lokalizacji': 'pin_drop', 'zmiana_ilosci': 'inventory',
+            'drukowano': 'print', 'skanowano': 'qr_code_scanner', 'importowano': 'upload_file',
+            'scrapowano': 'search', 'wygenerowano_opis': 'auto_awesome', 'dodano_zdjecia': 'photo_camera',
+            'przeniesiono': 'swap_horiz', 'oznaczono': 'label'
         }
-        kolory_bg = {
-            'dodano': 'rgba(59,130,246,0.1)', 'sprzedano': 'rgba(34,197,94,0.15)', 
-            'wystawiono': 'rgba(193,128,255,0.1)', 'wyslano': 'rgba(34,197,94,0.15)', 
-            'zmiana_ceny': 'rgba(234,179,8,0.1)', 'skanowano': 'rgba(59,130,246,0.1)',
-            'wygenerowano_opis': 'rgba(193,128,255,0.1)', 'importowano': 'rgba(59,130,246,0.1)', 
-            'scrapowano': 'rgba(193,128,255,0.1)', 'drukowano': 'rgba(193,128,255,0.1)'
+        kolory_ikona = {
+            'dodano': '#8ff5ff', 'sprzedano': '#beee00',
+            'wystawiono': '#ff6b9b', 'wyslano': '#beee00',
+            'zmiana_ceny': '#f59e0b', 'skanowano': '#8ff5ff',
+            'wygenerowano_opis': '#ff6b9b', 'importowano': '#8ff5ff',
+            'scrapowano': '#ff6b9b', 'drukowano': '#ff6b9b'
         }
         for h in historia:
-            h = dict(h)  # Konwersja Row -> dict
-            ikona = ikony.get(h['akcja'], '📌')
-            bg_color = kolory_bg.get(h['akcja'], 'rgba(30,30,46,0.5)')
+            h = dict(h)
+            ms_icon = ikony_ms.get(h['akcja'], 'push_pin')
+            icon_color = kolory_ikona.get(h['akcja'], '#8ff5ff')
             data_str = h['data'][:16] if h['data'] else ''
-            
-            # Dane JSON
+
             dane_extra = ''
             if h.get('dane_json'):
                 try:
                     import json
                     dane = json.loads(h['dane_json'])
                     if dane:
-                        dane_extra = '<div style="font-size:0.75rem;color:#c180ff;margin-top:6px">'
+                        dane_extra = '<div class="hist-tags">'
                         for k, v in dane.items():
                             if k not in ['allegro_id']:
-                                dane_extra += f'<span style="background:rgba(139,92,246,0.15);padding:3px 8px;border-radius:6px;margin-right:6px">{k}: {v}</span>'
+                                dane_extra += f'<span class="hist-tag">{k}: {v}</span>'
                         dane_extra += '</div>'
                 except:
                     pass
-            
+
             html += f'''
-            <div style="background:{bg_color};border:1px solid rgba(139,92,246,0.3);border-radius:10px;padding:14px;margin-bottom:12px">
-                <div style="display:flex;justify-content:space-between;align-items:start">
-                    <div style="flex:1">
-                        <div style="font-size:1.05rem;font-weight:600;color:#fff;margin-bottom:4px">{ikona} {h['opis']}</div>
+            <div class="hist-entry">
+                <div style="display:flex;align-items:start;gap:10px;flex:1;min-width:0">
+                    <div class="hist-icon" style="background:{icon_color}15;border:1px solid {icon_color}33">
+                        <span class="material-symbols-outlined" style="color:{icon_color}">{ms_icon}</span>
+                    </div>
+                    <div style="flex:1;min-width:0">
+                        <div class="hist-text">{h['opis']}</div>
                         {dane_extra}
                     </div>
-                    <div style="display:flex;align-items:center;gap:10px;margin-left:15px">
-                        <div style="font-size:0.8rem;color:#64748b;white-space:nowrap">{data_str}</div>
-                        <a href="/magazyn/historia/{h['id']}/edytuj" style="color:#fbbf24;text-decoration:none;font-size:0.9rem" title="Edytuj">✏️</a>
-                        <a href="/magazyn/historia/{h['id']}/usun?redirect=/magazyn/produkt/{product_code}" onclick="return confirm('Usunąć ten wpis z historii?')" style="color:#ef4444;text-decoration:none;font-size:0.9rem" title="Usuń">🗑️</a>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+                    <span class="hist-date">{data_str}</span>
+                    <div class="hist-actions">
+                        <a href="/magazyn/historia/{h['id']}/edytuj" title="Edytuj"><span class="material-symbols-outlined">edit</span></a>
+                        <a href="/magazyn/historia/{h['id']}/usun?redirect=/magazyn/produkt/{product_code}" onclick="return confirm('Usunąć ten wpis z historii?')" title="Usuń"><span class="material-symbols-outlined">delete</span></a>
                     </div>
                 </div>
             </div>'''
@@ -1164,43 +1275,43 @@ def produkt(code):
         # Status badge
         current_status = p['status'] if p['status'] else 'nowy'
         status_badges = {
-            'nowy': ('📦', 'MAGAZYN', '#00f1fe'),
-            'wystawiony': ('🛒', 'ALLEGRO', 'var(--purple)'),
-            'sprzedany': ('💰', 'SPRZEDANE', '#5bf083'),
-            'wyslany': ('📮', 'WYSŁANE', '#5bf083'),
-            'uszkodzony': ('⚠️', 'USZKODZONY', 'var(--red)'),
-            'zwrot': ('↩️', 'ZWROT', 'var(--yellow)')
+            'nowy': ('inventory_2', 'MAGAZYN', '#8ff5ff'),
+            'wystawiony': ('shopping_cart', 'ALLEGRO', '#ff6b9b'),
+            'sprzedany': ('paid', 'SPRZEDANE', '#beee00'),
+            'wyslany': ('local_shipping', 'WYSŁANE', '#beee00'),
+            'uszkodzony': ('warning', 'USZKODZONY', 'var(--red)'),
+            'zwrot': ('undo', 'ZWROT', 'var(--yellow)')
         }
-        icon, label, color = status_badges.get(current_status, ('📦', 'MAGAZYN', '#00f1fe'))
-        
+        icon, label, color = status_badges.get(current_status, ('inventory_2', 'MAGAZYN', '#8ff5ff'))
+
         quick_actions = f'''
-        <div style="background:rgba(193,128,255,0.05);border:2px solid {color};border-radius:10px;padding:15px;margin-bottom:15px">
+        <div class="status-panel" style="border-color:{color}">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
                 <div>
-                    <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:4px">STATUS PRODUKTU</div>
-                    <div style="font-size:1.2rem;font-weight:700;color:{color}">{icon} {label}</div>
+                    <div class="status-label">STATUS PRODUKTU</div>
+                    <div class="status-value" style="color:{color}"><span class="material-symbols-outlined">{icon}</span> {label}</div>
                 </div>
                 <form method="POST" action="/magazyn/produkt/{product_code}/zmien-status" style="display:flex;gap:8px;align-items:center">
                     <select name="new_status" class="form-input" style="padding:8px 12px;font-size:0.85rem;min-width:150px" onchange="this.form.submit()">
                         <option value="">-- Zmień na --</option>
-                        <option value="nowy" {'selected' if current_status == 'nowy' else ''}>📦 Magazyn</option>
-                        <option value="wystawiony" {'selected' if current_status == 'wystawiony' else ''}>🛒 Allegro</option>
-                        <option value="sprzedany" {'selected' if current_status == 'sprzedany' else ''}>💰 Sprzedany</option>
-                        <option value="wyslany" {'selected' if current_status == 'wyslany' else ''}>📮 Wysłany</option>
-                        <option value="uszkodzony" {'selected' if current_status == 'uszkodzony' else ''}>⚠️ Uszkodzony</option>
-                        <option value="zwrot" {'selected' if current_status == 'zwrot' else ''}>↩️ Zwrot</option>
+                        <option value="nowy" {'selected' if current_status == 'nowy' else ''}>Magazyn</option>
+                        <option value="wystawiony" {'selected' if current_status == 'wystawiony' else ''}>Allegro</option>
+                        <option value="sprzedany" {'selected' if current_status == 'sprzedany' else ''}>Sprzedany</option>
+                        <option value="wyslany" {'selected' if current_status == 'wyslany' else ''}>Wysłany</option>
+                        <option value="uszkodzony" {'selected' if current_status == 'uszkodzony' else ''}>Uszkodzony</option>
+                        <option value="zwrot" {'selected' if current_status == 'zwrot' else ''}>Zwrot</option>
                     </select>
                 </form>
             </div>
         </div>
-        
+
         <div class="quick-actions">
-            <a href="/magazyn/produkt/{product_code}/sprzedaj" class="quick-btn" style="background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083">💰 -1 SZT</a>
-            <a href="/magazyn/etykieta-mobilna/{product_code}" class="quick-btn" style="background:var(--purple)">📱 ETYKIETA</a>
-            <a href="/magazyn/produkt/{product_code}/edytuj" class="quick-btn" style="background:var(--yellow);color:#000">✏️ EDYTUJ</a>
-            <a href="/paletomat/generator/from-magazyn/{p['id']}" class="quick-btn" style="background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe">🛒 WYSTAW</a>
+            <a href="/magazyn/produkt/{product_code}/sprzedaj" class="quick-btn" style="background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.25);color:#beee00"><span class="material-symbols-outlined">remove_shopping_cart</span> -1 SZT</a>
+            <a href="/magazyn/etykieta-mobilna/{product_code}" class="quick-btn" style="background:rgba(255,107,155,0.15);border:1px solid rgba(255,107,155,0.25);color:#ff6b9b"><span class="material-symbols-outlined">label</span> ETYKIETA</a>
+            <a href="/magazyn/produkt/{product_code}/edytuj" class="quick-btn" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.25);color:#f59e0b"><span class="material-symbols-outlined">edit</span> EDYTUJ</a>
+            <a href="/paletomat/generator/from-magazyn/{p['id']}" class="quick-btn" style="background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);color:#8ff5ff"><span class="material-symbols-outlined">storefront</span> WYSTAW</a>
             <form method="POST" action="/magazyn/produkt/{product_code}/usun" style="display:inline" onsubmit="return confirm('Na pewno usunąć ten produkt?')">
-                <button type="submit" class="quick-btn" style="background:var(--red);border:none;cursor:pointer">🗑️ USUŃ</button>
+                <button type="submit" class="quick-btn" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.25);color:#ef4444;width:100%;cursor:pointer"><span class="material-symbols-outlined">delete</span> USUŃ</button>
             </form>
         </div>
         '''
@@ -1214,26 +1325,26 @@ def produkt(code):
             {quick_actions}
             
             <div class="loc">
-                <div class="loc-title">📍 Lokalizacja</div>
+                <div class="loc-title"><span class="material-symbols-outlined">pin_drop</span> Lokalizacja</div>
                 <div class="loc-grid">
                     <div><div class="loc-l">Regał</div><div class="loc-v">{p['lokalizacja'] or '—'}</div></div>
                     <div><div class="loc-l">Paleta</div><div class="loc-v">{p['paleta'] or '—'}</div></div>
                     <div><div class="loc-l">Dostawca</div><div class="loc-v dostawca-name">{(p['dostawca'] or '—')[:6]}</div></div>
                 </div>
             </div>
-            
+
             <div class="det-grid">
-                <div class="det" style="border:1px solid #c180ff44;border-radius:8px"><div class="det-l">🏷️ Kod mag.</div><div class="det-v" style="color:#c180ff;font-weight:700">{p.get('kod_magazynowy') or f"#{p['id']}"}</div></div>
-                <div class="det" onclick="navigator.clipboard.writeText('{ean_display}');this.querySelector('.det-v').style.color='#5bf083';setTimeout(()=>this.querySelector('.det-v').style.color='',800)" style="cursor:pointer" title="Kliknij aby skopiować"><div class="det-l">EAN 📋</div><div class="det-v" style="font-size:0.75rem;user-select:all">{ean_display}</div></div>
-                <div class="det" onclick="navigator.clipboard.writeText('{asin_display}');this.querySelector('.det-v').style.color='#5bf083';setTimeout(()=>this.querySelector('.det-v').style.color='',800)" style="cursor:pointer" title="Kliknij aby skopiować"><div class="det-l">ASIN 📋</div><div class="det-v" style="font-size:0.75rem;user-select:all">{asin_display}</div></div>
-                <div class="det"><div class="det-l">Ilość</div><div class="det-v"><span class="badge {badge}">{p['ilosc']} szt</span></div></div>
-                <div class="det"><div class="det-l">Stan</div><div class="det-v">{p['stan'] or 'Nowy'}</div></div>
-                <div class="det"><div class="det-l">Klasa</div><div class="det-v">{_klasa_display}</div></div>
-                <div class="det"><div class="det-l">💰 Koszt/szt brutto</div><div class="det-v">{_koszt_brutto_szt:.2f} zł</div></div>
-                <div class="det"><div class="det-l">💰 Koszt/szt netto</div><div class="det-v">{_koszt_brutto_szt / 1.23:.2f} zł</div></div>
-                <div class="det"><div class="det-l">💵 Cena Allegro</div><div class="det-v green">{p['cena_allegro'] or 0:.2f} zł</div></div>
-                <div class="det"><div class="det-l">📊 Prowizja ({int(_prowizja_rate*100)}%)</div><div class="det-v" style="color:#f59e0b">{_prowizja_kwota:.2f} zł</div></div>
-                <div class="det" style="border:1px solid {_zysk_color}44;border-radius:8px"><div class="det-l">💎 Zysk/szt</div><div class="det-v" style="color:{_zysk_color};font-weight:700;font-size:1.1rem">{_zysk_szt:.2f} zł</div></div>
+                <div class="det" style="border:1px solid rgba(255,107,155,0.2)"><div class="det-l"><span class="material-symbols-outlined" style="color:#ff6b9b">label</span> Kod mag.</div><div class="det-v" style="color:#ff6b9b;font-weight:700">{p.get('kod_magazynowy') or f"#{p['id']}"}</div></div>
+                <div class="det" onclick="navigator.clipboard.writeText('{ean_display}');this.querySelector('.det-v').style.color='#beee00';setTimeout(()=>this.querySelector('.det-v').style.color='',800)" style="cursor:pointer" title="Kliknij aby skopiować"><div class="det-l"><span class="material-symbols-outlined">content_copy</span> EAN</div><div class="det-v" style="font-size:0.75rem;user-select:all">{ean_display}</div></div>
+                <div class="det" onclick="navigator.clipboard.writeText('{asin_display}');this.querySelector('.det-v').style.color='#beee00';setTimeout(()=>this.querySelector('.det-v').style.color='',800)" style="cursor:pointer" title="Kliknij aby skopiować"><div class="det-l"><span class="material-symbols-outlined">content_copy</span> ASIN</div><div class="det-v" style="font-size:0.75rem;user-select:all">{asin_display}</div></div>
+                <div class="det"><div class="det-l"><span class="material-symbols-outlined">inventory</span> Ilość</div><div class="det-v"><span class="badge {badge}">{p['ilosc']} szt</span></div></div>
+                <div class="det"><div class="det-l"><span class="material-symbols-outlined">grade</span> Stan</div><div class="det-v">{p['stan'] or 'Nowy'}</div></div>
+                <div class="det"><div class="det-l"><span class="material-symbols-outlined">stars</span> Klasa</div><div class="det-v">{_klasa_display}</div></div>
+                <div class="det"><div class="det-l"><span class="material-symbols-outlined">payments</span> Koszt/szt brutto</div><div class="det-v">{_koszt_brutto_szt:.2f} zł</div></div>
+                <div class="det"><div class="det-l"><span class="material-symbols-outlined">payments</span> Koszt/szt netto</div><div class="det-v">{_koszt_brutto_szt / 1.23:.2f} zł</div></div>
+                <div class="det"><div class="det-l"><span class="material-symbols-outlined">storefront</span> Cena Allegro</div><div class="det-v green">{p['cena_allegro'] or 0:.2f} zł</div></div>
+                <div class="det"><div class="det-l"><span class="material-symbols-outlined">percent</span> Prowizja ({int(_prowizja_rate*100)}%)</div><div class="det-v" style="color:#f59e0b">{_prowizja_kwota:.2f} zł</div></div>
+                <div class="det" style="border:1px solid {_zysk_color}33"><div class="det-l"><span class="material-symbols-outlined" style="color:{_zysk_color}">diamond</span> Zysk/szt</div><div class="det-v" style="color:{_zysk_color};font-weight:700;font-size:1.1rem">{_zysk_szt:.2f} zł</div></div>
             </div>
         </div>
 
@@ -1241,25 +1352,25 @@ def produkt(code):
 
         <div style="padding:15px">
             <!-- GŁÓWNE AKCJE — 2 kolumny -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-                <a href="/magazyn/produkt/{product_code}/edytuj" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:10px;color:#f59e0b;font-weight:600;font-size:0.82rem;text-decoration:none;transition:all 0.2s" onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.12)'">✏️ Edytuj</a>
-                <button onclick="pokazOcenStan({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']}, '{(p.get('stan_przyjecia','') or '').replace(chr(39), '')}')" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);border-radius:10px;color:#00f1fe;font-weight:600;font-size:0.82rem;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='rgba(0,241,254,0.2)'" onmouseout="this.style.background='rgba(0,241,254,0.12)'">⭐ Oceń stan</button>
+            <div class="act-grid act-grid-2">
+                <a href="/magazyn/produkt/{product_code}/edytuj" class="act-btn" style="background:rgba(245,158,11,0.10);border-color:rgba(245,158,11,0.25);color:#f59e0b"><span class="material-symbols-outlined">edit</span> Edytuj</a>
+                <button onclick="pokazOcenStan({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']}, '{(p.get('stan_przyjecia','') or '').replace(chr(39), '')}')" class="act-btn" style="background:rgba(143,245,255,0.10);border-color:rgba(143,245,255,0.25);color:#8ff5ff"><span class="material-symbols-outlined">star</span> Oceń stan</button>
             </div>
             <!-- NARZĘDZIA — kompaktowy grid 4 kolumny -->
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
-                <a href="/magazyn/drukuj/{product_code}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;background:rgba(193,128,255,0.08);border:1px solid rgba(193,128,255,0.15);border-radius:8px;color:#c180ff;font-size:0.65rem;text-decoration:none;text-align:center;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(193,128,255,0.4)'" onmouseout="this.style.borderColor='rgba(193,128,255,0.15)'"><span style="font-size:1.1rem">🖨️</span>Drukuj</a>
-                <a href="/magazyn/etykiety/niimbot/png/{p['id']}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;background:rgba(0,241,254,0.08);border:1px solid rgba(0,241,254,0.15);border-radius:8px;color:#00f1fe;font-size:0.65rem;text-decoration:none;text-align:center;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(0,241,254,0.4)'" onmouseout="this.style.borderColor='rgba(0,241,254,0.15)'"><span style="font-size:1.1rem">📋</span>PNG</a>
-                <a href="/magazyn/produkt/{product_code}/opis" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;background:rgba(193,128,255,0.08);border:1px solid rgba(193,128,255,0.15);border-radius:8px;color:#c180ff;font-size:0.65rem;text-decoration:none;text-align:center;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(193,128,255,0.4)'" onmouseout="this.style.borderColor='rgba(193,128,255,0.15)'"><span style="font-size:1.1rem">✨</span>Opis AI</a>
-                <button onclick="rescrapZdjecia({p['id']}, this)" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;background:rgba(6,182,212,0.08);border:1px solid rgba(6,182,212,0.15);border-radius:8px;color:#06b6d4;font-size:0.65rem;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(6,182,212,0.4)'" onmouseout="this.style.borderColor='rgba(6,182,212,0.15)'"><span style="font-size:1.1rem">📸</span>Zdjęcia</button>
+            <div class="act-grid act-grid-4">
+                <a href="/magazyn/drukuj/{product_code}" class="act-btn-sm" style="background:rgba(255,107,155,0.06);border-color:rgba(255,107,155,0.15);color:#ff6b9b"><span class="material-symbols-outlined">print</span>Drukuj</a>
+                <a href="/magazyn/etykiety/niimbot/png/{p['id']}" class="act-btn-sm" style="background:rgba(143,245,255,0.06);border-color:rgba(143,245,255,0.15);color:#8ff5ff"><span class="material-symbols-outlined">image</span>PNG</a>
+                <a href="/magazyn/produkt/{product_code}/opis" class="act-btn-sm" style="background:rgba(255,107,155,0.06);border-color:rgba(255,107,155,0.15);color:#ff6b9b"><span class="material-symbols-outlined">auto_awesome</span>Opis AI</a>
+                <button onclick="rescrapZdjecia({p['id']}, this)" class="act-btn-sm" style="background:rgba(143,245,255,0.06);border-color:rgba(143,245,255,0.15);color:#8ff5ff"><span class="material-symbols-outlined">photo_camera</span>Zdjęcia</button>
             </div>
             <!-- ZAAWANSOWANE — collapsible -->
             <details style="margin-bottom:4px">
-                <summary style="padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#64748b;font-size:0.75rem;cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(255,255,255,0.12)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.06)'">⚙️ Więcej akcji <span style="margin-left:auto;font-size:0.6rem">▼</span></summary>
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:8px 0 0">
-                    <button onclick="pokazGPSR()" style="padding:8px;background:rgba(5,150,105,0.08);border:1px solid rgba(5,150,105,0.15);border-radius:8px;color:#059669;font-size:0.7rem;cursor:pointer">🛡️ GPSR</button>
-                    <button onclick="pokazRozbijProdukt({p['id']}, {p['ilosc']}, '{p['nazwa'][:40].replace(chr(39), '')}')" style="padding:8px;background:rgba(91,240,131,0.08);border:1px solid rgba(91,240,131,0.15);border-radius:8px;color:#5bf083;font-size:0.7rem;cursor:pointer">🎯 Rozbij</button>
-                    <button onclick="pokazNaprawaProdukt({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" style="padding:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);border-radius:8px;color:#f59e0b;font-size:0.7rem;cursor:pointer">🔧 Naprawa</button>
-                    <button onclick="wyslijDoSerwisu({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" style="padding:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.15);border-radius:8px;color:#ef4444;font-size:0.7rem;cursor:pointer">🔧 Serwis</button>
+                <summary style="padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;color:#64748b;font-size:0.75rem;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;transition:all 0.2s;font-family:'Space Grotesk',sans-serif"><span class="material-symbols-outlined" style="font-size:1rem">settings</span> Więcej akcji <span class="material-symbols-outlined" style="margin-left:auto;font-size:0.9rem">expand_more</span></summary>
+                <div class="act-grid act-grid-3" style="padding:8px 0 0">
+                    <button onclick="pokazGPSR()" class="act-btn-sm" style="background:rgba(5,150,105,0.06);border-color:rgba(5,150,105,0.15);color:#059669"><span class="material-symbols-outlined">shield</span>GPSR</button>
+                    <button onclick="pokazRozbijProdukt({p['id']}, {p['ilosc']}, '{p['nazwa'][:40].replace(chr(39), '')}')" class="act-btn-sm" style="background:rgba(190,238,0,0.06);border-color:rgba(190,238,0,0.15);color:#beee00"><span class="material-symbols-outlined">call_split</span>Rozbij</button>
+                    <button onclick="pokazNaprawaProdukt({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="act-btn-sm" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.15);color:#f59e0b"><span class="material-symbols-outlined">build</span>Naprawa</button>
+                    <button onclick="wyslijDoSerwisu({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="act-btn-sm" style="background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.15);color:#ef4444"><span class="material-symbols-outlined">handyman</span>Serwis</button>
                 </div>
             </details>
         </div>
@@ -1267,24 +1378,24 @@ def produkt(code):
         <!-- SZTUKI SECTION -->
         <div id="sztukiSekcja" style="margin:0 15px 15px;display:none">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-                <div style="font-weight:700;font-size:1rem">📦 Ewidencja sztuk</div>
-                <button onclick="pokazRozbijProdukt({p['id']}, {p['ilosc']}, '{p['nazwa'][:40].replace(chr(39), '')}')" 
-                    style="padding:5px 12px;background:#5bf08322;border:1px solid #5bf083;border-radius:8px;color:#5bf083;font-size:0.75rem;cursor:pointer">🎯 Zmień rozbicie</button>
+                <div style="font-weight:700;font-size:1rem;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="color:#8ff5ff;font-size:1.2rem">inventory_2</span> Ewidencja sztuk</div>
+                <button onclick="pokazRozbijProdukt({p['id']}, {p['ilosc']}, '{p['nazwa'][:40].replace(chr(39), '')}')"
+                    style="padding:5px 12px;background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.25);border-radius:8px;color:#beee00;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:0.9rem">call_split</span> Zmień rozbicie</button>
             </div>
             <div id="sztukiKarty"></div>
         </div>
         
         <!-- GPSR Modal -->
-        <div id="gpsrModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:1000;padding:20px;overflow:auto">
-            <div style="max-width:600px;margin:50px auto;background:var(--card);border-radius:12px;padding:20px">
+        <div id="gpsrModal" class="cyber-modal">
+            <div class="cyber-modal-inner" style="max-width:600px">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-                    <h3 style="margin:0">🛡️ GPSR - Informacje o bezpieczeństwie</h3>
-                    <button onclick="document.getElementById('gpsrModal').style.display='none'" style="background:none;border:none;color:white;font-size:24px;cursor:pointer">&times;</button>
+                    <div class="cyber-modal-title" style="color:#059669"><span class="material-symbols-outlined">shield</span> GPSR - Bezpieczeństwo</div>
+                    <button onclick="document.getElementById('gpsrModal').style.display='none'" class="cyber-modal-close">&times;</button>
                 </div>
-                <div id="gpsrContent" style="background:var(--bg);padding:15px;border-radius:8px;white-space:pre-wrap;font-family:monospace;font-size:13px;max-height:400px;overflow:auto"></div>
+                <div id="gpsrContent" style="background:rgba(10,10,22,0.6);padding:15px;border-radius:10px;white-space:pre-wrap;font-family:monospace;font-size:13px;max-height:400px;overflow:auto;border:1px solid rgba(255,255,255,0.05)"></div>
                 <div style="margin-top:15px;display:flex;gap:10px">
-                    <button onclick="kopiujGPSR()" class="btn btn-ok" style="flex:1">📋 KOPIUJ</button>
-                    <button onclick="document.getElementById('gpsrModal').style.display='none'" class="btn" style="flex:1;background:#6b7280">Zamknij</button>
+                    <button onclick="kopiujGPSR()" style="flex:1;padding:12px;background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.25);border-radius:10px;color:#beee00;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Space Grotesk',sans-serif"><span class="material-symbols-outlined" style="font-size:1rem">content_copy</span> KOPIUJ</button>
+                    <button onclick="document.getElementById('gpsrModal').style.display='none'" style="flex:1;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#64748b;cursor:pointer;font-family:'Space Grotesk',sans-serif">Zamknij</button>
                 </div>
             </div>
         </div>
@@ -1318,7 +1429,7 @@ def produkt(code):
             .then(function(d) {{
                 if (d.ok) {{
                     btn.textContent = '⏳ Pobieranie w tle...';
-                    btn.style.background = '#5bf083';
+                    btn.style.background = '#beee00';
                     // Sprawdzaj co 5s czy zdjecie sie pojawilo
                     var checks = 0;
                     var checkInterval = setInterval(function() {{
@@ -1368,7 +1479,7 @@ def produkt(code):
             }}
         }}
         
-        const KOLOR_STAN = {{'Nowy':'#5bf083','Powystawowy':'#00f1fe','Używany':'#eab308','Uszkodzony':'#ef4444','Odnowiony':'#c180ff'}};
+        const KOLOR_STAN = {{'Nowy':'#beee00','Powystawowy':'#8ff5ff','Używany':'#eab308','Uszkodzony':'#ef4444','Odnowiony':'#ff6b9b'}};
         const PROD_ID = {p['id']};
         const PROD_ZDJECIE = "{p.get('zdjecie_url', '') or ''}";
         const STANY_WYMAGAJACE_FOTO = ['Powystawowy','Używany','Uszkodzony'];
@@ -1389,14 +1500,14 @@ def produkt(code):
         
         function renderKartaSztuki(s) {{
             const k = KOLOR_STAN[s.stan] || '#64748b';
-            const statusIcons = {{'magazyn':'📦','naprawa':'🔧','sprzedany':'✅','wyslany':'🚚','uszkodzony':'💥'}};
+            const statusIcons = {{'magazyn':'inventory_2','naprawa':'build','sprzedany':'check_circle','wyslany':'local_shipping','uszkodzony':'error'}};
             const zdjecieSrc = s.zdjecie || '';
             const wymaga_foto = STANY_WYMAGAJACE_FOTO.includes(s.stan);
             const hasNote = s.opis_naprawy && s.opis_naprawy.trim();
 
             const imgSrc = zdjecieSrc || PROD_ZDJECIE || '';
             const STAN_KLASA = {{'Nowy':'A','Jak nowy':'A-','Powystawowy':'A-','Używany':'B','Uszkodzony':'C','Zniszczony':'D','Odnowiony':'B'}};
-            const KLASA_COLOR = {{'A':'#5bf083','A-':'#00f1fe','B':'#eab308','C':'#f97316','D':'#ef4444'}};
+            const KLASA_COLOR = {{'A':'#beee00','A-':'#8ff5ff','B':'#eab308','C':'#f97316','D':'#ef4444'}};
             const klasa = STAN_KLASA[s.stan] || '?';
             const klasaColor = KLASA_COLOR[klasa] || '#64748b';
             return `<div id="karta_${{s.id}}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:5px;background:rgba(255,255,255,0.02);border:1px solid ${{s.status==='naprawa'?'#f59e0b33':'rgba(255,255,255,0.05)'}};border-radius:10px;transition:all 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
@@ -1415,13 +1526,13 @@ def produkt(code):
                         `<option value="${{v}}" ${{v===s.status?'selected':''}}>${{(statusIcons[v]||'')+' '+v}}</option>`).join('')}}
                 </select>
                 <div style="flex:1"></div>
-                ${{!zdjecieSrc && wymaga_foto ? `<label for="foto_${{s.id}}" style="cursor:pointer;font-size:0.75rem;color:#f59e0b" title="Dodaj zdjęcie stanu">📷</label><input type="file" id="foto_${{s.id}}" accept="image/*" capture="environment" style="display:none" onchange="uploadZdjecie(${{s.id}}, this)">` : ''}}
-                <button onclick="toggleNotatka(${{s.id}})" style="background:none;border:none;color:${{hasNote?'#00f1fe':'#334155'}};cursor:pointer;font-size:0.8rem;padding:2px" title="${{hasNote ? s.opis_naprawy.substring(0,50) : 'Dodaj notatkę'}}">📝</button>
+                ${{!zdjecieSrc && wymaga_foto ? `<label for="foto_${{s.id}}" style="cursor:pointer;color:#f59e0b" title="Dodaj zdjęcie stanu"><span class="material-symbols-outlined" style="font-size:1.1rem">photo_camera</span></label><input type="file" id="foto_${{s.id}}" accept="image/*" capture="environment" style="display:none" onchange="uploadZdjecie(${{s.id}}, this)">` : ''}}
+                <button onclick="toggleNotatka(${{s.id}})" style="background:none;border:none;color:${{hasNote?'#8ff5ff':'#334155'}};cursor:pointer;padding:2px" title="${{hasNote ? s.opis_naprawy.substring(0,50) : 'Dodaj notatkę'}}"><span class="material-symbols-outlined" style="font-size:1.1rem">edit_note</span></button>
             </div>
             <div id="notatka_wrap_${{s.id}}" style="display:none;padding:4px 10px 8px 38px">
                 <div style="display:flex;gap:6px;align-items:center">
                     <input id="notatka_${{s.id}}" value="${{(s.opis_naprawy||'').replace(/"/g,'&quot;')}}" placeholder="Notatka..." style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#e2e8f0;padding:5px 8px;font-size:0.75rem">
-                    <button onclick="zapiszNotatke(${{s.id}})" style="background:#00f1fe15;border:1px solid #00f1fe33;border-radius:6px;color:#00f1fe;padding:4px 10px;font-size:0.7rem;cursor:pointer">💾</button>
+                    <button onclick="zapiszNotatke(${{s.id}})" style="background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.2);border-radius:6px;color:#8ff5ff;padding:4px 10px;font-size:0.7rem;cursor:pointer"><span class="material-symbols-outlined" style="font-size:0.9rem">save</span></button>
                 </div>
             </div>`;
         }}
@@ -1469,11 +1580,11 @@ def produkt(code):
             const body = pole === 'status' ? {{status: wartosc}} : {{stan: wartosc}};
             const resp = await fetch(endpoint, {{method:'POST', headers:{{'Content-Type':'application/json'}}, body:JSON.stringify(body)}});
             if (resp.ok) {{
-                karta.style.border = '1px solid #5bf083';
-                setTimeout(() => {{ karta.style.border = '1px solid #1e1e2e'; ladujSztuki(); }}, 800);
+                karta.style.border = '1px solid #beee00';
+                setTimeout(() => {{ karta.style.border = '1px solid rgba(255,255,255,0.05)'; ladujSztuki(); }}, 800);
             }}
         }}
-        
+
         async function zapiszNotatke(id) {{
             const notatka = document.getElementById('notatka_' + id).value;
             const resp = await fetch('/api/sztuki/jednostka/' + id + '/notatka', {{
@@ -1482,8 +1593,8 @@ def produkt(code):
             }});
             const karta = document.getElementById('karta_' + id);
             if (resp.ok) {{
-                karta.style.border = '1px solid #5bf083';
-                setTimeout(() => karta.style.border = '1px solid #1e1e2e', 1000);
+                karta.style.border = '1px solid #beee00';
+                setTimeout(() => karta.style.border = '1px solid rgba(255,255,255,0.05)', 1000);
             }}
         }}
         
@@ -1507,52 +1618,52 @@ def produkt(code):
         </script>
 
     <!-- MODAL ROZBIJ -->
-    <div id="modalRozbijProd" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:20px">
-      <div style="background:#1e1e2e;border-radius:16px;padding:20px;max-width:440px;margin:0 auto">
-        <div style="font-size:1.2rem;font-weight:700;margin-bottom:4px">🎯 Rozbij stan na sztuki</div>
+    <div id="modalRozbijProd" class="cyber-modal">
+      <div class="cyber-modal-inner">
+        <div class="cyber-modal-title" style="color:#beee00"><span class="material-symbols-outlined">call_split</span> Rozbij stan na sztuki</div>
         <div id="rozbijProdNazwa" style="color:#94a3b8;font-size:0.85rem;margin-bottom:15px"></div>
-        <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;margin-bottom:15px">
+        <div style="background:rgba(10,10,22,0.6);border:1px solid rgba(143,245,255,0.08);border-radius:10px;padding:12px;margin-bottom:15px">
           <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-            <span style="color:#94a3b8">Łącznie sztuk:</span><span id="rozbijProdLacznie" style="font-weight:700"></span>
+            <span style="color:#94a3b8">Łącznie sztuk:</span><span id="rozbijProdLacznie" style="font-weight:700;font-family:'Space Grotesk',sans-serif"></span>
           </div>
           <div style="display:flex;justify-content:space-between">
-            <span style="color:#94a3b8">Suma wpisanych:</span><span id="rozbijProdSuma" style="font-weight:700;color:#5bf083"></span>
+            <span style="color:#94a3b8">Suma wpisanych:</span><span id="rozbijProdSuma" style="font-weight:700;color:#beee00;font-family:'Space Grotesk',sans-serif"></span>
           </div>
         </div>
         <div id="rozbijProdStany"></div>
         <div style="color:#94a3b8;font-size:0.75rem;margin:10px 0 6px">Szybkie ustawienie:</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:15px">
-          <button onclick="rozbijProdSzybko('Nowy')" style="padding:6px 10px;background:#5bf08322;border:1px solid #5bf083;border-radius:8px;color:#5bf083;font-size:0.75rem;cursor:pointer">🟢 Wszystko nowe</button>
-          <button onclick="rozbijProdSzybko('Powystawowy')" style="padding:6px 10px;background:#00f1fe22;border:1px solid #00f1fe;border-radius:8px;color:#00f1fe;font-size:0.75rem;cursor:pointer">🔵 Powystawowe</button>
-          <button onclick="rozbijProdSzybko('Używany')" style="padding:6px 10px;background:#eab30822;border:1px solid #eab308;border-radius:8px;color:#eab308;font-size:0.75rem;cursor:pointer">🟡 Używane</button>
-          <button onclick="rozbijProdSzybko('Uszkodzony')" style="padding:6px 10px;background:#ef444422;border:1px solid #ef4444;border-radius:8px;color:#ef4444;font-size:0.75rem;cursor:pointer">🔴 Uszkodzone</button>
+          <button onclick="rozbijProdSzybko('Nowy')" style="padding:6px 10px;background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.25);border-radius:8px;color:#beee00;font-size:0.75rem;cursor:pointer">Wszystko nowe</button>
+          <button onclick="rozbijProdSzybko('Powystawowy')" style="padding:6px 10px;background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);border-radius:8px;color:#8ff5ff;font-size:0.75rem;cursor:pointer">Powystawowe</button>
+          <button onclick="rozbijProdSzybko('Używany')" style="padding:6px 10px;background:rgba(234,179,8,0.10);border:1px solid rgba(234,179,8,0.25);border-radius:8px;color:#eab308;font-size:0.75rem;cursor:pointer">Używane</button>
+          <button onclick="rozbijProdSzybko('Uszkodzony')" style="padding:6px 10px;background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.25);border-radius:8px;color:#ef4444;font-size:0.75rem;cursor:pointer">Uszkodzone</button>
         </div>
         <div style="display:flex;gap:8px">
-          <button onclick="document.getElementById('modalRozbijProd').style.display='none'" style="flex:1;padding:12px;background:#334155;border:none;border-radius:10px;color:#fff;cursor:pointer">Anuluj</button>
-          <button onclick="zapiszRozbijProd()" style="flex:1;padding:12px;background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);border-radius:10px;color:#000;font-weight:700;cursor:pointer">✓ Zapisz</button>
+          <button onclick="document.getElementById('modalRozbijProd').style.display='none'" style="flex:1;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#fff;cursor:pointer;font-family:'Space Grotesk',sans-serif">Anuluj</button>
+          <button onclick="zapiszRozbijProd()" style="flex:1;padding:12px;background:rgba(190,238,0,0.15);border:1px solid rgba(190,238,0,0.3);border-radius:10px;color:#beee00;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px"><span class="material-symbols-outlined" style="font-size:1rem">check</span> Zapisz</button>
         </div>
       </div>
     </div>
 
     <!-- MODAL NAPRAWA -->
-    <div id="modalNaprawaProd" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto;padding:20px">
-      <div style="background:#1e1e2e;border-radius:16px;padding:20px;max-width:440px;margin:0 auto">
+    <div id="modalNaprawaProd" class="cyber-modal">
+      <div class="cyber-modal-inner">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <div style="font-size:1.2rem;font-weight:700">🔧 Do naprawy</div>
-          <button onclick="document.getElementById('modalNaprawaProd').style.display='none'" style="background:none;border:none;color:#94a3b8;font-size:1.3rem;cursor:pointer">✕</button>
+          <div class="cyber-modal-title" style="color:#f59e0b"><span class="material-symbols-outlined">build</span> Do naprawy</div>
+          <button onclick="document.getElementById('modalNaprawaProd').style.display='none'" class="cyber-modal-close">&times;</button>
         </div>
         <div id="naprawaProdNazwa" style="color:#94a3b8;font-size:0.85rem;margin-bottom:15px"></div>
         <div id="naprawaProdLista"></div>
-        <button onclick="document.getElementById('modalNaprawaProd').style.display='none'" style="width:100%;padding:12px;background:#334155;border:none;border-radius:10px;color:#fff;margin-top:10px;cursor:pointer">Zamknij</button>
+        <button onclick="document.getElementById('modalNaprawaProd').style.display='none'" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#fff;margin-top:10px;cursor:pointer;font-family:'Space Grotesk',sans-serif">Zamknij</button>
       </div>
     </div>
 
     <!-- MODAL OCEN STAN -->
-    <div id="modalOcenStan" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center">
-      <div style="background:rgba(15,15,30,0.95);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:16px;max-width:500px;width:90%;padding:24px;margin:auto;position:relative;top:20%">
+    <div id="modalOcenStan" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);align-items:center;justify-content:center">
+      <div class="cyber-modal-inner" style="width:90%;position:relative;top:20%;margin:auto">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <div style="font-size:1.2rem;font-weight:700;font-family:'Space Grotesk',sans-serif;color:#00f1fe">⭐ Oceń stan</div>
-          <button onclick="document.getElementById('modalOcenStan').style.display='none'" style="background:none;border:none;color:#94a3b8;font-size:1.3rem;cursor:pointer">✕</button>
+          <div class="cyber-modal-title" style="color:#8ff5ff"><span class="material-symbols-outlined">star</span> Oceń stan</div>
+          <button onclick="document.getElementById('modalOcenStan').style.display='none'" class="cyber-modal-close">&times;</button>
         </div>
         <div id="ocenStanNazwa" style="color:#94a3b8;font-size:0.85rem;margin-bottom:6px"></div>
         <div id="ocenStanCurrent" style="color:#f59e0b;font-size:0.75rem;margin-bottom:15px"></div>
@@ -1562,26 +1673,26 @@ def produkt(code):
           <div style="font-size:0.8rem;color:#64748b;margin-bottom:6px">Tryb split — podaj ilości per stan:</div>
           <div id="ocenSplitFields"></div>
         </div>
-        <textarea id="ocenStanNotatki" placeholder="Notatki (opcjonalne)..." style="width:100%;padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#e2e8f0;font-size:0.85rem;resize:vertical;min-height:50px;margin-bottom:12px"></textarea>
+        <textarea id="ocenStanNotatki" placeholder="Notatki (opcjonalne)..." style="width:100%;padding:10px;background:rgba(10,10,22,0.6);border:1px solid rgba(143,245,255,0.10);border-radius:10px;color:#e2e8f0;font-size:0.85rem;resize:vertical;min-height:50px;margin-bottom:12px;font-family:'Space Grotesk',sans-serif"></textarea>
         <div style="display:flex;gap:8px">
-          <button id="ocenStanSaveBtn" onclick="zapiszOceneStan()" style="flex:1;padding:12px;background:rgba(91,240,131,0.15);border:1px solid #5bf083;border-radius:10px;color:#5bf083;font-weight:700;cursor:pointer">💾 Zapisz ocenę</button>
-          <button onclick="toggleSplitMode()" id="ocenSplitToggle" style="padding:12px 16px;background:rgba(193,128,255,0.15);border:1px solid #c180ff;border-radius:10px;color:#c180ff;font-size:0.8rem;cursor:pointer">🔀 Split</button>
+          <button id="ocenStanSaveBtn" onclick="zapiszOceneStan()" style="flex:1;padding:12px;background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);border-radius:10px;color:#beee00;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px"><span class="material-symbols-outlined" style="font-size:1rem">save</span> Zapisz ocenę</button>
+          <button onclick="toggleSplitMode()" id="ocenSplitToggle" style="padding:12px 16px;background:rgba(255,107,155,0.12);border:1px solid rgba(255,107,155,0.3);border-radius:10px;color:#ff6b9b;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:'Space Grotesk',sans-serif"><span class="material-symbols-outlined" style="font-size:1rem">call_split</span> Split</button>
         </div>
       </div>
     </div>
 
     <script>
     let _rpId=null, _rpIlosc=0;
-    const KOLORY_P = {{'Nowy':'#5bf083','Powystawowy':'#00f1fe','Używany':'#eab308','Uszkodzony':'#ef4444','Odnowiony':'#c180ff'}};
+    const KOLORY_P = {{'Nowy':'#beee00','Powystawowy':'#8ff5ff','Używany':'#eab308','Uszkodzony':'#ef4444','Odnowiony':'#ff6b9b'}};
 
     // === OCEN STAN ===
     let _ocenPid=null, _ocenIlosc=0, _ocenStan='', _splitMode=false;
     const STANY = [
-      {{name:'Nowy',color:'#5bf083',icon:'🟢'}},
-      {{name:'Jak nowy',color:'#00f1fe',icon:'🔵'}},
-      {{name:'Dobry',color:'#eab308',icon:'🟡'}},
-      {{name:'Uszkodzony',color:'#f97316',icon:'🟠'}},
-      {{name:'Zniszczony',color:'#ef4444',icon:'🔴'}}
+      {{name:'Nowy',color:'#beee00',icon:'●'}},
+      {{name:'Jak nowy',color:'#8ff5ff',icon:'●'}},
+      {{name:'Dobry',color:'#eab308',icon:'●'}},
+      {{name:'Uszkodzony',color:'#f97316',icon:'●'}},
+      {{name:'Zniszczony',color:'#ef4444',icon:'●'}}
     ];
     function pokazOcenStan(pid, nazwa, ilosc, currentStan) {{
         _ocenPid=pid; _ocenIlosc=ilosc; _ocenStan=''; _splitMode=false;
@@ -1625,7 +1736,7 @@ def produkt(code):
         if(hint) hint.style.display=_splitMode?'none':'';
         if(_splitMode) {{
             sec.style.display='block';
-            tog.style.background='rgba(193,128,255,0.3)';
+            tog.style.background='rgba(255,107,155,0.25)';
             const fields=document.getElementById('ocenSplitFields');
             fields.innerHTML='<div id="ocenSplitSum" style="font-size:0.75rem;color:#64748b;margin-bottom:8px">Suma: 0 / '+_ocenIlosc+'</div>';
             STANY.forEach(s=>{{
@@ -1633,7 +1744,7 @@ def produkt(code):
             }});
         }} else {{
             sec.style.display='none';
-            tog.style.background='rgba(193,128,255,0.15)';
+            tog.style.background='rgba(255,107,155,0.12)';
         }}
     }}
     function updateSplitSum() {{
@@ -1642,7 +1753,7 @@ def produkt(code):
         const el=document.getElementById('ocenSplitSum');
         const ok=sum===_ocenIlosc;
         el.textContent='Suma: '+sum+' / '+_ocenIlosc+(ok?' ✅':sum>_ocenIlosc?' ❌ za dużo!':'');
-        el.style.color=ok?'#5bf083':sum>_ocenIlosc?'#ef4444':'#f59e0b';
+        el.style.color=ok?'#beee00':sum>_ocenIlosc?'#ef4444':'#f59e0b';
     }}
     function zapiszOceneStan() {{
         const notatki=document.getElementById('ocenStanNotatki').value;
@@ -1702,7 +1813,7 @@ def produkt(code):
         ['Nowy','Powystawowy','Używany','Uszkodzony'].forEach(s=>{{suma+=parseInt(document.getElementById('rp_'+s)?.value||0);}});
         const el=document.getElementById('rozbijProdSuma');
         el.textContent=suma+' / '+_rpIlosc;
-        el.style.color=suma===_rpIlosc?'#5bf083':'#ef4444';
+        el.style.color=suma===_rpIlosc?'#beee00':'#ef4444';
     }}
     function rozbijProdSzybko(stan){{
         ['Nowy','Powystawowy','Używany','Uszkodzony'].forEach(s=>{{
