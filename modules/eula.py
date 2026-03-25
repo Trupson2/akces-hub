@@ -1,8 +1,9 @@
 """
 EULA (End User License Agreement) module - ekran akceptacji regulaminu
 """
-from flask import Blueprint, request, redirect, session, render_template_string
+from flask import Blueprint, request, redirect, session, render_template_string, render_template
 from modules.database import get_config, set_config
+from flask_wtf.csrf import generate_csrf
 
 eula_bp = Blueprint('eula', __name__)
 
@@ -265,7 +266,7 @@ document.getElementById('eulaOverlay').addEventListener('click', function(e) {
 def eula_page():
     """Wyswietla strone EULA"""
     brand_name = get_config('brand_name', 'AKCES HUB')
-    return render_template_string(EULA_TEMPLATE, brand_name=brand_name)
+    return render_template('eula.html', brand_name=brand_name)
 
 
 @eula_bp.route('/eula', methods=['POST'])

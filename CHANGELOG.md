@@ -2,6 +2,17 @@
 
 ## 25.03.2026
 
+### EULA — Cyberpunk Terminal Redesign
+- [NOWE] Szablon `eula.html` — terminal-style cyberpunk z bento grid layout
+- [NOWE] Terminal reader z kolorowym scrollem (lime text, cyan/pink/lime headers)
+- [NOWE] Sidebar: podsumowanie, quick navigation, kontakt
+- [NOWE] Terminal bar z dots (pink/lime/cyan) + footer (integrity/auth status)
+- [NOWE] Data grid cards (zbierane dane + standard szyfrowania)
+- [NOWE] Ambient glow effects (cyan top-right, pink bottom-left)
+- [NOWE] Numbered sections z kolorowym badge (01-08)
+- [ZMIANA] Ekstrakcja inline HTML z eula.py do templates/eula.html
+- [ZMIANA] Route używa render_template() zamiast render_template_string()
+
 ### Karta produktu — Cyberpunk Redesign
 - [NOWE] Szablon `produkt_detail.html` — pełny cyberpunk design (pd-* CSS classes)
 - [NOWE] Hero section z produktem: zdjęcie, nazwa, status panel z neon border
