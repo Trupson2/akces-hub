@@ -1503,10 +1503,10 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
                     if bot_token and chat_id:
                         import requests as _req
                         text = (
-                            f"<i class=mi>campaign</i> *Dostępna aktualizacja {get_config_cached('brand_name', 'AKCES HUB')}!*\n\n"
-                            f"<i class=mi>inventory_2</i> Nowa wersja: `{remote_hash}`\n"
-                            f"<i class=mi>edit_note</i> Zmiany:\n{remote_msg[:200]}\n\n"
-                            f"<i class=mi>lightbulb</i> Wejdź na dashboard i kliknij *Aktualizuj*"
+                            f"\U0001F4E2 *Dost\u0119pna aktualizacja {get_config_cached('brand_name', 'AKCES HUB')}!*\n\n"
+                            f"\U0001F4E6 Nowa wersja: `{remote_hash}`\n"
+                            f"\U0001F4DD Zmiany:\n{remote_msg[:200]}\n\n"
+                            f"\U0001F4A1 Wejd\u017A na dashboard i kliknij *Aktualizuj*"
                         )
                         _req.post(
                             f'https://api.telegram.org/bot{bot_token}/sendMessage',
@@ -1967,11 +1967,11 @@ def system_update():
             if bot_token and chat_id:
                 import requests as _req
                 text = (
-                    f"<i class=mi>sync</i> *{get_config('brand_name', 'AKCES HUB')} — Aktualizacja systemu*\n\n"
-                    f"<i class=mi>inventory_2</i> Wersja: `{commit_hash}`\n"
-                    f"<i class=mi>edit_note</i> {commit_msg[:150]}\n"
-                    f"<i class=mi>schedule</i> {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
-                    f"<i class=mi style=color:#22c55e>check_circle</i> System restartuje się za chwilę..."
+                    f"\U0001F504 *{get_config('brand_name', 'AKCES HUB')} \u2014 Aktualizacja systemu*\n\n"
+                    f"\U0001F4E6 Wersja: `{commit_hash}`\n"
+                    f"\U0001F4DD {commit_msg[:150]}\n"
+                    f"\U0001F4C5 {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
+                    f"\u2705 System restartuje si\u0119 za chwil\u0119..."
                 )
                 _req.post(
                     f'https://api.telegram.org/bot{bot_token}/sendMessage',
