@@ -128,7 +128,7 @@ def _get_delivery_info(order):
         pack_hint = '📬 InPost Paczkomat — gabaryty A/B/C, max 41×38×64cm, max 25kg.'
     elif any(x in method_lower for x in ['kurier', 'dpd', 'dhl', 'ups', 'fedex', 'gls', 'pocztex']):
         delivery_type = 'kurier'
-        pack_hint = '[LOCAL_SHIPPING] Kurier — zabezpiecz folią bąbelkową, oklej taśmą.'
+        pack_hint = '<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>local_shipping</span> Kurier — zabezpiecz folią bąbelkową, oklej taśmą.'
     elif any(x in method_lower for x in ['list', 'poczt', 'polecony']):
         delivery_type = 'list'
         pack_hint = '✉ List/poczta — koperta bąbelkowa lub mały karton.'
@@ -137,7 +137,7 @@ def _get_delivery_info(order):
         pack_hint = '<span class="material-symbols-outlined">home</span> Odbiór osobisty — przygotuj do wydania.'
     elif pickup_name:
         delivery_type = 'punkt'
-        pack_hint = f'[PIN_DROP] Punkt odbioru: {pickup_name} — standardowy karton.'
+        pack_hint = f'<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>pin_drop</span> Punkt odbioru: {pickup_name} — standardowy karton.'
     else:
         delivery_type = 'inny'
         pack_hint = f'[INVENTORY_2] {method_name or "Standardowa wysyłka"} — zabezpiecz odpowiednio.'
@@ -779,7 +779,7 @@ def wysylki_nadaj(order_id):
         <head><meta charset="utf-8"><title>Błąd</title>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"></head>
         <body style="font-family:sans-serif;padding:40px;background:#12121a;color:#fff">
-            <h2>[CANCEL] Błąd nadawania przesyłki</h2>
+            <h2><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>cancel</span> Błąd nadawania przesyłki</h2>
             <p style="color:#ef4444">{error}</p>
             <p>Zamówienie: {order_id[:8]}...</p>
             <p style="color:#64748b;font-size:0.9rem;margin-top:20px">Możliwe przyczyny:</p>
@@ -823,10 +823,10 @@ def wysylki_nadaj(order_id):
         <head><meta charset="utf-8"><title>Przesyłka utworzona</title>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"></head>
         <body style="font-family:sans-serif;padding:40px;background:#12121a;color:#fff">
-            <h2>[CHECK_CIRCLE] Przesyłka utworzona!</h2>
+            <h2><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span> Przesyłka utworzona!</h2>
             <p>ID przesyłki: {shipment_id}</p>
             <p style="color:#f59e0b">Etykieta może być niedostępna od razu. Spróbuj pobrać za chwilę.</p>
-            <a href="/wysylki/etykieta/{order_id}" style="display:inline-block;margin:20px 0;padding:12px 20px;background:#22c55e;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">[PRINT] Pobierz etykietę</a><br>
+            <a href="/wysylki/etykieta/{order_id}" style="display:inline-block;margin:20px 0;padding:12px 20px;background:#22c55e;color:#fff;text-decoration:none;border-radius:8px;font-weight:600"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>print</span> Pobierz etykietę</a><br>
             <a href="/wysylki" style="color:#64748b">← Powrót do wysyłek</a>
         </body>
         </html>
@@ -860,7 +860,7 @@ def wysylki_etykieta(order_id):
         <head><meta charset="utf-8"><title>Błąd</title>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"></head>
         <body style="font-family:sans-serif;padding:40px;background:#12121a;color:#fff">
-            <h2>[CANCEL] Błąd pobierania etykiety</h2>
+            <h2><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>cancel</span> Błąd pobierania etykiety</h2>
             <p style="color:#ef4444">{error}</p>
             <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{order_id}" target="_blank" style="color:#3b82f6;display:block;margin:20px 0">[INVENTORY_2] Pobierz etykietę na Allegro →</a>
             <a href="/wysylki" style="color:#64748b">← Powrót do wysyłek</a>
@@ -1098,10 +1098,10 @@ def wysylki_lista():
                     <div style="flex:1;min-width:0">
                         <div style="font-weight:600;font-size:0.9rem;line-height:1.4">{products_display}{badge}</div>
                         <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">
-                            [PIN_DROP] {lokalizacja} &nbsp;|&nbsp; <span class="material-symbols-outlined">person</span> {dostawca} &nbsp;|&nbsp; [LABEL] {code}
+                            <span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>pin_drop</span> {lokalizacja} &nbsp;|&nbsp; <span class="material-symbols-outlined">person</span> {dostawca} &nbsp;|&nbsp; <span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>label</span> {code}
                         </div>
                         <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">
-                            [SHOPPING_CART] {first_item['kupujacy']} &nbsp;|&nbsp; [CALENDAR_MONTH] {data_str}
+                            <span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>shopping_cart</span> {first_item['kupujacy']} &nbsp;|&nbsp; <span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>calendar_month</span> {data_str}
                         </div>
                     </div>
                     <div style="text-align:right;margin-left:10px">
@@ -1110,7 +1110,7 @@ def wysylki_lista():
                     </div>
                 </label>
                 <div style="display:flex;flex-direction:column;gap:4px;margin-left:10px">
-                    <a href="/wysylki/oznacz-wyslane?ids={all_ids}" style="padding:6px 10px;background:var(--green);border-radius:6px;color:#fff;text-decoration:none;font-size:0.7rem;font-weight:600;text-align:center">[CHECK_CIRCLE] Wysłane</a>
+                    <a href="/wysylki/oznacz-wyslane?ids={all_ids}" style="padding:6px 10px;background:var(--green);border-radius:6px;color:#fff;text-decoration:none;font-size:0.7rem;font-weight:600;text-align:center"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span> Wysłane</a>
                     <a href="https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{first_item['allegro_order_id'] or ''}" target="_blank" style="padding:6px 10px;background:var(--blue);border-radius:6px;color:#fff;text-decoration:none;font-size:0.7rem;text-align:center">Allegro</a>
                 </div>
             </div>
@@ -1144,7 +1144,7 @@ def wysylki_lista():
 
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:15px">
             <a href="/wysylki/pakowanie" style="display:block;padding:12px;background:var(--orange);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">[SMARTPHONE] Skanuj</a>
-            <a href="/sync-miesiac" onclick="startSync(this)" style="display:block;padding:12px;background:var(--blue);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">[SYNC] Sync Allegro</a>
+            <a href="/sync-miesiac" onclick="startSync(this)" style="display:block;padding:12px;background:var(--blue);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>sync</span> Sync Allegro</a>
             <a href="/wysylki/allegro" style="display:block;padding:12px;background:var(--green);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">[INVENTORY_2] Allegro Live</a>
             <a href="/wysylki/sync-stany" style="display:block;padding:12px;background:var(--accent2);border-radius:10px;color:#fff;text-decoration:none;text-align:center;font-weight:600">[INVENTORY_2] Sync Stany</a>
         </div>
@@ -1229,7 +1229,7 @@ def wyslano_order(order_id):
     updated = result.rowcount
     conn.commit()
     
-    flash(f'[CHECK_CIRCLE] Oznaczono {updated} produktów jako wysłane', 'success')
+    flash(f'<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span> Oznaczono {updated} produktów jako wysłane', 'success')
     return redirect('/wysylki/allegro')
 
 @wysylki_bp.route('/wysylki/drukuj')
@@ -1291,7 +1291,7 @@ h1 {{ font-size:18px; text-align:center; margin-bottom:4px; }}
     <div class="order-img">{imgs_html}</div>
     <div class="order-info">
         {names_html}
-        <div class="addr">[PIN_DROP] {addr}</div>
+        <div class="addr"><span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>pin_drop</span> {addr}</div>
         {locs_html}
     </div>
 </div>
@@ -1326,7 +1326,7 @@ def bulk_wyslane_allegro():
 
     conn.commit()
 
-    flash(f'[CHECK_CIRCLE] Wysłano {len(order_ids)} zamówień ({total_updated} produktów)', 'success')
+    flash(f'<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span> Wysłano {len(order_ids)} zamówień ({total_updated} produktów)', 'success')
     return redirect('/wysylki/allegro')
 
 
@@ -1452,7 +1452,7 @@ def sync_stany_magazynowe():
     
     conn.commit()
     
-    flash(f'[CHECK_CIRCLE] Zaktualizowano {updated} produktów, połączono {polaczone} sprzedaży', 'success')
+    flash(f'<span class=material-symbols-outlined style=font-size:1rem;vertical-align:middle>check_circle</span> Zaktualizowano {updated} produktów, połączono {polaczone} sprzedaży', 'success')
     return redirect('/wysylki')
 
 
