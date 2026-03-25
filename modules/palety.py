@@ -2520,7 +2520,7 @@ def paleta_mass_edit(paleta_id):
             </div>
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
                 <div style="font-size:0.8rem;color:var(--text-muted);flex:1;min-width:150px">
-                    {p['ean'] or p['asin'] or '—'} •
+                    {p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else (p['asin'] or '—')} •
                     Lokalizacja: {p['lokalizacja'] or '—'} •
                     Ilość: <span data-qty-id="{p['id']}">{p['ilosc']}</span>
                 </div>

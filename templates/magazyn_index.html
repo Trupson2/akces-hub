@@ -206,7 +206,8 @@
 
 {% for p in products %}
 {% set img = p.zdjecie_url or "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='45' height='45'%3E%3Crect fill='%2312121a' width='45' height='45'/%3E%3Ctext x='22' y='28' fill='%23555' text-anchor='middle' font-size='12'%3EIMG%3C/text%3E%3C/svg%3E" %}
-{% set display_code = p.ean or p.asin or ('#' ~ p.id) %}
+{% set _ean = p.ean if p.ean and p.ean|upper not in ['N/A','NAN','NONE'] else '' %}
+{% set display_code = _ean or p.asin or ('#' ~ p.id) %}
 {% set pcode = p.kod_magazynowy or p.id %}
 <a href="/magazyn/produkt/{{ pcode }}" class="mag-item">
     <img src="{{ img }}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2712%27%3EIMG%3C/text%3E%3C/svg%3E'">

@@ -809,7 +809,8 @@ def produkty():
         img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
         pcode = get_product_code(p)
         _km = p['kod_magazynowy'] if p['kod_magazynowy'] else f"#{p['id']}"
-        display_code = f"{_km} | {p['ean'] or p['asin'] or ''}"
+        _ean_clean = p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else ''
+        display_code = f"{_km} | {_ean_clean or p['asin'] or ''}"
 
         # Zysk per item (koszt = paleta.cena_zakupu / szt)
         _ca = float(p['cena_allegro'] or 0)
@@ -989,7 +990,7 @@ def produkt(code):
             ORDER BY data DESC
             LIMIT 50
         ''', (p['id'],)).fetchall()
-
+        historia = [dict(h) for h in historia]
 
     msg = request.args.get('msg', '')
     is_new = p is None
@@ -1055,41 +1056,23 @@ def produkt(code):
     if p.get('paleta_id'):
         if _ean and len(_ean) >= 8:
             _siblings = conn.execute(
-                "SELECT id, nazwa, ilosc, klasa_jakosci, stan_przyjecia, stan, lokalizacja, kod_magazynowy FROM produkty WHERE paleta_id = ? AND ean = ? AND id != ? ORDER BY klasa_jakosci",
+                "SELECT id, nazwa, ilosc, stan_przyjecia, stan, lokalizacja, kod_magazynowy FROM produkty WHERE paleta_id = ? AND ean = ? AND id != ? ORDER BY stan_przyjecia",
                 (p['paleta_id'], _ean, p['id'])
             ).fetchall()
         if not _siblings:
             _siblings = conn.execute(
-                "SELECT id, nazwa, ilosc, klasa_jakosci, stan_przyjecia, stan, lokalizacja, kod_magazynowy FROM produkty WHERE paleta_id = ? AND nazwa = ? AND id != ? ORDER BY klasa_jakosci",
+                "SELECT id, nazwa, ilosc, stan_przyjecia, stan, lokalizacja, kod_magazynowy FROM produkty WHERE paleta_id = ? AND nazwa = ? AND id != ? ORDER BY stan_przyjecia",
                 (p['paleta_id'], p['nazwa'], p['id'])
             ).fetchall()
 
-    _klasa_colors = {'A':'#beee00','A-':'#8ff5ff','B':'#eab308','C':'#f97316','D':'#ef4444','':'#64748b'}
-    _siblings_html = ''
-    if _siblings:
-        _siblings_html = '<div class="siblings-panel">'
-        _siblings_html += '<div class="siblings-title"><span class=material-symbols-outlined>inventory_2</span> Partie tego produktu (per klasa)</div>'
-        # Current product as first row
-        _cur_klasa = p.get('klasa_jakosci','') or ''
-        _cur_color = _klasa_colors.get(_cur_klasa, '#64748b')
-        _cur_stan = p.get('stan_przyjecia','') or 'nieoceniony'
-        _siblings_html += f'<div class="sib-row current">'
-        _siblings_html += f'<span class="sib-klasa" style="color:{_cur_color}">{_cur_klasa or "?"}</span>'
-        _siblings_html += f'<div style="flex:1"><div style="font-weight:600;font-size:0.85rem">{p["ilosc"]} szt <span style="color:#64748b;font-weight:400">· {_cur_stan}</span></div>'
-        _siblings_html += f'<div style="font-size:0.7rem;color:#64748b">{p.get("lokalizacja","") or "brak lok."} · aktualny</div></div>'
-        _siblings_html += f'<span style="color:#8ff5ff;font-size:0.7rem;font-weight:600;background:rgba(143,245,255,0.10);padding:2px 8px;border-radius:6px">CURRENT</span></div>'
-        # Sibling rows
-        for sib in _siblings:
-            sib = dict(sib)
-            sk = sib.get('klasa_jakosci','') or ''
-            sc = _klasa_colors.get(sk, '#64748b')
-            ss = sib.get('stan_przyjecia','') or 'nieoceniony'
-            _siblings_html += f'<a href="/magazyn/produkt/{sib.get("kod_magazynowy","") or sib["id"]}" class="sib-row">'
-            _siblings_html += f'<span class="sib-klasa" style="color:{sc}">{sk or "?"}</span>'
-            _siblings_html += f'<div style="flex:1"><div style="font-weight:600;font-size:0.85rem">{sib["ilosc"]} szt <span style="color:#64748b;font-weight:400">· {ss}</span></div>'
-            _siblings_html += f'<div style="font-size:0.7rem;color:#64748b">{sib.get("lokalizacja","") or "brak lok."}</div></div>'
-            _siblings_html += f'<span class=material-symbols-outlined style=color:{sc};font-size:1rem>chevron_right</span></a>'
-        _siblings_html += '</div>'
+    # Convert siblings to dicts for template dot-access
+    _siblings = [dict(s) for s in _siblings]
+
+    # Display values
+    ean_display = p.get('ean') or ''
+    if ean_display.upper() in ('N/A', 'NAN', 'NONE', ''):
+        ean_display = '—'
+    asin_display = p.get('asin') or '—'
 
     # Zysk per item = cena_allegro - koszt_zakupu - prowizja
     _cena_al = float(p['cena_allegro'] or 0)
@@ -1099,712 +1082,33 @@ def produkt(code):
     _zysk_szt = _cena_al - _koszt_brutto_szt - _prowizja_kwota if _cena_al > 0 and _koszt_brutto_szt > 0 else 0
     _zysk_color = '#beee00' if _zysk_szt >= 0 else '#ef4444'
 
-    html = f'''<div class="hdr"><h1><span class=material-symbols-outlined>inventory_2</span> PRODUKT</h1></div>'''
+    # Convert p to object-like dict for template dot-access
+    class DotDict(dict):
+        __getattr__ = dict.get
+        __setattr__ = dict.__setitem__
+    p_obj = DotDict(p)
 
-    if is_new:
-        html += '<div class="alert alert-warn"><span class=material-symbols-outlined style=font-size:1.1rem>add_circle</span> NOWY PRODUKT - kliknij EDYTUJ aby dodać</div>'
-    if msg:
-        html += f'<div class="alert alert-ok"><span class=material-symbols-outlined style=font-size:1.1rem>check_circle</span> {msg}</div>'
-    
-    # HISTORIA NA GÓRZE - PIERWSZA
-    if historia:
-        html += '''
-        <div class="hist-card">
-            <div class="hist-header">
-                <span class=material-symbols-outlined>history</span>
-                <div>
-                    <h3>HISTORIA ZMIAN</h3>
-                    <small>Ostatnie ''' + str(len(historia)) + ''' działań na tym produkcie</small>
-                </div>
-            </div>
-            <div style="padding:8px;max-height:400px;overflow-y:auto">'''
+    return render_template('produkt_detail.html',
+        p=p_obj,
+        historia=historia,
+        is_new=is_new,
+        msg=msg,
+        product_code=product_code,
+        img=img,
+        ean_display=ean_display,
+        asin_display=asin_display,
+        koszt_brutto_szt=_koszt_brutto_szt,
+        klasa_display=_klasa_display,
+        siblings=_siblings,
+        zysk_szt=_zysk_szt,
+        zysk_color=_zysk_color,
+        prowizja_rate=_prowizja_rate,
+        prowizja_kwota=_prowizja_kwota,
+        brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
+        current_user=session.get('user')
+    )
 
-        ikony_ms = {
-            'dodano': 'download', 'edytowano': 'edit', 'wystawiono': 'shopping_cart',
-            'sprzedano': 'paid', 'wyslano': 'local_shipping', 'zmiana_ceny': 'price_change',
-            'zmiana_lokalizacji': 'pin_drop', 'zmiana_ilosci': 'inventory',
-            'drukowano': 'print', 'skanowano': 'qr_code_scanner', 'importowano': 'upload_file',
-            'scrapowano': 'search', 'wygenerowano_opis': 'auto_awesome', 'dodano_zdjecia': 'photo_camera',
-            'przeniesiono': 'swap_horiz', 'oznaczono': 'label'
-        }
-        kolory_ikona = {
-            'dodano': '#8ff5ff', 'sprzedano': '#beee00',
-            'wystawiono': '#ff6b9b', 'wyslano': '#beee00',
-            'zmiana_ceny': '#f59e0b', 'skanowano': '#8ff5ff',
-            'wygenerowano_opis': '#ff6b9b', 'importowano': '#8ff5ff',
-            'scrapowano': '#ff6b9b', 'drukowano': '#ff6b9b'
-        }
-        for h in historia:
-            h = dict(h)
-            ms_icon = ikony_ms.get(h['akcja'], 'push_pin')
-            icon_color = kolory_ikona.get(h['akcja'], '#8ff5ff')
-            data_str = h['data'][:16] if h['data'] else ''
-
-            dane_extra = ''
-            if h.get('dane_json'):
-                try:
-                    import json
-                    dane = json.loads(h['dane_json'])
-                    if dane:
-                        dane_extra = '<div class="hist-tags">'
-                        for k, v in dane.items():
-                            if k not in ['allegro_id']:
-                                dane_extra += f'<span class="hist-tag">{k}: {v}</span>'
-                        dane_extra += '</div>'
-                except:
-                    pass
-
-            html += f'''
-            <div class="hist-entry">
-                <div style="display:flex;align-items:start;gap:10px;flex:1;min-width:0">
-                    <div class="hist-icon" style="background:{icon_color}15;border:1px solid {icon_color}33">
-                        <span class=material-symbols-outlined style=color:{icon_color}>{ms_icon}</span>
-                    </div>
-                    <div style="flex:1;min-width:0">
-                        <div class="hist-text">{h['opis']}</div>
-                        {dane_extra}
-                    </div>
-                </div>
-                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-                    <span class="hist-date">{data_str}</span>
-                    <div class="hist-actions">
-                        <a href="/magazyn/historia/{h['id']}/edytuj" title="Edytuj"><span class=material-symbols-outlined>edit</span></a>
-                        <a href="/magazyn/historia/{h['id']}/usun?redirect=/magazyn/produkt/{product_code}" onclick="return confirm('Usunąć ten wpis z historii?')" title="Usuń"><span class=material-symbols-outlined>delete</span></a>
-                    </div>
-                </div>
-            </div>'''
-        html += '</div></div>'
-    
-    badge = 'badge-ok' if p['ilosc'] > 0 else 'badge-err'
-    
-    # Pokaż EAN i ASIN
-    ean_display = p.get('ean') or ''
-    if ean_display.upper() in ('N/A', 'NAN', 'NONE', ''):
-        ean_display = '—'
-    asin_display = p.get('asin') or '—'
-    
-    # Quick Actions - pokaż dla wszystkich produktów z ID (nie tylko nie-nowych)
-    quick_actions = ''
-    if p and 'id' in p.keys() and p['id']:  # Jeśli ma ID (jest w bazie)
-        # Status badge
-        current_status = p['status'] if p['status'] else 'nowy'
-        status_badges = {
-            'nowy': ('inventory_2', 'MAGAZYN', '#8ff5ff'),
-            'wystawiony': ('shopping_cart', 'ALLEGRO', '#ff6b9b'),
-            'sprzedany': ('paid', 'SPRZEDANE', '#beee00'),
-            'wyslany': ('local_shipping', 'WYSŁANE', '#beee00'),
-            'uszkodzony': ('warning', 'USZKODZONY', 'var(--red)'),
-            'zwrot': ('undo', 'ZWROT', 'var(--yellow)')
-        }
-        icon, label, color = status_badges.get(current_status, ('inventory_2', 'MAGAZYN', '#8ff5ff'))
-
-        quick_actions = f'''
-        <div class="status-panel" style="border-color:{color}">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-                <div>
-                    <div class="status-label">STATUS PRODUKTU</div>
-                    <div class="status-value" style="color:{color}"><span class=material-symbols-outlined>{icon}</span> {label}</div>
-                </div>
-                <form method="POST" action="/magazyn/produkt/{product_code}/zmien-status" style="display:flex;gap:8px;align-items:center">
-                    <input type="hidden" name="csrf_token" value="{generate_csrf()}">
-                    <select name="new_status" class="form-input" style="padding:8px 12px;font-size:0.85rem;min-width:150px" onchange="this.form.submit()">
-                        <option value="">-- Zmień na --</option>
-                        <option value="nowy" {'selected' if current_status == 'nowy' else ''}>Magazyn</option>
-                        <option value="wystawiony" {'selected' if current_status == 'wystawiony' else ''}>Allegro</option>
-                        <option value="sprzedany" {'selected' if current_status == 'sprzedany' else ''}>Sprzedany</option>
-                        <option value="wyslany" {'selected' if current_status == 'wyslany' else ''}>Wysłany</option>
-                        <option value="uszkodzony" {'selected' if current_status == 'uszkodzony' else ''}>Uszkodzony</option>
-                        <option value="zwrot" {'selected' if current_status == 'zwrot' else ''}>Zwrot</option>
-                    </select>
-                </form>
-            </div>
-        </div>
-
-        <div class="quick-actions">
-            <a href="/magazyn/produkt/{product_code}/sprzedaj" class="quick-btn" style="background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.25);color:#beee00"><span class=material-symbols-outlined>remove_shopping_cart</span> -1 SZT</a>
-            <a href="/magazyn/etykieta-mobilna/{product_code}" class="quick-btn" style="background:rgba(255,107,155,0.15);border:1px solid rgba(255,107,155,0.25);color:#ff6b9b"><span class=material-symbols-outlined>label</span> ETYKIETA</a>
-            <a href="/magazyn/produkt/{product_code}/edytuj" class="quick-btn" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.25);color:#f59e0b"><span class=material-symbols-outlined>edit</span> EDYTUJ</a>
-            <a href="/paletomat/generator/from-magazyn/{p['id']}" class="quick-btn" style="background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);color:#8ff5ff"><span class=material-symbols-outlined>storefront</span> WYSTAW</a>
-            <form method="POST" action="/magazyn/produkt/{product_code}/usun" style="display:inline" onsubmit="return confirm('Na pewno usunąć ten produkt?')">
-                <input type="hidden" name="csrf_token" value="{generate_csrf()}">
-                <button type="submit" class="quick-btn" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.25);color:#ef4444;width:100%;cursor:pointer"><span class=material-symbols-outlined>delete</span> USUŃ</button>
-            </form>
-        </div>
-        '''
-    
-    html += f'''
-    <div class="card">
-        <img src="{img}" class="card-img" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27400%27 height=%27180%27%3E%3Crect fill=%27%2312121a%27 width=%27400%27 height=%27180%27/%3E%3Ctext x=%27200%27 y=%2795%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2718%27%3EBRAK ZDJECIA%3C/text%3E%3C/svg%3E'">
-        <div class="card-body">
-            <div class="card-name">{p['nazwa']}</div>
-            
-            {quick_actions}
-            
-            <div class="loc">
-                <div class="loc-title"><span class=material-symbols-outlined>pin_drop</span> Lokalizacja</div>
-                <div class="loc-grid">
-                    <div><div class="loc-l">Regał</div><div class="loc-v">{p['lokalizacja'] or '—'}</div></div>
-                    <div><div class="loc-l">Paleta</div><div class="loc-v">{p['paleta'] or '—'}</div></div>
-                    <div><div class="loc-l">Dostawca</div><div class="loc-v dostawca-name">{(p['dostawca'] or '—')[:6]}</div></div>
-                </div>
-            </div>
-
-            <div class="det-grid">
-                <div class="det" style="border:1px solid rgba(255,107,155,0.2)"><div class="det-l"><span class=material-symbols-outlined style=color:#ff6b9b>label</span> Kod mag.</div><div class="det-v" style="color:#ff6b9b;font-weight:700">{p.get('kod_magazynowy') or f"#{p['id']}"}</div></div>
-                <div class="det" onclick="navigator.clipboard.writeText('{ean_display}');this.querySelector('.det-v').style.color='#beee00';setTimeout(()=>this.querySelector('.det-v').style.color='',800)" style="cursor:pointer" title="Kliknij aby skopiować"><div class="det-l"><span class=material-symbols-outlined>content_copy</span> EAN</div><div class="det-v" style="font-size:0.75rem;user-select:all">{ean_display}</div></div>
-                <div class="det" onclick="navigator.clipboard.writeText('{asin_display}');this.querySelector('.det-v').style.color='#beee00';setTimeout(()=>this.querySelector('.det-v').style.color='',800)" style="cursor:pointer" title="Kliknij aby skopiować"><div class="det-l"><span class=material-symbols-outlined>content_copy</span> ASIN</div><div class="det-v" style="font-size:0.75rem;user-select:all">{asin_display}</div></div>
-                <div class="det"><div class="det-l"><span class=material-symbols-outlined>inventory</span> Ilość</div><div class="det-v"><span class="badge {badge}">{p['ilosc']} szt</span></div></div>
-                <div class="det"><div class="det-l"><span class=material-symbols-outlined>grade</span> Stan</div><div class="det-v">{p['stan'] or 'Nowy'}</div></div>
-                <div class="det"><div class="det-l"><span class=material-symbols-outlined>stars</span> Klasa</div><div class="det-v">{_klasa_display}</div></div>
-                <div class="det"><div class="det-l"><span class=material-symbols-outlined>payments</span> Koszt/szt brutto</div><div class="det-v">{_koszt_brutto_szt:.2f} zł</div></div>
-                <div class="det"><div class="det-l"><span class=material-symbols-outlined>payments</span> Koszt/szt netto</div><div class="det-v">{_koszt_brutto_szt / 1.23:.2f} zł</div></div>
-                <div class="det"><div class="det-l"><span class=material-symbols-outlined>storefront</span> Cena Allegro</div><div class="det-v green">{p['cena_allegro'] or 0:.2f} zł</div></div>
-                <div class="det"><div class="det-l"><span class=material-symbols-outlined>percent</span> Prowizja ({int(_prowizja_rate*100)}%)</div><div class="det-v" style="color:#f59e0b">{_prowizja_kwota:.2f} zł</div></div>
-                <div class="det" style="border:1px solid {_zysk_color}33"><div class="det-l"><span class=material-symbols-outlined style=color:{_zysk_color}>diamond</span> Zysk/szt</div><div class="det-v" style="color:{_zysk_color};font-weight:700;font-size:1.1rem">{_zysk_szt:.2f} zł</div></div>
-            </div>
-        </div>
-
-        {_siblings_html}
-
-        <div style="padding:15px">
-            <!-- GŁÓWNE AKCJE — 2 kolumny -->
-            <div class="act-grid act-grid-2">
-                <a href="/magazyn/produkt/{product_code}/edytuj" class="act-btn" style="background:rgba(245,158,11,0.10);border-color:rgba(245,158,11,0.25);color:#f59e0b"><span class=material-symbols-outlined>edit</span> Edytuj</a>
-                <button onclick="pokazOcenStan({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']}, '{(p.get('stan_przyjecia','') or '').replace(chr(39), '')}')" class="act-btn" style="background:rgba(143,245,255,0.10);border-color:rgba(143,245,255,0.25);color:#8ff5ff"><span class=material-symbols-outlined>star</span> Oceń stan</button>
-            </div>
-            <!-- NARZĘDZIA — kompaktowy grid 4 kolumny -->
-            <div class="act-grid act-grid-4">
-                <a href="/magazyn/drukuj/{product_code}" class="act-btn-sm" style="background:rgba(255,107,155,0.06);border-color:rgba(255,107,155,0.15);color:#ff6b9b"><span class=material-symbols-outlined>print</span>Drukuj</a>
-                <a href="/magazyn/etykiety/niimbot/png/{p['id']}" class="act-btn-sm" style="background:rgba(143,245,255,0.06);border-color:rgba(143,245,255,0.15);color:#8ff5ff"><span class=material-symbols-outlined>image</span>PNG</a>
-                <a href="/magazyn/produkt/{product_code}/opis" class="act-btn-sm" style="background:rgba(255,107,155,0.06);border-color:rgba(255,107,155,0.15);color:#ff6b9b"><span class=material-symbols-outlined>auto_awesome</span>Opis AI</a>
-                <button onclick="rescrapZdjecia({p['id']}, this)" class="act-btn-sm" style="background:rgba(143,245,255,0.06);border-color:rgba(143,245,255,0.15);color:#8ff5ff"><span class=material-symbols-outlined>photo_camera</span>Zdjęcia</button>
-            </div>
-            <!-- ZAAWANSOWANE — collapsible -->
-            <details style="margin-bottom:4px">
-                <summary style="padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;color:#64748b;font-size:0.75rem;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;transition:all 0.2s;font-family:'Space Grotesk',sans-serif"><span class=material-symbols-outlined>settings</span> Więcej akcji <span class=material-symbols-outlined style=margin-left:auto;font-size:0.9rem>expand_more</span></summary>
-                <div class="act-grid act-grid-3" style="padding:8px 0 0">
-                    <button onclick="pokazGPSR()" class="act-btn-sm" style="background:rgba(5,150,105,0.06);border-color:rgba(5,150,105,0.15);color:#059669"><span class=material-symbols-outlined>shield</span>GPSR</button>
-                    <button onclick="pokazRozbijProdukt({p['id']}, {p['ilosc']}, '{p['nazwa'][:40].replace(chr(39), '')}')" class="act-btn-sm" style="background:rgba(190,238,0,0.06);border-color:rgba(190,238,0,0.15);color:#beee00"><span class=material-symbols-outlined>call_split</span>Rozbij</button>
-                    <button onclick="pokazNaprawaProdukt({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="act-btn-sm" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.15);color:#f59e0b"><span class=material-symbols-outlined>build</span>Naprawa</button>
-                    <button onclick="wyslijDoSerwisu({p['id']}, '{p['nazwa'][:40].replace(chr(39), '')}', {p['ilosc']})" class="act-btn-sm" style="background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.15);color:#ef4444"><span class=material-symbols-outlined>handyman</span>Serwis</button>
-                </div>
-            </details>
-        </div>
-        
-        <!-- SZTUKI SECTION -->
-        <div id="sztukiSekcja" style="margin:0 15px 15px;display:none">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-                <div style="font-weight:700;font-size:1rem;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px"><span class=material-symbols-outlined style=color:#8ff5ff;font-size:1.2rem>inventory_2</span> Ewidencja sztuk</div>
-                <button onclick="pokazRozbijProdukt({p['id']}, {p['ilosc']}, '{p['nazwa'][:40].replace(chr(39), '')}')"
-                    style="padding:5px 12px;background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.25);border-radius:8px;color:#beee00;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;gap:4px"><span class=material-symbols-outlined style=font-size:0.9rem>call_split</span> Zmień rozbicie</button>
-            </div>
-            <div id="sztukiKarty"></div>
-        </div>
-        
-        <!-- GPSR Modal -->
-        <div id="gpsrModal" class="cyber-modal">
-            <div class="cyber-modal-inner" style="max-width:600px">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-                    <div class="cyber-modal-title" style="color:#059669"><span class=material-symbols-outlined>shield</span> GPSR - Bezpieczeństwo</div>
-                    <button onclick="document.getElementById('gpsrModal').style.display='none'" class="cyber-modal-close">&times;</button>
-                </div>
-                <div id="gpsrContent" style="background:rgba(10,10,22,0.6);padding:15px;border-radius:10px;white-space:pre-wrap;font-family:monospace;font-size:13px;max-height:400px;overflow:auto;border:1px solid rgba(255,255,255,0.05)"></div>
-                <div style="margin-top:15px;display:flex;gap:10px">
-                    <button onclick="kopiujGPSR()" style="flex:1;padding:12px;background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.25);border-radius:10px;color:#beee00;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Space Grotesk',sans-serif"><span class=material-symbols-outlined>content_copy</span> KOPIUJ</button>
-                    <button onclick="document.getElementById('gpsrModal').style.display='none'" style="flex:1;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#64748b;cursor:pointer;font-family:'Space Grotesk',sans-serif">Zamknij</button>
-                </div>
-            </div>
-        </div>
-        
-        <script>
-        function wyslijDoSerwisu(prodId, nazwa, maxIlosc) {{
-            var opis = prompt('Opis usterki:');
-            if (opis === null) return;
-            var ilosc = prompt('Ile sztuk do serwisu? (max ' + maxIlosc + ')', '1');
-            if (ilosc === null) return;
-            fetch('/serwis/api/przyjmij/' + prodId, {{
-                method: 'POST',
-                headers: {{'Content-Type': 'application/json'}},
-                body: JSON.stringify({{opis_usterki: opis, ilosc: parseInt(ilosc) || 1}})
-            }}).then(r => r.json()).then(d => {{
-                if (d.ok) {{ alert('<span class=material-symbols-outlined>check_circle</span> ' + d.msg); location.reload(); }}
-                else alert('<span class=material-symbols-outlined>cancel</span> ' + (d.error || 'Błąd'));
-            }});
-        }}
-        function rescrapZdjecia(produktId, btn) {{
-            btn.textContent = ' Pobieram...';
-            btn.disabled = true;
-            fetch('/magazyn/api/rescrape-image/' + produktId, {{
-                method: 'POST',
-                headers: {{'ngrok-skip-browser-warning': '1', 'Accept': 'application/json'}}
-            }})
-            .then(function(r) {{
-                if (!r.ok) throw new Error('HTTP ' + r.status);
-                return r.json();
-            }})
-            .then(function(d) {{
-                if (d.ok) {{
-                    btn.textContent = ' Pobieranie w tle...';
-                    btn.style.background = '#beee00';
-                    // Sprawdzaj co 5s czy zdjecie sie pojawilo
-                    var checks = 0;
-                    var checkInterval = setInterval(function() {{
-                        checks++;
-                        fetch('/magazyn/api/check-image/' + produktId, {{headers:{{'ngrok-skip-browser-warning':'1'}}}})
-                        .then(function(r){{return r.json();}})
-                        .then(function(d2){{
-                            if(d2.has_image) {{
-                                clearInterval(checkInterval);
-                                btn.textContent = ' Pobrano!';
-                                setTimeout(function(){{ location.reload(); }}, 1000);
-                            }} else if(checks >= 24) {{
-                                clearInterval(checkInterval);
-                                btn.textContent = ' Trwa... odśwież';
-                                btn.disabled = false;
-                                btn.onclick = function(){{ location.reload(); }};
-                            }}
-                        }}).catch(function(){{}});
-                    }}, 5000);
-                }} else {{
-                    btn.textContent = ' ' + (d.error || 'Błąd');
-                    setTimeout(function() {{ btn.textContent = ' POBIERZ ZDJĘCIA'; btn.disabled = false; }}, 3000);
-                }}
-            }})
-            .catch(function(e) {{
-                btn.textContent = ' ' + e.message;
-                setTimeout(function() {{ btn.textContent = ' POBIERZ ZDJĘCIA'; btn.disabled = false; }}, 3000);
-            }});
-        }}
-        async function pokazGPSR() {{
-            const modal = document.getElementById('gpsrModal');
-            const content = document.getElementById('gpsrContent');
-            content.textContent = ' Generowanie GPSR...';
-            modal.style.display = 'block';
-            
-            try {{
-                const resp = await fetch('/magazyn/api/gpsr/{p['id']}');
-                const data = await resp.json();
-                
-                if (data.gpsr) {{
-                    content.textContent = data.gpsr;
-                }} else {{
-                    content.textContent = ' Ten produkt nie wymaga informacji GPSR (dekoracja, odzież, papeteria)';
-                }}
-            }} catch (e) {{
-                content.textContent = ' Błąd: ' + e.message;
-            }}
-        }}
-        
-        const KOLOR_STAN = {{'Nowy':'#beee00','Powystawowy':'#8ff5ff','Używany':'#eab308','Uszkodzony':'#ef4444','Odnowiony':'#ff6b9b'}};
-        const PROD_ID = {p['id']};
-        const PROD_ZDJECIE = "{p.get('zdjecie_url', '') or ''}";
-        const STANY_WYMAGAJACE_FOTO = ['Powystawowy','Używany','Uszkodzony'];
-        
-        async function ladujSztuki() {{
-            const resp = await fetch('/api/sztuki/' + PROD_ID).catch(()=>null);
-            if (!resp) return;
-            const d = await resp.json();
-            const sekcja = document.getElementById('sztukiSekcja');
-            const karty = document.getElementById('sztukiKarty');
-            if (!d.sztuki || d.sztuki.length === 0) {{
-                sekcja.style.display = 'none';
-                return;
-            }}
-            sekcja.style.display = 'block';
-            karty.innerHTML = d.sztuki.map(s => renderKartaSztuki(s)).join('');
-        }}
-        
-        function renderKartaSztuki(s) {{
-            const k = KOLOR_STAN[s.stan] || '#64748b';
-            const statusIcons = {{'magazyn':'inventory_2','naprawa':'build','sprzedany':'check_circle','wyslany':'local_shipping','uszkodzony':'error'}};
-            const zdjecieSrc = s.zdjecie || '';
-            const wymaga_foto = STANY_WYMAGAJACE_FOTO.includes(s.stan);
-            const hasNote = s.opis_naprawy && s.opis_naprawy.trim();
-
-            const imgSrc = zdjecieSrc || PROD_ZDJECIE || '';
-            const STAN_KLASA = {{'Nowy':'A','Jak nowy':'A-','Powystawowy':'A-','Używany':'B','Uszkodzony':'C','Zniszczony':'D','Odnowiony':'B'}};
-            const KLASA_COLOR = {{'A':'#beee00','A-':'#8ff5ff','B':'#eab308','C':'#f97316','D':'#ef4444'}};
-            const klasa = STAN_KLASA[s.stan] || '?';
-            const klasaColor = KLASA_COLOR[klasa] || '#64748b';
-            return `<div id="karta_${{s.id}}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:5px;background:rgba(255,255,255,0.02);border:1px solid ${{s.status==='naprawa'?'#f59e0b33':'rgba(255,255,255,0.05)'}};border-radius:10px;transition:all 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
-                ${{imgSrc ? `<img src="${{imgSrc}}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;border:2px solid ${{zdjecieSrc?k+'55':'rgba(255,255,255,0.08)'}};flex-shrink:0" onerror="this.style.display='none'" ${{zdjecieSrc?'onclick="window.open(\\\''+zdjecieSrc+'\\\',\\\'_blank\\\')" style="cursor:pointer"':''}}>` : `<div style="width:48px;height:48px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:1rem;color:#334155;flex-shrink:0">[INVENTORY_2]</div>`}}
-                <div style="width:10px;height:10px;border-radius:50%;background:${{k}};flex-shrink:0"></div>
-                <div style="font-weight:700;font-size:0.95rem;min-width:30px;color:#e2e8f0">#${{s.numer}}</div>
-                <div style="font-size:0.75rem;font-weight:800;color:${{klasaColor}};background:${{klasaColor}}15;border:1px solid ${{klasaColor}}33;padding:2px 8px;border-radius:6px;font-family:'Space Grotesk',sans-serif;min-width:24px;text-align:center">${{klasa}}</div>
-                <select onchange="zapiszPoleSztuki(${{s.id}}, 'stan', this.value)"
-                    style="background:${{k}}15;border:1px solid ${{k}}33;border-radius:8px;color:${{k}};padding:6px 10px;font-size:0.85rem;font-weight:600;cursor:pointer;min-width:110px">
-                    ${{['Nowy','Powystawowy','Używany','Uszkodzony','Odnowiony'].map(v =>
-                        `<option value="${{v}}" ${{v===s.stan?'selected':''}}>${{v}}</option>`).join('')}}
-                </select>
-                <select onchange="zapiszPoleSztuki(${{s.id}}, 'status', this.value)"
-                    style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#94a3b8;padding:6px 10px;font-size:0.85rem;cursor:pointer;min-width:100px">
-                    ${{['magazyn','naprawa','sprzedany','wyslany','uszkodzony'].map(v =>
-                        `<option value="${{v}}" ${{v===s.status?'selected':''}}>${{(statusIcons[v]||'')+' '+v}}</option>`).join('')}}
-                </select>
-                <div style="flex:1"></div>
-                ${{!zdjecieSrc && wymaga_foto ? `<label for="foto_${{s.id}}" style="cursor:pointer;color:#f59e0b" title="Dodaj zdjęcie stanu"><span class=material-symbols-outlined style=font-size:1.1rem>photo_camera</span></label><input type="file" id="foto_${{s.id}}" accept="image/*" capture="environment" style="display:none" onchange="uploadZdjecie(${{s.id}}, this)">` : ''}}
-                <button onclick="toggleNotatka(${{s.id}})" style="background:none;border:none;color:${{hasNote?'#8ff5ff':'#334155'}};cursor:pointer;padding:2px" title="${{hasNote ? s.opis_naprawy.substring(0,50) : 'Dodaj notatkę'}}"><span class=material-symbols-outlined style=font-size:1.1rem>edit_note</span></button>
-            </div>
-            <div id="notatka_wrap_${{s.id}}" style="display:none;padding:4px 10px 8px 38px">
-                <div style="display:flex;gap:6px;align-items:center">
-                    <input id="notatka_${{s.id}}" value="${{(s.opis_naprawy||'').replace(/"/g,'&quot;')}}" placeholder="Notatka..." style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#e2e8f0;padding:5px 8px;font-size:0.75rem">
-                    <button onclick="zapiszNotatke(${{s.id}})" style="background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.2);border-radius:6px;color:#8ff5ff;padding:4px 10px;font-size:0.7rem;cursor:pointer"><span class=material-symbols-outlined style=font-size:0.9rem>save</span></button>
-                </div>
-            </div>`;
-        }}
-        function toggleNotatka(id) {{
-            const w = document.getElementById('notatka_wrap_'+id);
-            w.style.display = w.style.display==='none' ? 'block' : 'none';
-        }}
-        
-        async function uploadZdjecie(id, input) {{
-            if (!input.files[0]) return;
-            const file = input.files[0];
-            // Kompresuj do max 800px
-            const canvas = document.createElement('canvas');
-            const img = new Image();
-            img.onload = async function() {{
-                const max = 800;
-                let w = img.width, h = img.height;
-                if (w > max || h > max) {{
-                    if (w > h) {{ h = Math.round(h * max / w); w = max; }}
-                    else {{ w = Math.round(w * max / h); h = max; }}
-                }}
-                canvas.width = w; canvas.height = h;
-                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                const base64 = canvas.toDataURL('image/jpeg', 0.75);
-                const resp = await fetch('/api/sztuki/jednostka/' + id + '/zdjecie', {{
-                    method: 'POST', headers: {{'Content-Type': 'application/json'}},
-                    body: JSON.stringify({{zdjecie: base64}})
-                }});
-                if (resp.ok) ladujSztuki();
-            }};
-            img.src = URL.createObjectURL(file);
-        }}
-        
-        async function usunZdjecie(id) {{
-            await fetch('/api/sztuki/jednostka/' + id + '/zdjecie', {{
-                method: 'POST', headers: {{'Content-Type': 'application/json'}},
-                body: JSON.stringify({{zdjecie: ''}})
-            }});
-            ladujSztuki();
-        }}
-        
-        async function zapiszPoleSztuki(id, pole, wartosc) {{
-            const karta = document.getElementById('karta_' + id);
-            const endpoint = pole === 'status' ? '/api/sztuki/jednostka/' + id + '/status' : '/api/sztuki/jednostka/' + id + '/stan';
-            const body = pole === 'status' ? {{status: wartosc}} : {{stan: wartosc}};
-            const resp = await fetch(endpoint, {{method:'POST', headers:{{'Content-Type':'application/json'}}, body:JSON.stringify(body)}});
-            if (resp.ok) {{
-                karta.style.border = '1px solid #beee00';
-                setTimeout(() => {{ karta.style.border = '1px solid rgba(255,255,255,0.05)'; ladujSztuki(); }}, 800);
-            }}
-        }}
-
-        async function zapiszNotatke(id) {{
-            const notatka = document.getElementById('notatka_' + id).value;
-            const resp = await fetch('/api/sztuki/jednostka/' + id + '/notatka', {{
-                method: 'POST', headers: {{'Content-Type': 'application/json'}},
-                body: JSON.stringify({{notatka}})
-            }});
-            const karta = document.getElementById('karta_' + id);
-            if (resp.ok) {{
-                karta.style.border = '1px solid #beee00';
-                setTimeout(() => karta.style.border = '1px solid rgba(255,255,255,0.05)', 1000);
-            }}
-        }}
-        
-        ladujSztuki();
-        
-        function kopiujGPSR() {{
-            const content = document.getElementById('gpsrContent').textContent;
-            navigator.clipboard.writeText(content).then(() => {{
-                alert('<span class=material-symbols-outlined>check_circle</span> Skopiowano do schowka!');
-            }}).catch(() => {{
-                // Fallback
-                const textarea = document.createElement('textarea');
-                textarea.value = content;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                alert('<span class=material-symbols-outlined>check_circle</span> Skopiowano do schowka!');
-            }});
-        }}
-        </script>
-
-    <!-- MODAL ROZBIJ -->
-    <div id="modalRozbijProd" class="cyber-modal">
-      <div class="cyber-modal-inner">
-        <div class="cyber-modal-title" style="color:#beee00"><span class=material-symbols-outlined>call_split</span> Rozbij stan na sztuki</div>
-        <div id="rozbijProdNazwa" style="color:#94a3b8;font-size:0.85rem;margin-bottom:15px"></div>
-        <div style="background:rgba(10,10,22,0.6);border:1px solid rgba(143,245,255,0.08);border-radius:10px;padding:12px;margin-bottom:15px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-            <span style="color:#94a3b8">Łącznie sztuk:</span><span id="rozbijProdLacznie" style="font-weight:700;font-family:'Space Grotesk',sans-serif"></span>
-          </div>
-          <div style="display:flex;justify-content:space-between">
-            <span style="color:#94a3b8">Suma wpisanych:</span><span id="rozbijProdSuma" style="font-weight:700;color:#beee00;font-family:'Space Grotesk',sans-serif"></span>
-          </div>
-        </div>
-        <div id="rozbijProdStany"></div>
-        <div style="color:#94a3b8;font-size:0.75rem;margin:10px 0 6px">Szybkie ustawienie:</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:15px">
-          <button onclick="rozbijProdSzybko('Nowy')" style="padding:6px 10px;background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.25);border-radius:8px;color:#beee00;font-size:0.75rem;cursor:pointer">Wszystko nowe</button>
-          <button onclick="rozbijProdSzybko('Powystawowy')" style="padding:6px 10px;background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);border-radius:8px;color:#8ff5ff;font-size:0.75rem;cursor:pointer">Powystawowe</button>
-          <button onclick="rozbijProdSzybko('Używany')" style="padding:6px 10px;background:rgba(234,179,8,0.10);border:1px solid rgba(234,179,8,0.25);border-radius:8px;color:#eab308;font-size:0.75rem;cursor:pointer">Używane</button>
-          <button onclick="rozbijProdSzybko('Uszkodzony')" style="padding:6px 10px;background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.25);border-radius:8px;color:#ef4444;font-size:0.75rem;cursor:pointer">Uszkodzone</button>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button onclick="document.getElementById('modalRozbijProd').style.display='none'" style="flex:1;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#fff;cursor:pointer;font-family:'Space Grotesk',sans-serif">Anuluj</button>
-          <button onclick="zapiszRozbijProd()" style="flex:1;padding:12px;background:rgba(190,238,0,0.15);border:1px solid rgba(190,238,0,0.3);border-radius:10px;color:#beee00;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px"><span class=material-symbols-outlined>check</span> Zapisz</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL NAPRAWA -->
-    <div id="modalNaprawaProd" class="cyber-modal">
-      <div class="cyber-modal-inner">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <div class="cyber-modal-title" style="color:#f59e0b"><span class=material-symbols-outlined>build</span> Do naprawy</div>
-          <button onclick="document.getElementById('modalNaprawaProd').style.display='none'" class="cyber-modal-close">&times;</button>
-        </div>
-        <div id="naprawaProdNazwa" style="color:#94a3b8;font-size:0.85rem;margin-bottom:15px"></div>
-        <div id="naprawaProdLista"></div>
-        <button onclick="document.getElementById('modalNaprawaProd').style.display='none'" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#fff;margin-top:10px;cursor:pointer;font-family:'Space Grotesk',sans-serif">Zamknij</button>
-      </div>
-    </div>
-
-    <!-- MODAL OCEN STAN -->
-    <div id="modalOcenStan" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);align-items:center;justify-content:center">
-      <div class="cyber-modal-inner" style="width:90%;position:relative;top:20%;margin:auto">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <div class="cyber-modal-title" style="color:#8ff5ff"><span class=material-symbols-outlined>star</span> Oceń stan</div>
-          <button onclick="document.getElementById('modalOcenStan').style.display='none'" class="cyber-modal-close">&times;</button>
-        </div>
-        <div id="ocenStanNazwa" style="color:#94a3b8;font-size:0.85rem;margin-bottom:6px"></div>
-        <div id="ocenStanCurrent" style="color:#f59e0b;font-size:0.75rem;margin-bottom:15px"></div>
-        <div style="font-size:0.8rem;color:#64748b;margin-bottom:8px">Wybierz stan:</div>
-        <div id="ocenStanBtns" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
-        <div id="ocenSplitSection" style="display:none;margin-bottom:14px">
-          <div style="font-size:0.8rem;color:#64748b;margin-bottom:6px">Tryb split — podaj ilości per stan:</div>
-          <div id="ocenSplitFields"></div>
-        </div>
-        <textarea id="ocenStanNotatki" placeholder="Notatki (opcjonalne)..." style="width:100%;padding:10px;background:rgba(10,10,22,0.6);border:1px solid rgba(143,245,255,0.10);border-radius:10px;color:#e2e8f0;font-size:0.85rem;resize:vertical;min-height:50px;margin-bottom:12px;font-family:'Space Grotesk',sans-serif"></textarea>
-        <div style="display:flex;gap:8px">
-          <button id="ocenStanSaveBtn" onclick="zapiszOceneStan()" style="flex:1;padding:12px;background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);border-radius:10px;color:#beee00;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px"><span class=material-symbols-outlined>save</span> Zapisz ocenę</button>
-          <button onclick="toggleSplitMode()" id="ocenSplitToggle" style="padding:12px 16px;background:rgba(255,107,155,0.12);border:1px solid rgba(255,107,155,0.3);border-radius:10px;color:#ff6b9b;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:'Space Grotesk',sans-serif">[CALL_SPLIT] Split</button>
-        </div>
-      </div>
-    </div>
-
-    <script>
-    let _rpId=null, _rpIlosc=0;
-    const KOLORY_P = {{'Nowy':'#beee00','Powystawowy':'#8ff5ff','Używany':'#eab308','Uszkodzony':'#ef4444','Odnowiony':'#ff6b9b'}};
-
-    // === OCEN STAN ===
-    let _ocenPid=null, _ocenIlosc=0, _ocenStan='', _splitMode=false;
-    const STANY = [
-      {{name:'Nowy',color:'#beee00',icon:'●'}},
-      {{name:'Jak nowy',color:'#8ff5ff',icon:'●'}},
-      {{name:'Dobry',color:'#eab308',icon:'●'}},
-      {{name:'Uszkodzony',color:'#f97316',icon:'●'}},
-      {{name:'Zniszczony',color:'#ef4444',icon:'●'}}
-    ];
-    function pokazOcenStan(pid, nazwa, ilosc, currentStan) {{
-        _ocenPid=pid; _ocenIlosc=ilosc; _ocenStan=''; _splitMode=false;
-        document.getElementById('ocenStanNazwa').textContent=nazwa + ' (' + ilosc + ' szt)';
-        document.getElementById('ocenStanCurrent').textContent=currentStan ? 'Aktualny: '+currentStan : 'Brak oceny';
-        document.getElementById('ocenSplitSection').style.display='none';
-        document.getElementById('ocenStanNotatki').value='';
-        // Auto-show split hint for multi-quantity
-        const splitToggle = document.getElementById('ocenSplitToggle');
-        if (ilosc > 1) {{
-            splitToggle.textContent = ' Split (' + ilosc + ' szt)';
-            splitToggle.style.display = '';
-        }} else {{
-            splitToggle.style.display = 'none';
-        }}
-        const btns=document.getElementById('ocenStanBtns');
-        btns.innerHTML='';
-        if (ilosc > 1) {{
-            btns.insertAdjacentHTML('beforebegin', '<div id="ocenStanHint" style="font-size:0.72rem;color:#f59e0b;margin-bottom:6px"><span class=material-symbols-outlined>lightbulb</span> Masz '+ilosc+' szt — użyj Split żeby ocenić różne sztuki różnie</div>');
-        }}
-        STANY.forEach(s=>{{
-            const b=document.createElement('button');
-            b.textContent=s.icon+' '+s.name;
-            b.style.cssText='padding:10px 16px;border-radius:10px;border:2px solid '+s.color+'44;background:'+s.color+'15;color:'+s.color+';font-weight:600;cursor:pointer;font-size:0.85rem;transition:all 0.2s';
-            b.onclick=()=>{{
-                _ocenStan=s.name;
-                btns.querySelectorAll('button').forEach(x=>x.style.borderColor=x.dataset.c+'44');
-                b.style.borderColor=s.color;
-                b.style.boxShadow='0 0 12px '+s.color+'40';
-            }};
-            b.dataset.c=s.color;
-            btns.appendChild(b);
-        }});
-        document.getElementById('modalOcenStan').style.display='flex';
-    }}
-    function toggleSplitMode() {{
-        _splitMode=!_splitMode;
-        const sec=document.getElementById('ocenSplitSection');
-        const tog=document.getElementById('ocenSplitToggle');
-        const hint=document.getElementById('ocenStanHint');
-        if(hint) hint.style.display=_splitMode?'none':'';
-        if(_splitMode) {{
-            sec.style.display='block';
-            tog.style.background='rgba(255,107,155,0.25)';
-            const fields=document.getElementById('ocenSplitFields');
-            fields.innerHTML='<div id="ocenSplitSum" style="font-size:0.75rem;color:#64748b;margin-bottom:8px">Suma: 0 / '+_ocenIlosc+'</div>';
-            STANY.forEach(s=>{{
-                fields.innerHTML+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:${{s.color}};width:100px;font-size:0.8rem">${{s.icon}} ${{s.name}}</span><input type="number" min="0" value="0" data-stan="${{s.name}}" oninput="updateSplitSum()" style="width:70px;padding:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e2e8f0;text-align:center"></div>`;
-            }});
-        }} else {{
-            sec.style.display='none';
-            tog.style.background='rgba(255,107,155,0.12)';
-        }}
-    }}
-    function updateSplitSum() {{
-        let sum=0;
-        document.querySelectorAll('#ocenSplitFields input').forEach(inp=>{{ sum+=parseInt(inp.value)||0; }});
-        const el=document.getElementById('ocenSplitSum');
-        const ok=sum===_ocenIlosc;
-        el.textContent='Suma: '+sum+' / '+_ocenIlosc+(ok?' ':sum>_ocenIlosc?'  za dużo!':'');
-        el.style.color=ok?'#beee00':sum>_ocenIlosc?'#ef4444':'#f59e0b';
-    }}
-    function zapiszOceneStan() {{
-        const notatki=document.getElementById('ocenStanNotatki').value;
-        let body={{product_id:_ocenPid,notatki:notatki}};
-        if(_splitMode) {{
-            const split={{}};
-            let sum=0;
-            document.querySelectorAll('#ocenSplitFields input').forEach(inp=>{{
-                const v=parseInt(inp.value)||0;
-                if(v>0) {{ split[inp.dataset.stan]=v; sum+=v; }}
-            }});
-            if(Object.keys(split).length===0) return alert('Podaj ilości');
-            if(sum!==_ocenIlosc) return alert('Suma ('+sum+') musi być równa ilości produktu ('+_ocenIlosc+')');
-            body.split=split;
-        }} else {{
-            if(!_ocenStan) return alert('Wybierz stan');
-            body.stan=_ocenStan;
-        }}
-        fetch('/magazyn/api/ocen-produkt',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify(body)}})
-        .then(r=>r.json()).then(d=>{{
-            if(d.success) {{ document.getElementById('modalOcenStan').style.display='none'; location.reload(); }}
-            else alert('Błąd: '+(d.error||'nieznany'));
-        }});
-    }}
-
-    function pokazRozbijProdukt(id, ilosc, nazwa) {{
-        _rpId=id; _rpIlosc=ilosc;
-        document.getElementById('rozbijProdNazwa').textContent=nazwa;
-        document.getElementById('rozbijProdLacznie').textContent=ilosc;
-        fetch('/api/sztuki/'+id).then(r=>r.json()).then(d=>{{
-            const istn={{}};
-            (d.sztuki||[]).forEach(s=>{{istn[s.stan]=(istn[s.stan]||0)+1;}});
-            renderRozbijProd(istn);
-        }}).catch(()=>renderRozbijProd({{}}));
-        document.getElementById('modalRozbijProd').style.display='block';
-    }}
-    function renderRozbijProd(val) {{
-        const stany=['Nowy','Powystawowy','Używany','Uszkodzony'];
-        let html='';
-        stany.forEach(s=>{{
-            const k=KOLORY_P[s], v=val[s]||0;
-            html+=`<div style="display:flex;align-items:center;gap:10px;background:${{k}}11;border:1px solid ${{k}}44;border-radius:10px;padding:10px;margin-bottom:8px">
-              <div style="width:12px;height:12px;border-radius:50%;background:${{k}};flex-shrink:0"></div>
-              <div style="flex:1;font-weight:600">${{s}}</div>
-              <button onclick="zmRozP('${{s}}',-1)" style="width:34px;height:34px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#fff;cursor:pointer;font-size:1.1rem">−</button>
-              <input type="number" id="rp_${{s}}" value="${{v}}" min="0" oninput="aktualizujSumP()"
-                style="width:55px;text-align:center;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#fff;padding:5px;font-size:1rem">
-              <button onclick="zmRozP('${{s}}',1)" style="width:34px;height:34px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#fff;cursor:pointer;font-size:1.1rem">+</button>
-            </div>`;
-        }});
-        document.getElementById('rozbijProdStany').innerHTML=html;
-        aktualizujSumP();
-    }}
-    function zmRozP(s,d){{const e=document.getElementById('rp_'+s);e.value=Math.max(0,(parseInt(e.value||0)+d));aktualizujSumP();}}
-    function aktualizujSumP(){{
-        let suma=0;
-        ['Nowy','Powystawowy','Używany','Uszkodzony'].forEach(s=>{{suma+=parseInt(document.getElementById('rp_'+s)?.value||0);}});
-        const el=document.getElementById('rozbijProdSuma');
-        el.textContent=suma+' / '+_rpIlosc;
-        el.style.color=suma===_rpIlosc?'#beee00':'#ef4444';
-    }}
-    function rozbijProdSzybko(stan){{
-        ['Nowy','Powystawowy','Używany','Uszkodzony'].forEach(s=>{{
-            const e=document.getElementById('rp_'+s);if(e)e.value=s===stan?_rpIlosc:0;
-        }});aktualizujSumP();
-    }}
-    function zapiszRozbijProd(){{
-        let suma=0,podzial={{}};
-        ['Nowy','Powystawowy','Używany','Uszkodzony'].forEach(s=>{{
-            const v=parseInt(document.getElementById('rp_'+s)?.value||0);
-            if(v>0){{podzial[s]=v;suma+=v;}}
-        }});
-        if(suma!==_rpIlosc){{alert('Suma musi wynosić '+_rpIlosc+' sztuk!');return;}}
-        fetch('/api/sztuki/'+_rpId+'/rozbij',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{podzial}})}})
-        .then(r=>r.json()).then(d=>{{if(d.ok){{document.getElementById('modalRozbijProd').style.display='none';alert('<span class=material-symbols-outlined>check_circle</span> Zapisano!');}}}}); 
-    }}
-
-    function pokazNaprawaProdukt(id, nazwa, ilosc) {{
-        document.getElementById('naprawaProdNazwa').textContent=nazwa+' — '+ilosc+' szt.';
-        document.getElementById('naprawaProdLista').innerHTML='<div style="color:#64748b;text-align:center;padding:20px">Ładowanie...</div>';
-        document.getElementById('modalNaprawaProd').style.display='block';
-        fetch('/api/sztuki/'+id).then(r=>r.json()).then(d=>renderNaprawaProd(d.sztuki||[], ilosc, id));
-    }}
-    function renderNaprawaProd(sztuki, ilosc, prodId) {{
-        const pelna=[];
-        for(let i=1;i<=ilosc;i++) pelna.push(sztuki.find(s=>s.numer===i)||{{id:null,numer:i,stan:'Nowy',status:'magazyn',opis_naprawy:''}});
-        let html='';
-        pelna.forEach(s=>{{
-            if(s.status==='naprawa'){{
-                html+=`<div style="background:#f59e0b15;border:1px solid #f59e0b55;border-radius:10px;padding:12px;margin-bottom:8px">
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                    <div style="font-weight:700;color:#f59e0b">[BUILD] szt. ${{s.numer}} DO NAPRAWY</div>
-                    <div style="display:flex;gap:6px">
-                      <button onclick="cofnijNaprawaProd(${{s.id}}, ${{prodId}}, ${{ilosc}})" style="padding:4px 10px;background:#ef444422;border:1px solid #ef4444;border-radius:6px;color:#ef4444;font-size:0.72rem;cursor:pointer">↩ Cofnij</button>
-                    </div>
-                  </div>
-                  <div style="background:#1e1e2e;border-radius:6px;padding:8px;font-size:0.8rem"><span class=material-symbols-outlined>edit_note</span> ${{s.opis_naprawy||'—'}}</div>
-                  ${{s.data_naprawy?`<div style="font-size:0.7rem;color:#64748b;margin-top:4px">${{s.data_naprawy}}</div>`:''}}
-                </div>`;
-            }} else {{
-                html+=`<div style="background:#12121a;border:1px solid #1e1e2e;border-radius:10px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
-                  <div style="display:flex;align-items:center;gap:8px">
-                    <div style="width:10px;height:10px;border-radius:50%;background:${{KOLORY_P[s.stan]||'#64748b'}}"></div>
-                    <span style="font-weight:600">szt. ${{s.numer}}</span>
-                    <span style="font-size:0.72rem;color:#64748b">${{s.stan}}</span>
-                  </div>
-                  <button onclick="dodajNaprawaProd(${{s.id||0}}, ${{s.numer}}, ${{prodId}}, ${{ilosc}})" style="padding:6px 14px;background:#f59e0b;border:none;border-radius:8px;color:#000;font-size:0.75rem;font-weight:700;cursor:pointer">+ Do naprawy</button>
-                </div>`;
-            }}
-        }});
-        document.getElementById('naprawaProdLista').innerHTML=html||'<div style="color:#64748b;text-align:center;padding:15px">Brak rozbicia — najpierw użyj [TARGET] Rozbij na sztuki</div>';
-    }}
-    function dodajNaprawaProd(sztukiId, numer, prodId, ilosc) {{
-        const opis=prompt('Opis usterki dla szt. '+numer+':');
-        if(opis===null) return;
-        const doSave=(id)=>fetch('/api/sztuki/jednostka/'+id+'/naprawa',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{opis}})}})
-            .then(()=>{{fetch('/api/sztuki/'+prodId).then(r=>r.json()).then(d=>renderNaprawaProd(d.sztuki||[],ilosc,prodId));}});
-        if(sztukiId>0){{doSave(sztukiId);}}
-        else{{
-            fetch('/api/sztuki/'+prodId+'/rozbij',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{podzial:{{'Nowy':ilosc}}}})}}
-            ).then(()=>fetch('/api/sztuki/'+prodId).then(r=>r.json()).then(d=>{{
-                const szt=(d.sztuki||[]).find(s=>s.numer===numer);
-                if(szt)doSave(szt.id);
-            }}));
-        }}
-    }}
-    function cofnijNaprawaProd(id, prodId, ilosc) {{
-        fetch('/api/sztuki/jednostka/'+id+'/naprawa',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{cofnij:true}})}})
-        .then(()=>fetch('/api/sztuki/'+prodId).then(r=>r.json()).then(d=>renderNaprawaProd(d.sztuki||[],ilosc,prodId)));
-    }}
-    </script>
-    </div>
-    <a href="/magazyn" class="back">← Powrót</a>
-    '''
-    return render(html)
+# -- Old inline HTML removed, now in templates/produkt_detail.html --
 
 @magazynier_bp.route('/produkt/<path:code>/zmien-status', methods=['POST'])
 def zmien_status_produktu(code):
@@ -2272,7 +1576,8 @@ def produkt_opis(code):
         return redirect('/magazyn')
     
     product_code = get_product_code(p)
-    display_code = p['ean'] or p['asin'] or f"#{p['id']}"
+    _ean_c = p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else ''
+    display_code = _ean_c or p['asin'] or f"#{p['id']}"
     opis = generuj_opis_ai(p['nazwa'], p['kategoria'] or 'inne')
     
     html = f'''
@@ -4384,7 +3689,8 @@ def paleta_detail_by_id(paleta_id):
     for p in products:
         img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
         pcode = get_product_code(p)
-        display_code = p['ean'] or p['asin'] or f"#{p['id']}"
+        _ean_c = p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else ''
+        display_code = _ean_c or p['asin'] or f"#{p['id']}"
         html += f'''<a href="/magazyn/produkt/{pcode}" class="item">
             <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
             <div class="item-info">
@@ -4536,7 +3842,8 @@ def paleta_detail(n):
     for p in products:
         img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
         pcode = get_product_code(p)
-        display_code = p['ean'] or p['asin'] or f"#{p['id']}"
+        _ean_c = p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else ''
+        display_code = _ean_c or p['asin'] or f"#{p['id']}"
         
         # Cena zakupu produktu ZA SZTUKĘ (cena_netto/cena_brutto w bazie JUŻ są jednostkowe!)
         cena_za_sztuke = p['cena_netto'] if p['cena_netto'] and p['cena_netto'] > 0 else (p['cena_brutto'] or 0)
@@ -4940,7 +4247,8 @@ def dostawca_detail(n):
     for p in products:
         img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
         pcode = get_product_code(p)
-        display_code = p['ean'] or p['asin'] or f"#{p['id']}"
+        _ean_c = p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else ''
+        display_code = _ean_c or p['asin'] or f"#{p['id']}"
         html += f'''<a href="/magazyn/produkt/{pcode}" class="item">
             <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
             <div class="item-info">

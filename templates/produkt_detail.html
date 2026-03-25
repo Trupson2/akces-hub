@@ -1,0 +1,939 @@
+{% extends "base.html" %}
+{% block page_title %}Produkt{% endblock %}
+{% block content %}
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   Produkt Detail — Cyberpunk Design System
+   Colors: Cyan #8ff5ff · Pink #ff6b9b · Lime #beee00
+   Font: Space Grotesk · Icons: Material Symbols
+   ═══════════════════════════════════════════════════════════════ */
+
+/* --- Page Header --- */
+.pd-hdr{text-align:center;padding:16px 0;border-bottom:1px solid rgba(143,245,255,0.12);margin-bottom:14px}
+.pd-hdr h1{font-size:1.4rem;color:#8ff5ff;font-family:'Space Grotesk',sans-serif;font-weight:700;text-shadow:0 0 20px rgba(143,245,255,0.35);letter-spacing:0.05em;display:flex;align-items:center;justify-content:center;gap:10px}
+.pd-hdr h1 .material-symbols-outlined{font-size:1.5rem;color:#ff6b9b}
+
+/* --- Alerts --- */
+.pd-alert{padding:12px 16px;margin-bottom:12px;font-size:0.88rem;display:flex;align-items:center;gap:8px}
+.pd-alert.warn{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);color:#eab308}
+.pd-alert.ok{background:rgba(190,238,0,0.08);border:1px solid rgba(190,238,0,0.25);color:#beee00}
+.pd-alert .material-symbols-outlined{font-size:1.1rem}
+
+/* --- Hero Section --- */
+.pd-hero{background:rgba(10,10,22,0.70);border:1px solid rgba(143,245,255,0.08);overflow:hidden;margin-bottom:14px}
+.pd-hero-img{width:100%;max-height:280px;object-fit:contain;background:rgba(255,255,255,0.95);padding:12px;display:block}
+.pd-hero-body{padding:16px}
+.pd-hero-name{font-size:1.25rem;font-weight:700;font-family:'Space Grotesk',sans-serif;line-height:1.3;color:#e2e8f0}
+
+/* --- Status Panel --- */
+.pd-status{background:rgba(10,10,22,0.6);border-left:3px solid;padding:16px;margin:14px 0;position:relative;overflow:hidden}
+.pd-status::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(143,245,255,0.15),transparent)}
+.pd-status-label{font-size:0.68rem;color:#64748b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px}
+.pd-status-value{font-size:1.3rem;font-weight:700;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:8px}
+.pd-status-value .material-symbols-outlined{font-size:1.4rem}
+.pd-status-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+
+/* --- Quick Actions --- */
+.pd-quick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.pd-qbtn{padding:10px 5px;font-size:0.72rem;border:1px solid;cursor:pointer;font-weight:600;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:5px;text-align:center;transition:all 0.25s;font-family:'Space Grotesk',sans-serif}
+.pd-qbtn:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,0.4)}
+.pd-qbtn .material-symbols-outlined{font-size:1rem}
+.pd-qbtn.lime{background:rgba(190,238,0,0.12);border-color:rgba(190,238,0,0.25);color:#beee00}
+.pd-qbtn.pink{background:rgba(255,107,155,0.15);border-color:rgba(255,107,155,0.25);color:#ff6b9b}
+.pd-qbtn.amber{background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.25);color:#f59e0b}
+.pd-qbtn.cyan{background:rgba(143,245,255,0.10);border-color:rgba(143,245,255,0.25);color:#8ff5ff}
+.pd-qbtn.red{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.25);color:#ef4444}
+
+/* --- Location Panel --- */
+.pd-loc{background:rgba(10,10,22,0.6);border-left:3px solid #8ff5ff;padding:14px;margin-bottom:14px;position:relative;overflow:hidden}
+.pd-loc::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,#8ff5ff,#ff6b9b,#beee00);opacity:0.5}
+.pd-loc-title{font-size:0.68rem;color:#8ff5ff;text-transform:uppercase;margin-bottom:10px;font-weight:600;letter-spacing:0.1em;display:flex;align-items:center;gap:6px}
+.pd-loc-title .material-symbols-outlined{font-size:1rem}
+.pd-loc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
+.pd-loc-v{font-size:1.05rem;font-weight:700;color:#beee00;font-family:'Space Grotesk',sans-serif}
+.pd-loc-l{font-size:0.62rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em}
+
+/* --- Details Grid --- */
+.pd-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.pd-det{background:rgba(10,10,22,0.5);padding:12px;border:1px solid rgba(255,255,255,0.04);transition:all 0.25s}
+.pd-det:hover{background:rgba(143,245,255,0.04);border-color:rgba(143,245,255,0.10)}
+.pd-det.highlight{border-color:rgba(190,238,0,0.20)}
+.pd-det-l{font-size:0.65rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:center;gap:4px}
+.pd-det-l .material-symbols-outlined{font-size:0.85rem;color:#8ff5ff}
+.pd-det-v{font-size:0.92rem;font-weight:600;margin-top:3px;font-family:'Space Grotesk',sans-serif}
+.pd-det-v.green{color:#beee00}
+.pd-det-v.pink{color:#ff6b9b}
+.pd-det-v.amber{color:#f59e0b}
+.pd-det-copy{cursor:pointer}
+.pd-det-copy:active .pd-det-v{color:#beee00!important}
+.pd-badge{padding:3px 8px;font-weight:700;font-size:0.85rem}
+.pd-badge.ok{background:rgba(190,238,0,0.10);color:#beee00}
+.pd-badge.err{background:rgba(239,68,68,0.10);color:#ef4444}
+.pd-profit{font-size:1.1rem!important;font-weight:700!important}
+
+/* --- Siblings Panel --- */
+.pd-siblings{background:rgba(10,10,22,0.70);border:1px solid rgba(143,245,255,0.08);padding:16px;margin-bottom:14px}
+.pd-siblings-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.95rem;margin-bottom:12px;color:#8ff5ff;display:flex;align-items:center;gap:8px}
+.pd-siblings-title .material-symbols-outlined{font-size:1.2rem}
+.pd-sib{display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:4px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);text-decoration:none;color:inherit;transition:all 0.25s}
+.pd-sib:hover{background:rgba(143,245,255,0.04)}
+.pd-sib.current{background:rgba(143,245,255,0.06);border-color:rgba(143,245,255,0.15)}
+.pd-sib-klasa{font-size:1.4rem;font-weight:800;font-family:'Space Grotesk',sans-serif;min-width:40px;text-align:center}
+
+/* --- Action Buttons --- */
+.pd-actions{padding:0 16px 16px}
+.pd-act-grid{display:grid;gap:6px;margin-bottom:10px}
+.pd-act-2{grid-template-columns:1fr 1fr}
+.pd-act-4{grid-template-columns:repeat(4,1fr)}
+.pd-act-3{grid-template-columns:repeat(3,1fr)}
+.pd-act{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;font-weight:600;font-size:0.82rem;text-decoration:none;transition:all 0.25s;cursor:pointer;border:1px solid;font-family:'Space Grotesk',sans-serif;background:none}
+.pd-act:hover{transform:translateY(-1px)}
+.pd-act .material-symbols-outlined{font-size:1.1rem}
+.pd-act-sm{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;font-size:0.65rem;text-decoration:none;text-align:center;transition:all 0.25s;cursor:pointer;border:1px solid;font-weight:500;background:none}
+.pd-act-sm .material-symbols-outlined{font-size:1.2rem}
+.pd-act-sm:hover{transform:translateY(-1px)}
+
+/* --- Advanced (collapsible) --- */
+.pd-more summary{padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);color:#64748b;font-size:0.75rem;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;transition:all 0.2s;font-family:'Space Grotesk',sans-serif}
+.pd-more summary:hover{background:rgba(255,255,255,0.04)}
+.pd-more[open] summary .expand-icon{transform:rotate(180deg)}
+
+/* --- Sztuki (Units) Section --- */
+.pd-sztuki{margin:0 16px 16px;display:none}
+.pd-sztuki-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.pd-sztuki-title{font-weight:700;font-size:1rem;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px}
+.pd-sztuki-title .material-symbols-outlined{color:#8ff5ff;font-size:1.2rem}
+
+/* --- Historia Card --- */
+.pd-hist{background:rgba(10,10,22,0.70);border:1px solid rgba(255,107,155,0.15);overflow:hidden;margin-bottom:16px}
+.pd-hist-hdr{background:linear-gradient(135deg,rgba(255,107,155,0.12),rgba(143,245,255,0.06));border-bottom:1px solid rgba(255,107,155,0.15);padding:16px;display:flex;align-items:center;gap:12px}
+.pd-hist-hdr .material-symbols-outlined{font-size:1.5rem;color:#ff6b9b}
+.pd-hist-hdr h3{font-size:1.1rem;font-weight:700;color:#fff;font-family:'Space Grotesk',sans-serif;margin:0}
+.pd-hist-hdr small{font-size:0.8rem;color:rgba(255,255,255,0.65);margin-top:2px}
+.pd-hist-entry{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;justify-content:space-between;align-items:start;gap:12px;transition:background 0.2s}
+.pd-hist-entry:hover{background:rgba(143,245,255,0.03)}
+.pd-hist-entry:last-child{border-bottom:none}
+.pd-hist-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pd-hist-icon .material-symbols-outlined{font-size:1.1rem}
+.pd-hist-text{font-size:0.88rem;font-weight:500;color:#e2e8f0}
+.pd-hist-date{font-size:0.72rem;color:#64748b;white-space:nowrap}
+.pd-hist-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.pd-hist-tag{font-size:0.68rem;padding:2px 8px;background:rgba(255,107,155,0.10);color:#ff6b9b}
+.pd-hist-actions{display:flex;gap:6px;margin-left:8px;flex-shrink:0}
+.pd-hist-actions a{width:28px;height:28px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;text-decoration:none}
+.pd-hist-actions a .material-symbols-outlined{font-size:0.95rem}
+.pd-hist-actions a:first-child{background:rgba(245,158,11,0.10);color:#fbbf24}
+.pd-hist-actions a:first-child:hover{background:rgba(245,158,11,0.20)}
+.pd-hist-actions a:last-child{background:rgba(239,68,68,0.10);color:#ef4444}
+.pd-hist-actions a:last-child:hover{background:rgba(239,68,68,0.20)}
+
+/* --- Modals --- */
+.pd-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:1000;overflow-y:auto;padding:20px}
+.pd-modal-inner{background:rgba(15,15,30,0.95);backdrop-filter:blur(20px);border:1px solid rgba(143,245,255,0.10);padding:24px;max-width:480px;margin:40px auto;position:relative;overflow:hidden}
+.pd-modal-inner::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#8ff5ff,#ff6b9b,#beee00)}
+.pd-modal-title{font-size:1.15rem;font-weight:700;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.pd-modal-close{background:none;border:none;color:#64748b;font-size:1.3rem;cursor:pointer;transition:color 0.2s;padding:4px}
+.pd-modal-close:hover{color:#ff6b9b}
+.pd-modal-btn{padding:12px;border:1px solid;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;flex:1}
+
+/* --- Back Link --- */
+.pd-back{display:flex;align-items:center;gap:6px;color:#64748b;text-decoration:none;font-size:0.88rem;padding:12px 0;transition:color 0.2s}
+.pd-back:hover{color:#8ff5ff}
+
+/* --- Toast (shared) --- */
+.toast-container{position:fixed;top:80px;right:20px;z-index:1000;display:flex;flex-direction:column;gap:10px;max-width:400px}
+
+/* --- Responsive --- */
+@media(max-width:768px){
+    .pd-quick{grid-template-columns:repeat(2,1fr)}
+    .pd-act-4{grid-template-columns:repeat(2,1fr)}
+    .pd-loc-grid{grid-template-columns:1fr 1fr 1fr}
+}
+</style>
+
+<div class="toast-container" id="toast-container"></div>
+
+<!-- HEADER -->
+<div class="pd-hdr">
+    <h1><span class="material-symbols-outlined">inventory_2</span> PRODUKT</h1>
+</div>
+
+<!-- ALERTS -->
+{% if is_new %}
+<div class="pd-alert warn">
+    <span class="material-symbols-outlined">add_circle</span> NOWY PRODUKT - kliknij EDYTUJ aby dodac
+</div>
+{% endif %}
+{% if msg %}
+<div class="pd-alert ok">
+    <span class="material-symbols-outlined">check_circle</span> {{ msg }}
+</div>
+{% endif %}
+
+<!-- HISTORIA ZMIAN -->
+{% if historia %}
+<div class="pd-hist">
+    <div class="pd-hist-hdr">
+        <span class="material-symbols-outlined">history</span>
+        <div>
+            <h3>HISTORIA ZMIAN</h3>
+            <small>Ostatnie {{ historia|length }} dzialan na tym produkcie</small>
+        </div>
+    </div>
+    <div style="padding:8px;max-height:400px;overflow-y:auto">
+        {% for h in historia %}
+        {% set ikony = {'dodano':'download','edytowano':'edit','wystawiono':'shopping_cart','sprzedano':'paid','wyslano':'local_shipping','zmiana_ceny':'price_change','zmiana_lokalizacji':'pin_drop','zmiana_ilosci':'inventory','drukowano':'print','skanowano':'qr_code_scanner','importowano':'upload_file','scrapowano':'search','wygenerowano_opis':'auto_awesome','dodano_zdjecia':'photo_camera','przeniesiono':'swap_horiz','oznaczono':'label'} %}
+        {% set kolory = {'dodano':'#8ff5ff','sprzedano':'#beee00','wystawiono':'#ff6b9b','wyslano':'#beee00','zmiana_ceny':'#f59e0b','skanowano':'#8ff5ff','wygenerowano_opis':'#ff6b9b','importowano':'#8ff5ff','scrapowano':'#ff6b9b','drukowano':'#ff6b9b'} %}
+        {% set ms_icon = ikony.get(h['akcja'], 'push_pin') %}
+        {% set icon_color = kolory.get(h['akcja'], '#8ff5ff') %}
+        <div class="pd-hist-entry">
+            <div style="display:flex;align-items:start;gap:10px;flex:1;min-width:0">
+                <div class="pd-hist-icon" style="background:{{ icon_color }}15;border:1px solid {{ icon_color }}33">
+                    <span class="material-symbols-outlined" style="color:{{ icon_color }}">{{ ms_icon }}</span>
+                </div>
+                <div style="flex:1;min-width:0">
+                    <div class="pd-hist-text">{{ h['opis'] }}</div>
+                    {% if h['dane_json'] %}
+                    {% set dane = h['dane_json']|parse_json %}
+                    {% if dane %}
+                    <div class="pd-hist-tags">
+                        {% for k, v in dane.items() if k != 'allegro_id' %}
+                        <span class="pd-hist-tag">{{ k }}: {{ v }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+                <span class="pd-hist-date">{{ h['data'][:16] if h['data'] else '' }}</span>
+                <div class="pd-hist-actions">
+                    <a href="/magazyn/historia/{{ h['id'] }}/edytuj" title="Edytuj"><span class="material-symbols-outlined">edit</span></a>
+                    <a href="/magazyn/historia/{{ h['id'] }}/usun?redirect=/magazyn/produkt/{{ product_code }}" onclick="return confirm('Usunac ten wpis z historii?')" title="Usun"><span class="material-symbols-outlined">delete</span></a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- HERO CARD -->
+<div class="pd-hero">
+    <img src="{{ img }}" class="pd-hero-img" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27400%27 height=%27180%27%3E%3Crect fill=%27%2312121a%27 width=%27400%27 height=%27180%27/%3E%3Ctext x=%27200%27 y=%2795%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2718%27%3EBRAK ZDJECIA%3C/text%3E%3C/svg%3E'">
+    <div class="pd-hero-body">
+        <div class="pd-hero-name">{{ p.nazwa }}</div>
+
+        {% if p.id and not is_new %}
+        <!-- STATUS PANEL -->
+        {% set status_map = {'nowy': ('inventory_2','MAGAZYN','#8ff5ff'), 'wystawiony': ('shopping_cart','ALLEGRO','#ff6b9b'), 'sprzedany': ('paid','SPRZEDANE','#beee00'), 'wyslany': ('local_shipping','WYSLANE','#beee00'), 'uszkodzony': ('warning','USZKODZONY','#ef4444'), 'zwrot': ('undo','ZWROT','#eab308')} %}
+        {% set current_status = p.status or 'nowy' %}
+        {% set s_icon, s_label, s_color = status_map.get(current_status, ('inventory_2','MAGAZYN','#8ff5ff')) %}
+
+        <div class="pd-status" style="border-color:{{ s_color }}">
+            <div class="pd-status-row">
+                <div>
+                    <div class="pd-status-label">STATUS PRODUKTU</div>
+                    <div class="pd-status-value" style="color:{{ s_color }}">
+                        <span class="material-symbols-outlined">{{ s_icon }}</span> {{ s_label }}
+                    </div>
+                </div>
+                <form method="POST" action="/magazyn/produkt/{{ product_code }}/zmien-status" style="display:flex;gap:8px;align-items:center">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <select name="new_status" class="form-input" style="padding:8px 12px;font-size:0.85rem;min-width:150px" onchange="this.form.submit()">
+                        <option value="">-- Zmien na --</option>
+                        <option value="nowy" {{ 'selected' if current_status == 'nowy' }}>Magazyn</option>
+                        <option value="wystawiony" {{ 'selected' if current_status == 'wystawiony' }}>Allegro</option>
+                        <option value="sprzedany" {{ 'selected' if current_status == 'sprzedany' }}>Sprzedany</option>
+                        <option value="wyslany" {{ 'selected' if current_status == 'wyslany' }}>Wyslany</option>
+                        <option value="uszkodzony" {{ 'selected' if current_status == 'uszkodzony' }}>Uszkodzony</option>
+                        <option value="zwrot" {{ 'selected' if current_status == 'zwrot' }}>Zwrot</option>
+                    </select>
+                </form>
+            </div>
+        </div>
+
+        <!-- QUICK ACTIONS -->
+        <div class="pd-quick">
+            <a href="/magazyn/produkt/{{ product_code }}/sprzedaj" class="pd-qbtn lime"><span class="material-symbols-outlined">remove_shopping_cart</span> -1 SZT</a>
+            <a href="/magazyn/etykieta-mobilna/{{ product_code }}" class="pd-qbtn pink"><span class="material-symbols-outlined">label</span> ETYKIETA</a>
+            <a href="/magazyn/produkt/{{ product_code }}/edytuj" class="pd-qbtn amber"><span class="material-symbols-outlined">edit</span> EDYTUJ</a>
+            <a href="/paletomat/generator/from-magazyn/{{ p.id }}" class="pd-qbtn cyan"><span class="material-symbols-outlined">storefront</span> WYSTAW</a>
+            <form method="POST" action="/magazyn/produkt/{{ product_code }}/usun" style="display:inline;grid-column:span 2" onsubmit="return confirm('Na pewno usunac ten produkt?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="pd-qbtn red" style="width:100%"><span class="material-symbols-outlined">delete</span> USUN</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- LOCATION -->
+        <div class="pd-loc">
+            <div class="pd-loc-title"><span class="material-symbols-outlined">pin_drop</span> Lokalizacja</div>
+            <div class="pd-loc-grid">
+                <div><div class="pd-loc-l">Regal</div><div class="pd-loc-v">{{ p.lokalizacja or '—' }}</div></div>
+                <div><div class="pd-loc-l">Paleta</div><div class="pd-loc-v">{{ p.paleta or '—' }}</div></div>
+                <div><div class="pd-loc-l">Dostawca</div><div class="pd-loc-v">{{ (p.dostawca or '—')[:6] }}</div></div>
+            </div>
+        </div>
+
+        <!-- DETAILS GRID -->
+        <div class="pd-grid">
+            <div class="pd-det" style="border-color:rgba(255,107,155,0.2)">
+                <div class="pd-det-l"><span class="material-symbols-outlined" style="color:#ff6b9b">label</span> Kod mag.</div>
+                <div class="pd-det-v pink">{{ p.kod_magazynowy or ('#' ~ p.id) }}</div>
+            </div>
+            <div class="pd-det pd-det-copy" onclick="navigator.clipboard.writeText('{{ ean_display }}');this.querySelector('.pd-det-v').style.color='#beee00';setTimeout(()=>this.querySelector('.pd-det-v').style.color='',800)" title="Kliknij aby skopiowac">
+                <div class="pd-det-l"><span class="material-symbols-outlined">content_copy</span> EAN</div>
+                <div class="pd-det-v" style="font-size:0.75rem;user-select:all">{{ ean_display }}</div>
+            </div>
+            <div class="pd-det pd-det-copy" onclick="navigator.clipboard.writeText('{{ asin_display }}');this.querySelector('.pd-det-v').style.color='#beee00';setTimeout(()=>this.querySelector('.pd-det-v').style.color='',800)" title="Kliknij aby skopiowac">
+                <div class="pd-det-l"><span class="material-symbols-outlined">content_copy</span> ASIN</div>
+                <div class="pd-det-v" style="font-size:0.75rem;user-select:all">{{ asin_display }}</div>
+            </div>
+            <div class="pd-det">
+                <div class="pd-det-l"><span class="material-symbols-outlined">inventory</span> Ilosc</div>
+                <div class="pd-det-v"><span class="pd-badge {{ 'ok' if p.ilosc > 0 else 'err' }}">{{ p.ilosc }} szt</span></div>
+            </div>
+            <div class="pd-det">
+                <div class="pd-det-l"><span class="material-symbols-outlined">grade</span> Stan</div>
+                <div class="pd-det-v">{{ p.stan or 'Nowy' }}</div>
+            </div>
+            <div class="pd-det">
+                <div class="pd-det-l"><span class="material-symbols-outlined">stars</span> Klasa</div>
+                <div class="pd-det-v">{{ klasa_display|safe }}</div>
+            </div>
+            <div class="pd-det">
+                <div class="pd-det-l"><span class="material-symbols-outlined">payments</span> Koszt/szt brutto</div>
+                <div class="pd-det-v">{{ '%.2f'|format(koszt_brutto_szt) }} zl</div>
+            </div>
+            <div class="pd-det">
+                <div class="pd-det-l"><span class="material-symbols-outlined">payments</span> Koszt/szt netto</div>
+                <div class="pd-det-v">{{ '%.2f'|format(koszt_brutto_szt / 1.23) }} zl</div>
+            </div>
+            <div class="pd-det">
+                <div class="pd-det-l"><span class="material-symbols-outlined">storefront</span> Cena Allegro</div>
+                <div class="pd-det-v green">{{ '%.2f'|format(p.cena_allegro or 0) }} zl</div>
+            </div>
+            <div class="pd-det">
+                <div class="pd-det-l"><span class="material-symbols-outlined">percent</span> Prowizja ({{ (prowizja_rate * 100)|int }}%)</div>
+                <div class="pd-det-v amber">{{ '%.2f'|format(prowizja_kwota) }} zl</div>
+            </div>
+            <div class="pd-det highlight" style="grid-column:span 2;border-color:{{ zysk_color }}33">
+                <div class="pd-det-l"><span class="material-symbols-outlined" style="color:{{ zysk_color }}">diamond</span> Zysk/szt</div>
+                <div class="pd-det-v pd-profit" style="color:{{ zysk_color }}">{{ '%.2f'|format(zysk_szt) }} zl</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SIBLINGS -->
+    {% if siblings %}
+    <div class="pd-siblings">
+        <div class="pd-siblings-title"><span class="material-symbols-outlined">inventory_2</span> Partie tego produktu (per klasa)</div>
+        {% set klasa_colors = {'A':'#beee00','A-':'#8ff5ff','B':'#eab308','C':'#f97316','D':'#ef4444','':'#64748b'} %}
+        {# Current product #}
+        {% set cur_stan = p.stan_przyjecia or 'nieoceniony' %}
+        <div class="pd-sib current">
+            <span class="pd-sib-klasa" style="color:#8ff5ff">{{ cur_stan[:3] or '?' }}</span>
+            <div style="flex:1">
+                <div style="font-weight:600;font-size:0.85rem">{{ p.ilosc }} szt <span style="color:#64748b;font-weight:400">· {{ cur_stan }}</span></div>
+                <div style="font-size:0.7rem;color:#64748b">{{ p.lokalizacja or 'brak lok.' }} · aktualny</div>
+            </div>
+            <span style="color:#8ff5ff;font-size:0.7rem;font-weight:600;background:rgba(143,245,255,0.10);padding:2px 8px">CURRENT</span>
+        </div>
+        {# Sibling rows #}
+        {% for sib in siblings %}
+        {% set ss = sib.stan_przyjecia or 'nieoceniony' %}
+        <a href="/magazyn/produkt/{{ sib.kod_magazynowy or sib.id }}" class="pd-sib">
+            <span class="pd-sib-klasa" style="color:#8ff5ff">{{ ss[:3] or '?' }}</span>
+            <div style="flex:1">
+                <div style="font-weight:600;font-size:0.85rem">{{ sib.ilosc }} szt <span style="color:#64748b;font-weight:400">· {{ ss }}</span></div>
+                <div style="font-size:0.7rem;color:#64748b">{{ sib.lokalizacja or 'brak lok.' }}</div>
+            </div>
+            <span class="material-symbols-outlined" style="color:#8ff5ff;font-size:1rem">chevron_right</span>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- MAIN ACTIONS -->
+    <div class="pd-actions">
+        <div class="pd-act-grid pd-act-2">
+            <a href="/magazyn/produkt/{{ product_code }}/edytuj" class="pd-act" style="background:rgba(245,158,11,0.10);border-color:rgba(245,158,11,0.25);color:#f59e0b"><span class="material-symbols-outlined">edit</span> Edytuj</a>
+            <button onclick="pokazOcenStan({{ p.id }}, '{{ p.nazwa[:40]|replace("'","") }}', {{ p.ilosc }}, '{{ (p.stan_przyjecia or '')|replace("'","") }}')" class="pd-act" style="background:rgba(143,245,255,0.10);border-color:rgba(143,245,255,0.25);color:#8ff5ff"><span class="material-symbols-outlined">star</span> Ocen stan</button>
+        </div>
+        <div class="pd-act-grid pd-act-4">
+            <a href="/magazyn/drukuj/{{ product_code }}" class="pd-act-sm" style="background:rgba(255,107,155,0.06);border-color:rgba(255,107,155,0.15);color:#ff6b9b"><span class="material-symbols-outlined">print</span>Drukuj</a>
+            <a href="/magazyn/etykiety/niimbot/png/{{ p.id }}" class="pd-act-sm" style="background:rgba(143,245,255,0.06);border-color:rgba(143,245,255,0.15);color:#8ff5ff"><span class="material-symbols-outlined">image</span>PNG</a>
+            <a href="/magazyn/produkt/{{ product_code }}/opis" class="pd-act-sm" style="background:rgba(255,107,155,0.06);border-color:rgba(255,107,155,0.15);color:#ff6b9b"><span class="material-symbols-outlined">auto_awesome</span>Opis AI</a>
+            <button onclick="rescrapZdjecia({{ p.id }}, this)" class="pd-act-sm" style="background:rgba(143,245,255,0.06);border-color:rgba(143,245,255,0.15);color:#8ff5ff"><span class="material-symbols-outlined">photo_camera</span>Zdjecia</button>
+        </div>
+
+        <details class="pd-more" style="margin-bottom:4px">
+            <summary><span class="material-symbols-outlined">settings</span> Wiecej akcji <span class="material-symbols-outlined expand-icon" style="margin-left:auto;font-size:0.9rem">expand_more</span></summary>
+            <div class="pd-act-grid pd-act-3" style="padding:8px 0 0">
+                <button onclick="pokazGPSR()" class="pd-act-sm" style="background:rgba(5,150,105,0.06);border-color:rgba(5,150,105,0.15);color:#059669"><span class="material-symbols-outlined">shield</span>GPSR</button>
+                <button onclick="pokazRozbijProdukt({{ p.id }}, {{ p.ilosc }}, '{{ p.nazwa[:40]|replace("'","") }}')" class="pd-act-sm" style="background:rgba(190,238,0,0.06);border-color:rgba(190,238,0,0.15);color:#beee00"><span class="material-symbols-outlined">call_split</span>Rozbij</button>
+                <button onclick="pokazNaprawaProdukt({{ p.id }}, '{{ p.nazwa[:40]|replace("'","") }}', {{ p.ilosc }})" class="pd-act-sm" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.15);color:#f59e0b"><span class="material-symbols-outlined">build</span>Naprawa</button>
+                <button onclick="wyslijDoSerwisu({{ p.id }}, '{{ p.nazwa[:40]|replace("'","") }}', {{ p.ilosc }})" class="pd-act-sm" style="background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.15);color:#ef4444"><span class="material-symbols-outlined">handyman</span>Serwis</button>
+            </div>
+        </details>
+    </div>
+
+    <!-- SZTUKI (UNITS) SECTION -->
+    <div id="sztukiSekcja" class="pd-sztuki">
+        <div class="pd-sztuki-hdr">
+            <div class="pd-sztuki-title"><span class="material-symbols-outlined">inventory_2</span> Ewidencja sztuk</div>
+            <button onclick="pokazRozbijProdukt({{ p.id }}, {{ p.ilosc }}, '{{ p.nazwa[:40]|replace("'","") }}')"
+                style="padding:5px 12px;background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.25);color:#beee00;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:0.9rem">call_split</span> Zmien rozbicie</button>
+        </div>
+        <div id="sztukiKarty"></div>
+    </div>
+
+    <!-- GPSR MODAL -->
+    <div id="gpsrModal" class="pd-modal">
+        <div class="pd-modal-inner" style="max-width:600px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
+                <div class="pd-modal-title" style="color:#059669"><span class="material-symbols-outlined">shield</span> GPSR - Bezpieczenstwo</div>
+                <button onclick="document.getElementById('gpsrModal').style.display='none'" class="pd-modal-close">&times;</button>
+            </div>
+            <div id="gpsrContent" style="background:rgba(10,10,22,0.6);padding:15px;white-space:pre-wrap;font-family:monospace;font-size:13px;max-height:400px;overflow:auto;border:1px solid rgba(255,255,255,0.05)"></div>
+            <div style="margin-top:15px;display:flex;gap:10px">
+                <button onclick="kopiujGPSR()" class="pd-modal-btn" style="background:rgba(190,238,0,0.12);border-color:rgba(190,238,0,0.25);color:#beee00"><span class="material-symbols-outlined">content_copy</span> KOPIUJ</button>
+                <button onclick="document.getElementById('gpsrModal').style.display='none'" class="pd-modal-btn" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.08);color:#64748b">Zamknij</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ROZBIJ -->
+    <div id="modalRozbijProd" class="pd-modal">
+        <div class="pd-modal-inner">
+            <div class="pd-modal-title" style="color:#beee00"><span class="material-symbols-outlined">call_split</span> Rozbij stan na sztuki</div>
+            <div id="rozbijProdNazwa" style="color:#94a3b8;font-size:0.85rem;margin-bottom:15px"></div>
+            <div style="background:rgba(10,10,22,0.6);border:1px solid rgba(143,245,255,0.08);padding:12px;margin-bottom:15px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                    <span style="color:#94a3b8">Lacznie sztuk:</span><span id="rozbijProdLacznie" style="font-weight:700;font-family:'Space Grotesk',sans-serif"></span>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                    <span style="color:#94a3b8">Suma wpisanych:</span><span id="rozbijProdSuma" style="font-weight:700;color:#beee00;font-family:'Space Grotesk',sans-serif"></span>
+                </div>
+            </div>
+            <div id="rozbijProdStany"></div>
+            <div style="color:#94a3b8;font-size:0.75rem;margin:10px 0 6px">Szybkie ustawienie:</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:15px">
+                <button onclick="rozbijProdSzybko('Nowy')" style="padding:6px 10px;background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.25);color:#beee00;font-size:0.75rem;cursor:pointer">Wszystko nowe</button>
+                <button onclick="rozbijProdSzybko('Powystawowy')" style="padding:6px 10px;background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);color:#8ff5ff;font-size:0.75rem;cursor:pointer">Powystawowe</button>
+                <button onclick="rozbijProdSzybko('Uzywany')" style="padding:6px 10px;background:rgba(234,179,8,0.10);border:1px solid rgba(234,179,8,0.25);color:#eab308;font-size:0.75rem;cursor:pointer">Uzywane</button>
+                <button onclick="rozbijProdSzybko('Uszkodzony')" style="padding:6px 10px;background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.25);color:#ef4444;font-size:0.75rem;cursor:pointer">Uszkodzone</button>
+            </div>
+            <div style="display:flex;gap:8px">
+                <button onclick="document.getElementById('modalRozbijProd').style.display='none'" class="pd-modal-btn" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.08);color:#fff">Anuluj</button>
+                <button onclick="zapiszRozbijProd()" class="pd-modal-btn" style="background:rgba(190,238,0,0.15);border-color:rgba(190,238,0,0.3);color:#beee00"><span class="material-symbols-outlined">check</span> Zapisz</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL NAPRAWA -->
+    <div id="modalNaprawaProd" class="pd-modal">
+        <div class="pd-modal-inner">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                <div class="pd-modal-title" style="color:#f59e0b"><span class="material-symbols-outlined">build</span> Do naprawy</div>
+                <button onclick="document.getElementById('modalNaprawaProd').style.display='none'" class="pd-modal-close">&times;</button>
+            </div>
+            <div id="naprawaProdNazwa" style="color:#94a3b8;font-size:0.85rem;margin-bottom:15px"></div>
+            <div id="naprawaProdLista"></div>
+            <button onclick="document.getElementById('modalNaprawaProd').style.display='none'" class="pd-modal-btn" style="width:100%;background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.08);color:#fff;margin-top:10px">Zamknij</button>
+        </div>
+    </div>
+
+    <!-- MODAL OCEN STAN -->
+    <div id="modalOcenStan" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);align-items:center;justify-content:center">
+        <div class="pd-modal-inner" style="width:90%;position:relative;top:20%;margin:auto">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div class="pd-modal-title" style="color:#8ff5ff"><span class="material-symbols-outlined">star</span> Ocen stan</div>
+                <button onclick="document.getElementById('modalOcenStan').style.display='none'" class="pd-modal-close">&times;</button>
+            </div>
+            <div id="ocenStanNazwa" style="color:#94a3b8;font-size:0.85rem;margin-bottom:6px"></div>
+            <div id="ocenStanCurrent" style="color:#f59e0b;font-size:0.75rem;margin-bottom:15px"></div>
+            <div style="font-size:0.8rem;color:#64748b;margin-bottom:8px">Wybierz stan:</div>
+            <div id="ocenStanBtns" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
+            <div id="ocenSplitSection" style="display:none;margin-bottom:14px">
+                <div style="font-size:0.8rem;color:#64748b;margin-bottom:6px">Tryb split — podaj ilosci per stan:</div>
+                <div id="ocenSplitFields"></div>
+            </div>
+            <textarea id="ocenStanNotatki" placeholder="Notatki (opcjonalne)..." style="width:100%;padding:10px;background:rgba(10,10,22,0.6);border:1px solid rgba(143,245,255,0.10);color:#e2e8f0;font-size:0.85rem;resize:vertical;min-height:50px;margin-bottom:12px;font-family:'Space Grotesk',sans-serif"></textarea>
+            <div style="display:flex;gap:8px">
+                <button id="ocenStanSaveBtn" onclick="zapiszOceneStan()" class="pd-modal-btn" style="background:rgba(190,238,0,0.12);border-color:rgba(190,238,0,0.3);color:#beee00"><span class="material-symbols-outlined">save</span> Zapisz ocene</button>
+                <button onclick="toggleSplitMode()" id="ocenSplitToggle" style="padding:12px 16px;background:rgba(255,107,155,0.12);border:1px solid rgba(255,107,155,0.3);color:#ff6b9b;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:'Space Grotesk',sans-serif"><span class="material-symbols-outlined">call_split</span> Split</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<a href="/magazyn" class="pd-back"><span class="material-symbols-outlined" style="font-size:1rem">arrow_back</span> Powrot</a>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   Produkt Detail — JavaScript
+   ═══════════════════════════════════════════════════════════════ */
+
+const PROD_ID = {{ p.id }};
+const PROD_ZDJECIE = "{{ (p.zdjecie_url or '')|e }}";
+const STANY_WYMAGAJACE_FOTO = ['Powystawowy','Uzywany','Uszkodzony'];
+const KOLOR_STAN = {'Nowy':'#beee00','Powystawowy':'#8ff5ff','Uzywany':'#eab308','Uszkodzony':'#ef4444','Odnowiony':'#ff6b9b'};
+const KOLORY_P = {'Nowy':'#beee00','Powystawowy':'#8ff5ff','Uzywany':'#eab308','Uszkodzony':'#ef4444','Odnowiony':'#ff6b9b'};
+
+/* --- Toast System --- */
+function showToast(title, message, type, duration){
+    type=type||'info'; duration=duration===undefined?3000:duration;
+    var container=document.getElementById('toast-container');
+    if(!container){container=document.createElement('div');container.id='toast-container';container.className='toast-container';document.body.appendChild(container);}
+    var toast=document.createElement('div');
+    toast.className='toast '+type;
+    toast.style.cssText='backdrop-filter:blur(20px);background:rgba(10,10,22,0.85);border:1px solid rgba(143,245,255,0.08);padding:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4);display:flex;align-items:start;gap:12px;min-width:300px';
+    var icons={success:'check_circle',error:'error',warning:'warning',info:'info'};
+    var icon=icons[type]||'info';
+    toast.innerHTML='<span class="material-symbols-outlined">'+icon+'</span><div style="flex:1"><div style="font-weight:600;font-family:Space Grotesk,sans-serif">'+title+'</div>'+(message?'<div style="font-size:0.85rem;color:#64748b">'+message+'</div>':'')+'</div><div style="cursor:pointer;color:#64748b" onclick="this.parentElement.remove()">&times;</div>';
+    container.appendChild(toast);
+    if(duration>0){setTimeout(function(){toast.remove()},duration);}
+}
+
+/* --- Serwis --- */
+function wyslijDoSerwisu(prodId, nazwa, maxIlosc) {
+    var opis = prompt('Opis usterki:');
+    if (opis === null) return;
+    var ilosc = prompt('Ile sztuk do serwisu? (max ' + maxIlosc + ')', '1');
+    if (ilosc === null) return;
+    fetch('/serwis/api/przyjmij/' + prodId, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({opis_usterki: opis, ilosc: parseInt(ilosc) || 1})
+    }).then(r => r.json()).then(d => {
+        if (d.ok) { showToast('Serwis', d.msg, 'success'); setTimeout(()=>location.reload(), 1500); }
+        else showToast('Blad', d.error || 'Blad', 'error');
+    });
+}
+
+/* --- Rescrape images --- */
+function rescrapZdjecia(produktId, btn) {
+    btn.textContent = ' Pobieram...';
+    btn.disabled = true;
+    fetch('/magazyn/api/rescrape-image/' + produktId, {
+        method: 'POST',
+        headers: {'ngrok-skip-browser-warning': '1', 'Accept': 'application/json'}
+    })
+    .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    })
+    .then(function(d) {
+        if (d.ok) {
+            btn.textContent = ' Pobieranie w tle...';
+            btn.style.color = '#beee00';
+            var checks = 0;
+            var checkInterval = setInterval(function() {
+                checks++;
+                fetch('/magazyn/api/check-image/' + produktId, {headers:{'ngrok-skip-browser-warning':'1'}})
+                .then(function(r){return r.json();})
+                .then(function(d2){
+                    if(d2.has_image) {
+                        clearInterval(checkInterval);
+                        btn.textContent = ' Pobrano!';
+                        setTimeout(function(){ location.reload(); }, 1000);
+                    } else if(checks >= 24) {
+                        clearInterval(checkInterval);
+                        btn.textContent = ' Trwa... odswiez';
+                        btn.disabled = false;
+                        btn.onclick = function(){ location.reload(); };
+                    }
+                }).catch(function(){});
+            }, 5000);
+        } else {
+            btn.textContent = ' ' + (d.error || 'Blad');
+            setTimeout(function() { btn.textContent = ' POBIERZ ZDJECIA'; btn.disabled = false; }, 3000);
+        }
+    })
+    .catch(function(e) {
+        btn.textContent = ' ' + e.message;
+        setTimeout(function() { btn.textContent = ' POBIERZ ZDJECIA'; btn.disabled = false; }, 3000);
+    });
+}
+
+/* --- GPSR --- */
+async function pokazGPSR() {
+    const modal = document.getElementById('gpsrModal');
+    const content = document.getElementById('gpsrContent');
+    content.textContent = ' Generowanie GPSR...';
+    modal.style.display = 'block';
+    try {
+        const resp = await fetch('/magazyn/api/gpsr/' + PROD_ID);
+        const data = await resp.json();
+        if (data.gpsr) {
+            content.textContent = data.gpsr;
+        } else {
+            content.textContent = ' Ten produkt nie wymaga informacji GPSR (dekoracja, odziez, papeteria)';
+        }
+    } catch (e) {
+        content.textContent = ' Blad: ' + e.message;
+    }
+}
+
+function kopiujGPSR() {
+    const content = document.getElementById('gpsrContent').textContent;
+    navigator.clipboard.writeText(content).then(() => {
+        showToast('GPSR', 'Skopiowano do schowka!', 'success');
+    }).catch(() => {
+        const textarea = document.createElement('textarea');
+        textarea.value = content;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast('GPSR', 'Skopiowano do schowka!', 'success');
+    });
+}
+
+/* --- Sztuki (Units) --- */
+const STAN_KLASA = {'Nowy':'A','Jak nowy':'A-','Powystawowy':'A-','Uzywany':'B','Uszkodzony':'C','Zniszczony':'D','Odnowiony':'B'};
+const KLASA_COLOR = {'A':'#beee00','A-':'#8ff5ff','B':'#eab308','C':'#f97316','D':'#ef4444'};
+
+async function ladujSztuki() {
+    const resp = await fetch('/api/sztuki/' + PROD_ID).catch(()=>null);
+    if (!resp) return;
+    const d = await resp.json();
+    const sekcja = document.getElementById('sztukiSekcja');
+    const karty = document.getElementById('sztukiKarty');
+    if (!d.sztuki || d.sztuki.length === 0) {
+        sekcja.style.display = 'none';
+        return;
+    }
+    sekcja.style.display = 'block';
+    karty.innerHTML = d.sztuki.map(s => renderKartaSztuki(s)).join('');
+}
+
+function renderKartaSztuki(s) {
+    const k = KOLOR_STAN[s.stan] || '#64748b';
+    const statusIcons = {'magazyn':'inventory_2','naprawa':'build','sprzedany':'check_circle','wyslany':'local_shipping','uszkodzony':'error'};
+    const zdjecieSrc = s.zdjecie || '';
+    const wymaga_foto = STANY_WYMAGAJACE_FOTO.includes(s.stan);
+    const hasNote = s.opis_naprawy && s.opis_naprawy.trim();
+    const imgSrc = zdjecieSrc || PROD_ZDJECIE || '';
+    const klasa = STAN_KLASA[s.stan] || '?';
+    const klasaColor = KLASA_COLOR[klasa] || '#64748b';
+    return `<div id="karta_${s.id}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:5px;background:rgba(255,255,255,0.02);border:1px solid ${s.status==='naprawa'?'#f59e0b33':'rgba(255,255,255,0.05)'};transition:all 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+        ${imgSrc ? `<img src="${imgSrc}" style="width:48px;height:48px;object-fit:cover;border:2px solid ${zdjecieSrc?k+'55':'rgba(255,255,255,0.08)'};flex-shrink:0" onerror="this.style.display='none'" ${zdjecieSrc?'onclick="window.open(\''+zdjecieSrc+'\',\'_blank\')" style="cursor:pointer"':''}>` : `<div style="width:48px;height:48px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:1rem;color:#334155;flex-shrink:0"><span class="material-symbols-outlined">inventory_2</span></div>`}
+        <div style="width:10px;height:10px;border-radius:50%;background:${k};flex-shrink:0"></div>
+        <div style="font-weight:700;font-size:0.95rem;min-width:30px;color:#e2e8f0">#${s.numer}</div>
+        <div style="font-size:0.75rem;font-weight:800;color:${klasaColor};background:${klasaColor}15;border:1px solid ${klasaColor}33;padding:2px 8px;font-family:'Space Grotesk',sans-serif;min-width:24px;text-align:center">${klasa}</div>
+        <select onchange="zapiszPoleSztuki(${s.id}, 'stan', this.value)"
+            style="background:${k}15;border:1px solid ${k}33;color:${k};padding:6px 10px;font-size:0.85rem;font-weight:600;cursor:pointer;min-width:110px">
+            ${['Nowy','Powystawowy','Uzywany','Uszkodzony','Odnowiony'].map(v =>
+                `<option value="${v}" ${v===s.stan?'selected':''}>${v}</option>`).join('')}
+        </select>
+        <select onchange="zapiszPoleSztuki(${s.id}, 'status', this.value)"
+            style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#94a3b8;padding:6px 10px;font-size:0.85rem;cursor:pointer;min-width:100px">
+            ${['magazyn','naprawa','sprzedany','wyslany','uszkodzony'].map(v =>
+                `<option value="${v}" ${v===s.status?'selected':''}>${(statusIcons[v]||'')+' '+v}</option>`).join('')}
+        </select>
+        <div style="flex:1"></div>
+        ${!zdjecieSrc && wymaga_foto ? `<label for="foto_${s.id}" style="cursor:pointer;color:#f59e0b" title="Dodaj zdjecie stanu"><span class="material-symbols-outlined" style="font-size:1.1rem">photo_camera</span></label><input type="file" id="foto_${s.id}" accept="image/*" capture="environment" style="display:none" onchange="uploadZdjecie(${s.id}, this)">` : ''}
+        <button onclick="toggleNotatka(${s.id})" style="background:none;border:none;color:${hasNote?'#8ff5ff':'#334155'};cursor:pointer;padding:2px" title="${hasNote ? s.opis_naprawy.substring(0,50) : 'Dodaj notatke'}"><span class="material-symbols-outlined" style="font-size:1.1rem">edit_note</span></button>
+    </div>
+    <div id="notatka_wrap_${s.id}" style="display:none;padding:4px 10px 8px 38px">
+        <div style="display:flex;gap:6px;align-items:center">
+            <input id="notatka_${s.id}" value="${(s.opis_naprawy||'').replace(/"/g,'&quot;')}" placeholder="Notatka..." style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#e2e8f0;padding:5px 8px;font-size:0.75rem">
+            <button onclick="zapiszNotatke(${s.id})" style="background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.2);color:#8ff5ff;padding:4px 10px;font-size:0.7rem;cursor:pointer"><span class="material-symbols-outlined" style="font-size:0.9rem">save</span></button>
+        </div>
+    </div>`;
+}
+
+function toggleNotatka(id) {
+    const w = document.getElementById('notatka_wrap_'+id);
+    w.style.display = w.style.display==='none' ? 'block' : 'none';
+}
+
+async function uploadZdjecie(id, input) {
+    if (!input.files[0]) return;
+    const file = input.files[0];
+    const canvas = document.createElement('canvas');
+    const img = new Image();
+    img.onload = async function() {
+        const max = 800;
+        let w = img.width, h = img.height;
+        if (w > max || h > max) {
+            if (w > h) { h = Math.round(h * max / w); w = max; }
+            else { w = Math.round(w * max / h); h = max; }
+        }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const base64 = canvas.toDataURL('image/jpeg', 0.75);
+        const resp = await fetch('/api/sztuki/jednostka/' + id + '/zdjecie', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({zdjecie: base64})
+        });
+        if (resp.ok) ladujSztuki();
+    };
+    img.src = URL.createObjectURL(file);
+}
+
+async function usunZdjecie(id) {
+    await fetch('/api/sztuki/jednostka/' + id + '/zdjecie', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({zdjecie: ''})
+    });
+    ladujSztuki();
+}
+
+async function zapiszPoleSztuki(id, pole, wartosc) {
+    const karta = document.getElementById('karta_' + id);
+    const endpoint = pole === 'status' ? '/api/sztuki/jednostka/' + id + '/status' : '/api/sztuki/jednostka/' + id + '/stan';
+    const body = pole === 'status' ? {status: wartosc} : {stan: wartosc};
+    const resp = await fetch(endpoint, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if (resp.ok) {
+        karta.style.border = '1px solid #beee00';
+        setTimeout(() => { karta.style.border = '1px solid rgba(255,255,255,0.05)'; ladujSztuki(); }, 800);
+    }
+}
+
+async function zapiszNotatke(id) {
+    const notatka = document.getElementById('notatka_' + id).value;
+    const resp = await fetch('/api/sztuki/jednostka/' + id + '/notatka', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({notatka})
+    });
+    const karta = document.getElementById('karta_' + id);
+    if (resp.ok) {
+        karta.style.border = '1px solid #beee00';
+        setTimeout(() => karta.style.border = '1px solid rgba(255,255,255,0.05)', 1000);
+    }
+}
+
+ladujSztuki();
+
+/* --- Ocen Stan --- */
+let _ocenPid=null, _ocenIlosc=0, _ocenStan='', _splitMode=false;
+const STANY = [
+    {name:'Nowy',color:'#beee00',icon:'●'},
+    {name:'Jak nowy',color:'#8ff5ff',icon:'●'},
+    {name:'Dobry',color:'#eab308',icon:'●'},
+    {name:'Uszkodzony',color:'#f97316',icon:'●'},
+    {name:'Zniszczony',color:'#ef4444',icon:'●'}
+];
+function pokazOcenStan(pid, nazwa, ilosc, currentStan) {
+    _ocenPid=pid; _ocenIlosc=ilosc; _ocenStan=''; _splitMode=false;
+    document.getElementById('ocenStanNazwa').textContent=nazwa + ' (' + ilosc + ' szt)';
+    document.getElementById('ocenStanCurrent').textContent=currentStan ? 'Aktualny: '+currentStan : 'Brak oceny';
+    document.getElementById('ocenSplitSection').style.display='none';
+    document.getElementById('ocenStanNotatki').value='';
+    const splitToggle = document.getElementById('ocenSplitToggle');
+    if (ilosc > 1) {
+        splitToggle.textContent = ' Split (' + ilosc + ' szt)';
+        splitToggle.style.display = '';
+    } else {
+        splitToggle.style.display = 'none';
+    }
+    const btns=document.getElementById('ocenStanBtns');
+    btns.innerHTML='';
+    var hint = document.getElementById('ocenStanHint');
+    if (hint) hint.remove();
+    if (ilosc > 1) {
+        btns.insertAdjacentHTML('beforebegin', '<div id="ocenStanHint" style="font-size:0.72rem;color:#f59e0b;margin-bottom:6px"><span class="material-symbols-outlined" style="font-size:0.9rem">lightbulb</span> Masz '+ilosc+' szt — uzyj Split zeby ocenic rozne sztuki roznie</div>');
+    }
+    STANY.forEach(s=>{
+        const b=document.createElement('button');
+        b.textContent=s.icon+' '+s.name;
+        b.style.cssText='padding:10px 16px;border:2px solid '+s.color+'44;background:'+s.color+'15;color:'+s.color+';font-weight:600;cursor:pointer;font-size:0.85rem;transition:all 0.2s';
+        b.onclick=()=>{
+            _ocenStan=s.name;
+            btns.querySelectorAll('button').forEach(x=>x.style.borderColor=x.dataset.c+'44');
+            b.style.borderColor=s.color;
+            b.style.boxShadow='0 0 12px '+s.color+'40';
+        };
+        b.dataset.c=s.color;
+        btns.appendChild(b);
+    });
+    document.getElementById('modalOcenStan').style.display='flex';
+}
+
+function toggleSplitMode() {
+    _splitMode=!_splitMode;
+    const sec=document.getElementById('ocenSplitSection');
+    const tog=document.getElementById('ocenSplitToggle');
+    const hint=document.getElementById('ocenStanHint');
+    if(hint) hint.style.display=_splitMode?'none':'';
+    if(_splitMode) {
+        sec.style.display='block';
+        tog.style.background='rgba(255,107,155,0.25)';
+        const fields=document.getElementById('ocenSplitFields');
+        fields.innerHTML='<div id="ocenSplitSum" style="font-size:0.75rem;color:#64748b;margin-bottom:8px">Suma: 0 / '+_ocenIlosc+'</div>';
+        STANY.forEach(s=>{
+            fields.innerHTML+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:${s.color};width:100px;font-size:0.8rem">${s.icon} ${s.name}</span><input type="number" min="0" value="0" data-stan="${s.name}" oninput="updateSplitSum()" style="width:70px;padding:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e2e8f0;text-align:center"></div>`;
+        });
+    } else {
+        sec.style.display='none';
+        tog.style.background='rgba(255,107,155,0.12)';
+    }
+}
+
+function updateSplitSum() {
+    let sum=0;
+    document.querySelectorAll('#ocenSplitFields input').forEach(inp=>{ sum+=parseInt(inp.value)||0; });
+    const el=document.getElementById('ocenSplitSum');
+    const ok=sum===_ocenIlosc;
+    el.textContent='Suma: '+sum+' / '+_ocenIlosc+(ok?' ':sum>_ocenIlosc?'  za duzo!':'');
+    el.style.color=ok?'#beee00':sum>_ocenIlosc?'#ef4444':'#f59e0b';
+}
+
+function zapiszOceneStan() {
+    const notatki=document.getElementById('ocenStanNotatki').value;
+    let body={product_id:_ocenPid,notatki:notatki};
+    if(_splitMode) {
+        const split={};
+        let sum=0;
+        document.querySelectorAll('#ocenSplitFields input').forEach(inp=>{
+            const v=parseInt(inp.value)||0;
+            if(v>0) { split[inp.dataset.stan]=v; sum+=v; }
+        });
+        if(Object.keys(split).length===0) return alert('Podaj ilosci');
+        if(sum!==_ocenIlosc) return alert('Suma ('+sum+') musi byc rowna ilosci produktu ('+_ocenIlosc+')');
+        body.split=split;
+    } else {
+        if(!_ocenStan) return alert('Wybierz stan');
+        body.stan=_ocenStan;
+    }
+    fetch('/magazyn/api/ocen-produkt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    .then(r=>r.json()).then(d=>{
+        if(d.success) { document.getElementById('modalOcenStan').style.display='none'; location.reload(); }
+        else alert('Blad: '+(d.error||'nieznany'));
+    });
+}
+
+/* --- Rozbij Produkt --- */
+let _rpId=null, _rpIlosc=0;
+function pokazRozbijProdukt(id, ilosc, nazwa) {
+    _rpId=id; _rpIlosc=ilosc;
+    document.getElementById('rozbijProdNazwa').textContent=nazwa;
+    document.getElementById('rozbijProdLacznie').textContent=ilosc;
+    fetch('/api/sztuki/'+id).then(r=>r.json()).then(d=>{
+        const istn={};
+        (d.sztuki||[]).forEach(s=>{istn[s.stan]=(istn[s.stan]||0)+1;});
+        renderRozbijProd(istn);
+    }).catch(()=>renderRozbijProd({}));
+    document.getElementById('modalRozbijProd').style.display='block';
+}
+
+function renderRozbijProd(val) {
+    const stany=['Nowy','Powystawowy','Uzywany','Uszkodzony'];
+    let html='';
+    stany.forEach(s=>{
+        const k=KOLORY_P[s], v=val[s]||0;
+        html+=`<div style="display:flex;align-items:center;gap:10px;background:${k}11;border:1px solid ${k}44;padding:10px;margin-bottom:8px">
+          <div style="width:12px;height:12px;border-radius:50%;background:${k};flex-shrink:0"></div>
+          <div style="flex:1;font-weight:600">${s}</div>
+          <button onclick="zmRozP('${s}',-1)" style="width:34px;height:34px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);color:#fff;cursor:pointer;font-size:1.1rem">−</button>
+          <input type="number" id="rp_${s}" value="${v}" min="0" oninput="aktualizujSumP()"
+            style="width:55px;text-align:center;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);color:#fff;padding:5px;font-size:1rem">
+          <button onclick="zmRozP('${s}',1)" style="width:34px;height:34px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);color:#fff;cursor:pointer;font-size:1.1rem">+</button>
+        </div>`;
+    });
+    document.getElementById('rozbijProdStany').innerHTML=html;
+    aktualizujSumP();
+}
+
+function zmRozP(s,d){const e=document.getElementById('rp_'+s);e.value=Math.max(0,(parseInt(e.value||0)+d));aktualizujSumP();}
+function aktualizujSumP(){
+    let suma=0;
+    ['Nowy','Powystawowy','Uzywany','Uszkodzony'].forEach(s=>{suma+=parseInt(document.getElementById('rp_'+s)?.value||0);});
+    const el=document.getElementById('rozbijProdSuma');
+    el.textContent=suma+' / '+_rpIlosc;
+    el.style.color=suma===_rpIlosc?'#beee00':'#ef4444';
+}
+
+function rozbijProdSzybko(stan){
+    ['Nowy','Powystawowy','Uzywany','Uszkodzony'].forEach(s=>{
+        const e=document.getElementById('rp_'+s);if(e)e.value=s===stan?_rpIlosc:0;
+    });aktualizujSumP();
+}
+
+function zapiszRozbijProd(){
+    let suma=0,podzial={};
+    ['Nowy','Powystawowy','Uzywany','Uszkodzony'].forEach(s=>{
+        const v=parseInt(document.getElementById('rp_'+s)?.value||0);
+        if(v>0){podzial[s]=v;suma+=v;}
+    });
+    if(suma!==_rpIlosc){alert('Suma musi wynosic '+_rpIlosc+' sztuk!');return;}
+    fetch('/api/sztuki/'+_rpId+'/rozbij',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({podzial})})
+    .then(r=>r.json()).then(d=>{if(d.ok){document.getElementById('modalRozbijProd').style.display='none';showToast('Rozbicie','Zapisano!','success');}});
+}
+
+/* --- Naprawa --- */
+function pokazNaprawaProdukt(id, nazwa, ilosc) {
+    document.getElementById('naprawaProdNazwa').textContent=nazwa+' — '+ilosc+' szt.';
+    document.getElementById('naprawaProdLista').innerHTML='<div style="color:#64748b;text-align:center;padding:20px">Ladowanie...</div>';
+    document.getElementById('modalNaprawaProd').style.display='block';
+    fetch('/api/sztuki/'+id).then(r=>r.json()).then(d=>renderNaprawaProd(d.sztuki||[], ilosc, id));
+}
+
+function renderNaprawaProd(sztuki, ilosc, prodId) {
+    const pelna=[];
+    for(let i=1;i<=ilosc;i++) pelna.push(sztuki.find(s=>s.numer===i)||{id:null,numer:i,stan:'Nowy',status:'magazyn',opis_naprawy:''});
+    let html='';
+    pelna.forEach(s=>{
+        if(s.status==='naprawa'){
+            html+=`<div style="background:#f59e0b15;border:1px solid #f59e0b55;padding:12px;margin-bottom:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <div style="font-weight:700;color:#f59e0b"><span class="material-symbols-outlined" style="font-size:1rem">build</span> szt. ${s.numer} DO NAPRAWY</div>
+                <div style="display:flex;gap:6px">
+                  <button onclick="cofnijNaprawaProd(${s.id}, ${prodId}, ${ilosc})" style="padding:4px 10px;background:#ef444422;border:1px solid #ef4444;color:#ef4444;font-size:0.72rem;cursor:pointer">&#8617; Cofnij</button>
+                </div>
+              </div>
+              <div style="background:#1e1e2e;padding:8px;font-size:0.8rem"><span class="material-symbols-outlined" style="font-size:0.9rem">edit_note</span> ${s.opis_naprawy||'—'}</div>
+              ${s.data_naprawy?`<div style="font-size:0.7rem;color:#64748b;margin-top:4px">${s.data_naprawy}</div>`:''}
+            </div>`;
+        } else {
+            html+=`<div style="background:#12121a;border:1px solid #1e1e2e;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:10px;height:10px;border-radius:50%;background:${KOLORY_P[s.stan]||'#64748b'}"></div>
+                <span style="font-weight:600">szt. ${s.numer}</span>
+                <span style="font-size:0.72rem;color:#64748b">${s.stan}</span>
+              </div>
+              <button onclick="dodajNaprawaProd(${s.id||0}, ${s.numer}, ${prodId}, ${ilosc})" style="padding:6px 14px;background:#f59e0b;border:none;color:#000;font-size:0.75rem;font-weight:700;cursor:pointer">+ Do naprawy</button>
+            </div>`;
+        }
+    });
+    document.getElementById('naprawaProdLista').innerHTML=html||'<div style="color:#64748b;text-align:center;padding:15px">Brak rozbicia — najpierw uzyj Rozbij na sztuki</div>';
+}
+
+function dodajNaprawaProd(sztukiId, numer, prodId, ilosc) {
+    const opis=prompt('Opis usterki dla szt. '+numer+':');
+    if(opis===null) return;
+    const doSave=(id)=>fetch('/api/sztuki/jednostka/'+id+'/naprawa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({opis})})
+        .then(()=>{fetch('/api/sztuki/'+prodId).then(r=>r.json()).then(d=>renderNaprawaProd(d.sztuki||[],ilosc,prodId));});
+    if(sztukiId>0){doSave(sztukiId);}
+    else{
+        fetch('/api/sztuki/'+prodId+'/rozbij',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({podzial:{'Nowy':ilosc}})})
+        .then(()=>fetch('/api/sztuki/'+prodId).then(r=>r.json()).then(d=>{
+            const szt=(d.sztuki||[]).find(s=>s.numer===numer);
+            if(szt)doSave(szt.id);
+        }));
+    }
+}
+
+function cofnijNaprawaProd(id, prodId, ilosc) {
+    fetch('/api/sztuki/jednostka/'+id+'/naprawa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cofnij:true})})
+    .then(()=>fetch('/api/sztuki/'+prodId).then(r=>r.json()).then(d=>renderNaprawaProd(d.sztuki||[],ilosc,prodId)));
+}
+
+/* --- Auto-convert URL msg params to toasts --- */
+window.addEventListener('DOMContentLoaded', function(){
+    var params=new URLSearchParams(window.location.search);
+    var msg=params.get('msg');
+    if(msg){
+        var decoded=decodeURIComponent(msg.replace(/\+/g,' '));
+        var type=(decoded.indexOf('Blad')>=0)?'error':'success';
+        showToast('', decoded, type);
+        var url=new URL(window.location);url.searchParams.delete('msg');
+        window.history.replaceState({}, '', url);
+    }
+});
+</script>
+{% endblock %}

@@ -143,6 +143,17 @@ if os.environ.get('FLASK_LOCAL_DEV'):
 csrf = CSRFProtect(app)
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Wyłącz domyślnie, włącz per-route
 
+# Jinja2 filters
+@app.template_filter('parse_json')
+def parse_json_filter(value):
+    """Parse JSON string in Jinja2 templates"""
+    if not value:
+        return None
+    try:
+        return json.loads(value)
+    except (json.JSONDecodeError, TypeError):
+        return None
+
 @app.after_request
 def add_ngrok_headers(response):
     """Wymuś pomijanie ngrok interstitial + no-cache na SW"""
