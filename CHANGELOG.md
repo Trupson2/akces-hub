@@ -2,6 +2,15 @@
 
 ## 25.03.2026
 
+### Oceń stan — Split tworzy osobne produkty
+- [NOWE] Split mode w "Oceń stan" tworzy osobne rekordy produktów w bazie per stan
+- [NOWE] Każdy split produkt dostaje auto-generated kod_magazynowy (MAG-XXXXX)
+- [NOWE] Historia zmian (add_historia) dodawana dla każdego split produktu
+- [NOWE] Ewidencja sztuk tworzona per split produkt (nie tylko oryginał)
+- [NOWE] Badge klasy jakości na liście produktów (A=lime, A-=cyan, B=yellow, C=orange, D=red)
+- [NOWE] Stan przyjęcia widoczny na liście produktów w magazynie
+- [FIX] kod_magazynowy wykluczony z kopiowania przy split (trigger generuje nowy)
+
 ### EULA — Cyberpunk Terminal Redesign
 - [NOWE] Szablon `eula.html` — terminal-style cyberpunk z bento grid layout
 - [NOWE] Terminal reader z kolorowym scrollem (lime text, cyan/pink/lime headers)
