@@ -1,86 +1,265 @@
 {% extends "base.html" %}
+{% block page_title %}Historia zmian{% endblock %}
 {% block content %}
 <style>
-.cl-container{max-width:640px;margin:0 auto;padding:20px 16px}
-.cl-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
-.cl-header h1{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.3rem;margin:0;display:flex;align-items:center;gap:8px;color:var(--neon-primary);text-shadow:0 0 10px rgba(143,245,255,0.4)}
-.cl-back{color:var(--text-muted);text-decoration:none;font-size:0.85rem;transition:color 0.2s}
-.cl-back:hover{color:var(--neon-primary)}
-.cl-date{font-family:'Space Grotesk',sans-serif;font-size:0.95rem;font-weight:700;color:var(--neon-secondary);text-shadow:0 0 8px rgba(255,107,155,0.3);margin:20px 0 6px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06)}
-.cl-date:first-of-type{border-top:none;padding-top:0}
-.cl-category{font-size:0.82rem;font-weight:700;color:var(--text-muted);margin:14px 0 6px;display:flex;align-items:center;gap:6px}
-.cl-item{font-size:0.84rem;color:#cbd5e1;padding:6px 0 6px 16px;border-left:2px solid rgba(255,255,255,0.06);margin:2px 0;line-height:1.5;transition:border-color 0.2s}
-.cl-item:hover{border-left-color:var(--neon-primary)}
-.cl-tag{display:inline-block;font-size:0.62rem;padding:1px 6px;border-radius:5px;font-weight:700;margin-right:4px;vertical-align:middle}
-.tag-new{background:rgba(190,238,0,0.12);color:var(--neon-tertiary)}
-.tag-fix{background:rgba(239,68,68,.15);color:#ef4444}
-.tag-sec{background:rgba(234,179,8,.15);color:#eab308}
-.tag-opt{background:rgba(143,245,255,0.12);color:var(--neon-primary)}
-.tag-other{background:rgba(100,116,139,.15);color:#94a3b8}
+/* ═══════════════════════════════════════════════════════════════
+   Changelog — Cyberpunk Timeline Design
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Header */
+.cl-hdr{margin-bottom:32px;display:flex;flex-direction:column;gap:4px}
+.cl-hdr-pre{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.cl-hdr-pre .bar{width:48px;height:2px;background:var(--neon-primary,#8ff5ff)}
+.cl-hdr-pre span{font-size:0.6rem;font-weight:700;color:var(--neon-primary,#8ff5ff);text-transform:uppercase;letter-spacing:0.3em;font-family:'Space Grotesk',sans-serif}
+.cl-hdr h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(2rem,5vw,3.5rem);font-weight:900;letter-spacing:-0.04em;line-height:1;color:var(--text,#f9f5f8)}
+.cl-hdr-right{display:flex;align-items:center;gap:12px;margin-top:12px}
+
+/* Stats badge */
+.cl-stat{background:rgba(19,19,21,0.8);backdrop-filter:blur(12px);padding:16px 20px;border-left:4px solid var(--neon-primary,#8ff5ff);box-shadow:0 0 25px -5px rgba(143,245,255,0.15)}
+.cl-stat-label{font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#adaaad;margin-bottom:2px}
+.cl-stat-val{font-family:'Space Grotesk',sans-serif;font-size:2.5rem;font-weight:900;color:var(--neon-primary,#8ff5ff);letter-spacing:-0.02em}
+.cl-stat-unit{font-size:0.75rem;color:#adaaad;text-transform:uppercase;font-weight:500;margin-left:4px}
+
+/* Timeline container */
+.cl-timeline{position:relative;padding-left:32px;max-width:900px}
+@media(min-width:768px){.cl-timeline{padding-left:96px}}
+
+/* Vertical axis */
+.cl-timeline::before{content:'';position:absolute;left:12px;top:0;bottom:0;width:1px;background:linear-gradient(180deg,var(--neon-primary,#8ff5ff),rgba(72,71,74,0.3),transparent);opacity:0.3}
+@media(min-width:768px){.cl-timeline::before{left:12px}}
+
+/* Timeline entry */
+.cl-entry{position:relative;margin-bottom:40px}
+
+/* Timeline dot */
+.cl-dot{position:absolute;left:-28px;top:8px;width:16px;height:16px;border-radius:50%;background:var(--bg,#0e0e10);border:4px solid;z-index:1}
+@media(min-width:768px){.cl-dot{left:-92px}}
+.cl-dot.major{border-color:var(--neon-primary,#8ff5ff);box-shadow:0 0 20px -3px rgba(143,245,255,0.3)}
+.cl-dot.patch{border-color:var(--neon-secondary,#ff6b9b);box-shadow:0 0 20px -3px rgba(255,107,155,0.3)}
+.cl-dot.minor{border-color:#48474a}
+
+/* Version badge */
+.cl-version{display:inline-block;padding:4px 12px;font-family:'Space Grotesk',sans-serif;font-weight:900;font-size:0.8rem;letter-spacing:0.1em;margin-bottom:8px}
+.cl-version.major{background:var(--neon-primary,#8ff5ff);color:#005d63}
+.cl-version.patch{background:var(--neon-secondary,#ff6b9b);color:#47001f}
+.cl-version.minor{background:#262528;color:#adaaad}
+.cl-date-label{font-size:0.6rem;font-weight:700;color:#adaaad;text-transform:uppercase;letter-spacing:0.2em;margin-bottom:12px}
+
+/* Release type badge */
+.cl-type{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-top:8px;border:1px solid}
+.cl-type.major{background:rgba(143,245,255,0.1);border-color:rgba(143,245,255,0.2);color:var(--neon-primary,#8ff5ff)}
+.cl-type.patch{background:rgba(255,107,155,0.1);border-color:rgba(255,107,155,0.2);color:var(--neon-secondary,#ff6b9b)}
+
+/* Card */
+.cl-card{background:rgba(19,19,21,0.7);backdrop-filter:blur(12px);border:1px solid rgba(72,71,74,0.1);padding:24px;transition:all 0.5s}
+.cl-card:hover{border-color:rgba(143,245,255,0.2)}
+.cl-card-title{font-family:'Space Grotesk',sans-serif;font-size:1.3rem;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:12px;color:var(--text,#f9f5f8)}
+.cl-card-title .sep{height:1px;flex:1;background:rgba(72,71,74,0.2)}
+
+/* Sections grid */
+.cl-sections{display:grid;grid-template-columns:1fr;gap:20px}
+@media(min-width:600px){.cl-sections{grid-template-columns:1fr 1fr}}
+
+/* Section */
+.cl-section h3{display:flex;align-items:center;gap:6px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;margin-bottom:12px}
+.cl-section h3.new{color:var(--neon-tertiary,#beee00)}
+.cl-section h3.new .material-symbols-outlined{color:var(--neon-tertiary,#beee00)}
+.cl-section h3.fix{color:var(--neon-secondary,#ff6b9b)}
+.cl-section h3.fix .material-symbols-outlined{color:var(--neon-secondary,#ff6b9b)}
+.cl-section h3.opt{color:var(--neon-primary,#8ff5ff)}
+.cl-section h3.opt .material-symbols-outlined{color:var(--neon-primary,#8ff5ff)}
+.cl-section h3.change{color:#f59e0b}
+.cl-section h3.change .material-symbols-outlined{color:#f59e0b}
+
+/* Items */
+.cl-items{list-style:none;padding:0;margin:0}
+.cl-items li{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;font-size:0.82rem;color:#adaaad;line-height:1.6}
+.cl-items li .material-symbols-outlined{font-size:1rem;margin-top:3px;flex-shrink:0}
+.cl-items li code{font-size:0.75rem;background:rgba(143,245,255,0.08);color:var(--neon-primary,#8ff5ff);padding:1px 6px}
+
+/* Back link */
+.cl-back{display:flex;align-items:center;gap:6px;color:#64748b;text-decoration:none;font-size:0.85rem;padding:8px 0;transition:color 0.2s;margin-top:20px}
+.cl-back:hover{color:var(--neon-primary,#8ff5ff)}
 </style>
 
-<div class="cl-container">
-<div class="cl-header">
-    <h1><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">list_alt</span> Historia zmian</h1>
-    <a href="/" class="cl-back">← Dashboard</a>
+<!-- Header -->
+<div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:32px">
+    <div class="cl-hdr">
+        <div class="cl-hdr-pre">
+            <span class="bar"></span>
+            <span>CORE_ARCHIVE</span>
+        </div>
+        <h1>HISTORIA ZMIAN</h1>
+    </div>
+    <div class="cl-stat">
+        <div class="cl-stat-label">Wersja systemu</div>
+        <div style="display:flex;align-items:baseline">
+            <span class="cl-stat-val">{{ version }}</span>
+        </div>
+    </div>
 </div>
 
-<div id="changelog-content"></div>
-</div>
+<!-- Timeline -->
+<div class="cl-timeline" id="changelog-timeline"></div>
+
+<a href="/" class="cl-back"><span class="material-symbols-outlined" style="font-size:1rem">arrow_back</span> Dashboard</a>
 
 <script>
 const raw = {{ content|tojson }};
-const container = document.getElementById('changelog-content');
-let html = '';
+const container = document.getElementById('changelog-timeline');
+
+// Parse CHANGELOG.md into structured data
 const lines = raw.split('\n');
+let entries = []; // [{date, sections: [{title, items: [{tag, text}]}]}]
+let currentEntry = null;
+let currentSection = null;
 
 for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line || line === '---') continue;
-
-    if (line.startsWith('# ') && !line.startsWith('## ') && !line.startsWith('### ')) continue;
+    if (line.startsWith('# ') && !line.startsWith('## ')) continue;
 
     if (line.startsWith('## ')) {
-        const dateText = line.replace('## ', '');
-        html += '<div class="cl-date">' + dateText + '</div>';
+        if (currentEntry) entries.push(currentEntry);
+        currentEntry = { date: line.replace('## ', ''), sections: [] };
+        currentSection = null;
         continue;
     }
 
-    if (line.startsWith('### ')) {
-        const cat = line.replace('### ', '');
-        let icon = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">push_pin</span>';
-        const cl = cat.toLowerCase();
-        if (cl.includes('bezpiecz') || cl.includes('security')) icon = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>';
-        else if (cl.includes('nowe') || cl.includes('integr')) icon = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">auto_awesome</span>';
-        else if (cl.includes('napraw') || cl.includes('fix')) icon = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">build</span>';
-        else if (cl.includes('optym') || cl.includes('wydaj')) icon = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bolt</span>';
-        else if (cl.includes('system') || cl.includes('backup')) icon = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">desktop_windows</span>';
-        else if (cl.includes('szablon') || cl.includes('template')) icon = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">palette</span>';
-        else if (cl.includes('logowa')) icon = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">key</span>';
-        else if (cl.includes('poziom') || cl.includes('grywaliz')) icon = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sports_esports</span>';
-        else if (cl.includes('inne')) icon = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">edit_note</span>';
-        html += '<div class="cl-category">' + icon + ' ' + cat + '</div>';
+    if (line.startsWith('### ') && currentEntry) {
+        currentSection = { title: line.replace('### ', ''), items: [] };
+        currentEntry.sections.push(currentSection);
         continue;
     }
 
-    if (line.startsWith('- ')) {
+    if (line.startsWith('- ') && currentSection) {
         let text = line.substring(2);
-        let tag = '<span class="cl-tag tag-other">ZMIANA</span>';
-        const tl = text.toLowerCase();
-        if (tl.includes('dodano') || tl.includes('nowy') || tl.includes('nowe') || text.startsWith('**Nowe**')) {
-            tag = '<span class="cl-tag tag-new">NOWE</span>';
-        } else if (tl.includes('napraw') || tl.includes('blad') || tl.includes('poprawka') || text.startsWith('**Naprawiono**')) {
-            tag = '<span class="cl-tag tag-fix">FIX</span>';
-        } else if (tl.includes('bezpiecz') || tl.includes('csrf') || tl.includes('injection') || tl.includes('bandit')) {
-            tag = '<span class="cl-tag tag-sec">SECURITY</span>';
-        } else if (tl.includes('optym') || tl.includes('wydaj') || tl.includes('usuniet') || tl.includes('skroc')) {
-            tag = '<span class="cl-tag tag-opt">OPTYM.</span>';
-        }
-        text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        html += '<div class="cl-item">' + tag + ' ' + text + '</div>';
-        continue;
+        // Detect tag from [NOWE], [FIX], [ZMIANA], [SECURITY] markers
+        let tag = 'change';
+        if (text.match(/^\[NOWE\]/i)) { tag = 'new'; text = text.replace(/^\[NOWE\]\s*/i, ''); }
+        else if (text.match(/^\[FIX\]/i)) { tag = 'fix'; text = text.replace(/^\[FIX\]\s*/i, ''); }
+        else if (text.match(/^\[ZMIANA\]/i)) { tag = 'change'; text = text.replace(/^\[ZMIANA\]\s*/i, ''); }
+        else if (text.match(/^\[SECURITY\]/i)) { tag = 'fix'; text = text.replace(/^\[SECURITY\]\s*/i, ''); }
+        // Format backticks as code
+        text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+        // Format bold
+        text = text.replace(/\*\*([^*]+)\*\*/g, '<strong style="color:#f9f5f8">$1</strong>');
+        // Format em-dash sections
+        text = text.replace(/—/g, '<span style="color:#48474a"> — </span>');
+        currentSection.items.push({ tag, text });
     }
 }
+if (currentEntry) entries.push(currentEntry);
+
+// Render timeline
+const tagIcons = {
+    'new': { icon: 'add_circle', cls: 'new' },
+    'fix': { icon: 'bug_report', cls: 'fix' },
+    'change': { icon: 'sync_alt', cls: 'change' },
+    'opt': { icon: 'rocket_launch', cls: 'opt' }
+};
+
+const sectionIcons = {
+    'cyberpunk': 'palette', 'redesign': 'palette', 'design': 'palette', 'stitch': 'palette',
+    'eula': 'gavel', 'licen': 'key', 'login': 'key', 'auth': 'key',
+    'allegro': 'shopping_cart', 'olx': 'store', 'vinted': 'store',
+    'telegram': 'send', 'rodo': 'shield', 'bezpiecz': 'lock', 'security': 'lock',
+    'backup': 'cloud_upload', 'system': 'terminal', 'monitor': 'monitor_heart',
+    'karta': 'inventory_2', 'produkt': 'inventory_2', 'magazyn': 'warehouse',
+    'paleta': 'package_2', 'palet': 'package_2',
+    'ean': 'qr_code', 'fix': 'build', 'napraw': 'build',
+    'ocen': 'star', 'stan': 'star', 'split': 'call_split',
+    'changelog': 'history', 'historia': 'history',
+    'onboard': 'rocket_launch', 'update': 'system_update',
+    'subskryp': 'card_membership', 'print': 'print', 'etykiet': 'label',
+    'warehouse': 'domain', '3d': 'view_in_ar', 'hud': 'dashboard'
+};
+
+function getSectionIcon(title) {
+    const t = title.toLowerCase();
+    for (const [key, icon] of Object.entries(sectionIcons)) {
+        if (t.includes(key)) return icon;
+    }
+    return 'push_pin';
+}
+
+function getEntryType(entry) {
+    // Determine if major/patch/minor based on content
+    const allItems = entry.sections.reduce((acc, s) => acc + s.items.length, 0);
+    const hasNew = entry.sections.some(s => s.items.some(i => i.tag === 'new'));
+    if (allItems > 8 || entry.sections.length > 3) return 'major';
+    if (hasNew) return 'patch';
+    return 'minor';
+}
+
+let html = '';
+entries.forEach((entry, idx) => {
+    const type = getEntryType(entry);
+    const dotClass = type;
+    const versionClass = type;
+
+    html += '<article class="cl-entry">';
+    html += '<div class="cl-dot ' + dotClass + '"></div>';
+
+    // Version/date header
+    html += '<div style="margin-bottom:16px">';
+    html += '<span class="cl-version ' + versionClass + '">' + entry.date + '</span>';
+    if (type === 'major') {
+        html += '<div class="cl-type major"><span class="material-symbols-outlined" style="font-size:0.7rem;font-variation-settings:\'FILL\' 1">stars</span> MAJOR RELEASE</div>';
+    } else if (type === 'patch') {
+        html += '<div class="cl-type patch"><span class="material-symbols-outlined" style="font-size:0.7rem;font-variation-settings:\'FILL\' 1">build</span> UPDATE</div>';
+    }
+    html += '</div>';
+
+    // Sections card
+    entry.sections.forEach(section => {
+        const sIcon = getSectionIcon(section.title);
+
+        html += '<div class="cl-card" style="margin-bottom:12px">';
+        html += '<div class="cl-card-title">';
+        html += '<span class="material-symbols-outlined" style="color:var(--neon-primary,#8ff5ff)">' + sIcon + '</span>';
+        html += section.title;
+        html += '<span class="sep"></span>';
+        html += '</div>';
+
+        // Group items by tag
+        const groups = {};
+        section.items.forEach(item => {
+            if (!groups[item.tag]) groups[item.tag] = [];
+            groups[item.tag].push(item.text);
+        });
+
+        const groupKeys = Object.keys(groups);
+        if (groupKeys.length > 1) {
+            html += '<div class="cl-sections">';
+        }
+
+        for (const [tag, items] of Object.entries(groups)) {
+            const ti = tagIcons[tag] || tagIcons['change'];
+            html += '<section class="cl-section">';
+            html += '<h3 class="' + ti.cls + '"><span class="material-symbols-outlined" style="font-size:0.9rem">' + ti.icon + '</span>';
+            if (tag === 'new') html += '[NOWE]';
+            else if (tag === 'fix') html += '[FIX]';
+            else html += '[ZMIANA]';
+            html += '</h3>';
+            html += '<ul class="cl-items">';
+            items.forEach(text => {
+                const iconColor = tag === 'new' ? 'var(--neon-tertiary,#beee00)' : tag === 'fix' ? 'var(--neon-secondary,#ff6b9b)' : '#f59e0b';
+                const icon = tag === 'new' ? 'bolt' : tag === 'fix' ? 'error' : 'sync_alt';
+                html += '<li><span class="material-symbols-outlined" style="color:' + iconColor + '">' + icon + '</span><span>' + text + '</span></li>';
+            });
+            html += '</ul></section>';
+        }
+
+        if (groupKeys.length > 1) {
+            html += '</div>';
+        }
+
+        html += '</div>';
+    });
+
+    html += '</article>';
+});
 
 container.innerHTML = html;
 </script>
