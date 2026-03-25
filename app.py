@@ -5621,9 +5621,46 @@ if __name__ == '__main__':
             except Exception as e:
                 log_warning(f"Auto-sync blad: {e}")
     
-    # Uruchom auto-sync w osobnym wątku
+    # Uruchom auto-sync zamówień w osobnym wątku
     sync_thread = threading.Thread(target=auto_sync_orders_loop, daemon=True)
     sync_thread.start()
+
+    # ============================================================
+    # AUTO-SYNC OFERT Z ALLEGRO (statusy, nowe oferty z Sales Center)
+    # ============================================================
+    def auto_sync_offers_loop():
+        """Background task - synchronizuje oferty co 15 minut"""
+        from modules.allegro_api import sync_offers_status, is_authenticated
+        from modules.database import get_config
+
+        log("Auto-sync ofert uruchomiony (co 15 minut)")
+
+        # Pierwsze uruchomienie po 30s (daj czas na start)
+        time.sleep(30)
+
+        while True:
+            try:
+                if get_config('allegro_autosync', 'true') != 'true':
+                    time.sleep(900)
+                    continue
+
+                if not is_authenticated():
+                    time.sleep(900)
+                    continue
+
+                result = sync_offers_status()
+                new_count = result.get('new', 0)
+                updated = result.get('updated', 0)
+                if new_count > 0 or updated > 0:
+                    log(f"Auto-sync ofert: {new_count} nowych, {updated} zaktualizowanych")
+
+            except Exception as e:
+                log_warning(f"Auto-sync ofert blad: {e}")
+
+            time.sleep(900)  # Co 15 minut
+
+    offers_sync_thread = threading.Thread(target=auto_sync_offers_loop, daemon=True)
+    offers_sync_thread.start()
     
     # Pokaż ścieżkę bazy danych
     from modules.database import DATABASE
