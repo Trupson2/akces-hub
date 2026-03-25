@@ -1058,6 +1058,7 @@ TYP: {'Elektronika/Urządzenie' if is_electronics else ('Dekoracja/Materiał' if
 <span class=material-symbols-outlined style=color:#ef4444>cancel</span> Puste frazesy: "najwyższa jakość", "wyjątkowe wykonanie", "innowacyjne rozwiązanie"
 <span class=material-symbols-outlined style=color:#ef4444>cancel</span> Wymyślanie parametrów których nie ma w bullet points
 <span class=material-symbols-outlined style=color:#ef4444>cancel</span> Sekcje: wysyłka, zwroty, kontakt, gwarancja, GPSR
+<span class=material-symbols-outlined style=color:#ef4444>cancel</span> BEZWZGLEDNY ZAKAZ fraz sugerujacych kontakt: "skontaktuj sie", "napisz do nas", "zapytaj", "podaruj bliskim", "podarować", "prezent dla", "idealny na prezent", "mozesz podarowac" — Allegro automatycznie blokuje oferty z takimi frazami!
 <span class=material-symbols-outlined style=color:#ef4444>cancel</span> Tytuł produktu na początku
 <span class=material-symbols-outlined style=color:#ef4444>cancel</span> Wymiary typu "10x2.75" to ROZMIARY, nie ilości sztuk
 <span class=material-symbols-outlined style=color:#ef4444>cancel</span> Wymyślanie ilości sztuk w zestawie jeśli nie podano
@@ -1099,10 +1100,24 @@ Wygeneruj opis:"""
                     lines = text.strip().split('\n')
                     filtered = []
                     skip_words = ['wysyłka', 'wysylka', 'zwrot', 'gwarancj', 'kontakt', 'informacj']
+                    # Frazy blokowane przez Allegro (sugerowanie kontaktu)
+                    allegro_banned = [
+                        'skontaktuj się', 'skontaktuj sie', 'napisz do nas', 'zapytaj',
+                        'podaruj bliskim', 'podarować', 'podarowac', 'możesz podarować',
+                        'idealny na prezent', 'prezent dla', 'idealny prezent',
+                        'skontaktuj', 'kontaktuj się', 'kontaktuj sie',
+                        'napisz wiadomość', 'napisz wiadomosc', 'wyślij wiadomość',
+                        'zadzwoń', 'zadzwon', 'numer telefonu',
+                    ]
                     for line in lines:
                         line_lower = line.lower()
-                        if not any(word in line_lower for word in skip_words):
-                            filtered.append(line)
+                        if any(word in line_lower for word in skip_words):
+                            continue
+                        # Usuń zdania zawierające frazy blokowane przez Allegro
+                        if any(phrase in line_lower for phrase in allegro_banned):
+                            print(f"[FILT] Usunięto linię blokowaną przez Allegro: {line[:60]}...")
+                            continue
+                        filtered.append(line)
                     return '\n'.join(filtered).strip()
             except Exception as e:
                 print(f"[Gemini] Błąd nowego API: {e}")

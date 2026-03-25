@@ -4168,31 +4168,8 @@ def koszty_allegro():
     total_marza_pct = (total_marza / total_przychod * 100) if total_przychod > 0 else 0
     roas = (total_przychod / total_reklama) if total_reklama > 0 else 0
 
-    # ── City heatmap data ──
-    CITY_COORDS = {
-        'warszawa':(52.23,21.01),'kraków':(50.06,19.94),'krakow':(50.06,19.94),'wrocław':(51.11,17.04),'wroclaw':(51.11,17.04),
-        'łódź':(51.77,19.46),'lodz':(51.77,19.46),'poznań':(52.41,16.93),'poznan':(52.41,16.93),'gdańsk':(54.35,18.65),'gdansk':(54.35,18.65),
-        'szczecin':(53.43,14.55),'bydgoszcz':(53.12,18.01),'lublin':(51.25,22.57),'białystok':(53.13,23.16),'bialystok':(53.13,23.16),
-        'katowice':(50.26,19.03),'gdynia':(54.52,18.53),'częstochowa':(50.81,19.12),'czestochowa':(50.81,19.12),'radom':(51.40,21.15),
-        'sosnowiec':(50.29,19.13),'toruń':(53.01,18.60),'torun':(53.01,18.60),'kielce':(50.87,20.63),'rzeszów':(50.04,22.00),'rzeszow':(50.04,22.00),
-        'gliwice':(50.29,18.67),'zabrze':(50.33,18.78),'olsztyn':(53.78,20.49),'bielsko-biała':(49.82,19.06),'bytom':(50.35,18.91),
-        'zielona góra':(51.94,15.51),'rybnik':(50.10,18.54),'ruda śląska':(50.26,18.86),'opole':(50.67,17.93),'tychy':(50.13,18.98),
-        'gorzów wielkopolski':(52.73,15.24),'elbląg':(54.17,19.40),'płock':(52.55,19.70),'dąbrowa górnicza':(50.33,19.18),
-        'wałbrzych':(50.77,16.28),'włocławek':(52.66,19.07),'tarnów':(50.01,20.99),'chorzów':(50.30,18.95),'koszalin':(54.19,16.17),
-        'legnica':(51.21,16.16),'kalisz':(51.76,18.09),'grudziądz':(53.48,18.75),'jaworzno':(50.21,19.27),'słupsk':(54.46,17.03),
-        'jastrzębie-zdrój':(49.96,18.60),'nowy sącz':(49.63,20.69),'jelenia góra':(50.90,15.73),'konin':(52.22,18.25),
-        'siedlce':(52.17,22.29),'mysłowice':(50.23,19.17),'piła':(53.15,16.74),'piotrków trybunalski':(51.41,19.69),
-        'ostrów wielkopolski':(51.65,17.81),'lubin':(51.40,16.20),'inowrocław':(52.80,18.26),'suwałki':(54.11,22.93),
-        'stargard':(53.34,15.05),'gniezno':(52.54,17.60),'ostrowiec świętokrzyski':(50.93,21.39),'siemianowice śląskie':(50.33,19.03),
-        'głogów':(51.66,16.08),'pabianice':(51.66,19.35),'leszno':(51.84,16.58),'żory':(50.04,18.70),'zamość':(50.72,23.25),
-        'pruszków':(52.17,20.81),'łomża':(53.18,22.06),'ełk':(53.83,22.36),'elk':(53.83,22.36),'tarnowskie góry':(50.44,18.86),
-        'tomaszów mazowiecki':(51.53,20.01),'chełm':(51.13,23.47),'mielec':(50.29,21.43),'kędzierzyn-koźle':(50.35,18.21),
-        'przemyśl':(49.78,22.77),'stalowa wola':(50.58,22.05),'tczew':(54.09,18.80),'biała podlaska':(52.03,23.12),
-        'bełchatów':(51.37,19.36),'świdnica':(50.84,16.49),'starachowice':(51.04,21.07),'skarżysko-kamienna':(51.11,20.87),
-        'raszyn':(52.15,20.93),'piaseczno':(52.08,21.02),'ząbki':(52.29,21.12),'marki':(52.32,21.10),'legionowo':(52.40,20.93),
-        'wejherowo':(54.61,18.24),'rumia':(54.57,18.39),'sopot':(54.44,18.56),'reda':(54.61,18.35),
-        'mińsk mazowiecki':(52.18,21.57),'otwock':(52.10,21.26),'wołomin':(52.35,21.24),'grodzisk mazowiecki':(52.11,20.63),
-    }
+    # ── City heatmap data (1000+ miast z polish_cities.py) ──
+    from modules.polish_cities import CITY_COORDS
     city_orders = {}
     for r in conn.execute("SELECT adres FROM sprzedaze WHERE adres IS NOT NULL AND adres != '' AND status NOT IN ('anulowana','zwrot')").fetchall():
         parts = r['adres'].split(',')
