@@ -914,7 +914,7 @@ def sync_offers_status():
                 # Duplikaty ASIN: każda paleta to osobny produkt, bierzemy ostatnio dodany aktywny
                 produkt = conn.execute('''
                     SELECT id FROM produkty
-                    WHERE asin = ? AND status != 'sprzedany'
+                    WHERE UPPER(asin) = UPPER(?) AND status != 'sprzedany'
                     ORDER BY data_dodania DESC, ilosc DESC LIMIT 1
                 ''', (_asin_from_ext,)).fetchone()
                 if produkt:

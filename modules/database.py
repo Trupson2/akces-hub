@@ -285,6 +285,28 @@ def init_db():
                 UPDATE produkty SET kod_magazynowy = 'MAG-' || SUBSTR('00000' || NEW.id, -5) WHERE id = NEW.id;
             END''')
 
+        # Trigger: auto-uppercase ASIN na INSERT
+        conn.execute('''CREATE TRIGGER IF NOT EXISTS auto_asin_upper_insert
+            AFTER INSERT ON produkty
+            FOR EACH ROW
+            WHEN NEW.asin IS NOT NULL AND NEW.asin != '' AND NEW.asin != UPPER(NEW.asin)
+            BEGIN
+                UPDATE produkty SET asin = UPPER(NEW.asin) WHERE id = NEW.id;
+            END''')
+
+        # Trigger: auto-uppercase ASIN na UPDATE
+        conn.execute('''CREATE TRIGGER IF NOT EXISTS auto_asin_upper_update
+            AFTER UPDATE OF asin ON produkty
+            FOR EACH ROW
+            WHEN NEW.asin IS NOT NULL AND NEW.asin != '' AND NEW.asin != UPPER(NEW.asin)
+            BEGIN
+                UPDATE produkty SET asin = UPPER(NEW.asin) WHERE id = NEW.id;
+            END''')
+
+        # Migracja: uppercase all existing ASINs
+        conn.execute("UPDATE produkty SET asin = UPPER(asin) WHERE asin IS NOT NULL AND asin != '' AND asin != UPPER(asin)")
+        conn.execute("UPDATE scraped SET asin = UPPER(asin) WHERE asin IS NOT NULL AND asin != '' AND asin != UPPER(asin)")
+
         # Auto-fix: cena_zakupu w bazie = BRUTTO, netto = brutto / 1.23
         try:
             conn.execute('''
