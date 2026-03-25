@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
 <div style="text-align:center;padding:10px 0 24px">
-    <h1 class="font-display" style="font-size:1.4rem;font-weight:800;color:var(--neon-primary);text-shadow:0 0 10px rgba(0,241,254,0.4)">EXPORT DO ALLEGRO</h1>
+    <h1 class="font-display" style="font-size:1.4rem;font-weight:800;color:var(--neon-primary);text-shadow:0 0 10px rgba(143,245,255,0.4)">EXPORT DO ALLEGRO</h1>
     <small style="color:var(--text-muted);font-size:0.82rem">Generuj CSV do masowego wystawiania</small>
 </div>
 
 <div class="glass-card" style="padding:24px;margin-bottom:20px">
-    <div style="font-weight:700;font-size:0.92rem;margin-bottom:16px;color:var(--neon-secondary);text-shadow:0 0 8px rgba(193,128,255,0.3)">📦 Eksportuj produkty</div>
+    <div style="font-weight:700;font-size:0.92rem;margin-bottom:16px;color:var(--neon-secondary);text-shadow:0 0 8px rgba(255,107,155,0.3)">📦 Eksportuj produkty</div>
     <form method="POST" action="/narzedzia/export">
         <div class="form-group">
             <label>📈 Marża (%)</label>
@@ -21,7 +21,7 @@
                 <option value="inne">📦 Inne</option>
             </select>
         </div>
-        <button type="submit" class="btn" style="background:rgba(91,240,131,0.12);border:1px solid rgba(91,240,131,0.3);color:var(--neon-tertiary);font-weight:700">📥 POBIERZ CSV</button>
+        <button type="submit" class="btn" style="background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);color:var(--neon-tertiary);font-weight:700">📥 POBIERZ CSV</button>
     </form>
 </div>
 

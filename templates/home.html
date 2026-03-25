@@ -19,12 +19,12 @@
             if(p.x<0)p.x=w;if(p.x>w)p.x=0;
             if(p.y<0)p.y=h;if(p.y>h)p.y=0;
             ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-            ctx.fillStyle='rgba(0,241,254,0.12)';ctx.fill();
+            ctx.fillStyle='rgba(143,245,255,0.12)';ctx.fill();
             for(let j=i+1;j<particles.length;j++){
                 const q=particles[j],dx=p.x-q.x,dy=p.y-q.y,dist=Math.sqrt(dx*dx+dy*dy);
                 if(dist<120){
                     ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);
-                    ctx.strokeStyle='rgba(0,241,254,'+(0.04*(1-dist/120))+')';
+                    ctx.strokeStyle='rgba(143,245,255,'+(0.04*(1-dist/120))+')';
                     ctx.lineWidth=0.5;ctx.stroke();
                 }
             }
@@ -54,7 +54,7 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
 
 <!-- Update Status -->
 {% if update_banner %}
-<div id="update-banner" class="glass-card" style="border-color:rgba(91,240,131,0.3);padding:18px 20px;margin-bottom:20px;position:relative">
+<div id="update-banner" class="glass-card" style="border-color:rgba(190,238,0,0.3);padding:18px 20px;margin-bottom:20px;position:relative">
     <button onclick="document.getElementById('update-banner').style.display='none'" style="position:absolute;top:8px;right:12px;background:none;border:none;color:var(--text-muted);font-size:1.2rem;cursor:pointer">&times;</button>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
         <span style="font-size:1.3rem">✅</span>
@@ -69,7 +69,7 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
 
 {% if update_status %}
 {% if update_status.is_zip is defined and update_status.is_zip %}
-<div class="glass-card" style="display:flex;align-items:center;gap:8px;padding:10px 16px;margin-bottom:16px;border-color:rgba(91,240,131,0.2)">
+<div class="glass-card" style="display:flex;align-items:center;gap:8px;padding:10px 16px;margin-bottom:16px;border-color:rgba(190,238,0,0.2)">
     <span>📦</span>
     <span style="font-size:0.78rem;color:var(--neon-tertiary)">v{{ version }} · Zainstalowano z paczki</span>
 </div>
@@ -90,7 +90,7 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
     {% endif %}
 </div>
 {% else %}
-<div class="glass-card" style="display:flex;align-items:center;gap:8px;padding:10px 16px;margin-bottom:16px;border-color:rgba(91,240,131,0.2)">
+<div class="glass-card" style="display:flex;align-items:center;gap:8px;padding:10px 16px;margin-bottom:16px;border-color:rgba(190,238,0,0.2)">
     <span>✅</span>
     <span style="font-size:0.78rem;color:var(--neon-tertiary)">System aktualny · v{{ version }}</span>
 </div>
@@ -106,7 +106,7 @@ function doSystemUpdate(btn){
         if(d.ok){
             btn.textContent='✅ Zaktualizowano!';
             if(card){
-                card.style.borderColor='rgba(91,240,131,0.4)';
+                card.style.borderColor='rgba(190,238,0,0.4)';
                 var info = document.createElement('div');
                 info.style.cssText='margin-top:10px;padding:10px;background:rgba(0,0,0,0.15);border-radius:var(--radius-sm);font-size:0.82rem;color:var(--text-secondary)';
                 info.innerHTML='📦 '+d.msg+'<br><br>⏳ Restart serwisu za chwilę...';
@@ -138,12 +138,12 @@ function doSystemUpdate(btn){
      ═══════════════════════════════════════════════ -->
 <div onclick="document.getElementById('paleoModal').style.display='flex'"
      class="stitch-banner glass-card neon-pulse" style="cursor:pointer;margin-bottom:24px;
-     background:linear-gradient(135deg,rgba(0,241,254,0.08),rgba(193,128,255,0.12),rgba(91,240,131,0.06));
-     border-color:rgba(193,128,255,0.3)">
+     background:linear-gradient(135deg,rgba(143,245,255,0.08),rgba(255,107,155,0.12),rgba(190,238,0,0.06));
+     border-color:rgba(255,107,155,0.3)">
     <div class="font-display" style="font-size:1.5rem;font-weight:800;
                 background:linear-gradient(135deg,var(--neon-primary),var(--neon-secondary),var(--neon-tertiary));
                 -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-                filter:drop-shadow(0 0 12px rgba(0,241,254,0.3))">
+                filter:drop-shadow(0 0 12px rgba(143,245,255,0.3))">
         🚀 PALETOMAT OPEN — Nadchodzi nowa era sprzedaży
     </div>
     <div style="color:var(--text-muted);font-size:0.85rem;margin-top:8px">
@@ -156,7 +156,7 @@ function doSystemUpdate(btn){
     background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
     align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.style.display='none'">
     <div class="glass-card" style="padding:32px 28px;max-width:480px;width:100%;position:relative;
-        border-color:rgba(193,128,255,0.3);box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 40px rgba(193,128,255,0.1)">
+        border-color:rgba(255,107,155,0.3);box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 40px rgba(255,107,155,0.1)">
         <button onclick="document.getElementById('paleoModal').style.display='none'"
             style="position:absolute;top:14px;right:16px;background:none;border:none;
             color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1">&times;</button>
@@ -186,7 +186,7 @@ function doSystemUpdate(btn){
             🔔 Powiadom mnie jako pierwszego (Early Access)
         </button>
         <div id="paleoToast" style="display:none;margin-top:12px;padding:10px 14px;
-            background:rgba(91,240,131,0.12);border:1px solid rgba(91,240,131,0.3);
+            background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);
             border-radius:10px;text-align:center;font-size:0.85rem;color:var(--neon-tertiary)">
             ✔ Zapisano! Powiadomimy Cię jako pierwszego.
         </div>
@@ -198,10 +198,10 @@ function requestEarlyAccess(btn) {
     fetch('/api/paletomat-early-access', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})})
     .then(function(r){return r.json();}).then(function(d){
         document.getElementById('paleoToast').style.display='block';
-        btn.textContent='✔ Zapisano!';btn.style.background='linear-gradient(135deg,#5bf083,#16a34a)';
+        btn.textContent='✔ Zapisano!';btn.style.background='linear-gradient(135deg,#beee00,#16a34a)';
     }).catch(function(){
         document.getElementById('paleoToast').style.display='block';
-        btn.textContent='✔ Zapisano!';btn.style.background='linear-gradient(135deg,#5bf083,#16a34a)';
+        btn.textContent='✔ Zapisano!';btn.style.background='linear-gradient(135deg,#beee00,#16a34a)';
     });
 }
 </script>
@@ -277,9 +277,9 @@ function requestEarlyAccess(btn) {
             el.appendChild(bar);
         });
     }
-    renderSparkline('spark-sales', {{ today.sprzedaz }}, '#5bf083');
-    renderSparkline('spark-revenue', {{ today.przychod }}, '#00f1fe');
-    renderSparkline('spark-shipments', {{ today.do_wyslania }}, '#c180ff');
+    renderSparkline('spark-sales', {{ today.sprzedaz }}, '#beee00');
+    renderSparkline('spark-revenue', {{ today.przychod }}, '#8ff5ff');
+    renderSparkline('spark-shipments', {{ today.do_wyslania }}, '#ff6b9b');
 })();
 </script>
 
@@ -293,24 +293,24 @@ function requestEarlyAccess(btn) {
             <span class="font-display" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted)">⚡ System Monitor</span>
             <div style="display:flex;align-items:center;gap:6px">
                 <span id="sys-uptime" style="font-size:0.68rem;color:var(--text-muted)">--</span>
-                <div id="sys-dot" style="width:8px;height:8px;border-radius:50%;background:var(--neon-tertiary);box-shadow:0 0 8px rgba(91,240,131,0.5);animation:pulse 2s infinite"></div>
+                <div id="sys-dot" style="width:8px;height:8px;border-radius:50%;background:var(--neon-tertiary);box-shadow:0 0 8px rgba(190,238,0,0.5);animation:pulse 2s infinite"></div>
             </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
             <div style="text-align:center">
-                <div class="sys-gauge" style="margin:0 auto 6px;background:rgba(91,240,131,0.08);border:2px solid rgba(91,240,131,0.2)">
+                <div class="sys-gauge" style="margin:0 auto 6px;background:rgba(190,238,0,0.08);border:2px solid rgba(190,238,0,0.2)">
                     <span id="sys-temp" style="color:var(--neon-tertiary)">--</span>
                 </div>
                 <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:600">Temp</div>
             </div>
             <div style="text-align:center">
-                <div class="sys-gauge" style="margin:0 auto 6px;background:rgba(0,241,254,0.08);border:2px solid rgba(0,241,254,0.2)">
+                <div class="sys-gauge" style="margin:0 auto 6px;background:rgba(143,245,255,0.08);border:2px solid rgba(143,245,255,0.2)">
                     <span id="sys-cpu" style="color:var(--neon-primary)">--</span><span style="color:var(--neon-primary);font-size:0.55rem">%</span>
                 </div>
                 <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:600">CPU</div>
             </div>
             <div style="text-align:center">
-                <div class="sys-gauge" style="margin:0 auto 6px;background:rgba(193,128,255,0.08);border:2px solid rgba(193,128,255,0.2)">
+                <div class="sys-gauge" style="margin:0 auto 6px;background:rgba(255,107,155,0.08);border:2px solid rgba(255,107,155,0.2)">
                     <span id="sys-ram" style="color:var(--neon-secondary);font-size:0.6rem">--</span>
                 </div>
                 <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:600">RAM</div>
@@ -334,7 +334,7 @@ function requestEarlyAccess(btn) {
                 <span class="font-display neon-text-tertiary" style="font-weight:800;font-size:1.3rem">{{ "%.1f"|format(goal.get('progress', 0)) }}%</span>
             </div>
             <div style="background:rgba(255,255,255,0.06);border-radius:var(--radius-sm);height:10px;overflow:hidden;margin-bottom:10px">
-                <div style="background:linear-gradient(90deg,var(--neon-primary),var(--neon-tertiary));height:100%;width:{{ "%.1f"|format(goal.get('progress', 0)) }}%;border-radius:var(--radius-sm);box-shadow:0 0 12px rgba(0,241,254,0.3)"></div>
+                <div style="background:linear-gradient(90deg,var(--neon-primary),var(--neon-tertiary));height:100%;width:{{ "%.1f"|format(goal.get('progress', 0)) }}%;border-radius:var(--radius-sm);box-shadow:0 0 12px rgba(143,245,255,0.3)"></div>
             </div>
             <div style="display:flex;justify-content:space-between;font-size:0.8rem">
                 <span style="color:var(--neon-tertiary);font-weight:600">{{ "{:,.0f}".format(goal['current']) }} zł</span>
@@ -361,7 +361,7 @@ function requestEarlyAccess(btn) {
             if(!te)return;
             te.textContent=d.temp>0?d.temp.toFixed(0)+'°':'N/A';
             te.style.color=d.temp<55?'var(--neon-tertiary)':d.temp<70?'var(--orange)':'var(--red)';
-            te.parentElement.style.borderColor=d.temp<55?'rgba(91,240,131,0.2)':d.temp<70?'rgba(249,115,22,0.2)':'rgba(239,68,68,0.2)';
+            te.parentElement.style.borderColor=d.temp<55?'rgba(190,238,0,0.2)':d.temp<70?'rgba(249,115,22,0.2)':'rgba(239,68,68,0.2)';
             document.getElementById('sys-cpu').textContent=d.cpu.toFixed(0);
             document.getElementById('sys-ram').textContent=d.ram_used.toFixed(1)+'/'+d.ram_total.toFixed(0);
             document.getElementById('sys-disk').textContent=d.disk_used.toFixed(0)+'/'+d.disk_total.toFixed(0);
@@ -394,7 +394,7 @@ function requestEarlyAccess(btn) {
 
     <!-- Main 3 metrics -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px">
-        <a href="/sprzedaze" class="glass-panel" style="padding:16px;text-align:center;text-decoration:none;color:inherit;border-color:rgba(91,240,131,0.15)">
+        <a href="/sprzedaze" class="glass-panel" style="padding:16px;text-align:center;text-decoration:none;color:inherit;border-color:rgba(190,238,0,0.15)">
             <div class="font-display neon-text-tertiary" style="font-size:1.4rem;font-weight:800">{{ monthly.przychod }} <span style="font-size:0.7rem">zł</span></div>
             <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-top:4px;font-weight:600">Przychód</div>
         </a>
@@ -402,7 +402,7 @@ function requestEarlyAccess(btn) {
             <div class="font-display" style="font-size:1.4rem;font-weight:800;color:var(--red)">{{ monthly.cogs }} <span style="font-size:0.7rem">zł</span></div>
             <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-top:4px;font-weight:600">Koszt (COGS)</div>
         </a>
-        <a href="/analityka" class="glass-panel" style="padding:16px;text-align:center;text-decoration:none;color:inherit;border-color:rgba(0,241,254,0.15)">
+        <a href="/analityka" class="glass-panel" style="padding:16px;text-align:center;text-decoration:none;color:inherit;border-color:rgba(143,245,255,0.15)">
             <div class="font-display neon-text-primary" style="font-size:1.4rem;font-weight:800">{{ monthly.zysk }} <span style="font-size:0.7rem">zł</span></div>
             <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-top:4px;font-weight:600">Zysk</div>
         </a>
@@ -847,7 +847,7 @@ function toggleDrilldown(id){
 {% endif %}
 
 <!-- License -->
-<div class="glass-card" style="padding:20px;border-color:{% if lic_days_left == 'Wygasla!' %}rgba(239,68,68,0.3){% elif lic_days_left %}rgba(0,241,254,0.2){% else %}rgba(255,255,255,0.06){% endif %}">
+<div class="glass-card" style="padding:20px;border-color:{% if lic_days_left == 'Wygasla!' %}rgba(239,68,68,0.3){% elif lic_days_left %}rgba(143,245,255,0.2){% else %}rgba(255,255,255,0.06){% endif %}">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <span class="font-display" style="font-weight:700;font-size:0.92rem">🔑 Licencja</span>
         <a href="/license" style="color:var(--neon-primary);font-size:0.78rem;text-decoration:none;font-weight:600">Szczegóły →</a>
@@ -873,7 +873,7 @@ function toggleDrilldown(id){
      ═══════════════════════════════════════════════ -->
 <div id="salesNotification" style="display:none;position:fixed;top:20px;left:50%;transform:translateX(-50%);
     background:linear-gradient(135deg,var(--neon-tertiary),#16a34a);padding:20px 30px;border-radius:var(--radius);
-    z-index:9999;box-shadow:0 10px 40px rgba(91,240,131,0.4),0 0 30px rgba(91,240,131,0.2);animation:slideIn 0.5s ease">
+    z-index:9999;box-shadow:0 10px 40px rgba(190,238,0,0.4),0 0 30px rgba(190,238,0,0.2);animation:slideIn 0.5s ease">
     <div style="display:flex;align-items:center;gap:15px">
         <span style="font-size:2.5rem">🎉</span>
         <div>

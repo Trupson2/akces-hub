@@ -346,8 +346,8 @@ body.demo-active .demo-indicator::after {
 /* ══════════════════════════════════════════════════
    STITCH DESIGN SYSTEM — Glass + Neon
    ══════════════════════════════════════════════════ */
-:root{--neon-primary:#00f1fe;--neon-secondary:#c180ff;--neon-tertiary:#5bf083;--neon-primary-soft:rgba(0,241,254,0.10);--neon-secondary-soft:rgba(193,128,255,0.10);--neon-tertiary-soft:rgba(91,240,131,0.10)}
-[data-theme="dark"]{--neon-primary-soft:rgba(0,241,254,0.08);--neon-secondary-soft:rgba(193,128,255,0.08);--neon-tertiary-soft:rgba(91,240,131,0.08)}
+:root{--neon-primary:#8ff5ff;--neon-secondary:#ff6b9b;--neon-tertiary:#beee00;--neon-primary-soft:rgba(143,245,255,0.10);--neon-secondary-soft:rgba(255,107,155,0.10);--neon-tertiary-soft:rgba(190,238,0,0.10)}
+[data-theme="dark"]{--neon-primary-soft:rgba(143,245,255,0.08);--neon-secondary-soft:rgba(255,107,155,0.08);--neon-tertiary-soft:rgba(190,238,0,0.08)}
 
 .font-display{font-family:'Space Grotesk','Inter',sans-serif}
 
@@ -362,14 +362,14 @@ body.demo-active .demo-indicator::after {
 [data-theme="light"] .glass-panel{background:rgba(255,255,255,0.55);border-color:rgba(0,0,0,0.04)}
 
 /* Neon glow effects */
-.neon-glow-primary{box-shadow:0 0 20px rgba(0,241,254,0.15),0 0 40px rgba(0,241,254,0.05),inset 0 1px 0 rgba(0,241,254,0.1);border-color:rgba(0,241,254,0.25)!important}
-.neon-glow-secondary{box-shadow:0 0 20px rgba(193,128,255,0.15),0 0 40px rgba(193,128,255,0.05),inset 0 1px 0 rgba(193,128,255,0.1);border-color:rgba(193,128,255,0.25)!important}
-.neon-glow-tertiary{box-shadow:0 0 20px rgba(91,240,131,0.15),0 0 40px rgba(91,240,131,0.05),inset 0 1px 0 rgba(91,240,131,0.1);border-color:rgba(91,240,131,0.25)!important}
+.neon-glow-primary{box-shadow:0 0 20px rgba(143,245,255,0.15),0 0 40px rgba(143,245,255,0.05),inset 0 1px 0 rgba(143,245,255,0.1);border-color:rgba(143,245,255,0.25)!important}
+.neon-glow-secondary{box-shadow:0 0 20px rgba(255,107,155,0.15),0 0 40px rgba(255,107,155,0.05),inset 0 1px 0 rgba(255,107,155,0.1);border-color:rgba(255,107,155,0.25)!important}
+.neon-glow-tertiary{box-shadow:0 0 20px rgba(190,238,0,0.15),0 0 40px rgba(190,238,0,0.05),inset 0 1px 0 rgba(190,238,0,0.1);border-color:rgba(190,238,0,0.25)!important}
 
 /* Neon text */
-.neon-text-primary{color:var(--neon-primary);text-shadow:0 0 10px rgba(0,241,254,0.4)}
-.neon-text-secondary{color:var(--neon-secondary);text-shadow:0 0 10px rgba(193,128,255,0.4)}
-.neon-text-tertiary{color:var(--neon-tertiary);text-shadow:0 0 10px rgba(91,240,131,0.4)}
+.neon-text-primary{color:var(--neon-primary);text-shadow:0 0 10px rgba(143,245,255,0.4)}
+.neon-text-secondary{color:var(--neon-secondary);text-shadow:0 0 10px rgba(255,107,155,0.4)}
+.neon-text-tertiary{color:var(--neon-tertiary);text-shadow:0 0 10px rgba(190,238,0,0.4)}
 
 /* Gradient text */
 .gradient-text-stitch{background:linear-gradient(135deg,var(--neon-primary),var(--neon-secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -386,7 +386,7 @@ body.demo-active .demo-indicator::after {
 .stitch-kpi .kpi-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-top:6px;font-weight:600}
 
 /* Pulse animation */
-@keyframes neonPulse{0%,100%{box-shadow:0 0 15px rgba(0,241,254,0.12),0 0 30px rgba(0,241,254,0.04)}50%{box-shadow:0 0 25px rgba(0,241,254,0.2),0 0 50px rgba(0,241,254,0.08)}}
+@keyframes neonPulse{0%,100%{box-shadow:0 0 15px rgba(143,245,255,0.12),0 0 30px rgba(143,245,255,0.04)}50%{box-shadow:0 0 25px rgba(143,245,255,0.2),0 0 50px rgba(143,245,255,0.08)}}
 .neon-pulse{animation:neonPulse 3s ease-in-out infinite}
 
 /* Stitch banner */

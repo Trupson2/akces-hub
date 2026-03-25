@@ -587,7 +587,7 @@ function pkSearch() {
                     html += `<div style="text-align:left;margin-top:12px;padding:12px;background:var(--pk-card2);border:1px solid var(--pk-border)">
                         <div style="font-weight:600;color:var(--pk-text)">${p.nazwa}</div>
                         <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
-                            ${p.ean ? `<span class="pk-badge" style="background:rgba(193,128,255,0.15);color:#c180ff;border:1px solid rgba(193,128,255,0.3)">EAN: ${p.ean}</span>` : ''}
+                            ${p.ean ? `<span class="pk-badge" style="background:rgba(255,107,155,0.15);color:#ff6b9b;border:1px solid rgba(255,107,155,0.3)">EAN: ${p.ean}</span>` : ''}
                             ${p.asin ? `<span class="pk-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3)">ASIN: ${p.asin}</span>` : ''}
                             <span class="pk-badge" style="background:rgba(143,245,255,0.12);color:var(--pk-cyan);border:1px solid rgba(143,245,255,0.25)">Stan: ${p.ilosc} szt</span>
                             ${p.lokalizacja ? `<span class="pk-badge" style="background:rgba(190,238,0,0.12);color:var(--pk-lime-dim);border:1px solid rgba(190,238,0,0.25)">${p.lokalizacja}</span>` : ''}

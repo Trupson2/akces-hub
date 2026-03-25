@@ -2434,7 +2434,7 @@ def backup_page():
         <small>Zarządzanie kopiami zapasowymi bazy danych</small>
     </div>
     
-    <div class="card" style="padding:20px;margin-bottom:15px;background:rgba(91,240,131,0.1);border:2px solid #5bf083">
+    <div class="card" style="padding:20px;margin-bottom:15px;background:rgba(190,238,0,0.1);border:2px solid #beee00">
         <div style="display:flex;align-items:center;gap:15px">
             <div style="font-size:2.5rem">💾</div>
             <div style="flex:1">
@@ -2488,7 +2488,7 @@ def backup_page():
             # Weryfikacja backupu
             is_ok, status_msg = verify_backup(backup['filename'])
             status_icon = "✅" if is_ok else "❌"
-            status_color = "#5bf083" if is_ok else "#ef4444"
+            status_color = "#beee00" if is_ok else "#ef4444"
             
             html += f'''
             <div class="card" style="padding:15px;margin-bottom:10px">
@@ -2664,7 +2664,7 @@ def backup_upload():
         <div class="card" style="padding:20px;text-align:center">
             <div style="font-size:3rem;margin-bottom:10px">📦</div>
             <div style="font-weight:600;margin-bottom:5px">{backup_filename}</div>
-            <div style="font-size:1.3rem;color:#5bf083">{count} produktów</div>
+            <div style="font-size:1.3rem;color:#beee00">{count} produktów</div>
             <div style="font-size:0.85rem;color:#64748b">{size_mb:.2f} MB</div>
         </div>
         
@@ -3010,14 +3010,14 @@ def statystyki():
     else:
         najszybciej_rows = ''.join([
             f'<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #1e1e2e">'
-            f'<div style="font-size:0.85rem;font-weight:700;color:#5bf083;min-width:60px">{item["czas"]}</div>'
+            f'<div style="font-size:0.85rem;font-weight:700;color:#beee00;min-width:60px">{item["czas"]}</div>'
             f'<div style="flex:1;font-size:0.8rem;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{item["nazwa"]}</div>'
             f'<div style="font-size:0.8rem;color:#eab308;min-width:55px;text-align:right">{item["cena"]:.0f} zł</div>'
             f'</div>' for item in najszybciej_sprzedane
         ])
         histogram_html = (
             f'<canvas id="chartCzasSprzedazy" height="150" style="margin-bottom:15px"></canvas>'
-            f'<div style="font-size:0.75rem;color:#5bf083;font-weight:600;margin-bottom:8px">⚡ Najszybciej sprzedane (od wystawienia)</div>'
+            f'<div style="font-size:0.75rem;color:#beee00;font-weight:600;margin-bottom:8px">⚡ Najszybciej sprzedane (od wystawienia)</div>'
             f'{najszybciej_rows}'
         )
 
@@ -3027,7 +3027,7 @@ def statystyki():
     przychod_total = podsumowanie['suma_total'] + pryw_total_rok
     koszty_total_lacznie = koszty_total_rok + palety_total_rok
     zysk_rok = przychod_total - koszty_total_lacznie
-    zysk_kolor = '#5bf083' if zysk_rok >= 0 else '#ef4444'
+    zysk_kolor = '#beee00' if zysk_rok >= 0 else '#ef4444'
     
     # === KALKULACJA PODATKOWA ===
     # VAT 23%, podatek liniowy 19%
@@ -3049,7 +3049,7 @@ def statystyki():
     podatek = max(0, dochod * 0.19)
     # Prawdziwy zysk na rękę
     zysk_na_reke = dochod - podatek
-    zysk_na_reke_kolor = '#5bf083' if zysk_na_reke >= 0 else '#ef4444'
+    zysk_na_reke_kolor = '#beee00' if zysk_na_reke >= 0 else '#ef4444'
     dane_miesieczne = [0] * 12
     dane_miesieczne_cnt = [0] * 12  # ilość zamówień per miesiąc
     dane_koszty = [0] * 12          # koszty per miesiąc
@@ -3092,10 +3092,10 @@ def statystyki():
     # 5 POZIOMÓW SYPANIA (bazowane na kwocie dziennej)
     if today_sales >= 5000:
         status_text = "🔥🔥🔥 MEGA SYPIE!"
-        status_color = "#5bf083"
+        status_color = "#beee00"
     elif today_sales >= 3000:
         status_text = "💸 SYPIE!"
-        status_color = "#5bf083"
+        status_color = "#beee00"
     elif today_sales >= 1500:
         status_text = "📈 Całkiem nieźle"
         status_color = "#eab308"
@@ -3141,18 +3141,18 @@ def statystyki():
     </div>
     
     <!-- HISTOGRAM CZASU SPRZEDAŻY -->
-    <div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #5bf08344">
-        <div style="font-weight:700;margin-bottom:12px;color:#5bf083">⏱️ Czas sprzedaży (od wystawienia)</div>
+    <div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #beee0044">
+        <div style="font-weight:700;margin-bottom:12px;color:#beee00">⏱️ Czas sprzedaży (od wystawienia)</div>
         {histogram_html}
     </div>
     
     <!-- Kalkulacja podatkowa -->
-    <div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #c180ff44">
+    <div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #ff6b9b44">
         <div style="font-weight:700;margin-bottom:12px;color:#a78bfa">🧾 Rozliczenie podatkowe ({current_year})</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem">
             <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px">
                 <div style="color:#64748b;margin-bottom:4px">Przychód brutto</div>
-                <div style="font-weight:700;color:#00f1fe">{przychod_total:.0f} zł</div>
+                <div style="font-weight:700;color:#8ff5ff">{przychod_total:.0f} zł</div>
             </div>
             <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px">
                 <div style="color:#64748b;margin-bottom:4px">Przychód netto (bez VAT)</div>
@@ -3193,8 +3193,8 @@ def statystyki():
         roi_total_zysk = roi_total_przychod - roi_total_koszt
         roi_total = (roi_total_zysk / roi_total_koszt * 100) if roi_total_koszt > 0 else 0
         roi_sredni = sum(p['roi'] for p in palety_roi) / len(palety_roi)
-        roi_total_kolor = '#5bf083' if roi_total >= 0 else '#ef4444'
-        roi_sr_kolor = '#5bf083' if roi_sredni >= 0 else '#ef4444'
+        roi_total_kolor = '#beee00' if roi_total >= 0 else '#ef4444'
+        roi_sr_kolor = '#beee00' if roi_sredni >= 0 else '#ef4444'
         sorted_desc = sorted(palety_roi, key=lambda x: x['roi'], reverse=True)
         sorted_asc = sorted(palety_roi, key=lambda x: x['roi'])
         # Pokaż max 5 najlepszych, ale nie więcej niż połowa
@@ -3206,7 +3206,7 @@ def statystyki():
         worst_label = '📉 Najgorsze' if worst3 and worst3[0]['roi'] < 0 else '📊 Najmniej rentowne'
 
         def _roi_row(p):
-            kol = '#5bf083' if p['roi'] >= 0 else '#ef4444'
+            kol = '#beee00' if p['roi'] >= 0 else '#ef4444'
             pct = min(100, max(0, abs(p['roi'])))
             sign = '+' if p['roi'] >= 0 else ''
             bar = f'<div style="height:5px;background:#1e1e2e;border-radius:3px;margin-top:4px"><div style="height:5px;width:{pct:.0f}%;background:{kol};border-radius:3px"></div></div>'
@@ -3222,8 +3222,8 @@ def statystyki():
         top_html = ''.join(_roi_row(p) for p in top3)
         worst_html = ''.join(_roi_row(p) for p in worst3)
 
-        html_roi = f'''<div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #5bf08333">
-        <div style="font-weight:700;margin-bottom:12px;color:#5bf083">📦 Rentowność palet ({current_year})</div>
+        html_roi = f'''<div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #beee0033">
+        <div style="font-weight:700;margin-bottom:12px;color:#beee00">📦 Rentowność palet ({current_year})</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
             <div style="background:#0a1f12;border:1px solid {roi_total_kolor}44;border-radius:10px;padding:12px;text-align:center">
                 <div style="font-size:1.6rem;font-weight:700;color:{roi_total_kolor}">{roi_total:.0f}%</div>
@@ -3240,7 +3240,7 @@ def statystyki():
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
             <div>
-                <div style="font-size:0.75rem;color:#5bf083;font-weight:600;margin-bottom:6px">🏆 Najlepsze</div>
+                <div style="font-size:0.75rem;color:#beee00;font-weight:600;margin-bottom:6px">🏆 Najlepsze</div>
                 {top_html}
             </div>
             <div>
@@ -3258,7 +3258,7 @@ def statystyki():
     palety_cells = ''
     for i in range(12):
         cnt = dane_palety_cnt[i]
-        kolor = '#00f1fe' if cnt > 0 else '#2d2d48'
+        kolor = '#8ff5ff' if cnt > 0 else '#2d2d48'
         palety_cells += f'<div style="background:#1e1e2e;border-radius:8px;padding:8px;text-align:center"><div style="font-size:0.65rem;color:#64748b">{nazwy_msc[i]}</div><div style="font-size:1.1rem;font-weight:700;color:{kolor}">{cnt}</div></div>'
 
     html += f'''
@@ -3266,7 +3266,7 @@ def statystyki():
     <div class="card" style="padding:15px;margin-bottom:15px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
             <div id="chartTitle" style="font-weight:600">📅 Sprzedaż miesięcznie ({current_year})</div>
-            <button id="btnBack" onclick="showMonthlyView()" style="display:none;padding:5px 10px;background:#00f1fe;border:none;border-radius:5px;color:#fff;cursor:pointer">← Miesiące</button>
+            <button id="btnBack" onclick="showMonthlyView()" style="display:none;padding:5px 10px;background:#8ff5ff;border:none;border-radius:5px;color:#fff;cursor:pointer">← Miesiące</button>
         </div>
         <div style="font-size:0.75rem;color:#64748b;margin-bottom:10px">💡 Kliknij na słupek miesiąca aby zobaczyć rozkład dzienny</div>
         <div id="monthSummary" style="display:none"></div>
@@ -3300,7 +3300,7 @@ def statystyki():
                     <div class="item-meta">Sprzedano: {p['sprzedane']}x</div>
                 </div>
                 <div class="item-right">
-                    <div class="item-qty" style="color:#5bf083">{p['przychod'] or 0:.0f} zł</div>
+                    <div class="item-qty" style="color:#beee00">{p['przychod'] or 0:.0f} zł</div>
                 </div>
             </div>'''
     else:
@@ -3318,7 +3318,7 @@ def statystyki():
                     <div class="item-meta">Sprzedano: {d['sprzedane']}x</div>
                 </div>
                 <div class="item-right">
-                    <div class="item-qty" style="color:#5bf083">{d['przychod'] or 0:.0f} zł</div>
+                    <div class="item-qty" style="color:#beee00">{d['przychod'] or 0:.0f} zł</div>
                 </div>
             </div>'''
     else:
@@ -3429,11 +3429,11 @@ def statystyki():
                     label: 'Zysk netto',
                     data: daneZysk,
                     type: 'line',
-                    borderColor: '#5bf083',
-                    backgroundColor: 'rgba(91,240,131,0.1)',
+                    borderColor: '#beee00',
+                    backgroundColor: 'rgba(190,238,0,0.1)',
                     borderWidth: 2,
                     pointRadius: 4,
-                    pointBackgroundColor: '#5bf083',
+                    pointBackgroundColor: '#beee00',
                     tension: 0.3,
                     fill: false,
                     order: 0
@@ -3535,12 +3535,12 @@ def statystyki():
         const koszty = daneKosztyLacznie[month-1] || 0;
         const kosztPalety = danePalety[month-1] || 0;
         const zysk = przychod - koszty;
-        const zyskKolor = zysk >= 0 ? '#5bf083' : '#ef4444';
+        const zyskKolor = zysk >= 0 ? '#beee00' : '#ef4444';
         const cnt = daneMiesieczneCnt[month-1] || 0;
         document.getElementById('monthSummary').innerHTML = `
             <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
                 <div style="flex:1;min-width:100px;background:#1e1e2e;border-radius:10px;padding:10px;text-align:center">
-                    <div style="font-size:1.1rem;font-weight:700;color:#00f1fe">${{przychod.toFixed(0)}} zł</div>
+                    <div style="font-size:1.1rem;font-weight:700;color:#8ff5ff">${{przychod.toFixed(0)}} zł</div>
                     <div style="font-size:0.7rem;color:#64748b;margin-top:2px">Przychód</div>
                 </div>
                 <div style="flex:1;min-width:100px;background:#1e1e2e;border-radius:10px;padding:10px;text-align:center">
@@ -3562,7 +3562,7 @@ def statystyki():
                     const dochod = przychodNetto - kosztaNetto;
                     const podatek = Math.max(0, dochod * 0.19);
                     const naReke = dochod - podatek;
-                    const kolor = naReke >= 0 ? '#5bf083' : '#ef4444';
+                    const kolor = naReke >= 0 ? '#beee00' : '#ef4444';
                     return `
                     <div style="background:#1a1025;border:1px solid #ef444433;border-radius:8px;padding:8px;text-align:center">
                         <div style="font-size:0.95rem;font-weight:700;color:#ef4444">-${{vatDoZaplaty.toFixed(0)}} zł</div>
@@ -3793,14 +3793,14 @@ def palety():
             sztuki = p['items']
         
         # Kolory w zależności od stanu
-        cnt_color = "#5bf083" if p['cnt'] > 0 else "#ef4444"
+        cnt_color = "#beee00" if p['cnt'] > 0 else "#ef4444"
         
         # Cena zakupu: cena_zakupu w bazie = BRUTTO z faktury
         zakup_brutto = p['cena_zakupu'] or 0
         
         dostarczona = dostarczona_map.get(p['id'], 0)
         dostarczona_label = '✅ Dostarczona' if dostarczona else '🚚 W drodze'
-        dostarczona_color = '#5bf083' if dostarczona else '#f59e0b'
+        dostarczona_color = '#beee00' if dostarczona else '#f59e0b'
         is_box = p['typ'] == 'box'
         bar_color = '#ff6b9b' if not dostarczona else '#beee00'
         status_class = 'pl-status-ok' if dostarczona else 'pl-status-ship'
@@ -3928,9 +3928,9 @@ def palety():
                 btn.setAttribute("data-val", newVal);
                 if (newVal == 1) {
                     btn.innerText = "\\u2705 Dostarczona";
-                    btn.style.borderColor = "#5bf083";
-                    btn.style.color = "#5bf083";
-                    btn.style.background = "#5bf08322";
+                    btn.style.borderColor = "#beee00";
+                    btn.style.color = "#beee00";
+                    btn.style.background = "#beee0022";
                 } else {
                     btn.innerText = "\\ud83d\\ude9a W drodze";
                     btn.style.borderColor = "#f59e0b";
@@ -4193,10 +4193,10 @@ def paleta_detail_by_id(paleta_id):
     
     dostarczona_val = paleta_row['dostarczona'] if paleta_row and 'dostarczona' in paleta_row.keys() else 0
     dostarczona_label = '✅ Dostarczona' if dostarczona_val else '🚚 W drodze'
-    dostarczona_color = '#5bf083' if dostarczona_val else '#f59e0b'
+    dostarczona_color = '#beee00' if dostarczona_val else '#f59e0b'
     paleta_dostawca = paleta_row['dostawca'] if 'dostawca' in paleta_row.keys() else ''
     paleta_regal = paleta_row['regal'] if 'regal' in paleta_row.keys() else ''
-    dostawca_badge = f' • <span class="dostawca-name" style="color:#00f1fe">{paleta_dostawca}</span>' if paleta_dostawca else ''
+    dostawca_badge = f' • <span class="dostawca-name" style="color:#8ff5ff">{paleta_dostawca}</span>' if paleta_dostawca else ''
     regal_badge = f' • 📍 {paleta_regal}' if paleta_regal else ''
     html = f'''<div class="hdr" style="display:flex;justify-content:space-between;align-items:center">
         <div><h1>📦 {nazwa_palety}</h1><small>{len(products)} prod. ({sztuki_display} szt.){dostawca_badge}{regal_badge}</small></div>
@@ -4208,7 +4208,7 @@ def paleta_detail_by_id(paleta_id):
         <a href="/magazyn/przyjecie/{paleta_id}" style="padding:8px 16px;border:2px solid #7c3aed;background:#7c3aed22;color:#7c3aed;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;text-decoration:none">
             📋 Przyjęcie
         </a>
-        <a href="/magazyn/etykiety?paleta_id={paleta_id}" style="padding:8px 16px;border:2px solid #c180ff;background:#c180ff22;color:#c180ff;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;text-decoration:none">
+        <a href="/magazyn/etykiety?paleta_id={paleta_id}" style="padding:8px 16px;border:2px solid #ff6b9b;background:#ff6b9b22;color:#ff6b9b;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;text-decoration:none">
             🏷️ Etykiety
         </a>
         <button onclick="document.getElementById('editPaletaModal').style.display='flex'" style="padding:8px 16px;border:2px solid #f59e0b;background:#f59e0b22;color:#f59e0b;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer">
@@ -4276,9 +4276,9 @@ def paleta_detail_by_id(paleta_id):
                 btn.dataset.val = newVal;
                 if (newVal == 1) {{
                     btn.textContent = '✅ Dostarczona';
-                    btn.style.borderColor = '#5bf083';
-                    btn.style.color = '#5bf083';
-                    btn.style.background = '#5bf08322';
+                    btn.style.borderColor = '#beee00';
+                    btn.style.color = '#beee00';
+                    btn.style.background = '#beee0022';
                 }} else {{
                     btn.textContent = '🚚 W drodze';
                     btn.style.borderColor = '#f59e0b';
@@ -4299,7 +4299,7 @@ def paleta_detail_by_id(paleta_id):
             <div class="stat-v">{netto:.0f} zł</div>
             <div class="stat-l">ZAKUP NETTO</div>
         </div>
-        <div class="stat" style="border:2px solid #00f1fe;border-radius:12px">
+        <div class="stat" style="border:2px solid #8ff5ff;border-radius:12px">
             <div class="stat-v">{brutto:.0f} zł</div>
             <div class="stat-l">ZAKUP BRUTTO</div>
         </div>
@@ -4308,7 +4308,7 @@ def paleta_detail_by_id(paleta_id):
             <div class="stat-l">ALLEGRO (suma)</div>
         </div>
         <div class="stat">
-            <div class="stat-v" style="color:{('#5bf083' if zysk > 0 else '#ef4444')}">{zysk:.0f} zł</div>
+            <div class="stat-v" style="color:{('#beee00' if zysk > 0 else '#ef4444')}">{zysk:.0f} zł</div>
             <div class="stat-l">ZYSK</div>
         </div>
     </div>
@@ -4742,11 +4742,11 @@ def fetch_images_page():
     <div class="card" style="padding:15px;margin-bottom:15px">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
             <div>
-                <div style="font-size:1.8rem;font-weight:700;color:#00f1fe">{total}</div>
+                <div style="font-size:1.8rem;font-weight:700;color:#8ff5ff">{total}</div>
                 <div style="font-size:0.75rem;color:#64748b">Produktów</div>
             </div>
             <div>
-                <div style="font-size:1.8rem;font-weight:700;color:#5bf083">{with_asin}</div>
+                <div style="font-size:1.8rem;font-weight:700;color:#beee00">{with_asin}</div>
                 <div style="font-size:0.75rem;color:#64748b">Z ASIN</div>
             </div>
             <div>
@@ -4771,7 +4771,7 @@ def fetch_images_page():
             <div style="font-weight:600;margin-bottom:10px">⏳ Pobieranie w toku...</div>
             <div id="progress-text" style="font-size:0.85rem;color:#94a3b8">0 / {no_image}</div>
             <div style="background:#1e1e2e;border-radius:6px;height:10px;margin-top:10px;overflow:hidden">
-                <div id="progress-bar" style="background:#5bf083;width:0%;height:100%;transition:width 0.3s"></div>
+                <div id="progress-bar" style="background:#beee00;width:0%;height:100%;transition:width 0.3s"></div>
             </div>
             <div id="progress-log" style="margin-top:10px;font-size:0.75rem;color:#64748b;max-height:150px;overflow-y:auto"></div>
         </div>
@@ -5370,11 +5370,11 @@ def import_preview():
         # Logi wykrywania (niebieskie)
         detection_logs = ""
         if paleta_dostawca:
-            detection_logs += f'<div style="color:#5bf083;padding:4px 0">✅ [INFO] Dostawca: <strong>{paleta_dostawca}</strong></div>'
+            detection_logs += f'<div style="color:#beee00;padding:4px 0">✅ [INFO] Dostawca: <strong>{paleta_dostawca}</strong></div>'
         if detected_ean_col_name:
-            detection_logs += f'<div style="color:#00f1fe;padding:4px 0">ℹ️ [INFO] Wykryto kolumnę EAN: "{detected_ean_col_name}"</div>'
+            detection_logs += f'<div style="color:#8ff5ff;padding:4px 0">ℹ️ [INFO] Wykryto kolumnę EAN: "{detected_ean_col_name}"</div>'
         if detected_asin_col_name and auto_asin != auto_ean:
-            detection_logs += f'<div style="color:#00f1fe;padding:4px 0">ℹ️ [INFO] Wykryto kolumnę ASIN: "{detected_asin_col_name}"</div>'
+            detection_logs += f'<div style="color:#8ff5ff;padding:4px 0">ℹ️ [INFO] Wykryto kolumnę ASIN: "{detected_asin_col_name}"</div>'
         
         # Generuj opcje select
         def make_options(selected):
@@ -6332,7 +6332,7 @@ def etykiety():
     '''
 
     stan_colors = {
-        'Nowy': '#5bf083', 'Jak nowy': '#00f1fe', 'Dobry': '#eab308',
+        'Nowy': '#beee00', 'Jak nowy': '#8ff5ff', 'Dobry': '#eab308',
         'Uszkodzony': '#f97316', 'Zniszczony': '#ef4444'
     }
 
@@ -6627,7 +6627,7 @@ def etykiety_niimbot_page(products):
     <div class="hdr"><h1>🏷️ ETYKIETY NIIMBOT</h1><small>{len(products)} etykiet do druku</small></div>
 
     <!-- Instrukcja -->
-    <div class="card" style="background:linear-gradient(135deg,rgba(91,240,131,0.15),rgba(0,241,254,0.15));border:1px solid rgba(91,240,131,0.3);padding:12px;margin-bottom:12px">
+    <div class="card" style="background:linear-gradient(135deg,rgba(190,238,0,0.15),rgba(143,245,255,0.15));border:1px solid rgba(190,238,0,0.3);padding:12px;margin-bottom:12px">
         <div style="font-size:0.85rem;color:#e2e8f0;line-height:1.5">
             Kliknij 🖨️ → pobierze PNG → otworz w apce Niimbot
         </div>
@@ -6659,10 +6659,10 @@ def etykiety_niimbot_page(products):
                 <div style="flex:1;min-width:0">
                     <div style="font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{pv['nazwa'][:35]}</div>
                     <div style="font-size:0.75rem;color:#64748b;margin-top:4px">{pv['ean'] or 'Brak EAN'} | 📍 {pv['lokalizacja'] or '—'}</div>
-                    <div style="font-size:0.7rem;color:#c180ff;margin-top:2px">x{pv['ilosc']} szt.</div>
+                    <div style="font-size:0.7rem;color:#ff6b9b;margin-top:2px">x{pv['ilosc']} szt.</div>
                 </div>
                 <button onclick="printLabel({pv['id']}, '{(pv['ean'] or str(pv['id']))}', {i})"
-                   style="min-width:60px;padding:14px 18px;background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer"
+                   style="min-width:60px;padding:14px 18px;background:rgba(190,238,0,0.15);border:1px solid rgba(190,238,0,0.3);color:#beee00;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer"
                    id="btn-{i}">
                     💾
                 </button>
@@ -6678,18 +6678,18 @@ def etykiety_niimbot_page(products):
         <img id="previewImg" style="max-width:90%;max-height:70vh;border-radius:8px;background:#fff">
         <div style="margin-top:20px;display:flex;gap:12px">
             <a id="previewDownloadBtn" download onclick="event.stopPropagation()"
-               style="padding:16px 32px;background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer;text-decoration:none;display:flex;align-items:center">
+               style="padding:16px 32px;background:rgba(190,238,0,0.15);border:1px solid rgba(190,238,0,0.3);color:#beee00;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer;text-decoration:none;display:flex;align-items:center">
                 📥 POBIERZ PNG
             </a>
             <button onclick="event.stopPropagation();openNiimbot()"
-                    style="padding:16px 32px;background:rgba(193,128,255,0.15);border:1px solid rgba(193,128,255,0.3);color:#c180ff;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer">
+                    style="padding:16px 32px;background:rgba(255,107,155,0.15);border:1px solid rgba(255,107,155,0.3);color:#ff6b9b;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer">
                 📱 OTWORZ NIIMBOT
             </button>
         </div>
     </div>
 
     <!-- Licznik -->
-    <div id="counter" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);color:#5bf083;padding:10px 20px;border-radius:20px;font-weight:600;z-index:100"></div>
+    <div id="counter" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(190,238,0,0.15);border:1px solid rgba(190,238,0,0.3);color:#beee00;padding:10px 20px;border-radius:20px;font-weight:600;z-index:100"></div>
 
     <a href="/magazyn/etykiety" class="back">← Powrot</a>
 
@@ -6781,7 +6781,7 @@ def etykiety_niimbot_page(products):
         c.style.display = 'block';
         c.textContent = msg;
         if (printed >= products.length) {{
-            c.style.background = '#c180ff';
+            c.style.background = '#ff6b9b';
         }}
         clearTimeout(c._timer);
         c._timer = setTimeout(() => {{ c.style.display = 'none'; }}, 4000);
@@ -7063,7 +7063,7 @@ def qr_product_view(product_id):
     
     # Status badge
     if sprzedany:
-        status_html = '<span class="badge" style="background:#5bf083">✅ SPRZEDANY</span>'
+        status_html = '<span class="badge" style="background:#beee00">✅ SPRZEDANY</span>'
         action_html = '''
             <div class="alert alert-ok" style="margin-bottom:15px">
                 <b>Zamówienie do wysyłki!</b><br>
@@ -7073,7 +7073,7 @@ def qr_product_view(product_id):
             <a href="#" class="btn btn-2">🖨️ DRUKUJ ETYKIETĘ INPOST</a>
         '''
     else:
-        status_html = '<span class="badge" style="background:#00f1fe">📦 W MAGAZYNIE</span>'
+        status_html = '<span class="badge" style="background:#8ff5ff">📦 W MAGAZYNIE</span>'
         action_html = f'''
             <a href="/magazyn/produkt/{p['id']}/edit" class="btn btn-2">✏️ EDYTUJ</a>
             <a href="/paletomat/generator/from-magazyn/{p['id']}" class="btn btn-p">🛒 WYSTAW NA ALLEGRO</a>
@@ -8151,7 +8151,7 @@ def raport_sprzedazy_page():
         </a>
         
         <div style="margin-top:30px;text-align:left;max-width:500px;margin-left:auto;margin-right:auto">
-            <h3 style="color:#5bf083">📋 Co zawiera raport:</h3>
+            <h3 style="color:#beee00">📋 Co zawiera raport:</h3>
             <ul style="color:#94a3b8;line-height:2">
                 <li><b>Arkusz "Podsumowanie"</b> - przychody, koszty, zyski per miesiąc</li>
                 <li><b>Arkusz "Szczegóły"</b> - wszystkie sprzedaże z datami</li>
@@ -8269,7 +8269,7 @@ def lezaki():
         else:
             img_html = '<div style="width:60px;height:60px;background:#1e1e2e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0">📦</div>'
         
-        status_color = '#00f1fe' if p['status'] == 'wystawiony' else '#eab308'
+        status_color = '#8ff5ff' if p['status'] == 'wystawiony' else '#eab308'
         status_text = 'WYSTAWIONY' if p['status'] == 'wystawiony' else 'MAGAZYN'
         
         rows_html += f'''
@@ -8301,7 +8301,7 @@ def lezaki():
                         </div>
                         <div style="background:#1e1e2e;border-radius:8px;padding:8px;text-align:center">
                             <div style="font-size:0.65rem;color:#64748b;margin-bottom:2px">CENA ALLEGRO</div>
-                            <div style="font-weight:700;color:#5bf083">{cena_allegro:.2f} zł</div>
+                            <div style="font-weight:700;color:#beee00">{cena_allegro:.2f} zł</div>
                             <div style="font-size:0.6rem;color:#475569">marża: {cena_allegro - koszt_szt_brutto:.2f} zł</div>
                         </div>
                     </div>
@@ -8882,7 +8882,7 @@ def remanent_page():
         szt_all = p['szt_wszystkich']
         # ROI potencjalny: (wartość Allegro - koszt pozostałych) / koszt pozostałych
         roi = ((w_allegro - w_koszt) / w_koszt * 100) if w_koszt > 0 else (100 if w_allegro > 0 else -100)
-        roi_kolor = '#5bf083' if roi > 50 else ('#f59e0b' if roi > 0 else '#ef4444')
+        roi_kolor = '#beee00' if roi > 50 else ('#f59e0b' if roi > 0 else '#ef4444')
         progress = (szt_sprz / szt_all * 100) if szt_all > 0 else 0
         rows_palety += f'''
         <tr>
@@ -8891,9 +8891,9 @@ def remanent_page():
             <td style="padding:8px 10px;border-bottom:1px solid #1e293b;color:#64748b;font-size:0.8rem">{p['data_zakupu'] or '-'}</td>
             <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:right">{cena_zak:.0f} zł</td>
             <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:center">{szt_sprz}/{szt_all} szt</td>
-            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:center;color:#00f1fe;font-weight:600">{szt_mag} szt</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:center;color:#8ff5ff;font-weight:600">{szt_mag} szt</td>
             <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:right;color:#94a3b8">{w_koszt:.0f} zł</td>
-            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:right;color:#5bf083">{w_allegro:.0f} zł</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:right;color:#beee00">{w_allegro:.0f} zł</td>
             <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:right;font-weight:700;color:{roi_kolor}">{roi:.0f}%</td>
         </tr>'''
 
@@ -8905,7 +8905,7 @@ def remanent_page():
             <td style="padding:7px 10px;border-bottom:1px solid #1e293b;text-align:center">{k['cnt']}</td>
             <td style="padding:7px 10px;border-bottom:1px solid #1e293b;text-align:center">{k['sztuki'] or 0}</td>
             <td style="padding:7px 10px;border-bottom:1px solid #1e293b;text-align:right;color:#94a3b8">{float(k['wartosc_netto'] or 0):.0f} zł</td>
-            <td style="padding:7px 10px;border-bottom:1px solid #1e293b;text-align:right;color:#5bf083">{float(k['wartosc_detal'] or 0):.0f} zł</td>
+            <td style="padding:7px 10px;border-bottom:1px solid #1e293b;text-align:right;color:#beee00">{float(k['wartosc_detal'] or 0):.0f} zł</td>
         </tr>'''
 
     html = f'''
@@ -8914,7 +8914,7 @@ def remanent_page():
     <!-- Kafelki podsumowania -->
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:15px">
         <div class="card" style="padding:12px;text-align:center">
-            <div style="font-size:1.3rem;font-weight:700;color:#00f1fe">{len(palety_all)}</div>
+            <div style="font-size:1.3rem;font-weight:700;color:#8ff5ff">{len(palety_all)}</div>
             <div style="font-size:0.7rem;color:#64748b;margin-top:3px">Palet</div>
         </div>
         <div class="card" style="padding:12px;text-align:center">
@@ -8930,14 +8930,14 @@ def remanent_page():
             <div style="font-size:0.7rem;color:#64748b;margin-top:3px">Wart. kosztowa mag.</div>
         </div>
         <div class="card" style="padding:12px;text-align:center">
-            <div style="font-size:1.3rem;font-weight:700;color:#5bf083">{suma_allegro:.0f} zł</div>
+            <div style="font-size:1.3rem;font-weight:700;color:#beee00">{suma_allegro:.0f} zł</div>
             <div style="font-size:0.7rem;color:#64748b;margin-top:3px">Wart. sprzedażowa</div>
         </div>
     </div>
 
     <!-- Przycisk Excel -->
     <div style="text-align:right;margin-bottom:15px">
-        <a href="/magazyn/remanent/excel" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#5bf083;border-radius:8px;color:#fff;text-decoration:none;font-weight:700;font-size:0.9rem">
+        <a href="/magazyn/remanent/excel" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#beee00;border-radius:8px;color:#fff;text-decoration:none;font-weight:700;font-size:0.9rem">
             📥 Pobierz Excel
         </a>
     </div>
@@ -8966,9 +8966,9 @@ def remanent_page():
                     <td colspan="3" style="padding:8px 10px;color:#94a3b8">RAZEM</td>
                     <td style="padding:8px 10px;text-align:right;color:#f43f5e">{suma_zakupu:.0f} zł</td>
                     <td style="padding:8px 10px;text-align:center;color:#64748b">{suma_sprzedano} sprz.</td>
-                    <td style="padding:8px 10px;text-align:center;color:#00f1fe">{suma_magazyn} szt</td>
+                    <td style="padding:8px 10px;text-align:center;color:#8ff5ff">{suma_magazyn} szt</td>
                     <td style="padding:8px 10px;text-align:right;color:#94a3b8">{suma_kosztowa:.0f} zł</td>
-                    <td style="padding:8px 10px;text-align:right;color:#5bf083">{suma_allegro:.0f} zł</td>
+                    <td style="padding:8px 10px;text-align:right;color:#beee00">{suma_allegro:.0f} zł</td>
                     <td></td>
                 </tr>
             </tfoot>
@@ -9376,7 +9376,7 @@ def statystyki_zakupow():
     total_zakup = sum(dostawcy_wartosci)
 
     # Kolory dla wykresu
-    COLORS = ['#00f1fe','#5bf083','#f59e0b','#ef4444','#c180ff','#06b6d4','#f97316','#ec4899','#14b8a6','#a855f7']
+    COLORS = ['#8ff5ff','#beee00','#f59e0b','#ef4444','#ff6b9b','#06b6d4','#f97316','#ec4899','#14b8a6','#a855f7']
 
     # Grupuj per_miesiac w słownik
     miesiace_dict = {}
@@ -9407,7 +9407,7 @@ def statystyki_zakupow():
                 <div style="font-size:0.8rem;color:#94a3b8" class="dostawca-name">{r['dostawca']}</div>
                 <div style="display:flex;gap:12px;align-items:center">
                     <div style="font-size:0.7rem;color:#64748b">{r['sztuki_cnt']} szt | {r['palety_cnt']} palet</div>
-                    <div style="font-size:0.85rem;font-weight:600;color:#5bf083">{r['suma_brutto']:.0f} zł</div>
+                    <div style="font-size:0.85rem;font-weight:600;color:#beee00">{r['suma_brutto']:.0f} zł</div>
                     <div style="font-size:0.7rem;color:#f59e0b;width:40px;text-align:right">{pct:.0f}%</div>
                 </div>
             </div>'''
@@ -9416,7 +9416,7 @@ def statystyki_zakupow():
         <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:10px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
                 <div style="font-weight:700;color:#fff">{miesiac_label}</div>
-                <div style="font-size:0.85rem;color:#5bf083;font-weight:600">{suma_m:.0f} zł | {sztuki_m} szt</div>
+                <div style="font-size:0.85rem;color:#beee00;font-weight:600">{suma_m:.0f} zł | {sztuki_m} szt</div>
             </div>
             {rows_html}
         </div>'''
@@ -9441,11 +9441,11 @@ def statystyki_zakupow():
     <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:15px;margin-bottom:15px">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
             <div>
-                <div style="font-size:1.3rem;font-weight:700;color:#00f1fe">{len(per_dostawca)}</div>
+                <div style="font-size:1.3rem;font-weight:700;color:#8ff5ff">{len(per_dostawca)}</div>
                 <div style="font-size:0.65rem;color:#64748b">DOSTAWCÓW</div>
             </div>
             <div>
-                <div style="font-size:1.1rem;font-weight:700;color:#5bf083">{total_zakup:.0f} zł</div>
+                <div style="font-size:1.1rem;font-weight:700;color:#beee00">{total_zakup:.0f} zł</div>
                 <div style="font-size:0.65rem;color:#64748b">ŁĄCZNIE ZAKUP</div>
             </div>
             <div>
@@ -9522,7 +9522,7 @@ def statystyki_zakupow():
             </div>
             <div style="display:flex;gap:10px;align-items:center">
                 <div style="font-size:0.75rem;color:#64748b">${{pct}}%</div>
-                <div style="font-size:0.85rem;font-weight:600;color:#5bf083">${{values[i].toLocaleString('pl-PL')}} zł</div>
+                <div style="font-size:0.85rem;font-weight:600;color:#beee00">${{values[i].toLocaleString('pl-PL')}} zł</div>
             </div>
         </div>`;
     }});
@@ -9567,15 +9567,15 @@ def przyjecie_palety(paleta_id):
         </div>
 
         <div id="progress-bar" style="background:#1e1e2e;border-radius:8px;height:8px;margin-bottom:20px;overflow:hidden">
-            <div id="progress-fill" style="height:100%;background:linear-gradient(90deg,#5bf083,#2dd85a);width:0%;transition:width 0.3s"></div>
+            <div id="progress-fill" style="height:100%;background:linear-gradient(90deg,#beee00,#2dd85a);width:0%;transition:width 0.3s"></div>
         </div>
         <div id="progress-text" style="text-align:center;color:#64748b;font-size:0.8rem;margin-bottom:20px">0 / {len(produkty)} ocenionych</div>
 
         <div id="products-list">'''
 
     stany = [
-        ('Nowy', '🟢', '#5bf083'),
-        ('Jak nowy', '🔵', '#00f1fe'),
+        ('Nowy', '🟢', '#beee00'),
+        ('Jak nowy', '🔵', '#8ff5ff'),
         ('Dobry', '🟡', '#eab308'),
         ('Uszkodzony', '🟠', '#f97316'),
         ('Zniszczony', '🔴', '#ef4444'),
@@ -9590,7 +9590,7 @@ def przyjecie_palety(paleta_id):
         img_html = f'<img src="{zdjecie}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">' if zdjecie else '<div style="width:60px;height:60px;background:#1e1e2e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem">📦</div>'
 
         # Ilość badge
-        ilosc_badge = f'<span style="background:#00f1fe33;color:#00f1fe;padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:700">{ilosc} szt.</span>' if ilosc > 1 else '<span style="color:#64748b;font-size:0.75rem">1 szt.</span>'
+        ilosc_badge = f'<span style="background:#8ff5ff33;color:#8ff5ff;padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:700">{ilosc} szt.</span>' if ilosc > 1 else '<span style="color:#64748b;font-size:0.75rem">1 szt.</span>'
 
         html += f'''
         <div class="prod-card" id="prod-{pid}" data-ilosc="{ilosc}" style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:15px;margin-bottom:12px">
@@ -9615,7 +9615,7 @@ def przyjecie_palety(paleta_id):
                     <button onclick="selectStan({pid}, '{stan_name}', this)"
                         class="stan-btn-{pid}"
                         style="padding:8px 14px;border-radius:8px;border:2px solid {stan_color if current_stan == stan_name else '#1e1e2e'};
-                        background:{'rgba(91,240,131,0.1)' if current_stan == stan_name else '#0a0a0f'};
+                        background:{'rgba(190,238,0,0.1)' if current_stan == stan_name else '#0a0a0f'};
                         color:{stan_color};font-size:0.8rem;cursor:pointer;transition:all 0.2s;flex:1;min-width:0;text-align:center"
                         data-active="{is_active}" data-color="{stan_color}">
                         {stan_icon} {stan_name}
@@ -9624,7 +9624,7 @@ def przyjecie_palety(paleta_id):
         # Przycisk "Podziel" tylko gdy ilosc > 1
         split_btn = ''
         if ilosc > 1:
-            split_btn = f'''<button onclick="showSplitMode({pid}, {ilosc})" style="padding:8px 10px;border-radius:8px;border:2px solid #00f1fe;background:#00f1fe22;color:#00f1fe;font-size:0.75rem;cursor:pointer;white-space:nowrap" title="Różne stany dla poszczególnych sztuk">✂️ Podziel</button>'''
+            split_btn = f'''<button onclick="showSplitMode({pid}, {ilosc})" style="padding:8px 10px;border-radius:8px;border:2px solid #8ff5ff;background:#8ff5ff22;color:#8ff5ff;font-size:0.75rem;cursor:pointer;white-space:nowrap" title="Różne stany dla poszczególnych sztuk">✂️ Podziel</button>'''
 
         html += f'''
                     {split_btn}
@@ -9674,7 +9674,7 @@ def przyjecie_palety(paleta_id):
                     💾 Zapisz i wróć później
                 </button>
                 <button onclick="saveAll()" id="save-btn"
-                    style="flex:1;padding:14px;background:rgba(91,240,131,0.15);border:1px solid rgba(91,240,131,0.3);border-radius:12px;color:#5bf083;font-size:0.9rem;font-weight:600;cursor:pointer">
+                    style="flex:1;padding:14px;background:rgba(190,238,0,0.15);border:1px solid rgba(190,238,0,0.3);border-radius:12px;color:#beee00;font-size:0.9rem;font-weight:600;cursor:pointer">
                     ✅ Zapisz i zakończ przyjęcie
                 </button>
             </div>
@@ -9698,7 +9698,7 @@ def przyjecie_palety(paleta_id):
             b.dataset.active = 'false';
         }});
         btn.style.border = '2px solid ' + btn.dataset.color;
-        btn.style.background = 'rgba(91,240,131,0.1)';
+        btn.style.background = 'rgba(190,238,0,0.1)';
         btn.dataset.active = 'true';
         currentStany[pid] = stan;
         splitModes[pid] = false;
@@ -9739,7 +9739,7 @@ def przyjecie_palety(paleta_id):
         const sumDiv = document.getElementById('split-sum-' + pid);
         const ok = sum === maxIlosc;
         sumDiv.textContent = 'Suma: ' + sum + ' / ' + maxIlosc + (ok ? ' ✅' : sum > maxIlosc ? ' ❌ za dużo!' : '');
-        sumDiv.style.color = ok ? '#5bf083' : sum > maxIlosc ? '#ef4444' : '#f59e0b';
+        sumDiv.style.color = ok ? '#beee00' : sum > maxIlosc ? '#ef4444' : '#f59e0b';
 
         if (ok) {{
             currentStany[pid] = 'split';
@@ -9783,7 +9783,7 @@ def przyjecie_palety(paleta_id):
             .then(data => {{
                 if (data.success) {{
                     resultDiv.innerHTML = `
-                        <div style="margin-bottom:6px"><strong>🤖 AI ocena:</strong> <span style="color:${{data.stan_color || '#5bf083'}}">${{data.stan}}</span></div>
+                        <div style="margin-bottom:6px"><strong>🤖 AI ocena:</strong> <span style="color:${{data.stan_color || '#beee00'}}">${{data.stan}}</span></div>
                         <div style="color:#94a3b8">${{data.opis}}</div>
                     `;
                     if (data.stan && !splitModes[pid]) {{
@@ -9847,8 +9847,8 @@ def przyjecie_palety(paleta_id):
         .then(data => {{
             if (data.success) {{
                 btn.textContent = '💾 Zapisano! Wróć później...';
-                btn.style.borderColor = '#5bf083';
-                btn.style.color = '#5bf083';
+                btn.style.borderColor = '#beee00';
+                btn.style.color = '#beee00';
                 setTimeout(() => window.location.href = '/magazyn/paleta-id/{paleta_id}', 1000);
             }} else {{
                 btn.textContent = '❌ ' + (data.error || 'Błąd');
@@ -10146,7 +10146,7 @@ def ai_ocena_stanu():
                 opis = line.split(':', 1)[1].strip()
 
         stan_colors = {
-            'Nowy': '#5bf083', 'Jak nowy': '#00f1fe', 'Dobry': '#eab308',
+            'Nowy': '#beee00', 'Jak nowy': '#8ff5ff', 'Dobry': '#eab308',
             'Uszkodzony': '#f97316', 'Zniszczony': '#ef4444'
         }
 

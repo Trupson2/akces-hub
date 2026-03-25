@@ -3,32 +3,32 @@
 {% block content %}
 <style>
 .sub-table{width:100%;border-collapse:collapse;font-size:0.8rem}
-.sub-table th{background:rgba(0,241,254,0.06);color:var(--neon-primary);text-align:left;padding:10px 12px;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(0,241,254,0.15)}
+.sub-table th{background:rgba(143,245,255,0.06);color:var(--neon-primary);text-align:left;padding:10px 12px;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(143,245,255,0.15)}
 .sub-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle}
-.sub-table tr:hover{background:rgba(0,241,254,0.02)}
+.sub-table tr:hover{background:rgba(143,245,255,0.02)}
 .badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.3px}
 .badge-trial{background:rgba(234,179,8,0.12);color:#eab308}
-.badge-pro{background:rgba(0,241,254,0.1);color:var(--neon-primary)}
-.badge-max{background:rgba(193,128,255,0.1);color:var(--neon-secondary)}
-.badge-enterprise{background:rgba(91,240,131,0.1);color:var(--neon-tertiary)}
-.badge-active{background:rgba(91,240,131,0.1);color:var(--neon-tertiary)}
+.badge-pro{background:rgba(143,245,255,0.1);color:var(--neon-primary)}
+.badge-max{background:rgba(255,107,155,0.1);color:var(--neon-secondary)}
+.badge-enterprise{background:rgba(190,238,0,0.1);color:var(--neon-tertiary)}
+.badge-active{background:rgba(190,238,0,0.1);color:var(--neon-tertiary)}
 .badge-inactive{background:rgba(239,68,68,0.1);color:#ef4444}
-.sub-edit-form{display:none;background:rgba(0,241,254,0.03);border:1px solid rgba(0,241,254,0.1);border-radius:12px;padding:16px;margin-top:8px}
+.sub-edit-form{display:none;background:rgba(143,245,255,0.03);border:1px solid rgba(143,245,255,0.1);border-radius:12px;padding:16px;margin-top:8px}
 .sub-edit-form.show{display:block}
 .sub-input{background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;color:var(--text);font-size:0.82rem;width:100%;transition:border-color 0.2s}
 .sub-input:focus{border-color:var(--neon-primary);outline:none}
 .sub-btn{padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-size:0.78rem;font-weight:600;transition:all 0.2s}
-.sub-btn-save{background:rgba(193,128,255,0.12);border:1px solid rgba(193,128,255,0.3);color:var(--neon-secondary)}
-.sub-btn-save:hover{box-shadow:0 0 12px rgba(193,128,255,0.15)}
-.sub-btn-extend{background:rgba(91,240,131,0.1);color:var(--neon-tertiary);border:1px solid rgba(91,240,131,0.25)}
-.sub-btn-extend:hover{box-shadow:0 0 12px rgba(91,240,131,0.15)}
-.sub-btn-toggle{background:rgba(0,241,254,0.08);color:var(--neon-primary);border:1px solid rgba(0,241,254,0.2)}
-.sub-btn-toggle:hover{box-shadow:0 0 12px rgba(0,241,254,0.15)}
+.sub-btn-save{background:rgba(255,107,155,0.12);border:1px solid rgba(255,107,155,0.3);color:var(--neon-secondary)}
+.sub-btn-save:hover{box-shadow:0 0 12px rgba(255,107,155,0.15)}
+.sub-btn-extend{background:rgba(190,238,0,0.1);color:var(--neon-tertiary);border:1px solid rgba(190,238,0,0.25)}
+.sub-btn-extend:hover{box-shadow:0 0 12px rgba(190,238,0,0.15)}
+.sub-btn-toggle{background:rgba(143,245,255,0.08);color:var(--neon-primary);border:1px solid rgba(143,245,255,0.2)}
+.sub-btn-toggle:hover{box-shadow:0 0 12px rgba(143,245,255,0.15)}
 .hwid-cell{font-family:monospace;font-size:0.72rem;color:var(--text-muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-    <h2 class="font-display" style="font-size:1.1rem;font-weight:700;color:var(--neon-primary);text-shadow:0 0 10px rgba(0,241,254,0.4)">Zarzadzanie subskrypcjami</h2>
+    <h2 class="font-display" style="font-size:1.1rem;font-weight:700;color:var(--neon-primary);text-shadow:0 0 10px rgba(143,245,255,0.4)">Zarzadzanie subskrypcjami</h2>
     <div style="text-align:right">
         <span style="color:var(--text-muted);font-size:0.8rem">{{ licenses|length }} licencji</span>
         <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">HWID serwera: <code style="color:var(--neon-secondary)">{{ server_hwid }}</code></div>

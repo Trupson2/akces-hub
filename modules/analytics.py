@@ -277,25 +277,25 @@ def dashboard_kpi():
 <!-- KPI GŁÓWNE -->
 <div class="kpi-grid">
     <div class="kpi-card green">
-        <div class="kpi-icon" style="background:rgba(91,240,131,0.12);border:1px solid rgba(91,240,131,0.3);color:#5bf083">$</div>
-        <div class="kpi-value" style="color:#5bf083;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(91,240,131,0.4)">''' + f'{dzis["suma"] or 0:.0f}' + ''' zl</div>
+        <div class="kpi-icon" style="background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);color:#beee00">$</div>
+        <div class="kpi-value" style="color:#beee00;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(190,238,0,0.4)">''' + f'{dzis["suma"] or 0:.0f}' + ''' zl</div>
         <div class="kpi-label">Przychod DZIS</div>
         <div class="kpi-change ''' + dzis_trend_class + '''">''' + ('&uarr;' if dzis_trend > 0 else '&darr;' if dzis_trend < 0 else '&rarr;') + f' {abs(dzis_trend):.0f}' + '''% vs wczoraj</div>
     </div>
     <div class="kpi-card purple">
-        <div class="kpi-icon" style="background:rgba(193,128,255,0.12);border:1px solid rgba(193,128,255,0.3);color:#c180ff">#</div>
+        <div class="kpi-icon" style="background:rgba(255,107,155,0.12);border:1px solid rgba(255,107,155,0.3);color:#ff6b9b">#</div>
         <div class="kpi-value" style="font-family:'Space Grotesk',sans-serif">''' + f'{dzis["cnt"] or 0}' + '''</div>
         <div class="kpi-label">Zamowien DZIS</div>
     </div>
     <div class="kpi-card blue">
-        <div class="kpi-icon" style="background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe">W</div>
-        <div class="kpi-value" style="color:#00f1fe;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(0,241,254,0.4)">''' + f'{tydzien["suma"] or 0:.0f}' + ''' zl</div>
+        <div class="kpi-icon" style="background:rgba(143,245,255,0.12);border:1px solid rgba(143,245,255,0.3);color:#8ff5ff">W</div>
+        <div class="kpi-value" style="color:#8ff5ff;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(143,245,255,0.4)">''' + f'{tydzien["suma"] or 0:.0f}' + ''' zl</div>
         <div class="kpi-label">Przychod TYDZIEN</div>
         <div class="kpi-change ''' + tydzien_trend_class + '''">''' + ('&uarr;' if tydzien_trend > 0 else '&darr;' if tydzien_trend < 0 else '&rarr;') + f' {abs(tydzien_trend):.0f}' + '''% vs poprz.</div>
     </div>
     <div class="kpi-card orange">
-        <div class="kpi-icon" style="background:rgba(193,128,255,0.12);border:1px solid rgba(193,128,255,0.3);color:#c180ff">M</div>
-        <div class="kpi-value" style="color:#c180ff;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(193,128,255,0.4)">''' + f'{miesiac["suma"] or 0:.0f}' + ''' zl</div>
+        <div class="kpi-icon" style="background:rgba(255,107,155,0.12);border:1px solid rgba(255,107,155,0.3);color:#ff6b9b">M</div>
+        <div class="kpi-value" style="color:#ff6b9b;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(255,107,155,0.4)">''' + f'{miesiac["suma"] or 0:.0f}' + ''' zl</div>
         <div class="kpi-label">Przychod MIESIAC</div>
         <div class="kpi-change ''' + miesiac_trend_class + '''">''' + ('&uarr;' if miesiac_trend > 0 else '&darr;' if miesiac_trend < 0 else '&rarr;') + f' {abs(miesiac_trend):.0f}' + '''% vs poprz.</div>
     </div>
@@ -303,23 +303,23 @@ def dashboard_kpi():
 
 <div class="kpi-grid">
     <div class="kpi-card green" title="Przychod: ''' + f'{przychod:.0f}' + ''' - Koszt: ''' + f'{koszty:.0f}' + ''' - Prowizja: ''' + f'{prowizja:.0f}' + ''' = ''' + f'{zysk_miesiac:.0f}' + ''' zl">
-        <div class="kpi-icon" style="background:rgba(91,240,131,0.12);border:1px solid rgba(91,240,131,0.3);color:#5bf083">Z</div>
-        <div class="kpi-value" style="color:#5bf083;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(91,240,131,0.4)">''' + f'{zysk_miesiac:.0f}' + ''' zl</div>
+        <div class="kpi-icon" style="background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);color:#beee00">Z</div>
+        <div class="kpi-value" style="color:#beee00;font-family:'Space Grotesk',sans-serif;text-shadow:0 0 10px rgba(190,238,0,0.4)">''' + f'{zysk_miesiac:.0f}' + ''' zl</div>
         <div class="kpi-label">Zysk netto (miesiac)</div>
         <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px">Koszt: ''' + f'{koszty:.0f}' + ''' | Prowizja: ''' + f'{prowizja:.0f}' + ''' zl</div>
     </div>
     <div class="kpi-card blue" title="Zysk ''' + f'{zysk_miesiac:.0f}' + ''' / Koszt ''' + f'{koszty:.0f}' + ''' x 100%">
-        <div class="kpi-icon" style="background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe">%</div>
-        <div class="kpi-value" style="color:''' + ('#5bf083' if roi_miesiac > 50 else 'var(--yellow)') + ''';font-family:\'Space Grotesk\',sans-serif">''' + f'{roi_miesiac:.0f}' + '''%</div>
+        <div class="kpi-icon" style="background:rgba(143,245,255,0.12);border:1px solid rgba(143,245,255,0.3);color:#8ff5ff">%</div>
+        <div class="kpi-value" style="color:''' + ('#beee00' if roi_miesiac > 50 else 'var(--yellow)') + ''';font-family:\'Space Grotesk\',sans-serif">''' + f'{roi_miesiac:.0f}' + '''%</div>
         <div class="kpi-label">ROI (miesiac)</div>
     </div>
     <div class="kpi-card purple">
-        <div class="kpi-icon" style="background:rgba(193,128,255,0.12);border:1px solid rgba(193,128,255,0.3);color:#c180ff">S</div>
+        <div class="kpi-icon" style="background:rgba(255,107,155,0.12);border:1px solid rgba(255,107,155,0.3);color:#ff6b9b">S</div>
         <div class="kpi-value" style="font-family:'Space Grotesk',sans-serif">''' + f'{magazyn["sztuki"] or 0}' + '''</div>
         <div class="kpi-label">Sztuk w magazynie</div>
     </div>
     <div class="kpi-card orange">
-        <div class="kpi-icon" style="background:rgba(0,241,254,0.12);border:1px solid rgba(0,241,254,0.3);color:#00f1fe">V</div>
+        <div class="kpi-icon" style="background:rgba(143,245,255,0.12);border:1px solid rgba(143,245,255,0.3);color:#8ff5ff">V</div>
         <div class="kpi-value" style="font-family:'Space Grotesk',sans-serif">''' + f'{magazyn["wartosc_sprzedazy"] or 0:.0f}' + ''' zl</div>
         <div class="kpi-label">Wartosc magazynu</div>
     </div>
@@ -334,7 +334,7 @@ def dashboard_kpi():
     <div class="chart-bar">
         <div class="chart-bar-label">{d['dzien'][5:]}</div>
         <div class="chart-bar-track">
-            <div class="chart-bar-fill" style="width:{(d['suma']/max_dzien*100) if max_dzien > 0 else 0:.0f}%;background:linear-gradient(90deg,#00f1fe,#5bf083)"></div>
+            <div class="chart-bar-fill" style="width:{(d['suma']/max_dzien*100) if max_dzien > 0 else 0:.0f}%;background:linear-gradient(90deg,#8ff5ff,#beee00)"></div>
         </div>
         <div class="chart-bar-value">{d['suma']:.0f} zl</div>
     </div>
@@ -354,7 +354,7 @@ def dashboard_kpi():
                 <div class="top-name">{(p['produkt_nazwa'] or 'Nieznany')[:30]}{'...' if len(p['produkt_nazwa'] or '')>30 else ''}</div>
                 <div class="top-meta">{p['sprzedane']} szt sprzedanych</div>
             </div>
-            <div class="top-value" style="color:#5bf083">{(p['wartosc'] or 0):.0f} zl</div>
+            <div class="top-value" style="color:#beee00">{(p['wartosc'] or 0):.0f} zl</div>
         </div>
         ''' for i, p in enumerate(top_produkty)]) + ('' if top_produkty else '<div style="text-align:center;color:var(--text-muted);padding:20px">Brak danych</div>') + '''
     </div>
@@ -370,7 +370,7 @@ def dashboard_kpi():
                 <div class="top-name">{d['dostawca_nazwa']}</div>
                 <div class="top-meta">{d['sprzedane']} szt | {(d['przychod'] or 0):.0f} zl przychod</div>
             </div>
-            <div class="top-value" style="color:{'#5bf083' if (d['koszty'] or 0) > 0 and ((d['przychod'] or 0)-(d['koszty'] or 0)-(d['przychod'] or 0)*0.11)/(d['koszty'] or 1)*100 > 50 else 'var(--yellow)'}">{(((d['przychod'] or 0)-(d['koszty'] or 0)-(d['przychod'] or 0)*0.11)/(d['koszty'] or 1)*100) if (d['koszty'] or 0) > 0 else 0:.0f}%</div>
+            <div class="top-value" style="color:{'#beee00' if (d['koszty'] or 0) > 0 and ((d['przychod'] or 0)-(d['koszty'] or 0)-(d['przychod'] or 0)*0.11)/(d['koszty'] or 1)*100 > 50 else 'var(--yellow)'}">{(((d['przychod'] or 0)-(d['koszty'] or 0)-(d['przychod'] or 0)*0.11)/(d['koszty'] or 1)*100) if (d['koszty'] or 0) > 0 else 0:.0f}%</div>
         </div>
         ''' for i, d in enumerate(top_dostawcy)]) + ('' if top_dostawcy else '<div style="text-align:center;color:var(--text-muted);padding:20px">Brak danych</div>') + '''
     </div>
@@ -494,7 +494,7 @@ def kalkulator_palety():
         badge_cls = badge_map.get(result['ocena'], 'badge-warning')
 
         result_html = f'''
-<div class="card" style="border-color:rgba(0,241,254,0.3);margin-top:20px">
+<div class="card" style="border-color:rgba(143,245,255,0.3);margin-top:20px">
     <div class="card-header">
         <div class="card-title">Wyniki analizy</div>
         <span class="badge {badge_cls}">{result['ocena_text']}</span>
@@ -517,13 +517,13 @@ def kalkulator_palety():
             <div class="stat-val {'green' if result['zysk_pesymistyczny'] > 0 else 'red'}">{result['zysk_pesymistyczny']:.0f} zl</div>
             <div class="stat-lbl">ROI: {result['roi_pesymistyczny']:.0f}%</div>
         </div>
-        <div class="stat-box" style="border-color:rgba(0,241,254,0.3);border-width:2px">
-            <div style="font-size:0.72rem;color:#00f1fe;margin-bottom:6px">Realny</div>
+        <div class="stat-box" style="border-color:rgba(143,245,255,0.3);border-width:2px">
+            <div style="font-size:0.72rem;color:#8ff5ff;margin-bottom:6px">Realny</div>
             <div class="stat-val {'green' if result['zysk_realny'] > 0 else 'red'}" style="font-size:1.5rem">{result['zysk_realny']:.0f} zl</div>
             <div class="stat-lbl">ROI: {result['roi_realny']:.0f}%</div>
         </div>
-        <div class="stat-box" style="border-color:rgba(91,240,131,0.3)">
-            <div style="font-size:0.72rem;color:#5bf083;margin-bottom:6px">Optymistyczny</div>
+        <div class="stat-box" style="border-color:rgba(190,238,0,0.3)">
+            <div style="font-size:0.72rem;color:#beee00;margin-bottom:6px">Optymistyczny</div>
             <div class="stat-val green">{result['zysk_optymistyczny']:.0f} zl</div>
             <div class="stat-lbl">ROI: {result['roi_optymistyczny']:.0f}%</div>
         </div>
@@ -1143,8 +1143,8 @@ def profit_analyzer():
     <div class="wf-container">
         <div class="wf-row">
             <div class="wf-label">Przychod netto</div>
-            <div class="wf-bar"><div style="height:100%;width:100%;background:linear-gradient(90deg,#00f1fe,#c180ff);border-radius:6px"></div></div>
-            <div class="wf-val" style="color:#00f1fe">+{curr['przychod']:,.0f}</div>
+            <div class="wf-bar"><div style="height:100%;width:100%;background:linear-gradient(90deg,#8ff5ff,#ff6b9b);border-radius:6px"></div></div>
+            <div class="wf-val" style="color:#8ff5ff">+{curr['przychod']:,.0f}</div>
         </div>
         <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:8px;padding-left:132px">
             (po odjeciu {curr['zwroty_cnt']} zwrotow: {curr['zwroty_kwota']:,.0f} zl)
@@ -1168,8 +1168,8 @@ def profit_analyzer():
         <hr style="border-color:var(--border);margin:10px 0">
         <div class="wf-row">
             <div class="wf-label" style="font-weight:700;color:var(--text);font-size:0.9rem">ZYSK NETTO</div>
-            <div class="wf-bar"><div style="height:100%;width:{abs(curr['zysk_netto'])/curr['przychod']*100 if curr['przychod']>0 else 0:.0f}%;background:{'#5bf083' if curr['zysk_netto']>=0 else 'var(--red)'};border-radius:6px"></div></div>
-            <div class="wf-val" style="color:{'#5bf083;text-shadow:0 0 12px rgba(91,240,131,0.5)' if curr['zysk_netto']>=0 else 'var(--red)'};font-size:1rem;font-family:'Space Grotesk',sans-serif">{curr['zysk_netto']:,.0f}</div>
+            <div class="wf-bar"><div style="height:100%;width:{abs(curr['zysk_netto'])/curr['przychod']*100 if curr['przychod']>0 else 0:.0f}%;background:{'#beee00' if curr['zysk_netto']>=0 else 'var(--red)'};border-radius:6px"></div></div>
+            <div class="wf-val" style="color:{'#beee00;text-shadow:0 0 12px rgba(190,238,0,0.5)' if curr['zysk_netto']>=0 else 'var(--red)'};font-size:1rem;font-family:'Space Grotesk',sans-serif">{curr['zysk_netto']:,.0f}</div>
         </div>
     </div>
 </div>'''
@@ -1795,11 +1795,11 @@ Uzyj formatowania markdown (## naglowki, **bold**, listy z - ).
         import html as _html
         answer_safe = _html.escape(answer)
         answer_safe = _re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', answer_safe)
-        answer_safe = _re.sub(r'^### (.+)$', r'<h4 style="color:#00f1fe;margin:16px 0 8px;text-shadow:0 0 10px rgba(0,241,254,0.3)">\1</h4>', answer_safe, flags=_re.MULTILINE)
-        answer_safe = _re.sub(r'^## (.+)$', r'<h3 style="color:#00f1fe;margin:16px 0 8px;text-shadow:0 0 10px rgba(0,241,254,0.3)">\1</h3>', answer_safe, flags=_re.MULTILINE)
-        answer_safe = _re.sub(r'^# (.+)$', r'<h3 style="color:#00f1fe;margin:16px 0 8px;text-shadow:0 0 10px rgba(0,241,254,0.3)">\1</h3>', answer_safe, flags=_re.MULTILINE)
+        answer_safe = _re.sub(r'^### (.+)$', r'<h4 style="color:#8ff5ff;margin:16px 0 8px;text-shadow:0 0 10px rgba(143,245,255,0.3)">\1</h4>', answer_safe, flags=_re.MULTILINE)
+        answer_safe = _re.sub(r'^## (.+)$', r'<h3 style="color:#8ff5ff;margin:16px 0 8px;text-shadow:0 0 10px rgba(143,245,255,0.3)">\1</h3>', answer_safe, flags=_re.MULTILINE)
+        answer_safe = _re.sub(r'^# (.+)$', r'<h3 style="color:#8ff5ff;margin:16px 0 8px;text-shadow:0 0 10px rgba(143,245,255,0.3)">\1</h3>', answer_safe, flags=_re.MULTILINE)
         answer_safe = _re.sub(r'^- (.+)$', '<div style="padding:4px 0 4px 16px;border-left:2px solid var(--border)">\u2022 \\1</div>', answer_safe, flags=_re.MULTILINE)
-        answer_safe = _re.sub(r'^\d+\. (.+)$', r'<div style="padding:4px 0 4px 16px;border-left:2px solid rgba(0,241,254,0.3);margin-bottom:4px">\1</div>', answer_safe, flags=_re.MULTILINE)
+        answer_safe = _re.sub(r'^\d+\. (.+)$', r'<div style="padding:4px 0 4px 16px;border-left:2px solid rgba(143,245,255,0.3);margin-bottom:4px">\1</div>', answer_safe, flags=_re.MULTILINE)
         answer_safe = answer_safe.replace('\n\n', '<br><br>')
         answer_safe = answer_safe.replace('\n', '<br>')
 

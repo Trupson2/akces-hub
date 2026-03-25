@@ -73,18 +73,18 @@ def _dodaj_dostawca_options(selected=''):
 _PALETY_CSS = '''
 /* Palety module — Stitch Design System */
 .paleta-card{background:rgba(22,26,33,0.7);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius);padding:14px;margin-bottom:10px;box-shadow:0 4px 16px rgba(0,0,0,0.2);transition:all 0.3s}
-.paleta-card:hover{border-color:rgba(0,241,254,0.25);box-shadow:0 4px 20px rgba(0,241,254,0.1)}
+.paleta-card:hover{border-color:rgba(143,245,255,0.25);box-shadow:0 4px 20px rgba(143,245,255,0.1)}
 .progress-bar-wrap{background:rgba(255,255,255,0.06);border-radius:6px;height:8px;overflow:hidden}
-.progress-bar-fill{height:100%;border-radius:6px;transition:width 0.3s;background:linear-gradient(90deg,#00f1fe,#5bf083)}
+.progress-bar-fill{height:100%;border-radius:6px;transition:width 0.3s;background:linear-gradient(90deg,#8ff5ff,#beee00)}
 .paleta-stats-box{background:rgba(22,26,33,0.5);border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius);padding:14px;text-align:center}
 .paleta-stats-num{font-size:1.6rem;font-weight:800;font-family:'Space Grotesk','Inter',sans-serif}
 .paleta-stats-label{font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;font-weight:600}
-.sale-banner{background:linear-gradient(135deg,rgba(91,240,131,0.1),rgba(0,241,254,0.05));border:1px solid rgba(91,240,131,0.3);border-radius:var(--radius);padding:18px;margin-bottom:15px}
-.sale-banner-label{font-size:0.82rem;color:#5bf083;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;font-family:'Space Grotesk',sans-serif}
+.sale-banner{background:linear-gradient(135deg,rgba(190,238,0,0.1),rgba(143,245,255,0.05));border:1px solid rgba(190,238,0,0.3);border-radius:var(--radius);padding:18px;margin-bottom:15px}
+.sale-banner-label{font-size:0.82rem;color:#beee00;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;font-family:'Space Grotesk',sans-serif}
 .sale-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .sale-cell{text-align:center}
 .sale-cell-val{font-size:1.4rem;font-weight:800;font-family:'Space Grotesk','Inter',sans-serif}
-.sale-cell-lbl{font-size:0.68rem;color:rgba(91,240,131,0.7);font-weight:600}
+.sale-cell-lbl{font-size:0.68rem;color:rgba(190,238,0,0.7);font-weight:600}
 .import-link{display:block;border-radius:var(--radius);padding:16px;margin-bottom:10px;text-decoration:none;color:#fff;transition:all 0.3s}
 .import-link:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.3)}
 .import-link-inner{display:flex;align-items:center;gap:12px}
@@ -93,26 +93,26 @@ _PALETY_CSS = '''
 .import-link-sub{font-size:0.82rem;opacity:0.9}
 .import-link-arrow{margin-left:auto;font-size:1.5rem}
 .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);z-index:1000;padding:20px}
-.modal-box{background:rgba(22,26,33,0.9);backdrop-filter:blur(16px);border:1px solid rgba(0,241,254,0.15);border-radius:var(--radius);max-width:400px;margin:50px auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
-.modal-box h3{color:#00f1fe;margin:0 0 15px;font-family:'Space Grotesk',sans-serif}
+.modal-box{background:rgba(22,26,33,0.9);backdrop-filter:blur(16px);border:1px solid rgba(143,245,255,0.15);border-radius:var(--radius);max-width:400px;margin:50px auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.modal-box h3{color:#8ff5ff;margin:0 0 15px;font-family:'Space Grotesk',sans-serif}
 .product-row{border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius);padding:14px;margin-bottom:10px;background:rgba(22,26,33,0.5);transition:all 0.2s}
-.product-row:hover{border-color:rgba(0,241,254,0.15)}
+.product-row:hover{border-color:rgba(143,245,255,0.15)}
 .me-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
 .me-stat{background:rgba(22,26,33,0.5);border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius);padding:14px;text-align:center;transition:all 0.2s}
-.me-stat:hover{border-color:rgba(0,241,254,0.15)}
+.me-stat:hover{border-color:rgba(143,245,255,0.15)}
 .me-stat-num{font-size:1.4rem;font-weight:800;font-family:'Space Grotesk','Inter',sans-serif}
 .me-stat-label{font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
-.me-bottom{position:fixed;bottom:0;left:0;right:0;background:rgba(22,26,33,0.95);backdrop-filter:blur(16px);border-top:1px solid rgba(0,241,254,0.15);padding:12px 8px;z-index:100;box-shadow:0 -4px 20px rgba(0,0,0,0.3)}
+.me-bottom{position:fixed;bottom:0;left:0;right:0;background:rgba(22,26,33,0.95);backdrop-filter:blur(16px);border-top:1px solid rgba(143,245,255,0.15);padding:12px 8px;z-index:100;box-shadow:0 -4px 20px rgba(0,0,0,0.3)}
 .me-bottom-inner{display:flex;flex-direction:column;gap:8px;max-width:1800px;margin:0 auto}
 .me-bottom-row{display:flex;gap:8px}
 .me-btn{flex:1;margin:0;padding:14px 10px;font-size:0.95rem;font-weight:700;border:none;border-radius:10px;color:#fff;cursor:pointer;min-height:48px;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-family:'Space Grotesk','Inter',sans-serif}
 .me-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.3)}
 .me-btn-back{background:rgba(255,255,255,0.04);color:var(--text);border:1px solid rgba(255,255,255,0.08);flex:0 0 auto;padding:14px 16px}
-.me-btn-meta{background:linear-gradient(135deg,#c180ff,#8b5cf6)}
-.me-btn-wystaw{background:linear-gradient(135deg,#5bf083,#22c55e)}
-.me-info{font-size:0.82rem;margin-bottom:12px;padding:12px;background:rgba(91,240,131,0.06);border:1px solid rgba(91,240,131,0.15);border-radius:var(--radius-sm);color:var(--text-muted)}
+.me-btn-meta{background:linear-gradient(135deg,#ff6b9b,#8b5cf6)}
+.me-btn-wystaw{background:linear-gradient(135deg,#beee00,#22c55e)}
+.me-info{font-size:0.82rem;margin-bottom:12px;padding:12px;background:rgba(190,238,0,0.06);border:1px solid rgba(190,238,0,0.15);border-radius:var(--radius-sm);color:var(--text-muted)}
 .menu-item{padding:10px 14px;cursor:pointer;border-radius:8px;font-size:0.9rem;transition:all 0.2s}
-.menu-item:hover{background:rgba(0,241,254,0.06)}
+.menu-item:hover{background:rgba(143,245,255,0.06)}
 /* Responsive */
 @media(max-width:768px){
     .me-stats{grid-template-columns:repeat(2,1fr)}
@@ -2183,12 +2183,12 @@ def paleta_bulk_import():
     </div>
 
     <!-- ZIP UPLOAD -->
-    <div class="card" style="margin-bottom:15px;border:2px dashed rgba(193,128,255,0.3);background:rgba(193,128,255,0.04)">
+    <div class="card" style="margin-bottom:15px;border:2px dashed rgba(255,107,155,0.3);background:rgba(255,107,155,0.04)">
         <div style="text-align:center;padding:10px">
-            <div style="font-size:1.1rem;font-weight:700;color:#c180ff;margin-bottom:6px">📦 Szybki import z ZIP</div>
+            <div style="font-size:1.1rem;font-weight:700;color:#ff6b9b;margin-bottom:6px">📦 Szybki import z ZIP</div>
             <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px">Wrzuć plik .zip z wieloma Excelami — system automatycznie utworzy slot dla każdego</div>
             <input type="file" id="zip-upload" accept=".zip" style="display:none" onchange="handleZipUpload(this)">
-            <button type="button" onclick="document.getElementById('zip-upload').click()" style="padding:10px 24px;background:linear-gradient(135deg,#c180ff,#00f1fe);border:none;border-radius:10px;color:#fff;font-weight:600;cursor:pointer;font-size:0.9rem">
+            <button type="button" onclick="document.getElementById('zip-upload').click()" style="padding:10px 24px;background:linear-gradient(135deg,#ff6b9b,#8ff5ff);border:none;border-radius:10px;color:#fff;font-weight:600;cursor:pointer;font-size:0.9rem">
                 📁 Wybierz plik ZIP
             </button>
             <span id="zip-status" style="margin-left:10px;font-size:0.8rem;color:var(--text-muted)"></span>

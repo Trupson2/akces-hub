@@ -3,19 +3,19 @@
 {% block content %}
 <style>
 .upgrade-container{max-width:800px;margin:40px auto;text-align:center}
-.upgrade-icon{font-size:3.5rem;margin-bottom:16px;filter:drop-shadow(0 0 15px rgba(193,128,255,0.4))}
+.upgrade-icon{font-size:3.5rem;margin-bottom:16px;filter:drop-shadow(0 0 15px rgba(255,107,155,0.4))}
 .upgrade-title{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:10px;color:var(--text)}
 .upgrade-desc{color:var(--text-muted);font-size:0.9rem;margin-bottom:30px;line-height:1.6}
 .plan-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-weight:700;font-size:0.8rem;margin:0 4px}
 .plan-current{background:rgba(100,116,139,0.15);color:#94a3b8;border:1px solid rgba(100,116,139,0.2)}
-.plan-required{background:rgba(193,128,255,0.12);color:var(--neon-secondary);border:1px solid rgba(193,128,255,0.3);text-shadow:0 0 6px rgba(193,128,255,0.3)}
+.plan-required{background:rgba(255,107,155,0.12);color:var(--neon-secondary);border:1px solid rgba(255,107,155,0.3);text-shadow:0 0 6px rgba(255,107,155,0.3)}
 
 /* Pricing cards */
 .pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:24px 0}
 @media(max-width:768px){.pricing-grid{grid-template-columns:1fr}}
 @media(max-width:480px){.pricing-grid{grid-template-columns:1fr}}
 .price-card{border-radius:16px;padding:20px 16px;text-align:center;border:1px solid rgba(255,255,255,0.06);background:rgba(15,15,30,0.5);transition:all 0.2s;position:relative}
-.price-card.recommended{border-color:rgba(193,128,255,0.4);box-shadow:0 0 30px rgba(193,128,255,0.1)}
+.price-card.recommended{border-color:rgba(255,107,155,0.4);box-shadow:0 0 30px rgba(255,107,155,0.1)}
 .price-card.recommended::before{content:'POLECANY';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--neon-secondary);color:#000;font-size:0.65rem;font-weight:800;padding:2px 12px;border-radius:10px;letter-spacing:0.5px}
 .price-card.current{border-color:rgba(100,116,139,0.3);opacity:0.6}
 .pc-name{font-weight:800;font-size:1rem;margin-bottom:4px;letter-spacing:-0.02em}
@@ -30,8 +30,8 @@
 
 .back-btn{display:inline-block;margin-top:20px;padding:10px 28px;border-radius:10px;color:var(--text);text-decoration:none;font-size:0.9rem;transition:all 0.2s;border:1px solid rgba(255,255,255,0.08);background:rgba(15,15,30,0.45)}
 .back-btn:hover{border-color:var(--neon-primary);color:var(--neon-primary)}
-.contact-btn{display:inline-block;margin-top:10px;padding:12px 32px;background:linear-gradient(135deg,rgba(193,128,255,0.2),rgba(99,102,241,0.2));border:1px solid rgba(193,128,255,0.3);border-radius:10px;color:var(--neon-secondary);text-decoration:none;font-size:0.9rem;font-weight:700;transition:all 0.2s}
-.contact-btn:hover{transform:translateY(-2px);box-shadow:0 0 20px rgba(193,128,255,0.2)}
+.contact-btn{display:inline-block;margin-top:10px;padding:12px 32px;background:linear-gradient(135deg,rgba(255,107,155,0.2),rgba(99,102,241,0.2));border:1px solid rgba(255,107,155,0.3);border-radius:10px;color:var(--neon-secondary);text-decoration:none;font-size:0.9rem;font-weight:700;transition:all 0.2s}
+.contact-btn:hover{transform:translateY(-2px);box-shadow:0 0 20px rgba(255,107,155,0.2)}
 </style>
 
 <div class="upgrade-container">
