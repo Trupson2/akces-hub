@@ -198,7 +198,7 @@
                 <div class="kd-status"><div class="kd-dot" id="ng-dot"></div> <span id="ng-status">Sprawdzam...</span></div>
                 <div id="ng-url-box" class="kd-ngrok-box" style="display:none">
                     <div class="kd-ngrok-url" id="ng-url"></div>
-                    <button class="kd-ngrok-copy" onclick="navigator.clipboard.writeText(document.getElementById('ng-url').dataset.full);this.textContent='✅ Skopiowano!';setTimeout(()=>this.textContent='📋 Kopiuj URL',1500)">📋 Kopiuj URL</button>
+                    <button class="kd-ngrok-copy" onclick="navigator.clipboard.writeText(document.getElementById('ng-url').dataset.full);this.textContent='✅ Skopiowano!';setTimeout(()=>this.textContent='<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">assignment</span> Kopiuj URL',1500)"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">assignment</span> Kopiuj URL</button>
                 </div>
                 <div class="kd-btns">
                     <button class="kd-btn purple" id="ng-start" onclick="ngAction('start')"><span class="material-symbols-outlined" style="font-size:1rem">play_arrow</span> Start</button>

@@ -533,11 +533,11 @@
                 <div class="control-group">
                     <div class="control-label">Preset Views (1-5):</div>
                     <div class="control-buttons">
-                        <button onclick="setPresetView(1)" id="btn-view1">1️⃣ Front</button>
-                        <button onclick="setPresetView(2)" id="btn-view2">2️⃣ Top</button>
-                        <button onclick="setPresetView(3)" id="btn-view3">3️⃣ Side</button>
-                        <button onclick="setPresetView(4)" id="btn-view4">4️⃣ Corner</button>
-                        <button onclick="setPresetView(5)" id="btn-view5">5️⃣ Reset</button>
+                        <button onclick="setPresetView(1)" id="btn-view1">1⃣ Front</button>
+                        <button onclick="setPresetView(2)" id="btn-view2">2⃣ Top</button>
+                        <button onclick="setPresetView(3)" id="btn-view3">3⃣ Side</button>
+                        <button onclick="setPresetView(4)" id="btn-view4">4⃣ Corner</button>
+                        <button onclick="setPresetView(5)" id="btn-view5">5⃣ Reset</button>
                     </div>
                 </div>
                 <div class="control-group">
@@ -545,7 +545,7 @@
                     <div class="control-buttons">
                         <button onclick="resetCamera()"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">sync</span> Reset</button>
                         <button onclick="refreshData()">↻ Odświeź</button>
-                        <button onclick="showKeyboardHelp()">⌨️ Skróty</button>
+                        <button onclick="showKeyboardHelp()">⌨ Skróty</button>
                         <button onclick="exportPNG()"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">photo_camera</span> Export PNG</button>
                     </div>
                 </div>
@@ -1440,7 +1440,7 @@
             const helpHTML = `
                 <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; align-items: center; justify-content: center;" onclick="this.remove()">
                     <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border: 2px solid #667eea; border-radius: 16px; padding: 40px; max-width: 600px; color: white;" onclick="event.stopPropagation()">
-                        <h2 style="margin-bottom: 30px; text-align: center; font-size: 28px;">⌨️ Keyboard Shortcuts</h2>
+                        <h2 style="margin-bottom: 30px; text-align: center; font-size: 28px;">⌨ Keyboard Shortcuts</h2>
                         
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
                             <div>
@@ -1466,7 +1466,7 @@
                         </div>
                         
                         <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-                            <h3 style="color: #667eea; margin-bottom: 10px;">🖱️ Mouse Controls</h3>
+                            <h3 style="color: #667eea; margin-bottom: 10px;">🖱 Mouse Controls</h3>
                             <div style="font-size: 13px; line-height: 1.8;">
                                 <div>• <strong>Left Click + Drag</strong> - Rotate view</div>
                                 <div>• <strong>Right Click + Drag</strong> - Pan view</div>

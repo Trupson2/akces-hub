@@ -62,7 +62,7 @@
 <div class="narz-section">Analiza i raporty {% if plan_level < 2 %}<span class="plan-lock">PRO</span>{% endif %}</div>
 <div class="narz-grid">
     <a href="/analytics/profit" class="narz-card glass-card featured {{ 'locked' if plan_level < 2 }}">
-        <div class="nc-icon green">💹</div>
+        <div class="nc-icon green"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">query_stats</span></div>
         <div class="nc-info">
             <div class="nc-name">Profit Analyzer</div>
             <div class="nc-desc">P&L, rentownosc palet, dostawcow, produktow</div>
@@ -120,7 +120,7 @@
 <div class="narz-section">Kalkulatory</div>
 <div class="narz-grid">
     <a href="/analytics/kalkulator-palety" class="narz-card glass-card {{ 'locked' if plan_level < 2 }}">
-        <div class="nc-icon orange">🧮</div>
+        <div class="nc-icon orange"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">calculate</span></div>
         <div class="nc-info">
             <div class="nc-name">Kalkulator oplacalnosci</div>
             <div class="nc-desc">Oszacuj zysk przed zakupem palety</div>
@@ -159,7 +159,7 @@
         <div class="nc-arrow">›</div>
     </a>
     <a href="/narzedzia/cloud-export" class="narz-card glass-card {{ 'locked' if plan_level < 2 }}">
-        <div class="nc-icon">☁️</div>
+        <div class="nc-icon">☁</div>
         <div class="nc-info">
             <div class="nc-name">Eksport do chmury</div>
             <div class="nc-desc">CSV do Google Drive / Dropbox</div>
@@ -190,7 +190,7 @@
     </a>
     {% endif %}
     <a href="/support/zgloszenie" class="narz-card glass-card">
-        <div class="nc-icon red">🐛</div>
+        <div class="nc-icon red"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bug_report</span></div>
         <div class="nc-info">
             <div class="nc-name">Zgłoś błąd</div>
             <div class="nc-desc">Wyślij zgłoszenie problemu do supportu</div>
@@ -198,7 +198,7 @@
         <div class="nc-arrow">›</div>
     </a>
     <a href="/support/pomysl" class="narz-card glass-card">
-        <div class="nc-icon green">💡</div>
+        <div class="nc-icon green"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">lightbulb</span></div>
         <div class="nc-info">
             <div class="nc-name">Zaproponuj funkcję</div>
             <div class="nc-desc">Podziel się pomysłem na nową funkcję</div>
@@ -214,14 +214,14 @@
         <div class="nc-arrow">›</div>
     </div>
     <div class="narz-card" style="cursor:default">
-        <div class="nc-icon" style="background:rgba(139,92,246,0.1)">🧠</div>
+        <div class="nc-icon" style="background:rgba(139,92,246,0.1)"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">psychology</span></div>
         <div class="nc-info">
             <div class="nc-name">Model AI</div>
             <select id="geminiModelSelect" onchange="changeGeminiModel(this.value)" style="margin-top:4px;width:100%;padding:6px 10px;background:var(--bg-primary,#0a0a12);border:1px solid var(--border-color,#1e1e2e);border-radius:8px;color:var(--text-primary,#e2e8f0);font-size:0.8rem;cursor:pointer">
                 <option value="gemini-2.5-flash" {{ 'selected' if gemini_model == 'gemini-2.5-flash' }}><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bolt</span> Gemini 2.5 Flash — zalecany <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span></option>
-                <option value="gemini-2.5-flash-lite" {{ 'selected' if gemini_model == 'gemini-2.5-flash-lite' }}>💨 Gemini 2.5 Flash Lite — szybszy</option>
+                <option value="gemini-2.5-flash-lite" {{ 'selected' if gemini_model == 'gemini-2.5-flash-lite' }}>Gemini 2.5 Flash Lite — szybszy</option>
                 <option value="gemini-3.1-flash-lite-preview" {{ 'selected' if gemini_model == 'gemini-3.1-flash-lite-preview' }}><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">rocket_launch</span> Gemini 3.1 Flash Lite — najnowszy <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">warning</span></option>
-                <option value="gemini-3.1-pro-preview" {{ 'selected' if gemini_model == 'gemini-3.1-pro-preview' }}>🧠 Gemini 3.1 Pro — najlepszy <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">paid</span></option>
+                <option value="gemini-3.1-pro-preview" {{ 'selected' if gemini_model == 'gemini-3.1-pro-preview' }}>Gemini 3.1 Pro — najlepszy <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">paid</span></option>
             </select>
         </div>
     </div>

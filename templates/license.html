@@ -24,7 +24,7 @@ input,select{width:100%;padding:10px;background:#0a0a1a;border:1px solid #1e1e3a
 a{color:#6366f1;text-decoration:none}
 </style></head><body>
 <div class="container">
-    <h1>🔑 Licencja</h1>
+    <h1><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">key</span> Licencja</h1>
 
     {% if msg %}<div class="msg ok">✅ {{ msg }}</div>{% endif %}
     {% if err %}<div class="msg err">❌ {{ err }}</div>{% endif %}
@@ -41,7 +41,7 @@ a{color:#6366f1;text-decoration:none}
         <a href="/" class="btn btn-primary" style="text-align:center;text-decoration:none;margin-top:16px">← Dashboard</a>
         {% if lic.plan|upper != 'MAX' and lic.plan|upper != 'ENTERPRISE' %}
         <div style="margin-top:12px;padding:16px;background:linear-gradient(135deg,rgba(139,92,246,0.1),rgba(99,102,241,0.1));border:1px solid rgba(139,92,246,0.3);border-radius:12px;text-align:center">
-            <div style="font-size:0.9rem;color:#c4b5fd;margin-bottom:8px">🚀 Chcesz więcej funkcji?</div>
+            <div style="font-size:0.9rem;color:#c4b5fd;margin-bottom:8px"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">rocket_launch</span> Chcesz więcej funkcji?</div>
             <div style="font-size:0.8rem;color:#94a3b8;margin-bottom:12px">Przejdź na plan MAX i odblokuj AI analizy, 3D magazyn, multi-marketplace</div>
             <a href="mailto:support@akceshub.pl?subject=Upgrade%20licencji%20{{ lic.key }}&body=Chcę%20zmienić%20plan%20na%20MAX.%20Mój%20klucz%3A%20{{ lic.key }}" class="btn" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);text-align:center;text-decoration:none;display:block">📧 Napisz w sprawie upgrade</a>
         </div>
@@ -49,7 +49,7 @@ a{color:#6366f1;text-decoration:none}
         {% if is_dev %}
         <form action="/license/upgrade-enterprise" method="POST" style="margin-top:8px">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);text-align:center;width:100%">⬆️ DEV: Upgrade do Enterprise</button>
+            <button type="submit" class="btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);text-align:center;width:100%">⬆ DEV: Upgrade do Enterprise</button>
         </form>
         {% endif %}
         {% endif %}
@@ -84,7 +84,7 @@ a{color:#6366f1;text-decoration:none}
             <label>Sygnatura</label>
             <input type="text" name="signature" required>
             {% endif %}
-            <button type="submit" class="btn btn-primary">🔑 Aktywuj licencję</button>
+            <button type="submit" class="btn btn-primary"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">key</span> Aktywuj licencję</button>
         </form>
     </div>
     {% endif %}

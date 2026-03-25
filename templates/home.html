@@ -365,7 +365,7 @@ function requestEarlyAccess(btn) {
             document.getElementById('sys-cpu').textContent=d.cpu.toFixed(0);
             document.getElementById('sys-ram').textContent=d.ram_used.toFixed(1)+'/'+d.ram_total.toFixed(0);
             document.getElementById('sys-disk').textContent=d.disk_used.toFixed(0)+'/'+d.disk_total.toFixed(0);
-            document.getElementById('sys-uptime').textContent='⏱️ '+d.uptime;
+            document.getElementById('sys-uptime').textContent='⏱ '+d.uptime;
         }).catch(()=>{});
     }
     updSys();setInterval(updSys,15000);

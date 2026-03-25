@@ -205,7 +205,7 @@
   <!-- XP -->
   <div class="card fade-in">
     <div class="xp-top">
-      <span class="xp-label">🏆 droga do miliona</span>
+      <span class="xp-label"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">emoji_events</span> droga do miliona</span>
       <span class="xp-nums" id="xpNums">400 000 / 1 000 000 PLN</span>
     </div>
     <div class="bar-track"><div class="bar-fill bar-green" id="xpBar"></div></div>
@@ -246,7 +246,7 @@
       <span class="proj-target">5–6 osób</span><span class="badge b-mid">do rozważenia</span>
     </div>
     <div class="proj-row">
-      <span class="proj-icon">🤖</span><span class="proj-name">Automatyzacja</span>
+      <span class="proj-icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smart_toy</span></span><span class="proj-name">Automatyzacja</span>
       <span class="proj-now">częściowa</span><span class="proj-arr">→</span>
       <span class="proj-target">pełna</span><span class="badge b-easy">w toku</span>
     </div>
@@ -256,32 +256,32 @@
       <span class="proj-target">+ OLX + własny</span><span class="badge b-mid">opcjonalne</span>
     </div>
     <div class="proj-row">
-      <span class="proj-icon">💰</span><span class="proj-name">Avg przychód/paletę</span>
+      <span class="proj-icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">payments</span></span><span class="proj-name">Avg przychód/paletę</span>
       <span class="proj-now">~2 000 zł</span><span class="proj-arr">→</span>
       <span class="proj-target">2 500 zł</span><span class="badge b-easy">realne</span>
     </div>
     <div class="proj-row">
-      <span class="proj-icon">⏱️</span><span class="proj-name">Czas pracy dziennie</span>
+      <span class="proj-icon">⏱</span><span class="proj-name">Czas pracy dziennie</span>
       <span class="proj-now">2h</span><span class="proj-arr">→</span>
       <span class="proj-target">2–3h</span><span class="badge b-easy">w normie</span>
     </div>
-    <div class="tip-box">💡 <strong>Realna szansa na 1M?</strong> Tak — ale wymaga ~42 palet/msc zamiast 17. Przy pełnej automatyzacji i zwiększeniu zamówień od dostawców jest to wykonalne. Alternatywa: 30 palet × 3 000 zł/paletę = 1.08M rocznie.</div>
+    <div class="tip-box"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">lightbulb</span> <strong>Realna szansa na 1M?</strong> Tak — ale wymaga ~42 palet/msc zamiast 17. Przy pełnej automatyzacji i zwiększeniu zamówień od dostawców jest to wykonalne. Alternatywa: 30 palet × 3 000 zł/paletę = 1.08M rocznie.</div>
   </div>
 
   <!-- SKILL TREE -->
   <div class="card fade-in">
-    <div class="section-title">⚒️ skill tree — kliknij żeby odblokować</div>
+    <div class="section-title">⚒ skill tree — kliknij żeby odblokować</div>
 
     <div class="sg">
       <div class="sg-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> operacje</div>
       <div class="skill-grid" id="skills-ops"></div>
     </div>
     <div class="sg">
-      <div class="sg-title">🤖 automatyzacja</div>
+      <div class="sg-title"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smart_toy</span> automatyzacja</div>
       <div class="skill-grid" id="skills-auto"></div>
     </div>
     <div class="sg">
-      <div class="sg-title">💰 finanse</div>
+      <div class="sg-title"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">payments</span> finanse</div>
       <div class="skill-grid" id="skills-fin"></div>
     </div>
     <div class="sg">
@@ -292,7 +292,7 @@
 
   <!-- ACHIEVEMENTS -->
   <div class="card fade-in">
-    <div class="section-title">🏆 osiągnięcia — kliknij żeby oznaczyć</div>
+    <div class="section-title"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">emoji_events</span> osiągnięcia — kliknij żeby oznaczyć</div>
     <div class="ach-grid" id="achGrid"></div>
   </div>
 
@@ -342,34 +342,34 @@ const ACHIEVEMENTS = [
   // ── ZDOBYTE ──────────────────────────────────────────────────────────
   { id: 'a1',  icon: '🌱', name: 'pierwszy krok',     earned: true,  tip: 'zacząłeś biznes od zera' },
   { id: 'a2',  icon: '👨‍👩‍👦', name: 'family business',  earned: true,  tip: 'dziadek + babcia = family team' },
-  { id: 'a3',  icon: '🤖', name: 'własny system',     earned: true,  tip: 'AKCES HUB napisany od 0 z Claude' },
+  { id: 'a3',  icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smart_toy</span>', name: 'własny system',     earned: true,  tip: 'AKCES HUB napisany od 0 z Claude' },
   { id: 'a4',  icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span>', name: '200 palet/rok',     earned: true,  tip: '200 palet procesowanych rocznie' },
-  { id: 'a5',  icon: '⏱️', name: '2h/dzień',          earned: true,  tip: 'pełny biznes na 2 godziny dziennie' },
-  { id: 'a6',  icon: '💰', name: '400k rocznie',      earned: true,  tip: 'roczny przychód 400 000 PLN' },
+  { id: 'a5',  icon: '⏱', name: '2h/dzień',          earned: true,  tip: 'pełny biznes na 2 godziny dziennie' },
+  { id: 'a6',  icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">payments</span>', name: '400k rocznie',      earned: true,  tip: 'roczny przychód 400 000 PLN' },
   { id: 'a7',  icon: '🔔', name: 'sprzedaż alert',    earned: true,  tip: 'Telegram bot przy każdej sprzedaży' },
   { id: 'a8',  icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span>', name: 'ROI tracker',       earned: true,  tip: 'śledzenie rentowności per paleta' },
   { id: 'a9',  icon: '🧑‍💻', name: 'vibe developer',   earned: true,  tip: 'budujesz zaawansowane systemy bez CS' },
-  { id: 'a10', icon: '🎯', name: 'palet boss',        earned: true,  tip: '20+ palet jednocześnie w obrocie' },
+  { id: 'a10', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">adjust</span>', name: 'palet boss',        earned: true,  tip: '20+ palet jednocześnie w obrocie' },
   { id: 'a11', icon: '📬', name: 'InPost hunter',     earned: true,  tip: 'osobiście dostarczasz do paczkomatu — respect' },
-  { id: 'a12', icon: '🔍', name: 'deal finder',       earned: true,  tip: 'wiesz które palety warto kupić' },
+  { id: 'a12', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">search</span>', name: 'deal finder',       earned: true,  tip: 'wiesz które palety warto kupić' },
   { id: 'a13', icon: '🤝', name: 'multi-supplier',    earned: true,  tip: 'Jobalots + Warrington + Miglo' },
 
   // ── DO ZDOBYCIA ───────────────────────────────────────────────────────
-  { id: 'a14', icon: '🚀', name: '500k rocznie',      earned: false, tip: 'przekroczenie 500 000 PLN/rok' },
-  { id: 'a15', icon: '📅', name: '30k w miesiąc',     earned: false, tip: 'jeden miesiąc ≥ 30 000 zł przychodu' },
-  { id: 'a16', icon: '💥', name: '50k w miesiąc',     earned: false, tip: 'jeden miesiąc ≥ 50 000 zł przychodu' },
+  { id: 'a14', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">rocket_launch</span>', name: '500k rocznie',      earned: false, tip: 'przekroczenie 500 000 PLN/rok' },
+  { id: 'a15', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">today</span>', name: '30k w miesiąc',     earned: false, tip: 'jeden miesiąc ≥ 30 000 zł przychodu' },
+  { id: 'a16', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">flash_on</span>', name: '50k w miesiąc',     earned: false, tip: 'jeden miesiąc ≥ 50 000 zł przychodu' },
   { id: 'a17', icon: '🏁', name: 'i30 N',             earned: false, tip: 'Hyundai i30 N Performance — zasłużone' },
   { id: 'a18', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sports_esports</span>', name: 'sim racing setup',  earned: false, tip: 'pełny rig: kierownica + siedzisko + pedały' },
   { id: 'a19', icon: '🏭', name: 'własny magazyn',    earned: false, tip: 'wynajęty lub kupiony magazyn' },
   { id: 'a20', icon: '👷', name: '1. pracownik',      earned: false, tip: 'pierwszy zatrudniony spoza rodziny' },
-  { id: 'a21', icon: '🤖', name: 'Pi 24/7',           earned: false, tip: 'Paletomat działa na Raspberry Pi non-stop' },
+  { id: 'a21', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smart_toy</span>', name: 'Pi 24/7',           earned: false, tip: 'Paletomat działa na Raspberry Pi non-stop' },
   { id: 'a22', icon: '📧', name: 'mail automat',      earned: false, tip: 'bot pobiera manifest z maila automatycznie' },
-  { id: 'a23', icon: '📈', name: 'top seller',        earned: false, tip: 'status Super Sprzedawcy na Allegro' },
-  { id: 'a24', icon: '💎', name: '1 000 000 PLN',     earned: false, tip: 'THE MILLION — cel 2026 🏆' },
+  { id: 'a23', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">trending_up</span>', name: 'top seller',        earned: false, tip: 'status Super Sprzedawcy na Allegro' },
+  { id: 'a24', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">diamond</span>', name: '1 000 000 PLN',     earned: false, tip: 'THE MILLION — cel 2026 <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">emoji_events</span>' },
   { id: 'a25', icon: '🌍', name: '2+ rynki EU',       earned: false, tip: 'sprzedaż na eBay / Amazon DE / inne' },
   { id: 'a26', icon: '📕', name: 'ebook wydany',      earned: false, tip: 'kurs zwroty opublikowany i sprzedany' },
   { id: 'a27', icon: '🧳', name: 'workation',         earned: false, tip: 'prowadzisz biznes z innego kraju' },
-  { id: 'a28', icon: '👑', name: 'palet empire',      earned: false, tip: '50+ palet miesięcznie w pełnym obrocie' },
+  { id: 'a28', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">crown</span>', name: 'palet empire',      earned: false, tip: '50+ palet miesięcznie w pełnym obrocie' },
 ];
 
 // ─── STATE ───────────────────────────────────────────────────────────────
@@ -467,7 +467,7 @@ function renderSkills() {
         saveState();
         renderSkills();
         updateXP();
-        if (next === 'done') showToast(`🎉 ${s.label} — zdobyte!`);
+        if (next === 'done') showToast(`<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">celebration</span> ${s.label} — zdobyte!`);
       });
       container.appendChild(el);
     });
@@ -498,7 +498,7 @@ function renderAchievements() {
       setTimeout(() => el.classList.remove('just-unlocked'), 400);
       el.querySelector('.ach-name').style.color = state.achievements[a.id] ? 'var(--green)' : '';
       updateXP();
-      if (!wasEarned) showToast(`🏆 OSIĄGNIĘCIE: ${a.name}!`);
+      if (!wasEarned) showToast(`<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">emoji_events</span> OSIĄGNIĘCIE: ${a.name}!`);
     });
     grid.appendChild(el);
   });
@@ -554,7 +554,7 @@ function applyRealData() {
     const pctCelu = Math.round(d.prognoza_msc / 83333 * 100);
     const progColor = pctCelu >= 80 ? '#22c55e' : pctCelu >= 50 ? '#eab308' : '#ef4444';
     progEl.innerHTML = `
-      <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📈 PROGNOZA NA KONIEC MIESIĄCA</div>
+      <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">trending_up</span> PROGNOZA NA KONIEC MIESIĄCA</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
         <div style="text-align:center">
           <div style="font-family:var(--mono);font-size:1rem;font-weight:700;color:${progColor}">${d.prognoza_msc_fmt} zł</div>
@@ -585,7 +585,7 @@ function applyRealData() {
   const tip = document.querySelector('.tip-box');
   if (tip) {
     const alt = Math.ceil(1000000 / 12 / (d.avg_paleta * 1.5));
-    tip.innerHTML = '💡 <strong>Realna szansa na 1M w ' + d.year + '?</strong> ' +
+    tip.innerHTML = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">lightbulb</span> <strong>Realna szansa na 1M w ' + d.year + '?</strong> ' +
       (d.boss_pct >= 40 ? 'Jesteś na dobrej drodze! ' : 'Wymaga przyspieszenia. ') +
       'Teraz średnio ' + d.sredni_msc_fmt + ' zł/msc. Potrzebujesz ' + d.palety_potrzeba_msc +
       ' palet/msc (teraz ~' + d.palety_msc + '). Alternatywa: ' + alt + ' palet × ' +
