@@ -8862,131 +8862,23 @@ def remanent_page():
         ORDER BY wartosc_detal DESC
     ''').fetchall()
 
-    # Build HTML
-    rows_palety = ''
-    for p in palety_data:
-        cena_zak = p['cena_zakupu']
-        w_koszt = p['wartosc_kosztowa']
-        w_allegro = p['wartosc_allegro']
-        szt_mag = p['szt_magazyn']
-        szt_sprz = p['szt_sprzedano']
-        szt_all = p['szt_wszystkich']
-        # ROI potencjalny: (wartość Allegro - koszt pozostałych) / koszt pozostałych
-        roi = ((w_allegro - w_koszt) / w_koszt * 100) if w_koszt > 0 else (100 if w_allegro > 0 else -100)
-        roi_kolor = '#beee00' if roi > 50 else ('#f59e0b' if roi > 0 else '#ef4444')
-        progress = (szt_sprz / szt_all * 100) if szt_all > 0 else 0
-        rows_palety += f'''
-        <tr>
-            <td style="padding:8px 10px;border-bottom:1px solid #1e293b">{p['nazwa'] or '-'}</td>
-            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;color:#64748b;font-size:0.8rem" data-dostawca="1">{p['dostawca'] or '-'}</td>
-            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;color:#64748b;font-size:0.8rem">{p['data_zakupu'] or '-'}</td>
-            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:right">{cena_zak:.0f} zł</td>
-            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:center">{szt_sprz}/{szt_all} szt</td>
-            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:center;color:#8ff5ff;font-weight:600">{szt_mag} szt</td>
-            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:right;color:#94a3b8">{w_koszt:.0f} zł</td>
-            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:right;color:#beee00">{w_allegro:.0f} zł</td>
-            <td style="padding:8px 10px;border-bottom:1px solid #1e293b;text-align:right;font-weight:700;color:{roi_kolor}">{roi:.0f}%</td>
-        </tr>'''
+    # Convert kategorie rows to dicts for Jinja2 template access
+    kategorie_data = [dict(k) for k in kategorie]
 
-    rows_kat = ''
-    for k in kategorie:
-        rows_kat += f'''
-        <tr>
-            <td style="padding:7px 10px;border-bottom:1px solid #1e293b">{k['kat']}</td>
-            <td style="padding:7px 10px;border-bottom:1px solid #1e293b;text-align:center">{k['cnt']}</td>
-            <td style="padding:7px 10px;border-bottom:1px solid #1e293b;text-align:center">{k['sztuki'] or 0}</td>
-            <td style="padding:7px 10px;border-bottom:1px solid #1e293b;text-align:right;color:#94a3b8">{float(k['wartosc_netto'] or 0):.0f} zł</td>
-            <td style="padding:7px 10px;border-bottom:1px solid #1e293b;text-align:right;color:#beee00">{float(k['wartosc_detal'] or 0):.0f} zł</td>
-        </tr>'''
-
-    html = f'''
-    <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>list_alt</span> REMANENT</h1><small>Stan magazynu na {today}</small></div>
-
-    <!-- Kafelki podsumowania -->
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:15px">
-        <div class="card" style="padding:12px;text-align:center">
-            <div style="font-size:1.3rem;font-weight:700;color:#8ff5ff">{len(palety_all)}</div>
-            <div style="font-size:0.7rem;color:#64748b;margin-top:3px">Palet</div>
-        </div>
-        <div class="card" style="padding:12px;text-align:center">
-            <div style="font-size:1.3rem;font-weight:700">{suma_magazyn}</div>
-            <div style="font-size:0.7rem;color:#64748b;margin-top:3px">Szt. w magazynie</div>
-        </div>
-        <div class="card" style="padding:12px;text-align:center">
-            <div style="font-size:1.3rem;font-weight:700;color:#f43f5e">{suma_zakupu:.0f} zł</div>
-            <div style="font-size:0.7rem;color:#64748b;margin-top:3px">Koszt zakupu palet</div>
-        </div>
-        <div class="card" style="padding:12px;text-align:center">
-            <div style="font-size:1.3rem;font-weight:700;color:#94a3b8">{suma_kosztowa:.0f} zł</div>
-            <div style="font-size:0.7rem;color:#64748b;margin-top:3px">Wart. kosztowa mag.</div>
-        </div>
-        <div class="card" style="padding:12px;text-align:center">
-            <div style="font-size:1.3rem;font-weight:700;color:#beee00">{suma_allegro:.0f} zł</div>
-            <div style="font-size:0.7rem;color:#64748b;margin-top:3px">Wart. sprzedażowa</div>
-        </div>
-    </div>
-
-    <!-- Przycisk Excel -->
-    <div style="text-align:right;margin-bottom:15px">
-        <a href="/magazyn/remanent/excel" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#beee00;border-radius:8px;color:#fff;text-decoration:none;font-weight:700;font-size:0.9rem">
-            <span class=material-symbols-outlined style=font-size:1rem>download</span> Pobierz Excel
-        </a>
-    </div>
-
-    <!-- Tabela palet -->
-    <div class="card" style="padding:0;margin-bottom:15px;overflow:hidden">
-        <div style="padding:12px 15px;background:#0f2235;font-weight:700;font-size:0.85rem"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Stan per paleta</div>
-        <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
-            <thead>
-                <tr style="background:#0f1a2a;color:#64748b;font-size:0.75rem">
-                    <th style="padding:8px 10px;text-align:left">Paleta</th>
-                    <th style="padding:8px 10px;text-align:left">Dostawca</th>
-                    <th style="padding:8px 10px;text-align:left">Data zakupu</th>
-                    <th style="padding:8px 10px;text-align:right">Koszt zakupu</th>
-                    <th style="padding:8px 10px;text-align:center">Sprzedane</th>
-                    <th style="padding:8px 10px;text-align:center">Pozostało</th>
-                    <th style="padding:8px 10px;text-align:right">Wart. koszt.</th>
-                    <th style="padding:8px 10px;text-align:right">Wart. Allegro</th>
-                    <th style="padding:8px 10px;text-align:right">ROI</th>
-                </tr>
-            </thead>
-            <tbody>{rows_palety}</tbody>
-            <tfoot>
-                <tr style="background:#0f1a2a;font-weight:700">
-                    <td colspan="3" style="padding:8px 10px;color:#94a3b8">RAZEM</td>
-                    <td style="padding:8px 10px;text-align:right;color:#f43f5e">{suma_zakupu:.0f} zł</td>
-                    <td style="padding:8px 10px;text-align:center;color:#64748b">{suma_sprzedano} sprz.</td>
-                    <td style="padding:8px 10px;text-align:center;color:#8ff5ff">{suma_magazyn} szt</td>
-                    <td style="padding:8px 10px;text-align:right;color:#94a3b8">{suma_kosztowa:.0f} zł</td>
-                    <td style="padding:8px 10px;text-align:right;color:#beee00">{suma_allegro:.0f} zł</td>
-                    <td></td>
-                </tr>
-            </tfoot>
-        </table>
-        </div>
-    </div>
-
-    <!-- Tabela kategorii -->
-    <div class="card" style="padding:0;overflow:hidden">
-        <div style="padding:12px 15px;background:#0f2235;font-weight:700;font-size:0.85rem"><span class=material-symbols-outlined style=font-size:1rem>label</span> Stan per kategoria</div>
-        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
-            <thead>
-                <tr style="background:#0f1a2a;color:#64748b;font-size:0.75rem">
-                    <th style="padding:7px 10px;text-align:left">Kategoria</th>
-                    <th style="padding:7px 10px;text-align:center">Produktów</th>
-                    <th style="padding:7px 10px;text-align:center">Sztuk</th>
-                    <th style="padding:7px 10px;text-align:right">Wart. netto</th>
-                    <th style="padding:7px 10px;text-align:right">Wart. detal.</th>
-                </tr>
-            </thead>
-            <tbody>{rows_kat}</tbody>
-        </table>
-    </div>
-
-    <a href="/magazyn" class="back" style="margin-top:15px;display:inline-block">← Powrót</a>
-    '''
-    return render(html)
+    return render_template('remanent.html',
+        today=today,
+        palety_count=len(palety_all),
+        palety_data=palety_data,
+        kategorie=kategorie_data,
+        suma_zakupu=suma_zakupu,
+        suma_kosztowa=suma_kosztowa,
+        suma_allegro=suma_allegro,
+        suma_magazyn=suma_magazyn,
+        suma_sprzedano=suma_sprzedano,
+        brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
+        version=current_app.config.get('VERSION', ''),
+        current_user=session.get('user')
+    )
 
 
 @magazynier_bp.route('/remanent/excel')

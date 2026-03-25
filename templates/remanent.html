@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block page_title %}Remanent{% endblock %}
+{% block content %}
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   REMANENT / CORE_HUB — Cyberpunk Data Panels
+   ═══════════════════════════════════════════════════════════════ */
+
+/* --- Header --- */
+.rem-hdr{display:flex;align-items:center;justify-content:space-between;padding:20px 0;border-bottom:1px solid rgba(143,245,255,0.12);margin-bottom:16px}
+.rem-hdr-left{display:flex;flex-direction:column;gap:4px}
+.rem-hdr h1{font-size:1.4rem;color:var(--neon-primary,#8ff5ff);font-weight:700;text-shadow:0 0 20px rgba(143,245,255,0.35);letter-spacing:0.05em;display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif}
+.rem-hdr h1 .material-symbols-outlined{font-size:1.5rem;color:var(--neon-secondary,#ff6b9b)}
+.rem-hdr small{color:var(--text-muted);font-size:0.75rem;letter-spacing:0.05em}
+.rem-excel-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);color:var(--neon-tertiary,#beee00);text-decoration:none;font-weight:700;font-size:0.85rem;letter-spacing:0.05em;font-family:'Space Grotesk',sans-serif;transition:all 0.3s}
+.rem-excel-btn:hover{background:rgba(190,238,0,0.2);box-shadow:0 0 16px rgba(190,238,0,0.15)}
+.rem-excel-btn .material-symbols-outlined{font-size:1.1rem}
+
+/* --- KPI Grid --- */
+.rem-kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+.rem-kpi-card{background:var(--bg-card,rgba(19,19,28,0.6));padding:16px 14px;border-left:3px solid var(--neon-primary,#8ff5ff)}
+.rem-kpi-card.accent-pink{border-left-color:var(--neon-secondary,#ff6b9b)}
+.rem-kpi-card.accent-lime{border-left-color:var(--neon-tertiary,#beee00)}
+.rem-kpi-card.glow{box-shadow:0 0 20px rgba(190,238,0,0.12);border-left-color:var(--neon-tertiary,#beee00)}
+.rem-kpi-label{font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;font-family:'Space Grotesk',sans-serif}
+.rem-kpi-val{font-size:1.4rem;font-weight:700;color:var(--neon-primary,#8ff5ff);font-family:'Space Grotesk',sans-serif}
+.rem-kpi-val.cyan{color:var(--neon-primary,#8ff5ff)}
+.rem-kpi-val.white{color:var(--text,#e2e8f0)}
+.rem-kpi-val.pink{color:var(--neon-secondary,#ff6b9b)}
+.rem-kpi-val.muted{color:var(--text-secondary,#94a3b8)}
+.rem-kpi-val.lime{color:var(--neon-tertiary,#beee00)}
+
+/* --- Panel / Table --- */
+.rem-panel{background:var(--bg-card,rgba(19,19,28,0.6));border-left:3px solid var(--neon-primary,#8ff5ff);margin-bottom:16px;overflow:hidden}
+.rem-panel.accent-lime{border-left-color:var(--neon-tertiary,#beee00)}
+.rem-panel-hdr{padding:12px 16px;background:rgba(14,14,22,0.5);font-weight:700;font-size:0.82rem;display:flex;align-items:center;gap:8px;letter-spacing:0.05em;font-family:'Space Grotesk',sans-serif;border-bottom:1px solid rgba(143,245,255,0.08)}
+.rem-panel-hdr .material-symbols-outlined{font-size:1rem;color:var(--neon-primary,#8ff5ff)}
+.rem-panel-hdr.lime .material-symbols-outlined{color:var(--neon-tertiary,#beee00)}
+
+.rem-table{width:100%;border-collapse:collapse;font-size:0.8rem}
+.rem-table thead tr{background:rgba(14,14,22,0.4)}
+.rem-table th{padding:8px 12px;text-align:left;color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;font-family:'Space Grotesk',sans-serif}
+.rem-table th.r{text-align:right}
+.rem-table th.c{text-align:center}
+.rem-table td{padding:8px 12px;border-bottom:1px solid rgba(26,26,46,0.6)}
+.rem-table td.r{text-align:right}
+.rem-table td.c{text-align:center}
+.rem-table td.muted{color:var(--text-muted);font-size:0.75rem}
+.rem-table td.cyan{color:var(--neon-primary,#8ff5ff);font-weight:600}
+.rem-table td.lime{color:var(--neon-tertiary,#beee00)}
+.rem-table td.sub{color:var(--text-secondary,#94a3b8)}
+
+.rem-table tfoot tr{background:rgba(14,14,22,0.5)}
+.rem-table tfoot td{padding:8px 12px;font-weight:700;border-bottom:none}
+
+/* ROI Badges */
+.rem-roi{display:inline-block;padding:2px 8px;font-weight:700;font-size:0.78rem;font-family:'Space Grotesk',sans-serif;min-width:52px;text-align:center}
+.rem-roi.high{background:rgba(190,238,0,0.12);color:var(--neon-tertiary,#beee00);border:1px solid rgba(190,238,0,0.25)}
+.rem-roi.mid{background:rgba(143,245,255,0.10);color:var(--neon-primary,#8ff5ff);border:1px solid rgba(143,245,255,0.2)}
+.rem-roi.neg{background:rgba(255,107,155,0.10);color:var(--neon-secondary,#ff6b9b);border:1px solid rgba(255,107,155,0.2)}
+
+/* --- Back Link --- */
+.rem-back{display:inline-flex;align-items:center;gap:6px;margin-top:16px;color:var(--text-muted);text-decoration:none;font-size:0.82rem;font-family:'Space Grotesk',sans-serif;transition:color 0.3s}
+.rem-back:hover{color:var(--neon-primary,#8ff5ff)}
+
+/* --- Responsive --- */
+@media(max-width:768px){
+    .rem-kpi{grid-template-columns:repeat(2,1fr)}
+    .rem-kpi-card:last-child{grid-column:span 2}
+    .rem-hdr{flex-direction:column;align-items:flex-start;gap:12px}
+    .rem-table{font-size:0.72rem}
+    .rem-table th,.rem-table td{padding:6px 8px}
+}
+@media(max-width:480px){
+    .rem-kpi{grid-template-columns:1fr 1fr}
+    .rem-kpi-card:last-child{grid-column:span 2}
+}
+</style>
+
+<!-- Header -->
+<div class="rem-hdr">
+    <div class="rem-hdr-left">
+        <h1>
+            <span class="material-symbols-outlined">list_alt</span>
+            REMANENT / CORE_HUB
+        </h1>
+        <small>Stan magazynu na {{ today }}</small>
+    </div>
+    <a href="/magazyn/remanent/excel" class="rem-excel-btn">
+        <span class="material-symbols-outlined">download</span>
+        Pobierz Excel
+    </a>
+</div>
+
+<!-- KPI Cards -->
+<div class="rem-kpi">
+    <div class="rem-kpi-card">
+        <div class="rem-kpi-label">Palet</div>
+        <div class="rem-kpi-val cyan">{{ palety_count }}</div>
+    </div>
+    <div class="rem-kpi-card">
+        <div class="rem-kpi-label">Szt w magazynie</div>
+        <div class="rem-kpi-val white">{{ suma_magazyn }}</div>
+    </div>
+    <div class="rem-kpi-card accent-pink">
+        <div class="rem-kpi-label">Koszt zakupu</div>
+        <div class="rem-kpi-val pink">{{ '{:,.0f}'.format(suma_zakupu).replace(',', ' ') }} zl</div>
+    </div>
+    <div class="rem-kpi-card">
+        <div class="rem-kpi-label">Wartosc kosztowa</div>
+        <div class="rem-kpi-val muted">{{ '{:,.0f}'.format(suma_kosztowa).replace(',', ' ') }} zl</div>
+    </div>
+    <div class="rem-kpi-card glow">
+        <div class="rem-kpi-label">Wartosc sprzedazowa</div>
+        <div class="rem-kpi-val lime">{{ '{:,.0f}'.format(suma_allegro).replace(',', ' ') }} zl</div>
+    </div>
+</div>
+
+<!-- Palety Table -->
+<div class="rem-panel">
+    <div class="rem-panel-hdr">
+        <span class="material-symbols-outlined">inventory_2</span>
+        Stan per paleta
+    </div>
+    <div style="overflow-x:auto">
+        <table class="rem-table">
+            <thead>
+                <tr>
+                    <th>Paleta</th>
+                    <th>Dostawca</th>
+                    <th>Data zakupu</th>
+                    <th class="r">Koszt zakupu</th>
+                    <th class="c">Sprzedane / Pozostalo</th>
+                    <th class="r">Wart. koszt.</th>
+                    <th class="r">Wart. Allegro</th>
+                    <th class="r">ROI</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in palety_data %}
+                {% set w_koszt = p.wartosc_kosztowa %}
+                {% set w_allegro = p.wartosc_allegro %}
+                {% set roi = ((w_allegro - w_koszt) / w_koszt * 100) if w_koszt > 0 else (100 if w_allegro > 0 else -100) %}
+                <tr>
+                    <td>{{ p.nazwa or '-' }}</td>
+                    <td class="muted">{{ p.dostawca or '-' }}</td>
+                    <td class="muted">{{ p.data_zakupu or '-' }}</td>
+                    <td class="r">{{ '{:,.0f}'.format(p.cena_zakupu) }} zl</td>
+                    <td class="c">{{ p.szt_sprzedano }}/{{ p.szt_wszystkich }} szt</td>
+                    <td class="r sub">{{ '{:,.0f}'.format(w_koszt) }} zl</td>
+                    <td class="r lime">{{ '{:,.0f}'.format(w_allegro) }} zl</td>
+                    <td class="r">
+                        <span class="rem-roi {{ 'high' if roi > 50 else ('mid' if roi > 0 else 'neg') }}">{{ '{:.0f}'.format(roi) }}%</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3" style="color:var(--text-secondary)">RAZEM</td>
+                    <td class="r" style="color:var(--neon-secondary,#ff6b9b)">{{ '{:,.0f}'.format(suma_zakupu) }} zl</td>
+                    <td class="c muted">{{ suma_sprzedano }} sprz.</td>
+                    <td class="r sub">{{ '{:,.0f}'.format(suma_kosztowa) }} zl</td>
+                    <td class="r lime">{{ '{:,.0f}'.format(suma_allegro) }} zl</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<!-- Kategorie Table -->
+<div class="rem-panel accent-lime">
+    <div class="rem-panel-hdr lime">
+        <span class="material-symbols-outlined">label</span>
+        Stan per kategoria
+    </div>
+    <table class="rem-table">
+        <thead>
+            <tr>
+                <th>Kategoria</th>
+                <th class="c">Produktow</th>
+                <th class="c">Sztuk</th>
+                <th class="r">Wart. netto</th>
+                <th class="r">Wart. detal.</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for k in kategorie %}
+            <tr>
+                <td>{{ k.kat }}</td>
+                <td class="c">{{ k.cnt }}</td>
+                <td class="c">{{ k.sztuki or 0 }}</td>
+                <td class="r sub">{{ '{:,.0f}'.format(k.wartosc_netto|float) }} zl</td>
+                <td class="r lime">{{ '{:,.0f}'.format(k.wartosc_detal|float) }} zl</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<a href="/magazyn" class="rem-back">
+    <span class="material-symbols-outlined" style="font-size:1rem">arrow_back</span>
+    Powrot do magazynu
+</a>
+{% endblock %}
