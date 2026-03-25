@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block page_title %}Uzytkownicy{% endblock %}
+{% block content %}
+<style>
+/* Users Management — Cyberpunk */
+.usr-hdr{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:24px}
+.usr-hdr-left span{font-family:'Space Grotesk',sans-serif;font-size:0.7rem;font-weight:700;color:#ff6b9b;text-transform:uppercase;letter-spacing:0.2em}
+.usr-hdr h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;letter-spacing:-0.04em}
+.usr-hdr-actions{display:flex;gap:10px;flex-wrap:wrap}
+.usr-search{position:relative}
+.usr-search .material-symbols-outlined{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#adaaad;font-size:1rem}
+.usr-search input{padding:12px 12px 12px 40px;background:rgba(38,37,40,0.8);border:none;border-bottom:2px solid transparent;color:#f9f5f8;font-size:0.72rem;font-family:'Space Grotesk',sans-serif;text-transform:uppercase;letter-spacing:0.1em;width:220px;transition:border-color 0.2s}
+.usr-search input:focus{outline:none;border-bottom-color:#8ff5ff}
+.usr-add-btn{padding:12px 24px;background:#8ff5ff;color:#005d63;font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 0 20px rgba(143,245,255,0.2);transition:all 0.2s}
+.usr-add-btn:hover{filter:brightness(1.1)}
+.usr-add-btn:active{transform:scale(0.95)}
+
+/* Flash messages */
+.usr-flash{padding:12px 16px;margin-bottom:12px;font-size:0.82rem;display:flex;align-items:center;gap:8px}
+.usr-flash.success{background:rgba(190,238,0,0.06);border-left:2px solid #beee00;color:#beee00}
+.usr-flash.error{background:rgba(239,68,68,0.06);border-left:2px solid #ef4444;color:#ef4444}
+
+/* Add Form */
+.usr-add-form{background:rgba(19,19,28,0.7);border:1px solid rgba(72,71,74,0.15);padding:20px;margin-bottom:24px;display:none}
+.usr-add-form.open{display:block}
+.usr-add-form-inner{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.usr-field{display:flex;flex-direction:column;gap:4px}
+.usr-field label{font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#adaaad}
+.usr-field input,.usr-field select{padding:10px 14px;background:rgba(14,14,16,0.8);border:1px solid rgba(72,71,74,0.2);color:#f9f5f8;font-size:0.82rem;font-family:'Space Grotesk',sans-serif;min-width:160px}
+.usr-field input:focus,.usr-field select:focus{outline:none;border-color:#8ff5ff}
+.usr-form-btn{padding:10px 20px;background:#8ff5ff;color:#005d63;font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;border:none;cursor:pointer}
+
+/* User Cards Grid */
+.usr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.usr-card{background:rgba(19,19,28,0.7);padding:20px;border-left:4px solid;transition:all 0.2s}
+.usr-card:hover{background:rgba(38,37,40,0.6)}
+.usr-card.admin{border-color:#beee00}
+.usr-card.manager{border-color:#f59e0b}
+.usr-card.user,.usr-card.magazynier{border-color:#8ff5ff}
+.usr-card.inactive{opacity:0.5;border-color:#48474a}
+
+.usr-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.usr-card-identity{display:flex;gap:12px;align-items:center}
+.usr-card-avatar{width:48px;height:48px;background:rgba(38,37,40,0.8);border:1px solid rgba(72,71,74,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;color:#8ff5ff}
+.usr-card-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem}
+.usr-card-meta{font-size:0.6rem;color:#adaaad;margin-top:2px}
+
+.usr-card-badges{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.usr-status{display:flex;align-items:center;gap:4px;font-size:0.55rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em}
+.usr-status.online{color:#beee00}
+.usr-status.online .dot{width:6px;height:6px;border-radius:50%;background:#beee00;box-shadow:0 0 6px #beee00}
+.usr-status.offline{color:#48474a}
+.usr-status.offline .dot{width:6px;height:6px;border-radius:50%;background:#48474a}
+.usr-role-badge{font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:2px 8px;background:rgba(38,37,40,0.8)}
+.usr-role-badge.admin{color:#beee00}
+.usr-role-badge.manager{color:#f59e0b}
+.usr-role-badge.user,.usr-role-badge.magazynier{color:#8ff5ff}
+
+.usr-card-info{display:flex;gap:16px;font-size:0.65rem;color:#adaaad;margin-bottom:12px}
+
+.usr-card-actions{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(72,71,74,0.15);padding-top:12px}
+.usr-card-actions .left{display:flex;gap:8px}
+.usr-act-btn{background:none;border:none;color:#adaaad;cursor:pointer;padding:4px;transition:color 0.2s;display:flex;align-items:center}
+.usr-act-btn:hover{color:#8ff5ff}
+.usr-act-btn.danger:hover{color:#ff6b9b}
+.usr-act-btn .material-symbols-outlined{font-size:1.2rem}
+
+/* Role select inline */
+.usr-role-select{background:rgba(14,14,16,0.8);border:1px solid rgba(72,71,74,0.2);color:#f9f5f8;padding:4px 8px;font-size:0.72rem;font-family:'Space Grotesk',sans-serif;cursor:pointer}
+</style>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% for cat, msg in messages %}
+<div class="usr-flash {{ cat }}"><span class="material-symbols-outlined" style="font-size:1rem">{{ 'check_circle' if cat == 'success' else 'error' }}</span> {{ msg }}</div>
+{% endfor %}
+{% endwith %}
+
+<!-- Header -->
+<div class="usr-hdr">
+    <div class="usr-hdr-left">
+        <span>Security Sector</span>
+        <h1>UZYTKOWNICY</h1>
+    </div>
+    <div class="usr-hdr-actions">
+        <div class="usr-search">
+            <span class="material-symbols-outlined">search</span>
+            <input type="text" placeholder="Szukaj..." onkeyup="filterUsers(this.value)">
+        </div>
+        <button class="usr-add-btn" onclick="document.getElementById('addForm').classList.toggle('open')">
+            <span class="material-symbols-outlined" style="font-size:1rem">person_add</span> Dodaj
+        </button>
+    </div>
+</div>
+
+<!-- Add User Form -->
+<form id="addForm" class="usr-add-form" method="POST" action="{{ url_for('auth.user_add') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="usr-add-form-inner">
+        <div class="usr-field"><label>Login</label><input name="username" required minlength="3" placeholder="min. 3 znaki"></div>
+        <div class="usr-field"><label>Haslo</label><input name="password" type="password" required minlength="8" placeholder="min. 8 znakow"></div>
+        <div class="usr-field"><label>Rola</label>
+            <select name="rola">
+                <option value="magazynier">Magazynier</option>
+                <option value="user">User</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+        <button type="submit" class="usr-form-btn"><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">add</span> Dodaj</button>
+    </div>
+</form>
+
+<!-- Users Grid -->
+<div class="usr-grid">
+    {% for u in users %}
+    {% set is_active = u.aktywny == 1 %}
+    <div class="usr-card {{ u.rola }} {{ '' if is_active else 'inactive' }}" data-name="{{ u.username|lower }}">
+        <div class="usr-card-top">
+            <div class="usr-card-identity">
+                <div class="usr-card-avatar">{{ u.username[0]|upper }}</div>
+                <div>
+                    <div class="usr-card-name">{{ u.username }}</div>
+                    <div class="usr-card-meta">ID: {{ u.id }}</div>
+                </div>
+            </div>
+            <div class="usr-card-badges">
+                <span class="usr-status {{ 'online' if is_active else 'offline' }}">
+                    <span class="dot"></span> {{ 'AKTYWNY' if is_active else 'NIEAKTYWNY' }}
+                </span>
+                <span class="usr-role-badge {{ u.rola }}">{{ u.rola|upper }}</span>
+            </div>
+        </div>
+        <div class="usr-card-info">
+            <span>Utworzony: {{ (u.utworzony or '-')[:10] }}</span>
+            <span>Logowanie: {{ (u.ostatnie_logowanie or 'Nigdy')[:16] }}</span>
+        </div>
+        <div class="usr-card-actions">
+            <div class="left">
+                <form method="POST" action="{{ url_for('auth.user_change_role', user_id=u.id) }}" style="display:inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <select name="rola" class="usr-role-select" onchange="this.form.submit()">
+                        <option value="magazynier" {{ 'selected' if u.rola=='magazynier' }}>Magazynier</option>
+                        <option value="user" {{ 'selected' if u.rola=='user' }}>User</option>
+                        <option value="manager" {{ 'selected' if u.rola=='manager' }}>Manager</option>
+                        <option value="admin" {{ 'selected' if u.rola=='admin' }}>Admin</option>
+                    </select>
+                </form>
+                <form method="POST" action="{{ url_for('auth.user_toggle', user_id=u.id) }}" style="display:inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="usr-act-btn" title="{{ 'Dezaktywuj' if is_active else 'Aktywuj' }}">
+                        <span class="material-symbols-outlined">{{ 'toggle_on' if is_active else 'toggle_off' }}</span>
+                    </button>
+                </form>
+            </div>
+            <form method="POST" action="{{ url_for('auth.user_delete', user_id=u.id) }}" style="display:inline" onsubmit="return confirm('Na pewno usunac {{ u.username }}?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="usr-act-btn danger"><span class="material-symbols-outlined">delete_sweep</span></button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<a href="/" style="display:flex;align-items:center;gap:6px;color:#64748b;text-decoration:none;font-size:0.82rem;margin-top:20px"><span class="material-symbols-outlined" style="font-size:1rem">arrow_back</span> Dashboard</a>
+
+<script>
+function filterUsers(q){
+    q=q.toLowerCase();
+    document.querySelectorAll('.usr-card').forEach(function(c){
+        c.style.display=c.dataset.name.includes(q)?'':'none';
+    });
+}
+</script>
+{% endblock %}

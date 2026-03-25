@@ -619,8 +619,9 @@ def users_list():
     """Lista użytkowników"""
     conn = _get_auth_db()
     users = conn.execute('SELECT id, username, rola, aktywny, utworzony, ostatnie_logowanie FROM users ORDER BY id').fetchall()
+    users = [dict(u) for u in users]
     conn.close()
-    return render_template_string(USERS_HTML, users=users)
+    return render_template('users.html', users=users)
 
 
 @auth_bp.route('/users/add', methods=['POST'])

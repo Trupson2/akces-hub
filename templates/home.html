@@ -171,7 +171,7 @@ function doSystemUpdate(btn){
         <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
             {% for item in [('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smart_toy</span>','Auto-scraping palet'),('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span>','AI analiza rentowności'),('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">link</span>','Integracja z dostawcami'),('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span>','Automatyczne wystawianie'),('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">paid</span>','Kalkulator marży')] %}
             <div class="glass-panel" style="display:flex;align-items:center;gap:14px;padding:14px 16px;opacity:0.55">
-                <span style="font-size:1.6rem">{{ item[0] }}</span>
+                <span style="font-size:1.6rem">{{ item[0]|safe }}</span>
                 <div>
                     <div style="font-weight:600;font-size:0.9rem">{{ item[1] }}</div>
                     <div style="font-size:0.72rem;color:var(--text-muted)">wkrótce</div>

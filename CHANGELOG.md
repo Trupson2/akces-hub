@@ -2,6 +2,20 @@
 
 ## 25.03.2026
 
+### User Management — Cyberpunk Card Grid
+- [NOWE] Szablon `users.html` — karty userow z avatar, rola badge, status online/offline
+- [NOWE] Add user form (collapsible), search filter, role select inline
+- [NOWE] Kolorowe border-left per rola: admin=lime, manager=amber, user/magazynier=cyan
+- [ZMIANA] Ekstrakcja inline HTML z auth.py do szablonu Jinja2
+
+### Subscription Expired — Cyberpunk Redesign
+- [NOWE] Nowy design z gradient top-bar, neon glow, cyberpunk styling
+- [NOWE] Ikona hourglass_disabled z drop-shadow, info grid, copy HWID button
+
+### Kiosk & Home Fixes
+- [FIX] Home link w kiosku prowadzi teraz do `/?kiosk=1` zamiast `/` (normalny dashboard)
+- [FIX] Ikony Material Symbols na home.html — dodano `|safe` filter (Jinja autoescaping)
+
 ### Generator Allegro AI — Cyberpunk 3-Panel Redesign
 - [NOWE] Szablon `paletomat_generator.html` — 3-panelowy layout (Magazyn + AI Editor + Live Preview)
 - [NOWE] Lewy panel: lista produktow z magazynu z szukajka, kodami SKU, stanami

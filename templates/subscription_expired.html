@@ -1,71 +1,97 @@
 <!DOCTYPE html>
-<html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Subskrypcja wygasla</title>
+<html lang="pl" data-theme="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Subskrypcja wygasla - {{ brand_name|default('Akces Hub') }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <style>
+:root{--bg:#0e0e10;--surface:#131315;--surface-high:#1f1f22;--border:#48474a;--text:#f9f5f8;--text-muted:#adaaad;--cyan:#8ff5ff;--pink:#ff6b9b;--lime:#beee00;--error:#ff716c;--on-cyan:#005d63}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a14;color:#e2e8f0;min-height:100vh;display:flex;align-items:center;justify-content:center}
-.expired-card{width:100%;max-width:480px;padding:40px 32px;background:linear-gradient(145deg,#12122a,#0e0e22);border:none;border-radius:20px;outline:2px solid rgba(99,102,241,0.3);outline-offset:0;position:relative}
-.expired-card::before{content:'';position:absolute;inset:-2px;border-radius:20px;background:linear-gradient(135deg,#6366f1,#8b5cf6,#ec4899);z-index:-1;opacity:0.5}
-.icon{text-align:center;font-size:4rem;margin-bottom:20px;filter:drop-shadow(0 0 20px rgba(99,102,241,0.4))}
-h1{text-align:center;font-size:1.5rem;font-weight:700;margin-bottom:12px;background:linear-gradient(135deg,#f87171,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.desc{text-align:center;color:#94a3b8;font-size:0.9rem;line-height:1.6;margin-bottom:28px}
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
-.info-item{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 16px;text-align:center}
-.info-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:4px}
-.info-value{font-size:0.95rem;font-weight:600;color:#e2e8f0}
-.info-item.full{grid-column:1/3}
-.hwid-box{font-family:monospace;font-size:0.8rem;color:#94a3b8;word-break:break-all}
-.renew-link{display:block;text-align:center;padding:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;text-decoration:none;border-radius:12px;font-weight:700;font-size:1rem;margin-bottom:12px;transition:transform 0.2s,box-shadow 0.2s}
-.renew-link:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(99,102,241,0.4)}
-.copy-btn{display:block;width:100%;padding:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#94a3b8;border-radius:12px;cursor:pointer;font-size:0.85rem;font-weight:600;transition:all 0.2s}
-.copy-btn:hover{background:rgba(255,255,255,0.1);color:#e2e8f0}
-.copy-btn.copied{background:rgba(34,197,94,0.15);color:#22c55e;border-color:rgba(34,197,94,0.3)}
-</style></head><body>
-<div class="expired-card">
-    <div class="icon">&#x23F3;</div>
-    <h1>Twoja subskrypcja wygasla</h1>
-    <p class="desc">Aby zachowac dostep do Map 3D, analityki i wszystkich funkcji premium, odnow licencje.</p>
+body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background-image:linear-gradient(rgba(143,245,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(143,245,255,0.03) 1px,transparent 1px);background-size:40px 40px}
 
-    <div class="info-grid">
+.exp-card{max-width:520px;width:100%;background:var(--surface);border:1px solid rgba(72,71,74,0.2);position:relative;overflow:hidden;padding:40px 32px}
+.exp-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--error),var(--pink),var(--error))}
+.exp-glow{position:absolute;top:-100px;right:-100px;width:300px;height:300px;background:rgba(255,113,108,0.06);filter:blur(100px);border-radius:50%;pointer-events:none}
+
+.exp-icon{text-align:center;margin-bottom:24px}
+.exp-icon .material-symbols-outlined{font-size:4rem;color:var(--error);font-variation-settings:'FILL' 1;filter:drop-shadow(0 0 20px rgba(255,113,108,0.4))}
+
+.exp-title{font-family:'Space Grotesk',sans-serif;font-size:1.8rem;font-weight:900;text-align:center;letter-spacing:-0.03em;margin-bottom:8px;background:linear-gradient(135deg,var(--error),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-transform:uppercase}
+.exp-desc{text-align:center;color:var(--text-muted);font-size:0.88rem;line-height:1.6;margin-bottom:28px}
+
+.exp-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+.exp-info{background:var(--surface-high);padding:16px;border:1px solid rgba(72,71,74,0.15);text-align:center}
+.exp-info.full{grid-column:span 2}
+.exp-info-label{font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:var(--text-muted);margin-bottom:4px}
+.exp-info-val{font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700}
+.exp-info-val.error{color:var(--error)}
+.exp-hwid{font-family:monospace;font-size:0.72rem;color:var(--text-muted);word-break:break-all}
+
+.exp-btn{display:block;width:100%;padding:16px;font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:0.88rem;text-transform:uppercase;letter-spacing:0.15em;text-align:center;text-decoration:none;border:none;cursor:pointer;transition:all 0.2s;margin-bottom:10px}
+.exp-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.exp-btn:active{transform:scale(0.98)}
+.exp-btn.primary{background:var(--cyan);color:var(--on-cyan);box-shadow:0 0 25px rgba(143,245,255,0.25)}
+.exp-btn.secondary{background:transparent;border:1px solid rgba(72,71,74,0.3);color:var(--text-muted)}
+.exp-btn.secondary:hover{border-color:var(--cyan);color:var(--cyan)}
+.exp-btn.copy{background:rgba(190,238,0,0.08);border:1px solid rgba(190,238,0,0.2);color:var(--lime)}
+.exp-btn.copy.copied{background:rgba(190,238,0,0.15);border-color:var(--lime)}
+
+.exp-link{display:block;text-align:center;margin-top:16px;font-size:0.78rem;color:var(--cyan);text-decoration:none;transition:color 0.2s}
+.exp-link:hover{color:var(--pink)}
+
+.exp-footer{text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid rgba(72,71,74,0.15);font-size:0.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em}
+</style>
+</head>
+<body>
+<div class="exp-card">
+    <div class="exp-glow"></div>
+    <div class="exp-icon"><span class="material-symbols-outlined">hourglass_disabled</span></div>
+    <h1 class="exp-title">Subskrypcja wygasla</h1>
+    <p class="exp-desc">Aby zachowac dostep do Map 3D, analityki i wszystkich funkcji premium, odnow licencje.</p>
+
+    <div class="exp-grid">
         {% if plan_name %}
-        <div class="info-item">
-            <div class="info-label">Plan</div>
-            <div class="info-value">{{ plan_name }}</div>
+        <div class="exp-info">
+            <div class="exp-info-label">Plan</div>
+            <div class="exp-info-val">{{ plan_name }}</div>
         </div>
         {% endif %}
         {% if expiry_str %}
-        <div class="info-item">
-            <div class="info-label">Wygasla</div>
-            <div class="info-value" style="color:#f87171">{{ expiry_str }}</div>
+        <div class="exp-info">
+            <div class="exp-info-label">Wygasla</div>
+            <div class="exp-info-val error">{{ expiry_str }}</div>
         </div>
         {% endif %}
         {% if hwid %}
-        <div class="info-item full">
-            <div class="info-label">ID Klienta (HWID)</div>
-            <div class="info-value hwid-box">{{ hwid }}</div>
+        <div class="exp-info full">
+            <div class="exp-info-label">ID Klienta (HWID)</div>
+            <div class="exp-hwid">{{ hwid }}</div>
         </div>
         {% endif %}
     </div>
 
-    <a href="{{ renew_url }}" target="_blank" class="renew-link">Odnow subskrypcje</a>
+    <a href="{{ renew_url }}" target="_blank" class="exp-btn primary"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">refresh</span> Odnow subskrypcje</a>
 
     {% if hwid %}
-    <button class="copy-btn" onclick="copyHwid()">&#x1F4CB; Skopiuj ID klienta</button>
+    <button class="exp-btn copy" onclick="copyHwid()"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">content_copy</span> Skopiuj ID klienta</button>
     {% endif %}
 
-    <div style="text-align:center;margin-top:16px">
-        <a href="/license" style="color:#6366f1;text-decoration:none;font-size:0.85rem">Aktywuj nowa licencje &rarr;</a>
-    </div>
+    <a href="/license" class="exp-btn secondary"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">key</span> Aktywuj nowa licencje</a>
+
+    <div class="exp-footer">{{ brand_name|default('Akces Hub') }} — System zarzadzania magazynem</div>
 </div>
+
 <script>
 function copyHwid(){
-    var hw='{{ hwid }}';
-    navigator.clipboard.writeText(hw).then(function(){
-        var b=document.querySelector('.copy-btn');
-        b.textContent='\u2705 Skopiowano!';
+    navigator.clipboard.writeText('{{ hwid }}').then(function(){
+        var b=document.querySelector('.exp-btn.copy');
+        b.innerHTML='<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Skopiowano!';
         b.classList.add('copied');
-        setTimeout(function(){b.innerHTML='&#x1F4CB; Skopiuj ID klienta';b.classList.remove('copied')},2000);
+        setTimeout(function(){b.innerHTML='<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">content_copy</span> Skopiuj ID klienta';b.classList.remove('copied')},2000);
     });
 }
 </script>
-</body></html>
+</body>
+</html>
