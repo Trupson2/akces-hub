@@ -503,6 +503,43 @@ def scrape_amazon_product(asin, preferred_domain=None):
                         if key and val and key not in product_specs:
                             product_specs[key] = val
 
+            # Method 4: Additional sections (Dodatkowe szczegóły, Styl, etc.)
+            for section_id in [
+                'productDetails_detailBullets_sections2',
+                'productDetails_db_sections',
+                'productDetails_techSpec_section_2',
+                'poExpander_feature_div',
+            ]:
+                extra_table = re.search(
+                    rf'id="{section_id}"[^>]*>(.*?)</table>',
+                    text, re.DOTALL | re.IGNORECASE
+                )
+                if extra_table:
+                    rows = re.findall(r'<tr>(.*?)</tr>', extra_table.group(1), re.DOTALL)
+                    for row in rows:
+                        th = re.search(r'<th[^>]*>(.*?)</th>', row, re.DOTALL)
+                        td = re.search(r'<td[^>]*>(.*?)</td>', row, re.DOTALL)
+                        if th and td:
+                            key = re.sub(r'<[^>]+>', '', th.group(1)).strip().replace('\n', ' ').strip()
+                            val = re.sub(r'<[^>]+>', '', td.group(1)).strip().replace('\n', ' ').strip()
+                            if key and val and key not in product_specs and len(key) < 100:
+                                product_specs[key] = val
+
+            # Method 5: Generic product overview attributes (Kolor, Materiał etc.)
+            overview_section = re.search(
+                r'id="productOverview_feature_div"[^>]*>(.*?)</div>\s*</div>',
+                text, re.DOTALL | re.IGNORECASE
+            )
+            if overview_section:
+                rows = re.findall(r'<tr>(.*?)</tr>', overview_section.group(1), re.DOTALL)
+                for row in rows:
+                    tds = re.findall(r'<td[^>]*>(.*?)</td>', row, re.DOTALL)
+                    if len(tds) >= 2:
+                        key = re.sub(r'<[^>]+>', '', tds[0]).strip()
+                        val = re.sub(r'<[^>]+>', '', tds[1]).strip()
+                        if key and val and key not in product_specs:
+                            product_specs[key] = val
+
             # Cleanup: remove ASIN from specs (already have it)
             product_specs.pop('ASIN', None)
             product_specs.pop('asin', None)
