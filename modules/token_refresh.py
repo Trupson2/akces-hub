@@ -85,7 +85,7 @@ def refresh_allegro_token():
             # Wyślij powiadomienie Telegram jeśli dostępne
             try:
                 from modules.telegram_bot import send_telegram
-                send_telegram(f"<i class=mi style=color:#22c55e>check_circle</i> Token Allegro odświeżony\nWygasa: {expires_at.strftime('%Y-%m-%d %H:%M')}")
+                send_telegram(f"<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Token Allegro odświeżony\nWygasa: {expires_at.strftime('%Y-%m-%d %H:%M')}")
             except:
                 pass
             
@@ -96,7 +96,7 @@ def refresh_allegro_token():
             # Wyślij powiadomienie o błędzie
             try:
                 from modules.telegram_bot import send_telegram
-                send_telegram(f"<i class=mi style=color:#ef4444>cancel</i> Błąd odświeżania tokena Allegro\nKod: {response.status_code}\nMusisz zalogować się ponownie!")
+                send_telegram(f"<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Błąd odświeżania tokena Allegro\nKod: {response.status_code}\nMusisz zalogować się ponownie!")
             except:
                 pass
             
@@ -107,7 +107,7 @@ def refresh_allegro_token():
         
         try:
             from modules.telegram_bot import send_telegram
-            send_telegram(f"<i class=mi style=color:#ef4444>cancel</i> Błąd odświeżania tokena Allegro\n{str(e)}\nMusisz zalogować się ponownie!")
+            send_telegram(f"<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Błąd odświeżania tokena Allegro\n{str(e)}\nMusisz zalogować się ponownie!")
         except:
             pass
         

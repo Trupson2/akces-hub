@@ -1018,12 +1018,12 @@ TYP: {'Elektronika/Urządzenie' if is_electronics else ('Dekoracja/Materiał' if
 ✓ Pisz "ten produkt", "to urządzenie" — nie powtarzaj pełnej nazwy
 
 === ZAKAZ ===
-<i class=mi style=color:#ef4444>cancel</i> Puste frazesy: "najwyższa jakość", "wyjątkowe wykonanie", "innowacyjne rozwiązanie"
-<i class=mi style=color:#ef4444>cancel</i> Wymyślanie parametrów których nie ma w bullet points
-<i class=mi style=color:#ef4444>cancel</i> Sekcje: wysyłka, zwroty, kontakt, gwarancja, GPSR
-<i class=mi style=color:#ef4444>cancel</i> Tytuł produktu na początku
-<i class=mi style=color:#ef4444>cancel</i> Wymiary typu "10x2.75" to ROZMIARY, nie ilości sztuk
-<i class=mi style=color:#ef4444>cancel</i> Wymyślanie ilości sztuk w zestawie jeśli nie podano
+<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Puste frazesy: "najwyższa jakość", "wyjątkowe wykonanie", "innowacyjne rozwiązanie"
+<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Wymyślanie parametrów których nie ma w bullet points
+<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Sekcje: wysyłka, zwroty, kontakt, gwarancja, GPSR
+<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Tytuł produktu na początku
+<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Wymiary typu "10x2.75" to ROZMIARY, nie ilości sztuk
+<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Wymyślanie ilości sztuk w zestawie jeśli nie podano
 
 Wygeneruj opis:"""
 
@@ -1757,7 +1757,7 @@ OGÓLNY PRODUKT - skup się na:
         {"icon": "<span class="material-symbols-outlined">inventory_2</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
         {"icon": "<span class="material-symbols-outlined">bolt</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
         {"icon": "<span class="material-symbols-outlined">adjust</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
-        {"icon": "<i class=mi style=color:#22c55e>check_circle</i>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
+        {"icon": "<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
         {"icon": "<span class="material-symbols-outlined">build</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
         {"icon": "<span class="material-symbols-outlined">lightbulb</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
         {"icon": "<span class="material-symbols-outlined">battery_full</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
@@ -2029,7 +2029,7 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
             
             if bullet_points:
                 for i, bp in enumerate(bullet_points[:5]):
-                    features.append({"icon": icons[i] if i < len(icons) else "<i class=mi style=color:#22c55e>check_circle</i>", "title": titles[i] if i < len(titles) else "Specyfikacja", "text": bp})
+                    features.append({"icon": icons[i] if i < len(icons) else "<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>", "title": titles[i] if i < len(titles) else "Specyfikacja", "text": bp})
             
             specs = []
         
@@ -2115,7 +2115,7 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
                         icon = "<span class="material-symbols-outlined">location_on</span>"
                     else:
                         title = titles[i] if i < len(titles) else "Specyfikacja"
-                        icon = icons[i] if i < len(icons) else "<i class=mi style=color:#22c55e>check_circle</i>"
+                        icon = icons[i] if i < len(icons) else "<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>"
                     
                     features.append({"icon": icon, "title": title, "text": bp})
             else:
@@ -2153,7 +2153,7 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
             # Jeśli są bullet points z Amazona, przetwórz je inteligentnie
             if bullet_points and len(bullet_points) > 0:
                 features = []
-                icons_default = ["<i class=mi style=color:#22c55e>check_circle</i>", "<span class="material-symbols-outlined">inventory_2</span>", "<span class="material-symbols-outlined">bolt</span>", "<span class="material-symbols-outlined">adjust</span>", "<span class="material-symbols-outlined">lightbulb</span>"]
+                icons_default = ["<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>", "<span class="material-symbols-outlined">inventory_2</span>", "<span class="material-symbols-outlined">bolt</span>", "<span class="material-symbols-outlined">adjust</span>", "<span class="material-symbols-outlined">lightbulb</span>"]
                 for i, bp in enumerate(bullet_points[:5]):
                     # Wyczyść Amazonowe formatowanie
                     bp = re.sub(r'[【】\[\]●○•·]', '', bp).strip()
@@ -2182,7 +2182,7 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
                     elif any(x in bp_lower for x in ['regulacja', 'adjust', 'regulowan', 'height', 'tilt']):
                         icon, title = "<span class="material-symbols-outlined">build</span>", "Regulacja"
                     elif any(x in bp_lower for x in ['gwarancja', 'warranty', 'jakość', 'quality']):
-                        icon, title = "<i class=mi style=color:#22c55e>check_circle</i>", "Jakość"
+                        icon, title = "<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>", "Jakość"
                     else:
                         icon = icons_default[i % len(icons_default)]
                         title = f"Cecha {i+1}"
@@ -2275,7 +2275,7 @@ ZASADY:
 
     # FEATURES SECTIONS - rozbudowane!
     for feature in features[:7]:  # Do 7 sekcji zamiast 5
-        icon = feature.get('icon', '<i class=mi style=color:#22c55e>check_circle</i>')
+        icon = feature.get('icon', '<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>')
         title = feature.get('title', '')
         text = feature.get('text', '')
         # Wyczyść Amazonowe formatowanie z tekstu
@@ -2293,7 +2293,7 @@ ZASADY:
     # ========== GENERUJ PLAIN TEXT (fallback) ==========
     plain_text = f"{nazwa}\n\n{intro_text}\n\n"
     for feature in features[:7]:
-        plain_text += f"{feature.get('icon', '<i class=mi style=color:#22c55e>check_circle</i>')} **{feature.get('title', '')}**\n{feature.get('text', '')}\n\n"
+        plain_text += f"{feature.get('icon', '<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>')} **{feature.get('title', '')}**\n{feature.get('text', '')}\n\n"
     
     # ASIN usunięty z opisów — nie pokazujemy pochodzenia produktu
     

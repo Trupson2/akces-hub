@@ -490,8 +490,8 @@ a {{ color:#09b1ba; }}
 
     <div class="card">
         <h3>Status połączenia</h3>
-        {'<span class="badge badge-green"><i class=mi style=color:#22c55e>check_circle</i> Zalogowano jako ' + username + '</span>' if auth else
-         '<span class="badge badge-red"><i class=mi style=color:#ef4444>cancel</i> Nie zalogowano</span>'}
+        {'<span class="badge badge-green"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Zalogowano jako ' + username + '</span>' if auth else
+         '<span class="badge badge-red"><span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Nie zalogowano</span>'}
     </div>
 
     <div class="stats-row">
@@ -681,7 +681,7 @@ def vinted_save_cookies():
     """Zapisuje cookies Vinted"""
     raw = request.form.get('cookies_json', '').strip()
     if not raw:
-        flash('<i class=mi style=color:#ef4444>cancel</i> Wklej cookies JSON', 'error')
+        flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Wklej cookies JSON', 'error')
         return redirect('/vinted')
 
     try:
@@ -696,7 +696,7 @@ def vinted_save_cookies():
             cookies = cookies_dict
 
         if not isinstance(cookies, dict) or len(cookies) == 0:
-            flash('<i class=mi style=color:#ef4444>cancel</i> Nieprawidłowy format JSON. Użyj {"nazwa": "wartość", ...}', 'error')
+            flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Nieprawidłowy format JSON. Użyj {"nazwa": "wartość", ...}', 'error')
             return redirect('/vinted')
 
         _save_cookies(cookies)
@@ -705,12 +705,12 @@ def vinted_save_cookies():
         if is_authenticated():
             user = get_current_user()
             name = user.get('login', '?') if user else '?'
-            flash(f'<i class=mi style=color:#22c55e>check_circle</i> Zalogowano na Vinted jako {name}!', 'success')
+            flash(f'<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Zalogowano na Vinted jako {name}!', 'success')
         else:
             flash('<span class="material-symbols-outlined">warning</span> Cookies zapisane, ale sesja nie działa. Upewnij się że jesteś zalogowany na vinted.pl i skopiuj świeże cookies.', 'warning')
 
     except json.JSONDecodeError:
-        flash('<i class=mi style=color:#ef4444>cancel</i> Nieprawidłowy JSON. Skopiuj dokładnie z EditThisCookie.', 'error')
+        flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Nieprawidłowy JSON. Skopiuj dokładnie z EditThisCookie.', 'error')
 
     return redirect('/vinted')
 
@@ -728,7 +728,7 @@ def vinted_add_product():
     zdjecie_url = request.form.get('zdjecie_url', '').strip()
 
     if not nazwa or cena <= 0:
-        flash('<i class=mi style=color:#ef4444>cancel</i> Podaj nazwę i cenę produktu', 'error')
+        flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Podaj nazwę i cenę produktu', 'error')
         return redirect('/vinted')
 
     # Dodaj markę/rozmiar do nazwy jeśli podane
@@ -747,9 +747,9 @@ def vinted_add_product():
         ''', (nazwa, krotki_tytul, kategoria, stan, cena, koszt, round(koszt / 1.23, 2),
               zdjecie_url, marka))
         conn.commit()
-        flash(f'<i class=mi style=color:#22c55e>check_circle</i> Dodano: {krotki_tytul} - {cena:.0f} zł', 'success')
+        flash(f'<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Dodano: {krotki_tytul} - {cena:.0f} zł', 'success')
     except Exception as e:
-        flash(f'<i class=mi style=color:#ef4444>cancel</i> Błąd: {e}', 'error')
+        flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Błąd: {e}', 'error')
 
     return redirect('/vinted')
 
@@ -763,9 +763,9 @@ def vinted_delete_product(produkt_id):
         conn.execute('DELETE FROM produkty WHERE id = ? AND dostawca = ? AND paleta_id IS NULL',
                      (produkt_id, 'osobiste'))
         conn.commit()
-        flash('<i class=mi style=color:#22c55e>check_circle</i> Usunięto produkt', 'success')
+        flash('<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Usunięto produkt', 'success')
     except Exception as e:
-        flash(f'<i class=mi style=color:#ef4444>cancel</i> Błąd: {e}', 'error')
+        flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Błąd: {e}', 'error')
     return redirect('/vinted')
 
 
@@ -777,7 +777,7 @@ def vinted_logout():
             os.remove(COOKIES_FILE)
     except:
         pass
-    flash('<i class=mi style=color:#22c55e>check_circle</i> Wylogowano z Vinted', 'success')
+    flash('<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Wylogowano z Vinted', 'success')
     return redirect('/vinted')
 
 
@@ -785,14 +785,14 @@ def vinted_logout():
 def vinted_create_item_route(produkt_id):
     """Tworzy ogłoszenie na Vinted"""
     if not is_authenticated():
-        flash('<i class=mi style=color:#ef4444>cancel</i> Najpierw zaloguj się do Vinted (wklej cookies)', 'error')
+        flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Najpierw zaloguj się do Vinted (wklej cookies)', 'error')
         return redirect('/vinted')
 
     item_id, err = create_vinted_item(produkt_id)
     if err:
-        flash(f'<i class=mi style=color:#ef4444>cancel</i> {err}', 'error')
+        flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> {err}', 'error')
     else:
-        flash(f'<i class=mi style=color:#22c55e>check_circle</i> Wystawiono na Vinted! (ID: {item_id})', 'success')
+        flash(f'<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Wystawiono na Vinted! (ID: {item_id})', 'success')
 
     return redirect(request.referrer or '/vinted')
 
@@ -801,12 +801,12 @@ def vinted_create_item_route(produkt_id):
 def vinted_delete_item(vinted_item_id):
     """Usuwa ogłoszenie z Vinted"""
     if not is_authenticated():
-        flash('<i class=mi style=color:#ef4444>cancel</i> Najpierw zaloguj się', 'error')
+        flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Najpierw zaloguj się', 'error')
         return redirect('/vinted')
 
     result, err = vinted_api_request('DELETE', f'/items/{vinted_item_id}')
     if err:
-        flash(f'<i class=mi style=color:#ef4444>cancel</i> {err}', 'error')
+        flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> {err}', 'error')
     else:
         try:
             conn = get_db()
@@ -814,7 +814,7 @@ def vinted_delete_item(vinted_item_id):
             conn.commit()
         except:
             pass
-        flash('<i class=mi style=color:#22c55e>check_circle</i> Usunięto z Vinted', 'success')
+        flash('<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Usunięto z Vinted', 'success')
 
     return redirect('/vinted')
 

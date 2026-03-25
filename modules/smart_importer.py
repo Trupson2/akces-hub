@@ -556,9 +556,9 @@ def smart_import_excel(
                 print(f"[OK] [STAN COMPLETE] Wykryto stan dla {stany_detected}/{len(products)} produktów")
                 print(f"[OK] [GPSR COMPLETE] Wygenerowano GPSR dla {gpsr_generated}/{len(products)} produktów")
                 
-                result["details"].append(f"<i class=mi style=color:#22c55e>check_circle</i> Wygenerowano {meta_titles_generated}/{len(products)} tytułów META TITLE")
-                result["details"].append(f"<i class=mi style=color:#22c55e>check_circle</i> Wykryto stan dla {stany_detected}/{len(products)} produktów")
-                result["details"].append(f"<i class=mi style=color:#22c55e>check_circle</i> Wygenerowano GPSR dla {gpsr_generated}/{len(products)} produktów")
+                result["details"].append(f"<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Wygenerowano {meta_titles_generated}/{len(products)} tytułów META TITLE")
+                result["details"].append(f"<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Wykryto stan dla {stany_detected}/{len(products)} produktów")
+                result["details"].append(f"<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Wygenerowano GPSR dla {gpsr_generated}/{len(products)} produktów")
                 
             except Exception as e:
                 result["details"].append(f"<span class="material-symbols-outlined">warning</span>  Błąd generowania META TITLE: {str(e)}")

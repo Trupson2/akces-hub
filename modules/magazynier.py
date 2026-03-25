@@ -5362,9 +5362,9 @@ def import_preview():
         if paleta_dostawca:
             detection_logs += f'<div style="color:#beee00;padding:4px 0"><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> [INFO] Dostawca: <strong>{paleta_dostawca}</strong></div>'
         if detected_ean_col_name:
-            detection_logs += f'<div style="color:#8ff5ff;padding:4px 0"><i class=mi style=color:#3b82f6>info</i> [INFO] Wykryto kolumnę EAN: "{detected_ean_col_name}"</div>'
+            detection_logs += f'<div style="color:#8ff5ff;padding:4px 0"><span class="material-symbols-outlined" style="color:#3b82f6">info</span> [INFO] Wykryto kolumnę EAN: "{detected_ean_col_name}"</div>'
         if detected_asin_col_name and auto_asin != auto_ean:
-            detection_logs += f'<div style="color:#8ff5ff;padding:4px 0"><i class=mi style=color:#3b82f6>info</i> [INFO] Wykryto kolumnę ASIN: "{detected_asin_col_name}"</div>'
+            detection_logs += f'<div style="color:#8ff5ff;padding:4px 0"><span class="material-symbols-outlined" style="color:#3b82f6">info</span> [INFO] Wykryto kolumnę ASIN: "{detected_asin_col_name}"</div>'
         
         # Generuj opcje select
         def make_options(selected):

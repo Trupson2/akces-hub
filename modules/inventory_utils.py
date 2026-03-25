@@ -443,7 +443,7 @@ def import_excel_manifest(
             conn_temp.commit()
 
             result["paleta_id"] = paleta_id  # Zapisz ID palety w wyniku
-            result["details"].append(f"<i class=mi style=color:#22c55e>check_circle</i> Utworzono paletę: {nazwa_palety} (ID: {paleta_id})")
+            result["details"].append(f"<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Utworzono paletę: {nazwa_palety} (ID: {paleta_id})")
         elif paleta_id:
             result["paleta_id"] = paleta_id  # Użyto istniejącej palety
         
@@ -910,5 +910,5 @@ if __name__ == "__main__":
     
     for val in test_values:
         result = SmartQuantityParser.parse(val)
-        status = "<i class=mi style=color:#22c55e>check_circle</i>" if result.confidence >= 0.7 else "<span class="material-symbols-outlined">warning</span>"
+        status = "<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>" if result.confidence >= 0.7 else "<span class="material-symbols-outlined">warning</span>"
         print(f"  {status} '{val}' -> {result.value} (conf: {result.confidence:.2f}, method: {result.method})")

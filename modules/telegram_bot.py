@@ -715,7 +715,7 @@ def whatsapp_test():
         return redirect('/telegram')
     else:
         return render('''
-            <div class="header"><h1><i class=mi style=color:#ef4444>cancel</i> BŁĄD</h1></div>
+            <div class="header"><h1><span class="material-symbols-outlined" style="color:#ef4444">cancel</span> BŁĄD</h1></div>
             <div class="alert" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#ef4444">
                 Nie udało się wysłać WhatsApp.<br>
                 Sprawdź numer i API key.
@@ -743,7 +743,7 @@ def test():
         return redirect('/telegram')
     else:
         return render('''
-            <div class="header"><h1><i class=mi style=color:#ef4444>cancel</i> BŁĄD</h1></div>
+            <div class="header"><h1><span class="material-symbols-outlined" style="color:#ef4444">cancel</span> BŁĄD</h1></div>
             <div class="alert" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#ef4444">
                 Nie udało się wysłać wiadomości.<br>
                 Sprawdź token i chat ID.
@@ -1108,14 +1108,14 @@ def monitor_page():
     <div class="tg-section"><span class="material-symbols-outlined">satellite_alt</span> STATUS</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
         <div class="item">
-            <span style="font-size:1.5rem;margin-right:10px">{'<i class=mi style=color:#22c55e>check_circle</i>' if telegram_ok else '<i class=mi style=color:#ef4444>cancel</i>'}</span>
+            <span style="font-size:1.5rem;margin-right:10px">{'<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>' if telegram_ok else '<span class="material-symbols-outlined" style="color:#ef4444">cancel</span>'}</span>
             <div class="item-info">
                 <div class="item-name">Telegram</div>
                 <div class="item-meta">{'Skonfigurowany' if telegram_ok else 'Brak tokena/chat_id'}</div>
             </div>
         </div>
         <div class="item">
-            <span style="font-size:1.5rem;margin-right:10px">{'<i class=mi style=color:#22c55e>check_circle</i>' if allegro_ok else '<i class=mi style=color:#ef4444>cancel</i>'}</span>
+            <span style="font-size:1.5rem;margin-right:10px">{'<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>' if allegro_ok else '<span class="material-symbols-outlined" style="color:#ef4444">cancel</span>'}</span>
             <div class="item-info">
                 <div class="item-name">Allegro API</div>
                 <div class="item-meta">{'Połączono' if allegro_ok else 'Niezalogowany'}</div>
@@ -1189,13 +1189,13 @@ def monitor_check():
                 sent_count += 1
 
         return render(f'''
-            <div class="header"><h1><i class=mi style=color:#22c55e>check_circle</i> SPRAWDZONO</h1></div>
+            <div class="header"><h1><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> SPRAWDZONO</h1></div>
             <div class="alert alert-ok">Znaleziono {len(new_orders)} zamówień, wysłano {sent_count} nowych powiadomień.</div>
             <a href="/telegram/monitor" class="back">← Powrót</a>
         ''')
     else:
         return render('''
-            <div class="header"><h1><i class=mi style=color:#22c55e>check_circle</i> SPRAWDZONO</h1></div>
+            <div class="header"><h1><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> SPRAWDZONO</h1></div>
             <div class="alert" style="background:#1e1e2e">Brak nowych zamówień</div>
             <a href="/telegram/monitor" class="back">← Powrót</a>
         ''')
@@ -1305,7 +1305,7 @@ def live_dashboard():
             monEl.style.color = data.monitor_running ? '#22c55e' : '#ef4444';
             
             const allEl = document.getElementById('status-allegro');
-            allEl.textContent = data.allegro_ok ? '<i class=mi style=color:#22c55e>check_circle</i> Allegro' : '<i class=mi style=color:#ef4444>cancel</i> Allegro';
+            allEl.textContent = data.allegro_ok ? '<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Allegro' : '<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Allegro';
             allEl.style.background = data.allegro_ok ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)';
             allEl.style.color = data.allegro_ok ? '#22c55e' : '#ef4444';
             

@@ -111,13 +111,13 @@ def register_printer_routes(bp: Blueprint):
             color = '#22c55e' if is_current else ('#8b5cf6' if is_bt else '#64748b')
             bg = f'{color}22'
             border = color
-            check = ' <i class=mi style=color:#22c55e>check_circle</i>' if is_current else ''
+            check = ' <span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>' if is_current else ''
             ports_html += f'''<button type="submit" name="com_port" value="{port.device}"
                 style="display:flex;align-items:center;gap:8px;width:100%;padding:12px 16px;background:{bg};border:2px solid {border};border-radius:10px;color:{color};font-size:0.95rem;font-weight:600;cursor:pointer;margin-bottom:8px;text-align:left">
                 {label}{check}</button>'''
 
         if not ports_html:
-            ports_html = '<div style="color:#ef4444;padding:12px"><i class=mi style=color:#ef4444>cancel</i> Brak portów COM — podłącz drukarkę USB lub sparuj Bluetooth</div>'
+            ports_html = '<div style="color:#ef4444;padding:12px"><span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Brak portów COM — podłącz drukarkę USB lub sparuj Bluetooth</div>'
 
         html = f'''
         <div class="hdr"><h1><span class="material-symbols-outlined">print</span> DRUKARKA</h1><small>Niimbot B1</small></div>
@@ -143,19 +143,19 @@ def register_printer_routes(bp: Blueprint):
             <div class="det-grid">
                 <div class="det">
                     <div class="det-l">niimprint (USB)</div>
-                    <div class="det-v">{'<i class=mi style=color:#22c55e>check_circle</i> OK' if status['niimprint_usb'] else '<i class=mi style=color:#ef4444>cancel</i> Brak'}</div>
+                    <div class="det-v">{'<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> OK' if status['niimprint_usb'] else '<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Brak'}</div>
                 </div>
                 <div class="det">
                     <div class="det-l">niimprint (BT)</div>
-                    <div class="det-v">{'<i class=mi style=color:#22c55e>check_circle</i> OK' if status['niimprint'] else '<i class=mi style=color:#ef4444>cancel</i> Brak'}</div>
+                    <div class="det-v">{'<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> OK' if status['niimprint'] else '<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Brak'}</div>
                 </div>
                 <div class="det">
                     <div class="det-l">pillow/qrcode</div>
-                    <div class="det-v">{'<i class=mi style=color:#22c55e>check_circle</i> OK' if status['imaging'] else '<i class=mi style=color:#ef4444>cancel</i> Brak'}</div>
+                    <div class="det-v">{'<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> OK' if status['imaging'] else '<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Brak'}</div>
                 </div>
                 <div class="det">
                     <div class="det-l">python-barcode</div>
-                    <div class="det-v">{'<i class=mi style=color:#22c55e>check_circle</i> OK' if status['barcode'] else '<span class="material-symbols-outlined">warning</span> Brak'}</div>
+                    <div class="det-v">{'<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> OK' if status['barcode'] else '<span class="material-symbols-outlined">warning</span> Brak'}</div>
                 </div>
             </div>
         </div>
@@ -478,12 +478,12 @@ def register_printer_routes(bp: Blueprint):
                     from niimprint import SerialTransport, PrinterClient
                     niimprint_available = True
                     serial_transport = SerialTransport
-                    log_capture("<i class=mi style=color:#22c55e>check_circle</i> niimprint dostępny (USB)")
+                    log_capture("<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> niimprint dostępny (USB)")
                 except ImportError:
                     try:
                         from niimprint import BluetoothTransport, PrinterClient
                         niimprint_available = True
-                        log_capture("<i class=mi style=color:#22c55e>check_circle</i> niimprint dostępny (Bluetooth only)")
+                        log_capture("<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> niimprint dostępny (Bluetooth only)")
                     except ImportError:
                         log_capture("<span class="material-symbols-outlined">warning</span> niimprint niedostępny")
                 
@@ -492,7 +492,7 @@ def register_printer_routes(bp: Blueprint):
                     try:
                         log_capture("<span class="material-symbols-outlined">sync</span> Generuję obraz etykiety...")
                         img = pm._generate_label_image(test_label)
-                        log_capture(f"<i class=mi style=color:#22c55e>check_circle</i> Obraz: {img.size[0]}x{img.size[1]} px, mode={img.mode}")
+                        log_capture(f"<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Obraz: {img.size[0]}x{img.size[1]} px, mode={img.mode}")
                         
                         # Konwersja
                         target_width = 384
@@ -518,24 +518,24 @@ def register_printer_routes(bp: Blueprint):
                         log_capture("<span class="material-symbols-outlined">power</span> Zamykam połączenie...")
                         transport.close()
                         
-                        log_capture("<i class=mi style=color:#22c55e>check_circle</i> DRUK ZAKOŃCZONY!")
+                        log_capture("<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> DRUK ZAKOŃCZONY!")
                         result_holder['success'] = True
                     except Exception as e:
-                        log_capture(f"<i class=mi style=color:#ef4444>cancel</i> Błąd niimprint USB: {e}")
+                        log_capture(f"<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Błąd niimprint USB: {e}")
                         result_holder['error'] = str(e)
                 elif niimprint_available:
                     # Fallback na Bluetooth
                     log_capture("<span class="material-symbols-outlined">warning</span> USB niedostępny, próbuję Bluetooth...")
                     result_holder['error'] = "USB niedostępny - podłącz drukarkę kablem"
                 else:
-                    log_capture("<i class=mi style=color:#ef4444>cancel</i> niimprint nie jest zainstalowany")
+                    log_capture("<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> niimprint nie jest zainstalowany")
                     log_capture("<span class="material-symbols-outlined">lightbulb</span> Zainstaluj: py -3.11 -m pip install niimprint")
                     result_holder['error'] = "Brak niimprint"
                 
                 loop.close()
                 
             except Exception as e:
-                log_capture(f"<i class=mi style=color:#ef4444>cancel</i> Krytyczny błąd: {e}")
+                log_capture(f"<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Krytyczny błąd: {e}")
                 result_holder['error'] = str(e)
         
         # Uruchom test
@@ -544,16 +544,16 @@ def register_printer_routes(bp: Blueprint):
                 future = executor.submit(test_print_thread)
                 future.result(timeout=60)
         except FuturesTimeoutError:
-            logs.append("<i class=mi style=color:#ef4444>cancel</i> Timeout - drukarka nie odpowiada po 60s")
+            logs.append("<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Timeout - drukarka nie odpowiada po 60s")
             result_holder['error'] = "Timeout"
         except Exception as e:
-            logs.append(f"<i class=mi style=color:#ef4444>cancel</i> Błąd: {e}")
+            logs.append(f"<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Błąd: {e}")
         
         # Wyświetl wynik
         from .magazynier import render
         
         status_class = "alert-ok" if result_holder['success'] else "alert-err"
-        status_text = "<i class=mi style=color:#22c55e>check_circle</i> SUKCES!" if result_holder['success'] else f"<i class=mi style=color:#ef4444>cancel</i> BŁĄD: {result_holder['error']}"
+        status_text = "<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> SUKCES!" if result_holder['success'] else f"<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> BŁĄD: {result_holder['error']}"
         
         logs_html = "<br>".join(logs)
         
@@ -739,12 +739,12 @@ def register_printer_routes(bp: Blueprint):
                     status.style.background = '#22c55e22';
                     status.style.border = '2px solid #22c55e';
                     status.style.color = '#22c55e';
-                    status.innerHTML = '<i class=mi style=color:#22c55e>check_circle</i> Wydrukowano ' + copies + (copies === 1 ? ' etykietę' : ' etykiet') + '!';
+                    status.innerHTML = '<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Wydrukowano ' + copies + (copies === 1 ? ' etykietę' : ' etykiet') + '!';
                 }} else {{
                     status.style.background = '#ef444422';
                     status.style.border = '2px solid #ef4444';
                     status.style.color = '#ef4444';
-                    status.innerHTML = '<i class=mi style=color:#ef4444>cancel</i> ' + (data.message || 'Błąd druku — sprawdź drukarkę');
+                    status.innerHTML = '<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> ' + (data.message || 'Błąd druku — sprawdź drukarkę');
                 }}
             }})
             .catch(err => {{
@@ -752,7 +752,7 @@ def register_printer_routes(bp: Blueprint):
                 status.style.background = '#ef444422';
                 status.style.border = '2px solid #ef4444';
                 status.style.color = '#ef4444';
-                status.innerHTML = '<i class=mi style=color:#ef4444>cancel</i> Błąd połączenia: ' + err.message;
+                status.innerHTML = '<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Błąd połączenia: ' + err.message;
             }})
             .finally(() => {{
                 document.querySelectorAll('button').forEach(b => b.disabled = false);
@@ -941,11 +941,11 @@ def register_printer_routes(bp: Blueprint):
             except:
                 pass
             
-            return redirect(f'/magazyn/produkt/{code}?msg=<i class=mi style=color:#22c55e>check_circle</i> Wydrukowano!')
+            return redirect(f'/magazyn/produkt/{code}?msg=<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Wydrukowano!')
         else:
             from .magazynier import render
             html = f'''
-            <div class="hdr"><h1><i class=mi style=color:#ef4444>cancel</i> BŁĄD DRUKU</h1></div>
+            <div class="hdr"><h1><span class="material-symbols-outlined" style="color:#ef4444">cancel</span> BŁĄD DRUKU</h1></div>
             <div class="alert alert-err">{result['message']}</div>
             <a href="/magazyn/drukuj-szybko/{code}" class="btn btn-ok" style="font-size:1.3rem;padding:15px"><span class="material-symbols-outlined">sync</span> SPRÓBUJ PONOWNIE</a>
             <a href="/magazyn/drukarka" class="btn btn-2"><span class="material-symbols-outlined">build</span> Ustawienia drukarki</a>
@@ -1149,11 +1149,11 @@ def register_printer_routes(bp: Blueprint):
             <div class="card" style="padding:15px">
                 <div style="font-weight:600;margin-bottom:12px">Ulepszony import Excel</div>
                 <div style="color:#64748b;font-size:0.85rem;margin-bottom:15px">
-                    <i class=mi style=color:#22c55e>check_circle</i> Auto-wykrywanie kolumn ilości<br>
-                    <i class=mi style=color:#22c55e>check_circle</i> Obsługa formatów: "5 szt.", "5.0", "qty: 5"<br>
-                    <i class=mi style=color:#22c55e>check_circle</i> Auto-detekcja dostawcy<br>
-                    <i class=mi style=color:#22c55e>check_circle</i> Auto-tworzenie palety<br>
-                    <i class=mi style=color:#22c55e>check_circle</i> Statystyki parsowania
+                    <span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Auto-wykrywanie kolumn ilości<br>
+                    <span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Obsługa formatów: "5 szt.", "5.0", "qty: 5"<br>
+                    <span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Auto-detekcja dostawcy<br>
+                    <span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Auto-tworzenie palety<br>
+                    <span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Statystyki parsowania
                 </div>
                 
                 <form action="/magazyn/import/v2" method="POST" enctype="multipart/form-data">
@@ -1217,7 +1217,7 @@ def register_printer_routes(bp: Blueprint):
         
         # Pokaż wyniki
         html = f'''
-        <div class="hdr"><h1>{'<i class=mi style=color:#22c55e>check_circle</i>' if result['success'] else '<i class=mi style=color:#ef4444>cancel</i>'} IMPORT ZAKOŃCZONY</h1></div>
+        <div class="hdr"><h1>{'<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>' if result['success'] else '<span class="material-symbols-outlined" style="color:#ef4444">cancel</span>'} IMPORT ZAKOŃCZONY</h1></div>
         '''
         
         if result['success']:
@@ -1279,7 +1279,7 @@ def register_printer_routes(bp: Blueprint):
         
         # Błędy
         if result.get('errors'):
-            html += '<div class="section" style="color:#ef4444"><i class=mi style=color:#ef4444>cancel</i> Błędy</div><div class="card" style="padding:15px">'
+            html += '<div class="section" style="color:#ef4444"><span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Błędy</div><div class="card" style="padding:15px">'
             for error in result['errors'][:5]:  # Max 5
                 html += f'<div style="font-size:0.85rem;color:#ef4444;margin-bottom:4px">{error[:200]}</div>'
             html += '</div>'

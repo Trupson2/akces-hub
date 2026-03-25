@@ -582,7 +582,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
                 for bp in bullet_points[:5]:
                     opis_html += f"<p><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> {bp}</p>"
             if asin:
-                opis_html += f'<p><i><i class=mi>bookmark</i> Kod produktu (ASIN): {asin}</i></p>'
+                opis_html += f'<p><i><span class="material-symbols-outlined">bookmark</span> Kod produktu (ASIN): {asin}</i></p>'
             opis_plain = nazwa
         
         # <span class=material-symbols-outlined style=font-size:1rem>shield</span> GPSR: Generuj informacje bezpieczeństwa
@@ -657,7 +657,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
 
 def auto_process_products(asins, preferred_domain=None):
     """
-    <i class=mi>agriculture</i> KOMBAJN MODE: Automatycznie przetwarza produkty RÓWNOLEGLE.
+    <span class="material-symbols-outlined">agriculture</span> KOMBAJN MODE: Automatycznie przetwarza produkty RÓWNOLEGLE.
     Zamiast 1 produkt na raz, robi 5 naraz = 5x SZYBCIEJ!
     preferred_domain: np. 'co.uk', 'de', 'com' - próbuje tę domenę jako pierwszą
     """
@@ -1017,7 +1017,7 @@ if(saved) document.documentElement.setAttribute('data-theme', saved);
             <span class="sl-icon"><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span></span>Dashboard
         </a>
         <a href="/paletomat/scraper" class="sidebar-link">
-            <span class="sl-icon"><i class=mi>language</i></span>Amazon Scraper
+            <span class="sl-icon"><span class="material-symbols-outlined">language</span></span>Amazon Scraper
         </a>
         <a href="/paletomat/generator" class="sidebar-link">
             <span class="sl-icon"><span class=material-symbols-outlined style=font-size:1rem>label</span></span>Generator ofert
@@ -1047,7 +1047,7 @@ if(saved) document.documentElement.setAttribute('data-theme', saved);
     </nav>
     <div class="sidebar-bottom">
         <a href="/narzedzia"><span class="sl-icon"><span class=material-symbols-outlined style=font-size:1rem>bolt</span></span>Narzedzia</a>
-        <a href="/"><span class="sl-icon"><i class=mi>home</i></span>Strona glowna</a>
+        <a href="/"><span class="sl-icon"><span class="material-symbols-outlined">home</span></span>Strona glowna</a>
     </div>
 </aside>
 
@@ -1057,7 +1057,7 @@ if(saved) document.documentElement.setAttribute('data-theme', saved);
     <div class="topbar-title">Dashboard</div>
     <div class="topbar-actions">
         <div class="theme-toggle" onclick="toggleTheme()" title="Zmien motyw">
-            <span id="theme-icon"><i class=mi>dark_mode</i></span>
+            <span id="theme-icon"><span class="material-symbols-outlined">dark_mode</span></span>
         </div>
     </div>
 </div>
@@ -1232,7 +1232,7 @@ def scraper():
     
     # Dropdown palet (pełny - dla formularza ASIN)
     palety_options = '<option value="">-- Bez palety --</option>'
-    palety_options += '<option value="new"><i class=mi>add</i> Nowa paleta...</option>'
+    palety_options += '<option value="new"><span class="material-symbols-outlined">add</span> Nowa paleta...</option>'
     for p in palety:
         palety_options += f'<option value="{p["id"]}">{p["nazwa"]} ({p["dostawca"] or "brak dostawcy"})</option>'
     
@@ -1242,7 +1242,7 @@ def scraper():
         palety_options_clean += f'<option value="{p["id"]}">{p["nazwa"]} ({p["dostawca"] or "brak dostawcy"})</option>'
     
     html = f'''
-    <div class="hdr"><h1><i class=mi>language</i> AMAZON SCRAPER</h1><small>Pobierz produkty</small></div>
+    <div class="hdr"><h1><span class="material-symbols-outlined">language</span> AMAZON SCRAPER</h1><small>Pobierz produkty</small></div>
     
     <!-- FORMULARZ 1: SCRAPE PO ASIN -->
     <div class="card">
@@ -1253,12 +1253,12 @@ def scraper():
                     <label><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Paleta</label>
                     <select name="paleta_id" class="form-ctrl" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
                         <option value="">-- Bez palety --</option>
-                        <option value="new"><i class=mi>add</i> Nowa paleta...</option>
+                        <option value="new"><span class="material-symbols-outlined">add</span> Nowa paleta...</option>
                         {palety_options_clean}
                     </select>
                 </div>
                 <div class="form-group" style="margin-bottom:0">
-                    <label><i class=mi>factory</i> Dostawca</label>
+                    <label><span class="material-symbols-outlined">factory</span> Dostawca</label>
                     <select name="dostawca" class="form-ctrl">
                         <option value="">-- Wybierz --</option>
                         <option value="Jobalots">🇳🇱 Jobalots</option>
@@ -1296,19 +1296,19 @@ def scraper():
     
     <!-- FORMULARZ 2: SCRAPE Z PLIKU -->
     <div class="card">
-        <div class="card-title"><i class=mi>folder</i> SCRAPE Z PLIKU (JOBALOTS/WARRINGTON)</div>
+        <div class="card-title"><span class="material-symbols-outlined">folder</span> SCRAPE Z PLIKU (JOBALOTS/WARRINGTON)</div>
         <form action="/paletomat/scraper/file" method="POST" enctype="multipart/form-data">
             <div class="form-row" style="margin-bottom:15px;padding:10px;background:#1a1a2e;border-radius:8px;border:1px solid #8ff5ff">
                 <div class="form-group" style="margin-bottom:0">
                     <label><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Paleta</label>
                     <select name="paleta_id" class="form-ctrl" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
                         <option value="">-- Bez palety --</option>
-                        <option value="new"><i class=mi>add</i> Nowa paleta...</option>
+                        <option value="new"><span class="material-symbols-outlined">add</span> Nowa paleta...</option>
                         {palety_options_clean}
                     </select>
                 </div>
                 <div class="form-group" style="margin-bottom:0">
-                    <label><i class=mi>factory</i> Dostawca</label>
+                    <label><span class="material-symbols-outlined">factory</span> Dostawca</label>
                     <select name="dostawca" class="form-ctrl">
                         <option value="">-- Wybierz --</option>
                         <option value="Jobalots">🇳🇱 Jobalots</option>
@@ -1321,7 +1321,7 @@ def scraper():
             <input type="text" name="nowa_paleta_nazwa" class="form-ctrl" placeholder="Nazwa nowej palety" style="display:none;margin-bottom:15px">
             
             <div class="form-group">
-                <label><i class=mi>description</i> Plik Excel (.xlsx) lub CSV/TXT</label>
+                <label><span class="material-symbols-outlined">description</span> Plik Excel (.xlsx) lub CSV/TXT</label>
                 <input type="file" name="file" class="form-ctrl" accept=".txt,.csv,.xlsx,.xls" required>
                 <div style="font-size:0.7rem;color:#64748b;margin-top:5px">Automatycznie wykrywa: ASIN, cenę, ilość, EAN, zdjęcia</div>
             </div>
@@ -1342,12 +1342,12 @@ def scraper():
                     <label><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Paleta</label>
                     <select name="paleta_id" class="form-ctrl" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
                         <option value="">-- Bez palety --</option>
-                        <option value="new"><i class=mi>add</i> Nowa paleta...</option>
+                        <option value="new"><span class="material-symbols-outlined">add</span> Nowa paleta...</option>
                         {palety_options_clean}
                     </select>
                 </div>
                 <div class="form-group" style="margin-bottom:0">
-                    <label><i class=mi>factory</i> Dostawca</label>
+                    <label><span class="material-symbols-outlined">factory</span> Dostawca</label>
                     <select name="dostawca" class="form-ctrl">
                         <option value="Miglo" selected>🇵🇱 Miglo</option>
                         <option value="Jobalots">🇳🇱 Jobalots</option>
@@ -2435,7 +2435,7 @@ def _render_stan_fields(grupy_stanow, stan_magazyn):
                     style="width:70px;padding:6px;background:#1e1e2e;border:1px solid {color}66;border-radius:6px;color:#fff;text-align:center;font-weight:700">
                 <span style="font-size:0.75rem;color:#64748b">/ {ile} szt</span>
             </div>'''
-        html += '<div style="font-size:0.7rem;color:#64748b;margin-top:6px"><i class=mi>lightbulb</i> Jedna oferta na Allegro = jeden stan. System wystawi tyle ofert ile masz grup.</div>'
+        html += '<div style="font-size:0.7rem;color:#64748b;margin-top:6px"><span class="material-symbols-outlined">lightbulb</span> Jedna oferta na Allegro = jeden stan. System wystawi tyle ofert ile masz grup.</div>'
         html += '</div>'
         # Hidden single stan field for non-grouped fallback
         html += f'<input type="hidden" name="stan" value="{grupy_stanow[0]["stan"] if grupy_stanow else stan_magazyn}">'
@@ -3055,7 +3055,7 @@ def generator_mass_create_from_paleta_stream():
                     existing_offer = _pid_candidate
                     yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined style=font-size:1rem>search</span> Match po produkt_id={product_id}', 'color': '#6366f1'}) + "\n\n"
                 elif _pid_candidate:
-                    yield "data: " + json.dumps({'type': 'log', 'message': f'<i class=mi>block</i> produkt_id={product_id} znaleziony ale nazwa nie pasuje: "{_pid_candidate["tytul"][:40]}"', 'color': '#f59e0b'}) + "\n\n"
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'<span class="material-symbols-outlined">block</span> produkt_id={product_id} znaleziony ale nazwa nie pasuje: "{_pid_candidate["tytul"][:40]}"', 'color': '#f59e0b'}) + "\n\n"
                     # Odlinkuj błędne powiązanie
                     conn.execute('UPDATE oferty SET produkt_id = NULL WHERE id = ?', (_pid_candidate['id'],))
                     conn.commit()
@@ -3204,7 +3204,7 @@ def generator_mass_create_from_paleta_stream():
                                 _dl_count += 1
 
                 if _local_images:
-                    yield "data: " + json.dumps({'type': 'log', 'message': f'<i class=mi>folder</i> Znaleziono {len(_local_images)} lokalnych zdjęć ({_enh_count} enhanced + {_dl_count} downloaded)', 'color': '#3b82f6'}) + "\n\n"
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'<span class="material-symbols-outlined">folder</span> Znaleziono {len(_local_images)} lokalnych zdjęć ({_enh_count} enhanced + {_dl_count} downloaded)', 'color': '#3b82f6'}) + "\n\n"
                     wszystkie_zdjecia = _local_images[:8]
 
                 # Backup oryginalnych URL-i (z scraped) na wypadek fallbacku
@@ -3404,7 +3404,7 @@ def generator_mass_create_from_paleta_stream():
                     yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined style=font-size:1rem>shield</span> GPSR: {len(gpsr)} znaków', 'color': '#22c55e'}) + "\n\n"
 
                 # Logi diagnostyczne
-                yield "data: " + json.dumps({'type': 'log', 'message': f'<i class=mi>folder</i> Kategoria: {kategoria_id or "auto-detect"}', 'color': '#6366f1'}) + "\n\n"
+                yield "data: " + json.dumps({'type': 'log', 'message': f'<span class="material-symbols-outlined">folder</span> Kategoria: {kategoria_id or "auto-detect"}', 'color': '#6366f1'}) + "\n\n"
                 if ean:
                     yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> EAN: {ean}', 'color': '#6366f1'}) + "\n\n"
                 yield "data: " + json.dumps({'type': 'log', 'message': '<span class=material-symbols-outlined style=font-size:1rem>smart_toy</span> Tworzę ofertę + parametry AI...', 'color': '#3b82f6'}) + "\n\n"
@@ -3821,7 +3821,7 @@ def generator_reprocess():
             <small>Proces działa w tle. Odśwież stronę generatora za chwilę aby zobaczyć efekty.</small>
         </div>
         <a href="/paletomat/generator" class="btn btn-p">← Powrót do listy</a>
-        <a href="/paletomat" class="btn btn-2"><i class=mi>home</i> Strona główna (zobacz status)</a>
+        <a href="/paletomat" class="btn btn-2"><span class="material-symbols-outlined">home</span> Strona główna (zobacz status)</a>
     ''')
 
 
@@ -3853,9 +3853,9 @@ def generator_enhance_existing():
         <button onclick="startEnhance(false)" id="btnStart" class="btn btn-ok" style="width:100%"><span class=material-symbols-outlined style=font-size:1rem>auto_awesome</span> GENERUJ ZDJĘCIA AI ({todo} produktów)</button>
         <button onclick="if(confirm('Usunąć wszystkie wygenerowane zdjęcia i zacząć od nowa?'))startEnhance(true)" class="btn" style="width:100%;margin-top:8px;background:#ef4444;color:#fff;font-size:0.85rem"><span class=material-symbols-outlined style=font-size:1rem>sync</span> WYCZYŚĆ I GENERUJ OD NOWA (wszystkie {total})</button>
         <div style="margin-top:12px;border-top:1px solid #334155;padding-top:12px">
-            <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:8px;text-align:center"><i class=mi>dark_mode</i> Tryb nocny — generuj w tle (możesz zamknąć przeglądarkę)</div>
-            <button onclick="startBgEnhance(false)" id="btnBg" class="btn" style="width:100%;background:#7c3aed;color:#fff"><i class=mi>dark_mode</i> GENERUJ W TLE ({todo} produktów)</button>
-            <button onclick="if(confirm('Usunąć wszystko i generować od nowa w tle?'))startBgEnhance(true)" class="btn" style="width:100%;margin-top:6px;background:#581c87;color:#fff;font-size:0.8rem"><i class=mi>dark_mode</i><span class=material-symbols-outlined style=font-size:1rem>sync</span> WYCZYŚĆ + GENERUJ W TLE (wszystkie {total})</button>
+            <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:8px;text-align:center"><span class="material-symbols-outlined">dark_mode</span> Tryb nocny — generuj w tle (możesz zamknąć przeglądarkę)</div>
+            <button onclick="startBgEnhance(false)" id="btnBg" class="btn" style="width:100%;background:#7c3aed;color:#fff"><span class="material-symbols-outlined">dark_mode</span> GENERUJ W TLE ({todo} produktów)</button>
+            <button onclick="if(confirm('Usunąć wszystko i generować od nowa w tle?'))startBgEnhance(true)" class="btn" style="width:100%;margin-top:6px;background:#581c87;color:#fff;font-size:0.8rem"><span class="material-symbols-outlined">dark_mode</span><span class=material-symbols-outlined style=font-size:1rem>sync</span> WYCZYŚĆ + GENERUJ W TLE (wszystkie {total})</button>
         </div>
     </div>
 
@@ -3875,7 +3875,7 @@ def generator_enhance_existing():
             <div id="progressBar" style="background:linear-gradient(90deg,#f59e0b,#22c55e);height:100%;width:0%;transition:width 0.3s"></div>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:#94a3b8">
-            <div><i class=mi>timer</i> <span id="elapsed">0:00</span></div>
+            <div><span class="material-symbols-outlined">timer</span> <span id="elapsed">0:00</span></div>
             <div id="etaText"></div>
             <div><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> <span id="doneCount">0</span>/{todo}</div>
         </div>
@@ -4027,7 +4027,7 @@ def generator_enhance_existing():
     }}
     </script>
 
-    <a href="/paletomat/generator/enhance-gallery" class="back" style="display:block;text-align:center;margin-top:15px"><i class=mi>image</i> Przeglądaj wygenerowane zdjęcia</a>
+    <a href="/paletomat/generator/enhance-gallery" class="back" style="display:block;text-align:center;margin-top:15px"><span class="material-symbols-outlined">image</span> Przeglądaj wygenerowane zdjęcia</a>
     <a href="/paletomat/generator" class="back" style="display:block;text-align:center;margin-top:10px">← Powrót</a>
     '''
     return render(html)
@@ -4080,7 +4080,7 @@ def generator_enhance_gallery():
                   'kat2': '<span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> Drugi kąt', 'uzycie': '<span class=material-symbols-outlined style=font-size:1rem>smart_toy</span> W użyciu', 'life': '<span class=material-symbols-outlined style=font-size:1rem>smart_toy</span> Lifestyle'}
 
     html = f'''
-    <div class="hdr"><h1><i class=mi>image</i> GALERIA ZDJĘĆ AI</h1><small>{len(products)} produktów z wygenerowanymi zdjęciami</small></div>
+    <div class="hdr"><h1><span class="material-symbols-outlined">image</span> GALERIA ZDJĘĆ AI</h1><small>{len(products)} produktów z wygenerowanymi zdjęciami</small></div>
 
     <div style="text-align:center;margin-bottom:15px">
         <span style="color:#94a3b8">Strona {page}/{total_pages}</span>
@@ -4179,7 +4179,7 @@ def generator_enhance_existing_stream():
             _old_count = len([d for d in os.listdir(_enh_base) if os.path.isdir(os.path.join(_enh_base, d))])
             shutil.rmtree(_enh_base)
             os.makedirs(_enh_base, exist_ok=True)
-            yield f"data: {json.dumps({'type': 'log', 'message': f'<i class=mi>delete</i> Usunięto {_old_count} starych folderów — generuję od nowa', 'color': '#ef4444'})}\n\n"
+            yield f"data: {json.dumps({'type': 'log', 'message': f'<span class="material-symbols-outlined">delete</span> Usunięto {_old_count} starych folderów — generuję od nowa', 'color': '#ef4444'})}\n\n"
 
         # Filtruj — tylko te bez enhanced (lub wszystkie jeśli force)
         todo = []
@@ -4443,9 +4443,9 @@ def _bg_enhance_worker(app, force=False):
             return
 
         if _vps_url:
-            _log(f"<i class=mi>language</i> Tryb VPS: {_vps_url}")
+            _log(f"<span class="material-symbols-outlined">language</span> Tryb VPS: {_vps_url}")
         else:
-            _log("<i class=mi>computer</i> Tryb lokalny rembg (uwaga: grzeje Pi)")
+            _log("<span class="material-symbols-outlined">computer</span> Tryb lokalny rembg (uwaga: grzeje Pi)")
 
         products = conn.execute('''
             SELECT id, asin, ean, nazwa, zdjecie_url, images
@@ -4462,7 +4462,7 @@ def _bg_enhance_worker(app, force=False):
             _old = len([d for d in os.listdir(_enh_base) if os.path.isdir(os.path.join(_enh_base, d))])
             shutil.rmtree(_enh_base)
             os.makedirs(_enh_base, exist_ok=True)
-            _log(f"<i class=mi>delete</i> Usunięto {_old} starych folderów")
+            _log(f"<span class="material-symbols-outlined">delete</span> Usunięto {_old} starych folderów")
 
         todo = []
         for p in products:
@@ -4581,7 +4581,7 @@ def _bg_enhance_worker(app, force=False):
         except:
             pass
 
-        _log(f"<i class=mi>flag</i> GOTOWE! {ok_count}/{len(todo)} produktów (rembg, darmowe)")
+        _log(f"<span class="material-symbols-outlined">flag</span> GOTOWE! {ok_count}/{len(todo)} produktów (rembg, darmowe)")
         _bg_enhance_status['running'] = False
         _bg_enhance_status['finished'] = True
 
@@ -4862,7 +4862,7 @@ TEMPLATE_ALREADY_LISTED = '''<!DOCTYPE html><html><head>
                class="form-ctrl" style="width:100%">
       </div>
       <button type="submit" class="btn btn-p" style="min-height:48px;flex:2">
-        <i class=mi>add</i> Dodaj sztuki do oferty
+        <span class="material-symbols-outlined">add</span> Dodaj sztuki do oferty
       </button>
     </form>
   </div>
@@ -5108,7 +5108,7 @@ def generator_detail(asin):
             {gallery_html}
             <div style="margin-top:8px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;align-items:center">
                 <button type="button" onclick="cleanImages()" id="btnClean" style="padding:6px 14px;background:#7c3aed;color:#fff;border:none;border-radius:6px;font-size:0.75rem;cursor:pointer">
-                    <i class=mi>mop</i> Wyczysc z napisow
+                    <span class="material-symbols-outlined">mop</span> Wyczysc z napisow
                 </button>
                 <button type="button" onclick="enhanceImages()" id="btnEnhance" style="padding:6px 14px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:0.75rem;cursor:pointer">
                     <span class=material-symbols-outlined style=font-size:1rem>auto_awesome</span> Podrasuj 8 zdjec
@@ -5125,7 +5125,7 @@ def generator_detail(asin):
             </div>
             
             <div class="form-group">
-                <label><i class=mi>folder</i> Kategoria Allegro</label>
+                <label><span class="material-symbols-outlined">folder</span> Kategoria Allegro</label>
                 <select name="kategoria" class="form-ctrl" style="padding:10px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#fff">
                     <option value="{detected_cat}" selected>✓ {detected_cat_name} (auto)</option>
                     <option value="261680">Motoryzacja > Pokrowce na siedzenia</option>
@@ -5168,7 +5168,7 @@ def generator_detail(asin):
             <div class="form-group">
                 <label><span class=material-symbols-outlined style=font-size:1rem>edit_note</span> Opis HTML (profesjonalny layout ze zdjęciami)</label>
                 <div style="display:flex;gap:8px;margin-bottom:8px">
-                    <button type="button" onclick="togglePreview()" class="btn btn-2" style="padding:8px 12px;width:auto;font-size:0.8rem"><i class=mi>visibility</i> Podgląd</button>
+                    <button type="button" onclick="togglePreview()" class="btn btn-2" style="padding:8px 12px;width:auto;font-size:0.8rem"><span class="material-symbols-outlined">visibility</span> Podgląd</button>
                     <button type="button" onclick="copyHtml()" class="btn btn-2" style="padding:8px 12px;width:auto;font-size:0.8rem"><span class=material-symbols-outlined style=font-size:1rem>list_alt</span> Kopiuj</button>
                 </div>
                 <textarea name="opis" id="opisHtml" class="form-ctrl" style="min-height:200px;font-size:0.75rem;line-height:1.4;font-family:monospace">{opis_html_escaped}</textarea>
@@ -5862,7 +5862,7 @@ def generator_create_stream(asin):
                     # Sprawdź czy plik istnieje
                     if os_module.path.exists(abs_path):
                         processed.append(abs_path)
-                        yield f"data: {json.dumps({'type': 'log', 'message': f'<i class=mi>folder</i> Lokalny plik: {img_path}', 'color': '#8b5cf6'})}\n\n"
+                        yield f"data: {json.dumps({'type': 'log', 'message': f'<span class="material-symbols-outlined">folder</span> Lokalny plik: {img_path}', 'color': '#8b5cf6'})}\n\n"
                     else:
                         yield f"data: {json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined style=font-size:1rem>warning</span> Plik nie istnieje: {img_path}', 'color': '#f59e0b'})}\n\n"
                         
@@ -5874,7 +5874,7 @@ def generator_create_stream(asin):
                         # Optymalizuj Amazon URL do full size
                         img_path = re.sub(r'\._[A-Z0-9_,]+_\.', '._AC_SL1500_.', img_path)
                     processed.append(img_path)
-                    yield f"data: {json.dumps({'type': 'log', 'message': f'<i class=mi>language</i> URL: {img_path[:50]}...', 'color': '#3b82f6'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'log', 'message': f'<span class="material-symbols-outlined">language</span> URL: {img_path[:50]}...', 'color': '#3b82f6'})}\n\n"
                 else:
                     # Fallback - spróbuj jako absolutna ścieżka
                     import os as os_module
@@ -5930,7 +5930,7 @@ def generator_create_stream(asin):
         yield f"data: {json.dumps({'type': 'progress', 'percent': 70, 'message': 'Tworzę ofertę...'})}\n\n"
         yield f"data: {json.dumps({'type': 'log', 'message': '<span class=material-symbols-outlined style=font-size:1rem>upload</span> Wysyłam do Allegro...', 'color': '#64748b'})}\n\n"
         
-        kat_msg = f'<i class=mi>folder</i> Kategoria: {kategoria}'
+        kat_msg = f'<span class="material-symbols-outlined">folder</span> Kategoria: {kategoria}'
         ean_msg = f'<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> EAN: {ean}' if ean else '<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> EAN: brak'
         asin_msg = f'<span class=material-symbols-outlined style=font-size:1rem>label</span> ASIN: {asin}'
         gpsr_msg = f'<span class=material-symbols-outlined style=font-size:1rem>shield</span> GPSR: {len(gpsr) if gpsr else 0} znaków'
@@ -6098,14 +6098,14 @@ def generator_create_stream(asin):
                             yield f"data: {json.dumps({'type': 'log', 'message': '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Etykieta wydrukowana na Niimbot B1!', 'color': '#22c55e'})}\n\n"
                         else:
                             yield f"data: {json.dumps({'type': 'log', 'message': '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Integracja zapisana (drukarka niedostępna)', 'color': '#3b82f6'})}\n\n"
-                            yield f"data: {json.dumps({'type': 'log', 'message': '<i class=mi>lightbulb</i> Wydrukuj ręcznie: python quick_print.py {produkt_id} {existing_location}', 'color': '#64748b'})}\n\n"
+                            yield f"data: {json.dumps({'type': 'log', 'message': '<span class="material-symbols-outlined">lightbulb</span> Wydrukuj ręcznie: python quick_print.py {produkt_id} {existing_location}', 'color': '#64748b'})}\n\n"
                     else:
                         error_msg = result.get('error', 'Nieznany błąd')
                         yield f"data: {json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined style=font-size:1rem>warning</span> Błąd drukowania: {error_msg[:50]}', 'color': '#f59e0b'})}\n\n"
                 else:
                     # Brak lokalizacji - poinformuj użytkownika + daj link
                     yield f"data: {json.dumps({'type': 'log', 'message': '<span class=material-symbols-outlined style=font-size:1rem>pin_drop</span> Produkt nie ma przypisanej lokalizacji', 'color': '#f59e0b'})}\n\n"
-                    yield f"data: {json.dumps({'type': 'log', 'message': '<i class=mi>lightbulb</i> Przypisz lokalizację aby wydrukować etykietę', 'color': '#64748b'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'log', 'message': '<span class="material-symbols-outlined">lightbulb</span> Przypisz lokalizację aby wydrukować etykietę', 'color': '#64748b'})}\n\n"
                     
                     # Przekaż produkt_id do frontendu żeby mógł pokazać UI przypisywania
                     yield f"data: {json.dumps({'type': 'missing_location', 'produkt_id': produkt_id, 'offer_id': offer_id})}\n\n"
@@ -6289,7 +6289,7 @@ def export_csv():
     
     if not oferty:
         return render('''
-            <div class="hdr"><h1><i class=mi style=color:#3b82f6>info</i> INFO</h1></div>
+            <div class="hdr"><h1><span class="material-symbols-outlined" style="color:#3b82f6">info</span> INFO</h1></div>
             <div class="alert alert-warn">Brak szkiców do eksportu</div>
             <a href="/paletomat/oferty" class="back">← Powrót</a>
         ''')
@@ -6491,7 +6491,7 @@ def publish_all_drafts():
     
     if not drafts:
         return render('''
-            <div class="hdr"><h1><i class=mi style=color:#3b82f6>info</i> INFO</h1></div>
+            <div class="hdr"><h1><span class="material-symbols-outlined" style="color:#3b82f6">info</span> INFO</h1></div>
             <div class="alert alert-warn">Brak szkiców do wystawienia</div>
             <a href="/paletomat/oferty" class="back">← Powrót</a>
         ''')
@@ -6579,8 +6579,8 @@ def api_queue_status():
         'running': _scraper_running,
         'queue_length': len(_processing_queue),
         'queue': list(_processing_queue),
-        'progress': PROGRESS,  # <i class=mi>agriculture</i> NOWE: pokazuje postęp
-        'workers': MAX_WORKERS  # <i class=mi>agriculture</i> NOWE: ile równolegle
+        'progress': PROGRESS,  # <span class="material-symbols-outlined">agriculture</span> NOWE: pokazuje postęp
+        'workers': MAX_WORKERS  # <span class="material-symbols-outlined">agriculture</span> NOWE: ile równolegle
     })
 
 

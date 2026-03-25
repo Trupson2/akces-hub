@@ -611,7 +611,7 @@ def ustawienia_kreator():
             'fields': [
                 {'name': 'gemini_api_key', 'label': 'API Key', 'type': 'password', 'placeholder': 'AIzaSy...'},
                 {'name': 'gemini_model', 'label': 'Model AI', 'type': 'select', 'options': [
-                    ('gemini-2.5-flash', '<span class="material-symbols-outlined">bolt</span> Gemini 2.5 Flash — ZALECANY <i class=mi style=color:#22c55e>check_circle</i> darmowy, stabilny'),
+                    ('gemini-2.5-flash', '<span class="material-symbols-outlined">bolt</span> Gemini 2.5 Flash — ZALECANY <span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> darmowy, stabilny'),
                     ('gemini-2.5-flash-lite', '<span class="material-symbols-outlined">air</span> Gemini 2.5 Flash Lite — szybszy, mniej dokładny'),
                     ('gemini-3.1-flash-lite-preview', '<span class="material-symbols-outlined">rocket_launch</span> Gemini 3.1 Flash Lite — najnowszy, testowy <span class="material-symbols-outlined">warning</span>'),
                     ('gemini-3.1-pro-preview', '<span class="material-symbols-outlined">psychology</span> Gemini 3.1 Pro — najlepszy, testowy, płatny <span class="material-symbols-outlined">payments</span>'),
@@ -1076,7 +1076,7 @@ def raport_wyslij():
         <html><head><meta http-equiv="refresh" content="3;url=/ustawienia"></head>
         <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
-                <div style="font-size:3rem;margin-bottom:20px"><i class=mi style=color:#22c55e>check_circle</i></div>
+                <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span></div>
                 <div style="font-size:1.2rem">Raport wyslany!</div>
                 <div style="color:#64748b;margin-top:10px">Sprawdz email: {config.get('recipient') or config.get('email')}</div>
             </div>
@@ -1087,7 +1087,7 @@ def raport_wyslij():
         <html><head><meta http-equiv="refresh" content="5;url=/ustawienia"></head>
         <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
-                <div style="font-size:3rem;margin-bottom:20px"><i class=mi style=color:#ef4444>cancel</i></div>
+                <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#ef4444">cancel</span></div>
                 <div style="font-size:1.2rem;color:#ef4444">Blad wysylania!</div>
                 <div style="color:#64748b;margin-top:10px;max-width:400px">{msg}</div>
             </div>
@@ -1112,7 +1112,7 @@ def reset_sprzedaze():
     <html><head><meta http-equiv="refresh" content="2;url=/ustawienia"></head>
     <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
         <div style="text-align:center">
-            <div style="font-size:3rem;margin-bottom:20px"><i class=mi style=color:#22c55e>check_circle</i></div>
+            <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span></div>
             <div style="font-size:1.2rem">Historia sprzedazy wyczyszczona!</div>
             <div style="color:#64748b;margin-top:10px">Przekierowuje...</div>
         </div>
@@ -1135,7 +1135,7 @@ def reset_magazyn():
     <html><head><meta http-equiv="refresh" content="2;url=/ustawienia"></head>
     <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
         <div style="text-align:center">
-            <div style="font-size:3rem;margin-bottom:20px"><i class=mi style=color:#22c55e>check_circle</i></div>
+            <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span></div>
             <div style="font-size:1.2rem">Magazyn wyczyszczony!</div>
             <div style="color:#64748b;margin-top:10px">Usunieto {cnt} produktow</div>
         </div>
@@ -1172,7 +1172,7 @@ def reset_palety():
     <html><head><meta http-equiv="refresh" content="3;url=/ustawienia"></head>
     <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
         <div style="text-align:center">
-            <div style="font-size:3rem;margin-bottom:20px"><i class=mi style=color:#22c55e>check_circle</i></div>
+            <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span></div>
             <div style="font-size:1.2rem">Palety wyczyszczone!</div>
             <div style="color:#64748b;margin-top:10px">
                 Usunieto {palety_cnt} palet, {produkty_cnt} produktow z magazynu
@@ -1198,7 +1198,7 @@ def reset_scraped():
     <html><head><meta http-equiv="refresh" content="2;url=/ustawienia"></head>
     <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
         <div style="text-align:center">
-            <div style="font-size:3rem;margin-bottom:20px"><i class=mi style=color:#22c55e>check_circle</i></div>
+            <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span></div>
             <div style="font-size:1.2rem">Scraped wyczyszczony!</div>
             <div style="color:#64748b;margin-top:10px">Usunieto {cnt} zescrapowanych produktow</div>
         </div>
@@ -1250,7 +1250,7 @@ def upload_db():
     except Exception as e:
         os.remove(tmp_path)
         return f'''<html><body style="background:#0a0a0f;color:#ef4444;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh">
-        <div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><i class=mi style=color:#ef4444>cancel</i></div>
+        <div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#ef4444">cancel</span></div>
         <div>Nieprawidlowy plik bazy: {e}</div>
         <a href="/ustawienia" style="color:#818cf8;margin-top:20px;display:block">← Powrot</a></div></body></html>'''
 
@@ -1261,7 +1261,7 @@ def upload_db():
     return '''<html><head><meta http-equiv="refresh" content="2;url=/ustawienia"></head>
     <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
         <div style="text-align:center">
-            <div style="font-size:3rem;margin-bottom:20px"><i class=mi style=color:#22c55e>check_circle</i></div>
+            <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span></div>
             <div style="font-size:1.2rem">Baza danych wgrana!</div>
             <div style="color:#64748b;margin-top:10px">Backup starej bazy zapisany. Przekierowywanie...</div>
         </div>
@@ -1728,7 +1728,7 @@ def admin_przelicz_palety():
         <style>body{{background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;gap:16px}}</style>
     </head>
     <body>
-        <div style="font-size:3rem"><i class=mi style=color:#22c55e>check_circle</i></div>
+        <div style="font-size:3rem"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span></div>
         <div style="font-size:1.4rem;font-weight:700">Przeliczono {updated} palet!</div>
         <div style="color:#64748b;font-size:0.9rem">cena_zakupu = suma cena_netto x 1.23 (wartosc z importu, stala)</div>
         <div style="color:#3b82f6;font-size:0.85rem">Przekierowanie za 3 sekundy...</div>
@@ -1760,7 +1760,7 @@ def printing_settings():
         config['ask_before_print'] = ask_before
 
         if save_full_config(config):
-            flash('<i class=mi style=color:#22c55e>check_circle</i> Ustawienia drukowania zapisane!', 'success')
+            flash('<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Ustawienia drukowania zapisane!', 'success')
         else:
             flash('<span class="material-symbols-outlined">warning</span> Blad zapisywania ustawien', 'error')
 
@@ -1787,16 +1787,16 @@ def test_print():
         if printer_type == 'niimbot':
             from modules.niimbot_print import test_print as niimbot_test
             niimbot_test()
-            flash(f'<i class=mi style=color:#22c55e>check_circle</i> Test drukowania na Niimbot B1 zakonczony!', 'success')
+            flash(f'<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Test drukowania na Niimbot B1 zakonczony!', 'success')
         elif printer_type == 'vretti':
             from modules.vretti_print import test_print as vretti_test
             vretti_test()
-            flash(f'<i class=mi style=color:#22c55e>check_circle</i> Test drukowania na Vretti 420B zakonczony!', 'success')
+            flash(f'<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Test drukowania na Vretti 420B zakonczony!', 'success')
         else:
             flash(f'<span class="material-symbols-outlined">warning</span> Nieznany typ drukarki: {printer_type}', 'error')
     except ImportError as e:
         flash(f'<span class="material-symbols-outlined">warning</span> Modul drukarki nie znaleziony: {e}', 'error')
     except Exception as e:
-        flash(f'<i class=mi style=color:#ef4444>cancel</i> Blad drukowania: {e}', 'error')
+        flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Blad drukowania: {e}', 'error')
 
     return redirect(url_for('ustawienia.printing_settings'))

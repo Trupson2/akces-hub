@@ -1647,9 +1647,9 @@ def monitor_page():
     _err = html_lib.escape(request.args.get('err', ''))
     _alert = ''
     if _msg:
-        _alert = f'<div style="padding:10px;margin-bottom:12px;background:rgba(0,180,0,0.1);border-radius:8px;text-align:center;font-size:14px"><i class=mi style=color:#22c55e>check_circle</i> {_msg}</div>'
+        _alert = f'<div style="padding:10px;margin-bottom:12px;background:rgba(0,180,0,0.1);border-radius:8px;text-align:center;font-size:14px"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> {_msg}</div>'
     elif _err:
-        _alert = f'<div style="padding:10px;margin-bottom:12px;background:rgba(255,0,0,0.1);border-radius:8px;text-align:center;font-size:14px"><i class=mi style=color:#ef4444>cancel</i> {_err}</div>'
+        _alert = f'<div style="padding:10px;margin-bottom:12px;background:rgba(255,0,0,0.1);border-radius:8px;text-align:center;font-size:14px"><span class="material-symbols-outlined" style="color:#ef4444">cancel</span> {_err}</div>'
 
     content = f'''
     <div class="hdr"><h1><span class="material-symbols-outlined">search</span> Monitor Okazji Palet</h1></div>
@@ -1808,14 +1808,14 @@ def monitor_page():
                 <input type="hidden" name="csrf_token" value="{generate_csrf()}">
                 <input type="hidden" name="source" value="warrington">
                 <button type="submit" style="padding:6px 14px;border-radius:8px;border:1px solid {'#22c55e' if warrington_on else '#ef4444'};background:{'rgba(34,197,94,0.1)' if warrington_on else 'rgba(239,68,68,0.1)'};color:{'#22c55e' if warrington_on else '#ef4444'};font-size:12px;font-weight:600;cursor:pointer">
-                    <span class="material-symbols-outlined">store</span> Warrington: {'ON' if warrington_on else '<i class=mi style=color:#ef4444>cancel</i> OFF'}
+                    <span class="material-symbols-outlined">store</span> Warrington: {'ON' if warrington_on else '<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> OFF'}
                 </button>
             </form>
             <form method="POST" action="/monitor/toggle-source" style="margin:0">
                 <input type="hidden" name="csrf_token" value="{generate_csrf()}">
                 <input type="hidden" name="source" value="jobalots">
                 <button type="submit" style="padding:6px 14px;border-radius:8px;border:1px solid {'#22c55e' if jobalots_on else '#ef4444'};background:{'rgba(34,197,94,0.1)' if jobalots_on else 'rgba(239,68,68,0.1)'};color:{'#22c55e' if jobalots_on else '#ef4444'};font-size:12px;font-weight:600;cursor:pointer">
-                    <span class="material-symbols-outlined">storefront</span> Jobalots: {'ON' if jobalots_on else '<i class=mi style=color:#ef4444>cancel</i> OFF'}
+                    <span class="material-symbols-outlined">storefront</span> Jobalots: {'ON' if jobalots_on else '<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> OFF'}
                 </button>
             </form>
         </div>
@@ -3160,19 +3160,19 @@ ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
 
         <!-- Checklist -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;font-size:0.8rem">
-            <div>{{ '<i class=mi style=color:#22c55e>check_circle</i>' if analiza.produkt.nazwa and analiza.produkt.nazwa|length > 20 else '<i class=mi style=color:#ef4444>cancel</i>' }} Tytul ({{ analiza.produkt.nazwa|length if analiza.produkt.nazwa else 0 }} zn.)</div>
-            <div>{{ '<i class=mi style=color:#22c55e>check_circle</i>' if analiza.produkt.ean else '<i class=mi style=color:#ef4444>cancel</i>' }} Kod EAN</div>
-            <div>{{ '<i class=mi style=color:#22c55e>check_circle</i>' if analiza.produkt.zdjecie_url else '<i class=mi style=color:#ef4444>cancel</i>' }} Zdjecie glowne</div>
-            <div>{{ '<i class=mi style=color:#22c55e>check_circle</i>' if analiza.img_count >= 4 else '<span class="material-symbols-outlined">warning</span>' if analiza.img_count >= 2 else '<i class=mi style=color:#ef4444>cancel</i>' }} Zdjecia ({{ analiza.img_count }})</div>
-            <div>{{ '<i class=mi style=color:#22c55e>check_circle</i>' if analiza.has_opis else '<i class=mi style=color:#3b82f6>info</i>' }} Opis HTML{{ '' if analiza.has_opis else ' (auto)' }}</div>
-            <div>{{ '<i class=mi style=color:#22c55e>check_circle</i>' if analiza.cena_allegro > 0 else '<i class=mi style=color:#ef4444>cancel</i>' }} Cena</div>
-            <div>{{ '<i class=mi style=color:#22c55e>check_circle</i>' if analiza.kategoria not in ('inne', '') else '<span class="material-symbols-outlined">warning</span>' }} Kategoria</div>
-            <div>{{ '<i class=mi style=color:#22c55e>check_circle</i>' if analiza.produkt.asin else '<span class="material-symbols-outlined">warning</span>' }} ASIN</div>
+            <div>{{ '<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>' if analiza.produkt.nazwa and analiza.produkt.nazwa|length > 20 else '<span class="material-symbols-outlined" style="color:#ef4444">cancel</span>' }} Tytul ({{ analiza.produkt.nazwa|length if analiza.produkt.nazwa else 0 }} zn.)</div>
+            <div>{{ '<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>' if analiza.produkt.ean else '<span class="material-symbols-outlined" style="color:#ef4444">cancel</span>' }} Kod EAN</div>
+            <div>{{ '<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>' if analiza.produkt.zdjecie_url else '<span class="material-symbols-outlined" style="color:#ef4444">cancel</span>' }} Zdjecie glowne</div>
+            <div>{{ '<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>' if analiza.img_count >= 4 else '<span class="material-symbols-outlined">warning</span>' if analiza.img_count >= 2 else '<span class="material-symbols-outlined" style="color:#ef4444">cancel</span>' }} Zdjecia ({{ analiza.img_count }})</div>
+            <div>{{ '<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>' if analiza.has_opis else '<span class="material-symbols-outlined" style="color:#3b82f6">info</span>' }} Opis HTML{{ '' if analiza.has_opis else ' (auto)' }}</div>
+            <div>{{ '<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>' if analiza.cena_allegro > 0 else '<span class="material-symbols-outlined" style="color:#ef4444">cancel</span>' }} Cena</div>
+            <div>{{ '<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>' if analiza.kategoria not in ('inne', '') else '<span class="material-symbols-outlined">warning</span>' }} Kategoria</div>
+            <div>{{ '<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>' if analiza.produkt.asin else '<span class="material-symbols-outlined">warning</span>' }} ASIN</div>
         </div>
 
         {% if analiza.problemy %}
         <div style="margin-bottom:10px">
-            <div style="font-weight:600;color:#ef4444;font-size:0.8rem;margin-bottom:6px"><i class=mi style=color:#ef4444>cancel</i> Problemy:</div>
+            <div style="font-weight:600;color:#ef4444;font-size:0.8rem;margin-bottom:6px"><span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Problemy:</div>
             {% for p in analiza.problemy %}
             <div style="font-size:0.8rem;color:#fca5a5;margin-bottom:3px;padding-left:12px">• {{ p }}</div>
             {% endfor %}
@@ -3203,9 +3203,9 @@ ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
         {% elif analiza.marza_pct < 10 %}
         <div style="font-size:0.85rem;color:#eab308;font-weight:600;margin-top:8px"><span class="material-symbols-outlined">warning</span> Niska marza. Rozważ podniesienie ceny.</div>
         {% elif analiza.marza_pct >= 30 %}
-        <div style="font-size:0.85rem;color:#22c55e;font-weight:600;margin-top:8px"><i class=mi style=color:#22c55e>check_circle</i> Swietna marza! Oferta bardzo oplacalna.</div>
+        <div style="font-size:0.85rem;color:#22c55e;font-weight:600;margin-top:8px"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Swietna marza! Oferta bardzo oplacalna.</div>
         {% else %}
-        <div style="font-size:0.85rem;color:#22c55e;margin-top:8px"><i class=mi style=color:#22c55e>check_circle</i> Oferta oplacalna.</div>
+        <div style="font-size:0.85rem;color:#22c55e;margin-top:8px"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Oferta oplacalna.</div>
         {% endif %}
     </div>
 </div>
@@ -4228,7 +4228,7 @@ def sync_miesiac():
             <html><head><meta http-equiv="refresh" content="3;url=/statystyki"></head>
             <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
                 <div style="text-align:center">
-                    <div style="font-size:3rem;margin-bottom:20px"><i class=mi style=color:#ef4444>cancel</i></div>
+                    <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#ef4444">cancel</span></div>
                     <div style="font-size:1.2rem;color:#ef4444">Błąd: {error}</div>
                 </div>
             </body></html>
@@ -4238,7 +4238,7 @@ def sync_miesiac():
         <html><head><meta http-equiv="refresh" content="2;url=/statystyki"></head>
         <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
-                <div style="font-size:3rem;margin-bottom:20px"><i class=mi style=color:#22c55e>check_circle</i></div>
+                <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span></div>
                 <div style="font-size:1.2rem">Zsynchronizowano <b>{synced}</b> nowych zamówień!</div>
                 <div style="color:#64748b;margin-top:10px">Przekierowuję do statystyk...</div>
             </div>
@@ -4250,7 +4250,7 @@ def sync_miesiac():
         <html><head><meta http-equiv="refresh" content="3;url=/statystyki"></head>
         <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
-                <div style="font-size:3rem;margin-bottom:20px"><i class=mi style=color:#ef4444>cancel</i></div>
+                <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#ef4444">cancel</span></div>
                 <div style="font-size:1.2rem;color:#ef4444">Błąd: {str(e)}</div>
             </div>
         </body></html>
@@ -4276,19 +4276,19 @@ def sync_custom():
             return '<html><head><meta http-equiv="refresh" content="3;url=/statystyki"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined">warning</span></div><div style="color:#f59e0b">Token Allegro wygasł!</div></div></body></html>'
         synced, error = sync_orders(from_date_str=from_date)
         if error:
-            return f'<html><head><meta http-equiv="refresh" content="3;url=/sprzedaze"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><i class=mi style=color:#ef4444>cancel</i></div><div style="color:#ef4444">Błąd: {error}</div></div></body></html>'
+            return f'<html><head><meta http-equiv="refresh" content="3;url=/sprzedaze"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#ef4444">cancel</span></div><div style="color:#ef4444">Błąd: {error}</div></div></body></html>'
         return f'''
         <html><head><meta http-equiv="refresh" content="2;url=/sprzedaze?miesiac={from_date[:7]}"></head>
         <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
-                <div style="font-size:3rem;margin-bottom:20px"><i class=mi style=color:#22c55e>check_circle</i></div>
+                <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span></div>
                 <div style="font-size:1.2rem">Zsynchronizowano <b>{synced}</b> zamówień od {from_date}!</div>
                 <div style="color:#64748b;margin-top:10px">Przekierowuję...</div>
             </div>
         </body></html>
         '''
     except Exception as e:
-        return f'<html><head><meta http-equiv="refresh" content="3;url=/statystyki"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><i class=mi style=color:#ef4444>cancel</i></div><div style="color:#ef4444">Błąd: {str(e)}</div></div></body></html>'
+        return f'<html><head><meta http-equiv="refresh" content="3;url=/statystyki"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="color:#ef4444">cancel</span></div><div style="color:#ef4444">Błąd: {str(e)}</div></div></body></html>'
 
 # ============================================================
 # WYSYŁKI (Widok dla dziadka)
@@ -5459,35 +5459,35 @@ if __name__ == '__main__':
     libs_status = []
     try:
         import bleak
-        libs_status.append("  <i class=mi style=color:#22c55e>check_circle</i> bleak (Bluetooth)")
+        libs_status.append('  <span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> bleak (Bluetooth)')
     except ImportError:
-        libs_status.append("  <i class=mi style=color:#ef4444>cancel</i> bleak (Bluetooth) - pip install bleak")
+        libs_status.append('  <span class="material-symbols-outlined" style="color:#ef4444">cancel</span> bleak (Bluetooth) - pip install bleak')
     
     # Szczegółowe sprawdzenie niimprint
     niimprint_ok = False
     try:
         from niimprint import BluetoothTransport, PrinterClient
-        libs_status.append("  <i class=mi style=color:#22c55e>check_circle</i> niimprint (Niimbot)")
+        libs_status.append('  <span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> niimprint (Niimbot)')
         niimprint_ok = True
     except ImportError as e:
-        libs_status.append(f"  <i class=mi style=color:#ef4444>cancel</i> niimprint (Niimbot) - brak modułu")
+        libs_status.append(f'  <span class="material-symbols-outlined" style="color:#ef4444">cancel</span> niimprint (Niimbot) - brak modułu')
         libs_status.append(f"     → pip install niimprint --break-system-packages")
         libs_status.append(f"     → lub: pip install git+https://github.com/AndBondStyle/niimprint.git")
     except Exception as e:
-        libs_status.append(f"  <i class=mi style=color:#ef4444>cancel</i> niimprint - błąd: {e}")
+        libs_status.append(f'  <span class="material-symbols-outlined" style="color:#ef4444">cancel</span> niimprint - błąd: {e}')
     
     try:
         import qrcode
         from PIL import Image
-        libs_status.append("  <i class=mi style=color:#22c55e>check_circle</i> pillow/qrcode (obrazy)")
+        libs_status.append('  <span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> pillow/qrcode (obrazy)')
     except ImportError:
-        libs_status.append("  <i class=mi style=color:#ef4444>cancel</i> pillow/qrcode (obrazy) - pip install pillow qrcode")
+        libs_status.append('  <span class="material-symbols-outlined" style="color:#ef4444">cancel</span> pillow/qrcode (obrazy) - pip install pillow qrcode')
     
     try:
         import barcode
-        libs_status.append("  <i class=mi style=color:#22c55e>check_circle</i> python-barcode (kody kreskowe)")
+        libs_status.append('  <span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> python-barcode (kody kreskowe)')
     except ImportError:
-        libs_status.append("  <span class="material-symbols-outlined">warning</span> python-barcode (opcjonalne)")
+        libs_status.append('  <span class="material-symbols-outlined" style="color:#eab308">warning</span> python-barcode (opcjonalne)')
     
     for s in libs_status:
         print(s)

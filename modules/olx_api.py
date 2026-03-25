@@ -438,9 +438,9 @@ a {{ color:#38bdf8; }}
     <!-- Status -->
     <div class="status-card">
         <h3>Status połączenia</h3>
-        {'<span class="status-badge badge-green"><i class=mi style=color:#22c55e>check_circle</i> Połączono</span>' if auth else
+        {'<span class="status-badge badge-green"><span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Połączono</span>' if auth else
          '<span class="status-badge badge-yellow"><span class="material-symbols-outlined">warning</span> Skonfigurowano - wymaga logowania</span>' if is_configured() else
-         '<span class="status-badge badge-red"><i class=mi style=color:#ef4444>cancel</i> Nie skonfigurowano</span>'}
+         '<span class="status-badge badge-red"><span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Nie skonfigurowano</span>'}
         {f'<br><br><a href="/olx/auth" class="btn btn-primary"><span class="material-symbols-outlined">key</span> Zaloguj do OLX</a>' if is_configured() and not auth else ''}
     </div>
 
@@ -555,7 +555,7 @@ def olx_config_save():
     set_config('olx_city', request.form.get('city', '').strip())
     set_config('olx_latitude', request.form.get('latitude', '').strip())
     set_config('olx_longitude', request.form.get('longitude', '').strip())
-    flash('<i class=mi style=color:#22c55e>check_circle</i> Konfiguracja OLX zapisana', 'success')
+    flash('<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Konfiguracja OLX zapisana', 'success')
     return redirect('/olx')
 
 
@@ -564,7 +564,7 @@ def olx_auth():
     """Rozpoczyna OAuth2 flow z OLX"""
     cfg = get_olx_config()
     if not cfg['client_id']:
-        flash('<i class=mi style=color:#ef4444>cancel</i> Najpierw skonfiguruj Client ID i Secret', 'error')
+        flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Najpierw skonfiguruj Client ID i Secret', 'error')
         return redirect('/olx')
 
     # Generuj state dla bezpieczeństwa
@@ -591,17 +591,17 @@ def olx_callback():
     error = request.args.get('error')
 
     if error:
-        flash(f'<i class=mi style=color:#ef4444>cancel</i> OLX auth error: {error}', 'error')
+        flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> OLX auth error: {error}', 'error')
         return redirect('/olx')
 
     if not code:
-        flash('<i class=mi style=color:#ef4444>cancel</i> Brak kodu autoryzacji', 'error')
+        flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Brak kodu autoryzacji', 'error')
         return redirect('/olx')
 
     # Weryfikuj state
     saved_state = get_config('olx_oauth_state', '')
     if state != saved_state:
-        flash('<i class=mi style=color:#ef4444>cancel</i> Nieprawidłowy state - możliwy atak CSRF', 'error')
+        flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Nieprawidłowy state - możliwy atak CSRF', 'error')
         return redirect('/olx')
 
     cfg = get_olx_config()
@@ -623,12 +623,12 @@ def olx_callback():
                 set_config('olx_refresh_token', tokens['refresh_token'])
             expires_at = datetime.now() + timedelta(seconds=tokens.get('expires_in', 3600))
             set_config('olx_token_expires', expires_at.isoformat())
-            flash('<i class=mi style=color:#22c55e>check_circle</i> Zalogowano do OLX!', 'success')
+            flash('<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Zalogowano do OLX!', 'success')
         else:
-            flash(f'<i class=mi style=color:#ef4444>cancel</i> Błąd tokena OLX: {response.status_code} {response.text[:200]}', 'error')
+            flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Błąd tokena OLX: {response.status_code} {response.text[:200]}', 'error')
 
     except Exception as e:
-        flash(f'<i class=mi style=color:#ef4444>cancel</i> Błąd połączenia z OLX: {e}', 'error')
+        flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Błąd połączenia z OLX: {e}', 'error')
 
     return redirect('/olx')
 
@@ -639,7 +639,7 @@ def olx_logout():
     set_config('olx_access_token', '')
     set_config('olx_refresh_token', '')
     set_config('olx_token_expires', '')
-    flash('<i class=mi style=color:#22c55e>check_circle</i> Wylogowano z OLX', 'success')
+    flash('<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Wylogowano z OLX', 'success')
     return redirect('/olx')
 
 
@@ -647,14 +647,14 @@ def olx_logout():
 def olx_create_listing(produkt_id):
     """Tworzy ogłoszenie OLX z produktu"""
     if not is_authenticated():
-        flash('<i class=mi style=color:#ef4444>cancel</i> Najpierw zaloguj się do OLX', 'error')
+        flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Najpierw zaloguj się do OLX', 'error')
         return redirect('/olx')
 
     advert_id, err = create_olx_listing(produkt_id)
     if err:
-        flash(f'<i class=mi style=color:#ef4444>cancel</i> {err}', 'error')
+        flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> {err}', 'error')
     else:
-        flash(f'<i class=mi style=color:#22c55e>check_circle</i> Utworzono ogłoszenie OLX (ID: {advert_id}) - draft. Kliknij "Opublikuj" aby aktywować.', 'success')
+        flash(f'<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Utworzono ogłoszenie OLX (ID: {advert_id}) - draft. Kliknij "Opublikuj" aby aktywować.', 'success')
 
     return redirect(request.referrer or '/olx')
 
@@ -663,14 +663,14 @@ def olx_create_listing(produkt_id):
 def olx_publish_listing(advert_id):
     """Publikuje ogłoszenie OLX"""
     if not is_authenticated():
-        flash('<i class=mi style=color:#ef4444>cancel</i> Najpierw zaloguj się do OLX', 'error')
+        flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Najpierw zaloguj się do OLX', 'error')
         return redirect('/olx')
 
     success, err = publish_olx_listing(advert_id)
     if err:
-        flash(f'<i class=mi style=color:#ef4444>cancel</i> {err}', 'error')
+        flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> {err}', 'error')
     else:
-        flash('<i class=mi style=color:#22c55e>check_circle</i> Ogłoszenie opublikowane na OLX!', 'success')
+        flash('<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Ogłoszenie opublikowane na OLX!', 'success')
 
     return redirect('/olx')
 
@@ -679,12 +679,12 @@ def olx_publish_listing(advert_id):
 def olx_delete_listing(advert_id):
     """Usuwa ogłoszenie OLX"""
     if not is_authenticated():
-        flash('<i class=mi style=color:#ef4444>cancel</i> Najpierw zaloguj się do OLX', 'error')
+        flash('<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Najpierw zaloguj się do OLX', 'error')
         return redirect('/olx')
 
     result, err = olx_api_request('DELETE', f'/adverts/{advert_id}')
     if err:
-        flash(f'<i class=mi style=color:#ef4444>cancel</i> {err}', 'error')
+        flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> {err}', 'error')
     else:
         try:
             conn = get_db()
@@ -692,7 +692,7 @@ def olx_delete_listing(advert_id):
             conn.commit()
         except:
             pass
-        flash('<i class=mi style=color:#22c55e>check_circle</i> Ogłoszenie usunięte z OLX', 'success')
+        flash('<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Ogłoszenie usunięte z OLX', 'success')
 
     return redirect('/olx')
 

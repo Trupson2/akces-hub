@@ -166,11 +166,11 @@ def support_zgloszenie():
                 timeout=10
             )
             if resp.ok and resp.json().get('ok'):
-                flash('<i class=mi style=color:#22c55e>check_circle</i> Zgłoszenie wysłane! Odpowiemy w ciągu 24h.', 'success')
+                flash('<span class="material-symbols-outlined" style="color:#22c55e">check_circle</span> Zgłoszenie wysłane! Odpowiemy w ciągu 24h.', 'success')
             else:
                 flash('<span class="material-symbols-outlined">warning</span> Nie udało się wysłać. Spróbuj ponownie.', 'warning')
         except Exception as e:
-            flash(f'<i class=mi style=color:#ef4444>cancel</i> Błąd wysyłania: {str(e)}', 'error')
+            flash(f'<span class="material-symbols-outlined" style="color:#ef4444">cancel</span> Błąd wysyłania: {str(e)}', 'error')
 
         return redirect('/support/zgloszenie')
 
