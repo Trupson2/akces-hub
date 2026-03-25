@@ -1,0 +1,670 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+/* === STATYSTYKI CYBERPUNK DASHBOARD === */
+.st-header{display:flex;align-items:center;justify-content:space-between;padding:10px 0 24px}
+.st-header h1{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.5rem;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(135deg,var(--neon-primary),var(--neon-secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 12px rgba(143,245,255,0.3))}
+.st-header small{display:block;color:var(--text-muted);font-size:0.75rem;margin-top:2px;-webkit-text-fill-color:initial}
+.st-sync-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--bg-card,rgba(19,19,28,0.6));border:1px solid rgba(143,245,255,0.15);color:var(--neon-primary);font-size:0.78rem;font-weight:600;text-decoration:none;transition:all 0.2s;font-family:'Space Grotesk','Inter',sans-serif;text-transform:uppercase;letter-spacing:0.5px}
+.st-sync-btn:hover{background:rgba(143,245,255,0.08);border-color:rgba(143,245,255,0.3);box-shadow:0 0 15px rgba(143,245,255,0.1)}
+
+/* Section header */
+.st-section{display:flex;align-items:center;gap:8px;margin:28px 0 14px;padding:0}
+.st-section-bar{width:2px;height:14px;background:var(--neon-primary);flex-shrink:0}
+.st-section-bar.pink{background:var(--neon-secondary)}
+.st-section-bar.lime{background:var(--neon-tertiary)}
+.st-section-label{font-family:'Space Grotesk','Inter',sans-serif;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted)}
+
+/* Status sypie */
+.st-status{display:flex;align-items:center;gap:16px;padding:16px 20px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:3px solid;margin-bottom:20px}
+.st-status-dot{width:10px;height:10px;border-radius:50%;animation:pulse 2s infinite;flex-shrink:0}
+.st-status-text{font-family:'Space Grotesk','Inter',sans-serif;font-size:0.95rem;font-weight:700;flex:1}
+.st-status-vals{text-align:right;font-size:0.78rem;color:var(--text-secondary)}
+.st-status-vals strong{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.1rem;font-weight:800}
+
+/* KPI strip */
+.st-kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px}
+.st-kpi{padding:18px 16px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:3px solid rgba(143,245,255,0.2);transition:all 0.2s}
+.st-kpi:hover{border-left-color:var(--neon-primary);background:rgba(19,19,28,0.8)}
+.st-kpi-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);font-weight:600;margin-bottom:8px;font-family:'Space Grotesk','Inter',sans-serif}
+.st-kpi-val{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.35rem;font-weight:800;letter-spacing:-0.5px;color:var(--text);line-height:1}
+.st-kpi.accent-pink{border-left-color:var(--neon-secondary)}
+.st-kpi.accent-lime{border-left-color:var(--neon-tertiary)}
+.st-kpi.accent-cyan{border-left-color:var(--neon-primary)}
+.st-kpi.highlight{border-left-width:4px;box-shadow:0 0 20px rgba(190,238,0,0.1),inset 0 0 30px rgba(190,238,0,0.03)}
+
+/* Tax panel */
+.st-tax-panel{background:var(--bg-card,rgba(19,19,28,0.6));padding:22px;margin-bottom:24px}
+.st-tax-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+.st-tax-item{padding:14px;background:rgba(0,0,0,0.2);border-left:2px solid rgba(255,107,155,0.15)}
+.st-tax-item-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:600;margin-bottom:6px}
+.st-tax-item-val{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.15rem;font-weight:800;letter-spacing:-0.3px}
+.st-tax-highlight{margin-top:16px;padding:16px 20px;background:rgba(190,238,0,0.04);border:1px solid rgba(190,238,0,0.15);display:flex;align-items:center;justify-content:space-between;box-shadow:0 0 20px rgba(190,238,0,0.08)}
+
+/* Histogram card */
+.st-card{background:var(--bg-card,rgba(19,19,28,0.6));padding:22px;margin-bottom:24px}
+.st-card canvas{width:100%!important}
+
+/* ROI section */
+.st-roi-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.st-roi-big{padding:20px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:3px solid var(--neon-primary);text-align:center}
+.st-roi-big .val{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.8rem;font-weight:800;letter-spacing:-1px}
+.st-roi-big .lbl{font-size:0.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);margin-top:4px;font-weight:600}
+
+.st-roi-list{margin-bottom:24px}
+.st-roi-item{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--bg-card,rgba(19,19,28,0.6));margin-bottom:6px;border-left:3px solid rgba(190,238,0,0.2);transition:all 0.2s}
+.st-roi-item:hover{border-left-color:var(--neon-tertiary)}
+.st-roi-item.worst{border-left-color:rgba(255,107,155,0.2)}
+.st-roi-item.worst:hover{border-left-color:var(--neon-secondary)}
+.st-roi-item-name{flex:1;min-width:0}
+.st-roi-item-name .name{font-size:0.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-roi-item-name .meta{font-size:0.7rem;color:var(--text-muted);margin-top:2px}
+.st-roi-item-val{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.1rem;font-weight:800;letter-spacing:-0.3px;flex-shrink:0}
+.st-roi-bar{width:80px;height:6px;background:rgba(255,255,255,0.06);overflow:hidden;flex-shrink:0}
+.st-roi-bar-fill{height:100%;transition:width 0.6s ease}
+
+/* Monthly grid */
+.st-month-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:24px}
+.st-month-cell{padding:14px 10px;background:var(--bg-card,rgba(19,19,28,0.6));text-align:center;border-left:2px solid rgba(143,245,255,0.1);transition:all 0.2s}
+.st-month-cell:hover{border-left-color:var(--neon-primary)}
+.st-month-cell .cnt{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.2rem;font-weight:800;color:var(--neon-primary)}
+.st-month-cell .mo{font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-top:4px}
+
+/* Top lists */
+.st-top-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
+.st-top-panel{background:var(--bg-card,rgba(19,19,28,0.6));padding:20px}
+.st-top-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.st-top-item:last-child{border-bottom:none}
+.st-top-rank{font-family:'Space Grotesk','Inter',sans-serif;font-size:0.9rem;font-weight:800;color:var(--neon-primary);width:24px;text-align:center;flex-shrink:0}
+.st-top-info{flex:1;min-width:0}
+.st-top-info .name{font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-top-info .meta{font-size:0.68rem;color:var(--text-muted);margin-top:2px}
+.st-top-val{font-family:'Space Grotesk','Inter',sans-serif;font-size:0.95rem;font-weight:700;flex-shrink:0}
+
+/* Chart controls */
+.st-chart-ctrl{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.st-chart-btn{padding:6px 14px;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.15);color:var(--neon-primary);font-size:0.72rem;font-weight:600;cursor:pointer;font-family:'Space Grotesk','Inter',sans-serif;text-transform:uppercase;letter-spacing:0.5px;transition:all 0.2s}
+.st-chart-btn:hover{background:rgba(143,245,255,0.12);border-color:rgba(143,245,255,0.3)}
+
+/* Yearly table */
+.st-year-table{width:100%;border-collapse:collapse;margin-top:12px}
+.st-year-table th{font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:600}
+.st-year-table td{padding:10px 12px;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.03)}
+.st-year-table tr:hover td{background:rgba(143,245,255,0.03)}
+
+/* Responsive */
+@media(max-width:900px){
+    .st-kpi-strip{grid-template-columns:repeat(3,1fr)}
+    .st-tax-grid{grid-template-columns:repeat(2,1fr)}
+    .st-roi-strip{grid-template-columns:1fr 1fr 1fr}
+    .st-month-grid{grid-template-columns:repeat(4,1fr)}
+    .st-top-grid{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+    .st-kpi-strip{grid-template-columns:repeat(2,1fr)}
+    .st-tax-grid{grid-template-columns:1fr}
+    .st-roi-strip{grid-template-columns:1fr}
+    .st-month-grid{grid-template-columns:repeat(3,1fr)}
+    .st-header{flex-direction:column;align-items:flex-start;gap:12px}
+}
+</style>
+
+<!-- ═══════════════ SECTION 1: HEADER ═══════════════ -->
+<div class="st-header">
+    <div>
+        <h1>STATYSTYKI</h1>
+        <small>Sprzedaz i przychody &middot; {{ current_year }}</small>
+    </div>
+    <a href="/statystyki/sync-historyczny" class="st-sync-btn">
+        <i class="mi">sync</i> Sync historyczny
+    </a>
+</div>
+
+<!-- ═══════════════ SECTION 2: STATUS SYPIE ═══════════════ -->
+<div class="st-status" style="border-left-color:{{ status_color }}">
+    <div class="st-status-dot" style="background:{{ status_color }};box-shadow:0 0 10px {{ status_color }}"></div>
+    <div class="st-status-text" style="color:{{ status_color }}">{{ status_text }}</div>
+    <div class="st-status-vals">
+        <div>Dzisiaj: <strong style="color:{{ status_color }}">{{ "%.2f"|format(today_sales) }} zl</strong></div>
+        <div style="font-size:0.7rem;color:var(--text-muted)">{{ today_cnt }} {{ 'zamowienie' if today_cnt == 1 else ('zamowienia' if today_cnt < 5 else 'zamowien') }}</div>
+    </div>
+</div>
+
+<!-- ═══════════════ SECTION 3: KPI STRIP ═══════════════ -->
+<div class="st-section">
+    <span class="st-section-bar"></span>
+    <span class="st-section-label">Podsumowanie {{ current_year }}</span>
+</div>
+
+<div class="st-kpi-strip">
+    <div class="st-kpi accent-cyan">
+        <div class="st-kpi-label"><i class="mi" style="font-size:0.7rem">trending_up</i> Przychod</div>
+        <div class="st-kpi-val" style="color:var(--neon-primary)">{{ "%.0f"|format(przychod_total) }} zl</div>
+    </div>
+    <div class="st-kpi accent-pink">
+        <div class="st-kpi-label"><i class="mi" style="font-size:0.7rem">trending_down</i> Koszty</div>
+        <div class="st-kpi-val" style="color:var(--neon-secondary)">{{ "%.0f"|format(koszty_total_lacznie) }} zl</div>
+    </div>
+    <div class="st-kpi accent-cyan">
+        <div class="st-kpi-label"><i class="mi" style="font-size:0.7rem">receipt_long</i> Transakcji</div>
+        <div class="st-kpi-val">{{ podsumowanie.ilosc_transakcji }}</div>
+    </div>
+    <div class="st-kpi accent-pink">
+        <div class="st-kpi-label"><i class="mi" style="font-size:0.7rem">account_balance</i> VAT</div>
+        <div class="st-kpi-val" style="color:var(--neon-secondary)">{{ "%.0f"|format(vat_do_zaplaty) }} zl</div>
+    </div>
+    <div class="st-kpi accent-pink">
+        <div class="st-kpi-label"><i class="mi" style="font-size:0.7rem">gavel</i> Podatek</div>
+        <div class="st-kpi-val" style="color:var(--neon-secondary)">{{ "%.0f"|format(podatek) }} zl</div>
+    </div>
+    <div class="st-kpi accent-lime highlight">
+        <div class="st-kpi-label"><i class="mi" style="font-size:0.7rem">wallet</i> Zysk na reke</div>
+        <div class="st-kpi-val" style="color:{{ zysk_na_reke_kolor }}">{{ "%.2f"|format(zysk_na_reke) }} zl</div>
+    </div>
+</div>
+
+<!-- ═══════════════ SECTION 4: TAX SETTLEMENT ═══════════════ -->
+<div class="st-section">
+    <span class="st-section-bar pink"></span>
+    <span class="st-section-label">Rozliczenie podatkowe {{ current_year }}</span>
+</div>
+
+<div class="st-tax-panel">
+    <div class="st-tax-grid">
+        <div class="st-tax-item">
+            <div class="st-tax-item-label">Przychod brutto</div>
+            <div class="st-tax-item-val" style="color:var(--neon-primary)">{{ "%.2f"|format(przychod_total) }} zl</div>
+        </div>
+        <div class="st-tax-item">
+            <div class="st-tax-item-label">Przychod netto</div>
+            <div class="st-tax-item-val">{{ "%.2f"|format(przychod_netto) }} zl</div>
+        </div>
+        <div class="st-tax-item">
+            <div class="st-tax-item-label">Koszty netto</div>
+            <div class="st-tax-item-val" style="color:var(--neon-secondary)">{{ "%.2f"|format(koszty_netto) }} zl</div>
+        </div>
+        <div class="st-tax-item">
+            <div class="st-tax-item-label">Dochod</div>
+            <div class="st-tax-item-val">{{ "%.2f"|format(dochod) }} zl</div>
+        </div>
+        <div class="st-tax-item">
+            <div class="st-tax-item-label">VAT nalezny</div>
+            <div class="st-tax-item-val">{{ "%.2f"|format(vat_sprzedaz) }} zl</div>
+        </div>
+        <div class="st-tax-item">
+            <div class="st-tax-item-label">VAT naliczony</div>
+            <div class="st-tax-item-val">{{ "%.2f"|format(vat_koszty) }} zl</div>
+        </div>
+    </div>
+    <div class="st-tax-highlight">
+        <div>
+            <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);font-weight:600;margin-bottom:4px">
+                <i class="mi" style="font-size:0.7rem">stars</i> Zysk na reke
+            </div>
+            <div style="font-size:0.72rem;color:var(--text-muted)">Po odliczeniu VAT i podatku</div>
+        </div>
+        <div class="font-display" style="font-size:1.6rem;font-weight:800;letter-spacing:-0.5px;color:{{ zysk_na_reke_kolor }};text-shadow:0 0 15px {{ zysk_na_reke_kolor }}40">
+            {{ "%.2f"|format(zysk_na_reke) }} zl
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ SECTION 5: HISTOGRAM ═══════════════ -->
+<div class="st-section">
+    <span class="st-section-bar lime"></span>
+    <span class="st-section-label">Czas sprzedazy produktow</span>
+</div>
+
+<div class="st-card">
+    <canvas id="chartHistogram" height="200"></canvas>
+    <div style="margin-top:12px;font-size:0.72rem;color:var(--text-muted)">{{ histogram_html|safe }}</div>
+</div>
+
+<!-- ═══════════════ SECTION 6: PALLET ROI ═══════════════ -->
+<div class="st-section">
+    <span class="st-section-bar"></span>
+    <span class="st-section-label">ROI palet</span>
+</div>
+
+<div class="st-roi-strip">
+    <div class="st-roi-big" style="border-left-color:var(--neon-tertiary)">
+        <div class="val" style="color:var(--neon-tertiary);text-shadow:0 0 15px rgba(190,238,0,0.4)">{{ "%.1f"|format(roi_total) }}%</div>
+        <div class="lbl">ROI Total</div>
+    </div>
+    <div class="st-roi-big" style="border-left-color:var(--neon-primary)">
+        <div class="val" style="color:var(--neon-primary)">{{ palety_roi|length }}</div>
+        <div class="lbl">Palety z danymi</div>
+    </div>
+    <div class="st-roi-big">
+        <div class="val">{{ "%.1f"|format(roi_sredni) }}%</div>
+        <div class="lbl">Sredni ROI</div>
+    </div>
+</div>
+
+{% if top3 %}
+<div class="st-section">
+    <span class="st-section-bar lime"></span>
+    <span class="st-section-label">Najlepsze palety</span>
+</div>
+<div class="st-roi-list">
+    {% for p in top3 %}
+    <div class="st-roi-item" style="animation-delay:{{ loop.index0 * 0.1 }}s">
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:800;color:var(--neon-tertiary);width:28px;text-align:center;flex-shrink:0">{{ loop.index }}</div>
+        <div class="st-roi-item-name">
+            <div class="name">{{ p.nazwa }}</div>
+            <div class="meta">{{ p.sprzedane }}/{{ p.total }} szt &middot; koszt: {{ "%.0f"|format(p.koszt_palety) }} zl</div>
+        </div>
+        <div class="st-roi-bar">
+            <div class="st-roi-bar-fill" style="width:{{ [p.roi, 100]|min }}%;background:var(--neon-tertiary)"></div>
+        </div>
+        <div class="st-roi-item-val" style="color:var(--neon-tertiary)">{{ "%.1f"|format(p.roi) }}%</div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if worst3 %}
+<div class="st-section">
+    <span class="st-section-bar pink"></span>
+    <span class="st-section-label">Najslabsze palety</span>
+</div>
+<div class="st-roi-list">
+    {% for p in worst3 %}
+    <div class="st-roi-item worst" style="animation-delay:{{ loop.index0 * 0.1 }}s">
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:800;color:var(--neon-secondary);width:28px;text-align:center;flex-shrink:0">{{ loop.index }}</div>
+        <div class="st-roi-item-name">
+            <div class="name">{{ p.nazwa }}</div>
+            <div class="meta">{{ p.sprzedane }}/{{ p.total }} szt &middot; koszt: {{ "%.0f"|format(p.koszt_palety) }} zl</div>
+        </div>
+        <div class="st-roi-bar">
+            <div class="st-roi-bar-fill" style="width:{{ [[p.roi|abs, 100]|min, 5]|max }}%;background:var(--neon-secondary)"></div>
+        </div>
+        <div class="st-roi-item-val" style="color:var(--neon-secondary)">{{ "%.1f"|format(p.roi) }}%</div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- ═══════════════ SECTION 7: MONTHLY CHART ═══════════════ -->
+<div class="st-section">
+    <span class="st-section-bar"></span>
+    <span class="st-section-label">Sprzedaz miesiecznie {{ current_year }}</span>
+</div>
+
+<div class="st-card">
+    <div class="st-chart-ctrl">
+        <button class="st-chart-btn" id="btnMonthly" onclick="showMonthlyView()" style="opacity:0.5">
+            <i class="mi" style="font-size:0.7rem">calendar_month</i> Miesiace
+        </button>
+        <button class="st-chart-btn" id="btnDrillInfo" style="display:none" onclick="showMonthlyView()">
+            <i class="mi" style="font-size:0.7rem">arrow_back</i> Wroc
+        </button>
+        <span id="drillLabel" style="font-size:0.72rem;color:var(--text-muted);font-family:'Space Grotesk',sans-serif"></span>
+    </div>
+    <canvas id="chartMiesiace" height="280"></canvas>
+    <div id="monthSummary" style="margin-top:14px;font-size:0.75rem;color:var(--text-muted)"></div>
+</div>
+
+<!-- ═══════════════ SECTION 8: YEARLY CHART ═══════════════ -->
+<div class="st-section">
+    <span class="st-section-bar pink"></span>
+    <span class="st-section-label">Sprzedaz roczna</span>
+</div>
+
+<div class="st-card">
+    <canvas id="chartLata" height="200"></canvas>
+    {% if roczne %}
+    <table class="st-year-table">
+        <thead>
+            <tr><th>Rok</th><th>Transakcji</th><th>Suma</th></tr>
+        </thead>
+        <tbody>
+            {% for r in roczne %}
+            <tr>
+                <td class="font-display" style="font-weight:700;color:var(--neon-primary)">{{ r.rok }}</td>
+                <td>{{ r.ilosc }}</td>
+                <td class="font-display" style="font-weight:700">{{ "%.2f"|format(r.suma) }} zl</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+
+<!-- ═══════════════ SECTION 9: PALLETS PER MONTH ═══════════════ -->
+<div class="st-section">
+    <span class="st-section-bar lime"></span>
+    <span class="st-section-label">Zakupione palety w {{ current_year }}</span>
+</div>
+
+<div class="st-month-grid">
+    {% set mnames = ['STY','LUT','MAR','KWI','MAJ','CZE','LIP','SIE','WRZ','PAZ','LIS','GRU'] %}
+    {% for cnt in dane_palety_cnt %}
+    <div class="st-month-cell">
+        <div class="cnt">{{ cnt }}</div>
+        <div class="mo">{{ mnames[loop.index0] }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- ═══════════════ SECTION 10: TOP PRODUCTS & DOSTAWCY ═══════════════ -->
+<div class="st-top-grid">
+    <div class="st-top-panel">
+        <div class="st-section" style="margin-top:0">
+            <span class="st-section-bar"></span>
+            <span class="st-section-label">Top produkty</span>
+        </div>
+        {% for p in top_produkty %}
+        <div class="st-top-item">
+            <div class="st-top-rank">{{ loop.index }}</div>
+            <div class="st-top-info">
+                <div class="name">{{ p.produkt_nazwa }}</div>
+                <div class="meta">{{ p.sprzedane }} szt sprzedanych</div>
+            </div>
+            <div class="st-top-val" style="color:var(--neon-primary)">{{ "%.0f"|format(p.przychod) }} zl</div>
+        </div>
+        {% endfor %}
+        {% if not top_produkty %}
+        <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:0.8rem">Brak danych</div>
+        {% endif %}
+    </div>
+
+    <div class="st-top-panel">
+        <div class="st-section" style="margin-top:0">
+            <span class="st-section-bar pink"></span>
+            <span class="st-section-label">Top dostawcy</span>
+        </div>
+        {% for d in top_dostawcy %}
+        <div class="st-top-item">
+            <div class="st-top-rank" style="color:var(--neon-secondary)">{{ loop.index }}</div>
+            <div class="st-top-info">
+                <div class="name">{{ d.dostawca_nazwa }}</div>
+                <div class="meta">{{ d.sprzedane }} szt sprzedanych</div>
+            </div>
+            <div class="st-top-val" style="color:var(--neon-secondary)">{{ "%.0f"|format(d.przychod) }} zl</div>
+        </div>
+        {% endfor %}
+        {% if not top_dostawcy %}
+        <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:0.8rem">Brak danych</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ═══════════════ SECTION 11: CHART.JS SCRIPTS ═══════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+// === DATA FROM PYTHON ===
+const nazwyMiesiecy = {{ nazwy_miesiecy_json|safe }};
+const daneMiesieczne = {{ dane_miesieczne_json|safe }};
+const daneMiesieczneCnt = {{ dane_miesieczne_cnt_json|safe }};
+const daneKoszty = {{ dane_koszty_json|safe }};
+const danePrywatne = {{ dane_prywatne_json|safe }};
+const danePalety = {{ dane_palety_json|safe }};
+const danePaletyZakup = {{ dane_palety_zakup_json|safe }};
+const daneDzienne = {{ dzienne_json|safe }};
+const daneDzienneCnt = {{ dzienne_cnt_json|safe }};
+const histLabels = {{ sell_time_labels_json|safe }};
+const histData = {{ sell_time_histogram_json|safe }};
+
+// === CHART DEFAULTS ===
+Chart.defaults.color = '#64748b';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.04)';
+Chart.defaults.font.family = "'Space Grotesk','Inter',sans-serif";
+Chart.defaults.font.size = 11;
+
+// === HELPER: bar color by value ===
+function getBarColor(val) {
+    if (val >= 500) return 'rgba(190,238,0,0.85)';
+    if (val >= 200) return 'rgba(143,245,255,0.75)';
+    if (val >= 100) return 'rgba(143,245,255,0.5)';
+    if (val > 0) return 'rgba(143,245,255,0.35)';
+    return 'rgba(239,68,68,0.6)';
+}
+
+// === 1. HISTOGRAM CHART (sell time) ===
+const ctxHist = document.getElementById('chartHistogram');
+if (ctxHist && histLabels && histLabels.length) {
+    new Chart(ctxHist, {
+        type: 'bar',
+        data: {
+            labels: histLabels,
+            datasets: [{
+                label: 'Ilosc produktow',
+                data: histData,
+                backgroundColor: histData.map((v, i) => {
+                    const ratio = i / histLabels.length;
+                    if (ratio < 0.3) return 'rgba(190,238,0,0.7)';
+                    if (ratio < 0.6) return 'rgba(143,245,255,0.6)';
+                    return 'rgba(255,107,155,0.6)';
+                }),
+                borderWidth: 0,
+                borderRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(15,15,30,0.95)',
+                    borderColor: 'rgba(143,245,255,0.2)',
+                    borderWidth: 1,
+                    titleFont: { family: "'Space Grotesk',sans-serif", weight: '700' }
+                }
+            },
+            scales: {
+                x: { grid: { display: false } },
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' } }
+            }
+        }
+    });
+}
+
+// === 2. MONTHLY CHART with drill-down ===
+let monthlyChart = null;
+let isDailyView = false;
+
+function buildMonthlyChart() {
+    const ctx = document.getElementById('chartMiesiace');
+    if (!ctx) return;
+
+    // Calculate zysk netto = przychod - koszty - zakup palet
+    const zyskNetto = daneMiesieczne.map((v, i) => {
+        const k = (daneKoszty[i] || 0) + (danePaletyZakup[i] || 0);
+        return +(v - k).toFixed(2);
+    });
+
+    monthlyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: nazwyMiesiecy,
+            datasets: [
+                {
+                    label: 'Przychod',
+                    data: daneMiesieczne,
+                    backgroundColor: 'rgba(59,130,246,0.7)',
+                    borderWidth: 0,
+                    borderRadius: 0,
+                    order: 3
+                },
+                {
+                    label: 'Koszty',
+                    data: daneKoszty,
+                    backgroundColor: 'rgba(255,107,155,0.6)',
+                    borderWidth: 0,
+                    borderRadius: 0,
+                    order: 2
+                },
+                {
+                    label: 'Zakup palet',
+                    data: danePaletyZakup,
+                    backgroundColor: 'rgba(234,179,8,0.6)',
+                    borderWidth: 0,
+                    borderRadius: 0,
+                    order: 1
+                },
+                {
+                    label: 'Zysk netto',
+                    data: zyskNetto,
+                    type: 'line',
+                    borderColor: '#beee00',
+                    backgroundColor: 'rgba(190,238,0,0.1)',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#beee00',
+                    pointBorderColor: '#beee00',
+                    tension: 0.3,
+                    fill: true,
+                    order: 0
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: { mode: 'index', intersect: false },
+            onClick: function(e, elements) {
+                if (isDailyView || !elements.length) return;
+                const idx = elements[0].index;
+                showDailyView(idx);
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { boxWidth: 12, padding: 16, font: { size: 11, family: "'Space Grotesk',sans-serif" } }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15,15,30,0.95)',
+                    borderColor: 'rgba(143,245,255,0.2)',
+                    borderWidth: 1,
+                    titleFont: { family: "'Space Grotesk',sans-serif", weight: '700' },
+                    callbacks: {
+                        label: function(ctx) {
+                            return ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2) + ' zl';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false } },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255,255,255,0.04)' },
+                    ticks: { callback: function(v) { return v.toLocaleString() + ' zl'; } }
+                }
+            }
+        }
+    });
+}
+
+function showDailyView(monthIdx) {
+    if (!monthlyChart) return;
+    isDailyView = true;
+
+    const monthName = nazwyMiesiecy[monthIdx];
+    const daily = daneDzienne[monthIdx] || [];
+    const dailyCnt = daneDzienneCnt[monthIdx] || [];
+
+    const labels = daily.map((_, i) => (i + 1).toString());
+    const colors = daily.map(v => getBarColor(v));
+
+    document.getElementById('btnMonthly').style.opacity = '1';
+    document.getElementById('btnDrillInfo').style.display = 'inline-flex';
+    document.getElementById('drillLabel').textContent = monthName + ' — widok dzienny';
+
+    const totalMonth = daily.reduce((a, b) => a + b, 0);
+    const totalCnt = dailyCnt.reduce((a, b) => a + b, 0);
+    const avgDay = daily.length ? (totalMonth / daily.length) : 0;
+    document.getElementById('monthSummary').innerHTML =
+        '<i class="mi" style="font-size:0.7rem">info</i> ' +
+        monthName + ': <strong>' + totalMonth.toFixed(2) + ' zl</strong> | ' +
+        totalCnt + ' transakcji | srednia: ' + avgDay.toFixed(2) + ' zl/dzien';
+
+    monthlyChart.data.labels = labels;
+    monthlyChart.data.datasets = [{
+        label: 'Przychod dzienny',
+        data: daily,
+        backgroundColor: colors,
+        borderWidth: 0,
+        borderRadius: 0
+    }];
+    monthlyChart.options.onClick = null;
+    monthlyChart.options.scales.x.title = { display: true, text: 'Dzien miesiaca', color: '#64748b', font: { size: 10 } };
+    monthlyChart.update();
+}
+
+function showMonthlyView() {
+    if (!monthlyChart) return;
+    isDailyView = false;
+
+    document.getElementById('btnMonthly').style.opacity = '0.5';
+    document.getElementById('btnDrillInfo').style.display = 'none';
+    document.getElementById('drillLabel').textContent = '';
+    document.getElementById('monthSummary').innerHTML = '';
+
+    monthlyChart.destroy();
+    buildMonthlyChart();
+}
+
+buildMonthlyChart();
+
+// === 3. YEARLY CHART ===
+(function() {
+    const ctx = document.getElementById('chartLata');
+    if (!ctx) return;
+
+    const roczneData = [
+        {% for r in roczne %}
+        { rok: '{{ r.rok }}', suma: {{ r.suma }}, ilosc: {{ r.ilosc }} }{{ "," if not loop.last }}
+        {% endfor %}
+    ];
+
+    if (!roczneData.length) return;
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: roczneData.map(r => r.rok.toString()),
+            datasets: [{
+                label: 'Przychod roczny',
+                data: roczneData.map(r => r.suma),
+                backgroundColor: roczneData.map((r, i) =>
+                    i === roczneData.length - 1 ? 'rgba(143,245,255,0.8)' : 'rgba(143,245,255,0.4)'
+                ),
+                borderWidth: 0,
+                borderRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(15,15,30,0.95)',
+                    borderColor: 'rgba(143,245,255,0.2)',
+                    borderWidth: 1,
+                    titleFont: { family: "'Space Grotesk',sans-serif", weight: '700' },
+                    callbacks: {
+                        afterLabel: function(ctx) {
+                            const d = roczneData[ctx.dataIndex];
+                            return d ? d.ilosc + ' transakcji' : '';
+                        },
+                        label: function(ctx) {
+                            return 'Przychod: ' + ctx.parsed.y.toFixed(2) + ' zl';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false } },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255,255,255,0.04)' },
+                    ticks: { callback: function(v) { return v.toLocaleString() + ' zl'; } }
+                }
+            }
+        }
+    });
+})();
+</script>
+
+{% endblock %}

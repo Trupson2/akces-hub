@@ -3100,12 +3100,80 @@ def statystyki():
         status_text = "<span class=material-symbols-outlined style=font-size:1rem>trending_up</span> Całkiem nieźle"
         status_color = "#eab308"
     elif today_sales >= 500:
-        status_text = "🤏 Sypie trochę"
+        status_text = '<i class=mi>speed</i> Sypie troche'
         status_color = "#f97316"
     else:
-        status_text = "😴 NIE SYPIE"
+        status_text = '<i class=mi>bedtime</i> NIE SYPIE'
         status_color = "#ef4444"
-    
+
+    # === ROI calculations for template ===
+    roi_total = roi_sredni = 0
+    top3 = []
+    worst3 = []
+    if palety_roi:
+        roi_total_koszt = sum(p['koszt'] for p in palety_roi)
+        roi_total_przychod = sum(p['przychod'] for p in palety_roi)
+        roi_total_zysk = roi_total_przychod - roi_total_koszt
+        roi_total = (roi_total_zysk / roi_total_koszt * 100) if roi_total_koszt > 0 else 0
+        roi_sredni = sum(p['roi'] for p in palety_roi) / len(palety_roi)
+        sorted_desc = sorted(palety_roi, key=lambda x: x['roi'], reverse=True)
+        sorted_asc = sorted(palety_roi, key=lambda x: x['roi'])
+        top_n = min(5, max(1, len(palety_roi) // 2))
+        top3 = sorted_desc[:top_n]
+        top_names = {p['nazwa'] for p in top3}
+        worst3 = [p for p in sorted_asc if p['nazwa'] not in top_names][:top_n]
+
+    from flask import render_template
+    return render_template('statystyki.html',
+        current_year=current_year,
+        today_sales=today_sales,
+        today_cnt=today_cnt,
+        status_text=status_text,
+        status_color=status_color,
+        podsumowanie=podsumowanie,
+        przychod_total=przychod_total,
+        przychod_netto=przychod_netto,
+        koszty_total_lacznie=koszty_total_lacznie,
+        koszty_netto=koszty_netto,
+        palety_total_rok=palety_total_rok,
+        pryw_total_rok=pryw_total_rok,
+        zysk_rok=zysk_rok,
+        zysk_kolor=zysk_kolor,
+        dochod=dochod,
+        vat_do_zaplaty=vat_do_zaplaty,
+        vat_sprzedaz=vat_sprzedaz,
+        vat_koszty=vat_koszty,
+        podatek=podatek,
+        zysk_na_reke=zysk_na_reke,
+        zysk_na_reke_kolor=zysk_na_reke_kolor,
+        histogram_html=histogram_html,
+        palety_roi=palety_roi,
+        roi_total=roi_total,
+        roi_sredni=roi_sredni,
+        top3=top3,
+        worst3=worst3,
+        top_produkty=top_produkty,
+        top_dostawcy=top_dostawcy,
+        roczne=roczne,
+        dane_palety_cnt=[dane_palety_cnt[i] for i in range(12)],
+        palety_total_cnt_rok=palety_total_cnt_rok,
+        nazwy_miesiecy_json=json.dumps(nazwy_miesiecy),
+        dane_miesieczne_json=json.dumps(dane_miesieczne),
+        dane_miesieczne_cnt_json=json.dumps(dane_miesieczne_cnt),
+        dane_koszty_json=json.dumps(dane_koszty),
+        dane_prywatne_json=json.dumps(dane_prywatne),
+        dane_palety_json=json.dumps(dane_palety),
+        dane_palety_zakup_json=json.dumps(dane_palety_zakup),
+        dzienne_json=json.dumps(dzienne_json),
+        dzienne_cnt_json=json.dumps(dzienne_cnt_json),
+        sell_time_labels_json=json.dumps(sell_time_labels),
+        sell_time_histogram_json=json.dumps(sell_time_histogram),
+        dane_roczne_labels_json=json.dumps(dane_roczne_labels),
+        dane_roczne_values_json=json.dumps(dane_roczne_values),
+        now=datetime.now(),
+    )
+
+    # === OLD INLINE HTML REMOVED - now using templates/statystyki.html ===
     html = f'''
     <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> STATYSTYKI</h1><small>Sprzedaż i przychody (tylko opłacone)</small></div>
     <div style="text-align:right;margin-bottom:10px">
