@@ -31,9 +31,9 @@
             <input type="number" name="marza" class="form-control" value="{{ marza or 40 }}">
         </div>
         <div class="form-group">
-            <label>📁 Kategoria</label>
+            <label><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span> Kategoria</label>
             <select name="kategoria" class="form-control">
-                <option value="motoryzacja" {{ 'selected' if kategoria=='motoryzacja' else '' }}>🚗 Motoryzacja (8%)</option>
+                <option value="motoryzacja" {{ 'selected' if kategoria=='motoryzacja' else '' }}><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">directions_car</span> Motoryzacja (8%)</option>
                 <option value="elektronika" {{ 'selected' if kategoria=='elektronika' else '' }}><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">photo_camera</span> Elektronika (10%)</option>
                 <option value="inne" {{ 'selected' if kategoria=='inne' or not kategoria else '' }}><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span> Inne (11%)</option>
                 <option value="dom_ogrod" {{ 'selected' if kategoria=='dom_ogrod' else '' }}>🏠 Dom i ogród (12%)</option>

@@ -33,7 +33,7 @@ for _mod in _REQUIRED_MODULES:
     except ImportError:
         _missing.append(_mod)
 if _missing:
-    print(f"❌ Brakujące moduły: {', '.join(_missing)}")
+    print(f"[ERR] Brakujące moduły: {', '.join(_missing)}")
     print(f"   Zainstaluj: pip install -r requirements.txt")
     sys.exit(1)
 
@@ -68,24 +68,24 @@ try:
     # Spróbuj załadować z gemini_config.py (jeśli istnieje)
     try:
         from gemini_config import GEMINI_API_KEY
-        print("✅ Klucz Gemini załadowany z gemini_config.py")
+        print("[OK] Klucz Gemini załadowany z gemini_config.py")
     except:
         GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
         if not GEMINI_API_KEY:
-            print("⚠️  Nie znaleziono gemini_config.py - sprawdzam zmienną środowiskową")
+            print("[WARN]  Nie znaleziono gemini_config.py - sprawdzam zmienną środowiskową")
     
     # ALBO HARDCODE TUTAJ (odkomentuj i wklej klucz):
     # GEMINI_API_KEY = 'AIzaSy...'  # Twój klucz API z Google AI Studio
     
     if GEMINI_API_KEY and GEMINI_API_KEY != 'WKLEJ_TUTAJ_SWOJ_KLUCZ':
         GEMINI_CLIENT = genai.Client(api_key=GEMINI_API_KEY)
-        print("✅ Gemini AI skonfigurowane (NOWY google.genai!) - Model: gemini-2.0-flash")
+        print("[OK] Gemini AI skonfigurowane (NOWY google.genai!) - Model: gemini-2.0-flash")
     else:
         GEMINI_CLIENT = None
-        print("⚠️  Brak GEMINI_API_KEY - Extraktor Allegro wyłączony")
+        print("[WARN]  Brak GEMINI_API_KEY - Extraktor Allegro wyłączony")
 except Exception as e:
     GEMINI_CLIENT = None
-    print(f"⚠️  Gemini AI niedostępne: {e}")
+    print(f"[WARN]  Gemini AI niedostępne: {e}")
 
 # ============================================================
 # WERSJA I KONFIGURACJA
@@ -277,7 +277,7 @@ def inject_branding():
     # Model Gemini
     try:
         _gm = get_config_cached('gemini_model', 'gemini-2.5-flash')
-        _gm_short = _gm.replace('gemini-', '').replace('-preview', ' ⚠️')
+        _gm_short = _gm.replace('gemini-', '').replace('-preview', ' <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span>')
     except:
         _gm_short = '2.5-flash'
     return {
@@ -318,7 +318,7 @@ def handle_404(e):
     return "<h1>404</h1><p>Strona nie znaleziona.</p>", 404
 
 # ============================================================
-# ✅ CORS CONFIGURATION - NGROK & REMOTE ACCESS FIX!
+# [OK] CORS CONFIGURATION - NGROK & REMOTE ACCESS FIX!
 # ============================================================
 CORS(app, resources={
     r"/*": {
@@ -333,7 +333,7 @@ CORS(app, resources={
 
 print("""
 ╔═══════════════════════════════════════════════════════════════╗
-║                   ✅ CORS ENABLED!                            ║
+║                   CORS ENABLED!                            ║
 ║  Akces Hub dostępny z każdej domeny (ngrok, localhost, etc.) ║
 ╚═══════════════════════════════════════════════════════════════╝
 """)
@@ -446,7 +446,7 @@ try:
     if analytics_bp:
         app.register_blueprint(analytics_bp, url_prefix='/analytics')
 except Exception as e:
-    print(f"⚠️ Analytics module not loaded: {e}")
+    print(f"[WARN] Analytics module not loaded: {e}")
 
 # Extracted route blueprints
 from modules.sprzedaze import sprzedaze_bp
@@ -1240,7 +1240,7 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
 
     <a href="/wysylki" class="card" style="border-color:{% if do_wysylki > 0 %}#ef4444{% else %}#22c55e{% endif %}33">
         <div class="card-row">
-            <div class="card-icon">📦</div>
+            <div class="card-icon"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span></div>
             <div>
                 <div class="card-title" style="color:#22c55e">Wysylki{% if do_wysylki > 0 %}<span class="badge">{{ do_wysylki }}</span>{% endif %}</div>
                 <div class="card-desc">Pakowanie i nadawanie paczek</div>
@@ -1249,7 +1249,7 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     </a>
     <a href="/warehouse/shelves" class="card" style="border-color:#3b82f633">
         <div class="card-row">
-            <div class="card-icon">🗄️</div>
+            <div class="card-icon"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">dns</span></div>
             <div>
                 <div class="card-title" style="color:#3b82f6">Regaly</div>
                 <div class="card-desc">Mapa regalow, polki, skanuj QR</div>
@@ -1258,14 +1258,14 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     </a>
     <a href="/magazyn" class="card" style="border-color:#f59e0b33">
         <div class="card-row">
-            <div class="card-icon">📋</div>
+            <div class="card-icon"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">assignment</span></div>
             <div>
                 <div class="card-title" style="color:#f59e0b">Magazyn</div>
                 <div class="card-desc">Produkty, wyszukiwarka</div>
             </div>
         </div>
     </a>
-    <div class="refresh"><a href="/">🔄 Odswiez</a></div>
+    <div class="refresh"><a href="/"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span> Odswiez</a></div>
     <a href="/auth/logout" class="logout">Wyloguj sie</a>
 </div></body></html>''', do_wysylki=do_wysylki, wysylki_dzis=wysylki_dzis,
             produkty_magazyn=produkty_magazyn, regaly_cnt=regaly_cnt)
@@ -1366,7 +1366,7 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     
     # Jeśli dziadek lub babcia - pokaż uproszczony widok
     if user in ['dziadek', 'babcia']:
-        icon = '👴' if user == 'dziadek' else '👵'
+        icon = 'D' if user == 'dziadek' else 'B'
         nazwa = user.upper()
         return render_template('dziadek.html', user_icon=icon, user_name=nazwa, do_wyslania=stats['do_wyslania'])
     
@@ -1377,7 +1377,7 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     # Allegro status
     from modules.allegro_api import is_configured, is_authenticated
     allegro = {
-        'status': '🟢 Online' if is_authenticated() else ('🟡 Skonfiguruj' if is_configured() else '⚪ Offline'),
+        'status': 'Online' if is_authenticated() else ('Skonfiguruj' if is_configured() else 'Offline'),
         'zamowienia': stats['sprzedaz_dzis_cnt'],
         'oferty': stats['wystawione']
     }
@@ -1493,10 +1493,10 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
                     if bot_token and chat_id:
                         import requests as _req
                         text = (
-                            f"📢 *Dostępna aktualizacja {get_config_cached('brand_name', 'AKCES HUB')}!*\n\n"
-                            f"📦 Nowa wersja: `{remote_hash}`\n"
-                            f"📝 Zmiany:\n{remote_msg[:200]}\n\n"
-                            f"💡 Wejdź na dashboard i kliknij *Aktualizuj*"
+                            f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">campaign</span> *Dostępna aktualizacja {get_config_cached('brand_name', 'AKCES HUB')}!*\n\n"
+                            f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> Nowa wersja: `{remote_hash}`\n"
+                            f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">edit_note</span> Zmiany:\n{remote_msg[:200]}\n\n"
+                            f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Wejdź na dashboard i kliknij *Aktualizuj*"
                         )
                         _req.post(
                             f'https://api.telegram.org/bot{bot_token}/sendMessage',
@@ -1579,7 +1579,7 @@ def monitor_page():
         except Exception:
             kw_str = html_lib.escape(str(kw)[:50])
 
-        source_emoji = '🏪' if d['source'] == 'warrington' else '🎪'
+        source_emoji = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">store</span>' if d['source'] == 'warrington' else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">storefront</span>'
         # Ceny już w PLN (API z url-accept-currency: pln)
         _dp = float(d.get('price', 0) or 0)
         price_str = f"{_dp:.0f} PLN"
@@ -1603,9 +1603,9 @@ def monitor_page():
         _roi = round(_rrp / _dp, 1) if _rrp > 0 and _dp > 0 else 0
         roi_badge = ''
         if _roi >= 5:
-            roi_badge = '<span style="background:#ef4444;color:#fff;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:700">🔥 ROI {:.0f}x</span>'.format(_roi)
+            roi_badge = '<span style="background:#ef4444;color:#fff;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:700">ROI {:.0f}x</span>'.format(_roi)
         elif _roi >= 3:
-            roi_badge = '<span style="background:#f59e0b;color:#fff;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:700">💰 ROI {:.0f}x</span>'.format(_roi)
+            roi_badge = '<span style="background:#f59e0b;color:#fff;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:700"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">payments</span> ROI {:.0f}x</span>'.format(_roi)
         elif _roi >= 1.5:
             roi_badge = '<span style="background:#3b82f6;color:#fff;padding:1px 6px;border-radius:8px;font-size:10px">ROI {:.1f}x</span>'.format(_roi)
 
@@ -1620,7 +1620,7 @@ def monitor_page():
                     {roi_badge}
                 </div>
                 <div style="font-size:12px;color:var(--text-secondary)">
-                    💵 {price_str}{rrp_str} | 📁 {_safe_category}
+                    <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">paid</span> {price_str}{rrp_str} | <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span> {_safe_category}
                 </div>
                 <div style="font-size:11px;color:var(--text-secondary);margin-top:2px">
                     {source_emoji} {_safe_source} | {kw_str if kw_str else '-'} | {time_str}
@@ -1637,12 +1637,12 @@ def monitor_page():
     _err = html_lib.escape(request.args.get('err', ''))
     _alert = ''
     if _msg:
-        _alert = f'<div style="padding:10px;margin-bottom:12px;background:rgba(0,180,0,0.1);border-radius:8px;text-align:center;font-size:14px">✅ {_msg}</div>'
+        _alert = f'<div style="padding:10px;margin-bottom:12px;background:rgba(0,180,0,0.1);border-radius:8px;text-align:center;font-size:14px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> {_msg}</div>'
     elif _err:
-        _alert = f'<div style="padding:10px;margin-bottom:12px;background:rgba(255,0,0,0.1);border-radius:8px;text-align:center;font-size:14px">❌ {_err}</div>'
+        _alert = f'<div style="padding:10px;margin-bottom:12px;background:rgba(255,0,0,0.1);border-radius:8px;text-align:center;font-size:14px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> {_err}</div>'
 
     content = f'''
-    <div class="hdr"><h1>🔍 Monitor Okazji Palet</h1></div>
+    <div class="hdr"><h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">search</span> Monitor Okazji Palet</h1></div>
     {_alert}
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:15px">
         <div class="card" style="padding:12px;text-align:center">
@@ -1650,18 +1650,18 @@ def monitor_page():
             <div style="font-size:11px;color:var(--text-secondary)">Nowe dzisiaj</div>
         </div>
         <div class="card" style="padding:12px;text-align:center">
-            <div style="font-size:24px;font-weight:700">🏪 {stats.get('warrington_total', 0)}</div>
+            <div style="font-size:24px;font-weight:700"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">store</span> {stats.get('warrington_total', 0)}</div>
             <div style="font-size:11px;color:var(--text-secondary)">Warrington</div>
         </div>
         <div class="card" style="padding:12px;text-align:center">
-            <div style="font-size:24px;font-weight:700">🎪 {stats.get('jobalots_total', 0)}</div>
+            <div style="font-size:24px;font-weight:700"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">storefront</span> {stats.get('jobalots_total', 0)}</div>
             <div style="font-size:11px;color:var(--text-secondary)">Jobalots</div>
         </div>
     </div>
 
     <details style="margin-bottom:15px">
         <summary class="card" style="padding:12px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center">
-            <span style="font-weight:600">📊 Statystyki i koszty AI</span>
+            <span style="font-weight:600"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span> Statystyki i koszty AI</span>
             <span style="font-size:12px;color:var(--text-secondary)">
                 Dzisiaj: ${costs.get('today_all_ai_cost',0):.4f} | Miesiąc: ${costs.get('month_all_ai_cost',0):.4f} | Zaoszcz: ~{costs.get('month_time_saved_min',0)//60}h
             </span>
@@ -1669,26 +1669,26 @@ def monitor_page():
         <div class="card" style="padding:0;margin-top:-8px;border-top:none;border-top-left-radius:0;border-top-right-radius:0">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
                 <div style="padding:12px;border-bottom:1px solid var(--border-color);border-right:1px solid var(--border-color)">
-                    <div style="font-weight:600;font-size:13px;margin-bottom:8px">📅 Dzisiaj</div>
+                    <div style="font-weight:600;font-size:13px;margin-bottom:8px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">today</span> Dzisiaj</div>
                     <div style="font-size:12px;line-height:1.8">
-                        🔍 Skanów palet: <b>{costs.get('today_scans',0)}</b><br>
-                        📦 Przeskanowanych: <b>{costs.get('today_scraped',0)}</b><br>
-                        ✨ Nowych deali: <b>{costs.get('today_new_deals',0)}</b><br>
-                        ⏱️ Czas skanów: <b>{costs.get('today_scan_time',0):.0f}s</b>
+                        <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">search</span> Skanów palet: <b>{costs.get('today_scans',0)}</b><br>
+                        <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> Przeskanowanych: <b>{costs.get('today_scraped',0)}</b><br>
+                        <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">auto_awesome</span> Nowych deali: <b>{costs.get('today_new_deals',0)}</b><br>
+                        <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">timer</span> Czas skanów: <b>{costs.get('today_scan_time',0):.0f}s</b>
                     </div>
                 </div>
                 <div style="padding:12px;border-bottom:1px solid var(--border-color)">
-                    <div style="font-weight:600;font-size:13px;margin-bottom:8px">📆 Ten miesiąc</div>
+                    <div style="font-weight:600;font-size:13px;margin-bottom:8px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">calendar_month</span> Ten miesiąc</div>
                     <div style="font-size:12px;line-height:1.8">
-                        🔍 Skanów palet: <b>{costs.get('month_scans',0)}</b><br>
-                        📦 Przeskanowanych: <b>{costs.get('month_scraped',0)}</b><br>
-                        ✨ Nowych deali: <b>{costs.get('month_new_deals',0)}</b><br>
-                        ⏱️ Czas skanów: <b>{costs.get('month_scan_time',0):.0f}s</b>
+                        <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">search</span> Skanów palet: <b>{costs.get('month_scans',0)}</b><br>
+                        <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> Przeskanowanych: <b>{costs.get('month_scraped',0)}</b><br>
+                        <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">auto_awesome</span> Nowych deali: <b>{costs.get('month_new_deals',0)}</b><br>
+                        <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">timer</span> Czas skanów: <b>{costs.get('month_scan_time',0):.0f}s</b>
                     </div>
                 </div>
             </div>
             <div style="padding:12px;border-bottom:1px solid var(--border-color)">
-                <div style="font-weight:600;font-size:13px;margin-bottom:8px">🤖 Koszty AI — ten miesiąc</div>
+                <div style="font-weight:600;font-size:13px;margin-bottom:8px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smart_toy</span> Koszty AI — ten miesiąc</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                     <div style="font-size:12px;line-height:1.8;background:rgba(139,92,246,0.05);padding:8px;border-radius:8px">
                         <div style="font-weight:600;color:#8b5cf6;margin-bottom:4px">Perplexity (analiza palet)</div>
@@ -1706,7 +1706,7 @@ def monitor_page():
                 {''.join(f'<div style="font-size:11px;color:var(--text-secondary);margin-top:6px">  └ {ctx}: {cnt}x (${c:.5f})</div>' for ctx, cnt, c in costs.get('gemini_breakdown', []))}
             </div>
             <div style="padding:12px;border-bottom:1px solid var(--border-color)">
-                <div style="font-weight:600;font-size:13px;margin-bottom:8px">📈 System od początku ({costs.get('system_start','?')})</div>
+                <div style="font-weight:600;font-size:13px;margin-bottom:8px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">trending_up</span> System od początku ({costs.get('system_start','?')})</div>
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;text-align:center">
                     <div style="background:rgba(59,130,246,0.08);padding:8px;border-radius:8px">
                         <div style="font-size:20px;font-weight:700">{costs.get('total_products',0)}</div>
@@ -1743,7 +1743,7 @@ def monitor_page():
                     </div>
                 </div>
                 <div>
-                    <div style="font-weight:600;font-size:13px;margin-bottom:6px">💰 Koszty AI (all-time)</div>
+                    <div style="font-weight:600;font-size:13px;margin-bottom:6px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">payments</span> Koszty AI (all-time)</div>
                     <div style="font-size:12px;line-height:1.8">
                         Perplexity: <b>${costs.get('total_ai_cost',0):.4f}</b> ({costs.get('total_ai_calls',0)}x)<br>
                         Gemini: <b>${costs.get('total_gemini_cost',0):.5f}</b> ({costs.get('total_gemini_calls',0)}x)<br>
@@ -1755,9 +1755,9 @@ def monitor_page():
     </details>
 
     <div style="display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap">
-        <button onclick="doScan('warrington',this)" class="btn" style="flex:1;min-width:120px;text-align:center;background:var(--accent-blue);padding:12px;margin:0">🏪 Skanuj Warrington</button>
-        <button onclick="doScan('jobalots',this)" class="btn" style="flex:1;min-width:120px;text-align:center;background:var(--accent-purple);padding:12px;margin:0">🎪 Skanuj Jobalots</button>
-        <button onclick="doScan('all',this)" class="btn" style="flex:1;min-width:120px;text-align:center;background:var(--accent-green);padding:12px;margin:0">🔄 Skanuj wszystko</button>
+        <button onclick="doScan('warrington',this)" class="btn" style="flex:1;min-width:120px;text-align:center;background:var(--accent-blue);padding:12px;margin:0"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">store</span> Skanuj Warrington</button>
+        <button onclick="doScan('jobalots',this)" class="btn" style="flex:1;min-width:120px;text-align:center;background:var(--accent-purple);padding:12px;margin:0"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">storefront</span> Skanuj Jobalots</button>
+        <button onclick="doScan('all',this)" class="btn" style="flex:1;min-width:120px;text-align:center;background:var(--accent-green);padding:12px;margin:0"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span> Skanuj wszystko</button>
     </div>
     <div id="scanStatus" style="display:none;text-align:center;padding:12px;margin-bottom:15px;background:var(--card-bg);border-radius:10px;border:1px solid var(--border-color)">
         <div style="display:inline-block;width:20px;height:20px;border:3px solid var(--border-color);border-top-color:var(--accent-color);border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle"></div>
@@ -1777,10 +1777,10 @@ def monitor_page():
             .then(function(r){{ return r.json(); }})
             .then(function(d){{
                 if(d.ok){{
-                    tx.textContent = '✅ ' + d.msg;
+                    tx.textContent = '[OK] ' + d.msg;
                     st.style.background = 'rgba(0,180,0,0.1)';
                 }} else {{
-                    tx.textContent = '❌ ' + (d.err||'Błąd');
+                    tx.textContent = '[ERR] ' + (d.err||'Błąd');
                     st.style.background = 'rgba(255,0,0,0.1)';
                 }}
                 setTimeout(function(){{ window.location.href = '/monitor'; }}, 1500);
@@ -1797,13 +1797,13 @@ def monitor_page():
             <form method="POST" action="/monitor/toggle-source" style="margin:0">
                 <input type="hidden" name="source" value="warrington">
                 <button type="submit" style="padding:6px 14px;border-radius:8px;border:1px solid {'#22c55e' if warrington_on else '#ef4444'};background:{'rgba(34,197,94,0.1)' if warrington_on else 'rgba(239,68,68,0.1)'};color:{'#22c55e' if warrington_on else '#ef4444'};font-size:12px;font-weight:600;cursor:pointer">
-                    🏪 Warrington: {'✅ ON' if warrington_on else '❌ OFF'}
+                    <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">store</span> Warrington: {'ON' if warrington_on else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> OFF'}
                 </button>
             </form>
             <form method="POST" action="/monitor/toggle-source" style="margin:0">
                 <input type="hidden" name="source" value="jobalots">
                 <button type="submit" style="padding:6px 14px;border-radius:8px;border:1px solid {'#22c55e' if jobalots_on else '#ef4444'};background:{'rgba(34,197,94,0.1)' if jobalots_on else 'rgba(239,68,68,0.1)'};color:{'#22c55e' if jobalots_on else '#ef4444'};font-size:12px;font-weight:600;cursor:pointer">
-                    🎪 Jobalots: {'✅ ON' if jobalots_on else '❌ OFF'}
+                    <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">storefront</span> Jobalots: {'ON' if jobalots_on else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> OFF'}
                 </button>
             </form>
         </div>
@@ -1954,11 +1954,11 @@ def system_update():
             if bot_token and chat_id:
                 import requests as _req
                 text = (
-                    f"🔄 *{get_config('brand_name', 'AKCES HUB')} — Aktualizacja systemu*\n\n"
-                    f"📦 Wersja: `{commit_hash}`\n"
-                    f"📝 {commit_msg[:150]}\n"
-                    f"🕐 {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
-                    f"✅ System restartuje się za chwilę..."
+                    f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span> *{get_config('brand_name', 'AKCES HUB')} — Aktualizacja systemu*\n\n"
+                    f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> Wersja: `{commit_hash}`\n"
+                    f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">edit_note</span> {commit_msg[:150]}\n"
+                    f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">schedule</span> {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
+                    f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> System restartuje się za chwilę..."
                 )
                 _req.post(
                     f'https://api.telegram.org/bot{bot_token}/sendMessage',
@@ -2986,7 +2986,7 @@ ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
 </style>
 
 <div style="text-align:center;padding:20px 0 10px">
-    <h1 style="font-size:1.5rem;background:linear-gradient(135deg,#06b6d4,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent">🔍 ANALIZA OFERTY</h1>
+    <h1 style="font-size:1.5rem;background:linear-gradient(135deg,#06b6d4,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">search</span> ANALIZA OFERTY</h1>
     <small style="color:var(--text-muted)">Oplacalnosc, statystyki Allegro, jakosc oferty</small>
 </div>
 
@@ -3000,7 +3000,7 @@ ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
             <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Cena sprzedazy (opcjonalnie)</label>
             <input type="number" step="0.01" name="cena_sprzedazy" value="{{ cena_sprzedazy }}" placeholder="np. 199.00" style="width:100%;padding:10px 14px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:10px;color:var(--text-primary);font-size:0.9rem">
         </div>
-        <button type="submit" style="padding:10px 24px;background:linear-gradient(135deg,#06b6d4,#6366f1);border:none;border-radius:10px;color:#fff;font-weight:700;cursor:pointer;font-size:0.9rem">🔍 Analizuj</button>
+        <button type="submit" style="padding:10px 24px;background:linear-gradient(135deg,#06b6d4,#6366f1);border:none;border-radius:10px;color:#fff;font-weight:700;cursor:pointer;font-size:0.9rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">search</span> Analizuj</button>
     </form>
 </div>
 
@@ -3061,7 +3061,7 @@ ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
 
     <!-- Rozklad ceny -->
     <div class="ao-card" style="background:var(--bg-primary)">
-        <div style="font-weight:700;margin-bottom:10px;font-size:0.85rem">📊 Rozklad ceny</div>
+        <div style="font-weight:700;margin-bottom:10px;font-size:0.85rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span> Rozklad ceny</div>
         {% set total = analiza.koszt_szt + analiza.prowizja + analiza.wysylka + ([analiza.zysk, 0]|max) %}
         {% if total > 0 %}
         <div style="display:flex;height:28px;border-radius:8px;overflow:hidden;margin-bottom:8px">
@@ -3079,7 +3079,7 @@ ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
     {% if analiza.has_allegro %}
     <div class="ao-card" style="border-color:#6366f133">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-            <div style="font-weight:700;font-size:0.95rem">📊 Allegro Performance</div>
+            <div style="font-weight:700;font-size:0.95rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span> Allegro Performance</div>
             <div style="font-size:0.75rem;padding:4px 10px;border-radius:20px;font-weight:600;
                 {% if analiza.allegro_stats.status == 'aktywna' %}background:#22c55e22;color:#22c55e
                 {% elif analiza.allegro_stats.status == 'draft' %}background:#eab30822;color:#eab308
@@ -3117,7 +3117,7 @@ ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
 
         {% if analiza.zysk_total != 0 %}
         <div style="margin-top:12px;padding:12px;background:var(--bg-primary);border-radius:10px;display:flex;justify-content:space-between;align-items:center">
-            <div style="font-size:0.8rem;color:var(--text-muted)">💰 Zysk netto (po prowizji + wysylce)</div>
+            <div style="font-size:0.8rem;color:var(--text-muted)"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">payments</span> Zysk netto (po prowizji + wysylce)</div>
             <div style="font-size:1.2rem;font-weight:800;{% if analiza.zysk_total >= 0 %}color:#22c55e{% else %}color:#ef4444{% endif %}">{{ "%+.2f"|format(analiza.zysk_total) }} zl</div>
         </div>
         {% endif %}
@@ -3134,7 +3134,7 @@ ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
     <!-- Jakosc oferty -->
     <div class="ao-card" style="border-color:{{ analiza.score_color }}55">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-            <div style="font-weight:700;font-size:0.95rem">📋 Jakosc oferty</div>
+            <div style="font-weight:700;font-size:0.95rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">assignment</span> Jakosc oferty</div>
             <div style="text-align:right">
                 <div style="font-size:1.6rem;font-weight:800;color:{{ analiza.score_color }}">{{ analiza.score }}/100</div>
                 <div style="font-size:0.7rem;color:{{ analiza.score_color }}">{{ analiza.score_label }}</div>
@@ -3146,19 +3146,19 @@ ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
 
         <!-- Checklist -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;font-size:0.8rem">
-            <div>{{ '✅' if analiza.produkt.nazwa and analiza.produkt.nazwa|length > 20 else '❌' }} Tytul ({{ analiza.produkt.nazwa|length if analiza.produkt.nazwa else 0 }} zn.)</div>
-            <div>{{ '✅' if analiza.produkt.ean else '❌' }} Kod EAN</div>
-            <div>{{ '✅' if analiza.produkt.zdjecie_url else '❌' }} Zdjecie glowne</div>
-            <div>{{ '✅' if analiza.img_count >= 4 else '⚠️' if analiza.img_count >= 2 else '❌' }} Zdjecia ({{ analiza.img_count }})</div>
-            <div>{{ '✅' if analiza.has_opis else 'ℹ️' }} Opis HTML{{ '' if analiza.has_opis else ' (auto)' }}</div>
-            <div>{{ '✅' if analiza.cena_allegro > 0 else '❌' }} Cena</div>
-            <div>{{ '✅' if analiza.kategoria not in ('inne', '') else '⚠️' }} Kategoria</div>
-            <div>{{ '✅' if analiza.produkt.asin else '⚠️' }} ASIN</div>
+            <div>{{ '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>' if analiza.produkt.nazwa and analiza.produkt.nazwa|length > 20 else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span>' }} Tytul ({{ analiza.produkt.nazwa|length if analiza.produkt.nazwa else 0 }} zn.)</div>
+            <div>{{ '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>' if analiza.produkt.ean else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span>' }} Kod EAN</div>
+            <div>{{ '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>' if analiza.produkt.zdjecie_url else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span>' }} Zdjecie glowne</div>
+            <div>{{ '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>' if analiza.img_count >= 4 else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span>' if analiza.img_count >= 2 else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span>' }} Zdjecia ({{ analiza.img_count }})</div>
+            <div>{{ '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>' if analiza.has_opis else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#3b82f6">info</span>' }} Opis HTML{{ '' if analiza.has_opis else ' (auto)' }}</div>
+            <div>{{ '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>' if analiza.cena_allegro > 0 else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span>' }} Cena</div>
+            <div>{{ '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>' if analiza.kategoria not in ('inne', '') else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span>' }} Kategoria</div>
+            <div>{{ '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span>' if analiza.produkt.asin else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span>' }} ASIN</div>
         </div>
 
         {% if analiza.problemy %}
         <div style="margin-bottom:10px">
-            <div style="font-weight:600;color:#ef4444;font-size:0.8rem;margin-bottom:6px">❌ Problemy:</div>
+            <div style="font-weight:600;color:#ef4444;font-size:0.8rem;margin-bottom:6px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> Problemy:</div>
             {% for p in analiza.problemy %}
             <div style="font-size:0.8rem;color:#fca5a5;margin-bottom:3px;padding-left:12px">• {{ p }}</div>
             {% endfor %}
@@ -3166,7 +3166,7 @@ ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
         {% endif %}
         {% if analiza.wskazowki %}
         <div>
-            <div style="font-weight:600;color:#eab308;font-size:0.8rem;margin-bottom:6px">💡 Wskazowki:</div>
+            <div style="font-weight:600;color:#eab308;font-size:0.8rem;margin-bottom:6px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Wskazowki:</div>
             {% for w in analiza.wskazowki %}
             <div style="font-size:0.8rem;color:#fde68a;margin-bottom:3px;padding-left:12px">• {{ w }}</div>
             {% endfor %}
@@ -3176,28 +3176,28 @@ ANALIZA_OFERTY_HTML = '''{% extends "base.html" %}
 
     <!-- Rekomendacje cenowe -->
     <div class="ao-card" style="background:var(--bg-primary)">
-        <div style="font-weight:700;margin-bottom:10px;font-size:0.85rem">💰 Rekomendacje cenowe</div>
+        <div style="font-weight:700;margin-bottom:10px;font-size:0.85rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">payments</span> Rekomendacje cenowe</div>
         {% if analiza.cena_amazon > 0 %}
-        <div style="font-size:0.85rem;margin-bottom:6px">🌍 Cena Amazon: <b style="color:#3b82f6">{{ "%.2f"|format(analiza.cena_amazon) }} EUR</b> (~{{ "%.0f"|format(analiza.cena_amazon * 4.3) }} PLN)</div>
+        <div style="font-size:0.85rem;margin-bottom:6px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">language</span> Cena Amazon: <b style="color:#3b82f6">{{ "%.2f"|format(analiza.cena_amazon) }} EUR</b> (~{{ "%.0f"|format(analiza.cena_amazon * 4.3) }} PLN)</div>
         {% endif %}
         {% if analiza.min_cena_30 > 0 %}
-        <div style="font-size:0.85rem;margin-bottom:6px">📈 Min. cena dla 30% marzy: <b style="color:#22c55e">{{ "%.2f"|format(analiza.min_cena_30) }} zl</b></div>
+        <div style="font-size:0.85rem;margin-bottom:6px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">trending_up</span> Min. cena dla 30% marzy: <b style="color:#22c55e">{{ "%.2f"|format(analiza.min_cena_30) }} zl</b></div>
         {% endif %}
-        <div style="font-size:0.85rem;margin-bottom:6px">📊 ROI: <b style="color:{% if analiza.roi >= 50 %}#22c55e{% elif analiza.roi >= 20 %}#eab308{% else %}#ef4444{% endif %}">{{ analiza.roi }}%</b></div>
+        <div style="font-size:0.85rem;margin-bottom:6px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span> ROI: <b style="color:{% if analiza.roi >= 50 %}#22c55e{% elif analiza.roi >= 20 %}#eab308{% else %}#ef4444{% endif %}">{{ analiza.roi }}%</b></div>
         {% if analiza.zysk < 0 %}
-        <div style="font-size:0.85rem;color:#ef4444;font-weight:600;margin-top:8px">⚠️ STRATA! Podniez cene powyzej {{ "%.0f"|format(analiza.min_cena_30) }} zl</div>
+        <div style="font-size:0.85rem;color:#ef4444;font-weight:600;margin-top:8px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> STRATA! Podniez cene powyzej {{ "%.0f"|format(analiza.min_cena_30) }} zl</div>
         {% elif analiza.marza_pct < 10 %}
-        <div style="font-size:0.85rem;color:#eab308;font-weight:600;margin-top:8px">⚠️ Niska marza. Rozważ podniesienie ceny.</div>
+        <div style="font-size:0.85rem;color:#eab308;font-weight:600;margin-top:8px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> Niska marza. Rozważ podniesienie ceny.</div>
         {% elif analiza.marza_pct >= 30 %}
-        <div style="font-size:0.85rem;color:#22c55e;font-weight:600;margin-top:8px">✅ Swietna marza! Oferta bardzo oplacalna.</div>
+        <div style="font-size:0.85rem;color:#22c55e;font-weight:600;margin-top:8px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Swietna marza! Oferta bardzo oplacalna.</div>
         {% else %}
-        <div style="font-size:0.85rem;color:#22c55e;margin-top:8px">✅ Oferta oplacalna.</div>
+        <div style="font-size:0.85rem;color:#22c55e;margin-top:8px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> Oferta oplacalna.</div>
         {% endif %}
     </div>
 </div>
 {% elif query %}
 <div class="ao-card" style="text-align:center;padding:30px">
-    <div style="font-size:2rem;margin-bottom:10px">🔍</div>
+    <div style="font-size:2rem;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">search</span></div>
     <div style="color:var(--text-muted)">Nie znaleziono produktu "{{ query }}"</div>
 </div>
 {% endif %}
@@ -3333,10 +3333,10 @@ ALLEGRO_PERF_HTML = '''{% extends "base.html" %}
 </style>
 
 <div style="text-align:center;padding:20px 0 10px">
-    <h1 style="font-size:1.5rem;background:linear-gradient(135deg,#6366f1,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent">📊 ALLEGRO PERFORMANCE</h1>
+    <h1 style="font-size:1.5rem;background:linear-gradient(135deg,#6366f1,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span> ALLEGRO PERFORMANCE</h1>
     <small style="color:var(--text-muted)">Wyswietlenia, obserwujacy, sprzedaze — wszystkie oferty</small>
     <div style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:12px">
-        <button id="syncBtn" onclick="syncStats()" style="padding:6px 18px;background:linear-gradient(135deg,#6366f1,#06b6d4);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;font-size:0.78rem">🔄 Sync z Allegro</button>
+        <button id="syncBtn" onclick="syncStats()" style="padding:6px 18px;background:linear-gradient(135deg,#6366f1,#06b6d4);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;font-size:0.78rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span> Sync z Allegro</button>
         <span id="syncMsg" style="font-size:0.7rem;color:var(--text-muted)">{{ sync_msg }}</span>
     </div>
 </div>
@@ -3385,11 +3385,11 @@ ALLEGRO_PERF_HTML = '''{% extends "base.html" %}
             <th onclick="sortTable(0)">Oferta</th>
             <th onclick="sortTable(1)" style="text-align:right">Cena</th>
             <th onclick="sortTable(2)" style="text-align:center">Status</th>
-            <th onclick="sortTable(3)" style="text-align:right">👁 Wysw.</th>
-            <th onclick="sortTable(4)" style="text-align:right">❤ Obserwuj.</th>
-            <th onclick="sortTable(5)" style="text-align:right">🛒 Sprzedane</th>
-            <th onclick="sortTable(6)" style="text-align:right">📈 Konwersja</th>
-            <th onclick="sortTable(7)" style="text-align:right">💰 Przychod</th>
+            <th onclick="sortTable(3)" style="text-align:right"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">visibility</span> Wysw.</th>
+            <th onclick="sortTable(4)" style="text-align:right"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">favorite</span> Obserwuj.</th>
+            <th onclick="sortTable(5)" style="text-align:right"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">shopping_cart</span> Sprzedane</th>
+            <th onclick="sortTable(6)" style="text-align:right"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">trending_up</span> Konwersja</th>
+            <th onclick="sortTable(7)" style="text-align:right"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">payments</span> Przychod</th>
         </tr>
     </thead>
     <tbody>
@@ -3417,7 +3417,7 @@ ALLEGRO_PERF_HTML = '''{% extends "base.html" %}
 
 {% if not items %}
 <div class="ap-card" style="text-align:center;padding:40px">
-    <div style="font-size:2rem;margin-bottom:10px">📊</div>
+    <div style="font-size:2rem;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span></div>
     <div style="color:var(--text-muted)">Brak ofert. Zsyncuj z Allegro lub wystaw pierwsza oferte.</div>
 </div>
 {% endif %}
@@ -3450,22 +3450,22 @@ function syncStats() {
     .then(function(d) {
         if (d.ok) {
             msg.style.color = '#22c55e';
-            msg.textContent = '✅ Zsyncowano ' + d.total + ' ofert, statystyki: ' + (d.stats_updated || 0);
+            msg.textContent = '[OK] Zsyncowano ' + d.total + ' ofert, statystyki: ' + (d.stats_updated || 0);
             setTimeout(function() { location.reload(); }, 1500);
         } else {
             msg.style.color = '#ef4444';
-            msg.textContent = '❌ ' + (d.error || 'Błąd');
+            msg.textContent = '[ERR] ' + (d.error || 'Błąd');
             btn.disabled = false;
             btn.style.opacity = '1';
-            btn.textContent = '🔄 Sync z Allegro';
+            btn.textContent = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span> Sync z Allegro';
         }
     })
     .catch(function(e) {
         msg.style.color = '#ef4444';
-        msg.textContent = '❌ ' + e;
+        msg.textContent = '[ERR] ' + e;
         btn.disabled = false;
         btn.style.opacity = '1';
-        btn.textContent = '🔄 Sync z Allegro';
+        btn.textContent = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span> Sync z Allegro';
     });
 }
 
@@ -3615,7 +3615,7 @@ def goal_details():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚗 Hyundai i30 N - Goal</title>
+    <title><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">directions_car</span> Hyundai i30 N - Goal</title>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{
@@ -3744,7 +3744,7 @@ def goal_details():
         <a href="/" class="back-btn">← Powrót</a>
         
         <div class="header">
-            <h1>🚗 {goal['name']}</h1>
+            <h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">directions_car</span> {goal['name']}</h1>
             <p style="color: #64748b;">Zarządzanie celem finansowym</p>
         </div>
         
@@ -3774,7 +3774,7 @@ def goal_details():
         </div>
         
         <div class="goal-card">
-            <h3 style="margin-bottom: 20px;">✏️ Edytuj Goal</h3>
+            <h3 style="margin-bottom: 20px;"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">edit</span> Edytuj Goal</h3>
             
             <form action="/goal/update" method="POST">
                 <div class="form-group">
@@ -3792,19 +3792,19 @@ def goal_details():
                     <input type="text" name="name" value="{goal['name']}" required>
                 </div>
                 
-                <button type="submit" class="btn btn-primary">💾 Zapisz zmiany</button>
+                <button type="submit" class="btn btn-primary"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">save</span> Zapisz zmiany</button>
             </form>
         </div>
         
         <div class="goal-card">
-            <h3 style="margin-bottom: 20px;">💰 Szybkie akcje</h3>
+            <h3 style="margin-bottom: 20px;"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">payments</span> Szybkie akcje</h3>
             
             <form action="/goal/add" method="POST" style="margin-bottom: 15px;">
                 <div class="form-group">
                     <label>Dodaj kwotę (PLN):</label>
                     <input type="number" name="amount" placeholder="np. 5000" step="0.01" required>
                 </div>
-                <button type="submit" class="btn btn-success">➕ Dodaj</button>
+                <button type="submit" class="btn btn-success"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">add</span> Dodaj</button>
             </form>
             
             <form action="/goal/subtract" method="POST" style="margin-bottom: 15px;">
@@ -3812,7 +3812,7 @@ def goal_details():
                     <label>Odejmij kwotę (PLN):</label>
                     <input type="number" name="amount" placeholder="np. 1000" step="0.01" required>
                 </div>
-                <button type="submit" class="btn btn-danger">➖ Odejmij</button>
+                <button type="submit" class="btn btn-danger"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">remove</span> Odejmij</button>
             </form>
         </div>
         
@@ -4157,7 +4157,7 @@ def pwa_icon(size):
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}">
     <rect width="{size}" height="{size}" rx="{int(size*0.2)}" fill="#0a0a0f"/>
     <rect x="{int(size*0.08)}" y="{int(size*0.08)}" width="{int(size*0.84)}" height="{int(size*0.84)}" rx="{int(size*0.15)}" fill="#12121a"/>
-    <text x="50%" y="50%" font-size="{int(size*0.45)}" text-anchor="middle" dominant-baseline="middle">📦</text>
+    <text x="50%" y="50%" font-size="{int(size*0.45)}" text-anchor="middle" dominant-baseline="middle"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span></text>
     <text x="50%" y="80%" font-family="system-ui,sans-serif" font-size="{int(size*0.11)}" font-weight="bold" fill="#3b82f6" text-anchor="middle">AKCES</text>
     </svg>'''
     return Response(svg, mimetype='image/svg+xml')
@@ -4187,7 +4187,7 @@ def sync_historyczny():
         return f'<html><head><meta http-equiv="refresh" content="4;url=/magazyn/statystyki"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:1.5rem;color:{kolor};padding:40px">{msg}</div><div style="color:#64748b">Przekierowanie...</div></div></body></html>'
     
     miesiac_temu = (date.today().replace(day=1) - timedelta(days=1)).replace(day=1).strftime('%Y-%m-%d')
-    return f'<html><head><title>Sync historyczny</title></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="background:#12121a;border-radius:16px;padding:30px;min-width:320px"><h2 style="margin:0 0 15px">🔄 Sync historyczny</h2><p style="color:#64748b;margin-bottom:20px">Pobierz zamowienia od wybranej daty (np. poprzedni miesiac)</p><form method="POST"><label style="display:block;color:#94a3b8;margin-bottom:6px">Data od:</label><input type="date" name="from_date" value="{miesiac_temu}" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #334155;border-radius:8px;color:#fff;font-size:1rem;box-sizing:border-box;margin-bottom:15px"><button type="submit" style="width:100%;padding:12px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-size:1rem;font-weight:600;cursor:pointer">🔄 Synchronizuj</button></form><a href="/magazyn/statystyki" style="display:block;text-align:center;margin-top:15px;color:#64748b;font-size:0.85rem">Anuluj</a></div></body></html>'
+    return f'<html><head><title>Sync historyczny</title></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="background:#12121a;border-radius:16px;padding:30px;min-width:320px"><h2 style="margin:0 0 15px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span> Sync historyczny</h2><p style="color:#64748b;margin-bottom:20px">Pobierz zamowienia od wybranej daty (np. poprzedni miesiac)</p><form method="POST"><label style="display:block;color:#94a3b8;margin-bottom:6px">Data od:</label><input type="date" name="from_date" value="{miesiac_temu}" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #334155;border-radius:8px;color:#fff;font-size:1rem;box-sizing:border-box;margin-bottom:15px"><button type="submit" style="width:100%;padding:12px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-size:1rem;font-weight:600;cursor:pointer"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span> Synchronizuj</button></form><a href="/magazyn/statystyki" style="display:block;text-align:center;margin-top:15px;color:#64748b;font-size:0.85rem">Anuluj</a></div></body></html>'
 
 @app.route('/sync-miesiac')
 def sync_miesiac():
@@ -4200,7 +4200,7 @@ def sync_miesiac():
             <html><head><meta http-equiv="refresh" content="3;url=/statystyki"></head>
             <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
                 <div style="text-align:center">
-                    <div style="font-size:3rem;margin-bottom:20px">⚠️</div>
+                    <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span></div>
                     <div style="font-size:1.2rem;color:#f59e0b">Token Allegro wygasł!</div>
                     <div style="color:#64748b;margin-top:10px">Zaloguj się ponownie w Allegro</div>
                 </div>
@@ -4214,7 +4214,7 @@ def sync_miesiac():
             <html><head><meta http-equiv="refresh" content="3;url=/statystyki"></head>
             <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
                 <div style="text-align:center">
-                    <div style="font-size:3rem;margin-bottom:20px">❌</div>
+                    <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span></div>
                     <div style="font-size:1.2rem;color:#ef4444">Błąd: {error}</div>
                 </div>
             </body></html>
@@ -4224,7 +4224,7 @@ def sync_miesiac():
         <html><head><meta http-equiv="refresh" content="2;url=/statystyki"></head>
         <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
-                <div style="font-size:3rem;margin-bottom:20px">✅</div>
+                <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span></div>
                 <div style="font-size:1.2rem">Zsynchronizowano <b>{synced}</b> nowych zamówień!</div>
                 <div style="color:#64748b;margin-top:10px">Przekierowuję do statystyk...</div>
             </div>
@@ -4236,7 +4236,7 @@ def sync_miesiac():
         <html><head><meta http-equiv="refresh" content="3;url=/statystyki"></head>
         <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
-                <div style="font-size:3rem;margin-bottom:20px">❌</div>
+                <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span></div>
                 <div style="font-size:1.2rem;color:#ef4444">Błąd: {str(e)}</div>
             </div>
         </body></html>
@@ -4251,7 +4251,7 @@ def sync_custom():
         <html><head><meta http-equiv="refresh" content="3;url=/statystyki"></head>
         <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
-                <div style="font-size:3rem;margin-bottom:20px">⚠️</div>
+                <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span></div>
                 <div style="font-size:1.2rem;color:#f59e0b">Podaj datę: /sync-custom?from=2026-02-01</div>
             </div>
         </body></html>
@@ -4259,22 +4259,22 @@ def sync_custom():
     try:
         from modules.allegro_api import sync_orders, is_authenticated
         if not is_authenticated():
-            return '<html><head><meta http-equiv="refresh" content="3;url=/statystyki"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px">⚠️</div><div style="color:#f59e0b">Token Allegro wygasł!</div></div></body></html>'
+            return '<html><head><meta http-equiv="refresh" content="3;url=/statystyki"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span></div><div style="color:#f59e0b">Token Allegro wygasł!</div></div></body></html>'
         synced, error = sync_orders(from_date_str=from_date)
         if error:
-            return f'<html><head><meta http-equiv="refresh" content="3;url=/sprzedaze"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px">❌</div><div style="color:#ef4444">Błąd: {error}</div></div></body></html>'
+            return f'<html><head><meta http-equiv="refresh" content="3;url=/sprzedaze"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span></div><div style="color:#ef4444">Błąd: {error}</div></div></body></html>'
         return f'''
         <html><head><meta http-equiv="refresh" content="2;url=/sprzedaze?miesiac={from_date[:7]}"></head>
         <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
-                <div style="font-size:3rem;margin-bottom:20px">✅</div>
+                <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span></div>
                 <div style="font-size:1.2rem">Zsynchronizowano <b>{synced}</b> zamówień od {from_date}!</div>
                 <div style="color:#64748b;margin-top:10px">Przekierowuję...</div>
             </div>
         </body></html>
         '''
     except Exception as e:
-        return f'<html><head><meta http-equiv="refresh" content="3;url=/statystyki"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px">❌</div><div style="color:#ef4444">Błąd: {str(e)}</div></div></body></html>'
+        return f'<html><head><meta http-equiv="refresh" content="3;url=/statystyki"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span></div><div style="color:#ef4444">Błąd: {str(e)}</div></div></body></html>'
 
 # ============================================================
 # WYSYŁKI (Widok dla dziadka)
@@ -4320,14 +4320,14 @@ def print_banner():
     except Exception:
         _bn = 'AKCES HUB'
     print("\n" + "="*60)
-    print(f"  ⚡ {_bn} v{VERSION}")
+    print(f"  <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span> {_bn} v{VERSION}")
     print("  Paletomat + Magazynier + Telegram + Allegro")
     print("="*60)
-    print(f"  📦 Magazynier:  /magazyn")
-    print(f"  🤖 Paletomat:   /paletomat")
-    print(f"  💬 Telegram:    /telegram")
-    print(f"  🛒 Allegro:     /allegro")
-    print(f"  ⚡ Narzędzia:   /narzedzia")
+    print(f"  <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> Magazynier:  /magazyn")
+    print(f"  <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smart_toy</span> Paletomat:   /paletomat")
+    print(f"  [TG] Telegram:    /telegram")
+    print(f"  <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">shopping_cart</span> Allegro:     /allegro")
+    print(f"  <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span> Narzędzia:   /narzedzia")
     print("="*60)
 # ═══════════════════════════════════════════════════════════════════════════
 # AKCES HUB v3.0.21 - NOWY KOD DO WKLEJENIA
@@ -4870,31 +4870,31 @@ def api_bingo2026():
     """, (rok,)).fetchone()['cnt'])
     
     cells = [
-        {'id': 1,  'icon': '💰', 'name': '100k PLN',   'desc': 'Przychód roczny',     'achieved': przychod_2026 >= 100000},
-        {'id': 2,  'icon': '🔥', 'name': 'Dzień 3k',   'desc': '3 000 zł w 1 dzień',  'achieved': best_day_kwota >= 3000},
-        {'id': 3,  'icon': '📦', 'name': '15 palet',   'desc': 'Palety w 1 miesiącu',  'achieved': max_palet_miesiac >= 15},
-        {'id': 4,  'icon': '🚀', 'name': '200k PLN',   'desc': 'Przychód roczny',      'achieved': przychod_2026 >= 200000},
-        {'id': 5,  'icon': '⚡', 'name': '10 zamówień','desc': '10 zam. w 1 dzień',    'achieved': best_day_cnt >= 10},
+        {'id': 1,  'icon': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">payments</span>', 'name': '100k PLN',   'desc': 'Przychód roczny',     'achieved': przychod_2026 >= 100000},
+        {'id': 2,  'icon': 'fire', 'name': 'Dzień 3k',   'desc': '3 000 zł w 1 dzień',  'achieved': best_day_kwota >= 3000},
+        {'id': 3,  'icon': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span>', 'name': '15 palet',   'desc': 'Palety w 1 miesiącu',  'achieved': max_palet_miesiac >= 15},
+        {'id': 4,  'icon': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">rocket_launch</span>', 'name': '200k PLN',   'desc': 'Przychód roczny',      'achieved': przychod_2026 >= 200000},
+        {'id': 5,  'icon': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span>', 'name': '10 zamówień','desc': '10 zam. w 1 dzień',    'achieved': best_day_cnt >= 10},
         {'id': 6,  'icon': '⏱', 'name': 'Sprzed. 24h','desc': 'Sprzedane w 24h',      'achieved': fast_sale_24h > 0},
-        {'id': 7,  'icon': '📈', 'name': '40k/mies.',  'desc': '40k zł w miesiącu',    'achieved': best_month_kwota >= 40000},
-        {'id': 8,  'icon': '🎯', 'name': '200 szt.',   'desc': '200 sprzedaży w roku', 'achieved': cnt_2026 >= 200},
-        {'id': 9,  'icon': '💥', 'name': 'Dzień 5k',   'desc': '5 000 zł w 1 dzień',  'achieved': best_day_kwota >= 5000},
-        {'id': 10, 'icon': '📦', 'name': '20 palet',   'desc': 'Palety w 1 miesiącu',  'achieved': max_palet_miesiac >= 20},
-        {'id': 11, 'icon': '💎', 'name': '300k PLN',   'desc': 'Przychód roczny',      'achieved': przychod_2026 >= 300000},
-        {'id': 12, 'icon': '⚡', 'name': 'Sprzed. 6h', 'desc': 'Sprzedane w 6h',       'achieved': fast_sale_6h > 0},
+        {'id': 7,  'icon': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">trending_up</span>', 'name': '40k/mies.',  'desc': '40k zł w miesiącu',    'achieved': best_month_kwota >= 40000},
+        {'id': 8,  'icon': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">adjust</span>', 'name': '200 szt.',   'desc': '200 sprzedaży w roku', 'achieved': cnt_2026 >= 200},
+        {'id': 9,  'icon': 'boom', 'name': 'Dzień 5k',   'desc': '5 000 zł w 1 dzień',  'achieved': best_day_kwota >= 5000},
+        {'id': 10, 'icon': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span>', 'name': '20 palet',   'desc': 'Palety w 1 miesiącu',  'achieved': max_palet_miesiac >= 20},
+        {'id': 11, 'icon': 'diamond', 'name': '300k PLN',   'desc': 'Przychód roczny',      'achieved': przychod_2026 >= 300000},
+        {'id': 12, 'icon': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bolt</span>', 'name': 'Sprzed. 6h', 'desc': 'Sprzedane w 6h',       'achieved': fast_sale_6h > 0},
         {'id': 13, 'icon': '🆓', 'name': 'FREE',       'desc': 'Masz to!',              'achieved': True},
-        {'id': 14, 'icon': '🏆', 'name': 'Dzień 20',   'desc': '20 zamówień w dzień',  'achieved': best_day_cnt >= 20},
-        {'id': 15, 'icon': '📊', 'name': '60k/mies.',  'desc': '60k zł w miesiącu',    'achieved': best_month_kwota >= 60000},
-        {'id': 16, 'icon': '🎲', 'name': '500 szt.',   'desc': '500 sprzedaży w roku', 'achieved': cnt_2026 >= 500},
-        {'id': 17, 'icon': '💰', 'name': '25 palet',   'desc': 'Palety w 1 miesiącu',  'achieved': max_palet_miesiac >= 25},
-        {'id': 18, 'icon': '🌟', 'name': '400k PLN',   'desc': '⭐ CEL ROCZNY!',        'achieved': przychod_2026 >= 400000},
-        {'id': 19, 'icon': '🔥', 'name': '80k/mies.',  'desc': '80k zł w miesiącu',    'achieved': best_month_kwota >= 80000},
-        {'id': 20, 'icon': '🎯', 'name': 'Dzień 10k',  'desc': '10k zł w 1 dzień',     'achieved': best_day_kwota >= 10000},
-        {'id': 21, 'icon': '🚀', 'name': '1000 szt.',  'desc': '1000 sprzedaży w roku','achieved': cnt_2026 >= 1000},
-        {'id': 22, 'icon': '💎', 'name': '500k PLN',   'desc': 'Przychód roczny',      'achieved': przychod_2026 >= 500000},
-        {'id': 23, 'icon': '📦', 'name': '30 palet',   'desc': 'Palety w 1 miesiącu',  'achieved': max_palet_miesiac >= 30},
-        {'id': 24, 'icon': '💥', 'name': '100k/mies.', 'desc': '100k zł w miesiącu',   'achieved': best_month_kwota >= 100000},
-        {'id': 25, 'icon': '👑', 'name': 'LEGENDA',    'desc': 'Wszystko ukończone!',   'achieved': all([
+        {'id': 14, 'icon': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">emoji_events</span>', 'name': 'Dzień 20',   'desc': '20 zamówień w dzień',  'achieved': best_day_cnt >= 20},
+        {'id': 15, 'icon': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span>', 'name': '60k/mies.',  'desc': '60k zł w miesiącu',    'achieved': best_month_kwota >= 60000},
+        {'id': 16, 'icon': 'dice', 'name': '500 szt.',   'desc': '500 sprzedaży w roku', 'achieved': cnt_2026 >= 500},
+        {'id': 17, 'icon': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">payments</span>', 'name': '25 palet',   'desc': 'Palety w 1 miesiącu',  'achieved': max_palet_miesiac >= 25},
+        {'id': 18, 'icon': 'star', 'name': '400k PLN',   'desc': 'CEL ROCZNY!',        'achieved': przychod_2026 >= 400000},
+        {'id': 19, 'icon': 'fire', 'name': '80k/mies.',  'desc': '80k zł w miesiącu',    'achieved': best_month_kwota >= 80000},
+        {'id': 20, 'icon': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">adjust</span>', 'name': 'Dzień 10k',  'desc': '10k zł w 1 dzień',     'achieved': best_day_kwota >= 10000},
+        {'id': 21, 'icon': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">rocket_launch</span>', 'name': '1000 szt.',  'desc': '1000 sprzedaży w roku','achieved': cnt_2026 >= 1000},
+        {'id': 22, 'icon': 'diamond', 'name': '500k PLN',   'desc': 'Przychód roczny',      'achieved': przychod_2026 >= 500000},
+        {'id': 23, 'icon': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span>', 'name': '30 palet',   'desc': 'Palety w 1 miesiącu',  'achieved': max_palet_miesiac >= 30},
+        {'id': 24, 'icon': 'boom', 'name': '100k/mies.', 'desc': '100k zł w miesiącu',   'achieved': best_month_kwota >= 100000},
+        {'id': 25, 'icon': 'crown', 'name': 'LEGENDA',    'desc': 'Wszystko ukończone!',   'achieved': all([
             przychod_2026 >= 400000, max_palet_miesiac >= 25, best_day_kwota >= 5000])},
     ]
     
@@ -4952,14 +4952,14 @@ def trigger_auto_print(produkt_id):
         ).fetchone()
         
         if not produkt:
-            print(f"⚠️ Produkt ID {produkt_id} nie znaleziony")
+            print(f"[WARN] Produkt ID {produkt_id} nie znaleziony")
             return False
         
         # Wybierz odpowiednią funkcję drukowania
         if printer == 'niimbot':
             from modules.niimbot_print import print_niimbot
             print_niimbot(produkt)
-            print(f"✅ Auto-print (Niimbot): {produkt['nazwa'][:50]}")
+            print(f"[OK] Auto-print (Niimbot): {produkt['nazwa'][:50]}")
             
             # Aktualizuj czas wydruku
             conn.execute(
@@ -4972,7 +4972,7 @@ def trigger_auto_print(produkt_id):
         elif printer == 'vretti':
             from modules.vretti_print import print_vretti_usb
             print_vretti_usb(produkt)
-            print(f"✅ Auto-print (Vretti): {produkt['nazwa'][:50]}")
+            print(f"[OK] Auto-print (Vretti): {produkt['nazwa'][:50]}")
             
             # Aktualizuj czas wydruku
             conn.execute(
@@ -4983,11 +4983,11 @@ def trigger_auto_print(produkt_id):
             return True
             
         else:
-            print(f"⚠️ Nieznany typ drukarki: {printer}")
+            print(f"[WARN] Nieznany typ drukarki: {printer}")
             return False
             
     except Exception as e:
-        print(f"❌ Auto-print error: {e}")
+        print(f"[ERR] Auto-print error: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -5016,7 +5016,7 @@ def ensure_offline_columns():
         try:
             conn.execute("SELECT 1 FROM produkty LIMIT 1")
         except:
-            print("⚠️ Tabela produkty nie istnieje - pomijam ensure_offline_columns")
+            print("[WARN] Tabela produkty nie istnieje - pomijam ensure_offline_columns")
             return
         
         # Sprawdź i dodaj sprzedano_offline
@@ -5026,7 +5026,7 @@ def ensure_offline_columns():
             try:
                 conn.execute("ALTER TABLE produkty ADD COLUMN sprzedano_offline INTEGER DEFAULT 0")
                 conn.commit()
-                print("✅ Dodano kolumnę sprzedano_offline")
+                print("[OK] Dodano kolumnę sprzedano_offline")
             except:
                 pass
         
@@ -5037,7 +5037,7 @@ def ensure_offline_columns():
             try:
                 conn.execute("ALTER TABLE produkty ADD COLUMN przychod_offline REAL DEFAULT 0")
                 conn.commit()
-                print("✅ Dodano kolumnę przychod_offline")
+                print("[OK] Dodano kolumnę przychod_offline")
             except:
                 pass
         
@@ -5050,7 +5050,7 @@ def ensure_offline_columns():
             ''').rowcount
             if fixed > 0:
                 conn.commit()
-                print(f"🔧 Naprawiono przychod_offline dla {fixed} produktów")
+                print(f"<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">build</span> Naprawiono przychod_offline dla {fixed} produktów")
         except:
             pass
             
@@ -5061,12 +5061,12 @@ def ensure_offline_columns():
             try:
                 conn.execute("ALTER TABLE sprzedaze ADD COLUMN notified INTEGER DEFAULT 0")
                 conn.commit()
-                print("✅ Dodano kolumnę notified do sprzedaze")
+                print("[OK] Dodano kolumnę notified do sprzedaze")
             except Exception as e:
-                print(f"⚠️ Błąd migracji notified: {e}")
+                print(f"[WARN] Błąd migracji notified: {e}")
 
     except Exception as e:
-        print(f"⚠️ Błąd ensure_offline_columns: {e}")
+        print(f"[WARN] Błąd ensure_offline_columns: {e}")
 
 @app.route('/api/sztuki/<int:produkt_id>', methods=['GET'])
 def api_sztuki_get(produkt_id):
@@ -5343,13 +5343,13 @@ if __name__ == '__main__':
             test_conn.close()
         except sqlite3.DatabaseError:
             print("=" * 70)
-            print("⚠️  UWAGA: Baza danych jest uszkodzona!")
+            print("[WARN]  UWAGA: Baza danych jest uszkodzona!")
             print("=" * 70)
             db_corrupted = True
     
     if db_corrupted:
         print()
-        print("🔧 Próbuję naprawić bazę danych...")
+        print("<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">build</span> Próbuję naprawić bazę danych...")
         print()
 
         import shutil
@@ -5359,9 +5359,9 @@ if __name__ == '__main__':
 
         try:
             shutil.copy('akces_hub.db', backup_name)
-            print(f"✅ Backup uszkodzonej bazy: {backup_name}")
+            print(f"[OK] Backup uszkodzonej bazy: {backup_name}")
         except:
-            print("⚠️  Nie udało się zrobić backupu")
+            print("[WARN]  Nie udało się zrobić backupu")
 
         # Próba naprawy przez dump (BEZ KASOWANIA DANYCH)
         naprawiono = False
@@ -5386,17 +5386,17 @@ if __name__ == '__main__':
             test.close()
             if cnt > 0:
                 shutil.move('akces_hub_naprawiona_auto.db', 'akces_hub.db')
-                print(f"✅ Baza naprawiona! Uratowano {cnt} produktów.")
+                print(f"[OK] Baza naprawiona! Uratowano {cnt} produktów.")
                 naprawiono = True
             else:
-                print("⚠️  Naprawa nie uratowała produktów.")
+                print("[WARN]  Naprawa nie uratowała produktów.")
         except Exception as _e:
-            print(f"⚠️  Naprawa nie powiodła się: {_e}")
+            print(f"[WARN]  Naprawa nie powiodła się: {_e}")
 
         if not naprawiono:
             print()
             print("=" * 70)
-            print("❌ NIE UDAŁO SIĘ NAPRAWIĆ BAZY!")
+            print("[ERR] NIE UDAŁO SIĘ NAPRAWIĆ BAZY!")
             print("=" * 70)
             print("Uruchom ręcznie: python napraw_baze2.py")
             print("Backup uszkodzonej bazy zachowany jako:", backup_name)
@@ -5407,14 +5407,14 @@ if __name__ == '__main__':
     # Force add offline columns
     ensure_offline_columns()
     
-    # 🚜 KOMBAJN MODE: Cleanup połączeń przy zamknięciu
+    # KOMBAJN MODE: Cleanup połączeń przy zamknięciu
     import atexit
     import signal
     from modules.database import close_connection_pool
     
     def cleanup_handler():
         """Zamyka wszystkie połączenia z bazą przy zamknięciu"""
-        print("\n\n🧹 Cleaning up database connections...")
+        print("\n\n[CLEANUP] Cleaning up database connections...")
         # WAL checkpoint - zapisz wszystkie zmiany do głównego pliku DB
         try:
             import sqlite3
@@ -5422,18 +5422,18 @@ if __name__ == '__main__':
             tmp = sqlite3.connect(DATABASE, timeout=10)
             tmp.execute('PRAGMA wal_checkpoint(TRUNCATE)')
             tmp.close()
-            print("✅ WAL checkpoint done")
+            print("[OK] WAL checkpoint done")
         except Exception as e:
-            print(f"⚠️ WAL checkpoint error: {e}")
+            print(f"[WARN] WAL checkpoint error: {e}")
         close_connection_pool()
-        print("✅ Cleanup done\n")
+        print("[OK] Cleanup done\n")
     
     # Zarejestruj cleanup
     atexit.register(cleanup_handler)
     
     # Obsługa Ctrl+C
     def signal_handler(sig, frame):
-        print("\n\n⚠️  Otrzymano sygnał zamknięcia...")
+        print("\n\n<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span>  Otrzymano sygnał zamknięcia...")
         cleanup_handler()
         sys.exit(0)
     
@@ -5441,45 +5441,45 @@ if __name__ == '__main__':
     signal.signal(signal.SIGTERM, signal_handler)
     
     # Sprawdź status bibliotek drukarki
-    print("\n📦 Status bibliotek drukarki:")
+    print("\n<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> Status bibliotek drukarki:")
     libs_status = []
     try:
         import bleak
-        libs_status.append("  ✅ bleak (Bluetooth)")
+        libs_status.append("  <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> bleak (Bluetooth)")
     except ImportError:
-        libs_status.append("  ❌ bleak (Bluetooth) - pip install bleak")
+        libs_status.append("  <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> bleak (Bluetooth) - pip install bleak")
     
     # Szczegółowe sprawdzenie niimprint
     niimprint_ok = False
     try:
         from niimprint import BluetoothTransport, PrinterClient
-        libs_status.append("  ✅ niimprint (Niimbot)")
+        libs_status.append("  <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> niimprint (Niimbot)")
         niimprint_ok = True
     except ImportError as e:
-        libs_status.append(f"  ❌ niimprint (Niimbot) - brak modułu")
+        libs_status.append(f"  <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> niimprint (Niimbot) - brak modułu")
         libs_status.append(f"     → pip install niimprint --break-system-packages")
         libs_status.append(f"     → lub: pip install git+https://github.com/AndBondStyle/niimprint.git")
     except Exception as e:
-        libs_status.append(f"  ❌ niimprint - błąd: {e}")
+        libs_status.append(f"  <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> niimprint - błąd: {e}")
     
     try:
         import qrcode
         from PIL import Image
-        libs_status.append("  ✅ pillow/qrcode (obrazy)")
+        libs_status.append("  <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> pillow/qrcode (obrazy)")
     except ImportError:
-        libs_status.append("  ❌ pillow/qrcode (obrazy) - pip install pillow qrcode")
+        libs_status.append("  <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#ef4444">cancel</span> pillow/qrcode (obrazy) - pip install pillow qrcode")
     
     try:
         import barcode
-        libs_status.append("  ✅ python-barcode (kody kreskowe)")
+        libs_status.append("  <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle;color:#22c55e">check_circle</span> python-barcode (kody kreskowe)")
     except ImportError:
-        libs_status.append("  ⚠️ python-barcode (opcjonalne)")
+        libs_status.append("  <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> python-barcode (opcjonalne)")
     
     for s in libs_status:
         print(s)
     
     if not niimprint_ok:
-        print("\n  💡 Drukarka Niimbot będzie działać przez BLE (bleak),")
+        print("\n  <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lightbulb</span> Drukarka Niimbot będzie działać przez BLE (bleak),")
         print("     ale niimprint daje lepszą stabilność.")
     
     # Inicjalizacja bazy

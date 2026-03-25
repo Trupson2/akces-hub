@@ -50,14 +50,14 @@ for (let i = 0; i < lines.length; i++) {
         const cat = line.replace('### ', '');
         let icon = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">push_pin</span>';
         const cl = cat.toLowerCase();
-        if (cl.includes('bezpiecz') || cl.includes('security')) icon = '🔒';
+        if (cl.includes('bezpiecz') || cl.includes('security')) icon = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>';
         else if (cl.includes('nowe') || cl.includes('integr')) icon = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">auto_awesome</span>';
         else if (cl.includes('napraw') || cl.includes('fix')) icon = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">build</span>';
         else if (cl.includes('optym') || cl.includes('wydaj')) icon = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bolt</span>';
-        else if (cl.includes('system') || cl.includes('backup')) icon = '🖥️';
-        else if (cl.includes('szablon') || cl.includes('template')) icon = '🎨';
+        else if (cl.includes('system') || cl.includes('backup')) icon = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">desktop_windows</span>';
+        else if (cl.includes('szablon') || cl.includes('template')) icon = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">palette</span>';
         else if (cl.includes('logowa')) icon = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">key</span>';
-        else if (cl.includes('poziom') || cl.includes('grywaliz')) icon = '🎮';
+        else if (cl.includes('poziom') || cl.includes('grywaliz')) icon = '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sports_esports</span>';
         else if (cl.includes('inne')) icon = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">edit_note</span>';
         html += '<div class="cl-category">' + icon + ' ' + cat + '</div>';
         continue;

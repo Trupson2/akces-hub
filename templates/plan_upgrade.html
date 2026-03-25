@@ -36,7 +36,7 @@
 
 <div class="upgrade-container">
     {% if required_plan %}
-    <div class="upgrade-icon">🔒</div>
+    <div class="upgrade-icon"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span></div>
     <div class="upgrade-title">Funkcja wymaga planu {{ required_plan }}</div>
     <div class="upgrade-desc">
         Twoj aktualny plan: <span class="plan-badge plan-current">{{ current_plan }}</span>

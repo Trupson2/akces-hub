@@ -194,7 +194,7 @@
   <a href="/" style="color:#fff;text-decoration:none;font-size:0.85rem;opacity:0.6;display:inline-block;margin-bottom:12px">← Powrot do dashboardu</a>
 
   <div class="header fade-in">
-    <div class="avatar">📦</div>
+    <div class="avatar"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span></div>
     <div class="header-info">
       <h1>{{ username|default('USER')|upper }} — PALET BOSS</h1>
       <p>zwroty konsumenckie · allegro · family team · 2h/dzień</p>
@@ -234,9 +234,9 @@
 
   <!-- PROJECTIONS -->
   <div class="card fade-in">
-    <div class="section-title">📊 co trzeba zmienić żeby trafić 1M</div>
+    <div class="section-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span> co trzeba zmienić żeby trafić 1M</div>
     <div class="proj-row">
-      <span class="proj-icon">📦</span><span class="proj-name">Palety miesięcznie</span>
+      <span class="proj-icon"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span></span><span class="proj-name">Palety miesięcznie</span>
       <span class="proj-now">~17</span><span class="proj-arr">→</span>
       <span class="proj-target">42 / msc</span><span class="badge b-hard">trudne</span>
     </div>
@@ -273,7 +273,7 @@
     <div class="section-title">⚒️ skill tree — kliknij żeby odblokować</div>
 
     <div class="sg">
-      <div class="sg-title">📦 operacje</div>
+      <div class="sg-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> operacje</div>
       <div class="skill-grid" id="skills-ops"></div>
     </div>
     <div class="sg">
@@ -309,32 +309,32 @@ const SKILLS = {
     { id: 's2', icon: '✅', label: 'magazyn', status: 'done', tip: 'AKCES HUB Magazynier' },
     { id: 's3', icon: '✅', label: 'etykiety termiczne', status: 'done', tip: 'Niimbot + Vretti' },
     { id: 's4', icon: '✅', label: 'InPost workflow', status: 'done', tip: 'osobiście do paczkomatu' },
-    { id: 's5', icon: '🔄', label: '20–25 palet/msc', status: 'in-progress', tip: 'CEL Q1 2026' },
-    { id: 's6', icon: '🔒', label: '40+ palet/msc', status: 'locked', tip: 'wymaga rozszerzenia teamu' },
+    { id: 's5', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span>', label: '20–25 palet/msc', status: 'in-progress', tip: 'CEL Q1 2026' },
+    { id: 's6', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>', label: '40+ palet/msc', status: 'locked', tip: 'wymaga rozszerzenia teamu' },
   ],
   'skills-auto': [
     { id: 's7', icon: '✅', label: 'Amazon scraper', status: 'done', tip: 'Paletomat moduł 1' },
     { id: 's8', icon: '✅', label: 'AI opisy (Gemini)', status: 'done', tip: 'auto generowanie opisów' },
     { id: 's9', icon: '✅', label: 'Allegro auto-listing', status: 'done', tip: 'Paletomat moduł 2' },
     { id: 's10', icon: '✅', label: 'Telegram alerty', status: 'done', tip: 'powiadomienie przy sprzedaży' },
-    { id: 's11', icon: '🔄', label: 'Raspberry Pi 24/7', status: 'in-progress', tip: 'planowane wdrożenie' },
-    { id: 's12', icon: '🔒', label: 'pełny hands-off', status: 'locked', tip: 'wszystko automatyczne' },
+    { id: 's11', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span>', label: 'Raspberry Pi 24/7', status: 'in-progress', tip: 'planowane wdrożenie' },
+    { id: 's12', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>', label: 'pełny hands-off', status: 'locked', tip: 'wszystko automatyczne' },
   ],
   'skills-fin': [
     { id: 's13', icon: '✅', label: '100k/rok', status: 'done', tip: 'zdobyte!' },
     { id: 's14', icon: '✅', label: '400k/rok', status: 'done', tip: '~400k PLN roczny obrót' },
     { id: 's15', icon: '✅', label: 'ROI tracking', status: 'done', tip: 'per paleta + całościowy' },
     { id: 's16', icon: '✅', label: 'rozliczenie VAT', status: 'done', tip: '23% + podatek liniowy 19%' },
-    { id: 's17', icon: '🔄', label: '600k/rok', status: 'in-progress', tip: 'kolejny milestone' },
-    { id: 's18', icon: '🔒', label: '1 000 000 PLN', status: 'locked', tip: 'cel 2026 — THE BOSS' },
+    { id: 's17', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span>', label: '600k/rok', status: 'in-progress', tip: 'kolejny milestone' },
+    { id: 's18', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>', label: '1 000 000 PLN', status: 'locked', tip: 'cel 2026 — THE BOSS' },
   ],
   'skills-life': [
     { id: 's19', icon: '✅', label: 'własna firma', status: 'done', tip: 'JDG' },
     { id: 's20', icon: '✅', label: 'family team', status: 'done', tip: 'dziadek + babcia' },
-    { id: 's21', icon: '🔄', label: 'sim racing setup', status: 'in-progress', tip: 'w trakcie kompletowania' },
-    { id: 's22', icon: '🔒', label: 'i30 N Performance', status: 'locked', tip: 'po przekroczeniu 600k/rok' },
-    { id: 's23', icon: '🔒', label: 'własny magazyn', status: 'locked', tip: 'przy 30+ paletach/msc' },
-    { id: 's24', icon: '🔒', label: '1. pracownik', status: 'locked', tip: 'gdy team nie wyrabia' },
+    { id: 's21', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span>', label: 'sim racing setup', status: 'in-progress', tip: 'w trakcie kompletowania' },
+    { id: 's22', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>', label: 'i30 N Performance', status: 'locked', tip: 'po przekroczeniu 600k/rok' },
+    { id: 's23', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>', label: 'własny magazyn', status: 'locked', tip: 'przy 30+ paletach/msc' },
+    { id: 's24', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>', label: '1. pracownik', status: 'locked', tip: 'gdy team nie wyrabia' },
   ],
 };
 
@@ -343,11 +343,11 @@ const ACHIEVEMENTS = [
   { id: 'a1',  icon: '🌱', name: 'pierwszy krok',     earned: true,  tip: 'zacząłeś biznes od zera' },
   { id: 'a2',  icon: '👨‍👩‍👦', name: 'family business',  earned: true,  tip: 'dziadek + babcia = family team' },
   { id: 'a3',  icon: '🤖', name: 'własny system',     earned: true,  tip: 'AKCES HUB napisany od 0 z Claude' },
-  { id: 'a4',  icon: '📦', name: '200 palet/rok',     earned: true,  tip: '200 palet procesowanych rocznie' },
+  { id: 'a4',  icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span>', name: '200 palet/rok',     earned: true,  tip: '200 palet procesowanych rocznie' },
   { id: 'a5',  icon: '⏱️', name: '2h/dzień',          earned: true,  tip: 'pełny biznes na 2 godziny dziennie' },
   { id: 'a6',  icon: '💰', name: '400k rocznie',      earned: true,  tip: 'roczny przychód 400 000 PLN' },
   { id: 'a7',  icon: '🔔', name: 'sprzedaż alert',    earned: true,  tip: 'Telegram bot przy każdej sprzedaży' },
-  { id: 'a8',  icon: '📊', name: 'ROI tracker',       earned: true,  tip: 'śledzenie rentowności per paleta' },
+  { id: 'a8',  icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span>', name: 'ROI tracker',       earned: true,  tip: 'śledzenie rentowności per paleta' },
   { id: 'a9',  icon: '🧑‍💻', name: 'vibe developer',   earned: true,  tip: 'budujesz zaawansowane systemy bez CS' },
   { id: 'a10', icon: '🎯', name: 'palet boss',        earned: true,  tip: '20+ palet jednocześnie w obrocie' },
   { id: 'a11', icon: '📬', name: 'InPost hunter',     earned: true,  tip: 'osobiście dostarczasz do paczkomatu — respect' },
@@ -359,7 +359,7 @@ const ACHIEVEMENTS = [
   { id: 'a15', icon: '📅', name: '30k w miesiąc',     earned: false, tip: 'jeden miesiąc ≥ 30 000 zł przychodu' },
   { id: 'a16', icon: '💥', name: '50k w miesiąc',     earned: false, tip: 'jeden miesiąc ≥ 50 000 zł przychodu' },
   { id: 'a17', icon: '🏁', name: 'i30 N',             earned: false, tip: 'Hyundai i30 N Performance — zasłużone' },
-  { id: 'a18', icon: '🎮', name: 'sim racing setup',  earned: false, tip: 'pełny rig: kierownica + siedzisko + pedały' },
+  { id: 'a18', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sports_esports</span>', name: 'sim racing setup',  earned: false, tip: 'pełny rig: kierownica + siedzisko + pedały' },
   { id: 'a19', icon: '🏭', name: 'własny magazyn',    earned: false, tip: 'wynajęty lub kupiony magazyn' },
   { id: 'a20', icon: '👷', name: '1. pracownik',      earned: false, tip: 'pierwszy zatrudniony spoza rodziny' },
   { id: 'a21', icon: '🤖', name: 'Pi 24/7',           earned: false, tip: 'Paletomat działa na Raspberry Pi non-stop' },
@@ -447,8 +447,8 @@ function cycleStatus(current) {
 
 function statusLabel(s) {
   if (s === 'done') return 'done ✅';
-  if (s === 'in-progress') return 'w toku 🔄';
-  return 'locked 🔒';
+  if (s === 'in-progress') return 'w toku <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span>';
+  return 'locked <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>';
 }
 
 function renderSkills() {
@@ -457,7 +457,7 @@ function renderSkills() {
     container.innerHTML = '';
     skills.forEach(s => {
       const status = state.skills[s.id] || s.status;
-      const icons = { done: '✅', 'in-progress': '🔄', locked: '🔒' };
+      const icons = { done: '✅', 'in-progress': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span>', locked: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>' };
       const el = document.createElement('div');
       el.className = `skill ${status}`;
       el.innerHTML = `<span>${icons[status]}</span>${s.label}<div class="skill-tooltip">${s.tip} · klik → ${statusLabel(cycleStatus(status))}</div>`;
@@ -486,7 +486,7 @@ function renderAchievements() {
     el.innerHTML = `
       <div class="ach-icon">${a.icon}</div>
       <div class="ach-name">${a.name}</div>
-      <div class="ach-tooltip">${a.tip}<br>${earned ? '✅ zdobyte — klik = cofnij' : '🔒 zablokowane — klik = zdobądź'}</div>
+      <div class="ach-tooltip">${a.tip}<br>${earned ? '✅ zdobyte — klik = cofnij' : '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span> zablokowane — klik = zdobądź'}</div>
     `;
     el.addEventListener('click', () => {
       const wasEarned = state.achievements[a.id];

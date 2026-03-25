@@ -188,7 +188,7 @@ function doSystemUpdate(btn){
         <div id="paleoToast" style="display:none;margin-top:12px;padding:10px 14px;
             background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);
             border-radius:10px;text-align:center;font-size:0.85rem;color:var(--neon-tertiary)">
-            ✔ Zapisano! Powiadomimy Cię jako pierwszego.
+            <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">check</span> Zapisano! Powiadomimy Cię jako pierwszego.
         </div>
     </div>
 </div>
@@ -198,10 +198,10 @@ function requestEarlyAccess(btn) {
     fetch('/api/paletomat-early-access', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})})
     .then(function(r){return r.json();}).then(function(d){
         document.getElementById('paleoToast').style.display='block';
-        btn.textContent='✔ Zapisano!';btn.style.background='linear-gradient(135deg,#beee00,#16a34a)';
+        btn.textContent='<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">check</span> Zapisano!';btn.style.background='linear-gradient(135deg,#beee00,#16a34a)';
     }).catch(function(){
         document.getElementById('paleoToast').style.display='block';
-        btn.textContent='✔ Zapisano!';btn.style.background='linear-gradient(135deg,#beee00,#16a34a)';
+        btn.textContent='<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">check</span> Zapisano!';btn.style.background='linear-gradient(135deg,#beee00,#16a34a)';
     });
 }
 </script>
@@ -330,7 +330,7 @@ function requestEarlyAccess(btn) {
         <div style="position:absolute;top:0;right:0;bottom:0;width:45%;background:url('/static/goal.jpg') no-repeat center right;background-size:cover;opacity:0.08;z-index:0"></div>
         <div style="position:relative;z-index:1">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-                <span class="font-display" style="font-weight:700;color:var(--neon-primary);font-size:0.9rem">🚗 {{ goal['name'] }}</span>
+                <span class="font-display" style="font-weight:700;color:var(--neon-primary);font-size:0.9rem"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">directions_car</span> {{ goal['name'] }}</span>
                 <span class="font-display neon-text-tertiary" style="font-weight:800;font-size:1.3rem">{{ "%.1f"|format(goal.get('progress', 0)) }}%</span>
             </div>
             <div style="background:rgba(255,255,255,0.06);border-radius:var(--radius-sm);height:10px;overflow:hidden;margin-bottom:10px">
@@ -345,7 +345,7 @@ function requestEarlyAccess(btn) {
     {% else %}
     <div class="glass-card" style="padding:18px;display:flex;align-items:center;justify-content:center">
         <a href="/poziom" style="text-decoration:none;color:var(--text);text-align:center">
-            <div style="font-size:2rem;margin-bottom:8px">🎮</div>
+            <div style="font-size:2rem;margin-bottom:8px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sports_esports</span></div>
             <div class="font-display" style="font-weight:700;color:var(--neon-tertiary)">POZIOM & PROGRESS</div>
             <div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px">Skill tree · Osiągnięcia</div>
         </a>
@@ -652,97 +652,114 @@ fetch('/api/warehouse/heatmap').then(r=>r.json()).then(d=>{
 <!-- ═══════════════════════════════════════════════
      Analytics Drill-downs
      ═══════════════════════════════════════════════ -->
-<div class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">Analityka</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
-    <div onclick="toggleDrilldown('dd-stats')" class="glass-card" style="padding:16px 10px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:40px;height:40px;border-radius:12px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span></div>
-        <div class="font-display" style="font-weight:700;font-size:0.82rem">Statystyki</div>
-        <div style="font-size:0.62rem;color:var(--orange)">przeglądaj</div>
+<div class="font-display" style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">
+    <span style="width:2px;height:14px;background:var(--neon-primary)"></span> Analityka
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+    <div onclick="toggleDrilldown('dd-stats')" style="padding:14px 12px;cursor:pointer;background:var(--bg-card,rgba(19,19,28,0.6));border-left:2px solid var(--neon-tertiary);display:flex;align-items:center;gap:10px;transition:background 0.2s">
+        <span class="material-symbols-outlined" style="font-size:1.1rem;color:var(--neon-tertiary)">bar_chart</span>
+        <div>
+            <div class="font-display" style="font-weight:700;font-size:0.78rem;letter-spacing:0.3px">Statystyki</div>
+            <div class="font-display" style="font-size:0.58rem;text-transform:uppercase;letter-spacing:1px;color:var(--neon-tertiary);margin-top:2px">przegladaj</div>
+        </div>
     </div>
-    <div onclick="toggleDrilldown('dd-zakupy')" class="glass-card" style="padding:16px 10px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">shopping_cart</span></div>
-        <div class="font-display" style="font-weight:700;font-size:0.82rem">Zakupy</div>
-        <div style="font-size:0.62rem;color:var(--neon-primary)">analiza</div>
+    <div onclick="toggleDrilldown('dd-zakupy')" style="padding:14px 12px;cursor:pointer;background:var(--bg-card,rgba(19,19,28,0.6));border-left:2px solid var(--neon-primary);display:flex;align-items:center;gap:10px;transition:background 0.2s">
+        <span class="material-symbols-outlined" style="font-size:1.1rem;color:var(--neon-primary)">shopping_cart</span>
+        <div>
+            <div class="font-display" style="font-weight:700;font-size:0.78rem;letter-spacing:0.3px">Zakupy</div>
+            <div class="font-display" style="font-size:0.58rem;text-transform:uppercase;letter-spacing:1px;color:var(--neon-primary);margin-top:2px">analiza</div>
+        </div>
     </div>
-    <div onclick="toggleDrilldown('dd-lezaki')" class="glass-card" style="padding:16px 10px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">hourglass_top</span></div>
-        <div class="font-display" style="font-weight:700;font-size:0.82rem">Leżaki</div>
-        <div style="font-size:0.62rem;color:var(--neon-secondary)">zalegające</div>
+    <div onclick="toggleDrilldown('dd-lezaki')" style="padding:14px 12px;cursor:pointer;background:var(--bg-card,rgba(19,19,28,0.6));border-left:2px solid var(--neon-secondary);display:flex;align-items:center;gap:10px;transition:background 0.2s">
+        <span class="material-symbols-outlined" style="font-size:1.1rem;color:var(--neon-secondary)">hourglass_top</span>
+        <div>
+            <div class="font-display" style="font-weight:700;font-size:0.78rem;letter-spacing:0.3px">Lezaki</div>
+            <div class="font-display" style="font-size:0.58rem;text-transform:uppercase;letter-spacing:1px;color:var(--neon-secondary);margin-top:2px">zalegajace</div>
+        </div>
     </div>
 </div>
 
 <!-- Drill-down panels -->
-<div id="dd-stats" class="glass-card neon-glow-primary" style="display:none;padding:18px;margin-bottom:16px;animation:fadeIn 0.3s">
+<div id="dd-stats" style="display:none;padding:18px;margin-bottom:16px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:2px solid var(--neon-tertiary);animation:fadeIn 0.3s">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <span class="font-display" style="font-weight:700;color:var(--orange)"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span> Statystyki</span>
-        <span onclick="toggleDrilldown('dd-stats')" style="cursor:pointer;color:var(--text-muted);font-size:0.8rem">✕</span>
+        <div style="display:flex;align-items:center;gap:8px">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--neon-tertiary)">bar_chart</span>
+            <span class="font-display" style="font-weight:700;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;color:var(--neon-tertiary)">Statystyki</span>
+        </div>
+        <span onclick="toggleDrilldown('dd-stats')" style="cursor:pointer;color:var(--text-muted);display:flex;align-items:center"><span class="material-symbols-outlined" style="font-size:1rem">close</span></span>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <a href="/statystyki" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">trending_up</span></span>
-            <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-primary)">Pełne statystyki</div><div style="font-size:0.62rem;color:var(--text-muted)">Wykresy, trendy</div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <a href="/statystyki" style="padding:10px 12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-left:2px solid var(--neon-primary);background:rgba(255,255,255,0.02);transition:background 0.2s">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--neon-primary)">trending_up</span>
+            <div><div class="font-display" style="font-weight:600;font-size:0.78rem;color:var(--neon-primary)">Pelne statystyki</div><div style="font-size:0.6rem;color:var(--text-muted)">Wykresy, trendy</div></div>
         </a>
-        <a href="/analityka" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">paid</span></span>
-            <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-tertiary)">Zyski i przychody</div><div style="font-size:0.62rem;color:var(--text-muted)">Per produkt</div></div>
+        <a href="/analityka" style="padding:10px 12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-left:2px solid var(--neon-tertiary);background:rgba(255,255,255,0.02);transition:background 0.2s">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--neon-tertiary)">paid</span>
+            <div><div class="font-display" style="font-weight:600;font-size:0.78rem;color:var(--neon-tertiary)">Zyski i przychody</div><div style="font-size:0.6rem;color:var(--text-muted)">Per produkt</div></div>
         </a>
-        <a href="/analityka/kategorie" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">label</span></span>
-            <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-secondary)">Kategorie</div><div style="font-size:0.62rem;color:var(--text-muted)">Co sprzedaje się best</div></div>
+        <a href="/analityka/kategorie" style="padding:10px 12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-left:2px solid var(--neon-secondary);background:rgba(255,255,255,0.02);transition:background 0.2s">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--neon-secondary)">label</span>
+            <div><div class="font-display" style="font-weight:600;font-size:0.78rem;color:var(--neon-secondary)">Kategorie</div><div style="font-size:0.6rem;color:var(--text-muted)">Co sprzedaje sie best</div></div>
         </a>
-        <a href="/analytics/dashboard" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span></span>
-            <div><div style="font-weight:600;font-size:0.82rem;color:var(--orange)">Dashboard KPI</div><div style="font-size:0.62rem;color:var(--text-muted)">Porównania</div></div>
+        <a href="/analytics/dashboard" style="padding:10px 12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-left:2px solid var(--neon-primary);background:rgba(255,255,255,0.02);transition:background 0.2s">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--neon-primary)">bar_chart</span>
+            <div><div class="font-display" style="font-weight:600;font-size:0.78rem;color:var(--neon-primary)">Dashboard KPI</div><div style="font-size:0.6rem;color:var(--text-muted)">Porownania</div></div>
         </a>
     </div>
 </div>
 
-<div id="dd-zakupy" class="glass-card neon-glow-primary" style="display:none;padding:18px;margin-bottom:16px;animation:fadeIn 0.3s">
+<div id="dd-zakupy" style="display:none;padding:18px;margin-bottom:16px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:2px solid var(--neon-primary);animation:fadeIn 0.3s">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <span class="font-display" style="font-weight:700;color:var(--neon-primary)"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">shopping_cart</span> Zakupy</span>
-        <span onclick="toggleDrilldown('dd-zakupy')" style="cursor:pointer;color:var(--text-muted);font-size:0.8rem">✕</span>
+        <div style="display:flex;align-items:center;gap:8px">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--neon-primary)">shopping_cart</span>
+            <span class="font-display" style="font-weight:700;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;color:var(--neon-primary)">Zakupy</span>
+        </div>
+        <span onclick="toggleDrilldown('dd-zakupy')" style="cursor:pointer;color:var(--text-muted);display:flex;align-items:center"><span class="material-symbols-outlined" style="font-size:1rem">close</span></span>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <a href="/analityka/palety" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span></span>
-            <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-primary)">Bilans palet</div><div style="font-size:0.62rem;color:var(--text-muted)">ROI per paleta</div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <a href="/analityka/palety" style="padding:10px 12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-left:2px solid var(--neon-primary);background:rgba(255,255,255,0.02);transition:background 0.2s">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--neon-primary)">inventory_2</span>
+            <div><div class="font-display" style="font-weight:600;font-size:0.78rem;color:var(--neon-primary)">Bilans palet</div><div style="font-size:0.6rem;color:var(--text-muted)">ROI per paleta</div></div>
         </a>
-        <a href="/palety" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">list_alt</span></span>
-            <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-tertiary)">Lista palet</div><div style="font-size:0.62rem;color:var(--text-muted)">Wszystkie zakupy</div></div>
+        <a href="/palety" style="padding:10px 12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-left:2px solid var(--neon-tertiary);background:rgba(255,255,255,0.02);transition:background 0.2s">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--neon-tertiary)">list_alt</span>
+            <div><div class="font-display" style="font-weight:600;font-size:0.78rem;color:var(--neon-tertiary)">Lista palet</div><div style="font-size:0.6rem;color:var(--text-muted)">Wszystkie zakupy</div></div>
         </a>
-        <a href="/analityka/okazje" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">local_fire_department</span></span>
-            <div><div style="font-weight:600;font-size:0.82rem;color:var(--orange)">Okazje</div><div style="font-size:0.62rem;color:var(--text-muted)">Monitoring</div></div>
+        <a href="/analityka/okazje" style="padding:10px 12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-left:2px solid var(--neon-secondary);background:rgba(255,255,255,0.02);transition:background 0.2s">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--neon-secondary)">local_fire_department</span>
+            <div><div class="font-display" style="font-weight:600;font-size:0.78rem;color:var(--neon-secondary)">Okazje</div><div style="font-size:0.6rem;color:var(--text-muted)">Monitoring</div></div>
         </a>
-        <a href="/sprzedaze" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">credit_card</span></span>
-            <div><div style="font-weight:600;font-size:0.82rem;color:var(--red)">Sprzedaże</div><div style="font-size:0.62rem;color:var(--text-muted)">Historia</div></div>
+        <a href="/sprzedaze" style="padding:10px 12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-left:2px solid var(--neon-secondary);background:rgba(255,255,255,0.02);transition:background 0.2s">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--neon-secondary)">credit_card</span>
+            <div><div class="font-display" style="font-weight:600;font-size:0.78rem;color:var(--neon-secondary)">Sprzedaze</div><div style="font-size:0.6rem;color:var(--text-muted)">Historia</div></div>
         </a>
     </div>
 </div>
 
-<div id="dd-lezaki" class="glass-card neon-glow-secondary" style="display:none;padding:18px;margin-bottom:16px;animation:fadeIn 0.3s">
+<div id="dd-lezaki" style="display:none;padding:18px;margin-bottom:16px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:2px solid var(--neon-secondary);animation:fadeIn 0.3s">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <span class="font-display" style="font-weight:700;color:var(--neon-secondary)"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">hourglass_top</span> Leżaki</span>
-        <span onclick="toggleDrilldown('dd-lezaki')" style="cursor:pointer;color:var(--text-muted);font-size:0.8rem">✕</span>
+        <div style="display:flex;align-items:center;gap:8px">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--neon-secondary)">hourglass_top</span>
+            <span class="font-display" style="font-weight:700;font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;color:var(--neon-secondary)">Lezaki</span>
+        </div>
+        <span onclick="toggleDrilldown('dd-lezaki')" style="cursor:pointer;color:var(--text-muted);display:flex;align-items:center"><span class="material-symbols-outlined" style="font-size:1rem">close</span></span>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <a href="/magazyn/lezaki" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">hourglass_top</span></span>
-            <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-secondary)">Stojące >30 dni</div><div style="font-size:0.62rem;color:var(--text-muted)">{{ monthly.stojace }} produktów</div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <a href="/magazyn/lezaki" style="padding:10px 12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-left:2px solid var(--neon-secondary);background:rgba(255,255,255,0.02);transition:background 0.2s">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--neon-secondary)">hourglass_top</span>
+            <div><div class="font-display" style="font-weight:600;font-size:0.78rem;color:var(--neon-secondary)">Stojace >30 dni</div><div style="font-size:0.6rem;color:var(--text-muted)">{{ monthly.stojace }} produktow</div></div>
         </a>
-        <a href="/magazyn" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span></span>
-            <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-primary)">Cały magazyn</div><div style="font-size:0.62rem;color:var(--text-muted)">{{ mag.produkty }} produktów</div></div>
+        <a href="/magazyn" style="padding:10px 12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-left:2px solid var(--neon-primary);background:rgba(255,255,255,0.02);transition:background 0.2s">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--neon-primary)">inventory_2</span>
+            <div><div class="font-display" style="font-weight:600;font-size:0.78rem;color:var(--neon-primary)">Caly magazyn</div><div style="font-size:0.6rem;color:var(--text-muted)">{{ mag.produkty }} produktow</div></div>
         </a>
-        <a href="/sprzedaze?status=zwrot" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">undo</span></span>
-            <div><div style="font-weight:600;font-size:0.82rem;color:var(--red)">Zwroty</div><div style="font-size:0.62rem;color:var(--text-muted)">{{ monthly.zwroty_cnt }} w tym miesiącu</div></div>
+        <a href="/sprzedaze?status=zwrot" style="padding:10px 12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-left:2px solid var(--neon-secondary);background:rgba(255,255,255,0.02);transition:background 0.2s">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--neon-secondary)">undo</span>
+            <div><div class="font-display" style="font-weight:600;font-size:0.78rem;color:var(--neon-secondary)">Zwroty</div><div style="font-size:0.6rem;color:var(--text-muted)">{{ monthly.zwroty_cnt }} w tym miesiacu</div></div>
         </a>
-        <a href="/warehouse/heatmap" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">map</span></span>
-            <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-tertiary)">Mapa magazynu</div><div style="font-size:0.62rem;color:var(--text-muted)">Heatmapa 3D</div></div>
+        <a href="/warehouse/heatmap" style="padding:10px 12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;border-left:2px solid var(--neon-tertiary);background:rgba(255,255,255,0.02);transition:background 0.2s">
+            <span class="material-symbols-outlined" style="font-size:1rem;color:var(--neon-tertiary)">map</span>
+            <div><div class="font-display" style="font-weight:600;font-size:0.78rem;color:var(--neon-tertiary)">Mapa magazynu</div><div style="font-size:0.6rem;color:var(--text-muted)">Heatmapa 3D</div></div>
         </a>
     </div>
 </div>
@@ -756,111 +773,99 @@ function toggleDrilldown(id){
 }
 </script>
 
-<!-- ═══════════════════════════════════════════════
-     Operations + Tools
-     ═══════════════════════════════════════════════ -->
-<div class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">Operacje</div>
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
-    <a href="/paletomat" class="glass-card" style="text-decoration:none;color:inherit;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:36px;height:36px;border-radius:10px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smart_toy</span></div>
-        <div class="font-display" style="font-weight:700;font-size:0.78rem">Paletomat</div>
-        <div style="font-size:0.6rem;color:var(--neon-primary)">wystawiaj</div>
+<!-- OPERACJE — Cyberpunk command strip -->
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+    <span style="width:2px;height:14px;background:var(--neon-tertiary);border-radius:1px"></span>
+    <span class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--neon-tertiary)">Operacje</span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
+    <a href="/paletomat" style="text-decoration:none;color:inherit;padding:14px 8px;background:var(--bg-card,rgba(19,19,28,0.6));border-top:2px solid var(--neon-primary);text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <span class="material-symbols-outlined" style="font-size:1.3rem;color:var(--neon-primary)">smart_toy</span>
+        <div class="font-display" style="font-weight:700;font-size:0.72rem;letter-spacing:0.05em">PALETOMAT</div>
     </a>
-    <a href="/wysylki/allegro" class="glass-card" style="text-decoration:none;color:inherit;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:36px;height:36px;border-radius:10px;background:var(--neon-tertiary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">📬</div>
-        <div class="font-display" style="font-weight:700;font-size:0.78rem">Wysyłki</div>
-        <div style="font-size:0.6rem;color:var(--neon-tertiary)">pakuj</div>
+    <a href="/wysylki/allegro" style="text-decoration:none;color:inherit;padding:14px 8px;background:var(--bg-card,rgba(19,19,28,0.6));border-top:2px solid var(--neon-tertiary);text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <span class="material-symbols-outlined" style="font-size:1.3rem;color:var(--neon-tertiary)">local_shipping</span>
+        <div class="font-display" style="font-weight:700;font-size:0.72rem;letter-spacing:0.05em">WYSYŁKI</div>
     </a>
-    <a href="/allegro/sync" class="glass-card" style="text-decoration:none;color:inherit;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:36px;height:36px;border-radius:10px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">sync</span></div>
-        <div class="font-display" style="font-weight:700;font-size:0.78rem">Sync</div>
-        <div style="font-size:0.6rem;color:var(--orange)">zamówienia</div>
+    <a href="/allegro/sync" style="text-decoration:none;color:inherit;padding:14px 8px;background:var(--bg-card,rgba(19,19,28,0.6));border-top:2px solid var(--orange);text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <span class="material-symbols-outlined" style="font-size:1.3rem;color:var(--orange)">sync</span>
+        <div class="font-display" style="font-weight:700;font-size:0.72rem;letter-spacing:0.05em">SYNC</div>
     </a>
-    <a href="/magazyn/etykiety" class="glass-card" style="text-decoration:none;color:inherit;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:36px;height:36px;border-radius:10px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">label</span></div>
-        <div class="font-display" style="font-weight:700;font-size:0.78rem">Etykiety</div>
-        <div style="font-size:0.6rem;color:var(--neon-secondary)">masowe PNG</div>
+    <a href="/magazyn/etykiety" style="text-decoration:none;color:inherit;padding:14px 8px;background:var(--bg-card,rgba(19,19,28,0.6));border-top:2px solid var(--neon-secondary);text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <span class="material-symbols-outlined" style="font-size:1.3rem;color:var(--neon-secondary)">label</span>
+        <div class="font-display" style="font-weight:700;font-size:0.72rem;letter-spacing:0.05em">ETYKIETY</div>
     </a>
 </div>
 
-<!-- Tools row -->
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
-    <a href="/narzedzia/kalkulator" class="glass-card" style="text-decoration:none;color:inherit;padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
-        <span style="font-size:1.2rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">paid</span></span>
-        <span style="font-size:0.7rem;color:var(--text-muted)">Kalkulator</span>
+<!-- Tools strip -->
+<div style="display:flex;gap:6px;margin-bottom:16px">
+    <a href="/narzedzia/kalkulator" style="flex:1;text-decoration:none;color:var(--text-muted);padding:10px;background:rgba(255,255,255,0.02);display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.7rem;font-weight:600">
+        <span class="material-symbols-outlined" style="font-size:0.9rem">paid</span> Kalkulator
     </a>
-    <a href="/narzedzia/generator" class="glass-card" style="text-decoration:none;color:inherit;padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
-        <span style="font-size:1.2rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">auto_awesome</span></span>
-        <span style="font-size:0.7rem;color:var(--text-muted)">Generator AI</span>
+    <a href="/narzedzia/generator" style="flex:1;text-decoration:none;color:var(--text-muted);padding:10px;background:rgba(255,255,255,0.02);display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.7rem;font-weight:600">
+        <span class="material-symbols-outlined" style="font-size:0.9rem">auto_awesome</span> Generator AI
     </a>
-    <a href="/analityka/okazje" class="glass-card" style="text-decoration:none;color:inherit;padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;border-color:rgba(234,179,8,0.2)">
-        <span style="font-size:1.2rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">local_fire_department</span></span>
-        <span style="font-size:0.7rem;color:var(--orange)">Okazje</span>
+    <a href="/analityka/okazje" style="flex:1;text-decoration:none;color:var(--orange);padding:10px;background:rgba(234,179,8,0.04);display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.7rem;font-weight:600">
+        <span class="material-symbols-outlined" style="font-size:0.9rem">local_fire_department</span> Okazje
     </a>
 </div>
 
-<div style="display:flex;justify-content:space-between;margin-bottom:24px">
-    <a href="/narzedzia" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none">Więcej narzędzi →</a>
-    <a href="/ustawienia" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">settings</span> Ustawienia</a>
-    <a href="/changelog" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">list_alt</span> Changelog</a>
+<div style="display:flex;justify-content:space-between;margin-bottom:24px;padding:0 4px">
+    <a href="/narzedzia" style="color:var(--text-muted);font-size:0.7rem;text-decoration:none;font-weight:600;letter-spacing:0.05em">WIĘCEJ NARZĘDZI <span class="material-symbols-outlined" style="font-size:0.7rem;vertical-align:middle">arrow_forward</span></a>
+    <a href="/ustawienia" style="color:var(--text-muted);font-size:0.7rem;text-decoration:none;font-weight:600"><span class="material-symbols-outlined" style="font-size:0.8rem;vertical-align:middle">settings</span> USTAWIENIA</a>
+    <a href="/changelog" style="color:var(--text-muted);font-size:0.7rem;text-decoration:none;font-weight:600"><span class="material-symbols-outlined" style="font-size:0.8rem;vertical-align:middle">list_alt</span> CHANGELOG</a>
 </div>
 
 <!-- ═══════════════════════════════════════════════
      Top Products & Suppliers
      ═══════════════════════════════════════════════ -->
 {% if top_produkty and top_produkty|length > 0 %}
-<div class="glass-card" style="padding:20px;margin-bottom:20px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <span class="font-display" style="font-weight:700;font-size:0.92rem">🏆 TOP PRODUKTY</span>
-    </div>
+<div style="background:var(--bg-card,rgba(19,19,28,0.6));padding:20px;margin-bottom:16px">
+    <div class="font-display" style="font-weight:700;font-size:0.7rem;letter-spacing:0.15em;color:var(--neon-secondary);text-transform:uppercase;margin-bottom:14px">Top Produkty</div>
     {% for p in top_produkty[:5] %}
-    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04){% if loop.last %};border:none{% endif %}">
-        <div class="font-display" style="font-weight:800;color:var(--neon-secondary);width:20px;flex-shrink:0;font-size:0.9rem">{{ loop.index }}.</div>
-        <img src="{{ p.zdjecie_url or 'https://via.placeholder.com/40' }}" style="width:40px;height:40px;border-radius:10px;object-fit:cover;flex-shrink:0" loading="lazy">
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.03){% if loop.last %};border:none{% endif %}">
+        <div class="font-display" style="font-weight:900;color:{% if loop.first %}var(--neon-primary){% else %}rgba(143,245,255,0.3){% endif %};width:18px;flex-shrink:0;font-size:0.85rem">{{ loop.index }}</div>
+        <img src="{{ p.zdjecie_url or '/static/placeholder.png' }}" style="width:36px;height:36px;border-radius:4px;object-fit:cover;flex-shrink:0" onerror="this.src='/static/placeholder.png'" loading="lazy">
         <div style="flex:1;min-width:0">
-            <div style="font-weight:600;font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.nazwa[:40] }}{% if p.nazwa|length > 40 %}...{% endif %}</div>
-            <div style="font-size:0.7rem;color:var(--text-muted)">{{ p.sprzedazy_cnt }} szt</div>
+            <div class="font-display" style="font-weight:600;font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.nazwa[:40] }}</div>
+            <div style="font-size:0.6rem;color:var(--text-muted)">{{ p.sprzedazy_cnt }} szt</div>
         </div>
-        <div style="font-weight:700;color:var(--neon-tertiary);flex-shrink:0;font-size:0.9rem">{{ "%.0f"|format(p.sprzedazy_suma) }} zł</div>
+        <div class="font-display" style="font-weight:800;color:var(--neon-tertiary);flex-shrink:0;font-size:0.9rem">{{ "%.0f"|format(p.sprzedazy_suma) }} zł</div>
     </div>
     {% endfor %}
 </div>
 {% endif %}
 
 {% if top_dostawcy and top_dostawcy|length > 0 %}
-<div class="glass-card" style="padding:20px;margin-bottom:20px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <span class="font-display" style="font-weight:700;font-size:0.92rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span> TOP DOSTAWCY (ROI)</span>
-    </div>
+<div style="background:var(--bg-card,rgba(19,19,28,0.6));padding:20px;margin-bottom:16px">
+    <div class="font-display" style="font-weight:700;font-size:0.7rem;letter-spacing:0.15em;color:var(--text-muted);text-transform:uppercase;margin-bottom:14px">Top Dostawcy (ROI)</div>
     {% for d in top_dostawcy[:5] %}
-    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04){% if loop.last %};border:none{% endif %}">
-        <div class="font-display" style="font-weight:800;color:var(--neon-secondary);width:20px;flex-shrink:0;font-size:0.9rem">{{ loop.index }}</div>
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.03){% if loop.last %};border:none{% endif %}">
+        <div class="font-display" style="font-weight:900;color:{% if loop.first %}var(--neon-primary){% else %}rgba(143,245,255,0.3){% endif %};width:18px;flex-shrink:0;font-size:0.85rem">{{ loop.index }}</div>
         <div style="flex:1;min-width:0">
-            <div style="font-weight:600;font-size:0.82rem" class="dostawca-name">{{ d.dostawca }}</div>
-            <div style="font-size:0.7rem;color:var(--text-muted)">{{ d.sprzedazy_cnt }} szt · {{ "%.0f"|format(d.przychod) }} zł</div>
+            <div class="font-display" style="font-weight:600;font-size:0.8rem" class="dostawca-name">{{ d.dostawca }}</div>
+            <div style="font-size:0.6rem;color:var(--text-muted)">{{ d.sprzedazy_cnt }} szt · {{ "%.0f"|format(d.przychod) }} zł</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
-            <div style="font-weight:700;color:{% if d.roi > 50 %}var(--neon-tertiary){% elif d.roi > 20 %}var(--orange){% else %}var(--red){% endif %}">{{ "%.0f"|format(d.roi) }}%</div>
-            <div style="font-size:0.7rem;color:var(--text-muted)">koszt: {{ "%.0f"|format(d.koszt) }} zł</div>
+            <div class="font-display" style="font-weight:800;font-size:1rem;color:{% if d.roi > 50 %}var(--neon-tertiary){% elif d.roi > 20 %}var(--orange){% else %}var(--red){% endif %}">{{ "%.0f"|format(d.roi) }}%</div>
+            <div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase">koszt: {{ "%.0f"|format(d.koszt) }} zł</div>
         </div>
     </div>
     {% endfor %}
 </div>
 {% endif %}
 
-<!-- Activity -->
+<!-- Activity feed -->
 {% if activity %}
-<div class="glass-card" style="padding:20px;margin-bottom:20px">
-    <div style="margin-bottom:14px">
-        <span class="font-display" style="font-weight:700;font-size:0.92rem">🕐 Ostatnia Aktywność</span>
-    </div>
+<div style="background:var(--bg-card,rgba(19,19,28,0.6));padding:20px;margin-bottom:20px">
+    <div class="font-display" style="font-weight:700;font-size:0.7rem;letter-spacing:0.15em;color:var(--text-muted);text-transform:uppercase;margin-bottom:14px">Ostatnia Aktywność</div>
     {% for a in activity %}
-    <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04){% if loop.last %};border:none{% endif %}">
-        <div style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;
-            background:{% if a.color == 'green' %}var(--neon-tertiary-soft){% elif a.color == 'blue' %}var(--neon-primary-soft){% elif a.color == 'yellow' %}rgba(234,179,8,0.08){% else %}var(--neon-secondary-soft){% endif %}">●</div>
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03){% if loop.last %};border:none{% endif %}">
+        <div style="width:3px;height:20px;margin-top:4px;flex-shrink:0;border-radius:1px;
+            background:{% if a.color == 'green' %}var(--neon-tertiary){% elif a.color == 'blue' %}var(--neon-primary){% elif a.color == 'yellow' %}var(--orange){% else %}var(--neon-secondary){% endif %}"></div>
         <div style="flex:1;min-width:0">
-            <div style="font-weight:600;font-size:0.82rem">{{ a.msg }}</div>
-            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">{{ a.time }}</div>
+            <div style="font-weight:500;font-size:0.78rem">{{ a.msg }}</div>
+            <div style="font-size:0.6rem;color:var(--text-muted);margin-top:2px">{{ a.time }}</div>
         </div>
     </div>
     {% endfor %}
@@ -868,23 +873,26 @@ function toggleDrilldown(id){
 {% endif %}
 
 <!-- License -->
-<div class="glass-card" style="padding:20px;border-color:{% if lic_days_left == 'Wygasla!' %}rgba(239,68,68,0.3){% elif lic_days_left %}rgba(143,245,255,0.2){% else %}rgba(255,255,255,0.06){% endif %}">
+<div style="background:var(--bg-card,rgba(19,19,28,0.6));padding:20px;border-left:2px solid {% if lic_days_left == 'Wygasla!' %}var(--red){% elif lic_days_left %}var(--neon-primary){% else %}rgba(255,255,255,0.1){% endif %}">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <span class="font-display" style="font-weight:700;font-size:0.92rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">key</span> Licencja</span>
-        <a href="/license" style="color:var(--neon-primary);font-size:0.78rem;text-decoration:none;font-weight:600">Szczegóły →</a>
+        <div style="display:flex;align-items:center;gap:6px">
+            <span class="material-symbols-outlined" style="font-size:0.9rem;color:var(--neon-primary)">key</span>
+            <span class="font-display" style="font-weight:700;font-size:0.7rem;letter-spacing:0.15em;color:var(--text-muted);text-transform:uppercase">Licencja</span>
+        </div>
+        <a href="/license" style="color:var(--neon-primary);font-size:0.6rem;text-decoration:none;font-weight:700;letter-spacing:0.1em">SZCZEGÓŁY <span class="material-symbols-outlined" style="font-size:0.6rem;vertical-align:middle">arrow_forward</span></a>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:center">
         <div>
-            <div class="font-display" style="font-size:1.3rem;font-weight:800;color:var(--neon-secondary)">{{ lic_plan }}</div>
-            <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:1px">Plan</div>
+            <div class="font-display" style="font-size:1.3rem;font-weight:900;color:var(--neon-secondary)">{{ lic_plan }}</div>
+            <div style="font-size:0.55rem;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:0.15em;font-weight:700">Plan</div>
         </div>
         <div>
-            <div class="font-display" style="font-size:1.3rem;font-weight:800;color:{% if lic_days_left == 'Wygasla!' %}var(--red){% else %}var(--neon-tertiary){% endif %}">{{ lic_days_left or 'Bezterminowo' }}</div>
-            <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:1px">Pozostało</div>
+            <div class="font-display" style="font-size:1.3rem;font-weight:900;color:{% if lic_days_left == 'Wygasla!' %}var(--red){% else %}var(--neon-tertiary){% endif %}">{{ lic_days_left or 'Bezterminowo' }}</div>
+            <div style="font-size:0.55rem;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:0.15em;font-weight:700">Pozostało</div>
         </div>
         <div>
-            <div class="font-display" style="font-size:1.3rem;font-weight:800;color:var(--text-secondary)">{{ lic_expires or '∞' }}</div>
-            <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:1px">Wygasa</div>
+            <div class="font-display" style="font-size:1.3rem;font-weight:900;color:var(--text-secondary)">{{ lic_expires or '∞' }}</div>
+            <div style="font-size:0.55rem;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:0.15em;font-weight:700">Wygasa</div>
         </div>
     </div>
 </div>

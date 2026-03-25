@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✏️ Edycja produktu - {{ brand_name|default('Akces Hub') }}</title>
+    <title><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">edit</span> Edycja produktu - {{ brand_name|default('Akces Hub') }}</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
         
         <!-- Header -->
         <div class="page-header">
-            <h1>✏️ Edycja produktu</h1>
+            <h1><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">edit</span> Edycja produktu</h1>
             <a href="/generator" class="btn btn-secondary">← Powrót</a>
         </div>
 
@@ -33,7 +33,7 @@
             <!-- PODSTAWOWE DANE (zawsze widoczne) -->
             <!-- ═══════════════════════════════════════════════════ -->
             <div class="card">
-                <div class="card-title">📦 Podstawowe dane</div>
+                <div class="card-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> Podstawowe dane</div>
                 
                 <div class="form-group">
                     <label for="nazwa">Nazwa produktu:</label>
@@ -81,7 +81,7 @@
                 
                 <!-- Stan produktu -->
                 <div class="card">
-                    <div class="card-title">🔧 Stan produktu</div>
+                    <div class="card-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">build</span> Stan produktu</div>
                     
                     <div class="form-row">
                         <div class="form-group">
@@ -114,7 +114,7 @@
 
                 <!-- Defekty -->
                 <div class="card">
-                    <div class="card-title">⚠️ Defekty</div>
+                    <div class="card-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">warning</span> Defekty</div>
                     
                     <div class="checkbox-grid">
                         <label class="checkbox-container checkbox-defect">
@@ -145,7 +145,7 @@
 
                 <!-- Klasyfikacja -->
                 <div class="card">
-                    <div class="card-title">📊 Klasyfikacja</div>
+                    <div class="card-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span> Klasyfikacja</div>
                     
                     <div class="form-row">
                         <div class="form-group">
@@ -172,7 +172,7 @@
 
                 <!-- Notatki -->
                 <div class="card">
-                    <div class="card-title">📝 Notatki</div>
+                    <div class="card-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">edit_note</span> Notatki</div>
                     
                     <div class="form-group">
                         <label for="notatki">Dodatkowe informacje:</label>
@@ -189,7 +189,7 @@
             <!-- ═══════════════════════════════════════════════════ -->
             <div class="button-group">
                 <button type="submit" class="btn btn-primary">
-                    💾 ZAPISZ ZMIANY
+                    <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">save</span> ZAPISZ ZMIANY
                 </button>
                 <a href="/generator" class="btn btn-secondary">
                     ← Anuluj

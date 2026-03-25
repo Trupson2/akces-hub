@@ -27,7 +27,7 @@
     };
 })();
 </script>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2313131c'/><text x='50' y='55' text-anchor='middle' dominant-baseline='middle' font-size='50' fill='%238ff5ff'>A</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800;900&display=swap">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
@@ -419,7 +419,7 @@ if(localStorage.getItem('kiosk_mode')==='1'){
 {% endif %}
 
 <!-- Mobile menu -->
-<div class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open');document.querySelector('.sidebar-overlay').classList.toggle('open')">☰</div>
+<div class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open');document.querySelector('.sidebar-overlay').classList.toggle('open')"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">menu</span></div>
 <div class="sidebar-overlay" onclick="document.querySelector('.sidebar').classList.remove('open');this.classList.remove('open')"></div>
 
 <div class="app-layout">
@@ -522,7 +522,7 @@ if(localStorage.getItem('kiosk_mode')==='1'){
                 <div class="sidebar-account-name">{{ current_user }}</div>
                 <div class="sidebar-account-role">Ustawienia konta</div>
             </div>
-            <a href="/auth/logout" class="sidebar-logout" title="Wyloguj">🚪</a>
+            <a href="/auth/logout" class="sidebar-logout" title="Wyloguj"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">logout</span></a>
         </div>
         {% endif %}
     </div>
@@ -539,7 +539,7 @@ if(localStorage.getItem('kiosk_mode')==='1'){
             &#x1F441;&#xFE0F;
         </button>
         <div class="theme-toggle" onclick="toggleTheme()" title="Zmien motyw">
-            <span id="theme-icon">☀️</span>
+            <span id="theme-icon" class="material-symbols-outlined" style="font-size:1.1rem">light_mode</span>
         </div>
     </div>
 </div>
@@ -568,11 +568,11 @@ function toggleTheme(){
     const next = current === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', next);
     localStorage.setItem('theme', next);
-    document.getElementById('theme-icon').textContent = next === 'dark' ? '🌙' : '☀️';
+    document.getElementById('theme-icon').textContent = next === 'dark' ? 'dark_mode' : 'light_mode';
     document.querySelector('meta[name="theme-color"]').content = next === 'dark' ? '#06060f' : '#f0f2f5';
 }
 const _t = document.documentElement.getAttribute('data-theme');
-document.getElementById('theme-icon').textContent = _t === 'dark' ? '🌙' : '☀️';
+document.getElementById('theme-icon').textContent = _t === 'dark' ? 'dark_mode' : 'light_mode';
 
 // Highlight active sidebar link
 const _path = window.location.pathname;

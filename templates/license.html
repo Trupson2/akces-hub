@@ -31,7 +31,7 @@ a{color:#6366f1;text-decoration:none}
 
     <div class="card">
         <div class="status {{ 'active' if lic.active else 'inactive' }}">
-            {{ '✅ Licencja aktywna' if lic.active else '🔒 Brak aktywnej licencji' }}
+            {{ '✅ Licencja aktywna' if lic.active else '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span> Brak aktywnej licencji' }}
         </div>
         {% if lic.active %}
         <div class="info">Klient: <span>{{ lic.client }}</span></div>
@@ -57,7 +57,7 @@ a{color:#6366f1;text-decoration:none}
 
     {% if not lic.active %}
     <div class="card">
-        <div style="font-weight:700;margin-bottom:12px">📁 Aktywacja plikiem</div>
+        <div style="font-weight:700;margin-bottom:12px"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">folder</span> Aktywacja plikiem</div>
         <form method="POST" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="file" name="license_file" accept=".json" required>
