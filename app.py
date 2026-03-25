@@ -2787,7 +2787,7 @@ def analiza_oferty():
                     cena_amazon = float(scraped['cena_amazon'] or 0)
 
             # Ile sprzedano
-            sprzedane = conn.execute('SELECT COALESCE(SUM(ilosc),0) FROM sprzedaze WHERE produkt_id=? AND COALESCE(status,"") NOT IN ("anulowana","anulowane","zwrot","")', (p['id'],)).fetchone()[0]
+            sprzedane = conn.execute('SELECT COALESCE(SUM(ilosc),0) FROM sprzedaze WHERE produkt_id=? AND COALESCE(status,"") NOT IN ("anulowana","anulowane","zwrot","") AND COALESCE(kupujacy,"") != "offline"', (p['id'],)).fetchone()[0]
 
             # === ALLEGRO PERFORMANCE ===
             allegro_oferta = None
