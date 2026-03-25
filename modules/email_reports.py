@@ -341,7 +341,7 @@ def generate_daily_report():
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
         FROM sprzedaze
         WHERE date(data_sprzedazy) = ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
        
     ''', (yesterday,)).fetchone()
 
@@ -350,7 +350,7 @@ def generate_daily_report():
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
         FROM sprzedaze
         WHERE date(data_sprzedazy) >= ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
        
     ''', (month_start,)).fetchone()
 

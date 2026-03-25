@@ -31,7 +31,7 @@ def dashboard_kpi():
     dzis = conn.execute('''
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
         FROM sprzedaze WHERE date(data_sprzedazy) = ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
        
     ''', (today_str,)).fetchone()
 
@@ -39,7 +39,7 @@ def dashboard_kpi():
     wczoraj = conn.execute('''
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
         FROM sprzedaze WHERE date(data_sprzedazy) = ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
        
     ''', (yesterday_str,)).fetchone()
 
@@ -47,7 +47,7 @@ def dashboard_kpi():
     tydzien = conn.execute('''
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
         FROM sprzedaze WHERE date(data_sprzedazy) >= ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
        
     ''', (week_ago,)).fetchone()
 
@@ -57,7 +57,7 @@ def dashboard_kpi():
     poprzedni_tydzien = conn.execute('''
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
         FROM sprzedaze WHERE date(data_sprzedazy) >= ? AND date(data_sprzedazy) < ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
        
     ''', (prev_week_start, prev_week_end)).fetchone()
 
@@ -65,7 +65,7 @@ def dashboard_kpi():
     miesiac = conn.execute('''
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
         FROM sprzedaze WHERE date(data_sprzedazy) >= ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
        
     ''', (month_start,)).fetchone()
 
@@ -73,7 +73,7 @@ def dashboard_kpi():
     poprzedni_miesiac = conn.execute('''
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
         FROM sprzedaze WHERE date(data_sprzedazy) >= ? AND date(data_sprzedazy) <= ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
        
     ''', (last_month_start, last_month_end)).fetchone()
 
@@ -90,7 +90,7 @@ def dashboard_kpi():
         SELECT COALESCE(SUM(s.cena * s.ilosc), 0) as przychod
         FROM sprzedaze s
         WHERE date(s.data_sprzedazy) >= ?
-        AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
        
     ''', (month_start,)).fetchone()
 
@@ -118,7 +118,7 @@ def dashboard_kpi():
     sold_this_month = conn.execute('''
         SELECT COALESCE(SUM(ilosc), 0) as s FROM sprzedaze
         WHERE date(data_sprzedazy) >= ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
        
     ''', (month_start,)).fetchone()['s'] or 0
 
@@ -134,7 +134,7 @@ def dashboard_kpi():
                COALESCE(SUM(cena * ilosc), 0) as suma
         FROM sprzedaze
         WHERE date(data_sprzedazy) >= ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
        
         GROUP BY date(data_sprzedazy)
         ORDER BY dzien DESC
@@ -156,7 +156,7 @@ def dashboard_kpi():
         LEFT JOIN oferty o ON s.oferta_id = o.id
         LEFT JOIN produkty p ON COALESCE(s.produkt_id, o.produkt_id) = p.id
         WHERE date(s.data_sprzedazy) >= ?
-        AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
        
         GROUP BY produkt_nazwa
         ORDER BY sprzedane DESC
@@ -178,7 +178,7 @@ def dashboard_kpi():
             LEFT JOIN produkty p ON s.produkt_id = p.id
             LEFT JOIN palety pal ON p.paleta_id = pal.id
             WHERE date(s.data_sprzedazy) >= ?
-            AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
+            AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
             GROUP BY dostawca_nazwa
             HAVING dostawca_nazwa != 'Nieznany'
         ),
@@ -634,7 +634,7 @@ def api_kpi():
     dzis = conn.execute('''
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
         FROM sprzedaze WHERE date(data_sprzedazy) = ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
        
     ''', (today_str,)).fetchone()
 
@@ -686,7 +686,7 @@ def profit_analyzer():
                    COALESCE(SUM(ilosc), 0) as szt
             FROM sprzedaze
             WHERE date(data_sprzedazy) >= ? AND date(data_sprzedazy) <= ?
-            AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+            AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
            
         ''', (m_start, m_end)).fetchone()
 
@@ -835,7 +835,7 @@ def profit_analyzer():
                COUNT(*) as cnt
         FROM sprzedaze
         WHERE date(data_sprzedazy) >= date('now', '-30 days')
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
        
         GROUP BY dzien ORDER BY dzien
     ''').fetchall()

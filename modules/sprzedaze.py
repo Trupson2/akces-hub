@@ -883,7 +883,7 @@ def api_sprzedaze_repair():
         SELECT s.id, s.allegro_order_id
         FROM sprzedaze s
         WHERE s.produkt_id IS NULL AND s.oferta_id IS NOT NULL
-        AND s.status NOT IN ('anulowana', 'zwrot')
+        AND s.status NOT IN ('anulowana', 'zwrot') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
     ''').fetchall()
     for sale in unlinked:
         oferta = conn.execute('SELECT produkt_id FROM oferty WHERE id = ?', (sale['oferta_id'],)).fetchone()

@@ -2615,7 +2615,7 @@ def statystyki():
                COALESCE(SUM(cena * ilosc), 0) as suma
         FROM sprzedaze
         WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19), 'T', ' ')) = ?
-          AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+          AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
           AND data_sprzedazy IS NOT NULL AND data_sprzedazy != ''
         GROUP BY miesiac
         HAVING miesiac IS NOT NULL
@@ -2631,7 +2631,7 @@ def statystyki():
             COALESCE(SUM(cena * ilosc), 0) as suma
         FROM sprzedaze
         WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19), 'T', ' ')) = ?
-          AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+          AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
           AND data_sprzedazy IS NOT NULL
           AND data_sprzedazy != ''
         GROUP BY miesiac, dzien
@@ -2776,7 +2776,7 @@ def statystyki():
                 FROM produkty pr GROUP BY pr.paleta_id
             ) pal_total ON pal_total.paleta_id = pal.id
             WHERE strftime('%Y', s.data_sprzedazy) = ?
-            AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
+            AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
             GROUP BY m
         ''', (str(current_year),)).fetchall()
         palety_per_msc = {int(r['m']): float(r['cogs'] or 0) for r in cogs_msc_rows}
@@ -2813,11 +2813,11 @@ def statystyki():
                 COALESCE(p.ilosc_produktow, 0) as ilosc_produktow,
                 (SELECT COALESCE(SUM(ilosc), 0) FROM produkty WHERE paleta_id = p.id) as aktualna_ilosc,
                 (SELECT COALESCE(SUM(CASE WHEN status = 'sprzedany' AND (sprzedano_offline IS NULL OR sprzedano_offline = 0) THEN cena_allegro ELSE 0 END), 0) FROM produkty WHERE paleta_id = p.id) as przychod_produkty,
-                COALESCE((SELECT SUM(s.cena * s.ilosc) FROM sprzedaze s JOIN produkty pr ON s.produkt_id = pr.id WHERE pr.paleta_id = p.id AND s.status NOT IN ('anulowana', 'zwrot')), 0) as przychod_tabela,
+                COALESCE((SELECT SUM(s.cena * s.ilosc) FROM sprzedaze s JOIN produkty pr ON s.produkt_id = pr.id WHERE pr.paleta_id = p.id AND s.status NOT IN ('anulowana', 'zwrot') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')), 0) as przychod_tabela,
                 (SELECT COALESCE(SUM(przychod_offline), 0) FROM produkty WHERE paleta_id = p.id) as przychod_offline,
                 (SELECT COALESCE(SUM(sprzedano_offline), 0) FROM produkty WHERE paleta_id = p.id) as sprzedano_offline_szt,
                 (SELECT COUNT(*) FROM produkty WHERE paleta_id = p.id AND status = 'sprzedany' AND (sprzedano_offline IS NULL OR sprzedano_offline = 0)) as sprzedano_produkty,
-                COALESCE((SELECT SUM(s.ilosc) FROM sprzedaze s JOIN produkty pr ON s.produkt_id = pr.id WHERE pr.paleta_id = p.id AND s.status NOT IN ('anulowana', 'zwrot')), 0) as sprzedano_tabela
+                COALESCE((SELECT SUM(s.ilosc) FROM sprzedaze s JOIN produkty pr ON s.produkt_id = pr.id WHERE pr.paleta_id = p.id AND s.status NOT IN ('anulowana', 'zwrot') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')), 0) as sprzedano_tabela
             FROM palety p
             ORDER BY p.id
         ''').fetchall()

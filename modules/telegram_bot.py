@@ -327,7 +327,7 @@ def raport_dzienny():
     dzis = conn.execute('''
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena*ilosc), 0) as suma 
         FROM sprzedaze WHERE date(data_sprzedazy) = ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
         AND (allegro_order_id IS NULL OR allegro_order_id NOT LIKE 'MANUAL-%')
     ''', (today,)).fetchone()
     
@@ -335,14 +335,14 @@ def raport_dzienny():
     tydzien = conn.execute('''
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena*ilosc), 0) as suma 
         FROM sprzedaze WHERE date(data_sprzedazy) >= ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
     ''', (week_ago,)).fetchone()
     
     # Miesiąc
     miesiac = conn.execute('''
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena*ilosc), 0) as suma 
         FROM sprzedaze WHERE date(data_sprzedazy) >= ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
     ''', (month_start,)).fetchone()
     
     # Magazyn
@@ -356,13 +356,13 @@ def raport_dzienny():
     wczoraj_stat = conn.execute('''
         SELECT COUNT(*) as cnt, COALESCE(SUM(cena*ilosc), 0) as suma
         FROM sprzedaze WHERE date(data_sprzedazy) = ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
     ''', (wczoraj,)).fetchone()
 
     # Top 3 sprzedaże wczoraj
     top = conn.execute('''
         SELECT nazwa, cena, ilosc FROM sprzedaze
-        WHERE date(data_sprzedazy) = ? AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+        WHERE date(data_sprzedazy) = ? AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
         ORDER BY cena DESC LIMIT 3
     ''', (wczoraj,)).fetchall()
 
@@ -1392,7 +1392,7 @@ def api_live_stats():
     month_start = datetime.now().strftime('%Y-%m-01')
     days_in_month = datetime.now().day
     
-    NOT_CANCELLED = " AND status NOT IN ('zwrot', 'anulowane', 'anulowana')"
+    NOT_CANCELLED = " AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')"
 
     # Dziś
     row = conn.execute(
@@ -1445,7 +1445,7 @@ def api_live_stats():
         FROM sprzedaze s
         LEFT JOIN produkty p ON s.produkt_id = p.id
         WHERE date(s.data_sprzedazy) >= ?
-          AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
+          AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
          
         ORDER BY s.data_sprzedazy DESC LIMIT 15
     ''', (week_ago,)).fetchall()
