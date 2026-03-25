@@ -9,7 +9,7 @@ import sqlite3
 import threading
 import time
 from datetime import datetime, timedelta
-from flask import Blueprint, render_template_string, request, redirect, jsonify, Response
+from flask import Blueprint, render_template, render_template_string, request, redirect, jsonify, Response
 from flask_wtf.csrf import generate_csrf
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -1195,232 +1195,24 @@ def index():
         ORDER BY s.data_sprzedazy DESC LIMIT 6
     ''').fetchall()
 
-    html = f'''
-    <!-- KPI Cards -->
-    <div class="kpi-grid">
-        <div class="kpi-card purple">
-            <div class="kpi-icon"><span class=material-symbols-outlined style=font-size:1rem>search</span></div>
-            <div class="kpi-value">{s['scraped']}</div>
-            <div class="kpi-label">Zescrapowanych</div>
-            <div class="kpi-change up">+{nowe_7d} ten tydzien</div>
-        </div>
-        <div class="kpi-card green">
-            <div class="kpi-icon"><span class=material-symbols-outlined style=font-size:1rem>edit_note</span></div>
-            <div class="kpi-value">{s['aktywne']}</div>
-            <div class="kpi-label">Aktywnych ofert</div>
-        </div>
-        <div class="kpi-card blue">
-            <div class="kpi-icon"><span class=material-symbols-outlined style=font-size:1rem>paid</span></div>
-            <div class="kpi-value">{sprzedaz_7d:,.0f} zl</div>
-            <div class="kpi-label">Sprzedaz 7 dni</div>
-        </div>
-        <div class="kpi-card orange">
-            <div class="kpi-icon"><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span></div>
-            <div class="kpi-value">{sprzedaz_30d:,.0f} zl</div>
-            <div class="kpi-label">Sprzedaz 30 dni</div>
-        </div>
-    </div>
-
-    <!-- Wykres produktow -->
-    <div class="card" style="padding:20px;margin-bottom:14px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
-            <div>
-                <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);font-weight:600">Wszystkie przedmioty</div>
-                <div style="font-size:2.2rem;font-weight:800;color:#fff;line-height:1.1;margin-top:4px">{s['scraped']}</div>
-            </div>
-            <div style="display:flex;gap:8px">
-                <button onclick="toggleChartMode('cumulative')" id="btn-cumul" class="btn-sm" style="background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:0.7rem;padding:4px 10px;border-radius:6px">Lacznie</button>
-                <button onclick="toggleChartMode('daily')" id="btn-daily" class="btn-sm" style="background:rgba(255,255,255,0.04);color:var(--text-muted);border:none;cursor:pointer;font-size:0.7rem;padding:4px 10px;border-radius:6px">Dziennie</button>
-            </div>
-        </div>
-        <div style="position:relative;height:160px;width:100%"><canvas id="productChart"></canvas></div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px">
-            <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.04);border-radius:10px">
-                <div style="font-size:1.4rem;font-weight:800;color:#8ff5ff">{w_magazynie}</div>
-                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">W MAGAZYNIE</div>
-            </div>
-            <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.04);border-radius:10px">
-                <div style="font-size:1.4rem;font-weight:800;color:#beee00">{sprzedane}</div>
-                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">SPRZEDANE (30d)</div>
-            </div>
-            <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.04);border-radius:10px">
-                <div style="font-size:1.4rem;font-weight:800;color:{('#ef4444' if zalegajace > 10 else '#f59e0b' if zalegajace > 0 else '#beee00')}">{zalegajace}</div>
-                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">ZALEGAJACE</div>
-            </div>
-        </div>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
-    <script>
-    var _chartLabels = {list(chart_labels)};
-    var _chartDaily = {chart_data};
-    var _chartCumul = {chart_cumulative};
-    var _chartMode = 'cumulative';
-    var _ctx = document.getElementById('productChart').getContext('2d');
-    var _gradient = _ctx.createLinearGradient(0, 0, 0, 140);
-    _gradient.addColorStop(0, 'rgba(143,245,255,0.3)');
-    _gradient.addColorStop(1, 'rgba(143,245,255,0.01)');
-    var _chart = new Chart(_ctx, {{
-        type: 'line',
-        data: {{
-            labels: _chartLabels,
-            datasets: [{{
-                data: _chartCumul,
-                borderColor: '#8ff5ff',
-                backgroundColor: _gradient,
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 0,
-                pointHitRadius: 10,
-                pointHoverRadius: 4,
-                pointHoverBackgroundColor: '#8ff5ff'
-            }}]
-        }},
-        options: {{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {{ legend: {{ display: false }}, tooltip: {{
-                backgroundColor: '#1e1b2e', titleColor: '#e2e8f0', bodyColor: '#94a3b8',
-                borderColor: '#8ff5ff', borderWidth: 1, cornerRadius: 8, padding: 10,
-                callbacks: {{ label: function(ctx) {{ return _chartMode === 'cumulative' ? 'Lacznie: ' + ctx.parsed.y : 'Nowe: ' + ctx.parsed.y; }} }}
-            }} }},
-            scales: {{
-                x: {{ display: true, grid: {{ display: false }}, ticks: {{ color: '#475569', font: {{ size: 10 }}, maxRotation: 0, maxTicksLimit: 8 }} }},
-                y: {{ display: true, grid: {{ color: 'rgba(255,255,255,0.04)' }}, ticks: {{ color: '#475569', font: {{ size: 10 }} }}, beginAtZero: _chartMode === 'daily' }}
-            }}
-        }}
-    }});
-    function toggleChartMode(mode) {{
-        _chartMode = mode;
-        _chart.data.datasets[0].data = mode === 'cumulative' ? _chartCumul : _chartDaily;
-        _chart.options.scales.y.beginAtZero = mode === 'daily';
-        _chart.update();
-        document.getElementById('btn-cumul').style.background = mode === 'cumulative' ? 'var(--accent)' : 'rgba(255,255,255,0.04)';
-        document.getElementById('btn-cumul').style.color = mode === 'cumulative' ? '#fff' : 'var(--text-muted)';
-        document.getElementById('btn-daily').style.background = mode === 'daily' ? 'var(--accent)' : 'rgba(255,255,255,0.04)';
-        document.getElementById('btn-daily').style.color = mode === 'daily' ? '#fff' : 'var(--text-muted)';
-    }}
-    </script>
-
-    <!-- Status scraperów -->
-    <div class="status {status_class}">
-        <div class="status-info">
-            <div class="status-dot {status_class}"></div>
-            <span>{'Scraper aktywny' if is_running else 'Scraper zatrzymany'}</span>
-        </div>
-        <form action="/paletomat/scraper/toggle" method="POST" style="margin:0">
-            <button type="submit" class="btn-sm" style="background:{'#ef4444' if is_running else '#beee00'};color:#fff;border:none;cursor:pointer">
-                {'⏹ STOP' if is_running else '▶ START'}
-            </button>
-        </form>
-    </div>
-
-    {auto_badge}
-
-    <script>
-    setInterval(async () => {{
-        try {{
-            const res = await fetch('/paletomat/api/queue-status');
-            const data = await res.json();
-            const statusDiv = document.getElementById('auto-status');
-            const textSpan = document.getElementById('auto-text');
-            if (data.running || data.queue_length > 0) {{
-                if (!statusDiv) {{ location.reload(); }}
-                else {{
-                    const sc = data.running ? 'on' : 'off';
-                    statusDiv.className = `status ${{sc}}`;
-                    statusDiv.querySelector('.status-dot').className = `status-dot ${{sc}}`;
-                    textSpan.textContent = data.running
-                        ? `<span class=material-symbols-outlined style=font-size:1rem>sync</span> Przetwarzanie: ${{data.queue_length}} produktow`
-                        : `⏸ Kolejka: ${{data.queue_length}} produktow`;
-                }}
-            }} else if (statusDiv) {{ statusDiv.style.display = 'none'; }}
-        }} catch(e) {{}}
-    }}, 3000);
-    </script>
-
-    <!-- Dashboard grid -->
-    <div class="dash-grid-3">
-        <!-- Ostatnia aktywnosc -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">Ostatnia aktywnosc</div>
-                <a href="/paletomat/oferty" class="card-action">Zobacz wszystko →</a>
-            </div>
-    '''
-
-    if ostatnie_sprzedaze:
-        for sp in ostatnie_sprzedaze:
-            nazwa_short = (sp['nazwa'] or 'Produkt')[:35]
-            html += f'''
-            <div class="activity-item">
-                <div class="activity-icon green"><span class=material-symbols-outlined style=font-size:1rem>shopping_cart</span></div>
-                <div class="activity-text">
-                    <div class="activity-title">{nazwa_short}</div>
-                    <div class="activity-time">{sp['data_sprzedazy'] or 'Brak daty'} · {sp['ilosc']}x · {sp['cena']:.0f} zl</div>
-                </div>
-            </div>'''
-    else:
-        html += '<div style="text-align:center;padding:30px;color:var(--text-muted);font-size:0.85rem">Brak sprzedazy</div>'
-
-    html += '''
-        </div>
-
-        <!-- Szybkie akcje -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">Szybkie akcje</div>
-            </div>
-            <div class="quick-actions">
-                <a href="/paletomat/scraper" class="qa-btn">
-                    <div class="qa-icon" style="background:var(--accent-soft)"><i class=mi>language</i></div>
-                    Scraper
-                </a>
-                <a href="/paletomat/generator" class="qa-btn">
-                    <div class="qa-icon" style="background:var(--green-soft)"><span class=material-symbols-outlined style=font-size:1rem>label</span></div>
-                    Generator
-                </a>
-                <a href="/paletomat/oferty" class="qa-btn">
-                    <div class="qa-icon" style="background:var(--blue-soft)"><span class=material-symbols-outlined style=font-size:1rem>edit_note</span></div>
-                    Oferty
-                </a>
-                <a href="/paletomat/monitoring" class="qa-btn">
-                    <div class="qa-icon" style="background:var(--yellow-soft)"><span class=material-symbols-outlined style=font-size:1rem>trending_up</span></div>
-                    Monitoring
-                </a>
-                <a href="/palety/bulk-import" class="qa-btn">
-                    <div class="qa-icon" style="background:var(--green-soft)"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span></div>
-                    Bulk import
-                </a>
-                <a href="/analytics/profit" class="qa-btn">
-                    <div class="qa-icon" style="background:var(--accent-soft)">💹</div>
-                    Profit
-                </a>
-            </div>
-        </div>
-    </div>
-    '''
-
-    # Ostatnio zescrapowane
-    if scraped:
-        html += '''<div class="card">
-            <div class="card-header">
-                <div class="card-title">Ostatnio zescrapowane</div>
-                <a href="/paletomat/scraper" class="card-action">Scraper →</a>
-            </div>'''
-        for p in scraped:
-            status_dot = 'green' if p['status'] == 'gotowy' else 'yellow'
-            html += f'''<div class="activity-item">
-                <img src="{get_amazon_image_url(p['asin'])}" style="width:40px;height:40px;object-fit:contain;background:#fff;border-radius:8px;flex-shrink:0" onerror="this.style.display='none'">
-                <div class="activity-text">
-                    <div class="activity-title">{(p['nazwa'] or p['asin'])[:40]}</div>
-                    <div class="activity-time">ASIN: {p['asin']} · €{p['cena_amazon'] or 0:.2f}</div>
-                </div>
-                <div class="item-dot {status_dot}" style="flex-shrink:0"></div>
-            </div>'''
-        html += '</div>'
-
-    return render(html)
+    return render_template('paletomat_dashboard.html',
+        stats=s,
+        is_running=is_running,
+        auto_running=auto_running,
+        queue_len=queue_len,
+        sprzedaz_7d=sprzedaz_7d,
+        sprzedaz_30d=sprzedaz_30d,
+        nowe_7d=nowe_7d,
+        chart_labels=chart_labels,
+        chart_data=chart_data,
+        chart_cumulative=chart_cumulative,
+        w_magazynie=w_magazynie,
+        sprzedane=sprzedane,
+        zalegajace=zalegajace,
+        ostatnie_sprzedaze=ostatnie_sprzedaze,
+        scraped=scraped,
+        get_amazon_image_url=get_amazon_image_url,
+    )
 
 @paletomat_bp.route('/scraper')
 def scraper():

@@ -429,7 +429,7 @@ a {{ color:#38bdf8; }}
 <script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
 
 <div class="header">
-    <h1><i class=mi>store</i> OLX Integration</h1>
+    <h1><span class="material-symbols-outlined">store</span> OLX Integration</h1>
     <div class="subtitle">Zarządzaj ogłoszeniami na OLX.pl</div>
 </div>
 
@@ -439,9 +439,9 @@ a {{ color:#38bdf8; }}
     <div class="status-card">
         <h3>Status połączenia</h3>
         {'<span class="status-badge badge-green"><i class=mi style=color:#22c55e>check_circle</i> Połączono</span>' if auth else
-         '<span class="status-badge badge-yellow"><i class=mi>warning</i> Skonfigurowano - wymaga logowania</span>' if is_configured() else
+         '<span class="status-badge badge-yellow"><span class="material-symbols-outlined">warning</span> Skonfigurowano - wymaga logowania</span>' if is_configured() else
          '<span class="status-badge badge-red"><i class=mi style=color:#ef4444>cancel</i> Nie skonfigurowano</span>'}
-        {f'<br><br><a href="/olx/auth" class="btn btn-primary"><i class=mi>key</i> Zaloguj do OLX</a>' if is_configured() and not auth else ''}
+        {f'<br><br><a href="/olx/auth" class="btn btn-primary"><span class="material-symbols-outlined">key</span> Zaloguj do OLX</a>' if is_configured() and not auth else ''}
     </div>
 
     <!-- Stats -->
@@ -462,7 +462,7 @@ a {{ color:#38bdf8; }}
 
     <!-- Config form -->
     <div class="config-form">
-        <h3><i class=mi>settings</i> Konfiguracja OLX API</h3>
+        <h3><span class="material-symbols-outlined">settings</span> Konfiguracja OLX API</h3>
         <p style="color:#94a3b8;font-size:0.8rem;margin:8px 0">
             Zarejestruj się na <a href="https://developer.olx.pl" target="_blank">developer.olx.pl</a>
             i utwórz aplikację aby uzyskać Client ID i Secret.
@@ -494,7 +494,7 @@ a {{ color:#38bdf8; }}
             <input type="text" name="longitude" value="{cfg['longitude']}" placeholder="np. 16.9252">
 
             <br><br>
-            <button type="submit" class="btn btn-primary" style="width:100%"><i class=mi>save</i> Zapisz konfigurację</button>
+            <button type="submit" class="btn btn-primary" style="width:100%"><span class="material-symbols-outlined">save</span> Zapisz konfigurację</button>
         </form>
     </div>
 
@@ -504,13 +504,13 @@ a {{ color:#38bdf8; }}
 </div>
 
 <nav style="position:fixed;bottom:0;left:0;right:0;background:#1e293b;border-top:1px solid #334155;display:flex;justify-content:space-around;padding:8px 0;z-index:100">
-<a href="/" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>home</i></div>Home</a>
-<a href="/magazyn" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>inventory_2</i></div>Magazyn</a>
-<a href="/paletomat" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>smart_toy</i></div>Paletomat</a>
-<a href="/allegro" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>shopping_cart</i></div>Allegro</a>
-<a href="/olx" style="text-align:center;text-decoration:none;color:#38bdf8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>store</i></div>OLX</a>
-<a href="/vinted" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>checkroom</i></div>Vinted</a>
-<a href="/narzedzia" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>bolt</i></div>Narzędzia</a>
+<a href="/" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">home</span></div>Home</a>
+<a href="/magazyn" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">inventory_2</span></div>Magazyn</a>
+<a href="/paletomat" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">smart_toy</span></div>Paletomat</a>
+<a href="/allegro" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">shopping_cart</span></div>Allegro</a>
+<a href="/olx" style="text-align:center;text-decoration:none;color:#38bdf8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">store</span></div>OLX</a>
+<a href="/vinted" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">checkroom</span></div>Vinted</a>
+<a href="/narzedzia" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">bolt</span></div>Narzędzia</a>
 </nav>
 
 </body></html>'''
@@ -518,7 +518,7 @@ a {{ color:#38bdf8; }}
 
 def _render_olx_offers(oferty):
     """Renderuje listę ofert OLX"""
-    html = '<div class="status-card"><h3><i class=mi>assignment</i> Twoje ogłoszenia OLX</h3>'
+    html = '<div class="status-card"><h3><span class="material-symbols-outlined">assignment</span> Twoje ogłoszenia OLX</h3>'
     for o in oferty:
         status_badge = {
             'active': '<span class="status-badge badge-green">aktywne</span>',

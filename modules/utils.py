@@ -1532,12 +1532,12 @@ SEKCJE (po 3-4 zdania każda):
     "intro": "DŁUGIE wprowadzenie 4-6 PEŁNYCH ZDAŃ opisujące co to jest, do czego służy, kluczowe parametry i dla kogo. MINIMUM 300 znaków!",
     "features": [
         {
-            "icon": "<i class=mi>inventory_2</i>",
+            "icon": "<span class="material-symbols-outlined">inventory_2</span>",
             "title": "Konkretny tytuł",
             "text": "DŁUGI opis 3-4 PEŁNYCH ZDAŃ. Pierwsze zdanie opisuje cechę. Drugie wyjaśnia jak to działa w praktyce. Trzecie podaje konkretne parametry. Czwarte dodaje kontekst. MINIMUM 200 znaków!"
         },
         {
-            "icon": "<i class=mi>bolt</i>",
+            "icon": "<span class="material-symbols-outlined">bolt</span>",
             "title": "Konkretny tytuł",
             "text": "DŁUGI opis 3-4 zdań z konkretnymi parametrami i wyjaśnieniami..."
         },
@@ -1754,14 +1754,14 @@ OGÓLNY PRODUKT - skup się na:
 {
     "intro": "BARDZO DŁUGIE wprowadzenie (4-6 akapitów, minimum 800 znaków). Każdy akapit to 3-5 zdań z konkretnymi faktami i parametrami z cech produktu. Opisz dokładnie CO TO jest, JAK działa, JAKIE MA funkcje, DO CZEGO służy, CO zawiera zestaw.",
     "features": [
-        {"icon": "<i class=mi>inventory_2</i>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
-        {"icon": "<i class=mi>bolt</i>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
-        {"icon": "<i class=mi>adjust</i>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
+        {"icon": "<span class="material-symbols-outlined">inventory_2</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
+        {"icon": "<span class="material-symbols-outlined">bolt</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
+        {"icon": "<span class="material-symbols-outlined">adjust</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
         {"icon": "<i class=mi style=color:#22c55e>check_circle</i>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
-        {"icon": "<i class=mi>build</i>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
-        {"icon": "<i class=mi>lightbulb</i>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
-        {"icon": "<i class=mi>battery_full</i>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
-        {"icon": "<i class=mi>smartphone</i>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"}
+        {"icon": "<span class="material-symbols-outlined">build</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
+        {"icon": "<span class="material-symbols-outlined">lightbulb</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
+        {"icon": "<span class="material-symbols-outlined">battery_full</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"},
+        {"icon": "<span class="material-symbols-outlined">smartphone</span>", "title": "KONKRETNY TYTUŁ", "text": "Długi opis (150-250 znaków) z konkretnymi faktami"}
     ],
     "specs": [
         {"label": "Parametr", "value": "TYLKO JEŚLI W CECHACH"},
@@ -1935,11 +1935,11 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
         if 'pokrowc' in nazwa.lower() or 'seat' in nazwa.lower() or 'cover' in nazwa.lower():
             intro_text = "Chcesz szybko odświeżyć wnętrze swojego samochodu i zabezpieczyć oryginalną tapicerkę przed zużyciem? Prezentowany zestaw pokrowców to idealne rozwiązanie łączące estetykę ze skuteczną ochroną. Dzięki uniwersalnemu krojowi i wytrzymałym materiałom, Twoje fotele zyskają nowoczesny, sportowy wygląd, a Ty komfort podróżowania bez obaw o zabrudzenia."
             features = [
-                {"icon": "<i class=mi>inventory_2</i>", "title": "Kompletny Zestaw 5-Miejscowy", "text": "Otrzymujesz pełen pakiet ochronny: pokrowce na dwa przednie fotele, pełne pokrycie tylnej kanapy (siedzisko i oparcie) oraz komplet 5 zagłówków. To spójna stylizacja całego wnętrza pojazdu."},
-                {"icon": "<i class=mi>shield</i>", "title": "Ochrona i Trwałość", "text": "Wykonane z wytrzymałej tkaniny poliestrowej, która jest odporna na przecieranie i codzienne użytkowanie. Materiał skutecznie chroni oryginalną tapicerkę przed sierścią zwierząt, okruchami, plamami i blaknięciem od słońca."},
-                {"icon": "<i class=mi>adjust</i>", "title": "Uniwersalne Dopasowanie", "text": "Elastyczny materiał sprawia, że pokrowce dopasowują się do kształtu większości standardowych foteli kubełkowych w autach osobowych. Klasyczny krój z osobnymi zagłówkami zapewnia estetyczny wygląd bez efektu 'worka'."},
-                {"icon": "<i class=mi>directions_car</i>", "title": "Komfort Podróży", "text": "Tkanina posiada właściwości oddychające, co zwiększa komfort jazdy zarówno latem, jak i zimą. Środek pokrowca jest przyjemny w dotyku, a piankowe podłoże zapobiega przesuwaniu się materiału po fotelu."},
-                {"icon": "<i class=mi>build</i>", "title": "Łatwy i Szybki Montaż", "text": "System gumek i haczyków montażowych pozwala na sprawną instalację bez konieczności demontażu foteli. W razie zabrudzenia pokrowce można łatwo zdjąć i uprać w pralce (program delikatny 30°C)."},
+                {"icon": "<span class="material-symbols-outlined">inventory_2</span>", "title": "Kompletny Zestaw 5-Miejscowy", "text": "Otrzymujesz pełen pakiet ochronny: pokrowce na dwa przednie fotele, pełne pokrycie tylnej kanapy (siedzisko i oparcie) oraz komplet 5 zagłówków. To spójna stylizacja całego wnętrza pojazdu."},
+                {"icon": "<span class="material-symbols-outlined">shield</span>", "title": "Ochrona i Trwałość", "text": "Wykonane z wytrzymałej tkaniny poliestrowej, która jest odporna na przecieranie i codzienne użytkowanie. Materiał skutecznie chroni oryginalną tapicerkę przed sierścią zwierząt, okruchami, plamami i blaknięciem od słońca."},
+                {"icon": "<span class="material-symbols-outlined">adjust</span>", "title": "Uniwersalne Dopasowanie", "text": "Elastyczny materiał sprawia, że pokrowce dopasowują się do kształtu większości standardowych foteli kubełkowych w autach osobowych. Klasyczny krój z osobnymi zagłówkami zapewnia estetyczny wygląd bez efektu 'worka'."},
+                {"icon": "<span class="material-symbols-outlined">directions_car</span>", "title": "Komfort Podróży", "text": "Tkanina posiada właściwości oddychające, co zwiększa komfort jazdy zarówno latem, jak i zimą. Środek pokrowca jest przyjemny w dotyku, a piankowe podłoże zapobiega przesuwaniu się materiału po fotelu."},
+                {"icon": "<span class="material-symbols-outlined">build</span>", "title": "Łatwy i Szybki Montaż", "text": "System gumek i haczyków montażowych pozwala na sprawną instalację bez konieczności demontażu foteli. W razie zabrudzenia pokrowce można łatwo zdjąć i uprać w pralce (program delikatny 30°C)."},
             ]
             specs = [
                 {"label": "Marka", "value": "Uniwersalna / OEM"},
@@ -1953,9 +1953,9 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
             # Szablon TYLKO dla dywaników glamour z kryształkami
             intro_text = "Chcesz nadać wnętrzu swojego samochodu niepowtarzalny blask i charakter? Prezentowany zestaw dywaników to idealne połączenie stylu glamour z funkcjonalną ochroną tapicerki. Dzięki nim każda podróż stanie się bardziej ekskluzywna, a wnętrze Twojego auta zyska zupełnie nowy, luksusowy wygląd."
             features = [
-                {"icon": "<i class=mi>diamond</i>", "title": "Wyjątkowy Design Glamour", "text": "Boczne krawędzie wykończone tysiącami mieniących się kryształków w kolorze czerwonym przyciągają wzrok i nadają wnętrzu luksusowy charakter."},
-                {"icon": "<i class=mi>shield</i>", "title": "Wzmocniona Strefa Kierowcy", "text": "Dywanik kierowcy posiada specjalną, gumowaną nakładkę pod piętę zapobiegającą szybkiemu przecieraniu."},
-                {"icon": "<i class=mi>adjust</i>", "title": "Uniwersalne Dopasowanie", "text": "Zoptymalizowany kształt dywaników sprawia, że pasują do większości modeli samochodów osobowych."},
+                {"icon": "<span class="material-symbols-outlined">diamond</span>", "title": "Wyjątkowy Design Glamour", "text": "Boczne krawędzie wykończone tysiącami mieniących się kryształków w kolorze czerwonym przyciągają wzrok i nadają wnętrzu luksusowy charakter."},
+                {"icon": "<span class="material-symbols-outlined">shield</span>", "title": "Wzmocniona Strefa Kierowcy", "text": "Dywanik kierowcy posiada specjalną, gumowaną nakładkę pod piętę zapobiegającą szybkiemu przecieraniu."},
+                {"icon": "<span class="material-symbols-outlined">adjust</span>", "title": "Uniwersalne Dopasowanie", "text": "Zoptymalizowany kształt dywaników sprawia, że pasują do większości modeli samochodów osobowych."},
             ]
             specs = []
         
@@ -1966,7 +1966,7 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
             
             # Inteligentne generowanie sekcji z bullet_points
             features = []
-            icons_default = ["🏃", "<i class=mi>bolt</i>", "<i class=mi>smartphone</i>", "<i class=mi>straighten</i>", "<i class=mi>build</i>", "<i class=mi>shield</i>", "<i class=mi>fitness_center</i>"]
+            icons_default = ["🏃", "<span class="material-symbols-outlined">bolt</span>", "<span class="material-symbols-outlined">smartphone</span>", "<span class="material-symbols-outlined">straighten</span>", "<span class="material-symbols-outlined">build</span>", "<span class="material-symbols-outlined">shield</span>", "<span class="material-symbols-outlined">fitness_center</span>"]
             titles_default = ["Trening cardio", "Silnik i moc", "Wyświetlacz", "Wymiary", "Montaż", "Bezpieczeństwo", "Komfort"]
             
             if bullet_points:
@@ -1975,19 +1975,19 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
                     
                     # Wykryj typ informacji i przypisz ikonę
                     if any(x in bp_lower for x in ['speed', 'prędkość', 'km/h', 'mph', 'motor', 'silnik', 'hp', 'kw']):
-                        icon, title = "<i class=mi>bolt</i>", "Silnik i prędkość"
+                        icon, title = "<span class="material-symbols-outlined">bolt</span>", "Silnik i prędkość"
                     elif any(x in bp_lower for x in ['display', 'wyświetlacz', 'lcd', 'led', 'screen', 'ekran']):
-                        icon, title = "<i class=mi>smartphone</i>", "Wyświetlacz i dane"
+                        icon, title = "<span class="material-symbols-outlined">smartphone</span>", "Wyświetlacz i dane"
                     elif any(x in bp_lower for x in ['size', 'wymiar', 'cm', 'mm', 'inch', 'długość', 'szerokość']):
-                        icon, title = "<i class=mi>straighten</i>", "Wymiary i powierzchnia"
+                        icon, title = "<span class="material-symbols-outlined">straighten</span>", "Wymiary i powierzchnia"
                     elif any(x in bp_lower for x in ['fold', 'składan', 'compact', 'storage', 'przechow']):
-                        icon, title = "<i class=mi>build</i>", "Składanie i przechowywanie"
+                        icon, title = "<span class="material-symbols-outlined">build</span>", "Składanie i przechowywanie"
                     elif any(x in bp_lower for x in ['weight', 'waga', 'kg', 'lb', 'max', 'capacity']):
-                        icon, title = "<i class=mi>shield</i>", "Nośność i bezpieczeństwo"
+                        icon, title = "<span class="material-symbols-outlined">shield</span>", "Nośność i bezpieczeństwo"
                     elif any(x in bp_lower for x in ['program', 'mode', 'tryb', 'workout']):
-                        icon, title = "<i class=mi>fitness_center</i>", "Programy treningowe"
+                        icon, title = "<span class="material-symbols-outlined">fitness_center</span>", "Programy treningowe"
                     elif any(x in bp_lower for x in ['incline', 'nachylenie', 'slope', 'angle']):
-                        icon, title = "<i class=mi>straighten</i>", "Regulacja nachylenia"
+                        icon, title = "<span class="material-symbols-outlined">straighten</span>", "Regulacja nachylenia"
                     elif any(x in bp_lower for x in ['quiet', 'cichy', 'noise', 'silent', 'głośność']):
                         icon, title = "🔇", "Cicha praca"
                     else:
@@ -1998,10 +1998,10 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
             else:
                 features = [
                     {"icon": "🏃", "title": "Domowy trening cardio", "text": "Idealna do ćwiczeń w domu - oszczędza czas i pieniądze na siłownię. Regularne ćwiczenia poprawiają kondycję i pomagają utrzymać zdrową wagę."},
-                    {"icon": "<i class=mi>straighten</i>", "title": "Kompaktowa konstrukcja", "text": "Łatwa do przechowywania dzięki składanej konstrukcji. Można schować pod łóżko, kanapę lub w szafie. Idealna do małych mieszkań."},
-                    {"icon": "<i class=mi>smartphone</i>", "title": "Wyświetlacz", "text": "Panel sterowania z wyświetlaczem pokazującym podstawowe parametry treningu: czas, dystans, prędkość, spalone kalorie."},
+                    {"icon": "<span class="material-symbols-outlined">straighten</span>", "title": "Kompaktowa konstrukcja", "text": "Łatwa do przechowywania dzięki składanej konstrukcji. Można schować pod łóżko, kanapę lub w szafie. Idealna do małych mieszkań."},
+                    {"icon": "<span class="material-symbols-outlined">smartphone</span>", "title": "Wyświetlacz", "text": "Panel sterowania z wyświetlaczem pokazującym podstawowe parametry treningu: czas, dystans, prędkość, spalone kalorie."},
                     {"icon": "🔇", "title": "Cicha praca", "text": "Zaprojektowana z myślą o użytkowaniu w mieszkaniu. Cichy silnik nie przeszkadza domownikom ani sąsiadom."},
-                    {"icon": "<i class=mi>shield</i>", "title": "Bezpieczeństwo", "text": "Wyposażona w funkcje bezpieczeństwa: klucz awaryjny, antypoślizgowa powierzchnia, stabilna podstawa."},
+                    {"icon": "<span class="material-symbols-outlined">shield</span>", "title": "Bezpieczeństwo", "text": "Wyposażona w funkcje bezpieczeństwa: klucz awaryjny, antypoślizgowa powierzchnia, stabilna podstawa."},
                 ]
             specs = []
         
@@ -2024,7 +2024,7 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
             intro_text += "Kompatybilna z popularnymi urządzeniami mobilnymi, zapewnia bezpieczne i efektywne ładowanie dzięki zaawansowanym zabezpieczeniom przed przeciążeniem, przegrzaniem i zwarciem."
             
             features = []
-            icons = ["<i class=mi>bolt</i>", "<i class=mi>power</i>", "<i class=mi>shield</i>", "<i class=mi>smartphone</i>", "<i class=mi>sync</i>"]
+            icons = ["<span class="material-symbols-outlined">bolt</span>", "<span class="material-symbols-outlined">power</span>", "<span class="material-symbols-outlined">shield</span>", "<span class="material-symbols-outlined">smartphone</span>", "<span class="material-symbols-outlined">sync</span>"]
             titles = ["Moc i wydajność", "Złącza", "Bezpieczeństwo", "Kompatybilność", "Dodatkowe funkcje"]
             
             if bullet_points:
@@ -2050,7 +2050,7 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
             features = []
             if bullet_points:
                 for i, bp in enumerate(bullet_points[:5]):
-                    features.append({"icon": "<i class=mi>power</i>", "title": f"Parametr {i+1}", "text": bp})
+                    features.append({"icon": "<span class="material-symbols-outlined">power</span>", "title": f"Parametr {i+1}", "text": bp})
             
             specs = []
         elif 'kamera' in nazwa.lower() or 'dashcam' in nazwa.lower() or 'dash cam' in nazwa.lower() or 'wideorejestrator' in nazwa.lower():
@@ -2086,7 +2086,7 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
             
             # Inteligentne przetworzenie bullet points
             features = []
-            icons = ["<i class=mi>videocam</i>", "<i class=mi>adjust</i>", "<i class=mi>save</i>", "<i class=mi>sync</i>", "<i class=mi>bolt</i>"]
+            icons = ["<span class="material-symbols-outlined">videocam</span>", "<span class="material-symbols-outlined">adjust</span>", "<span class="material-symbols-outlined">save</span>", "<span class="material-symbols-outlined">sync</span>", "<span class="material-symbols-outlined">bolt</span>"]
             titles = ["Nagrywanie wideo", "Funkcje", "Pamięć i zapis", "Dodatkowe możliwości", "Zasilanie i montaż"]
             
             if bullet_points and len(bullet_points) > 0:
@@ -2094,25 +2094,25 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
                     # Wyciągnij kluczowe info z bullet point
                     if any(x in bp.lower() for x in ['rozdzielcz', 'resolution', '4k', '1080', '720', 'fps']):
                         title = "Jakość nagrania"
-                        icon = "<i class=mi>videocam</i>"
+                        icon = "<span class="material-symbols-outlined">videocam</span>"
                     elif any(x in bp.lower() for x in ['ekran', 'screen', 'monitor', 'lcd', 'wyświetlacz']):
                         title = "Wyświetlacz"
-                        icon = "<i class=mi>tv</i>"
+                        icon = "<span class="material-symbols-outlined">tv</span>"
                     elif any(x in bp.lower() for x in ['karta', 'card', 'sd', 'pamięć', 'storage', 'gb']):
                         title = "Pamięć"
-                        icon = "<i class=mi>save</i>"
+                        icon = "<span class="material-symbols-outlined">save</span>"
                     elif any(x in bp.lower() for x in ['night', 'nocn', 'ir', 'infrared', 'widoczność']):
                         title = "Nagrywanie nocne"
-                        icon = "<i class=mi>dark_mode</i>"
+                        icon = "<span class="material-symbols-outlined">dark_mode</span>"
                     elif any(x in bp.lower() for x in ['sensor', 'czujnik', 'g-sensor', 'parking']):
                         title = "Czujniki i funkcje"
-                        icon = "<i class=mi>adjust</i>"
+                        icon = "<span class="material-symbols-outlined">adjust</span>"
                     elif any(x in bp.lower() for x in ['kąt', 'angle', 'wide', 'szeroki', 'obiektyw']):
                         title = "Kąt widzenia"
-                        icon = "<i class=mi>visibility</i>"
+                        icon = "<span class="material-symbols-outlined">visibility</span>"
                     elif any(x in bp.lower() for x in ['gps', 'lokalizacja', 'location']):
                         title = "GPS i lokalizacja"
-                        icon = "<i class=mi>location_on</i>"
+                        icon = "<span class="material-symbols-outlined">location_on</span>"
                     else:
                         title = titles[i] if i < len(titles) else "Specyfikacja"
                         icon = icons[i] if i < len(icons) else "<i class=mi style=color:#22c55e>check_circle</i>"
@@ -2120,9 +2120,9 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
                     features.append({"icon": icon, "title": title, "text": bp})
             else:
                 features = [
-                    {"icon": "<i class=mi>videocam</i>", "title": "Wideorejestrator", "text": "Profesjonalne nagrywanie podczas jazdy z wysoką jakością obrazu"},
-                    {"icon": "<i class=mi>save</i>", "title": "Zapis nagrań", "text": "Automatyczny zapis na kartę SD z funkcją zapisu w pętli"},
-                    {"icon": "<i class=mi>adjust</i>", "title": "Szeroki kąt", "text": "Szerokokątny obiektyw obejmujący cały pas ruchu"},
+                    {"icon": "<span class="material-symbols-outlined">videocam</span>", "title": "Wideorejestrator", "text": "Profesjonalne nagrywanie podczas jazdy z wysoką jakością obrazu"},
+                    {"icon": "<span class="material-symbols-outlined">save</span>", "title": "Zapis nagrań", "text": "Automatyczny zapis na kartę SD z funkcją zapisu w pętli"},
+                    {"icon": "<span class="material-symbols-outlined">adjust</span>", "title": "Szeroki kąt", "text": "Szerokokątny obiektyw obejmujący cały pas ruchu"},
                 ]
             
             specs = []
@@ -2153,7 +2153,7 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
             # Jeśli są bullet points z Amazona, przetwórz je inteligentnie
             if bullet_points and len(bullet_points) > 0:
                 features = []
-                icons_default = ["<i class=mi style=color:#22c55e>check_circle</i>", "<i class=mi>inventory_2</i>", "<i class=mi>bolt</i>", "<i class=mi>adjust</i>", "<i class=mi>lightbulb</i>"]
+                icons_default = ["<i class=mi style=color:#22c55e>check_circle</i>", "<span class="material-symbols-outlined">inventory_2</span>", "<span class="material-symbols-outlined">bolt</span>", "<span class="material-symbols-outlined">adjust</span>", "<span class="material-symbols-outlined">lightbulb</span>"]
                 for i, bp in enumerate(bullet_points[:5]):
                     # Wyczyść Amazonowe formatowanie
                     bp = re.sub(r'[【】\[\]●○•·]', '', bp).strip()
@@ -2164,23 +2164,23 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
                     if any(x in bp_lower for x in ['materiał', 'material', 'wykonany', 'tkanina', 'metal', 'plastik', 'steel', 'skóra', 'leather', 'pu']):
                         icon, title = "🧵", "Materiał i wykonanie"
                     elif any(x in bp_lower for x in ['wymiar', 'rozmiar', 'size', 'cm', 'mm', 'cal', 'inch']):
-                        icon, title = "<i class=mi>straighten</i>", "Wymiary"
+                        icon, title = "<span class="material-symbols-outlined">straighten</span>", "Wymiary"
                     elif any(x in bp_lower for x in ['kolor', 'color', 'barwa', 'czarny', 'biały', 'black', 'white']):
-                        icon, title = "<i class=mi>palette</i>", "Wygląd"
+                        icon, title = "<span class="material-symbols-outlined">palette</span>", "Wygląd"
                     elif any(x in bp_lower for x in ['zestaw', 'zawiera', 'includes', 'package', 'w zestawie']):
-                        icon, title = "<i class=mi>inventory_2</i>", "W zestawie"
+                        icon, title = "<span class="material-symbols-outlined">inventory_2</span>", "W zestawie"
                     elif any(x in bp_lower for x in ['funkcja', 'feature', 'możliwość', 'zastosowanie', 'use']):
-                        icon, title = "<i class=mi>bolt</i>", "Funkcje"
+                        icon, title = "<span class="material-symbols-outlined">bolt</span>", "Funkcje"
                     elif any(x in bp_lower for x in ['kompatybil', 'compatible', 'pasuje', 'fit', 'universal']):
-                        icon, title = "<i class=mi>link</i>", "Kompatybilność"
+                        icon, title = "<span class="material-symbols-outlined">link</span>", "Kompatybilność"
                     elif any(x in bp_lower for x in ['moc', 'power', 'watt', 'voltage', 'prąd', 'volt']):
-                        icon, title = "<i class=mi>bolt</i>", "Parametry"
+                        icon, title = "<span class="material-symbols-outlined">bolt</span>", "Parametry"
                     elif any(x in bp_lower for x in ['łatw', 'easy', 'simple', 'prosty', 'montaż', 'install']):
-                        icon, title = "<i class=mi>build</i>", "Montaż"
+                        icon, title = "<span class="material-symbols-outlined">build</span>", "Montaż"
                     elif any(x in bp_lower for x in ['ergonomic', 'komfort', 'comfort', 'wygod', 'podłokiet', 'oparcie']):
                         icon, title = "🪑", "Ergonomia i komfort"
                     elif any(x in bp_lower for x in ['regulacja', 'adjust', 'regulowan', 'height', 'tilt']):
-                        icon, title = "<i class=mi>build</i>", "Regulacja"
+                        icon, title = "<span class="material-symbols-outlined">build</span>", "Regulacja"
                     elif any(x in bp_lower for x in ['gwarancja', 'warranty', 'jakość', 'quality']):
                         icon, title = "<i class=mi style=color:#22c55e>check_circle</i>", "Jakość"
                     else:
@@ -2195,15 +2195,15 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
                     features = [
                         {"icon": "🪑", "title": "Ergonomiczna konstrukcja", "text": "Fotel zaprojektowany z myślą o wielogodzinnym komforcie siedzenia. Anatomiczny kształt oparcia wspiera prawidłową postawę kręgosłupa."},
                         {"icon": "🧵", "title": "Wysokiej jakości materiały", "text": "Staranny dobór materiałów wykończeniowych zapewnia trwałość, łatwość czyszczenia i elegancki wygląd na lata użytkowania."},
-                        {"icon": "<i class=mi>build</i>", "title": "Regulacja i dopasowanie", "text": "Możliwość regulacji wysokości i kąta oparcia pozwala dopasować fotel do indywidualnych potrzeb każdego użytkownika."},
-                        {"icon": "<i class=mi>fitness_center</i>", "title": "Solidna konstrukcja", "text": "Wzmocniona podstawa i wytrzymały mechanizm gazowy gwarantują stabilność i bezpieczeństwo użytkowania."},
-                        {"icon": "<i class=mi>inventory_2</i>", "title": "Łatwy montaż", "text": "Produkt dostarczany z czytelną instrukcją i wszystkimi niezbędnymi narzędziami do samodzielnego montażu."},
+                        {"icon": "<span class="material-symbols-outlined">build</span>", "title": "Regulacja i dopasowanie", "text": "Możliwość regulacji wysokości i kąta oparcia pozwala dopasować fotel do indywidualnych potrzeb każdego użytkownika."},
+                        {"icon": "<span class="material-symbols-outlined">fitness_center</span>", "title": "Solidna konstrukcja", "text": "Wzmocniona podstawa i wytrzymały mechanizm gazowy gwarantują stabilność i bezpieczeństwo użytkowania."},
+                        {"icon": "<span class="material-symbols-outlined">inventory_2</span>", "title": "Łatwy montaż", "text": "Produkt dostarczany z czytelną instrukcją i wszystkimi niezbędnymi narzędziami do samodzielnego montażu."},
                     ]
                 elif any(x in nl for x in ['hub', 'adapter', 'switch', 'splitter']):
                     features = [
-                        {"icon": "<i class=mi>power</i>", "title": "Wielofunkcyjne złącza", "text": "Rozbudowane portfolio portów pozwala podłączyć wszystkie potrzebne urządzenia peryferyjne jednocześnie."},
-                        {"icon": "<i class=mi>bolt</i>", "title": "Szybki transfer danych", "text": "Nowoczesne standardy transmisji zapewniają błyskawiczny transfer plików i stabilne połączenie."},
-                        {"icon": "<i class=mi>build</i>", "title": "Plug & Play", "text": "Gotowy do pracy natychmiast po podłączeniu — nie wymaga instalacji dodatkowych sterowników."},
+                        {"icon": "<span class="material-symbols-outlined">power</span>", "title": "Wielofunkcyjne złącza", "text": "Rozbudowane portfolio portów pozwala podłączyć wszystkie potrzebne urządzenia peryferyjne jednocześnie."},
+                        {"icon": "<span class="material-symbols-outlined">bolt</span>", "title": "Szybki transfer danych", "text": "Nowoczesne standardy transmisji zapewniają błyskawiczny transfer plików i stabilne połączenie."},
+                        {"icon": "<span class="material-symbols-outlined">build</span>", "title": "Plug & Play", "text": "Gotowy do pracy natychmiast po podłączeniu — nie wymaga instalacji dodatkowych sterowników."},
                     ]
                 else:
                     # Spróbuj wygenerować opisy przez AI na podstawie samej nazwy
@@ -2259,7 +2259,7 @@ ZASADY:
                     # Jeśli AI nie zadziałało - daj minimum (bez ogólników)
                     if not features:
                         features = [
-                            {"icon": "<i class=mi>inventory_2</i>", "title": "Zawartość zestawu", "text": f"Produkt {nazwa_clean[:60]} dostarczany w oryginalnym opakowaniu ze wszystkimi niezbędnymi akcesoriami."},
+                            {"icon": "<span class="material-symbols-outlined">inventory_2</span>", "title": "Zawartość zestawu", "text": f"Produkt {nazwa_clean[:60]} dostarczany w oryginalnym opakowaniu ze wszystkimi niezbędnymi akcesoriami."},
                         ]
 
             specs = []

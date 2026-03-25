@@ -93,7 +93,7 @@ def ustawienia():
 <!-- URL aplikacji -->
 <div class="settings-card settings-card-accent blue">
     <div class="section-header">
-        <span class="section-header-icon"><i class=mi>language</i></span>
+        <span class="section-header-icon"><span class="material-symbols-outlined">language</span></span>
         <span class="section-header-title">Adres URL aplikacji (dla QR kodow)</span>
     </div>
     <div class="alert alert-warning" style="margin-bottom:14px">
@@ -119,7 +119,7 @@ def ustawienia():
 <!-- RAPORTY EMAIL -->
 <div class="settings-card settings-card-accent blue">
     <div class="section-header">
-        <span class="section-header-icon"><i class=mi>email</i></span>
+        <span class="section-header-icon"><span class="material-symbols-outlined">email</span></span>
         <span class="section-header-title">Raporty Email</span>
         <span class="section-header-badge" style="background:{{ '#22c55e' if email_cfg.get('enabled') else 'var(--text-muted)' }}">
             {{ 'WLACZONE' if email_cfg.get('enabled') else 'WYLACZONE' }}
@@ -169,7 +169,7 @@ def ustawienia():
 <!-- NGROK -->
 <div class="settings-card settings-card-accent purple">
     <div class="section-header">
-        <span class="section-header-icon"><i class=mi>rocket_launch</i></span>
+        <span class="section-header-icon"><span class="material-symbols-outlined">rocket_launch</span></span>
         <span class="section-header-title">Ngrok - Zdalny dostep</span>
     </div>
     <form action="/ustawienia/ngrok-token" method="POST">
@@ -192,7 +192,7 @@ def ustawienia():
 
 <!-- KREATOR API KEYS -->
 <a href="/ustawienia/kreator" class="link-card" style="margin-bottom:16px">
-    <span class="link-card-icon"><i class=mi>build</i></span>
+    <span class="link-card-icon"><span class="material-symbols-outlined">build</span></span>
     <div>
         <div class="link-card-title">Kreator konfiguracji</div>
         <div class="link-card-desc">Wszystkie klucze API w jednym miejscu (Allegro, Telegram, Gemini, OLX...)</div>
@@ -203,7 +203,7 @@ def ustawienia():
 <!-- KIOSK MODE -->
 <div class="settings-card settings-card-accent purple">
     <div class="section-header">
-        <span class="section-header-icon"><i class=mi>tv</i></span>
+        <span class="section-header-icon"><span class="material-symbols-outlined">tv</span></span>
         <span class="section-header-title">Tryb Kiosk (Raspberry Pi)</span>
     </div>
     <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px">
@@ -238,7 +238,7 @@ def ustawienia():
 <!-- BRANDING -->
 <div class="settings-card settings-card-accent pink">
     <div class="section-header">
-        <span class="section-header-icon"><i class=mi>palette</i></span>
+        <span class="section-header-icon"><span class="material-symbols-outlined">palette</span></span>
         <span class="section-header-title">Branding</span>
     </div>
     <form action="/ustawienia/branding" method="POST" enctype="multipart/form-data">
@@ -277,7 +277,7 @@ def ustawienia():
         <span class="link-card-arrow">→</span>
     </a>
     <a href="/auth/zmien-haslo" class="link-card">
-        <span class="link-card-icon"><i class=mi>lock</i></span>
+        <span class="link-card-icon"><span class="material-symbols-outlined">lock</span></span>
         <div class="link-card-title">Zmien haslo</div>
         <span class="link-card-arrow">→</span>
     </a>
@@ -285,7 +285,7 @@ def ustawienia():
 
 <!-- AKTUALIZACJA SYSTEMU -->
 <a href="/narzedzia" class="link-card" style="margin-bottom:16px">
-    <span class="link-card-icon"><i class=mi>sync</i></span>
+    <span class="link-card-icon"><span class="material-symbols-outlined">sync</span></span>
     <div class="link-card-title">Aktualizacja systemu → Narzedzia</div>
     <span class="link-card-arrow">→</span>
 </a>
@@ -293,7 +293,7 @@ def ustawienia():
 <!-- DANE NADAWCY NA ETYKIECIE -->
 <div class="settings-card settings-card-accent blue" id="nadawca">
     <div class="section-header">
-        <span class="section-header-icon"><i class=mi>inventory_2</i></span>
+        <span class="section-header-icon"><span class="material-symbols-outlined">inventory_2</span></span>
         <span class="section-header-title">Dane nadawcy na etykiecie</span>
     </div>
     <form action="/ustawienia/nadawca/save" method="POST">
@@ -342,7 +342,7 @@ def ustawienia():
 <!-- PARAMETRY INTEGRACJI I REGULAMINY -->
 <div class="settings-card settings-card-accent blue">
     <div class="section-header">
-        <span class="section-header-icon"><i class=mi>assignment</i></span>
+        <span class="section-header-icon"><span class="material-symbols-outlined">assignment</span></span>
         <span class="section-header-title">Parametry Integracji i Regulaminy</span>
     </div>
     <form action="/ustawienia/integracje-parametry" method="POST">
@@ -368,7 +368,7 @@ def ustawienia():
 <!-- RODO - RETENCJA DANYCH -->
 <div class="settings-card settings-card-accent green">
     <div class="section-header">
-        <span class="section-header-icon"><i class=mi>shield</i></span>
+        <span class="section-header-icon"><span class="material-symbols-outlined">shield</span></span>
         <span class="section-header-title">Retencja danych (RODO)</span>
     </div>
     <form action="/ustawienia/retencja" method="POST">
@@ -392,7 +392,7 @@ def ustawienia():
 <!-- BAZA DANYCH -->
 <div class="settings-card" style="margin-bottom:16px">
     <div class="section-header">
-        <span class="section-header-icon"><i class=mi>save</i></span>
+        <span class="section-header-icon"><span class="material-symbols-outlined">save</span></span>
         <span class="section-header-title">Baza danych</span>
     </div>
     <div style="display:grid;gap:10px">
@@ -432,7 +432,7 @@ def ustawienia():
 <!-- SMTP CONFIG (License Mailer) -->
 <div class="settings-card settings-card-accent purple">
     <div class="section-header">
-        <span class="section-header-icon"><i class=mi>email</i></span>
+        <span class="section-header-icon"><span class="material-symbols-outlined">email</span></span>
         <span class="section-header-title">Konfiguracja Email (SMTP)</span>
         <span class="section-header-badge" style="background:{{ '#22c55e' if smtp_cfg.get('host') and smtp_cfg.get('user') else 'var(--text-muted)' }}">
             {{ 'SKONFIGUROWANY' if smtp_cfg.get('host') and smtp_cfg.get('user') else 'NIESKONFIGUROWANY' }}
@@ -481,7 +481,7 @@ def ustawienia():
 <!-- DANGER ZONE -->
 <div class="settings-card settings-card-accent red">
     <div class="section-header">
-        <span class="section-header-icon"><i class=mi>warning</i></span>
+        <span class="section-header-icon"><span class="material-symbols-outlined">warning</span></span>
         <span class="section-header-title" style="color:var(--red)">Strefa niebezpieczna</span>
     </div>
     <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px">
@@ -588,7 +588,7 @@ def ustawienia_kreator():
     # Build sections config for template
     sections = [
         {
-            'key': 'allegro_client_id', 'icon': '<i class=mi>shopping_cart</i>', 'title': 'Allegro API',
+            'key': 'allegro_client_id', 'icon': '<span class="material-symbols-outlined">shopping_cart</span>', 'title': 'Allegro API',
             'hint': 'Zarejestruj aplikacje na <a href="https://apps.developer.allegro.pl" target="_blank" style="color:var(--accent)">apps.developer.allegro.pl</a>',
             'fields': [
                 {'name': 'allegro_client_id', 'label': 'Client ID', 'type': 'text', 'placeholder': 'Twoj Client ID z Allegro'},
@@ -597,7 +597,7 @@ def ustawienia_kreator():
             ]
         },
         {
-            'key': 'telegram_bot_token', 'icon': '<i class=mi>chat</i>', 'title': 'Telegram Bot',
+            'key': 'telegram_bot_token', 'icon': '<span class="material-symbols-outlined">chat</span>', 'title': 'Telegram Bot',
             'hint': 'Stworz bota przez <a href="https://t.me/BotFather" target="_blank" style="color:var(--accent)">@BotFather</a> na Telegramie',
             'fields': [
                 {'name': 'telegram_bot_token', 'label': 'Bot Token', 'type': 'password', 'placeholder': '123456789:ABCdefGHIjklMNOpqrsTUVwxyz'},
@@ -606,27 +606,27 @@ def ustawienia_kreator():
             ]
         },
         {
-            'key': 'gemini_api_key', 'icon': '<i class=mi>auto_awesome</i>', 'title': 'Google Gemini AI',
+            'key': 'gemini_api_key', 'icon': '<span class="material-symbols-outlined">auto_awesome</span>', 'title': 'Google Gemini AI',
             'hint': 'Pobierz klucz z <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/apikey</a> (darmowy!)',
             'fields': [
                 {'name': 'gemini_api_key', 'label': 'API Key', 'type': 'password', 'placeholder': 'AIzaSy...'},
                 {'name': 'gemini_model', 'label': 'Model AI', 'type': 'select', 'options': [
-                    ('gemini-2.5-flash', '<i class=mi>bolt</i> Gemini 2.5 Flash — ZALECANY <i class=mi style=color:#22c55e>check_circle</i> darmowy, stabilny'),
-                    ('gemini-2.5-flash-lite', '<i class=mi>air</i> Gemini 2.5 Flash Lite — szybszy, mniej dokładny'),
-                    ('gemini-3.1-flash-lite-preview', '<i class=mi>rocket_launch</i> Gemini 3.1 Flash Lite — najnowszy, testowy <i class=mi>warning</i>'),
-                    ('gemini-3.1-pro-preview', '<i class=mi>psychology</i> Gemini 3.1 Pro — najlepszy, testowy, płatny <i class=mi>payments</i>'),
+                    ('gemini-2.5-flash', '<span class="material-symbols-outlined">bolt</span> Gemini 2.5 Flash — ZALECANY <i class=mi style=color:#22c55e>check_circle</i> darmowy, stabilny'),
+                    ('gemini-2.5-flash-lite', '<span class="material-symbols-outlined">air</span> Gemini 2.5 Flash Lite — szybszy, mniej dokładny'),
+                    ('gemini-3.1-flash-lite-preview', '<span class="material-symbols-outlined">rocket_launch</span> Gemini 3.1 Flash Lite — najnowszy, testowy <span class="material-symbols-outlined">warning</span>'),
+                    ('gemini-3.1-pro-preview', '<span class="material-symbols-outlined">psychology</span> Gemini 3.1 Pro — najlepszy, testowy, płatny <span class="material-symbols-outlined">payments</span>'),
                 ]},
             ]
         },
         {
-            'key': 'perplexity_api_key', 'icon': '<i class=mi>search</i>', 'title': 'Perplexity AI',
+            'key': 'perplexity_api_key', 'icon': '<span class="material-symbols-outlined">search</span>', 'title': 'Perplexity AI',
             'hint': 'Klucz z <a href="https://www.perplexity.ai/settings/api" target="_blank" style="color:var(--accent)">perplexity.ai/settings/api</a> (do analizy okazji)',
             'fields': [
                 {'name': 'perplexity_api_key', 'label': 'API Key', 'type': 'password', 'placeholder': 'pplx-...'},
             ]
         },
         {
-            'key': 'ngrok_auth_token', 'icon': '<i class=mi>rocket_launch</i>', 'title': 'Ngrok (zdalny dostep)',
+            'key': 'ngrok_auth_token', 'icon': '<span class="material-symbols-outlined">rocket_launch</span>', 'title': 'Ngrok (zdalny dostep)',
             'hint': 'Token z <a href="https://dashboard.ngrok.com/get-started/your-authtoken" target="_blank" style="color:var(--accent)">dashboard.ngrok.com</a>',
             'fields': [
                 {'name': 'ngrok_auth_token', 'label': 'Auth Token', 'type': 'password', 'placeholder': '2abc...xyz'},
@@ -634,7 +634,7 @@ def ustawienia_kreator():
             ]
         },
         {
-            'key': 'support_email', 'icon': '<i class=mi>call</i>', 'title': 'Dane kontaktowe (support)',
+            'key': 'support_email', 'icon': '<span class="material-symbols-outlined">call</span>', 'title': 'Dane kontaktowe (support)',
             'hint': 'Wyswietlane klientom na stronie zgloszenia problemu',
             'open_condition': 'support_nodata',
             'fields': [
@@ -644,7 +644,7 @@ def ustawienia_kreator():
             ]
         },
         {
-            'key': 'olx_client_id', 'icon': '<i class=mi>inventory_2</i>', 'title': 'OLX API (opcjonalnie)',
+            'key': 'olx_client_id', 'icon': '<span class="material-symbols-outlined">inventory_2</span>', 'title': 'OLX API (opcjonalnie)',
             'hint': 'Zarejestruj app na <a href="https://developer.olx.pl" target="_blank" style="color:var(--accent)">developer.olx.pl</a>',
             'always_closed': True,
             'fields': [
@@ -654,7 +654,7 @@ def ustawienia_kreator():
             ]
         },
         {
-            'key': 'rembg_vps_url', 'icon': '<i class=mi>image</i>', 'title': 'Rembg VPS (usuwanie tla)',
+            'key': 'rembg_vps_url', 'icon': '<span class="material-symbols-outlined">image</span>', 'title': 'Rembg VPS (usuwanie tla)',
             'hint': 'Serwer VPS z rembg do usuwania tel ze zdjec (nie obciaza Pi). Postaw <code>rembg_service.py</code> na VPS i wpisz adres.',
             'has_test': True,
             'fields': [
@@ -1062,7 +1062,7 @@ def raport_wyslij():
         <html><head><meta http-equiv="refresh" content="3;url=/ustawienia"></head>
         <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
-                <div style="font-size:3rem;margin-bottom:20px"><i class=mi>warning</i></div>
+                <div style="font-size:3rem;margin-bottom:20px"><span class="material-symbols-outlined">warning</span></div>
                 <div style="font-size:1.2rem;color:#f59e0b">Email nie jest wlaczony!</div>
                 <div style="color:#64748b;margin-top:10px">Wlacz w ustawieniach</div>
             </div>
@@ -1661,7 +1661,7 @@ def admin_deploy():
     select,input,button{padding:10px;margin:8px 0;width:100%;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#fff;font-size:1rem}
     button{background:#22c55e;cursor:pointer;font-weight:600;border:none}
     #result{margin-top:20px;padding:15px;border-radius:8px;display:none}</style></head>
-    <body><h1><i class=mi>inventory_2</i> Deploy modulu</h1>
+    <body><h1><span class="material-symbols-outlined">inventory_2</span> Deploy modulu</h1>
     <form id="f" enctype="multipart/form-data">
     <label>Modul:</label>
     <select name="target">
@@ -1674,7 +1674,7 @@ def admin_deploy():
     <option value="app.py">app.py</option>
     </select>
     <label>Plik:</label><input type="file" name="file" accept=".py">
-    <button type="submit"><i class=mi>rocket_launch</i> Deploy</button></form>
+    <button type="submit"><span class="material-symbols-outlined">rocket_launch</span> Deploy</button></form>
     <div id="result"></div>
     <script>document.getElementById('f').onsubmit=async e=>{e.preventDefault();
     const r=document.getElementById('result');r.style.display='block';r.style.background='#1e293b';r.textContent='Wysylanie...';
@@ -1762,7 +1762,7 @@ def printing_settings():
         if save_full_config(config):
             flash('<i class=mi style=color:#22c55e>check_circle</i> Ustawienia drukowania zapisane!', 'success')
         else:
-            flash('<i class=mi>warning</i> Blad zapisywania ustawien', 'error')
+            flash('<span class="material-symbols-outlined">warning</span> Blad zapisywania ustawien', 'error')
 
         return redirect(url_for('ustawienia.printing_settings'))
 
@@ -1793,9 +1793,9 @@ def test_print():
             vretti_test()
             flash(f'<i class=mi style=color:#22c55e>check_circle</i> Test drukowania na Vretti 420B zakonczony!', 'success')
         else:
-            flash(f'<i class=mi>warning</i> Nieznany typ drukarki: {printer_type}', 'error')
+            flash(f'<span class="material-symbols-outlined">warning</span> Nieznany typ drukarki: {printer_type}', 'error')
     except ImportError as e:
-        flash(f'<i class=mi>warning</i> Modul drukarki nie znaleziony: {e}', 'error')
+        flash(f'<span class="material-symbols-outlined">warning</span> Modul drukarki nie znaleziony: {e}', 'error')
     except Exception as e:
         flash(f'<i class=mi style=color:#ef4444>cancel</i> Blad drukowania: {e}', 'error')
 

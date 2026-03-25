@@ -949,35 +949,35 @@ def _send_deal_notifications(deals):
         return
 
     for deal in deals[:25]:  # Max 25 powiadomień na raz
-        source_emoji = '<i class=mi>store</i>' if deal['source'] == 'warrington' else '<i class=mi>storefront</i>'
+        source_emoji = '<span class="material-symbols-outlined">store</span>' if deal['source'] == 'warrington' else '<span class="material-symbols-outlined">storefront</span>'
         priority = deal.get('priority', 'normal')
         price = deal.get('price', 0)
         price_str = f"{price:.0f} {deal.get('currency', 'PLN')}"
 
         # ROI info
         roi = deal.get('roi_ratio', 0)
-        roi_str = f"<i class=mi>trending_up</i> ROI: {roi}x" if roi > 1 else ""
+        roi_str = f"<span class="material-symbols-outlined">trending_up</span> ROI: {roi}x" if roi > 1 else ""
 
         # Qty info
         qty = int(deal.get('items_count', 0) or 0)
-        qty_str = f"<i class=mi>inventory_2</i> {qty} szt" if qty > 0 else ""
+        qty_str = f"<span class="material-symbols-outlined">inventory_2</span> {qty} szt" if qty > 0 else ""
 
         # Priority badge
         if priority == 'high':
-            badge = "<i class=mi>star</i> KEYWORD MATCH"
+            badge = "<span class="material-symbols-outlined">star</span> KEYWORD MATCH"
         elif roi >= 5:
-            badge = "<i class=mi>local_fire_department</i> SUPER DEAL"
+            badge = "<span class="material-symbols-outlined">local_fire_department</span> SUPER DEAL"
         elif roi >= 3:
-            badge = "<i class=mi>payments</i> DOBRY DEAL"
+            badge = "<span class="material-symbols-outlined">payments</span> DOBRY DEAL"
         else:
-            badge = "<i class=mi>assignment</i> Nowa paleta"
+            badge = "<span class="material-symbols-outlined">assignment</span> Nowa paleta"
 
         kw_str = ', '.join(deal.get('matched_keywords', [])[:3])
-        kw_line = f"<i class=mi>key</i> {kw_str}\n" if kw_str else ""
+        kw_line = f"<span class="material-symbols-outlined">key</span> {kw_str}\n" if kw_str else ""
 
         # RRP info
         rrp = deal.get('market_value', 0)
-        rrp_str = f"<i class=mi>diamond</i> RRP: {rrp:.0f} PLN\n" if rrp > 0 else ""
+        rrp_str = f"<span class="material-symbols-outlined">diamond</span> RRP: {rrp:.0f} PLN\n" if rrp > 0 else ""
 
         # Buduj wiadomość
         lines = [
@@ -985,7 +985,7 @@ def _send_deal_notifications(deals):
             "",
             f"<b>{deal.get('title', '?')[:120]}</b>",
             "",
-            f"<i class=mi>paid</i> Cena: {price_str}",
+            f"<span class="material-symbols-outlined">paid</span> Cena: {price_str}",
         ]
         if rrp_str:
             lines.append(rrp_str.strip())
@@ -993,11 +993,11 @@ def _send_deal_notifications(deals):
             lines.append(roi_str)
         if qty_str:
             lines.append(qty_str)
-        lines.append(f"<i class=mi>folder</i> {deal.get('category', '-')}")
+        lines.append(f"<span class="material-symbols-outlined">folder</span> {deal.get('category', '-')}")
         if kw_line:
             lines.append(kw_line.strip())
         lines.append("")
-        lines.append(f"<i class=mi>link</i> {deal.get('url', '')}")
+        lines.append(f"<span class="material-symbols-outlined">link</span> {deal.get('url', '')}")
         msg = '\n'.join(lines)
 
         try:
@@ -1015,11 +1015,11 @@ def _send_summary_notification(source, total_new, high_count, normal_count):
         return
 
     msg = (
-        f"<i class=mi>bar_chart</i> <b>Podsumowanie skanowania</b>\n\n"
+        f"<span class="material-symbols-outlined">bar_chart</span> <b>Podsumowanie skanowania</b>\n\n"
         f"Źródło: {source}\n"
         f"Nowe palety: {total_new}\n"
-        f"<i class=mi>star</i> Keyword match: {high_count}\n"
-        f"<i class=mi>assignment</i> Pozostałe: {normal_count}\n\n"
+        f"<span class="material-symbols-outlined">star</span> Keyword match: {high_count}\n"
+        f"<span class="material-symbols-outlined">assignment</span> Pozostałe: {normal_count}\n\n"
         f"Sprawdź szczegóły: /monitor"
     )
     try:
@@ -1221,13 +1221,13 @@ def _send_perplexity_telegram(answer, citations, deal_count, deal_urls=None):
     answer = re.sub(r'### (.+)', r'<b>\1</b>', answer)
 
     msg = (
-        f"<i class=mi>smart_toy</i> <b>ANALIZA AI — Top {deal_count} palet</b>\n\n"
+        f"<span class="material-symbols-outlined">smart_toy</span> <b>ANALIZA AI — Top {deal_count} palet</b>\n\n"
         f"{answer}"
     )
 
     # Dodaj linki do palet
     if deal_urls:
-        msg += "\n\n<i class=mi>link</i> <b>Linki do palet:</b>\n"
+        msg += "\n\n<span class="material-symbols-outlined">link</span> <b>Linki do palet:</b>\n"
         for i, (title, url) in enumerate(deal_urls, 1):
             msg += f"{i}. <a href=\"{url}\">{title}</a>\n"
 

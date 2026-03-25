@@ -107,7 +107,7 @@ PRODUKT: {nazwa}
    <i class=mi style=color:#ef4444>cancel</i> "Uniwersalny", "Wielofunkcyjny"
    
    ZAKAZANE ZNAKI:
-   <i class=mi style=color:#ef4444>cancel</i> Emoji, cudzysłowy, nawiasy ozdobne: <i class=mi>local_fire_department</i> "" '' „" () []
+   <i class=mi style=color:#ef4444>cancel</i> Emoji, cudzysłowy, nawiasy ozdobne: <span class="material-symbols-outlined">local_fire_department</span> "" '' „" () []
 
 4. FORMATOWANIE:
    ✓ Title Case: Wielkie litery na początku wyrazów

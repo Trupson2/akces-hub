@@ -161,7 +161,7 @@ def statystyki():
         <!-- TAB: MIESIĄC -->
         <div id="panel-miesiac" class="stat-panel" style="display:none">
             <div class="card">
-                <div style="color:var(--blue);font-weight:600;font-size:1.1rem;margin-bottom:12px"><i class=mi>calendar_month</i> {miesiac.upper()}</div>
+                <div style="color:var(--blue);font-weight:600;font-size:1.1rem;margin-bottom:12px"><span class="material-symbols-outlined">calendar_month</span> {miesiac.upper()}</div>
                 <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
                     <div class="stat-box" style="text-align:center">
                         <div class="stat-val blue">{stats['palety_miesiac']}</div>
@@ -190,7 +190,7 @@ def statystyki():
         <!-- TAB: MAGAZYN -->
         <div id="panel-magazyn" class="stat-panel" style="display:none">
             <div class="card">
-                <div style="color:var(--purple);font-weight:600;font-size:1.1rem;margin-bottom:12px"><i class=mi>store</i> MAGAZYN</div>
+                <div style="color:var(--purple);font-weight:600;font-size:1.1rem;margin-bottom:12px"><span class="material-symbols-outlined">store</span> MAGAZYN</div>
                 <div class="stat-row">
                     <div class="stat-box">
                         <div class="stat-val purple">{stats['magazyn_produkty']}</div>
@@ -251,7 +251,7 @@ def statystyki():
 
         <!-- TAB: TOP -->
         <div id="panel-top" class="stat-panel" style="display:none">
-            {'<div class="section-title" style="color:var(--orange)"><i class=mi>emoji_events</i> TOP PRODUKTY</div><div class="card" style="margin-bottom:15px">' + top_prod_html + '</div>' if top_prod_html else ''}
+            {'<div class="section-title" style="color:var(--orange)"><span class="material-symbols-outlined">emoji_events</span> TOP PRODUKTY</div><div class="card" style="margin-bottom:15px">' + top_prod_html + '</div>' if top_prod_html else ''}
             {'<div class="section-title" style="color:var(--orange)"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> TOP DOSTAWCY (ROI)</div><div class="card" style="margin-bottom:15px">' + top_dost_html + '</div>' if top_dost_html else ''}
         </div>
 
@@ -1161,7 +1161,7 @@ def analityka_kategorie():
                     {''.join(f'<option value="{k}" {"selected" if kat == k else ""}>{v}</option>' for k, v in kategorie.items())}
                 </select>
             </td>
-            <td>{'<span style="color:var(--orange)"><i class=mi>lightbulb</i> ' + kategorie.get(sugerowana, sugerowana) + '</span>' if zmiana else '<span style="color:var(--green)">✓</span>'}</td>
+            <td>{'<span style="color:var(--orange)"><span class="material-symbols-outlined">lightbulb</span> ' + kategorie.get(sugerowana, sugerowana) + '</span>' if zmiana else '<span style="color:var(--green)">✓</span>'}</td>
         </tr>
         '''
 
@@ -1519,14 +1519,14 @@ def analityka_okazje():
           <div style='display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px'>
             <div style='background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px'>
               <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px'>
-                <a href='https://warrington.store/products/new' target='_blank' style='color:var(--cyan);font-weight:600;font-size:0.9rem;text-decoration:none'><i class=mi>store</i> Warrington.store ↗</a>
+                <a href='https://warrington.store/products/new' target='_blank' style='color:var(--cyan);font-weight:600;font-size:0.9rem;text-decoration:none'><span class="material-symbols-outlined">store</span> Warrington.store ↗</a>
                 <button onclick='loadWarrington()' id='btn-warrington' style='background:var(--blue-soft);color:var(--blue);border:1px solid rgba(59,130,246,0.3);border-radius:6px;padding:4px 12px;font-size:0.75rem;cursor:pointer'>▶ Załaduj</button>
               </div>
               <div id='warrington-results' style='color:var(--text-muted);font-size:0.8rem'>Kliknij "Załaduj" aby pobrać aktualne palety</div>
             </div>
             <div style='background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px'>
               <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px'>
-                <a href='https://jobalots.com/pl/pages/products-on-auction?page=1&currency=pln&type=pallets' target='_blank' style='color:var(--orange);font-weight:600;font-size:0.9rem;text-decoration:none'><i class=mi>store</i> Jobalots.com ↗</a>
+                <a href='https://jobalots.com/pl/pages/products-on-auction?page=1&currency=pln&type=pallets' target='_blank' style='color:var(--orange);font-weight:600;font-size:0.9rem;text-decoration:none'><span class="material-symbols-outlined">store</span> Jobalots.com ↗</a>
                 <button onclick='loadJobalots()' id='btn-jobalots' style='background:var(--yellow-soft);color:var(--orange);border:1px solid rgba(245,158,11,0.3);border-radius:6px;padding:4px 12px;font-size:0.75rem;cursor:pointer'>▶ Załaduj</button>
               </div>
               <div id='jobalots-results' style='color:var(--text-muted);font-size:0.8rem'>Kliknij "Załaduj" aby pobrać aukcje palet</div>
@@ -1691,7 +1691,7 @@ def analityka_okazje():
         _szukaj_panel_content = f"""<form method='POST' action='/analityka/okazje/perplexity-szukaj' onsubmit='showLoading(this,"szukaj")'>
                 <input type='hidden' name='csrf_token' value='{generate_csrf()}'>
                 <button id='btn-szukaj' type='submit' class='btn btn-success' style='border:none;cursor:pointer;font-size:0.82rem'>
-                  <i class=mi>search</i> Szukaj teraz
+                  <span class="material-symbols-outlined">search</span> Szukaj teraz
                 </button>
               </form>
               <div id='loading-szukaj' style='display:none;text-align:center;padding:10px;color:var(--green);font-size:0.82rem'>
@@ -1766,7 +1766,7 @@ def analityka_okazje():
 {perplexity_section}
 
 <div style='margin-bottom:20px'>
-  <div class="section-title" style="color:var(--orange)"><i class=mi>emoji_events</i> Najlepsze okazje (score ≥ 6)</div>
+  <div class="section-title" style="color:var(--orange)"><span class="material-symbols-outlined">emoji_events</span> Najlepsze okazje (score ≥ 6)</div>
   {okazje_html}
 </div>
 
@@ -2065,7 +2065,7 @@ def scrape_jobalots():
                 img = manifest['product_first_image'].get('product_image_thumbnail_url', '')
             url = f'https://jobalots.com/pl/products/{sku}?currency=pln'
             sort_tag = item.get('_sort_tag', '')
-            tag_label = {'popularity': '<i class=mi>local_fire_department</i>', 'most_bids': '<span class=material-symbols-outlined style=font-size:1rem>trending_up</span>', 'bid_low': '<span class=material-symbols-outlined style=font-size:1rem>paid</span>'}.get(sort_tag, '')
+            tag_label = {'popularity': '<span class="material-symbols-outlined">local_fire_department</span>', 'most_bids': '<span class=material-symbols-outlined style=font-size:1rem>trending_up</span>', 'bid_low': '<span class=material-symbols-outlined style=font-size:1rem>paid</span>'}.get(sort_tag, '')
             products.append({
                 'title': title,
                 'price_text': f'{bid:.0f} {currency}' if bid > 0 else f'{rrp:.0f} {currency} RRP',
@@ -2082,7 +2082,7 @@ def scrape_jobalots():
             })
         total = result.get('total', len(products))
         return jsonify({'ok': True, 'products': products, 'total': total, 'source': 'api',
-            'note': f'<i class=mi>local_fire_department</i> Popularne · <span class=material-symbols-outlined style=font-size:1rem>trending_up</span> Dużo ofert · <span class=material-symbols-outlined style=font-size:1rem>paid</span> Najtańsze ({total} palet łącznie)'})
+            'note': f'<span class="material-symbols-outlined">local_fire_department</span> Popularne · <span class=material-symbols-outlined style=font-size:1rem>trending_up</span> Dużo ofert · <span class=material-symbols-outlined style=font-size:1rem>paid</span> Najtańsze ({total} palet łącznie)'})
     except Exception as e:
         _jb = 'https://jobalots.com/pl/pages/products-on-auction?page=1&currency=pln'
         categories = [
@@ -2673,8 +2673,8 @@ def analityka_czas_sprzedazy():
         <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
             <span class="badge badge-success"><span class=material-symbols-outlined style=font-size:1rem>bolt</span> {stat_w['w_24h']} w 24h</span>
             <span style="background:var(--blue-soft);color:var(--blue);padding:3px 8px;border-radius:10px;font-size:0.7rem;font-weight:600"><span class=material-symbols-outlined style=font-size:1rem>calendar_month</span> {stat_w['w_7dni']} w tyg</span>
-            <span class="badge badge-warning"><i class=mi>calendar_month</i> {stat_w['w_30dni']} w mies</span>
-            <span class="badge badge-error"><i class=mi>speed</i> {stat_w['pow_30dni']} pow. 30 dni</span>
+            <span class="badge badge-warning"><span class="material-symbols-outlined">calendar_month</span> {stat_w['w_30dni']} w mies</span>
+            <span class="badge badge-error"><span class="material-symbols-outlined">speed</span> {stat_w['pow_30dni']} pow. 30 dni</span>
         </div>"""
     else:
         info = f' ({cnt_bez_daty} szt. sprzedanych bez daty — synchronizuj z Allegro)' if cnt_bez_daty else ''
@@ -2718,7 +2718,7 @@ def analityka_czas_sprzedazy():
             sep = f"border-bottom:1px solid var(--border);" if i < len(dostawcy_wyniki[:8])-1 else ""
             clr = "var(--green)" if d['srednia'] <= 14 else "var(--orange)" if d['srednia'] <= 30 else "var(--red)"
             rows += f'<div style="display:flex;align-items:center;gap:10px;padding:8px 0;{sep}"><div style="flex:1;font-size:0.85rem;font-weight:600" class="dostawca-name">{d["dostawca"]}</div><div style="font-size:0.8rem;color:var(--text-muted)">{d["cnt"]} szt</div><div style="font-weight:700;color:{clr}">{d["srednia"]:.1f} dni</div></div>'
-        dostawcy_html = f'<div class="card"><div style="font-weight:700;color:var(--orange);margin-bottom:12px"><i class=mi>factory</i> Dostawcy — średni czas sprzedaży od zakupu palety</div>{rows}</div>'
+        dostawcy_html = f'<div class="card"><div style="font-weight:700;color:var(--orange);margin-bottom:12px"><span class="material-symbols-outlined">factory</span> Dostawcy — średni czas sprzedaży od zakupu palety</div>{rows}</div>'
 
     def item_row_w(r, kolor, i, total):
         sep = f"border-bottom:1px solid var(--border);" if i < total-1 else ""
@@ -2734,7 +2734,7 @@ def analityka_czas_sprzedazy():
     wolne_html = ""
     if najwolniejsze:
         rows = "".join(item_row_w(r, "var(--red)", i, len(najwolniejsze)) for i, r in enumerate(najwolniejsze))
-        wolne_html = f'<div class="card"><div style="font-weight:700;color:var(--red);margin-bottom:12px"><i class=mi>speed</i> Najwolniej sprzedane (od dodania do systemu)</div>{rows}</div>'
+        wolne_html = f'<div class="card"><div style="font-weight:700;color:var(--red);margin-bottom:12px"><span class="material-symbols-outlined">speed</span> Najwolniej sprzedane (od dodania do systemu)</div>{rows}</div>'
 
     chart_html = ""
     if dw:
@@ -3796,7 +3796,7 @@ def _get_render_results_js():
             html += '<div style="font-weight:600">Produkty (' + parsed.produkty.length + ' typów)</div>';
             html += '<input type="text" id="product-filter" placeholder="<span class=material-symbols-outlined style=font-size:1rem>search</span> Filtruj np. peruka, wig, hair..." style="flex:1;min-width:200px;padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem">';
             html += '<button onclick="filterProducts()" style="padding:8px 16px;background:var(--accent);border:none;border-radius:8px;color:#fff;cursor:pointer;font-weight:600">Filtruj</button>';
-            html += '<select id="product-sort" onchange="sortProducts()" style="padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem"><option value="">Sortuj...</option><option value="popyt"><i class=mi>local_fire_department</i> Popyt (wysoki→niski)</option><option value="cena_desc"><span class=material-symbols-outlined style=font-size:1rem>paid</span> Cena (najdroższe)</option><option value="cena_asc"><span class=material-symbols-outlined style=font-size:1rem>paid</span> Cena (najtańsze)</option><option value="wartosc"><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Wartość (najwyższa)</option><option value="czas"><i class=mi>timer</i> Czas sprzedaży (najszybsze)</option></select>';
+            html += '<select id="product-sort" onchange="sortProducts()" style="padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem"><option value="">Sortuj...</option><option value="popyt"><span class="material-symbols-outlined">local_fire_department</span> Popyt (wysoki→niski)</option><option value="cena_desc"><span class=material-symbols-outlined style=font-size:1rem>paid</span> Cena (najdroższe)</option><option value="cena_asc"><span class=material-symbols-outlined style=font-size:1rem>paid</span> Cena (najtańsze)</option><option value="wartosc"><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Wartość (najwyższa)</option><option value="czas"><span class="material-symbols-outlined">timer</span> Czas sprzedaży (najszybsze)</option></select>';
             html += '<button onclick="clearFilter()" style="padding:8px 12px;background:rgba(255,255,255,0.1);border:none;border-radius:8px;color:var(--text-muted);cursor:pointer">Wyczyść</button>';
             html += '</div>';
             html += '<div id="filter-summary" style="display:none;margin-bottom:12px;padding:10px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px"></div>';

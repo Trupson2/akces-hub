@@ -1627,7 +1627,7 @@ def produkt(code):
         const btns=document.getElementById('ocenStanBtns');
         btns.innerHTML='';
         if (ilosc > 1) {{
-            btns.insertAdjacentHTML('beforebegin', '<div id="ocenStanHint" style="font-size:0.72rem;color:#f59e0b;margin-bottom:6px"><i class=mi>lightbulb</i> Masz '+ilosc+' szt — użyj Split żeby ocenić różne sztuki różnie</div>');
+            btns.insertAdjacentHTML('beforebegin', '<div id="ocenStanHint" style="font-size:0.72rem;color:#f59e0b;margin-bottom:6px"><span class="material-symbols-outlined">lightbulb</span> Masz '+ilosc+' szt — użyj Split żeby ocenić różne sztuki różnie</div>');
         }}
         STANY.forEach(s=>{{
             const b=document.createElement('button');
@@ -2043,52 +2043,52 @@ def edytuj_produkt(code):
                     <option value="ev_ladowarki" {"selected" if p.get('kategoria')=='ev_ladowarki' else ''}><span class=material-symbols-outlined style=font-size:1rem>bolt</span> Ładowarki EV</option>
                     <option value="foto_video" {"selected" if p.get('kategoria')=='foto_video' else ''}><span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> Foto/Video</option>
                     <option value="druk3d" {"selected" if p.get('kategoria')=='druk3d' else ''}><span class=material-symbols-outlined style=font-size:1rem>print</span> Druk 3D</option>
-                    <option value="smart_home" {"selected" if p.get('kategoria')=='smart_home' else ''}><i class=mi>videocam</i> Smart Home</option>
-                    <option value="motoryzacja" {"selected" if p.get('kategoria')=='motoryzacja' else ''}><i class=mi>directions_car</i> Motoryzacja</option>
-                    <option value="optyka" {"selected" if p.get('kategoria')=='optyka' else ''}><i class=mi>explore</i> Optyka</option>
-                    <option value="rolnictwo" {"selected" if p.get('kategoria')=='rolnictwo' else''}><i class=mi>agriculture</i> Rolnictwo</option>
-                    <option value="dekoracje" {"selected" if p.get('kategoria')=='dekoracje' else ''}><i class=mi>park</i> Dekoracje</option>
-                    <option value="oswietlenie" {"selected" if p.get('kategoria')=='oswietlenie' else ''}><i class=mi>lightbulb</i> Oświetlenie</option>
-                    <option value="kuchnia" {"selected" if p.get('kategoria')=='kuchnia' else ''}><i class=mi>restaurant</i> Kuchnia</option>
-                    <option value="budowa" {"selected" if p.get('kategoria')=='budowa' else ''}><i class=mi>handyman</i> Budowa</option>
-                    <option value="biuro" {"selected" if p.get('kategoria')=='biuro' else ''}><i class=mi>work</i> Biuro</option>
-                    <option value="outdoor" {"selected" if p.get('kategoria')=='outdoor' else ''}><i class=mi>hiking</i> Outdoor</option>
-                    <option value="rehabilitacja" {"selected" if p.get('kategoria')=='rehabilitacja' else ''}><i class=mi>accessible</i> Rehabilitacja</option>
-                    <option value="tekstylia" {"selected" if p.get('kategoria')=='tekstylia' else ''}><i class=mi>bed</i> Tekstylia</option>
-                    <option value="kosmetyki" {"selected" if p.get('kategoria')=='kosmetyki' else ''}><i class=mi>sanitizer</i> Kosmetyki</option>
-                    <option value="ksiazki" {"selected" if p.get('kategoria')=='ksiazki' else ''}><i class=mi>menu_book</i> Książki</option>
-                    <option value="prezenty" {"selected" if p.get('kategoria')=='prezenty' else ''}><i class=mi>redeem</i> Prezenty</option>
-                    <option value="bezpieczenstwo" {"selected" if p.get('kategoria')=='bezpieczenstwo' else ''}><i class=mi>lock</i> Bezpieczeństwo</option>
-                    <option value="bagaz" {"selected" if p.get('kategoria')=='bagaz' else ''}><i class=mi>luggage</i> Bagaż</option>
-                    <option value="silownia" {"selected" if p.get('kategoria')=='silownia' else ''}><i class=mi>fitness_center</i> Siłownia</option>
-                    <option value="rowery" {"selected" if p.get('kategoria')=='rowery' else ''}><i class=mi>directions_bike</i> Rowery</option>
-                    <option value="hulajnogi" {"selected" if p.get('kategoria')=='hulajnogi' else ''}><i class=mi>electric_scooter</i> Hulajnogi</option>
+                    <option value="smart_home" {"selected" if p.get('kategoria')=='smart_home' else ''}><span class="material-symbols-outlined">videocam</span> Smart Home</option>
+                    <option value="motoryzacja" {"selected" if p.get('kategoria')=='motoryzacja' else ''}><span class="material-symbols-outlined">directions_car</span> Motoryzacja</option>
+                    <option value="optyka" {"selected" if p.get('kategoria')=='optyka' else ''}><span class="material-symbols-outlined">explore</span> Optyka</option>
+                    <option value="rolnictwo" {"selected" if p.get('kategoria')=='rolnictwo' else''}><span class="material-symbols-outlined">agriculture</span> Rolnictwo</option>
+                    <option value="dekoracje" {"selected" if p.get('kategoria')=='dekoracje' else ''}><span class="material-symbols-outlined">park</span> Dekoracje</option>
+                    <option value="oswietlenie" {"selected" if p.get('kategoria')=='oswietlenie' else ''}><span class="material-symbols-outlined">lightbulb</span> Oświetlenie</option>
+                    <option value="kuchnia" {"selected" if p.get('kategoria')=='kuchnia' else ''}><span class="material-symbols-outlined">restaurant</span> Kuchnia</option>
+                    <option value="budowa" {"selected" if p.get('kategoria')=='budowa' else ''}><span class="material-symbols-outlined">handyman</span> Budowa</option>
+                    <option value="biuro" {"selected" if p.get('kategoria')=='biuro' else ''}><span class="material-symbols-outlined">work</span> Biuro</option>
+                    <option value="outdoor" {"selected" if p.get('kategoria')=='outdoor' else ''}><span class="material-symbols-outlined">hiking</span> Outdoor</option>
+                    <option value="rehabilitacja" {"selected" if p.get('kategoria')=='rehabilitacja' else ''}><span class="material-symbols-outlined">accessible</span> Rehabilitacja</option>
+                    <option value="tekstylia" {"selected" if p.get('kategoria')=='tekstylia' else ''}><span class="material-symbols-outlined">bed</span> Tekstylia</option>
+                    <option value="kosmetyki" {"selected" if p.get('kategoria')=='kosmetyki' else ''}><span class="material-symbols-outlined">sanitizer</span> Kosmetyki</option>
+                    <option value="ksiazki" {"selected" if p.get('kategoria')=='ksiazki' else ''}><span class="material-symbols-outlined">menu_book</span> Książki</option>
+                    <option value="prezenty" {"selected" if p.get('kategoria')=='prezenty' else ''}><span class="material-symbols-outlined">redeem</span> Prezenty</option>
+                    <option value="bezpieczenstwo" {"selected" if p.get('kategoria')=='bezpieczenstwo' else ''}><span class="material-symbols-outlined">lock</span> Bezpieczeństwo</option>
+                    <option value="bagaz" {"selected" if p.get('kategoria')=='bagaz' else ''}><span class="material-symbols-outlined">luggage</span> Bagaż</option>
+                    <option value="silownia" {"selected" if p.get('kategoria')=='silownia' else ''}><span class="material-symbols-outlined">fitness_center</span> Siłownia</option>
+                    <option value="rowery" {"selected" if p.get('kategoria')=='rowery' else ''}><span class="material-symbols-outlined">directions_bike</span> Rowery</option>
+                    <option value="hulajnogi" {"selected" if p.get('kategoria')=='hulajnogi' else ''}><span class="material-symbols-outlined">electric_scooter</span> Hulajnogi</option>
                     <option value="elektronika" {"selected" if p.get('kategoria')=='elektronika' else ''}><span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> Elektronika</option>
-                    <option value="akcesoria" {"selected" if p.get('kategoria')=='akcesoria' else ''}><i class=mi>battery_full</i> Akcesoria</option>
-                    <option value="agd_male" {"selected" if p.get('kategoria')=='agd_male' else ''}><i class=mi>power</i> AGD małe</option>
-                    <option value="agd_duze" {"selected" if p.get('kategoria')=='agd_duze' else ''}><i class=mi>home</i> AGD duże</option>
-                    <option value="komputery" {"selected" if p.get('kategoria')=='komputery' else ''}><i class=mi>computer</i> Komputery</option>
+                    <option value="akcesoria" {"selected" if p.get('kategoria')=='akcesoria' else ''}><span class="material-symbols-outlined">battery_full</span> Akcesoria</option>
+                    <option value="agd_male" {"selected" if p.get('kategoria')=='agd_male' else ''}><span class="material-symbols-outlined">power</span> AGD małe</option>
+                    <option value="agd_duze" {"selected" if p.get('kategoria')=='agd_duze' else ''}><span class="material-symbols-outlined">home</span> AGD duże</option>
+                    <option value="komputery" {"selected" if p.get('kategoria')=='komputery' else ''}><span class="material-symbols-outlined">computer</span> Komputery</option>
                     <option value="telefony" {"selected" if p.get('kategoria')=='telefony' else ''}><span class=material-symbols-outlined style=font-size:1rem>smartphone</span> Telefony</option>
-                    <option value="rtv" {"selected" if p.get('kategoria')=='rtv' else ''}><i class=mi>tv</i> RTV/Audio</option>
-                    <option value="gaming" {"selected" if p.get('kategoria')=='gaming' else ''}><i class=mi>sports_esports</i> Gaming</option>
+                    <option value="rtv" {"selected" if p.get('kategoria')=='rtv' else ''}><span class="material-symbols-outlined">tv</span> RTV/Audio</option>
+                    <option value="gaming" {"selected" if p.get('kategoria')=='gaming' else ''}><span class="material-symbols-outlined">sports_esports</span> Gaming</option>
                     <option value="narzedzia" {"selected" if p.get('kategoria')=='narzedzia' else ''}><span class=material-symbols-outlined style=font-size:1rem>build</span> Narzędzia</option>
-                    <option value="dom_ogrod" {"selected" if p.get('kategoria')=='dom_ogrod' else ''}><i class=mi>cottage</i> Dom/Ogród</option>
+                    <option value="dom_ogrod" {"selected" if p.get('kategoria')=='dom_ogrod' else ''}><span class="material-symbols-outlined">cottage</span> Dom/Ogród</option>
                     <option value="sport" {"selected" if p.get('kategoria')=='sport' else ''}>⚽ Sport</option>
-                    <option value="moda" {"selected" if p.get('kategoria')=='moda' else ''}><i class=mi>checkroom</i> Moda</option>
-                    <option value="zabawki" {"selected" if p.get('kategoria')=='zabawki' else ''}><i class=mi>toys</i> Zabawki</option>
-                    <option value="zdrowie" {"selected" if p.get('kategoria')=='zdrowie' else ''}><i class=mi>medication</i> Zdrowie</option>
-                    <option value="zwierzeta" {"selected" if p.get('kategoria')=='zwierzeta' else ''}><i class=mi>pets</i> Zwierzęta</option>
-                    <option value="muzyka" {"selected" if p.get('kategoria')=='muzyka' else ''}><i class=mi>music_note</i> Muzyka</option>
-                    <option value="elektronarzedzia" {"selected" if p.get('kategoria')=='elektronarzedzia' else ''}><i class=mi>handyman</i> Elektronarzędzia</option>
-                    <option value="hobby" {"selected" if p.get('kategoria')=='hobby' else ''}><i class=mi>palette</i> Hobby</option>
-                    <option value="niemowleta" {"selected" if p.get('kategoria')=='niemowleta' else ''}><i class=mi>child_care</i> Niemowlęta</option>
-                    <option value="car_audio" {"selected" if p.get('kategoria')=='car_audio' else ''}><i class=mi>volume_up</i> Car Audio</option>
-                    <option value="klimatyzacja" {"selected" if p.get('kategoria')=='klimatyzacja' else ''}><i class=mi>thermostat</i> Klimatyzacja</option>
+                    <option value="moda" {"selected" if p.get('kategoria')=='moda' else ''}><span class="material-symbols-outlined">checkroom</span> Moda</option>
+                    <option value="zabawki" {"selected" if p.get('kategoria')=='zabawki' else ''}><span class="material-symbols-outlined">toys</span> Zabawki</option>
+                    <option value="zdrowie" {"selected" if p.get('kategoria')=='zdrowie' else ''}><span class="material-symbols-outlined">medication</span> Zdrowie</option>
+                    <option value="zwierzeta" {"selected" if p.get('kategoria')=='zwierzeta' else ''}><span class="material-symbols-outlined">pets</span> Zwierzęta</option>
+                    <option value="muzyka" {"selected" if p.get('kategoria')=='muzyka' else ''}><span class="material-symbols-outlined">music_note</span> Muzyka</option>
+                    <option value="elektronarzedzia" {"selected" if p.get('kategoria')=='elektronarzedzia' else ''}><span class="material-symbols-outlined">handyman</span> Elektronarzędzia</option>
+                    <option value="hobby" {"selected" if p.get('kategoria')=='hobby' else ''}><span class="material-symbols-outlined">palette</span> Hobby</option>
+                    <option value="niemowleta" {"selected" if p.get('kategoria')=='niemowleta' else ''}><span class="material-symbols-outlined">child_care</span> Niemowlęta</option>
+                    <option value="car_audio" {"selected" if p.get('kategoria')=='car_audio' else ''}><span class="material-symbols-outlined">volume_up</span> Car Audio</option>
+                    <option value="klimatyzacja" {"selected" if p.get('kategoria')=='klimatyzacja' else ''}><span class="material-symbols-outlined">thermostat</span> Klimatyzacja</option>
                     <option value="hydroponika" {"selected" if p.get('kategoria')=='hydroponika' else ''}>🪴 Hydroponika</option>
-                    <option value="wedkarstwo" {"selected" if p.get('kategoria')=='wedkarstwo' else ''}><i class=mi>phishing</i> Wędkarstwo</option>
-                    <option value="laboratorium" {"selected" if p.get('kategoria')=='laboratorium' else ''}><i class=mi>biotech</i> Laboratorium</option>
-                    <option value="event" {"selected" if p.get('kategoria')=='event' else ''}><i class=mi>storefront</i> Event</option>
-                    <option value="cb_radio" {"selected" if p.get('kategoria')=='cb_radio' else ''}><i class=mi>satellite_alt</i> CB/Radio</option>
+                    <option value="wedkarstwo" {"selected" if p.get('kategoria')=='wedkarstwo' else ''}><span class="material-symbols-outlined">phishing</span> Wędkarstwo</option>
+                    <option value="laboratorium" {"selected" if p.get('kategoria')=='laboratorium' else ''}><span class="material-symbols-outlined">biotech</span> Laboratorium</option>
+                    <option value="event" {"selected" if p.get('kategoria')=='event' else ''}><span class="material-symbols-outlined">storefront</span> Event</option>
+                    <option value="cb_radio" {"selected" if p.get('kategoria')=='cb_radio' else ''}><span class="material-symbols-outlined">satellite_alt</span> CB/Radio</option>
                     <option value="inne" {"selected" if p.get('kategoria')=='inne' or not p.get('kategoria') else ''}><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Inne</option>
                 </select>
             </div>
@@ -2332,7 +2332,7 @@ def szukaj():
     if not results:
         html += '<div class="alert alert-warn">Brak wyników</div>'
         if is_code(q):
-            html += f'<a href="/magazyn/produkt/{q}" class="btn btn-ok"><i class=mi>add</i> DODAJ NOWY</a>'
+            html += f'<a href="/magazyn/produkt/{q}" class="btn btn-ok"><span class="material-symbols-outlined">add</span> DODAJ NOWY</a>'
     
     html += '<a href="/magazyn" class="back">← Powrót</a>'
     return render(html)
@@ -2379,7 +2379,7 @@ def backup_page():
                     <input type="file" id="backupFile" name="backup_file" accept=".db" style="display:none" onchange="updateFileName()">
                     <div onclick="document.getElementById('backupFile').click()" 
                          style="padding:12px 15px;background:#0a0a0f;border:1px dashed #f97316;border-radius:8px;cursor:pointer;text-align:center;color:#94a3b8">
-                        <span id="fileNameDisplay"><i class=mi>folder</i> Kliknij aby wybrać plik .db</span>
+                        <span id="fileNameDisplay"><span class="material-symbols-outlined">folder</span> Kliknij aby wybrać plik .db</span>
                     </div>
                 </div>
                 <button type="submit" class="btn" style="background:#f97316;padding:12px 20px" id="uploadBtn" disabled>
@@ -2439,11 +2439,11 @@ def backup_page():
         if (input.files.length > 0) {
             var file = input.files[0];
             var sizeMB = (file.size / 1024 / 1024).toFixed(2);
-            display.innerHTML = '<i class=mi>folder</i> ' + file.name + ' (' + sizeMB + ' MB)';
+            display.innerHTML = '<span class="material-symbols-outlined">folder</span> ' + file.name + ' (' + sizeMB + ' MB)';
             display.style.color = '#f97316';
             btn.disabled = false;
         } else {
-            display.innerHTML = '<i class=mi>folder</i> Kliknij aby wybrać plik .db';
+            display.innerHTML = '<span class="material-symbols-outlined">folder</span> Kliknij aby wybrać plik .db';
             display.style.color = '#94a3b8';
             btn.disabled = true;
         }
@@ -3132,13 +3132,13 @@ def statystyki():
     
     <!-- HISTOGRAM CZASU SPRZEDAŻY -->
     <div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #beee0044">
-        <div style="font-weight:700;margin-bottom:12px;color:#beee00"><i class=mi>timer</i> Czas sprzedaży (od wystawienia)</div>
+        <div style="font-weight:700;margin-bottom:12px;color:#beee00"><span class="material-symbols-outlined">timer</span> Czas sprzedaży (od wystawienia)</div>
         {histogram_html}
     </div>
     
     <!-- Kalkulacja podatkowa -->
     <div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #ff6b9b44">
-        <div style="font-weight:700;margin-bottom:12px;color:#a78bfa"><i class=mi>receipt_long</i> Rozliczenie podatkowe ({current_year})</div>
+        <div style="font-weight:700;margin-bottom:12px;color:#a78bfa"><span class="material-symbols-outlined">receipt_long</span> Rozliczenie podatkowe ({current_year})</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem">
             <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px">
                 <div style="color:#64748b;margin-bottom:4px">Przychód brutto</div>
@@ -3230,7 +3230,7 @@ def statystyki():
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
             <div>
-                <div style="font-size:0.75rem;color:#beee00;font-weight:600;margin-bottom:6px"><i class=mi>emoji_events</i> Najlepsze</div>
+                <div style="font-size:0.75rem;color:#beee00;font-weight:600;margin-bottom:6px"><span class="material-symbols-outlined">emoji_events</span> Najlepsze</div>
                 {top_html}
             </div>
             <div>
@@ -3258,7 +3258,7 @@ def statystyki():
             <div id="chartTitle" style="font-weight:600"><span class=material-symbols-outlined style=font-size:1rem>calendar_month</span> Sprzedaż miesięcznie ({current_year})</div>
             <button id="btnBack" onclick="showMonthlyView()" style="display:none;padding:5px 10px;background:#8ff5ff;border:none;border-radius:5px;color:#fff;cursor:pointer">← Miesiące</button>
         </div>
-        <div style="font-size:0.75rem;color:#64748b;margin-bottom:10px"><i class=mi>lightbulb</i> Kliknij na słupek miesiąca aby zobaczyć rozkład dzienny</div>
+        <div style="font-size:0.75rem;color:#64748b;margin-bottom:10px"><span class="material-symbols-outlined">lightbulb</span> Kliknij na słupek miesiąca aby zobaczyć rozkład dzienny</div>
         <div id="monthSummary" style="display:none"></div>
         <canvas id="chartMiesiace" height="200"></canvas>
     </div>
@@ -3278,7 +3278,7 @@ def statystyki():
     </div>
 
     <!-- Top produkty -->
-    <div class="section"><i class=mi>emoji_events</i> TOP 5 PRODUKTÓW</div>
+    <div class="section"><span class="material-symbols-outlined">emoji_events</span> TOP 5 PRODUKTÓW</div>
     '''
     
     if top_produkty:
@@ -5099,7 +5099,7 @@ def import_page():
     
     # Generuj opcje palet
     palety_options = '<option value="">-- Bez palety (luźne produkty) --</option>'
-    palety_options += '<option value="__NEW__"><i class=mi>add</i> Utwórz nową paletę...</option>'
+    palety_options += '<option value="__NEW__"><span class="material-symbols-outlined">add</span> Utwórz nową paletę...</option>'
     for p in palety:
         p_id, p_nazwa, p_dostawca, p_data = p
         label = f"{p_nazwa}" if p_nazwa else f"Paleta #{p_id}"
@@ -5156,7 +5156,7 @@ def import_page():
         
         <!-- WYBÓR PLIKU -->
         <div class="card" style="padding:30px;text-align:center;cursor:pointer" onclick="document.getElementById('file').click()">
-            <div style="font-size:3rem;margin-bottom:10px"><i class=mi>folder</i></div>
+            <div style="font-size:3rem;margin-bottom:10px"><span class="material-symbols-outlined">folder</span></div>
             <div style="font-weight:600">Wybierz plik Excel</div>
             <div style="font-size:0.8rem;color:#64748b;margin-top:5px">.xlsx, .csv</div>
             <input type="file" id="file" name="file" style="display:none" accept=".xlsx,.csv" onchange="this.form.submit()">
@@ -5164,7 +5164,7 @@ def import_page():
     </form>
     
     <div class="card" style="padding:15px;margin-top:15px">
-        <div style="font-weight:600;color:#eab308;margin-bottom:10px"><i class=mi>lightbulb</i> Obsługiwane formaty:</div>
+        <div style="font-weight:600;color:#eab308;margin-bottom:10px"><span class="material-symbols-outlined">lightbulb</span> Obsługiwane formaty:</div>
         <div style="font-size:0.85rem;color:#94a3b8">
             • <strong>Warrington</strong> - auto-detekcja kolumn<br>
             • <strong>Miglo</strong> - ASIN, nazwa, ilość<br>
@@ -5504,7 +5504,7 @@ def import_execute():
     
     <form action="/magazyn/import/final?col_ean={col_ean}&col_asin={col_asin}&col_nazwa={col_nazwa}&col_ilosc={col_ilosc}&col_cena={col_cena}&paleta_id={paleta_id}&dostawca={dostawca}" method="POST" enctype="multipart/form-data">
         <div class="card" style="padding:30px;text-align:center;cursor:pointer" onclick="document.getElementById('file2').click()">
-            <div style="font-size:3rem;margin-bottom:10px"><i class=mi>folder</i></div>
+            <div style="font-size:3rem;margin-bottom:10px"><span class="material-symbols-outlined">folder</span></div>
             <div style="font-weight:600">Wybierz ten sam plik</div>
             <input type="file" id="file2" name="file" style="display:none" accept=".xlsx,.csv" onchange="this.form.submit()">
         </div>
@@ -6034,7 +6034,7 @@ def import_upload():
 def dodaj():
     """Przekierowanie do dodawania produktu"""
     html = '''
-    <div class="hdr"><h1><i class=mi>add</i> DODAJ PRODUKT</h1></div>
+    <div class="hdr"><h1><span class="material-symbols-outlined">add</span> DODAJ PRODUKT</h1></div>
     
     <div class="card" style="padding:15px">
         <form action="/magazyn/szukaj" method="GET">
@@ -6079,7 +6079,7 @@ def skanuj_kamera():
     <div id="notFound" class="alert alert-warn" style="display:none;margin-top:15px">
         <span class=material-symbols-outlined style=font-size:1rem>warning</span> Nie znaleziono produktu o tym kodzie
         <div style="margin-top:10px">
-            <a id="addNewLink" href="#" class="btn btn-p" style="display:inline-block;padding:10px 20px"><i class=mi>add</i> DODAJ NOWY</a>
+            <a id="addNewLink" href="#" class="btn btn-p" style="display:inline-block;padding:10px 20px"><span class="material-symbols-outlined">add</span> DODAJ NOWY</a>
         </div>
     </div>
     
@@ -8420,7 +8420,7 @@ def koszty_page():
         ('allegro', '<span class=material-symbols-outlined style=font-size:1rem>shopping_cart</span> Prowizje Allegro'),
         ('wysylka', '<span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Wysyłka / InPost'),
         ('reklama', '📣 Reklama'),
-        ('magazyn', '<i class=mi>factory</i> Magazyn / najem'),
+        ('magazyn', '<span class="material-symbols-outlined">factory</span> Magazyn / najem'),
         ('zakup', '<span class=material-symbols-outlined style=font-size:1rem>paid</span> Zakup towaru'),
         ('ksiegowosc', '<span class=material-symbols-outlined style=font-size:1rem>list_alt</span> Księgowość / ZUS'),
         ('inne', '<span class=material-symbols-outlined style=font-size:1rem>bolt</span> Inne'),
@@ -9349,7 +9349,7 @@ def statystyki_zakupow():
 
     <!-- TOP 10 PALET -->
     <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:15px;margin-bottom:15px">
-        <div style="font-weight:700;color:#fff;margin-bottom:12px"><i class=mi>emoji_events</i> Top 10 najdroższych palet</div>
+        <div style="font-weight:700;color:#fff;margin-bottom:12px"><span class="material-symbols-outlined">emoji_events</span> Top 10 najdroższych palet</div>
         {top_html}
     </div>
 

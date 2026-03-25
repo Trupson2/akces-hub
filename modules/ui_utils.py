@@ -177,7 +177,7 @@ def get_ui_components():
                 success: '<i class=mi style=color:#22c55e>check_circle</i>',
                 error: '<i class=mi style=color:#ef4444>cancel</i>',
                 info: '<i class=mi style=color:#3b82f6>info</i>',
-                warning: '<i class=mi>warning</i>'
+                warning: '<span class="material-symbols-outlined">warning</span>'
             };
             
             toast.innerHTML = `
@@ -235,7 +235,7 @@ def get_ui_components():
             Toast.success(message);
         } else if (message.includes('<i class=mi style=color:#ef4444>cancel</i>') || message.toLowerCase().includes('błąd')) {
             Toast.error(message);
-        } else if (message.includes('<i class=mi>warning</i>')) {
+        } else if (message.includes('<span class="material-symbols-outlined">warning</span>')) {
             Toast.warning(message);
         } else {
             Toast.info(message);

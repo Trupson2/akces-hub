@@ -1,0 +1,749 @@
+{% extends "base.html" %}
+{% block page_title %}PALETOMAT{% endblock %}
+{% block content %}
+
+<style>
+/* ── PALETOMAT DASHBOARD ── */
+
+.pal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.pal-header-title {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--neon-cyan, #8ff5ff);
+    text-shadow: 0 0 20px rgba(143,245,255,0.3);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.pal-header-title .material-symbols-outlined {
+    font-size: 1.4rem;
+    color: var(--neon-cyan, #8ff5ff);
+}
+.pal-header-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.pal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(19,19,28,0.6);
+}
+.pal-badge.online {
+    border-left: 3px solid #beee00;
+    color: #beee00;
+}
+.pal-badge.offline {
+    border-left: 3px solid #ef4444;
+    color: #ef4444;
+}
+.pal-badge .pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: dotPulse 2s ease-in-out infinite;
+}
+@keyframes dotPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* ── KPI GRID ── */
+.pal-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+@media (max-width: 900px) {
+    .pal-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 500px) {
+    .pal-kpi-grid { grid-template-columns: 1fr; }
+}
+.pal-kpi {
+    background: rgba(19,19,28,0.6);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+}
+.pal-kpi::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+}
+.pal-kpi.cyan::before { background: #8ff5ff; }
+.pal-kpi.lime::before { background: #beee00; }
+.pal-kpi.pink::before { background: #ff6b9b; }
+.pal-kpi.orange::before { background: #f59e0b; }
+.pal-kpi-icon {
+    font-size: 1rem;
+    margin-bottom: 8px;
+    opacity: 0.6;
+}
+.pal-kpi-value {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1;
+    color: #fff;
+}
+.pal-kpi-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted, #64748b);
+    margin-top: 6px;
+    font-weight: 600;
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+}
+.pal-kpi-change {
+    font-size: 0.7rem;
+    margin-top: 8px;
+    font-weight: 600;
+}
+.pal-kpi-change.up { color: #beee00; }
+
+/* ── CHART PANEL ── */
+.pal-chart-panel {
+    background: rgba(19,19,28,0.6);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-left: 3px solid #8ff5ff;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+.pal-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+.pal-chart-header-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted, #64748b);
+    font-weight: 600;
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+}
+.pal-chart-header-value {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.1;
+    margin-top: 4px;
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    letter-spacing: -1px;
+}
+.pal-chart-toggle {
+    display: flex;
+    gap: 6px;
+}
+.pal-chart-btn {
+    background: rgba(255,255,255,0.04);
+    color: var(--text-muted);
+    border: 1px solid rgba(255,255,255,0.06);
+    cursor: pointer;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    transition: all 0.2s;
+}
+.pal-chart-btn.active {
+    background: rgba(143,245,255,0.12);
+    color: #8ff5ff;
+    border-color: rgba(143,245,255,0.3);
+}
+.pal-chart-btn:hover {
+    border-color: rgba(143,245,255,0.2);
+}
+
+/* Mini stat cards under chart */
+.pal-mini-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+}
+.pal-mini-stat {
+    text-align: center;
+    padding: 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.04);
+}
+.pal-mini-stat-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+}
+.pal-mini-stat-label {
+    font-size: 0.58rem;
+    color: var(--text-muted);
+    margin-top: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 600;
+}
+
+/* ── SCRAPER STATUS ── */
+.pal-scraper-status {
+    background: rgba(19,19,28,0.6);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.pal-scraper-status.running {
+    border-left: 3px solid #beee00;
+}
+.pal-scraper-status.stopped {
+    border-left: 3px solid #ef4444;
+}
+.pal-scraper-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.pal-scraper-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+.pal-scraper-dot.on {
+    background: #beee00;
+    box-shadow: 0 0 8px rgba(190,238,0,0.5);
+    animation: dotPulse 2s ease-in-out infinite;
+}
+.pal-scraper-dot.off {
+    background: #ef4444;
+}
+.pal-scraper-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary, #e2e8f0);
+}
+.pal-btn-scraper {
+    border: none;
+    cursor: pointer;
+    padding: 6px 18px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.pal-btn-scraper.start {
+    background: #beee00;
+    color: #000;
+}
+.pal-btn-scraper.start:hover {
+    box-shadow: 0 0 16px rgba(190,238,0,0.3);
+}
+.pal-btn-scraper.stop {
+    background: #ef4444;
+    color: #fff;
+}
+.pal-btn-scraper.stop:hover {
+    box-shadow: 0 0 16px rgba(239,68,68,0.3);
+}
+
+/* Auto-processing badge */
+.pal-auto-status {
+    background: rgba(19,19,28,0.6);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+.pal-auto-status.running {
+    border-left: 3px solid #8ff5ff;
+}
+.pal-auto-status.paused {
+    border-left: 3px solid #f59e0b;
+}
+
+/* ── DASHBOARD GRID ── */
+.pal-dash-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+@media (max-width: 768px) {
+    .pal-dash-grid { grid-template-columns: 1fr; }
+}
+
+/* ── CARDS ── */
+.pal-card {
+    background: rgba(19,19,28,0.6);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 0;
+    overflow: hidden;
+}
+.pal-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.pal-card-title {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted, #64748b);
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+}
+.pal-card-action {
+    font-size: 0.7rem;
+    color: #8ff5ff;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+.pal-card-action:hover {
+    color: #fff;
+}
+.pal-card-body {
+    padding: 12px 20px 16px;
+}
+
+/* ── ACTIVITY ITEMS ── */
+.pal-activity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.pal-activity:last-child {
+    border-bottom: none;
+}
+.pal-activity-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.9rem;
+}
+.pal-activity-icon.green {
+    color: #beee00;
+    background: rgba(190,238,0,0.08);
+}
+.pal-activity-text {
+    flex: 1;
+    min-width: 0;
+}
+.pal-activity-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary, #e2e8f0);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.pal-activity-meta {
+    font-size: 0.7rem;
+    color: var(--text-muted, #64748b);
+    margin-top: 2px;
+}
+
+/* ── QUICK ACTIONS ── */
+.pal-qa-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 12px 20px 16px;
+}
+@media (max-width: 500px) {
+    .pal-qa-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.pal-qa-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 8px;
+    text-decoration: none;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.04);
+    color: var(--text-primary, #e2e8f0);
+    font-size: 0.72rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    text-align: center;
+}
+.pal-qa-btn:hover {
+    background: rgba(143,245,255,0.06);
+    border-color: rgba(143,245,255,0.15);
+    color: #8ff5ff;
+}
+.pal-qa-btn .material-symbols-outlined {
+    font-size: 1.3rem;
+}
+
+/* ── SCRAPED PRODUCTS LIST ── */
+.pal-product-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.pal-product-item:last-child {
+    border-bottom: none;
+}
+.pal-product-img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    background: rgba(255,255,255,0.9);
+    flex-shrink: 0;
+}
+.pal-product-info {
+    flex: 1;
+    min-width: 0;
+}
+.pal-product-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary, #e2e8f0);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.pal-product-meta {
+    font-size: 0.7rem;
+    color: var(--text-muted, #64748b);
+    margin-top: 2px;
+}
+.pal-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.pal-status-dot.green { background: #beee00; box-shadow: 0 0 6px rgba(190,238,0,0.4); }
+.pal-status-dot.yellow { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.4); }
+
+.pal-empty {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-muted, #64748b);
+    font-size: 0.85rem;
+}
+</style>
+
+<!-- ═══ HEADER ═══ -->
+<div class="pal-header">
+    <div class="pal-header-title">
+        <span class="material-symbols-outlined">precision_manufacturing</span>
+        PALETOMAT
+    </div>
+    <div class="pal-header-badges">
+        {% if is_running %}
+        <div class="pal-badge online">
+            <span class="pulse-dot"></span>
+            SCRAPER ACTIVE
+        </div>
+        {% else %}
+        <div class="pal-badge offline">
+            <span class="pulse-dot"></span>
+            SCRAPER OFFLINE
+        </div>
+        {% endif %}
+        <div class="pal-badge" style="border-left:3px solid #8ff5ff;color:#8ff5ff;">
+            v32.0
+        </div>
+    </div>
+</div>
+
+<!-- ═══ KPI CARDS ═══ -->
+<div class="pal-kpi-grid">
+    <div class="pal-kpi cyan">
+        <div class="pal-kpi-icon"><span class="material-symbols-outlined" style="font-size:1rem">search</span></div>
+        <div class="pal-kpi-value">{{ stats.scraped }}</div>
+        <div class="pal-kpi-label">DATA_SCRAPED</div>
+        <div class="pal-kpi-change up">+{{ nowe_7d }} ten tydzien</div>
+    </div>
+    <div class="pal-kpi lime">
+        <div class="pal-kpi-icon"><span class="material-symbols-outlined" style="font-size:1rem">edit_note</span></div>
+        <div class="pal-kpi-value">{{ stats.aktywne }}</div>
+        <div class="pal-kpi-label">ACTIVE_OFFERS</div>
+    </div>
+    <div class="pal-kpi pink">
+        <div class="pal-kpi-icon"><span class="material-symbols-outlined" style="font-size:1rem">paid</span></div>
+        <div class="pal-kpi-value">{{ sprzedaz_7d|int }} zl</div>
+        <div class="pal-kpi-label">SPRZEDAZ 7D</div>
+    </div>
+    <div class="pal-kpi orange">
+        <div class="pal-kpi-icon"><span class="material-symbols-outlined" style="font-size:1rem">bar_chart</span></div>
+        <div class="pal-kpi-value">{{ sprzedaz_30d|int }} zl</div>
+        <div class="pal-kpi-label">SPRZEDAZ 30D</div>
+    </div>
+</div>
+
+<!-- ═══ CHART PANEL ═══ -->
+<div class="pal-chart-panel">
+    <div class="pal-chart-header">
+        <div>
+            <div class="pal-chart-header-label">WSZYSTKIE PRZEDMIOTY</div>
+            <div class="pal-chart-header-value">{{ stats.scraped }}</div>
+        </div>
+        <div class="pal-chart-toggle">
+            <button onclick="toggleChartMode('cumulative')" id="btn-cumul" class="pal-chart-btn active">Lacznie</button>
+            <button onclick="toggleChartMode('daily')" id="btn-daily" class="pal-chart-btn">Dziennie</button>
+        </div>
+    </div>
+    <div style="position:relative;height:160px;width:100%"><canvas id="productChart"></canvas></div>
+    <div class="pal-mini-stats">
+        <div class="pal-mini-stat">
+            <div class="pal-mini-stat-value" style="color:#8ff5ff">{{ w_magazynie }}</div>
+            <div class="pal-mini-stat-label">W MAGAZYNIE</div>
+        </div>
+        <div class="pal-mini-stat">
+            <div class="pal-mini-stat-value" style="color:#beee00">{{ sprzedane }}</div>
+            <div class="pal-mini-stat-label">SPRZEDANE (30D)</div>
+        </div>
+        <div class="pal-mini-stat">
+            <div class="pal-mini-stat-value" style="color:{{ '#ef4444' if zalegajace > 10 else '#f59e0b' if zalegajace > 0 else '#beee00' }}">{{ zalegajace }}</div>
+            <div class="pal-mini-stat-label">ZALEGAJACE</div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<script>
+var _chartLabels = {{ chart_labels|tojson }};
+var _chartDaily = {{ chart_data|tojson }};
+var _chartCumul = {{ chart_cumulative|tojson }};
+var _chartMode = 'cumulative';
+var _ctx = document.getElementById('productChart').getContext('2d');
+var _gradient = _ctx.createLinearGradient(0, 0, 0, 140);
+_gradient.addColorStop(0, 'rgba(143,245,255,0.3)');
+_gradient.addColorStop(1, 'rgba(143,245,255,0.01)');
+var _chart = new Chart(_ctx, {
+    type: 'line',
+    data: {
+        labels: _chartLabels,
+        datasets: [{
+            data: _chartCumul,
+            borderColor: '#8ff5ff',
+            backgroundColor: _gradient,
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 0,
+            pointHitRadius: 10,
+            pointHoverRadius: 4,
+            pointHoverBackgroundColor: '#8ff5ff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: {
+            backgroundColor: '#1e1b2e', titleColor: '#e2e8f0', bodyColor: '#94a3b8',
+            borderColor: '#8ff5ff', borderWidth: 1, cornerRadius: 0, padding: 10,
+            callbacks: { label: function(ctx) { return _chartMode === 'cumulative' ? 'Lacznie: ' + ctx.parsed.y : 'Nowe: ' + ctx.parsed.y; } }
+        } },
+        scales: {
+            x: { display: true, grid: { display: false }, ticks: { color: '#475569', font: { size: 10 }, maxRotation: 0, maxTicksLimit: 8 } },
+            y: { display: true, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#475569', font: { size: 10 } }, beginAtZero: _chartMode === 'daily' }
+        }
+    }
+});
+function toggleChartMode(mode) {
+    _chartMode = mode;
+    _chart.data.datasets[0].data = mode === 'cumulative' ? _chartCumul : _chartDaily;
+    _chart.options.scales.y.beginAtZero = mode === 'daily';
+    _chart.update();
+    document.getElementById('btn-cumul').className = 'pal-chart-btn' + (mode === 'cumulative' ? ' active' : '');
+    document.getElementById('btn-daily').className = 'pal-chart-btn' + (mode === 'daily' ? ' active' : '');
+}
+</script>
+
+<!-- ═══ SCRAPER STATUS ═══ -->
+<div class="pal-scraper-status {{ 'running' if is_running else 'stopped' }}">
+    <div class="pal-scraper-info">
+        <div class="pal-scraper-dot {{ 'on' if is_running else 'off' }}"></div>
+        <span class="pal-scraper-label">{{ 'Scraper aktywny' if is_running else 'Scraper zatrzymany' }}</span>
+    </div>
+    <form action="/paletomat/scraper/toggle" method="POST" style="margin:0">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if is_running %}
+        <button type="submit" class="pal-btn-scraper stop">
+            <span class="material-symbols-outlined" style="font-size:0.9rem">stop_circle</span>
+            STOP
+        </button>
+        {% else %}
+        <button type="submit" class="pal-btn-scraper start">
+            <span class="material-symbols-outlined" style="font-size:0.9rem">play_circle</span>
+            START
+        </button>
+        {% endif %}
+    </form>
+</div>
+
+{% if auto_running or queue_len > 0 %}
+<div class="pal-auto-status {{ 'running' if auto_running else 'paused' }}" id="auto-status">
+    <div class="pal-scraper-dot {{ 'on' if auto_running else 'off' }}"></div>
+    <span id="auto-text">
+        {% if auto_running %}
+        <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">sync</span>
+        Przetwarzanie w tle: {{ queue_len }} produktow
+        {% else %}
+        Kolejka: {{ queue_len }} produktow
+        {% endif %}
+    </span>
+</div>
+{% endif %}
+
+<script>
+setInterval(async () => {
+    try {
+        const res = await fetch('/paletomat/api/queue-status');
+        const data = await res.json();
+        const statusDiv = document.getElementById('auto-status');
+        const textSpan = document.getElementById('auto-text');
+        if (data.running || data.queue_length > 0) {
+            if (!statusDiv) { location.reload(); }
+            else {
+                statusDiv.className = data.running ? 'pal-auto-status running' : 'pal-auto-status paused';
+                const dot = statusDiv.querySelector('.pal-scraper-dot');
+                if (dot) dot.className = data.running ? 'pal-scraper-dot on' : 'pal-scraper-dot off';
+                if (textSpan) {
+                    textSpan.innerHTML = data.running
+                        ? '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">sync</span> Przetwarzanie: ' + data.queue_length + ' produktow'
+                        : 'Kolejka: ' + data.queue_length + ' produktow';
+                }
+            }
+        } else if (statusDiv) { statusDiv.style.display = 'none'; }
+    } catch(e) {}
+}, 3000);
+</script>
+
+<!-- ═══ DASHBOARD GRID ═══ -->
+<div class="pal-dash-grid">
+    <!-- Ostatnia aktywnosc -->
+    <div class="pal-card">
+        <div class="pal-card-header">
+            <div class="pal-card-title">Ostatnia aktywnosc</div>
+            <a href="/paletomat/oferty" class="pal-card-action">Zobacz wszystko &rarr;</a>
+        </div>
+        <div class="pal-card-body">
+            {% if ostatnie_sprzedaze %}
+                {% for sp in ostatnie_sprzedaze %}
+                <div class="pal-activity">
+                    <div class="pal-activity-icon green">
+                        <span class="material-symbols-outlined" style="font-size:1rem">shopping_cart</span>
+                    </div>
+                    <div class="pal-activity-text">
+                        <div class="pal-activity-title">{{ (sp.nazwa or 'Produkt')[:35] }}</div>
+                        <div class="pal-activity-meta">{{ sp.data_sprzedazy or 'Brak daty' }} &middot; {{ sp.ilosc }}x &middot; {{ sp.cena|int }} zl</div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="pal-empty">Brak sprzedazy</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Szybkie akcje -->
+    <div class="pal-card">
+        <div class="pal-card-header">
+            <div class="pal-card-title">Szybkie akcje</div>
+        </div>
+        <div class="pal-qa-grid">
+            <a href="/paletomat/scraper" class="pal-qa-btn">
+                <span class="material-symbols-outlined">language</span>
+                Scraper
+            </a>
+            <a href="/paletomat/generator" class="pal-qa-btn">
+                <span class="material-symbols-outlined">label</span>
+                Generator
+            </a>
+            <a href="/paletomat/oferty" class="pal-qa-btn">
+                <span class="material-symbols-outlined">edit_note</span>
+                Oferty
+            </a>
+            <a href="/paletomat/monitoring" class="pal-qa-btn">
+                <span class="material-symbols-outlined">trending_up</span>
+                Monitoring
+            </a>
+            <a href="/palety/bulk-import" class="pal-qa-btn">
+                <span class="material-symbols-outlined">inventory_2</span>
+                Bulk import
+            </a>
+            <a href="/analytics/profit" class="pal-qa-btn">
+                <span class="material-symbols-outlined">payments</span>
+                Profit
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ OSTATNIO ZESCRAPOWANE ═══ -->
+{% if scraped %}
+<div class="pal-card" style="margin-bottom:16px">
+    <div class="pal-card-header">
+        <div class="pal-card-title">Ostatnio zescrapowane</div>
+        <a href="/paletomat/scraper" class="pal-card-action">Scraper &rarr;</a>
+    </div>
+    <div class="pal-card-body">
+        {% for p in scraped %}
+        <div class="pal-product-item">
+            <img src="{{ get_amazon_image_url(p.asin) }}" class="pal-product-img" onerror="this.style.display='none'" alt="">
+            <div class="pal-product-info">
+                <div class="pal-product-name">{{ (p.nazwa or p.asin)[:40] }}</div>
+                <div class="pal-product-meta">ASIN: {{ p.asin }} &middot; &euro;{{ "%.2f"|format(p.cena_amazon or 0) }}</div>
+            </div>
+            <div class="pal-status-dot {{ 'green' if p.status == 'gotowy' else 'yellow' }}"></div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -482,7 +482,7 @@ a {{ color:#09b1ba; }}
 <script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
 
 <div class="header">
-    <h1><i class=mi>checkroom</i> Vinted Integration</h1>
+    <h1><span class="material-symbols-outlined">checkroom</span> Vinted Integration</h1>
     <div class="subtitle">Wystawiaj produkty na Vinted.pl</div>
 </div>
 
@@ -526,12 +526,12 @@ a {{ color:#09b1ba; }}
                 <label>Cookies JSON (z EditThisCookie lub ręcznie):</label>
                 <textarea name="cookies_json" placeholder='{{"_vinted_fr_session": "wartość...", "access_token_web": "wartość..."}}'></textarea>
             </div>
-            <button type="submit" class="btn btn-primary" style="width:100%"><i class=mi>save</i> Zapisz cookies</button>
+            <button type="submit" class="btn btn-primary" style="width:100%"><span class="material-symbols-outlined">save</span> Zapisz cookies</button>
         </form>
     </div>
 
     <div class="card">
-        <h3><i class=mi>steps</i> Dodaj produkt (osobisty)</h3>
+        <h3><span class="material-symbols-outlined">steps</span> Dodaj produkt (osobisty)</h3>
         <p style="font-size:0.8rem;color:#94a3b8;margin-bottom:12px">Dodaj buty, ubrania lub inne rzeczy do sprzedaży na Vinted - osobno od paletowego magazynu.</p>
         <form method="POST" action="/vinted/add-product">
             <input type="hidden" name="csrf_token" value="{generate_csrf()}">
@@ -584,7 +584,7 @@ a {{ color:#09b1ba; }}
                 <label>URL zdjęcia (opcjonalnie)</label>
                 <input type="text" name="zdjecie_url" placeholder="https://... lub zostaw puste">
             </div>
-            <button type="submit" class="btn btn-green" style="width:100%;margin-top:8px"><i class=mi>add</i> Dodaj produkt</button>
+            <button type="submit" class="btn btn-green" style="width:100%;margin-top:8px"><span class="material-symbols-outlined">add</span> Dodaj produkt</button>
         </form>
     </div>
 
@@ -595,13 +595,13 @@ a {{ color:#09b1ba; }}
 </div>
 
 <nav style="position:fixed;bottom:0;left:0;right:0;background:#1e293b;border-top:1px solid #334155;display:flex;justify-content:space-around;padding:8px 0;z-index:100">
-<a href="/" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>home</i></div>Home</a>
-<a href="/magazyn" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>inventory_2</i></div>Magazyn</a>
-<a href="/paletomat" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>smart_toy</i></div>Paletomat</a>
-<a href="/allegro" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>shopping_cart</i></div>Allegro</a>
-<a href="/olx" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>store</i></div>OLX</a>
-<a href="/vinted" style="text-align:center;text-decoration:none;color:#09b1ba;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>checkroom</i></div>Vinted</a>
-<a href="/narzedzia" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><i class=mi>bolt</i></div>Narzędzia</a>
+<a href="/" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">home</span></div>Home</a>
+<a href="/magazyn" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">inventory_2</span></div>Magazyn</a>
+<a href="/paletomat" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">smart_toy</span></div>Paletomat</a>
+<a href="/allegro" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">shopping_cart</span></div>Allegro</a>
+<a href="/olx" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">store</span></div>OLX</a>
+<a href="/vinted" style="text-align:center;text-decoration:none;color:#09b1ba;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">checkroom</span></div>Vinted</a>
+<a href="/narzedzia" style="text-align:center;text-decoration:none;color:#94a3b8;font-size:0.7rem"><div style="font-size:1.4rem"><span class="material-symbols-outlined">bolt</span></div>Narzędzia</a>
 </nav>
 
 </body></html>'''
@@ -612,12 +612,12 @@ def _render_moje_produkty(produkty, auth=False):
     if not produkty:
         return ''
 
-    html = '<div class="card"><h3><i class=mi>steps</i> Moje produkty (osobiste)</h3>'
+    html = '<div class="card"><h3><span class="material-symbols-outlined">steps</span> Moje produkty (osobiste)</h3>'
     for p in produkty:
         img = p['zdjecie_url'] or ''
         if img and not img.startswith('http'):
             img = f'/static/downloads/{img}' if not img.startswith('/') else img
-        img_tag = f'<img src="{img}" class="mp-img" onerror="this.style.display=\'none\'">' if img else '<div class="mp-img" style="display:flex;align-items:center;justify-content:center;font-size:1.5rem"><i class=mi>steps</i></div>'
+        img_tag = f'<img src="{img}" class="mp-img" onerror="this.style.display=\'none\'">' if img else '<div class="mp-img" style="display:flex;align-items:center;justify-content:center;font-size:1.5rem"><span class="material-symbols-outlined">steps</span></div>'
 
         meta_parts = []
         if p.get('kategoria'):
@@ -626,7 +626,7 @@ def _render_moje_produkty(produkty, auth=False):
             meta_parts.append(p['stan'])
         meta = ' · '.join(meta_parts)
 
-        vinted_btn = f'<a href="/vinted/create/{p["id"]}" class="btn btn-primary" style="font-size:0.75rem;padding:6px 12px"><i class=mi>checkroom</i> Wystaw</a>' if auth else ''
+        vinted_btn = f'<a href="/vinted/create/{p["id"]}" class="btn btn-primary" style="font-size:0.75rem;padding:6px 12px"><span class="material-symbols-outlined">checkroom</span> Wystaw</a>' if auth else ''
 
         html += f'''
         <div class="my-product">
@@ -640,7 +640,7 @@ def _render_moje_produkty(produkty, auth=False):
                 {vinted_btn}
                 <form method="POST" action="/vinted/delete-product/{p['id']}" style="margin:0">
                     <input type="hidden" name="csrf_token" value="{generate_csrf()}">
-                    <button type="submit" class="btn btn-red" onclick="return confirm('Usunąć?')"><i class=mi>delete</i></button>
+                    <button type="submit" class="btn btn-red" onclick="return confirm('Usunąć?')"><span class="material-symbols-outlined">delete</span></button>
                 </form>
             </div>
         </div>'''
@@ -650,7 +650,7 @@ def _render_moje_produkty(produkty, auth=False):
 
 def _render_vinted_items(items):
     """Renderuje listę ogłoszeń Vinted"""
-    html = '<div class="card"><h3><i class=mi>assignment</i> Twoje ogłoszenia Vinted</h3>'
+    html = '<div class="card"><h3><span class="material-symbols-outlined">assignment</span> Twoje ogłoszenia Vinted</h3>'
     for item in items:
         status_colors = {
             'active': ('badge-green', 'aktywne'),
@@ -707,7 +707,7 @@ def vinted_save_cookies():
             name = user.get('login', '?') if user else '?'
             flash(f'<i class=mi style=color:#22c55e>check_circle</i> Zalogowano na Vinted jako {name}!', 'success')
         else:
-            flash('<i class=mi>warning</i> Cookies zapisane, ale sesja nie działa. Upewnij się że jesteś zalogowany na vinted.pl i skopiuj świeże cookies.', 'warning')
+            flash('<span class="material-symbols-outlined">warning</span> Cookies zapisane, ale sesja nie działa. Upewnij się że jesteś zalogowany na vinted.pl i skopiuj świeże cookies.', 'warning')
 
     except json.JSONDecodeError:
         flash('<i class=mi style=color:#ef4444>cancel</i> Nieprawidłowy JSON. Skopiuj dokładnie z EditThisCookie.', 'error')

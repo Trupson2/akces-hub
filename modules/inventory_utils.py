@@ -512,7 +512,7 @@ def import_excel_manifest(
                     # Log dla niskiej pewności
                     if qty_result.confidence < 0.5:
                         result["details"].append(
-                            f"<i class=mi>warning</i> Niska pewność ilości dla '{ean}': "
+                            f"<span class="material-symbols-outlined">warning</span> Niska pewność ilości dla '{ean}': "
                             f"'{qty_result.original}' -> {ilosc} (metoda: {method})"
                         )
                 
@@ -596,7 +596,7 @@ def import_excel_manifest(
         if paleta_id:
             count = conn.execute('SELECT COUNT(*) FROM produkty WHERE paleta_id = ?', (paleta_id,)).fetchone()[0]
             conn.execute('UPDATE palety SET ilosc_produktow = ? WHERE id = ?', (count, paleta_id))
-            result["details"].append(f"<i class=mi>inventory_2</i> Zaktualizowano paletę: {count} produktów")
+            result["details"].append(f"<span class="material-symbols-outlined">inventory_2</span> Zaktualizowano paletę: {count} produktów")
                 
         conn.commit()
 
@@ -910,5 +910,5 @@ if __name__ == "__main__":
     
     for val in test_values:
         result = SmartQuantityParser.parse(val)
-        status = "<i class=mi style=color:#22c55e>check_circle</i>" if result.confidence >= 0.7 else "<i class=mi>warning</i>"
+        status = "<i class=mi style=color:#22c55e>check_circle</i>" if result.confidence >= 0.7 else "<span class="material-symbols-outlined">warning</span>"
         print(f"  {status} '{val}' -> {result.value} (conf: {result.confidence:.2f}, method: {result.method})")

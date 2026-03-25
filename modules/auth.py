@@ -591,7 +591,7 @@ button:hover{opacity:0.9}
 .back:hover{color:#e2e8f0}
 </style></head><body>
 <div class="card">
-    <h1><i class=mi>lock</i> Zmiana hasła</h1>
+    <h1><span class="material-symbols-outlined">lock</span> Zmiana hasła</h1>
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
     {% if success %}<div class="success">{{ success }}</div>{% endif %}
     <form method="POST">
@@ -713,13 +713,13 @@ a{display:inline-block;margin-top:20px;padding:12px 24px;background:#6366f1;colo
 a:hover{opacity:0.9}
 </style></head><body>
 <div class="card">
-    <h1><i class=mi>lock</i></h1>
+    <h1><span class="material-symbols-outlined">lock</span></h1>
     <h1>Brak dostępu</h1>
     <p>Twoja rola (<span class="role">{{ role }}</span>) nie ma uprawnień do tej strony.</p>
     <p style="font-size:0.8rem;color:#64748b">{{ path }}</p>
     <a href="/">← Dashboard</a>
-    <a href="/wysylki" style="background:#22c55e;margin-left:8px"><i class=mi>inventory_2</i> Wysyłki</a>
-    <a href="/magazyn" style="background:#f59e0b;margin-left:8px"><i class=mi>assignment</i> Magazyn</a>
+    <a href="/wysylki" style="background:#22c55e;margin-left:8px"><span class="material-symbols-outlined">inventory_2</span> Wysyłki</a>
+    <a href="/magazyn" style="background:#f59e0b;margin-left:8px"><span class="material-symbols-outlined">assignment</span> Magazyn</a>
 </div></body></html>'''
 
 
