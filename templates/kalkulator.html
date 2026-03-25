@@ -22,32 +22,32 @@
 <form method="POST" action="/narzedzia/kalkulator">
 <div class="glass-card" style="padding:24px;margin-bottom:20px">
     <div class="form-group">
-        <label>💰 Cena zakupu (brutto)</label>
+        <label><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">paid</span> Cena zakupu (brutto)</label>
         <input type="number" step="0.01" name="cena_zakupu" class="form-control" value="{{ cena_zakupu or '' }}" placeholder="np. 50.00" required>
     </div>
     <div class="form-row">
         <div class="form-group">
-            <label>📈 Marża (%)</label>
+            <label><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">trending_up</span> Marża (%)</label>
             <input type="number" name="marza" class="form-control" value="{{ marza or 40 }}">
         </div>
         <div class="form-group">
             <label>📁 Kategoria</label>
             <select name="kategoria" class="form-control">
                 <option value="motoryzacja" {{ 'selected' if kategoria=='motoryzacja' else '' }}>🚗 Motoryzacja (8%)</option>
-                <option value="elektronika" {{ 'selected' if kategoria=='elektronika' else '' }}>📷 Elektronika (10%)</option>
-                <option value="inne" {{ 'selected' if kategoria=='inne' or not kategoria else '' }}>📦 Inne (11%)</option>
+                <option value="elektronika" {{ 'selected' if kategoria=='elektronika' else '' }}><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">photo_camera</span> Elektronika (10%)</option>
+                <option value="inne" {{ 'selected' if kategoria=='inne' or not kategoria else '' }}><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span> Inne (11%)</option>
                 <option value="dom_ogrod" {{ 'selected' if kategoria=='dom_ogrod' else '' }}>🏠 Dom i ogród (12%)</option>
                 <option value="moda" {{ 'selected' if kategoria=='moda' else '' }}>👕 Moda (15%)</option>
             </select>
         </div>
     </div>
-    <button type="submit" class="btn" style="background:rgba(143,245,255,0.12);border:1px solid rgba(143,245,255,0.3);color:var(--neon-primary);font-weight:700">📊 OBLICZ</button>
+    <button type="submit" class="btn" style="background:rgba(143,245,255,0.12);border:1px solid rgba(143,245,255,0.3);color:var(--neon-primary);font-weight:700"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span> OBLICZ</button>
 </div>
 </form>
 
 {% if wynik %}
 <div class="glass-card calc-result-stitch">
-    <div class="card-title">📊 WYNIK</div>
+    <div class="card-title"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span> WYNIK</div>
     <div class="calc-row-s">
         <span class="calc-label-s">Cena zakupu:</span>
         <span class="calc-val-s">{{ wynik.cena_zakupu }} zł</span>
@@ -69,7 +69,7 @@
         <span class="calc-val-s">{{ wynik.cena_allegro_netto }} zł</span>
     </div>
     <div class="calc-row-s">
-        <span class="calc-label-s" style="font-weight:600">💵 CENA ALLEGRO (brutto):</span>
+        <span class="calc-label-s" style="font-weight:600"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">payments</span> CENA ALLEGRO (brutto):</span>
         <span class="calc-val-s green big">{{ wynik.cena_allegro }} zł</span>
     </div>
     <div class="calc-row-s">

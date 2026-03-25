@@ -241,11 +241,11 @@
 
             <!-- Gabaryt paczki -->
             <div id="pkParcelSize" style="background:var(--pk-card3);padding:20px;margin-bottom:16px;display:none">
-                <div class="pk-label" style="color:var(--pk-lime-dim);margin-bottom:12px">📦 Gabaryt paczki</div>
+                <div class="pk-label" style="color:var(--pk-lime-dim);margin-bottom:12px"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span> Gabaryt paczki</div>
 
                 <!-- InPost gabaryty A/B/C -->
                 <div id="pkSizeInpost" style="display:none">
-                    <div style="font-size:10px;color:var(--pk-muted);margin-bottom:6px;text-align:center">📮 InPost Paczkomat</div>
+                    <div style="font-size:10px;color:var(--pk-muted);margin-bottom:6px;text-align:center"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">markunread_mailbox</span> InPost Paczkomat</div>
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
                         <button onclick="pkSelectSize('A')" class="pk-size-btn" data-size="A" style="padding:14px 8px;text-align:center;background:var(--pk-card);border:2px solid var(--pk-border);cursor:pointer;transition:all 0.15s">
                             <div class="pk-headline" style="font-size:1.4rem;font-weight:900;color:var(--pk-text)">A</div>
@@ -633,7 +633,7 @@ function pkShowPackingMode(z) {
     const isPaczkomat = isInpost || isOrlen;
 
     // DEBUG - pokaż w konsoli i na ekranie
-    console.log('🔍 GABARYT DEBUG:', {deliveryType, methodLow, pickupId, pickupText, isInpost, isOrlen, isPaczkomat, raw: z});
+    console.log('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">search</span> GABARYT DEBUG:', {deliveryType, methodLow, pickupId, pickupText, isInpost, isOrlen, isPaczkomat, raw: z});
     document.getElementById('pkPackMethod').textContent = method.toUpperCase() + (isPaczkomat ? (isInpost ? ' [INPOST]' : ' [ORLEN]') : ' [KURIER]');
 
     document.getElementById('pkParcelSize').style.display = 'block';
@@ -648,7 +648,7 @@ function pkShowPackingMode(z) {
     // Pickup point
     if (z.pickup_point) {
         document.getElementById('pkPackPickup').style.display = 'block';
-        document.getElementById('pkPackPickup').innerHTML = '📍 ' + z.pickup_point;
+        document.getElementById('pkPackPickup').innerHTML = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">pin_drop</span> ' + z.pickup_point;
     } else {
         document.getElementById('pkPackPickup').style.display = 'none';
     }
@@ -777,7 +777,7 @@ function pkSelectSize(size) {
     // Update the correct status text
     const isOrlenSize = ['S','M','L'].includes(size);
     const statusEl = document.getElementById(isOrlenSize ? 'pkSizeSelectedOrlen' : 'pkSizeSelected');
-    statusEl.textContent = '✅ Gabaryt ' + size + ' wybrany';
+    statusEl.textContent = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Gabaryt ' + size + ' wybrany';
     if (navigator.vibrate) navigator.vibrate(20);
 }
 
@@ -793,11 +793,11 @@ function pkFinalize() {
     const isOrlen = dType === 'paczkomat_orlen' || method.includes('orlen') || ppId.startsWith('ORL');
     const isInpost = dType === 'paczkomat' || (!isOrlen && (method.match(/inpost|paczkomat/) || ppId.length > 0 || ppText.includes('paczkomat')));
     if (isInpost && !pkSelectedSize) {
-        document.getElementById('pkSizeSelected').innerHTML = '<span style="color:#ff716c">⚠️ Wybierz gabaryt A, B lub C!</span>';
+        document.getElementById('pkSizeSelected').innerHTML = '<span style="color:#ff716c"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">warning</span> Wybierz gabaryt A, B lub C!</span>';
         return;
     }
     if (isOrlen && !pkSelectedSize) {
-        document.getElementById('pkSizeSelectedOrlen').innerHTML = '<span style="color:#ff716c">⚠️ Wybierz gabaryt S, M lub L!</span>';
+        document.getElementById('pkSizeSelectedOrlen').innerHTML = '<span style="color:#ff716c"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">warning</span> Wybierz gabaryt S, M lub L!</span>';
         return;
     }
 

@@ -39,7 +39,7 @@
 <div id="pwa-banner" class="glass-card neon-glow-primary" style="display:none;padding:16px 20px;margin-bottom:20px">
     <div style="display:flex;align-items:center;justify-content:space-between">
         <div>
-            <div class="font-display" style="font-weight:600;font-size:0.9rem">📲 Zainstaluj aplikację</div>
+            <div class="font-display" style="font-weight:600;font-size:0.9rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">install_mobile</span> Zainstaluj aplikację</div>
             <div style="font-size:0.75rem;color:var(--text-muted)">Działa offline jak natywna apka</div>
         </div>
         <button id="pwa-install" style="padding:8px 18px;background:linear-gradient(135deg,var(--neon-primary),var(--neon-secondary));border:none;border-radius:10px;color:#fff;font-weight:700;font-size:0.82rem;cursor:pointer">Instaluj</button>
@@ -57,7 +57,7 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
 <div id="update-banner" class="glass-card" style="border-color:rgba(190,238,0,0.3);padding:18px 20px;margin-bottom:20px;position:relative">
     <button onclick="document.getElementById('update-banner').style.display='none'" style="position:absolute;top:8px;right:12px;background:none;border:none;color:var(--text-muted);font-size:1.2rem;cursor:pointer">&times;</button>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <span style="font-size:1.3rem">✅</span>
+        <span style="font-size:1.3rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span></span>
         <div>
             <div class="font-display" style="font-weight:700;color:var(--neon-tertiary);font-size:0.9rem">System zaktualizowany!</div>
             <div style="font-size:0.72rem;color:var(--text-muted)">{{ update_banner.date }} · wersja {{ update_banner.commit }}</div>
@@ -70,14 +70,14 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
 {% if update_status %}
 {% if update_status.is_zip is defined and update_status.is_zip %}
 <div class="glass-card" style="display:flex;align-items:center;gap:8px;padding:10px 16px;margin-bottom:16px;border-color:rgba(190,238,0,0.2)">
-    <span>📦</span>
+    <span><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span></span>
     <span style="font-size:0.78rem;color:var(--neon-tertiary)">v{{ version }} · Zainstalowano z paczki</span>
 </div>
 {% elif update_status.has_update %}
 <div class="glass-card neon-glow-secondary" style="padding:18px 20px;margin-bottom:20px">
     <div style="display:flex;justify-content:space-between;align-items:center">
         <div style="display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.3rem">📢</span>
+            <span style="font-size:1.3rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">campaign</span></span>
             <div>
                 <div class="font-display" style="font-weight:700;color:var(--neon-secondary);font-size:0.9rem">Dostępna aktualizacja!</div>
                 <div style="font-size:0.72rem;color:var(--text-muted)">Nowa wersja: {{ update_status.remote_hash }} · Twoja: {{ update_status.local_hash }}</div>
@@ -91,7 +91,7 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
 </div>
 {% else %}
 <div class="glass-card" style="display:flex;align-items:center;gap:8px;padding:10px 16px;margin-bottom:16px;border-color:rgba(190,238,0,0.2)">
-    <span>✅</span>
+    <span><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span></span>
     <span style="font-size:0.78rem;color:var(--neon-tertiary)">System aktualny · v{{ version }}</span>
 </div>
 {% endif %}
@@ -99,17 +99,17 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
 
 <script>
 function doSystemUpdate(btn){
-    btn.disabled=true; btn.textContent='⏳ Aktualizuję...';
+    btn.disabled=true; btn.textContent='<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">hourglass_top</span> Aktualizuję...';
     var card = btn.closest('.glass-card');
     fetch('/system/update',{method:'POST',credentials:'same-origin',headers:{'ngrok-skip-browser-warning':'1'}})
     .then(r=>r.json()).then(d=>{
         if(d.ok){
-            btn.textContent='✅ Zaktualizowano!';
+            btn.textContent='<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Zaktualizowano!';
             if(card){
                 card.style.borderColor='rgba(190,238,0,0.4)';
                 var info = document.createElement('div');
                 info.style.cssText='margin-top:10px;padding:10px;background:rgba(0,0,0,0.15);border-radius:var(--radius-sm);font-size:0.82rem;color:var(--text-secondary)';
-                info.innerHTML='📦 '+d.msg+'<br><br>⏳ Restart serwisu za chwilę...';
+                info.innerHTML='<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span> '+d.msg+'<br><br><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">hourglass_top</span> Restart serwisu za chwilę...';
                 card.appendChild(info);
             }
             var attempts=0;
@@ -121,7 +121,7 @@ function doSystemUpdate(btn){
             }
             setTimeout(tryReload,4000);
         } else {
-            btn.textContent='❌ Błąd'; btn.disabled=false;
+            btn.textContent='<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Błąd'; btn.disabled=false;
             if(card){
                 var err=document.createElement('div');
                 err.style.cssText='margin-top:8px;padding:8px;background:rgba(239,68,68,0.15);border-radius:var(--radius-sm);font-size:0.8rem;color:#fca5a5';
@@ -129,7 +129,7 @@ function doSystemUpdate(btn){
                 card.appendChild(err);
             }
         }
-    }).catch(function(){ btn.textContent='❌ Błąd sieci'; btn.disabled=false; });
+    }).catch(function(){ btn.textContent='<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Błąd sieci'; btn.disabled=false; });
 }
 </script>
 
@@ -144,7 +144,7 @@ function doSystemUpdate(btn){
                 background:linear-gradient(135deg,var(--neon-primary),var(--neon-secondary),var(--neon-tertiary));
                 -webkit-background-clip:text;-webkit-text-fill-color:transparent;
                 filter:drop-shadow(0 0 12px rgba(143,245,255,0.3))">
-        🚀 PALETOMAT OPEN — Nadchodzi nowa era sprzedaży
+        <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">rocket_launch</span> PALETOMAT OPEN — Nadchodzi nowa era sprzedaży
     </div>
     <div style="color:var(--text-muted);font-size:0.85rem;margin-top:8px">
         Kliknij aby dowiedzieć się więcej →
@@ -169,7 +169,7 @@ function doSystemUpdate(btn){
             <div style="color:var(--text-muted);font-size:0.82rem">Platforma nowej generacji</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
-            {% for item in [('🤖','Auto-scraping palet'),('📊','AI analiza rentowności'),('🔗','Integracja z dostawcami'),('📦','Automatyczne wystawianie'),('💰','Kalkulator marży')] %}
+            {% for item in [('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smart_toy</span>','Auto-scraping palet'),('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span>','AI analiza rentowności'),('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">link</span>','Integracja z dostawcami'),('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span>','Automatyczne wystawianie'),('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">paid</span>','Kalkulator marży')] %}
             <div class="glass-panel" style="display:flex;align-items:center;gap:14px;padding:14px 16px;opacity:0.55">
                 <span style="font-size:1.6rem">{{ item[0] }}</span>
                 <div>
@@ -183,7 +183,7 @@ function doSystemUpdate(btn){
             style="width:100%;padding:14px;background:linear-gradient(135deg,var(--neon-primary),var(--neon-secondary));
             border:none;border-radius:12px;color:#fff;font-size:0.95rem;font-weight:700;font-family:'Space Grotesk',sans-serif;
             cursor:pointer;transition:all 0.2s">
-            🔔 Powiadom mnie jako pierwszego (Early Access)
+            <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">notifications</span> Powiadom mnie jako pierwszego (Early Access)
         </button>
         <div id="paleoToast" style="display:none;margin-top:12px;padding:10px 14px;
             background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);
@@ -221,7 +221,7 @@ function requestEarlyAccess(btn) {
             <div class="sparkline-container" id="spark-sales" style="width:80px"></div>
         </div>
         <div style="display:flex;align-items:center;gap:4px;margin-top:10px">
-            <span style="font-size:0.7rem;padding:2px 8px;border-radius:10px;background:var(--neon-tertiary-soft);color:var(--neon-tertiary);font-weight:600">📈 dziś</span>
+            <span style="font-size:0.7rem;padding:2px 8px;border-radius:10px;background:var(--neon-tertiary-soft);color:var(--neon-tertiary);font-weight:600"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">trending_up</span> dziś</span>
         </div>
     </a>
 
@@ -236,7 +236,7 @@ function requestEarlyAccess(btn) {
             <div class="sparkline-container" id="spark-revenue" style="width:80px"></div>
         </div>
         <div style="display:flex;align-items:center;gap:4px;margin-top:10px">
-            <span style="font-size:0.7rem;padding:2px 8px;border-radius:10px;background:var(--neon-primary-soft);color:var(--neon-primary);font-weight:600">💰 live</span>
+            <span style="font-size:0.7rem;padding:2px 8px;border-radius:10px;background:var(--neon-primary-soft);color:var(--neon-primary);font-weight:600"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">paid</span> live</span>
         </div>
     </a>
 
@@ -290,7 +290,7 @@ function requestEarlyAccess(btn) {
     <!-- System Monitor -->
     <div id="sys-panel" class="glass-card" style="padding:18px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-            <span class="font-display" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted)">⚡ System Monitor</span>
+            <span class="font-display" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted)"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bolt</span> System Monitor</span>
             <div style="display:flex;align-items:center;gap:6px">
                 <span id="sys-uptime" style="font-size:0.68rem;color:var(--text-muted)">--</span>
                 <div id="sys-dot" style="width:8px;height:8px;border-radius:50%;background:var(--neon-tertiary);box-shadow:0 0 8px rgba(190,238,0,0.5);animation:pulse 2s infinite"></div>
@@ -378,7 +378,7 @@ function requestEarlyAccess(btn) {
 <div class="glass-card" style="text-align:center;padding:20px;margin-bottom:20px;border-color:{{ sypie_color }}30">
     <div class="font-display" style="font-size:1.8rem;font-weight:800;color:{{ sypie_color }};text-shadow:0 0 12px {{ sypie_color }}40">{{ sypie_text }}</div>
     <div style="font-size:0.82rem;color:var(--text-muted);margin-top:8px">
-        📅 {{ miesiac_nazwa }}: <strong style="color:var(--text)">{{ miesiac_kwota }} zł</strong> · {{ miesiac_zamowienia }} zamówień · śr. {{ miesiac_srednia }} zł/dzień
+        <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">calendar_month</span> {{ miesiac_nazwa }}: <strong style="color:var(--text)">{{ miesiac_kwota }} zł</strong> · {{ miesiac_zamowienia }} zamówień · śr. {{ miesiac_srednia }} zł/dzień
     </div>
 </div>
 
@@ -388,7 +388,7 @@ function requestEarlyAccess(btn) {
 {% if monthly %}
 <div class="glass-card" style="padding:22px;margin-bottom:24px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-        <span class="font-display" style="font-weight:700;font-size:0.95rem">📊 {{ miesiac_nazwa }} — WYNIK</span>
+        <span class="font-display" style="font-weight:700;font-size:0.95rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span> {{ miesiac_nazwa }} — WYNIK</span>
         <a href="/analityka" style="font-size:0.75rem;color:var(--neon-primary);text-decoration:none;font-weight:600">Szczegóły →</a>
     </div>
 
@@ -434,7 +434,7 @@ function requestEarlyAccess(btn) {
      Returns & Insights Section
      ═══════════════════════════════════════════════ -->
 {% if insights %}
-<div class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">📊 Insights</div>
+<div class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span> Insights</div>
 <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:24px">
 
     <!-- Fastest selling -->
@@ -465,7 +465,7 @@ function requestEarlyAccess(btn) {
     <!-- Low stock -->
     <div class="glass-card" style="padding:18px;margin:0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <span class="font-display" style="font-weight:700;font-size:0.88rem">⚠️ Kończy się — dokup!</span>
+            <span class="font-display" style="font-weight:700;font-size:0.88rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">warning</span> Kończy się — dokup!</span>
             <span style="color:var(--text-muted);font-size:0.7rem">stan ≤ 2</span>
         </div>
         {% if insights.low_stock %}
@@ -496,7 +496,7 @@ function requestEarlyAccess(btn) {
         {% if insights.best_categories %}
         {% for c in insights.best_categories[:5] %}
         <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-            <div style="width:32px;height:32px;border-radius:8px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:0.9rem">📦</div>
+            <div style="width:32px;height:32px;border-radius:8px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:0.9rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span></div>
             <div style="flex:1;min-width:0">
                 <div style="font-size:0.8rem;font-weight:500">{{ c.kategoria }}</div>
                 <div style="font-size:0.68rem;color:var(--text-muted)">{{ c.produktow }} prod · {{ c.sprzedazy }}× sprzedano</div>
@@ -533,7 +533,7 @@ function requestEarlyAccess(btn) {
         </a>
         {% endfor %}
         {% else %}
-        <div style="color:var(--text-muted);font-size:0.8rem;padding:10px 0">Brak leżaków 🎉</div>
+        <div style="color:var(--text-muted);font-size:0.8rem;padding:10px 0">Brak leżaków <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">celebration</span></div>
         {% endif %}
     </div>
 </div>
@@ -545,19 +545,19 @@ function requestEarlyAccess(btn) {
 <div class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">Szybkie Akcje</div>
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
     <a href="/wysylki/allegro" class="glass-card" style="text-decoration:none;color:inherit;padding:16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
-        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem">📦</div>
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span></div>
         <span class="font-display" style="font-weight:600;font-size:0.82rem">Wysyłki</span>
     </a>
     <a href="/palety" class="glass-card" style="text-decoration:none;color:inherit;padding:16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
-        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem">📋</div>
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">list_alt</span></div>
         <span class="font-display" style="font-weight:600;font-size:0.82rem">Palety</span>
     </a>
     <a href="/sprzedaze" class="glass-card" style="text-decoration:none;color:inherit;padding:16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
-        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-tertiary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem">💰</div>
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-tertiary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">paid</span></div>
         <span class="font-display" style="font-weight:600;font-size:0.82rem">Sprzedaż</span>
     </a>
     <a href="/analityka" class="glass-card" style="text-decoration:none;color:inherit;padding:16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px">
-        <div style="width:40px;height:40px;border-radius:12px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1.1rem">📊</div>
+        <div style="width:40px;height:40px;border-radius:12px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span></div>
         <span class="font-display" style="font-weight:600;font-size:0.82rem">Analityka</span>
     </a>
 </div>
@@ -567,7 +567,7 @@ function requestEarlyAccess(btn) {
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px">
     <a href="/paletomat" class="glass-card" style="text-decoration:none;color:inherit;padding:18px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <div style="width:38px;height:38px;border-radius:10px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">🤖</div>
+            <div style="width:38px;height:38px;border-radius:10px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smart_toy</span></div>
             <div>
                 <div class="font-display" style="font-weight:700;font-size:0.9rem">Paletomat</div>
                 <div style="font-size:0.68rem;color:var(--text-muted)">Scraper → Allegro</div>
@@ -580,7 +580,7 @@ function requestEarlyAccess(btn) {
     </a>
     <a href="/magazyn" class="glass-card" style="text-decoration:none;color:inherit;padding:18px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <div style="width:38px;height:38px;border-radius:10px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">📦</div>
+            <div style="width:38px;height:38px;border-radius:10px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span></div>
             <div>
                 <div class="font-display" style="font-weight:700;font-size:0.9rem">Magazyn</div>
                 <div style="font-size:0.68rem;color:var(--text-muted)">Stany magazynowe</div>
@@ -593,7 +593,7 @@ function requestEarlyAccess(btn) {
     </a>
     <a href="/allegro" class="glass-card" style="text-decoration:none;color:inherit;padding:18px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <div style="width:38px;height:38px;border-radius:10px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1rem">🛒</div>
+            <div style="width:38px;height:38px;border-radius:10px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">shopping_cart</span></div>
             <div>
                 <div class="font-display" style="font-weight:700;font-size:0.9rem">Allegro</div>
                 <div style="font-size:0.68rem;color:var(--text-muted)">Integracja API</div>
@@ -606,7 +606,7 @@ function requestEarlyAccess(btn) {
     </a>
     <a href="/warehouse/heatmap" class="glass-card" style="text-decoration:none;color:inherit;padding:18px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <div style="width:38px;height:38px;border-radius:10px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">🗺️</div>
+            <div style="width:38px;height:38px;border-radius:10px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">map</span></div>
             <div>
                 <div class="font-display" style="font-weight:700;font-size:0.9rem">Magazyn 3D</div>
                 <div style="font-size:0.68rem;color:var(--text-muted)">Heatmapa + regały</div>
@@ -634,17 +634,17 @@ fetch('/api/warehouse/heatmap').then(r=>r.json()).then(d=>{
 <div class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">Analityka</div>
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
     <div onclick="toggleDrilldown('dd-stats')" class="glass-card" style="padding:16px 10px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:40px;height:40px;border-radius:12px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1.1rem">📊</div>
+        <div style="width:40px;height:40px;border-radius:12px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span></div>
         <div class="font-display" style="font-weight:700;font-size:0.82rem">Statystyki</div>
         <div style="font-size:0.62rem;color:var(--orange)">przeglądaj</div>
     </div>
     <div onclick="toggleDrilldown('dd-zakupy')" class="glass-card" style="padding:16px 10px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem">🛒</div>
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">shopping_cart</span></div>
         <div class="font-display" style="font-weight:700;font-size:0.82rem">Zakupy</div>
         <div style="font-size:0.62rem;color:var(--neon-primary)">analiza</div>
     </div>
     <div onclick="toggleDrilldown('dd-lezaki')" class="glass-card" style="padding:16px 10px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem">⏳</div>
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">hourglass_top</span></div>
         <div class="font-display" style="font-weight:700;font-size:0.82rem">Leżaki</div>
         <div style="font-size:0.62rem;color:var(--neon-secondary)">zalegające</div>
     </div>
@@ -653,24 +653,24 @@ fetch('/api/warehouse/heatmap').then(r=>r.json()).then(d=>{
 <!-- Drill-down panels -->
 <div id="dd-stats" class="glass-card neon-glow-primary" style="display:none;padding:18px;margin-bottom:16px;animation:fadeIn 0.3s">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <span class="font-display" style="font-weight:700;color:var(--orange)">📊 Statystyki</span>
+        <span class="font-display" style="font-weight:700;color:var(--orange)"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span> Statystyki</span>
         <span onclick="toggleDrilldown('dd-stats')" style="cursor:pointer;color:var(--text-muted);font-size:0.8rem">✕</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <a href="/statystyki" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">📈</span>
+            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">trending_up</span></span>
             <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-primary)">Pełne statystyki</div><div style="font-size:0.62rem;color:var(--text-muted)">Wykresy, trendy</div></div>
         </a>
         <a href="/analityka" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">💰</span>
+            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">paid</span></span>
             <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-tertiary)">Zyski i przychody</div><div style="font-size:0.62rem;color:var(--text-muted)">Per produkt</div></div>
         </a>
         <a href="/analityka/kategorie" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">🏷️</span>
+            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">label</span></span>
             <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-secondary)">Kategorie</div><div style="font-size:0.62rem;color:var(--text-muted)">Co sprzedaje się best</div></div>
         </a>
         <a href="/analytics/dashboard" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">📊</span>
+            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span></span>
             <div><div style="font-weight:600;font-size:0.82rem;color:var(--orange)">Dashboard KPI</div><div style="font-size:0.62rem;color:var(--text-muted)">Porównania</div></div>
         </a>
     </div>
@@ -678,16 +678,16 @@ fetch('/api/warehouse/heatmap').then(r=>r.json()).then(d=>{
 
 <div id="dd-zakupy" class="glass-card neon-glow-primary" style="display:none;padding:18px;margin-bottom:16px;animation:fadeIn 0.3s">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <span class="font-display" style="font-weight:700;color:var(--neon-primary)">🛒 Zakupy</span>
+        <span class="font-display" style="font-weight:700;color:var(--neon-primary)"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">shopping_cart</span> Zakupy</span>
         <span onclick="toggleDrilldown('dd-zakupy')" style="cursor:pointer;color:var(--text-muted);font-size:0.8rem">✕</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <a href="/analityka/palety" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">📦</span>
+            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span></span>
             <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-primary)">Bilans palet</div><div style="font-size:0.62rem;color:var(--text-muted)">ROI per paleta</div></div>
         </a>
         <a href="/palety" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">📋</span>
+            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">list_alt</span></span>
             <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-tertiary)">Lista palet</div><div style="font-size:0.62rem;color:var(--text-muted)">Wszystkie zakupy</div></div>
         </a>
         <a href="/analityka/okazje" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
@@ -703,24 +703,24 @@ fetch('/api/warehouse/heatmap').then(r=>r.json()).then(d=>{
 
 <div id="dd-lezaki" class="glass-card neon-glow-secondary" style="display:none;padding:18px;margin-bottom:16px;animation:fadeIn 0.3s">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <span class="font-display" style="font-weight:700;color:var(--neon-secondary)">⏳ Leżaki</span>
+        <span class="font-display" style="font-weight:700;color:var(--neon-secondary)"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">hourglass_top</span> Leżaki</span>
         <span onclick="toggleDrilldown('dd-lezaki')" style="cursor:pointer;color:var(--text-muted);font-size:0.8rem">✕</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <a href="/magazyn/lezaki" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">⏳</span>
+            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">hourglass_top</span></span>
             <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-secondary)">Stojące >30 dni</div><div style="font-size:0.62rem;color:var(--text-muted)">{{ monthly.stojace }} produktów</div></div>
         </a>
         <a href="/magazyn" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">📦</span>
+            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span></span>
             <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-primary)">Cały magazyn</div><div style="font-size:0.62rem;color:var(--text-muted)">{{ mag.produkty }} produktów</div></div>
         </a>
         <a href="/sprzedaze?status=zwrot" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">↩️</span>
+            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">undo</span></span>
             <div><div style="font-weight:600;font-size:0.82rem;color:var(--red)">Zwroty</div><div style="font-size:0.62rem;color:var(--text-muted)">{{ monthly.zwroty_cnt }} w tym miesiącu</div></div>
         </a>
         <a href="/warehouse/heatmap" class="glass-panel" style="padding:12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
-            <span style="font-size:1.1rem">🗺️</span>
+            <span style="font-size:1.1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">map</span></span>
             <div><div style="font-weight:600;font-size:0.82rem;color:var(--neon-tertiary)">Mapa magazynu</div><div style="font-size:0.62rem;color:var(--text-muted)">Heatmapa 3D</div></div>
         </a>
     </div>
@@ -741,7 +741,7 @@ function toggleDrilldown(id){
 <div class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px">Operacje</div>
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
     <a href="/paletomat" class="glass-card" style="text-decoration:none;color:inherit;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:36px;height:36px;border-radius:10px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">🤖</div>
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--neon-primary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smart_toy</span></div>
         <div class="font-display" style="font-weight:700;font-size:0.78rem">Paletomat</div>
         <div style="font-size:0.6rem;color:var(--neon-primary)">wystawiaj</div>
     </a>
@@ -751,12 +751,12 @@ function toggleDrilldown(id){
         <div style="font-size:0.6rem;color:var(--neon-tertiary)">pakuj</div>
     </a>
     <a href="/allegro/sync" class="glass-card" style="text-decoration:none;color:inherit;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:36px;height:36px;border-radius:10px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1rem">🔄</div>
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(234,179,8,0.08);display:flex;align-items:center;justify-content:center;font-size:1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">sync</span></div>
         <div class="font-display" style="font-weight:700;font-size:0.78rem">Sync</div>
         <div style="font-size:0.6rem;color:var(--orange)">zamówienia</div>
     </a>
     <a href="/magazyn/etykiety" class="glass-card" style="text-decoration:none;color:inherit;padding:14px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <div style="width:36px;height:36px;border-radius:10px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem">🏷️</div>
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--neon-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:1rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">label</span></div>
         <div class="font-display" style="font-weight:700;font-size:0.78rem">Etykiety</div>
         <div style="font-size:0.6rem;color:var(--neon-secondary)">masowe PNG</div>
     </a>
@@ -765,11 +765,11 @@ function toggleDrilldown(id){
 <!-- Tools row -->
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
     <a href="/narzedzia/kalkulator" class="glass-card" style="text-decoration:none;color:inherit;padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
-        <span style="font-size:1.2rem">💰</span>
+        <span style="font-size:1.2rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">paid</span></span>
         <span style="font-size:0.7rem;color:var(--text-muted)">Kalkulator</span>
     </a>
     <a href="/narzedzia/generator" class="glass-card" style="text-decoration:none;color:inherit;padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
-        <span style="font-size:1.2rem">✨</span>
+        <span style="font-size:1.2rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">auto_awesome</span></span>
         <span style="font-size:0.7rem;color:var(--text-muted)">Generator AI</span>
     </a>
     <a href="/analityka/okazje" class="glass-card" style="text-decoration:none;color:inherit;padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;border-color:rgba(234,179,8,0.2)">
@@ -780,8 +780,8 @@ function toggleDrilldown(id){
 
 <div style="display:flex;justify-content:space-between;margin-bottom:24px">
     <a href="/narzedzia" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none">Więcej narzędzi →</a>
-    <a href="/ustawienia" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none">⚙️ Ustawienia</a>
-    <a href="/changelog" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none">📋 Changelog</a>
+    <a href="/ustawienia" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">settings</span> Ustawienia</a>
+    <a href="/changelog" style="color:var(--text-muted);font-size:0.8rem;text-decoration:none"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">list_alt</span> Changelog</a>
 </div>
 
 <!-- ═══════════════════════════════════════════════
@@ -809,7 +809,7 @@ function toggleDrilldown(id){
 {% if top_dostawcy and top_dostawcy|length > 0 %}
 <div class="glass-card" style="padding:20px;margin-bottom:20px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <span class="font-display" style="font-weight:700;font-size:0.92rem">📦 TOP DOSTAWCY (ROI)</span>
+        <span class="font-display" style="font-weight:700;font-size:0.92rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span> TOP DOSTAWCY (ROI)</span>
     </div>
     {% for d in top_dostawcy[:5] %}
     <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04){% if loop.last %};border:none{% endif %}">
@@ -849,7 +849,7 @@ function toggleDrilldown(id){
 <!-- License -->
 <div class="glass-card" style="padding:20px;border-color:{% if lic_days_left == 'Wygasla!' %}rgba(239,68,68,0.3){% elif lic_days_left %}rgba(143,245,255,0.2){% else %}rgba(255,255,255,0.06){% endif %}">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <span class="font-display" style="font-weight:700;font-size:0.92rem">🔑 Licencja</span>
+        <span class="font-display" style="font-weight:700;font-size:0.92rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">key</span> Licencja</span>
         <a href="/license" style="color:var(--neon-primary);font-size:0.78rem;text-decoration:none;font-weight:600">Szczegóły →</a>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:center">
@@ -875,7 +875,7 @@ function toggleDrilldown(id){
     background:linear-gradient(135deg,var(--neon-tertiary),#16a34a);padding:20px 30px;border-radius:var(--radius);
     z-index:9999;box-shadow:0 10px 40px rgba(190,238,0,0.4),0 0 30px rgba(190,238,0,0.2);animation:slideIn 0.5s ease">
     <div style="display:flex;align-items:center;gap:15px">
-        <span style="font-size:2.5rem">🎉</span>
+        <span style="font-size:2.5rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">celebration</span></span>
         <div>
             <div class="font-display" style="font-weight:800;font-size:1.2rem;color:#fff">SPRZEDANO!</div>
             <div id="saleDetails" style="color:rgba(255,255,255,0.9);font-size:0.95rem"></div>

@@ -633,19 +633,19 @@
             </h1>
             <div class="top-bar-actions">
                 <button class="btn btn-secondary" onclick="exportLayout()">
-                    📥 Eksport
+                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">download</span> Eksport
                 </button>
                 <button class="btn btn-secondary" onclick="importLayout()">
-                    📤 Import
+                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">upload</span> Import
                 </button>
                 <button class="btn btn-primary" onclick="previewLayout()">
                     👁️ Podglad 3D
                 </button>
                 <button class="btn btn-primary" onclick="saveLayout()">
-                    💾 Zapisz
+                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">save</span> Zapisz
                 </button>
                 <button class="btn btn-danger" onclick="clearLayout()">
-                    ❌ Wyczysc
+                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Wyczysc
                 </button>
             </div>
         </div>
@@ -653,7 +653,7 @@
         <!-- LEFT PANEL - REGAŁY -->
         <div class="left-panel">
             <div class="panel-section">
-                <h3>📦 Regały</h3>
+                <h3><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span> Regały</h3>
                 <button class="template-btn" onclick="addNewShelf()" style="width: 100%; margin-bottom: 15px; background: rgba(0, 241, 254, 0.1); border-color: rgba(0, 241, 254, 0.4); color: #8ff5ff;">
                     ➕ Dodaj Regał (Auto-numeracja)
                 </button>
@@ -706,10 +706,10 @@
             </div>
 
             <div class="panel-section">
-                <h3>🖼️ Tło</h3>
+                <h3><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">photo_library</span> Tło</h3>
                 <input type="file" id="bg-upload" accept="image/*" style="display: none;">
                 <button class="template-btn" onclick="document.getElementById('bg-upload').click()">
-                    📷 Dodaj zdjęcie
+                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">photo_camera</span> Dodaj zdjęcie
                 </button>
                 <div class="property-row" style="margin-top: 10px;">
                     <label>Przezroczystość tła</label>
@@ -733,7 +733,7 @@
             </div>
 
             <div class="canvas-info" style="padding: 15px;">
-                <div style="font-weight: 600; font-size: 14px; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px;">📊 Statystyki</div>
+                <div style="font-weight: 600; font-size: 14px; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px;"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span> Statystyki</div>
                 <div><strong>Grid:</strong> <span id="info-grid">20x15</span></div>
                 <div><strong>Regałów:</strong> <span id="info-shelves">0</span></div>
                 <div><strong>Rzędów:</strong> <span id="info-rows">0</span></div>
@@ -750,7 +750,7 @@
         <!-- RIGHT PANEL - PROPERTIES -->
         <div class="right-panel" id="properties-panel">
             <div class="no-selection">
-                <div class="no-selection-icon">🎯</div>
+                <div class="no-selection-icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">target</span></div>
                 <p>Kliknij na regal aby edytowac</p>
                 <p style="margin-top: 10px; font-size: 12px; color: #718096;">
                     lub dodaj nowy regal z lewego panelu
@@ -790,7 +790,7 @@
     <div class="modal-overlay" id="json-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modal-title">📥 Import Layout JSON</h3>
+                <h3 id="modal-title"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">download</span> Import Layout JSON</h3>
                 <button class="modal-close" onclick="closeModal()">×</button>
             </div>
             <div class="modal-body">
@@ -1162,7 +1162,7 @@
             if (!selectedShelf) {
                 panel.innerHTML = `
                     <div class="no-selection">
-                        <div class="no-selection-icon">🎯</div>
+                        <div class="no-selection-icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">target</span></div>
                         <p>Kliknij na regał aby edytować właściwości</p>
                     </div>
                 `;
@@ -1171,7 +1171,7 @@
             
             panel.innerHTML = `
                 <div class="property-group">
-                    <h4>⚙️ Regał: ${selectedShelf.letter}</h4>
+                    <h4><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">settings</span> Regał: ${selectedShelf.letter}</h4>
                     
                     <div class="property-row">
                         <label>Wysokość regału (cm)</label>
@@ -1238,7 +1238,7 @@
                 </div>
                 
                 <div class="property-group">
-                    <h4>🗑️ Akcje</h4>
+                    <h4><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">delete</span> Akcje</h4>
                     <button class="btn btn-danger" style="width: 100%;" onclick="deleteSelectedShelf()">
                         Usuń Regał
                     </button>
@@ -1434,7 +1434,7 @@
                 }))
             };
             
-            console.log('💾 Saving layout...', layout);
+            console.log('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">save</span> Saving layout...', layout);
             
             // Send to backend
             fetch('/api/warehouse/layout/save', {
@@ -1447,16 +1447,16 @@
                 return res.json();
             })
             .then(data => {
-                console.log('✅ Response data:', data);
+                console.log('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Response data:', data);
                 if (data.success) {
-                    alert(`✅ Layout zapisany!\n\nLokalizacja: ${data.path}\nRegałów: ${data.shelves_count}`);
+                    alert(`<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Layout zapisany!\n\nLokalizacja: ${data.path}\nRegałów: ${data.shelves_count}`);
                 } else {
-                    alert('❌ Błąd zapisu: ' + (data.error || 'Unknown error'));
+                    alert('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Błąd zapisu: ' + (data.error || 'Unknown error'));
                 }
             })
             .catch(err => {
-                console.error('❌ Fetch error:', err);
-                alert('❌ Błąd zapisu: ' + err.message);
+                console.error('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Fetch error:', err);
+                alert('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Błąd zapisu: ' + err.message);
             });
         }
 
@@ -1469,7 +1469,7 @@
             
             const json = JSON.stringify(layout, null, 2);
             document.getElementById('json-textarea').value = json;
-            document.getElementById('modal-title').textContent = '📥 Export Layout JSON';
+            document.getElementById('modal-title').textContent = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">download</span> Export Layout JSON';
             document.getElementById('json-modal').classList.add('show');
             
             // Select all for easy copy
@@ -1478,7 +1478,7 @@
 
         function importLayout() {
             document.getElementById('json-textarea').value = '';
-            document.getElementById('modal-title').textContent = '📤 Import Layout JSON';
+            document.getElementById('modal-title').textContent = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">upload</span> Import Layout JSON';
             document.getElementById('json-modal').classList.add('show');
         }
 
@@ -1502,9 +1502,9 @@
                 render();
                 closeModal();
                 
-                alert('✅ Layout zaimportowany!');
+                alert('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Layout zaimportowany!');
             } catch (err) {
-                alert('❌ Błąd importu: ' + err.message);
+                alert('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Błąd importu: ' + err.message);
             }
         }
 
@@ -1623,7 +1623,7 @@
                 panel.innerHTML = `
                     <div class="bulk-panel">
                         <div class="bulk-header">
-                            <div class="bulk-title">🎯 Edycja grupowa</div>
+                            <div class="bulk-title"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">target</span> Edycja grupowa</div>
                             <div class="bulk-count">${selectedShelves.length} regałów</div>
                         </div>
 
@@ -1661,11 +1661,11 @@
                             </div>
 
                             <button onclick="bulkDelete()" style="width:100%;padding:12px;margin-top:10px;background:#ef4444;border:none;border-radius:8px;color:white;font-weight:600;cursor:pointer;">
-                                🗑️ Usuń Wszystkie (${selectedShelves.length})
+                                <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">delete</span> Usuń Wszystkie (${selectedShelves.length})
                             </button>
 
                             <button onclick="deselectAll()" style="width:100%;padding:12px;margin-top:5px;background:rgba(255,255,255,0.1);border:none;border-radius:8px;color:white;font-weight:600;cursor:pointer;">
-                                ❌ Odznacz (ESC)
+                                <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Odznacz (ESC)
                             </button>
                         </div>
                     </div>
@@ -1677,7 +1677,7 @@
                 // No selection
                 panel.innerHTML = `
                     <div class="no-selection">
-                        <div class="no-selection-icon">🎯</div>
+                        <div class="no-selection-icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">target</span></div>
                         <p>Kliknij na regał aby edytować właściwości</p>
                         <p style="margin-top: 10px; font-size: 12px; color: #718096;">
                             Shift+Click = multi-select

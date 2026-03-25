@@ -998,7 +998,7 @@ def produkty():
 
         const btn = document.getElementById('boxSaveBtn');
         btn.disabled = true;
-        btn.textContent = '⏳ Tworzę...';
+        btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Tworzę...';
 
         fetch('/magazyn/api/utworz-box', {
             method: 'POST',
@@ -1008,14 +1008,14 @@ def produkty():
         .then(r => r.json())
         .then(d => {
             if (d.ok) {
-                btn.textContent = '✅ Utworzono!';
+                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Utworzono!';
                 setTimeout(() => { window.location.href = '/magazyn/paleta-id/' + d.box_id; }, 800);
             } else {
-                btn.textContent = '❌ ' + (d.error || 'Błąd');
+                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + (d.error || 'Błąd');
                 btn.disabled = false;
             }
         })
-        .catch(e => { btn.textContent = '❌ ' + e.message; btn.disabled = false; });
+        .catch(e => { btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + e.message; btn.disabled = false; });
     }
     </script>
 
@@ -1023,7 +1023,7 @@ def produkty():
     <div id="modalBox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center">
         <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border-radius:var(--radius);padding:25px;max-width:450px;width:90%;max-height:80vh;overflow-y:auto;border:2px solid #f59e0b">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-                <h3 style="margin:0;color:#f59e0b">📫 Nowy Box</h3>
+                <h3 style="margin:0;color:#f59e0b"><span class=material-symbols-outlined style=font-size:1rem>inbox</span> Nowy Box</h3>
                 <button onclick="document.getElementById('modalBox').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer">&times;</button>
             </div>
 
@@ -1041,17 +1041,17 @@ def produkty():
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
                 <div>
-                    <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">💰 Cena zakupu (zł)</label>
+                    <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px"><span class=material-symbols-outlined style=font-size:1rem>paid</span> Cena zakupu (zł)</label>
                     <input type="number" id="boxCena" class="form-input" placeholder="Koszt łączny" step="0.01" min="0" style="width:100%">
                 </div>
                 <div>
-                    <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">🛒 Cena sprzedaży (zł)</label>
+                    <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px"><span class=material-symbols-outlined style=font-size:1rem>shopping_cart</span> Cena sprzedaży (zł)</label>
                     <input type="number" id="boxCenaSprzedazy" class="form-input" placeholder="Cena Allegro" step="0.01" min="0" style="width:100%">
                 </div>
             </div>
 
             <button id="boxSaveBtn" onclick="zapiszBox()" class="btn" style="width:100%;background:#f59e0b;color:#000;font-weight:700;padding:12px">
-                📫 Utwórz Box
+                <span class=material-symbols-outlined style=font-size:1rem>inbox</span> Utwórz Box
             </button>
         </div>
     </div>
@@ -1411,12 +1411,12 @@ def produkt(code):
                 headers: {{'Content-Type': 'application/json'}},
                 body: JSON.stringify({{opis_usterki: opis, ilosc: parseInt(ilosc) || 1}})
             }}).then(r => r.json()).then(d => {{
-                if (d.ok) {{ alert('✅ ' + d.msg); location.reload(); }}
-                else alert('❌ ' + (d.error || 'Błąd'));
+                if (d.ok) {{ alert('<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> ' + d.msg); location.reload(); }}
+                else alert('<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + (d.error || 'Błąd'));
             }});
         }}
         function rescrapZdjecia(produktId, btn) {{
-            btn.textContent = '⏳ Pobieram...';
+            btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Pobieram...';
             btn.disabled = true;
             fetch('/magazyn/api/rescrape-image/' + produktId, {{
                 method: 'POST',
@@ -1428,7 +1428,7 @@ def produkt(code):
             }})
             .then(function(d) {{
                 if (d.ok) {{
-                    btn.textContent = '⏳ Pobieranie w tle...';
+                    btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Pobieranie w tle...';
                     btn.style.background = '#beee00';
                     // Sprawdzaj co 5s czy zdjecie sie pojawilo
                     var checks = 0;
@@ -1439,30 +1439,30 @@ def produkt(code):
                         .then(function(d2){{
                             if(d2.has_image) {{
                                 clearInterval(checkInterval);
-                                btn.textContent = '✅ Pobrano!';
+                                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Pobrano!';
                                 setTimeout(function(){{ location.reload(); }}, 1000);
                             }} else if(checks >= 24) {{
                                 clearInterval(checkInterval);
-                                btn.textContent = '⏳ Trwa... odśwież';
+                                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Trwa... odśwież';
                                 btn.disabled = false;
                                 btn.onclick = function(){{ location.reload(); }};
                             }}
                         }}).catch(function(){{}});
                     }}, 5000);
                 }} else {{
-                    btn.textContent = '❌ ' + (d.error || 'Błąd');
-                    setTimeout(function() {{ btn.textContent = '📸 POBIERZ ZDJĘCIA'; btn.disabled = false; }}, 3000);
+                    btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + (d.error || 'Błąd');
+                    setTimeout(function() {{ btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> POBIERZ ZDJĘCIA'; btn.disabled = false; }}, 3000);
                 }}
             }})
             .catch(function(e) {{
-                btn.textContent = '❌ ' + e.message;
-                setTimeout(function() {{ btn.textContent = '📸 POBIERZ ZDJĘCIA'; btn.disabled = false; }}, 3000);
+                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + e.message;
+                setTimeout(function() {{ btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> POBIERZ ZDJĘCIA'; btn.disabled = false; }}, 3000);
             }});
         }}
         async function pokazGPSR() {{
             const modal = document.getElementById('gpsrModal');
             const content = document.getElementById('gpsrContent');
-            content.textContent = '⏳ Generowanie GPSR...';
+            content.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Generowanie GPSR...';
             modal.style.display = 'block';
             
             try {{
@@ -1472,10 +1472,10 @@ def produkt(code):
                 if (data.gpsr) {{
                     content.textContent = data.gpsr;
                 }} else {{
-                    content.textContent = '✅ Ten produkt nie wymaga informacji GPSR (dekoracja, odzież, papeteria)';
+                    content.textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Ten produkt nie wymaga informacji GPSR (dekoracja, odzież, papeteria)';
                 }}
             }} catch (e) {{
-                content.textContent = '❌ Błąd: ' + e.message;
+                content.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> Błąd: ' + e.message;
             }}
         }}
         
@@ -1511,7 +1511,7 @@ def produkt(code):
             const klasa = STAN_KLASA[s.stan] || '?';
             const klasaColor = KLASA_COLOR[klasa] || '#64748b';
             return `<div id="karta_${{s.id}}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:5px;background:rgba(255,255,255,0.02);border:1px solid ${{s.status==='naprawa'?'#f59e0b33':'rgba(255,255,255,0.05)'}};border-radius:10px;transition:all 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
-                ${{imgSrc ? `<img src="${{imgSrc}}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;border:2px solid ${{zdjecieSrc?k+'55':'rgba(255,255,255,0.08)'}};flex-shrink:0" onerror="this.style.display='none'" ${{zdjecieSrc?'onclick="window.open(\\\''+zdjecieSrc+'\\\',\\\'_blank\\\')" style="cursor:pointer"':''}}>` : `<div style="width:48px;height:48px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:1rem;color:#334155;flex-shrink:0">📦</div>`}}
+                ${{imgSrc ? `<img src="${{imgSrc}}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;border:2px solid ${{zdjecieSrc?k+'55':'rgba(255,255,255,0.08)'}};flex-shrink:0" onerror="this.style.display='none'" ${{zdjecieSrc?'onclick="window.open(\\\''+zdjecieSrc+'\\\',\\\'_blank\\\')" style="cursor:pointer"':''}}>` : `<div style="width:48px;height:48px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:1rem;color:#334155;flex-shrink:0"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span></div>`}}
                 <div style="width:10px;height:10px;border-radius:50%;background:${{k}};flex-shrink:0"></div>
                 <div style="font-weight:700;font-size:0.95rem;min-width:30px;color:#e2e8f0">#${{s.numer}}</div>
                 <div style="font-size:0.75rem;font-weight:800;color:${{klasaColor}};background:${{klasaColor}}15;border:1px solid ${{klasaColor}}33;padding:2px 8px;border-radius:6px;font-family:'Space Grotesk',sans-serif;min-width:24px;text-align:center">${{klasa}}</div>
@@ -1603,7 +1603,7 @@ def produkt(code):
         function kopiujGPSR() {{
             const content = document.getElementById('gpsrContent').textContent;
             navigator.clipboard.writeText(content).then(() => {{
-                alert('✅ Skopiowano do schowka!');
+                alert('<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Skopiowano do schowka!');
             }}).catch(() => {{
                 // Fallback
                 const textarea = document.createElement('textarea');
@@ -1612,7 +1612,7 @@ def produkt(code):
                 textarea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textarea);
-                alert('✅ Skopiowano do schowka!');
+                alert('<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Skopiowano do schowka!');
             }});
         }}
         </script>
@@ -1752,7 +1752,7 @@ def produkt(code):
         document.querySelectorAll('#ocenSplitFields input').forEach(inp=>{{ sum+=parseInt(inp.value)||0; }});
         const el=document.getElementById('ocenSplitSum');
         const ok=sum===_ocenIlosc;
-        el.textContent='Suma: '+sum+' / '+_ocenIlosc+(ok?' ✅':sum>_ocenIlosc?' ❌ za dużo!':'');
+        el.textContent='Suma: '+sum+' / '+_ocenIlosc+(ok?' <span class=material-symbols-outlined style=font-size:1rem>check_circle</span>':sum>_ocenIlosc?' <span class=material-symbols-outlined style=font-size:1rem>cancel</span> za dużo!':'');
         el.style.color=ok?'#beee00':sum>_ocenIlosc?'#ef4444':'#f59e0b';
     }}
     function zapiszOceneStan() {{
@@ -1828,7 +1828,7 @@ def produkt(code):
         }});
         if(suma!==_rpIlosc){{alert('Suma musi wynosić '+_rpIlosc+' sztuk!');return;}}
         fetch('/api/sztuki/'+_rpId+'/rozbij',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{podzial}})}})
-        .then(r=>r.json()).then(d=>{{if(d.ok){{document.getElementById('modalRozbijProd').style.display='none';alert('✅ Zapisano!');}}}}); 
+        .then(r=>r.json()).then(d=>{{if(d.ok){{document.getElementById('modalRozbijProd').style.display='none';alert('<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Zapisano!');}}}}); 
     }}
 
     function pokazNaprawaProdukt(id, nazwa, ilosc) {{
@@ -1845,12 +1845,12 @@ def produkt(code):
             if(s.status==='naprawa'){{
                 html+=`<div style="background:#f59e0b15;border:1px solid #f59e0b55;border-radius:10px;padding:12px;margin-bottom:8px">
                   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                    <div style="font-weight:700;color:#f59e0b">🔧 szt. ${{s.numer}} DO NAPRAWY</div>
+                    <div style="font-weight:700;color:#f59e0b"><span class=material-symbols-outlined style=font-size:1rem>build</span> szt. ${{s.numer}} DO NAPRAWY</div>
                     <div style="display:flex;gap:6px">
                       <button onclick="cofnijNaprawaProd(${{s.id}}, ${{prodId}}, ${{ilosc}})" style="padding:4px 10px;background:#ef444422;border:1px solid #ef4444;border-radius:6px;color:#ef4444;font-size:0.72rem;cursor:pointer">↩ Cofnij</button>
                     </div>
                   </div>
-                  <div style="background:#1e1e2e;border-radius:6px;padding:8px;font-size:0.8rem">📝 ${{s.opis_naprawy||'—'}}</div>
+                  <div style="background:#1e1e2e;border-radius:6px;padding:8px;font-size:0.8rem"><span class=material-symbols-outlined style=font-size:1rem>edit_note</span> ${{s.opis_naprawy||'—'}}</div>
                   ${{s.data_naprawy?`<div style="font-size:0.7rem;color:#64748b;margin-top:4px">${{s.data_naprawy}}</div>`:''}}
                 </div>`;
             }} else {{
@@ -1864,7 +1864,7 @@ def produkt(code):
                 </div>`;
             }}
         }});
-        document.getElementById('naprawaProdLista').innerHTML=html||'<div style="color:#64748b;text-align:center;padding:15px">Brak rozbicia — najpierw użyj 🎯 Rozbij na sztuki</div>';
+        document.getElementById('naprawaProdLista').innerHTML=html||'<div style="color:#64748b;text-align:center;padding:15px">Brak rozbicia — najpierw użyj <span class=material-symbols-outlined style=font-size:1rem>target</span> Rozbij na sztuki</div>';
     }}
     function dodajNaprawaProd(sztukiId, numer, prodId, ilosc) {{
         const opis=prompt('Opis usterki dla szt. '+numer+':');
@@ -2023,7 +2023,7 @@ def edytuj_produkt(code):
         except Exception as e:
             import traceback
             return f'<div style="padding:20px;color:#ef4444;background:#1e1e2e;font-family:monospace">' \
-                   f'<h2>❌ Błąd zapisu</h2><pre>{traceback.format_exc()}</pre>' \
+                   f'<h2><span class=material-symbols-outlined style=font-size:1rem>cancel</span> Błąd zapisu</h2><pre>{traceback.format_exc()}</pre>' \
                    f'<a href="/magazyn">← Powrót</a></div>', 500
 
     # ── GET: wyświetl formularz ───────────────────────────────
@@ -2087,7 +2087,7 @@ def edytuj_produkt(code):
         palety_options += f'<option value="{pr["id"]}" {sel}>{pr["nazwa"]}</option>'
 
     html = f'''
-    <div class="hdr"><h1>✏️ EDYTUJ</h1></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>edit</span> EDYTUJ</h1></div>
     
     <form action="/magazyn/produkt/{product_code}/edytuj" method="POST">
     <div class="card" style="padding:15px">
@@ -2110,13 +2110,13 @@ def edytuj_produkt(code):
             </div>
         </div>
         <div class="form-row-3">
-            <div class="form-group"><label>💰 Netto/szt</label>
+            <div class="form-group"><label><span class=material-symbols-outlined style=font-size:1rem>paid</span> Netto/szt</label>
                 <input type="number" step="0.01" name="cena_netto" class="form-ctrl" value="{_p_netto_szt:.2f}">
             </div>
-            <div class="form-group"><label>💰 Brutto/szt</label>
+            <div class="form-group"><label><span class=material-symbols-outlined style=font-size:1rem>paid</span> Brutto/szt</label>
                 <input type="number" step="0.01" name="cena_brutto" class="form-ctrl" value="{_p_brutto_szt:.2f}">
             </div>
-            <div class="form-group"><label>💵 Cena Allegro</label>
+            <div class="form-group"><label><span class=material-symbols-outlined style=font-size:1rem>payments</span> Cena Allegro</label>
                 <input type="number" step="0.01" name="cena_allegro" class="form-ctrl" value="{p['cena_allegro'] or 0}">
             </div>
         </div>
@@ -2124,9 +2124,9 @@ def edytuj_produkt(code):
         <div class="form-row-3">
             <div class="form-group"><label>Kategoria</label>
                 <select name="kategoria" class="form-ctrl">
-                    <option value="ev_ladowarki" {"selected" if p.get('kategoria')=='ev_ladowarki' else ''}>⚡ Ładowarki EV</option>
-                    <option value="foto_video" {"selected" if p.get('kategoria')=='foto_video' else ''}>📸 Foto/Video</option>
-                    <option value="druk3d" {"selected" if p.get('kategoria')=='druk3d' else ''}>🖨️ Druk 3D</option>
+                    <option value="ev_ladowarki" {"selected" if p.get('kategoria')=='ev_ladowarki' else ''}><span class=material-symbols-outlined style=font-size:1rem>bolt</span> Ładowarki EV</option>
+                    <option value="foto_video" {"selected" if p.get('kategoria')=='foto_video' else ''}><span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> Foto/Video</option>
+                    <option value="druk3d" {"selected" if p.get('kategoria')=='druk3d' else ''}><span class=material-symbols-outlined style=font-size:1rem>print</span> Druk 3D</option>
                     <option value="smart_home" {"selected" if p.get('kategoria')=='smart_home' else ''}>📹 Smart Home</option>
                     <option value="motoryzacja" {"selected" if p.get('kategoria')=='motoryzacja' else ''}>🚗 Motoryzacja</option>
                     <option value="optyka" {"selected" if p.get('kategoria')=='optyka' else ''}>🔭 Optyka</option>
@@ -2147,15 +2147,15 @@ def edytuj_produkt(code):
                     <option value="silownia" {"selected" if p.get('kategoria')=='silownia' else ''}>🏋️ Siłownia</option>
                     <option value="rowery" {"selected" if p.get('kategoria')=='rowery' else ''}>🚴 Rowery</option>
                     <option value="hulajnogi" {"selected" if p.get('kategoria')=='hulajnogi' else ''}>🛴 Hulajnogi</option>
-                    <option value="elektronika" {"selected" if p.get('kategoria')=='elektronika' else ''}>📷 Elektronika</option>
+                    <option value="elektronika" {"selected" if p.get('kategoria')=='elektronika' else ''}><span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> Elektronika</option>
                     <option value="akcesoria" {"selected" if p.get('kategoria')=='akcesoria' else ''}>🔋 Akcesoria</option>
                     <option value="agd_male" {"selected" if p.get('kategoria')=='agd_male' else ''}>🔌 AGD małe</option>
                     <option value="agd_duze" {"selected" if p.get('kategoria')=='agd_duze' else ''}>🏠 AGD duże</option>
                     <option value="komputery" {"selected" if p.get('kategoria')=='komputery' else ''}>💻 Komputery</option>
-                    <option value="telefony" {"selected" if p.get('kategoria')=='telefony' else ''}>📱 Telefony</option>
+                    <option value="telefony" {"selected" if p.get('kategoria')=='telefony' else ''}><span class=material-symbols-outlined style=font-size:1rem>smartphone</span> Telefony</option>
                     <option value="rtv" {"selected" if p.get('kategoria')=='rtv' else ''}>📺 RTV/Audio</option>
                     <option value="gaming" {"selected" if p.get('kategoria')=='gaming' else ''}>🎮 Gaming</option>
-                    <option value="narzedzia" {"selected" if p.get('kategoria')=='narzedzia' else ''}>🔧 Narzędzia</option>
+                    <option value="narzedzia" {"selected" if p.get('kategoria')=='narzedzia' else ''}><span class=material-symbols-outlined style=font-size:1rem>build</span> Narzędzia</option>
                     <option value="dom_ogrod" {"selected" if p.get('kategoria')=='dom_ogrod' else ''}>🏡 Dom/Ogród</option>
                     <option value="sport" {"selected" if p.get('kategoria')=='sport' else ''}>⚽ Sport</option>
                     <option value="moda" {"selected" if p.get('kategoria')=='moda' else ''}>👕 Moda</option>
@@ -2173,7 +2173,7 @@ def edytuj_produkt(code):
                     <option value="laboratorium" {"selected" if p.get('kategoria')=='laboratorium' else ''}>🔬 Laboratorium</option>
                     <option value="event" {"selected" if p.get('kategoria')=='event' else ''}>🎪 Event</option>
                     <option value="cb_radio" {"selected" if p.get('kategoria')=='cb_radio' else ''}>📡 CB/Radio</option>
-                    <option value="inne" {"selected" if p.get('kategoria')=='inne' or not p.get('kategoria') else ''}>📦 Inne</option>
+                    <option value="inne" {"selected" if p.get('kategoria')=='inne' or not p.get('kategoria') else ''}><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Inne</option>
                 </select>
             </div>
             <div class="form-group"><label>Stan</label>
@@ -2192,7 +2192,7 @@ def edytuj_produkt(code):
                     <option value="A-" {"selected" if p.get('klasa_jakosci')=='A-' else ''}>🔵 A- — Otwarte opakowanie</option>
                     <option value="B" {"selected" if p.get('klasa_jakosci')=='B' else ''}>🟡 B — Używany, dobry stan</option>
                     <option value="C" {"selected" if p.get('klasa_jakosci')=='C' else ''}>🟠 C — Widoczne ślady użytk.</option>
-                    <option value="D" {"selected" if p.get('klasa_jakosci')=='D' else ''}>🔴 D — Uszkodzony / niekompletny</option>
+                    <option value="D" {"selected" if p.get('klasa_jakosci')=='D' else ''}><span class=material-symbols-outlined style=font-size:1rem>fiber_manual_record</span> D — Uszkodzony / niekompletny</option>
                 </select>
             </div>
             <div class="form-group"><label>Dostawca</label>
@@ -2209,7 +2209,7 @@ def edytuj_produkt(code):
                 <label>Paleta</label>
                 <select name="paleta_id_select" class="form-ctrl" id="paleta-select" onchange="togglePaletaInput()">
                     {palety_options}
-                    <option value="__nowa__">✨ Nowa paleta...</option>
+                    <option value="__nowa__"><span class=material-symbols-outlined style=font-size:1rem>auto_awesome</span> Nowa paleta...</option>
                 </select>
                 <input type="text" name="paleta_nowa" id="paleta-nowa" class="form-ctrl" 
                        placeholder="Wpisz nazwę nowej palety" 
@@ -2238,11 +2238,11 @@ def edytuj_produkt(code):
         </div>
     </div>
     
-    <button type="submit" class="btn btn-ok">💾 ZAPISZ</button>
+    <button type="submit" class="btn btn-ok"><span class=material-symbols-outlined style=font-size:1rem>save</span> ZAPISZ</button>
     </form>
     
     <form action="/magazyn/produkt/{product_code}/usun" method="POST" onsubmit="return confirm('Na pewno usunąć?')">
-        <button type="submit" class="btn btn-err">🗑️ USUŃ</button>
+        <button type="submit" class="btn btn-err"><span class=material-symbols-outlined style=font-size:1rem>delete</span> USUŃ</button>
     </form>
     
     <a href="/magazyn/produkt/{product_code}" class="back">← Anuluj</a>
@@ -2314,11 +2314,11 @@ def sprzedaj_produkt(code):
              'cena_sprzedazy': cena_szt})
         
         if cena_szt > 0:
-            msg = f'✅ -1 szt. (+{cena_szt:.0f} zł na palecie) Pozostało: {new_qty} szt'
+            msg = f'<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> -1 szt. (+{cena_szt:.0f} zł na palecie) Pozostało: {new_qty} szt'
         else:
-            msg = f'✅ -1 szt. Pozostało: {new_qty} szt'
+            msg = f'<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> -1 szt. Pozostało: {new_qty} szt'
     else:
-        msg = '❌ Brak na stanie!'
+        msg = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> Brak na stanie!'
     
     
     product_code = get_product_code(p) if p else code
@@ -2360,14 +2360,14 @@ def produkt_opis(code):
     opis = generuj_opis_ai(p['nazwa'], p['kategoria'] or 'inne')
     
     html = f'''
-    <div class="hdr"><h1>✨ OPIS AI</h1><small>{display_code}</small></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>auto_awesome</span> OPIS AI</h1><small>{display_code}</small></div>
     
     <div class="card" style="padding:15px">
         <div style="font-weight:600;margin-bottom:10px">{p['nazwa']}</div>
         <div style="background:#0a0a0f;border-radius:10px;padding:15px;white-space:pre-wrap;font-size:0.9rem;line-height:1.6;max-height:300px;overflow-y:auto">{opis}</div>
     </div>
     
-    <button onclick="navigator.clipboard.writeText(document.querySelector('div[style*=pre-wrap]').innerText);this.innerText='✅ Skopiowano!';setTimeout(()=>this.innerText='📋 KOPIUJ DO SCHOWKA',2000)" class="btn btn-ok">📋 KOPIUJ DO SCHOWKA</button>
+    <button onclick="navigator.clipboard.writeText(document.querySelector('div[style*=pre-wrap]').innerText);this.innerText='<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Skopiowano!';setTimeout(()=>this.innerText='<span class=material-symbols-outlined style=font-size:1rem>list_alt</span> KOPIUJ DO SCHOWKA',2000)" class="btn btn-ok"><span class=material-symbols-outlined style=font-size:1rem>list_alt</span> KOPIUJ DO SCHOWKA</button>
     
     <a href="/magazyn/produkt/{product_code}" class="back">← Powrót do produktu</a>
     '''
@@ -2398,7 +2398,7 @@ def szukaj():
     if len(results) == 1:
         return redirect(f'/magazyn/produkt/{get_product_code(results[0])}')
     
-    html = f'''<div class="hdr"><h1>🔍 WYNIKI</h1><small>"{q}"</small></div>'''
+    html = f'''<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>search</span> WYNIKI</h1><small>"{q}"</small></div>'''
     
     for r in results:
         img = r['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
@@ -2430,13 +2430,13 @@ def backup_page():
     
     html = '''
     <div class="hdr">
-        <h1>💾 BACKUP & PRZYWRACANIE</h1>
+        <h1><span class=material-symbols-outlined style=font-size:1rem>save</span> BACKUP & PRZYWRACANIE</h1>
         <small>Zarządzanie kopiami zapasowymi bazy danych</small>
     </div>
     
     <div class="card" style="padding:20px;margin-bottom:15px;background:rgba(190,238,0,0.1);border:2px solid #beee00">
         <div style="display:flex;align-items:center;gap:15px">
-            <div style="font-size:2.5rem">💾</div>
+            <div style="font-size:2.5rem"><span class=material-symbols-outlined style=font-size:1rem>save</span></div>
             <div style="flex:1">
                 <div style="font-weight:600;font-size:1.1rem;margin-bottom:5px">Automatyczne backupy</div>
                 <div style="font-size:0.9rem;opacity:0.8">System tworzy backup bazy co godzinę automatycznie</div>
@@ -2447,13 +2447,13 @@ def backup_page():
     
     <div style="display:flex;gap:10px;margin-bottom:20px">
         <button onclick="createBackup()" class="btn btn-ok" style="flex:1">
-            💾 Utwórz backup teraz
+            <span class=material-symbols-outlined style=font-size:1rem>save</span> Utwórz backup teraz
         </button>
     </div>
     
     <!-- WGRYWANIE ZEWNĘTRZNEGO BACKUPU -->
     <div class="card" style="padding:20px;margin-bottom:20px;background:rgba(249,115,22,0.1);border:2px solid #f97316">
-        <div style="font-weight:600;font-size:1.1rem;margin-bottom:10px;color:#f97316">📤 Wgraj zewnętrzny backup</div>
+        <div style="font-weight:600;font-size:1.1rem;margin-bottom:10px;color:#f97316"><span class=material-symbols-outlined style=font-size:1rem>upload</span> Wgraj zewnętrzny backup</div>
         <div style="font-size:0.85rem;color:#94a3b8;margin-bottom:15px">
             Możesz wgrać stary plik bazy danych (.db) z komputera
         </div>
@@ -2467,19 +2467,19 @@ def backup_page():
                     </div>
                 </div>
                 <button type="submit" class="btn" style="background:#f97316;padding:12px 20px" id="uploadBtn" disabled>
-                    ⬆️ Wgraj
+                    <span class=material-symbols-outlined style=font-size:1rem>arrow_upward</span> Wgraj
                 </button>
             </div>
         </form>
     </div>
     
-    <div class="section">📋 DOSTĘPNE BACKUPY</div>
+    <div class="section"><span class=material-symbols-outlined style=font-size:1rem>list_alt</span> DOSTĘPNE BACKUPY</div>
     '''
     
     if not backups:
         html += '''
         <div class="card" style="padding:30px;text-align:center">
-            <div style="font-size:3rem;opacity:0.3;margin-bottom:10px">📦</div>
+            <div style="font-size:3rem;opacity:0.3;margin-bottom:10px"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span></div>
             <div style="opacity:0.6">Brak backupów</div>
         </div>
         '''
@@ -2487,7 +2487,7 @@ def backup_page():
         for backup in backups:
             # Weryfikacja backupu
             is_ok, status_msg = verify_backup(backup['filename'])
-            status_icon = "✅" if is_ok else "❌"
+            status_icon = "<span class=material-symbols-outlined style=font-size:1rem>check_circle</span>" if is_ok else "<span class=material-symbols-outlined style=font-size:1rem>cancel</span>"
             status_color = "#beee00" if is_ok else "#ef4444"
             
             html += f'''
@@ -2497,14 +2497,14 @@ def backup_page():
                     <div style="flex:1">
                         <div style="font-weight:600;margin-bottom:3px">{backup['filename']}</div>
                         <div style="font-size:0.85rem;color:var(--text-dim)">
-                            📅 {backup['created_str']} | 
-                            💾 {backup['size_mb']:.2f} MB | 
+                            <span class=material-symbols-outlined style=font-size:1rem>calendar_month</span> {backup['created_str']} | 
+                            <span class=material-symbols-outlined style=font-size:1rem>save</span> {backup['size_mb']:.2f} MB | 
                             <span style="color:{status_color}">{status_msg}</span>
                         </div>
                     </div>
                     <div style="display:flex;gap:8px">
                         <button onclick="restoreBackup('{backup['filename']}')" class="btn" style="background:var(--purple);padding:8px 15px;font-size:0.85rem">
-                            ↩️ Przywróć
+                            <span class=material-symbols-outlined style=font-size:1rem>undo</span> Przywróć
                         </button>
                     </div>
                 </div>
@@ -2539,7 +2539,7 @@ def backup_page():
             return false;
         }
         document.getElementById('uploadBtn').disabled = true;
-        document.getElementById('uploadBtn').innerHTML = '⏳ Wgrywanie...';
+        document.getElementById('uploadBtn').innerHTML = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Wgrywanie...';
     };
     
     function createBackup() {
@@ -2607,14 +2607,14 @@ def backup_upload():
     import sqlite3
     
     if 'backup_file' not in request.files:
-        return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/backup" class="btn btn-p">← Powrót</a>')
+        return render('<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/backup" class="btn btn-p">← Powrót</a>')
     
     file = request.files['backup_file']
     if file.filename == '':
-        return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/backup" class="btn btn-p">← Powrót</a>')
+        return render('<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/backup" class="btn btn-p">← Powrót</a>')
     
     if not file.filename.lower().endswith('.db'):
-        return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Plik musi mieć rozszerzenie .db</div><a href="/magazyn/backup" class="btn btn-p">← Powrót</a>')
+        return render('<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">Plik musi mieć rozszerzenie .db</div><a href="/magazyn/backup" class="btn btn-p">← Powrót</a>')
     
     try:
         # Ścieżki
@@ -2645,24 +2645,24 @@ def backup_upload():
             
             if 'produkty' not in table_names:
                 os.remove(backup_path)
-                return render(f'<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Plik nie zawiera tabeli produkty - to nie jest baza {get_config_cached("brand_name", "Akces Hub")}</div><a href="/magazyn/backup" class="btn btn-p">← Powrót</a>')
+                return render(f'<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">Plik nie zawiera tabeli produkty - to nie jest baza {get_config_cached("brand_name", "Akces Hub")}</div><a href="/magazyn/backup" class="btn btn-p">← Powrót</a>')
             
         except sqlite3.DatabaseError as e:
             os.remove(backup_path)
-            return render(f'<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Plik nie jest poprawną bazą SQLite: {str(e)}</div><a href="/magazyn/backup" class="btn btn-p">← Powrót</a>')
+            return render(f'<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">Plik nie jest poprawną bazą SQLite: {str(e)}</div><a href="/magazyn/backup" class="btn btn-p">← Powrót</a>')
         
         # Rozmiar pliku
         size_mb = os.path.getsize(backup_path) / 1024 / 1024
         
         html = f'''
-        <div class="hdr"><h1>✅ BACKUP WGRANY</h1></div>
+        <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> BACKUP WGRANY</h1></div>
         
         <div class="alert alert-ok" style="margin-bottom:15px">
             Plik został dodany do listy backupów!
         </div>
         
         <div class="card" style="padding:20px;text-align:center">
-            <div style="font-size:3rem;margin-bottom:10px">📦</div>
+            <div style="font-size:3rem;margin-bottom:10px"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span></div>
             <div style="font-weight:600;margin-bottom:5px">{backup_filename}</div>
             <div style="font-size:1.3rem;color:#beee00">{count} produktów</div>
             <div style="font-size:0.85rem;color:#64748b">{size_mb:.2f} MB</div>
@@ -2670,17 +2670,17 @@ def backup_upload():
         
         <div class="card" style="padding:15px;margin-top:15px;background:rgba(249,115,22,0.1);border:1px solid #f97316">
             <div style="font-size:0.9rem;color:#f97316">
-                ⚠️ Aby aktywować ten backup, kliknij <strong>"↩️ Przywróć"</strong> przy nim na liście backupów
+                <span class=material-symbols-outlined style=font-size:1rem>warning</span> Aby aktywować ten backup, kliknij <strong>"<span class=material-symbols-outlined style=font-size:1rem>undo</span> Przywróć"</strong> przy nim na liście backupów
             </div>
         </div>
         
-        <a href="/magazyn/backup" class="btn btn-ok" style="margin-top:20px">💾 Przejdź do listy backupów</a>
+        <a href="/magazyn/backup" class="btn btn-ok" style="margin-top:20px"><span class=material-symbols-outlined style=font-size:1rem>save</span> Przejdź do listy backupów</a>
         <a href="/magazyn/backup" class="back">← Powrót</a>
         '''
         return render(html)
         
     except Exception as e:
-        return render(f'<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">{str(e)}</div><a href="/magazyn/backup" class="btn btn-p">← Powrót</a>')
+        return render(f'<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">{str(e)}</div><a href="/magazyn/backup" class="btn btn-p">← Powrót</a>')
 
 @magazynier_bp.route('/statystyki')
 def statystyki():
@@ -3017,7 +3017,7 @@ def statystyki():
         ])
         histogram_html = (
             f'<canvas id="chartCzasSprzedazy" height="150" style="margin-bottom:15px"></canvas>'
-            f'<div style="font-size:0.75rem;color:#beee00;font-weight:600;margin-bottom:8px">⚡ Najszybciej sprzedane (od wystawienia)</div>'
+            f'<div style="font-size:0.75rem;color:#beee00;font-weight:600;margin-bottom:8px"><span class=material-symbols-outlined style=font-size:1rem>bolt</span> Najszybciej sprzedane (od wystawienia)</div>'
             f'{najszybciej_rows}'
         )
 
@@ -3094,10 +3094,10 @@ def statystyki():
         status_text = "🔥🔥🔥 MEGA SYPIE!"
         status_color = "#beee00"
     elif today_sales >= 3000:
-        status_text = "💸 SYPIE!"
+        status_text = "<span class=material-symbols-outlined style=font-size:1rem>money_off</span> SYPIE!"
         status_color = "#beee00"
     elif today_sales >= 1500:
-        status_text = "📈 Całkiem nieźle"
+        status_text = "<span class=material-symbols-outlined style=font-size:1rem>trending_up</span> Całkiem nieźle"
         status_color = "#eab308"
     elif today_sales >= 500:
         status_text = "🤏 Sypie trochę"
@@ -3107,9 +3107,9 @@ def statystyki():
         status_color = "#ef4444"
     
     html = f'''
-    <div class="hdr"><h1>📊 STATYSTYKI</h1><small>Sprzedaż i przychody (tylko opłacone)</small></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> STATYSTYKI</h1><small>Sprzedaż i przychody (tylko opłacone)</small></div>
     <div style="text-align:right;margin-bottom:10px">
-        <a href="/sync-historyczny" style="font-size:0.75rem;color:#64748b;text-decoration:none;background:#1e1e2e;padding:5px 10px;border-radius:6px">🔄 Sync historyczny (poprzednie miesiące)</a>
+        <a href="/sync-historyczny" style="font-size:0.75rem;color:#64748b;text-decoration:none;background:#1e1e2e;padding:5px 10px;border-radius:6px"><span class=material-symbols-outlined style=font-size:1rem>sync</span> Sync historyczny (poprzednie miesiące)</a>
     </div>
     
     <!-- STATUS SYPIE - DZISIAJ -->
@@ -3128,11 +3128,11 @@ def statystyki():
         </div>
         <div class="stat">
             <div class="stat-v green">{przychod_total:.0f} zł</div>
-            <div class="stat-l">Przychód ({current_year}){f' (w tym 🤝 {pryw_total_rok:.0f} zł prywatne)' if pryw_total_rok > 0 else ''}</div>
+            <div class="stat-l">Przychód ({current_year}){f' (w tym <span class=material-symbols-outlined style=font-size:1rem>handshake</span> {pryw_total_rok:.0f} zł prywatne)' if pryw_total_rok > 0 else ''}</div>
         </div>
         <div class="stat">
             <div class="stat-v" style="color:#f43f5e">-{koszty_total_lacznie:.0f} zł</div>
-            <div class="stat-l">Koszty ({current_year}) <span style="font-size:0.65rem;color:#64748b">(w tym 📦 {palety_total_rok:.0f} zł palety)</span> <a href="/magazyn/koszty" style="color:#64748b;font-size:0.7rem;margin-left:4px">+dodaj</a></div>
+            <div class="stat-l">Koszty ({current_year}) <span style="font-size:0.65rem;color:#64748b">(w tym <span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> {palety_total_rok:.0f} zł palety)</span> <a href="/magazyn/koszty" style="color:#64748b;font-size:0.7rem;margin-left:4px">+dodaj</a></div>
         </div>
         <div class="stat">
             <div class="stat-v" style="color:{zysk_kolor}">{zysk_rok:.0f} zł</div>
@@ -3178,10 +3178,10 @@ def statystyki():
             </div>
         </div>
         <div style="margin-top:12px;padding:12px;background:#0a1f12;border:2px solid {zysk_na_reke_kolor}55;border-radius:10px;display:flex;justify-content:space-between;align-items:center">
-            <div style="color:#94a3b8;font-size:0.9rem">💰 Zysk na rękę (po VAT i podatku)</div>
+            <div style="color:#94a3b8;font-size:0.9rem"><span class=material-symbols-outlined style=font-size:1rem>paid</span> Zysk na rękę (po VAT i podatku)</div>
             <div style="font-size:1.4rem;font-weight:700;color:{zysk_na_reke_kolor}">{zysk_na_reke:.0f} zł</div>
         </div>
-        <div style="font-size:0.7rem;color:#475569;margin-top:8px;text-align:center">⚠️ Szacunkowe — skonsultuj z księgową. Nie uwzględnia ZUS, ulg i odpisów.</div>
+        <div style="font-size:0.7rem;color:#475569;margin-top:8px;text-align:center"><span class=material-symbols-outlined style=font-size:1rem>warning</span> Szacunkowe — skonsultuj z księgową. Nie uwzględnia ZUS, ulg i odpisów.</div>
     </div>
     '''
 
@@ -3203,7 +3203,7 @@ def statystyki():
         top_names = {p['nazwa'] for p in top3}
         # Najgorsze - wyklucz te które już są w najlepszych
         worst3 = [p for p in sorted_asc if p['nazwa'] not in top_names][:top_n]
-        worst_label = '📉 Najgorsze' if worst3 and worst3[0]['roi'] < 0 else '📊 Najmniej rentowne'
+        worst_label = '<span class=material-symbols-outlined style=font-size:1rem>trending_down</span> Najgorsze' if worst3 and worst3[0]['roi'] < 0 else '<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Najmniej rentowne'
 
         def _roi_row(p):
             kol = '#beee00' if p['roi'] >= 0 else '#ef4444'
@@ -3223,7 +3223,7 @@ def statystyki():
         worst_html = ''.join(_roi_row(p) for p in worst3)
 
         html_roi = f'''<div class="card" style="padding:15px;margin-bottom:15px;border:1px solid #beee0033">
-        <div style="font-weight:700;margin-bottom:12px;color:#beee00">📦 Rentowność palet ({current_year})</div>
+        <div style="font-weight:700;margin-bottom:12px;color:#beee00"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Rentowność palet ({current_year})</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
             <div style="background:#0a1f12;border:1px solid {roi_total_kolor}44;border-radius:10px;padding:12px;text-align:center">
                 <div style="font-size:1.6rem;font-weight:700;color:{roi_total_kolor}">{roi_total:.0f}%</div>
@@ -3248,7 +3248,7 @@ def statystyki():
                 {worst_html}
             </div>
         </div>
-        <div style="font-size:0.7rem;color:#475569;margin-top:10px;text-align:center">ROI = (Przychód − Koszt palety) ÷ Koszt × 100%  |  <a href="/analityka" style="color:#64748b">📊 Szczegółowa analityka →</a></div>
+        <div style="font-size:0.7rem;color:#475569;margin-top:10px;text-align:center">ROI = (Przychód − Koszt palety) ÷ Koszt × 100%  |  <a href="/analityka" style="color:#64748b"><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Szczegółowa analityka →</a></div>
     </div>'''
 
     html += html_roi
@@ -3265,7 +3265,7 @@ def statystyki():
     <!-- Wykres miesięczny z drill-down -->
     <div class="card" style="padding:15px;margin-bottom:15px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-            <div id="chartTitle" style="font-weight:600">📅 Sprzedaż miesięcznie ({current_year})</div>
+            <div id="chartTitle" style="font-weight:600"><span class=material-symbols-outlined style=font-size:1rem>calendar_month</span> Sprzedaż miesięcznie ({current_year})</div>
             <button id="btnBack" onclick="showMonthlyView()" style="display:none;padding:5px 10px;background:#8ff5ff;border:none;border-radius:5px;color:#fff;cursor:pointer">← Miesiące</button>
         </div>
         <div style="font-size:0.75rem;color:#64748b;margin-bottom:10px">💡 Kliknij na słupek miesiąca aby zobaczyć rozkład dzienny</div>
@@ -3275,13 +3275,13 @@ def statystyki():
     
     <!-- Wykres roczny -->
     <div class="card" style="padding:15px;margin-bottom:15px">
-        <div style="font-weight:600;margin-bottom:10px">📈 Sprzedaż rocznie</div>
+        <div style="font-weight:600;margin-bottom:10px"><span class=material-symbols-outlined style=font-size:1rem>trending_up</span> Sprzedaż rocznie</div>
         <canvas id="chartLata" height="150"></canvas>
     </div>
 
     <!-- Palety kupione per miesiąc -->
     <div class="card" style="padding:15px;margin-bottom:15px">
-        <div style="font-weight:600;margin-bottom:10px">📦 Palety kupione ({current_year}) — łącznie {palety_total_cnt_rok} szt.</div>
+        <div style="font-weight:600;margin-bottom:10px"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Palety kupione ({current_year}) — łącznie {palety_total_cnt_rok} szt.</div>
         <div style="display:grid;grid-template-columns:repeat(6, 1fr);gap:6px">
             {palety_cells}
         </div>
@@ -3307,7 +3307,7 @@ def statystyki():
         html += '<div class="alert alert-warn">Brak danych o sprzedaży</div>'
     
     # Top dostawcy
-    html += '<div class="section">🚚 TOP DOSTAWCY</div>'
+    html += '<div class="section"><span class=material-symbols-outlined style=font-size:1rem>local_shipping</span> TOP DOSTAWCY</div>'
     
     if top_dostawcy:
         for i, d in enumerate(top_dostawcy):
@@ -3463,7 +3463,7 @@ def statystyki():
                                 const cntPalet = danePaletyCnt[i];
                                 const lines = [cnt + ' zamowien'];
                                 if (pryw > 0) lines.push('+ ' + pryw.toFixed(0) + ' zl prywatna');
-                                if (zakupPalet > 0) lines.push('🛒 ' + cntPalet + ' palet kupiono za ' + zakupPalet.toFixed(0) + ' zl');
+                                if (zakupPalet > 0) lines.push('<span class=material-symbols-outlined style=font-size:1rem>shopping_cart</span> ' + cntPalet + ' palet kupiono za ' + zakupPalet.toFixed(0) + ' zl');
                                 if (palety > 0) lines.push('- ' + palety.toFixed(0) + ' zl COGS (sprzedanych)');
                                 if (koszty > palety) lines.push('- ' + (koszty-palety).toFixed(0) + ' zl inne koszty');
                                 lines.push('Zysk: ' + zysk.toFixed(0) + ' zl');
@@ -3527,7 +3527,7 @@ def statystyki():
         chartMiesiace.data.datasets[3].hidden = false;
         chartMiesiace.update();
         
-        document.getElementById('chartTitle').textContent = '📅 ' + nazwyMiesiecy[month-1] + ' {current_year} - rozkład dzienny';
+        document.getElementById('chartTitle').textContent = '<span class=material-symbols-outlined style=font-size:1rem>calendar_month</span> ' + nazwyMiesiecy[month-1] + ' {current_year} - rozkład dzienny';
         document.getElementById('btnBack').style.display = 'inline-block';
         
         // Podsumowanie miesiąca
@@ -3599,7 +3599,7 @@ def statystyki():
         chartMiesiace.data.datasets[3].spanGaps = false;
         chartMiesiace.update();
         
-        document.getElementById('chartTitle').textContent = '📅 Sprzedaż miesięcznie ({current_year})';
+        document.getElementById('chartTitle').textContent = '<span class=material-symbols-outlined style=font-size:1rem>calendar_month</span> Sprzedaż miesięcznie ({current_year})';
         document.getElementById('btnBack').style.display = 'none';
         document.getElementById('monthSummary').style.display = 'none';
         document.getElementById('monthSummary').innerHTML = '';
@@ -3705,7 +3705,7 @@ def palety():
         try:
             conn.execute('ALTER TABLE palety ADD COLUMN dostarczona INTEGER DEFAULT 0')
             conn.commit()
-            print('✅ Dodano kolumnę dostarczona')
+            print('<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Dodano kolumnę dostarczona')
         except:
             pass
 
@@ -3799,7 +3799,7 @@ def palety():
         zakup_brutto = p['cena_zakupu'] or 0
         
         dostarczona = dostarczona_map.get(p['id'], 0)
-        dostarczona_label = '✅ Dostarczona' if dostarczona else '🚚 W drodze'
+        dostarczona_label = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Dostarczona' if dostarczona else '<span class=material-symbols-outlined style=font-size:1rem>local_shipping</span> W drodze'
         dostarczona_color = '#beee00' if dostarczona else '#f59e0b'
         is_box = p['typ'] == 'box'
         bar_color = '#ff6b9b' if not dostarczona else '#beee00'
@@ -3993,19 +3993,19 @@ def palety():
         var cenaZakupu = parseFloat(document.getElementById('boxPaletyCenaZakupu').value) || 0;
         if (!nazwa) { alert('Podaj nazwę boxa'); return; }
         var btn = document.getElementById('boxPaletySaveBtn');
-        btn.disabled = true; btn.textContent = '⏳ Tworzę...';
+        btn.disabled = true; btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Tworzę...';
         fetch('/magazyn/api/zgrupuj-palety-box', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({paleta_ids: ids, nazwa: nazwa, cena_sprzedazy: cena, cena_zakupu: cenaZakupu})
         }).then(function(r){return r.json()}).then(function(d) {
             if (d.ok) {
-                btn.textContent = '✅ Utworzono!';
+                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Utworzono!';
                 setTimeout(function(){ window.location.href = '/palety/' + d.box_id; }, 800);
             } else {
-                btn.textContent = '❌ ' + (d.error||'Błąd'); btn.disabled = false;
+                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + (d.error||'Błąd'); btn.disabled = false;
             }
-        }).catch(function(e){ btn.textContent = '❌ ' + e.message; btn.disabled = false; });
+        }).catch(function(e){ btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + e.message; btn.disabled = false; });
     }
     </script>
 
@@ -4013,7 +4013,7 @@ def palety():
     <div id="modalBoxPalety" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center">
         <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border-radius:14px;padding:25px;max-width:450px;width:90%;max-height:80vh;overflow-y:auto;border:2px solid #f59e0b">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-                <h3 style="margin:0;color:#f59e0b">📫 Zgrupuj w Box</h3>
+                <h3 style="margin:0;color:#f59e0b"><span class=material-symbols-outlined style=font-size:1rem>inbox</span> Zgrupuj w Box</h3>
                 <button onclick="document.getElementById('modalBoxPalety').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer">&times;</button>
             </div>
             <div style="margin-bottom:12px;padding:10px;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px">
@@ -4027,16 +4027,16 @@ def palety():
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
                 <div>
-                    <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">💰 Cena zakupu (zł)</label>
+                    <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px"><span class=material-symbols-outlined style=font-size:1rem>paid</span> Cena zakupu (zł)</label>
                     <input type="number" id="boxPaletyCenaZakupu" placeholder="Ile zapłaciłeś" step="0.01" style="width:100%;padding:10px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#e2e8f0">
                 </div>
                 <div>
-                    <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">🛒 Cena sprzedaży (zł)</label>
+                    <label style="display:block;color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px"><span class=material-symbols-outlined style=font-size:1rem>shopping_cart</span> Cena sprzedaży (zł)</label>
                     <input type="number" id="boxPaletyCena" placeholder="Cena na Allegro" step="0.01" style="width:100%;padding:10px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#e2e8f0">
                 </div>
             </div>
             <button id="boxPaletySaveBtn" onclick="zapiszBoxPalety()" style="width:100%;padding:12px;background:#f59e0b;border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer;font-size:1rem">
-                📫 Utwórz Box
+                <span class=material-symbols-outlined style=font-size:1rem>inbox</span> Utwórz Box
             </button>
         </div>
     </div>'''
@@ -4093,7 +4093,7 @@ def api_palety_usun():
             # Usuń paletę
             conn.execute('DELETE FROM palety WHERE id = ?', (pid,))
         conn.commit()
-        print(f"🗑️ Usunięto {len(ids)} palet z produktami")
+        print(f"<span class=material-symbols-outlined style=font-size:1rem>delete</span> Usunięto {len(ids)} palet z produktami")
         return jsonify({'ok': True, 'deleted': len(ids)})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
@@ -4192,34 +4192,34 @@ def paleta_detail_by_id(paleta_id):
     sztuki_display = ilosc_sztuk_paleta if ilosc_sztuk_paleta > 0 else (stats['items'] or 0)
     
     dostarczona_val = paleta_row['dostarczona'] if paleta_row and 'dostarczona' in paleta_row.keys() else 0
-    dostarczona_label = '✅ Dostarczona' if dostarczona_val else '🚚 W drodze'
+    dostarczona_label = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Dostarczona' if dostarczona_val else '<span class=material-symbols-outlined style=font-size:1rem>local_shipping</span> W drodze'
     dostarczona_color = '#beee00' if dostarczona_val else '#f59e0b'
     paleta_dostawca = paleta_row['dostawca'] if 'dostawca' in paleta_row.keys() else ''
     paleta_regal = paleta_row['regal'] if 'regal' in paleta_row.keys() else ''
     dostawca_badge = f' • <span class="dostawca-name" style="color:#8ff5ff">{paleta_dostawca}</span>' if paleta_dostawca else ''
-    regal_badge = f' • 📍 {paleta_regal}' if paleta_regal else ''
+    regal_badge = f' • <span class=material-symbols-outlined style=font-size:1rem>pin_drop</span> {paleta_regal}' if paleta_regal else ''
     html = f'''<div class="hdr" style="display:flex;justify-content:space-between;align-items:center">
-        <div><h1>📦 {nazwa_palety}</h1><small>{len(products)} prod. ({sztuki_display} szt.){dostawca_badge}{regal_badge}</small></div>
+        <div><h1><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> {nazwa_palety}</h1><small>{len(products)} prod. ({sztuki_display} szt.){dostawca_badge}{regal_badge}</small></div>
         <button id="btnDostarczona" onclick="toggleDostarczona({paleta_id}, this)"
             data-val="{dostarczona_val}"
             style="padding:8px 16px;border:2px solid {dostarczona_color};background:{dostarczona_color}22;color:{dostarczona_color};border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer">
             {dostarczona_label}
         </button>
         <a href="/magazyn/przyjecie/{paleta_id}" style="padding:8px 16px;border:2px solid #7c3aed;background:#7c3aed22;color:#7c3aed;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;text-decoration:none">
-            📋 Przyjęcie
+            <span class=material-symbols-outlined style=font-size:1rem>list_alt</span> Przyjęcie
         </a>
         <a href="/magazyn/etykiety?paleta_id={paleta_id}" style="padding:8px 16px;border:2px solid #ff6b9b;background:#ff6b9b22;color:#ff6b9b;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;text-decoration:none">
-            🏷️ Etykiety
+            <span class=material-symbols-outlined style=font-size:1rem>label</span> Etykiety
         </a>
         <button onclick="document.getElementById('editPaletaModal').style.display='flex'" style="padding:8px 16px;border:2px solid #f59e0b;background:#f59e0b22;color:#f59e0b;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer">
-            ✏️ Edytuj
+            <span class=material-symbols-outlined style=font-size:1rem>edit</span> Edytuj
         </button>
     </div>
 
     <!-- Modal edycji palety -->
     <div id="editPaletaModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.style.display='none'">
         <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;width:100%;max-width:450px">
-            <h3 style="margin:0 0 16px;font-size:1.1rem">✏️ Edytuj paletę #{paleta_id}</h3>
+            <h3 style="margin:0 0 16px;font-size:1.1rem"><span class=material-symbols-outlined style=font-size:1rem>edit</span> Edytuj paletę #{paleta_id}</h3>
             <form id="editPaletaForm" onsubmit="savePaleta(event)">
                 <div style="margin-bottom:12px">
                     <label style="font-size:0.8rem;color:#64748b;display:block;margin-bottom:4px">Nazwa</label>
@@ -4227,7 +4227,7 @@ def paleta_detail_by_id(paleta_id):
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
                     <div>
-                        <label style="font-size:0.8rem;color:#64748b;display:block;margin-bottom:4px">💰 Cena zakupu brutto (zł)</label>
+                        <label style="font-size:0.8rem;color:#64748b;display:block;margin-bottom:4px"><span class=material-symbols-outlined style=font-size:1rem>paid</span> Cena zakupu brutto (zł)</label>
                         <input type="number" step="0.01" id="ep_cena" value="{brutto:.2f}" style="width:100%;padding:10px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e2e8f0;font-size:0.9rem">
                     </div>
                     <div>
@@ -4241,7 +4241,7 @@ def paleta_detail_by_id(paleta_id):
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                     <button type="button" onclick="document.getElementById('editPaletaModal').style.display='none'" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:10px;color:#94a3b8;cursor:pointer;font-size:0.9rem">Anuluj</button>
-                    <button type="submit" style="padding:12px;background:#f59e0b;border:none;border-radius:10px;color:#000;font-weight:700;cursor:pointer;font-size:0.9rem">💾 Zapisz</button>
+                    <button type="submit" style="padding:12px;background:#f59e0b;border:none;border-radius:10px;color:#000;font-weight:700;cursor:pointer;font-size:0.9rem"><span class=material-symbols-outlined style=font-size:1rem>save</span> Zapisz</button>
                 </div>
             </form>
         </div>
@@ -4275,12 +4275,12 @@ def paleta_detail_by_id(paleta_id):
             if (d.ok) {{
                 btn.dataset.val = newVal;
                 if (newVal == 1) {{
-                    btn.textContent = '✅ Dostarczona';
+                    btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Dostarczona';
                     btn.style.borderColor = '#beee00';
                     btn.style.color = '#beee00';
                     btn.style.background = '#beee0022';
                 }} else {{
-                    btn.textContent = '🚚 W drodze';
+                    btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>local_shipping</span> W drodze';
                     btn.style.borderColor = '#f59e0b';
                     btn.style.color = '#f59e0b';
                     btn.style.background = '#f59e0b22';
@@ -4316,9 +4316,9 @@ def paleta_detail_by_id(paleta_id):
     
     # Przyciski akcji na palecie
     html += '<div style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap">'
-    html += f'<a href="/palety/{paleta_id}/mass-edit" class="btn" style="background:var(--purple);flex:1">🛒 Wystaw bezpośrednio</a>'
-    html += f'<a href="/magazyn/paleta-id/{paleta_id}/to-paletomat" class="btn btn-ok" style="flex:1">🔄 PALETOMAT (scrapuj)</a>'
-    html += f'<button onclick="autoWycenaPaleta({paleta_id})" class="btn" style="background:#f59e0b;flex:1">💰 Auto-wycena</button>'
+    html += f'<a href="/palety/{paleta_id}/mass-edit" class="btn" style="background:var(--purple);flex:1"><span class=material-symbols-outlined style=font-size:1rem>shopping_cart</span> Wystaw bezpośrednio</a>'
+    html += f'<a href="/magazyn/paleta-id/{paleta_id}/to-paletomat" class="btn btn-ok" style="flex:1"><span class=material-symbols-outlined style=font-size:1rem>sync</span> PALETOMAT (scrapuj)</a>'
+    html += f'<button onclick="autoWycenaPaleta({paleta_id})" class="btn" style="background:#f59e0b;flex:1"><span class=material-symbols-outlined style=font-size:1rem>paid</span> Auto-wycena</button>'
     html += '</div>'
     
     # Script dla Auto-wyceny (streamowane)
@@ -4327,7 +4327,7 @@ def paleta_detail_by_id(paleta_id):
     async function autoWycenaPaleta(paletaId) {
         const btn = event.target;
         btn.disabled = true;
-        btn.innerHTML = '⏳ Pobieranie cen... 0%';
+        btn.innerHTML = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Pobieranie cen... 0%';
 
         // Stwórz progress div
         let progressDiv = document.getElementById('autowycena-progress');
@@ -4338,7 +4338,7 @@ def paleta_detail_by_id(paleta_id):
             btn.parentNode.after(progressDiv);
         }
         progressDiv.style.display = 'block';
-        progressDiv.innerHTML = '<b>🔄 Auto-wycena startuje...</b><br>';
+        progressDiv.innerHTML = '<b><span class=material-symbols-outlined style=font-size:1rem>sync</span> Auto-wycena startuje...</b><br>';
 
         try {
             const resp = await fetch('/magazyn/api/autowycena-stream/paleta/' + paletaId, {method: 'POST'});
@@ -4361,30 +4361,30 @@ def paleta_detail_by_id(paleta_id):
                         const ev = JSON.parse(line.slice(6));
                         if (ev.type === 'progress') {
                             const pct = Math.round(ev.current / ev.total * 100);
-                            btn.innerHTML = '⏳ ' + pct + '% (' + ev.current + '/' + ev.total + ')';
+                            btn.innerHTML = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> ' + pct + '% (' + ev.current + '/' + ev.total + ')';
                             let color = ev.source === 'amazon' ? '#10b981' : ev.source === 'estimate' ? '#f59e0b' : '#ef4444';
                             progressDiv.innerHTML += '<span style="color:' + color + '">• ' + ev.name + ' → ' + (ev.price ? ev.price + ' zł' : 'brak ceny') + ' [' + (ev.source||'—') + ']</span><br>';
                             progressDiv.scrollTop = progressDiv.scrollHeight;
                         } else if (ev.type === 'done') {
                             stats = ev;
                         } else if (ev.type === 'error') {
-                            progressDiv.innerHTML += '<span style="color:#ef4444">❌ ' + ev.message + '</span><br>';
+                            progressDiv.innerHTML += '<span style="color:#ef4444"><span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + ev.message + '</span><br>';
                         }
                     } catch(e) {}
                 }
             }
 
-            progressDiv.innerHTML += '<br><b style="color:#10b981">✅ Gotowe! Wycenione: ' + stats.updated + '/' + stats.total + ', Tytuły: ' + stats.titles_optimized + ', Błędy: ' + stats.errors + '</b>';
+            progressDiv.innerHTML += '<br><b style="color:#10b981"><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Gotowe! Wycenione: ' + stats.updated + '/' + stats.total + ', Tytuły: ' + stats.titles_optimized + ', Błędy: ' + stats.errors + '</b>';
 
             if (stats.updated > 0) {
                 setTimeout(() => location.reload(), 2000);
             }
         } catch (e) {
-            progressDiv.innerHTML += '<br><b style="color:#ef4444">❌ Błąd: ' + e.message + '</b>';
+            progressDiv.innerHTML += '<br><b style="color:#ef4444"><span class=material-symbols-outlined style=font-size:1rem>cancel</span> Błąd: ' + e.message + '</b>';
         }
 
         btn.disabled = false;
-        btn.innerHTML = '💰 Auto-wycena';
+        btn.innerHTML = '<span class=material-symbols-outlined style=font-size:1rem>paid</span> Auto-wycena';
     }
     </script>
     '''
@@ -4505,7 +4505,7 @@ def paleta_detail(n):
     
     paleta_encoded = quote(nazwa_palety, safe='')
     
-    html = f'''<div class="hdr"><h1>📦 {nazwa_palety}</h1><small>{len(products)} produktów</small></div>
+    html = f'''<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> {nazwa_palety}</h1><small>{len(products)} produktów</small></div>
     
     <div class="stats" style="margin-bottom:15px">
         <div class="stat">
@@ -4536,10 +4536,10 @@ def paleta_detail(n):
         
         # Masowe wystawianie (stary system - bezpośrednio)
         if paleta_id:
-            html += f'<a href="/palety/{paleta_id}/mass-edit" class="btn" style="background:var(--purple);flex:1">🛒 Wystaw bezpośrednio</a>'
+            html += f'<a href="/palety/{paleta_id}/mass-edit" class="btn" style="background:var(--purple);flex:1"><span class=material-symbols-outlined style=font-size:1rem>shopping_cart</span> Wystaw bezpośrednio</a>'
         
         # NOWE: Przenieś do Paletomat (ze scrapowaniem!)
-        html += f'<a href="/magazyn/paleta/{paleta_encoded}/to-paletomat" class="btn btn-ok" style="flex:1">🔄 PALETOMAT (scrapuj)</a>'
+        html += f'<a href="/magazyn/paleta/{paleta_encoded}/to-paletomat" class="btn btn-ok" style="flex:1"><span class=material-symbols-outlined style=font-size:1rem>sync</span> PALETOMAT (scrapuj)</a>'
         
         html += '</div>'
     
@@ -4565,10 +4565,10 @@ def paleta_detail(n):
         html += f'''
         <div style="margin-top:20px;padding:15px;background:#12121a;border-radius:12px">
             <form action="/magazyn/paleta/{paleta_encoded}/usun" method="POST" onsubmit="return confirm('Na pewno usunąć paletę {nazwa_palety} i wszystkie jej produkty?')">
-                <button type="submit" class="btn btn-err" style="width:100%">🗑️ USUŃ PALETĘ + PRODUKTY</button>
+                <button type="submit" class="btn btn-err" style="width:100%"><span class=material-symbols-outlined style=font-size:1rem>delete</span> USUŃ PALETĘ + PRODUKTY</button>
             </form>
             <form action="/magazyn/paleta/{paleta_encoded}/wyczysc" method="POST" onsubmit="return confirm('Usunąć tylko przypisanie do palety (produkty zostaną)?')" style="margin-top:10px">
-                <button type="submit" class="btn btn-warn" style="width:100%">📤 WYCZYŚĆ PRZYPISANIE</button>
+                <button type="submit" class="btn btn-warn" style="width:100%"><span class=material-symbols-outlined style=font-size:1rem>upload</span> WYCZYŚĆ PRZYPISANIE</button>
             </form>
         </div>
         '''
@@ -4641,17 +4641,17 @@ def paleta_to_paletomat(n):
     # Pokaż komunikat i przekieruj
     from .magazynier import render
     html = f'''
-    <div class="hdr"><h1>✅ PRZENIESIONO DO PALETOMAT</h1></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> PRZENIESIONO DO PALETOMAT</h1></div>
     
     <div class="alert alert-ok">
-        📦 Paleta: {n}<br>
-        ✅ Dodano: {added_count} produktów<br>
-        🔄 Zaktualizowano: {updated_count} produktów<br>
+        <span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Paleta: {n}<br>
+        <span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Dodano: {added_count} produktów<br>
+        <span class=material-symbols-outlined style=font-size:1rem>sync</span> Zaktualizowano: {updated_count} produktów<br>
         ⏭️ Pominięto: {skipped_count} produktów
     </div>
     
     <div class="card" style="padding:15px;margin-top:15px">
-        <div style="font-weight:600;margin-bottom:12px">🎯 CO DALEJ?</div>
+        <div style="font-weight:600;margin-bottom:12px"><span class=material-symbols-outlined style=font-size:1rem>target</span> CO DALEJ?</div>
         <div style="color:#64748b;font-size:0.85rem;margin-bottom:15px">
             1. Przejdź do Paletomat → Generator<br>
             2. Zobaczysz swoje produkty<br>
@@ -4659,7 +4659,7 @@ def paleta_to_paletomat(n):
             4. Wystaw masowo z AI opisami!
         </div>
         <a href="/paletomat/generator" class="btn btn-ok" style="width:100%">
-            🚀 OTWÓRZ PALETOMAT GENERATOR
+            <span class=material-symbols-outlined style=font-size:1rem>rocket_launch</span> OTWÓRZ PALETOMAT GENERATOR
         </a>
     </div>
     
@@ -4685,13 +4685,13 @@ def paleta_usun(n):
         if asiny_list:
             placeholders = ','.join(['?' for _ in asiny_list])
             conn.execute('DELETE FROM scraped WHERE asin IN (' + placeholders + ')', asiny_list)  # noqa: B608 - placeholders are only ?
-            print(f"🗑️ Usunięto {len(asiny_list)} produktów ze scraped (Paletomat)")
+            print(f"<span class=material-symbols-outlined style=font-size:1rem>delete</span> Usunięto {len(asiny_list)} produktów ze scraped (Paletomat)")
         
         # Usuń wszystkie produkty z tej palety (Magazynier)
         conn.execute('DELETE FROM produkty WHERE paleta = ?', (n,))
         
         conn.commit()
-        print(f"✅ Usunięto paletę: {n}")
+        print(f"<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Usunięto paletę: {n}")
     
     return redirect('/magazyn/palety')
 
@@ -4735,7 +4735,7 @@ def fetch_images_page():
     
     html = f'''
     <div class="hdr">
-        <h1>📷 POBIERZ ZDJĘCIA</h1>
+        <h1><span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> POBIERZ ZDJĘCIA</h1>
         <small>Automatyczne pobieranie z Amazon</small>
     </div>
     
@@ -4757,7 +4757,7 @@ def fetch_images_page():
     </div>
     
     <div class="card" style="padding:15px;margin-bottom:15px">
-        <div style="font-weight:600;margin-bottom:10px">⚠️ Uwaga</div>
+        <div style="font-weight:600;margin-bottom:10px"><span class=material-symbols-outlined style=font-size:1rem>warning</span> Uwaga</div>
         <div style="font-size:0.85rem;color:#94a3b8">
             Pobieranie zdjęć wymaga scrapowania Amazona.<br>
             • Każdy produkt = ~3-5 sekund<br>
@@ -4768,7 +4768,7 @@ def fetch_images_page():
     
     <div id="progress" style="display:none;margin-bottom:15px">
         <div class="card" style="padding:15px">
-            <div style="font-weight:600;margin-bottom:10px">⏳ Pobieranie w toku...</div>
+            <div style="font-weight:600;margin-bottom:10px"><span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Pobieranie w toku...</div>
             <div id="progress-text" style="font-size:0.85rem;color:#94a3b8">0 / {no_image}</div>
             <div style="background:#1e1e2e;border-radius:6px;height:10px;margin-top:10px;overflow:hidden">
                 <div id="progress-bar" style="background:#beee00;width:0%;height:100%;transition:width 0.3s"></div>
@@ -4778,7 +4778,7 @@ def fetch_images_page():
     </div>
     
     <button onclick="startFetch()" id="start-btn" class="btn btn-ok" style="width:100%;padding:14px;font-size:1rem">
-        📷 POBIERZ ZDJĘCIA ({no_image} produktów)
+        <span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> POBIERZ ZDJĘCIA ({no_image} produktów)
     </button>
     
     <a href="/magazyn" class="back">← Powrót</a>
@@ -4819,7 +4819,7 @@ def fetch_images_page():
             
             if (!data.running) {{
                 running = false;
-                alert('✅ Zakończono! Pobrano ' + data.done + ' zdjęć.');
+                alert('<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Zakończono! Pobrano ' + data.done + ' zdjęć.');
                 location.reload();
                 break;
             }}
@@ -4881,16 +4881,16 @@ def api_fetch_images_start():
                         conn.execute('UPDATE produkty SET zdjecie_url = ? WHERE id = ?', 
                             (result['image_url'], p['id']))
                         conn.commit()
-                        _fetch_images_state['log'].append(f'✅ {asin}: OK')
+                        _fetch_images_state['log'].append(f'<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> {asin}: OK')
                     else:
-                        _fetch_images_state['log'].append(f'⚠️ {asin}: brak zdjęcia')
+                        _fetch_images_state['log'].append(f'<span class=material-symbols-outlined style=font-size:1rem>warning</span> {asin}: brak zdjęcia')
                 except Exception as e:
-                    _fetch_images_state['log'].append(f'❌ {asin}: {str(e)[:30]}')
+                    _fetch_images_state['log'].append(f'<span class=material-symbols-outlined style=font-size:1rem>cancel</span> {asin}: {str(e)[:30]}')
                 
                 _fetch_images_state['done'] += 1
                 
         except Exception as e:
-            _fetch_images_state['log'].append(f'❌ Błąd: {str(e)}')
+            _fetch_images_state['log'].append(f'<span class=material-symbols-outlined style=font-size:1rem>cancel</span> Błąd: {str(e)}')
         finally:
             _fetch_images_state['running'] = False
     
@@ -4920,11 +4920,11 @@ def dostawcy():
     result = conn.execute('''SELECT dostawca, COUNT(*) as cnt, SUM(ilosc) as items 
         FROM produkty GROUP BY dostawca ORDER BY dostawca''').fetchall()
     
-    html = '<div class="hdr"><h1>🚚 DOSTAWCY</h1></div>'
+    html = '<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>local_shipping</span> DOSTAWCY</h1></div>'
     
     for d in result:
         html += f'''<a href="/magazyn/dostawca/{d['dostawca'] or 'brak'}" class="item">
-            <div style="font-size:1.5rem;margin-right:10px">🚚</div>
+            <div style="font-size:1.5rem;margin-right:10px"><span class=material-symbols-outlined style=font-size:1rem>local_shipping</span></div>
             <div class="item-info">
                 <div class="item-name dostawca-name">{d['dostawca'] or 'Nieznany'}</div>
                 <div class="item-meta">{d['cnt']} produktów</div>
@@ -4945,7 +4945,7 @@ def dostawca_detail(n):
         products = conn.execute('SELECT * FROM produkty WHERE dostawca=?', (n,)).fetchall()
         nazwa_dostawcy = n
     
-    html = f'''<div class="hdr"><h1>🚚 {nazwa_dostawcy}</h1><small>{len(products)} produktów</small></div>'''
+    html = f'''<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>local_shipping</span> {nazwa_dostawcy}</h1><small>{len(products)} produktów</small></div>'''
     
     for p in products:
         img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
@@ -4955,7 +4955,7 @@ def dostawca_detail(n):
             <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
             <div class="item-info">
                 <div class="item-name">{p['nazwa'][:30]}...</div>
-                <div class="item-meta">{display_code} | 📦 {p['paleta'] or '—'}</div>
+                <div class="item-meta">{display_code} | <span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> {p['paleta'] or '—'}</div>
             </div>
             <div class="item-qty">{p['ilosc']}</div>
         </a>'''
@@ -5120,20 +5120,20 @@ def import_page():
         palety_options += f'<option value="{p_id}">{label}</option>'
     
     html = f'''
-    <div class="hdr"><h1>📥 IMPORT</h1></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>download</span> IMPORT</h1></div>
     
     <form action="/magazyn/import/preview" method="POST" enctype="multipart/form-data" id="importForm">
         
         <!-- WYBÓR PALETY -->
         <div class="card" style="padding:15px;margin-bottom:15px">
-            <div style="font-weight:600;margin-bottom:10px;color:#f59e0b">📦 Przypisz do palety:</div>
+            <div style="font-weight:600;margin-bottom:10px;color:#f59e0b"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Przypisz do palety:</div>
             <select name="paleta_id" id="paletaSelect" class="form-ctrl" style="width:100%;padding:12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#fff;font-size:1rem" onchange="toggleNewPaleta()">
                 {palety_options}
             </select>
             
             <!-- NOWA PALETA -->
             <div id="newPaletaFields" style="display:none;margin-top:15px;padding:15px;background:#0a0a0f;border-radius:8px;border:1px solid #f59e0b">
-                <div style="font-weight:600;margin-bottom:10px;color:#f59e0b">✨ Nowa paleta:</div>
+                <div style="font-weight:600;margin-bottom:10px;color:#f59e0b"><span class=material-symbols-outlined style=font-size:1rem>auto_awesome</span> Nowa paleta:</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                     <div>
                         <label style="font-size:0.8rem;color:#64748b">Nazwa palety</label>
@@ -5149,15 +5149,15 @@ def import_page():
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
                     <div>
-                        <label style="font-size:0.8rem;color:#64748b">💰 Cena zakupu (aukcja/faktura)</label>
+                        <label style="font-size:0.8rem;color:#64748b"><span class=material-symbols-outlined style=font-size:1rem>paid</span> Cena zakupu (aukcja/faktura)</label>
                         <input type="number" name="new_paleta_cena" class="form-ctrl" placeholder="np. 144.80" step="0.01" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:6px;color:#fff">
-                        <div style="font-size:0.7rem;color:#f59e0b;margin-top:4px">⚠️ NIE cenę produktów z Excela</div>
+                        <div style="font-size:0.7rem;color:#f59e0b;margin-top:4px"><span class=material-symbols-outlined style=font-size:1rem>warning</span> NIE cenę produktów z Excela</div>
                     </div>
                     <div>
                         <label style="font-size:0.8rem;color:#64748b">Typ</label>
                         <select name="new_paleta_typ" class="form-ctrl" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:6px;color:#fff">
-                            <option value="paleta">📦 Paleta</option>
-                            <option value="box">📫 Box</option>
+                            <option value="paleta"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Paleta</option>
+                            <option value="box"><span class=material-symbols-outlined style=font-size:1rem>inbox</span> Box</option>
                         </select>
                     </div>
                 </div>
@@ -5199,11 +5199,11 @@ def import_page():
 def import_preview():
     """Podgląd pliku przed importem"""
     if 'file' not in request.files:
-        return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
+        return render('<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
     
     file = request.files['file']
     if file.filename == '':
-        return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
+        return render('<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
     
     # === OBSŁUGA PALETY ===
     paleta_id = request.form.get('paleta_id', '')
@@ -5370,7 +5370,7 @@ def import_preview():
         # Logi wykrywania (niebieskie)
         detection_logs = ""
         if paleta_dostawca:
-            detection_logs += f'<div style="color:#beee00;padding:4px 0">✅ [INFO] Dostawca: <strong>{paleta_dostawca}</strong></div>'
+            detection_logs += f'<div style="color:#beee00;padding:4px 0"><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> [INFO] Dostawca: <strong>{paleta_dostawca}</strong></div>'
         if detected_ean_col_name:
             detection_logs += f'<div style="color:#8ff5ff;padding:4px 0">ℹ️ [INFO] Wykryto kolumnę EAN: "{detected_ean_col_name}"</div>'
         if detected_asin_col_name and auto_asin != auto_ean:
@@ -5401,12 +5401,12 @@ def import_preview():
         # Info o palecie
         paleta_info = ''
         if paleta_id:
-            paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px">📦 Produkty zostaną przypisane do: <strong>{paleta_nazwa}</strong></div>'
+            paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Produkty zostaną przypisane do: <strong>{paleta_nazwa}</strong></div>'
         else:
-            paleta_info = '<div class="alert" style="background:#64748b22;border:1px solid #64748b;color:#94a3b8;padding:10px;border-radius:8px;margin-bottom:15px">⚠️ Produkty będą bez przypisanej palety (luźne)</div>'
+            paleta_info = '<div class="alert" style="background:#64748b22;border:1px solid #64748b;color:#94a3b8;padding:10px;border-radius:8px;margin-bottom:15px"><span class=material-symbols-outlined style=font-size:1rem>warning</span> Produkty będą bez przypisanej palety (luźne)</div>'
         
         html = f'''
-        <div class="hdr"><h1>📋 PODGLĄD IMPORTU</h1><small>{total_rows} wierszy</small></div>
+        <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>list_alt</span> PODGLĄD IMPORTU</h1><small>{total_rows} wierszy</small></div>
         
         {paleta_info}
         
@@ -5415,7 +5415,7 @@ def import_preview():
         {f'<div class="card" style="padding:10px;font-family:monospace;font-size:0.8rem;background:#0a0a0f">{detection_logs}</div>' if detection_logs else ''}
         
         <div class="card" style="padding:15px">
-            <div style="font-weight:600;margin-bottom:10px">📊 Podgląd danych:</div>
+            <div style="font-weight:600;margin-bottom:10px"><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Podgląd danych:</div>
             {preview_table}
         </div>
         
@@ -5425,7 +5425,7 @@ def import_preview():
             <input type="hidden" name="dostawca" value="{paleta_dostawca}">
             
             <div class="card" style="padding:15px">
-                <div style="font-weight:600;margin-bottom:15px">🔧 Mapowanie kolumn:</div>
+                <div style="font-weight:600;margin-bottom:15px"><span class=material-symbols-outlined style=font-size:1rem>build</span> Mapowanie kolumn:</div>
                 
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                     <div class="form-group">
@@ -5469,7 +5469,7 @@ def import_preview():
                 </div>
             </div>
             
-            <button type="submit" class="btn btn-ok">✅ IMPORTUJ {total_rows} PRODUKTÓW</button>
+            <button type="submit" class="btn btn-ok"><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> IMPORTUJ {total_rows} PRODUKTÓW</button>
         </form>
         
         <a href="/magazyn/import" class="back">← Powrót</a>
@@ -5477,7 +5477,7 @@ def import_preview():
         return render(html)
         
     except Exception as e:
-        return render(f'<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">{str(e)}</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
+        return render(f'<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">{str(e)}</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
 
 @magazynier_bp.route('/import/execute', methods=['POST'])
 def import_execute():
@@ -5498,7 +5498,7 @@ def import_execute():
         conn = get_db()
         row = conn.execute('SELECT nazwa FROM palety WHERE id = ?', (paleta_id,)).fetchone()
         paleta_nazwa = row[0] if row else f'Paleta #{paleta_id}'
-        paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px">📦 Produkty zostaną przypisane do: <strong>{paleta_nazwa}</strong></div>'
+        paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Produkty zostaną przypisane do: <strong>{paleta_nazwa}</strong></div>'
     
     # Mapowanie info
     ean_info = f'EAN=kol.{int(col_ean)+1}' if int(col_ean) >= 0 else 'EAN=brak'
@@ -5506,7 +5506,7 @@ def import_execute():
     
     # NOWE: dodaj col_asin do URL
     return render(f'''
-    <div class="hdr"><h1>📥 IMPORT</h1><small>Krok 2</small></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>download</span> IMPORT</h1><small>Krok 2</small></div>
     
     {paleta_info}
     
@@ -5533,11 +5533,11 @@ def import_execute():
 def import_final():
     """Finalny import z określonymi kolumnami"""
     if 'file' not in request.files:
-        return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
+        return render('<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
     
     file = request.files['file']
     if file.filename == '':
-        return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
+        return render('<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
     
     col_ean = int(request.args.get('col_ean', -1))
     col_asin = int(request.args.get('col_asin', -1))
@@ -5762,7 +5762,7 @@ def import_final():
                 conn.commit()
     
     except Exception as e:
-        return render(f'<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">{str(e)}</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
+        return render(f'<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">{str(e)}</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
     
     # Zaktualizuj liczbę produktów w palecie
     if paleta_id_int and added > 0:
@@ -5777,18 +5777,18 @@ def import_final():
     paleta_info = ''
     if paleta_nazwa:
         dostawca_info = f' ({dostawca})' if dostawca else ''
-        paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px">📦 Przypisano do palety: <strong>{paleta_nazwa}</strong>{dostawca_info}</div>'
+        paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Przypisano do palety: <strong>{paleta_nazwa}</strong>{dostawca_info}</div>'
     
     html = f'''
-    <div class="hdr"><h1>✅ IMPORT ZAKOŃCZONY</h1></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> IMPORT ZAKOŃCZONY</h1></div>
     {paleta_info}
     <div class="alert alert-ok">Zaimportowano {added} produktów</div>
     '''
     if errors:
         html += f'<div class="alert alert-warn">Błędy: {len(errors)}</div>'
     html += '''
-    <a href="/magazyn/import" class="btn btn-p">📥 Importuj więcej</a>
-    <a href="/magazyn" class="btn btn-2">📦 Magazyn</a>
+    <a href="/magazyn/import" class="btn btn-p"><span class=material-symbols-outlined style=font-size:1rem>download</span> Importuj więcej</a>
+    <a href="/magazyn" class="btn btn-2"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Magazyn</a>
     <a href="/magazyn" class="back">← Powrót</a>
     '''
     return render(html)
@@ -5797,11 +5797,11 @@ def import_final():
 def import_upload():
     """Import pliku Excel/CSV"""
     if 'file' not in request.files:
-        return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
+        return render('<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
 
     file = request.files['file']
     if file.filename == '':
-        return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
+        return render('<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
 
     # Pobierz paleta_id z formularza lub query string
     paleta_id = request.form.get('paleta_id', '') or request.args.get('paleta_id', '')
@@ -5837,7 +5837,7 @@ def import_upload():
                     continue
             
             if content is None:
-                return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Nie można odczytać pliku - nieznane kodowanie</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
+                return render('<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nie można odczytać pliku - nieznane kodowanie</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
             
             # Auto-wykryj separator (przecinek lub średnik)
             delimiter = ';' if ';' in content[:500] else ','
@@ -6005,12 +6005,12 @@ def import_upload():
                         pass
                     
             except ImportError:
-                return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Brak biblioteki openpyxl. Zainstaluj: pip install openpyxl</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
+                return render('<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">Brak biblioteki openpyxl. Zainstaluj: pip install openpyxl</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
         else:
-            return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Nieobsługiwany format pliku</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
+            return render('<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nieobsługiwany format pliku</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
     
     except Exception as e:
-        return render(f'<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">{str(e)}</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
+        return render(f'<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">{str(e)}</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
 
     # Zaktualizuj liczbę produktów w palecie
     if paleta_id_int and added > 0:
@@ -6024,18 +6024,18 @@ def import_upload():
     # Info o palecie
     paleta_info = ''
     if paleta_nazwa:
-        paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px">📦 Przypisano do palety: <strong>{paleta_nazwa}</strong></div>'
+        paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Przypisano do palety: <strong>{paleta_nazwa}</strong></div>'
 
     html = f'''
-    <div class="hdr"><h1>✅ IMPORT ZAKOŃCZONY</h1></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> IMPORT ZAKOŃCZONY</h1></div>
     {paleta_info}
     <div class="alert alert-ok">Zaimportowano {added} produktów</div>
     '''
     if errors:
         html += f'<div class="alert alert-warn">Błędy: {len(errors)}</div>'
     html += '''
-    <a href="/magazyn/import" class="btn btn-p">📥 Importuj więcej</a>
-    <a href="/magazyn" class="btn btn-2">📦 Magazyn</a>
+    <a href="/magazyn/import" class="btn btn-p"><span class=material-symbols-outlined style=font-size:1rem>download</span> Importuj więcej</a>
+    <a href="/magazyn" class="btn btn-2"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Magazyn</a>
     <a href="/magazyn" class="back">← Powrót</a>
     '''
     return render(html)
@@ -6052,14 +6052,14 @@ def dodaj():
                 <label>Wpisz EAN / ASIN / SKU</label>
                 <input type="text" name="q" class="form-ctrl" placeholder="np. B0CFQBBT7G" autofocus required>
             </div>
-            <button type="submit" class="btn btn-ok">🔍 SZUKAJ / DODAJ</button>
+            <button type="submit" class="btn btn-ok"><span class=material-symbols-outlined style=font-size:1rem>search</span> SZUKAJ / DODAJ</button>
         </form>
     </div>
     
     <div style="text-align:center;color:#64748b;padding:15px">lub</div>
     
-    <a href="/magazyn/skanuj" class="btn btn-p">📷 SKANUJ KAMERĄ</a>
-    <a href="/magazyn/import" class="btn btn-2" style="margin-top:10px">📥 IMPORT Z PLIKU</a>
+    <a href="/magazyn/skanuj" class="btn btn-p"><span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> SKANUJ KAMERĄ</a>
+    <a href="/magazyn/import" class="btn btn-2" style="margin-top:10px"><span class=material-symbols-outlined style=font-size:1rem>download</span> IMPORT Z PLIKU</a>
     
     <a href="/magazyn" class="back">← Powrót</a>
     '''
@@ -6073,7 +6073,7 @@ def skanuj_kamera():
     
     html = '''
     <div class="hdr">
-        <h1>📷 SKANER</h1>
+        <h1><span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> SKANER</h1>
         <small>Skanuj QR lub kod kreskowy</small>
     </div>
     
@@ -6082,19 +6082,19 @@ def skanuj_kamera():
     </div>
     
     <div id="result" class="card" style="display:none;padding:15px;margin-top:15px">
-        <div style="font-weight:600;margin-bottom:8px">📦 Znaleziono:</div>
+        <div style="font-weight:600;margin-bottom:8px"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Znaleziono:</div>
         <div id="resultText" style="font-size:1.1rem;word-break:break-all"></div>
     </div>
     
     <div id="notFound" class="alert alert-warn" style="display:none;margin-top:15px">
-        ⚠️ Nie znaleziono produktu o tym kodzie
+        <span class=material-symbols-outlined style=font-size:1rem>warning</span> Nie znaleziono produktu o tym kodzie
         <div style="margin-top:10px">
             <a id="addNewLink" href="#" class="btn btn-p" style="display:inline-block;padding:10px 20px">➕ DODAJ NOWY</a>
         </div>
     </div>
     
     <div style="display:flex;gap:10px;margin-top:15px">
-        <button onclick="switchCamera()" class="btn btn-2" style="flex:1">🔄 Zmień kamerę</button>
+        <button onclick="switchCamera()" class="btn btn-2" style="flex:1"><span class=material-symbols-outlined style=font-size:1rem>sync</span> Zmień kamerę</button>
         <button onclick="toggleFlash()" class="btn btn-2" style="flex:1">🔦 Latarka</button>
     </div>
     
@@ -6302,13 +6302,13 @@ def etykiety():
             pass
 
     html = f'''
-    <div class="hdr"><h1>🏷️ ETYKIETY</h1><small>Drukuj etykiety Niimbot z QR kodem</small></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>label</span> ETYKIETY</h1><small>Drukuj etykiety Niimbot z QR kodem</small></div>
 
     <!-- Filtr palety -->
     <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
         <select onchange="window.location='/magazyn/etykiety'+(this.value ? '?paleta_id='+this.value : '')"
             style="flex:1;padding:10px 12px;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e2e8f0;font-size:0.85rem">
-            <option value="">📦 Wszystkie produkty</option>'''
+            <option value=""><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Wszystkie produkty</option>'''
 
     for pal in palety:
         selected = 'selected' if str(pal['id']) == str(paleta_filter) else ''
@@ -6316,13 +6316,13 @@ def etykiety():
 
     html += f'''
         </select>
-        <input type="text" id="searchInput" oninput="filterProducts()" placeholder="🔍 Szukaj..."
+        <input type="text" id="searchInput" oninput="filterProducts()" placeholder="<span class=material-symbols-outlined style=font-size:1rem>search</span> Szukaj..."
             style="width:180px;padding:10px 12px;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e2e8f0;font-size:0.85rem">
     </div>
 
     <!-- Akcje masowe -->
     <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
-        <button onclick="toggleAll(true)" style="padding:6px 12px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:0.8rem;cursor:pointer">☑️ Zaznacz wszystkie</button>
+        <button onclick="toggleAll(true)" style="padding:6px 12px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:0.8rem;cursor:pointer"><span class=material-symbols-outlined style=font-size:1rem>check_box</span> Zaznacz wszystkie</button>
         <button onclick="toggleAll(false)" style="padding:6px 12px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:0.8rem;cursor:pointer">◻️ Odznacz</button>
         <span id="countLabel" style="flex:1;text-align:right;font-size:0.8rem;color:#64748b">0 zaznaczonych</span>
     </div>
@@ -6338,7 +6338,7 @@ def etykiety():
 
     for p in products:
         img_url = p['zdjecie_url'] or ''
-        img_html = f'<img src="{img_url}" style="width:50px;height:50px;object-fit:cover;border-radius:6px;background:#1e1e2e" onerror="this.style.display=\'none\'">' if img_url else '<div style="width:50px;height:50px;background:#1e1e2e;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.2rem">📦</div>'
+        img_html = f'<img src="{img_url}" style="width:50px;height:50px;object-fit:cover;border-radius:6px;background:#1e1e2e" onerror="this.style.display=\'none\'">' if img_url else '<div style="width:50px;height:50px;background:#1e1e2e;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.2rem"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span></div>'
 
         # Stan przyjęcia badge
         try:
@@ -6355,7 +6355,7 @@ def etykiety():
             {img_html}
             <div class="item-info" style="flex:1;min-width:0">
                 <div class="item-name">{p['nazwa'][:40]}{stan_badge}</div>
-                <div class="item-meta">{p['ean'] or 'N/A'} | 📍{p['lokalizacja'] or '—'}</div>
+                <div class="item-meta">{p['ean'] or 'N/A'} | <span class=material-symbols-outlined style=font-size:1rem>pin_drop</span>{p['lokalizacja'] or '—'}</div>
             </div>
             <div class="item-right" style="text-align:right;flex-shrink:0">
                 <div class="item-qty">{p['ilosc']}</div>
@@ -6368,7 +6368,7 @@ def etykiety():
 
     <div style="height:20px"></div>
     <div style="position:sticky;bottom:0;padding:12px 0;background:linear-gradient(transparent 0%, #0a0a0f 25%);z-index:50">
-        <button onclick="drukuj()" class="btn btn-purple" style="width:100%;padding:16px;font-size:1.1rem;font-weight:700;border-radius:12px">📱 DRUKUJ NIIMBOT</button>
+        <button onclick="drukuj()" class="btn btn-purple" style="width:100%;padding:16px;font-size:1.1rem;font-weight:700;border-radius:12px"><span class=material-symbols-outlined style=font-size:1rem>smartphone</span> DRUKUJ NIIMBOT</button>
     </div>
 
     <script>
@@ -6563,7 +6563,7 @@ def etykiety_vretti_pdf(products):
         
     except ImportError as e:
         return render(f'''
-            <div class="hdr"><h1>❌ BŁĄD</h1></div>
+            <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div>
             <div class="alert alert-err">Brak biblioteki: {e}<br><br>
             Zainstaluj: <code>pip install reportlab qrcode pillow</code></div>
             <a href="/magazyn/etykiety" class="back">← Powrót</a>
@@ -6621,28 +6621,28 @@ def etykiety_niimbot_page(products):
     products_json = json.dumps(products)
     
     # Status backendu
-    backend_status = '✅ Gotowe' if BLEAK_AVAILABLE else '❌ Brak biblioteki bleak'
+    backend_status = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Gotowe' if BLEAK_AVAILABLE else '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> Brak biblioteki bleak'
     
     html = f'''
-    <div class="hdr"><h1>🏷️ ETYKIETY NIIMBOT</h1><small>{len(products)} etykiet do druku</small></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>label</span> ETYKIETY NIIMBOT</h1><small>{len(products)} etykiet do druku</small></div>
 
     <!-- Instrukcja -->
     <div class="card" style="background:linear-gradient(135deg,rgba(190,238,0,0.15),rgba(143,245,255,0.15));border:1px solid rgba(190,238,0,0.3);padding:12px;margin-bottom:12px">
         <div style="font-size:0.85rem;color:#e2e8f0;line-height:1.5">
-            Kliknij 🖨️ → pobierze PNG → otworz w apce Niimbot
+            Kliknij <span class=material-symbols-outlined style=font-size:1rem>print</span> → pobierze PNG → otworz w apce Niimbot
         </div>
     </div>
 
     <!-- Masowe akcje -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:15px">
         <button onclick="downloadAll()" class="btn btn-p" style="padding:14px;font-size:0.95rem" id="btnAll">
-            📥 POBIERZ WSZ.
+            <span class=material-symbols-outlined style=font-size:1rem>download</span> POBIERZ WSZ.
         </button>
         <a href="/magazyn/etykiety/niimbot/zip?ids={','.join(str(p['id']) for p in products)}" class="btn btn-2" style="padding:14px;font-size:0.95rem;display:flex;align-items:center;justify-content:center;text-decoration:none">
-            📦 ZIP
+            <span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> ZIP
         </a>
         <button onclick="openNiimbot()" class="btn btn-purple" style="padding:14px;font-size:0.95rem">
-            📱 NIIMBOT
+            <span class=material-symbols-outlined style=font-size:1rem>smartphone</span> NIIMBOT
         </button>
     </div>
 
@@ -6658,13 +6658,13 @@ def etykiety_niimbot_page(products):
                      alt="Etykieta" onclick="showPreview({pv['id']}, this.src)">
                 <div style="flex:1;min-width:0">
                     <div style="font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{pv['nazwa'][:35]}</div>
-                    <div style="font-size:0.75rem;color:#64748b;margin-top:4px">{pv['ean'] or 'Brak EAN'} | 📍 {pv['lokalizacja'] or '—'}</div>
+                    <div style="font-size:0.75rem;color:#64748b;margin-top:4px">{pv['ean'] or 'Brak EAN'} | <span class=material-symbols-outlined style=font-size:1rem>pin_drop</span> {pv['lokalizacja'] or '—'}</div>
                     <div style="font-size:0.7rem;color:#ff6b9b;margin-top:2px">x{pv['ilosc']} szt.</div>
                 </div>
                 <button onclick="printLabel({pv['id']}, '{(pv['ean'] or str(pv['id']))}', {i})"
                    style="min-width:60px;padding:14px 18px;background:rgba(190,238,0,0.15);border:1px solid rgba(190,238,0,0.3);color:#beee00;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer"
                    id="btn-{i}">
-                    💾
+                    <span class=material-symbols-outlined style=font-size:1rem>save</span>
                 </button>
             </div>
         </div>'''
@@ -6679,11 +6679,11 @@ def etykiety_niimbot_page(products):
         <div style="margin-top:20px;display:flex;gap:12px">
             <a id="previewDownloadBtn" download onclick="event.stopPropagation()"
                style="padding:16px 32px;background:rgba(190,238,0,0.15);border:1px solid rgba(190,238,0,0.3);color:#beee00;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer;text-decoration:none;display:flex;align-items:center">
-                📥 POBIERZ PNG
+                <span class=material-symbols-outlined style=font-size:1rem>download</span> POBIERZ PNG
             </a>
             <button onclick="event.stopPropagation();openNiimbot()"
                     style="padding:16px 32px;background:rgba(255,107,155,0.15);border:1px solid rgba(255,107,155,0.3);color:#ff6b9b;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer">
-                📱 OTWORZ NIIMBOT
+                <span class=material-symbols-outlined style=font-size:1rem>smartphone</span> OTWORZ NIIMBOT
             </button>
         </div>
     </div>
@@ -6700,7 +6700,7 @@ def etykiety_niimbot_page(products):
     // Pobierz i zapisz PNG — potem user otwiera w Niimbot
     async function printLabel(productId, ean, btnIdx) {{
         const btn = document.getElementById('btn-' + btnIdx);
-        btn.textContent = '⏳';
+        btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span>';
         btn.disabled = true;
 
         try {{
@@ -6712,11 +6712,11 @@ def etykiety_niimbot_page(products):
             link.click();
             document.body.removeChild(link);
 
-            btn.textContent = '✅';
+            btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span>';
             btn.style.background = '#64748b';
             markPrinted();
         }} catch(e) {{
-            btn.textContent = '❌';
+            btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span>';
             btn.disabled = false;
         }}
     }}
@@ -6750,15 +6750,15 @@ def etykiety_niimbot_page(products):
             document.body.removeChild(link);
 
             const cardBtn = document.getElementById('btn-' + i);
-            if (cardBtn) {{ cardBtn.textContent = '✅'; cardBtn.style.background = '#64748b'; }}
+            if (cardBtn) {{ cardBtn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span>'; cardBtn.style.background = '#64748b'; }}
             markPrinted();
 
-            btn.textContent = '⏳ ' + (i+1) + '/' + products.length;
+            btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> ' + (i+1) + '/' + products.length;
             await new Promise(r => setTimeout(r, 600));
         }}
 
         btn.disabled = false;
-        btn.textContent = '📥 POBIERZ WSZ.';
+        btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>download</span> POBIERZ WSZ.';
         showToast('Wszystkie pobrane! Otworz apke Niimbot');
     }}
 
@@ -7042,7 +7042,7 @@ def qr_product_view(product_id):
     
     if not product:
         return render('''
-            <div class="hdr"><h1>❌ NIE ZNALEZIONO</h1></div>
+            <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> NIE ZNALEZIONO</h1></div>
             <div class="alert alert-err">Produkt nie istnieje w bazie</div>
             <a href="/magazyn" class="back">← Magazyn</a>
         ''')
@@ -7063,25 +7063,25 @@ def qr_product_view(product_id):
     
     # Status badge
     if sprzedany:
-        status_html = '<span class="badge" style="background:#beee00">✅ SPRZEDANY</span>'
+        status_html = '<span class="badge" style="background:#beee00"><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> SPRZEDANY</span>'
         action_html = '''
             <div class="alert alert-ok" style="margin-bottom:15px">
                 <b>Zamówienie do wysyłki!</b><br>
                 <span id="buyerInfo">Ładowanie danych kupującego...</span>
             </div>
-            <a href="#" class="btn btn-ok">📦 OZNACZ JAKO WYSŁANE</a>
-            <a href="#" class="btn btn-2">🖨️ DRUKUJ ETYKIETĘ INPOST</a>
+            <a href="#" class="btn btn-ok"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> OZNACZ JAKO WYSŁANE</a>
+            <a href="#" class="btn btn-2"><span class=material-symbols-outlined style=font-size:1rem>print</span> DRUKUJ ETYKIETĘ INPOST</a>
         '''
     else:
-        status_html = '<span class="badge" style="background:#8ff5ff">📦 W MAGAZYNIE</span>'
+        status_html = '<span class="badge" style="background:#8ff5ff"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> W MAGAZYNIE</span>'
         action_html = f'''
-            <a href="/magazyn/produkt/{p['id']}/edit" class="btn btn-2">✏️ EDYTUJ</a>
-            <a href="/paletomat/generator/from-magazyn/{p['id']}" class="btn btn-p">🛒 WYSTAW NA ALLEGRO</a>
+            <a href="/magazyn/produkt/{p['id']}/edit" class="btn btn-2"><span class=material-symbols-outlined style=font-size:1rem>edit</span> EDYTUJ</a>
+            <a href="/paletomat/generator/from-magazyn/{p['id']}" class="btn btn-p"><span class=material-symbols-outlined style=font-size:1rem>shopping_cart</span> WYSTAW NA ALLEGRO</a>
         '''
     
     html = f'''
     <div class="hdr">
-        <h1>📦 PRODUKT</h1>
+        <h1><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> PRODUKT</h1>
         {status_html}
     </div>
     
@@ -7090,7 +7090,7 @@ def qr_product_view(product_id):
             <div class="card-name">{p['nazwa']}</div>
             
             <div class="loc">
-                <div class="loc-title">📍 LOKALIZACJA</div>
+                <div class="loc-title"><span class=material-symbols-outlined style=font-size:1rem>pin_drop</span> LOKALIZACJA</div>
                 <div class="loc-grid">
                     <div><div class="loc-v">{p.get('regal', '—') or '—'}</div><div class="loc-l">Regał</div></div>
                     <div><div class="loc-v">{_paleta_nazwa or '—'}</div><div class="loc-l">Paleta</div></div>
@@ -7145,35 +7145,35 @@ def edytuj_historie(historia_id):
     # GET - formularz edycji
     h = conn.execute('SELECT * FROM historia_produktu WHERE id = ?', (historia_id,)).fetchone()
     if not h:
-        return render('<div class="hdr"><h1>❌ BŁĄD</h1></div><div class="alert alert-err">Wpis nie istnieje</div><a href="/magazyn" class="back">← Powrót</a>')
+        return render('<div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>cancel</span> BŁĄD</h1></div><div class="alert alert-err">Wpis nie istnieje</div><a href="/magazyn" class="back">← Powrót</a>')
     
     h = dict(h)
     
     # Dostępne akcje
     akcje = [
-        ('dodano', '📥 Dodano'),
-        ('edytowano', '✏️ Edytowano'),
-        ('wystawiono', '🛒 Wystawiono'),
-        ('sprzedano', '💰 Sprzedano'),
-        ('wyslano', '📦 Wysłano'),
-        ('zmiana_ceny', '💵 Zmiana ceny'),
-        ('zmiana_lokalizacji', '📍 Zmiana lokalizacji'),
-        ('zmiana_ilosci', '📊 Zmiana ilości'),
-        ('drukowano', '🏷️ Drukowano'),
-        ('skanowano', '📱 Skanowano'),
-        ('importowano', '📂 Importowano'),
-        ('scrapowano', '🔍 Scrapowano'),
-        ('wygenerowano_opis', '✨ Wygenerowano opis'),
-        ('dodano_zdjecia', '📷 Dodano zdjęcia'),
-        ('przeniesiono', '🔄 Przeniesiono'),
-        ('oznaczono', '🏷️ Oznaczono')
+        ('dodano', '<span class=material-symbols-outlined style=font-size:1rem>download</span> Dodano'),
+        ('edytowano', '<span class=material-symbols-outlined style=font-size:1rem>edit</span> Edytowano'),
+        ('wystawiono', '<span class=material-symbols-outlined style=font-size:1rem>shopping_cart</span> Wystawiono'),
+        ('sprzedano', '<span class=material-symbols-outlined style=font-size:1rem>paid</span> Sprzedano'),
+        ('wyslano', '<span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Wysłano'),
+        ('zmiana_ceny', '<span class=material-symbols-outlined style=font-size:1rem>payments</span> Zmiana ceny'),
+        ('zmiana_lokalizacji', '<span class=material-symbols-outlined style=font-size:1rem>pin_drop</span> Zmiana lokalizacji'),
+        ('zmiana_ilosci', '<span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Zmiana ilości'),
+        ('drukowano', '<span class=material-symbols-outlined style=font-size:1rem>label</span> Drukowano'),
+        ('skanowano', '<span class=material-symbols-outlined style=font-size:1rem>smartphone</span> Skanowano'),
+        ('importowano', '<span class=material-symbols-outlined style=font-size:1rem>folder</span> Importowano'),
+        ('scrapowano', '<span class=material-symbols-outlined style=font-size:1rem>search</span> Scrapowano'),
+        ('wygenerowano_opis', '<span class=material-symbols-outlined style=font-size:1rem>auto_awesome</span> Wygenerowano opis'),
+        ('dodano_zdjecia', '<span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> Dodano zdjęcia'),
+        ('przeniesiono', '<span class=material-symbols-outlined style=font-size:1rem>sync</span> Przeniesiono'),
+        ('oznaczono', '<span class=material-symbols-outlined style=font-size:1rem>label</span> Oznaczono')
     ]
     
     akcje_options = ''.join([f'<option value="{a[0]}" {"selected" if h["akcja"] == a[0] else ""}>{a[1]}</option>' for a in akcje])
     
     
     html = f'''
-    <div class="hdr"><h1>✏️ EDYCJA WPISU HISTORII</h1></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>edit</span> EDYCJA WPISU HISTORII</h1></div>
     
     <form method="POST" class="card">
         <div class="form-g">
@@ -7189,7 +7189,7 @@ def edytuj_historie(historia_id):
         </div>
         
         <div style="display:flex;gap:10px;margin-top:20px">
-            <button type="submit" class="btn btn-ok">💾 Zapisz</button>
+            <button type="submit" class="btn btn-ok"><span class=material-symbols-outlined style=font-size:1rem>save</span> Zapisz</button>
             <a href="/magazyn" class="btn btn-p">✖ Anuluj</a>
         </div>
     </form>
@@ -7605,7 +7605,7 @@ def api_rescrape_image(product_id):
 
             data = _scrape(asin_code)
             if not data or not data.get('image_url'):
-                print(f'📸 Scrape {asin_code}: brak zdjec')
+                print(f'<span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> Scrape {asin_code}: brak zdjec')
                 return
 
             all_images = data.get('all_images', []) or [data['image_url']]
@@ -7630,9 +7630,9 @@ def api_rescrape_image(product_id):
             _conn = _gdb()
             _conn.execute('UPDATE produkty SET zdjecie_url = ? WHERE id = ?', (final_url, pid))
             _conn.commit()
-            print(f'📸 Scrape OK: {asin_code} -> {final_url}')
+            print(f'<span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> Scrape OK: {asin_code} -> {final_url}')
         except Exception as e:
-            print(f'📸 Scrape error: {e}')
+            print(f'<span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> Scrape error: {e}')
 
     threading.Thread(target=_bg_scrape, args=(product_id, asin), daemon=True).start()
     return jsonify({'ok': True, 'img': '', 'note': 'Pobieranie w tle — odśwież za ~30s'})
@@ -8138,7 +8138,7 @@ def raport_sprzedazy_excel():
 def raport_sprzedazy_page():
     """Strona z przyciskiem do pobrania raportu"""
     html = '''
-    <div class="hdr"><h1>📊 Raport sprzedaży</h1></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> Raport sprzedaży</h1></div>
     
     <div style="padding:20px;text-align:center">
         <p style="color:#94a3b8;margin-bottom:20px">
@@ -8147,11 +8147,11 @@ def raport_sprzedazy_page():
         </p>
         
         <a href="/magazyn/raport-sprzedazy" class="btn btn-ok" style="font-size:18px;padding:15px 30px">
-            📥 POBIERZ RAPORT EXCEL
+            <span class=material-symbols-outlined style=font-size:1rem>download</span> POBIERZ RAPORT EXCEL
         </a>
         
         <div style="margin-top:30px;text-align:left;max-width:500px;margin-left:auto;margin-right:auto">
-            <h3 style="color:#beee00">📋 Co zawiera raport:</h3>
+            <h3 style="color:#beee00"><span class=material-symbols-outlined style=font-size:1rem>list_alt</span> Co zawiera raport:</h3>
             <ul style="color:#94a3b8;line-height:2">
                 <li><b>Arkusz "Podsumowanie"</b> - przychody, koszty, zyski per miesiąc</li>
                 <li><b>Arkusz "Szczegóły"</b> - wszystkie sprzedaże z datami</li>
@@ -8202,11 +8202,11 @@ def lezaki():
     total_wartosc = 0
     
     html = '''
-    <div class="hdr"><h1>⏳ LEŻAKI</h1><small>Produkty stojące >30 dni</small></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> LEŻAKI</h1><small>Produkty stojące >30 dni</small></div>
     '''
     
     if not produkty:
-        html += '<div class="alert alert-ok">✅ Brak leżaków — wszystko się kręci!</div>'
+        html += '<div class="alert alert-ok"><span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Brak leżaków — wszystko się kręci!</div>'
         return render(html)
     
     # Karty produktów
@@ -8240,7 +8240,7 @@ def lezaki():
         elif dni < 90:
             obnizka_pct = 30
             obnizka_kolor = '#ef4444'
-            obnizka_ikona = '🔴'
+            obnizka_ikona = '<span class=material-symbols-outlined style=font-size:1rem>fiber_manual_record</span>'
         else:
             obnizka_pct = 40
             obnizka_kolor = '#dc2626'
@@ -8267,7 +8267,7 @@ def lezaki():
         if p['zdjecie_url']:
             img_html = f'<img src="{p["zdjecie_url"]}" style="width:60px;height:60px;object-fit:contain;border-radius:8px;background:#0a0a0f;flex-shrink:0">'
         else:
-            img_html = '<div style="width:60px;height:60px;background:#1e1e2e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0">📦</div>'
+            img_html = '<div style="width:60px;height:60px;background:#1e1e2e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span></div>'
         
         status_color = '#8ff5ff' if p['status'] == 'wystawiony' else '#eab308'
         status_text = 'WYSTAWIONY' if p['status'] == 'wystawiony' else 'MAGAZYN'
@@ -8287,7 +8287,7 @@ def lezaki():
                     <!-- Dni stoi -->
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
                         <div style="background:{dni_kolor}22;border:1px solid {dni_kolor};border-radius:20px;padding:3px 12px;font-size:0.8rem;font-weight:700;color:{dni_kolor}">
-                            ⏳ {dni} dni
+                            <span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> {dni} dni
                         </div>
                         <div style="font-size:0.7rem;color:#64748b">od {(p['data_dodania'] or '')[:10]}</div>
                     </div>
@@ -8318,7 +8318,7 @@ def lezaki():
                             </div>
                             <a href="/magazyn/produkt/{p['id']}/edytuj" 
                                style="padding:6px 12px;background:{obnizka_kolor};border-radius:6px;color:#000;font-size:0.72rem;font-weight:700;text-decoration:none;white-space:nowrap;flex-shrink:0">
-                                ✏️ Zmień cenę
+                                <span class=material-symbols-outlined style=font-size:1rem>edit</span> Zmień cenę
                             </a>
                         </div>
                     </div>
@@ -8349,7 +8349,7 @@ def lezaki():
     <div style="display:flex;gap:8px;margin-bottom:15px">
         <div style="background:#eab30822;border:1px solid #eab308;border-radius:8px;padding:6px 12px;font-size:0.72rem;color:#eab308">🟡 &lt;45 dni → -10%</div>
         <div style="background:#f9731622;border:1px solid #f97316;border-radius:8px;padding:6px 12px;font-size:0.72rem;color:#f97316">🟠 &lt;60 dni → -20%</div>
-        <div style="background:#ef444422;border:1px solid #ef4444;border-radius:8px;padding:6px 12px;font-size:0.72rem;color:#ef4444">🔴 &lt;90 dni → -30%</div>
+        <div style="background:#ef444422;border:1px solid #ef4444;border-radius:8px;padding:6px 12px;font-size:0.72rem;color:#ef4444"><span class=material-symbols-outlined style=font-size:1rem>fiber_manual_record</span> &lt;90 dni → -30%</div>
         <div style="background:#dc262622;border:1px solid #dc2626;border-radius:8px;padding:6px 12px;font-size:0.72rem;color:#dc2626">🚨 90+ dni → -40%</div>
     </div>
     '''
@@ -8393,13 +8393,13 @@ def koszty_page():
                     (nazwa, kwota, kat, data, notatka))
                 conn.commit()
                 conn.execute('PRAGMA wal_checkpoint(PASSIVE)')
-                msg = f'✅ Dodano koszt: {nazwa} — {kwota:.2f} zł'
+                msg = f'<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Dodano koszt: {nazwa} — {kwota:.2f} zł'
         elif action == 'usun':
             kid = request.form.get('id')
             conn.execute('DELETE FROM koszty WHERE id=?', (kid,))
             conn.commit()
             conn.execute('PRAGMA wal_checkpoint(PASSIVE)')
-            msg = '🗑️ Usunięto koszt'
+            msg = '<span class=material-symbols-outlined style=font-size:1rem>delete</span> Usunięto koszt'
     
     # Pobierz wszystkie koszty
     koszty = conn.execute('SELECT * FROM koszty ORDER BY data DESC, id DESC').fetchall()
@@ -8426,13 +8426,13 @@ def koszty_page():
     
     
     KATEGORIE = [
-        ('allegro', '🛒 Prowizje Allegro'),
-        ('wysylka', '📦 Wysyłka / InPost'),
+        ('allegro', '<span class=material-symbols-outlined style=font-size:1rem>shopping_cart</span> Prowizje Allegro'),
+        ('wysylka', '<span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Wysyłka / InPost'),
         ('reklama', '📣 Reklama'),
         ('magazyn', '🏭 Magazyn / najem'),
-        ('zakup', '💰 Zakup towaru'),
-        ('ksiegowosc', '📋 Księgowość / ZUS'),
-        ('inne', '⚡ Inne'),
+        ('zakup', '<span class=material-symbols-outlined style=font-size:1rem>paid</span> Zakup towaru'),
+        ('ksiegowosc', '<span class=material-symbols-outlined style=font-size:1rem>list_alt</span> Księgowość / ZUS'),
+        ('inne', '<span class=material-symbols-outlined style=font-size:1rem>bolt</span> Inne'),
     ]
     
     nazwy_m = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru']
@@ -8673,12 +8673,12 @@ def sprzedaz_prywatna_page():
                     (opis, kwota, data, notatka))
                 conn.commit()
                 conn.execute('PRAGMA wal_checkpoint(PASSIVE)')
-                msg = f'✅ Dodano: {opis} — {kwota:.2f} zł'
+                msg = f'<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Dodano: {opis} — {kwota:.2f} zł'
         elif action == 'usun':
             conn.execute('DELETE FROM sprzedaze_prywatne WHERE id=?', (request.form.get('id'),))
             conn.commit()
             conn.execute('PRAGMA wal_checkpoint(PASSIVE)')
-            msg = '🗑️ Usunięto'
+            msg = '<span class=material-symbols-outlined style=font-size:1rem>delete</span> Usunięto'
     
     sprzedaze = conn.execute('SELECT * FROM sprzedaze_prywatne ORDER BY data DESC, id DESC').fetchall()
     
@@ -8698,7 +8698,7 @@ def sprzedaz_prywatna_page():
     for s in sprzedaze:
         rows_html += f'''
         <div style="display:flex;align-items:center;gap:14px;padding:18px 20px;background:#131315;border-left:3px solid #cafd00;margin-bottom:2px;transition:background 0.2s" onmouseover="this.style.background='#1f1f22'" onmouseout="this.style.background='#131315'">
-            <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:rgba(202,253,0,0.08);flex-shrink:0;font-size:1.1rem">🤝</div>
+            <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:rgba(202,253,0,0.08);flex-shrink:0;font-size:1.1rem"><span class=material-symbols-outlined style=font-size:1rem>handshake</span></div>
             <div style="flex:1;min-width:0">
                 <div style="font-weight:600;font-family:Manrope,sans-serif;color:#f9f5f8;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{s['opis']}</div>
                 <div style="font-size:0.7rem;color:#adaaad;font-family:Manrope,sans-serif;margin-top:2px">{s['data']}{f' &middot; {s["notatka"]}' if s['notatka'] else ''}</div>
@@ -8909,7 +8909,7 @@ def remanent_page():
         </tr>'''
 
     html = f'''
-    <div class="hdr"><h1>📋 REMANENT</h1><small>Stan magazynu na {today}</small></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>list_alt</span> REMANENT</h1><small>Stan magazynu na {today}</small></div>
 
     <!-- Kafelki podsumowania -->
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:15px">
@@ -8938,13 +8938,13 @@ def remanent_page():
     <!-- Przycisk Excel -->
     <div style="text-align:right;margin-bottom:15px">
         <a href="/magazyn/remanent/excel" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#beee00;border-radius:8px;color:#fff;text-decoration:none;font-weight:700;font-size:0.9rem">
-            📥 Pobierz Excel
+            <span class=material-symbols-outlined style=font-size:1rem>download</span> Pobierz Excel
         </a>
     </div>
 
     <!-- Tabela palet -->
     <div class="card" style="padding:0;margin-bottom:15px;overflow:hidden">
-        <div style="padding:12px 15px;background:#0f2235;font-weight:700;font-size:0.85rem">📦 Stan per paleta</div>
+        <div style="padding:12px 15px;background:#0f2235;font-weight:700;font-size:0.85rem"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span> Stan per paleta</div>
         <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
             <thead>
@@ -8978,7 +8978,7 @@ def remanent_page():
 
     <!-- Tabela kategorii -->
     <div class="card" style="padding:0;overflow:hidden">
-        <div style="padding:12px 15px;background:#0f2235;font-weight:700;font-size:0.85rem">🏷️ Stan per kategoria</div>
+        <div style="padding:12px 15px;background:#0f2235;font-weight:700;font-size:0.85rem"><span class=material-symbols-outlined style=font-size:1rem>label</span> Stan per kategoria</div>
         <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
             <thead>
                 <tr style="background:#0f1a2a;color:#64748b;font-size:0.75rem">
@@ -9435,7 +9435,7 @@ def statystyki_zakupow():
         </div>'''
 
     html = f'''
-    <div class="hdr"><h1>📊 STATYSTYKI ZAKUPÓW</h1></div>
+    <div class="hdr"><h1><span class=material-symbols-outlined style=font-size:1rem>bar_chart</span> STATYSTYKI ZAKUPÓW</h1></div>
 
     <!-- PODSUMOWANIE -->
     <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:15px;margin-bottom:15px">
@@ -9471,7 +9471,7 @@ def statystyki_zakupow():
     </div>
 
     <!-- PER MIESIĄC -->
-    <div style="font-weight:700;color:#fff;margin-bottom:10px;padding:0 4px">📅 Zakupy per miesiąc</div>
+    <div style="font-weight:700;color:#fff;margin-bottom:10px;padding:0 4px"><span class=material-symbols-outlined style=font-size:1rem>calendar_month</span> Zakupy per miesiąc</div>
     {miesiace_html}
 
     <a href="/magazyn" class="back">← Powrót do Magazynu</a>
@@ -9560,7 +9560,7 @@ def przyjecie_palety(paleta_id):
     <div style="padding:15px;max-width:900px;margin:0 auto">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
             <div>
-                <h2 style="margin:0;font-size:1.3rem">📋 Przyjęcie palety #{paleta_id}</h2>
+                <h2 style="margin:0;font-size:1.3rem"><span class=material-symbols-outlined style=font-size:1rem>list_alt</span> Przyjęcie palety #{paleta_id}</h2>
                 <div style="color:#64748b;font-size:0.85rem;margin-top:4px">{paleta['nazwa']} • {len(produkty)} prod. • {total_sztuk} szt.</div>
             </div>
             <a href="/magazyn/paleta-id/{paleta_id}" style="background:#1e293b;color:#94a3b8;padding:8px 16px;border-radius:8px;text-decoration:none;font-size:0.85rem">← Powrót</a>
@@ -9578,7 +9578,7 @@ def przyjecie_palety(paleta_id):
         ('Jak nowy', '🔵', '#8ff5ff'),
         ('Dobry', '🟡', '#eab308'),
         ('Uszkodzony', '🟠', '#f97316'),
-        ('Zniszczony', '🔴', '#ef4444'),
+        ('Zniszczony', '<span class=material-symbols-outlined style=font-size:1rem>fiber_manual_record</span>', '#ef4444'),
     ]
 
     for p in produkty:
@@ -9587,7 +9587,7 @@ def przyjecie_palety(paleta_id):
         current_stan = p['stan_przyjecia'] or ''
         current_notatki = p['notatki_przyjecia'] or ''
         zdjecie = p['zdjecie_url'] or ''
-        img_html = f'<img src="{zdjecie}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">' if zdjecie else '<div style="width:60px;height:60px;background:#1e1e2e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem">📦</div>'
+        img_html = f'<img src="{zdjecie}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">' if zdjecie else '<div style="width:60px;height:60px;background:#1e1e2e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem"><span class=material-symbols-outlined style=font-size:1rem>inventory_2</span></div>'
 
         # Ilość badge
         ilosc_badge = f'<span style="background:#8ff5ff33;color:#8ff5ff;padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:700">{ilosc} szt.</span>' if ilosc > 1 else '<span style="color:#64748b;font-size:0.75rem">1 szt.</span>'
@@ -9658,7 +9658,7 @@ def przyjecie_palety(paleta_id):
                 <input type="text" id="notatki-{pid}" value="{current_notatki}" placeholder="Notatki (wady, braki...)"
                     style="flex:1;padding:8px 12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e2e8f0;font-size:0.8rem">
                 <button onclick="openCamera({pid})" style="padding:8px 12px;background:#7c3aed;border:none;border-radius:8px;color:white;cursor:pointer;font-size:0.85rem" title="Zrób zdjęcie i oceń AI">
-                    📸 AI
+                    <span class=material-symbols-outlined style=font-size:1rem>photo_camera</span> AI
                 </button>
             </div>
             <div id="ai-result-{pid}" style="display:none;margin-top:8px;padding:10px;background:#0a0a0f;border:1px solid #7c3aed;border-radius:8px;font-size:0.8rem;color:#c4b5fd"></div>
@@ -9671,11 +9671,11 @@ def przyjecie_palety(paleta_id):
             <div style="display:flex;gap:10px">
                 <button onclick="savePartial()" id="save-partial-btn"
                     style="flex:1;padding:14px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:12px;color:#f59e0b;font-size:0.9rem;font-weight:600;cursor:pointer">
-                    💾 Zapisz i wróć później
+                    <span class=material-symbols-outlined style=font-size:1rem>save</span> Zapisz i wróć później
                 </button>
                 <button onclick="saveAll()" id="save-btn"
                     style="flex:1;padding:14px;background:rgba(190,238,0,0.15);border:1px solid rgba(190,238,0,0.3);border-radius:12px;color:#beee00;font-size:0.9rem;font-weight:600;cursor:pointer">
-                    ✅ Zapisz i zakończ przyjęcie
+                    <span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Zapisz i zakończ przyjęcie
                 </button>
             </div>
         </div>
@@ -9738,7 +9738,7 @@ def przyjecie_palety(paleta_id):
         }});
         const sumDiv = document.getElementById('split-sum-' + pid);
         const ok = sum === maxIlosc;
-        sumDiv.textContent = 'Suma: ' + sum + ' / ' + maxIlosc + (ok ? ' ✅' : sum > maxIlosc ? ' ❌ za dużo!' : '');
+        sumDiv.textContent = 'Suma: ' + sum + ' / ' + maxIlosc + (ok ? ' <span class=material-symbols-outlined style=font-size:1rem>check_circle</span>' : sum > maxIlosc ? ' <span class=material-symbols-outlined style=font-size:1rem>cancel</span> za dużo!' : '');
         sumDiv.style.color = ok ? '#beee00' : sum > maxIlosc ? '#ef4444' : '#f59e0b';
 
         if (ok) {{
@@ -9769,7 +9769,7 @@ def przyjecie_palety(paleta_id):
 
         const resultDiv = document.getElementById('ai-result-' + pid);
         resultDiv.style.display = 'block';
-        resultDiv.innerHTML = '<div style="color:#a78bfa">⏳ Analizuję zdjęcie AI...</div>';
+        resultDiv.innerHTML = '<div style="color:#a78bfa"><span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Analizuję zdjęcie AI...</div>';
 
         const reader = new FileReader();
         reader.onload = function(e) {{
@@ -9783,7 +9783,7 @@ def przyjecie_palety(paleta_id):
             .then(data => {{
                 if (data.success) {{
                     resultDiv.innerHTML = `
-                        <div style="margin-bottom:6px"><strong>🤖 AI ocena:</strong> <span style="color:${{data.stan_color || '#beee00'}}">${{data.stan}}</span></div>
+                        <div style="margin-bottom:6px"><strong><span class=material-symbols-outlined style=font-size:1rem>smart_toy</span> AI ocena:</strong> <span style="color:${{data.stan_color || '#beee00'}}">${{data.stan}}</span></div>
                         <div style="color:#94a3b8">${{data.opis}}</div>
                     `;
                     if (data.stan && !splitModes[pid]) {{
@@ -9798,11 +9798,11 @@ def przyjecie_palety(paleta_id):
                         document.getElementById('notatki-' + pid).value = data.opis;
                     }}
                 }} else {{
-                    resultDiv.innerHTML = '<div style="color:#ef4444">❌ ' + (data.error || 'Błąd AI') + '</div>';
+                    resultDiv.innerHTML = '<div style="color:#ef4444"><span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + (data.error || 'Błąd AI') + '</div>';
                 }}
             }})
             .catch(err => {{
-                resultDiv.innerHTML = '<div style="color:#ef4444">❌ Błąd połączenia</div>';
+                resultDiv.innerHTML = '<div style="color:#ef4444"><span class=material-symbols-outlined style=font-size:1rem>cancel</span> Błąd połączenia</div>';
             }});
         }};
         reader.readAsDataURL(file);
@@ -9836,7 +9836,7 @@ def przyjecie_palety(paleta_id):
     function savePartial() {{
         const btn = document.getElementById('save-partial-btn');
         btn.disabled = true;
-        btn.textContent = '⏳ Zapisuję...';
+        btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Zapisuję...';
         const assessments = collectAssessments();
         fetch('/magazyn/api/przyjecie-save', {{
             method: 'POST',
@@ -9846,21 +9846,21 @@ def przyjecie_palety(paleta_id):
         .then(r => {{ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }})
         .then(data => {{
             if (data.success) {{
-                btn.textContent = '💾 Zapisano! Wróć później...';
+                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>save</span> Zapisano! Wróć później...';
                 btn.style.borderColor = '#beee00';
                 btn.style.color = '#beee00';
                 setTimeout(() => window.location.href = '/magazyn/paleta-id/{paleta_id}', 1000);
             }} else {{
-                btn.textContent = '❌ ' + (data.error || 'Błąd');
+                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + (data.error || 'Błąd');
                 btn.disabled = false;
             }}
-        }}).catch(e => {{ btn.textContent = '❌ ' + e.message; btn.disabled = false; }});
+        }}).catch(e => {{ btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + e.message; btn.disabled = false; }});
     }}
 
     function saveAll() {{
         const btn = document.getElementById('save-btn');
         btn.disabled = true;
-        btn.textContent = '⏳ Zapisuję...';
+        btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>hourglass_top</span> Zapisuję...';
         const assessments = collectAssessments();
 
         fetch('/magazyn/api/przyjecie-save', {{
@@ -9874,16 +9874,16 @@ def przyjecie_palety(paleta_id):
         }})
         .then(data => {{
             if (data.success) {{
-                btn.textContent = '✅ Zapisano!';
+                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>check_circle</span> Zapisano!';
                 btn.style.background = '#16a34a';
                 setTimeout(() => window.location.href = '/magazyn/paleta-id/{paleta_id}', 1000);
             }} else {{
-                btn.textContent = '❌ ' + (data.error || 'Błąd zapisu');
+                btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + (data.error || 'Błąd zapisu');
                 btn.disabled = false;
             }}
         }})
         .catch(e => {{
-            btn.textContent = '❌ ' + e.message;
+            btn.textContent = '<span class=material-symbols-outlined style=font-size:1rem>cancel</span> ' + e.message;
             btn.disabled = false;
         }});
     }}
@@ -9894,7 +9894,7 @@ def przyjecie_palety(paleta_id):
             const pid = parseInt(card.id.replace('prod-', ''));
             const activeBtn = card.querySelector('[data-active="true"]');
             if (activeBtn && activeBtn.textContent.trim()) {{
-                const stanText = activeBtn.textContent.replace(/[🟢🔵🟡🟠🔴]/g, '').trim();
+                const stanText = activeBtn.textContent.replace(/[🟢🔵🟡🟠<span class=material-symbols-outlined style=font-size:1rem>fiber_manual_record</span>]/g, '').trim();
                 currentStany[pid] = stanText;
             }}
         }});

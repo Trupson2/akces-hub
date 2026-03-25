@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🗺️ Heatmapa Magazynu 3D - {{ brand_name|default('Akces Hub') }}</title>
+    <title><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">map</span> Heatmapa Magazynu 3D - {{ brand_name|default('Akces Hub') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap">
     <style>
@@ -445,13 +445,13 @@
         <!-- Sidebar -->
         <div class="sidebar">
             <a href="/" style="color:#fff;text-decoration:none;font-size:0.9rem;opacity:0.7">← Powrot</a>
-            <h1>🗺️ Heatmapa 3D</h1>
+            <h1><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">map</span> Heatmapa 3D</h1>
             <p style="font-size: 14px; opacity: 0.8; margin-bottom: 20px;">
                 Wizualizacja zapełnienia magazynu w czasie rzeczywistym
             </p>
 
             <!-- Stats -->
-            <h2>📊 Statystyki</h2>
+            <h2><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span> Statystyki</h2>
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value" id="stat-fill">0%</div>
@@ -501,28 +501,28 @@
             </div>
 
             <!-- Search Regału -->
-            <h2>🔍 Szukaj</h2>
+            <h2><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">search</span> Szukaj</h2>
             
             <!-- TAB 1: Szukaj po lokalizacji -->
             <div style="margin-bottom: 15px;">
-                <div style="font-weight: 600; margin-bottom: 8px; font-size: 13px; opacity: 0.8;">📍 Lokalizacja (np. A11, B2):</div>
+                <div style="font-weight: 600; margin-bottom: 8px; font-size: 13px; opacity: 0.8;"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">pin_drop</span> Lokalizacja (np. A11, B2):</div>
                 <input type="text" id="search-shelf" placeholder="Wpisz kod lokalizacji..." 
                        style="width: 100%; padding: 12px; background: rgba(15,15,30,0.65); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: #e2e8f0; font-size: 14px; transition: border-color 0.2s;"
                        onkeypress="if(event.key==='Enter') searchShelf()">
                 <button onclick="searchShelf()" style="width: 100%; margin-top: 8px; padding: 12px; background: rgba(143,245,255,0.12); border: 1px solid rgba(143,245,255,0.3); border-radius: 10px; color: #8ff5ff; font-weight: 600; cursor: pointer;">
-                    🔍 Znajdź Lokalizację
+                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">search</span> Znajdź Lokalizację
                 </button>
                 <div id="search-result" style="margin-top: 10px; font-size: 13px; color: #a0aec0;"></div>
             </div>
             
             <!-- TAB 2: Szukaj po nazwie produktu -->
             <div style="margin-bottom: 20px;">
-                <div style="font-weight: 600; margin-bottom: 8px; font-size: 13px; opacity: 0.8;">📦 Produkt (np. "Bieżnia", "ASIN"):</div>
+                <div style="font-weight: 600; margin-bottom: 8px; font-size: 13px; opacity: 0.8;"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span> Produkt (np. "Bieżnia", "ASIN"):</div>
                 <input type="text" id="search-product" placeholder="Wpisz nazwę, EAN, ASIN..." 
                        style="width: 100%; padding: 12px; background: rgba(15,15,30,0.65); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: #e2e8f0; font-size: 14px; transition: border-color 0.2s;"
                        onkeypress="if(event.key==='Enter') searchProduct()">
                 <button onclick="searchProduct()" style="width: 100%; margin-top: 8px; padding: 12px; background: rgba(190,238,0,0.12); border: 1px solid rgba(190,238,0,0.3); border-radius: 10px; color: #beee00; font-weight: 600; cursor: pointer;">
-                    🎯 Znajdź Produkt
+                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">target</span> Znajdź Produkt
                 </button>
                 <div id="search-product-result" style="margin-top: 10px; font-size: 13px; color: #a0aec0;"></div>
             </div>
@@ -543,10 +543,10 @@
                 <div class="control-group">
                     <div class="control-label">Akcje:</div>
                     <div class="control-buttons">
-                        <button onclick="resetCamera()">🔄 Reset</button>
+                        <button onclick="resetCamera()"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">sync</span> Reset</button>
                         <button onclick="refreshData()">↻ Odświeź</button>
                         <button onclick="showKeyboardHelp()">⌨️ Skróty</button>
-                        <button onclick="exportPNG()">📸 Export PNG</button>
+                        <button onclick="exportPNG()"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">photo_camera</span> Export PNG</button>
                     </div>
                 </div>
             </div>
@@ -565,14 +565,14 @@
                 <div class="control-group">
                     <div class="control-label">Akcje:</div>
                     <div class="control-buttons">
-                        <button onclick="resetCamera()">🔄 Reset</button>
+                        <button onclick="resetCamera()"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">sync</span> Reset</button>
                         <button onclick="refreshData()">↻ Odśwież</button>
                     </div>
                 </div>
             </div>
 
             <!-- Regały -->
-            <h2>📦 Regały</h2>
+            <h2><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span> Regały</h2>
             <div class="shelf-labels" id="shelf-labels">
                 <!-- Dynamically generated -->
             </div>
@@ -589,7 +589,7 @@
             <div class="modal-overlay" id="location-modal">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h2 id="modal-title">📍 Lokalizacja</h2>
+                        <h2 id="modal-title"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">pin_drop</span> Lokalizacja</h2>
                         <button class="modal-close" onclick="closeLocationModal()">×</button>
                     </div>
                     <div class="modal-stats">
@@ -607,7 +607,7 @@
                         </div>
                     </div>
                     <div class="products-section">
-                        <h3>📦 Produkty w lokalizacji:</h3>
+                        <h3><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span> Produkty w lokalizacji:</h3>
                         <div id="modal-products"></div>
                     </div>
                 </div>
@@ -761,7 +761,7 @@
                 if (obj.userData.location) {
                     const loc = obj.userData.location;
                     popup.innerHTML = `
-                        <h3>📍 ${loc.code}</h3>
+                        <h3><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">pin_drop</span> ${loc.code}</h3>
                         <div class="info-row">
                             <span class="label">Produktów:</span>
                             <span class="value">${loc.items} / ${loc.capacity}</span>
@@ -809,7 +809,7 @@
                 const data = await response.json();
                 
                 // Update modal
-                document.getElementById('modal-title').innerHTML = `📍 ${locationCode}`;
+                document.getElementById('modal-title').innerHTML = `<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">pin_drop</span> ${locationCode}`;
                 document.getElementById('modal-items').textContent = data.items_count || 0;
                 document.getElementById('modal-capacity').textContent = data.capacity || 20;
                 document.getElementById('modal-fill').textContent = (data.fill_percentage || 0) + '%';
@@ -881,7 +881,7 @@
                 'low': '🔵 Niskie',
                 'medium': '🟠 Średnie',
                 'high': '🟠 Wysokie',
-                'full': '🔴 Pełne'
+                'full': '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">fiber_manual_record</span> Pełne'
             };
             return labels[status] || status;
         }
@@ -1148,7 +1148,7 @@
                 });
             });
             
-            console.log('✅ Custom warehouse built!');
+            console.log('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Custom warehouse built!');
         }
 
         function updateStats() {
@@ -1224,16 +1224,16 @@
             const resultDiv = document.getElementById('search-result');
             
             if (!input) {
-                resultDiv.textContent = '⚠️ Wpisz kod lokalizacji (np. A11, B2)';
+                resultDiv.textContent = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">warning</span> Wpisz kod lokalizacji (np. A11, B2)';
                 resultDiv.style.color = '#f59e0b';
                 return;
             }
             
             // NOWE: Bezpośrednio otwórz modal z produktami dla tej lokalizacji
-            resultDiv.textContent = '🔍 Szukam produktów...';
+            resultDiv.textContent = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">search</span> Szukam produktów...';
             resultDiv.style.color = '#3498db';
             
-            console.log('🔍 Searching for location:', input);
+            console.log('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">search</span> Searching for location:', input);
             
             // Wywołaj bezpośrednio API dla lokalizacji
             fetch(`/api/warehouse/location/${input}`)
@@ -1242,13 +1242,13 @@
                     return response.json();
                 })
                 .then(data => {
-                    console.log('📦 API Response data:', data);
+                    console.log('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span> API Response data:', data);
                     
                     if (data && data.products && data.products.length > 0) {
                         // Znaleziono produkty - otwórz modal
-                        console.log(`✅ Found ${data.products.length} products`);
+                        console.log(`<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Found ${data.products.length} products`);
                         showLocationModal(input, data);
-                        resultDiv.textContent = `✅ Znaleziono ${data.products.length} produkt(ów) w ${input}`;
+                        resultDiv.textContent = `<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Znaleziono ${data.products.length} produkt(ów) w ${input}`;
                         resultDiv.style.color = '#10b981';
                         
                         // Opcjonalnie: Leci kamera do regału (jeśli istnieje w 3D)
@@ -1261,8 +1261,8 @@
                         }
                     } else {
                         // Nie znaleziono produktów
-                        console.log('❌ No products found');
-                        resultDiv.textContent = `❌ Brak produktów w lokalizacji ${input}`;
+                        console.log('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> No products found');
+                        resultDiv.textContent = `<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Brak produktów w lokalizacji ${input}`;
                         resultDiv.style.color = '#ef4444';
                         
                         // Pokaż modal z pustą lokalizacją
@@ -1270,8 +1270,8 @@
                     }
                 })
                 .catch(error => {
-                    console.error('❌ Error searching location:', error);
-                    resultDiv.textContent = `❌ Błąd wyszukiwania: ${error.message}`;
+                    console.error('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Error searching location:', error);
+                    resultDiv.textContent = `<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Błąd wyszukiwania: ${error.message}`;
                     resultDiv.style.color = '#ef4444';
                 });
         }
@@ -1286,7 +1286,7 @@
             const productsDiv = document.getElementById('modal-products');
             
             // Ustaw tytuł
-            title.textContent = `📍 Lokalizacja ${code}`;
+            title.textContent = `<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">pin_drop</span> Lokalizacja ${code}`;
             
             // Ustaw statystyki
             const productCount = data.products ? data.products.length : 0;
@@ -1300,7 +1300,7 @@
             const fillPct = capacityValue > 0 ? Math.round(totalItems / capacityValue * 100) : 0;
             fill.textContent = fillPct + '%';
             
-            console.log(`📊 Modal stats: ${totalItems} items / ${capacityValue} capacity = ${fillPct}%`);
+            console.log(`<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span> Modal stats: ${totalItems} items / ${capacityValue} capacity = ${fillPct}%`);
             
             // Wyświetl produkty
             if (data.products && data.products.length > 0) {
@@ -1310,7 +1310,7 @@
                             ${product.zdjecie_url ? 
                                 `<img src="${product.zdjecie_url}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">` 
                                 : 
-                                `<div style="width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 32px;">📦</div>`
+                                `<div style="width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 32px;"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span></div>`
                             }
                             <div style="flex: 1;">
                                 <div style="font-weight: 600; margin-bottom: 5px;">${product.nazwa}</div>
@@ -1343,21 +1343,21 @@
             const resultDiv = document.getElementById('search-product-result');
             
             if (!input || input.length < 2) {
-                resultDiv.textContent = '⚠️ Wpisz co najmniej 2 znaki';
+                resultDiv.textContent = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">warning</span> Wpisz co najmniej 2 znaki';
                 resultDiv.style.color = '#f59e0b';
                 return;
             }
             
-            resultDiv.textContent = '🔍 Szukam produktu...';
+            resultDiv.textContent = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">search</span> Szukam produktu...';
             resultDiv.style.color = '#3498db';
             
-            console.log('🔍 Searching for product:', input);
+            console.log('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">search</span> Searching for product:', input);
             
             // Wywołaj API do wyszukiwania produktów
             fetch(`/api/warehouse/search-product?q=${encodeURIComponent(input)}`)
                 .then(response => response.json())
                 .then(data => {
-                    console.log('📦 Product search results:', data);
+                    console.log('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span> Product search results:', data);
                     
                     if (data && data.results && data.results.length > 0) {
                         const firstResult = data.results[0];
@@ -1365,7 +1365,7 @@
                         
                         if (location) {
                             // Znaleziono produkt z lokalizacją
-                            resultDiv.innerHTML = `✅ Znaleziono! <strong>${firstResult.nazwa.substring(0, 30)}...</strong><br>📍 Lokalizacja: <strong>${location}</strong>`;
+                            resultDiv.innerHTML = `<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Znaleziono! <strong>${firstResult.nazwa.substring(0, 30)}...</strong><br><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">pin_drop</span> Lokalizacja: <strong>${location}</strong>`;
                             resultDiv.style.color = '#10b981';
                             
                             // Pokaż modal z lokalizacją
@@ -1391,17 +1391,17 @@
                                     }
                                 });
                         } else {
-                            resultDiv.textContent = `✅ Znaleziono "${firstResult.nazwa.substring(0, 30)}..." ale brak lokalizacji`;
+                            resultDiv.textContent = `<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Znaleziono "${firstResult.nazwa.substring(0, 30)}..." ale brak lokalizacji`;
                             resultDiv.style.color = '#f59e0b';
                         }
                     } else {
-                        resultDiv.textContent = `❌ Nie znaleziono produktu: "${input}"`;
+                        resultDiv.textContent = `<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Nie znaleziono produktu: "${input}"`;
                         resultDiv.style.color = '#ef4444';
                     }
                 })
                 .catch(error => {
-                    console.error('❌ Error searching product:', error);
-                    resultDiv.textContent = `❌ Błąd wyszukiwania: ${error.message}`;
+                    console.error('<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Error searching product:', error);
+                    resultDiv.textContent = `<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">cancel</span> Błąd wyszukiwania: ${error.message}`;
                     resultDiv.style.color = '#ef4444';
                 });
         }
@@ -1455,7 +1455,7 @@
                             </div>
                             
                             <div>
-                                <h3 style="color: #667eea; margin-bottom: 15px;">🔧 Actions</h3>
+                                <h3 style="color: #667eea; margin-bottom: 15px;"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">build</span> Actions</h3>
                                 <div style="font-size: 14px; line-height: 2;">
                                     <div><kbd style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">R</kbd> Reset Camera</div>
                                     <div><kbd style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">F</kbd> Refresh Data</div>
@@ -1504,7 +1504,7 @@
             // Show notification
             const notification = document.createElement('div');
             notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 15px 25px; border-radius: 12px; z-index: 9999; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.3);';
-            notification.textContent = '✅ Screenshot saved!';
+            notification.textContent = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span> Screenshot saved!';
             document.body.appendChild(notification);
             setTimeout(() => notification.remove(), 3000);
         }

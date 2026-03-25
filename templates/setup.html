@@ -50,7 +50,7 @@
 <!-- STEP 1: Powitanie -->
 <div class="setup-step active" id="step1">
     <div class="step-header">
-        <div class="welcome-icon">🚀</div>
+        <div class="welcome-icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">rocket_launch</span></div>
         <h2>Witaj w {{ brand_name|default('Akces Hub') }}!</h2>
         <p>Skonfiguruj system w kilku krokach.<br>Zajmie to mniej niz minute.</p>
     </div>
@@ -107,22 +107,22 @@
     </div>
     <div class="module-grid">
         <div class="module-card selected" data-mod="paletomat" onclick="toggleMod(this)">
-            <div class="icon">🤖</div>
+            <div class="icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smart_toy</span></div>
             <div class="name">Paletomat</div>
             <div class="desc">Wystawianie na Allegro</div>
         </div>
         <div class="module-card selected" data-mod="magazyn" onclick="toggleMod(this)">
-            <div class="icon">📦</div>
+            <div class="icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span></div>
             <div class="name">Magazyn</div>
             <div class="desc">Stany i lokalizacje</div>
         </div>
         <div class="module-card selected" data-mod="allegro" onclick="toggleMod(this)">
-            <div class="icon">🛒</div>
+            <div class="icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">shopping_cart</span></div>
             <div class="name">Allegro API</div>
             <div class="desc">Synchronizacja zamowien</div>
         </div>
         <div class="module-card" data-mod="olx" onclick="toggleMod(this)">
-            <div class="icon">📋</div>
+            <div class="icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">list_alt</span></div>
             <div class="name">OLX</div>
             <div class="desc">Wystawianie ofert</div>
         </div>
@@ -132,7 +132,7 @@
             <div class="desc">Sprzedaz odziez</div>
         </div>
         <div class="module-card selected" data-mod="telegram" onclick="toggleMod(this)">
-            <div class="icon">📱</div>
+            <div class="icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smartphone</span></div>
             <div class="name">Telegram</div>
             <div class="desc">Powiadomienia</div>
         </div>
@@ -146,7 +146,7 @@
 <!-- STEP 4: Gotowe -->
 <div class="setup-step" id="step4">
     <div class="step-header">
-        <div class="finish-check">✅</div>
+        <div class="finish-check"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span></div>
         <h2>Gotowe!</h2>
         <p>System skonfigurowany. Mozesz zmienic ustawienia<br>w kazdej chwili w <strong>Ustawienia</strong>.</p>
     </div>
@@ -155,16 +155,16 @@
         <div style="display:flex;flex-direction:column;gap:8px">
             {% if not has_allegro %}
             <a href="/ustawienia" style="display:flex;align-items:center;gap:8px;color:var(--text);text-decoration:none;font-size:0.85rem">
-                <span style="color:var(--neon-primary)">⚡</span> Podlacz Allegro API
+                <span style="color:var(--neon-primary)"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bolt</span></span> Podlacz Allegro API
             </a>
             {% endif %}
             {% if not has_telegram %}
             <a href="/ustawienia" style="display:flex;align-items:center;gap:8px;color:var(--text);text-decoration:none;font-size:0.85rem">
-                <span style="color:var(--neon-primary)">⚡</span> Skonfiguruj Telegram bota
+                <span style="color:var(--neon-primary)"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bolt</span></span> Skonfiguruj Telegram bota
             </a>
             {% endif %}
             <a href="/changelog" style="display:flex;align-items:center;gap:8px;color:var(--text);text-decoration:none;font-size:0.85rem">
-                <span style="color:var(--neon-secondary)">📋</span> Zobacz changelog systemu
+                <span style="color:var(--neon-secondary)"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">list_alt</span></span> Zobacz changelog systemu
             </a>
         </div>
     </div>

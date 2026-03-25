@@ -6,7 +6,7 @@
 
 {% for n in notyfikacje %}
 <div class="glass-card" style="display:flex;align-items:center;gap:12px;padding:16px;margin-bottom:10px;border-left:3px solid {{ 'var(--neon-tertiary)' if n.type == 'sale' else 'var(--yellow)' }}">
-    <div style="font-size:1.5rem">{{ '💰' if n.type == 'sale' else '⚠️' }}</div>
+    <div style="font-size:1.5rem">{{ '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">paid</span>' if n.type == 'sale' else '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">warning</span>' }}</div>
     <div style="flex:1">
         <div style="font-weight:600">{{ n.msg }}</div>
         <div style="font-size:0.75rem;color:var(--text-muted)">{{ n.time }}</div>
@@ -16,7 +16,7 @@
 
 {% if not notyfikacje %}
 <div class="glass-card" style="text-align:center;padding:40px">
-    <div style="font-size:3rem;margin-bottom:15px;filter:drop-shadow(0 0 10px rgba(143,245,255,0.3))">🔔</div>
+    <div style="font-size:3rem;margin-bottom:15px;filter:drop-shadow(0 0 10px rgba(143,245,255,0.3))"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">notifications</span></div>
     <div style="color:var(--text-muted)">Brak nowych powiadomień</div>
 </div>
 {% endif %}
