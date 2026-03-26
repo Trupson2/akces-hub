@@ -1322,14 +1322,14 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
 
     sypie_row = conn.execute('''
         SELECT
-            SUM(CASE WHEN date(data_sprzedazy) = ? THEN 1 ELSE 0 END) as dzis_cnt,
-            COALESCE(SUM(CASE WHEN date(data_sprzedazy) = ? THEN cena * ilosc ELSE 0 END), 0) as dzis_suma,
-            COUNT(*) as msc_cnt,
-            COALESCE(SUM(cena * ilosc), 0) as msc_suma
+            SUM(CASE WHEN date(data_sprzedazy) = ? AND status NOT IN ('zwrot','anulowane','anulowana') THEN 1 ELSE 0 END) as dzis_cnt,
+            COALESCE(SUM(CASE WHEN date(data_sprzedazy) = ? AND status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc ELSE 0 END), 0) as dzis_suma,
+            SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana') THEN 1 ELSE 0 END) as msc_cnt,
+            COALESCE(SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc ELSE 0 END), 0)
+            - COALESCE(SUM(CASE WHEN status = 'zwrot' THEN cena * ilosc ELSE 0 END), 0) as msc_suma
         FROM sprzedaze
         WHERE date(data_sprzedazy) >= ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
-       
+
     ''', (today_str, today_str, month_start)).fetchone()
 
     dzis_data = {'cnt': sypie_row['dzis_cnt'], 'suma': sypie_row['dzis_suma']}
@@ -1449,7 +1449,7 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
 
     # Statystyki COGS do dashboardu
     zwroty_suma = float(stats.get('zwroty_miesiac_suma', 0))
-    przychod_netto = miesiac_kwota - zwroty_suma  # przychód minus zwroty
+    przychod_netto = miesiac_kwota  # msc_suma już odlicza zwroty
     monthly_stats = {
         'przychod': f"{przychod_netto:.0f}",
         'przychod_brutto': f"{miesiac_kwota:.0f}",
@@ -5578,6 +5578,31 @@ if __name__ == '__main__':
         log("Telegram bot uruchomiony (raport dzienny + auto-monitoring)")
     except Exception as e:
         log_warning(f"Telegram bot error: {e}")
+
+    # Obsidian Daily Tasks — generuj notatkę codziennie o 7:30
+    try:
+        import schedule as _sched
+        def _obsidian_daily():
+            try:
+                from modules.obsidian_tasks import generate_daily_note
+                vault = os.path.join(os.path.expanduser('~'), 'obsidian-vault')
+                db = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'akces_hub.db')
+                generate_daily_note(vault_path=vault, db_path=db)
+            except Exception as e:
+                log_warning(f"Obsidian daily note error: {e}")
+
+        _sched.every().day.at("07:30").do(_obsidian_daily)
+
+        def _obsidian_scheduler():
+            import time
+            while True:
+                _sched.run_pending()
+                time.sleep(60)
+
+        threading.Thread(target=_obsidian_scheduler, daemon=True).start()
+        log("Obsidian daily tasks uruchomiony (07:30)")
+    except Exception as e:
+        log_warning(f"Obsidian scheduler error: {e}")
 
     # Start pallet monitor scheduler — tylko w trybie dev
     try:
