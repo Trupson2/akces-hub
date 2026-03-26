@@ -1,46 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-  <defs>
-    <filter id="glowCyan" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="2.5" result="blur"/>
-      <feFlood flood-color="#8ff5ff" flood-opacity="0.35" result="color"/>
-      <feComposite in="color" in2="blur" operator="in" result="shadow"/>
-      <feMerge>
-        <feMergeNode in="shadow"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-    <filter id="glowPink" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
-      <feFlood flood-color="#ff6b9b" flood-opacity="0.5" result="color"/>
-      <feComposite in="color" in2="blur" operator="in" result="shadow"/>
-      <feMerge>
-        <feMergeNode in="shadow"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#8ff5ff"/>
-      <stop offset="100%" stop-color="#5bc4d0"/>
-    </linearGradient>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#111115"/>
-      <stop offset="100%" stop-color="#0e0e10"/>
-    </linearGradient>
-  </defs>
-
-  <!-- Background transparent -->
-
-  <!-- Subtle border -->
-  <rect x="1" y="1" width="126" height="126" rx="23" fill="none" stroke="#8ff5ff" stroke-width="0.5" opacity="0.3"/>
-
-  <!-- === ICON centered at 64,64 === -->
-  <g transform="translate(64, 64)" filter="url(#glowCyan)">
-
+  <g transform="translate(64, 64)">
     <!-- Outer gear ring -->
-    <circle cx="0" cy="0" r="44" fill="none" stroke="url(#iconGrad)" stroke-width="2.5"/>
-
-    <!-- Gear teeth (8 teeth) -->
-    <g fill="url(#iconGrad)">
+    <circle cx="0" cy="0" r="44" fill="none" stroke="#8ff5ff" stroke-width="2.5"/>
+    <!-- Gear teeth (8) -->
+    <g fill="#8ff5ff">
       <rect x="-3.5" y="-50" width="7" height="10" rx="1.5"/>
       <rect x="-3.5" y="40" width="7" height="10" rx="1.5"/>
       <rect x="40" y="-3.5" width="10" height="7" rx="1.5"/>
@@ -50,40 +13,21 @@
       <rect x="26" y="27" width="7" height="10" rx="1.5" transform="rotate(-45, 29.5, 32)"/>
       <rect x="-33" y="27" width="7" height="10" rx="1.5" transform="rotate(45, -29.5, 32)"/>
     </g>
-
-    <!-- Inner wheel ring with spokes -->
-    <circle cx="0" cy="0" r="28" fill="none" stroke="#8ff5ff" stroke-width="0.8" opacity="0.25"/>
+    <!-- Inner wheel -->
+    <circle cx="0" cy="0" r="28" fill="none" stroke="#8ff5ff" stroke-width="0.8" opacity="0.4"/>
     <!-- Spokes -->
-    <line x1="0" y1="-28" x2="0" y2="-12" stroke="#8ff5ff" stroke-width="0.8" opacity="0.35"/>
-    <line x1="0" y1="28" x2="0" y2="12" stroke="#8ff5ff" stroke-width="0.8" opacity="0.35"/>
-    <line x1="-24" y1="14" x2="-10" y2="6" stroke="#8ff5ff" stroke-width="0.8" opacity="0.35"/>
-    <line x1="24" y1="14" x2="10" y2="6" stroke="#8ff5ff" stroke-width="0.8" opacity="0.35"/>
-    <line x1="-24" y1="-14" x2="-10" y2="-6" stroke="#8ff5ff" stroke-width="0.8" opacity="0.35"/>
-    <line x1="24" y1="-14" x2="10" y2="-6" stroke="#8ff5ff" stroke-width="0.8" opacity="0.35"/>
-
+    <line x1="0" y1="-28" x2="0" y2="-12" stroke="#8ff5ff" stroke-width="0.8" opacity="0.5"/>
+    <line x1="0" y1="28" x2="0" y2="12" stroke="#8ff5ff" stroke-width="0.8" opacity="0.5"/>
+    <line x1="-24" y1="14" x2="-10" y2="6" stroke="#8ff5ff" stroke-width="0.8" opacity="0.5"/>
+    <line x1="24" y1="14" x2="10" y2="6" stroke="#8ff5ff" stroke-width="0.8" opacity="0.5"/>
+    <line x1="-24" y1="-14" x2="-10" y2="-6" stroke="#8ff5ff" stroke-width="0.8" opacity="0.5"/>
+    <line x1="24" y1="-14" x2="10" y2="-6" stroke="#8ff5ff" stroke-width="0.8" opacity="0.5"/>
     <!-- Hub -->
-    <circle cx="0" cy="0" r="4" fill="#131315" stroke="url(#iconGrad)" stroke-width="2"/>
-
-    <!-- Stylized "A" -->
-    <path d="M 0,-26 L -17,19 L -11,19 L -7.5,7 L 7.5,7 L 11,19 L 17,19 Z M -5,1.5 L 5,1.5 L 0,-15 Z"
-          fill="url(#iconGrad)"/>
-
-    <!-- Pink accent nodes -->
-    <circle cx="31" cy="-31" r="2.5" fill="#ff6b9b" filter="url(#glowPink)"/>
-    <circle cx="-31" cy="31" r="2.5" fill="#ff6b9b" filter="url(#glowPink)"/>
-
-    <!-- Circuit traces from pink nodes -->
-    <line x1="33" y1="-29" x2="40" y2="-22" stroke="#ff6b9b" stroke-width="0.8" opacity="0.5"/>
-    <line x1="-33" y1="29" x2="-40" y2="22" stroke="#ff6b9b" stroke-width="0.8" opacity="0.5"/>
-
-    <!-- Additional circuit trace nodes (tech feel) -->
-    <circle cx="42" cy="-20" r="1.5" fill="#ff6b9b" opacity="0.4"/>
-    <circle cx="-42" cy="20" r="1.5" fill="#ff6b9b" opacity="0.4"/>
+    <circle cx="0" cy="0" r="4" fill="none" stroke="#8ff5ff" stroke-width="2"/>
+    <!-- Stylized A -->
+    <path d="M 0,-26 L -17,19 L -11,19 L -7.5,7 L 7.5,7 L 11,19 L 17,19 Z M -5,1.5 L 5,1.5 L 0,-15 Z" fill="#8ff5ff"/>
+    <!-- Pink accents -->
+    <circle cx="31" cy="-31" r="2.5" fill="#ff6b9b"/>
+    <circle cx="-31" cy="31" r="2.5" fill="#ff6b9b"/>
   </g>
-
-  <!-- Corner accents -->
-  <path d="M 8,4 L 4,4 L 4,8" fill="none" stroke="#8ff5ff" stroke-width="0.8" opacity="0.2"/>
-  <path d="M 120,4 L 124,4 L 124,8" fill="none" stroke="#8ff5ff" stroke-width="0.8" opacity="0.2"/>
-  <path d="M 8,124 L 4,124 L 4,120" fill="none" stroke="#8ff5ff" stroke-width="0.8" opacity="0.2"/>
-  <path d="M 120,124 L 124,124 L 124,120" fill="none" stroke="#ff6b9b" stroke-width="0.8" opacity="0.25"/>
 </svg>
