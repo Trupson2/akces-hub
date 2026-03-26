@@ -857,7 +857,10 @@ def produkty():
         product_status = p['status'] if p['status'] else 'nowy'
 
         # Border & label colors by klasa/status
-        _klasa = p['klasa_jakosci'] if p.get('klasa_jakosci') else ''
+        try:
+            _klasa = p['klasa_jakosci'] or ''
+        except (IndexError, KeyError):
+            _klasa = ''
         _border_colors = {'A': '#beee00', 'A-': '#8ff5ff', 'B': '#eab308', 'C': '#f97316', 'D': '#ef4444'}
         _status_colors = {'nowy': '#8ff5ff', 'wystawiony': '#ff6b9b', 'sprzedany': '#beee00', 'wyslany': '#beee00', 'uszkodzony': '#ef4444', 'zwrot': '#f59e0b'}
         _bcolor = _border_colors.get(_klasa, _status_colors.get(product_status, '#48474a'))
