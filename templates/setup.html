@@ -1,206 +1,454 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-.setup-container{max-width:540px;margin:0 auto;padding:24px 16px}
-.setup-step{display:none;animation:fadeIn .3s}
+/* ── Cyberpunk Setup Wizard ── */
+.setup-wrap{max-width:900px;margin:0 auto;padding:32px 16px 120px}
+
+/* Grid background */
+.setup-wrap::before{content:'';position:fixed;inset:0;z-index:-1;
+  background-image:linear-gradient(rgba(143,245,255,0.03) 1px,transparent 1px),
+                    linear-gradient(90deg,rgba(143,245,255,0.03) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none}
+
+/* Ambient glow */
+.setup-wrap::after{content:'';position:fixed;top:20%;left:-10%;width:400px;height:400px;
+  background:radial-gradient(circle,rgba(143,245,255,0.06),transparent 70%);
+  z-index:-1;pointer-events:none}
+
+/* Steps */
+.setup-step{display:none;animation:stepIn .4s ease}
 .setup-step.active{display:block}
-@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.step-header{text-align:center;margin-bottom:28px}
-.step-header h2{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.4rem;margin:0 0 6px;color:var(--text)}
-.step-header p{color:var(--text-muted);font-size:0.85rem;margin:0}
-.step-num{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--neon-primary),var(--neon-secondary));color:#fff;font-weight:700;font-size:1rem;margin-bottom:12px;box-shadow:0 0 15px rgba(143,245,255,0.2)}
-.form-group{margin-bottom:18px}
-.form-group label{display:block;font-size:0.82rem;color:var(--text-muted);margin-bottom:6px;font-weight:600}
-.form-group input[type="text"],.form-group input[type="color"]{width:100%;padding:12px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:var(--text);font-size:0.95rem;transition:border-color 0.2s}
-.form-group input[type="text"]:focus{border-color:var(--neon-primary);outline:none;box-shadow:0 0 10px rgba(143,245,255,0.1)}
-.form-group input[type="color"]{height:48px;padding:4px;cursor:pointer}
+@keyframes stepIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* Progress stepper — diamond dots */
+.stepper{display:flex;justify-content:center;align-items:center;gap:0;margin-bottom:40px;padding:0 20px}
+.stepper-dot{width:14px;height:14px;transform:rotate(45deg);border:2px solid var(--outline-variant,#48474a);
+  background:transparent;transition:all .3s;flex-shrink:0;position:relative;z-index:2}
+.stepper-dot.active{border-color:#8ff5ff;background:#8ff5ff;box-shadow:0 0 12px rgba(143,245,255,0.5)}
+.stepper-dot.done{border-color:#beee00;background:#beee00;box-shadow:0 0 8px rgba(190,238,0,0.4)}
+.stepper-line{height:2px;flex:1;background:rgba(255,255,255,0.06);max-width:80px}
+.stepper-line.done{background:linear-gradient(90deg,#beee00,rgba(143,245,255,0.3))}
+.stepper-labels{display:flex;justify-content:center;gap:40px;margin-top:12px;margin-bottom:32px}
+.stepper-label{font-family:'Manrope',sans-serif;font-size:0.6rem;text-transform:uppercase;
+  letter-spacing:0.15em;color:var(--text-muted,#adaaad);transition:color .3s}
+.stepper-label.active{color:#8ff5ff}
+.stepper-label.done{color:#beee00}
+
+/* Glass panel */
+.glass-setup{background:rgba(19,19,21,0.85);backdrop-filter:blur(12px);
+  border:1px solid rgba(72,71,74,0.15);border-left:3px solid rgba(143,245,255,0.3);
+  padding:40px;position:relative;overflow:hidden}
+.glass-setup::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,#8ff5ff,#ff6b9b,#beee00)}
+
+/* Headers */
+.step-title{font-family:'Space Grotesk',sans-serif;font-size:2.2rem;font-weight:800;
+  letter-spacing:-0.03em;color:var(--text,#f9f5f8);margin:0 0 8px}
+.step-title span{color:#8ff5ff;filter:drop-shadow(0 0 10px rgba(143,245,255,0.3))}
+.step-sub{color:var(--text-muted,#adaaad);font-size:0.9rem;line-height:1.6;margin:0 0 32px;max-width:600px}
+
+/* Form fields */
+.field-group{margin-bottom:20px}
+.field-label{display:block;font-family:'Manrope',sans-serif;font-size:0.65rem;font-weight:800;
+  text-transform:uppercase;letter-spacing:0.2em;color:var(--text-muted,#adaaad);margin-bottom:8px}
+.field-input{width:100%;background:var(--bg-card,#262528);border:none;color:var(--text,#f9f5f8);
+  font-family:'Space Grotesk',sans-serif;font-size:1rem;padding:16px 16px 16px 48px;
+  transition:all .2s;outline:none}
+.field-input:focus{background:var(--bg-card-hover,#2c2c2f);box-shadow:0 0 0 1px #8ff5ff}
+.field-input::placeholder{color:rgba(255,255,255,0.15)}
+.field-wrap{position:relative}
+.field-wrap .material-symbols-outlined{position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  color:#8ff5ff;font-size:1.2rem}
+
+/* Module cards */
+.mod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.mod-card{padding:20px 16px;background:rgba(38,37,40,0.6);border:1px solid rgba(72,71,74,0.2);
+  cursor:pointer;transition:all .25s;text-align:center;position:relative;overflow:hidden}
+.mod-card:hover{border-color:rgba(143,245,255,0.2);background:rgba(44,44,47,0.6)}
+.mod-card.selected{border-color:#beee00;background:rgba(190,238,0,0.04);
+  box-shadow:0 0 15px rgba(190,238,0,0.08)}
+.mod-card.selected::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:#beee00}
+.mod-card .mod-icon{font-size:1.8rem;margin-bottom:8px;display:block}
+.mod-card .mod-name{font-family:'Space Grotesk',sans-serif;font-size:0.8rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:0.05em;color:var(--text,#f9f5f8)}
+.mod-card .mod-desc{font-size:0.65rem;color:var(--text-muted,#adaaad);margin-top:4px;
+  text-transform:uppercase;letter-spacing:0.05em}
+
+/* Color picker row */
 .color-row{display:flex;gap:10px;align-items:center}
 .color-row input[type="text"]{flex:1}
-.color-row input[type="color"]{width:48px;flex:none;border-radius:10px}
-.module-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.module-card{padding:14px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;cursor:pointer;transition:all .2s;text-align:center;backdrop-filter:blur(8px)}
-.module-card:hover{border-color:rgba(143,245,255,0.25)}
-.module-card.selected{border-color:var(--neon-tertiary);background:rgba(190,238,0,0.05);box-shadow:0 0 12px rgba(190,238,0,0.1)}
-.module-card .icon{font-size:1.5rem;margin-bottom:4px}
-.module-card .name{font-size:0.82rem;font-weight:600;color:var(--text)}
-.module-card .desc{font-size:0.7rem;color:var(--text-muted);margin-top:2px}
-.btn-row{display:flex;gap:10px;margin-top:24px}
-.btn-next{flex:1;padding:14px;background:rgba(143,245,255,0.12);border:1px solid rgba(143,245,255,0.3);color:var(--neon-primary);border-radius:12px;font-size:0.95rem;font-weight:700;cursor:pointer;transition:all 0.2s}
-.btn-next:hover{box-shadow:0 0 20px rgba(143,245,255,0.15)}
-.btn-skip{flex:none;padding:14px 20px;background:transparent;color:var(--text-muted);border:1px solid rgba(255,255,255,0.08);border-radius:12px;font-size:0.85rem;cursor:pointer;transition:all 0.2s}
-.btn-skip:hover{border-color:rgba(255,255,255,0.15)}
-.progress-dots{display:flex;justify-content:center;gap:8px;margin-bottom:24px}
-.dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.08);transition:all .3s}
-.dot.active{background:var(--neon-primary);transform:scale(1.2);box-shadow:0 0 8px rgba(143,245,255,0.4)}
-.dot.done{background:var(--neon-tertiary);box-shadow:0 0 6px rgba(190,238,0,0.3)}
-.preview-brand{text-align:center;padding:20px;border-radius:14px;margin-top:16px}
-.preview-brand h3{margin:0;font-family:'Space Grotesk',sans-serif;font-size:1.3rem}
-.welcome-icon{font-size:3rem;margin-bottom:8px;filter:drop-shadow(0 0 12px rgba(143,245,255,0.4))}
-.finish-check{font-size:4rem;margin-bottom:12px;color:var(--neon-tertiary);filter:drop-shadow(0 0 15px rgba(190,238,0,0.4))}
+.color-row input[type="color"]{width:52px;height:52px;padding:2px;cursor:pointer;
+  background:transparent;border:1px solid rgba(72,71,74,0.3)}
+
+/* Logo upload */
+.logo-upload{display:flex;align-items:center;gap:16px}
+.logo-box{width:80px;height:80px;background:rgba(38,37,40,0.6);border:1px dashed rgba(143,245,255,0.2);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:all .2s}
+.logo-box:hover{border-color:#8ff5ff;background:rgba(143,245,255,0.03)}
+
+/* Preview card */
+.brand-preview{background:rgba(19,19,21,0.6);border:1px solid rgba(72,71,74,0.15);
+  padding:24px;text-align:center;margin-top:20px}
+.brand-preview h3{margin:0;font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:900;
+  letter-spacing:-0.02em}
+.brand-preview .sub{font-size:0.6rem;color:var(--text-muted,#adaaad);text-transform:uppercase;
+  letter-spacing:0.2em;margin-top:4px}
+
+/* Buttons */
+.btn-cyber{padding:16px 32px;font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:0.85rem;
+  text-transform:uppercase;letter-spacing:0.15em;border:none;cursor:pointer;transition:all .2s}
+.btn-cyber:active{transform:scale(0.97)}
+.btn-primary{background:#8ff5ff;color:#005d63;box-shadow:0 0 20px rgba(143,245,255,0.25)}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-secondary{background:#ff6b9b;color:#47001f;box-shadow:0 0 20px rgba(255,107,155,0.25)}
+.btn-secondary:hover{filter:brightness(1.1)}
+.btn-ghost{background:transparent;border:1px solid rgba(143,245,255,0.2);color:#8ff5ff}
+.btn-ghost:hover{background:rgba(143,245,255,0.05)}
+.btn-row{display:flex;gap:12px;margin-top:32px}
+
+/* Welcome hero */
+.welcome-hero{text-align:center;padding:60px 20px}
+.welcome-hero .brand-big{font-family:'Space Grotesk',sans-serif;font-size:4rem;font-weight:900;
+  letter-spacing:-0.04em;line-height:1}
+.welcome-hero .brand-big .accent{color:#8ff5ff;
+  filter:drop-shadow(0 0 15px rgba(143,245,255,0.3))}
+.welcome-stats{display:flex;justify-content:center;gap:40px;margin:32px 0}
+.welcome-stat{text-align:center}
+.welcome-stat .val{font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:700}
+.welcome-stat .lbl{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.15em;
+  color:var(--text-muted,#adaaad);margin-top:2px}
+
+/* Finish */
+.finish-icon{font-size:4rem;color:#beee00;filter:drop-shadow(0 0 20px rgba(190,238,0,0.4));
+  margin-bottom:16px}
+.next-steps{display:flex;flex-direction:column;gap:10px;margin:24px 0}
+.next-step{display:flex;align-items:center;gap:12px;padding:14px 16px;
+  background:rgba(38,37,40,0.4);border:1px solid rgba(72,71,74,0.1);
+  color:var(--text,#f9f5f8);text-decoration:none;font-size:0.85rem;transition:all .2s}
+.next-step:hover{border-color:rgba(143,245,255,0.2);background:rgba(44,44,47,0.4)}
+.next-step .material-symbols-outlined{color:#8ff5ff;font-size:1.2rem}
+
+/* Responsive */
+@media(max-width:640px){
+  .setup-wrap{padding:20px 12px 120px}
+  .step-title{font-size:1.6rem}
+  .glass-setup{padding:24px 16px}
+  .mod-grid{grid-template-columns:1fr 1fr}
+  .welcome-hero .brand-big{font-size:2.5rem}
+  .welcome-stats{gap:20px}
+  .stepper-labels{gap:16px}
+  .btn-row{flex-direction:column}
+}
 </style>
 
-<div class="setup-container">
-<div class="progress-dots" id="dots">
-    <div class="dot active"></div>
-    <div class="dot"></div>
-    <div class="dot"></div>
-    <div class="dot"></div>
+<div class="setup-wrap">
+
+<!-- ── STEPPER ── -->
+<div class="stepper" id="stepper">
+    <div class="stepper-dot active" id="sd1"></div>
+    <div class="stepper-line" id="sl1"></div>
+    <div class="stepper-dot" id="sd2"></div>
+    <div class="stepper-line" id="sl2"></div>
+    <div class="stepper-dot" id="sd3"></div>
+    <div class="stepper-line" id="sl3"></div>
+    <div class="stepper-dot" id="sd4"></div>
+</div>
+<div class="stepper-labels" id="stepper-labels">
+    <span class="stepper-label active" id="slbl1">WELCOME</span>
+    <span class="stepper-label" id="slbl2">BRANDING</span>
+    <span class="stepper-label" id="slbl3">MODULES</span>
+    <span class="stepper-label" id="slbl4">FINALIZE</span>
 </div>
 
-<!-- STEP 1: Powitanie -->
+<!-- ══════════════════════════════════════════ -->
+<!-- STEP 1: Welcome Hub -->
+<!-- ══════════════════════════════════════════ -->
 <div class="setup-step active" id="step1">
-    <div class="step-header">
-        <div class="welcome-icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">rocket_launch</span></div>
-        <h2>Witaj w {{ brand_name|default('Akces Hub') }}!</h2>
-        <p>Skonfiguruj system w kilku krokach.<br>Zajmie to mniej niz minute.</p>
+    <div class="glass-setup">
+        <div class="welcome-hero">
+            <div style="margin-bottom:16px">
+                <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.3em;color:rgba(143,245,255,0.6)">━━ Authorized Access Only ━━</span>
+            </div>
+            <div class="brand-big">
+                AKCES <span class="accent">HUB</span>
+            </div>
+            <p style="color:var(--text-muted,#adaaad);font-size:0.95rem;max-width:480px;margin:20px auto 0;line-height:1.7">
+                Twoje centrum dowodzenia e-commerce.<br>
+                Magazyn, sprzedaz, analityka — wszystko w jednym miejscu.
+            </p>
+            <div class="welcome-stats">
+                <div class="welcome-stat">
+                    <div class="val" style="color:#ff6b9b">4</div>
+                    <div class="lbl">Kroki setup</div>
+                </div>
+                <div class="welcome-stat">
+                    <div class="val" style="color:#beee00">&lt;1 min</div>
+                    <div class="lbl">Czas konfiguracji</div>
+                </div>
+                <div class="welcome-stat">
+                    <div class="val" style="color:#8ff5ff">∞</div>
+                    <div class="lbl">Mozliwosci</div>
+                </div>
+            </div>
+            <div class="btn-row" style="justify-content:center;margin-top:40px">
+                <button class="btn-cyber btn-primary" onclick="goStep(2)" style="padding:20px 48px;font-size:1rem;letter-spacing:0.25em">
+                    INITIALIZE SYSTEM →
+                </button>
+            </div>
+        </div>
     </div>
-    <div class="btn-row">
-        <button class="btn-next" onclick="goStep(2)">Zaczynamy →</button>
+
+    <!-- Quick access cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:20px">
+        <div style="background:rgba(38,37,40,0.4);padding:20px;display:flex;align-items:start;gap:12px;border:1px solid rgba(72,71,74,0.1)">
+            <span class="material-symbols-outlined" style="color:#8ff5ff;background:rgba(143,245,255,0.08);padding:8px">inventory_2</span>
+            <div>
+                <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.8rem;text-transform:uppercase">Magazyn</div>
+                <div style="font-size:0.65rem;color:var(--text-muted,#adaaad);margin-top:2px">Stany, lokalizacje, palety</div>
+            </div>
+        </div>
+        <div style="background:rgba(38,37,40,0.4);padding:20px;display:flex;align-items:start;gap:12px;border:1px solid rgba(72,71,74,0.1)">
+            <span class="material-symbols-outlined" style="color:#ff6b9b;background:rgba(255,107,155,0.08);padding:8px">qr_code_scanner</span>
+            <div>
+                <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.8rem;text-transform:uppercase">Skaner</div>
+                <div style="font-size:0.65rem;color:var(--text-muted,#adaaad);margin-top:2px">Szybkie przyjmowanie palet</div>
+            </div>
+        </div>
+        <div style="background:rgba(38,37,40,0.4);padding:20px;display:flex;align-items:start;gap:12px;border:1px solid rgba(72,71,74,0.1)">
+            <span class="material-symbols-outlined" style="color:#beee00;background:rgba(190,238,0,0.08);padding:8px">settings_ethernet</span>
+            <div>
+                <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.8rem;text-transform:uppercase">Integracje</div>
+                <div style="font-size:0.65rem;color:var(--text-muted,#adaaad);margin-top:2px">Allegro, Telegram, AI</div>
+            </div>
+        </div>
     </div>
 </div>
 
+<!-- ══════════════════════════════════════════ -->
 <!-- STEP 2: Branding -->
+<!-- ══════════════════════════════════════════ -->
 <div class="setup-step" id="step2">
-    <div class="step-header">
-        <div class="step-num">1</div>
-        <h2>Twoja firma</h2>
-        <p>Jak ma sie nazywac Twoj system?</p>
-    </div>
-    <div class="form-group">
-        <label>Nazwa firmy / systemu</label>
-        <input type="text" id="s-brand" value="{{ current_brand }}" placeholder="np. Moja Firma Hub" maxlength="50">
-    </div>
-    <div class="form-group">
-        <label>Logo firmy (opcjonalne)</label>
-        <div style="display:flex;align-items:center;gap:12px">
-            <label for="s-logo" class="glass-card" style="display:flex;align-items:center;justify-content:center;width:80px;height:80px;cursor:pointer;overflow:hidden;padding:0" id="logo-preview-box">
-                <span id="logo-placeholder" style="color:var(--text-muted);font-size:0.75rem;text-align:center">Kliknij<br>aby dodac</span>
-                <img id="logo-preview-img" style="display:none;max-width:100%;max-height:100%;object-fit:contain">
-            </label>
-            <input type="file" id="s-logo" accept="image/png,image/jpeg,image/svg+xml" style="display:none">
-            <div style="font-size:0.72rem;color:var(--text-muted)">PNG, JPG lub SVG<br>Maks. 500 KB</div>
+    <div class="glass-setup">
+        <h2 class="step-title">YOUR <span>BRAND</span></h2>
+        <p class="step-sub">Ustaw nazwe i wyglad systemu. Wszystko mozna zmienic pozniej w ustawieniach.</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+            <div style="grid-column:span 2">
+                <div class="field-group">
+                    <label class="field-label">Nazwa firmy / systemu</label>
+                    <div class="field-wrap">
+                        <span class="material-symbols-outlined">badge</span>
+                        <input class="field-input" type="text" id="s-brand" value="{{ current_brand }}"
+                               placeholder="np. Moja Firma Hub" maxlength="50">
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="field-group">
+                    <label class="field-label">Logo firmy (opcjonalne)</label>
+                    <div class="logo-upload">
+                        <label for="s-logo" class="logo-box" id="logo-preview-box">
+                            <span id="logo-placeholder" style="color:var(--text-muted,#adaaad);font-size:0.6rem;text-align:center;text-transform:uppercase;letter-spacing:0.1em">
+                                <span class="material-symbols-outlined" style="display:block;margin-bottom:4px;font-size:1.5rem;color:#8ff5ff">add_photo_alternate</span>
+                                Upload
+                            </span>
+                            <img id="logo-preview-img" style="display:none;max-width:100%;max-height:100%;object-fit:contain">
+                        </label>
+                        <input type="file" id="s-logo" accept="image/png,image/jpeg,image/svg+xml" style="display:none">
+                        <div style="font-size:0.6rem;color:var(--text-muted,#adaaad);text-transform:uppercase;letter-spacing:0.05em;line-height:1.8">
+                            PNG, JPG, SVG<br>Maks. 500 KB
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="field-group">
+                    <label class="field-label">Kolor przewodni</label>
+                    <div class="color-row">
+                        <div class="field-wrap" style="flex:1">
+                            <span class="material-symbols-outlined">palette</span>
+                            <input class="field-input" type="text" id="s-color-text" value="{{ current_color }}"
+                                   placeholder="#8ff5ff" maxlength="7">
+                        </div>
+                        <input type="color" id="s-color" value="{{ current_color }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live preview -->
+        <div class="brand-preview">
+            <div class="sub">Podglad</div>
+            <h3 id="preview-name" style="color:{{ current_color }}">{{ current_brand }}</h3>
         </div>
     </div>
-    <div class="form-group">
-        <label>Kolor przewodni</label>
-        <div class="color-row">
-            <input type="text" id="s-color-text" value="{{ current_color }}" placeholder="#8ff5ff" maxlength="7">
-            <input type="color" id="s-color" value="{{ current_color }}">
-        </div>
-    </div>
-    <div class="glass-card preview-brand">
-        <p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 8px">Podglad:</p>
-        <h3 id="preview-name" style="color:{{ current_color }}">{{ current_brand }}</h3>
-    </div>
+
     <div class="btn-row">
-        <button class="btn-skip" onclick="goStep(3)">Pomijam</button>
-        <button class="btn-next" onclick="goStep(3)">Dalej →</button>
+        <button class="btn-cyber btn-ghost" onclick="goStep(1)">← Wstecz</button>
+        <button class="btn-cyber btn-ghost" onclick="goStep(3)" style="margin-left:auto">Pomijam</button>
+        <button class="btn-cyber btn-primary" onclick="goStep(3)">Dalej →</button>
     </div>
 </div>
 
-<!-- STEP 3: Moduły -->
+<!-- ══════════════════════════════════════════ -->
+<!-- STEP 3: Modules -->
+<!-- ══════════════════════════════════════════ -->
 <div class="setup-step" id="step3">
-    <div class="step-header">
-        <div class="step-num">2</div>
-        <h2>Moduly</h2>
-        <p>Jakich funkcji potrzebujesz? (mozesz zmienic pozniej)</p>
+    <div class="glass-setup">
+        <h2 class="step-title">SELECT <span>MODULES</span></h2>
+        <p class="step-sub">Jakich funkcji potrzebujesz? Mozesz zmienic w kazdej chwili.</p>
+
+        <div class="mod-grid">
+            <div class="mod-card selected" data-mod="paletomat" onclick="toggleMod(this)">
+                <span class="material-symbols-outlined mod-icon" style="color:#8ff5ff">smart_toy</span>
+                <div class="mod-name">Paletomat</div>
+                <div class="mod-desc">AI wystawianie ofert</div>
+            </div>
+            <div class="mod-card selected" data-mod="magazyn" onclick="toggleMod(this)">
+                <span class="material-symbols-outlined mod-icon" style="color:#beee00">inventory_2</span>
+                <div class="mod-name">Magazyn</div>
+                <div class="mod-desc">Stany i lokalizacje</div>
+            </div>
+            <div class="mod-card selected" data-mod="allegro" onclick="toggleMod(this)">
+                <span class="material-symbols-outlined mod-icon" style="color:#ff6b9b">shopping_cart</span>
+                <div class="mod-name">Allegro API</div>
+                <div class="mod-desc">Sync zamowien</div>
+            </div>
+            <div class="mod-card" data-mod="olx" onclick="toggleMod(this)">
+                <span class="material-symbols-outlined mod-icon" style="color:#adaaad">list_alt</span>
+                <div class="mod-name">OLX</div>
+                <div class="mod-desc">Wystawianie ofert</div>
+            </div>
+            <div class="mod-card" data-mod="vinted" onclick="toggleMod(this)">
+                <span class="material-symbols-outlined mod-icon" style="color:#adaaad">checkroom</span>
+                <div class="mod-name">Vinted</div>
+                <div class="mod-desc">Sprzedaz odziez</div>
+            </div>
+            <div class="mod-card selected" data-mod="telegram" onclick="toggleMod(this)">
+                <span class="material-symbols-outlined mod-icon" style="color:#8ff5ff">send</span>
+                <div class="mod-name">Telegram</div>
+                <div class="mod-desc">Powiadomienia</div>
+            </div>
+        </div>
     </div>
-    <div class="module-grid">
-        <div class="module-card selected" data-mod="paletomat" onclick="toggleMod(this)">
-            <div class="icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smart_toy</span></div>
-            <div class="name">Paletomat</div>
-            <div class="desc">Wystawianie na Allegro</div>
-        </div>
-        <div class="module-card selected" data-mod="magazyn" onclick="toggleMod(this)">
-            <div class="icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span></div>
-            <div class="name">Magazyn</div>
-            <div class="desc">Stany i lokalizacje</div>
-        </div>
-        <div class="module-card selected" data-mod="allegro" onclick="toggleMod(this)">
-            <div class="icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">shopping_cart</span></div>
-            <div class="name">Allegro API</div>
-            <div class="desc">Synchronizacja zamowien</div>
-        </div>
-        <div class="module-card" data-mod="olx" onclick="toggleMod(this)">
-            <div class="icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">list_alt</span></div>
-            <div class="name">OLX</div>
-            <div class="desc">Wystawianie ofert</div>
-        </div>
-        <div class="module-card" data-mod="vinted" onclick="toggleMod(this)">
-            <div class="icon">👗</div>
-            <div class="name">Vinted</div>
-            <div class="desc">Sprzedaz odziez</div>
-        </div>
-        <div class="module-card selected" data-mod="telegram" onclick="toggleMod(this)">
-            <div class="icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smartphone</span></div>
-            <div class="name">Telegram</div>
-            <div class="desc">Powiadomienia</div>
-        </div>
-    </div>
+
     <div class="btn-row">
-        <button class="btn-skip" onclick="goStep(4)">Pomijam</button>
-        <button class="btn-next" onclick="goStep(4)">Dalej →</button>
+        <button class="btn-cyber btn-ghost" onclick="goStep(2)">← Wstecz</button>
+        <button class="btn-cyber btn-ghost" onclick="goStep(4)" style="margin-left:auto">Pomijam</button>
+        <button class="btn-cyber btn-primary" onclick="goStep(4)">Dalej →</button>
     </div>
 </div>
 
-<!-- STEP 4: Gotowe -->
+<!-- ══════════════════════════════════════════ -->
+<!-- STEP 4: Finalize -->
+<!-- ══════════════════════════════════════════ -->
 <div class="setup-step" id="step4">
-    <div class="step-header">
-        <div class="finish-check"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span></div>
-        <h2>Gotowe!</h2>
-        <p>System skonfigurowany. Mozesz zmienic ustawienia<br>w kazdej chwili w <strong>Ustawienia</strong>.</p>
-    </div>
-    <div class="glass-card" style="padding:16px;margin-bottom:20px">
-        <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px">Nastepne kroki:</div>
-        <div style="display:flex;flex-direction:column;gap:8px">
+    <div class="glass-setup" style="text-align:center">
+        <div class="finish-icon">
+            <span class="material-symbols-outlined" style="font-size:inherit">check_circle</span>
+        </div>
+        <h2 class="step-title" style="display:inline-block">SYSTEM <span>READY</span></h2>
+        <p class="step-sub" style="margin-left:auto;margin-right:auto;text-align:center">
+            Konfiguracja zakonczona. Mozesz zmienic ustawienia w kazdej chwili.
+        </p>
+
+        <div class="next-steps" style="max-width:400px;margin:24px auto">
             {% if not has_allegro %}
-            <a href="/ustawienia" style="display:flex;align-items:center;gap:8px;color:var(--text);text-decoration:none;font-size:0.85rem">
-                <span style="color:var(--neon-primary)"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bolt</span></span> Podlacz Allegro API
+            <a href="/ustawienia" class="next-step">
+                <span class="material-symbols-outlined" style="color:#ff6b9b">shopping_cart</span>
+                Podlacz Allegro API
             </a>
             {% endif %}
             {% if not has_telegram %}
-            <a href="/ustawienia" style="display:flex;align-items:center;gap:8px;color:var(--text);text-decoration:none;font-size:0.85rem">
-                <span style="color:var(--neon-primary)"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bolt</span></span> Skonfiguruj Telegram bota
+            <a href="/ustawienia" class="next-step">
+                <span class="material-symbols-outlined">send</span>
+                Skonfiguruj Telegram bota
             </a>
             {% endif %}
-            <a href="/changelog" style="display:flex;align-items:center;gap:8px;color:var(--text);text-decoration:none;font-size:0.85rem">
-                <span style="color:var(--neon-secondary)"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">list_alt</span></span> Zobacz changelog systemu
+            <a href="/changelog" class="next-step">
+                <span class="material-symbols-outlined" style="color:#beee00">history</span>
+                Zobacz changelog systemu
             </a>
         </div>
     </div>
-    <div class="btn-row">
-        <button class="btn-next" onclick="finishSetup()" id="btn-finish">Przejdz do dashboardu →</button>
+
+    <div class="btn-row" style="justify-content:center;margin-top:32px">
+        <button class="btn-cyber btn-ghost" onclick="goStep(3)">← Wstecz</button>
+        <button class="btn-cyber btn-secondary" onclick="finishSetup()" id="btn-finish"
+                style="padding:20px 48px;font-size:1rem;letter-spacing:0.2em">
+            LAUNCH DASHBOARD →
+        </button>
     </div>
 </div>
-</div>
+
+</div><!-- /setup-wrap -->
 
 <script>
 let currentStep = 1;
+
 function goStep(n) {
     document.getElementById('step'+currentStep).classList.remove('active');
     document.getElementById('step'+n).classList.add('active');
-    const dots = document.querySelectorAll('.dot');
-    dots.forEach((d,i) => {
-        d.classList.remove('active','done');
-        if (i < n-1) d.classList.add('done');
-        if (i === n-1) d.classList.add('active');
-    });
-    currentStep = n;
-}
-function toggleMod(el) { el.classList.toggle('selected'); }
 
+    // Update stepper dots
+    for(let i=1; i<=4; i++){
+        const dot = document.getElementById('sd'+i);
+        const lbl = document.getElementById('slbl'+i);
+        dot.classList.remove('active','done');
+        lbl.classList.remove('active','done');
+        if(i < n){ dot.classList.add('done'); lbl.classList.add('done'); }
+        if(i === n){ dot.classList.add('active'); lbl.classList.add('active'); }
+    }
+    // Update stepper lines
+    for(let i=1; i<=3; i++){
+        const line = document.getElementById('sl'+i);
+        line.classList.toggle('done', i < n);
+    }
+
+    currentStep = n;
+    window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function toggleMod(el) {
+    el.classList.toggle('selected');
+    // Update icon color
+    const icon = el.querySelector('.mod-icon');
+    if(el.classList.contains('selected')){
+        icon.style.color = el.dataset.mod === 'allegro' ? '#ff6b9b' :
+                           el.dataset.mod === 'magazyn' ? '#beee00' : '#8ff5ff';
+    } else {
+        icon.style.color = '#adaaad';
+    }
+}
+
+// Brand inputs
 const brandInput = document.getElementById('s-brand');
 const colorInput = document.getElementById('s-color');
 const colorText = document.getElementById('s-color-text');
 const preview = document.getElementById('preview-name');
-brandInput.addEventListener('input', () => { preview.textContent = brandInput.value || 'AKCES HUB'; });
-colorInput.addEventListener('input', () => { preview.style.color = colorInput.value; colorText.value = colorInput.value; });
-colorText.addEventListener('input', () => { if(/^#[0-9a-f]{6}$/i.test(colorText.value)){colorInput.value=colorText.value;preview.style.color=colorText.value;} });
 
+brandInput.addEventListener('input', () => {
+    preview.textContent = brandInput.value || 'AKCES HUB';
+});
+colorInput.addEventListener('input', () => {
+    preview.style.color = colorInput.value;
+    colorText.value = colorInput.value;
+});
+colorText.addEventListener('input', () => {
+    if(/^#[0-9a-f]{6}$/i.test(colorText.value)){
+        colorInput.value = colorText.value;
+        preview.style.color = colorText.value;
+    }
+});
+
+// Logo upload
 const logoInput = document.getElementById('s-logo');
 const logoPreviewImg = document.getElementById('logo-preview-img');
 const logoPlaceholder = document.getElementById('logo-placeholder');
 let logoFile = null;
+
 logoInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -215,15 +463,19 @@ logoInput.addEventListener('change', (e) => {
     reader.readAsDataURL(file);
 });
 
+// Finish setup
 async function finishSetup() {
     const btn = document.getElementById('btn-finish');
-    btn.textContent = 'Zapisuje...';
+    btn.textContent = 'INITIALIZING...';
     btn.disabled = true;
+    btn.style.opacity = '0.6';
+
     if (logoFile) {
         const fd = new FormData();
         fd.append('logo', logoFile);
         try { await fetch('/setup/logo', {method:'POST', credentials:'same-origin', body: fd}); } catch(e) {}
     }
+
     try {
         await fetch('/setup/save', {
             method: 'POST',
@@ -235,6 +487,7 @@ async function finishSetup() {
             })
         });
     } catch(e) {}
+
     window.location.href = '/';
 }
 </script>
