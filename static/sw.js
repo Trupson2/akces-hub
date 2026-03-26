@@ -18,13 +18,17 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Instalacja
+// Instalacja - cache assets individually (addAll fails if ANY request fails)
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('📦 Cache opened');
-        return cache.addAll(CACHE_ASSETS);
+        console.log('Cache opened');
+        return Promise.allSettled(
+          CACHE_ASSETS.map((url) =>
+            cache.add(url).catch((e) => console.log('Cache skip:', url))
+          )
+        );
       })
       .then(() => self.skipWaiting())
   );
