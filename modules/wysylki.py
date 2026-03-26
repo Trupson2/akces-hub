@@ -1079,6 +1079,25 @@ def wysylki_lista():
             dostawca = first_item['dostawca'] or 'Niezdefiniowany'
             code = first_item['ean'] or first_item['asin'] or '—'
 
+            # Delivery type badge z adresu
+            adres_lower = (first_item.get('adres') or '').lower()
+            kupujacy_lower = (first_item.get('kupujacy') or '').lower()
+            all_text = adres_lower + ' ' + kupujacy_lower
+            if 'paczkomat' in all_text or 'inpost' in all_text:
+                badge += ' <span style="background:#ffcd00;color:#000;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:800;letter-spacing:0.5px">INPOST</span>'
+            elif 'one box' in all_text or 'allegro one' in all_text or 'one-box' in all_text:
+                badge += ' <span style="background:#ff5a00;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:800;letter-spacing:0.5px">ALLEGRO ONE</span>'
+            elif 'orlen' in all_text:
+                badge += ' <span style="background:#e4002b;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:800;letter-spacing:0.5px">ORLEN</span>'
+            elif 'dpd' in all_text:
+                badge += ' <span style="background:#dc0032;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:800;letter-spacing:0.5px">DPD</span>'
+            elif 'dhl' in all_text:
+                badge += ' <span style="background:#ffcc00;color:#000;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:800;letter-spacing:0.5px">DHL</span>'
+            elif 'ups' in all_text:
+                badge += ' <span style="background:#351c15;color:#ffb500;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:800;letter-spacing:0.5px">UPS</span>'
+            elif 'kurier' in all_text or 'pocztex' in all_text or 'gls' in all_text:
+                badge += ' <span style="background:var(--accent);color:#fff;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:800;letter-spacing:0.5px">KURIER</span>'
+
             # Status badge: nadana = etykieta wydrukowana
             status_raw = first_item.get('status', 'nowa')
             if status_raw == 'nadana':
@@ -1102,7 +1121,10 @@ def wysylki_lista():
                             <span class=material-symbols-outlined>pin_drop</span> {lokalizacja} &nbsp;|&nbsp; <span class="material-symbols-outlined">person</span> {dostawca} &nbsp;|&nbsp; <span class=material-symbols-outlined>label</span> {code}
                         </div>
                         <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">
-                            <span class=material-symbols-outlined>shopping_cart</span> {first_item['kupujacy']} &nbsp;|&nbsp; <span class=material-symbols-outlined>calendar_month</span> {data_str}
+                            <span class=material-symbols-outlined>person</span> {first_item['kupujacy']} · <span class=material-symbols-outlined>location_on</span> {(first_item.get('adres') or 'Brak adresu')[:60]}
+                        </div>
+                        <div style="font-size:0.65rem;color:var(--text-muted);margin-top:1px">
+                            <span class=material-symbols-outlined>calendar_month</span> {data_str}
                         </div>
                     </div>
                     <div style="text-align:right;margin-left:10px">
