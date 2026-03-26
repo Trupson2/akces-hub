@@ -4,71 +4,107 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Poziom {{ username|default('User') }}</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block" rel="stylesheet">
-<style>
-  :root {
-    --bg: #080810;
-    --card: #0f0f1a;
-    --border: #1a1a2e;
-    --green: #22c55e;
-    --yellow: #eab308;
-    --red: #ef4444;
-    --blue: #3b82f6;
-    --purple: #a855f7;
-    --text: #e2e8f0;
-    --muted: #475569;
-    --mono: 'Space Mono', monospace;
-    --sans: 'Syne', sans-serif;
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        bg: '#0e0e10',
+        card: '#131315',
+        surface1: '#19191c',
+        surface2: '#1f1f22',
+        surface3: '#262528',
+        outline: '#767577',
+        'outline-v': '#48474a',
+        cyan: '#8ff5ff',
+        pink: '#ff6b9b',
+        lime: '#beee00',
+        txt: '#f9f5f8',
+        muted: '#adaaad',
+      },
+      fontFamily: {
+        headline: ['Space Grotesk', 'sans-serif'],
+        body: ['Manrope', 'sans-serif'],
+      },
+    }
   }
+}
+</script>
+<style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
+    background: #0e0e10;
+    color: #f9f5f8;
+    font-family: 'Manrope', sans-serif;
     min-height: 100vh;
-    padding: 24px 16px 60px;
-  }
-  .container { max-width: 780px; margin: 0 auto; }
-
-  .header {
-    display: flex; align-items: center; gap: 16px;
-    margin-bottom: 28px; padding-bottom: 24px;
-    border-bottom: 1px solid var(--border);
-  }
-  .avatar {
-    width: 54px; height: 54px;
-    background: linear-gradient(135deg, #22c55e, #3b82f6);
-    border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.7rem; flex-shrink: 0;
-  }
-  .header-info h1 { font-family: var(--mono); font-size: 1rem; color: #fff; }
-  .header-info p { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
-  .level-badge {
-    margin-left: auto;
-    background: #22c55e12; border: 1px solid #22c55e35;
-    color: var(--green); font-family: var(--mono);
-    font-size: 0.68rem; padding: 6px 12px; border-radius: 8px;
   }
 
-  .card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 16px; padding: 20px; margin-bottom: 14px;
+  /* Dot grid pattern */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: radial-gradient(circle, #48474a 0.7px, transparent 0.7px);
+    background-size: 24px 24px;
+    opacity: 0.25;
+    pointer-events: none;
+    z-index: 0;
   }
-  .card-red { border-color: #ef444330; }
 
-  .section-title {
-    font-family: var(--mono); font-size: 0.62rem;
-    color: var(--muted); text-transform: uppercase;
-    letter-spacing: 1.5px; margin-bottom: 14px;
+  /* HUD scanlines */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(143, 245, 255, 0.015) 2px,
+      rgba(143, 245, 255, 0.015) 4px
+    );
+    pointer-events: none;
+    z-index: 0;
   }
 
-  /* XP */
-  .xp-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
-  .xp-label { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-  .xp-nums { font-family: var(--mono); font-size: 0.72rem; color: var(--green); }
-  .bar-track { width: 100%; height: 11px; background: #12121e; border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+  .main-wrap { position: relative; z-index: 1; }
+
+  .glass-panel {
+    background: rgba(19, 19, 21, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid #48474a;
+  }
+
+  .neon-cyan { box-shadow: 0 0 20px rgba(143, 245, 255, 0.15); }
+  .neon-pink { box-shadow: 0 0 20px rgba(255, 107, 155, 0.15); }
+  .neon-lime { box-shadow: 0 0 20px rgba(190, 238, 0, 0.15); }
+
+  .hex-badge {
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  }
+
+  .label-xs {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #adaaad;
+  }
+
+  /* XP Circle */
+  .xp-ring { transform: rotate(-90deg); }
+  .xp-ring-bg { stroke: #19191c; }
+  .xp-ring-fill {
+    stroke: #8ff5ff;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1.8s cubic-bezier(.16,1,.3,1);
+    filter: drop-shadow(0 0 8px rgba(143,245,255,0.4));
+  }
+
+  /* Progress bars */
+  .bar-track { background: #19191c; border-radius: 6px; overflow: hidden; height: 10px; }
   .bar-fill {
     height: 100%; border-radius: 6px; width: 0%;
     transition: width 1.6s cubic-bezier(.16,1,.3,1);
@@ -76,96 +112,54 @@
   }
   .bar-fill::after {
     content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 18px;
-    background: linear-gradient(90deg, transparent, #ffffff88);
-    animation: sh 2s infinite;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4));
+    animation: shimmer 2s infinite;
   }
-  @keyframes sh { 0%,100%{opacity:.3} 50%{opacity:.9} }
-  .bar-green { background: linear-gradient(90deg, #22c55e, #86efac); }
-  .bar-red   { background: linear-gradient(90deg, #ef4444, #f97316); }
-  .xp-pct { font-family: var(--mono); font-size: 2rem; font-weight: 700; color: var(--green); }
-  .xp-sub { font-size: 0.7rem; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+  @keyframes shimmer { 0%,100%{opacity:.3} 50%{opacity:.9} }
+  .bar-pink { background: linear-gradient(90deg, #ff6b9b, #ff9bc0); }
 
-  /* BOSS */
-  .boss-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-  .boss-title { font-family: var(--mono); font-size: 0.72rem; color: var(--red); text-transform: uppercase; letter-spacing: 1px; }
-  .boss-target {
-    margin-left: auto; font-family: var(--mono); font-size: 0.75rem; color: var(--red);
-    background: #ef444412; padding: 4px 10px; border-radius: 6px; border: 1px solid #ef444330;
-  }
-  .boss-labels { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 0.62rem; color: var(--muted); }
-  .boss-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 14px; }
-  .bstat { background: #0a0a14; border: 1px solid var(--border); border-radius: 10px; padding: 10px; text-align: center; }
-  .bstat-v { font-family: var(--mono); font-size: 1rem; font-weight: 700; }
-  .bstat-l { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-
-  /* PROJECTIONS */
-  .proj-row {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 0; border-bottom: 1px solid #12121e;
-  }
-  .proj-row:last-of-type { border-bottom: none; }
-  .proj-icon { font-size: 1rem; width: 26px; text-align: center; flex-shrink: 0; }
-  .proj-name { font-size: 0.8rem; flex: 1; }
-  .proj-now { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); }
-  .proj-arr { color: var(--muted); font-size: 0.65rem; }
-  .proj-target { font-family: var(--mono); font-size: 0.78rem; color: var(--yellow); font-weight: 700; }
-  .badge { font-size: 0.58rem; padding: 2px 7px; border-radius: 5px; font-family: var(--mono); flex-shrink: 0; }
-  .b-hard { background: #ef444412; color: var(--red); border: 1px solid #ef444330; }
-  .b-mid  { background: #eab30812; color: var(--yellow); border: 1px solid #eab30830; }
-  .b-easy { background: #22c55e12; color: var(--green); border: 1px solid #22c55e30; }
-  .tip-box { margin-top: 14px; padding: 12px; background: #22c55e08; border: 1px solid #22c55e20; border-radius: 10px; font-size: 0.76rem; color: #86efac; line-height: 1.6; }
-
-  /* SKILLS */
-  .sg { margin-bottom: 18px; }
-  .sg:last-child { margin-bottom: 0; }
-  .sg-title { font-family: var(--mono); font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 9px; }
-  .skill-grid { display: flex; flex-wrap: wrap; gap: 7px; }
-  .skill {
-    display: flex; align-items: center; gap: 6px;
-    padding: 7px 11px; border-radius: 10px; font-size: 0.73rem;
-    border: 1px solid var(--border); background: #0a0a14;
+  /* Skill badges */
+  .skill-item {
     cursor: pointer; user-select: none;
-    transition: all 0.18s; position: relative;
+    transition: all 0.2s;
   }
-  .skill:hover { transform: translateY(-1px); }
-  .skill.done { background: #22c55e0d; border-color: #22c55e40; color: var(--green); }
-  .skill.in-progress { background: #eab3080d; border-color: #eab30840; color: var(--yellow); }
-  .skill.locked { color: #2d2d48; border-color: #1a1a2e; }
+  .skill-item:hover { transform: translateY(-2px); }
+  .skill-item.done { border-color: rgba(143,245,255,0.4) !important; color: #8ff5ff; }
+  .skill-item.done .skill-dot { background: #8ff5ff; box-shadow: 0 0 8px rgba(143,245,255,0.5); }
+  .skill-item.in-progress { border-color: rgba(190,238,0,0.4) !important; color: #beee00; }
+  .skill-item.in-progress .skill-dot { background: #beee00; box-shadow: 0 0 8px rgba(190,238,0,0.5); }
+  .skill-item.locked { color: #48474a; border-color: #262528 !important; }
+  .skill-item.locked .skill-dot { background: #48474a; }
+
   .skill-tooltip {
     display: none; position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
-    background: #1e1e2e; border: 1px solid #2a2a3e; border-radius: 8px;
-    padding: 7px 10px; font-size: 0.65rem; color: var(--text);
+    background: #1f1f22; border: 1px solid #48474a; border-radius: 8px;
+    padding: 6px 10px; font-size: 11px; color: #f9f5f8;
     white-space: nowrap; z-index: 100; pointer-events: none;
-    font-family: var(--mono);
+    font-family: 'Space Grotesk', sans-serif;
   }
-  .skill:hover .skill-tooltip { display: block; }
+  .skill-item:hover .skill-tooltip { display: block; }
 
-  /* ACHIEVEMENTS */
-  .ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 9px; }
-  .ach {
-    background: #0a0a14; border: 1px solid var(--border);
-    border-radius: 12px; padding: 14px 10px; text-align: center;
+  /* Achievement hex cards */
+  .ach-card {
     cursor: pointer; user-select: none;
-    transition: all 0.18s; position: relative;
+    transition: all 0.2s;
   }
-  .ach:hover { transform: translateY(-2px); border-color: #2a2a3e; }
-  .ach.earned { background: #22c55e08; border-color: #22c55e30; }
-  .ach.earned:hover { border-color: #22c55e60; }
-  .ach.locked-ach { opacity: 0.3; filter: grayscale(1); }
-  .ach.locked-ach:hover { opacity: 0.5; filter: grayscale(0.6); }
-  .ach-icon { font-size: 1.5rem; margin-bottom: 6px; }
-  .ach-name { font-size: 0.62rem; color: var(--muted); line-height: 1.3; }
-  .ach.earned .ach-name { color: var(--green); }
+  .ach-card:hover { transform: translateY(-2px); }
+  .ach-card.earned .ach-hex { background: rgba(143,245,255,0.15); border-color: rgba(143,245,255,0.5); }
+  .ach-card.earned .ach-label { color: #8ff5ff; }
+  .ach-card.locked-ach { opacity: 0.3; filter: grayscale(1); }
+  .ach-card.locked-ach:hover { opacity: 0.5; filter: grayscale(0.5); }
+
   .ach-tooltip {
     display: none; position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
-    background: #1e1e2e; border: 1px solid #2a2a3e; border-radius: 8px;
-    padding: 7px 10px; font-size: 0.63rem; color: var(--text);
+    background: #1f1f22; border: 1px solid #48474a; border-radius: 8px;
+    padding: 6px 10px; font-size: 11px; color: #f9f5f8;
     white-space: nowrap; z-index: 100; pointer-events: none;
-    font-family: var(--mono); min-width: 140px; text-align: center;
+    font-family: 'Space Grotesk', sans-serif; min-width: 140px; text-align: center;
   }
-  .ach:hover .ach-tooltip { display: block; }
+  .ach-card:hover .ach-tooltip { display: block; }
 
-  /* UNLOCK ANIMATION */
   @keyframes unlock {
     0% { transform: scale(1); }
     30% { transform: scale(1.15); }
@@ -174,130 +168,252 @@
   }
   .just-unlocked { animation: unlock 0.4s ease; }
 
-  /* TOAST */
+  /* Toast */
   .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
-    background: #1e1e2e; border: 1px solid #22c55e40; border-radius: 12px;
-    padding: 12px 20px; font-family: var(--mono); font-size: 0.75rem; color: var(--green);
+    background: #131315; border: 1px solid rgba(143,245,255,0.4); border-radius: 12px;
+    padding: 12px 20px; font-family: 'Space Grotesk', sans-serif; font-size: 13px; color: #8ff5ff;
     transition: transform 0.3s cubic-bezier(.16,1,.3,1);
     z-index: 999; pointer-events: none; white-space: nowrap;
+    box-shadow: 0 0 20px rgba(143,245,255,0.15);
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
-  .fade-in { opacity: 0; transform: translateY(10px); transition: opacity 0.45s, transform 0.45s; }
+  .fade-in { opacity: 0; transform: translateY(12px); transition: opacity 0.5s, transform 0.5s; }
   .fade-in.v { opacity: 1; transform: none; }
 
-  .footer { margin-top: 28px; text-align: center; font-family: var(--mono); font-size: 0.58rem; color: #1e1e2e; }
+  /* Proj rows */
+  .proj-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid #262528;
+  }
+  .proj-row:last-of-type { border-bottom: none; }
 </style>
 </head>
 <body>
-<div class="container">
-  <a href="/" style="color:#fff;text-decoration:none;font-size:0.85rem;opacity:0.6;display:inline-block;margin-bottom:12px">← Powrot do dashboardu</a>
+<div class="main-wrap max-w-3xl mx-auto px-4 pt-6 pb-16">
 
-  <div class="header fade-in">
-    <div class="avatar"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span></div>
-    <div class="header-info">
-      <h1>{{ username|default('USER')|upper }} — PALET BOSS</h1>
-      <p>zwroty konsumenckie · allegro · family team · 2h/dzień</p>
-    </div>
-    <div class="level-badge" id="levelBadge">POZIOM 1 → 2</div>
-  </div>
+  <!-- BACK LINK -->
+  <a href="/" class="inline-flex items-center gap-2 text-muted hover:text-cyan transition-colors text-sm mb-6 group">
+    <span class="material-symbols-outlined text-base group-hover:-translate-x-1 transition-transform">arrow_back</span>
+    <span class="font-headline text-xs uppercase tracking-widest">Powrot do dashboardu</span>
+  </a>
 
-  <!-- XP -->
-  <div class="card fade-in">
-    <div class="xp-top">
-      <span class="xp-label"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">emoji_events</span> droga do miliona</span>
-      <span class="xp-nums" id="xpNums">400 000 / 1 000 000 PLN</span>
+  <!-- HEADER -->
+  <div class="glass-panel rounded-2xl p-5 mb-5 flex items-center gap-4 fade-in neon-cyan">
+    <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan to-pink flex items-center justify-center flex-shrink-0">
+      <span class="material-symbols-outlined text-bg text-2xl">inventory_2</span>
     </div>
-    <div class="bar-track"><div class="bar-fill bar-green" id="xpBar"></div></div>
-    <div class="xp-pct" id="xpPct">40%</div>
-    <div class="xp-sub" id="xpSub">brakuje 600 000 zł · przy obecnym tempie ~18 miesięcy · do końca 2026: możliwe przy 2.5× skali</div>
-  </div>
-
-  <!-- BOSS -->
-  <div class="card card-red fade-in">
-    <div class="boss-row">
-      <span style="font-size:1.3rem">💀</span>
-      <span class="boss-title">BOSS: cel miesięczny 2026</span>
-      <span class="boss-target">83 333 PLN / msc</span>
+    <div class="flex-1 min-w-0">
+      <h1 class="font-headline text-base font-bold text-txt tracking-wide">{{ username|default('USER')|upper }} — PALET BOSS</h1>
+      <p class="text-xs text-muted mt-0.5">zwroty konsumenckie &middot; allegro &middot; family team &middot; 2h/dzien</p>
     </div>
-    <div class="bar-track"><div class="bar-fill bar-red" id="bossBar"></div></div>
-    <div class="boss-labels">
-      <span>TEN MIESIĄC: — zł</span>
-      <span>CEL: 83 333 zł/msc</span>
-    </div>
-    <div class="boss-stats">
-      <div class="bstat"><div class="bstat-v" style="color:var(--yellow)">42</div><div class="bstat-l">palet/msc potrzeba</div></div>
-      <div class="bstat"><div class="bstat-v" style="color:var(--green)">~17</div><div class="bstat-l">palet/msc teraz</div></div>
-      <div class="bstat"><div class="bstat-v" style="color:var(--red)">2.5×</div><div class="bstat-l">potrzebny wzrost</div></div>
+    <div id="levelBadge" class="flex-shrink-0 font-headline text-xs px-3 py-1.5 rounded-lg border border-cyan/30 bg-cyan/5 text-cyan tracking-wider uppercase">
+      POZIOM 1
     </div>
   </div>
 
-  <!-- PROJECTIONS -->
-  <div class="card fade-in">
-    <div class="section-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span> co trzeba zmienić żeby trafić 1M</div>
+  <!-- XP CIRCULAR PROGRESS -->
+  <div class="glass-panel rounded-2xl p-6 mb-5 fade-in">
+    <div class="label-xs mb-4 flex items-center gap-2">
+      <span class="material-symbols-outlined text-cyan text-sm">emoji_events</span>
+      DROGA DO MILIONA
+    </div>
+
+    <div class="flex flex-col sm:flex-row items-center gap-6">
+      <!-- SVG Ring -->
+      <div class="relative flex-shrink-0">
+        <svg width="160" height="160" viewBox="0 0 160 160" class="xp-ring">
+          <circle cx="80" cy="80" r="68" fill="none" stroke-width="10" class="xp-ring-bg"/>
+          <circle id="xpRing" cx="80" cy="80" r="68" fill="none" stroke-width="10" class="xp-ring-fill"
+            stroke-dasharray="427.26" stroke-dashoffset="427.26"/>
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center" style="transform:rotate(0deg)">
+          <span id="xpPct" class="font-headline text-3xl font-bold text-cyan">0%</span>
+          <span class="text-xs text-muted">XP</span>
+        </div>
+      </div>
+
+      <!-- XP Info -->
+      <div class="flex-1 text-center sm:text-left">
+        <div id="xpNums" class="font-headline text-lg font-semibold text-txt mb-1">0 / 1 000 000 PLN</div>
+        <div id="xpSub" class="text-sm text-muted leading-relaxed">Ladowanie danych...</div>
+        <div class="flex gap-4 mt-3 justify-center sm:justify-start">
+          <div class="text-center">
+            <div id="skillCount" class="font-headline text-lg font-bold text-lime">0</div>
+            <div class="label-xs">skills</div>
+          </div>
+          <div class="text-center">
+            <div id="achCount" class="font-headline text-lg font-bold text-pink">0</div>
+            <div class="label-xs">achievements</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOSS: CEL MIESIECZNY -->
+  <div class="glass-panel rounded-2xl p-5 mb-5 border-l-4 border-pink fade-in neon-pink">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="text-2xl">&#x1F480;</span>
+      <span class="font-headline text-sm font-bold text-pink uppercase tracking-wider">BOSS: Cel miesieczny 2026</span>
+      <span class="ml-auto font-headline text-xs px-3 py-1 rounded-lg border border-pink/30 bg-pink/5 text-pink">83 333 PLN / msc</span>
+    </div>
+
+    <div class="bar-track mb-2"><div class="bar-fill bar-pink" id="bossBar"></div></div>
+    <div class="flex justify-between font-headline text-[11px] text-muted mb-4" id="bossLabels">
+      <span>TEN MIESIAC: -- zl</span>
+      <span>CEL: 83 333 zl/msc</span>
+    </div>
+
+    <!-- Stats grid -->
+    <div class="grid grid-cols-3 gap-3 mb-4">
+      <div class="bg-surface1 rounded-xl p-3 text-center border border-outline-v/30">
+        <div class="font-headline text-lg font-bold text-lime bstat-v">--</div>
+        <div class="label-xs mt-1">palet/msc potrzeba</div>
+      </div>
+      <div class="bg-surface1 rounded-xl p-3 text-center border border-outline-v/30">
+        <div class="font-headline text-lg font-bold text-cyan bstat-v">--</div>
+        <div class="label-xs mt-1">palet/msc teraz</div>
+      </div>
+      <div class="bg-surface1 rounded-xl p-3 text-center border border-outline-v/30">
+        <div class="font-headline text-lg font-bold text-pink bstat-v">--</div>
+        <div class="label-xs mt-1">potrzebny wzrost</div>
+      </div>
+    </div>
+
+    <!-- Prognoza -->
+    <div id="prognoza-box" class="bg-surface1 rounded-xl p-4 border border-outline-v/30">
+      <div class="label-xs mb-3 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm text-cyan">trending_up</span>
+        PROGNOZA NA KONIEC MIESIACA
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        <div class="text-center">
+          <div class="font-headline text-base font-bold text-pink" id="progMsc">-- zl</div>
+          <div class="label-xs mt-1">prognoza msc</div>
+        </div>
+        <div class="text-center">
+          <div class="font-headline text-base font-bold text-cyan" id="progDzien">-- zl</div>
+          <div class="label-xs mt-1">srednia/dzien</div>
+        </div>
+        <div class="text-center">
+          <div class="font-headline text-base font-bold text-lime" id="progRok">-- zl</div>
+          <div class="label-xs mt-1">prognoza rok</div>
+        </div>
+      </div>
+      <div class="text-xs text-muted mt-3" id="progMeta">--</div>
+    </div>
+  </div>
+
+  <!-- CO TRZEBA ZMIENIC -->
+  <div class="glass-panel rounded-2xl p-5 mb-5 border-l-4 border-lime fade-in neon-lime">
+    <div class="label-xs mb-4 flex items-center gap-2">
+      <span class="material-symbols-outlined text-lime text-sm">bar_chart</span>
+      CO TRZEBA ZMIENIC ZEBY TRAFIC 1M
+    </div>
+
     <div class="proj-row">
-      <span class="proj-icon"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span></span><span class="proj-name">Palety miesięcznie</span>
-      <span class="proj-now">~17</span><span class="proj-arr">→</span>
-      <span class="proj-target">42 / msc</span><span class="badge b-hard">trudne</span>
+      <span class="material-symbols-outlined text-base text-cyan flex-shrink-0 w-7 text-center">inventory_2</span>
+      <span class="text-sm flex-1">Palety miesieczne</span>
+      <span class="font-headline text-xs text-muted proj-now">~17</span>
+      <span class="text-muted text-xs">&rarr;</span>
+      <span class="font-headline text-sm font-bold text-lime proj-target">42 / msc</span>
+      <span class="text-[10px] px-2 py-0.5 rounded font-headline bg-pink/10 text-pink border border-pink/30 flex-shrink-0">trudne</span>
     </div>
     <div class="proj-row">
-      <span class="proj-icon">👥</span><span class="proj-name">Wielkość teamu</span>
-      <span class="proj-now">3 osoby</span><span class="proj-arr">→</span>
-      <span class="proj-target">5–6 osób</span><span class="badge b-mid">do rozważenia</span>
+      <span class="text-base flex-shrink-0 w-7 text-center">&#x1F465;</span>
+      <span class="text-sm flex-1">Wielkosc teamu</span>
+      <span class="font-headline text-xs text-muted">3 osoby</span>
+      <span class="text-muted text-xs">&rarr;</span>
+      <span class="font-headline text-sm font-bold text-lime">5-6 osob</span>
+      <span class="text-[10px] px-2 py-0.5 rounded font-headline bg-lime/10 text-lime border border-lime/30 flex-shrink-0">do rozwazenia</span>
     </div>
     <div class="proj-row">
-      <span class="proj-icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smart_toy</span></span><span class="proj-name">Automatyzacja</span>
-      <span class="proj-now">częściowa</span><span class="proj-arr">→</span>
-      <span class="proj-target">pełna</span><span class="badge b-easy">w toku</span>
+      <span class="material-symbols-outlined text-base text-cyan flex-shrink-0 w-7 text-center">smart_toy</span>
+      <span class="text-sm flex-1">Automatyzacja</span>
+      <span class="font-headline text-xs text-muted">czesciowa</span>
+      <span class="text-muted text-xs">&rarr;</span>
+      <span class="font-headline text-sm font-bold text-lime">pelna</span>
+      <span class="text-[10px] px-2 py-0.5 rounded font-headline bg-cyan/10 text-cyan border border-cyan/30 flex-shrink-0">w toku</span>
     </div>
     <div class="proj-row">
-      <span class="proj-icon">🏪</span><span class="proj-name">Kanały sprzedaży</span>
-      <span class="proj-now">Allegro</span><span class="proj-arr">→</span>
-      <span class="proj-target">+ OLX + własny</span><span class="badge b-mid">opcjonalne</span>
+      <span class="text-base flex-shrink-0 w-7 text-center">&#x1F3EA;</span>
+      <span class="text-sm flex-1">Kanaly sprzedazy</span>
+      <span class="font-headline text-xs text-muted">Allegro</span>
+      <span class="text-muted text-xs">&rarr;</span>
+      <span class="font-headline text-sm font-bold text-lime">+ OLX + wlasny</span>
+      <span class="text-[10px] px-2 py-0.5 rounded font-headline bg-lime/10 text-lime border border-lime/30 flex-shrink-0">opcjonalne</span>
     </div>
     <div class="proj-row">
-      <span class="proj-icon"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">payments</span></span><span class="proj-name">Avg przychód/paletę</span>
-      <span class="proj-now">~2 000 zł</span><span class="proj-arr">→</span>
-      <span class="proj-target">2 500 zł</span><span class="badge b-easy">realne</span>
+      <span class="material-symbols-outlined text-base text-cyan flex-shrink-0 w-7 text-center">payments</span>
+      <span class="text-sm flex-1">Avg przychod/palete</span>
+      <span class="font-headline text-xs text-muted proj-now">~2 000 zl</span>
+      <span class="text-muted text-xs">&rarr;</span>
+      <span class="font-headline text-sm font-bold text-lime proj-target">2 500 zl</span>
+      <span class="text-[10px] px-2 py-0.5 rounded font-headline bg-cyan/10 text-cyan border border-cyan/30 flex-shrink-0">realne</span>
     </div>
     <div class="proj-row">
-      <span class="proj-icon">⏱</span><span class="proj-name">Czas pracy dziennie</span>
-      <span class="proj-now">2h</span><span class="proj-arr">→</span>
-      <span class="proj-target">2–3h</span><span class="badge b-easy">w normie</span>
+      <span class="text-base flex-shrink-0 w-7 text-center">&#x23F1;</span>
+      <span class="text-sm flex-1">Czas pracy dziennie</span>
+      <span class="font-headline text-xs text-muted">2h</span>
+      <span class="text-muted text-xs">&rarr;</span>
+      <span class="font-headline text-sm font-bold text-lime">2-3h</span>
+      <span class="text-[10px] px-2 py-0.5 rounded font-headline bg-cyan/10 text-cyan border border-cyan/30 flex-shrink-0">w normie</span>
     </div>
-    <div class="tip-box"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">lightbulb</span> <strong>Realna szansa na 1M?</strong> Tak — ale wymaga ~42 palet/msc zamiast 17. Przy pełnej automatyzacji i zwiększeniu zamówień od dostawców jest to wykonalne. Alternatywa: 30 palet × 3 000 zł/paletę = 1.08M rocznie.</div>
+
+    <div class="mt-4 p-3 rounded-xl bg-cyan/5 border border-cyan/20 text-sm text-cyan/80 leading-relaxed" id="tipBox">
+      <span class="material-symbols-outlined text-sm align-middle mr-1">lightbulb</span>
+      <strong>Realna szansa na 1M?</strong> Tak, ale wymaga zwiekszenia skali.
+    </div>
   </div>
 
   <!-- SKILL TREE -->
-  <div class="card fade-in">
-    <div class="section-title">⚒ skill tree — kliknij żeby odblokować</div>
+  <div class="glass-panel rounded-2xl p-5 mb-5 fade-in">
+    <div class="label-xs mb-5 flex items-center gap-2">
+      <span class="material-symbols-outlined text-cyan text-sm">construction</span>
+      SKILL TREE &mdash; KLIKNIJ ZEBY ODBLOKOWAC
+    </div>
 
-    <div class="sg">
-      <div class="sg-title"><span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span> operacje</div>
-      <div class="skill-grid" id="skills-ops"></div>
+    <div class="mb-5">
+      <div class="label-xs mb-3 flex items-center gap-2 text-cyan">
+        <span class="material-symbols-outlined text-sm">inventory_2</span> OPERACJE
+      </div>
+      <div class="flex flex-wrap gap-2" id="skills-ops"></div>
     </div>
-    <div class="sg">
-      <div class="sg-title"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smart_toy</span> automatyzacja</div>
-      <div class="skill-grid" id="skills-auto"></div>
+    <div class="mb-5">
+      <div class="label-xs mb-3 flex items-center gap-2 text-lime">
+        <span class="material-symbols-outlined text-sm">smart_toy</span> AUTOMATYZACJA
+      </div>
+      <div class="flex flex-wrap gap-2" id="skills-auto"></div>
     </div>
-    <div class="sg">
-      <div class="sg-title"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">payments</span> finanse</div>
-      <div class="skill-grid" id="skills-fin"></div>
+    <div class="mb-5">
+      <div class="label-xs mb-3 flex items-center gap-2 text-pink">
+        <span class="material-symbols-outlined text-sm">payments</span> FINANSE
+      </div>
+      <div class="flex flex-wrap gap-2" id="skills-fin"></div>
     </div>
-    <div class="sg">
-      <div class="sg-title">🌍 life</div>
-      <div class="skill-grid" id="skills-life"></div>
+    <div>
+      <div class="label-xs mb-3 flex items-center gap-2 text-muted">
+        &#x1F30D; LIFE
+      </div>
+      <div class="flex flex-wrap gap-2" id="skills-life"></div>
     </div>
   </div>
 
   <!-- ACHIEVEMENTS -->
-  <div class="card fade-in">
-    <div class="section-title"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">emoji_events</span> osiągnięcia — kliknij żeby oznaczyć</div>
-    <div class="ach-grid" id="achGrid"></div>
+  <div class="glass-panel rounded-2xl p-5 mb-5 fade-in">
+    <div class="label-xs mb-5 flex items-center gap-2">
+      <span class="material-symbols-outlined text-pink text-sm">emoji_events</span>
+      HALL OF FAME &mdash; KLIKNIJ ZEBY OZNACZYC
+    </div>
+    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3" id="achGrid"></div>
   </div>
 
-  <div class="footer">zvibecodowane przez {{ brand_name|default('AKCES HUB') }} × Claude</div>
+  <!-- Footer -->
+  <div class="text-center font-headline text-[10px] text-outline-v mt-8 uppercase tracking-widest">
+    zvibecodowane przez {{ brand_name|default('AKCES HUB') }} &times; Claude
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -306,95 +422,83 @@
 // ─── DATA ───────────────────────────────────────────────────────────────
 const SKILLS = {
   'skills-ops': [
-    { id: 's1', icon: '✅', label: 'import palet', status: 'done', tip: 'Excel import z 3 dostawców' },
-    { id: 's2', icon: '✅', label: 'magazyn', status: 'done', tip: 'AKCES HUB Magazynier' },
-    { id: 's3', icon: '✅', label: 'etykiety termiczne', status: 'done', tip: 'Niimbot + Vretti' },
-    { id: 's4', icon: '✅', label: 'InPost workflow', status: 'done', tip: 'osobiście do paczkomatu' },
-    { id: 's5', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span>', label: '20–25 palet/msc', status: 'in-progress', tip: 'CEL Q1 2026' },
-    { id: 's6', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>', label: '40+ palet/msc', status: 'locked', tip: 'wymaga rozszerzenia teamu' },
+    { id: 's1', label: 'import palet', status: 'done', tip: 'Excel import z 3 dostawcow' },
+    { id: 's2', label: 'magazyn', status: 'done', tip: 'AKCES HUB Magazynier' },
+    { id: 's3', label: 'etykiety termiczne', status: 'done', tip: 'Niimbot + Vretti' },
+    { id: 's4', label: 'InPost workflow', status: 'done', tip: 'osobiscie do paczkomatu' },
+    { id: 's5', label: '20-25 palet/msc', status: 'in-progress', tip: 'CEL Q1 2026' },
+    { id: 's6', label: '40+ palet/msc', status: 'locked', tip: 'wymaga rozszerzenia teamu' },
   ],
   'skills-auto': [
-    { id: 's7', icon: '✅', label: 'Amazon scraper', status: 'done', tip: 'Paletomat moduł 1' },
-    { id: 's8', icon: '✅', label: 'AI opisy (Gemini)', status: 'done', tip: 'auto generowanie opisów' },
-    { id: 's9', icon: '✅', label: 'Allegro auto-listing', status: 'done', tip: 'Paletomat moduł 2' },
-    { id: 's10', icon: '✅', label: 'Telegram alerty', status: 'done', tip: 'powiadomienie przy sprzedaży' },
-    { id: 's11', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span>', label: 'Raspberry Pi 24/7', status: 'in-progress', tip: 'planowane wdrożenie' },
-    { id: 's12', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>', label: 'pełny hands-off', status: 'locked', tip: 'wszystko automatyczne' },
+    { id: 's7', label: 'Amazon scraper', status: 'done', tip: 'Paletomat modul 1' },
+    { id: 's8', label: 'AI opisy (Gemini)', status: 'done', tip: 'auto generowanie opisow' },
+    { id: 's9', label: 'Allegro auto-listing', status: 'done', tip: 'Paletomat modul 2' },
+    { id: 's10', label: 'Telegram alerty', status: 'done', tip: 'powiadomienie przy sprzedazy' },
+    { id: 's11', label: 'Raspberry Pi 24/7', status: 'in-progress', tip: 'planowane wdrozenie' },
+    { id: 's12', label: 'pelny hands-off', status: 'locked', tip: 'wszystko automatyczne' },
   ],
   'skills-fin': [
-    { id: 's13', icon: '✅', label: '100k/rok', status: 'done', tip: 'zdobyte!' },
-    { id: 's14', icon: '✅', label: '400k/rok', status: 'done', tip: '~400k PLN roczny obrót' },
-    { id: 's15', icon: '✅', label: 'ROI tracking', status: 'done', tip: 'per paleta + całościowy' },
-    { id: 's16', icon: '✅', label: 'rozliczenie VAT', status: 'done', tip: '23% + podatek liniowy 19%' },
-    { id: 's17', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span>', label: '600k/rok', status: 'in-progress', tip: 'kolejny milestone' },
-    { id: 's18', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>', label: '1 000 000 PLN', status: 'locked', tip: 'cel 2026 — THE BOSS' },
+    { id: 's13', label: '100k/rok', status: 'done', tip: 'zdobyte!' },
+    { id: 's14', label: '400k/rok', status: 'done', tip: '~400k PLN roczny obrot' },
+    { id: 's15', label: 'ROI tracking', status: 'done', tip: 'per paleta + calosciowy' },
+    { id: 's16', label: 'rozliczenie VAT', status: 'done', tip: '23% + podatek liniowy 19%' },
+    { id: 's17', label: '600k/rok', status: 'in-progress', tip: 'kolejny milestone' },
+    { id: 's18', label: '1 000 000 PLN', status: 'locked', tip: 'cel 2026 — THE BOSS' },
   ],
   'skills-life': [
-    { id: 's19', icon: '✅', label: 'własna firma', status: 'done', tip: 'JDG' },
-    { id: 's20', icon: '✅', label: 'family team', status: 'done', tip: 'dziadek + babcia' },
-    { id: 's21', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span>', label: 'sim racing setup', status: 'in-progress', tip: 'w trakcie kompletowania' },
-    { id: 's22', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>', label: 'i30 N Performance', status: 'locked', tip: 'po przekroczeniu 600k/rok' },
-    { id: 's23', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>', label: 'własny magazyn', status: 'locked', tip: 'przy 30+ paletach/msc' },
-    { id: 's24', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>', label: '1. pracownik', status: 'locked', tip: 'gdy team nie wyrabia' },
+    { id: 's19', label: 'wlasna firma', status: 'done', tip: 'JDG' },
+    { id: 's20', label: 'family team', status: 'done', tip: 'dziadek + babcia' },
+    { id: 's21', label: 'sim racing setup', status: 'in-progress', tip: 'w trakcie kompletowania' },
+    { id: 's22', label: 'i30 N Performance', status: 'locked', tip: 'po przekroczeniu 600k/rok' },
+    { id: 's23', label: 'wlasny magazyn', status: 'locked', tip: 'przy 30+ paletach/msc' },
+    { id: 's24', label: '1. pracownik', status: 'locked', tip: 'gdy team nie wyrabia' },
   ],
 };
 
 const ACHIEVEMENTS = [
-  // ── ZDOBYTE ──────────────────────────────────────────────────────────
-  { id: 'a1',  icon: '🌱', name: 'pierwszy krok',     earned: true,  tip: 'zacząłeś biznes od zera' },
-  { id: 'a2',  icon: '👨‍👩‍👦', name: 'family business',  earned: true,  tip: 'dziadek + babcia = family team' },
-  { id: 'a3',  icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smart_toy</span>', name: 'własny system',     earned: true,  tip: 'AKCES HUB napisany od 0 z Claude' },
+  { id: 'a1',  icon: '&#x1F331;', name: 'pierwszy krok',     earned: true,  tip: 'zaczales biznes od zera' },
+  { id: 'a2',  icon: '&#x1F468;&#x200D;&#x1F469;&#x200D;&#x1F466;', name: 'family business',  earned: true,  tip: 'dziadek + babcia = family team' },
+  { id: 'a3',  icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smart_toy</span>', name: 'wlasny system',     earned: true,  tip: 'AKCES HUB napisany od 0 z Claude' },
   { id: 'a4',  icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">inventory_2</span>', name: '200 palet/rok',     earned: true,  tip: '200 palet procesowanych rocznie' },
-  { id: 'a5',  icon: '⏱', name: '2h/dzień',          earned: true,  tip: 'pełny biznes na 2 godziny dziennie' },
-  { id: 'a6',  icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">payments</span>', name: '400k rocznie',      earned: true,  tip: 'roczny przychód 400 000 PLN' },
-  { id: 'a7',  icon: '🔔', name: 'sprzedaż alert',    earned: true,  tip: 'Telegram bot przy każdej sprzedaży' },
-  { id: 'a8',  icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span>', name: 'ROI tracker',       earned: true,  tip: 'śledzenie rentowności per paleta' },
-  { id: 'a9',  icon: '🧑‍💻', name: 'vibe developer',   earned: true,  tip: 'budujesz zaawansowane systemy bez CS' },
-  { id: 'a10', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">adjust</span>', name: 'palet boss',        earned: true,  tip: '20+ palet jednocześnie w obrocie' },
-  { id: 'a11', icon: '📬', name: 'InPost hunter',     earned: true,  tip: 'osobiście dostarczasz do paczkomatu — respect' },
-  { id: 'a12', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">search</span>', name: 'deal finder',       earned: true,  tip: 'wiesz które palety warto kupić' },
-  { id: 'a13', icon: '🤝', name: 'multi-supplier',    earned: true,  tip: 'Jobalots + Warrington + Miglo' },
-
-  // ── DO ZDOBYCIA ───────────────────────────────────────────────────────
-  { id: 'a14', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">rocket_launch</span>', name: '500k rocznie',      earned: false, tip: 'przekroczenie 500 000 PLN/rok' },
-  { id: 'a15', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">today</span>', name: '30k w miesiąc',     earned: false, tip: 'jeden miesiąc ≥ 30 000 zł przychodu' },
-  { id: 'a16', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">flash_on</span>', name: '50k w miesiąc',     earned: false, tip: 'jeden miesiąc ≥ 50 000 zł przychodu' },
-  { id: 'a17', icon: '🏁', name: 'i30 N',             earned: false, tip: 'Hyundai i30 N Performance — zasłużone' },
-  { id: 'a18', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sports_esports</span>', name: 'sim racing setup',  earned: false, tip: 'pełny rig: kierownica + siedzisko + pedały' },
-  { id: 'a19', icon: '🏭', name: 'własny magazyn',    earned: false, tip: 'wynajęty lub kupiony magazyn' },
-  { id: 'a20', icon: '👷', name: '1. pracownik',      earned: false, tip: 'pierwszy zatrudniony spoza rodziny' },
-  { id: 'a21', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">smart_toy</span>', name: 'Pi 24/7',           earned: false, tip: 'Paletomat działa na Raspberry Pi non-stop' },
-  { id: 'a22', icon: '📧', name: 'mail automat',      earned: false, tip: 'bot pobiera manifest z maila automatycznie' },
-  { id: 'a23', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">trending_up</span>', name: 'top seller',        earned: false, tip: 'status Super Sprzedawcy na Allegro' },
-  { id: 'a24', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">diamond</span>', name: '1 000 000 PLN',     earned: false, tip: 'THE MILLION — cel 2026 <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">emoji_events</span>' },
-  { id: 'a25', icon: '🌍', name: '2+ rynki EU',       earned: false, tip: 'sprzedaż na eBay / Amazon DE / inne' },
-  { id: 'a26', icon: '📕', name: 'ebook wydany',      earned: false, tip: 'kurs zwroty opublikowany i sprzedany' },
-  { id: 'a27', icon: '🧳', name: 'workation',         earned: false, tip: 'prowadzisz biznes z innego kraju' },
-  { id: 'a28', icon: '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">crown</span>', name: 'palet empire',      earned: false, tip: '50+ palet miesięcznie w pełnym obrocie' },
+  { id: 'a5',  icon: '&#x23F1;', name: '2h/dzien',          earned: true,  tip: 'pelny biznes na 2 godziny dziennie' },
+  { id: 'a6',  icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">payments</span>', name: '400k rocznie',      earned: true,  tip: 'roczny przychod 400 000 PLN' },
+  { id: 'a7',  icon: '&#x1F514;', name: 'sprzedaz alert',    earned: true,  tip: 'Telegram bot przy kazdej sprzedazy' },
+  { id: 'a8',  icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">bar_chart</span>', name: 'ROI tracker',       earned: true,  tip: 'sledzenie rentownosci per paleta' },
+  { id: 'a9',  icon: '&#x1F9D1;&#x200D;&#x1F4BB;', name: 'vibe developer',   earned: true,  tip: 'budujesz zaawansowane systemy bez CS' },
+  { id: 'a10', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">adjust</span>', name: 'palet boss',        earned: true,  tip: '20+ palet jednoczesnie w obrocie' },
+  { id: 'a11', icon: '&#x1F4EC;', name: 'InPost hunter',     earned: true,  tip: 'osobiscie dostarczasz do paczkomatu' },
+  { id: 'a12', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">search</span>', name: 'deal finder',       earned: true,  tip: 'wiesz ktore palety warto kupic' },
+  { id: 'a13', icon: '&#x1F91D;', name: 'multi-supplier',    earned: true,  tip: 'Jobalots + Warrington + Miglo' },
+  { id: 'a14', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">rocket_launch</span>', name: '500k rocznie',      earned: false, tip: 'przekroczenie 500 000 PLN/rok' },
+  { id: 'a15', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">today</span>', name: '30k w miesiac',     earned: false, tip: 'jeden miesiac >= 30 000 zl przychodu' },
+  { id: 'a16', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">flash_on</span>', name: '50k w miesiac',     earned: false, tip: 'jeden miesiac >= 50 000 zl przychodu' },
+  { id: 'a17', icon: '&#x1F3C1;', name: 'i30 N',             earned: false, tip: 'Hyundai i30 N Performance' },
+  { id: 'a18', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sports_esports</span>', name: 'sim racing setup',  earned: false, tip: 'pelny rig: kierownica + siedzisko + pedaly' },
+  { id: 'a19', icon: '&#x1F3ED;', name: 'wlasny magazyn',    earned: false, tip: 'wynajety lub kupiony magazyn' },
+  { id: 'a20', icon: '&#x1F477;', name: '1. pracownik',      earned: false, tip: 'pierwszy zatrudniony spoza rodziny' },
+  { id: 'a21', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">smart_toy</span>', name: 'Pi 24/7',           earned: false, tip: 'Paletomat dziala na Raspberry Pi non-stop' },
+  { id: 'a22', icon: '&#x1F4E7;', name: 'mail automat',      earned: false, tip: 'bot pobiera manifest z maila automatycznie' },
+  { id: 'a23', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">trending_up</span>', name: 'top seller',        earned: false, tip: 'status Super Sprzedawcy na Allegro' },
+  { id: 'a24', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">diamond</span>', name: '1 000 000 PLN',     earned: false, tip: 'THE MILLION — cel 2026' },
+  { id: 'a25', icon: '&#x1F30D;', name: '2+ rynki EU',       earned: false, tip: 'sprzedaz na eBay / Amazon DE / inne' },
+  { id: 'a26', icon: '&#x1F4D5;', name: 'ebook wydany',      earned: false, tip: 'kurs zwroty opublikowany i sprzedany' },
+  { id: 'a27', icon: '&#x1F9F3;', name: 'workation',         earned: false, tip: 'prowadzisz biznes z innego kraju' },
+  { id: 'a28', icon: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">crown</span>', name: 'palet empire',      earned: false, tip: '50+ palet miesiecznie w pelnym obrocie' },
 ];
 
 // ─── STATE ───────────────────────────────────────────────────────────────
-let state = {
-  skills: {},
-  achievements: {},
-};
-
-// Initialize from defaults
+let state = { skills: {}, achievements: {} };
 Object.values(SKILLS).flat().forEach(s => { state.skills[s.id] = s.status; });
 ACHIEVEMENTS.forEach(a => { state.achievements[a.id] = a.earned; });
 
-// Load from localStorage if available
 try {
   const saved = localStorage.getItem('poziom_state');
   if (saved) {
     const parsed = JSON.parse(saved);
-    // Merge skills from localStorage
     if (parsed.skills) Object.assign(state.skills, parsed.skills);
-    // Merge achievements but NEVER unlock what defaults say is earned:true
     if (parsed.achievements) {
       Object.entries(parsed.achievements).forEach(([id, val]) => {
         const def = ACHIEVEMENTS.find(a => a.id === id);
-        // If default says earned:true → always keep true, ignore localStorage false
         if (def && def.earned) { state.achievements[id] = true; }
         else { state.achievements[id] = val; }
       });
@@ -412,30 +516,35 @@ function calcProgress() {
   const achTotal = ACHIEVEMENTS.length;
   const skillsDone = Object.values(state.skills).filter(s => s === 'done').length;
   const skillsTotal = Object.values(SKILLS).flat().length;
-
-  // XP = czysto finansowy progress (przychod/cel), bez bonusów
-  const finPct = window.REAL_DATA ? window.REAL_DATA.xp_pct : 40;
+  const finPct = window.REAL_DATA ? window.REAL_DATA.xp_pct : 0;
   const total = Math.min(99, finPct);
   return { total, achEarned, achTotal, skillsDone, skillsTotal };
 }
 
 function updateXP() {
   const p = calcProgress();
-  document.getElementById('xpBar').style.width = p.total + '%';
+
+  // SVG ring
+  const circ = 2 * Math.PI * 68; // ~427.26
+  const offset = circ - (circ * p.total / 100);
+  document.getElementById('xpRing').style.strokeDashoffset = offset;
   document.getElementById('xpPct').textContent = p.total + '%';
 
-  // Update level badge
+  // Level badge
   let level = 1;
   if (p.total >= 30) level = 2;
   if (p.total >= 50) level = 3;
   if (p.total >= 70) level = 4;
   if (p.total >= 90) level = 5;
-  document.getElementById('levelBadge').textContent = `POZIOM ${level}`;
+  document.getElementById('levelBadge').textContent = 'POZIOM ' + level;
 
-  // Update sub text
+  // Counts
+  document.getElementById('skillCount').textContent = p.skillsDone + '/' + p.skillsTotal;
+  document.getElementById('achCount').textContent = p.achEarned + '/' + p.achTotal;
+
   const remaining = Math.max(0, 100 - p.total);
   document.getElementById('xpSub').textContent =
-    `${p.skillsDone}/${p.skillsTotal} skills · ${p.achEarned}/${p.achTotal} osiągnięć · ${remaining}% do miliona`;
+    p.skillsDone + '/' + p.skillsTotal + ' skills \u00b7 ' + p.achEarned + '/' + p.achTotal + ' osiagniec \u00b7 ' + remaining + '% do miliona';
 }
 
 // ─── RENDER SKILLS ────────────────────────────────────────────────────────
@@ -446,10 +555,16 @@ function cycleStatus(current) {
   return 'locked';
 }
 
+function statusIcon(s) {
+  if (s === 'done') return '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">check_circle</span>';
+  if (s === 'in-progress') return '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">sync</span>';
+  return '<span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">lock</span>';
+}
+
 function statusLabel(s) {
-  if (s === 'done') return 'done ✅';
-  if (s === 'in-progress') return 'w toku <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span>';
-  return 'locked <span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>';
+  if (s === 'done') return 'done';
+  if (s === 'in-progress') return 'w toku';
+  return 'locked';
 }
 
 function renderSkills() {
@@ -458,17 +573,20 @@ function renderSkills() {
     container.innerHTML = '';
     skills.forEach(s => {
       const status = state.skills[s.id] || s.status;
-      const icons = { done: '✅', 'in-progress': '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">sync</span>', locked: '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span>' };
       const el = document.createElement('div');
-      el.className = `skill ${status}`;
-      el.innerHTML = `<span>${icons[status]}</span>${s.label}<div class="skill-tooltip">${s.tip} · klik → ${statusLabel(cycleStatus(status))}</div>`;
+      el.className = 'skill-item relative flex items-center gap-2 px-3 py-2 rounded-lg text-xs border border-outline-v/40 bg-surface1 ' + status;
+      el.innerHTML =
+        '<span class="skill-dot w-2 h-2 rounded-full flex-shrink-0"></span>' +
+        '<span>' + statusIcon(status) + '</span>' +
+        '<span>' + s.label + '</span>' +
+        '<div class="skill-tooltip">' + s.tip + ' \u00b7 klik \u2192 ' + statusLabel(cycleStatus(status)) + '</div>';
       el.addEventListener('click', () => {
         const next = cycleStatus(state.skills[s.id] || s.status);
         state.skills[s.id] = next;
         saveState();
         renderSkills();
         updateXP();
-        if (next === 'done') showToast(`<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">celebration</span> ${s.label} — zdobyte!`);
+        if (next === 'done') showToast('\u2728 ' + s.label + ' \u2014 zdobyte!');
       });
       container.appendChild(el);
     });
@@ -482,13 +600,12 @@ function renderAchievements() {
   ACHIEVEMENTS.forEach(a => {
     const earned = state.achievements[a.id];
     const el = document.createElement('div');
-    el.className = `ach ${earned ? 'earned' : 'locked-ach'}`;
+    el.className = 'ach-card relative flex flex-col items-center p-3 rounded-xl ' + (earned ? 'earned' : 'locked-ach');
     el.id = 'ach-' + a.id;
-    el.innerHTML = `
-      <div class="ach-icon">${a.icon}</div>
-      <div class="ach-name">${a.name}</div>
-      <div class="ach-tooltip">${a.tip}<br>${earned ? '✅ zdobyte — klik = cofnij' : '<span class="material-symbols-outlined" style="font-size:inherit;vertical-align:middle">lock</span> zablokowane — klik = zdobądź'}</div>
-    `;
+    el.innerHTML =
+      '<div class="ach-hex w-12 h-12 hex-badge flex items-center justify-center text-xl mb-2 border border-outline-v/30 bg-surface2">' + a.icon + '</div>' +
+      '<div class="ach-label text-[10px] text-muted text-center leading-tight font-headline uppercase tracking-wider">' + a.name + '</div>' +
+      '<div class="ach-tooltip">' + a.tip + '<br>' + (earned ? 'zdobyte \u2014 klik = cofnij' : 'zablokowane \u2014 klik = zdobadz') + '</div>';
     el.addEventListener('click', () => {
       const wasEarned = state.achievements[a.id];
       state.achievements[a.id] = !wasEarned;
@@ -497,9 +614,8 @@ function renderAchievements() {
       el.classList.toggle('locked-ach');
       el.classList.add('just-unlocked');
       setTimeout(() => el.classList.remove('just-unlocked'), 400);
-      el.querySelector('.ach-name').style.color = state.achievements[a.id] ? 'var(--green)' : '';
       updateXP();
-      if (!wasEarned) showToast(`<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">emoji_events</span> OSIĄGNIĘCIE: ${a.name}!`);
+      if (!wasEarned) showToast('\uD83C\uDFC6 OSIAGNIECIE: ' + a.name + '!');
     });
     grid.appendChild(el);
   });
@@ -524,11 +640,12 @@ function applyRealData() {
   document.getElementById('xpNums').textContent = d.przychod_rok_fmt + ' / ' + d.cel_fmt + ' PLN';
   document.getElementById('xpPct').textContent = d.xp_pct + '%';
   document.getElementById('xpSub').textContent =
-    'brakuje ' + d.brakuje_fmt + ' zł · przy obecnym tempie ~' + d.miesiecy_do_celu + ' miesięcy · cel ' + d.year;
+    'brakuje ' + d.brakuje_fmt + ' zl \u00b7 przy obecnym tempie ~' + d.miesiecy_do_celu + ' miesiecy \u00b7 cel ' + d.year;
 
-  // Bars
+  // SVG ring
+  const circ = 2 * Math.PI * 68;
   setTimeout(() => {
-    document.getElementById('xpBar').style.width = d.xp_pct + '%';
+    document.getElementById('xpRing').style.strokeDashoffset = circ - (circ * d.xp_pct / 100);
     document.getElementById('bossBar').style.width = d.boss_pct + '%';
   }, 350);
 
@@ -536,42 +653,19 @@ function applyRealData() {
   const bv = document.querySelectorAll('.bstat-v');
   if (bv[0]) bv[0].textContent = d.palety_potrzeba_msc;
   if (bv[1]) bv[1].textContent = '~' + d.palety_msc;
-  if (bv[2]) bv[2].textContent = d.przychod_msc > 0 ? (83333 / d.przychod_msc).toFixed(1) + '×' : '—';
+  if (bv[2]) bv[2].textContent = d.przychod_msc > 0 ? (83333 / d.przychod_msc).toFixed(1) + '\u00d7' : '\u2014';
 
   // Boss labels
-  const bl = document.querySelectorAll('.boss-labels span');
-  if (bl[0]) bl[0].textContent = 'TEN MIESIĄC: ' + d.przychod_msc_fmt + ' zł  |  ŚREDNIA: ~' + d.sredni_msc_fmt + ' zł';
+  const bl = document.getElementById('bossLabels');
+  if (bl) bl.querySelector('span').textContent = 'TEN MIESIAC: ' + d.przychod_msc_fmt + ' zl  |  SREDNIA: ~' + d.sredni_msc_fmt + ' zl';
 
-  // Prognoza — dodaj pod boss stats
-  const bossCard = document.querySelector('.card-red');
-  if (bossCard && d.prognoza_msc) {
-    let progEl = document.getElementById('prognoza-box');
-    if (!progEl) {
-      progEl = document.createElement('div');
-      progEl.id = 'prognoza-box';
-      progEl.style.cssText = 'margin-top:14px;padding:12px;background:#0a0a14;border:1px solid var(--border);border-radius:10px';
-      bossCard.appendChild(progEl);
-    }
+  // Prognoza
+  if (d.prognoza_msc) {
+    document.getElementById('progMsc').textContent = d.prognoza_msc_fmt + ' zl';
+    document.getElementById('progDzien').textContent = d.srednia_dzienna_msc_fmt + ' zl';
+    document.getElementById('progRok').textContent = d.prognoza_rok_fmt + ' zl';
     const pctCelu = Math.round(d.prognoza_msc / 83333 * 100);
-    const progColor = pctCelu >= 80 ? '#22c55e' : pctCelu >= 50 ? '#eab308' : '#ef4444';
-    progEl.innerHTML = `
-      <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">trending_up</span> PROGNOZA NA KONIEC MIESIĄCA</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-        <div style="text-align:center">
-          <div style="font-family:var(--mono);font-size:1rem;font-weight:700;color:${progColor}">${d.prognoza_msc_fmt} zł</div>
-          <div style="font-size:0.58rem;color:var(--muted);text-transform:uppercase;margin-top:2px">prognoza msc</div>
-        </div>
-        <div style="text-align:center">
-          <div style="font-family:var(--mono);font-size:1rem;font-weight:700;color:#3b82f6">${d.srednia_dzienna_msc_fmt} zł</div>
-          <div style="font-size:0.58rem;color:var(--muted);text-transform:uppercase;margin-top:2px">średnia/dzień</div>
-        </div>
-        <div style="text-align:center">
-          <div style="font-family:var(--mono);font-size:1rem;font-weight:700;color:#a855f7">${d.prognoza_rok_fmt} zł</div>
-          <div style="font-size:0.58rem;color:var(--muted);text-transform:uppercase;margin-top:2px">prognoza rok</div>
-        </div>
-      </div>
-      <div style="margin-top:8px;font-size:0.7rem;color:var(--muted)">${d.dzien_msc}/${d.dni_w_msc} dzień miesiąca · ${pctCelu}% celu miesięcznego</div>
-    `;
+    document.getElementById('progMeta').textContent = d.dzien_msc + '/' + d.dni_w_msc + ' dzien miesiaca \u00b7 ' + pctCelu + '% celu miesiecznego';
   }
 
   // Projections row 1 (palety)
@@ -579,21 +673,21 @@ function applyRealData() {
   const pt = document.querySelectorAll('.proj-target');
   if (pn[0]) pn[0].textContent = '~' + d.palety_msc;
   if (pt[0]) pt[0].textContent = d.palety_potrzeba_msc + ' / msc';
-  if (pn[4]) pn[4].textContent = '~' + d.avg_paleta_fmt + ' zł';
-  if (pt[4]) pt[4].textContent = Math.round(d.avg_paleta * 1.25).toLocaleString('pl') + ' zł';
+  if (pn[1]) pn[1].textContent = '~' + d.avg_paleta_fmt + ' zl';
+  if (pt[1]) pt[1].textContent = Math.round(d.avg_paleta * 1.25).toLocaleString('pl') + ' zl';
 
   // Tip box
-  const tip = document.querySelector('.tip-box');
+  const tip = document.getElementById('tipBox');
   if (tip) {
     const alt = Math.ceil(1000000 / 12 / (d.avg_paleta * 1.5));
-    tip.innerHTML = '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">lightbulb</span> <strong>Realna szansa na 1M w ' + d.year + '?</strong> ' +
-      (d.boss_pct >= 40 ? 'Jesteś na dobrej drodze! ' : 'Wymaga przyspieszenia. ') +
-      'Teraz średnio ' + d.sredni_msc_fmt + ' zł/msc. Potrzebujesz ' + d.palety_potrzeba_msc +
-      ' palet/msc (teraz ~' + d.palety_msc + '). Alternatywa: ' + alt + ' palet × ' +
-      Math.round(d.avg_paleta * 1.5).toLocaleString('pl') + ' zł avg = 1M rocznie.';
+    tip.innerHTML = '<span class="material-symbols-outlined text-sm align-middle mr-1">lightbulb</span> <strong>Realna szansa na 1M w ' + d.year + '?</strong> ' +
+      (d.boss_pct >= 40 ? 'Jestes na dobrej drodze! ' : 'Wymaga przyspieszenia. ') +
+      'Teraz srednio ' + d.sredni_msc_fmt + ' zl/msc. Potrzebujesz ' + d.palety_potrzeba_msc +
+      ' palet/msc (teraz ~' + d.palety_msc + '). Alternatywa: ' + alt + ' palet \u00d7 ' +
+      Math.round(d.avg_paleta * 1.5).toLocaleString('pl') + ' zl avg = 1M rocznie.';
   }
 
-  // Auto-update skill statuses na podstawie danych
+  // Auto-update skill statuses based on data
   if (d.przychod_rok >= 500000) state.achievements['a14'] = true;
   if (d.przychod_rok >= 1000000) { state.achievements['a24'] = true; state.skills['s18'] = 'done'; }
   if (d.palety_msc >= 20 && state.skills['s5'] === 'locked') state.skills['s5'] = 'in-progress';
