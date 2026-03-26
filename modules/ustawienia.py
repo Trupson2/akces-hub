@@ -473,6 +473,21 @@ def ustawienia_branding():
                 logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'static', 'brand_logo.png')
                 img.save(logo_path, 'PNG', optimize=True)
 
+    # PWA icon upload — auto-resize to 192x192 and 512x512
+    pwa_icon = request.files.get('pwa_icon')
+    if pwa_icon and pwa_icon.filename:
+        ext = pwa_icon.filename.rsplit('.', 1)[-1].lower()
+        if ext in ('png', 'jpg', 'jpeg'):
+            from PIL import Image
+            import io
+            img_data = pwa_icon.read()
+            if len(img_data) <= 2 * 1024 * 1024:  # max 2MB
+                img = Image.open(io.BytesIO(img_data)).convert('RGBA')
+                static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'static')
+                for size in (192, 512):
+                    resized = img.resize((size, size), Image.LANCZOS)
+                    resized.save(os.path.join(static_dir, f'icon-{size}.png'), 'PNG', optimize=True)
+
     invalidate_config_cache()
     return redirect('/ustawienia')
 

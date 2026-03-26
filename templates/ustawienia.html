@@ -522,6 +522,14 @@ select.ust-input{cursor:pointer;appearance:none;background-image:url("data:image
                         onchange="this.previousElementSibling.value=this.value" readonly>
                 </div>
             </div>
+            <div class="ust-form-group">
+                <label>Ikona PWA (PNG/JPG, kwadratowa, max 2MB)</label>
+                <div style="display:flex;gap:10px;align-items:center;margin-top:5px">
+                    <img src="/static/icon-192.png?v={{ logo_bust }}" style="height:36px;border-radius:8px">
+                    <input type="file" name="pwa_icon" accept="image/png,image/jpeg" class="ust-input" style="flex:1;padding:8px">
+                </div>
+                <span style="font-size:0.72rem;color:var(--text-muted)">Auto-resize do 192x192 i 512x512. Widoczna na ekranie głównym telefonu.</span>
+            </div>
             <button type="submit" class="ust-btn ust-btn-pink-fill">Zapisz branding</button>
         </form>
     </div>
