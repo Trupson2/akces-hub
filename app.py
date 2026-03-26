@@ -421,9 +421,8 @@ def after_request(response):
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     response.headers['Permissions-Policy'] = 'camera=(self), microphone=(), geolocation=()'
     # CSP already set above for HTML responses — don't overwrite with stricter one
-    # Only add fallback CSP for non-HTML responses
-    if 'Content-Security-Policy' not in response.headers:
-        response.headers['Content-Security-Policy'] = "default-src 'self'"
+    # Skip CSP for static assets (images, fonts, JS, CSS) — they don't need it
+    # and it can interfere with manifest icon loading
 
     return response
 # ============================================================
