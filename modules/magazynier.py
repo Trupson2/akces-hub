@@ -528,35 +528,39 @@ def skaner():
             codeReader.reset();
         });
 
-        // === AUTO-SEARCH: szukaj po wpisaniu kodu ręcznie (debounce 800ms) ===
+        // === AUTO-SEARCH: szukaj po wpisaniu kodu ręcznie ===
         let searchTimer = null;
+        function triggerSearch() {
+            clearTimeout(searchTimer);
+            const val = manualInput.value.trim();
+            if (val.length >= 3) {
+                document.getElementById('manualForm').submit();
+            }
+        }
+
+        // Debounce na input (1.2s żeby zdążyć wpisać)
         manualInput.addEventListener('input', function() {
             clearTimeout(searchTimer);
             const val = this.value.trim();
             const hint = document.getElementById('manualHint');
             if (val.length >= 3) {
                 hint.style.display = 'block';
-                hint.textContent = 'Szukam...';
+                hint.textContent = 'Szukam za chwilę...';
                 hint.style.color = '#8ff5ff';
-                searchTimer = setTimeout(function() {
-                    window.location.href = '/magazyn/szukaj?q=' + encodeURIComponent(val);
-                }, 800);
+                searchTimer = setTimeout(triggerSearch, 1200);
             } else {
                 hint.style.display = 'none';
             }
         });
 
-        // Enter = natychmiastowe szukanie
-        manualInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                clearTimeout(searchTimer);
-                var val = this.value.trim();
-                if (val) {
-                    e.preventDefault();
-                    window.location.href = '/magazyn/szukaj?q=' + encodeURIComponent(val);
-                }
-            }
+        // Paste = szukaj od razu
+        manualInput.addEventListener('paste', function() {
+            clearTimeout(searchTimer);
+            setTimeout(triggerSearch, 100);
         });
+
+        // Enter = natychmiastowe szukanie (formularz obsłuży to natywnie)
+        // Nie potrzeba preventDefault — form submit zadziała
     })();
     </script>
     '''
