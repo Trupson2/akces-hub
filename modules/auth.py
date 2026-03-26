@@ -417,6 +417,9 @@ def login():
 
             # Regeneracja sesji — ochrona przed session fixation
             session.clear()
+            # Wymuś nowy CSRF token po wyczyszczeniu sesji
+            from flask_wtf.csrf import generate_csrf
+            generate_csrf()
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['rola'] = user['rola']
