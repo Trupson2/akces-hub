@@ -162,6 +162,15 @@ def add_ngrok_headers(response):
         response.headers['Service-Worker-Allowed'] = '/'
     return response
 
+@app.route('/sw.js')
+def serve_sw():
+    """Serve Service Worker from root scope for proper PWA install"""
+    resp = send_from_directory(app.static_folder, 'sw.js')
+    resp.headers['Content-Type'] = 'application/javascript'
+    resp.headers['Cache-Control'] = 'no-cache, must-revalidate'
+    resp.headers['Service-Worker-Allowed'] = '/'
+    return resp
+
 @app.route('/api/csrf-token')
 def api_csrf_token():
     """Endpoint do odnawiania CSRF tokena — używany przez auto-refresh JS"""
