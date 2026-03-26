@@ -1,5 +1,16 @@
 // Service Worker dla Akces Hub PWA
-const CACHE_NAME = 'akces-hub-v4';
+const CACHE_NAME = 'akces-hub-v3';
+const OFFLINE_URL = '/offline';
+
+// Zasoby do cache'owania
+const CACHE_ASSETS = [
+  '/',
+  '/magazyn',
+  '/paletomat',
+  '/narzedzia',
+  '/analytics/dashboard',
+  '/static/manifest.json'
+];
 
 // Odbierz wiadomość od strony (skipWaiting)
 self.addEventListener('message', (event) => {
@@ -8,12 +19,13 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Instalacja - nie cache'uj stron wymagających auth
+// Instalacja
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        return cache.addAll(['/static/manifest.json', '/static/material-symbols.woff2']).catch(() => {});
+        console.log('📦 Cache opened');
+        return cache.addAll(CACHE_ASSETS);
       })
       .then(() => self.skipWaiting())
   );
