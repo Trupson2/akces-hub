@@ -3748,28 +3748,58 @@ def paleta_detail_by_id(paleta_id):
     </script>
     '''
     
-    html += '<div class="section">PRODUKTY</div>'
-    
+    html += '<div style="font-size:0.62rem;color:#8ff5ff;font-weight:700;letter-spacing:0.12em;font-family:\'Space Grotesk\',sans-serif;text-transform:uppercase;margin-bottom:12px;margin-top:20px">Produkty</div>'
+    html += '<div style="display:flex;flex-direction:column;gap:10px">'
+
     for p in products:
-        img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
+        img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2790%27 height=%2790%27%3E%3Crect fill=%27%23262528%27 width=%2790%27 height=%2790%27 rx=%278%27/%3E%3Ctext x=%2745%27 y=%2752%27 fill=%27%23767577%27 text-anchor=%27middle%27 font-size=%2728%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
         pcode = get_product_code(p)
         _ean_c = p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else ''
         display_code = _ean_c or p['asin'] or f"#{p['id']}"
-        html += f'''<a href="/magazyn/produkt/{pcode}" class="item">
-            <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
-            <div class="item-info">
-                <div class="item-name">{p['nazwa'][:35]}...</div>
-                <div class="item-meta">{display_code} | {p['ilosc']} szt</div>
+        _qty = int(p['ilosc'] or 0)
+        _ca = float(p['cena_allegro'] or 0)
+
+        # Stock indicator
+        if _qty <= 0:
+            _stock_dot = '<span style="width:7px;height:7px;border-radius:50%;background:#ef4444;display:inline-block;box-shadow:0 0 5px #ef4444"></span>'
+            _stock_text = 'Brak'
+        elif _qty <= 2:
+            _stock_dot = '<span style="width:7px;height:7px;border-radius:50%;background:#ff6b9b;display:inline-block;box-shadow:0 0 5px #ff6b9b"></span>'
+            _stock_text = f'{_qty} szt'
+        else:
+            _stock_dot = '<span style="width:7px;height:7px;border-radius:50%;background:#beee00;display:inline-block;box-shadow:0 0 5px #beee00"></span>'
+            _stock_text = f'{_qty} szt'
+
+        _klasa = p.get('klasa_jakosci', '') or ''
+        _border_colors = {'A': '#beee00', 'A-': '#8ff5ff', 'B': '#eab308', 'C': '#f97316', 'D': '#ef4444'}
+        _bcolor = _border_colors.get(_klasa, '#48474a')
+        _opacity = 'opacity:0.5;' if _qty <= 0 else ''
+
+        html += f'''
+        <a href="/magazyn/produkt/{pcode}" style="display:flex;gap:14px;background:#131315;padding:14px;border-radius:10px;border-left:3px solid {_bcolor};text-decoration:none;color:inherit;transition:background 0.2s;{_opacity}"
+           onmouseover="this.style.background='#1f1f22'" onmouseout="this.style.background='#131315'">
+            <div style="width:64px;height:64px;background:#262528;border-radius:8px;overflow:hidden;flex-shrink:0">
+                <img src="{img}" style="width:100%;height:100%;object-fit:cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2790%27 height=%2790%27%3E%3Crect fill=%27%23262528%27 width=%2790%27 height=%2790%27 rx=%278%27/%3E%3Ctext x=%2745%27 y=%2752%27 fill=%27%23767577%27 text-anchor=%27middle%27 font-size=%2728%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
             </div>
-            <div class="item-right">
-                <div class="item-qty">{p['cena_allegro'] or 0:.0f} zł</div>
+            <div style="display:flex;flex-direction:column;justify-content:center;flex:1;min-width:0">
+                <div style="font-family:'Space Grotesk',sans-serif;font-size:0.88rem;font-weight:700;color:#f9f5f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{p['nazwa'][:40]}</div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                    <span style="font-size:0.65rem;color:#adaaad;font-family:monospace">{display_code}</span>
+                    {_stock_dot}
+                    <span style="font-size:0.6rem;color:#adaaad;font-weight:600">{_stock_text}</span>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;flex-shrink:0">
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:800;color:#8ff5ff">{_ca:.0f} zł</span>
             </div>
         </a>'''
-    
+
+    html += '</div>'
+
     if not products:
-        html += '<div style="text-align:center;padding:30px;color:#64748b">Brak produktów</div>'
-    
-    html += '<a href="/magazyn/palety" class="back">← Powrót</a>'
+        html += '<div style="text-align:center;padding:40px;color:#767577;font-size:0.82rem"><span class=material-symbols-outlined style="font-size:2rem;display:block;margin-bottom:8px">inbox</span>Brak produktów</div>'
+
+    html += '<div style="text-align:center;margin-top:24px"><a href="/magazyn/palety" style="font-size:0.82rem;color:#adaaad;text-decoration:none;font-weight:600;letter-spacing:0.05em">&larr; Powrót</a></div>'
     return render(html)
 
 
