@@ -1242,134 +1242,163 @@ def scraper():
         palety_options_clean += f'<option value="{p["id"]}">{p["nazwa"]} ({p["dostawca"] or "brak dostawcy"})</option>'
     
     html = f'''
-    <div class="hdr"><h1><span class=material-symbols-outlined>language</span> AMAZON SCRAPER</h1><small>Pobierz produkty</small></div>
-    
+    <!-- Page Header -->
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;border-left:3px solid #8ff5ff;padding-left:20px">
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:2.2rem;font-weight:800;color:#f9f5f8;letter-spacing:-0.03em;margin:0;text-transform:uppercase">SCRAPER_HUB</h2>
+        <div style="font-size:0.72rem;color:#adaaad;letter-spacing:0.1em;text-transform:uppercase;font-weight:600">Process_Node: Alpha-9 | Status: <span style="color:#8ff5ff">OPERATIONAL</span></div>
+    </div>
+
+    <!-- Action Buttons Row -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+        <button onclick="document.getElementById('form-asin').scrollIntoView({{behavior:'smooth'}})" style="background:#262528;border:1px solid rgba(72,71,74,0.2);padding:16px;cursor:pointer;text-align:left;transition:background 0.2s" onmouseover="this.style.background='#2c2c2f'" onmouseout="this.style.background='#262528'">
+            <span style="display:block;font-size:0.6rem;color:#adaaad;text-transform:uppercase;margin-bottom:4px;font-weight:600">SCRAPER</span>
+            <span style="display:block;font-family:'Space Grotesk',sans-serif;font-size:1rem;color:#8ff5ff;font-weight:700">ASIN_SCAN</span>
+        </button>
+        <button onclick="document.getElementById('form-file').scrollIntoView({{behavior:'smooth'}})" style="background:#262528;border:1px solid rgba(72,71,74,0.2);padding:16px;cursor:pointer;text-align:left;transition:background 0.2s" onmouseover="this.style.background='#2c2c2f'" onmouseout="this.style.background='#262528'">
+            <span style="display:block;font-size:0.6rem;color:#adaaad;text-transform:uppercase;margin-bottom:4px;font-weight:600">IMPORT</span>
+            <span style="display:block;font-family:'Space Grotesk',sans-serif;font-size:1rem;color:#f9f5f8;font-weight:700">FILE_LOAD</span>
+        </button>
+        <button onclick="document.getElementById('form-miglo').scrollIntoView({{behavior:'smooth'}})" style="background:#262528;border:1px solid rgba(72,71,74,0.2);padding:16px;cursor:pointer;text-align:left;transition:background 0.2s" onmouseover="this.style.background='#2c2c2f'" onmouseout="this.style.background='#262528'">
+            <span style="display:block;font-size:0.6rem;color:#adaaad;text-transform:uppercase;margin-bottom:4px;font-weight:600">MIGLO</span>
+            <span style="display:block;font-family:'Space Grotesk',sans-serif;font-size:1rem;color:#f9f5f8;font-weight:700">MANUAL_IN</span>
+        </button>
+        <a href="/paletomat/generator" style="background:#262528;border:1px solid rgba(72,71,74,0.2);padding:16px;text-decoration:none;display:block;transition:background 0.2s" onmouseover="this.style.background='#2c2c2f'" onmouseout="this.style.background='#262528'">
+            <span style="display:block;font-size:0.6rem;color:#adaaad;text-transform:uppercase;margin-bottom:4px;font-weight:600">OFFERS</span>
+            <span style="display:block;font-family:'Space Grotesk',sans-serif;font-size:1rem;color:#ff6b9b;font-weight:700">SYNC_HUB</span>
+        </a>
+    </div>
+
     <!-- FORMULARZ 1: SCRAPE PO ASIN -->
-    <div class="card">
-        <div class="card-title"><span class=material-symbols-outlined>search</span> SCRAPE PO ASIN (ręczny)</div>
+    <div id="form-asin" style="background:#1f1f22;border:1px solid rgba(72,71,74,0.15);padding:24px;margin-bottom:16px">
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+            <span class=material-symbols-outlined style="color:#8ff5ff">search</span> SCRAPE PO ASIN
+        </div>
         <form action="/paletomat/scraper/asin" method="POST">
-            <div class="form-row" style="margin-bottom:15px;padding:10px;background:#1a1a2e;border-radius:8px;border:1px solid #ff6b9b">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;padding:12px;background:#131315;border:1px solid rgba(255,107,155,0.15);border-radius:6px">
                 <div class="form-group" style="margin-bottom:0">
-                    <label><span class=material-symbols-outlined>inventory_2</span> Paleta</label>
+                    <label style="font-size:0.68rem;color:#adaaad;letter-spacing:0.06em;text-transform:uppercase;font-weight:700"><span class=material-symbols-outlined style="font-size:0.85rem">inventory_2</span> Paleta</label>
                     <select name="paleta_id" class="form-ctrl" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
                         <option value="">-- Bez palety --</option>
-                        <option value="new"><span class=material-symbols-outlined>add</span> Nowa paleta...</option>
+                        <option value="new">+ Nowa paleta...</option>
                         {palety_options_clean}
                     </select>
                 </div>
                 <div class="form-group" style="margin-bottom:0">
-                    <label><span class=material-symbols-outlined>factory</span> Dostawca</label>
+                    <label style="font-size:0.68rem;color:#adaaad;letter-spacing:0.06em;text-transform:uppercase;font-weight:700"><span class=material-symbols-outlined style="font-size:0.85rem">factory</span> Dostawca</label>
                     <select name="dostawca" class="form-ctrl">
                         <option value="">-- Wybierz --</option>
-                        <option value="Jobalots">🇳🇱 Jobalots</option>
-                        <option value="Warrington">🇬🇧 Warrington</option>
-                        <option value="Miglo">🇵🇱 Miglo</option>
-                        <option value="Inny"><span class=material-symbols-outlined>inventory_2</span> Inny</option>
+                        <option value="Jobalots">Jobalots</option>
+                        <option value="Warrington">Warrington</option>
+                        <option value="Miglo">Miglo</option>
+                        <option value="Inny">Inny</option>
                     </select>
                 </div>
             </div>
-            <input type="text" name="nowa_paleta_nazwa" class="form-ctrl" placeholder="Nazwa nowej palety" style="display:none;margin-bottom:15px">
-            
+            <input type="text" name="nowa_paleta_nazwa" class="form-ctrl" placeholder="Nazwa nowej palety" style="display:none;margin-bottom:12px">
             <div class="form-group">
-                <label>ASIN-y (format: ASIN lub ASIN,ilość)</label>
+                <label style="font-size:0.68rem;color:#adaaad;letter-spacing:0.06em;text-transform:uppercase;font-weight:700">ASIN-y (format: ASIN lub ASIN,ilość)</label>
                 <input type="text" name="asins" class="form-ctrl" placeholder="B0CFQBBT7G B088ZQ6B64,3 B0ABC12345,2">
-                <div style="font-size:0.7rem;color:#64748b;margin-top:5px">Miglo: ASIN,ilość rozdzielone spacjami</div>
+                <div style="font-size:0.62rem;color:#767577;margin-top:4px">Miglo: ASIN,ilość rozdzielone spacjami</div>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Domena Amazon</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+                <div class="form-group" style="margin-bottom:0">
+                    <label style="font-size:0.68rem;color:#adaaad;letter-spacing:0.06em;text-transform:uppercase;font-weight:700">Domena Amazon</label>
                     <select name="domain" class="form-ctrl">
-                        <option value="de">🇩🇪 Amazon.de</option>
-                        <option value="co.uk">🇬🇧 Amazon.co.uk</option>
-                        <option value="com">🇺🇸 Amazon.com</option>
-                        <option value="pl">🇵🇱 Amazon.pl</option>
+                        <option value="de">Amazon.de</option>
+                        <option value="co.uk">Amazon.co.uk</option>
+                        <option value="com">Amazon.com</option>
+                        <option value="pl">Amazon.pl</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label><span class=material-symbols-outlined>paid</span> Cena jednostkowa (opcjonalnie)</label>
+                <div class="form-group" style="margin-bottom:0">
+                    <label style="font-size:0.68rem;color:#adaaad;letter-spacing:0.06em;text-transform:uppercase;font-weight:700"><span class=material-symbols-outlined style="font-size:0.85rem">paid</span> Cena jedn. (opcjonalnie)</label>
                     <input type="number" step="0.01" name="cena_jednostkowa" class="form-ctrl" placeholder="np. 25.50">
                 </div>
             </div>
-            <button type="submit" class="btn btn-p" style="width:100%"><span class=material-symbols-outlined>search</span> SCRAPUJ ASIN-y</button>
+            <button type="submit" class="btn" style="width:100%;padding:14px;background:#8ff5ff;color:#005d63;font-weight:700;font-size:0.78rem;letter-spacing:0.1em;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 0 15px rgba(143,245,255,0.3)"><span class=material-symbols-outlined>search</span> SCRAPUJ ASIN-y</button>
         </form>
     </div>
-    
+
     <!-- FORMULARZ 2: SCRAPE Z PLIKU -->
-    <div class="card">
-        <div class="card-title"><span class=material-symbols-outlined>folder</span> SCRAPE Z PLIKU (JOBALOTS/WARRINGTON)</div>
+    <div id="form-file" style="background:#1f1f22;border:1px solid rgba(72,71,74,0.15);padding:24px;margin-bottom:16px">
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+            <span class=material-symbols-outlined style="color:#8ff5ff">folder</span> SCRAPE Z PLIKU
+            <span style="font-size:0.6rem;color:#767577;font-weight:400;margin-left:4px">(JOBALOTS / WARRINGTON)</span>
+        </div>
         <form action="/paletomat/scraper/file" method="POST" enctype="multipart/form-data">
-            <div class="form-row" style="margin-bottom:15px;padding:10px;background:#1a1a2e;border-radius:8px;border:1px solid #8ff5ff">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;padding:12px;background:#131315;border:1px solid rgba(143,245,255,0.15);border-radius:6px">
                 <div class="form-group" style="margin-bottom:0">
-                    <label><span class=material-symbols-outlined>inventory_2</span> Paleta</label>
+                    <label style="font-size:0.68rem;color:#adaaad;letter-spacing:0.06em;text-transform:uppercase;font-weight:700"><span class=material-symbols-outlined style="font-size:0.85rem">inventory_2</span> Paleta</label>
                     <select name="paleta_id" class="form-ctrl" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
                         <option value="">-- Bez palety --</option>
-                        <option value="new"><span class=material-symbols-outlined>add</span> Nowa paleta...</option>
+                        <option value="new">+ Nowa paleta...</option>
                         {palety_options_clean}
                     </select>
                 </div>
                 <div class="form-group" style="margin-bottom:0">
-                    <label><span class=material-symbols-outlined>factory</span> Dostawca</label>
+                    <label style="font-size:0.68rem;color:#adaaad;letter-spacing:0.06em;text-transform:uppercase;font-weight:700"><span class=material-symbols-outlined style="font-size:0.85rem">factory</span> Dostawca</label>
                     <select name="dostawca" class="form-ctrl">
                         <option value="">-- Wybierz --</option>
-                        <option value="Jobalots">🇳🇱 Jobalots</option>
-                        <option value="Warrington">🇬🇧 Warrington</option>
-                        <option value="Miglo">🇵🇱 Miglo</option>
-                        <option value="Inny"><span class=material-symbols-outlined>inventory_2</span> Inny</option>
+                        <option value="Jobalots">Jobalots</option>
+                        <option value="Warrington">Warrington</option>
+                        <option value="Miglo">Miglo</option>
+                        <option value="Inny">Inny</option>
                     </select>
                 </div>
             </div>
-            <input type="text" name="nowa_paleta_nazwa" class="form-ctrl" placeholder="Nazwa nowej palety" style="display:none;margin-bottom:15px">
-            
+            <input type="text" name="nowa_paleta_nazwa" class="form-ctrl" placeholder="Nazwa nowej palety" style="display:none;margin-bottom:12px">
             <div class="form-group">
-                <label><span class=material-symbols-outlined>description</span> Plik Excel (.xlsx) lub CSV/TXT</label>
+                <label style="font-size:0.68rem;color:#adaaad;letter-spacing:0.06em;text-transform:uppercase;font-weight:700"><span class=material-symbols-outlined style="font-size:0.85rem">description</span> Plik Excel (.xlsx) lub CSV/TXT</label>
                 <input type="file" name="file" class="form-ctrl" accept=".txt,.csv,.xlsx,.xls" required>
-                <div style="font-size:0.7rem;color:#64748b;margin-top:5px">Automatycznie wykrywa: ASIN, cenę, ilość, EAN, zdjęcia</div>
+                <div style="font-size:0.62rem;color:#767577;margin-top:4px">Automatycznie wykrywa: ASIN, cenę, ilość, EAN, zdjęcia</div>
             </div>
             <div class="form-group">
-                <label><span class=material-symbols-outlined>paid</span> Cena jednostkowa brutto (opcjonalnie)</label>
+                <label style="font-size:0.68rem;color:#adaaad;letter-spacing:0.06em;text-transform:uppercase;font-weight:700"><span class=material-symbols-outlined style="font-size:0.85rem">paid</span> Cena jednostkowa brutto (opcjonalnie)</label>
                 <input type="number" step="0.01" name="cena_jednostkowa" class="form-ctrl" placeholder="Nadpisuje cenę z pliku">
             </div>
-            <button type="submit" class="btn btn-2" style="width:100%"><span class=material-symbols-outlined>upload</span> WGRAJ I DODAJ DO MAGAZYNU</button>
+            <button type="submit" class="btn" style="width:100%;padding:14px;background:rgba(143,245,255,0.1);border:1px solid rgba(143,245,255,0.3);color:#8ff5ff;font-weight:700;font-size:0.78rem;letter-spacing:0.1em;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:6px"><span class=material-symbols-outlined>upload</span> WGRAJ I DODAJ DO MAGAZYNU</button>
         </form>
     </div>
-    
+
     <!-- FORMULARZ 3: IMPORT MIGLO -->
-    <div class="card" style="border:1px solid #f59e0b">
-        <div class="card-title" style="color:#f59e0b"><span class=material-symbols-outlined>list_alt</span> IMPORT RĘCZNY (Miglo licytacje)</div>
+    <div id="form-miglo" style="background:#1f1f22;border:1px solid rgba(245,158,11,0.2);padding:24px;margin-bottom:16px">
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+            <span class=material-symbols-outlined style="color:#f59e0b">list_alt</span> IMPORT MIGLO
+            <span style="font-size:0.6rem;color:#767577;font-weight:400;margin-left:4px">(licytacje)</span>
+        </div>
         <form action="/paletomat/scraper/miglo" method="POST">
-            <div class="form-row" style="margin-bottom:15px;padding:10px;background:#1a1a2e;border-radius:8px;border:1px solid #f59e0b">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;padding:12px;background:#131315;border:1px solid rgba(245,158,11,0.15);border-radius:6px">
                 <div class="form-group" style="margin-bottom:0">
-                    <label><span class=material-symbols-outlined>inventory_2</span> Paleta</label>
+                    <label style="font-size:0.68rem;color:#adaaad;letter-spacing:0.06em;text-transform:uppercase;font-weight:700"><span class=material-symbols-outlined style="font-size:0.85rem">inventory_2</span> Paleta</label>
                     <select name="paleta_id" class="form-ctrl" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
                         <option value="">-- Bez palety --</option>
-                        <option value="new"><span class=material-symbols-outlined>add</span> Nowa paleta...</option>
+                        <option value="new">+ Nowa paleta...</option>
                         {palety_options_clean}
                     </select>
                 </div>
                 <div class="form-group" style="margin-bottom:0">
-                    <label><span class=material-symbols-outlined>factory</span> Dostawca</label>
+                    <label style="font-size:0.68rem;color:#adaaad;letter-spacing:0.06em;text-transform:uppercase;font-weight:700"><span class=material-symbols-outlined style="font-size:0.85rem">factory</span> Dostawca</label>
                     <select name="dostawca" class="form-ctrl">
-                        <option value="Miglo" selected>🇵🇱 Miglo</option>
-                        <option value="Jobalots">🇳🇱 Jobalots</option>
-                        <option value="Warrington">🇬🇧 Warrington</option>
-                        <option value="Inny"><span class=material-symbols-outlined>inventory_2</span> Inny</option>
+                        <option value="Miglo" selected>Miglo</option>
+                        <option value="Jobalots">Jobalots</option>
+                        <option value="Warrington">Warrington</option>
+                        <option value="Inny">Inny</option>
                     </select>
                 </div>
             </div>
-            <input type="text" name="nowa_paleta_nazwa" class="form-ctrl" placeholder="Nazwa nowej palety" style="display:none;margin-bottom:15px">
-            
+            <input type="text" name="nowa_paleta_nazwa" class="form-ctrl" placeholder="Nazwa nowej palety" style="display:none;margin-bottom:12px">
             <div class="form-group">
-                <label>Dane z tabeli Miglo</label>
+                <label style="font-size:0.68rem;color:#adaaad;letter-spacing:0.06em;text-transform:uppercase;font-weight:700">Dane z tabeli Miglo</label>
                 <textarea name="miglo_data" class="form-ctrl" rows="6" placeholder="B0IL6PLPDI	5	HOME_IMPROVEMENT	1647,56	221,89
 B0IN7ENHO6	4	CAMERA	588,45	79,25
-..."></textarea>
-                <div style="font-size:0.7rem;color:#64748b;margin-top:5px">Skopiuj tabelę z Miglo (ASIN | Ilość | Kategoria | Cena | Cena netto)</div>
+..." style="font-family:monospace;font-size:0.78rem"></textarea>
+                <div style="font-size:0.62rem;color:#767577;margin-top:4px">Skopiuj tabelę z Miglo (ASIN | Ilość | Kategoria | Cena | Cena netto)</div>
             </div>
-            <button type="submit" class="btn btn-ok" style="width:100%"><span class=material-symbols-outlined>download</span> IMPORTUJ Z MIGLO</button>
+            <button type="submit" class="btn" style="width:100%;padding:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#f59e0b;font-weight:700;font-size:0.78rem;letter-spacing:0.1em;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:6px"><span class=material-symbols-outlined>download</span> IMPORTUJ Z MIGLO</button>
         </form>
     </div>
-    
-    <a href="/paletomat" class="back">← Powrót</a>
+
+    <div style="text-align:center;margin-top:24px"><a href="/paletomat" style="font-size:0.82rem;color:#adaaad;text-decoration:none;font-weight:600;letter-spacing:0.05em">&larr; Powrót</a></div>
     '''
     return render(html)
 
@@ -2354,56 +2383,145 @@ def generator():
     allegro_ok = is_authenticated()
     shipping_ok = bool(get_config('allegro_shipping_id', ''))
     
-    html = '''
-    <div class="hdr"><h1><span class=material-symbols-outlined>label</span> GENERATOR OFERT</h1><small>Twórz oferty Allegro</small></div>
+    html = f'''
+    <!-- Page Header -->
+    <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:24px">
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:2.2rem;font-weight:800;color:#f9f5f8;letter-spacing:-0.03em;margin:0">OFFER_ENGINE</h2>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <span style="padding:4px 10px;background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.2);color:#8ff5ff;font-size:0.6rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase">Status: {'Optimal' if allegro_ok else 'Disconnected'}</span>
+            <span style="padding:4px 10px;background:rgba(255,107,155,0.08);border:1px solid rgba(255,107,155,0.2);color:#ff6b9b;font-size:0.6rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase">Scrapers: Active</span>
+        </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+        <div style="background:#131315;padding:20px;border-left:3px solid #8ff5ff;box-shadow:0 0 15px rgba(143,245,255,0.1)">
+            <div style="font-size:0.6rem;font-weight:700;letter-spacing:0.15em;color:#adaaad;text-transform:uppercase;margin-bottom:8px">EST_ROI</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:2.2rem;font-weight:800;color:#8ff5ff">{len(products)}</div>
+            <div style="font-size:0.65rem;color:#767577;margin-top:4px">produktów w kolejce</div>
+        </div>
+        <div style="background:#131315;padding:20px;border-left:3px solid #ff6b9b;box-shadow:0 0 15px rgba(255,107,155,0.1)">
+            <div style="font-size:0.6rem;font-weight:700;letter-spacing:0.15em;color:#adaaad;text-transform:uppercase;margin-bottom:8px">ACTIVE_OFFERS</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:2.2rem;font-weight:800;color:#ff6b9b">{wystawione}</div>
+            <div style="font-size:0.65rem;color:#767577;margin-top:4px">wystawionych</div>
+        </div>
+    </div>
     '''
-    
-    # Przyciski masowe
-    html += '<div style="display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap">'
-    
-    # Przycisk przetwarzania
-    if needs_processing > 0:
-        html += f'''<a href="/paletomat/generator/reprocess" class="btn btn-2" style="flex:1;min-width:140px" 
-            onclick="return confirm('Przetworzyć {needs_processing} produktów? (pobranie nazw, zdjęć, opisów z Amazon)')">
-            <span class=material-symbols-outlined>sync</span> PRZETWORZ PONOWNIE ({needs_processing})</a>'''
-    
+
+    # GEN_PARAMETERS panel - left side controls
+    html += '<div style="display:grid;grid-template-columns:1fr 2fr;gap:24px;align-items:start">'
+
+    # Left: Settings & Actions
+    html += f'''
+    <div style="background:#1f1f22;border:1px solid rgba(72,71,74,0.15);padding:24px">
+        <h3 style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:8px">
+            <span class=material-symbols-outlined style="color:#8ff5ff">settings_suggest</span> GEN_PARAMETERS
+        </h3>
+
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
+                <div>
+                    <div style="font-size:0.78rem;font-weight:700;color:#f9f5f8">AUTO_PRICING</div>
+                    <div style="font-size:0.65rem;color:#adaaad">AI Market Calibration</div>
+                </div>
+                <div style="width:36px;height:20px;background:rgba(143,245,255,0.2);border-radius:10px;position:relative">
+                    <div style="width:16px;height:16px;background:#8ff5ff;border-radius:50%;position:absolute;top:2px;right:2px;box-shadow:0 0 8px #8ff5ff"></div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
+                <div>
+                    <div style="font-size:0.78rem;font-weight:700;color:#f9f5f8">SYNC_ALLEGRO</div>
+                    <div style="font-size:0.65rem;color:#adaaad">{'Connected' if allegro_ok else 'Not connected'}</div>
+                </div>
+                <div style="width:36px;height:20px;background:{'rgba(143,245,255,0.2)' if allegro_ok else '#262528;border:1px solid rgba(72,71,74,0.3)'};border-radius:10px;position:relative">
+                    <div style="width:16px;height:16px;background:{'#8ff5ff' if allegro_ok else '#767577'};border-radius:50%;position:absolute;top:2px;{'right' if allegro_ok else 'left'}:2px;{'box-shadow:0 0 8px #8ff5ff' if allegro_ok else ''}"></div>
+                </div>
+            </div>
+        </div>
+
+        <div style="border-top:1px solid rgba(72,71,74,0.15);padding-top:20px;display:flex;flex-direction:column;gap:8px">
+    '''
+
     if allegro_ok and shipping_ok and products:
-        html += f'<a href="/paletomat/generator/mass-create" class="btn btn-ok" style="flex:1;min-width:140px" onclick="return confirm(\'Wystawić {len(products)} produktów na Allegro?\')">[ROCKET_LAUNCH] WYSTAW WSZYSTKIE ({len(products)})</a>'
+        html += f'''<a href="/paletomat/generator/mass-create" class="btn btn-ok" style="width:100%;padding:14px;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.72rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;box-shadow:0 0 15px rgba(143,245,255,0.3)"
+            onclick="return confirm('Wystawić {len(products)} produktów na Allegro?')">
+            <span class=material-symbols-outlined>bolt</span> RUN_BATCH_GENERATION</a>'''
     elif products:
-        html += '<div class="btn btn-2" style="flex:1;min-width:140px;opacity:0.5;cursor:not-allowed">[ROCKET_LAUNCH] WYSTAW WSZYSTKIE (połącz Allegro)</div>'
-    
+        html += '<div style="width:100%;padding:14px;text-align:center;background:#262528;color:#767577;font-size:0.72rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;opacity:0.5;cursor:not-allowed"><span class=material-symbols-outlined>bolt</span> RUN_BATCH (połącz Allegro)</div>'
+
+    if needs_processing > 0:
+        html += f'''<a href="/paletomat/generator/reprocess" class="btn btn-2" style="width:100%;padding:12px;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.72rem"
+            onclick="return confirm('Przetworzyć {needs_processing} produktów?')">
+            <span class=material-symbols-outlined>sync</span> PRZETWORZ ({needs_processing})</a>'''
+
     if wystawione > 0:
-        html += f'<a href="/paletomat/generator/cleanup" class="btn btn-warn" style="flex:1;min-width:140px" onclick="return confirm(\'Usunąć {wystawione} wystawionych szkiców?\')"><span class=material-symbols-outlined>delete</span> USUŃ WYSTAWIONE ({wystawione})</a>'
-    
-    html += f'<a href="/paletomat/generator/enhance-existing" class="btn" style="flex:1;min-width:140px;background:#f59e0b;color:#fff"><span class=material-symbols-outlined>auto_awesome</span> GENERUJ ZDJĘCIA AI</a>'
+        html += f'''<a href="/paletomat/generator/cleanup" class="btn btn-warn" style="width:100%;padding:12px;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.72rem"
+            onclick="return confirm('Usunąć {wystawione} wystawionych szkiców?')">
+            <span class=material-symbols-outlined>delete</span> USUŃ WYSTAWIONE ({wystawione})</a>'''
+
+    html += f'<a href="/paletomat/generator/enhance-existing" class="btn" style="width:100%;padding:12px;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.72rem;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.25);color:#f59e0b"><span class=material-symbols-outlined>auto_awesome</span> GENERUJ ZDJĘCIA AI</a>'
 
     # Przycisk re-scrapuj fallback nazwy
     fallback_cnt = conn.execute("SELECT COUNT(DISTINCT asin) as cnt FROM produkty WHERE nazwa LIKE 'Produkt %' AND asin IS NOT NULL").fetchone()['cnt']
     if fallback_cnt > 0:
-        html += f'''<form method="POST" action="/paletomat/rescrape-all-fallback" style="flex:1;min-width:140px">
+        html += f'''<form method="POST" action="/paletomat/rescrape-all-fallback" style="width:100%">
             <input type="hidden" name="csrf_token" value="{generate_csrf()}">
-            <button type="submit" class="btn" style="width:100%;background:#8ff5ff;color:#fff"
+            <button type="submit" class="btn" style="width:100%;padding:12px;background:rgba(143,245,255,0.1);border:1px solid rgba(143,245,255,0.2);color:#8ff5ff;display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.72rem"
             onclick="return confirm('Re-scrapować {fallback_cnt} produktów z brakującą nazwą?')"><span class=material-symbols-outlined>sync</span> POBIERZ NAZWY ({fallback_cnt})</button></form>'''
 
-    html += '</div>'
+    html += '''
+        </div>
+    </div>
+    '''
+
+    # Right: Scraped Queue
+    html += f'''
+    <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <h3 style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:8px">
+                <span class=material-symbols-outlined style="color:#ff6b9b">dataset</span> SCRAPED_QUEUED
+                <span style="color:rgba(173,170,173,0.4);margin-left:4px">({len(products)})</span>
+            </h3>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+    '''
 
     if products:
-        html += f'<div class="alert alert-ok">{len(products)} produktów gotowych do wystawienia</div>'
-        
         for p in products:
-            nazwa_display = (p['nazwa'] or f"Produkt {p['asin']}")[:30]
-            html += f'''<div class="item">
-                <img src="{get_amazon_image_url(p['asin'])}" onerror="this.style.display='none'">
-                <div class="item-info">
-                    <div class="item-name">{nazwa_display}...</div>
-                    <div class="item-meta">ASIN: {p['asin']}</div>
+            nazwa_display = (p['nazwa'] or f"Produkt {p['asin']}")[:45]
+            _p_status = p.get('status', 'nowy')
+            _ready = _p_status in ('nowy', 'gotowy')
+            _bcolor = '#beee00' if _ready else '#ff6b9b'
+
+            html += f'''
+            <div style="background:#131315;display:flex;align-items:center;border-left:3px solid {_bcolor};transition:background 0.2s"
+                 onmouseover="this.style.background='#19191c'" onmouseout="this.style.background='#131315'">
+                <div style="width:80px;height:72px;background:#262528;flex-shrink:0;overflow:hidden;{'filter:grayscale(1);' if not _ready else ''}">
+                    <img src="{get_amazon_image_url(p['asin'])}" style="width:100%;height:100%;object-fit:cover;opacity:0.7" onerror="this.style.display='none'">
                 </div>
-                <a href="/paletomat/generator/{p['asin']}" class="btn-sm btn-p">GENERUJ</a>
+                <div style="flex:1;padding:12px 16px">
+                    <div style="font-weight:700;font-size:0.82rem;letter-spacing:0.03em;color:#f9f5f8;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px">{nazwa_display}</div>
+                    <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+                        <span style="font-size:0.6rem;color:#adaaad;font-family:monospace">ASIN: {p['asin']}</span>
+                        <span style="font-size:0.55rem;{'color:#8ff5ff;background:rgba(143,245,255,0.08)' if _ready else 'color:#ff6b9b;background:rgba(255,107,155,0.08)'};padding:1px 6px;font-weight:700;text-transform:uppercase">{'READY' if _ready else 'MAPPING'}</span>
+                    </div>
+                </div>
+                <div style="padding:12px 16px;background:rgba(38,37,40,0.5)">
+                    <a href="/paletomat/generator/{p['asin']}" style="padding:8px 18px;background:transparent;border:1px solid rgba(143,245,255,0.3);color:#8ff5ff;font-size:0.6rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;display:inline-block;transition:all 0.2s"
+                       onmouseover="this.style.background='#8ff5ff';this.style.color='#005d63'" onmouseout="this.style.background='transparent';this.style.color='#8ff5ff'">
+                        GENERATE_OFFER</a>
+                </div>
             </div>'''
     else:
-        html += '<div class="alert alert-warn">Brak produktów do wystawienia. Najpierw użyj scrapera.</div>'
-    
-    html += '<a href="/paletomat" class="back">← Powrót</a>'
+        html += '<div style="padding:40px;text-align:center;background:#131315;border:1px dashed rgba(255,107,155,0.2)"><span class=material-symbols-outlined style="font-size:2rem;color:#ff6b9b;margin-bottom:8px;display:block">inbox</span><div style="font-size:0.82rem;color:#adaaad">Brak produktów do wystawienia. Najpierw użyj scrapera.</div></div>'
+
+    html += '''
+        </div>
+    </div>
+    </div>
+    '''
+
+    html += '<div style="text-align:center;margin-top:24px"><a href="/paletomat" style="font-size:0.82rem;color:#adaaad;text-decoration:none;font-weight:600;letter-spacing:0.05em">&larr; Powrót</a></div>'
     return render(html)
 
 def _render_stan_fields(grupy_stanow, stan_magazyn):

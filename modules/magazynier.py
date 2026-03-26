@@ -664,189 +664,185 @@ def produkty():
     _klasa_counts['brak'] = conn.execute("SELECT COUNT(*) FROM produkty WHERE klasa_jakosci IS NULL OR klasa_jakosci = ''").fetchone()[0]
 
     html = f'''
-    <div class="hdr">
-        <h1><span class=material-symbols-outlined>list_alt</span> PRODUKTY</h1>
-        <small>{len(products)} pozycji</small>
+    <!-- Page Header -->
+    <div style="margin-bottom:24px">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.15em;color:#8ff5ff;font-weight:700;font-family:'Space Grotesk',sans-serif;margin-bottom:4px">Produkty</div>
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.8rem;font-weight:800;color:#f9f5f8;letter-spacing:-0.02em;margin:0">Katalog Zasobów</h2>
     </div>
     '''
 
     if msg:
         html += f'<script>Toast.success("{msg}");</script>'
 
-    # Zakładki statusów
+    # Category tabs (horizontal scroll)
     html += f'''
-    <div style="padding:10px;margin-bottom:15px;background:rgba(10,10,22,0.6);border:1px solid rgba(255,255,255,0.04);border-radius:12px">
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <a href="/magazyn/produkty" class="btn {'btn-ok' if not filter_status else ''}" style="padding:8px 15px;font-size:0.82rem;display:flex;align-items:center;gap:4px;border-radius:8px">
-                <span class=material-symbols-outlined style=font-size:0.95rem>list_alt</span> Wszystkie ({len(products) if not filter_status else sum(status_counts.values())})
-            </a>
-            <a href="/magazyn/produkty?status=nowy" style="padding:8px 15px;font-size:0.82rem;background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.20);color:#8ff5ff;border-radius:8px;text-decoration:none;display:flex;align-items:center;gap:4px{';;font-weight:700' if filter_status == 'nowy' else ''}">
-                <span class=material-symbols-outlined style=font-size:0.95rem>inventory_2</span> Magazyn ({status_counts['nowy']})
-            </a>
-            <a href="/magazyn/produkty?status=wystawiony" style="padding:8px 15px;font-size:0.82rem;background:rgba(255,107,155,0.10);border:1px solid rgba(255,107,155,0.20);color:#ff6b9b;border-radius:8px;text-decoration:none;display:flex;align-items:center;gap:4px">
-                <span class=material-symbols-outlined style=font-size:0.95rem>shopping_cart</span> Allegro ({status_counts['wystawiony']})
-            </a>
-            <a href="/magazyn/produkty?status=sprzedany" style="padding:8px 15px;font-size:0.82rem;background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.20);color:#beee00;border-radius:8px;text-decoration:none;display:flex;align-items:center;gap:4px">
-                <span class=material-symbols-outlined style=font-size:0.95rem>paid</span> Sprzedane ({status_counts['sprzedany']})
-            </a>
-            <a href="/magazyn/produkty?status=nieoceniony" style="padding:8px 15px;font-size:0.82rem;background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.20);color:#f59e0b;border-radius:8px;text-decoration:none;display:flex;align-items:center;gap:4px">
-                <span class=material-symbols-outlined style=font-size:0.95rem>star</span> Nieocenione ({nieocenione_cnt})
-            </a>
-        </div>
+    <div style="display:flex;overflow-x:auto;gap:10px;padding-bottom:8px;margin-bottom:20px;scrollbar-width:none;-ms-overflow-style:none">
+        <a href="/magazyn/produkty" style="flex-shrink:0;padding:8px 18px;border-radius:10px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;white-space:nowrap;transition:all 0.2s;{'background:#8ff5ff;color:#005d63;box-shadow:0 0 15px rgba(143,245,255,0.3)' if not filter_status else 'background:#262528;color:#adaaad;border:1px solid rgba(72,71,74,0.2)'}">
+            Wszystkie</a>
+        <a href="/magazyn/produkty?status=nowy" style="flex-shrink:0;padding:8px 18px;border-radius:10px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;white-space:nowrap;transition:all 0.2s;{'background:#8ff5ff;color:#005d63;box-shadow:0 0 15px rgba(143,245,255,0.3)' if filter_status == 'nowy' else 'background:#262528;color:#adaaad;border:1px solid rgba(72,71,74,0.2)'}">
+            Magazyn ({status_counts['nowy']})</a>
+        <a href="/magazyn/produkty?status=wystawiony" style="flex-shrink:0;padding:8px 18px;border-radius:10px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;white-space:nowrap;transition:all 0.2s;{'background:#ff6b9b;color:#47001f;box-shadow:0 0 15px rgba(255,107,155,0.3)' if filter_status == 'wystawiony' else 'background:#262528;color:#adaaad;border:1px solid rgba(72,71,74,0.2)'}">
+            Allegro ({status_counts['wystawiony']})</a>
+        <a href="/magazyn/produkty?status=sprzedany" style="flex-shrink:0;padding:8px 18px;border-radius:10px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;white-space:nowrap;transition:all 0.2s;{'background:#beee00;color:#3a4a00;box-shadow:0 0 15px rgba(190,238,0,0.3)' if filter_status == 'sprzedany' else 'background:#262528;color:#adaaad;border:1px solid rgba(72,71,74,0.2)'}">
+            Sprzedane ({status_counts['sprzedany']})</a>
+        <a href="/magazyn/produkty?status=nieoceniony" style="flex-shrink:0;padding:8px 18px;border-radius:10px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;white-space:nowrap;transition:all 0.2s;{'background:#f59e0b;color:#422006;box-shadow:0 0 15px rgba(245,158,11,0.3)' if filter_status == 'nieoceniony' else 'background:#262528;color:#adaaad;border:1px solid rgba(72,71,74,0.2)'}">
+            Nieocenione ({nieocenione_cnt})</a>
     </div>
 
-    <!-- STAN PRZEDMIOTU + KLASA JAKOŚCI -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:15px">
-        <div style="background:rgba(10,10,22,0.6);backdrop-filter:blur(20px);border:1px solid rgba(143,245,255,0.06);border-radius:12px;padding:14px">
-            <div style="font-size:0.68rem;color:#8ff5ff;font-weight:600;letter-spacing:0.1em;margin-bottom:10px;font-family:'Space Grotesk',sans-serif">STAN PRZEDMIOTU</div>
+    <!-- STAN PRZEDMIOTU + KLASA JAKOŚCI - compact bento grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div style="background:#131315;border:1px solid rgba(72,71,74,0.15);border-radius:10px;padding:14px">
+            <div style="font-size:0.62rem;color:#8ff5ff;font-weight:700;letter-spacing:0.12em;margin-bottom:10px;font-family:'Space Grotesk',sans-serif;text-transform:uppercase">Stan przedmiotu</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-                <a href="/magazyn/produkty?stan=Nowy" style="flex:1;min-width:55px;text-align:center;padding:8px 4px;background:rgba(190,238,0,0.06);border:1px solid rgba(190,238,0,0.15);border-radius:8px;text-decoration:none">
-                    <div style="font-size:1.3rem;font-weight:800;color:#beee00;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Nowy',0)}</div>
-                    <div style="font-size:0.6rem;color:#64748b;margin-top:2px">NOWY</div>
+                <a href="/magazyn/produkty?stan=Nowy" style="flex:1;min-width:50px;text-align:center;padding:8px 4px;background:rgba(190,238,0,0.06);border:1px solid rgba(190,238,0,0.12);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.2rem;font-weight:800;color:#beee00;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Nowy',0)}</div>
+                    <div style="font-size:0.55rem;color:#767577;margin-top:2px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Nowy</div>
                 </a>
-                <a href="/magazyn/produkty?stan=Jak nowy" style="flex:1;min-width:55px;text-align:center;padding:8px 4px;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.15);border-radius:8px;text-decoration:none">
-                    <div style="font-size:1.3rem;font-weight:800;color:#8ff5ff;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Jak nowy',0)}</div>
-                    <div style="font-size:0.6rem;color:#64748b;margin-top:2px">JAK NOWY</div>
+                <a href="/magazyn/produkty?stan=Jak nowy" style="flex:1;min-width:50px;text-align:center;padding:8px 4px;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.12);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.2rem;font-weight:800;color:#8ff5ff;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Jak nowy',0)}</div>
+                    <div style="font-size:0.55rem;color:#767577;margin-top:2px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Jak nowy</div>
                 </a>
-                <a href="/magazyn/produkty?stan=Używany" style="flex:1;min-width:55px;text-align:center;padding:8px 4px;background:rgba(234,179,8,0.06);border:1px solid rgba(234,179,8,0.15);border-radius:8px;text-decoration:none">
-                    <div style="font-size:1.3rem;font-weight:800;color:#eab308;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Używany',0)}</div>
-                    <div style="font-size:0.6rem;color:#64748b;margin-top:2px">UŻYWANY</div>
+                <a href="/magazyn/produkty?stan=Używany" style="flex:1;min-width:50px;text-align:center;padding:8px 4px;background:rgba(234,179,8,0.06);border:1px solid rgba(234,179,8,0.12);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.2rem;font-weight:800;color:#eab308;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Używany',0)}</div>
+                    <div style="font-size:0.55rem;color:#767577;margin-top:2px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Używany</div>
                 </a>
-                <a href="/magazyn/produkty?stan=Uszkodzony" style="flex:1;min-width:55px;text-align:center;padding:8px 4px;background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.15);border-radius:8px;text-decoration:none">
-                    <div style="font-size:1.3rem;font-weight:800;color:#f97316;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Uszkodzony',0)}</div>
-                    <div style="font-size:0.6rem;color:#64748b;margin-top:2px">USZK.</div>
+                <a href="/magazyn/produkty?stan=Uszkodzony" style="flex:1;min-width:50px;text-align:center;padding:8px 4px;background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.12);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.2rem;font-weight:800;color:#f97316;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('Uszkodzony',0)}</div>
+                    <div style="font-size:0.55rem;color:#767577;margin-top:2px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Uszk.</div>
                 </a>
-                <a href="/magazyn/produkty?status=nieoceniony" style="flex:1;min-width:55px;text-align:center;padding:8px 4px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;text-decoration:none">
-                    <div style="font-size:1.3rem;font-weight:800;color:#64748b;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('nieoceniony',0)}</div>
-                    <div style="font-size:0.6rem;color:#64748b;margin-top:2px">BRAK</div>
+                <a href="/magazyn/produkty?status=nieoceniony" style="flex:1;min-width:50px;text-align:center;padding:8px 4px;background:rgba(255,255,255,0.02);border:1px solid rgba(72,71,74,0.15);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.2rem;font-weight:800;color:#767577;font-family:'Space Grotesk',sans-serif">{_stan_counts.get('nieoceniony',0)}</div>
+                    <div style="font-size:0.55rem;color:#767577;margin-top:2px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Brak</div>
                 </a>
             </div>
         </div>
-        <div style="background:rgba(10,10,22,0.6);backdrop-filter:blur(20px);border:1px solid rgba(143,245,255,0.06);border-radius:12px;padding:14px">
-            <div style="font-size:0.68rem;color:#ff6b9b;font-weight:600;letter-spacing:0.1em;margin-bottom:10px;font-family:'Space Grotesk',sans-serif">KLASA JAKOŚCI</div>
+        <div style="background:#131315;border:1px solid rgba(72,71,74,0.15);border-radius:10px;padding:14px">
+            <div style="font-size:0.62rem;color:#ff6b9b;font-weight:700;letter-spacing:0.12em;margin-bottom:10px;font-family:'Space Grotesk',sans-serif;text-transform:uppercase">Klasa jakości</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-                <a href="/magazyn/produkty?klasa=A" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(190,238,0,0.06);border:1px solid rgba(190,238,0,0.15);border-radius:8px;text-decoration:none">
-                    <div style="font-size:1.3rem;font-weight:800;color:#beee00;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('A',0)}</div>
-                    <div style="font-size:0.65rem;color:#beee00;margin-top:2px">A</div>
+                <a href="/magazyn/produkty?klasa=A" style="flex:1;min-width:42px;text-align:center;padding:8px 4px;background:rgba(190,238,0,0.06);border:1px solid rgba(190,238,0,0.12);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.2rem;font-weight:800;color:#beee00;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('A',0)}</div>
+                    <div style="font-size:0.6rem;color:#beee00;margin-top:2px;font-weight:700">A</div>
                 </a>
-                <a href="/magazyn/produkty?klasa=A-" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.15);border-radius:8px;text-decoration:none">
-                    <div style="font-size:1.3rem;font-weight:800;color:#8ff5ff;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('A-',0)}</div>
-                    <div style="font-size:0.65rem;color:#8ff5ff;margin-top:2px">A-</div>
+                <a href="/magazyn/produkty?klasa=A-" style="flex:1;min-width:42px;text-align:center;padding:8px 4px;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.12);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.2rem;font-weight:800;color:#8ff5ff;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('A-',0)}</div>
+                    <div style="font-size:0.6rem;color:#8ff5ff;margin-top:2px;font-weight:700">A-</div>
                 </a>
-                <a href="/magazyn/produkty?klasa=B" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(234,179,8,0.06);border:1px solid rgba(234,179,8,0.15);border-radius:8px;text-decoration:none">
-                    <div style="font-size:1.3rem;font-weight:800;color:#eab308;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('B',0)}</div>
-                    <div style="font-size:0.65rem;color:#eab308;margin-top:2px">B</div>
+                <a href="/magazyn/produkty?klasa=B" style="flex:1;min-width:42px;text-align:center;padding:8px 4px;background:rgba(234,179,8,0.06);border:1px solid rgba(234,179,8,0.12);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.2rem;font-weight:800;color:#eab308;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('B',0)}</div>
+                    <div style="font-size:0.6rem;color:#eab308;margin-top:2px;font-weight:700">B</div>
                 </a>
-                <a href="/magazyn/produkty?klasa=C" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.15);border-radius:8px;text-decoration:none">
-                    <div style="font-size:1.3rem;font-weight:800;color:#f97316;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('C',0)}</div>
-                    <div style="font-size:0.65rem;color:#f97316;margin-top:2px">C</div>
+                <a href="/magazyn/produkty?klasa=C" style="flex:1;min-width:42px;text-align:center;padding:8px 4px;background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.12);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.2rem;font-weight:800;color:#f97316;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('C',0)}</div>
+                    <div style="font-size:0.6rem;color:#f97316;margin-top:2px;font-weight:700">C</div>
                 </a>
-                <a href="/magazyn/produkty?klasa=D" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:8px;text-decoration:none">
-                    <div style="font-size:1.3rem;font-weight:800;color:#ef4444;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('D',0)}</div>
-                    <div style="font-size:0.65rem;color:#ef4444;margin-top:2px">D</div>
+                <a href="/magazyn/produkty?klasa=D" style="flex:1;min-width:42px;text-align:center;padding:8px 4px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.12);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.2rem;font-weight:800;color:#ef4444;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('D',0)}</div>
+                    <div style="font-size:0.6rem;color:#ef4444;margin-top:2px;font-weight:700">D</div>
                 </a>
-                <a href="/magazyn/produkty?status=nieoceniony" style="flex:1;min-width:45px;text-align:center;padding:8px 4px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;text-decoration:none">
-                    <div style="font-size:1.3rem;font-weight:800;color:#64748b;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('brak',0)}</div>
-                    <div style="font-size:0.65rem;color:#64748b;margin-top:2px">BRAK</div>
+                <a href="/magazyn/produkty?status=nieoceniony" style="flex:1;min-width:42px;text-align:center;padding:8px 4px;background:rgba(255,255,255,0.02);border:1px solid rgba(72,71,74,0.15);border-radius:8px;text-decoration:none">
+                    <div style="font-size:1.2rem;font-weight:800;color:#767577;font-family:'Space Grotesk',sans-serif">{_klasa_counts.get('brak',0)}</div>
+                    <div style="font-size:0.6rem;color:#767577;margin-top:2px;font-weight:700">Brak</div>
                 </a>
             </div>
         </div>
     </div>
     '''
-    
-    # Filtry i sortowanie
+
+    # Filtry i sortowanie - sleek inline bar
     html += f'''
-    <div style="padding:15px;margin-bottom:15px;background:rgba(10,10,22,0.6);border:1px solid rgba(255,255,255,0.04);border-radius:12px">
-        <form method="GET" action="/magazyn/produkty" style="display:flex;gap:10px;flex-wrap:wrap">
+    <div style="padding:12px 16px;margin-bottom:16px;background:#131315;border:1px solid rgba(72,71,74,0.15);border-radius:10px">
+        <form method="GET" action="/magazyn/produkty" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <input type="hidden" name="status" value="{filter_status}">
-            <input type="text" name="search" value="{search}" placeholder="Szukaj..." class="form-input" style="flex:1;min-width:150px">
-            <select name="paleta" class="form-input" style="min-width:120px">
+            <input type="text" name="search" value="{search}" placeholder="Szukaj produktu..." class="form-input" style="flex:2;min-width:140px;font-size:0.82rem">
+            <select name="paleta" class="form-input" style="flex:1;min-width:100px;font-size:0.82rem">
                 <option value="">Paleta</option>
                 {"".join([f'<option value="{p}" {"selected" if filter_paleta == p else ""}>{p}</option>' for p in palety])}
             </select>
-            <select name="dostawca" class="form-input" style="min-width:120px">
+            <select name="dostawca" class="form-input" style="flex:1;min-width:100px;font-size:0.82rem">
                 <option value="">Dostawca</option>
                 {"".join([f'<option value="{d}" {"selected" if filter_dostawca == d else ""}>{d}</option>' for d in dostawcy])}
             </select>
-            <select name="sort" class="form-input" style="min-width:120px">
+            <select name="sort" class="form-input" style="min-width:90px;font-size:0.82rem">
                 <option value="data" {"selected" if sort_by == "data" else ""}>Data</option>
                 <option value="cena" {"selected" if sort_by == "cena" else ""}>Cena</option>
                 <option value="nazwa" {"selected" if sort_by == "nazwa" else ""}>Nazwa</option>
                 <option value="ilosc" {"selected" if sort_by == "ilosc" else ""}>Ilość</option>
             </select>
-            <select name="dir" class="form-input" style="min-width:100px">
+            <select name="dir" class="form-input" style="min-width:85px;font-size:0.82rem">
                 <option value="desc" {"selected" if sort_dir == "desc" else ""}>Malejąco</option>
                 <option value="asc" {"selected" if sort_dir == "asc" else ""}>Rosnąco</option>
             </select>
-            <button type="submit" class="btn btn-ok" style="display:flex;align-items:center;gap:4px">[FILTER_LIST] Filtruj</button>
-            <a href="/magazyn/produkty" class="btn" style="display:flex;align-items:center;gap:4px">[CLEAR_ALL] Wyczyść</a>
+            <button type="submit" class="btn btn-ok" style="display:flex;align-items:center;gap:4px;padding:8px 14px;font-size:0.78rem"><span class=material-symbols-outlined style=font-size:0.95rem>filter_list</span> Filtruj</button>
+            <a href="/magazyn/produkty" class="btn" style="display:flex;align-items:center;gap:4px;padding:8px 14px;font-size:0.78rem"><span class=material-symbols-outlined style=font-size:0.95rem>clear_all</span> Wyczyść</a>
         </form>
     </div>
     '''
 
-    # Masowa edycja
+    # Masowa edycja - collapsible panel
     html += f'''
     <form id="mass-edit-form" method="POST" action="/magazyn/produkty/masowa-edycja">
-        <div style="padding:15px;margin-bottom:15px;background:rgba(255,107,155,0.05);border:1px solid rgba(255,107,155,0.15);border-radius:12px">
-            <div style="color:#ff6b9b;font-weight:700;font-size:0.92rem;margin-bottom:12px;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px"><span class=material-symbols-outlined style=font-size:1.1rem>bolt</span> MASOWA EDYCJA ZAZNACZONYCH</div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-                <div>
-                    <label style="display:block;color:#94a3b8;font-size:0.72rem;margin-bottom:4px;letter-spacing:0.05em">STATUS</label>
-                    <select name="new_status" class="form-input" style="width:100%;font-size:0.85rem">
-                        <option value="">-- bez zmiany --</option>
-                        <option value="magazyn">Magazyn</option>
-                        <option value="wystawiony">Wystawiony (Allegro)</option>
-                        <option value="sprzedany">Sprzedany</option>
-                        <option value="uszkodzony">Uszkodzony</option>
-                        <option value="zwrot">Zwrot</option>
-                    </select>
+        <details style="margin-bottom:16px">
+            <summary style="padding:12px 16px;background:#131315;border:1px solid rgba(255,107,155,0.15);border-radius:10px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;color:#ff6b9b;font-weight:700;font-size:0.82rem;font-family:'Space Grotesk',sans-serif">
+                <span class=material-symbols-outlined style=font-size:1.1rem>bolt</span> MASOWA EDYCJA
+                <span id="selected-count" style="margin-left:auto;font-size:0.75rem;color:#ff6b9b">Zaznaczono: <span id="count">0</span></span>
+            </summary>
+            <div style="padding:16px;background:#131315;border:1px solid rgba(255,107,155,0.15);border-top:none;border-radius:0 0 10px 10px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+                    <div>
+                        <label style="display:block;color:#adaaad;font-size:0.68rem;margin-bottom:4px;letter-spacing:0.06em;text-transform:uppercase;font-weight:700">Status</label>
+                        <select name="new_status" class="form-input" style="width:100%;font-size:0.82rem">
+                            <option value="">-- bez zmiany --</option>
+                            <option value="magazyn">Magazyn</option>
+                            <option value="wystawiony">Wystawiony (Allegro)</option>
+                            <option value="sprzedany">Sprzedany</option>
+                            <option value="uszkodzony">Uszkodzony</option>
+                            <option value="zwrot">Zwrot</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block;color:#adaaad;font-size:0.68rem;margin-bottom:4px;letter-spacing:0.06em;text-transform:uppercase;font-weight:700">Stan</label>
+                        <select name="new_stan" class="form-input" style="width:100%;font-size:0.82rem">
+                            <option value="">-- bez zmiany --</option>
+                            <option value="Nowy">Nowy</option>
+                            <option value="Nowy w otwartym opakowaniu">Nowy w otwartym opak.</option>
+                            <option value="Używany">Używany</option>
+                            <option value="Uszkodzony">Uszkodzony</option>
+                            <option value="Odnowiony">Odnowiony</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block;color:#adaaad;font-size:0.68rem;margin-bottom:4px;letter-spacing:0.06em;text-transform:uppercase;font-weight:700">Lokalizacja</label>
+                        <input type="text" name="new_lokalizacja" class="form-input" placeholder="np. A1, B2" style="width:100%;font-size:0.82rem">
+                    </div>
+                    <div>
+                        <label style="display:block;color:#adaaad;font-size:0.68rem;margin-bottom:4px;letter-spacing:0.06em;text-transform:uppercase;font-weight:700">Cena Allegro (zł)</label>
+                        <input type="number" name="new_cena_allegro" class="form-input" placeholder="puste = bez zmiany" step="0.01" min="0" style="width:100%;font-size:0.82rem">
+                    </div>
                 </div>
-                <div>
-                    <label style="display:block;color:#94a3b8;font-size:0.72rem;margin-bottom:4px;letter-spacing:0.05em">STAN</label>
-                    <select name="new_stan" class="form-input" style="width:100%;font-size:0.85rem">
-                        <option value="">-- bez zmiany --</option>
-                        <option value="Nowy">Nowy</option>
-                        <option value="Nowy w otwartym opakowaniu">Nowy w otwartym opak.</option>
-                        <option value="Używany">Używany</option>
-                        <option value="Uszkodzony">Uszkodzony</option>
-                        <option value="Odnowiony">Odnowiony</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="display:block;color:#94a3b8;font-size:0.72rem;margin-bottom:4px;letter-spacing:0.05em">LOKALIZACJA</label>
-                    <input type="text" name="new_lokalizacja" class="form-input" placeholder="np. A1, B2 (puste = bez zmiany)" style="width:100%;font-size:0.85rem">
-                </div>
-                <div>
-                    <label style="display:block;color:#94a3b8;font-size:0.72rem;margin-bottom:4px;letter-spacing:0.05em">CENA ALLEGRO (ZŁ)</label>
-                    <input type="number" name="new_cena_allegro" class="form-input" placeholder="puste = bez zmiany" step="0.01" min="0" style="width:100%;font-size:0.85rem">
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button type="button" onclick="toggleAll()" class="btn" style="background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.2);color:#8ff5ff;flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:4px;padding:10px;font-size:0.78rem">
+                        <span class=material-symbols-outlined style=font-size:0.95rem>check_box</span> Zaznacz wszystkie
+                    </button>
+                    <button type="submit" class="btn btn-ok" onclick="return confirm('Zastosować zmiany dla ' + document.getElementById('count').textContent + ' produktów?')" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:4px;padding:10px;font-size:0.78rem">
+                        <span class=material-symbols-outlined style=font-size:0.95rem>check_circle</span> Zastosuj
+                    </button>
+                    <button type="button" onclick="pokazBoxModal()" class="btn" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);color:#f59e0b;flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:4px;padding:10px;font-size:0.78rem">
+                        <span class=material-symbols-outlined style=font-size:0.95rem>inbox</span> Zgrupuj w box
+                    </button>
                 </div>
             </div>
-
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-                <button type="button" onclick="toggleAll()" class="btn" style="background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);color:#8ff5ff;flex:1;display:flex;align-items:center;justify-content:center;gap:4px">
-                    [CHECK_BOX] Zaznacz wszystkie
-                </button>
-                <button type="submit" class="btn btn-ok" onclick="return confirm('Zastosować zmiany dla ' + document.getElementById('count').textContent + ' produktów?')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px">
-                    <span class=material-symbols-outlined>check_circle</span> Zastosuj
-                </button>
-                <button type="button" onclick="pokazBoxModal()" class="btn" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.25);color:#f59e0b;flex:1;display:flex;align-items:center;justify-content:center;gap:4px">
-                    <span class=material-symbols-outlined>inbox</span> Zgrupuj w box
-                </button>
-            </div>
-            <div id="selected-count" style="margin-top:10px;color:#ff6b9b;font-size:0.85rem;font-weight:600;font-family:'Space Grotesk',sans-serif">
-                Zaznaczono: <span id="count">0</span> produktów
-            </div>
-        </div>
+        </details>
     '''
     
-    # Lista produktów
+    # Lista produktów - card-based layout
+    html += '<div style="display:flex;flex-direction:column;gap:12px">'
+
     for p in products:
-        img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
+        img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2790%27 height=%2790%27%3E%3Crect fill=%27%23262528%27 width=%2790%27 height=%2790%27 rx=%278%27/%3E%3Ctext x=%2745%27 y=%2752%27 fill=%27%23767577%27 text-anchor=%27middle%27 font-size=%2728%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
         pcode = get_product_code(p)
         _km = p['kod_magazynowy'] if p['kod_magazynowy'] else f"#{p['id']}"
         _ean_clean = p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else ''
-        display_code = f"{_km} | {_ean_clean or p['asin'] or ''}"
+        display_code = f"{_km}"
 
         # Zysk per item (koszt = paleta.cena_zakupu / szt)
         _ca = float(p['cena_allegro'] or 0)
@@ -857,41 +853,70 @@ def produkty():
             _kat = 'inne'
         _pr = ALLEGRO_PROWIZJE.get(_kat, 0.11)
         _zy = _ca - _ks - (_ca * _pr) if _ca > 0 and _ks > 0 else None
-        
-        # Badge statusu
-        status_badges = {
-            'nowy': '<span style="background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.20);color:#8ff5ff;padding:3px 8px;border-radius:6px;font-size:0.65rem;font-weight:600">MAGAZYN</span>',
-            'wystawiony': '<span style="background:rgba(255,107,155,0.10);border:1px solid rgba(255,107,155,0.20);color:#ff6b9b;padding:3px 8px;border-radius:6px;font-size:0.65rem;font-weight:600">ALLEGRO</span>',
-            'sprzedany': '<span style="background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.20);color:#beee00;padding:3px 8px;border-radius:6px;font-size:0.65rem;font-weight:600">SPRZEDANE</span>',
-            'wyslany': '<span style="background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.20);color:#beee00;padding:3px 8px;border-radius:6px;font-size:0.65rem;font-weight:600">WYSŁANE</span>',
-            'uszkodzony': '<span style="background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.20);color:#ef4444;padding:3px 8px;border-radius:6px;font-size:0.65rem;font-weight:600">USZKODZONY</span>',
-            'zwrot': '<span style="background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.20);color:#f59e0b;padding:3px 8px;border-radius:6px;font-size:0.65rem;font-weight:600">ZWROT</span>'
-        }
+
         product_status = p['status'] if p['status'] else 'nowy'
-        status_badge = status_badges.get(product_status, '')
-        
+
+        # Border & label colors by klasa/status
+        _klasa = p['klasa_jakosci'] if p.get('klasa_jakosci') else ''
+        _border_colors = {'A': '#beee00', 'A-': '#8ff5ff', 'B': '#eab308', 'C': '#f97316', 'D': '#ef4444'}
+        _status_colors = {'nowy': '#8ff5ff', 'wystawiony': '#ff6b9b', 'sprzedany': '#beee00', 'wyslany': '#beee00', 'uszkodzony': '#ef4444', 'zwrot': '#f59e0b'}
+        _bcolor = _border_colors.get(_klasa, _status_colors.get(product_status, '#48474a'))
+
+        # Klasa label
+        _klasa_label = f'<span style="font-size:0.6rem;color:{_bcolor};text-transform:uppercase;letter-spacing:0.1em;font-weight:700;font-family:\'Space Grotesk\',sans-serif">Klasa {_klasa}</span>' if _klasa else f'<span style="font-size:0.6rem;color:#767577;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;font-family:\'Space Grotesk\',sans-serif">{product_status}</span>'
+
+        # Stock indicator
+        _qty = int(p['ilosc'] or 0)
+        if _qty <= 0:
+            _stock_dot = f'<span style="width:7px;height:7px;border-radius:50%;background:#ef4444;display:inline-block;box-shadow:0 0 5px #ef4444"></span>'
+            _stock_text = 'Brak w magazynie'
+        elif _qty <= 2:
+            _stock_dot = f'<span style="width:7px;height:7px;border-radius:50%;background:#ff6b9b;display:inline-block;box-shadow:0 0 5px #ff6b9b"></span>'
+            _stock_text = f'Ostatnie {_qty} szt.'
+        else:
+            _stock_dot = f'<span style="width:7px;height:7px;border-radius:50%;background:#beee00;display:inline-block;box-shadow:0 0 5px #beee00"></span>'
+            _stock_text = f'Stan: {_qty} szt.'
+
+        # Price color
+        _price_color = '#8ff5ff' if _klasa in ('A','A-') else '#f9f5f8'
+        _is_sold_out = _qty <= 0
+        _opacity = 'opacity:0.5;' if _is_sold_out else ''
+
         html += f'''
-        <div class="item product-item" style="position:relative;padding-left:50px" 
-             data-name="{p['nazwa'].lower()}" 
-             data-status="{product_status}"
-             data-paleta="{p['paleta'] or ''}"
-             data-dostawca="{p['dostawca'] or ''}">
-            <input type="checkbox" name="product_ids" value="{p['id']}" class="product-checkbox" 
-                   style="position:absolute;left:15px;top:50%;transform:translateY(-50%);width:20px;height:20px;cursor:pointer"
+        <div class="product-item" style="position:relative;{_opacity}"
+             data-name="{p['nazwa'].lower()}" data-status="{product_status}"
+             data-paleta="{p['paleta'] or ''}" data-dostawca="{p['dostawca'] or ''}">
+            <input type="checkbox" name="product_ids" value="{p['id']}" class="product-checkbox"
+                   style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:18px;height:18px;cursor:pointer;z-index:2;accent-color:#8ff5ff"
                    onchange="updateCount()">
-            <a href="/magazyn/produkt/{pcode}" style="display:flex;align-items:center;flex:1;text-decoration:none;color:inherit">
-                <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
-                <div class="item-info">
-                    <div class="item-name">{p['nazwa'][:30]}...</div>
-                    <div class="item-meta">{display_code} | {p['lokalizacja'] or '—'} | {p['paleta'] or '—'} | {status_badge}</div>
+            <a href="/magazyn/produkt/{pcode}" style="display:flex;gap:14px;background:#131315;padding:14px 14px 14px 40px;border-radius:10px;border-left:3px solid {_bcolor};text-decoration:none;color:inherit;transition:background 0.2s"
+               onmouseover="this.style.background='#1f1f22'" onmouseout="this.style.background='#131315'">
+                <div style="width:80px;height:80px;background:#262528;border-radius:8px;overflow:hidden;flex-shrink:0;{'filter:grayscale(1);' if _is_sold_out else ''}">
+                    <img src="{img}" style="width:100%;height:100%;object-fit:cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2790%27 height=%2790%27%3E%3Crect fill=%27%23262528%27 width=%2790%27 height=%2790%27 rx=%278%27/%3E%3Ctext x=%2745%27 y=%2752%27 fill=%27%23767577%27 text-anchor=%27middle%27 font-size=%2728%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
                 </div>
-                <div class="item-right">
-                    <div class="item-qty">{p['ilosc']}</div>
-                    <div class="item-price">{p['cena_allegro'] or 0:.0f} zł</div>
-                    {f'<div style="font-size:0.65rem;color:{"#beee00" if _zy >= 0 else "#ef4444"}">{_zy:.0f} zł zysk</div>' if _zy is not None else ''}
+                <div style="display:flex;flex-direction:column;justify-content:space-between;flex:1;min-width:0">
+                    <div>
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                            {_klasa_label}
+                            <span style="font-size:0.7rem;font-weight:700;color:#adaaad">{display_code}</span>
+                        </div>
+                        <div style="font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;color:#f9f5f8;line-height:1.3;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{p['nazwa'][:45]}</div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:flex-end">
+                        <div>
+                            <div style="font-size:1.35rem;font-weight:900;color:{_price_color};font-family:'Space Grotesk',sans-serif;letter-spacing:-0.02em">{_ca:.0f} zł</div>
+                            <div style="display:flex;align-items:center;gap:5px;margin-top:2px">
+                                {_stock_dot}
+                                <span style="font-size:0.6rem;color:#adaaad;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">{_stock_text}</span>
+                            </div>
+                        </div>
+                        {f'<div style="text-align:right"><div style="font-size:0.85rem;font-weight:800;color:{"#beee00" if _zy >= 0 else "#ef4444"};font-family:\'Space Grotesk\',sans-serif">{_zy:+.0f} zł</div><div style="font-size:0.55rem;color:#767577;text-transform:uppercase;letter-spacing:0.05em;font-weight:600">zysk/szt</div></div>' if _zy is not None else ''}
+                    </div>
                 </div>
             </a>
         </div>'''
+
+    html += '</div>'
     
     html += '''
     </form>
@@ -1007,7 +1032,7 @@ def produkty():
         </div>
     </div>
 
-    <a href="/magazyn" class="back">← Powrót</a>
+    <div style="text-align:center;margin-top:24px"><a href="/magazyn" style="font-size:0.82rem;color:#adaaad;text-decoration:none;font-weight:600;letter-spacing:0.05em">&larr; Powrót</a></div>
     '''
     return render(html)
 
