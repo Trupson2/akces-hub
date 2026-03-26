@@ -160,6 +160,9 @@ def add_ngrok_headers(response):
     if request.path == '/static/sw.js':
         response.headers['Cache-Control'] = 'no-cache, must-revalidate'
         response.headers['Service-Worker-Allowed'] = '/'
+    # Cache fonts for 1 year
+    if request.path.endswith(('.woff2', '.ttf', '.woff')):
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     return response
 
 @app.route('/sw.js')
