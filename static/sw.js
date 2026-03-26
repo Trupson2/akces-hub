@@ -1,6 +1,5 @@
 // Service Worker dla Akces Hub PWA
-const CACHE_NAME = 'akces-hub-v3';
-const OFFLINE_URL = '/offline';
+const CACHE_NAME = 'akces-hub-v5';
 
 // Zasoby do cache'owania
 const CACHE_ASSETS = [
@@ -47,10 +46,14 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch - dodaj ngrok header do WSZYSTKICH requestów + Network First z cache
+// Fetch - dodaj ngrok header do requestów do NASZEGO serwera + Network First z cache
 self.addEventListener('fetch', (event) => {
-  // Dodaj ngrok-skip-browser-warning do KAŻDEGO requestu (GET, POST, etc.)
-  // To naprawia biały ekran ngrok free tier
+  // Przepuść external URLs (Google Fonts, CDN, etc.) BEZ modyfikacji
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
+  // Dodaj ngrok-skip-browser-warning tylko do NASZYCH requestów
   const modifiedHeaders = new Headers(event.request.headers);
   modifiedHeaders.set('ngrok-skip-browser-warning', '1');
 
@@ -85,7 +88,7 @@ self.addEventListener('fetch', (event) => {
               return cachedResponse;
             }
             // Brak w cache - pokaż stronę offline
-            return caches.match(OFFLINE_URL);
+            return new Response('Offline', {status: 503});
           });
       })
   );
