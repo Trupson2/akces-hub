@@ -470,6 +470,14 @@ function pkLoadOrders() {
         .then(r => r.json())
         .then(data => {
             const el = document.getElementById('pkOrders');
+            if (data.error) {
+                el.innerHTML = `
+                    <div class="pk-card" style="text-align:center;padding:40px;border-left:3px solid var(--pk-pink)">
+                        <span class="material-symbols-outlined" style="font-size:48px;color:var(--pk-pink);margin-bottom:12px">error</span>
+                        <div style="color:var(--pk-muted);font-size:0.85rem">${data.error}</div>
+                    </div>`;
+                return;
+            }
             const orders = data.orders || [];
             const total = data.total || 0;
             const shipped_today = data.shipped_today || 0;

@@ -370,13 +370,14 @@ def api_wysylki_pending():
         except Exception as e:
             print(f"[api/wysylki/pending] Allegro API error: {e}")
 
-    # Fallback: lokalna baza (jeśli brak Allegro)
+    # Fallback: lokalna baza (jeśli brak Allegro lub brak wyników)
     if not orders:
         try:
             conn = get_db()
             rows = conn.execute('''
-                SELECT s.id, s.allegro_order_id, s.nazwa, s.kupujacy, s.cena, s.ilosc
-                FROM sprzedaze s WHERE s.status IN ('nowa', 'nadana')
+                SELECT s.id, s.allegro_order_id, s.nazwa, s.kupujacy, s.cena, s.ilosc, s.adres
+                FROM sprzedaze s WHERE s.status IN ('nowa', 'nowe', 'nadana', 'wyslana')
+                AND date(s.data_sprzedazy) >= date('now', '-3 days')
                 ORDER BY s.data_sprzedazy DESC LIMIT 20
             ''').fetchall()
             for r in rows:
