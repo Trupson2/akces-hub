@@ -2600,11 +2600,11 @@ def statystyki():
     <div class="card" style="padding:15px;margin-bottom:15px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
             <div id="chartTitle" style="font-weight:600"><span class=material-symbols-outlined>calendar_month</span> Sprzedaż miesięcznie ({current_year})</div>
-            <button id="btnBack" onclick="showMonthlyView()" style="display:none;padding:5px 10px;background:#8ff5ff;border:none;border-radius:5px;color:#fff;cursor:pointer">← Miesiące</button>
+            <button id="btnBack" onclick="showMonthlyView()" style="display:none;padding:5px 10px;background:#8ff5ff;border:none;border-radius:5px;color:#0e0e10;font-weight:700;cursor:pointer">← Miesiące</button>
         </div>
         <div style="font-size:0.75rem;color:#64748b;margin-bottom:10px"><span class=material-symbols-outlined>lightbulb</span> Kliknij na słupek miesiąca aby zobaczyć rozkład dzienny</div>
-        <div id="monthSummary" style="display:none"></div>
         <canvas id="chartMiesiace" height="200"></canvas>
+        <div id="monthSummary" style="display:none;margin-top:12px"></div>
     </div>
     
     <!-- Wykres roczny -->
