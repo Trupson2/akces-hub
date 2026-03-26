@@ -3770,7 +3770,10 @@ def paleta_detail_by_id(paleta_id):
             _stock_dot = '<span style="width:7px;height:7px;border-radius:50%;background:#beee00;display:inline-block;box-shadow:0 0 5px #beee00"></span>'
             _stock_text = f'{_qty} szt'
 
-        _klasa = p.get('klasa_jakosci', '') or ''
+        try:
+            _klasa = p['klasa_jakosci'] or ''
+        except (KeyError, IndexError):
+            _klasa = ''
         _border_colors = {'A': '#beee00', 'A-': '#8ff5ff', 'B': '#eab308', 'C': '#f97316', 'D': '#ef4444'}
         _bcolor = _border_colors.get(_klasa, '#48474a')
         _opacity = 'opacity:0.5;' if _qty <= 0 else ''
