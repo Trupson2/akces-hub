@@ -162,6 +162,11 @@ def add_ngrok_headers(response):
         response.headers['Service-Worker-Allowed'] = '/'
     return response
 
+@app.route('/api/csrf-token')
+def api_csrf_token():
+    """Endpoint do odnawiania CSRF tokena — używany przez auto-refresh JS"""
+    return jsonify({'csrf_token': generate_csrf()})
+
 @app.before_request
 def csrf_protect_forms():
     """CSRF dla formularzy HTML — waliduj TYLKO gdy token jest obecny w formularzu.
@@ -175,7 +180,7 @@ def csrf_protect_forms():
 @app.before_request
 def check_license_middleware():
     """Blokuj dostęp bez aktywnej licencji (oprócz setup, login, aktywacji)"""
-    allowed = ('/setup', '/auth', '/static', '/api/system-stats', '/license', '/favicon', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/eula', '/onboarding')
+    allowed = ('/setup', '/auth', '/static', '/api/system-stats', '/api/csrf-token', '/license', '/favicon', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/eula', '/onboarding')
     if any(request.path.startswith(p) for p in allowed):
         return
     if request.path == '/':

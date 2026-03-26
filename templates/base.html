@@ -14,17 +14,73 @@
 <link rel="apple-touch-icon" href="/static/icon-192.png">
 <title>{{ brand_name }}</title>
 <script>
-// Fix ngrok free tier — dodaj header do wszystkich fetch requestów
+// Fix ngrok free tier + CSRF auto-refresh
 (function(){
     var _fetch = window.fetch;
+    var _csrfRefreshing = false;
+
+    // Odśwież CSRF token z serwera
+    function refreshCsrf(){
+        if(_csrfRefreshing) return Promise.resolve();
+        _csrfRefreshing = true;
+        return _fetch.call(window, '/api/csrf-token', {headers:{'ngrok-skip-browser-warning':'1'}})
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                if(d.csrf_token){
+                    // Zaktualizuj meta tag
+                    var meta = document.querySelector('meta[name="csrf-token"]');
+                    if(meta) meta.setAttribute('content', d.csrf_token);
+                    // Zaktualizuj wszystkie hidden inputy csrf
+                    document.querySelectorAll('input[name="csrf_token"]').forEach(function(el){
+                        el.value = d.csrf_token;
+                    });
+                }
+                _csrfRefreshing = false;
+                return d.csrf_token;
+            })
+            .catch(function(){ _csrfRefreshing = false; });
+    }
+
+    // Auto-refresh co 15 minut
+    setInterval(refreshCsrf, 15 * 60 * 1000);
+
     window.fetch = function(url, opts) {
         opts = opts || {};
         opts.headers = opts.headers || {};
         if (!(opts.headers instanceof Headers)) {
             opts.headers['ngrok-skip-browser-warning'] = '1';
         }
-        return _fetch.call(this, url, opts);
+        return _fetch.call(this, url, opts).then(function(resp){
+            // Na 400/403 z CSRF error — odśwież token i spróbuj ponownie
+            if((resp.status === 400 || resp.status === 403) && url !== '/api/csrf-token'){
+                return resp.clone().text().then(function(body){
+                    if(body.indexOf('CSRF') !== -1 || body.indexOf('csrf') !== -1){
+                        return refreshCsrf().then(function(newToken){
+                            if(newToken && opts.body){
+                                // Podmień csrf_token w FormData lub URLSearchParams
+                                if(opts.body instanceof FormData){
+                                    opts.body.set('csrf_token', newToken);
+                                } else if(typeof opts.body === 'string' && opts.body.indexOf('csrf_token=') !== -1){
+                                    opts.body = opts.body.replace(/csrf_token=[^&]*/, 'csrf_token=' + encodeURIComponent(newToken));
+                                }
+                                if(opts.headers && !(opts.headers instanceof Headers)){
+                                    opts.headers['X-CSRFToken'] = newToken;
+                                }
+                            }
+                            return _fetch.call(window, url, opts);
+                        });
+                    }
+                    return resp;
+                });
+            }
+            return resp;
+        });
     };
+
+    // Refresh na focus (gdy wrócisz na kartę po dłuższej przerwie)
+    document.addEventListener('visibilitychange', function(){
+        if(!document.hidden) refreshCsrf();
+    });
 })();
 </script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2313131c'/><text x='50' y='55' text-anchor='middle' dominant-baseline='middle' font-size='50' fill='%238ff5ff'>A</text></svg>">
