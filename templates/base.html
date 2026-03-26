@@ -41,9 +41,6 @@
             .catch(function(){ _csrfRefreshing = false; });
     }
 
-    // Auto-refresh co 15 minut
-    setInterval(refreshCsrf, 15 * 60 * 1000);
-
     window.fetch = function(url, opts) {
         opts = opts || {};
         opts.headers = opts.headers || {};
@@ -81,6 +78,20 @@
     document.addEventListener('visibilitychange', function(){
         if(!document.hidden) refreshCsrf();
     });
+
+    // Przechwytuj submit formularzy — odśwież CSRF token przed wysłaniem
+    document.addEventListener('submit', function(e){
+        var form = e.target;
+        var csrfInput = form.querySelector('input[name="csrf_token"]');
+        if(!csrfInput) return; // brak CSRF w formularzu
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        if(meta && meta.content){
+            csrfInput.value = meta.content;
+        }
+    }, true);
+
+    // Odśwież CSRF co 5 minut (nie 15) żeby telefony z uśpionym tabem miały aktualny token
+    setInterval(refreshCsrf, 5 * 60 * 1000);
 })();
 </script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2313131c'/><text x='50' y='55' text-anchor='middle' dominant-baseline='middle' font-size='50' fill='%238ff5ff'>A</text></svg>">
