@@ -570,7 +570,7 @@ def api_wysylki_szukaj():
                     'lokalizacja': produkt_z_bazy['lokalizacja'] or produkt_z_bazy['regal']
                 }
             })
-        return jsonify({'error': 'Brak zamówień do wysłania (API niedostępne)'})
+        return jsonify({'error': 'Nie znaleziono produktu ani zamówienia w bazie'})
 
     q_lower = q.lower().strip()
 
