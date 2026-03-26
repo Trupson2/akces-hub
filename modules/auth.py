@@ -35,6 +35,8 @@ PUBLIC_ENDPOINTS = {
 # Prefiksy URL bez logowania (API health, read-only warehouse heatmap)
 PUBLIC_PREFIXES = [
     '/static/',
+    '/manifest.json',
+    '/sw.js',
     '/api/health',
     '/api/warehouse/heatmap',  # tylko odczyt heatmapy (bez assign/remove)
     '/license',  # Aktywacja licencji — dostępna bez logowania

@@ -165,6 +165,36 @@ def add_ngrok_headers(response):
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     return response
 
+@app.route('/manifest.json')
+def serve_manifest():
+    """Dynamic manifest with base64 icons to bypass ngrok interstitial"""
+    import base64
+    icons_b64 = {}
+    for name in ('icon-192.png', 'icon-512.png'):
+        path = os.path.join(app.static_folder, name)
+        if os.path.exists(path):
+            with open(path, 'rb') as f:
+                icons_b64[name] = base64.b64encode(f.read()).decode()
+    manifest = {
+        "name": "Akces Hub",
+        "short_name": "Akces",
+        "id": "/",
+        "description": "Zarządzanie paletami i sprzedażą Allegro",
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#0e0e10",
+        "theme_color": "#0e0e10",
+        "orientation": "portrait-primary",
+        "icons": [
+            {"src": f"data:image/png;base64,{icons_b64.get('icon-192.png','')}", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": f"data:image/png;base64,{icons_b64.get('icon-192.png','')}", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
+            {"src": f"data:image/png;base64,{icons_b64.get('icon-512.png','')}", "sizes": "512x512", "type": "image/png", "purpose": "any"}
+        ],
+        "categories": ["business", "productivity"],
+        "lang": "pl-PL"
+    }
+    return jsonify(manifest)
+
 @app.route('/sw.js')
 def serve_sw():
     """Serve Service Worker from root scope for proper PWA install"""
