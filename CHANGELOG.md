@@ -1,5 +1,13 @@
 # Historia zmian — Akces Hub
 
+## 26.03.2026
+
+### UI Redesign — 4 strony w nowym stylu
+- [NOWE] Lista produktów (`/magazyn/produkty`) — card-based layout z border-left color coding po klasie jakości, 80x80 zdjęcia, stock indicator dots (neon glow), zysk/szt display, collapsible masowa edycja w `<details>`, horizontal scroll category tabs
+- [NOWE] Generator ofert (`/paletomat/generator`) — 2-kolumnowy layout OFFER_ENGINE: lewy panel z parametrami/akcjami + toggle switches, prawy panel ze scraped queue i GENERATE_OFFER buttons
+- [NOWE] Scraper (`/paletomat/scraper`) — SCRAPER_HUB z action button grid na górze, formularze w ciemnych panelach z kolorowymi border accents per źródło (ASIN=pink, File=cyan, Miglo=orange)
+- [NOWE] Dashboard paletomat (`/paletomat/`) — DEEP_SCAN layout z KPI cards (background icon hover), chart matrix 280px, logs sidebar w stylu terminal feed, scraper control panel
+
 ## 25.03.2026
 
 ### Admin Subscriptions — Cyberpunk Redesign
