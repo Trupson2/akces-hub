@@ -355,6 +355,20 @@ def generate_daily_note(vault_path=None, db_path=None):
         f.write(md)
 
     print(f'[OBSIDIAN] Wygenerowano: {filepath}')
+
+    # Git commit + push do GitHub (sync z Obsidian na telefonie)
+    try:
+        import subprocess
+        subprocess.run(['git', 'add', '-A'], cwd=VAULT_PATH, capture_output=True)
+        subprocess.run(['git', 'commit', '-m', f'Daily tasks {today}'], cwd=VAULT_PATH, capture_output=True)
+        result = subprocess.run(['git', 'push'], cwd=VAULT_PATH, capture_output=True, text=True)
+        if result.returncode == 0:
+            print(f'[OBSIDIAN] Pushed to GitHub')
+        else:
+            print(f'[OBSIDIAN] Push failed: {result.stderr[:100]}')
+    except Exception as e:
+        print(f'[OBSIDIAN] Git sync error: {e}')
+
     return filepath
 
 
