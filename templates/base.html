@@ -103,17 +103,22 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800;900&display=swap">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block" rel="stylesheet">
 <script>
+/* ngrok: dodaj header do WSZYSTKICH fetch — pomija interstitial */
+(function(){var _f=window.fetch;window.fetch=function(u,o){o=o||{};o.headers=new Headers(o.headers||{});o.headers.set('ngrok-skip-browser-warning','1');return _f.call(this,u,o);}})();
 (function(){
     const saved = localStorage.getItem('theme');
     if(saved) document.documentElement.setAttribute('data-theme', saved);
 })();
 /* kiosk mode is URL-param only now, no localStorage */
 if('serviceWorker' in navigator){
-    // Wymuś aktualizację SW v2 (ngrok fix)
+    // Wyrejestruj stare SW z /static/ scope
     navigator.serviceWorker.getRegistrations().then(function(regs){
-        regs.forEach(function(r){ r.update(); });
+        regs.forEach(function(r){
+            if(r.scope.includes('/static')){r.unregister();}
+            else{r.update();}
+        });
     });
-    navigator.serviceWorker.register('/sw.js?v=4', {scope: '/'}).then(function(reg){
+    navigator.serviceWorker.register('/sw.js?v=5', {scope: '/'}).then(function(reg){
         reg.update();
         // Gdy nowy SW jest gotowy, aktywuj go od razu
         reg.addEventListener('updatefound',function(){
