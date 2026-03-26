@@ -113,7 +113,7 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.getRegistrations().then(function(regs){
         regs.forEach(function(r){ r.update(); });
     });
-    navigator.serviceWorker.register('/static/sw.js?v=3').then(function(reg){
+    navigator.serviceWorker.register('/sw.js?v=4', {scope: '/'}).then(function(reg){
         reg.update();
         // Gdy nowy SW jest gotowy, aktywuj go od razu
         reg.addEventListener('updatefound',function(){
