@@ -504,9 +504,7 @@ if(localStorage.getItem('kiosk_mode')==='1'){
 <aside class="sidebar">
     <div class="sidebar-brand">
         {% if brand_logo %}
-        <div class="sidebar-brand-icon" style="background:transparent;padding:0;overflow:hidden">
-            <img src="/static/{{ brand_logo }}" alt="{{ brand_name }}" style="max-width:36px;max-height:36px;object-fit:contain">
-        </div>
+        <img src="/static/{{ brand_logo }}" alt="{{ brand_name }}" style="width:40px;height:40px;object-fit:contain;border-radius:10px;flex-shrink:0">
         {% else %}
         <div class="sidebar-brand-icon" style="background:{{ brand_color|default('#8ff5ff') }}20;color:{{ brand_color|default('#8ff5ff') }}">{{ brand_name[:1]|default('A') }}</div>
         {% endif %}
