@@ -130,9 +130,9 @@ app.config['VERSION'] = VERSION
 
 # Session cookie security
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_NAME'] = '__Host-akces_session'
-app.config['SESSION_COOKIE_SECURE'] = True  # Default secure; most deployments use HTTPS/ngrok
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_NAME'] = 'akces_session'
+app.config['SESSION_COOKIE_SECURE'] = True  # Required for SameSite=None
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)  # Sesja wygasa po 12h
 # Allow non-secure cookies only for explicit local development
 if os.environ.get('FLASK_LOCAL_DEV'):
