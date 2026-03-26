@@ -2074,14 +2074,24 @@ def setup_logo():
     if f.content_length and f.content_length > 512000:
         return jsonify({'ok': False, 'error': 'Za duzy plik'}), 400
     try:
-        img = Image.open(f.stream)
-        if img.height > 200:
-            ratio = 200 / img.height
-            img = img.resize((int(img.width * ratio), 200), Image.LANCZOS)
-        logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'brand_logo.png')
-        img.save(logo_path, 'PNG', optimize=True)
+        fname = f.filename or 'logo.png'
+        ext = fname.rsplit('.', 1)[-1].lower() if '.' in fname else 'png'
+        if ext == 'svg':
+            # SVG — zapisz bezpośrednio
+            logo_name = 'brand_logo.svg'
+            logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', logo_name)
+            f.save(logo_path)
+        else:
+            # Raster — resize i zapisz jako PNG
+            img = Image.open(f.stream)
+            if img.height > 200:
+                ratio = 200 / img.height
+                img = img.resize((int(img.width * ratio), 200), Image.LANCZOS)
+            logo_name = 'brand_logo.png'
+            logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', logo_name)
+            img.save(logo_path, 'PNG', optimize=True)
         from modules.database import set_config
-        set_config('brand_logo', 'brand_logo.png')
+        set_config('brand_logo', logo_name)
         return jsonify({'ok': True})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)[:100]}), 500

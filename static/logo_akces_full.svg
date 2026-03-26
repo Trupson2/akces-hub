@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 160" width="600" height="160">
+  <defs>
+    <!-- Cyan glow filter -->
+    <filter id="glowCyan" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feFlood flood-color="#8ff5ff" flood-opacity="0.4" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="shadow"/>
+      <feMerge>
+        <feMergeNode in="shadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Pink accent glow -->
+    <filter id="glowPink" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feFlood flood-color="#ff6b9b" flood-opacity="0.5" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="shadow"/>
+      <feMerge>
+        <feMergeNode in="shadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Gradient for icon -->
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8ff5ff"/>
+      <stop offset="100%" stop-color="#5bc4d0"/>
+    </linearGradient>
+    <linearGradient id="pinkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff6b9b"/>
+      <stop offset="100%" stop-color="#ff4081"/>
+    </linearGradient>
+    <!-- Subtle grid pattern for background -->
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1a1a20" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="600" height="160" rx="12" fill="#0e0e10"/>
+  <rect width="600" height="160" rx="12" fill="url(#grid)" opacity="0.3"/>
+
+  <!-- === ICON: Gear-wheel "A" with circuit traces === -->
+  <g transform="translate(80, 80)" filter="url(#glowCyan)">
+    <!-- Outer gear ring with teeth -->
+    <circle cx="0" cy="0" r="48" fill="none" stroke="url(#iconGrad)" stroke-width="2.5"/>
+    <!-- Gear teeth (8 teeth) -->
+    <g fill="url(#iconGrad)">
+      <rect x="-3.5" y="-54" width="7" height="10" rx="1.5"/>
+      <rect x="-3.5" y="44" width="7" height="10" rx="1.5"/>
+      <rect x="44" y="-3.5" width="10" height="7" rx="1.5"/>
+      <rect x="-54" y="-3.5" width="10" height="7" rx="1.5"/>
+      <rect x="29" y="-40" width="7" height="10" rx="1.5" transform="rotate(45, 32.5, -35)"/>
+      <rect x="-36" y="-40" width="7" height="10" rx="1.5" transform="rotate(-45, -32.5, -35)"/>
+      <rect x="29" y="30" width="7" height="10" rx="1.5" transform="rotate(-45, 32.5, 35)"/>
+      <rect x="-36" y="30" width="7" height="10" rx="1.5" transform="rotate(45, -32.5, 35)"/>
+    </g>
+
+    <!-- Inner spokes (wheel/bike reference) -->
+    <circle cx="0" cy="0" r="30" fill="none" stroke="#8ff5ff" stroke-width="1" opacity="0.3"/>
+    <line x1="0" y1="-30" x2="0" y2="-12" stroke="#8ff5ff" stroke-width="1" opacity="0.4"/>
+    <line x1="0" y1="30" x2="0" y2="12" stroke="#8ff5ff" stroke-width="1" opacity="0.4"/>
+    <line x1="-26" y1="15" x2="-10" y2="6" stroke="#8ff5ff" stroke-width="1" opacity="0.4"/>
+    <line x1="26" y1="15" x2="10" y2="6" stroke="#8ff5ff" stroke-width="1" opacity="0.4"/>
+    <line x1="-26" y1="-15" x2="-10" y2="-6" stroke="#8ff5ff" stroke-width="1" opacity="0.4"/>
+    <line x1="26" y1="-15" x2="10" y2="-6" stroke="#8ff5ff" stroke-width="1" opacity="0.4"/>
+
+    <!-- Hub center dot -->
+    <circle cx="0" cy="0" r="4" fill="#0e0e10" stroke="url(#iconGrad)" stroke-width="2"/>
+
+    <!-- Stylized "A" inside the gear -->
+    <path d="M 0,-28 L -18,20 L -12,20 L -8,8 L 8,8 L 12,20 L 18,20 Z M -5,2 L 5,2 L 0,-16 Z"
+          fill="url(#iconGrad)" stroke="none"/>
+
+    <!-- Pink accent: small circuit nodes -->
+    <circle cx="34" cy="-34" r="2.5" fill="#ff6b9b" filter="url(#glowPink)"/>
+    <circle cx="-34" cy="34" r="2.5" fill="#ff6b9b" filter="url(#glowPink)"/>
+    <!-- Circuit trace lines -->
+    <line x1="36" y1="-32" x2="44" y2="-24" stroke="#ff6b9b" stroke-width="1" opacity="0.6"/>
+    <line x1="-36" y1="32" x2="-44" y2="24" stroke="#ff6b9b" stroke-width="1" opacity="0.6"/>
+  </g>
+
+  <!-- === TEXT: "AKCES" === -->
+  <g transform="translate(160, 58)">
+    <!-- Main text -->
+    <text font-family="'Rajdhani', 'Orbitron', 'Segoe UI', Arial, sans-serif"
+          font-size="72" font-weight="700" letter-spacing="12"
+          fill="url(#iconGrad)" filter="url(#glowCyan)"
+          dominant-baseline="central" y="22">
+      AKCES
+    </text>
+  </g>
+
+  <!-- Tagline -->
+  <text x="165" y="122"
+        font-family="'Rajdhani', 'Segoe UI', Arial, sans-serif"
+        font-size="13" font-weight="400" letter-spacing="6"
+        fill="#8ff5ff" opacity="0.45">
+    BIKES &amp; TECH COMMERCE
+  </text>
+
+  <!-- Decorative bottom line with pink accent -->
+  <line x1="164" y1="134" x2="500" y2="134" stroke="#8ff5ff" stroke-width="1" opacity="0.15"/>
+  <line x1="164" y1="134" x2="240" y2="134" stroke="url(#pinkGrad)" stroke-width="1.5" opacity="0.6"/>
+  <!-- Pink dot at line end -->
+  <circle cx="240" cy="134" r="2" fill="#ff6b9b" opacity="0.6"/>
+
+  <!-- Subtle corner accents -->
+  <path d="M 10,2 L 2,2 L 2,10" fill="none" stroke="#8ff5ff" stroke-width="1" opacity="0.2"/>
+  <path d="M 590,2 L 598,2 L 598,10" fill="none" stroke="#8ff5ff" stroke-width="1" opacity="0.2"/>
+  <path d="M 10,158 L 2,158 L 2,150" fill="none" stroke="#8ff5ff" stroke-width="1" opacity="0.2"/>
+  <path d="M 590,158 L 598,158 L 598,150" fill="none" stroke="#ff6b9b" stroke-width="1" opacity="0.3"/>
+</svg>
