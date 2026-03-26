@@ -156,12 +156,16 @@ def gather_data():
         )
     ''').fetchone()['cnt']
 
-    # --- CEL MIESIĘCZNY ---
-    goal = conn.execute('''
-        SELECT target_revenue FROM goal
-        WHERE month = ? LIMIT 1
-    ''', (month,)).fetchone()
-    data['goal'] = goal['target_revenue'] if goal else None
+    # --- CEL (Hyundai i30 N itp.) ---
+    try:
+        goal = conn.execute('SELECT target_amount, current_amount, name FROM goal LIMIT 1').fetchone()
+        data['goal_target'] = goal['target_amount'] if goal else None
+        data['goal_current'] = goal['current_amount'] if goal else 0
+        data['goal_name'] = goal['name'] if goal else None
+    except Exception:
+        data['goal_target'] = None
+        data['goal_current'] = 0
+        data['goal_name'] = None
 
     data['weekday'] = weekday
     data['today'] = today
@@ -265,14 +269,9 @@ def generate_markdown(data, priority_tasks, tasks):
     md.append(f'| Dziś | **{data["today_orders"]}** zamówień / **{data["today_revenue"]:.0f} zł** |')
     md.append(f'| {month_name} | **{data["month_orders"]}** zamówień / **{data["month_revenue"]:.0f} zł** (zwroty: {data["month_returns"]}) |')
 
-    if data['goal']:
-        progress = (data['month_revenue'] / data['goal'] * 100) if data['goal'] > 0 else 0
-        remaining = max(0, data['goal'] - data['month_revenue'])
-        days_left = (datetime(int(data['month'][:4]), int(data['month'][5:7]) % 12 + 1, 1) - datetime.now()).days
-        if days_left <= 0:
-            days_left = 1
-        daily_needed = remaining / days_left if days_left > 0 else 0
-        md.append(f'| Cel miesiąca | **{data["goal"]:.0f} zł** ({progress:.0f}%) — brakuje {remaining:.0f} zł ({daily_needed:.0f} zł/dzień) |')
+    if data.get('goal_target'):
+        goal_progress = (data['goal_current'] / data['goal_target'] * 100) if data['goal_target'] > 0 else 0
+        md.append(f'| 🎯 {data["goal_name"]} | **{data["goal_current"]:,.0f} / {data["goal_target"]:,.0f} zł** ({goal_progress:.0f}%) |')
 
     md.append(f'| Stock | **{data["total_stock"]}** szt / **{data["total_products"]}** produktów |')
     md.append(f'| Oferty aktywne | **{data["oferty_aktywne"]}** |')
