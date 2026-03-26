@@ -29,7 +29,7 @@
   </defs>
 
   <!-- Background -->
-  <rect width="128" height="128" rx="24" fill="url(#bgGrad)"/>
+  <rect width="128" height="128" rx="24" fill="none"/>
 
   <!-- Subtle border -->
   <rect x="1" y="1" width="126" height="126" rx="23" fill="none" stroke="#8ff5ff" stroke-width="0.5" opacity="0.15"/>
