@@ -28,11 +28,10 @@
     </linearGradient>
   </defs>
 
-  <!-- Background -->
-  <rect width="128" height="128" rx="24" fill="url(#bgGrad)"/>
+  <!-- Background transparent -->
 
   <!-- Subtle border -->
-  <rect x="1" y="1" width="126" height="126" rx="23" fill="none" stroke="#8ff5ff" stroke-width="0.5" opacity="0.15"/>
+  <rect x="1" y="1" width="126" height="126" rx="23" fill="none" stroke="#8ff5ff" stroke-width="0.5" opacity="0.3"/>
 
   <!-- === ICON centered at 64,64 === -->
   <g transform="translate(64, 64)" filter="url(#glowCyan)">
@@ -63,7 +62,7 @@
     <line x1="24" y1="-14" x2="10" y2="-6" stroke="#8ff5ff" stroke-width="0.8" opacity="0.35"/>
 
     <!-- Hub -->
-    <circle cx="0" cy="0" r="4" fill="#0e0e10" stroke="url(#iconGrad)" stroke-width="2"/>
+    <circle cx="0" cy="0" r="4" fill="#131315" stroke="url(#iconGrad)" stroke-width="2"/>
 
     <!-- Stylized "A" -->
     <path d="M 0,-26 L -17,19 L -11,19 L -7.5,7 L 7.5,7 L 11,19 L 17,19 Z M -5,1.5 L 5,1.5 L 0,-15 Z"
