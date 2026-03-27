@@ -701,9 +701,6 @@ def analityka_palety():
             przychod = przychod_produkty + przychod_offline
 
         przychod_allegro_only = p['przychod_allegro_only'] or 0
-        prowizja = przychod_allegro_only * 0.11
-        zysk = przychod - koszt - prowizja
-        roi = (zysk / koszt * 100) if koszt > 0 else 0
 
         aktualna_ilosc = p['aktualna_ilosc'] or 0
         sprzedanych_offline = p['sprzedano_offline_szt'] or 0
@@ -731,6 +728,11 @@ def analityka_palety():
             _avg_cena = float(p['avg_cena_allegro'] or 0)
             if _avg_cena > 0:
                 przychod += _untracked_szt * _avg_cena
+
+        # Zysk i ROI liczone PO aktualizacji przychodu (uwzględnia nieśledzone sprzedaże)
+        prowizja = przychod_allegro_only * 0.11
+        zysk = przychod - koszt - prowizja
+        roi = (zysk / koszt * 100) if koszt > 0 else 0
 
         wszystkich = aktualna_ilosc + sprzedanych
         zostalo = aktualna_ilosc
