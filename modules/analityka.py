@@ -676,7 +676,9 @@ def analityka_palety():
             (SELECT COALESCE(SUM(sprzedano_offline), 0) FROM produkty WHERE paleta_id = p.id) as sprzedano_offline_szt,
             (SELECT COUNT(*) FROM produkty WHERE paleta_id = p.id AND status = 'sprzedany' AND (sprzedano_offline IS NULL OR sprzedano_offline = 0)) as sprzedano_produkty,
             COALESCE((SELECT SUM(s.ilosc) FROM sprzedaze s LEFT JOIN produkty pr ON s.produkt_id = pr.id LEFT JOIN oferty o ON s.oferta_id = o.id LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = p.id AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')), 0) as sprzedano_tabela,
-            COALESCE((SELECT SUM(s.cena * s.ilosc) FROM sprzedaze s LEFT JOIN produkty pr ON s.produkt_id = pr.id LEFT JOIN oferty o ON s.oferta_id = o.id LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = p.id AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')), 0) as przychod_allegro_only
+            COALESCE((SELECT SUM(s.cena * s.ilosc) FROM sprzedaze s LEFT JOIN produkty pr ON s.produkt_id = pr.id LEFT JOIN oferty o ON s.oferta_id = o.id LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = p.id AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')), 0) as przychod_allegro_only,
+            p.ilosc_sztuk,
+            (SELECT AVG(cena_allegro) FROM produkty WHERE paleta_id = p.id AND cena_allegro > 0) as avg_cena_allegro
         FROM palety p
         ORDER BY p.data_zakupu DESC
     ''').fetchall()
@@ -712,6 +714,23 @@ def analityka_palety():
             sprzedanych = sprzedano_tabela
         else:
             sprzedanych = sprzedano_produkty + sprzedanych_offline
+
+        # FALLBACK: jeśli ilosc_sztuk (oryginalna ilość przy zakupie) jest znana,
+        # sprzedanych = ilosc_sztuk - aktualna_ilosc (obsługuje kliknięcia "-" bez wpisu w sprzedaze)
+        try:
+            _ilosc_sztuk_orig = int(p['ilosc_sztuk'] or 0)
+        except:
+            _ilosc_sztuk_orig = 0
+        if _ilosc_sztuk_orig > 0 and (_ilosc_sztuk_orig - aktualna_ilosc) > sprzedanych:
+            sprzedanych = _ilosc_sztuk_orig - aktualna_ilosc
+
+        # Szacuj przychód dla nieśledzonych sprzedaży (brak wpisu w sprzedaze)
+        _tracked_szt = sprzedano_tabela + sprzedanych_offline
+        _untracked_szt = sprzedanych - _tracked_szt
+        if _untracked_szt > 0:
+            _avg_cena = float(p['avg_cena_allegro'] or 0)
+            if _avg_cena > 0:
+                przychod += _untracked_szt * _avg_cena
 
         wszystkich = aktualna_ilosc + sprzedanych
         zostalo = aktualna_ilosc
