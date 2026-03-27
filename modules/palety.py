@@ -755,13 +755,21 @@ def paleta_edit(paleta_id):
         data_zakupu = request.form.get('data_zakupu', '')
         notatki = request.form.get('notatki', '').strip()
         koszt_jedn = float(request.form.get('koszt_jednostkowy', 0) or 0)
+        ilosc_sztuk = int(request.form.get('ilosc_sztuk', 0) or 0)
 
         # Zaktualizuj paletę
-        conn.execute('''
-            UPDATE palety
-            SET nazwa = ?, dostawca = ?, cena_zakupu = ?, cena_zakupu_netto = ?, data_zakupu = ?, notatki = ?, regal = ?, koszt_jednostkowy = ?
-            WHERE id = ?
-        ''', (nazwa, dostawca, cena_zakupu, cena_zakupu_netto, data_zakupu, notatki, regal, koszt_jedn, paleta_id))
+        try:
+            conn.execute('''
+                UPDATE palety
+                SET nazwa = ?, dostawca = ?, cena_zakupu = ?, cena_zakupu_netto = ?, data_zakupu = ?, notatki = ?, regal = ?, koszt_jednostkowy = ?, ilosc_sztuk = ?
+                WHERE id = ?
+            ''', (nazwa, dostawca, cena_zakupu, cena_zakupu_netto, data_zakupu, notatki, regal, koszt_jedn, ilosc_sztuk, paleta_id))
+        except Exception:
+            conn.execute('''
+                UPDATE palety
+                SET nazwa = ?, dostawca = ?, cena_zakupu = ?, cena_zakupu_netto = ?, data_zakupu = ?, notatki = ?, regal = ?, koszt_jednostkowy = ?
+                WHERE id = ?
+            ''', (nazwa, dostawca, cena_zakupu, cena_zakupu_netto, data_zakupu, notatki, regal, koszt_jedn, paleta_id))
         conn.commit()
 
         return redirect(f'/palety/{paleta_id}?success=updated')
@@ -830,6 +838,14 @@ def paleta_edit(paleta_id):
                 class="form-control" style="border-color:var(--orange)"
                 placeholder="Zostaw 0 dla auto-obliczenia z ceny palety">
             <div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px">Cena netto za 1 sztuke. Zostaw 0 = auto z ceny palety / ilosc sztuk</div>
+        </div>
+
+        <div class="form-group">
+            <label>📦 Ilość sztuk przy zakupie (oryginalna)</label>
+            <input type="number" name="ilosc_sztuk" value="{paleta['ilosc_sztuk'] or 0}" min="0" step="1"
+                class="form-control" style="border-color:var(--blue)"
+                placeholder="np. 60">
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px">Łączna liczba sztuk jaka była przy zakupie. Służy do liczenia sprzedanych (kupiłeś - zostało = sprzedane)</div>
         </div>
 
         <div class="form-group">
@@ -3217,12 +3233,27 @@ def paleta_szczegoly(paleta_id):
     # Suma wszystkich źródeł sprzedaży
     offline_w_sprzedaze = conn.execute('''
         SELECT COALESCE(SUM(s.ilosc),0) FROM sprzedaze s
-        JOIN produkty p ON s.produkt_id=p.id
-        WHERE p.paleta_id=? AND s.kupujacy='offline'
+        LEFT JOIN produkty pr  ON s.produkt_id=pr.id
+        LEFT JOIN oferty o     ON s.oferta_id=o.id
+        LEFT JOIN produkty pr2 ON o.produkt_id=pr2.id
+        WHERE COALESCE(pr.paleta_id, pr2.paleta_id)=? AND s.kupujacy='offline'
         AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot','')
     ''', (paleta_id,)).fetchone()[0] or 0
     offline_bez_sprzedaze = max(0, sprzedano_offline - offline_w_sprzedaze)
     sprzedano_szt = sprzedano_szt_db + offline_bez_sprzedaze
+
+    # FALLBACK: jeśli ilosc_sztuk (oryginalna ilość przy imporcie) jest znana,
+    # sprzedanych = ilosc_sztuk - aktualny_stan (obsługuje przypadek gdy "-" nie zapisuje sprzedaze)
+    _ilosc_sztuk_orig = 0
+    try:
+        _ilosc_sztuk_orig = int(paleta['ilosc_sztuk'] or 0)
+    except:
+        pass
+    _ilosc_aktualna = stats['sztuki'] or 0
+    if _ilosc_sztuk_orig > 0 and (_ilosc_sztuk_orig - _ilosc_aktualna) > sprzedano_szt:
+        # Więcej sprzedanych wg różnicy stanu niż wg sprzedaze — użyj różnicy
+        sprzedano_szt = _ilosc_sztuk_orig - _ilosc_aktualna
+        print(f"   - FALLBACK: ilosc_sztuk={_ilosc_sztuk_orig} - aktualna={_ilosc_aktualna} = {sprzedano_szt} sprzedanych")
     print(f"   - WYNIK sprzedano_szt = {sprzedano_szt_db} (sprzedaze) + {offline_bez_sprzedaze} (offline bez sprzedaze) = {sprzedano_szt}")
 
     # Przychód
@@ -3309,7 +3340,7 @@ def paleta_szczegoly(paleta_id):
             stan_opcje += f'<option value="{s}" {sel}>{s}</option>'
 
         status_opcje = ''
-        statusy = [('magazyn','<span class=material-symbols-outlined>inventory_2</span> Magazyn'),('wystawiony','<span class=material-symbols-outlined>shopping_cart</span> Wystawiony'),('sprzedany','<span class=material-symbols-outlined>paid</span> Sprzedany'),('uszkodzony','<span class=material-symbols-outlined>warning</span> Uszkodzony'),('zwrot','[UNDO] Zwrot')]
+        statusy = [('magazyn','📦 Magazyn'),('wystawiony','🛒 Wystawiony'),('sprzedany','💰 Sprzedany'),('uszkodzony','⚠️ Uszkodzony'),('zwrot','↩️ Zwrot')]
         for sv, sl in statusy:
             sel = 'selected' if (p['status'] or 'magazyn') == sv else ''
             status_opcje += f'<option value="{sv}" {sel}>{sl}</option>'
