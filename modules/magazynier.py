@@ -8839,14 +8839,21 @@ def przyjecie_palety(paleta_id):
 
     try:
         produkty = conn.execute(
-            'SELECT id, nazwa, ean, zdjecie_url, ilosc, stan_przyjecia, notatki_przyjecia FROM produkty WHERE paleta_id = ? ORDER BY id',
+            'SELECT id, nazwa, ean, zdjecie_url, ilosc, stan_przyjecia, notatki_przyjecia, lokalizacja FROM produkty WHERE paleta_id = ? ORDER BY id',
             (paleta_id,)
         ).fetchall()
     except:
         produkty = conn.execute(
-            'SELECT id, nazwa, ean, zdjecie_url, ilosc, "" as stan_przyjecia, "" as notatki_przyjecia FROM produkty WHERE paleta_id = ? ORDER BY id',
+            'SELECT id, nazwa, ean, zdjecie_url, ilosc, "" as stan_przyjecia, "" as notatki_przyjecia, "" as lokalizacja FROM produkty WHERE paleta_id = ? ORDER BY id',
             (paleta_id,)
         ).fetchall()
+
+    # Lista regałów do datalist
+    try:
+        from modules.warehouse_heatmap import WAREHOUSE_CONFIG
+        regal_list = WAREHOUSE_CONFIG.get('shelves', [])
+    except:
+        regal_list = []
 
     total_sztuk = sum(p['ilosc'] or 1 for p in produkty)
 
@@ -8864,6 +8871,11 @@ def przyjecie_palety(paleta_id):
             <div id="progress-fill" style="height:100%;background:linear-gradient(90deg,#beee00,#2dd85a);width:0%;transition:width 0.3s"></div>
         </div>
         <div id="progress-text" style="text-align:center;color:#64748b;font-size:0.8rem;margin-bottom:20px">0 / {len(produkty)} ocenionych</div>
+
+        <datalist id="regal-list">'''
+    for r in regal_list:
+        html += f'<option value="{r}">'
+    html += '''</datalist>
 
         <div id="products-list">'''
 
@@ -8948,9 +8960,11 @@ def przyjecie_palety(paleta_id):
                 <div id="split-sum-{pid}" style="margin-top:6px;font-size:0.75rem;color:#64748b;text-align:right">Suma: 0 / {ilosc}</div>
             </div>
 
-            <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+            <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap">
+                <input type="text" id="regal-{pid}" value="{p.get('lokalizacja','') if hasattr(p,'keys') and 'lokalizacja' in p.keys() else ''}" placeholder="Regał np. A2"
+                    style="width:100px;padding:8px 12px;background:#0a0a0f;border:1px solid #8ff5ff33;border-radius:8px;color:#8ff5ff;font-size:0.8rem;font-weight:600" list="regal-list">
                 <input type="text" id="notatki-{pid}" value="{current_notatki}" placeholder="Notatki (wady, braki...)"
-                    style="flex:1;padding:8px 12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e2e8f0;font-size:0.8rem">
+                    style="flex:1;min-width:150px;padding:8px 12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e2e8f0;font-size:0.8rem">
                 <button onclick="openCamera({pid})" style="padding:8px 12px;background:#7c3aed;border:none;border-radius:8px;color:white;cursor:pointer;font-size:0.85rem" title="Zrób zdjęcie i oceń AI">
                     <span class=material-symbols-outlined>photo_camera</span> AI
                 </button>
@@ -9108,6 +9122,7 @@ def przyjecie_palety(paleta_id):
         document.querySelectorAll('.prod-card').forEach(card => {{
             const pid = parseInt(card.id.replace('prod-', ''));
             const notatki = document.getElementById('notatki-' + pid)?.value || '';
+            const regal = document.getElementById('regal-' + pid)?.value || '';
 
             if (splitModes[pid]) {{
                 const split = {{}};
@@ -9118,10 +9133,10 @@ def przyjecie_palety(paleta_id):
                         if (v > 0) split[s.replace('_', ' ')] = v;
                     }}
                 }});
-                assessments.push({{ product_id: pid, split: split, notatki: notatki }});
+                assessments.push({{ product_id: pid, split: split, notatki: notatki, regal: regal }});
             }} else {{
                 const stan = currentStany[pid] || '';
-                if (stan) assessments.push({{ product_id: pid, stan: stan, notatki: notatki }});
+                if (stan) assessments.push({{ product_id: pid, stan: stan, notatki: notatki, regal: regal }});
             }}
         }});
         return assessments;
@@ -9229,6 +9244,7 @@ def przyjecie_save():
         for a in assessments:
             pid = a.get('product_id')
             notatki = a.get('notatki', '')
+            regal = a.get('regal', '')
             split = a.get('split')  # dict: {"Nowy": 3, "Uszkodzony": 2} lub None
 
             if split and isinstance(split, dict):
@@ -9253,8 +9269,8 @@ def przyjecie_save():
                     if first:
                         # Pierwszy stan — aktualizuj oryginalny rekord
                         conn.execute(
-                            'UPDATE produkty SET ilosc = ?, stan_przyjecia = ?, notatki_przyjecia = ?, klasa_jakosci = ?, stan = ?, status = ? WHERE id = ?',
-                            (qty, stan_name, notatki, klasa, condition, 'magazyn', pid)
+                            'UPDATE produkty SET ilosc = ?, stan_przyjecia = ?, notatki_przyjecia = ?, klasa_jakosci = ?, stan = ?, status = ?, lokalizacja = COALESCE(NULLIF(?, ""), lokalizacja) WHERE id = ?',
+                            (qty, stan_name, notatki, klasa, condition, 'magazyn', regal, pid)
                         )
                         first = False
                     else:
@@ -9292,8 +9308,8 @@ def przyjecie_save():
                     klasa = STAN_TO_KLASA.get(stan, '')
                     condition = STAN_TO_CONDITION.get(stan, stan)
                     conn.execute(
-                        'UPDATE produkty SET stan_przyjecia = ?, notatki_przyjecia = ?, klasa_jakosci = ?, stan = ?, status = ? WHERE id = ?',
-                        (stan, notatki, klasa, condition, 'magazyn', pid)
+                        'UPDATE produkty SET stan_przyjecia = ?, notatki_przyjecia = ?, klasa_jakosci = ?, stan = ?, status = ?, lokalizacja = COALESCE(NULLIF(?, ""), lokalizacja) WHERE id = ?',
+                        (stan, notatki, klasa, condition, 'magazyn', regal, pid)
                     )
 
         # Produkty nieocenione → stan 'nieoceniony' tylko przy pełnym zapisie
