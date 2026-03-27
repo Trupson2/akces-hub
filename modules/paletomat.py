@@ -3606,7 +3606,10 @@ def generator_mass_create_from_paleta_stream():
 
         yield "data: " + json.dumps({'type': 'done'}) + "\n\n"
 
-    return Response(generate(), mimetype='text/event-stream')
+    return Response(generate(), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no'
+    })
 
 @paletomat_bp.route('/generator/mass-create-stream')
 def generator_mass_create_stream():
