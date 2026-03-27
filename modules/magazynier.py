@@ -5717,13 +5717,13 @@ def etykiety():
 
     html += f'''
         </select>
-        <input type="text" id="searchInput" oninput="filterProducts()" placeholder="<span class=material-symbols-outlined>search</span> Szukaj..."
+        <input type="text" id="searchInput" oninput="filterProducts()" placeholder="Szukaj..."
             style="width:180px;padding:10px 12px;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e2e8f0;font-size:0.85rem">
     </div>
 
     <!-- Akcje masowe -->
     <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
-        <button onclick="toggleAll(true)" style="padding:6px 12px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:0.8rem;cursor:pointer">[CHECK_BOX] Zaznacz wszystkie</button>
+        <button onclick="toggleAll(true)" style="padding:6px 12px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:0.8rem;cursor:pointer"><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">check_box</span> Zaznacz wszystkie</button>
         <button onclick="toggleAll(false)" style="padding:6px 12px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:0.8rem;cursor:pointer">◻ Odznacz</button>
         <span id="countLabel" style="flex:1;text-align:right;font-size:0.8rem;color:#64748b">0 zaznaczonych</span>
     </div>
@@ -5769,7 +5769,7 @@ def etykiety():
 
     <div style="height:20px"></div>
     <div style="position:sticky;bottom:0;padding:12px 0;background:linear-gradient(transparent 0%, #0a0a0f 25%);z-index:50">
-        <button onclick="drukuj()" class="btn btn-purple" style="width:100%;padding:16px;font-size:1.1rem;font-weight:700;border-radius:12px">[SMARTPHONE] DRUKUJ NIIMBOT</button>
+        <button onclick="drukuj()" class="btn btn-purple" style="width:100%;padding:16px;font-size:1.1rem;font-weight:700;border-radius:12px"><span class="material-symbols-outlined" style="vertical-align:middle">smartphone</span> DRUKUJ NIIMBOT</button>
     </div>
 
     <script>
