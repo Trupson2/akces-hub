@@ -2751,7 +2751,7 @@ def generator_mass_create():
                         const data = JSON.parse(e.data);
                         
                         if (data.type === 'start') {{
-                            addLog('<span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> Start wystawiania ' + data.total + ' produktów...', '#3b82f6');
+                            addLog('<span class=material-symbols-outlined style="font-size:1rem;vertical-align:middle">rocket_launch</span> Start wystawiania ' + data.total + ' produktów...', '#3b82f6');
                             icon.textContent = '';
                         }}
                         else if (data.type === 'progress') {{
@@ -2991,7 +2991,7 @@ def generator_mass_create_from_paleta():
         const data = JSON.parse(e.data);
 
         if (data.type === 'start') {{
-            log.innerHTML += '<div style="color:#3b82f6;padding:4px 0"><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> Start wystawiania ' + data.total + ' produktow z magazynu...</div>';
+            log.innerHTML += '<div style="color:#3b82f6;padding:4px 0"><span class=material-symbols-outlined style="font-size:1rem;vertical-align:middle">rocket_launch</span> Start wystawiania ' + data.total + ' produktow z magazynu...</div>';
         }}
         else if (data.type === 'progress') {{
             bar.style.width = data.percent + '%';
