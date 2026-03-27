@@ -1298,6 +1298,21 @@ def scraper():
             f'</tr>'
         )
 
+    # Pre-build discovered table to avoid backslash-in-f-string SyntaxError
+    _th = '<th style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:600">'
+    _disc_table = (
+        '<table style="width:100%;border-collapse:collapse"><thead><tr>'
+        + '<th style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;padding:8px 8px 8px 16px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:600">Data</th>'
+        + _th + 'Produkt</th>'
+        + _th + 'ASIN</th>'
+        + _th + 'Ilosc</th>'
+        + _th + 'Paleta</th>'
+        + '<th style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;padding:8px 16px 8px 8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:600">Stan</th>'
+        + '</tr></thead><tbody>'
+        + (disc_rows if disc_rows else '<tr><td colspan="6" style="padding:24px;text-align:center;color:#64748b;font-size:0.82rem">Brak produktow</td></tr>')
+        + '</tbody></table>'
+    ) if ostatnio_dodane else '<div style="padding:24px;text-align:center;color:#64748b;font-size:0.82rem">Brak produktow w bazie</div>'
+
     html = f'''
     <!-- Page Header -->
     <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;border-left:3px solid #8ff5ff;padding-left:20px">
@@ -1492,19 +1507,7 @@ B0IN7ENHO6	4	CAMERA	588,45	79,25
             <span style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#64748b">Recently Discovered &mdash; ostatnio dodane</span>
         </div>
         <div style="background:rgba(15,15,30,0.6);overflow:hidden">
-            {"".join([
-                f'<table style="width:100%;border-collapse:collapse">',
-                f'<thead><tr>',
-                f'<th style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;padding:8px 8px 8px 16px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:600">Data</th>',
-                f'<th style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:600">Produkt</th>',
-                f'<th style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:600">ASIN</th>',
-                f'<th style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:600">Ilosc</th>',
-                f'<th style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:600">Paleta</th>',
-                f'<th style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;padding:8px 16px 8px 8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:600">Stan</th>',
-                f'</tr></thead>',
-                f'<tbody>{disc_rows if disc_rows else "<tr><td colspan=6 style=\\"padding:24px;text-align:center;color:#64748b;font-size:0.82rem\\">Brak produktow</td></tr>"}</tbody>',
-                f'</table>',
-            ]) if ostatnio_dodane else "<div style='padding:24px;text-align:center;color:#64748b;font-size:0.82rem'>Brak produktow w bazie</div>"}
+            {_disc_table}
         </div>
     </div>
 
