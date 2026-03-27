@@ -2038,7 +2038,23 @@ def system_update():
             return jsonify({'ok': False, 'error': f'Git pull failed: {result.stderr[:200]}'})
 
         if 'Already up to date' in pull_output:
-            return jsonify({'ok': True, 'msg': 'Już aktualne, bez zmian'})
+            # Nawet jeśli brak nowych commitów — wymuś restart (przeładowanie modułów)
+            import threading
+            def _force_restart():
+                import time, subprocess
+                time.sleep(2)
+                for svc in ['akces-hub', 'akceshub']:
+                    try:
+                        r = subprocess.run(['sudo', 'systemctl', 'is-enabled', svc],
+                                           capture_output=True, text=True, timeout=5)
+                        if r.returncode == 0:
+                            subprocess.Popen(['sudo', 'systemctl', 'restart', svc],
+                                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                            return
+                    except:
+                        pass
+            threading.Thread(target=_force_restart, daemon=True).start()
+            return jsonify({'ok': True, 'msg': 'Już aktualne — restart za chwilę...'})
 
         # Pobierz info o aktualizacji (ostatni commit)
         try:
