@@ -3508,10 +3508,10 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                     except:
                         pass
                 
-                # Sprawdź duplikat per line-item (race condition z równoległym sync)
+                # Sprawdź duplikat per line-item (bez cena — zmiana ceny między syncami tworzyła duplikaty)
                 _dup = conn.execute(
-                    'SELECT id FROM sprzedaze WHERE allegro_order_id = ? AND nazwa = ? AND cena = ?',
-                    (order_id, nazwa, cena)
+                    'SELECT id FROM sprzedaze WHERE allegro_order_id = ? AND nazwa = ?',
+                    (order_id, nazwa)
                 ).fetchone()
                 if _dup:
                     print(f"  ⏭ Skip duplikat: {nazwa[:30]} ({order_id[:12]}...)")
