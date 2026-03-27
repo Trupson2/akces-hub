@@ -8880,11 +8880,11 @@ def przyjecie_palety(paleta_id):
         <div id="products-list">'''
 
     stany = [
-        ('Nowy', '●', '#beee00'),
-        ('Jak nowy', '●', '#8ff5ff'),
-        ('Dobry', '●', '#eab308'),
-        ('Uszkodzony', '●', '#f97316'),
-        ('Zniszczony', '●', '#ef4444'),
+        ('Nowy', 'A', '#beee00'),
+        ('Jak nowy', 'A-', '#8ff5ff'),
+        ('Dobry', 'B', '#eab308'),
+        ('Uszkodzony', 'C', '#f97316'),
+        ('Zniszczony', 'D', '#ef4444'),
     ]
 
     for p in produkty:
