@@ -1461,7 +1461,7 @@ def edytuj_produkt(code):
                 </select>
             </div>
             <div class="form-group"><label>Stan</label>
-                <select name="stan" class="form-ctrl">
+                <select name="stan" class="form-ctrl" onchange="var m={{'Nowy':'A','Powystawowy':'A-','Używany':'B','Uszkodzony':'C','Odnowiony':'B'}};var k=m[this.value]||'';var sel=this.closest('form').querySelector('[name=klasa_jakosci]');if(sel)sel.value=k;">
                     <option {"selected" if p.get('stan')=='Nowy' else ''}>Nowy</option>
                     <option {"selected" if p.get('stan')=='Powystawowy' else ''}>Powystawowy</option>
                     <option {"selected" if p.get('stan')=='Używany' else ''}>Używany</option>
@@ -1476,7 +1476,7 @@ def edytuj_produkt(code):
                     <option value="A-" {"selected" if p.get('klasa_jakosci')=='A-' else ''}>● A- — Otwarte opakowanie</option>
                     <option value="B" {"selected" if p.get('klasa_jakosci')=='B' else ''}>● B — Używany, dobry stan</option>
                     <option value="C" {"selected" if p.get('klasa_jakosci')=='C' else ''}>● C — Widoczne ślady użytk.</option>
-                    <option value="D" {"selected" if p.get('klasa_jakosci')=='D' else ''}><span class=material-symbols-outlined>fiber_manual_record</span> D — Uszkodzony / niekompletny</option>
+                    <option value="D" {"selected" if p.get('klasa_jakosci')=='D' else ''}>● D — Uszkodzony / niekompletny</option>
                 </select>
             </div>
             <div class="form-group"><label>Dostawca</label>
@@ -8884,7 +8884,7 @@ def przyjecie_palety(paleta_id):
         ('Jak nowy', '●', '#8ff5ff'),
         ('Dobry', '●', '#eab308'),
         ('Uszkodzony', '●', '#f97316'),
-        ('Zniszczony', '<span class=material-symbols-outlined>fiber_manual_record</span>', '#ef4444'),
+        ('Zniszczony', '●', '#ef4444'),
     ]
 
     for p in produkty:
