@@ -3289,59 +3289,66 @@ def paleta_szczegoly(paleta_id):
             ean_display = ''
         identyfikator = ean_display or p['asin'] or '—'
 
+        # PIR status colors
+        _sl_clr = {'sprzedany':'#beee00','wystawiony':'#8ff5ff','magazyn':'#eab308'}.get(p['status'] or 'magazyn','#64748b')
+        _sl_bg  = {'sprzedany':'rgba(190,238,0,0.08)','wystawiony':'rgba(143,245,255,0.08)','magazyn':'rgba(234,179,8,0.08)'}.get(p['status'] or 'magazyn','rgba(100,116,139,0.06)')
+
         produkty_html += f'''
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px" data-produkt-id="{p['id']}" data-ilosc="{p['ilosc']}">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-left:3px solid {_sl_clr};padding:12px 12px 10px;margin-bottom:8px;transition:border-color 0.2s" data-produkt-id="{p['id']}" data-ilosc="{p['ilosc']}">
+            <!-- TOP ROW: image + name + price -->
+            <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
                 {img_html}
                 <div style="flex:1;min-width:0">
-                    <div style="font-size:0.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-                        <a href="/magazyn/produkt/{p['id']}" style="color:var(--text);text-decoration:none">{p['nazwa'][:45]}</a>
+                    <a href="/magazyn/produkt/{p['id']}" style="font-size:0.84rem;font-weight:700;color:var(--text);text-decoration:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3">{p['nazwa'][:50] if p['nazwa'] else '—'}</a>
+                    <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap">
+                        <span style="font-size:0.62rem;color:#64748b;font-family:monospace">{identyfikator}</span>
+                        <span style="font-size:0.62rem;padding:1px 7px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:{_sl_clr};background:{_sl_bg}">{status_text}</span>
+                        <span style="font-size:0.62rem;color:#64748b">{p['lokalizacja'] or 'regal —'}</span>
                     </div>
-                    <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;display:flex;align-items:center;gap:4px">
-                        <span>{identyfikator} •</span>
-                        <button onclick="szybkaMinus({p['id']},{p['ilosc']},{int(p['cena_allegro'] or 0)})" style="background:var(--red);border:none;border-radius:4px;color:#fff;width:20px;height:20px;font-size:0.7rem;cursor:pointer;padding:0;line-height:20px" {'disabled' if (p['ilosc'] or 0) == 0 else ''}>-</button>
-                        <span style="color:var(--text);font-weight:600" id="ilosc-{p['id']}">{p['ilosc']}</span>
-                        <button onclick="szybkaPlus({p['id']},{p['ilosc']})" style="background:var(--green);border:none;border-radius:4px;color:#fff;width:20px;height:20px;font-size:0.7rem;cursor:pointer;padding:0;line-height:20px">+</button>
-                        <span>szt • {p['lokalizacja'] or '—'}</span>
+                </div>
+                <div style="text-align:right;flex-shrink:0;font-family:'Space Grotesk',sans-serif">
+                    <div style="font-size:1rem;font-weight:800;color:{_sl_clr}">{int(p['cena_allegro'] or 0)} zł</div>
+                    <div style="display:flex;align-items:center;gap:4px;justify-content:flex-end;margin-top:4px">
+                        <button onclick="szybkaMinus({p['id']},{p['ilosc']},{int(p['cena_allegro'] or 0)})" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#ef4444;width:22px;height:22px;font-size:0.8rem;cursor:pointer;padding:0;font-weight:700" {'disabled' if (p['ilosc'] or 0) == 0 else ''}>-</button>
+                        <span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:0.9rem;min-width:20px;text-align:center" id="ilosc-{p['id']}">{p['ilosc']}</span>
+                        <button onclick="szybkaPlus({p['id']},{p['ilosc']})" style="background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);color:#beee00;width:22px;height:22px;font-size:0.8rem;cursor:pointer;padding:0;font-weight:700">+</button>
+                        <span style="font-size:0.62rem;color:#64748b">szt</span>
                     </div>
                     <div class="sztuki-dots"></div>
                 </div>
-                <div style="text-align:right;flex-shrink:0">
-                    <div style="font-weight:600;color:var(--green)">{p['cena_allegro']:.0f} zł</div>
-                    <div style="font-size:0.65rem;color:var(--red)">{cena_glowna}</div>
-                </div>
             </div>
 
-            <!-- INLINE EDYCJA STANU I STATUSU -->
+            <!-- SELECTS ROW -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
                 <div>
-                    <div style="font-size:0.6rem;color:var(--text-muted);margin-bottom:3px"><span class=material-symbols-outlined>label</span> STAN</div>
+                    <div style="font-size:0.58rem;color:#64748b;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.8px;font-weight:600">Stan</div>
                     <select onchange="zapiszPole({p['id']}, 'stan', this.value, this)"
-                        style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 6px;font-size:0.72rem">
+                        style="width:100%;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);color:var(--text);padding:5px 6px;font-size:0.72rem">
                         {stan_opcje}
                     </select>
                 </div>
                 <div>
-                    <div style="font-size:0.6rem;color:var(--text-muted);margin-bottom:3px"><span class=material-symbols-outlined>inventory_2</span> STATUS</div>
+                    <div style="font-size:0.58rem;color:#64748b;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.8px;font-weight:600">Status</div>
                     <select onchange="zapiszPole({p['id']}, 'status', this.value, this)"
-                        style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 6px;font-size:0.72rem">
+                        style="width:100%;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);color:var(--text);padding:5px 6px;font-size:0.72rem">
                         {status_opcje}
                     </select>
                 </div>
             </div>
 
+            <!-- QUICK ACTIONS -->
             <div style="display:flex;gap:4px">
                 <button type="button"
                    onclick="document.getElementById('korektaProduktId').value='{p['id']}';document.getElementById('korektaIlosc').value={p['ilosc'] or 0};document.getElementById('maxIlosc').value={p['ilosc'] or 0};document.getElementById('sprzedajIlosc').value=1;document.getElementById('sprzedajIlosc').max={p['ilosc'] or 0};document.getElementById('sprzedajCena').value='{int(p['cena_allegro'] or p['cena_brutto'] or 0)}';document.getElementById('offlineSzt').value='{int(p_offline_szt)}';var cs=document.getElementById('cofnijOfflineSection');if({int(p_offline_szt)}>0){{cs.style.display='block';document.getElementById('offlineInfo').textContent='{int(p_offline_szt)} szt.';document.getElementById('cofnijIlosc').value=1;document.getElementById('cofnijIlosc').max={int(p_offline_szt)}}}else{{cs.style.display='none'}};document.getElementById('modalKorekta').style.display='block'"
-                   style="padding:6px 10px;background:var(--orange);border:none;border-radius:6px;color:#fff;font-size:0.65rem;font-weight:600;cursor:pointer;flex:1">
-                    <span class=material-symbols-outlined>edit</span> Korekta
+                   style="padding:5px 8px;background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.25);color:#f97316;font-size:0.62rem;font-weight:700;cursor:pointer;flex:1;text-transform:uppercase;letter-spacing:0.5px">
+                    <span class=material-symbols-outlined style="font-size:0.7rem;vertical-align:middle">edit</span> Korekta
                 </button>
                 <a href="/magazyn/produkt/{p['id']}/edytuj"
-                   style="padding:6px 10px;background:var(--blue);border-radius:6px;color:#fff;text-decoration:none;font-size:0.65rem;font-weight:600;text-align:center;flex:1">
-                    🖊 Edytuj
+                   style="padding:5px 8px;background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.2);color:#8ff5ff;text-decoration:none;font-size:0.62rem;font-weight:700;text-align:center;flex:1;text-transform:uppercase;letter-spacing:0.5px">
+                    <span class=material-symbols-outlined style="font-size:0.7rem;vertical-align:middle">edit_note</span> Edytuj
                 </a>
                 <button onclick="pokazMenu(event, {p['id']}, {p['ilosc']}, '{p['nazwa'][:30].replace(chr(39), chr(96)).replace(chr(34), chr(96))}', this)"
-                   style="padding:6px 10px;background:var(--text-muted);border:none;border-radius:6px;color:#fff;font-size:0.65rem;font-weight:600;cursor:pointer;flex:1">
+                   style="padding:5px 8px;background:rgba(100,116,139,0.1);border:1px solid rgba(100,116,139,0.2);color:#94a3b8;font-size:0.62rem;font-weight:700;cursor:pointer;flex:1;text-transform:uppercase;letter-spacing:0.5px">
                     ⋯ Akcje
                 </button>
             </div>
