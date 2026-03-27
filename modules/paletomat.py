@@ -6269,7 +6269,7 @@ def oferta_detail(oferta_id):
             html += '<div class="alert alert-warn"><a href="/allegro" style="color:#eab308">Połącz Allegro</a> żeby wystawiać</div>'
         html += f'<a href="/paletomat/oferta/{o["id"]}/delete" class="btn btn-2" style="color:#ef4444"><span class=material-symbols-outlined>delete</span> USUŃ</a>'
     elif o['status'] == 'wystawiona' and o['allegro_id']:
-        html += f'<a href="/paletomat/oferty/{o["allegro_id"]}/publish" class="btn btn-ok"><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> AKTYWUJ NA ALLEGRO</a>'
+        html += f'<a href="/paletomat/oferty/{o["allegro_id"]}/publish" class="btn btn-ok"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">rocket_launch</span> AKTYWUJ NA ALLEGRO</a>'
     
     html += '<a href="/paletomat/oferty" class="back">← Powrót</a>'
     return render(html)
