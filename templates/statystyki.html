@@ -467,6 +467,10 @@ function getBarColor(val) {
     return 'rgba(239,68,68,0.6)';
 }
 
+// chartCzasSprzedazy is injected by histogram_html but has no init here — hide it to avoid empty gap
+const _dupCzas = document.getElementById('chartCzasSprzedazy');
+if (_dupCzas) _dupCzas.style.display = 'none';
+
 // === 1. HISTOGRAM CHART (sell time) ===
 const ctxHist = document.getElementById('chartHistogram');
 if (ctxHist && histLabels && histLabels.length) {

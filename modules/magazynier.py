@@ -2037,6 +2037,27 @@ def statystyki():
         dzien = int(d['dzien'])
         dzienne_per_miesiac[m][dzien] = float(d['suma'])
         dzienne_cnt_per_miesiac[m][dzien] = int(d['cnt'])
+
+    # Dodaj sprzedaze_prywatne do dziennych danych (żeby luty i inne mies. były kompletne)
+    try:
+        pryw_dzienne = conn.execute('''
+            SELECT strftime('%m', data) as miesiac,
+                   CAST(strftime('%d', data) AS INTEGER) as dzien,
+                   SUM(kwota) as suma, COUNT(*) as cnt
+            FROM sprzedaze_prywatne
+            WHERE strftime('%Y', data) = ?
+            GROUP BY miesiac, dzien
+        ''', (str(current_year),)).fetchall()
+        for pd in pryw_dzienne:
+            m = int(pd['miesiac'])
+            dzien = int(pd['dzien'])
+            if m not in dzienne_per_miesiac:
+                dzienne_per_miesiac[m] = {}
+                dzienne_cnt_per_miesiac[m] = {}
+            dzienne_per_miesiac[m][dzien] = dzienne_per_miesiac[m].get(dzien, 0) + float(pd['suma'])
+            dzienne_cnt_per_miesiac[m][dzien] = dzienne_cnt_per_miesiac[m].get(dzien, 0) + int(pd['cnt'])
+    except Exception:
+        pass
     
     # Sprzedaż rocznie (wszystkie lata) — z prywatnym (spójne z dashboardem)
     roczne = conn.execute('''
