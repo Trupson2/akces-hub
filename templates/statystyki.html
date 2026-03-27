@@ -607,8 +607,8 @@ function showDailyView(monthIdx) {
     isDailyView = true;
 
     const monthName = nazwyMiesiecy[monthIdx];
-    const daily = daneDzienne[monthIdx] || [];
-    const dailyCnt = daneDzienneCnt[monthIdx] || [];
+    const daily = daneDzienne[monthIdx + 1] || [];
+    const dailyCnt = daneDzienneCnt[monthIdx + 1] || [];
 
     const labels = daily.map((_, i) => (i + 1).toString());
     const colors = daily.map(v => getBarColor(v));
