@@ -1226,30 +1226,113 @@ def scraper():
     # 1. Mają produkty ALBO
     # 2. Są nowe (dodane w ostatnich 30 dniach)
     palety = conn.execute('''
-        SELECT DISTINCT p.id, p.nazwa, p.dostawca 
+        SELECT DISTINCT p.id, p.nazwa, p.dostawca
         FROM palety p
         LEFT JOIN produkty pr ON p.id = pr.paleta_id
-        WHERE pr.id IS NOT NULL 
+        WHERE pr.id IS NOT NULL
            OR p.data_dodania >= date('now', '-30 days')
         ORDER BY p.data_dodania DESC
     ''').fetchall()
-    
+
+    # === METRYKI SCRAPERA ===
+    try:
+        total_produkty = conn.execute('SELECT COUNT(*) as c FROM produkty').fetchone()['c']
+        new_today = conn.execute("SELECT COUNT(*) as c FROM produkty WHERE date(data_dodania)=date('now')").fetchone()['c']
+        new_week = conn.execute("SELECT COUNT(*) as c FROM produkty WHERE data_dodania >= date('now','-7 days')").fetchone()['c']
+        total_palety = conn.execute('SELECT COUNT(*) as c FROM palety').fetchone()['c']
+        with_asin = conn.execute("SELECT COUNT(*) as c FROM produkty WHERE asin IS NOT NULL AND asin != ''").fetchone()['c']
+        with_photo = conn.execute("SELECT COUNT(*) as c FROM produkty WHERE zdjecie_url IS NOT NULL AND zdjecie_url != ''").fetchone()['c']
+        asin_pct = round(with_asin / total_produkty * 100) if total_produkty else 0
+        photo_pct = round(with_photo / total_produkty * 100) if total_produkty else 0
+    except:
+        total_produkty = new_today = new_week = total_palety = asin_pct = photo_pct = 0
+
+    # === OSTATNIO DODANE PRODUKTY ===
+    try:
+        ostatnio_rows = conn.execute('''
+            SELECT pr.id, pr.nazwa, pr.asin, pr.ilosc, pr.stan,
+                   COALESCE(p.nazwa, '') as paleta_nazwa,
+                   COALESCE(p.dostawca, '') as dostawca,
+                   pr.data_dodania
+            FROM produkty pr
+            LEFT JOIN palety p ON pr.paleta_id = p.id
+            WHERE pr.data_dodania IS NOT NULL
+            ORDER BY pr.data_dodania DESC LIMIT 12
+        ''').fetchall()
+        ostatnio_dodane = [{
+            'id': r['id'],
+            'nazwa': (r['nazwa'] or 'Brak nazwy')[:45],
+            'asin': r['asin'] or '—',
+            'ilosc': r['ilosc'] or 1,
+            'stan': r['stan'] or 'Nowy',
+            'paleta': (r['paleta_nazwa'] or '—')[:22],
+            'dostawca': (r['dostawca'] or '—')[:16],
+            'data': str(r['data_dodania'] or '')[:10],
+        } for r in ostatnio_rows]
+    except:
+        ostatnio_dodane = []
+
     # Dropdown palet (pełny - dla formularza ASIN)
     palety_options = '<option value="">-- Bez palety --</option>'
     palety_options += '<option value="new"><span class=material-symbols-outlined>add</span> Nowa paleta...</option>'
     for p in palety:
         palety_options += f'<option value="{p["id"]}">{p["nazwa"]} ({p["dostawca"] or "brak dostawcy"})</option>'
-    
+
     # Dropdown palet (tylko lista - dla formularza FILE, bez "Bez palety" i "Nowa")
     palety_options_clean = ''
     for p in palety:
         palety_options_clean += f'<option value="{p["id"]}">{p["nazwa"]} ({p["dostawca"] or "brak dostawcy"})</option>'
-    
+
+    # Build recently discovered table rows
+    disc_rows = ''
+    for r in ostatnio_dodane:
+        stan_color = {'Nowy':'#beee00','Używany':'#eab308','Uszkodzony':'#ef4444'}.get(r['stan'],'#8ff5ff')
+        disc_rows += (
+            f'<tr style="border-left:2px solid rgba(143,245,255,0.1)">'
+            f'<td style="padding:10px 8px 10px 16px;font-size:0.75rem;color:#64748b;white-space:nowrap">{r["data"]}</td>'
+            f'<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;font-size:0.82rem">{r["nazwa"]}</td>'
+            f'<td style="font-size:0.72rem;color:#8ff5ff;font-family:monospace">{r["asin"]}</td>'
+            f'<td style="font-size:0.75rem;color:#64748b">{r["ilosc"]} szt</td>'
+            f'<td style="font-size:0.72rem;color:#64748b">{r["paleta"]}</td>'
+            f'<td style="padding-right:16px"><span style="font-size:0.65rem;font-weight:700;color:{stan_color};background:{stan_color}18;padding:2px 8px;text-transform:uppercase;letter-spacing:0.5px">{r["stan"]}</span></td>'
+            f'</tr>'
+        )
+
     html = f'''
     <!-- Page Header -->
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;border-left:3px solid #8ff5ff;padding-left:20px">
-        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:2.2rem;font-weight:800;color:#f9f5f8;letter-spacing:-0.03em;margin:0;text-transform:uppercase">SCRAPER_HUB</h2>
-        <div style="font-size:0.72rem;color:#adaaad;letter-spacing:0.1em;text-transform:uppercase;font-weight:600">Process_Node: Alpha-9 | Status: <span style="color:#8ff5ff">OPERATIONAL</span></div>
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;border-left:3px solid #8ff5ff;padding-left:20px">
+        <div>
+            <h2 style="font-family:'Space Grotesk',sans-serif;font-size:2.2rem;font-weight:800;color:#f9f5f8;letter-spacing:-0.03em;margin:0;text-transform:uppercase">SCRAPER_HUB</h2>
+            <div style="font-size:0.72rem;color:#adaaad;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-top:4px">Process_Node: Alpha-9 | Status: <span style="color:#beee00">OPERATIONAL</span> | Total_Items: <span style="color:#8ff5ff">{total_produkty}</span></div>
+        </div>
+        <div style="text-align:right;font-family:'Space Grotesk',sans-serif">
+            <div style="font-size:1.5rem;font-weight:800;color:#beee00">+{new_today}</div>
+            <div style="font-size:0.6rem;color:#64748b;text-transform:uppercase;letter-spacing:1px">Dzisiaj</div>
+        </div>
+    </div>
+
+    <!-- METRICS GAUGES -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px">
+        <div style="background:rgba(15,15,30,0.6);border-left:3px solid #8ff5ff;padding:16px 14px">
+            <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:1.2px;color:#64748b;font-weight:600;margin-bottom:8px">Total Items</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:800;color:#8ff5ff">{total_produkty}</div>
+        </div>
+        <div style="background:rgba(15,15,30,0.6);border-left:3px solid #beee00;padding:16px 14px">
+            <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:1.2px;color:#64748b;font-weight:600;margin-bottom:8px">Nowe (7 dni)</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:800;color:#beee00">+{new_week}</div>
+        </div>
+        <div style="background:rgba(15,15,30,0.6);border-left:3px solid rgba(143,245,255,0.3);padding:16px 14px">
+            <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:1.2px;color:#64748b;font-weight:600;margin-bottom:8px">Palety</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:800">{total_palety}</div>
+        </div>
+        <div style="background:rgba(15,15,30,0.6);border-left:3px solid rgba(143,245,255,0.3);padding:16px 14px">
+            <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:1.2px;color:#64748b;font-weight:600;margin-bottom:8px">ASIN Coverage</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:800;color:{"#beee00" if asin_pct>=80 else "#eab308" if asin_pct>=50 else "#ef4444"}">{asin_pct}%</div>
+        </div>
+        <div style="background:rgba(15,15,30,0.6);border-left:3px solid rgba(255,107,155,0.3);padding:16px 14px">
+            <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:1.2px;color:#64748b;font-weight:600;margin-bottom:8px">Photo Coverage</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:800;color:{"#beee00" if photo_pct>=80 else "#eab308" if photo_pct>=50 else "#ff6b9b"}">{photo_pct}%</div>
+        </div>
     </div>
 
     <!-- Action Buttons Row -->
@@ -1400,6 +1483,29 @@ B0IN7ENHO6	4	CAMERA	588,45	79,25
             </div>
             <button type="submit" class="btn" style="width:100%;padding:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#f59e0b;font-weight:700;font-size:0.78rem;letter-spacing:0.1em;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:6px"><span class=material-symbols-outlined>download</span> IMPORTUJ Z MIGLO</button>
         </form>
+    </div>
+
+    <!-- DISCOVERED ITEMS TABLE -->
+    <div style="margin-top:28px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+            <div style="width:2px;height:14px;background:#beee00;flex-shrink:0"></div>
+            <span style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#64748b">Recently Discovered &mdash; ostatnio dodane</span>
+        </div>
+        <div style="background:rgba(15,15,30,0.6);overflow:hidden">
+            {"".join([
+                f'<table style="width:100%;border-collapse:collapse">',
+                f'<thead><tr>',
+                f'<th style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;padding:8px 8px 8px 16px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:600">Data</th>',
+                f'<th style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:600">Produkt</th>',
+                f'<th style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:600">ASIN</th>',
+                f'<th style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:600">Ilosc</th>',
+                f'<th style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:600">Paleta</th>',
+                f'<th style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;padding:8px 16px 8px 8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:600">Stan</th>',
+                f'</tr></thead>',
+                f'<tbody>{disc_rows if disc_rows else "<tr><td colspan=6 style=\\"padding:24px;text-align:center;color:#64748b;font-size:0.82rem\\">Brak produktow</td></tr>"}</tbody>',
+                f'</table>',
+            ]) if ostatnio_dodane else "<div style='padding:24px;text-align:center;color:#64748b;font-size:0.82rem'>Brak produktow w bazie</div>"}
+        </div>
     </div>
 
     <div style="text-align:center;margin-top:24px"><a href="/paletomat" style="font-size:0.82rem;color:#adaaad;text-decoration:none;font-weight:600;letter-spacing:0.05em">&larr; Powrót</a></div>
