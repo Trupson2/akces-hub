@@ -3093,12 +3093,16 @@ def paleta_szczegoly(paleta_id):
         ''', (paleta_id,)).fetchone()
 
     # Pobierz rzeczywistą sprzedaż z tabeli sprzedaze (dla dokładniejszych danych)
+    # LEFT JOIN przez oba ścieżki: bezpośredni produkt_id i przez oferta_id→oferty→produkt_id
+    # (Allegro synced orders mają produkt_id=NULL ale mają oferta_id)
     sprzedaz_stats = conn.execute('''
         SELECT COALESCE(SUM(s.cena * s.ilosc), 0) as przychod,
                COALESCE(SUM(s.ilosc), 0) as szt_sprzedanych
         FROM sprzedaze s
-        JOIN produkty p ON s.produkt_id = p.id
-        WHERE p.paleta_id = ?
+        LEFT JOIN produkty pr  ON s.produkt_id = pr.id
+        LEFT JOIN oferty o     ON s.oferta_id  = o.id
+        LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id
+        WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = ?
           AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot','')
     ''', (paleta_id,)).fetchone()
 
@@ -3138,8 +3142,10 @@ def paleta_szczegoly(paleta_id):
     przychod_offline_sprzedaze = conn.execute('''
         SELECT COALESCE(SUM(s.cena * s.ilosc), 0)
         FROM sprzedaze s
-        JOIN produkty p ON s.produkt_id = p.id
-        WHERE p.paleta_id = ? AND s.kupujacy = 'offline'
+        LEFT JOIN produkty pr  ON s.produkt_id = pr.id
+        LEFT JOIN oferty o     ON s.oferta_id  = o.id
+        LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id
+        WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = ? AND s.kupujacy = 'offline'
           AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot','')
     ''', (paleta_id,)).fetchone()[0] or 0
 
@@ -3156,12 +3162,14 @@ def paleta_szczegoly(paleta_id):
           )
     ''', (paleta_id,)).fetchone()[0] or 0
 
-    # Przychód z Allegro (sprzedaze bez offline)
+    # Przychód z Allegro (sprzedaze bez offline) - oba ścieżki: bezpośredni + przez oferta_id
     przychod_allegro_db = conn.execute('''
         SELECT COALESCE(SUM(s.cena * s.ilosc), 0)
         FROM sprzedaze s
-        JOIN produkty p ON s.produkt_id = p.id
-        WHERE p.paleta_id = ?
+        LEFT JOIN produkty pr  ON s.produkt_id = pr.id
+        LEFT JOIN oferty o     ON s.oferta_id  = o.id
+        LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id
+        WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = ?
           AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot','')
     ''', (paleta_id,)).fetchone()[0] or 0
 
