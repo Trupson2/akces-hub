@@ -1994,9 +1994,9 @@ def statystyki():
     # FILTR: tylko opłacone (bez zwrotów i anulowanych)
     # STATUS_FILTER inlined in each query to avoid f-string SQL (B608)
 
-    # Sprzedaż miesięcznie (bieżący rok)
+    # Sprzedaż miesięcznie (bieżący rok) — Allegro + prywatne
     current_year = datetime.now().year
-    miesieczne = conn.execute('''
+    miesieczne_raw = conn.execute('''
         SELECT strftime('%m', REPLACE(SUBSTR(data_sprzedazy,1,19), 'T', ' ')) as miesiac,
                COUNT(*) as ilosc,
                COALESCE(SUM(cena * ilosc), 0) as suma
@@ -2008,6 +2008,31 @@ def statystyki():
         HAVING miesiac IS NOT NULL
         ORDER BY miesiac
     ''', (str(current_year),)).fetchall()
+
+    # Dołącz sprzedaze_prywatne do sum miesięcznych
+    miesieczne_dict = {}
+    for row in miesieczne_raw:
+        m = row['miesiac']
+        miesieczne_dict[m] = {'miesiac': m, 'ilosc': row['ilosc'], 'suma': float(row['suma'])}
+    try:
+        pryw_miesiac = conn.execute('''
+            SELECT strftime('%m', data) as miesiac,
+                   COUNT(*) as ilosc,
+                   COALESCE(SUM(kwota), 0) as suma
+            FROM sprzedaze_prywatne
+            WHERE strftime('%Y', data) = ?
+            GROUP BY miesiac
+        ''', (str(current_year),)).fetchall()
+        for pm in pryw_miesiac:
+            m = pm['miesiac']
+            if m in miesieczne_dict:
+                miesieczne_dict[m]['ilosc'] += pm['ilosc']
+                miesieczne_dict[m]['suma'] += float(pm['suma'])
+            else:
+                miesieczne_dict[m] = {'miesiac': m, 'ilosc': pm['ilosc'], 'suma': float(pm['suma'])}
+    except Exception:
+        pass
+    miesieczne = sorted(miesieczne_dict.values(), key=lambda x: x['miesiac'])
 
     # Sprzedaż dziennie dla każdego miesiąca (do drill-down) - z ilością zamówień!
     dzienne_all = conn.execute('''
