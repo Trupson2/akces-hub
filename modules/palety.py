@@ -3263,6 +3263,20 @@ def paleta_szczegoly(paleta_id):
     przychod_rzeczywisty = przychod_allegro_db + przychod_offline_sprzedaze + przychod_offline_stare
     przychod_z_sprzedazy = przychod_allegro_db + przychod_offline_sprzedaze
 
+    # FALLBACK PRZYCHÓD: jeśli sprzedano więcej niż jest w tabeli sprzedaze (np. kliknięcia "-"),
+    # oszacuj brakujący przychód na podstawie średniej ceny allegro produktów
+    _tracked_szt = sprzedano_szt_db + offline_bez_sprzedaze
+    _untracked_szt = sprzedano_szt - _tracked_szt
+    if _untracked_szt > 0:
+        _avg_cena = conn.execute(
+            'SELECT AVG(cena_allegro) FROM produkty WHERE paleta_id = ? AND cena_allegro > 0',
+            (paleta_id,)
+        ).fetchone()[0] or 0
+        if _avg_cena > 0:
+            _extra_przychod = _untracked_szt * _avg_cena
+            przychod_rzeczywisty += _extra_przychod
+            print(f"   - FALLBACK PRZYCHÓD: {_untracked_szt} nieśledzonych × {_avg_cena:.2f} zł = +{_extra_przychod:.2f} zł")
+
     print(f"[BAR_CHART] PRZYCHOD: z_produktow={przychod_z_produktow}, z_sprzedazy={przychod_z_sprzedazy}, offline={przychod_offline}, SUMA={przychod_rzeczywisty}")
 
     # Koszt sprzedanych

@@ -9629,7 +9629,7 @@ def ocen_produkt():
             # Add historia entries for split products
             from .database import add_historia
             for cpid in created_product_ids:
-                add_historia(conn, cpid, 'oznaczono', f'Ocena stanu: split na {len(created_product_ids)} partii')
+                add_historia(cpid, 'oznaczono', f'Ocena stanu: split na {len(created_product_ids)} partii')
 
             # Utwórz sztuki w ewidencji per product
             conn.execute('''CREATE TABLE IF NOT EXISTS sztuki (
