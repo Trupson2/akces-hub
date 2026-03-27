@@ -44,6 +44,7 @@ PUBLIC_PREFIXES = [
     '/auth/login',        # Logowanie
     '/auth/setup',        # Tworzenie pierwszego konta
     '/auth/logout',       # Wylogowanie
+    '/changelog',         # Historia zmian — dostępna bez logowania
 ]
 
 

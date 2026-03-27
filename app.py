@@ -128,6 +128,49 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', _secret_key)
 app.config['DATABASE'] = os.environ.get('DATABASE_PATH', 'akces_hub.db')
 app.config['VERSION'] = VERSION
 
+# ── Auto-generate CHANGELOG.md from git log ──
+def _generate_changelog():
+    """Generate CHANGELOG.md from recent git commits, grouped by date."""
+    import subprocess
+    try:
+        _cwd = os.path.dirname(os.path.abspath(__file__))
+        result = subprocess.run(
+            ['git', 'log', '--format=%ai|%s', '--no-merges', '-100'],
+            capture_output=True, text=True, timeout=10, cwd=_cwd
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            return
+        lines = result.stdout.strip().split('\n')
+        from collections import OrderedDict
+        days = OrderedDict()
+        for line in lines:
+            parts = line.split('|', 1)
+            if len(parts) < 2:
+                continue
+            date_str, msg = parts
+            day = date_str[:10]
+            if 'Co-Authored' in msg or msg.startswith('Merge'):
+                continue
+            if day not in days:
+                days[day] = []
+            days[day].append(msg)
+        if not days:
+            return
+        cl_path = os.path.join(_cwd, 'CHANGELOG.md')
+        with open(cl_path, 'w', encoding='utf-8') as f:
+            f.write('# Historia zmian (auto-generated)\n\n')
+            for day, commits in days.items():
+                dp = day.split('-')
+                formatted = f"{dp[2]}.{dp[1]}.{dp[0]}" if len(dp) == 3 else day
+                f.write(f'## {formatted}\n\n')
+                for c in commits:
+                    f.write(f'- {c}\n')
+                f.write('\n')
+    except Exception:
+        pass
+
+_generate_changelog()
+
 # Session cookie security
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
@@ -2703,53 +2746,51 @@ def cennik():
 
 @app.route('/changelog')
 def changelog():
-    """Changelog: CHANGELOG.md + ostatnie commity z git log"""
-    content = ''
-    try:
-        cl_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'CHANGELOG.md')
-        with open(cl_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-    except:
-        content = '# Historia zmian\n'
-
-    # Dodaj ostatnie commity z git log (auto-generated)
+    """Changelog: structured git commit log grouped by date."""
+    from collections import OrderedDict
+    days = OrderedDict()
+    total_commits = 0
     try:
         import subprocess as _sp
         _cwd = os.path.dirname(os.path.abspath(__file__))
         r = _sp.run(
-            ['git', 'log', '--pretty=format:%H|%ai|%s', '-200'],
+            ['git', 'log', '--format=%H|%s|%ai', '--no-merges', '-50'],
             capture_output=True, text=True, timeout=10, cwd=_cwd
         )
         if r.returncode == 0 and r.stdout.strip():
-            from collections import OrderedDict
-            days = OrderedDict()
             for line in r.stdout.strip().split('\n'):
                 parts = line.split('|', 2)
                 if len(parts) < 3:
                     continue
-                commit_hash, date_str, msg = parts
-                day = date_str[:10]  # YYYY-MM-DD
+                commit_hash, msg, date_str = parts
+                if 'Co-Authored' in msg:
+                    continue
+                day = date_str[:10]
+                short_hash = commit_hash[:7]
+                # Determine type for color-coding
+                msg_lower = msg.lower()
+                if msg_lower.startswith('fix') or 'fix' in msg_lower.split()[:2]:
+                    ctype = 'fix'
+                elif msg_lower.startswith('add') or msg_lower.startswith('nowe') or msg_lower.startswith('implement'):
+                    ctype = 'add'
+                elif msg_lower.startswith('redesign') or 'redesign' in msg_lower:
+                    ctype = 'redesign'
+                else:
+                    ctype = 'other'
                 if day not in days:
                     days[day] = []
-                # Pomijaj Co-Authored-By i merge commity
-                if msg.startswith('Merge') or 'Co-Authored' in msg:
-                    continue
-                short_hash = commit_hash[:7]
-                days[day].append(f"- `{short_hash}` {msg}")
-
-            if days:
-                git_section = "\n\n---\n\n## Ostatnie commity (auto)\n\n"
-                for day, commits in days.items():
-                    # Formatuj datę DD.MM.YYYY
-                    parts = day.split('-')
-                    formatted = f"{parts[2]}.{parts[1]}.{parts[0]}" if len(parts) == 3 else day
-                    git_section += f"### {formatted}\n"
-                    git_section += '\n'.join(commits) + '\n\n'
-                content += git_section
-    except:
+                days[day].append({
+                    'hash': short_hash,
+                    'message': msg,
+                    'date': date_str.strip(),
+                    'type': ctype,
+                })
+                total_commits += 1
+    except Exception:
         pass
 
-    return render_template('changelog.html', content=content, version=VERSION)
+    return render_template('changelog.html',
+                           days=days, total=total_commits, version=VERSION)
 
 def _is_dev_mode():
     try:

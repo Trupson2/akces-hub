@@ -2485,103 +2485,242 @@ def paleta_mass_edit(paleta_id):
                {checkbox_disabled}>
         '''
 
-        produkty_html += (f'''
-        <div class="product-row" style="background:{row_bg}">
-            ''' + (f'''
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 10px;background:var(--green-soft);border-radius:8px">
-                <div style="font-size:0.85rem;color:var(--green);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600"><span class=material-symbols-outlined>edit_note</span> {str(p["meta_title"])[:80]}</div>
-                <button onclick="regenerateMetaTitle({p["id"]}, this)"
-                        style="padding:8px 14px;background:var(--purple);border:none;border-radius:8px;color:#fff;font-size:0.8rem;cursor:pointer;white-space:nowrap;min-height:36px">
-                    <span class=material-symbols-outlined>sync</span> Regeneruj
+        # Meta title bar
+        has_meta = 'meta_title' in p.keys() and p['meta_title']
+        meta_bar = ''
+        if has_meta:
+            meta_bar = f'''<div class="bl-meta-bar bl-meta-ok">
+                <span class="material-symbols-outlined" style="font-size:1rem;color:#beee00">edit_note</span>
+                <span class="bl-meta-text">{str(p["meta_title"])[:80]}</span>
+                <button onclick="regenerateMetaTitle({p["id"]}, this)" class="bl-meta-btn bl-meta-btn-regen">
+                    <span class="material-symbols-outlined" style="font-size:.9rem">sync</span> Regeneruj
                 </button>
-            </div>
-            ''' if 'meta_title' in p.keys() and p['meta_title'] else f'''
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 10px;background:var(--red-soft);border-radius:8px">
-                <div style="font-size:0.85rem;color:var(--red);flex:1;font-weight:600"><span class=material-symbols-outlined>warning</span> Brak META TITLE</div>
-                <button onclick="regenerateMetaTitle({p["id"]}, this)"
-                        style="padding:8px 14px;background:var(--green);border:none;border-radius:8px;color:#fff;font-size:0.8rem;cursor:pointer;white-space:nowrap;min-height:36px">
-                    <span class=material-symbols-outlined>auto_awesome</span> Generuj
+            </div>'''
+        else:
+            meta_bar = f'''<div class="bl-meta-bar bl-meta-missing">
+                <span class="material-symbols-outlined" style="font-size:1rem;color:#ff6b9b">warning</span>
+                <span class="bl-meta-text" style="color:#ff6b9b">Brak META TITLE</span>
+                <button onclick="regenerateMetaTitle({p["id"]}, this)" class="bl-meta-btn bl-meta-btn-gen">
+                    <span class="material-symbols-outlined" style="font-size:.9rem">auto_awesome</span> Generuj
                 </button>
-            </div>
-            ''') + f'''
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-                <input type="checkbox"
-                       class="product-checkbox"
-                       data-product-id="{p['id']}"
-                       value="{p['id']}"
-                       {checkbox_checked}
-                       {checkbox_disabled}
-                       style="width:24px;height:24px;min-width:24px;cursor:pointer">
-                {img_html}
-                <div style="flex:1;min-width:0">
-                    <div style="font-weight:600;font-size:0.95rem;line-height:1.3">{p['nazwa'][:60]}</div>
-                </div>
-                {status_badge}
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                <div style="font-size:0.8rem;color:var(--text-muted);flex:1;min-width:150px">
-                    {p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else (p['asin'] or '—')} •
-                    Lokalizacja: {p['lokalizacja'] or '—'} •
-                    Ilość: <span data-qty-id="{p['id']}">{p['ilosc']}</span>
-                </div>
-                <div style="font-size:0.75rem;color:var(--red)"><span class=material-symbols-outlined>paid</span> {ceny_tekst}</div>
-                <div style="display:flex;align-items:center;gap:6px">
-                    <span style="font-size:0.75rem;color:var(--text-muted)">CENA:</span>
-                    {cena_input}
-                </div>
-            </div>
-        </div>
-        ''')
+            </div>'''
+
+        # SKU code
+        sku_code = p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else (p['asin'] or '—')
+
+        # Stock color
+        stock_val = p['ilosc'] or 0
+        if stock_val >= 10:
+            stock_class = 'bl-stock-high'
+        elif stock_val >= 5:
+            stock_class = 'bl-stock-med'
+        else:
+            stock_class = 'bl-stock-low'
+
+        produkty_html += f'''
+        <tr class="bl-row" data-status="{p['status']}">
+            <td class="bl-td-check">
+                <label class="bl-checkbox-wrap">
+                    <input type="checkbox" class="product-checkbox bl-checkbox" data-product-id="{p['id']}" value="{p['id']}" {checkbox_checked} {checkbox_disabled}>
+                    <span class="bl-checkmark"></span>
+                </label>
+            </td>
+            <td class="bl-td-img">
+                {f'<img src="{_img_url}" class="bl-thumb" onerror="this.style.display=&apos;none&apos;" loading="lazy">' if _img_url else '<div class="bl-thumb-empty"><span class="material-symbols-outlined">image</span></div>'}
+            </td>
+            <td class="bl-td-name">
+                <div class="bl-name">{p['nazwa'][:60]}</div>
+                <div class="bl-category">{p['lokalizacja'] or '—'}</div>
+                {meta_bar}
+            </td>
+            <td class="bl-td-sku"><code class="bl-sku">{sku_code}</code></td>
+            <td class="bl-td-stock"><span class="bl-stock {stock_class}" data-qty-id="{p['id']}">{stock_val}</span></td>
+            <td class="bl-td-price">
+                {cena_input}
+                <div class="bl-cost-info">{ceny_tekst}</div>
+            </td>
+            <td class="bl-td-status">{status_badge}</td>
+        </tr>
+        '''
 
     content = f'''
-    <div class="header">
-        <h1><span class=material-symbols-outlined>edit</span> Masowa edycja cen</h1>
-        <small>{paleta['nazwa'] or f"Paleta #{paleta_id}"}</small>
+    <style>
+    /* ═══ BULK LISTER — Cyberpunk Neon HUD ═══ */
+    .bl-header{{text-align:center;margin-bottom:28px;position:relative}}
+    .bl-header::after{{content:'';position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:120px;height:2px;background:linear-gradient(90deg,transparent,#8ff5ff,transparent)}}
+    .bl-title{{font-family:'Space Grotesk',sans-serif;font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,#8ff5ff,#beee00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin:0;letter-spacing:-0.5px}}
+    .bl-subtitle{{font-family:'Manrope',sans-serif;font-size:0.85rem;color:rgba(143,245,255,0.6);margin-top:6px;letter-spacing:1.5px;text-transform:uppercase}}
+    .bl-pallet-name{{font-family:'Space Grotesk',sans-serif;font-size:0.95rem;color:#ff6b9b;margin-top:4px}}
+
+    .bl-stats{{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}}
+    .bl-stat{{background:rgba(22,26,33,0.6);backdrop-filter:blur(12px);border:1px solid rgba(143,245,255,0.1);border-radius:14px;padding:16px 12px;text-align:center;transition:all 0.3s}}
+    .bl-stat:hover{{border-color:rgba(143,245,255,0.3);box-shadow:0 0 20px rgba(143,245,255,0.08)}}
+    .bl-stat-num{{font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:800}}
+    .bl-stat-label{{font-family:'Manrope',sans-serif;font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px;font-weight:600}}
+
+    .bl-panel{{background:rgba(22,26,33,0.5);backdrop-filter:blur(16px);border:1px solid rgba(143,245,255,0.1);border-radius:16px;overflow:hidden;margin-bottom:20px}}
+    .bl-panel-header{{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(143,245,255,0.08);background:rgba(143,245,255,0.03)}}
+    .bl-panel-title{{font-family:'Space Grotesk',sans-serif;font-size:1rem;color:#8ff5ff;font-weight:700;display:flex;align-items:center;gap:8px}}
+    .bl-select-all-btn{{display:flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.2);border-radius:8px;color:#8ff5ff;font-family:'Space Grotesk',sans-serif;font-size:0.8rem;font-weight:600;cursor:pointer;transition:all 0.2s;text-transform:uppercase;letter-spacing:0.5px}}
+    .bl-select-all-btn:hover{{background:rgba(143,245,255,0.15);border-color:rgba(143,245,255,0.4)}}
+
+    .bl-table{{width:100%;border-collapse:separate;border-spacing:0}}
+    .bl-table thead th{{font-family:'Space Grotesk',sans-serif;font-size:0.7rem;color:rgba(143,245,255,0.5);text-transform:uppercase;letter-spacing:1.2px;padding:12px 14px;text-align:left;font-weight:700;border-bottom:1px solid rgba(143,245,255,0.08);white-space:nowrap}}
+    .bl-row{{transition:all 0.2s}}
+    .bl-row:hover{{background:rgba(143,245,255,0.04)}}
+    .bl-row[data-status="wystawiony"]{{background:rgba(34,197,94,0.06)}}
+    .bl-row td{{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle}}
+
+    .bl-checkbox-wrap{{display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;width:22px;height:22px}}
+    .bl-checkbox{{opacity:0;position:absolute;cursor:pointer;width:22px;height:22px}}
+    .bl-checkmark{{width:22px;height:22px;border:2px solid rgba(143,245,255,0.3);border-radius:6px;transition:all 0.2s;display:flex;align-items:center;justify-content:center;background:rgba(22,26,33,0.8)}}
+    .bl-checkbox:checked+.bl-checkmark{{background:linear-gradient(135deg,#8ff5ff,#beee00);border-color:#8ff5ff}}
+    .bl-checkbox:checked+.bl-checkmark::after{{content:'\\2713';color:#0a0e14;font-size:14px;font-weight:700}}
+    .bl-checkbox:disabled+.bl-checkmark{{opacity:0.3;cursor:not-allowed}}
+
+    .bl-thumb{{width:48px;height:48px;object-fit:contain;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)}}
+    .bl-thumb-empty{{width:48px;height:48px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:1.2rem}}
+
+    .bl-name{{font-family:'Manrope',sans-serif;font-weight:700;font-size:0.9rem;color:var(--text);line-height:1.3;margin-bottom:2px}}
+    .bl-category{{font-family:'Manrope',sans-serif;font-size:0.75rem;color:var(--text-muted)}}
+    .bl-sku{{font-family:'JetBrains Mono','Fira Code',monospace;font-size:0.75rem;color:rgba(143,245,255,0.7);background:rgba(143,245,255,0.06);padding:3px 8px;border-radius:6px;border:1px solid rgba(143,245,255,0.1)}}
+
+    .bl-stock{{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1rem;padding:4px 12px;border-radius:8px;display:inline-block;min-width:32px;text-align:center}}
+    .bl-stock-high{{color:#22c55e;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2)}}
+    .bl-stock-med{{color:#eab308;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.2)}}
+    .bl-stock-low{{color:#ff6b9b;background:rgba(255,107,155,0.1);border:1px solid rgba(255,107,155,0.2)}}
+
+    .bl-td-price .price-input{{width:90px;padding:10px 8px;background:rgba(22,26,33,0.8);border:2px solid rgba(143,245,255,0.15);border-radius:10px;color:#beee00;text-align:center;font-weight:700;font-size:1rem;font-family:'Space Grotesk',sans-serif;min-height:42px;transition:all 0.3s}}
+    .bl-td-price .price-input:focus{{border-color:#8ff5ff;box-shadow:0 0 12px rgba(143,245,255,0.2);outline:none}}
+    .bl-cost-info{{font-family:'Manrope',sans-serif;font-size:0.65rem;color:var(--text-muted);margin-top:4px;max-width:140px}}
+
+    .bl-meta-bar{{display:flex;align-items:center;gap:6px;margin-top:6px;padding:5px 8px;border-radius:6px;font-size:0.78rem}}
+    .bl-meta-ok{{background:rgba(190,238,0,0.06);border:1px solid rgba(190,238,0,0.12)}}
+    .bl-meta-missing{{background:rgba(255,107,155,0.06);border:1px solid rgba(255,107,155,0.12)}}
+    .bl-meta-text{{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(190,238,0,0.8);font-family:'Manrope',sans-serif}}
+    .bl-meta-btn{{padding:4px 10px;border:none;border-radius:6px;color:#fff;font-size:0.72rem;cursor:pointer;white-space:nowrap;font-family:'Space Grotesk',sans-serif;font-weight:600;display:flex;align-items:center;gap:4px;transition:all 0.2s}}
+    .bl-meta-btn:hover{{transform:translateY(-1px)}}
+    .bl-meta-btn-regen{{background:rgba(139,92,246,0.8)}}
+    .bl-meta-btn-gen{{background:rgba(34,197,94,0.8)}}
+
+    .bl-bottom{{position:fixed;bottom:0;left:0;right:0;background:rgba(10,14,20,0.92);backdrop-filter:blur(20px);border-top:1px solid rgba(143,245,255,0.12);padding:14px 16px;z-index:100;box-shadow:0 -8px 32px rgba(0,0,0,0.4)}}
+    .bl-bottom-inner{{display:flex;align-items:center;gap:10px;max-width:1800px;margin:0 auto;flex-wrap:wrap}}
+    .bl-btn{{padding:12px 20px;font-family:'Space Grotesk',sans-serif;font-size:0.9rem;font-weight:700;border:none;border-radius:10px;color:#fff;cursor:pointer;min-height:48px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.25s;text-decoration:none;white-space:nowrap}}
+    .bl-btn:hover{{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.3)}}
+    .bl-btn-back{{background:rgba(255,255,255,0.06);color:var(--text);border:1px solid rgba(255,255,255,0.1)}}
+    .bl-btn-meta{{background:linear-gradient(135deg,#8b5cf6,#a855f7);box-shadow:0 4px 15px rgba(139,92,246,0.3)}}
+    .bl-btn-meta:hover{{box-shadow:0 6px 24px rgba(139,92,246,0.5)}}
+    .bl-btn-wystaw{{background:linear-gradient(135deg,#beee00,#22c55e);color:#0a0e14;box-shadow:0 4px 15px rgba(190,238,0,0.3)}}
+    .bl-btn-wystaw:hover{{box-shadow:0 6px 24px rgba(190,238,0,0.5)}}
+    .bl-bottom-spacer{{flex:1}}
+    .bl-bottom-count{{font-family:'Space Grotesk',sans-serif;font-size:0.85rem;color:rgba(143,245,255,0.7);font-weight:600}}
+
+    .bl-info{{font-family:'Manrope',sans-serif;font-size:0.8rem;margin-bottom:16px;padding:12px 16px;background:rgba(190,238,0,0.04);border:1px solid rgba(190,238,0,0.1);border-radius:10px;color:var(--text-muted);display:flex;align-items:center;gap:10px}}
+    .bl-info .material-symbols-outlined{{color:#beee00;font-size:1.1rem}}
+
+    /* Responsive */
+    @media(max-width:768px){{
+        .bl-stats{{grid-template-columns:repeat(2,1fr)}}
+        .bl-table thead{{display:none}}
+        .bl-row{{display:flex;flex-wrap:wrap;gap:8px;padding:14px!important;border-bottom:1px solid rgba(255,255,255,0.04)}}
+        .bl-row td{{border:none;padding:4px 0}}
+        .bl-td-check{{order:1}}
+        .bl-td-img{{order:2}}
+        .bl-td-name{{order:3;flex:1;min-width:calc(100% - 100px)}}
+        .bl-td-sku{{order:5}}
+        .bl-td-stock{{order:6}}
+        .bl-td-price{{order:7}}
+        .bl-td-status{{order:4}}
+        .bl-bottom-inner{{flex-direction:column}}
+        .bl-btn{{width:100%}}
+        .bl-bottom-spacer{{display:none}}
+    }}
+    @media(max-width:480px){{
+        .bl-title{{font-size:1.4rem}}
+        .bl-stats{{gap:6px}}
+        .bl-stat{{padding:12px 8px}}
+        .bl-stat-num{{font-size:1.2rem}}
+    }}
+    </style>
+
+    <div class="bl-header">
+        <h1 class="bl-title"><span class="material-symbols-outlined" style="font-size:1.6rem;vertical-align:middle;-webkit-text-fill-color:#8ff5ff">deployed_code</span> Bulk Lister / Universal</h1>
+        <div class="bl-subtitle">Select items for Allegro deployment</div>
+        <div class="bl-pallet-name">{paleta['nazwa'] or f"Paleta #{paleta_id}"}</div>
     </div>
 
-    <div class="me-stats">
-        <div class="me-stat">
-            <div class="me-stat-num" style="color:var(--blue)">{stats['total']}</div>
-            <div class="me-stat-label">WSZYSTKICH</div>
+    <div class="bl-stats">
+        <div class="bl-stat">
+            <div class="bl-stat-num" style="color:#8ff5ff">{stats['total']}</div>
+            <div class="bl-stat-label">Wszystkich</div>
         </div>
-        <div class="me-stat">
-            <div class="me-stat-num" style="color:var(--green)">{stats['wystawione']}</div>
-            <div class="me-stat-label">WYSTAWIONE</div>
+        <div class="bl-stat">
+            <div class="bl-stat-num" style="color:#22c55e">{stats['wystawione']}</div>
+            <div class="bl-stat-label">Wystawione</div>
         </div>
-        <div class="me-stat">
-            <div class="me-stat-num" style="color:var(--blue)" id="count-selected">{wybrane_count}</div>
-            <div class="me-stat-label">ZAZNACZONE</div>
+        <div class="bl-stat">
+            <div class="bl-stat-num" style="color:#beee00" id="count-selected">{wybrane_count}</div>
+            <div class="bl-stat-label">Zaznaczone</div>
         </div>
-        <div class="me-stat">
-            <div class="me-stat-num" style="color:var(--green)" id="value-total">{stats['wartosc_total']:.0f} zł</div>
-            <div class="me-stat-label">WARTOŚĆ</div>
+        <div class="bl-stat">
+            <div class="bl-stat-num" style="color:#22c55e" id="value-total">{stats['wartosc_total']:.0f} zł</div>
+            <div class="bl-stat-label">Wartość</div>
         </div>
     </div>
 
-    <div class="me-info">
-        <span class=material-symbols-outlined>lightbulb</span> Zaznacz produkty → edytuj ceny → kliknij <b>Wystaw</b>. Wystawione (zielone) nie można zaznaczyć.
+    <div class="bl-info">
+        <span class="material-symbols-outlined">lightbulb</span>
+        Zaznacz produkty → edytuj ceny → kliknij <b>Wystaw</b>. Wystawione (zielone) nie można zaznaczyć.
     </div>
 
-    <div id="products-list" style="padding-bottom:140px">
-        {produkty_html}
-    </div>
-
-    <div class="me-bottom">
-        <div class="me-bottom-inner">
-            <div class="me-bottom-row">
-                <a href="/palety/{paleta_id}" class="me-btn me-btn-back">← Powrót</a>
-                <button id="btn-select-all" class="me-btn" style="background:var(--text-muted)" onclick="toggleSelectAll()">
-                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_box</span> Zaznacz wszystkie
-                </button>
+    <div class="bl-panel" style="margin-bottom:160px">
+        <div class="bl-panel-header">
+            <div class="bl-panel-title">
+                <span class="material-symbols-outlined" style="font-size:1.1rem">inventory_2</span>
+                Produkty z palety
             </div>
-            <div class="me-bottom-row">
-                <button id="btn-batch-meta" class="me-btn me-btn-meta" onclick="batchGenerateMetaTitles()">
-                    <span class=material-symbols-outlined>auto_awesome</span> Generuj META (<span id="count-meta-btn">{wybrane_count}</span>)
-                </button>
-                <button id="btn-wystaw" class="me-btn me-btn-wystaw" onclick="wystawZaznaczone()">
-                    <span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> Wystaw (<span id="count-btn">{wybrane_count}</span>)
-                </button>
-            </div>
+            <button id="btn-select-all" class="bl-select-all-btn" onclick="toggleSelectAll()">
+                <span class="material-symbols-outlined" style="font-size:1rem">select_check_box</span> Zaznacz wszystkie
+            </button>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="bl-table">
+                <thead>
+                    <tr>
+                        <th style="width:50px">
+                            <label class="bl-checkbox-wrap">
+                                <input type="checkbox" id="header-select-all" class="bl-checkbox" onchange="toggleSelectAll()">
+                                <span class="bl-checkmark"></span>
+                            </label>
+                        </th>
+                        <th style="width:60px">Zdjęcie</th>
+                        <th>Produkt</th>
+                        <th>SKU / ASIN</th>
+                        <th style="width:80px">Stan</th>
+                        <th style="width:160px">Cena</th>
+                        <th style="width:120px">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="products-list">
+                    {produkty_html}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bl-bottom">
+        <div class="bl-bottom-inner">
+            <a href="/palety/{paleta_id}" class="bl-btn bl-btn-back">
+                <span class="material-symbols-outlined" style="font-size:1.1rem">arrow_back</span> Powrót
+            </a>
+            <div class="bl-bottom-spacer"></div>
+            <div class="bl-bottom-count"><span id="count-bottom">{wybrane_count}</span> zaznaczonych</div>
+            <button id="btn-batch-meta" class="bl-btn bl-btn-meta" onclick="batchGenerateMetaTitles()">
+                <span class="material-symbols-outlined" style="font-size:1.1rem">auto_awesome</span> Generuj META (<span id="count-meta-btn">{wybrane_count}</span>)
+            </button>
+            <button id="btn-wystaw" class="bl-btn bl-btn-wystaw" onclick="wystawZaznaczone()">
+                <span class="material-symbols-outlined" style="font-size:1.1rem">rocket_launch</span> Wystaw (<span id="count-btn">{wybrane_count}</span>)
+            </button>
         </div>
     </div>
     '''
@@ -2593,8 +2732,17 @@ def paleta_mass_edit(paleta_id):
         document.getElementById('count-selected').textContent = count;
         document.getElementById('count-btn').textContent = count;
         document.getElementById('count-meta-btn').textContent = count;
+        const countBottom = document.getElementById('count-bottom');
+        if (countBottom) countBottom.textContent = count;
         document.getElementById('btn-wystaw').disabled = count === 0;
         document.getElementById('btn-batch-meta').disabled = count === 0;
+
+        // Update header select-all checkbox state
+        const allCbs = document.querySelectorAll('.product-checkbox:not(:disabled)');
+        const headerCb = document.getElementById('header-select-all');
+        if (headerCb && allCbs.length > 0) {{
+            headerCb.checked = Array.from(allCbs).every(cb => cb.checked);
+        }}
 
         let total = 0;
         checkboxes.forEach(cb => {{
@@ -2616,7 +2764,7 @@ def paleta_mass_edit(paleta_id):
             clearTimeout(timeout);
             const productId = this.dataset.productId;
             const newPrice = parseFloat(this.value) || 0;
-            this.style.borderColor = 'var(--yellow)';
+            this.style.borderColor = '#beee00';
 
             timeout = setTimeout(() => {{
                 fetch('/palety/api/update-price', {{
@@ -2630,16 +2778,16 @@ def paleta_mass_edit(paleta_id):
                 .then(r => r.json())
                 .then(data => {{
                     if (data.success) {{
-                        input.style.borderColor = 'var(--green)';
+                        input.style.borderColor = '#22c55e';
                         setTimeout(() => input.style.borderColor = '', 1000);
                         updateCounter();
                     }} else {{
-                        input.style.borderColor = 'var(--red)';
+                        input.style.borderColor = '#ff6b9b';
                         alert('Błąd zapisu: ' + data.error);
                     }}
                 }})
                 .catch(err => {{
-                    input.style.borderColor = 'var(--red)';
+                    input.style.borderColor = '#ff6b9b';
                     console.error('Error:', err);
                 }});
             }}, 800);
@@ -2668,20 +2816,18 @@ def paleta_mass_edit(paleta_id):
             return;
         }}
 
-        // BATCH LIMIT (zwiększony dla paid tier)
-        const MAX_BATCH = 100;  // Zwiększone z 10 na 100
+        const MAX_BATCH = 100;
         if (checked.length > MAX_BATCH) {{
-            alert('<span class=material-symbols-outlined>cancel</span> Zbyt dużo produktów!\\n\\nZaznaczono: ' + checked.length + '\\nMax: ' + MAX_BATCH + '\\n\\nZaznacz mniej produktów lub podziel na mniejsze batche.');
+            alert('Zbyt dużo produktów!\\n\\nZaznaczono: ' + checked.length + '\\nMax: ' + MAX_BATCH + '\\n\\nZaznacz mniej produktów lub podziel na mniejsze batche.');
             return;
         }}
 
-        // Oblicz czas (5s delay na produkt dla bezpieczeństwa)
         const estimatedTime = checked.length * 5;
         const minutes = Math.floor(estimatedTime / 60);
         const seconds = estimatedTime % 60;
         const timeStr = minutes > 0 ? minutes + 'min ' + seconds + 's' : seconds + 's';
 
-        if (!confirm('<span class=material-symbols-outlined>smart_toy</span> Wygenerować META TITLE dla ' + checked.length + ' produktów?\\n\\n<span class=material-symbols-outlined>timer</span>  Szacowany czas: ~' + timeStr + '\\n<span class=material-symbols-outlined>warning</span>  5s opóźnienie między produktami (safe rate limiting)\\n\\nKontynuować?')) {{
+        if (!confirm('Wygenerować META TITLE dla ' + checked.length + ' produktów?\\n\\nSzacowany czas: ~' + timeStr + '\\n5s opóźnienie między produktami (safe rate limiting)\\n\\nKontynuować?')) {{
             return;
         }}
 
@@ -2689,9 +2835,8 @@ def paleta_mass_edit(paleta_id):
         const button = document.getElementById('btn-batch-meta');
         const originalText = button.innerHTML;
 
-        // Disable button and show progress
         button.disabled = true;
-        button.innerHTML = '[HOURGLASS_TOP] Generuję 0/' + productIds.length + '... (może zająć ~' + timeStr + ')';
+        button.innerHTML = '<span class="material-symbols-outlined" style="font-size:1.1rem">hourglass_top</span> Generuję 0/' + productIds.length + '...';
 
         fetch('/api/generate_meta_title_batch', {{
             method: 'POST',
@@ -2706,32 +2851,25 @@ def paleta_mass_edit(paleta_id):
         .then(res => res.json())
         .then(data => {{
             if (data.success) {{
-                // Sprawdź czy były błędy quota
                 const quotaErrors = data.details ? data.details.filter(d => d.error && d.error.includes('Quota')).length : 0;
-
-                let msg = '<span class=material-symbols-outlined>check_circle</span> Gotowe!\\n\\nWygenerowano: ' + data.generated + '\\nBłędy: ' + data.failed;
-
+                let msg = 'Gotowe!\\n\\nWygenerowano: ' + data.generated + '\\nBłędy: ' + data.failed;
                 if (quotaErrors > 0) {{
-                    msg += '\\n\\n<span class=material-symbols-outlined>warning</span>  Quota exceeded!\\nPoczekaj do jutra (reset o 9:00 AM)\\nlub upgrade do paid tier.';
+                    msg += '\\n\\nQuota exceeded! Poczekaj do jutra (reset o 9:00 AM) lub upgrade do paid tier.';
                 }}
-
                 alert(msg);
                 location.reload();
             }} else {{
-                // Lepsze error messages
                 let errorMsg = data.error || 'Nieznany błąd';
-
                 if (errorMsg.includes('Zbyt dużo')) {{
-                    errorMsg = '<span class=material-symbols-outlined>cancel</span> ' + errorMsg + '\\n\\nTIP: Zaznacz max 10 produktów lub poczekaj do jutra na reset quota.';
+                    errorMsg += '\\n\\nTIP: Zaznacz max 10 produktów lub poczekaj do jutra na reset quota.';
                 }}
-
-                alert('<span class=material-symbols-outlined>cancel</span> Błąd:\\n\\n' + errorMsg);
+                alert('Błąd:\\n\\n' + errorMsg);
                 button.disabled = false;
                 button.innerHTML = originalText;
             }}
         }})
         .catch(err => {{
-            alert('<span class=material-symbols-outlined>cancel</span> Błąd połączenia:\\n\\n' + err + '\\n\\nSprawdź console (F12) dla szczegółów.');
+            alert('Błąd połączenia:\\n\\n' + err + '\\n\\nSprawdź console (F12) dla szczegółów.');
             button.disabled = false;
             button.innerHTML = originalText;
         }});
@@ -2742,14 +2880,16 @@ def paleta_mass_edit(paleta_id):
         const allChecked = Array.from(checkboxes).every(cb => cb.checked);
         checkboxes.forEach(cb => {{ cb.checked = !allChecked; }});
         const btn = document.getElementById('btn-select-all');
-        btn.innerHTML = allChecked ? '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_box</span> Zaznacz wszystkie' : '☐ Odznacz wszystkie';
+        btn.innerHTML = allChecked
+            ? '<span class="material-symbols-outlined" style="font-size:1rem">select_check_box</span> Zaznacz wszystkie'
+            : '<span class="material-symbols-outlined" style="font-size:1rem">check_box_outline_blank</span> Odznacz wszystkie';
         updateCounter();
     }}
 
     function regenerateMetaTitle(productId, button) {{
         const originalText = button.innerHTML;
         button.disabled = true;
-        button.innerHTML = '[HOURGLASS_TOP] Generuję...';
+        button.innerHTML = '<span class="material-symbols-outlined" style="font-size:.9rem">hourglass_top</span> Generuję...';
 
         fetch('/produkty/' + productId + '/regenerate-meta-title', {{
             method: 'POST',
@@ -2763,7 +2903,6 @@ def paleta_mass_edit(paleta_id):
         .then(res => res.json())
         .then(data => {{
             if (data.success) {{
-                // Odśwież stronę aby pokazać nowy META TITLE
                 location.reload();
             }} else {{
                 alert('Błąd: ' + (data.error || 'Nieznany błąd'));

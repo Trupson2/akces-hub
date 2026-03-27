@@ -3,7 +3,7 @@
 {% block content %}
 <style>
 /* ═══════════════════════════════════════════════════════════════
-   Changelog — Cyberpunk Timeline Design
+   Changelog — Cyberpunk Neon HUD
    ═══════════════════════════════════════════════════════════════ */
 
 /* Header */
@@ -12,255 +12,105 @@
 .cl-hdr-pre .bar{width:48px;height:2px;background:var(--neon-primary,#8ff5ff)}
 .cl-hdr-pre span{font-size:0.6rem;font-weight:700;color:var(--neon-primary,#8ff5ff);text-transform:uppercase;letter-spacing:0.3em;font-family:'Space Grotesk',sans-serif}
 .cl-hdr h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(2rem,5vw,3.5rem);font-weight:900;letter-spacing:-0.04em;line-height:1;color:var(--text,#f9f5f8)}
-.cl-hdr-right{display:flex;align-items:center;gap:12px;margin-top:12px}
 
-/* Stats badge */
-.cl-stat{background:rgba(19,19,21,0.8);backdrop-filter:blur(12px);padding:16px 20px;border-left:4px solid var(--neon-primary,#8ff5ff);box-shadow:0 0 25px -5px rgba(143,245,255,0.15)}
+/* Stats row */
+.cl-stats{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:32px}
+.cl-stat{background:rgba(19,19,21,0.8);backdrop-filter:blur(12px);padding:16px 20px;border-left:4px solid var(--neon-primary,#8ff5ff);box-shadow:0 0 25px -5px rgba(143,245,255,0.15);min-width:140px}
 .cl-stat-label{font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#adaaad;margin-bottom:2px}
-.cl-stat-val{font-family:'Space Grotesk',sans-serif;font-size:2.5rem;font-weight:900;color:var(--neon-primary,#8ff5ff);letter-spacing:-0.02em}
-.cl-stat-unit{font-size:0.75rem;color:#adaaad;text-transform:uppercase;font-weight:500;margin-left:4px}
+.cl-stat-val{font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:900;color:var(--neon-primary,#8ff5ff);letter-spacing:-0.02em}
 
-/* Timeline container */
-.cl-timeline{position:relative;padding-left:32px;max-width:900px}
-@media(min-width:768px){.cl-timeline{padding-left:96px}}
+/* Day group */
+.cl-day{margin-bottom:32px}
+.cl-day-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(143,245,255,0.1)}
+.cl-day-date{font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:800;color:var(--neon-primary,#8ff5ff);letter-spacing:0.05em}
+.cl-day-count{font-size:0.6rem;font-weight:700;color:#adaaad;text-transform:uppercase;letter-spacing:0.15em;padding:2px 8px;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.1)}
 
-/* Vertical axis */
-.cl-timeline::before{content:'';position:absolute;left:12px;top:0;bottom:0;width:1px;background:linear-gradient(180deg,var(--neon-primary,#8ff5ff),rgba(72,71,74,0.3),transparent);opacity:0.3}
-@media(min-width:768px){.cl-timeline::before{left:12px}}
+/* Commit row */
+.cl-row{display:flex;align-items:flex-start;gap:12px;padding:10px 16px;margin-bottom:2px;background:rgba(19,19,21,0.5);border-left:3px solid transparent;transition:all 0.2s}
+.cl-row:hover{background:rgba(19,19,21,0.9);border-left-color:var(--neon-primary,#8ff5ff)}
+.cl-hash{font-family:'JetBrains Mono','Fira Code',monospace;font-size:0.78rem;color:var(--neon-primary,#8ff5ff);min-width:70px;flex-shrink:0;letter-spacing:0.05em;padding-top:1px}
+.cl-msg{font-size:0.85rem;color:#e0dde0;flex:1;line-height:1.5}
+.cl-time{font-size:0.7rem;color:#64748b;min-width:80px;text-align:right;flex-shrink:0;padding-top:2px}
 
-/* Timeline entry */
-.cl-entry{position:relative;margin-bottom:40px}
+/* Type indicator */
+.cl-type-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.cl-type-dot.fix{background:var(--neon-secondary,#ff6b9b);box-shadow:0 0 8px rgba(255,107,155,0.4)}
+.cl-type-dot.add{background:var(--neon-tertiary,#beee00);box-shadow:0 0 8px rgba(190,238,0,0.4)}
+.cl-type-dot.redesign{background:var(--neon-primary,#8ff5ff);box-shadow:0 0 8px rgba(143,245,255,0.4)}
+.cl-type-dot.other{background:#64748b}
 
-/* Timeline dot */
-.cl-dot{position:absolute;left:-28px;top:8px;width:16px;height:16px;border-radius:50%;background:var(--bg,#0e0e10);border:4px solid;z-index:1}
-@media(min-width:768px){.cl-dot{left:-92px}}
-.cl-dot.major{border-color:var(--neon-primary,#8ff5ff);box-shadow:0 0 20px -3px rgba(143,245,255,0.3)}
-.cl-dot.patch{border-color:var(--neon-secondary,#ff6b9b);box-shadow:0 0 20px -3px rgba(255,107,155,0.3)}
-.cl-dot.minor{border-color:#48474a}
-
-/* Version badge */
-.cl-version{display:inline-block;padding:4px 12px;font-family:'Space Grotesk',sans-serif;font-weight:900;font-size:0.8rem;letter-spacing:0.1em;margin-bottom:8px}
-.cl-version.major{background:var(--neon-primary,#8ff5ff);color:#005d63}
-.cl-version.patch{background:var(--neon-secondary,#ff6b9b);color:#47001f}
-.cl-version.minor{background:#262528;color:#adaaad}
-.cl-date-label{font-size:0.6rem;font-weight:700;color:#adaaad;text-transform:uppercase;letter-spacing:0.2em;margin-bottom:12px}
-
-/* Release type badge */
-.cl-type{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-top:8px;border:1px solid}
-.cl-type.major{background:rgba(143,245,255,0.1);border-color:rgba(143,245,255,0.2);color:var(--neon-primary,#8ff5ff)}
-.cl-type.patch{background:rgba(255,107,155,0.1);border-color:rgba(255,107,155,0.2);color:var(--neon-secondary,#ff6b9b)}
-
-/* Card */
-.cl-card{background:rgba(19,19,21,0.7);backdrop-filter:blur(12px);border:1px solid rgba(72,71,74,0.1);padding:24px;transition:all 0.5s}
-.cl-card:hover{border-color:rgba(143,245,255,0.2)}
-.cl-card-title{font-family:'Space Grotesk',sans-serif;font-size:1.3rem;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:12px;color:var(--text,#f9f5f8)}
-.cl-card-title .sep{height:1px;flex:1;background:rgba(72,71,74,0.2)}
-
-/* Sections grid */
-.cl-sections{display:grid;grid-template-columns:1fr;gap:20px}
-@media(min-width:600px){.cl-sections{grid-template-columns:1fr 1fr}}
-
-/* Section */
-.cl-section h3{display:flex;align-items:center;gap:6px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;margin-bottom:12px}
-.cl-section h3.new{color:var(--neon-tertiary,#beee00)}
-.cl-section h3.new .material-symbols-outlined{color:var(--neon-tertiary,#beee00)}
-.cl-section h3.fix{color:var(--neon-secondary,#ff6b9b)}
-.cl-section h3.fix .material-symbols-outlined{color:var(--neon-secondary,#ff6b9b)}
-.cl-section h3.opt{color:var(--neon-primary,#8ff5ff)}
-.cl-section h3.opt .material-symbols-outlined{color:var(--neon-primary,#8ff5ff)}
-.cl-section h3.change{color:#f59e0b}
-.cl-section h3.change .material-symbols-outlined{color:#f59e0b}
-
-/* Items */
-.cl-items{list-style:none;padding:0;margin:0}
-.cl-items li{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;font-size:0.82rem;color:#adaaad;line-height:1.6}
-.cl-items li .material-symbols-outlined{font-size:1rem;margin-top:3px;flex-shrink:0}
-.cl-items li code{font-size:0.75rem;background:rgba(143,245,255,0.08);color:var(--neon-primary,#8ff5ff);padding:1px 6px}
+/* Legend */
+.cl-legend{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:24px;padding:12px 16px;background:rgba(19,19,21,0.5);border:1px solid rgba(72,71,74,0.15)}
+.cl-legend-item{display:flex;align-items:center;gap:6px;font-size:0.72rem;color:#adaaad;font-weight:600;text-transform:uppercase;letter-spacing:0.1em}
 
 /* Back link */
 .cl-back{display:flex;align-items:center;gap:6px;color:#64748b;text-decoration:none;font-size:0.85rem;padding:8px 0;transition:color 0.2s;margin-top:20px}
 .cl-back:hover{color:var(--neon-primary,#8ff5ff)}
+
+/* Empty state */
+.cl-empty{text-align:center;padding:60px 20px;color:#64748b}
+.cl-empty .material-symbols-outlined{font-size:3rem;margin-bottom:12px;color:rgba(143,245,255,0.3)}
+
+@media(max-width:600px){
+    .cl-row{flex-wrap:wrap;gap:4px;padding:8px 12px}
+    .cl-time{min-width:auto;text-align:left;width:100%;font-size:0.65rem;margin-top:2px}
+}
 </style>
 
 <!-- Header -->
-<div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:32px">
+<div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:24px">
     <div class="cl-hdr">
         <div class="cl-hdr-pre">
             <span class="bar"></span>
-            <span>CORE_ARCHIVE</span>
+            <span>GIT_LOG</span>
         </div>
-        <h1>HISTORIA ZMIAN</h1>
+        <h1>CHANGELOG</h1>
     </div>
-    <div class="cl-stat">
-        <div class="cl-stat-label">Wersja systemu</div>
-        <div style="display:flex;align-items:baseline">
-            <span class="cl-stat-val">{{ version }}</span>
+    <div class="cl-stats">
+        <div class="cl-stat">
+            <div class="cl-stat-label">Wersja</div>
+            <div class="cl-stat-val">{{ version }}</div>
+        </div>
+        <div class="cl-stat">
+            <div class="cl-stat-label">Commity</div>
+            <div class="cl-stat-val">{{ total }}</div>
         </div>
     </div>
 </div>
 
-<!-- Timeline -->
-<div class="cl-timeline" id="changelog-timeline"></div>
+<!-- Legend -->
+<div class="cl-legend">
+    <div class="cl-legend-item"><span class="cl-type-dot fix"></span> Fix</div>
+    <div class="cl-legend-item"><span class="cl-type-dot add"></span> Add / New</div>
+    <div class="cl-legend-item"><span class="cl-type-dot redesign"></span> Redesign</div>
+    <div class="cl-legend-item"><span class="cl-type-dot other"></span> Other</div>
+</div>
+
+<!-- Commits grouped by date -->
+{% if days %}
+    {% for day, commits in days.items() %}
+    <div class="cl-day">
+        <div class="cl-day-header">
+            {% set dp = day.split('-') %}
+            <span class="cl-day-date">{{ dp[2] }}.{{ dp[1] }}.{{ dp[0] }}</span>
+            <span class="cl-day-count">{{ commits|length }} commit{{ 's' if commits|length != 1 else '' }}</span>
+        </div>
+        {% for c in commits %}
+        <div class="cl-row">
+            <span class="cl-type-dot {{ c.type }}"></span>
+            <span class="cl-hash">{{ c.hash }}</span>
+            <span class="cl-msg">{{ c.message }}</span>
+            <span class="cl-time">{{ c.date[11:16] }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="cl-empty">
+        <span class="material-symbols-outlined">history</span>
+        <div>Brak danych git log</div>
+    </div>
+{% endif %}
 
 <a href="/" class="cl-back"><span class="material-symbols-outlined" style="font-size:1rem">arrow_back</span> Dashboard</a>
-
-<script>
-const raw = {{ content|tojson }};
-const container = document.getElementById('changelog-timeline');
-
-// Parse CHANGELOG.md into structured data
-const lines = raw.split('\n');
-let entries = []; // [{date, sections: [{title, items: [{tag, text}]}]}]
-let currentEntry = null;
-let currentSection = null;
-
-for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line || line === '---') continue;
-    if (line.startsWith('# ') && !line.startsWith('## ')) continue;
-
-    if (line.startsWith('## ')) {
-        if (currentEntry) entries.push(currentEntry);
-        currentEntry = { date: line.replace('## ', ''), sections: [] };
-        currentSection = null;
-        continue;
-    }
-
-    if (line.startsWith('### ') && currentEntry) {
-        currentSection = { title: line.replace('### ', ''), items: [] };
-        currentEntry.sections.push(currentSection);
-        continue;
-    }
-
-    if (line.startsWith('- ') && currentSection) {
-        let text = line.substring(2);
-        // Detect tag from [NOWE], [FIX], [ZMIANA], [SECURITY] markers
-        let tag = 'change';
-        if (text.match(/^\[NOWE\]/i)) { tag = 'new'; text = text.replace(/^\[NOWE\]\s*/i, ''); }
-        else if (text.match(/^\[FIX\]/i)) { tag = 'fix'; text = text.replace(/^\[FIX\]\s*/i, ''); }
-        else if (text.match(/^\[ZMIANA\]/i)) { tag = 'change'; text = text.replace(/^\[ZMIANA\]\s*/i, ''); }
-        else if (text.match(/^\[SECURITY\]/i)) { tag = 'fix'; text = text.replace(/^\[SECURITY\]\s*/i, ''); }
-        // Format backticks as code
-        text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-        // Format bold
-        text = text.replace(/\*\*([^*]+)\*\*/g, '<strong style="color:#f9f5f8">$1</strong>');
-        // Format em-dash sections
-        text = text.replace(/—/g, '<span style="color:#48474a"> — </span>');
-        currentSection.items.push({ tag, text });
-    }
-}
-if (currentEntry) entries.push(currentEntry);
-
-// Render timeline
-const tagIcons = {
-    'new': { icon: 'add_circle', cls: 'new' },
-    'fix': { icon: 'bug_report', cls: 'fix' },
-    'change': { icon: 'sync_alt', cls: 'change' },
-    'opt': { icon: 'rocket_launch', cls: 'opt' }
-};
-
-const sectionIcons = {
-    'cyberpunk': 'palette', 'redesign': 'palette', 'design': 'palette', 'stitch': 'palette',
-    'eula': 'gavel', 'licen': 'key', 'login': 'key', 'auth': 'key',
-    'allegro': 'shopping_cart', 'olx': 'store', 'vinted': 'store',
-    'telegram': 'send', 'rodo': 'shield', 'bezpiecz': 'lock', 'security': 'lock',
-    'backup': 'cloud_upload', 'system': 'terminal', 'monitor': 'monitor_heart',
-    'karta': 'inventory_2', 'produkt': 'inventory_2', 'magazyn': 'warehouse',
-    'paleta': 'package_2', 'palet': 'package_2',
-    'ean': 'qr_code', 'fix': 'build', 'napraw': 'build',
-    'ocen': 'star', 'stan': 'star', 'split': 'call_split',
-    'changelog': 'history', 'historia': 'history',
-    'onboard': 'rocket_launch', 'update': 'system_update',
-    'subskryp': 'card_membership', 'print': 'print', 'etykiet': 'label',
-    'warehouse': 'domain', '3d': 'view_in_ar', 'hud': 'dashboard'
-};
-
-function getSectionIcon(title) {
-    const t = title.toLowerCase();
-    for (const [key, icon] of Object.entries(sectionIcons)) {
-        if (t.includes(key)) return icon;
-    }
-    return 'push_pin';
-}
-
-function getEntryType(entry) {
-    // Determine if major/patch/minor based on content
-    const allItems = entry.sections.reduce((acc, s) => acc + s.items.length, 0);
-    const hasNew = entry.sections.some(s => s.items.some(i => i.tag === 'new'));
-    if (allItems > 8 || entry.sections.length > 3) return 'major';
-    if (hasNew) return 'patch';
-    return 'minor';
-}
-
-let html = '';
-entries.forEach((entry, idx) => {
-    const type = getEntryType(entry);
-    const dotClass = type;
-    const versionClass = type;
-
-    html += '<article class="cl-entry">';
-    html += '<div class="cl-dot ' + dotClass + '"></div>';
-
-    // Version/date header
-    html += '<div style="margin-bottom:16px">';
-    html += '<span class="cl-version ' + versionClass + '">' + entry.date + '</span>';
-    if (type === 'major') {
-        html += '<div class="cl-type major"><span class="material-symbols-outlined" style="font-size:0.7rem;font-variation-settings:\'FILL\' 1">stars</span> MAJOR RELEASE</div>';
-    } else if (type === 'patch') {
-        html += '<div class="cl-type patch"><span class="material-symbols-outlined" style="font-size:0.7rem;font-variation-settings:\'FILL\' 1">build</span> UPDATE</div>';
-    }
-    html += '</div>';
-
-    // Sections card
-    entry.sections.forEach(section => {
-        const sIcon = getSectionIcon(section.title);
-
-        html += '<div class="cl-card" style="margin-bottom:12px">';
-        html += '<div class="cl-card-title">';
-        html += '<span class="material-symbols-outlined" style="color:var(--neon-primary,#8ff5ff)">' + sIcon + '</span>';
-        html += section.title;
-        html += '<span class="sep"></span>';
-        html += '</div>';
-
-        // Group items by tag
-        const groups = {};
-        section.items.forEach(item => {
-            if (!groups[item.tag]) groups[item.tag] = [];
-            groups[item.tag].push(item.text);
-        });
-
-        const groupKeys = Object.keys(groups);
-        if (groupKeys.length > 1) {
-            html += '<div class="cl-sections">';
-        }
-
-        for (const [tag, items] of Object.entries(groups)) {
-            const ti = tagIcons[tag] || tagIcons['change'];
-            html += '<section class="cl-section">';
-            html += '<h3 class="' + ti.cls + '"><span class="material-symbols-outlined" style="font-size:0.9rem">' + ti.icon + '</span>';
-            if (tag === 'new') html += '[NOWE]';
-            else if (tag === 'fix') html += '[FIX]';
-            else html += '[ZMIANA]';
-            html += '</h3>';
-            html += '<ul class="cl-items">';
-            items.forEach(text => {
-                const iconColor = tag === 'new' ? 'var(--neon-tertiary,#beee00)' : tag === 'fix' ? 'var(--neon-secondary,#ff6b9b)' : '#f59e0b';
-                const icon = tag === 'new' ? 'bolt' : tag === 'fix' ? 'error' : 'sync_alt';
-                html += '<li><span class="material-symbols-outlined" style="color:' + iconColor + '">' + icon + '</span><span>' + text + '</span></li>';
-            });
-            html += '</ul></section>';
-        }
-
-        if (groupKeys.length > 1) {
-            html += '</div>';
-        }
-
-        html += '</div>';
-    });
-
-    html += '</article>';
-});
-
-container.innerHTML = html;
-</script>
 {% endblock %}
