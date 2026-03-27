@@ -2872,7 +2872,7 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                 return
 
             produkty = conn2.execute(
-                "SELECT id, ean, asin, nazwa, ilosc, cena_netto, cena_brutto, kategoria, stan FROM produkty WHERE paleta_id = ?",
+                "SELECT id, ean, asin, nazwa, ilosc, cena_netto, cena_brutto, kategoria, stan, zdjecie_url FROM produkty WHERE paleta_id = ?",
                 (paleta_id,)
             ).fetchall()
 
@@ -2881,7 +2881,12 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                 conn2.close()
                 return
 
-            produkty_list = [dict(p) for p in produkty]
+            produkty_list = []
+            for p in produkty:
+                pd = dict(p)
+                if pd.get('zdjecie_url'):
+                    pd['image_url'] = pd['zdjecie_url']
+                produkty_list.append(pd)
             paleta_dict = dict(paleta)
 
         koszt_palety = paleta_dict.get('cena_zakupu', 0) or 0
@@ -3024,16 +3029,21 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                         item['ilosc'] = int(batch[j].get('ilosc', 1) or 1)
                         item['asin'] = batch[j].get('asin', '')
                         item['ean'] = batch[j].get('ean', '')
+                        if batch[j].get('image_url'):
+                            item['image_url'] = batch[j]['image_url']
                 all_results.extend(item for item in batch_parsed if isinstance(item, dict))
             else:
                 # Fallback — dodaj surowe wyniki
                 for p in batch:
-                    all_results.append({'nazwa': p.get('nazwa','?'), 'cena_allegro': 0,
-                                       'cena_amazon_rpp': float(p.get('cena_brutto', 0) or 0),
-                                       'ilosc': int(p.get('ilosc', 1) or 1),
-                                       'asin': p.get('asin', ''), 'ean': p.get('ean', ''),
-                                       'popyt': '?', 'czas_sprzedazy_dni': 0,
-                                       'uwagi': 'Nie udało się sparsować odpowiedzi AI'})
+                    fallback = {'nazwa': p.get('nazwa','?'), 'cena_allegro': 0,
+                               'cena_amazon_rpp': float(p.get('cena_brutto', 0) or 0),
+                               'ilosc': int(p.get('ilosc', 1) or 1),
+                               'asin': p.get('asin', ''), 'ean': p.get('ean', ''),
+                               'popyt': '?', 'czas_sprzedazy_dni': 0,
+                               'uwagi': 'Nie udało się sparsować odpowiedzi AI'}
+                    if p.get('image_url'):
+                        fallback['image_url'] = p['image_url']
+                    all_results.append(fallback)
 
             # Update progress po batchu
             pct = int((batch_idx + 1) / len(batches) * 100)
@@ -3633,6 +3643,7 @@ def analiza_zakupu():
             col_kat = next((i for i, h in enumerate(header) if any(k in h for k in ['kategoria','category','cat'])), None)
             col_brand = next((i for i, h in enumerate(header) if 'brand' in h), None)
             col_condition = next((i for i, h in enumerate(header) if 'condition' in h or 'stan' in h), None)
+            col_image = next((i for i, h in enumerate(header) if any(k in h for k in ['image','foto','zdjecie','thumbnail','img','picture','photo'])), None)
 
             print(f"[Analiza zakupu] Kolumny: nazwa={col_nazwa}({header[col_nazwa] if col_nazwa is not None else '?'}), "
                   f"ean={col_ean}, asin={col_asin}, ilosc={col_ilosc}, cena={col_cena}, kat={col_kat}, brand={col_brand}")
@@ -3676,6 +3687,11 @@ def analiza_zakupu():
                     'cena_brutto': _parse_price(row[col_cena]) if col_cena is not None and col_cena < len(row) and row[col_cena] else 0,
                     'kategoria': str(row[col_kat] or '').strip() if col_kat is not None and col_kat < len(row) else 'inne',
                 }
+                # Obrazek URL z Excela
+                if col_image is not None and col_image < len(row) and row[col_image]:
+                    img_val = str(row[col_image]).strip()
+                    if img_val.startswith('http'):
+                        p['image_url'] = img_val
                 # Dodaj brand do nazwy jeśli go nie zawiera
                 if col_brand is not None and col_brand < len(row) and row[col_brand]:
                     brand = str(row[col_brand]).strip()
@@ -3823,7 +3839,7 @@ def _get_render_results_js():
         products.forEach(function(p) { totalSzt += (p.ilosc || 1); });
         var h = '<div id="product-table-info" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px">' + products.length + ' typów, ' + totalSzt + ' szt.</div>';
         h += '<table style="width:100%;border-collapse:collapse;font-size:0.83rem"><thead><tr style="border-bottom:2px solid var(--border)">';
-        h += '<th style="padding:8px;text-align:left">#</th><th style="padding:8px;text-align:left">Produkt</th><th style="padding:8px">Szt.</th><th style="padding:8px">Cena Allegro</th><th style="padding:8px">Wartość</th><th style="padding:8px">RRP Amazon</th><th style="padding:8px">Allegro real</th><th style="padding:8px">Popyt</th><th style="padding:8px">Czas</th><th style="padding:8px;text-align:left">Uwagi</th>';
+        h += '<th style="padding:8px;text-align:left">#</th><th style="padding:8px">Foto</th><th style="padding:8px;text-align:left">Produkt</th><th style="padding:8px">Szt.</th><th style="padding:8px">Cena Allegro</th><th style="padding:8px">Wartość</th><th style="padding:8px">RRP Amazon</th><th style="padding:8px">Allegro real</th><th style="padding:8px">Popyt</th><th style="padding:8px">Czas</th><th style="padding:8px;text-align:left">Uwagi</th>';
         h += '</tr></thead><tbody>';
         products.forEach(function(p, idx) {
             var cena = p.cena_allegro || p.cena_sprzedazy || 0;
@@ -3833,6 +3849,13 @@ def _get_render_results_js():
             var corrected = p.cena_allegro_gemini ? true : false;
             h += '<tr style="border-bottom:1px solid var(--border)">';
             h += '<td style="padding:8px;color:var(--text-muted)">' + (idx+1) + '</td>';
+            // Foto z Excel image_url, Amazon CDN (ASIN) lub placeholder
+            var imgSrc = p.image_url || (p.asin && p.asin.length >= 10 ? 'https://m.media-amazon.com/images/P/' + p.asin + '._SL75_.jpg' : '');
+            if (imgSrc) {
+                h += '<td style="padding:4px;text-align:center"><img src="' + imgSrc + '" style="width:50px;height:50px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,0.05)" onerror="this.outerHTML=\'<span style=color:var(--text-muted);font-size:0.7rem>brak</span>\'"></td>';
+            } else {
+                h += '<td style="padding:4px;text-align:center"><span style="color:var(--text-muted);font-size:0.7rem">—</span></td>';
+            }
             var asinLink = '';
             if (p.asin) {
                 asinLink = '<br><a href="https://www.amazon.de/dp/' + p.asin + '" target="_blank" style="font-size:0.7rem;color:#60a5fa;text-decoration:none"><span class=material-symbols-outlined>link</span> ' + p.asin + '</a>';
