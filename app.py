@@ -2842,6 +2842,11 @@ def kalkulator():
 
 # GENERATOR OPISÓW
 
+@app.route('/generator')
+def generator_redirect():
+    """Redirect /generator → /paletomat/generator (właściwy generator ofert)"""
+    return redirect('/paletomat/generator')
+
 @app.route('/narzedzia/generator', methods=['GET', 'POST'])
 def generator():
     opis = None

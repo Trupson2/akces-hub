@@ -1976,8 +1976,12 @@ def paleta_bulk_import():
                         except:
                             continue
 
-                    # Aktualizuj liczbę i cenę
-                    conn.execute('UPDATE palety SET ilosc_produktow = ? WHERE id = ?', (produkty_dodane, paleta_id))
+                    # Aktualizuj liczbę, sztuki i cenę
+                    _ilosc_sztuk_sum = conn.execute(
+                        'SELECT COALESCE(SUM(ilosc), 0) FROM produkty WHERE paleta_id = ?', (paleta_id,)
+                    ).fetchone()[0]
+                    conn.execute('UPDATE palety SET ilosc_produktow = ?, ilosc_sztuk = ? WHERE id = ?',
+                                 (produkty_dodane, _ilosc_sztuk_sum, paleta_id))
 
                     if cena_zakupu > 0:
                         # User podał cenę zakupu — ustaw ją (nadpisz ewentualny auto-oblicz)
@@ -2077,6 +2081,39 @@ def paleta_bulk_import():
                         print(f"[AGRI] Bulk import → auto-scraping {scrape_count} produktów")
             except Exception as e:
                 print(f"[WARNING] Auto-scraping/scraped insert error: {e}")
+
+            # [AUTO-META] Generuj meta_title w tle dla produktów bez tytułu
+            ok_paleta_ids = [w['paleta_id'] for w in wyniki if w['status'] == 'ok']
+            if ok_paleta_ids:
+                import threading as _threading
+                def _auto_meta(pids):
+                    try:
+                        import time as _t
+                        _t.sleep(5)
+                        from modules.database import get_db as _gdb3
+                        from modules.utils import translate_product_name
+                        _conn3 = _gdb3()
+                        _phs = ','.join('?' * len(pids))
+                        _prods = _conn3.execute(
+                            f"SELECT id, nazwa, meta_title FROM produkty WHERE paleta_id IN ({_phs}) AND (meta_title IS NULL OR meta_title = '')",
+                            pids
+                        ).fetchall()
+                        _upd = 0
+                        for _p3 in _prods:
+                            try:
+                                _new = translate_product_name(_p3['nazwa'], use_ai=True)
+                                if _new and _new != _p3['nazwa']:
+                                    _conn3.execute('UPDATE produkty SET meta_title = ? WHERE id = ?', (_new[:100], _p3['id']))
+                                    _upd += 1
+                                    _t.sleep(0.3)
+                            except:
+                                pass
+                        if _upd:
+                            _conn3.commit()
+                        print(f"[AUTO-META] Wygenerowano meta_title dla {_upd}/{len(_prods)} produktów")
+                    except Exception as _em:
+                        print(f"[WARN] Auto-meta error: {_em}")
+                _threading.Thread(target=_auto_meta, args=(ok_paleta_ids,), daemon=True).start()
 
             # Pokaż wyniki
             ok_count = sum(1 for w in wyniki if w['status'] == 'ok')
