@@ -3579,6 +3579,9 @@ def paleta_detail_by_id(paleta_id):
             <button onclick="document.getElementById('editPaletaModal').style.display='flex'" style="padding:8px 14px;border:2px solid #f59e0b;background:#f59e0b22;color:#f59e0b;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap">
                 <span class=material-symbols-outlined>edit</span> Edytuj
             </button>
+            <a href="/magazyn/paleta-etykieta/{paleta_id}" style="padding:8px 14px;border:2px solid #22c55e;background:#22c55e22;color:#22c55e;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;text-decoration:none;white-space:nowrap">
+                <span class=material-symbols-outlined>print</span> Drukuj etykietę
+            </a>
         </div>
     </div>
 
@@ -3846,6 +3849,139 @@ def paleta_to_paletomat_by_id(paleta_id):
     conn.commit()
     
     return redirect(f'/paletomat/scraper?added={added}')
+
+
+# ============================================================
+# ETYKIETA PALETY — druk
+# ============================================================
+@magazynier_bp.route('/paleta-etykieta/<int:paleta_id>')
+def paleta_etykieta(paleta_id):
+    """Printable label page for a pallet — contents, QR code, totals."""
+    conn = get_db()
+
+    # Fetch pallet info
+    paleta = conn.execute(
+        'SELECT id, nazwa, dostawca, data_zakupu, cena_zakupu FROM palety WHERE id = ?',
+        (paleta_id,)
+    ).fetchone()
+    if not paleta:
+        return redirect('/magazyn/palety')
+
+    p_nazwa = paleta['nazwa'] or ''
+    p_dostawca = paleta['dostawca'] or ''
+    try:
+        p_data = paleta['data_zakupu'] or ''
+    except Exception:
+        p_data = ''
+    try:
+        p_cena = paleta['cena_zakupu'] or 0
+    except Exception:
+        p_cena = 0
+
+    # Fetch products on this pallet
+    products = conn.execute(
+        'SELECT nazwa, ilosc, ean, stan_przyjecia, klasa_jakosci FROM produkty WHERE paleta_id = ?',
+        (paleta_id,)
+    ).fetchall()
+
+    total_types = len(products)
+    total_pieces = sum((p['ilosc'] or 0) for p in products)
+
+    # Build product rows
+    prod_rows = ''
+    for idx, pr in enumerate(products, 1):
+        name = (pr['nazwa'] or 'Brak nazwy')[:30]
+        qty = pr['ilosc'] or 0
+        ean = pr['ean'] or ''
+        stan = _format_stan_label(pr['stan_przyjecia'] if 'stan_przyjecia' in pr.keys() else '', pr['klasa_jakosci'] if 'klasa_jakosci' in pr.keys() else '')
+        prod_rows += f'''<tr>
+            <td style="padding:4px 8px;border-bottom:1px solid #ccc;text-align:center">{idx}</td>
+            <td style="padding:4px 8px;border-bottom:1px solid #ccc">{name}</td>
+            <td style="padding:4px 8px;border-bottom:1px solid #ccc;text-align:center">{qty}</td>
+            <td style="padding:4px 8px;border-bottom:1px solid #ccc;font-size:0.75rem">{ean}</td>
+            <td style="padding:4px 8px;border-bottom:1px solid #ccc;font-size:0.75rem">{stan}</td>
+        </tr>'''
+
+    from .database import get_config as _gc
+    ngrok_domain = _gc('ngrok_domain', '')
+    base_url = ngrok_domain and f"https://{ngrok_domain}" or request.host_url.rstrip('/')
+    qr_url = f"{base_url}/magazyn/paleta-id/{paleta_id}"
+
+    html = f'''<!DOCTYPE html><html lang="pl"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Etykieta palety — {p_nazwa}</title>
+<style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#000;padding:20px}}
+@media screen {{
+    body{{background:#0f172a;color:#e2e8f0}}
+    .print-page{{background:#fff;color:#000;border-radius:12px;padding:30px;max-width:800px;margin:0 auto}}
+}}
+@media print {{
+    .no-print{{display:none !important}}
+    body{{padding:10px}}
+    .print-page{{padding:10px}}
+}}
+.no-print{{text-align:center;margin-bottom:16px}}
+.no-print button{{padding:10px 28px;background:#7c3aed;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;margin:4px}}
+.no-print a{{color:#94a3b8;text-decoration:none;margin:0 10px;font-size:0.9rem}}
+h1{{font-size:2rem;font-weight:900;margin-bottom:4px}}
+.meta{{font-size:0.95rem;color:#555;margin-bottom:16px}}
+.qr-box{{text-align:center;margin:16px 0}}
+.qr-box svg{{width:180px;height:180px}}
+table{{width:100%;border-collapse:collapse;font-size:0.85rem;margin-top:12px}}
+th{{background:#f0f0f0;padding:6px 8px;text-align:left;border-bottom:2px solid #333;font-weight:700}}
+.totals{{margin-top:14px;font-size:1rem;font-weight:700;display:flex;gap:20px;flex-wrap:wrap}}
+.totals span{{background:#f0f0f0;padding:6px 14px;border-radius:8px}}
+</style>
+</head><body>
+
+<div class="no-print">
+    <button onclick="window.print()">Drukuj</button>
+    <a href="/magazyn/paleta-id/{paleta_id}">Wróć do palety</a>
+</div>
+
+<div class="print-page">
+    <h1>#{paleta_id} — {p_nazwa}</h1>
+    <div class="meta">
+        Dostawca: <b>{p_dostawca}</b> &nbsp;|&nbsp;
+        Data zakupu: <b>{p_data}</b> &nbsp;|&nbsp;
+        Cena zakupu: <b>{p_cena:.2f} zł</b>
+    </div>
+
+    <div class="qr-box" id="qrBox" data-url="{qr_url}"></div>
+
+    <table>
+        <tr>
+            <th>#</th><th>Produkt</th><th>Szt.</th><th>EAN</th><th>Stan</th>
+        </tr>
+        {prod_rows}
+    </table>
+
+    <div class="totals">
+        <span>Produktów: {total_types}</span>
+        <span>Łącznie sztuk: {total_pieces}</span>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" integrity="sha384-lQXOAyZwHXE55JFyrOMB7nY2Wv+m5ZWNtJcHrd1rceRQXAYNLak8ukN5TjBTcIwz" crossorigin="anonymous"></script>
+<script>
+(function(){{
+    var box = document.getElementById('qrBox');
+    var url = box.dataset.url;
+    if(!url) return;
+    var qr = qrcode(0, 'M');
+    qr.addData(url);
+    qr.make();
+    box.innerHTML = qr.createSvgTag(6, 0);
+    var svg = box.querySelector('svg');
+    if(svg){{ svg.style.width='180px'; svg.style.height='180px'; }}
+}})();
+</script>
+
+</body></html>'''
+
+    return html
 
 
 @magazynier_bp.route('/paleta/<path:n>')

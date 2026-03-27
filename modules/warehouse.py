@@ -514,6 +514,113 @@ function filterCards() {{
     return html
 
 
+# ============================================================
+# BOX / SHELF LABEL — druk
+# ============================================================
+@warehouse_bp.route('/warehouse/box-label/<code>')
+def box_label(code):
+    """Printable label for a shelf/box — lists products at that location."""
+    from modules.database import get_db, get_config
+    code = code.upper().strip()
+
+    conn = get_db()
+    # Find all products whose lokalizacja starts with the given code
+    pattern = f'{code}%'
+    products = conn.execute(
+        '''SELECT id, nazwa, ilosc, ean, asin, lokalizacja
+           FROM produkty
+           WHERE lokalizacja LIKE ?
+             AND status IN ('magazyn','wystawiony')
+           ORDER BY lokalizacja, nazwa''',
+        (pattern,)
+    ).fetchall()
+
+    total_items = sum((p['ilosc'] or 0) for p in products)
+
+    prod_rows = ''
+    for idx, pr in enumerate(products, 1):
+        name = (pr['nazwa'] or 'Brak nazwy')[:35]
+        qty = pr['ilosc'] or 0
+        ean = pr['ean'] or pr['asin'] or ''
+        loc = pr['lokalizacja'] or ''
+        prod_rows += f'''<tr>
+            <td style="padding:3px 6px;border-bottom:1px solid #ccc;text-align:center;font-size:0.8rem">{idx}</td>
+            <td style="padding:3px 6px;border-bottom:1px solid #ccc;font-size:0.8rem">{name}</td>
+            <td style="padding:3px 6px;border-bottom:1px solid #ccc;text-align:center;font-weight:700">{qty}</td>
+            <td style="padding:3px 6px;border-bottom:1px solid #ccc;font-size:0.7rem">{ean}</td>
+            <td style="padding:3px 6px;border-bottom:1px solid #ccc;font-size:0.75rem">{loc}</td>
+        </tr>'''
+
+    ngrok_domain = get_config('ngrok_domain', '')
+    base_url = ngrok_domain and f"https://{ngrok_domain}" or request.host_url.rstrip('/')
+    qr_url = f"{base_url}/warehouse/shelf/{code}"
+
+    html = f'''<!DOCTYPE html><html lang="pl"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Etykieta — {code}</title>
+<style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#000;padding:20px}}
+@media screen {{
+    body{{background:#0f172a;color:#e2e8f0}}
+    .print-page{{background:#fff;color:#000;border-radius:12px;padding:30px;max-width:800px;margin:0 auto}}
+}}
+@media print {{
+    .no-print{{display:none !important}}
+    body{{padding:10px}}
+    .print-page{{padding:10px}}
+}}
+.no-print{{text-align:center;margin-bottom:16px}}
+.no-print button{{padding:10px 28px;background:#7c3aed;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;margin:4px}}
+.no-print a{{color:#94a3b8;text-decoration:none;margin:0 10px;font-size:0.9rem}}
+.shelf-code{{font-size:7rem;font-weight:900;text-align:center;margin:10px 0;line-height:1}}
+.qr-box{{text-align:center;margin:10px 0}}
+.qr-box svg{{width:160px;height:160px}}
+table{{width:100%;border-collapse:collapse;font-size:0.85rem;margin-top:10px}}
+th{{background:#f0f0f0;padding:5px 6px;text-align:left;border-bottom:2px solid #333;font-weight:700;font-size:0.8rem}}
+.totals{{margin-top:10px;font-size:1rem;font-weight:700;text-align:center}}
+.totals span{{background:#f0f0f0;padding:6px 14px;border-radius:8px}}
+</style>
+</head><body>
+
+<div class="no-print">
+    <button onclick="window.print()">Drukuj</button>
+    <a href="/warehouse/shelf/{code}">Wróć do regału</a>
+    <a href="/warehouse/shelves">Mapa</a>
+</div>
+
+<div class="print-page">
+    <div class="shelf-code">{code}</div>
+    <div class="qr-box" id="qrBox" data-url="{qr_url}"></div>
+
+    <div class="totals"><span>{total_items} szt. &nbsp;|&nbsp; {len(products)} produktów</span></div>
+
+    <table>
+        <tr><th>#</th><th>Produkt</th><th>Szt.</th><th>EAN/ASIN</th><th>Lok.</th></tr>
+        {prod_rows}
+    </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" integrity="sha384-lQXOAyZwHXE55JFyrOMB7nY2Wv+m5ZWNtJcHrd1rceRQXAYNLak8ukN5TjBTcIwz" crossorigin="anonymous"></script>
+<script>
+(function(){{
+    var box = document.getElementById('qrBox');
+    var url = box.dataset.url;
+    if(!url) return;
+    var qr = qrcode(0, 'M');
+    qr.addData(url);
+    qr.make();
+    box.innerHTML = qr.createSvgTag(5, 0);
+    var svg = box.querySelector('svg');
+    if(svg){{ svg.style.width='160px'; svg.style.height='160px'; }}
+}})();
+</script>
+
+</body></html>'''
+
+    return html
+
+
 @warehouse_bp.route('/warehouse/heatmap')
 def warehouse_heatmap_view():
     """Strona główna z 3D heatmapą magazynu"""
