@@ -214,9 +214,19 @@ def csrf_protect_forms():
     """CSRF dla formularzy HTML — waliduj TYLKO gdy token jest obecny w formularzu.
     Formularze z csrf_token sa chronione; reszta (legacy, upload, API) przechodzi."""
     if request.method in ('POST', 'PUT', 'DELETE', 'PATCH'):
+        # Login nie wymaga CSRF — chroniony rate limiterem, a sesja moze byc wygasla
+        if request.path in ('/auth/login', '/auth/setup', '/setup'):
+            return
         # Waliduj CSRF TYLKO jesli formularz faktycznie zawiera csrf_token
         if request.form.get('csrf_token'):
-            csrf.protect()
+            try:
+                csrf.protect()
+            except Exception:
+                # Token mismatch — odnów token i pozwól użytkownikowi spróbować ponownie
+                from flask_wtf.csrf import generate_csrf
+                generate_csrf()
+                from flask import abort
+                abort(400, 'CSRF token wygasł. Odśwież stronę i spróbuj ponownie.')
 
 # Sprawdzanie licencji
 @app.before_request

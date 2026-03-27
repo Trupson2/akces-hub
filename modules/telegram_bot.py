@@ -431,7 +431,10 @@ def _bot_loop():
             # === RAPORT DZIENNY O 9:00 ===
             if now.hour == 9 and now.minute == 0:
                 today = now.strftime('%Y-%m-%d')
-                if last_report_date != today:
+                # Deduplikacja przez DB — zapobiega podwojnym raportom przy wielu instancjach
+                db_last = get_config('telegram_last_raport_date', '')
+                if last_report_date != today and db_last != today:
+                    set_config('telegram_last_raport_date', today)
                     raport_dzienny()
                     last_report_date = today
             

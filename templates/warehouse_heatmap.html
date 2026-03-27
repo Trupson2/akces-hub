@@ -1494,7 +1494,7 @@
                     <div class="shelf-fill">${fillPct}% (${totalItems}/${totalCapacity})</div>
                 `;
                 div.addEventListener('click', () => {
-                    window.location.href = '/magazyn/warehouse/shelf/' + encodeURIComponent(shelfName);
+                    window.location.href = '/warehouse/shelf/' + encodeURIComponent(shelfName);
                 });
                 container.appendChild(div);
             });
@@ -1867,7 +1867,7 @@
             document.getElementById('hud-detail-fill').textContent = fill + '%';
             document.getElementById('hud-detail-capacity').textContent = totalCap + ' szt';
             document.getElementById('hud-detail-zone').textContent = 'Regal ' + shelfName;
-            document.getElementById('hud-detail-link').href = '/magazyn/warehouse/shelf/' + encodeURIComponent(shelfName);
+            document.getElementById('hud-detail-link').href = '/warehouse/shelf/' + encodeURIComponent(shelfName);
 
             // Color the fill value based on percentage
             const fillEl = document.getElementById('hud-detail-fill');
