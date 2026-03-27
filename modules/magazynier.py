@@ -5174,15 +5174,50 @@ def import_final():
         except:
             pass
     
+    # Auto-generuj polskie meta tytuły w tle po imporcie
+    if added > 0 and paleta_id_int:
+        import threading
+        def _auto_translate_titles(pid_int):
+            try:
+                import time as _t
+                _t.sleep(3)  # Poczekaj aż commit się zakończy
+                from modules.database import get_db as _gdb2, get_config as _gc2
+                from modules.utils import translate_product_name
+                _conn2 = _gdb2()
+                _prods = _conn2.execute(
+                    "SELECT id, nazwa, meta_title FROM produkty WHERE paleta_id = ? AND (meta_title IS NULL OR meta_title = '')",
+                    (pid_int,)
+                ).fetchall()
+                _updated = 0
+                for _p in _prods:
+                    try:
+                        _new_name = translate_product_name(_p['nazwa'], use_ai=True)
+                        if _new_name and _new_name != _p['nazwa']:
+                            _conn2.execute('UPDATE produkty SET meta_title = ?, nazwa = ? WHERE id = ?',
+                                         (_new_name, _new_name, _p['id']))
+                            _updated += 1
+                            _t.sleep(0.5)  # Rate limit AI
+                    except:
+                        pass
+                if _updated:
+                    _conn2.commit()
+                    print(f"[AUTO] Przetłumaczono {_updated}/{len(_prods)} tytułów dla palety #{pid_int}")
+            except Exception as _e:
+                print(f"[WARN] Auto-translate error: {_e}")
+        threading.Thread(target=_auto_translate_titles, args=(paleta_id_int,), daemon=True).start()
+
     # Info o palecie dla podsumowania
     paleta_info = ''
     if paleta_nazwa:
         dostawca_info = f' ({dostawca})' if dostawca else ''
         paleta_info = f'<div class="alert" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:10px;border-radius:8px;margin-bottom:15px"><span class=material-symbols-outlined>inventory_2</span> Przypisano do palety: <strong>{paleta_nazwa}</strong>{dostawca_info}</div>'
-    
+
+    translate_info = f'<div class="alert" style="background:#8ff5ff22;border:1px solid #8ff5ff;color:#8ff5ff;padding:10px;border-radius:8px;margin-bottom:15px"><span class=material-symbols-outlined>translate</span> Tłumaczenie tytułów na polski uruchomione w tle...</div>' if added > 0 and paleta_id_int else ''
+
     html = f'''
     <div class="hdr"><h1><span class=material-symbols-outlined>check_circle</span> IMPORT ZAKOŃCZONY</h1></div>
     {paleta_info}
+    {translate_info}
     <div class="alert alert-ok">Zaimportowano {added} produktów</div>
     '''
     if errors:
