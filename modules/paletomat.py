@@ -386,7 +386,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
         print(f"[PHOTO_CAMERA] Images: {len(wszystkie_zdjecia)}")
         print(f"[EDIT_NOTE] Features: {len(bullet_points)}")
 
-        # [ROCKET_LAUNCH] NATYCHMIAST zapisz nazwę do bazy (żeby nie było "Produkt B0...")
+        # <span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> NATYCHMIAST zapisz nazwę do bazy (żeby nie było "Produkt B0...")
         try:
             conn = get_db()
             # Aktualizuj produkty z placeholder nazwami
@@ -539,7 +539,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
         except Exception as _enhx_s:
             print(f"   [WARNING] Enhance error: {str(_enhx_s)[:60]}")
         
-        # [ROCKET_LAUNCH] TURBO: Generuj tytuł SEO używając AI (Gemini)
+        # <span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> TURBO: Generuj tytuł SEO używając AI (Gemini)
         # Import klucza z gemini_config.py (jak smart_importer)
         try:
             from gemini_config import GEMINI_API_KEY as gemini_key
@@ -570,7 +570,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
             tytul_seo = optimize_title_seo(nazwa, 75)
             print(f"   [EDIT_NOTE] Title (fallback): {tytul_seo}")
         
-        # [ROCKET_LAUNCH] TURBO: Generuj opis HTML (NOWA WERSJA - z bullet points + ASIN!)
+        # <span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> TURBO: Generuj opis HTML (NOWA WERSJA - z bullet points + ASIN!)
         try:
             opis_html, opis_plain = generuj_opis_html_pro(nazwa, wszystkie_zdjecia, kategoria, bullet_points, gemini_key=gemini_key, asin=asin)
             print(f"[DESC] Description: {len(opis_html)} chars")
@@ -597,7 +597,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
             print(f"[WARNING] GPSR generation failed: {e}")
             gpsr = ""
         
-        # [ROCKET_LAUNCH] KOMBAJN: Zapisz do bazy z retry logic
+        # <span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> KOMBAJN: Zapisz do bazy z retry logic
         def save_to_db():
             conn = get_db()
             cursor = conn.cursor()
@@ -681,7 +681,7 @@ def auto_process_products(asins, preferred_domain=None):
 
         start_time = time.time()
 
-        # [ROCKET_LAUNCH] RÓWNOLEGŁE PRZETWARZANIE - TO JEST KOMBAJN!
+        # <span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> RÓWNOLEGŁE PRZETWARZANIE - TO JEST KOMBAJN!
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             # Uruchom wszystkie taski
             futures = {
@@ -712,7 +712,7 @@ def auto_process_products(asins, preferred_domain=None):
         print(f"[CHECK_CIRCLE] Success: {success_count}/{total}")
         print(f"[CANCEL] Errors: {PROGRESS['errors']}/{total}")
         print(f"[TIME]  Time: {elapsed:.1f}s ({elapsed/total:.1f}s per product)")
-        print(f"[ROCKET_LAUNCH] Speed: {total/elapsed*60:.1f} products/min")
+        print(f"<span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> Speed: {total/elapsed*60:.1f} products/min")
         print(f"{'='*70}\n")
 
         # <span class=material-symbols-outlined>smart_toy</span> AUTO-ENHANCE: po scrapowaniu automatycznie generuj zdjęcia AI
@@ -757,7 +757,7 @@ def _auto_start_enhance_after_scrape():
         'started_at': _t.time(), 'last_update': _t.time()
     }
 
-    print("[Auto-Enhance] [ROCKET_LAUNCH] Automatyczny start generowania zdjęć AI!")
+    print("[Auto-Enhance] <span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> Automatyczny start generowania zdjęć AI!")
 
     try:
         from flask import current_app
@@ -1743,7 +1743,7 @@ def scraper_asin():
             <span class=material-symbols-outlined>sync</span> <b>Auto-przetwarzanie w tle</b> - tytuły i opisy generują się automatycznie
         </div>
         <a href="/paletomat/scraper" class="btn btn-p"><span class=material-symbols-outlined>search</span> Dodaj więcej</a>
-        <a href="/paletomat/generator" class="btn btn-ok">[ROCKET_LAUNCH] Zobacz postęp</a>
+        <a href="/paletomat/generator" class="btn btn-ok"><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> Zobacz postęp</a>
         <a href="/paletomat" class="back">← Powrót do Paletomat</a>
     ''')
 
@@ -1752,7 +1752,7 @@ def scraper_file():
     """Import ASIN-ów z pliku (Excel lub CSV/TXT)"""
     
     print("="*60)
-    print("[ROCKET_LAUNCH] [SCRAPER FILE] START")
+    print("<span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> [SCRAPER FILE] START")
     print("="*60)
     
     # DEBUG: Pokaż WSZYSTKO co przyszło z formularza
@@ -2307,7 +2307,7 @@ def scraper_file():
                 <span class=material-symbols-outlined>sync</span> <b>Auto-przetwarzanie w tle</b> - tytuły i opisy generują się automatycznie
             </div>
             <a href="/paletomat/scraper" class="btn btn-p"><span class=material-symbols-outlined>search</span> Dodaj więcej</a>
-            <a href="/paletomat/generator" class="btn btn-ok">[ROCKET_LAUNCH] Zobacz postęp</a>
+            <a href="/paletomat/generator" class="btn btn-ok"><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> Zobacz postęp</a>
             <a href="/paletomat" class="back">← Powrót</a>
         ''')
         
@@ -2608,16 +2608,16 @@ def generator_mass_create():
     
     if count == 0:
         return render('''
-            <div class="hdr"><h1>[ROCKET_LAUNCH] MASOWE WYSTAWIANIE</h1></div>
+            <div class="hdr"><h1><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> MASOWE WYSTAWIANIE</h1></div>
             <div class="alert alert-warn">Brak produktów do wystawienia</div>
             <a href="/paletomat/generator" class="back">← Powrót</a>
         ''')
     
     html = f'''
-    <div class="hdr"><h1>[ROCKET_LAUNCH] MASOWE WYSTAWIANIE</h1><small>{count} produktów</small></div>
+    <div class="hdr"><h1><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> MASOWE WYSTAWIANIE</h1><small>{count} produktów</small></div>
     
     <div class="alert alert-ok" style="font-size:0.85rem">
-        <span class=material-symbols-outlined>check_circle</span> Allegro połączone | <span class=material-symbols-outlined>check_circle</span> Cennik wysyłki OK | [ROCKET_LAUNCH] Startujemy automatycznie...
+        <span class=material-symbols-outlined>check_circle</span> Allegro połączone | <span class=material-symbols-outlined>check_circle</span> Cennik wysyłki OK | <span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> Startujemy automatycznie...
     </div>
     
     <div class="card" style="text-align:center;padding:30px">
@@ -2751,7 +2751,7 @@ def generator_mass_create():
                         const data = JSON.parse(e.data);
                         
                         if (data.type === 'start') {{
-                            addLog('[ROCKET_LAUNCH] Start wystawiania ' + data.total + ' produktów...', '#3b82f6');
+                            addLog('<span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> Start wystawiania ' + data.total + ' produktów...', '#3b82f6');
                             icon.textContent = '';
                         }}
                         else if (data.type === 'progress') {{
@@ -2918,10 +2918,10 @@ def generator_mass_create_from_paleta():
     count = len(product_ids)
     
     html = f'''
-    <div class="hdr"><h1>[ROCKET_LAUNCH] MASOWE WYSTAWIANIE Z PALETY</h1><small>{count} produktów</small></div>
+    <div class="hdr"><h1><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> MASOWE WYSTAWIANIE Z PALETY</h1><small>{count} produktów</small></div>
     
     <div class="alert alert-ok" style="font-size:0.85rem">
-        <span class=material-symbols-outlined>check_circle</span> Allegro połączone | <span class=material-symbols-outlined>check_circle</span> Cennik wysyłki OK | <span class=material-symbols-outlined>check_circle</span> Produkty wybrane | [ROCKET_LAUNCH] Startujemy...
+        <span class=material-symbols-outlined>check_circle</span> Allegro połączone | <span class=material-symbols-outlined>check_circle</span> Cennik wysyłki OK | <span class=material-symbols-outlined>check_circle</span> Produkty wybrane | <span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> Startujemy...
     </div>
     
     <div class="card" style="text-align:center;padding:30px">
@@ -2991,7 +2991,7 @@ def generator_mass_create_from_paleta():
         const data = JSON.parse(e.data);
 
         if (data.type === 'start') {{
-            log.innerHTML += '<div style="color:#3b82f6;padding:4px 0">[ROCKET_LAUNCH] Start wystawiania ' + data.total + ' produktow z magazynu...</div>';
+            log.innerHTML += '<div style="color:#3b82f6;padding:4px 0"><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> Start wystawiania ' + data.total + ' produktow z magazynu...</div>';
         }}
         else if (data.type === 'progress') {{
             bar.style.width = data.percent + '%';
@@ -5290,7 +5290,7 @@ def generator_create(asin):
         gpsr_escaped = gpsr.replace('\\', '\\\\').replace('`', '\\`').replace('$', '\\$').replace("'", "\\'")
         
         html = f'''
-        <div class="hdr"><h1>[ROCKET_LAUNCH] WYSTAWIANIE</h1><small>{tytul[:40]}...</small></div>
+        <div class="hdr"><h1><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> WYSTAWIANIE</h1><small>{tytul[:40]}...</small></div>
 
         <div class="card" style="text-align:center;padding:30px">
             <div id="progress-icon" style="font-size:3rem;margin-bottom:15px">
@@ -5423,7 +5423,7 @@ def generator_create(asin):
                     </div>
                     <div class="alert alert-warn" style="font-size:0.85rem"><span class=material-symbols-outlined>warning</span> Oferta jest NIEAKTYWNA - kliknij AKTYWUJ</div>
                     <div style="display:flex;gap:10px;margin-top:10px">
-                        <a href="/paletomat/oferty/${{data.offer_id}}/publish" class="btn btn-ok" style="flex:1">[ROCKET_LAUNCH] AKTYWUJ</a>
+                        <a href="/paletomat/oferty/${{data.offer_id}}/publish" class="btn btn-ok" style="flex:1"><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> AKTYWUJ</a>
                         <a href="/paletomat/generator" class="btn btn-2" style="flex:1"><span class=material-symbols-outlined>label</span> Generuj więcej</a>
                     </div>
                 `;
@@ -5446,7 +5446,7 @@ def generator_create(asin):
                         <div id="assign-result" style="margin-top:10px;font-size:13px"></div>
                     </div>
                     <div style="display:flex;gap:10px;margin-top:10px">
-                        <a href="/paletomat/oferty/${{data.offer_id}}/publish" class="btn btn-2" style="flex:1">[ROCKET_LAUNCH] Aktywuj ofertę</a>
+                        <a href="/paletomat/oferty/${{data.offer_id}}/publish" class="btn btn-2" style="flex:1"><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> Aktywuj ofertę</a>
                         <a href="/magazynier" class="btn btn-2" style="flex:1"><span class=material-symbols-outlined>inventory_2</span> Magazynier</a>
                     </div>
                 `;
@@ -5994,7 +5994,7 @@ def publish_allegro_offer(offer_id):
     conn.commit()
     
     return render('''
-        <div class="hdr"><h1>[ROCKET_LAUNCH] AKTYWOWANO!</h1></div>
+        <div class="hdr"><h1><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> AKTYWOWANO!</h1></div>
         <div class="alert alert-ok">Oferta jest teraz aktywna na Allegro!</div>
         <a href="/paletomat/oferty" class="btn btn-p"><span class=material-symbols-outlined>edit_note</span> Moje oferty</a>
         <a href="/paletomat" class="back">← Powrót</a>
@@ -6083,7 +6083,7 @@ def oferty():
     if drafts_count > 0:
         html += f'''
         <div class="card" style="background:linear-gradient(135deg,rgba(139,92,246,0.2),rgba(88,28,135,0.2));border-color:rgba(139,92,246,0.3);margin-bottom:15px">
-            <div style="font-weight:600;margin-bottom:8px">[ROCKET_LAUNCH] {drafts_count} szkiców do wystawienia</div>
+            <div style="font-weight:600;margin-bottom:8px"><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> {drafts_count} szkiców do wystawienia</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
         '''
         if allegro_ok:
@@ -6269,7 +6269,7 @@ def oferta_detail(oferta_id):
             html += '<div class="alert alert-warn"><a href="/allegro" style="color:#eab308">Połącz Allegro</a> żeby wystawiać</div>'
         html += f'<a href="/paletomat/oferta/{o["id"]}/delete" class="btn btn-2" style="color:#ef4444"><span class=material-symbols-outlined>delete</span> USUŃ</a>'
     elif o['status'] == 'wystawiona' and o['allegro_id']:
-        html += f'<a href="/paletomat/oferty/{o["allegro_id"]}/publish" class="btn btn-ok">[ROCKET_LAUNCH] AKTYWUJ NA ALLEGRO</a>'
+        html += f'<a href="/paletomat/oferty/{o["allegro_id"]}/publish" class="btn btn-ok"><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> AKTYWUJ NA ALLEGRO</a>'
     
     html += '<a href="/paletomat/oferty" class="back">← Powrót</a>'
     return render(html)
@@ -6313,7 +6313,7 @@ def publish_single_draft(oferta_id):
     return render(f'''
         <div class="hdr"><h1>[CELEBRATION] WYSTAWIONO!</h1></div>
         <div class="alert alert-ok">Oferta wystawiona na Allegro!<br><small>ID: {allegro_id}</small></div>
-        <a href="/paletomat/oferty/{allegro_id}/publish" class="btn btn-ok">[ROCKET_LAUNCH] AKTYWUJ</a>
+        <a href="/paletomat/oferty/{allegro_id}/publish" class="btn btn-ok"><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> AKTYWUJ</a>
         <a href="/paletomat/oferty" class="btn btn-2"><span class=material-symbols-outlined>edit_note</span> Wróć do ofert</a>
     ''')
 
@@ -6366,7 +6366,7 @@ def publish_all_drafts():
     conn.commit()
     
     html = f'''
-    <div class="hdr"><h1>[ROCKET_LAUNCH] WYSTAWIONO!</h1></div>
+    <div class="hdr"><h1><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> WYSTAWIONO!</h1></div>
     <div class="alert alert-ok">Wystawiono {success} z {len(drafts)} ofert</div>
     '''
     

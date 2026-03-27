@@ -4060,7 +4060,7 @@ def paleta_to_paletomat(n):
             4. Wystaw masowo z AI opisami!
         </div>
         <a href="/paletomat/generator" class="btn btn-ok" style="width:100%">
-            [ROCKET_LAUNCH] OTWÓRZ PALETOMAT GENERATOR
+            <span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> OTWÓRZ PALETOMAT GENERATOR
         </a>
     </div>
     

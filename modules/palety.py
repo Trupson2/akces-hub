@@ -266,7 +266,7 @@ def generate_meta_title_batch():
         }
 
         # Generuj dla każdego produktu
-        print(f"\n[ROCKET_LAUNCH] [BATCH START] Przetwarzam {len(product_ids)} produktów...")
+        print(f"\n<span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> [BATCH START] Przetwarzam {len(product_ids)} produktów...")
 
         for idx, product_id in enumerate(product_ids, 1):
             try:
@@ -489,7 +489,7 @@ def produkt_extract_params(produkt_id):
         <form action="/produkty/{produkt_id}/quick-draft" method="POST" style="margin:0">
             <input type="hidden" name="meta_title" value="{meta_title}">
             <button type="submit" class="btn btn-success" style="margin:0">
-                [ROCKET_LAUNCH] Wystaw szkic
+                <span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> Wystaw szkic
             </button>
         </form>
         <button onclick="window.print()" class="btn" style="background:var(--blue);margin:0">
@@ -1102,7 +1102,7 @@ def palety_lista():
 
     <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <a href="/palety/dodaj" class="btn btn-success"><span class=material-symbols-outlined>add</span> DODAJ PALETĘ</a>
-        <button type="button" id="bulk-select-btn" onclick="toggleSelectAll()" class="btn" style="background:var(--bg-card);border:1px solid var(--border);font-size:0.8rem">[CHECK_BOX] Zaznacz wszystkie</button>
+        <button type="button" id="bulk-select-btn" onclick="toggleSelectAll()" class="btn" style="background:var(--bg-card);border:1px solid var(--border);font-size:0.8rem"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_box</span> Zaznacz wszystkie</button>
     </div>
 
     <!-- Pasek masowego usuwania -->
@@ -2571,7 +2571,7 @@ def paleta_mass_edit(paleta_id):
             <div class="me-bottom-row">
                 <a href="/palety/{paleta_id}" class="me-btn me-btn-back">← Powrót</a>
                 <button id="btn-select-all" class="me-btn" style="background:var(--text-muted)" onclick="toggleSelectAll()">
-                    [CHECK_BOX] Zaznacz wszystkie
+                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_box</span> Zaznacz wszystkie
                 </button>
             </div>
             <div class="me-bottom-row">
@@ -2579,7 +2579,7 @@ def paleta_mass_edit(paleta_id):
                     <span class=material-symbols-outlined>auto_awesome</span> Generuj META (<span id="count-meta-btn">{wybrane_count}</span>)
                 </button>
                 <button id="btn-wystaw" class="me-btn me-btn-wystaw" onclick="wystawZaznaczone()">
-                    [ROCKET_LAUNCH] Wystaw (<span id="count-btn">{wybrane_count}</span>)
+                    <span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> Wystaw (<span id="count-btn">{wybrane_count}</span>)
                 </button>
             </div>
         </div>
@@ -2742,7 +2742,7 @@ def paleta_mass_edit(paleta_id):
         const allChecked = Array.from(checkboxes).every(cb => cb.checked);
         checkboxes.forEach(cb => {{ cb.checked = !allChecked; }});
         const btn = document.getElementById('btn-select-all');
-        btn.innerHTML = allChecked ? '[CHECK_BOX] Zaznacz wszystkie' : '☐ Odznacz wszystkie';
+        btn.innerHTML = allChecked ? '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_box</span> Zaznacz wszystkie' : '☐ Odznacz wszystkie';
         updateCounter();
     }}
 
