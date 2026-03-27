@@ -216,80 +216,181 @@ def ustawienia_kreator():
     KREATOR_TEMPLATE = '''{% extends "base.html" %}
 {% block page_title %}Kreator konfiguracji{% endblock %}
 {% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+
 <style>
-.kreator-wrap{max-width:700px}
-.kreator-detail{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;box-shadow:var(--shadow);overflow:hidden}
-.kreator-detail summary{padding:16px;cursor:pointer;font-weight:700;font-size:0.95rem;list-style:none;display:flex;align-items:center;gap:10px;transition:background 0.2s}
-.kreator-detail summary:hover{background:var(--accent-soft)}
-.kreator-detail summary .chevron{margin-left:auto;font-size:0.7rem;color:var(--text-muted);transition:transform 0.2s}
-.kreator-detail[open] summary .chevron{transform:rotate(180deg)}
-.kreator-detail-body{padding:0 16px 16px}
-.kreator-detail-body .form-group{margin-bottom:10px}
-.kreator-detail-body .form-control{font-family:monospace;font-size:0.85rem}
-.kreator-hint{font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;line-height:1.5}
-.kreator-hint a{color:var(--accent)}
-.status-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.88rem}
-.status-grid-item{display:flex;align-items:center;gap:6px;padding:6px 0}
+/* ── KREATOR CYBERPUNK RESET ── */
+.kre-root{--c-bg:#0e0e10;--c-panel:rgba(20,22,28,0.72);--c-border:rgba(143,245,255,0.10);--c-cyan:#8ff5ff;--c-pink:#ff6b9b;--c-lime:#cafd00;--c-green:#22c55e;--c-red:#ef4444;--c-text:#e4e4e7;--c-muted:#71717a;--c-input-bg:#111116;--c-input-border:rgba(143,245,255,0.12);--radius:14px;font-family:'Manrope',system-ui,sans-serif;color:var(--c-text)}
+.kre-root *,.kre-root *::before,.kre-root *::after{box-sizing:border-box}
+.kre-root{position:relative;min-height:100vh;background:var(--c-bg);padding:32px 16px 64px;margin:-20px -20px 0;overflow:hidden}
+
+/* kinetic grid */
+.kre-root::before{content:'';position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(143,245,255,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(143,245,255,0.03) 1px,transparent 1px);
+  background-size:60px 60px;pointer-events:none;z-index:0}
+.kre-root>*{position:relative;z-index:1}
+
+.kre-wrap{max-width:740px;margin:0 auto}
+
+/* ── HEADER ── */
+.kre-header{text-align:center;margin-bottom:36px}
+.kre-header-label{font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--c-cyan);margin-bottom:8px}
+.kre-header h1{font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:700;color:#fff;margin:0 0 6px;
+  text-shadow:0 0 30px rgba(143,245,255,0.35)}
+.kre-header p{font-size:0.88rem;color:var(--c-muted);margin:0;line-height:1.6}
+
+/* ── ALERTS ── */
+.kre-alert{backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:var(--radius);padding:16px 20px;margin-bottom:24px;font-size:0.88rem;line-height:1.6;text-align:center}
+.kre-alert-success{background:rgba(34,197,94,0.10);border:1px solid rgba(34,197,94,0.25);color:var(--c-green);font-weight:600}
+.kre-alert-welcome{background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.15);color:var(--c-text)}
+.kre-alert-welcome strong{color:var(--c-cyan);font-family:'Space Grotesk',sans-serif;font-size:1.05rem;display:block;margin-bottom:4px}
+.kre-alert-info{background:rgba(143,245,255,0.05);border:1px solid rgba(143,245,255,0.12);color:var(--c-muted)}
+
+/* ── STATUS GRID ── */
+.kre-status-panel{background:var(--c-panel);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--c-border);border-radius:var(--radius);padding:20px 24px;margin-bottom:28px}
+.kre-status-title{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--c-cyan);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.kre-status-title .material-symbols-outlined{font-size:18px;color:var(--c-cyan)}
+.kre-status-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px}
+.kre-status-item{display:flex;align-items:center;gap:8px;padding:7px 0;font-size:0.84rem;color:var(--c-text)}
+.kre-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.kre-dot-on{background:var(--c-green);box-shadow:0 0 8px rgba(34,197,94,0.5)}
+.kre-dot-off{background:var(--c-red);box-shadow:0 0 8px rgba(239,68,68,0.4)}
+
+/* ── SECTION PANELS ── */
+.kre-section{background:var(--c-panel);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--c-border);border-radius:var(--radius);margin-bottom:14px;overflow:hidden;transition:border-color 0.3s}
+.kre-section:hover{border-color:rgba(143,245,255,0.22)}
+.kre-section[data-accent="cyan"]{border-left:3px solid var(--c-cyan)}
+.kre-section[data-accent="pink"]{border-left:3px solid var(--c-pink)}
+.kre-section[data-accent="lime"]{border-left:3px solid var(--c-lime)}
+.kre-section summary{padding:16px 20px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:12px;transition:background 0.2s;user-select:none}
+.kre-section summary::-webkit-details-marker{display:none}
+.kre-section summary:hover{background:rgba(143,245,255,0.03)}
+.kre-section summary .material-symbols-outlined{font-size:22px;color:var(--c-cyan);opacity:0.8}
+.kre-section[data-accent="pink"] summary .material-symbols-outlined{color:var(--c-pink)}
+.kre-section[data-accent="lime"] summary .material-symbols-outlined{color:var(--c-lime)}
+.kre-section-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:0.95rem;color:#fff;flex:1}
+.kre-section-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.kre-section-chevron{font-size:18px;color:var(--c-muted);transition:transform 0.25s}
+.kre-section[open] .kre-section-chevron{transform:rotate(180deg)}
+
+.kre-section-body{padding:0 20px 20px}
+.kre-section-hint{font-size:0.78rem;color:var(--c-muted);margin-bottom:14px;line-height:1.6}
+.kre-section-hint a{color:var(--c-cyan);text-decoration:underline;text-underline-offset:2px}
+.kre-section-hint code{background:rgba(143,245,255,0.08);color:var(--c-cyan);padding:1px 6px;border-radius:4px;font-size:0.76rem}
+
+/* ── FORM FIELDS ── */
+.kre-field{margin-bottom:12px}
+.kre-field label{display:block;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--c-muted);margin-bottom:6px}
+.kre-field input,.kre-field select{width:100%;background:var(--c-input-bg);border:1px solid var(--c-input-border);border-radius:8px;padding:10px 14px;color:var(--c-text);font-family:'JetBrains Mono','Fira Code',monospace;font-size:0.84rem;transition:border-color 0.2s,box-shadow 0.2s;outline:none}
+.kre-field input:focus,.kre-field select:focus{border-color:var(--c-cyan);box-shadow:0 0 0 3px rgba(143,245,255,0.08)}
+.kre-field input::placeholder{color:rgba(113,113,122,0.6)}
+.kre-field select{cursor:pointer;-webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2371717a' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center}
+.kre-field select option{background:#18181b;color:var(--c-text)}
+
+/* ── TEST BUTTON ── */
+.kre-btn-test{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:8px 16px;background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.2);border-radius:8px;color:var(--c-cyan);font-family:'Space Grotesk',sans-serif;font-size:0.78rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all 0.2s}
+.kre-btn-test:hover{background:rgba(143,245,255,0.14);border-color:rgba(143,245,255,0.35)}
+#vpsTestResult{font-size:0.8rem;margin-top:8px}
+
+/* ── SAVE BUTTON ── */
+.kre-btn-save{display:block;width:100%;padding:16px;margin-top:20px;background:linear-gradient(135deg,var(--c-pink),#e0558a);border:none;border-radius:var(--radius);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all 0.3s;
+  box-shadow:0 0 20px rgba(255,107,155,0.2)}
+.kre-btn-save:hover{box-shadow:0 0 35px rgba(255,107,155,0.35);transform:translateY(-1px)}
+
+/* ── BACK LINK ── */
+.kre-back{display:inline-flex;align-items:center;gap:6px;margin-top:20px;font-size:0.84rem;color:var(--c-muted);text-decoration:none;transition:color 0.2s}
+.kre-back:hover{color:var(--c-cyan)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px){
+  .kre-root{padding:20px 10px 48px}
+  .kre-header h1{font-size:1.5rem}
+  .kre-status-grid{grid-template-columns:1fr}
+  .kre-section summary{padding:14px 16px}
+  .kre-section-body{padding:0 16px 16px}
+}
 </style>
 
-<div class="kreator-wrap">
+<div class="kre-root">
+<div class="kre-wrap">
 
+<!-- HEADER -->
+<div class="kre-header">
+    <div class="kre-header-label">Kreator konfiguracji</div>
+    <h1>API CREDENTIALS</h1>
+    <p>Wypelnij klucze API dla serwisow z ktorych korzystasz.<br>Kazdy serwis mozna skonfigurowac niezaleznie.</p>
+</div>
+
+<!-- ALERTS -->
 {% if saved_count %}
-<div class="alert alert-success" style="text-align:center;font-weight:600">Zapisano {{ saved_count }} kluczy API!</div>
+<div class="kre-alert kre-alert-success">Zapisano {{ saved_count }} kluczy API!</div>
 {% elif is_welcome %}
-<div class="card" style="text-align:center;padding:24px;background:var(--accent-soft);border-color:rgba(99,102,241,0.3)">
-    <div style="font-size:1.5rem;margin-bottom:8px">👋</div>
-    <div style="font-weight:700;font-size:1.1rem;margin-bottom:5px">Witaj w systemie!</div>
-    <div style="font-size:0.85rem;color:var(--text-muted)">Skonfiguruj klucze API zeby odblokowac pelnie mozliwosci.<br>Mozesz to zrobic teraz lub wrocic pozniej z Ustawien.</div>
+<div class="kre-alert kre-alert-welcome">
+    <strong>Witaj w systemie!</strong>
+    Skonfiguruj klucze API zeby odblokowac pelnie mozliwosci.<br>Mozesz to zrobic teraz lub wrocic pozniej z Ustawien.
 </div>
 {% endif %}
 
-<div class="alert" style="background:var(--blue-soft);border:1px solid rgba(59,130,246,0.2);color:var(--blue);margin-bottom:20px">
-    Wypelnij klucze API dla serwisow z ktorych korzystasz. Kazdy serwis mozna skonfigurowac niezaleznie.
-</div>
-
 <!-- STATUS OVERVIEW -->
-<div class="card" style="margin-bottom:20px">
-    <div class="card-header">
-        <div class="card-title">Status integracji</div>
+<div class="kre-status-panel">
+    <div class="kre-status-title">
+        <span class="material-symbols-outlined">monitoring</span>
+        Status integracji
     </div>
-    <div class="status-grid">
+    <div class="kre-status-grid">
         {% for dot, name in status_items %}
-        <div class="status-grid-item">{{ dot }} {{ name }}</div>
+        <div class="kre-status-item">
+            {% if 'green' in dot or 'success' in dot or '#22c55e' in dot or 'var(--green)' in dot %}
+            <span class="kre-dot kre-dot-on"></span>
+            {% else %}
+            <span class="kre-dot kre-dot-off"></span>
+            {% endif %}
+            {{ name }}
+        </div>
         {% endfor %}
     </div>
 </div>
 
+<!-- FORM -->
 <form method="POST" action="/ustawienia/kreator/save">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
 {% for section in sections %}
-<details class="kreator-detail" {% if section.get('always_closed') %}{% elif section.get('open_condition') == 'support_nodata' and support_nodata %}open{% elif not section.get('open_condition') and not cfg.get(section.key) %}open{% endif %}>
+{% set accent = 'lime' if 'gemini' in section.key or 'perplexity' in section.key else ('pink' if 'olx' in section.key or 'ngrok' in section.key or 'support' in section.key or 'rembg' in section.key else 'cyan') %}
+<details class="kre-section" data-accent="{{ accent }}" {% if section.get('always_closed') %}{% elif section.get('open_condition') == 'support_nodata' and support_nodata %}open{% elif not section.get('open_condition') and not cfg.get(section.key) %}open{% endif %}>
     <summary>
-        {{ '●' if cfg.get(section.key) else '●' }} {{ section.icon | safe }} {{ section.title }}
-        <span class="chevron">▼</span>
+        {{ section.icon | safe }}
+        <span class="kre-section-title">{{ section.title }}</span>
+        <span class="kre-section-dot {% if cfg.get(section.key) %}kre-dot-on{% else %}kre-dot-off{% endif %}"></span>
+        <span class="material-symbols-outlined kre-section-chevron">expand_more</span>
     </summary>
-    <div class="kreator-detail-body">
-        <div class="kreator-hint">{{ section.hint | safe }}</div>
+    <div class="kre-section-body">
+        <div class="kre-section-hint">{{ section.hint | safe }}</div>
         {% for field in section.fields %}
-        <div class="form-group">
+        <div class="kre-field">
             <label>{{ field.label }}</label>
             {% if field.type == 'select' %}
-            <select name="{{ field.name }}" class="form-control" style="font-size:0.9rem;padding:10px">
+            <select name="{{ field.name }}">
                 {% for val, label in field.options %}
                 <option value="{{ val }}" {{ 'selected' if cfg.get(field.name, '') == val else '' }}>{{ label }}</option>
                 {% endfor %}
             </select>
             {% else %}
             <input type="{{ field.type }}" name="{{ field.name }}" value="{{ cfg.get(field.name, '') }}"
-                placeholder="{{ field.get('placeholder', '') }}"
-                class="form-control" {% if field.get('mono', True) %}style="font-family:monospace;font-size:0.85rem"{% endif %}>
+                placeholder="{{ field.get('placeholder', '') }}">
             {% endif %}
         </div>
         {% endfor %}
         {% if section.get('has_test') %}
-        <div id="vpsTestResult" style="font-size:0.8rem;margin-top:8px"></div>
-        <button type="button" onclick="testVps()" class="btn btn-secondary btn-sm" style="margin-top:6px;width:auto">
+        <div id="vpsTestResult"></div>
+        <button type="button" onclick="testVps()" class="kre-btn-test">
+            <span class="material-symbols-outlined" style="font-size:16px">cable</span>
             Test polaczenia
         </button>
         {% endif %}
@@ -297,31 +398,35 @@ def ustawienia_kreator():
 </details>
 {% endfor %}
 
-<button type="submit" class="btn btn-primary" style="font-size:1.05rem;padding:16px;margin-top:8px">ZAPISZ WSZYSTKO</button>
+<button type="submit" class="kre-btn-save">ZAPISZ WSZYSTKO</button>
 
 </form>
 
-<a href="/ustawienia" class="back" style="margin-top:16px">← Powrot do ustawien</a>
+<a href="/ustawienia" class="kre-back">
+    <span class="material-symbols-outlined" style="font-size:18px">arrow_back</span>
+    Powrot do ustawien
+</a>
 
+</div>
 </div>
 
 <script>
 function testVps() {
     var url = document.querySelector('input[name=rembg_vps_url]').value.trim();
     var res = document.getElementById('vpsTestResult');
-    if(!url) { res.innerHTML='<span style="color:var(--red)">Wpisz URL!</span>'; return; }
-    res.innerHTML='<span style="color:var(--yellow)">Testowanie...</span>';
+    if(!url) { res.innerHTML='<span style="color:#ef4444">Wpisz URL!</span>'; return; }
+    res.innerHTML='<span style="color:#eab308">Testowanie...</span>';
     fetch(url.replace(/\/$/, '') + '/health')
         .then(r => r.json())
         .then(d => {
             if(d.status === 'ok' && d.rembg) {
-                res.innerHTML='<span style="color:var(--green)">Polaczenie OK! Rembg dziala.</span>';
+                res.innerHTML='<span style="color:#22c55e">Polaczenie OK! Rembg dziala.</span>';
             } else {
-                res.innerHTML='<span style="color:var(--red)">Serwer odpowiada ale rembg=' + d.rembg + '</span>';
+                res.innerHTML='<span style="color:#ef4444">Serwer odpowiada ale rembg=' + d.rembg + '</span>';
             }
         })
         .catch(e => {
-            res.innerHTML='<span style="color:var(--red)">Brak polaczenia: ' + e.message + '</span>';
+            res.innerHTML='<span style="color:#ef4444">Brak polaczenia: ' + e.message + '</span>';
         });
 }
 </script>
