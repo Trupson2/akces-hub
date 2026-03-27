@@ -8961,7 +8961,7 @@ def przyjecie_palety(paleta_id):
             </div>
 
             <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap">
-                <input type="text" id="regal-{pid}" value="{p.get('lokalizacja','') if hasattr(p,'keys') and 'lokalizacja' in p.keys() else ''}" placeholder="Regał np. A2"
+                <input type="text" id="regal-{pid}" value="{p['lokalizacja'] if 'lokalizacja' in p.keys() else ''}" placeholder="Regał np. A2"
                     style="width:100px;padding:8px 12px;background:#0a0a0f;border:1px solid #8ff5ff33;border-radius:8px;color:#8ff5ff;font-size:0.8rem;font-weight:600" list="regal-list">
                 <input type="text" id="notatki-{pid}" value="{current_notatki}" placeholder="Notatki (wady, braki...)"
                     style="flex:1;min-width:150px;padding:8px 12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:8px;color:#e2e8f0;font-size:0.8rem">
