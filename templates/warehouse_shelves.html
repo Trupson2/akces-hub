@@ -251,11 +251,19 @@
         <h2 id="panelTitle">Regal</h2>
         <button class="wh-panel-close" onclick="closePanel()">&times;</button>
     </div>
-    <div id="panelContent"></div>
+    <div id="panelContent" style="display:block;min-height:0"></div>
 </div>
 
 <script>
 const shelvesData = {{ shelves_json|safe }};
+
+/* Move panel + overlay to <body> so they escape the .main-content stacking context (z-index:1) */
+(function() {
+    var overlay = document.getElementById("panelOverlay");
+    var panel = document.getElementById("shelfPanel");
+    if (overlay) document.body.appendChild(overlay);
+    if (panel) document.body.appendChild(panel);
+})();
 
 function openShelf(letter) {
     var shelf = shelvesData[letter];

@@ -913,7 +913,7 @@ def produkty():
                                 <span style="font-size:0.6rem;color:#adaaad;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">{_stock_text}</span>
                             </div>
                         </div>
-                        {f'<div style="text-align:right"><div style="font-size:0.85rem;font-weight:800;color:{"#beee00" if _zy >= 0 else "#ef4444"};font-family:\'Space Grotesk\',sans-serif">{_zy:+.0f} zł</div><div style="font-size:0.55rem;color:#767577;text-transform:uppercase;letter-spacing:0.05em;font-weight:600">zysk/szt</div></div>' if _zy is not None else ''}
+                        {('<div style="text-align:right"><div style="font-size:0.85rem;font-weight:800;color:' + ("#beee00" if _zy >= 0 else "#ef4444") + ';font-family:Space Grotesk,sans-serif">' + format(_zy, "+.0f") + ' zl</div><div style="font-size:0.55rem;color:#767577;text-transform:uppercase;letter-spacing:0.05em;font-weight:600">zysk/szt</div></div>') if _zy is not None else ''}
                     </div>
                 </div>
             </a>
