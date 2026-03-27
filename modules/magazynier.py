@@ -3560,22 +3560,24 @@ def paleta_detail_by_id(paleta_id):
     paleta_regal = paleta_row['regal'] if 'regal' in paleta_row.keys() else ''
     dostawca_badge = f' • <span class="dostawca-name" style="color:#8ff5ff">{paleta_dostawca}</span>' if paleta_dostawca else ''
     regal_badge = f' • <span class=material-symbols-outlined>pin_drop</span> {paleta_regal}' if paleta_regal else ''
-    html = f'''<div class="hdr" style="display:flex;justify-content:space-between;align-items:center">
+    html = f'''<div class="hdr">
         <div><h1><span class=material-symbols-outlined>inventory_2</span> {nazwa_palety}</h1><small>{len(products)} prod. ({sztuki_display} szt.){dostawca_badge}{regal_badge}</small></div>
-        <button id="btnDostarczona" onclick="toggleDostarczona({paleta_id}, this)"
-            data-val="{dostarczona_val}"
-            style="padding:8px 16px;border:2px solid {dostarczona_color};background:{dostarczona_color}22;color:{dostarczona_color};border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer">
-            {dostarczona_label}
-        </button>
-        <a href="/magazyn/przyjecie/{paleta_id}" style="padding:8px 16px;border:2px solid #7c3aed;background:#7c3aed22;color:#7c3aed;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;text-decoration:none">
-            <span class=material-symbols-outlined>list_alt</span> Przyjęcie
-        </a>
-        <a href="/magazyn/etykiety?paleta_id={paleta_id}" style="padding:8px 16px;border:2px solid #ff6b9b;background:#ff6b9b22;color:#ff6b9b;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;text-decoration:none">
-            <span class=material-symbols-outlined>label</span> Etykiety
-        </a>
-        <button onclick="document.getElementById('editPaletaModal').style.display='flex'" style="padding:8px 16px;border:2px solid #f59e0b;background:#f59e0b22;color:#f59e0b;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer">
-            <span class=material-symbols-outlined>edit</span> Edytuj
-        </button>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+            <button id="btnDostarczona" onclick="toggleDostarczona({paleta_id}, this)"
+                data-val="{dostarczona_val}"
+                style="padding:8px 14px;border:2px solid {dostarczona_color};background:{dostarczona_color}22;color:{dostarczona_color};border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap">
+                {dostarczona_label}
+            </button>
+            <a href="/magazyn/przyjecie/{paleta_id}" style="padding:8px 14px;border:2px solid #7c3aed;background:#7c3aed22;color:#7c3aed;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;text-decoration:none;white-space:nowrap">
+                <span class=material-symbols-outlined>list_alt</span> Przyjęcie
+            </a>
+            <a href="/magazyn/etykiety?paleta_id={paleta_id}" style="padding:8px 14px;border:2px solid #ff6b9b;background:#ff6b9b22;color:#ff6b9b;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;text-decoration:none;white-space:nowrap">
+                <span class=material-symbols-outlined>label</span> Etykiety
+            </a>
+            <button onclick="document.getElementById('editPaletaModal').style.display='flex'" style="padding:8px 14px;border:2px solid #f59e0b;background:#f59e0b22;color:#f59e0b;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap">
+                <span class=material-symbols-outlined>edit</span> Edytuj
+            </button>
+        </div>
     </div>
 
     <!-- Modal edycji palety -->
