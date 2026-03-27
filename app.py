@@ -2041,8 +2041,9 @@ def system_update():
             # Nawet jeśli brak nowych commitów — wymuś restart (przeładowanie modułów)
             import threading
             def _force_restart():
-                import time, subprocess
+                import time, subprocess, sys, os
                 time.sleep(2)
+                # Linux/Pi: próbuj systemctl
                 for svc in ['akces-hub', 'akceshub']:
                     try:
                         r = subprocess.run(['sudo', 'systemctl', 'is-enabled', svc],
@@ -2053,6 +2054,11 @@ def system_update():
                             return
                     except:
                         pass
+                # Windows / fallback: zrestartuj proces Pythona
+                try:
+                    os.execv(sys.executable, [sys.executable] + sys.argv)
+                except Exception:
+                    pass
             threading.Thread(target=_force_restart, daemon=True).start()
             return jsonify({'ok': True, 'msg': 'Już aktualne — restart za chwilę...'})
 
@@ -2127,9 +2133,9 @@ def system_update():
         # Restart serwisu z opóźnieniem 2s (żeby response zdążył dojść)
         import threading
         def _delayed_restart():
-            import time
+            import time, sys, os
             time.sleep(2)
-            # Auto-detect service name
+            # Linux/Pi: próbuj systemctl
             for svc in ['akces-hub', 'akceshub']:
                 try:
                     r = subprocess.run(['sudo', 'systemctl', 'is-enabled', svc],
@@ -2140,6 +2146,11 @@ def system_update():
                         return
                 except:
                     pass
+            # Windows / fallback: zrestartuj proces Pythona
+            try:
+                os.execv(sys.executable, [sys.executable] + sys.argv)
+            except Exception:
+                pass
         threading.Thread(target=_delayed_restart, daemon=True).start()
         return jsonify({'ok': True, 'msg': f'Zaktualizowano! {pull_output[:100]}. Restart za chwilę...'})
     except subprocess.TimeoutExpired:
