@@ -3579,7 +3579,7 @@ def paleta_detail_by_id(paleta_id):
     </div>
 
     <!-- Modal edycji palety -->
-    <div id="editPaletaModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.style.display='none'">
+    <div id="editPaletaModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:99999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.style.display='none'">
         <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;width:100%;max-width:450px">
             <h3 style="margin:0 0 16px;font-size:1.1rem"><span class=material-symbols-outlined>edit</span> Edytuj paletę #{paleta_id}</h3>
             <form id="editPaletaForm" onsubmit="savePaleta(event)">
@@ -5029,28 +5029,29 @@ def import_final():
                             except:
                                 cena = 0
                         
-                        # WAŻNE: Zapisujemy CAŁKOWITĄ cenę zakupu = cena_za_sztukę * ilość
-                        cena_calkowita = cena * ilosc
-                        
+                        # Cena z Excela to cena JEDNOSTKOWA (brutto/RRP per item)
+                        # NIE mnożymy × ilość - cena_brutto w DB to cena za sztukę
+                        cena_jednostkowa = cena
+
                         # NIE pobieramy zdjęć przy imporcie (za wolne)
                         # Użyj przycisku "Pobierz zdjęcia" po imporcie
                         zdjecie = ''
-                        
+
                         # Sprawdź czy produkt już istnieje NA TEJ SAMEJ PALECIE
                         existing = None
                         if ean:
                             existing = conn.execute('SELECT id FROM produkty WHERE ean=? AND paleta_id=?', (ean, paleta_id_int)).fetchone()
                         if not existing and asin:
                             existing = conn.execute('SELECT id FROM produkty WHERE asin=? AND paleta_id=?', (asin, paleta_id_int)).fetchone()
-                        
+
                         if existing:
                             # Aktualizuj istniejący na tej palecie
                             conn.execute('''UPDATE produkty SET nazwa=?, ilosc=?, cena_brutto=?, dostawca=? WHERE id=?''',
-                                (nazwa, ilosc, cena_calkowita, dostawca, existing['id']))
+                                (nazwa, ilosc, cena_jednostkowa, dostawca, existing['id']))
                         else:
                             # Nowy produkt — zawsze INSERT, nie dotykamy innych palet
                             conn.execute('''INSERT INTO produkty (ean, asin, nazwa, ilosc, cena_brutto, zdjecie_url, paleta_id, paleta, dostawca)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', (ean, asin, nazwa, ilosc, cena_calkowita, zdjecie, paleta_id_int, paleta_nazwa, dostawca))
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', (ean, asin, nazwa, ilosc, cena_jednostkowa, zdjecie, paleta_id_int, paleta_nazwa, dostawca))
                         added += 1
                     except Exception as e:
                         errors.append(str(e))
@@ -5133,7 +5134,7 @@ def import_final():
                                 cena = 0
                         
                         # WAŻNE: Zapisujemy CAŁKOWITĄ cenę zakupu = cena_za_sztukę * ilość
-                        cena_calkowita = cena * ilosc
+                        cena_jednostkowa = cena  # NIE mnożymy × ilość
                         
                         # NIE pobieramy zdjęć przy imporcie (za wolne)
                         zdjecie = ''
@@ -5148,11 +5149,11 @@ def import_final():
                         if existing:
                             # Aktualizuj istniejący na tej palecie
                             conn.execute('''UPDATE produkty SET nazwa=?, ilosc=?, cena_brutto=?, dostawca=? WHERE id=?''',
-                                (nazwa, ilosc, cena_calkowita, dostawca, existing['id']))
+                                (nazwa, ilosc, cena_jednostkowa, dostawca, existing['id']))
                         else:
                             # Nowy produkt — zawsze INSERT, nie dotykamy innych palet
                             conn.execute('''INSERT INTO produkty (ean, asin, nazwa, ilosc, cena_brutto, zdjecie_url, paleta_id, paleta, dostawca)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', (ean, asin, nazwa, ilosc, cena_calkowita, zdjecie, paleta_id_int, paleta_nazwa, dostawca))
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', (ean, asin, nazwa, ilosc, cena_jednostkowa, zdjecie, paleta_id_int, paleta_nazwa, dostawca))
                         added += 1
                     except Exception as e:
                         errors.append(str(e))
@@ -5283,11 +5284,11 @@ def import_upload():
                             break
                     
                     # WAŻNE: Zapisujemy CAŁKOWITĄ cenę zakupu = cena_za_sztukę * ilość
-                    cena_calkowita = cena * ilosc
+                    cena_jednostkowa = cena  # NIE mnożymy × ilość
                     
                     # Zawsze INSERT — nie scalaj produktów z różnych palet
                     conn.execute('''INSERT INTO produkty (ean, nazwa, ilosc, cena_brutto, zdjecie_url, paleta_id, paleta)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)''', (ean, nazwa, ilosc, cena_calkowita, '', paleta_id_int, paleta_nazwa))
+                        VALUES (?, ?, ?, ?, ?, ?, ?)''', (ean, nazwa, ilosc, cena_jednostkowa, '', paleta_id_int, paleta_nazwa))
                     added += 1
                 except Exception as e:
                     errors.append(str(e))
@@ -5384,11 +5385,11 @@ def import_upload():
                                     cena = 0
                             
                             # WAŻNE: Zapisujemy CAŁKOWITĄ cenę zakupu = cena_za_sztukę * ilość
-                            cena_calkowita = cena * ilosc
+                            cena_jednostkowa = cena  # NIE mnożymy × ilość
                             
                             # Zawsze INSERT — nie scalaj produktów z różnych palet
                             conn.execute('''INSERT INTO produkty (ean, nazwa, ilosc, cena_brutto, dostawca, zdjecie_url, paleta_id, paleta)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (ean, nazwa, ilosc, cena_calkowita, dostawca or '', '', paleta_id_int, paleta_nazwa))
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (ean, nazwa, ilosc, cena_jednostkowa, dostawca or '', '', paleta_id_int, paleta_nazwa))
                             added += 1
                         except Exception as row_err:
                             errors.append(str(row_err))
