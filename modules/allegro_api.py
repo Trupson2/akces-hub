@@ -4200,6 +4200,25 @@ def index():
         user_info, _ = get_user_info()
         autosync_on = get_config('allegro_autosync', 'true') == 'true'
 
+    # Sync history - recent daily order counts for last 7 days
+    sync_history = conn.execute("""
+        SELECT date(data_sprzedazy) as day, COUNT(*) as cnt
+        FROM sprzedaze
+        WHERE data_sprzedazy >= date('now', '-7 days')
+        GROUP BY date(data_sprzedazy)
+        ORDER BY day DESC
+        LIMIT 7
+    """).fetchall()
+
+    # Returns count this month
+    cnt_returns = conn.execute(
+        "SELECT COUNT(*) as c FROM sprzedaze WHERE strftime('%Y-%m',data_sprzedazy)=? AND status='zwrot'",
+        (_month,)
+    ).fetchone()['c']
+
+    # Last sync timestamp from config
+    last_sync = get_config('allegro_last_sync', '')
+
     from flask import render_template
     return render_template('allegro_dashboard.html',
         authenticated=authenticated,
@@ -4211,6 +4230,9 @@ def index():
         revenue_month=revenue_month,
         user_info=user_info,
         autosync_on=autosync_on,
+        sync_history=sync_history,
+        cnt_returns=cnt_returns,
+        last_sync=last_sync,
     )
 
 
@@ -4700,27 +4722,91 @@ def napraw_zwroty_route():
 
 @allegro_bp.route('/sync')
 def sync():
-    from datetime import date
+    from datetime import date, datetime
     today = date.today().strftime('%d.%m.%Y')
+    timestamp = datetime.now().strftime('%H:%M:%S')
 
     synced, error = sync_orders(today_only=True)
 
     if error:
-        html = f'<div class="alert alert-error">{error}</div>'
+        icon = 'error'
+        icon_color = '#ef4444'
+        icon_glow = 'rgba(239,68,68,0.4)'
+        title = 'SYNC ERROR'
+        subtitle = f'{error}'
+        bar_color = '#ef4444'
+        badge_text = 'FAILED'
+        badge_bg = 'rgba(239,68,68,0.12)'
+        badge_color = '#ef4444'
     elif synced > 0:
-        html = f'''
-            <div class="alert alert-success" style="text-align:center">
-                Zsynchronizowano <b>{synced}</b> nowych zamowien z {today}<br>
-                <small>Powiadomienia wyslane na Telegram</small>
-            </div>'''
+        icon = 'check_circle'
+        icon_color = 'var(--neon-tertiary)'
+        icon_glow = 'rgba(190,238,0,0.4)'
+        title = 'SYNC COMPLETE'
+        subtitle = f'Zsynchronizowano <span style="color:var(--neon-tertiary);font-weight:900">{synced}</span> nowych zamowien'
+        bar_color = 'var(--neon-tertiary)'
+        badge_text = f'+{synced} ORDERS'
+        badge_bg = 'rgba(190,238,0,0.12)'
+        badge_color = 'var(--neon-tertiary)'
     else:
-        html = f'''
-            <div class="alert" style="background:var(--bg);border:1px solid var(--border);color:var(--text-secondary);text-align:center">
-                Brak nowych zamowien z {today}<br>
-                <small style="color:var(--text-muted)">Wszystkie zamowienia sa juz zsynchronizowane</small>
-            </div>'''
+        icon = 'verified'
+        icon_color = 'var(--neon-primary)'
+        icon_glow = 'rgba(143,245,255,0.4)'
+        title = 'SYSTEM UP TO DATE'
+        subtitle = 'Wszystkie zamowienia sa juz zsynchronizowane'
+        bar_color = 'var(--neon-primary)'
+        badge_text = 'ALL SYNCED'
+        badge_bg = 'rgba(143,245,255,0.12)'
+        badge_color = 'var(--neon-primary)'
 
-    html += '<a href="/allegro/zamowienia" class="btn btn-primary" style="margin-top:16px"><span class=material-symbols-outlined>inventory_2</span> Zamowienia</a><a href="/allegro" class="back">← Powrot</a>'
+    html = f'''
+    <style>
+    @keyframes syncBarFill {{ from {{ width:0 }} to {{ width:100% }} }}
+    @keyframes syncFadeIn {{ from {{ opacity:0;transform:translateY(20px) }} to {{ opacity:1;transform:translateY(0) }} }}
+    @keyframes syncIconPop {{ 0% {{ transform:scale(0);opacity:0 }} 60% {{ transform:scale(1.2) }} 100% {{ transform:scale(1);opacity:1 }} }}
+    @keyframes syncGlowPulse {{ 0%,100% {{ box-shadow:0 0 20px {icon_glow},0 0 40px transparent }} 50% {{ box-shadow:0 0 30px {icon_glow},0 0 60px {icon_glow} }} }}
+    .sync-glass {{ backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:40px 32px;text-align:center;animation:syncFadeIn 0.5s ease-out }}
+    .sync-icon-ring {{ width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;background:rgba(15,15,30,0.8);border:2px solid {icon_color};animation:syncIconPop 0.6s ease-out 0.2s both, syncGlowPulse 3s ease-in-out infinite }}
+    .sync-icon-ring .material-symbols-outlined {{ font-size:2.8rem;color:{icon_color} }}
+    .sync-bar-track {{ width:100%;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;margin:20px 0;overflow:hidden }}
+    .sync-bar-fill {{ height:100%;background:{bar_color};border-radius:2px;animation:syncBarFill 0.8s ease-out forwards;box-shadow:0 0 12px {icon_glow} }}
+    .sync-meta {{ display:flex;align-items:center;justify-content:center;gap:16px;font-size:0.65rem;color:var(--text-muted);letter-spacing:0.08em }}
+    .sync-meta-dot {{ width:3px;height:3px;border-radius:50%;background:var(--text-muted) }}
+    .sync-badge {{ display:inline-block;padding:4px 12px;background:{badge_bg};color:{badge_color};font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.6rem;letter-spacing:0.15em;border-radius:4px;margin-top:16px }}
+    .sync-actions {{ display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:24px;animation:syncFadeIn 0.5s ease-out 0.3s both }}
+    .sync-act {{ display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 16px;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;text-decoration:none;color:var(--text);font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.68rem;letter-spacing:0.06em;transition:all 0.2s }}
+    .sync-act:hover {{ background:rgba(15,15,30,0.85);border-color:rgba(255,255,255,0.15) }}
+    .sync-act .material-symbols-outlined {{ font-size:1.1rem }}
+    </style>
+
+    <div class="sync-glass">
+        <div class="sync-icon-ring">
+            <span class="material-symbols-outlined">{icon}</span>
+        </div>
+        <div class="font-display" style="font-weight:900;font-size:1.3rem;letter-spacing:0.04em;margin-bottom:6px">{title}</div>
+        <div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.5">{subtitle}</div>
+        <div class="sync-bar-track"><div class="sync-bar-fill"></div></div>
+        <div class="sync-meta">
+            <span>{today}</span>
+            <span class="sync-meta-dot"></span>
+            <span>{timestamp}</span>
+            <span class="sync-meta-dot"></span>
+            <span>ALLEGRO API</span>
+        </div>
+        <div class="sync-badge">{badge_text}</div>
+    </div>
+
+    <div class="sync-actions">
+        <a href="/allegro/zamowienia" class="sync-act">
+            <span class="material-symbols-outlined" style="color:var(--neon-tertiary)">inventory_2</span>
+            ZAMOWIENIA
+        </a>
+        <a href="/allegro" class="sync-act">
+            <span class="material-symbols-outlined" style="color:var(--neon-primary)">dashboard</span>
+            DASHBOARD
+        </a>
+    </div>
+    '''
     return render(html, 'Synchronizacja')
 
 

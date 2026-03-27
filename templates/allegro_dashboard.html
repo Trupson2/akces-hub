@@ -1,113 +1,274 @@
 {% extends "base.html" %}
+{% block page_title %}DATA SYNC TERMINAL{% endblock %}
 {% block content %}
-{# Variables: authenticated, configured, status_text, cnt_orders_today, cnt_orders_month, cnt_offers, revenue_month, user_info, autosync_on #}
+{# Variables: authenticated, configured, status_text, cnt_orders_today, cnt_orders_month, cnt_offers, revenue_month, user_info, autosync_on, sync_history, cnt_returns, last_sync #}
 
-<!-- Status indicator -->
-<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;margin-bottom:20px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:3px solid {% if authenticated %}var(--neon-tertiary){% elif configured %}var(--orange){% else %}var(--text-muted){% endif %}">
-    <div style="display:flex;align-items:center;gap:10px">
-        <span style="width:8px;height:8px;border-radius:50%;background:{% if authenticated %}var(--neon-tertiary);box-shadow:0 0 8px rgba(190,238,0,0.6){% elif configured %}var(--orange){% else %}var(--text-muted){% endif %}{% if authenticated %};animation:neonPulse 2s infinite{% endif %}"></span>
-        <span class="font-display" style="font-weight:700;font-size:0.85rem">{{ status_text }}</span>
-    </div>
-    <span style="font-size:0.6rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;padding:3px 10px;{% if authenticated %}background:rgba(190,238,0,0.1);color:var(--neon-tertiary){% elif configured %}background:rgba(234,179,8,0.1);color:var(--orange){% else %}background:rgba(255,255,255,0.04);color:var(--text-muted){% endif %}">{% if authenticated %}ACTIVE LINK{% elif configured %}AUTH REQUIRED{% else %}OFFLINE{% endif %}</span>
-</div>
+<style>
+@keyframes termScanline { from { top:-100% } to { top:100% } }
+@keyframes termBarGrow { from { width:0 } to { width:var(--bar-w) } }
+@keyframes termFadeUp { from { opacity:0;transform:translateY(12px) } to { opacity:1;transform:translateY(0) } }
+@keyframes termBlink { 0%,100% { opacity:1 } 50% { opacity:0 } }
+@keyframes termGlowPulse { 0%,100% { box-shadow:0 0 12px var(--glow-c,rgba(143,245,255,0.2)) } 50% { box-shadow:0 0 24px var(--glow-c,rgba(143,245,255,0.35)) } }
 
-<!-- KPI Strip -->
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px">
-    <div style="background:var(--bg-card,rgba(19,19,28,0.6));padding:16px;border-top:2px solid var(--neon-primary)">
-        <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);margin-bottom:8px">DZISIAJ</div>
-        <div class="font-display" style="font-size:1.8rem;font-weight:900;color:var(--neon-primary)">{{ cnt_orders_today }}</div>
-        <div style="font-size:0.55rem;color:var(--text-muted);margin-top:4px">ZAMOWIEN</div>
-    </div>
-    <div style="background:var(--bg-card,rgba(19,19,28,0.6));padding:16px;border-top:2px solid var(--neon-tertiary)">
-        <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);margin-bottom:8px">TEN MIESIAC</div>
-        <div class="font-display" style="font-size:1.8rem;font-weight:900;color:var(--neon-tertiary)">{{ cnt_orders_month }}</div>
-        <div style="font-size:0.55rem;color:var(--text-muted);margin-top:4px">ZAMOWIEN</div>
-    </div>
-    <div style="background:var(--bg-card,rgba(19,19,28,0.6));padding:16px;border-top:2px solid var(--neon-secondary)">
-        <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);margin-bottom:8px">AKTYWNE OFERTY</div>
-        <div class="font-display" style="font-size:1.8rem;font-weight:900">{{ cnt_offers }}</div>
-        <div style="font-size:0.55rem;color:var(--text-muted);margin-top:4px">NA ALLEGRO</div>
-    </div>
-    <div style="background:var(--bg-card,rgba(19,19,28,0.6));padding:16px;border-top:2px solid var(--orange)">
-        <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);margin-bottom:8px">PRZYCHOD</div>
-        <div class="font-display" style="font-size:1.8rem;font-weight:900;color:var(--orange)">{{ '{:,.0f}'.format(revenue_month) }} zl</div>
-        <div style="font-size:0.55rem;color:var(--text-muted);margin-top:4px">W TYM MIESIACU</div>
-    </div>
+.dst-glass { backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px }
+.dst-section-label { display:flex;align-items:center;gap:8px;margin-bottom:12px }
+.dst-section-label .dst-bar { width:3px;height:14px;border-radius:1px }
+.dst-section-label span:last-child { font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em }
+
+/* Sync tiles */
+.dst-tiles { display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px }
+.dst-tile { position:relative;overflow:hidden;padding:20px 16px;text-align:center;text-decoration:none;color:var(--text);transition:all 0.25s;cursor:pointer }
+.dst-tile:hover { transform:translateY(-2px);border-color:rgba(255,255,255,0.15) }
+.dst-tile::before { content:'';position:absolute;top:-100%;left:0;right:0;height:200%;background:linear-gradient(180deg,transparent 40%,var(--tile-glow,rgba(143,245,255,0.03)) 50%,transparent 60%);animation:termScanline 4s linear infinite;pointer-events:none }
+.dst-tile .material-symbols-outlined { font-size:1.6rem;margin-bottom:10px;display:block }
+.dst-tile-label { font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:0.62rem;letter-spacing:0.15em;text-transform:uppercase }
+.dst-tile-sub { font-size:0.55rem;color:var(--text-muted);margin-top:6px;letter-spacing:0.05em }
+
+/* Status bar */
+.dst-status { display:flex;align-items:center;gap:12px;padding:14px 18px;margin-bottom:20px }
+.dst-status-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0 }
+.dst-status-text { font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.78rem }
+.dst-status-badge { margin-left:auto;font-size:0.55rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;padding:3px 10px;border-radius:2px }
+
+/* KPI strip */
+.dst-kpi-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:24px }
+.dst-kpi { padding:16px;position:relative }
+.dst-kpi::after { content:'';position:absolute;top:0;left:0;right:0;height:2px }
+.dst-kpi-val { font-family:'Space Grotesk',sans-serif;font-size:1.8rem;font-weight:900;margin:8px 0 4px }
+.dst-kpi-label { font-size:0.52rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted) }
+
+/* Sync history */
+.dst-history { padding:20px;margin-bottom:20px }
+.dst-history-row { display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04) }
+.dst-history-row:last-child { border-bottom:none }
+.dst-history-date { font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.7rem;width:80px;flex-shrink:0 }
+.dst-history-bar { flex:1;height:6px;background:rgba(255,255,255,0.04);border-radius:3px;overflow:hidden }
+.dst-history-bar-fill { height:100%;border-radius:3px;animation:termBarGrow 0.8s ease-out forwards }
+.dst-history-cnt { font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:0.72rem;width:36px;text-align:right;flex-shrink:0 }
+
+/* Console */
+.dst-console { padding:16px 20px;margin-bottom:20px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:0.62rem;line-height:1.8 }
+.dst-console-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.06) }
+.dst-console-title { font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted) }
+.dst-console-dots { display:flex;gap:5px }
+.dst-console-dots span { width:6px;height:6px;border-radius:50% }
+.dst-log-line { display:flex;gap:8px }
+.dst-log-ts { color:var(--text-muted);flex-shrink:0 }
+.dst-log-ok { color:var(--neon-tertiary) }
+.dst-log-info { color:var(--neon-primary) }
+.dst-log-warn { color:var(--neon-secondary) }
+.dst-cursor { display:inline-block;width:7px;height:12px;background:var(--neon-primary);animation:termBlink 1s step-end infinite;vertical-align:middle;margin-left:2px }
+
+/* Actions grid */
+.dst-actions { display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px }
+.dst-act { display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;text-decoration:none;color:var(--text);text-align:center;transition:all 0.2s }
+.dst-act:hover { background:rgba(255,255,255,0.03) }
+.dst-act .material-symbols-outlined { font-size:1.3rem }
+.dst-act-label { font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.62rem;letter-spacing:0.06em }
+
+/* User card */
+.dst-user { display:flex;align-items:center;gap:14px;padding:16px 18px;margin-bottom:16px }
+.dst-user-avatar { width:42px;height:42px;background:linear-gradient(135deg,#ff5a00,#ff8c42);display:flex;align-items:center;justify-content:center;border-radius:4px }
+
+/* Autosync indicator */
+.dst-autosync { display:flex;align-items:center;gap:12px;padding:14px 18px;margin-bottom:16px;border-left:2px solid var(--neon-tertiary) }
+.dst-autosync-dot { width:8px;height:8px;border-radius:50%;background:var(--neon-tertiary);animation:neonPulse 2s infinite }
+
+@media(max-width:600px) {
+    .dst-tiles { grid-template-columns:1fr }
+    .dst-kpi-grid { grid-template-columns:repeat(2,1fr) }
+    .dst-actions { grid-template-columns:repeat(2,1fr) }
+}
+</style>
+
+<!-- Status Bar -->
+<div class="dst-glass dst-status" style="border-left:3px solid {% if authenticated %}var(--neon-tertiary){% elif configured %}var(--orange){% else %}var(--text-muted){% endif %}">
+    <span class="dst-status-dot" style="background:{% if authenticated %}var(--neon-tertiary);box-shadow:0 0 8px rgba(190,238,0,0.6){% elif configured %}var(--orange){% else %}var(--text-muted){% endif %}{% if authenticated %};animation:neonPulse 2s infinite{% endif %}"></span>
+    <span class="dst-status-text">{{ status_text }}</span>
+    <span class="dst-status-badge" style="{% if authenticated %}background:rgba(190,238,0,0.1);color:var(--neon-tertiary){% elif configured %}background:rgba(234,179,8,0.1);color:var(--orange){% else %}background:rgba(255,255,255,0.04);color:var(--text-muted){% endif %}">{% if authenticated %}ACTIVE LINK{% elif configured %}AUTH REQUIRED{% else %}OFFLINE{% endif %}</span>
 </div>
 
 {% if authenticated %}
-    {% if user_info %}
-    <!-- User info -->
-    <div style="display:flex;align-items:center;gap:14px;padding:16px 18px;margin-bottom:16px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:2px solid var(--neon-primary)">
-        <div style="width:42px;height:42px;background:linear-gradient(135deg,#ff5a00,#ff8c42);display:flex;align-items:center;justify-content:center"><i class=mi style="color:#fff">person</i></div>
-        <div>
-            <div class="font-display" style="font-weight:700;font-size:0.95rem">{{ user_info.get('login', 'Uzytkownik') }}</div>
-            <div style="font-size:0.7rem;color:var(--text-muted)">Zalogowano do Allegro</div>
+
+<!-- Sync Operation Tiles -->
+<div class="dst-section-label">
+    <span class="dst-bar" style="background:var(--neon-primary)"></span>
+    <span style="color:var(--neon-primary)">Operacje synchronizacji</span>
+</div>
+<div class="dst-tiles">
+    <a href="/allegro/sync" class="dst-glass dst-tile" style="border-top:3px solid var(--neon-primary);--tile-glow:rgba(143,245,255,0.04)">
+        <span class="material-symbols-outlined" style="color:var(--neon-primary)">sync</span>
+        <div class="dst-tile-label" style="color:var(--neon-primary)">SYNC MIESIAC</div>
+        <div class="dst-tile-sub">Pobierz zamowienia z dzisiaj</div>
+    </a>
+    <a href="/allegro/napraw-zwroty" class="dst-glass dst-tile" style="border-top:3px solid var(--neon-secondary);--tile-glow:rgba(255,107,155,0.04)">
+        <span class="material-symbols-outlined" style="color:var(--neon-secondary)">undo</span>
+        <div class="dst-tile-label" style="color:var(--neon-secondary)">SYNC ZWROTOW</div>
+        <div class="dst-tile-sub">Napraw falszywe zwroty ({{ cnt_returns }})</div>
+    </a>
+    <a href="/allegro/backfill-link" class="dst-glass dst-tile" style="border-top:3px solid var(--neon-tertiary);--tile-glow:rgba(190,238,0,0.04)">
+        <span class="material-symbols-outlined" style="color:var(--neon-tertiary)">build</span>
+        <div class="dst-tile-label" style="color:var(--neon-tertiary)">NAPRAW DANE</div>
+        <div class="dst-tile-sub">Polacz produkty z zamowieniami</div>
+    </a>
+</div>
+
+<!-- KPI Strip -->
+<div class="dst-kpi-grid">
+    <div class="dst-glass dst-kpi" style="border-top:2px solid var(--neon-primary)">
+        <div class="dst-kpi-label">DZISIAJ</div>
+        <div class="dst-kpi-val" style="color:var(--neon-primary)">{{ cnt_orders_today }}</div>
+        <div class="dst-kpi-label">ZAMOWIEN</div>
+    </div>
+    <div class="dst-glass dst-kpi" style="border-top:2px solid var(--neon-tertiary)">
+        <div class="dst-kpi-label">TEN MIESIAC</div>
+        <div class="dst-kpi-val" style="color:var(--neon-tertiary)">{{ cnt_orders_month }}</div>
+        <div class="dst-kpi-label">ZAMOWIEN</div>
+    </div>
+    <div class="dst-glass dst-kpi" style="border-top:2px solid var(--neon-secondary)">
+        <div class="dst-kpi-label">AKTYWNE OFERTY</div>
+        <div class="dst-kpi-val">{{ cnt_offers }}</div>
+        <div class="dst-kpi-label">NA ALLEGRO</div>
+    </div>
+    <div class="dst-glass dst-kpi" style="border-top:2px solid var(--orange,#f59e0b)">
+        <div class="dst-kpi-label">PRZYCHOD</div>
+        <div class="dst-kpi-val" style="color:var(--orange,#f59e0b);font-size:1.4rem">{{ '{:,.0f}'.format(revenue_month) }} zl</div>
+        <div class="dst-kpi-label">W TYM MIESIACU</div>
+    </div>
+</div>
+
+{% if user_info %}
+<!-- User Info -->
+<div class="dst-glass dst-user" style="border-left:2px solid var(--neon-primary)">
+    <div class="dst-user-avatar"><span class="material-symbols-outlined" style="color:#fff">person</span></div>
+    <div>
+        <div class="font-display" style="font-weight:700;font-size:0.95rem">{{ user_info.get('login', 'Uzytkownik') }}</div>
+        <div style="font-size:0.65rem;color:var(--text-muted)">Zalogowano do Allegro</div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Sync History -->
+<div class="dst-section-label">
+    <span class="dst-bar" style="background:var(--neon-tertiary)"></span>
+    <span style="color:var(--neon-tertiary)">Historia synchronizacji (7 dni)</span>
+</div>
+<div class="dst-glass dst-history">
+    {% if sync_history %}
+        {% set max_cnt = sync_history|map(attribute='cnt')|list|max if sync_history else 1 %}
+        {% for row in sync_history %}
+        <div class="dst-history-row" style="animation:termFadeUp 0.3s ease-out {{ loop.index * 0.06 }}s both">
+            <span class="dst-history-date">{{ row['day'][-5:] }}</span>
+            <div class="dst-history-bar">
+                {% set pct = (row['cnt'] / max_cnt * 100) if max_cnt > 0 else 0 %}
+                {% if loop.index == 1 %}
+                <div class="dst-history-bar-fill" style="--bar-w:{{ pct }}%;background:linear-gradient(90deg,var(--neon-primary),var(--neon-tertiary));box-shadow:0 0 8px rgba(143,245,255,0.3)"></div>
+                {% elif pct > 70 %}
+                <div class="dst-history-bar-fill" style="--bar-w:{{ pct }}%;background:var(--neon-tertiary)"></div>
+                {% elif pct > 30 %}
+                <div class="dst-history-bar-fill" style="--bar-w:{{ pct }}%;background:var(--neon-primary)"></div>
+                {% else %}
+                <div class="dst-history-bar-fill" style="--bar-w:{{ pct }}%;background:var(--neon-secondary)"></div>
+                {% endif %}
+            </div>
+            <span class="dst-history-cnt" style="{% if loop.index == 1 %}color:var(--neon-tertiary){% else %}color:var(--text-secondary){% endif %}">{{ row['cnt'] }}</span>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div style="text-align:center;padding:16px;color:var(--text-muted);font-size:0.72rem">Brak danych synchronizacji</div>
+    {% endif %}
+</div>
+
+<!-- Quick Actions -->
+<div class="dst-section-label">
+    <span class="dst-bar" style="background:var(--neon-secondary)"></span>
+    <span style="color:var(--neon-secondary)">Szybkie akcje</span>
+</div>
+<div class="dst-actions" style="margin-bottom:8px">
+    <a href="/allegro/zamowienia" class="dst-glass dst-act" style="border-top:2px solid var(--neon-tertiary)">
+        <span class="material-symbols-outlined" style="color:var(--neon-tertiary)">inventory_2</span>
+        <span class="dst-act-label">ZAMOWIENIA</span>
+    </a>
+    <a href="/allegro/oferty" class="dst-glass dst-act" style="border-top:2px solid var(--neon-primary)">
+        <span class="material-symbols-outlined" style="color:var(--neon-primary)">edit_note</span>
+        <span class="dst-act-label">OFERTY</span>
+    </a>
+    <a href="/allegro/sync" class="dst-glass dst-act" style="border-top:2px solid var(--orange,#f59e0b)">
+        <span class="material-symbols-outlined" style="color:var(--orange,#f59e0b)">sync</span>
+        <span class="dst-act-label">SYNC NOW</span>
+    </a>
+</div>
+<div class="dst-actions" style="margin-bottom:24px">
+    <a href="/allegro/sync-oferty-daty" class="dst-glass dst-act" style="border-top:2px solid var(--neon-secondary)">
+        <span class="material-symbols-outlined" style="color:var(--neon-secondary)">cloud_sync</span>
+        <span class="dst-act-label">SYNC OFERT</span>
+    </a>
+    <a href="/allegro/config" class="dst-glass dst-act" style="border-top:2px solid var(--text-muted)">
+        <span class="material-symbols-outlined" style="color:var(--text-muted)">settings</span>
+        <span class="dst-act-label">USTAWIENIA</span>
+    </a>
+    <a href="/allegro/polacz-sprzedaze" class="dst-glass dst-act" style="border-top:2px solid var(--neon-primary)">
+        <span class="material-symbols-outlined" style="color:var(--neon-primary)">link</span>
+        <span class="dst-act-label">POLACZ PROD</span>
+    </a>
+</div>
+
+{% if autosync_on %}
+<div class="dst-glass dst-autosync">
+    <span class="dst-autosync-dot"></span>
+    <div>
+        <div class="font-display" style="font-weight:700;font-size:0.82rem;color:var(--neon-tertiary)">Auto-sync aktywny</div>
+        <div style="font-size:0.65rem;color:var(--text-muted)">Sprawdzam zamowienia co 5 min</div>
+    </div>
+</div>
+{% endif %}
+
+<!-- System Console -->
+<div class="dst-section-label">
+    <span class="dst-bar" style="background:var(--text-muted)"></span>
+    <span style="color:var(--text-muted)">System logs</span>
+</div>
+<div class="dst-glass dst-console">
+    <div class="dst-console-header">
+        <span class="dst-console-title">ALLEGRO_SYNC_TERMINAL v2.0</span>
+        <div class="dst-console-dots">
+            <span style="background:var(--neon-secondary)"></span>
+            <span style="background:var(--orange,#f59e0b)"></span>
+            <span style="background:var(--neon-tertiary)"></span>
         </div>
     </div>
+    <div class="dst-log-line"><span class="dst-log-ts">[SYS]</span> <span class="dst-log-info">Allegro API connection: {% if authenticated %}ESTABLISHED{% else %}OFFLINE{% endif %}</span></div>
+    <div class="dst-log-line"><span class="dst-log-ts">[DB]</span> <span class="dst-log-ok">Orders this month: {{ cnt_orders_month }} | Today: {{ cnt_orders_today }}</span></div>
+    <div class="dst-log-line"><span class="dst-log-ts">[API]</span> <span>Active offers: {{ cnt_offers }}</span></div>
+    {% if cnt_returns > 0 %}
+    <div class="dst-log-line"><span class="dst-log-ts">[WARN]</span> <span class="dst-log-warn">Returns detected: {{ cnt_returns }} this month</span></div>
     {% endif %}
-
-    <!-- Quick actions -->
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
-        <span style="width:2px;height:14px;background:var(--neon-primary);border-radius:1px"></span>
-        <span class="font-display" style="font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--neon-primary)">Akcje</span>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px">
-        <a href="/allegro/zamowienia" style="text-decoration:none;color:inherit;padding:14px 8px;background:var(--bg-card,rgba(19,19,28,0.6));border-top:2px solid var(--neon-tertiary);text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
-            <span class="material-symbols-outlined" style="font-size:1.3rem;color:var(--neon-tertiary)">inventory_2</span>
-            <span class="font-display" style="font-weight:700;font-size:0.65rem;letter-spacing:0.05em">ZAMOWIENIA</span>
-        </a>
-        <a href="/allegro/oferty" style="text-decoration:none;color:inherit;padding:14px 8px;background:var(--bg-card,rgba(19,19,28,0.6));border-top:2px solid var(--neon-primary);text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
-            <span class="material-symbols-outlined" style="font-size:1.3rem;color:var(--neon-primary)">edit_note</span>
-            <span class="font-display" style="font-weight:700;font-size:0.65rem;letter-spacing:0.05em">OFERTY</span>
-        </a>
-        <a href="/allegro/sync" style="text-decoration:none;color:inherit;padding:14px 8px;background:var(--bg-card,rgba(19,19,28,0.6));border-top:2px solid var(--orange);text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
-            <span class="material-symbols-outlined" style="font-size:1.3rem;color:var(--orange)">sync</span>
-            <span class="font-display" style="font-weight:700;font-size:0.65rem;letter-spacing:0.05em">SYNC ZAMOWIEN</span>
-        </a>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px">
-        <a href="/allegro/sync-oferty-daty" style="text-decoration:none;color:inherit;padding:14px 8px;background:var(--bg-card,rgba(19,19,28,0.6));border-top:2px solid var(--neon-secondary);text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
-            <span class="material-symbols-outlined" style="font-size:1.3rem;color:var(--neon-secondary)">cloud_sync</span>
-            <span class="font-display" style="font-weight:700;font-size:0.65rem;letter-spacing:0.05em">SYNC OFERT</span>
-        </a>
-        <a href="/allegro/config" style="text-decoration:none;color:inherit;padding:14px 8px;background:var(--bg-card,rgba(19,19,28,0.6));border-top:2px solid var(--text-muted);text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
-            <span class="material-symbols-outlined" style="font-size:1.3rem;color:var(--text-muted)">settings</span>
-            <span class="font-display" style="font-weight:700;font-size:0.65rem;letter-spacing:0.05em">USTAWIENIA</span>
-        </a>
-        <a href="/allegro/backfill-link" style="text-decoration:none;color:inherit;padding:14px 8px;background:var(--bg-card,rgba(19,19,28,0.6));border-top:2px solid var(--neon-primary);text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
-            <span class="material-symbols-outlined" style="font-size:1.3rem;color:var(--neon-primary)">link</span>
-            <span class="font-display" style="font-weight:700;font-size:0.65rem;letter-spacing:0.05em">POLACZ PROD</span>
-        </a>
-    </div>
-
+    {% if last_sync %}
+    <div class="dst-log-line"><span class="dst-log-ts">[SYNC]</span> <span class="dst-log-ok">Last sync: {{ last_sync }}</span></div>
+    {% endif %}
     {% if autosync_on %}
-    <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--bg-card,rgba(19,19,28,0.6));border-left:2px solid var(--neon-tertiary);margin-bottom:16px">
-        <span style="width:8px;height:8px;border-radius:50%;background:var(--neon-tertiary);animation:neonPulse 2s infinite"></span>
-        <div>
-            <div class="font-display" style="font-weight:700;font-size:0.82rem;color:var(--neon-tertiary)">Auto-sync aktywny</div>
-            <div style="font-size:0.65rem;color:var(--text-muted)">Sprawdzam zamowienia co 5 min</div>
-        </div>
-    </div>
+    <div class="dst-log-line"><span class="dst-log-ts">[AUTO]</span> <span class="dst-log-info">Auto-sync: ENABLED (interval: 5min)</span></div>
     {% endif %}
+    <div class="dst-log-line"><span class="dst-log-ts">[RDY]</span> <span style="color:var(--neon-tertiary)">Awaiting operator input</span><span class="dst-cursor"></span></div>
+</div>
 
-    <form action="/allegro/logout" method="POST" style="margin-top:16px">
-        <button type="submit" style="padding:8px 16px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);color:var(--red);font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.65rem;letter-spacing:0.1em;cursor:pointer"><i class=mi>logout</i> WYLOGUJ</button>
-    </form>
+<form action="/allegro/logout" method="POST" style="margin-top:16px">
+    <button type="submit" style="padding:8px 16px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);color:var(--red,#ef4444);font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.65rem;letter-spacing:0.1em;cursor:pointer;border-radius:4px"><span class="material-symbols-outlined" style="font-size:0.85rem;vertical-align:middle;margin-right:4px">logout</span>WYLOGUJ</button>
+</form>
 
 {% elif configured %}
-    <div style="background:var(--bg-card,rgba(19,19,28,0.6));padding:24px;border-left:3px solid var(--orange);margin-bottom:16px">
-        <div class="font-display" style="font-weight:700;font-size:0.85rem;margin-bottom:10px"><i class=mi>enhanced_encryption</i> Autoryzacja wymagana</div>
-        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px">Kliknij aby zalogowac sie do Allegro.</p>
-        <a href="/allegro/auth" style="display:inline-block;padding:10px 20px;background:var(--neon-primary);color:#005d63;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.65rem;letter-spacing:0.1em;text-decoration:none"><i class=mi>key</i> ZALOGUJ DO ALLEGRO</a>
-    </div>
-    <a href="/allegro/config" style="display:inline-block;padding:8px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.65rem;letter-spacing:0.1em;text-decoration:none"><i class=mi>settings</i> ZMIEN KONFIGURACJE</a>
+<div class="dst-glass" style="padding:24px;border-left:3px solid var(--orange,#f59e0b);margin-bottom:16px">
+    <div class="font-display" style="font-weight:700;font-size:0.85rem;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:1.1rem;vertical-align:middle;margin-right:6px">enhanced_encryption</span>Autoryzacja wymagana</div>
+    <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px">Kliknij aby zalogowac sie do Allegro.</p>
+    <a href="/allegro/auth" style="display:inline-block;padding:10px 20px;background:var(--neon-primary);color:#005d63;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.65rem;letter-spacing:0.1em;text-decoration:none;border-radius:4px"><span class="material-symbols-outlined" style="font-size:0.85rem;vertical-align:middle;margin-right:4px">key</span>ZALOGUJ DO ALLEGRO</a>
+</div>
+<a href="/allegro/config" style="display:inline-block;padding:8px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.65rem;letter-spacing:0.1em;text-decoration:none;border-radius:4px"><span class="material-symbols-outlined" style="font-size:0.85rem;vertical-align:middle;margin-right:4px">settings</span>ZMIEN KONFIGURACJE</a>
 
 {% else %}
-    <div style="background:var(--bg-card,rgba(19,19,28,0.6));padding:24px;border-left:3px solid var(--text-muted);margin-bottom:16px">
-        <div class="font-display" style="font-weight:700;font-size:0.85rem;margin-bottom:10px"><i class=mi>settings</i> Konfiguracja</div>
-        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px">Potrzebujesz Client ID i Secret z <a href="https://apps.developer.allegro.pl" target="_blank" style="color:var(--neon-primary)">apps.developer.allegro.pl</a></p>
-        <a href="/allegro/config" style="display:inline-block;padding:10px 20px;background:var(--neon-primary);color:#005d63;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.65rem;letter-spacing:0.1em;text-decoration:none"><i class=mi>settings</i> KONFIGURUJ</a>
-    </div>
+<div class="dst-glass" style="padding:24px;border-left:3px solid var(--text-muted);margin-bottom:16px">
+    <div class="font-display" style="font-weight:700;font-size:0.85rem;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:1.1rem;vertical-align:middle;margin-right:6px">settings</span>Konfiguracja</div>
+    <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px">Potrzebujesz Client ID i Secret z <a href="https://apps.developer.allegro.pl" target="_blank" style="color:var(--neon-primary)">apps.developer.allegro.pl</a></p>
+    <a href="/allegro/config" style="display:inline-block;padding:10px 20px;background:var(--neon-primary);color:#005d63;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.65rem;letter-spacing:0.1em;text-decoration:none;border-radius:4px"><span class="material-symbols-outlined" style="font-size:0.85rem;vertical-align:middle;margin-right:4px">settings</span>KONFIGURUJ</a>
+</div>
 {% endif %}
 {% endblock %}
