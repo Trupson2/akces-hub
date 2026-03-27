@@ -3,335 +3,626 @@
 {% block content %}
 
 <style>
-/* ── PALETOMAT DASHBOARD v2 ── */
+/* ── OFFER_ENGINE DASHBOARD ── */
 
-.pal-header {
+.oe-header {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 28px;
-}
-.pal-header h2 {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: clamp(2rem, 5vw, 3.2rem);
-    font-weight: 800;
-    color: #f9f5f8;
-    letter-spacing: -0.03em;
-    text-transform: uppercase;
-    margin: 0;
-    line-height: 1;
-}
-.pal-header-status {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.pal-header-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    animation: dotPulse 2s ease-in-out infinite;
-}
-.pal-header-dot.active { background: #ff6b9b; box-shadow: 0 0 10px #ff6b9b; }
-.pal-header-dot.stopped { background: #767577; }
-@keyframes dotPulse { 0%,100% { opacity:1 } 50% { opacity:0.3 } }
-
-/* Scraper Control */
-.pal-scraper-panel {
-    background: rgba(25,25,28,0.7);
-    backdrop-filter: blur(12px);
-    padding: 20px 24px;
-    border-left: 4px solid #ff6b9b;
-    box-shadow: 0 0 20px rgba(255,107,155,0.1);
-    display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
+    gap: 24px;
+    margin-bottom: 32px;
     flex-wrap: wrap;
 }
-.pal-scraper-panel .label { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.15em; color: #adaaad; text-transform: uppercase; margin-bottom: 4px; }
-.pal-scraper-panel .value { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.05em; }
-.pal-scraper-panel .value.on { color: #beee00; }
-.pal-scraper-panel .value.off { color: #ef4444; }
-
-.pal-btn-action {
-    padding: 10px 24px;
+.oe-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.oe-title {
     font-family: 'Space Grotesk', sans-serif;
-    font-weight: 700;
-    font-size: 0.78rem;
-    letter-spacing: 0.1em;
+    font-size: clamp(2.4rem, 6vw, 3.6rem);
+    font-weight: 900;
+    color: #f9f5f8;
+    letter-spacing: -0.04em;
     text-transform: uppercase;
-    border: none;
-    cursor: pointer;
+    margin: 0;
+    line-height: 0.9;
+}
+.oe-title-accent { color: #8ff5ff; }
+.oe-badges {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.oe-badge {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    transition: all 0.2s;
+    gap: 6px;
+    padding: 5px 14px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-family: 'Space Grotesk', sans-serif;
 }
-.pal-btn-action.start { background: #8ff5ff; color: #005d63; box-shadow: 0 0 15px rgba(143,245,255,0.4); }
-.pal-btn-action.start:hover { box-shadow: 0 0 25px rgba(143,245,255,0.5); }
-.pal-btn-action.stop { background: #ef4444; color: #fff; box-shadow: 0 0 15px rgba(239,68,68,0.3); }
-
-/* KPI Grid */
-.pal-kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 28px;
+.oe-badge.optimal {
+    background: rgba(190,238,0,0.1);
+    border: 1px solid rgba(190,238,0,0.3);
+    color: #beee00;
 }
-@media (max-width: 900px) { .pal-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 500px) { .pal-kpi-grid { grid-template-columns: 1fr; } }
+.oe-badge.active {
+    background: rgba(143,245,255,0.08);
+    border: 1px solid rgba(143,245,255,0.25);
+    color: #8ff5ff;
+}
+.oe-badge.warning {
+    background: rgba(245,158,11,0.1);
+    border: 1px solid rgba(245,158,11,0.25);
+    color: #f59e0b;
+}
+.oe-badge-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    animation: oePulse 2s ease-in-out infinite;
+}
+.oe-badge-dot.green { background: #beee00; box-shadow: 0 0 8px rgba(190,238,0,0.5); }
+.oe-badge-dot.cyan { background: #8ff5ff; box-shadow: 0 0 8px rgba(143,245,255,0.5); }
+@keyframes oePulse { 0%,100% { opacity:1 } 50% { opacity:0.35 } }
 
-.pal-kpi {
-    background: #131315;
-    padding: 20px;
+/* KPI mini cards (top right) */
+.oe-kpi-stack {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+.oe-kpi-mini {
+    background: rgba(19,19,21,0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 18px 22px;
+    min-width: 150px;
+    border-left: 3px solid transparent;
     position: relative;
-    overflow: hidden;
-    border-top: 2px solid transparent;
 }
-.pal-kpi.cyan { border-top-color: rgba(143,245,255,0.3); box-shadow: 0 0 20px rgba(143,245,255,0.08); }
-.pal-kpi.pink { border-top-color: rgba(255,107,155,0.3); box-shadow: 0 0 20px rgba(255,107,155,0.08); }
-.pal-kpi.plain { border-top-color: rgba(72,71,74,0.2); }
-
-.pal-kpi-bg-icon {
-    position: absolute;
-    top: 0;
-    right: 0;
-    padding: 8px;
-    opacity: 0.06;
-    transition: opacity 0.3s;
-}
-.pal-kpi:hover .pal-kpi-bg-icon { opacity: 0.12; }
-.pal-kpi-bg-icon .material-symbols-outlined { font-size: 3rem; }
-
-.pal-kpi-label {
-    font-size: 0.58rem;
-    font-weight: 700;
-    letter-spacing: 0.15em;
+.oe-kpi-mini.cyan { border-left-color: #8ff5ff; box-shadow: 0 0 20px rgba(143,245,255,0.06); }
+.oe-kpi-mini.pink { border-left-color: #ff6b9b; box-shadow: 0 0 20px rgba(255,107,155,0.06); }
+.oe-kpi-mini.lime { border-left-color: #beee00; box-shadow: 0 0 20px rgba(190,238,0,0.06); }
+.oe-kpi-mini-label {
+    font-size: 0.55rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
     color: #adaaad;
     text-transform: uppercase;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     font-family: 'Space Grotesk', sans-serif;
 }
-.pal-kpi-value {
+.oe-kpi-mini-value {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 2.2rem;
+    font-size: 2rem;
     font-weight: 900;
     line-height: 1;
 }
-.pal-kpi-value.cyan { color: #8ff5ff; }
-.pal-kpi-value.pink { color: #ff6b9b; }
-.pal-kpi-value.default { color: #f9f5f8; }
-
-.pal-kpi-change {
-    font-size: 0.68rem;
-    font-weight: 700;
-    margin-top: 8px;
-}
-.pal-kpi-change.up { color: #beee00; }
-
-.pal-kpi-bar {
-    margin-top: 12px;
-    height: 3px;
-    width: 100%;
-    background: #262528;
-    overflow: hidden;
-}
-.pal-kpi-bar-fill { height: 100%; }
-.pal-kpi-bar-fill.cyan { background: #8ff5ff; box-shadow: 0 0 8px #8ff5ff; }
-.pal-kpi-bar-fill.pink { background: #ff6b9b; box-shadow: 0 0 8px #ff6b9b; }
-
-/* Main Matrix Grid */
-.pal-matrix {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 24px;
-    align-items: start;
-}
-@media (max-width: 900px) { .pal-matrix { grid-template-columns: 1fr; } }
-
-/* Chart Panel */
-.pal-chart-panel {
-    background: #131315;
-    padding: 24px;
-    position: relative;
-    overflow: hidden;
-}
-.pal-chart-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 20px;
-}
-.pal-chart-title {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #8ff5ff;
-    letter-spacing: -0.01em;
-}
-.pal-chart-subtitle {
-    font-size: 0.58rem;
-    font-weight: 700;
-    letter-spacing: 0.2em;
-    color: #adaaad;
-    text-transform: uppercase;
-    margin-top: 4px;
-}
-.pal-chart-btn {
-    background: #262528;
-    color: #adaaad;
-    border: none;
-    cursor: pointer;
+.oe-kpi-mini-value.cyan { color: #8ff5ff; }
+.oe-kpi-mini-value.pink { color: #ff6b9b; }
+.oe-kpi-mini-value.lime { color: #beee00; }
+.oe-kpi-mini-sub {
     font-size: 0.6rem;
     font-weight: 700;
+    color: #767577;
+    margin-top: 6px;
+    letter-spacing: 0.05em;
+}
+
+/* Two column layout */
+.oe-columns {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 20px;
+    align-items: start;
+}
+@media (max-width: 1000px) {
+    .oe-columns { grid-template-columns: 1fr; }
+}
+
+/* Glass panel */
+.oe-panel {
+    background: rgba(19,19,21,0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(72,71,74,0.12);
+    padding: 0;
+    overflow: hidden;
+}
+.oe-panel-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid rgba(72,71,74,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.oe-panel-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #f9f5f8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.oe-panel-title .material-symbols-outlined { font-size: 1rem; color: #8ff5ff; }
+.oe-panel-body { padding: 18px 22px; }
+
+/* Toggle switches */
+.oe-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(72,71,74,0.08);
+}
+.oe-toggle-row:last-child { border-bottom: none; }
+.oe-toggle-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #f9f5f8;
+    letter-spacing: 0.04em;
+}
+.oe-toggle-sub {
+    font-size: 0.6rem;
+    color: #767577;
+    margin-top: 3px;
+    font-family: 'Manrope', sans-serif;
+}
+.oe-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+.oe-switch input { opacity: 0; width: 0; height: 0; }
+.oe-switch-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: #262528;
+    border: 1px solid rgba(72,71,74,0.3);
+    border-radius: 24px;
+    transition: all 0.3s;
+}
+.oe-switch-slider::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    left: 2px;
+    bottom: 2px;
+    background: #767577;
+    border-radius: 50%;
+    transition: all 0.3s;
+}
+.oe-switch input:checked + .oe-switch-slider {
+    background: rgba(143,245,255,0.15);
+    border-color: rgba(143,245,255,0.4);
+}
+.oe-switch input:checked + .oe-switch-slider::before {
+    transform: translateX(20px);
+    background: #8ff5ff;
+    box-shadow: 0 0 10px rgba(143,245,255,0.5);
+}
+
+/* Run button */
+.oe-btn-run {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    background: #8ff5ff;
+    color: #005d63;
+    border: none;
+    cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    box-shadow: 0 0 20px rgba(143,245,255,0.3);
+    text-decoration: none;
+}
+.oe-btn-run:hover {
+    box-shadow: 0 0 30px rgba(143,245,255,0.5);
+    transform: translateY(-1px);
+}
+.oe-btn-run .material-symbols-outlined { font-size: 1.1rem; }
+
+.oe-btn-stop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    background: rgba(239,68,68,0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239,68,68,0.3);
+    cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transition: all 0.2s;
+}
+.oe-btn-stop:hover {
+    background: rgba(239,68,68,0.25);
+    box-shadow: 0 0 20px rgba(239,68,68,0.2);
+}
+
+/* Alert box */
+.oe-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 18px;
+    background: rgba(245,158,11,0.06);
+    border: 1px solid rgba(245,158,11,0.15);
+    font-size: 0.72rem;
+    color: #f59e0b;
+    font-family: 'Manrope', sans-serif;
+    line-height: 1.5;
+}
+.oe-alert .material-symbols-outlined { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+/* Scraped product card */
+.oe-product-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 22px;
+    border-bottom: 1px solid rgba(72,71,74,0.08);
+    transition: background 0.2s;
+}
+.oe-product-card:hover { background: rgba(143,245,255,0.03); }
+.oe-product-card:last-child { border-bottom: none; }
+.oe-product-img {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+    background: #1a1a1d;
+    border: 1px solid rgba(72,71,74,0.12);
+    flex-shrink: 0;
+}
+.oe-product-info { flex: 1; min-width: 0; }
+.oe-product-name {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #f9f5f8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+}
+.oe-product-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.65rem;
+    color: #767577;
+    font-family: 'Space Grotesk', sans-serif;
+}
+.oe-product-price {
+    font-weight: 800;
+    color: #beee00;
+}
+.oe-product-asin {
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+.oe-product-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    font-size: 0.55rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: 'Space Grotesk', sans-serif;
+}
+.oe-product-status.ready {
+    background: rgba(190,238,0,0.1);
+    border: 1px solid rgba(190,238,0,0.25);
+    color: #beee00;
+}
+.oe-product-status.new {
+    background: rgba(143,245,255,0.08);
+    border: 1px solid rgba(143,245,255,0.2);
+    color: #8ff5ff;
+}
+.oe-product-status.locked {
+    background: rgba(255,107,155,0.08);
+    border: 1px solid rgba(255,107,155,0.2);
+    color: #ff6b9b;
+}
+.oe-product-action {
+    flex-shrink: 0;
+}
+.oe-btn-gen {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 14px;
+    background: rgba(143,245,255,0.08);
+    border: 1px solid rgba(143,245,255,0.2);
+    color: #8ff5ff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+.oe-btn-gen:hover {
+    background: rgba(143,245,255,0.15);
+    box-shadow: 0 0 12px rgba(143,245,255,0.15);
+}
+.oe-btn-gen .material-symbols-outlined { font-size: 0.85rem; }
+
+/* Quick nav grid */
+.oe-nav-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 18px 22px;
+}
+@media (max-width: 500px) { .oe-nav-grid { grid-template-columns: repeat(2, 1fr); } }
+.oe-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 14px 8px;
+    text-decoration: none;
+    background: rgba(255,255,255,0.015);
+    border: 1px solid rgba(72,71,74,0.12);
+    color: #adaaad;
+    font-size: 0.65rem;
+    font-weight: 700;
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    text-align: center;
+}
+.oe-nav-btn:hover {
+    background: rgba(143,245,255,0.05);
+    border-color: rgba(143,245,255,0.2);
+    color: #8ff5ff;
+}
+.oe-nav-btn .material-symbols-outlined { font-size: 1.2rem; }
+
+/* Bottom stats */
+.oe-stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 20px;
+}
+@media (max-width: 600px) { .oe-stats-row { grid-template-columns: 1fr; } }
+.oe-stat-card {
+    background: rgba(19,19,21,0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-left: 3px solid transparent;
+    padding: 18px 20px;
+    transition: background 0.2s;
+}
+.oe-stat-card:hover { background: rgba(31,31,34,0.8); }
+.oe-stat-card.cyan { border-left-color: #8ff5ff; }
+.oe-stat-card.lime { border-left-color: #beee00; }
+.oe-stat-card.warn { border-left-color: #f59e0b; }
+.oe-stat-card.danger { border-left-color: #ef4444; }
+.oe-stat-label {
+    font-size: 0.55rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    color: #adaaad;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-family: 'Space Grotesk', sans-serif;
+}
+.oe-stat-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+/* Chart panel */
+.oe-chart-wrap {
+    position: relative;
+    height: 260px;
+    width: 100%;
+}
+.oe-chart-toggle {
+    display: flex;
+    gap: 6px;
+}
+.oe-chart-btn {
+    background: #262528;
+    color: #767577;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 0.58rem;
+    font-weight: 800;
     padding: 5px 12px;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-family: 'Space Grotesk', sans-serif;
     transition: all 0.2s;
 }
-.pal-chart-btn.active {
-    background: rgba(143,245,255,0.1);
+.oe-chart-btn.active {
+    background: rgba(143,245,255,0.08);
     color: #8ff5ff;
-    border: 1px solid rgba(143,245,255,0.2);
+    border-color: rgba(143,245,255,0.2);
 }
 
-/* Logs Section */
-.pal-logs-panel {
-    background: #131315;
-    border-left: 1px solid rgba(72,71,74,0.15);
-    display: flex;
-    flex-direction: column;
-    max-height: 700px;
-}
-.pal-logs-header {
-    padding: 20px 24px;
-    border-bottom: 1px solid rgba(72,71,74,0.15);
-}
-.pal-logs-header h3 {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 1.1rem;
-    font-weight: 700;
+/* Scraper status bar */
+.oe-scraper-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin: 0 0 4px;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 22px;
+    background: rgba(19,19,21,0.75);
+    backdrop-filter: blur(12px);
+    border-left: 3px solid;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
 }
-.pal-logs-header p {
-    font-size: 0.58rem;
-    font-weight: 700;
-    letter-spacing: 0.2em;
+.oe-scraper-bar.running { border-left-color: #8ff5ff; }
+.oe-scraper-bar.stopped { border-left-color: #767577; }
+.oe-scraper-bar-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.oe-scraper-bar-label {
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
     color: #adaaad;
     text-transform: uppercase;
-    margin: 0;
+    font-family: 'Space Grotesk', sans-serif;
 }
-.pal-logs-list {
-    flex: 1;
-    overflow-y: auto;
+.oe-scraper-bar-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
 }
-.pal-log-item {
-    padding: 14px 24px;
-    border-bottom: 1px solid rgba(72,71,74,0.06);
+.oe-scraper-bar-value.on { color: #beee00; }
+.oe-scraper-bar-value.off { color: #ef4444; }
+
+/* Auto-process bar */
+.oe-auto-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: rgba(19,19,21,0.6);
+    border-left: 3px solid;
+    margin-bottom: 16px;
+    font-size: 0.75rem;
+    color: #adaaad;
+}
+.oe-auto-bar.processing { border-left-color: #8ff5ff; }
+.oe-auto-bar.queued { border-left-color: #f59e0b; }
+
+/* Recent log entry */
+.oe-log-entry {
     display: flex;
     gap: 12px;
     align-items: flex-start;
+    padding: 12px 22px;
+    border-bottom: 1px solid rgba(72,71,74,0.06);
     transition: background 0.2s;
 }
-.pal-log-item:hover { background: #1f1f22; }
-.pal-log-time {
+.oe-log-entry:hover { background: rgba(31,31,34,0.5); }
+.oe-log-time {
     font-size: 0.55rem;
-    font-weight: 700;
-    color: #adaaad;
+    font-weight: 800;
+    color: #767577;
     font-family: 'Space Grotesk', sans-serif;
     margin-top: 2px;
     white-space: nowrap;
 }
-.pal-log-type {
-    font-size: 0.65rem;
-    font-weight: 700;
+.oe-log-tag {
+    font-size: 0.6rem;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     margin-bottom: 2px;
 }
-.pal-log-type.success { color: #beee00; }
-.pal-log-type.error { color: #ff6b9b; }
-.pal-log-type.info { color: #f9f5f8; }
-.pal-log-type.primary { color: #8ff5ff; }
-.pal-log-desc {
-    font-size: 0.75rem;
+.oe-log-tag.sale { color: #beee00; }
+.oe-log-tag.scrape { color: #8ff5ff; }
+.oe-log-desc {
+    font-size: 0.72rem;
     color: #adaaad;
+    font-family: 'Manrope', sans-serif;
     line-height: 1.4;
 }
-
-/* Quick Actions */
-.pal-qa-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-}
-@media (max-width: 500px) { .pal-qa-grid { grid-template-columns: repeat(2, 1fr); } }
-.pal-qa-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 16px 10px;
-    text-decoration: none;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(72,71,74,0.15);
-    color: #f9f5f8;
-    font-size: 0.72rem;
-    font-weight: 600;
-    transition: all 0.2s;
-    text-align: center;
-}
-.pal-qa-btn:hover {
-    background: rgba(143,245,255,0.06);
-    border-color: rgba(143,245,255,0.2);
-    color: #8ff5ff;
-}
-.pal-qa-btn .material-symbols-outlined { font-size: 1.3rem; }
 </style>
 
-<!-- ═══ HEADER + SCRAPER CONTROL ═══ -->
-<div style="display:flex;flex-direction:column;gap:16px;margin-bottom:28px;md:flex-direction:row;md:align-items:flex-end;md:justify-content:space-between">
-    <div class="pal-header">
-        <h2>DEEP_SCAN</h2>
-        <div class="pal-header-status">
-            <span class="pal-header-dot {{ 'active' if is_running else 'stopped' }}"></span>
-            <span style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:#adaaad;font-weight:700">
-                OPERATIONAL_STATE: <span style="color:{{ '#ff6b9b' if is_running else '#767577' }}">{{ 'ACTIVE_EXTRACTION' if is_running else 'STANDBY' }}</span>
-            </span>
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- HEADER: OFFER_ENGINE + status badges + KPI minis  -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="oe-header">
+    <div class="oe-header-left">
+        <h2 class="oe-title">OFFER<span class="oe-title-accent">_ENGINE</span></h2>
+        <div class="oe-badges">
+            <span class="oe-badge optimal"><span class="oe-badge-dot green"></span> OPTIMAL</span>
+            {% if is_running %}
+            <span class="oe-badge active"><span class="oe-badge-dot cyan"></span> SCRAPERS_ACTIVE</span>
+            {% else %}
+            <span class="oe-badge warning">SCRAPERS_STANDBY</span>
+            {% endif %}
         </div>
     </div>
 
-    <div class="pal-scraper-panel">
-        <div>
-            <div class="label">SCRAPER_STATUS</div>
-            <div class="value {{ 'on' if is_running else 'off' }}">{{ 'SCRAPER_RUNNING' if is_running else 'SCRAPER_STOPPED' }}</div>
+    <div class="oe-kpi-stack">
+        <div class="oe-kpi-mini cyan">
+            <div class="oe-kpi-mini-label">EST_ROI</div>
+            <div class="oe-kpi-mini-value cyan">
+                {% if stats.przychod > 0 %}{{ ((stats.przychod / (stats.sprzedane if stats.sprzedane > 0 else 1)) * 0.89)|round|int }}%{% else %}--{% endif %}
+            </div>
+            <div class="oe-kpi-mini-sub">MARGIN_ESTIMATE</div>
         </div>
-        <form action="/paletomat/scraper/toggle" method="POST" style="margin:0">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            {% if is_running %}
-            <button type="submit" class="pal-btn-action stop">
-                <span class="material-symbols-outlined" style="font-size:1rem">stop_circle</span> STOP_SCAN
-            </button>
-            {% else %}
-            <button type="submit" class="pal-btn-action start">
-                <span class="material-symbols-outlined" style="font-size:1rem">play_arrow</span> START_SCAN
-            </button>
-            {% endif %}
-        </form>
+        <div class="oe-kpi-mini pink">
+            <div class="oe-kpi-mini-label">ACTIVE_PALLETS</div>
+            <div class="oe-kpi-mini-value pink">{{ stats.aktywne }}</div>
+            <div class="oe-kpi-mini-sub">LIVE_OFFERS</div>
+        </div>
     </div>
 </div>
 
+<!-- ═══ SCRAPER STATUS BAR ═══ -->
+<div class="oe-scraper-bar {{ 'running' if is_running else 'stopped' }}">
+    <div class="oe-scraper-bar-info">
+        <span class="oe-badge-dot {{ 'cyan' if is_running else '' }}" style="{% if not is_running %}background:#767577;animation:none{% endif %}"></span>
+        <div>
+            <div class="oe-scraper-bar-label">SCRAPER_STATUS</div>
+            <div class="oe-scraper-bar-value {{ 'on' if is_running else 'off' }}">{{ 'RUNNING' if is_running else 'STOPPED' }}</div>
+        </div>
+    </div>
+    <form action="/paletomat/scraper/toggle" method="POST" style="margin:0">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if is_running %}
+        <button type="submit" class="oe-btn-stop"><span class="material-symbols-outlined" style="font-size:1rem">stop_circle</span> STOP_SCAN</button>
+        {% else %}
+        <button type="submit" class="oe-btn-run" style="width:auto;padding:10px 24px"><span class="material-symbols-outlined" style="font-size:1rem">play_arrow</span> START_SCAN</button>
+        {% endif %}
+    </form>
+</div>
+
+<!-- ═══ AUTO-PROCESSING BAR ═══ -->
 {% if auto_running or queue_len > 0 %}
-<div id="auto-status" style="background:#131315;border-left:3px solid {{ '#8ff5ff' if auto_running else '#f59e0b' }};padding:12px 20px;display:flex;align-items:center;gap:10px;margin-bottom:16px">
-    <span class="pal-header-dot {{ 'active' if auto_running else 'stopped' }}" style="width:8px;height:8px"></span>
-    <span id="auto-text" style="font-size:0.78rem;color:#adaaad">
+<div class="oe-auto-bar {{ 'processing' if auto_running else 'queued' }}" id="auto-status">
+    <span class="oe-badge-dot {{ 'cyan' if auto_running else '' }}" style="width:7px;height:7px;{% if not auto_running %}background:#f59e0b;animation:none{% endif %}"></span>
+    <span id="auto-text">
         {% if auto_running %}
-        <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">sync</span>
+        <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">sync</span>
         Przetwarzanie w tle: {{ queue_len }} produktow
         {% else %}
         Kolejka: {{ queue_len }} produktow
@@ -340,130 +631,209 @@
 </div>
 {% endif %}
 
-<!-- ═══ KPI CARDS ═══ -->
-<div class="pal-kpi-grid">
-    <div class="pal-kpi cyan">
-        <div class="pal-kpi-bg-icon"><span class="material-symbols-outlined">travel_explore</span></div>
-        <div class="pal-kpi-label">DATA_SCRAPED</div>
-        <div class="pal-kpi-value cyan">{{ stats.scraped }}</div>
-        <div class="pal-kpi-change up">+{{ nowe_7d }} ten tydzien</div>
-        <div class="pal-kpi-bar"><div class="pal-kpi-bar-fill cyan" style="width:65%"></div></div>
-    </div>
-    <div class="pal-kpi pink">
-        <div class="pal-kpi-bg-icon"><span class="material-symbols-outlined">sensors</span></div>
-        <div class="pal-kpi-label">ACTIVE_OFFERS</div>
-        <div class="pal-kpi-value pink">{{ stats.aktywne }}</div>
-        <div style="font-size:0.68rem;font-weight:700;color:#ff6b9b;margin-top:8px">LIVE</div>
-        <div class="pal-kpi-bar"><div class="pal-kpi-bar-fill pink" style="width:50%"></div></div>
-    </div>
-    <div class="pal-kpi plain">
-        <div class="pal-kpi-label">SALES_7D</div>
-        <div class="pal-kpi-value default">{{ sprzedaz_7d|int }} zl</div>
-        <div style="font-size:0.68rem;font-weight:700;color:#beee00;margin-top:8px">UP_FROM_PREV_CYCLE</div>
-    </div>
-    <div class="pal-kpi plain">
-        <div class="pal-kpi-label">SALES_30D</div>
-        <div class="pal-kpi-value default">{{ sprzedaz_30d|int }} zl</div>
-        <div style="display:flex;gap:3px;margin-top:12px;align-items:flex-end">
-            <div style="height:12px;width:6px;background:rgba(143,245,255,0.15)"></div>
-            <div style="height:18px;width:6px;background:rgba(143,245,255,0.3)"></div>
-            <div style="height:10px;width:6px;background:rgba(143,245,255,0.2)"></div>
-            <div style="height:24px;width:6px;background:rgba(143,245,255,0.45)"></div>
-            <div style="height:16px;width:6px;background:rgba(143,245,255,0.35)"></div>
-        </div>
-    </div>
-</div>
+<!-- ═══════════════════════════════════════ -->
+<!-- TWO COLUMN LAYOUT                      -->
+<!-- ═══════════════════════════════════════ -->
+<div class="oe-columns">
 
-<!-- ═══ MAIN MATRIX (Chart + Logs) ═══ -->
-<div class="pal-matrix">
-    <!-- Chart Section -->
+    <!-- ═══ LEFT: GEN_PARAMETERS ═══ -->
     <div>
-        <div class="pal-chart-panel" style="margin-bottom:16px">
-            <div class="pal-chart-header">
-                <div>
-                    <div class="pal-chart-title">SYSTEM_MATRIX</div>
-                    <div class="pal-chart-subtitle">ITEM_ACCUMULATION_FLOW</div>
+        <!-- Parameters panel -->
+        <div class="oe-panel" style="margin-bottom:16px">
+            <div class="oe-panel-header">
+                <div class="oe-panel-title"><span class="material-symbols-outlined">tune</span> GEN_PARAMETERS</div>
+            </div>
+            <div class="oe-panel-body">
+                <div class="oe-toggle-row">
+                    <div>
+                        <div class="oe-toggle-label">AUTO_PRICING</div>
+                        <div class="oe-toggle-sub">Automatyczne ceny z marginem</div>
+                    </div>
+                    <label class="oe-switch">
+                        <input type="checkbox" checked>
+                        <span class="oe-switch-slider"></span>
+                    </label>
                 </div>
-                <div style="display:flex;gap:6px">
-                    <button onclick="toggleChartMode('cumulative')" id="btn-cumul" class="pal-chart-btn active">REAL_TIME</button>
-                    <button onclick="toggleChartMode('daily')" id="btn-daily" class="pal-chart-btn">DAILY</button>
+                <div class="oe-toggle-row">
+                    <div>
+                        <div class="oe-toggle-label">AUTO_META</div>
+                        <div class="oe-toggle-sub">AI opisy i SEO tytuly</div>
+                    </div>
+                    <label class="oe-switch">
+                        <input type="checkbox" checked>
+                        <span class="oe-switch-slider"></span>
+                    </label>
+                </div>
+                <div class="oe-toggle-row">
+                    <div>
+                        <div class="oe-toggle-label">SYNC_ALLEGRO</div>
+                        <div class="oe-toggle-sub">Publikuj na Allegro automatycznie</div>
+                    </div>
+                    <label class="oe-switch">
+                        <input type="checkbox">
+                        <span class="oe-switch-slider"></span>
+                    </label>
                 </div>
             </div>
-            <div style="position:relative;height:280px;width:100%"><canvas id="productChart"></canvas></div>
-
-            <!-- Mini Stats -->
-            <div style="display:flex;justify-content:space-between;margin-top:16px;font-size:0.55rem;color:#767577;letter-spacing:0.15em;font-weight:700;text-transform:uppercase">
-                <span>00:00</span><span>08:00</span><span>16:00</span><span>23:59</span>
+            <div style="padding:0 22px 18px">
+                <a href="/paletomat/generator" class="oe-btn-run">
+                    <span class="material-symbols-outlined">bolt</span> RUN_BATCH_GENERATION
+                </a>
             </div>
         </div>
 
-        <!-- Quick Actions -->
-        <div style="background:#131315;padding:20px;margin-bottom:16px">
-            <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.12em;color:#adaaad;text-transform:uppercase;margin-bottom:14px;font-family:'Space Grotesk',sans-serif">QUICK_ACTIONS</div>
-            <div class="pal-qa-grid">
-                <a href="/paletomat/scraper" class="pal-qa-btn"><span class="material-symbols-outlined">language</span>Scraper</a>
-                <a href="/paletomat/generator" class="pal-qa-btn"><span class="material-symbols-outlined">auto_awesome</span>Generator</a>
-                <a href="/paletomat/oferty" class="pal-qa-btn"><span class="material-symbols-outlined">edit_note</span>Oferty</a>
-                <a href="/paletomat/monitoring" class="pal-qa-btn"><span class="material-symbols-outlined">trending_up</span>Monitoring</a>
-                <a href="/palety/bulk-import" class="pal-qa-btn"><span class="material-symbols-outlined">inventory_2</span>Bulk import</a>
-                <a href="/analytics/profit" class="pal-qa-btn"><span class="material-symbols-outlined">payments</span>Profit</a>
+        <!-- System alert -->
+        {% if zalegajace > 0 %}
+        <div class="oe-alert" style="margin-bottom:16px">
+            <span class="material-symbols-outlined">warning</span>
+            <div><strong>{{ zalegajace }}</strong> produktow zalegajacych > 30 dni w magazynie. Rozważ obniżenie cen lub ręczne mapowanie kategorii.</div>
+        </div>
+        {% endif %}
+
+        <!-- Quick nav -->
+        <div class="oe-panel" style="margin-bottom:16px">
+            <div class="oe-panel-header">
+                <div class="oe-panel-title"><span class="material-symbols-outlined">grid_view</span> QUICK_NAV</div>
+            </div>
+            <div class="oe-nav-grid">
+                <a href="/paletomat/scraper" class="oe-nav-btn"><span class="material-symbols-outlined">language</span>Scraper</a>
+                <a href="/paletomat/generator" class="oe-nav-btn"><span class="material-symbols-outlined">auto_awesome</span>Generator</a>
+                <a href="/paletomat/oferty" class="oe-nav-btn"><span class="material-symbols-outlined">edit_note</span>Oferty</a>
+                <a href="/paletomat/monitoring" class="oe-nav-btn"><span class="material-symbols-outlined">trending_up</span>Monitor</a>
+                <a href="/palety/bulk-import" class="oe-nav-btn"><span class="material-symbols-outlined">inventory_2</span>Bulk</a>
+                <a href="/analytics/profit" class="oe-nav-btn"><span class="material-symbols-outlined">payments</span>Profit</a>
             </div>
         </div>
 
-        <!-- Bottom stats cards -->
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
-            <div style="background:#131315;border-left:4px solid #8ff5ff;padding:16px;transition:background 0.2s" onmouseover="this.style.background='#1f1f22'" onmouseout="this.style.background='#131315'">
-                <div style="font-size:0.58rem;font-weight:700;letter-spacing:0.12em;color:#adaaad;text-transform:uppercase;margin-bottom:6px">W_MAGAZYNIE</div>
-                <div style="font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:800;color:#8ff5ff">{{ w_magazynie }}</div>
+        <!-- Recent activity (logs) -->
+        <div class="oe-panel">
+            <div class="oe-panel-header">
+                <div class="oe-panel-title"><span class="material-symbols-outlined">list_alt</span> RECENT_LOGS</div>
+                <a href="/paletomat/oferty" style="font-size:0.55rem;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;color:#767577;text-decoration:none;display:flex;align-items:center;gap:4px;transition:color 0.2s" onmouseover="this.style.color='#8ff5ff'" onmouseout="this.style.color='#767577'">
+                    VIEW_ALL <span class="material-symbols-outlined" style="font-size:0.75rem">arrow_forward</span>
+                </a>
             </div>
-            <div style="background:#131315;border-left:4px solid #beee00;padding:16px;transition:background 0.2s" onmouseover="this.style.background='#1f1f22'" onmouseout="this.style.background='#131315'">
-                <div style="font-size:0.58rem;font-weight:700;letter-spacing:0.12em;color:#adaaad;text-transform:uppercase;margin-bottom:6px">SPRZEDANE_30D</div>
-                <div style="font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:800;color:#beee00">{{ sprzedane }}</div>
-            </div>
-            <div style="background:#131315;border-left:4px solid {{ '#ef4444' if zalegajace > 10 else '#f59e0b' if zalegajace > 0 else '#beee00' }};padding:16px;transition:background 0.2s" onmouseover="this.style.background='#1f1f22'" onmouseout="this.style.background='#131315'">
-                <div style="font-size:0.58rem;font-weight:700;letter-spacing:0.12em;color:#adaaad;text-transform:uppercase;margin-bottom:6px">ZALEGAJACE</div>
-                <div style="font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:800;color:{{ '#ef4444' if zalegajace > 10 else '#f59e0b' if zalegajace > 0 else '#beee00' }}">{{ zalegajace }}</div>
+            <div style="max-height:300px;overflow-y:auto">
+                {% if ostatnie_sprzedaze %}
+                    {% for sp in ostatnie_sprzedaze[:4] %}
+                    <div class="oe-log-entry">
+                        <span class="oe-log-time">{{ (sp.data_sprzedazy or '')[:5] }}</span>
+                        <div>
+                            <div class="oe-log-tag sale">SALE</div>
+                            <div class="oe-log-desc">{{ (sp.nazwa or 'Produkt')[:35] }} &middot; {{ sp.ilosc }}x &middot; {{ sp.cena|int }} zl</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+                {% if scraped %}
+                    {% for p in scraped[:3] %}
+                    <div class="oe-log-entry">
+                        <span class="oe-log-time">{{ (p.data_scrape or '')[:5] }}</span>
+                        <div>
+                            <div class="oe-log-tag scrape">SCRAPE</div>
+                            <div class="oe-log-desc">{{ (p.nazwa or p.asin)[:35] }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+                {% if not ostatnie_sprzedaze and not scraped %}
+                <div style="padding:30px;text-align:center;color:#767577;font-size:0.78rem">Brak aktywnosci</div>
+                {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- Logs / Recent Activity -->
-    <div class="pal-logs-panel">
-        <div class="pal-logs-header">
-            <h3><span class="material-symbols-outlined" style="color:#8ff5ff">list_alt</span> RECENT_LOGS</h3>
-            <p>SYSTEM_ACTIVITY_FEED</p>
+    <!-- ═══ RIGHT: SCRAPED/QUEUED + CHART + STATS ═══ -->
+    <div>
+        <!-- KPI row -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+            <div class="oe-stat-card cyan">
+                <div class="oe-stat-label">DATA_SCRAPED</div>
+                <div class="oe-stat-value" style="color:#8ff5ff">{{ stats.scraped }}</div>
+            </div>
+            <div class="oe-stat-card" style="border-left-color:#ff6b9b">
+                <div class="oe-stat-label">ACTIVE_OFFERS</div>
+                <div class="oe-stat-value" style="color:#ff6b9b">{{ stats.aktywne }}</div>
+            </div>
+            <div class="oe-stat-card lime">
+                <div class="oe-stat-label">SALES_7D</div>
+                <div class="oe-stat-value" style="color:#beee00">{{ sprzedaz_7d|int }} zl</div>
+            </div>
+            <div class="oe-stat-card" style="border-left-color:#f9f5f8">
+                <div class="oe-stat-label">SALES_30D</div>
+                <div class="oe-stat-value" style="color:#f9f5f8">{{ sprzedaz_30d|int }} zl</div>
+            </div>
         </div>
-        <div class="pal-logs-list">
-            {% if ostatnie_sprzedaze %}
-                {% for sp in ostatnie_sprzedaze %}
-                <div class="pal-log-item">
-                    <span class="pal-log-time">{{ (sp.data_sprzedazy or '')[:5] }}</span>
-                    <div>
-                        <div class="pal-log-type success">SALE_CONFIRMED</div>
-                        <div class="pal-log-desc">{{ (sp.nazwa or 'Produkt')[:40] }} &middot; {{ sp.ilosc }}x &middot; {{ sp.cena|int }} zl</div>
-                    </div>
+
+        <!-- Chart panel -->
+        <div class="oe-panel" style="margin-bottom:20px">
+            <div class="oe-panel-header">
+                <div>
+                    <div class="oe-panel-title"><span class="material-symbols-outlined">insights</span> SYSTEM_MATRIX</div>
+                    <div style="font-size:0.52rem;font-weight:700;letter-spacing:0.18em;color:#767577;text-transform:uppercase;margin-top:3px">ITEM_ACCUMULATION_FLOW</div>
                 </div>
-                {% endfor %}
-            {% endif %}
+                <div class="oe-chart-toggle">
+                    <button onclick="toggleChartMode('cumulative')" id="btn-cumul" class="oe-chart-btn active">CUMUL</button>
+                    <button onclick="toggleChartMode('daily')" id="btn-daily" class="oe-chart-btn">DAILY</button>
+                </div>
+            </div>
+            <div style="padding:0 22px 22px">
+                <div class="oe-chart-wrap"><canvas id="productChart"></canvas></div>
+            </div>
+        </div>
+
+        <!-- SCRAPED_QUEUED list -->
+        <div class="oe-panel">
+            <div class="oe-panel-header">
+                <div class="oe-panel-title"><span class="material-symbols-outlined">queue</span> SCRAPED_QUEUED</div>
+                <a href="/paletomat/scraper" style="font-size:0.55rem;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;color:#767577;text-decoration:none;display:flex;align-items:center;gap:4px;transition:color 0.2s" onmouseover="this.style.color='#8ff5ff'" onmouseout="this.style.color='#767577'">
+                    ADD_NEW <span class="material-symbols-outlined" style="font-size:0.75rem">add</span>
+                </a>
+            </div>
             {% if scraped %}
                 {% for p in scraped %}
-                <div class="pal-log-item">
-                    <span class="pal-log-time">{{ (p.data_scrape or '')[:5] }}</span>
-                    <div>
-                        <div class="pal-log-type primary">DATA_EXTRACT</div>
-                        <div class="pal-log-desc">{{ (p.nazwa or p.asin)[:40] }} &middot; ASIN: {{ p.asin }}</div>
+                <div class="oe-product-card">
+                    <img class="oe-product-img" src="{{ get_amazon_image_url(p.zdjecie_url or '', p.asin) }}" alt="" onerror="this.src='/static/placeholder.png'">
+                    <div class="oe-product-info">
+                        <div class="oe-product-name">{{ p.nazwa or p.asin }}</div>
+                        <div class="oe-product-meta">
+                            <span class="oe-product-asin">{{ p.asin }}</span>
+                            {% if p.cena_amazon %}
+                            <span class="oe-product-price">{{ p.cena_amazon|round(2) }} {{ p.waluta or 'EUR' }}</span>
+                            {% endif %}
+                            {% if p.status == 'nowy' %}
+                            <span class="oe-product-status new">READY</span>
+                            {% elif p.status == 'przetworzony' or p.status == 'wystawiony' %}
+                            <span class="oe-product-status locked">LISTED</span>
+                            {% else %}
+                            <span class="oe-product-status ready">{{ (p.status or 'nowy')|upper }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="oe-product-action">
+                        <a href="/paletomat/generator?asin={{ p.asin }}" class="oe-btn-gen"><span class="material-symbols-outlined">auto_awesome</span> GENERATE</a>
                     </div>
                 </div>
                 {% endfor %}
-            {% endif %}
-            {% if not ostatnie_sprzedaze and not scraped %}
-                <div style="padding:40px;text-align:center;color:#767577;font-size:0.82rem">Brak aktywności</div>
+            {% else %}
+            <div style="padding:40px;text-align:center;color:#767577;font-size:0.78rem">Brak scrapowanych produktow. <a href="/paletomat/scraper" style="color:#8ff5ff">Uruchom scraper</a>.</div>
             {% endif %}
         </div>
-        <div style="padding:14px 24px;background:#262528;text-align:center">
-            <a href="/paletomat/oferty" style="font-size:0.6rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#adaaad;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;transition:color 0.2s" onmouseover="this.style.color='#8ff5ff'" onmouseout="this.style.color='#adaaad'">
-                VIEW_ALL_HISTORY <span class="material-symbols-outlined" style="font-size:0.9rem">arrow_forward</span>
-            </a>
+
+        <!-- Bottom stats -->
+        <div class="oe-stats-row">
+            <div class="oe-stat-card cyan">
+                <div class="oe-stat-label">W_MAGAZYNIE</div>
+                <div class="oe-stat-value" style="color:#8ff5ff">{{ w_magazynie }}</div>
+            </div>
+            <div class="oe-stat-card lime">
+                <div class="oe-stat-label">SPRZEDANE_30D</div>
+                <div class="oe-stat-value" style="color:#beee00">{{ sprzedane }}</div>
+            </div>
+            <div class="oe-stat-card {{ 'danger' if zalegajace > 10 else 'warn' if zalegajace > 0 else 'lime' }}">
+                <div class="oe-stat-label">ZALEGAJACE</div>
+                <div class="oe-stat-value" style="color:{{ '#ef4444' if zalegajace > 10 else '#f59e0b' if zalegajace > 0 else '#beee00' }}">{{ zalegajace }}</div>
+            </div>
         </div>
     </div>
 </div>
@@ -475,8 +845,8 @@ var _chartDaily = {{ chart_data|tojson }};
 var _chartCumul = {{ chart_cumulative|tojson }};
 var _chartMode = 'cumulative';
 var _ctx = document.getElementById('productChart').getContext('2d');
-var _gradient = _ctx.createLinearGradient(0, 0, 0, 260);
-_gradient.addColorStop(0, 'rgba(143,245,255,0.25)');
+var _gradient = _ctx.createLinearGradient(0, 0, 0, 240);
+_gradient.addColorStop(0, 'rgba(143,245,255,0.2)');
 _gradient.addColorStop(1, 'rgba(143,245,255,0)');
 var _chart = new Chart(_ctx, {
     type: 'line',
@@ -486,12 +856,12 @@ var _chart = new Chart(_ctx, {
             data: _chartCumul,
             borderColor: '#8ff5ff',
             backgroundColor: _gradient,
-            borderWidth: 2.5,
+            borderWidth: 2,
             fill: true,
             tension: 0.4,
             pointRadius: 0,
             pointHitRadius: 10,
-            pointHoverRadius: 5,
+            pointHoverRadius: 4,
             pointHoverBackgroundColor: '#8ff5ff',
             pointHoverBorderColor: '#8ff5ff'
         }]
@@ -507,7 +877,7 @@ var _chart = new Chart(_ctx, {
         } },
         scales: {
             x: { display: true, grid: { display: false }, ticks: { color: '#767577', font: { size: 9, family: 'Space Grotesk' }, maxRotation: 0, maxTicksLimit: 7 } },
-            y: { display: true, grid: { color: 'rgba(72,71,74,0.1)', drawBorder: false }, ticks: { color: '#767577', font: { size: 9, family: 'Space Grotesk' } }, beginAtZero: _chartMode === 'daily' }
+            y: { display: true, grid: { color: 'rgba(72,71,74,0.08)', drawBorder: false }, ticks: { color: '#767577', font: { size: 9, family: 'Space Grotesk' } }, beginAtZero: _chartMode === 'daily' }
         }
     }
 });
@@ -516,8 +886,8 @@ function toggleChartMode(mode) {
     _chart.data.datasets[0].data = mode === 'cumulative' ? _chartCumul : _chartDaily;
     _chart.options.scales.y.beginAtZero = mode === 'daily';
     _chart.update();
-    document.getElementById('btn-cumul').className = 'pal-chart-btn' + (mode === 'cumulative' ? ' active' : '');
-    document.getElementById('btn-daily').className = 'pal-chart-btn' + (mode === 'daily' ? ' active' : '');
+    document.getElementById('btn-cumul').className = 'oe-chart-btn' + (mode === 'cumulative' ? ' active' : '');
+    document.getElementById('btn-daily').className = 'oe-chart-btn' + (mode === 'daily' ? ' active' : '');
 }
 </script>
 
@@ -534,7 +904,7 @@ setInterval(async () => {
                 statusDiv.style.borderLeftColor = data.running ? '#8ff5ff' : '#f59e0b';
                 if (textSpan) {
                     textSpan.innerHTML = data.running
-                        ? '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">sync</span> Przetwarzanie: ' + data.queue_length + ' produktow'
+                        ? '<span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">sync</span> Przetwarzanie: ' + data.queue_length + ' produktow'
                         : 'Kolejka: ' + data.queue_length + ' produktow';
                 }
             }
