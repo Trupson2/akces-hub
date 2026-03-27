@@ -3852,9 +3852,9 @@ def _get_render_results_js():
             // Foto z Excel image_url, Amazon CDN (ASIN) lub placeholder
             var imgSrc = p.image_url || (p.asin && p.asin.length >= 10 ? 'https://m.media-amazon.com/images/P/' + p.asin + '._SL75_.jpg' : '');
             if (imgSrc) {
-                h += '<td style="padding:4px;text-align:center"><img src="' + imgSrc + '" style="width:50px;height:50px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,0.05)" onerror="this.outerHTML=\'<span style=color:var(--text-muted);font-size:0.7rem>brak</span>\'"></td>';
+                h += '<td style="padding:4px;text-align:center"><img src="' + imgSrc + '" style="width:50px;height:50px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,0.05)" onerror="this.parentElement.innerHTML=\\x27brak\\x27"></td>';
             } else {
-                h += '<td style="padding:4px;text-align:center"><span style="color:var(--text-muted);font-size:0.7rem">—</span></td>';
+                h += '<td style="padding:4px;text-align:center;color:var(--text-muted);font-size:0.7rem">—</td>';
             }
             var asinLink = '';
             if (p.asin) {
