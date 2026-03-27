@@ -8,7 +8,7 @@ Requires=akces-hub.service
 Type=simple
 User=pi
 Group=pi
-WorkingDirectory=/home/pi/clean_v32
+WorkingDirectory=/home/pi/akces-hub
 ExecStartPre=/bin/sleep 5
 ExecStart=/home/pi/.local/bin/ngrok start --all --config /home/pi/.config/ngrok/ngrok.yml --config /home/pi/clean_v32/deploy/ngrok.yml --log=stdout
 Restart=always

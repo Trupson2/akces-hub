@@ -7,7 +7,7 @@ Wants=bluetooth.target
 Type=simple
 User=pi
 Group=pi
-WorkingDirectory=/home/pi/clean_v32
+WorkingDirectory=/home/pi/akces-hub
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONIOENCODING=utf-8
 Environment=LANG=pl_PL.UTF-8

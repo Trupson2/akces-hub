@@ -844,9 +844,11 @@ def produkty():
         _ean_clean = p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else ''
         display_code = f"{_km}"
 
-        # Zysk per item (koszt = paleta.cena_zakupu / szt)
+        # Zysk per item (koszt = paleta.cena_zakupu / szt, fallback to cena_brutto)
         _ca = float(p['cena_allegro'] or 0)
         _ks = _koszt_cache.get(p['paleta_id'], 0)
+        if _ks <= 0:
+            _ks = float(p['cena_brutto'] or 0)
         try:
             _kat = (p['kategoria'] or 'inne').lower()
         except (KeyError, IndexError):
@@ -913,7 +915,7 @@ def produkty():
                                 <span style="font-size:0.6rem;color:#adaaad;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">{_stock_text}</span>
                             </div>
                         </div>
-                        {('<div style="text-align:right"><div style="font-size:0.85rem;font-weight:800;color:' + ("#beee00" if _zy >= 0 else "#ef4444") + ';font-family:Space Grotesk,sans-serif">' + format(_zy, "+.0f") + ' zl</div><div style="font-size:0.55rem;color:#767577;text-transform:uppercase;letter-spacing:0.05em;font-weight:600">zysk/szt</div></div>') if _zy is not None else ''}
+                        {('<div style="text-align:right"><div style="font-size:0.85rem;font-weight:800;color:' + ("#beee00" if _zy >= 0 else "#ef4444") + ';font-family:Space Grotesk,sans-serif">' + format(_zy, "+.0f") + ' zł</div><div style="font-size:0.55rem;color:#767577;text-transform:uppercase;letter-spacing:0.05em;font-weight:600">zysk/szt</div></div>') if _zy is not None else ''}
                     </div>
                 </div>
             </a>

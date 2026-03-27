@@ -3530,6 +3530,7 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                 if produkt_id:
                     produkt = conn.execute('''
                         SELECT p.id, p.ilosc, p.nazwa, p.lokalizacja, p.regal,
+                               p.data_dodania, p.cena_allegro,
                                COALESCE(pal.nazwa, p.paleta, '') as paleta_nazwa
                         FROM produkty p
                         LEFT JOIN palety pal ON p.paleta_id = pal.id
@@ -3553,6 +3554,28 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                             add_historia(produkt['id'], 'sprzedano', f'Sprzedano za {cena:.0f} zł do {kupujacy}', {'cena': cena, 'kupujacy': kupujacy, 'ilosc': ilosc})
                         except:
                             pass
+
+                        # Restock alert - jeśli produkt wyprzedany w < 14 dni
+                        if new_qty == 0:
+                            try:
+                                _restock_enabled = get_config('telegram_alert_restock', 'true')
+                                _data_dod = produkt['data_dodania'] if 'data_dodania' in produkt.keys() else None
+                                if _restock_enabled == 'true' and _data_dod:
+                                    _added = datetime.fromisoformat(str(_data_dod).replace('Z', '+00:00')) if 'T' in str(_data_dod) else datetime.strptime(str(_data_dod)[:10], '%Y-%m-%d')
+                                    _days = (datetime.now() - _added).days
+                                    if _days < 14:
+                                        _price_str = f"{float(produkt['cena_allegro'] or 0):.0f}" if produkt['cena_allegro'] else '?'
+                                        _restock_msg = (
+                                            f"\U0001f504 RESTOCK ALERT!\n\n"
+                                            f"\U0001f4e6 {produkt['nazwa']}\n"
+                                            f"\u26a1 Sprzedano w {_days} dni\n"
+                                            f"\U0001f4b0 Cena: {_price_str} zł\n\n"
+                                            f"Rozważ dokupienie!"
+                                        )
+                                        send_telegram(_restock_msg, parse_mode='HTML', silent=False)
+                                        print(f"[SMAR] Restock alert: {produkt['nazwa'][:30]} ({_days} days)")
+                            except Exception as e:
+                                print(f"[WARN] Restock alert error: {e}")
 
                 # Wyślij powiadomienie na Telegram (tylko gdy notify=True)
                 if notify:
