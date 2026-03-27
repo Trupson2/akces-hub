@@ -266,7 +266,7 @@ def ustawienia_kreator():
 {% for section in sections %}
 <details class="kreator-detail" {% if section.get('always_closed') %}{% elif section.get('open_condition') == 'support_nodata' and support_nodata %}open{% elif not section.get('open_condition') and not cfg.get(section.key) %}open{% endif %}>
     <summary>
-        {{ '●' if cfg.get(section.key) else '●' }} {{ section.icon }} {{ section.title }}
+        {{ '●' if cfg.get(section.key) else '●' }} {{ section.icon | safe }} {{ section.title }}
         <span class="chevron">▼</span>
     </summary>
     <div class="kreator-detail-body">
