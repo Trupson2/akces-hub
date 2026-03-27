@@ -1470,7 +1470,7 @@ def edytuj_produkt(code):
                 </select>
             </div>
             <div class="form-group"><label>Klasa jakości</label>
-                <select name="klasa_jakosci" class="form-ctrl">
+                <select name="klasa_jakosci" class="form-ctrl" onchange="var m={{'A':'Nowy','A-':'Powystawowy','B':'Używany','C':'Uszkodzony','D':'Uszkodzony'}};var s=m[this.value]||'';var sel=this.closest('form').querySelector('[name=stan]');if(sel&&s)sel.value=s;">
                     <option value="" {"selected" if not p.get('klasa_jakosci') else ''}>— Brak —</option>
                     <option value="A" {"selected" if p.get('klasa_jakosci')=='A' else ''}>● A — Nowy / Fabryczny</option>
                     <option value="A-" {"selected" if p.get('klasa_jakosci')=='A-' else ''}>● A- — Otwarte opakowanie</option>
