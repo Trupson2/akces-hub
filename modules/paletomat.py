@@ -57,8 +57,9 @@ def _ensure_local_images(wszystkie_zdjecia, asin, zdjecie_url=''):
                     if os.path.exists(abs_path) and os.path.getsize(abs_path) > 500:
                         existing.append(abs_path)
 
-            if existing and len(existing) >= 2:
+            if existing and len(existing) >= 8:
                 return existing, logs
+            # Mamy trochę lokalnych ale mniej niż 8 - spróbuj dobrać z scraped
 
     # --- Pliki nie istnieją lub brak listy - pobierz ---
 
@@ -74,28 +75,31 @@ def _ensure_local_images(wszystkie_zdjecia, asin, zdjecie_url=''):
                 cached_urls = json.loads(_scraped['wszystkie_zdjecia'])
                 if isinstance(cached_urls, list) and cached_urls:
                     cdn_urls = [u for u in cached_urls if isinstance(u, str) and u.startswith('http')]
-                    if len(cdn_urls) >= 2:
-                        # Mamy 2+ URL-i w cache - pobierz je
-                        logs.append((f'<span class=material-symbols-outlined>photo_camera</span> Znaleziono {len(cdn_urls)} zdjęć w cache (scraped)', '#8b5cf6'))
+                    if cdn_urls:
+                        # Pobierz WSZYSTKIE dostępne (max 8) - zawsze, nie limituj do 2+
+                        logs.append((f'<span class=material-symbols-outlined>photo_camera</span> Znaleziono {len(cdn_urls)} zdj w cache (scraped)', '#8b5cf6'))
                         asin_dir = os.path.join(base_dir, 'static', 'downloads', str(asin))
                         os.makedirs(asin_dir, exist_ok=True)
                         for i, url in enumerate(cdn_urls[:8], 1):
+                            fpath = os.path.join(asin_dir, f"image_{i}.jpg")
+                            # Pomij jeśli plik już istnieje i jest OK (oszczędność czasu)
+                            if os.path.exists(fpath) and os.path.getsize(fpath) > 1000:
+                                cached_downloaded.append(fpath)
+                                continue
                             try:
                                 resp = _req.get(url, headers=_dl_headers, timeout=15)
                                 if resp.status_code == 200 and len(resp.content) > 1000:
-                                    fpath = os.path.join(asin_dir, f"image_{i}.jpg")
                                     with open(fpath, 'wb') as fw:
                                         fw.write(resp.content)
                                     cached_downloaded.append(fpath)
                             except:
                                 pass
                         if cached_downloaded:
-                            logs.append((f'<span class=material-symbols-outlined>check_circle</span> Pobrano {len(cached_downloaded)} zdjęć z cache CDN', '#22c55e'))
+                            logs.append((f'<span class=material-symbols-outlined>check_circle</span> Pobrano {len(cached_downloaded)}/{len(cdn_urls[:8])} zdj z cache CDN', '#22c55e'))
                             return cached_downloaded, logs
                         else:
-                            logs.append(('<span class=material-symbols-outlined>photo_camera</span> Użyję URL-i CDN bezpośrednio', '#3b82f6'))
+                            logs.append(('<span class=material-symbols-outlined>photo_camera</span> Uzywam URL-i CDN bezposrednio', '#3b82f6'))
                             return cdn_urls[:8], logs
-                    # Tylko 1 URL w cache - nie wracaj, spróbuj scrapować więcej (KROK 3)
         except:
             pass
 
