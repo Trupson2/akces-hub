@@ -723,10 +723,12 @@ def get_order_details(order_id):
 
 def get_offer_visits(offer_id):
     """Pobiera statystyki wyświetleń oferty z Allegro API."""
-    result, error = allegro_request('GET', f'/sale/offers/{offer_id}/visit-statistics')
-    if error:
-        # Fallback — spróbuj z offer-statistics
-        result, error = allegro_request('GET', f'/sale/offers/{offer_id}/statistics')
+    # /sale/offers/{id}/visit-statistics deprecated → use /sale/product-offers/{id}
+    result, error = allegro_request('GET', f'/sale/product-offers/{offer_id}')
+    if result and not error:
+        # Extract stats from product-offer response
+        _stats = result.get('stats', {})
+        result = {'totalViews': _stats.get('viewsCount', 0) or _stats.get('visitsCount', 0)}
     return result, error
 
 
@@ -742,13 +744,13 @@ def get_offer_smart_stats(offer_ids):
     """
     stats = {}
 
-    # Allegro offer detail zawiera stats.watchersCount i stock.sold
-    # Pobieraj po 20 ofert naraz żeby nie zabić API
+    # Allegro: /sale/offers/{id} jest deprecated (403 od 2024)
+    # Używamy /sale/product-offers/{id} jako replacement
     for i in range(0, len(offer_ids), 20):
         batch = offer_ids[i:i+20]
         for oid in batch:
             try:
-                result, error = allegro_request('GET', f'/sale/offers/{oid}')
+                result, error = allegro_request('GET', f'/sale/product-offers/{oid}')
                 if result and not error:
                     _stats = result.get('stats', {})
                     _stock = result.get('stock', {})
