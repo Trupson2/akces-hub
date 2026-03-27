@@ -1517,6 +1517,22 @@ def edytuj_produkt(code):
                 input.value = '';
             }}
         }}
+        // Auto-kalkulacja netto <-> brutto (VAT 23%)
+        (function() {{
+            const fNetto  = document.querySelector('input[name="cena_netto"]');
+            const fBrutto = document.querySelector('input[name="cena_brutto"]');
+            if (!fNetto || !fBrutto) return;
+            fBrutto.addEventListener('input', function() {{
+                const b = parseFloat(this.value);
+                if (!isNaN(b) && b > 0) fNetto.value = (b / 1.23).toFixed(2);
+                else fNetto.value = '';
+            }});
+            fNetto.addEventListener('input', function() {{
+                const n = parseFloat(this.value);
+                if (!isNaN(n) && n > 0) fBrutto.value = (n * 1.23).toFixed(2);
+                else fBrutto.value = '';
+            }});
+        }})();
         </script>
         
         <div class="form-group"><label>URL zdjęcia</label>
@@ -2311,6 +2327,52 @@ def statystyki():
         )
 
     
+    # === HOURLY THROUGHPUT (sprzedaż po godzinie dnia) ===
+    godzinowe = [0.0] * 24
+    try:
+        hour_rows = conn.execute('''
+            SELECT CAST(strftime('%H', data_sprzedazy) AS INTEGER) as h,
+                   SUM(cena * ilosc) as suma
+            FROM sprzedaze
+            WHERE status NOT IN ('zwrot','anulowane','anulowana')
+              AND data_sprzedazy IS NOT NULL AND data_sprzedazy != ''
+            GROUP BY h
+        ''').fetchall()
+        for row in hour_rows:
+            if row['h'] is not None and 0 <= row['h'] < 24:
+                godzinowe[row['h']] = round(float(row['suma'] or 0), 2)
+    except:
+        pass
+
+    # === OSTATNIE TRANSAKCJE (transaction matrix) ===
+    ostatnie_transakcje = []
+    try:
+        ostatnie_rows = conn.execute('''
+            SELECT s.id, s.allegro_order_id,
+                   COALESCE(NULLIF(p.nazwa,''), NULLIF(s.nazwa,''), 'Zamówienie') as nazwa,
+                   s.cena, s.ilosc, (s.cena * s.ilosc) as wartosc,
+                   s.status, s.data_sprzedazy, s.kupujacy,
+                   COALESCE(p.kategoria, '') as kategoria
+            FROM sprzedaze s
+            LEFT JOIN produkty p ON s.produkt_id = p.id
+            WHERE s.status NOT IN ('anulowane','anulowana')
+              AND s.data_sprzedazy IS NOT NULL AND s.data_sprzedazy != ''
+            ORDER BY s.data_sprzedazy DESC LIMIT 15
+        ''').fetchall()
+        for row in ostatnie_rows:
+            ds = str(row['data_sprzedazy'] or '')[:16].replace('T',' ')
+            ostatnie_transakcje.append({
+                'id': row['id'],
+                'nazwa': (row['nazwa'] or 'Produkt')[:50],
+                'wartosc': float(row['wartosc'] or 0),
+                'ilosc': int(row['ilosc'] or 1),
+                'status': row['status'] or 'sprzedano',
+                'data': ds,
+                'kupujacy': (row['kupujacy'] or '—')[:20],
+            })
+    except:
+        pass
+
     # Przygotuj dane do wykresów
     nazwy_miesiecy = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru']
     przychod_total = podsumowanie['suma_total'] + pryw_total_rok
@@ -2466,6 +2528,8 @@ def statystyki():
         sell_time_histogram_json=json.dumps(sell_time_histogram),
         dane_roczne_labels_json=json.dumps(dane_roczne_labels),
         dane_roczne_values_json=json.dumps(dane_roczne_values),
+        godzinowe_json=json.dumps(godzinowe),
+        ostatnie_transakcje=ostatnie_transakcje,
         now=datetime.now(),
     )
 

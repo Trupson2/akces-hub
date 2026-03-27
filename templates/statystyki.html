@@ -112,8 +112,8 @@
 <!-- ═══════════════ SECTION 1: HEADER ═══════════════ -->
 <div class="st-header">
     <div>
-        <h1>STATYSTYKI</h1>
-        <small>Sprzedaz i przychody &middot; {{ current_year }}</small>
+        <h1><span class="material-symbols-outlined" style="font-size:1.4rem;vertical-align:middle;margin-right:6px">hub</span>SALES_HUB</h1>
+        <small>UNIVERSAL SALES COMMAND &middot; NODE_01 &middot; {{ current_year }} &middot; LIVE_FEED</small>
     </div>
     <a href="/sync-historyczny" class="st-sync-btn">
         <span class="material-symbols-outlined">sync</span> Sync historyczny
@@ -331,6 +331,51 @@
     {% endif %}
 </div>
 
+<!-- ═══════════════ SECTION 8b: HOURLY THROUGHPUT ═══════════════ -->
+<div class="st-section">
+    <span class="st-section-bar lime"></span>
+    <span class="st-section-label">Hourly Throughput &mdash; sprzedaz po godzinie</span>
+</div>
+<div class="st-card">
+    <canvas id="chartGodzinowe" height="180"></canvas>
+</div>
+
+<!-- ═══════════════ SECTION 8c: TRANSACTION MATRIX ═══════════════ -->
+<div class="st-section">
+    <span class="st-section-bar"></span>
+    <span class="st-section-label">Transaction Matrix &mdash; ostatnie transakcje</span>
+</div>
+<div class="st-card" style="padding:0;overflow:hidden">
+    {% if ostatnie_transakcje %}
+    <table class="st-year-table" style="margin-top:0">
+        <thead>
+            <tr>
+                <th style="padding-left:18px">Data</th>
+                <th>Produkt</th>
+                <th>Szt</th>
+                <th>Kupujacy</th>
+                <th style="text-align:right;padding-right:18px">Wartosc</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in ostatnie_transakcje %}
+            <tr style="border-left:2px solid {% if t.status == 'zwrot' %}rgba(239,68,68,0.4){% else %}rgba(143,245,255,0.1){% endif %}">
+                <td style="padding-left:18px;font-size:0.75rem;color:var(--text-muted);white-space:nowrap">{{ t.data }}</td>
+                <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600">{{ t.nazwa }}</td>
+                <td style="color:var(--text-muted)">{{ t.ilosc }}</td>
+                <td style="font-size:0.78rem;color:var(--text-muted)">{{ t.kupujacy }}</td>
+                <td style="text-align:right;padding-right:18px;font-family:'Space Grotesk',sans-serif;font-weight:800;color:{% if t.status == 'zwrot' %}var(--neon-secondary){% else %}var(--neon-primary){% endif %}">
+                    {% if t.status == 'zwrot' %}-{% endif %}{{ "%.2f"|format(t.wartosc) }} zl
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="padding:30px;text-align:center;color:var(--text-muted);font-size:0.82rem">Brak transakcji</div>
+    {% endif %}
+</div>
+
 <!-- ═══════════════ SECTION 9: PALLETS PER MONTH ═══════════════ -->
 <div class="st-section">
     <span class="st-section-bar lime"></span>
@@ -405,6 +450,7 @@ const daneDzienne = {{ dzienne_json|safe }};
 const daneDzienneCnt = {{ dzienne_cnt_json|safe }};
 const histLabels = {{ sell_time_labels_json|safe }};
 const histData = {{ sell_time_histogram_json|safe }};
+const daneGodzinowe = {{ godzinowe_json|safe }};
 
 // === CHART DEFAULTS ===
 Chart.defaults.color = '#64748b';
@@ -607,7 +653,57 @@ function showMonthlyView() {
 
 buildMonthlyChart();
 
-// === 3. YEARLY CHART ===
+// === 3. HOURLY THROUGHPUT CHART ===
+(function() {
+    const ctx = document.getElementById('chartGodzinowe');
+    if (!ctx || !daneGodzinowe) return;
+    const labels = Array.from({length:24}, (_, i) => i.toString().padStart(2,'0') + ':00');
+    const maxVal = Math.max(...daneGodzinowe, 1);
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Przychod (zl)',
+                data: daneGodzinowe,
+                backgroundColor: daneGodzinowe.map(v => {
+                    const ratio = v / maxVal;
+                    if (ratio > 0.7) return 'rgba(190,238,0,0.85)';
+                    if (ratio > 0.4) return 'rgba(143,245,255,0.75)';
+                    if (ratio > 0.1) return 'rgba(143,245,255,0.45)';
+                    return 'rgba(143,245,255,0.15)';
+                }),
+                borderWidth: 0,
+                borderRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(15,15,30,0.95)',
+                    borderColor: 'rgba(143,245,255,0.2)',
+                    borderWidth: 1,
+                    titleFont: { family: "'Space Grotesk',sans-serif", weight: '700' },
+                    callbacks: {
+                        label: function(c) { return c.parsed.y.toFixed(0) + ' zl'; }
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255,255,255,0.04)' },
+                    ticks: { callback: function(v) { return v.toLocaleString() + ' zl'; } }
+                }
+            }
+        }
+    });
+})();
+
+// === 4. YEARLY CHART ===
 (function() {
     const ctx = document.getElementById('chartLata');
     if (!ctx) return;
