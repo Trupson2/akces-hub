@@ -3703,217 +3703,588 @@ def goal_details():
     
     goal = get_goal_stats()
     
+    # Calculate savings deficit info
+    monthly_needed = goal['remaining'] / 12 if goal['remaining'] > 0 else 0
+    progress_val = min(goal.get('progress', 0), 100)
+
     html = f'''
 <!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><span class=material-symbols-outlined>directions_car</span> Hyundai i30 N - Goal</title>
+    <title>{goal['name']} - Goal Details</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+
         body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
-            color: #fff;
-            padding: 20px;
+            font-family: 'Manrope', sans-serif;
+            background: #0e0e10;
+            color: #e0e0e0;
             min-height: 100vh;
+            overflow-x: hidden;
         }}
-        .container {{
-            max-width: 800px;
+
+        body::before {{
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(143,245,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(143,245,255,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }}
+
+        .page-wrap {{
+            position: relative;
+            z-index: 1;
+            max-width: 720px;
             margin: 0 auto;
+            padding: 24px 16px 60px;
         }}
-        .header {{
-            text-align: center;
-            margin-bottom: 30px;
+
+        /* ---- Back link ---- */
+        .back-link {{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #8ff5ff;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 28px;
+            transition: color .2s;
         }}
-        .header h1 {{
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }}
-        .goal-card {{
-            background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(139,92,246,0.15));
-            border: 2px solid #3b82f6;
-            border-radius: 20px;
-            padding: 30px;
+        .back-link:hover {{ color: #fff; }}
+        .back-link .material-symbols-outlined {{ font-size: 18px; }}
+
+        /* ---- Glass panel base ---- */
+        .glass {{
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(143,245,255,0.12);
+            border-radius: 18px;
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            padding: 28px;
             margin-bottom: 20px;
         }}
-        .progress-bar {{
-            background: rgba(0,0,0,0.3);
-            border-radius: 12px;
-            height: 30px;
+
+        /* ---- Hero card ---- */
+        .hero-card {{
+            text-align: center;
+            padding: 36px 28px 32px;
+            position: relative;
             overflow: hidden;
-            margin: 20px 0;
         }}
-        .progress-fill {{
-            background: linear-gradient(90deg, #22c55e, #16a34a);
-            height: 100%;
-            transition: width 0.5s;
+        .hero-card::before {{
+            content: '';
+            position: absolute;
+            top: -60%;
+            left: -20%;
+            width: 140%;
+            height: 120%;
+            background: radial-gradient(ellipse at center top, rgba(143,245,255,0.07) 0%, transparent 65%);
+            pointer-events: none;
+        }}
+
+        .hero-icon {{
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(143,245,255,0.15), rgba(255,107,155,0.12));
+            border: 2px solid rgba(143,245,255,0.3);
             display: flex;
             align-items: center;
-            justify-content: flex-end;
-            padding-right: 10px;
+            justify-content: center;
         }}
-        .stats {{
+        .hero-icon .material-symbols-outlined {{
+            font-size: 38px;
+            color: #8ff5ff;
+        }}
+
+        .hero-title {{
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
+        }}
+        .hero-sub {{
+            font-size: 0.8rem;
+            color: rgba(143,245,255,0.6);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+            margin-bottom: 28px;
+        }}
+
+        /* Progress bar */
+        .progress-track {{
+            background: rgba(255,255,255,0.06);
+            border-radius: 10px;
+            height: 22px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(143,245,255,0.1);
+        }}
+        .progress-fill {{
+            height: 100%;
+            border-radius: 10px;
+            background: linear-gradient(90deg, #8ff5ff, #cafd00);
+            box-shadow: 0 0 20px rgba(143,245,255,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+            transition: width 1s cubic-bezier(.4,0,.2,1);
+            position: relative;
+        }}
+        .progress-fill::after {{
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
+            animation: shimmer 2.5s infinite;
+        }}
+        @keyframes shimmer {{
+            0% {{ transform: translateX(-100%); }}
+            100% {{ transform: translateX(100%); }}
+        }}
+
+        .progress-label {{
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-top: 10px;
+        }}
+        .progress-pct {{
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #8ff5ff;
+        }}
+        .progress-amt {{
+            font-size: 0.82rem;
+            color: rgba(255,255,255,0.45);
+        }}
+
+        /* ---- Stats grid ---- */
+        .stats-grid {{
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin: 20px 0;
+            gap: 14px;
         }}
-        .stat {{
+        .stat-card {{
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(143,245,255,0.08);
+            border-radius: 14px;
+            padding: 20px 14px;
             text-align: center;
-            padding: 20px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 12px;
+            backdrop-filter: blur(10px);
         }}
-        .stat-label {{
-            font-size: 0.8rem;
-            color: #64748b;
-            margin-bottom: 5px;
+        .stat-card .stat-icon {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            margin: 0 auto 10px;
+            border-radius: 10px;
         }}
-        .stat-value {{
-            font-size: 1.8rem;
+        .stat-card .stat-icon .material-symbols-outlined {{ font-size: 20px; }}
+
+        .stat-card .stat-label {{
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 6px;
+        }}
+        .stat-card .stat-value {{
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.35rem;
             font-weight: 700;
         }}
-        .form-group {{
-            margin-bottom: 20px;
+        .stat-card .stat-unit {{
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.35);
+            margin-top: 2px;
         }}
-        .form-group label {{
+
+        .stat-cyan .stat-icon {{ background: rgba(143,245,255,0.1); }}
+        .stat-cyan .stat-icon .material-symbols-outlined {{ color: #8ff5ff; }}
+        .stat-cyan .stat-value {{ color: #8ff5ff; }}
+
+        .stat-lime .stat-icon {{ background: rgba(202,253,0,0.1); }}
+        .stat-lime .stat-icon .material-symbols-outlined {{ color: #cafd00; }}
+        .stat-lime .stat-value {{ color: #cafd00; }}
+
+        .stat-pink .stat-icon {{ background: rgba(255,107,155,0.1); }}
+        .stat-pink .stat-icon .material-symbols-outlined {{ color: #ff6b9b; }}
+        .stat-pink .stat-value {{ color: #ff6b9b; }}
+
+        /* ---- System alert ---- */
+        .alert-card {{
+            border: 1px solid rgba(255,107,155,0.25);
+            background: rgba(255,107,155,0.06);
+            position: relative;
+            overflow: hidden;
+        }}
+        .alert-card::before {{
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: #ff6b9b;
+            border-radius: 3px 0 0 3px;
+        }}
+        .alert-header {{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }}
+        .alert-header .material-symbols-outlined {{
+            font-size: 20px;
+            color: #ff6b9b;
+        }}
+        .alert-title {{
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #ff6b9b;
+        }}
+        .alert-body {{
+            font-size: 0.88rem;
+            color: rgba(255,255,255,0.7);
+            line-height: 1.6;
+        }}
+        .alert-body strong {{
+            color: #ff6b9b;
+            font-weight: 700;
+        }}
+
+        /* ---- Edit form ---- */
+        .form-panel {{
+            position: relative;
+        }}
+        .form-panel-header {{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 22px;
+        }}
+        .form-panel-header .material-symbols-outlined {{
+            font-size: 22px;
+            color: #cafd00;
+        }}
+        .form-panel-title {{
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }}
+
+        .fg {{
+            margin-bottom: 18px;
+        }}
+        .fg label {{
             display: block;
-            margin-bottom: 8px;
-            color: #94a3b8;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: rgba(255,255,255,0.45);
+            margin-bottom: 7px;
         }}
-        .form-group input {{
+        .fg input {{
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(143,245,255,0.12);
+            border-radius: 10px;
+            color: #fff;
+            font-family: 'Manrope', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: border-color .2s, box-shadow .2s;
+        }}
+        .fg input:focus {{
+            outline: none;
+            border-color: #8ff5ff;
+            box-shadow: 0 0 0 3px rgba(143,245,255,0.1);
+        }}
+
+        .btn-save {{
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #cafd00, #8ff5ff);
+            color: #0e0e10;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            transition: transform .15s, box-shadow .2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }}
+        .btn-save:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(202,253,0,0.25);
+        }}
+        .btn-save .material-symbols-outlined {{ font-size: 20px; }}
+
+        /* ---- Quick actions ---- */
+        .quick-actions {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }}
+        .qa-col form {{
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 100%;
+        }}
+        .qa-col .fg {{ margin-bottom: 0; flex: 1; }}
+
+        .btn-add, .btn-sub {{
             width: 100%;
             padding: 12px;
-            background: rgba(255,255,255,0.1);
-            border: 2px solid rgba(255,255,255,0.2);
-            border-radius: 8px;
-            color: #fff;
-            font-size: 1rem;
-        }}
-        .btn {{
-            padding: 12px 24px;
             border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
+            border-radius: 10px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             cursor: pointer;
-            transition: all 0.3s;
-        }}
-        .btn-primary {{
-            background: #3b82f6;
-            color: #fff;
-        }}
-        .btn-primary:hover {{
-            background: #2563eb;
-            transform: translateY(-2px);
-        }}
-        .btn-success {{
-            background: #22c55e;
-            color: #fff;
-        }}
-        .btn-danger {{
-            background: #ef4444;
-            color: #fff;
-        }}
-        .actions {{
+            transition: transform .15s, box-shadow .2s;
             display: flex;
-            gap: 10px;
-            margin-top: 20px;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }}
-        .back-btn {{
-            display: inline-block;
-            padding: 10px 20px;
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-            text-decoration: none;
-            border-radius: 8px;
-            margin-bottom: 20px;
+        .btn-add {{
+            background: rgba(143,245,255,0.12);
+            border: 1px solid rgba(143,245,255,0.3);
+            color: #8ff5ff;
+        }}
+        .btn-add:hover {{
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(143,245,255,0.15);
+        }}
+        .btn-sub {{
+            background: rgba(255,107,155,0.1);
+            border: 1px solid rgba(255,107,155,0.25);
+            color: #ff6b9b;
+        }}
+        .btn-sub:hover {{
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(255,107,155,0.15);
+        }}
+        .btn-add .material-symbols-outlined,
+        .btn-sub .material-symbols-outlined {{ font-size: 18px; }}
+
+        /* ---- Footer ---- */
+        .footer-meta {{
+            text-align: center;
+            font-size: 0.72rem;
+            color: rgba(255,255,255,0.2);
+            margin-top: 30px;
+            letter-spacing: 0.5px;
+        }}
+
+        /* ---- Success toast ---- */
+        .toast {{
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(143,245,255,0.12);
+            border: 1px solid rgba(143,245,255,0.3);
+            backdrop-filter: blur(16px);
+            border-radius: 12px;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #8ff5ff;
+            font-size: 0.85rem;
+            font-weight: 600;
+            animation: toastIn 0.4s ease, toastOut 0.4s ease 2.6s forwards;
+            z-index: 100;
+        }}
+        .toast .material-symbols-outlined {{ font-size: 20px; }}
+        @keyframes toastIn {{
+            from {{ transform: translateX(120%); opacity: 0; }}
+            to {{ transform: translateX(0); opacity: 1; }}
+        }}
+        @keyframes toastOut {{
+            from {{ transform: translateX(0); opacity: 1; }}
+            to {{ transform: translateX(120%); opacity: 0; }}
+        }}
+
+        /* ---- Responsive ---- */
+        @media (max-width: 560px) {{
+            .stats-grid {{ grid-template-columns: 1fr; gap: 10px; }}
+            .quick-actions {{ grid-template-columns: 1fr; }}
+            .hero-title {{ font-size: 1.5rem; }}
+            .stat-card .stat-value {{ font-size: 1.15rem; }}
         }}
     </style>
 </head>
 <body>
-    <div class="container">
-        <a href="/" class="back-btn">← Powrót</a>
-        
-        <div class="header">
-            <h1><span class=material-symbols-outlined>directions_car</span> {goal['name']}</h1>
-            <p style="color: #64748b;">Zarządzanie celem finansowym</p>
-        </div>
-        
-        <div class="goal-card">
-            <h2 style="margin-bottom: 20px;">Postęp: {goal.get('progress', 0)}%</h2>
-            
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: {goal.get('progress', 0)}%">
-                    <span style="color: #fff; font-weight: 700;">{goal['current']:,.0f} PLN</span>
-                </div>
+    <div class="page-wrap">
+
+        <!-- Back link -->
+        <a href="/" class="back-link">
+            <span class="material-symbols-outlined">arrow_back</span> Powrot
+        </a>
+
+        <!-- Hero card -->
+        <div class="glass hero-card">
+            <div class="hero-icon">
+                <span class="material-symbols-outlined">directions_car</span>
             </div>
-            
-            <div class="stats">
-                <div class="stat">
-                    <div class="stat-label">UZBIERANE</div>
-                    <div class="stat-value" style="color: #22c55e;">{goal['current']:,.0f} PLN</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-label">CEL</div>
-                    <div class="stat-value" style="color: #3b82f6;">{goal['target']:,.0f} PLN</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-label">POZOSTAŁO</div>
-                    <div class="stat-value" style="color: #f59e0b;">{goal['remaining']:,.0f} PLN</div>
-                </div>
+            <h1 class="hero-title">{goal['name']}</h1>
+            <p class="hero-sub">Cel finansowy</p>
+
+            <div class="progress-track">
+                <div class="progress-fill" style="width: {progress_val}%"></div>
+            </div>
+            <div class="progress-label">
+                <span class="progress-pct">{progress_val}%</span>
+                <span class="progress-amt">{goal['current']:,.0f} / {goal['target']:,.0f} PLN</span>
             </div>
         </div>
-        
-        <div class="goal-card">
-            <h3 style="margin-bottom: 20px;"><span class=material-symbols-outlined>edit</span> Edytuj Goal</h3>
-            
+
+        <!-- Stats grid -->
+        <div class="stats-grid">
+            <div class="stat-card stat-cyan">
+                <div class="stat-icon"><span class="material-symbols-outlined">savings</span></div>
+                <div class="stat-label">Uzbierane</div>
+                <div class="stat-value">{goal['current']:,.0f}</div>
+                <div class="stat-unit">PLN</div>
+            </div>
+            <div class="stat-card stat-lime">
+                <div class="stat-icon"><span class="material-symbols-outlined">flag</span></div>
+                <div class="stat-label">Cel</div>
+                <div class="stat-value">{goal['target']:,.0f}</div>
+                <div class="stat-unit">PLN</div>
+            </div>
+            <div class="stat-card stat-pink">
+                <div class="stat-icon"><span class="material-symbols-outlined">trending_down</span></div>
+                <div class="stat-label">Pozostalo</div>
+                <div class="stat-value">{goal['remaining']:,.0f}</div>
+                <div class="stat-unit">PLN</div>
+            </div>
+        </div>
+
+        <!-- System alert -->
+        <div class="glass alert-card" style="margin-top:20px;">
+            <div class="alert-header">
+                <span class="material-symbols-outlined">warning</span>
+                <span class="alert-title">System Alert</span>
+            </div>
+            <div class="alert-body">
+                Aby osiagnac cel w ciagu <strong>12 miesiecy</strong>, musisz odkladac
+                <strong>{monthly_needed:,.0f} PLN</strong> miesiecznie.
+                Pozostalo <strong>{goal['remaining']:,.0f} PLN</strong> do uzbierania.
+            </div>
+        </div>
+
+        <!-- Edit form -->
+        <div class="glass form-panel" style="margin-top:20px;">
+            <div class="form-panel-header">
+                <span class="material-symbols-outlined">edit_note</span>
+                <span class="form-panel-title">Edytuj cel</span>
+            </div>
             <form action="/goal/update" method="POST">
-                <div class="form-group">
-                    <label>Uzbierana kwota (PLN):</label>
-                    <input type="number" name="current" value="{goal['current']:.0f}" step="0.01" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Cel (PLN):</label>
-                    <input type="number" name="target" value="{goal['target']:.0f}" step="0.01" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Nazwa celu:</label>
+                <div class="fg">
+                    <label>Nazwa celu</label>
                     <input type="text" name="name" value="{goal['name']}" required>
                 </div>
-                
-                <button type="submit" class="btn btn-primary"><span class=material-symbols-outlined>save</span> Zapisz zmiany</button>
+                <div class="fg">
+                    <label>Uzbierana kwota (PLN)</label>
+                    <input type="number" name="current" value="{goal['current']:.0f}" step="0.01" required>
+                </div>
+                <div class="fg">
+                    <label>Cel (PLN)</label>
+                    <input type="number" name="target" value="{goal['target']:.0f}" step="0.01" required>
+                </div>
+                <button type="submit" class="btn-save">
+                    <span class="material-symbols-outlined">save</span> Zapisz zmiany
+                </button>
             </form>
         </div>
-        
-        <div class="goal-card">
-            <h3 style="margin-bottom: 20px;"><span class=material-symbols-outlined>payments</span> Szybkie akcje</h3>
-            
-            <form action="/goal/add" method="POST" style="margin-bottom: 15px;">
-                <div class="form-group">
-                    <label>Dodaj kwotę (PLN):</label>
-                    <input type="number" name="amount" placeholder="np. 5000" step="0.01" required>
+
+        <!-- Quick actions -->
+        <div class="glass" style="margin-top:20px;">
+            <div class="form-panel-header">
+                <span class="material-symbols-outlined">bolt</span>
+                <span class="form-panel-title">Szybkie akcje</span>
+            </div>
+            <div class="quick-actions">
+                <div class="qa-col">
+                    <form action="/goal/add" method="POST">
+                        <div class="fg">
+                            <label>Dodaj kwote (PLN)</label>
+                            <input type="number" name="amount" placeholder="np. 5000" step="0.01" required>
+                        </div>
+                        <button type="submit" class="btn-add">
+                            <span class="material-symbols-outlined">add_circle</span> Dodaj
+                        </button>
+                    </form>
                 </div>
-                <button type="submit" class="btn btn-success"><span class=material-symbols-outlined>add</span> Dodaj</button>
-            </form>
-            
-            <form action="/goal/subtract" method="POST" style="margin-bottom: 15px;">
-                <div class="form-group">
-                    <label>Odejmij kwotę (PLN):</label>
-                    <input type="number" name="amount" placeholder="np. 1000" step="0.01" required>
+                <div class="qa-col">
+                    <form action="/goal/subtract" method="POST">
+                        <div class="fg">
+                            <label>Odejmij kwote (PLN)</label>
+                            <input type="number" name="amount" placeholder="np. 1000" step="0.01" required>
+                        </div>
+                        <button type="submit" class="btn-sub">
+                            <span class="material-symbols-outlined">remove_circle</span> Odejmij
+                        </button>
+                    </form>
                 </div>
-                <button type="submit" class="btn btn-danger"><span class=material-symbols-outlined>remove</span> Odejmij</button>
-            </form>
+            </div>
         </div>
-        
-        <p style="text-align: center; color: #64748b; margin-top: 30px;">
+
+        <!-- Footer -->
+        <p class="footer-meta">
             Ostatnia aktualizacja: {goal['updated_at'][:10]}
         </p>
+
     </div>
+
+    <script>
+        // Show success toast from URL param
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('success')) {{
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = '<span class="material-symbols-outlined">check_circle</span>Zapisano pomyslnie';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3200);
+        }}
+    </script>
 </body>
 </html>
 '''

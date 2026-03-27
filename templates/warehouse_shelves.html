@@ -50,11 +50,11 @@
 .wh-card-bar-fill{height:100%;transition:width 0.3s}
 
 /* Panel overlay */
-.wh-panel-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:200;backdrop-filter:blur(2px)}
+.wh-panel-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9990;backdrop-filter:blur(2px)}
 .wh-panel-overlay.open{display:block}
 
 /* Slide-up panel */
-.wh-panel{position:fixed;bottom:0;left:0;right:0;max-height:85vh;background:#13131c;border-top:1px solid rgba(143,245,255,0.15);z-index:201;overflow-y:auto;transform:translateY(100%);transition:transform 0.3s ease}
+.wh-panel{position:fixed;bottom:0;left:0;right:0;max-height:85vh;background:#13131c;border-top:1px solid rgba(143,245,255,0.15);z-index:9991;overflow-y:auto;transform:translateY(100%);transition:transform 0.3s ease;color:#e2e8f0}
 .wh-panel.open{transform:translateY(0)}
 .wh-panel-handle{width:40px;height:3px;background:var(--text-muted);margin:10px auto}
 .wh-panel-header{padding:0 16px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}

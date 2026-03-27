@@ -571,46 +571,199 @@ def zmien_haslo():
             success = 'Hasło zmienione pomyślnie!'
         conn.close()
 
-    html = '''<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Zmiana hasła</title>
+    html = '''{% extends "base.html" %}
+{% block content %}
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0a0f;color:#e2e8f0;
-     display:flex;align-items:center;justify-content:center;min-height:100vh}
-.card{background:#12121a;border:1px solid #1e1e2e;border-radius:16px;padding:40px;
-      width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
-h1{font-size:1.5rem;margin-bottom:24px;text-align:center}
-label{display:block;font-size:0.85rem;color:#94a3b8;margin-bottom:6px;margin-top:16px}
-input{width:100%;padding:12px;background:#1a1a2e;border:1px solid #2a2a3a;border-radius:8px;
-      color:#e2e8f0;font-size:1rem}
-input:focus{outline:none;border-color:#667eea}
-button{width:100%;padding:14px;background:linear-gradient(135deg,#667eea,#764ba2);
-       border:none;border-radius:8px;color:#fff;font-size:1rem;font-weight:600;
-       cursor:pointer;margin-top:24px}
-button:hover{opacity:0.9}
-.error{background:#ef444422;border:1px solid #ef4444;color:#fca5a5;padding:12px;
-       border-radius:8px;margin-bottom:16px;font-size:0.9rem}
-.success{background:#22c55e22;border:1px solid #22c55e;color:#86efac;padding:12px;
-         border-radius:8px;margin-bottom:16px;font-size:0.9rem}
-.back{display:block;text-align:center;margin-top:16px;color:#64748b;text-decoration:none;font-size:0.85rem}
-.back:hover{color:#e2e8f0}
-</style></head><body>
-<div class="card">
-    <h1><span class=material-symbols-outlined>lock</span> Zmiana hasła</h1>
-    {% if error %}<div class="error">{{ error }}</div>{% endif %}
-    {% if success %}<div class="success">{{ success }}</div>{% endif %}
-    <form method="POST">
+/* ── Cyberpunk Change Password ── */
+.cp-wrap{font-family:'Manrope',sans-serif;color:#c8d6e5;min-height:80vh;display:flex;align-items:center;justify-content:center;padding:40px 16px;position:relative}
+
+/* Background grid overlay */
+.cp-wrap::before{content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(143,245,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(143,245,255,.03) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none}
+
+.cp-container{width:100%;max-width:480px;position:relative;z-index:1}
+
+/* ── Header ── */
+.cp-header{text-align:center;margin-bottom:32px}
+.cp-header-icon{font-size:48px;color:#8ff5ff;filter:drop-shadow(0 0 20px rgba(143,245,255,.5));margin-bottom:12px}
+.cp-header h1{font-family:'Space Grotesk',sans-serif;font-size:1.8rem;font-weight:700;color:#fff;
+  text-shadow:0 0 30px rgba(143,245,255,.3);letter-spacing:2px;margin:0}
+.cp-header-sub{font-size:.85rem;color:#8ff5ff;opacity:.7;margin-top:6px;letter-spacing:1px;
+  font-family:'Space Grotesk',sans-serif}
+
+/* ── Glass Card ── */
+.cp-card{background:rgba(15,15,30,.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(143,245,255,.12);border-radius:16px;padding:36px;position:relative;overflow:hidden}
+
+/* Corner accents */
+.cp-card::before,.cp-card::after{content:'';position:absolute;width:24px;height:24px;pointer-events:none}
+.cp-card::before{top:0;left:0;border-top:2px solid #8ff5ff;border-left:2px solid #8ff5ff;border-radius:0}
+.cp-card::after{bottom:0;right:0;border-bottom:2px solid #ff6b9b;border-right:2px solid #ff6b9b;border-radius:0}
+
+/* ── Alert Messages ── */
+.cp-alert{padding:14px 16px;border-radius:10px;font-size:.88rem;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.cp-alert .material-symbols-outlined{font-size:20px}
+.cp-alert-error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#fca5a5}
+.cp-alert-success{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#86efac}
+
+/* ── Form Fields ── */
+.cp-field{margin-bottom:20px}
+.cp-field label{display:block;font-family:'Space Grotesk',sans-serif;font-size:.78rem;font-weight:500;
+  color:#8ff5ff;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px}
+.cp-input-wrap{position:relative;display:flex;align-items:center}
+.cp-input-wrap .material-symbols-outlined.field-icon{position:absolute;left:14px;font-size:20px;color:rgba(143,245,255,.4);pointer-events:none}
+.cp-input-wrap input{width:100%;padding:14px 48px 14px 44px;background:rgba(10,10,25,.8);
+  border:1px solid rgba(143,245,255,.1);border-radius:10px;color:#e2e8f0;font-size:.95rem;
+  font-family:'Manrope',sans-serif;transition:all .25s ease}
+.cp-input-wrap input:focus{outline:none;border-color:rgba(143,245,255,.4);
+  box-shadow:0 0 20px rgba(143,245,255,.08);background:rgba(10,10,25,.95)}
+.cp-input-wrap input::placeholder{color:rgba(200,214,229,.25)}
+.cp-toggle-pw{position:absolute;right:12px;background:none;border:none;cursor:pointer;
+  color:rgba(143,245,255,.35);padding:4px;display:flex;align-items:center;transition:color .2s}
+.cp-toggle-pw:hover{color:#8ff5ff}
+.cp-toggle-pw .material-symbols-outlined{font-size:20px}
+.cp-field-hint{font-size:.75rem;color:rgba(200,214,229,.35);margin-top:6px;padding-left:2px}
+
+/* ── Submit Button ── */
+.cp-submit{width:100%;padding:16px;margin-top:28px;border:none;border-radius:10px;cursor:pointer;
+  font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:600;letter-spacing:2px;
+  background:linear-gradient(135deg,#8ff5ff,#00bcd4);color:#0a0a1e;
+  box-shadow:0 0 30px rgba(143,245,255,.2);transition:all .3s ease;position:relative;overflow:hidden}
+.cp-submit:hover{box-shadow:0 0 40px rgba(143,245,255,.35);transform:translateY(-1px)}
+.cp-submit:active{transform:translateY(0)}
+.cp-submit::after{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);transition:left .5s}
+.cp-submit:hover::after{left:100%}
+
+/* ── Security Info Panels ── */
+.cp-security-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:28px}
+.cp-sec-panel{background:rgba(15,15,30,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(143,245,255,.08);border-radius:12px;padding:18px;text-align:center}
+.cp-sec-panel .material-symbols-outlined{font-size:28px;margin-bottom:8px;display:block}
+.cp-sec-panel:first-child .material-symbols-outlined{color:#ff6b9b}
+.cp-sec-panel:last-child .material-symbols-outlined{color:#8ff5ff}
+.cp-sec-panel h4{font-family:'Space Grotesk',sans-serif;font-size:.78rem;font-weight:600;color:#fff;
+  margin-bottom:4px;letter-spacing:.5px}
+.cp-sec-panel p{font-size:.72rem;color:rgba(200,214,229,.4);line-height:1.4}
+
+/* ── Back Link ── */
+.cp-back{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:24px;
+  color:rgba(143,245,255,.45);text-decoration:none;font-size:.85rem;font-family:'Space Grotesk',sans-serif;
+  transition:color .2s;letter-spacing:.5px}
+.cp-back:hover{color:#8ff5ff}
+.cp-back .material-symbols-outlined{font-size:18px}
+
+@media(max-width:540px){
+  .cp-container{max-width:100%}
+  .cp-card{padding:28px 20px}
+  .cp-security-row{grid-template-columns:1fr}
+  .cp-header h1{font-size:1.5rem}
+}
+</style>
+
+<div class="cp-wrap">
+  <div class="cp-container">
+
+    <!-- Header -->
+    <div class="cp-header">
+      <span class="material-symbols-outlined cp-header-icon">shield_lock</span>
+      <h1>ZMIANA HAS&Lstrok;A</h1>
+      <div class="cp-header-sub">UPDATE ACCESS KEYS</div>
+    </div>
+
+    <!-- Glass Card -->
+    <div class="cp-card">
+
+      {% if error %}
+      <div class="cp-alert cp-alert-error">
+        <span class="material-symbols-outlined">error</span> {{ error }}
+      </div>
+      {% endif %}
+      {% if success %}
+      <div class="cp-alert cp-alert-success">
+        <span class="material-symbols-outlined">check_circle</span> {{ success }}
+      </div>
+      {% endif %}
+
+      <form method="POST" autocomplete="off">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label>Obecne hasło</label>
-        <input type="password" name="old_password" required autofocus>
-        <label>Nowe hasło (min. 8 znaków)</label>
-        <input type="password" name="new_password" required minlength="8">
-        <label>Powtórz nowe hasło</label>
-        <input type="password" name="new_password2" required minlength="8">
-        <button type="submit">Zmień hasło</button>
-    </form>
-    <a href="/ustawienia" class="back">← Wróć do ustawień</a>
-</div></body></html>'''
+
+        <!-- Current password -->
+        <div class="cp-field">
+          <label>Obecne has&lstrok;o</label>
+          <div class="cp-input-wrap">
+            <span class="material-symbols-outlined field-icon">lock</span>
+            <input type="password" name="old_password" id="cp_old" required autofocus placeholder="Wprowad&zacute; obecne has&lstrok;o">
+            <button type="button" class="cp-toggle-pw" onclick="togglePw('cp_old',this)" tabindex="-1">
+              <span class="material-symbols-outlined">visibility</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- New password -->
+        <div class="cp-field">
+          <label>Nowe has&lstrok;o</label>
+          <div class="cp-input-wrap">
+            <span class="material-symbols-outlined field-icon">key</span>
+            <input type="password" name="new_password" id="cp_new" required minlength="8" placeholder="Minimum 8 znak&oacute;w">
+            <button type="button" class="cp-toggle-pw" onclick="togglePw('cp_new',this)" tabindex="-1">
+              <span class="material-symbols-outlined">visibility</span>
+            </button>
+          </div>
+          <div class="cp-field-hint">Min. 8 znak&oacute;w &bull; Zalecane: litery, cyfry, znaki specjalne</div>
+        </div>
+
+        <!-- Confirm password -->
+        <div class="cp-field">
+          <label>Potwierd&zacute; nowe has&lstrok;o</label>
+          <div class="cp-input-wrap">
+            <span class="material-symbols-outlined field-icon">verified_user</span>
+            <input type="password" name="new_password2" id="cp_new2" required minlength="8" placeholder="Powt&oacute;rz nowe has&lstrok;o">
+            <button type="button" class="cp-toggle-pw" onclick="togglePw('cp_new2',this)" tabindex="-1">
+              <span class="material-symbols-outlined">visibility</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="cp-submit">ZMIE&Nacute; HAS&Lstrok;O</button>
+      </form>
+    </div>
+
+    <!-- Security Info -->
+    <div class="cp-security-row">
+      <div class="cp-sec-panel">
+        <span class="material-symbols-outlined">timer</span>
+        <h4>Timeout sesji</h4>
+        <p>Sesja wygasa po 30 min nieaktywno&sacute;ci</p>
+      </div>
+      <div class="cp-sec-panel">
+        <span class="material-symbols-outlined">enhanced_encryption</span>
+        <h4>Szyfrowanie</h4>
+        <p>Has&lstrok;a hashowane algorytmem bcrypt</p>
+      </div>
+    </div>
+
+    <!-- Back link -->
+    <a href="/ustawienia" class="cp-back">
+      <span class="material-symbols-outlined">arrow_back</span> Wr&oacute;&cacute; do ustawie&nacute;
+    </a>
+
+  </div>
+</div>
+
+<script>
+function togglePw(id,btn){
+  const inp=document.getElementById(id);
+  const icon=btn.querySelector('.material-symbols-outlined');
+  if(inp.type==='password'){inp.type='text';icon.textContent='visibility_off';}
+  else{inp.type='password';icon.textContent='visibility';}
+}
+</script>
+{% endblock %}'''
     return render_template_string(html, error=error, success=success)
 
 
