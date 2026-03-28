@@ -359,6 +359,8 @@ function openBulkNadaj(){
 
 function closeBulkNadaj(){
     document.getElementById('bulkNadajModal').style.display='none';
+    // Reload page to remove shipped orders from list
+    window.location.reload();
 }
 
 async function executeBulkNadaj(){
