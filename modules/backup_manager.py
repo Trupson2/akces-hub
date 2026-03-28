@@ -52,8 +52,17 @@ def create_backup():
         
         source_conn.close()
         backup_conn.close()
-        
-        print(f"[OK] Backup utworzony: {backup_name}")
+
+        # Weryfikuj integralność backupu
+        verify_conn = sqlite3.connect(str(backup_path))
+        result = verify_conn.execute('PRAGMA integrity_check').fetchone()
+        verify_conn.close()
+        if result[0] != 'ok':
+            print(f"[ERR] Backup uszkodzony! integrity_check: {result[0]}")
+            backup_path.unlink(missing_ok=True)
+            return None
+
+        print(f"[OK] Backup utworzony i zweryfikowany: {backup_name}")
 
         # Usuń stare backupy
         cleanup_old_backups()

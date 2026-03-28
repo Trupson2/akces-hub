@@ -4830,12 +4830,14 @@ def sync_custom():
         if error:
             return f'<html><head><meta http-equiv="refresh" content="3;url=/sprzedaze"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=color:#ef4444>cancel</span></div><div style="color:#ef4444">Błąd: {error}</div></div></body></html>'
         return f'''
-        <html><head><meta http-equiv="refresh" content="2;url=/sprzedaze?miesiac={from_date[:7]}"></head>
-        <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+        <html><head><meta http-equiv="refresh" content="2;url=/sprzedaze?miesiac={from_date[:7]}">
+        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet">
+        </head>
+        <body style="background:#0a0a0f;color:#fff;font-family:'Space Grotesk',system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
-                <div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=color:#22c55e>check_circle</span></div>
-                <div style="font-size:1.2rem">Zsynchronizowano <b>{synced}</b> zamówień od {from_date}!</div>
-                <div style="color:#64748b;margin-top:10px">Przekierowuję...</div>
+                <div style="font-size:4rem;margin-bottom:20px;color:#22c55e;text-shadow:0 0 30px rgba(34,197,94,0.4)"><span class=material-symbols-outlined style="font-size:inherit">check_circle</span></div>
+                <div style="font-size:1.3rem;font-weight:700">Zsynchronizowano <span style="color:#beee00">{synced}</span> zamówień od {from_date}</div>
+                <div style="color:#64748b;margin-top:12px;font-size:0.85rem">Przekierowuję...</div>
             </div>
         </body></html>
         '''
