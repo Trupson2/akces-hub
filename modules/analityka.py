@@ -2524,20 +2524,8 @@ def analityka_czas_sprzedazy():
     except:
         pass
 
-    # Backfill produkty.data_dodania z daty zakupu palety
-    try:
-        conn.execute("""
-            UPDATE produkty SET data_dodania = (
-                SELECT p2.data_zakupu FROM palety p2
-                WHERE p2.id = produkty.paleta_id
-                  AND p2.data_zakupu IS NOT NULL
-            )
-            WHERE (data_dodania IS NULL OR data_dodania = '')
-              AND paleta_id IS NOT NULL
-        """)
-        conn.commit()
-    except:
-        pass
+    # UWAGA: NIE backfillujemy data_dodania z data_zakupu palety
+    # bo to psuje czas-sprzedazy (data zakupu palety != data wystawienia produktu)
 
     # Backfill: uzupełnij s.nazwa z oferty.tytul
     try:
@@ -2583,6 +2571,8 @@ def analityka_czas_sprzedazy():
         pass
 
     # === DANE OD WYSTAWIENIA / DODANIA ===
+    # data_od: używamy WYŁĄCZNIE daty wystawienia oferty lub data_dodania produktu
+    # NIE używamy data_zakupu palety — to data kupna palety, nie wystawienia produktu
     dane_od_wystawienia = conn.execute("""
         SELECT
             COALESCE(NULLIF(p.nazwa,''), NULLIF(s.nazwa,''), CASE WHEN s.allegro_order_id IS NOT NULL THEN 'Zamówienie ' || SUBSTR(s.allegro_order_id,1,8) ELSE 'Brak nazwy' END) as nazwa,
@@ -2591,16 +2581,13 @@ def analityka_czas_sprzedazy():
             COALESCE(
                 o.data_wystawienia,
                 o2.data_wystawienia,
-                p.data_dodania,
-                (SELECT pal.data_zakupu FROM palety pal WHERE pal.id = p.paleta_id)) as data_od,
+                NULLIF(p.data_dodania,'')) as data_od,
             p.kategoria, p.dostawca,
             CASE
-              WHEN COALESCE(o.data_wystawienia, o2.data_wystawienia, p.data_dodania,
-                            (SELECT pal.data_zakupu FROM palety pal WHERE pal.id = p.paleta_id)) IS NOT NULL
+              WHEN COALESCE(o.data_wystawienia, o2.data_wystawienia, NULLIF(p.data_dodania,'')) IS NOT NULL
               THEN MAX(0, (julianday(REPLACE(SUBSTR(s.data_sprzedazy,1,19),'T',' '))
                    - julianday(REPLACE(SUBSTR(
-                       COALESCE(o.data_wystawienia, o2.data_wystawienia, p.data_dodania,
-                                (SELECT pal.data_zakupu FROM palety pal WHERE pal.id = p.paleta_id)),1,19),'T',' '))))
+                       COALESCE(o.data_wystawienia, o2.data_wystawienia, NULLIF(p.data_dodania,'')),1,19),'T',' '))))
               ELSE NULL
             END as dni_od_wystawienia
         FROM sprzedaze s
