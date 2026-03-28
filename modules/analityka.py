@@ -715,7 +715,14 @@ def analityka_palety():
             COALESCE((SELECT SUM(s.ilosc) FROM sprzedaze s LEFT JOIN produkty pr ON s.produkt_id = pr.id LEFT JOIN oferty o ON s.oferta_id = o.id LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = p.id AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')), 0) as sprzedano_tabela,
             COALESCE((SELECT SUM(s.cena * s.ilosc) FROM sprzedaze s LEFT JOIN produkty pr ON s.produkt_id = pr.id LEFT JOIN oferty o ON s.oferta_id = o.id LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = p.id AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')), 0) as przychod_allegro_only,
             p.ilosc_sztuk,
-            (SELECT AVG(cena_allegro) FROM produkty WHERE paleta_id = p.id AND cena_allegro > 0) as avg_cena_allegro
+            (SELECT AVG(cena_allegro) FROM produkty WHERE paleta_id = p.id AND cena_allegro > 0) as avg_cena_allegro,
+            (SELECT MIN(s.data_sprzedazy) FROM sprzedaze s
+             LEFT JOIN produkty pr ON s.produkt_id = pr.id
+             LEFT JOIN oferty o ON s.oferta_id = o.id
+             LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id
+             WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = p.id
+               AND s.data_sprzedazy IS NOT NULL AND s.data_sprzedazy != ''
+               AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot')) as first_sale_date
         FROM palety p
         ORDER BY p.data_zakupu DESC
     ''').fetchall()
@@ -795,11 +802,16 @@ def analityka_palety():
         else:
             prognoza = zysk
 
-        # Tempo sprzedaży (szt/dzień)
+        # Tempo sprzedaży (szt/dzień od pierwszej sprzedaży)
         from datetime import datetime as _dt
         try:
-            _data_zakupu = _dt.strptime(str(p['data_zakupu'] or '')[:10], '%Y-%m-%d')
-            _dni = max(1, (_dt.now() - _data_zakupu).days)
+            _first = p['first_sale_date']
+            if _first:
+                _data_start = _dt.strptime(str(_first)[:10], '%Y-%m-%d')
+            else:
+                # fallback: data zakupu palety (brak sprzedaży jeszcze)
+                _data_start = _dt.strptime(str(p['data_zakupu'] or '')[:10], '%Y-%m-%d')
+            _dni = max(1, (_dt.now() - _data_start).days)
         except:
             _dni = 1
         tempo = sprzedanych / _dni if sprzedanych > 0 else 0
@@ -835,6 +847,11 @@ def analityka_palety():
 
     total_prowizja = sum(p['prowizja'] for p in palety_stats)
     total_roi = (total_zysk / total_koszt * 100) if total_koszt > 0 else 0
+
+    # Średnie tempo sprzedaży (szt/dzień) — tylko palety ze sprzedażą
+    _tempa = [p['tempo'] for p in palety_stats if p['sprzedanych'] > 0]
+    avg_tempo = sum(_tempa) / len(_tempa) if _tempa else 0
+    total_sprzedanych = sum(p['sprzedanych'] for p in palety_stats)
 
     # Unikalni dostawcy do filtra
     dostawcy = sorted(set(p['dostawca'] for p in palety_stats if p['dostawca'] != '-'))
@@ -876,8 +893,8 @@ def analityka_palety():
         .bp-glow-lime{{box-shadow:0 0 20px rgba(202,253,0,0.15)}}
 
         /* KPI cards */
-        .bp-kpi-grid{{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:24px}}
-        @media(max-width:1200px){{.bp-kpi-grid{{grid-template-columns:repeat(3,1fr)}}}}
+        .bp-kpi-grid{{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-bottom:24px}}
+        @media(max-width:1400px){{.bp-kpi-grid{{grid-template-columns:repeat(3,1fr)}}}}
         @media(max-width:768px){{.bp-kpi-grid{{grid-template-columns:repeat(2,1fr)}}}}
         .bp-kpi{{backdrop-filter:blur(12px);background:var(--bp-surface);border:1px solid var(--bp-border);padding:20px;position:relative;transition:all 0.2s}}
         .bp-kpi:hover{{background:var(--bp-surface-bright);box-shadow:0 0 20px rgba(143,245,255,0.1)}}
@@ -988,6 +1005,15 @@ def analityka_palety():
             <div class="bp-value" style="font-size:1.6rem;color:{'var(--bp-lime)' if total_zysk >= 0 else 'var(--bp-pink)'};margin-bottom:4px">{total_zysk:,.0f} zl <span style="font-size:0.85rem;opacity:0.7">({total_roi:.0f}%)</span></div>
             <div class="bp-label">Zysk netto / ROI</div>
         </div>
+        <!-- Średnie tempo sprzedaży -->
+        <div class="bp-kpi" style="border-left:2px solid rgba(255,200,80,0.6)">
+            <div class="bp-kpi-icon" style="background:rgba(255,200,80,0.1)">
+                <span class="material-icons-round" style="color:#ffc850">speed</span>
+            </div>
+            <div class="bp-value" style="font-size:1.6rem;color:#ffc850;margin-bottom:4px">{avg_tempo:.1f}<span style="font-size:0.9rem;opacity:0.7"> szt/d</span></div>
+            <div class="bp-label">Srednie tempo</div>
+            <div style="font-size:0.7rem;color:var(--bp-muted);margin-top:6px">{total_sprzedanych} szt lacznie od 1. sprzedazy</div>
+        </div>
     </div>
 
     <!-- Charts Grid -->
@@ -1048,7 +1074,7 @@ def analityka_palety():
                     <th onclick="sortTable(6,'num')">Zysk <span class="sort-arrow"></span></th>
                     <th onclick="sortTable(7,'num')">ROI <span class="sort-arrow"></span></th>
                     <th onclick="sortTable(8,'num')">Prognoza <span class="sort-arrow"></span></th>
-                    <th onclick="sortTable(9,'num')">Tempo <span class="sort-arrow"></span></th>
+                    <th onclick="sortTable(9,'num')" title="Sztuk sprzedanych na dzień, liczone od daty pierwszej sprzedaży z tej palety">Tempo <span class="sort-arrow"></span></th>
                     <th onclick="sortTable(10,'num')">Postep <span class="sort-arrow"></span></th>
                     <th>Status</th>
                 </tr>
