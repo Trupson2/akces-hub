@@ -175,12 +175,8 @@ _generate_changelog()
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_NAME'] = 'akces_session'
-app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SECURE'] = False  # Pi działa na HTTP (LAN), ngrok ma własne HTTPS
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)  # Sesja wygasa po 12h
-# Allow non-secure cookies only for explicit local development
-if os.environ.get('FLASK_LOCAL_DEV'):
-    app.config['SESSION_COOKIE_SECURE'] = False
-    app.config['SESSION_COOKIE_NAME'] = 'akces_session'  # __Host- requires Secure
 
 # CSRF protection
 csrf = CSRFProtect(app)
@@ -444,8 +440,8 @@ def handle_500(e):
     tb = traceback.format_exc()
     log_error(f"500 error: {e}\n{tb}")
     from flask import request as _req, jsonify as _jf
-    if _req.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return _jf({'success': False, 'message': f'Server error: {e}'}), 500
+    if _req.headers.get('X-Requested-With') == 'XMLHttpRequest' or _req.content_type == 'application/json':
+        return _jf({'success': False, 'message': 'Internal server error'}), 500
     return "<h1>500 Internal Server Error</h1><p>Wystapil blad serwera. Szczegoly zostaly zapisane w logach.</p>", 500
 
 @app.errorhandler(404)
@@ -4313,6 +4309,7 @@ def goal_details():
                 <span class="form-panel-title">Edytuj cel</span>
             </div>
             <form action="/goal/update" method="POST">
+                <input type="hidden" name="csrf_token" value="{generate_csrf()}">
                 <div class="fg">
                     <label>Nazwa celu</label>
                     <input type="text" name="name" value="{goal['name']}" required>
@@ -4340,6 +4337,7 @@ def goal_details():
             <div class="quick-actions">
                 <div class="qa-col">
                     <form action="/goal/add" method="POST">
+                        <input type="hidden" name="csrf_token" value="{generate_csrf()}">
                         <div class="fg">
                             <label>Dodaj kwote (PLN)</label>
                             <input type="number" name="amount" placeholder="np. 5000" step="0.01" required>
@@ -4351,6 +4349,7 @@ def goal_details():
                 </div>
                 <div class="qa-col">
                     <form action="/goal/subtract" method="POST">
+                        <input type="hidden" name="csrf_token" value="{generate_csrf()}">
                         <div class="fg">
                             <label>Odejmij kwote (PLN)</label>
                             <input type="number" name="amount" placeholder="np. 1000" step="0.01" required>
