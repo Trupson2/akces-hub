@@ -305,7 +305,13 @@ function openBulkNadaj(){
     checked.forEach(function(cb){
         var oid=cb.value;
         var row=cb.closest('.wy-order');
-        var name=row?row.querySelector('.wy-headline')?.textContent||oid.substring(0,8):'#'+oid.substring(0,8);
+        // Get product name from first text line in content div
+        var contentDiv=row?row.querySelector('div[style*="flex:1"]'):null;
+        var nameEl=contentDiv?contentDiv.querySelector('div[style*="font-weight:600"]'):null;
+        var name=nameEl?nameEl.textContent.trim():'#'+oid.substring(0,8);
+        // Get product image
+        var imgEl=row?row.querySelector('img'):null;
+        var imgSrc=imgEl?imgEl.src:'';
         // Detect carrier from badge CSS class
         var isInpost=row&&!!row.querySelector('.wy-badge-inpost');
         var isOrlen=row&&!!row.querySelector('.wy-badge-orlen');
@@ -335,7 +341,8 @@ function openBulkNadaj(){
         var badgeColor=isInpost?'var(--wy-cyan)':isOrlen?'#f97316':isDHL?'#ffcc00':'var(--wy-pink)';
         var badgeText=isInpost?'INPOST':isOrlen?'ORLEN':isDHL?'DHL':'DPD';
 
-        list.innerHTML+='<div class="bulk-item" data-oid="'+oid+'" style="background:var(--wy-card);padding:12px 16px;border-left:2px solid '+badgeColor+';display:flex;justify-content:space-between;align-items:center;gap:12px">'+
+        list.innerHTML+='<div class="bulk-item" data-oid="'+oid+'" style="background:var(--wy-card);padding:12px 16px;border-left:2px solid '+badgeColor+';display:flex;align-items:center;gap:12px">'+
+            (imgSrc?'<img src="'+imgSrc+'" style="width:40px;height:40px;object-fit:contain;background:rgba(255,255,255,0.9);flex-shrink:0" onerror="this.style.display=\'none\'">':'')+
             '<div style="flex:1;min-width:0">'+
                 '<div style="font-weight:700;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+name+'</div>'+
                 '<span style="font-size:10px;font-weight:700;color:'+badgeColor+';text-transform:uppercase">'+badgeText+'</span>'+
