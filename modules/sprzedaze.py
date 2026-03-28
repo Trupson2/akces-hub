@@ -227,8 +227,7 @@ def sprzedaze_lista():
     stats = conn.execute('''
         SELECT
             COUNT(*) as total,
-            SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc ELSE 0 END)
-            - SUM(CASE WHEN status = 'zwrot' THEN cena * ilosc ELSE 0 END) as przychod,
+            SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc ELSE 0 END) as przychod,
             SUM(CASE WHEN status = 'zwrot' THEN 1 ELSE 0 END) as zwroty_cnt,
             SUM(CASE WHEN status = 'zwrot' THEN cena * ilosc ELSE 0 END) as zwroty_suma
         FROM sprzedaze

@@ -4890,12 +4890,10 @@ def poziom_page():
 
     row = conn.execute('''
         SELECT
-            COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? AND status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc ELSE 0 END), 0)
-            - COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? AND status = 'zwrot' THEN cena * ilosc ELSE 0 END), 0) as rok,
-            COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? AND status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc ELSE 0 END), 0)
-            - COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? AND status = 'zwrot' THEN cena * ilosc ELSE 0 END), 0) as msc
+            COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? AND status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc ELSE 0 END), 0) as rok,
+            COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? AND status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc ELSE 0 END), 0) as msc
         FROM sprzedaze
-    ''', (year_start, year_start, month_start, month_start)).fetchone()
+    ''', (year_start, month_start)).fetchone()
     przychod_rok = float(row['rok'] or 0)
     przychod_msc = float(row['msc'] or 0)
 
