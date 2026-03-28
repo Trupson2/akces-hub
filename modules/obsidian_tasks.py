@@ -276,19 +276,19 @@ def generate_markdown(data, priority_tasks, tasks):
     md.append(f'| Oferty aktywne | **{data["oferty_aktywne"]}** |')
     md.append(f'')
 
-    # --- PILNE ---
+    # --- PILNE (reminder o 8:00) ---
     if priority_tasks:
         md.append(f'## 🔴 Pilne')
         md.append(f'')
         for t in priority_tasks:
-            md.append(f'- [ ] {t}')
+            md.append(f'- [ ] {t} 📅 {today} ⏰ 08:00')
         md.append(f'')
 
-    # --- TASKI ---
+    # --- TASKI (reminder o 9:30) ---
     md.append(f'## ✅ Zadania na dziś')
     md.append(f'')
     for t in tasks:
-        md.append(f'- [ ] {t}')
+        md.append(f'- [ ] {t} 📅 {today} ⏰ 09:30')
     md.append(f'')
 
     # --- PRODUKTY DO WYSTAWIENIA ---
