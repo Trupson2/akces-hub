@@ -431,6 +431,18 @@ async function executeBulkNadaj(){
         }
 
         btn.innerHTML='<span class="material-symbols-outlined">check</span> Gotowe';
+        // Uncheck processed orders and hide from list
+        data.results.forEach(function(r){
+            if(r.success){
+                var cb=document.querySelector('.wy-cb[value="'+r.order_id+'"]');
+                if(cb){
+                    cb.checked=false;
+                    var row=cb.closest('.wy-order');
+                    if(row) row.style.opacity='0.3';
+                }
+            }
+        });
+        updateBulk();
     }catch(e){
         status.textContent='Błąd: '+e.message;
         status.style.color='var(--wy-pink)';
