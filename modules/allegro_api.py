@@ -5338,12 +5338,11 @@ def get_shipment_label(order_id):
                         'Authorization': f"Bearer {config['access_token']}",
                         'Accept': accept_type
                     }
-                    # Endpoint batch (prawidłowy dla WZA)
                     label_url = f"{base_url}/shipment-management/shipments/labels?shipmentIds={shipment_id}"
                     print(f"   → Pobieranie etykiety WZA ({accept_type}): ...labels?shipmentIds={shipment_id[:20]}...")
 
                     response = requests.get(label_url, headers=headers, timeout=30)
-                    print(f"   → HTTP Status: {response.status_code}, Size: {len(response.content)}")
+                    print(f"   → HTTP Status: {response.status_code}, Content-Type: {response.headers.get('Content-Type','')}, Size: {len(response.content)}B")
 
                     if response.status_code == 200 and len(response.content) > 100:
                         print(f"   → [OK] Etykieta WZA pobrana! Rozmiar: {len(response.content)} bytes")
@@ -5352,7 +5351,6 @@ def get_shipment_label(order_id):
                         print(f"   → [WARN] {response.status_code}: {response.text[:100]}")
                 except Exception as e:
                     print(f"   → [ERR] Wyjątek: {e}")
-
     # METODA 2: Sprawdź standardowe API (checkout-forms shipments)
     result, error = get_shipment_methods(order_id)
     if error:
