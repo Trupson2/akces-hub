@@ -460,6 +460,62 @@ def api_mark_packed():
     return jsonify({'ok': True, 'packed': list(_packed_orders)})
 
 
+@wysylki_bp.route('/api/wysylki/backfill-carriers', methods=['POST'])
+def api_backfill_carriers():
+    """Jednorazowy backfill: pobierz metoda_dostawy z Allegro API dla zamówień z pustym carrier"""
+    from modules.database import get_db
+    from modules.allegro_api import get_order_details, is_authenticated
+
+    if not is_authenticated():
+        return jsonify({'error': 'Nie zalogowano do Allegro'}), 401
+
+    conn = get_db()
+    rows = conn.execute('''
+        SELECT DISTINCT allegro_order_id FROM sprzedaze
+        WHERE allegro_order_id IS NOT NULL AND allegro_order_id != ''
+        AND (metoda_dostawy IS NULL OR metoda_dostawy = '')
+        AND status IN ('nowa', 'nadana')
+    ''').fetchall()
+
+    updated = 0
+    errors = 0
+    for row in rows:
+        oid = row['allegro_order_id']
+        try:
+            order, err = get_order_details(oid)
+            if err or not order:
+                errors += 1
+                continue
+            delivery = order.get('delivery', {})
+            method_name = (delivery.get('method', {}).get('name', '') or '').lower()
+            pickup_id = (delivery.get('pickupPoint', {}).get('id', '') or '').upper()
+
+            if 'orlen' in method_name or pickup_id.startswith('ORL'):
+                carrier = 'Orlen'
+            elif any(x in method_name for x in ['inpost', 'paczkomat', 'paczka w ruchu']) or (pickup_id and not pickup_id.startswith('ORL')):
+                carrier = 'InPost'
+            elif 'dpd' in method_name:
+                carrier = 'DPD'
+            elif 'dhl' in method_name:
+                carrier = 'DHL'
+            else:
+                carrier = (delivery.get('method', {}).get('name', '') or '')[:20] or 'Kurier'
+
+            conn.execute('UPDATE sprzedaze SET metoda_dostawy = ? WHERE allegro_order_id = ? AND (metoda_dostawy IS NULL OR metoda_dostawy = "")', (carrier, oid))
+            updated += 1
+            print(f"[BACKFILL] {oid[:12]}... → {carrier}")
+        except Exception as e:
+            errors += 1
+            print(f"[BACKFILL] Error {oid[:12]}...: {e}")
+
+    conn.commit()
+    # Clear cache so page refreshes with new data
+    global _wysylki_cache
+    _wysylki_cache = {'data': None, 'raw': None, 'timestamp': 0}
+
+    return jsonify({'success': True, 'updated': updated, 'errors': errors, 'total': len(rows)})
+
+
 @wysylki_bp.route('/api/wysylki/unpack', methods=['POST'])
 def api_unpack():
     """Remove order from packed list (show again in pending)."""
