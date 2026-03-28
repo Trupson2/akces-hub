@@ -406,27 +406,47 @@ def api_wysylki_pending():
         except Exception as e:
             print(f"[api/wysylki/pending] Allegro API error: {e}")
 
-    # Fallback: lokalna baza (jeśli brak Allegro lub brak wyników)
-    if not orders:
-        try:
-            conn = get_db()
-            rows = conn.execute('''
-                SELECT s.id, s.allegro_order_id, s.nazwa, s.kupujacy, s.cena, s.ilosc, s.adres
-                FROM sprzedaze s WHERE s.status IN ('nowa', 'nowe', 'nadana', 'wyslana')
-                AND date(s.data_sprzedazy) >= date('now', '-3 days')
-                ORDER BY s.data_sprzedazy DESC LIMIT 20
-            ''').fetchall()
-            for r in rows:
-                orders.append({
-                    'order_id': r['allegro_order_id'] or str(r['id']),
-                    'buyer': r['kupujacy'] or 'Nieznany',
-                    'carrier': 'Kurier',
-                    'method': '',
-                    'pickup_point': '',
-                    'items_count': r['ilosc'] or 1,
-                    'total': str(r['cena'] or 0),
-                })
-        except Exception as e:
+    # Uzupełnij z lokalnej bazy - zamówienia które są w bazie ale nie przyszły z API
+    existing_ids = {o['order_id'] for o in orders}
+    try:
+        conn = get_db()
+        rows = conn.execute('''
+            SELECT s.allegro_order_id, s.kupujacy, s.metoda_dostawy, s.adres,
+                   SUM(s.ilosc) as total_qty, SUM(s.cena * s.ilosc) as total_val
+            FROM sprzedaze s
+            WHERE s.status IN ('nowa', 'nadana')
+            AND s.allegro_order_id IS NOT NULL AND s.allegro_order_id != ''
+            GROUP BY s.allegro_order_id
+        ''').fetchall()
+        for r in rows:
+            oid = r['allegro_order_id']
+            if oid in existing_ids or oid in _get_packed_orders():
+                continue
+            dm = (r['metoda_dostawy'] or '').lower()
+            addr = (r['adres'] or '').lower()
+            detect = dm if dm else addr
+            if 'orlen' in detect:
+                carrier = 'Orlen'
+            elif 'inpost' in detect or 'paczkomat' in detect or 'paczkopunkt' in detect:
+                carrier = 'InPost'
+            elif 'dpd' in detect:
+                carrier = 'DPD'
+            elif 'dhl' in detect:
+                carrier = 'DHL'
+            else:
+                carrier = 'DPD'  # default kurier = DPD
+            # Pickup point z adresu (jeśli paczkomat)
+            pickup = r['adres'] if carrier in ('InPost', 'Orlen') else ''
+            orders.append({
+                'order_id': oid,
+                'buyer': r['kupujacy'] or 'Nieznany',
+                'carrier': carrier,
+                'method': r['metoda_dostawy'] or '',
+                'pickup_point': pickup,
+                'items_count': r['total_qty'] or 1,
+                'total': f"{r['total_val'] or 0:.0f}",
+            })
+    except Exception as e:
             print(f"[WARN] DB fallback orders error: {e}")
 
     return jsonify({'orders': orders, 'total': len(orders), 'shipped_today': shipped_today})
