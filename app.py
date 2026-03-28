@@ -2341,7 +2341,7 @@ def subscription_expired_page():
 
     if lic:
         plan_raw = (lic.get('plan', '') or '').upper()
-        plan_labels = {'STARTER': 'TRIAL', 'PRO': 'PRO', 'BUSINESS': 'MAX', 'ENTERPRISE': 'ENTERPRISE'}
+        plan_labels = {'STARTER': 'TRIAL', 'TRIAL': 'TRIAL', 'PRO': 'PRO', 'BUSINESS': 'MAX', 'MAX': 'MAX', 'ENTERPRISE': 'ENTERPRISE'}
         plan_name = plan_labels.get(plan_raw, plan_raw)
         expires_ts = lic.get('expires', 0)
         if expires_ts and expires_ts > 0:
@@ -2442,7 +2442,7 @@ def narzedzia_licencje():
             import time as _time
             created = int(_time.time())
             expires = created + (duration_val * 24 * 3600)
-            plan_code = {'starter': 'S', 'pro': 'P', 'business': 'B', 'enterprise': 'E'}.get(plan, 'P')
+            plan_code = {'trial': 'T', 'pro': 'P', 'max': 'M', 'enterprise': 'E'}.get(plan, 'P')
             import hmac as _hmac, hashlib as _hl
             from modules.license import LICENSE_SECRET
             payload = f"{client}|{plan_code}|{created}|{expires}"
@@ -2600,7 +2600,7 @@ def admin_subscriptions():
             exp_str = 'Bezterminowo'
 
         plan_raw = (r['plan'] or 'pro').upper()
-        plan_labels = {'STARTER': 'TRIAL', 'PRO': 'PRO', 'BUSINESS': 'MAX', 'ENTERPRISE': 'ENTERPRISE'}
+        plan_labels = {'STARTER': 'TRIAL', 'TRIAL': 'TRIAL', 'PRO': 'PRO', 'BUSINESS': 'MAX', 'MAX': 'MAX', 'ENTERPRISE': 'ENTERPRISE'}
         plan_display = plan_labels.get(plan_raw, plan_raw)
 
         licenses.append({

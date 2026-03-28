@@ -7,26 +7,26 @@ Każdy plan odblokowuje kolejne moduły.
 
 # Hierarchia planów (wyższy = więcej funkcji)
 PLAN_LEVEL = {
-    'starter': 1,   # TRIAL
-    'pro': 2,        # PRO
-    'business': 3,   # MAX
-    'enterprise': 4, # ENTERPRISE
+    'trial': 1, 'starter': 1,       # TRIAL (starter = legacy alias)
+    'pro': 2,                        # PRO
+    'max': 3, 'business': 3,         # MAX (business = legacy alias)
+    'enterprise': 4,                 # ENTERPRISE (zarząd)
 }
 
 # Display names
 PLAN_DISPLAY = {
-    'starter': 'TRIAL',
+    'trial': 'TRIAL', 'starter': 'TRIAL',
     'pro': 'PRO',
-    'business': 'MAX',
+    'max': 'MAX', 'business': 'MAX',
     'enterprise': 'ENTERPRISE',
 }
 
 # Cennik (PLN)
 PLAN_PRICING = {
-    'starter': {'monthly': 0, 'yearly': 0, 'label': 'TRIAL 7 dni'},
+    'trial': {'monthly': 0, 'yearly': 0, 'label': 'TRIAL 7 dni'},
     'pro': {'monthly': 149, 'yearly': 1490, 'label': '149 zł/mies'},
-    'business': {'monthly': 299, 'yearly': 2990, 'label': '299 zł/mies'},
-    'enterprise': {'monthly': 499, 'yearly': 0, 'label': 'indywidualnie'},
+    'max': {'monthly': 299, 'yearly': 2990, 'label': '299 zł/mies'},
+    'enterprise': {'monthly': 0, 'yearly': 0, 'label': 'indywidualnie'},
 }
 
 # Limity dla TRIAL (starter)
