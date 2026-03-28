@@ -5380,13 +5380,13 @@ def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=
                             lok = p['kod_magazynowy'] or p['lokalizacja'] or p['regal'] or ''
                     except:
                         pass
-                # Format: "LOK | Nazwa" lub "Nazwa" (max 20 znaków)
+                # Numer referencyjny = lokalizacja/kod (systemowy, bez polskich znaków)
+                import re as _re_ref
                 if lok:
-                    remaining = 20 - len(lok) - 1
-                    short_name = name[:max(remaining, 5)].strip() if name else ''
-                    reference = f"{lok}/{short_name}".strip()[:20]
+                    reference = _re_ref.sub(r'[^a-zA-Z0-9_/\-]', '', lok)[:20]
                 else:
-                    reference = name[:20].strip() if name else 'Paczka'
+                    # Użyj skrótu order_id jako referencji
+                    reference = order_id[:8].upper() if order_id else 'ORDER'
                 print(f"   → Referencja: '{reference}'")
         
         # Spróbuj utworzyć przez Wysyłam z Allegro
