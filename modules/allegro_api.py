@@ -4751,7 +4751,7 @@ def zamowienie_detail(order_id):
         html += f'''
         <div class="list-item">
             <div class="list-item-info">
-                <div class="list-item-title">{item.get('offer', {{}}).get('name', 'Produkt')[:40]}</div>
+                <div class="list-item-title">{(item.get('offer') or {}).get('name', 'Produkt')[:40]}</div>
                 <div class="list-item-meta">{qty} x {price:.2f} zl</div>
             </div>
             <div class="list-item-right">
@@ -5126,11 +5126,12 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
     if error:
         return None, f"Nie można pobrać zamówienia: {error}"
 
-    delivery = order.get('delivery', {})
-    delivery_method_id = delivery.get('method', {}).get('id')
-    delivery_method_name = delivery.get('method', {}).get('name', '').lower()
-    pickup_point = delivery.get('pickupPoint', {})
-    address = delivery.get('address', {})
+    delivery = order.get('delivery') or {}
+    method = delivery.get('method') or {}
+    delivery_method_id = method.get('id')
+    delivery_method_name = (method.get('name') or '').lower()
+    pickup_point = delivery.get('pickupPoint') or {}
+    address = delivery.get('address') or {}
     line_items = order.get('lineItems', [])
 
     print(f"   → deliveryMethodId: {delivery_method_id}")
@@ -5330,51 +5331,26 @@ def get_shipment_label(order_id):
             config = get_allegro_config()
             base_url = ALLEGRO_SANDBOX_API_URL if config.get('sandbox') else ALLEGRO_API_URL
             
-            try:
-                headers = {
-                    'Authorization': f"Bearer {config['access_token']}",
-                    'Accept': 'application/pdf'
-                }
-                label_url = f"{base_url}/shipment-management/shipments/{shipment_id}/label"
-                print(f"   → Pobieranie etykiety: {label_url}")
-                
-                response = requests.get(label_url, headers=headers, timeout=30)
-                ct = response.headers.get('Content-Type', '')
-                print(f"   → HTTP Status: {response.status_code}, Content-Type: {ct}, Size: {len(response.content)}B")
+            # WZA label endpoint: /shipments/labels?shipmentIds={id} (batch endpoint)
+            for accept_type in ['application/octet-stream', 'application/pdf']:
+                try:
+                    headers = {
+                        'Authorization': f"Bearer {config['access_token']}",
+                        'Accept': accept_type
+                    }
+                    label_url = f"{base_url}/shipment-management/shipments/labels?shipmentIds={shipment_id}"
+                    print(f"   → Pobieranie etykiety WZA ({accept_type}): ...labels?shipmentIds={shipment_id[:20]}...")
 
-                if response.status_code == 200 and len(response.content) > 100:
-                    print(f"   → [OK] Etykieta pobrana! Rozmiar: {len(response.content)} bytes")
-                    return response.content, shipment_id, None
-                else:
-                    print(f"   → [ERR] Błąd: {response.text[:300]}")
-            except Exception as e:
-                print(f"   → [ERR] Wyjątek: {e}")
-                import traceback
-                traceback.print_exc()
+                    response = requests.get(label_url, headers=headers, timeout=30)
+                    print(f"   → HTTP Status: {response.status_code}, Content-Type: {response.headers.get('Content-Type','')}, Size: {len(response.content)}B")
 
-    # METODA 1b: Spróbuj bulk labels endpoint
-    if result and result.get('shipments'):
-        shipment = result['shipments'][0]
-        shipment_id = shipment.get('id')
-        try:
-            config = get_allegro_config()
-            base_url = ALLEGRO_SANDBOX_API_URL if config.get('sandbox') else ALLEGRO_API_URL
-            headers = {
-                'Authorization': f"Bearer {config['access_token']}",
-                'Accept': 'application/pdf'
-            }
-            # Try bulk labels endpoint
-            label_url = f"{base_url}/shipment-management/shipments/labels?shipmentIds={shipment_id}"
-            print(f"   → Próba bulk labels: {label_url}")
-            response = requests.get(label_url, headers=headers, timeout=30)
-            ct = response.headers.get('Content-Type', '')
-            print(f"   → HTTP Status: {response.status_code}, Content-Type: {ct}, Size: {len(response.content)}B")
-            if response.status_code == 200 and len(response.content) > 100:
-                print(f"   → [OK] Etykieta pobrana (bulk endpoint)!")
-                return response.content, shipment_id, None
-        except Exception as e:
-            print(f"   → [ERR] Bulk labels wyjątek: {e}")
-
+                    if response.status_code == 200 and len(response.content) > 100:
+                        print(f"   → [OK] Etykieta WZA pobrana! Rozmiar: {len(response.content)} bytes")
+                        return response.content, shipment_id, None
+                    else:
+                        print(f"   → [WARN] {response.status_code}: {response.text[:100]}")
+                except Exception as e:
+                    print(f"   → [ERR] Wyjątek: {e}")
     # METODA 2: Sprawdź standardowe API (checkout-forms shipments)
     result, error = get_shipment_methods(order_id)
     if error:
@@ -5396,26 +5372,29 @@ def get_shipment_label(order_id):
     config = get_allegro_config()
     base_url = ALLEGRO_SANDBOX_API_URL if config.get('sandbox') else ALLEGRO_API_URL
     
-    try:
-        headers = {
-            'Authorization': f"Bearer {config['access_token']}",
-            'Accept': 'application/pdf'
-        }
-        label_url = f"{base_url}/order/checkout-forms/{order_id}/shipments/{shipment_id}/label"
-        print(f"   → Pobieranie etykiety: {label_url}")
-        
-        response = requests.get(label_url, headers=headers, timeout=30)
-        print(f"   → HTTP Status: {response.status_code}")
+    # Próbuj 3 endpointy: WZA batch, WZA single, checkout-forms
+    endpoints = [
+        f"{base_url}/shipment-management/shipments/labels?shipmentIds={shipment_id}",
+        f"{base_url}/shipment-management/shipments/{shipment_id}/label",
+        f"{base_url}/order/checkout-forms/{order_id}/shipments/{shipment_id}/label",
+    ]
+    for label_url in endpoints:
+        for accept_type in ['application/octet-stream', 'application/pdf']:
+            try:
+                headers = {
+                    'Authorization': f"Bearer {config['access_token']}",
+                    'Accept': accept_type
+                }
+                print(f"   → Etykieta ({accept_type}): ...{label_url.split('/')[-1][:30]}")
+                response = requests.get(label_url, headers=headers, timeout=30)
 
-        if response.status_code == 200:
-            print(f"   → [OK] Etykieta pobrana! Rozmiar: {len(response.content)} bytes")
-            return response.content, shipment_id, None
-        else:
-            print(f"   → [ERR] Błąd: {response.text[:200]}")
-            return None, shipment_id, f"Błąd pobierania etykiety: HTTP {response.status_code}"
-    except Exception as e:
-        print(f"   → [ERR] Wyjątek: {e}")
-        return None, shipment_id, f"Wyjątek: {e}"
+                if response.status_code == 200 and len(response.content) > 100:
+                    print(f"   → [OK] Etykieta pobrana! {len(response.content)} bytes")
+                    return response.content, shipment_id, None
+            except Exception as e:
+                print(f"   → [ERR] {e}")
+
+    return None, shipment_id, f"Nie udało się pobrać etykiety po próbach wszystkich endpointów"
 
 
 def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=None):
@@ -5438,8 +5417,8 @@ def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=
         if order:
             items = order.get('lineItems', [])
             if items:
-                offer_id = items[0].get('offer', {}).get('id', '')
-                name = items[0].get('offer', {}).get('name', '')
+                offer_id = (items[0].get('offer') or {}).get('id', '')
+                name = (items[0].get('offer') or {}).get('name', '')
                 # Szukaj lokalizacji w bazie
                 lok = ''
                 if offer_id:
