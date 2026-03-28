@@ -306,12 +306,11 @@ function openBulkNadaj(){
         var oid=cb.value;
         var row=cb.closest('.wy-order');
         var name=row?row.querySelector('.wy-headline')?.textContent||oid.substring(0,8):'#'+oid.substring(0,8);
-        // Detect carrier from badge
-        var badge=row?row.querySelector('.wy-badge')?.textContent||'':'';
-        var isInpost=badge.includes('INPOST');
-        var isOrlen=badge.includes('ORLEN');
-        var isDPD=badge.includes('DPD');
-        var isDHL=badge.includes('DHL');
+        // Detect carrier from badge CSS class
+        var isInpost=row&&!!row.querySelector('.wy-badge-inpost');
+        var isOrlen=row&&!!row.querySelector('.wy-badge-orlen');
+        var isDPD=row&&!!row.querySelector('.wy-badge-dpd');
+        var isDHL=row&&!!row.querySelector('.wy-badge-dhl');
         var isPaczkomat=isInpost||isOrlen;
 
         var sizeHtml='';
