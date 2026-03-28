@@ -35,7 +35,7 @@ def statystyki():
     conn = get_db()
     miesieczne = conn.execute('''
         SELECT strftime('%m', REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) as miesiac,
-               COALESCE(SUM(CASE WHEN status != 'zwrot' THEN cena * ilosc ELSE 0 END), 0) as suma,
+               COALESCE(SUM(CASE WHEN status != 'zwrot' THEN cena * ilosc + COALESCE(koszt_dostawy, 0) ELSE 0 END), 0) as suma,
                COUNT(*) as cnt
         FROM sprzedaze
         WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?

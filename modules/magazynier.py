@@ -1999,7 +1999,7 @@ def statystyki():
     miesieczne_raw = conn.execute('''
         SELECT strftime('%m', REPLACE(SUBSTR(data_sprzedazy,1,19), 'T', ' ')) as miesiac,
                COUNT(*) as ilosc,
-               COALESCE(SUM(cena * ilosc), 0) as suma
+               COALESCE(SUM(cena * ilosc + COALESCE(koszt_dostawy, 0)), 0) as suma
         FROM sprzedaze
         WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19), 'T', ' ')) = ?
           AND status NOT IN ('zwrot', 'anulowane', 'anulowana')

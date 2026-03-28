@@ -184,6 +184,11 @@ def init_db():
             conn.execute("ALTER TABLE sprzedaze ADD COLUMN nazwa TEXT DEFAULT ''")
         except:
             pass
+        # Migracja: dodaj kolumnę koszt_dostawy (delivery cost per line item)
+        try:
+            conn.execute("ALTER TABLE sprzedaze ADD COLUMN koszt_dostawy REAL DEFAULT 0")
+        except:
+            pass
         # Migracja: dodaj kolumnę tytul do oferty jeśli brak (stare bazy)
         try:
             conn.execute("ALTER TABLE oferty ADD COLUMN tytul TEXT DEFAULT ''")
@@ -865,19 +870,19 @@ def get_full_stats():
         # Liczymy tylko opłacone (bez zwrotów, anulowanych i ręcznych korekt)
         # data_sprzedazy jest już w czasie lokalnym (PL) - nie konwertujemy
         row = conn.execute('''
-            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
+            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc + COALESCE(koszt_dostawy, 0)), 0) as suma
             FROM sprzedaze WHERE
                 date(REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?
             AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
             AND (allegro_order_id IS NULL OR allegro_order_id NOT LIKE 'MANUAL-%')
-           
+
         ''', (today,)).fetchone()
         stats['sprzedaz_dzis_cnt'] = row['cnt']
         stats['sprzedaz_dzis_suma'] = row['suma']
-        
+
         # Zwroty dziś (do wyświetlenia)
         row_zwroty = conn.execute('''
-            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
+            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc + COALESCE(koszt_dostawy, 0)), 0) as suma
             FROM sprzedaze WHERE
                 date(REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?
             AND status = 'zwrot'
@@ -894,7 +899,7 @@ def get_full_stats():
         # === SPRZEDAŻ W MIESIĄCU ===
         # Tylko opłacone (bez zwrotów i anulowanych)
         row = conn.execute('''
-            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
+            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc + COALESCE(koszt_dostawy, 0)), 0) as suma
             FROM sprzedaze WHERE date(data_sprzedazy) >= ?
             AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
 
@@ -914,7 +919,7 @@ def get_full_stats():
         
         # Zwroty w miesiącu
         row_zwroty_msc = conn.execute('''
-            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
+            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc + COALESCE(koszt_dostawy, 0)), 0) as suma
             FROM sprzedaze WHERE date(data_sprzedazy) >= ? AND status = 'zwrot'
         ''', (month_start,)).fetchone()
         stats['zwroty_miesiac_cnt'] = row_zwroty_msc['cnt']
@@ -923,9 +928,9 @@ def get_full_stats():
         # === SPRZEDAŻ ŁĄCZNIE ===
         # Tylko opłacone (bez zwrotów i anulowanych)
         row = conn.execute('''
-            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
+            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc + COALESCE(koszt_dostawy, 0)), 0) as suma
             FROM sprzedaze WHERE status NOT IN ('zwrot', 'anulowane', 'anulowana')
-           
+
         ''').fetchone()
         # Dolicz sprzedaże prywatne (poza Allegro)
         try:
@@ -944,7 +949,7 @@ def get_full_stats():
         
         # Zwroty łącznie
         row_zwroty_all = conn.execute('''
-            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
+            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc + COALESCE(koszt_dostawy, 0)), 0) as suma
             FROM sprzedaze WHERE status = 'zwrot'
         ''').fetchone()
         stats['zwroty_lacznie_cnt'] = row_zwroty_all['cnt']

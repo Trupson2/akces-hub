@@ -3374,6 +3374,22 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                     for row in existing_rows:
                         conn.execute('UPDATE sprzedaze SET adres = ? WHERE id = ?', (new_adres, row['id']))
 
+                # Uzupełnij koszt_dostawy jeśli brakuje (backfill przy re-sync)
+                try:
+                    _has_delivery = conn.execute('SELECT SUM(koszt_dostawy) as kd FROM sprzedaze WHERE allegro_order_id = ?', (order_id,)).fetchone()
+                    if not _has_delivery or not _has_delivery['kd']:
+                        _summary = order.get('summary') or {}
+                        _total_to_pay = float((_summary.get('totalToPay') or {}).get('amount', 0))
+                        _items = order.get('lineItems') or []
+                        _items_total = sum(float(it.get('price', {}).get('amount', 0)) * it.get('quantity', 1) for it in _items)
+                        _delivery_cost = max(0, _total_to_pay - _items_total)
+                        if _delivery_cost > 0 and _items_total > 0:
+                            for row in existing_rows:
+                                _item_share = _delivery_cost / len(existing_rows)
+                                conn.execute('UPDATE sprzedaze SET koszt_dostawy = ? WHERE id = ?', (round(_item_share, 2), row['id']))
+                except Exception:
+                    pass
+
                 if new_local_status:
                     updated_cnt = 0
                     for row in existing_rows:
@@ -3440,7 +3456,15 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                 adres_parts.append(address.get('city'))
         adres = ', '.join(adres_parts) if adres_parts else ''
         
-        for item in (order.get('lineItems') or []):
+        # Oblicz koszt dostawy per zamówienie (totalToPay - suma item prices)
+        _order_summary = order.get('summary') or {}
+        _order_total = float((_order_summary.get('totalToPay') or {}).get('amount', 0))
+        _order_items = order.get('lineItems') or []
+        _order_items_value = sum(float(it.get('price', {}).get('amount', 0)) * it.get('quantity', 1) for it in _order_items)
+        _order_delivery_cost = max(0, _order_total - _order_items_value)
+        _order_item_count = len(_order_items) or 1
+
+        for item in _order_items:
             try:
                 offer = item.get('offer') or {}
                 nazwa = (offer.get('name') or 'Produkt')[:100]  # Zwiększone do 100 znaków
@@ -3517,11 +3541,14 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                     print(f"  ⏭ Skip duplikat: {nazwa[:30]} ({order_id[:12]}...)")
                     continue
 
-                # Zapisz do bazy - z produkt_id, oferta_id, nazwą i adresem
+                # Koszt dostawy per line item (równy podział)
+                _item_delivery = round(_order_delivery_cost / _order_item_count, 2)
+
+                # Zapisz do bazy - z produkt_id, oferta_id, nazwą, adresem i kosztem dostawy
                 conn.execute('''INSERT INTO sprzedaze
-                    (allegro_order_id, cena, ilosc, kupujacy, status, data_sprzedazy, produkt_id, oferta_id, nazwa, adres, notified)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                    (order_id, cena, ilosc, kupujacy, 'nowa', order_date, produkt_id, oferta_db_id, nazwa, adres, 0))
+                    (allegro_order_id, cena, ilosc, kupujacy, status, data_sprzedazy, produkt_id, oferta_id, nazwa, adres, notified, koszt_dostawy)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (order_id, cena, ilosc, kupujacy, 'nowa', order_date, produkt_id, oferta_db_id, nazwa, adres, 0, _item_delivery))
                 synced += 1
                 
                 # ========================================
@@ -4190,8 +4217,8 @@ def index():
     cnt_orders_today = conn.execute("SELECT COUNT(*) as c FROM sprzedaze WHERE date(data_sprzedazy)=?", (_today,)).fetchone()['c']
     cnt_orders_month = conn.execute("SELECT COUNT(*) as c FROM sprzedaze WHERE strftime('%Y-%m',data_sprzedazy)=?", (_month,)).fetchone()['c']
     cnt_offers = conn.execute("SELECT COUNT(*) as c FROM oferty WHERE status IN ('aktywna','active','ACTIVE','wystawiona')").fetchone()['c']
-    revenue_month = conn.execute("SELECT COALESCE(SUM(cena*ilosc),0) as s FROM sprzedaze WHERE strftime('%Y-%m',data_sprzedazy)=? AND status NOT IN ('zwrot','anulowane','anulowana')", (_month,)).fetchone()['s']
-    zwroty_suma = conn.execute("SELECT COALESCE(SUM(cena*ilosc),0) as s FROM sprzedaze WHERE strftime('%Y-%m',data_sprzedazy)=? AND status='zwrot'", (_month,)).fetchone()['s']
+    revenue_month = conn.execute("SELECT COALESCE(SUM(cena*ilosc + COALESCE(koszt_dostawy,0)),0) as s FROM sprzedaze WHERE strftime('%Y-%m',data_sprzedazy)=? AND status NOT IN ('zwrot','anulowane','anulowana')", (_month,)).fetchone()['s']
+    zwroty_suma = conn.execute("SELECT COALESCE(SUM(cena*ilosc + COALESCE(koszt_dostawy,0)),0) as s FROM sprzedaze WHERE strftime('%Y-%m',data_sprzedazy)=? AND status='zwrot'", (_month,)).fetchone()['s']
 
     user_info = None
     autosync_on = False

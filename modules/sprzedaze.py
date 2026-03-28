@@ -227,13 +227,23 @@ def sprzedaze_lista():
     stats = conn.execute('''
         SELECT
             COUNT(*) as total,
-            SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc ELSE 0 END) as przychod,
+            SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc + COALESCE(koszt_dostawy, 0) ELSE 0 END) as przychod,
             SUM(CASE WHEN status = 'zwrot' THEN 1 ELSE 0 END) as zwroty_cnt,
-            SUM(CASE WHEN status = 'zwrot' THEN cena * ilosc ELSE 0 END) as zwroty_suma
+            SUM(CASE WHEN status = 'zwrot' THEN cena * ilosc + COALESCE(koszt_dostawy, 0) ELSE 0 END) as zwroty_suma
         FROM sprzedaze
         WHERE strftime('%Y-%m', data_sprzedazy) = ?
          
     ''', (miesiac_filter,)).fetchone()
+
+    # Dolicz sprzedaże prywatne do przychodu
+    try:
+        pryw = conn.execute('''
+            SELECT COALESCE(SUM(kwota), 0) as suma
+            FROM sprzedaze_prywatne WHERE strftime('%Y-%m', data) = ?
+        ''', (miesiac_filter,)).fetchone()
+        pryw_suma = float(pryw['suma'] or 0)
+    except Exception:
+        pryw_suma = 0
 
     # Lista dostepnych miesiecy
     miesiace_db = conn.execute('''
@@ -315,7 +325,7 @@ def sprzedaze_lista():
         miesiac_filter=miesiac_filter,
         miesiace_options=miesiace_options,
         sprzedaze=items,
-        przychod=f"{stats['przychod'] or 0:.0f}",
+        przychod=f"{(stats['przychod'] or 0) + pryw_suma:.0f}",
         zwroty_cnt=stats['zwroty_cnt'] or 0,
         zwroty_suma=f"{stats['zwroty_suma'] or 0:.0f}",
         msc_nazwa=msc_nazwa,
