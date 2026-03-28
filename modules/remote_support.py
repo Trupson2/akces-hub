@@ -154,18 +154,12 @@ def support_zgloszenie():
             kontakt_info += f"<span class=material-symbols-outlined>smartphone</span> {kontakt_telefon}\n"
         info['kontakt'] = kontakt_info.strip()
 
-        # Wyślij na Telegram (hardcoded support — zawsze do właściciela)
-        SUPPORT_BOT_TOKEN = '8538336125:AAE4qMWsz2tth9RKJ3zT9SqqKetpGHyS6GY'
-        SUPPORT_CHAT_ID = '5441603126'
+        # Wyślij na Telegram support
         try:
-            import requests as _req
+            from .telegram_bot import send_telegram_support
             msg = _format_telegram_message(info, user_message)
-            resp = _req.post(
-                f'https://api.telegram.org/bot{SUPPORT_BOT_TOKEN}/sendMessage',
-                json={'chat_id': SUPPORT_CHAT_ID, 'text': msg, 'parse_mode': 'HTML'},
-                timeout=10
-            )
-            if resp.ok and resp.json().get('ok'):
+            resp_ok = send_telegram_support(msg, parse_mode='HTML')
+            if resp_ok:
                 flash('<span class=material-symbols-outlined style=color:#22c55e>check_circle</span> Zgłoszenie wysłane! Odpowiemy w ciągu 24h.', 'success')
             else:
                 flash('<span class=material-symbols-outlined>warning</span> Nie udało się wysłać. Spróbuj ponownie.', 'warning')
@@ -344,31 +338,22 @@ def support_pomysl():
         timestamp = datetime.now().isoformat()
 
         # --- Telegram ---
-        SUPPORT_BOT_TOKEN = '8538336125:AAE4qMWsz2tth9RKJ3zT9SqqKetpGHyS6GY'
-        SUPPORT_CHAT_ID = '5441603126'
-
         tg_msg = (
-            f"<span class=material-symbols-outlined>lightbulb</span> <b>Nowy pomysł od {client_name}</b>\n"
+            f"💡 <b>Nowy pomysł od {client_name}</b>\n"
             f"━━━━━━━━━━━━━━━━━━\n"
-            f"<span class=material-symbols-outlined>push_pin</span> <b>Tytuł:</b> {tytul}\n"
-            f"<span class=material-symbols-outlined>local_fire_department</span> <b>Priorytet:</b> {priorytet}\n"
-            f"<span class=material-symbols-outlined>edit_note</span> <b>Opis:</b>\n{opis}\n"
+            f"📌 <b>Tytuł:</b> {tytul}\n"
+            f"🔥 <b>Priorytet:</b> {priorytet}\n"
+            f"✏️ <b>Opis:</b>\n{opis}\n"
             f"━━━━━━━━━━━━━━━━━━\n"
-            f"<span class=material-symbols-outlined>location_on</span> Instancja: {brand}\n"
-            f"<span class=material-symbols-outlined>key</span> Klucz: {license_key[:16]}...\n"
-            f"<span class=material-symbols-outlined>schedule</span> {timestamp}"
+            f"📍 Instancja: {brand}\n"
+            f"🔑 Klucz: {license_key[:16]}...\n"
+            f"⏰ {timestamp}"
         )
 
         sent_tg = False
         try:
-            import requests as _req
-            resp = _req.post(
-                f'https://api.telegram.org/bot{SUPPORT_BOT_TOKEN}/sendMessage',
-                json={'chat_id': SUPPORT_CHAT_ID, 'text': tg_msg, 'parse_mode': 'HTML'},
-                timeout=10
-            )
-            if resp.ok and resp.json().get('ok'):
-                sent_tg = True
+            from .telegram_bot import send_telegram_support
+            sent_tg = send_telegram_support(tg_msg, parse_mode='HTML') or False
         except Exception:
             pass
 
