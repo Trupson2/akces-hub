@@ -570,6 +570,66 @@ def api_wysylki_szukaj():
                     'lokalizacja': produkt_z_bazy['lokalizacja'] or produkt_z_bazy['regal']
                 }
             })
+        # Szukaj po allegro_order_id w bazie (fallback gdy API puste)
+        db_by_oid = conn.execute('''
+            SELECT s.id, s.allegro_order_id, s.nazwa, s.cena, s.kupujacy, s.adres, s.ilosc, s.produkt_id
+            FROM sprzedaze s
+            WHERE s.allegro_order_id = ? OR s.allegro_order_id LIKE ?
+            LIMIT 1
+        ''', (q, f'{q}%')).fetchone()
+        if db_by_oid:
+            lok = ''
+            zdjecie = ''
+            ean = ''
+            asin_val = ''
+            stan = 0
+            if db_by_oid['produkt_id']:
+                prod = conn.execute('SELECT lokalizacja, regal, zdjecie_url, ean, asin, ilosc FROM produkty WHERE id=?', (db_by_oid['produkt_id'],)).fetchone()
+                if prod:
+                    lok = prod['lokalizacja'] or prod['regal'] or ''
+                    zdjecie = prod['zdjecie_url'] or ''
+                    ean = prod['ean'] or ''
+                    asin_val = prod['asin'] or ''
+                    stan = prod['ilosc'] or 0
+
+            adres = (db_by_oid['adres'] or '').lower()
+            if 'paczkomat' in adres or 'inpost' in adres:
+                del_type = 'paczkomat'
+            elif 'orlen' in adres:
+                del_type = 'paczkomat_orlen'
+            else:
+                del_type = 'kurier'
+
+            import re
+            pickup_id = ''
+            m = re.search(r'([A-Z]{2,5}\d{3,6}[A-Z]?)', (db_by_oid['adres'] or '').upper())
+            if m:
+                pickup_id = m.group(1)
+
+            return jsonify({
+                'zamowienie': {
+                    'order_id': db_by_oid['allegro_order_id'] or str(db_by_oid['id']),
+                    'buyer': db_by_oid['kupujacy'] or 'Nieznany',
+                    'address': db_by_oid['adres'] or '',
+                    'pickup_point': db_by_oid['adres'] or '' if del_type != 'kurier' else '',
+                    'pickup_point_id': pickup_id,
+                    'delivery_type': del_type,
+                    'delivery_method': del_type,
+                    'total': str(db_by_oid['cena'] or 0),
+                    'produkt_nazwa': db_by_oid['nazwa'],
+                    'inne_produkty': 0,
+                    'produkty': [{
+                        'nazwa': db_by_oid['nazwa'],
+                        'qty': db_by_oid['ilosc'] or 1,
+                        'lokalizacja': lok,
+                        'zdjecie_url': zdjecie
+                    }],
+                    'lokalizacja': lok,
+                    'asin': asin_val,
+                    'ean': ean,
+                    'stan_magazynowy': stan
+                }
+            })
         return jsonify({'error': 'Nie znaleziono produktu ani zamówienia w bazie'})
 
     q_lower = q.lower().strip()
