@@ -452,22 +452,9 @@ def _bot_loop():
                                     send_order_notification(order)
                                     time.sleep(1)
 
-                        # 2. Fallback: wyślij alerty dla zamówień zapisanych przez sync_orders z notified=0
-                        try:
-                            from .database import get_db as _gdb
-                            _conn = _gdb()
-                            _unnotified = _conn.execute(
-                                "SELECT id, nazwa, cena, kupujacy FROM sprzedaze WHERE notified=0 AND date(data_sprzedazy) >= date('now','-1 day') LIMIT 10"
-                            ).fetchall()
-                            for _un in _unnotified:
-                                alert_sprzedaz(_un['nazwa'] or 'Produkt', _un['cena'] or 0, _un['kupujacy'] or '')
-                                _conn.execute('UPDATE sprzedaze SET notified=1 WHERE id=?', (_un['id'],))
-                                time.sleep(1)
-                            if _unnotified:
-                                _conn.commit()
-                                print(f"[Bot] Wysłano {len(_unnotified)} zaległych powiadomień")
-                        except Exception as _e2:
-                            print(f"[Bot] Fallback notyfikacji: {_e2}")
+                        # Fallback notyfikacji usunięty — sync_orders w allegro_api.py
+                        # już wysyła alert_sprzedaz() i ustawia notified=1
+                        pass
                     except Exception as e:
                         print(f"[Bot] Błąd monitoringu: {e}")
                     last_order_check = time.time()

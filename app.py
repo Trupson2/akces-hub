@@ -1575,26 +1575,27 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
         cache_age = time.time() - cache.get('checked_at', 0)
 
         if cache_age > 900:  # co 15 min sprawdzaj
-            _sp.run(['git', 'fetch', 'origin', 'main', '--quiet'],
-                    capture_output=True, timeout=15,
-                    cwd=os.path.dirname(os.path.abspath(__file__)))
+            # Wykryj aktualny branch i porównaj z jego remote tracking
+            _cur_branch = _sp.run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+                                  capture_output=True, text=True, timeout=5,
+                                  cwd=_app_dir).stdout.strip() or 'main'
+            _sp.run(['git', 'fetch', 'origin', _cur_branch, '--quiet'],
+                    capture_output=True, timeout=15, cwd=_app_dir)
 
             local = _sp.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, timeout=5,
-                            cwd=os.path.dirname(os.path.abspath(__file__))).stdout.strip()
-            remote = _sp.run(['git', 'rev-parse', 'origin/main'], capture_output=True, text=True, timeout=5,
-                             cwd=os.path.dirname(os.path.abspath(__file__))).stdout.strip()
+                            cwd=_app_dir).stdout.strip()
+            remote = _sp.run(['git', 'rev-parse', f'origin/{_cur_branch}'], capture_output=True, text=True, timeout=5,
+                             cwd=_app_dir).stdout.strip()
 
             has_update = local != remote
             remote_msg = ''
             remote_hash = ''
             if has_update:
-                r = _sp.run(['git', 'log', 'HEAD..origin/main', '--pretty=format:%h — %s', '--reverse'],
-                            capture_output=True, text=True, timeout=5,
-                            cwd=os.path.dirname(os.path.abspath(__file__)))
+                r = _sp.run(['git', 'log', f'HEAD..origin/{_cur_branch}', '--pretty=format:%h — %s', '--reverse'],
+                            capture_output=True, text=True, timeout=5, cwd=_app_dir)
                 remote_msg = r.stdout.strip()[:300] if r.returncode == 0 else ''
-                rh = _sp.run(['git', 'rev-parse', '--short', 'origin/main'],
-                             capture_output=True, text=True, timeout=5,
-                             cwd=os.path.dirname(os.path.abspath(__file__)))
+                rh = _sp.run(['git', 'rev-parse', '--short', f'origin/{_cur_branch}'],
+                             capture_output=True, text=True, timeout=5, cwd=_app_dir)
                 remote_hash = rh.stdout.strip() if rh.returncode == 0 else ''
 
             cache = {
