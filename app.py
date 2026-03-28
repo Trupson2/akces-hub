@@ -2023,6 +2023,8 @@ def system_gemini_model():
 @app.route('/system/update', methods=['POST'])
 def system_update():
     """Git pull + restart serwisu z poziomu apki"""
+    if not session.get('user'):
+        return jsonify({'ok': False, 'error': 'Unauthorized'}), 401
     import subprocess
     try:
         # Git pull

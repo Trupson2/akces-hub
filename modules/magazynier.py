@@ -1709,7 +1709,8 @@ def szukaj():
     if len(results) == 1:
         return redirect(f'/magazyn/produkt/{get_product_code(results[0])}')
     
-    html = f'''<div class="hdr"><h1><span class=material-symbols-outlined>search</span> WYNIKI</h1><small>"{q}"</small></div>'''
+    from markupsafe import escape as _esc
+    html = f'''<div class="hdr"><h1><span class=material-symbols-outlined>search</span> WYNIKI</h1><small>"{_esc(q)}"</small></div>'''
     
     for r in results:
         img = r['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'

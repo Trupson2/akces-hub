@@ -208,8 +208,11 @@ def sprzedaze_lista():
     """Lista sprzedazy z mozliwoscia oznaczenia zwrotow"""
     from modules.database import get_db
 
-    # Filtr miesiaca z query string
+    # Filtr miesiaca z query string (sanitize — tylko YYYY-MM format)
+    import re as _re
     miesiac_filter = request.args.get('miesiac', '')
+    if miesiac_filter and not _re.match(r'^\d{4}-\d{2}$', miesiac_filter):
+        miesiac_filter = ''
 
     # Komunikat z sync zwrotow
     msg = request.args.get('msg', '')
@@ -352,6 +355,8 @@ def sprzedaze_lista():
 @sprzedaze_bp.route('/sprzedaze/zwrot/<int:sale_id>', methods=['POST'])
 def oznacz_zwrot(sale_id):
     """Oznacza sprzedaz jako zwrot"""
+    if not session.get('user'):
+        return redirect('/auth/login')
     from modules.database import get_db
     conn = get_db()
     conn.execute('UPDATE sprzedaze SET status = ? WHERE id = ?', ('zwrot', sale_id))
@@ -364,6 +369,8 @@ def oznacz_zwrot(sale_id):
 @sprzedaze_bp.route('/sprzedaze/unzwrot/<int:sale_id>', methods=['POST'])
 def cofnij_zwrot(sale_id):
     """Cofa oznaczenie zwrotu"""
+    if not session.get('user'):
+        return redirect('/auth/login')
     from modules.database import get_db
     conn = get_db()
     conn.execute('UPDATE sprzedaze SET status = ? WHERE id = ?', ('wyslana', sale_id))
@@ -376,6 +383,8 @@ def cofnij_zwrot(sale_id):
 @sprzedaze_bp.route('/sprzedaze/usun/<int:sale_id>', methods=['POST'])
 def usun_sprzedaz(sale_id):
     """Usuwa sprzedaz (reczna korekta) i przywraca ilosc produktu"""
+    if not session.get('user'):
+        return redirect('/auth/login')
     from modules.database import get_db
     miesiac = request.form.get('miesiac', '')
 
