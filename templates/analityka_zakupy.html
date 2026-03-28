@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+{% block page_title %}Analityka Zakupów{% endblock %}
+{% block content %}
+<style>
+/* ══════════════════════════════════════
+   PURCHASE ANALYTICS — SUPPLIER HUD
+   ══════════════════════════════════════ */
+.zak-header{display:flex;align-items:center;justify-content:space-between;padding:10px 0 20px}
+.zak-header h1{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.4rem;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(135deg,#8ff5ff,#ff6b9b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 12px rgba(143,245,255,0.3))}
+.zak-subtitle{font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-top:2px}
+
+/* KPI grid */
+.zak-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:24px}
+.zak-kpi-card{background:var(--bg-card,rgba(19,19,28,0.8));border:1px solid rgba(255,255,255,0.06);padding:14px 16px;position:relative;overflow:hidden}
+.zak-kpi-card::before{content:'';position:absolute;inset:0;border-left:2px solid var(--kpi-accent,#8ff5ff);opacity:0.7}
+.zak-kpi-card.pink{--kpi-accent:#ff6b9b}
+.zak-kpi-card.lime{--kpi-accent:#bee600}
+.zak-kpi-card.orange{--kpi-accent:#f97316}
+.zak-kpi-card.violet{--kpi-accent:#a78bfa}
+.zak-kpi-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);margin-bottom:4px}
+.zak-kpi-val{font-family:'Space Grotesk','Inter',monospace;font-size:1.5rem;font-weight:800;color:#e2e8f0;line-height:1.1}
+.zak-kpi-val.sm{font-size:1.1rem}
+.zak-kpi-sub{font-size:0.7rem;color:var(--text-muted);margin-top:3px}
+.zak-kpi-badge{display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;font-weight:700;padding:2px 7px;margin-top:4px}
+.zak-kpi-badge.pos{background:rgba(34,197,94,0.1);color:#22c55e;border:1px solid rgba(34,197,94,0.2)}
+.zak-kpi-badge.neg{background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.2)}
+.zak-kpi-badge.neu{background:rgba(148,163,184,0.1);color:#94a3b8;border:1px solid rgba(148,163,184,0.15)}
+
+/* Section bars */
+.zak-section{display:flex;align-items:center;gap:8px;margin:24px 0 12px}
+.zak-section-bar{width:2px;height:14px;flex-shrink:0}
+.zak-section-label{font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted)}
+
+/* Chart container */
+.zak-chart-wrap{background:var(--bg-card,rgba(19,19,28,0.8));border:1px solid rgba(255,255,255,0.06);padding:16px;margin-bottom:20px}
+.zak-chart-title{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:12px}
+
+/* Supplier table */
+.zak-table{width:100%;border-collapse:collapse;font-size:0.82rem}
+.zak-table th{font-size:0.64rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);padding:6px 10px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.06);white-space:nowrap}
+.zak-table th:first-child{text-align:left}
+.zak-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:right;color:#cbd5e1;vertical-align:middle}
+.zak-table td:first-child{text-align:left}
+.zak-table tr:last-child td{border-bottom:none}
+.zak-table tr:hover td{background:rgba(255,255,255,0.02)}
+.zak-supplier-name{font-weight:700;color:#e2e8f0;font-family:'Space Grotesk','Inter',sans-serif}
+.zak-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;flex-shrink:0}
+
+/* ROI badge */
+.zak-roi{display:inline-flex;padding:2px 8px;font-size:0.72rem;font-weight:700;font-family:monospace}
+.zak-roi.pos{background:rgba(34,197,94,0.1);color:#22c55e}
+.zak-roi.neg{background:rgba(239,68,68,0.1);color:#ef4444}
+.zak-roi.neu{background:rgba(148,163,184,0.08);color:#94a3b8}
+
+/* Lezaki table */
+.zak-lezak-row td{font-size:0.8rem}
+.zak-lezak-name{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+.zak-days-bar{display:flex;align-items:center;gap:8px}
+.zak-days-pill{font-size:0.68rem;font-weight:700;padding:2px 8px;font-family:monospace;white-space:nowrap}
+.zak-days-pill.hot{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.25)}
+.zak-days-pill.warm{background:rgba(249,115,22,0.12);color:#f97316;border:1px solid rgba(249,115,22,0.2)}
+.zak-days-pill.cool{background:rgba(148,163,184,0.08);color:#94a3b8;border:1px solid rgba(148,163,184,0.15)}
+
+/* Matrix */
+.zak-matrix{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:24px}
+.zak-matrix-cell{background:var(--bg-card,rgba(19,19,28,0.8));border:1px solid rgba(255,255,255,0.06);padding:12px 14px}
+.zak-matrix-kat{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zak-matrix-val{font-size:1.1rem;font-weight:800;font-family:'Space Grotesk',monospace;color:#e2e8f0}
+.zak-matrix-sub{font-size:0.68rem;color:var(--text-muted);margin-top:2px}
+
+/* Empty state */
+.zak-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;color:var(--text-muted);gap:8px;font-size:0.85rem}
+
+/* Responsive */
+@media(max-width:768px){
+  .zak-kpi{grid-template-columns:repeat(2,1fr)}
+  .zak-table{font-size:0.75rem}
+  .zak-matrix{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+
+<!-- Header -->
+<div class="zak-header">
+  <div>
+    <h1>PURCHASE ANALYTICS</h1>
+    <div class="zak-subtitle">Supplier HUD &mdash; Analityka zakupów od dostawców</div>
+  </div>
+  <a href="/analityka/palety" style="font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;text-decoration:none">
+    <span class="material-symbols-outlined" style="font-size:16px">assessment</span>Bilans palet
+  </a>
+</div>
+
+<!-- ═══ KPI ROW ═══ -->
+<div class="zak-kpi">
+  <div class="zak-kpi-card">
+    <div class="zak-kpi-label">Zainwestowano</div>
+    <div class="zak-kpi-val">{{ "{:,.0f}".format(kpi_wydane).replace(',', ' ') }} zł</div>
+    <div class="zak-kpi-sub">{{ kpi_palety }} palet łącznie</div>
+  </div>
+  <div class="zak-kpi-card pink">
+    <div class="zak-kpi-label">Przychód</div>
+    <div class="zak-kpi-val">{{ "{:,.0f}".format(kpi_przychod).replace(',', ' ') }} zł</div>
+    <div class="zak-kpi-sub">ze sprzedaży Allegro</div>
+  </div>
+  <div class="zak-kpi-card lime">
+    <div class="zak-kpi-label">Zysk netto</div>
+    <div class="zak-kpi-val {% if kpi_zysk < 0 %}zak-kpi-val{% endif %}">{{ "{:+,.0f}".format(kpi_zysk).replace(',', ' ') }} zł</div>
+    <span class="zak-kpi-badge {% if kpi_zysk >= 0 %}pos{% else %}neg{% endif %}">
+      {% if kpi_zysk >= 0 %}▲{% else %}▼{% endif %}
+      {{ "{:.1f}".format(kpi_roi) }}% ROI
+    </span>
+  </div>
+  <div class="zak-kpi-card orange">
+    <div class="zak-kpi-label">Sztuk w systemie</div>
+    <div class="zak-kpi-val sm">{{ "{:,}".format(kpi_sztuk).replace(',', ' ') }} szt</div>
+    <div class="zak-kpi-sub">skatalogowanych</div>
+  </div>
+  <div class="zak-kpi-card violet">
+    <div class="zak-kpi-label">Leżaki &gt;30 dni</div>
+    <div class="zak-kpi-val sm">{{ lezaki|length }}</div>
+    <div class="zak-kpi-sub">produktów w magazynie</div>
+  </div>
+</div>
+
+<!-- ═══ MONTHLY SPEND CHART ═══ -->
+{% if mies_labels %}
+<div class="zak-section">
+  <div class="zak-section-bar" style="background:#8ff5ff"></div>
+  <div class="zak-section-label">Wydatki miesięczne (ostatnie 12 mies.)</div>
+</div>
+<div class="zak-chart-wrap">
+  <div class="zak-chart-title">WYDATKI NA ZAKUP PALET — zł / miesiąc</div>
+  <canvas id="zakupyChart" style="max-height:220px"></canvas>
+</div>
+{% endif %}
+
+<!-- ═══ SUPPLIER TABLE ═══ -->
+<div class="zak-section">
+  <div class="zak-section-bar" style="background:#ff6b9b"></div>
+  <div class="zak-section-label">Dostawcy — wydatki i ROI</div>
+</div>
+
+{% if dostawcy %}
+{% set colors = ['#8ff5ff','#ff6b9b','#bee600','#f97316','#a78bfa','#38bdf8','#fb7185','#4ade80','#facc15','#c084fc'] %}
+<div style="background:var(--bg-card,rgba(19,19,28,0.8));border:1px solid rgba(255,255,255,0.06);overflow-x:auto;margin-bottom:20px">
+  <table class="zak-table">
+    <thead>
+      <tr>
+        <th>Dostawca</th>
+        <th>Palet</th>
+        <th>Wydane</th>
+        <th>Przychód</th>
+        <th>Zysk</th>
+        <th>ROI</th>
+        <th>Marża</th>
+        <th>Ostatni zakup</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in dostawcy %}
+      {% set cidx = loop.index0 % colors|length %}
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center">
+            <span class="zak-dot" style="background:{{ colors[cidx] }}"></span>
+            <span class="zak-supplier-name">{{ d.dostawca }}</span>
+          </div>
+        </td>
+        <td>{{ d.palety }}</td>
+        <td>{{ "{:,.0f}".format(d.wydane).replace(',', ' ') }} zł</td>
+        <td>{{ "{:,.0f}".format(d.przychod).replace(',', ' ') }} zł</td>
+        <td style="color:{% if d.zysk >= 0 %}#22c55e{% else %}#ef4444{% endif %}">
+          {{ "{:+,.0f}".format(d.zysk).replace(',', ' ') }} zł
+        </td>
+        <td>
+          <span class="zak-roi {% if d.roi > 5 %}pos{% elif d.roi < 0 %}neg{% else %}neu{% endif %}">
+            {{ "{:+.1f}".format(d.roi) }}%
+          </span>
+        </td>
+        <td>{{ "{:.1f}".format(d.marza) }}%</td>
+        <td style="color:var(--text-muted);font-size:0.75rem">{{ d.last_zakup or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="zak-empty">
+  <span class="material-symbols-outlined" style="font-size:36px;opacity:0.3">storefront</span>
+  Brak danych dostawców. Uzupełnij pole "Dostawca" w paletach.
+</div>
+{% endif %}
+
+<!-- ═══ LEZAKI ═══ -->
+<div class="zak-section">
+  <div class="zak-section-bar" style="background:#f97316"></div>
+  <div class="zak-section-label">Leżaki — produkty &gt;30 dni w magazynie</div>
+</div>
+
+{% if lezaki %}
+<div style="background:var(--bg-card,rgba(19,19,28,0.8));border:1px solid rgba(255,255,255,0.06);overflow-x:auto;margin-bottom:20px">
+  <table class="zak-table">
+    <thead>
+      <tr>
+        <th>Produkt</th>
+        <th>Kategoria</th>
+        <th>Dni</th>
+        <th>Szt.</th>
+        <th>Cena</th>
+        <th>Lokalizacja</th>
+        <th>Dostawca</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in lezaki %}
+      <tr class="zak-lezak-row">
+        <td>
+          <a href="/produkty/{{ p.id }}" class="zak-lezak-name" style="color:#cbd5e1;text-decoration:none;display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ p.nazwa }}">{{ p.nazwa }}</a>
+        </td>
+        <td style="color:var(--text-muted);font-size:0.75rem">{{ p.kategoria or '—' }}</td>
+        <td>
+          <div class="zak-days-bar">
+            <span class="zak-days-pill {% if p.dni_w_magazynie > 90 %}hot{% elif p.dni_w_magazynie > 60 %}warm{% else %}cool{% endif %}">
+              {{ p.dni_w_magazynie }}d
+            </span>
+          </div>
+        </td>
+        <td>{{ p.ilosc }}</td>
+        <td>{% if p.cena_allegro %}{{ "{:.2f}".format(p.cena_allegro) }} zł{% else %}—{% endif %}</td>
+        <td style="color:var(--text-muted);font-size:0.75rem">{{ p.lokalizacja or '—' }}</td>
+        <td style="color:var(--text-muted);font-size:0.75rem">{{ p.dostawca or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="zak-empty">
+  <span class="material-symbols-outlined" style="font-size:36px;opacity:0.3">inventory_2</span>
+  Brak leżaków — wszystkie produkty sprzedane lub dodane w ciągu 30 dni.
+</div>
+{% endif %}
+
+<!-- ═══ CATEGORY MATRIX ═══ -->
+<div class="zak-section">
+  <div class="zak-section-bar" style="background:#bee600"></div>
+  <div class="zak-section-label">Macierz kategorii — sprzedaż vs magazyn</div>
+</div>
+
+{% if macierz %}
+<div class="zak-matrix">
+  {% for m in macierz %}
+  <div class="zak-matrix-cell">
+    <div class="zak-matrix-kat">{{ m.kategoria }}</div>
+    <div class="zak-matrix-val">{{ m.sprzedane }}</div>
+    <div class="zak-matrix-sub">sprzedanych</div>
+    <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:0.68rem;color:var(--text-muted)">
+      <span>{{ m.sztuk_magazyn }} w mag.</span>
+      <span>{% if m.avg_cena %}ø {{ "{:.0f}".format(m.avg_cena) }} zł{% endif %}</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<script>
+(function() {
+  var labels = {{ mies_labels | tojson }};
+  var wydane = {{ mies_wydane | tojson }};
+  var palety = {{ mies_palety | tojson }};
+  if (!labels || !labels.length) return;
+
+  function loadChart() {
+    if (typeof Chart === 'undefined') {
+      setTimeout(loadChart, 200);
+      return;
+    }
+    var ctx = document.getElementById('zakupyChart');
+    if (!ctx) return;
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Wydane (zł)',
+            data: wydane,
+            backgroundColor: 'rgba(143,245,255,0.25)',
+            borderColor: 'rgba(143,245,255,0.8)',
+            borderWidth: 1,
+            yAxisID: 'y'
+          },
+          {
+            label: 'Ilość palet',
+            data: palety,
+            type: 'line',
+            borderColor: 'rgba(255,107,155,0.85)',
+            backgroundColor: 'rgba(255,107,155,0.05)',
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: 'rgba(255,107,155,0.9)',
+            tension: 0.3,
+            yAxisID: 'y2'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { color: '#94a3b8', font: { size: 11 } } },
+          tooltip: {
+            backgroundColor: 'rgba(10,10,20,0.92)',
+            borderColor: 'rgba(143,245,255,0.2)',
+            borderWidth: 1,
+            titleColor: '#8ff5ff',
+            bodyColor: '#cbd5e1',
+            callbacks: {
+              label: function(ctx) {
+                if (ctx.datasetIndex === 0) return ' ' + ctx.parsed.y.toLocaleString('pl-PL') + ' zł';
+                return ' ' + ctx.parsed.y + ' palet';
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { position: 'left', ticks: { color: '#64748b', font: { size: 10 }, callback: v => v.toLocaleString('pl-PL') + ' zł' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y2: { position: 'right', ticks: { color: '#64748b', font: { size: 10 } }, grid: { drawOnChartArea: false } }
+        }
+      }
+    });
+  }
+  loadChart();
+})();
+</script>
+{% endblock %}
