@@ -5147,6 +5147,10 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
 
     line_item_ids = [item.get('id') for item in line_items if item.get('id')]
 
+    # Zawartość paczki (dla etykiety DPD/DHL) - z nazwy oferty
+    _item_name = (line_items[0].get('offer') or {}).get('name', '') if line_items else ''
+    _parcel_content = _item_name[:50] if _item_name else 'Towar'
+
     # Rozpoznaj przewoźnika po nazwie metody dostawy
     is_orlen = 'orlen' in delivery_method_name
     is_inpost = any(kw in delivery_method_name for kw in ['inpost', 'paczkomat', 'paczka w ruchu']) and not is_orlen
@@ -5186,6 +5190,7 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
             'width': {'value': size_data['width'], 'unit': 'CENTIMETER'},
             'height': {'value': size_data['height'], 'unit': 'CENTIMETER'},
             'weight': {'value': size_data['weight'], 'unit': 'KILOGRAMS'},
+            'content': _parcel_content,
         }]
         print(f"   → Gabaryt paczkomat: {parcel_size.upper()} ({size_data['length']}x{size_data['width']}x{size_data['height']}cm)")
     elif dimensions:
@@ -5195,6 +5200,7 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
             'width': {'value': int(float(dimensions.get('width', 25))), 'unit': 'CENTIMETER'},
             'height': {'value': int(float(dimensions.get('height', 15))), 'unit': 'CENTIMETER'},
             'weight': {'value': float(dimensions.get('weight_kg', 1)), 'unit': 'KILOGRAMS'},
+            'content': _parcel_content,
         }]
         print(f"   → Wymiary kuriera: {dimensions}")
     else:
@@ -5205,6 +5211,7 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
             'width': {'value': 25, 'unit': 'CENTIMETER'},
             'height': {'value': 15, 'unit': 'CENTIMETER'},
             'weight': {'value': 1, 'unit': 'KILOGRAMS'},
+            'content': _parcel_content,
         }]
 
     # Adres odbiorcy (firstName/lastName lub companyName WYMAGANE)
@@ -5497,7 +5504,9 @@ def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=
                 if label:
                     print(f"   → [OK] Etykieta pobrana!")
                     return label, shipment_id2 or shipment_id, None
-                if error and error != "BRAK_PRZESYLKI" and '404' not in str(error) and 'not found' not in str(error).lower():
+                # Nie przerywaj pętli jeśli to błąd timing (label jeszcze nie gotowa)
+                _transient = ('BRAK_PRZESYLKI', 'wszystkich endpointów', 'jeszcze niedostępna')
+                if error and not any(t in str(error) for t in _transient) and '404' not in str(error) and 'not found' not in str(error).lower():
                     return None, shipment_id, f"Przesyłka utworzona ({shipment_id}), etykieta: {error}"
                 print(f"   → Etykieta jeszcze niedostępna: {error}")
 
