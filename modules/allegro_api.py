@@ -5281,24 +5281,23 @@ def get_shipment_label(order_id):
             config = get_allegro_config()
             base_url = ALLEGRO_SANDBOX_API_URL if config.get('sandbox') else ALLEGRO_API_URL
             
-            # Próbuj różne Accept headers — WZA może wymagać różnych formatów
+            # WZA label endpoint: /shipments/labels?shipmentIds={id} (batch endpoint)
             for accept_type in ['application/octet-stream', 'application/pdf']:
                 try:
                     headers = {
                         'Authorization': f"Bearer {config['access_token']}",
                         'Accept': accept_type
                     }
-                    label_url = f"{base_url}/shipment-management/shipments/{shipment_id}/label"
-                    print(f"   → Pobieranie etykiety ({accept_type}): {label_url}")
+                    # Endpoint batch (prawidłowy dla WZA)
+                    label_url = f"{base_url}/shipment-management/shipments/labels?shipmentIds={shipment_id}"
+                    print(f"   → Pobieranie etykiety WZA ({accept_type}): ...labels?shipmentIds={shipment_id[:20]}...")
 
                     response = requests.get(label_url, headers=headers, timeout=30)
-                    print(f"   → HTTP Status: {response.status_code}")
+                    print(f"   → HTTP Status: {response.status_code}, Size: {len(response.content)}")
 
                     if response.status_code == 200 and len(response.content) > 100:
-                        print(f"   → [OK] Etykieta pobrana! Rozmiar: {len(response.content)} bytes")
+                        print(f"   → [OK] Etykieta WZA pobrana! Rozmiar: {len(response.content)} bytes")
                         return response.content, shipment_id, None
-                    elif response.status_code == 200:
-                        print(f"   → Pusta odpowiedź, próbuję inny format...")
                     else:
                         print(f"   → [WARN] {response.status_code}: {response.text[:100]}")
                 except Exception as e:
@@ -5325,8 +5324,9 @@ def get_shipment_label(order_id):
     config = get_allegro_config()
     base_url = ALLEGRO_SANDBOX_API_URL if config.get('sandbox') else ALLEGRO_API_URL
     
-    # Próbuj oba endpointy i oba Accept types
+    # Próbuj 3 endpointy: WZA batch, WZA single, checkout-forms
     endpoints = [
+        f"{base_url}/shipment-management/shipments/labels?shipmentIds={shipment_id}",
         f"{base_url}/shipment-management/shipments/{shipment_id}/label",
         f"{base_url}/order/checkout-forms/{order_id}/shipments/{shipment_id}/label",
     ]
@@ -5337,17 +5337,16 @@ def get_shipment_label(order_id):
                     'Authorization': f"Bearer {config['access_token']}",
                     'Accept': accept_type
                 }
-                print(f"   → Pobieranie etykiety ({accept_type}): {label_url}")
+                print(f"   → Etykieta ({accept_type}): ...{label_url.split('/')[-1][:30]}")
                 response = requests.get(label_url, headers=headers, timeout=30)
-                print(f"   → HTTP Status: {response.status_code}")
 
                 if response.status_code == 200 and len(response.content) > 100:
-                    print(f"   → [OK] Etykieta pobrana! Rozmiar: {len(response.content)} bytes")
+                    print(f"   → [OK] Etykieta pobrana! {len(response.content)} bytes")
                     return response.content, shipment_id, None
             except Exception as e:
                 print(f"   → [ERR] {e}")
 
-    return None, shipment_id, f"Nie udało się pobrać etykiety po próbach obu endpointów"
+    return None, shipment_id, f"Nie udało się pobrać etykiety po próbach wszystkich endpointów"
 
 
 def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=None):
