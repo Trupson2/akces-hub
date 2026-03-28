@@ -253,6 +253,30 @@ def api_csrf_token():
     return jsonify({'csrf_token': generate_csrf()})
 
 @app.before_request
+def block_unauthenticated_external():
+    """Blokuj requesty z zewnątrz (ngrok) bez zalogowanej sesji.
+    Lokalne requesty (127.0.0.1, 192.168.*) przechodzą bez sesji do strony logowania."""
+    # Pozwól na statyczne pliki, login, API system-stats
+    safe_paths = ('/auth', '/static', '/favicon', '/api/system-stats', '/api/csrf-token',
+                  '/license', '/setup', '/eula', '/onboarding', '/subscription-expired')
+    if any(request.path.startswith(p) for p in safe_paths):
+        return
+
+    # Sprawdź czy request przychodzi z zewnątrz (ngrok)
+    remote_ip = request.remote_addr or ''
+    is_local = remote_ip in ('127.0.0.1', '::1') or remote_ip.startswith('192.168.') or remote_ip.startswith('10.')
+
+    # Jeśli nie lokalne i brak sesji — zablokuj
+    if not is_local and not session.get('user'):
+        # Pozwól na GET strony logowania
+        if request.path == '/auth/login' and request.method == 'GET':
+            return
+        # Reszta — wymuś logowanie
+        if request.method == 'GET':
+            return redirect('/auth/login')
+        return jsonify({'error': 'Unauthorized — zaloguj się'}), 401
+
+@app.before_request
 def csrf_protect_forms():
     """CSRF dla formularzy HTML — waliduj TYLKO gdy token jest obecny w formularzu.
     Formularze z csrf_token sa chronione; reszta (legacy, upload, API) przechodzi."""
