@@ -5339,16 +5339,42 @@ def get_shipment_label(order_id):
                 print(f"   → Pobieranie etykiety: {label_url}")
                 
                 response = requests.get(label_url, headers=headers, timeout=30)
-                print(f"   → HTTP Status: {response.status_code}")
+                ct = response.headers.get('Content-Type', '')
+                print(f"   → HTTP Status: {response.status_code}, Content-Type: {ct}, Size: {len(response.content)}B")
 
-                if response.status_code == 200:
+                if response.status_code == 200 and len(response.content) > 100:
                     print(f"   → [OK] Etykieta pobrana! Rozmiar: {len(response.content)} bytes")
                     return response.content, shipment_id, None
                 else:
-                    print(f"   → [ERR] Błąd: {response.text[:200]}")
+                    print(f"   → [ERR] Błąd: {response.text[:300]}")
             except Exception as e:
                 print(f"   → [ERR] Wyjątek: {e}")
-    
+                import traceback
+                traceback.print_exc()
+
+    # METODA 1b: Spróbuj bulk labels endpoint
+    if result and result.get('shipments'):
+        shipment = result['shipments'][0]
+        shipment_id = shipment.get('id')
+        try:
+            config = get_allegro_config()
+            base_url = ALLEGRO_SANDBOX_API_URL if config.get('sandbox') else ALLEGRO_API_URL
+            headers = {
+                'Authorization': f"Bearer {config['access_token']}",
+                'Accept': 'application/pdf'
+            }
+            # Try bulk labels endpoint
+            label_url = f"{base_url}/shipment-management/shipments/labels?shipmentIds={shipment_id}"
+            print(f"   → Próba bulk labels: {label_url}")
+            response = requests.get(label_url, headers=headers, timeout=30)
+            ct = response.headers.get('Content-Type', '')
+            print(f"   → HTTP Status: {response.status_code}, Content-Type: {ct}, Size: {len(response.content)}B")
+            if response.status_code == 200 and len(response.content) > 100:
+                print(f"   → [OK] Etykieta pobrana (bulk endpoint)!")
+                return response.content, shipment_id, None
+        except Exception as e:
+            print(f"   → [ERR] Bulk labels wyjątek: {e}")
+
     # METODA 2: Sprawdź standardowe API (checkout-forms shipments)
     result, error = get_shipment_methods(order_id)
     if error:
