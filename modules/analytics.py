@@ -96,33 +96,51 @@ def dashboard_kpi():
 
     przychod = przychod_data['przychod'] or 0
 
-    avg_cost_data = conn.execute('''
+    # COGS dokładny: koszt_palety / ilosc_sztuk_palety × sprzedane_sztuki per sprzedaż
+    # Dla sprzedaży bez powiązania z paletą → fallback na globalną średnią
+    cogs_data = conn.execute('''
         SELECT
-            SUM(pal.cena_zakupu) as total_koszt,
-            SUM(
-                COALESCE((SELECT SUM(CASE WHEN pr.status NOT IN ('sprzedany','wyslany') THEN pr.ilosc ELSE 0 END)
-                          FROM produkty pr WHERE pr.paleta_id = pal.id), 0)
-                + COALESCE((SELECT SUM(sp.ilosc) FROM sprzedaze sp
-                            JOIN produkty pp ON sp.produkt_id = pp.id
-                            WHERE pp.paleta_id = pal.id
-                            AND sp.status NOT IN ('zwrot','anulowane','anulowana')), 0)
-            ) as total_items
-        FROM palety pal
-        WHERE pal.cena_zakupu > 0
-    ''').fetchone()
+            COALESCE(SUM(
+                CASE
+                    WHEN pal.id IS NOT NULL AND pal.cena_zakupu > 0
+                    THEN (pal.cena_zakupu * 1.0 /
+                          NULLIF(COALESCE(NULLIF(pal.ilosc_sztuk, 0),
+                              (SELECT COALESCE(SUM(px.ilosc), 1) FROM produkty px WHERE px.paleta_id = pal.id)
+                          ), 0)
+                    ) * s.ilosc
+                    ELSE 0
+                END
+            ), 0) as cogs_linked,
+            COALESCE(SUM(CASE WHEN pal.id IS NULL THEN s.ilosc ELSE 0 END), 0) as unlinked_qty
+        FROM sprzedaze s
+        LEFT JOIN produkty p  ON s.produkt_id = p.id
+        LEFT JOIN oferty o    ON s.oferta_id = o.id
+        LEFT JOIN produkty p2 ON o.produkt_id = p2.id
+        LEFT JOIN palety pal  ON COALESCE(p.paleta_id, p2.paleta_id) = pal.id
+        WHERE date(s.data_sprzedazy) >= ?
+          AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
+          AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
+    ''', (month_start,)).fetchone()
 
-    total_palet_koszt = avg_cost_data['total_koszt'] or 0
-    total_palet_items = avg_cost_data['total_items'] or 1
-    avg_cost_per_item = total_palet_koszt / total_palet_items if total_palet_items > 0 else 0
+    cogs_linked   = cogs_data['cogs_linked']   or 0
+    unlinked_qty  = cogs_data['unlinked_qty']  or 0
 
-    sold_this_month = conn.execute('''
-        SELECT COALESCE(SUM(ilosc), 0) as s FROM sprzedaze
-        WHERE date(data_sprzedazy) >= ?
-        AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
-       
-    ''', (month_start,)).fetchone()['s'] or 0
+    # Globalna średnia tylko dla sprzedaży bez powiązanej palety
+    if unlinked_qty > 0:
+        gavg = conn.execute('''
+            SELECT CASE WHEN SUM(COALESCE(NULLIF(ilosc_sztuk,0),
+                        (SELECT COALESCE(SUM(px.ilosc),1) FROM produkty px WHERE px.paleta_id=pal.id)))>0
+                   THEN SUM(cena_zakupu)*1.0 /
+                        SUM(COALESCE(NULLIF(ilosc_sztuk,0),
+                        (SELECT COALESCE(SUM(px.ilosc),1) FROM produkty px WHERE px.paleta_id=pal.id)))
+                   ELSE 0 END as avg_unit
+            FROM palety pal WHERE cena_zakupu > 0
+        ''').fetchone()['avg_unit'] or 0
+        cogs_fallback = gavg * unlinked_qty
+    else:
+        cogs_fallback = 0
 
-    koszty = avg_cost_per_item * sold_this_month
+    koszty = cogs_linked + cogs_fallback
     prowizja = przychod * 0.11
     zysk_miesiac = przychod - koszty - prowizja
     roi_miesiac = (zysk_miesiac / koszty * 100) if koszty > 0 else 0
@@ -629,23 +647,49 @@ def profit_analyzer():
         # Łączny przychód = (Allegro - zwroty) + prywatne
         przychod = przychod_allegro + prywatne
 
-        # COGS — średni koszt jednostkowy * sprzedane sztuki
-        # produkty.ilosc NIE jest dekrementowane przy sprzedaży, więc SUM(ilosc) = oryginalna ilość
-        avg_cost = conn.execute('''
+        # COGS dokładny: per sprzedaż → koszt palety / sztuki palety × ilosc
+        cogs_m = conn.execute('''
             SELECT
-                CASE WHEN SUM(sub.total_items) > 0
-                     THEN SUM(sub.koszt) * 1.0 / SUM(sub.total_items)
-                     ELSE 0 END as avg_unit
-            FROM (
-                SELECT pal.cena_zakupu as koszt,
-                    COALESCE((SELECT SUM(pr.ilosc) FROM produkty pr WHERE pr.paleta_id = pal.id), 1)
-                    as total_items
-                FROM palety pal WHERE pal.cena_zakupu > 0
-            ) sub
-        ''').fetchone()
-        avg_unit_cost = avg_cost['avg_unit'] or 0
+                COALESCE(SUM(
+                    CASE
+                        WHEN pal.id IS NOT NULL AND pal.cena_zakupu > 0
+                        THEN (pal.cena_zakupu * 1.0 /
+                              NULLIF(COALESCE(NULLIF(pal.ilosc_sztuk,0),
+                                  (SELECT COALESCE(SUM(px.ilosc),1) FROM produkty px WHERE px.paleta_id=pal.id)
+                              ),0)
+                        ) * s.ilosc
+                        ELSE 0
+                    END
+                ), 0) as cogs_linked,
+                COALESCE(SUM(CASE WHEN pal.id IS NULL THEN s.ilosc ELSE 0 END), 0) as unlinked_qty
+            FROM sprzedaze s
+            LEFT JOIN produkty p  ON s.produkt_id = p.id
+            LEFT JOIN oferty o    ON s.oferta_id = o.id
+            LEFT JOIN produkty p2 ON o.produkt_id = p2.id
+            LEFT JOIN palety pal  ON COALESCE(p.paleta_id, p2.paleta_id) = pal.id
+            WHERE date(s.data_sprzedazy) >= ? AND date(s.data_sprzedazy) <= ?
+              AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana')
+              AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
+        ''', (m_start, m_end)).fetchone()
 
-        cogs = avg_unit_cost * sztuki
+        cogs_linked_m  = cogs_m['cogs_linked']  or 0
+        unlinked_qty_m = cogs_m['unlinked_qty'] or 0
+
+        if unlinked_qty_m > 0:
+            gavg_m = conn.execute('''
+                SELECT CASE WHEN SUM(COALESCE(NULLIF(ilosc_sztuk,0),
+                            (SELECT COALESCE(SUM(px.ilosc),1) FROM produkty px WHERE px.paleta_id=pal.id)))>0
+                       THEN SUM(cena_zakupu)*1.0 /
+                            SUM(COALESCE(NULLIF(ilosc_sztuk,0),
+                            (SELECT COALESCE(SUM(px.ilosc),1) FROM produkty px WHERE px.paleta_id=pal.id)))
+                       ELSE 0 END as avg_unit
+                FROM palety pal WHERE cena_zakupu > 0
+            ''').fetchone()['avg_unit'] or 0
+            cogs_fallback_m = gavg_m * unlinked_qty_m
+        else:
+            cogs_fallback_m = 0
+
+        cogs = cogs_linked_m + cogs_fallback_m
         # Prowizja na sprzedaze (Allegro + offline = wszystko z tabeli sprzedaze)
         # Nie naliczamy na sprzedaze_prywatne (to poza Allegro)
         prowizja = przychod_allegro * prowizja_pct
