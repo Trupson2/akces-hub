@@ -332,6 +332,14 @@ _MAGAZYNIER_CSS = '''
 @media(min-width:1200px){.items-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.toast-container{right:10px;max-width:320px}.toast{min-width:280px}}
 @media(max-width:768px){.items-grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.quick-actions{grid-template-columns:repeat(2,1fr)}.act-grid-4{grid-template-columns:repeat(2,1fr)}.toast-container{top:70px;right:10px;left:10px;max-width:none}.toast{min-width:auto}}
+
+/* === Legacy class overrides → Cyberpunk === */
+.card{backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:18px;margin-bottom:14px;transition:all 0.2s}
+.card:hover{border-color:rgba(143,245,255,0.15)}
+.header{text-align:center;padding:20px 0;border-bottom:1px solid rgba(143,245,255,0.12);margin-bottom:18px}
+.header h1,.header h2{font-family:'Space Grotesk',sans-serif;color:#8ff5ff;text-shadow:0 0 20px rgba(143,245,255,0.25);font-weight:800}
+.form-control{width:100%;padding:10px 12px;background:rgba(14,14,20,0.8);border:1px solid rgba(143,245,255,0.10);border-radius:8px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:0.9rem;transition:all 0.3s;box-sizing:border-box}
+.form-control:focus{outline:none;border-color:#8ff5ff;box-shadow:0 0 16px rgba(143,245,255,0.12)}
 '''
 
 _MAGAZYNIER_JS = '''

@@ -26,7 +26,7 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
 
 <!-- Filtr miesiaca -->
 <div style="margin-bottom:16px">
-    <select onchange="window.location.href='/sprzedaze?miesiac='+this.value" class="form-control">
+    <select onchange="window.location.href='/sprzedaze?miesiac='+this.value" style="width:100%;padding:12px 14px;background:rgba(14,14,20,0.8);border:1px solid rgba(143,245,255,0.12);border-radius:8px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:0.9rem;font-weight:600">
         {% for m in miesiace_options %}
         <option value="{{ m.value }}" {{ 'selected' if m.value == miesiac_filter else '' }}>{{ m.label }}</option>
         {% endfor %}
@@ -34,21 +34,21 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
 </div>
 
 <!-- Przyciski akcji -->
-<div class="quick-actions" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
-    <a href="/sync-custom?from={{ miesiac_filter }}-01" class="qa-btn">
-        <span class="qa-icon" style="background:var(--yellow-soft)"><span class=material-symbols-outlined>sync</span></span>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
+    <a href="/sync-custom?from={{ miesiac_filter }}-01" class="sp-action">
+        <span class=material-symbols-outlined style="font-size:16px;color:#beee00">sync</span>
         Sync miesiac
     </a>
-    <a href="/sprzedaze/sync-zwroty?miesiac={{ miesiac_filter }}" class="qa-btn">
-        <span class="qa-icon" style="background:var(--red-soft)"><span class=material-symbols-outlined>sync</span></span>
+    <a href="/sprzedaze/sync-zwroty?miesiac={{ miesiac_filter }}" class="sp-action">
+        <span class=material-symbols-outlined style="font-size:16px;color:#ff6b9b">sync</span>
         Sync zwrotow
     </a>
-    <a href="/sprzedaze/napraw-nazwy?miesiac={{ miesiac_filter }}" class="qa-btn">
-        <span class="qa-icon" style="background:rgba(143,245,255,0.12)"><span class=material-symbols-outlined>build</span></span>
+    <a href="/sprzedaze/napraw-nazwy?miesiac={{ miesiac_filter }}" class="sp-action">
+        <span class=material-symbols-outlined style="font-size:16px;color:#8ff5ff">build</span>
         Napraw dane
     </a>
-    <a href="/sprzedaze/dopasuj" class="qa-btn">
-        <span class="qa-icon" style="background:rgba(143,245,255,0.12)"><span class=material-symbols-outlined>link</span></span>
+    <a href="/sprzedaze/dopasuj" class="sp-action">
+        <span class=material-symbols-outlined style="font-size:16px;color:#8ff5ff">link</span>
         Dopasuj
     </a>
 </div>
@@ -67,29 +67,29 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
 {% endif %}
 
 <!-- KPI karty -->
-<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-    <div class="kpi-card green">
-        <div class="kpi-icon"><span class=material-symbols-outlined>paid</span></div>
-        <div class="kpi-value">{{ przychod }} zl</div>
-        <div class="kpi-label">Przychod</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">
+    <div class="sp-kpi" style="border-left-color:rgba(190,238,0,0.4)">
+        <div class="sp-kpi-val" style="color:#beee00">{{ przychod }} <span style="font-size:0.7rem">zł</span></div>
+        <div class="sp-kpi-lbl">Przychód</div>
     </div>
-    <div class="kpi-card orange">
-        <div class="kpi-icon"><span class=material-symbols-outlined>sync</span></div>
-        <div class="kpi-value">{{ zwroty_cnt }}</div>
-        <div class="kpi-label">Zwrotow</div>
+    <div class="sp-kpi" style="border-left-color:rgba(245,158,11,0.4)">
+        <div class="sp-kpi-val" style="color:#f59e0b">{{ zwroty_cnt }}</div>
+        <div class="sp-kpi-lbl">Zwrotów</div>
     </div>
-    <div class="kpi-card" style="--card-color:var(--red)">
-        <div class="kpi-icon" style="background:var(--red-soft)"><span class=material-symbols-outlined>trending_down</span></div>
-        <div class="kpi-value" style="color:var(--red)">-{{ zwroty_suma }} zl</div>
-        <div class="kpi-label">Wartosc zwrotow</div>
+    <div class="sp-kpi" style="border-left-color:rgba(239,68,68,0.4)">
+        <div class="sp-kpi-val" style="color:#ef4444">-{{ zwroty_suma }} <span style="font-size:0.7rem">zł</span></div>
+        <div class="sp-kpi-lbl">Wartość zwrotów</div>
     </div>
 </div>
 
-<div class="section-title">{{ msc_nazwa|upper }} ({{ sprzedaze|length }} zamowien)</div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+    <div style="width:2px;height:14px;background:#8ff5ff"></div>
+    <span style="font-family:'Space Grotesk',sans-serif;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted)">{{ msc_nazwa|upper }} ({{ sprzedaze|length }} zamówień)</span>
+</div>
 
 {% if sprzedaze %}
 {% for s in sprzedaze %}
-<div class="list-item" style="{% if s.is_zwrot %}opacity:0.5{% endif %}">
+<div class="sp-item{% if s.is_zwrot %} sp-zwrot{% endif %}">
     <div style="min-width:50px;text-align:center;margin-right:14px;padding-right:14px;border-right:1px solid var(--border)">
         <div style="font-size:1.3rem;font-weight:700;color:#8ff5ff;font-family:'Space Grotesk',sans-serif">{{ s.dzien }}</div>
         <div style="font-size:0.65rem;color:var(--text-muted)">{{ s.miesiac_skrot }}</div>
@@ -142,22 +142,33 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
 <a href="/statystyki" class="back">&#8592; Statystyki</a>
 
 <style>
+/* Sprzedaze — Cyberpunk */
+.sp-kpi{padding:16px;background:rgba(13,15,26,0.8);border-left:3px solid rgba(143,245,255,0.2);transition:all 0.2s}
+.sp-kpi:hover{border-left-color:#8ff5ff;background:rgba(13,15,26,0.95)}
+.sp-kpi-val{font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:800}
+.sp-kpi-lbl{font-size:0.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);font-weight:600;margin-top:4px}
+.sp-action{display:flex;align-items:center;gap:6px;padding:12px 10px;background:rgba(15,15,30,0.65);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text);text-decoration:none;font-size:0.78rem;font-weight:600;font-family:'Space Grotesk',sans-serif;transition:all 0.2s}
+.sp-action:hover{border-color:rgba(143,245,255,0.25);box-shadow:0 0 12px rgba(143,245,255,0.08);transform:translateY(-1px)}
+.sp-item{display:flex;align-items:center;padding:12px 14px;background:rgba(15,15,30,0.65);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.06);border-left:3px solid rgba(190,238,0,0.3);margin-bottom:6px;transition:all 0.2s}
+.sp-item:hover{border-left-color:#beee00;background:rgba(15,15,30,0.8)}
+.sp-zwrot{border-left-color:rgba(239,68,68,0.3);opacity:0.6}
+.sp-zwrot:hover{border-left-color:#ef4444}
 .btn-anon{background:none;border:1px solid rgba(255,255,255,0.08);color:var(--text-muted);font-size:0.65rem;padding:2px 6px;border-radius:4px;cursor:pointer;margin-left:6px;transition:all 0.2s}
 .btn-anon:hover{border-color:#ff4d6a;color:#ff4d6a;background:rgba(239,68,68,0.1)}
-.kpi-value{font-family:'Space Grotesk',sans-serif}
-.section-title{font-family:'Space Grotesk',sans-serif;text-shadow:0 0 20px rgba(143,245,255,0.3)}
-.kpi-card{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08)}
-.list-item{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08)}
-.card{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08)}
-.form-control:focus{border-color:#8ff5ff;box-shadow:0 0 0 3px rgba(143,245,255,0.15)}
+.card{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:12px}
+.btn{padding:6px 12px;border:none;border-radius:6px;font-weight:700;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:all 0.2s;font-size:0.75rem}
 .btn-success{background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);color:#beee00}
-.btn-success:hover{background:rgba(190,238,0,0.22);box-shadow:0 0 16px rgba(190,238,0,0.2)}
-.btn-primary{background:rgba(143,245,255,0.12);border:1px solid rgba(143,245,255,0.3);color:#8ff5ff}
-.btn-primary:hover{background:rgba(143,245,255,0.22);box-shadow:0 0 16px rgba(143,245,255,0.2)}
+.btn-success:hover{background:rgba(190,238,0,0.22)}
 .btn-danger{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#ff4d6a}
 .btn-warning{background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);color:#fbbf24}
-.qa-btn{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08)}
-.back{color:#8ff5ff}
+.back{color:#8ff5ff;text-decoration:none;font-weight:600}
+.alert{padding:12px 16px;border-radius:8px;margin-bottom:14px;font-size:0.85rem}
+.alert-success{background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);color:#22c55e}
+.alert-error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#ef4444}
+.alert-warning{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#f59e0b}
+.badge-error{background:rgba(239,68,68,0.15);color:#ff4d6a;border:1px solid rgba(239,68,68,0.3);padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700}
+@media(max-width:768px){.sp-action{font-size:0.7rem;padding:10px 8px}}
+@media(max-width:600px){div[style*="grid-template-columns:repeat(4"]{grid-template-columns:repeat(2,1fr)!important}}
 </style>
 <script>
 function anonimizujKlienta(buyerName, btn) {
@@ -920,33 +931,30 @@ DOPASUJ_TEMPLATE = '''
 {% block content %}
 
 <!-- KPI karty -->
-<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-    <div class="kpi-card" style="--card-color:var(--red)">
-        <div class="kpi-icon" style="background:var(--red-soft)"><span class=material-symbols-outlined>fiber_manual_record</span></div>
-        <div class="kpi-value" style="color:var(--red)">{{ total_unmatched }}</div>
-        <div class="kpi-label">Niedopasowanych</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">
+    <div style="padding:16px;background:rgba(13,15,26,0.8);border-left:3px solid rgba(239,68,68,0.4)">
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:800;color:#ef4444">{{ total_unmatched }}</div>
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);font-weight:600;margin-top:4px">Niedopasowanych</div>
     </div>
-    <div class="kpi-card orange">
-        <div class="kpi-icon"><span class=material-symbols-outlined>folder</span></div>
-        <div class="kpi-value">{{ grupy_count }}</div>
-        <div class="kpi-label">Grup</div>
+    <div style="padding:16px;background:rgba(13,15,26,0.8);border-left:3px solid rgba(245,158,11,0.4)">
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:800;color:#f59e0b">{{ grupy_count }}</div>
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);font-weight:600;margin-top:4px">Grup</div>
     </div>
-    <div class="kpi-card green">
-        <div class="kpi-icon"><span class=material-symbols-outlined>lightbulb</span></div>
-        <div class="kpi-value">{{ suggestions_count }}</div>
-        <div class="kpi-label">Sugestii</div>
+    <div style="padding:16px;background:rgba(13,15,26,0.8);border-left:3px solid rgba(190,238,0,0.4)">
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:800;color:#beee00">{{ suggestions_count }}</div>
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);font-weight:600;margin-top:4px">Sugestii</div>
     </div>
 </div>
 
 {% if suggestions_count > 0 %}
-<button onclick="autoMatchAll()" class="btn btn-success" style="margin-bottom:20px">
+<button onclick="autoMatchAll()" style="margin-bottom:20px;padding:12px 20px;background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);color:#beee00;border-radius:8px;font-weight:700;font-family:'Space Grotesk',sans-serif;cursor:pointer;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px;transition:all 0.2s">
     <span class=material-symbols-outlined>bolt</span> Auto-dopasuj {{ suggestions_count }} sugestii
 </button>
 {% endif %}
 
 <div id="grupy-lista">
 {% for g in grupy %}
-<div class="grupa-item card" style="padding:14px">
+<div class="grupa-item" style="padding:14px;background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.06);border-left:3px solid rgba(143,245,255,0.2);margin-bottom:8px;transition:all 0.2s">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
         <div style="flex:1;min-width:0">
             <div class="list-item-title">{{ g.nazwa_display }}</div>
@@ -1100,16 +1108,17 @@ document.getElementById('searchModal').addEventListener('click', function(e) {
 </script>
 
 <style>
-.kpi-value{font-family:'Space Grotesk',sans-serif}
-.kpi-card{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08)}
-.card{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08)}
-.list-item{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08)}
-.section-title,.card-title{font-family:'Space Grotesk',sans-serif}
+.card{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:12px}
+.card-title{font-family:'Space Grotesk',sans-serif;color:#8ff5ff;text-shadow:0 0 12px rgba(143,245,255,0.25)}
+.list-item-title{font-weight:600;font-size:0.9rem}
+.list-item-meta{font-size:0.75rem;color:var(--text-muted)}
+.btn{padding:6px 12px;border:none;border-radius:6px;font-weight:700;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:all 0.2s;font-size:0.75rem}
 .btn-success{background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);color:#beee00}
-.btn-success:hover{background:rgba(190,238,0,0.22);box-shadow:0 0 16px rgba(190,238,0,0.2)}
 .btn-primary{background:rgba(143,245,255,0.12);border:1px solid rgba(143,245,255,0.3);color:#8ff5ff}
-.btn-primary:hover{background:rgba(143,245,255,0.22);box-shadow:0 0 16px rgba(143,245,255,0.2)}
-.form-control:focus{border-color:#8ff5ff;box-shadow:0 0 0 3px rgba(143,245,255,0.15)}
+.form-control{width:100%;padding:10px 12px;background:rgba(14,14,20,0.8);border:1px solid rgba(143,245,255,0.10);border-radius:8px;color:var(--text);font-family:'Space Grotesk',sans-serif;box-sizing:border-box}
+.form-control:focus{outline:none;border-color:#8ff5ff;box-shadow:0 0 16px rgba(143,245,255,0.12)}
+.back{color:#8ff5ff;text-decoration:none;font-weight:600}
+.grupa-item:hover{border-left-color:#8ff5ff;border-color:rgba(143,245,255,0.15)}
 </style>
 
 {% endblock %}
