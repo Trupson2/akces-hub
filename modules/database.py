@@ -895,12 +895,22 @@ def get_full_stats():
         # Tylko opłacone (bez zwrotów i anulowanych)
         row = conn.execute('''
             SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
-            FROM sprzedaze WHERE date(data_sprzedazy) >= ? 
+            FROM sprzedaze WHERE date(data_sprzedazy) >= ?
             AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
-           
+
         ''', (month_start,)).fetchone()
         stats['sprzedaz_miesiac_cnt'] = row['cnt']
         stats['sprzedaz_miesiac_suma'] = row['suma']
+        # Dolicz sprzedaże prywatne w miesiącu
+        try:
+            row_pryw_msc = conn.execute('''
+                SELECT COUNT(*) as cnt, COALESCE(SUM(kwota), 0) as suma
+                FROM sprzedaze_prywatne WHERE date(data) >= ?
+            ''', (month_start,)).fetchone()
+            stats['sprzedaz_miesiac_cnt'] += row_pryw_msc['cnt'] or 0
+            stats['sprzedaz_miesiac_suma'] += row_pryw_msc['suma'] or 0
+        except Exception:
+            pass
         
         # Zwroty w miesiącu
         row_zwroty_msc = conn.execute('''
