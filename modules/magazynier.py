@@ -3255,6 +3255,14 @@ def palety():
             style="width:100%;padding:14px 14px 14px 44px;background:rgba(38,37,40,0.8);border:none;border-bottom:1px solid rgba(143,245,255,0.15);color:#f9f5f8;font-size:12px;letter-spacing:0.15em;font-family:'Manrope',sans-serif;outline:none">
     </div>'''
 
+    # Pobierz nazwy produktów per paleta (do wyszukiwania)
+    _prod_names = {}
+    try:
+        _pn_rows = conn.execute('SELECT paleta_id, GROUP_CONCAT(nazwa, " ") as names FROM produkty WHERE paleta_id IS NOT NULL GROUP BY paleta_id').fetchall()
+        _prod_names = {r['paleta_id']: (r['names'] or '') for r in _pn_rows}
+    except:
+        pass
+
     for p in result:
         link = f"/magazyn/paleta-id/{p['id']}"
         dostawca_info = f' • <span class="dostawca-name">{p["dostawca"]}</span>' if p['dostawca'] else ""
@@ -3285,7 +3293,8 @@ def palety():
         dostawca_txt = p['dostawca'] or ''
         data_txt = p['data_zakupu'] or ''
 
-        html += f'''<div class="pl-card" onclick="window.location='{link}'" style="cursor:pointer;padding-left:24px">
+        _pn = _prod_names.get(p['id'], '').replace('"', '&quot;')
+        html += f'''<div class="pl-card" onclick="window.location='{link}'" style="cursor:pointer;padding-left:24px" data-products="{_pn}">
             <div class="pl-bar-left" style="background:{bar_color};box-shadow:0 0 10px {bar_color}80"></div>
             <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
                 <div style="display:flex;gap:12px;align-items:flex-start;flex:1;min-width:0">
@@ -3431,11 +3440,12 @@ def palety():
 
     function searchPalety() {
         var q = document.getElementById("paletaSearch").value.toLowerCase();
-        var items = document.getElementsByClassName("item");
+        var items = document.getElementsByClassName("pl-card");
         for (var i = 0; i < items.length; i++) {
             var name = items[i].querySelector(".item-name");
             var meta = items[i].querySelector(".item-meta");
-            var text = (name ? name.textContent : "") + (meta ? meta.textContent : "");
+            var products = items[i].getAttribute("data-products") || "";
+            var text = (name ? name.textContent : "") + " " + (meta ? meta.textContent : "") + " " + products;
             items[i].style.display = (!q || text.toLowerCase().indexOf(q) >= 0) ? "" : "none";
         }
     }
