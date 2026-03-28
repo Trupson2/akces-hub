@@ -530,13 +530,59 @@ function updateXP() {
   document.getElementById('xpRing').style.strokeDashoffset = offset;
   document.getElementById('xpPct').textContent = p.total + '%';
 
-  // Level badge
+  // Level badge — oparty na przychodzie rocznym + achievementach
+  const d = window.REAL_DATA || {};
+  const rev = d.przychod_rok || 0;
+  const achCount = Object.values(state.achievements).filter(Boolean).length;
+  const achTotal = ACHIEVEMENTS.length;
+
+  const LEVELS = [
+    { min: 0,       name: 'Starter',         color: '#64748b' },
+    { min: 50000,   name: 'Hustler',         color: '#8ff5ff' },
+    { min: 100000,  name: 'Palet Pro',       color: '#22c55e' },
+    { min: 200000,  name: 'Deal Hunter',     color: '#beee00' },
+    { min: 350000,  name: 'Money Machine',   color: '#f59e0b' },
+    { min: 500000,  name: 'Half-Millionaire',color: '#ff6b9b' },
+    { min: 750000,  name: 'Empire Builder',  color: '#a78bfa' },
+    { min: 1000000, name: 'MILIONER',        color: '#ffd700' },
+  ];
+
+  // Bonus level za achievementy (co 5 achiev = +1 sub-level)
+  const achBonus = Math.floor(achCount / 5);
+
   let level = 1;
-  if (p.total >= 30) level = 2;
-  if (p.total >= 50) level = 3;
-  if (p.total >= 70) level = 4;
-  if (p.total >= 90) level = 5;
-  document.getElementById('levelBadge').textContent = 'POZIOM ' + level;
+  let levelName = LEVELS[0].name;
+  let levelColor = LEVELS[0].color;
+  for (let i = LEVELS.length - 1; i >= 0; i--) {
+    if (rev >= LEVELS[i].min) {
+      level = i + 1;
+      levelName = LEVELS[i].name;
+      levelColor = LEVELS[i].color;
+      break;
+    }
+  }
+
+  const badge = document.getElementById('levelBadge');
+  badge.textContent = 'LVL ' + level + ' — ' + levelName;
+  badge.style.borderColor = levelColor + '50';
+  badge.style.color = levelColor;
+  badge.style.background = levelColor + '0d';
+
+  // Pokaż progress do następnego levela
+  const nextLevel = LEVELS[Math.min(level, LEVELS.length - 1)];
+  const prevLevel = LEVELS[Math.max(0, level - 2)];
+  if (level < LEVELS.length) {
+    const nextThreshold = nextLevel.min;
+    const prevThreshold = level > 1 ? LEVELS[level - 2].min : 0;
+    const lvlProgress = Math.round((rev - prevThreshold) / (nextThreshold - prevThreshold) * 100);
+    const xpSub = document.getElementById('xpSub');
+    if (xpSub) {
+      xpSub.textContent = levelName + ' \u2022 ' + lvlProgress + '% do ' + LEVELS[level].name + ' (' + LEVELS[level].min.toLocaleString('pl') + ' zl) \u2022 ' + achCount + '/' + achTotal + ' osiagniec';
+    }
+  } else {
+    const xpSub = document.getElementById('xpSub');
+    if (xpSub) xpSub.textContent = 'MILIONER \u2022 CEL OSIAGNIETY \u2022 ' + achCount + '/' + achTotal + ' osiagniec';
+  }
 
   // Counts
   document.getElementById('skillCount').textContent = p.skillsDone + '/' + p.skillsTotal;
