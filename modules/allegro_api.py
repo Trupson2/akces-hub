@@ -5281,25 +5281,29 @@ def get_shipment_label(order_id):
             config = get_allegro_config()
             base_url = ALLEGRO_SANDBOX_API_URL if config.get('sandbox') else ALLEGRO_API_URL
             
-            try:
-                headers = {
-                    'Authorization': f"Bearer {config['access_token']}",
-                    'Accept': 'application/pdf'
-                }
-                label_url = f"{base_url}/shipment-management/shipments/{shipment_id}/label"
-                print(f"   → Pobieranie etykiety: {label_url}")
-                
-                response = requests.get(label_url, headers=headers, timeout=30)
-                print(f"   → HTTP Status: {response.status_code}")
+            # Próbuj różne Accept headers — WZA może wymagać różnych formatów
+            for accept_type in ['application/octet-stream', 'application/pdf']:
+                try:
+                    headers = {
+                        'Authorization': f"Bearer {config['access_token']}",
+                        'Accept': accept_type
+                    }
+                    label_url = f"{base_url}/shipment-management/shipments/{shipment_id}/label"
+                    print(f"   → Pobieranie etykiety ({accept_type}): {label_url}")
 
-                if response.status_code == 200:
-                    print(f"   → [OK] Etykieta pobrana! Rozmiar: {len(response.content)} bytes")
-                    return response.content, shipment_id, None
-                else:
-                    print(f"   → [ERR] Błąd: {response.text[:200]}")
-            except Exception as e:
-                print(f"   → [ERR] Wyjątek: {e}")
-    
+                    response = requests.get(label_url, headers=headers, timeout=30)
+                    print(f"   → HTTP Status: {response.status_code}")
+
+                    if response.status_code == 200 and len(response.content) > 100:
+                        print(f"   → [OK] Etykieta pobrana! Rozmiar: {len(response.content)} bytes")
+                        return response.content, shipment_id, None
+                    elif response.status_code == 200:
+                        print(f"   → Pusta odpowiedź, próbuję inny format...")
+                    else:
+                        print(f"   → [WARN] {response.status_code}: {response.text[:100]}")
+                except Exception as e:
+                    print(f"   → [ERR] Wyjątek: {e}")
+
     # METODA 2: Sprawdź standardowe API (checkout-forms shipments)
     result, error = get_shipment_methods(order_id)
     if error:
@@ -5321,26 +5325,29 @@ def get_shipment_label(order_id):
     config = get_allegro_config()
     base_url = ALLEGRO_SANDBOX_API_URL if config.get('sandbox') else ALLEGRO_API_URL
     
-    try:
-        headers = {
-            'Authorization': f"Bearer {config['access_token']}",
-            'Accept': 'application/pdf'
-        }
-        label_url = f"{base_url}/order/checkout-forms/{order_id}/shipments/{shipment_id}/label"
-        print(f"   → Pobieranie etykiety: {label_url}")
-        
-        response = requests.get(label_url, headers=headers, timeout=30)
-        print(f"   → HTTP Status: {response.status_code}")
+    # Próbuj oba endpointy i oba Accept types
+    endpoints = [
+        f"{base_url}/shipment-management/shipments/{shipment_id}/label",
+        f"{base_url}/order/checkout-forms/{order_id}/shipments/{shipment_id}/label",
+    ]
+    for label_url in endpoints:
+        for accept_type in ['application/octet-stream', 'application/pdf']:
+            try:
+                headers = {
+                    'Authorization': f"Bearer {config['access_token']}",
+                    'Accept': accept_type
+                }
+                print(f"   → Pobieranie etykiety ({accept_type}): {label_url}")
+                response = requests.get(label_url, headers=headers, timeout=30)
+                print(f"   → HTTP Status: {response.status_code}")
 
-        if response.status_code == 200:
-            print(f"   → [OK] Etykieta pobrana! Rozmiar: {len(response.content)} bytes")
-            return response.content, shipment_id, None
-        else:
-            print(f"   → [ERR] Błąd: {response.text[:200]}")
-            return None, shipment_id, f"Błąd pobierania etykiety: HTTP {response.status_code}"
-    except Exception as e:
-        print(f"   → [ERR] Wyjątek: {e}")
-        return None, shipment_id, f"Wyjątek: {e}"
+                if response.status_code == 200 and len(response.content) > 100:
+                    print(f"   → [OK] Etykieta pobrana! Rozmiar: {len(response.content)} bytes")
+                    return response.content, shipment_id, None
+            except Exception as e:
+                print(f"   → [ERR] {e}")
+
+    return None, shipment_id, f"Nie udało się pobrać etykiety po próbach obu endpointów"
 
 
 def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=None):
