@@ -1637,10 +1637,10 @@ def bulk_nadaj():
             except:
                 pass
 
-            # Mark as shipped in DB
+            # Mark as shipped in DB (wyslana = znika z listy do wysyłki)
             from modules.database import get_db
             conn = get_db()
-            conn.execute("UPDATE sprzedaze SET status = 'nadana' WHERE allegro_order_id = ? AND status = 'nowa'", (order_id,))
+            conn.execute("UPDATE sprzedaze SET status = 'wyslana' WHERE allegro_order_id = ? AND status IN ('nowa', 'nadana')", (order_id,))
             conn.commit()
 
     # Merge PDFs into one
