@@ -3499,58 +3499,61 @@ ALLEGRO_PERF_HTML = '''{% extends "base.html" %}
 {% block page_title %}Allegro Performance{% endblock %}
 {% block content %}
 <style>
-.ap-card{background:var(--bg-secondary,#12121a);border:1px solid var(--border-color,#1e1e2e);border-radius:14px;padding:20px;margin-bottom:15px}
+.ap-card{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);padding:20px;margin-bottom:15px}
 .ap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px}
-.ap-stat{background:var(--bg-primary,#0a0a0f);border:1px solid var(--border-color,#1e1e2e);border-radius:12px;padding:16px;text-align:center}
-.ap-stat-val{font-size:1.5rem;font-weight:800}
-.ap-stat-lbl{font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted,#64748b);margin-top:4px}
+.ap-stat{background:rgba(13,15,26,0.8);border:1px solid rgba(255,255,255,0.06);border-left:3px solid rgba(143,245,255,0.2);padding:16px;text-align:center;transition:all 0.2s}
+.ap-stat:hover{border-left-color:#8ff5ff;background:rgba(13,15,26,0.95)}
+.ap-stat-val{font-size:1.4rem;font-weight:800;font-family:'Space Grotesk',sans-serif}
+.ap-stat-lbl{font-size:0.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);margin-top:4px;font-weight:600}
 .ap-table{width:100%;border-collapse:collapse;font-size:0.78rem}
-.ap-table th{text-align:left;padding:10px 8px;border-bottom:2px solid var(--border-color,#1e1e2e);color:var(--text-muted,#64748b);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;user-select:none}
-.ap-table th:hover{color:#6366f1}
-.ap-table td{padding:10px 8px;border-bottom:1px solid var(--border-color,#1e1e2e)}
-.ap-table tr:hover{background:rgba(99,102,241,0.05)}
-.ap-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.65rem;font-weight:600}
-.ap-badge.active{background:#22c55e22;color:#22c55e}
-.ap-badge.draft{background:#eab30822;color:#eab308}
-.ap-badge.ended{background:#64748b22;color:#64748b}
-.ap-good{color:#22c55e}.ap-warn{color:#eab308}.ap-bad{color:#ef4444}.ap-blue{color:#3b82f6}
+.ap-table th{text-align:left;padding:10px 8px;background:rgba(13,15,26,0.8);border-bottom:1px solid rgba(143,245,255,0.1);color:var(--text-muted);font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;font-weight:700;cursor:pointer;user-select:none}
+.ap-table th:hover{color:#8ff5ff}
+.ap-table td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.ap-table tr:hover{background:rgba(143,245,255,0.02)}
+.ap-badge{display:inline-block;padding:2px 8px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
+.ap-badge.active{background:rgba(190,238,0,0.1);color:#beee00;border:1px solid rgba(190,238,0,0.2)}
+.ap-badge.draft{background:rgba(245,158,11,0.1);color:#f59e0b;border:1px solid rgba(245,158,11,0.2)}
+.ap-badge.ended{background:rgba(100,116,139,0.1);color:#64748b;border:1px solid rgba(100,116,139,0.2)}
+.ap-good{color:#beee00}.ap-warn{color:#f59e0b}.ap-bad{color:#ff4d6a}.ap-cyan{color:#8ff5ff}
 .ap-filter{display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap}
-.ap-filter-btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-muted);cursor:pointer;font-size:0.75rem;font-weight:600;transition:all 0.2s}
-.ap-filter-btn:hover,.ap-filter-btn.active{border-color:#6366f1;color:#6366f1;background:rgba(99,102,241,0.1)}
+.ap-filter-btn{padding:6px 14px;border:1px solid rgba(255,255,255,0.08);background:rgba(15,15,30,0.65);color:var(--text-muted);cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Space Grotesk',sans-serif;transition:all 0.2s}
+.ap-filter-btn:hover,.ap-filter-btn.active{border-color:rgba(143,245,255,0.3);color:#8ff5ff;background:rgba(143,245,255,0.07)}
+@media(max-width:768px){.ap-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.ap-grid{grid-template-columns:1fr}}
 </style>
 
 <div style="text-align:center;padding:20px 0 10px">
-    <h1 style="font-size:1.5rem;background:linear-gradient(135deg,#6366f1,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent"><span class=material-symbols-outlined>bar_chart</span> ALLEGRO PERFORMANCE</h1>
+    <h1 style="font-size:1.5rem;font-family:'Space Grotesk',sans-serif;font-weight:800;background:linear-gradient(135deg,#8ff5ff,#beee00);-webkit-background-clip:text;-webkit-text-fill-color:transparent"><span class=material-symbols-outlined style="color:#8ff5ff;-webkit-text-fill-color:#8ff5ff">bar_chart</span> ALLEGRO PERFORMANCE</h1>
     <small style="color:var(--text-muted)">Wyswietlenia, obserwujacy, sprzedaze — wszystkie oferty</small>
     <div style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:12px">
-        <button id="syncBtn" onclick="syncStats()" style="padding:6px 18px;background:linear-gradient(135deg,#6366f1,#06b6d4);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;font-size:0.78rem"><span class=material-symbols-outlined>sync</span> Sync z Allegro</button>
+        <button id="syncBtn" onclick="syncStats()" style="padding:8px 20px;background:rgba(143,245,255,0.10);border:1px solid rgba(143,245,255,0.25);border-radius:8px;color:#8ff5ff;font-weight:700;cursor:pointer;font-size:0.78rem;font-family:'Space Grotesk',sans-serif;transition:all 0.2s"><span class=material-symbols-outlined style="font-size:0.9rem;vertical-align:middle">sync</span> Sync z Allegro</button>
         <span id="syncMsg" style="font-size:0.7rem;color:var(--text-muted)">{{ sync_msg }}</span>
     </div>
 </div>
 
 <!-- Totals -->
 <div class="ap-grid">
-    <div class="ap-stat" style="border-color:#6366f133">
-        <div class="ap-stat-val" style="color:#6366f1">{{ totals.total }}</div>
+    <div class="ap-stat" style="border-left-color:rgba(143,245,255,0.4)">
+        <div class="ap-stat-val" style="color:#8ff5ff">{{ totals.total }}</div>
         <div class="ap-stat-lbl">Ofert ({{ totals.aktywne }} aktywnych)</div>
     </div>
-    <div class="ap-stat">
-        <div class="ap-stat-val ap-blue">{{ "{:,}".format(totals.wyswietlenia).replace(",", " ") }}</div>
+    <div class="ap-stat" style="border-left-color:rgba(59,130,246,0.4)">
+        <div class="ap-stat-val ap-cyan">{{ "{:,}".format(totals.wyswietlenia).replace(",", " ") }}</div>
         <div class="ap-stat-lbl">Wyswietlenia</div>
     </div>
-    <div class="ap-stat">
+    <div class="ap-stat" style="border-left-color:rgba(245,158,11,0.4)">
         <div class="ap-stat-val" style="color:#f59e0b">{{ totals.obserwujacych }}</div>
         <div class="ap-stat-lbl">Obserwujacych</div>
     </div>
-    <div class="ap-stat">
+    <div class="ap-stat" style="border-left-color:rgba(190,238,0,0.4)">
         <div class="ap-stat-val ap-good">{{ totals.sprzedane }}</div>
         <div class="ap-stat-lbl">Sprzedanych szt</div>
     </div>
-    <div class="ap-stat">
-        <div class="ap-stat-val" style="color:#06b6d4">{{ "%.1f"|format(totals.konwersja) }}%</div>
+    <div class="ap-stat" style="border-left-color:rgba(255,107,155,0.4)">
+        <div class="ap-stat-val" style="color:#ff6b9b">{{ "%.1f"|format(totals.konwersja) }}%</div>
         <div class="ap-stat-lbl">Sr. konwersja</div>
     </div>
-    <div class="ap-stat" style="border-color:#22c55e33">
+    <div class="ap-stat" style="border-left-color:rgba(190,238,0,0.4)">
         <div class="ap-stat-val ap-good">{{ "{:,.0f}".format(totals.przychod).replace(",", " ") }} zl</div>
         <div class="ap-stat-lbl">Przychod total</div>
     </div>
