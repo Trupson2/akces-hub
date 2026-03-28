@@ -3769,7 +3769,7 @@ def analizator_palet_analyze():
     else:
         provider = 'gemini'
         api_key = get_config('gemini_api_key', '')
-        ai_model = get_config('gemini_model', 'gemini-2.5-flash')
+        ai_model = get_config('ai_model_analiza_palet', get_config('gemini_model', 'gemini-2.5-flash'))
 
     if not api_key:
         return jsonify({'ok': False, 'error': f'Brak klucza API {provider.title()}. Ustaw w Ustawienia.'})
@@ -3812,7 +3812,7 @@ def analiza_zakupu():
             else:
                 provider = 'gemini'
                 api_key = get_config('gemini_api_key', '')
-                ai_model = get_config('gemini_model', 'gemini-2.5-flash')
+                ai_model = get_config('ai_model_analiza_palet', get_config('gemini_model', 'gemini-2.5-flash'))
 
             if not api_key:
                 return jsonify({'ok': False, 'error': f'Brak klucza API {provider.title()}. Ustaw w Ustawienia.'})

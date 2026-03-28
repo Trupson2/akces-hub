@@ -7161,8 +7161,9 @@ def api_autowycena_paleta_stream(paleta_id):
 
     def generate():
         conn = get_db()
-        from modules.database import get_config
-        gemini_key = get_config('gemini_api_key', '')
+        from modules.database import get_config as _get_cfg
+        gemini_key = _get_cfg('gemini_api_key', '')
+        _wycena_model = _get_cfg('ai_model_wycena', _get_cfg('gemini_model', 'gemini-2.5-flash'))
 
         produkty = conn.execute(
             'SELECT id, asin, nazwa, ilosc, cena_brutto, cena_allegro, paleta_id FROM produkty WHERE paleta_id = ?',
@@ -7221,7 +7222,7 @@ Przykład:
                             "required": ["id", "cena"]
                         }
                     }
-                    api_url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}'
+                    api_url = f'https://generativelanguage.googleapis.com/v1beta/models/{_wycena_model}:generateContent?key={gemini_key}'
                     resp = _req.post(
                         api_url,
                         json={
@@ -9559,6 +9560,9 @@ def ai_ocena_stanu():
         if not api_key or not api_key['wartosc']:
             return jsonify({'success': False, 'error': 'Brak klucza Gemini API w konfiguracji'})
 
+        from modules.database import get_config as _get_cfg
+        _zdjecia_model = _get_cfg('ai_model_zdjecia', _get_cfg('gemini_model', 'gemini-2.5-flash-lite'))
+
         import requests as req, json as _json
         _stan_schema = {
             "type": "OBJECT",
@@ -9569,7 +9573,7 @@ def ai_ocena_stanu():
             "required": ["stan", "opis"]
         }
         response = req.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key['wartosc']}",
+            f"https://generativelanguage.googleapis.com/v1beta/models/{_zdjecia_model}:generateContent?key={api_key['wartosc']}",
             headers={'Content-Type': 'application/json'},
             json={
                 'contents': [{
