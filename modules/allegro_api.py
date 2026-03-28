@@ -5077,11 +5077,12 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
     if error:
         return None, f"Nie można pobrać zamówienia: {error}"
 
-    delivery = order.get('delivery', {})
-    delivery_method_id = delivery.get('method', {}).get('id')
-    delivery_method_name = delivery.get('method', {}).get('name', '').lower()
-    pickup_point = delivery.get('pickupPoint', {})
-    address = delivery.get('address', {})
+    delivery = order.get('delivery') or {}
+    method = delivery.get('method') or {}
+    delivery_method_id = method.get('id')
+    delivery_method_name = (method.get('name') or '').lower()
+    pickup_point = delivery.get('pickupPoint') or {}
+    address = delivery.get('address') or {}
     line_items = order.get('lineItems', [])
 
     print(f"   → deliveryMethodId: {delivery_method_id}")
@@ -5369,8 +5370,8 @@ def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=
         if order:
             items = order.get('lineItems', [])
             if items:
-                offer_id = items[0].get('offer', {}).get('id', '')
-                name = items[0].get('offer', {}).get('name', '')
+                offer_id = (items[0].get('offer') or {}).get('id', '')
+                name = (items[0].get('offer') or {}).get('name', '')
                 # Szukaj lokalizacji w bazie
                 lok = ''
                 if offer_id:
