@@ -4486,3 +4486,163 @@ def koszty_allegro():
     '''
 
     return render(html, page_title='Koszty Allegro')
+
+
+@analityka_bp.route('/analityka/zakupy-dostawcy')
+def analityka_zakupy_dostawcy():
+    """Analityka zakupów od dostawców - wydatki, ROI, leżaki, macierz logistyczna."""
+    from modules.database import get_db
+    from flask import render_template
+    from datetime import datetime
+
+    conn = get_db()
+    now = datetime.now()
+
+    # ── KPI globalne ──
+    kpi = conn.execute('''
+        SELECT
+            COUNT(*) as ilosc_palet,
+            COALESCE(SUM(cena_zakupu), 0) as total_wydane,
+            COALESCE(AVG(cena_zakupu), 0) as avg_palety,
+            COALESCE(SUM(ilosc_sztuk), 0) as total_sztuk
+        FROM palety
+    ''').fetchone()
+
+    # ── Przychód łączny z wszystkich palet (z tabeli sprzedaze) ──
+    total_przychod_row = conn.execute('''
+        SELECT COALESCE(SUM(s.cena * s.ilosc), 0) as przychod
+        FROM sprzedaze s
+        LEFT JOIN produkty pr ON s.produkt_id = pr.id
+        LEFT JOIN oferty o ON s.oferta_id = o.id
+        LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id
+        WHERE COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot')
+          AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
+    ''').fetchone()
+    total_przychod = total_przychod_row['przychod'] or 0
+    total_wydane = kpi['total_wydane'] or 0
+    total_zysk = total_przychod - total_wydane
+    total_roi = (total_zysk / total_wydane * 100) if total_wydane > 0 else 0
+
+    # ── Dostawcy ──
+    dostawcy_raw = conn.execute('''
+        SELECT
+            COALESCE(NULLIF(TRIM(dostawca),''), 'Nieznany') as dostawca,
+            COUNT(*) as palety,
+            COALESCE(SUM(cena_zakupu), 0) as wydane,
+            COALESCE(AVG(cena_zakupu), 0) as avg_cena,
+            MIN(data_zakupu) as first_zakup,
+            MAX(data_zakupu) as last_zakup,
+            COALESCE(SUM(ilosc_sztuk), 0) as sztuk_total
+        FROM palety
+        GROUP BY COALESCE(NULLIF(TRIM(dostawca),''), 'Nieznany')
+        ORDER BY wydane DESC
+    ''').fetchall()
+
+    # Dla każdego dostawcy oblicz przychód i ROI
+    dostawcy = []
+    for d in dostawcy_raw:
+        przychod_d = conn.execute('''
+            SELECT COALESCE(SUM(s.cena * s.ilosc), 0) as przychod
+            FROM sprzedaze s
+            LEFT JOIN produkty pr ON s.produkt_id = pr.id
+            LEFT JOIN oferty o ON s.oferta_id = o.id
+            LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id
+            JOIN palety p ON COALESCE(pr.paleta_id, pr2.paleta_id) = p.id
+            WHERE COALESCE(NULLIF(TRIM(p.dostawca),''), 'Nieznany') = ?
+              AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot')
+              AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
+        ''', (d['dostawca'],)).fetchone()['przychod'] or 0
+
+        wydane = d['wydane'] or 0
+        zysk_d = przychod_d - wydane
+        roi_d = (zysk_d / wydane * 100) if wydane > 0 else 0
+        marza_d = (zysk_d / przychod_d * 100) if przychod_d > 0 else 0
+
+        dostawcy.append({
+            'dostawca': d['dostawca'],
+            'palety': d['palety'],
+            'wydane': wydane,
+            'avg_cena': d['avg_cena'],
+            'przychod': przychod_d,
+            'zysk': zysk_d,
+            'roi': roi_d,
+            'marza': marza_d,
+            'first_zakup': d['first_zakup'],
+            'last_zakup': d['last_zakup'],
+            'sztuk': d['sztuk_total'],
+        })
+
+    # ── Miesięczne zakupy (ostatnie 12 mies.) ──
+    miesieczne = conn.execute('''
+        SELECT
+            strftime('%Y-%m', data_zakupu) as miesiac,
+            COUNT(*) as palety,
+            COALESCE(SUM(cena_zakupu), 0) as wydane
+        FROM palety
+        WHERE data_zakupu >= date('now', '-12 months')
+        GROUP BY miesiac
+        ORDER BY miesiac
+    ''').fetchall()
+    mies_labels = [r['miesiac'] for r in miesieczne]
+    mies_wydane = [round(r['wydane'], 2) for r in miesieczne]
+    mies_palety = [r['palety'] for r in miesieczne]
+
+    # ── Leżaki (produkty w magazynie > 30 dni) ──
+    lezaki = conn.execute('''
+        SELECT
+            pr.id,
+            pr.nazwa,
+            pr.kategoria,
+            pr.cena_allegro,
+            pr.cena_netto,
+            pr.ilosc,
+            pr.lokalizacja,
+            pr.stan,
+            p.dostawca,
+            p.nazwa as paleta_nazwa,
+            pr.data_dodania,
+            CAST(julianday('now') - julianday(pr.data_dodania) AS INTEGER) as dni_w_magazynie
+        FROM produkty pr
+        LEFT JOIN palety p ON pr.paleta_id = p.id
+        WHERE pr.status IN ('magazyn', 'dostepny')
+          AND pr.ilosc > 0
+          AND pr.data_dodania IS NOT NULL
+          AND CAST(julianday('now') - julianday(pr.data_dodania) AS INTEGER) > 30
+        ORDER BY dni_w_magazynie DESC
+        LIMIT 50
+    ''').fetchall()
+
+    lezaki_list = [dict(r) for r in lezaki]
+
+    # ── Macierz logistyczna per kategoria ──
+    macierz = conn.execute('''
+        SELECT
+            COALESCE(NULLIF(pr.kategoria,''), 'inne') as kategoria,
+            COUNT(DISTINCT pr.id) as produkty,
+            COALESCE(SUM(pr.ilosc), 0) as sztuk_magazyn,
+            COALESCE(SUM(CASE WHEN pr.status='sprzedany' THEN 1 ELSE 0 END), 0) as sprzedane,
+            COALESCE(AVG(pr.cena_allegro), 0) as avg_cena
+        FROM produkty pr
+        GROUP BY COALESCE(NULLIF(pr.kategoria,''), 'inne')
+        ORDER BY sprzedane DESC
+        LIMIT 15
+    ''').fetchall()
+
+    return render_template(
+        'analityka_zakupy.html',
+        kpi_palety=kpi['ilosc_palet'] or 0,
+        kpi_wydane=total_wydane,
+        kpi_przychod=total_przychod,
+        kpi_zysk=total_zysk,
+        kpi_roi=total_roi,
+        kpi_sztuk=kpi['total_sztuk'] or 0,
+        dostawcy=dostawcy,
+        mies_labels=mies_labels,
+        mies_wydane=mies_wydane,
+        mies_palety=mies_palety,
+        lezaki=lezaki_list,
+        macierz=[dict(r) for r in macierz],
+        version=current_app.config.get('VERSION', ''),
+        brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
+        current_user=session.get('user'),
+    )
