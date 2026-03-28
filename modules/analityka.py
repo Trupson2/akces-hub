@@ -78,6 +78,112 @@ def statystyki():
     chart_data = json.dumps(dane_miesieczne)
     chart_orders = json.dumps(dane_zamowienia)
 
+    # === WYLICZNIK CZASU OSZCZĘDZONEGO ===
+    # Każda operacja ma szacowany czas ręcznego wykonania
+    time_data = {}
+    try:
+        # Etykiety wygenerowane (status wyslana/nadana)
+        etykiety = conn.execute(
+            "SELECT COUNT(*) as cnt FROM sprzedaze WHERE status IN ('wyslana','nadana')"
+        ).fetchone()['cnt'] or 0
+
+        # Oferty wystawione na Allegro
+        oferty_cnt = conn.execute("SELECT COUNT(*) as cnt FROM oferty").fetchone()['cnt'] or 0
+
+        # Produkty dodane do magazynu
+        produkty_cnt = conn.execute("SELECT COUNT(*) as cnt FROM produkty").fetchone()['cnt'] or 0
+
+        # Produkty z analizą AI (mają meta_title inny niż nazwa)
+        ai_analizy = conn.execute(
+            "SELECT COUNT(*) as cnt FROM produkty WHERE meta_title IS NOT NULL AND meta_title != '' AND meta_title != nazwa"
+        ).fetchone()['cnt'] or 0
+
+        # Miesiące aktywne (miesiące ze sprzedażą)
+        miesiace_aktywne = conn.execute(
+            "SELECT COUNT(DISTINCT strftime('%Y-%m', REPLACE(SUBSTR(data_sprzedazy,1,10),'T',''))) as cnt FROM sprzedaze WHERE data_sprzedazy IS NOT NULL AND data_sprzedazy != ''"
+        ).fetchone()['cnt'] or 0
+
+        # Palety przetworzone
+        palety_cnt = conn.execute("SELECT COUNT(*) as cnt FROM palety").fetchone()['cnt'] or 0
+
+        # Czas oszczędzony w minutach
+        MIN_ETYKIETA = 4       # ręczne nadanie przez portal kuriera
+        MIN_OFERTA = 8         # ręczne wystawienie (tytuł, opis, kategoria, zdjęcia)
+        MIN_PRODUKT = 2        # ręczne wpisanie do Excela/bazy
+        MIN_AI_ANALIZA = 12    # ręczne sprawdzenie ceny na Amazon/Allegro
+        MIN_RAPORT = 90        # miesięczny raport P&L w Excelu
+        MIN_PALETA = 30        # ręczna inwentaryzacja palety
+
+        min_etykiety = etykiety * MIN_ETYKIETA
+        min_oferty = oferty_cnt * MIN_OFERTA
+        min_produkty = produkty_cnt * MIN_PRODUKT
+        min_ai = ai_analizy * MIN_AI_ANALIZA
+        min_raporty = miesiace_aktywne * MIN_RAPORT
+        min_palety = palety_cnt * MIN_PALETA
+
+        total_min = min_etykiety + min_oferty + min_produkty + min_ai + min_raporty + min_palety
+        total_h = total_min / 60
+        total_dni_robocze = total_h / 8  # 8h dzień roboczy
+
+        time_data = {
+            'etykiety': etykiety, 'min_etykiety': min_etykiety,
+            'oferty': oferty_cnt, 'min_oferty': min_oferty,
+            'produkty': produkty_cnt, 'min_produkty': min_produkty,
+            'ai_analizy': ai_analizy, 'min_ai': min_ai,
+            'miesiace': miesiace_aktywne, 'min_raporty': min_raporty,
+            'palety': palety_cnt, 'min_palety': min_palety,
+            'total_min': total_min,
+            'total_h': total_h,
+            'total_dni': total_dni_robocze,
+        }
+    except Exception as _e:
+        print(f"[time_data] error: {_e}")
+        time_data = {'total_min': 0, 'total_h': 0, 'total_dni': 0,
+                     'etykiety': 0, 'min_etykiety': 0,
+                     'oferty': 0, 'min_oferty': 0,
+                     'produkty': 0, 'min_produkty': 0,
+                     'ai_analizy': 0, 'min_ai': 0,
+                     'miesiace': 0, 'min_raporty': 0,
+                     'palety': 0, 'min_palety': 0}
+
+    def fmt_czas(min):
+        h = int(min) // 60
+        m = int(min) % 60
+        if h == 0: return f"{m}min"
+        if m == 0: return f"{h}h"
+        return f"{h}h {m}min"
+
+    def _time_row(icon, label, cnt, min_per, total_min_val):
+        return f'''<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(13,15,26,0.8);border:1px solid rgba(255,255,255,0.05)">
+        <div style="font-size:1.2rem;width:24px;text-align:center">{icon}</div>
+        <div style="flex:1;font-size:0.8rem;color:#e2e8f0">{label}</div>
+        <div style="font-size:0.75rem;color:#64748b;white-space:nowrap">{cnt} × {min_per}min</div>
+        <div style="font-size:0.85rem;font-weight:700;color:#beee00;white-space:nowrap;min-width:60px;text-align:right">= {fmt_czas(total_min_val)}</div>
+    </div>'''
+
+    _rows_html = ''.join([
+        _time_row('⚡', 'Etykiety kurierskie',   time_data.get('etykiety', 0),  4,  time_data.get('min_etykiety', 0)),
+        _time_row('📦', 'Wystawienia Allegro',    time_data.get('oferty', 0),    8,  time_data.get('min_oferty', 0)),
+        _time_row('🗂️', 'Produkty w magazynie',   time_data.get('produkty', 0),  2,  time_data.get('min_produkty', 0)),
+        _time_row('🤖', 'Analizy AI',             time_data.get('ai_analizy', 0),12, time_data.get('min_ai', 0)),
+        _time_row('📊', 'Raporty miesięczne',     time_data.get('miesiace', 0),  90, time_data.get('min_raporty', 0)),
+        _time_row('🏭', 'Inwentaryzacje palet',   time_data.get('palety', 0),    30, time_data.get('min_palety', 0)),
+    ])
+
+    panel_czas_html = f"""
+<div id="panel-czas" class="stat-panel cy-panel" style="display:none">
+    <div style="text-align:center;padding:20px 0 10px">
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:3rem;font-weight:800;color:#8ff5ff;text-shadow:0 0 20px rgba(143,245,255,0.4);line-height:1">{time_data['total_h']:.1f}h</div>
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:#64748b;margin-top:4px">zaoszczędzonego czasu</div>
+        <div style="font-size:0.85rem;color:#beee00;margin-top:8px;font-weight:600">≈ {time_data['total_dni']:.1f} dni roboczych</div>
+    </div>
+    <div style="margin:16px 0;display:flex;flex-direction:column;gap:8px">
+        {_rows_html}
+    </div>
+    <div style="font-size:0.6rem;color:#64748b;text-align:center;margin-top:8px">* Szacunki na podstawie typowego czasu ręcznego wykonania każdej operacji</div>
+</div>
+"""
+
     # TOP produkty i dostawcy
     top_produkty = stats.get('top_produkty', [])
     top_dostawcy = stats.get('top_dostawcy', [])
@@ -178,6 +284,7 @@ def statystyki():
         <button class="cy-tab" onclick="showTab('magazyn')" id="tab-magazyn">Magazyn</button>
         <button class="cy-tab" onclick="showTab('alltime')" id="tab-alltime">Łącznie</button>
         <button class="cy-tab" onclick="showTab('top')" id="tab-top">Top</button>
+        <button class="cy-tab" onclick="showTab('czas')" id="tab-czas">⏱ Czas</button>
     </div>
 
 
@@ -287,6 +394,9 @@ def statystyki():
         {'<div class="cy-section"><span class="cy-section-bar lime"></span><span class="cy-section-lbl">Top produkty</span></div><div class="cy-card">' + top_prod_html + '</div>' if top_prod_html else ''}
         {'<div class="cy-section"><span class="cy-section-bar"></span><span class="cy-section-lbl">Top dostawcy (ROI)</span></div><div class="cy-card">' + top_dost_html + '</div>' if top_dost_html else ''}
     </div>
+
+    <!-- TAB: CZAS -->
+    {panel_czas_html}
 
     <!-- WYKRES - zawsze widoczny -->
     <div class="cy-section"><span class="cy-section-bar"></span><span class="cy-section-lbl">Wykres {current_year}</span></div>
