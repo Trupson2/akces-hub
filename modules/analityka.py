@@ -802,18 +802,35 @@ def analityka_palety():
         else:
             prognoza = zysk
 
-        # Tempo sprzedaży (szt/dzień od pierwszej sprzedaży)
+        # Tempo sprzedaży (szt/dzień)
+        # Logika: od daty pierwszej sprzedaży, ale jeśli ta data jest świeższa
+        # niż 3 dni (spike!) — cofamy się do daty zakupu palety jako baseline,
+        # żeby nie zawyżać tempa palet gdzie właśnie zaczęliśmy sprzedawać.
         from datetime import datetime as _dt
         try:
+            _today = _dt.now()
             _first = p['first_sale_date']
+            _data_zakupu_str = str(p['data_zakupu'] or '')[:10]
+            _data_zakupu = _dt.strptime(_data_zakupu_str, '%Y-%m-%d') if _data_zakupu_str and _data_zakupu_str != 'N' else None
             if _first:
-                _data_start = _dt.strptime(str(_first)[:10], '%Y-%m-%d')
+                _data_first_sale = _dt.strptime(str(_first)[:10], '%Y-%m-%d')
+                _dni_od_first = (_today - _data_first_sale).days
+                if _dni_od_first >= 3:
+                    # Mamy wystarczająco dużo danych — liczymy od 1. sprzedaży
+                    _dni = max(1, _dni_od_first)
+                elif _data_zakupu:
+                    # Świeża sprzedaż (<3 dni) — używamy daty zakupu palety
+                    # żeby nie zawyżać przez spike jednego dnia
+                    _dni = max(3, (_today - _data_zakupu).days)
+                else:
+                    _dni = max(1, _dni_od_first)
+            elif _data_zakupu:
+                # Brak sprzedaży jeszcze — fallback na datę zakupu
+                _dni = max(1, (_today - _data_zakupu).days)
             else:
-                # fallback: data zakupu palety (brak sprzedaży jeszcze)
-                _data_start = _dt.strptime(str(p['data_zakupu'] or '')[:10], '%Y-%m-%d')
-            _dni = max(1, (_dt.now() - _data_start).days)
+                _dni = 7  # nie mamy żadnej daty
         except:
-            _dni = 1
+            _dni = 7
         tempo = sprzedanych / _dni if sprzedanych > 0 else 0
         procent = (sprzedanych / wszystkich * 100) if wszystkich > 0 else 0
 
