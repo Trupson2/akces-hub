@@ -2824,7 +2824,7 @@ FORMAT ODPOWIEDZI (tylko JSON, bez komentarzy):
     try:
         import google.generativeai as genai
         from modules.database import get_config
-        gemini_model_name = get_config('gemini_model', 'gemini-2.5-flash')
+        gemini_model_name = get_config('ai_model_tytuly', get_config('gemini_model', 'gemini-2.5-flash'))
         genai.configure(api_key=gemini_key)
         model = genai.GenerativeModel(gemini_model_name)
         

@@ -100,6 +100,10 @@ def ustawienia_kreator():
         'support_chat_id': get_config('support_chat_id', ''),
         'gemini_api_key': get_config('gemini_api_key', ''),
         'gemini_model': get_config('gemini_model', 'gemini-2.5-flash'),
+        'ai_model_analiza_palet': get_config('ai_model_analiza_palet', 'gemini-2.5-flash'),
+        'ai_model_zdjecia': get_config('ai_model_zdjecia', 'gemini-2.5-flash-lite'),
+        'ai_model_wycena': get_config('ai_model_wycena', 'gemini-2.5-flash'),
+        'ai_model_tytuly': get_config('ai_model_tytuly', 'gemini-2.5-flash'),
         'perplexity_api_key': get_config('perplexity_api_key', ''),
         'ngrok_auth_token': get_config('ngrok_auth_token', ''),
         'ngrok_domain': get_config('ngrok_domain', ''),
@@ -156,11 +160,44 @@ def ustawienia_kreator():
             'hint': 'Pobierz klucz z <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/apikey</a> (darmowy!)',
             'fields': [
                 {'name': 'gemini_api_key', 'label': 'API Key', 'type': 'password', 'placeholder': 'AIzaSy...'},
-                {'name': 'gemini_model', 'label': 'Model AI', 'type': 'select', 'options': [
+                {'name': 'gemini_model', 'label': 'Model AI (globalny fallback)', 'type': 'select', 'options': [
                     ('gemini-2.5-flash', '<span class=material-symbols-outlined>bolt</span> Gemini 2.5 Flash — ZALECANY <span class=material-symbols-outlined style=color:#22c55e>check_circle</span> darmowy, stabilny'),
                     ('gemini-2.5-flash-lite', '<span class=material-symbols-outlined>air</span> Gemini 2.5 Flash Lite — szybszy, mniej dokładny'),
                     ('gemini-3.1-flash-lite-preview', '<span class=material-symbols-outlined>rocket_launch</span> Gemini 3.1 Flash Lite — najnowszy, testowy <span class=material-symbols-outlined>warning</span>'),
                     ('gemini-3.1-pro-preview', '<span class=material-symbols-outlined>psychology</span> Gemini 3.1 Pro — najlepszy, testowy, płatny <span class=material-symbols-outlined>payments</span>'),
+                ]},
+                {'type': 'header', 'label': 'Model AI per sektor'},
+                {'name': 'ai_model_analiza_palet', 'label': 'Analiza palet', 'type': 'select',
+                 'hint': 'Analiza manifestu palety, wycena produktów, czas sprzedaży',
+                 'options': [
+                    ('gemini-2.5-flash', 'Gemini 2.5 Flash (zalecany)'),
+                    ('gemini-2.5-flash-lite', 'Gemini 2.5 Flash Lite (szybszy, tańszy)'),
+                    ('gemini-2.0-flash', 'Gemini 2.0 Flash (poprzednia generacja)'),
+                    ('gemini-2.0-flash-lite', 'Gemini 2.0 Flash Lite'),
+                ]},
+                {'name': 'ai_model_zdjecia', 'label': 'Analiza zdjęć (stan produktu)', 'type': 'select',
+                 'hint': 'Ocena stanu produktu ze zdjęcia',
+                 'options': [
+                    ('gemini-2.5-flash', 'Gemini 2.5 Flash (zalecany)'),
+                    ('gemini-2.5-flash-lite', 'Gemini 2.5 Flash Lite (szybszy, tańszy)'),
+                    ('gemini-2.0-flash', 'Gemini 2.0 Flash (poprzednia generacja)'),
+                    ('gemini-2.0-flash-lite', 'Gemini 2.0 Flash Lite'),
+                ]},
+                {'name': 'ai_model_wycena', 'label': 'Auto-wycena produktów', 'type': 'select',
+                 'hint': 'Automatyczna wycena cen sprzedaży produktów',
+                 'options': [
+                    ('gemini-2.5-flash', 'Gemini 2.5 Flash (zalecany)'),
+                    ('gemini-2.5-flash-lite', 'Gemini 2.5 Flash Lite (szybszy, tańszy)'),
+                    ('gemini-2.0-flash', 'Gemini 2.0 Flash (poprzednia generacja)'),
+                    ('gemini-2.0-flash-lite', 'Gemini 2.0 Flash Lite'),
+                ]},
+                {'name': 'ai_model_tytuly', 'label': 'Generowanie tytułów Allegro', 'type': 'select',
+                 'hint': 'Generowanie SEO tytułów ofert Allegro',
+                 'options': [
+                    ('gemini-2.5-flash', 'Gemini 2.5 Flash (zalecany)'),
+                    ('gemini-2.5-flash-lite', 'Gemini 2.5 Flash Lite (szybszy, tańszy)'),
+                    ('gemini-2.0-flash', 'Gemini 2.0 Flash (poprzednia generacja)'),
+                    ('gemini-2.0-flash-lite', 'Gemini 2.0 Flash Lite'),
                 ]},
             ]
         },
@@ -373,6 +410,9 @@ def ustawienia_kreator():
     <div class="kre-section-body">
         <div class="kre-section-hint">{{ section.hint | safe }}</div>
         {% for field in section.fields %}
+        {% if field.type == 'header' %}
+        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--c-muted);margin:16px 0 8px;border-top:1px solid var(--c-border);padding-top:12px">{{ field.label }}</div>
+        {% else %}
         <div class="kre-field">
             <label>{{ field.label }}</label>
             {% if field.type == 'select' %}
@@ -385,7 +425,11 @@ def ustawienia_kreator():
             <input type="{{ field.type }}" name="{{ field.name }}" value="{{ cfg.get(field.name, '') }}"
                 placeholder="{{ field.get('placeholder', '') }}">
             {% endif %}
+            {% if field.get('hint') %}
+            <div style="font-size:0.65rem;color:var(--c-muted);margin-top:3px">{{ field.hint }}</div>
+            {% endif %}
         </div>
+        {% endif %}
         {% endfor %}
         {% if section.get('has_test') %}
         <div id="vpsTestResult"></div>
@@ -477,7 +521,7 @@ def ustawienia_kreator_save():
     keys = [
         'allegro_client_id', 'allegro_client_secret', 'allegro_redirect_uri',
         'telegram_bot_token', 'telegram_chat_id', 'support_chat_id',
-        'gemini_api_key', 'perplexity_api_key',
+        'gemini_api_key', 'gemini_model', 'perplexity_api_key',
         'ngrok_auth_token', 'ngrok_domain',
         'olx_client_id', 'olx_client_secret', 'olx_redirect_uri',
         'support_email', 'support_phone', 'support_info',
@@ -488,6 +532,14 @@ def ustawienia_kreator_save():
     for key in keys:
         val = request.form.get(key, '').strip()
         if val:
+            set_config(key, val)
+            saved += 1
+
+    # Per-sector AI model selectors (validate against allowed values)
+    _allowed_ai_models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-2.0-flash-lite']
+    for key in ['ai_model_analiza_palet', 'ai_model_zdjecia', 'ai_model_wycena', 'ai_model_tytuly']:
+        val = request.form.get(key)
+        if val in _allowed_ai_models:
             set_config(key, val)
             saved += 1
 
