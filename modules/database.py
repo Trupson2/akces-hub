@@ -240,6 +240,7 @@ def init_db():
             ('sprzedaze', 'adres', 'TEXT DEFAULT ""'),
             ('sprzedaze', 'nazwa', 'TEXT DEFAULT ""'),  # ← NOWA! Nazwa produktu z Allegro
             ('sprzedaze', 'zdjecie_url', 'TEXT DEFAULT ""'),  # ← NOWA! Zdjęcie produktu
+            ('sprzedaze', 'metoda_dostawy', 'TEXT DEFAULT ""'),  # ← NOWA! Metoda dostawy (InPost/DPD/DHL/Orlen)
             ('telegram_logs', 'message_id', 'INTEGER DEFAULT NULL'),
             ('palety', 'regal', 'TEXT DEFAULT ""'),
             ('palety', 'dostawca', 'TEXT DEFAULT ""'),  # ← WAŻNA! Dostawca palety

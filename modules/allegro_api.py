@@ -3374,6 +3374,23 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                     for row in existing_rows:
                         conn.execute('UPDATE sprzedaze SET adres = ? WHERE id = ?', (new_adres, row['id']))
 
+                # Backfill metoda_dostawy jeśli puste
+                _delivery_ex = order.get('delivery') or {}
+                _method_ex = (_delivery_ex.get('method', {}).get('name', '') or '').lower()
+                _pickup_ex = (_delivery_ex.get('pickupPoint', {}).get('id', '') or '').upper()
+                if 'orlen' in _method_ex or _pickup_ex.startswith('ORL'):
+                    _md_ex = 'Orlen'
+                elif any(x in _method_ex for x in ['inpost', 'paczkomat', 'paczka w ruchu']) or (_pickup_ex and not _pickup_ex.startswith('ORL')):
+                    _md_ex = 'InPost'
+                elif 'dpd' in _method_ex:
+                    _md_ex = 'DPD'
+                elif 'dhl' in _method_ex:
+                    _md_ex = 'DHL'
+                else:
+                    _md_ex = (_delivery_ex.get('method', {}).get('name', '') or '')[:20] or 'Kurier'
+                for row in existing_rows:
+                    conn.execute('UPDATE sprzedaze SET metoda_dostawy = ? WHERE id = ? AND (metoda_dostawy IS NULL OR metoda_dostawy = "")', (_md_ex, row['id']))
+
                 # Uzupełnij koszt_dostawy jeśli brakuje (backfill przy re-sync)
                 try:
                     _has_delivery = conn.execute('SELECT SUM(koszt_dostawy) as kd FROM sprzedaze WHERE allegro_order_id = ?', (order_id,)).fetchone()
@@ -3455,7 +3472,22 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
             if address.get('city'):
                 adres_parts.append(address.get('city'))
         adres = ', '.join(adres_parts) if adres_parts else ''
-        
+
+        # Wykryj metodę dostawy (carrier)
+        _method_name = (delivery.get('method', {}).get('name', '') or '')
+        _ml = _method_name.lower()
+        _pid = (pickup.get('id', '') or '').upper()
+        if 'orlen' in _ml or _pid.startswith('ORL'):
+            _metoda_dostawy = 'Orlen'
+        elif any(x in _ml for x in ['inpost', 'paczkomat', 'paczka w ruchu']) or (_pid and not _pid.startswith('ORL')):
+            _metoda_dostawy = 'InPost'
+        elif 'dpd' in _ml:
+            _metoda_dostawy = 'DPD'
+        elif 'dhl' in _ml:
+            _metoda_dostawy = 'DHL'
+        else:
+            _metoda_dostawy = _method_name[:20] or 'Kurier'
+
         # Oblicz koszt dostawy per zamówienie (totalToPay - suma item prices)
         _order_summary = order.get('summary') or {}
         _order_total = float((_order_summary.get('totalToPay') or {}).get('amount', 0))
@@ -3546,9 +3578,9 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
 
                 # Zapisz do bazy - z produkt_id, oferta_id, nazwą, adresem i kosztem dostawy
                 conn.execute('''INSERT INTO sprzedaze
-                    (allegro_order_id, cena, ilosc, kupujacy, status, data_sprzedazy, produkt_id, oferta_id, nazwa, adres, notified, koszt_dostawy)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                    (order_id, cena, ilosc, kupujacy, 'nowa', order_date, produkt_id, oferta_db_id, nazwa, adres, 0, _item_delivery))
+                    (allegro_order_id, cena, ilosc, kupujacy, status, data_sprzedazy, produkt_id, oferta_id, nazwa, adres, notified, koszt_dostawy, metoda_dostawy)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (order_id, cena, ilosc, kupujacy, 'nowa', order_date, produkt_id, oferta_db_id, nazwa, adres, 0, _item_delivery, _metoda_dostawy))
                 synced += 1
                 
                 # ========================================
