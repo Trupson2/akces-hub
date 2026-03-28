@@ -1410,56 +1410,56 @@ def edytuj_produkt(code):
         <div class="form-row-3">
             <div class="form-group"><label>Kategoria</label>
                 <select name="kategoria" class="form-ctrl">
-                    <option value="ev_ladowarki" {"selected" if p.get('kategoria')=='ev_ladowarki' else ''}><span class=material-symbols-outlined>bolt</span> Ładowarki EV</option>
-                    <option value="foto_video" {"selected" if p.get('kategoria')=='foto_video' else ''}><span class=material-symbols-outlined>photo_camera</span> Foto/Video</option>
-                    <option value="druk3d" {"selected" if p.get('kategoria')=='druk3d' else ''}><span class=material-symbols-outlined>print</span> Druk 3D</option>
-                    <option value="smart_home" {"selected" if p.get('kategoria')=='smart_home' else ''}><span class=material-symbols-outlined>videocam</span> Smart Home</option>
-                    <option value="motoryzacja" {"selected" if p.get('kategoria')=='motoryzacja' else ''}><span class=material-symbols-outlined>directions_car</span> Motoryzacja</option>
-                    <option value="optyka" {"selected" if p.get('kategoria')=='optyka' else ''}><span class=material-symbols-outlined>explore</span> Optyka</option>
-                    <option value="rolnictwo" {"selected" if p.get('kategoria')=='rolnictwo' else''}><span class=material-symbols-outlined>agriculture</span> Rolnictwo</option>
-                    <option value="dekoracje" {"selected" if p.get('kategoria')=='dekoracje' else ''}><span class=material-symbols-outlined>park</span> Dekoracje</option>
-                    <option value="oswietlenie" {"selected" if p.get('kategoria')=='oswietlenie' else ''}><span class=material-symbols-outlined>lightbulb</span> Oświetlenie</option>
-                    <option value="kuchnia" {"selected" if p.get('kategoria')=='kuchnia' else ''}><span class=material-symbols-outlined>restaurant</span> Kuchnia</option>
-                    <option value="budowa" {"selected" if p.get('kategoria')=='budowa' else ''}><span class=material-symbols-outlined>handyman</span> Budowa</option>
-                    <option value="biuro" {"selected" if p.get('kategoria')=='biuro' else ''}><span class=material-symbols-outlined>work</span> Biuro</option>
-                    <option value="outdoor" {"selected" if p.get('kategoria')=='outdoor' else ''}><span class=material-symbols-outlined>hiking</span> Outdoor</option>
-                    <option value="rehabilitacja" {"selected" if p.get('kategoria')=='rehabilitacja' else ''}><span class=material-symbols-outlined>accessible</span> Rehabilitacja</option>
-                    <option value="tekstylia" {"selected" if p.get('kategoria')=='tekstylia' else ''}><span class=material-symbols-outlined>bed</span> Tekstylia</option>
-                    <option value="kosmetyki" {"selected" if p.get('kategoria')=='kosmetyki' else ''}><span class=material-symbols-outlined>sanitizer</span> Kosmetyki</option>
-                    <option value="ksiazki" {"selected" if p.get('kategoria')=='ksiazki' else ''}><span class=material-symbols-outlined>menu_book</span> Książki</option>
-                    <option value="prezenty" {"selected" if p.get('kategoria')=='prezenty' else ''}><span class=material-symbols-outlined>redeem</span> Prezenty</option>
-                    <option value="bezpieczenstwo" {"selected" if p.get('kategoria')=='bezpieczenstwo' else ''}><span class=material-symbols-outlined>lock</span> Bezpieczeństwo</option>
-                    <option value="bagaz" {"selected" if p.get('kategoria')=='bagaz' else ''}><span class=material-symbols-outlined>luggage</span> Bagaż</option>
-                    <option value="silownia" {"selected" if p.get('kategoria')=='silownia' else ''}><span class=material-symbols-outlined>fitness_center</span> Siłownia</option>
-                    <option value="rowery" {"selected" if p.get('kategoria')=='rowery' else ''}><span class=material-symbols-outlined>directions_bike</span> Rowery</option>
-                    <option value="hulajnogi" {"selected" if p.get('kategoria')=='hulajnogi' else ''}><span class=material-symbols-outlined>electric_scooter</span> Hulajnogi</option>
-                    <option value="elektronika" {"selected" if p.get('kategoria')=='elektronika' else ''}><span class=material-symbols-outlined>photo_camera</span> Elektronika</option>
-                    <option value="akcesoria" {"selected" if p.get('kategoria')=='akcesoria' else ''}><span class=material-symbols-outlined>battery_full</span> Akcesoria</option>
-                    <option value="agd_male" {"selected" if p.get('kategoria')=='agd_male' else ''}><span class=material-symbols-outlined>power</span> AGD małe</option>
-                    <option value="agd_duze" {"selected" if p.get('kategoria')=='agd_duze' else ''}><span class=material-symbols-outlined>home</span> AGD duże</option>
-                    <option value="komputery" {"selected" if p.get('kategoria')=='komputery' else ''}><span class=material-symbols-outlined>computer</span> Komputery</option>
+                    <option value="ev_ladowarki" {"selected" if p.get('kategoria')=='ev_ladowarki' else ''}>⚡ Ładowarki EV</option>
+                    <option value="foto_video" {"selected" if p.get('kategoria')=='foto_video' else ''}>📷 Foto/Video</option>
+                    <option value="druk3d" {"selected" if p.get('kategoria')=='druk3d' else ''}>🖨 Druk 3D</option>
+                    <option value="smart_home" {"selected" if p.get('kategoria')=='smart_home' else ''}>📹 Smart Home</option>
+                    <option value="motoryzacja" {"selected" if p.get('kategoria')=='motoryzacja' else ''}>🚗 Motoryzacja</option>
+                    <option value="optyka" {"selected" if p.get('kategoria')=='optyka' else ''}>🔭 Optyka</option>
+                    <option value="rolnictwo" {"selected" if p.get('kategoria')=='rolnictwo' else''}>🌾 Rolnictwo</option>
+                    <option value="dekoracje" {"selected" if p.get('kategoria')=='dekoracje' else ''}>🌿 Dekoracje</option>
+                    <option value="oswietlenie" {"selected" if p.get('kategoria')=='oswietlenie' else ''}>💡 Oświetlenie</option>
+                    <option value="kuchnia" {"selected" if p.get('kategoria')=='kuchnia' else ''}>🍽 Kuchnia</option>
+                    <option value="budowa" {"selected" if p.get('kategoria')=='budowa' else ''}>🔧 Budowa</option>
+                    <option value="biuro" {"selected" if p.get('kategoria')=='biuro' else ''}>💼 Biuro</option>
+                    <option value="outdoor" {"selected" if p.get('kategoria')=='outdoor' else ''}>🏕 Outdoor</option>
+                    <option value="rehabilitacja" {"selected" if p.get('kategoria')=='rehabilitacja' else ''}>♿ Rehabilitacja</option>
+                    <option value="tekstylia" {"selected" if p.get('kategoria')=='tekstylia' else ''}>🛏 Tekstylia</option>
+                    <option value="kosmetyki" {"selected" if p.get('kategoria')=='kosmetyki' else ''}>💄 Kosmetyki</option>
+                    <option value="ksiazki" {"selected" if p.get('kategoria')=='ksiazki' else ''}>📚 Książki</option>
+                    <option value="prezenty" {"selected" if p.get('kategoria')=='prezenty' else ''}>🎁 Prezenty</option>
+                    <option value="bezpieczenstwo" {"selected" if p.get('kategoria')=='bezpieczenstwo' else ''}>🔒 Bezpieczeństwo</option>
+                    <option value="bagaz" {"selected" if p.get('kategoria')=='bagaz' else ''}>🧳 Bagaż</option>
+                    <option value="silownia" {"selected" if p.get('kategoria')=='silownia' else ''}>🏋 Siłownia</option>
+                    <option value="rowery" {"selected" if p.get('kategoria')=='rowery' else ''}>🚲 Rowery</option>
+                    <option value="hulajnogi" {"selected" if p.get('kategoria')=='hulajnogi' else ''}>🛴 Hulajnogi</option>
+                    <option value="elektronika" {"selected" if p.get('kategoria')=='elektronika' else ''}>📷 Elektronika</option>
+                    <option value="akcesoria" {"selected" if p.get('kategoria')=='akcesoria' else ''}>🔋 Akcesoria</option>
+                    <option value="agd_male" {"selected" if p.get('kategoria')=='agd_male' else ''}>🔌 AGD małe</option>
+                    <option value="agd_duze" {"selected" if p.get('kategoria')=='agd_duze' else ''}>🏠 AGD duże</option>
+                    <option value="komputery" {"selected" if p.get('kategoria')=='komputery' else ''}>💻 Komputery</option>
                     <option value="telefony" {"selected" if p.get('kategoria')=='telefony' else ''}>[SMARTPHONE] Telefony</option>
-                    <option value="rtv" {"selected" if p.get('kategoria')=='rtv' else ''}><span class=material-symbols-outlined>tv</span> RTV/Audio</option>
-                    <option value="gaming" {"selected" if p.get('kategoria')=='gaming' else ''}><span class=material-symbols-outlined>sports_esports</span> Gaming</option>
-                    <option value="narzedzia" {"selected" if p.get('kategoria')=='narzedzia' else ''}><span class=material-symbols-outlined>build</span> Narzędzia</option>
-                    <option value="dom_ogrod" {"selected" if p.get('kategoria')=='dom_ogrod' else ''}><span class=material-symbols-outlined>cottage</span> Dom/Ogród</option>
+                    <option value="rtv" {"selected" if p.get('kategoria')=='rtv' else ''}>📺 RTV/Audio</option>
+                    <option value="gaming" {"selected" if p.get('kategoria')=='gaming' else ''}>🎮 Gaming</option>
+                    <option value="narzedzia" {"selected" if p.get('kategoria')=='narzedzia' else ''}>🔨 Narzędzia</option>
+                    <option value="dom_ogrod" {"selected" if p.get('kategoria')=='dom_ogrod' else ''}>🏡 Dom/Ogród</option>
                     <option value="sport" {"selected" if p.get('kategoria')=='sport' else ''}>⚽ Sport</option>
-                    <option value="moda" {"selected" if p.get('kategoria')=='moda' else ''}><span class=material-symbols-outlined>checkroom</span> Moda</option>
-                    <option value="zabawki" {"selected" if p.get('kategoria')=='zabawki' else ''}><span class=material-symbols-outlined>toys</span> Zabawki</option>
-                    <option value="zdrowie" {"selected" if p.get('kategoria')=='zdrowie' else ''}><span class=material-symbols-outlined>medication</span> Zdrowie</option>
-                    <option value="zwierzeta" {"selected" if p.get('kategoria')=='zwierzeta' else ''}><span class=material-symbols-outlined>pets</span> Zwierzęta</option>
-                    <option value="muzyka" {"selected" if p.get('kategoria')=='muzyka' else ''}><span class=material-symbols-outlined>music_note</span> Muzyka</option>
-                    <option value="elektronarzedzia" {"selected" if p.get('kategoria')=='elektronarzedzia' else ''}><span class=material-symbols-outlined>handyman</span> Elektronarzędzia</option>
-                    <option value="hobby" {"selected" if p.get('kategoria')=='hobby' else ''}><span class=material-symbols-outlined>palette</span> Hobby</option>
-                    <option value="niemowleta" {"selected" if p.get('kategoria')=='niemowleta' else ''}><span class=material-symbols-outlined>child_care</span> Niemowlęta</option>
-                    <option value="car_audio" {"selected" if p.get('kategoria')=='car_audio' else ''}><span class=material-symbols-outlined>volume_up</span> Car Audio</option>
-                    <option value="klimatyzacja" {"selected" if p.get('kategoria')=='klimatyzacja' else ''}><span class=material-symbols-outlined>thermostat</span> Klimatyzacja</option>
+                    <option value="moda" {"selected" if p.get('kategoria')=='moda' else ''}>👔 Moda</option>
+                    <option value="zabawki" {"selected" if p.get('kategoria')=='zabawki' else ''}>🧸 Zabawki</option>
+                    <option value="zdrowie" {"selected" if p.get('kategoria')=='zdrowie' else ''}>💊 Zdrowie</option>
+                    <option value="zwierzeta" {"selected" if p.get('kategoria')=='zwierzeta' else ''}>🐾 Zwierzęta</option>
+                    <option value="muzyka" {"selected" if p.get('kategoria')=='muzyka' else ''}>🎵 Muzyka</option>
+                    <option value="elektronarzedzia" {"selected" if p.get('kategoria')=='elektronarzedzia' else ''}>🔧 Elektronarzędzia</option>
+                    <option value="hobby" {"selected" if p.get('kategoria')=='hobby' else ''}>🎨 Hobby</option>
+                    <option value="niemowleta" {"selected" if p.get('kategoria')=='niemowleta' else ''}>👶 Niemowlęta</option>
+                    <option value="car_audio" {"selected" if p.get('kategoria')=='car_audio' else ''}>🔊 Car Audio</option>
+                    <option value="klimatyzacja" {"selected" if p.get('kategoria')=='klimatyzacja' else ''}>🌡 Klimatyzacja</option>
                     <option value="hydroponika" {"selected" if p.get('kategoria')=='hydroponika' else ''}>🪴 Hydroponika</option>
-                    <option value="wedkarstwo" {"selected" if p.get('kategoria')=='wedkarstwo' else ''}><span class=material-symbols-outlined>phishing</span> Wędkarstwo</option>
-                    <option value="laboratorium" {"selected" if p.get('kategoria')=='laboratorium' else ''}><span class=material-symbols-outlined>biotech</span> Laboratorium</option>
-                    <option value="event" {"selected" if p.get('kategoria')=='event' else ''}><span class=material-symbols-outlined>storefront</span> Event</option>
-                    <option value="cb_radio" {"selected" if p.get('kategoria')=='cb_radio' else ''}><span class=material-symbols-outlined>satellite_alt</span> CB/Radio</option>
-                    <option value="inne" {"selected" if p.get('kategoria')=='inne' or not p.get('kategoria') else ''}><span class=material-symbols-outlined>inventory_2</span> Inne</option>
+                    <option value="wedkarstwo" {"selected" if p.get('kategoria')=='wedkarstwo' else ''}>🎣 Wędkarstwo</option>
+                    <option value="laboratorium" {"selected" if p.get('kategoria')=='laboratorium' else ''}>🔬 Laboratorium</option>
+                    <option value="event" {"selected" if p.get('kategoria')=='event' else ''}>🏪 Event</option>
+                    <option value="cb_radio" {"selected" if p.get('kategoria')=='cb_radio' else ''}>📡 CB/Radio</option>
+                    <option value="inne" {"selected" if p.get('kategoria')=='inne' or not p.get('kategoria') else ''}>📦 Inne</option>
                 </select>
             </div>
             <div class="form-group"><label>Stan</label>
@@ -1495,7 +1495,7 @@ def edytuj_produkt(code):
                 <label>Paleta</label>
                 <select name="paleta_id_select" class="form-ctrl" id="paleta-select" onchange="togglePaletaInput()">
                     {palety_options}
-                    <option value="__nowa__"><span class=material-symbols-outlined>auto_awesome</span> Nowa paleta...</option>
+                    <option value="__nowa__">✨ Nowa paleta...</option>
                 </select>
                 <input type="text" name="paleta_nowa" id="paleta-nowa" class="form-ctrl" 
                        placeholder="Wpisz nazwę nowej palety" 
@@ -4757,7 +4757,7 @@ def import_page():
     
     # Generuj opcje palet
     palety_options = '<option value="">-- Bez palety (luźne produkty) --</option>'
-    palety_options += '<option value="__NEW__"><span class=material-symbols-outlined>add</span> Utwórz nową paletę...</option>'
+    palety_options += '<option value="__NEW__">➕ Utwórz nową paletę...</option>'
     for p in palety:
         p_id, p_nazwa, p_dostawca, p_data = p
         label = f"{p_nazwa}" if p_nazwa else f"Paleta #{p_id}"
@@ -4804,7 +4804,7 @@ def import_page():
                     <div>
                         <label style="font-size:0.8rem;color:#64748b">Typ</label>
                         <select name="new_paleta_typ" class="form-ctrl" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:6px;color:#fff">
-                            <option value="paleta"><span class=material-symbols-outlined>inventory_2</span> Paleta</option>
+                            <option value="paleta">📦 Paleta</option>
                             <option value="box">inbox Box</option>
                         </select>
                     </div>
@@ -5992,7 +5992,7 @@ def etykiety():
     <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
         <select onchange="window.location='/magazyn/etykiety'+(this.value ? '?paleta_id='+this.value : '')"
             style="flex:1;padding:10px 12px;backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e2e8f0;font-size:0.85rem">
-            <option value=""><span class=material-symbols-outlined>inventory_2</span> Wszystkie produkty</option>'''
+            <option value="">📦 Wszystkie produkty</option>'''
 
     for pal in palety:
         selected = 'selected' if str(pal['id']) == str(paleta_filter) else ''

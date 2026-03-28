@@ -1767,7 +1767,7 @@ def analityka_okazje():
                 <input type='hidden' name='csrf_token' value='{generate_csrf()}'>
                 <span style='color:var(--text-muted);font-size:0.75rem'>Model:</span>
                 <select name='model' onchange='this.form.submit()' class='form-control' style='width:auto;padding:3px 8px;font-size:0.75rem;cursor:pointer'>
-                  <option value='sonar-pro' {{'selected' if perplexity_model in ("sonar","sonar-pro") else ""}}>Sonar Pro <span class=material-symbols-outlined>star</span> (zalecany)</option>
+                  <option value='sonar-pro' {{'selected' if perplexity_model in ("sonar","sonar-pro") else ""}}>Sonar Pro ⭐ (zalecany)</option>
 
                   <option value='sonar-reasoning' {{'selected' if perplexity_model=="sonar-reasoning" else ""}}>Sonar Reasoning</option>
                   <option value='sonar-reasoning-pro' {{'selected' if perplexity_model=="sonar-reasoning-pro" else ""}}>Sonar Reasoning Pro</option>
@@ -3107,7 +3107,7 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
             pct = int((batch_idx + 1) / len(batches) * 100)
             _pallet_analysis_jobs[job_id] = {
                 'status': 'running',
-                'progress': f'<span class=material-symbols-outlined>check_circle</span> Batch {batch_idx+1}/{len(batches)} gotowy ({pct}%) — {len(all_results)} produktów przeanalizowanych'
+                'progress': f'✅ Batch {batch_idx+1}/{len(batches)} gotowy ({pct}%) — {len(all_results)} produktów przeanalizowanych'
             }
 
         # === WERYFIKACJA CEN Z ALLEGRO API ===
@@ -3115,7 +3115,7 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
             from modules.paletomat import _search_allegro_prices
             _pallet_analysis_jobs[job_id] = {
                 'status': 'running',
-                'progress': f'<span class=material-symbols-outlined>search</span> Weryfikuję ceny na Allegro (0/{len(all_results)})...'
+                'progress': f'🔍 Weryfikuję ceny na Allegro (0/{len(all_results)})...'
             }
             allegro_verified = 0
             allegro_corrected = 0
@@ -3144,7 +3144,7 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                 prod_nazwa = (r.get('nazwa', '') or '')[:40]
                 _pallet_analysis_jobs[job_id] = {
                     'status': 'running',
-                    'progress': f'<span class=material-symbols-outlined>search</span> Weryfikuję ceny na Allegro ({ri+1}/{len(all_results)})... <span class=material-symbols-outlined>check_circle</span> {allegro_verified} zweryfikowanych, <span class=material-symbols-outlined>sync</span> {allegro_corrected} skorygowanych',
+                    'progress': f'🔍 Weryfikuję ceny na Allegro ({ri+1}/{len(all_results)})... ✅ {allegro_verified} zweryfikowanych, 🔄 {allegro_corrected} skorygowanych',
                     'detail': f'Sprawdzam: {prod_nazwa}...'
                 }
                 import time
@@ -3868,9 +3868,9 @@ def _get_render_results_js():
             // Wyszukiwarka / filtr
             html += '<div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">';
             html += '<div style="font-weight:600">Produkty (' + parsed.produkty.length + ' typów)</div>';
-            html += '<input type="text" id="product-filter" placeholder="<span class=material-symbols-outlined>search</span> Filtruj np. peruka, wig, hair..." style="flex:1;min-width:200px;padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem">';
+            html += '<input type="text" id="product-filter" placeholder="🔍 Filtruj np. peruka, wig, hair..." style="flex:1;min-width:200px;padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem">';
             html += '<button onclick="filterProducts()" style="padding:8px 16px;background:var(--accent);border:none;border-radius:8px;color:#fff;cursor:pointer;font-weight:600">Filtruj</button>';
-            html += '<select id="product-sort" onchange="sortProducts()" style="padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem"><option value="">Sortuj...</option><option value="popyt"><span class=material-symbols-outlined>local_fire_department</span> Popyt (wysoki→niski)</option><option value="cena_desc"><span class=material-symbols-outlined>paid</span> Cena (najdroższe)</option><option value="cena_asc"><span class=material-symbols-outlined>paid</span> Cena (najtańsze)</option><option value="wartosc"><span class=material-symbols-outlined>bar_chart</span> Wartość (najwyższa)</option><option value="czas"><span class=material-symbols-outlined>timer</span> Czas sprzedaży (najszybsze)</option></select>';
+            html += '<select id="product-sort" onchange="sortProducts()" style="padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem"><option value="">Sortuj...</option><option value="popyt">🔥 Popyt (wysoki→niski)</option><option value="cena_desc">💰 Cena (najdroższe)</option><option value="cena_asc">💰 Cena (najtańsze)</option><option value="wartosc">📊 Wartość (najwyższa)</option><option value="czas">⏱ Czas sprzedaży (najszybsze)</option></select>';
             html += '<button onclick="clearFilter()" style="padding:8px 12px;background:rgba(255,255,255,0.1);border:none;border-radius:8px;color:var(--text-muted);cursor:pointer">Wyczyść</button>';
             html += '</div>';
             html += '<div id="filter-summary" style="display:none;margin-bottom:12px;padding:10px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px"></div>';
