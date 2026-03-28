@@ -136,9 +136,9 @@
                             <div class="asub-edit-field">
                                 <label>Plan</label>
                                 <select name="new_plan" class="asub-edit-input">
-                                    <option value="starter" {{ 'selected' if lic.plan_raw == 'starter' }}>TRIAL</option>
+                                    <option value="trial" {{ 'selected' if lic.plan_raw in ('starter', 'trial') }}>TRIAL</option>
                                     <option value="pro" {{ 'selected' if lic.plan_raw == 'pro' }}>PRO</option>
-                                    <option value="business" {{ 'selected' if lic.plan_raw == 'business' }}>MAX</option>
+                                    <option value="max" {{ 'selected' if lic.plan_raw in ('business', 'max') }}>MAX</option>
                                     <option value="enterprise" {{ 'selected' if lic.plan_raw == 'enterprise' }}>ENTERPRISE</option>
                                 </select>
                             </div>
