@@ -136,8 +136,38 @@
 <div class="no-print" id="bulkBar" style="display:none;background:var(--wy-card2);padding:14px 20px;margin-bottom:16px;border-left:2px solid var(--wy-cyan);display:flex;align-items:center;justify-content:space-between">
     <span id="selectedCount" class="wy-headline" style="font-weight:700;color:var(--wy-cyan);font-size:0.95rem">0 zaznaczonych</span>
     <div style="display:flex;gap:8px">
+        <button onclick="openBulkNadaj()" class="wy-btn wy-btn-cyan">
+            <span class="material-symbols-outlined" style="font-size:16px">print</span> Nadaj zaznaczone
+        </button>
         <button onclick="submitBulk()" class="wy-btn wy-btn-green">Wyślij zaznaczone</button>
         <button onclick="toggleAll(false)" class="wy-btn wy-btn-red">Odznacz</button>
+    </div>
+</div>
+
+<!-- ═══ Bulk Nadaj Modal ═══ -->
+<div id="bulkNadajModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);overflow-y:auto">
+    <div style="max-width:600px;margin:60px auto;padding:32px;background:var(--wy-card2);border-left:2px solid var(--wy-cyan)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+            <h2 style="font-family:'Space Grotesk',sans-serif;font-weight:900;font-size:1.5rem;color:var(--wy-cyan);margin:0">NADAJ ZAZNACZONE</h2>
+            <button onclick="closeBulkNadaj()" style="background:none;border:none;color:var(--wy-muted);cursor:pointer;font-size:1.5rem">&times;</button>
+        </div>
+        <div id="bulkNadajList" style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px"></div>
+        <div id="bulkNadajProgress" style="display:none;margin-bottom:16px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                <span id="bulkNadajStatus" style="font-size:0.85rem;color:var(--wy-muted)">Przygotowuję...</span>
+                <span id="bulkNadajPercent" style="font-size:0.85rem;color:var(--wy-cyan);font-weight:700">0%</span>
+            </div>
+            <div style="height:4px;background:var(--wy-card3);overflow:hidden">
+                <div id="bulkNadajBar" style="height:100%;background:var(--wy-cyan);width:0%;transition:width 0.3s;box-shadow:0 0 10px rgba(143,245,255,0.5)"></div>
+            </div>
+        </div>
+        <div id="bulkNadajResults" style="display:none;margin-bottom:16px"></div>
+        <div style="display:flex;gap:8px">
+            <button id="bulkNadajBtn" onclick="executeBulkNadaj()" class="wy-btn wy-btn-solid" style="flex:1;font-size:1rem;justify-content:center">
+                <span class="material-symbols-outlined">send</span> NADAJ WSZYSTKIE
+            </button>
+            <button onclick="closeBulkNadaj()" class="wy-btn wy-btn-red" style="padding:10px 16px">Anuluj</button>
+        </div>
     </div>
 </div>
 
@@ -266,5 +296,150 @@ function submitBulk(){
         document.getElementById('bulkForm').submit();
 }
 document.addEventListener('DOMContentLoaded',function(){updateBulk()});
+
+function openBulkNadaj(){
+    var checked=document.querySelectorAll('.wy-cb:checked');
+    if(checked.length===0){alert('Zaznacz zamówienia!');return}
+    var list=document.getElementById('bulkNadajList');
+    list.innerHTML='';
+    checked.forEach(function(cb){
+        var oid=cb.value;
+        var row=cb.closest('.wy-order');
+        var name=row?row.querySelector('.wy-headline')?.textContent||oid.substring(0,8):'#'+oid.substring(0,8);
+        // Detect carrier from badge
+        var badge=row?row.querySelector('.wy-badge')?.textContent||'':'';
+        var isInpost=badge.includes('INPOST');
+        var isOrlen=badge.includes('ORLEN');
+        var isDPD=badge.includes('DPD');
+        var isDHL=badge.includes('DHL');
+        var isPaczkomat=isInpost||isOrlen;
+
+        var sizeHtml='';
+        if(isInpost){
+            sizeHtml='<select data-field="size" style="padding:6px 8px;background:var(--wy-card3);border:1px solid var(--wy-cyan,rgba(143,245,255,0.3));color:#fff;font-family:Manrope,sans-serif;font-size:0.8rem">'+
+                '<option value="A">A (8cm)</option><option value="B" selected>B (19cm)</option><option value="C">C (41cm)</option></select>';
+        }else if(isOrlen){
+            sizeHtml='<select data-field="size" style="padding:6px 8px;background:var(--wy-card3);border:1px solid #f97316;color:#fff;font-family:Manrope,sans-serif;font-size:0.8rem">'+
+                '<option value="S">S (8cm)</option><option value="M" selected>M (19cm)</option><option value="L">L (41cm)</option></select>';
+        }else{
+            sizeHtml='<div style="display:flex;gap:4px;align-items:center">'+
+                '<input data-field="dim_l" type="number" value="30" style="width:45px;padding:4px;background:var(--wy-card3);border:1px solid var(--wy-pink,rgba(255,107,155,0.3));color:#fff;text-align:center;font-size:0.75rem" title="Dł cm">'+
+                '<span style="color:var(--wy-muted);font-size:0.7rem">x</span>'+
+                '<input data-field="dim_w" type="number" value="25" style="width:45px;padding:4px;background:var(--wy-card3);border:1px solid var(--wy-pink,rgba(255,107,155,0.3));color:#fff;text-align:center;font-size:0.75rem" title="Szer cm">'+
+                '<span style="color:var(--wy-muted);font-size:0.7rem">x</span>'+
+                '<input data-field="dim_h" type="number" value="15" style="width:45px;padding:4px;background:var(--wy-card3);border:1px solid var(--wy-pink,rgba(255,107,155,0.3));color:#fff;text-align:center;font-size:0.75rem" title="Wys cm">'+
+                '<span style="color:var(--wy-muted);font-size:0.7rem;margin-left:4px">cm</span>'+
+                '<input data-field="dim_kg" type="number" value="1" step="0.1" style="width:45px;padding:4px;background:var(--wy-card3);border:1px solid var(--wy-pink,rgba(255,107,155,0.3));color:#fff;text-align:center;font-size:0.75rem;margin-left:6px" title="Waga kg">'+
+                '<span style="color:var(--wy-muted);font-size:0.7rem">kg</span></div>';
+        }
+
+        var badgeColor=isInpost?'var(--wy-cyan)':isOrlen?'#f97316':isDHL?'#ffcc00':'var(--wy-pink)';
+        var badgeText=isInpost?'INPOST':isOrlen?'ORLEN':isDHL?'DHL':'DPD';
+
+        list.innerHTML+='<div class="bulk-item" data-oid="'+oid+'" style="background:var(--wy-card);padding:12px 16px;border-left:2px solid '+badgeColor+';display:flex;justify-content:space-between;align-items:center;gap:12px">'+
+            '<div style="flex:1;min-width:0">'+
+                '<div style="font-weight:700;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+name+'</div>'+
+                '<span style="font-size:10px;font-weight:700;color:'+badgeColor+';text-transform:uppercase">'+badgeText+'</span>'+
+            '</div>'+
+            '<div>'+sizeHtml+'</div>'+
+        '</div>';
+    });
+    document.getElementById('bulkNadajProgress').style.display='none';
+    document.getElementById('bulkNadajResults').style.display='none';
+    document.getElementById('bulkNadajBtn').disabled=false;
+    document.getElementById('bulkNadajBtn').style.opacity='1';
+    document.getElementById('bulkNadajModal').style.display='block';
+}
+
+function closeBulkNadaj(){
+    document.getElementById('bulkNadajModal').style.display='none';
+}
+
+async function executeBulkNadaj(){
+    var itemEls=document.querySelectorAll('#bulkNadajList .bulk-item');
+    if(itemEls.length===0)return;
+
+    var btn=document.getElementById('bulkNadajBtn');
+    btn.disabled=true;btn.style.opacity='0.5';
+    btn.innerHTML='<span class="material-symbols-outlined">hourglass_empty</span> Nadaję...';
+
+    document.getElementById('bulkNadajProgress').style.display='block';
+    var bar=document.getElementById('bulkNadajBar');
+    var status=document.getElementById('bulkNadajStatus');
+    var pct=document.getElementById('bulkNadajPercent');
+
+    // Collect items with sizes
+    var items=[];
+    itemEls.forEach(function(el){
+        var item={order_id:el.dataset.oid};
+        var sizeSelect=el.querySelector('[data-field="size"]');
+        if(sizeSelect)item.size=sizeSelect.value;
+        var dl=el.querySelector('[data-field="dim_l"]');
+        if(dl){
+            item.dim_l=dl.value;
+            item.dim_w=el.querySelector('[data-field="dim_w"]').value;
+            item.dim_h=el.querySelector('[data-field="dim_h"]').value;
+            item.dim_kg=el.querySelector('[data-field="dim_kg"]').value;
+        }
+        items.push(item);
+    });
+
+    status.textContent='Nadaję 0/'+items.length+'...';
+    bar.style.width='5%';pct.textContent='5%';
+
+    // Send to bulk endpoint
+    try{
+        var resp=await fetch('/wysylki/bulk-nadaj',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({items:items})
+        });
+        var data=await resp.json();
+
+        bar.style.width='100%';pct.textContent='100%';
+
+        // Show results
+        var resultsEl=document.getElementById('bulkNadajResults');
+        resultsEl.style.display='block';
+        var html='<div style="margin-bottom:8px;font-weight:700;color:var(--wy-cyan)">'+data.success_count+' / '+data.total+' nadanych</div>';
+        if(data.fail_count>0){
+            html+='<div style="color:var(--wy-pink);margin-bottom:8px">'+data.fail_count+' błędów:</div>';
+            data.results.filter(function(r){return!r.success}).forEach(function(r){
+                html+='<div style="font-size:0.8rem;color:var(--wy-pink);padding:4px 0">#'+r.order_id.substring(0,8)+'... — '+r.error+'</div>';
+            });
+        }
+        resultsEl.innerHTML=html;
+        status.textContent='Zakończono!';
+
+        // Open merged PDF
+        if(data.merged_pdf){
+            var blob=new Blob([Uint8Array.from(atob(data.merged_pdf),function(c){return c.charCodeAt(0)})],{type:'application/pdf'});
+            var url=URL.createObjectURL(blob);
+            window.open(url,'_blank');
+        }
+
+        // Show pickup button for DPD/DHL
+        if(data.pickup_orders&&data.pickup_orders.length>0){
+            resultsEl.innerHTML+='<button onclick="bulkPickup('+JSON.stringify(data.pickup_orders)+')" style="margin-top:12px;width:100%;padding:12px;background:rgba(255,107,155,0.12);color:var(--wy-pink);border:1px solid rgba(255,107,155,0.3);cursor:pointer;font-family:Space Grotesk,sans-serif;font-weight:700;font-size:0.85rem">'+
+                '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">local_shipping</span> Zamów podjazd ('+data.pickup_orders.length+' przesyłek)</button>';
+        }
+
+        btn.innerHTML='<span class="material-symbols-outlined">check</span> Gotowe';
+    }catch(e){
+        status.textContent='Błąd: '+e.message;
+        status.style.color='var(--wy-pink)';
+        btn.disabled=false;btn.style.opacity='1';
+        btn.innerHTML='<span class="material-symbols-outlined">send</span> PONÓW';
+    }
+}
+
+async function bulkPickup(orderIds){
+    for(var i=0;i<orderIds.length;i++){
+        try{
+            await fetch('/wysylki/podjazd/'+orderIds[i],{method:'POST'});
+        }catch(e){}
+    }
+    alert('Podjazdy zamówione dla '+orderIds.length+' przesyłek!');
+}
 </script>
 {% endblock %}
