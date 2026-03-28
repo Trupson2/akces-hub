@@ -4366,8 +4366,17 @@ def generator_enhance_gallery():
 def generator_thumb(asin, filename):
     """Serwuje miniaturki zdjęć enhanced — 200px zamiast pełnych 2560px"""
     from flask import send_file
+    import re
+    # Sanitize inputs against path traversal
+    if not re.match(r'^[A-Za-z0-9_-]+$', asin) or '..' in filename or '/' in filename or '\\' in filename:
+        from flask import abort
+        abort(400)
     _enh_base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'enhanced')
     full_path = os.path.join(_enh_base, asin, filename)
+    # Verify resolved path stays within _enh_base
+    if not os.path.realpath(full_path).startswith(os.path.realpath(_enh_base)):
+        from flask import abort
+        abort(403)
     if not os.path.exists(full_path) or os.path.getsize(full_path) < 1024:
         from flask import abort
         abort(404)
