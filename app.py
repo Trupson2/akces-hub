@@ -6094,6 +6094,9 @@ if __name__ == '__main__':
             except Exception as e:
                 log_warning(f"Obsidian daily note error: {e}")
 
+        # Wygeneruj zaległą notatkę od razu na starcie (jeśli po 7:30 i nie istnieje)
+        _obsidian_daily()
+
         _sched.every().day.at("07:30").do(_obsidian_daily)
 
         def _obsidian_scheduler():
