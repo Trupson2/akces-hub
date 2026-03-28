@@ -2944,7 +2944,7 @@ _pallet_analysis_jobs = {}
 _pallet_analysis_results = {}
 
 
-def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-flash", excel_products=None, provider="gemini"):
+def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.5-flash", excel_products=None, provider="gemini"):
     """Uruchamia analizę palety w tle — wysyła produkty do AI (Gemini/Perplexity), parsuje JSON.
     excel_products: opcjonalna lista dictów z Excela (analiza przed zakupem)"""
     import requests as _req, json as _json, sqlite3 as _sq, re as _re
@@ -3055,13 +3055,33 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                 batch_answer = data['choices'][0]['message']['content']
                 batch_cit = data.get('citations', [])
             else:
-                # Gemini API
+                # Gemini API z response_schema — wymusza czysty JSON bez markdown
+                _schema = {
+                    "type": "ARRAY",
+                    "items": {
+                        "type": "OBJECT",
+                        "properties": {
+                            "id": {"type": "INTEGER"},
+                            "nazwa": {"type": "STRING"},
+                            "cena_allegro": {"type": "NUMBER"},
+                            "popyt": {"type": "STRING"},
+                            "czas_sprzedazy_dni": {"type": "INTEGER"},
+                            "uwagi": {"type": "STRING"}
+                        },
+                        "required": ["id", "nazwa", "cena_allegro", "popyt", "czas_sprzedazy_dni", "uwagi"]
+                    }
+                }
                 resp = _req.post(
                     f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}",
                     headers={"Content-Type": "application/json"},
                     json={
                         "contents": [{"parts": [{"text": batch_prompt}]}],
-                        "generationConfig": {"maxOutputTokens": 8000, "temperature": 0.3}
+                        "generationConfig": {
+                            "maxOutputTokens": 8000,
+                            "temperature": 0.3,
+                            "response_mime_type": "application/json",
+                            "response_schema": _schema
+                        }
                     },
                     timeout=180)
                 data = resp.json()
@@ -3074,17 +3094,12 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
             all_citations.extend(batch_cit)
 
             # Parsuj JSON z odpowiedzi batcha
+            # response_schema wymusza czysty JSON — prosta próba, fallback na regex
             batch_parsed = None
             try:
-                clean = batch_answer.strip()
-                if clean.startswith('```'):
-                    clean = clean.split('\n', 1)[1] if '\n' in clean else clean[3:]
-                    if clean.endswith('```'):
-                        clean = clean[:-3]
-                    clean = clean.strip()
-                batch_parsed = _json.loads(clean)
+                batch_parsed = _json.loads(batch_answer.strip())
             except Exception:
-                # Szukaj JSON array [...] lub object {...}
+                # Fallback: szukaj JSON array [...] lub object {...}
                 match = _re.search(r'\[[\s\S]*\]', batch_answer)
                 if match:
                     try:
@@ -3644,7 +3659,7 @@ def analizator_palet_analyze():
     else:
         provider = 'gemini'
         api_key = get_config('gemini_api_key', '')
-        ai_model = get_config('gemini_model', 'gemini-2.0-flash')
+        ai_model = get_config('gemini_model', 'gemini-2.5-flash')
 
     if not api_key:
         return jsonify({'ok': False, 'error': f'Brak klucza API {provider.title()}. Ustaw w Ustawienia.'})
@@ -3687,7 +3702,7 @@ def analiza_zakupu():
             else:
                 provider = 'gemini'
                 api_key = get_config('gemini_api_key', '')
-                ai_model = get_config('gemini_model', 'gemini-2.0-flash')
+                ai_model = get_config('gemini_model', 'gemini-2.5-flash')
 
             if not api_key:
                 return jsonify({'ok': False, 'error': f'Brak klucza API {provider.title()}. Ustaw w Ustawienia.'})
