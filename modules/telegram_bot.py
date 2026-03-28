@@ -420,16 +420,29 @@ def _bot_loop():
     global _bot_running
     last_report_date = None
     last_order_check = 0
-    
+
     # Interwał sprawdzania zamówień (sekundy)
     ORDER_CHECK_INTERVAL = 300  # 5 minut
-    
+
+    # === RAPORT ZALEGŁY — jeśli app startuje po 9:00 i raport nie był wysłany ===
+    try:
+        _now = datetime.now()
+        _today = _now.strftime('%Y-%m-%d')
+        _db_last = get_config('telegram_last_raport_date', '')
+        if _now.hour >= 9 and _db_last != _today:
+            print(f"[Bot] Raport dzienny zaległy — wysyłam (start po 9:00)")
+            set_config('telegram_last_raport_date', _today)
+            raport_dzienny()
+            last_report_date = _today
+    except Exception as _e:
+        print(f"[Bot] Zaległy raport error: {_e}")
+
     while _bot_running:
         try:
             now = datetime.now()
-            
+
             # === RAPORT DZIENNY O 9:00 ===
-            if now.hour == 9 and now.minute == 0:
+            if now.hour == 9 and now.minute < 2:
                 today = now.strftime('%Y-%m-%d')
                 # Deduplikacja przez DB — zapobiega podwojnym raportom przy wielu instancjach
                 db_last = get_config('telegram_last_raport_date', '')
