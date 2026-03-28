@@ -862,9 +862,17 @@ def wysylki_nadaj(order_id):
         print(f"   → [CHECK_CIRCLE] Etykieta gotowa! Rozmiar: {len(label_pdf)} bytes")
         if wants_json:
             import base64
+            # Detect carrier for frontend (pickup button)
+            try:
+                _ord, _ = get_order_details(order_id)
+                _dm = (_ord or {}).get('delivery', {}).get('method', {}).get('name', '').lower()
+                _carrier = 'DPD' if 'dpd' in _dm else ('DHL' if 'dhl' in _dm else ('InPost' if any(x in _dm for x in ['inpost', 'paczkomat']) else 'Kurier'))
+            except:
+                _carrier = 'Kurier'
             return jsonify({
                 'success': True,
                 'shipment_id': shipment_id,
+                'carrier': _carrier,
                 'label_url': f'/wysylki/etykieta/{order_id}',
                 'label_base64': base64.b64encode(label_pdf).decode('utf-8')
             })
@@ -895,6 +903,62 @@ def wysylki_nadaj(order_id):
         </body>
         </html>
         '''
+
+
+@wysylki_bp.route('/wysylki/podjazd/<order_id>', methods=['POST'])
+def wysylki_podjazd(order_id):
+    """Zamawia podjazd kuriera DPD dla przesyłki"""
+    from modules.allegro_api import allegro_request, get_wysylam_z_allegro_shipments
+    import uuid
+
+    print(f"[PICKUP] Zamawianie podjazdu kuriera dla: {order_id}")
+
+    # 1. Pobierz shipment ID
+    result, error = get_wysylam_z_allegro_shipments(order_id)
+    if error or not result or not result.get('shipments'):
+        return jsonify({'success': False, 'error': f'Brak przesyłki do podjazdu: {error or "nie znaleziono"}'}), 400
+
+    shipment = result['shipments'][0]
+    shipment_id = shipment.get('id')
+    print(f"   → Shipment ID: {shipment_id}")
+
+    # 2. Pobierz propozycje terminów podjazdu
+    proposals_result, proposals_error = allegro_request('POST', '/shipment-management/pickup-proposals', data={
+        'shipmentIds': [shipment_id]
+    })
+    print(f"   → Pickup proposals: {proposals_result}")
+    if proposals_error:
+        print(f"   → Proposals error: {proposals_error}")
+        return jsonify({'success': False, 'error': f'Błąd propozycji podjazdu: {proposals_error}'}), 400
+
+    # 3. Wybierz pierwszą dostępną propozycję (lub ANY)
+    proposal_id = 'ANY'
+    proposals = (proposals_result or {}).get('pickupDateProposals', [])
+    if proposals:
+        proposal_id = proposals[0].get('id', 'ANY')
+        print(f"   → Wybrany termin: {proposals[0].get('date', '?')} (ID: {proposal_id})")
+    else:
+        print(f"   → Brak propozycji, używam ANY")
+
+    # 4. Zamów podjazd
+    command_id = str(uuid.uuid4())
+    pickup_result, pickup_error = allegro_request('POST', '/shipment-management/pickups/create-commands', data={
+        'commandId': command_id,
+        'input': {
+            'shipmentIds': [shipment_id],
+            'pickupDateProposalId': proposal_id
+        }
+    })
+    print(f"   → Pickup result: {pickup_result}")
+    if pickup_error:
+        print(f"   → Pickup error: {pickup_error}")
+        return jsonify({'success': False, 'error': f'Błąd zamawiania podjazdu: {pickup_error}'}), 400
+
+    return jsonify({
+        'success': True,
+        'message': 'Podjazd kuriera zamówiony!',
+        'proposal_date': proposals[0].get('date', 'najbliższy termin') if proposals else 'najbliższy termin'
+    })
 
 
 @wysylki_bp.route('/wysylki/etykieta/<order_id>')

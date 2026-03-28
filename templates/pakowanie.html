@@ -411,6 +411,10 @@
                 <span class="material-symbols-outlined">download</span>
                 Pobierz etykietę PDF
             </a>
+            <button id="pkReadyPickupBtn" class="pk-btn" style="display:none;align-items:center;justify-content:center;gap:8px;width:100%;margin-bottom:8px;background:rgba(255,107,155,0.12);color:var(--pk-pink);border:1px solid rgba(255,107,155,0.3);cursor:pointer">
+                <span class="material-symbols-outlined">local_shipping</span>
+                Zamów podjazd kuriera
+            </button>
             <button onclick="pkNextOrder()" class="pk-btn pk-btn-cyan" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">
                 Następne zamówienie
                 <span class="material-symbols-outlined" style="font-variation-settings:'wght' 700">fast_forward</span>
@@ -854,14 +858,28 @@ function pkFinalize() {
             } else if (ct.includes('application/json')) {
                 return r.json().then(data => {
                     bar.style.width = '100%';
-                    const errMsg = data.error || 'Etykieta niedostepna';
-                    status.innerHTML = '<span style="color:#ff716c">' + errMsg + '</span>';
-                    // Still mark as packed even if label failed
-                    fetch('/api/wysylki/mark-packed', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId})}).catch(()=>{});
-                    setTimeout(() => {
-                        window.open(data.allegro_url || 'https://allegro.pl/moje-allegro/sprzedaz/zamowienia/' + orderId, '_blank');
-                        pkShowReady(orderId, null);
-                    }, 2000);
+                    if (data.success && data.label_base64) {
+                        // JSON success with base64 label
+                        status.textContent = 'Etykieta gotowa!';
+                        fetch('/api/wysylki/mark-packed', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId})}).catch(()=>{});
+                        const blob = new Blob([Uint8Array.from(atob(data.label_base64), c => c.charCodeAt(0))], {type:'application/pdf'});
+                        const url = URL.createObjectURL(blob);
+                        window.open(url, '_blank');
+                        // Store carrier for pickup button
+                        if (data.carrier) window._lastCarrier = data.carrier;
+                        if (data.carrier === 'DPD' || data.carrier === 'DHL') {
+                            window._lastPickupOrderId = orderId;
+                        }
+                        setTimeout(() => pkShowReady(orderId, url), 800);
+                    } else {
+                        const errMsg = data.error || 'Etykieta niedostepna';
+                        status.innerHTML = '<span style="color:#ff716c">' + errMsg + '</span>';
+                        fetch('/api/wysylki/mark-packed', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId})}).catch(()=>{});
+                        setTimeout(() => {
+                            window.open(data.allegro_url || 'https://allegro.pl/moje-allegro/sprzedaz/zamowienia/' + orderId, '_blank');
+                            pkShowReady(orderId, null);
+                        }, 2000);
+                    }
                 });
             } else {
                 // Backend zwrócił HTML (stary kod) — pokaż błąd i otwórz Allegro
@@ -929,6 +947,40 @@ function pkShowReady(orderId, pdfUrl) {
     } else {
         document.getElementById('pkReadyLabelLink').href = 'https://allegro.pl/moje-allegro/sprzedaz/zamowienia/' + orderId;
         document.getElementById('pkReadyLabelLink').style.display = 'flex';
+    }
+
+    // Pickup button for DPD/DHL
+    const pickupBtn = document.getElementById('pkReadyPickupBtn');
+    if (pickupBtn) {
+        if (window._lastPickupOrderId === orderId && (carrier === 'DPD' || carrier === 'DHL')) {
+            pickupBtn.style.display = 'flex';
+            pickupBtn.onclick = function() {
+                pickupBtn.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span> Zamawiam podjazd...';
+                pickupBtn.style.opacity = '0.6';
+                pickupBtn.style.pointerEvents = 'none';
+                fetch('/wysylki/podjazd/' + orderId, {method:'POST'})
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            pickupBtn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> Podjazd zamówiony!';
+                            pickupBtn.style.background = 'rgba(190,238,0,0.15)';
+                            pickupBtn.style.color = 'var(--pk-lime)';
+                            pickupBtn.style.borderColor = 'rgba(190,238,0,0.3)';
+                        } else {
+                            pickupBtn.innerHTML = '<span class="material-symbols-outlined">error</span> ' + (data.error || 'Błąd');
+                            pickupBtn.style.opacity = '1';
+                            pickupBtn.style.pointerEvents = 'auto';
+                        }
+                    })
+                    .catch(e => {
+                        pickupBtn.innerHTML = '<span class="material-symbols-outlined">error</span> Błąd: ' + e.message;
+                        pickupBtn.style.opacity = '1';
+                        pickupBtn.style.pointerEvents = 'auto';
+                    });
+            };
+        } else {
+            pickupBtn.style.display = 'none';
+        }
     }
 
     // Add to history
