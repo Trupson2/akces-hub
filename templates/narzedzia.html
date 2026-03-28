@@ -257,6 +257,7 @@ function doUpdate() {
     fetch('/system/update', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
+        credentials: 'same-origin',
         body: '{}'
     })
     .then(function(r) { console.log('[Update] Response status:', r.status); return r.json(); })
