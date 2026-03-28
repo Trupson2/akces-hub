@@ -157,7 +157,8 @@
 {% set is_orlen = 'orlen' in detect %}
 {% set is_dpd = 'dpd' in detect %}
 {% set is_dhl = 'dhl' in detect %}
-{% set carrier_class = 'wy-orlen' if is_orlen else ('wy-dpd' if is_dpd else ('wy-dhl' if is_dhl else '')) %}
+{% set is_kurier = not is_inpost and not is_orlen and not is_dpd and not is_dhl and addr and 'paczkomat' not in addr and 'paczkopunkt' not in addr %}
+{% set carrier_class = 'wy-orlen' if is_orlen else ('wy-dpd' if is_dpd else ('wy-dhl' if is_dhl else ('wy-dpd' if is_kurier else ''))) %}
 
 <div class="wy-order {{ carrier_class }}" style="animation-delay:{{ loop.index0 * 0.03 }}s">
     <!-- Checkbox + Number -->
@@ -201,6 +202,8 @@
             <span class="wy-badge wy-badge-dpd">DPD</span>
             {% elif is_dhl %}
             <span class="wy-badge wy-badge-dhl">DHL</span>
+            {% elif is_kurier %}
+            <span class="wy-badge wy-badge-other">KURIER</span>
             {% endif %}
 
             {% for p in z.produkty %}{% if p.lokalizacja %}
