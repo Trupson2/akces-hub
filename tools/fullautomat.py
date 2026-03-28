@@ -64,16 +64,53 @@ class C:
 
 def print_label(pdf_path, printer_name=None):
     """
-    Wysyła PDF do drukarki systemowej.
+    Wysyła PDF etykiety 100x150mm do drukarki w trybie cichym (silent).
 
-    Windows: os.startfile (otwiera w domyślnej apce PDF → drukuje)
-    Linux/Pi: lp -d <drukarka> <plik> (CUPS)
+    Kolejność prób na Windows:
+    1. win32print + ShellExecute (cichy, bez okna podglądu)
+    2. SumatraPDF -print-to-default -silent (cichy, bez okna)
+    3. Ghostscript gswin64c (cichy)
+
+    Linux/Pi: CUPS lp z wymiarami 100x150mm
     """
     system = platform.system()
+    VRETTI_NAME = printer_name or 'Vretti 420B'  # Domyślna drukarka etykiet
 
     if system == 'Windows':
+        # === METODA 1: win32print (najlepsza — cicha, bez okna) ===
         try:
-            # Metoda 1: SumatraPDF (cichy druk, najlepsza dla etykiet)
+            import win32print
+            import win32api
+
+            # Znajdź drukarkę Vretti (lub użyj domyślnej)
+            printers = [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]
+            target_printer = None
+            for p in printers:
+                if 'vretti' in p.lower() or '420b' in p.lower():
+                    target_printer = p
+                    break
+            if printer_name:
+                target_printer = printer_name
+            if not target_printer:
+                target_printer = win32print.GetDefaultPrinter()
+
+            # Ustaw jako domyślną tymczasowo i drukuj cicho
+            old_default = win32print.GetDefaultPrinter()
+            win32print.SetDefaultPrinter(target_printer)
+            win32api.ShellExecute(0, 'print', pdf_path, None, '.', 0)  # 0 = SW_HIDE
+            # Przywróć domyślną drukarkę po chwili
+            time.sleep(2)
+            win32print.SetDefaultPrinter(old_default)
+
+            print(f"  {C.GREEN}[DRUK] Wysłano na {target_printer} (win32print, cichy){C.RESET}")
+            return True
+        except ImportError:
+            pass  # win32print nie zainstalowany — próbuj SumatraPDF
+        except Exception as e:
+            print(f"  {C.YELLOW}[WARN] win32print błąd: {e} — próbuję SumatraPDF{C.RESET}")
+
+        # === METODA 2: SumatraPDF (cichy, bez okna podglądu) ===
+        try:
             sumatra_paths = [
                 r'C:\Program Files\SumatraPDF\SumatraPDF.exe',
                 r'C:\Program Files (x86)\SumatraPDF\SumatraPDF.exe',
@@ -86,30 +123,82 @@ def print_label(pdf_path, printer_name=None):
                     break
 
             if sumatra:
-                cmd = [sumatra, '-print-to-default', '-silent', pdf_path]
-                if printer_name:
-                    cmd = [sumatra, '-print-to', printer_name, '-silent', pdf_path]
-                subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                print(f"  {C.GREEN}[DRUK] Wysłano na drukarkę (SumatraPDF){C.RESET}")
-                return True
+                # Znajdź Vretti drukarkę
+                target = VRETTI_NAME
+                try:
+                    import win32print
+                    for p in [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)]:
+                        if 'vretti' in p.lower() or '420b' in p.lower():
+                            target = p
+                            break
+                except ImportError:
+                    pass
 
-            # Metoda 2: os.startfile (otwiera domyślną apkę)
-            os.startfile(pdf_path, 'print')
-            print(f"  {C.GREEN}[DRUK] Wysłano na drukarkę domyślną{C.RESET}")
-            return True
+                # SumatraPDF silent print — format etykiety 100x150mm
+                cmd = [
+                    sumatra,
+                    '-print-to', target,
+                    '-silent',
+                    '-print-settings', '100x150mm,fit',  # wymiary etykiety
+                    pdf_path
+                ]
+                subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print(f"  {C.GREEN}[DRUK] Wysłano na {target} (SumatraPDF, cichy 100x150mm){C.RESET}")
+                return True
         except Exception as e:
-            print(f"  {C.RED}[ERR] Drukowanie: {e}{C.RESET}")
-            return False
+            print(f"  {C.YELLOW}[WARN] SumatraPDF błąd: {e}{C.RESET}")
+
+        # === METODA 3: Ghostscript (cichy) ===
+        try:
+            gs_paths = [
+                r'C:\Program Files\gs\gs10.04.0\bin\gswin64c.exe',
+                r'C:\Program Files\gs\gs10.03.1\bin\gswin64c.exe',
+                r'C:\Program Files\gs\gs10.02.1\bin\gswin64c.exe',
+            ]
+            gs = None
+            for gp in gs_paths:
+                if os.path.exists(gp):
+                    gs = gp
+                    break
+            if not gs:
+                # Szukaj w PATH
+                result = subprocess.run(['where', 'gswin64c'], capture_output=True, text=True)
+                if result.returncode == 0:
+                    gs = result.stdout.strip().split('\n')[0]
+
+            if gs:
+                cmd = [
+                    gs, '-dBATCH', '-dNOPAUSE', '-dQUIET',
+                    '-sDEVICE=mswinpr2',
+                    f'-sOutputFile=%printer%{VRETTI_NAME}',
+                    '-dFIXEDMEDIA', '-dDEVICEWIDTHPOINTS=283', '-dDEVICEHEIGHTPOINTS=425',  # 100x150mm w punktach
+                    pdf_path
+                ]
+                subprocess.run(cmd, capture_output=True, timeout=30)
+                print(f"  {C.GREEN}[DRUK] Wysłano na {VRETTI_NAME} (Ghostscript, 100x150mm){C.RESET}")
+                return True
+        except Exception as e:
+            print(f"  {C.YELLOW}[WARN] Ghostscript błąd: {e}{C.RESET}")
+
+        print(f"  {C.RED}[ERR] Brak metody druku! Zainstaluj SumatraPDF lub: pip install pywin32{C.RESET}")
+        print(f"  {C.DIM}       PDF zapisany: {pdf_path}{C.RESET}")
+        return False
 
     elif system == 'Linux':
         try:
-            # CUPS: lp lub lpr
-            cmd = ['lp', pdf_path]
+            # CUPS: lp z wymiarami etykiety 100x150mm
+            cmd = ['lp']
             if printer_name:
-                cmd = ['lp', '-d', printer_name, pdf_path]
+                cmd += ['-d', printer_name]
+            cmd += [
+                '-o', 'media=Custom.100x150mm',
+                '-o', 'fit-to-page',
+                '-o', 'orientation-requested=3',  # portrait
+                pdf_path
+            ]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
             if result.returncode == 0:
-                print(f"  {C.GREEN}[DRUK] Wysłano na drukarkę CUPS{C.RESET}")
+                print(f"  {C.GREEN}[DRUK] Wysłano na drukarkę CUPS (100x150mm){C.RESET}")
                 return True
             else:
                 print(f"  {C.RED}[ERR] lp error: {result.stderr}{C.RESET}")
