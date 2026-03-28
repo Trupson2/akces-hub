@@ -151,10 +151,12 @@
 <form id="bulkForm" method="POST" action="/wysylki/bulk-wyslane-allegro">
 {% for z in zamowienia %}
 {% set dm = (z.delivery_method or '')|lower %}
-{% set is_inpost = 'inpost' in dm or dm == 'inpost' %}
-{% set is_orlen = 'orlen' in dm %}
-{% set is_dpd = 'dpd' in dm %}
-{% set is_dhl = 'dhl' in dm %}
+{% set addr = (z.address or '')|lower %}
+{% set detect = dm if dm else addr %}
+{% set is_inpost = 'inpost' in detect or 'paczkomat' in detect or 'paczkopunkt' in detect %}
+{% set is_orlen = 'orlen' in detect %}
+{% set is_dpd = 'dpd' in detect %}
+{% set is_dhl = 'dhl' in detect %}
 {% set carrier_class = 'wy-orlen' if is_orlen else ('wy-dpd' if is_dpd else ('wy-dhl' if is_dhl else '')) %}
 
 <div class="wy-order {{ carrier_class }}" style="animation-delay:{{ loop.index0 * 0.03 }}s">
