@@ -35,7 +35,7 @@ def statystyki():
     conn = get_db()
     miesieczne = conn.execute('''
         SELECT strftime('%m', REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) as miesiac,
-               COALESCE(SUM(CASE WHEN status != 'zwrot' THEN cena * ilosc ELSE 0 END), 0) as suma,
+               COALESCE(SUM(CASE WHEN status != 'zwrot' THEN cena * ilosc + COALESCE(koszt_dostawy, 0) ELSE 0 END), 0) as suma,
                COUNT(*) as cnt
         FROM sprzedaze
         WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?
@@ -123,163 +123,199 @@ def statystyki():
 
     html = f'''
     <style>
-        .stat-tab {{ flex:1;padding:10px 6px;border:none;border-radius:10px;font-weight:600;font-size:0.8rem;cursor:pointer;background:var(--bg-card);color:var(--text-muted);white-space:nowrap;border:1px solid var(--border) }}
-        .stat-tab.active {{ background:var(--green);color:#fff;border-color:var(--green) }}
+    /* === STATYSTYKI CYBERPUNK === */
+    .cy-header{{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.35rem;font-weight:800;background:linear-gradient(135deg,#8ff5ff,#beee00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-0.5px}}
+    .cy-sub{{font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;margin-top:2px;font-weight:600}}
+    .cy-tabs{{display:flex;gap:0;margin-bottom:16px;background:rgba(9,9,20,0.8);border:1px solid rgba(255,255,255,0.06);overflow-x:auto;-webkit-overflow-scrolling:touch}}
+    .cy-tab{{flex:1;padding:10px 6px;background:none;border:none;border-bottom:2px solid transparent;color:#64748b;font-family:'Space Grotesk','Inter',sans-serif;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;transition:all 0.2s;white-space:nowrap}}
+    .cy-tab.active{{color:#beee00;border-bottom-color:#beee00;background:rgba(190,238,0,0.04)}}
+    .cy-tab:hover:not(.active){{color:#e2e8f0;background:rgba(255,255,255,0.03)}}
+    .cy-panel{{animation:cyFade 0.15s ease}}
+    @keyframes cyFade{{from{{opacity:0;transform:translateY(3px)}}to{{opacity:1;transform:translateY(0)}}}}
+    .cy-kpi-grid{{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}}
+    .cy-kpi-2{{grid-template-columns:repeat(2,1fr)}}
+    .cy-kpi{{padding:14px 12px;background:rgba(13,15,26,0.8);border-left:3px solid rgba(143,245,255,0.15);transition:all 0.2s}}
+    .cy-kpi:hover{{border-left-color:#8ff5ff}}
+    .cy-kpi-val{{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.3rem;font-weight:800;letter-spacing:-0.5px;line-height:1}}
+    .cy-kpi-lbl{{font-size:0.56rem;text-transform:uppercase;letter-spacing:1.2px;color:#64748b;font-weight:600;margin-top:5px}}
+    .cy-kpi.cyan .cy-kpi-val{{color:#8ff5ff}}.cy-kpi.lime .cy-kpi-val,.cy-kpi.lime{{border-left-color:rgba(190,238,0,0.2)}}.cy-kpi.lime .cy-kpi-val{{color:#beee00}}
+    .cy-kpi.pink .cy-kpi-val{{color:#ff6b9b}}.cy-kpi.pink{{border-left-color:rgba(255,107,155,0.15)}}
+    .cy-kpi.orange .cy-kpi-val{{color:#fb923c}}.cy-kpi.orange{{border-left-color:rgba(251,146,60,0.15)}}
+    .cy-kpi.purple .cy-kpi-val{{color:#9b59ff}}.cy-kpi.purple{{border-left-color:rgba(155,89,255,0.15)}}
+    .cy-kpi.red .cy-kpi-val{{color:#ef4444}}.cy-kpi.red{{border-left-color:rgba(239,68,68,0.15)}}
+    .cy-highlight{{margin-top:10px;padding:14px 18px;background:rgba(190,238,0,0.04);border:1px solid rgba(190,238,0,0.15);display:flex;align-items:center;justify-content:space-between}}
+    .cy-highlight-val{{font-family:'Space Grotesk','Inter',sans-serif;font-size:1.7rem;font-weight:800;letter-spacing:-0.5px;color:#beee00;text-shadow:0 0 12px rgba(190,238,0,0.35)}}
+    .cy-highlight-lbl{{font-size:0.58rem;text-transform:uppercase;letter-spacing:1.2px;color:#64748b;font-weight:600}}
+    .cy-section{{display:flex;align-items:center;gap:8px;margin:14px 0 8px}}
+    .cy-section-bar{{width:2px;height:12px;background:#8ff5ff;flex-shrink:0}}.cy-section-bar.lime{{background:#beee00}}
+    .cy-section-lbl{{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#64748b}}
+    .cy-card{{background:rgba(13,15,26,0.8);padding:18px;margin-bottom:14px;border:1px solid rgba(255,255,255,0.05)}}
+    .cy-links{{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}}
+    .cy-link{{display:flex;align-items:center;justify-content:center;gap:5px;padding:10px 6px;background:rgba(13,15,26,0.8);border:1px solid rgba(143,245,255,0.12);color:#8ff5ff;text-decoration:none;font-family:'Space Grotesk',sans-serif;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;transition:all 0.2s}}
+    .cy-link:hover{{background:rgba(143,245,255,0.07);border-color:rgba(143,245,255,0.25)}}
+    .cy-link.lime{{border-color:rgba(190,238,0,0.12);color:#beee00}}.cy-link.lime:hover{{background:rgba(190,238,0,0.07);border-color:rgba(190,238,0,0.25)}}
+    .cy-link.pink{{border-color:rgba(255,107,155,0.12);color:#ff6b9b}}.cy-link.pink:hover{{background:rgba(255,107,155,0.07);border-color:rgba(255,107,155,0.25)}}
+    .cy-top-item{{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04)}}
+    .cy-top-item:last-child{{border-bottom:none}}
+    .cy-rank{{font-family:'Space Grotesk',sans-serif;font-weight:800;color:#8ff5ff;width:18px;font-size:0.85rem;flex-shrink:0;text-align:center}}
     </style>
 
-        <!-- TABS -->
-        <div style="display:flex;gap:4px;margin-bottom:15px;overflow-x:auto;-webkit-overflow-scrolling:touch">
-            <button class="stat-tab active" onclick="showTab('dzis')" id="tab-dzis">DZIS</button>
-            <button class="stat-tab" onclick="showTab('miesiac')" id="tab-miesiac">MIESIAC</button>
-            <button class="stat-tab" onclick="showTab('magazyn')" id="tab-magazyn">MAGAZYN</button>
-            <button class="stat-tab" onclick="showTab('alltime')" id="tab-alltime">LACZNIE</button>
-            <button class="stat-tab" onclick="showTab('top')" id="tab-top">TOP</button>
+    <!-- HEADER -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0 18px">
+        <div>
+            <div class="cy-header"><span class="material-symbols-outlined" style="font-size:1.2rem;vertical-align:middle;margin-right:5px">hub</span>SALES_HUB</div>
+            <div class="cy-sub">NODE_01 &middot; {datetime.now().strftime('%d.%m.%Y')} &middot; LIVE_FEED</div>
         </div>
+        <a href="/magazyn/statystyki" style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:rgba(13,15,26,0.8);border:1px solid rgba(143,245,255,0.15);color:#8ff5ff;text-decoration:none;font-family:'Space Grotesk',sans-serif;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;transition:all 0.2s">
+            <span class="material-symbols-outlined" style="font-size:0.85rem">bar_chart</span> Pełne stats
+        </a>
+    </div>
+
+    <!-- TABS -->
+    <div class="cy-tabs">
+        <button class="cy-tab active" onclick="showTab('dzis')" id="tab-dzis">Dziś</button>
+        <button class="cy-tab" onclick="showTab('miesiac')" id="tab-miesiac">Miesiąc</button>
+        <button class="cy-tab" onclick="showTab('magazyn')" id="tab-magazyn">Magazyn</button>
+        <button class="cy-tab" onclick="showTab('alltime')" id="tab-alltime">Łącznie</button>
+        <button class="cy-tab" onclick="showTab('top')" id="tab-top">Top</button>
+    </div>
 
 
-        <!-- TAB: DZIŚ -->
-        <div id="panel-dzis" class="stat-panel">
-            <div class="card" style="background:var(--green-soft);border-color:rgba(34,197,94,0.3)">
-                <div style="color:var(--green);font-weight:600;font-size:1.1rem;margin-bottom:12px"><span class=material-symbols-outlined>calendar_month</span> DZIS ({datetime.now().strftime('%d.%m.%Y')})</div>
-                <div class="stat-row">
-                    <div class="stat-box">
-                        <div class="stat-val green">{stats['sprzedaz_dzis_cnt']}</div>
-                        <div class="stat-lbl">ZAMOWIEN</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-val green">{stats['sprzedaz_dzis_suma']:.0f} zl</div>
-                        <div class="stat-lbl">PRZYCHOD</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-val orange">{stats.get('do_wyslania', 0)}</div>
-                        <div class="stat-lbl">DO WYSYLKI</div>
-                    </div>
-                </div>
+    <!-- TAB: DZIŚ -->
+    <div id="panel-dzis" class="stat-panel cy-panel">
+        <div class="cy-kpi-grid">
+            <div class="cy-kpi cyan">
+                <div class="cy-kpi-val">{stats['sprzedaz_dzis_cnt']}</div>
+                <div class="cy-kpi-lbl">Zamówień</div>
+            </div>
+            <div class="cy-kpi lime">
+                <div class="cy-kpi-val">{stats['sprzedaz_dzis_suma']:.0f} zł</div>
+                <div class="cy-kpi-lbl">Przychód</div>
+            </div>
+            <div class="cy-kpi orange">
+                <div class="cy-kpi-val">{stats.get('do_wyslania', 0)}</div>
+                <div class="cy-kpi-lbl">Do wysyłki</div>
             </div>
         </div>
+    </div>
 
-        <!-- TAB: MIESIĄC -->
-        <div id="panel-miesiac" class="stat-panel" style="display:none">
-            <div class="card">
-                <div style="color:var(--blue);font-weight:600;font-size:1.1rem;margin-bottom:12px"><span class=material-symbols-outlined>calendar_month</span> {miesiac.upper()}</div>
-                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
-                    <div class="stat-box" style="text-align:center">
-                        <div class="stat-val blue">{stats['palety_miesiac']}</div>
-                        <div class="stat-lbl">PALET</div>
-                    </div>
-                    <div class="stat-box" style="text-align:center">
-                        <div class="stat-val red">{stats['palety_miesiac_koszt']:.0f} zl</div>
-                        <div class="stat-lbl">WYDANE</div>
-                    </div>
-                    <div class="stat-box" style="text-align:center">
-                        <div class="stat-val green">{stats['sprzedaz_miesiac_cnt']}</div>
-                        <div class="stat-lbl">SPRZEDAZY</div>
-                    </div>
-                    <div class="stat-box" style="text-align:center">
-                        <div class="stat-val green">{stats['sprzedaz_miesiac_suma']:.0f} zl</div>
-                        <div class="stat-lbl">PRZYCHOD</div>
-                    </div>
-                </div>
-                <div style="margin-top:12px;padding:12px;background:var(--green-soft);border-radius:10px;text-align:center">
-                    <div style="font-size:0.8rem;color:var(--text-muted)">SZACOWANY ZYSK</div>
-                    <div style="font-size:1.8rem;font-weight:700;color:var(--green)">{stats['zysk_miesiac']:.0f} zl</div>
-                </div>
+    <!-- TAB: MIESIĄC -->
+    <div id="panel-miesiac" class="stat-panel cy-panel" style="display:none">
+        <div class="cy-kpi-grid cy-kpi-2">
+            <div class="cy-kpi purple">
+                <div class="cy-kpi-val">{stats['palety_miesiac']}</div>
+                <div class="cy-kpi-lbl">Palet kupionych</div>
+            </div>
+            <div class="cy-kpi pink">
+                <div class="cy-kpi-val">{stats['palety_miesiac_koszt']:.0f} zł</div>
+                <div class="cy-kpi-lbl">Wydane</div>
+            </div>
+            <div class="cy-kpi cyan">
+                <div class="cy-kpi-val">{stats['sprzedaz_miesiac_cnt']}</div>
+                <div class="cy-kpi-lbl">Sprzedaży</div>
+            </div>
+            <div class="cy-kpi lime">
+                <div class="cy-kpi-val">{stats['sprzedaz_miesiac_suma']:.0f} zł</div>
+                <div class="cy-kpi-lbl">Przychód</div>
             </div>
         </div>
+        <div class="cy-highlight">
+            <div>
+                <div class="cy-highlight-lbl">Szacowany zysk</div>
+                <div style="font-size:0.68rem;color:#64748b;margin-top:2px">{miesiac}</div>
+            </div>
+            <div class="cy-highlight-val">{stats['zysk_miesiac']:.0f} zł</div>
+        </div>
+    </div>
 
-        <!-- TAB: MAGAZYN -->
-        <div id="panel-magazyn" class="stat-panel" style="display:none">
-            <div class="card">
-                <div style="color:var(--purple);font-weight:600;font-size:1.1rem;margin-bottom:12px"><span class=material-symbols-outlined>store</span> MAGAZYN</div>
-                <div class="stat-row">
-                    <div class="stat-box">
-                        <div class="stat-val purple">{stats['magazyn_produkty']}</div>
-                        <div class="stat-lbl">PRODUKTOW</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-val purple">{stats['magazyn_sztuki']}</div>
-                        <div class="stat-lbl">SZTUK</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-val purple">{stats['magazyn_wartosc']:.0f} zl</div>
-                        <div class="stat-lbl">WARTOSC</div>
-                    </div>
-                </div>
-                <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                    <div class="stat-box" style="text-align:center">
-                        <div class="stat-val blue">{stats['wystawione']}</div>
-                        <div class="stat-lbl">WYSTAWIONE</div>
-                    </div>
-                    <div class="stat-box" style="text-align:center">
-                        <a href="/magazyn/lezaki" style="text-decoration:none">
-                            <div class="stat-val orange">{stats['stojace_30dni']}</div>
-                            <div class="stat-lbl">STOI &gt;30 DNI</div>
-                        </a>
-                    </div>
-                </div>
+    <!-- TAB: MAGAZYN -->
+    <div id="panel-magazyn" class="stat-panel cy-panel" style="display:none">
+        <div class="cy-kpi-grid">
+            <div class="cy-kpi purple">
+                <div class="cy-kpi-val">{stats['magazyn_produkty']}</div>
+                <div class="cy-kpi-lbl">Produktów</div>
+            </div>
+            <div class="cy-kpi cyan">
+                <div class="cy-kpi-val">{stats['magazyn_sztuki']}</div>
+                <div class="cy-kpi-lbl">Sztuk</div>
+            </div>
+            <div class="cy-kpi lime">
+                <div class="cy-kpi-val">{stats['magazyn_wartosc']:.0f} zł</div>
+                <div class="cy-kpi-lbl">Wartość</div>
             </div>
         </div>
-
-        <!-- TAB: ALL-TIME -->
-        <div id="panel-alltime" class="stat-panel" style="display:none">
-            <div class="card">
-                <div style="color:var(--orange);font-weight:600;font-size:1.1rem;margin-bottom:12px"><span class=material-symbols-outlined>trending_up</span> LACZNIE (ALL-TIME)</div>
-                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
-                    <div class="stat-box" style="text-align:center">
-                        <div class="stat-val orange">{stats['palety_lacznie']}</div>
-                        <div class="stat-lbl">PALET</div>
-                    </div>
-                    <div class="stat-box" style="text-align:center">
-                        <div class="stat-val orange">{stats['palety_lacznie_koszt']:.0f} zl</div>
-                        <div class="stat-lbl">ZAINWESTOWANE</div>
-                    </div>
-                    <div class="stat-box" style="text-align:center">
-                        <div class="stat-val green">{stats['sprzedaz_lacznie_cnt']}</div>
-                        <div class="stat-lbl">SPRZEDANYCH</div>
-                    </div>
-                    <div class="stat-box" style="text-align:center">
-                        <div class="stat-val green">{stats['sprzedaz_lacznie_suma']:.0f} zl</div>
-                        <div class="stat-lbl">PRZYCHOD{pryw_info}</div>
-                    </div>
-                </div>
-                <div class="stat-box" style="margin-top:12px;text-align:center">
-                    <div class="stat-lbl">SREDNIA WARTOSC ZAMOWIENIA</div>
-                    <div class="stat-val orange">{stats['srednia_zamowienie']:.2f} zl</div>
-                </div>
+        <div class="cy-kpi-grid cy-kpi-2" style="margin-top:8px">
+            <div class="cy-kpi cyan">
+                <div class="cy-kpi-val">{stats['wystawione']}</div>
+                <div class="cy-kpi-lbl">Wystawionych</div>
+            </div>
+            <div class="cy-kpi orange" style="cursor:pointer" onclick="location.href='/magazyn/lezaki'">
+                <div class="cy-kpi-val">{stats['stojace_30dni']}</div>
+                <div class="cy-kpi-lbl">Stoi &gt;30 dni ↗</div>
             </div>
         </div>
+    </div>
 
-        <!-- TAB: TOP -->
-        <div id="panel-top" class="stat-panel" style="display:none">
-            {'<div class="section-title" style="color:var(--orange)"><span class=material-symbols-outlined>emoji_events</span> TOP PRODUKTY</div><div class="card" style="margin-bottom:15px">' + top_prod_html + '</div>' if top_prod_html else ''}
-            {'<div class="section-title" style="color:var(--orange)"><span class=material-symbols-outlined>inventory_2</span> TOP DOSTAWCY (ROI)</div><div class="card" style="margin-bottom:15px">' + top_dost_html + '</div>' if top_dost_html else ''}
-        </div>
-
-        <!-- WYKRES - zawsze widoczny -->
-        <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-                <div style="color:var(--purple);font-weight:600;font-size:1.1rem"><span class=material-symbols-outlined>bar_chart</span> WYKRES ({current_year})</div>
-                <div style="display:flex;gap:6px">
-                    <button onclick="toggleChart('przychod')" id="btn-przychod" style="padding:4px 10px;border:none;border-radius:6px;font-size:0.7rem;cursor:pointer;background:var(--purple);color:#fff">Przychod</button>
-                    <button onclick="toggleChart('zamowienia')" id="btn-zamowienia" style="padding:4px 10px;border:none;border-radius:6px;font-size:0.7rem;cursor:pointer;background:var(--bg);color:var(--text-muted);border:1px solid var(--border)">Zamowienia</button>
-                </div>
+    <!-- TAB: ALL-TIME -->
+    <div id="panel-alltime" class="stat-panel cy-panel" style="display:none">
+        <div class="cy-kpi-grid cy-kpi-2">
+            <div class="cy-kpi purple">
+                <div class="cy-kpi-val">{stats['palety_lacznie']}</div>
+                <div class="cy-kpi-lbl">Palet łącznie</div>
             </div>
-            <canvas id="chartMiesiace" height="200"></canvas>
+            <div class="cy-kpi pink">
+                <div class="cy-kpi-val">{stats['palety_lacznie_koszt']:.0f} zł</div>
+                <div class="cy-kpi-lbl">Zainwestowane</div>
+            </div>
+            <div class="cy-kpi cyan">
+                <div class="cy-kpi-val">{stats['sprzedaz_lacznie_cnt']}</div>
+                <div class="cy-kpi-lbl">Sprzedanych</div>
+            </div>
+            <div class="cy-kpi lime">
+                <div class="cy-kpi-val">{stats['sprzedaz_lacznie_suma']:.0f} zł</div>
+                <div class="cy-kpi-lbl">Przychód{pryw_info}</div>
+            </div>
         </div>
+        <div class="cy-kpi orange" style="margin-top:8px;text-align:center;padding:16px">
+            <div class="cy-kpi-val" style="font-size:1.6rem">{stats['srednia_zamowienie']:.2f} zł</div>
+            <div class="cy-kpi-lbl">Średnia wartość zamówienia</div>
+        </div>
+    </div>
 
-        <!-- Quick links -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:20px;margin-bottom:10px">
-            <a href="/palety" class="btn btn-primary" style="display:flex;align-items:center;justify-content:center;gap:6px"><span class=material-symbols-outlined>inventory_2</span> Palety</a>
-            <a href="/sprzedaze" class="btn btn-success" style="display:flex;align-items:center;justify-content:center;gap:6px"><span class=material-symbols-outlined>paid</span> Sprzedaze</a>
-            <a href="/analityka" class="btn btn-purple" style="display:flex;align-items:center;justify-content:center;gap:6px"><span class=material-symbols-outlined>trending_up</span> Analityka</a>
+    <!-- TAB: TOP -->
+    <div id="panel-top" class="stat-panel cy-panel" style="display:none">
+        {'<div class="cy-section"><span class="cy-section-bar lime"></span><span class="cy-section-lbl">Top produkty</span></div><div class="cy-card">' + top_prod_html + '</div>' if top_prod_html else ''}
+        {'<div class="cy-section"><span class="cy-section-bar"></span><span class="cy-section-lbl">Top dostawcy (ROI)</span></div><div class="cy-card">' + top_dost_html + '</div>' if top_dost_html else ''}
+    </div>
+
+    <!-- WYKRES - zawsze widoczny -->
+    <div class="cy-section"><span class="cy-section-bar"></span><span class="cy-section-lbl">Wykres {current_year}</span></div>
+    <div class="cy-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:0.8rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">Przychód / Zamówienia</div>
+            <div style="display:flex;gap:5px">
+                <button onclick="toggleChart('przychod')" id="btn-przychod" style="padding:5px 11px;border:1px solid #8ff5ff;background:rgba(143,245,255,0.1);color:#8ff5ff;font-family:'Space Grotesk',sans-serif;font-size:0.65rem;font-weight:700;text-transform:uppercase;cursor:pointer;letter-spacing:0.5px">Przychód</button>
+                <button onclick="toggleChart('zamowienia')" id="btn-zamowienia" style="padding:5px 11px;border:1px solid rgba(255,255,255,0.08);background:none;color:#64748b;font-family:'Space Grotesk',sans-serif;font-size:0.65rem;font-weight:700;text-transform:uppercase;cursor:pointer;letter-spacing:0.5px">Zamówienia</button>
+            </div>
         </div>
+        <canvas id="chartMiesiace" height="200"></canvas>
+    </div>
+
+    <!-- QUICK LINKS -->
+    <div class="cy-links">
+        <a href="/palety" class="cy-link"><span class="material-symbols-outlined" style="font-size:0.85rem">inventory_2</span> Palety</a>
+        <a href="/sprzedaze" class="cy-link lime"><span class="material-symbols-outlined" style="font-size:0.85rem">paid</span> Sprzedaże</a>
+        <a href="/analityka" class="cy-link pink"><span class="material-symbols-outlined" style="font-size:0.85rem">trending_up</span> Analityka</a>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
     <script>
     const chartLabels = {chart_labels};
     const chartPrzychod = {chart_data};
     const chartZamowienia = {chart_orders};
-    let currentChart = 'przychod';
+    Chart.defaults.color = '#64748b';
+    Chart.defaults.borderColor = 'rgba(255,255,255,0.04)';
+    Chart.defaults.font.family = "'Space Grotesk','Inter',sans-serif";
 
     const ctx = document.getElementById('chartMiesiace');
     let chart = new Chart(ctx, {{
@@ -287,20 +323,28 @@ def statystyki():
         data: {{
             labels: chartLabels,
             datasets: [{{
-                label: 'Przychod (zl)',
+                label: 'Przychód (zł)',
                 data: chartPrzychod,
-                backgroundColor: 'rgba(139, 92, 246, 0.8)',
-                borderColor: 'rgba(139, 92, 246, 1)',
-                borderWidth: 1,
-                borderRadius: 5
+                backgroundColor: chartPrzychod.map(v => v > 0 ? 'rgba(143,245,255,0.75)' : 'rgba(239,68,68,0.3)'),
+                borderWidth: 0,
+                borderRadius: 0
             }}]
         }},
         options: {{
             responsive: true,
-            plugins: {{ legend: {{ display: false }} }},
+            plugins: {{
+                legend: {{ display: false }},
+                tooltip: {{
+                    backgroundColor: 'rgba(9,9,20,0.95)',
+                    borderColor: 'rgba(143,245,255,0.2)',
+                    borderWidth: 1,
+                    titleFont: {{ family: "'Space Grotesk',sans-serif", weight: '700' }},
+                    callbacks: {{ label: function(c) {{ return c.parsed.y.toLocaleString() + ' zł'; }} }}
+                }}
+            }},
             scales: {{
-                y: {{ beginAtZero: true, grid: {{ color: 'rgba(255,255,255,0.1)' }}, ticks: {{ color: '#64748b' }} }},
-                x: {{ grid: {{ display: false }}, ticks: {{ color: '#64748b' }} }}
+                y: {{ beginAtZero: true, grid: {{ color: 'rgba(255,255,255,0.04)' }}, ticks: {{ callback: v => v.toLocaleString() + ' zł' }} }},
+                x: {{ grid: {{ display: false }} }}
             }},
             onClick: function(e, elements) {{
                 if (elements.length > 0) {{
@@ -311,39 +355,32 @@ def statystyki():
             }}
         }}
     }});
-
-    // Zmień kursor na pointer nad słupkami
     ctx.style.cursor = 'pointer';
 
     function toggleChart(type) {{
-        currentChart = type;
         const btnP = document.getElementById('btn-przychod');
         const btnZ = document.getElementById('btn-zamowienia');
-        if (type==='przychod') {{
-            btnP.style.background = 'var(--purple)'; btnP.style.color = '#fff'; btnP.style.border = 'none';
-            btnZ.style.background = 'var(--bg)'; btnZ.style.color = 'var(--text-muted)'; btnZ.style.border = '1px solid var(--border)';
+        if (type === 'przychod') {{
+            btnP.style.background = 'rgba(143,245,255,0.1)'; btnP.style.borderColor = '#8ff5ff'; btnP.style.color = '#8ff5ff';
+            btnZ.style.background = 'none'; btnZ.style.borderColor = 'rgba(255,255,255,0.08)'; btnZ.style.color = '#64748b';
+            chart.data.datasets[0].data = chartPrzychod;
+            chart.data.datasets[0].label = 'Przychód (zł)';
+            chart.data.datasets[0].backgroundColor = chartPrzychod.map(v => v > 0 ? 'rgba(143,245,255,0.75)' : 'rgba(239,68,68,0.3)');
         }} else {{
-            btnZ.style.background = 'var(--green)'; btnZ.style.color = '#fff'; btnZ.style.border = 'none';
-            btnP.style.background = 'var(--bg)'; btnP.style.color = 'var(--text-muted)'; btnP.style.border = '1px solid var(--border)';
+            btnZ.style.background = 'rgba(190,238,0,0.1)'; btnZ.style.borderColor = '#beee00'; btnZ.style.color = '#beee00';
+            btnP.style.background = 'none'; btnP.style.borderColor = 'rgba(255,255,255,0.08)'; btnP.style.color = '#64748b';
+            chart.data.datasets[0].data = chartZamowienia;
+            chart.data.datasets[0].label = 'Zamówienia';
+            chart.data.datasets[0].backgroundColor = chartZamowienia.map(v => v > 0 ? 'rgba(190,238,0,0.75)' : 'rgba(239,68,68,0.3)');
         }}
-
-        chart.data.datasets[0].data = type==='przychod' ? chartPrzychod : chartZamowienia;
-        chart.data.datasets[0].label = type==='przychod' ? 'Przychod (zl)' : 'Zamowienia';
-        chart.data.datasets[0].backgroundColor = type==='przychod' ? 'rgba(139,92,246,0.8)' : 'rgba(34,197,94,0.8)';
-        chart.data.datasets[0].borderColor = type==='przychod' ? 'rgba(139,92,246,1)' : 'rgba(34,197,94,1)';
         chart.update();
     }}
 
     function showTab(tab) {{
         document.querySelectorAll('.stat-panel').forEach(p => p.style.display = 'none');
-        document.querySelectorAll('.stat-tab').forEach(t => {{ t.classList.remove('active'); t.style.background = 'var(--bg-card)'; t.style.color = 'var(--text-muted)'; t.style.borderColor = 'var(--border)'; }});
+        document.querySelectorAll('.cy-tab').forEach(t => t.classList.remove('active'));
         document.getElementById('panel-' + tab).style.display = 'block';
-        const btn = document.getElementById('tab-' + tab);
-        const colors = {{ dzis: 'var(--green)', miesiac: 'var(--blue)', magazyn: 'var(--purple)', alltime: 'var(--orange)', top: 'var(--red)' }};
-        btn.style.background = colors[tab] || 'var(--blue)';
-        btn.style.color = '#fff';
-        btn.style.borderColor = colors[tab] || 'var(--blue)';
-        btn.classList.add('active');
+        document.getElementById('tab-' + tab).classList.add('active');
     }}
     </script>
     '''
@@ -1730,7 +1767,7 @@ def analityka_okazje():
                 <input type='hidden' name='csrf_token' value='{generate_csrf()}'>
                 <span style='color:var(--text-muted);font-size:0.75rem'>Model:</span>
                 <select name='model' onchange='this.form.submit()' class='form-control' style='width:auto;padding:3px 8px;font-size:0.75rem;cursor:pointer'>
-                  <option value='sonar-pro' {{'selected' if perplexity_model in ("sonar","sonar-pro") else ""}}>Sonar Pro <span class=material-symbols-outlined>star</span> (zalecany)</option>
+                  <option value='sonar-pro' {{'selected' if perplexity_model in ("sonar","sonar-pro") else ""}}>Sonar Pro ⭐ (zalecany)</option>
 
                   <option value='sonar-reasoning' {{'selected' if perplexity_model=="sonar-reasoning" else ""}}>Sonar Reasoning</option>
                   <option value='sonar-reasoning-pro' {{'selected' if perplexity_model=="sonar-reasoning-pro" else ""}}>Sonar Reasoning Pro</option>
@@ -3070,7 +3107,7 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
             pct = int((batch_idx + 1) / len(batches) * 100)
             _pallet_analysis_jobs[job_id] = {
                 'status': 'running',
-                'progress': f'<span class=material-symbols-outlined>check_circle</span> Batch {batch_idx+1}/{len(batches)} gotowy ({pct}%) — {len(all_results)} produktów przeanalizowanych'
+                'progress': f'✅ Batch {batch_idx+1}/{len(batches)} gotowy ({pct}%) — {len(all_results)} produktów przeanalizowanych'
             }
 
         # === WERYFIKACJA CEN Z ALLEGRO API ===
@@ -3078,7 +3115,7 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
             from modules.paletomat import _search_allegro_prices
             _pallet_analysis_jobs[job_id] = {
                 'status': 'running',
-                'progress': f'<span class=material-symbols-outlined>search</span> Weryfikuję ceny na Allegro (0/{len(all_results)})...'
+                'progress': f'🔍 Weryfikuję ceny na Allegro (0/{len(all_results)})...'
             }
             allegro_verified = 0
             allegro_corrected = 0
@@ -3107,7 +3144,7 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                 prod_nazwa = (r.get('nazwa', '') or '')[:40]
                 _pallet_analysis_jobs[job_id] = {
                     'status': 'running',
-                    'progress': f'<span class=material-symbols-outlined>search</span> Weryfikuję ceny na Allegro ({ri+1}/{len(all_results)})... <span class=material-symbols-outlined>check_circle</span> {allegro_verified} zweryfikowanych, <span class=material-symbols-outlined>sync</span> {allegro_corrected} skorygowanych',
+                    'progress': f'🔍 Weryfikuję ceny na Allegro ({ri+1}/{len(all_results)})... ✅ {allegro_verified} zweryfikowanych, 🔄 {allegro_corrected} skorygowanych',
                     'detail': f'Sprawdzam: {prod_nazwa}...'
                 }
                 import time
@@ -3831,9 +3868,9 @@ def _get_render_results_js():
             // Wyszukiwarka / filtr
             html += '<div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">';
             html += '<div style="font-weight:600">Produkty (' + parsed.produkty.length + ' typów)</div>';
-            html += '<input type="text" id="product-filter" placeholder="<span class=material-symbols-outlined>search</span> Filtruj np. peruka, wig, hair..." style="flex:1;min-width:200px;padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem">';
+            html += '<input type="text" id="product-filter" placeholder="🔍 Filtruj np. peruka, wig, hair..." style="flex:1;min-width:200px;padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem">';
             html += '<button onclick="filterProducts()" style="padding:8px 16px;background:var(--accent);border:none;border-radius:8px;color:#fff;cursor:pointer;font-weight:600">Filtruj</button>';
-            html += '<select id="product-sort" onchange="sortProducts()" style="padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem"><option value="">Sortuj...</option><option value="popyt"><span class=material-symbols-outlined>local_fire_department</span> Popyt (wysoki→niski)</option><option value="cena_desc"><span class=material-symbols-outlined>paid</span> Cena (najdroższe)</option><option value="cena_asc"><span class=material-symbols-outlined>paid</span> Cena (najtańsze)</option><option value="wartosc"><span class=material-symbols-outlined>bar_chart</span> Wartość (najwyższa)</option><option value="czas"><span class=material-symbols-outlined>timer</span> Czas sprzedaży (najszybsze)</option></select>';
+            html += '<select id="product-sort" onchange="sortProducts()" style="padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem"><option value="">Sortuj...</option><option value="popyt">🔥 Popyt (wysoki→niski)</option><option value="cena_desc">💰 Cena (najdroższe)</option><option value="cena_asc">💰 Cena (najtańsze)</option><option value="wartosc">📊 Wartość (najwyższa)</option><option value="czas">⏱ Czas sprzedaży (najszybsze)</option></select>';
             html += '<button onclick="clearFilter()" style="padding:8px 12px;background:rgba(255,255,255,0.1);border:none;border-radius:8px;color:var(--text-muted);cursor:pointer">Wyczyść</button>';
             html += '</div>';
             html += '<div id="filter-summary" style="display:none;margin-bottom:12px;padding:10px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px"></div>';

@@ -1274,7 +1274,7 @@ def scraper():
 
     # Dropdown palet (pełny - dla formularza ASIN)
     palety_options = '<option value="">-- Bez palety --</option>'
-    palety_options += '<option value="new"><span class=material-symbols-outlined>add</span> Nowa paleta...</option>'
+    palety_options += '<option value="new">➕ Nowa paleta...</option>'
     for p in palety:
         palety_options += f'<option value="{p["id"]}">{p["nazwa"]} ({p["dostawca"] or "brak dostawcy"})</option>'
 
@@ -6546,7 +6546,7 @@ def api_queue_status():
         'running': _scraper_running,
         'queue_length': len(_processing_queue),
         'queue': list(_processing_queue),
-        'progress': PROGRESS,  # <span class=material-symbols-outlined>agriculture</span> NOWE: pokazuje postęp
+        'progress': PROGRESS,  # 🌾 NOWE: pokazuje postęp
         'workers': MAX_WORKERS  # <span class=material-symbols-outlined>agriculture</span> NOWE: ile równolegle
     })
 

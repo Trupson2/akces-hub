@@ -98,8 +98,7 @@ def gather_data():
     stats = conn.execute('''
         SELECT
             COUNT(*) as zamowienia,
-            COALESCE(SUM(CASE WHEN status != 'zwrot' THEN cena * ilosc ELSE 0 END), 0)
-            - COALESCE(SUM(CASE WHEN status = 'zwrot' THEN cena * ilosc ELSE 0 END), 0) as przychod,
+            COALESCE(SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc ELSE 0 END), 0) as przychod,
             COALESCE(SUM(CASE WHEN status = 'zwrot' THEN 1 ELSE 0 END), 0) as zwroty
         FROM sprzedaze
         WHERE strftime('%Y-%m', data_sprzedazy) = ?
@@ -277,19 +276,19 @@ def generate_markdown(data, priority_tasks, tasks):
     md.append(f'| Oferty aktywne | **{data["oferty_aktywne"]}** |')
     md.append(f'')
 
-    # --- PILNE ---
+    # --- PILNE (reminder o 8:00) ---
     if priority_tasks:
         md.append(f'## 🔴 Pilne')
         md.append(f'')
         for t in priority_tasks:
-            md.append(f'- [ ] {t}')
+            md.append(f'- [ ] {t} 📅 {today} ⏰ 08:00')
         md.append(f'')
 
-    # --- TASKI ---
+    # --- TASKI (reminder o 9:30) ---
     md.append(f'## ✅ Zadania na dziś')
     md.append(f'')
     for t in tasks:
-        md.append(f'- [ ] {t}')
+        md.append(f'- [ ] {t} 📅 {today} ⏰ 09:30')
     md.append(f'')
 
     # --- PRODUKTY DO WYSTAWIENIA ---

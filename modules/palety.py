@@ -125,6 +125,46 @@ _PALETY_CSS = '''
 @media(max-width:480px){
     .me-stats{grid-template-columns:repeat(2,1fr);gap:6px}
 }
+/* === Legacy class overrides → Cyberpunk === */
+.header{text-align:center;padding:20px 0;border-bottom:1px solid rgba(143,245,255,0.12);margin-bottom:18px}
+.header h1,.header h2{font-family:'Space Grotesk',sans-serif;color:#8ff5ff;text-shadow:0 0 20px rgba(143,245,255,0.25);font-weight:800;display:flex;align-items:center;justify-content:center;gap:10px}
+.header small{color:var(--text-muted);font-size:0.8rem;font-weight:400}
+.card{backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:18px;margin-bottom:14px;transition:all 0.2s}
+.card:hover{border-color:rgba(143,245,255,0.15)}
+.card-header{margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.card-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.95rem;color:var(--text);display:flex;align-items:center;gap:8px}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.stat-box{background:rgba(13,15,26,0.8);border:1px solid rgba(255,255,255,0.06);border-left:3px solid rgba(143,245,255,0.2);padding:14px;text-align:center;transition:all 0.2s}
+.stat-box:hover{border-left-color:#8ff5ff;background:rgba(13,15,26,0.95)}
+.stat-val{font-size:1.4rem;font-weight:800;font-family:'Space Grotesk',sans-serif;color:var(--text)}
+.stat-lbl,.stat-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);font-weight:600;margin-top:4px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;font-weight:600;margin-bottom:6px}
+.form-control{width:100%;padding:10px 12px;background:rgba(14,14,20,0.8);border:1px solid rgba(143,245,255,0.10);border-radius:8px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:0.9rem;transition:all 0.3s;box-sizing:border-box}
+.form-control:focus{outline:none;border-color:#8ff5ff;box-shadow:0 0 16px rgba(143,245,255,0.12)}
+select.form-control{appearance:auto}
+textarea.form-control{min-height:80px;resize:vertical}
+.btn{padding:10px 18px;border:none;border-radius:8px;font-weight:700;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:all 0.2s;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{transform:translateY(-1px)}
+.btn-success,.btn-primary{background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.3);color:#beee00}
+.btn-success:hover,.btn-primary:hover{background:rgba(190,238,0,0.2);box-shadow:0 0 12px rgba(190,238,0,0.15)}
+.btn-danger{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#ff4d6a}
+.btn-danger:hover{background:rgba(239,68,68,0.2);box-shadow:0 0 12px rgba(239,68,68,0.15)}
+.btn-warning{background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);color:#f59e0b}
+.btn-warning:hover{background:rgba(245,158,11,0.2)}
+.btn-purple{background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);color:#a78bfa}
+.btn-purple:hover{background:rgba(139,92,246,0.2)}
+.back{color:#8ff5ff;text-decoration:none;font-size:0.82rem;font-weight:600}
+.back:hover{text-shadow:0 0 8px rgba(143,245,255,0.4)}
+.alert{padding:12px 16px;border-radius:8px;margin-bottom:14px;font-size:0.85rem}
+.alert-success{background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);color:#22c55e}
+.alert-danger,.alert-error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#ef4444}
+.alert-warning{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#f59e0b}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+table{width:100%;border-collapse:collapse}
+table th{background:rgba(13,15,26,0.8);color:var(--text-muted);font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;font-weight:700;padding:10px 8px;text-align:left;border-bottom:1px solid rgba(143,245,255,0.1)}
+table td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.85rem;color:var(--text)}
+table tr:hover td{background:rgba(143,245,255,0.02)}
 '''
 
 _PALETY_JS = '''

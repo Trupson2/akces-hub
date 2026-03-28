@@ -265,12 +265,8 @@ function doUpdate() {
         if(d.ok) {
       desc.textContent = ' ' + d.msg;
             card.style.opacity='1';
-            if(d.msg.indexOf('aktualne') === -1) {
-                desc.textContent += ' Odświeżam za 5s...';
-                setTimeout(function(){ location.reload(); }, 5000);
-            } else {
-                card.style.pointerEvents='auto';
-            }
+            desc.textContent += ' Odświeżam za 5s...';
+            setTimeout(function(){ location.reload(); }, 5000);
         } else {
       desc.textContent = ' ' + (d.error || 'Błąd');
             card.style.opacity='1';

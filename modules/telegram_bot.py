@@ -264,11 +264,11 @@ def alert_sprzedaz(produkt_nazwa, cena, kupujacy='', lokalizacja='', regal='', p
     # Lokalizacja w magazynie - żeby od razu wiedzieć skąd wziąć produkt
     loc_parts = []
     if regal:
-        loc_parts.append(f"<span class=material-symbols-outlined>location_on</span> Regał: <b>{regal}</b>")
+        loc_parts.append(f"📍 Regał: <b>{regal}</b>")
     if lokalizacja:
         loc_parts.append(f"🗺 Miejsce: <b>{lokalizacja}</b>")
     if paleta:
-        loc_parts.append(f"<span class=material-symbols-outlined>inventory_2</span> {paleta}")
+        loc_parts.append(f"📦 {paleta}")
     if loc_parts:
         msg += f"\n{'  │  '.join(loc_parts)}\n"
 
@@ -420,16 +420,29 @@ def _bot_loop():
     global _bot_running
     last_report_date = None
     last_order_check = 0
-    
+
     # Interwał sprawdzania zamówień (sekundy)
     ORDER_CHECK_INTERVAL = 300  # 5 minut
-    
+
+    # === RAPORT ZALEGŁY — jeśli app startuje po 9:00 i raport nie był wysłany ===
+    try:
+        _now = datetime.now()
+        _today = _now.strftime('%Y-%m-%d')
+        _db_last = get_config('telegram_last_raport_date', '')
+        if _now.hour >= 9 and _db_last != _today:
+            print(f"[Bot] Raport dzienny zaległy — wysyłam (start po 9:00)")
+            set_config('telegram_last_raport_date', _today)
+            raport_dzienny()
+            last_report_date = _today
+    except Exception as _e:
+        print(f"[Bot] Zaległy raport error: {_e}")
+
     while _bot_running:
         try:
             now = datetime.now()
-            
+
             # === RAPORT DZIENNY O 9:00 ===
-            if now.hour == 9 and now.minute == 0:
+            if now.hour == 9 and now.minute < 2:
                 today = now.strftime('%Y-%m-%d')
                 # Deduplikacja przez DB — zapobiega podwojnym raportom przy wielu instancjach
                 db_last = get_config('telegram_last_raport_date', '')
@@ -452,22 +465,9 @@ def _bot_loop():
                                     send_order_notification(order)
                                     time.sleep(1)
 
-                        # 2. Fallback: wyślij alerty dla zamówień zapisanych przez sync_orders z notified=0
-                        try:
-                            from .database import get_db as _gdb
-                            _conn = _gdb()
-                            _unnotified = _conn.execute(
-                                "SELECT id, nazwa, cena, kupujacy FROM sprzedaze WHERE notified=0 AND date(data_sprzedazy) >= date('now','-1 day') LIMIT 10"
-                            ).fetchall()
-                            for _un in _unnotified:
-                                alert_sprzedaz(_un['nazwa'] or 'Produkt', _un['cena'] or 0, _un['kupujacy'] or '')
-                                _conn.execute('UPDATE sprzedaze SET notified=1 WHERE id=?', (_un['id'],))
-                                time.sleep(1)
-                            if _unnotified:
-                                _conn.commit()
-                                print(f"[Bot] Wysłano {len(_unnotified)} zaległych powiadomień")
-                        except Exception as _e2:
-                            print(f"[Bot] Fallback notyfikacji: {_e2}")
+                        # Fallback notyfikacji usunięty — sync_orders w allegro_api.py
+                        # już wysyła alert_sprzedaz() i ustawia notified=1
+                        pass
                     except Exception as e:
                         print(f"[Bot] Błąd monitoringu: {e}")
                     last_order_check = time.time()
