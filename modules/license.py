@@ -17,7 +17,29 @@ import threading
 
 # Secret do podpisywania licencji — TYLKO w Twoim generatorze
 # Klient NIE ma tego klucza, więc nie może wygenerować licencji sam
-LICENSE_SECRET = os.environ.get('AKCES_LICENSE_SECRET', 'AkcesHub2026!SecretKeyForLicenseGeneration')
+def _load_license_secret():
+    """Wczytaj secret z env → pliku → wygeneruj nowy (NIE hardcodowany)."""
+    s = os.environ.get('AKCES_LICENSE_SECRET', '').strip()
+    if s:
+        return s
+    _path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.license_secret')
+    if os.path.exists(_path):
+        with open(_path, 'r') as f:
+            s = f.read().strip()
+        if s:
+            return s
+    import secrets as _sec
+    s = _sec.token_hex(32)
+    try:
+        with open(_path, 'w') as f:
+            f.write(s)
+        os.chmod(_path, 0o600)
+    except Exception:
+        pass
+    print(f"[LICENSE] Wygenerowano nowy LICENSE_SECRET → {_path}. Przenieś do AKCES_LICENSE_SECRET w .env!")
+    return s
+
+LICENSE_SECRET = _load_license_secret()
 
 # Heartbeat config
 HEARTBEAT_URL = 'https://unsatiating-dirgelike-audrina.ngrok-free.dev/api/license/verify'

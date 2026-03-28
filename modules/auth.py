@@ -9,7 +9,6 @@ import os
 import secrets
 import sqlite3
 import time
-from collections import defaultdict
 from functools import wraps
 from pathlib import Path
 
@@ -20,8 +19,7 @@ auth_bp = Blueprint('auth', __name__)
 
 DB_PATH = str(Path(__file__).parent.parent / 'akces_hub.db')
 
-# Rate limiting — max 5 prob logowania na 15 minut per IP
-_login_attempts = defaultdict(list)  # ip -> [timestamp, ...]
+# Rate limiting — max 5 prob logowania na 15 minut per IP (DB-backed, przeżywa restart)
 MAX_LOGIN_ATTEMPTS = 5
 LOGIN_COOLDOWN = 900  # 15 minut
 
@@ -49,16 +47,31 @@ PUBLIC_PREFIXES = [
 
 
 def _is_rate_limited(ip):
-    """Sprawdza czy IP przekroczyl limit prob logowania"""
+    """Sprawdza czy IP przekroczyl limit prob logowania (DB-backed)."""
+    import sqlite3 as _sq
     now = time.time()
-    # Usun stare wpisy
-    _login_attempts[ip] = [t for t in _login_attempts[ip] if now - t < LOGIN_COOLDOWN]
-    return len(_login_attempts[ip]) >= MAX_LOGIN_ATTEMPTS
+    cutoff = now - LOGIN_COOLDOWN
+    try:
+        con = _sq.connect(DB_PATH, timeout=3)
+        con.execute('CREATE TABLE IF NOT EXISTS login_attempts (ip TEXT, ts REAL)')
+        con.execute('DELETE FROM login_attempts WHERE ts < ?', (cutoff,))
+        cnt = con.execute('SELECT COUNT(*) FROM login_attempts WHERE ip=?', (ip,)).fetchone()[0]
+        con.commit(); con.close()
+        return cnt >= MAX_LOGIN_ATTEMPTS
+    except Exception:
+        return False  # DB error — nie blokuj
 
 
 def _record_failed_login(ip):
-    """Zapisuje nieudana probe logowania"""
-    _login_attempts[ip].append(time.time())
+    """Zapisuje nieudana probe logowania do DB."""
+    import sqlite3 as _sq
+    try:
+        con = _sq.connect(DB_PATH, timeout=3)
+        con.execute('CREATE TABLE IF NOT EXISTS login_attempts (ip TEXT, ts REAL)')
+        con.execute('INSERT INTO login_attempts VALUES (?,?)', (ip, time.time()))
+        con.commit(); con.close()
+    except Exception:
+        pass
 
 
 def _hash_password(password, salt=None):
@@ -393,8 +406,8 @@ def login():
 
         # Rate limiting
         if _is_rate_limited(client_ip):
-            remaining = int(LOGIN_COOLDOWN - (time.time() - min(_login_attempts[client_ip])))
-            error = f'Za duzo prob logowania. Sprobuj za {remaining // 60} min.'
+            remaining = LOGIN_COOLDOWN // 60
+            error = f'Za duzo prob logowania. Sprobuj za {remaining} min.'
             return render_template('login.html', error=error, username='', first_run=False)
 
         username = request.form.get('username', '').strip()
@@ -416,7 +429,13 @@ def login():
                 conn.commit()
 
             # Udane logowanie — wyczysc licznik prob
-            _login_attempts.pop(client_ip, None)
+            try:
+                import sqlite3 as _sq
+                con = _sq.connect(DB_PATH, timeout=3)
+                con.execute('DELETE FROM login_attempts WHERE ip=?', (client_ip,))
+                con.commit(); con.close()
+            except Exception:
+                pass
 
             # Regeneracja sesji — ochrona przed session fixation
             session.clear()
@@ -463,7 +482,14 @@ def login():
             return redirect(next_url)
         else:
             _record_failed_login(client_ip)
-            attempts_left = MAX_LOGIN_ATTEMPTS - len(_login_attempts[client_ip])
+            import sqlite3 as _sq2
+            try:
+                con2 = _sq2.connect(DB_PATH, timeout=3)
+                cnt2 = con2.execute('SELECT COUNT(*) FROM login_attempts WHERE ip=?', (client_ip,)).fetchone()[0]
+                con2.close()
+                attempts_left = max(0, MAX_LOGIN_ATTEMPTS - cnt2)
+            except Exception:
+                attempts_left = 1
             if attempts_left > 0:
                 error = f'Nieprawidlowy login lub haslo ({attempts_left} prob pozostalo)'
             else:

@@ -46,6 +46,11 @@
         opts.headers = opts.headers || {};
         if (!(opts.headers instanceof Headers)) {
             opts.headers['ngrok-skip-browser-warning'] = '1';
+            // Dołącz CSRF token do wszystkich fetch requestów
+            var meta = document.querySelector('meta[name="csrf-token"]');
+            if (meta && meta.content) {
+                opts.headers['X-CSRFToken'] = meta.content;
+            }
         }
         return _fetch.call(this, url, opts).then(function(resp){
             // Na 400/403 z CSRF error — odśwież token i spróbuj ponownie
