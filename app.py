@@ -2777,7 +2777,8 @@ def api_license_verify():
         })
 
     except Exception as e:
-        return jsonify({'valid': False, 'error': str(e)[:200]}), 500
+        print(f"[ERR] License verify: {e}")
+        return jsonify({'valid': False, 'error': 'Błąd weryfikacji'}), 500
 
 
 # ============================================================
@@ -4536,7 +4537,8 @@ def goal_subtract():
         
     except Exception as e:
         import traceback
-        return '<html><body style="background:#000;color:#fff;padding:20px"><h1>ERROR:</h1><pre>' + str(e) + '\n\n' + traceback.format_exc() + '</pre></body></html>', 500
+        traceback.print_exc()  # Log to server only
+        return '<html><body style="background:#000;color:#fff;padding:20px"><h1>Wystąpił błąd serwera</h1><p>Szczegóły zapisane w logach.</p></body></html>', 500
 
 # ============================================================
 # EXTRAKTOR ALLEGRO - REGENERUJ META TITLE
@@ -4696,7 +4698,8 @@ def api_check_sales():
         return jsonify({'success': True, 'synced': synced, 'new_sales': sales_list})
         
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e), 'new_sales': []})
+        print(f"[ERR] Sales sync: {e}")
+        return jsonify({'success': False, 'error': 'Błąd synchronizacji', 'new_sales': []})
 
 @app.route('/api/notify', methods=['POST'])
 def api_notify():
@@ -5150,9 +5153,9 @@ def require_api_key(f):
         global AKCES_API_KEY
         if AKCES_API_KEY is None:
             AKCES_API_KEY = get_api_key()
-        key = request.headers.get('X-API-Key') or request.args.get('api_key')
+        key = request.headers.get('X-API-Key')
         if key != AKCES_API_KEY:
-            return jsonify({'error': 'Unauthorized', 'hint': 'Dodaj naglowek X-API-Key lub parametr ?api_key='}), 401
+            return jsonify({'error': 'Unauthorized', 'hint': 'Dodaj naglowek X-API-Key'}), 401
         return f(*args, **kwargs)
     return decorated
 

@@ -201,7 +201,7 @@ def produkt_regenerate_meta_title(produkt_id):
     # CORS preflight
     if request.method == 'OPTIONS':
         response = jsonify({'success': True})
-        response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
+        response.headers.add('Access-Control-Allow-Origin', request.host_url.rstrip('/'))
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
         return response
@@ -213,7 +213,7 @@ def produkt_regenerate_meta_title(produkt_id):
         gemini_key = get_config('gemini_api_key', '')
         if not gemini_key:
             response = jsonify({'success': False, 'error': 'Brak klucza Gemini API - ustaw w Ustawieniach'})
-            response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
+            response.headers.add('Access-Control-Allow-Origin', request.host_url.rstrip('/'))
             return response
 
         # Pobierz produkt
@@ -222,7 +222,7 @@ def produkt_regenerate_meta_title(produkt_id):
 
         if not produkt:
             response = jsonify({'success': False, 'error': 'Produkt nie znaleziony'})
-            response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
+            response.headers.add('Access-Control-Allow-Origin', request.host_url.rstrip('/'))
             return response
 
         # Generuj meta_title
@@ -235,7 +235,7 @@ def produkt_regenerate_meta_title(produkt_id):
 
         if not meta_title:
             response = jsonify({'success': False, 'error': 'Nie udało się wygenerować tytułu'})
-            response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
+            response.headers.add('Access-Control-Allow-Origin', request.host_url.rstrip('/'))
             return response
 
         # Zapisz do bazy
@@ -243,12 +243,12 @@ def produkt_regenerate_meta_title(produkt_id):
         conn.commit()
 
         response = jsonify({'success': True, 'meta_title': meta_title})
-        response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
+        response.headers.add('Access-Control-Allow-Origin', request.host_url.rstrip('/'))
         return response
 
     except Exception as e:
         response = jsonify({'success': False, 'error': str(e)})
-        response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
+        response.headers.add('Access-Control-Allow-Origin', request.host_url.rstrip('/'))
         return response
 
 
@@ -261,7 +261,7 @@ def generate_meta_title_batch():
     # CORS preflight
     if request.method == 'OPTIONS':
         response = jsonify({'success': True})
-        response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
+        response.headers.add('Access-Control-Allow-Origin', request.host_url.rstrip('/'))
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
         return response
@@ -280,12 +280,12 @@ def generate_meta_title_batch():
                 'success': False,
                 'error': f'Zbyt dużo produktów! Max {MAX_BATCH_SIZE} na raz. Zaznacz mniej produktów lub podziel na mniejsze batche.'
             })
-            response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
+            response.headers.add('Access-Control-Allow-Origin', request.host_url.rstrip('/'))
             return response
 
         if not product_ids:
             response = jsonify({'success': False, 'error': 'Brak produktów do przetworzenia'})
-            response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
+            response.headers.add('Access-Control-Allow-Origin', request.host_url.rstrip('/'))
             return response
 
         # Sprawdź API key
@@ -293,7 +293,7 @@ def generate_meta_title_batch():
         gemini_key = get_config('gemini_api_key', '')
         if not gemini_key:
             response = jsonify({'success': False, 'error': 'Brak klucza Gemini API - ustaw w Ustawieniach'})
-            response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
+            response.headers.add('Access-Control-Allow-Origin', request.host_url.rstrip('/'))
             return response
 
         conn = get_db()
@@ -399,12 +399,12 @@ def generate_meta_title_batch():
                     })
 
         response = jsonify(results)
-        response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
+        response.headers.add('Access-Control-Allow-Origin', request.host_url.rstrip('/'))
         return response
 
     except Exception as e:
         response = jsonify({'success': False, 'error': str(e)})
-        response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin', '*'))
+        response.headers.add('Access-Control-Allow-Origin', request.host_url.rstrip('/'))
         return response
 
 
