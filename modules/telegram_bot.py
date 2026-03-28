@@ -264,11 +264,11 @@ def alert_sprzedaz(produkt_nazwa, cena, kupujacy='', lokalizacja='', regal='', p
     # Lokalizacja w magazynie - żeby od razu wiedzieć skąd wziąć produkt
     loc_parts = []
     if regal:
-        loc_parts.append(f"<span class=material-symbols-outlined>location_on</span> Regał: <b>{regal}</b>")
+        loc_parts.append(f"📍 Regał: <b>{regal}</b>")
     if lokalizacja:
         loc_parts.append(f"🗺 Miejsce: <b>{lokalizacja}</b>")
     if paleta:
-        loc_parts.append(f"<span class=material-symbols-outlined>inventory_2</span> {paleta}")
+        loc_parts.append(f"📦 {paleta}")
     if loc_parts:
         msg += f"\n{'  │  '.join(loc_parts)}\n"
 
