@@ -215,7 +215,7 @@
       {% for p in lezaki %}
       <tr class="zak-lezak-row">
         <td>
-          <a href="/produkty/{{ p.id }}" class="zak-lezak-name" style="color:#cbd5e1;text-decoration:none;display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ p.nazwa }}">{{ p.nazwa }}</a>
+          <a href="/produkt/{{ p.id }}" class="zak-lezak-name" style="color:#cbd5e1;text-decoration:none;display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ p.nazwa }}">{{ p.nazwa }}</a>
         </td>
         <td style="color:var(--text-muted);font-size:0.75rem">{{ p.kategoria or '—' }}</td>
         <td>
