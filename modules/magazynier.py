@@ -7210,23 +7210,49 @@ Przykład:
 
             if gemini_key:
                 try:
-                    api_url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}'
+                    _wycena_schema = {
+                        "type": "ARRAY",
+                        "items": {
+                            "type": "OBJECT",
+                            "properties": {
+                                "id": {"type": "INTEGER"},
+                                "cena": {"type": "NUMBER"}
+                            },
+                            "required": ["id", "cena"]
+                        }
+                    }
+                    api_url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}'
                     resp = _req.post(
                         api_url,
-                        json={'contents': [{'parts': [{'text': prompt}]}]},
+                        json={
+                            'contents': [{'parts': [{'text': prompt}]}],
+                            'generationConfig': {
+                                'response_mime_type': 'application/json',
+                                'response_schema': _wycena_schema
+                            }
+                        },
                         timeout=30
                     )
                     if resp.status_code == 200:
                         ai_text = resp.json().get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
                         print(f"[Auto-wycena] Gemini batch {batch_idx+1} response:\n{ai_text}")
-                        for line in ai_text.strip().split('\n'):
-                            line = line.strip()
-                            m = re.match(r'(\d+)\s*[:\-]\s*(\d+(?:[.,]\d+)?)', line)
-                            if m:
-                                pid = int(m.group(1))
-                                price = float(m.group(2).replace(',', '.'))
-                                if 1 < price < 50000:
+                        try:
+                            items = __import__('json').loads(ai_text)
+                            for item in items:
+                                pid = int(item.get('id', 0))
+                                price = float(item.get('cena', 0))
+                                if pid and 1 < price < 50000:
                                     ai_prices[pid] = round(price, 2)
+                        except Exception as _pe:
+                            print(f"[Auto-wycena] JSON parse fallback: {_pe}")
+                            for line in ai_text.strip().split('\n'):
+                                line = line.strip()
+                                m = re.match(r'(\d+)\s*[:\-]\s*(\d+(?:[.,]\d+)?)', line)
+                                if m:
+                                    pid = int(m.group(1))
+                                    price = float(m.group(2).replace(',', '.'))
+                                    if 1 < price < 50000:
+                                        ai_prices[pid] = round(price, 2)
                     else:
                         print(f"[Auto-wycena] Gemini error {resp.status_code}: {resp.text[:200]}")
                 except Exception as e:
@@ -9533,18 +9559,30 @@ def ai_ocena_stanu():
         if not api_key or not api_key['wartosc']:
             return jsonify({'success': False, 'error': 'Brak klucza Gemini API w konfiguracji'})
 
-        import requests as req
+        import requests as req, json as _json
+        _stan_schema = {
+            "type": "OBJECT",
+            "properties": {
+                "stan": {"type": "STRING", "enum": ["Nowy", "Jak nowy", "Dobry", "Uszkodzony", "Zniszczony"]},
+                "opis": {"type": "STRING"}
+            },
+            "required": ["stan", "opis"]
+        }
         response = req.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key['wartosc']}",
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key['wartosc']}",
             headers={'Content-Type': 'application/json'},
             json={
                 'contents': [{
                     'parts': [
-                        {'text': 'Jesteś ekspertem od oceny stanu produktów zwrotowych. Oceń stan produktu na zdjęciu. Odpowiedz DOKŁADNIE w formacie:\nSTAN: [Nowy/Jak nowy/Dobry/Uszkodzony/Zniszczony]\nOPIS: [krótki opis stanu, wady, braki, uszkodzenia - max 2 zdania po polsku]'},
+                        {'text': 'Jesteś ekspertem od oceny stanu produktów zwrotowych. Oceń stan produktu na zdjęciu. Zwróć JSON z polami: stan (jedna z wartości: Nowy/Jak nowy/Dobry/Uszkodzony/Zniszczony) i opis (krótki opis stanu, wady, braki, uszkodzenia - max 2 zdania po polsku).'},
                         {'inline_data': {'mime_type': 'image/jpeg', 'data': image_base64}}
                     ]
                 }],
-                'generationConfig': {'maxOutputTokens': 200}
+                'generationConfig': {
+                    'maxOutputTokens': 200,
+                    'response_mime_type': 'application/json',
+                    'response_schema': _stan_schema
+                }
             },
             timeout=30
         )
@@ -9552,15 +9590,20 @@ def ai_ocena_stanu():
         result = response.json()
         content = result.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
 
-        # Parse response
+        # Parse response — schema wymusza JSON, fallback na text parsing
         stan = ''
         opis = ''
-        for line in content.split('\n'):
-            line = line.strip()
-            if line.upper().startswith('STAN:'):
-                stan = line.split(':', 1)[1].strip()
-            elif line.upper().startswith('OPIS:'):
-                opis = line.split(':', 1)[1].strip()
+        try:
+            parsed = _json.loads(content)
+            stan = parsed.get('stan', '')
+            opis = parsed.get('opis', '')
+        except Exception:
+            for line in content.split('\n'):
+                line = line.strip()
+                if line.upper().startswith('STAN:'):
+                    stan = line.split(':', 1)[1].strip()
+                elif line.upper().startswith('OPIS:'):
+                    opis = line.split(':', 1)[1].strip()
 
         stan_colors = {
             'Nowy': '#beee00', 'Jak nowy': '#8ff5ff', 'Dobry': '#eab308',
