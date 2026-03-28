@@ -1562,6 +1562,124 @@ h1 {{ font-size:18px; text-align:center; margin-bottom:4px; }}
 
     return html
 
+@wysylki_bp.route('/wysylki/bulk-nadaj', methods=['POST'])
+def bulk_nadaj():
+    """Bulk tworzenie przesyłek i etykiet dla zaznaczonych zamówień"""
+    from modules.allegro_api import create_and_get_label, get_order_details
+    import base64
+    import io
+
+    data = request.get_json(silent=True) or {}
+    items = data.get('items', [])  # [{order_id, size, dim_l, dim_w, dim_h, dim_kg}, ...]
+
+    if not items:
+        return jsonify({'success': False, 'error': 'Brak zamówień do nadania'}), 400
+
+    results = []
+    pdf_pages = []
+    pickup_orders = []  # orders needing courier pickup (DPD/DHL)
+
+    for i, item in enumerate(items):
+        order_id = item.get('order_id', '')
+        size = item.get('size')  # A/B/C/S/M/L or None
+        dimensions = None
+
+        if item.get('dim_l'):
+            dimensions = {
+                'length': item.get('dim_l', '30'),
+                'width': item.get('dim_w', '25'),
+                'height': item.get('dim_h', '15'),
+                'weight_kg': item.get('dim_kg', '1'),
+            }
+
+        print(f"[BULK] Nadaję {i+1}/{len(items)}: {order_id[:12]}... size={size} dims={dimensions}")
+
+        try:
+            label_pdf, shipment_id, error = create_and_get_label(
+                order_id, parcel_size=size, dimensions=dimensions
+            )
+        except Exception as e:
+            error = str(e)
+            label_pdf, shipment_id = None, None
+
+        if error:
+            print(f"[BULK]   FAIL: {error}")
+            results.append({'order_id': order_id, 'success': False, 'error': error})
+        else:
+            print(f"[BULK]   OK: shipment={shipment_id}, pdf={len(label_pdf) if label_pdf else 0}B")
+            results.append({'order_id': order_id, 'success': True, 'shipment_id': shipment_id})
+            if label_pdf:
+                pdf_pages.append(label_pdf)
+
+            # Detect carrier for pickup
+            try:
+                _ord, _ = get_order_details(order_id)
+                _dm = (_ord or {}).get('delivery', {}).get('method', {}).get('name', '').lower()
+                if 'orlen' in _dm:
+                    # Auto pickup for Orlen (free)
+                    try:
+                        from modules.allegro_api import allegro_request, get_wysylam_z_allegro_shipments
+                        import uuid
+                        sr, _ = get_wysylam_z_allegro_shipments(order_id)
+                        if sr and sr.get('shipments'):
+                            sid = sr['shipments'][0].get('id')
+                            pr, _ = allegro_request('POST', '/shipment-management/pickup-proposals', data={'shipmentIds': [sid]})
+                            pid = ((pr or {}).get('pickupDateProposals', [{}])[0].get('id', 'ANY')) if pr else 'ANY'
+                            allegro_request('POST', '/shipment-management/pickups/create-commands', data={
+                                'commandId': str(uuid.uuid4()),
+                                'input': {'shipmentIds': [sid], 'pickupDateProposalId': pid}
+                            })
+                            print(f"[BULK]   Orlen pickup ordered for {order_id[:12]}")
+                    except Exception as pe:
+                        print(f"[BULK]   Orlen pickup error: {pe}")
+                elif 'dpd' in _dm or 'dhl' in _dm:
+                    pickup_orders.append(order_id)
+            except:
+                pass
+
+            # Mark as shipped in DB
+            from modules.database import get_db
+            conn = get_db()
+            conn.execute("UPDATE sprzedaze SET status = 'nadana' WHERE allegro_order_id = ? AND status = 'nowa'", (order_id,))
+            conn.commit()
+
+    # Merge PDFs into one
+    merged_pdf_b64 = None
+    if pdf_pages:
+        try:
+            from PyPDF2 import PdfMerger
+            merger = PdfMerger()
+            for pdf_data in pdf_pages:
+                merger.append(io.BytesIO(pdf_data))
+            output = io.BytesIO()
+            merger.write(output)
+            merger.close()
+            merged_pdf_b64 = base64.b64encode(output.getvalue()).decode('utf-8')
+            print(f"[BULK] Merged {len(pdf_pages)} PDFs, size={len(output.getvalue())}B")
+        except ImportError:
+            # PyPDF2 not available - return first PDF only
+            print("[BULK] PyPDF2 not available, returning individual PDFs")
+            if pdf_pages:
+                merged_pdf_b64 = base64.b64encode(pdf_pages[0]).decode('utf-8')
+        except Exception as e:
+            print(f"[BULK] PDF merge error: {e}")
+            if pdf_pages:
+                merged_pdf_b64 = base64.b64encode(pdf_pages[0]).decode('utf-8')
+
+    success_count = sum(1 for r in results if r['success'])
+    fail_count = sum(1 for r in results if not r['success'])
+
+    return jsonify({
+        'success': True,
+        'results': results,
+        'success_count': success_count,
+        'fail_count': fail_count,
+        'total': len(items),
+        'merged_pdf': merged_pdf_b64,
+        'pickup_orders': pickup_orders,
+    })
+
+
 @wysylki_bp.route('/wysylki/bulk-wyslane-allegro', methods=['POST'])
 def bulk_wyslane_allegro():
     """Bulk oznaczanie zamówień Allegro jako wysłane (z checkboxów)"""
