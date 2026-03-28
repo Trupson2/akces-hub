@@ -1000,9 +1000,9 @@ def get_full_stats():
         else:
             koszt_sprzedanych = koszt_palet_msc  # fallback
 
-        zwroty_msc_suma = float(stats.get('zwroty_miesiac_suma', 0))
-        przychod_po_zwrotach = stats['sprzedaz_miesiac_suma'] - zwroty_msc_suma
-        prowizja_msc = przychod_po_zwrotach * 0.11  # prowizja od przychodu po zwrotach
+        # sprzedaz_miesiac_suma już wyklucza zwroty (status NOT IN 'zwrot')
+        przychod_po_zwrotach = stats['sprzedaz_miesiac_suma']
+        prowizja_msc = przychod_po_zwrotach * 0.11
         stats['zysk_miesiac'] = przychod_po_zwrotach - koszt_sprzedanych - prowizja_msc
         stats['koszt_sprzedanych_msc'] = koszt_sprzedanych
         stats['cogs_miesiac'] = cogs_miesiac
