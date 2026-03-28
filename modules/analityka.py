@@ -2593,10 +2593,15 @@ def analityka_czas_sprzedazy():
         FROM sprzedaze s
         LEFT JOIN produkty p ON s.produkt_id = p.id
         LEFT JOIN oferty o ON s.oferta_id = o.id
-        LEFT JOIN oferty o2 ON o2.produkt_id = s.produkt_id AND s.oferta_id IS NULL
+        LEFT JOIN (
+            SELECT produkt_id, MIN(data_wystawienia) as data_wystawienia
+            FROM oferty
+            WHERE data_wystawienia IS NOT NULL AND data_wystawienia != ''
+            GROUP BY produkt_id
+        ) o2 ON o2.produkt_id = s.produkt_id AND s.oferta_id IS NULL
         WHERE s.status NOT IN ('zwrot','anulowane','anulowana')
           AND s.data_sprzedazy IS NOT NULL AND s.data_sprzedazy != ''
-         
+
         ORDER BY dni_od_wystawienia ASC
     """).fetchall()
 
