@@ -925,6 +925,31 @@ function toggleDrilldown(id){
 @media(max-width:600px){
     .stitch-kpi .kpi-value{font-size:1.2rem}
 }
+/* Mobile responsive — fix overlapping grids */
+@media(max-width:768px){
+    div[style*="grid-template-columns:repeat(4,1fr)"],
+    div[style*="grid-template-columns: repeat(4,1fr)"]{
+        grid-template-columns:repeat(2,1fr)!important;
+    }
+    div[style*="grid-template-columns:repeat(3,1fr)"],
+    div[style*="grid-template-columns: repeat(3,1fr)"]{
+        grid-template-columns:repeat(2,1fr)!important;
+    }
+    div[style*="grid-template-columns:1fr 1fr 1fr 1fr"]{
+        grid-template-columns:repeat(2,1fr)!important;
+    }
+}
+@media(max-width:480px){
+    div[style*="grid-template-columns:repeat(4,1fr)"],
+    div[style*="grid-template-columns: repeat(4,1fr)"],
+    div[style*="grid-template-columns:repeat(3,1fr)"],
+    div[style*="grid-template-columns: repeat(3,1fr)"]{
+        grid-template-columns:1fr!important;
+    }
+    div[style*="grid-template-columns:1fr 1fr"]{
+        grid-template-columns:1fr!important;
+    }
+}
 </style>
 
 <script>
