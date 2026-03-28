@@ -1456,10 +1456,10 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
 
     sypie_row = conn.execute('''
         SELECT
-            SUM(CASE WHEN date(data_sprzedazy) = ? AND status NOT IN ('zwrot','anulowane','anulowana') THEN 1 ELSE 0 END) as dzis_cnt,
-            COALESCE(SUM(CASE WHEN date(data_sprzedazy) = ? AND status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc ELSE 0 END), 0) as dzis_suma,
-            SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana') THEN 1 ELSE 0 END) as msc_cnt,
-            COALESCE(SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc ELSE 0 END), 0) as msc_suma
+            SUM(CASE WHEN date(data_sprzedazy) = ? AND status NOT IN ('zwrot','anulowane','anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline') THEN 1 ELSE 0 END) as dzis_cnt,
+            COALESCE(SUM(CASE WHEN date(data_sprzedazy) = ? AND status NOT IN ('zwrot','anulowane','anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline') THEN cena * ilosc ELSE 0 END), 0) as dzis_suma,
+            SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline') THEN 1 ELSE 0 END) as msc_cnt,
+            COALESCE(SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline') THEN cena * ilosc ELSE 0 END), 0) as msc_suma
         FROM sprzedaze
         WHERE date(data_sprzedazy) >= ?
 
