@@ -161,10 +161,10 @@ def ustawienia_kreator():
             'fields': [
                 {'name': 'gemini_api_key', 'label': 'API Key', 'type': 'password', 'placeholder': 'AIzaSy...'},
                 {'name': 'gemini_model', 'label': 'Model AI (globalny fallback)', 'type': 'select', 'options': [
-                    ('gemini-2.5-flash', '<span class=material-symbols-outlined>bolt</span> Gemini 2.5 Flash — ZALECANY <span class=material-symbols-outlined style=color:#22c55e>check_circle</span> darmowy, stabilny'),
-                    ('gemini-2.5-flash-lite', '<span class=material-symbols-outlined>air</span> Gemini 2.5 Flash Lite — szybszy, mniej dokładny'),
-                    ('gemini-3.1-flash-lite-preview', '<span class=material-symbols-outlined>rocket_launch</span> Gemini 3.1 Flash Lite — najnowszy, testowy <span class=material-symbols-outlined>warning</span>'),
-                    ('gemini-3.1-pro-preview', '<span class=material-symbols-outlined>psychology</span> Gemini 3.1 Pro — najlepszy, testowy, płatny <span class=material-symbols-outlined>payments</span>'),
+                    ('gemini-2.5-flash', 'Gemini 2.5 Flash (zalecany)'),
+                    ('gemini-2.5-flash-lite', 'Gemini 2.5 Flash Lite (szybszy, tańszy)'),
+                    ('gemini-2.0-flash', 'Gemini 2.0 Flash (poprzednia generacja)'),
+                    ('gemini-2.0-flash-lite', 'Gemini 2.0 Flash Lite'),
                 ]},
                 {'type': 'header', 'label': 'Model AI per sektor'},
                 {'name': 'ai_model_analiza_palet', 'label': 'Analiza palet', 'type': 'select',
