@@ -866,7 +866,7 @@ def wysylki_nadaj(order_id):
             try:
                 _ord, _ = get_order_details(order_id)
                 _dm = (_ord or {}).get('delivery', {}).get('method', {}).get('name', '').lower()
-                _carrier = 'DPD' if 'dpd' in _dm else ('DHL' if 'dhl' in _dm else ('InPost' if any(x in _dm for x in ['inpost', 'paczkomat']) else 'Kurier'))
+                _carrier = 'DPD' if 'dpd' in _dm else ('DHL' if 'dhl' in _dm else ('Orlen' if 'orlen' in _dm else ('InPost' if any(x in _dm for x in ['inpost', 'paczkomat']) else 'Kurier')))
             except:
                 _carrier = 'Kurier'
             return jsonify({

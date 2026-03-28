@@ -870,6 +870,13 @@ function pkFinalize() {
                         if (data.carrier === 'DPD' || data.carrier === 'DHL') {
                             window._lastPickupOrderId = orderId;
                         }
+                        // Orlen: auto-order pickup (free)
+                        if (data.carrier === 'Orlen') {
+                            fetch('/wysylki/podjazd/' + orderId, {method:'POST'})
+                                .then(r => r.json())
+                                .then(d => { if (d.success) console.log('Orlen pickup ordered'); else console.warn('Orlen pickup fail:', d.error); })
+                                .catch(e => console.warn('Orlen pickup error:', e));
+                        }
                         setTimeout(() => pkShowReady(orderId, url), 800);
                     } else {
                         const errMsg = data.error || 'Etykieta niedostepna';
