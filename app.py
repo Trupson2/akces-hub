@@ -1120,6 +1120,8 @@ def api_ngrok_status():
 @app.route('/api/ngrok-control', methods=['POST'])
 def api_ngrok_control():
     """Start/stop ngrok tunnel from kiosk dashboard"""
+    if not session.get('user'):
+        return jsonify({'error': 'Unauthorized'}), 401
     import subprocess
     data = request.get_json() or {}
     action = data.get('action', '')
@@ -1189,14 +1191,9 @@ def paletomat_early_access():
         f"Timestamp: {now}"
     )
 
-    SUPPORT_BOT_TOKEN = '8538336125:AAE4qMWsz2tth9RKJ3zT9SqqKetpGHyS6GY'
-    SUPPORT_CHAT_ID = '5441603126'
     try:
-        _req.post(
-            f'https://api.telegram.org/bot{SUPPORT_BOT_TOKEN}/sendMessage',
-            json={'chat_id': SUPPORT_CHAT_ID, 'text': msg, 'parse_mode': 'HTML'},
-            timeout=10
-        )
+        from modules.telegram_bot import send_telegram_support
+        send_telegram_support(msg, parse_mode='HTML')
     except Exception:
         pass
 
@@ -4366,8 +4363,10 @@ def goal_details():
 @app.route('/goal/update', methods=['POST'])
 def goal_update():
     """Aktualizuje goal"""
+    if not session.get('user'):
+        return redirect('/auth/login')
     from modules.simple_goal_manager import save_goal
-    
+
     try:
         current = float(request.form.get('current', 0))
         target = float(request.form.get('target', 150000))
@@ -4380,6 +4379,8 @@ def goal_update():
 
 @app.route('/goal/add', methods=['POST'])
 def goal_add():
+    if not session.get('user'):
+        return redirect('/auth/login')
     """Dodaje kwotę do goala"""
     from modules.simple_goal_manager import add_to_goal
     
@@ -4675,6 +4676,8 @@ def api_check_sales():
 @app.route('/api/notify', methods=['POST'])
 def api_notify():
     """Wysyła powiadomienie przez Telegram"""
+    if not session.get('user'):
+        return jsonify({'error': 'Unauthorized'}), 401
     data = request.json
     msg = data.get('message', '')
     if msg:
