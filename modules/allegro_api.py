@@ -561,7 +561,7 @@ def refresh_access_token():
         return False
 
 
-def allegro_request(method, endpoint, data=None, params=None, _retry=False):
+def allegro_request(method, endpoint, data=None, params=None, _retry=False, _attempt=0):
     config = get_allegro_config()
     _, _, api_url = get_api_urls()
 
@@ -625,6 +625,13 @@ def allegro_request(method, endpoint, data=None, params=None, _retry=False):
                 return allegro_request(method, endpoint, data, params, _retry=True)
             return None, "Brak dostępu — zaloguj się ponownie na /allegro"
 
+        # Retry on 5xx server errors (max 2 retries)
+        if response.status_code >= 500 and _attempt < 2:
+            import time as _t
+            _t.sleep(1 + _attempt)
+            print(f"[AllegroAPI] {response.status_code} na {endpoint}, retry {_attempt+1}/2...")
+            return allegro_request(method, endpoint, data, params, _retry, _attempt + 1)
+
         if response.status_code >= 400:
             error_details = f"Błąd {response.status_code}"
             try:
@@ -664,9 +671,19 @@ def allegro_request(method, endpoint, data=None, params=None, _retry=False):
                 return {'raw_content': response.content, 'status': response.status_code}, None
         return {}, None
     except requests.exceptions.Timeout:
-        return None, "Timeout — Allegro API nie odpowiada"
+        if _attempt < 2:
+            import time as _t
+            _t.sleep(1 + _attempt)
+            print(f"[AllegroAPI] Timeout na {endpoint}, retry {_attempt+1}/2...")
+            return allegro_request(method, endpoint, data, params, _retry, _attempt + 1)
+        return None, "Timeout — Allegro API nie odpowiada (po 3 próbach)"
     except requests.exceptions.ConnectionError:
-        return None, "Brak połączenia z Allegro API"
+        if _attempt < 2:
+            import time as _t
+            _t.sleep(1 + _attempt)
+            print(f"[AllegroAPI] ConnectionError na {endpoint}, retry {_attempt+1}/2...")
+            return allegro_request(method, endpoint, data, params, _retry, _attempt + 1)
+        return None, "Brak połączenia z Allegro API (po 3 próbach)"
     except Exception as e:
         print(f"* Wyjątek allegro_request: {e}")
         return None, str(e)
