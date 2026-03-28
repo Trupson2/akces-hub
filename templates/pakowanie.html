@@ -91,6 +91,9 @@
 
 <div class="pk-grid-bg"></div>
 
+<!-- Toast container -->
+<div id="pkToast" style="position:fixed;top:80px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none"></div>
+
 <div class="pk-wrap" style="position:relative;z-index:1;padding:0 8px">
 
 <!-- ════════════════════════════════════════ -->
@@ -504,6 +507,18 @@ let lastScanResult = '';
 let lastScanTime = 0;
 
 // ─── Section switching ───
+function pkToast(msg, type='error') {
+    const c = document.getElementById('pkToast');
+    if (!c) return;
+    const colors = {error:'var(--pk-pink)',success:'var(--pk-lime-dim)',warn:'#f59e0b'};
+    const icons = {error:'error',success:'check_circle',warn:'warning'};
+    const t = document.createElement('div');
+    t.style.cssText = `pointer-events:auto;display:flex;align-items:center;gap:10px;padding:12px 20px;background:var(--pk-card3);border-left:3px solid ${colors[type]||colors.error};color:var(--pk-text);font-size:0.85rem;font-family:'Manrope',sans-serif;box-shadow:0 4px 20px rgba(0,0,0,0.4);animation:wy-fadeIn 0.3s ease;max-width:360px`;
+    t.innerHTML = `<span class="material-symbols-outlined" style="color:${colors[type]};font-size:20px">${icons[type]}</span>${msg}`;
+    c.appendChild(t);
+    setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 4000);
+}
+
 function pkShowSection(id) {
     document.querySelectorAll('.pk-section').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
@@ -532,7 +547,7 @@ codeReader.listVideoInputDevices().then(devices => {
             }
         });
     }
-}).catch(() => {});
+}).catch(e => pkToast('Błąd sieci: '+e.message));
 
 // ─── Load pending orders for dashboard ───
 function pkLoadOrders() {
@@ -833,7 +848,7 @@ function pkLoadPricing() {
                 });
             }
         })
-        .catch(() => {});
+        .catch(e => pkToast('Błąd sieci: '+e.message));
 }
 
 // Załaduj cennik przy starcie
@@ -929,7 +944,7 @@ function pkFinalize() {
                 bar.style.width = '100%';
                 status.textContent = 'Etykieta gotowa!';
                 // Mark as packed so it disappears from pending list
-                fetch('/api/wysylki/mark-packed', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId})}).catch(()=>{});
+                fetch('/api/wysylki/mark-packed', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId})}).catch(e => pkToast('Błąd sieci: '+e.message));
                 return r.blob().then(blob => {
                     const url = URL.createObjectURL(blob);
                     window.open(url, '_blank');
@@ -941,7 +956,7 @@ function pkFinalize() {
                     if (data.success && data.label_base64) {
                         // JSON success with base64 label
                         status.textContent = 'Etykieta gotowa!';
-                        fetch('/api/wysylki/mark-packed', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId})}).catch(()=>{});
+                        fetch('/api/wysylki/mark-packed', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId})}).catch(e => pkToast('Błąd sieci: '+e.message));
                         const blob = new Blob([Uint8Array.from(atob(data.label_base64), c => c.charCodeAt(0))], {type:'application/pdf'});
                         const url = URL.createObjectURL(blob);
                         window.open(url, '_blank');
@@ -961,7 +976,7 @@ function pkFinalize() {
                     } else {
                         const errMsg = data.error || 'Etykieta niedostepna';
                         status.innerHTML = '<span style="color:#ff716c">' + errMsg + '</span>';
-                        fetch('/api/wysylki/mark-packed', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId})}).catch(()=>{});
+                        fetch('/api/wysylki/mark-packed', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId})}).catch(e => pkToast('Błąd sieci: '+e.message));
                         setTimeout(() => {
                             window.open(data.allegro_url || 'https://allegro.pl/moje-allegro/sprzedaz/zamowienia/' + orderId, '_blank');
                             pkShowReady(orderId, null);
@@ -989,7 +1004,7 @@ function pkFinalize() {
         });
 
     // Mark as shipped in our DB
-    fetch('/wysylki/wyslano-order/' + orderId).catch(() => {});
+    fetch('/wysylki/wyslano-order/' + orderId).catch(e => pkToast('Błąd sieci: '+e.message));
 }
 
 // ─── Show Ready ───

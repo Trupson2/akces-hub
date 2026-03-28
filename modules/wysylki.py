@@ -10,9 +10,42 @@ import json
 wysylki_bp = Blueprint('wysylki', __name__)
 
 # ============================================================
-# Packed orders tracking (hide from pending list after packing)
+# Packed orders tracking (DB-backed, survives restarts)
 # ============================================================
-_packed_orders = set()  # order_ids that have been packed but not yet shipped
+def _get_packed_orders():
+    """Get set of packed order_ids from DB"""
+    from modules.database import get_db
+    try:
+        conn = get_db()
+        conn.execute('''CREATE TABLE IF NOT EXISTS packed_orders (
+            order_id TEXT PRIMARY KEY,
+            packed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )''')
+        # Auto-clean entries older than 3 days
+        conn.execute("DELETE FROM packed_orders WHERE packed_at < datetime('now', '-3 days')")
+        rows = conn.execute('SELECT order_id FROM packed_orders').fetchall()
+        return {r['order_id'] for r in rows}
+    except Exception as e:
+        print(f"[WARN] packed_orders read error: {e}")
+        return set()
+
+def _add_packed_order(order_id):
+    from modules.database import get_db
+    try:
+        conn = get_db()
+        conn.execute('INSERT OR IGNORE INTO packed_orders (order_id) VALUES (?)', (order_id,))
+        conn.commit()
+    except Exception as e:
+        print(f"[WARN] packed_orders write error: {e}")
+
+def _remove_packed_order(order_id):
+    from modules.database import get_db
+    try:
+        conn = get_db()
+        conn.execute('DELETE FROM packed_orders WHERE order_id = ?', (order_id,))
+        conn.commit()
+    except Exception as e:
+        print(f"[WARN] packed_orders delete error: {e}")
 
 # ============================================================
 # CACHE zamówień Allegro
@@ -320,8 +353,8 @@ def api_wysylki_pending():
         today = date.today().isoformat()
         shipped_row = conn.execute("SELECT COUNT(*) as cnt FROM sprzedaze WHERE status IN ('wyslana','nadana') AND date(data_sprzedazy) = ?", (today,)).fetchone()
         shipped_today = shipped_row['cnt'] if shipped_row else 0
-    except:
-        pass
+    except Exception as e:
+        print(f"[WARN] shipped_today query error: {e}")
 
     # Próbuj Allegro API
     if is_authenticated():
@@ -359,7 +392,7 @@ def api_wysylki_pending():
                         pickup_display = f"{pickup_name} - {pp_addr.get('street', '')} {pp_addr.get('city', '')}".strip()
 
                     # Skip orders already packed locally
-                    if order_id in _packed_orders:
+                    if order_id in _get_packed_orders():
                         continue
                     orders.append({
                         'order_id': order_id,
@@ -393,8 +426,8 @@ def api_wysylki_pending():
                     'items_count': r['ilosc'] or 1,
                     'total': str(r['cena'] or 0),
                 })
-        except:
-            pass
+        except Exception as e:
+            print(f"[WARN] DB fallback orders error: {e}")
 
     return jsonify({'orders': orders, 'total': len(orders), 'shipped_today': shipped_today})
 
@@ -451,13 +484,12 @@ def api_wysylki_cennik():
 @wysylki_bp.route('/api/wysylki/mark-packed', methods=['POST'])
 def api_mark_packed():
     """Mark order as packed (hides from pending list until shipped/nadana)."""
-    global _packed_orders
     data = request.get_json(silent=True) or {}
     order_id = data.get('order_id', '')
     if not order_id:
         return jsonify({'error': 'Brak order_id'}), 400
-    _packed_orders.add(order_id)
-    return jsonify({'ok': True, 'packed': list(_packed_orders)})
+    _add_packed_order(order_id)
+    return jsonify({'ok': True})
 
 
 @wysylki_bp.route('/api/wysylki/backfill-carriers', methods=['POST'])
@@ -519,10 +551,9 @@ def api_backfill_carriers():
 @wysylki_bp.route('/api/wysylki/unpack', methods=['POST'])
 def api_unpack():
     """Remove order from packed list (show again in pending)."""
-    global _packed_orders
     data = request.get_json(silent=True) or {}
     order_id = data.get('order_id', '')
-    _packed_orders.discard(order_id)
+    _remove_packed_order(order_id)
     return jsonify({'ok': True})
 
 
@@ -923,7 +954,8 @@ def wysylki_nadaj(order_id):
                 _ord, _ = get_order_details(order_id)
                 _dm = (_ord or {}).get('delivery', {}).get('method', {}).get('name', '').lower()
                 _carrier = 'DPD' if 'dpd' in _dm else ('DHL' if 'dhl' in _dm else ('Orlen' if 'orlen' in _dm else ('InPost' if any(x in _dm for x in ['inpost', 'paczkomat']) else 'Kurier')))
-            except:
+            except Exception as e:
+                print(f"[WARN] carrier detect error: {e}")
                 _carrier = 'Kurier'
             return jsonify({
                 'success': True,
