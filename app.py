@@ -258,19 +258,24 @@ def block_unauthenticated_external():
     if any(request.path.startswith(p) for p in safe_paths):
         return
 
-    # Sprawdź czy request przychodzi z zewnątrz (ngrok)
+    # Zalogowany użytkownik — przepuść zawsze
+    if session.get('user'):
+        return
+
+    # Niezalogowany — sprawdź czy lokalne czy zewnętrzne
     remote_ip = request.remote_addr or ''
     is_local = remote_ip in ('127.0.0.1', '::1') or remote_ip.startswith('192.168.') or remote_ip.startswith('10.')
 
-    # Jeśli nie lokalne i brak sesji — zablokuj
-    if not is_local and not session.get('user'):
-        # Pozwól na GET strony logowania
-        if request.path == '/auth/login' and request.method == 'GET':
-            return
-        # Reszta — wymuś logowanie
-        if request.method == 'GET':
-            return redirect('/auth/login')
-        return jsonify({'error': 'Unauthorized — zaloguj się'}), 401
+    # Lokalne bez sesji — przepuść (Pi w LAN)
+    if is_local:
+        return
+
+    # Zewnętrzne bez sesji — zablokuj (ngrok)
+    if request.path == '/auth/login' and request.method == 'GET':
+        return
+    if request.method == 'GET':
+        return redirect('/auth/login')
+    return jsonify({'error': 'Unauthorized — zaloguj się'}), 401
 
 @app.before_request
 def csrf_protect_forms():
