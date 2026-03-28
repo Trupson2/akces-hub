@@ -383,8 +383,6 @@ def cofnij_zwrot(sale_id):
 @sprzedaze_bp.route('/sprzedaze/usun/<int:sale_id>', methods=['POST'])
 def usun_sprzedaz(sale_id):
     """Usuwa sprzedaz (reczna korekta) i przywraca ilosc produktu"""
-    if not session.get('user'):
-        return redirect('/auth/login')
     from modules.database import get_db
     miesiac = request.form.get('miesiac', '')
 
