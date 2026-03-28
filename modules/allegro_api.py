@@ -4702,7 +4702,7 @@ def zamowienie_detail(order_id):
         html += f'''
         <div class="list-item">
             <div class="list-item-info">
-                <div class="list-item-title">{item.get('offer', {{}}).get('name', 'Produkt')[:40]}</div>
+                <div class="list-item-title">{(item.get('offer') or {}).get('name', 'Produkt')[:40]}</div>
                 <div class="list-item-meta">{qty} x {price:.2f} zl</div>
             </div>
             <div class="list-item-right">
