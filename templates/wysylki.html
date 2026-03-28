@@ -26,6 +26,7 @@
 .wy-order:hover{background:var(--wy-card3);box-shadow:0 0 20px rgba(143,245,255,0.08)}
 .wy-order.wy-dpd{border-left-color:var(--wy-pink)}
 .wy-order.wy-orlen{border-left-color:#f97316}
+.wy-order.wy-dhl{border-left-color:#ffcc00}
 @keyframes wy-fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
 /* ─── Badges ─── */
@@ -33,6 +34,7 @@
 .wy-badge-inpost{background:var(--wy-cyan);color:#005d63}
 .wy-badge-dpd{background:var(--wy-pink);color:#47001f}
 .wy-badge-orlen{background:#f97316;color:#fff}
+.wy-badge-dhl{background:#ffcc00;color:#c40511;font-weight:900}
 .wy-badge-other{background:var(--wy-card3);color:var(--wy-cyan);border:1px solid rgba(143,245,255,0.2)}
 .wy-badge-loc{background:rgba(190,238,0,0.1);color:var(--wy-lime);border:1px solid rgba(190,238,0,0.2)}
 
@@ -148,11 +150,12 @@
 <!-- ═══ Orders List ═══ -->
 <form id="bulkForm" method="POST" action="/wysylki/bulk-wyslane-allegro">
 {% for z in zamowienia %}
-{% set method_low = (z.address or '')|lower %}
-{% set is_inpost = 'paczkomat' in method_low or 'inpost' in method_low %}
-{% set is_orlen = 'orlen' in method_low %}
-{% set is_dpd = 'dpd' in method_low %}
-{% set carrier_class = 'wy-orlen' if is_orlen else ('wy-dpd' if is_dpd else '') %}
+{% set dm = (z.delivery_method or '')|lower %}
+{% set is_inpost = 'inpost' in dm or dm == 'inpost' %}
+{% set is_orlen = 'orlen' in dm %}
+{% set is_dpd = 'dpd' in dm %}
+{% set is_dhl = 'dhl' in dm %}
+{% set carrier_class = 'wy-orlen' if is_orlen else ('wy-dpd' if is_dpd else ('wy-dhl' if is_dhl else '')) %}
 
 <div class="wy-order {{ carrier_class }}" style="animation-delay:{{ loop.index0 * 0.03 }}s">
     <!-- Checkbox + Number -->
@@ -194,6 +197,8 @@
             <span class="wy-badge wy-badge-orlen">Orlen</span>
             {% elif is_dpd %}
             <span class="wy-badge wy-badge-dpd">DPD</span>
+            {% elif is_dhl %}
+            <span class="wy-badge wy-badge-dhl">DHL</span>
             {% endif %}
 
             {% for p in z.produkty %}{% if p.lokalizacja %}

@@ -40,7 +40,7 @@ def _pobierz_zamowienia_allegro(force_refresh=False):
     conn = get_db()
     rows = conn.execute('''
         SELECT s.id, s.allegro_order_id, s.nazwa, s.cena, s.ilosc, s.kupujacy,
-               s.data_sprzedazy, s.adres, s.produkt_id,
+               s.data_sprzedazy, s.adres, s.produkt_id, s.metoda_dostawy,
                p.lokalizacja, p.regal, p.zdjecie_url
         FROM sprzedaze s
         LEFT JOIN produkty p ON s.produkt_id = p.id
@@ -60,6 +60,7 @@ def _pobierz_zamowienia_allegro(force_refresh=False):
                 'date': (row['data_sprzedazy'] or '')[:10],
                 'address': row['adres'] or 'Brak adresu',
                 'pickup_point': '',
+                'delivery_method': row['metoda_dostawy'] or '',
                 'produkty': [],
                 'total_sum': 0
             }
@@ -347,6 +348,8 @@ def api_wysylki_pending():
                         carrier = 'InPost'
                     elif 'dpd' in ml:
                         carrier = 'DPD'
+                    elif 'dhl' in ml:
+                        carrier = 'DHL'
                     else:
                         carrier = method_name[:15] or 'Kurier'
 
@@ -1139,11 +1142,12 @@ def wysylki_lista():
             dostawca = first_item['dostawca'] or 'Niezdefiniowany'
             code = first_item['ean'] or first_item['asin'] or '—'
 
-            # Delivery type badge z adresu
+            # Delivery type badge - preferuj metoda_dostawy, fallback na adres
+            _md = (first_item.get('metoda_dostawy') or '').lower()
             adres_lower = (first_item.get('adres') or '').lower()
             kupujacy_lower = (first_item.get('kupujacy') or '').lower()
-            all_text = adres_lower + ' ' + kupujacy_lower
-            if 'paczkomat' in all_text or 'inpost' in all_text:
+            all_text = _md + ' ' + adres_lower + ' ' + kupujacy_lower
+            if 'inpost' in all_text or 'paczkomat' in all_text:
                 badge += ' <span style="background:#ffcd00;color:#000;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:800;letter-spacing:0.5px">INPOST</span>'
             elif 'one box' in all_text or 'allegro one' in all_text or 'one-box' in all_text:
                 badge += ' <span style="background:#ff5a00;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:800;letter-spacing:0.5px">ALLEGRO ONE</span>'

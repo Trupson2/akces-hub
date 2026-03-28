@@ -508,11 +508,13 @@ function pkLoadOrders() {
             el.innerHTML = orders.map((o, i) => {
                 const isInpost = o.carrier === 'InPost';
                 const isOrlen = o.carrier === 'Orlen';
-                const isDPD = !isInpost && !isOrlen;
-                const borderColor = isDPD ? 'var(--pk-pink)' : 'var(--pk-cyan)';
+                const isDPD = o.carrier === 'DPD';
+                const isDHL = o.carrier === 'DHL';
+                const isOther = !isInpost && !isOrlen && !isDPD && !isDHL;
+                const borderColor = isDPD ? 'var(--pk-pink)' : (isDHL ? '#ffcc00' : (isOrlen ? '#f97316' : 'var(--pk-cyan)'));
                 const glowClass = isDPD ? 'pk-glow-pink' : 'pk-glow-cyan';
-                const badgeBg = isDPD ? 'var(--pk-pink)' : (isOrlen ? '#f97316' : 'var(--pk-cyan)');
-                const badgeColor = isDPD ? '#47001f' : (isOrlen ? '#fff' : '#005d63');
+                const badgeBg = isDPD ? 'var(--pk-pink)' : (isDHL ? '#ffcc00' : (isOrlen ? '#f97316' : 'var(--pk-cyan)'));
+                const badgeColor = isDPD ? '#47001f' : (isDHL ? '#c40511' : (isOrlen ? '#fff' : '#005d63'));
                 const shortId = (o.order_id || '').substring(0, 8).toUpperCase();
 
                 return `
