@@ -9936,11 +9936,27 @@ def photo_clear_and_requeue():
 
         added_total = 0
         now = _dt.now().isoformat(sep=' ', timespec='seconds')
+        import time as _time
 
-        for p in products:
-            img_urls = _scrape_amazon_images(p['asin'] or '', p['zdjecie_url'] or '')
+        for i, p in enumerate(products):
+            asin = p['asin'] or ''
+            zdjecie_url = p['zdjecie_url'] or ''
+
+            # Fallback: jeśli brak ASIN użyj zdjecie_url bez scrapowania
+            if not asin or len(asin) < 8:
+                if zdjecie_url:
+                    conn.execute(
+                        """INSERT INTO photo_jobs (original_path, product_id, sku, status, image_index, created_at, updated_at)
+                           VALUES (?, ?, ?, 'new', 0, ?, ?)""",
+                        (zdjecie_url, p['id'], p['ean'], now, now)
+                    )
+                    added_total += 1
+                continue
+
+            img_urls = _scrape_amazon_images(asin, zdjecie_url)
             if not img_urls:
                 continue
+
             for idx, img_url in enumerate(img_urls):
                 if not img_url:
                     continue
@@ -9950,6 +9966,12 @@ def photo_clear_and_requeue():
                     (img_url, p['id'], p['ean'], idx, now, now)
                 )
                 added_total += 1
+
+            # Delay między produktami — unikaj Amazon rate limiting
+            if i % 5 == 4:
+                _time.sleep(2)  # co 5 produktów czekaj 2s
+            else:
+                _time.sleep(0.8)
 
         conn.commit()
         return jsonify({
