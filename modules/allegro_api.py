@@ -3668,7 +3668,7 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                             _reg = produkt['regal'] or ''
                             _pal = produkt['paleta_nazwa'] or ''
                             _zostalo = new_qty
-                        alert_sprzedaz(nazwa, cena, kupujacy, lokalizacja=_lok, regal=_reg, paleta=_pal, ilosc_zostalo=_zostalo)
+                        alert_sprzedaz(nazwa, cena, kupujacy, lokalizacja=_lok, regal=_reg, paleta=_pal, ilosc_zostalo=_zostalo, ilosc=ilosc)
                         notified += 1
                         conn.execute('UPDATE sprzedaze SET notified=1 WHERE allegro_order_id=? AND nazwa=?', (order_id, nazwa))
                         print(f"[SMAR] Telegram: {nazwa} - {cena} zł")
