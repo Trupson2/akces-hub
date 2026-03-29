@@ -9868,14 +9868,21 @@ def photo_request(product_id):
         if not img_urls:
             return jsonify({'success': False, 'error': 'Brak URL zdjęcia dla produktu'}), 400
 
+        # Dodaj kolumnę image_index jeśli nie istnieje
+        try:
+            conn.execute("ALTER TABLE photo_jobs ADD COLUMN image_index INTEGER DEFAULT 0")
+            conn.commit()
+        except Exception:
+            pass
+
         added = 0
-        for img_url in img_urls:
+        for idx, img_url in enumerate(img_urls):
             if not img_url:
                 continue
             conn.execute(
-                """INSERT INTO photo_jobs (original_path, product_id, sku, status, created_at, updated_at)
-                   VALUES (?, ?, ?, 'new', ?, ?)""",
-                (img_url, product_id, p['ean'], now, now)
+                """INSERT INTO photo_jobs (original_path, product_id, sku, status, image_index, created_at, updated_at)
+                   VALUES (?, ?, ?, 'new', ?, ?, ?)""",
+                (img_url, product_id, p['ean'], idx, now, now)
             )
             added += 1
 

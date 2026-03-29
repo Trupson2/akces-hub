@@ -65,6 +65,7 @@ def process_job(job: dict, cfg: dict, comfy_client: ComfyUIClient) -> bool:
     original_path = job["original_path"]
     sku = job.get("sku")
     product_id = job.get("product_id")
+    image_index = job.get("image_index", 0) or 0  # 0=miniaturka, 1+=galeria
 
     proc = cfg.get("processing", {})
     workdir = cfg.get("workdir_path", "/tmp")
@@ -119,7 +120,9 @@ def process_job(job: dict, cfg: dict, comfy_client: ComfyUIClient) -> bool:
         logger.debug(f"[worker] Job #{job_id}: po fix_orientation: {img.size}")
 
         # Krok 4: Crop do aspect ratio
-        crop_enabled = proc.get("crop_enabled", True)
+        # Miniaturka (index=0): crop do 1:1 (wymóg Allegro — białe tło, kwadrat)
+        # Galeria (index>0): NIE cropujemy — zachowujemy oryginalne proporcje
+        crop_enabled = proc.get("crop_enabled", True) and (image_index == 0)
         aspect_ratio = proc.get("target_aspect_ratio", "1:1")
         if crop_enabled:
             img = image_utils.crop_to_aspect(img, aspect_ratio)
@@ -162,14 +165,27 @@ def process_job(job: dict, cfg: dict, comfy_client: ComfyUIClient) -> bool:
         # Krok 8: Generuj warianty
         # Katalog docelowy: processed/{sku lub product_id}/
         folder_name = sku if sku else (str(product_id) if product_id else f"job_{job_id}")
-        variant_dir = Path(processed_base) / folder_name
+        # Dla galerii: osobny subfolder żeby nie nadpisywać miniaturki
+        if image_index == 0:
+            variant_dir = Path(processed_base) / folder_name
+        else:
+            variant_dir = Path(processed_base) / folder_name / f"gallery_{image_index}"
         os.makedirs(str(variant_dir), exist_ok=True)
 
-        variants_config = [
-            ("allegro_main", proc.get("allegro_size", [1200, 1200]), int(proc.get("jpeg_quality", 90))),
-            ("vinted",       proc.get("vinted_size",  [800, 800]),   int(proc.get("vinted_quality", 85))),
-            ("thumb",        proc.get("thumb_size",   [300, 300]),   int(proc.get("thumb_quality", 80))),
-        ]
+        if image_index == 0:
+            # Miniaturka Allegro: 1200×1200, białe tło, najwyższa jakość
+            # Wymogi: min 400px, max 2560px, białe tło, brak tekstu/logo
+            variants_config = [
+                ("allegro_main", proc.get("allegro_size", [1200, 1200]), int(proc.get("jpeg_quality", 90))),
+                ("thumb",        proc.get("thumb_size",   [300, 300]),   int(proc.get("thumb_quality", 80))),
+                ("vinted",       proc.get("vinted_size",  [800, 800]),   int(proc.get("vinted_quality", 85))),
+            ]
+        else:
+            # Zdjęcia galerii: większy rozmiar, luźniejsze wymogi
+            gallery_variant = f"allegro_gallery_{image_index}"
+            variants_config = [
+                (gallery_variant, proc.get("gallery_size", [2000, 2000]), int(proc.get("jpeg_quality", 90))),
+            ]
 
         saved_paths = []
         for variant_name, size, quality in variants_config:

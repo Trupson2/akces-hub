@@ -26,16 +26,23 @@ photo_daemon:
 
   # Przetwarzanie obrazu
   processing:
-    target_aspect_ratio: "1:1"                   # Docelowy aspect ratio
-    crop_enabled: true                           # Czy robić crop
+    target_aspect_ratio: "1:1"                   # Docelowy aspect ratio (miniaturka Allegro musi być 1:1)
+    crop_enabled: true                           # Czy robić crop do 1:1
     brightness: 1.05                             # Jasność (1.0 = bez zmiany)
     contrast: 1.10                               # Kontrast (1.0 = bez zmiany)
-    allegro_size: [1200, 1200]                   # Rozmiar wariantu Allegro
-    vinted_size: [800, 800]                      # Rozmiar wariantu Vinted
-    thumb_size: [300, 300]                       # Rozmiar miniatury
-    jpeg_quality: 90                             # Jakość JPEG (0-95)
+    # Miniaturka Allegro (zdjęcie nr 1): białe tło, 1:1, min 400px, zalecane 1200px
+    allegro_size: [1200, 1200]
+    # Galeria Allegro (zdjęcia 2-8): dowolne proporcje, max 2560px
+    gallery_size: [2000, 2000]
+    # Vinted
+    vinted_size: [800, 800]
+    # Miniatura
+    thumb_size: [300, 300]
+    jpeg_quality: 90
     vinted_quality: 85
     thumb_quality: 80
+    # Białe tło dla miniaturki (padding zamiast crop gdy obraz ma inne proporcje)
+    white_bg_padding: true
 
   # Logowanie
   log_level: "INFO"                              # DEBUG | INFO | WARNING | ERROR

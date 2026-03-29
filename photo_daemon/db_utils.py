@@ -232,7 +232,9 @@ def get_pending_jobs(limit: int = 10) -> list[dict]:
     try:
         rows = conn.execute(
             """
-            SELECT id, original_path, work_path, product_id, sku, status, error_msg, created_at, updated_at
+            SELECT id, original_path, work_path, product_id, sku, status, error_msg,
+                   created_at, updated_at,
+                   COALESCE(image_index, 0) as image_index
             FROM photo_jobs
             WHERE status = 'new'
             ORDER BY created_at ASC
