@@ -2430,7 +2430,15 @@ def statystyki():
 
     # Przygotuj dane do wykresów
     nazwy_miesiecy = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru']
-    przychod_total = podsumowanie['suma_total'] + pryw_total_rok
+    # Przychód roku (filtr roku + offline) — do kalkulacji podatkowej i wykresu
+    _przychod_rok_row = conn.execute('''
+        SELECT COALESCE(SUM(cena * ilosc), 0) as suma
+        FROM sprzedaze
+        WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?
+          AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+          AND (kupujacy IS NULL OR kupujacy != 'offline')
+    ''', (str(current_year),)).fetchone()
+    przychod_total = float(_przychod_rok_row['suma'] or 0) + pryw_total_rok
     koszty_total_lacznie = koszty_total_rok + palety_zakup_total_rok  # koszty operacyjne + REALNE zakupy palet (cashflow)
     zysk_rok = przychod_total - koszty_total_lacznie
     zysk_kolor = '#beee00' if zysk_rok >= 0 else '#ef4444'

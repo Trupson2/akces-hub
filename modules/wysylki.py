@@ -967,6 +967,23 @@ def wysylki_nadaj(order_id):
 
     if label_pdf:
         print(f"   → [CHECK_CIRCLE] Etykieta gotowa! Rozmiar: {len(label_pdf)} bytes")
+        # Oznacz jako wyslana + zaktualizuj status produktu
+        try:
+            from modules.database import get_db as _gdb
+            _conn = _gdb()
+            _conn.execute("UPDATE sprzedaze SET status = 'wyslana' WHERE allegro_order_id = ? AND status IN ('nowa', 'nadana')", (order_id,))
+            _sprzedane = _conn.execute(
+                "SELECT produkt_id FROM sprzedaze WHERE allegro_order_id = ? AND produkt_id IS NOT NULL", (order_id,)
+            ).fetchall()
+            for _s in _sprzedane:
+                _conn.execute("""
+                    UPDATE produkty SET status = 'sprzedany'
+                    WHERE id = ? AND ilosc <= 0
+                    AND status NOT IN ('sprzedany','wyslany','uszkodzony','zlomowany','naprawa')
+                """, (_s['produkt_id'],))
+            _conn.commit()
+        except Exception as _e:
+            print(f"[WARN] Status update po nadaniu: {_e}")
         if wants_json:
             import base64
             # Detect carrier for frontend (pickup button)
@@ -1641,6 +1658,17 @@ def bulk_nadaj():
             from modules.database import get_db
             conn = get_db()
             conn.execute("UPDATE sprzedaze SET status = 'wyslana' WHERE allegro_order_id = ? AND status IN ('nowa', 'nadana')", (order_id,))
+            # Aktualizuj status produktu jeśli ilosc = 0
+            _sprzedane = conn.execute(
+                "SELECT produkt_id, ilosc FROM sprzedaze WHERE allegro_order_id = ? AND produkt_id IS NOT NULL",
+                (order_id,)
+            ).fetchall()
+            for _s in _sprzedane:
+                conn.execute("""
+                    UPDATE produkty SET status = 'sprzedany'
+                    WHERE id = ? AND ilosc <= 0
+                    AND status NOT IN ('sprzedany','wyslany','uszkodzony','zlomowany','naprawa')
+                """, (_s['produkt_id'],))
             conn.commit()
 
     # Merge PDFs into one
