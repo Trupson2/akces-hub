@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block page_title %}Galeria Packshot{% endblock %}
+{% block content %}
+<style>
+:root{--cyan:#8ff5ff;--lime:#beee00;--pink:#ff6b9b;--bg:#0e0e10;--card:#131315;--border:rgba(255,255,255,0.06);--muted:#adaaad}
+.gal-wrap{max-width:1400px;margin:0 auto;font-family:'Manrope',sans-serif}
+.gal-title{font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--lime));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+.gal-sub{font-size:0.7rem;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:20px}
+
+/* Toolbar */
+.gal-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.gal-search{background:#1a1a1f;border:1px solid var(--border);color:#f0f0f0;padding:8px 14px;font-size:0.82rem;width:260px;font-family:'Manrope',sans-serif}
+.gal-search:focus{outline:none;border-color:rgba(143,245,255,0.3)}
+.gal-variant{background:#1a1a1f;border:1px solid var(--border);color:#f0f0f0;padding:8px 12px;font-size:0.78rem;font-family:'Space Grotesk',sans-serif;cursor:pointer}
+.gal-variant.active{border-color:var(--cyan);color:var(--cyan)}
+.gal-count{font-size:0.72rem;color:var(--muted);margin-left:auto}
+
+/* Grid */
+.gal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.gal-card{background:var(--card);border:1px solid var(--border);position:relative;cursor:pointer;transition:all 0.15s}
+.gal-card:hover{border-color:rgba(143,245,255,0.25);transform:translateY(-2px)}
+.gal-card img{width:100%;aspect-ratio:1;object-fit:contain;background:#fff;display:block}
+.gal-card-info{padding:8px 10px}
+.gal-card-name{font-size:0.72rem;font-weight:600;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px}
+.gal-card-meta{font-size:0.62rem;color:var(--muted);font-family:monospace}
+.gal-card-status{position:absolute;top:6px;right:6px;font-size:0.58rem;padding:2px 6px;font-weight:700;text-transform:uppercase}
+.gal-card-status.nowy{background:rgba(143,245,255,0.1);color:var(--cyan)}
+.gal-card-status.wystawiony{background:rgba(255,107,155,0.1);color:var(--pink)}
+.gal-card-status.sprzedany{background:rgba(190,238,0,0.1);color:var(--lime)}
+
+/* Pagination */
+.gal-pages{display:flex;gap:6px;align-items:center;margin-top:20px;justify-content:center}
+.gal-page-btn{padding:6px 14px;font-size:0.78rem;font-weight:700;font-family:'Space Grotesk',sans-serif;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.15);color:var(--cyan);cursor:pointer;text-decoration:none}
+.gal-page-btn:hover{background:rgba(143,245,255,0.12)}
+.gal-page-btn.active{background:rgba(143,245,255,0.18);border-color:var(--cyan)}
+.gal-page-btn.disabled{opacity:0.3;pointer-events:none}
+
+/* Lightbox */
+#lightbox{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+#lightbox.open{display:flex}
+#lightbox img{max-width:90vw;max-height:80vh;object-fit:contain}
+#lightbox-name{font-size:0.85rem;color:#fff;text-align:center;max-width:400px}
+#lightbox-btns{display:flex;gap:10px}
+.lb-btn{padding:7px 16px;font-size:0.75rem;font-weight:700;font-family:'Space Grotesk',sans-serif;cursor:pointer;text-decoration:none;border:1px solid}
+.lb-btn.cyan{color:var(--cyan);border-color:rgba(143,245,255,0.3);background:rgba(143,245,255,0.08)}
+.lb-btn.muted{color:var(--muted);border-color:var(--border);background:rgba(255,255,255,0.04)}
+</style>
+
+<div class="gal-wrap">
+<div class="gal-title">📸 Galeria Packshot</div>
+<div class="gal-sub">Przetworzone zdjęcia produktów · Studio Foto</div>
+
+<!-- Toolbar -->
+<div class="gal-bar">
+  <form method="get" style="display:contents">
+    <input type="hidden" name="variant" value="{{ variant }}">
+    <input class="gal-search" type="text" name="q" value="{{ search }}" placeholder="Szukaj produktu...">
+    <button type="submit" style="padding:8px 14px;background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.2);color:var(--cyan);font-size:0.78rem;cursor:pointer;font-family:'Space Grotesk',sans-serif">Szukaj</button>
+  </form>
+  <a href="?variant=allegro_main{% if search %}&q={{ search }}{% endif %}" class="gal-variant {% if variant=='allegro_main' %}active{% endif %}">Allegro 1200px</a>
+  <a href="?variant=vinted{% if search %}&q={{ search }}{% endif %}" class="gal-variant {% if variant=='vinted' %}active{% endif %}">Vinted 800px</a>
+  <a href="?variant=thumb{% if search %}&q={{ search }}{% endif %}" class="gal-variant {% if variant=='thumb' %}active{% endif %}">Thumb 300px</a>
+  <a href="/magazyn/studio-foto" class="gal-variant">← Studio Foto</a>
+  <span class="gal-count">{{ total }} zdjęć</span>
+</div>
+
+{% if photos %}
+<div class="gal-grid">
+  {% for ph in photos %}
+  <div class="gal-card" onclick="openLightbox('/magazyn/photo-file/{{ ph.product_id }}/{{ ph.variant }}', '{{ (ph.nazwa or '')|replace("'","") }}', {{ ph.product_id }})">
+    <img src="/magazyn/photo-file/{{ ph.product_id }}/{{ ph.variant }}"
+         loading="lazy"
+         onerror="this.parentElement.style.opacity='0.3'"
+         alt="{{ ph.nazwa or '' }}">
+    {% if ph.status %}
+    <span class="gal-card-status {{ ph.status }}">{{ ph.status }}</span>
+    {% endif %}
+    <div class="gal-card-info">
+      <div class="gal-card-name" title="{{ ph.nazwa or '' }}">{{ (ph.nazwa or 'Brak nazwy')[:40] }}</div>
+      <div class="gal-card-meta">{{ ph.kod_magazynowy or ph.ean or '' }} {% if ph.ilosc %}· {{ ph.ilosc }} szt{% endif %}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if pages > 1 %}
+<div class="gal-pages">
+  <a href="?variant={{ variant }}&q={{ search }}&page={{ page-1 }}" class="gal-page-btn {% if page==0 %}disabled{% endif %}">← Poprz</a>
+  <span style="font-size:0.78rem;color:var(--muted)">{{ page+1 }} / {{ pages }}</span>
+  <a href="?variant={{ variant }}&q={{ search }}&page={{ page+1 }}" class="gal-page-btn {% if page>=pages-1 %}disabled{% endif %}">Nast →</a>
+</div>
+{% endif %}
+
+{% else %}
+<div style="text-align:center;padding:60px 20px;color:var(--muted)">
+  <div style="font-size:3rem;margin-bottom:12px;opacity:0.3">📷</div>
+  <div style="font-size:0.9rem">{% if search %}Brak wyników dla "{{ search }}"{% else %}Brak przetworzonych zdjęć — uruchom worker w Studio Foto{% endif %}</div>
+</div>
+{% endif %}
+
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lb-img" src="" alt="">
+  <div id="lightbox-name"></div>
+  <div id="lightbox-btns" onclick="event.stopPropagation()">
+    <a id="lb-open" href="#" target="_blank" class="lb-btn cyan">Otwórz pełny rozmiar</a>
+    <a id="lb-product" href="#" class="lb-btn cyan">Karta produktu →</a>
+    <a id="lb-download" href="#" download class="lb-btn cyan">Pobierz</a>
+    <button onclick="closeLightbox()" class="lb-btn muted">✕ Zamknij</button>
+  </div>
+</div>
+
+<script>
+function openLightbox(src, name, productId) {
+  document.getElementById('lb-img').src = src;
+  document.getElementById('lightbox-name').textContent = name;
+  document.getElementById('lb-open').href = src;
+  document.getElementById('lb-download').href = src;
+  document.getElementById('lb-product').href = '/magazyn/produkt/' + productId;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lb-img').src = '';
+}
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeLightbox(); });
+</script>
+{% endblock %}

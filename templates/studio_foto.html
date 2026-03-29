@@ -112,6 +112,10 @@
 <div class="sf-tabs">
   <button class="sf-tab active" onclick="showTab('queue',this)">Kolejka ({{ jobs|length }})</button>
   <button class="sf-tab" onclick="showTab('nophoto',this)">Bez packshotu ({{ products_no_photo|length }})</button>
+  <a href="/magazyn/studio-foto/galeria" class="sf-tab" style="text-decoration:none">
+    <span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle">photo_library</span>
+    Galeria ({{ stats.done }})
+  </a>
 </div>
 
 <!-- Kolejka -->

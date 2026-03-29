@@ -9925,3 +9925,53 @@ def photo_worker_log():
     """Zwraca ostatni log workera — do diagnostyki."""
     global _worker_last_log, _worker_running
     return f"<pre>running={_worker_running}\n\n{_worker_last_log or '(brak logu — kliknij Uruchom worker najpierw)'}</pre>"
+
+
+@magazynier_bp.route('/studio-foto/galeria')
+def studio_foto_galeria():
+    """Galeria wszystkich przetworzonych zdjęć produktów."""
+    conn = get_db()
+
+    search = request.args.get('q', '').strip()
+    variant_filter = request.args.get('variant', 'allegro_main')
+    page = max(0, int(request.args.get('page', 0)))
+    per_page = 60
+
+    try:
+        where = "WHERE pp.variant = ?"
+        params = [variant_filter]
+        if search:
+            where += " AND (p.nazwa LIKE ? OR p.ean LIKE ? OR p.kod_magazynowy LIKE ?)"
+            params += [f'%{search}%', f'%{search}%', f'%{search}%']
+
+        total = conn.execute(
+            f"SELECT COUNT(DISTINCT pp.product_id) FROM processed_photos pp LEFT JOIN produkty p ON pp.product_id=p.id {where}",
+            params
+        ).fetchone()[0]
+
+        rows = conn.execute(
+            f"""SELECT pp.product_id, pp.path, pp.variant, pp.created_at,
+                       p.nazwa, p.ean, p.kod_magazynowy, p.status, p.ilosc
+                FROM processed_photos pp
+                LEFT JOIN produkty p ON pp.product_id = p.id
+                {where}
+                GROUP BY pp.product_id
+                ORDER BY pp.created_at DESC
+                LIMIT ? OFFSET ?""",
+            params + [per_page, page * per_page]
+        ).fetchall()
+        photos = [dict(r) for r in rows]
+    except Exception as e:
+        photos = []
+        total = 0
+        print(f"[galeria] error: {e}")
+
+    return render_template('studio_foto_galeria.html',
+        photos=photos,
+        total=total,
+        page=page,
+        per_page=per_page,
+        pages=max(1, (total + per_page - 1) // per_page),
+        search=search,
+        variant=variant_filter,
+    )
