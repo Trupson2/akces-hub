@@ -199,13 +199,21 @@ Odpowiedz TYLKO tytułem (bez cudzysłowów, bez komentarzy):"""
             if len(meta_title) > 75:
                 meta_title = meta_title[:75].rsplit(' ', 1)[0]
 
-            # Walidacja
+            # Walidacja długości
             if len(meta_title) < 5:
-                print(f"   ✗ [ERROR] Tytuł za krótki: '{meta_title}'")
+                print(f"   ✗ [ERROR] Tytuł za krótki (<5): '{meta_title}'")
                 if attempt < retry_count - 1:
                     time.sleep(2)
                     continue
                 return produkt_nazwa[:75]
+
+            if len(meta_title) < 40:
+                print(f"   ✗ [RETRY] Tytuł za krótki ({len(meta_title)} znaków): '{meta_title}' — ponawiam z wymogiem długości")
+                if attempt < retry_count - 1:
+                    time.sleep(2)
+                    continue
+                # Ostatnia próba — dopełnij kategoriami SEO
+                print(f"   ✗ [FALLBACK] Używam krótkiego tytułu po {retry_count} próbach")
 
             print(f"   [OK] [SUCCESS] Wygenerowano: {meta_title}")
             return meta_title
