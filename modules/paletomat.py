@@ -2602,7 +2602,7 @@ def generator():
     if products:
         for p in products:
             nazwa_display = (p['nazwa'] or f"Produkt {p['asin']}")[:45]
-            _p_status = p.get('status', 'nowy')
+            _p_status = p['status'] if p['status'] else 'nowy'
             _ready = _p_status in ('nowy', 'gotowy')
             _bcolor = '#beee00' if _ready else '#ff6b9b'
 
