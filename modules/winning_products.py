@@ -181,6 +181,63 @@ def winning_zakupy_update(item_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@winning_bp.route("/winning/test-allegro", methods=["GET"])
+def winning_test_allegro():
+    """
+    Diagnostyka — sprawdza połączenie z Allegro i pobiera sample oferty.
+    Otwórz /analityka/winning/test-allegro w przeglądarce.
+    """
+    out = []
+    try:
+        from modules.allegro_api import allegro_request, is_authenticated
+        out.append(f"is_authenticated: {is_authenticated()}")
+
+        # Test 1: kategorie domyślne
+        test_cats = ["258682", "257993", "4029"]
+        for cat in test_cats:
+            result = allegro_request("GET", "/offers/listing", params={
+                "category.id": cat,
+                "limit": 5,
+                "sort": "-watchersCount",
+            })
+            if isinstance(result, tuple):
+                data, err = result
+            else:
+                data, err = result, None
+
+            if err:
+                out.append(f"cat {cat}: ERROR → {err}")
+            elif data is None:
+                out.append(f"cat {cat}: data=None")
+            else:
+                items = data.get("items", {}) or {}
+                regular = items.get("regular", []) or []
+                promoted = items.get("promoted", []) or []
+                keys = list(data.keys())
+                out.append(f"cat {cat}: keys={keys}, regular={len(regular)}, promoted={len(promoted)}")
+                if regular:
+                    out.append(f"  sample: {regular[0].get('name','')[:80]}")
+
+        # Test 2: prosty search bez kategorii
+        result2 = allegro_request("GET", "/offers/listing", params={"phrase": "telefon", "limit": 3})
+        if isinstance(result2, tuple):
+            data2, err2 = result2
+        else:
+            data2, err2 = result2, None
+        if err2:
+            out.append(f"phrase test: ERROR → {err2}")
+        else:
+            items2 = (data2 or {}).get("items", {}) or {}
+            out.append(f"phrase 'telefon': regular={len(items2.get('regular',[]))}, promoted={len(items2.get('promoted',[]))}")
+
+    except Exception as e:
+        import traceback
+        out.append(f"EXCEPTION: {e}")
+        out.append(traceback.format_exc())
+
+    return "<pre>" + "\n".join(out) + "</pre>"
+
+
 @winning_bp.route("/winning/meta", methods=["GET"])
 def winning_meta():
     """
