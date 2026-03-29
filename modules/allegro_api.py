@@ -4549,23 +4549,14 @@ def auth():
     state = secrets.token_urlsafe(32)
     set_config('allegro_oauth_state', state)
 
-    # Buduj URL autoryzacji — scope musi zawierać uprawnienia do odczytu ofert
+    # Buduj URL autoryzacji
+    # UWAGA: Allegro nie obsługuje scope w URL — uprawnienia konfiguruje się
+    # w panelu aplikacji: apps.developer.allegro.pl → Twoja aplikacja → Uprawnienia
     params = {
         'response_type': 'code',
         'client_id': config['client_id'],
         'redirect_uri': config['redirect_uri'],
         'state': state,
-        'scope': (
-            'allegro:api:sale:offers:read '
-            'allegro:api:sale:offers:write '
-            'allegro:api:orders:read '
-            'allegro:api:orders:write '
-            'allegro:api:billing:read '
-            'allegro:api:profile:read '
-            'allegro:api:offers:read '
-            'allegro:api:fulfillment:read '
-            'allegro:api:campaigns:read'
-        ),
     }
 
     # Zbuduj pełny URL
