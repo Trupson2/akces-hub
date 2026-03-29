@@ -623,6 +623,9 @@ app.register_blueprint(wysylki_bp)
 from modules.analityka import analityka_bp
 app.register_blueprint(analityka_bp)
 
+from modules.winning_products import winning_bp
+app.register_blueprint(winning_bp)
+
 from modules.ustawienia import ustawienia_bp
 app.register_blueprint(ustawienia_bp)
 
