@@ -93,9 +93,9 @@ def statystyki():
         # Produkty dodane do magazynu
         produkty_cnt = conn.execute("SELECT COUNT(*) as cnt FROM produkty").fetchone()['cnt'] or 0
 
-        # Produkty z analizą AI (mają meta_title inny niż nazwa)
+        # Produkty z analizą AI (mają wypełniony meta_title)
         ai_analizy = conn.execute(
-            "SELECT COUNT(*) as cnt FROM produkty WHERE meta_title IS NOT NULL AND meta_title != '' AND meta_title != nazwa"
+            "SELECT COUNT(*) as cnt FROM produkty WHERE meta_title IS NOT NULL AND meta_title != '' AND LENGTH(meta_title) > 3"
         ).fetchone()['cnt'] or 0
 
         # Miesiące aktywne (miesiące ze sprzedażą)
