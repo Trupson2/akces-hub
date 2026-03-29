@@ -306,28 +306,31 @@ def remove_text_watermark(img_pil: "Image.Image") -> "Image.Image":
         # ── Metoda 1: pytesseract (najdokładniejsza, wymaga Tesseract OCR) ──
         try:
             import pytesseract
-            data = pytesseract.image_to_data(
-                img_pil,
-                output_type=pytesseract.Output.DICT,
-                config="--psm 11 --oem 3"
-            )
-            for i in range(len(data["text"])):
-                conf = int(data["conf"][i])
-                text = str(data["text"][i]).strip()
-                if conf > 30 and len(text) >= 2:
-                    x, y, bw, bh = (
-                        data["left"][i], data["top"][i],
-                        data["width"][i], data["height"][i]
-                    )
-                    if bw > 5 and bh > 5:
-                        pad = max(10, int(bh * 0.35))
-                        cv2.rectangle(
-                            mask,
-                            (max(0, x - pad), max(0, y - pad)),
-                            (min(w, x + bw + pad), min(h, y + bh + pad)),
-                            255, -1
+            # PSM 11 = sparse text, PSM 6 = block — uruchom oba i połącz maski
+            for psm in ("--psm 11 --oem 3", "--psm 6 --oem 3", "--psm 3 --oem 3"):
+                data = pytesseract.image_to_data(
+                    img_pil,
+                    output_type=pytesseract.Output.DICT,
+                    config=psm
+                )
+                for i in range(len(data["text"])):
+                    conf = int(data["conf"][i])
+                    text = str(data["text"][i]).strip()
+                    # Niższy próg: conf > 10, min 1 znak — wyłap fragmenty słów
+                    if conf > 10 and len(text) >= 1:
+                        x, y, bw, bh = (
+                            data["left"][i], data["top"][i],
+                            data["width"][i], data["height"][i]
                         )
-                        text_found = True
+                        if bw > 3 and bh > 3:
+                            pad = max(12, int(bh * 0.5))
+                            cv2.rectangle(
+                                mask,
+                                (max(0, x - pad), max(0, y - pad)),
+                                (min(w, x + bw + pad), min(h, y + bh + pad)),
+                                255, -1
+                            )
+                            text_found = True
             logger.debug(f"[image_utils] pytesseract: text_found={text_found}")
         except ImportError:
             logger.debug("[image_utils] pytesseract niedostępny — używam MSER")

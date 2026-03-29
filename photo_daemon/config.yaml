@@ -23,7 +23,8 @@ photo_daemon:
     timeout_s: 60                                # Max czas oczekiwania na wynik
     poll_interval_s: 2                           # Co ile sekund pollować /history
     mock_mode: true                              # true = pomiń bg removal miniaturki, użyj oryginału
-    text_removal_use_python: true                # true = usuń tekst w Pythonie (pytesseract+OpenCV), false = ComfyUI LaMa
+    text_removal_use_python: false               # false = ComfyUI LaMa | true = Python OpenCV (słabe wyniki)
+    text_removal_skip: true                      # true = pomiń usuwanie tekstu, tylko resize (bezpieczne)
     text_removal_workflow_file: "workflows/text_remove.json"  # workflow LaMa (gdy use_python=false)
 
   # Przetwarzanie obrazu
