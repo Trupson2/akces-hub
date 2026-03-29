@@ -5284,12 +5284,27 @@ def generator_detail(asin):
     if not wszystkie_zdjecia:
         wszystkie_zdjecia = [zdjecie_url] if zdjecie_url else [get_amazon_image_url(asin)]
 
-    # Optymalizuj tytuł pod SEO (max 75 znaków)
-    tytul_seo = optimize_title_seo(nazwa, 75)
-
     # Pobierz klucz Gemini API
     from .database import get_config
     gemini_key = get_config('gemini_api_key', '')
+
+    # Tytuł SEO: 1) z bazy (już wygenerowany) 2) AI 3) fallback optimize
+    tytul_seo = (p.get('tytul_seo') or '').strip()
+    if len(tytul_seo) < 20 and gemini_key:
+        try:
+            _product_data = {
+                'nazwa': nazwa,
+                'bullet_points': bullet_points,
+                'kategoria': kategoria,
+                'asin': asin
+            }
+            _ai_title = generate_allegro_title_ai(_product_data, gemini_key, max_length=75)
+            if _ai_title and len(_ai_title) >= 20:
+                tytul_seo = _ai_title
+        except:
+            pass
+    if len(tytul_seo) < 5:
+        tytul_seo = optimize_title_seo(nazwa, 75)
 
     # Oblicz sugerowaną cenę — konwersja walut wg domeny Amazon (kurs NBP)
     if cena_amazon and cena_amazon > 0:
