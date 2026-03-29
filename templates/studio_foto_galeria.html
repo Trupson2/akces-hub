@@ -3,7 +3,7 @@
 {% block content %}
 <style>
 :root{--cyan:#8ff5ff;--lime:#beee00;--pink:#ff6b9b;--bg:#0e0e10;--card:#131315;--border:rgba(255,255,255,0.06);--muted:#adaaad}
-.gal-wrap{max-width:1400px;margin:0 auto;font-family:'Manrope',sans-serif}
+.gal-wrap{max-width:1600px;margin:0 auto;font-family:'Manrope',sans-serif}
 .gal-title{font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--lime));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
 .gal-sub{font-size:0.7rem;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:20px}
 
@@ -11,35 +11,42 @@
 .gal-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 .gal-search{background:#1a1a1f;border:1px solid var(--border);color:#f0f0f0;padding:8px 14px;font-size:0.82rem;width:260px;font-family:'Manrope',sans-serif}
 .gal-search:focus{outline:none;border-color:rgba(143,245,255,0.3)}
-.gal-variant{background:#1a1a1f;border:1px solid var(--border);color:#f0f0f0;padding:8px 12px;font-size:0.78rem;font-family:'Space Grotesk',sans-serif;cursor:pointer}
-.gal-variant.active{border-color:var(--cyan);color:var(--cyan)}
 .gal-count{font-size:0.72rem;color:var(--muted);margin-left:auto}
 
-/* Grid */
-.gal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
-.gal-card{background:var(--card);border:1px solid var(--border);position:relative;cursor:pointer;transition:all 0.15s}
-.gal-card:hover{border-color:rgba(143,245,255,0.25);transform:translateY(-2px)}
-.gal-card img{width:100%;aspect-ratio:1;object-fit:contain;background:#fff;display:block}
-.gal-card-info{padding:8px 10px}
-.gal-card-name{font-size:0.72rem;font-weight:600;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px}
-.gal-card-meta{font-size:0.62rem;color:var(--muted);font-family:monospace}
-.gal-card-status{position:absolute;top:6px;right:6px;font-size:0.58rem;padding:2px 6px;font-weight:700;text-transform:uppercase}
-.gal-card-status.nowy{background:rgba(143,245,255,0.1);color:var(--cyan)}
-.gal-card-status.wystawiony{background:rgba(255,107,155,0.1);color:var(--pink)}
-.gal-card-status.sprzedany{background:rgba(190,238,0,0.1);color:var(--lime)}
+/* Linia produktu */
+.prod-row{display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);padding:10px 0}
+.prod-row:hover{background:rgba(255,255,255,0.015)}
+.prod-info{width:220px;flex-shrink:0;padding-right:14px}
+.prod-name{font-size:0.78rem;font-weight:700;color:#e2e8f0;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prod-sku{font-size:0.65rem;color:var(--muted);font-family:monospace}
+.prod-status{display:inline-block;font-size:0.58rem;padding:1px 5px;font-weight:700;text-transform:uppercase;margin-top:3px}
+.prod-status.nowy{background:rgba(143,245,255,0.1);color:var(--cyan)}
+.prod-status.wystawiony{background:rgba(255,107,155,0.1);color:var(--pink)}
+.prod-status.sprzedany{background:rgba(190,238,0,0.1);color:var(--lime)}
+
+/* Pasek zdjęć */
+.photos-strip{display:flex;gap:6px;overflow-x:auto;flex:1;padding-bottom:2px}
+.photos-strip::-webkit-scrollbar{height:3px}
+.photos-strip::-webkit-scrollbar-track{background:transparent}
+.photos-strip::-webkit-scrollbar-thumb{background:rgba(143,245,255,0.2);border-radius:2px}
+.photo-thumb{flex-shrink:0;width:80px;height:80px;position:relative;cursor:pointer}
+.photo-thumb img{width:80px;height:80px;object-fit:contain;background:#fff;display:block;border:1px solid var(--border)}
+.photo-thumb:hover img{border-color:rgba(143,245,255,0.4)}
+.photo-label{font-size:0.5rem;color:var(--muted);text-align:center;margin-top:2px;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.photo-main img{border-color:rgba(143,245,255,0.3)}
+.photo-count{font-size:0.65rem;color:var(--muted);padding:0 6px;align-self:center;flex-shrink:0}
 
 /* Pagination */
 .gal-pages{display:flex;gap:6px;align-items:center;margin-top:20px;justify-content:center}
 .gal-page-btn{padding:6px 14px;font-size:0.78rem;font-weight:700;font-family:'Space Grotesk',sans-serif;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.15);color:var(--cyan);cursor:pointer;text-decoration:none}
 .gal-page-btn:hover{background:rgba(143,245,255,0.12)}
-.gal-page-btn.active{background:rgba(143,245,255,0.18);border-color:var(--cyan)}
 .gal-page-btn.disabled{opacity:0.3;pointer-events:none}
 
 /* Lightbox */
 #lightbox{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:12px}
 #lightbox.open{display:flex}
 #lightbox img{max-width:90vw;max-height:80vh;object-fit:contain}
-#lightbox-name{font-size:0.85rem;color:#fff;text-align:center;max-width:400px}
+#lightbox-info{font-size:0.78rem;color:#aaa;text-align:center}
 #lightbox-btns{display:flex;gap:10px}
 .lb-btn{padding:7px 16px;font-size:0.75rem;font-weight:700;font-family:'Space Grotesk',sans-serif;cursor:pointer;text-decoration:none;border:1px solid}
 .lb-btn.cyan{color:var(--cyan);border-color:rgba(143,245,255,0.3);background:rgba(143,245,255,0.08)}
@@ -48,47 +55,64 @@
 
 <div class="gal-wrap">
 <div class="gal-title">📸 Galeria Packshot</div>
-<div class="gal-sub">Przetworzone zdjęcia produktów · Studio Foto</div>
+<div class="gal-sub">Przetworzone zdjęcia · Studio Foto · {{ total }} produktów</div>
 
 <!-- Toolbar -->
 <div class="gal-bar">
   <form method="get" style="display:contents">
-    <input type="hidden" name="variant" value="{{ variant }}">
     <input class="gal-search" type="text" name="q" value="{{ search }}" placeholder="Szukaj produktu...">
     <button type="submit" style="padding:8px 14px;background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.2);color:var(--cyan);font-size:0.78rem;cursor:pointer;font-family:'Space Grotesk',sans-serif">Szukaj</button>
   </form>
-  <a href="?variant=allegro_main{% if search %}&q={{ search }}{% endif %}" class="gal-variant {% if variant=='allegro_main' %}active{% endif %}">Allegro 1200px</a>
-  <a href="?variant=vinted{% if search %}&q={{ search }}{% endif %}" class="gal-variant {% if variant=='vinted' %}active{% endif %}">Vinted 800px</a>
-  <a href="?variant=thumb{% if search %}&q={{ search }}{% endif %}" class="gal-variant {% if variant=='thumb' %}active{% endif %}">Thumb 300px</a>
-  <a href="/magazyn/studio-foto" class="gal-variant">← Studio Foto</a>
-  <span class="gal-count">{{ total }} zdjęć</span>
+  <a href="/magazyn/studio-foto" style="padding:8px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--muted);font-size:0.75rem;text-decoration:none">← Studio Foto</a>
+  <span class="gal-count">{{ total }} produktów · 1 wiersz = 1 produkt</span>
 </div>
 
-{% if photos %}
-<div class="gal-grid">
-  {% for ph in photos %}
-  <div class="gal-card" onclick="openLightbox('/magazyn/photo-by-id/{{ ph.id }}', '{{ (ph.nazwa or '')|replace("'","\\'")|replace('"','') }}', {{ ph.product_id }})">
-    <img src="/magazyn/photo-by-id/{{ ph.id }}"
-         loading="lazy"
-         onerror="this.parentElement.style.opacity='0.3'"
-         alt="{{ ph.nazwa or '' }}">
-    {% if ph.status %}
-    <span class="gal-card-status {{ ph.status }}">{{ ph.status }}</span>
-    {% endif %}
-    <div class="gal-card-info">
-      <div class="gal-card-name" title="{{ ph.nazwa or '' }}">{{ (ph.nazwa or 'Brak nazwy')[:40] }}</div>
-      <div class="gal-card-meta">{{ ph.kod_magazynowy or ph.ean or '' }} {% if ph.ilosc %}· {{ ph.ilosc }} szt{% endif %}</div>
-    </div>
-  </div>
-  {% endfor %}
+{% if products %}
+<!-- Nagłówek kolumn -->
+<div style="display:flex;align-items:center;gap:0;padding:4px 0 8px;border-bottom:1px solid rgba(255,255,255,0.1)">
+  <div style="width:220px;flex-shrink:0;font-size:0.6rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase">Produkt</div>
+  <div style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase">Zdjęcia (miniatura → galeria Amazon)</div>
 </div>
+
+{% for item in products %}
+<div class="prod-row">
+  <!-- Info o produkcie -->
+  <div class="prod-info">
+    <a href="/magazyn/produkt/{{ item.product.id }}" style="text-decoration:none">
+      <div class="prod-name" title="{{ item.product.nazwa or '' }}">{{ (item.product.nazwa or 'Brak nazwy')[:35] }}</div>
+    </a>
+    <div class="prod-sku">{{ item.product.kod_magazynowy or item.product.ean or '' }}</div>
+    {% if item.product.status %}
+    <span class="prod-status {{ item.product.status }}">{{ item.product.status }}</span>
+    {% endif %}
+    <div style="font-size:0.6rem;color:var(--muted);margin-top:2px">{{ item.photos|length }} zdjęć</div>
+  </div>
+
+  <!-- Pasek zdjęć -->
+  <div class="photos-strip">
+    {% for ph in item.photos %}
+    {% if ph.variant == 'allegro_main' %}
+    <div class="photo-thumb photo-main" onclick="openLightbox('/magazyn/photo-by-id/{{ ph.id }}', '{{ ph.variant }}', {{ item.product.id }})">
+      <img src="/magazyn/photo-by-id/{{ ph.id }}" loading="lazy" onerror="this.parentElement.style.opacity='0.3'" alt="main">
+      <div class="photo-label" style="color:var(--cyan)">MAIN</div>
+    </div>
+    {% elif ph.variant.startswith('allegro_gallery_') %}
+    <div class="photo-thumb" onclick="openLightbox('/magazyn/photo-by-id/{{ ph.id }}', '{{ ph.variant }}', {{ item.product.id }})">
+      <img src="/magazyn/photo-by-id/{{ ph.id }}" loading="lazy" onerror="this.parentElement.style.opacity='0.3'" alt="{{ ph.variant }}">
+      <div class="photo-label">{{ ph.variant.replace('allegro_gallery_','#') }}</div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
 
 <!-- Pagination -->
 {% if pages > 1 %}
 <div class="gal-pages">
-  <a href="?variant={{ variant }}&q={{ search }}&page={{ page-1 }}" class="gal-page-btn {% if page==0 %}disabled{% endif %}">← Poprz</a>
+  <a href="?q={{ search }}&page={{ page-1 }}" class="gal-page-btn {% if page==0 %}disabled{% endif %}">← Poprz</a>
   <span style="font-size:0.78rem;color:var(--muted)">{{ page+1 }} / {{ pages }}</span>
-  <a href="?variant={{ variant }}&q={{ search }}&page={{ page+1 }}" class="gal-page-btn {% if page>=pages-1 %}disabled{% endif %}">Nast →</a>
+  <a href="?q={{ search }}&page={{ page+1 }}" class="gal-page-btn {% if page>=pages-1 %}disabled{% endif %}">Nast →</a>
 </div>
 {% endif %}
 
@@ -104,7 +128,7 @@
 <!-- Lightbox -->
 <div id="lightbox" onclick="closeLightbox()">
   <img id="lb-img" src="" alt="">
-  <div id="lightbox-name"></div>
+  <div id="lightbox-info"></div>
   <div id="lightbox-btns" onclick="event.stopPropagation()">
     <a id="lb-open" href="#" target="_blank" class="lb-btn cyan">Otwórz pełny rozmiar</a>
     <a id="lb-product" href="#" class="lb-btn cyan">Karta produktu →</a>
@@ -114,9 +138,9 @@
 </div>
 
 <script>
-function openLightbox(src, name, productId) {
+function openLightbox(src, variant, productId) {
   document.getElementById('lb-img').src = src;
-  document.getElementById('lightbox-name').textContent = name;
+  document.getElementById('lightbox-info').textContent = variant;
   document.getElementById('lb-open').href = src;
   document.getElementById('lb-download').href = src;
   document.getElementById('lb-product').href = '/magazyn/produkt/' + productId;

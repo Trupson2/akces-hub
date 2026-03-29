@@ -10138,44 +10138,74 @@ def studio_foto_galeria():
     conn = get_db()
 
     search = request.args.get('q', '').strip()
-    variant_filter = request.args.get('variant', 'allegro_main')
     page = max(0, int(request.args.get('page', 0)))
-    per_page = 60
+    per_page = 30  # produktów na stronę
 
     try:
-        where = "WHERE pp.variant = ?"
-        params = [variant_filter]
+        # Znajdź produkty które mają przetworzone zdjęcia
+        search_where = ""
+        params = []
         if search:
-            where += " AND (p.nazwa LIKE ? OR p.ean LIKE ? OR p.kod_magazynowy LIKE ?)"
-            params += [f'%{search}%', f'%{search}%', f'%{search}%']
+            search_where = "AND (p.nazwa LIKE ? OR p.ean LIKE ? OR p.kod_magazynowy LIKE ?)"
+            params = [f'%{search}%', f'%{search}%', f'%{search}%']
 
-        total = conn.execute(
-            f"SELECT COUNT(*) FROM processed_photos pp LEFT JOIN produkty p ON pp.product_id=p.id {where}",
-            params
-        ).fetchone()[0]
-
-        rows = conn.execute(
-            f"""SELECT pp.id, pp.product_id, pp.path, pp.variant, pp.job_id, pp.created_at,
-                       p.nazwa, p.ean, p.kod_magazynowy, p.status, p.ilosc
+        # Unikalne product_id z processed_photos
+        product_ids_rows = conn.execute(
+            f"""SELECT DISTINCT pp.product_id
                 FROM processed_photos pp
                 LEFT JOIN produkty p ON pp.product_id = p.id
-                {where}
-                ORDER BY pp.product_id DESC, pp.id ASC
+                WHERE pp.product_id IS NOT NULL {search_where}
+                ORDER BY pp.product_id DESC
                 LIMIT ? OFFSET ?""",
             params + [per_page, page * per_page]
         ).fetchall()
-        photos = [dict(r) for r in rows]
+
+        total_products = conn.execute(
+            f"""SELECT COUNT(DISTINCT pp.product_id)
+                FROM processed_photos pp
+                LEFT JOIN produkty p ON pp.product_id = p.id
+                WHERE pp.product_id IS NOT NULL {search_where}""",
+            params
+        ).fetchone()[0]
+
+        # Dla każdego produktu pobierz wszystkie warianty zdjęć
+        products = []
+        for row in product_ids_rows:
+            pid = row['product_id']
+            # Info o produkcie
+            p_info = conn.execute(
+                "SELECT id, nazwa, ean, kod_magazynowy, status, ilosc FROM produkty WHERE id=?", (pid,)
+            ).fetchone()
+            if not p_info:
+                continue
+            # Wszystkie przetworzone zdjęcia produktu (posortowane: main, potem gallery_1..7)
+            photos = conn.execute(
+                """SELECT pp.id, pp.variant, pp.path, pp.created_at
+                   FROM processed_photos pp
+                   WHERE pp.product_id = ?
+                   ORDER BY CASE
+                       WHEN pp.variant = 'allegro_main' THEN 0
+                       WHEN pp.variant = 'vinted' THEN 99
+                       WHEN pp.variant = 'thumb' THEN 100
+                       ELSE CAST(REPLACE(pp.variant, 'allegro_gallery_', '') AS INTEGER)
+                   END ASC""",
+                (pid,)
+            ).fetchall()
+            products.append({
+                'product': dict(p_info),
+                'photos': [dict(ph) for ph in photos],
+            })
+
     except Exception as e:
-        photos = []
-        total = 0
+        products = []
+        total_products = 0
         print(f"[galeria] error: {e}")
 
     return render_template('studio_foto_galeria.html',
-        photos=photos,
-        total=total,
+        products=products,
+        total=total_products,
         page=page,
         per_page=per_page,
-        pages=max(1, (total + per_page - 1) // per_page),
+        pages=max(1, (total_products + per_page - 1) // per_page),
         search=search,
-        variant=variant_filter,
     )
