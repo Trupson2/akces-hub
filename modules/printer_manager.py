@@ -1332,7 +1332,8 @@ def generate_label_preview_sync(
     paleta: str = "",
     koszt_szt: float = 0,
     cena_allegro: float = 0,
-    kod_magazynowy: str = ""
+    kod_magazynowy: str = "",
+    stan_przyjecia: str = ""
 ) -> str:
     """
     Generuje podgląd etykiety (sync).
@@ -1356,7 +1357,8 @@ def generate_label_preview_sync(
         paleta=paleta,
         koszt_szt=koszt_szt,
         cena_allegro=cena_allegro,
-        kod_magazynowy=kod_magazynowy
+        kod_magazynowy=kod_magazynowy,
+        stan_przyjecia=stan_przyjecia
     )
 
     return pm.generate_label_preview(label)
