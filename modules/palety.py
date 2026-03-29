@@ -2637,7 +2637,9 @@ def paleta_mass_edit(paleta_id):
             </div>'''
 
         # SKU code
-        sku_code = p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else (p['asin'] or '—')
+        _asin_val = (p['asin'] or '').strip()
+        _ean_val = (p['ean'] or '').strip()
+        sku_code = _asin_val if _asin_val and _asin_val.upper() not in ('N/A','NAN','NONE') else (_ean_val if _ean_val and _ean_val.upper() not in ('N/A','NAN','NONE') else '—')
 
         # Stock color
         stock_val = p['ilosc'] or 0
