@@ -97,7 +97,7 @@
 </div>
 
 <!-- Worker control -->
-<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
   <button class="sf-btn lime" onclick="runWorker()" id="btnRunWorker">
     <span class="material-symbols-outlined" style="font-size:14px">play_arrow</span>
     ▶ Uruchom worker (przetwórz kolejkę)
@@ -106,6 +106,18 @@
     <span class="material-symbols-outlined" style="font-size:12px">terminal</span> Logi
   </a>
   <span id="workerStatus" style="font-size:0.75rem;color:var(--sf-muted)"></span>
+</div>
+<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+  <button class="sf-btn" style="background:rgba(255,107,155,0.1);border-color:rgba(255,107,155,0.3);color:#ff6b9b;font-size:0.72rem"
+          onclick="clearAndRequeue()">
+    <span class="material-symbols-outlined" style="font-size:13px">delete_sweep</span>
+    Usuń przetworzone i przetwórz od nowa
+  </button>
+  <button class="sf-btn" style="background:rgba(190,238,0,0.07);border-color:rgba(190,238,0,0.25);color:#beee00;font-size:0.72rem"
+          onclick="requeueAll()">
+    <span class="material-symbols-outlined" style="font-size:13px">queue</span>
+    Kolejkuj wszystkie produkty z ASIN
+  </button>
 </div>
 
 <!-- Tabs -->
@@ -352,6 +364,37 @@ function runWorker() {
       btn.disabled = false;
       btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px">play_arrow</span> ▶ Uruchom worker (przetwórz kolejkę)';
     });
+}
+
+function clearAndRequeue() {
+  if (!confirm('Usuwa WSZYSTKIE przetworzone zdjęcia (pliki + DB) i resetuje joby do kolejki.\nAmazon URL-e zostają — worker przeprocesuje od nowa.\n\nKontynuować?')) return;
+  sfAlert('Czyszczenie i resetowanie...', 'ok');
+  fetch('/magazyn/photo-clear-and-requeue', {method:'POST'})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.success) {
+        sfAlert('✅ ' + d.message, 'ok');
+        setTimeout(function(){ window.location.reload(); }, 1500);
+      } else {
+        sfAlert('❌ ' + (d.error||'Błąd'), 'err');
+      }
+    })
+    .catch(function(e){ sfAlert('Błąd: '+e.message,'err'); });
+}
+
+function requeueAll() {
+  sfAlert('Scrapuję Amazon i kolejkuję... (może potrwać chwilę)', 'ok');
+  fetch('/magazyn/photo-requeue-all', {method:'POST'})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.success) {
+        sfAlert('✅ ' + d.message, 'ok');
+        setTimeout(function(){ window.location.reload(); }, 1500);
+      } else {
+        sfAlert('❌ ' + (d.error||'Błąd'), 'err');
+      }
+    })
+    .catch(function(e){ sfAlert('Błąd: '+e.message,'err'); });
 }
 
 function requestAllPhotos() {

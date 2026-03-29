@@ -9896,6 +9896,114 @@ def photo_request(product_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@magazynier_bp.route('/photo-clear-and-requeue', methods=['POST'])
+def photo_clear_and_requeue():
+    """
+    Usuwa wszystkie przetworzone zdjęcia (pliki + DB) i resetuje joby do 'new'.
+    Amazon URL-e w photo_jobs.original_path zostają — worker przeprocesuje od nowa.
+    """
+    import os, glob as _glob
+    from pathlib import Path
+    conn = get_db()
+    try:
+        # 1. Pobierz ścieżki plików do usunięcia
+        paths = [r['path'] for r in conn.execute("SELECT path FROM processed_photos").fetchall()]
+        deleted_files = 0
+        for p in paths:
+            try:
+                if os.path.exists(p):
+                    os.remove(p)
+                    deleted_files += 1
+            except Exception:
+                pass
+
+        # 2. Usuń rekordy processed_photos
+        conn.execute("DELETE FROM processed_photos")
+
+        # 3. Wyczyść images w produkty
+        conn.execute("UPDATE produkty SET images=NULL, images_ready=0 WHERE images IS NOT NULL")
+
+        # 4. Zresetuj status photo_jobs done/error → new
+        reset = conn.execute(
+            "UPDATE photo_jobs SET status='new', error_msg=NULL, updated_at=datetime('now') "
+            "WHERE status IN ('done','error')"
+        ).rowcount
+
+        conn.commit()
+
+        return jsonify({
+            'success': True,
+            'reset_jobs': reset,
+            'deleted_files': deleted_files,
+            'message': f'Zresetowano {reset} jobów, usunięto {deleted_files} plików — gotowe do ponownego przetworzenia'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@magazynier_bp.route('/photo-requeue-all', methods=['POST'])
+def photo_requeue_all():
+    """
+    Kolejkuje WSZYSTKIE produkty z ASIN lub zdjecie_url które nie mają aktywnych jobów.
+    Używa _scrape_amazon_images do pobrania wszystkich 8 URL-i Amazon.
+    """
+    from datetime import datetime as _dt
+    conn = get_db()
+    try:
+        # Dodaj kolumnę image_index jeśli nie istnieje
+        try:
+            conn.execute("ALTER TABLE photo_jobs ADD COLUMN image_index INTEGER DEFAULT 0")
+            conn.commit()
+        except Exception:
+            pass
+
+        # Pobierz produkty z ASIN lub zdjecie_url
+        products = conn.execute(
+            "SELECT id, ean, asin, nazwa, zdjecie_url FROM produkty "
+            "WHERE (asin IS NOT NULL AND asin != '') OR (zdjecie_url IS NOT NULL AND zdjecie_url != '')"
+        ).fetchall()
+
+        added_total = 0
+        skipped = 0
+        now = _dt.now().isoformat(sep=' ', timespec='seconds')
+
+        for p in products:
+            # Pomiń jeśli ma aktywny job
+            active = conn.execute(
+                "SELECT COUNT(*) FROM photo_jobs WHERE product_id=? AND status IN ('new','processing')",
+                (p['id'],)
+            ).fetchone()[0]
+            if active > 0:
+                skipped += 1
+                continue
+
+            asin = p['asin'] or ''
+            zdjecie_url = p['zdjecie_url'] or ''
+            img_urls = _scrape_amazon_images(asin, zdjecie_url)
+            if not img_urls:
+                continue
+
+            for idx, img_url in enumerate(img_urls):
+                if not img_url:
+                    continue
+                conn.execute(
+                    """INSERT INTO photo_jobs (original_path, product_id, sku, status, image_index, created_at, updated_at)
+                       VALUES (?, ?, ?, 'new', ?, ?, ?)""",
+                    (img_url, p['id'], p['ean'], idx, now, now)
+                )
+                added_total += 1
+
+        conn.commit()
+        return jsonify({
+            'success': True,
+            'added': added_total,
+            'skipped': skipped,
+            'message': f'Dodano {added_total} nowych zleceń ({skipped} produktów pominięto — mają aktywne joby)'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @magazynier_bp.route('/photo-stats')
 def photo_stats():
     """JSON ze statystykami kolejki photo_jobs — do live pollingu."""
