@@ -134,8 +134,44 @@
 <div class="no-print" id="bulkBar" style="display:none;background:var(--wy-card2);padding:14px 20px;margin-bottom:16px;border-left:2px solid var(--wy-cyan);display:flex;align-items:center;justify-content:space-between">
     <span id="selectedCount" class="wy-headline" style="font-weight:700;color:var(--wy-cyan);font-size:0.95rem">0 zaznaczonych</span>
     <div style="display:flex;gap:8px">
-        <button onclick="submitBulk()" class="wy-btn wy-btn-green">Wyślij zaznaczone</button>
+        <button onclick="submitBulk()" class="wy-btn wy-btn-green">
+            <span class="material-symbols-outlined" style="font-size:14px">check</span> Wyślij zaznaczone
+        </button>
+        <button onclick="bulkNadaj()" class="wy-btn wy-btn-cyan" id="bulkNadajBtn">
+            <span class="material-symbols-outlined" style="font-size:14px">local_shipping</span> Nadaj zaznaczone
+        </button>
         <button onclick="toggleAll(false)" class="wy-btn wy-btn-red">Odznacz</button>
+    </div>
+</div>
+
+<!-- ═══ Bulk Nadaj Modal ═══ -->
+<div id="nadajModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+    <div style="background:#131315;border:1px solid rgba(143,245,255,0.15);max-width:560px;width:94%;padding:32px;position:relative">
+        <!-- Header -->
+        <div class="wy-headline" style="font-size:1.25rem;font-weight:900;color:#8ff5ff;margin-bottom:6px">
+            <span class="material-symbols-outlined" style="vertical-align:-4px;font-size:20px">local_shipping</span>
+            Bulk nadawanie etykiet
+        </div>
+        <div id="nadajSubtitle" style="color:#adaaad;font-size:0.82rem;margin-bottom:24px">Przygotowuję…</div>
+
+        <!-- Progress bar -->
+        <div style="background:rgba(255,255,255,0.07);height:6px;border-radius:3px;overflow:hidden;margin-bottom:16px">
+            <div id="nadajBar" style="height:100%;background:#8ff5ff;width:0%;transition:width 0.4s ease;border-radius:3px"></div>
+        </div>
+
+        <!-- Live log -->
+        <div id="nadajLog" style="max-height:240px;overflow-y:auto;font-size:0.8rem;font-family:monospace;color:#adaaad;padding:12px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.05)"></div>
+
+        <!-- Footer / result -->
+        <div id="nadajFooter" style="display:none;margin-top:20px">
+            <div id="nadajSummary" style="font-size:0.9rem;font-weight:600;margin-bottom:12px"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button id="openPdfBtn" onclick="openMergedPdf()" class="wy-btn wy-btn-solid" style="display:none">
+                    <span class="material-symbols-outlined" style="font-size:14px">print</span> Drukuj etykiety
+                </button>
+                <button onclick="closeNadajModal()" class="wy-btn wy-btn-cyan">Zamknij</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -256,6 +292,134 @@ function submitBulk(){
     if(confirm('Oznaczyć '+checked.length+' zamówień jako wysłane?'))
         document.getElementById('bulkForm').submit();
 }
+
+// ── Bulk Nadaj ──
+var _mergedPdfB64 = null;
+var _successOrderIds = [];
+
+function bulkNadaj(){
+    var checked=document.querySelectorAll('.wy-cb:checked');
+    if(checked.length===0){alert('Zaznacz zamówienia do nadania!');return}
+    if(!confirm('Nadać etykiety dla '+checked.length+' zamówień?\n\nDomyślne gabaryty:\n• InPost / Orlen → rozmiar B/M\n• Kurier → 30×25×15 cm, 1 kg'))return;
+
+    var orderIds=Array.from(checked).map(function(cb){return cb.value});
+    _mergedPdfB64=null;
+    _successOrderIds=[];
+
+    // Pokaż modal
+    var modal=document.getElementById('nadajModal');
+    modal.style.display='flex';
+    document.getElementById('nadajBar').style.width='0%';
+    document.getElementById('nadajLog').innerHTML='';
+    document.getElementById('nadajSubtitle').textContent='Nadaję '+orderIds.length+' zamówień…';
+    document.getElementById('nadajFooter').style.display='none';
+    document.getElementById('openPdfBtn').style.display='none';
+    document.getElementById('bulkNadajBtn').disabled=true;
+
+    logNadaj('⏳ Start — '+orderIds.length+' zamówień w kolejce','#adaaad');
+
+    doNadajSequential(orderIds,0,[]);
+}
+
+function doNadajSequential(orderIds, idx, results){
+    if(idx>=orderIds.length){
+        finishNadaj(orderIds.length, results);
+        return;
+    }
+    var orderId=orderIds[idx];
+    var progress=Math.round((idx/orderIds.length)*100);
+    document.getElementById('nadajBar').style.width=progress+'%';
+    document.getElementById('nadajSubtitle').textContent='Nadaję '+(idx+1)+' / '+orderIds.length+'…';
+    logNadaj('→ ['+orderId.substring(0,8)+'…] nadaję…','#adaaad');
+
+    fetch('/wysylki/bulk-nadaj',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({order_ids:[orderId]})
+    })
+    .then(function(r){return r.json()})
+    .then(function(data){
+        if(data.results && data.results[0]){
+            var r=data.results[0];
+            if(r.success){
+                logNadaj('✓ ['+orderId.substring(0,8)+'…] OK — przesyłka '+( r.shipment_id?r.shipment_id.substring(0,16)+'…':'nadana'),'#beee00');
+                _successOrderIds.push(orderId);
+                if(data.merged_pdf && !_mergedPdfB64) _mergedPdfB64=data.merged_pdf;
+                else if(data.merged_pdf) _appendPdf(data.merged_pdf);
+            } else {
+                logNadaj('✗ ['+orderId.substring(0,8)+'…] BŁĄD: '+r.error,'#ff6b9b');
+            }
+            results.push(r);
+        }
+        doNadajSequential(orderIds,idx+1,results);
+    })
+    .catch(function(err){
+        logNadaj('✗ ['+orderId.substring(0,8)+'…] Błąd sieciowy: '+err,'#ff6b9b');
+        results.push({order_id:orderId,success:false,error:''+err});
+        doNadajSequential(orderIds,idx+1,results);
+    });
+}
+
+function _appendPdf(newB64){
+    // Proste dołączenie — serwer już scalił, ale przy sequential każdy request zwraca 1 PDF
+    // Zachowaj ostatni (lub pierwszy z etykietą) — serwer robi scalanie po stronie backendu
+    if(!_mergedPdfB64) _mergedPdfB64=newB64;
+    // Gdybyś chciał scalać client-side — wymagałoby to PDF.js; na razie otwieramy po kolei
+}
+
+function finishNadaj(total, results){
+    document.getElementById('nadajBar').style.width='100%';
+    var ok=results.filter(function(r){return r.success}).length;
+    var err=results.length-ok;
+    document.getElementById('nadajSubtitle').textContent='Zakończono!';
+    logNadaj('─────────────────────────────','rgba(255,255,255,0.15)');
+    logNadaj('✓ Sukces: '+ok+'   ✗ Błędy: '+err,'#8ff5ff');
+
+    var summaryEl=document.getElementById('nadajSummary');
+    if(err===0){
+        summaryEl.innerHTML='<span style="color:#beee00">✓ Wszystkie '+ok+' etykiet nadane!</span>';
+    } else {
+        summaryEl.innerHTML='<span style="color:#beee00">✓ '+ok+' nadanych</span>  <span style="color:#ff6b9b;margin-left:12px">✗ '+err+' błędów</span>';
+    }
+    document.getElementById('nadajFooter').style.display='block';
+
+    if(_mergedPdfB64 && ok>0){
+        document.getElementById('openPdfBtn').style.display='inline-flex';
+    }
+
+    document.getElementById('bulkNadajBtn').disabled=false;
+
+    // Odśwież listę zamówień po 3 sek (żeby wysłane zniknęły) — tylko jeśli brak błędów
+    if(ok>0 && err===0) setTimeout(function(){location.reload()},3000);
+}
+
+function openMergedPdf(){
+    // Otwórz każdą nadaną etykietę w nowej karcie
+    _successOrderIds.forEach(function(oid){
+        window.open('/wysylki/etykieta/'+oid,'_blank');
+    });
+}
+
+function closeNadajModal(){
+    document.getElementById('nadajModal').style.display='none';
+    _mergedPdfB64=null;
+}
+
+function logNadaj(msg,color){
+    var log=document.getElementById('nadajLog');
+    var line=document.createElement('div');
+    line.style.color=color||'#adaaad';
+    line.style.marginBottom='3px';
+    line.style.borderBottom='1px solid rgba(255,255,255,0.04)';
+    line.style.paddingBottom='3px';
+    line.textContent=msg;
+    log.appendChild(line);
+    log.scrollTop=log.scrollHeight;
+}
+
+// Zamknij modal Escape
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeNadajModal()});
+
 document.addEventListener('DOMContentLoaded',function(){updateBulk()});
 </script>
 {% endblock %}
