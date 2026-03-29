@@ -9803,6 +9803,33 @@ def photo_request(product_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@magazynier_bp.route('/photo-stats')
+def photo_stats():
+    """JSON ze statystykami kolejki photo_jobs — do live pollingu."""
+    conn = get_db()
+    stats = {'total': 0, 'new': 0, 'processing': 0, 'done': 0, 'error': 0}
+    try:
+        for row in conn.execute("SELECT status, COUNT(*) as cnt FROM photo_jobs GROUP BY status").fetchall():
+            s = row['status']
+            if s in stats:
+                stats[s] += row['cnt']
+            stats['total'] += row['cnt']
+        # Ostatnie błędy
+        last_errors = [dict(r) for r in conn.execute(
+            "SELECT j.error_msg, p.nazwa FROM photo_jobs j LEFT JOIN produkty p ON j.product_id=p.id WHERE j.status='error' ORDER BY j.updated_at DESC LIMIT 3"
+        ).fetchall()]
+        stats['last_errors'] = last_errors
+        # Ostatnio przetworzone
+        last_done = [dict(r) for r in conn.execute(
+            "SELECT p.nazwa, j.updated_at FROM photo_jobs j LEFT JOIN produkty p ON j.product_id=p.id WHERE j.status='done' ORDER BY j.updated_at DESC LIMIT 3"
+        ).fetchall()]
+        stats['last_done'] = last_done
+    except Exception as e:
+        stats['error_msg'] = str(e)
+    stats['worker_running'] = _worker_running
+    return jsonify(stats)
+
+
 # ============================================================
 # PHOTO WORKER — uruchomienie z poziomu UI
 # ============================================================
@@ -9824,21 +9851,21 @@ def photo_worker_run():
         global _worker_running
         _worker_running = True
         try:
-            # Dodaj ścieżkę photo_daemon do sys.path
-            daemon_dir = str(Path(current_app.root_path) / 'photo_daemon')
-            if daemon_dir not in sys.path:
-                sys.path.insert(0, daemon_dir)
-
-            from photo_daemon.config import load_config
-            from photo_daemon import db_utils as pd_db
-            import photo_daemon.image_utils as pd_img
-            from photo_daemon.external_api_client import ComfyUIClient
-            from photo_daemon import photo_worker as pw
-
-            cfg_path = str(Path(current_app.root_path) / 'photo_daemon' / 'config.yaml')
-            cfg = load_config(cfg_path)
-            stats = pw.run_worker(cfg)
-            print(f"[photo-worker-run] Done: {stats}")
+            import subprocess
+            worker_script = str(Path(current_app.root_path) / 'photo_daemon' / 'photo_worker.py')
+            python_exe = sys.executable
+            print(f"[photo-worker-run] Starting: {python_exe} {worker_script}")
+            result = subprocess.run(
+                [python_exe, worker_script],
+                capture_output=True, text=True, timeout=300,
+                cwd=str(Path(current_app.root_path))
+            )
+            print(f"[photo-worker-run] stdout: {result.stdout[-500:] if result.stdout else ''}")
+            if result.stderr:
+                print(f"[photo-worker-run] stderr: {result.stderr[-500:]}")
+            print(f"[photo-worker-run] returncode: {result.returncode}")
+        except subprocess.TimeoutExpired:
+            print("[photo-worker-run] Timeout po 5 min")
         except Exception as e:
             print(f"[photo-worker-run] ERROR: {e}")
             import traceback; traceback.print_exc()
