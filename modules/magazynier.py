@@ -9899,14 +9899,14 @@ def photo_request(product_id):
 @magazynier_bp.route('/photo-clear-and-requeue', methods=['POST'])
 def photo_clear_and_requeue():
     """
-    Usuwa wszystkie przetworzone zdjęcia (pliki + DB) i resetuje joby do 'new'.
-    Amazon URL-e w photo_jobs.original_path zostają — worker przeprocesuje od nowa.
+    Usuwa wszystkie przetworzone zdjęcia (pliki + DB), usuwa wszystkie joby,
+    i tworzy nowe zlecenia dla wszystkich produktów z ASIN (8 zdjęć/produkt).
     """
-    import os, glob as _glob
-    from pathlib import Path
+    import os
+    from datetime import datetime as _dt
     conn = get_db()
     try:
-        # 1. Pobierz ścieżki plików do usunięcia
+        # 1. Usuń pliki
         paths = [r['path'] for r in conn.execute("SELECT path FROM processed_photos").fetchall()]
         deleted_files = 0
         for p in paths:
@@ -9917,25 +9917,46 @@ def photo_clear_and_requeue():
             except Exception:
                 pass
 
-        # 2. Usuń rekordy processed_photos
+        # 2. Usuń wszystko z DB
         conn.execute("DELETE FROM processed_photos")
-
-        # 3. Wyczyść images w produkty
+        conn.execute("DELETE FROM photo_jobs")
         conn.execute("UPDATE produkty SET images=NULL, images_ready=0 WHERE images IS NOT NULL")
 
-        # 4. Zresetuj status photo_jobs done/error → new
-        reset = conn.execute(
-            "UPDATE photo_jobs SET status='new', error_msg=NULL, updated_at=datetime('now') "
-            "WHERE status IN ('done','error')"
-        ).rowcount
+        # 3. Dodaj kolumnę image_index jeśli nie istnieje
+        try:
+            conn.execute("ALTER TABLE photo_jobs ADD COLUMN image_index INTEGER DEFAULT 0")
+        except Exception:
+            pass
+
+        # 4. Utwórz nowe joby dla wszystkich produktów z ASIN — 8 zdjęć na produkt
+        products = conn.execute(
+            "SELECT id, ean, asin, nazwa, zdjecie_url FROM produkty "
+            "WHERE (asin IS NOT NULL AND asin != '') OR (zdjecie_url IS NOT NULL AND zdjecie_url != '')"
+        ).fetchall()
+
+        added_total = 0
+        now = _dt.now().isoformat(sep=' ', timespec='seconds')
+
+        for p in products:
+            img_urls = _scrape_amazon_images(p['asin'] or '', p['zdjecie_url'] or '')
+            if not img_urls:
+                continue
+            for idx, img_url in enumerate(img_urls):
+                if not img_url:
+                    continue
+                conn.execute(
+                    """INSERT INTO photo_jobs (original_path, product_id, sku, status, image_index, created_at, updated_at)
+                       VALUES (?, ?, ?, 'new', ?, ?, ?)""",
+                    (img_url, p['id'], p['ean'], idx, now, now)
+                )
+                added_total += 1
 
         conn.commit()
-
         return jsonify({
             'success': True,
-            'reset_jobs': reset,
+            'added': added_total,
             'deleted_files': deleted_files,
-            'message': f'Zresetowano {reset} jobów, usunięto {deleted_files} plików — gotowe do ponownego przetworzenia'
+            'message': f'Usunięto {deleted_files} plików, utworzono {added_total} nowych zleceń (8 zdjęć/produkt)'
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
