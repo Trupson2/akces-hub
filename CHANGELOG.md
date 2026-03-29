@@ -2,6 +2,12 @@
 
 ## 29.03.2026
 
+- gitignore: exclude photo_daemon work/storage files
+- gitignore: exclude photo_daemon work/storage files
+- Label: add quality class A/Nowy format, PNG download on product card
+- Disable text removal - use original Amazon images
+- Disable text removal - use original Amazon images
+- Better text mask: 3 PSM modes, LaMa handles large areas
 - Disable text removal (skip=true) - detection too aggressive
 - Fix text mask: add 15% safety limit, reduce MSER aggressiveness
 - Add IOPaint (lama-cleaner) text removal via HTTP API
@@ -99,10 +105,4 @@
 - Security: CSRF tokens on goal forms, hide error details, fix cookie
 - CRITICAL: Block unauthenticated external requests (ngrok exposure)
 - Fix mobile responsive: grids collapse to 2 cols on tablet, 1 col on phone
-- Security: fix XSS, auth bypass on /system/update and sprzedaze routes
-- Security fixes: remove hardcoded tokens, add auth to API endpoints
-- Revamp level system: 8 tiers based on yearly revenue + achievements
-- Cyberpunk redesign: palety, magazynier, sprzedaze pages
-- Add reminder dates to Obsidian daily note tasks
-- Generate Obsidian daily note on startup (catch-up if missed 7:30)
 
