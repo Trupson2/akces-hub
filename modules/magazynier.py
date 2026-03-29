@@ -9917,32 +9917,31 @@ def photo_clear_and_requeue():
             except Exception:
                 pass
 
-        # 2. Usuń wszystko z DB
+        # 2. Usuń wszystko z DB i od razu commituj — żeby zwolnić lock
         conn.execute("DELETE FROM processed_photos")
         conn.execute("DELETE FROM photo_jobs")
         conn.execute("UPDATE produkty SET images=NULL, images_ready=0 WHERE images IS NOT NULL")
-
-        # 3. Dodaj kolumnę image_index jeśli nie istnieje
         try:
             conn.execute("ALTER TABLE photo_jobs ADD COLUMN image_index INTEGER DEFAULT 0")
         except Exception:
             pass
+        conn.commit()  # ← zwolnij lock przed scrapowaniem
 
-        # 4. Utwórz nowe joby dla wszystkich produktów z ASIN — 8 zdjęć na produkt
-        products = conn.execute(
+        # 3. Pobierz listę produktów
+        products = list(conn.execute(
             "SELECT id, ean, asin, nazwa, zdjecie_url FROM produkty "
             "WHERE (asin IS NOT NULL AND asin != '') OR (zdjecie_url IS NOT NULL AND zdjecie_url != '')"
-        ).fetchall()
+        ).fetchall())
 
+        # 4. Scrapuj Amazon i wstawiaj joby — commit po każdym produkcie
+        import time as _time
         added_total = 0
         now = _dt.now().isoformat(sep=' ', timespec='seconds')
-        import time as _time
 
         for i, p in enumerate(products):
             asin = p['asin'] or ''
             zdjecie_url = p['zdjecie_url'] or ''
 
-            # Fallback: jeśli brak ASIN użyj zdjecie_url bez scrapowania
             if not asin or len(asin) < 8:
                 if zdjecie_url:
                     conn.execute(
@@ -9950,14 +9949,85 @@ def photo_clear_and_requeue():
                            VALUES (?, ?, ?, 'new', 0, ?, ?)""",
                         (zdjecie_url, p['id'], p['ean'], now, now)
                     )
+                    conn.commit()
                     added_total += 1
                 continue
 
             img_urls = _scrape_amazon_images(asin, zdjecie_url)
-            if not img_urls:
+            if img_urls:
+                for idx, img_url in enumerate(img_urls):
+                    if not img_url:
+                        continue
+                    conn.execute(
+                        """INSERT INTO photo_jobs (original_path, product_id, sku, status, image_index, created_at, updated_at)
+                           VALUES (?, ?, ?, 'new', ?, ?, ?)""",
+                        (img_url, p['id'], p['ean'], idx, now, now)
+                    )
+                    added_total += 1
+                conn.commit()  # commit per produkt — DB wolna między requestami
+
+            if i % 5 == 4:
+                _time.sleep(2)
+            else:
+                _time.sleep(0.8)
+        return jsonify({
+            'success': True,
+            'added': added_total,
+            'deleted_files': deleted_files,
+            'message': f'Usunięto {deleted_files} plików, utworzono {added_total} nowych zleceń (8 zdjęć/produkt)'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@magazynier_bp.route('/photo-add-gallery', methods=['POST'])
+def photo_add_gallery():
+    """
+    Dodaje brakujące zdjęcia galerii (index 1-7) dla produktów które mają
+    już allegro_main ale NIE mają allegro_gallery_1.
+    NIE usuwa istniejących zdjęć ani miniatur.
+    """
+    import time as _time
+    from datetime import datetime as _dt
+    conn = get_db()
+    try:
+        try:
+            conn.execute("ALTER TABLE photo_jobs ADD COLUMN image_index INTEGER DEFAULT 0")
+            conn.commit()
+        except Exception:
+            pass
+
+        # Produkty które mają allegro_main w processed_photos ale brak allegro_gallery_1
+        products = conn.execute(
+            """SELECT DISTINCT p.id, p.ean, p.asin, p.zdjecie_url
+               FROM produkty p
+               JOIN processed_photos pp ON pp.product_id = p.id AND pp.variant = 'allegro_main'
+               WHERE p.asin IS NOT NULL AND p.asin != ''
+               AND NOT EXISTS (
+                   SELECT 1 FROM processed_photos pp2
+                   WHERE pp2.product_id = p.id AND pp2.variant = 'allegro_gallery_1'
+               )
+               AND NOT EXISTS (
+                   SELECT 1 FROM photo_jobs pj
+                   WHERE pj.product_id = p.id AND pj.image_index > 0
+                   AND pj.status IN ('new','processing')
+               )"""
+        ).fetchall()
+
+        added_total = 0
+        now = _dt.now().isoformat(sep=' ', timespec='seconds')
+
+        for i, p in enumerate(products):
+            asin = p['asin'] or ''
+            if not asin or len(asin) < 8:
                 continue
 
-            for idx, img_url in enumerate(img_urls):
+            img_urls = _scrape_amazon_images(asin, p['zdjecie_url'] or '')
+            if not img_urls or len(img_urls) < 2:
+                continue
+
+            # Tylko index 1..7 (galeria) — miniatura (0) już istnieje
+            for idx, img_url in enumerate(img_urls[1:], start=1):
                 if not img_url:
                     continue
                 conn.execute(
@@ -9966,19 +10036,18 @@ def photo_clear_and_requeue():
                     (img_url, p['id'], p['ean'], idx, now, now)
                 )
                 added_total += 1
+            conn.commit()
 
-            # Delay między produktami — unikaj Amazon rate limiting
             if i % 5 == 4:
-                _time.sleep(2)  # co 5 produktów czekaj 2s
+                _time.sleep(2)
             else:
                 _time.sleep(0.8)
 
-        conn.commit()
         return jsonify({
             'success': True,
             'added': added_total,
-            'deleted_files': deleted_files,
-            'message': f'Usunięto {deleted_files} plików, utworzono {added_total} nowych zleceń (8 zdjęć/produkt)'
+            'products': len(products),
+            'message': f'Dodano {added_total} zleceń galerii dla {len(products)} produktów (miniatury zachowane)'
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

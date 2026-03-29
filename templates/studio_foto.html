@@ -118,6 +118,11 @@
     <span class="material-symbols-outlined" style="font-size:13px">queue</span>
     Kolejkuj wszystkie produkty z ASIN
   </button>
+  <button class="sf-btn" style="background:rgba(143,245,255,0.07);border-color:rgba(143,245,255,0.25);color:var(--sf-cyan);font-size:0.72rem"
+          onclick="addGallery()">
+    <span class="material-symbols-outlined" style="font-size:13px">photo_library</span>
+    Dodaj brakujące galerie (zachowaj miniatury)
+  </button>
 </div>
 
 <!-- Tabs -->
@@ -370,6 +375,21 @@ function clearAndRequeue() {
   if (!confirm('Usuwa WSZYSTKIE przetworzone zdjęcia (pliki + DB) i resetuje joby do kolejki.\nAmazon URL-e zostają — worker przeprocesuje od nowa.\n\nKontynuować?')) return;
   sfAlert('Czyszczenie i resetowanie...', 'ok');
   fetch('/magazyn/photo-clear-and-requeue', {method:'POST'})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.success) {
+        sfAlert('✅ ' + d.message, 'ok');
+        setTimeout(function(){ window.location.reload(); }, 1500);
+      } else {
+        sfAlert('❌ ' + (d.error||'Błąd'), 'err');
+      }
+    })
+    .catch(function(e){ sfAlert('Błąd: '+e.message,'err'); });
+}
+
+function addGallery() {
+  sfAlert('Scrapuję Amazon dla brakujących galerii... (może potrwać chwilę)', 'ok');
+  fetch('/magazyn/photo-add-gallery', {method:'POST'})
     .then(function(r){ return r.json(); })
     .then(function(d){
       if (d.success) {
