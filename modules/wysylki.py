@@ -1030,127 +1030,6 @@ def wysylki_nadaj(order_id):
         '''
 
 
-@wysylki_bp.route('/wysylki/bulk-nadaj', methods=['POST'])
-def bulk_nadaj():
-    """Bulk nadawanie etykiet – sekwencyjnie tworzy przesyłki i łączy PDF-y"""
-    from modules.allegro_api import create_and_get_label
-    from modules.database import get_db
-    import base64
-    import io
-
-    data = request.get_json(silent=True) or {}
-    order_ids = data.get('order_ids', [])
-
-    if not order_ids:
-        return jsonify({'success': False, 'error': 'Brak order_ids'}), 400
-
-    conn = get_db()
-    results = []
-    pdf_pages = []  # lista bytes z każdego PDF
-
-    for order_id in order_ids:
-        # Ustal domyślny gabaryt na podstawie adresu w bazie
-        row = conn.execute(
-            "SELECT adres FROM sprzedaze WHERE allegro_order_id = ? LIMIT 1",
-            (order_id,)
-        ).fetchone()
-        addr_low = (row['adres'] or '').lower() if row else ''
-        is_inpost = 'paczkomat' in addr_low or 'inpost' in addr_low
-        is_orlen  = 'orlen' in addr_low
-        is_dpd    = 'dpd' in addr_low
-
-        parcel_size = None
-        dimensions  = None
-        if is_inpost:
-            parcel_size = 'B'          # 19×38×64 cm – najczęstszy
-        elif is_orlen:
-            parcel_size = 'M'          # M ≈ 19×38×64 cm
-        else:
-            dimensions = {             # DPD / DHL / kurier
-                'length': '30',
-                'width':  '25',
-                'height': '15',
-                'weight_kg': '1',
-            }
-
-        try:
-            label_pdf, shipment_id, error = create_and_get_label(
-                order_id, parcel_size=parcel_size, dimensions=dimensions
-            )
-        except Exception as exc:
-            error = f'Wyjątek: {str(exc)}'
-            label_pdf, shipment_id = None, None
-
-        if error:
-            results.append({
-                'order_id':  order_id,
-                'success':   False,
-                'error':     error,
-                'allegro_url': f'https://allegro.pl/moje-allegro/sprzedaz/zamowienia/{order_id}',
-            })
-            continue
-
-        # Zaktualizuj status sprzedaży → wyslana
-        conn.execute(
-            "UPDATE sprzedaze SET status='wyslana' WHERE allegro_order_id=? AND status IN ('nowa','nowe','nadana')",
-            (order_id,)
-        )
-        # Zaktualizuj status produktów
-        _sprzedane = conn.execute(
-            "SELECT produkt_id, ilosc FROM sprzedaze WHERE allegro_order_id=? AND produkt_id IS NOT NULL",
-            (order_id,)
-        ).fetchall()
-        for _s in _sprzedane:
-            conn.execute(
-                """UPDATE produkty SET status='sprzedany'
-                   WHERE id=? AND ilosc<=0
-                   AND status NOT IN ('sprzedany','wyslany','uszkodzony','zlomowany','naprawa')""",
-                (_s['produkt_id'],)
-            )
-
-        if label_pdf:
-            pdf_pages.append(label_pdf)
-
-        results.append({
-            'order_id':    order_id,
-            'success':     True,
-            'shipment_id': shipment_id,
-            'has_label':   bool(label_pdf),
-            'label_url':   f'/wysylki/etykieta/{order_id}',
-        })
-
-    conn.commit()
-
-    # Scal PDF-y w jeden plik
-    merged_b64 = None
-    if pdf_pages:
-        try:
-            from pypdf import PdfWriter, PdfReader
-            writer = PdfWriter()
-            for pdf_bytes in pdf_pages:
-                reader = PdfReader(io.BytesIO(pdf_bytes))
-                for page in reader.pages:
-                    writer.add_page(page)
-            buf = io.BytesIO()
-            writer.write(buf)
-            merged_b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
-        except Exception as exc:
-            print(f'[BULK-NADAJ] PDF merge error: {exc}')
-            # Fallback: zwróć pierwszy PDF
-            merged_b64 = base64.b64encode(pdf_pages[0]).decode('utf-8')
-
-    ok_count  = sum(1 for r in results if r['success'])
-    err_count = len(results) - ok_count
-
-    return jsonify({
-        'success':    True,
-        'ok_count':   ok_count,
-        'err_count':  err_count,
-        'results':    results,
-        'merged_pdf': merged_b64,   # None jeśli wszystkie błędy
-    })
-
-
 @wysylki_bp.route('/wysylki/podjazd/<order_id>', methods=['POST'])
 def wysylki_podjazd(order_id):
     """Zamawia podjazd kuriera DPD dla przesyłki"""
@@ -1796,20 +1675,16 @@ def bulk_nadaj():
     merged_pdf_b64 = None
     if pdf_pages:
         try:
-            from PyPDF2 import PdfMerger
-            merger = PdfMerger()
+            from pypdf import PdfWriter, PdfReader
+            writer = PdfWriter()
             for pdf_data in pdf_pages:
-                merger.append(io.BytesIO(pdf_data))
+                reader = PdfReader(io.BytesIO(pdf_data))
+                for page in reader.pages:
+                    writer.add_page(page)
             output = io.BytesIO()
-            merger.write(output)
-            merger.close()
+            writer.write(output)
             merged_pdf_b64 = base64.b64encode(output.getvalue()).decode('utf-8')
             print(f"[BULK] Merged {len(pdf_pages)} PDFs, size={len(output.getvalue())}B")
-        except ImportError:
-            # PyPDF2 not available - return first PDF only
-            print("[BULK] PyPDF2 not available, returning individual PDFs")
-            if pdf_pages:
-                merged_pdf_b64 = base64.b64encode(pdf_pages[0]).decode('utf-8')
         except Exception as e:
             print(f"[BULK] PDF merge error: {e}")
             if pdf_pages:

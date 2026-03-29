@@ -344,14 +344,14 @@ function doNadajSequential(orderIds, idx, results){
     fetch('/wysylki/bulk-nadaj',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({order_ids:[orderId]})
+        body:JSON.stringify({items:[{order_id:orderId}]})
     })
     .then(function(r){return r.json()})
     .then(function(data){
         if(data.results && data.results[0]){
             var r=data.results[0];
             if(r.success){
-                logNadaj('✓ ['+orderId.substring(0,8)+'…] OK — przesyłka '+( r.shipment_id?r.shipment_id.substring(0,16)+'…':'nadana'),'#beee00');
+                logNadaj('✓ ['+orderId.substring(0,8)+'…] OK — przesyłka '+(r.shipment_id?r.shipment_id.substring(0,16)+'…':'nadana'),'#beee00');
                 _successOrderIds.push(orderId);
                 if(data.merged_pdf && !_mergedPdfB64) _mergedPdfB64=data.merged_pdf;
                 else if(data.merged_pdf) _appendPdf(data.merged_pdf);
@@ -378,7 +378,7 @@ function _appendPdf(newB64){
 
 function finishNadaj(total, results){
     document.getElementById('nadajBar').style.width='100%';
-    var ok=results.filter(function(r){return r.success}).length;
+    var ok=results.filter(function(r){return r.success||r.ok_count>0}).length;
     var err=results.length-ok;
     document.getElementById('nadajSubtitle').textContent='Zakończono!';
     logNadaj('─────────────────────────────','rgba(255,255,255,0.15)');
