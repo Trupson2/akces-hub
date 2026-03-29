@@ -6673,6 +6673,160 @@ def etykiety_niimbot_png(product_id):
     )
 
 
+@magazynier_bp.route('/etykiety/sztuka/<int:sztuka_id>/png')
+def etykieta_sztuka_png(sztuka_id):
+    """Pobierz PNG etykiety dla konkretnej sztuki (jednostki) z jej klasą jakości."""
+    import io
+    conn = get_db()
+    sztuka = conn.execute('SELECT * FROM produkt_jednostki WHERE id=?', (sztuka_id,)).fetchone()
+    if not sztuka:
+        return 'Nie znaleziono sztuki', 404
+    sztuka = dict(sztuka)
+
+    p = conn.execute('SELECT * FROM produkty WHERE id=?', (sztuka['produkt_id'],)).fetchone()
+    if not p:
+        return 'Nie znaleziono produktu', 404
+    p = dict(p)
+
+    paleta_nazwa = ''
+    koszt_szt = 0
+    if p.get('paleta_id'):
+        koszt_szt = _paleta_koszt_szt(conn, p['paleta_id'])
+        pal_row = conn.execute('SELECT nazwa FROM palety WHERE id=?', (p['paleta_id'],)).fetchone()
+        if pal_row:
+            paleta_nazwa = pal_row['nazwa'] or ''
+
+    from .printer_manager import get_printer_manager as get_pm
+    pm = get_pm()
+    kod_mag = p.get('kod_magazynowy', '') or ''
+    stan = sztuka.get('stan', '') or p.get('stan_przyjecia', '') or ''
+    klasa = sztuka.get('klasa', '') or p.get('klasa_jakosci', '') or ''
+    stan_label = _format_stan_label(stan, klasa)
+
+    from .printer_manager import ProductLabel as PL
+    label = PL(
+        nazwa=p['nazwa'][:35],
+        qr_data=f"{kod_mag}#{sztuka['numer']}" if kod_mag else f"MAG:{p.get('ean') or p['id']}#{sztuka['numer']}",
+        lokalizacja=p.get('lokalizacja', '') or '',
+        ean=p.get('ean', '') or '',
+        ilosc=1,
+        paleta=paleta_nazwa,
+        koszt_szt=koszt_szt,
+        kod_magazynowy=kod_mag,
+        stan_przyjecia=stan_label
+    )
+
+    img = pm._generate_label_image(label)
+    img_buffer = io.BytesIO()
+    img.save(img_buffer, format='PNG')
+    img_buffer.seek(0)
+    filename = f"etykieta_{kod_mag}_{sztuka['numer']}_{klasa or stan}.png"
+    return Response(img_buffer.getvalue(), mimetype='image/png',
+        headers={'Content-Disposition': f'attachment; filename={filename}', 'Cache-Control': 'no-cache'})
+
+
+@magazynier_bp.route('/etykiety/produkt/<int:produkt_id>/klasy')
+def etykiety_produkt_klasy(produkt_id):
+    """Strona z etykietami pogrupowanymi po klasie — 1 PNG per unikalna klasa do pobrania."""
+    conn = get_db()
+    p = conn.execute('SELECT * FROM produkty WHERE id=?', (produkt_id,)).fetchone()
+    if not p:
+        return 'Nie znaleziono produktu', 404
+    p = dict(p)
+
+    sztuki = conn.execute('SELECT * FROM produkt_jednostki WHERE produkt_id=? ORDER BY numer', (produkt_id,)).fetchall()
+    if not sztuki:
+        return render('<div class="alert alert-err">Brak sztuk dla tego produktu</div><a href="/magazyn" class="back">← Powrót</a>')
+
+    from collections import Counter
+    grupy = Counter()
+    for s in sztuki:
+        s = dict(s)
+        stan = s.get('stan', '') or p.get('stan_przyjecia', '') or ''
+        klasa = s.get('klasa', '') or p.get('klasa_jakosci', '') or ''
+        grupy[_format_stan_label(stan, klasa)] += 1
+
+    klasa_colors = {'A': '#beee00', 'B': '#eab308', 'C': '#f97316', 'D': '#ef4444', 'A-': '#8ff5ff'}
+
+    rows = ''
+    for stan_label, ilosc in sorted(grupy.items()):
+        klasa_czesc = stan_label.split('/')[0] if '/' in stan_label else stan_label
+        color = klasa_colors.get(klasa_czesc, '#8ff5ff')
+        safe = stan_label.replace('/', '-')
+        rows += f'''
+        <div style="display:flex;align-items:center;gap:16px;padding:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);margin-bottom:8px">
+            <div style="font-size:1.4rem;font-weight:800;color:{color};font-family:'Space Grotesk',sans-serif;min-width:60px">{stan_label}</div>
+            <div style="flex:1;color:#94a3b8">× <strong style="color:#e2e8f0;font-size:1.1rem">{ilosc}</strong> sztuk</div>
+            <a href="/magazyn/etykiety/produkt/{produkt_id}/klasy/{safe}/png" download="etykieta_{safe}.png"
+               style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:{color}18;border:1px solid {color}44;color:{color};font-weight:600;font-size:0.85rem;text-decoration:none">
+                <span class="material-symbols-outlined" style="font-size:1rem">download</span> Pobierz PNG
+            </a>
+        </div>'''
+
+    html = f'''
+    <div class="hdr"><h1><span class=material-symbols-outlined>label</span> ETYKIETY PO KLASIE</h1>
+    <small>{p['nazwa'][:50]}</small></div>
+    <div class="card" style="padding:16px;margin-bottom:12px;background:rgba(143,245,255,0.05);border:1px solid rgba(143,245,255,0.15)">
+        <div style="color:#8ff5ff;font-size:0.85rem">Drukuj każdą etykietę <strong>N razy</strong> w aplikacji Niimbot odpowiadając liczbie sztuk danej klasy.</div>
+    </div>
+    {rows}
+    <a href="/magazyn/produkt/{p.get('kod_magazynowy') or p['id']}" class="back">← Powrót do produktu</a>
+    '''
+    return render(html)
+
+
+@magazynier_bp.route('/etykiety/produkt/<int:produkt_id>/klasy/<path:stan_label>/png')
+def etykieta_klasa_png(produkt_id, stan_label):
+    """PNG etykiety dla konkretnej klasy (z liczbą sztuk danej klasy)."""
+    import io
+    stan_label = stan_label.replace('-', '/', 1)  # przywróć / z -
+    conn = get_db()
+    p = conn.execute('SELECT * FROM produkty WHERE id=?', (produkt_id,)).fetchone()
+    if not p:
+        return 'Nie znaleziono produktu', 404
+    p = dict(p)
+
+    sztuki = conn.execute('SELECT * FROM produkt_jednostki WHERE produkt_id=?', (produkt_id,)).fetchall()
+    from collections import Counter
+    grupy = Counter()
+    for s in sztuki:
+        s = dict(s)
+        st = s.get('stan', '') or p.get('stan_przyjecia', '') or ''
+        kl = s.get('klasa', '') or p.get('klasa_jakosci', '') or ''
+        grupy[_format_stan_label(st, kl)] += 1
+
+    ilosc = grupy.get(stan_label, 1)
+
+    paleta_nazwa = ''
+    koszt_szt = 0
+    if p.get('paleta_id'):
+        koszt_szt = _paleta_koszt_szt(conn, p['paleta_id'])
+        pal_row = conn.execute('SELECT nazwa FROM palety WHERE id=?', (p['paleta_id'],)).fetchone()
+        if pal_row:
+            paleta_nazwa = pal_row['nazwa'] or ''
+
+    from .printer_manager import get_printer_manager as get_pm, ProductLabel as PL
+    pm = get_pm()
+    kod_mag = p.get('kod_magazynowy', '') or ''
+    label = PL(
+        nazwa=p['nazwa'][:35],
+        qr_data=kod_mag or f"MAG:{p.get('ean') or p['id']}",
+        ean=p.get('ean', '') or '',
+        ilosc=ilosc,
+        paleta=paleta_nazwa,
+        koszt_szt=koszt_szt,
+        kod_magazynowy=kod_mag,
+        stan_przyjecia=stan_label
+    )
+    img = pm._generate_label_image(label)
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+    safe = stan_label.replace('/', '-')
+    return Response(buf.getvalue(), mimetype='image/png',
+        headers={'Content-Disposition': f'attachment; filename=etykieta_{safe}.png', 'Cache-Control': 'no-cache'})
+
+
 @magazynier_bp.route('/etykiety/niimbot/zip')
 def etykiety_niimbot_zip():
     """Pobierz ZIP z etykietami PNG dla Niimbot"""
