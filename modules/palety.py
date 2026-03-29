@@ -233,9 +233,28 @@ def produkt_regenerate_meta_title(produkt_id):
                 'SELECT nazwa, bullet_points FROM scraped WHERE asin = ?', (asin,)
             ).fetchone()
 
-        # Preferuj pełny Amazon title nad krótką nazwą z bazy
-        amazon_nazwa = (scraped['nazwa'] if scraped and scraped['nazwa'] else '') or produkt['nazwa'] or ''
+        scraped_nazwa = (scraped['nazwa'] if scraped and scraped['nazwa'] else '').strip()
         bullet_pts = (scraped['bullet_points'] if scraped and scraped['bullet_points'] else '')
+
+        # Jeśli scraped.nazwa za krótka i mamy ASIN — scrapuj Amazon live
+        if asin and len(scraped_nazwa) < 30:
+            try:
+                from modules.utils import scrape_amazon_product
+                amazon_data = scrape_amazon_product(asin)
+                if amazon_data and amazon_data.get('title') and not amazon_data['title'].startswith('Produkt '):
+                    scraped_nazwa = amazon_data['title']
+                    # Zaktualizuj bazę żeby następny raz był szybszy
+                    conn.execute('UPDATE produkty SET nazwa = ? WHERE id = ?', (scraped_nazwa, produkt_id))
+                    conn.execute('UPDATE scraped SET nazwa = ? WHERE asin = ?', (scraped_nazwa, asin))
+                    conn.commit()
+                    print(f'[META] Live scrape OK: {scraped_nazwa[:60]}')
+                if amazon_data and amazon_data.get('bullet_points') and not bullet_pts:
+                    bullet_pts = '\n'.join(amazon_data['bullet_points']) if isinstance(amazon_data['bullet_points'], list) else str(amazon_data.get('bullet_points', ''))
+            except Exception as _e:
+                print(f'[META] Live scrape failed: {_e}')
+
+        # Preferuj pełny Amazon title nad krótką nazwą z bazy
+        amazon_nazwa = scraped_nazwa or produkt['nazwa'] or ''
 
         # Generuj meta_title (zawsze przez AI — user kliknął Regeneruj)
         from modules.smart_importer import generate_meta_title
