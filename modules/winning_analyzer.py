@@ -363,12 +363,9 @@ def run_winning_products_scan(categories: list | None = None) -> dict:
         my_categories = []
         avg_margin = 0.25
 
-    from modules.winning_scoring import (
-        score_trend, score_competition, score_opportunity,
-        estimate_margin_potential, generate_notes
-    )
+    from modules.winning_scoring import compute_scores, generate_notes
 
-    weights = _get_weights()
+    weights_cfg = _get_weights()
     min_score = _get_min_opportunity_score()
 
     products_found = 0
@@ -386,19 +383,18 @@ def run_winning_products_scan(categories: list | None = None) -> dict:
             # Pobierz nazwę kategorii
             category_name = _get_category_name(category_id)
 
-            # Pobierz dopasowanie kategorii do portfolio
-            try:
-                from modules.akces_data import get_product_category_fit
-                cat_fit = get_product_category_fit(category_name)
-            except Exception:
-                cat_fit = 0.0
+            # Zbierz ceny wszystkich ofert w kategorii (do scoringu konkurencji)
+            price_list = []
+            for o in offers:
+                try:
+                    price_list.append(float(
+                        (o.get("sellingMode", {}) or {}).get("price", {}).get("amount", 0) or 0
+                    ))
+                except Exception:
+                    pass
 
             for offer in offers:
                 try:
-                    # Oblicz scoring
-                    trend = score_trend(offer)
-                    competition = score_competition(offers, offer)
-
                     # Szacowana cena
                     est_price = 0.0
                     try:
@@ -410,15 +406,40 @@ def run_winning_products_scan(categories: list | None = None) -> dict:
                     except (ValueError, TypeError):
                         pass
 
-                    # Potencjał marżowy
-                    margin_potential = estimate_margin_potential(est_price, est_price * (1 - avg_margin))
-                    opportunity = score_opportunity(trend, competition, cat_fit, margin_potential, weights)
+                    # Buduj product_data dla compute_scores
+                    product_data = {
+                        "name":                offer.get("name", ""),
+                        "title":               offer.get("name", ""),
+                        "price":               est_price,
+                        "est_price":           est_price,
+                        "watchers_count":      offer.get("watchersCount", 0) or 0,
+                        "views_count":         offer.get("viewsCount", 0) or 0,
+                        "monthly_sales_est":   offer.get("salesCount", 0) or 0,
+                        "category":            category_name,
+                        "purchase_cost_estimate": est_price * (1 - avg_margin),
+                    }
+                    my_data = {
+                        "my_categories":    my_categories,
+                        "avg_price_range":  (20.0, 500.0),
+                    }
+                    market_data = {
+                        "similar_offers_count":   len(offers),
+                        "price_list":             price_list,
+                        "smart_sellers_fraction": 0.4,
+                    }
+                    config = {"weights": weights_cfg}
+
+                    scores = compute_scores(product_data, my_data, market_data, config)
+                    opportunity  = scores.get("opportunity_score", 0.0)
+                    trend        = scores.get("trend_score", 0.0)
+                    competition  = scores.get("competition_score", 0.0)
+                    margin_score = scores.get("margin_score", 0.0)
 
                     if opportunity < min_score:
                         continue
 
                     # Generuj notatki
-                    notes = generate_notes(offer, trend, competition, opportunity)
+                    notes = generate_notes(scores, product_data)
 
                     # Zapisz do DB
                     _save_winning_product(
@@ -429,7 +450,7 @@ def run_winning_products_scan(categories: list | None = None) -> dict:
                         trend=trend,
                         competition=competition,
                         opportunity=opportunity,
-                        est_margin=margin_potential,
+                        est_margin=margin_score,
                         notes=notes,
                     )
 
