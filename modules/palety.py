@@ -230,25 +230,14 @@ def produkt_regenerate_meta_title(produkt_id):
         scraped = None
         if asin:
             scraped = conn.execute(
-                'SELECT nazwa, tytul_seo, bullet_points FROM scraped WHERE asin = ?', (asin,)
+                'SELECT nazwa, bullet_points FROM scraped WHERE asin = ?', (asin,)
             ).fetchone()
-
-        # Jeśli jest już tytul_seo — użyj bezpośrednio bez AI
-        if scraped and scraped['tytul_seo'] and len(scraped['tytul_seo']) > 10:
-            meta_title = scraped['tytul_seo']
-            if len(meta_title) > 75:
-                meta_title = meta_title[:75].rsplit(' ', 1)[0]
-            conn.execute('UPDATE produkty SET meta_title = ? WHERE id = ?', (meta_title, produkt_id))
-            conn.commit()
-            response = jsonify({'success': True, 'meta_title': meta_title})
-            response.headers.add('Access-Control-Allow-Origin', request.host_url.rstrip('/'))
-            return response
 
         # Preferuj pełny Amazon title nad krótką nazwą z bazy
         amazon_nazwa = (scraped['nazwa'] if scraped and scraped['nazwa'] else '') or produkt['nazwa'] or ''
         bullet_pts = (scraped['bullet_points'] if scraped and scraped['bullet_points'] else '')
 
-        # Generuj meta_title
+        # Generuj meta_title (zawsze przez AI — user kliknął Regeneruj)
         from modules.smart_importer import generate_meta_title
         meta_title = generate_meta_title(
             produkt_nazwa=amazon_nazwa,
