@@ -6673,12 +6673,16 @@ def etykiety_niimbot_png(product_id):
     )
 
 
+STAN_DO_KLASY = {'Nowy': 'A', 'Jak nowy': 'A-', 'Powystawowy': 'A-', 'Uzywany': 'B',
+                 'Uszkodzony': 'C', 'Zniszczony': 'D', 'Odnowiony': 'B'}
+
+
 @magazynier_bp.route('/etykiety/sztuka/<int:sztuka_id>/png')
 def etykieta_sztuka_png(sztuka_id):
-    """Pobierz PNG etykiety dla konkretnej sztuki (jednostki) z jej klasą jakości."""
+    """Pobierz PNG etykiety dla konkretnej sztuki z jej klasą jakości."""
     import io
     conn = get_db()
-    sztuka = conn.execute('SELECT * FROM produkt_jednostki WHERE id=?', (sztuka_id,)).fetchone()
+    sztuka = conn.execute('SELECT * FROM sztuki WHERE id=?', (sztuka_id,)).fetchone()
     if not sztuka:
         return 'Nie znaleziono sztuki', 404
     sztuka = dict(sztuka)
@@ -6696,18 +6700,16 @@ def etykieta_sztuka_png(sztuka_id):
         if pal_row:
             paleta_nazwa = pal_row['nazwa'] or ''
 
-    from .printer_manager import get_printer_manager as get_pm
+    from .printer_manager import get_printer_manager as get_pm, ProductLabel as PL
     pm = get_pm()
     kod_mag = p.get('kod_magazynowy', '') or ''
-    stan = sztuka.get('stan', '') or p.get('stan_przyjecia', '') or ''
-    klasa = sztuka.get('klasa', '') or p.get('klasa_jakosci', '') or ''
+    stan = sztuka.get('stan', '') or ''
+    klasa = STAN_DO_KLASY.get(stan, '')
     stan_label = _format_stan_label(stan, klasa)
 
-    from .printer_manager import ProductLabel as PL
     label = PL(
         nazwa=p['nazwa'][:35],
         qr_data=f"{kod_mag}#{sztuka['numer']}" if kod_mag else f"MAG:{p.get('ean') or p['id']}#{sztuka['numer']}",
-        lokalizacja=p.get('lokalizacja', '') or '',
         ean=p.get('ean', '') or '',
         ilosc=1,
         paleta=paleta_nazwa,
@@ -6715,7 +6717,6 @@ def etykieta_sztuka_png(sztuka_id):
         kod_magazynowy=kod_mag,
         stan_przyjecia=stan_label
     )
-
     img = pm._generate_label_image(label)
     img_buffer = io.BytesIO()
     img.save(img_buffer, format='PNG')
@@ -6734,7 +6735,7 @@ def etykiety_produkt_klasy(produkt_id):
         return 'Nie znaleziono produktu', 404
     p = dict(p)
 
-    sztuki = conn.execute('SELECT * FROM produkt_jednostki WHERE produkt_id=? ORDER BY numer', (produkt_id,)).fetchall()
+    sztuki = conn.execute('SELECT * FROM sztuki WHERE produkt_id=? ORDER BY numer', (produkt_id,)).fetchall()
     if not sztuki:
         return render('<div class="alert alert-err">Brak sztuk dla tego produktu</div><a href="/magazyn" class="back">← Powrót</a>')
 
@@ -6742,8 +6743,8 @@ def etykiety_produkt_klasy(produkt_id):
     grupy = Counter()
     for s in sztuki:
         s = dict(s)
-        stan = s.get('stan', '') or p.get('stan_przyjecia', '') or ''
-        klasa = s.get('klasa', '') or p.get('klasa_jakosci', '') or ''
+        stan = s.get('stan', '') or ''
+        klasa = STAN_DO_KLASY.get(stan, '')
         grupy[_format_stan_label(stan, klasa)] += 1
 
     klasa_colors = {'A': '#beee00', 'B': '#eab308', 'C': '#f97316', 'D': '#ef4444', 'A-': '#8ff5ff'}
@@ -6786,13 +6787,13 @@ def etykieta_klasa_png(produkt_id, stan_label):
         return 'Nie znaleziono produktu', 404
     p = dict(p)
 
-    sztuki = conn.execute('SELECT * FROM produkt_jednostki WHERE produkt_id=?', (produkt_id,)).fetchall()
+    sztuki = conn.execute('SELECT * FROM sztuki WHERE produkt_id=?', (produkt_id,)).fetchall()
     from collections import Counter
     grupy = Counter()
     for s in sztuki:
         s = dict(s)
-        st = s.get('stan', '') or p.get('stan_przyjecia', '') or ''
-        kl = s.get('klasa', '') or p.get('klasa_jakosci', '') or ''
+        st = s.get('stan', '') or ''
+        kl = STAN_DO_KLASY.get(st, '')
         grupy[_format_stan_label(st, kl)] += 1
 
     ilosc = grupy.get(stan_label, 1)
