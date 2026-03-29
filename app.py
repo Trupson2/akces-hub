@@ -6136,33 +6136,32 @@ if __name__ == '__main__':
     except Exception as e:
         log_warning(f"Telegram bot error: {e}")
 
-    # Obsidian Daily Tasks — generuj notatkę codziennie o 7:30
+    # Notion Daily Tasks — generuj daily stronę w Notion codziennie o 7:30
     try:
         import schedule as _sched
-        def _obsidian_daily():
+        def _notion_daily():
             try:
-                from modules.obsidian_tasks import generate_daily_note
-                vault = os.path.join(os.path.expanduser('~'), 'obsidian-vault')
+                from modules.notion_tasks import generate_notion_daily
                 db = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'akces_hub.db')
-                generate_daily_note(vault_path=vault, db_path=db)
+                generate_notion_daily(db_path=db)
             except Exception as e:
-                log_warning(f"Obsidian daily note error: {e}")
+                log_warning(f"Notion daily note error: {e}")
 
         # Wygeneruj zaległą notatkę od razu na starcie (jeśli po 7:30 i nie istnieje)
-        _obsidian_daily()
+        _notion_daily()
 
-        _sched.every().day.at("07:30").do(_obsidian_daily)
+        _sched.every().day.at("07:30").do(_notion_daily)
 
-        def _obsidian_scheduler():
+        def _notion_scheduler():
             import time
             while True:
                 _sched.run_pending()
                 time.sleep(60)
 
-        threading.Thread(target=_obsidian_scheduler, daemon=True).start()
-        log("Obsidian daily tasks uruchomiony (07:30)")
+        threading.Thread(target=_notion_scheduler, daemon=True).start()
+        log("Notion daily tasks uruchomiony (07:30)")
     except Exception as e:
-        log_warning(f"Obsidian scheduler error: {e}")
+        log_warning(f"Notion scheduler error: {e}")
 
     # Start pallet monitor scheduler — tylko w trybie dev
     try:
