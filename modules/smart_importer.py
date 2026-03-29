@@ -81,7 +81,7 @@ def detect_stan_from_name(nazwa: str) -> str:
 # Gemini AI - klucz pobierany z DB config (get_config('gemini_api_key'))
 
 
-def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin: str = '', retry_count: int = 3) -> str:
+def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin: str = '', retry_count: int = 3, bullet_points: str = '') -> str:
     """
     Generuje META TITLE używając Gemini AI (REST API)
 
@@ -104,11 +104,18 @@ def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin:
 
     for attempt in range(retry_count):
         try:
+            _bp_section = ''
+            if bullet_points:
+                _bp_lines = [l.strip() for l in bullet_points.split('\n') if l.strip()][:4]
+                if _bp_lines:
+                    _bp_section = 'CECHY PRODUKTU (z Amazona):\n' + '\n'.join(f'- {l}' for l in _bp_lines)
+
             prompt = f"""Jesteś ekspertem SEO na Allegro. Stwórz polski tytuł oferty.
 
-ORYGINALNA NAZWA (często po angielsku/niemiecku): {produkt_nazwa}
+ORYGINALNA NAZWA (pełna nazwa z Amazon): {produkt_nazwa}
 {f'EAN: {produkt_ean}' if produkt_ean else ''}
 {f'ASIN: {produkt_asin}' if produkt_asin else ''}
+{_bp_section}
 
 ZASADY:
 1. Tytuł MUSI być po polsku
