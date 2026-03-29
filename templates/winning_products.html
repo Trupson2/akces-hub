@@ -761,6 +761,11 @@
         return;
       }
 
+      if (res.status === 403 && res.data.allegro_auth === false) {
+        showAlert('⚠️ ' + res.data.error, 'error');
+        return;
+      }
+
       if (res.status !== 200) {
         showAlert('Błąd analizy: ' + (res.data.error || 'Nieznany błąd'), 'error');
         return;

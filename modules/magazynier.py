@@ -9738,7 +9738,7 @@ def studio_foto():
     jobs = []
     try:
         jobs = [dict(r) for r in conn.execute(
-            """SELECT j.*, p.nazwa as produkt_nazwa, p.ean
+            """SELECT j.*, p.nazwa as produkt_nazwa, p.ean, p.kod_magazynowy
                FROM photo_jobs j
                LEFT JOIN produkty p ON j.product_id = p.id
                ORDER BY j.created_at DESC LIMIT 50"""
@@ -9801,3 +9801,50 @@ def photo_request(product_id):
         return jsonify({'success': True, 'message': f'Zlecenie przetworzenia zdjęcia dla "{p["nazwa"]}" dodane do kolejki'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================
+# PHOTO WORKER — uruchomienie z poziomu UI
+# ============================================================
+
+_worker_running = False
+
+@magazynier_bp.route('/photo-worker-run', methods=['POST'])
+def photo_worker_run():
+    """Uruchamia photo_worker w tle (jeden run, max 10 jobów)."""
+    global _worker_running
+    import threading
+    import sys
+    from pathlib import Path
+
+    if _worker_running:
+        return jsonify({'success': False, 'error': 'Worker już działa — poczekaj chwilę'}), 429
+
+    def run_worker():
+        global _worker_running
+        _worker_running = True
+        try:
+            # Dodaj ścieżkę photo_daemon do sys.path
+            daemon_dir = str(Path(current_app.root_path) / 'photo_daemon')
+            if daemon_dir not in sys.path:
+                sys.path.insert(0, daemon_dir)
+
+            from photo_daemon.config import load_config
+            from photo_daemon import db_utils as pd_db
+            import photo_daemon.image_utils as pd_img
+            from photo_daemon.external_api_client import ComfyUIClient
+            from photo_daemon import photo_worker as pw
+
+            cfg_path = str(Path(current_app.root_path) / 'photo_daemon' / 'config.yaml')
+            cfg = load_config(cfg_path)
+            stats = pw.run_worker(cfg)
+            print(f"[photo-worker-run] Done: {stats}")
+        except Exception as e:
+            print(f"[photo-worker-run] ERROR: {e}")
+            import traceback; traceback.print_exc()
+        finally:
+            _worker_running = False
+
+    t = threading.Thread(target=run_worker, daemon=True)
+    t.start()
+    return jsonify({'success': True, 'message': 'Worker uruchomiony w tle — odśwież stronę za chwilę'})

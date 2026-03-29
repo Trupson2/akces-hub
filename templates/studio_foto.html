@@ -96,6 +96,15 @@
   </div>
 </div>
 
+<!-- Worker control -->
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+  <button class="sf-btn lime" onclick="runWorker()" id="btnRunWorker">
+    <span class="material-symbols-outlined" style="font-size:14px">play_arrow</span>
+    ▶ Uruchom worker (przetwórz kolejkę)
+  </button>
+  <span id="workerStatus" style="font-size:0.75rem;color:var(--sf-muted)"></span>
+</div>
+
 <!-- Tabs -->
 <div class="sf-tabs">
   <button class="sf-tab active" onclick="showTab('queue',this)">Kolejka ({{ jobs|length }})</button>
@@ -123,11 +132,11 @@
           <td style="color:var(--sf-muted);font-family:monospace">{{ j.id }}</td>
           <td>
             {% if j.produkt_nazwa %}
-            <a href="/produkt/{{ j.ean or j.product_id }}" style="color:var(--sf-cyan);text-decoration:none;font-weight:600">{{ j.produkt_nazwa[:50] }}</a>
+            <a href="/produkt/{{ j.kod_magazynowy or j.product_id }}" style="color:var(--sf-cyan);text-decoration:none;font-weight:600">{{ j.produkt_nazwa[:50] }}</a>
             {% else %}
             <span style="color:var(--sf-muted)">Nieprzypisany</span>
             {% endif %}
-            {% if j.sku %}<div style="font-size:0.68rem;color:var(--sf-muted);font-family:monospace">{{ j.sku }}</div>{% endif %}
+            {% if j.kod_magazynowy %}<div style="font-size:0.68rem;color:var(--sf-muted);font-family:monospace">{{ j.kod_magazynowy }}</div>{% endif %}
           </td>
           <td><span class="sf-status {{ j.status }}">{{ j.status }}</span></td>
           <td style="font-size:0.68rem;color:var(--sf-muted);font-family:monospace;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ j.original_path }}">{{ (j.original_path or '')[-40:] }}</td>
@@ -229,6 +238,42 @@ function requestPhoto(productId, btn) {
       btn.disabled = false;
       btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:12px">add_circle</span> Dodaj do kolejki';
       sfAlert('Błąd: ' + e.message, 'err');
+    });
+}
+
+function runWorker() {
+  var btn = document.getElementById('btnRunWorker');
+  var status = document.getElementById('workerStatus');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#beee00;border-radius:50%;animation:sf-spin 0.6s linear infinite"></span> Przetwarzam...';
+  status.textContent = '';
+
+  fetch('/magazyn/photo-worker-run', { method: 'POST', headers: {'Content-Type':'application/json'} })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.success) {
+        status.style.color = 'var(--sf-lime)';
+        status.textContent = d.message || 'Worker uruchomiony';
+        sfAlert(d.message || 'Worker uruchomiony — odśwież za chwilę', 'ok');
+        // Auto-refresh po 8s
+        setTimeout(function(){ window.location.reload(); }, 8000);
+        setTimeout(function(){
+          btn.disabled = false;
+          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px">play_arrow</span> ▶ Uruchom worker (przetwórz kolejkę)';
+        }, 5000);
+      } else {
+        status.style.color = 'var(--sf-pink)';
+        status.textContent = d.error || 'Błąd';
+        sfAlert(d.error || 'Błąd workera', 'err');
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px">play_arrow</span> ▶ Uruchom worker (przetwórz kolejkę)';
+      }
+    })
+    .catch(function(e){
+      status.textContent = 'Błąd: ' + e.message;
+      sfAlert('Błąd: ' + e.message, 'err');
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px">play_arrow</span> ▶ Uruchom worker (przetwórz kolejkę)';
     });
 }
 

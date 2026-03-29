@@ -54,6 +54,17 @@ def winning_refresh():
     except Exception:
         pass
 
+    # Sprawdź czy Allegro jest zalogowane
+    try:
+        from modules.allegro_api import is_authenticated
+        if not is_authenticated():
+            return jsonify({
+                "error": "❌ Allegro API nie jest połączone lub token wygasł. Idź do: Ustawienia → Allegro → Autoryzuj.",
+                "allegro_auth": False
+            }), 403
+    except Exception:
+        pass
+
     # Sprawdź cooldown (zwróci ValueError z JSON jeśli za wcześnie)
     try:
         from modules.winning_analyzer import run_winning_products_scan
