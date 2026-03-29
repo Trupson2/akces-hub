@@ -2457,25 +2457,46 @@ def rescrape_product(product_id):
 
 @paletomat_bp.route('/rescrape-all-fallback', methods=['POST'])
 def rescrape_all_fallback():
-    """Re-scrapuje wszystkie produkty z fallback nazwą"""
-    import time as _time
-    conn = get_db()
-    rows = conn.execute("SELECT DISTINCT asin FROM produkty WHERE nazwa LIKE 'Produkt %' AND asin IS NOT NULL AND asin != ''").fetchall()
+    """Synchronizuje nazwy produktów z tabeli scraped → produkty (bez live scraping)"""
+    try:
+        conn = get_db()
 
-    ok, fail = 0, 0
-    for row in rows:
-        asin = row['asin']
-        data = scrape_amazon_product(asin)
-        if data and data.get('title') and not data['title'].startswith('Produkt '):
-            conn.execute('UPDATE produkty SET nazwa = ? WHERE asin = ?', (data['title'], asin))
-            conn.execute('UPDATE scraped SET nazwa = ? WHERE asin = ?', (data['title'], asin))
-            ok += 1
+        # Krok 1: produkty z fallback nazwą ale mające poprawną nazwę w scraped
+        synced = conn.execute("""
+            UPDATE produkty
+            SET nazwa = (SELECT s.nazwa FROM scraped s WHERE UPPER(s.asin) = UPPER(produkty.asin))
+            WHERE asin IS NOT NULL AND asin != ''
+            AND (nazwa IS NULL OR nazwa = '' OR nazwa LIKE 'Produkt %')
+            AND EXISTS (
+                SELECT 1 FROM scraped s
+                WHERE UPPER(s.asin) = UPPER(produkty.asin)
+                AND s.nazwa IS NOT NULL AND s.nazwa != '' AND s.nazwa NOT LIKE 'Produkt %'
+            )
+        """).rowcount
+
+        # Krok 2: scraped z fallback nazwą ale produkty mające poprawną nazwę
+        synced2 = conn.execute("""
+            UPDATE scraped
+            SET nazwa = (SELECT p.nazwa FROM produkty p WHERE UPPER(p.asin) = UPPER(scraped.asin))
+            WHERE asin IS NOT NULL AND asin != ''
+            AND (nazwa IS NULL OR nazwa = '' OR nazwa LIKE 'Produkt %')
+            AND EXISTS (
+                SELECT 1 FROM produkty p
+                WHERE UPPER(p.asin) = UPPER(scraped.asin)
+                AND p.nazwa IS NOT NULL AND p.nazwa != '' AND p.nazwa NOT LIKE 'Produkt %'
+            )
+        """).rowcount
+
+        conn.commit()
+
+        total = synced + synced2
+        if total > 0:
+            flash(f'Zsynchronizowano nazwy dla {total} produktów', 'success')
         else:
-            fail += 1
-        _time.sleep(1)
+            flash('Brak produktów do synchronizacji (nazwy już pobrane)', 'info')
+    except Exception as e:
+        flash(f'Błąd synchronizacji: {str(e)}', 'error')
 
-    conn.commit()
-    flash(f'Re-scrapowano: {ok} OK, {fail} nieudane', 'success' if ok > 0 else 'error')
     return redirect(request.referrer or '/paletomat')
 
 @paletomat_bp.route('/generator')
@@ -2575,12 +2596,20 @@ def generator():
     html += f'<a href="/paletomat/generator/enhance-existing" class="btn" style="width:100%;padding:12px;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.72rem;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.25);color:#f59e0b"><span class=material-symbols-outlined>auto_awesome</span> GENERUJ ZDJĘCIA AI</a>'
 
     # Przycisk re-scrapuj fallback nazwy
-    fallback_cnt = conn.execute("SELECT COUNT(DISTINCT asin) as cnt FROM produkty WHERE nazwa LIKE 'Produkt %' AND asin IS NOT NULL").fetchone()['cnt']
+    fallback_cnt = conn.execute("""
+        SELECT COUNT(DISTINCT p.asin) as cnt FROM produkty p
+        LEFT JOIN scraped s ON UPPER(p.asin) = UPPER(s.asin)
+        WHERE p.asin IS NOT NULL AND p.asin != ''
+        AND (p.nazwa LIKE 'Produkt %' OR s.nazwa LIKE 'Produkt %' OR s.nazwa IS NULL OR s.nazwa = '')
+    """).fetchone()['cnt']
     if fallback_cnt > 0:
-        html += f'''<form method="POST" action="/paletomat/rescrape-all-fallback" style="width:100%">
+        html += f'''<form method="POST" action="/paletomat/rescrape-all-fallback" style="width:100%" id="rescrape-form"
+            onsubmit="var btn=this.querySelector('button');btn.disabled=true;btn.innerHTML='<span>⟳</span>&nbsp;Synchronizuję...';return true;">
             <input type="hidden" name="csrf_token" value="{generate_csrf()}">
-            <button type="submit" class="btn" style="width:100%;padding:12px;background:rgba(143,245,255,0.1);border:1px solid rgba(143,245,255,0.2);color:#8ff5ff;display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.72rem"
-            onclick="return confirm('Re-scrapować {fallback_cnt} produktów z brakującą nazwą?')"><span class=material-symbols-outlined>sync</span> POBIERZ NAZWY ({fallback_cnt})</button></form>'''
+            <button type="submit" class="btn" style="width:100%;padding:12px;background:rgba(143,245,255,0.1);border:1px solid rgba(143,245,255,0.2);color:#8ff5ff;display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.72rem">
+                <span class=material-symbols-outlined>sync</span> POBIERZ NAZWY ({fallback_cnt})
+            </button>
+        </form>'''
 
     html += '''
         </div>
@@ -2602,7 +2631,7 @@ def generator():
     if products:
         for p in products:
             nazwa_display = (p['nazwa'] or f"Produkt {p['asin']}")[:45]
-            _p_status = p.get('status', 'nowy')
+            _p_status = p['status'] if p['status'] else 'nowy'
             _ready = _p_status in ('nowy', 'gotowy')
             _bcolor = '#beee00' if _ready else '#ff6b9b'
 
