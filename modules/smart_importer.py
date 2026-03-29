@@ -110,9 +110,13 @@ def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin:
                 if _bp_lines:
                     _bp_section = 'CECHY PRODUKTU:\n' + '\n'.join(f'- {l}' for l in _bp_lines)
 
+            _is_short_name = len(produkt_nazwa.strip()) < 25
             _asin_section = ''
             if produkt_asin:
-                _asin_section = f'\nASIN: {produkt_asin} — zidentyfikuj ten produkt po numerze ASIN i użyj jego pełnej nazwy, modelu i cech do stworzenia tytułu.'
+                if _is_short_name:
+                    _asin_section = f'\nASIN: {produkt_asin}\nUWAGA: Nazwa z manifestu jest za krótka. Użyj numeru ASIN aby zidentyfikować ten konkretny produkt Amazon i utwórz tytuł na podstawie jego pełnej specyfikacji.'
+                else:
+                    _asin_section = f'\nASIN: {produkt_asin}'
 
             prompt = f"""Jesteś ekspertem SEO na Allegro. Stwórz polski tytuł oferty dla tego produktu.
 
