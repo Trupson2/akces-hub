@@ -32,8 +32,8 @@ photo_daemon:
     crop_enabled: true                           # Czy robić crop do 1:1
     brightness: 1.05                             # Jasność (1.0 = bez zmiany)
     contrast: 1.10                               # Kontrast (1.0 = bez zmiany)
-    # Miniaturka Allegro (zdjęcie nr 1): białe tło, 1:1, min 400px, zalecane 1200px
-    allegro_size: [1200, 1200]
+    # Miniaturka Allegro (zdjęcie nr 1): białe tło, 1:1, max 2560px
+    allegro_size: [2560, 2560]
     # Galeria Allegro (zdjęcia 2-8): dowolne proporcje, max 2560px (Allegro limit)
     gallery_size: [2560, 2560]
     # Vinted

@@ -29,11 +29,12 @@ def _get_conn() -> sqlite3.Connection:
     if not _db_path:
         raise RuntimeError("Ścieżka do bazy danych nie jest ustawiona. Wywołaj set_db_path() lub init_tables(db_path).")
 
-    conn = sqlite3.connect(_db_path, timeout=30.0)
+    conn = sqlite3.connect(_db_path, timeout=60.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA busy_timeout=10000")
+    conn.execute("PRAGMA busy_timeout=60000")   # 60s — Flask i worker mogą pisać równocześnie
     conn.execute("PRAGMA synchronous=NORMAL")
+    conn.execute("PRAGMA wal_checkpoint(PASSIVE)")
     return conn
 
 
