@@ -24,7 +24,7 @@ photo_daemon:
     poll_interval_s: 2                           # Co ile sekund pollować /history
     mock_mode: true                              # true = pomiń bg removal miniaturki, użyj oryginału
     text_removal_use_python: false               # false = ComfyUI LaMa | true = Python OpenCV (słabe wyniki)
-    text_removal_skip: false                     # false = usuń tekst | true = pomiń (tylko resize)
+    text_removal_skip: true                      # false = usuń tekst | true = pomiń (tylko resize)
     text_removal_workflow_file: "workflows/text_remove.json"  # workflow LaMa (gdy use_python=false)
     iopaint_url: "http://192.168.1.100:8080"    # IOPaint (lama-cleaner) na PC z GPU — priorytet nad ComfyUI
 
