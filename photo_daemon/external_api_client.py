@@ -41,12 +41,18 @@ class ComfyUIClient:
         self.poll_interval_s = float(config.get("poll_interval_s", 2))
         self.mock_mode = bool(config.get("mock_mode", True))
 
+        # Text removal config
+        self.text_use_python = bool(config.get("text_removal_use_python", True))
+        self.text_workflow_file = config.get("text_removal_workflow_file", "workflows/text_remove.json")
+        self._text_workflow_path = self._resolve_workflow_path(self.text_workflow_file)
+
         # Ścieżka do workflow (relatywna względem katalogu photo_daemon/)
         self._workflow_path = self._resolve_workflow_path(self.workflow_file)
 
         logger.info(
             f"[ComfyUIClient] Inicjalizacja: url={self.base_url}, "
-            f"mock_mode={self.mock_mode}, workflow={self._workflow_path}"
+            f"mock_mode={self.mock_mode}, workflow={self._workflow_path}, "
+            f"text_use_python={self.text_use_python}"
         )
 
     def _resolve_workflow_path(self, workflow_file: str) -> str:
@@ -56,6 +62,185 @@ class ComfyUIClient:
         # Relatywna do katalogu tego pliku (photo_daemon/)
         base = Path(__file__).parent
         return str(base / workflow_file)
+
+    def remove_text(self, input_path: str, output_path: str) -> bool:
+        """
+        Usuwa tekst/napisy/watermarki ze zdjęcia galerii.
+
+        Tryb python (text_use_python=True):
+            Używa pytesseract + OpenCV inpaint — działa na Pi bez GPU.
+        Tryb ComfyUI (text_use_python=False):
+            Generuje maskę w Pythonie, wysyła ją wraz ze zdjęciem do ComfyUI,
+            uruchamia workflow LaMa inpainting (text_remove.json).
+
+        Args:
+            input_path:  Ścieżka do pliku wejściowego
+            output_path: Ścieżka do pliku wynikowego
+
+        Returns:
+            True jeśli sukces (nawet jeśli nie wykryto tekstu)
+        """
+        if self.text_use_python:
+            return self._python_remove_text(input_path, output_path)
+
+        # ── Tryb ComfyUI LaMa ──
+        import tempfile as _tf
+        mask_path = None
+        try:
+            # Krok 1: Wygeneruj maskę tekstową w Pythonie
+            mask_fd, mask_path = _tf.mkstemp(suffix="_text_mask.png")
+            os.close(mask_fd)
+            if not self._generate_text_mask_file(input_path, mask_path):
+                logger.warning("[ComfyUIClient] Brak maski tekstowej — fallback Python")
+                return self._python_remove_text(input_path, output_path)
+
+            # Krok 2: ComfyUI LaMa workflow
+            success = self._comfy_remove_text(input_path, mask_path, output_path)
+            if not success:
+                logger.warning("[ComfyUIClient] ComfyUI text removal nie powiódł się — fallback Python")
+                return self._python_remove_text(input_path, output_path)
+            return True
+
+        except Exception as e:
+            logger.error(f"[ComfyUIClient] remove_text wyjątek: {e}")
+            return self._python_remove_text(input_path, output_path)
+        finally:
+            if mask_path and os.path.exists(mask_path):
+                try:
+                    os.remove(mask_path)
+                except Exception:
+                    pass
+
+    def _python_remove_text(self, input_path: str, output_path: str) -> bool:
+        """Usuwa tekst w całości w Pythonie (pytesseract + OpenCV inpaint)."""
+        try:
+            import image_utils
+            from PIL import Image
+            img = Image.open(input_path)
+            img.load()
+            result = image_utils.remove_text_watermark(img)
+            os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+            # Zachowaj jakość 95 dla zdjęć galerii
+            if result.mode != "RGB":
+                result = result.convert("RGB")
+            result.save(output_path, "JPEG", quality=95, optimize=True)
+            logger.info(f"[ComfyUIClient] Python text removal OK: {output_path}")
+            return True
+        except Exception as e:
+            logger.error(f"[ComfyUIClient] _python_remove_text błąd: {e}")
+            # Ostateczny fallback — skopiuj oryginał
+            try:
+                shutil.copy2(input_path, output_path)
+            except Exception:
+                pass
+            return False
+
+    def _generate_text_mask_file(self, input_path: str, mask_path: str) -> bool:
+        """
+        Generuje plik maski PNG (białe = tekst, czarne = tło) do ComfyUI.
+        Używa pytesseract lub MSER.
+        """
+        try:
+            import cv2
+            import numpy as np
+            from PIL import Image
+
+            img_pil = Image.open(input_path).convert("RGB")
+            img_bgr = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
+            h, w = img_bgr.shape[:2]
+            mask = np.zeros((h, w), dtype=np.uint8)
+            found = False
+
+            try:
+                import pytesseract
+                data = pytesseract.image_to_data(
+                    img_pil,
+                    output_type=pytesseract.Output.DICT,
+                    config="--psm 11 --oem 3"
+                )
+                for i in range(len(data["text"])):
+                    conf = int(data["conf"][i])
+                    text = str(data["text"][i]).strip()
+                    if conf > 30 and len(text) >= 2:
+                        x, y, bw, bh = (
+                            data["left"][i], data["top"][i],
+                            data["width"][i], data["height"][i]
+                        )
+                        if bw > 5 and bh > 5:
+                            pad = max(10, int(bh * 0.35))
+                            cv2.rectangle(
+                                mask,
+                                (max(0, x - pad), max(0, y - pad)),
+                                (min(w, x + bw + pad), min(h, y + bh + pad)),
+                                255, -1
+                            )
+                            found = True
+            except ImportError:
+                pass
+
+            if not found:
+                gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+                mser = cv2.MSER_create()
+                regions, _ = mser.detectRegions(gray)
+                for pts in regions:
+                    rx, ry, rw, rh = cv2.boundingRect(pts.reshape(-1, 1, 2))
+                    aspect = rw / max(rh, 1)
+                    area = rw * rh
+                    if 0.15 < aspect < 20 and 80 < area < (w * h * 0.05):
+                        cv2.rectangle(mask, (max(0, rx-6), max(0, ry-6)),
+                                      (min(w, rx+rw+6), min(h, ry+rh+6)), 255, -1)
+                        found = True
+
+            if not found:
+                return False
+
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 9))
+            mask = cv2.dilate(mask, kernel, iterations=2)
+            # Zapisz jako RGB PNG (ComfyUI LoadImage oczekuje kolorowego obrazu)
+            mask_rgb = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
+            Image.fromarray(mask_rgb).save(mask_path, "PNG")
+            return True
+
+        except Exception as e:
+            logger.error(f"[ComfyUIClient] _generate_text_mask_file błąd: {e}")
+            return False
+
+    def _comfy_remove_text(self, input_path: str, mask_path: str, output_path: str) -> bool:
+        """Wysyła obraz + maskę do ComfyUI i uruchamia workflow LaMa."""
+        try:
+            uploaded_img = self._upload_image(input_path)
+            if not uploaded_img:
+                return False
+            uploaded_mask = self._upload_image(mask_path)
+            if not uploaded_mask:
+                return False
+
+            # Załaduj text_remove.json i podstaw placeholdery
+            if not os.path.exists(self._text_workflow_path):
+                logger.error(f"[ComfyUIClient] Brak text workflow: {self._text_workflow_path}")
+                return False
+            with open(self._text_workflow_path, "r", encoding="utf-8") as f:
+                wf_str = f.read()
+            wf_str = wf_str.replace("{INPUT_FILENAME}", uploaded_img)
+            wf_str = wf_str.replace("{MASK_FILENAME}", uploaded_mask)
+            wf_str = wf_str.replace("{OUTPUT_PREFIX}", Path(output_path).stem)
+
+            import json as _json
+            workflow = _json.loads(wf_str)
+
+            prompt_id = self._submit_prompt(workflow)
+            if not prompt_id:
+                return False
+
+            result_filename = self._poll_until_done(prompt_id)
+            if not result_filename:
+                return False
+
+            return self._download_result(result_filename, output_path)
+
+        except Exception as e:
+            logger.error(f"[ComfyUIClient] _comfy_remove_text błąd: {e}")
+            return False
 
     def remove_background(self, input_path: str, output_path: str) -> bool:
         """

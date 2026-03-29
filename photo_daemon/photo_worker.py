@@ -145,24 +145,6 @@ def process_job(job: dict, cfg: dict, comfy_client: ComfyUIClient) -> bool:
         db_utils.update_job_status(job_id, "processing", work_path=work_path)
         logger.info(f"[worker] Job #{job_id}: zapisano work: {work_path}")
 
-        # Krok 7: ComfyUI bg removal
-        bg_removed_path = str(Path(workdir) / f"work_bg_{job_id}.jpg")
-        bg_success = comfy_client.remove_background(work_path, bg_removed_path)
-
-        if bg_success and os.path.exists(bg_removed_path):
-            source_for_variants = bg_removed_path
-            logger.info(f"[worker] Job #{job_id}: bg removal OK -> {bg_removed_path}")
-        else:
-            logger.warning(f"[worker] Job #{job_id}: bg removal nie powiódł się — używam oryginalnego")
-            source_for_variants = work_path
-
-        # Wczytaj obraz po bg removal (lub oryginał)
-        img_for_variants = image_utils.load_image(source_for_variants)
-        if img_for_variants is None:
-            logger.warning(f"[worker] Job #{job_id}: nie można wczytać {source_for_variants} — używam przetworzonego")
-            img_for_variants = img
-
-        # Krok 8: Generuj warianty
         # Katalog docelowy: processed/{sku lub product_id}/
         folder_name = sku if sku else (str(product_id) if product_id else f"job_{job_id}")
         # Dla galerii: osobny subfolder żeby nie nadpisywać miniaturki
@@ -172,21 +154,57 @@ def process_job(job: dict, cfg: dict, comfy_client: ComfyUIClient) -> bool:
             variant_dir = Path(processed_base) / folder_name / f"gallery_{image_index}"
         os.makedirs(str(variant_dir), exist_ok=True)
 
+        # ── Krok 7: Przetwarzanie zależne od image_index ──────────────────
         if image_index == 0:
+            # ── MINIATURKA (index=0) ──
+            # Pipeline: bg removal → białe tło 1:1 → allegro_main/thumb/vinted
+            bg_removed_path = str(Path(workdir) / f"work_bg_{job_id}.jpg")
+            bg_success = comfy_client.remove_background(work_path, bg_removed_path)
+
+            if bg_success and os.path.exists(bg_removed_path):
+                source_for_variants = bg_removed_path
+                logger.info(f"[worker] Job #{job_id}: bg removal OK -> {bg_removed_path}")
+            else:
+                logger.warning(f"[worker] Job #{job_id}: bg removal nie powiódł się — używam oryginalnego")
+                source_for_variants = work_path
+
+            img_for_variants = image_utils.load_image(source_for_variants)
+            if img_for_variants is None:
+                logger.warning(f"[worker] Job #{job_id}: nie można wczytać source — używam work_path")
+                img_for_variants = img
+
             # Miniaturka Allegro: 1200×1200, białe tło, najwyższa jakość
-            # Wymogi: min 400px, max 2560px, białe tło, brak tekstu/logo
             variants_config = [
                 ("allegro_main", proc.get("allegro_size", [1200, 1200]), int(proc.get("jpeg_quality", 90))),
                 ("thumb",        proc.get("thumb_size",   [300, 300]),   int(proc.get("thumb_quality", 80))),
                 ("vinted",       proc.get("vinted_size",  [800, 800]),   int(proc.get("vinted_quality", 85))),
             ]
+
         else:
-            # Zdjęcia galerii: większy rozmiar, luźniejsze wymogi
+            # ── GALERIA (index=1..7) ──
+            # Pipeline: usuwanie tekstu/napisów → 2560×2560, oryginalne proporcje
+            text_removed_path = str(Path(workdir) / f"work_txt_{job_id}_{image_index}.jpg")
+            txt_success = comfy_client.remove_text(work_path, text_removed_path)
+
+            if txt_success and os.path.exists(text_removed_path):
+                source_for_variants = text_removed_path
+                logger.info(f"[worker] Job #{job_id}[{image_index}]: text removal OK -> {text_removed_path}")
+            else:
+                logger.warning(f"[worker] Job #{job_id}[{image_index}]: text removal nie powiódł się — używam oryginalnego")
+                source_for_variants = work_path
+
+            img_for_variants = image_utils.load_image(source_for_variants)
+            if img_for_variants is None:
+                logger.warning(f"[worker] Job #{job_id}: nie można wczytać source — używam work_path")
+                img_for_variants = img
+
+            # Galeria Allegro: max 2560×2560, oryginalne proporcje (padding biały, bez crop)
             gallery_variant = f"allegro_gallery_{image_index}"
             variants_config = [
-                (gallery_variant, proc.get("gallery_size", [2000, 2000]), int(proc.get("jpeg_quality", 90))),
+                (gallery_variant, proc.get("gallery_size", [2560, 2560]), int(proc.get("jpeg_quality", 90))),
             ]
 
+        # ── Krok 8: Generuj warianty i zapisz ──
         saved_paths = []
         for variant_name, size, quality in variants_config:
             size_tuple = (int(size[0]), int(size[1]))

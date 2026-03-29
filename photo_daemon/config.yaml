@@ -22,7 +22,9 @@ photo_daemon:
     output_node_id: "9"                          # ID noda SaveImage w workflow
     timeout_s: 60                                # Max czas oczekiwania na wynik
     poll_interval_s: 2                           # Co ile sekund pollować /history
-    mock_mode: true                              # true = pomiń bg removal, użyj oryginału
+    mock_mode: true                              # true = pomiń bg removal miniaturki, użyj oryginału
+    text_removal_use_python: true                # true = usuń tekst w Pythonie (pytesseract+OpenCV), false = ComfyUI LaMa
+    text_removal_workflow_file: "workflows/text_remove.json"  # workflow LaMa (gdy use_python=false)
 
   # Przetwarzanie obrazu
   processing:
@@ -32,8 +34,8 @@ photo_daemon:
     contrast: 1.10                               # Kontrast (1.0 = bez zmiany)
     # Miniaturka Allegro (zdjęcie nr 1): białe tło, 1:1, min 400px, zalecane 1200px
     allegro_size: [1200, 1200]
-    # Galeria Allegro (zdjęcia 2-8): dowolne proporcje, max 2560px
-    gallery_size: [2000, 2000]
+    # Galeria Allegro (zdjęcia 2-8): dowolne proporcje, max 2560px (Allegro limit)
+    gallery_size: [2560, 2560]
     # Vinted
     vinted_size: [800, 800]
     # Miniatura

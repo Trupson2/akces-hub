@@ -270,6 +270,118 @@ def save_jpeg(img: "Image.Image", path: str, quality: int = 90) -> bool:
         return False
 
 
+def remove_text_watermark(img_pil: "Image.Image") -> "Image.Image":
+    """
+    Usuwa tekst, napisy i watermarki ze zdjęcia produktowego.
+
+    Pipeline:
+      1. Próba pytesseract — wykrywa tekst z confidence > 30%, tworzy maskę
+      2. Fallback: OpenCV MSER — wykrywa regiony o cechach tekstu
+      3. cv2.inpaint (TELEA) — wypełnia wykryte regiony
+
+    Args:
+        img_pil: Obraz PIL (RGB)
+
+    Returns:
+        Obraz bez tekstu lub oryginał jeśli brak OpenCV / nie wykryto tekstu
+    """
+    _check_pil()
+
+    # Sprawdź dostępność OpenCV
+    try:
+        import cv2
+        import numpy as np
+    except ImportError:
+        logger.warning("[image_utils] OpenCV (cv2) nie zainstalowany — pomiń usuwanie tekstu. "
+                       "Zainstaluj: pip install opencv-python")
+        return img_pil
+
+    try:
+        img_rgb = np.array(img_pil.convert("RGB"))
+        img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+        h, w = img_bgr.shape[:2]
+        mask = np.zeros((h, w), dtype=np.uint8)
+        text_found = False
+
+        # ── Metoda 1: pytesseract (najdokładniejsza, wymaga Tesseract OCR) ──
+        try:
+            import pytesseract
+            data = pytesseract.image_to_data(
+                img_pil,
+                output_type=pytesseract.Output.DICT,
+                config="--psm 11 --oem 3"
+            )
+            for i in range(len(data["text"])):
+                conf = int(data["conf"][i])
+                text = str(data["text"][i]).strip()
+                if conf > 30 and len(text) >= 2:
+                    x, y, bw, bh = (
+                        data["left"][i], data["top"][i],
+                        data["width"][i], data["height"][i]
+                    )
+                    if bw > 5 and bh > 5:
+                        pad = max(10, int(bh * 0.35))
+                        cv2.rectangle(
+                            mask,
+                            (max(0, x - pad), max(0, y - pad)),
+                            (min(w, x + bw + pad), min(h, y + bh + pad)),
+                            255, -1
+                        )
+                        text_found = True
+            logger.debug(f"[image_utils] pytesseract: text_found={text_found}")
+        except ImportError:
+            logger.debug("[image_utils] pytesseract niedostępny — używam MSER")
+        except Exception as te:
+            logger.debug(f"[image_utils] pytesseract błąd: {te}")
+
+        # ── Metoda 2: OpenCV MSER (fallback bez pytesseract) ──
+        if not text_found:
+            try:
+                gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+                mser = cv2.MSER_create()
+                mser.setMinArea(60)
+                mser.setMaxArea(w * h // 20)
+                regions, _ = mser.detectRegions(gray)
+                for pts in regions:
+                    pts_arr = pts.reshape(-1, 1, 2)
+                    rx, ry, rw, rh = cv2.boundingRect(pts_arr)
+                    aspect = rw / max(rh, 1)
+                    area = rw * rh
+                    # Filtruj po proporcjach / rozmiarze — typowy tekst
+                    if 0.15 < aspect < 20 and 80 < area < (w * h * 0.05):
+                        pad = 6
+                        cv2.rectangle(
+                            mask,
+                            (max(0, rx - pad), max(0, ry - pad)),
+                            (min(w, rx + rw + pad), min(h, ry + rh + pad)),
+                            255, -1
+                        )
+                        text_found = True
+                logger.debug(f"[image_utils] MSER: text_found={text_found}")
+            except Exception as me:
+                logger.debug(f"[image_utils] MSER błąd: {me}")
+
+        if not text_found or mask.sum() == 0:
+            logger.debug("[image_utils] Brak wykrytego tekstu — zwracam oryginał")
+            return img_pil
+
+        # Powiększ maskę — żeby pokryć obrzeża liter
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 9))
+        mask = cv2.dilate(mask, kernel, iterations=2)
+
+        # Inpainting — wypełnij tekst tłem (TELEA: lepszy od NS dla drobnych regionów)
+        result_bgr = cv2.inpaint(img_bgr, mask, inpaintRadius=10, flags=cv2.INPAINT_TELEA)
+        result_pil = Image.fromarray(cv2.cvtColor(result_bgr, cv2.COLOR_BGR2RGB))
+
+        covered_px = int(mask.sum() // 255)
+        logger.info(f"[image_utils] Usunięto tekst/watermarki ({covered_px} px pokrytych maską)")
+        return result_pil
+
+    except Exception as e:
+        logger.error(f"[image_utils] Błąd remove_text_watermark: {e}")
+        return img_pil
+
+
 def load_image(path: str) -> "Image.Image | None":
     """
     Wczytuje obraz z pliku.

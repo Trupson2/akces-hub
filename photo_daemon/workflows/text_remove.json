@@ -1,0 +1,37 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{INPUT_FILENAME}",
+      "upload": "image"
+    }
+  },
+  "2": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{MASK_FILENAME}",
+      "upload": "image"
+    }
+  },
+  "3": {
+    "class_type": "ImageToMask",
+    "inputs": {
+      "image": ["2", 0],
+      "channel": "red"
+    }
+  },
+  "4": {
+    "class_type": "LaMaInpaint",
+    "inputs": {
+      "image": ["1", 0],
+      "mask": ["3", 0]
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["4", 0],
+      "filename_prefix": "{OUTPUT_PREFIX}"
+    }
+  }
+}
