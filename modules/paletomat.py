@@ -2460,7 +2460,12 @@ def rescrape_all_fallback():
     """Re-scrapuje wszystkie produkty z fallback nazwą"""
     import time as _time
     conn = get_db()
-    rows = conn.execute("SELECT DISTINCT asin FROM produkty WHERE nazwa LIKE 'Produkt %' AND asin IS NOT NULL AND asin != ''").fetchall()
+    rows = conn.execute("""
+        SELECT DISTINCT p.asin FROM produkty p
+        LEFT JOIN scraped s ON UPPER(p.asin) = UPPER(s.asin)
+        WHERE p.asin IS NOT NULL AND p.asin != ''
+        AND (p.nazwa LIKE 'Produkt %' OR s.nazwa LIKE 'Produkt %' OR s.nazwa IS NULL OR s.nazwa = '')
+    """).fetchall()
 
     ok, fail = 0, 0
     for row in rows:
@@ -2575,7 +2580,12 @@ def generator():
     html += f'<a href="/paletomat/generator/enhance-existing" class="btn" style="width:100%;padding:12px;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.72rem;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.25);color:#f59e0b"><span class=material-symbols-outlined>auto_awesome</span> GENERUJ ZDJĘCIA AI</a>'
 
     # Przycisk re-scrapuj fallback nazwy
-    fallback_cnt = conn.execute("SELECT COUNT(DISTINCT asin) as cnt FROM produkty WHERE nazwa LIKE 'Produkt %' AND asin IS NOT NULL").fetchone()['cnt']
+    fallback_cnt = conn.execute("""
+        SELECT COUNT(DISTINCT p.asin) as cnt FROM produkty p
+        LEFT JOIN scraped s ON UPPER(p.asin) = UPPER(s.asin)
+        WHERE p.asin IS NOT NULL AND p.asin != ''
+        AND (p.nazwa LIKE 'Produkt %' OR s.nazwa LIKE 'Produkt %' OR s.nazwa IS NULL OR s.nazwa = '')
+    """).fetchone()['cnt']
     if fallback_cnt > 0:
         html += f'''<form method="POST" action="/paletomat/rescrape-all-fallback" style="width:100%">
             <input type="hidden" name="csrf_token" value="{generate_csrf()}">
