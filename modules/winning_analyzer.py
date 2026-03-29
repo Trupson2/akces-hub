@@ -134,14 +134,19 @@ def fetch_category_offers(category_id: str, limit: int = 50) -> list[dict]:
             "include": "-all +items +filters",
         }
 
-        response = allegro_request("GET", "/offers/listing", params=params)
+        # allegro_request zwraca (data, error_msg) — trzeba rozpakować
+        result = allegro_request("GET", "/offers/listing", params=params)
+        if isinstance(result, tuple):
+            response, err = result
+        else:
+            response, err = result, None
 
-        if not response:
-            logger.warning(f"[winning_analyzer] Brak odpowiedzi dla kategorii {category_id}")
+        if err or not response:
+            logger.warning(f"[winning_analyzer] Błąd API dla kategorii {category_id}: {err or 'brak odpowiedzi'}")
             return []
 
-        if "error" in response and not isinstance(response.get("error"), bool):
-            logger.warning(f"[winning_analyzer] Błąd API dla kategorii {category_id}: {response}")
+        if not isinstance(response, dict):
+            logger.warning(f"[winning_analyzer] Nieoczekiwany typ odpowiedzi: {type(response)}")
             return []
 
         # Allegro zwraca offers w items.regular lub items.promoted
@@ -540,8 +545,12 @@ def _get_category_name(category_id: str) -> str:
     """
     try:
         from modules.allegro_api import allegro_request
-        response = allegro_request("GET", f"/sale/categories/{category_id}")
-        if response and "name" in response:
+        result = allegro_request("GET", f"/sale/categories/{category_id}")
+        if isinstance(result, tuple):
+            response, err = result
+        else:
+            response, err = result, None
+        if response and isinstance(response, dict) and "name" in response:
             return response["name"]
     except Exception:
         pass

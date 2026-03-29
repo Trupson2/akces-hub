@@ -76,10 +76,42 @@ def process_job(job: dict, cfg: dict, comfy_client: ComfyUIClient) -> bool:
     db_utils.update_job_status(job_id, "processing")
 
     try:
-        # Krok 2: Wczytaj obraz
-        img = image_utils.load_image(original_path)
+        # Krok 2: Pobierz z URL jeśli original_path to link (Amazon itp.)
+        local_path = original_path
+        _tmp_file = None
+        if original_path and (
+            original_path.startswith("http://")
+            or original_path.startswith("https://")
+            or original_path.startswith("//")
+            or "amazon" in original_path
+        ):
+            import requests as _requests
+            import tempfile as _tempfile
+            full_url = original_path if original_path.startswith("http") else "https://" + original_path
+            logger.info(f"[worker] Job #{job_id}: pobieranie zdjęcia z URL: {full_url[:100]}")
+            r = _requests.get(
+                full_url,
+                timeout=20,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            )
+            r.raise_for_status()
+            ext = ".jpg"
+            ct = r.headers.get("Content-Type", "")
+            if "png" in ct:
+                ext = ".png"
+            elif "webp" in ct:
+                ext = ".webp"
+            _tmp = _tempfile.NamedTemporaryFile(suffix=ext, delete=False)
+            _tmp.write(r.content)
+            _tmp.close()
+            local_path = _tmp.name
+            _tmp_file = _tmp.name
+            logger.info(f"[worker] Job #{job_id}: zapisano do {local_path} ({len(r.content)//1024} KB)")
+
+        # Wczytaj obraz
+        img = image_utils.load_image(local_path)
         if img is None:
-            raise RuntimeError(f"Nie można wczytać pliku: {original_path}")
+            raise RuntimeError(f"Nie można wczytać pliku: {local_path}")
         logger.info(f"[worker] Job #{job_id}: wczytano {img.size} {img.mode}")
 
         # Krok 3: Fix orientation
@@ -169,6 +201,14 @@ def process_job(job: dict, cfg: dict, comfy_client: ComfyUIClient) -> bool:
         # Krok 11: Status → done
         db_utils.update_job_status(job_id, "done")
         logger.info(f"[worker] Job #{job_id}: DONE ({len(saved_paths)} wariantów)")
+
+        # Usuń tymczasowy plik jeśli był pobrany z URL
+        if _tmp_file:
+            try:
+                os.remove(_tmp_file)
+            except Exception:
+                pass
+
         return True
 
     except Exception as e:
@@ -179,6 +219,12 @@ def process_job(job: dict, cfg: dict, comfy_client: ComfyUIClient) -> bool:
             db_utils.update_job_status(job_id, "error", error_msg=error_msg[:1000])
         except Exception as db_e:
             logger.error(f"[worker] Nie można zaktualizować statusu błędu: {db_e}")
+        # Usuń tymczasowy plik jeśli był pobrany z URL
+        try:
+            if _tmp_file:
+                os.remove(_tmp_file)
+        except Exception:
+            pass
         return False
 
 
