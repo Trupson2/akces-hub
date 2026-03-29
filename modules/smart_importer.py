@@ -108,34 +108,37 @@ def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin:
             if bullet_points:
                 _bp_lines = [l.strip() for l in bullet_points.split('\n') if l.strip()][:4]
                 if _bp_lines:
-                    _bp_section = 'CECHY PRODUKTU (z Amazona):\n' + '\n'.join(f'- {l}' for l in _bp_lines)
+                    _bp_section = 'CECHY PRODUKTU:\n' + '\n'.join(f'- {l}' for l in _bp_lines)
 
-            prompt = f"""Jesteś ekspertem SEO na Allegro. Stwórz polski tytuł oferty.
+            _asin_section = ''
+            if produkt_asin:
+                _asin_section = f'\nASIN: {produkt_asin} — zidentyfikuj ten produkt po numerze ASIN i użyj jego pełnej nazwy, modelu i cech do stworzenia tytułu.'
 
-ORYGINALNA NAZWA (pełna nazwa z Amazon): {produkt_nazwa}
+            prompt = f"""Jesteś ekspertem SEO na Allegro. Stwórz polski tytuł oferty dla tego produktu.
+
+NAZWA Z MANIFESTU (może być skrócona): {produkt_nazwa}
 {f'EAN: {produkt_ean}' if produkt_ean else ''}
-{f'ASIN: {produkt_asin}' if produkt_asin else ''}
+{_asin_section}
 {_bp_section}
 
-ZASADY:
+WAŻNE: Jeśli masz ASIN — użyj go do identyfikacji produktu. ASIN jednoznacznie wskazuje konkretny produkt na Amazon — znasz jego pełną nazwę, model, markę i specyfikację.
+
+ZASADY TYTUŁU:
 1. Tytuł MUSI być po polsku
-2. Struktura: [Rodzaj produktu] [Model/Seria] [Najważniejsze cechy] [Marka]
-3. Rodzaj produktu ZAWSZE na początku (Smartwatch, Słuchawki, Etui, Kabel, Statyw, Ładowarka, Głośnik, Klawiatura, Mysz, Plecak, Lampa, Uchwyt, Filtr, Szczotka)
-4. Przetłumacz angielskie nazwy na polski (Case→Etui, Charger→Ładowarka, Headphones→Słuchawki, Stand→Stojak, Cover→Pokrowiec, Tripod→Statyw, Keyboard→Klawiatura, Mouse→Mysz, Speaker→Głośnik, Screen Protector→Szkło Ochronne, Cable→Kabel, Holder→Uchwyt, Brush→Szczotka, Backpack→Plecak, Wallet→Portfel, Lamp→Lampa)
-5. Używaj słów kluczowych które ludzie wyszukują na Allegro
-6. MIN 40 znaków, MAX 75 znaków — wypełnij limit słowami kluczowymi
-7. BEZ stanu (Nowy/Używany/Powystawowy), BEZ ceny
-8. Każde słowo z wielkiej litery
-9. Jeśli nazwa krótka — dodaj: typ produktu, markę, model, cechy techniczne, zastosowanie
+2. Struktura: [Rodzaj produktu] [Marka] [Model] [Najważniejsze cechy techniczne]
+3. Rodzaj produktu ZAWSZE na początku
+4. Używaj słów kluczowych które ludzie wyszukują na Allegro
+5. MIN 50 znaków, MAX 75 znaków — ZAWSZE wypełnij jak najbliżej 75 znaków
+6. BEZ stanu (Nowy/Używany), BEZ ceny, BEZ przecinków
+7. Każde słowo z wielkiej litery
 
-PRZYKŁADY:
-"Samsung Galaxy Watch 4 44mm Bluetooth" → "Smartwatch Samsung Galaxy Watch 4 GPS NFC Pulsometr"
-"JOILCAN 63cm Camera Tripod Aluminum" → "Statyw Fotograficzny Aluminiowy 63cm Regulowany JOILCAN"
-"Anker USB-C Fast Charger 65W GaN" → "Ładowarka USB-C 65W Szybka GaN Anker"
-"JBL Tune 510BT Wireless Headphones" → "Słuchawki Bezprzewodowe Bluetooth JBL Tune 510BT"
-"Spigen iPhone 15 Pro Case Clear" → "Etui Ochronne iPhone 15 Pro Przezroczyste Spigen"
+PRZYKŁADY (zauważ że są długie, bliskie 75 znaków):
+"B08BHXG144" → "Robot Koszący iRobot Roomba i3 WiFi Automatyczny Odkurzacz"
+"Samsung Galaxy Watch 4" → "Smartwatch Samsung Galaxy Watch 4 44mm GPS NFC Pulsometr"
+"Anker USB-C Fast Charger 65W" → "Ładowarka USB-C 65W Szybka GaN Wieloportowa Anker PowerPort"
+"Kosiarka elektryczna" → "Kosiarka Elektryczna Akumulatorowa Do Trawy Mulczująca 36V"
 
-Odpowiedz TYLKO tytułem, nic więcej:"""
+Odpowiedz TYLKO tytułem (bez cudzysłowów, bez komentarzy):"""
 
             if attempt > 0:
                 print(f"   ↻ [RETRY {attempt+1}/{retry_count}] Ponawiam zapytanie...")
