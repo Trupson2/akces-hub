@@ -39,6 +39,11 @@ http_code.txt
 print_debug.log
 nul
 
+# Photo daemon temp/work files
+photo_daemon/storage/workdir/
+photo_daemon/storage/processed/
+photo_daemon/storage/input/
+
 # Temp images
 enhanced_test*.jpg
 final_test*.jpg
