@@ -116,6 +116,60 @@ def winning_list():
         return jsonify({"error": str(e), "items": [], "total": 0}), 500
 
 
+@winning_bp.route("/winning/ignore/<int:item_id>", methods=["POST"])
+def winning_ignore(item_id):
+    """Toggle ignore dla produktu winning."""
+    try:
+        from modules.winning_analyzer import toggle_ignore
+        new_state = toggle_ignore(item_id)
+        return jsonify({"success": True, "ignored": new_state})
+    except Exception as e:
+        logger.error(f"[winning_bp] winning_ignore error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@winning_bp.route("/winning/zakupy/<int:item_id>", methods=["POST"])
+def winning_zakupy(item_id):
+    """Dodaje produkt do listy zakupów."""
+    try:
+        from modules.winning_analyzer import add_to_zakupy_lista
+        result = add_to_zakupy_lista(item_id)
+        return jsonify(result), 200 if result.get("success") else 409
+    except Exception as e:
+        logger.error(f"[winning_bp] winning_zakupy error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@winning_bp.route("/winning/zakupy-lista", methods=["GET"])
+def winning_zakupy_lista():
+    """Zwraca listę zakupów jako JSON."""
+    try:
+        from modules.winning_analyzer import get_zakupy_lista
+        status_filter = request.args.get("status")
+        items = get_zakupy_lista(status_filter=status_filter)
+        return jsonify({"items": items, "total": len(items)})
+    except Exception as e:
+        logger.error(f"[winning_bp] winning_zakupy_lista error: {e}")
+        return jsonify({"error": str(e), "items": []}), 500
+
+
+@winning_bp.route("/winning/zakupy-status/<int:item_id>", methods=["POST"])
+def winning_zakupy_update(item_id):
+    """Zmienia status pozycji na liście zakupów."""
+    try:
+        from modules.winning_analyzer import update_zakupy_status
+        body = request.get_json(silent=True) or {}
+        status = body.get("status", "ordered")
+        allowed = {"new", "ordered", "received", "skipped"}
+        if status not in allowed:
+            return jsonify({"success": False, "error": "Nieprawidłowy status"}), 400
+        ok = update_zakupy_status(item_id, status)
+        return jsonify({"success": ok})
+    except Exception as e:
+        logger.error(f"[winning_bp] winning_zakupy_update error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @winning_bp.route("/winning/meta", methods=["GET"])
 def winning_meta():
     """

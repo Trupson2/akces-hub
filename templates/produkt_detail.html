@@ -253,6 +253,21 @@
             </div>
         </div>
 
+        <!-- PHOTO STATUS BADGE -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(10,10,22,0.5);border:1px solid rgba(255,255,255,0.05);margin-bottom:10px;font-size:0.75rem">
+            <div style="display:flex;align-items:center;gap:8px">
+                <span class="material-symbols-outlined" style="font-size:1rem;color:{% if p.images_ready %}#beee00{% else %}#64748b{% endif %}">photo_camera</span>
+                <span style="color:{% if p.images_ready %}#beee00{% else %}#64748b{% endif %}">
+                    {% if p.images_ready %}
+                        ✓ Zdjęcia przetworzone
+                    {% else %}
+                        Brak przetworzonego packshotu
+                    {% endif %}
+                </span>
+            </div>
+            <a href="/magazyn/studio-foto" style="font-size:0.68rem;color:#8ff5ff;text-decoration:none;padding:3px 10px;border:1px solid rgba(143,245,255,0.2);background:rgba(143,245,255,0.05)">Studio Foto →</a>
+        </div>
+
         <!-- QUICK ACTIONS -->
         <div class="pd-quick">
             <a href="/magazyn/produkt/{{ product_code }}/sprzedaj" class="pd-qbtn lime"><span class="material-symbols-outlined">remove_shopping_cart</span> -1 SZT</a>

@@ -9670,3 +9670,134 @@ def anonimizuj_klienta():
         return jsonify({'ok': True, 'count': count})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)}), 500
+
+
+# ============================================================
+# STUDIO FOTO — Photo Pipeline UI
+# ============================================================
+
+@magazynier_bp.route('/studio-foto')
+def studio_foto():
+    """Widok kolejki photo daemon + statusy zdjęć produktów."""
+    conn = get_db()
+
+    # Inicjalizuj tabele photo_jobs jeśli jeszcze nie istnieją
+    try:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS photo_jobs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                original_path TEXT NOT NULL,
+                work_path TEXT,
+                product_id INTEGER NULL,
+                sku TEXT NULL,
+                status TEXT NOT NULL DEFAULT 'new',
+                error_msg TEXT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS processed_photos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_id INTEGER NOT NULL,
+                product_id INTEGER NULL,
+                sku TEXT NULL,
+                variant TEXT NOT NULL,
+                path TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        try:
+            conn.execute("ALTER TABLE produkty ADD COLUMN images_ready INTEGER DEFAULT 0")
+        except Exception:
+            pass
+        try:
+            conn.execute("ALTER TABLE produkty ADD COLUMN photo_job_id INTEGER NULL")
+        except Exception:
+            pass
+        conn.commit()
+    except Exception as _e:
+        print(f"[studio-foto] table init: {_e}")
+
+    # Statystyki kolejki
+    stats = {
+        'total': 0, 'new': 0, 'processing': 0,
+        'done': 0, 'error': 0
+    }
+    try:
+        for row in conn.execute("SELECT status, COUNT(*) as cnt FROM photo_jobs GROUP BY status").fetchall():
+            s = row['status']
+            cnt = row['cnt']
+            stats['total'] += cnt
+            if s in stats:
+                stats[s] += cnt
+    except Exception:
+        pass
+
+    # Ostatnie 50 jobów
+    jobs = []
+    try:
+        jobs = [dict(r) for r in conn.execute(
+            """SELECT j.*, p.nazwa as produkt_nazwa, p.ean
+               FROM photo_jobs j
+               LEFT JOIN produkty p ON j.product_id = p.id
+               ORDER BY j.created_at DESC LIMIT 50"""
+        ).fetchall()]
+    except Exception:
+        pass
+
+    # Produkty bez zdjęć (images_ready = 0 lub NULL)
+    products_no_photo = []
+    try:
+        products_no_photo = [dict(r) for r in conn.execute(
+            """SELECT id, nazwa, ean, zdjecie_url, ilosc, status,
+                      (images_ready IS NULL OR images_ready = 0) as needs_photo
+               FROM produkty
+               WHERE (images_ready IS NULL OR images_ready = 0)
+                 AND status NOT IN ('sprzedany','wyslany','zlomowany','uszkodzony')
+                 AND ilosc > 0
+               ORDER BY ilosc DESC LIMIT 100"""
+        ).fetchall()]
+    except Exception:
+        pass
+
+    return render_template('studio_foto.html',
+        stats=stats,
+        jobs=jobs,
+        products_no_photo=products_no_photo,
+    )
+
+
+@magazynier_bp.route('/photo-request/<int:product_id>', methods=['POST'])
+def photo_request(product_id):
+    """Tworzy zlecenie przetworzenia zdjęcia dla produktu."""
+    conn = get_db()
+    try:
+        p = conn.execute("SELECT id, ean, nazwa, zdjecie_url FROM produkty WHERE id=?", (product_id,)).fetchone()
+        if not p:
+            return jsonify({'success': False, 'error': 'Produkt nie znaleziony'}), 404
+
+        now = __import__('datetime').datetime.now().isoformat(sep=' ', timespec='seconds')
+        img_url = p['zdjecie_url'] or ''
+
+        # Sprawdź czy jest już aktywny job dla tego produktu
+        existing = conn.execute(
+            "SELECT id, status FROM photo_jobs WHERE product_id=? AND status IN ('new','processing') LIMIT 1",
+            (product_id,)
+        ).fetchone()
+        if existing:
+            return jsonify({
+                'success': False,
+                'error': f'Produkt ma już aktywne zlecenie (status: {existing["status"]})',
+                'job_id': existing['id']
+            }), 409
+
+        conn.execute(
+            """INSERT INTO photo_jobs (original_path, product_id, sku, status, created_at, updated_at)
+               VALUES (?, ?, ?, 'new', ?, ?)""",
+            (img_url, product_id, p['ean'], now, now)
+        )
+        conn.commit()
+        return jsonify({'success': True, 'message': f'Zlecenie przetworzenia zdjęcia dla "{p["nazwa"]}" dodane do kolejki'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

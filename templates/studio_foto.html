@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block page_title %}Studio Foto{% endblock %}
+{% block content %}
+<style>
+.sf-wrap{max-width:1200px;margin:0 auto;font-family:'Manrope',sans-serif}
+:root{--sf-cyan:#8ff5ff;--sf-pink:#ff6b9b;--sf-lime:#beee00;--sf-bg:#0e0e10;--sf-card:#131315;--sf-card2:#19191c;--sf-border:rgba(255,255,255,0.06);--sf-text:#f9f5f8;--sf-muted:#adaaad}
+.sf-title{font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:900;background:linear-gradient(135deg,var(--sf-cyan),var(--sf-lime));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+.sf-sub{font-size:0.7rem;color:var(--sf-muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:24px}
+
+/* Stats */
+.sf-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px}
+@media(max-width:700px){.sf-stats{grid-template-columns:repeat(2,1fr)}}
+.sf-stat{background:var(--sf-card);padding:14px 16px;border-left:2px solid var(--sf-border)}
+.sf-stat.c-new{border-color:var(--sf-cyan)}
+.sf-stat.c-processing{border-color:#ffa502}
+.sf-stat.c-done{border-color:var(--sf-lime)}
+.sf-stat.c-error{border-color:var(--sf-pink)}
+.sf-stat-n{font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:900;line-height:1}
+.sf-stat-l{font-size:0.62rem;color:var(--sf-muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px}
+
+/* Tabs */
+.sf-tabs{display:flex;gap:0;margin-bottom:0;border-bottom:1px solid var(--sf-border)}
+.sf-tab{padding:10px 20px;font-size:0.78rem;font-weight:700;font-family:'Space Grotesk',sans-serif;cursor:pointer;color:var(--sf-muted);border-bottom:2px solid transparent;background:none;border-left:none;border-right:none;border-top:none;text-transform:uppercase;letter-spacing:0.05em;transition:all 0.15s}
+.sf-tab.active{color:var(--sf-cyan);border-bottom-color:var(--sf-cyan)}
+.sf-tab:hover{color:var(--sf-text)}
+
+/* Panel */
+.sf-panel{background:var(--sf-card);padding:20px}
+.sf-section{display:none}
+.sf-section.active{display:block}
+
+/* Table */
+.sf-table{width:100%;border-collapse:collapse;font-size:0.82rem}
+.sf-table th{padding:8px 12px;font-size:0.6rem;letter-spacing:1px;text-transform:uppercase;color:var(--sf-muted);border-bottom:1px solid var(--sf-border);text-align:left}
+.sf-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.03);vertical-align:middle}
+.sf-table tr:hover td{background:rgba(143,245,255,0.025)}
+
+/* Status badge */
+.sf-status{display:inline-block;padding:2px 9px;font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em}
+.sf-status.new{background:rgba(143,245,255,0.1);color:var(--sf-cyan)}
+.sf-status.processing{background:rgba(255,165,2,0.1);color:#ffa502}
+.sf-status.done{background:rgba(190,238,0,0.1);color:var(--sf-lime)}
+.sf-status.error{background:rgba(255,107,155,0.1);color:var(--sf-pink)}
+
+/* Btn */
+.sf-btn{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.72rem;padding:7px 14px;border:1px solid;cursor:pointer;transition:all 0.15s;display:inline-flex;align-items:center;gap:5px;text-decoration:none}
+.sf-btn:hover{transform:translateY(-1px)}
+.sf-btn.cyan{background:rgba(143,245,255,0.08);color:var(--sf-cyan);border-color:rgba(143,245,255,0.2)}
+.sf-btn.cyan:hover{background:rgba(143,245,255,0.16)}
+.sf-btn.lime{background:rgba(190,238,0,0.08);color:var(--sf-lime);border-color:rgba(190,238,0,0.2)}
+.sf-btn.lime:hover{background:rgba(190,238,0,0.15)}
+.sf-btn.pink{background:rgba(255,107,155,0.08);color:var(--sf-pink);border-color:rgba(255,107,155,0.2)}
+
+/* Product grid */
+.sf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.sf-card{background:var(--sf-card2);padding:14px;border:1px solid var(--sf-border);position:relative}
+.sf-card:hover{border-color:rgba(143,245,255,0.15)}
+.sf-card img{width:100%;height:120px;object-fit:contain;background:rgba(255,255,255,0.9);margin-bottom:10px;display:block}
+.sf-card-name{font-size:0.78rem;font-weight:600;color:var(--sf-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px}
+.sf-card-ean{font-size:0.65rem;color:var(--sf-muted);font-family:monospace;margin-bottom:8px}
+.sf-badge-no-photo{position:absolute;top:8px;right:8px;background:rgba(255,107,155,0.15);color:var(--sf-pink);font-size:0.58rem;padding:2px 7px;font-weight:700;text-transform:uppercase}
+
+/* Alert */
+#sfAlert{display:none;padding:10px 16px;font-size:0.82rem;margin-bottom:16px;border-left:3px solid}
+#sfAlert.ok{background:rgba(190,238,0,0.08);border-color:var(--sf-lime);color:var(--sf-lime)}
+#sfAlert.err{background:rgba(255,107,155,0.08);border-color:var(--sf-pink);color:var(--sf-pink)}
+</style>
+
+<div class="sf-wrap">
+<div class="sf-title">📸 Studio Foto</div>
+<div class="sf-sub">Pipeline przetwarzania zdjęć produktów · ComfyUI + BiRefNet</div>
+
+<div id="sfAlert"></div>
+
+<!-- Stats -->
+<div class="sf-stats">
+  <div class="sf-stat">
+    <div class="sf-stat-n" style="color:var(--sf-text)">{{ stats.total }}</div>
+    <div class="sf-stat-l">Łącznie zleceń</div>
+  </div>
+  <div class="sf-stat c-new">
+    <div class="sf-stat-n" style="color:var(--sf-cyan)">{{ stats.new }}</div>
+    <div class="sf-stat-l">Nowe / czeka</div>
+  </div>
+  <div class="sf-stat c-processing">
+    <div class="sf-stat-n" style="color:#ffa502">{{ stats.processing }}</div>
+    <div class="sf-stat-l">W trakcie</div>
+  </div>
+  <div class="sf-stat c-done">
+    <div class="sf-stat-n" style="color:var(--sf-lime)">{{ stats.done }}</div>
+    <div class="sf-stat-l">Gotowe</div>
+  </div>
+  <div class="sf-stat c-error">
+    <div class="sf-stat-n" style="color:var(--sf-pink)">{{ stats.error }}</div>
+    <div class="sf-stat-l">Błędy</div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="sf-tabs">
+  <button class="sf-tab active" onclick="showTab('queue',this)">Kolejka ({{ jobs|length }})</button>
+  <button class="sf-tab" onclick="showTab('nophoto',this)">Bez packshotu ({{ products_no_photo|length }})</button>
+</div>
+
+<!-- Kolejka -->
+<div id="tab-queue" class="sf-section active">
+  <div class="sf-panel">
+    {% if jobs %}
+    <table class="sf-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Produkt / SKU</th>
+          <th>Status</th>
+          <th>Ścieżka</th>
+          <th>Dodano</th>
+          <th>Błąd</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for j in jobs %}
+        <tr id="job-{{ j.id }}">
+          <td style="color:var(--sf-muted);font-family:monospace">{{ j.id }}</td>
+          <td>
+            {% if j.produkt_nazwa %}
+            <a href="/produkt/{{ j.ean or j.product_id }}" style="color:var(--sf-cyan);text-decoration:none;font-weight:600">{{ j.produkt_nazwa[:50] }}</a>
+            {% else %}
+            <span style="color:var(--sf-muted)">Nieprzypisany</span>
+            {% endif %}
+            {% if j.sku %}<div style="font-size:0.68rem;color:var(--sf-muted);font-family:monospace">{{ j.sku }}</div>{% endif %}
+          </td>
+          <td><span class="sf-status {{ j.status }}">{{ j.status }}</span></td>
+          <td style="font-size:0.68rem;color:var(--sf-muted);font-family:monospace;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ j.original_path }}">{{ (j.original_path or '')[-40:] }}</td>
+          <td style="font-size:0.72rem;color:var(--sf-muted)">{{ (j.created_at or '')[:16] }}</td>
+          <td style="font-size:0.7rem;color:var(--sf-pink);max-width:160px;overflow:hidden;text-overflow:ellipsis" title="{{ j.error_msg or '' }}">{{ j.error_msg or '' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center;padding:48px 20px;color:var(--sf-muted)">
+      <div style="font-size:2.5rem;margin-bottom:12px;opacity:0.4">📷</div>
+      <div style="font-size:0.88rem">Brak zleceń w kolejce</div>
+      <div style="font-size:0.75rem;margin-top:6px">Użyj zakładki "Bez packshotu" żeby dodać produkty do przetworzenia</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Bez packshotu -->
+<div id="tab-nophoto" class="sf-section">
+  <div class="sf-panel">
+    {% if products_no_photo %}
+    <div style="margin-bottom:14px;display:flex;gap:8px;align-items:center">
+      <span style="font-size:0.78rem;color:var(--sf-muted)">{{ products_no_photo|length }} produktów bez przetworzonego packshotu</span>
+      <button class="sf-btn lime" onclick="requestAllPhotos()" id="btnRequestAll">
+        <span class="material-symbols-outlined" style="font-size:14px">photo_camera</span>
+        Zlec wszystkie do przetworzenia
+      </button>
+    </div>
+    <div class="sf-grid">
+      {% for p in products_no_photo %}
+      <div class="sf-card" id="pcard-{{ p.id }}">
+        <span class="sf-badge-no-photo">brak packshotu</span>
+        {% if p.zdjecie_url %}
+        <img src="{{ p.zdjecie_url }}" onerror="this.style.display='none'" alt="">
+        {% else %}
+        <div style="width:100%;height:120px;background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;margin-bottom:10px">
+          <span class="material-symbols-outlined" style="font-size:2rem;color:var(--sf-muted);opacity:0.5">image_not_supported</span>
+        </div>
+        {% endif %}
+        <div class="sf-card-name" title="{{ p.nazwa }}">{{ p.nazwa or 'Brak nazwy' }}</div>
+        <div class="sf-card-ean">{{ p.ean or 'brak EAN' }}</div>
+        <button class="sf-btn cyan" onclick="requestPhoto({{ p.id }}, this)" style="width:100%;justify-content:center">
+          <span class="material-symbols-outlined" style="font-size:12px">add_circle</span>
+          Dodaj do kolejki
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:48px 20px;color:var(--sf-muted)">
+      <div style="font-size:2.5rem;margin-bottom:12px">✅</div>
+      <div>Wszystkie aktywne produkty mają przetworzone zdjęcia!</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+</div>
+
+<script>
+function showTab(name, btn) {
+  document.querySelectorAll('.sf-section').forEach(function(s){s.classList.remove('active')});
+  document.querySelectorAll('.sf-tab').forEach(function(t){t.classList.remove('active')});
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function sfAlert(msg, type) {
+  var el = document.getElementById('sfAlert');
+  el.textContent = msg;
+  el.className = type === 'ok' ? 'ok' : 'err';
+  el.style.display = 'block';
+  setTimeout(function(){ el.style.display = 'none'; }, 5000);
+}
+
+function requestPhoto(productId, btn) {
+  btn.disabled = true;
+  btn.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:sf-spin 0.6s linear infinite"></span> Zlecanie...';
+
+  fetch('/magazyn/photo-request/' + productId, { method: 'POST' })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.success) {
+        btn.innerHTML = '✓ W kolejce';
+        btn.style.opacity = '0.5';
+        sfAlert(d.message || 'Dodano do kolejki', 'ok');
+        // Update card badge
+        var badge = document.querySelector('#pcard-' + productId + ' .sf-badge-no-photo');
+        if (badge) { badge.textContent = 'w kolejce'; badge.style.background = 'rgba(143,245,255,0.1)'; badge.style.color = '#8ff5ff'; }
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:12px">add_circle</span> Dodaj do kolejki';
+        sfAlert(d.error || 'Błąd', 'err');
+      }
+    })
+    .catch(function(e){
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:12px">add_circle</span> Dodaj do kolejki';
+      sfAlert('Błąd: ' + e.message, 'err');
+    });
+}
+
+function requestAllPhotos() {
+  var btns = document.querySelectorAll('[id^="pcard-"] .sf-btn');
+  var btn = document.getElementById('btnRequestAll');
+  if (!confirm('Zlecić przetworzenie zdjęć dla ' + btns.length + ' produktów?')) return;
+  btn.disabled = true;
+  btn.textContent = 'Zlecam...';
+
+  var ids = [];
+  document.querySelectorAll('[id^="pcard-"]').forEach(function(card){
+    var match = card.id.match(/pcard-(\d+)/);
+    if (match) ids.push(parseInt(match[1]));
+  });
+
+  var done = 0;
+  var errors = 0;
+  function next(i) {
+    if (i >= ids.length) {
+      btn.textContent = '✓ Zlecono ' + done + ' (' + errors + ' błędów)';
+      sfAlert('Zlecono ' + done + ' z ' + ids.length + ' produktów', 'ok');
+      return;
+    }
+    fetch('/magazyn/photo-request/' + ids[i], { method: 'POST' })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.success) done++; else errors++;
+        btn.textContent = 'Zlecam ' + (i+1) + '/' + ids.length + '...';
+        next(i+1);
+      })
+      .catch(function(){ errors++; next(i+1); });
+  }
+  next(0);
+}
+</script>
+<style>@keyframes sf-spin{to{transform:rotate(360deg)}}</style>
+{% endblock %}

@@ -243,12 +243,64 @@
   text-decoration: none;
   letter-spacing: 0.5px;
   transition: all 0.15s;
+  cursor: pointer;
 }
 .wp-action:hover {
   background: rgba(143,245,255,0.1);
   border-color: rgba(143,245,255,0.3);
   color: var(--neon-tertiary, #beee00);
 }
+.wp-action.green { background:rgba(57,211,83,0.06); border-color:rgba(57,211,83,0.2); color:#39d353; }
+.wp-action.green:hover { background:rgba(57,211,83,0.14); }
+.wp-action.red { background:rgba(255,107,155,0.04); border-color:rgba(255,107,155,0.15); color:rgba(255,107,155,0.6); }
+.wp-action.red:hover { background:rgba(255,107,155,0.1); color:#ff6b9b; }
+.wp-action-row { display:flex; gap:4px; flex-wrap:wrap; }
+
+/* Shopping list panel */
+.wp-zakupy-panel {
+  background: var(--bg-card, rgba(19,19,28,0.6));
+  border-left: 3px solid #39d353;
+  padding: 16px 20px;
+  margin-top: 24px;
+}
+.wp-zakupy-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 0.82rem;
+  gap: 8px;
+}
+.wp-zakupy-item:last-child { border-bottom: none; }
+.wp-zakupy-status {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.status-new { background:rgba(143,245,255,0.1); color:#8ff5ff; }
+.status-ordered { background:rgba(255,165,2,0.1); color:#ffa502; }
+.status-received { background:rgba(57,211,83,0.1); color:#39d353; }
+.status-skipped { background:rgba(255,255,255,0.05); color:#666680; }
+
+/* Draft modal */
+#draftModal {
+  display:none; position:fixed; inset:0; z-index:9998;
+  background:rgba(0,0,0,0.8); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center;
+}
+.draft-box {
+  background:#131315; border:1px solid rgba(143,245,255,0.2);
+  max-width:500px; width:94%; padding:28px;
+}
+.draft-field { margin-bottom:16px; }
+.draft-label { font-size:0.62rem; color:#666680; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+.draft-value { font-size:0.9rem; color:#e8e8f0; font-weight:600; word-break:break-word; }
+.draft-copy { background:none; border:1px solid rgba(143,245,255,0.2); color:#8ff5ff; font-size:0.68rem; padding:3px 10px; cursor:pointer; margin-left:8px; }
+.draft-copy:hover { background:rgba(143,245,255,0.1); }
 
 /* Empty state */
 .wp-empty {
@@ -318,9 +370,14 @@
     <div class="wp-title">🏆 WINNING PRODUCTS</div>
     <div class="wp-subtitle">Analiza bestsellerów Allegro — znajdź produkty warte sprzedaży</div>
   </div>
-  <button class="wp-btn-refresh" id="btnRefresh" onclick="runAnalysis()">
-    🔄 Przelicz teraz
-  </button>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <button class="wp-btn-refresh" id="btnRefresh" onclick="runAnalysis()">
+      🔄 Przelicz teraz
+    </button>
+    <button class="wp-btn-refresh" onclick="toggleZakupy()" style="border-color:rgba(57,211,83,0.4);color:#39d353;background:rgba(57,211,83,0.06)">
+      🛒 Lista zakupów <span id="zakupyBadge"></span>
+    </button>
+  </div>
 </div>
 
 <!-- Stats bar -->
@@ -412,6 +469,57 @@
   <button class="wp-page-btn" id="btnNext" onclick="changePage(1)">Następne →</button>
 </div>
 
+<!-- Shopping List Panel -->
+<div id="zakupyPanel" style="display:none">
+  <div class="wp-section-hdr" style="margin-top:32px">
+    <div class="wp-section-bar" style="background:#39d353"></div>
+    <div class="wp-section-lbl">Lista zakupów</div>
+    <span id="zakupyCount" style="margin-left:8px;font-size:0.7rem;color:#39d353;font-weight:700"></span>
+    <button onclick="toggleZakupy()" class="wp-action" style="margin-left:auto;font-size:0.7rem">Ukryj</button>
+  </div>
+  <div class="wp-zakupy-panel">
+    <div id="zakupyList"><div style="color:#666680;font-size:0.82rem;padding:8px 0">Ładowanie...</div></div>
+  </div>
+</div>
+
+<!-- Draft Modal -->
+<div id="draftModal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.8);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+  <div class="draft-box">
+    <div style="font-family:'Space Grotesk',sans-serif;font-weight:900;font-size:1.1rem;color:#8ff5ff;margin-bottom:20px">
+      📝 Szkic oferty Allegro
+    </div>
+    <div class="draft-field">
+      <div class="draft-label">Tytuł oferty</div>
+      <div class="draft-value" id="draftName"></div>
+      <button class="draft-copy" onclick="copyField('draftName')">Kopiuj</button>
+    </div>
+    <div class="draft-field">
+      <div class="draft-label">Kategoria</div>
+      <div class="draft-value" id="draftCategory"></div>
+      <button class="draft-copy" onclick="copyField('draftCategory')">Kopiuj</button>
+    </div>
+    <div class="draft-field">
+      <div class="draft-label">Cena startowa (est.)</div>
+      <div class="draft-value" id="draftPrice"></div>
+    </div>
+    <div class="draft-field" id="draftNotesWrap">
+      <div class="draft-label">Uzasadnienie / notatki</div>
+      <div class="draft-value" id="draftNotes" style="font-size:0.8rem;color:#adaaad"></div>
+    </div>
+    <div class="draft-field" id="draftUrlWrap" style="display:none">
+      <div class="draft-label">Podobna oferta na Allegro</div>
+      <a id="draftUrl" href="#" target="_blank" rel="noopener" class="wp-action" style="margin-top:4px">↗ Otwórz przykład</a>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:20px">
+      <a id="draftAllegroLink" href="https://allegro.pl/moje-allegro/sprzedaz/oferty" target="_blank"
+         class="wp-action green" style="padding:8px 16px;font-size:0.75rem">
+        ↗ Utwórz ofertę na Allegro
+      </a>
+      <button onclick="closeDraftModal()" class="wp-action" style="padding:8px 16px;font-size:0.75rem">Zamknij</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function() {
   'use strict';
@@ -496,6 +604,10 @@
     table.style.display = 'table';
     empty.style.display = 'none';
 
+    // Buduj mapę do quick lookup w akcjach
+    _itemsMap = {};
+    for (var k = 0; k < items.length; k++) { _itemsMap[items[k].id] = items[k]; }
+
     var html = '';
     for (var i = 0; i < items.length; i++) {
       var item = items[i];
@@ -517,9 +629,12 @@
         '<td>' + renderScoreBar(compScore, compScore >= 0.6 ? 'red' : (compScore >= 0.4 ? 'cyan' : 'green')) + '</td>' +
         '<td>' + renderScoreBar(oppScore, scoreColor(oppScore)) + '</td>' +
         '<td>' +
-          (item.marketplace_url ?
-            '<a class="wp-action" href="' + _esc(item.marketplace_url) + '" target="_blank" rel="noopener">↗ Allegro</a>' :
-            '<span style="color:var(--text-muted,#666680);font-size:0.72rem">—</span>') +
+          '<div class="wp-action-row">' +
+          '<button class="wp-action green" onclick="actionZakupy(' + item.id + ',this)" title="Dodaj do listy zakupów">🛒</button>' +
+          '<button class="wp-action" onclick="actionSzkic(' + item.id + ')" title="Szkic oferty">📝</button>' +
+          (item.marketplace_url ? '<a class="wp-action" href="' + _esc(item.marketplace_url) + '" target="_blank" rel="noopener" title="Otwórz na Allegro">↗</a>' : '') +
+          '<button class="wp-action red" onclick="actionIgnore(' + item.id + ',this)" title="Ignoruj">✕</button>' +
+          '</div>' +
         '</td>' +
         '</tr>';
     }
@@ -673,8 +788,170 @@
   }
   window.runAnalysis = runAnalysis;
 
+  // ===== Actions =====
+
+  function actionIgnore(itemId, btn) {
+    var row = btn.closest('tr');
+    fetch('/analityka/winning/ignore/' + itemId, { method: 'POST' })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.ignored) {
+          row.style.opacity = '0';
+          row.style.transition = 'opacity 0.4s';
+          setTimeout(function() { row.remove(); }, 400);
+        } else {
+          showAlert('Przywrócono z ignored', 'success');
+        }
+      })
+      .catch(function(e) { showAlert('Błąd: ' + e.message, 'error'); });
+  }
+  window.actionIgnore = actionIgnore;
+
+  function actionZakupy(itemId, btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳';
+    fetch('/analityka/winning/zakupy/' + itemId, { method: 'POST' })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.success) {
+          btn.textContent = '✓';
+          btn.style.opacity = '0.5';
+          showAlert('Dodano "' + (d.name || '').substring(0, 40) + '" do listy zakupów!', 'success');
+          loadZakupyLista();
+          document.getElementById('zakupyPanel').style.display = 'block';
+        } else if (d.already) {
+          btn.textContent = '✓';
+          btn.style.opacity = '0.5';
+          showAlert('Już jest na liście zakupów', 'warning');
+        } else {
+          btn.textContent = '🛒';
+          btn.disabled = false;
+          showAlert('Błąd: ' + (d.error || ''), 'error');
+        }
+      })
+      .catch(function(e) {
+        btn.textContent = '🛒';
+        btn.disabled = false;
+        showAlert('Błąd: ' + e.message, 'error');
+      });
+  }
+  window.actionZakupy = actionZakupy;
+
+  // Store items for draft lookup
+  var _itemsMap = {};
+
+  function actionSzkic(itemId) {
+    var item = _itemsMap[itemId];
+    if (!item) { showAlert('Brak danych produktu', 'error'); return; }
+    document.getElementById('draftName').textContent = item.name || '—';
+    document.getElementById('draftCategory').textContent = item.category || '—';
+    document.getElementById('draftPrice').textContent = item.est_price ? parseFloat(item.est_price).toFixed(2) + ' zł' : '—';
+    document.getElementById('draftNotes').textContent = item.notes || '';
+    document.getElementById('draftNotesWrap').style.display = item.notes ? 'block' : 'none';
+    if (item.marketplace_url) {
+      document.getElementById('draftUrl').href = item.marketplace_url;
+      document.getElementById('draftUrlWrap').style.display = 'block';
+    } else {
+      document.getElementById('draftUrlWrap').style.display = 'none';
+    }
+    var modal = document.getElementById('draftModal');
+    modal.style.display = 'flex';
+  }
+  window.actionSzkic = actionSzkic;
+
+  function closeDraftModal() {
+    document.getElementById('draftModal').style.display = 'none';
+  }
+  window.closeDraftModal = closeDraftModal;
+
+  function copyField(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    navigator.clipboard.writeText(el.textContent).then(function() {
+      showAlert('Skopiowano!', 'success');
+    }).catch(function() {
+      var ta = document.createElement('textarea');
+      ta.value = el.textContent;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showAlert('Skopiowano!', 'success');
+    });
+  }
+  window.copyField = copyField;
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeDraftModal();
+  });
+
+  // ===== Shopping list =====
+
+  function loadZakupyLista() {
+    fetch('/analityka/winning/zakupy-lista')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var items = d.items || [];
+        var panel = document.getElementById('zakupyPanel');
+        var listEl = document.getElementById('zakupyList');
+        var countEl = document.getElementById('zakupyCount');
+        countEl.textContent = items.length ? '(' + items.length + ')' : '';
+        if (items.length === 0) {
+          listEl.innerHTML = '<div style="color:#666680;font-size:0.82rem;padding:8px 0">Lista jest pusta</div>';
+          return;
+        }
+        var statusLabels = { new:'Nowy', ordered:'Zamówiony', received:'Otrzymany', skipped:'Pominięty' };
+        var html = '';
+        items.forEach(function(z) {
+          var price = z.est_price ? parseFloat(z.est_price).toFixed(2) + ' zł' : '—';
+          var sLabel = statusLabels[z.status] || z.status;
+          html += '<div class="wp-zakupy-item">' +
+            '<div style="flex:1;min-width:0">' +
+              '<div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(z.name || '—') + '</div>' +
+              '<div style="font-size:0.7rem;color:#666680;margin-top:2px">' + _esc(z.category || '') + ' · ' + price + '</div>' +
+            '</div>' +
+            '<span class="wp-zakupy-status status-' + z.status + '">' + sLabel + '</span>' +
+            '<select onchange="updateZakupyStatus(' + z.id + ',this.value)" style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);color:#e8e8f0;font-size:0.68rem;padding:3px 6px">' +
+              '<option value="new"' + (z.status==='new'?' selected':'') + '>Nowy</option>' +
+              '<option value="ordered"' + (z.status==='ordered'?' selected':'') + '>Zamówiony</option>' +
+              '<option value="received"' + (z.status==='received'?' selected':'') + '>Otrzymany</option>' +
+              '<option value="skipped"' + (z.status==='skipped'?' selected':'') + '>Pomiń</option>' +
+            '</select>' +
+          '</div>';
+        });
+        listEl.innerHTML = html;
+        // Aktualizuj badge w przycisk
+        var badge = document.getElementById('zakupyBadge');
+        if (badge) badge.textContent = items.length ? '(' + items.length + ')' : '';
+      })
+      .catch(function(e) { console.error('zakupy lista error:', e); });
+  }
+  window.loadZakupyLista = loadZakupyLista;
+
+  function toggleZakupy() {
+    var panel = document.getElementById('zakupyPanel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  }
+  window.toggleZakupy = toggleZakupy;
+
+  function updateZakupyStatus(id, status) {
+    fetch('/analityka/winning/zakupy-status/' + id, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({status: status})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.success) loadZakupyLista();
+    })
+    .catch(function(e) { console.error(e); });
+  }
+  window.updateZakupyStatus = updateZakupyStatus;
+
   // ===== Init =====
   loadResults();
+  // Sprawdź czy jest coś na liście zakupów przy ładowaniu
+  loadZakupyLista();
 
 })();
 </script>

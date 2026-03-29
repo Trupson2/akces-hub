@@ -64,6 +64,27 @@ def init_winning_tables() -> None:
             )
         """)
 
+        # Migracja: kolumna ignored
+        try:
+            conn.execute("ALTER TABLE winning_products ADD COLUMN ignored INTEGER DEFAULT 0")
+        except Exception:
+            pass  # już istnieje
+
+        # Tabela listy zakupów
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS zakupy_lista (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                winning_product_id  INTEGER NULL,
+                name                TEXT NOT NULL,
+                category            TEXT,
+                est_price           REAL,
+                niche               TEXT,
+                notes               TEXT,
+                status              TEXT DEFAULT 'new',
+                created_at          TEXT NOT NULL
+            )
+        """)
+
         conn.commit()
         logger.info("[winning_analyzer] Tabele winning_products zainicjalizowane")
 
@@ -510,7 +531,8 @@ def get_winning_products(
     limit: int = 50,
     offset: int = 0,
     min_score: float = 0.0,
-    batch_id: str | None = None
+    batch_id: str | None = None,
+    include_ignored: bool = False,
 ) -> tuple[list[dict], int]:
     """
     Pobiera produkty z tabeli winning_products.
@@ -530,6 +552,9 @@ def get_winning_products(
 
         where_clauses = ["opportunity_score >= ?"]
         params = [min_score]
+
+        if not include_ignored:
+            where_clauses.append("(ignored IS NULL OR ignored = 0)")
 
         if batch_id:
             where_clauses.append("batch_id = ?")
@@ -592,6 +617,92 @@ def get_winning_meta(limit: int = 10) -> list[dict]:
     except Exception as e:
         logger.error(f"[winning_analyzer] get_winning_meta error: {e}")
         return []
+
+
+def toggle_ignore(item_id: int) -> bool:
+    """Toggle flagi ignored dla produktu. Zwraca nowy stan (True=ignorowany)."""
+    try:
+        from modules.database import get_db
+        conn = get_db()
+        row = conn.execute("SELECT ignored FROM winning_products WHERE id=?", (item_id,)).fetchone()
+        if not row:
+            return False
+        new_val = 0 if row[0] else 1
+        conn.execute("UPDATE winning_products SET ignored=? WHERE id=?", (new_val, item_id))
+        conn.commit()
+        return bool(new_val)
+    except Exception as e:
+        logger.error(f"[winning_analyzer] toggle_ignore error: {e}")
+        return False
+
+
+def add_to_zakupy_lista(item_id: int) -> dict:
+    """Dodaje produkt do listy zakupów. Zwraca słownik z wynikiem."""
+    try:
+        from modules.database import get_db
+        conn = get_db()
+        row = conn.execute(
+            "SELECT id, name, category, est_price, notes FROM winning_products WHERE id=?",
+            (item_id,)
+        ).fetchone()
+        if not row:
+            return {"success": False, "error": "Nie znaleziono produktu"}
+
+        # Sprawdź czy już na liście
+        existing = conn.execute(
+            "SELECT id FROM zakupy_lista WHERE winning_product_id=? AND status NOT IN ('received','skipped')",
+            (item_id,)
+        ).fetchone()
+        if existing:
+            return {"success": False, "error": "Produkt już jest na liście zakupów", "already": True}
+
+        conn.execute(
+            """INSERT INTO zakupy_lista (winning_product_id, name, category, est_price, notes, status, created_at)
+               VALUES (?, ?, ?, ?, ?, 'new', datetime('now'))""",
+            (item_id, row['name'], row['category'], row['est_price'], row['notes'])
+        )
+        conn.commit()
+        return {"success": True, "name": row['name']}
+    except Exception as e:
+        logger.error(f"[winning_analyzer] add_to_zakupy_lista error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+def get_zakupy_lista(status_filter: str | None = None) -> list[dict]:
+    """Pobiera listę zakupów."""
+    try:
+        from modules.database import get_db
+        conn = get_db()
+        where = ""
+        params = []
+        if status_filter:
+            where = "WHERE z.status = ?"
+            params = [status_filter]
+        rows = conn.execute(
+            f"""SELECT z.*, w.opportunity_score, w.marketplace_url
+                FROM zakupy_lista z
+                LEFT JOIN winning_products w ON z.winning_product_id = w.id
+                {where}
+                ORDER BY z.created_at DESC""",
+            params
+        ).fetchall()
+        return [dict(r) for r in rows]
+    except Exception as e:
+        logger.error(f"[winning_analyzer] get_zakupy_lista error: {e}")
+        return []
+
+
+def update_zakupy_status(item_id: int, status: str) -> bool:
+    """Aktualizuje status pozycji na liście zakupów."""
+    try:
+        from modules.database import get_db
+        conn = get_db()
+        conn.execute("UPDATE zakupy_lista SET status=? WHERE id=?", (status, item_id))
+        conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"[winning_analyzer] update_zakupy_status error: {e}")
+        return False
 
 
 # Inicjalizuj tabele przy imporcie modułu
