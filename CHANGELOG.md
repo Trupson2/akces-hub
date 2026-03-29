@@ -1,14 +1,95 @@
 # Historia zmian (auto-generated)
 
+## 29.03.2026
+
+- config: enable ComfyUI LaMa text removal (text_removal_skip=false)
+- fix: disable destructive opencv inpainting - add text_removal_skip flag
+- feat: dodaj brakujące galerie + fix db lock podczas scrapowania
+- fix: amazon rate limiting - delay 0.8s between scrapes + 2s every 5 products
+- fix: photo-clear-and-requeue - delete all jobs and create fresh with image_index 0-7
+- feat: galeria packshot per-produkt - 1 wiersz = 1 produkt + wszystkie zdjecia
+- fix: db busy_timeout 10s→60s + allegro_main 1200→2560px
+- feat: studio foto - usuń i przetwórz od nowa + kolejkuj wszystkie
+- feat: gallery text/watermark removal + 2560px + split pipeline per image_index
+- feat: allegro photo pipeline - main thumbnail 1:1 white bg + gallery variants per spec
+- feat: scrape all 8 Amazon images per product + gallery by photo id
+- feat: studio foto gallery page + lightbox + pagination
+- feat: show processed photos in product detail + serve photo files
+- feat: increase worker batch to 50 + auto-repeat until queue empty
+- fix: winning_analyzer SQL bug + worker log capture + log button
+- fix: remove invalid scope from allegro OAuth URL
+- fix: allegro OAuth scopes for offers:read + config.yaml db_path correct path
+- feat: photo worker via subprocess + live stats polling + photo-stats endpoint
+- debug: add /winning/test-allegro diagnostic endpoint
+- fix: studio foto worker button + product links by kod_magazynowy + winning allegro auth check
+- fix: winning_analyzer allegro_request tuple unpack + photo_worker URL download
+- fix: Allegro dashboard przychod — usun koszt_dostawy i offline
+- docs: zaktualizuj MANUAL.md — Winning Products, Studio Foto, Bulk nadawanie, Photo Daemon
+- fix: winning_analyzer używa compute_scores() zamiast nieistniejących funkcji
+- fix: usuń duplikat bulk_nadaj, napraw PDF merge (pypdf), ujednolic format requesta
+- feat: Winning Products akcje + Studio Foto pipeline UI
+- feat: bulk nadawanie etykiet — NADAJ ZAZNACZONE
+- feat: rejestracja winning_bp + link w menu (#65)
+- feat: Photo Daemon + Winning Products Analyzer (#64)
+- fix: status produktu po nadaniu + rok w kalkulacji podatkowej (#63)
+- fix: ai_analizy w kalkulatorze czasu zawsze bylo 0 (#62)
+- fix: ujednolicenie przychodu we wszystkich widokach (#61)
+- fix: dodaj ilosc sztuk do powiadomienia o sprzedazy (#60)
+- fix: session key mismatch w oznacz_zwrot/cofnij_zwrot (#59)
+- fix: wyklucz offline z przychodu na dashboardzie (#58)
+- fix: usun koszt_dostawy z przychodu na dashboardzie (#57)
+- fix: HTML w flash messages i opcjach selecta (#56)
+- feat: per-sektor wybor modelu AI (#55)
+- feat: wylicznik czasu oszczedzonego (#54)
+
 ## 28.03.2026
 
+- feat: gemini-2.5-flash + response_schema structured output (#53)
+- fix: TEMPO spike przy swiezej 1. sprzedazy (#52)
+- feat: TEMPO od 1. sprzedaży + KPI średnie tempo (#51)
+- fix: eliminate duplicate rows in czas-sprzedazy query (#50)
+- Fix czas-sprzedazy: use listing date not pallet purchase date
+- Fix COGS: per-pallet unit cost instead of global average
+- Fix license page: hide upgrade widget + DEV button for MAX/business plan
+- Security: fix 3 critical vulnerabilities
+- bulk_nadaj: mark orders as wyslana (was nadana, still showed in list)
+- Fix label content + retry loop for shipment labels
+- Fix produkt link in lezaki (#43)
+- Fix produkt link in lezaki (produkty -> produkt)
+- Fix chart + redirect old statystyki-zakupow (#42)
+- Fix chart + redirect old statystyki-zakupow
+- Add Purchase Analytics (Supplier HUD) page (#41)
+- Add Purchase Analytics (Supplier HUD) page
+- Add bulk labels endpoint fallback + better label debug logging
+- Auto-reload page after closing bulk nadaj modal
+- Uncheck orders after successful bulk nadaj
+- Increase label retry: 10 attempts x 5s (was 5 x 3s)
+- Show product name and image in bulk nadaj modal
+- Fix bulk nadaj carrier detection: use CSS class instead of text
+- Add bulk label creation: select orders, choose sizes, nadaj all
+- Fix Urgent Packing: show all orders from DB, not just Allegro API
+- Update license plans: Trial, Pro, Max, Enterprise
+- Security hardening: fix 5 critical/high vulnerabilities
+- Reliability improvements: DB persistence, toasts, retries, logging
+- Default unknown courier orders to DPD badge
+- Add /api/wysylki/backfill-carriers endpoint
+- Add KURIER badge for orders without specific carrier
+- Redesign pakowanie.html: Order Details, Spinner, Ready sections
+- Auto-order pickup for Orlen (free), ask for DPD/DHL
+- Add courier pickup button for DPD/DHL orders
+- Fix badge detection: fallback to address when delivery_method empty
+- Add carrier badges (DPD, DHL, Orlen) + metoda_dostawy column
+- Fix DPD NoneType crash: guard all .get() chains for None values
+- Fix WZA label: use batch endpoint /shipments/labels?shipmentIds=
+- Fix label download: try both endpoints and Accept types
+- Fix TypeError in zamowienie_detail: unhashable type dict
 - Fullautomat: silent print 100x150mm for Vretti 420B
 - Add Fullautomat Scan-to-Print module
 - Shipment reference: location + short product name (ASCII only)
 - Fix shipment referenceNumber: remove Polish chars, use location/order ID
 - Fix START PACKING: search by allegro_order_id in DB fallback
 - Cyberpunk redesign: Allegro Performance page
-- Remove per-route session checks â€” middleware handles auth
+- Remove per-route session checks — middleware handles auth
 - Add credentials:same-origin to system update fetch
 - Fix auth middleware: allow logged-in users always, fix ngrok session
 - Fix sync result page styling + add backup integrity verification
@@ -24,88 +105,4 @@
 - Fix daily report missed after restart: send on startup if past 9:00
 - Fix palette search: wrong class selector + add product name search
 - Fix duplicate Telegram notifications + update check comparing wrong branch
-- Fix raw span tags in option/placeholder/progress elements
-- Include delivery costs in revenue + add private sales to /sprzedaze
-- Fix double-subtraction of returns in ALL remaining places
-- Fix revenue double-subtracting returns (31k â†’ 37k bug)
-- Fix Telegram sale notifications: remove unsupported HTML span tags
-- Fix stats missing private sales in monthly total + fix update button always reloading
-- Redesign /statystyki page with cyberpunk neon styling
-
-## 27.03.2026
-
-- Fix statystyki chart colors: neon cyan/pink/purple instead of plain blue
-- Fix statystyki: include sprzedaze_prywatne in monthly bar chart totals
-- Fix Allegro sync dedup: remove cena from check to prevent double-import
-- Fix statystyki: hide empty chartCzasSprzedazy gap + add prywatne to daily drill-down
-- Fix monthly chart drill-down: off-by-one month index (showed Feb data for Mar)
-- Fix zysk/roi calculated before przychod was updated by fallback
-- Fix restart button on Windows: add os.execv fallback
-- Fix: always restart service on update button, even when already up to date
-- Fix bilans palet: ilosc_sztuk fallback + estimate revenue for untracked sales
-- Fix 'Ocen stan' crash + estimate revenue for untracked sales
-- Fix status dropdown icons, sprzedanych count, add ilosc_sztuk to edit form
-- Fix sprzedaz count on pallet page - include Allegro synced orders
-- Fix bugs 3,4,5: auto-meta, ilosc_sztuk, /generator redirect
-- Fix Powrot button - link back to pallet instead of /magazyn
-- Fix SyntaxError in scraper page - backslash in f-string expression
-- Pallet Item Registry redesign - cyberpunk item cards
-- Scraper Hub redesign - metrics gauges + discovered items table
-- Universal Sales Hub redesign + netto/brutto auto-calc fix
-- Fix image upload: download all 8 photos instead of stopping at 2
-- Redesign serwis page - System Monitor cyberpunk theme
-- Fix SSE stream for mass-listing: add anti-buffering headers
-- Fix JS SyntaxError in mass-listing EventSource handlers
-- Fix SyntaxError in paletomat.py - broken f-string quotes in rocket_launch icon
-- Redesign bulk lister mass-edit page - cyberpunk Bulk Lister theme
-- Redesign paletomat dashboard - cyberpunk OFFER_ENGINE theme
-- Add printable labels for pallets and warehouse boxes/shelves
-- Replace all [CHECK_BOX] and [ROCKET_LAUNCH] text with Material Symbols icons
-- Redesign Allegro dashboard & sync page - cyberpunk DATA_SYNC_TERMINAL
-- Fix Allegro API 403: migrate /sale/offers/{id} to /sale/product-offers/{id}
-- Add restock alert, fix margin display, update systemd services
-- Auto-translate product titles to Polish after pallet import
-- Fix sqlite3.Row .get() error in przyjecie regal field
-- Show klasa (A/B/C/D) next to stan in przyjÄ™cie buttons
-- Add bidirectional auto-sync between klasa and stan in product edit
-- Fix stan icons showing as text, auto-set klasa from stan
-- Add per-product shelf/location field in pallet reception
-- Fix etykiety page: broken icons and HTML in placeholder
-- Fix pallet header buttons wrapping on mobile
-- Fix bulk import: use unit price, don't multiply by quantity
-- Fix shelf panel hidden by stacking context + magazynier f-string error
-- Redesign ZAP goal page, change password, fix shelf panel z-index
-- Fix missing sale notifications - add fallback for unnotified orders
-- Redesign kreator konfiguracji - cyberpunk neon HUD theme
-- Fix kreator icons rendering as text instead of Material Symbols
-- Fix JS syntax error in pallet analyzer onerror handler
-- Add product photos to pallet analyzer results table
-- Fix CSRF mismatch, duplicate daily report, and shelf 404
-- Re-apply return subtraction on poziom - match dashboard logic
-- Fix double-counting returns on poziom - revert to simple exclusion
-- Redesign poziom page - cyberpunk neon HUD theme
-- Fix poziom page - subtract returns from revenue calculations
-- Add delivery type badges on wysylki list (InPost, Allegro One, Orlen, DPD, etc.)
-- Add custom PWA icon upload + poziom link in sidebar
-- Fix missing Material Symbols font on poziom page
-- Fix PWA icons - serve manifest with base64 inline icons
-- Fix 500 on /magazyn/produkty - sqlite3.Row has no .get() method
-
-## 26.03.2026
-
-- Remove fallback CSP for non-HTML responses - fixes manifest icon loading
-- Fix ngrok 400 errors and stale SW - global fetch header + unregister old SW
-- Fix PWA install - use allSettled instead of addAll for cache
-- Fix PWA install - register SW from /sw.js with root scope
-- Fix CSRF token missing after login - regenerate token after session.clear()
-- Fix SW intercepting Google Fonts requests - skip external URLs
-- Fix CSP blocking Google Fonts - add fonts.googleapis.com to connect-src
-- Fix CSRF on mobile - revert SameSite to Lax
-- Restore Google CDN for Material Symbols with display=block
-- Cache fonts for 1 year + font-display block to hide text flash
-- Fix Material Symbols - correct font-weight to 400, add full CSS class with !important
-- Add TTF fallback for Material Symbols font
-- Remove Google CDN for Material Symbols - local woff2 only
-- Add local Material Symbols font as primary source with full unicode range
-- Add missing placeholder.png - fixes 404 spam in logs
 
