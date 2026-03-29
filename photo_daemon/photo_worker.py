@@ -182,23 +182,16 @@ def process_job(job: dict, cfg: dict, comfy_client: ComfyUIClient) -> bool:
 
         else:
             # ── GALERIA (index=1..7) ──
-            # Pipeline: usuwanie tekstu (jeśli włączone) → 2560×2560
-            text_skip = proc.get("text_removal_skip", False) or cfg.get("processing", {}).get("text_removal_skip", False)
-            text_skip = bool(cfg.get("external_api", {}).get("text_removal_skip", text_skip))
+            # Pipeline: text removal (IOPaint LaMa) → 2560×2560
+            text_removed_path = str(Path(workdir) / f"work_txt_{job_id}_{image_index}.jpg")
+            txt_success = comfy_client.remove_text(work_path, text_removed_path)
 
-            if text_skip:
-                logger.info(f"[worker] Job #{job_id}[{image_index}]: text removal pominięte (text_removal_skip=true)")
-                source_for_variants = work_path
+            if txt_success and os.path.exists(text_removed_path):
+                source_for_variants = text_removed_path
+                logger.info(f"[worker] Job #{job_id}[{image_index}]: text removal OK -> {text_removed_path}")
             else:
-                text_removed_path = str(Path(workdir) / f"work_txt_{job_id}_{image_index}.jpg")
-                txt_success = comfy_client.remove_text(work_path, text_removed_path)
-
-                if txt_success and os.path.exists(text_removed_path):
-                    source_for_variants = text_removed_path
-                    logger.info(f"[worker] Job #{job_id}[{image_index}]: text removal OK -> {text_removed_path}")
-                else:
-                    logger.warning(f"[worker] Job #{job_id}[{image_index}]: text removal nie powiódł się — używam oryginalnego")
-                    source_for_variants = work_path
+                logger.warning(f"[worker] Job #{job_id}[{image_index}]: text removal nie powiódł się — używam oryginału")
+                source_for_variants = work_path
 
             img_for_variants = image_utils.load_image(source_for_variants)
             if img_for_variants is None:

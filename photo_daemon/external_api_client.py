@@ -45,6 +45,8 @@ class ComfyUIClient:
         self.text_use_python = bool(config.get("text_removal_use_python", True))
         self.text_workflow_file = config.get("text_removal_workflow_file", "workflows/text_remove.json")
         self._text_workflow_path = self._resolve_workflow_path(self.text_workflow_file)
+        # IOPaint (lama-cleaner) URL — jeśli ustawione, używamy zamiast ComfyUI/Python
+        self.iopaint_url = config.get("iopaint_url", "").rstrip("/")
 
         # Ścieżka do workflow (relatywna względem katalogu photo_daemon/)
         self._workflow_path = self._resolve_workflow_path(self.workflow_file)
@@ -52,7 +54,7 @@ class ComfyUIClient:
         logger.info(
             f"[ComfyUIClient] Inicjalizacja: url={self.base_url}, "
             f"mock_mode={self.mock_mode}, workflow={self._workflow_path}, "
-            f"text_use_python={self.text_use_python}"
+            f"text_use_python={self.text_use_python}, iopaint_url={self.iopaint_url or 'brak'}"
         )
 
     def _resolve_workflow_path(self, workflow_file: str) -> str:
@@ -67,11 +69,10 @@ class ComfyUIClient:
         """
         Usuwa tekst/napisy/watermarki ze zdjęcia galerii.
 
-        Tryb python (text_use_python=True):
-            Używa pytesseract + OpenCV inpaint — działa na Pi bez GPU.
-        Tryb ComfyUI (text_use_python=False):
-            Generuje maskę w Pythonie, wysyła ją wraz ze zdjęciem do ComfyUI,
-            uruchamia workflow LaMa inpainting (text_remove.json).
+        Priorytet:
+          1. IOPaint (lama-cleaner) — jeśli iopaint_url ustawione
+          2. ComfyUI LaMa — jeśli text_use_python=False
+          3. Python pytesseract+OpenCV — fallback
 
         Args:
             input_path:  Ścieżka do pliku wejściowego
@@ -80,6 +81,31 @@ class ComfyUIClient:
         Returns:
             True jeśli sukces (nawet jeśli nie wykryto tekstu)
         """
+        # ── Tryb IOPaint (najlepszy — GPU LaMa przez HTTP) ──
+        if self.iopaint_url:
+            import tempfile as _tf
+            mask_path = None
+            try:
+                mask_fd, mask_path = _tf.mkstemp(suffix="_text_mask.png")
+                os.close(mask_fd)
+                if self._generate_text_mask_file(input_path, mask_path):
+                    success = self._iopaint_remove_text(input_path, mask_path, output_path)
+                    if success:
+                        return True
+                    logger.warning("[ComfyUIClient] IOPaint nie powiódł się — fallback Python")
+                else:
+                    logger.info("[ComfyUIClient] Brak tekstu do usunięcia — kopiuję oryginał")
+                    shutil.copy2(input_path, output_path)
+                    return True
+            except Exception as e:
+                logger.error(f"[ComfyUIClient] IOPaint wyjątek: {e}")
+            finally:
+                if mask_path and os.path.exists(mask_path):
+                    try:
+                        os.remove(mask_path)
+                    except Exception:
+                        pass
+
         if self.text_use_python:
             return self._python_remove_text(input_path, output_path)
 
@@ -87,14 +113,12 @@ class ComfyUIClient:
         import tempfile as _tf
         mask_path = None
         try:
-            # Krok 1: Wygeneruj maskę tekstową w Pythonie
             mask_fd, mask_path = _tf.mkstemp(suffix="_text_mask.png")
             os.close(mask_fd)
             if not self._generate_text_mask_file(input_path, mask_path):
                 logger.warning("[ComfyUIClient] Brak maski tekstowej — fallback Python")
                 return self._python_remove_text(input_path, output_path)
 
-            # Krok 2: ComfyUI LaMa workflow
             success = self._comfy_remove_text(input_path, mask_path, output_path)
             if not success:
                 logger.warning("[ComfyUIClient] ComfyUI text removal nie powiódł się — fallback Python")
@@ -110,6 +134,131 @@ class ComfyUIClient:
                     os.remove(mask_path)
                 except Exception:
                     pass
+
+    def get_text_mask_coverage(self, input_path: str) -> float:
+        """
+        Oblicza jaki procent obrazu pokrywa wykryty tekst.
+
+        Returns:
+            0.0  - brak tekstu
+            >0.0 - ratio pokrycia (0.0-1.0)
+            -1.0 - błąd (brak OpenCV)
+        """
+        try:
+            import cv2
+            import numpy as np
+            from PIL import Image as _Img
+
+            img_pil = _Img.open(input_path).convert("RGB")
+            img_bgr = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
+            h, w = img_bgr.shape[:2]
+            mask = np.zeros((h, w), dtype=np.uint8)
+            found = False
+
+            # Metoda 1: pytesseract
+            try:
+                import pytesseract
+                data = pytesseract.image_to_data(
+                    img_pil,
+                    output_type=pytesseract.Output.DICT,
+                    config="--psm 11 --oem 3"
+                )
+                for i in range(len(data["text"])):
+                    conf = int(data["conf"][i])
+                    text = str(data["text"][i]).strip()
+                    if conf > 30 and len(text) >= 2:
+                        x, y, bw, bh = (data["left"][i], data["top"][i],
+                                        data["width"][i], data["height"][i])
+                        if bw > 5 and bh > 5:
+                            pad = max(10, int(bh * 0.35))
+                            cv2.rectangle(mask,
+                                          (max(0, x - pad), max(0, y - pad)),
+                                          (min(w, x + bw + pad), min(h, y + bh + pad)),
+                                          255, -1)
+                            found = True
+            except ImportError:
+                pass
+
+            # Metoda 2: MSER fallback
+            if not found:
+                gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+                mser = cv2.MSER_create()
+                mser.setMinArea(30)
+                mser.setMaxArea(min(w * h // 50, 5000))
+                regions, _ = mser.detectRegions(gray)
+                for pts in regions:
+                    rx, ry, rw, rh = cv2.boundingRect(pts.reshape(-1, 1, 2))
+                    aspect = rw / max(rh, 1)
+                    area = rw * rh
+                    if 0.5 < aspect < 15 and 50 < area < (w * h * 0.01):
+                        cv2.rectangle(mask,
+                                      (max(0, rx - 4), max(0, ry - 4)),
+                                      (min(w, rx + rw + 4), min(h, ry + rh + 4)),
+                                      255, -1)
+                        found = True
+
+            if not found:
+                return 0.0
+
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+            mask = cv2.dilate(mask, kernel, iterations=1)
+            ratio = float(mask.sum()) / (255.0 * w * h)
+            logger.debug(f"[ComfyUIClient] Pokrycie tekstu: {ratio:.1%} ({input_path})")
+            return ratio
+
+        except ImportError:
+            logger.warning("[ComfyUIClient] OpenCV niedostępny — get_text_mask_coverage zwraca -1")
+            return -1.0
+        except Exception as e:
+            logger.error(f"[ComfyUIClient] get_text_mask_coverage błąd: {e}")
+            return -1.0
+
+    def _iopaint_remove_text(self, input_path: str, mask_path: str, output_path: str) -> bool:
+        """
+        Wysyła obraz + maskę do IOPaint (lama-cleaner) i pobiera wynik.
+
+        IOPaint API: POST /api/v1/inpaint
+          - image: plik JPEG
+          - mask:  plik PNG (biały = inpaint, czarny = zachowaj)
+        Odpowiedź: bajty PNG z wynikiem.
+        """
+        try:
+            inpaint_url = f"{self.iopaint_url}/api/v1/inpaint"
+            logger.info(f"[ComfyUIClient] IOPaint: wysyłam {input_path} + maska -> {inpaint_url}")
+
+            with open(input_path, "rb") as img_f, open(mask_path, "rb") as mask_f:
+                files = {
+                    "image": (os.path.basename(input_path), img_f, "image/jpeg"),
+                    "mask":  (os.path.basename(mask_path),  mask_f, "image/png"),
+                }
+                resp = requests.post(inpaint_url, files=files, timeout=120)
+
+            if resp.status_code != 200:
+                logger.error(f"[ComfyUIClient] IOPaint HTTP {resp.status_code}: {resp.text[:200]}")
+                return False
+
+            os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+
+            # IOPaint zwraca PNG — konwertuj do JPEG
+            try:
+                from PIL import Image as _PilImg
+                import io as _io
+                img_result = _PilImg.open(_io.BytesIO(resp.content)).convert("RGB")
+                img_result.save(output_path, "JPEG", quality=95, optimize=True)
+            except Exception:
+                # fallback: zapisz surowe bajty
+                with open(output_path, "wb") as f:
+                    f.write(resp.content)
+
+            logger.info(f"[ComfyUIClient] IOPaint OK: {output_path} ({len(resp.content)//1024} KB)")
+            return True
+
+        except requests.RequestException as e:
+            logger.error(f"[ComfyUIClient] IOPaint request error: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"[ComfyUIClient] IOPaint unexpected error: {e}")
+            return False
 
     def _python_remove_text(self, input_path: str, output_path: str) -> bool:
         """Usuwa tekst w całości w Pythonie (pytesseract + OpenCV inpaint)."""
@@ -137,8 +286,11 @@ class ComfyUIClient:
 
     def _generate_text_mask_file(self, input_path: str, mask_path: str) -> bool:
         """
-        Generuje plik maski PNG (białe = tekst, czarne = tło) do ComfyUI.
-        Używa pytesseract lub MSER.
+        Generuje plik maski PNG (białe = tekst, czarne = tło) dla IOPaint LaMa.
+
+        Używa pytesseract z 3 trybami PSM dla najdokładniejszej detekcji tekstu.
+        Fallback: MSER tylko dla bardzo małych regionów (watermark logo).
+        Brak limitu rozmiaru maski — LaMa radzi sobie z dużymi obszarami.
         """
         try:
             import cv2
@@ -151,52 +303,73 @@ class ComfyUIClient:
             mask = np.zeros((h, w), dtype=np.uint8)
             found = False
 
+            # ── Pytesseract: 3 tryby PSM dla kompletnej detekcji ──
             try:
                 import pytesseract
-                data = pytesseract.image_to_data(
-                    img_pil,
-                    output_type=pytesseract.Output.DICT,
-                    config="--psm 11 --oem 3"
-                )
-                for i in range(len(data["text"])):
-                    conf = int(data["conf"][i])
-                    text = str(data["text"][i]).strip()
-                    if conf > 30 and len(text) >= 2:
-                        x, y, bw, bh = (
-                            data["left"][i], data["top"][i],
-                            data["width"][i], data["height"][i]
-                        )
-                        if bw > 5 and bh > 5:
-                            pad = max(10, int(bh * 0.35))
-                            cv2.rectangle(
-                                mask,
-                                (max(0, x - pad), max(0, y - pad)),
-                                (min(w, x + bw + pad), min(h, y + bh + pad)),
-                                255, -1
+                psm_configs = [
+                    "--psm 3 --oem 3",   # auto page segmentation
+                    "--psm 6 --oem 3",   # uniform block of text
+                    "--psm 11 --oem 3",  # sparse text
+                ]
+                for psm_cfg in psm_configs:
+                    data = pytesseract.image_to_data(
+                        img_pil,
+                        output_type=pytesseract.Output.DICT,
+                        config=psm_cfg
+                    )
+                    for i in range(len(data["text"])):
+                        conf = int(data["conf"][i])
+                        text = str(data["text"][i]).strip()
+                        if conf > 25 and len(text) >= 1:
+                            x, y, bw, bh = (
+                                data["left"][i], data["top"][i],
+                                data["width"][i], data["height"][i]
                             )
-                            found = True
+                            if bw > 3 and bh > 3:
+                                # Tight padding — mała ramka wokół liter
+                                pad = max(6, int(bh * 0.2))
+                                cv2.rectangle(
+                                    mask,
+                                    (max(0, x - pad), max(0, y - pad)),
+                                    (min(w, x + bw + pad), min(h, y + bh + pad)),
+                                    255, -1
+                                )
+                                found = True
+                logger.debug(f"[ComfyUIClient] pytesseract: found={found}")
             except ImportError:
-                pass
+                logger.debug("[ComfyUIClient] pytesseract niedostępny — używam MSER")
 
+            # ── MSER fallback: tylko drobne regiony (logo, mały watermark) ──
             if not found:
                 gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
                 mser = cv2.MSER_create()
+                mser.setMinArea(40)
+                mser.setMaxArea(min(w * h // 80, 3000))  # max ~1.2% na region
                 regions, _ = mser.detectRegions(gray)
                 for pts in regions:
                     rx, ry, rw, rh = cv2.boundingRect(pts.reshape(-1, 1, 2))
                     aspect = rw / max(rh, 1)
                     area = rw * rh
-                    if 0.15 < aspect < 20 and 80 < area < (w * h * 0.05):
-                        cv2.rectangle(mask, (max(0, rx-6), max(0, ry-6)),
-                                      (min(w, rx+rw+6), min(h, ry+rh+6)), 255, -1)
+                    if 0.6 < aspect < 12 and 60 < area < (w * h * 0.008):
+                        cv2.rectangle(mask,
+                                      (max(0, rx - 3), max(0, ry - 3)),
+                                      (min(w, rx + rw + 3), min(h, ry + rh + 3)),
+                                      255, -1)
                         found = True
+                logger.debug(f"[ComfyUIClient] MSER fallback: found={found}")
 
             if not found:
+                logger.info(f"[ComfyUIClient] Brak tekstu w {os.path.basename(input_path)}")
                 return False
 
-            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 9))
+            # Dylatacja — wypełnia luki między literami w słowie
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7))
             mask = cv2.dilate(mask, kernel, iterations=2)
-            # Zapisz jako RGB PNG (ComfyUI LoadImage oczekuje kolorowego obrazu)
+
+            ratio = float(mask.sum()) / (255.0 * w * h)
+            logger.info(f"[ComfyUIClient] Maska tekstowa: {ratio:.1%} obrazu ({os.path.basename(input_path)})")
+
+            # Zapisz jako RGB PNG
             mask_rgb = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
             Image.fromarray(mask_rgb).save(mask_path, "PNG")
             return True

@@ -26,6 +26,7 @@ photo_daemon:
     text_removal_use_python: false               # false = ComfyUI LaMa | true = Python OpenCV (słabe wyniki)
     text_removal_skip: false                     # false = usuń tekst | true = pomiń (tylko resize)
     text_removal_workflow_file: "workflows/text_remove.json"  # workflow LaMa (gdy use_python=false)
+    iopaint_url: "http://192.168.1.100:8080"    # IOPaint (lama-cleaner) na PC z GPU — priorytet nad ComfyUI
 
   # Przetwarzanie obrazu
   processing:
