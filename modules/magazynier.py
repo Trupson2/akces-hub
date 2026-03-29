@@ -51,17 +51,14 @@ def get_produkt_by_code(conn, code):
 
 
 def _format_stan_label(stan_przyjecia, klasa_jakosci):
-    """Formatuj stan na etykietę: klasa + stan, lub 'nieoceniony'."""
+    """Formatuj stan na etykietę: A/Nowy, B/Powystawowy itp."""
     stan = (stan_przyjecia or '').strip()
-    klasa = (klasa_jakosci or '').strip()
+    klasa = (klasa_jakosci or '').strip().upper()
     if not stan or stan == 'nieoceniony':
         return 'NIEOCENIONY'
-    parts = []
     if klasa:
-        parts.append(klasa)
-    if stan:
-        parts.append(stan)
-    return ' / '.join(parts) if parts else ''
+        return f"{klasa}/{stan}"
+    return stan
 
 
 def _paleta_koszt_szt(conn, paleta_id):

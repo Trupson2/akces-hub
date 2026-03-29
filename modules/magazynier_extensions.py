@@ -1059,6 +1059,9 @@ def register_printer_routes(bp: Blueprint):
         nazwa_skrocona = p['nazwa'][:30] if p['nazwa'] else f"Produkt #{p['id']}"
         qr_data = f"MAG:{p['ean'] or p['asin'] or p['id']}"
 
+        from .magazynier import _format_stan_label
+        stan_label = _format_stan_label(p.get('stan_przyjecia', ''), p.get('klasa_jakosci', ''))
+
         preview = generate_label_preview_sync(
             nazwa=nazwa_skrocona,
             qr_data=qr_data,
@@ -1069,7 +1072,8 @@ def register_printer_routes(bp: Blueprint):
             data_zakupu=p.get('data_zakupu', '') or p.get('data_dodania', '') or '',
             paleta=paleta_nazwa,
             koszt_szt=koszt_szt,
-            cena_allegro=float(p.get('cena_allegro', 0) or 0)
+            cena_allegro=float(p.get('cena_allegro', 0) or 0),
+            stan_przyjecia=stan_label
         )
         
         html = f'''

@@ -286,6 +286,7 @@
         <div class="pd-quick">
             <a href="/magazyn/produkt/{{ product_code }}/sprzedaj" class="pd-qbtn lime"><span class="material-symbols-outlined">remove_shopping_cart</span> -1 SZT</a>
             <a href="/magazyn/etykieta-mobilna/{{ product_code }}" class="pd-qbtn pink"><span class="material-symbols-outlined">label</span> ETYKIETA</a>
+            <a href="/magazyn/etykiety/niimbot/png/{{ p.id }}" download="etykieta_{{ p.kod_magazynowy or p.id }}.png" class="pd-qbtn pink"><span class="material-symbols-outlined">download</span> PNG</a>
             <a href="/magazyn/produkt/{{ product_code }}/edytuj" class="pd-qbtn amber"><span class="material-symbols-outlined">edit</span> EDYTUJ</a>
             <a href="/paletomat/generator/from-magazyn/{{ p.id }}" class="pd-qbtn cyan"><span class="material-symbols-outlined">storefront</span> WYSTAW</a>
             <form method="POST" action="/magazyn/produkt/{{ product_code }}/usun" style="display:inline;grid-column:span 2" onsubmit="return confirm('Na pewno usunac ten produkt?')">

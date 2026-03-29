@@ -2,6 +2,9 @@
 
 ## 29.03.2026
 
+- Disable text removal (skip=true) - detection too aggressive
+- Fix text mask: add 15% safety limit, reduce MSER aggressiveness
+- Add IOPaint (lama-cleaner) text removal via HTTP API
 - config: enable ComfyUI LaMa text removal (text_removal_skip=false)
 - fix: disable destructive opencv inpainting - add text_removal_skip flag
 - feat: dodaj brakujące galerie + fix db lock podczas scrapowania
@@ -102,7 +105,4 @@
 - Cyberpunk redesign: palety, magazynier, sprzedaze pages
 - Add reminder dates to Obsidian daily note tasks
 - Generate Obsidian daily note on startup (catch-up if missed 7:30)
-- Fix daily report missed after restart: send on startup if past 9:00
-- Fix palette search: wrong class selector + add product name search
-- Fix duplicate Telegram notifications + update check comparing wrong branch
 
