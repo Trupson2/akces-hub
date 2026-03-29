@@ -290,244 +290,275 @@ def _save_winning_product(
 
 def run_winning_products_scan(categories: list | None = None) -> dict:
     """
-    Główna funkcja analizy winning products.
+    Analiza winning products na podstawie własnych danych sprzedażowych.
+    Nie wymaga dostępu do zewnętrznego Allegro API (omija problem braku scope).
 
-    1. Sprawdza cooldown
-    2. Tworzy batch_id
-    3. Inicjalizuje meta
-    4. Ładuje dane wewnętrzne użytkownika
-    5. Dla każdej kategorii: fetchuje oferty i scoruje
-    6. Zapisuje do DB
-    7. Aktualizuje meta i last_run
-    8. Zwraca podsumowanie
+    Źródła danych:
+    - sprzedaze: historia sprzedaży
+    - produkty: stan magazynowy, ceny
+    - palety: koszt zakupu
 
-    Args:
-        categories: Lista ID kategorii (opcjonalnie, override config)
-
-    Returns:
-        Dict: {batch_id, products_found, duration_s, top_3}
-
-    Raises:
-        ValueError: Jeśli cooldown nie upłynął
-        RuntimeError: W przypadku błędu analizy
+    Scoring oparty na:
+    - Prędkość sprzedaży (sztuki/miesiąc)
+    - ROI (cena sprzedaży vs koszt zakupu)
+    - Trend (porównanie ostatnich 30 vs poprzednich 30 dni)
+    - Dostępność (ile dni zostało przy obecnej prędkości)
     """
-    # Inicjalizuj tabele przy pierwszym uruchomieniu
     init_winning_tables()
 
-    # Sprawdź cooldown
     can_run, minutes_remaining = _check_cooldown()
     if not can_run:
         cooldown_minutes = _get_cooldown_minutes()
         last_run_minutes = cooldown_minutes - minutes_remaining
-        error = {
+        raise ValueError(json.dumps({
             "error": f"Ostatnia analiza była {last_run_minutes} minut temu. Poczekaj {minutes_remaining} minut.",
             "cooldown": True,
             "minutes_remaining": minutes_remaining,
-        }
-        raise ValueError(json.dumps(error))
+        }))
 
     start_time = time.time()
     batch_id = uuid.uuid4().hex[:12]
-
-    # Ustal kategorie
-    if not categories:
-        categories = get_categories_of_interest()
-
-    if not categories:
-        # Domyślne popularne kategorie Allegro jeśli brak konfiguracji
-        categories = ["258682", "257993", "4029"]  # Elektronika, AGD, Dom
-        logger.warning("[winning_analyzer] Brak skonfigurowanych kategorii — używam domyślnych")
-
-    logger.info(f"[winning_analyzer] Batch {batch_id}: skanowanie {len(categories)} kategorii")
-
-    # Zapisz meta: status=running
     now = datetime.now().isoformat(sep=" ", timespec="seconds")
+    min_score = _get_min_opportunity_score()
+
+    from modules.database import get_db, set_config
+    conn = get_db()
+
     try:
-        from modules.database import get_db
-        conn = get_db()
         conn.execute(
-            """
-            INSERT INTO winning_products_meta
-                (batch_id, started_at, status, categories_scanned, products_found)
-            VALUES (?, ?, 'running', ?, 0)
-            """,
-            (batch_id, now, json.dumps(categories))
+            "INSERT INTO winning_products_meta (batch_id, started_at, status, categories_scanned, products_found) VALUES (?, ?, 'running', ?, 0)",
+            (batch_id, now, json.dumps(["internal_sales"]))
         )
         conn.commit()
-    except Exception as meta_e:
-        logger.error(f"[winning_analyzer] Błąd zapisu meta: {meta_e}")
-
-    # Załaduj dane wewnętrzne
-    try:
-        from modules.akces_data import get_my_categories, get_avg_margin, get_product_category_fit
-        my_categories = get_my_categories()
-        avg_margin = get_avg_margin()
-        logger.info(f"[winning_analyzer] Moje kategorie: {my_categories[:5]}, avg_margin={avg_margin:.2%}")
-    except Exception as data_e:
-        logger.warning(f"[winning_analyzer] Błąd ładowania danych wewnętrznych: {data_e}")
-        my_categories = []
-        avg_margin = 0.25
-
-    from modules.winning_scoring import compute_scores, generate_notes
-
-    weights_cfg = _get_weights()
-    min_score = _get_min_opportunity_score()
+    except Exception as e:
+        logger.error(f"[winning_analyzer] meta insert error: {e}")
 
     products_found = 0
     all_results = []
 
     try:
-        for category_id in categories:
-            logger.info(f"[winning_analyzer] Analizuję kategorię: {category_id}")
+        # ── 1. Prędkość sprzedaży per produkt (ostatnie 90 dni) ──────────────
+        rows_90 = conn.execute("""
+            SELECT produkt_id,
+                   SUM(ilosc) as sold_90,
+                   COUNT(*) as tx_90,
+                   AVG(cena) as avg_price
+            FROM sprzedaze
+            WHERE produkt_id IS NOT NULL
+              AND status NOT IN ('zwrot','anulowane','anulowana')
+              AND (kupujacy IS NULL OR kupujacy != 'offline')
+              AND data_sprzedazy >= date('now', '-90 days')
+            GROUP BY produkt_id
+            HAVING sold_90 > 0
+            ORDER BY sold_90 DESC
+            LIMIT 200
+        """).fetchall()
 
-            offers = fetch_category_offers(category_id, limit=50)
-            if not offers:
-                logger.warning(f"[winning_analyzer] Brak ofert dla kategorii {category_id}")
-                continue
+        if not rows_90:
+            # Fallback: wszystkie dane jeśli brak z 90 dni
+            rows_90 = conn.execute("""
+                SELECT produkt_id,
+                       SUM(ilosc) as sold_90,
+                       COUNT(*) as tx_90,
+                       AVG(cena) as avg_price
+                FROM sprzedaze
+                WHERE produkt_id IS NOT NULL
+                  AND status NOT IN ('zwrot','anulowane','anulowana')
+                GROUP BY produkt_id
+                HAVING sold_90 > 0
+                ORDER BY sold_90 DESC
+                LIMIT 200
+            """).fetchall()
 
-            # Pobierz nazwę kategorii
-            category_name = _get_category_name(category_id)
+        # ── 2. Ostatnie 30 dni (trend) ─────────────────────────────────────
+        rows_30 = {}
+        try:
+            for r in conn.execute("""
+                SELECT produkt_id, SUM(ilosc) as sold_30
+                FROM sprzedaze
+                WHERE produkt_id IS NOT NULL
+                  AND status NOT IN ('zwrot','anulowane','anulowana')
+                  AND (kupujacy IS NULL OR kupujacy != 'offline')
+                  AND data_sprzedazy >= date('now', '-30 days')
+                GROUP BY produkt_id
+            """).fetchall():
+                rows_30[r['produkt_id']] = r['sold_30'] or 0
+        except Exception:
+            pass
 
-            # Zbierz ceny wszystkich ofert w kategorii (do scoringu konkurencji)
-            price_list = []
-            for o in offers:
+        # ── 3. Dane produktów ─────────────────────────────────────────────
+        for row in rows_90:
+            try:
+                pid = row['produkt_id']
+                sold_90 = row['sold_90'] or 0
+                avg_price = float(row['avg_price'] or 0)
+                sold_30 = rows_30.get(pid, 0)
+
+                # Pobierz dane produktu
+                p = conn.execute(
+                    "SELECT id, nazwa, ean, ilosc, cena_brutto, zdjecie_url, kategoria FROM produkty WHERE id=?",
+                    (pid,)
+                ).fetchone()
+                if not p:
+                    continue
+
+                nazwa = p['nazwa'] or ''
+                ilosc = p['ilosc'] or 0
+                kategoria = p['kategoria'] or 'Inne'
+
+                # Koszt zakupu — z palety jeśli dostępny
+                koszt = 0.0
                 try:
-                    price_list.append(float(
-                        (o.get("sellingMode", {}) or {}).get("price", {}).get("amount", 0) or 0
-                    ))
+                    paleta_row = conn.execute("""
+                        SELECT pp.cena_zakupu / NULLIF(pp.ilosc_produktow, 0) as unit_cost
+                        FROM palety pp
+                        JOIN produkty pr ON pr.paleta_id = pp.id
+                        WHERE pr.id = ?
+                    """, (pid,)).fetchone()
+                    if paleta_row and paleta_row['unit_cost']:
+                        koszt = float(paleta_row['unit_cost'])
                 except Exception:
                     pass
 
-            for offer in offers:
-                try:
-                    # Szacowana cena
-                    est_price = 0.0
-                    try:
-                        est_price = float(
-                            (offer.get("sellingMode", {}) or {})
-                            .get("price", {})
-                            .get("amount", 0) or 0
-                        )
-                    except (ValueError, TypeError):
-                        pass
+                if koszt <= 0 and avg_price > 0:
+                    koszt = avg_price * 0.35  # szacunkowy koszt 35% ceny
 
-                    # Buduj product_data dla compute_scores
-                    product_data = {
-                        "name":                offer.get("name", ""),
-                        "title":               offer.get("name", ""),
-                        "price":               est_price,
-                        "est_price":           est_price,
-                        "watchers_count":      offer.get("watchersCount", 0) or 0,
-                        "views_count":         offer.get("viewsCount", 0) or 0,
-                        "monthly_sales_est":   offer.get("salesCount", 0) or 0,
-                        "category":            category_name,
-                        "purchase_cost_estimate": est_price * (1 - avg_margin),
-                    }
-                    my_data = {
-                        "my_categories":    my_categories,
-                        "avg_price_range":  (20.0, 500.0),
-                    }
-                    market_data = {
-                        "similar_offers_count":   len(offers),
-                        "price_list":             price_list,
-                        "smart_sellers_fraction": 0.4,
-                    }
-                    config = {"weights": weights_cfg}
+                # ── Scoring ───────────────────────────────────────────────
+                # Prędkość: sztuki/miesiąc (normalizuj do 0-1, max=30)
+                velocity = sold_90 / 3.0  # sztuki/miesiąc
+                velocity_score = min(velocity / 30.0, 1.0)
 
-                    scores = compute_scores(product_data, my_data, market_data, config)
-                    opportunity  = scores.get("opportunity_score", 0.0)
-                    trend        = scores.get("trend_score", 0.0)
-                    competition  = scores.get("competition_score", 0.0)
-                    margin_score = scores.get("margin_score", 0.0)
+                # Trend: czy ostatnie 30 dni lepsze niż poprzednie 30?
+                sold_prev_30 = (sold_90 - sold_30) / 2.0
+                if sold_prev_30 > 0:
+                    trend_ratio = sold_30 / sold_prev_30
+                    trend_score = min(trend_ratio / 2.0, 1.0)  # 2x = max
+                else:
+                    trend_score = 0.5 if sold_30 > 0 else 0.2
 
-                    if opportunity < min_score:
-                        continue
+                # ROI
+                if koszt > 0 and avg_price > 0:
+                    prowizja = avg_price * 0.11
+                    zysk_jednostkowy = avg_price - koszt - prowizja
+                    roi = zysk_jednostkowy / koszt
+                    margin_score = min(max(roi / 1.5, 0.0), 1.0)  # 150% ROI = max
+                else:
+                    margin_score = 0.3
 
-                    # Generuj notatki
-                    notes = generate_notes(scores, product_data)
+                # Dostępność (im mniej zostało, tym pilniejsze do uzupełnienia)
+                if velocity > 0 and ilosc > 0:
+                    days_left = (ilosc / velocity) * 30
+                    if days_left < 14:
+                        urgency_score = 0.9  # krytyczne — kończy się
+                    elif days_left < 30:
+                        urgency_score = 0.7
+                    elif days_left < 60:
+                        urgency_score = 0.5
+                    else:
+                        urgency_score = 0.3
+                elif ilosc == 0:
+                    urgency_score = 0.1  # brak towaru
+                else:
+                    urgency_score = 0.4
 
-                    # Zapisz do DB
-                    _save_winning_product(
-                        batch_id=batch_id,
-                        offer=offer,
-                        category_id=category_id,
-                        category_name=category_name,
-                        trend=trend,
-                        competition=competition,
-                        opportunity=opportunity,
-                        est_margin=margin_score,
-                        notes=notes,
-                    )
+                # Opportunity score — ważona suma
+                opportunity = (
+                    velocity_score * 0.35 +
+                    trend_score    * 0.25 +
+                    margin_score   * 0.30 +
+                    urgency_score  * 0.10
+                )
 
-                    products_found += 1
-                    all_results.append({
-                        "name": offer.get("name", "")[:80],
-                        "opportunity_score": opportunity,
-                        "trend_score": trend,
-                        "competition_score": competition,
-                        "est_price": est_price,
-                    })
-
-                except Exception as offer_e:
-                    logger.warning(f"[winning_analyzer] Błąd scoringu oferty: {offer_e}")
+                if opportunity < min_score:
                     continue
 
-            # Krótka pauza między kategoriami
-            time.sleep(0.5)
+                # Notatki
+                notes_parts = []
+                if sold_30 > sold_prev_30 * 1.2:
+                    notes_parts.append(f"📈 Trend wzrostowy (+{int((sold_30/max(sold_prev_30,0.1)-1)*100)}%)")
+                if velocity > 10:
+                    notes_parts.append(f"🔥 {velocity:.1f} szt/mies")
+                if margin_score > 0.6:
+                    notes_parts.append(f"💰 Dobra marża")
+                if ilosc < velocity * 1.5 and ilosc > 0:
+                    notes_parts.append(f"⚠️ Kończy się ({ilosc} szt, ~{int(days_left if velocity>0 else 99)} dni)")
+                if ilosc == 0:
+                    notes_parts.append("❌ Brak w magazynie")
+                notes = " | ".join(notes_parts) if notes_parts else f"Sprzedano {sold_90} szt w 90 dni"
 
-        # Zaktualizuj meta: status=done
+                # Szacowane URL Allegro (z naszej oferty)
+                marketplace_url = None
+                try:
+                    offer_row = conn.execute(
+                        "SELECT allegro_offer_id FROM produkty WHERE id=?", (pid,)
+                    ).fetchone()
+                    if offer_row and offer_row[0]:
+                        marketplace_url = f"https://allegro.pl/oferta/{offer_row[0]}"
+                except Exception:
+                    pass
+
+                # Zapisz do DB
+                conn.execute("""
+                    INSERT INTO winning_products
+                        (source, external_id, name, category, category_id, marketplace_url,
+                         my_product_id, est_price, est_monthly_sales, est_margin,
+                         trend_score, competition_score, opportunity_score,
+                         notes, batch_id, created_at)
+                    VALUES ('internal', ?, ?, ?, 'own', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    str(pid), nazwa[:500], kategoria, marketplace_url,
+                    pid, avg_price, velocity,
+                    round(margin_score, 3),
+                    round(trend_score, 3),
+                    round(velocity_score, 3),
+                    round(opportunity, 3),
+                    notes, batch_id, now
+                ))
+
+                products_found += 1
+                all_results.append({
+                    "name": nazwa[:80],
+                    "opportunity_score": opportunity,
+                    "trend_score": trend_score,
+                    "competition_score": velocity_score,
+                    "est_price": avg_price,
+                })
+
+            except Exception as pe:
+                logger.warning(f"[winning_analyzer] Błąd scoringu produktu {row.get('produkt_id')}: {pe}")
+                continue
+
+        conn.commit()
+
         duration_s = round(time.time() - start_time, 2)
         finished_at = datetime.now().isoformat(sep=" ", timespec="seconds")
 
-        try:
-            from modules.database import get_db, set_config
-            conn = get_db()
-            conn.execute(
-                """
-                UPDATE winning_products_meta
-                SET status='done', finished_at=?, products_found=?
-                WHERE batch_id=?
-                """,
-                (finished_at, products_found, batch_id)
-            )
-            conn.commit()
+        conn.execute(
+            "UPDATE winning_products_meta SET status='done', finished_at=?, products_found=? WHERE batch_id=?",
+            (finished_at, products_found, batch_id)
+        )
+        conn.commit()
+        set_config("winning_last_run", datetime.now().isoformat())
 
-            # Zaktualizuj last_run
-            set_config("winning_last_run", datetime.now().isoformat())
-
-        except Exception as meta_e:
-            logger.error(f"[winning_analyzer] Błąd aktualizacji meta: {meta_e}")
-
-        # Top 3 wyniki
         all_results.sort(key=lambda x: x["opportunity_score"], reverse=True)
-        top_3 = all_results[:3]
-
         logger.info(f"[winning_analyzer] Batch {batch_id}: znaleziono {products_found} produktów w {duration_s}s")
 
         return {
             "batch_id": batch_id,
             "products_found": products_found,
             "duration_s": duration_s,
-            "top_3": top_3,
+            "top_3": all_results[:3],
         }
 
     except Exception as e:
-        # Zaktualizuj meta: status=error
         try:
-            from modules.database import get_db
-            conn = get_db()
             conn.execute(
-                """
-                UPDATE winning_products_meta
-                SET status='error', error_msg=?, finished_at=?
-                WHERE batch_id=?
-                """,
+                "UPDATE winning_products_meta SET status='error', error_msg=?, finished_at=? WHERE batch_id=?",
                 (str(e)[:1000], datetime.now().isoformat(sep=" ", timespec="seconds"), batch_id)
             )
             conn.commit()
         except Exception:
             pass
-
         logger.error(f"[winning_analyzer] run_winning_products_scan error: {e}", exc_info=True)
         raise RuntimeError(f"Błąd analizy: {e}") from e
 

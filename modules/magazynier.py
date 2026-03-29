@@ -9835,11 +9835,12 @@ def photo_stats():
 # ============================================================
 
 _worker_running = False
+_worker_last_log = ""
 
 @magazynier_bp.route('/photo-worker-run', methods=['POST'])
 def photo_worker_run():
     """Uruchamia photo_worker w tle (jeden run, max 10 jobów)."""
-    global _worker_running
+    global _worker_running, _worker_last_log
     import threading
     import sys
     from pathlib import Path
@@ -9847,26 +9848,33 @@ def photo_worker_run():
     if _worker_running:
         return jsonify({'success': False, 'error': 'Worker już działa — poczekaj chwilę'}), 429
 
+    app = current_app._get_current_object()
+
     def run_worker():
-        global _worker_running
+        global _worker_running, _worker_last_log
         _worker_running = True
         try:
             import subprocess
-            worker_script = str(Path(current_app.root_path) / 'photo_daemon' / 'photo_worker.py')
+            root = Path(app.root_path)
+            worker_script = str(root / 'photo_daemon' / 'photo_worker.py')
+            cfg_path = str(root / 'photo_daemon' / 'config.yaml')
             python_exe = sys.executable
-            print(f"[photo-worker-run] Starting: {python_exe} {worker_script}")
+            print(f"[photo-worker-run] {python_exe} {worker_script} --config {cfg_path}")
+
             result = subprocess.run(
-                [python_exe, worker_script],
+                [python_exe, worker_script, '--config', cfg_path],
                 capture_output=True, text=True, timeout=300,
-                cwd=str(Path(current_app.root_path))
+                cwd=str(root)
             )
-            print(f"[photo-worker-run] stdout: {result.stdout[-500:] if result.stdout else ''}")
-            if result.stderr:
-                print(f"[photo-worker-run] stderr: {result.stderr[-500:]}")
-            print(f"[photo-worker-run] returncode: {result.returncode}")
-        except subprocess.TimeoutExpired:
-            print("[photo-worker-run] Timeout po 5 min")
+            out = (result.stdout or '')[-1000:]
+            err = (result.stderr or '')[-1000:]
+            _worker_last_log = f"=== STDOUT ===\n{out}\n=== STDERR ===\n{err}\n=== CODE: {result.returncode} ==="
+            print(f"[photo-worker-run] rc={result.returncode}")
+            print(f"[photo-worker-run] stdout: {out[-300:]}")
+            if err:
+                print(f"[photo-worker-run] stderr: {err[-300:]}")
         except Exception as e:
+            _worker_last_log = f"EXCEPTION: {e}"
             print(f"[photo-worker-run] ERROR: {e}")
             import traceback; traceback.print_exc()
         finally:
@@ -9875,3 +9883,10 @@ def photo_worker_run():
     t = threading.Thread(target=run_worker, daemon=True)
     t.start()
     return jsonify({'success': True, 'message': 'Worker uruchomiony w tle — odśwież stronę za chwilę'})
+
+
+@magazynier_bp.route('/photo-worker-log')
+def photo_worker_log():
+    """Zwraca ostatni log workera — do diagnostyki."""
+    global _worker_last_log, _worker_running
+    return f"<pre>running={_worker_running}\n\n{_worker_last_log or '(brak logu — kliknij Uruchom worker najpierw)'}</pre>"
