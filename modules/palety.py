@@ -225,12 +225,36 @@ def produkt_regenerate_meta_title(produkt_id):
             response.headers.add('Access-Control-Allow-Origin', request.host_url.rstrip('/'))
             return response
 
+        # Użyj pełnego tytułu z Amazon (scraped.nazwa) jeśli dostępny
+        asin = (produkt['asin'] or '').strip().upper()
+        scraped = None
+        if asin:
+            scraped = conn.execute(
+                'SELECT nazwa, tytul_seo, bullet_points FROM scraped WHERE asin = ?', (asin,)
+            ).fetchone()
+
+        # Jeśli jest już tytul_seo — użyj bezpośrednio bez AI
+        if scraped and scraped['tytul_seo'] and len(scraped['tytul_seo']) > 10:
+            meta_title = scraped['tytul_seo']
+            if len(meta_title) > 75:
+                meta_title = meta_title[:75].rsplit(' ', 1)[0]
+            conn.execute('UPDATE produkty SET meta_title = ? WHERE id = ?', (meta_title, produkt_id))
+            conn.commit()
+            response = jsonify({'success': True, 'meta_title': meta_title})
+            response.headers.add('Access-Control-Allow-Origin', request.host_url.rstrip('/'))
+            return response
+
+        # Preferuj pełny Amazon title nad krótką nazwą z bazy
+        amazon_nazwa = (scraped['nazwa'] if scraped and scraped['nazwa'] else '') or produkt['nazwa'] or ''
+        bullet_pts = (scraped['bullet_points'] if scraped and scraped['bullet_points'] else '')
+
         # Generuj meta_title
         from modules.smart_importer import generate_meta_title
         meta_title = generate_meta_title(
-            produkt_nazwa=produkt['nazwa'] or '',
+            produkt_nazwa=amazon_nazwa,
             produkt_ean=produkt['ean'] or '',
-            produkt_asin=produkt['asin'] or ''
+            produkt_asin=asin,
+            bullet_points=bullet_pts
         )
 
         if not meta_title:
@@ -327,12 +351,37 @@ def generate_meta_title_batch():
 
                 print(f"   → Nazwa z bazy: {produkt['nazwa'][:50]}...")
 
+                # Użyj pełnego tytułu z Amazon (scraped.nazwa) jeśli dostępny
+                _asin = (produkt['asin'] or '').strip().upper()
+                _scraped = None
+                if _asin:
+                    _scraped = conn.execute(
+                        'SELECT nazwa, tytul_seo, bullet_points FROM scraped WHERE asin = ?', (_asin,)
+                    ).fetchone()
+
+                # Jeśli jest już tytul_seo — użyj bezpośrednio
+                if _scraped and _scraped['tytul_seo'] and len(_scraped['tytul_seo']) > 10:
+                    _t = _scraped['tytul_seo']
+                    if len(_t) > 75:
+                        _t = _t[:75].rsplit(' ', 1)[0]
+                    conn.execute('UPDATE produkty SET meta_title = ? WHERE id = ?', (_t, product_id))
+                    conn.commit()
+                    results['generated'] += 1
+                    results['details'].append({'id': product_id, 'status': 'success', 'meta_title': _t})
+                    print(f"   ✓ Użyto tytul_seo ze scraped: {_t}")
+                    continue
+
+                _amazon_nazwa = (_scraped['nazwa'] if _scraped and _scraped['nazwa'] else '') or produkt['nazwa'] or ''
+                _bullet_pts = (_scraped['bullet_points'] if _scraped and _scraped['bullet_points'] else '')
+                print(f"   → Amazon title: {_amazon_nazwa[:60]}")
+
                 # Generuj meta_title
                 from modules.smart_importer import generate_meta_title
                 meta_title = generate_meta_title(
-                    produkt_nazwa=produkt['nazwa'] or '',
+                    produkt_nazwa=_amazon_nazwa,
                     produkt_ean=produkt['ean'] or '',
-                    produkt_asin=produkt['asin'] or ''
+                    produkt_asin=_asin,
+                    bullet_points=_bullet_pts
                 )
 
                 print(f"   ← Otrzymano meta_title: {meta_title[:75] if meta_title else 'BRAK'}")
