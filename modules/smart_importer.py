@@ -123,9 +123,10 @@ ZASADY:
 3. Rodzaj produktu ZAWSZE na początku (Smartwatch, Słuchawki, Etui, Kabel, Statyw, Ładowarka, Głośnik, Klawiatura, Mysz, Plecak, Lampa, Uchwyt, Filtr, Szczotka)
 4. Przetłumacz angielskie nazwy na polski (Case→Etui, Charger→Ładowarka, Headphones→Słuchawki, Stand→Stojak, Cover→Pokrowiec, Tripod→Statyw, Keyboard→Klawiatura, Mouse→Mysz, Speaker→Głośnik, Screen Protector→Szkło Ochronne, Cable→Kabel, Holder→Uchwyt, Brush→Szczotka, Backpack→Plecak, Wallet→Portfel, Lamp→Lampa)
 5. Używaj słów kluczowych które ludzie wyszukują na Allegro
-6. MAX 75 znaków, bez przecinków, tylko spacje
+6. MIN 40 znaków, MAX 75 znaków — wypełnij limit słowami kluczowymi
 7. BEZ stanu (Nowy/Używany/Powystawowy), BEZ ceny
 8. Każde słowo z wielkiej litery
+9. Jeśli nazwa krótka — dodaj: typ produktu, markę, model, cechy techniczne, zastosowanie
 
 PRZYKŁADY:
 "Samsung Galaxy Watch 4 44mm Bluetooth" → "Smartwatch Samsung Galaxy Watch 4 GPS NFC Pulsometr"
