@@ -315,14 +315,25 @@ function runWorker() {
     .then(function(d){
       if (d.success) {
         status.style.color = 'var(--sf-lime)';
-        status.textContent = d.message || 'Worker uruchomiony';
-        sfAlert(d.message || 'Worker uruchomiony — odśwież za chwilę', 'ok');
-        // Auto-refresh po 8s
-        setTimeout(function(){ window.location.reload(); }, 8000);
-        setTimeout(function(){
-          btn.disabled = false;
-          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px">play_arrow</span> ▶ Uruchom worker (przetwórz kolejkę)';
-        }, 5000);
+        status.textContent = 'Przetwarzam...';
+        // Auto-repeat co 12s dopóki są NEW joby
+        setTimeout(function checkAndRepeat(){
+          fetch('/magazyn/photo-stats').then(function(r){return r.json();}).then(function(st){
+            status.textContent = '✓ done: '+(st.done||0)+' | new: '+(st.new||0)+' | błędy: '+(st.error||0);
+            if ((st.new||0) > 0 && !st.worker_running) {
+              // Są jeszcze joby — odpal znowu
+              fetch('/magazyn/photo-worker-run', {method:'POST'})
+                .then(function(){ setTimeout(checkAndRepeat, 12000); });
+            } else if ((st.new||0) === 0) {
+              sfAlert('✅ Wszystkie zdjęcia przetworzone! done='+st.done, 'ok');
+              btn.disabled = false;
+              btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px">play_arrow</span> ▶ Uruchom worker (przetwórz kolejkę)';
+              setTimeout(function(){ window.location.reload(); }, 2000);
+            } else {
+              setTimeout(checkAndRepeat, 5000);
+            }
+          });
+        }, 12000);
       } else {
         status.style.color = 'var(--sf-pink)';
         status.textContent = d.error || 'Błąd';

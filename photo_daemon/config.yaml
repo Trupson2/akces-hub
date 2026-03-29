@@ -11,7 +11,7 @@ photo_daemon:
   status_host: "0.0.0.0"
 
   # Ograniczenia
-  max_jobs_per_run: 10
+  max_jobs_per_run: 50
   required_photo_count: 1
 
   # ComfyUI / external bg removal
