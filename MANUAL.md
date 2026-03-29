@@ -1,274 +1,329 @@
-# 📖 AKCES HUB - Instrukcja Użytkownika
+# 📖 AKCES HUB ENTERPRISE — Instrukcja Użytkownika
 
-## Przewodnik dla użytkownika końcowego
+> Wersja: marzec 2026 | Platforma: Raspberry Pi 5 + Flask + SQLite
 
 ---
 
-## 🚀 URUCHOMIENIE SYSTEMU:
+## 🚀 URUCHOMIENIE SYSTEMU
 
-### 1. Otwórz CMD/Terminal
 ```bash
-cd [folder_z_systemem]
-```
-
-### 2. Uruchom aplikację
-```bash
+cd ~/clean_v32
 python app.py
 ```
 
-### 3. Otwórz przeglądarkę
-```
-http://localhost:5000
-```
+Otwórz przeglądarkę: `http://localhost:5000` (lokalnie) lub przez ngrok (zdalnie).
 
-**WAŻNE:** Nie zamykaj okna CMD/Terminal - system musi działać w tle!
+**Nie zamykaj terminala** — app musi działać w tle. Możesz też ustawić autostart przez systemd.
 
 ---
 
 ## 📦 MODUŁ: PALETOMAT
 
-### Jak zaimportować paletę?
+### Import palety z Excela
 
-#### Krok 1: Przygotuj plik Excel
-```
-Kolumny które system rozumie:
-- Product Name / Nazwa
-- ASIN (Amazon)
-- EAN / Barcode
-- Quantity / Ilosc / Qty
-- Price / Cena / Cost
-```
+1. **Paletomat** → **Import Excel**
+2. Plik `.xlsx` z kolumnami: `Product Name`, `ASIN`, `EAN`, `Quantity`, `Price`
+3. Podaj nazwę palety, dostawcę, cenę zakupu
+4. System automatycznie:
+   - Scrapuje Amazon (tytuły, zdjęcia, parametry)
+   - Generuje wyceny AI
+   - Tworzy oferty Allegro (drafty)
 
-#### Krok 2: Import
-1. Kliknij **"Paletomat"** w menu
-2. **"Import Excel"**
-3. Wybierz plik
-4. Nazwij paletę (np. "Jobalots 03.02")
-5. Wybierz dostawcę
-6. Podaj cenę zakupu palety
-7. Kliknij **"Importuj"**
+### Generowanie ofert Allegro
 
-#### Krok 3: Scraping Amazon
-1. System automatycznie znajdzie produkty na Amazon
-2. Pobierze: tytuły, zdjęcia, parametry
-3. To zajmie 2-5 minut (zależnie od ilości)
-
-#### Krok 4: Generowanie ofert Allegro
-1. Kliknij **"Generuj oferty Allegro"**
-2. System stworzy wyceny (AI-powered)
-3. Możesz edytować ceny przed wystawieniem
+1. Wejdź w paletę → **Generuj oferty**
+2. Sprawdź/edytuj ceny
+3. **Wyślij do Allegro** → tworzy drafty w panelu Allegro
 
 ---
 
 ## 📍 MODUŁ: MAGAZYNIER
 
-### Jak przypisać lokalizację produktowi?
+### Lokalizacja produktu
 
-#### Metoda 1: Ręczna
-1. Wejdź w **"Magazynier"** → **"Palety"**
-2. Kliknij paletę
-3. Kliknij produkt
-4. **"Edytuj lokalizację"**
-5. Wybierz: Regal - Półka - Pozycja
-6. Zapisz
+**Ręcznie:** Magazynier → Palety → Produkt → Edytuj lokalizację → Regal / Półka / Pozycja
 
-#### Metoda 2: 3D (wizualna)
-1. **"Magazynier"** → **"3D Visualization"**
-2. Kliknij regał → półkę → pozycję
-3. Wybierz produkt z listy
-4. Kliknij **"Przypisz"**
+**Skaner:** Zeskanuj QR na etykiecie → otwiera kartę produktu w przeglądarce
 
-### Jak wydrukować etykietę QR?
+### Etykieta QR
 
-1. Wejdź w produkt (kliknij nazwę)
-2. **"Drukuj etykietę"**
-3. Wybierz drukarkę (Niimbot / Vretti)
-4. Kliknij **"Drukuj"**
+1. Wejdź w produkt
+2. **Drukuj etykietę** → wybierz drukarkę (Niimbot B1 / Vretti 420B)
+3. Etykieta zawiera: nazwę, lokalizację (A1-2-3), QR
 
-**Etykieta zawiera:**
-- Nazwa produktu
-- Lokalizacja (A1-2-3)
-- QR code (link do produktu w systemie)
+### Studio Foto 📸
 
-### Jak skanować QR?
+**Magazyn → Studio Foto** (`/magazyn/studio-foto`)
 
-1. **Metoda A:** Smartfon + kamera
-   - Zeskanuj QR
-   - Otwórz link → przejdzie do produktu
+- **Kolejka** — lista zleceń przetwarzania zdjęć z statusem (new / processing / done / error)
+- **Bez packshotu** — grid produktów bez przetworzonego zdjęcia
+- Kliknij **Dodaj do kolejki** → tworzy zlecenie dla photo daemona na Pi
+- **Zlec wszystkie** → masowe dodanie do kolejki
 
-2. **Metoda B:** Skaner bluetooth
-   - Sparuj skaner z komputerem
-   - Zeskanuj → system otworzy produkt
+Photo daemon (na Pi) odbiera zlecenia, usuwa tło przez ComfyUI + BiRefNet i generuje warianty:
+- `allegro_main` — 1200×1200 px
+- `vinted` — 800×800 px
+- `thumb` — 300×300 px
+
+Przy karcie każdego produktu widoczny jest badge statusu zdjęć.
 
 ---
 
-## 📊 MODUŁ: ANALYTICS
+## 📊 MODUŁ: ANALYTICS / DASHBOARD
 
 ### Co pokazuje Dashboard?
 
-**Karty główne:**
-- **Palety:** Łączna liczba palet
-- **Produkty:** Łączna liczba sztuk
-- **Wartość:** Suma wartości magazynu
-- **Sprzedane:** Wartość sprzedaży (msc/rok)
+| Karta | Opis |
+|-------|------|
+| Przychód dziś / msc | Sprzedaż Allegro (bez offline, bez kosztów dostawy) |
+| Produkty | Łączna liczba sztuk w magazynie |
+| Palety | Aktywne palety |
+| Wynik | Przychód − koszty palet − prowizja Allegro (11%) |
 
-**Wykresy:**
-- Sprzedaż dzienna/tygodniowa/miesięczna
-- Top 10 produktów
-- Flopy (produkty >60 dni bez ruchu)
+### Analityka
 
-**Statystyki dostawców:**
-- ROI per dostawca
-- Średnia marża
-- Najlepsze palety
+- Wykres sprzedaży miesięcznej
+- TOP produkty / flopy (>60 dni bez ruchu)
+- ROI per dostawca / paleta
+- Oszczędność czasu (AI tytułów, automatyzacje)
 
-### Jak policzyć ROI palety?
+### ROI Palety
 
-System robi to automatycznie:
 ```
 ROI = (Sprzedaż - Koszt zakupu) / Koszt zakupu × 100%
-
-Przykład:
-Paleta kosztowała: 1000 PLN
-Sprzedaż: 2500 PLN
-ROI = (2500 - 1000) / 1000 × 100% = 150%
 ```
+
+---
+
+## 🏆 MODUŁ: WINNING PRODUCTS
+
+**Analityka → Winning Products** (`/analityka/winning`)
+
+Automatyczna analiza bestsellerów Allegro — system ocenia produkty pod kątem potencjału sprzedażowego.
+
+### Jak używać
+
+1. Kliknij **🔄 Przelicz teraz**
+2. System pobiera oferty z Allegro i scoruje każdy produkt (5 składowych)
+3. Wyniki pojawiają się w tabeli posortowane od najlepszych
+
+### Scoring — 5 składowych
+
+| Składowa | Waga | Co mierzy |
+|----------|------|-----------|
+| Trend | 20% | Popularność (watchers, views, sprzedaż) |
+| Konkurencja | 15% | Nasycenie rynku, % Smart |
+| Marża | 35% | Szacowana marża vs koszty |
+| Dopasowanie | 20% | Pasuje do Twojego portfolio |
+| Zwroty | 10% | Ryzyko zwrotów dla tej kategorii |
+
+### Akcje per produkt
+
+- **🛒** — Dodaj do Listy Zakupów (panel na dole strony)
+- **📝** — Szkic oferty — modal z tytułem/kategorią/ceną gotowym do copy-paste + link do Allegro
+- **↗** — Otwórz podobną ofertę na Allegro
+- **✕** — Ignoruj (znika z listy, nie wraca po odświeżeniu)
+
+### Lista Zakupów
+
+Przycisk **🛒 Lista zakupów** (góra strony) otwiera panel z pozycjami:
+- Statusy: **Nowy → Zamówiony → Otrzymany → Pominięty**
+- Zmieniasz status przez dropdown
+
+### Konfiguracja
+
+Winning Products działa na domyślnych kategoriach Allegro (Elektronika, AGD, Dom).
+Aby ustawić własne kategorie — wklej ID kategorii z Allegro:
+
+```bash
+python -c "
+from modules.database import set_config
+import json
+# ID kategorii z URL np. allegro.pl/kategoria/xxx
+set_config('winning_categories', json.dumps(['258682', '257993']))
+"
+```
+
+**Wymagane:** Allegro API musi być zalogowane (Ustawienia → Allegro → Autoryzuj).
+
+**Cooldown:** 30 min między kolejnymi skanami (domyślnie). Skrócenie do testów:
+```bash
+python -c "from modules.database import set_config; set_config('winning_cooldown_minutes','1')"
+```
+
+---
+
+## 🚚 MODUŁ: WYSYŁKI
+
+**Wysyłki → Allegro** (`/wysylki/allegro`)
+
+### Widok zamówień
+
+Lista zamówień ze statusem `nowa` / `nadana`. Każde zamówienie pokazuje:
+- Produkty, lokalizację magazynową, zdjęcia
+- Badge: InPost / Orlen / DPD
+
+### Pakowanie (Scan-to-Pack)
+
+**Wysyłki → Skanuj** — stacja pakowania:
+1. Zeskanuj zamówienie
+2. System pokazuje co spakować + lokalizację
+3. Potwierdź → status zmienia się na `spakowane`
+
+### Nadawanie etykiet
+
+#### Pojedyncze zamówienie
+Kliknij **Nadaj** przy zamówieniu → etykieta PDF otwiera się w nowej karcie.
+
+#### Bulk — wiele naraz ✨ NOWE
+1. Zaznacz checkboxy przy zamówieniach
+2. Kliknij **📦 Nadaj zaznaczone** (w pasku bulk)
+3. Modal z progress barem — system nadaje sekwencyjnie:
+   - InPost / paczkomat → gabaryt B (domyślnie)
+   - Orlen Paczka → gabaryt M + auto-zamawia podjazd
+   - DPD / kurier → 30×25×15 cm, 1 kg
+4. Po zakończeniu: podsumowanie + **Drukuj etykiety** → otwiera każdą w nowej karcie
+
+#### Oznaczanie jako wysłane (bez etykiety)
+Zaznacz zamówienia → **Wyślij zaznaczone** → status `wyslana`, znikają z listy.
 
 ---
 
 ## 🛒 MODUŁ: ALLEGRO
 
-### Jak połączyć z Allegro?
+### Połączenie z Allegro API
 
-#### Krok 1: Rejestracja aplikacji
-1. Wejdź na [https://apps.developer.allegro.pl/](https://apps.developer.allegro.pl/)
-2. Zaloguj się
-3. **"Nowa aplikacja"**
-4. Wpisz dane:
-   - Nazwa: AkcesHub
-   - Redirect URL: `http://localhost:5000/allegro/callback`
-5. Zapisz **Client ID** i **Client Secret**
+1. [https://apps.developer.allegro.pl/](https://apps.developer.allegro.pl/) → Nowa aplikacja
+2. Redirect URL: `http://localhost:5000/allegro/callback` (lokalnie) lub ngrok URL
+3. Skopiuj **Client ID** i **Client Secret**
+4. **Ustawienia → Allegro API** → wklej dane → **Autoryzuj**
 
-#### Krok 2: Konfiguracja w systemie
-1. **"Ustawienia"** → **"Allegro API"**
-2. Wklej Client ID i Client Secret
-3. Kliknij **"Autoryzuj"**
-4. Zaloguj się na Allegro
-5. Potwierdź uprawnienia
-
-#### Krok 3: Test
-1. Wróć do systemu
-2. Status powinien pokazać: ✅ **Połączono**
-
-### Jak wystawić produkty?
-
-1. **"Paletomat"** → Wybierz paletę
-2. **"Generuj oferty Allegro"**
-3. Sprawdź ceny (możesz edytować)
-4. Kliknij **"Wyślij do Allegro"**
-5. System utworzy draft oferty
-6. Możesz je aktywować w panelu Allegro
+**Token wygasa co ~12h** — system auto-odświeża w tle. Jeśli coś nie działa, kliknij "Odśwież token".
 
 ---
 
-## 🔧 ROZWIĄZYWANIE PROBLEMÓW:
+## 📸 PHOTO DAEMON (Raspberry Pi 5)
 
-### System się nie uruchamia?
-```
-Sprawdź:
-1. Czy Python jest zainstalowany? (python --version)
-2. Czy zainstalowałeś zależności? (pip install -r requirements.txt)
-3. Czy port 5000 jest wolny? (zamknij inne programy)
-```
+Daemon działa w tle i przetwarza zdjęcia przez ComfyUI (RTX 3070 PC) z modelem BiRefNet.
 
-### Import Excel nie działa?
-```
-Sprawdź:
-1. Czy plik ma rozszerzenie .xlsx (nie .xls)?
-2. Czy kolumny mają odpowiednie nazwy?
-3. Czy dane są w pierwszym arkuszu?
-```
+### Uruchomienie
 
-### Scraping Amazon nie znajduje produktów?
-```
-Możliwe przyczyny:
-1. Błędny ASIN (sprawdź na Amazon)
-2. Produkt usunięty z Amazon
-3. Zablokowane połączenie (firewall/VPN)
+```bash
+# Watcher — skanuje folder INBOX/ co minutę
+python photo_daemon/photo_watcher.py
 
-Rozwiązanie:
-- Sprawdź ASIN ręcznie na Amazon.com/Amazon.co.uk
-- Dodaj produkt ręcznie jeśli scraping zawiedzie
+# Worker — przetwarza zlecenia z kolejki
+python photo_daemon/photo_worker.py
+
+# Panel statusu (port 5051)
+python photo_daemon/status_app.py
 ```
 
-### Drukarka etykiet nie działa?
+Lub przez cron:
 ```
-Sprawdź:
-1. Czy drukarka jest włączona?
-2. Czy jest połączona (USB/Bluetooth)?
-3. Czy zainstalowane sterowniki?
+* * * * * cd ~/clean_v32 && python photo_daemon/photo_watcher.py
+* * * * * cd ~/clean_v32 && python photo_daemon/photo_worker.py
+```
 
-Niimbot B1:
-- Bluetooth: sparuj w ustawieniach Windows
-- Adapter BT 5.0 zalecany
+### Jak działa
 
-Vretti 420B:
-- USB: powinno działać od razu
-- Sprawdź port COM w menedżerze urządzeń
+1. Wrzuć zdjęcie do `INBOX/` (nazwa = SKU produktu, np. `EAN123456.jpg`)
+2. Watcher wykrywa → tworzy zlecenie w DB
+3. Worker: orientacja EXIF → crop → enhance → ComfyUI (usuwanie tła) → 3 warianty
+4. Wyniki zapisywane w `processed_photos` + status produktu `images_ready=1`
+
+### Konfiguracja (`photo_daemon/config.yaml`)
+
+```yaml
+comfyui:
+  url: "http://192.168.1.x:8188"  # IP komputera z RTX 3070
+  mock_mode: false                # true = pomija ComfyUI (do testów)
+paths:
+  inbox: "/home/pi/INBOX"
+  db_path: "/home/pi/clean_v32/akces_hub.db"
 ```
 
 ---
 
-## ❓ FAQ:
+## 💰 MODUŁ: PODATKI / FINANSE
 
-**Q: Czy mogę używać na kilku komputerach?**  
-A: Tak, skopiuj folder z systemem. Baza SQLite jest przenośna.
+**Magazynier → Podatki** (`/magazyn/podatki`)
 
-**Q: Czy dane są bezpieczne?**  
-A: Tak, wszystko jest lokalnie na Twoim komputerze.
-
-**Q: Czy muszę mieć internet?**  
-A: Tak - do scrapingu Amazon i Allegro API.
-
-**Q: Ile kosztuje Allegro API?**  
-A: GRATIS! Nie ma opłat za korzystanie z Allegro API.
-
-**Q: Czy mogę eksportować dane?**  
-A: Tak, baza jest w formacie SQLite - możesz ją otworzyć dowolnym narzędziem.
-
-**Q: Co jeśli znajdę błąd?**  
-A: Skontaktuj się z dostawcą systemu (dane kontaktowe w umowie).
+Pokazuje przychód za **bieżący rok** (domyślnie 2026):
+- Sprzedaż Allegro (bez offline, bez kosztów dostawy)
+- Sprzedaż prywatna (kable, inne — z zakładki Sprzedaż Prywatna)
+- Prowizja Allegro (11%)
+- Szacunkowy podatek (ryczałt 3% dla palety zwrotów)
 
 ---
 
-## 📞 POMOC TECHNICZNA:
+## 🔧 ROZWIĄZYWANIE PROBLEMÓW
 
-**Kontakt z dostawcą:**  
-[DANE DOSTAWCY - wpisz przy instalacji]
+### Winning Products — 0 wyników
 
-**Dostępność:**  
-Pn-Pt: 9:00-18:00
+1. **Allegro token wygasł** → Ustawienia → Allegro → Odśwież token
+2. **Próg za wysoki** → przesuń suwak Min. Szansa na 0.00
+3. **Brak kategorii** → skonfiguruj ID kategorii Allegro (patrz sekcja Konfiguracja wyżej)
 
-**Czas reakcji:**  
-- Email: do 24h
-- Telefon: od razu (w godzinach pracy)
+### System się nie uruchamia
+
+```bash
+python --version          # Sprawdź Python 3.10+
+pip install -r requirements.txt
+lsof -i :5000             # Czy port jest zajęty?
+```
+
+### Import Excel nie działa
+
+- Plik musi być `.xlsx` (nie `.xls`)
+- Dane w pierwszym arkuszu
+- Kolumny: `Product Name`, `EAN`, `Quantity`, `Price`
+
+### Drukarka etykiet nie działa
+
+**Niimbot B1 (Bluetooth):**
+- Sparuj w ustawieniach systemowych
+- Sprawdź czy adapter BT 5.0 działa
+
+**Vretti 420B (USB):**
+- Sprawdź port COM (Menedżer urządzeń)
+- Spróbuj inny kabel USB
+
+### Photo Daemon nie przetwarza
+
+1. Sprawdź czy ComfyUI działa na PC: `http://192.168.1.x:8188`
+2. Sprawdź IP w `config.yaml`
+3. Ustaw `mock_mode: true` żeby testować bez ComfyUI
 
 ---
 
-## 🎓 SZKOLENIA:
+## ❓ FAQ
 
-**Podstawowe:** 1h (objęte ceną setupu)  
-**Zaawansowane:** 2-4h (opcjonalnie)
+**Q: Czy mogę używać na kilku komputerach?**
+A: Tak, baza SQLite jest przenośna. Jeden Pi = serwer, reszta przez przeglądarkę.
 
-**Tematy dodatkowe:**
-- Optymalizacja workflow
-- Zaawansowane funkcje magazynu
-- Integracje z innymi systemami
-- Własne raporty i statystyki
+**Q: Czy dane są bezpieczne?**
+A: Tak, wszystko lokalnie na Pi. Baza w `akces_hub.db`.
+
+**Q: Ile kosztuje Allegro API?**
+A: Bezpłatne.
+
+**Q: Jak sprawdzić logi błędów?**
+A: W terminalu gdzie uruchomiony `python app.py` — wszystkie print/logi są widoczne.
+
+**Q: Token Allegro wygasł — co zrobić?**
+A: Ustawienia → Allegro API → Odśwież token. Jeśli nie pomaga → Autoryzuj ponownie.
+
+**Q: Winning Products nie znajduje nic — dlaczego?**
+A: Najczęściej wygasły token Allegro lub zbyt wysoki próg. Ustaw suwak na 0.00 i odśwież token.
 
 ---
 
-**Powodzenia!** 🚀
+## 📞 POMOC TECHNICZNA
 
-System został zaprojektowany aby oszczędzać Twój czas.  
-Jeśli masz pytania - zawsze możesz skontaktować się z dostawcą!
+**Dostępność:** Pn–Pt 9:00–18:00
+**Email:** do 24h | **Telefon:** od razu (w godzinach pracy)
+
+---
+
+*AKCES HUB ENTERPRISE — oszczędza czas, automatyzuje workflow, zwiększa marże.*
