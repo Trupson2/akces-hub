@@ -355,7 +355,7 @@ def sprzedaze_lista():
 @sprzedaze_bp.route('/sprzedaze/zwrot/<int:sale_id>', methods=['POST'])
 def oznacz_zwrot(sale_id):
     """Oznacza sprzedaz jako zwrot"""
-    if not session.get('user'):
+    if not session.get('username'):
         return redirect('/auth/login')
     from modules.database import get_db
     conn = get_db()
@@ -369,7 +369,7 @@ def oznacz_zwrot(sale_id):
 @sprzedaze_bp.route('/sprzedaze/unzwrot/<int:sale_id>', methods=['POST'])
 def cofnij_zwrot(sale_id):
     """Cofa oznaczenie zwrotu"""
-    if not session.get('user'):
+    if not session.get('username'):
         return redirect('/auth/login')
     from modules.database import get_db
     conn = get_db()
