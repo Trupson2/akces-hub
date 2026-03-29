@@ -2587,10 +2587,25 @@ def generator():
         AND (p.nazwa LIKE 'Produkt %' OR s.nazwa LIKE 'Produkt %' OR s.nazwa IS NULL OR s.nazwa = '')
     """).fetchone()['cnt']
     if fallback_cnt > 0:
-        html += f'''<form method="POST" action="/paletomat/rescrape-all-fallback" style="width:100%">
+        html += f'''<form method="POST" action="/paletomat/rescrape-all-fallback" style="width:100%" id="rescrape-form"
+            onsubmit="
+                if(!confirm('Re-scrapować {fallback_cnt} produktów z brakującą nazwą? Może potrwać kilka minut.')) return false;
+                var btn = this.querySelector('button');
+                btn.disabled = true;
+                btn.innerHTML = '<span style=\\'animation:spin 1s linear infinite;display:inline-block\\'>⟳</span>&nbsp; Scrapuję... ({fallback_cnt} produktów)';
+                document.getElementById(\\'rescrape-overlay\\').style.display = \\'flex\\';
+                return true;">
             <input type="hidden" name="csrf_token" value="{generate_csrf()}">
-            <button type="submit" class="btn" style="width:100%;padding:12px;background:rgba(143,245,255,0.1);border:1px solid rgba(143,245,255,0.2);color:#8ff5ff;display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.72rem"
-            onclick="return confirm('Re-scrapować {fallback_cnt} produktów z brakującą nazwą?')"><span class=material-symbols-outlined>sync</span> POBIERZ NAZWY ({fallback_cnt})</button></form>'''
+            <button type="submit" class="btn" style="width:100%;padding:12px;background:rgba(143,245,255,0.1);border:1px solid rgba(143,245,255,0.2);color:#8ff5ff;display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.72rem">
+                <span class=material-symbols-outlined>sync</span> POBIERZ NAZWY ({fallback_cnt})
+            </button>
+        </form>
+        <div id="rescrape-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:20px">
+            <div style="width:60px;height:60px;border:4px solid rgba(143,245,255,0.2);border-top:4px solid #8ff5ff;border-radius:50%;animation:spin 1s linear infinite"></div>
+            <div style="color:#8ff5ff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;letter-spacing:0.1em">SCRAPUJĘ AMAZON...</div>
+            <div style="color:#adaaad;font-size:0.8rem">{fallback_cnt} produktów · może potrwać kilka minut</div>
+        </div>
+        <style>@keyframes spin{{from{{transform:rotate(0deg)}}to{{transform:rotate(360deg)}}}}</style>'''
 
     html += '''
         </div>
