@@ -1162,6 +1162,16 @@ def produkt(code):
         __setattr__ = dict.__setitem__
     p_obj = DotDict(p)
 
+    # Przetworzone zdjęcia (Studio Foto)
+    processed_photos = []
+    try:
+        processed_photos = [dict(r) for r in conn.execute(
+            "SELECT variant, path FROM processed_photos WHERE product_id=? ORDER BY variant",
+            (p['id'],)
+        ).fetchall()]
+    except Exception:
+        pass
+
     return render_template('produkt_detail.html',
         p=p_obj,
         historia=historia,
@@ -1179,7 +1189,8 @@ def produkt(code):
         prowizja_rate=_prowizja_rate,
         prowizja_kwota=_prowizja_kwota,
         brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
-        current_user=session.get('user')
+        current_user=session.get('user'),
+        processed_photos=processed_photos,
     )
 
 # -- Old inline HTML removed, now in templates/produkt_detail.html --
@@ -9883,6 +9894,30 @@ def photo_worker_run():
     t = threading.Thread(target=run_worker, daemon=True)
     t.start()
     return jsonify({'success': True, 'message': 'Worker uruchomiony w tle — odśwież stronę za chwilę'})
+
+
+@magazynier_bp.route('/photo-file/<int:product_id>/<variant>')
+def photo_file(product_id, variant):
+    """Serwuje przetworzony plik zdjęcia (allegro_main / vinted / thumb)."""
+    import os
+    from flask import send_file, abort
+    conn = get_db()
+    allowed = {'allegro_main', 'vinted', 'thumb'}
+    if variant not in allowed:
+        abort(404)
+    try:
+        row = conn.execute(
+            "SELECT path FROM processed_photos WHERE product_id=? AND variant=? ORDER BY id DESC LIMIT 1",
+            (product_id, variant)
+        ).fetchone()
+        if not row:
+            abort(404)
+        path = row['path']
+        if not os.path.exists(path):
+            abort(404)
+        return send_file(path, mimetype='image/jpeg')
+    except Exception:
+        abort(404)
 
 
 @magazynier_bp.route('/photo-worker-log')

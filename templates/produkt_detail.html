@@ -253,20 +253,34 @@
             </div>
         </div>
 
-        <!-- PHOTO STATUS BADGE -->
+        <!-- PHOTO STATUS + GALLERY -->
+        {% if processed_photos %}
+        <div style="margin-bottom:10px">
+            <div style="font-size:0.65rem;color:#8ff5ff;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+                <span class="material-symbols-outlined" style="font-size:0.9rem">photo_camera</span>
+                Przetworzone packshoty — Studio Foto
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+                {% for ph in processed_photos %}
+                <a href="/magazyn/photo-file/{{ p.id }}/{{ ph.variant }}" target="_blank" style="display:block;text-decoration:none">
+                    <img src="/magazyn/photo-file/{{ p.id }}/{{ ph.variant }}"
+                         style="width:100%;aspect-ratio:1;object-fit:contain;background:#fff;display:block"
+                         onerror="this.parentElement.style.display='none'"
+                         alt="{{ ph.variant }}">
+                    <div style="font-size:0.6rem;color:#64748b;text-align:center;margin-top:3px;text-transform:uppercase">{{ ph.variant.replace('_',' ') }}</div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
         <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(10,10,22,0.5);border:1px solid rgba(255,255,255,0.05);margin-bottom:10px;font-size:0.75rem">
             <div style="display:flex;align-items:center;gap:8px">
-                <span class="material-symbols-outlined" style="font-size:1rem;color:{% if p.images_ready %}#beee00{% else %}#64748b{% endif %}">photo_camera</span>
-                <span style="color:{% if p.images_ready %}#beee00{% else %}#64748b{% endif %}">
-                    {% if p.images_ready %}
-                        ✓ Zdjęcia przetworzone
-                    {% else %}
-                        Brak przetworzonego packshotu
-                    {% endif %}
-                </span>
+                <span class="material-symbols-outlined" style="font-size:1rem;color:#64748b">photo_camera</span>
+                <span style="color:#64748b">Brak przetworzonego packshotu</span>
             </div>
             <a href="/magazyn/studio-foto" style="font-size:0.68rem;color:#8ff5ff;text-decoration:none;padding:3px 10px;border:1px solid rgba(143,245,255,0.2);background:rgba(143,245,255,0.05)">Studio Foto →</a>
         </div>
+        {% endif %}
 
         <!-- QUICK ACTIONS -->
         <div class="pd-quick">
