@@ -67,8 +67,8 @@
 {% if photos %}
 <div class="gal-grid">
   {% for ph in photos %}
-  <div class="gal-card" onclick="openLightbox('/magazyn/photo-file/{{ ph.product_id }}/{{ ph.variant }}', '{{ (ph.nazwa or '')|replace("'","") }}', {{ ph.product_id }})">
-    <img src="/magazyn/photo-file/{{ ph.product_id }}/{{ ph.variant }}"
+  <div class="gal-card" onclick="openLightbox('/magazyn/photo-by-id/{{ ph.id }}', '{{ (ph.nazwa or '')|replace("'","\\'")|replace('"','') }}', {{ ph.product_id }})">
+    <img src="/magazyn/photo-by-id/{{ ph.id }}"
          loading="lazy"
          onerror="this.parentElement.style.opacity='0.3'"
          alt="{{ ph.nazwa or '' }}">

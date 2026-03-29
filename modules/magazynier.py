@@ -9779,37 +9779,112 @@ def studio_foto():
     )
 
 
+def _scrape_amazon_images(asin: str, zdjecie_url: str = '') -> list:
+    """
+    Pobiera wszystkie zdjęcia produktu Amazon po ASIN.
+    Zwraca listę URL (max 8). Fallback: [zdjecie_url] jeśli scraping się nie uda.
+    """
+    import re, requests as _req
+
+    if not asin or len(asin) < 8:
+        return [zdjecie_url] if zdjecie_url else []
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept': 'text/html,application/xhtml+xml',
+    }
+
+    # Próbuj różne domeny Amazon
+    for domain in ['amazon.com', 'amazon.de', 'amazon.co.uk', 'amazon.com.be']:
+        try:
+            url = f'https://www.{domain}/dp/{asin}'
+            resp = _req.get(url, headers=headers, timeout=10, allow_redirects=True)
+            if resp.status_code != 200:
+                continue
+
+            html = resp.text
+
+            # Metoda 1: hiRes images z colorImages JSON
+            hi_res = re.findall(r'"hiRes"\s*:\s*"(https://[^"]+\.jpg[^"]*)"', html)
+            if hi_res:
+                seen = []
+                for u in hi_res:
+                    # Zamień _SL75_ / _SY88_ itp. na _SL1500_ (max jakość)
+                    clean = re.sub(r'\._[A-Z]{2}\d+_', '._AC_SL1500_', u)
+                    if clean not in seen:
+                        seen.append(clean)
+                if seen:
+                    return seen[:8]
+
+            # Metoda 2: large images
+            large = re.findall(r'"large"\s*:\s*"(https://[^"]+\.jpg[^"]*)"', html)
+            if large:
+                seen = list(dict.fromkeys(large))
+                return seen[:8]
+
+            # Metoda 3: data-old-hires attribute
+            old_hires = re.findall(r'data-old-hires="(https://[^"]+)"', html)
+            if old_hires:
+                return list(dict.fromkeys(old_hires))[:8]
+
+        except Exception:
+            continue
+
+    # Fallback: oryginalne zdjęcie
+    return [zdjecie_url] if zdjecie_url else []
+
+
 @magazynier_bp.route('/photo-request/<int:product_id>', methods=['POST'])
 def photo_request(product_id):
-    """Tworzy zlecenie przetworzenia zdjęcia dla produktu."""
+    """
+    Tworzy zlecenia przetworzenia zdjęć dla produktu.
+    Scrape Amazon po ASIN żeby pobrać wszystkie zdjęcia (do 8 szt).
+    """
     conn = get_db()
     try:
-        p = conn.execute("SELECT id, ean, nazwa, zdjecie_url FROM produkty WHERE id=?", (product_id,)).fetchone()
+        p = conn.execute("SELECT id, ean, asin, nazwa, zdjecie_url FROM produkty WHERE id=?", (product_id,)).fetchone()
         if not p:
             return jsonify({'success': False, 'error': 'Produkt nie znaleziony'}), 404
 
         now = __import__('datetime').datetime.now().isoformat(sep=' ', timespec='seconds')
-        img_url = p['zdjecie_url'] or ''
 
         # Sprawdź czy jest już aktywny job dla tego produktu
-        existing = conn.execute(
-            "SELECT id, status FROM photo_jobs WHERE product_id=? AND status IN ('new','processing') LIMIT 1",
+        existing_count = conn.execute(
+            "SELECT COUNT(*) FROM photo_jobs WHERE product_id=? AND status IN ('new','processing')",
             (product_id,)
-        ).fetchone()
-        if existing:
+        ).fetchone()[0]
+        if existing_count > 0:
             return jsonify({
                 'success': False,
-                'error': f'Produkt ma już aktywne zlecenie (status: {existing["status"]})',
-                'job_id': existing['id']
+                'error': f'Produkt ma już {existing_count} aktywnych zleceń',
             }), 409
 
-        conn.execute(
-            """INSERT INTO photo_jobs (original_path, product_id, sku, status, created_at, updated_at)
-               VALUES (?, ?, ?, 'new', ?, ?)""",
-            (img_url, product_id, p['ean'], now, now)
-        )
+        # Pobierz wszystkie zdjęcia Amazon
+        asin = p['asin'] or ''
+        zdjecie_url = p['zdjecie_url'] or ''
+
+        img_urls = _scrape_amazon_images(asin, zdjecie_url)
+        if not img_urls:
+            return jsonify({'success': False, 'error': 'Brak URL zdjęcia dla produktu'}), 400
+
+        added = 0
+        for img_url in img_urls:
+            if not img_url:
+                continue
+            conn.execute(
+                """INSERT INTO photo_jobs (original_path, product_id, sku, status, created_at, updated_at)
+                   VALUES (?, ?, ?, 'new', ?, ?)""",
+                (img_url, product_id, p['ean'], now, now)
+            )
+            added += 1
+
         conn.commit()
-        return jsonify({'success': True, 'message': f'Zlecenie przetworzenia zdjęcia dla "{p["nazwa"]}" dodane do kolejki'})
+        return jsonify({
+            'success': True,
+            'message': f'Dodano {added} zleceń dla "{p["nazwa"]}" ({added} zdjęć Amazon)',
+            'count': added,
+        })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -9896,6 +9971,21 @@ def photo_worker_run():
     return jsonify({'success': True, 'message': 'Worker uruchomiony w tle — odśwież stronę za chwilę'})
 
 
+@magazynier_bp.route('/photo-by-id/<int:photo_id>')
+def photo_by_id(photo_id):
+    """Serwuje przetworzony plik zdjęcia po ID rekordu processed_photos."""
+    import os
+    from flask import send_file, abort
+    conn = get_db()
+    try:
+        row = conn.execute("SELECT path FROM processed_photos WHERE id=?", (photo_id,)).fetchone()
+        if not row or not os.path.exists(row['path']):
+            abort(404)
+        return send_file(row['path'], mimetype='image/jpeg')
+    except Exception:
+        abort(404)
+
+
 @magazynier_bp.route('/photo-file/<int:product_id>/<variant>')
 def photo_file(product_id, variant):
     """Serwuje przetworzony plik zdjęcia (allegro_main / vinted / thumb)."""
@@ -9945,18 +10035,17 @@ def studio_foto_galeria():
             params += [f'%{search}%', f'%{search}%', f'%{search}%']
 
         total = conn.execute(
-            f"SELECT COUNT(DISTINCT pp.product_id) FROM processed_photos pp LEFT JOIN produkty p ON pp.product_id=p.id {where}",
+            f"SELECT COUNT(*) FROM processed_photos pp LEFT JOIN produkty p ON pp.product_id=p.id {where}",
             params
         ).fetchone()[0]
 
         rows = conn.execute(
-            f"""SELECT pp.product_id, pp.path, pp.variant, pp.created_at,
+            f"""SELECT pp.id, pp.product_id, pp.path, pp.variant, pp.job_id, pp.created_at,
                        p.nazwa, p.ean, p.kod_magazynowy, p.status, p.ilosc
                 FROM processed_photos pp
                 LEFT JOIN produkty p ON pp.product_id = p.id
                 {where}
-                GROUP BY pp.product_id
-                ORDER BY pp.created_at DESC
+                ORDER BY pp.product_id DESC, pp.id ASC
                 LIMIT ? OFFSET ?""",
             params + [per_page, page * per_page]
         ).fetchall()
