@@ -1,0 +1,97 @@
+photo_daemon:
+  # Ścieżki do katalogu bazowego
+  db_path: "/home/pi/akces-hub/akces_hub.db"
+  inbox_path: "/home/pi/akces-hub/photo_daemon/storage/inbox"
+  originals_path: "/home/pi/akces-hub/photo_daemon/storage/originals"
+  workdir_path: "/home/pi/akces-hub/photo_daemon/storage/workdir"
+  processed_base_path: "/home/pi/akces-hub/photo_daemon/storage/processed"
+
+  # Status panel Flask
+  status_port: 5051
+  status_host: "0.0.0.0"
+
+  # Ograniczenia
+  max_jobs_per_run: 10
+  required_photo_count: 1
+
+  # ComfyUI / external bg removal
+  external_api:
+    type: "comfyui"                              # comfyui | mock
+    url: "http://192.168.1.100:8188"             # ComfyUI na RTX 3070 PC
+    workflow_file: "workflows/bg_remove.json"    # Ścieżka do workflow JSON (relative to photo_daemon/)
+    output_node_id: "9"                          # ID noda SaveImage w workflow
+    timeout_s: 60                                # Max czas oczekiwania na wynik
+    poll_interval_s: 2                           # Co ile sekund pollować /history
+    mock_mode: true                              # true = pomiń bg removal, użyj oryginału
+
+  # Przetwarzanie obrazu
+  processing:
+    target_aspect_ratio: "1:1"                   # Docelowy aspect ratio
+    crop_enabled: true                           # Czy robić crop
+    brightness: 1.05                             # Jasność (1.0 = bez zmiany)
+    contrast: 1.10                               # Kontrast (1.0 = bez zmiany)
+    allegro_size: [1200, 1200]                   # Rozmiar wariantu Allegro
+    vinted_size: [800, 800]                      # Rozmiar wariantu Vinted
+    thumb_size: [300, 300]                       # Rozmiar miniatury
+    jpeg_quality: 90                             # Jakość JPEG (0-95)
+    vinted_quality: 85
+    thumb_quality: 80
+
+  # Logowanie
+  log_level: "INFO"                              # DEBUG | INFO | WARNING | ERROR
+
+winning_products:
+  enabled: true
+  niches:
+    - pet
+    - home_office
+    - home
+    - comfort
+    - auto
+
+  categories:
+    pet:         ["261798", "36785"]   # Allegro category IDs for pet
+    home_office: ["258682", "257993"]
+    home:        ["5816", "259898"]
+    comfort:     ["257840", "3588"]
+    auto:        ["2"]
+
+  min_price: 20
+  max_price: 2000
+  max_results_per_category: 50
+  cooldown_minutes: 30
+  min_opportunity_score: 0.35
+
+  weights:
+    trend:       0.20
+    competition: 0.15
+    margin:      0.35
+    fit:         0.20
+    return:      0.10
+
+  thresholds:
+    # margin thresholds
+    margin_excellent: 0.35
+    margin_good:      0.25
+    margin_ok:        0.15
+    # volume thresholds per niche
+    pet_volume_high:          300
+    pet_volume_med:           100
+    home_office_volume_high:  500
+    home_office_volume_med:   200
+    home_volume_high:         400
+    home_volume_med:          150
+    auto_volume_high:         200
+    auto_volume_med:          80
+    comfort_volume_high:      300
+    comfort_volume_med:       100
+    # costs
+    allegro_commission:  0.08
+    shipping_cost_pln:   12.0
+    packaging_cost_pln:  2.0
+    # cost ratios by niche
+    cost_ratio_pet:         0.45
+    cost_ratio_home_office: 0.40
+    cost_ratio_home:        0.38
+    cost_ratio_comfort:     0.42
+    cost_ratio_auto:        0.48
