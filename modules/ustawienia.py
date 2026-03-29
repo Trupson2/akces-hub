@@ -115,6 +115,8 @@ def ustawienia_kreator():
         'support_info': get_config('support_info', ''),
         'rembg_vps_url': get_config('rembg_vps_url', ''),
         'rembg_vps_key': get_config('rembg_vps_key', ''),
+        'notion_token': get_config('notion_token', ''),
+        'notion_database_id': get_config('notion_database_id', ''),
     }
 
     def status_dot(key):
@@ -132,6 +134,7 @@ def ustawienia_kreator():
         ('ngrok_auth_token', 'Ngrok'),
         ('olx_client_id', 'OLX'),
         ('rembg_vps_url', 'Rembg VPS'),
+        ('notion_token', 'Notion'),
     ]
     status_items = [(status_dot(k), name) for k, name in integrations]
 
@@ -243,6 +246,15 @@ def ustawienia_kreator():
             'fields': [
                 {'name': 'rembg_vps_url', 'label': 'URL serwera', 'type': 'text', 'placeholder': 'http://123.45.67.89:5050'},
                 {'name': 'rembg_vps_key', 'label': 'Klucz API (opcjonalny)', 'type': 'password', 'placeholder': 'Tajny klucz (REMBG_API_KEY na VPS)'},
+            ]
+        },
+        {
+            'key': 'notion_token', 'icon': '<span class=material-symbols-outlined>checklist</span>', 'title': 'Notion — Daily Tasks',
+            'hint': 'Stworz integracje na <a href="https://www.notion.so/my-integrations" target="_blank" style="color:var(--accent)">notion.so/my-integrations</a>, nadaj dostep do bazy, wklej Database ID z URL strony.',
+            'always_closed': True,
+            'fields': [
+                {'name': 'notion_token', 'label': 'Integration Token (Secret)', 'type': 'password', 'placeholder': 'secret_...'},
+                {'name': 'notion_database_id', 'label': 'Database ID', 'type': 'text', 'placeholder': 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'},
             ]
         },
     ]
@@ -526,6 +538,7 @@ def ustawienia_kreator_save():
         'olx_client_id', 'olx_client_secret', 'olx_redirect_uri',
         'support_email', 'support_phone', 'support_info',
         'rembg_vps_url', 'rembg_vps_key',
+        'notion_token', 'notion_database_id',
     ]
 
     saved = 0
