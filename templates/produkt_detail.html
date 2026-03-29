@@ -417,6 +417,11 @@
                 style="padding:5px 12px;background:rgba(190,238,0,0.10);border:1px solid rgba(190,238,0,0.25);color:#beee00;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:0.9rem">call_split</span> Zmien rozbicie</button>
         </div>
         <div id="sztukiKarty"></div>
+        <div id="sztukiBulkBtn" style="display:none;padding:8px 14px;border-top:1px solid rgba(255,255,255,0.05)">
+            <a id="sztukiZipLink" href="#" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(255,107,155,0.12);border:1px solid rgba(255,107,155,0.3);color:#ff6b9b;font-size:0.8rem;font-weight:600;text-decoration:none">
+                <span class="material-symbols-outlined" style="font-size:1rem">label</span> Etykiety po klasie
+            </a>
+        </div>
     </div>
 
     <!-- GPSR MODAL -->
@@ -638,6 +643,12 @@ async function ladujSztuki() {
     }
     sekcja.style.display = 'block';
     karty.innerHTML = d.sztuki.map(s => renderKartaSztuki(s)).join('');
+    const bulkBtn = document.getElementById('sztukiBulkBtn');
+    const zipLink = document.getElementById('sztukiZipLink');
+    if (bulkBtn && zipLink && d.sztuki.length > 1) {
+        zipLink.href = '/magazyn/etykiety/produkt/' + PROD_ID + '/klasy';
+        bulkBtn.style.display = 'block';
+    }
 }
 
 function renderKartaSztuki(s) {
@@ -666,6 +677,7 @@ function renderKartaSztuki(s) {
         </select>
         <div style="flex:1"></div>
         ${!zdjecieSrc && wymaga_foto ? `<label for="foto_${s.id}" style="cursor:pointer;color:#f59e0b" title="Dodaj zdjecie stanu"><span class="material-symbols-outlined" style="font-size:1.1rem">photo_camera</span></label><input type="file" id="foto_${s.id}" accept="image/*" capture="environment" style="display:none" onchange="uploadZdjecie(${s.id}, this)">` : ''}
+        <a href="/magazyn/etykiety/sztuka/${s.id}/png" download="etykieta_${s.numer}_${klasa}.png" style="color:#ff6b9b;padding:2px;line-height:1" title="Pobierz etykietę dla tej sztuki (${klasa}/${s.stan})"><span class="material-symbols-outlined" style="font-size:1.1rem">label</span></a>
         <button onclick="toggleNotatka(${s.id})" style="background:none;border:none;color:${hasNote?'#8ff5ff':'#334155'};cursor:pointer;padding:2px" title="${hasNote ? s.opis_naprawy.substring(0,50) : 'Dodaj notatke'}"><span class="material-symbols-outlined" style="font-size:1.1rem">edit_note</span></button>
     </div>
     <div id="notatka_wrap_${s.id}" style="display:none;padding:4px 10px 8px 38px">
