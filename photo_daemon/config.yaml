@@ -1,10 +1,10 @@
 photo_daemon:
   # Ścieżki do katalogu bazowego
-  db_path: "/home/pi/akces-hub/akces_hub.db"
-  inbox_path: "/home/pi/akces-hub/photo_daemon/storage/inbox"
-  originals_path: "/home/pi/akces-hub/photo_daemon/storage/originals"
-  workdir_path: "/home/pi/akces-hub/photo_daemon/storage/workdir"
-  processed_base_path: "/home/pi/akces-hub/photo_daemon/storage/processed"
+  db_path: "/home/pi/clean_v32/akces_hub.db"
+  inbox_path: "/home/pi/clean_v32/photo_daemon/storage/inbox"
+  originals_path: "/home/pi/clean_v32/photo_daemon/storage/originals"
+  workdir_path: "/home/pi/clean_v32/photo_daemon/storage/workdir"
+  processed_base_path: "/home/pi/clean_v32/photo_daemon/storage/processed"
 
   # Status panel Flask
   status_port: 5051
