@@ -279,22 +279,42 @@ def block_unauthenticated_external():
 
 @app.before_request
 def csrf_protect_forms():
-    """CSRF dla formularzy HTML — waliduj TYLKO gdy token jest obecny w formularzu.
-    Formularze z csrf_token sa chronione; reszta (legacy, upload, API) przechodzi."""
-    if request.method in ('POST', 'PUT', 'DELETE', 'PATCH'):
-        # Login nie wymaga CSRF — chroniony rate limiterem, a sesja moze byc wygasla
-        if request.path in ('/auth/login', '/auth/setup', '/setup'):
-            return
-        # Waliduj CSRF TYLKO jesli formularz faktycznie zawiera csrf_token
-        if request.form.get('csrf_token'):
-            try:
-                csrf.protect()
-            except Exception:
-                # Token mismatch — odnów token i pozwól użytkownikowi spróbować ponownie
-                from flask_wtf.csrf import generate_csrf
-                generate_csrf()
-                from flask import abort
-                abort(400, 'CSRF token wygasł. Odśwież stronę i spróbuj ponownie.')
+    """CSRF dla formularzy HTML i JSON fetch.
+    - Form POST od zalogowanego: wymaga csrf_token w formularzu
+    - JSON POST od zalogowanego: wymaga X-CSRFToken header
+    - Niezalogowany / API webhooks: skip (chronione przez auth middleware)
+    """
+    if request.method not in ('POST', 'PUT', 'DELETE', 'PATCH'):
+        return
+    # Login/setup nie wymaga CSRF — sesja może być wygasła
+    if request.path in ('/auth/login', '/auth/setup', '/setup'):
+        return
+    # Tylko zalogowani użytkownicy muszą mieć CSRF (zewnętrzne API webhooks nie mają sesji)
+    if not session.get('user'):
+        return
+    ct = request.content_type or ''
+    if 'application/json' in ct:
+        # Fetch/AJAX — sprawdź X-CSRFToken header
+        token = request.headers.get('X-CSRFToken') or request.headers.get('X-CSRF-Token')
+        if not token:
+            return  # JSON bez nagłówka — przepuść (mniej podatne, Content-Type blokuje cross-origin)
+        try:
+            from flask_wtf.csrf import validate_csrf
+            validate_csrf(token)
+        except Exception:
+            from flask import abort
+            abort(400, 'CSRF token nieprawidłowy. Odśwież stronę.')
+    else:
+        # Formularz HTML — wymagaj csrf_token
+        if not request.form.get('csrf_token'):
+            return  # Stare legacy endpointy bez tokena — przepuść, ale loguj
+        try:
+            csrf.protect()
+        except Exception:
+            from flask_wtf.csrf import generate_csrf
+            generate_csrf()
+            from flask import abort
+            abort(400, 'CSRF token wygasł. Odśwież stronę i spróbuj ponownie.')
 
 # Sprawdzanie licencji
 @app.before_request
@@ -602,6 +622,9 @@ app.register_blueprint(wysylki_bp)
 
 from modules.analityka import analityka_bp
 app.register_blueprint(analityka_bp)
+
+from modules.winning_products import winning_bp
+app.register_blueprint(winning_bp)
 
 from modules.ustawienia import ustawienia_bp
 app.register_blueprint(ustawienia_bp)
@@ -1436,10 +1459,10 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
 
     sypie_row = conn.execute('''
         SELECT
-            SUM(CASE WHEN date(data_sprzedazy) = ? AND status NOT IN ('zwrot','anulowane','anulowana') THEN 1 ELSE 0 END) as dzis_cnt,
-            COALESCE(SUM(CASE WHEN date(data_sprzedazy) = ? AND status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc + COALESCE(koszt_dostawy, 0) ELSE 0 END), 0) as dzis_suma,
-            SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana') THEN 1 ELSE 0 END) as msc_cnt,
-            COALESCE(SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc + COALESCE(koszt_dostawy, 0) ELSE 0 END), 0) as msc_suma
+            SUM(CASE WHEN date(data_sprzedazy) = ? AND status NOT IN ('zwrot','anulowane','anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline') THEN 1 ELSE 0 END) as dzis_cnt,
+            COALESCE(SUM(CASE WHEN date(data_sprzedazy) = ? AND status NOT IN ('zwrot','anulowane','anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline') THEN cena * ilosc ELSE 0 END), 0) as dzis_suma,
+            SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline') THEN 1 ELSE 0 END) as msc_cnt,
+            COALESCE(SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline') THEN cena * ilosc ELSE 0 END), 0) as msc_suma
         FROM sprzedaze
         WHERE date(data_sprzedazy) >= ?
 
@@ -2341,7 +2364,7 @@ def subscription_expired_page():
 
     if lic:
         plan_raw = (lic.get('plan', '') or '').upper()
-        plan_labels = {'STARTER': 'TRIAL', 'PRO': 'PRO', 'BUSINESS': 'MAX', 'ENTERPRISE': 'ENTERPRISE'}
+        plan_labels = {'STARTER': 'TRIAL', 'TRIAL': 'TRIAL', 'PRO': 'PRO', 'BUSINESS': 'MAX', 'MAX': 'MAX', 'ENTERPRISE': 'ENTERPRISE'}
         plan_name = plan_labels.get(plan_raw, plan_raw)
         expires_ts = lic.get('expires', 0)
         if expires_ts and expires_ts > 0:
@@ -2442,7 +2465,7 @@ def narzedzia_licencje():
             import time as _time
             created = int(_time.time())
             expires = created + (duration_val * 24 * 3600)
-            plan_code = {'starter': 'S', 'pro': 'P', 'business': 'B', 'enterprise': 'E'}.get(plan, 'P')
+            plan_code = {'trial': 'T', 'pro': 'P', 'max': 'M', 'enterprise': 'E'}.get(plan, 'P')
             import hmac as _hmac, hashlib as _hl
             from modules.license import LICENSE_SECRET
             payload = f"{client}|{plan_code}|{created}|{expires}"
@@ -2600,7 +2623,7 @@ def admin_subscriptions():
             exp_str = 'Bezterminowo'
 
         plan_raw = (r['plan'] or 'pro').upper()
-        plan_labels = {'STARTER': 'TRIAL', 'PRO': 'PRO', 'BUSINESS': 'MAX', 'ENTERPRISE': 'ENTERPRISE'}
+        plan_labels = {'STARTER': 'TRIAL', 'TRIAL': 'TRIAL', 'PRO': 'PRO', 'BUSINESS': 'MAX', 'MAX': 'MAX', 'ENTERPRISE': 'ENTERPRISE'}
         plan_display = plan_labels.get(plan_raw, plan_raw)
 
         licenses.append({
@@ -2777,7 +2800,8 @@ def api_license_verify():
         })
 
     except Exception as e:
-        return jsonify({'valid': False, 'error': str(e)[:200]}), 500
+        print(f"[ERR] License verify: {e}")
+        return jsonify({'valid': False, 'error': 'Błąd weryfikacji'}), 500
 
 
 # ============================================================
@@ -4536,7 +4560,8 @@ def goal_subtract():
         
     except Exception as e:
         import traceback
-        return '<html><body style="background:#000;color:#fff;padding:20px"><h1>ERROR:</h1><pre>' + str(e) + '\n\n' + traceback.format_exc() + '</pre></body></html>', 500
+        traceback.print_exc()  # Log to server only
+        return '<html><body style="background:#000;color:#fff;padding:20px"><h1>Wystąpił błąd serwera</h1><p>Szczegóły zapisane w logach.</p></body></html>', 500
 
 # ============================================================
 # EXTRAKTOR ALLEGRO - REGENERUJ META TITLE
@@ -4696,7 +4721,8 @@ def api_check_sales():
         return jsonify({'success': True, 'synced': synced, 'new_sales': sales_list})
         
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e), 'new_sales': []})
+        print(f"[ERR] Sales sync: {e}")
+        return jsonify({'success': False, 'error': 'Błąd synchronizacji', 'new_sales': []})
 
 @app.route('/api/notify', methods=['POST'])
 def api_notify():
@@ -4919,8 +4945,8 @@ def poziom_page():
 
     row = conn.execute('''
         SELECT
-            COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? AND status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc + COALESCE(koszt_dostawy, 0) ELSE 0 END), 0) as rok,
-            COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? AND status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc + COALESCE(koszt_dostawy, 0) ELSE 0 END), 0) as msc
+            COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? AND status NOT IN ('zwrot','anulowane','anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline') THEN cena * ilosc ELSE 0 END), 0) as rok,
+            COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? AND status NOT IN ('zwrot','anulowane','anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline') THEN cena * ilosc ELSE 0 END), 0) as msc
         FROM sprzedaze
     ''', (year_start, month_start)).fetchone()
     przychod_rok = float(row['rok'] or 0)
@@ -5150,9 +5176,9 @@ def require_api_key(f):
         global AKCES_API_KEY
         if AKCES_API_KEY is None:
             AKCES_API_KEY = get_api_key()
-        key = request.headers.get('X-API-Key') or request.args.get('api_key')
+        key = request.headers.get('X-API-Key')
         if key != AKCES_API_KEY:
-            return jsonify({'error': 'Unauthorized', 'hint': 'Dodaj naglowek X-API-Key lub parametr ?api_key='}), 401
+            return jsonify({'error': 'Unauthorized', 'hint': 'Dodaj naglowek X-API-Key'}), 401
         return f(*args, **kwargs)
     return decorated
 

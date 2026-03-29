@@ -1,5 +1,6 @@
 # Secrets
 .secret_key
+.license_secret
 .env
 gemini_config.py
 api_key.txt

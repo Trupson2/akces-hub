@@ -561,7 +561,7 @@ def refresh_access_token():
         return False
 
 
-def allegro_request(method, endpoint, data=None, params=None, _retry=False):
+def allegro_request(method, endpoint, data=None, params=None, _retry=False, _attempt=0):
     config = get_allegro_config()
     _, _, api_url = get_api_urls()
 
@@ -625,6 +625,13 @@ def allegro_request(method, endpoint, data=None, params=None, _retry=False):
                 return allegro_request(method, endpoint, data, params, _retry=True)
             return None, "Brak dostępu — zaloguj się ponownie na /allegro"
 
+        # Retry on 5xx server errors (max 2 retries)
+        if response.status_code >= 500 and _attempt < 2:
+            import time as _t
+            _t.sleep(1 + _attempt)
+            print(f"[AllegroAPI] {response.status_code} na {endpoint}, retry {_attempt+1}/2...")
+            return allegro_request(method, endpoint, data, params, _retry, _attempt + 1)
+
         if response.status_code >= 400:
             error_details = f"Błąd {response.status_code}"
             try:
@@ -664,9 +671,19 @@ def allegro_request(method, endpoint, data=None, params=None, _retry=False):
                 return {'raw_content': response.content, 'status': response.status_code}, None
         return {}, None
     except requests.exceptions.Timeout:
-        return None, "Timeout — Allegro API nie odpowiada"
+        if _attempt < 2:
+            import time as _t
+            _t.sleep(1 + _attempt)
+            print(f"[AllegroAPI] Timeout na {endpoint}, retry {_attempt+1}/2...")
+            return allegro_request(method, endpoint, data, params, _retry, _attempt + 1)
+        return None, "Timeout — Allegro API nie odpowiada (po 3 próbach)"
     except requests.exceptions.ConnectionError:
-        return None, "Brak połączenia z Allegro API"
+        if _attempt < 2:
+            import time as _t
+            _t.sleep(1 + _attempt)
+            print(f"[AllegroAPI] ConnectionError na {endpoint}, retry {_attempt+1}/2...")
+            return allegro_request(method, endpoint, data, params, _retry, _attempt + 1)
+        return None, "Brak połączenia z Allegro API (po 3 próbach)"
     except Exception as e:
         print(f"* Wyjątek allegro_request: {e}")
         return None, str(e)
@@ -2807,7 +2824,7 @@ FORMAT ODPOWIEDZI (tylko JSON, bez komentarzy):
     try:
         import google.generativeai as genai
         from modules.database import get_config
-        gemini_model_name = get_config('gemini_model', 'gemini-2.5-flash')
+        gemini_model_name = get_config('ai_model_tytuly', get_config('gemini_model', 'gemini-2.5-flash'))
         genai.configure(api_key=gemini_key)
         model = genai.GenerativeModel(gemini_model_name)
         
@@ -3374,6 +3391,23 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                     for row in existing_rows:
                         conn.execute('UPDATE sprzedaze SET adres = ? WHERE id = ?', (new_adres, row['id']))
 
+                # Backfill metoda_dostawy jeśli puste
+                _delivery_ex = order.get('delivery') or {}
+                _method_ex = (_delivery_ex.get('method', {}).get('name', '') or '').lower()
+                _pickup_ex = (_delivery_ex.get('pickupPoint', {}).get('id', '') or '').upper()
+                if 'orlen' in _method_ex or _pickup_ex.startswith('ORL'):
+                    _md_ex = 'Orlen'
+                elif any(x in _method_ex for x in ['inpost', 'paczkomat', 'paczka w ruchu']) or (_pickup_ex and not _pickup_ex.startswith('ORL')):
+                    _md_ex = 'InPost'
+                elif 'dpd' in _method_ex:
+                    _md_ex = 'DPD'
+                elif 'dhl' in _method_ex:
+                    _md_ex = 'DHL'
+                else:
+                    _md_ex = (_delivery_ex.get('method', {}).get('name', '') or '')[:20] or 'Kurier'
+                for row in existing_rows:
+                    conn.execute('UPDATE sprzedaze SET metoda_dostawy = ? WHERE id = ? AND (metoda_dostawy IS NULL OR metoda_dostawy = "")', (_md_ex, row['id']))
+
                 # Uzupełnij koszt_dostawy jeśli brakuje (backfill przy re-sync)
                 try:
                     _has_delivery = conn.execute('SELECT SUM(koszt_dostawy) as kd FROM sprzedaze WHERE allegro_order_id = ?', (order_id,)).fetchone()
@@ -3455,7 +3489,22 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
             if address.get('city'):
                 adres_parts.append(address.get('city'))
         adres = ', '.join(adres_parts) if adres_parts else ''
-        
+
+        # Wykryj metodę dostawy (carrier)
+        _method_name = (delivery.get('method', {}).get('name', '') or '')
+        _ml = _method_name.lower()
+        _pid = (pickup.get('id', '') or '').upper()
+        if 'orlen' in _ml or _pid.startswith('ORL'):
+            _metoda_dostawy = 'Orlen'
+        elif any(x in _ml for x in ['inpost', 'paczkomat', 'paczka w ruchu']) or (_pid and not _pid.startswith('ORL')):
+            _metoda_dostawy = 'InPost'
+        elif 'dpd' in _ml:
+            _metoda_dostawy = 'DPD'
+        elif 'dhl' in _ml:
+            _metoda_dostawy = 'DHL'
+        else:
+            _metoda_dostawy = _method_name[:20] or 'Kurier'
+
         # Oblicz koszt dostawy per zamówienie (totalToPay - suma item prices)
         _order_summary = order.get('summary') or {}
         _order_total = float((_order_summary.get('totalToPay') or {}).get('amount', 0))
@@ -3546,9 +3595,9 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
 
                 # Zapisz do bazy - z produkt_id, oferta_id, nazwą, adresem i kosztem dostawy
                 conn.execute('''INSERT INTO sprzedaze
-                    (allegro_order_id, cena, ilosc, kupujacy, status, data_sprzedazy, produkt_id, oferta_id, nazwa, adres, notified, koszt_dostawy)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                    (order_id, cena, ilosc, kupujacy, 'nowa', order_date, produkt_id, oferta_db_id, nazwa, adres, 0, _item_delivery))
+                    (allegro_order_id, cena, ilosc, kupujacy, status, data_sprzedazy, produkt_id, oferta_id, nazwa, adres, notified, koszt_dostawy, metoda_dostawy)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (order_id, cena, ilosc, kupujacy, 'nowa', order_date, produkt_id, oferta_db_id, nazwa, adres, 0, _item_delivery, _metoda_dostawy))
                 synced += 1
                 
                 # ========================================
@@ -3619,7 +3668,7 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                             _reg = produkt['regal'] or ''
                             _pal = produkt['paleta_nazwa'] or ''
                             _zostalo = new_qty
-                        alert_sprzedaz(nazwa, cena, kupujacy, lokalizacja=_lok, regal=_reg, paleta=_pal, ilosc_zostalo=_zostalo)
+                        alert_sprzedaz(nazwa, cena, kupujacy, lokalizacja=_lok, regal=_reg, paleta=_pal, ilosc_zostalo=_zostalo, ilosc=ilosc)
                         notified += 1
                         conn.execute('UPDATE sprzedaze SET notified=1 WHERE allegro_order_id=? AND nazwa=?', (order_id, nazwa))
                         print(f"[SMAR] Telegram: {nazwa} - {cena} zł")
@@ -4702,7 +4751,7 @@ def zamowienie_detail(order_id):
         html += f'''
         <div class="list-item">
             <div class="list-item-info">
-                <div class="list-item-title">{item.get('offer', {{}}).get('name', 'Produkt')[:40]}</div>
+                <div class="list-item-title">{(item.get('offer') or {}).get('name', 'Produkt')[:40]}</div>
                 <div class="list-item-meta">{qty} x {price:.2f} zl</div>
             </div>
             <div class="list-item-right">
@@ -5077,11 +5126,12 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
     if error:
         return None, f"Nie można pobrać zamówienia: {error}"
 
-    delivery = order.get('delivery', {})
-    delivery_method_id = delivery.get('method', {}).get('id')
-    delivery_method_name = delivery.get('method', {}).get('name', '').lower()
-    pickup_point = delivery.get('pickupPoint', {})
-    address = delivery.get('address', {})
+    delivery = order.get('delivery') or {}
+    method = delivery.get('method') or {}
+    delivery_method_id = method.get('id')
+    delivery_method_name = (method.get('name') or '').lower()
+    pickup_point = delivery.get('pickupPoint') or {}
+    address = delivery.get('address') or {}
     line_items = order.get('lineItems', [])
 
     print(f"   → deliveryMethodId: {delivery_method_id}")
@@ -5096,6 +5146,10 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         return None, "Brak produktów w zamówieniu"
 
     line_item_ids = [item.get('id') for item in line_items if item.get('id')]
+
+    # Zawartość paczki (dla etykiety DPD/DHL) - z nazwy oferty
+    _item_name = (line_items[0].get('offer') or {}).get('name', '') if line_items else ''
+    _parcel_content = _item_name[:50] if _item_name else 'Towar'
 
     # Rozpoznaj przewoźnika po nazwie metody dostawy
     is_orlen = 'orlen' in delivery_method_name
@@ -5136,6 +5190,7 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
             'width': {'value': size_data['width'], 'unit': 'CENTIMETER'},
             'height': {'value': size_data['height'], 'unit': 'CENTIMETER'},
             'weight': {'value': size_data['weight'], 'unit': 'KILOGRAMS'},
+            'content': _parcel_content,
         }]
         print(f"   → Gabaryt paczkomat: {parcel_size.upper()} ({size_data['length']}x{size_data['width']}x{size_data['height']}cm)")
     elif dimensions:
@@ -5145,6 +5200,7 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
             'width': {'value': int(float(dimensions.get('width', 25))), 'unit': 'CENTIMETER'},
             'height': {'value': int(float(dimensions.get('height', 15))), 'unit': 'CENTIMETER'},
             'weight': {'value': float(dimensions.get('weight_kg', 1)), 'unit': 'KILOGRAMS'},
+            'content': _parcel_content,
         }]
         print(f"   → Wymiary kuriera: {dimensions}")
     else:
@@ -5155,6 +5211,7 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
             'width': {'value': 25, 'unit': 'CENTIMETER'},
             'height': {'value': 15, 'unit': 'CENTIMETER'},
             'weight': {'value': 1, 'unit': 'KILOGRAMS'},
+            'content': _parcel_content,
         }]
 
     # Adres odbiorcy (firstName/lastName lub companyName WYMAGANE)
@@ -5281,25 +5338,26 @@ def get_shipment_label(order_id):
             config = get_allegro_config()
             base_url = ALLEGRO_SANDBOX_API_URL if config.get('sandbox') else ALLEGRO_API_URL
             
-            try:
-                headers = {
-                    'Authorization': f"Bearer {config['access_token']}",
-                    'Accept': 'application/pdf'
-                }
-                label_url = f"{base_url}/shipment-management/shipments/{shipment_id}/label"
-                print(f"   → Pobieranie etykiety: {label_url}")
-                
-                response = requests.get(label_url, headers=headers, timeout=30)
-                print(f"   → HTTP Status: {response.status_code}")
+            # WZA label endpoint: /shipments/labels?shipmentIds={id} (batch endpoint)
+            for accept_type in ['application/octet-stream', 'application/pdf']:
+                try:
+                    headers = {
+                        'Authorization': f"Bearer {config['access_token']}",
+                        'Accept': accept_type
+                    }
+                    label_url = f"{base_url}/shipment-management/shipments/labels?shipmentIds={shipment_id}"
+                    print(f"   → Pobieranie etykiety WZA ({accept_type}): ...labels?shipmentIds={shipment_id[:20]}...")
 
-                if response.status_code == 200:
-                    print(f"   → [OK] Etykieta pobrana! Rozmiar: {len(response.content)} bytes")
-                    return response.content, shipment_id, None
-                else:
-                    print(f"   → [ERR] Błąd: {response.text[:200]}")
-            except Exception as e:
-                print(f"   → [ERR] Wyjątek: {e}")
-    
+                    response = requests.get(label_url, headers=headers, timeout=30)
+                    print(f"   → HTTP Status: {response.status_code}, Content-Type: {response.headers.get('Content-Type','')}, Size: {len(response.content)}B")
+
+                    if response.status_code == 200 and len(response.content) > 100:
+                        print(f"   → [OK] Etykieta WZA pobrana! Rozmiar: {len(response.content)} bytes")
+                        return response.content, shipment_id, None
+                    else:
+                        print(f"   → [WARN] {response.status_code}: {response.text[:100]}")
+                except Exception as e:
+                    print(f"   → [ERR] Wyjątek: {e}")
     # METODA 2: Sprawdź standardowe API (checkout-forms shipments)
     result, error = get_shipment_methods(order_id)
     if error:
@@ -5321,26 +5379,29 @@ def get_shipment_label(order_id):
     config = get_allegro_config()
     base_url = ALLEGRO_SANDBOX_API_URL if config.get('sandbox') else ALLEGRO_API_URL
     
-    try:
-        headers = {
-            'Authorization': f"Bearer {config['access_token']}",
-            'Accept': 'application/pdf'
-        }
-        label_url = f"{base_url}/order/checkout-forms/{order_id}/shipments/{shipment_id}/label"
-        print(f"   → Pobieranie etykiety: {label_url}")
-        
-        response = requests.get(label_url, headers=headers, timeout=30)
-        print(f"   → HTTP Status: {response.status_code}")
+    # Próbuj 3 endpointy: WZA batch, WZA single, checkout-forms
+    endpoints = [
+        f"{base_url}/shipment-management/shipments/labels?shipmentIds={shipment_id}",
+        f"{base_url}/shipment-management/shipments/{shipment_id}/label",
+        f"{base_url}/order/checkout-forms/{order_id}/shipments/{shipment_id}/label",
+    ]
+    for label_url in endpoints:
+        for accept_type in ['application/octet-stream', 'application/pdf']:
+            try:
+                headers = {
+                    'Authorization': f"Bearer {config['access_token']}",
+                    'Accept': accept_type
+                }
+                print(f"   → Etykieta ({accept_type}): ...{label_url.split('/')[-1][:30]}")
+                response = requests.get(label_url, headers=headers, timeout=30)
 
-        if response.status_code == 200:
-            print(f"   → [OK] Etykieta pobrana! Rozmiar: {len(response.content)} bytes")
-            return response.content, shipment_id, None
-        else:
-            print(f"   → [ERR] Błąd: {response.text[:200]}")
-            return None, shipment_id, f"Błąd pobierania etykiety: HTTP {response.status_code}"
-    except Exception as e:
-        print(f"   → [ERR] Wyjątek: {e}")
-        return None, shipment_id, f"Wyjątek: {e}"
+                if response.status_code == 200 and len(response.content) > 100:
+                    print(f"   → [OK] Etykieta pobrana! {len(response.content)} bytes")
+                    return response.content, shipment_id, None
+            except Exception as e:
+                print(f"   → [ERR] {e}")
+
+    return None, shipment_id, f"Nie udało się pobrać etykiety po próbach wszystkich endpointów"
 
 
 def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=None):
@@ -5363,8 +5424,8 @@ def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=
         if order:
             items = order.get('lineItems', [])
             if items:
-                offer_id = items[0].get('offer', {}).get('id', '')
-                name = items[0].get('offer', {}).get('name', '')
+                offer_id = (items[0].get('offer') or {}).get('id', '')
+                name = (items[0].get('offer') or {}).get('name', '')
                 # Szukaj lokalizacji w bazie
                 lok = ''
                 if offer_id:
@@ -5436,18 +5497,20 @@ def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=
                 print(f"   → Brak shipmentId z polling - szukam po order_id...")
 
             # Pobierz etykietę - retry kilka razy (Allegro generuje async)
-            for label_attempt in range(5):
-                time.sleep(3)
-                print(f"   → Pobieranie etykiety (attempt {label_attempt+1}/5)...")
+            for label_attempt in range(10):
+                time.sleep(5)
+                print(f"   → Pobieranie etykiety (attempt {label_attempt+1}/10)...")
                 label, shipment_id2, error = get_shipment_label(order_id)
                 if label:
                     print(f"   → [OK] Etykieta pobrana!")
                     return label, shipment_id2 or shipment_id, None
-                if error and error != "BRAK_PRZESYLKI" and '404' not in str(error):
+                # Nie przerywaj pętli jeśli to błąd timing (label jeszcze nie gotowa)
+                _transient = ('BRAK_PRZESYLKI', 'wszystkich endpointów', 'jeszcze niedostępna')
+                if error and not any(t in str(error) for t in _transient) and '404' not in str(error) and 'not found' not in str(error).lower():
                     return None, shipment_id, f"Przesyłka utworzona ({shipment_id}), etykieta: {error}"
                 print(f"   → Etykieta jeszcze niedostępna: {error}")
 
-            # Po 5 próbach - przesyłka istnieje ale etykieta niedostępna
+            # Po 10 próbach - przesyłka istnieje ale etykieta niedostępna
             return None, shipment_id, f"Przesyłka utworzona ({shipment_id}) ale etykieta jeszcze niedostępna. Spróbuj ponownie za chwilę."
     
     if error and error != "BRAK_PRZESYLKI":

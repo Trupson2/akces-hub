@@ -17,7 +17,29 @@ import threading
 
 # Secret do podpisywania licencji — TYLKO w Twoim generatorze
 # Klient NIE ma tego klucza, więc nie może wygenerować licencji sam
-LICENSE_SECRET = os.environ.get('AKCES_LICENSE_SECRET', 'AkcesHub2026!SecretKeyForLicenseGeneration')
+def _load_license_secret():
+    """Wczytaj secret z env → pliku → wygeneruj nowy (NIE hardcodowany)."""
+    s = os.environ.get('AKCES_LICENSE_SECRET', '').strip()
+    if s:
+        return s
+    _path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.license_secret')
+    if os.path.exists(_path):
+        with open(_path, 'r') as f:
+            s = f.read().strip()
+        if s:
+            return s
+    import secrets as _sec
+    s = _sec.token_hex(32)
+    try:
+        with open(_path, 'w') as f:
+            f.write(s)
+        os.chmod(_path, 0o600)
+    except Exception:
+        pass
+    print(f"[LICENSE] Wygenerowano nowy LICENSE_SECRET → {_path}. Przenieś do AKCES_LICENSE_SECRET w .env!")
+    return s
+
+LICENSE_SECRET = _load_license_secret()
 
 # Heartbeat config
 HEARTBEAT_URL = 'https://unsatiating-dirgelike-audrina.ngrok-free.dev/api/license/verify'
@@ -105,8 +127,8 @@ def generate_license_key(client_name, plan='pro', months=12):
     else:
         expires = 0  # Bezterminowo
 
-    # Plan code: S=starter, P=pro, B=business
-    plan_code = {'starter': 'S', 'pro': 'P', 'business': 'B', 'enterprise': 'E'}.get(plan, 'P')
+    # Plan code: T=trial, P=pro, M=max, E=enterprise
+    plan_code = {'trial': 'T', 'pro': 'P', 'max': 'M', 'enterprise': 'E'}.get(plan, 'P')
 
     # Payload do podpisania
     payload = f"{client_name}|{plan_code}|{created}|{expires}"
@@ -161,7 +183,7 @@ def verify_license(license_data):
         return False, 'Niekompletne dane licencji'
 
     # Sprawdź podpis
-    plan_code = {'starter': 'S', 'pro': 'P', 'business': 'B', 'enterprise': 'E'}.get(plan, 'P')
+    plan_code = {'trial': 'T', 'pro': 'P', 'max': 'M', 'starter': 'S', 'business': 'B', 'enterprise': 'E'}.get(plan, 'P')
     payload = f"{client}|{plan_code}|{created}|{expires}"
 
     expected_sig = hmac.new(

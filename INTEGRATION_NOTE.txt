@@ -1,0 +1,105 @@
+==============================================================
+AKCES HUB — WINNING PRODUCTS: INSTRUKCJA INTEGRACJI
+==============================================================
+
+1. DODAJ IMPORT DO app.py
+------------------------------
+W sekcji importów modułów (po innych blueprintach):
+
+    from modules.winning_products import winning_bp
+
+
+2. ZAREJESTRUJ BLUEPRINT W app.py
+------------------------------
+Po innych app.register_blueprint() wywołaniach:
+
+    app.register_blueprint(winning_bp)
+
+Blueprint używa url_prefix='/analityka', więc endpointy będą:
+    GET  /analityka/winning          → strona HTML
+    POST /analityka/winning/refresh  → uruchom analizę
+    GET  /analityka/winning/list     → lista produktów (JSON)
+    GET  /analityka/winning/meta     → meta runów (JSON)
+
+
+3. DODAJ LINK DO NAWIGACJI
+------------------------------
+W templates/base.html, w sekcji nawigacji (szukaj innych linków menu),
+dodaj link:
+
+    <a href="/analityka/winning">🏆 Winning Products</a>
+
+Lub w strukturze nav:
+    <li><a href="/analityka/winning">🏆 Winning Products</a></li>
+
+
+4. SKONFIGURUJ KATEGORIE ALLEGRO
+------------------------------
+W panelu Ustawień (lub przez DB CLI), zapisz konfigurację:
+
+    INSERT OR REPLACE INTO config (key, value)
+    VALUES ('winning_categories', '["258682","257993","4029"]');
+
+Lub przez Python:
+    from modules.database import set_config
+    import json
+    set_config('winning_categories', json.dumps(["258682", "257993"]))
+
+Kategorie do analizy (przykłady Allegro ID):
+    258682 = Elektronika
+    257993 = AGD
+    4029   = Dom i ogród
+    76     = Motoryzacja
+    2954   = Sport i Turystyka
+
+
+5. OPCJONALNE USTAWIENIA CONFIG
+------------------------------
+    winning_cooldown_minutes    = "30"    # min. przerwa między skanami
+    winning_min_opportunity_score = "0.3" # min próg szansy do zapisu
+    winning_weights = '{"trend":0.35,"comp":0.30,"fit":0.20,"margin":0.15}'
+    winning_min_price = "20"              # min cena produktu
+    winning_max_price = "2000"            # max cena produktu
+
+
+6. WYMAGANIA
+------------------------------
+- Allegro API musi być skonfigurowane i zalogowane (access_token w config)
+- modules/allegro_api.py musi działać (allegro_request())
+- Brak dodatkowych pip install — używa istniejących zależności
+
+
+7. INICJALIZACJA TABEL
+------------------------------
+Tabele winning_products i winning_products_meta są tworzone automatycznie
+przy imporcie modules/winning_analyzer.py (wywołuje init_winning_tables()).
+
+Możesz też wywołać ręcznie:
+    from modules.winning_analyzer import init_winning_tables
+    init_winning_tables()
+
+
+8. TESTOWANIE BEZ ALLEGRO
+------------------------------
+Jeśli Allegro nie jest skonfigurowane, /analityka/winning/refresh
+zwróci błąd ale strona HTML zadziała poprawnie (pokaże pustą tabelę).
+
+Możesz przetestować stronę samą w sobie otwierając:
+    http://localhost:5000/analityka/winning
+
+
+==============================================================
+MODUŁ 1: PHOTO DAEMON — ODDZIELNA INSTALACJA NA PI
+==============================================================
+
+Photo daemon działa jako oddzielny proces na Raspberry Pi,
+NIE jako Blueprint Flask.
+
+Patrz: photo_daemon/README.md
+
+Integracja z Akces Hub:
+- Daemon aktualizuje produkty.images i produkty.images_ready w wspólnej akces_hub.db
+- Status panel dostępny na http://pi:5051 (oddzielny Flask)
+- Endpoint GET http://pi:5051/api/jobs — JSON do embedowania w Akces Hub
+
+==============================================================

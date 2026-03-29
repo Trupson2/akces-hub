@@ -2430,7 +2430,15 @@ def statystyki():
 
     # Przygotuj dane do wykresów
     nazwy_miesiecy = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru']
-    przychod_total = podsumowanie['suma_total'] + pryw_total_rok
+    # Przychód roku (filtr roku + offline) — do kalkulacji podatkowej i wykresu
+    _przychod_rok_row = conn.execute('''
+        SELECT COALESCE(SUM(cena * ilosc), 0) as suma
+        FROM sprzedaze
+        WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?
+          AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+          AND (kupujacy IS NULL OR kupujacy != 'offline')
+    ''', (str(current_year),)).fetchone()
+    przychod_total = float(_przychod_rok_row['suma'] or 0) + pryw_total_rok
     koszty_total_lacznie = koszty_total_rok + palety_zakup_total_rok  # koszty operacyjne + REALNE zakupy palet (cashflow)
     zysk_rok = przychod_total - koszty_total_lacznie
     zysk_kolor = '#beee00' if zysk_rok >= 0 else '#ef4444'
@@ -7161,8 +7169,9 @@ def api_autowycena_paleta_stream(paleta_id):
 
     def generate():
         conn = get_db()
-        from modules.database import get_config
-        gemini_key = get_config('gemini_api_key', '')
+        from modules.database import get_config as _get_cfg
+        gemini_key = _get_cfg('gemini_api_key', '')
+        _wycena_model = _get_cfg('ai_model_wycena', _get_cfg('gemini_model', 'gemini-2.5-flash'))
 
         produkty = conn.execute(
             'SELECT id, asin, nazwa, ilosc, cena_brutto, cena_allegro, paleta_id FROM produkty WHERE paleta_id = ?',
@@ -7210,23 +7219,49 @@ Przykład:
 
             if gemini_key:
                 try:
-                    api_url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}'
+                    _wycena_schema = {
+                        "type": "ARRAY",
+                        "items": {
+                            "type": "OBJECT",
+                            "properties": {
+                                "id": {"type": "INTEGER"},
+                                "cena": {"type": "NUMBER"}
+                            },
+                            "required": ["id", "cena"]
+                        }
+                    }
+                    api_url = f'https://generativelanguage.googleapis.com/v1beta/models/{_wycena_model}:generateContent?key={gemini_key}'
                     resp = _req.post(
                         api_url,
-                        json={'contents': [{'parts': [{'text': prompt}]}]},
+                        json={
+                            'contents': [{'parts': [{'text': prompt}]}],
+                            'generationConfig': {
+                                'response_mime_type': 'application/json',
+                                'response_schema': _wycena_schema
+                            }
+                        },
                         timeout=30
                     )
                     if resp.status_code == 200:
                         ai_text = resp.json().get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
                         print(f"[Auto-wycena] Gemini batch {batch_idx+1} response:\n{ai_text}")
-                        for line in ai_text.strip().split('\n'):
-                            line = line.strip()
-                            m = re.match(r'(\d+)\s*[:\-]\s*(\d+(?:[.,]\d+)?)', line)
-                            if m:
-                                pid = int(m.group(1))
-                                price = float(m.group(2).replace(',', '.'))
-                                if 1 < price < 50000:
+                        try:
+                            items = __import__('json').loads(ai_text)
+                            for item in items:
+                                pid = int(item.get('id', 0))
+                                price = float(item.get('cena', 0))
+                                if pid and 1 < price < 50000:
                                     ai_prices[pid] = round(price, 2)
+                        except Exception as _pe:
+                            print(f"[Auto-wycena] JSON parse fallback: {_pe}")
+                            for line in ai_text.strip().split('\n'):
+                                line = line.strip()
+                                m = re.match(r'(\d+)\s*[:\-]\s*(\d+(?:[.,]\d+)?)', line)
+                                if m:
+                                    pid = int(m.group(1))
+                                    price = float(m.group(2).replace(',', '.'))
+                                    if 1 < price < 50000:
+                                        ai_prices[pid] = round(price, 2)
                     else:
                         print(f"[Auto-wycena] Gemini error {resp.status_code}: {resp.text[:200]}")
                 except Exception as e:
@@ -8911,220 +8946,13 @@ def remanent_excel():
     return send_file(buf, as_attachment=True, download_name=filename,
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
+
 @magazynier_bp.route('/statystyki-zakupow')
 def statystyki_zakupow():
-    """Statystyki zakupów: podział per dostawca, miesięczny, z wykresem kołowym"""
-    import json
-    from datetime import datetime
+    """Przeniesione do /analityka/zakupy-dostawcy"""
+    from flask import redirect
+    return redirect('/analityka/zakupy-dostawcy')
 
-    conn = get_db()
-
-    # Zakupy per dostawca — sztuki z SUM produktów (ilosc_sztuk może być puste)
-    per_dostawca = conn.execute('''
-        SELECT 
-            COALESCE(NULLIF(TRIM(p.dostawca), ''), 'Brak dostawcy') as dostawca,
-            COUNT(DISTINCT p.id) as palety_cnt,
-            COALESCE(SUM(p.cena_zakupu), 0) as suma_brutto,
-            COALESCE(SUM(p.ilosc_produktow), 0) as produkty_cnt,
-            COALESCE(
-                NULLIF(SUM(p.ilosc_sztuk), 0),
-                (SELECT COALESCE(SUM(pr.ilosc), 0) FROM produkty pr WHERE pr.paleta_id = p.id)
-            ) as sztuki_cnt
-        FROM palety p
-        GROUP BY COALESCE(NULLIF(TRIM(p.dostawca), ''), 'Brak dostawcy')
-        ORDER BY suma_brutto DESC
-    ''').fetchall()
-
-    # Zakupy per miesiąc i dostawca — sztuki z produktów jeśli ilosc_sztuk puste
-    per_miesiac = conn.execute('''
-        SELECT 
-            strftime('%Y-%m', p.data_zakupu) as miesiac,
-            COALESCE(NULLIF(TRIM(p.dostawca), ''), 'Brak dostawcy') as dostawca,
-            COUNT(*) as palety_cnt,
-            COALESCE(SUM(p.cena_zakupu), 0) as suma_brutto,
-            COALESCE(
-                NULLIF(SUM(p.ilosc_sztuk), 0),
-                (SELECT COALESCE(SUM(pr.ilosc), 0) FROM produkty pr WHERE pr.paleta_id = p.id)
-            ) as sztuki_cnt
-        FROM palety p
-        WHERE p.data_zakupu IS NOT NULL
-        GROUP BY miesiac, dostawca
-        ORDER BY miesiac DESC, suma_brutto DESC
-    ''').fetchall()
-
-    # Top 10 najdroższych palet — sztuki fallback z produktów
-    top_palety = conn.execute('''
-        SELECT 
-            p.nazwa, p.dostawca, p.cena_zakupu, p.data_zakupu,
-            COALESCE(
-                NULLIF(p.ilosc_sztuk, 0),
-                (SELECT COALESCE(SUM(pr.ilosc), 0) FROM produkty pr WHERE pr.paleta_id = p.id)
-            ) as sztuki_cnt
-        FROM palety p
-        ORDER BY p.cena_zakupu DESC
-        LIMIT 10
-    ''').fetchall()
-
-
-    # Dane do wykresu kołowego
-    dostawcy_labels = [r['dostawca'] for r in per_dostawca]
-    dostawcy_wartosci = [round(r['suma_brutto'], 2) for r in per_dostawca]
-    total_zakup = sum(dostawcy_wartosci)
-
-    # Kolory dla wykresu
-    COLORS = ['#8ff5ff','#beee00','#f59e0b','#ef4444','#ff6b9b','#06b6d4','#f97316','#ec4899','#14b8a6','#a855f7']
-
-    # Grupuj per_miesiac w słownik
-    miesiace_dict = {}
-    for r in per_miesiac:
-        m = r['miesiac'] or 'Brak daty'
-        if m not in miesiace_dict:
-            miesiace_dict[m] = []
-        miesiace_dict[m].append(dict(r))
-
-    # HTML wierszy miesięcznych
-    miesiace_html = ''
-    for miesiac in sorted(miesiace_dict.keys(), reverse=True):
-        rows = miesiace_dict[miesiac]
-        suma_m = sum(r['suma_brutto'] for r in rows)
-        sztuki_m = sum(r['sztuki_cnt'] for r in rows)
-
-        try:
-            dt = datetime.strptime(miesiac, '%Y-%m')
-            miesiac_label = dt.strftime('%B %Y').capitalize()
-        except:
-            miesiac_label = miesiac
-
-        rows_html = ''
-        for r in rows:
-            pct = (r['suma_brutto'] / suma_m * 100) if suma_m > 0 else 0
-            rows_html += f'''
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1e1e2e">
-                <div style="font-size:0.8rem;color:#94a3b8" class="dostawca-name">{r['dostawca']}</div>
-                <div style="display:flex;gap:12px;align-items:center">
-                    <div style="font-size:0.7rem;color:#64748b">{r['sztuki_cnt']} szt | {r['palety_cnt']} palet</div>
-                    <div style="font-size:0.85rem;font-weight:600;color:#beee00">{r['suma_brutto']:.0f} zł</div>
-                    <div style="font-size:0.7rem;color:#f59e0b;width:40px;text-align:right">{pct:.0f}%</div>
-                </div>
-            </div>'''
-
-        miesiace_html += f'''
-        <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:10px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-                <div style="font-weight:700;color:#fff">{miesiac_label}</div>
-                <div style="font-size:0.85rem;color:#beee00;font-weight:600">{suma_m:.0f} zł | {sztuki_m} szt</div>
-            </div>
-            {rows_html}
-        </div>'''
-
-    # Top palety HTML
-    top_html = ''
-    for i, p in enumerate(top_palety):
-        top_html += f'''
-        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1e1e2e">
-            <div style="width:24px;height:24px;background:#1e1e2e;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:#64748b;flex-shrink:0">#{i+1}</div>
-            <div style="flex:1;min-width:0">
-                <div style="font-size:0.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{(p['nazwa'] or '—')[:35]}</div>
-                <div style="font-size:0.7rem;color:#64748b"><span class="dostawca-name">{p['dostawca'] or '—'}</span> • {(p['data_zakupu'] or '')[:7]} • {p['sztuki_cnt'] or 0} szt</div>
-            </div>
-            <div style="font-weight:700;color:#f59e0b;white-space:nowrap">{p['cena_zakupu'] or 0:.0f} zł</div>
-        </div>'''
-
-    html = f'''
-    <div class="hdr"><h1><span class=material-symbols-outlined>bar_chart</span> STATYSTYKI ZAKUPÓW</h1></div>
-
-    <!-- PODSUMOWANIE -->
-    <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:15px;margin-bottom:15px">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
-            <div>
-                <div style="font-size:1.3rem;font-weight:700;color:#8ff5ff">{len(per_dostawca)}</div>
-                <div style="font-size:0.65rem;color:#64748b">DOSTAWCÓW</div>
-            </div>
-            <div>
-                <div style="font-size:1.1rem;font-weight:700;color:#beee00">{total_zakup:.0f} zł</div>
-                <div style="font-size:0.65rem;color:#64748b">ŁĄCZNIE ZAKUP</div>
-            </div>
-            <div>
-                <div style="font-size:1.3rem;font-weight:700;color:#f59e0b">{sum(r['sztuki_cnt'] or 0 for r in per_dostawca):,}</div>
-                <div style="font-size:0.65rem;color:#64748b">SZTUK ŁĄCZNIE</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- WYKRES KOŁOWY -->
-    <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:15px;margin-bottom:15px">
-        <div style="font-weight:700;color:#fff;margin-bottom:15px">🥧 Podział zakupów per dostawca</div>
-        <div style="display:flex;flex-direction:column;align-items:center">
-            <canvas id="pieChart" width="280" height="280"></canvas>
-            <div id="pie-legend" style="margin-top:15px;width:100%"></div>
-        </div>
-    </div>
-
-    <!-- TOP 10 PALET -->
-    <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:15px;margin-bottom:15px">
-        <div style="font-weight:700;color:#fff;margin-bottom:12px"><span class=material-symbols-outlined>emoji_events</span> Top 10 najdroższych palet</div>
-        {top_html}
-    </div>
-
-    <!-- PER MIESIĄC -->
-    <div style="font-weight:700;color:#fff;margin-bottom:10px;padding:0 4px"><span class=material-symbols-outlined>calendar_month</span> Zakupy per miesiąc</div>
-    {miesiace_html}
-
-    <a href="/magazyn" class="back">← Powrót do Magazynu</a>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" integrity="sha384-DhxhYObIMeMNGyAG7iK11OHzBIKyEIeRL0ad1iFPAOwZB8iirUlTT0O/WJJUk8+o" crossorigin="anonymous"></script>
-    <script>
-    const labels = {json.dumps(dostawcy_labels)};
-    const values = {json.dumps(dostawcy_wartosci)};
-    const colors = {json.dumps((COLORS * 5)[:len(dostawcy_labels)])};
-    const total = values.reduce((a, b) => a + b, 0);
-
-    const ctx = document.getElementById('pieChart').getContext('2d');
-    new Chart(ctx, {{
-        type: 'doughnut',
-        data: {{
-            labels: labels,
-            datasets: [{{
-                data: values,
-                backgroundColor: colors,
-                borderColor: '#0a0a0f',
-                borderWidth: 3,
-                hoverOffset: 8
-            }}]
-        }},
-        options: {{
-            responsive: false,
-            cutout: '55%',
-            plugins: {{
-                legend: {{ display: false }},
-                tooltip: {{
-                    callbacks: {{
-                        label: (ctx) => ` ${{ctx.label}}: ${{ctx.parsed.toLocaleString('pl-PL')}} zł (${{(ctx.parsed/total*100).toFixed(1)}}%)`
-                    }}
-                }}
-            }}
-        }}
-    }});
-
-    // Legenda
-    const legend = document.getElementById('pie-legend');
-    labels.forEach((l, i) => {{
-        const pct = total > 0 ? (values[i]/total*100).toFixed(1) : 0;
-        legend.innerHTML += `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1e1e2e">
-            <div style="display:flex;align-items:center;gap:8px">
-                <div style="width:12px;height:12px;border-radius:3px;background:${{colors[i]}};flex-shrink:0"></div>
-                <div style="font-size:0.8rem">${{l}}</div>
-            </div>
-            <div style="display:flex;gap:10px;align-items:center">
-                <div style="font-size:0.75rem;color:#64748b">${{pct}}%</div>
-                <div style="font-size:0.85rem;font-weight:600;color:#beee00">${{values[i].toLocaleString('pl-PL')}} zł</div>
-            </div>
-        </div>`;
-    }});
-    </script>
-    '''
-    return render(html)
 
 
 # ============================================================
@@ -9740,18 +9568,33 @@ def ai_ocena_stanu():
         if not api_key or not api_key['wartosc']:
             return jsonify({'success': False, 'error': 'Brak klucza Gemini API w konfiguracji'})
 
-        import requests as req
+        from modules.database import get_config as _get_cfg
+        _zdjecia_model = _get_cfg('ai_model_zdjecia', _get_cfg('gemini_model', 'gemini-2.5-flash-lite'))
+
+        import requests as req, json as _json
+        _stan_schema = {
+            "type": "OBJECT",
+            "properties": {
+                "stan": {"type": "STRING", "enum": ["Nowy", "Jak nowy", "Dobry", "Uszkodzony", "Zniszczony"]},
+                "opis": {"type": "STRING"}
+            },
+            "required": ["stan", "opis"]
+        }
         response = req.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key['wartosc']}",
+            f"https://generativelanguage.googleapis.com/v1beta/models/{_zdjecia_model}:generateContent?key={api_key['wartosc']}",
             headers={'Content-Type': 'application/json'},
             json={
                 'contents': [{
                     'parts': [
-                        {'text': 'Jesteś ekspertem od oceny stanu produktów zwrotowych. Oceń stan produktu na zdjęciu. Odpowiedz DOKŁADNIE w formacie:\nSTAN: [Nowy/Jak nowy/Dobry/Uszkodzony/Zniszczony]\nOPIS: [krótki opis stanu, wady, braki, uszkodzenia - max 2 zdania po polsku]'},
+                        {'text': 'Jesteś ekspertem od oceny stanu produktów zwrotowych. Oceń stan produktu na zdjęciu. Zwróć JSON z polami: stan (jedna z wartości: Nowy/Jak nowy/Dobry/Uszkodzony/Zniszczony) i opis (krótki opis stanu, wady, braki, uszkodzenia - max 2 zdania po polsku).'},
                         {'inline_data': {'mime_type': 'image/jpeg', 'data': image_base64}}
                     ]
                 }],
-                'generationConfig': {'maxOutputTokens': 200}
+                'generationConfig': {
+                    'maxOutputTokens': 200,
+                    'response_mime_type': 'application/json',
+                    'response_schema': _stan_schema
+                }
             },
             timeout=30
         )
@@ -9759,15 +9602,20 @@ def ai_ocena_stanu():
         result = response.json()
         content = result.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
 
-        # Parse response
+        # Parse response — schema wymusza JSON, fallback na text parsing
         stan = ''
         opis = ''
-        for line in content.split('\n'):
-            line = line.strip()
-            if line.upper().startswith('STAN:'):
-                stan = line.split(':', 1)[1].strip()
-            elif line.upper().startswith('OPIS:'):
-                opis = line.split(':', 1)[1].strip()
+        try:
+            parsed = _json.loads(content)
+            stan = parsed.get('stan', '')
+            opis = parsed.get('opis', '')
+        except Exception:
+            for line in content.split('\n'):
+                line = line.strip()
+                if line.upper().startswith('STAN:'):
+                    stan = line.split(':', 1)[1].strip()
+                elif line.upper().startswith('OPIS:'):
+                    opis = line.split(':', 1)[1].strip()
 
         stan_colors = {
             'Nowy': '#beee00', 'Jak nowy': '#8ff5ff', 'Dobry': '#eab308',

@@ -197,16 +197,16 @@ def log_gemini_usage(response, context='unknown'):
             tokens_in = getattr(um, 'prompt_token_count', 0) or 0
             tokens_out = getattr(um, 'candidates_token_count', 0) or 0
 
-        # Gemini 2.0 Flash pricing (per 1M tokens)
-        # Input: $0.10/1M (<=128k), Output: $0.40/1M
-        cost = (tokens_in * 0.10 + tokens_out * 0.40) / 1_000_000
+        # Gemini 2.5 Flash pricing (per 1M tokens)
+        # Input: $0.075/1M, Output: $0.30/1M
+        cost = (tokens_in * 0.075 + tokens_out * 0.30) / 1_000_000
 
         from .database import get_db
         conn = get_db()
         init_pallet_monitor_db(conn)
         conn.execute(
             '''INSERT INTO monitor_stats (event_type, source, ai_model, ai_tokens_in, ai_tokens_out, ai_cost_usd, details)
-               VALUES ('gemini', ?, 'gemini-2.0-flash', ?, ?, ?, ?)''',
+               VALUES ('gemini', ?, 'gemini-2.5-flash', ?, ?, ?, ?)''',
             (context, tokens_in, tokens_out, round(cost, 6), context)
         )
         conn.commit()

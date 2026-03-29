@@ -46,6 +46,11 @@
         opts.headers = opts.headers || {};
         if (!(opts.headers instanceof Headers)) {
             opts.headers['ngrok-skip-browser-warning'] = '1';
+            // Dołącz CSRF token do wszystkich fetch requestów
+            var meta = document.querySelector('meta[name="csrf-token"]');
+            if (meta && meta.content) {
+                opts.headers['X-CSRFToken'] = meta.content;
+            }
         }
         return _fetch.call(this, url, opts).then(function(resp){
             // Na 400/403 z CSRF error — odśwież token i spróbuj ponownie
@@ -579,8 +584,14 @@ if(localStorage.getItem('kiosk_mode')==='1'){
         <a href="/analityka/koszty-allegro" class="sidebar-link">
             <span class="sl-icon material-symbols-outlined">receipt_long</span>Koszty Allegro
         </a>
+        <a href="/analityka/zakupy-dostawcy" class="sidebar-link">
+            <span class="sl-icon material-symbols-outlined">storefront</span>Zakupy dostawcy
+        </a>
         <a href="/monitor" class="sidebar-link">
-            <span class="sl-icon material-symbols-outlined">local_fire_department</span>Okazje
+            <span class="sl-icon material-symbols-outlined">local_fire_department</span>Okazje palet
+        </a>
+        <a href="/analityka/winning" class="sidebar-link">
+            <span class="sl-icon material-symbols-outlined">emoji_events</span>Winning Products
         </a>
     </nav>
     <div class="sidebar-bottom">

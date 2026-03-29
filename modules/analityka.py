@@ -35,7 +35,7 @@ def statystyki():
     conn = get_db()
     miesieczne = conn.execute('''
         SELECT strftime('%m', REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) as miesiac,
-               COALESCE(SUM(CASE WHEN status != 'zwrot' THEN cena * ilosc + COALESCE(koszt_dostawy, 0) ELSE 0 END), 0) as suma,
+               COALESCE(SUM(cena * ilosc), 0) as suma,
                COUNT(*) as cnt
         FROM sprzedaze
         WHERE strftime('%Y', REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?
@@ -77,6 +77,112 @@ def statystyki():
     chart_labels = json.dumps(nazwy_miesiecy)
     chart_data = json.dumps(dane_miesieczne)
     chart_orders = json.dumps(dane_zamowienia)
+
+    # === WYLICZNIK CZASU OSZCZĘDZONEGO ===
+    # Każda operacja ma szacowany czas ręcznego wykonania
+    time_data = {}
+    try:
+        # Etykiety wygenerowane (status wyslana/nadana)
+        etykiety = conn.execute(
+            "SELECT COUNT(*) as cnt FROM sprzedaze WHERE status IN ('wyslana','nadana')"
+        ).fetchone()['cnt'] or 0
+
+        # Oferty wystawione na Allegro
+        oferty_cnt = conn.execute("SELECT COUNT(*) as cnt FROM oferty").fetchone()['cnt'] or 0
+
+        # Produkty dodane do magazynu
+        produkty_cnt = conn.execute("SELECT COUNT(*) as cnt FROM produkty").fetchone()['cnt'] or 0
+
+        # Produkty z analizą AI (mają wypełniony meta_title)
+        ai_analizy = conn.execute(
+            "SELECT COUNT(*) as cnt FROM produkty WHERE meta_title IS NOT NULL AND meta_title != '' AND LENGTH(meta_title) > 3"
+        ).fetchone()['cnt'] or 0
+
+        # Miesiące aktywne (miesiące ze sprzedażą)
+        miesiace_aktywne = conn.execute(
+            "SELECT COUNT(DISTINCT strftime('%Y-%m', REPLACE(SUBSTR(data_sprzedazy,1,10),'T',''))) as cnt FROM sprzedaze WHERE data_sprzedazy IS NOT NULL AND data_sprzedazy != ''"
+        ).fetchone()['cnt'] or 0
+
+        # Palety przetworzone
+        palety_cnt = conn.execute("SELECT COUNT(*) as cnt FROM palety").fetchone()['cnt'] or 0
+
+        # Czas oszczędzony w minutach
+        MIN_ETYKIETA = 4       # ręczne nadanie przez portal kuriera
+        MIN_OFERTA = 8         # ręczne wystawienie (tytuł, opis, kategoria, zdjęcia)
+        MIN_PRODUKT = 2        # ręczne wpisanie do Excela/bazy
+        MIN_AI_ANALIZA = 12    # ręczne sprawdzenie ceny na Amazon/Allegro
+        MIN_RAPORT = 90        # miesięczny raport P&L w Excelu
+        MIN_PALETA = 30        # ręczna inwentaryzacja palety
+
+        min_etykiety = etykiety * MIN_ETYKIETA
+        min_oferty = oferty_cnt * MIN_OFERTA
+        min_produkty = produkty_cnt * MIN_PRODUKT
+        min_ai = ai_analizy * MIN_AI_ANALIZA
+        min_raporty = miesiace_aktywne * MIN_RAPORT
+        min_palety = palety_cnt * MIN_PALETA
+
+        total_min = min_etykiety + min_oferty + min_produkty + min_ai + min_raporty + min_palety
+        total_h = total_min / 60
+        total_dni_robocze = total_h / 8  # 8h dzień roboczy
+
+        time_data = {
+            'etykiety': etykiety, 'min_etykiety': min_etykiety,
+            'oferty': oferty_cnt, 'min_oferty': min_oferty,
+            'produkty': produkty_cnt, 'min_produkty': min_produkty,
+            'ai_analizy': ai_analizy, 'min_ai': min_ai,
+            'miesiace': miesiace_aktywne, 'min_raporty': min_raporty,
+            'palety': palety_cnt, 'min_palety': min_palety,
+            'total_min': total_min,
+            'total_h': total_h,
+            'total_dni': total_dni_robocze,
+        }
+    except Exception as _e:
+        print(f"[time_data] error: {_e}")
+        time_data = {'total_min': 0, 'total_h': 0, 'total_dni': 0,
+                     'etykiety': 0, 'min_etykiety': 0,
+                     'oferty': 0, 'min_oferty': 0,
+                     'produkty': 0, 'min_produkty': 0,
+                     'ai_analizy': 0, 'min_ai': 0,
+                     'miesiace': 0, 'min_raporty': 0,
+                     'palety': 0, 'min_palety': 0}
+
+    def fmt_czas(min):
+        h = int(min) // 60
+        m = int(min) % 60
+        if h == 0: return f"{m}min"
+        if m == 0: return f"{h}h"
+        return f"{h}h {m}min"
+
+    def _time_row(icon, label, cnt, min_per, total_min_val):
+        return f'''<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(13,15,26,0.8);border:1px solid rgba(255,255,255,0.05)">
+        <div style="font-size:1.2rem;width:24px;text-align:center">{icon}</div>
+        <div style="flex:1;font-size:0.8rem;color:#e2e8f0">{label}</div>
+        <div style="font-size:0.75rem;color:#64748b;white-space:nowrap">{cnt} × {min_per}min</div>
+        <div style="font-size:0.85rem;font-weight:700;color:#beee00;white-space:nowrap;min-width:60px;text-align:right">= {fmt_czas(total_min_val)}</div>
+    </div>'''
+
+    _rows_html = ''.join([
+        _time_row('⚡', 'Etykiety kurierskie',   time_data.get('etykiety', 0),  4,  time_data.get('min_etykiety', 0)),
+        _time_row('📦', 'Wystawienia Allegro',    time_data.get('oferty', 0),    8,  time_data.get('min_oferty', 0)),
+        _time_row('🗂️', 'Produkty w magazynie',   time_data.get('produkty', 0),  2,  time_data.get('min_produkty', 0)),
+        _time_row('🤖', 'Analizy AI',             time_data.get('ai_analizy', 0),12, time_data.get('min_ai', 0)),
+        _time_row('📊', 'Raporty miesięczne',     time_data.get('miesiace', 0),  90, time_data.get('min_raporty', 0)),
+        _time_row('🏭', 'Inwentaryzacje palet',   time_data.get('palety', 0),    30, time_data.get('min_palety', 0)),
+    ])
+
+    panel_czas_html = f"""
+<div id="panel-czas" class="stat-panel cy-panel" style="display:none">
+    <div style="text-align:center;padding:20px 0 10px">
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:3rem;font-weight:800;color:#8ff5ff;text-shadow:0 0 20px rgba(143,245,255,0.4);line-height:1">{time_data['total_h']:.1f}h</div>
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:#64748b;margin-top:4px">zaoszczędzonego czasu</div>
+        <div style="font-size:0.85rem;color:#beee00;margin-top:8px;font-weight:600">≈ {time_data['total_dni']:.1f} dni roboczych</div>
+    </div>
+    <div style="margin:16px 0;display:flex;flex-direction:column;gap:8px">
+        {_rows_html}
+    </div>
+    <div style="font-size:0.6rem;color:#64748b;text-align:center;margin-top:8px">* Szacunki na podstawie typowego czasu ręcznego wykonania każdej operacji</div>
+</div>
+"""
 
     # TOP produkty i dostawcy
     top_produkty = stats.get('top_produkty', [])
@@ -178,6 +284,7 @@ def statystyki():
         <button class="cy-tab" onclick="showTab('magazyn')" id="tab-magazyn">Magazyn</button>
         <button class="cy-tab" onclick="showTab('alltime')" id="tab-alltime">Łącznie</button>
         <button class="cy-tab" onclick="showTab('top')" id="tab-top">Top</button>
+        <button class="cy-tab" onclick="showTab('czas')" id="tab-czas">⏱ Czas</button>
     </div>
 
 
@@ -287,6 +394,9 @@ def statystyki():
         {'<div class="cy-section"><span class="cy-section-bar lime"></span><span class="cy-section-lbl">Top produkty</span></div><div class="cy-card">' + top_prod_html + '</div>' if top_prod_html else ''}
         {'<div class="cy-section"><span class="cy-section-bar"></span><span class="cy-section-lbl">Top dostawcy (ROI)</span></div><div class="cy-card">' + top_dost_html + '</div>' if top_dost_html else ''}
     </div>
+
+    <!-- TAB: CZAS -->
+    {panel_czas_html}
 
     <!-- WYKRES - zawsze widoczny -->
     <div class="cy-section"><span class="cy-section-bar"></span><span class="cy-section-lbl">Wykres {current_year}</span></div>
@@ -715,7 +825,14 @@ def analityka_palety():
             COALESCE((SELECT SUM(s.ilosc) FROM sprzedaze s LEFT JOIN produkty pr ON s.produkt_id = pr.id LEFT JOIN oferty o ON s.oferta_id = o.id LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = p.id AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')), 0) as sprzedano_tabela,
             COALESCE((SELECT SUM(s.cena * s.ilosc) FROM sprzedaze s LEFT JOIN produkty pr ON s.produkt_id = pr.id LEFT JOIN oferty o ON s.oferta_id = o.id LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = p.id AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')), 0) as przychod_allegro_only,
             p.ilosc_sztuk,
-            (SELECT AVG(cena_allegro) FROM produkty WHERE paleta_id = p.id AND cena_allegro > 0) as avg_cena_allegro
+            (SELECT AVG(cena_allegro) FROM produkty WHERE paleta_id = p.id AND cena_allegro > 0) as avg_cena_allegro,
+            (SELECT MIN(s.data_sprzedazy) FROM sprzedaze s
+             LEFT JOIN produkty pr ON s.produkt_id = pr.id
+             LEFT JOIN oferty o ON s.oferta_id = o.id
+             LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id
+             WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = p.id
+               AND s.data_sprzedazy IS NOT NULL AND s.data_sprzedazy != ''
+               AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot')) as first_sale_date
         FROM palety p
         ORDER BY p.data_zakupu DESC
     ''').fetchall()
@@ -796,12 +913,34 @@ def analityka_palety():
             prognoza = zysk
 
         # Tempo sprzedaży (szt/dzień)
+        # Logika: od daty pierwszej sprzedaży, ale jeśli ta data jest świeższa
+        # niż 3 dni (spike!) — cofamy się do daty zakupu palety jako baseline,
+        # żeby nie zawyżać tempa palet gdzie właśnie zaczęliśmy sprzedawać.
         from datetime import datetime as _dt
         try:
-            _data_zakupu = _dt.strptime(str(p['data_zakupu'] or '')[:10], '%Y-%m-%d')
-            _dni = max(1, (_dt.now() - _data_zakupu).days)
+            _today = _dt.now()
+            _first = p['first_sale_date']
+            _data_zakupu_str = str(p['data_zakupu'] or '')[:10]
+            _data_zakupu = _dt.strptime(_data_zakupu_str, '%Y-%m-%d') if _data_zakupu_str and _data_zakupu_str != 'N' else None
+            if _first:
+                _data_first_sale = _dt.strptime(str(_first)[:10], '%Y-%m-%d')
+                _dni_od_first = (_today - _data_first_sale).days
+                if _dni_od_first >= 3:
+                    # Mamy wystarczająco dużo danych — liczymy od 1. sprzedaży
+                    _dni = max(1, _dni_od_first)
+                elif _data_zakupu:
+                    # Świeża sprzedaż (<3 dni) — używamy daty zakupu palety
+                    # żeby nie zawyżać przez spike jednego dnia
+                    _dni = max(3, (_today - _data_zakupu).days)
+                else:
+                    _dni = max(1, _dni_od_first)
+            elif _data_zakupu:
+                # Brak sprzedaży jeszcze — fallback na datę zakupu
+                _dni = max(1, (_today - _data_zakupu).days)
+            else:
+                _dni = 7  # nie mamy żadnej daty
         except:
-            _dni = 1
+            _dni = 7
         tempo = sprzedanych / _dni if sprzedanych > 0 else 0
         procent = (sprzedanych / wszystkich * 100) if wszystkich > 0 else 0
 
@@ -835,6 +974,11 @@ def analityka_palety():
 
     total_prowizja = sum(p['prowizja'] for p in palety_stats)
     total_roi = (total_zysk / total_koszt * 100) if total_koszt > 0 else 0
+
+    # Średnie tempo sprzedaży (szt/dzień) — tylko palety ze sprzedażą
+    _tempa = [p['tempo'] for p in palety_stats if p['sprzedanych'] > 0]
+    avg_tempo = sum(_tempa) / len(_tempa) if _tempa else 0
+    total_sprzedanych = sum(p['sprzedanych'] for p in palety_stats)
 
     # Unikalni dostawcy do filtra
     dostawcy = sorted(set(p['dostawca'] for p in palety_stats if p['dostawca'] != '-'))
@@ -876,8 +1020,8 @@ def analityka_palety():
         .bp-glow-lime{{box-shadow:0 0 20px rgba(202,253,0,0.15)}}
 
         /* KPI cards */
-        .bp-kpi-grid{{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:24px}}
-        @media(max-width:1200px){{.bp-kpi-grid{{grid-template-columns:repeat(3,1fr)}}}}
+        .bp-kpi-grid{{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-bottom:24px}}
+        @media(max-width:1400px){{.bp-kpi-grid{{grid-template-columns:repeat(3,1fr)}}}}
         @media(max-width:768px){{.bp-kpi-grid{{grid-template-columns:repeat(2,1fr)}}}}
         .bp-kpi{{backdrop-filter:blur(12px);background:var(--bp-surface);border:1px solid var(--bp-border);padding:20px;position:relative;transition:all 0.2s}}
         .bp-kpi:hover{{background:var(--bp-surface-bright);box-shadow:0 0 20px rgba(143,245,255,0.1)}}
@@ -988,6 +1132,15 @@ def analityka_palety():
             <div class="bp-value" style="font-size:1.6rem;color:{'var(--bp-lime)' if total_zysk >= 0 else 'var(--bp-pink)'};margin-bottom:4px">{total_zysk:,.0f} zl <span style="font-size:0.85rem;opacity:0.7">({total_roi:.0f}%)</span></div>
             <div class="bp-label">Zysk netto / ROI</div>
         </div>
+        <!-- Średnie tempo sprzedaży -->
+        <div class="bp-kpi" style="border-left:2px solid rgba(255,200,80,0.6)">
+            <div class="bp-kpi-icon" style="background:rgba(255,200,80,0.1)">
+                <span class="material-icons-round" style="color:#ffc850">speed</span>
+            </div>
+            <div class="bp-value" style="font-size:1.6rem;color:#ffc850;margin-bottom:4px">{avg_tempo:.1f}<span style="font-size:0.9rem;opacity:0.7"> szt/d</span></div>
+            <div class="bp-label">Srednie tempo</div>
+            <div style="font-size:0.7rem;color:var(--bp-muted);margin-top:6px">{total_sprzedanych} szt lacznie od 1. sprzedazy</div>
+        </div>
     </div>
 
     <!-- Charts Grid -->
@@ -1048,7 +1201,7 @@ def analityka_palety():
                     <th onclick="sortTable(6,'num')">Zysk <span class="sort-arrow"></span></th>
                     <th onclick="sortTable(7,'num')">ROI <span class="sort-arrow"></span></th>
                     <th onclick="sortTable(8,'num')">Prognoza <span class="sort-arrow"></span></th>
-                    <th onclick="sortTable(9,'num')">Tempo <span class="sort-arrow"></span></th>
+                    <th onclick="sortTable(9,'num')" title="Sztuk sprzedanych na dzień, liczone od daty pierwszej sprzedaży z tej palety">Tempo <span class="sort-arrow"></span></th>
                     <th onclick="sortTable(10,'num')">Postep <span class="sort-arrow"></span></th>
                     <th>Status</th>
                 </tr>
@@ -2524,20 +2677,8 @@ def analityka_czas_sprzedazy():
     except:
         pass
 
-    # Backfill produkty.data_dodania z daty zakupu palety
-    try:
-        conn.execute("""
-            UPDATE produkty SET data_dodania = (
-                SELECT p2.data_zakupu FROM palety p2
-                WHERE p2.id = produkty.paleta_id
-                  AND p2.data_zakupu IS NOT NULL
-            )
-            WHERE (data_dodania IS NULL OR data_dodania = '')
-              AND paleta_id IS NOT NULL
-        """)
-        conn.commit()
-    except:
-        pass
+    # UWAGA: NIE backfillujemy data_dodania z data_zakupu palety
+    # bo to psuje czas-sprzedazy (data zakupu palety != data wystawienia produktu)
 
     # Backfill: uzupełnij s.nazwa z oferty.tytul
     try:
@@ -2583,6 +2724,8 @@ def analityka_czas_sprzedazy():
         pass
 
     # === DANE OD WYSTAWIENIA / DODANIA ===
+    # data_od: używamy WYŁĄCZNIE daty wystawienia oferty lub data_dodania produktu
+    # NIE używamy data_zakupu palety — to data kupna palety, nie wystawienia produktu
     dane_od_wystawienia = conn.execute("""
         SELECT
             COALESCE(NULLIF(p.nazwa,''), NULLIF(s.nazwa,''), CASE WHEN s.allegro_order_id IS NOT NULL THEN 'Zamówienie ' || SUBSTR(s.allegro_order_id,1,8) ELSE 'Brak nazwy' END) as nazwa,
@@ -2591,25 +2734,27 @@ def analityka_czas_sprzedazy():
             COALESCE(
                 o.data_wystawienia,
                 o2.data_wystawienia,
-                p.data_dodania,
-                (SELECT pal.data_zakupu FROM palety pal WHERE pal.id = p.paleta_id)) as data_od,
+                NULLIF(p.data_dodania,'')) as data_od,
             p.kategoria, p.dostawca,
             CASE
-              WHEN COALESCE(o.data_wystawienia, o2.data_wystawienia, p.data_dodania,
-                            (SELECT pal.data_zakupu FROM palety pal WHERE pal.id = p.paleta_id)) IS NOT NULL
+              WHEN COALESCE(o.data_wystawienia, o2.data_wystawienia, NULLIF(p.data_dodania,'')) IS NOT NULL
               THEN MAX(0, (julianday(REPLACE(SUBSTR(s.data_sprzedazy,1,19),'T',' '))
                    - julianday(REPLACE(SUBSTR(
-                       COALESCE(o.data_wystawienia, o2.data_wystawienia, p.data_dodania,
-                                (SELECT pal.data_zakupu FROM palety pal WHERE pal.id = p.paleta_id)),1,19),'T',' '))))
+                       COALESCE(o.data_wystawienia, o2.data_wystawienia, NULLIF(p.data_dodania,'')),1,19),'T',' '))))
               ELSE NULL
             END as dni_od_wystawienia
         FROM sprzedaze s
         LEFT JOIN produkty p ON s.produkt_id = p.id
         LEFT JOIN oferty o ON s.oferta_id = o.id
-        LEFT JOIN oferty o2 ON o2.produkt_id = s.produkt_id AND s.oferta_id IS NULL
+        LEFT JOIN (
+            SELECT produkt_id, MIN(data_wystawienia) as data_wystawienia
+            FROM oferty
+            WHERE data_wystawienia IS NOT NULL AND data_wystawienia != ''
+            GROUP BY produkt_id
+        ) o2 ON o2.produkt_id = s.produkt_id AND s.oferta_id IS NULL
         WHERE s.status NOT IN ('zwrot','anulowane','anulowana')
           AND s.data_sprzedazy IS NOT NULL AND s.data_sprzedazy != ''
-         
+
         ORDER BY dni_od_wystawienia ASC
     """).fetchall()
 
@@ -2909,7 +3054,7 @@ _pallet_analysis_jobs = {}
 _pallet_analysis_results = {}
 
 
-def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-flash", excel_products=None, provider="gemini"):
+def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.5-flash", excel_products=None, provider="gemini"):
     """Uruchamia analizę palety w tle — wysyła produkty do AI (Gemini/Perplexity), parsuje JSON.
     excel_products: opcjonalna lista dictów z Excela (analiza przed zakupem)"""
     import requests as _req, json as _json, sqlite3 as _sq, re as _re
@@ -3020,13 +3165,33 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
                 batch_answer = data['choices'][0]['message']['content']
                 batch_cit = data.get('citations', [])
             else:
-                # Gemini API
+                # Gemini API z response_schema — wymusza czysty JSON bez markdown
+                _schema = {
+                    "type": "ARRAY",
+                    "items": {
+                        "type": "OBJECT",
+                        "properties": {
+                            "id": {"type": "INTEGER"},
+                            "nazwa": {"type": "STRING"},
+                            "cena_allegro": {"type": "NUMBER"},
+                            "popyt": {"type": "STRING"},
+                            "czas_sprzedazy_dni": {"type": "INTEGER"},
+                            "uwagi": {"type": "STRING"}
+                        },
+                        "required": ["id", "nazwa", "cena_allegro", "popyt", "czas_sprzedazy_dni", "uwagi"]
+                    }
+                }
                 resp = _req.post(
                     f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}",
                     headers={"Content-Type": "application/json"},
                     json={
                         "contents": [{"parts": [{"text": batch_prompt}]}],
-                        "generationConfig": {"maxOutputTokens": 8000, "temperature": 0.3}
+                        "generationConfig": {
+                            "maxOutputTokens": 8000,
+                            "temperature": 0.3,
+                            "response_mime_type": "application/json",
+                            "response_schema": _schema
+                        }
                     },
                     timeout=180)
                 data = resp.json()
@@ -3039,17 +3204,12 @@ def _run_pallet_analysis(job_id, paleta_id, api_key, db_path, model="gemini-2.0-
             all_citations.extend(batch_cit)
 
             # Parsuj JSON z odpowiedzi batcha
+            # response_schema wymusza czysty JSON — prosta próba, fallback na regex
             batch_parsed = None
             try:
-                clean = batch_answer.strip()
-                if clean.startswith('```'):
-                    clean = clean.split('\n', 1)[1] if '\n' in clean else clean[3:]
-                    if clean.endswith('```'):
-                        clean = clean[:-3]
-                    clean = clean.strip()
-                batch_parsed = _json.loads(clean)
+                batch_parsed = _json.loads(batch_answer.strip())
             except Exception:
-                # Szukaj JSON array [...] lub object {...}
+                # Fallback: szukaj JSON array [...] lub object {...}
                 match = _re.search(r'\[[\s\S]*\]', batch_answer)
                 if match:
                     try:
@@ -3609,7 +3769,7 @@ def analizator_palet_analyze():
     else:
         provider = 'gemini'
         api_key = get_config('gemini_api_key', '')
-        ai_model = get_config('gemini_model', 'gemini-2.0-flash')
+        ai_model = get_config('ai_model_analiza_palet', get_config('gemini_model', 'gemini-2.5-flash'))
 
     if not api_key:
         return jsonify({'ok': False, 'error': f'Brak klucza API {provider.title()}. Ustaw w Ustawienia.'})
@@ -3652,7 +3812,7 @@ def analiza_zakupu():
             else:
                 provider = 'gemini'
                 api_key = get_config('gemini_api_key', '')
-                ai_model = get_config('gemini_model', 'gemini-2.0-flash')
+                ai_model = get_config('ai_model_analiza_palet', get_config('gemini_model', 'gemini-2.5-flash'))
 
             if not api_key:
                 return jsonify({'ok': False, 'error': f'Brak klucza API {provider.title()}. Ustaw w Ustawienia.'})
@@ -4486,3 +4646,163 @@ def koszty_allegro():
     '''
 
     return render(html, page_title='Koszty Allegro')
+
+
+@analityka_bp.route('/analityka/zakupy-dostawcy')
+def analityka_zakupy_dostawcy():
+    """Analityka zakupów od dostawców - wydatki, ROI, leżaki, macierz logistyczna."""
+    from modules.database import get_db
+    from flask import render_template
+    from datetime import datetime
+
+    conn = get_db()
+    now = datetime.now()
+
+    # ── KPI globalne ──
+    kpi = conn.execute('''
+        SELECT
+            COUNT(*) as ilosc_palet,
+            COALESCE(SUM(cena_zakupu), 0) as total_wydane,
+            COALESCE(AVG(cena_zakupu), 0) as avg_palety,
+            COALESCE(SUM(ilosc_sztuk), 0) as total_sztuk
+        FROM palety
+    ''').fetchone()
+
+    # ── Przychód łączny z wszystkich palet (z tabeli sprzedaze) ──
+    total_przychod_row = conn.execute('''
+        SELECT COALESCE(SUM(s.cena * s.ilosc), 0) as przychod
+        FROM sprzedaze s
+        LEFT JOIN produkty pr ON s.produkt_id = pr.id
+        LEFT JOIN oferty o ON s.oferta_id = o.id
+        LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id
+        WHERE COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot')
+          AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
+    ''').fetchone()
+    total_przychod = total_przychod_row['przychod'] or 0
+    total_wydane = kpi['total_wydane'] or 0
+    total_zysk = total_przychod - total_wydane
+    total_roi = (total_zysk / total_wydane * 100) if total_wydane > 0 else 0
+
+    # ── Dostawcy ──
+    dostawcy_raw = conn.execute('''
+        SELECT
+            COALESCE(NULLIF(TRIM(dostawca),''), 'Nieznany') as dostawca,
+            COUNT(*) as palety,
+            COALESCE(SUM(cena_zakupu), 0) as wydane,
+            COALESCE(AVG(cena_zakupu), 0) as avg_cena,
+            MIN(data_zakupu) as first_zakup,
+            MAX(data_zakupu) as last_zakup,
+            COALESCE(SUM(ilosc_sztuk), 0) as sztuk_total
+        FROM palety
+        GROUP BY COALESCE(NULLIF(TRIM(dostawca),''), 'Nieznany')
+        ORDER BY wydane DESC
+    ''').fetchall()
+
+    # Dla każdego dostawcy oblicz przychód i ROI
+    dostawcy = []
+    for d in dostawcy_raw:
+        przychod_d = conn.execute('''
+            SELECT COALESCE(SUM(s.cena * s.ilosc), 0) as przychod
+            FROM sprzedaze s
+            LEFT JOIN produkty pr ON s.produkt_id = pr.id
+            LEFT JOIN oferty o ON s.oferta_id = o.id
+            LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id
+            JOIN palety p ON COALESCE(pr.paleta_id, pr2.paleta_id) = p.id
+            WHERE COALESCE(NULLIF(TRIM(p.dostawca),''), 'Nieznany') = ?
+              AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot')
+              AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
+        ''', (d['dostawca'],)).fetchone()['przychod'] or 0
+
+        wydane = d['wydane'] or 0
+        zysk_d = przychod_d - wydane
+        roi_d = (zysk_d / wydane * 100) if wydane > 0 else 0
+        marza_d = (zysk_d / przychod_d * 100) if przychod_d > 0 else 0
+
+        dostawcy.append({
+            'dostawca': d['dostawca'],
+            'palety': d['palety'],
+            'wydane': wydane,
+            'avg_cena': d['avg_cena'],
+            'przychod': przychod_d,
+            'zysk': zysk_d,
+            'roi': roi_d,
+            'marza': marza_d,
+            'first_zakup': d['first_zakup'],
+            'last_zakup': d['last_zakup'],
+            'sztuk': d['sztuk_total'],
+        })
+
+    # ── Miesięczne zakupy (ostatnie 12 mies.) ──
+    miesieczne = conn.execute('''
+        SELECT
+            strftime('%Y-%m', data_zakupu) as miesiac,
+            COUNT(*) as palety,
+            COALESCE(SUM(cena_zakupu), 0) as wydane
+        FROM palety
+        WHERE data_zakupu >= date('now', '-12 months')
+        GROUP BY miesiac
+        ORDER BY miesiac
+    ''').fetchall()
+    mies_labels = [r['miesiac'] for r in miesieczne]
+    mies_wydane = [round(r['wydane'], 2) for r in miesieczne]
+    mies_palety = [r['palety'] for r in miesieczne]
+
+    # ── Leżaki (produkty w magazynie > 30 dni) ──
+    lezaki = conn.execute('''
+        SELECT
+            pr.id,
+            pr.nazwa,
+            pr.kategoria,
+            pr.cena_allegro,
+            pr.cena_netto,
+            pr.ilosc,
+            pr.lokalizacja,
+            pr.stan,
+            p.dostawca,
+            p.nazwa as paleta_nazwa,
+            pr.data_dodania,
+            CAST(julianday('now') - julianday(pr.data_dodania) AS INTEGER) as dni_w_magazynie
+        FROM produkty pr
+        LEFT JOIN palety p ON pr.paleta_id = p.id
+        WHERE pr.status IN ('magazyn', 'dostepny')
+          AND pr.ilosc > 0
+          AND pr.data_dodania IS NOT NULL
+          AND CAST(julianday('now') - julianday(pr.data_dodania) AS INTEGER) > 30
+        ORDER BY dni_w_magazynie DESC
+        LIMIT 50
+    ''').fetchall()
+
+    lezaki_list = [dict(r) for r in lezaki]
+
+    # ── Macierz logistyczna per kategoria ──
+    macierz = conn.execute('''
+        SELECT
+            COALESCE(NULLIF(pr.kategoria,''), 'inne') as kategoria,
+            COUNT(DISTINCT pr.id) as produkty,
+            COALESCE(SUM(pr.ilosc), 0) as sztuk_magazyn,
+            COALESCE(SUM(CASE WHEN pr.status='sprzedany' THEN 1 ELSE 0 END), 0) as sprzedane,
+            COALESCE(AVG(pr.cena_allegro), 0) as avg_cena
+        FROM produkty pr
+        GROUP BY COALESCE(NULLIF(pr.kategoria,''), 'inne')
+        ORDER BY sprzedane DESC
+        LIMIT 15
+    ''').fetchall()
+
+    return render_template(
+        'analityka_zakupy.html',
+        kpi_palety=kpi['ilosc_palet'] or 0,
+        kpi_wydane=total_wydane,
+        kpi_przychod=total_przychod,
+        kpi_zysk=total_zysk,
+        kpi_roi=total_roi,
+        kpi_sztuk=kpi['total_sztuk'] or 0,
+        dostawcy=dostawcy,
+        mies_labels=mies_labels,
+        mies_wydane=mies_wydane,
+        mies_palety=mies_palety,
+        lezaki=lezaki_list,
+        macierz=[dict(r) for r in macierz],
+        version=current_app.config.get('VERSION', ''),
+        brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
+        current_user=session.get('user'),
+    )

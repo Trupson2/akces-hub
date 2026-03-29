@@ -163,9 +163,17 @@ OUTPUT: Mysz Logitech MX Master 3 Bluetooth 4000DPI Czarna
 Wygeneruj tytuł:"""
 
     try:
+        # Pobierz model per sektor (tytuly) z configa
+        try:
+            from modules.database import get_config as _get_cfg
+            _tytuly_model = _get_cfg('ai_model_tytuly', _get_cfg('gemini_model', 'gemini-2.5-flash'))
+            _tytuly_url = f'https://generativelanguage.googleapis.com/v1beta/models/{_tytuly_model}:generateContent?key={gemini_key}'
+        except Exception:
+            _tytuly_url = get_gemini_api_url(gemini_key)
+
         # Wywołanie API Gemini
         response = requests.post(
-            get_gemini_api_url(gemini_key),
+            _tytuly_url,
             json={
                 'contents': [{'parts': [{'text': prompt}]}],
                 'generationConfig': {

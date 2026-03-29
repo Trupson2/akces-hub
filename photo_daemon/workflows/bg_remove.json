@@ -1,0 +1,22 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{INPUT_FILENAME}",
+      "upload": "image"
+    }
+  },
+  "2": {
+    "class_type": "BiRefNet_zho",
+    "inputs": {
+      "image": ["1", 0]
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["2", 0],
+      "filename_prefix": "{OUTPUT_PREFIX}"
+    }
+  }
+}

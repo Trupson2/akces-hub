@@ -183,7 +183,7 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min
                 <div class="lic-feat-item"><span class="material-symbols-outlined">check_circle</span><span>Multi-marketplace</span></div>
             </div>
 
-            {% if lic.plan|upper not in ['MAX','ENTERPRISE'] %}
+            {% if lic.plan|upper not in ['MAX','BUSINESS','ENTERPRISE'] %}
             <div class="lic-upgrade">
                 <h4><span class="material-symbols-outlined" style="color:var(--pink);font-size:1.2rem">rocket_launch</span> Chcesz wiecej?</h4>
                 <p>Przejdz na plan MAX i odblokuj AI analizy, 3D magazyn, multi-marketplace i priorytetowe wsparcie.</p>
@@ -191,10 +191,10 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min
             </div>
             {% endif %}
 
-            {% if is_dev %}
+            {% if is_dev and lic.plan|upper not in ['MAX','BUSINESS','ENTERPRISE'] %}
             <form action="/license/upgrade-enterprise" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="lic-form-btn dev"><span class="material-symbols-outlined">arrow_upward</span> DEV: Upgrade do Enterprise</button>
+                <button type="submit" class="lic-form-btn dev"><span class="material-symbols-outlined">arrow_upward</span> DEV: Upgrade do Max</button>
             </form>
             {% endif %}
         </div>
@@ -237,7 +237,7 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min
                     <input type="text" name="client" placeholder="Np. Firma XYZ" required class="lic-form-input">
                     {% if is_dev %}
                     <label class="lic-form-label">Plan</label>
-                    <select name="plan" class="lic-form-select"><option value="starter">Starter</option><option value="pro" selected>Pro</option><option value="business">Business</option><option value="enterprise">Enterprise</option></select>
+                    <select name="plan" class="lic-form-select"><option value="trial">Trial</option><option value="pro" selected>Pro</option><option value="max">Max</option></select>
                     <label class="lic-form-label">Utworzona (timestamp)</label>
                     <input type="number" name="created" required class="lic-form-input">
                     <label class="lic-form-label">Wygasa (timestamp, 0=bezterminowo)</label>

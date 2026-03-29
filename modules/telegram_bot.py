@@ -250,14 +250,17 @@ def get_logs(limit=20):
 # ============================================================
 # FUNKCJE ALERTÓW
 # ============================================================
-def alert_sprzedaz(produkt_nazwa, cena, kupujacy='', lokalizacja='', regal='', paleta='', ilosc_zostalo=None):
+def alert_sprzedaz(produkt_nazwa, cena, kupujacy='', lokalizacja='', regal='', paleta='', ilosc_zostalo=None, ilosc=1):
     """Wysyła alert o sprzedaży z dźwiękiem + lokalizacja w magazynie!"""
     if get_config('telegram_alert_sprzedaz', 'true') != 'true':
         return False
 
     msg = f"🔔💰 <b>SPRZEDAŻ!</b> 💰🔔\n\n"
     msg += f"📦 {produkt_nazwa}\n"
-    msg += f"💵 <b>{cena:.2f} zł</b>\n"
+    if ilosc and ilosc > 1:
+        msg += f"💵 <b>{ilosc} szt × {cena:.2f} zł = {ilosc * cena:.2f} zł</b>\n"
+    else:
+        msg += f"💵 <b>{cena:.2f} zł</b>\n"
     if kupujacy:
         msg += f"👤 {kupujacy}\n"
 

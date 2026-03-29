@@ -10,9 +10,42 @@ import json
 wysylki_bp = Blueprint('wysylki', __name__)
 
 # ============================================================
-# Packed orders tracking (hide from pending list after packing)
+# Packed orders tracking (DB-backed, survives restarts)
 # ============================================================
-_packed_orders = set()  # order_ids that have been packed but not yet shipped
+def _get_packed_orders():
+    """Get set of packed order_ids from DB"""
+    from modules.database import get_db
+    try:
+        conn = get_db()
+        conn.execute('''CREATE TABLE IF NOT EXISTS packed_orders (
+            order_id TEXT PRIMARY KEY,
+            packed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )''')
+        # Auto-clean entries older than 3 days
+        conn.execute("DELETE FROM packed_orders WHERE packed_at < datetime('now', '-3 days')")
+        rows = conn.execute('SELECT order_id FROM packed_orders').fetchall()
+        return {r['order_id'] for r in rows}
+    except Exception as e:
+        print(f"[WARN] packed_orders read error: {e}")
+        return set()
+
+def _add_packed_order(order_id):
+    from modules.database import get_db
+    try:
+        conn = get_db()
+        conn.execute('INSERT OR IGNORE INTO packed_orders (order_id) VALUES (?)', (order_id,))
+        conn.commit()
+    except Exception as e:
+        print(f"[WARN] packed_orders write error: {e}")
+
+def _remove_packed_order(order_id):
+    from modules.database import get_db
+    try:
+        conn = get_db()
+        conn.execute('DELETE FROM packed_orders WHERE order_id = ?', (order_id,))
+        conn.commit()
+    except Exception as e:
+        print(f"[WARN] packed_orders delete error: {e}")
 
 # ============================================================
 # CACHE zamówień Allegro
@@ -40,7 +73,7 @@ def _pobierz_zamowienia_allegro(force_refresh=False):
     conn = get_db()
     rows = conn.execute('''
         SELECT s.id, s.allegro_order_id, s.nazwa, s.cena, s.ilosc, s.kupujacy,
-               s.data_sprzedazy, s.adres, s.produkt_id,
+               s.data_sprzedazy, s.adres, s.produkt_id, s.metoda_dostawy,
                p.lokalizacja, p.regal, p.zdjecie_url
         FROM sprzedaze s
         LEFT JOIN produkty p ON s.produkt_id = p.id
@@ -60,6 +93,7 @@ def _pobierz_zamowienia_allegro(force_refresh=False):
                 'date': (row['data_sprzedazy'] or '')[:10],
                 'address': row['adres'] or 'Brak adresu',
                 'pickup_point': '',
+                'delivery_method': row['metoda_dostawy'] or '',
                 'produkty': [],
                 'total_sum': 0
             }
@@ -319,8 +353,8 @@ def api_wysylki_pending():
         today = date.today().isoformat()
         shipped_row = conn.execute("SELECT COUNT(*) as cnt FROM sprzedaze WHERE status IN ('wyslana','nadana') AND date(data_sprzedazy) = ?", (today,)).fetchone()
         shipped_today = shipped_row['cnt'] if shipped_row else 0
-    except:
-        pass
+    except Exception as e:
+        print(f"[WARN] shipped_today query error: {e}")
 
     # Próbuj Allegro API
     if is_authenticated():
@@ -347,6 +381,8 @@ def api_wysylki_pending():
                         carrier = 'InPost'
                     elif 'dpd' in ml:
                         carrier = 'DPD'
+                    elif 'dhl' in ml:
+                        carrier = 'DHL'
                     else:
                         carrier = method_name[:15] or 'Kurier'
 
@@ -356,7 +392,7 @@ def api_wysylki_pending():
                         pickup_display = f"{pickup_name} - {pp_addr.get('street', '')} {pp_addr.get('city', '')}".strip()
 
                     # Skip orders already packed locally
-                    if order_id in _packed_orders:
+                    if order_id in _get_packed_orders():
                         continue
                     orders.append({
                         'order_id': order_id,
@@ -370,28 +406,48 @@ def api_wysylki_pending():
         except Exception as e:
             print(f"[api/wysylki/pending] Allegro API error: {e}")
 
-    # Fallback: lokalna baza (jeśli brak Allegro lub brak wyników)
-    if not orders:
-        try:
-            conn = get_db()
-            rows = conn.execute('''
-                SELECT s.id, s.allegro_order_id, s.nazwa, s.kupujacy, s.cena, s.ilosc, s.adres
-                FROM sprzedaze s WHERE s.status IN ('nowa', 'nowe', 'nadana', 'wyslana')
-                AND date(s.data_sprzedazy) >= date('now', '-3 days')
-                ORDER BY s.data_sprzedazy DESC LIMIT 20
-            ''').fetchall()
-            for r in rows:
-                orders.append({
-                    'order_id': r['allegro_order_id'] or str(r['id']),
-                    'buyer': r['kupujacy'] or 'Nieznany',
-                    'carrier': 'Kurier',
-                    'method': '',
-                    'pickup_point': '',
-                    'items_count': r['ilosc'] or 1,
-                    'total': str(r['cena'] or 0),
-                })
-        except:
-            pass
+    # Uzupełnij z lokalnej bazy - zamówienia które są w bazie ale nie przyszły z API
+    existing_ids = {o['order_id'] for o in orders}
+    try:
+        conn = get_db()
+        rows = conn.execute('''
+            SELECT s.allegro_order_id, s.kupujacy, s.metoda_dostawy, s.adres,
+                   SUM(s.ilosc) as total_qty, SUM(s.cena * s.ilosc) as total_val
+            FROM sprzedaze s
+            WHERE s.status IN ('nowa', 'nadana')
+            AND s.allegro_order_id IS NOT NULL AND s.allegro_order_id != ''
+            GROUP BY s.allegro_order_id
+        ''').fetchall()
+        for r in rows:
+            oid = r['allegro_order_id']
+            if oid in existing_ids or oid in _get_packed_orders():
+                continue
+            dm = (r['metoda_dostawy'] or '').lower()
+            addr = (r['adres'] or '').lower()
+            detect = dm if dm else addr
+            if 'orlen' in detect:
+                carrier = 'Orlen'
+            elif 'inpost' in detect or 'paczkomat' in detect or 'paczkopunkt' in detect:
+                carrier = 'InPost'
+            elif 'dpd' in detect:
+                carrier = 'DPD'
+            elif 'dhl' in detect:
+                carrier = 'DHL'
+            else:
+                carrier = 'DPD'  # default kurier = DPD
+            # Pickup point z adresu (jeśli paczkomat)
+            pickup = r['adres'] if carrier in ('InPost', 'Orlen') else ''
+            orders.append({
+                'order_id': oid,
+                'buyer': r['kupujacy'] or 'Nieznany',
+                'carrier': carrier,
+                'method': r['metoda_dostawy'] or '',
+                'pickup_point': pickup,
+                'items_count': r['total_qty'] or 1,
+                'total': f"{r['total_val'] or 0:.0f}",
+            })
+    except Exception as e:
+            print(f"[WARN] DB fallback orders error: {e}")
 
     return jsonify({'orders': orders, 'total': len(orders), 'shipped_today': shipped_today})
 
@@ -448,22 +504,76 @@ def api_wysylki_cennik():
 @wysylki_bp.route('/api/wysylki/mark-packed', methods=['POST'])
 def api_mark_packed():
     """Mark order as packed (hides from pending list until shipped/nadana)."""
-    global _packed_orders
     data = request.get_json(silent=True) or {}
     order_id = data.get('order_id', '')
     if not order_id:
         return jsonify({'error': 'Brak order_id'}), 400
-    _packed_orders.add(order_id)
-    return jsonify({'ok': True, 'packed': list(_packed_orders)})
+    _add_packed_order(order_id)
+    return jsonify({'ok': True})
+
+
+@wysylki_bp.route('/api/wysylki/backfill-carriers', methods=['POST'])
+def api_backfill_carriers():
+    """Jednorazowy backfill: pobierz metoda_dostawy z Allegro API dla zamówień z pustym carrier"""
+    from modules.database import get_db
+    from modules.allegro_api import get_order_details, is_authenticated
+
+    if not is_authenticated():
+        return jsonify({'error': 'Nie zalogowano do Allegro'}), 401
+
+    conn = get_db()
+    rows = conn.execute('''
+        SELECT DISTINCT allegro_order_id FROM sprzedaze
+        WHERE allegro_order_id IS NOT NULL AND allegro_order_id != ''
+        AND (metoda_dostawy IS NULL OR metoda_dostawy = '')
+        AND status IN ('nowa', 'nadana')
+    ''').fetchall()
+
+    updated = 0
+    errors = 0
+    for row in rows:
+        oid = row['allegro_order_id']
+        try:
+            order, err = get_order_details(oid)
+            if err or not order:
+                errors += 1
+                continue
+            delivery = order.get('delivery', {})
+            method_name = (delivery.get('method', {}).get('name', '') or '').lower()
+            pickup_id = (delivery.get('pickupPoint', {}).get('id', '') or '').upper()
+
+            if 'orlen' in method_name or pickup_id.startswith('ORL'):
+                carrier = 'Orlen'
+            elif any(x in method_name for x in ['inpost', 'paczkomat', 'paczka w ruchu']) or (pickup_id and not pickup_id.startswith('ORL')):
+                carrier = 'InPost'
+            elif 'dpd' in method_name:
+                carrier = 'DPD'
+            elif 'dhl' in method_name:
+                carrier = 'DHL'
+            else:
+                carrier = (delivery.get('method', {}).get('name', '') or '')[:20] or 'Kurier'
+
+            conn.execute('UPDATE sprzedaze SET metoda_dostawy = ? WHERE allegro_order_id = ? AND (metoda_dostawy IS NULL OR metoda_dostawy = "")', (carrier, oid))
+            updated += 1
+            print(f"[BACKFILL] {oid[:12]}... → {carrier}")
+        except Exception as e:
+            errors += 1
+            print(f"[BACKFILL] Error {oid[:12]}...: {e}")
+
+    conn.commit()
+    # Clear cache so page refreshes with new data
+    global _wysylki_cache
+    _wysylki_cache = {'data': None, 'raw': None, 'timestamp': 0}
+
+    return jsonify({'success': True, 'updated': updated, 'errors': errors, 'total': len(rows)})
 
 
 @wysylki_bp.route('/api/wysylki/unpack', methods=['POST'])
 def api_unpack():
     """Remove order from packed list (show again in pending)."""
-    global _packed_orders
     data = request.get_json(silent=True) or {}
     order_id = data.get('order_id', '')
-    _packed_orders.discard(order_id)
+    _remove_packed_order(order_id)
     return jsonify({'ok': True})
 
 
@@ -857,11 +967,37 @@ def wysylki_nadaj(order_id):
 
     if label_pdf:
         print(f"   → [CHECK_CIRCLE] Etykieta gotowa! Rozmiar: {len(label_pdf)} bytes")
+        # Oznacz jako wyslana + zaktualizuj status produktu
+        try:
+            from modules.database import get_db as _gdb
+            _conn = _gdb()
+            _conn.execute("UPDATE sprzedaze SET status = 'wyslana' WHERE allegro_order_id = ? AND status IN ('nowa', 'nadana')", (order_id,))
+            _sprzedane = _conn.execute(
+                "SELECT produkt_id FROM sprzedaze WHERE allegro_order_id = ? AND produkt_id IS NOT NULL", (order_id,)
+            ).fetchall()
+            for _s in _sprzedane:
+                _conn.execute("""
+                    UPDATE produkty SET status = 'sprzedany'
+                    WHERE id = ? AND ilosc <= 0
+                    AND status NOT IN ('sprzedany','wyslany','uszkodzony','zlomowany','naprawa')
+                """, (_s['produkt_id'],))
+            _conn.commit()
+        except Exception as _e:
+            print(f"[WARN] Status update po nadaniu: {_e}")
         if wants_json:
             import base64
+            # Detect carrier for frontend (pickup button)
+            try:
+                _ord, _ = get_order_details(order_id)
+                _dm = (_ord or {}).get('delivery', {}).get('method', {}).get('name', '').lower()
+                _carrier = 'DPD' if 'dpd' in _dm else ('DHL' if 'dhl' in _dm else ('Orlen' if 'orlen' in _dm else ('InPost' if any(x in _dm for x in ['inpost', 'paczkomat']) else 'Kurier')))
+            except Exception as e:
+                print(f"[WARN] carrier detect error: {e}")
+                _carrier = 'Kurier'
             return jsonify({
                 'success': True,
                 'shipment_id': shipment_id,
+                'carrier': _carrier,
                 'label_url': f'/wysylki/etykieta/{order_id}',
                 'label_base64': base64.b64encode(label_pdf).decode('utf-8')
             })
@@ -1012,6 +1148,62 @@ def bulk_nadaj():
         'err_count':  err_count,
         'results':    results,
         'merged_pdf': merged_b64,   # None jeśli wszystkie błędy
+    })
+
+
+@wysylki_bp.route('/wysylki/podjazd/<order_id>', methods=['POST'])
+def wysylki_podjazd(order_id):
+    """Zamawia podjazd kuriera DPD dla przesyłki"""
+    from modules.allegro_api import allegro_request, get_wysylam_z_allegro_shipments
+    import uuid
+
+    print(f"[PICKUP] Zamawianie podjazdu kuriera dla: {order_id}")
+
+    # 1. Pobierz shipment ID
+    result, error = get_wysylam_z_allegro_shipments(order_id)
+    if error or not result or not result.get('shipments'):
+        return jsonify({'success': False, 'error': f'Brak przesyłki do podjazdu: {error or "nie znaleziono"}'}), 400
+
+    shipment = result['shipments'][0]
+    shipment_id = shipment.get('id')
+    print(f"   → Shipment ID: {shipment_id}")
+
+    # 2. Pobierz propozycje terminów podjazdu
+    proposals_result, proposals_error = allegro_request('POST', '/shipment-management/pickup-proposals', data={
+        'shipmentIds': [shipment_id]
+    })
+    print(f"   → Pickup proposals: {proposals_result}")
+    if proposals_error:
+        print(f"   → Proposals error: {proposals_error}")
+        return jsonify({'success': False, 'error': f'Błąd propozycji podjazdu: {proposals_error}'}), 400
+
+    # 3. Wybierz pierwszą dostępną propozycję (lub ANY)
+    proposal_id = 'ANY'
+    proposals = (proposals_result or {}).get('pickupDateProposals', [])
+    if proposals:
+        proposal_id = proposals[0].get('id', 'ANY')
+        print(f"   → Wybrany termin: {proposals[0].get('date', '?')} (ID: {proposal_id})")
+    else:
+        print(f"   → Brak propozycji, używam ANY")
+
+    # 4. Zamów podjazd
+    command_id = str(uuid.uuid4())
+    pickup_result, pickup_error = allegro_request('POST', '/shipment-management/pickups/create-commands', data={
+        'commandId': command_id,
+        'input': {
+            'shipmentIds': [shipment_id],
+            'pickupDateProposalId': proposal_id
+        }
+    })
+    print(f"   → Pickup result: {pickup_result}")
+    if pickup_error:
+        print(f"   → Pickup error: {pickup_error}")
+        return jsonify({'success': False, 'error': f'Błąd zamawiania podjazdu: {pickup_error}'}), 400
+
+    return jsonify({
+        'success': True,
+        'message': 'Podjazd kuriera zamówiony!',
+        'proposal_date': proposals[0].get('date', 'najbliższy termin') if proposals else 'najbliższy termin'
     })
 
 
@@ -1260,11 +1452,12 @@ def wysylki_lista():
             dostawca = first_item['dostawca'] or 'Niezdefiniowany'
             code = first_item['ean'] or first_item['asin'] or '—'
 
-            # Delivery type badge z adresu
+            # Delivery type badge - preferuj metoda_dostawy, fallback na adres
+            _md = (first_item.get('metoda_dostawy') or '').lower()
             adres_lower = (first_item.get('adres') or '').lower()
             kupujacy_lower = (first_item.get('kupujacy') or '').lower()
-            all_text = adres_lower + ' ' + kupujacy_lower
-            if 'paczkomat' in all_text or 'inpost' in all_text:
+            all_text = _md + ' ' + adres_lower + ' ' + kupujacy_lower
+            if 'inpost' in all_text or 'paczkomat' in all_text:
                 badge += ' <span style="background:#ffcd00;color:#000;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:800;letter-spacing:0.5px">INPOST</span>'
             elif 'one box' in all_text or 'allegro one' in all_text or 'one-box' in all_text:
                 badge += ' <span style="background:#ff5a00;color:#fff;padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:800;letter-spacing:0.5px">ALLEGRO ONE</span>'
@@ -1506,6 +1699,135 @@ h1 {{ font-size:18px; text-align:center; margin-bottom:4px; }}
 </body></html>'''
 
     return html
+
+@wysylki_bp.route('/wysylki/bulk-nadaj', methods=['POST'])
+def bulk_nadaj():
+    """Bulk tworzenie przesyłek i etykiet dla zaznaczonych zamówień"""
+    from modules.allegro_api import create_and_get_label, get_order_details
+    import base64
+    import io
+
+    data = request.get_json(silent=True) or {}
+    items = data.get('items', [])  # [{order_id, size, dim_l, dim_w, dim_h, dim_kg}, ...]
+
+    if not items:
+        return jsonify({'success': False, 'error': 'Brak zamówień do nadania'}), 400
+
+    results = []
+    pdf_pages = []
+    pickup_orders = []  # orders needing courier pickup (DPD/DHL)
+
+    for i, item in enumerate(items):
+        order_id = item.get('order_id', '')
+        size = item.get('size')  # A/B/C/S/M/L or None
+        dimensions = None
+
+        if item.get('dim_l'):
+            dimensions = {
+                'length': item.get('dim_l', '30'),
+                'width': item.get('dim_w', '25'),
+                'height': item.get('dim_h', '15'),
+                'weight_kg': item.get('dim_kg', '1'),
+            }
+
+        print(f"[BULK] Nadaję {i+1}/{len(items)}: {order_id[:12]}... size={size} dims={dimensions}")
+
+        try:
+            label_pdf, shipment_id, error = create_and_get_label(
+                order_id, parcel_size=size, dimensions=dimensions
+            )
+        except Exception as e:
+            error = str(e)
+            label_pdf, shipment_id = None, None
+
+        if error:
+            print(f"[BULK]   FAIL: {error}")
+            results.append({'order_id': order_id, 'success': False, 'error': error})
+        else:
+            print(f"[BULK]   OK: shipment={shipment_id}, pdf={len(label_pdf) if label_pdf else 0}B")
+            results.append({'order_id': order_id, 'success': True, 'shipment_id': shipment_id})
+            if label_pdf:
+                pdf_pages.append(label_pdf)
+
+            # Detect carrier for pickup
+            try:
+                _ord, _ = get_order_details(order_id)
+                _dm = (_ord or {}).get('delivery', {}).get('method', {}).get('name', '').lower()
+                if 'orlen' in _dm:
+                    # Auto pickup for Orlen (free)
+                    try:
+                        from modules.allegro_api import allegro_request, get_wysylam_z_allegro_shipments
+                        import uuid
+                        sr, _ = get_wysylam_z_allegro_shipments(order_id)
+                        if sr and sr.get('shipments'):
+                            sid = sr['shipments'][0].get('id')
+                            pr, _ = allegro_request('POST', '/shipment-management/pickup-proposals', data={'shipmentIds': [sid]})
+                            pid = ((pr or {}).get('pickupDateProposals', [{}])[0].get('id', 'ANY')) if pr else 'ANY'
+                            allegro_request('POST', '/shipment-management/pickups/create-commands', data={
+                                'commandId': str(uuid.uuid4()),
+                                'input': {'shipmentIds': [sid], 'pickupDateProposalId': pid}
+                            })
+                            print(f"[BULK]   Orlen pickup ordered for {order_id[:12]}")
+                    except Exception as pe:
+                        print(f"[BULK]   Orlen pickup error: {pe}")
+                elif 'dpd' in _dm or 'dhl' in _dm:
+                    pickup_orders.append(order_id)
+            except:
+                pass
+
+            # Mark as shipped in DB (wyslana = znika z listy do wysyłki)
+            from modules.database import get_db
+            conn = get_db()
+            conn.execute("UPDATE sprzedaze SET status = 'wyslana' WHERE allegro_order_id = ? AND status IN ('nowa', 'nadana')", (order_id,))
+            # Aktualizuj status produktu jeśli ilosc = 0
+            _sprzedane = conn.execute(
+                "SELECT produkt_id, ilosc FROM sprzedaze WHERE allegro_order_id = ? AND produkt_id IS NOT NULL",
+                (order_id,)
+            ).fetchall()
+            for _s in _sprzedane:
+                conn.execute("""
+                    UPDATE produkty SET status = 'sprzedany'
+                    WHERE id = ? AND ilosc <= 0
+                    AND status NOT IN ('sprzedany','wyslany','uszkodzony','zlomowany','naprawa')
+                """, (_s['produkt_id'],))
+            conn.commit()
+
+    # Merge PDFs into one
+    merged_pdf_b64 = None
+    if pdf_pages:
+        try:
+            from PyPDF2 import PdfMerger
+            merger = PdfMerger()
+            for pdf_data in pdf_pages:
+                merger.append(io.BytesIO(pdf_data))
+            output = io.BytesIO()
+            merger.write(output)
+            merger.close()
+            merged_pdf_b64 = base64.b64encode(output.getvalue()).decode('utf-8')
+            print(f"[BULK] Merged {len(pdf_pages)} PDFs, size={len(output.getvalue())}B")
+        except ImportError:
+            # PyPDF2 not available - return first PDF only
+            print("[BULK] PyPDF2 not available, returning individual PDFs")
+            if pdf_pages:
+                merged_pdf_b64 = base64.b64encode(pdf_pages[0]).decode('utf-8')
+        except Exception as e:
+            print(f"[BULK] PDF merge error: {e}")
+            if pdf_pages:
+                merged_pdf_b64 = base64.b64encode(pdf_pages[0]).decode('utf-8')
+
+    success_count = sum(1 for r in results if r['success'])
+    fail_count = sum(1 for r in results if not r['success'])
+
+    return jsonify({
+        'success': True,
+        'results': results,
+        'success_count': success_count,
+        'fail_count': fail_count,
+        'total': len(items),
+        'merged_pdf': merged_pdf_b64,
+        'pickup_orders': pickup_orders,
+    })
+
 
 @wysylki_bp.route('/wysylki/bulk-wyslane-allegro', methods=['POST'])
 def bulk_wyslane_allegro():

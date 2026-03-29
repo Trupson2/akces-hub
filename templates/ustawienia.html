@@ -132,7 +132,7 @@ select.ust-input{cursor:pointer;appearance:none;background-image:url("data:image
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 {% for category, message in messages %}
-<div class="ust-flash {{ category }}">{{ message }}</div>
+<div class="ust-flash {{ category }}">{{ message|safe }}</div>
 {% endfor %}
 {% endif %}
 {% endwith %}

@@ -26,6 +26,7 @@
 .wy-order:hover{background:var(--wy-card3);box-shadow:0 0 20px rgba(143,245,255,0.08)}
 .wy-order.wy-dpd{border-left-color:var(--wy-pink)}
 .wy-order.wy-orlen{border-left-color:#f97316}
+.wy-order.wy-dhl{border-left-color:#ffcc00}
 @keyframes wy-fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
 /* ─── Badges ─── */
@@ -33,6 +34,7 @@
 .wy-badge-inpost{background:var(--wy-cyan);color:#005d63}
 .wy-badge-dpd{background:var(--wy-pink);color:#47001f}
 .wy-badge-orlen{background:#f97316;color:#fff}
+.wy-badge-dhl{background:#ffcc00;color:#c40511;font-weight:900}
 .wy-badge-other{background:var(--wy-card3);color:var(--wy-cyan);border:1px solid rgba(143,245,255,0.2)}
 .wy-badge-loc{background:rgba(190,238,0,0.1);color:var(--wy-lime);border:1px solid rgba(190,238,0,0.2)}
 
@@ -184,11 +186,16 @@
 <!-- ═══ Orders List ═══ -->
 <form id="bulkForm" method="POST" action="/wysylki/bulk-wyslane-allegro">
 {% for z in zamowienia %}
-{% set method_low = (z.address or '')|lower %}
-{% set is_inpost = 'paczkomat' in method_low or 'inpost' in method_low %}
-{% set is_orlen = 'orlen' in method_low %}
-{% set is_dpd = 'dpd' in method_low %}
-{% set carrier_class = 'wy-orlen' if is_orlen else ('wy-dpd' if is_dpd else '') %}
+{% set dm = (z.delivery_method or '')|lower %}
+{% set addr = (z.address or '')|lower %}
+{% set detect = dm if dm else addr %}
+{% set is_inpost = 'inpost' in detect or 'paczkomat' in detect or 'paczkopunkt' in detect %}
+{% set is_orlen = 'orlen' in detect %}
+{% set is_dpd = 'dpd' in detect %}
+{% set is_dhl = 'dhl' in detect %}
+{% set is_kurier = not is_inpost and not is_orlen and not is_dpd and not is_dhl and addr and 'paczkomat' not in addr and 'paczkopunkt' not in addr %}
+{% set carrier_class = 'wy-orlen' if is_orlen else ('wy-dpd' if is_dpd else ('wy-dhl' if is_dhl else ('wy-dpd' if is_kurier else ''))) %}
+{% set is_dpd = is_dpd or is_kurier %}
 
 <div class="wy-order {{ carrier_class }}" style="animation-delay:{{ loop.index0 * 0.03 }}s">
     <!-- Checkbox + Number -->
@@ -230,6 +237,8 @@
             <span class="wy-badge wy-badge-orlen">Orlen</span>
             {% elif is_dpd %}
             <span class="wy-badge wy-badge-dpd">DPD</span>
+            {% elif is_dhl %}
+            <span class="wy-badge wy-badge-dhl">DHL</span>
             {% endif %}
 
             {% for p in z.produkty %}{% if p.lokalizacja %}
@@ -421,5 +430,170 @@ function logNadaj(msg,color){
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeNadajModal()});
 
 document.addEventListener('DOMContentLoaded',function(){updateBulk()});
+
+function openBulkNadaj(){
+    var checked=document.querySelectorAll('.wy-cb:checked');
+    if(checked.length===0){alert('Zaznacz zamówienia!');return}
+    var list=document.getElementById('bulkNadajList');
+    list.innerHTML='';
+    checked.forEach(function(cb){
+        var oid=cb.value;
+        var row=cb.closest('.wy-order');
+        // Get product name from first text line in content div
+        var contentDiv=row?row.querySelector('div[style*="flex:1"]'):null;
+        var nameEl=contentDiv?contentDiv.querySelector('div[style*="font-weight:600"]'):null;
+        var name=nameEl?nameEl.textContent.trim():'#'+oid.substring(0,8);
+        // Get product image
+        var imgEl=row?row.querySelector('img'):null;
+        var imgSrc=imgEl?imgEl.src:'';
+        // Detect carrier from badge CSS class
+        var isInpost=row&&!!row.querySelector('.wy-badge-inpost');
+        var isOrlen=row&&!!row.querySelector('.wy-badge-orlen');
+        var isDPD=row&&!!row.querySelector('.wy-badge-dpd');
+        var isDHL=row&&!!row.querySelector('.wy-badge-dhl');
+        var isPaczkomat=isInpost||isOrlen;
+
+        var sizeHtml='';
+        if(isInpost){
+            sizeHtml='<select data-field="size" style="padding:6px 8px;background:var(--wy-card3);border:1px solid var(--wy-cyan,rgba(143,245,255,0.3));color:#fff;font-family:Manrope,sans-serif;font-size:0.8rem">'+
+                '<option value="A">A (8cm)</option><option value="B" selected>B (19cm)</option><option value="C">C (41cm)</option></select>';
+        }else if(isOrlen){
+            sizeHtml='<select data-field="size" style="padding:6px 8px;background:var(--wy-card3);border:1px solid #f97316;color:#fff;font-family:Manrope,sans-serif;font-size:0.8rem">'+
+                '<option value="S">S (8cm)</option><option value="M" selected>M (19cm)</option><option value="L">L (41cm)</option></select>';
+        }else{
+            sizeHtml='<div style="display:flex;gap:4px;align-items:center">'+
+                '<input data-field="dim_l" type="number" value="30" style="width:45px;padding:4px;background:var(--wy-card3);border:1px solid var(--wy-pink,rgba(255,107,155,0.3));color:#fff;text-align:center;font-size:0.75rem" title="Dł cm">'+
+                '<span style="color:var(--wy-muted);font-size:0.7rem">x</span>'+
+                '<input data-field="dim_w" type="number" value="25" style="width:45px;padding:4px;background:var(--wy-card3);border:1px solid var(--wy-pink,rgba(255,107,155,0.3));color:#fff;text-align:center;font-size:0.75rem" title="Szer cm">'+
+                '<span style="color:var(--wy-muted);font-size:0.7rem">x</span>'+
+                '<input data-field="dim_h" type="number" value="15" style="width:45px;padding:4px;background:var(--wy-card3);border:1px solid var(--wy-pink,rgba(255,107,155,0.3));color:#fff;text-align:center;font-size:0.75rem" title="Wys cm">'+
+                '<span style="color:var(--wy-muted);font-size:0.7rem;margin-left:4px">cm</span>'+
+                '<input data-field="dim_kg" type="number" value="1" step="0.1" style="width:45px;padding:4px;background:var(--wy-card3);border:1px solid var(--wy-pink,rgba(255,107,155,0.3));color:#fff;text-align:center;font-size:0.75rem;margin-left:6px" title="Waga kg">'+
+                '<span style="color:var(--wy-muted);font-size:0.7rem">kg</span></div>';
+        }
+
+        var badgeColor=isInpost?'var(--wy-cyan)':isOrlen?'#f97316':isDHL?'#ffcc00':'var(--wy-pink)';
+        var badgeText=isInpost?'INPOST':isOrlen?'ORLEN':isDHL?'DHL':'DPD';
+
+        list.innerHTML+='<div class="bulk-item" data-oid="'+oid+'" style="background:var(--wy-card);padding:12px 16px;border-left:2px solid '+badgeColor+';display:flex;align-items:center;gap:12px">'+
+            (imgSrc?'<img src="'+imgSrc+'" style="width:40px;height:40px;object-fit:contain;background:rgba(255,255,255,0.9);flex-shrink:0" onerror="this.style.display=\'none\'">':'')+
+            '<div style="flex:1;min-width:0">'+
+                '<div style="font-weight:700;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+name+'</div>'+
+                '<span style="font-size:10px;font-weight:700;color:'+badgeColor+';text-transform:uppercase">'+badgeText+'</span>'+
+            '</div>'+
+            '<div>'+sizeHtml+'</div>'+
+        '</div>';
+    });
+    document.getElementById('bulkNadajProgress').style.display='none';
+    document.getElementById('bulkNadajResults').style.display='none';
+    document.getElementById('bulkNadajBtn').disabled=false;
+    document.getElementById('bulkNadajBtn').style.opacity='1';
+    document.getElementById('bulkNadajModal').style.display='block';
+}
+
+function closeBulkNadaj(){
+    document.getElementById('bulkNadajModal').style.display='none';
+    // Reload page to remove shipped orders from list
+    window.location.reload();
+}
+
+async function executeBulkNadaj(){
+    var itemEls=document.querySelectorAll('#bulkNadajList .bulk-item');
+    if(itemEls.length===0)return;
+
+    var btn=document.getElementById('bulkNadajBtn');
+    btn.disabled=true;btn.style.opacity='0.5';
+    btn.innerHTML='<span class="material-symbols-outlined">hourglass_empty</span> Nadaję...';
+
+    document.getElementById('bulkNadajProgress').style.display='block';
+    var bar=document.getElementById('bulkNadajBar');
+    var status=document.getElementById('bulkNadajStatus');
+    var pct=document.getElementById('bulkNadajPercent');
+
+    // Collect items with sizes
+    var items=[];
+    itemEls.forEach(function(el){
+        var item={order_id:el.dataset.oid};
+        var sizeSelect=el.querySelector('[data-field="size"]');
+        if(sizeSelect)item.size=sizeSelect.value;
+        var dl=el.querySelector('[data-field="dim_l"]');
+        if(dl){
+            item.dim_l=dl.value;
+            item.dim_w=el.querySelector('[data-field="dim_w"]').value;
+            item.dim_h=el.querySelector('[data-field="dim_h"]').value;
+            item.dim_kg=el.querySelector('[data-field="dim_kg"]').value;
+        }
+        items.push(item);
+    });
+
+    status.textContent='Nadaję 0/'+items.length+'...';
+    bar.style.width='5%';pct.textContent='5%';
+
+    // Send to bulk endpoint
+    try{
+        var resp=await fetch('/wysylki/bulk-nadaj',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({items:items})
+        });
+        var data=await resp.json();
+
+        bar.style.width='100%';pct.textContent='100%';
+
+        // Show results
+        var resultsEl=document.getElementById('bulkNadajResults');
+        resultsEl.style.display='block';
+        var html='<div style="margin-bottom:8px;font-weight:700;color:var(--wy-cyan)">'+data.success_count+' / '+data.total+' nadanych</div>';
+        if(data.fail_count>0){
+            html+='<div style="color:var(--wy-pink);margin-bottom:8px">'+data.fail_count+' błędów:</div>';
+            data.results.filter(function(r){return!r.success}).forEach(function(r){
+                html+='<div style="font-size:0.8rem;color:var(--wy-pink);padding:4px 0">#'+r.order_id.substring(0,8)+'... — '+r.error+'</div>';
+            });
+        }
+        resultsEl.innerHTML=html;
+        status.textContent='Zakończono!';
+
+        // Open merged PDF
+        if(data.merged_pdf){
+            var blob=new Blob([Uint8Array.from(atob(data.merged_pdf),function(c){return c.charCodeAt(0)})],{type:'application/pdf'});
+            var url=URL.createObjectURL(blob);
+            window.open(url,'_blank');
+        }
+
+        // Show pickup button for DPD/DHL
+        if(data.pickup_orders&&data.pickup_orders.length>0){
+            resultsEl.innerHTML+='<button onclick="bulkPickup('+JSON.stringify(data.pickup_orders)+')" style="margin-top:12px;width:100%;padding:12px;background:rgba(255,107,155,0.12);color:var(--wy-pink);border:1px solid rgba(255,107,155,0.3);cursor:pointer;font-family:Space Grotesk,sans-serif;font-weight:700;font-size:0.85rem">'+
+                '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">local_shipping</span> Zamów podjazd ('+data.pickup_orders.length+' przesyłek)</button>';
+        }
+
+        btn.innerHTML='<span class="material-symbols-outlined">check</span> Gotowe';
+        // Uncheck processed orders and hide from list
+        data.results.forEach(function(r){
+            if(r.success){
+                var cb=document.querySelector('.wy-cb[value="'+r.order_id+'"]');
+                if(cb){
+                    cb.checked=false;
+                    var row=cb.closest('.wy-order');
+                    if(row) row.style.opacity='0.3';
+                }
+            }
+        });
+        updateBulk();
+    }catch(e){
+        status.textContent='Błąd: '+e.message;
+        status.style.color='var(--wy-pink)';
+        btn.disabled=false;btn.style.opacity='1';
+        btn.innerHTML='<span class="material-symbols-outlined">send</span> PONÓW';
+    }
+}
+
+async function bulkPickup(orderIds){
+    for(var i=0;i<orderIds.length;i++){
+        try{
+            await fetch('/wysylki/podjazd/'+orderIds[i],{method:'POST'});
+        }catch(e){}
+    }
+    alert('Podjazdy zamówione dla '+orderIds.length+' przesyłek!');
+}
 </script>
 {% endblock %}

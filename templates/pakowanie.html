@@ -91,6 +91,9 @@
 
 <div class="pk-grid-bg"></div>
 
+<!-- Toast container -->
+<div id="pkToast" style="position:fixed;top:80px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none"></div>
+
 <div class="pk-wrap" style="position:relative;z-index:1;padding:0 8px">
 
 <!-- ════════════════════════════════════════ -->
@@ -188,62 +191,63 @@
 <!-- SECTION 2: PACKING MODE (order detail)  -->
 <!-- ════════════════════════════════════════ -->
 <section id="pkPacking" class="pk-section">
-
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:12px">
-        <div>
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-                <span class="pk-badge pk-badge-pink" id="pkPackPriority">STANDARD</span>
-                <span class="pk-label" id="pkPackOrderId">Order #---</span>
-            </div>
-            <h2 class="pk-headline" style="font-size:clamp(2rem,5vw,3.5rem);font-weight:900;font-style:italic;letter-spacing:-0.04em;color:var(--pk-text)">
-                PACKING <span style="color:var(--pk-cyan)">MODE</span>
-            </h2>
+    <!-- Header HUD -->
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+            <span class="pk-label" style="color:var(--pk-pink);font-weight:700;letter-spacing:0.2em;font-size:0.75rem">SYSTEM DIRECTIVE</span>
+            <span class="pk-badge pk-badge-pink" id="pkPackPriority">STANDARD</span>
         </div>
-        <div style="text-align:right">
-            <div class="pk-label" style="margin-bottom:4px">Items Scanned</div>
-            <div class="pk-headline" id="pkPackProgress" style="font-size:2rem;font-weight:700;color:var(--pk-lime-dim)">0 <span style="color:var(--pk-muted);opacity:0.3">/</span> 0</div>
+        <h2 class="pk-headline" style="font-size:clamp(2.5rem,6vw,4rem);font-weight:900;letter-spacing:-0.04em;color:var(--pk-text);line-height:1">
+            Order <span id="pkPackOrderId" style="color:var(--pk-cyan)">#---</span>
+        </h2>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:24px">
+        <div style="background:var(--pk-card4);padding:8px 16px;display:flex;align-items:center;gap:10px;border-left:4px solid var(--pk-lime)">
+            <span class="material-symbols-outlined" style="color:var(--pk-lime-dim)">task_alt</span>
+            <span class="pk-headline" style="font-weight:700;color:var(--pk-lime-dim);letter-spacing:0.1em;font-size:0.85rem">READY TO PACK</span>
         </div>
+        <div class="pk-headline" id="pkPackProgress" style="font-size:1.4rem;font-weight:700;color:var(--pk-lime-dim);margin-left:16px">0 <span style="color:var(--pk-muted);opacity:0.3">/</span> 0</div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 340px;gap:24px" class="pk-grid-2">
-        <!-- Items list -->
-        <div>
-            <div id="pkPackItems" style="display:flex;flex-direction:column;gap:6px"></div>
-
-            <!-- Pack hint -->
-            <div id="pkPackHint" style="display:none;margin-top:16px;padding:16px 20px;background:rgba(255,107,155,0.08);border-left:4px solid var(--pk-pink)">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                    <span class="material-symbols-outlined" style="color:var(--pk-pink)">warning</span>
-                    <span class="pk-headline" style="font-weight:700;color:var(--pk-pink);font-size:0.85rem;text-transform:uppercase">Instrukcja pakowania</span>
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:24px" class="pk-grid-2">
+        <!-- Left Column: Customer & Shipping -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+            <!-- Customer Card -->
+            <div class="pk-glass" style="padding:24px;border-left:2px solid var(--pk-cyan)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                    <span class="pk-label" style="letter-spacing:0.15em;font-size:10px">RECIPIENT IDENTITY</span>
+                    <span class="material-symbols-outlined" style="color:var(--pk-cyan);opacity:0.4">person</span>
                 </div>
-                <p id="pkPackHintText" style="font-size:0.9rem;color:#fff;font-style:italic"></p>
-            </div>
-        </div>
-
-        <!-- Sidebar: destination -->
-        <aside>
-            <div style="background:var(--pk-card3);padding:24px;margin-bottom:16px">
-                <div class="pk-label" style="color:var(--pk-cyan);margin-bottom:8px">Adres dostawy</div>
-                <h4 class="pk-headline" id="pkPackBuyer" style="font-size:1.4rem;font-weight:900;color:var(--pk-text);line-height:1.2">---</h4>
-                <p id="pkPackAddress" style="color:var(--pk-muted);font-size:0.9rem;margin-top:6px">---</p>
+                <h3 class="pk-headline" id="pkPackBuyer" style="font-size:1.5rem;font-weight:900;color:var(--pk-text);line-height:1.2;margin-bottom:4px">---</h3>
+                <p id="pkPackAddress" style="color:var(--pk-muted);font-size:0.95rem">---</p>
                 <div id="pkPackPickup" style="display:none;margin-top:12px;color:var(--pk-pink);font-weight:700;font-size:0.85rem"></div>
-                <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--pk-border)">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-                        <span class="pk-label">Metoda</span>
-                        <span class="pk-headline" id="pkPackMethod" style="font-weight:700;color:var(--pk-cyan);font-size:0.85rem">---</span>
+            </div>
+
+            <!-- Carrier Card -->
+            <div class="pk-glass" style="padding:24px;border-left:2px solid var(--pk-pink)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                    <span class="pk-label" style="letter-spacing:0.15em;font-size:10px">LOGISTICS PROTOCOL</span>
+                    <span class="material-symbols-outlined" style="color:var(--pk-pink);opacity:0.4">local_shipping</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+                    <div style="width:48px;height:48px;background:rgba(255,107,155,0.1);display:flex;align-items:center;justify-content:center">
+                        <span class="material-symbols-outlined" style="font-size:28px;color:var(--pk-pink)">box_add</span>
                     </div>
-                    <div style="display:flex;justify-content:space-between">
-                        <span class="pk-label">Kwota</span>
-                        <span class="pk-headline" id="pkPackTotal" style="font-weight:700;color:var(--pk-text);font-size:0.85rem">---</span>
+                    <div>
+                        <p class="pk-headline" id="pkPackMethod" style="font-weight:900;font-size:1.2rem;color:var(--pk-text)">---</p>
+                        <p id="pkPackPickupId" style="color:var(--pk-pink);font-weight:700;font-size:0.85rem;letter-spacing:-0.02em"></p>
                     </div>
+                </div>
+                <div style="background:var(--pk-card4);padding:10px 14px;display:flex;align-items:center;gap:8px">
+                    <span class="material-symbols-outlined" style="font-size:14px;color:var(--pk-cyan);font-variation-settings:'FILL' 1">bolt</span>
+                    <span class="pk-label" style="font-size:10px;letter-spacing:0.15em;font-weight:700">KWOTA: <span id="pkPackTotal" style="color:var(--pk-text)">---</span> ZŁ</span>
                 </div>
             </div>
 
             <!-- Gabaryt paczki -->
-            <div id="pkParcelSize" style="background:var(--pk-card3);padding:20px;margin-bottom:16px;display:none">
+            <div id="pkParcelSize" style="background:var(--pk-card3);padding:20px;display:none">
                 <div class="pk-label" style="color:var(--pk-lime-dim);margin-bottom:12px"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span> Gabaryt paczki</div>
-
-                <!-- InPost gabaryty A/B/C -->
+                <!-- InPost A/B/C -->
                 <div id="pkSizeInpost" style="display:none">
                     <div style="font-size:10px;color:var(--pk-muted);margin-bottom:6px;text-align:center"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">markunread_mailbox</span> InPost Paczkomat</div>
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
@@ -268,10 +272,9 @@
                     </div>
                     <div id="pkSizeSelected" style="text-align:center;font-size:0.8rem;color:var(--pk-lime-dim);font-weight:700;min-height:20px"></div>
                 </div>
-
-                <!-- Orlen Paczka gabaryty S/M/L -->
+                <!-- Orlen S/M/L -->
                 <div id="pkSizeOrlen" style="display:none">
-                    <div style="font-size:10px;color:var(--pk-muted);margin-bottom:6px;text-align:center">⛽ Orlen Paczka</div>
+                    <div style="font-size:10px;color:var(--pk-muted);margin-bottom:6px;text-align:center">Orlen Paczka</div>
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
                         <button onclick="pkSelectSize('S')" class="pk-size-btn" data-size="S" style="padding:14px 8px;text-align:center;background:var(--pk-card);border:2px solid var(--pk-border);cursor:pointer;transition:all 0.15s">
                             <div class="pk-headline" style="font-size:1.4rem;font-weight:900;color:var(--pk-text)">S</div>
@@ -294,7 +297,6 @@
                     </div>
                     <div id="pkSizeSelectedOrlen" style="text-align:center;font-size:0.8rem;color:var(--pk-lime-dim);font-weight:700;min-height:20px"></div>
                 </div>
-
                 <!-- Kurier wymiary -->
                 <div id="pkSizeCourier" style="display:none">
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
@@ -317,17 +319,38 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Actions -->
-            <button onclick="pkFinalize()" class="pk-btn pk-btn-pink" style="width:100%;font-size:1.1rem;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">
-                Nadaj i drukuj
-                <span class="material-symbols-outlined" style="font-variation-settings:'wght' 700">print</span>
-            </button>
-            <button onclick="pkBack()" class="pk-btn pk-btn-outline" style="width:100%;font-size:0.9rem">
-                <span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle">arrow_back</span>
-                Wróć do dashboardu
-            </button>
-        </aside>
+        <!-- Right Column: Packing List -->
+        <div class="pk-glass" style="display:flex;flex-direction:column">
+            <div style="padding:20px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--pk-border)">
+                <h3 class="pk-headline" style="font-size:1.3rem;font-weight:900;letter-spacing:-0.02em">Packing List <span style="color:var(--pk-cyan);opacity:0.5;font-size:0.75rem;margin-left:8px;font-weight:400" id="pkPackItemCount"></span></h3>
+                <span class="material-symbols-outlined" style="color:var(--pk-muted);cursor:pointer">filter_list</span>
+            </div>
+            <div style="flex:1;padding:16px 24px">
+                <div id="pkPackItems" style="display:flex;flex-direction:column;gap:6px"></div>
+                <!-- Pack hint -->
+                <div id="pkPackHint" style="display:none;margin-top:16px;padding:16px 20px;background:rgba(255,107,155,0.08);border-left:4px solid var(--pk-pink)">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                        <span class="material-symbols-outlined" style="color:var(--pk-pink)">warning</span>
+                        <span class="pk-headline" style="font-weight:700;color:var(--pk-pink);font-size:0.85rem;text-transform:uppercase">Instrukcja pakowania</span>
+                    </div>
+                    <p id="pkPackHintText" style="font-size:0.9rem;color:#fff;font-style:italic"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Action Bar -->
+    <div style="margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px" class="pk-grid-2">
+        <button onclick="pkBack()" style="display:flex;align-items:center;justify-content:center;gap:12px;background:transparent;border:2px solid rgba(143,245,255,0.2);color:var(--pk-cyan);padding:20px;font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--pk-cyan)';this.style.background='rgba(143,245,255,0.05)'" onmouseout="this.style.borderColor='rgba(143,245,255,0.2)';this.style.background='transparent'">
+            <span class="material-symbols-outlined">arrow_back</span>
+            POWRÓT
+        </button>
+        <button onclick="pkFinalize()" style="display:flex;align-items:center;justify-content:center;gap:12px;background:var(--pk-lime);color:#3a4a00;padding:20px;border:none;font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;transition:all 0.2s;box-shadow:0 8px 30px rgba(243,255,202,0.3)" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter='brightness(1)'">
+            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">send</span>
+            NADAJ I DRUKUJ
+        </button>
     </div>
 </section>
 
@@ -335,22 +358,55 @@
 <!-- SECTION 3: SPINNER (generating label)   -->
 <!-- ════════════════════════════════════════ -->
 <section id="pkSpinner" class="pk-section">
-    <div style="min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center">
-        <div class="pk-orbital">
+    <div style="min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+        <!-- Orbital Loader -->
+        <div class="pk-orbital" style="margin-bottom:32px">
             <div class="pk-orbital-outer"></div>
             <div class="pk-orbital-inner"></div>
-            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2">
-                <span class="material-symbols-outlined" style="font-size:48px;color:var(--pk-cyan);filter:drop-shadow(0 0 15px rgba(143,245,255,0.8))">local_shipping</span>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2">
+                <span class="material-symbols-outlined" style="font-size:48px;color:var(--pk-cyan);filter:drop-shadow(0 0 15px rgba(143,245,255,0.8));margin-bottom:8px">local_shipping</span>
+                <div style="background:var(--pk-card4);padding:4px 12px">
+                    <span style="color:var(--pk-cyan);font-size:10px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;font-family:'Manrope',sans-serif">Status: Syncing</span>
+                </div>
             </div>
         </div>
-        <h2 class="pk-headline" style="font-size:1.8rem;font-weight:900;font-style:italic;letter-spacing:-0.03em;text-align:center;margin-bottom:8px;color:var(--pk-text)">
-            Generuję etykietę wysyłkową...
+
+        <!-- Headline -->
+        <h2 class="pk-headline" style="font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;letter-spacing:-0.03em;text-align:center;margin-bottom:8px;color:var(--pk-text)">
+            ZLECAM PODJAZD...
         </h2>
-        <p class="pk-label" style="margin-bottom:24px">Łączenie z Allegro Shipment API</p>
-        <div class="pk-progress" style="width:100%;max-width:400px">
-            <div class="pk-progress-bar" id="pkProgressBar" style="width:30%"></div>
+        <p class="pk-label" style="margin-bottom:32px;letter-spacing:0.15em;opacity:0.7">AWAITING CARRIER API CONFIRMATION</p>
+
+        <!-- Carrier Status Card -->
+        <div style="width:100%;max-width:480px;margin-bottom:24px">
+            <div id="pkSpinnerCarrierCard" style="background:var(--pk-card);padding:20px;border-left:2px solid var(--pk-cyan);box-shadow:0 0 20px rgba(143,245,255,0.15);transition:all 0.3s">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+                    <div style="display:flex;align-items:center;gap:12px">
+                        <div style="width:48px;height:48px;background:var(--pk-card4);display:flex;align-items:center;justify-content:center">
+                            <span class="material-symbols-outlined" style="font-size:28px;color:var(--pk-cyan)">rocket_launch</span>
+                        </div>
+                        <div>
+                            <h3 class="pk-headline" style="font-weight:900;font-size:1.1rem;letter-spacing:-0.02em" id="pkSpinnerCarrierName">ALLEGRO DELIVERY</h3>
+                            <p style="font-size:10px;color:var(--pk-muted);text-transform:uppercase;letter-spacing:0.1em;font-family:'Manrope',sans-serif">Priority Express</p>
+                        </div>
+                    </div>
+                    <div style="padding:4px 10px;background:rgba(143,245,255,0.1);border:1px solid rgba(143,245,255,0.2)">
+                        <span style="color:var(--pk-cyan);font-size:10px;font-weight:700;font-family:'Manrope',sans-serif">ACTIVE</span>
+                    </div>
+                </div>
+                <div>
+                    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--pk-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;font-family:'Manrope',sans-serif">
+                        <span>Progress</span>
+                        <span id="pkSpinnerPercent">30%</span>
+                    </div>
+                    <div class="pk-progress" style="width:100%">
+                        <div class="pk-progress-bar" id="pkProgressBar" style="width:30%;box-shadow:0 0 10px rgba(143,245,255,0.5)"></div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div id="pkSpinnerStatus" style="margin-top:16px;color:var(--pk-muted);font-size:0.8rem;text-align:center"></div>
+
+        <div id="pkSpinnerStatus" style="color:var(--pk-muted);font-size:0.8rem;text-align:center"></div>
     </div>
 </section>
 
@@ -358,62 +414,79 @@
 <!-- SECTION 4: ORDER READY (success)        -->
 <!-- ════════════════════════════════════════ -->
 <section id="pkReady" class="pk-section">
-    <div style="text-align:center;margin-bottom:32px">
-        <div style="position:relative;display:inline-block;margin-bottom:24px">
-            <div style="position:absolute;inset:0;background:var(--pk-lime);opacity:0.1;filter:blur(60px);border-radius:50%;transform:scale(1.5)"></div>
-            <span class="material-symbols-outlined" style="font-size:100px;color:var(--pk-lime-dim);filter:drop-shadow(0 0 15px rgba(243,255,202,0.4));font-variation-settings:'FILL' 1">check_circle</span>
+    <!-- Success Icon -->
+    <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:32px">
+        <div style="width:96px;height:96px;background:var(--pk-card);border:2px solid var(--pk-lime);display:flex;align-items:center;justify-content:center;border-radius:16px;margin-bottom:24px;box-shadow:0 0 25px rgba(243,255,202,0.2)">
+            <span class="material-symbols-outlined" style="font-size:56px;color:var(--pk-lime-dim);font-variation-settings:'FILL' 1">check_box</span>
         </div>
-        <h1 class="pk-headline" style="font-size:clamp(1.8rem,4vw,3rem);font-weight:900;font-style:italic;letter-spacing:-0.04em;color:var(--pk-text)">
-            Zamówienie <span id="pkReadyOrderShort">---</span> gotowe!
-        </h1>
-        <p class="pk-label" style="margin-top:8px">Etykieta wygenerowana · Drukuj na Vretti</p>
+        <h2 class="pk-headline" style="font-size:clamp(1.6rem,4vw,2rem);font-weight:900;letter-spacing:-0.03em;text-align:center;margin-bottom:8px">READY FOR COURIER</h2>
+        <div style="display:flex;align-items:center;gap:8px;background:var(--pk-card4);padding:6px 16px;border-radius:20px;border:1px solid var(--pk-border)">
+            <span class="pk-label" style="font-size:11px;font-weight:700;letter-spacing:0.15em">ORDER ID</span>
+            <span class="pk-headline" style="font-size:1.1rem;font-weight:900;color:var(--pk-cyan)" id="pkReadyOrderShort">#---</span>
+        </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:800px;margin:0 auto" class="pk-grid-2">
-        <!-- Summary -->
-        <div style="background:var(--pk-card);padding:32px;border-left:2px solid var(--pk-lime-dim);position:relative;overflow:hidden">
-            <div style="position:absolute;top:16px;right:16px;opacity:0.04">
-                <span class="material-symbols-outlined" style="font-size:120px">inventory_2</span>
+    <div style="max-width:480px;margin:0 auto">
+        <!-- Package Specs Grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+            <div style="background:var(--pk-card);padding:16px;border-left:2px solid var(--pk-cyan)">
+                <p class="pk-label" style="font-size:10px;letter-spacing:0.15em;margin-bottom:4px">WEIGHT</p>
+                <p class="pk-headline" style="font-size:1.6rem;font-weight:900" id="pkReadyWeight">-- <span style="font-size:0.8rem;color:var(--pk-cyan);font-weight:500">KG</span></p>
             </div>
-            <h3 class="pk-headline" style="font-size:1.1rem;font-weight:700;color:var(--pk-cyan);margin-bottom:20px;display:flex;align-items:center;gap:6px">
-                <span class="material-symbols-outlined" style="font-size:16px">list_alt</span>
-                Spakowane
-            </h3>
-            <div id="pkReadyItems" style="display:flex;flex-direction:column;gap:12px"></div>
+            <div style="background:var(--pk-card);padding:16px;border-left:2px solid var(--pk-pink)">
+                <p class="pk-label" style="font-size:10px;letter-spacing:0.15em;margin-bottom:4px">DIMENSIONS</p>
+                <p class="pk-headline" style="font-size:1.3rem;font-weight:900" id="pkReadyDims">--<span style="font-size:0.7rem;color:var(--pk-pink);margin:0 2px">X</span>--<span style="font-size:0.7rem;color:var(--pk-pink);margin:0 2px">X</span>-- <span style="font-size:0.8rem;color:var(--pk-pink);font-weight:500">CM</span></p>
+            </div>
         </div>
 
-        <!-- Carrier info -->
-        <div>
-            <div style="background:var(--pk-card3);padding:24px;margin-bottom:16px" class="pk-glass">
-                <div class="pk-label" style="margin-bottom:12px">Kurier</div>
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-                    <div style="width:48px;height:48px;background:var(--pk-card);display:flex;align-items:center;justify-content:center;border:1px solid var(--pk-border)">
-                        <span class="material-symbols-outlined" style="font-size:28px;color:var(--pk-cyan)">local_shipping</span>
-                    </div>
-                    <div>
-                        <div class="pk-headline" id="pkReadyCarrier" style="font-size:1.4rem;font-weight:900;color:var(--pk-text)">---</div>
-                        <div id="pkReadyCarrierType" style="color:var(--pk-lime-dim);font-size:11px;font-weight:700;font-family:'Manrope',sans-serif">---</div>
-                    </div>
+        <!-- Packed Summary -->
+        <div class="pk-glass" style="padding:20px;border-radius:8px;border-top:1px solid rgba(255,255,255,0.05);margin-bottom:24px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                <h3 class="pk-headline" style="font-size:0.85rem;font-weight:900;letter-spacing:0.1em;text-transform:uppercase">Packed Summary</h3>
+                <div style="display:flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(202,253,0,0.1);border:1px solid rgba(202,253,0,0.2);border-radius:4px">
+                    <span class="material-symbols-outlined" style="font-size:14px;color:var(--pk-lime-dim);font-variation-settings:'FILL' 1">verified</span>
+                    <span style="font-size:10px;font-weight:700;color:var(--pk-lime-dim);text-transform:uppercase;letter-spacing:0.05em;font-family:'Manrope',sans-serif">Verified</span>
                 </div>
-                <div style="padding-top:12px;border-top:1px solid var(--pk-border)">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-                        <span class="pk-label">Tracking</span>
-                        <span id="pkReadyTracking" style="color:var(--pk-cyan);font-family:monospace;font-size:0.85rem">---</span>
+            </div>
+            <div id="pkReadyItems" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+
+        <!-- Carrier Details -->
+        <div style="margin-bottom:24px">
+            <h3 class="pk-headline" style="font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--pk-muted);margin-bottom:12px;padding-left:4px">Carrier Details</h3>
+            <div style="background:var(--pk-card2);padding:20px;border-left:4px solid var(--pk-cyan);box-shadow:10px 0 30px rgba(143,245,255,0.05)">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between">
+                    <div>
+                        <p class="pk-headline" id="pkReadyCarrier" style="font-size:1.2rem;font-weight:900;text-transform:uppercase;margin-bottom:4px">---</p>
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span class="pk-label" style="font-size:11px;font-weight:700;letter-spacing:0.1em">TRACKING:</span>
+                            <span class="pk-headline" id="pkReadyTracking" style="font-size:0.85rem;font-weight:700;color:var(--pk-cyan);letter-spacing:0.1em;font-family:monospace">---</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                            <span class="pk-label" style="font-size:11px;font-weight:700;letter-spacing:0.1em">BUYER:</span>
+                            <span id="pkReadyBuyer" style="color:var(--pk-text);font-size:0.85rem">---</span>
+                        </div>
+                        <div id="pkReadyCarrierType" style="display:none">---</div>
                     </div>
-                    <div style="display:flex;justify-content:space-between">
-                        <span class="pk-label">Kupujący</span>
-                        <span id="pkReadyBuyer" style="color:var(--pk-text);font-size:0.85rem">---</span>
+                    <div style="width:48px;height:48px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center">
+                        <span class="material-symbols-outlined" style="font-size:28px;color:var(--pk-cyan)">local_shipping</span>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <a id="pkReadyLabelLink" href="#" target="_blank" class="pk-btn pk-btn-outline" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-bottom:8px;text-decoration:none">
+        <!-- Action Buttons -->
+        <div style="display:flex;flex-direction:column;gap:12px">
+            <a id="pkReadyLabelLink" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:12px;background:var(--pk-lime);color:#3a4a00;padding:20px;text-decoration:none;font-family:'Space Grotesk',sans-serif;font-size:0.9rem;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;box-shadow:0 8px 30px rgba(243,255,202,0.3);transition:all 0.2s" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter='brightness(1)'">
                 <span class="material-symbols-outlined">download</span>
                 Pobierz etykietę PDF
             </a>
-            <button onclick="pkNextOrder()" class="pk-btn pk-btn-cyan" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">
+            <button id="pkReadyPickupBtn" style="display:none;align-items:center;justify-content:center;gap:12px;width:100%;padding:18px;background:rgba(255,107,155,0.12);color:var(--pk-pink);border:1px solid rgba(255,107,155,0.3);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:0.9rem;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;transition:all 0.2s" onmouseover="this.style.background='rgba(255,107,155,0.2)'" onmouseout="this.style.background='rgba(255,107,155,0.12)'">
+                <span class="material-symbols-outlined">local_shipping</span>
+                Zamów podjazd kuriera
+            </button>
+            <button onclick="pkNextOrder()" style="width:100%;background:transparent;border:1px solid var(--pk-border);color:var(--pk-muted);padding:16px;font-family:'Space Grotesk',sans-serif;font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='var(--pk-card3)'" onmouseout="this.style.background='transparent'">
                 Następne zamówienie
-                <span class="material-symbols-outlined" style="font-variation-settings:'wght' 700">fast_forward</span>
             </button>
         </div>
     </div>
@@ -434,6 +507,18 @@ let lastScanResult = '';
 let lastScanTime = 0;
 
 // ─── Section switching ───
+function pkToast(msg, type='error') {
+    const c = document.getElementById('pkToast');
+    if (!c) return;
+    const colors = {error:'var(--pk-pink)',success:'var(--pk-lime-dim)',warn:'#f59e0b'};
+    const icons = {error:'error',success:'check_circle',warn:'warning'};
+    const t = document.createElement('div');
+    t.style.cssText = `pointer-events:auto;display:flex;align-items:center;gap:10px;padding:12px 20px;background:var(--pk-card3);border-left:3px solid ${colors[type]||colors.error};color:var(--pk-text);font-size:0.85rem;font-family:'Manrope',sans-serif;box-shadow:0 4px 20px rgba(0,0,0,0.4);animation:wy-fadeIn 0.3s ease;max-width:360px`;
+    t.innerHTML = `<span class="material-symbols-outlined" style="color:${colors[type]};font-size:20px">${icons[type]}</span>${msg}`;
+    c.appendChild(t);
+    setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 4000);
+}
+
 function pkShowSection(id) {
     document.querySelectorAll('.pk-section').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
@@ -462,7 +547,7 @@ codeReader.listVideoInputDevices().then(devices => {
             }
         });
     }
-}).catch(() => {});
+}).catch(e => pkToast('Błąd sieci: '+e.message));
 
 // ─── Load pending orders for dashboard ───
 function pkLoadOrders() {
@@ -508,11 +593,13 @@ function pkLoadOrders() {
             el.innerHTML = orders.map((o, i) => {
                 const isInpost = o.carrier === 'InPost';
                 const isOrlen = o.carrier === 'Orlen';
-                const isDPD = !isInpost && !isOrlen;
-                const borderColor = isDPD ? 'var(--pk-pink)' : 'var(--pk-cyan)';
+                const isDPD = o.carrier === 'DPD';
+                const isDHL = o.carrier === 'DHL';
+                const isOther = !isInpost && !isOrlen && !isDPD && !isDHL;
+                const borderColor = isDPD ? 'var(--pk-pink)' : (isDHL ? '#ffcc00' : (isOrlen ? '#f97316' : 'var(--pk-cyan)'));
                 const glowClass = isDPD ? 'pk-glow-pink' : 'pk-glow-cyan';
-                const badgeBg = isDPD ? 'var(--pk-pink)' : (isOrlen ? '#f97316' : 'var(--pk-cyan)');
-                const badgeColor = isDPD ? '#47001f' : (isOrlen ? '#fff' : '#005d63');
+                const badgeBg = isDPD ? 'var(--pk-pink)' : (isDHL ? '#ffcc00' : (isOrlen ? '#f97316' : 'var(--pk-cyan)'));
+                const badgeColor = isDPD ? '#47001f' : (isDHL ? '#c40511' : (isOrlen ? '#fff' : '#005d63'));
                 const shortId = (o.order_id || '').substring(0, 8).toUpperCase();
 
                 return `
@@ -761,7 +848,7 @@ function pkLoadPricing() {
                 });
             }
         })
-        .catch(() => {});
+        .catch(e => pkToast('Błąd sieci: '+e.message));
 }
 
 // Załaduj cennik przy starcie
@@ -816,10 +903,24 @@ function pkFinalize() {
 
     bar.style.width = '30%';
     status.textContent = 'Tworzę przesyłkę...';
+    const pctEl = document.getElementById('pkSpinnerPercent');
+    if (pctEl) pctEl.textContent = '30%';
+
+    // Update carrier name on spinner card
+    const z = pkCurrentOrder;
+    const _dm = (z.delivery_method || z.delivery_type || '').toLowerCase();
+    let _cName = 'ALLEGRO DELIVERY';
+    if (_dm.includes('dpd')) _cName = 'DPD POLSKA';
+    else if (_dm.includes('dhl')) _cName = 'DHL PARCEL';
+    else if (_dm.includes('orlen')) _cName = 'ORLEN PACZKA';
+    else if (_dm.includes('inpost') || _dm.includes('paczkomat')) _cName = 'INPOST';
+    const cNameEl = document.getElementById('pkSpinnerCarrierName');
+    if (cNameEl) cNameEl.textContent = _cName;
 
     const progressInterval = setInterval(() => {
         progress = Math.min(progress + 5, 85);
         bar.style.width = progress + '%';
+        if (pctEl) pctEl.textContent = progress + '%';
     }, 500);
 
     // Build URL with parcel size params
@@ -843,7 +944,7 @@ function pkFinalize() {
                 bar.style.width = '100%';
                 status.textContent = 'Etykieta gotowa!';
                 // Mark as packed so it disappears from pending list
-                fetch('/api/wysylki/mark-packed', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId})}).catch(()=>{});
+                fetch('/api/wysylki/mark-packed', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId})}).catch(e => pkToast('Błąd sieci: '+e.message));
                 return r.blob().then(blob => {
                     const url = URL.createObjectURL(blob);
                     window.open(url, '_blank');
@@ -852,14 +953,35 @@ function pkFinalize() {
             } else if (ct.includes('application/json')) {
                 return r.json().then(data => {
                     bar.style.width = '100%';
-                    const errMsg = data.error || 'Etykieta niedostepna';
-                    status.innerHTML = '<span style="color:#ff716c">' + errMsg + '</span>';
-                    // Still mark as packed even if label failed
-                    fetch('/api/wysylki/mark-packed', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId})}).catch(()=>{});
-                    setTimeout(() => {
-                        window.open(data.allegro_url || 'https://allegro.pl/moje-allegro/sprzedaz/zamowienia/' + orderId, '_blank');
-                        pkShowReady(orderId, null);
-                    }, 2000);
+                    if (data.success && data.label_base64) {
+                        // JSON success with base64 label
+                        status.textContent = 'Etykieta gotowa!';
+                        fetch('/api/wysylki/mark-packed', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId})}).catch(e => pkToast('Błąd sieci: '+e.message));
+                        const blob = new Blob([Uint8Array.from(atob(data.label_base64), c => c.charCodeAt(0))], {type:'application/pdf'});
+                        const url = URL.createObjectURL(blob);
+                        window.open(url, '_blank');
+                        // Store carrier for pickup button
+                        if (data.carrier) window._lastCarrier = data.carrier;
+                        if (data.carrier === 'DPD' || data.carrier === 'DHL') {
+                            window._lastPickupOrderId = orderId;
+                        }
+                        // Orlen: auto-order pickup (free)
+                        if (data.carrier === 'Orlen') {
+                            fetch('/wysylki/podjazd/' + orderId, {method:'POST'})
+                                .then(r => r.json())
+                                .then(d => { if (d.success) console.log('Orlen pickup ordered'); else console.warn('Orlen pickup fail:', d.error); })
+                                .catch(e => console.warn('Orlen pickup error:', e));
+                        }
+                        setTimeout(() => pkShowReady(orderId, url), 800);
+                    } else {
+                        const errMsg = data.error || 'Etykieta niedostepna';
+                        status.innerHTML = '<span style="color:#ff716c">' + errMsg + '</span>';
+                        fetch('/api/wysylki/mark-packed', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({order_id:orderId})}).catch(e => pkToast('Błąd sieci: '+e.message));
+                        setTimeout(() => {
+                            window.open(data.allegro_url || 'https://allegro.pl/moje-allegro/sprzedaz/zamowienia/' + orderId, '_blank');
+                            pkShowReady(orderId, null);
+                        }, 2000);
+                    }
                 });
             } else {
                 // Backend zwrócił HTML (stary kod) — pokaż błąd i otwórz Allegro
@@ -882,7 +1004,7 @@ function pkFinalize() {
         });
 
     // Mark as shipped in our DB
-    fetch('/wysylki/wyslano-order/' + orderId).catch(() => {});
+    fetch('/wysylki/wyslano-order/' + orderId).catch(e => pkToast('Błąd sieci: '+e.message));
 }
 
 // ─── Show Ready ───
@@ -909,14 +1031,29 @@ function pkShowReady(orderId, pdfUrl) {
     document.getElementById('pkReadyCarrierType').textContent = carrierType;
     document.getElementById('pkReadyTracking').textContent = shortId;
 
-    // Items summary
+    // Weight & Dimensions from selected size or custom inputs
+    const wEl = document.getElementById('pkReadyWeight');
+    const dEl = document.getElementById('pkReadyDims');
+    if (wEl) {
+        const kg = document.getElementById('pkDim_kg')?.value || '1.0';
+        wEl.innerHTML = kg + ' <span style="font-size:0.8rem;color:var(--pk-cyan);font-weight:500">KG</span>';
+    }
+    if (dEl) {
+        const dl = document.getElementById('pkDim_l')?.value || '30';
+        const dw = document.getElementById('pkDim_w')?.value || '25';
+        const dh = document.getElementById('pkDim_h')?.value || '15';
+        dEl.innerHTML = dl + '<span style="font-size:0.7rem;color:var(--pk-pink);margin:0 2px">X</span>' + dw + '<span style="font-size:0.7rem;color:var(--pk-pink);margin:0 2px">X</span>' + dh + ' <span style="font-size:0.8rem;color:var(--pk-pink);font-weight:500">CM</span>';
+    }
+
+    // Items summary (new design with done_all icons)
     const items = z.produkty || [{nazwa: z.produkt_nazwa, qty: 1}];
     document.getElementById('pkReadyItems').innerHTML = items.map(p => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
-            <div>
-                <div style="color:var(--pk-text);font-weight:500;text-transform:uppercase;letter-spacing:-0.01em">${p.nazwa}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:rgba(0,0,0,0.3);border-radius:2px">
+            <div style="display:flex;align-items:center;gap:12px">
+                <span class="material-symbols-outlined" style="color:var(--pk-muted);font-size:20px">inventory_2</span>
+                <span style="font-size:0.9rem;font-weight:500">${p.nazwa} x${p.qty || 1}</span>
             </div>
-            <span class="pk-headline" style="font-size:1.1rem;color:var(--pk-lime-dim)">x${p.qty || 1}</span>
+            <span class="material-symbols-outlined" style="color:var(--pk-lime-dim);font-size:18px">done_all</span>
         </div>
     `).join('');
 
@@ -927,6 +1064,40 @@ function pkShowReady(orderId, pdfUrl) {
     } else {
         document.getElementById('pkReadyLabelLink').href = 'https://allegro.pl/moje-allegro/sprzedaz/zamowienia/' + orderId;
         document.getElementById('pkReadyLabelLink').style.display = 'flex';
+    }
+
+    // Pickup button for DPD/DHL
+    const pickupBtn = document.getElementById('pkReadyPickupBtn');
+    if (pickupBtn) {
+        if (window._lastPickupOrderId === orderId && (carrier === 'DPD' || carrier === 'DHL')) {
+            pickupBtn.style.display = 'flex';
+            pickupBtn.onclick = function() {
+                pickupBtn.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span> Zamawiam podjazd...';
+                pickupBtn.style.opacity = '0.6';
+                pickupBtn.style.pointerEvents = 'none';
+                fetch('/wysylki/podjazd/' + orderId, {method:'POST'})
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            pickupBtn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> Podjazd zamówiony!';
+                            pickupBtn.style.background = 'rgba(190,238,0,0.15)';
+                            pickupBtn.style.color = 'var(--pk-lime)';
+                            pickupBtn.style.borderColor = 'rgba(190,238,0,0.3)';
+                        } else {
+                            pickupBtn.innerHTML = '<span class="material-symbols-outlined">error</span> ' + (data.error || 'Błąd');
+                            pickupBtn.style.opacity = '1';
+                            pickupBtn.style.pointerEvents = 'auto';
+                        }
+                    })
+                    .catch(e => {
+                        pickupBtn.innerHTML = '<span class="material-symbols-outlined">error</span> Błąd: ' + e.message;
+                        pickupBtn.style.opacity = '1';
+                        pickupBtn.style.pointerEvents = 'auto';
+                    });
+            };
+        } else {
+            pickupBtn.style.display = 'none';
+        }
     }
 
     // Add to history

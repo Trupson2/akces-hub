@@ -241,12 +241,12 @@ def sprzedaze_lista():
     stats = conn.execute('''
         SELECT
             COUNT(*) as total,
-            SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc + COALESCE(koszt_dostawy, 0) ELSE 0 END) as przychod,
+            SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline') THEN cena * ilosc ELSE 0 END) as przychod,
             SUM(CASE WHEN status = 'zwrot' THEN 1 ELSE 0 END) as zwroty_cnt,
-            SUM(CASE WHEN status = 'zwrot' THEN cena * ilosc + COALESCE(koszt_dostawy, 0) ELSE 0 END) as zwroty_suma
+            SUM(CASE WHEN status = 'zwrot' THEN cena * ilosc ELSE 0 END) as zwroty_suma
         FROM sprzedaze
         WHERE strftime('%Y-%m', data_sprzedazy) = ?
-         
+
     ''', (miesiac_filter,)).fetchone()
 
     # Dolicz sprzedaże prywatne do przychodu
@@ -355,7 +355,7 @@ def sprzedaze_lista():
 @sprzedaze_bp.route('/sprzedaze/zwrot/<int:sale_id>', methods=['POST'])
 def oznacz_zwrot(sale_id):
     """Oznacza sprzedaz jako zwrot"""
-    if not session.get('user'):
+    if not session.get('username'):
         return redirect('/auth/login')
     from modules.database import get_db
     conn = get_db()
@@ -369,7 +369,7 @@ def oznacz_zwrot(sale_id):
 @sprzedaze_bp.route('/sprzedaze/unzwrot/<int:sale_id>', methods=['POST'])
 def cofnij_zwrot(sale_id):
     """Cofa oznaczenie zwrotu"""
-    if not session.get('user'):
+    if not session.get('username'):
         return redirect('/auth/login')
     from modules.database import get_db
     conn = get_db()
