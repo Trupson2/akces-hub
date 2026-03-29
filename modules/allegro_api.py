@@ -3393,8 +3393,8 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
 
                 # Backfill metoda_dostawy jeśli puste
                 _delivery_ex = order.get('delivery') or {}
-                _method_ex = (_delivery_ex.get('method', {}).get('name', '') or '').lower()
-                _pickup_ex = (_delivery_ex.get('pickupPoint', {}).get('id', '') or '').upper()
+                _method_ex = ((_delivery_ex.get('method') or {}).get('name', '') or '').lower()
+                _pickup_ex = ((_delivery_ex.get('pickupPoint') or {}).get('id', '') or '').upper()
                 if 'orlen' in _method_ex or _pickup_ex.startswith('ORL'):
                     _md_ex = 'Orlen'
                 elif any(x in _method_ex for x in ['inpost', 'paczkomat', 'paczka w ruchu']) or (_pickup_ex and not _pickup_ex.startswith('ORL')):
