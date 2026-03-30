@@ -617,11 +617,18 @@
       html += '<tr class="' + rowClass + '" onclick="showDetail(' + it.id + ')" style="cursor:pointer">';
       html += '<td style="text-align:center;font-weight:800;color:' + (rank<=3 ? '#ff6b9b' : 'var(--text-muted)') + '">' + rank + '</td>';
 
-      // Zdjęcie — miniaturka z Google Images
-      var imgQuery = encodeURIComponent(name + ' product');
-      var imgUrl = 'https://www.google.com/search?tbm=isch&q=' + imgQuery;
-      html += '<td style="text-align:center;padding:4px" onclick="event.stopPropagation()">';
-      html += '<a href="' + imgUrl + '" target="_blank" rel="noopener" title="Zobacz zdjęcia" style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;background:rgba(255,107,155,0.06);border:1px solid rgba(255,107,155,0.15);color:#ff6b9b;font-size:1.1rem;text-decoration:none;transition:all 0.15s" onmouseover="this.style.background=\'rgba(255,107,155,0.15)\'" onmouseout="this.style.background=\'rgba(255,107,155,0.06)\'">📷</a>';
+      // Zdjęcie — miniaturka
+      var imgSrc = it.image_url || '';
+      var imgSearch = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(name + ' product');
+      html += '<td style="text-align:center;padding:3px" onclick="event.stopPropagation()">';
+      if (imgSrc) {
+        html += '<a href="' + imgSearch + '" target="_blank" rel="noopener" title="Zobacz więcej zdjęć">';
+        html += '<img src="' + imgSrc + '" alt="" style="width:44px;height:44px;object-fit:cover;border:1px solid rgba(255,255,255,0.08);background:#1a1a2e" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" loading="lazy">';
+        html += '<span style="display:none;width:44px;height:44px;align-items:center;justify-content:center;background:rgba(255,107,155,0.06);border:1px solid rgba(255,107,155,0.15);color:#ff6b9b;font-size:1rem">📷</span>';
+        html += '</a>';
+      } else {
+        html += '<a href="' + imgSearch + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;background:rgba(255,107,155,0.06);border:1px solid rgba(255,107,155,0.15);color:#ff6b9b;font-size:1rem;text-decoration:none">📷</a>';
+      }
       html += '</td>';
 
       // Produkt
