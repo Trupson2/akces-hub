@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block page_title %}Winning Products{% endblock %}
+{% block page_title %}Winning Scout{% endblock %}
 {% block content %}
 
 <style>
-/* ===== WINNING PRODUCTS — CYBERPUNK STYLE ===== */
-.wp-header {
+/* ===== WINNING SCOUT — CYBERPUNK STYLE ===== */
+.ws-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -12,18 +12,18 @@
   flex-wrap: wrap;
   gap: 12px;
 }
-.wp-title {
+.ws-title {
   font-family: 'Space Grotesk', 'Inter', sans-serif;
   font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: -0.5px;
-  background: linear-gradient(135deg, var(--neon-primary, #8ff5ff), var(--neon-tertiary, #beee00));
+  background: linear-gradient(135deg, var(--neon-primary, #8ff5ff), #ff6b9b);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 0 12px rgba(143,245,255,0.25));
+  filter: drop-shadow(0 0 12px rgba(255,107,155,0.25));
 }
-.wp-subtitle {
+.ws-subtitle {
   font-size: 0.7rem;
   color: var(--text-muted, #666680);
   letter-spacing: 1px;
@@ -32,33 +32,34 @@
 }
 
 /* Stats bar */
-.wp-statsbar {
+.ws-statsbar {
   display: flex;
   gap: 24px;
   align-items: center;
   flex-wrap: wrap;
   padding: 12px 18px;
   background: var(--bg-card, rgba(19,19,28,0.6));
-  border-left: 3px solid rgba(143,245,255,0.15);
+  border-left: 3px solid rgba(255,107,155,0.2);
   margin-bottom: 20px;
   font-size: 0.8rem;
 }
-.wp-statsbar .stat-item { display: flex; flex-direction: column; gap: 2px; }
-.wp-statsbar .stat-label { font-size: 0.58rem; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted, #666680); }
-.wp-statsbar .stat-val { font-size: 1.1rem; font-weight: 700; color: var(--text, #e8e8f0); font-family: 'Space Grotesk', monospace; }
-.wp-statsbar .stat-val.green { color: #39d353; }
-.wp-statsbar .stat-val.cyan { color: var(--neon-primary, #8ff5ff); }
-.wp-statsbar .stat-val.lime { color: var(--neon-tertiary, #beee00); }
+.ws-statsbar .stat-item { display: flex; flex-direction: column; gap: 2px; }
+.ws-statsbar .stat-label { font-size: 0.58rem; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted, #666680); }
+.ws-statsbar .stat-val { font-size: 1.1rem; font-weight: 700; color: var(--text, #e8e8f0); font-family: 'Space Grotesk', monospace; }
+.ws-statsbar .stat-val.green { color: #39d353; }
+.ws-statsbar .stat-val.cyan { color: var(--neon-primary, #8ff5ff); }
+.ws-statsbar .stat-val.pink { color: #ff6b9b; }
+.ws-statsbar .stat-val.lime { color: var(--neon-tertiary, #beee00); }
 
 /* Refresh button */
-.wp-btn-refresh {
+.ws-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 10px 22px;
-  background: rgba(190,238,0,0.06);
-  border: 1px solid rgba(190,238,0,0.3);
-  color: var(--neon-tertiary, #beee00);
+  background: rgba(255,107,155,0.06);
+  border: 1px solid rgba(255,107,155,0.3);
+  color: #ff6b9b;
   font-family: 'Space Grotesk', 'Inter', monospace;
   font-size: 0.82rem;
   font-weight: 700;
@@ -68,68 +69,82 @@
   transition: all 0.2s;
   user-select: none;
 }
-.wp-btn-refresh:hover {
-  background: rgba(190,238,0,0.12);
-  border-color: rgba(190,238,0,0.6);
-  box-shadow: 0 0 20px rgba(190,238,0,0.1);
+.ws-btn:hover {
+  background: rgba(255,107,155,0.12);
+  border-color: rgba(255,107,155,0.6);
+  box-shadow: 0 0 20px rgba(255,107,155,0.1);
 }
-.wp-btn-refresh:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.ws-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.ws-btn.green { background:rgba(57,211,83,0.06); border-color:rgba(57,211,83,0.3); color:#39d353; }
+.ws-btn.green:hover { background:rgba(57,211,83,0.12); border-color:rgba(57,211,83,0.5); }
 
 /* Spinner */
-.wp-spinner {
+.ws-spinner {
   display: none;
   align-items: center;
   gap: 10px;
   padding: 14px 18px;
-  background: rgba(143,245,255,0.04);
-  border: 1px solid rgba(143,245,255,0.1);
-  border-left: 3px solid var(--neon-primary, #8ff5ff);
+  background: rgba(255,107,155,0.04);
+  border: 1px solid rgba(255,107,155,0.1);
+  border-left: 3px solid #ff6b9b;
   font-size: 0.82rem;
-  color: var(--neon-primary, #8ff5ff);
+  color: #ff6b9b;
   margin-bottom: 16px;
 }
-.wp-spinner.active { display: flex; }
+.ws-spinner.active { display: flex; }
 .spin-icon {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(143,245,255,0.2);
-  border-top-color: var(--neon-primary, #8ff5ff);
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,107,155,0.2);
+  border-top-color: #ff6b9b;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   flex-shrink: 0;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Alert box */
-.wp-alert {
-  display: none;
-  padding: 12px 18px;
-  font-size: 0.82rem;
+/* Alert */
+.ws-alert { display: none; padding: 12px 18px; font-size: 0.82rem; margin-bottom: 16px; border-left: 3px solid; }
+.ws-alert.error { background: rgba(255,71,87,0.08); border-color: #ff4757; color: #ff4757; }
+.ws-alert.warning { background: rgba(255,165,2,0.08); border-color: #ffa502; color: #ffa502; }
+.ws-alert.success { background: rgba(57,211,83,0.08); border-color: #39d353; color: #39d353; }
+.ws-alert.active { display: block; }
+
+/* Filter tabs */
+.ws-tabs {
+  display: flex;
+  gap: 4px;
   margin-bottom: 16px;
-  border-left: 3px solid;
+  flex-wrap: wrap;
 }
-.wp-alert.error { background: rgba(255,71,87,0.08); border-color: #ff4757; color: #ff4757; }
-.wp-alert.warning { background: rgba(255,165,2,0.08); border-color: #ffa502; color: #ffa502; }
-.wp-alert.success { background: rgba(57,211,83,0.08); border-color: #39d353; color: #39d353; }
-.wp-alert.active { display: block; }
+.ws-tab {
+  padding: 6px 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-muted, #666680);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ws-tab:hover { border-color: rgba(255,107,155,0.3); color: #ff6b9b; }
+.ws-tab.active { background: rgba(255,107,155,0.08); border-color: rgba(255,107,155,0.4); color: #ff6b9b; }
 
 /* Table */
-.wp-table-wrap {
+.ws-table-wrap {
   background: var(--bg-card, rgba(19,19,28,0.6));
-  border-left: 3px solid rgba(143,245,255,0.1);
+  border-left: 3px solid rgba(255,107,155,0.1);
   overflow-x: auto;
 }
-.wp-table {
+.ws-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
 }
-.wp-table th {
-  padding: 10px 14px;
-  font-size: 0.6rem;
+.ws-table th {
+  padding: 10px 12px;
+  font-size: 0.58rem;
   letter-spacing: 1.2px;
   text-transform: uppercase;
   color: var(--text-muted, #666680);
@@ -139,171 +154,113 @@
   cursor: pointer;
   user-select: none;
 }
-.wp-table th:hover { color: var(--neon-primary, #8ff5ff); }
-.wp-table td {
-  padding: 11px 14px;
+.ws-table th:hover { color: #ff6b9b; }
+.ws-table td {
+  padding: 10px 12px;
   border-bottom: 1px solid rgba(255,255,255,0.04);
   color: var(--text, #e8e8f0);
   vertical-align: middle;
 }
-.wp-table tr:hover td { background: rgba(143,245,255,0.025); }
+.ws-table tr:hover td { background: rgba(255,107,155,0.025); }
+.ws-table tr.rejected td { opacity: 0.5; }
 
 /* Score bar */
-.score-bar-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 120px;
-}
-.score-bar {
-  flex: 1;
-  height: 6px;
-  background: rgba(255,255,255,0.06);
-  border-radius: 0;
-  overflow: hidden;
-}
-.score-bar-fill {
-  height: 100%;
-  border-radius: 0;
-  transition: width 0.5s ease;
-}
+.score-bar-wrap { display: flex; align-items: center; gap: 6px; min-width: 90px; }
+.score-bar { flex: 1; height: 5px; background: rgba(255,255,255,0.06); overflow: hidden; }
+.score-bar-fill { height: 100%; transition: width 0.5s ease; }
+.score-bar-fill.pink { background: linear-gradient(90deg, #ff6b9b, #ff4757); }
 .score-bar-fill.green { background: linear-gradient(90deg, #39d353, #beee00); }
 .score-bar-fill.cyan { background: linear-gradient(90deg, #8ff5ff, #39d353); }
-.score-bar-fill.red { background: linear-gradient(90deg, #ff6b9b, #ff4757); }
-.score-num {
-  font-size: 0.75rem;
-  font-weight: 700;
-  min-width: 32px;
-  text-align: right;
-  font-family: 'Space Grotesk', monospace;
-}
-.score-num.green { color: #39d353; }
-.score-num.cyan { color: var(--neon-primary, #8ff5ff); }
-.score-num.red { color: #ff6b9b; }
+.score-num { font-size: 0.72rem; font-weight: 700; min-width: 28px; text-align: right; font-family: 'Space Grotesk', monospace; }
 
-/* Rank badge */
-.rank-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  font-family: 'Space Grotesk', monospace;
+/* Status badges */
+.ws-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
-.rank-1 { background: rgba(255,215,0,0.12); color: #ffd700; border: 1px solid rgba(255,215,0,0.3); }
-.rank-2 { background: rgba(192,192,192,0.12); color: #c0c0c0; border: 1px solid rgba(192,192,192,0.2); }
-.rank-3 { background: rgba(205,127,50,0.12); color: #cd7f32; border: 1px solid rgba(205,127,50,0.2); }
-.rank-n { background: rgba(255,255,255,0.04); color: var(--text-muted, #666680); border: 1px solid rgba(255,255,255,0.06); }
+.badge-keep { background: rgba(57,211,83,0.12); color: #39d353; border: 1px solid rgba(57,211,83,0.2); }
+.badge-reject { background: rgba(255,71,87,0.08); color: #ff4757; border: 1px solid rgba(255,71,87,0.15); }
+.badge-dup { background: rgba(255,165,2,0.08); color: #ffa502; border: 1px solid rgba(255,165,2,0.15); }
+
+/* Paczkomat fit */
+.ws-fit { font-weight: 800; font-size: 0.7rem; font-family: 'Space Grotesk', monospace; }
+.fit-a { color: #39d353; }
+.fit-b { color: #beee00; }
+.fit-c { color: #ffa502; }
+.fit-no { color: #ff4757; }
+
+/* Category groups */
+.ws-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 24px 0 12px;
+  padding: 8px 14px;
+  background: rgba(255,107,155,0.04);
+  border-left: 3px solid #ff6b9b;
+}
+.ws-group-icon { font-size: 1.2rem; }
+.ws-group-name {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #ff6b9b;
+}
+.ws-group-count {
+  font-size: 0.62rem;
+  color: var(--text-muted, #666680);
+  margin-left: auto;
+}
 
 /* Product name */
-.wp-name {
-  font-weight: 600;
-  color: var(--text, #e8e8f0);
-  max-width: 280px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.wp-name-sub { font-size: 0.68rem; color: var(--text-muted, #666680); margin-top: 2px; }
+.ws-name { font-weight: 600; color: var(--text, #e8e8f0); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-name-pl { font-size: 0.66rem; color: var(--text-muted, #666680); margin-top: 2px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Category tag */
-.wp-cat {
+.ws-cat {
   display: inline-block;
   padding: 2px 8px;
   background: rgba(143,245,255,0.06);
   border: 1px solid rgba(143,245,255,0.1);
   color: var(--neon-primary, #8ff5ff);
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   letter-spacing: 0.5px;
-  max-width: 160px;
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Price */
-.wp-price {
-  font-family: 'Space Grotesk', monospace;
-  font-weight: 700;
-  color: var(--neon-tertiary, #beee00);
-}
+/* Price cell */
+.ws-price { font-family: 'Space Grotesk', monospace; font-weight: 700; }
+.ws-buy { color: #ffa502; font-size: 0.72rem; }
+.ws-sell { color: #39d353; font-size: 0.82rem; }
+.ws-margin { font-size: 0.62rem; color: var(--text-muted); }
 
-/* Action link */
-.wp-action {
+/* Links */
+.ws-link {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
+  gap: 3px;
+  padding: 3px 8px;
   background: rgba(143,245,255,0.04);
   border: 1px solid rgba(143,245,255,0.12);
   color: var(--neon-primary, #8ff5ff);
-  font-size: 0.68rem;
-  text-decoration: none;
-  letter-spacing: 0.5px;
-  transition: all 0.15s;
-  cursor: pointer;
-}
-.wp-action:hover {
-  background: rgba(143,245,255,0.1);
-  border-color: rgba(143,245,255,0.3);
-  color: var(--neon-tertiary, #beee00);
-}
-.wp-action.green { background:rgba(57,211,83,0.06); border-color:rgba(57,211,83,0.2); color:#39d353; }
-.wp-action.green:hover { background:rgba(57,211,83,0.14); }
-.wp-action.red { background:rgba(255,107,155,0.04); border-color:rgba(255,107,155,0.15); color:rgba(255,107,155,0.6); }
-.wp-action.red:hover { background:rgba(255,107,155,0.1); color:#ff6b9b; }
-.wp-action-row { display:flex; gap:4px; flex-wrap:wrap; }
-
-/* Shopping list panel */
-.wp-zakupy-panel {
-  background: var(--bg-card, rgba(19,19,28,0.6));
-  border-left: 3px solid #39d353;
-  padding: 16px 20px;
-  margin-top: 24px;
-}
-.wp-zakupy-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  font-size: 0.82rem;
-  gap: 8px;
-}
-.wp-zakupy-item:last-child { border-bottom: none; }
-.wp-zakupy-status {
-  display: inline-block;
-  padding: 2px 8px;
   font-size: 0.62rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  text-decoration: none;
+  transition: all 0.15s;
 }
-.status-new { background:rgba(143,245,255,0.1); color:#8ff5ff; }
-.status-ordered { background:rgba(255,165,2,0.1); color:#ffa502; }
-.status-received { background:rgba(57,211,83,0.1); color:#39d353; }
-.status-skipped { background:rgba(255,255,255,0.05); color:#666680; }
-
-/* Draft modal */
-#draftModal {
-  display:none; position:fixed; inset:0; z-index:9998;
-  background:rgba(0,0,0,0.8); backdrop-filter:blur(4px);
-  align-items:center; justify-content:center;
-}
-.draft-box {
-  background:#131315; border:1px solid rgba(143,245,255,0.2);
-  max-width:500px; width:94%; padding:28px;
-}
-.draft-field { margin-bottom:16px; }
-.draft-label { font-size:0.62rem; color:#666680; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
-.draft-value { font-size:0.9rem; color:#e8e8f0; font-weight:600; word-break:break-word; }
-.draft-copy { background:none; border:1px solid rgba(143,245,255,0.2); color:#8ff5ff; font-size:0.68rem; padding:3px 10px; cursor:pointer; margin-left:8px; }
-.draft-copy:hover { background:rgba(143,245,255,0.1); }
+.ws-link:hover { background: rgba(143,245,255,0.1); border-color: rgba(143,245,255,0.3); }
+.ws-link.alibaba { border-color: rgba(255,165,2,0.2); color: #ffa502; }
+.ws-link.alibaba:hover { background: rgba(255,165,2,0.1); }
 
 /* Empty state */
-.wp-empty {
+.ws-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -312,38 +269,11 @@
   text-align: center;
   color: var(--text-muted, #666680);
 }
-.wp-empty-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.4; }
-.wp-empty-text { font-size: 0.88rem; margin-bottom: 16px; }
-
-/* Notes tooltip */
-.wp-notes {
-  font-size: 0.7rem;
-  color: var(--text-muted, #666680);
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: help;
-}
-
-/* Section header */
-.wp-section-hdr {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 22px 0 12px;
-}
-.wp-section-bar { width: 2px; height: 14px; background: var(--neon-primary, #8ff5ff); flex-shrink: 0; }
-.wp-section-lbl {
-  font-size: 0.66rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: var(--text-muted, #666680);
-}
+.ws-empty-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.4; }
+.ws-empty-text { font-size: 0.88rem; margin-bottom: 16px; }
 
 /* Pagination */
-.wp-pagination {
+.ws-pagination {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -351,7 +281,7 @@
   font-size: 0.8rem;
   color: var(--text-muted, #666680);
 }
-.wp-page-btn {
+.ws-page-btn {
   padding: 5px 12px;
   background: var(--bg-card, rgba(19,19,28,0.6));
   border: 1px solid rgba(255,255,255,0.08);
@@ -360,63 +290,96 @@
   cursor: pointer;
   transition: all 0.15s;
 }
-.wp-page-btn:hover:not(:disabled) { border-color: rgba(143,245,255,0.3); color: var(--neon-primary, #8ff5ff); }
-.wp-page-btn:disabled { opacity: 0.4; cursor: default; }
+.ws-page-btn:hover:not(:disabled) { border-color: rgba(255,107,155,0.3); color: #ff6b9b; }
+.ws-page-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* Detail modal */
+#detailModal {
+  display:none; position:fixed; inset:0; z-index:9998;
+  background:rgba(0,0,0,0.85); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center;
+}
+#detailModal.active { display:flex; }
+.detail-box {
+  background:#131315; border:1px solid rgba(255,107,155,0.2);
+  max-width:600px; width:94%; padding:28px; max-height:80vh; overflow-y:auto;
+}
+.detail-field { margin-bottom: 14px; }
+.detail-label { font-size:0.58rem; color:#666680; text-transform:uppercase; letter-spacing:1px; margin-bottom:3px; }
+.detail-value { font-size:0.88rem; color:#e8e8f0; font-weight:600; word-break:break-word; }
+.detail-score-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin: 16px 0;
+}
+.detail-score-item {
+  text-align: center;
+  padding: 10px 4px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.detail-score-num { font-size: 1.3rem; font-weight: 800; font-family: 'Space Grotesk', monospace; }
+.detail-score-label { font-size: 0.52rem; text-transform: uppercase; letter-spacing: 1px; color: #666680; margin-top: 4px; }
 </style>
 
 <!-- Header -->
-<div class="wp-header">
+<div class="ws-header">
   <div>
-    <div class="wp-title">🏆 WINNING PRODUCTS</div>
-    <div class="wp-subtitle">Analiza bestsellerów Allegro — znajdź produkty warte sprzedaży</div>
+    <div class="ws-title">WINNING SCOUT</div>
+    <div class="ws-subtitle">Automatyczny skaner nowych produktów do sprzedaży na Allegro</div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-    <button class="wp-btn-refresh" id="btnRefresh" onclick="runAnalysis()">
-      🔄 Przelicz teraz
-    </button>
-    <button class="wp-btn-refresh" onclick="toggleZakupy()" style="border-color:rgba(57,211,83,0.4);color:#39d353;background:rgba(57,211,83,0.06)">
-      🛒 Lista zakupów <span id="zakupyBadge"></span>
+    <button class="ws-btn" id="btnScan" onclick="runScan()">
+      SKANUJ TERAZ
     </button>
   </div>
 </div>
 
 <!-- Stats bar -->
-<div class="wp-statsbar" id="statsBar">
+<div class="ws-statsbar" id="statsBar">
   <div class="stat-item">
     <span class="stat-label">Ostatni skan</span>
-    <span class="stat-val cyan" id="statLastRun">—</span>
+    <span class="stat-val cyan" id="statLastRun">--</span>
   </div>
   <div class="stat-item">
     <span class="stat-label">Znalezionych</span>
-    <span class="stat-val green" id="statTotal">0</span>
+    <span class="stat-val green" id="statKept">0</span>
   </div>
   <div class="stat-item">
-    <span class="stat-label">Wyświetlone</span>
-    <span class="stat-val" id="statShowing">0</span>
+    <span class="stat-label">Odrzuconych</span>
+    <span class="stat-val pink" id="statRejected">0</span>
   </div>
   <div class="stat-item">
-    <span class="stat-label">Min. szansa</span>
-    <span class="stat-val lime" id="statMinScore">0.0</span>
+    <span class="stat-label">Batch</span>
+    <span class="stat-val" id="statBatch" style="font-size:0.72rem;color:var(--text-muted)">--</span>
   </div>
 </div>
 
 <!-- Spinner -->
-<div class="wp-spinner" id="spinner">
+<div class="ws-spinner" id="spinner">
   <div class="spin-icon"></div>
-  <span id="spinnerMsg">Analizuję Allegro... To może potrwać 10-60 sekund.</span>
+  <span id="spinnerMsg">Skanuję AliExpress, Amazon, Alibaba... To potrwa 1-3 minuty.</span>
 </div>
 
 <!-- Alert -->
-<div class="wp-alert" id="alertBox"></div>
+<div class="ws-alert" id="alertBox"></div>
 
-<!-- Filters -->
+<!-- Tabs -->
+<div class="ws-tabs">
+  <div class="ws-tab active" data-filter="" onclick="setFilter(this, '')">Wszystkie</div>
+  <div class="ws-tab" data-filter="kept" onclick="setFilter(this, 'kept')">KEEP NEW</div>
+  <div class="ws-tab" data-filter="rejected" onclick="setFilter(this, 'rejected')">Odrzucone</div>
+</div>
+
+<!-- Filters row -->
 <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
   <div style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--text-muted,#666680);">
-    <label for="minScoreFilter" style="white-space:nowrap">Min. szansa:</label>
+    <label for="minScoreFilter" style="white-space:nowrap">Min. score:</label>
     <input type="range" id="minScoreFilter" min="0" max="100" value="0" step="5"
-           style="width:120px;accent-color:var(--neon-primary,#8ff5ff)"
-           oninput="document.getElementById('minScoreVal').textContent=(this.value/100).toFixed(2);filterResults()">
-    <span id="minScoreVal" style="font-family:monospace;color:var(--neon-primary,#8ff5ff);font-weight:700">0.00</span>
+           style="width:120px;accent-color:#ff6b9b"
+           oninput="document.getElementById('minScoreVal').textContent=this.value;filterResults()">
+    <span id="minScoreVal" style="font-family:monospace;color:#ff6b9b;font-weight:700">0</span>
   </div>
   <div style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--text-muted,#666680);">
     <label for="limitFilter">Wyniki:</label>
@@ -425,37 +388,33 @@
       <option value="25">25</option>
       <option value="50" selected>50</option>
       <option value="100">100</option>
-      <option value="200">200</option>
     </select>
   </div>
 </div>
 
-<!-- Section header -->
-<div class="wp-section-hdr">
-  <div class="wp-section-bar"></div>
-  <div class="wp-section-lbl">Wyniki analizy</div>
-</div>
-
 <!-- Table -->
-<div class="wp-table-wrap" id="tableWrap">
-  <div class="wp-empty" id="emptyState">
-    <div class="wp-empty-icon">📊</div>
-    <div class="wp-empty-text">Brak wyników — kliknij <strong>Przelicz teraz</strong> aby uruchomić analizę</div>
-    <button class="wp-btn-refresh" onclick="runAnalysis()" style="font-size:0.78rem;padding:8px 16px">
-      🔄 Uruchom analizę
+<div class="ws-table-wrap" id="tableWrap">
+  <div class="ws-empty" id="emptyState">
+    <div class="ws-empty-icon">🔍</div>
+    <div class="ws-empty-text">Brak wyników — kliknij <strong>SKANUJ TERAZ</strong> aby znaleźć nowe produkty</div>
+    <button class="ws-btn" onclick="runScan()" style="font-size:0.78rem;padding:8px 16px">
+      URUCHOM SKAN
     </button>
   </div>
-  <table class="wp-table" id="resultsTable" style="display:none">
+  <table class="ws-table" id="resultsTable" style="display:none">
     <thead>
       <tr>
-        <th style="width:40px">#</th>
-        <th onclick="sortTable('name')">Produkt ↕</th>
-        <th onclick="sortTable('category')">Kategoria ↕</th>
-        <th onclick="sortTable('est_price')">Cena ↕</th>
-        <th onclick="sortTable('trend_score')">Trend ↕</th>
-        <th onclick="sortTable('competition_score')">Konkurencja ↕</th>
-        <th onclick="sortTable('opportunity_score')">Szansa ↕</th>
-        <th>Akcje</th>
+        <th style="width:36px">#</th>
+        <th onclick="sortTable('product_name')">Produkt</th>
+        <th onclick="sortTable('category')">Kategoria</th>
+        <th>Źródło</th>
+        <th onclick="sortTable('buy_price_pln')">Ceny</th>
+        <th onclick="sortTable('margin_percent')">Marża</th>
+        <th onclick="sortTable('trend_score')">Trend</th>
+        <th onclick="sortTable('final_score')">Score</th>
+        <th>Paczk.</th>
+        <th>Status</th>
+        <th>Linki</th>
       </tr>
     </thead>
     <tbody id="tableBody"></tbody>
@@ -463,500 +422,400 @@
 </div>
 
 <!-- Pagination -->
-<div class="wp-pagination" id="pagination" style="display:none">
-  <button class="wp-page-btn" id="btnPrev" onclick="changePage(-1)">← Wcześniejsze</button>
-  <span id="pageInfo">Strona 1</span>
-  <button class="wp-page-btn" id="btnNext" onclick="changePage(1)">Następne →</button>
+<div class="ws-pagination" id="pagination" style="display:none">
+  <button class="ws-page-btn" id="btnPrev" onclick="changePage(-1)">←</button>
+  <span id="pageInfo">1</span>
+  <button class="ws-page-btn" id="btnNext" onclick="changePage(1)">→</button>
 </div>
 
-<!-- Shopping List Panel -->
-<div id="zakupyPanel" style="display:none">
-  <div class="wp-section-hdr" style="margin-top:32px">
-    <div class="wp-section-bar" style="background:#39d353"></div>
-    <div class="wp-section-lbl">Lista zakupów</div>
-    <span id="zakupyCount" style="margin-left:8px;font-size:0.7rem;color:#39d353;font-weight:700"></span>
-    <button onclick="toggleZakupy()" class="wp-action" style="margin-left:auto;font-size:0.7rem">Ukryj</button>
-  </div>
-  <div class="wp-zakupy-panel">
-    <div id="zakupyList"><div style="color:#666680;font-size:0.82rem;padding:8px 0">Ładowanie...</div></div>
-  </div>
-</div>
-
-<!-- Draft Modal -->
-<div id="draftModal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.8);backdrop-filter:blur(4px);align-items:center;justify-content:center">
-  <div class="draft-box">
-    <div style="font-family:'Space Grotesk',sans-serif;font-weight:900;font-size:1.1rem;color:#8ff5ff;margin-bottom:20px">
-      📝 Szkic oferty Allegro
-    </div>
-    <div class="draft-field">
-      <div class="draft-label">Tytuł oferty</div>
-      <div class="draft-value" id="draftName"></div>
-      <button class="draft-copy" onclick="copyField('draftName')">Kopiuj</button>
-    </div>
-    <div class="draft-field">
-      <div class="draft-label">Kategoria</div>
-      <div class="draft-value" id="draftCategory"></div>
-      <button class="draft-copy" onclick="copyField('draftCategory')">Kopiuj</button>
-    </div>
-    <div class="draft-field">
-      <div class="draft-label">Cena startowa (est.)</div>
-      <div class="draft-value" id="draftPrice"></div>
-    </div>
-    <div class="draft-field" id="draftNotesWrap">
-      <div class="draft-label">Uzasadnienie / notatki</div>
-      <div class="draft-value" id="draftNotes" style="font-size:0.8rem;color:#adaaad"></div>
-    </div>
-    <div class="draft-field" id="draftUrlWrap" style="display:none">
-      <div class="draft-label">Podobna oferta na Allegro</div>
-      <a id="draftUrl" href="#" target="_blank" rel="noopener" class="wp-action" style="margin-top:4px">↗ Otwórz przykład</a>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:20px">
-      <a id="draftAllegroLink" href="https://allegro.pl/moje-allegro/sprzedaz/oferty" target="_blank"
-         class="wp-action green" style="padding:8px 16px;font-size:0.75rem">
-        ↗ Utwórz ofertę na Allegro
-      </a>
-      <button onclick="closeDraftModal()" class="wp-action" style="padding:8px 16px;font-size:0.75rem">Zamknij</button>
-    </div>
-  </div>
+<!-- Detail Modal -->
+<div id="detailModal">
+  <div class="detail-box" id="detailBox"></div>
 </div>
 
 <script>
 (function() {
   'use strict';
 
-  // State
   var _items = [];
   var _totalItems = 0;
   var _currentPage = 0;
-  var _lastRun = '';
-  var _sortKey = 'opportunity_score';
+  var _sortKey = 'final_score';
   var _sortAsc = false;
+  var _currentFilter = '';
 
-  // ===== UI helpers =====
+  // ===== HELPERS =====
 
   function showSpinner(msg) {
     var s = document.getElementById('spinner');
-    var m = document.getElementById('spinnerMsg');
     s.classList.add('active');
-    if (msg) m.textContent = msg;
+    if (msg) document.getElementById('spinnerMsg').textContent = msg;
   }
-
-  function hideSpinner() {
-    document.getElementById('spinner').classList.remove('active');
-  }
+  function hideSpinner() { document.getElementById('spinner').classList.remove('active'); }
 
   function showAlert(msg, type) {
     var a = document.getElementById('alertBox');
     a.textContent = msg;
-    a.className = 'wp-alert ' + type + ' active';
+    a.className = 'ws-alert ' + type + ' active';
     setTimeout(function() { a.classList.remove('active'); }, 8000);
   }
 
-  function scoreColor(val) {
-    if (val >= 0.7) return 'green';
-    if (val >= 0.4) return 'cyan';
-    return 'red';
+  function scoreColor(v) {
+    if (v >= 70) return '#39d353';
+    if (v >= 40) return '#beee00';
+    if (v >= 20) return '#ffa502';
+    return '#ff4757';
   }
 
-  function renderScoreBar(val, colorClass) {
-    var pct = Math.round(val * 100);
-    return '<div class="score-bar-wrap">' +
-      '<div class="score-bar"><div class="score-bar-fill ' + colorClass + '" style="width:' + pct + '%"></div></div>' +
-      '<span class="score-num ' + colorClass + '">' + val.toFixed(2) + '</span>' +
-      '</div>';
+  function scoreFillClass(v) {
+    if (v >= 70) return 'green';
+    if (v >= 40) return 'cyan';
+    return 'pink';
   }
 
-  function rankClass(rank) {
-    if (rank === 1) return 'rank-1';
-    if (rank === 2) return 'rank-2';
-    if (rank === 3) return 'rank-3';
-    return 'rank-n';
+  function statusBadge(status) {
+    if (status === 'keep_new') return '<span class="ws-badge badge-keep">KEEP</span>';
+    if (status === 'reject_duplicate') return '<span class="ws-badge badge-dup">DUPLIKAT</span>';
+    if (status === 'reject_similar') return '<span class="ws-badge badge-dup">PODOBNY</span>';
+    if (status === 'reject_blocked') return '<span class="ws-badge badge-reject">ZABLOK.</span>';
+    if (status === 'reject_no_wholesale') return '<span class="ws-badge badge-reject">BRAK HURTU</span>';
+    return '<span class="ws-badge badge-reject">' + (status || '?').replace('reject_', '').toUpperCase() + '</span>';
   }
 
-  function formatDate(iso) {
-    if (!iso) return '—';
-    try {
-      return iso.split('.')[0].replace('T', ' ');
-    } catch(e) { return iso; }
+  function fitBadge(fit) {
+    if (!fit) return '-';
+    var cls = 'fit-' + fit.toLowerCase();
+    return '<span class="ws-fit ' + cls + '">' + fit + '</span>';
   }
 
-  // ===== Data =====
-
-  function updateStats(total, showing, lastRun, minScore) {
-    document.getElementById('statTotal').textContent = total;
-    document.getElementById('statShowing').textContent = showing;
-    document.getElementById('statLastRun').textContent = formatDate(lastRun) || '—';
-    document.getElementById('statMinScore').textContent = (minScore || 0).toFixed(2);
+  function sourceIcon(src) {
+    if (src === 'aliexpress') return 'AliEx';
+    if (src === 'amazon') return 'AMZ';
+    if (src === 'alibaba') return 'ALI';
+    if (src === 'allegro') return 'ALL';
+    if (src === 'temu') return 'TEMU';
+    return (src || '?').substring(0,4).toUpperCase();
   }
 
-  function renderTable(items) {
+  // ===== SCAN =====
+
+  window.runScan = function() {
+    var btn = document.getElementById('btnScan');
+    btn.disabled = true;
+    showSpinner('Skanuję AliExpress, Amazon, Alibaba... To potrwa 1-3 minuty.');
+
+    fetch('/analityka/winning/refresh', { method: 'POST' })
+      .then(function(r) { return r.json().then(function(d) { return {ok: r.ok, data: d}; }); })
+      .then(function(res) {
+        hideSpinner();
+        btn.disabled = false;
+
+        if (!res.ok) {
+          showAlert(res.data.error || 'Błąd skanu', res.data.cooldown ? 'warning' : 'error');
+          return;
+        }
+
+        var d = res.data;
+        showAlert(
+          'Skan zakończony! Znaleziono ' + (d.products_found || 0) + ' produktów, odrzucono ' + (d.rejected_count || 0) + '. Czas: ' + (d.duration_s || '?') + 's',
+          'success'
+        );
+        loadStats();
+        loadResults();
+      })
+      .catch(function(err) {
+        hideSpinner();
+        btn.disabled = false;
+        showAlert('Błąd połączenia: ' + err, 'error');
+      });
+  };
+
+  // ===== LOAD =====
+
+  function loadStats() {
+    fetch('/analityka/winning/stats')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        document.getElementById('statLastRun').textContent = d.last_run ? d.last_run.substring(0, 16).replace('T', ' ') : '--';
+        document.getElementById('statKept').textContent = d.kept || 0;
+        document.getElementById('statRejected').textContent = d.rejected || 0;
+        document.getElementById('statBatch').textContent = d.batch_id || '--';
+      })
+      .catch(function() {});
+  }
+
+  window.loadResults = function() {
+    var limit = parseInt(document.getElementById('limitFilter').value) || 50;
+    var minScore = parseFloat(document.getElementById('minScoreFilter').value) || 0;
+    var qs = '?limit=' + limit + '&offset=' + (_currentPage * limit) + '&min_score=' + minScore;
+    if (_currentFilter) qs += '&status=' + _currentFilter;
+
+    fetch('/analityka/winning/list' + qs)
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        _items = d.items || [];
+        _totalItems = d.total || 0;
+        renderTable();
+      })
+      .catch(function(err) {
+        showAlert('Błąd: ' + err, 'error');
+      });
+  };
+
+  window.filterResults = function() {
+    _currentPage = 0;
+    loadResults();
+  };
+
+  window.setFilter = function(el, filter) {
+    _currentFilter = filter;
+    _currentPage = 0;
+    document.querySelectorAll('.ws-tab').forEach(function(t) { t.classList.remove('active'); });
+    el.classList.add('active');
+    loadResults();
+  };
+
+  // ===== RENDER =====
+
+  function renderTable() {
     var tbody = document.getElementById('tableBody');
     var table = document.getElementById('resultsTable');
     var empty = document.getElementById('emptyState');
+    var pag = document.getElementById('pagination');
 
-    if (!items || items.length === 0) {
+    if (!_items.length) {
       table.style.display = 'none';
       empty.style.display = 'flex';
-      document.getElementById('pagination').style.display = 'none';
+      pag.style.display = 'none';
       return;
     }
 
     table.style.display = 'table';
     empty.style.display = 'none';
 
-    // Buduj mapę do quick lookup w akcjach
-    _itemsMap = {};
-    for (var k = 0; k < items.length; k++) { _itemsMap[items[k].id] = items[k]; }
-
+    var limit = parseInt(document.getElementById('limitFilter').value) || 50;
     var html = '';
-    for (var i = 0; i < items.length; i++) {
-      var item = items[i];
-      var rank = _currentPage * getLimit() + i + 1;
-      var oppScore = Number(item.opportunity_score || 0);
-      var trendScore = Number(item.trend_score || 0);
-      var compScore = Number(item.competition_score || 0);
-      var price = item.est_price ? parseFloat(item.est_price).toFixed(2) + ' zł' : '—';
 
-      html += '<tr>' +
-        '<td><span class="rank-badge ' + rankClass(rank) + '">' + rank + '</span></td>' +
-        '<td>' +
-          '<div class="wp-name" title="' + _esc(item.name || '') + '">' + _esc((item.name || '').substring(0, 80)) + '</div>' +
-          (item.notes ? '<div class="wp-notes" title="' + _esc(item.notes) + '">' + _esc((item.notes || '').substring(0, 60)) + '</div>' : '') +
-        '</td>' +
-        '<td><span class="wp-cat" title="' + _esc(item.category || '') + '">' + _esc(item.category || '—') + '</span></td>' +
-        '<td><span class="wp-price">' + price + '</span></td>' +
-        '<td>' + renderScoreBar(trendScore, scoreColor(trendScore)) + '</td>' +
-        '<td>' + renderScoreBar(compScore, compScore >= 0.6 ? 'red' : (compScore >= 0.4 ? 'cyan' : 'green')) + '</td>' +
-        '<td>' + renderScoreBar(oppScore, scoreColor(oppScore)) + '</td>' +
-        '<td>' +
-          '<div class="wp-action-row">' +
-          '<button class="wp-action green" onclick="actionZakupy(' + item.id + ',this)" title="Dodaj do listy zakupów">🛒</button>' +
-          '<button class="wp-action" onclick="actionSzkic(' + item.id + ')" title="Szkic oferty">📝</button>' +
-          (item.marketplace_url ? '<a class="wp-action" href="' + _esc(item.marketplace_url) + '" target="_blank" rel="noopener" title="Otwórz na Allegro">↗</a>' : '') +
-          '<button class="wp-action red" onclick="actionIgnore(' + item.id + ',this)" title="Ignoruj">✕</button>' +
-          '</div>' +
-        '</td>' +
-        '</tr>';
+    for (var i = 0; i < _items.length; i++) {
+      var it = _items[i];
+      var rank = _currentPage * limit + i + 1;
+      var isRejected = (it.status || '').indexOf('reject') === 0;
+      var rowClass = isRejected ? 'rejected' : '';
+
+      var name = it.product_name || it.name || '?';
+      var namePl = it.product_name_pl || '';
+      var cat = it.category || '';
+      var buy = it.buy_price_pln || 0;
+      var sell = it.sell_price_pln || 0;
+      var margin = it.margin_percent || 0;
+      var trendS = it.trend_score || 0;
+      var finalS = it.final_score || 0;
+      var fit = it.paczkomat_fit || '-';
+      var source = it.source || '';
+
+      html += '<tr class="' + rowClass + '" onclick="showDetail(' + it.id + ')" style="cursor:pointer">';
+      html += '<td style="text-align:center;font-weight:800;color:' + (rank<=3 ? '#ff6b9b' : 'var(--text-muted)') + '">' + rank + '</td>';
+
+      // Produkt
+      html += '<td><div class="ws-name" title="' + name.replace(/"/g, '&quot;') + '">' + name.substring(0,55) + '</div>';
+      if (namePl && namePl !== name) html += '<div class="ws-name-pl">' + namePl.substring(0,55) + '</div>';
+      html += '</td>';
+
+      // Kategoria
+      html += '<td><span class="ws-cat">' + cat + '</span></td>';
+
+      // Źródło
+      html += '<td><span style="font-size:0.62rem;font-weight:700;color:var(--text-muted)">' + sourceIcon(source) + '</span></td>';
+
+      // Ceny
+      html += '<td class="ws-price">';
+      if (buy > 0) html += '<div class="ws-buy">' + buy.toFixed(0) + ' PLN</div>';
+      if (sell > 0) html += '<div class="ws-sell">' + sell.toFixed(0) + ' PLN</div>';
+      html += '</td>';
+
+      // Marża
+      html += '<td>';
+      if (margin > 0) {
+        var mColor = margin >= 200 ? '#39d353' : margin >= 100 ? '#beee00' : '#ffa502';
+        html += '<span style="font-family:monospace;font-weight:800;color:' + mColor + '">' + margin.toFixed(0) + '%</span>';
+      } else {
+        html += '<span style="color:var(--text-muted)">-</span>';
+      }
+      html += '</td>';
+
+      // Trend
+      html += '<td>';
+      html += '<div class="score-bar-wrap">';
+      html += '<div class="score-bar"><div class="score-bar-fill ' + scoreFillClass(trendS) + '" style="width:' + trendS + '%"></div></div>';
+      html += '<span class="score-num" style="color:' + scoreColor(trendS) + '">' + trendS + '</span>';
+      html += '</div></td>';
+
+      // Score
+      html += '<td>';
+      html += '<div class="score-bar-wrap">';
+      html += '<div class="score-bar"><div class="score-bar-fill ' + scoreFillClass(finalS) + '" style="width:' + finalS + '%"></div></div>';
+      html += '<span class="score-num" style="color:' + scoreColor(finalS) + ';font-size:0.82rem">' + finalS.toFixed(1) + '</span>';
+      html += '</div></td>';
+
+      // Paczkomat
+      html += '<td style="text-align:center">' + fitBadge(fit) + '</td>';
+
+      // Status
+      html += '<td>' + statusBadge(it.status) + '</td>';
+
+      // Linki
+      html += '<td style="white-space:nowrap">';
+      if (it.source_url) html += '<a href="' + it.source_url + '" target="_blank" rel="noopener" class="ws-link" title="Źródło">SRC</a> ';
+      if (it.alibaba_url) html += '<a href="' + it.alibaba_url + '" target="_blank" rel="noopener" class="ws-link alibaba" title="Alibaba">ALI</a>';
+      html += '</td>';
+
+      html += '</tr>';
     }
 
     tbody.innerHTML = html;
-  }
 
-  function _esc(str) {
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  function getLimit() {
-    return parseInt(document.getElementById('limitFilter').value) || 50;
-  }
-
-  function getMinScore() {
-    return parseFloat(document.getElementById('minScoreFilter').value) / 100;
-  }
-
-  // ===== Sorting =====
-
-  function sortTable(key) {
-    if (_sortKey === key) {
-      _sortAsc = !_sortAsc;
-    } else {
-      _sortKey = key;
-      _sortAsc = false;
-    }
-    var sorted = _items.slice().sort(function(a, b) {
-      var va = a[key] != null ? a[key] : '';
-      var vb = b[key] != null ? b[key] : '';
-      if (typeof va === 'number' && typeof vb === 'number') {
-        return _sortAsc ? va - vb : vb - va;
-      }
-      va = String(va).toLowerCase();
-      vb = String(vb).toLowerCase();
-      return _sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
-    });
-    renderTable(sorted);
-  }
-  window.sortTable = sortTable;
-
-  // ===== Filter =====
-
-  function filterResults() {
-    var minScore = getMinScore();
-    document.getElementById('statMinScore').textContent = minScore.toFixed(2);
-    var filtered = _items.filter(function(item) {
-      return Number(item.opportunity_score || 0) >= minScore;
-    });
-    renderTable(filtered);
-    document.getElementById('statShowing').textContent = filtered.length;
-  }
-  window.filterResults = filterResults;
-
-  // ===== Load results =====
-
-  function loadResults() {
-    var limit = getLimit();
-    var offset = _currentPage * limit;
-    var minScore = getMinScore();
-
-    fetch('/analityka/winning/list?limit=' + limit + '&offset=' + offset + '&min_score=' + minScore)
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        _items = data.items || [];
-        _totalItems = data.total || 0;
-        _lastRun = data.last_run || '';
-
-        updateStats(_totalItems, _items.length, _lastRun, minScore);
-        renderTable(_items);
-
-        // Pagination
-        var totalPages = Math.ceil(_totalItems / limit);
-        var pagination = document.getElementById('pagination');
-        if (totalPages > 1) {
-          pagination.style.display = 'flex';
-          document.getElementById('pageInfo').textContent = 'Strona ' + (_currentPage + 1) + ' / ' + totalPages;
-          document.getElementById('btnPrev').disabled = _currentPage === 0;
-          document.getElementById('btnNext').disabled = _currentPage >= totalPages - 1;
-        } else {
-          pagination.style.display = 'none';
-        }
-      })
-      .catch(function(e) {
-        showAlert('Błąd pobierania wyników: ' + e.message, 'error');
-      });
-  }
-  window.loadResults = loadResults;
-
-  // ===== Pagination =====
-
-  function changePage(dir) {
-    var limit = getLimit();
+    // Pagination
     var totalPages = Math.ceil(_totalItems / limit);
-    _currentPage = Math.max(0, Math.min(totalPages - 1, _currentPage + dir));
-    loadResults();
-  }
-  window.changePage = changePage;
-
-  // ===== Run analysis =====
-
-  function runAnalysis() {
-    var btn = document.getElementById('btnRefresh');
-    btn.disabled = true;
-    showSpinner('Analizuję Allegro... To może potrwać 10-60 sekund.');
-
-    fetch('/analityka/winning/refresh', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
-    })
-    .then(function(r) {
-      return r.json().then(function(data) {
-        return { status: r.status, data: data };
-      });
-    })
-    .then(function(res) {
-      hideSpinner();
-      btn.disabled = false;
-
-      if (res.status === 429) {
-        showAlert(res.data.error || 'Za wcześnie — poczekaj na koniec cooldown.', 'warning');
-        return;
-      }
-
-      if (res.status === 403 && res.data.allegro_auth === false) {
-        showAlert('⚠️ ' + res.data.error, 'error');
-        return;
-      }
-
-      if (res.status !== 200) {
-        showAlert('Błąd analizy: ' + (res.data.error || 'Nieznany błąd'), 'error');
-        return;
-      }
-
-      var d = res.data;
-      var top3 = (d.top_3 || []).map(function(p) {
-        return p.name.substring(0, 40) + ' (' + (p.opportunity_score || 0).toFixed(2) + ')';
-      }).join(', ');
-
-      showAlert(
-        'Analiza zakończona! Znaleziono ' + d.products_found + ' produktów w ' + d.duration_s + 's.' +
-        (top3 ? ' Top: ' + top3 : ''),
-        'success'
-      );
-
-      _currentPage = 0;
-      loadResults();
-    })
-    .catch(function(e) {
-      hideSpinner();
-      btn.disabled = false;
-      showAlert('Błąd połączenia: ' + e.message, 'error');
-    });
-  }
-  window.runAnalysis = runAnalysis;
-
-  // ===== Actions =====
-
-  function actionIgnore(itemId, btn) {
-    var row = btn.closest('tr');
-    fetch('/analityka/winning/ignore/' + itemId, { method: 'POST' })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        if (d.ignored) {
-          row.style.opacity = '0';
-          row.style.transition = 'opacity 0.4s';
-          setTimeout(function() { row.remove(); }, 400);
-        } else {
-          showAlert('Przywrócono z ignored', 'success');
-        }
-      })
-      .catch(function(e) { showAlert('Błąd: ' + e.message, 'error'); });
-  }
-  window.actionIgnore = actionIgnore;
-
-  function actionZakupy(itemId, btn) {
-    btn.disabled = true;
-    btn.textContent = '⏳';
-    fetch('/analityka/winning/zakupy/' + itemId, { method: 'POST' })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        if (d.success) {
-          btn.textContent = '✓';
-          btn.style.opacity = '0.5';
-          showAlert('Dodano "' + (d.name || '').substring(0, 40) + '" do listy zakupów!', 'success');
-          loadZakupyLista();
-          document.getElementById('zakupyPanel').style.display = 'block';
-        } else if (d.already) {
-          btn.textContent = '✓';
-          btn.style.opacity = '0.5';
-          showAlert('Już jest na liście zakupów', 'warning');
-        } else {
-          btn.textContent = '🛒';
-          btn.disabled = false;
-          showAlert('Błąd: ' + (d.error || ''), 'error');
-        }
-      })
-      .catch(function(e) {
-        btn.textContent = '🛒';
-        btn.disabled = false;
-        showAlert('Błąd: ' + e.message, 'error');
-      });
-  }
-  window.actionZakupy = actionZakupy;
-
-  // Store items for draft lookup
-  var _itemsMap = {};
-
-  function actionSzkic(itemId) {
-    var item = _itemsMap[itemId];
-    if (!item) { showAlert('Brak danych produktu', 'error'); return; }
-    document.getElementById('draftName').textContent = item.name || '—';
-    document.getElementById('draftCategory').textContent = item.category || '—';
-    document.getElementById('draftPrice').textContent = item.est_price ? parseFloat(item.est_price).toFixed(2) + ' zł' : '—';
-    document.getElementById('draftNotes').textContent = item.notes || '';
-    document.getElementById('draftNotesWrap').style.display = item.notes ? 'block' : 'none';
-    if (item.marketplace_url) {
-      document.getElementById('draftUrl').href = item.marketplace_url;
-      document.getElementById('draftUrlWrap').style.display = 'block';
+    if (totalPages > 1) {
+      pag.style.display = 'flex';
+      document.getElementById('pageInfo').textContent = (_currentPage + 1) + ' / ' + totalPages;
+      document.getElementById('btnPrev').disabled = _currentPage === 0;
+      document.getElementById('btnNext').disabled = _currentPage >= totalPages - 1;
     } else {
-      document.getElementById('draftUrlWrap').style.display = 'none';
+      pag.style.display = 'none';
     }
-    var modal = document.getElementById('draftModal');
-    modal.style.display = 'flex';
   }
-  window.actionSzkic = actionSzkic;
 
-  function closeDraftModal() {
-    document.getElementById('draftModal').style.display = 'none';
-  }
-  window.closeDraftModal = closeDraftModal;
+  // ===== SORTING =====
 
-  function copyField(id) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    navigator.clipboard.writeText(el.textContent).then(function() {
-      showAlert('Skopiowano!', 'success');
-    }).catch(function() {
-      var ta = document.createElement('textarea');
-      ta.value = el.textContent;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      showAlert('Skopiowano!', 'success');
+  window.sortTable = function(key) {
+    if (_sortKey === key) _sortAsc = !_sortAsc;
+    else { _sortKey = key; _sortAsc = false; }
+
+    _items.sort(function(a, b) {
+      var va = a[key], vb = b[key];
+      if (typeof va === 'string') va = va.toLowerCase();
+      if (typeof vb === 'string') vb = vb.toLowerCase();
+      if (va < vb) return _sortAsc ? -1 : 1;
+      if (va > vb) return _sortAsc ? 1 : -1;
+      return 0;
     });
-  }
-  window.copyField = copyField;
 
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeDraftModal();
+    renderTable();
+  };
+
+  // ===== PAGINATION =====
+
+  window.changePage = function(dir) {
+    _currentPage += dir;
+    if (_currentPage < 0) _currentPage = 0;
+    loadResults();
+  };
+
+  // ===== DETAIL MODAL =====
+
+  window.showDetail = function(id) {
+    var item = null;
+    for (var i = 0; i < _items.length; i++) {
+      if (_items[i].id === id) { item = _items[i]; break; }
+    }
+    if (!item) return;
+
+    var box = document.getElementById('detailBox');
+    var h = '';
+
+    h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">';
+    h += '<div>';
+    h += '<div style="font-family:\'Space Grotesk\',sans-serif;font-weight:900;font-size:1.1rem;color:#ff6b9b">' + (item.product_name || '').substring(0,80) + '</div>';
+    if (item.product_name_pl) h += '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">' + item.product_name_pl.substring(0,80) + '</div>';
+    h += '</div>';
+    h += '<button onclick="closeDetail()" style="background:none;border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);padding:4px 12px;cursor:pointer;font-size:0.8rem">X</button>';
+    h += '</div>';
+
+    // Score grid
+    h += '<div class="detail-score-grid">';
+    var scores = [
+      {label: 'TREND', val: item.trend_score || 0},
+      {label: 'MARŻA', val: item.margin_score || 0},
+      {label: 'NOWOŚĆ', val: item.novelty_score || 0},
+      {label: 'KONKUR.', val: item.competition_score || 0},
+      {label: 'SOURCING', val: item.sourcing_score || 0},
+    ];
+    for (var s = 0; s < scores.length; s++) {
+      h += '<div class="detail-score-item">';
+      h += '<div class="detail-score-num" style="color:' + scoreColor(scores[s].val) + '">' + scores[s].val + '</div>';
+      h += '<div class="detail-score-label">' + scores[s].label + '</div>';
+      h += '</div>';
+    }
+    h += '</div>';
+
+    h += '<div style="text-align:center;margin:-8px 0 16px;font-size:1.4rem;font-weight:900;color:#ff6b9b;font-family:\'Space Grotesk\',monospace">SCORE: ' + (item.final_score || 0).toFixed(1) + '</div>';
+
+    // Details
+    var fields = [
+      {l:'Kategoria', v: item.category},
+      {l:'Źródło', v: item.source},
+      {l:'Cena zakupu', v: item.buy_price_pln ? item.buy_price_pln.toFixed(2) + ' PLN' : '-'},
+      {l:'Cena sprzedaży', v: item.sell_price_pln ? item.sell_price_pln.toFixed(0) + ' PLN' : '-'},
+      {l:'Marża', v: item.margin_percent ? item.margin_percent.toFixed(0) + '%' : '-'},
+      {l:'Konkurencja Allegro', v: item.allegro_competition >= 0 ? item.allegro_competition + ' ofert' : 'n/a'},
+      {l:'Alibaba MOQ', v: item.alibaba_moq ? item.alibaba_moq + ' szt' : '-'},
+      {l:'Alibaba cena', v: item.alibaba_price_usd ? '$' + item.alibaba_price_usd.toFixed(2) : '-'},
+      {l:'Alibaba dostawca', v: item.alibaba_supplier || '-'},
+      {l:'Trade Assurance', v: item.alibaba_trade_assurance ? 'TAK' : 'NIE'},
+      {l:'Paczkomat', v: item.paczkomat_fit || '-'},
+      {l:'Wzrost 7d', v: item.growth_7d ? '+' + item.growth_7d + '%' : '-'},
+      {l:'Status', v: item.status},
+    ];
+
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px">';
+    for (var f = 0; f < fields.length; f++) {
+      h += '<div class="detail-field"><div class="detail-label">' + fields[f].l + '</div><div class="detail-value" style="font-size:0.82rem">' + (fields[f].v || '-') + '</div></div>';
+    }
+    h += '</div>';
+
+    // Why sections
+    if (item.why_new) {
+      h += '<div class="detail-field" style="margin-top:16px"><div class="detail-label">Dlaczego warto</div><div class="detail-value" style="font-size:0.8rem;color:#39d353">' + item.why_new + '</div></div>';
+    }
+    if (item.why_can_sell) {
+      h += '<div class="detail-field"><div class="detail-label">Dlaczego się sprzeda</div><div class="detail-value" style="font-size:0.8rem;color:#beee00">' + item.why_can_sell + '</div></div>';
+    }
+    if (item.risk_flags) {
+      h += '<div class="detail-field"><div class="detail-label">Ryzyka</div><div class="detail-value" style="font-size:0.8rem;color:#ff4757">' + item.risk_flags + '</div></div>';
+    }
+    if (item.reject_reason) {
+      h += '<div class="detail-field"><div class="detail-label">Powód odrzucenia</div><div class="detail-value" style="font-size:0.8rem;color:#ffa502">' + item.reject_reason + '</div></div>';
+    }
+
+    // Links
+    h += '<div style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap">';
+    if (item.source_url) h += '<a href="' + item.source_url + '" target="_blank" class="ws-link" style="padding:8px 14px;font-size:0.72rem">Źródło produktu</a>';
+    if (item.alibaba_url) h += '<a href="' + item.alibaba_url + '" target="_blank" class="ws-link alibaba" style="padding:8px 14px;font-size:0.72rem">Alibaba</a>';
+    h += '<a href="https://allegro.pl/listing?string=' + encodeURIComponent(item.product_name_pl || item.product_name || '') + '" target="_blank" class="ws-link" style="padding:8px 14px;font-size:0.72rem">Szukaj na Allegro</a>';
+    h += '</div>';
+
+    box.innerHTML = h;
+    document.getElementById('detailModal').classList.add('active');
+  };
+
+  window.closeDetail = function() {
+    document.getElementById('detailModal').classList.remove('active');
+  };
+
+  // Close modal on backdrop click
+  document.getElementById('detailModal').addEventListener('click', function(e) {
+    if (e.target === this) closeDetail();
   });
 
-  // ===== Shopping list =====
+  // ESC to close
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeDetail();
+  });
 
-  function loadZakupyLista() {
-    fetch('/analityka/winning/zakupy-lista')
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        var items = d.items || [];
-        var panel = document.getElementById('zakupyPanel');
-        var listEl = document.getElementById('zakupyList');
-        var countEl = document.getElementById('zakupyCount');
-        countEl.textContent = items.length ? '(' + items.length + ')' : '';
-        if (items.length === 0) {
-          listEl.innerHTML = '<div style="color:#666680;font-size:0.82rem;padding:8px 0">Lista jest pusta</div>';
-          return;
-        }
-        var statusLabels = { new:'Nowy', ordered:'Zamówiony', received:'Otrzymany', skipped:'Pominięty' };
-        var html = '';
-        items.forEach(function(z) {
-          var price = z.est_price ? parseFloat(z.est_price).toFixed(2) + ' zł' : '—';
-          var sLabel = statusLabels[z.status] || z.status;
-          html += '<div class="wp-zakupy-item">' +
-            '<div style="flex:1;min-width:0">' +
-              '<div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(z.name || '—') + '</div>' +
-              '<div style="font-size:0.7rem;color:#666680;margin-top:2px">' + _esc(z.category || '') + ' · ' + price + '</div>' +
-            '</div>' +
-            '<span class="wp-zakupy-status status-' + z.status + '">' + sLabel + '</span>' +
-            '<select onchange="updateZakupyStatus(' + z.id + ',this.value)" style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);color:#e8e8f0;font-size:0.68rem;padding:3px 6px">' +
-              '<option value="new"' + (z.status==='new'?' selected':'') + '>Nowy</option>' +
-              '<option value="ordered"' + (z.status==='ordered'?' selected':'') + '>Zamówiony</option>' +
-              '<option value="received"' + (z.status==='received'?' selected':'') + '>Otrzymany</option>' +
-              '<option value="skipped"' + (z.status==='skipped'?' selected':'') + '>Pomiń</option>' +
-            '</select>' +
-          '</div>';
-        });
-        listEl.innerHTML = html;
-        // Aktualizuj badge w przycisk
-        var badge = document.getElementById('zakupyBadge');
-        if (badge) badge.textContent = items.length ? '(' + items.length + ')' : '';
-      })
-      .catch(function(e) { console.error('zakupy lista error:', e); });
-  }
-  window.loadZakupyLista = loadZakupyLista;
-
-  function toggleZakupy() {
-    var panel = document.getElementById('zakupyPanel');
-    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-  }
-  window.toggleZakupy = toggleZakupy;
-
-  function updateZakupyStatus(id, status) {
-    fetch('/analityka/winning/zakupy-status/' + id, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({status: status})
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      if (d.success) loadZakupyLista();
-    })
-    .catch(function(e) { console.error(e); });
-  }
-  window.updateZakupyStatus = updateZakupyStatus;
-
-  // ===== Init =====
+  // ===== INIT =====
+  loadStats();
   loadResults();
-  // Sprawdź czy jest coś na liście zakupów przy ładowaniu
-  loadZakupyLista();
 
 })();
 </script>
