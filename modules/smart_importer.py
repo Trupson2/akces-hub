@@ -81,10 +81,56 @@ def detect_stan_from_name(nazwa: str) -> str:
 # Gemini AI - klucz pobierany z DB config (get_config('gemini_api_key'))
 
 
+def _is_polish(text: str) -> bool:
+    """Sprawdza czy tekst jest po polsku"""
+    _pl_chars = set('ąęóśłżźćń')
+    _pl_words = {'do','na','dla','ze','od','lub','bez','nie','jak','jest',
+                 'kosiarka','kamera','poduszka','statyw','zestaw','piła',
+                 'elektryczna','akumulatorowa','bezprzewodowy','wodoodporna'}
+    text_lower = text.lower()
+    if any(c in _pl_chars for c in text_lower):
+        return True
+    words = text_lower.split()
+    return sum(1 for w in words if w in _pl_words) >= 2
+
+
+def _translate_to_polish(title: str) -> str:
+    """Tłumaczy tytuł na polski przez Gemini"""
+    try:
+        import requests as _req
+        from .database import get_config
+        from .utils import get_gemini_api_url
+        _key = get_config('gemini_api_key', '')
+        if not _key:
+            return title
+        prompt = f"""Przetłumacz ten tytuł produktu na polski. Zachowaj markę, model i parametry techniczne bez zmian.
+
+Tytuł: {title}
+
+Odpowiedz TYLKO przetłumaczonym tytułem:"""
+        _resp = _req.post(get_gemini_api_url(_key), json={
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.1, "maxOutputTokens": 100}
+        }, timeout=15)
+        if _resp.status_code == 200:
+            _data = _resp.json()
+            translated = _data['candidates'][0]['content']['parts'][0]['text'].strip().strip('"').strip("'")
+            if translated and len(translated) >= 10:
+                print(f"[TRANS] {title[:40]} → {translated[:40]}")
+                return translated
+    except Exception as e:
+        print(f"[TRANS] Błąd tłumaczenia: {e}")
+    return title
+
+
 def _optimize_amazon_title(title: str, max_len: int = 75) -> str:
     """Czyści tytuł z Amazon na SEO Allegro — marka na końcu, kategoria na początku."""
     if not title:
         return title
+
+    # Tłumacz jeśli nie po polsku
+    if not _is_polish(title):
+        title = _translate_to_polish(title)
 
     # Ucięcie po pierwszym przecinku (zbędne opisy)
     if ',' in title:
