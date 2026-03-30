@@ -94,46 +94,37 @@ def _optimize_amazon_title(title: str, max_len: int = 75) -> str:
     title = re.sub(r'(\d+)\s+(W|V|A|cm|mm|m|kg|g|l|L)\b', r'\1\2', title)
     title = re.sub(r'\s+', ' ', title).strip()
 
-    # Rozdziel na markę/model (początek) i resztę (opis produktu)
-    # Amazon format: "Marka Model Opis produktu parametry"
-    # Allegro SEO:   "Opis produktu parametry Marka Model"
+    # Przenieś markę (1. wyraz) i model (2. wyraz jeśli ma cyfry) na koniec
+    # Amazon: "LawnMaster MEB1840M Kosiarka elektryczna 1800W"
+    # Allegro: "Kosiarka Elektryczna 1800W LawnMaster MEB1840M"
     words = title.split()
     brand_words = []
-    rest_start = 0
 
-    for i, w in enumerate(words):
-        # Marka/model = słowa z wielkiej litery, kody alfanumeryczne, krótkie skróty
-        # Kończy się gdy trafimy na polskie słowo opisowe (kosiarka, kamera, statyw, piła itp.)
-        w_lower = w.lower().rstrip('.,;:')
-        _is_brand = (
-            (w[0].isupper() and not any(c in w_lower for c in ['ą','ę','ó','ś','ł','ż','ź','ć','ń']))
-            or (any(c.isdigit() for c in w) and any(c.isalpha() for c in w))
-            or w.isupper()
-        )
-        if _is_brand and i < 4:
-            brand_words.append(w)
-            rest_start = i + 1
+    if len(words) >= 2:
+        # Pierwszy wyraz = marka (jeśli nie jest polskim słowem opisowym)
+        _common = {'kosiarka','kamera','statyw','piła','pila','odkurzacz','zgrzewarka',
+                    'teleskop','monitor','klawiatura','mysz','poduszka','tło','ramka',
+                    'zestaw','mini','wielofunkcyjna','cyfrowa','robot','wecool'}
+        w0 = words[0]
+        if w0.lower() not in _common:
+            brand_words.append(w0)
+            words = words[1:]
+            # Drugi wyraz = model (jeśli ma cyfry+litery, np. MEB1840M, CLMF4841E)
+            if words and any(c.isdigit() for c in words[0]) and any(c.isalpha() for c in words[0]):
+                brand_words.append(words[0])
+                words = words[1:]
+
+    # Title Case na reszcie
+    titled = []
+    for w in words:
+        if any(c.isdigit() for c in w) or w.isupper() or len(w) <= 2:
+            titled.append(w)
         else:
-            break
+            titled.append(w.capitalize())
 
-    if brand_words and rest_start < len(words):
-        rest = words[rest_start:]
-        # Title Case na reszcie, zachowaj brand/model
-        rest_titled = []
-        for w in rest:
-            if any(c.isdigit() for c in w) or w.isupper() or len(w) <= 2:
-                rest_titled.append(w)
-            else:
-                rest_titled.append(w.capitalize())
-        title = ' '.join(rest_titled) + ' ' + ' '.join(brand_words)
+    if brand_words:
+        title = ' '.join(titled) + ' ' + ' '.join(brand_words)
     else:
-        # Nie udało się rozdzielić — Title Case całości
-        titled = []
-        for w in words:
-            if any(c.isdigit() for c in w) or w.isupper() or len(w) <= 2:
-                titled.append(w)
-            else:
-                titled.append(w.capitalize())
         title = ' '.join(titled)
 
     # Truncate na granicy słowa
