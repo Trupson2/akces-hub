@@ -2187,12 +2187,11 @@ def paleta_bulk_import():
                             ''', (np_row['asin'], np_row['nazwa'], np_row['kategoria'] or '', np_row['zdjecie_url'] or '', np_row['cena_brutto'] or 0))
                     conn.commit()
 
-                    # [AGRI] AUTO-SCRAPING: odpal kombajn dla produktów bez zdjęć
+                    # [AGRI] AUTO-SCRAPING: odpal kombajn dla WSZYSTKICH produktów z ASIN
                     asins_rows = conn.execute(f'''
                         SELECT DISTINCT asin FROM produkty
                         WHERE paleta_id IN ({placeholders})
                         AND asin IS NOT NULL AND asin != '' AND asin != 'nan'
-                        AND (zdjecie_url IS NULL OR zdjecie_url = '')
                     ''', all_paleta_ids).fetchall()
                     asins = [r['asin'] for r in asins_rows if r['asin'] and len(r['asin']) >= 5]
                     if asins:
@@ -2210,23 +2209,22 @@ def paleta_bulk_import():
                 def _auto_meta(pids):
                     try:
                         import time as _t
-                        _t.sleep(5)
+                        _t.sleep(10)  # poczekaj aż auto-scraping pobierze nazwy
                         from modules.database import get_db as _gdb3
-                        from modules.utils import translate_product_name
+                        from modules.smart_importer import _optimize_amazon_title
                         _conn3 = _gdb3()
                         _phs = ','.join('?' * len(pids))
                         _prods = _conn3.execute(
-                            f"SELECT id, nazwa, meta_title FROM produkty WHERE paleta_id IN ({_phs}) AND (meta_title IS NULL OR meta_title = '')",
+                            f"SELECT id, nazwa, meta_title FROM produkty WHERE paleta_id IN ({_phs}) AND LENGTH(COALESCE(nazwa,'')) >= 20",
                             pids
                         ).fetchall()
                         _upd = 0
                         for _p3 in _prods:
                             try:
-                                _new = translate_product_name(_p3['nazwa'], use_ai=True)
-                                if _new and _new != _p3['nazwa']:
-                                    _conn3.execute('UPDATE produkty SET meta_title = ? WHERE id = ?', (_new[:100], _p3['id']))
+                                _new = _optimize_amazon_title(_p3['nazwa'], 75)
+                                if _new and len(_new) >= 20 and _new != _p3['meta_title']:
+                                    _conn3.execute('UPDATE produkty SET meta_title = ? WHERE id = ?', (_new, _p3['id']))
                                     _upd += 1
-                                    _t.sleep(0.3)
                             except:
                                 pass
                         if _upd:
