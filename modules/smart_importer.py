@@ -82,29 +82,59 @@ def detect_stan_from_name(nazwa: str) -> str:
 
 
 def _optimize_amazon_title(title: str, max_len: int = 75) -> str:
-    """Czyści tytuł z Amazon na SEO Allegro — bez AI, czysto programatycznie."""
+    """Czyści tytuł z Amazon na SEO Allegro — marka na końcu, kategoria na początku."""
     if not title:
         return title
 
-    # Ucięcie po pierwszym przecinku (zbędne opisy typu "6 regulowanych wysokości...")
+    # Ucięcie po pierwszym przecinku (zbędne opisy)
     if ',' in title:
         title = title.split(',')[0].strip()
 
     # Kompresja jednostek: "1800 W" → "1800W", "40 cm" → "40cm"
     title = re.sub(r'(\d+)\s+(W|V|A|cm|mm|m|kg|g|l|L)\b', r'\1\2', title)
-
-    # Usuń podwójne spacje
     title = re.sub(r'\s+', ' ', title).strip()
 
-    # Title Case — ale zachowaj oryginalne wielkie litery w markach/modelach
+    # Rozdziel na markę/model (początek) i resztę (opis produktu)
+    # Amazon format: "Marka Model Opis produktu parametry"
+    # Allegro SEO:   "Opis produktu parametry Marka Model"
     words = title.split()
-    result = []
-    for w in words:
-        if w.isupper() or any(c.isdigit() for c in w) or len(w) <= 2:
-            result.append(w)  # Zachowaj oryginał (model/skrót)
+    brand_words = []
+    rest_start = 0
+
+    for i, w in enumerate(words):
+        # Marka/model = słowa z wielkiej litery, kody alfanumeryczne, krótkie skróty
+        # Kończy się gdy trafimy na polskie słowo opisowe (kosiarka, kamera, statyw, piła itp.)
+        w_lower = w.lower().rstrip('.,;:')
+        _is_brand = (
+            (w[0].isupper() and not any(c in w_lower for c in ['ą','ę','ó','ś','ł','ż','ź','ć','ń']))
+            or (any(c.isdigit() for c in w) and any(c.isalpha() for c in w))
+            or w.isupper()
+        )
+        if _is_brand and i < 4:
+            brand_words.append(w)
+            rest_start = i + 1
         else:
-            result.append(w.capitalize())
-    title = ' '.join(result)
+            break
+
+    if brand_words and rest_start < len(words):
+        rest = words[rest_start:]
+        # Title Case na reszcie, zachowaj brand/model
+        rest_titled = []
+        for w in rest:
+            if any(c.isdigit() for c in w) or w.isupper() or len(w) <= 2:
+                rest_titled.append(w)
+            else:
+                rest_titled.append(w.capitalize())
+        title = ' '.join(rest_titled) + ' ' + ' '.join(brand_words)
+    else:
+        # Nie udało się rozdzielić — Title Case całości
+        titled = []
+        for w in words:
+            if any(c.isdigit() for c in w) or w.isupper() or len(w) <= 2:
+                titled.append(w)
+            else:
+                titled.append(w.capitalize())
+        title = ' '.join(titled)
 
     # Truncate na granicy słowa
     if len(title) > max_len:
