@@ -118,36 +118,25 @@ def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin:
                 else:
                     _asin_section = f'\nASIN: {produkt_asin}'
 
-            prompt = f"""Jesteś ekspertem SEO na Allegro. Stwórz PEŁNY polski tytuł oferty.
+            prompt = f"""Przeformatuj ten tytuł produktu z Amazon na tytuł oferty Allegro (max 75 znaków).
 
-DANE PRODUKTU:
-Nazwa: {produkt_nazwa}
-{f'EAN: {produkt_ean}' if produkt_ean else ''}
-{_asin_section}
-{_bp_section}
+TYTUŁ Z AMAZON: {produkt_nazwa}
 
-ABSOLUTNE ZAKAZY:
-- NIGDY nie zwracaj ogólnych nazw jak "Kosiarka", "Odkurzacz", "Kamera" — to za mało!
-- NIGDY nie usuwaj marki (LawnMaster, Bosch, Samsung itp.)
-- NIGDY nie zwracaj tytułu krótszego niż 50 znaków
+ZASADY FORMATOWANIA:
+1. Struktura: [Kategoria produktu] [Marka] [Model] [Kluczowe parametry]
+2. Kategoria produktu NA POCZĄTKU (np. Kosiarka, Kamera, Statyw)
+3. Zachowaj markę i model
+4. Zachowaj najważniejsze parametry (moc W, wymiary cm, napięcie V)
+5. Usuń zbędne opisy (pojemnik, regulowane wysokości, gwarancja)
+6. Po polsku, Title Case, BEZ przecinków
+7. DOKŁADNIE 55-75 znaków
 
-WYMAGANA STRUKTURA: [Marka] [Model] [Kategoria produktu] [Kluczowe parametry] [Zastosowanie]
+PRZYKŁADY:
+"LawnMaster MEB1840M Kosiarka elektryczna do trawy 1800 W 40 cm, 6 regulowanych wysokości 20-70 mm, 42 l pojemnik na trawę 2 lata" → "Kosiarka Elektryczna LawnMaster MEB1840M 1800W 40cm Do Trawy"
+"AZDOME M300S Kamera samochodowa 4K WiFi z GPS, 800MP Sony Starvis 2" → "Kamera Samochodowa AZDOME M300S 4K WiFi GPS Sony Starvis"
+"Statyw do telefonu komórkowego ze światłem, 175 cm" → "Statyw Do Telefonu 175cm Ze Światłem LED Regulowany"
 
-ZASADY:
-1. ZAWSZE po polsku
-2. ZAWSZE zachowaj markę i numer modelu z nazwy produktu
-3. Uzupełnij parametrami technicznymi (moc, wymiary, napięcie, pojemność)
-4. MINIMUM 55 znaków, MAKSIMUM 75 znaków — CEL: 65-75 znaków
-5. Jeśli masz ASIN — znasz ten produkt z Amazon, podaj jego pełną specyfikację
-6. BEZ stanu (Nowy/Używany), BEZ ceny, Title Case
-
-PRZYKŁADY POPRAWNYCH TYTUŁÓW (55-75 znaków):
-"LawnMaster ME" → "LawnMaster MEB1840M Kosiarka Elektryczna 1800W 40cm Do Trawy"
-"Kosiarka Ak" → "LawnMaster CLMF4841E Kosiarka Akumulatorowa 48V 41cm Zestaw"
-"Piła do gałęzi" → "Teleskopowa Piła Łańcuchowa Do Gałęzi Konarów 6m Elektryczna"
-"Kamera cofania" → "Kamera Cofania Samochodowa HD 170 Stopni IP68 Wodoodporna 12V"
-
-Odpowiedz TYLKO tytułem (bez cudzysłowów, bez komentarzy):"""
+Odpowiedz TYLKO przeformatowanym tytułem:"""
 
             if attempt > 0:
                 print(f"   ↻ [RETRY {attempt+1}/{retry_count}] Ponawiam zapytanie...")
