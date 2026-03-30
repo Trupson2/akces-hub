@@ -1000,7 +1000,7 @@ def run_scout_scan() -> dict:
 
         # Cooldown check
         last_run = get_config('scout_last_run', '')
-        cooldown_min = int(get_config('scout_cooldown_minutes', '30'))
+        cooldown_min = int(get_config('scout_cooldown_minutes', '10'))
         if last_run:
             try:
                 last_dt = datetime.fromisoformat(last_run)
