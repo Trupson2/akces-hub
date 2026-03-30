@@ -2455,6 +2455,74 @@ def rescrape_product(product_id):
 
     return redirect(request.referrer or '/paletomat')
 
+
+# ═══════════════════════════════════════════════════════════════
+# REMOTE SCRAPER API — laptop scrapuje Amazon, wysyła wyniki tu
+# ═══════════════════════════════════════════════════════════════
+
+@paletomat_bp.route('/api/scraper/asins-needed', methods=['GET'])
+def api_scraper_asins_needed():
+    """Zwraca ASINy które potrzebują scrapowania (brak nazwy lub fallback)"""
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT DISTINCT p.asin FROM produkty p
+        LEFT JOIN scraped s ON UPPER(p.asin) = UPPER(s.asin)
+        WHERE p.asin IS NOT NULL AND p.asin != ''
+        AND (
+            s.nazwa IS NULL OR s.nazwa = '' OR LENGTH(s.nazwa) < 20
+            OR p.nazwa IS NULL OR p.nazwa = '' OR LENGTH(p.nazwa) < 20
+        )
+    """).fetchall()
+    asins = [r['asin'] for r in rows]
+    return jsonify({'asins': asins, 'count': len(asins)})
+
+
+@paletomat_bp.route('/api/scraper/update', methods=['POST'])
+def api_scraper_update():
+    """Przyjmuje dane z remote scrapera i aktualizuje DB"""
+    data = request.get_json()
+    if not data or 'asin' not in data or 'title' not in data:
+        return jsonify({'error': 'Wymagane: asin, title'}), 400
+
+    asin = data['asin'].strip().upper()
+    title = data['title'].strip()
+    bullet_points = data.get('bullet_points', [])
+    all_images = data.get('all_images', [])
+    price = data.get('price', 0)
+    category = data.get('category', '')
+    product_specs = data.get('product_specs', {})
+
+    if not title or len(title) < 10:
+        return jsonify({'error': 'Title za krótki'}), 400
+
+    conn = get_db()
+
+    # Aktualizuj scraped
+    existing = conn.execute('SELECT id FROM scraped WHERE UPPER(asin) = ?', (asin,)).fetchone()
+    if existing:
+        conn.execute('''UPDATE scraped SET nazwa=?, bullet_points=?, wszystkie_zdjecia=?,
+                       cena_amazon=?, kategoria=?, product_specs=? WHERE id=?''',
+                    (title, json.dumps(bullet_points) if bullet_points else '',
+                     json.dumps(all_images) if all_images else '',
+                     price, category, json.dumps(product_specs) if product_specs else '',
+                     existing['id']))
+    else:
+        conn.execute('''INSERT INTO scraped (asin, nazwa, bullet_points, wszystkie_zdjecia,
+                       cena_amazon, kategoria, product_specs, status)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, 'nowy')''',
+                    (asin, title, json.dumps(bullet_points) if bullet_points else '',
+                     json.dumps(all_images) if all_images else '',
+                     price, category, json.dumps(product_specs) if product_specs else ''))
+
+    # Aktualizuj produkty.nazwa jeśli obecna jest krótka
+    conn.execute('''UPDATE produkty SET nazwa = ?
+                   WHERE UPPER(asin) = ? AND (nazwa IS NULL OR nazwa = '' OR LENGTH(nazwa) < LENGTH(?))''',
+                (title, asin, title))
+
+    conn.commit()
+    return jsonify({'ok': True, 'asin': asin, 'title': title[:60]})
+
+
 @paletomat_bp.route('/rescrape-all-fallback', methods=['POST'])
 def rescrape_all_fallback():
     """Synchronizuje nazwy produktów z tabeli scraped → produkty (bez live scraping)"""
