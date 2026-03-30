@@ -488,6 +488,53 @@ def _scrape_aliexpress_trending(limit: int = 20) -> list[dict]:
     return products
 
 
+# ─── IMAGE SEARCH ────────────────────────────────────────────────────────────
+
+def _fetch_product_image(product_name: str) -> str:
+    """Pobiera URL miniaturki produktu z DuckDuckGo Images."""
+    try:
+        query = requests.utils.quote(product_name[:60] + ' product white background')
+        url = f'https://duckduckgo.com/?q={query}&iax=images&ia=images'
+
+        session = requests.Session()
+        session.headers.update(HEADERS)
+
+        resp = session.get(url, timeout=8)
+        if resp.status_code != 200:
+            return ''
+
+        # DuckDuckGo zwraca vqd token w HTML
+        vqd_match = re.search(r'vqd=["\']([^"\']+)', resp.text)
+        if not vqd_match:
+            return ''
+
+        vqd = vqd_match.group(1)
+
+        # Fetch images JSON
+        img_resp = session.get(
+            f'https://duckduckgo.com/i.js?l=pl-pl&o=json&q={query}&vqd={vqd}&p=1',
+            timeout=8,
+            headers={**HEADERS, 'Referer': 'https://duckduckgo.com/'}
+        )
+
+        if img_resp.status_code != 200:
+            return ''
+
+        data = img_resp.json()
+        results = data.get('results', [])
+
+        # Weź pierwszą miniaturkę
+        for r in results[:5]:
+            thumb = r.get('thumbnail', '') or r.get('image', '')
+            if thumb and thumb.startswith('http'):
+                return thumb
+
+    except Exception as e:
+        _log(f"[scout] Image fetch error for '{product_name[:30]}': {e}")
+
+    return ''
+
+
 # ─── GEMINI: JSON PARSER ─────────────────────────────────────────────────────
 
 def _parse_gemini_json(text: str) -> list:
@@ -1059,8 +1106,15 @@ def run_scout_scan() -> dict:
             if not cand.get('source_url'):
                 cand['source_url'] = f'https://www.aliexpress.com/w/wholesale-{query_enc.replace("%20", "-")}.html'
 
-            # Zdjęcie — Google Images search URL (do podglądu)
-            cand['image_url'] = f'https://www.google.com/search?tbm=isch&q={query_enc}+product'
+            # Zdjęcie — pobierz miniaturkę z DuckDuckGo
+            if i < 20:  # Pierwsze 20 produktów
+                img = _fetch_product_image(name)
+                if img:
+                    cand['image_url'] = img
+                    _log(f"[scout] Zdjęcie OK: {name[:25]}")
+                else:
+                    cand['image_url'] = ''
+                time.sleep(0.5)
 
             # Przelicz buy price jeśli brak
             if not cand.get('buy_price_pln') and cand.get('alibaba_price_usd'):
