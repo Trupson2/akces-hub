@@ -574,8 +574,8 @@ ODPOWIEDZ TYLKO jako JSON array (bez markdown):
         # Próba 1: czysty JSON
         try:
             items = json.loads(clean)
-        except json.JSONDecodeError:
-            pass
+        except json.JSONDecodeError as e:
+            logger.warning(f"[scout] JSON parse próba 1 fail: {e}")
 
         # Próba 2: wyciągnij [...] z tekstu
         if items is None:
@@ -583,11 +583,20 @@ ODPOWIEDZ TYLKO jako JSON array (bez markdown):
             if match:
                 try:
                     items = json.loads(match.group())
-                except json.JSONDecodeError:
-                    pass
+                except json.JSONDecodeError as e:
+                    logger.warning(f"[scout] JSON parse próba 2 fail: {e}")
+
+        # Próba 3: napraw typowe błędy (trailing comma)
+        if items is None:
+            fixed = re.sub(r',\s*}', '}', clean)
+            fixed = re.sub(r',\s*\]', ']', fixed)
+            try:
+                items = json.loads(fixed)
+            except json.JSONDecodeError as e:
+                logger.warning(f"[scout] JSON parse próba 3 fail: {e}")
 
         if not items or not isinstance(items, list):
-            logger.error(f"[scout] Gemini — nie sparsowano JSON. Tekst: {clean[:500]}")
+            logger.error(f"[scout] Gemini — nie sparsowano JSON. Tekst ({len(clean)} chars): {clean[:800]}")
             return []
 
         logger.info(f"[scout] Gemini sparsowano {len(items)} produktów")
