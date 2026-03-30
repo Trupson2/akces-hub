@@ -2519,8 +2519,15 @@ def api_scraper_update():
                    WHERE UPPER(asin) = ? AND (nazwa IS NULL OR nazwa = '' OR LENGTH(nazwa) < LENGTH(?))''',
                 (title, asin, title))
 
+    # Auto meta_title — generuj SEO tytuł od razu
+    from modules.smart_importer import _optimize_amazon_title
+    meta_title = _optimize_amazon_title(title, 75)
+    if meta_title and len(meta_title) >= 20:
+        conn.execute('UPDATE produkty SET meta_title = ? WHERE UPPER(asin) = ? AND (meta_title IS NULL OR LENGTH(meta_title) < 30)',
+                    (meta_title, asin))
+
     conn.commit()
-    return jsonify({'ok': True, 'asin': asin, 'title': title[:60]})
+    return jsonify({'ok': True, 'asin': asin, 'title': title[:60], 'meta_title': meta_title})
 
 
 @paletomat_bp.route('/rescrape-all-fallback', methods=['POST'])

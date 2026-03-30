@@ -202,5 +202,65 @@ def main():
     print('=' * 60)
 
 
+def daemon():
+    """Tryb daemon — sprawdza co 5 minut czy są nowe ASINy do scrapowania"""
+    import sys
+    print('=' * 60)
+    print('AKCES HUB — Remote Scraper DAEMON')
+    print(f'Serwer: {PI_URL}')
+    print('Sprawdzam co 5 minut...')
+    print('Ctrl+C aby zatrzymać')
+    print('=' * 60)
+
+    while True:
+        try:
+            r = requests.get(
+                f'{PI_URL}/paletomat/api/scraper/asins-needed',
+                headers={'ngrok-skip-browser-warning': '1'},
+                timeout=15
+            )
+            data = r.json()
+            asins = data.get('asins', [])[:MAX_PRODUCTS]
+
+            if asins:
+                print(f'\n[{time.strftime("%H:%M")}] Znaleziono {len(asins)} nowych ASINów — scrapuję...')
+                ok, fail = 0, 0
+                for i, asin in enumerate(asins):
+                    print(f'  [{i+1}/{len(asins)}] {asin}...', end=' ')
+                    result = scrape_amazon(asin)
+                    if result and result.get('title'):
+                        print(f'OK: {result["title"][:45]}')
+                        try:
+                            requests.post(
+                                f'{PI_URL}/paletomat/api/scraper/update',
+                                json={'asin': asin, 'title': result['title'],
+                                      'bullet_points': result.get('bullet_points', []),
+                                      'all_images': result.get('all_images', []),
+                                      'price': result.get('price', 0),
+                                      'category': result.get('category', '')},
+                                headers={'ngrok-skip-browser-warning': '1', 'Content-Type': 'application/json'},
+                                timeout=10
+                            )
+                            ok += 1
+                        except:
+                            fail += 1
+                    else:
+                        print('FAIL')
+                        fail += 1
+                    time.sleep(SLEEP_BETWEEN)
+                print(f'  Gotowe: {ok} OK, {fail} błędów')
+            else:
+                print(f'[{time.strftime("%H:%M")}] Brak nowych ASINów — czekam 5 min...')
+
+        except Exception as e:
+            print(f'[{time.strftime("%H:%M")}] Błąd: {e} — ponawiam za 5 min...')
+
+        time.sleep(300)  # 5 minut
+
+
 if __name__ == '__main__':
-    main()
+    import sys
+    if '--daemon' in sys.argv or '-d' in sys.argv:
+        daemon()
+    else:
+        main()
