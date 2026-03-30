@@ -235,9 +235,10 @@ def produkt_regenerate_meta_title(produkt_id):
 
         scraped_nazwa = (scraped['nazwa'] if scraped and scraped['nazwa'] else '').strip()
         bullet_pts = (scraped['bullet_points'] if scraped and scraped['bullet_points'] else '')
+        prod_nazwa = (produkt['nazwa'] or '').strip()
 
-        # Preferuj pełny Amazon title nad krótką nazwą z bazy
-        amazon_nazwa = scraped_nazwa or produkt['nazwa'] or ''
+        # Użyj dłuższej nazwy — scraped.nazwa może być przetłumaczona/skrócona
+        amazon_nazwa = scraped_nazwa if len(scraped_nazwa) >= len(prod_nazwa) else (prod_nazwa or scraped_nazwa)
 
         # Generuj meta_title (zawsze przez AI — user kliknął Regeneruj)
         from modules.smart_importer import generate_meta_title
@@ -2639,7 +2640,7 @@ def paleta_mass_edit(paleta_id):
             </div>'''
 
         # SKU code
-        sku_code = p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else (p['asin'] or '—')
+        sku_code = p['asin'] if p['asin'] and p['asin'].upper() not in ('N/A','NAN','NONE') else (p['ean'] or '—')
 
         # Stock color
         stock_val = p['ilosc'] or 0
