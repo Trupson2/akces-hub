@@ -664,9 +664,12 @@
       html += '<td>' + statusBadge(it.status) + '</td>';
 
       // Linki
+      var nameEnc = encodeURIComponent(name);
+      var srcUrl = it.source_url || 'https://www.aliexpress.com/w/wholesale-' + nameEnc.replace(/%20/g, '-') + '.html';
+      var aliUrl = it.alibaba_url || 'https://www.alibaba.com/trade/search?SearchText=' + nameEnc;
       html += '<td style="white-space:nowrap">';
-      if (it.source_url) html += '<a href="' + it.source_url + '" target="_blank" rel="noopener" class="ws-link" title="Źródło">SRC</a> ';
-      if (it.alibaba_url) html += '<a href="' + it.alibaba_url + '" target="_blank" rel="noopener" class="ws-link alibaba" title="Alibaba">ALI</a>';
+      html += '<a href="' + srcUrl + '" target="_blank" rel="noopener" class="ws-link" title="AliExpress">AliEx</a> ';
+      html += '<a href="' + aliUrl + '" target="_blank" rel="noopener" class="ws-link alibaba" title="Alibaba">Ali</a>';
       html += '</td>';
 
       html += '</tr>';

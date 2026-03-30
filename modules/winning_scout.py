@@ -182,9 +182,16 @@ def init_scout_tables():
                 ali_rating REAL,
                 allegro_competition INTEGER,
                 growth_7d INTEGER,
+                image_url TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
+        # Migracja: image_url
+        try:
+            conn.execute("ALTER TABLE winning_candidates ADD COLUMN image_url TEXT")
+        except Exception:
+            pass
 
         conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_scout_score
@@ -1039,31 +1046,25 @@ def run_scout_scan() -> dict:
             name_pl = _translate_to_pl(name)
             cand['product_name_pl'] = name_pl
 
-            # Alibaba search — ZAWSZE szukaj linku/dostawcy
+            # Generuj linki search (szybkie, bez scrapowania)
+            query_enc = requests.utils.quote(name[:80])
             if not cand.get('alibaba_url'):
-                ali_data = _search_alibaba(name)
-                if ali_data['url']:
-                    cand['alibaba_url'] = ali_data['url']
-                if ali_data['supplier']:
-                    cand['alibaba_supplier'] = ali_data['supplier']
-                if ali_data['trade_assurance']:
-                    cand['alibaba_trade_assurance'] = ali_data['trade_assurance']
-                # Użyj ceny z Alibaba jeśli nie mamy z Gemini
-                if ali_data['price_usd'] and not cand.get('alibaba_price_usd'):
-                    cand['alibaba_price_usd'] = ali_data['price_usd']
-                if ali_data['moq'] and not cand.get('alibaba_moq'):
-                    cand['alibaba_moq'] = ali_data['moq']
-                time.sleep(1.5)  # Rate limit — Alibaba blokuje agresywne requesty
+                cand['alibaba_url'] = f'https://www.alibaba.com/trade/search?SearchText={query_enc}'
+            if not cand.get('source_url'):
+                cand['source_url'] = f'https://www.aliexpress.com/w/wholesale-{query_enc.replace("%20", "-")}.html'
+
+            # Zdjęcie — Google Images search URL (do podglądu)
+            cand['image_url'] = f'https://www.google.com/search?tbm=isch&q={query_enc}+product'
 
             # Przelicz buy price jeśli brak
             if not cand.get('buy_price_pln') and cand.get('alibaba_price_usd'):
                 cand['buy_price_pln'] = round(cand['alibaba_price_usd'] * 4.2, 2)
 
-            # Allegro competition (pierwsze 15 produktów)
-            if i < 15:
+            # Allegro competition (pierwsze 10 — szybciej)
+            if i < 10:
                 comp = _check_allegro_competition(name_pl)
                 cand['allegro_competition'] = comp
-                time.sleep(0.5)
+                time.sleep(0.3)
             else:
                 cand['allegro_competition'] = -1
 
@@ -1103,8 +1104,8 @@ def run_scout_scan() -> dict:
                         competition_score, sourcing_score, final_score,
                         status, reject_reason, why_new, why_can_sell,
                         risk_flags, paczkomat_fit, ali_rating,
-                        allegro_competition, growth_7d
-                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                        allegro_competition, growth_7d, image_url
+                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """, (
                     batch_id,
                     cand.get('name', '')[:300],
@@ -1135,6 +1136,7 @@ def run_scout_scan() -> dict:
                     cand.get('ali_rating', 0),
                     cand.get('allegro_competition', -1),
                     cand.get('growth_7d', 0),
+                    cand.get('image_url', '')[:500],
                 ))
                 saved_count += 1
             except Exception as e:
