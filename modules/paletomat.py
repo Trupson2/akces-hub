@@ -3880,8 +3880,21 @@ def generator_mass_create_stream():
                     if amazon_data and amazon_data.get('title'):
                         nazwa = amazon_data['title']
                 
+                # === DUPLIKAT CHECK ===
+                _existing_offer = conn.execute(
+                    "SELECT id FROM oferty WHERE allegro_id IS NOT NULL AND allegro_id != '' AND produkt_id IN (SELECT id FROM produkty WHERE asin = ?) AND status = 'aktywna'",
+                    (asin,)
+                ).fetchone()
+                if _existing_offer:
+                    yield f"data: {json.dumps({'type': 'log', 'message': f'⏭ {asin}: Oferta już istnieje — pomijam'})}\n\n"
+                    continue
+
                 # === ILOŚĆ, EAN I ID Z MAGAZYNU ===
-                # Szukaj w tabeli produkty po ASIN lub EAN - bierzemy z największą ilością (per paleta)
+                # SUMA ilości ze wszystkich produktów z tym ASIN
+                _sum_row = conn.execute(
+                    'SELECT SUM(ilosc) as total, MIN(id) as first_id FROM produkty WHERE (asin = ? OR ean = ?) AND ilosc > 0',
+                    (asin, asin)
+                ).fetchone()
                 magazyn_produkt = conn.execute(
                     'SELECT id, ilosc, ean FROM produkty WHERE (asin = ? OR ean = ?) AND ilosc > 0 ORDER BY ilosc DESC LIMIT 1',
                     (asin, asin)
@@ -3889,7 +3902,7 @@ def generator_mass_create_stream():
                 if magazyn_produkt:
                     magazyn_produkt = dict(magazyn_produkt)
                 _produkt_id = magazyn_produkt['id'] if magazyn_produkt else None
-                ilosc = magazyn_produkt['ilosc'] if magazyn_produkt else 1
+                ilosc = int(_sum_row['total']) if _sum_row and _sum_row['total'] else (magazyn_produkt['ilosc'] if magazyn_produkt else 1)
                 ean = magazyn_produkt.get('ean') if magazyn_produkt and magazyn_produkt.get('ean') else None
                 # Fallback EAN ze scraped jeśli brak w produkty
                 if not ean:
