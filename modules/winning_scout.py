@@ -654,7 +654,8 @@ def _search_alibaba(product_name: str) -> dict:
         query = product_name.replace(' ', '+')[:80]
         search_url = f'https://www.alibaba.com/trade/search?SearchText={query}&viewtype=G'
 
-        resp = session.get(search_url, timeout=15, allow_redirects=True)
+        resp = session.get(search_url, timeout=10, allow_redirects=True)
+        logger.info(f"[scout] Alibaba '{product_name[:30]}' → HTTP {resp.status_code}, {len(resp.text)} chars")
         if resp.status_code != 200:
             return result
 
@@ -704,8 +705,10 @@ def _search_alibaba(product_name: str) -> dict:
         if 'trade assurance' in html.lower() or 'tradeassurance' in html.lower():
             result['trade_assurance'] = True
 
+        logger.info(f"[scout] Alibaba result: url={bool(result['url'])}, price=${result['price_usd']}, moq={result['moq']}, supplier={result['supplier'][:20]}")
+
     except Exception as e:
-        logger.debug(f"[scout] Alibaba search error for '{product_name[:30]}': {e}")
+        logger.warning(f"[scout] Alibaba search error for '{product_name[:30]}': {e}")
 
     return result
 
@@ -992,22 +995,30 @@ def run_scout_scan() -> dict:
         logger.info(f"[scout] Po filtrze: {len(kept)} kept, {len(rejected)} rejected")
 
         # ── 4. Wzbogać dane — Alibaba + Allegro ─────────────────────────
+        logger.info(f"[scout] >>> Faza 4: Wzbogacanie danych ({len(kept)} produktów)...")
         for i, cand in enumerate(kept):
             name = cand['name']
+            logger.info(f"[scout] Produkt {i+1}/{len(kept)}: {name[:40]}")
 
             # Tłumacz na polski
             name_pl = _translate_to_pl(name)
             cand['product_name_pl'] = name_pl
 
-            # Alibaba search (jeśli brak danych z Gemini)
-            if not cand.get('alibaba_price_usd'):
+            # Alibaba search — ZAWSZE szukaj linku/dostawcy
+            if not cand.get('alibaba_url'):
                 ali_data = _search_alibaba(name)
-                cand['alibaba_url'] = ali_data['url']
-                cand['alibaba_moq'] = ali_data['moq'] or cand.get('alibaba_moq', 0)
-                cand['alibaba_price_usd'] = ali_data['price_usd'] or cand.get('alibaba_price_usd', 0)
-                cand['alibaba_supplier'] = ali_data['supplier']
-                cand['alibaba_trade_assurance'] = ali_data['trade_assurance']
-                time.sleep(1)  # Rate limit
+                if ali_data['url']:
+                    cand['alibaba_url'] = ali_data['url']
+                if ali_data['supplier']:
+                    cand['alibaba_supplier'] = ali_data['supplier']
+                if ali_data['trade_assurance']:
+                    cand['alibaba_trade_assurance'] = ali_data['trade_assurance']
+                # Użyj ceny z Alibaba jeśli nie mamy z Gemini
+                if ali_data['price_usd'] and not cand.get('alibaba_price_usd'):
+                    cand['alibaba_price_usd'] = ali_data['price_usd']
+                if ali_data['moq'] and not cand.get('alibaba_moq'):
+                    cand['alibaba_moq'] = ali_data['moq']
+                time.sleep(1.5)  # Rate limit — Alibaba blokuje agresywne requesty
 
             # Przelicz buy price jeśli brak
             if not cand.get('buy_price_pln') and cand.get('alibaba_price_usd'):
