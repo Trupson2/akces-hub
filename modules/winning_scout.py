@@ -531,45 +531,60 @@ ODPOWIEDZ TYLKO jako JSON array (bez markdown):
 ]"""
 
         from modules.utils import get_gemini_api_url
+        api_url = get_gemini_api_url(api_key)
+        logger.info(f"[scout] Gemini request → {api_url[:80]}...")
+
         resp = requests.post(
-            get_gemini_api_url(api_key),
+            api_url,
             json={
                 'contents': [{'parts': [{'text': prompt}]}],
                 'generationConfig': {
                     'maxOutputTokens': 4000,
                     'temperature': 0.9,
-                    'responseMimeType': 'application/json',
                 }
             },
-            timeout=60,
+            timeout=90,
         )
 
+        logger.info(f"[scout] Gemini response: HTTP {resp.status_code}")
+
         if resp.status_code != 200:
-            logger.warning(f"[scout] Gemini HTTP {resp.status_code}: {resp.text[:200]}")
+            logger.error(f"[scout] Gemini FAIL HTTP {resp.status_code}: {resp.text[:500]}")
             return []
 
         data = resp.json()
         text = ''
         try:
             text = data['candidates'][0]['content']['parts'][0]['text']
-        except (KeyError, IndexError):
-            logger.warning("[scout] Gemini — brak odpowiedzi")
+            logger.info(f"[scout] Gemini text length: {len(text)} chars")
+        except (KeyError, IndexError) as e:
+            logger.error(f"[scout] Gemini — brak odpowiedzi: {e}, keys={list(data.keys())}")
+            if 'error' in data:
+                logger.error(f"[scout] Gemini error: {data['error']}")
             return []
 
-        # Parsuj JSON
+        # Parsuj JSON — wyciągnij array z tekstu (Gemini może owinąć w markdown)
+        items = None
+        # Próba 1: czysty JSON
         try:
             items = json.loads(text)
         except json.JSONDecodeError:
-            # Spróbuj wyciągnąć JSON z tekstu
-            match = re.search(r'\[.*\]', text, re.DOTALL)
-            if match:
-                items = json.loads(match.group())
-            else:
-                logger.warning("[scout] Gemini — nie udało się sparsować JSON")
-                return []
+            pass
 
-        if not isinstance(items, list):
+        # Próba 2: wyciągnij [...] z markdown/tekstu
+        if items is None:
+            match = re.search(r'\[[\s\S]*\]', text)
+            if match:
+                try:
+                    items = json.loads(match.group())
+                except json.JSONDecodeError:
+                    pass
+
+        if not items or not isinstance(items, list):
+            logger.error(f"[scout] Gemini — nie sparsowano JSON. Początek tekstu: {text[:300]}")
             return []
+
+        logger.info(f"[scout] Gemini sparsowano {len(items)} produktów")
 
         for item in items:
             if not isinstance(item, dict) or not item.get('name'):
@@ -911,10 +926,13 @@ def run_scout_scan() -> dict:
         all_candidates = []
 
         # 2a. Gemini trend discovery (najbardziej niezawodne)
+        logger.info("[scout] >>> Faza 1: Gemini AI discovery...")
         gemini_products = _gemini_discover_trends(existing_names)
+        logger.info(f"[scout] Gemini zwrócił {len(gemini_products)} produktów")
         all_candidates.extend(gemini_products)
 
         # 2b. Amazon bestsellers (próbuj 2-3 kategorie)
+        logger.info("[scout] >>> Faza 2: Amazon bestsellers...")
         for cat_name, cat_url in list(AMAZON_CATEGORIES.items())[:3]:
             try:
                 amazon_products = _scrape_amazon_bestsellers(cat_name, cat_url, limit=10)
