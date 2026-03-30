@@ -3637,8 +3637,8 @@ def generator_mass_create_from_paleta_stream():
                     except Exception as e:
                         pass
                 
-                # Użyj meta_title jeśli istnieje, w przeciwnym razie optymalizuj nazwę
-                if p.get('meta_title'):
+                # Użyj meta_title jeśli istnieje i jest sensowny, w przeciwnym razie pełna nazwa
+                if p.get('meta_title') and len(p['meta_title']) >= 30:
                     tytul_seo = p['meta_title'][:75]
                 else:
                     tytul_seo = optimize_title_seo(nazwa, 75)
