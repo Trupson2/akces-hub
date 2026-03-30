@@ -81,15 +81,56 @@ def detect_stan_from_name(nazwa: str) -> str:
 # Gemini AI - klucz pobierany z DB config (get_config('gemini_api_key'))
 
 
+def _optimize_amazon_title(title: str, max_len: int = 75) -> str:
+    """Czyści tytuł z Amazon na SEO Allegro — bez AI, czysto programatycznie."""
+    if not title:
+        return title
+
+    # Ucięcie po pierwszym przecinku (zbędne opisy typu "6 regulowanych wysokości...")
+    if ',' in title:
+        title = title.split(',')[0].strip()
+
+    # Kompresja jednostek: "1800 W" → "1800W", "40 cm" → "40cm"
+    title = re.sub(r'(\d+)\s+(W|V|A|cm|mm|m|kg|g|l|L)\b', r'\1\2', title)
+
+    # Usuń podwójne spacje
+    title = re.sub(r'\s+', ' ', title).strip()
+
+    # Title Case — ale zachowaj oryginalne wielkie litery w markach/modelach
+    words = title.split()
+    result = []
+    for w in words:
+        if w.isupper() or any(c.isdigit() for c in w) or len(w) <= 2:
+            result.append(w)  # Zachowaj oryginał (model/skrót)
+        else:
+            result.append(w.capitalize())
+    title = ' '.join(result)
+
+    # Truncate na granicy słowa
+    if len(title) > max_len:
+        title = title[:max_len].rsplit(' ', 1)[0]
+
+    return title
+
+
 def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin: str = '', retry_count: int = 3, bullet_points: str = '') -> str:
     """
-    Generuje META TITLE używając Gemini AI (REST API)
+    Generuje META TITLE.
+    Jeśli nazwa z Amazon jest pełna (>40 znaków) — formatuje programatycznie.
+    W przeciwnym razie — próbuje Gemini AI.
 
     Returns:
         META TITLE string (zawsze coś zwraca - fallback na produkt_nazwa)
     """
     import time
     import requests as _req
+
+    # SZYBKA ŚCIEŻKA: pełny tytuł Amazon → formatuj programatycznie (bez AI)
+    if len(produkt_nazwa.strip()) >= 40:
+        optimized = _optimize_amazon_title(produkt_nazwa)
+        if len(optimized) >= 30:
+            print(f"[SMAR] [FAST] Tytuł z Amazon wystarczający — formatuję bez AI: {optimized}")
+            return optimized
 
     short_name = produkt_nazwa[:50] + '...' if len(produkt_nazwa) > 50 else produkt_nazwa
 
