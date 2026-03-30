@@ -64,11 +64,7 @@ def winning_list():
     try:
         from modules.winning_scout import get_scout_results, get_scout_stats
 
-        # Jeśli nie podano batch_id, użyj ostatniego
-        if not batch_id:
-            stats = get_scout_stats()
-            batch_id = stats.get('batch_id', '')
-
+        # batch_id pusty = pokaż WSZYSTKIE skany (nie kasujemy starych)
         items, total = get_scout_results(
             batch_id=batch_id or None,
             status_filter=status_filter or None,
