@@ -237,10 +237,34 @@ def produkt_regenerate_meta_title(produkt_id):
         bullet_pts = (scraped['bullet_points'] if scraped and scraped['bullet_points'] else '')
         prod_nazwa = (produkt['nazwa'] or '').strip()
 
-        # Użyj dłuższej nazwy — scraped.nazwa może być przetłumaczona/skrócona
+        # Jeśli brak pełnej nazwy w scraped → spróbuj scrapować Amazon na żywo
+        if asin and len(scraped_nazwa) < 25:
+            try:
+                from modules.utils import scrape_amazon_product
+                amazon_data = scrape_amazon_product(asin)
+                if amazon_data and amazon_data.get('title') and len(amazon_data['title']) > 20:
+                    scraped_nazwa = amazon_data['title']
+                    _bp = amazon_data.get('bullet_points', [])
+                    if _bp:
+                        bullet_pts = json.dumps(_bp) if isinstance(_bp, list) else str(_bp)
+                    # Zapisz do scraped i produkty
+                    if scraped:
+                        conn.execute('UPDATE scraped SET nazwa=?, bullet_points=? WHERE asin=?',
+                                    (scraped_nazwa, bullet_pts, asin))
+                    else:
+                        conn.execute('INSERT OR IGNORE INTO scraped (asin, nazwa, bullet_points, status) VALUES (?,?,?,?)',
+                                    (asin, scraped_nazwa, bullet_pts, 'nowy'))
+                    conn.execute('UPDATE produkty SET nazwa=? WHERE id=? AND LENGTH(COALESCE(nazwa,"")) < LENGTH(?)',
+                                (scraped_nazwa, produkt_id, scraped_nazwa))
+                    conn.commit()
+                    print(f"[REGEN] Live scrape OK: {scraped_nazwa[:50]}")
+            except Exception as _e:
+                print(f"[REGEN] Live scrape failed: {_e}")
+
+        # Użyj dłuższej nazwy
         amazon_nazwa = scraped_nazwa if len(scraped_nazwa) >= len(prod_nazwa) else (prod_nazwa or scraped_nazwa)
 
-        # Generuj meta_title (zawsze przez AI — user kliknął Regeneruj)
+        # Generuj meta_title przez AI
         from modules.smart_importer import generate_meta_title
         meta_title = generate_meta_title(
             produkt_nazwa=amazon_nazwa,
