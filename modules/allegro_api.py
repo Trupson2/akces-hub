@@ -3491,9 +3491,9 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
         adres = ', '.join(adres_parts) if adres_parts else ''
 
         # Wykryj metodę dostawy (carrier)
-        _method_name = (delivery.get('method', {}).get('name', '') or '')
+        _method_name = ((delivery.get('method') or {}).get('name', '') or '')
         _ml = _method_name.lower()
-        _pid = (pickup.get('id', '') or '').upper()
+        _pid = ((pickup.get('id') if pickup else None) or '').upper()
         if 'orlen' in _ml or _pid.startswith('ORL'):
             _metoda_dostawy = 'Orlen'
         elif any(x in _ml for x in ['inpost', 'paczkomat', 'paczka w ruchu']) or (_pid and not _pid.startswith('ORL')):
