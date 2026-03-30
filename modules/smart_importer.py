@@ -95,55 +95,23 @@ def _is_polish(text: str) -> bool:
 
 
 def _translate_to_polish(title: str) -> str:
-    """Tłumaczy tytuł na polski przez Gemini"""
-    import time as _time
+    """Tłumaczy tytuł na polski przez Google Translate (darmowy, niezawodny)"""
     try:
-        import requests as _req
-        from .database import get_config
-        from .utils import get_gemini_api_url
-        _key = get_config('gemini_api_key', '')
-        if not _key:
-            return title
-        prompt = f"""Przetłumacz CAŁY tytuł produktu na polski. KAŻDE angielskie/niemieckie słowo musi być przetłumaczone.
-Zachowaj BEZ ZMIAN: nazwy marek (np. Sinoparcel, Ajiteogy, FanPaYY), numery modeli, jednostki (W, V, cm, mm).
-
-Angielski tytuł: {title}
-
-PRZYKŁADY:
-"Ergonomic Seat Cushion For Office Chair" → "Ergonomiczna Poduszka Do Siedzenia Na Krzesło Biurowe"
-"Cup Holder in The Car Center Console" → "Uchwyt Na Kubek Do Konsoli Środkowej Samochodu"
-"Cat Fountain 2.5L Motion Sensor Quiet Pump" → "Fontanna Dla Kota 2.5L Czujnik Ruchu Cicha Pompa"
-"Memory Foam Neck Pillow Anti-snore" → "Poduszka Ortopedyczna Z Pianki Memory Na Szyję Przeciw Chrapaniu"
-
-Odpowiedz TYLKO polskim tytułem (bez cudzysłowów):"""
-
-        for _attempt in range(3):
-            _resp = _req.post(get_gemini_api_url(_key), json={
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"temperature": 0.2, "maxOutputTokens": 150}
-            }, timeout=20)
-            if _resp.status_code == 200:
-                _data = _resp.json()
-                translated = _data['candidates'][0]['content']['parts'][0]['text'].strip().strip('"').strip("'")
-                _min_len = max(15, len(title) // 2)
-                if (translated and len(translated) >= _min_len
-                    and not translated.startswith('Przetłumacz')
-                    and translated.lower() != title.lower()):
-                    print(f"[TRANS] OK: {title[:35]} → {translated[:35]}")
-                    return translated
-                else:
-                    print(f"[TRANS] Odrzucono (za krótki/identyczny): '{translated[:30]}' z '{title[:30]}'")
-                    _time.sleep(2)
-                    continue
-            elif _resp.status_code == 429:
-                print(f"[TRANS] Rate limit — czekam 3s...")
-                _time.sleep(3)
-                continue
-            else:
-                print(f"[TRANS] API error: {_resp.status_code}")
-                break
+        import urllib.request
+        import urllib.parse
+        _encoded = urllib.parse.quote(title)
+        _url = f'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=pl&dt=t&q={_encoded}'
+        _req = urllib.request.Request(_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(_req, timeout=10) as _resp:
+            _data = json.loads(_resp.read().decode('utf-8'))
+            # Google Translate zwraca [[["tłumaczenie","oryginał",...],...],...]
+            translated = ''.join(part[0] for part in _data[0] if part[0])
+            translated = translated.strip()
+            if translated and len(translated) >= 10 and translated.lower() != title.lower():
+                print(f"[TRANS] OK: {title[:35]} → {translated[:35]}")
+                return translated
     except Exception as e:
-        print(f"[TRANS] Błąd tłumaczenia: {e}")
+        print(f"[TRANS] Google Translate błąd: {e}")
     return title
 
 
