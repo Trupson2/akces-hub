@@ -118,30 +118,34 @@ def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin:
                 else:
                     _asin_section = f'\nASIN: {produkt_asin}'
 
-            prompt = f"""Jesteś ekspertem SEO na Allegro. Stwórz polski tytuł oferty dla tego produktu.
+            prompt = f"""Jesteś ekspertem SEO na Allegro. Stwórz PEŁNY polski tytuł oferty.
 
-NAZWA PRODUKTU: {produkt_nazwa}
+DANE PRODUKTU:
+Nazwa: {produkt_nazwa}
 {f'EAN: {produkt_ean}' if produkt_ean else ''}
 {_asin_section}
 {_bp_section}
 
-WAŻNE:
-- Jeśli masz ASIN — użyj go do identyfikacji produktu na Amazon i podaj pełną specyfikację.
-- ZAWSZE zachowaj nazwę marki z NAZWY PRODUKTU (np. "LawnMaster", "Bosch", "Samsung") — NIGDY nie usuwaj marki z tytułu.
-- Uzupełnij tytuł parametrami technicznymi które znasz dla tej marki/modelu.
+ABSOLUTNE ZAKAZY:
+- NIGDY nie zwracaj ogólnych nazw jak "Kosiarka", "Odkurzacz", "Kamera" — to za mało!
+- NIGDY nie usuwaj marki (LawnMaster, Bosch, Samsung itp.)
+- NIGDY nie zwracaj tytułu krótszego niż 50 znaków
 
-ZASADY TYTUŁU:
-1. Tytuł MUSI być po polsku
-2. Struktura: [Rodzaj produktu] [Marka] [Model] [Najważniejsze cechy techniczne]
-3. Rodzaj produktu ZAWSZE na początku
-4. MIN 50 znaków, MAX 75 znaków — ZAWSZE wypełnij jak najbliżej 75 znaków
-5. BEZ stanu (Nowy/Używany), BEZ ceny, BEZ przecinków
-6. Każde słowo z wielkiej litery
+WYMAGANA STRUKTURA: [Marka] [Model] [Kategoria produktu] [Kluczowe parametry] [Zastosowanie]
 
-PRZYKŁADY:
-"LawnMaster ME" → "Kosiarka Elektryczna LawnMaster ME 1800W 40cm 6 Wysokości Trawy"
-"Samsung Galaxy Watch 4" → "Smartwatch Samsung Galaxy Watch 4 44mm GPS NFC Pulsometr"
-"Bosch PSB 650" → "Wiertarko-wkrętarka Bosch PSB 650 RE 650W Udar Regulacja"
+ZASADY:
+1. ZAWSZE po polsku
+2. ZAWSZE zachowaj markę i numer modelu z nazwy produktu
+3. Uzupełnij parametrami technicznymi (moc, wymiary, napięcie, pojemność)
+4. MINIMUM 55 znaków, MAKSIMUM 75 znaków — CEL: 65-75 znaków
+5. Jeśli masz ASIN — znasz ten produkt z Amazon, podaj jego pełną specyfikację
+6. BEZ stanu (Nowy/Używany), BEZ ceny, Title Case
+
+PRZYKŁADY POPRAWNYCH TYTUŁÓW (55-75 znaków):
+"LawnMaster ME" → "LawnMaster MEB1840M Kosiarka Elektryczna 1800W 40cm Do Trawy"
+"Kosiarka Ak" → "LawnMaster CLMF4841E Kosiarka Akumulatorowa 48V 41cm Zestaw"
+"Piła do gałęzi" → "Teleskopowa Piła Łańcuchowa Do Gałęzi Konarów 6m Elektryczna"
+"Kamera cofania" → "Kamera Cofania Samochodowa HD 170 Stopni IP68 Wodoodporna 12V"
 
 Odpowiedz TYLKO tytułem (bez cudzysłowów, bez komentarzy):"""
 
@@ -152,7 +156,7 @@ Odpowiedz TYLKO tytułem (bez cudzysłowów, bez komentarzy):"""
             _api_url = get_gemini_api_url(_gemini_key)
             _resp = _req.post(_api_url, json={
                 "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"temperature": 0.3, "maxOutputTokens": 100}
+                "generationConfig": {"temperature": 0.6, "maxOutputTokens": 150}
             }, timeout=30)
 
             meta_title = None
