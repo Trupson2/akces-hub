@@ -38,6 +38,7 @@ BLOCKED_FAMILIES = [
     'gadżety rowerowe', 'lampki rowerowe',
     'części samochodowe drobne', 'organizery samochodowe',
     'powerbanki', 'portable chargers', 'power bank',
+    'karimata', 'sleeping pad', 'inflatable mat', 'camping mat',
     'azdome', 'obciążniki', 'kamera samochodowa', 'projektor kosmos',
     'ankle weights', 'galaxy projector', 'car mount',
     'wireless charger', 'fitness tracker',
