@@ -473,7 +473,7 @@ a {{ color:#38bdf8; }}
             <input type="text" name="client_id" value="{cfg['client_id']}" placeholder="Twój OLX Client ID">
 
             <label>Client Secret</label>
-            <input type="password" name="client_secret" value="{cfg['client_secret']}" placeholder="Twój OLX Client Secret">
+            <input type="password" name="client_secret" value="" placeholder="{'*' * 4 + cfg['client_secret'][-4:] if len(cfg['client_secret']) > 4 else 'Twój OLX Client Secret'}">
 
             <label>Redirect URI</label>
             <input type="text" name="redirect_uri" value="{cfg['redirect_uri']}" placeholder="http://localhost:5000/olx/callback">

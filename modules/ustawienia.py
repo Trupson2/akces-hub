@@ -1001,8 +1001,19 @@ def upload_db():
 
 @ustawienia_bp.route('/ustawienia/download-db')
 def download_db():
-    """Pobierz aktualna baze danych"""
-    from flask import send_file
+    """Pobierz aktualna baze danych — TYLKO admin"""
+    from flask import send_file, session, abort
+    if not session.get('user_id'):
+        abort(401, 'Wymagane logowanie')
+    try:
+        from modules.database import get_db
+        user = get_db().execute(
+            'SELECT rola FROM users WHERE id = ?', (session['user_id'],)
+        ).fetchone()
+        if not user or user['rola'] != 'admin':
+            abort(403, 'Tylko administrator może pobrać bazę danych')
+    except Exception:
+        abort(403, 'Brak uprawnień')
     app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     db_path = os.path.join(app_dir, 'akces_hub.db')
     if not os.path.exists(db_path):
