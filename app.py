@@ -6172,6 +6172,14 @@ if __name__ == '__main__':
     except Exception:
         pass
 
+    # Start Winning Scout scheduler (co 24h)
+    try:
+        from modules.winning_scout import start_scout_scheduler
+        start_scout_scheduler()
+        log("Winning Scout scheduler uruchomiony (co 24h)")
+    except Exception as e:
+        log_warning(f"Winning Scout scheduler error: {e}")
+
     # Start license heartbeat thread (co 24h)
     try:
         from modules.license import start_heartbeat_thread
