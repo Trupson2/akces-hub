@@ -120,27 +120,28 @@ def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin:
 
             prompt = f"""Jesteś ekspertem SEO na Allegro. Stwórz polski tytuł oferty dla tego produktu.
 
-NAZWA Z MANIFESTU (może być skrócona): {produkt_nazwa}
+NAZWA PRODUKTU: {produkt_nazwa}
 {f'EAN: {produkt_ean}' if produkt_ean else ''}
 {_asin_section}
 {_bp_section}
 
-WAŻNE: Jeśli masz ASIN — użyj go do identyfikacji produktu. ASIN jednoznacznie wskazuje konkretny produkt na Amazon — znasz jego pełną nazwę, model, markę i specyfikację.
+WAŻNE:
+- Jeśli masz ASIN — użyj go do identyfikacji produktu na Amazon i podaj pełną specyfikację.
+- ZAWSZE zachowaj nazwę marki z NAZWY PRODUKTU (np. "LawnMaster", "Bosch", "Samsung") — NIGDY nie usuwaj marki z tytułu.
+- Uzupełnij tytuł parametrami technicznymi które znasz dla tej marki/modelu.
 
 ZASADY TYTUŁU:
 1. Tytuł MUSI być po polsku
 2. Struktura: [Rodzaj produktu] [Marka] [Model] [Najważniejsze cechy techniczne]
 3. Rodzaj produktu ZAWSZE na początku
-4. Używaj słów kluczowych które ludzie wyszukują na Allegro
-5. MIN 50 znaków, MAX 75 znaków — ZAWSZE wypełnij jak najbliżej 75 znaków
-6. BEZ stanu (Nowy/Używany), BEZ ceny, BEZ przecinków
-7. Każde słowo z wielkiej litery
+4. MIN 50 znaków, MAX 75 znaków — ZAWSZE wypełnij jak najbliżej 75 znaków
+5. BEZ stanu (Nowy/Używany), BEZ ceny, BEZ przecinków
+6. Każde słowo z wielkiej litery
 
-PRZYKŁADY (zauważ że są długie, bliskie 75 znaków):
-"B08BHXG144" → "Robot Koszący iRobot Roomba i3 WiFi Automatyczny Odkurzacz"
+PRZYKŁADY:
+"LawnMaster ME" → "Kosiarka Elektryczna LawnMaster ME 1800W 40cm 6 Wysokości Trawy"
 "Samsung Galaxy Watch 4" → "Smartwatch Samsung Galaxy Watch 4 44mm GPS NFC Pulsometr"
-"Anker USB-C Fast Charger 65W" → "Ładowarka USB-C 65W Szybka GaN Wieloportowa Anker PowerPort"
-"Kosiarka elektryczna" → "Kosiarka Elektryczna Akumulatorowa Do Trawy Mulczująca 36V"
+"Bosch PSB 650" → "Wiertarko-wkrętarka Bosch PSB 650 RE 650W Udar Regulacja"
 
 Odpowiedz TYLKO tytułem (bez cudzysłowów, bez komentarzy):"""
 
