@@ -104,10 +104,16 @@ def send_telegram(message, parse_mode='HTML', silent=False):
         return False
     
     try:
+        # Wyczyść niedozwolone tagi HTML (Telegram akceptuje tylko: b, i, u, s, a, code, pre)
+        import re
+        allowed_tags = r'</?(?:b|i|u|s|a|code|pre|strong|em)(?:\s[^>]*)?>'
+        # Zamień niedozwolone tagi na puste stringi
+        clean_message = re.sub(r'<(?!/?\s*(?:b|i|u|s|a|code|pre|strong|em)\b)[^>]+>', '', message)
+
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         data = {
             'chat_id': chat_id,
-            'text': message,
+            'text': clean_message,
             'parse_mode': parse_mode,
             'disable_notification': silent  # False = dźwięk włączony!
         }
