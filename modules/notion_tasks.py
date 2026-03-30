@@ -28,14 +28,14 @@ def _get_notion_config():
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
-            "SELECT key, value FROM config WHERE key IN ('notion_token','notion_database_id')"
+            "SELECT klucz, wartosc FROM config WHERE klucz IN ('notion_token','notion_database_id')"
         ).fetchall()
         conn.close()
         for r in rows:
-            if r['key'] == 'notion_token' and r['value']:
-                token = r['value']
-            if r['key'] == 'notion_database_id' and r['value']:
-                db_id = r['value']
+            if r['klucz'] == 'notion_token' and r['wartosc']:
+                token = r['wartosc']
+            if r['klucz'] == 'notion_database_id' and r['wartosc']:
+                db_id = r['wartosc']
     except Exception:
         pass
 
