@@ -39,6 +39,7 @@ if _missing:
 
 import threading
 import time
+from html import escape as _html_escape  # Security: XSS prevention
 from datetime import datetime, timedelta
 import json
 
@@ -293,28 +294,41 @@ def csrf_protect_forms():
     if not session.get('user'):
         return
     ct = request.content_type or ''
+    # Wyłączenia CSRF: wewnętrzne API, webhooks, Allegro callbacks
+    _csrf_exempt = (
+        '/api/', '/allegro/callback', '/allegro/webhook',
+        '/telegram/webhook', '/paletomat/api/', '/magazyn/api/',
+        '/analityka/winning/',  # Scout AJAX
+    )
+    if any(request.path.startswith(p) for p in _csrf_exempt):
+        return
+
     if 'application/json' in ct:
-        # Fetch/AJAX — sprawdź X-CSRFToken header
+        # Fetch/AJAX — sprawdź X-CSRFToken header (Referer check jako fallback)
         token = request.headers.get('X-CSRFToken') or request.headers.get('X-CSRF-Token')
-        if not token:
-            return  # JSON bez nagłówka — przepuść (mniej podatne, Content-Type blokuje cross-origin)
-        try:
-            from flask_wtf.csrf import validate_csrf
-            validate_csrf(token)
-        except Exception:
+        referer = request.headers.get('Referer', '')
+        host = request.host_url
+        # Przepuść jeśli referer z naszej domeny (same-origin) LUB ma token
+        if not token and not referer.startswith(host):
             from flask import abort
-            abort(400, 'CSRF token nieprawidłowy. Odśwież stronę.')
+            abort(403, 'CSRF: brak tokena i nieprawidłowy referer')
+        if token:
+            try:
+                from flask_wtf.csrf import validate_csrf
+                validate_csrf(token)
+            except Exception:
+                from flask import abort
+                abort(400, 'CSRF token nieprawidłowy. Odśwież stronę.')
     else:
         # Formularz HTML — wymagaj csrf_token
-        if not request.form.get('csrf_token'):
-            return  # Stare legacy endpointy bez tokena — przepuść, ale loguj
-        try:
-            csrf.protect()
-        except Exception:
-            from flask_wtf.csrf import generate_csrf
-            generate_csrf()
-            from flask import abort
-            abort(400, 'CSRF token wygasł. Odśwież stronę i spróbuj ponownie.')
+        if request.form.get('csrf_token'):
+            try:
+                csrf.protect()
+            except Exception:
+                from flask_wtf.csrf import generate_csrf
+                generate_csrf()
+                from flask import abort
+                abort(400, 'CSRF token wygasł. Odśwież stronę.')
 
 # Sprawdzanie licencji
 @app.before_request
@@ -4805,7 +4819,7 @@ def sync_miesiac():
             <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
                 <div style="text-align:center">
                     <div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=color:#ef4444>cancel</span></div>
-                    <div style="font-size:1.2rem;color:#ef4444">Błąd: {error}</div>
+                    <div style="font-size:1.2rem;color:#ef4444">Błąd: {_html_escape(str(error))}</div>
                 </div>
             </body></html>
             '''
@@ -4827,7 +4841,7 @@ def sync_miesiac():
         <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
                 <div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=color:#ef4444>cancel</span></div>
-                <div style="font-size:1.2rem;color:#ef4444">Błąd: {str(e)}</div>
+                <div style="font-size:1.2rem;color:#ef4444">Błąd: {_html_escape(str(e))}</div>
             </div>
         </body></html>
         '''
@@ -4852,7 +4866,7 @@ def sync_custom():
             return '<html><head><meta http-equiv="refresh" content="3;url=/statystyki"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined>warning</span></div><div style="color:#f59e0b">Token Allegro wygasł!</div></div></body></html>'
         synced, error = sync_orders(from_date_str=from_date)
         if error:
-            return f'<html><head><meta http-equiv="refresh" content="3;url=/sprzedaze"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=color:#ef4444>cancel</span></div><div style="color:#ef4444">Błąd: {error}</div></div></body></html>'
+            return f'<html><head><meta http-equiv="refresh" content="3;url=/sprzedaze"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=color:#ef4444>cancel</span></div><div style="color:#ef4444">Błąd: {_html_escape(str(error))}</div></div></body></html>'
         return f'''
         <html><head><meta http-equiv="refresh" content="2;url=/sprzedaze?miesiac={from_date[:7]}">
         <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet">
@@ -4866,7 +4880,7 @@ def sync_custom():
         </body></html>
         '''
     except Exception as e:
-        return f'<html><head><meta http-equiv="refresh" content="3;url=/statystyki"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=color:#ef4444>cancel</span></div><div style="color:#ef4444">Błąd: {str(e)}</div></div></body></html>'
+        return f'<html><head><meta http-equiv="refresh" content="3;url=/statystyki"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:3rem;margin-bottom:20px"><span class=material-symbols-outlined style=color:#ef4444>cancel</span></div><div style="color:#ef4444">Błąd: {_html_escape(str(e))}</div></div></body></html>'
 
 # ============================================================
 # WYSYŁKI (Widok dla dziadka)
@@ -5190,7 +5204,7 @@ def api_show_key():
     global AKCES_API_KEY
     if AKCES_API_KEY is None:
         AKCES_API_KEY = get_api_key()
-    return jsonify({'api_key': AKCES_API_KEY, 'hint': 'Uzyj naglowka X-API-Key lub ?api_key= w zapytaniu'})
+    return jsonify({'api_key': AKCES_API_KEY, 'hint': 'Uzyj TYLKO naglowka X-API-Key (NIE w URL)'})
 
 @app.route('/api/trendy')
 @require_api_key
