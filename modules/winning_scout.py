@@ -82,6 +82,7 @@ HEADERS = {
 _scheduler_thread = None
 _scheduler_running = False
 _scan_lock = threading.Lock()
+_scan_started_at = 0  # timestamp kiedy skan wystartował (do auto-unlock)
 
 
 def start_scout_scheduler():
@@ -367,7 +368,7 @@ def _scrape_amazon_bestsellers(category: str, url: str, limit: int = 15) -> list
         session = requests.Session()
         session.headers.update(HEADERS)
 
-        resp = session.get(url, timeout=15)
+        resp = session.get(url, timeout=10)
         if resp.status_code != 200:
             logger.warning(f"[scout] Amazon {category}: HTTP {resp.status_code}")
             return []
@@ -840,13 +841,37 @@ def _score_candidate(candidate: dict) -> dict:
 
 # ─── GŁÓWNY ORKIESTRATOR ─────────────────────────────────────────────────────
 
+def force_unlock():
+    """Wymusza zwolnienie locka (np. po crashu)."""
+    global _scan_started_at
+    try:
+        _scan_lock.release()
+    except RuntimeError:
+        pass
+    _scan_started_at = 0
+    logger.info("[scout] Lock wymuszony reset")
+
+
 def run_scout_scan() -> dict:
     """
     Uruchamia pełny skan Winning Scout.
     Returns: dict z wynikami
     """
+    global _scan_started_at
+
+    # Auto-unlock jeśli skan trwa >5 minut (utknął)
+    if _scan_started_at > 0 and (time.time() - _scan_started_at) > 300:
+        logger.warning("[scout] Skan utknął >5min — wymuszam unlock")
+        force_unlock()
+
     if not _scan_lock.acquire(blocking=False):
-        return {'error': 'Skan już trwa. Poczekaj na zakończenie.', 'running': True}
+        elapsed = int(time.time() - _scan_started_at) if _scan_started_at > 0 else 0
+        return {
+            'error': f'Skan już trwa ({elapsed}s). Poczekaj na zakończenie.',
+            'running': True,
+        }
+
+    _scan_started_at = time.time()
 
     try:
         init_scout_tables()
@@ -1104,6 +1129,7 @@ def run_scout_scan() -> dict:
         return {'error': f'Błąd skanu: {str(e)}', 'products_found': 0}
 
     finally:
+        _scan_started_at = 0
         _scan_lock.release()
 
 
