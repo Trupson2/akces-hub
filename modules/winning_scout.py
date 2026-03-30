@@ -487,12 +487,66 @@ def _scrape_aliexpress_trending(limit: int = 20) -> list[dict]:
     return products
 
 
+# ─── GEMINI: JSON PARSER ─────────────────────────────────────────────────────
+
+def _parse_gemini_json(text: str) -> list:
+    """Parsuje JSON z odpowiedzi Gemini — obsługuje markdown, ucięcia, błędy."""
+    clean = text.strip()
+    clean = re.sub(r'^```(?:json)?\s*', '', clean)
+    clean = re.sub(r'\s*```\s*$', '', clean)
+    clean = clean.strip()
+
+    # Agresywny cleanup
+    clean = clean.encode('ascii', errors='ignore').decode('ascii')
+    clean = re.sub(r'[\x00-\x1f\x7f]', ' ', clean)
+    clean = re.sub(r',\s*([}\]])', r'\1', clean)
+    clean = re.sub(r'//[^\n]*', '', clean)
+    clean = re.sub(r'\s+', ' ', clean).strip()
+
+    # Napraw ucięty JSON
+    if clean.startswith('[') and not clean.endswith(']'):
+        last_brace = clean.rfind('}')
+        if last_brace > 0:
+            clean = clean[:last_brace + 1] + ']'
+
+    # Próba 1: czysty JSON
+    try:
+        return json.loads(clean, strict=False)
+    except json.JSONDecodeError:
+        pass
+
+    # Próba 2: wyciągnij [...] z tekstu
+    match = re.search(r'\[[\s\S]*\]', clean)
+    if match:
+        try:
+            return json.loads(match.group(), strict=False)
+        except json.JSONDecodeError:
+            pass
+
+    # Próba 3: regex — wyciągnij obiekty pojedynczo
+    objects = re.findall(r'\{[^{}]{20,800}\}', clean)
+    if objects:
+        items = []
+        for obj_str in objects:
+            try:
+                obj = json.loads(obj_str, strict=False)
+                if isinstance(obj, dict) and obj.get('name'):
+                    items.append(obj)
+            except json.JSONDecodeError:
+                continue
+        if items:
+            return items
+
+    _log(f"[scout] JSON parse FAIL. Text ({len(clean)} chars): {clean[:300]}")
+    return []
+
+
 # ─── GEMINI: TREND DISCOVERY ─────────────────────────────────────────────────
 
 def _gemini_discover_trends(existing_names: list[str]) -> list[dict]:
     """
     Używa Gemini AI do odkrywania trendujących produktów.
-    To jest najbardziej niezawodne źródło trendów.
+    Robi 3 osobne wywołania po różnych kategoriach — więcej produktów.
     """
     products = []
 
@@ -503,169 +557,115 @@ def _gemini_discover_trends(existing_names: list[str]) -> list[dict]:
             _log("[scout] Brak klucza Gemini — pomijam AI discovery")
             return []
 
-        existing_str = ', '.join(existing_names[:30]) if existing_names else 'brak'
+        existing_str = ', '.join(existing_names[:20]) if existing_names else 'none'
 
-        prompt = f"""You are an e-commerce expert for Allegro.pl (Poland).
-Find 25 trending products to sell on Allegro in 2026.
-
-REQUIREMENTS:
-- Low buy cost from China (below 30 PLN / 7 USD per unit)
-- Small and light (fits Paczkomat A/B/C parcel locker)
-- Margin over 200% (buy below 30 PLN, sell above 80 PLN on Allegro)
-- Problem-solving products (not one-time gadgets)
-- Season 2026: outdoor, smart home, fitness, auto, pet tech, beauty tools
-- Available on Alibaba/AliExpress wholesale (MOQ 50-300 units)
-
-DO NOT suggest these (we already sell them):
-{existing_str}
-
-DO NOT suggest: dash cams, ankle weights, galaxy projectors,
-car phone holders, power banks, wireless chargers, smartwatches,
-fitness trackers, lawn mowers, telescopic saws.
-
-RESPOND ONLY with a JSON array. Use ONLY ASCII characters in all string values (no special characters, no Polish letters). Example format:
-[{{"name":"LED Posture Corrector Belt","category":"fitness","buy_price_usd":3.5,"sell_price_pln":89,"source":"aliexpress","why_new":"new trend in posture correction","why_can_sell":"low competition on Allegro","risk_flags":"seasonal demand","paczkomat_fit":"A","growth_7d":65,"alibaba_moq":100,"alibaba_price_usd":2.8}}]"""
+        # 3 batche po różnych kategoriach
+        batches = [
+            {
+                'focus': 'outdoor, camping, garden, sport, fitness',
+                'examples': 'LED headlamp, camping hammock, garden tool, yoga mat strap, portable fan',
+                'size_note': 'Mix of small (Paczkomat A/B) and medium items (Paczkomat C or courier)',
+            },
+            {
+                'focus': 'smart home, auto accessories, electronics, gadgets',
+                'examples': 'smart plug, car vacuum, LED strip controller, USB hub, car organizer',
+                'size_note': 'Include both small gadgets AND bigger items like car accessories, organizers',
+            },
+            {
+                'focus': 'pet supplies, beauty tools, kitchen, home organization, kids toys',
+                'examples': 'pet grooming glove, face massager, kitchen scale, drawer organizer, kids tent',
+                'size_note': 'Include bigger items too: pet beds, kitchen appliances, storage boxes (courier delivery OK)',
+            },
+        ]
 
         from modules.utils import get_gemini_api_url
         api_url = get_gemini_api_url(api_key)
-        _log(f"[scout] Gemini request → {api_url[:80]}...")
 
-        resp = requests.post(
-            api_url,
-            json={
-                'contents': [{'parts': [{'text': prompt}]}],
-                'generationConfig': {
-                    'maxOutputTokens': 8192,
-                    'temperature': 0.8,
-                }
-            },
-            timeout=90,
-        )
+        for batch_idx, batch in enumerate(batches):
+            _log(f"[scout] Gemini batch {batch_idx+1}/3: {batch['focus'][:40]}...")
 
-        _log(f"[scout] Gemini response: HTTP {resp.status_code}")
+            prompt = f"""Find 10 trending products for Allegro.pl (Poland) in: {batch['focus']}.
+Examples: {batch['examples']}.
+{batch['size_note']}
 
-        if resp.status_code != 200:
-            _log(f"[scout] Gemini FAIL HTTP {resp.status_code}: {resp.text[:500]}")
-            return []
+RULES:
+- Buy cost 2-50 USD from China/Alibaba
+- Mix sizes: 4 small (Paczkomat A/B, sell 60-150 PLN), 3 medium (Paczkomat C, sell 100-250 PLN), 3 bigger (courier only, sell 150-400 PLN)
+- Margin over 150% minimum
+- Problem-solving, useful products
+- Available wholesale on Alibaba (MOQ 50-500)
 
-        data = resp.json()
-        text = ''
-        try:
-            text = data['candidates'][0]['content']['parts'][0]['text']
-            _log(f"[scout] Gemini text length: {len(text)} chars")
-        except (KeyError, IndexError) as e:
-            _log(f"[scout] Gemini — brak odpowiedzi: {e}, keys={list(data.keys())}")
-            if 'error' in data:
-                _log(f"[scout] Gemini error: {data['error']}")
-            return []
+SKIP: {existing_str}
+SKIP: dash cams, ankle weights, galaxy projectors, power banks, wireless chargers, smartwatches, lawn mowers.
 
-        # Parsuj JSON — wyciągnij array z tekstu (Gemini owija w ```json```)
-        # Usuń markdown code blocks
-        clean = text.strip()
-        clean = re.sub(r'^```(?:json)?\s*', '', clean)
-        clean = re.sub(r'\s*```\s*$', '', clean)
-        clean = clean.strip()
+paczkomat_fit values: A (small <8x38x64cm), B (medium <19x38x64cm), C (large <41x38x64cm), NO (too big, courier only)
 
-        items = None
-        parse_errors = []
+Return ONLY JSON array, ASCII only, no markdown, no comments:
+[{{"name":"Product Name","category":"cat","buy_price_usd":5,"sell_price_pln":129,"source":"aliexpress","why_new":"reason","why_can_sell":"reason","risk_flags":"risk","paczkomat_fit":"B","growth_7d":50,"alibaba_moq":100,"alibaba_price_usd":4}}]"""
 
-        # Agresywny cleanup JSON
-        clean = clean.encode('ascii', errors='ignore').decode('ascii')  # Usuń non-ASCII
-        clean = re.sub(r'[\x00-\x1f\x7f]', ' ', clean)  # Usuń control chars
-        clean = re.sub(r',\s*([}\]])', r'\1', clean)  # Usuń trailing commas
-        clean = re.sub(r'//[^\n]*', '', clean)  # Usuń komentarze
-        clean = re.sub(r'\s+', ' ', clean).strip()  # Kompresuj whitespace
+            resp = requests.post(
+                api_url,
+                json={
+                    'contents': [{'parts': [{'text': prompt}]}],
+                    'generationConfig': {
+                        'maxOutputTokens': 8192,
+                        'temperature': 0.85,
+                    }
+                },
+                timeout=90,
+            )
 
-        # Napraw ucięty JSON — jeśli array nie jest zamknięty
-        if clean.startswith('[') and not clean.endswith(']'):
-            # Znajdź ostatni kompletny obiekt }
-            last_brace = clean.rfind('}')
-            if last_brace > 0:
-                clean = clean[:last_brace + 1] + ']'
-                _log(f"[scout] JSON ucięty — naprawiono (zamknięto array po pos {last_brace})")
-
-        # Próba 1: czysty JSON
-        try:
-            items = json.loads(clean, strict=False)
-        except json.JSONDecodeError as e:
-            parse_errors.append(f"P1: {e}")
-
-        # Próba 2: napraw trailing commas
-        if items is None:
-            fixed = re.sub(r',\s*}', '}', clean)
-            fixed = re.sub(r',\s*\]', ']', fixed)
-            try:
-                items = json.loads(fixed, strict=False)
-            except json.JSONDecodeError as e:
-                parse_errors.append(f"P2: {e}")
-
-        # Próba 3: wyciągnij [...] z tekstu
-        if items is None:
-            match = re.search(r'\[[\s\S]*\]', clean)
-            if match:
-                try:
-                    items = json.loads(match.group(), strict=False)
-                except json.JSONDecodeError as e:
-                    parse_errors.append(f"P3: {e}")
-
-        # Próba 4: regex — wyciągnij obiekty pojedynczo
-        if items is None:
-            try:
-                objects = re.findall(r'\{[^{}]{20,500}\}', clean)
-                if objects:
-                    items = []
-                    for obj_str in objects:
-                        try:
-                            obj = json.loads(obj_str, strict=False)
-                            if isinstance(obj, dict) and obj.get('name'):
-                                items.append(obj)
-                        except json.JSONDecodeError:
-                            continue
-                    if not items:
-                        items = None
-                    else:
-                        _log(f"[scout] JSON regex fallback: {len(items)} obiektów")
-            except Exception as e:
-                parse_errors.append(f"P4: {e}")
-
-        if not items or not isinstance(items, list):
-            _log(f"[scout] Gemini — FAIL parse. Errors: {'; '.join(parse_errors)}. Tekst ({len(clean)} chars): {clean[:500]}")
-            return []
-
-        _log(f"[scout] Gemini sparsowano {len(items)} produktów")
-
-        for item in items:
-            if not isinstance(item, dict) or not item.get('name'):
+            if resp.status_code != 200:
+                _log(f"[scout] Gemini batch {batch_idx+1} FAIL HTTP {resp.status_code}")
                 continue
 
-            buy_usd = float(item.get('buy_price_usd', 0) or 0)
-            sell_pln = float(item.get('sell_price_pln', 0) or 0)
-            buy_pln = buy_usd * 4.2  # Kurs USD/PLN
+            data = resp.json()
+            text = ''
+            try:
+                text = data['candidates'][0]['content']['parts'][0]['text']
+                _log(f"[scout] Gemini batch {batch_idx+1}: {len(text)} chars")
+            except (KeyError, IndexError):
+                _log(f"[scout] Gemini batch {batch_idx+1}: brak odpowiedzi")
+                continue
 
-            products.append({
-                'name': item['name'],
-                'category': item.get('category', 'inne'),
-                'source': item.get('source', 'aliexpress'),
-                'source_url': '',
-                'buy_price_pln': round(buy_pln, 2),
-                'sell_price_pln': sell_pln,
-                'why_new': item.get('why_new', ''),
-                'why_can_sell': item.get('why_can_sell', ''),
-                'risk_flags': item.get('risk_flags', ''),
-                'paczkomat_fit': item.get('paczkomat_fit', 'B'),
-                'growth_7d': int(item.get('growth_7d', 0) or 0),
-                'alibaba_moq': int(item.get('alibaba_moq', 0) or 0),
-                'alibaba_price_usd': float(item.get('alibaba_price_usd', 0) or 0),
-            })
+            # Parsuj JSON
+            batch_items = _parse_gemini_json(text)
+            _log(f"[scout] Gemini batch {batch_idx+1}: {len(batch_items)} produktów")
 
-        _log(f"[scout] Gemini discovery: {len(products)} produktów")
+            # Log Gemini usage
+            try:
+                from modules.pallet_monitor import log_gemini_usage
+                log_gemini_usage(data, 'winning_scout')
+            except Exception:
+                pass
 
-        # Log Gemini usage
-        try:
-            from modules.pallet_monitor import log_gemini_usage
-            log_gemini_usage(data, 'winning_scout')
-        except Exception:
-            pass
+            for item in batch_items:
+                if not isinstance(item, dict) or not item.get('name'):
+                    continue
+
+                buy_usd = float(item.get('buy_price_usd', 0) or 0)
+                sell_pln = float(item.get('sell_price_pln', 0) or 0)
+                buy_pln = buy_usd * 4.2
+
+                products.append({
+                    'name': item['name'],
+                    'category': item.get('category', 'inne'),
+                    'source': item.get('source', 'aliexpress'),
+                    'source_url': '',
+                    'buy_price_pln': round(buy_pln, 2),
+                    'sell_price_pln': sell_pln,
+                    'why_new': item.get('why_new', ''),
+                    'why_can_sell': item.get('why_can_sell', ''),
+                    'risk_flags': item.get('risk_flags', ''),
+                    'paczkomat_fit': item.get('paczkomat_fit', 'B'),
+                    'growth_7d': int(item.get('growth_7d', 0) or 0),
+                    'alibaba_moq': int(item.get('alibaba_moq', 0) or 0),
+                    'alibaba_price_usd': float(item.get('alibaba_price_usd', 0) or 0),
+                })
+
+            time.sleep(2)  # Rate limit między batchami
+
+        _log(f"[scout] Gemini discovery TOTAL: {len(products)} produktów z {len(batches)} batchy")
 
     except Exception as e:
         _log(f"[scout] Gemini discovery error: {e}")
