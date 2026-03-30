@@ -571,32 +571,57 @@ ODPOWIEDZ TYLKO jako JSON array (bez markdown):
         clean = clean.strip()
 
         items = None
+        parse_errors = []
+
+        # Wyczyść encoding — zamień problematyczne znaki
+        clean = clean.encode('utf-8', errors='replace').decode('utf-8')
+
         # Próba 1: czysty JSON
         try:
-            items = json.loads(clean)
+            items = json.loads(clean, strict=False)
         except json.JSONDecodeError as e:
-            logger.warning(f"[scout] JSON parse próba 1 fail: {e}")
+            parse_errors.append(f"P1: {e}")
 
-        # Próba 2: wyciągnij [...] z tekstu
-        if items is None:
-            match = re.search(r'\[[\s\S]*\]', clean)
-            if match:
-                try:
-                    items = json.loads(match.group())
-                except json.JSONDecodeError as e:
-                    logger.warning(f"[scout] JSON parse próba 2 fail: {e}")
-
-        # Próba 3: napraw typowe błędy (trailing comma)
+        # Próba 2: napraw trailing commas
         if items is None:
             fixed = re.sub(r',\s*}', '}', clean)
             fixed = re.sub(r',\s*\]', ']', fixed)
             try:
-                items = json.loads(fixed)
+                items = json.loads(fixed, strict=False)
             except json.JSONDecodeError as e:
-                logger.warning(f"[scout] JSON parse próba 3 fail: {e}")
+                parse_errors.append(f"P2: {e}")
+
+        # Próba 3: wyciągnij [...] z tekstu
+        if items is None:
+            match = re.search(r'\[[\s\S]*\]', clean)
+            if match:
+                try:
+                    items = json.loads(match.group(), strict=False)
+                except json.JSONDecodeError as e:
+                    parse_errors.append(f"P3: {e}")
+
+        # Próba 4: regex — wyciągnij obiekty pojedynczo
+        if items is None:
+            try:
+                objects = re.findall(r'\{[^{}]{20,500}\}', clean)
+                if objects:
+                    items = []
+                    for obj_str in objects:
+                        try:
+                            obj = json.loads(obj_str, strict=False)
+                            if isinstance(obj, dict) and obj.get('name'):
+                                items.append(obj)
+                        except json.JSONDecodeError:
+                            continue
+                    if not items:
+                        items = None
+                    else:
+                        logger.info(f"[scout] JSON regex fallback: {len(items)} obiektów")
+            except Exception as e:
+                parse_errors.append(f"P4: {e}")
 
         if not items or not isinstance(items, list):
-            logger.error(f"[scout] Gemini — nie sparsowano JSON. Tekst ({len(clean)} chars): {clean[:800]}")
+            logger.error(f"[scout] Gemini — FAIL parse. Errors: {'; '.join(parse_errors)}. Tekst ({len(clean)} chars): {clean[:500]}")
             return []
 
         logger.info(f"[scout] Gemini sparsowano {len(items)} produktów")
