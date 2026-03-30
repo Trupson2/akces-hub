@@ -21,6 +21,10 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+def _log(msg):
+    """Print log z timestampem — widoczny w journalctl."""
+    print(f"[SCOUT] {msg}", flush=True)
+
 # ─── STAŁE ───────────────────────────────────────────────────────────────────
 
 BLOCKED_FAMILIES = [
@@ -95,7 +99,7 @@ def start_scout_scheduler():
         target=_scheduler_loop, daemon=True, name="WinningScoutScheduler"
     )
     _scheduler_thread.start()
-    logger.info("[scout] Scheduler uruchomiony (co 24h)")
+    _log("[scout] Scheduler uruchomiony (co 24h)")
 
 
 def _scheduler_loop():
@@ -125,16 +129,16 @@ def _scheduler_loop():
             if should_run:
                 now = datetime.now()
                 if 6 <= now.hour <= 22:  # Tylko w rozsądnych godzinach
-                    logger.info("[scout] Auto-skan uruchomiony")
+                    _log("[scout] Auto-skan uruchomiony")
                     try:
                         run_scout_scan()
                     except Exception as e:
-                        logger.error(f"[scout] Auto-skan błąd: {e}")
+                        _log(f"[scout] Auto-skan błąd: {e}")
 
             time.sleep(600)  # Sprawdzaj co 10 minut
 
         except Exception as e:
-            logger.error(f"[scout] Scheduler error: {e}")
+            _log(f"[scout] Scheduler error: {e}")
             time.sleep(300)
 
 
@@ -196,9 +200,9 @@ def init_scout_tables():
         """)
 
         conn.commit()
-        logger.info("[scout] Tabela winning_candidates zainicjalizowana")
+        _log("[scout] Tabela winning_candidates zainicjalizowana")
     except Exception as e:
-        logger.error(f"[scout] init_scout_tables error: {e}")
+        _log(f"[scout] init_scout_tables error: {e}")
 
 
 # ─── BLACKLIST ────────────────────────────────────────────────────────────────
@@ -254,7 +258,7 @@ def _load_blacklist() -> dict:
                 bl['names'].add(_normalize(r['tytul']))
 
     except Exception as e:
-        logger.warning(f"[scout] Błąd ładowania blacklist: {e}")
+        _log(f"[scout] Błąd ładowania blacklist: {e}")
 
     # Dodaj zablokowane rodziny z config
     try:
@@ -354,7 +358,7 @@ def _translate_to_pl(text: str) -> str:
                 if translated and len(translated) > 2:
                     return translated
     except Exception as e:
-        logger.warning(f"[scout] Translate error: {e}")
+        _log(f"[scout] Translate error: {e}")
 
     return text
 
@@ -370,7 +374,7 @@ def _scrape_amazon_bestsellers(category: str, url: str, limit: int = 15) -> list
 
         resp = session.get(url, timeout=10)
         if resp.status_code != 200:
-            logger.warning(f"[scout] Amazon {category}: HTTP {resp.status_code}")
+            _log(f"[scout] Amazon {category}: HTTP {resp.status_code}")
             return []
 
         html = resp.text
@@ -414,10 +418,10 @@ def _scrape_amazon_bestsellers(category: str, url: str, limit: int = 15) -> list
             if len(products) >= limit:
                 break
 
-        logger.info(f"[scout] Amazon {category}: {len(products)} produktów")
+        _log(f"[scout] Amazon {category}: {len(products)} produktów")
 
     except Exception as e:
-        logger.warning(f"[scout] Amazon {category} scrape error: {e}")
+        _log(f"[scout] Amazon {category} scrape error: {e}")
 
     return products
 
@@ -468,10 +472,10 @@ def _scrape_aliexpress_trending(limit: int = 20) -> list[dict]:
             except Exception:
                 continue
 
-        logger.info(f"[scout] AliExpress trending: {len(products)} produktów")
+        _log(f"[scout] AliExpress trending: {len(products)} produktów")
 
     except Exception as e:
-        logger.warning(f"[scout] AliExpress scrape error: {e}")
+        _log(f"[scout] AliExpress scrape error: {e}")
 
     return products
 
@@ -489,7 +493,7 @@ def _gemini_discover_trends(existing_names: list[str]) -> list[dict]:
         from modules.database import get_config
         api_key = get_config('gemini_api_key', '')
         if not api_key:
-            logger.warning("[scout] Brak klucza Gemini — pomijam AI discovery")
+            _log("[scout] Brak klucza Gemini — pomijam AI discovery")
             return []
 
         existing_str = ', '.join(existing_names[:30]) if existing_names else 'brak'
@@ -517,7 +521,7 @@ RESPOND ONLY with a JSON array. Use ONLY ASCII characters in all string values (
 
         from modules.utils import get_gemini_api_url
         api_url = get_gemini_api_url(api_key)
-        logger.info(f"[scout] Gemini request → {api_url[:80]}...")
+        _log(f"[scout] Gemini request → {api_url[:80]}...")
 
         resp = requests.post(
             api_url,
@@ -531,21 +535,21 @@ RESPOND ONLY with a JSON array. Use ONLY ASCII characters in all string values (
             timeout=90,
         )
 
-        logger.info(f"[scout] Gemini response: HTTP {resp.status_code}")
+        _log(f"[scout] Gemini response: HTTP {resp.status_code}")
 
         if resp.status_code != 200:
-            logger.error(f"[scout] Gemini FAIL HTTP {resp.status_code}: {resp.text[:500]}")
+            _log(f"[scout] Gemini FAIL HTTP {resp.status_code}: {resp.text[:500]}")
             return []
 
         data = resp.json()
         text = ''
         try:
             text = data['candidates'][0]['content']['parts'][0]['text']
-            logger.info(f"[scout] Gemini text length: {len(text)} chars")
+            _log(f"[scout] Gemini text length: {len(text)} chars")
         except (KeyError, IndexError) as e:
-            logger.error(f"[scout] Gemini — brak odpowiedzi: {e}, keys={list(data.keys())}")
+            _log(f"[scout] Gemini — brak odpowiedzi: {e}, keys={list(data.keys())}")
             if 'error' in data:
-                logger.error(f"[scout] Gemini error: {data['error']}")
+                _log(f"[scout] Gemini error: {data['error']}")
             return []
 
         # Parsuj JSON — wyciągnij array z tekstu (Gemini owija w ```json```)
@@ -571,7 +575,7 @@ RESPOND ONLY with a JSON array. Use ONLY ASCII characters in all string values (
             last_brace = clean.rfind('}')
             if last_brace > 0:
                 clean = clean[:last_brace + 1] + ']'
-                logger.info(f"[scout] JSON ucięty — naprawiono (zamknięto array po pos {last_brace})")
+                _log(f"[scout] JSON ucięty — naprawiono (zamknięto array po pos {last_brace})")
 
         # Próba 1: czysty JSON
         try:
@@ -613,15 +617,15 @@ RESPOND ONLY with a JSON array. Use ONLY ASCII characters in all string values (
                     if not items:
                         items = None
                     else:
-                        logger.info(f"[scout] JSON regex fallback: {len(items)} obiektów")
+                        _log(f"[scout] JSON regex fallback: {len(items)} obiektów")
             except Exception as e:
                 parse_errors.append(f"P4: {e}")
 
         if not items or not isinstance(items, list):
-            logger.error(f"[scout] Gemini — FAIL parse. Errors: {'; '.join(parse_errors)}. Tekst ({len(clean)} chars): {clean[:500]}")
+            _log(f"[scout] Gemini — FAIL parse. Errors: {'; '.join(parse_errors)}. Tekst ({len(clean)} chars): {clean[:500]}")
             return []
 
-        logger.info(f"[scout] Gemini sparsowano {len(items)} produktów")
+        _log(f"[scout] Gemini sparsowano {len(items)} produktów")
 
         for item in items:
             if not isinstance(item, dict) or not item.get('name'):
@@ -647,7 +651,7 @@ RESPOND ONLY with a JSON array. Use ONLY ASCII characters in all string values (
                 'alibaba_price_usd': float(item.get('alibaba_price_usd', 0) or 0),
             })
 
-        logger.info(f"[scout] Gemini discovery: {len(products)} produktów")
+        _log(f"[scout] Gemini discovery: {len(products)} produktów")
 
         # Log Gemini usage
         try:
@@ -657,7 +661,7 @@ RESPOND ONLY with a JSON array. Use ONLY ASCII characters in all string values (
             pass
 
     except Exception as e:
-        logger.error(f"[scout] Gemini discovery error: {e}")
+        _log(f"[scout] Gemini discovery error: {e}")
 
     return products
 
@@ -686,7 +690,7 @@ def _search_alibaba(product_name: str) -> dict:
         search_url = f'https://www.alibaba.com/trade/search?SearchText={query}&viewtype=G'
 
         resp = session.get(search_url, timeout=10, allow_redirects=True)
-        logger.info(f"[scout] Alibaba '{product_name[:30]}' → HTTP {resp.status_code}, {len(resp.text)} chars")
+        _log(f"[scout] Alibaba '{product_name[:30]}' → HTTP {resp.status_code}, {len(resp.text)} chars")
         if resp.status_code != 200:
             return result
 
@@ -736,10 +740,10 @@ def _search_alibaba(product_name: str) -> dict:
         if 'trade assurance' in html.lower() or 'tradeassurance' in html.lower():
             result['trade_assurance'] = True
 
-        logger.info(f"[scout] Alibaba result: url={bool(result['url'])}, price=${result['price_usd']}, moq={result['moq']}, supplier={result['supplier'][:20]}")
+        _log(f"[scout] Alibaba result: url={bool(result['url'])}, price=${result['price_usd']}, moq={result['moq']}, supplier={result['supplier'][:20]}")
 
     except Exception as e:
-        logger.warning(f"[scout] Alibaba search error for '{product_name[:30]}': {e}")
+        _log(f"[scout] Alibaba search error for '{product_name[:30]}': {e}")
 
     return result
 
@@ -780,7 +784,7 @@ def _check_allegro_competition(product_name_pl: str) -> int:
         return total
 
     except Exception as e:
-        logger.debug(f"[scout] Allegro competition check error: {e}")
+        _log(f"[scout] Allegro competition check error: {e}")
         return -1
 
 
@@ -904,7 +908,7 @@ def force_unlock():
     except RuntimeError:
         pass
     _scan_started_at = 0
-    logger.info("[scout] Lock wymuszony reset")
+    _log("[scout] Lock wymuszony reset")
 
 
 def run_scout_scan() -> dict:
@@ -916,7 +920,7 @@ def run_scout_scan() -> dict:
 
     # Auto-unlock jeśli skan trwa >5 minut (utknął)
     if _scan_started_at > 0 and (time.time() - _scan_started_at) > 300:
-        logger.warning("[scout] Skan utknął >5min — wymuszam unlock")
+        _log("[scout] Skan utknął >5min — wymuszam unlock")
         force_unlock()
 
     if not _scan_lock.acquire(blocking=False):
@@ -955,40 +959,40 @@ def run_scout_scan() -> dict:
         batch_id = uuid.uuid4().hex[:12]
         now_str = datetime.now().isoformat(sep=" ", timespec="seconds")
 
-        logger.info(f"[scout] === START batch {batch_id} ===")
+        _log(f"[scout] === START batch {batch_id} ===")
 
         # ── 1. Załaduj blacklist ─────────────────────────────────────────
         blacklist = _load_blacklist()
         existing_names = list(blacklist['names'])[:30]
-        logger.info(f"[scout] Blacklist: {len(blacklist['names'])} nazw, {len(blacklist['asins'])} ASIN-ów")
+        _log(f"[scout] Blacklist: {len(blacklist['names'])} nazw, {len(blacklist['asins'])} ASIN-ów")
 
         # ── 2. Zbierz kandydatów ze źródeł ──────────────────────────────
         all_candidates = []
 
         # 2a. Gemini trend discovery (najbardziej niezawodne)
-        logger.info("[scout] >>> Faza 1: Gemini AI discovery...")
+        _log("[scout] >>> Faza 1: Gemini AI discovery...")
         gemini_products = _gemini_discover_trends(existing_names)
-        logger.info(f"[scout] Gemini zwrócił {len(gemini_products)} produktów")
+        _log(f"[scout] Gemini zwrócił {len(gemini_products)} produktów")
         all_candidates.extend(gemini_products)
 
         # 2b. Amazon bestsellers (próbuj 2-3 kategorie)
-        logger.info("[scout] >>> Faza 2: Amazon bestsellers...")
+        _log("[scout] >>> Faza 2: Amazon bestsellers...")
         for cat_name, cat_url in list(AMAZON_CATEGORIES.items())[:3]:
             try:
                 amazon_products = _scrape_amazon_bestsellers(cat_name, cat_url, limit=10)
                 all_candidates.extend(amazon_products)
                 time.sleep(2)  # Rate limiting
             except Exception as e:
-                logger.warning(f"[scout] Amazon {cat_name}: {e}")
+                _log(f"[scout] Amazon {cat_name}: {e}")
 
         # 2c. AliExpress trending
         try:
             ali_products = _scrape_aliexpress_trending(limit=15)
             all_candidates.extend(ali_products)
         except Exception as e:
-            logger.warning(f"[scout] AliExpress: {e}")
+            _log(f"[scout] AliExpress: {e}")
 
-        logger.info(f"[scout] Zebrano {len(all_candidates)} kandydatów z wszystkich źródeł")
+        _log(f"[scout] Zebrano {len(all_candidates)} kandydatów z wszystkich źródeł")
 
         if not all_candidates:
             set_config('scout_last_run', datetime.now().isoformat())
@@ -1023,13 +1027,13 @@ def run_scout_scan() -> dict:
 
             kept.append(cand)
 
-        logger.info(f"[scout] Po filtrze: {len(kept)} kept, {len(rejected)} rejected")
+        _log(f"[scout] Po filtrze: {len(kept)} kept, {len(rejected)} rejected")
 
         # ── 4. Wzbogać dane — Alibaba + Allegro ─────────────────────────
-        logger.info(f"[scout] >>> Faza 4: Wzbogacanie danych ({len(kept)} produktów)...")
+        _log(f"[scout] >>> Faza 4: Wzbogacanie danych ({len(kept)} produktów)...")
         for i, cand in enumerate(kept):
             name = cand['name']
-            logger.info(f"[scout] Produkt {i+1}/{len(kept)}: {name[:40]}")
+            _log(f"[scout] Produkt {i+1}/{len(kept)}: {name[:40]}")
 
             # Tłumacz na polski
             name_pl = _translate_to_pl(name)
@@ -1134,7 +1138,7 @@ def run_scout_scan() -> dict:
                 ))
                 saved_count += 1
             except Exception as e:
-                logger.warning(f"[scout] DB insert error: {e}")
+                _log(f"[scout] DB insert error: {e}")
 
         # Zapisz rejected (max 10)
         for cand in rejected[:10]:
@@ -1155,7 +1159,7 @@ def run_scout_scan() -> dict:
                     cand.get('reject_reason', '')[:500],
                 ))
             except Exception as e:
-                logger.debug(f"[scout] DB insert rejected error: {e}")
+                _log(f"[scout] DB insert rejected error: {e}")
 
         conn.commit()
 
@@ -1171,7 +1175,7 @@ def run_scout_scan() -> dict:
         emerging = sorted(top_kept, key=lambda x: x.get('novelty_score', 0), reverse=True)[:5]
         wildcard = sorted(top_kept, key=lambda x: x.get('trend_score', 0), reverse=True)[:5]
 
-        logger.info(f"[scout] === DONE batch {batch_id}: {saved_count} saved, {len(rejected)} rejected in {duration}s ===")
+        _log(f"[scout] === DONE batch {batch_id}: {saved_count} saved, {len(rejected)} rejected in {duration}s ===")
 
         return {
             'batch_id': batch_id,
@@ -1191,7 +1195,7 @@ def run_scout_scan() -> dict:
         }
 
     except Exception as e:
-        logger.error(f"[scout] run_scout_scan error: {e}", exc_info=True)
+        _log(f"[scout] run_scout_scan error: {e}", exc_info=True)
         return {'error': f'Błąd skanu: {str(e)}', 'products_found': 0}
 
     finally:
@@ -1249,7 +1253,7 @@ def get_scout_results(
         return [dict(r) for r in rows], total
 
     except Exception as e:
-        logger.error(f"[scout] get_scout_results error: {e}")
+        _log(f"[scout] get_scout_results error: {e}")
         return [], 0
 
 
@@ -1293,7 +1297,7 @@ def get_scout_stats() -> dict:
             'batch_id': last_batch,
         }
     except Exception as e:
-        logger.error(f"[scout] get_scout_stats error: {e}")
+        _log(f"[scout] get_scout_stats error: {e}")
         return {'total': 0, 'kept': 0, 'rejected': 0, 'last_run': '', 'batch_id': ''}
 
 
@@ -1301,4 +1305,4 @@ def get_scout_stats() -> dict:
 try:
     init_scout_tables()
 except Exception as _init_e:
-    logger.warning(f"[scout] Init tables error: {_init_e}")
+    _log(f"[scout] Init tables error: {_init_e}")
