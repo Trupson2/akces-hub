@@ -102,7 +102,7 @@
     {% endif %}
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 function toggleDur(){
     document.getElementById('durValWrap').style.display=document.getElementById('durType').value==='unlimited'?'none':'block';
 }

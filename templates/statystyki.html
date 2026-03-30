@@ -436,8 +436,8 @@
 </div>
 
 <!-- ═══════════════ SECTION 11: CHART.JS SCRIPTS ═══════════════ -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
-<script>
+<script nonce="{{ csp_nonce }}" src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<script nonce="{{ csp_nonce }}">
 // === DATA FROM PYTHON ===
 const nazwyMiesiecy = {{ nazwy_miesiecy_json|safe }};
 const daneMiesieczne = {{ dane_miesieczne_json|safe }};

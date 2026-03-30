@@ -227,7 +227,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 function changeGeminiModel(model) {
     fetch('/system/gemini-model', {
         method: 'POST',

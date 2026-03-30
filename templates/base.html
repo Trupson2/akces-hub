@@ -13,7 +13,7 @@
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/static/icon-192.png">
 <title>{{ brand_name }}</title>
-<script>
+<script nonce="{{ csp_nonce }}">
 // Fix ngrok free tier + CSRF auto-refresh
 (function(){
     var _fetch = window.fetch;
@@ -107,7 +107,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800;900&display=swap">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block" rel="stylesheet">
-<script>
+<script nonce="{{ csp_nonce }}">
 /* ngrok: dodaj header do WSZYSTKICH fetch — pomija interstitial */
 (function(){var _f=window.fetch;window.fetch=function(u,o){o=o||{};o.headers=new Headers(o.headers||{});o.headers.set('ngrok-skip-browser-warning','1');return _f.call(this,u,o);}})();
 (function(){
@@ -483,7 +483,7 @@ body.demo-active .demo-indicator::after {
 <link rel="stylesheet" href="/static/kiosk.css">
 </head>
 <body>
-<script>
+<script nonce="{{ csp_nonce }}">
 if(localStorage.getItem('kiosk_mode')==='1'){
     document.body.classList.add('kiosk');
     document.cookie='kiosk_mode=1;max-age=31536000;path=/';
@@ -661,7 +661,7 @@ if(localStorage.getItem('kiosk_mode')==='1'){
 </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 function toggleTheme(){
     const html = document.documentElement;
     const current = html.getAttribute('data-theme');
@@ -683,7 +683,7 @@ document.querySelectorAll('.sidebar-link').forEach(function(link) {
 });
 </script>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 // Demo Mode - RADYKALNE ukrywanie danych dostawcow
 (function() {
     var DEMO_KEY = 'akces_demo_mode';

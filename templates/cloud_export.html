@@ -272,7 +272,7 @@
 
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 function doBackup() {
     fetch('/api/cloud/backup', {method: 'POST'})
         .then(r => r.json())

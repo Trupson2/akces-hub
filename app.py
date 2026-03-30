@@ -516,15 +516,26 @@ import werkzeug.serving
 werkzeug.serving.WSGIRequestHandler.server_version = "Server"
 werkzeug.serving.WSGIRequestHandler.sys_version = ""
 
+# CSP Nonce — generuj unikalne nonce per request
+import secrets as _secrets
+
+@app.context_processor
+def inject_csp_nonce():
+    """Wstrzyknij nonce do wszystkich templateów Jinja2."""
+    nonce = _secrets.token_urlsafe(16)
+    request._csp_nonce = nonce
+    return {'csp_nonce': nonce}
+
 @app.after_request
 def after_request(response):
-    """Dodaj CORS headers + cache control + CSP dla SSE"""
-    # CSP — pozwól na Leaflet, Google Fonts, CDN
+    """Dodaj CORS headers + cache control + CSP nonce"""
+    # CSP — nonce-based zamiast unsafe-inline (dla script)
     if response.content_type and 'text/html' in response.content_type:
+        nonce = getattr(request, '_csp_nonce', _secrets.token_urlsafe(16))
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; "
-            # unsafe-eval required by Chart.js (uses new Function() for tooltip callbacks)
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com; "
+            # Nonce-based script-src + unsafe-eval (wymagane przez Chart.js)
+            f"script-src 'self' 'nonce-{nonce}' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com; "
             "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.tailwindcss.com; "
             "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
             "img-src 'self' data: blob: https:; "
@@ -1944,7 +1955,7 @@ def monitor_page():
         <span id="scanText" style="margin-left:8px;vertical-align:middle">Skanowanie...</span>
     </div>
     <style>@keyframes spin{{from{{transform:rotate(0deg)}}to{{transform:rotate(360deg)}}}}</style>
-    <script>
+    <script nonce="{getattr(request, '_csp_nonce', '')}">
     function doScan(source, btn) {{
         var btns = btn.parentElement.querySelectorAll('button');
         btns.forEach(function(b){{ b.disabled=true; b.style.opacity='0.5'; }});
@@ -3652,7 +3663,7 @@ ALLEGRO_PERF_HTML = '''{% extends "base.html" %}
 
 <a href="/narzedzia" style="display:inline-block;margin-top:10px;color:var(--text-muted);text-decoration:none;font-size:0.85rem">← Powrot do narzedzi</a>
 
-<script>
+<script nonce="{getattr(request, '_csp_nonce', '')}">
 function filterOffers(status, btn) {
     var rows = document.querySelectorAll('#perfTable tbody tr');
     rows.forEach(function(r) {
@@ -4411,7 +4422,7 @@ def goal_details():
 
     </div>
 
-    <script>
+    <script nonce="{getattr(request, '_csp_nonce', '')}">
         // Show success toast from URL param
         const params = new URLSearchParams(window.location.search);
         if (params.get('success')) {{
@@ -5049,7 +5060,7 @@ def poziom_page():
 
     # Wstrzyknij dane do template
     import json as _json
-    data_script = f'<script>window.REAL_DATA = {_json.dumps(real_data)};</script>'
+    data_script = f'<script nonce="{getattr(request, '_csp_nonce', '')}">window.REAL_DATA = {_json.dumps(real_data)};</script>'
 
     username = session.get('username', 'User')
     html = render_template('poziom.html', username=username)
@@ -5118,7 +5129,7 @@ def bingo2026_page():
     .bingo-big .ck{display:none;position:absolute;top:3px;right:4px;font-size:0.7rem;color:#22c55e;font-weight:700}
     .bingo-big.ok .ck{display:block}
     </style>
-    <script>
+    <script nonce="{getattr(request, '_csp_nonce', '')}">
     fetch('/api/bingo2026').then(r=>r.json()).then(data=>{
         const g=document.getElementById('bingo-grid-full');
         g.innerHTML=data.cells.map(c=>{
@@ -5886,7 +5897,7 @@ def debug_paleta_js(paleta_id):
     <div id="modalTest" style="display:none;background:#333;padding:20px;margin:10px 0;border-radius:8px">
         MODAL DZIAŁA! produktId=<span id="modalPid"></span>
     </div>
-    <script>
+    <script nonce="{getattr(request, '_csp_nonce', '')}">
     document.addEventListener('click', function(e) {{
         const btn = e.target.closest('.btn-korekta');
         if (btn) {{
@@ -6185,6 +6196,13 @@ if __name__ == '__main__':
             start_pallet_scheduler()
     except Exception:
         pass
+
+    # Migracja sekretów do szyfrowania (jednorazowo)
+    try:
+        from modules.database import migrate_secrets
+        migrate_secrets()
+    except Exception as e:
+        log_warning(f"Secret migration error: {e}")
 
     # Start Winning Scout scheduler (co 24h)
     try:

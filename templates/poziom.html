@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Poziom {{ username|default('User') }}</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<script nonce="{{ csp_nonce }}" src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block" rel="stylesheet">
-<script>
+<script nonce="{{ csp_nonce }}">
 tailwind.config = {
   theme: {
     extend: {
@@ -418,7 +418,7 @@ tailwind.config = {
 
 <div class="toast" id="toast"></div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 // ─── DATA ───────────────────────────────────────────────────────────────
 const SKILLS = {
   'skills-ops': [

@@ -668,7 +668,7 @@
     <link rel="stylesheet" href="/static/kiosk.css">
 </head>
 <body>
-<script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
+<script nonce="{{ csp_nonce }}">if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
     <div class="container">
         <!-- Sidebar -->
         <div class="sidebar">
@@ -927,10 +927,10 @@
     </div>
 
     <!-- Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" integrity="sha384-wagZhIFgY4hD+7awjQjR4e2E294y6J2HSnd8eTNc15ZubTeQeVRZwhQJ+W6hnBsf" crossorigin="anonymous"></script>
+    <script nonce="{{ csp_nonce }}" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous"></script>
+    <script nonce="{{ csp_nonce }}" src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" integrity="sha384-wagZhIFgY4hD+7awjQjR4e2E294y6J2HSnd8eTNc15ZubTeQeVRZwhQJ+W6hnBsf" crossorigin="anonymous"></script>
 
-    <script>
+    <script nonce="{{ csp_nonce }}">
         // Global variables
         let scene, camera, renderer, controls;
         let warehouseData = null;

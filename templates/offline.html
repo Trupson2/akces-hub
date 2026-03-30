@@ -28,7 +28,7 @@ p{color:#64748b;margin-bottom:20px;line-height:1.6}
         <span style="color:#94a3b8;font-size:0.85rem">Tryb offline</span>
     </div>
 </div>
-<script>
+<script nonce="{{ csp_nonce }}">
 // Auto-retry co 5 sekund
 setInterval(()=>{
     fetch('/api/stats').then(r=>{if(r.ok)window.location.reload();}).catch(()=>{});

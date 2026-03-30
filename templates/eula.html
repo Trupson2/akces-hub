@@ -312,7 +312,7 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 // Block ESC
 document.addEventListener('keydown',function(e){if(e.key==='Escape')e.preventDefault()});
 
