@@ -101,6 +101,17 @@ def winning_stats():
         return jsonify({"error": str(e)}), 500
 
 
+@winning_bp.route("/winning/unlock", methods=["POST"])
+def winning_unlock():
+    """Wymusza reset locka skanu (po crashu)."""
+    try:
+        from modules.winning_scout import force_unlock
+        force_unlock()
+        return jsonify({"success": True, "message": "Lock zresetowany"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @winning_bp.route("/winning/meta", methods=["GET"])
 def winning_meta():
     """Kompatybilność wsteczna — zwraca puste dane."""
