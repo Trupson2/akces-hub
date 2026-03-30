@@ -524,8 +524,8 @@ RESPOND ONLY with a JSON array. Use ONLY ASCII characters in all string values (
             json={
                 'contents': [{'parts': [{'text': prompt}]}],
                 'generationConfig': {
-                    'maxOutputTokens': 4000,
-                    'temperature': 0.9,
+                    'maxOutputTokens': 8192,
+                    'temperature': 0.8,
                 }
             },
             timeout=90,
@@ -560,10 +560,18 @@ RESPOND ONLY with a JSON array. Use ONLY ASCII characters in all string values (
 
         # Agresywny cleanup JSON
         clean = clean.encode('ascii', errors='ignore').decode('ascii')  # Usuń non-ASCII
-        clean = re.sub(r'[\x00-\x1f\x7f]', ' ', clean)  # Usuń control chars (zachowaj spacje)
+        clean = re.sub(r'[\x00-\x1f\x7f]', ' ', clean)  # Usuń control chars
         clean = re.sub(r',\s*([}\]])', r'\1', clean)  # Usuń trailing commas
-        clean = re.sub(r'//[^\n]*', '', clean)  # Usuń komentarze //
+        clean = re.sub(r'//[^\n]*', '', clean)  # Usuń komentarze
         clean = re.sub(r'\s+', ' ', clean).strip()  # Kompresuj whitespace
+
+        # Napraw ucięty JSON — jeśli array nie jest zamknięty
+        if clean.startswith('[') and not clean.endswith(']'):
+            # Znajdź ostatni kompletny obiekt }
+            last_brace = clean.rfind('}')
+            if last_brace > 0:
+                clean = clean[:last_brace + 1] + ']'
+                logger.info(f"[scout] JSON ucięty — naprawiono (zamknięto array po pos {last_brace})")
 
         # Próba 1: czysty JSON
         try:
