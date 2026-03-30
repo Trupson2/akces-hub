@@ -373,19 +373,55 @@
 </div>
 
 <!-- Filters row -->
-<div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
-  <div style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--text-muted,#666680);">
-    <label for="minScoreFilter" style="white-space:nowrap">Min. score:</label>
+<div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+  <!-- Szukaj -->
+  <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;">
+    <input type="text" id="searchFilter" placeholder="Szukaj produktu..."
+           oninput="clientFilter()"
+           style="background:var(--bg-card,rgba(19,19,28,0.8));border:1px solid rgba(255,255,255,0.1);color:var(--text,#e8e8f0);padding:5px 10px;font-size:0.78rem;width:160px">
+  </div>
+  <!-- Kategoria -->
+  <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--text-muted,#666680);">
+    <select id="catFilter" onchange="clientFilter()"
+            style="background:var(--bg-card,rgba(19,19,28,0.8));border:1px solid rgba(255,255,255,0.1);color:var(--text,#e8e8f0);padding:4px 8px;font-size:0.78rem">
+      <option value="">Kategoria</option>
+    </select>
+  </div>
+  <!-- Paczkomat -->
+  <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--text-muted,#666680);">
+    <select id="fitFilter" onchange="clientFilter()"
+            style="background:var(--bg-card,rgba(19,19,28,0.8));border:1px solid rgba(255,255,255,0.1);color:var(--text,#e8e8f0);padding:4px 8px;font-size:0.78rem">
+      <option value="">Paczkomat</option>
+      <option value="A">A (mały)</option>
+      <option value="B">B (średni)</option>
+      <option value="C">C (duży)</option>
+      <option value="NO">Kurier</option>
+    </select>
+  </div>
+  <!-- Min score -->
+  <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--text-muted,#666680);">
+    <label for="minScoreFilter" style="white-space:nowrap">Score:</label>
     <input type="range" id="minScoreFilter" min="0" max="100" value="0" step="5"
-           style="width:120px;accent-color:#ff6b9b"
+           style="width:90px;accent-color:#ff6b9b"
            oninput="document.getElementById('minScoreVal').textContent=this.value;filterResults()">
     <span id="minScoreVal" style="font-family:monospace;color:#ff6b9b;font-weight:700">0</span>
   </div>
-  <div style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--text-muted,#666680);">
-    <label for="limitFilter">Wyniki:</label>
+  <!-- Min marża -->
+  <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--text-muted,#666680);">
+    <label for="minMarginFilter" style="white-space:nowrap">Marża:</label>
+    <select id="minMarginFilter" onchange="clientFilter()"
+            style="background:var(--bg-card,rgba(19,19,28,0.8));border:1px solid rgba(255,255,255,0.1);color:var(--text,#e8e8f0);padding:4px 8px;font-size:0.78rem">
+      <option value="0">Wszystkie</option>
+      <option value="100">> 100%</option>
+      <option value="150">> 150%</option>
+      <option value="200">> 200%</option>
+      <option value="300">> 300%</option>
+    </select>
+  </div>
+  <!-- Wyniki -->
+  <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--text-muted,#666680);">
     <select id="limitFilter" onchange="loadResults()"
             style="background:var(--bg-card,rgba(19,19,28,0.8));border:1px solid rgba(255,255,255,0.1);color:var(--text,#e8e8f0);padding:4px 8px;font-size:0.78rem">
-      <option value="25">25</option>
       <option value="50" selected>50</option>
       <option value="100">100</option>
     </select>
@@ -568,6 +604,38 @@
     loadResults();
   };
 
+  // Client-side filtrowanie (szukaj, kategoria, paczkomat, marża)
+  window.clientFilter = function() {
+    renderTable();
+  };
+
+  function getFilteredItems() {
+    var search = (document.getElementById('searchFilter').value || '').toLowerCase();
+    var cat = document.getElementById('catFilter').value;
+    var fit = document.getElementById('fitFilter').value;
+    var minMargin = parseInt(document.getElementById('minMarginFilter').value) || 0;
+
+    return _items.filter(function(it) {
+      if (search && (it.product_name || '').toLowerCase().indexOf(search) === -1 &&
+          (it.product_name_pl || '').toLowerCase().indexOf(search) === -1) return false;
+      if (cat && (it.category || '') !== cat) return false;
+      if (fit && (it.paczkomat_fit || '') !== fit) return false;
+      if (minMargin > 0 && (it.margin_percent || 0) < minMargin) return false;
+      return true;
+    });
+  }
+
+  function populateCategories() {
+    var cats = {};
+    _items.forEach(function(it) { if (it.category) cats[it.category] = true; });
+    var sel = document.getElementById('catFilter');
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">Kategoria</option>';
+    Object.keys(cats).sort().forEach(function(c) {
+      sel.innerHTML += '<option value="' + c + '"' + (c === cur ? ' selected' : '') + '>' + c + '</option>';
+    });
+  }
+
   window.setFilter = function(el, filter) {
     _currentFilter = filter;
     _currentPage = 0;
@@ -584,10 +652,20 @@
     var empty = document.getElementById('emptyState');
     var pag = document.getElementById('pagination');
 
-    if (!_items.length) {
+    populateCategories();
+    var filtered = getFilteredItems();
+
+    if (!filtered.length) {
       table.style.display = 'none';
-      empty.style.display = 'flex';
+      empty.style.display = _items.length ? 'none' : 'flex';
       pag.style.display = 'none';
+      if (_items.length) {
+        tbody.innerHTML = '';
+        table.style.display = 'table';
+        var noRow = document.createElement('tr');
+        noRow.innerHTML = '<td colspan="12" style="text-align:center;padding:30px;color:var(--text-muted)">Brak wyników dla wybranych filtrów</td>';
+        tbody.appendChild(noRow);
+      }
       return;
     }
 
@@ -597,8 +675,8 @@
     var limit = parseInt(document.getElementById('limitFilter').value) || 50;
     var html = '';
 
-    for (var i = 0; i < _items.length; i++) {
-      var it = _items[i];
+    for (var i = 0; i < filtered.length; i++) {
+      var it = filtered[i];
       var rank = _currentPage * limit + i + 1;
       var isRejected = (it.status || '').indexOf('reject') === 0;
       var rowClass = isRejected ? 'rejected' : '';
@@ -693,7 +771,7 @@
     tbody.innerHTML = html;
 
     // Pagination
-    var totalPages = Math.ceil(_totalItems / limit);
+    var totalPages = Math.ceil(filtered.length / limit);
     if (totalPages > 1) {
       pag.style.display = 'flex';
       document.getElementById('pageInfo').textContent = (_currentPage + 1) + ' / ' + totalPages;
