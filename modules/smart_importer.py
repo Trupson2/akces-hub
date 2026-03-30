@@ -100,7 +100,7 @@ def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin:
         print(f"[WARN]  [AI DISABLED] Brak klucza Gemini w config - używam oryginalnej nazwy")
         return produkt_nazwa[:75]
 
-    print(f"[SMAR] [AI REQUEST] Wysyłam do Gemini: {short_name}")
+    print(f"[SMAR] [AI REQUEST] Wysyłam do Gemini: {short_name} | ASIN={produkt_asin} | EAN={produkt_ean} | BP={len(bullet_points)}chars")
 
     for attempt in range(retry_count):
         try:
@@ -213,12 +213,19 @@ Odpowiedz TYLKO tytułem (bez cudzysłowów, bez komentarzy):"""
                 return produkt_nazwa[:75]
 
             if len(meta_title) < 40:
-                print(f"   ✗ [RETRY] Tytuł za krótki ({len(meta_title)} znaków): '{meta_title}' — ponawiam z wymogiem długości")
+                print(f"   ✗ [RETRY] Tytuł za krótki ({len(meta_title)} znaków): '{meta_title}' — ponawiam")
                 if attempt < retry_count - 1:
                     time.sleep(2)
                     continue
-                # Ostatnia próba — dopełnij kategoriami SEO
-                print(f"   ✗ [FALLBACK] Używam krótkiego tytułu po {retry_count} próbach")
+                # Po wyczerpaniu prób — rozbuduj tytuł z tego co AI dało + oryginalna nazwa
+                _parts = []
+                if meta_title and meta_title.lower() != produkt_nazwa.lower():
+                    _parts.append(meta_title)
+                _parts.append(produkt_nazwa)
+                if produkt_asin:
+                    _parts.append(produkt_asin)
+                meta_title = ' '.join(_parts)[:75]
+                print(f"   ✗ [FALLBACK] Złożony tytuł: {meta_title}")
 
             print(f"   [OK] [SUCCESS] Wygenerowano: {meta_title}")
             return meta_title
