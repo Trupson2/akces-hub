@@ -598,7 +598,12 @@ RULES:
 SKIP: {existing_str}
 SKIP: dash cams, ankle weights, galaxy projectors, power banks, wireless chargers, smartwatches, lawn mowers.
 
-paczkomat_fit values: A (small <8x38x64cm), B (medium <19x38x64cm), C (large <41x38x64cm), NO (too big, courier only)
+paczkomat_fit rules:
+A = tiny items: phone cases, small tools, cables, jewelry, cosmetics (under 8cm thick)
+B = most products: massage guns, electronics, kitchen gadgets, pet toys, rollers (under 19cm thick)
+C = bigger boxes: blenders, organizers, pet beds, car accessories (under 41cm thick)
+NO = ONLY furniture, large appliances, items over 64cm in any dimension
+Most products from China fit B or C. Use NO very rarely.
 
 Return ONLY JSON array, ASCII only, no markdown, no comments:
 [{{"name":"Product Name","category":"cat","buy_price_usd":5,"sell_price_pln":129,"source":"aliexpress","why_new":"reason","why_can_sell":"reason","risk_flags":"risk","paczkomat_fit":"B","growth_7d":50,"alibaba_moq":100,"alibaba_price_usd":4}}]"""
