@@ -1063,10 +1063,13 @@ def setup_auth(app):
             return redirect('/ustawienia/kreator?welcome=1')
 
         # Niezalogowany — auto-login na Pi (localhost / sieć lokalna)
+        # SECURITY: Domyślnie WYŁĄCZONY. Włącz w Ustawienia → Bezpieczeństwo.
         if not session.get('user_id'):
             _auto = False
             _remote = request.remote_addr or ''
-            if _remote in ('127.0.0.1', '::1') or _remote.startswith('192.168.') or _remote.startswith('10.'):
+            from modules.database import get_config_cached
+            _auto_login_enabled = get_config_cached('auto_login_lan', 'false') == 'true'
+            if _auto_login_enabled and (_remote in ('127.0.0.1', '::1') or _remote.startswith('192.168.') or _remote.startswith('10.')):
                 try:
                     _conn = _get_auth_db()
                     _admin = _conn.execute("SELECT id, username, rola FROM users WHERE rola='admin' AND aktywny=1 ORDER BY id LIMIT 1").fetchone()

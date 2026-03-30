@@ -574,10 +574,21 @@ def invalidate_stats_cache():
     _stats_cache['time'] = 0
 
 def get_config(klucz, default=''):
-    """Pobiera wartość konfiguracji"""
+    """Pobiera wartość konfiguracji. Auto-deszyfruje wartości ENC:xxx."""
     conn = get_db()
     row = conn.execute('SELECT wartosc FROM config WHERE klucz = ?', (klucz,)).fetchone()
-    return row['wartosc'] if row else default
+    if not row:
+        return default
+    val = row['wartosc']
+    # Auto-deszyfruj zaszyfrowane wartości
+    if val and val.startswith('ENC:'):
+        f = _get_fernet()
+        if f:
+            try:
+                return f.decrypt(val[4:].encode()).decode()
+            except Exception:
+                pass
+    return val
 
 def set_config(klucz, wartosc):
     """Ustawia wartość konfiguracji"""
@@ -611,6 +622,89 @@ def invalidate_config_cache():
     global _config_cache, _config_cache_time
     _config_cache = {}
     _config_cache_time = 0
+
+
+# ============================================================
+# SECRETS — szyfrowanie wrażliwych danych w config
+# ============================================================
+_fernet_instance = None
+
+def _get_fernet():
+    """Lazy-init Fernet encryption. Klucz w .env.key lub env var."""
+    global _fernet_instance
+    if _fernet_instance:
+        return _fernet_instance
+    try:
+        from cryptography.fernet import Fernet
+    except ImportError:
+        print("[WARN] cryptography not installed — secrets stored as plaintext. Run: pip install cryptography")
+        return None
+
+    key = os.environ.get('AKCES_ENCRYPTION_KEY', '')
+    if not key:
+        key_path = _APP_DIR / '.env.key'
+        if key_path.exists():
+            key = key_path.read_text().strip()
+        else:
+            # Pierwszy raz — generuj klucz
+            key = Fernet.generate_key().decode()
+            key_path.write_text(key)
+            try:
+                os.chmod(str(key_path), 0o600)
+            except Exception:
+                pass  # Windows nie obsługuje chmod
+            print(f"[OK] Wygenerowano klucz szyfrowania: {key_path}")
+    _fernet_instance = Fernet(key.encode() if isinstance(key, str) else key)
+    return _fernet_instance
+
+
+def set_secret(klucz, wartosc):
+    """Zapisuje zaszyfrowaną wartość do config. Fallback: plaintext jeśli brak cryptography."""
+    f = _get_fernet()
+    if f and wartosc:
+        encrypted = f.encrypt(wartosc.encode()).decode()
+        set_config(klucz, f'ENC:{encrypted}')
+    else:
+        set_config(klucz, wartosc)
+
+
+def get_secret(klucz, default=''):
+    """Odczytuje zaszyfrowaną wartość z config. Backwards compatible z plaintext."""
+    raw = get_config(klucz, default)
+    if not raw or not raw.startswith('ENC:'):
+        return raw  # Plaintext (stare wartości) — backwards compatible
+    f = _get_fernet()
+    if not f:
+        return raw  # Brak cryptography — zwróć raw
+    try:
+        return f.decrypt(raw[4:].encode()).decode()
+    except Exception as e:
+        print(f"[WARN] Nie można odszyfrować {klucz}: {e}")
+        return default
+
+
+def migrate_secrets():
+    """Migruje plaintext sekrety do zaszyfrowanych. Bezpieczne do wielokrotnego wywołania."""
+    secret_keys = [
+        'allegro_client_secret', 'allegro_access_token', 'allegro_refresh_token',
+        'olx_client_secret', 'olx_access_token', 'olx_refresh_token',
+        'vinted_secret',
+        'ngrok_auth_token',
+        'gemini_api_key',
+        'telegram_bot_token', 'telegram_chat_id',
+    ]
+    f = _get_fernet()
+    if not f:
+        return 0
+    migrated = 0
+    for key in secret_keys:
+        val = get_config(key, '')
+        if val and not val.startswith('ENC:'):
+            set_secret(key, val)
+            migrated += 1
+    if migrated > 0:
+        print(f"[OK] Zaszyfrowano {migrated} sekretów w bazie danych")
+    return migrated
 
 def is_module_enabled(name):
     """Sprawdza czy moduł jest włączony. OLX/Vinted domyślnie wyłączone."""

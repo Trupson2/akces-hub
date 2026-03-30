@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="/static/kiosk.css">
 </head>
 <body>
-<script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
+<script nonce="{{ csp_nonce }}">if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
     <div class="container">
         
         <!-- Header -->
@@ -122,7 +122,7 @@
 
     </div>
 
-    <script>
+    <script nonce="{{ csp_nonce }}">
     function testPrint(printerType) {
         // Wyślij request do testowania drukarki
         const form = document.createElement('form');

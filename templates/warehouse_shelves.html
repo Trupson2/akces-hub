@@ -258,7 +258,7 @@
     <div id="panelContent" style="display:block;min-height:0"></div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 const shelvesData = {{ shelves_json|safe }};
 
 /* Move panel + overlay to <body> so they escape the .main-content stacking context (z-index:1) */

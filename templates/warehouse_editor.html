@@ -833,7 +833,7 @@
     <link rel="stylesheet" href="/static/kiosk.css">
 </head>
 <body>
-<script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
+<script nonce="{{ csp_nonce }}">if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
     <div class="editor-container">
 
         <!-- ── TOP BAR ── -->
@@ -1044,7 +1044,7 @@
         </div>
     </div>
 
-    <script>
+    <script nonce="{{ csp_nonce }}">
         // STAN APLIKACJI
         let canvas, ctx;
         let shelves = []; // Umieszczone regały

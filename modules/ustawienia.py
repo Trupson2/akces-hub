@@ -605,6 +605,15 @@ def ustawienia_retencja():
     return redirect('/ustawienia')
 
 
+@ustawienia_bp.route('/ustawienia/security', methods=['POST'])
+def ustawienia_security():
+    """Zapisuje ustawienia bezpieczeństwa"""
+    from modules.database import set_config
+    auto_login = 'true' if request.form.get('auto_login_lan') == 'on' else 'false'
+    set_config('auto_login_lan', auto_login)
+    return redirect('/ustawienia')
+
+
 @ustawienia_bp.route('/ustawienia/modules', methods=['POST'])
 def ustawienia_modules():
     """Zapisuje wlaczone/wylaczone moduly"""

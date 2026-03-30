@@ -4,7 +4,7 @@
 
 <!-- Particle Background -->
 <canvas id="techBg" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-1;pointer-events:none"></canvas>
-<script>
+<script nonce="{{ csp_nonce }}">
 (function(){
     const c=document.getElementById('techBg'),ctx=c.getContext('2d');
     let w,h,particles=[];
@@ -45,7 +45,7 @@
         <button id="pwa-install" style="padding:8px 18px;background:linear-gradient(135deg,var(--neon-primary),var(--neon-secondary));border:none;border-radius:10px;color:#fff;font-weight:700;font-size:0.82rem;cursor:pointer">Instaluj</button>
     </div>
 </div>
-<script>
+<script nonce="{{ csp_nonce }}">
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('pwa-banner').style.display='block';});
 document.getElementById('pwa-install')?.addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();const{outcome}=await deferredPrompt.userChoice;if(outcome==='accepted')document.getElementById('pwa-banner').style.display='none';deferredPrompt=null;}});
@@ -97,7 +97,7 @@ window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner'
 {% endif %}
 {% endif %}
 
-<script>
+<script nonce="{{ csp_nonce }}">
 function doSystemUpdate(btn){
     btn.disabled=true; btn.textContent=' Aktualizuję...';
     var card = btn.closest('.glass-card');
@@ -192,7 +192,7 @@ function doSystemUpdate(btn){
         </div>
     </div>
 </div>
-<script>
+<script nonce="{{ csp_nonce }}">
 function requestEarlyAccess(btn) {
     btn.disabled = true; btn.textContent = 'Wysyłanie...';
     fetch('/api/paletomat-early-access', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})})
@@ -256,7 +256,7 @@ function requestEarlyAccess(btn) {
     </a>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 // Generate sparkline bars (simulated 7-day history)
 (function(){
     function renderSparkline(id, currentVal, color) {
@@ -353,7 +353,7 @@ function requestEarlyAccess(btn) {
     {% endif %}
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 (function(){
     function updSys(){
         fetch('/api/system-stats').then(r=>r.json()).then(d=>{
@@ -640,7 +640,7 @@ function requestEarlyAccess(btn) {
     </a>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 fetch('/api/warehouse/heatmap').then(r=>r.json()).then(d=>{
     if(d.stats){
         document.getElementById('hm-locs').textContent=(d.stats.total_locations||'--');
@@ -764,7 +764,7 @@ fetch('/api/warehouse/heatmap').then(r=>r.json()).then(d=>{
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 function toggleDrilldown(id){
     const el=document.getElementById(id);
     const all=['dd-stats','dd-zakupy','dd-lezaki'];
@@ -952,7 +952,7 @@ function toggleDrilldown(id){
 }
 </style>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 (function() {
     let lastCheckedIds = new Set();
     let audioContext = null;

@@ -838,8 +838,8 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
-<script>
+<script nonce="{{ csp_nonce }}" src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<script nonce="{{ csp_nonce }}">
 var _chartLabels = {{ chart_labels|tojson }};
 var _chartDaily = {{ chart_data|tojson }};
 var _chartCumul = {{ chart_cumulative|tojson }};
@@ -891,7 +891,7 @@ function toggleChartMode(mode) {
 }
 </script>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 setInterval(async () => {
     try {
         const res = await fetch('/paletomat/api/queue-status');

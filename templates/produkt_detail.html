@@ -506,7 +506,7 @@
 
 <a href="{{ '/magazyn/paleta-id/' ~ p.paleta_id if p.paleta_id else '/magazyn' }}" class="pd-back"><span class="material-symbols-outlined" style="font-size:1rem">arrow_back</span> Powrot</a>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 /* ═══════════════════════════════════════════════════════════════
    Produkt Detail — JavaScript
    ═══════════════════════════════════════════════════════════════ */

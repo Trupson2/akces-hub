@@ -82,3 +82,4 @@ app.py.backup
 # License generator (nie dawać klientom!)
 tools/generate_license.py
 tools/license_*.json
+.env.key
