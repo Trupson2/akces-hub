@@ -563,17 +563,23 @@ ODPOWIEDZ TYLKO jako JSON array (bez markdown):
                 logger.error(f"[scout] Gemini error: {data['error']}")
             return []
 
-        # Parsuj JSON — wyciągnij array z tekstu (Gemini może owinąć w markdown)
+        # Parsuj JSON — wyciągnij array z tekstu (Gemini owija w ```json```)
+        # Usuń markdown code blocks
+        clean = text.strip()
+        clean = re.sub(r'^```(?:json)?\s*', '', clean)
+        clean = re.sub(r'\s*```\s*$', '', clean)
+        clean = clean.strip()
+
         items = None
         # Próba 1: czysty JSON
         try:
-            items = json.loads(text)
+            items = json.loads(clean)
         except json.JSONDecodeError:
             pass
 
-        # Próba 2: wyciągnij [...] z markdown/tekstu
+        # Próba 2: wyciągnij [...] z tekstu
         if items is None:
-            match = re.search(r'\[[\s\S]*\]', text)
+            match = re.search(r'\[[\s\S]*\]', clean)
             if match:
                 try:
                     items = json.loads(match.group())
@@ -581,7 +587,7 @@ ODPOWIEDZ TYLKO jako JSON array (bez markdown):
                     pass
 
         if not items or not isinstance(items, list):
-            logger.error(f"[scout] Gemini — nie sparsowano JSON. Początek tekstu: {text[:300]}")
+            logger.error(f"[scout] Gemini — nie sparsowano JSON. Tekst: {clean[:500]}")
             return []
 
         logger.info(f"[scout] Gemini sparsowano {len(items)} produktów")
