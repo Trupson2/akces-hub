@@ -117,10 +117,8 @@ PRZYKŁADY:
 
 Odpowiedz TYLKO polskim tytułem (bez cudzysłowów):"""
 
-        # Użyj gemini-2.0-flash do tłumaczeń (stabilniejszy niż 2.5-flash)
-        _trans_url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_key}'
         for _attempt in range(3):
-            _resp = _req.post(_trans_url, json={
+            _resp = _req.post(get_gemini_api_url(_key), json={
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {"temperature": 0.2, "maxOutputTokens": 150}
             }, timeout=20)
