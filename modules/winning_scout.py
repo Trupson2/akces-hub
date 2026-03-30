@@ -265,6 +265,13 @@ def _load_blacklist() -> dict:
             if r['tytul']:
                 bl['names'].add(_normalize(r['tytul']))
 
+        # Produkty z poprzednich skanów Scout (deduplikacja)
+        for r in conn.execute(
+            "SELECT product_name FROM winning_candidates WHERE status = 'keep_new'"
+        ).fetchall():
+            if r['product_name']:
+                bl['names'].add(_normalize(r['product_name']))
+
     except Exception as e:
         _log(f"[scout] Błąd ładowania blacklist: {e}")
 
@@ -1338,25 +1345,24 @@ def get_scout_stats() -> dict:
         conn = get_db()
 
         last_batch = get_latest_batch_id()
-        if not last_batch:
-            return {'total': 0, 'kept': 0, 'rejected': 0, 'last_run': '', 'batch_id': ''}
 
+        # Statystyki ze WSZYSTKICH skanów (nie kasujemy starych)
         stats = conn.execute("""
             SELECT
                 COUNT(*) as total,
                 SUM(CASE WHEN status = 'keep_new' THEN 1 ELSE 0 END) as kept,
                 SUM(CASE WHEN status LIKE 'reject_%' THEN 1 ELSE 0 END) as rejected,
-                MAX(created_at) as last_run
+                COUNT(DISTINCT batch_id) as scans
             FROM winning_candidates
-            WHERE batch_id = ?
-        """, (last_batch,)).fetchone()
+        """).fetchone()
 
         return {
             'total': stats['total'] or 0,
             'kept': stats['kept'] or 0,
             'rejected': stats['rejected'] or 0,
+            'scans': stats['scans'] or 0,
             'last_run': get_config('scout_last_run', ''),
-            'batch_id': last_batch,
+            'batch_id': last_batch or '',
         }
     except Exception as e:
         _log(f"[scout] get_scout_stats error: {e}")

@@ -351,8 +351,8 @@
     <span class="stat-val pink" id="statRejected">0</span>
   </div>
   <div class="stat-item">
-    <span class="stat-label">Batch</span>
-    <span class="stat-val" id="statBatch" style="font-size:0.72rem;color:var(--text-muted)">--</span>
+    <span class="stat-label">Skanów</span>
+    <span class="stat-val lime" id="statScans">0</span>
   </div>
 </div>
 
@@ -576,7 +576,7 @@
         document.getElementById('statLastRun').textContent = d.last_run ? d.last_run.substring(0, 16).replace('T', ' ') : '--';
         document.getElementById('statKept').textContent = d.kept || 0;
         document.getElementById('statRejected').textContent = d.rejected || 0;
-        document.getElementById('statBatch').textContent = d.batch_id || '--';
+        document.getElementById('statScans').textContent = d.scans || 0;
       })
       .catch(function() {});
   }
