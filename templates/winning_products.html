@@ -405,6 +405,7 @@
     <thead>
       <tr>
         <th style="width:36px">#</th>
+        <th style="width:48px"></th>
         <th onclick="sortTable('product_name')">Produkt</th>
         <th onclick="sortTable('category')">Kategoria</th>
         <th>Źródło</th>
@@ -616,6 +617,13 @@
       html += '<tr class="' + rowClass + '" onclick="showDetail(' + it.id + ')" style="cursor:pointer">';
       html += '<td style="text-align:center;font-weight:800;color:' + (rank<=3 ? '#ff6b9b' : 'var(--text-muted)') + '">' + rank + '</td>';
 
+      // Zdjęcie — miniaturka z Google Images
+      var imgQuery = encodeURIComponent(name + ' product');
+      var imgUrl = 'https://www.google.com/search?tbm=isch&q=' + imgQuery;
+      html += '<td style="text-align:center;padding:4px" onclick="event.stopPropagation()">';
+      html += '<a href="' + imgUrl + '" target="_blank" rel="noopener" title="Zobacz zdjęcia" style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;background:rgba(255,107,155,0.06);border:1px solid rgba(255,107,155,0.15);color:#ff6b9b;font-size:1.1rem;text-decoration:none;transition:all 0.15s" onmouseover="this.style.background=\'rgba(255,107,155,0.15)\'" onmouseout="this.style.background=\'rgba(255,107,155,0.06)\'">📷</a>';
+      html += '</td>';
+
       // Produkt
       html += '<td><div class="ws-name" title="' + name.replace(/"/g, '&quot;') + '">' + name.substring(0,55) + '</div>';
       if (namePl && namePl !== name) html += '<div class="ws-name-pl">' + namePl.substring(0,55) + '</div>';
@@ -792,10 +800,13 @@
     }
 
     // Links
+    var detailNameEnc = encodeURIComponent(item.product_name || '');
+    var detailNamePlEnc = encodeURIComponent(item.product_name_pl || item.product_name || '');
     h += '<div style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap">';
-    if (item.source_url) h += '<a href="' + item.source_url + '" target="_blank" class="ws-link" style="padding:8px 14px;font-size:0.72rem">Źródło produktu</a>';
+    h += '<a href="https://www.google.com/search?tbm=isch&q=' + detailNameEnc + '+product" target="_blank" class="ws-link" style="padding:8px 14px;font-size:0.72rem;border-color:rgba(255,107,155,0.3);color:#ff6b9b">📷 Zdjęcia</a>';
+    if (item.source_url) h += '<a href="' + item.source_url + '" target="_blank" class="ws-link" style="padding:8px 14px;font-size:0.72rem">AliExpress</a>';
     if (item.alibaba_url) h += '<a href="' + item.alibaba_url + '" target="_blank" class="ws-link alibaba" style="padding:8px 14px;font-size:0.72rem">Alibaba</a>';
-    h += '<a href="https://allegro.pl/listing?string=' + encodeURIComponent(item.product_name_pl || item.product_name || '') + '" target="_blank" class="ws-link" style="padding:8px 14px;font-size:0.72rem">Szukaj na Allegro</a>';
+    h += '<a href="https://allegro.pl/listing?string=' + detailNamePlEnc + '" target="_blank" class="ws-link" style="padding:8px 14px;font-size:0.72rem">Allegro</a>';
     h += '</div>';
 
     box.innerHTML = h;
