@@ -494,41 +494,26 @@ def _gemini_discover_trends(existing_names: list[str]) -> list[dict]:
 
         existing_str = ', '.join(existing_names[:30]) if existing_names else 'brak'
 
-        prompt = f"""Jesteś ekspertem od e-commerce na Allegro.pl w Polsce.
-Znajdź 25 trendujących produktów do sprzedaży na Allegro w 2026 roku.
+        prompt = f"""You are an e-commerce expert for Allegro.pl (Poland).
+Find 25 trending products to sell on Allegro in 2026.
 
-WYMAGANIA:
-- Niski koszt zakupu z Chin (poniżej 30 PLN/szt)
-- Małe i lekkie (mieszczą się w Paczkomat A/B/C)
-- Marża >200% (kup za <30 PLN, sprzedaj za >80 PLN)
-- Problem-solving (nie jednorazowe gadżety)
-- Sezon 2026: outdoor, smart home, fitness, auto, pet tech, beauty tools
-- Dostępne na Alibaba/AliExpress w hurcie (MOQ 50-300 szt)
+REQUIREMENTS:
+- Low buy cost from China (below 30 PLN / 7 USD per unit)
+- Small and light (fits Paczkomat A/B/C parcel locker)
+- Margin over 200% (buy below 30 PLN, sell above 80 PLN on Allegro)
+- Problem-solving products (not one-time gadgets)
+- Season 2026: outdoor, smart home, fitness, auto, pet tech, beauty tools
+- Available on Alibaba/AliExpress wholesale (MOQ 50-300 units)
 
-NIE PROPONUJ produktów z tej listy (już sprzedajemy):
+DO NOT suggest these (we already sell them):
 {existing_str}
 
-NIE PROPONUJ: kamerek samochodowych, obciążników, projektorów galaktyk,
-uchwytów telefonicznych, powerbanków, ładowarek bezprzewodowych, smartwatchy,
-fitness trackerów, kosiarek, pił teleskopowych.
+DO NOT suggest: dash cams, ankle weights, galaxy projectors,
+car phone holders, power banks, wireless chargers, smartwatches,
+fitness trackers, lawn mowers, telescopic saws.
 
-ODPOWIEDZ TYLKO jako JSON array (bez markdown):
-[
-  {{
-    "name": "English product name",
-    "category": "kategoria po polsku",
-    "buy_price_usd": 3.5,
-    "sell_price_pln": 89,
-    "source": "aliexpress",
-    "why_new": "dlaczego warto (1 zdanie)",
-    "why_can_sell": "dlaczego się sprzeda na Allegro (1 zdanie)",
-    "risk_flags": "ryzyka (1 zdanie)",
-    "paczkomat_fit": "A/B/C",
-    "growth_7d": 65,
-    "alibaba_moq": 100,
-    "alibaba_price_usd": 2.8
-  }}
-]"""
+RESPOND ONLY with a JSON array. Use ONLY ASCII characters in all string values (no special characters, no Polish letters). Example format:
+[{{"name":"LED Posture Corrector Belt","category":"fitness","buy_price_usd":3.5,"sell_price_pln":89,"source":"aliexpress","why_new":"new trend in posture correction","why_can_sell":"low competition on Allegro","risk_flags":"seasonal demand","paczkomat_fit":"A","growth_7d":65,"alibaba_moq":100,"alibaba_price_usd":2.8}}]"""
 
         from modules.utils import get_gemini_api_url
         api_url = get_gemini_api_url(api_key)
@@ -573,8 +558,12 @@ ODPOWIEDZ TYLKO jako JSON array (bez markdown):
         items = None
         parse_errors = []
 
-        # Wyczyść encoding — zamień problematyczne znaki
-        clean = clean.encode('utf-8', errors='replace').decode('utf-8')
+        # Agresywny cleanup JSON
+        clean = clean.encode('ascii', errors='ignore').decode('ascii')  # Usuń non-ASCII
+        clean = re.sub(r'[\x00-\x1f\x7f]', ' ', clean)  # Usuń control chars (zachowaj spacje)
+        clean = re.sub(r',\s*([}\]])', r'\1', clean)  # Usuń trailing commas
+        clean = re.sub(r'//[^\n]*', '', clean)  # Usuń komentarze //
+        clean = re.sub(r'\s+', ' ', clean).strip()  # Kompresuj whitespace
 
         # Próba 1: czysty JSON
         try:
