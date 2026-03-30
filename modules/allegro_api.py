@@ -3350,20 +3350,36 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                 # Mapowanie: Allegro status → lokalny status
                 new_local_status = None
 
-                # SENT — etykieta nadana, ale NIE oznaczaj jako wysłane
-                # (użytkownik najpierw drukuje etykiety, pakuje, potem oznacza ręcznie)
-                if allegro_status == 'SENT':
-                    new_local_status = 'nadana'
-                elif shipment_status in ('SENT', 'PICKED_UP'):
-                    new_local_status = 'nadana'
-                elif delivery_picked:
-                    new_local_status = 'wyslana'  # odebrana = faktycznie wysłana
+                # Mapowanie statusów Allegro → lokalny
                 # CANCELLED
-                elif allegro_status == 'CANCELLED':
+                if allegro_status == 'CANCELLED':
                     new_local_status = 'anulowana'
-                # BOUGHT/FILLED z fulfillment SENT lub PICKED_UP
-                elif allegro_status in ('BOUGHT', 'FILLED', 'READY_FOR_PROCESSING') and shipment_status in ('SENT', 'PICKED_UP'):
-                    new_local_status = 'nadana'
+                # pickedUp=true = kurier odebrał = WYSŁANA
+                elif delivery_picked:
+                    new_local_status = 'wyslana'
+                # fulfill=SENT lub PICKED_UP = nadano przesyłkę
+                elif shipment_status in ('SENT', 'PICKED_UP'):
+                    # Sprawdź czy zamówienie jest starsze niż 4h — wtedy oznacz jako wysłane
+                    # (bo user ręcznie nadał i kurier już odebrał)
+                    _order_age_h = 999
+                    try:
+                        _order_date = order.get('payment', {}).get('finishedAt', '') or order.get('updatedAt', '')
+                        if _order_date:
+                            from dateutil import parser as _dparser
+                            _order_dt = _dparser.isoparse(_order_date).replace(tzinfo=None)
+                            _order_age_h = (datetime.now() - _order_dt).total_seconds() / 3600
+                    except Exception:
+                        pass
+
+                    if _order_age_h > 4:
+                        new_local_status = 'wyslana'  # starsze niż 4h z fulfill=SENT → wysłane
+                    else:
+                        new_local_status = 'nadana'  # świeże — jeszcze pakuje
+                elif allegro_status == 'SENT':
+                    new_local_status = 'wyslana'  # Allegro status SENT = wysłane
+                # BOUGHT/FILLED/READY z jakimkolwiek fulfillment
+                elif allegro_status in ('BOUGHT', 'FILLED', 'READY_FOR_PROCESSING'):
+                    new_local_status = None  # Nie zmieniaj — to nowe zamówienie
 
                 # Aktualizuj adres dostawy (pickup point lub adres odbiorcy)
                 delivery = order.get('delivery') or {}
