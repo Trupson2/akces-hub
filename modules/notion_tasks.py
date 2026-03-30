@@ -203,6 +203,7 @@ def gather_data():
         SELECT
             COUNT(*) as zamowienia,
             COALESCE(SUM(CASE WHEN status NOT IN ('zwrot','anulowane','anulowana')
+                         AND (kupujacy IS NULL OR kupujacy != 'offline')
                          THEN cena * ilosc ELSE 0 END), 0) as przychod,
             COALESCE(SUM(CASE WHEN status = 'zwrot' THEN 1 ELSE 0 END), 0) as zwroty
         FROM sprzedaze
