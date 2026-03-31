@@ -10360,7 +10360,12 @@ def photo_by_id(photo_id):
         row = conn.execute("SELECT path FROM processed_photos WHERE id=?", (photo_id,)).fetchone()
         if not row or not os.path.exists(row['path']):
             abort(404)
-        return send_file(row['path'], mimetype='image/jpeg')
+        # SECURITY: walidacja ścieżki — tylko pliki z katalogu aplikacji
+        _app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        _real = os.path.realpath(row['path'])
+        if not _real.startswith(os.path.realpath(_app_dir)):
+            abort(403)
+        return send_file(_real, mimetype='image/jpeg')
     except Exception:
         abort(404)
 
