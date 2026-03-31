@@ -1631,9 +1631,15 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     _zysk = float(stats.get('zysk_miesiac', 0))
     # Marża po koszcie palet (nie COGS): (przychód - koszt_palet_msc - prowizja) / przychód
     _koszt_palet = float(stats.get('koszt_palet_msc', 0))
-    _zysk_palet = przychod_netto - _koszt_palet - przychod_netto * 0.11
+    _prowizja_kwota = przychod_netto * 0.11
+    _zysk_palet = przychod_netto - _koszt_palet - _prowizja_kwota
     _marza = round(_zysk_palet / przychod_netto * 100) if przychod_netto > 0 else 0
     _marza_color = '#22c55e' if _marza >= 40 else '#beee00' if _marza >= 25 else '#eab308' if _marza >= 15 else '#ef4444'
+    # Marża po VAT (23%) i PIT liniowym (19%)
+    # Przychód i koszty są brutto — VAT należny minus naliczony z palet i prowizji = _zysk_palet * 23/123
+    # Dochód netto dla PIT = _zysk_palet / 1.23; podatek = * 0.19; zostaje = * 0.81
+    _marza_net = round(_zysk_palet / 1.23 * 0.81 / przychod_netto * 100) if przychod_netto > 0 else 0
+    _marza_net_color = '#22c55e' if _marza_net >= 25 else '#beee00' if _marza_net >= 15 else '#eab308' if _marza_net >= 10 else '#ef4444'
     monthly_stats = {
         'przychod': f"{przychod_netto:.0f}",
         'przychod_brutto': f"{miesiac_kwota:.0f}",
@@ -1643,6 +1649,8 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
         'zysk': f"{_zysk:.0f}",
         'marza': _marza,
         'marza_color': _marza_color,
+        'marza_net': _marza_net,
+        'marza_net_color': _marza_net_color,
         'roi': f"{stats.get('roi_miesiac', 0):.0f}",
         'zwroty_cnt': stats.get('zwroty_miesiac_cnt', 0),
         'zwroty_suma': f"{zwroty_suma:.0f}",
