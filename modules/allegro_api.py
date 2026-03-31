@@ -3302,15 +3302,8 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
     except Exception as _e:
         print(f"[SYNC] Błąd READY_FOR_PROCESSING: {_e}")
 
-    # SENT bez filtra daty (ostatnie 100 wysłanych — do aktualizacji statusów)
-    try:
-        orders_data, error = get_orders('SENT', from_date=None, limit=100, fetch_all=False)
-        if orders_data and 'checkoutForms' in orders_data:
-            for _o in orders_data['checkoutForms']:
-                _o['_allegro_query_status'] = 'SENT'
-            all_orders.extend(orders_data['checkoutForms'])
-    except Exception as _e:
-        print(f"[SYNC] Błąd SENT: {_e}")
+    # UWAGA: Allegro nie obsługuje statusu SENT w checkout-forms query.
+    # Status wysyłki jest w order.fulfillment.status (sprawdzany niżej w kodzie).
     
     if not all_orders:
         return 0, None
