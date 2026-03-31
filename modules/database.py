@@ -706,6 +706,75 @@ def migrate_secrets():
         print(f"[OK] Zaszyfrowano {migrated} sekretów w bazie danych")
     return migrated
 
+# ============================================================
+# DUPLIKATY PRODUKTÓW — sprawdzanie po ASIN/EAN przed dodaniem
+# ============================================================
+
+def find_duplicate_product(asin=None, ean=None, nazwa=None):
+    """
+    Szuka istniejącego produktu w DB po ASIN, EAN lub nazwie.
+    Zwraca dict z danymi produktu lub None jeśli nie znaleziono.
+
+    Priorytet: ASIN > EAN > nazwa (exact match).
+    """
+    conn = get_db()
+
+    # Szukaj po ASIN (najdokładniejsze)
+    if asin and asin.strip():
+        asin = asin.strip().upper()
+        row = conn.execute("""
+            SELECT p.id, p.nazwa, p.asin, p.ean, p.ilosc, p.lokalizacja, p.regal,
+                   COALESCE(pal.nazwa, '') as paleta_nazwa
+            FROM produkty p
+            LEFT JOIN palety pal ON p.paleta_id = pal.id
+            WHERE UPPER(TRIM(p.asin)) = ? AND p.ilosc > 0
+            ORDER BY p.ilosc DESC LIMIT 1
+        """, (asin,)).fetchone()
+        if row:
+            return dict(row)
+
+    # Szukaj po EAN
+    if ean and ean.strip():
+        ean = ean.strip()
+        row = conn.execute("""
+            SELECT p.id, p.nazwa, p.asin, p.ean, p.ilosc, p.lokalizacja, p.regal,
+                   COALESCE(pal.nazwa, '') as paleta_nazwa
+            FROM produkty p
+            LEFT JOIN palety pal ON p.paleta_id = pal.id
+            WHERE TRIM(p.ean) = ? AND p.ilosc > 0
+            ORDER BY p.ilosc DESC LIMIT 1
+        """, (ean,)).fetchone()
+        if row:
+            return dict(row)
+
+    # Szukaj po ASIN (nawet z ilosc=0 — kiedyś sprzedawaliśmy)
+    if asin and asin.strip():
+        row = conn.execute("""
+            SELECT p.id, p.nazwa, p.asin, p.ean, p.ilosc, p.lokalizacja, p.regal,
+                   COALESCE(pal.nazwa, '') as paleta_nazwa
+            FROM produkty p
+            LEFT JOIN palety pal ON p.paleta_id = pal.id
+            WHERE UPPER(TRIM(p.asin)) = ?
+            ORDER BY p.id DESC LIMIT 1
+        """, (asin.strip().upper(),)).fetchone()
+        if row:
+            return dict(row)
+
+    return None
+
+
+def add_quantity_to_existing(product_id, quantity=1):
+    """Dodaje ilość do istniejącego produktu zamiast tworzyć duplikat."""
+    conn = get_db()
+    conn.execute(
+        "UPDATE produkty SET ilosc = ilosc + ? WHERE id = ?",
+        (quantity, product_id)
+    )
+    conn.commit()
+    row = conn.execute("SELECT id, nazwa, ilosc FROM produkty WHERE id = ?", (product_id,)).fetchone()
+    return dict(row) if row else None
+
+
 def is_module_enabled(name):
     """Sprawdza czy moduł jest włączony. OLX/Vinted domyślnie wyłączone."""
     default = '0' if name in ('olx', 'vinted') else '1'
