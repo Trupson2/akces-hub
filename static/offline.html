@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Offline — Akces Hub</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0d14;color:#e2e8f0;font-family:'Inter',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:32px 24px;text-align:center;max-width:360px;width:100%}
+.icon{font-size:3rem;margin-bottom:16px}
+h1{font-size:1.2rem;font-weight:700;margin-bottom:8px}
+p{font-size:0.85rem;color:#94a3b8;margin-bottom:24px;line-height:1.5}
+.btn{display:block;padding:14px 20px;border-radius:10px;font-weight:700;font-size:0.9rem;text-decoration:none;cursor:pointer;border:none;width:100%;margin-bottom:10px}
+.btn-primary{background:linear-gradient(135deg,#8ff5ff,#beee00);color:#0d0d14}
+.btn-secondary{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#e2e8f0}
+.status{font-size:0.75rem;color:#64748b;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">📡</div>
+  <h1>Brak połączenia</h1>
+  <p id="msg">Szukam tunelu ngrok...</p>
+  <div id="btns"></div>
+  <div class="status" id="status"></div>
+</div>
+<script>
+(function(){
+  var path = window.location.pathname || '/';
+  var ngrokUrl = null;
+  try { ngrokUrl = localStorage.getItem('ngrok_url'); } catch(e){}
+
+  var msg = document.getElementById('msg');
+  var btns = document.getElementById('btns');
+  var status = document.getElementById('status');
+
+  function makeBtn(label, cls, href, onclick){
+    var b = document.createElement(href ? 'a' : 'button');
+    b.className = 'btn ' + cls;
+    b.textContent = label;
+    if(href) b.href = href;
+    if(onclick) b.onclick = onclick;
+    btns.appendChild(b);
+  }
+
+  if(ngrokUrl){
+    msg.textContent = 'Znaleziono tunel ngrok. Przekierowuję...';
+    status.textContent = ngrokUrl;
+    // Próbuj połączyć przez ngrok
+    var target = ngrokUrl + (path === '/offline' ? '/' : path);
+    setTimeout(function(){ window.location.replace(target); }, 1200);
+    makeBtn('Otwórz przez ngrok →', 'btn-primary', target);
+    makeBtn('Spróbuj lokalnie', 'btn-secondary', null, function(){ window.location.reload(); });
+  } else {
+    msg.textContent = 'Nie masz połączenia i brak zapisanego tunelu ngrok.';
+    status.textContent = 'Otwórz aplikację w domu (LAN) — ngrok URL zostanie zapisany automatycznie.';
+    makeBtn('Spróbuj ponownie', 'btn-secondary', null, function(){ window.location.reload(); });
+  }
+})();
+</script>
+</body>
+</html>
