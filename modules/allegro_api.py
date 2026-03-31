@@ -2831,29 +2831,28 @@ FORMAT ODPOWIEDZI (tylko JSON, bez komentarzy):
 }}"""
 
     try:
-        import google.generativeai as genai
-        from modules.database import get_config
-        gemini_model_name = get_config('ai_model_tytuly', get_config('gemini_model', 'gemini-2.5-flash'))
-        genai.configure(api_key=gemini_key)
-        model = genai.GenerativeModel(gemini_model_name)
-        
-        response = model.generate_content(prompt)
-        try:
-            from .pallet_monitor import log_gemini_usage
-            log_gemini_usage(response, 'param_mapping')
-        except: pass
-        response_text = response.text.strip()
+        import requests as _req
+        from modules.database import get_config as _gc
+        gemini_model_name = _gc('ai_model_tytuly', _gc('gemini_model', 'gemini-2.5-flash'))
+        _url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model_name}:generateContent?key={gemini_key}"
+        _payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.1, "maxOutputTokens": 4096}
+        }
+        _resp = _req.post(_url, json=_payload, timeout=60)
+        _resp.raise_for_status()
+        _data = _resp.json()
+        response_text = _data['candidates'][0]['content']['parts'][0]['text'].strip()
 
         # Wyciągnij JSON z odpowiedzi
         if '```json' in response_text:
             response_text = response_text.split('```json')[1].split('```')[0].strip()
         elif '```' in response_text:
             response_text = response_text.split('```')[1].split('```')[0].strip()
-        
+
         extracted = json.loads(response_text)
         print(f"[SMAR] AI wyekstrahował {len(extracted)} parametrów")
-        
-        # Debug - pokaż co wyekstrahowano
+
         for param_id, data in extracted.items():
             if 'value_ids' in data:
                 print(f"   [OK] {param_id}: value_ids={data['value_ids']} (multi)")
@@ -2863,7 +2862,7 @@ FORMAT ODPOWIEDZI (tylko JSON, bez komentarzy):
                 print(f"   [OK] {param_id}: value={data['value']}")
 
         return extracted
-        
+
     except Exception as e:
         print(f"[ERR] Błąd AI ekstrakcji: {e}")
         return {}
