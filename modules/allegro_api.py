@@ -1731,10 +1731,83 @@ def _map_stan_to_condition(stan):
     return mapping.get(_stan, 'USED')
 
 
+def _inject_stan_parameter(offer_data, stan, category_id):
+    """
+    Wstrzykuje parametr 'Stan' do offer_data['parameters'] na podstawie stanu magazynowego.
+    Pobiera dostępne wartości z GET /sale/categories/{categoryId}/parameters.
+    Szuka parametru po ID=11323 lub nazwie 'Stan'/'Stan produktu'.
+    Nadpisuje wartość ustawioną przez AI (AI zawsze wpisuje 'Nowy').
+    """
+    if not stan or not category_id:
+        return
+
+    # Pobierz parametry kategorii (korzystamy z istniejącej funkcji)
+    params_result, error = get_category_parameters(category_id)
+    if error or not params_result:
+        print(f"[STAN] Nie można pobrać parametrów kategorii {category_id}: {error}")
+        return
+
+    # Znajdź parametr Stan po ID 11323 lub nazwie
+    stan_param = None
+    for p in params_result.get('parameters', []):
+        if str(p.get('id')) == '11323' or p.get('name', '').lower() in ('stan', 'stan produktu', 'condition'):
+            stan_param = p
+            break
+
+    if not stan_param:
+        print(f"[STAN] Brak parametru Stan w kategorii {category_id}")
+        return
+
+    stan_param_id = str(stan_param['id'])
+    dictionary = stan_param.get('dictionary', [])
+    if not dictionary:
+        print(f"[STAN] Parametr Stan nie ma słownika")
+        return
+
+    # Mapowanie wewnętrznych nazw → szukane frazy w słowniku Allegro
+    _search_map = {
+        'Nowy':                ['nowy'],
+        'Powystawowy':         ['powystawowy', 'powystawiony', 'bardzo dobry'],
+        'Używany':             ['używany', 'dobry'],
+        'Używany - dobry':     ['dobry', 'używany'],
+        'Używany - akceptowalny': ['akceptowalny', 'używany'],
+        'Uszkodzony':          ['do renowacji', 'na części', 'uszkodzony', 'uszkodz'],
+        'Na części':           ['na części', 'do renowacji'],
+        'Odnowiony':           ['odnowiony', 'refurbished'],
+    }
+    search_terms = _search_map.get(stan, [stan.lower()])
+
+    found_value_id = None
+    for dict_val in dictionary:
+        val_name = dict_val.get('value', '').lower()
+        for term in search_terms:
+            if term in val_name or val_name in term:
+                found_value_id = str(dict_val['id'])
+                print(f"[STAN] {stan!r} → '{dict_val['value']}' (id={found_value_id})")
+                break
+        if found_value_id:
+            break
+
+    # Fallback: pierwsza wartość słownika (zazwyczaj "Nowy")
+    if not found_value_id and dictionary:
+        found_value_id = str(dictionary[0]['id'])
+        print(f"[STAN] Fallback → '{dictionary[0].get('value')}' (id={found_value_id})")
+
+    if not found_value_id:
+        return
+
+    # Wstrzyknij/nadpisz w offer_data['parameters']
+    current_params = offer_data.get('parameters', [])
+    # Usuń poprzedni Stan (ustawiony przez AI)
+    current_params = [p for p in current_params if str(p.get('id')) != stan_param_id]
+    # Wstaw Stan na początku (wymagany parametr)
+    current_params.insert(0, {'id': stan_param_id, 'valuesIds': [found_value_id]})
+    offer_data['parameters'] = current_params
+    print(f"[STAN] Parametr Stan ({stan_param_id}) ustawiony: valuesIds=[{found_value_id}]")
+
+
 def update_offer_condition(offer_id, stan):
     """Ustawia stan produktu (condition) na istniejącej ofercie przez PATCH"""
-    # Allegro API nie obsługuje condition przez product-offers ani sale/offers
-    # Stan trzeba ustawić ręcznie w Sales Center
     condition_value = _map_stan_to_condition(stan)
     print(f"ℹ Stan oferty {offer_id}: {condition_value} (ustaw ręcznie w Sales Center)")
     return None
@@ -1950,6 +2023,11 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
         elif isinstance(params_result, list) and params_result:
             offer_data['parameters'] = params_result
             print(f"[OK] {len(params_result)} params (legacy)")
+
+    # Wstrzyknij parametr Stan (11323) — nadpisuje wartość AI, używa rzeczywistego stanu magazynowego
+    # Stan jest parametrem oferty (nie produktu), więc musi być w offer_data['parameters']
+    if stan:
+        _inject_stan_parameter(offer_data, stan, kategoria_id)
 
     # Zbuduj GPSR productSet entry — ZAWSZE jako tekst (MANUAL), PDF attachment jako bonus
     if gpsr:
