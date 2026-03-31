@@ -1629,7 +1629,10 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     zwroty_suma = float(stats.get('zwroty_miesiac_suma', 0))
     przychod_netto = miesiac_kwota  # msc_suma już odlicza zwroty
     _zysk = float(stats.get('zysk_miesiac', 0))
-    _marza = round(_zysk / przychod_netto * 100) if przychod_netto > 0 else 0
+    # Marża po koszcie palet (nie COGS): (przychód - koszt_palet_msc - prowizja) / przychód
+    _koszt_palet = float(stats.get('koszt_palet_msc', 0))
+    _zysk_palet = przychod_netto - _koszt_palet - przychod_netto * 0.11
+    _marza = round(_zysk_palet / przychod_netto * 100) if przychod_netto > 0 else 0
     _marza_color = '#22c55e' if _marza >= 40 else '#beee00' if _marza >= 25 else '#eab308' if _marza >= 15 else '#ef4444'
     monthly_stats = {
         'przychod': f"{przychod_netto:.0f}",
