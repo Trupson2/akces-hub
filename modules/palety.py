@@ -662,6 +662,50 @@ def produkt_quick_draft(produkt_id):
     ean = produkt['ean'] or None
     kategoria = produkt['kategoria'] or ''
 
+    # --- ASIN DEDUP: jeśli jest już aktywna oferta z tym ASIN → dodaj ilość zamiast tworzyć nową ---
+    prod_asin = produkt.get('asin')
+    if prod_asin:
+        existing_offer = conn.execute('''
+            SELECT o.allegro_id, o.ilosc, o.tytul, p.paleta
+            FROM oferty o
+            JOIN produkty p ON o.produkt_id = p.id
+            WHERE p.asin = ? AND o.status IN ('aktywna', 'wystawiona')
+              AND o.produkt_id != ?
+            ORDER BY o.data_wystawienia DESC
+            LIMIT 1
+        ''', (prod_asin, produkt_id)).fetchone()
+
+        if existing_offer:
+            from modules.allegro_api import update_offer_stock as _update_stock
+            new_qty = (existing_offer['ilosc'] or 0) + ilosc
+            result_upd, err_upd = _update_stock(existing_offer['allegro_id'], new_qty)
+            if result_upd is not None or err_upd is None:
+                conn.execute("UPDATE produkty SET status='dodano_do_oferty' WHERE id=?", (produkt_id,))
+                conn.commit()
+                content = f'''
+                <div class="header">
+                    <h1><span class=material-symbols-outlined>add_shopping_cart</span> Dodano do istniejącej oferty!</h1>
+                    <small>ASIN: {prod_asin}</small>
+                </div>
+                <div style="background:rgba(34,197,94,0.08);border:2px solid rgba(34,197,94,0.4);border-radius:12px;padding:20px;margin-bottom:20px">
+                    <div style="font-weight:600;color:var(--green);margin-bottom:10px">
+                        <span class=material-symbols-outlined style="vertical-align:middle">check_circle</span>
+                        Ilość zaktualizowana na istniejącej ofercie
+                    </div>
+                    <div style="color:var(--text)">
+                        <strong>Oferta:</strong> {existing_offer['tytul'][:60]}...<br>
+                        <strong>Skąd:</strong> paleta &ldquo;{existing_offer['paleta'] or '?'}&rdquo;<br>
+                        <strong>Nowa ilość:</strong> {new_qty} szt. (+{ilosc} szt. z tej palety)<br>
+                        <strong>ID Allegro:</strong> {existing_offer['allegro_id']}
+                    </div>
+                </div>
+                <a href="/palety" class="back">&larr; Powrót do palet</a>
+                '''
+                return render(content, 'Dodano do oferty')
+            else:
+                # Błąd aktualizacji — idź normalną ścieżką (utwórz nową ofertę)
+                print(f"[DEDUP] update_offer_stock error: {err_upd} — tworzę nową ofertę")
+
     # Generuj prosty opis (albo użyj istniejącego)
     opis = produkt['opis_ai'] if produkt['opis_ai'] else f'''
     <p><strong>{produkt['nazwa']}</strong></p>
