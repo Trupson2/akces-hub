@@ -661,7 +661,9 @@ NO = ONLY furniture, large appliances, items over 64cm in any dimension
 Most products from China fit B or C. Use NO very rarely.
 
 Return ONLY JSON array, ASCII only, no markdown, no comments:
-[{{"name":"Product Name","category":"cat","buy_price_usd":5,"sell_price_pln":129,"source":"aliexpress","why_new":"reason","why_can_sell":"reason","risk_flags":"risk","paczkomat_fit":"B","growth_7d":50,"alibaba_moq":100,"alibaba_price_usd":4}}]"""
+[{{"name":"Product Name","category":"cat","buy_price_usd":5,"sell_price_pln":129,"source":"aliexpress","why_new":"powod po polsku","why_can_sell":"powod po polsku","risk_flags":"ryzyko po polsku","paczkomat_fit":"B","growth_7d":50,"alibaba_moq":100,"alibaba_price_usd":4}}]
+
+IMPORTANT: "why_new", "why_can_sell" and "risk_flags" values MUST be in Polish language. All other fields in English/ASCII."""
 
             resp = requests.post(
                 api_url,
