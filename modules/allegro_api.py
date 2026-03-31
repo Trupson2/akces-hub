@@ -3292,8 +3292,8 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
     # Pobierz zamówienia w różnych statusach
     # Tylko statusy które Allegro faktycznie obsługuje z filtrem daty
     all_orders = []
-    # Allegro: FILLED i BOUGHT nie obsługują updatedAt.gte — zwracają 400
-    valid_statuses = ['READY_FOR_PROCESSING', 'SENT', 'CANCELLED']
+    # Allegro: tylko READY_FOR_PROCESSING i SENT obsługują updatedAt.gte
+    valid_statuses = ['READY_FOR_PROCESSING', 'SENT']
     for status in valid_statuses:
         try:
             orders_data, error = get_orders(status, from_date=from_date)
