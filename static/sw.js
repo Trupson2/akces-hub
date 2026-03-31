@@ -1,5 +1,5 @@
 // Service Worker dla Akces Hub PWA
-const CACHE_NAME = 'akces-hub-v5';
+const CACHE_NAME = 'akces-hub-v6';
 
 // Zasoby do cache'owania
 const CACHE_ASSETS = [
@@ -8,7 +8,8 @@ const CACHE_ASSETS = [
   '/paletomat',
   '/narzedzia',
   '/analytics/dashboard',
-  '/static/manifest.json'
+  '/static/manifest.json',
+  '/static/offline.html'
 ];
 
 // Odbierz wiadomość od strony (skipWaiting)
@@ -91,8 +92,11 @@ self.addEventListener('fetch', (event) => {
             if (cachedResponse) {
               return cachedResponse;
             }
-            // Brak w cache - pokaż stronę offline
-            return new Response('Offline', {status: 503});
+            // Brak w cache — serwuj offline.html (przekieruje na ngrok URL jeśli znany)
+            return caches.match('/static/offline.html')
+              .then(function(offlinePage){
+                return offlinePage || new Response('Offline', {status: 503});
+              });
           });
       })
   );

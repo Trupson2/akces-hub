@@ -294,6 +294,8 @@
                 box.style.display='block';
                 url.textContent=d.url;url.dataset.full=d.url;
                 btnStart.disabled=true;btnStop.disabled=false;
+                // Zapisz ngrok URL — offline PWA użyje go do przekierowania
+                try{localStorage.setItem('ngrok_url', d.url);}catch(e){}
             }else{
                 dot.className='kd-dot off';
                 st.textContent='Offline';st.style.color='#ef4444';
