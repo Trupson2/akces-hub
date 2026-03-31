@@ -1628,13 +1628,18 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     # Statystyki COGS do dashboardu
     zwroty_suma = float(stats.get('zwroty_miesiac_suma', 0))
     przychod_netto = miesiac_kwota  # msc_suma już odlicza zwroty
+    _zysk = float(stats.get('zysk_miesiac', 0))
+    _marza = round(_zysk / przychod_netto * 100) if przychod_netto > 0 else 0
+    _marza_color = '#22c55e' if _marza >= 40 else '#beee00' if _marza >= 25 else '#eab308' if _marza >= 15 else '#ef4444'
     monthly_stats = {
         'przychod': f"{przychod_netto:.0f}",
         'przychod_brutto': f"{miesiac_kwota:.0f}",
         'cogs': f"{stats.get('cogs_miesiac', 0):.0f}",
         'koszt_palet': f"{stats.get('koszt_palet_msc', 0):.0f}",
         'prowizja': f"{przychod_netto * 0.11:.0f}",
-        'zysk': f"{stats.get('zysk_miesiac', 0):.0f}",
+        'zysk': f"{_zysk:.0f}",
+        'marza': _marza,
+        'marza_color': _marza_color,
         'roi': f"{stats.get('roi_miesiac', 0):.0f}",
         'zwroty_cnt': stats.get('zwroty_miesiac_cnt', 0),
         'zwroty_suma': f"{zwroty_suma:.0f}",
