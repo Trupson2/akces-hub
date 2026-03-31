@@ -1506,13 +1506,20 @@ def paleta_import_xlsx():
                     # Auto-kategoryzacja na podstawie nazwy
                     prod_kategoria = auto_kategoryzuj(prod_nazwa)
 
-                    conn.execute('''
-                        INSERT INTO produkty (nazwa, ean, ilosc, cena_netto, cena_brutto, cena_allegro, paleta_id, dostawca, status, kategoria)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'magazyn', ?)
-                    ''', (prod_nazwa[:200], prod_ean, prod_ilosc, prod_cena, prod_cena_brutto, prod_cena_detal, paleta_id, dostawca, prod_kategoria))
-
-                    # Dodaj do historii - WYŁĄCZONE (konflikt bazy danych)
-                    produkt_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
+                    # Cross-palet dedup: sprawdź czy EAN już istnieje
+                    from .database import find_duplicate_product
+                    _dup = find_duplicate_product(ean=prod_ean) if prod_ean else None
+                    if _dup and _dup['ilosc'] > 0:
+                        # Istnieje — dodaj ilość zamiast duplikatu
+                        conn.execute('UPDATE produkty SET ilosc = ilosc + ? WHERE id = ?', (prod_ilosc, _dup['id']))
+                        print(f"[DEDUP] EAN {prod_ean}: +{prod_ilosc} do #{_dup['id']} ({_dup['nazwa'][:30]})")
+                        produkt_id = _dup['id']
+                    else:
+                        conn.execute('''
+                            INSERT INTO produkty (nazwa, ean, ilosc, cena_netto, cena_brutto, cena_allegro, paleta_id, dostawca, status, kategoria)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'magazyn', ?)
+                        ''', (prod_nazwa[:200], prod_ean, prod_ilosc, prod_cena, prod_cena_brutto, prod_cena_detal, paleta_id, dostawca, prod_kategoria))
+                        produkt_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
 
                     produkty_dodane += 1
 

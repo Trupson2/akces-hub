@@ -9799,6 +9799,53 @@ def ai_ocena_stanu():
 # RODO - ANONIMIZACJA DANYCH KLIENTA
 # ============================================================
 
+@magazynier_bp.route('/magazyn/api/check-duplicate', methods=['POST'])
+def check_duplicate():
+    """Sprawdza czy produkt o danym ASIN/EAN już istnieje w magazynie."""
+    from .database import find_duplicate_product
+    body = request.get_json(silent=True) or {}
+    asin = body.get('asin', '').strip()
+    ean = body.get('ean', '').strip()
+    nazwa = body.get('nazwa', '').strip()
+
+    if not asin and not ean:
+        return jsonify({'found': False})
+
+    existing = find_duplicate_product(asin=asin, ean=ean, nazwa=nazwa)
+    if existing:
+        return jsonify({
+            'found': True,
+            'product': {
+                'id': existing['id'],
+                'nazwa': existing['nazwa'],
+                'asin': existing.get('asin', ''),
+                'ean': existing.get('ean', ''),
+                'ilosc': existing['ilosc'],
+                'lokalizacja': existing.get('lokalizacja', ''),
+                'regal': existing.get('regal', ''),
+                'paleta': existing.get('paleta_nazwa', ''),
+            }
+        })
+    return jsonify({'found': False})
+
+
+@magazynier_bp.route('/magazyn/api/add-quantity', methods=['POST'])
+def add_quantity():
+    """Dodaje ilość do istniejącego produktu (zamiast tworzyć duplikat)."""
+    from .database import add_quantity_to_existing
+    body = request.get_json(silent=True) or {}
+    product_id = body.get('product_id')
+    quantity = int(body.get('quantity', 1))
+
+    if not product_id or quantity < 1:
+        return jsonify({'success': False, 'error': 'Brak product_id lub quantity'}), 400
+
+    result = add_quantity_to_existing(product_id, quantity)
+    if result:
+        return jsonify({'success': True, 'product': result})
+    return jsonify({'success': False, 'error': 'Nie znaleziono produktu'}), 404
+
+
 @magazynier_bp.route('/magazyn/api/anonimizuj-klienta', methods=['POST'])
 def anonimizuj_klienta():
     """
