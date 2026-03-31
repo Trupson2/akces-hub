@@ -3292,16 +3292,17 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
     # Pobierz zamówienia w różnych statusach
     # Tylko statusy które Allegro faktycznie obsługuje z filtrem daty
     all_orders = []
-    valid_statuses = ['READY_FOR_PROCESSING', 'SENT', 'FILLED', 'BOUGHT', 'CANCELLED']
+    # Allegro: FILLED i BOUGHT nie obsługują updatedAt.gte — zwracają 400
+    valid_statuses = ['READY_FOR_PROCESSING', 'SENT', 'CANCELLED']
     for status in valid_statuses:
         try:
             orders_data, error = get_orders(status, from_date=from_date)
             if orders_data and 'checkoutForms' in orders_data:
                 for _o in orders_data['checkoutForms']:
-                    _o['_allegro_query_status'] = status  # Zapamiętaj status z query
+                    _o['_allegro_query_status'] = status
                 all_orders.extend(orders_data['checkoutForms'])
         except Exception as _e:
-            pass  # Pomiń statusy które nie obsługują filtra daty
+            print(f"[SYNC] Błąd pobierania {status}: {_e}")
     
     if not all_orders:
         return 0, None
