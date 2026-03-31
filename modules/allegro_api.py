@@ -654,7 +654,7 @@ def allegro_request(method, endpoint, data=None, params=None, _retry=False, _att
                         else:
                             msgs.append(msg)
                     error_details = "; ".join(msgs)
-                print(f"* Allegro API error {response.status_code}: {error_details}")
+                print(f"* Allegro API error {response.status_code}: {error_details} [URL: {method} {endpoint}]")
             except ValueError:
                 # response.json() failed — not valid JSON
                 error_details = f"Allegro API HTTP {response.status_code} (odpowiedź nie jest JSON)"
