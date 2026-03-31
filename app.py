@@ -183,6 +183,21 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)  # Sesja wygasa p
 csrf = CSRFProtect(app)
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Wyłącz domyślnie, włącz per-route
 
+# Rate limiting — ochrona przed brute-force i DDoS
+try:
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+    limiter = Limiter(
+        get_remote_address,
+        app=app,
+        default_limits=["200 per minute"],  # Globalny limit
+        storage_uri="memory://",
+    )
+    print("[OK] Rate limiter aktywny (200/min global)")
+except ImportError:
+    limiter = None
+    print("[WARN] flask-limiter nie zainstalowany — brak rate limitingu")
+
 # Jinja2 filters
 @app.template_filter('parse_json')
 def parse_json_filter(value):
@@ -2337,7 +2352,8 @@ def license_page():
                         import requests as _rq
                         from modules.license import get_hwid
                         _hwid = get_hwid()
-                        _resp = _rq.post('https://unsatiating-dirgelike-audrina.ngrok-free.dev/api/license/verify',
+                        _lic_server = get_config('license_server_url', 'https://unsatiating-dirgelike-audrina.ngrok-free.dev')
+                        _resp = _rq.post(f'{_lic_server}/api/license/verify',
                             json={'key': key, 'hwid': _hwid, 'timestamp': __import__('datetime').datetime.now().isoformat(),
                                   'version': VERSION}, timeout=15)
                         _data = _resp.json()
@@ -5208,6 +5224,7 @@ def require_api_key(f):
     return decorated
 
 @app.route('/api/key', methods=['GET'])
+@(limiter.limit("5 per minute") if limiter else lambda f: f)
 def api_show_key():
     """Pokazuje klucz API (tylko z localhost)"""
     if request.remote_addr not in ('127.0.0.1', '::1', 'localhost'):

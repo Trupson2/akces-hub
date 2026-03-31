@@ -42,7 +42,12 @@ def _load_license_secret():
 LICENSE_SECRET = _load_license_secret()
 
 # Heartbeat config
-HEARTBEAT_URL = 'https://unsatiating-dirgelike-audrina.ngrok-free.dev/api/license/verify'
+# SECURITY: URL konfigurowalny — nie hardcoded
+try:
+    from modules.database import get_config as _gc
+    HEARTBEAT_URL = _gc('license_server_url', 'https://unsatiating-dirgelike-audrina.ngrok-free.dev') + '/api/license/verify'
+except Exception:
+    HEARTBEAT_URL = 'https://unsatiating-dirgelike-audrina.ngrok-free.dev/api/license/verify'
 HEARTBEAT_INTERVAL = 86400  # 24h
 HEARTBEAT_GRACE_DAYS = 7  # Dni offline bez blokady
 
