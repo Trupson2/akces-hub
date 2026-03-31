@@ -3396,25 +3396,35 @@ def generator_mass_create_from_paleta_stream():
                     conn.commit()
                     yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>build</span> Auto-odlinkowano błędne powiązanie oferty', 'color': '#f59e0b'}) + "\n\n"
 
-                # 2. Szukaj po ASIN (najwiarygodniejszy identyfikator)
+                # Stan produktu — kluczowy dla dedup (różny stan = osobna oferta Allegro)
+                _current_stan = (p.get('stan') or 'Nowy').strip()
+
+                # 2. Szukaj po ASIN (najwiarygodniejszy identyfikator) + pasujący stan
                 if asin and not existing_offer:
                     all_prod_ids = [r['id'] for r in conn.execute('SELECT id FROM produkty WHERE asin = ?', (asin,)).fetchall()]
                     if all_prod_ids:
                         ph = ','.join('?' * len(all_prod_ids))
                         candidates = conn.execute(
-                            "SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status "
+                            "SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status, p2.stan as prod_stan "
                             "FROM oferty o "
+                            "LEFT JOIN produkty p2 ON o.produkt_id = p2.id "
                             "WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published') "
                             "AND o.allegro_id IS NOT NULL AND o.allegro_id != '' "
                             "AND o.produkt_id IN (" + ph + ")",
                             all_prod_ids).fetchall()
                         for c in candidates:
-                            if _nazwa_match(c['tytul']):
-                                existing_offer = c
-                                yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>search</span> Match po ASIN {asin}: oferta="{c["tytul"][:40]}"', 'color': '#6366f1'}) + "\n\n"
-                                break
+                            if not _nazwa_match(c['tytul']):
+                                continue
+                            # Sprawdź czy stan się zgadza — różny stan = osobna oferta
+                            _offer_stan = (c['prod_stan'] or 'Nowy').strip()
+                            if _offer_stan != _current_stan:
+                                yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>inventory_2</span> ASIN {asin}: oferta ma stan "{_offer_stan}" != "{_current_stan}" — tworzę osobną ofertę', 'color': '#8b5cf6'}) + "\n\n"
+                                continue
+                            existing_offer = c
+                            yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>search</span> Match po ASIN {asin} + stan "{_current_stan}": oferta="{c["tytul"][:40]}"', 'color': '#6366f1'}) + "\n\n"
+                            break
                         if not existing_offer:
-                            yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>search</span> ASIN {asin}: {len(candidates)} ofert ale nazwy nie pasują', 'color': '#6366f1'}) + "\n\n"
+                            yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>search</span> ASIN {asin}: brak pasującej oferty (stan={_current_stan}) — tworzę nową', 'color': '#6366f1'}) + "\n\n"
 
                 # 3. Szukaj po EAN (TYLKO jeśli produkt NIE MA ASIN — EAN bez ASIN jest ryzykowny)
                 if ean and not existing_offer and not asin:
@@ -3422,17 +3432,22 @@ def generator_mass_create_from_paleta_stream():
                     if all_prod_ids:
                         ph = ','.join('?' * len(all_prod_ids))
                         candidates = conn.execute(
-                            "SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status "
+                            "SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status, p2.stan as prod_stan "
                             "FROM oferty o "
+                            "LEFT JOIN produkty p2 ON o.produkt_id = p2.id "
                             "WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published') "
                             "AND o.allegro_id IS NOT NULL AND o.allegro_id != '' "
                             "AND o.produkt_id IN (" + ph + ")",
                             all_prod_ids).fetchall()
                         for c in candidates:
-                            if _nazwa_match(c['tytul']):
-                                existing_offer = c
-                                yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>search</span> Match po EAN {ean}: oferta="{c["tytul"][:40]}"', 'color': '#6366f1'}) + "\n\n"
-                                break
+                            if not _nazwa_match(c['tytul']):
+                                continue
+                            _offer_stan = (c['prod_stan'] or 'Nowy').strip()
+                            if _offer_stan != _current_stan:
+                                continue  # różny stan = osobna oferta
+                            existing_offer = c
+                            yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>search</span> Match po EAN {ean} + stan "{_current_stan}": oferta="{c["tytul"][:40]}"', 'color': '#6366f1'}) + "\n\n"
+                            break
 
                 if force_new:
                     existing_offer = None  # wymuś nowe oferty
