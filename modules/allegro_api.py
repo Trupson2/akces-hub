@@ -1706,22 +1706,29 @@ def clean_html_for_allegro(html):
 
 
 def _map_stan_to_condition(stan):
-    """Mapuje polski stan produktu na wartość Allegro condition"""
+    """Mapuje polski stan produktu na wartość Allegro condition.
+    Dozwolone wartości Allegro REST API:
+    NEW, USED, VERY_GOOD, GOOD, ACCEPTABLE, FOR_RENOVATION, REFURBISHED, NOT_APPLICABLE
+    """
+    _stan = (stan or 'Nowy').strip()
     mapping = {
         'Nowy': 'NEW',
         'nowy': 'NEW',
         'new': 'NEW',
-        'Powystawowy': 'LIKE_NEW',
-        'powystawowy': 'LIKE_NEW',
+        'Powystawowy': 'VERY_GOOD',
+        'powystawowy': 'VERY_GOOD',
         'Używany': 'USED',
         'uzywany': 'USED',
+        'Używany - bardzo dobry': 'VERY_GOOD',
         'Używany - dobry': 'GOOD',
+        'Używany - akceptowalny': 'ACCEPTABLE',
         'Uszkodzony': 'FOR_RENOVATION',
         'uszkodzony': 'FOR_RENOVATION',
-        'Odnowiony': 'RENOVATED',
-        'odnowiony': 'RENOVATED',
+        'Na części': 'FOR_RENOVATION',
+        'Odnowiony': 'REFURBISHED',
+        'odnowiony': 'REFURBISHED',
     }
-    return mapping.get(stan or 'Nowy', 'NEW')
+    return mapping.get(_stan, 'USED')
 
 
 def update_offer_condition(offer_id, stan):
@@ -1831,6 +1838,9 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
     
     # === PAYLOAD OFERTY ===
     
+    _condition = _map_stan_to_condition(stan)
+    print(f"[COND] Stan: {stan!r} → condition: {_condition}")
+
     offer_data = {
         'name': nazwa[:75],
         'category': {'id': str(kategoria_id)},
@@ -1839,6 +1849,7 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
             'price': {'amount': f"{float(cena):.2f}", 'currency': 'PLN'}
         },
         'stock': {'available': int(ilosc)},
+        'condition': _condition,
         'publication': {'status': 'INACTIVE'},
         'location': {
             'countryCode': 'PL',

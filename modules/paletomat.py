@@ -1807,17 +1807,7 @@ def scraper_asin():
             # 1. Szukaj w tej samej palecie
             existing = conn.execute('SELECT id FROM produkty WHERE asin = ? AND paleta_id = ?', (asin, paleta_id)).fetchone()
             if not existing:
-                # 2. Szukaj w INNYCH paletach (cross-palet dedup) — dodaj ilość zamiast duplikatu
-                from .database import find_duplicate_product
-                cross_match = find_duplicate_product(asin=asin)
-                if cross_match and cross_match['ilosc'] > 0:
-                    # Ten sam ASIN istnieje w innej palecie — dodaj ilość
-                    conn.execute('UPDATE produkty SET ilosc = ilosc + ? WHERE id = ?', (qty, cross_match['id']))
-                    duplicates_merged = getattr(locals().get('_ns', type('',(),{})()), 'dup', 0)
-                    print(f"[DEDUP] ASIN {asin}: +{qty} do #{cross_match['id']} ({cross_match['nazwa'][:30]}, było {cross_match['ilosc']} szt)")
-                    existing = cross_match  # Oznacz jako znaleziony
-                else:
-                    # Nowy produkt — INSERT
+                    # Nowy produkt w tej palecie — INSERT
                     conn.execute('''INSERT INTO produkty (asin, nazwa, ilosc, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta, dostawca, zdjecie_url, stan)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                         (asin, f'Produkt {asin}', qty, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta_nazwa, dostawca, get_amazon_image_url(asin), 'Nowy'))

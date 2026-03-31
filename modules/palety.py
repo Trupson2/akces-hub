@@ -662,6 +662,50 @@ def produkt_quick_draft(produkt_id):
     ean = produkt['ean'] or None
     kategoria = produkt['kategoria'] or ''
 
+    # --- ASIN DEDUP: jeśli jest już aktywna oferta z tym ASIN → dodaj ilość zamiast tworzyć nową ---
+    prod_asin = produkt.get('asin')
+    if prod_asin:
+        existing_offer = conn.execute('''
+            SELECT o.allegro_id, o.ilosc, o.tytul, p.paleta
+            FROM oferty o
+            JOIN produkty p ON o.produkt_id = p.id
+            WHERE p.asin = ? AND o.status IN ('aktywna', 'wystawiona')
+              AND o.produkt_id != ?
+            ORDER BY o.data_wystawienia DESC
+            LIMIT 1
+        ''', (prod_asin, produkt_id)).fetchone()
+
+        if existing_offer:
+            from modules.allegro_api import update_offer_stock as _update_stock
+            new_qty = (existing_offer['ilosc'] or 0) + ilosc
+            result_upd, err_upd = _update_stock(existing_offer['allegro_id'], new_qty)
+            if result_upd is not None or err_upd is None:
+                conn.execute("UPDATE produkty SET status='dodano_do_oferty' WHERE id=?", (produkt_id,))
+                conn.commit()
+                content = f'''
+                <div class="header">
+                    <h1><span class=material-symbols-outlined>add_shopping_cart</span> Dodano do istniejącej oferty!</h1>
+                    <small>ASIN: {prod_asin}</small>
+                </div>
+                <div style="background:rgba(34,197,94,0.08);border:2px solid rgba(34,197,94,0.4);border-radius:12px;padding:20px;margin-bottom:20px">
+                    <div style="font-weight:600;color:var(--green);margin-bottom:10px">
+                        <span class=material-symbols-outlined style="vertical-align:middle">check_circle</span>
+                        Ilość zaktualizowana na istniejącej ofercie
+                    </div>
+                    <div style="color:var(--text)">
+                        <strong>Oferta:</strong> {existing_offer['tytul'][:60]}...<br>
+                        <strong>Skąd:</strong> paleta &ldquo;{existing_offer['paleta'] or '?'}&rdquo;<br>
+                        <strong>Nowa ilość:</strong> {new_qty} szt. (+{ilosc} szt. z tej palety)<br>
+                        <strong>ID Allegro:</strong> {existing_offer['allegro_id']}
+                    </div>
+                </div>
+                <a href="/palety" class="back">&larr; Powrót do palet</a>
+                '''
+                return render(content, 'Dodano do oferty')
+            else:
+                # Błąd aktualizacji — idź normalną ścieżką (utwórz nową ofertę)
+                print(f"[DEDUP] update_offer_stock error: {err_upd} — tworzę nową ofertę")
+
     # Generuj prosty opis (albo użyj istniejącego)
     opis = produkt['opis_ai'] if produkt['opis_ai'] else f'''
     <p><strong>{produkt['nazwa']}</strong></p>
@@ -1506,20 +1550,12 @@ def paleta_import_xlsx():
                     # Auto-kategoryzacja na podstawie nazwy
                     prod_kategoria = auto_kategoryzuj(prod_nazwa)
 
-                    # Cross-palet dedup: sprawdź czy EAN już istnieje
-                    from .database import find_duplicate_product
-                    _dup = find_duplicate_product(ean=prod_ean) if prod_ean else None
-                    if _dup and _dup['ilosc'] > 0:
-                        # Istnieje — dodaj ilość zamiast duplikatu
-                        conn.execute('UPDATE produkty SET ilosc = ilosc + ? WHERE id = ?', (prod_ilosc, _dup['id']))
-                        print(f"[DEDUP] EAN {prod_ean}: +{prod_ilosc} do #{_dup['id']} ({_dup['nazwa'][:30]})")
-                        produkt_id = _dup['id']
-                    else:
-                        conn.execute('''
-                            INSERT INTO produkty (nazwa, ean, ilosc, cena_netto, cena_brutto, cena_allegro, paleta_id, dostawca, status, kategoria)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'magazyn', ?)
-                        ''', (prod_nazwa[:200], prod_ean, prod_ilosc, prod_cena, prod_cena_brutto, prod_cena_detal, paleta_id, dostawca, prod_kategoria))
-                        produkt_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
+                    # Zawsze INSERT — każda paleta ma własne stany ilościowe
+                    conn.execute('''
+                        INSERT INTO produkty (nazwa, ean, ilosc, cena_netto, cena_brutto, cena_allegro, paleta_id, dostawca, status, kategoria)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'magazyn', ?)
+                    ''', (prod_nazwa[:200], prod_ean, prod_ilosc, prod_cena, prod_cena_brutto, prod_cena_detal, paleta_id, dostawca, prod_kategoria))
+                    produkt_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
 
                     produkty_dodane += 1
 
