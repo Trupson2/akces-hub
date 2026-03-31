@@ -310,6 +310,8 @@
         btn.textContent=act==='start'?'Laczenie...':'Zatrzymuje...';btn.disabled=true;
         fetch('/api/ngrok-control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:act})})
         .then(r=>r.json()).then(d=>{
+            if(!d.ok && d.msg){document.getElementById('ng-status').textContent='Błąd: '+d.msg;}
+            btn.textContent=act==='start'?'▶ Start':'⏹ Stop';btn.disabled=false;
             if(act==='start'){setTimeout(ng,3000);setTimeout(ng,6000);setTimeout(ng,10000);}
             else{setTimeout(ng,1500);}
         })

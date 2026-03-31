@@ -1208,7 +1208,7 @@ def api_ngrok_status():
 @app.route('/api/ngrok-control', methods=['POST'])
 def api_ngrok_control():
     """Start/stop ngrok tunnel from kiosk dashboard"""
-    import subprocess
+    import subprocess, sys
     data = request.get_json() or {}
     action = data.get('action', '')
     if action == 'start':
@@ -1221,22 +1221,37 @@ def api_ngrok_control():
                     return jsonify({'ok': True, 'msg': 'Ngrok juz dziala'})
             except Exception:
                 pass
-            # Pobierz domain z configa jesli jest
             from modules.database import get_config
             domain = get_config('ngrok_domain', '')
             token = get_config('ngrok_auth_token', '')
-            cmd = ['ngrok', 'http', '5000', '--log=stdout']
+            cmd = ['ngrok', 'http', '5000']
             if domain:
                 cmd.extend(['--url', domain])
-            # Uruchom ngrok w tle
-            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                           start_new_session=True)
+            # Przekaz token przez env (dziala na wszystkich platformach)
+            env = os.environ.copy()
+            if token:
+                env['NGROK_AUTHTOKEN'] = token
+            # Windows vs Linux: inne flagi dla procesu w tle
+            if sys.platform == 'win32':
+                subprocess.Popen(cmd, env=env,
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                 creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP)
+            else:
+                subprocess.Popen(cmd, env=env,
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                 start_new_session=True)
             return jsonify({'ok': True, 'msg': 'Ngrok starting...'})
         except Exception as e:
             return jsonify({'ok': False, 'msg': str(e)})
     elif action == 'stop':
         try:
-            subprocess.run(['pkill', '-f', 'ngrok'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            import subprocess, sys
+            if sys.platform == 'win32':
+                subprocess.run(['taskkill', '/F', '/IM', 'ngrok.exe', '/T'],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            else:
+                subprocess.run(['pkill', '-f', 'ngrok'],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             from modules.database import set_config
             set_config('app_base_url', 'http://localhost:5000')
             return jsonify({'ok': True, 'msg': 'Ngrok stopped'})
