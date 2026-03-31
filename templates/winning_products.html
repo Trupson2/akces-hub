@@ -450,6 +450,7 @@
         <th onclick="sortTable('trend_score')">Trend</th>
         <th onclick="sortTable('final_score')">Score</th>
         <th>Paczk.</th>
+        <th onclick="sortTable('created_at')" title="Sortuj po dacie dodania" style="cursor:pointer;white-space:nowrap">Data ↕</th>
         <th>Status</th>
         <th>Linki</th>
       </tr>
@@ -477,9 +478,10 @@
   var _items = [];
   var _totalItems = 0;
   var _currentPage = 0;
-  var _sortKey = 'final_score';
+  var _sortKey = 'created_at';
   var _sortAsc = false;
   var _currentFilter = '';
+  var _latestBatchId = '';
 
   // ===== HELPERS =====
 
@@ -592,6 +594,9 @@
       .then(function(d) {
         _items = d.items || [];
         _totalItems = d.total || 0;
+        // Wykryj najnowszy batch żeby oznaczyć "NOWE"
+        _latestBatchId = '';
+        _items.forEach(function(it){ if(it.batch_id > _latestBatchId) _latestBatchId = it.batch_id; });
         renderTable();
       })
       .catch(function(err) {
@@ -710,7 +715,10 @@
       html += '</td>';
 
       // Produkt
-      html += '<td><div class="ws-name" title="' + name.replace(/"/g, '&quot;') + '">' + name.substring(0,55) + '</div>';
+      var isNew = _latestBatchId && it.batch_id === _latestBatchId;
+      html += '<td><div class="ws-name" title="' + name.replace(/"/g, '&quot;') + '">';
+      if (isNew) html += '<span style="display:inline-block;padding:1px 5px;background:rgba(255,107,155,0.18);color:#ff6b9b;border:1px solid rgba(255,107,155,0.35);border-radius:4px;font-size:0.52rem;font-weight:800;letter-spacing:0.5px;vertical-align:middle;margin-right:5px">NOWE</span>';
+      html += name.substring(0,55) + '</div>';
       if (namePl && namePl !== name) html += '<div class="ws-name-pl">' + namePl.substring(0,55) + '</div>';
       html += '</td>';
 
@@ -752,6 +760,10 @@
 
       // Paczkomat
       html += '<td style="text-align:center">' + fitBadge(fit) + '</td>';
+
+      // Data dodania
+      var dateStr = it.created_at ? it.created_at.substring(0, 16).replace('T', ' ') : '-';
+      html += '<td style="font-size:0.62rem;color:var(--text-muted);white-space:nowrap">' + dateStr + '</td>';
 
       // Status
       html += '<td>' + statusBadge(it.status) + '</td>';
