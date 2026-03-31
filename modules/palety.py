@@ -2610,21 +2610,23 @@ def paleta_mass_edit(paleta_id):
         '''
         return render(content, 'Brak produktów')
 
-    # Grupuj po ASIN — wiele rekordów tego samego ASIN = jeden wiersz (różne palety / duplikaty)
+    # Grupuj po ASIN + Stan — każda kombinacja (ASIN, stan) = osobna oferta Allegro
+    # Różne stany tego samego ASIN → osobne wiersze (i osobne oferty)
     from collections import OrderedDict
-    _asin_groups = OrderedDict()  # asin -> [product, ...]
+    _asin_stan_groups = OrderedDict()  # (asin, stan) -> [product, ...]
     _no_asin = []
     for _pr in produkty:
         _pr = dict(_pr)
         _a = (_pr.get('asin') or '').strip().upper()
+        _s = (_pr.get('stan') or 'Nowy').strip()
         if _a:
-            _asin_groups.setdefault(_a, []).append(_pr)
+            _asin_stan_groups.setdefault((_a, _s), []).append(_pr)
         else:
             _no_asin.append(_pr)
 
-    # Spłaszcz do listy: grouped record = pierwszy + merged ilosc + all ids
+    # Spłaszcz: każda (ASIN, stan) grupa = jeden wiersz z sumą ilości
     _display_list = []
-    for _a, _grp in _asin_groups.items():
+    for (_a, _s), _grp in _asin_stan_groups.items():
         if len(_grp) == 1:
             _display_list.append(_grp[0])
         else:
@@ -2755,7 +2757,8 @@ def paleta_mass_edit(paleta_id):
                 <input type="checkbox" class="product-checkbox bl-checkbox" data-product-ids="{",".join(str(i) for i in _grouped_ids)}" value="{_grouped_ids[0]}" {checkbox_checked} {checkbox_disabled} onchange="syncGroupedCheckboxes(this)">
                 <span class="bl-checkmark"></span>
             </label>'''
-            group_badge = f'<span style="background:rgba(255,107,155,0.15);color:#ff6b9b;font-size:0.6rem;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:6px">x{_grouped_count} rekordów</span>'
+            _stan_badge_color = {'Nowy':'#beee00','Powystawowy':'#8ff5ff','Używany':'#eab308','Uszkodzony':'#ef4444','Odnowiony':'#ff6b9b'}.get(p.get('stan','Nowy'), '#94a3b8')
+            group_badge = f'<span style="background:rgba(255,107,155,0.15);color:#ff6b9b;font-size:0.6rem;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:6px">x{_grouped_count} szt</span><span style="background:rgba(0,0,0,0.3);color:{_stan_badge_color};font-size:0.6rem;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:3px;border:1px solid {_stan_badge_color}44">{p.get("stan","Nowy")}</span>'
         else:
             checkbox_html = f'''<label class="bl-checkbox-wrap">
                 <input type="checkbox" class="product-checkbox bl-checkbox" data-product-id="{p['id']}" value="{p['id']}" {checkbox_checked} {checkbox_disabled}>

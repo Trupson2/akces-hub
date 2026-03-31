@@ -3458,16 +3458,9 @@ def generator_mass_create_from_paleta_stream():
                     try:
                         from .allegro_api import update_offer_stock
                         obecna_ilosc = ex.get('ilosc', 0) or 0
-                        magazyn_ilosc = int(p.get('ilosc', 0) or 0)
-
-                        # Jeśli oferta ma już tyle co magazyn — pomiń
-                        if obecna_ilosc >= magazyn_ilosc and magazyn_ilosc > 0:
-                            yield "data: " + json.dumps({'type': 'log', 'message': f'⏩ Oferta #{ex["allegro_id"]} ma już {obecna_ilosc} szt (magazyn: {magazyn_ilosc}) — pomijam', 'color': '#6366f1'}) + "\n\n"
-                            yield "data: " + json.dumps({'type': 'success', 'title': nazwa[:40], 'message': f'Już wystawione ({obecna_ilosc} szt)'}) + "\n\n"
-                            time.sleep(0.3)
-                            continue
-
-                        dodaj = max(min(ilosc, magazyn_ilosc), 1)  # nie więcej niż stan magazynowy
+                        dodaj = int(p.get('ilosc', 0) or 1)
+                        # UWAGA: nie pomijamy nawet jeśli oferta ma już tyle szt —
+                        # mogą być 3 osobne rekordy po 1 szt każdy, każdy musi dodać swoje qty
                         new_qty = obecna_ilosc + dodaj
                         result, error = update_offer_stock(ex['allegro_id'], new_qty)
                         if error and str(error).startswith('OFFER_NOT_EXISTS:'):
