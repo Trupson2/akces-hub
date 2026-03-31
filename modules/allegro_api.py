@@ -1839,7 +1839,7 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
     # === PAYLOAD OFERTY ===
     
     _condition = _map_stan_to_condition(stan)
-    print(f"[COND] Stan: {stan!r} → condition: {_condition}")
+    print(f"[COND] Stan: {stan!r} → condition: {_condition} (ustawiane po wystawieniu przez PATCH)")
 
     offer_data = {
         'name': nazwa[:75],
@@ -1849,7 +1849,6 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
             'price': {'amount': f"{float(cena):.2f}", 'currency': 'PLN'}
         },
         'stock': {'available': int(ilosc)},
-        'condition': _condition,
         'publication': {'status': 'INACTIVE'},
         'location': {
             'countryCode': 'PL',
@@ -2206,7 +2205,6 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
     
     import json as _json
     print(f"[INVE] FULL PAYLOAD KEYS: {list(offer_data.keys())}")
-    print(f"[INVE] condition: {offer_data.get('condition')}")
     print(f"[INVE] payments: {offer_data.get('payments')}")
     print(f"[INVE] delivery keys: {list(offer_data.get('delivery', {}).keys())}")
     result, error = allegro_request('POST', '/sale/product-offers', data=offer_data)
