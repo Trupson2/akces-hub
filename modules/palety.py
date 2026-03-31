@@ -2610,11 +2610,36 @@ def paleta_mass_edit(paleta_id):
         '''
         return render(content, 'Brak produktów')
 
+    # Grupuj po ASIN — wiele rekordów tego samego ASIN = jeden wiersz (różne palety / duplikaty)
+    from collections import OrderedDict
+    _asin_groups = OrderedDict()  # asin -> [product, ...]
+    _no_asin = []
+    for _pr in produkty:
+        _pr = dict(_pr)
+        _a = (_pr.get('asin') or '').strip().upper()
+        if _a:
+            _asin_groups.setdefault(_a, []).append(_pr)
+        else:
+            _no_asin.append(_pr)
+
+    # Spłaszcz do listy: grouped record = pierwszy + merged ilosc + all ids
+    _display_list = []
+    for _a, _grp in _asin_groups.items():
+        if len(_grp) == 1:
+            _display_list.append(_grp[0])
+        else:
+            _merged = dict(_grp[0])
+            _merged['_grouped_ids'] = [x['id'] for x in _grp]
+            _merged['_grouped_count'] = len(_grp)
+            _merged['ilosc'] = sum(x.get('ilosc') or 0 for x in _grp)
+            _display_list.append(_merged)
+    _display_list.extend(_no_asin)
+
     # Generuj HTML produktów
     produkty_html = ''
     wybrane_count = 0
 
-    for p in produkty:
+    for p in _display_list:
         # Kolory statusów
         if p['status'] == 'wystawiony':
             status_badge = '<span class="badge badge-success"><span class=material-symbols-outlined>check_circle</span> WYSTAWIONE</span>'
@@ -2716,19 +2741,38 @@ def paleta_mass_edit(paleta_id):
         else:
             stock_class = 'bl-stock-low'
 
+        # Obsługa zgrupowanych ASIN-ów
+        _grouped_ids = p.get('_grouped_ids')
+        _grouped_count = p.get('_grouped_count', 1)
+        if _grouped_ids:
+            # Wiele rekordów tego samego ASIN — checkboxy dla wszystkich IDs
+            _checkboxes = ''
+            for _gid in _grouped_ids:
+                _checkboxes += f'<input type="checkbox" class="product-checkbox bl-checkbox" data-product-id="{_gid}" value="{_gid}" {checkbox_checked} {checkbox_disabled} style="display:none">'
+            # Widoczny checkbox (wizualny) na pierwszym ID
+            checkbox_html = f'''<label class="bl-checkbox-wrap">
+                {_checkboxes}
+                <input type="checkbox" class="product-checkbox bl-checkbox" data-product-ids="{",".join(str(i) for i in _grouped_ids)}" value="{_grouped_ids[0]}" {checkbox_checked} {checkbox_disabled} onchange="syncGroupedCheckboxes(this)">
+                <span class="bl-checkmark"></span>
+            </label>'''
+            group_badge = f'<span style="background:rgba(255,107,155,0.15);color:#ff6b9b;font-size:0.6rem;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:6px">x{_grouped_count} rekordów</span>'
+        else:
+            checkbox_html = f'''<label class="bl-checkbox-wrap">
+                <input type="checkbox" class="product-checkbox bl-checkbox" data-product-id="{p['id']}" value="{p['id']}" {checkbox_checked} {checkbox_disabled}>
+                <span class="bl-checkmark"></span>
+            </label>'''
+            group_badge = ''
+
         produkty_html += f'''
         <tr class="bl-row" data-status="{p['status']}">
             <td class="bl-td-check">
-                <label class="bl-checkbox-wrap">
-                    <input type="checkbox" class="product-checkbox bl-checkbox" data-product-id="{p['id']}" value="{p['id']}" {checkbox_checked} {checkbox_disabled}>
-                    <span class="bl-checkmark"></span>
-                </label>
+                {checkbox_html}
             </td>
             <td class="bl-td-img">
                 {f'<img src="{_img_url}" class="bl-thumb" onerror="this.style.display=&apos;none&apos;" loading="lazy">' if _img_url else '<div class="bl-thumb-empty"><span class="material-symbols-outlined">image</span></div>'}
             </td>
             <td class="bl-td-name">
-                <div class="bl-name">{p['nazwa'][:60]}</div>
+                <div class="bl-name">{p['nazwa'][:60]}{group_badge}</div>
                 <div class="bl-category">{p['lokalizacja'] or '—'}</div>
                 {meta_bar}
             </td>
@@ -2993,6 +3037,17 @@ def paleta_mass_edit(paleta_id):
         }});
     }});
 
+    // Sync hidden checkboxes gdy grupowy checkbox się zmienia
+    function syncGroupedCheckboxes(masterCb) {{
+        const idsStr = masterCb.dataset.productIds;
+        if (!idsStr) return;
+        idsStr.split(',').forEach(id => {{
+            const hidden = document.querySelector('.product-checkbox[data-product-id="' + id.trim() + '"]');
+            if (hidden) hidden.checked = masterCb.checked;
+        }});
+        updateCounter();
+    }}
+
     const checkboxes = document.querySelectorAll('.product-checkbox');
     checkboxes.forEach(cb => {{
         cb.addEventListener('change', updateCounter);
@@ -3004,8 +3059,16 @@ def paleta_mass_edit(paleta_id):
             alert('Zaznacz przynajmniej 1 produkt!');
             return;
         }}
-        const productIds = Array.from(checked).map(cb => cb.value);
-        window.location.href = '/paletomat/generator/mass-create-from-paleta?paleta_id={paleta_id}&ids=' + productIds.join(',');
+        // Rozwiń grupowane IDs (data-product-ids)
+        const productIds = new Set();
+        Array.from(checked).forEach(cb => {{
+            if (cb.dataset.productIds) {{
+                cb.dataset.productIds.split(',').forEach(id => productIds.add(id.trim()));
+            }} else {{
+                productIds.add(cb.value);
+            }}
+        }});
+        window.location.href = '/paletomat/generator/mass-create-from-paleta?paleta_id={paleta_id}&ids=' + [...productIds].join(',');
     }}
 
     function batchGenerateMetaTitles() {{
