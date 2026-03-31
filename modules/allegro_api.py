@@ -3292,17 +3292,25 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
     # Pobierz zamówienia w różnych statusach
     # Tylko statusy które Allegro faktycznie obsługuje z filtrem daty
     all_orders = []
-    # Allegro: tylko READY_FOR_PROCESSING i SENT obsługują updatedAt.gte
-    valid_statuses = ['READY_FOR_PROCESSING', 'SENT']
-    for status in valid_statuses:
-        try:
-            orders_data, error = get_orders(status, from_date=from_date)
-            if orders_data and 'checkoutForms' in orders_data:
-                for _o in orders_data['checkoutForms']:
-                    _o['_allegro_query_status'] = status
-                all_orders.extend(orders_data['checkoutForms'])
-        except Exception as _e:
-            print(f"[SYNC] Błąd pobierania {status}: {_e}")
+    # READY_FOR_PROCESSING z filtrem daty (nowe zamówienia)
+    try:
+        orders_data, error = get_orders('READY_FOR_PROCESSING', from_date=from_date)
+        if orders_data and 'checkoutForms' in orders_data:
+            for _o in orders_data['checkoutForms']:
+                _o['_allegro_query_status'] = 'READY_FOR_PROCESSING'
+            all_orders.extend(orders_data['checkoutForms'])
+    except Exception as _e:
+        print(f"[SYNC] Błąd READY_FOR_PROCESSING: {_e}")
+
+    # SENT bez filtra daty (ostatnie 100 wysłanych — do aktualizacji statusów)
+    try:
+        orders_data, error = get_orders('SENT', from_date=None, limit=100, fetch_all=False)
+        if orders_data and 'checkoutForms' in orders_data:
+            for _o in orders_data['checkoutForms']:
+                _o['_allegro_query_status'] = 'SENT'
+            all_orders.extend(orders_data['checkoutForms'])
+    except Exception as _e:
+        print(f"[SYNC] Błąd SENT: {_e}")
     
     if not all_orders:
         return 0, None
