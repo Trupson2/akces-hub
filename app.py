@@ -1535,9 +1535,11 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
         sypie_text = "NIE SYPIE"
         sypie_color = "#ef4444"
     
-    # Statystyki miesięczne
-    miesiac_kwota = float(miesiac_data['suma'] or 0)
-    miesiac_zamowienia = int(miesiac_data['cnt'] or 0)
+    # Statystyki miesięczne — używamy get_full_stats dla spójności z zysk_miesiac
+    # (get_full_stats liczy cena*ilosc+koszt_dostawy + sprzedaze_prywatne,
+    #  sypie_row liczy tylko cena*ilosc — używamy tej samej bazy co zysk)
+    miesiac_kwota = float(stats.get('sprzedaz_miesiac_suma', miesiac_data['suma'] or 0))
+    miesiac_zamowienia = int(stats.get('sprzedaz_miesiac_cnt', miesiac_data['cnt'] or 0))
     
     # Polskie nazwy miesięcy
     MIESIACE_PL = {
