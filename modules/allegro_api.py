@@ -3633,25 +3633,37 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                         except:
                             pass
 
-                        # Restock alert - jeśli produkt wyprzedany w < 14 dni
+                        # Restock alert - jeśli produkt wyprzedany szybko (od daty WYSTAWIENIA)
                         if new_qty == 0:
                             try:
                                 _restock_enabled = get_config('telegram_alert_restock', 'true')
-                                _data_dod = produkt['data_dodania'] if 'data_dodania' in produkt.keys() else None
-                                if _restock_enabled == 'true' and _data_dod:
-                                    _added = datetime.fromisoformat(str(_data_dod).replace('Z', '+00:00')) if 'T' in str(_data_dod) else datetime.strptime(str(_data_dod)[:10], '%Y-%m-%d')
-                                    _days = (datetime.now() - _added).days
-                                    if _days < 14:
-                                        _price_str = f"{float(produkt['cena_allegro'] or 0):.0f}" if produkt['cena_allegro'] else '?'
-                                        _restock_msg = (
-                                            f"\U0001f504 RESTOCK ALERT!\n\n"
-                                            f"\U0001f4e6 {produkt['nazwa']}\n"
-                                            f"\u26a1 Sprzedano w {_days} dni\n"
-                                            f"\U0001f4b0 Cena: {_price_str} zł\n\n"
-                                            f"Rozważ dokupienie!"
-                                        )
-                                        send_telegram(_restock_msg, parse_mode='HTML', silent=False)
-                                        print(f"[SMAR] Restock alert: {produkt['nazwa'][:30]} ({_days} days)")
+                                if _restock_enabled == 'true':
+                                    # Użyj daty wystawienia oferty (nie data_dodania do bazy!)
+                                    _data_wyst = None
+                                    if oferta_db_id:
+                                        _of_row = conn.execute('SELECT data_wystawienia FROM oferty WHERE id = ?', (oferta_db_id,)).fetchone()
+                                        if _of_row and _of_row['data_wystawienia']:
+                                            _data_wyst = str(_of_row['data_wystawienia'])
+                                    # Fallback: data_dodania z produktu
+                                    if not _data_wyst:
+                                        _data_wyst = str(produkt['data_dodania']) if 'data_dodania' in produkt.keys() and produkt['data_dodania'] else None
+
+                                    if _data_wyst:
+                                        _added = datetime.fromisoformat(_data_wyst.replace('Z', '+00:00')) if 'T' in _data_wyst else datetime.strptime(_data_wyst[:10], '%Y-%m-%d')
+                                        _days = (datetime.now() - _added).days
+                                        if _days < 30:
+                                            _price_str = f"{float(produkt['cena_allegro'] or 0):.0f}" if produkt['cena_allegro'] else '?'
+                                            _speed = "BŁYSKAWICZNIE! " if _days <= 1 else "SZYBKO! " if _days <= 3 else ""
+                                            _restock_msg = (
+                                                f"\U0001f504 RESTOCK ALERT!\n\n"
+                                                f"\U0001f4e6 {produkt['nazwa']}\n"
+                                                f"\u26a1 {_speed}Sprzedano w {_days} {'dzień' if _days == 1 else 'dni'}\n"
+                                                f"\U0001f4b0 Cena: {_price_str} zł\n"
+                                                f"\U0001f4cb Paleta: {produkt['paleta_nazwa'] or '?'}\n\n"
+                                                f"Rozważ dokupienie!"
+                                            )
+                                            send_telegram(_restock_msg, parse_mode='HTML', silent=False)
+                                            print(f"[SMAR] Restock alert: {produkt['nazwa'][:30]} ({_days} days)")
                             except Exception as e:
                                 print(f"[WARN] Restock alert error: {e}")
 
