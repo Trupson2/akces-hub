@@ -3,8 +3,4 @@ tunnels:
   akceshub:
     addr: 5000
     proto: http
-    url: https://akceshub.ngrok.dev
-  regaly:
-    addr: 5000
-    proto: http
     url: https://unsatiating-dirgelike-audrina.ngrok-free.dev

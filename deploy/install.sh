@@ -62,6 +62,10 @@ fi
 echo "[6/8] Instalacja serwisow systemd..."
 sudo cp "$APP_DIR/deploy/akces-hub.service" /etc/systemd/system/
 sudo cp "$APP_DIR/deploy/akces-ngrok.service" /etc/systemd/system/
+# Usun stary ngrok.service jesli istnieje (unikamy konfliktu)
+sudo systemctl stop ngrok.service 2>/dev/null
+sudo systemctl disable ngrok.service 2>/dev/null
+sudo rm -f /etc/systemd/system/ngrok.service
 sudo systemctl daemon-reload
 sudo systemctl enable akces-hub.service
 sudo systemctl enable akces-ngrok.service
