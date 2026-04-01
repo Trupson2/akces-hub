@@ -323,7 +323,7 @@ def sprzedaze_lista():
             'kupujacy': s['kupujacy'],
             'is_zwrot': is_zwrot,
             'is_manual': is_manual,
-            'cena_fmt': f"{s['cena']:.0f}",
+            'cena_fmt': f"{s['cena'] * (s['ilosc'] or 1):.0f}",
             'ilosc': s['ilosc'],
             'dzien': dzien,
             'miesiac_skrot': miesiac_skrot,

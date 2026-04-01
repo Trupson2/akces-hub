@@ -3327,6 +3327,33 @@ def generator_mass_create_from_paleta_stream():
         except Exception as e:
             yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>warning</span> Sync error: {str(e)[:50]}', 'color': '#f59e0b'}) + "\n\n"
 
+        # === BATCH DEDUP: grupuj produkty z tym samym ASIN — sumuj ilości ===
+        _seen_asins = {}  # asin -> index w products
+        _skip_ids = set()  # product IDs do pominięcia (duplikaty)
+        for _di, _dp in enumerate(products):
+            _dp = dict(_dp)
+            _asin_key = (_dp.get('asin') or '').strip().upper()
+            if _asin_key and len(_asin_key) >= 5 and _asin_key not in ('N/A', 'NAN', 'NONE'):
+                if _asin_key in _seen_asins:
+                    # Duplikat ASIN — sumuj ilość do pierwszego, pomiń ten
+                    _first_idx = _seen_asins[_asin_key]
+                    _first_p = dict(products[_first_idx])
+                    _add_qty = int(_dp.get('ilosc', 0) or 0)
+                    if _add_qty > 0:
+                        _first_p['ilosc'] = int(_first_p.get('ilosc', 0) or 0) + _add_qty
+                        products[_first_idx] = _first_p
+                    _skip_ids.add(_dp['id'])
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>merge</span> Batch dedup: {_dp["nazwa"][:30]} (id={_dp["id"]}) → zsumowano z id={_first_p["id"]} (ASIN: {_asin_key})', 'color': '#f59e0b'}) + "\n\n"
+                else:
+                    _seen_asins[_asin_key] = _di
+
+        # Filtruj duplikaty
+        products = [p for p in products if dict(p)['id'] not in _skip_ids]
+        total = len(products)
+
+        # Tracking ofert utworzonych w tym batchu (asin -> allegro_id)
+        _batch_created = {}
+
         yield "data: " + json.dumps({'type': 'start', 'total': total}) + "\n\n"
         time.sleep(0.5)
 
@@ -3344,6 +3371,15 @@ def generator_mass_create_from_paleta_stream():
                 asin = p.get('asin') or None
                 zdjecie_url = p.get('zdjecie_url') or ''
                 kategoria = p.get('kategoria', 'inne') or 'inne'
+
+                # === BATCH DEDUP: sprawdź czy ten ASIN już został wystawiony w tym batchu ===
+                _asin_upper = (asin or '').strip().upper()
+                if _asin_upper and _asin_upper in _batch_created:
+                    _prev_id = _batch_created[_asin_upper]
+                    yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>block</span> ASIN {_asin_upper} już wystawiony w tym batchu (oferta #{_prev_id}) — pomijam duplikat', 'color': '#f59e0b'}) + "\n\n"
+                    yield "data: " + json.dumps({'type': 'success', 'title': nazwa[:40], 'message': f'Pominięto (duplikat ASIN w batchu)'}) + "\n\n"
+                    time.sleep(0.3)
+                    continue
 
                 # === DEDUPLIKACJA: sprawdź czy produkt ma już aktywną ofertę ===
                 if force_new:
@@ -3782,6 +3818,10 @@ def generator_mass_create_from_paleta_stream():
                 else:
                     offer_id = result.get('id') if result else None
 
+                    # Zapisz do batch tracking żeby nie tworzyć duplikatów w ramach tego batcha
+                    if offer_id and _asin_upper:
+                        _batch_created[_asin_upper] = offer_id
+
                     max_db_retries = 5
                     for db_attempt in range(max_db_retries):
                         try:
@@ -3801,10 +3841,8 @@ def generator_mass_create_from_paleta_stream():
                             except:
                                 pass
 
-                            if (i + 1) % 5 == 0:
-                                conn.commit()
-                                yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>save</span> Zapisano {i+1}/{total} produktów', 'color': '#22c55e'}) + "\n\n"
-                                time.sleep(0.5)
+                            # Commit po każdym produkcie - żeby dedup widział nowe oferty
+                            conn.commit()
 
                             break
 
