@@ -1793,25 +1793,12 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     except:
         pass
 
-    resp = make_response(render_template('home.html',
+    resp = make_response(render_template('kiosk_home.html',
         version=VERSION,
-        today_date=datetime.now().strftime('%d.%m.%Y'),
-        today=today,
-        mag=mag,
-        pal=pal,
-        allegro=allegro,
-        telegram_online=bot_status(),
-        unread_count=2,
-        activity=activity,
-        goal=goal,  # Hyundai i30 N Goal
-        monthly=monthly_stats,
-        update_banner=update_banner,
-        update_status=update_status,
-        top_produkty=stats.get('top_produkty', []),
-        top_dostawcy=stats.get('top_dostawcy', []),
-        insights=_get_insights_safe(),
+        today=today, mag=mag, pal=pal, allegro=allegro,
         active_home='active', active_magazyn='', active_paletomat='',
-        active_allegro='', active_monitor='', active_narzedzia='',
+        active_allegro='', active_olx='', active_vinted='', active_narzedzia='',
+        active_monitor='',
         **sypie_data
     ))
     if not request.cookies.get('akces_user'):
