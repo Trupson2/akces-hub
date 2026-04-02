@@ -1793,12 +1793,14 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     except:
         pass
 
-    # Kiosk TYLKO na Pi localhost lub ?kiosk=1, reszta → home.html
+    # Kiosk na Pi ekranie (localhost BEZ proxy), normalny dashboard na reszcie
+    _xff = request.headers.get('X-Forwarded-For', '')
     _remote = request.remote_addr or ''
-    _is_pi_local = _remote in ('127.0.0.1', '::1')
+    _is_pi_screen = _remote in ('127.0.0.1', '::1') and not _xff
     _force_kiosk = request.args.get('kiosk') == '1'
+    print(f"[DASH] remote={_remote} xff={_xff} pi_screen={_is_pi_screen} kiosk={_force_kiosk}", flush=True)
 
-    if _is_pi_local or _force_kiosk:
+    if _is_pi_screen or _force_kiosk:
         resp = make_response(render_template('kiosk_home.html',
             version=VERSION,
             today=today, mag=mag, pal=pal, allegro=allegro,
