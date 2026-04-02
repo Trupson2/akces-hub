@@ -1793,12 +1793,12 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     except:
         pass
 
-    # Kiosk TYLKO na Pi (Linux ARM) lub ?kiosk=1, reszta → home.html
-    _ua = request.headers.get('User-Agent', '').lower()
-    _is_pi = 'linux' in _ua and ('aarch64' in _ua or 'armv' in _ua)
+    # Kiosk TYLKO na Pi localhost lub ?kiosk=1, reszta → home.html
+    _remote = request.remote_addr or ''
+    _is_pi_local = _remote in ('127.0.0.1', '::1')
     _force_kiosk = request.args.get('kiosk') == '1'
 
-    if _is_pi or _force_kiosk:
+    if _is_pi_local or _force_kiosk:
         resp = make_response(render_template('kiosk_home.html',
             version=VERSION,
             today=today, mag=mag, pal=pal, allegro=allegro,
