@@ -1798,8 +1798,6 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     _remote = request.remote_addr or ''
     _is_pi_screen = _remote in ('127.0.0.1', '::1') and not _xff
     _force_kiosk = request.args.get('kiosk') == '1'
-    print(f"[DASH] remote={_remote} xff={_xff} pi_screen={_is_pi_screen} kiosk={_force_kiosk}", flush=True)
-
     if _is_pi_screen or _force_kiosk:
         resp = make_response(render_template('kiosk_home.html',
             version=VERSION,
