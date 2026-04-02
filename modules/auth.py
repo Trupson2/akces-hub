@@ -27,6 +27,7 @@ LOGIN_COOLDOWN = 900  # 15 minut
 PUBLIC_ENDPOINTS = {
     'auth.login',
     'auth.first_setup',
+    'project_launcher',
     'static',
 }
 
@@ -151,7 +152,7 @@ ROLE_HIERARCHY = {'admin': 3, 'manager': 2, 'user': 1, 'magazynier': 0}
 # Dozwolone ścieżki per rola (magazynier ma ograniczony dostęp)
 ROLE_ALLOWED_PATHS = {
     'magazynier': [
-        '/',                    # dashboard (read-only)
+        '/dashboard',           # dashboard (read-only)
         '/wysylki',             # wysyłki
         '/magazyn',             # magazyn (statystyki, produkty, skaner)
         '/warehouse',           # regały, półki, mapa
@@ -458,13 +459,13 @@ def login():
                 pass  # Nie blokuj logowania z powodu locka
             conn.close()
 
-            next_url = request.args.get('next', '/')
+            next_url = request.args.get('next', '/dashboard')
             # Zabezpieczenie przed Open Redirect — tylko lokalne ścieżki
             if not next_url.startswith('/') or next_url.startswith('//'):
-                next_url = '/'
+                next_url = '/dashboard'
 
             # Sprawdz czy to "swiezy" system — brak kluczy API → kreator
-            if next_url == '/' and user['rola'] == 'admin':
+            if next_url == '/dashboard' and user['rola'] == 'admin':
                 try:
                     from modules.database import get_config
                     has_allegro = bool(get_config('allegro_client_id', ''))
@@ -547,7 +548,7 @@ def first_setup():
                         return redirect('/eula')
                 except Exception:
                     pass
-                return redirect('/')
+                return redirect('/dashboard')
             except Exception as e:
                 if 'UNIQUE' in str(e):
                     error = 'Ta nazwa uzytkownika jest juz zajeta'
@@ -1058,7 +1059,7 @@ def setup_auth(app):
             return None
 
         # Swiezy system — przekieruj admina na kreator konfiguracji
-        if session.get('show_kreator') and request.path == '/':
+        if session.get('show_kreator') and request.path == '/dashboard':
             session.pop('show_kreator', None)
             return redirect('/ustawienia/kreator?welcome=1')
 

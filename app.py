@@ -1128,7 +1128,7 @@ def wybierz_konto():
 @app.route('/ustaw-konto/<user>')
 def ustaw_konto(user):
     """Ustawia cookie z wybranym kontem"""
-    resp = make_response(redirect('/'))
+    resp = make_response(redirect('/dashboard'))
     resp.set_cookie('akces_user', user, max_age=60*60*24*365, httponly=True, samesite='Lax')  # 1 rok
     return resp
 
@@ -1422,6 +1422,7 @@ def project_launcher():
     kiosk = request.args.get("kiosk", "")
     return render_template("project_launcher.html", version=VERSION, kiosk=kiosk)
 
+@app.route('/dashboard')
 def home():
     # Magazynier — uproszczony dashboard z linkami do wysyłek i magazynu
     if session.get('rola') == 'magazynier':
@@ -1506,7 +1507,7 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
             </div>
         </div>
     </a>
-    <div class="refresh"><a href="/"><span class=material-symbols-outlined>sync</span> Odswiez</a></div>
+    <div class="refresh"><a href="/dashboard"><span class=material-symbols-outlined>sync</span> Odswiez</a></div>
     <a href="/auth/logout" class="logout">Wyloguj sie</a>
 </div></body></html>''', do_wysylki=do_wysylki, wysylki_dzis=wysylki_dzis,
             produkty_magazyn=produkty_magazyn, regaly_cnt=regaly_cnt)
@@ -1648,7 +1649,7 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     kiosk_param = request.args.get('kiosk', '')
     if kiosk_param == '0':
         # Wyłącz kiosk — usuń cookie i pokaż normalny dashboard
-        resp = make_response(redirect('/'))
+        resp = make_response(redirect('/dashboard'))
         resp.delete_cookie('kiosk_mode')
         return resp
     is_kiosk = kiosk_param == '1'
@@ -2083,7 +2084,7 @@ def monitor_page():
         {deals_html}
     </div>
 
-    <a href="/" class="back" style="margin-top:15px">← Powrót</a>
+    <a href="/dashboard" class="back" style="margin-top:15px">← Powrót</a>
     '''
     return render_template('monitor.html',
         version=VERSION,
@@ -2497,7 +2498,7 @@ def time_manipulation_page():
     try:
         return render_template('time_manipulation.html')
     except Exception:
-        return render_template_string('<html><body style="background:#0a0a14;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh"><div style="text-align:center"><h1 style="color:#f87171">Wykryto manipulacje czasem</h1><p style="color:#94a3b8">Ustaw prawidlowa date i godzine.</p><a href="/" style="color:#6366f1">Sprobuj ponownie</a></div></body></html>')
+        return render_template_string('<html><body style="background:#0a0a14;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh"><div style="text-align:center"><h1 style="color:#f87171">Wykryto manipulacje czasem</h1><p style="color:#94a3b8">Ustaw prawidlowa date i godzine.</p><a href="/dashboard" style="color:#6366f1">Sprobuj ponownie</a></div></body></html>')
 
 
 # ============================================================
@@ -4371,7 +4372,7 @@ def goal_details():
     <div class="page-wrap">
 
         <!-- Back link -->
-        <a href="/" class="back-link">
+        <a href="/dashboard" class="back-link">
             <span class="material-symbols-outlined">arrow_back</span> Powrot
         </a>
 
@@ -4650,7 +4651,7 @@ def goal_subtract():
         html += '<div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;margin-bottom:10px">&#x1F4CB; HISTORIA WPLAT</div>'
         html += wplaty_html
         
-        html += '<a href="/" class="back" style="display:block;text-align:center;color:#64748b;text-decoration:none;margin-top:15px">&larr; Dashboard</a>'
+        html += '<a href="/dashboard" class="back" style="display:block;text-align:center;color:#64748b;text-decoration:none;margin-top:15px">&larr; Dashboard</a>'
         html += '</div>'
         
         return html
@@ -5176,7 +5177,7 @@ def bingo2026_page():
             <h1>&#127919; BINGO 2026</h1>
             <small>Odkryj wszystkie cele i zdobądź BINGO!</small>
         </div>
-        <a href="/" style="display:inline-block;margin-bottom:15px;color:#64748b;text-decoration:none;font-size:0.9rem">&#8592; Powrót do domu</a>
+        <a href="/dashboard" style="display:inline-block;margin-bottom:15px;color:#64748b;text-decoration:none;font-size:0.9rem">&#8592; Powrót do domu</a>
         <div id="bingo-info" style="background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(109,40,217,0.1));border:2px solid rgba(139,92,246,0.4);border-radius:16px;padding:16px;margin-bottom:15px;text-align:center">
             <div style="font-size:2rem;font-weight:800;color:#8b5cf6" id="bingo-big-cnt">...</div>
             <div style="font-size:0.85rem;color:#94a3b8">celów osiągniętych z 25</div>

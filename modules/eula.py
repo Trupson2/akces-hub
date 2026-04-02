@@ -273,7 +273,7 @@ def eula_page():
 def eula_accept():
     """Akceptacja EULA"""
     set_config('eula_accepted', '1')
-    return redirect('/')
+    return redirect('/dashboard')
 
 
 def is_eula_accepted():

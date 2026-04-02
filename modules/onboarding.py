@@ -753,7 +753,7 @@ function saveStep(step) {
         if (d.ok) {
             if (step === 3) {
                 showToast('Konfiguracja zakonczona!', 'success');
-                setTimeout(function() { window.location.href = '/'; }, 800);
+                setTimeout(function() { window.location.href = '/dashboard'; }, 800);
             } else {
                 showToast('Zapisano krok ' + step, 'success');
                 goStep(step + 1);
@@ -761,7 +761,7 @@ function saveStep(step) {
         }
     }).catch(() => {
         if (step < 3) goStep(step + 1);
-        else window.location.href = '/';
+        else window.location.href = '/dashboard';
     });
 }
 
@@ -802,7 +802,7 @@ function testAllegro() {
 def onboarding_page():
     """Wyswietla wizard onboardingu — 3 kroki"""
     if is_onboarding_completed():
-        return redirect('/')
+        return redirect('/dashboard')
 
     # Detect default backup path
     base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
