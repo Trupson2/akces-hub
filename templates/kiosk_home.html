@@ -198,7 +198,7 @@
                 <div class="kd-status"><div class="kd-dot" id="ng-dot"></div> <span id="ng-status">Sprawdzam...</span></div>
                 <div id="ng-url-box" class="kd-ngrok-box" style="display:none">
                     <div class="kd-ngrok-url" id="ng-url"></div>
-                    <button class="kd-ngrok-copy" onclick="navigator.clipboard.writeText(document.getElementById('ng-url').dataset.full);this.textContent='✅ Skopiowano!';setTimeout(()=>this.textContent=' Kopiuj URL',1500)"> Kopiuj URL</button>
+                    <button class="kd-ngrok-copy" onclick="navigator.clipboard.writeText(document.getElementById('ng-url').dataset.full);this.textContent='Skopiowano!';setTimeout(()=>this.textContent=' Kopiuj URL',1500)"> Kopiuj URL</button>
                 </div>
                 <div class="kd-btns">
                     <button class="kd-btn purple" id="ng-start" onclick="ngAction('start')"><span class="material-symbols-outlined" style="font-size:1rem">play_arrow</span> Start</button>
@@ -209,6 +209,32 @@
 
         <!-- SIDE PANEL -->
         <div class="kd-side">
+            <!-- PhonkBot widget -->
+            <div class="kd-side-card" style="flex:0 0 auto;border-color:rgba(255,68,68,0.12)">
+                <div class="kd-side-title" style="color:#ff4444"><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;margin-right:4px">music_note</span> PhonkBot</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+                    <div style="text-align:center;padding:5px;background:rgba(34,197,94,0.06);border-radius:6px">
+                        <div style="font-size:1.1rem;font-weight:800;color:#22c55e" id="pb-published">-</div>
+                        <div style="font-size:0.55rem;color:#64748b;text-transform:uppercase">Published</div>
+                    </div>
+                    <div style="text-align:center;padding:5px;background:rgba(234,179,8,0.06);border-radius:6px">
+                        <div style="font-size:1.1rem;font-weight:800;color:#eab308" id="pb-pending">-</div>
+                        <div style="font-size:0.55rem;color:#64748b;text-transform:uppercase">Pending</div>
+                    </div>
+                    <div style="text-align:center;padding:5px;background:rgba(139,92,246,0.06);border-radius:6px">
+                        <div style="font-size:1.1rem;font-weight:800;color:#8b5cf6" id="pb-views">-</div>
+                        <div style="font-size:0.55rem;color:#64748b;text-transform:uppercase">Views</div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:0.7rem;color:#94a3b8;margin-bottom:8px">
+                    <div class="kd-dot" id="pb-dot" style="background:#475569;box-shadow:none"></div>
+                    <span id="pb-status">Sprawdzam...</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                    <a href="http://localhost:5001/" class="kd-btn open" style="border-color:rgba(255,68,68,0.3);color:#ff4444;padding:8px;font-size:0.7rem" target="_blank"><span class="material-symbols-outlined" style="font-size:1rem">open_in_new</span> Dashboard</a>
+                    <button class="kd-btn green" id="pb-generate" onclick="pbGenerate()" style="padding:8px;font-size:0.7rem"><span class="material-symbols-outlined" style="font-size:1rem">play_arrow</span> Generate</button>
+                </div>
+            </div>
             <!-- Ostatnie sprzedaze -->
             <div class="kd-side-card" style="flex:2">
                 <div class="kd-side-title"><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;margin-right:4px;color:#ff6b9b">fiber_manual_record</span> Live sprzedaz</div>
@@ -233,11 +259,11 @@
         <a href="/narzedzia" class="kd-btn gray" style="text-decoration:none"><span class="material-symbols-outlined" style="font-size:1rem">build</span> Narzedzia</a>
         <a href="/ustawienia" class="kd-btn gray" style="text-decoration:none"><span class="material-symbols-outlined" style="font-size:1rem">settings</span> Ustawienia</a>
         <button class="kd-btn gray" onclick="document.documentElement.requestFullscreen()"><span class="material-symbols-outlined" style="font-size:1rem">fullscreen</span> Pelny ekran</button>
-        <a href="/?kiosk=0" class="kd-btn red" style="text-decoration:none"><span class="material-symbols-outlined" style="font-size:1rem">close</span> Wyjscie</a>
+        <a href="/launcher" class="kd-btn red" style="text-decoration:none"><span class="material-symbols-outlined" style="font-size:1rem">close</span> Projekty</a>
     </div>
 </div>
 
-<script nonce="{{ csp_nonce }}">
+<script>
 (function(){
     /* System stats */
     function upd(){
@@ -294,8 +320,6 @@
                 box.style.display='block';
                 url.textContent=d.url;url.dataset.full=d.url;
                 btnStart.disabled=true;btnStop.disabled=false;
-                // Zapisz ngrok URL — offline PWA użyje go do przekierowania
-                try{localStorage.setItem('ngrok_url', d.url);}catch(e){}
             }else{
                 dot.className='kd-dot off';
                 st.textContent='Offline';st.style.color='#ef4444';
@@ -312,12 +336,48 @@
         btn.textContent=act==='start'?'Laczenie...':'Zatrzymuje...';btn.disabled=true;
         fetch('/api/ngrok-control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:act})})
         .then(r=>r.json()).then(d=>{
-            if(!d.ok && d.msg){document.getElementById('ng-status').textContent='Błąd: '+d.msg;}
-            btn.textContent=act==='start'?'▶ Start':'⏹ Stop';btn.disabled=false;
             if(act==='start'){setTimeout(ng,3000);setTimeout(ng,6000);setTimeout(ng,10000);}
             else{setTimeout(ng,1500);}
         })
         .catch(()=>{btn.textContent=act==='start'?'▶ Start':'⏹ Stop';btn.disabled=false;});
+    };
+
+    /* PhonkBot status */
+    function pbStatus(){
+        fetch('/api/phonkbot-stats').then(r=>r.json()).then(d=>{
+            document.getElementById('pb-dot').className='kd-dot on';
+            document.getElementById('pb-dot').style.background='#ff4444';
+            document.getElementById('pb-dot').style.boxShadow='0 0 6px rgba(255,68,68,0.5)';
+            document.getElementById('pb-status').textContent='Online · '+d.total_tracks+' tracks';
+            document.getElementById('pb-status').style.color='#beee00';
+            document.getElementById('pb-published').textContent=d.published;
+            document.getElementById('pb-pending').textContent=d.pending_review;
+            document.getElementById('pb-views').textContent=d.total_views;
+        }).catch(function(){
+            document.getElementById('pb-dot').className='kd-dot off';
+            document.getElementById('pb-dot').style.background='#475569';
+            document.getElementById('pb-dot').style.boxShadow='none';
+            document.getElementById('pb-status').textContent='Offline';
+            document.getElementById('pb-status').style.color='#ef4444';
+            document.getElementById('pb-published').textContent='-';
+            document.getElementById('pb-pending').textContent='-';
+            document.getElementById('pb-views').textContent='-';
+        });
+    }
+    pbStatus();setInterval(pbStatus,30000);
+
+    /* PhonkBot generate */
+    window.pbGenerate=function(){
+        var btn=document.getElementById('pb-generate');
+        btn.innerHTML='<span class="material-symbols-outlined" style="font-size:1.1rem">sync</span> Generating...';
+        btn.disabled=true;
+        fetch('/api/phonkbot-generate',{method:'POST'})
+        .then(r=>r.json()).then(d=>{
+            btn.innerHTML='<span class="material-symbols-outlined" style="font-size:1.1rem">check</span> Started!';
+            setTimeout(()=>{btn.disabled=false;btn.innerHTML='<span class="material-symbols-outlined" style="font-size:1.1rem">play_arrow</span> Generate';},3000);
+            setTimeout(pbStatus,5000);
+        })
+        .catch(()=>{btn.disabled=false;btn.innerHTML='<span class="material-symbols-outlined" style="font-size:1.1rem">error</span> Error';});
     };
 
     /* Auto-refresh every 5 min */

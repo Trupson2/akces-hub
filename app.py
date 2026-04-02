@@ -269,8 +269,8 @@ def block_unauthenticated_external():
     """Blokuj requesty z zewnątrz (ngrok) bez zalogowanej sesji.
     Lokalne requesty (127.0.0.1, 192.168.*) przechodzą bez sesji do strony logowania."""
     # Pozwól na statyczne pliki, login, API system-stats
-    safe_paths = ('/auth', '/static', '/favicon', '/api/system-stats', '/api/csrf-token',
-                  '/license', '/setup', '/eula', '/onboarding', '/subscription-expired')
+    safe_paths = ('/auth', '/static', '/favicon', '/api/system-stats', '/api/csrf-token', '/launcher',
+                  '/license', '/setup', '/eula', '/onboarding', '/subscription-expired', '/launcher')
     if any(request.path.startswith(p) for p in safe_paths):
         return
 
@@ -349,7 +349,7 @@ def csrf_protect_forms():
 @app.before_request
 def check_license_middleware():
     """Blokuj dostęp bez aktywnej licencji (oprócz setup, login, aktywacji)"""
-    allowed = ('/setup', '/auth', '/static', '/api/system-stats', '/api/csrf-token', '/license', '/favicon', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/eula', '/onboarding')
+    allowed = ('/setup', '/auth', '/static', '/api/system-stats', '/api/csrf-token', '/license', '/favicon', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/eula', '/onboarding', '/launcher')
     if any(request.path.startswith(p) for p in allowed):
         return
     if request.path == '/':
@@ -379,7 +379,7 @@ def check_license_middleware():
 @app.before_request
 def check_eula_middleware():
     """Po walidacji licencji sprawdz czy EULA zaakceptowane"""
-    allowed = ('/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify', '/subscription-expired', '/time-manipulation')
+    allowed = ('/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/launcher')
     if any(request.path.startswith(p) for p in allowed):
         return
     try:
@@ -393,7 +393,7 @@ def check_eula_middleware():
 @app.before_request
 def check_onboarding_middleware():
     """Po akceptacji EULA sprawdz czy onboarding ukonczony"""
-    allowed = ('/onboarding', '/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify', '/subscription-expired', '/time-manipulation')
+    allowed = ('/onboarding', '/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/launcher')
     if any(request.path.startswith(p) for p in allowed):
         return
     try:
@@ -1359,6 +1359,24 @@ def api_system_stats():
         'uptime': uptime_str
     })
 
+@app.route("/api/phonkbot-stats")
+def api_phonkbot_stats():
+    try:
+        import requests as _req
+        r = _req.get("http://localhost:5001/api/stats", timeout=3)
+        return r.json()
+    except:
+        return jsonify({"total_tracks": 0, "published": 0, "pending_review": 0, "total_views": 0, "offline": True})
+
+@app.route("/api/phonkbot-generate", methods=["POST"])
+def api_phonkbot_generate():
+    try:
+        import requests as _req
+        r = _req.post("http://localhost:5001/api/pipeline/run", timeout=5)
+        return r.json()
+    except:
+        return jsonify({"status": "error", "message": "PhonkBot offline"})
+
 @app.route('/api/live-sales')
 def api_live_sales():
     """Ostatnie sprzedaze dzis — dla kiosk live feed"""
@@ -1399,6 +1417,11 @@ def _get_insights_safe():
         return {'top_sellers': [], 'low_stock': [], 'best_categories': [], 'stale': []}
 
 @app.route('/')
+@app.route("/launcher")
+def project_launcher():
+    kiosk = request.args.get("kiosk", "")
+    return render_template("project_launcher.html", version=VERSION, kiosk=kiosk)
+
 def home():
     # Magazynier — uproszczony dashboard z linkami do wysyłek i magazynu
     if session.get('rola') == 'magazynier':
