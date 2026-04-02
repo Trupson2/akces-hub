@@ -1793,14 +1793,35 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     except:
         pass
 
-    resp = make_response(render_template('kiosk_home.html',
-        version=VERSION,
-        today=today, mag=mag, pal=pal, allegro=allegro,
-        active_home='active', active_magazyn='', active_paletomat='',
-        active_allegro='', active_olx='', active_vinted='', active_narzedzia='',
-        active_monitor='',
-        **sypie_data
-    ))
+    # Mobile → home.html, Desktop/Pi → kiosk_home.html
+    _ua = request.headers.get('User-Agent', '').lower()
+    _is_mobile = any(k in _ua for k in ('mobile', 'android', 'iphone', 'ipad'))
+
+    if _is_mobile:
+        resp = make_response(render_template('home.html',
+            version=VERSION,
+            today_date=datetime.now().strftime('%d.%m.%Y'),
+            today=today, mag=mag, pal=pal, allegro=allegro,
+            telegram_online=bot_status(),
+            unread_count=2, activity=activity,
+            goal=goal, monthly=monthly_stats,
+            update_banner=update_banner, update_status=update_status,
+            top_produkty=stats.get('top_produkty', []),
+            top_dostawcy=stats.get('top_dostawcy', []),
+            insights=_get_insights_safe(),
+            active_home='active', active_magazyn='', active_paletomat='',
+            active_allegro='', active_monitor='', active_narzedzia='',
+            **sypie_data
+        ))
+    else:
+        resp = make_response(render_template('kiosk_home.html',
+            version=VERSION,
+            today=today, mag=mag, pal=pal, allegro=allegro,
+            active_home='active', active_magazyn='', active_paletomat='',
+            active_allegro='', active_olx='', active_vinted='', active_narzedzia='',
+            active_monitor='',
+            **sypie_data
+        ))
     if not request.cookies.get('akces_user'):
         resp.set_cookie('akces_user', 'adrian', max_age=60*60*24*365, httponly=True, samesite='Lax')
     return resp
