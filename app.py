@@ -1793,11 +1793,21 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     except:
         pass
 
-    # Mobile → home.html, Desktop/Pi → kiosk_home.html
+    # Kiosk TYLKO na Pi (Linux ARM) lub ?kiosk=1, reszta → home.html
     _ua = request.headers.get('User-Agent', '').lower()
-    _is_mobile = any(k in _ua for k in ('mobile', 'android', 'iphone', 'ipad'))
+    _is_pi = 'linux' in _ua and ('aarch64' in _ua or 'armv' in _ua)
+    _force_kiosk = request.args.get('kiosk') == '1'
 
-    if _is_mobile:
+    if _is_pi or _force_kiosk:
+        resp = make_response(render_template('kiosk_home.html',
+            version=VERSION,
+            today=today, mag=mag, pal=pal, allegro=allegro,
+            active_home='active', active_magazyn='', active_paletomat='',
+            active_allegro='', active_olx='', active_vinted='', active_narzedzia='',
+            active_monitor='',
+            **sypie_data
+        ))
+    else:
         resp = make_response(render_template('home.html',
             version=VERSION,
             today_date=datetime.now().strftime('%d.%m.%Y'),
@@ -1811,15 +1821,6 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
             insights=_get_insights_safe(),
             active_home='active', active_magazyn='', active_paletomat='',
             active_allegro='', active_monitor='', active_narzedzia='',
-            **sypie_data
-        ))
-    else:
-        resp = make_response(render_template('kiosk_home.html',
-            version=VERSION,
-            today=today, mag=mag, pal=pal, allegro=allegro,
-            active_home='active', active_magazyn='', active_paletomat='',
-            active_allegro='', active_olx='', active_vinted='', active_narzedzia='',
-            active_monitor='',
             **sypie_data
         ))
     if not request.cookies.get('akces_user'):
