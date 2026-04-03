@@ -375,18 +375,6 @@ def generate_meta_title_batch():
                         'SELECT nazwa, tytul_seo, bullet_points FROM scraped WHERE asin = ?', (_asin,)
                     ).fetchone()
 
-                # Jeśli jest już tytul_seo — użyj bezpośrednio
-                if _scraped and _scraped['tytul_seo'] and len(_scraped['tytul_seo']) > 10:
-                    _t = _scraped['tytul_seo']
-                    if len(_t) > 75:
-                        _t = _t[:75].rsplit(' ', 1)[0]
-                    conn.execute('UPDATE produkty SET meta_title = ? WHERE id = ?', (_t, product_id))
-                    conn.commit()
-                    results['generated'] += 1
-                    results['details'].append({'id': product_id, 'status': 'success', 'meta_title': _t})
-                    print(f"   ✓ Użyto tytul_seo ze scraped: {_t}")
-                    continue
-
                 _amazon_nazwa = (_scraped['nazwa'] if _scraped and _scraped['nazwa'] else '') or produkt['nazwa'] or ''
                 _bullet_pts = (_scraped['bullet_points'] if _scraped and _scraped['bullet_points'] else '')
                 print(f"   → Amazon title: {_amazon_nazwa[:60]}")
