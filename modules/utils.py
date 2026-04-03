@@ -1018,10 +1018,17 @@ def generuj_opis_ai(nazwa, kategoria='inne', bullet_points=None, gemini_key=None
 
 PRODUKT: {nazwa}
 
-CECHY Z AMAZONA (to Twoje jedyne źródło — NIE wymyślaj):
+CECHY Z AMAZONA (źródło faktów — NIE wymyślaj nowych parametrów):
 {features_text}
 
 TYP: {'Elektronika/Urządzenie' if is_electronics else ('Dekoracja/Materiał' if is_decoration else 'Produkt fizyczny')}
+
+=== KRYTYCZNE: PRZEFORMUŁOWANIE ===
+BEZWZGLEDNY ZAKAZ kopiowania/tłumaczenia bullet pointów z Amazona!
+- Wyciągnij FAKTY i PARAMETRY (wymiary, waga, materiał, funkcje)
+- Napisz WŁASNYMI SŁOWAMI — zupełnie inna struktura zdań niż oryginał
+- Opis ma brzmieć jak napisany przez polskiego eksperta, NIE jak tłumaczenie
+- NIGDY nie zaczynaj opisu od przepisywania pierwszego bullet pointa
 
 === STRUKTURA ===
 
@@ -1451,8 +1458,16 @@ KATEGORIA: {kategoria}"""
     
     prompt += f"""
 
-CECHY Z AMAZONA (jedyne źródło danych — NIE wymyślaj!):
+CECHY Z AMAZONA (źródło danych — NIE wymyślaj nowych parametrów!):
 {chr(10).join([f'- {bp}' for bp in bullet_points])}
+
+=== KRYTYCZNE: PRZEFORMUŁOWANIE ===
+BEZWZGLEDNY ZAKAZ kopiowania bullet pointów z Amazona! Musisz:
+- Wyciągnij FAKTY i PARAMETRY z bullet pointów (wymiary, waga, materiał, funkcje)
+- Napisz WŁASNYMI SŁOWAMI — zupełnie inaczej niż oryginał
+- NIE tłumacz zdań z Amazona — PISZ OD ZERA na podstawie faktów
+- Opis ma brzmieć jak napisany przez polskiego sprzedawcę, NIE jak tłumaczenie z angielskiego
+- Jeśli Amazon pisze "Szybkie i łatwe nadmuchiwanie w 3 minuty" ty napisz np. "Wbudowana pompka napompuje materac w zaledwie 3 min"
 
 === WYMAGANIA ===
 
