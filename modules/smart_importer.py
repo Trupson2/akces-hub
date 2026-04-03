@@ -184,13 +184,6 @@ def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin:
     import time
     import requests as _req
 
-    # SZYBKA ŚCIEŻKA: pełny tytuł Amazon → formatuj programatycznie (bez AI)
-    if len(produkt_nazwa.strip()) >= 40:
-        optimized = _optimize_amazon_title(produkt_nazwa)
-        if len(optimized) >= 30:
-            print(f"[SMAR] [FAST] Tytuł z Amazon wystarczający — formatuję bez AI: {optimized}")
-            return optimized
-
     short_name = produkt_nazwa[:50] + '...' if len(produkt_nazwa) > 50 else produkt_nazwa
 
     # Pobierz klucz Gemini z DB config
