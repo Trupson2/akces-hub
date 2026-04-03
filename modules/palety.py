@@ -350,7 +350,7 @@ def generate_meta_title_batch():
 
         for idx, product_id in enumerate(product_ids, 1):
             try:
-                print(f"\n[INVENTORY_2] [{idx}/{len(product_ids)}] Processing product ID: {product_id}")
+                print(f"\n📦 [{idx}/{len(product_ids)}] Processing product ID: {product_id}")
 
                 # Pobierz produkt
                 produkt = conn.execute('SELECT nazwa, ean, asin FROM produkty WHERE id = ?', (product_id,)).fetchone()
@@ -417,7 +417,7 @@ def generate_meta_title_batch():
                     if not hasattr(generate_meta_title_batch, '_api_delay'):
                         generate_meta_title_batch._api_delay = 2.0  # 2s = ~30 req/min (BEZPIECZNY!)
 
-                    print(f"   [HOURGLASS_TOP] Czekam {generate_meta_title_batch._api_delay}s przed następnym...")
+                    print(f"   ⏳ Czekam {generate_meta_title_batch._api_delay}s przed następnym...")
                     time.sleep(generate_meta_title_batch._api_delay)
 
             except Exception as e:
@@ -432,8 +432,8 @@ def generate_meta_title_batch():
                     old_delay = generate_meta_title_batch._api_delay
                     generate_meta_title_batch._api_delay = min(old_delay * 2, 10.0)  # Max 10s
 
-                    print(f"   [WARNING]  QUOTA EXCEEDED! Zwiększam delay: {old_delay}s → {generate_meta_title_batch._api_delay}s")
-                    print(f"   [LIGH] WOLNIEJ = STABILNIEJ!")
+                    print(f"   ⚠️  QUOTA EXCEEDED! Zwiększam delay: {old_delay}s → {generate_meta_title_batch._api_delay}s")
+                    print(f"   💡 WOLNIEJ = STABILNIEJ!")
 
                     results['failed'] += 1
                     results['details'].append({
@@ -716,7 +716,7 @@ def produkt_quick_draft(produkt_id):
             if zdjecia:
                 print(f"   [PHOTO_CAMERA] [SOURCE] produkty.images: {len(zdjecia)} plików")
         except Exception as e:
-            print(f"   [WARNING]  [ERROR] Parse images: {e}")
+            print(f"   ⚠️  [ERROR] Parse images: {e}")
 
     # Sposób 2: FALLBACK na scraped.wszystkie_zdjecia (lokalne ścieżki przez ASIN)
     if not zdjecia and produkt.get('asin'):
@@ -732,7 +732,7 @@ def produkt_quick_draft(produkt_id):
                 except:
                     pass
         except Exception as e:
-            print(f"   [WARNING]  [ERROR] Read scraped: {e}")
+            print(f"   ⚠️  [ERROR] Read scraped: {e}")
 
     # Sposób 3: Fallback na zdjecie_url
     if not zdjecia and produkt['zdjecie_url']:
@@ -1386,7 +1386,7 @@ def paleta_dodaj():
         notatki = request.form.get('notatki', '')
 
         # Debug log
-        print(f"[INVENTORY_2] Dodaję paletę: nazwa={nazwa}, dostawca={dostawca}, cena={cena}")
+        print(f"📦 Dodaję paletę: nazwa={nazwa}, dostawca={dostawca}, cena={cena}")
 
         paleta_id = add_paleta(nazwa, dostawca, cena, data, notatki, regal)
 
@@ -1898,7 +1898,7 @@ def paleta_bulk_import():
                                     if file_prod_count > 0:
                                         files_ok += 1
                                 except Exception as ze:
-                                    print(f"[WARNING] ZIP Excel error ({excel_name}): {ze}")
+                                    print(f"⚠️ ZIP Excel error ({excel_name}): {ze}")
                                     continue
 
                             # Aktualizuj paletę
@@ -2231,7 +2231,7 @@ def paleta_bulk_import():
                         scrape_count = len(asins)
                         print(f"[AGRI] Bulk import → auto-scraping {scrape_count} produktów")
             except Exception as e:
-                print(f"[WARNING] Auto-scraping/scraped insert error: {e}")
+                print(f"⚠️ Auto-scraping/scraped insert error: {e}")
 
             # [AUTO-META] Generuj meta_title w tle dla produktów bez tytułu
             ok_paleta_ids = [w['paleta_id'] for w in wyniki if w['status'] == 'ok']
@@ -3248,7 +3248,7 @@ def paleta_szczegoly(paleta_id):
             conn.commit()
             print(f"[CHECK_CIRCLE] Migracja palety {paleta_id}: {len(stare_offline)} offline -> sprzedaze")
     except Exception as _em:
-        print(f"[WARNING] Migracja palety: {_em}")
+        print(f"⚠️ Migracja palety: {_em}")
 
     # Zeruj przychod_offline I sprzedano_offline dla produktów które mają już rekord w sprzedaze (cleanup)
     # FIX: zeruj OBA pola — wcześniej tylko przychod_offline, co powodowało mismatch (+1 sprzedanych)
@@ -3491,7 +3491,7 @@ def paleta_szczegoly(paleta_id):
     zysk_rzeczywisty = przychod_rzeczywisty - koszt_sprzedanych
 
     # DEBUG
-    print(f"[INVENTORY_2] PRODUKTY na palecie #{paleta_id}:")
+    print(f"📦 PRODUKTY na palecie #{paleta_id}:")
     for p in produkty:
         try:
             offline_szt = p['sprzedano_offline'] or 0
@@ -3736,7 +3736,7 @@ def paleta_szczegoly(paleta_id):
         var btn = this;
         btn.disabled = true;
         btn.style.opacity = '0.7';
-        btn.innerHTML = '[HOURGLASS_TOP] Scrapuje zdjecia...';
+        btn.innerHTML = '⏳ Scrapuje zdjecia...';
         fetch('/palety/' + btn.getAttribute('data-paleta') + '/scrape-images', {method: 'POST'})
         .then(function(r) { return r.json(); })
         .then(function(d) {

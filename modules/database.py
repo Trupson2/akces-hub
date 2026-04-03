@@ -1481,7 +1481,7 @@ def get_insights():
         LIMIT 8
     ''').fetchall()
 
-    # 3. [LIGH] Warto dokupić — dostawcy/kategorie z najlepszym ROI
+    # 3. 💡 Warto dokupić — dostawcy/kategorie z najlepszym ROI
     insights['best_categories'] = conn.execute('''
         SELECT p.kategoria,
                COUNT(DISTINCT p.id) as produktow,

@@ -984,7 +984,7 @@ class PrinterManager:
         
         # Brak opcji
         print("[ERR] Drukarka nie jest połączona")
-        print("   [LIGH] Wskazówki:")
+        print("   💡 Wskazówki:")
         print("   - Upewnij się że Niimbot jest włączony i w zasięgu BT")
         print("   - Przejdź do Magazyn → Drukarka → Skanuj")
         if not BLEAK_AVAILABLE:
@@ -1155,7 +1155,7 @@ class PrinterManager:
             else:
                 print("[ERR] Brak dostępnego transportu (USB/Bluetooth)")
                 if not self.device_address:
-                    print("   [LIGH] Najpierw sparuj drukarkę: Skanuj → Połącz w ustawieniach drukarki")
+                    print("   💡 Najpierw sparuj drukarkę: Skanuj → Połącz w ustawieniach drukarki")
                 return False
                 
             printer = PrinterClient(transport)
@@ -2201,7 +2201,7 @@ def list_system_printers_sync() -> list:
                     return port.device
             
             print("[WARN]  Nie znaleziono drukarki Niimbot na USB")
-            print("[LIGH] Sprawdź:")
+            print("💡 Sprawdź:")
             print("   1. Czy drukarka jest podłączona przez USB-C")
             print("   2. Czy drukarka jest włączona")
             print("   3. Czy Windows wykryło urządzenie (Menedżer urządzeń)")
@@ -2413,7 +2413,7 @@ def list_system_printers_sync() -> list:
                 time.sleep(0.3)
             
             print("\n[OK] WYDRUKOWANO!")
-            print("[LIGH] Sprawdź drukarkę - etykieta powinna wyjechać!\n")
+            print("💡 Sprawdź drukarkę - etykieta powinna wyjechać!\n")
             return True
             
         except Exception as e:

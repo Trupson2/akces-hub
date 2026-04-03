@@ -24,7 +24,7 @@ def test_print():
             print("[OK] Moduł niimprint zainstalowany")
         except ImportError:
             print("[WARN]  Moduł niimprint NIE jest zainstalowany")
-            print("[LIGH] Zainstaluj: pip install niimprint --break-system-packages")
+            print("💡 Zainstaluj: pip install niimprint --break-system-packages")
             return False
         
         # Sprawdź czy bleak (Bluetooth) jest dostępny
@@ -33,7 +33,7 @@ def test_print():
             print("[OK] Moduł bleak (Bluetooth) zainstalowany")
         except ImportError:
             print("[WARN]  Moduł bleak NIE jest zainstalowany")
-            print("[LIGH] Zainstaluj: pip install bleak --break-system-packages")
+            print("💡 Zainstaluj: pip install bleak --break-system-packages")
             return False
         
         print("\n[ASSI] Test został zakończony pomyślnie!")
@@ -67,7 +67,7 @@ def print_niimbot(produkt):
             from PIL import Image, ImageDraw, ImageFont
         except ImportError as e:
             print(f"[WARN]  Brak wymaganych modułów: {e}")
-            print("[LIGH] Zainstaluj: pip install niimprint pillow --break-system-packages")
+            print("💡 Zainstaluj: pip install niimprint pillow --break-system-packages")
             return False
         
         # Przygotuj dane do druku
@@ -94,7 +94,7 @@ def print_niimbot(produkt):
         
         print("\n[OK] Etykieta przygotowana do druku")
         print("[BUIL] Połączenie z drukarką Niimbot B1...")
-        print("[LIGH] UWAGA: Implementacja faktycznego drukowania wymaga aktywnej drukarki")
+        print("💡 UWAGA: Implementacja faktycznego drukowania wymaga aktywnej drukarki")
         print("="*60 + "\n")
         
         return True

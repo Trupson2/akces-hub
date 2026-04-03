@@ -1859,7 +1859,7 @@ def backup_page():
             return false;
         }
         document.getElementById('uploadBtn').disabled = true;
-        document.getElementById('uploadBtn').innerHTML = '[HOURGLASS_TOP] Wgrywanie...';
+        document.getElementById('uploadBtn').innerHTML = '⏳ Wgrywanie...';
     };
     
     function createBackup() {
@@ -3841,7 +3841,7 @@ def paleta_detail_by_id(paleta_id):
     async function autoWycenaPaleta(paletaId) {
         const btn = event.target;
         btn.disabled = true;
-        btn.innerHTML = '[HOURGLASS_TOP] Pobieranie cen... 0%';
+        btn.innerHTML = '⏳ Pobieranie cen... 0%';
 
         // Stwórz progress div
         let progressDiv = document.getElementById('autowycena-progress');
@@ -3875,7 +3875,7 @@ def paleta_detail_by_id(paleta_id):
                         const ev = JSON.parse(line.slice(6));
                         if (ev.type === 'progress') {
                             const pct = Math.round(ev.current / ev.total * 100);
-                            btn.innerHTML = '[HOURGLASS_TOP] ' + pct + '% (' + ev.current + '/' + ev.total + ')';
+                            btn.innerHTML = '⏳ ' + pct + '% (' + ev.current + '/' + ev.total + ')';
                             let color = ev.source === 'amazon' ? '#10b981' : ev.source === 'estimate' ? '#f59e0b' : '#ef4444';
                             progressDiv.innerHTML += '<span style="color:' + color + '">• ' + ev.name + ' → ' + (ev.price ? ev.price + ' zł' : 'brak ceny') + ' [' + (ev.source||'—') + ']</span><br>';
                             progressDiv.scrollTop = progressDiv.scrollHeight;
@@ -4450,7 +4450,7 @@ def fetch_images_page():
     
     <div id="progress" style="display:none;margin-bottom:15px">
         <div class="card" style="padding:15px">
-            <div style="font-weight:600;margin-bottom:10px">[HOURGLASS_TOP] Pobieranie w toku...</div>
+            <div style="font-weight:600;margin-bottom:10px">⏳ Pobieranie w toku...</div>
             <div id="progress-text" style="font-size:0.85rem;color:#94a3b8">0 / {no_image}</div>
             <div style="background:#1e1e2e;border-radius:6px;height:10px;margin-top:10px;overflow:hidden">
                 <div id="progress-bar" style="background:#beee00;width:0%;height:100%;transition:width 0.3s"></div>
@@ -8104,7 +8104,7 @@ def lezaki():
     total_wartosc = 0
     
     html = '''
-    <div class="hdr"><h1>[HOURGLASS_TOP] LEŻAKI</h1><small>Produkty stojące >30 dni</small></div>
+    <div class="hdr"><h1>⏳ LEŻAKI</h1><small>Produkty stojące >30 dni</small></div>
     '''
     
     if not produkty:
@@ -8189,7 +8189,7 @@ def lezaki():
                     <!-- Dni stoi -->
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
                         <div style="background:{dni_kolor}22;border:1px solid {dni_kolor};border-radius:20px;padding:3px 12px;font-size:0.8rem;font-weight:700;color:{dni_kolor}">
-                            [HOURGLASS_TOP] {dni} dni
+                            ⏳ {dni} dni
                         </div>
                         <div style="font-size:0.7rem;color:#64748b">od {(p['data_dodania'] or '')[:10]}</div>
                     </div>
@@ -9370,7 +9370,7 @@ def przyjecie_palety(paleta_id):
 
         const resultDiv = document.getElementById('ai-result-' + pid);
         resultDiv.style.display = 'block';
-        resultDiv.innerHTML = '<div style="color:#a78bfa">[HOURGLASS_TOP] Analizuję zdjęcie AI...</div>';
+        resultDiv.innerHTML = '<div style="color:#a78bfa">⏳ Analizuję zdjęcie AI...</div>';
 
         const reader = new FileReader();
         reader.onload = function(e) {{

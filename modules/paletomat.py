@@ -372,7 +372,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
         # Pobierz dane z Amazona
         amazon_data = scrape_amazon_product(asin, preferred_domain=preferred_domain)
         if not amazon_data:
-            print(f"[WARNING] Could not scrape: {asin}")
+            print(f"⚠️ Could not scrape: {asin}")
             return (asin, False, "Scraping failed")
         
         nazwa = amazon_data.get('title', '') or f'Produkt {asin}'
@@ -404,7 +404,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
             conn.commit()
             print(f"[EDIT_NOTE] Nazwa zapisana od razu: {nazwa[:50]}")
         except Exception as e:
-            print(f"[WARNING] Szybki zapis nazwy: {e}")
+            print(f"⚠️ Szybki zapis nazwy: {e}")
 
         # <span class=material-symbols-outlined>download</span> POBIERZ WSZYSTKIE ZDJĘCIA LOKALNIE - NOWA ORGANIZACJA KATALOGÓW
         lokalne_zdjecia = []
@@ -483,7 +483,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
                             _orig_count += 1
                             print(f"   [PHOTO_CAMERA] [{_orig_count}] {_slot_name} — wyczyszczony oryginał [CHECK_CIRCLE]")
                         else:
-                            print(f"   [WARNING] {_slot_name}: {str(_perr)[:40]}")
+                            print(f"   ⚠️ {_slot_name}: {str(_perr)[:40]}")
                     except Exception as _oe:
                         print(f"   [CANCEL] {_slot_name}: {str(_oe)[:40]}")
 
@@ -539,9 +539,9 @@ def process_single_product(asin, position, total, preferred_domain=None):
                     print(f"   [CHECK_CIRCLE] {len(_enh_ok)}/8 zdjęć ({_orig_count} oryg + {len(_enh_ok)-_orig_count} AI)")
                     wszystkie_zdjecia = _enh_ok[:8]
                 else:
-                    print(f"   [WARNING] Enhance nie powiódł się, oryginalne zdjęcia")
+                    print(f"   ⚠️ Enhance nie powiódł się, oryginalne zdjęcia")
         except Exception as _enhx_s:
-            print(f"   [WARNING] Enhance error: {str(_enhx_s)[:60]}")
+            print(f"   ⚠️ Enhance error: {str(_enhx_s)[:60]}")
         
         # <span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> TURBO: Generuj tytuł SEO używając AI (Gemini)
         # Import klucza z gemini_config.py (jak smart_importer)
@@ -570,7 +570,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
                 print(f"   [EDIT_NOTE] Title (fallback): {tytul_seo}")
         else:
             # Fallback na starą metodę jeśli brak klucza
-            print(f"[WARNING]  [NO API KEY] Brak klucza Gemini - używam fallback")
+            print(f"⚠️  [NO API KEY] Brak klucza Gemini - używam fallback")
             tytul_seo = optimize_title_seo(nazwa, 75)
             print(f"   [EDIT_NOTE] Title (fallback): {tytul_seo}")
         
@@ -579,7 +579,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
             opis_html, opis_plain = generuj_opis_html_pro(nazwa, wszystkie_zdjecia, kategoria, bullet_points, gemini_key=gemini_key, asin=asin)
             print(f"[DESC] Description: {len(opis_html)} chars")
         except Exception as e:
-            print(f"[WARNING] Description generation failed: {e}")
+            print(f"⚠️ Description generation failed: {e}")
             # Fallback - prosty opis
             opis_html = f"<p>{nazwa}</p>"
             if bullet_points:
@@ -598,7 +598,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
                 print(f"   ℹ  GPSR: brak (produkt nie wymaga)")
                 gpsr = ""
         except Exception as e:
-            print(f"[WARNING] GPSR generation failed: {e}")
+            print(f"⚠️ GPSR generation failed: {e}")
             gpsr = ""
         
         # <span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> KOMBAJN: Zapisz do bazy z retry logic
@@ -636,7 +636,7 @@ def process_single_product(asin, position, total, preferred_domain=None):
                 break
             except sqlite3.OperationalError as e:
                 if 'locked' in str(e) and retry < 2:
-                    print(f"[WARNING] DB locked, retry {retry+1}/3...")
+                    print(f"⚠️ DB locked, retry {retry+1}/3...")
                     time.sleep(0.5 * (retry + 1))
                 else:
                     raise
@@ -726,7 +726,7 @@ def auto_process_products(asins, preferred_domain=None):
         if success_count > 0 and not is_pi:
             _auto_start_enhance_after_scrape()
         elif is_pi:
-            print("[WARNING] Pi detected — pomijam auto-enhance (za ciężkie)")
+            print("⚠️ Pi detected — pomijam auto-enhance (za ciężkie)")
 
     # Uruchom w osobnym wątku
     thread = threading.Thread(target=process_in_background, daemon=True)
@@ -747,7 +747,7 @@ def _auto_start_enhance_after_scrape():
         print("[Auto-Enhance] ⏭ Pomijam — generowanie już działa w tle")
         return
 
-    print("[Auto-Enhance] [HOURGLASS_TOP] Czekam 5s przed startem generowania zdjęć...")
+    print("[Auto-Enhance] ⏳ Czekam 5s przed startem generowania zdjęć...")
     _t.sleep(5)
 
     # Sprawdź jeszcze raz
@@ -1531,7 +1531,7 @@ def scraper_miglo():
         try:
             paleta_id = int(paleta_id_raw)
         except ValueError:
-            print(f"[WARNING] Nieprawidłowe ID palety: {paleta_id_raw}, używam None")
+            print(f"⚠️ Nieprawidłowe ID palety: {paleta_id_raw}, używam None")
             paleta_id = None
     
     if not miglo_data.strip():
@@ -1601,7 +1601,7 @@ def scraper_miglo():
                 'brutto_jednostkowa': round(cena_netto * 1.23, 2),
                 'brutto_lacznie': round(cena_netto * qty * 1.23, 2)
             }
-            print(f"[INVENTORY_2] Miglo: {asin} - {qty}szt × {cena_netto:.2f} netto = {cena_netto * qty:.2f} netto łącznie")
+            print(f"📦 Miglo: {asin} - {qty}szt × {cena_netto:.2f} netto = {cena_netto * qty:.2f} netto łącznie")
     
     if not asin_data:
         return render('<div class="hdr"><h1><span class=material-symbols-outlined>cancel</span> BŁĄD</h1></div><div class="alert alert-warn">Nie znaleziono prawidłowych danych.<br><br><small>Format: ASIN | Ilość | ... | Cena netto</small></div><a href="/paletomat/scraper" class="btn btn-p">← Powrót</a>')
@@ -1615,7 +1615,7 @@ def scraper_miglo():
             (nowa_paleta_nazwa, dostawca)
         )
         paleta_id = cursor.lastrowid
-        print(f"[INVENTORY_2] Utworzono nową paletę: {nowa_paleta_nazwa} (ID: {paleta_id})")
+        print(f"📦 Utworzono nową paletę: {nowa_paleta_nazwa} (ID: {paleta_id})")
     
     # paleta_id jest już int lub None - nie trzeba konwertować ponownie
     
@@ -1924,7 +1924,7 @@ def scraper_file():
                     wb = openpyxl.load_workbook(tmp_path, read_only=True)
                 except ValueError:
                     # Uszkodzone style/theme XML (np. pliki Warrington) — napraw i spróbuj ponownie
-                    print("[WARNING] Uszkodzone style w Excelu, naprawiam...")
+                    print("⚠️ Uszkodzone style w Excelu, naprawiam...")
                     import zipfile
                     repaired_path = tmp_path.replace('.xlsx', '_repaired.xlsx')
                     # Minimalny styles.xml z 10 pustymi stylami (wystarczy dla większości plików)
@@ -1959,7 +1959,7 @@ def scraper_file():
                     if not header_row_found:
                         # Szukamy wiersza z nagłówkami (max 10 pierwszych wierszy)
                         if rows_checked > 10:
-                            print(f"[WARNING] Nie znaleziono nagłówków w pierwszych 10 wierszach")
+                            print(f"⚠️ Nie znaleziono nagłówków w pierwszych 10 wierszach")
                             header_row_found = True  # Kontynuuj bez nagłówków
                             continue
                         
@@ -2016,7 +2016,7 @@ def scraper_file():
                             # UNIKAJ kolumn z cenami rynkowymi!
                             if any(x in h_orig for x in ['regularn', 'rynkow', 'rrp', 'retail', 'msrp']):
                                 if 'jednostkow' not in h_orig:  # Ale nie unikaj "jednostkowa"
-                                    print(f"[WARNING] Pomijam kolumnę rynkową: {i} ({h})")
+                                    print(f"⚠️ Pomijam kolumnę rynkową: {i} ({h})")
                                     continue
                             
                             # NAJWYŻSZY PRIORYTET: Cena jednostkowa sprzedaży (per sztuka!)
@@ -2205,13 +2205,13 @@ def scraper_file():
             )
             paleta_id = cursor.lastrowid
             conn.commit()
-            print(f"[INVENTORY_2] Utworzono NOWĄ paletę: {nowa_paleta_nazwa} (ID: {paleta_id})")
+            print(f"📦 Utworzono NOWĄ paletę: {nowa_paleta_nazwa} (ID: {paleta_id})")
         elif paleta_id and paleta_id != 'new':
             paleta_id = int(paleta_id)
-            print(f"[INVENTORY_2] Używam istniejącej palety ID: {paleta_id}")
+            print(f"📦 Używam istniejącej palety ID: {paleta_id}")
         else:
             paleta_id = None
-            print(f"[WARNING] BRAK palety - produkty bez przypisania!")
+            print(f"⚠️ BRAK palety - produkty bez przypisania!")
         
         # Pobierz nazwę palety
         paleta_nazwa = ""
@@ -2219,7 +2219,7 @@ def scraper_file():
             p = conn.execute('SELECT nazwa FROM palety WHERE id = ?', (paleta_id,)).fetchone()
             if p:
                 paleta_nazwa = p['nazwa']
-                print(f"[INVENTORY_2] Paleta nazwa: {paleta_nazwa}")
+                print(f"📦 Paleta nazwa: {paleta_nazwa}")
         
         added = 0
         updated = 0
@@ -2359,7 +2359,7 @@ def scraper_file():
                             print(f"   [CANCEL] UPDATE error: {e}")
                         updated += 1
                     else:
-                        print(f"   [WARNING] Brak pól do aktualizacji!")
+                        print(f"   ⚠️ Brak pól do aktualizacji!")
                 
             except Exception as e:
                 print(f"[CANCEL] BŁĄD przy {asin}: {e}")
@@ -5871,7 +5871,7 @@ def generator_create_stream(asin):
     elif _need_opis:
         from .utils import generuj_opis_html_pro
         from .database import get_config
-        print(f"[WARNING] Opis pusty/za krótki ({len(opis)} chars) -> generuję automatycznie")
+        print(f"⚠️ Opis pusty/za krótki ({len(opis)} chars) -> generuję automatycznie")
         _gemini_key = get_config('gemini_api_key', '')
         opis, _ = generuj_opis_html_pro(tytul or asin, [], kategoria, gemini_key=_gemini_key, asin=asin)
         print(f"[EDIT_NOTE] Wygenerowany opis: {len(opis)} chars")

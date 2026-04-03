@@ -662,7 +662,7 @@ def smart_import_excel(
                             old_delay = smart_import_excel._api_delay
                             smart_import_excel._api_delay = min(old_delay * 2, 5.0)  # Max 5s
                             print(f"   [WARN]  QUOTA EXCEEDED! Zwiększam delay: {old_delay}s → {smart_import_excel._api_delay}s")
-                            print(f"   [LIGH] TIP: Dodaj kartę kredytową w Google AI Studio aby zwiększyć limit z 15 RPM → 2000 RPM!")
+                            print(f"   💡 TIP: Dodaj kartę kredytową w Google AI Studio aby zwiększyć limit z 15 RPM → 2000 RPM!")
                         
                         result["details"].append(f"<span class=material-symbols-outlined>warning</span> Produkt {i}: {error_msg}")
                         continue

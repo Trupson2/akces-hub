@@ -1906,7 +1906,7 @@ def analityka_okazje():
                 </button>
               </form>
               <div id='loading-szukaj' style='display:none;text-align:center;padding:10px;color:var(--green);font-size:0.82rem'>
-                <span style='animation:spin 1s linear infinite;display:inline-block'>[HOURGLASS_TOP]</span> Szukam palet... (~30-45 sek)
+                <span style='animation:spin 1s linear infinite;display:inline-block'>⏳</span> Szukam palet... (~30-45 sek)
               </div>
               {szukaj_html_block}"""
         live_scraper_section = live_scraper_section.replace('%%SZUKAJ_PLACEHOLDER%%', _szukaj_panel_content)
@@ -1944,7 +1944,7 @@ def analityka_okazje():
                 </button>
               </form>
               <div id='loading-analyze' style='display:none;text-align:center;padding:10px;color:var(--purple);font-size:0.82rem'>
-                <span style='animation:spin 1s linear infinite;display:inline-block'>[HOURGLASS_TOP]</span> Perplexity analizuje... (może potrwać ~30 sek)
+                <span style='animation:spin 1s linear infinite;display:inline-block'>⏳</span> Perplexity analizuje... (może potrwać ~30 sek)
               </div>
               {cached_html}
           </div>
@@ -2629,7 +2629,7 @@ def analityka_czas_sprzedazy():
             conn.commit()
             print(f"[CHECK_CIRCLE] Migracja offline: przeniesiono {len(stare)} produktów do sprzedaze, wyzerowano przychod_offline")
     except Exception as _e:
-        print(f"[WARNING] Migracja offline: {_e}")
+        print(f"⚠️ Migracja offline: {_e}")
 
     # Napraw rekordy offline w sprzedaze które mają cena=0
     try:
@@ -2647,7 +2647,7 @@ def analityka_czas_sprzedazy():
             conn.commit()
             print(f"[CHECK_CIRCLE] Naprawiono ceny offline: {naprawione} rekordów")
     except Exception as _e:
-        print(f"[WARNING] Naprawa cen offline: {_e}")
+        print(f"⚠️ Naprawa cen offline: {_e}")
 
     # Backfill data_syncu
     try:
@@ -3589,7 +3589,7 @@ def analizator_palet():
                 <div id="excel-progress" style="display:none;margin-top:16px">
                     <div class="ap-progress-wrap">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-                            <span id="excel-progress-text" style="color:var(--ap-cyan);font-weight:600;font-size:0.9rem;font-family:'Space Grotesk',sans-serif">[HOURGLASS_TOP] Analizuję...</span>
+                            <span id="excel-progress-text" style="color:var(--ap-cyan);font-weight:600;font-size:0.9rem;font-family:'Space Grotesk',sans-serif">⏳ Analizuję...</span>
                             <span id="excel-progress-pct" style="color:var(--ap-lime);font-weight:700;font-size:1.1rem;font-family:'Space Grotesk',sans-serif">0%</span>
                         </div>
                         <div class="ap-progress-bar-track">

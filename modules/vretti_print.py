@@ -25,7 +25,7 @@ def test_print():
             print("[OK] Moduł pyusb zainstalowany")
         except ImportError:
             print("[WARN]  Moduł pyusb NIE jest zainstalowany")
-            print("[LIGH] Zainstaluj: pip install pyusb --break-system-packages")
+            print("💡 Zainstaluj: pip install pyusb --break-system-packages")
             return False
         
         # Sprawdź czy PIL/Pillow jest dostępny
@@ -34,7 +34,7 @@ def test_print():
             print("[OK] Moduł Pillow zainstalowany")
         except ImportError:
             print("[WARN]  Moduł Pillow NIE jest zainstalowany")
-            print("[LIGH] Zainstaluj: pip install pillow --break-system-packages")
+            print("💡 Zainstaluj: pip install pillow --break-system-packages")
             return False
         
         # Spróbuj znaleźć drukarkę
@@ -49,8 +49,8 @@ def test_print():
         
         if device is None:
             print("[WARN]  Drukarka nie została znaleziona przez USB")
-            print("[LIGH] Sprawdź czy drukarka jest podłączona i włączona")
-            print("[LIGH] Na Windows może być potrzebny driver libusb")
+            print("💡 Sprawdź czy drukarka jest podłączona i włączona")
+            print("💡 Na Windows może być potrzebny driver libusb")
         else:
             print(f"[OK] Znaleziono urządzenie USB: {device}")
         
@@ -86,7 +86,7 @@ def print_vretti_usb(produkt):
             from PIL import Image, ImageDraw, ImageFont
         except ImportError as e:
             print(f"[WARN]  Brak wymaganych modułów: {e}")
-            print("[LIGH] Zainstaluj: pip install pyusb pillow --break-system-packages")
+            print("💡 Zainstaluj: pip install pyusb pillow --break-system-packages")
             return False
         
         # Przygotuj dane do druku
@@ -115,7 +115,7 @@ def print_vretti_usb(produkt):
         
         print("\n[OK] Etykieta przygotowana do druku")
         print("[BUIL] Łączenie z drukarką Vretti 420B przez USB...")
-        print("[LIGH] UWAGA: Implementacja faktycznego drukowania wymaga aktywnej drukarki")
+        print("💡 UWAGA: Implementacja faktycznego drukowania wymaga aktywnej drukarki")
         print("="*60 + "\n")
         
         return True

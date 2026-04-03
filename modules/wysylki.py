@@ -1849,7 +1849,7 @@ def sync_stany_magazynowe():
             ''', (prod['id'],))
             
             updated += 1
-            print(f"[INVENTORY_2] Stock: {prod['nazwa'][:30]} ({prod['ilosc']} -> {new_qty})")
+            print(f"📦 Stock: {prod['nazwa'][:30]} ({prod['ilosc']} -> {new_qty})")
     
     conn.commit()
     
