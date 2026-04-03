@@ -233,7 +233,8 @@
                     <span id="pb-status">Sprawdzam...</span>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-                    <a href="http://localhost:5001/" class="kd-btn open" style="border-color:rgba(255,68,68,0.3);color:#ff4444;padding:8px;font-size:0.7rem" target="_blank"><span class="material-symbols-outlined" style="font-size:1rem">open_in_new</span> Dashboard</a>
+                    <a href="" class="kd-btn open" style="border-color:rgba(255,68,68,0.3);color:#ff4444;padding:8px;font-size:0.7rem" target="_blank" id="pb-dash-link"><span class="material-symbols-outlined" style="font-size:1rem">open_in_new</span> Dashboard</a>
+<script>document.getElementById('pb-dash-link').href='http://'+location.hostname+':5001/';</script>
                     <button class="kd-btn green" id="pb-generate" onclick="pbGenerate()" style="padding:8px;font-size:0.7rem"><span class="material-symbols-outlined" style="font-size:1rem">play_arrow</span> Generate</button>
                 </div>
             </div>
