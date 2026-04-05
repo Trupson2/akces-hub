@@ -241,6 +241,24 @@ def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin:
         print(f"[SMAR] [WARN] Nazwa za krótka: '{_clean_nazwa}' - zwracam jak jest")
         return _clean_nazwa
 
+    # Jeśli tytuł nie jest po polsku → przetłumacz Google Translate
+    _polish_chars = set('ąćęłńóśźżĄĆĘŁŃÓŚŹŻ')
+    if not any(c in _polish_chars for c in _clean_nazwa):
+        try:
+            import urllib.parse
+            import requests as _req
+            _encoded = urllib.parse.quote(_clean_nazwa)
+            _gt_url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=pl&dt=t&q={_encoded}"
+            _gt_resp = _req.get(_gt_url, timeout=10)
+            if _gt_resp.status_code == 200:
+                _gt_data = _gt_resp.json()
+                _translated = ''.join(part[0] for part in _gt_data[0] if part[0])
+                if _translated and len(_translated) > 10:
+                    print(f"[SMAR] [TRANSLATE] {_clean_nazwa[:40]} → {_translated[:40]}")
+                    _clean_nazwa = _translated
+        except Exception as _te:
+            print(f"[SMAR] [WARN] Google Translate failed: {_te}")
+
     meta_title = _format_seo_title(_clean_nazwa, 75)
     print(f"[SMAR] [OK] Wygenerowano: {meta_title} ({len(meta_title)} znaków)")
     return meta_title
