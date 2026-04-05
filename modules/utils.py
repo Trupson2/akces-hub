@@ -909,52 +909,21 @@ def translate_product_name(name: str, use_ai: bool = True) -> str:
         # Popraw kapitalizację
         return local_translation.capitalize()
     
-    # Spróbuj AI jeśli włączone i jest klucz
-    if use_ai:
-        api_key = get_config('gemini_api_key', '')
-        if api_key:
-            try:
-                import requests
-                
-                prompt = f"""Jesteś tłumaczem nazw produktów na Allegro. Przetłumacz poniższą nazwę produktu na POLSKI.
-
-ZASADY:
-- Nazwy własne, marki i modele (np. "Samsung", "iPhone", "Bosch") ZACHOWAJ bez zmian
-- Jednostki (cm, kg, W, mAh) ZACHOWAJ bez zmian
-- Numery modeli ZACHOWAJ bez zmian
-- Przetłumacz TYLKO słowa opisowe (przymiotniki, rzeczowniki pospolite, kolory)
-- Zachowaj oryginalną strukturę nazwy (kolejność słów jak w oryginale, ale po polsku)
-- NIE dodawaj słów których nie ma w oryginale
-- NIE zmieniaj wielkości liter nazw własnych
-- Jeśli nazwa jest już po polsku, zwróć ją bez zmian
-
-PRZYKŁADY:
-"UGREEN USB C to Ethernet Adapter 2.5G" → "UGREEN Adapter USB C na Ethernet 2.5G"
-"Autositzbezüge Vordersitze Schwarz" → "Pokrowce na przednie fotele Czarne"
-"Wireless Bluetooth Headphones with Noise Cancelling" → "Bezprzewodowe słuchawki Bluetooth z redukcją szumów"
-"Laufband Klappbar mit Display 120kg" → "Bieżnia składana z wyświetlaczem 120kg"
-
-Nazwa do tłumaczenia: {name}
-
-Odpowiedz TYLKO przetłumaczoną nazwą, bez cudzysłowów, bez komentarzy:"""
-
-                response = requests.post(
-                    get_gemini_api_url(api_key),
-                    json={
-                        'contents': [{'parts': [{'text': prompt}]}],
-                        'generationConfig': {'maxOutputTokens': 100, 'temperature': 0.1}
-                    },
-                    timeout=30  # Zwiększony timeout z 10s do 30s
-                )
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    if 'candidates' in data and data['candidates']:
-                        translated = data['candidates'][0]['content']['parts'][0]['text'].strip()
-                        if translated and len(translated) > 5:
-                            return translated
-            except Exception as e:
-                print(f"[WARN] Błąd tłumaczenia AI: {e}")
+    # Google Translate (darmowe, szybkie, nie obcina)
+    try:
+        import requests as _req
+        import urllib.parse
+        _encoded = urllib.parse.quote(name)
+        _gt_url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=pl&dt=t&q={_encoded}"
+        _gt_resp = _req.get(_gt_url, timeout=10)
+        if _gt_resp.status_code == 200:
+            _gt_data = _gt_resp.json()
+            _translated = ''.join(part[0] for part in _gt_data[0] if part[0])
+            if _translated and len(_translated) > 5:
+                print(f"[TRANSLATE] Google: {name[:40]}... → {_translated[:40]}...")
+                return _translated
+    except Exception as e:
+        print(f"[WARN] Google Translate failed: {e}")
     
     return name
 
