@@ -237,12 +237,13 @@ def produkt_regenerate_meta_title(produkt_id):
         bullet_pts = (scraped['bullet_points'] if scraped and scraped['bullet_points'] else '')
         prod_nazwa = (produkt['nazwa'] or '').strip()
 
-        # Jeśli brak pełnej nazwy w scraped → spróbuj scrapować Amazon na żywo
-        if asin and len(scraped_nazwa) < 25:
+        # Jeśli nazwa za krótka/obcięta → scrapuj pełny tytuł z Amazon (BS4)
+        _best_nazwa = scraped_nazwa if len(scraped_nazwa) >= len(prod_nazwa) else prod_nazwa
+        if asin and len(_best_nazwa) < 50:
             try:
                 from modules.utils import scrape_amazon_product
                 amazon_data = scrape_amazon_product(asin)
-                if amazon_data and amazon_data.get('title') and len(amazon_data['title']) > 20:
+                if amazon_data and amazon_data.get('title') and len(amazon_data['title']) > len(_best_nazwa):
                     scraped_nazwa = amazon_data['title']
                     _bp = amazon_data.get('bullet_points', [])
                     if _bp:
@@ -254,10 +255,11 @@ def produkt_regenerate_meta_title(produkt_id):
                     else:
                         conn.execute('INSERT OR IGNORE INTO scraped (asin, nazwa, bullet_points, status) VALUES (?,?,?,?)',
                                     (asin, scraped_nazwa, bullet_pts, 'nowy'))
+                    # Zawsze aktualizuj produkty.nazwa jeśli nowa jest dłuższa
                     conn.execute('UPDATE produkty SET nazwa=? WHERE id=? AND LENGTH(COALESCE(nazwa,"")) < LENGTH(?)',
                                 (scraped_nazwa, produkt_id, scraped_nazwa))
                     conn.commit()
-                    print(f"[REGEN] Live scrape OK: {scraped_nazwa[:50]}")
+                    print(f"[REGEN] Live scrape OK (BS4): {scraped_nazwa[:60]}")
             except Exception as _e:
                 print(f"[REGEN] Live scrape failed: {_e}")
 
@@ -375,8 +377,35 @@ def generate_meta_title_batch():
                         'SELECT nazwa, tytul_seo, bullet_points FROM scraped WHERE asin = ?', (_asin,)
                     ).fetchone()
 
-                _amazon_nazwa = (_scraped['nazwa'] if _scraped and _scraped['nazwa'] else '') or produkt['nazwa'] or ''
+                _scraped_nazwa = (_scraped['nazwa'] if _scraped and _scraped['nazwa'] else '').strip()
+                _prod_nazwa = (produkt['nazwa'] or '').strip()
+                _amazon_nazwa = _scraped_nazwa if len(_scraped_nazwa) >= len(_prod_nazwa) else _prod_nazwa
                 _bullet_pts = (_scraped['bullet_points'] if _scraped and _scraped['bullet_points'] else '')
+
+                # Auto-scrape z Amazon (BS4) jeśli nazwa za krótka
+                if _asin and len(_amazon_nazwa) < 50:
+                    try:
+                        from modules.utils import scrape_amazon_product
+                        _ad = scrape_amazon_product(_asin)
+                        if _ad and _ad.get('title') and len(_ad['title']) > len(_amazon_nazwa):
+                            _amazon_nazwa = _ad['title']
+                            _bp = _ad.get('bullet_points', [])
+                            if _bp:
+                                _bullet_pts = json.dumps(_bp) if isinstance(_bp, list) else str(_bp)
+                            # Zaktualizuj bazę
+                            if _scraped:
+                                conn.execute('UPDATE scraped SET nazwa=?, bullet_points=? WHERE asin=?',
+                                            (_amazon_nazwa, _bullet_pts, _asin))
+                            else:
+                                conn.execute('INSERT OR IGNORE INTO scraped (asin, nazwa, bullet_points, status) VALUES (?,?,?,?)',
+                                            (_asin, _amazon_nazwa, _bullet_pts, 'nowy'))
+                            conn.execute('UPDATE produkty SET nazwa=? WHERE id=? AND LENGTH(COALESCE(nazwa,"")) < LENGTH(?)',
+                                        (_amazon_nazwa, product_id, _amazon_nazwa))
+                            conn.commit()
+                            print(f"   [SCRAPE] BS4 OK: {_amazon_nazwa[:60]}")
+                    except Exception as _se:
+                        print(f"   [SCRAPE] Failed: {_se}")
+
                 print(f"   → Amazon title: {_amazon_nazwa[:60]}")
 
                 # Generuj meta_title
