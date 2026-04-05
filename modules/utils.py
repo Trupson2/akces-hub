@@ -366,7 +366,11 @@ def scrape_amazon_product(asin, preferred_domain=None):
             _blocked = ['gwarancj', 'warranty', 'garantie', 'obsług', 'customer service',
                         'kundenservice', 'kontakt', 'contact us', 'skontaktuj',
                         'zwrot', 'return policy', 'refund', 'support team',
-                        'obsługa klienta', 'after-sale', 'aftersale', 'after sale']
+                        'obsługa klienta', 'after-sale', 'aftersale', 'after sale',
+                        'e-book', 'ebook', 'usiądź w pracy', 'nasza poduszk', 'nasz produkt',
+                        'na naszej', 'zapominając', 'samopoczuci', 'satisfaction',
+                        'click here', 'kliknij tutaj', 'subscribe', 'newsletter',
+                        'buy now', 'kup teraz', 'free shipping', 'darmowa wysyłka']
             bullet_points = [bp for bp in bullet_points
                              if not any(w in bp.lower() for w in _blocked)]
 
