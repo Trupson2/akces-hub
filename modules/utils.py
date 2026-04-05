@@ -265,36 +265,63 @@ def scrape_amazon_product(asin, preferred_domain=None):
                 _safe_print(f"   CAPTCHA na {domain}, probuje nastepna...")
                 continue
             
-            # Tytul - szukaj w HTML (TYLKO z elementów produktowych!)
+            # Tytul - szukaj w HTML z BeautifulSoup (solidniejsze niż regex)
             title = None
-            # Priorytet 1: span#productTitle (pewny tytuł produktu)
-            # Priorytet 2: h1#title > span (pewny tytuł produktu)
-            title_product_patterns = [
-                r'<span id="productTitle"[^>]*>\s*([^<]+?)\s*</span>',
-                r'<h1[^>]*id="title"[^>]*>.*?<span[^>]*>([^<]+)</span>',
-            ]
-            for pattern in title_product_patterns:
-                match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
-                if match:
-                    title = match.group(1).strip()
-                    title = re.sub(r'\s+', ' ', title)
-                    if len(title) > 15:
-                        break
-                    title = None
+            try:
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(text, 'html.parser')
 
-            # Fallback: <title> tag — ale TYLKO jeśli strona ma elementy produktowe
-            if not title:
-                is_product_page = bool(re.search(r'id="(add-to-cart-button|buybox|priceblock|ppd)"', text, re.IGNORECASE))
-                if is_product_page:
-                    match = re.search(r'<title>([^<|]+)', text, re.IGNORECASE)
+                # Priorytet 1: span#productTitle (pewny tytuł produktu)
+                el = soup.find('span', id='productTitle')
+                if el:
+                    title = el.get_text(strip=True)
+
+                # Priorytet 2: h1#title > span
+                if not title or len(title) < 15:
+                    el = soup.find('h1', id='title')
+                    if el:
+                        span = el.find('span')
+                        title = (span or el).get_text(strip=True)
+
+                # Priorytet 3: #centerCol h1 span (alternatywny layout)
+                if not title or len(title) < 15:
+                    el = soup.select_one('#centerCol h1 span, #titleSection h1 span')
+                    if el:
+                        title = el.get_text(strip=True)
+
+                # Priorytet 4: meta og:title (zawsze dostępny)
+                if not title or len(title) < 15:
+                    el = soup.find('meta', property='og:title')
+                    if el and el.get('content'):
+                        title = el['content'].strip()
+
+                # Priorytet 5: <title> tag — fallback
+                if not title or len(title) < 15:
+                    is_product_page = bool(soup.find(id=re.compile(r'add-to-cart-button|buybox|priceblock|ppd', re.I)))
+                    if is_product_page and soup.title:
+                        title = soup.title.get_text(strip=True)
+                        title = re.sub(r'\s*[-:|]\s*Amazon\.\S+.*$', '', title, flags=re.IGNORECASE)
+                        title = re.sub(r'^Amazon\.\S+\s*[:\-|]\s*', '', title, flags=re.IGNORECASE)
+                        if title.lower().startswith('amazon') or len(title) < 15:
+                            title = None
+
+                if title:
+                    title = re.sub(r'\s+', ' ', title).strip()
+            except Exception as _bs_err:
+                _safe_print(f"   [BS4] Fallback na regex: {_bs_err}")
+                # Fallback na stary regex
+                title_product_patterns = [
+                    r'<span id="productTitle"[^>]*>\s*([^<]+?)\s*</span>',
+                    r'<h1[^>]*id="title"[^>]*>.*?<span[^>]*>([^<]+)</span>',
+                ]
+                for pattern in title_product_patterns:
+                    match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
                     if match:
                         title = match.group(1).strip()
                         title = re.sub(r'\s+', ' ', title)
-                        title = re.sub(r'\s*[-:|]\s*Amazon\.(de|co\.uk|com|pl).*$', '', title, flags=re.IGNORECASE)
-                        title = re.sub(r'^Amazon\.(de|co\.uk|com|pl)\s*[:\-|]\s*', '', title, flags=re.IGNORECASE)
-                        title = title.strip()
-                        if title.lower().startswith('amazon') or len(title) < 15:
-                            title = None
+                        if len(title) > 15:
+                            break
+                        title = None
             
             if not title or len(title) < 10:
                 _safe_print(f"   Brak tytulu na {domain}")
@@ -303,28 +330,37 @@ def scrape_amazon_product(asin, preferred_domain=None):
             
             # ========== BULLET POINTS (FEATURES) ==========
             bullet_points = []
-            
-            # Metoda 1: feature-bullets lista
-            feature_div = re.search(r'<div[^>]*id="feature-bullets"[^>]*>(.*?)</div>\s*</div>', text, re.DOTALL | re.IGNORECASE)
-            if feature_div:
-                bullets_html = feature_div.group(1)
-                # Znajdź wszystkie <li> wewnątrz
-                bullets = re.findall(r'<li[^>]*>\s*<span[^>]*>(.*?)</span>', bullets_html, re.DOTALL)
-                for bullet in bullets:
-                    # Wyczyść HTML
-                    clean = re.sub(r'<[^>]+>', '', bullet)
-                    clean = clean.strip()
-                    if len(clean) > 10 and len(clean) < 500:  # Filtruj za krótkie i za długie
-                        bullet_points.append(clean)
-            
-            # Metoda 2: a-unordered-list a-vertical
-            if len(bullet_points) < 3:
-                bullets = re.findall(r'<span class="a-list-item"[^>]*>(.*?)</span>', text, re.DOTALL)
-                for bullet in bullets[:10]:  # Max 10
-                    clean = re.sub(r'<[^>]+>', '', bullet)
-                    clean = clean.strip()
-                    if len(clean) > 10 and len(clean) < 500 and clean not in bullet_points:
-                        bullet_points.append(clean)
+
+            try:
+                if not soup:
+                    from bs4 import BeautifulSoup
+                    soup = BeautifulSoup(text, 'html.parser')
+
+                # Metoda 1: #feature-bullets li (najczęstszy format)
+                fb_div = soup.find(id='feature-bullets')
+                if fb_div:
+                    for li in fb_div.find_all('li'):
+                        clean = li.get_text(strip=True)
+                        if 10 < len(clean) < 500:
+                            bullet_points.append(clean)
+
+                # Metoda 2: a-list-item spans (alternatywny layout)
+                if len(bullet_points) < 3:
+                    for span in soup.select('.a-list-item'):
+                        clean = span.get_text(strip=True)
+                        if 10 < len(clean) < 500 and clean not in bullet_points:
+                            bullet_points.append(clean)
+                            if len(bullet_points) >= 10:
+                                break
+            except Exception:
+                # Fallback na regex
+                feature_div = re.search(r'<div[^>]*id="feature-bullets"[^>]*>(.*?)</div>\s*</div>', text, re.DOTALL | re.IGNORECASE)
+                if feature_div:
+                    bullets = re.findall(r'<li[^>]*>\s*<span[^>]*>(.*?)</span>', feature_div.group(1), re.DOTALL)
+                    for bullet in bullets:
+                        clean = re.sub(r'<[^>]+>', '', bullet).strip()
+                        if 10 < len(clean) < 500:
+                            bullet_points.append(clean)
             
             # Filtruj treści blokowane przez Allegro (gwarancja, kontakt, obsługa)
             _blocked = ['gwarancj', 'warranty', 'garantie', 'obsług', 'customer service',
