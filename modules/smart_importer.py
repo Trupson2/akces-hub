@@ -322,20 +322,15 @@ ZWRÓĆ TYLKO TYTUŁ - NIC WIĘCEJ:"""
                 meta_title = meta_title[:75].rsplit(' ', 1)[0]
 
             # Walidacja długości
-            if len(meta_title) < 5:
-                print(f"   ✗ [ERROR] Tytuł za krótki (<5): '{meta_title}'")
-                if attempt < retry_count - 1:
-                    time.sleep(2)
-                    continue
-                return produkt_nazwa[:75]
-
-            if len(meta_title) < 40:
+            if len(meta_title) < 30:
                 print(f"   ✗ [RETRY] Tytuł za krótki ({len(meta_title)} znaków): '{meta_title}' — ponawiam")
                 if attempt < retry_count - 1:
                     time.sleep(2)
                     continue
-                # Po wyczerpaniu prób — zwróć co AI dał (nawet krótki lepszy niż sklejanka)
-                print(f"   ✗ [FALLBACK] Krótki tytuł AI: {meta_title}")
+                # Po wyczerpaniu prób — użyj programatycznego SEO zamiast śmieciowego AI
+                from .utils import optimize_title_seo
+                meta_title = optimize_title_seo(_clean_nazwa, 75)
+                print(f"   ✗ [FALLBACK] optimize_title_seo: {meta_title}")
 
             print(f"   [OK] [SUCCESS] Wygenerowano: {meta_title}")
             return meta_title
@@ -349,12 +344,14 @@ ZWRÓĆ TYLKO TYTUŁ - NIC WIĘCEJ:"""
                 break
 
             if attempt >= retry_count - 1:
-                return produkt_nazwa[:75]
+                from .utils import optimize_title_seo
+                return optimize_title_seo(_clean_nazwa, 75)
 
             time.sleep(2)
 
-    print(f"   ✗ [FALLBACK] Wszystkie próby failed - używam oryginalnej nazwy")
-    return produkt_nazwa[:75]
+    print(f"   ✗ [FALLBACK] Wszystkie próby failed - używam optimize_title_seo")
+    from .utils import optimize_title_seo
+    return optimize_title_seo(_clean_nazwa, 75)
 
 
 def detect_vendor_from_filename(filename: str) -> Tuple[str, str]:
