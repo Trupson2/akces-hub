@@ -230,6 +230,7 @@ PRODUKT: {produkt_nazwa}{_asin_section}
    ✓ "Poduszka Ortopedyczna Memory Foam Ergonomiczna"
 
 4. LISTA ZAKAZANA - USUŃ BEZWZGLĘDNIE:
+   - ASIN/kody Amazon: NIGDY nie wstawiaj kodów typu B0DFZ3ZMV2, B08xxx itp. do tytułu!
    - Marketing: "Super", "Hit", "Nowy", "Okazja", "Premium", "Bestseller", "Profesjonalny"
    - Ozdobne: "Oryginalny", "Uniwersalny", "Wielofunkcyjny", "Wysoka Jakość"
    - Amazon: "Amazon", "Choice", "Basics", "Brand New"
@@ -308,6 +309,10 @@ ZWRÓĆ TYLKO TYTUŁ - NIC WIĘCEJ:"""
             meta_title = meta_title.replace('\n', ' ').replace('\r', ' ')
             meta_title = re.sub(r'\s+', ' ', meta_title)
 
+            # Usuń ASIN-y z tytułu (B0xxxxxxxx) - nie powinny tam być
+            meta_title = re.sub(r'\bB0[A-Z0-9]{8,}\b', '', meta_title).strip()
+            meta_title = re.sub(r'\s+', ' ', meta_title)
+
             # Ogranicz do 75 znaków (ucinaj na granicy słowa)
             if len(meta_title) > 75:
                 meta_title = meta_title[:75].rsplit(' ', 1)[0]
@@ -330,8 +335,6 @@ ZWRÓĆ TYLKO TYTUŁ - NIC WIĘCEJ:"""
                 if meta_title and meta_title.lower() != produkt_nazwa.lower():
                     _parts.append(meta_title)
                 _parts.append(produkt_nazwa)
-                if produkt_asin:
-                    _parts.append(produkt_asin)
                 meta_title = ' '.join(_parts)[:75]
                 print(f"   ✗ [FALLBACK] Złożony tytuł: {meta_title}")
 
