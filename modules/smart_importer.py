@@ -225,9 +225,10 @@ PRODUKT: {_clean_nazwa}{_asin_section}
 1. DŁUGOŚĆ: 55-75 znaków (wliczając spacje). ABSOLUTNE MAXIMUM: 75 znaków.
 
 2. HIERARCHIA SŁÓW KLUCZOWYCH (od lewej najważniejsze):
-   [Rodzaj Produktu PL] + [Marka] + [Model] + [Kluczowy Parametr] + [Kod]
+   [Rodzaj Produktu PL] + [Cechy/Parametry] + [Marka] (na końcu!)
 
    Rodzaj produktu ZAWSZE na początku, po polsku (np. Kosiarka, Kamera, Poduszka, Podłokietnik)
+   Marka ZAWSZE na końcu tytułu!
 
 3. ZAKAZ DUPLIKATÓW: NIGDY nie powtarzaj tego samego słowa w tytule!
    ✗ "Poduszka Ortopedyczna Poduszka Memory" (Poduszka x2!)
@@ -235,6 +236,7 @@ PRODUKT: {_clean_nazwa}{_asin_section}
 
 4. LISTA ZAKAZANA - USUŃ BEZWZGLĘDNIE:
    - ASIN/kody Amazon: NIGDY nie wstawiaj kodów typu B0DFZ3ZMV2, B08xxx itp. do tytułu!
+   - Ilości/sztuki: NIGDY nie wstawiaj "35 szt", "2 Pack", "Set of 3", "x2" itp. do tytułu!
    - Marketing: "Super", "Hit", "Nowy", "Okazja", "Premium", "Bestseller", "Profesjonalny"
    - Ozdobne: "Oryginalny", "Uniwersalny", "Wielofunkcyjny", "Wysoka Jakość"
    - Amazon: "Amazon", "Choice", "Basics", "Brand New"
@@ -251,9 +253,9 @@ PRODUKT: {_clean_nazwa}{_asin_section}
 
 === PRZYKŁADY ===
 
-"LawnMaster MEB1840M Kosiarka elektryczna do trawy 1800 W 40 cm, 6 regulowanych wysokości 20-70 mm" → Kosiarka Elektryczna LawnMaster MEB1840M 1800W 40cm
-"AZDOME M300S Kamera samochodowa 4K WiFi z GPS, 800MP Sony Starvis 2" → Kamera Samochodowa AZDOME M300S 4K WiFi GPS Sony Starvis
-"Orthopedic Memory Foam Pillow Neck Support Cervical Sleeping Pillow" → Poduszka Ortopedyczna Memory Foam Wsparcie Szyi Ergonomiczna
+"LawnMaster MEB1840M Kosiarka elektryczna do trawy 1800 W 40 cm, 6 regulowanych" → Kosiarka Elektryczna 1800W 40cm Do Trawy LawnMaster MEB1840M
+"AZDOME M300S Kamera samochodowa 4K WiFi z GPS, 800MP Sony Starvis 2" → Kamera Samochodowa 4K WiFi GPS Sony Starvis AZDOME M300S
+"HOMCA Orthopedic Memory Foam Pillow Neck Support Cervical 35 Pack" → Poduszka Ortopedyczna Memory Foam Wsparcie Szyi HOMCA
 "Armrest Compatible Dacia Duster II 2018-2023 Center Console Storage Box" → Podłokietnik Do Dacia Duster II 2018-2023 Konsola Schowek
 
 ZWRÓĆ TYLKO TYTUŁ - NIC WIĘCEJ:"""
@@ -315,6 +317,9 @@ ZWRÓĆ TYLKO TYTUŁ - NIC WIĘCEJ:"""
 
             # Usuń ASIN-y z tytułu (B0xxxxxxxx) - nie powinny tam być
             meta_title = re.sub(r'\bB0[A-Za-z0-9]{7,}\b', '', meta_title).strip()
+            # Usuń ilości/sztuki - nie powinny być w tytule
+            meta_title = re.sub(r'\b\d+\s*szt\.?\b', '', meta_title, flags=re.IGNORECASE).strip()
+            meta_title = re.sub(r'\b\d+\s*(?:pack|pcs|pieces|sztuk|zestawów?)\b', '', meta_title, flags=re.IGNORECASE).strip()
             # Usuń przecinki - Allegro SEO nie lubi przecinków w tytułach
             meta_title = meta_title.replace(',', '')
             meta_title = re.sub(r'\s+', ' ', meta_title)
