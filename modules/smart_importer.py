@@ -315,6 +315,8 @@ ZWRÓĆ TYLKO TYTUŁ - NIC WIĘCEJ:"""
 
             # Usuń ASIN-y z tytułu (B0xxxxxxxx) - nie powinny tam być
             meta_title = re.sub(r'\bB0[A-Za-z0-9]{7,}\b', '', meta_title).strip()
+            # Usuń przecinki - Allegro SEO nie lubi przecinków w tytułach
+            meta_title = meta_title.replace(',', '')
             meta_title = re.sub(r'\s+', ' ', meta_title)
 
             # Ogranicz do 75 znaków (ucinaj na granicy słowa)
