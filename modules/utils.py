@@ -873,15 +873,20 @@ def translate_product_name(name: str, use_ai: bool = True) -> str:
     Args:
         name: Nazwa produktu
         use_ai: Czy użyć Gemini AI do tłumaczenia
-        
+
     Returns:
         Przetłumaczona nazwa (lokalny słownik)
     """
     if not name:
         return name
-    
+
+    # Jeśli tytuł jest już po polsku (zawiera polskie znaki) → nie tłumacz
+    _polish_chars = set('ąćęłńóśźżĄĆĘŁŃÓŚŹŻ')
+    if any(c in _polish_chars for c in name):
+        return name
+
     from .database import get_config
-    
+
     # Najpierw sprawdź słownik lokalny
     name_lower = name.lower()
     translated_parts = []
