@@ -1940,12 +1940,28 @@ def generuj_opis_html_pro(nazwa, zdjecia_urls, kategoria='inne', bullet_points=N
     from .database import get_config
     
     api_key = gemini_key or get_config('gemini_api_key', '')
-    
+
+    # Filtruj śmieciowe bullet pointy z Amazona (e-book, marketing, gwarancja)
+    if bullet_points and isinstance(bullet_points, list):
+        _blocked_bp = ['e-book', 'ebook', 'usiądź w pracy', 'nasza poduszk', 'nasz produkt',
+                        'na naszej', 'zapominając', 'samopoczuci', 'satisfaction',
+                        'gwarancj', 'warranty', 'garantie', 'obsług', 'customer service',
+                        'kundenservice', 'kontakt', 'contact us', 'skontaktuj',
+                        'zwrot', 'return policy', 'refund', 'support team',
+                        'click here', 'kliknij tutaj', 'subscribe', 'newsletter',
+                        'buy now', 'kup teraz', 'free shipping', 'darmowa wysyłka',
+                        'after-sale', 'aftersale', 'obsługa klienta']
+        _before = len(bullet_points)
+        bullet_points = [bp for bp in bullet_points
+                         if not any(w in bp.lower() for w in _blocked_bp)]
+        if len(bullet_points) < _before:
+            print(f"[DESC] Odfiltrowano {_before - len(bullet_points)} śmieciowych bullet pointów z Amazona")
+
     # Generuj teksty AI lub użyj szablonu
     intro_text = ""
     features = []
     specs = []
-    
+
     if api_key:
         try:
             if bullet_points and len(bullet_points) > 0:
