@@ -193,6 +193,10 @@ def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin:
         print(f"[WARN]  [AI DISABLED] Brak klucza Gemini w config - używam oryginalnej nazwy")
         return produkt_nazwa[:75]
 
+    # Wyczyść ASIN-y i kody Amazon z nazwy PRZED wysłaniem do AI
+    _clean_nazwa = re.sub(r'\bB0[A-Z0-9]{7,}\b', '', produkt_nazwa).strip()
+    _clean_nazwa = re.sub(r'\s+', ' ', _clean_nazwa)
+
     print(f"[SMAR] [AI REQUEST] Wysyłam do Gemini: {short_name} | ASIN={produkt_asin} | EAN={produkt_ean} | BP={len(bullet_points)}chars")
 
     for attempt in range(retry_count):
@@ -203,17 +207,17 @@ def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin:
                 if _bp_lines:
                     _bp_section = '\nCECHY PRODUKTU (użyj do wzbogacenia tytułu):\n' + '\n'.join(f'- {l}' for l in _bp_lines)
 
-            _is_short_name = len(produkt_nazwa.strip()) < 25
+            _is_short_name = len(_clean_nazwa.strip()) < 25
             _asin_section = ''
             if produkt_asin:
                 if _is_short_name:
-                    _asin_section = f'\nASIN: {produkt_asin}\nUWAGA: Nazwa z manifestu jest za krótka. Użyj numeru ASIN aby zidentyfikować ten konkretny produkt Amazon i utwórz tytuł na podstawie jego pełnej specyfikacji.'
+                    _asin_section = f'\nASIN (tylko do identyfikacji, NIE wstawiaj do tytułu!): {produkt_asin}\nUWAGA: Nazwa z manifestu jest za krótka. Użyj numeru ASIN aby zidentyfikować ten konkretny produkt Amazon i utwórz tytuł na podstawie jego pełnej specyfikacji.'
                 else:
-                    _asin_section = f'\nASIN: {produkt_asin}'
+                    _asin_section = f'\nASIN (tylko do identyfikacji, NIE wstawiaj do tytułu!): {produkt_asin}'
 
             prompt = f"""ZADANIE: Wygeneruj tytuł oferty Allegro dla tego produktu.
 
-PRODUKT: {produkt_nazwa}{_asin_section}
+PRODUKT: {_clean_nazwa}{_asin_section}
 {_bp_section}
 
 === KRYTYCZNE WYMAGANIA ===
@@ -310,7 +314,7 @@ ZWRÓĆ TYLKO TYTUŁ - NIC WIĘCEJ:"""
             meta_title = re.sub(r'\s+', ' ', meta_title)
 
             # Usuń ASIN-y z tytułu (B0xxxxxxxx) - nie powinny tam być
-            meta_title = re.sub(r'\bB0[A-Z0-9]{8,}\b', '', meta_title).strip()
+            meta_title = re.sub(r'\bB0[A-Za-z0-9]{7,}\b', '', meta_title).strip()
             meta_title = re.sub(r'\s+', ' ', meta_title)
 
             # Ogranicz do 75 znaków (ucinaj na granicy słowa)
@@ -330,13 +334,8 @@ ZWRÓĆ TYLKO TYTUŁ - NIC WIĘCEJ:"""
                 if attempt < retry_count - 1:
                     time.sleep(2)
                     continue
-                # Po wyczerpaniu prób — rozbuduj tytuł z tego co AI dało + oryginalna nazwa
-                _parts = []
-                if meta_title and meta_title.lower() != produkt_nazwa.lower():
-                    _parts.append(meta_title)
-                _parts.append(produkt_nazwa)
-                meta_title = ' '.join(_parts)[:75]
-                print(f"   ✗ [FALLBACK] Złożony tytuł: {meta_title}")
+                # Po wyczerpaniu prób — zwróć co AI dał (nawet krótki lepszy niż sklejanka)
+                print(f"   ✗ [FALLBACK] Krótki tytuł AI: {meta_title}")
 
             print(f"   [OK] [SUCCESS] Wygenerowano: {meta_title}")
             return meta_title
