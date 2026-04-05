@@ -199,9 +199,9 @@ def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin:
         try:
             _bp_section = ''
             if bullet_points:
-                _bp_lines = [l.strip() for l in bullet_points.split('\n') if l.strip()][:4]
+                _bp_lines = [l.strip() for l in bullet_points.split('\n') if l.strip()][:5]
                 if _bp_lines:
-                    _bp_section = 'CECHY PRODUKTU:\n' + '\n'.join(f'- {l}' for l in _bp_lines)
+                    _bp_section = '\nCECHY PRODUKTU (użyj do wzbogacenia tytułu):\n' + '\n'.join(f'- {l}' for l in _bp_lines)
 
             _is_short_name = len(produkt_nazwa.strip()) < 25
             _asin_section = ''
@@ -211,25 +211,47 @@ def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin:
                 else:
                     _asin_section = f'\nASIN: {produkt_asin}'
 
-            prompt = f"""Przeformatuj ten tytuł produktu z Amazon na tytuł oferty Allegro (max 75 znaków).
+            prompt = f"""ZADANIE: Wygeneruj tytuł oferty Allegro dla tego produktu.
 
-TYTUŁ Z AMAZON: {produkt_nazwa}
+PRODUKT: {produkt_nazwa}{_asin_section}
+{_bp_section}
 
-ZASADY FORMATOWANIA:
-1. Struktura: [Kategoria produktu] [Marka] [Model] [Kluczowe parametry]
-2. Kategoria produktu NA POCZĄTKU (np. Kosiarka, Kamera, Statyw)
-3. Zachowaj markę i model
-4. Zachowaj najważniejsze parametry (moc W, wymiary cm, napięcie V)
-5. Usuń zbędne opisy (pojemnik, regulowane wysokości, gwarancja)
-6. Po polsku, Title Case, BEZ przecinków
-7. DOKŁADNIE 55-75 znaków
+=== KRYTYCZNE WYMAGANIA ===
 
-PRZYKŁADY:
-"LawnMaster MEB1840M Kosiarka elektryczna do trawy 1800 W 40 cm, 6 regulowanych wysokości 20-70 mm, 42 l pojemnik na trawę 2 lata" → "Kosiarka Elektryczna LawnMaster MEB1840M 1800W 40cm Do Trawy"
-"AZDOME M300S Kamera samochodowa 4K WiFi z GPS, 800MP Sony Starvis 2" → "Kamera Samochodowa AZDOME M300S 4K WiFi GPS Sony Starvis"
-"Statyw do telefonu komórkowego ze światłem, 175 cm" → "Statyw Do Telefonu 175cm Ze Światłem LED Regulowany"
+1. DŁUGOŚĆ: 55-75 znaków (wliczając spacje). ABSOLUTNE MAXIMUM: 75 znaków.
 
-Odpowiedz TYLKO przeformatowanym tytułem:"""
+2. HIERARCHIA SŁÓW KLUCZOWYCH (od lewej najważniejsze):
+   [Rodzaj Produktu PL] + [Marka] + [Model] + [Kluczowy Parametr] + [Kod]
+
+   Rodzaj produktu ZAWSZE na początku, po polsku (np. Kosiarka, Kamera, Poduszka, Podłokietnik)
+
+3. ZAKAZ DUPLIKATÓW: NIGDY nie powtarzaj tego samego słowa w tytule!
+   ✗ "Poduszka Ortopedyczna Poduszka Memory" (Poduszka x2!)
+   ✓ "Poduszka Ortopedyczna Memory Foam Ergonomiczna"
+
+4. LISTA ZAKAZANA - USUŃ BEZWZGLĘDNIE:
+   - Marketing: "Super", "Hit", "Nowy", "Okazja", "Premium", "Bestseller", "Profesjonalny"
+   - Ozdobne: "Oryginalny", "Uniwersalny", "Wielofunkcyjny", "Wysoka Jakość"
+   - Amazon: "Amazon", "Choice", "Basics", "Brand New"
+   - Emoji, cudzysłowy, nawiasy ozdobne
+
+5. CO ZOSTAWIĆ:
+   ✓ Nazwę produktu po polsku (co to jest)
+   ✓ Markę i model
+   ✓ Parametry z jednostkami: 45W, 4K, 2m, 170°, IP68
+   ✓ Materiał: Aluminium, Skóra, Memory Foam
+   ✓ Kompatybilność jeśli kluczowa: Do iPhone 15, Do Dacia Duster
+
+6. FORMATOWANIE: Title Case, BEZ kropki na końcu, BEZ CAPSLOCKA, pojedyncze spacje
+
+=== PRZYKŁADY ===
+
+"LawnMaster MEB1840M Kosiarka elektryczna do trawy 1800 W 40 cm, 6 regulowanych wysokości 20-70 mm" → Kosiarka Elektryczna LawnMaster MEB1840M 1800W 40cm
+"AZDOME M300S Kamera samochodowa 4K WiFi z GPS, 800MP Sony Starvis 2" → Kamera Samochodowa AZDOME M300S 4K WiFi GPS Sony Starvis
+"Orthopedic Memory Foam Pillow Neck Support Cervical Sleeping Pillow" → Poduszka Ortopedyczna Memory Foam Wsparcie Szyi Ergonomiczna
+"Armrest Compatible Dacia Duster II 2018-2023 Center Console Storage Box" → Podłokietnik Do Dacia Duster II 2018-2023 Konsola Schowek
+
+ZWRÓĆ TYLKO TYTUŁ - NIC WIĘCEJ:"""
 
             if attempt > 0:
                 print(f"   ↻ [RETRY {attempt+1}/{retry_count}] Ponawiam zapytanie...")
@@ -238,7 +260,7 @@ Odpowiedz TYLKO przeformatowanym tytułem:"""
             _api_url = get_gemini_api_url(_gemini_key)
             _resp = _req.post(_api_url, json={
                 "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"temperature": 0.6, "maxOutputTokens": 150}
+                "generationConfig": {"temperature": 0.3, "maxOutputTokens": 100, "topP": 0.95, "topK": 40}
             }, timeout=30)
 
             meta_title = None
