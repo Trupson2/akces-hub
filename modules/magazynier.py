@@ -1349,17 +1349,17 @@ def edytuj_produkt(code):
         product_code = code
 
 
-    # Jednostkowa cena do formularza
+    # Jednostkowa cena do formularza — priorytet: koszt z palety > cena_brutto (Amazon)
     try:
         ilosc_p = p.get('ilosc') or 1
         cb = p.get('cena_brutto') or 0
         cn = p.get('cena_netto') or 0
-        if cb > 0:
-            _p_brutto_szt = round(cb, 2)  # cena_brutto jest już JEDNOSTKOWA (nie dzielić!)
-            _p_netto_szt  = round(cn, 2) if cn > 0 else round(_p_brutto_szt / 1.23, 2)
-        elif paleta_koszt_per_szt > 0:
+        if paleta_koszt_per_szt > 0:
             _p_brutto_szt = round(paleta_koszt_per_szt, 2)
             _p_netto_szt  = round(_p_brutto_szt / 1.23, 2)
+        elif cb > 0:
+            _p_brutto_szt = round(cb, 2)
+            _p_netto_szt  = round(cn, 2) if cn > 0 else round(_p_brutto_szt / 1.23, 2)
         else:
             _p_brutto_szt = 0
             _p_netto_szt  = 0
