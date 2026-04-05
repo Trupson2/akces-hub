@@ -172,193 +172,78 @@ def _optimize_amazon_title(title: str, max_len: int = 75) -> str:
     return title
 
 
+def _format_seo_title(nazwa: str, max_len: int = 75) -> str:
+    """Programatyczne formatowanie tytułu SEO - bez AI, szybko i niezawodnie."""
+    if not nazwa:
+        return nazwa
+
+    # 1. Wyczyść ASIN-y, ilości, przecinki
+    t = re.sub(r'\bB0[A-Za-z0-9]{7,}\b', '', nazwa).strip()
+    t = re.sub(r'\b\d+\s*(?:szt\.?|pack|pcs|pieces|sztuk|zestawów?|stück)\b', '', t, flags=re.IGNORECASE)
+    t = t.replace(',', '')
+    t = re.sub(r'\s*[-–—]\s*$', '', t)  # trailing dashes
+    t = re.sub(r'\s+', ' ', t).strip()
+
+    # 2. Wykryj markę (pierwsze słowo jeśli wygląda na markę: CAPSLOCK, CamelCase, lub krótkie bez polskich znaków)
+    words = t.split()
+    brand = ''
+    if len(words) >= 3:
+        first = words[0]
+        # Marka to zazwyczaj: HOMCA, AZDOME, Bonmedico, LawnMaster, ZHOOGE itp.
+        _is_brand = (
+            first.isupper() and len(first) >= 3 or  # HOMCA, AZDOME
+            (first[0].isupper() and any(c.isupper() for c in first[1:]) and len(first) >= 4) or  # LawnMaster
+            (first[0].isupper() and not any(c in 'ąćęłńóśźżĄĆĘŁŃÓŚŹŻ' for c in first) and len(first) >= 4
+             and words[1][0].isupper() if len(words) > 1 else False)  # Bonmedico
+        )
+        if _is_brand:
+            brand = first
+            words = words[1:]
+
+    # 3. Title Case (ale zachowaj akronimy jak USB, LED, 4K)
+    titled = []
+    for w in words:
+        if w.isupper() and len(w) <= 5:  # USB, LED, HDMI, 4K
+            titled.append(w)
+        elif re.match(r'^\d', w):  # 1800W, 40cm
+            titled.append(w)
+        else:
+            titled.append(w.capitalize())
+    words = titled
+
+    # 4. Złóż: [cechy] + [marka na końcu]
+    if brand:
+        words.append(brand)
+
+    result = ' '.join(words)
+
+    # 5. Obetnij do max_len na granicy słowa
+    if len(result) > max_len:
+        result = result[:max_len].rsplit(' ', 1)[0]
+
+    return result.strip()
+
+
 def generate_meta_title(produkt_nazwa: str, produkt_ean: str = '', produkt_asin: str = '', retry_count: int = 3, bullet_points: str = '') -> str:
     """
-    Generuje META TITLE.
-    Jeśli nazwa z Amazon jest pełna (>40 znaków) — formatuje programatycznie.
-    W przeciwnym razie — próbuje Gemini AI.
+    Generuje META TITLE programatycznie z nazwy produktu.
+    Formatuje: czyści, Title Case, marka na koniec, max 75 znaków.
 
     Returns:
-        META TITLE string (zawsze coś zwraca - fallback na produkt_nazwa)
+        META TITLE string (zawsze coś zwraca)
     """
-    import time
-    import requests as _req
 
-    short_name = produkt_nazwa[:50] + '...' if len(produkt_nazwa) > 50 else produkt_nazwa
-
-    # Pobierz klucz Gemini z DB config
-    from .database import get_config
-    _gemini_key = get_config('gemini_api_key', '')
-    if not _gemini_key:
-        print(f"[WARN]  [AI DISABLED] Brak klucza Gemini w config - używam oryginalnej nazwy")
-        return produkt_nazwa[:75]
-
-    # Wyczyść ASIN-y i kody Amazon z nazwy PRZED wysłaniem do AI
+    # Wyczyść ASIN-y i kody Amazon z nazwy
     _clean_nazwa = re.sub(r'\bB0[A-Z0-9]{7,}\b', '', produkt_nazwa).strip()
     _clean_nazwa = re.sub(r'\s+', ' ', _clean_nazwa)
 
-    print(f"[SMAR] [AI REQUEST] Wysyłam do Gemini: {short_name} | ASIN={produkt_asin} | EAN={produkt_ean} | BP={len(bullet_points)}chars")
+    if len(_clean_nazwa) < 10:
+        print(f"[SMAR] [WARN] Nazwa za krótka: '{_clean_nazwa}' - zwracam jak jest")
+        return _clean_nazwa
 
-    for attempt in range(retry_count):
-        try:
-            _bp_section = ''
-            if bullet_points:
-                _bp_lines = [l.strip() for l in bullet_points.split('\n') if l.strip()][:5]
-                if _bp_lines:
-                    _bp_section = '\nCECHY PRODUKTU (użyj do wzbogacenia tytułu):\n' + '\n'.join(f'- {l}' for l in _bp_lines)
-
-            _is_short_name = len(_clean_nazwa.strip()) < 25
-            _asin_section = ''
-            if produkt_asin:
-                if _is_short_name:
-                    _asin_section = f'\nASIN (tylko do identyfikacji, NIE wstawiaj do tytułu!): {produkt_asin}\nUWAGA: Nazwa z manifestu jest za krótka. Użyj numeru ASIN aby zidentyfikować ten konkretny produkt Amazon i utwórz tytuł na podstawie jego pełnej specyfikacji.'
-                else:
-                    _asin_section = f'\nASIN (tylko do identyfikacji, NIE wstawiaj do tytułu!): {produkt_asin}'
-
-            prompt = f"""ZADANIE: Wygeneruj tytuł oferty Allegro dla tego produktu.
-
-PRODUKT: {_clean_nazwa}{_asin_section}
-{_bp_section}
-
-=== KRYTYCZNE WYMAGANIA ===
-
-1. DŁUGOŚĆ: 55-75 znaków (wliczając spacje). ABSOLUTNE MAXIMUM: 75 znaków.
-
-2. HIERARCHIA SŁÓW KLUCZOWYCH (od lewej najważniejsze):
-   [Rodzaj Produktu PL] + [Cechy/Parametry] + [Marka] (na końcu!)
-
-   Rodzaj produktu ZAWSZE na początku, po polsku (np. Kosiarka, Kamera, Poduszka, Podłokietnik)
-   Marka ZAWSZE na końcu tytułu!
-
-3. ZAKAZ DUPLIKATÓW: NIGDY nie powtarzaj tego samego słowa w tytule!
-   ✗ "Poduszka Ortopedyczna Poduszka Memory" (Poduszka x2!)
-   ✓ "Poduszka Ortopedyczna Memory Foam Ergonomiczna"
-
-4. LISTA ZAKAZANA - USUŃ BEZWZGLĘDNIE:
-   - ASIN/kody Amazon: NIGDY nie wstawiaj kodów typu B0DFZ3ZMV2, B08xxx itp. do tytułu!
-   - Ilości/sztuki: NIGDY nie wstawiaj "35 szt", "2 Pack", "Set of 3", "x2" itp. do tytułu!
-   - Marketing: "Super", "Hit", "Nowy", "Okazja", "Premium", "Bestseller", "Profesjonalny"
-   - Ozdobne: "Oryginalny", "Uniwersalny", "Wielofunkcyjny", "Wysoka Jakość"
-   - Amazon: "Amazon", "Choice", "Basics", "Brand New"
-   - Emoji, cudzysłowy, nawiasy ozdobne
-
-5. CO ZOSTAWIĆ:
-   ✓ Nazwę produktu po polsku (co to jest)
-   ✓ Markę i model
-   ✓ Parametry z jednostkami: 45W, 4K, 2m, 170°, IP68
-   ✓ Materiał: Aluminium, Skóra, Memory Foam
-   ✓ Kompatybilność jeśli kluczowa: Do iPhone 15, Do Dacia Duster
-
-6. FORMATOWANIE: Title Case, BEZ kropki na końcu, BEZ CAPSLOCKA, pojedyncze spacje
-
-=== PRZYKŁADY ===
-
-"LawnMaster MEB1840M Kosiarka elektryczna do trawy 1800 W 40 cm, 6 regulowanych" → Kosiarka Elektryczna 1800W 40cm Do Trawy LawnMaster MEB1840M
-"AZDOME M300S Kamera samochodowa 4K WiFi z GPS, 800MP Sony Starvis 2" → Kamera Samochodowa 4K WiFi GPS Sony Starvis AZDOME M300S
-"HOMCA Orthopedic Memory Foam Pillow Neck Support Cervical 35 Pack" → Poduszka Ortopedyczna Memory Foam Wsparcie Szyi HOMCA
-"Armrest Compatible Dacia Duster II 2018-2023 Center Console Storage Box" → Podłokietnik Do Dacia Duster II 2018-2023 Konsola Schowek
-
-ZWRÓĆ TYLKO TYTUŁ - NIC WIĘCEJ:"""
-
-            if attempt > 0:
-                print(f"   ↻ [RETRY {attempt+1}/{retry_count}] Ponawiam zapytanie...")
-
-            from .utils import get_gemini_api_url
-            _api_url = get_gemini_api_url(_gemini_key)
-            _resp = _req.post(_api_url, json={
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"temperature": 0.3, "maxOutputTokens": 100, "topP": 0.95, "topK": 40}
-            }, timeout=30)
-
-            meta_title = None
-
-            if _resp.status_code == 200:
-                _data = _resp.json()
-                try:
-                    meta_title = _data['candidates'][0]['content']['parts'][0]['text'].strip()
-                    print(f"   ✓ [RESPONSE] Odebrano: {meta_title[:100]}")
-                except (KeyError, IndexError):
-                    print(f"   [ERR] [PARSE ERROR] Nieoczekiwana struktura: {str(_data)[:200]}")
-            elif _resp.status_code == 429:
-                print(f"   [WARN]  [QUOTA] Rate limit - czekam 5s...")
-                time.sleep(5)
-                continue
-            else:
-                print(f"   [ERR] [API ERROR] {_resp.status_code}: {_resp.text[:200]}")
-
-            if not meta_title:
-                if attempt < retry_count - 1:
-                    time.sleep(2)
-                    continue
-                print(f"   ✗ [FALLBACK] Używam oryginalnej nazwy po {retry_count} próbach")
-                return produkt_nazwa[:75]
-
-            # ========== CZYSZCZENIE TEKSTU ==========
-            meta_title = re.sub(r'```.*?```', '', meta_title, flags=re.DOTALL)
-            meta_title = meta_title.replace('**', '').strip()
-
-            # Jeśli odpowiedź w JSON - wyciągnij tytuł
-            if meta_title.startswith('{'):
-                try:
-                    json_match = re.search(r'\{[^}]+\}', meta_title, re.DOTALL)
-                    if json_match:
-                        data = json.loads(json_match.group(0))
-                        for key in ['meta_title', 'title', 'name']:
-                            if key in data:
-                                meta_title = data[key]
-                                break
-                except Exception:
-                    pass
-
-            # Wyczyść cudzysłowy, newlines, wielokrotne spacje
-            meta_title = meta_title.strip('"').strip("'").strip()
-            meta_title = meta_title.replace('\n', ' ').replace('\r', ' ')
-            meta_title = re.sub(r'\s+', ' ', meta_title)
-
-            # Usuń ASIN-y z tytułu (B0xxxxxxxx) - nie powinny tam być
-            meta_title = re.sub(r'\bB0[A-Za-z0-9]{7,}\b', '', meta_title).strip()
-            # Usuń ilości/sztuki - nie powinny być w tytule
-            meta_title = re.sub(r'\b\d+\s*szt\.?\b', '', meta_title, flags=re.IGNORECASE).strip()
-            meta_title = re.sub(r'\b\d+\s*(?:pack|pcs|pieces|sztuk|zestawów?)\b', '', meta_title, flags=re.IGNORECASE).strip()
-            # Usuń przecinki - Allegro SEO nie lubi przecinków w tytułach
-            meta_title = meta_title.replace(',', '')
-            meta_title = re.sub(r'\s+', ' ', meta_title)
-
-            # Ogranicz do 75 znaków (ucinaj na granicy słowa)
-            if len(meta_title) > 75:
-                meta_title = meta_title[:75].rsplit(' ', 1)[0]
-
-            # Walidacja długości
-            if len(meta_title) < 30:
-                print(f"   ✗ [RETRY] Tytuł za krótki ({len(meta_title)} znaków): '{meta_title}' — ponawiam")
-                if attempt < retry_count - 1:
-                    time.sleep(2)
-                    continue
-                # Po wyczerpaniu prób — użyj programatycznego SEO zamiast śmieciowego AI
-                from .utils import optimize_title_seo
-                meta_title = optimize_title_seo(_clean_nazwa, 75)
-                print(f"   ✗ [FALLBACK] optimize_title_seo: {meta_title}")
-
-            print(f"   [OK] [SUCCESS] Wygenerowano: {meta_title}")
-            return meta_title
-
-        except Exception as e:
-            error_msg = str(e)
-            print(f"   ✗ [ERROR] Błąd Gemini (próba {attempt+1}/{retry_count}): {error_msg[:100]}")
-
-            if '429' in error_msg or 'quota' in error_msg.lower():
-                print(f"   ⏰ [QUOTA] Quota exceeded!")
-                break
-
-            if attempt >= retry_count - 1:
-                from .utils import optimize_title_seo
-                return optimize_title_seo(_clean_nazwa, 75)
-
-            time.sleep(2)
-
-    print(f"   ✗ [FALLBACK] Wszystkie próby failed - używam optimize_title_seo")
-    from .utils import optimize_title_seo
-    return optimize_title_seo(_clean_nazwa, 75)
+    meta_title = _format_seo_title(_clean_nazwa, 75)
+    print(f"[SMAR] [OK] Wygenerowano: {meta_title} ({len(meta_title)} znaków)")
+    return meta_title
 
 
 def detect_vendor_from_filename(filename: str) -> Tuple[str, str]:
