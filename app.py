@@ -3559,7 +3559,7 @@ def allegro_performance():
 
     # Zbierz sprzedaże per oferta
     items = []
-    totals = {'wyswietlenia': 0, 'obserwujacych': 0, 'sprzedane': 0, 'przychod': 0, 'zysk': 0, 'aktywne': 0, 'draft': 0, 'zakonczone': 0}
+    totals = {'wyswietlenia': 0, 'obserwujacych': 0, 'sprzedane': 0, 'przychod': 0, 'zysk': 0, 'aktywne': 0, 'draft': 0, 'zakonczone': 0, 'stan': 0}
 
     for o in oferty:
         o = dict(o)
@@ -3578,11 +3578,14 @@ def allegro_performance():
         konwersja = round((szt / views) * 100, 2) if views > 0 else 0
         status = o.get('status') or 'draft'
 
+        stan = int(o.get('ilosc') or 0)
+
         items.append({
             'allegro_id': o.get('allegro_id'),
             'tytul': (o.get('tytul') or '')[:60],
             'cena': float(o.get('cena') or 0),
             'status': status,
+            'stan': stan,
             'wyswietlenia': views,
             'obserwujacych': watchers,
             'sprzedane': szt,
@@ -3595,6 +3598,7 @@ def allegro_performance():
 
         totals['wyswietlenia'] += views
         totals['obserwujacych'] += watchers
+        totals['stan'] += stan
         totals['sprzedane'] += szt
         totals['przychod'] += przychod
         if status == 'aktywna':
@@ -3676,6 +3680,10 @@ ALLEGRO_PERF_HTML = '''{% extends "base.html" %}
         <div class="ap-stat-val" style="color:#f59e0b">{{ totals.obserwujacych }}</div>
         <div class="ap-stat-lbl">Obserwujacych</div>
     </div>
+    <div class="ap-stat" style="border-left-color:rgba(168,85,247,0.4)">
+        <div class="ap-stat-val" style="color:#a855f7">{{ "{:,}".format(totals.stan).replace(",", " ") }}</div>
+        <div class="ap-stat-lbl">Stan magazynowy</div>
+    </div>
     <div class="ap-stat" style="border-left-color:rgba(190,238,0,0.4)">
         <div class="ap-stat-val ap-good">{{ totals.sprzedane }}</div>
         <div class="ap-stat-lbl">Sprzedanych szt</div>
@@ -3706,11 +3714,12 @@ ALLEGRO_PERF_HTML = '''{% extends "base.html" %}
             <th onclick="sortTable(0)">Oferta</th>
             <th onclick="sortTable(1)" style="text-align:right">Cena</th>
             <th onclick="sortTable(2)" style="text-align:center">Status</th>
-            <th onclick="sortTable(3)" style="text-align:right"><span class=material-symbols-outlined>visibility</span> Wysw.</th>
-            <th onclick="sortTable(4)" style="text-align:right"><span class=material-symbols-outlined>favorite</span> Obserwuj.</th>
-            <th onclick="sortTable(5)" style="text-align:right"><span class=material-symbols-outlined>shopping_cart</span> Sprzedane</th>
-            <th onclick="sortTable(6)" style="text-align:right"><span class=material-symbols-outlined>trending_up</span> Konwersja</th>
-            <th onclick="sortTable(7)" style="text-align:right"><span class=material-symbols-outlined>payments</span> Przychod</th>
+            <th onclick="sortTable(3)" style="text-align:right"><span class=material-symbols-outlined>inventory_2</span> Stan</th>
+            <th onclick="sortTable(4)" style="text-align:right"><span class=material-symbols-outlined>visibility</span> Wysw.</th>
+            <th onclick="sortTable(5)" style="text-align:right"><span class=material-symbols-outlined>favorite</span> Obserwuj.</th>
+            <th onclick="sortTable(6)" style="text-align:right"><span class=material-symbols-outlined>shopping_cart</span> Sprzedane</th>
+            <th onclick="sortTable(7)" style="text-align:right"><span class=material-symbols-outlined>trending_up</span> Konwersja</th>
+            <th onclick="sortTable(8)" style="text-align:right"><span class=material-symbols-outlined>payments</span> Przychod</th>
         </tr>
     </thead>
     <tbody>
@@ -3725,6 +3734,7 @@ ALLEGRO_PERF_HTML = '''{% extends "base.html" %}
             </td>
             <td style="text-align:right;font-weight:600">{{ "%.0f"|format(item.cena) }} zl</td>
             <td style="text-align:center"><span class="ap-badge {% if item.status == 'aktywna' %}active{% elif item.status == 'draft' %}draft{% else %}ended{% endif %}">{{ item.status }}</span></td>
+            <td style="text-align:right;font-weight:700" class="{% if item.stan > 5 %}ap-good{% elif item.stan > 0 %}ap-warn{% else %}ap-bad{% endif %}">{{ item.stan }}</td>
             <td style="text-align:right;font-weight:700" class="ap-blue">{{ item.wyswietlenia }}</td>
             <td style="text-align:right;font-weight:600;color:#f59e0b">{{ item.obserwujacych }}</td>
             <td style="text-align:right;font-weight:700" class="{% if item.sprzedane > 0 %}ap-good{% endif %}">{{ item.sprzedane }}</td>

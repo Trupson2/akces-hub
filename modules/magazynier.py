@@ -1169,6 +1169,27 @@ def produkt(code):
     except Exception:
         pass
 
+    # Propozycje zestawów — inne aktywne produkty na Allegro do sparowania
+    bundle_suggestions = []
+    if not is_new and p.get('id'):
+        try:
+            _cur_kat = (p.get('kategoria') or 'inne').lower()
+            # Produkty z aktywną ofertą Allegro, z inną nazwą, posortowane: najpierw ta sama kategoria, potem inne
+            _bundles = conn.execute('''
+                SELECT p2.id, p2.nazwa, p2.kategoria, p2.ilosc, p2.zdjecie_url,
+                       p2.asin, p2.ean, p2.kod_magazynowy,
+                       o.cena as cena_allegro, o.allegro_id,
+                       CASE WHEN LOWER(p2.kategoria) = ? THEN 1 ELSE 0 END as same_cat
+                FROM produkty p2
+                JOIN oferty o ON o.produkt_id = p2.id AND o.status = 'aktywna'
+                WHERE p2.id != ? AND p2.ilosc > 0
+                ORDER BY same_cat DESC, o.wyswietlenia DESC
+                LIMIT 8
+            ''', (_cur_kat, p['id'])).fetchall()
+            bundle_suggestions = [dict(b) for b in _bundles]
+        except Exception:
+            pass
+
     return render_template('produkt_detail.html',
         p=p_obj,
         historia=historia,
@@ -1188,6 +1209,7 @@ def produkt(code):
         brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
         current_user=session.get('user'),
         processed_photos=processed_photos,
+        bundle_suggestions=bundle_suggestions,
     )
 
 # -- Old inline HTML removed, now in templates/produkt_detail.html --
