@@ -3825,6 +3825,198 @@ function sortTable(col) {
 '''
 
 
+# ============================================================
+# ZESTAWY ALLEGRO — propozycje bundli "Kup razem"
+# ============================================================
+
+@app.route('/narzedzia/zestawy-allegro')
+def zestawy_allegro():
+    from modules.database import get_db
+    conn = get_db()
+
+    # Pobierz aktywne oferty z produktami
+    oferty = conn.execute('''
+        SELECT o.id, o.allegro_id, o.tytul, o.cena, o.status, o.wyswietlenia, o.ilosc as stan,
+               p.id as pid, p.nazwa, p.kategoria, p.zdjecie_url, p.asin, p.kod_magazynowy,
+               p.ilosc as mag_ilosc
+        FROM oferty o
+        JOIN produkty p ON p.id = o.produkt_id
+        WHERE o.status = 'aktywna' AND p.ilosc > 0
+        ORDER BY o.wyswietlenia DESC
+    ''').fetchall()
+
+    oferty = [dict(o) for o in oferty]
+    kategorie = {}
+    for o in oferty:
+        kat = (o.get('kategoria') or 'inne').lower()
+        kategorie.setdefault(kat, []).append(o)
+
+    # Dla każdej oferty — znajdź kandydatów do zestawu
+    for o in oferty:
+        cur_kat = (o.get('kategoria') or 'inne').lower()
+        cur_id = o['pid']
+        candidates = []
+        # Najpierw ta sama kategoria
+        for c in kategorie.get(cur_kat, []):
+            if c['pid'] != cur_id:
+                candidates.append({**c, 'same_cat': True})
+        # Potem inne kategorie (tańsze jako dodatek)
+        for kat, items in kategorie.items():
+            if kat != cur_kat:
+                for c in items:
+                    if c['pid'] != cur_id:
+                        candidates.append({**c, 'same_cat': False})
+        # Sortuj: ta sama kategoria first, potem po cenie rosnąco
+        candidates.sort(key=lambda x: (0 if x['same_cat'] else 1, x.get('cena') or 9999))
+        o['candidates'] = candidates[:4]
+
+    totals = {
+        'aktywne': len(oferty),
+        'kategorie': len(kategorie),
+    }
+
+    return render_template_string(ZESTAWY_HTML,
+        version=VERSION, oferty=oferty, totals=totals, kategorie=sorted(kategorie.keys()),
+        active_narzedzia='active', active_home='', active_magazyn='',
+        active_paletomat='', active_allegro='', active_monitor='')
+
+
+ZESTAWY_HTML = '''{% extends "base.html" %}
+{% block page_title %}Zestawy Allegro{% endblock %}
+{% block content %}
+<style>
+.zs-card{background:rgba(15,15,30,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);padding:20px;margin-bottom:15px}
+.zs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.zs-stat{background:rgba(13,15,26,0.8);border:1px solid rgba(255,255,255,0.06);border-left:3px solid rgba(168,85,247,0.3);padding:16px;text-align:center}
+.zs-stat-val{font-size:1.4rem;font-weight:800;font-family:'Space Grotesk',sans-serif}
+.zs-stat-lbl{font-size:0.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);margin-top:4px;font-weight:600}
+.zs-offer{background:rgba(13,15,26,0.6);border:1px solid rgba(168,85,247,0.10);margin-bottom:12px;overflow:hidden;transition:border-color 0.2s}
+.zs-offer:hover{border-color:rgba(168,85,247,0.30)}
+.zs-offer-main{display:flex;gap:14px;padding:16px;align-items:center}
+.zs-offer-img{width:60px;height:60px;object-fit:contain;background:rgba(255,255,255,0.9);flex-shrink:0}
+.zs-offer-info{flex:1;min-width:0}
+.zs-offer-name{font-weight:700;font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zs-offer-meta{font-size:0.7rem;color:var(--text-muted);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap}
+.zs-offer-price{font-size:1rem;font-weight:800;color:#a855f7;font-family:'Space Grotesk',sans-serif;white-space:nowrap}
+.zs-cands{padding:0 16px 14px;display:flex;gap:8px;flex-wrap:wrap}
+.zs-cand{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.12);text-decoration:none;color:#e2e8f0;transition:all 0.2s;flex:1;min-width:200px;max-width:calc(50% - 4px)}
+.zs-cand:hover{border-color:rgba(168,85,247,0.35);background:rgba(168,85,247,0.12)}
+.zs-cand-img{width:36px;height:36px;object-fit:contain;background:rgba(255,255,255,0.9);flex-shrink:0}
+.zs-cand-info{flex:1;min-width:0}
+.zs-cand-name{font-size:0.72rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zs-cand-price{font-size:0.72rem;font-weight:700;color:#a855f7;margin-top:2px}
+.zs-cand-badge{font-size:0.55rem;padding:1px 6px;text-transform:uppercase;letter-spacing:0.5px;background:rgba(168,85,247,0.15);color:#a855f7;font-weight:700;white-space:nowrap}
+.zs-link{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;font-size:0.7rem;font-weight:700;color:#8ff5ff;border:1px solid rgba(143,245,255,0.2);background:rgba(143,245,255,0.06);text-decoration:none;transition:all 0.2s;white-space:nowrap}
+.zs-link:hover{border-color:rgba(143,245,255,0.4);background:rgba(143,245,255,0.12)}
+.zs-filter{display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap}
+.zs-filter-btn{padding:6px 14px;border:1px solid rgba(255,255,255,0.08);background:rgba(15,15,30,0.65);color:var(--text-muted);cursor:pointer;font-size:0.75rem;font-weight:700;font-family:'Space Grotesk',sans-serif;transition:all 0.2s}
+.zs-filter-btn:hover,.zs-filter-btn.active{border-color:rgba(168,85,247,0.3);color:#a855f7;background:rgba(168,85,247,0.07)}
+.zs-arrow{font-size:1.2rem;color:#a855f7;margin:0 4px}
+@media(max-width:600px){.zs-cand{min-width:100%;max-width:100%}}
+</style>
+
+<div style="text-align:center;padding:20px 0 10px">
+    <h1 style="font-size:1.5rem;font-family:'Space Grotesk',sans-serif;font-weight:800;background:linear-gradient(135deg,#a855f7,#8ff5ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent"><span class="material-symbols-outlined" style="color:#a855f7;-webkit-text-fill-color:#a855f7">loyalty</span> ZESTAWY ALLEGRO</h1>
+    <small style="color:var(--text-muted)">Propozycje zestawow "Kup razem" — sparuj oferty i zwieksz sprzedaz</small>
+</div>
+
+<!-- Stats -->
+<div class="zs-grid">
+    <div class="zs-stat">
+        <div class="zs-stat-val" style="color:#a855f7">{{ totals.aktywne }}</div>
+        <div class="zs-stat-lbl">Aktywnych ofert</div>
+    </div>
+    <div class="zs-stat">
+        <div class="zs-stat-val" style="color:#8ff5ff">{{ totals.kategorie }}</div>
+        <div class="zs-stat-lbl">Kategorii</div>
+    </div>
+</div>
+
+<!-- Category filter -->
+<div class="zs-filter">
+    <button class="zs-filter-btn active" onclick="filterZestawy('all', this)">Wszystkie ({{ totals.aktywne }})</button>
+    {% for kat in kategorie %}
+    <button class="zs-filter-btn" onclick="filterZestawy('{{ kat }}', this)">{{ kat|capitalize }}</button>
+    {% endfor %}
+</div>
+
+<!-- Info -->
+<div style="padding:10px 14px;background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.12);margin-bottom:15px;font-size:0.75rem;color:#94a3b8;display:flex;align-items:center;gap:8px">
+    <span class="material-symbols-outlined" style="font-size:1rem;color:#a855f7">info</span>
+    Wybierz produkt glowny i sparuj z sugerowanym produktem. Na Allegro: Moje oferty → Edytuj oferte → Zestawy.
+</div>
+
+<!-- Offers with candidates -->
+{% for item in oferty %}
+<div class="zs-offer" data-kat="{{ (item.kategoria or 'inne')|lower }}">
+    <div class="zs-offer-main">
+        {% if item.zdjecie_url %}
+        <img src="{{ item.zdjecie_url }}" class="zs-offer-img" loading="lazy" onerror="this.style.display='none'">
+        {% endif %}
+        <div class="zs-offer-info">
+            <div class="zs-offer-name" title="{{ item.tytul or item.nazwa }}">{{ (item.tytul or item.nazwa)[:55] }}</div>
+            <div class="zs-offer-meta">
+                <span>{{ item.kategoria or 'inne' }}</span>
+                <span>{{ item.mag_ilosc }} szt</span>
+                <span>{{ item.wyswietlenia or 0 }} wysw.</span>
+            </div>
+        </div>
+        <div class="zs-offer-price">{{ "%.0f"|format(item.cena or 0) }} zl</div>
+        {% if item.allegro_id %}
+        <a href="https://allegro.pl/oferta/{{ item.allegro_id }}" target="_blank" class="zs-link"><span class="material-symbols-outlined" style="font-size:0.85rem">open_in_new</span> Allegro</a>
+        {% endif %}
+    </div>
+    {% if item.candidates %}
+    <div style="padding:0 16px 6px;font-size:0.65rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;font-weight:600">
+        <span class="material-symbols-outlined" style="font-size:0.8rem;vertical-align:middle">add_circle</span> Sparuj z:
+    </div>
+    <div class="zs-cands">
+        {% for c in item.candidates %}
+        <a href="/magazyn/produkt/{{ c.kod_magazynowy or c.pid }}" class="zs-cand">
+            {% if c.zdjecie_url %}
+            <img src="{{ c.zdjecie_url }}" class="zs-cand-img" loading="lazy" onerror="this.style.display='none'">
+            {% endif %}
+            <div class="zs-cand-info">
+                <div class="zs-cand-name" title="{{ c.nazwa }}">{{ c.nazwa[:40] }}</div>
+                <div class="zs-cand-price">{{ "%.0f"|format(c.cena or 0) }} zl</div>
+            </div>
+            {% if c.same_cat %}<span class="zs-cand-badge">ta sama kat.</span>{% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="padding:0 16px 14px;font-size:0.75rem;color:#64748b">Brak kandydatow do zestawu</div>
+    {% endif %}
+</div>
+{% endfor %}
+
+{% if not oferty %}
+<div class="zs-card" style="text-align:center;padding:40px">
+    <div style="font-size:2rem;margin-bottom:10px"><span class="material-symbols-outlined">loyalty</span></div>
+    <div style="color:var(--text-muted)">Brak aktywnych ofert z produktami na stanie. Wystaw oferty na Allegro.</div>
+</div>
+{% endif %}
+
+<a href="/narzedzia" style="display:inline-block;margin-top:10px;color:var(--text-muted);text-decoration:none;font-size:0.85rem">← Powrot do narzedzi</a>
+
+<script nonce="{getattr(request, '_csp_nonce', '')}">
+function filterZestawy(kat, btn) {
+    var offers = document.querySelectorAll('.zs-offer');
+    offers.forEach(function(o) {
+        if (kat === 'all' || o.getAttribute('data-kat') === kat) {
+            o.style.display = '';
+        } else {
+            o.style.display = 'none';
+        }
+    });
+    document.querySelectorAll('.zs-filter-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+}
+</script>
+{% endblock %}
+'''
+
+
 # EXPORT
 
 @app.route('/narzedzia/export', methods=['GET', 'POST'])
