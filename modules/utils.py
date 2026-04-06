@@ -1129,6 +1129,12 @@ Wygeneruj opis:"""
                         'skontaktuj', 'kontaktuj się', 'kontaktuj sie',
                         'napisz wiadomość', 'napisz wiadomosc', 'wyślij wiadomość',
                         'zadzwoń', 'zadzwon', 'numer telefonu',
+                        'w razie pytań', 'w razie pytan', 'jeśli masz pytania', 'jesli masz pytania',
+                        'nie wahaj się', 'nie wahaj sie', 'chętnie pomożemy', 'chetnie pomozemy',
+                        'prosimy o kontakt', 'zapraszamy do kontaktu', 'służymy pomocą',
+                        'sluzymy pomoca', 'jesteśmy do dyspozycji', 'jestesmy do dyspozycji',
+                        'obsługa klienta', 'obsluga klienta', 'dział obsługi', 'dzial obslugi',
+                        'pomoc techniczna', 'serwis gwarancyjny', 'zgłoś problem', 'zglos problem',
                     ]
                     for line in lines:
                         line_lower = line.lower()
