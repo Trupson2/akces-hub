@@ -97,6 +97,15 @@
         {% if plan_level < 2 %}<span class="plan-lock">PRO</span>{% endif %}
         <div class="nc-arrow">›</div>
     </a>
+    <a href="/narzedzia/zestawy-allegro" class="narz-card glass-card {{ 'locked' if plan_level < 2 }}">
+        <div class="nc-icon purple"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">loyalty</span></div>
+        <div class="nc-info">
+            <div class="nc-name">Zestawy Allegro</div>
+            <div class="nc-desc">Propozycje zestawow Kup razem do sparowania ofert</div>
+        </div>
+        {% if plan_level < 2 %}<span class="plan-lock">PRO</span>{% endif %}
+        <div class="nc-arrow">›</div>
+    </a>
     <a href="/narzedzia/analiza-oferty" class="narz-card glass-card {{ 'locked' if plan_level < 2 }}">
         <div class="nc-icon cyan"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">search</span></div>
         <div class="nc-info">
