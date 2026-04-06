@@ -370,7 +370,10 @@ def scrape_amazon_product(asin, preferred_domain=None):
                         'e-book', 'ebook', 'usiądź w pracy', 'nasza poduszk', 'nasz produkt',
                         'na naszej', 'zapominając', 'samopoczuci', 'satisfaction',
                         'click here', 'kliknij tutaj', 'subscribe', 'newsletter',
-                        'buy now', 'kup teraz', 'free shipping', 'darmowa wysyłka']
+                        'buy now', 'kup teraz', 'free shipping', 'darmowa wysyłka',
+                        'aby kupić', 'wyszukaj', 'asin:', 'asin :', 'search for',
+                        'visit our', 'odwiedź nasz', 'sprawdź nasz', 'naszym sklepie',
+                        'nasza marka', 'our brand', 'our store', 'nasz sklep']
             bullet_points = [bp for bp in bullet_points
                              if not any(w in bp.lower() for w in _blocked)]
 
@@ -1925,7 +1928,10 @@ def generuj_opis_html_pro(nazwa, zdjecia_urls, kategoria='inne', bullet_points=N
                         'zwrot', 'return policy', 'refund', 'support team',
                         'click here', 'kliknij tutaj', 'subscribe', 'newsletter',
                         'buy now', 'kup teraz', 'free shipping', 'darmowa wysyłka',
-                        'after-sale', 'aftersale', 'obsługa klienta']
+                        'after-sale', 'aftersale', 'obsługa klienta',
+                        'aby kupić', 'wyszukaj', 'asin:', 'asin :', 'search for',
+                        'visit our', 'odwiedź nasz', 'sprawdź nasz', 'naszym sklepie',
+                        'nasza marka', 'our brand', 'our store', 'nasz sklep']
         _before = len(bullet_points)
         bullet_points = [bp for bp in bullet_points
                          if not any(w in bp.lower() for w in _blocked_bp)]
