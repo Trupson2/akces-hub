@@ -5152,7 +5152,8 @@ def poziom_page():
 
     # Wstrzyknij dane do template
     import json as _json
-    data_script = f'<script nonce="{getattr(request, '_csp_nonce', '')}">window.REAL_DATA = {_json.dumps(real_data)};</script>'
+    _nonce = getattr(request, '_csp_nonce', '')
+    data_script = f'<script nonce="{_nonce}">window.REAL_DATA = {_json.dumps(real_data)};</script>'
 
     username = session.get('username', 'User')
     html = render_template('poziom.html', username=username)
