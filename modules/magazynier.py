@@ -3850,6 +3850,13 @@ def paleta_detail_by_id(paleta_id):
             <div class="stat-l">ZYSK</div>
         </div>
     </div>
+    <div style="display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap">
+        <button onclick="filterPaleta('all', this)" class="pal-fbtn active" style="padding:6px 14px;border:1px solid rgba(255,255,255,0.15);background:rgba(143,245,255,0.08);color:#8ff5ff;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif">Wszystkie ({len(products)})</button>
+        <button onclick="filterPaleta('aktywna', this)" class="pal-fbtn" style="padding:6px 14px;border:1px solid rgba(190,238,0,0.2);background:transparent;color:#beee00;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif">Aktywne ({_of_aktywne})</button>
+        <button onclick="filterPaleta('draft', this)" class="pal-fbtn" style="padding:6px 14px;border:1px solid rgba(245,158,11,0.2);background:transparent;color:#f59e0b;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif">Szkice ({_of_szkice})</button>
+        <button onclick="filterPaleta('brak', this)" class="pal-fbtn" style="padding:6px 14px;border:1px solid rgba(239,68,68,0.2);background:transparent;color:#ef4444;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif">Niewystawione ({_of_brak})</button>
+        <button onclick="filterPaleta('magazyn', this)" class="pal-fbtn" style="padding:6px 14px;border:1px solid rgba(143,245,255,0.2);background:transparent;color:#8ff5ff;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif">W magazynie ({sum(1 for p in products if (p['ilosc'] or 0) > 0)})</button>
+    </div>
     '''
     
     # Przyciski akcji na palecie
@@ -3968,8 +3975,11 @@ def paleta_detail_by_id(paleta_id):
         else:
             _of_badge = '<span style="font-size:0.58rem;padding:1px 6px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.15);color:#ef4444;font-weight:700;letter-spacing:0.3px">NIE WYSTAWIONY</span>'
 
+        _of_data = _oferty_status.get(p['id'], {}).get('status', 'brak')
+        _mag_data = 'tak' if _qty > 0 else 'nie'
+
         html += f'''
-        <a href="/magazyn/produkt/{pcode}" style="display:flex;gap:14px;background:#131315;padding:14px;border-radius:10px;border-left:3px solid {_bcolor};text-decoration:none;color:inherit;transition:background 0.2s;{_opacity}"
+        <a href="/magazyn/produkt/{pcode}" data-oferta="{_of_data}" data-magazyn="{_mag_data}" class="pal-prod" style="display:flex;gap:14px;background:#131315;padding:14px;border-radius:10px;border-left:3px solid {_bcolor};text-decoration:none;color:inherit;transition:background 0.2s;{_opacity}"
            onmouseover="this.style.background='#1f1f22'" onmouseout="this.style.background='#131315'">
             <div style="width:64px;height:64px;background:#262528;border-radius:8px;overflow:hidden;flex-shrink:0">
                 <img src="{img}" style="width:100%;height:100%;object-fit:cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2790%27 height=%2790%27%3E%3Crect fill=%27%23262528%27 width=%2790%27 height=%2790%27 rx=%278%27/%3E%3Ctext x=%2745%27 y=%2752%27 fill=%27%23767577%27 text-anchor=%27middle%27 font-size=%2728%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
@@ -3994,6 +4004,24 @@ def paleta_detail_by_id(paleta_id):
         html += '<div style="text-align:center;padding:40px;color:#767577;font-size:0.82rem"><span class=material-symbols-outlined style="font-size:2rem;display:block;margin-bottom:8px">inbox</span>Brak produktów</div>'
 
     html += '<div style="text-align:center;margin-top:24px"><a href="/magazyn/palety" style="font-size:0.82rem;color:#adaaad;text-decoration:none;font-weight:600;letter-spacing:0.05em">&larr; Powrót</a></div>'
+
+    html += '''
+    <script>
+    function filterPaleta(type, btn) {
+        var items = document.querySelectorAll('.pal-prod');
+        items.forEach(function(el) {
+            if (type === 'all') { el.style.display = ''; return; }
+            if (type === 'magazyn') { el.style.display = el.dataset.magazyn === 'tak' ? '' : 'none'; return; }
+            if (type === 'brak') { el.style.display = el.dataset.oferta === 'brak' ? '' : 'none'; return; }
+            el.style.display = el.dataset.oferta === type ? '' : 'none';
+        });
+        document.querySelectorAll('.pal-fbtn').forEach(function(b) {
+            b.style.background = 'transparent';
+        });
+        btn.style.background = 'rgba(143,245,255,0.08)';
+    }
+    </script>
+    '''
     return render(html)
 
 
