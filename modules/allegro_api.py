@@ -3779,12 +3779,41 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                         _reg = ''
                         _pal = ''
                         _zostalo = None
+                        _global_stock = None
                         if produkt_id and produkt:
                             _lok = produkt['lokalizacja'] or ''
                             _reg = produkt['regal'] or ''
                             _pal = produkt['paleta_nazwa'] or ''
                             _zostalo = new_qty
-                        alert_sprzedaz(nazwa, cena, kupujacy, lokalizacja=_lok, regal=_reg, paleta=_pal, ilosc_zostalo=_zostalo, ilosc=ilosc)
+
+                            # Cross-pallet stock: sprawdź ten sam ASIN/EAN w innych paletach
+                            if new_qty is not None and new_qty <= 3:
+                                try:
+                                    _prod_full = conn.execute('SELECT asin, ean FROM produkty WHERE id = ?', (produkt_id,)).fetchone()
+                                    _asin = (_prod_full['asin'] or '').strip() if _prod_full else ''
+                                    _ean = (_prod_full['ean'] or '').strip() if _prod_full else ''
+                                    if _asin and len(_asin) >= 5:
+                                        _others = conn.execute('''
+                                            SELECT p.ilosc, COALESCE(pal.nazwa, p.paleta, '') as pal_nazwa
+                                            FROM produkty p
+                                            LEFT JOIN palety pal ON p.paleta_id = pal.id
+                                            WHERE p.id != ? AND p.asin = ? AND p.ilosc > 0
+                                        ''', (produkt_id, _asin)).fetchall()
+                                    elif _ean and len(_ean) >= 8:
+                                        _others = conn.execute('''
+                                            SELECT p.ilosc, COALESCE(pal.nazwa, p.paleta, '') as pal_nazwa
+                                            FROM produkty p
+                                            LEFT JOIN palety pal ON p.paleta_id = pal.id
+                                            WHERE p.id != ? AND p.ean = ? AND p.ilosc > 0
+                                        ''', (produkt_id, _ean)).fetchall()
+                                    else:
+                                        _others = []
+                                    if _others:
+                                        _global_stock = [{'ilosc': r['ilosc'], 'paleta': r['pal_nazwa'] or '?'} for r in _others]
+                                except Exception as e:
+                                    print(f"[WARN] Cross-pallet lookup error: {e}")
+
+                        alert_sprzedaz(nazwa, cena, kupujacy, lokalizacja=_lok, regal=_reg, paleta=_pal, ilosc_zostalo=_zostalo, ilosc=ilosc, global_stock=_global_stock)
                         notified += 1
                         conn.execute('UPDATE sprzedaze SET notified=1 WHERE allegro_order_id=? AND nazwa=?', (order_id, nazwa))
                         print(f"[SMAR] Telegram: {nazwa} - {cena} zł")

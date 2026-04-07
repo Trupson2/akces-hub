@@ -256,7 +256,7 @@ def get_logs(limit=20):
 # ============================================================
 # FUNKCJE ALERTÓW
 # ============================================================
-def alert_sprzedaz(produkt_nazwa, cena, kupujacy='', lokalizacja='', regal='', paleta='', ilosc_zostalo=None, ilosc=1):
+def alert_sprzedaz(produkt_nazwa, cena, kupujacy='', lokalizacja='', regal='', paleta='', ilosc_zostalo=None, ilosc=1, global_stock=None):
     """Wysyła alert o sprzedaży z dźwiękiem + lokalizacja w magazynie!"""
     if get_config('telegram_alert_sprzedaz', 'true') != 'true':
         return False
@@ -284,9 +284,20 @@ def alert_sprzedaz(produkt_nazwa, cena, kupujacy='', lokalizacja='', regal='', p
     # Stan magazynowy po sprzedaży
     if ilosc_zostalo is not None:
         if ilosc_zostalo == 0:
-            msg += f"\n⚠️ <b>OSTATNIA SZTUKA — brak w magazynie!</b>"
+            if global_stock:
+                # Brak w tej palecie, ale jest w innych
+                _total = sum(g['ilosc'] for g in global_stock)
+                _parts = ', '.join(f"{g['paleta']}: {g['ilosc']} szt" for g in global_stock)
+                msg += f"\n⚠️ <b>Brak w tej palecie!</b>"
+                msg += f"\n📦 Ogólnie w magazynie: <b>{_total} szt</b> ({_parts})"
+            else:
+                msg += f"\n⚠️ <b>OSTATNIA SZTUKA — brak w magazynie!</b>"
         elif ilosc_zostalo <= 3:
             msg += f"\n⚠️ Zostało tylko: <b>{ilosc_zostalo} szt</b>"
+            if global_stock:
+                _total = ilosc_zostalo + sum(g['ilosc'] for g in global_stock)
+                _parts = ', '.join(f"{g['paleta']}: {g['ilosc']} szt" for g in global_stock)
+                msg += f"\n📦 Ogólnie: <b>{_total} szt</b> (+{_parts})"
         else:
             msg += f"\n📊 W magazynie: {ilosc_zostalo} szt"
 
