@@ -3659,7 +3659,23 @@ def paleta_detail_by_id(paleta_id):
     
     # Pobierz produkty
     products = conn.execute('SELECT * FROM produkty WHERE paleta_id = ?', (paleta_id,)).fetchall()
-    
+
+    # Mapa: produkt_id → status oferty na Allegro (realne dane z tabeli oferty)
+    _oferty_status = {}
+    try:
+        _of_rows = conn.execute('''
+            SELECT produkt_id, status, allegro_id
+            FROM oferty
+            WHERE produkt_id IN (SELECT id FROM produkty WHERE paleta_id = ?)
+            ORDER BY CASE status WHEN 'aktywna' THEN 0 WHEN 'draft' THEN 1 ELSE 2 END
+        ''', (paleta_id,)).fetchall()
+        for r in _of_rows:
+            # Zachowaj najlepszy status per produkt (aktywna > draft > zakonczona)
+            if r['produkt_id'] not in _oferty_status:
+                _oferty_status[r['produkt_id']] = {'status': r['status'], 'allegro_id': r['allegro_id']}
+    except Exception:
+        pass
+
     # Statystyki palety
     stats = conn.execute('''
         SELECT COUNT(*) as cnt, SUM(ilosc) as items, 
@@ -3707,8 +3723,16 @@ def paleta_detail_by_id(paleta_id):
     paleta_regal = paleta_row['regal'] if 'regal' in paleta_row.keys() else ''
     dostawca_badge = f' • <span class="dostawca-name" style="color:#8ff5ff">{paleta_dostawca}</span>' if paleta_dostawca else ''
     regal_badge = f' • <span class=material-symbols-outlined>pin_drop</span> {paleta_regal}' if paleta_regal else ''
+    # Statystyka ofert Allegro per paleta
+    _of_aktywne = sum(1 for pid, d in _oferty_status.items() if d['status'] == 'aktywna')
+    _of_szkice = sum(1 for pid, d in _oferty_status.items() if d['status'] == 'draft')
+    _of_brak = len(products) - len(_oferty_status)
+    _of_summary = f' • <span style="color:#beee00">{_of_aktywne} aktywnych</span>' if _of_aktywne else ''
+    _of_summary += f' <span style="color:#f59e0b">{_of_szkice} szkiców</span>' if _of_szkice else ''
+    _of_summary += f' <span style="color:#ef4444">{_of_brak} niewystawionych</span>' if _of_brak > 0 else ''
+
     html = f'''<div class="hdr">
-        <div><h1><span class=material-symbols-outlined>inventory_2</span> {nazwa_palety}</h1><small>{len(products)} prod. ({sztuki_display} szt.){dostawca_badge}{regal_badge}</small></div>
+        <div><h1><span class=material-symbols-outlined>inventory_2</span> {nazwa_palety}</h1><small>{len(products)} prod. ({sztuki_display} szt.){dostawca_badge}{regal_badge}{_of_summary}</small></div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
             <button id="btnDostarczona" onclick="toggleDostarczona({paleta_id}, this)"
                 data-val="{dostarczona_val}"
@@ -3933,6 +3957,17 @@ def paleta_detail_by_id(paleta_id):
         _bcolor = _border_colors.get(_klasa, '#48474a')
         _opacity = 'opacity:0.5;' if _qty <= 0 else ''
 
+        # Status oferty na Allegro (realne dane)
+        _of = _oferty_status.get(p['id'])
+        if _of and _of['status'] == 'aktywna':
+            _of_badge = '<span style="font-size:0.58rem;padding:1px 6px;background:rgba(190,238,0,0.12);border:1px solid rgba(190,238,0,0.25);color:#beee00;font-weight:700;letter-spacing:0.3px">AKTYWNA</span>'
+        elif _of and _of['status'] == 'draft':
+            _of_badge = '<span style="font-size:0.58rem;padding:1px 6px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25);color:#f59e0b;font-weight:700;letter-spacing:0.3px">SZKIC</span>'
+        elif _of:
+            _of_badge = '<span style="font-size:0.58rem;padding:1px 6px;background:rgba(100,116,139,0.12);border:1px solid rgba(100,116,139,0.25);color:#64748b;font-weight:700;letter-spacing:0.3px">ZAKOŃCZONA</span>'
+        else:
+            _of_badge = '<span style="font-size:0.58rem;padding:1px 6px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.15);color:#ef4444;font-weight:700;letter-spacing:0.3px">NIE WYSTAWIONY</span>'
+
         html += f'''
         <a href="/magazyn/produkt/{pcode}" style="display:flex;gap:14px;background:#131315;padding:14px;border-radius:10px;border-left:3px solid {_bcolor};text-decoration:none;color:inherit;transition:background 0.2s;{_opacity}"
            onmouseover="this.style.background='#1f1f22'" onmouseout="this.style.background='#131315'">
@@ -3941,10 +3976,11 @@ def paleta_detail_by_id(paleta_id):
             </div>
             <div style="display:flex;flex-direction:column;justify-content:center;flex:1;min-width:0">
                 <div style="font-family:'Space Grotesk',sans-serif;font-size:0.88rem;font-weight:700;color:#f9f5f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{p['nazwa'][:40]}</div>
-                <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap">
                     <span style="font-size:0.65rem;color:#adaaad;font-family:monospace">{display_code}</span>
                     {_stock_dot}
                     <span style="font-size:0.6rem;color:#adaaad;font-weight:600">{_stock_text}</span>
+                    {_of_badge}
                 </div>
             </div>
             <div style="display:flex;align-items:center;flex-shrink:0">
