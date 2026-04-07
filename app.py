@@ -4089,11 +4089,11 @@ def smart_insights():
     conn = get_db()
 
     # --- 1. CO WYSTAWIĆ NAJPIERW (ranking niewystawionych po zysku) ---
+    from modules.magazynier import _paleta_koszt_szt
+
     niewystawione = conn.execute('''
         SELECT p.id, p.nazwa, p.ilosc, p.kategoria, p.cena_allegro, p.zdjecie_url,
                p.kod_magazynowy, p.asin, p.paleta_id,
-               COALESCE(pal.cena_zakupu, 0) as paleta_cena,
-               COALESCE(pal.ilosc_produktow, 1) as paleta_ilosc,
                COALESCE(pal.nazwa, '') as paleta_nazwa
         FROM produkty p
         LEFT JOIN palety pal ON pal.id = p.paleta_id
@@ -4102,13 +4102,19 @@ def smart_insights():
         ORDER BY p.cena_allegro DESC
     ''').fetchall()
 
+    # Cache koszt/szt per paleta (żeby nie liczyć dla każdego produktu osobno)
+    _koszt_cache = {}
+
     ranking = []
     for n in niewystawione:
         n = dict(n)
         cena_al = float(n.get('cena_allegro') or 0)
         kat = (n.get('kategoria') or 'inne').lower()
         prowizja_rate = ALLEGRO_PROWIZJE.get(kat, 0.11)
-        koszt_szt = float(n['paleta_cena']) / max(int(n['paleta_ilosc']), 1) if n['paleta_cena'] else 0
+        pid = n.get('paleta_id')
+        if pid not in _koszt_cache:
+            _koszt_cache[pid] = _paleta_koszt_szt(conn, pid)
+        koszt_szt = _koszt_cache[pid]
         zysk = cena_al - koszt_szt - (cena_al * prowizja_rate) if cena_al > 0 else 0
         n['zysk_szt'] = zysk
         n['koszt_szt'] = koszt_szt
