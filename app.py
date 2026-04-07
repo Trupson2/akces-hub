@@ -3851,24 +3851,85 @@ def zestawy_allegro():
         kat = (o.get('kategoria') or 'inne').lower()
         kategorie.setdefault(kat, []).append(o)
 
+    # Komplementarne kategorie — co pasuje do czego
+    _KOMPLEMENT = {
+        'komputery': ['akcesoria', 'gaming', 'biuro', 'smart_home'],
+        'akcesoria': ['komputery', 'telefony', 'gaming'],
+        'telefony': ['akcesoria', 'komputery'],
+        'gaming': ['komputery', 'akcesoria'],
+        'sport': ['outdoor', 'rehabilitacja'],
+        'outdoor': ['sport', 'motoryzacja'],
+        'rehabilitacja': ['sport'],
+        'zwierzeta': ['zwierzeta'],
+        'zabawki': ['zabawki'],
+        'dom_ogrod': ['oswietlenie', 'tekstylia', 'kuchnia', 'agd_duze'],
+        'oswietlenie': ['dom_ogrod', 'smart_home'],
+        'tekstylia': ['dom_ogrod'],
+        'kuchnia': ['dom_ogrod', 'agd_duze'],
+        'agd_duze': ['dom_ogrod', 'kuchnia'],
+        'smart_home': ['komputery', 'oswietlenie'],
+        'foto_video': ['foto_video', 'akcesoria'],
+        'motoryzacja': ['motoryzacja', 'outdoor'],
+        'bagaz': ['outdoor', 'sport'],
+        'biuro': ['komputery', 'druk3d'],
+        'druk3d': ['komputery', 'biuro'],
+        'rtv': ['akcesoria', 'smart_home'],
+        'ev_ladowarki': ['motoryzacja', 'smart_home'],
+    }
+    # Stop words do keyword matching
+    _STOP = {'na', 'do', 'z', 'ze', 'w', 'i', 'dla', 'od', 'po', 'się', 'the',
+             'szt', 'cm', 'mm', 'kg', 'ml', 'duży', 'mały', 'duza', 'mala',
+             'komplet', 'zestaw', 'set', 'pro', 'max', 'mini', 'xl', 'xxl'}
+
+    def _keywords(nazwa):
+        """Wyciągnij słowa kluczowe z nazwy produktu (3+ znaki, bez stop words)."""
+        words = set()
+        for w in (nazwa or '').lower().split():
+            w = w.strip('.,()-/[]')
+            if len(w) >= 3 and w not in _STOP:
+                words.add(w)
+        return words
+
+    def _score(main_offer, candidate):
+        """Oblicz score dopasowania: wyższy = lepszy match."""
+        m_kat = (main_offer.get('kategoria') or 'inne').lower()
+        c_kat = (candidate.get('kategoria') or 'inne').lower()
+        score = 0
+
+        # Ta sama kategoria (ale nie "inne" — to catch-all)
+        if m_kat == c_kat and m_kat != 'inne':
+            score += 50
+
+        # Komplementarna kategoria
+        if c_kat in _KOMPLEMENT.get(m_kat, []):
+            score += 30
+
+        # Keyword matching — wspólne słowa w nazwach
+        m_kw = _keywords(main_offer.get('tytul') or main_offer.get('nazwa'))
+        c_kw = _keywords(candidate.get('tytul') or candidate.get('nazwa'))
+        common = m_kw & c_kw
+        score += len(common) * 15
+
+        # Bonus za tańszy produkt (dobry jako dodatek do zestawu)
+        m_cena = main_offer.get('cena') or 0
+        c_cena = candidate.get('cena') or 0
+        if 0 < c_cena < m_cena * 0.5:
+            score += 10
+
+        return score
+
     # Dla każdej oferty — znajdź kandydatów do zestawu
     for o in oferty:
-        cur_kat = (o.get('kategoria') or 'inne').lower()
         cur_id = o['pid']
-        candidates = []
-        # Najpierw ta sama kategoria
-        for c in kategorie.get(cur_kat, []):
-            if c['pid'] != cur_id:
-                candidates.append({**c, 'same_cat': True})
-        # Potem inne kategorie (tańsze jako dodatek)
-        for kat, items in kategorie.items():
-            if kat != cur_kat:
-                for c in items:
-                    if c['pid'] != cur_id:
-                        candidates.append({**c, 'same_cat': False})
-        # Sortuj: ta sama kategoria first, potem po cenie rosnąco
-        candidates.sort(key=lambda x: (0 if x['same_cat'] else 1, x.get('cena') or 9999))
-        o['candidates'] = candidates[:4]
+        scored = []
+        for other in oferty:
+            if other['pid'] == cur_id:
+                continue
+            s = _score(o, other)
+            if s > 0:
+                scored.append(({**other, 'match_score': s}, s))
+        scored.sort(key=lambda x: (-x[1], x[0].get('cena') or 9999))
+        o['candidates'] = [c[0] for c in scored[:4]]
 
     totals = {
         'aktywne': len(oferty),
@@ -3980,7 +4041,7 @@ ZESTAWY_HTML = '''{% extends "base.html" %}
                 <div class="zs-cand-name" title="{{ c.nazwa }}">{{ c.nazwa[:40] }}</div>
                 <div class="zs-cand-price">{{ "%.0f"|format(c.cena or 0) }} zl</div>
             </div>
-            {% if c.same_cat %}<span class="zs-cand-badge">ta sama kat.</span>{% endif %}
+            {% if c.match_score >= 50 %}<span class="zs-cand-badge">ta sama kat.</span>{% elif c.match_score >= 30 %}<span class="zs-cand-badge" style="background:rgba(143,245,255,0.15);color:#8ff5ff">pasuje</span>{% endif %}
         </a>
         {% endfor %}
     </div>
