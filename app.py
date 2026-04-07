@@ -4078,6 +4078,250 @@ function filterZestawy(kat, btn) {
 '''
 
 
+# ============================================================
+# SMART INSIGHTS — co wystawić, martwy stock, koszt leżenia
+# ============================================================
+
+@app.route('/narzedzia/smart-insights')
+def smart_insights():
+    from modules.database import get_db
+    from modules.utils import ALLEGRO_PROWIZJE
+    conn = get_db()
+
+    # --- 1. CO WYSTAWIĆ NAJPIERW (ranking niewystawionych po zysku) ---
+    niewystawione = conn.execute('''
+        SELECT p.id, p.nazwa, p.ilosc, p.kategoria, p.cena_allegro, p.zdjecie_url,
+               p.kod_magazynowy, p.asin, p.paleta_id,
+               COALESCE(pal.cena_zakupu, 0) as paleta_cena,
+               COALESCE(pal.ilosc_produktow, 1) as paleta_ilosc,
+               COALESCE(pal.nazwa, '') as paleta_nazwa
+        FROM produkty p
+        LEFT JOIN palety pal ON pal.id = p.paleta_id
+        WHERE p.ilosc > 0
+          AND NOT EXISTS (SELECT 1 FROM oferty o WHERE o.produkt_id = p.id AND o.status IN ('aktywna', 'draft'))
+        ORDER BY p.cena_allegro DESC
+    ''').fetchall()
+
+    ranking = []
+    for n in niewystawione:
+        n = dict(n)
+        cena_al = float(n.get('cena_allegro') or 0)
+        kat = (n.get('kategoria') or 'inne').lower()
+        prowizja_rate = ALLEGRO_PROWIZJE.get(kat, 0.11)
+        koszt_szt = float(n['paleta_cena']) / max(int(n['paleta_ilosc']), 1) if n['paleta_cena'] else 0
+        zysk = cena_al - koszt_szt - (cena_al * prowizja_rate) if cena_al > 0 else 0
+        n['zysk_szt'] = zysk
+        n['koszt_szt'] = koszt_szt
+        n['prowizja'] = prowizja_rate
+        ranking.append(n)
+    ranking.sort(key=lambda x: -x['zysk_szt'])
+
+    # --- 2. MARTWY STOCK (30+ dni bez sprzedaży) ---
+    from modules.smart_alerts import check_dead_stock, check_price_suggestions
+    dead = check_dead_stock()
+
+    # --- 3. SUGESTIE OBNIŻKI ---
+    price_sugg = check_price_suggestions()
+
+    # --- 4. KOSZT LEŻENIA per paleta ---
+    palety_koszt = conn.execute('''
+        SELECT pal.id, pal.nazwa, pal.cena_zakupu, pal.data_zakupu,
+               COUNT(p.id) as prod_count,
+               SUM(p.ilosc) as szt_remaining,
+               SUM(CASE WHEN p.ilosc > 0 THEN 1 ELSE 0 END) as prod_remaining,
+               COALESCE((SELECT SUM(s.cena * s.ilosc) FROM sprzedaze s
+                JOIN produkty pp ON pp.id = s.produkt_id
+                WHERE pp.paleta_id = pal.id
+                AND COALESCE(s.status, '') NOT IN ('anulowana', 'anulowane', 'zwrot', '')), 0) as przychod
+        FROM palety pal
+        LEFT JOIN produkty p ON p.paleta_id = pal.id
+        WHERE pal.cena_zakupu > 0
+        GROUP BY pal.id
+        HAVING szt_remaining > 0
+        ORDER BY pal.data_zakupu ASC
+    ''').fetchall()
+
+    lezenie = []
+    for pl in palety_koszt:
+        pl = dict(pl)
+        cena = float(pl['cena_zakupu'] or 0)
+        przychod = float(pl['przychod'] or 0)
+        data_z = pl.get('data_zakupu')
+        if data_z:
+            try:
+                bought = datetime.strptime(str(data_z)[:10], '%Y-%m-%d')
+                days = (datetime.now() - bought).days
+            except:
+                days = 0
+        else:
+            days = 0
+        zamrozony = max(0, cena - przychod)
+        pl['days'] = days
+        pl['zamrozony'] = zamrozony
+        pl['roi'] = (przychod / cena * 100) if cena > 0 else 0
+        lezenie.append(pl)
+    lezenie.sort(key=lambda x: -x['zamrozony'])
+    total_zamrozony = sum(l['zamrozony'] for l in lezenie)
+
+    return render_template_string(INSIGHTS_HTML,
+        version=VERSION,
+        ranking=ranking, dead=dead, price_sugg=price_sugg,
+        lezenie=lezenie, total_zamrozony=total_zamrozony,
+        active_narzedzia='active', active_home='', active_magazyn='',
+        active_paletomat='', active_allegro='', active_monitor='')
+
+
+INSIGHTS_HTML = '''{% extends "base.html" %}
+{% block page_title %}Smart Insights{% endblock %}
+{% block content %}
+<style>
+.si-section{margin-bottom:24px}
+.si-title{font-size:1rem;font-weight:800;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(143,245,255,0.08)}
+.si-card{background:rgba(13,15,26,0.6);border:1px solid rgba(255,255,255,0.06);padding:12px;margin-bottom:8px;display:flex;gap:12px;align-items:center;text-decoration:none;color:inherit;transition:all 0.2s}
+.si-card:hover{border-color:rgba(143,245,255,0.2);background:rgba(143,245,255,0.03)}
+.si-card-img{width:48px;height:48px;object-fit:contain;background:rgba(255,255,255,0.9);flex-shrink:0}
+.si-card-info{flex:1;min-width:0}
+.si-card-name{font-weight:700;font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.si-card-meta{font-size:0.68rem;color:var(--text-muted);margin-top:2px}
+.si-card-val{text-align:right;flex-shrink:0}
+.si-stat-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:20px}
+.si-stat{background:rgba(13,15,26,0.8);border:1px solid rgba(255,255,255,0.06);padding:14px;text-align:center}
+.si-stat-v{font-size:1.3rem;font-weight:800;font-family:'Space Grotesk',sans-serif}
+.si-stat-l{font-size:0.58rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-top:4px;font-weight:600}
+.si-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.si-tab{padding:8px 16px;border:1px solid rgba(255,255,255,0.08);background:rgba(15,15,30,0.65);color:var(--text-muted);cursor:pointer;font-size:0.78rem;font-weight:700;font-family:'Space Grotesk',sans-serif;transition:all 0.2s}
+.si-tab:hover,.si-tab.active{border-color:rgba(143,245,255,0.3);color:#8ff5ff;background:rgba(143,245,255,0.07)}
+.si-hidden{display:none}
+.si-good{color:#beee00}.si-warn{color:#f59e0b}.si-bad{color:#ef4444}.si-cyan{color:#8ff5ff}.si-purple{color:#a855f7}
+</style>
+
+<div style="text-align:center;padding:20px 0 10px">
+    <h1 style="font-size:1.5rem;font-family:'Space Grotesk',sans-serif;font-weight:800;background:linear-gradient(135deg,#8ff5ff,#ff6b9b);-webkit-background-clip:text;-webkit-text-fill-color:transparent"><span class="material-symbols-outlined" style="color:#8ff5ff;-webkit-text-fill-color:#8ff5ff">psychology</span> SMART INSIGHTS</h1>
+    <small style="color:var(--text-muted)">Co wystawic, co obnizyc, gdzie lezi kapital</small>
+</div>
+
+<!-- Stats -->
+<div class="si-stat-row">
+    <div class="si-stat" style="border-left:3px solid rgba(190,238,0,0.3)">
+        <div class="si-stat-v si-good">{{ ranking|length }}</div>
+        <div class="si-stat-l">Do wystawienia</div>
+    </div>
+    <div class="si-stat" style="border-left:3px solid rgba(239,68,68,0.3)">
+        <div class="si-stat-v si-bad">{{ dead|length }}</div>
+        <div class="si-stat-l">Martwy stock</div>
+    </div>
+    <div class="si-stat" style="border-left:3px solid rgba(245,158,11,0.3)">
+        <div class="si-stat-v si-warn">{{ price_sugg|length }}</div>
+        <div class="si-stat-l">Do obniżki</div>
+    </div>
+    <div class="si-stat" style="border-left:3px solid rgba(168,85,247,0.3)">
+        <div class="si-stat-v si-purple">{{ "{:,.0f}".format(total_zamrozony).replace(",", " ") }} zl</div>
+        <div class="si-stat-l">Zamrożony kapitał</div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="si-tabs">
+    <button class="si-tab active" onclick="showTab('ranking', this)"><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">rocket_launch</span> Co wystawić ({{ ranking|length }})</button>
+    <button class="si-tab" onclick="showTab('dead', this)"><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">warning</span> Martwy stock ({{ dead|length }})</button>
+    <button class="si-tab" onclick="showTab('prices', this)"><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">trending_down</span> Obniżki ({{ price_sugg|length }})</button>
+    <button class="si-tab" onclick="showTab('kapital', this)"><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">account_balance</span> Koszt leżenia</button>
+</div>
+
+<!-- TAB: Co wystawić najpierw -->
+<div id="tab-ranking" class="si-section">
+    <div class="si-title" style="color:#beee00"><span class="material-symbols-outlined">rocket_launch</span> Co wystawić najpierw — ranking po zysku</div>
+    {% for item in ranking[:20] %}
+    <a href="/magazyn/produkt/{{ item.kod_magazynowy or item.id }}" class="si-card">
+        {% if item.zdjecie_url %}<img src="{{ item.zdjecie_url }}" class="si-card-img" loading="lazy" onerror="this.style.display='none'">{% endif %}
+        <div class="si-card-info">
+            <div class="si-card-name">{{ item.nazwa[:50] }}</div>
+            <div class="si-card-meta">{{ item.ilosc }} szt · {{ item.kategoria or 'inne' }} · {{ item.paleta_nazwa or '?' }}</div>
+        </div>
+        <div class="si-card-val">
+            <div style="font-weight:800;font-size:0.95rem" class="{% if item.zysk_szt > 50 %}si-good{% elif item.zysk_szt > 0 %}si-warn{% else %}si-bad{% endif %}">{{ "%.0f"|format(item.zysk_szt) }} zl</div>
+            <div style="font-size:0.6rem;color:var(--text-muted)">zysk/szt</div>
+            <div style="font-size:0.72rem;color:#8ff5ff;font-weight:600">{{ "%.0f"|format(item.cena_allegro or 0) }} zl</div>
+        </div>
+    </a>
+    {% endfor %}
+    {% if not ranking %}<div style="padding:20px;text-align:center;color:var(--text-muted)">Wszystko wystawione! 🎉</div>{% endif %}
+</div>
+
+<!-- TAB: Martwy stock -->
+<div id="tab-dead" class="si-section si-hidden">
+    <div class="si-title" style="color:#ef4444"><span class="material-symbols-outlined">warning</span> Martwy stock — 30+ dni bez sprzedaży</div>
+    {% for item in dead[:20] %}
+    <a href="/magazyn/produkt/{{ item.kod_magazynowy or item.pid }}" class="si-card" style="border-left:3px solid rgba(239,68,68,0.3)">
+        <div class="si-card-info">
+            <div class="si-card-name">{{ item.tytul[:50] }}</div>
+            <div class="si-card-meta">{{ item.wyswietlenia or 0 }} wyśw. · {{ item.ilosc }} szt · wystawiono {{ item.data_wystawienia }}</div>
+        </div>
+        <div class="si-card-val">
+            <div style="font-weight:800;font-size:0.95rem;color:#ef4444">{{ "%.0f"|format(item.cena or 0) }} zl</div>
+            <div style="font-size:0.6rem;color:var(--text-muted)">aktywna cena</div>
+        </div>
+    </a>
+    {% endfor %}
+    {% if not dead %}<div style="padding:20px;text-align:center;color:var(--text-muted)">Brak martwego stocku ✅</div>{% endif %}
+</div>
+
+<!-- TAB: Sugestie obniżki -->
+<div id="tab-prices" class="si-section si-hidden">
+    <div class="si-title" style="color:#f59e0b"><span class="material-symbols-outlined">trending_down</span> Sugestie obniżki — dużo views, 0 sprzedaży</div>
+    {% for item in price_sugg[:15] %}
+    {% set discount = 0.12 if (item.wyswietlenia or 0) > 200 else 0.10 %}
+    {% set suggested = (item.cena or 0) * (1 - discount) %}
+    <a href="/magazyn/produkt/{{ item.pid }}" class="si-card" style="border-left:3px solid rgba(245,158,11,0.3)">
+        <div class="si-card-info">
+            <div class="si-card-name">{{ item.tytul[:50] }}</div>
+            <div class="si-card-meta">👁 {{ item.wyswietlenia or 0 }} wyśw. · ❤️ {{ item.obserwujacych or 0 }} obs.</div>
+        </div>
+        <div class="si-card-val">
+            <div style="font-size:0.75rem;color:var(--text-muted);text-decoration:line-through">{{ "%.0f"|format(item.cena or 0) }} zl</div>
+            <div style="font-weight:800;font-size:0.95rem;color:#f59e0b">→ {{ "%.0f"|format(suggested) }} zl</div>
+            <div style="font-size:0.6rem;color:#ef4444">-{{ "%.0f"|format(discount * 100) }}%</div>
+        </div>
+    </a>
+    {% endfor %}
+    {% if not price_sugg %}<div style="padding:20px;text-align:center;color:var(--text-muted)">Brak kandydatów do obniżki ✅</div>{% endif %}
+</div>
+
+<!-- TAB: Koszt leżenia -->
+<div id="tab-kapital" class="si-section si-hidden">
+    <div class="si-title" style="color:#a855f7"><span class="material-symbols-outlined">account_balance</span> Zamrożony kapitał per paleta</div>
+    {% for pl in lezenie[:20] %}
+    <a href="/magazyn/paleta-id/{{ pl.id }}" class="si-card" style="border-left:3px solid rgba(168,85,247,0.3)">
+        <div class="si-card-info">
+            <div class="si-card-name">{{ pl.nazwa }}</div>
+            <div class="si-card-meta">{{ pl.days }} dni · {{ pl.szt_remaining }} szt · przychód: {{ "%.0f"|format(pl.przychod) }} zł z {{ "%.0f"|format(pl.cena_zakupu) }} zł</div>
+        </div>
+        <div class="si-card-val">
+            <div style="font-weight:800;font-size:0.95rem" class="{% if pl.zamrozony > 500 %}si-bad{% elif pl.zamrozony > 200 %}si-warn{% else %}si-good{% endif %}">{{ "%.0f"|format(pl.zamrozony) }} zl</div>
+            <div style="font-size:0.6rem;color:var(--text-muted)">zamrożone</div>
+            <div style="font-size:0.72rem;font-weight:600" class="{% if pl.roi > 80 %}si-good{% elif pl.roi > 40 %}si-warn{% else %}si-bad{% endif %}">ROI {{ "%.0f"|format(pl.roi) }}%</div>
+        </div>
+    </a>
+    {% endfor %}
+    <div style="margin-top:12px;padding:12px;background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);font-size:0.8rem">
+        <strong style="color:#a855f7">Łącznie zamrożony kapitał: {{ "{:,.0f}".format(total_zamrozony).replace(",", " ") }} zł</strong>
+    </div>
+</div>
+
+<a href="/narzedzia" style="display:inline-block;margin-top:10px;color:var(--text-muted);text-decoration:none;font-size:0.85rem">← Powrot do narzedzi</a>
+
+<script nonce="{getattr(request, '_csp_nonce', '')}">
+function showTab(id, btn) {
+    document.querySelectorAll('.si-section').forEach(function(s) { s.classList.add('si-hidden'); });
+    document.getElementById('tab-' + id).classList.remove('si-hidden');
+    document.querySelectorAll('.si-tab').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+}
+</script>
+{% endblock %}
+'''
+
+
 # EXPORT
 
 @app.route('/narzedzia/export', methods=['GET', 'POST'])
@@ -6550,6 +6794,14 @@ if __name__ == '__main__':
         migrate_secrets()
     except Exception as e:
         log_warning(f"Secret migration error: {e}")
+
+    # Smart Alerts — martwy stock, raport dzienny, sugestie obniżek
+    try:
+        from modules.smart_alerts import start_smart_alerts
+        start_smart_alerts()
+        log("Smart Alerts uruchomiony (raport 20:00, alerty pon. 10:00)")
+    except Exception as e:
+        log_warning(f"Smart Alerts error: {e}")
 
     # Start Winning Scout scheduler (co 24h)
     try:
