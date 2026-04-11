@@ -378,6 +378,40 @@ def _translate_to_pl(text: str) -> str:
     return text
 
 
+def _translate_to_en(text: str) -> str:
+    """Tłumaczy tekst na angielski dla lepszych wyników w Chinach."""
+    if not text or len(text) < 3:
+        return text
+
+    # Sprawdź czy to już po angielsku (brak polskich znaków)
+    polish_chars = set('ąćęłńóśźż')
+    if not any(c in text.lower() for c in polish_chars):
+        return text
+
+    try:
+        url = 'https://translate.googleapis.com/translate_a/single'
+        params = {
+            'client': 'gtx',
+            'sl': 'pl',
+            'tl': 'en',
+            'dt': 't',
+            'q': text[:500],
+        }
+        resp = requests.get(url, params=params, timeout=10, headers={
+            'User-Agent': HEADERS['User-Agent']
+        })
+        if resp.status_code == 200:
+            data = resp.json()
+            if data and data[0]:
+                translated = ''.join(part[0] for part in data[0] if part[0])
+                if translated and len(translated) > 2:
+                    return translated
+    except Exception as e:
+        _log(f"[scout] Translation to EN error: {e}")
+
+    return text
+
+
 # ─── SCRAPING: AMAZON BESTSELLERS ────────────────────────────────────────────
 
 def _scrape_amazon_bestsellers(category: str, url: str, limit: int = 15) -> list[dict]:
@@ -1019,15 +1053,17 @@ def scout_by_phrase(phrase: str, filters: dict = None) -> list[dict]:
     use_comp = filters.get('competition', True)
     use_price = filters.get('price', True)
     
-    _log(f"[scout_phrase] START szukam '{phrase}' na Alibaba/AliExpress...")
+    # Przetłumacz na angielski dla lepszych wyników w Chinach
+    phrase_en = _translate_to_en(phrase)
+    _log(f"[scout_phrase] START szukam '{phrase}' (EN: '{phrase_en}') na Alibaba/AliExpress...")
     
     try:
         # ===== KROK 1: Szukaj produktów na Alibaba =====
-        alibaba_products = _scrape_alibaba_search(phrase, limit=30)
+        alibaba_products = _scrape_alibaba_search(phrase_en, limit=30)
         _log(f"[scout_phrase] Alibaba: znaleziono {len(alibaba_products)} produktów")
         
         # ===== KROK 2: Szukaj produktów na AliExpress =====
-        aliexpress_products = _scrape_aliexpress_search(phrase, limit=20)
+        aliexpress_products = _scrape_aliexpress_search(phrase_en, limit=20)
         _log(f"[scout_phrase] AliExpress: znaleziono {len(aliexpress_products)} produktów")
         
         # Połącz wyniki
@@ -1121,7 +1157,7 @@ def scout_by_phrase(phrase: str, filters: dict = None) -> list[dict]:
         if not candidates:
             return [{
                 'id': 'empty', 
-                'product_name': f'Znaleziono {len(all_products)} produktów z Chin, ale filtry odrzuciły wszystkie. Odznacz filtry i spróbuj ponownie.', 
+                'product_name': f'Znaleziono {len(all_products)} produktów z Chin, ale filtry odrzuciły wszystkie. Spróbuj zmienić filtry.', 
                 'category': '-', 'source': 'alibaba',
                 'source_url': f'https://www.alibaba.com/trade/search?SearchText={phrase}', 
                 'buy_price_pln': 0, 'sell_price_pln': 0, 
@@ -1137,79 +1173,67 @@ def scout_by_phrase(phrase: str, filters: dict = None) -> list[dict]:
         
     except Exception as e:
         _log(f"[scout_phrase] Error: {e}")
-        import traceback
-        traceback.print_exc()
-        return [{
-            'id': 'err', 'product_name': f'Błąd wyszukiwania: {str(e)[:100]}', 'category': '-', 'source': 'alibaba',
-            'source_url': '#', 'buy_price_pln': 0, 'sell_price_pln': 0, 'margin_percent': 0, 'trend_score': 0, 'final_score': 0,
-            'paczkomat_fit': '-', 'status': 'keep_new', 'image_url': '', 'allegro_competition': 0, 'created_at': datetime.now().isoformat()
-        }]
+        return []
 
 
-def _scrape_alibaba_search(phrase: str, limit: int = 30) -> list[dict]:
-    """Szuka produktów na Alibaba.com po frazie. Zwraca listę z nazwą, ceną USD, URL, obrazkiem."""
+def _scrape_alibaba_search(phrase_en: str, limit: int = 30) -> list[dict]:
+    """Szuka produktów na Alibaba.com po frazie (EN). Używa showroom URL dla lepszej stabilności."""
     products = []
     try:
-        query = phrase.replace(' ', '+')[:80]
-        search_url = f'https://www.alibaba.com/trade/search?SearchText={query}&viewtype=G'
+        # Alibaba showroom URL jest bardziej stabilny
+        query_dash = phrase_en.lower().replace(' ', '-')[:80]
+        search_url = f'https://www.alibaba.com/showroom/{query_dash}.html'
         
         session = requests.Session()
         session.headers.update(HEADERS)
         
-        resp = session.get(search_url, timeout=15, allow_redirects=True)
+        resp = session.get(search_url, timeout=12, allow_redirects=True)
+        if resp.status_code != 200:
+            # Fallback na standardowy search
+            query_plus = phrase_en.replace(' ', '+')
+            search_url = f'https://www.alibaba.com/trade/search?SearchText={query_plus}&viewtype=G'
+            resp = session.get(search_url, timeout=12)
+            
         if resp.status_code != 200:
             _log(f"[scout_phrase] Alibaba HTTP {resp.status_code}")
             return []
         
         html = resp.text
         
-        # Wyciągnij produkty: tytuły
-        titles = re.findall(r'class="[^"]*elements-title-normal[^"]*"[^>]*>([^<]{10,150})<', html)
+        # Pattern 1: a.product-title
+        titles = re.findall(r'class="[^"]*product-title[^"]*"[^>]*title="([^"]+)"', html)
         if not titles:
-            titles = re.findall(r'<h2[^>]*>.*?<a[^>]*>([^<]{10,150})</a>', html, re.DOTALL)
-        if not titles:
-            titles = re.findall(r'"subject":"([^"]{10,120})"', html)
-        
-        # Ceny
-        prices = re.findall(r'\$\s*([\d.]+)\s*(?:-\s*\$\s*[\d.]+)?', html)
-        
-        # Obrazki
-        images = re.findall(r'<img[^>]*(?:data-src|src)="(//[^"]*alibaba[^"]*\.(?:jpg|jpeg|png|webp))"', html, re.I)
-        images = [f'https:{img}' for img in images]
-        if not images:
-            images = re.findall(r'<img[^>]*src="(https://[^"]*alibaba[^"]*\.(?:jpg|jpeg|png|webp))"', html, re.I)
-        
-        # URLs
+            titles = re.findall(r'class="[^"]*elements-title-normal[^"]*"[^>]*>([^<]+)<', html)
+            
         urls = re.findall(r'href="(https://www\.alibaba\.com/product-detail/[^"]+)"', html)
         if not urls:
-            urls = re.findall(r'href="(//www\.alibaba\.com/product-detail/[^"]+)"', html)
-            urls = [f'https:{u}' for u in urls]
+             urls = re.findall(r'href="(//www\.alibaba\.com/product-detail/[^"]+)"', html)
+             urls = [f'https:{u}' for u in urls]
+             
+        prices = re.findall(r'\$\s*([\d.]+)\s*(?:-\s*\$\s*[\d.]+)?', html)
         
-        seen = set()
-        for i, title in enumerate(titles[:limit]):
-            title = title.strip()
-            if title in seen or len(title) < 10:
-                continue
-            seen.add(title)
+        images = re.findall(r'<img[^>]*(?:data-src|src)="(//[^"]*alibaba[^"]*\.(?:jpg|jpeg|png|webp))"', html, re.I)
+        images = [f'https:{img}' for img in images]
+
+        for i in range(min(len(titles), limit)):
+            name = titles[i].strip()
+            if len(name) < 10: continue
             
-            price_usd = 0
+            p_val = 0
             if i < len(prices):
-                try:
-                    price_usd = float(prices[i])
-                    if price_usd > 500: price_usd = 0  # Filtruj nierealne ceny
-                except:
-                    pass
-            
+                try: p_val = float(prices[i])
+                except: pass
+                
             products.append({
-                'name': title,
-                'price_usd': price_usd,
+                'name': name,
+                'price_usd': p_val,
                 'url': urls[i] if i < len(urls) else search_url,
                 'image': images[i] if i < len(images) else '',
                 'source': 'alibaba',
-                'category': phrase,
+                'category': phrase_en,
             })
         
-        _log(f"[scout_phrase] Alibaba search: {len(products)} produktów z cenami")
+        _log(f"[scout_phrase] Alibaba search: found {len(products)} items")
         
     except Exception as e:
         _log(f"[scout_phrase] Alibaba search error: {e}")
@@ -1217,73 +1241,64 @@ def _scrape_alibaba_search(phrase: str, limit: int = 30) -> list[dict]:
     return products
 
 
-def _scrape_aliexpress_search(phrase: str, limit: int = 20) -> list[dict]:
-    """Szuka produktów na AliExpress po frazie."""
+def _scrape_aliexpress_search(phrase_en: str, limit: int = 20) -> list[dict]:
+    """Szuka produktów na AliExpress używając JSONa z window.runParams."""
     products = []
     try:
-        query = requests.utils.quote(phrase[:80])
-        search_url = f'https://www.aliexpress.com/wholesale?SearchText={query}&SortType=total_tranpro_desc'
+        query_enc = requests.utils.quote(phrase_en[:80])
+        search_url = f'https://www.aliexpress.com/wholesale?SearchText={query_enc}&SortType=total_tranpro_desc'
         
         session = requests.Session()
         session.headers.update(HEADERS)
         
-        resp = session.get(search_url, timeout=15, allow_redirects=True)
+        resp = session.get(search_url, timeout=12, allow_redirects=True)
         if resp.status_code != 200:
             _log(f"[scout_phrase] AliExpress HTTP {resp.status_code}")
             return []
         
         html = resp.text
         
-        # JSON w stronie
+        # Wyciągnij JSON z window.runParams
+        json_match = re.search(r'window\.runParams\s*=\s*(\{.+?\});', html, re.DOTALL)
+        if not json_match:
+            json_match = re.search(r'data-gwd-json="(\{.+?\})"', html)
+            
+        if json_match:
+            try:
+                raw_json = json_match.group(1)
+                data = json.loads(raw_json)
+                items_data = _extract_items_from_json(data)
+                if items_data:
+                    for item in items_data[:limit]:
+                        products.append({
+                            'name': item.get('name', ''),
+                            'price_usd': item.get('price', 0),
+                            'url': item.get('url', ''),
+                            'image': item.get('image', ''),
+                            'source': 'aliexpress',
+                            'category': phrase_en,
+                        })
+                    return products
+            except:
+                pass
+
+        # Fallback na regex
         titles = re.findall(r'"subject":"([^"]{10,120})"', html)
-        if not titles:
-            titles = re.findall(r'<h1[^>]*>([^<]{10,150})</h1>', html)
-        if not titles:
-            titles = re.findall(r'<h3[^>]*>([^<]{10,150})</h3>', html)
-        
-        # Ceny (AliExpress używa USD lub EUR)
         prices = re.findall(r'\"minPrice\":\"([\d.]+)\"', html)
-        if not prices:
-            prices = re.findall(r'US\s*\$\s*([\d.]+)', html)
-        
-        # Obrazki
-        images = re.findall(r'"imageUrl":"(https://[^"]+\.(?:jpg|jpeg|png|webp))"', html, re.I)
-        if not images:
-            images = re.findall(r'<img[^>]*src="(https://ae\d+\.alicdn\.com/[^"]+)"', html)
-        
-        # URLs
         urls = re.findall(r'"productDetailUrl":"(https://[^"]+)"', html)
-        if not urls:
-            urls = re.findall(r'href="(https://(?:www\.)?aliexpress\.com/item/[^"]+)"', html)
         
-        seen = set()
-        for i, title in enumerate(titles[:limit]):
-            title = title.strip()
-            if title in seen or len(title) < 10:
-                continue
-            seen.add(title)
-            
-            price_usd = 0
-            if i < len(prices):
-                try:
-                    price_usd = float(prices[i])
-                    if price_usd > 500: price_usd = 0
-                except:
-                    pass
-            
+        for i in range(min(len(titles), limit)):
             products.append({
-                'name': title,
-                'price_usd': price_usd,
+                'name': titles[i],
+                'price_usd': float(prices[i]) if i < len(prices) else 0,
                 'url': urls[i] if i < len(urls) else search_url,
-                'image': images[i] if i < len(images) else '',
+                'image': '',
                 'source': 'aliexpress',
-                'category': phrase,
+                'category': phrase_en,
             })
-        
-        _log(f"[scout_phrase] AliExpress search: {len(products)} produktów")
-        
+            
     except Exception as e:
-        _log(f"[scout_phrase] AliExpress search error: {e}")
+        _log(f"[scout_phrase] AliExpress error: {e}")
     
     return products
 

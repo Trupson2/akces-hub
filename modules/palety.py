@@ -4104,7 +4104,7 @@ def paleta_szczegoly(paleta_id):
     function _submitKorekta(produktId, nowaIlosc) {
         const f = document.createElement('form');
         f.method = 'POST'; f.action = '/sprzedaze/korekta-ilosci';
-        f.innerHTML = '<input name="produkt_id" value="'+produktId+'"><input name="nowa_ilosc" value="'+nowaIlosc+'">';
+        f.innerHTML = '<input name="csrf_token" value="' + generate_csrf() + '"><input name="produkt_id" value="'+produktId+'"><input name="nowa_ilosc" value="'+nowaIlosc+'">';
         document.body.appendChild(f); f.submit();
     }
 
