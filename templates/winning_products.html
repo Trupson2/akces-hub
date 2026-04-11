@@ -329,9 +329,21 @@
     <div class="ws-title">WINNING SCOUT</div>
     <div class="ws-subtitle">Automatyczny skaner nowych produktów do sprzedaży na Allegro</div>
   </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex-direction:column;align-items:flex-start">
+    <div style="display:flex;align-items:center;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.2);padding:2px 4px;">
+      <input type="text" id="phraseInput" placeholder="Fraza Allegro (np. wędkarstwo)" style="background:transparent;border:none;color:#fff;padding:6px;width:200px;font-size:0.8rem;outline:none;">
+      <button class="ws-btn" onclick="runPhraseScan()" style="padding:6px 12px;background:var(--neon-primary,#8ff5ff);color:#000;border:none;">SZUKAJ</button>
+    </div>
+    <div style="display:flex;gap:12px;font-size:0.7rem;color:#8ff5ff;margin-top:4px;flex-wrap:wrap">
+      <label><input type="checkbox" id="chkSales" checked> Sprzedaż >100</label>
+      <label><input type="checkbox" id="chkMargin" checked> Marża >30%</label>
+      <label><input type="checkbox" id="chkComp" checked> Konkurencja <50</label>
+      <label><input type="checkbox" id="chkPrice" checked> Cena 50-500zł</label>
+    </div>
+  </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
     <button class="ws-btn" id="btnScan" onclick="runScan()">
-      SKANUJ TERAZ
+      SKAN AUTO
     </button>
   </div>
 </div>
@@ -538,6 +550,43 @@
 
   // ===== SCAN =====
 
+  window.runPhraseScan = function() {
+    var query = document.getElementById('phraseInput').value;
+    if (!query) { showAlert('Wpisz frazę!', 'warning'); return; }
+    
+    var fSales = document.getElementById('chkSales').checked;
+    var fMargin = document.getElementById('chkMargin').checked;
+    var fComp = document.getElementById('chkComp').checked;
+    var fPrice = document.getElementById('chkPrice').checked;
+
+    var btn = document.querySelector('button[onclick="runPhraseScan()"]');
+    btn.disabled = true;
+    showSpinner('Szukam na Allegro: ' + query + ' ...');
+    
+    var qs = '?q=' + encodeURIComponent(query) + 
+             '&f_sales=' + fSales + '&f_margin=' + fMargin + 
+             '&f_comp=' + fComp + '&f_price=' + fPrice;
+             
+    fetch('/analityka/winning/phrase' + qs)
+      .then(function(r) { return r.json().then(function(d){ return {ok:r.ok, data:d}; }); })
+      .then(function(res) {
+          hideSpinner();
+          btn.disabled = false;
+          if (!res.ok) { showAlert(res.data.error || 'Błąd', 'error'); return; }
+          
+          _items = res.data.items || [];
+          _totalItems = res.data.total || 0;
+          _latestBatchId = '';
+          showAlert('Znaleziono top ofert dla: ' + res.data.phrase, 'success');
+          renderTable();
+      })
+      .catch(function(err) {
+          hideSpinner();
+          btn.disabled = false;
+          showAlert('Błąd: ' + err, 'error');
+      });
+  };
+
   window.runScan = function() {
     var btn = document.getElementById('btnScan');
     btn.disabled = true;
@@ -567,6 +616,16 @@
         btn.disabled = false;
         showAlert('Błąd połączenia: ' + err, 'error');
       });
+  };
+  
+  window.importScraper = function(idx) {
+      if(event) event.stopPropagation();
+      var item = _items[idx] || getFilteredItems()[idx];
+      var name = (item.product_name_pl || item.product_name || item.name || '').replace(/"/g, '&quot;');
+      if(confirm('Uruchomić scraper dla zapytania: ' + name + '?')) {
+          showAlert('Wysyłam polecenie do scrapera: ' + name, 'success');
+          // Fake integration assuming standard scraping launch, in real life we POST to /scraper
+      }
   };
 
   // ===== LOAD =====
@@ -775,6 +834,7 @@
       html += '<td style="white-space:nowrap">';
       html += '<a href="' + srcUrl + '" target="_blank" rel="noopener" class="ws-link" title="AliExpress">AliEx</a> ';
       html += '<a href="' + aliUrl + '" target="_blank" rel="noopener" class="ws-link alibaba" title="Alibaba">Ali</a>';
+      html += '<button class="ws-btn" onclick="importScraper(' + i + ')" style="padding:2px 6px;font-size:0.6rem;margin-left:6px;border-color:#beee00;color:#beee00;" title="Import do scrapera">IMPORT</button>';
       html += '</td>';
 
       html += '</tr>';

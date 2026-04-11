@@ -187,13 +187,20 @@ app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Wyłącz domyślnie, włącz per
 try:
     from flask_limiter import Limiter
     from flask_limiter.util import get_remote_address
+    
+    def get_real_ip():
+        if request.headers.get("X-Forwarded-For"):
+            return request.headers.get("X-Forwarded-For").split(',')[0].strip()
+        return get_remote_address()
+
     limiter = Limiter(
-        get_remote_address,
+        get_real_ip,
         app=app,
         default_limits=["200 per minute"],  # Globalny limit
         storage_uri="memory://",
     )
-    print("[OK] Rate limiter aktywny (200/min global)")
+    limiter.limit("5 per minute")(auth_bp)
+    print("[OK] Rate limiter aktywny (200/min global, 5/min na auth)")
 except ImportError:
     limiter = None
     print("[WARN] flask-limiter nie zainstalowany — brak rate limitingu")
