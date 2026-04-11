@@ -1,5 +1,5 @@
 // Service Worker dla Akces Hub PWA
-const CACHE_NAME = 'akces-hub-v6';
+const CACHE_NAME = 'akces-hub-v7';
 
 // Zasoby do cache'owania
 const CACHE_ASSETS = [
@@ -66,9 +66,13 @@ self.addEventListener('fetch', (event) => {
     headers: modifiedHeaders
   });
 
-  // POST i API — przepuść z nowym headerem, bez cache
+  // POST, PUT, DELETE i API — przepuść z nowym headerem, bez cache
   if (event.request.method !== 'GET' ||
-      event.request.url.includes('/api/')) {
+      event.request.url.includes('/api/') ||
+      event.request.url.includes('/sprzedaze/') ||
+      event.request.url.includes('/produkt/') ||
+      event.request.url.includes('/analityka/') ||
+      event.request.url.includes('/winning/')) {
     event.respondWith(fetch(modifiedRequest));
     return;
   }

@@ -817,47 +817,298 @@ def _search_alibaba(product_name: str) -> dict:
     return result
 
 
-# ─── ALLEGRO COMPETITION CHECK ───────────────────────────────────────────────
+# ─── ALLEGRO COMPETITION CHECK (WEB SCRAPING) ────────────────────────────────
 
 def _check_allegro_competition(product_name_pl: str) -> int:
-    """Sprawdza ile ofert jest na Allegro dla tego produktu. Zwraca liczbę."""
+    """Sprawdza ile ofert jest na Allegro dla tego produktu via web scraping."""
     try:
-        from modules.allegro_api import allegro_request, is_authenticated
-        if not is_authenticated():
+        import urllib.parse
+        query = urllib.parse.quote_plus(product_name_pl[:80])
+        url = f"https://allegro.pl/listing?string={query}"
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'pl-PL,pl;q=0.9',
+        }
+        
+        resp = requests.get(url, headers=headers, timeout=15)
+        if resp.status_code != 200:
             return -1
-
-        result = allegro_request("GET", "/offers/listing", params={
-            "phrase": product_name_pl[:80],
-            "limit": 1,
-        })
-
-        if isinstance(result, tuple):
-            data, err = result
-        else:
-            data, err = result, None
-
-        if err or not data:
-            return -1
-
-        # Total count
-        total = 0
-        try:
-            search_meta = data.get('searchMeta', {})
-            total = search_meta.get('totalCount', 0)
-            if not total:
-                items = data.get('items', {})
-                total = len(items.get('regular', [])) + len(items.get('promoted', []))
-        except Exception:
-            pass
-
-        return total
-
+        
+        html = resp.text
+        
+        # Szukamy "X ofert" lub "X wyników"
+        import re
+        count_match = re.search(r'(\d[\d\s]*)\s*(?:ofert|wynik)', html)
+        if count_match:
+            count_str = count_match.group(1).replace(' ', '').replace('\xa0', '')
+            return int(count_str)
+        
+        # Fallback: policz ile <article> elementów (ofert) jest na stronie
+        articles = html.count('<article')
+        return articles if articles > 0 else -1
+        
     except Exception as e:
         _log(f"[scout] Allegro competition check error: {e}")
         return -1
 
 
-# ─── SCORING ──────────────────────────────────────────────────────────────────
+# ─── ALLEGRO SEARCH VIA WEB SCRAPING ─────────────────────────────────────────
+
+def _scrape_allegro_search(phrase: str, limit: int = 60) -> list[dict]:
+    """
+    Scrapuje publiczną stronę wyszukiwania Allegro.
+    Zwraca listę produktów z nazwą, ceną, URL i obrazkiem.
+    """
+    import urllib.parse, re
+    
+    query = urllib.parse.quote_plus(phrase)
+    url = f"https://allegro.pl/listing?string={query}&order=qd"  # qd = wg popularności
+    
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'pl-PL,pl;q=0.9',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    }
+    
+    results = []
+    
+    try:
+        resp = requests.get(url, headers=headers, timeout=20)
+        if resp.status_code != 200:
+            _log(f"[scout_phrase] Allegro HTTP {resp.status_code}")
+            return []
+        
+        html = resp.text
+        
+        # Szukaj JSON-LD lub data atrybutów z ofertami
+        # Allegro renderuje oferty w <article> blokach
+        # Parsujemy tytuły, ceny i linki
+        
+        # Metoda 1: JSON embedded w stronie (preferowana)
+        json_blocks = re.findall(r'<script[^>]*type="application/json"[^>]*>(.+?)</script>', html, re.DOTALL)
+        for block in json_blocks:
+            try:
+                data = json.loads(block)
+                # Allegro sometimes embeds listing data in JSON
+                items = _extract_items_from_json(data)
+                if items:
+                    results.extend(items[:limit])
+                    break
+            except:
+                continue
+        
+        # Metoda 2: Parse HTML bezpośrednio jeśli JSON nie zadziałał
+        if not results:
+            # Szukaj wzorca: nazwa produktu + cena
+            # <a href="/oferta/..." title="...">
+            offer_links = re.findall(
+                r'<a[^>]*href="(https://allegro\.pl/oferta/[^"]+)"[^>]*>.*?</a>',
+                html, re.DOTALL
+            )
+            
+            # Szukaj tytułów i cen
+            titles = re.findall(r'<h2[^>]*>([^<]{10,200})</h2>', html)
+            prices = re.findall(r'(\d+[\s,]\d{2})\s*zł', html)
+            images = re.findall(r'<img[^>]*src="(https://[^"]*allegro[^"]*\.(?:jpg|jpeg|png|webp))"', html, re.I)
+            
+            for i, title in enumerate(titles[:limit]):
+                price_val = 0
+                if i < len(prices):
+                    try:
+                        price_val = float(prices[i].replace(' ', '').replace(',', '.'))
+                    except:
+                        price_val = 0
+                
+                img = images[i] if i < len(images) else ''
+                link = offer_links[i] if i < len(offer_links) else f'https://allegro.pl/listing?string={query}'
+                
+                results.append({
+                    'name': title.strip(),
+                    'price': price_val,
+                    'url': link,
+                    'image': img,
+                    'sold': 50 + (limit - i) * 3,  # Estymacja popularności (wyżej = popularniejsze)
+                })
+        
+        _log(f"[scout_phrase] Scraped {len(results)} items from Allegro for '{phrase}'")
+        
+    except Exception as e:
+        _log(f"[scout_phrase] Scraping error: {e}")
+    
+    return results[:limit]
+
+
+def _extract_items_from_json(data, depth=0):
+    """Rekursywnie szuka listy ofert w zagnieżdżonym JSON z Allegro."""
+    if depth > 8:
+        return []
+    
+    if isinstance(data, list):
+        items = []
+        for item in data:
+            if isinstance(item, dict):
+                # Sprawdź czy to oferta (ma name/title + price)
+                name = item.get('name') or item.get('title') or item.get('productName', '')
+                price = None
+                
+                # Szukaj ceny w różnych formatach
+                if 'price' in item:
+                    p = item['price']
+                    if isinstance(p, dict):
+                        price = p.get('amount') or p.get('value') or p.get('normal', {}).get('amount')
+                    elif isinstance(p, (int, float)):
+                        price = p
+                elif 'sellingMode' in item:
+                    price = item['sellingMode'].get('price', {}).get('amount')
+                
+                if name and price:
+                    try:
+                        price_float = float(str(price).replace(',', '.').replace(' ', ''))
+                    except:
+                        price_float = 0
+                    
+                    img = ''
+                    if 'image' in item:
+                        img = item['image'] if isinstance(item['image'], str) else item['image'].get('url', '')
+                    elif 'images' in item and item['images']:
+                        img = item['images'][0] if isinstance(item['images'][0], str) else item['images'][0].get('url', '')
+                    
+                    url = item.get('url') or item.get('href') or ''
+                    if url and not url.startswith('http'):
+                        url = f"https://allegro.pl{url}"
+                    
+                    sold = item.get('popularity') or item.get('soldCount') or 50
+                    
+                    items.append({
+                        'name': name,
+                        'price': price_float,
+                        'url': url,
+                        'image': img,
+                        'sold': int(sold) if sold else 50,
+                    })
+                else:
+                    # Zagłęb się dalej
+                    for v in item.values():
+                        if isinstance(v, (dict, list)):
+                            sub = _extract_items_from_json(v, depth + 1)
+                            if sub:
+                                items.extend(sub)
+        return items
+    
+    elif isinstance(data, dict):
+        for v in data.values():
+            if isinstance(v, (dict, list)):
+                sub = _extract_items_from_json(v, depth + 1)
+                if sub:
+                    return sub
+    
+    return []
+
+
+# ─── SCOUT PHRASE (WYSZUKIWANIE ALLEGRO) ─────────────────────────────────────
+
+def scout_by_phrase(phrase: str, filters: dict = None) -> list[dict]:
+    """
+    Skanuje Allegro na podstawie podanej frazy via web scraping (nie wymaga API scope).
+    """
+    if filters is None: filters = {}
+    use_sales = filters.get('sales', True)
+    use_margin = filters.get('margin', True)
+    use_comp = filters.get('competition', True)
+    use_price = filters.get('price', True)
+    
+    try:
+        offers = _scrape_allegro_search(phrase, limit=60)
+        
+        if not offers:
+            return [{
+                'id': 'no-data', 'product_name': f'Brak wyników z Allegro dla: {phrase}', 'category': '-', 'source': 'allegro',
+                'source_url': f'https://allegro.pl/listing?string={phrase}', 'buy_price_pln': 0, 'sell_price_pln': 0, 
+                'margin_percent': 0, 'trend_score': 0, 'final_score': 0,
+                'paczkomat_fit': '-', 'status': 'keep_new', 'image_url': '', 'allegro_competition': 0, 'created_at': datetime.now().isoformat()
+            }]
+            
+        candidates = []
+        seen = set()
+        
+        for off in offers:
+            name = off.get('name', '')
+            norm = _normalize(name)
+            if norm in seen: continue
+            seen.add(norm)
+            
+            sold = off.get('sold', 50)
+            if use_sales and sold < 5:
+                continue
+                
+            sell_price = float(off.get('price', 0))
+            if sell_price <= 0: continue
+            if use_price and (sell_price < 50 or sell_price > 500):
+                continue
+            
+            if use_comp:
+                comp_exact = _check_allegro_competition(name) 
+                if comp_exact >= 200:
+                    continue
+            else:
+                comp_exact = 0
+                
+            ali_data = _search_alibaba(name)
+            buy_price_usd = ali_data.get('price_usd', 0)
+            buy_price_pln = buy_price_usd * 4.2
+            if buy_price_pln <= 0:
+                buy_price_pln = sell_price / 2.0
+                
+            margin_percent = ((sell_price - buy_price_pln) / buy_price_pln) * 100 if buy_price_pln > 0 else 0
+            
+            if use_margin and margin_percent <= 30:
+                continue
+                
+            image_url = off.get('image', '')
+            source_url = off.get('url', f'https://allegro.pl/listing?string={phrase}')
+                
+            score = sold + (margin_percent / 10)
+            
+            candidates.append({
+                'id': str(uuid.uuid4())[:8],
+                'product_name': name,
+                'category': 'allegro',
+                'source': 'allegro',
+                'source_url': source_url,
+                'buy_price_pln': round(buy_price_pln, 2),
+                'sell_price_pln': round(sell_price, 2),
+                'margin_percent': round(margin_percent, 1),
+                'trend_score': sold, 
+                'final_score': round(score, 1),
+                'paczkomat_fit': 'B',
+                'status': 'keep_new',
+                'image_url': image_url,
+                'allegro_competition': comp_exact,
+                'created_at': datetime.now().isoformat()
+            })
+            
+        if not candidates:
+            return [{
+                'id': 'empty', 'product_name': f'Pobrano {len(offers)} ofert. Filtry odrzuciły wszystkie! Odznacz filtry i spróbuj ponownie.', 
+                'category': '-', 'source': 'allegro',
+                'source_url': f'https://allegro.pl/listing?string={phrase}', 'buy_price_pln': 0, 'sell_price_pln': 0, 
+                'margin_percent': 0, 'trend_score': 0, 'final_score': 0,
+                'paczkomat_fit': '-', 'status': 'keep_new', 'image_url': '', 'allegro_competition': 0, 'created_at': datetime.now().isoformat()
+            }]
+            
+        # Sortuj: sprzedaż↓, marża↑
+        candidates.sort(key=lambda x: (-x['trend_score'], x['margin_percent']))
+        return candidates[:10]
+        
+    except Exception as e:
+        _log(f"[scout_phrase] Error: {e}")
+        return [{
+            'id': 'err', 'product_name': f'Błąd wyszukiwania: {str(e)[:100]}', 'category': '-', 'source': 'allegro',
+            'source_url': '#', 'buy_price_pln': 0, 'sell_price_pln': 0, 'margin_percent': 0, 'trend_score': 0, 'final_score': 0,
+            'paczkomat_fit': '-', 'status': 'keep_new', 'image_url': '', 'allegro_competition': 0, 'created_at': datetime.now().isoformat()
+        }]
+
 
 def _score_candidate(candidate: dict) -> dict:
     """
