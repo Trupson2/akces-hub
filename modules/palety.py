@@ -3688,6 +3688,7 @@ def paleta_szczegoly(paleta_id):
         regal_palety = ''
 
     content = f'''
+    <script>window.CSRF_TOKEN = "{generate_csrf()}";</script>
     <div class="header">
         <h1><span class=material-symbols-outlined>inventory_2</span> {paleta['nazwa'] or f"Paleta #{paleta['id']}"}</h1>
         <small><span class="dostawca-name">{paleta['dostawca']}</span> • {paleta['data_zakupu']}</small>
@@ -4035,13 +4036,18 @@ def paleta_szczegoly(paleta_id):
         form.method = 'POST';
         form.action = '/sprzedaze/korekta-ilosci';
 
+        const csrf = document.createElement('input');
+        csrf.type = 'hidden'; csrf.name = 'csrf_token';
+        csrf.value = window.CSRF_TOKEN || '';
+        form.appendChild(csrf);
+
         const produktId = document.createElement('input');
-        produktId.name = 'produkt_id';
+        produktId.type = 'hidden'; produktId.name = 'produkt_id';
         produktId.value = document.getElementById('korektaProduktId').value;
         form.appendChild(produktId);
 
         const ilosc = document.createElement('input');
-        ilosc.name = 'nowa_ilosc';
+        ilosc.type = 'hidden'; ilosc.name = 'nowa_ilosc';
         ilosc.value = document.getElementById('korektaIlosc').value;
         form.appendChild(ilosc);
 
@@ -4104,7 +4110,7 @@ def paleta_szczegoly(paleta_id):
     function _submitKorekta(produktId, nowaIlosc) {
         const f = document.createElement('form');
         f.method = 'POST'; f.action = '/sprzedaze/korekta-ilosci';
-        f.innerHTML = '<input name="csrf_token" value="' + generate_csrf() + '"><input name="produkt_id" value="'+produktId+'"><input name="nowa_ilosc" value="'+nowaIlosc+'">';
+        f.innerHTML = '<input type="hidden" name="csrf_token" value="' + (window.CSRF_TOKEN || "") + '"><input type="hidden" name="produkt_id" value="'+produktId+'"><input type="hidden" name="nowa_ilosc" value="'+nowaIlosc+'">';
         document.body.appendChild(f); f.submit();
     }
 

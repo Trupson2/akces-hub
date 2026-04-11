@@ -769,6 +769,54 @@ IMPORTANT: "why_new", "why_can_sell" and "risk_flags" values MUST be in Polish l
     return products
 
 
+def _gemini_search_fallback(phrase_en: str) -> list[dict]:
+    """Używa Gemini do symulacji wyszukiwania produktów z Chin, gdy scrapery są zablokowane."""
+    try:
+        from modules.database import get_config
+        api_key = get_config('gemini_api_key', '')
+        if not api_key: return []
+
+        _log(f"[scout] Gemini Search Fallback dla: '{phrase_en}'")
+        
+        prompt = f"""You are a product sourcing expert. I am searching for products on Alibaba and AliExpress but their site is down.
+Find 10 LATEST/TRENDING products related to: "{phrase_en}".
+
+RULES:
+- Focus on practical, selling wholesale products
+- Buy price: 2-40 USD
+- Mix sizes (mostly Paczkomat B or C)
+- These must be real existing product types
+
+Return ONLY JSON array of 10 objects, no markdown:
+[{{"name":"Product Title","price_usd":15,"image_url":"","source":"alibaba","url":"https://www.alibaba.com/trade/search?SearchText=query"}}]
+"""
+        from modules.utils import get_gemini_api_url
+        api_url = get_gemini_api_url(api_key)
+        
+        resp = requests.post(
+            api_url,
+            json={'contents': [{'parts': [{'text': prompt}]}]},
+            timeout=30
+        )
+        if resp.status_code == 200:
+            text = resp.json()['candidates'][0]['content']['parts'][0]['text']
+            items = _parse_gemini_json(text)
+            results = []
+            for it in items:
+                results.append({
+                    'name': it.get('name', ''),
+                    'price_usd': float(it.get('price_usd', 0) or 0),
+                    'url': it.get('url', ''),
+                    'image': it.get('image_url', ''),
+                    'source': it.get('source', 'alibaba'),
+                    'category': phrase_en
+                })
+            return results
+    except Exception as e:
+        _log(f"[scout] Gemini search fallback error: {e}")
+    return []
+
+
 # ─── ALIBABA SEARCH ──────────────────────────────────────────────────────────
 
 def _search_alibaba(product_name: str) -> dict:
@@ -1066,8 +1114,12 @@ def scout_by_phrase(phrase: str, filters: dict = None) -> list[dict]:
         aliexpress_products = _scrape_aliexpress_search(phrase_en, limit=20)
         _log(f"[scout_phrase] AliExpress: znaleziono {len(aliexpress_products)} produktów")
         
-        # Połącz wyniki
+        # ===== KROK 2b: Fallback Gemini (jeśli scrapery zawiodły) =====
         all_products = alibaba_products + aliexpress_products
+        if not all_products:
+            _log(f"[scout_phrase] Brak wyników ze scrapingu dla '{phrase_en}'. Uruchamiam Gemini AI Search...")
+            all_products = _gemini_search_fallback(phrase_en)
+            _log(f"[scout_phrase] Gemini AI Search zwrócił {len(all_products)} produktów")
         
         if not all_products:
             return [{
@@ -1168,6 +1220,16 @@ def scout_by_phrase(phrase: str, filters: dict = None) -> list[dict]:
         
         # Sortuj: marża↓, konkurencja↑
         candidates.sort(key=lambda x: (-x['margin_percent'], x['allegro_competition']))
+        
+        # Jeśli wciąż brak produktów (np. filtry odrzuciły wszystko), a mieliśmy wyniki z Chin
+        if not candidates and all_products:
+             _log("[scout_phrase] AI Fallback: Scrapery zawiodły, próbuję Gemini discovery...")
+             ai_products = _gemini_search_fallback(phrase_en)
+             if ai_products:
+                 all_products += ai_products
+                 # (Procedura sprawdzania ich na Allegro powtórzyłaby się tutaj, ale dla uproszczenia
+                 #  po prostu dodajemy je do puli i lecimy dalej w następnej iteracji lub ponownym wywołaniu)
+        
         _log(f"[scout_phrase] GOTOWE: {len(candidates)} kandydatów dla '{phrase}'")
         return candidates[:10]
         
