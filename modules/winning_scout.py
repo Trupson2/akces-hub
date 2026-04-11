@@ -1392,7 +1392,11 @@ def scout_by_phrase(phrase: str, filters: dict = None) -> list[dict]:
     from modules.allegro_api import allegro_request, is_authenticated
     if not is_authenticated():
         _log("[scout_phrase] Brak autoryzacji Allegro.")
-        return []
+        return [{
+            'id': 'auth-err', 'product_name': 'BŁĄD: Brak autoryzacji (zaloguj Allegro)', 'category': '-', 'source': 'allegro',
+            'source_url': '#', 'buy_price_pln': 0, 'sell_price_pln': 0, 'margin_percent': 0, 'trend_score': 0, 'final_score': 0,
+            'paczkomat_fit': '-', 'status': 'keep_new', 'image_url': '', 'allegro_competition': 0, 'created_at': datetime.now().isoformat()
+        }]
         
     try:
         resp, err = allegro_request("GET", "/offers/listing", params={
@@ -1404,7 +1408,11 @@ def scout_by_phrase(phrase: str, filters: dict = None) -> list[dict]:
         
         if err or not resp:
             _log(f"[scout_phrase] Blad API: {err}")
-            return []
+            return [{
+                'id': 'api-err', 'product_name': f'BŁĄD Allegro API: {err}', 'category': '-', 'source': 'allegro',
+                'source_url': '#', 'buy_price_pln': 0, 'sell_price_pln': 0, 'margin_percent': 0, 'trend_score': 0, 'final_score': 0,
+                'paczkomat_fit': '-', 'status': 'keep_new', 'image_url': '', 'allegro_competition': 0, 'created_at': datetime.now().isoformat()
+            }]
             
         items = resp.get('items', {})
         offers = items.get('promoted', []) + items.get('regular', [])
@@ -1474,6 +1482,13 @@ def scout_by_phrase(phrase: str, filters: dict = None) -> list[dict]:
                 'allegro_competition': comp_exact,
                 'created_at': datetime.now().isoformat()
             })
+            
+        if not candidates:
+            return [{
+                'id': 'empty', 'product_name': f'Pobrano {len(offers)} ofert Allegro. WSZYSTKIE odrzucone przez filtry!', 'category': '-', 'source': 'allegro',
+                'source_url': '#', 'buy_price_pln': 0, 'sell_price_pln': 0, 'margin_percent': 0, 'trend_score': 0, 'final_score': 0,
+                'paczkomat_fit': '-', 'status': 'keep_new', 'image_url': '', 'allegro_competition': 0, 'created_at': datetime.now().isoformat()
+            }]
             
         # Zgodnie z żądaniem usera: Sortuj po sprzedaż↓, marża↑
         candidates.sort(key=lambda x: (-x['trend_score'], x['margin_percent']))
