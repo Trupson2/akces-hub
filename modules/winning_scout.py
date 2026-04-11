@@ -1419,8 +1419,11 @@ def scout_by_phrase(phrase: str, filters: dict = None) -> list[dict]:
             seen.add(norm)
             
             selling_mode = off.get('sellingMode', {})
-            sold = selling_mode.get('popularity', 0)
-            if use_sales and sold <= 100:
+            sold = selling_mode.get('popularity')
+            if sold is None:
+                sold = off.get('stock', {}).get('sold', 151)  # Fallback
+                
+            if use_sales and sold < 5:
                 continue
                 
             sell_price = float(selling_mode.get('price', {}).get('amount', 0))
@@ -1430,7 +1433,7 @@ def scout_by_phrase(phrase: str, filters: dict = None) -> list[dict]:
             
             if use_comp:
                 comp_exact = _check_allegro_competition(name) 
-                if comp_exact >= 50:
+                if comp_exact >= 200:
                     continue
             else:
                 comp_exact = 0
