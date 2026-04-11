@@ -1010,76 +1010,102 @@ def _extract_items_from_json(data, depth=0):
 
 def scout_by_phrase(phrase: str, filters: dict = None) -> list[dict]:
     """
-    Skanuje Allegro na podstawie podanej frazy via web scraping (nie wymaga API scope).
+    Szuka produktów na Alibaba/AliExpress pasujących do frazy,
+    potem sprawdza konkurencję na Allegro i oblicza marżę.
+    Flow: Chiny (źródło) → Allegro (sprawdzenie rynku) → Wynik
     """
     if filters is None: filters = {}
-    use_sales = filters.get('sales', True)
     use_margin = filters.get('margin', True)
     use_comp = filters.get('competition', True)
     use_price = filters.get('price', True)
     
+    _log(f"[scout_phrase] START szukam '{phrase}' na Alibaba/AliExpress...")
+    
     try:
-        offers = _scrape_allegro_search(phrase, limit=60)
+        # ===== KROK 1: Szukaj produktów na Alibaba =====
+        alibaba_products = _scrape_alibaba_search(phrase, limit=30)
+        _log(f"[scout_phrase] Alibaba: znaleziono {len(alibaba_products)} produktów")
         
-        if not offers:
+        # ===== KROK 2: Szukaj produktów na AliExpress =====
+        aliexpress_products = _scrape_aliexpress_search(phrase, limit=20)
+        _log(f"[scout_phrase] AliExpress: znaleziono {len(aliexpress_products)} produktów")
+        
+        # Połącz wyniki
+        all_products = alibaba_products + aliexpress_products
+        
+        if not all_products:
             return [{
-                'id': 'no-data', 'product_name': f'Brak wyników z Allegro dla: {phrase}', 'category': '-', 'source': 'allegro',
-                'source_url': f'https://allegro.pl/listing?string={phrase}', 'buy_price_pln': 0, 'sell_price_pln': 0, 
+                'id': 'no-data', 
+                'product_name': f'Brak wyników z Alibaba/AliExpress dla: "{phrase}". Spróbuj po angielsku (np. "fishing rod")', 
+                'category': '-', 'source': 'alibaba',
+                'source_url': f'https://www.alibaba.com/trade/search?SearchText={phrase}', 
+                'buy_price_pln': 0, 'sell_price_pln': 0, 
                 'margin_percent': 0, 'trend_score': 0, 'final_score': 0,
-                'paczkomat_fit': '-', 'status': 'keep_new', 'image_url': '', 'allegro_competition': 0, 'created_at': datetime.now().isoformat()
+                'paczkomat_fit': '-', 'status': 'keep_new', 'image_url': '', 
+                'allegro_competition': 0, 'created_at': datetime.now().isoformat()
             }]
-            
+        
+        # ===== KROK 3: Dla każdego produktu sprawdź Allegro + oblicz marżę =====
         candidates = []
         seen = set()
         
-        for off in offers:
-            name = off.get('name', '')
+        for prod in all_products:
+            name = prod.get('name', '')
+            if not name or len(name) < 5:
+                continue
+                
             norm = _normalize(name)
             if norm in seen: continue
             seen.add(norm)
             
-            sold = off.get('sold', 50)
-            if use_sales and sold < 5:
-                continue
-                
-            sell_price = float(off.get('price', 0))
-            if sell_price <= 0: continue
-            if use_price and (sell_price < 50 or sell_price > 500):
-                continue
+            buy_price_usd = prod.get('price_usd', 0)
+            buy_price_pln = buy_price_usd * 4.2  # kurs USD→PLN
             
-            if use_comp:
-                comp_exact = _check_allegro_competition(name) 
-                if comp_exact >= 200:
-                    continue
-            else:
-                comp_exact = 0
-                
-            ali_data = _search_alibaba(name)
-            buy_price_usd = ali_data.get('price_usd', 0)
-            buy_price_pln = buy_price_usd * 4.2
             if buy_price_pln <= 0:
-                buy_price_pln = sell_price / 2.0
-                
-            margin_percent = ((sell_price - buy_price_pln) / buy_price_pln) * 100 if buy_price_pln > 0 else 0
+                continue  # Nie mamy ceny zakupu — pomijamy
             
-            if use_margin and margin_percent <= 30:
+            # Filtr cenowy (cena zakupu z Chin w PLN)
+            if use_price and buy_price_pln > 500:
+                continue
+            
+            # Estymacja ceny sprzedaży na Allegro (markup x2.5-x3)
+            sell_price_estimate = buy_price_pln * 2.5
+            if use_price and sell_price_estimate < 50:
                 continue
                 
-            image_url = off.get('image', '')
-            source_url = off.get('url', f'https://allegro.pl/listing?string={phrase}')
-                
-            score = sold + (margin_percent / 10)
+            # Sprawdź konkurencję na Allegro
+            name_pl = _translate_to_pl(name) if not any(c in name.lower() for c in ['ą','ę','ó','ś','ł','ż','ź','ć','ń']) else name
+            
+            comp_exact = 0
+            if use_comp:
+                comp_exact = _check_allegro_competition(name_pl)
+                if comp_exact > 50:
+                    _log(f"[scout_phrase] SKIP (konkurencja={comp_exact}): {name[:40]}")
+                    continue
+            
+            # Oblicz marżę
+            margin_percent = ((sell_price_estimate - buy_price_pln) / buy_price_pln) * 100
+            if use_margin and margin_percent < 30:
+                continue
+            
+            # Score: niska konkurencja = lepiej, wysoka marża = lepiej
+            score = margin_percent + max(0, (100 - comp_exact))
+            
+            image_url = prod.get('image', '')
+            source_url = prod.get('url', '')
+            source = prod.get('source', 'alibaba')
             
             candidates.append({
                 'id': str(uuid.uuid4())[:8],
-                'product_name': name,
-                'category': 'allegro',
-                'source': 'allegro',
+                'product_name': name_pl if name_pl != name else name,
+                'product_name_en': name,
+                'category': prod.get('category', phrase),
+                'source': source,
                 'source_url': source_url,
                 'buy_price_pln': round(buy_price_pln, 2),
-                'sell_price_pln': round(sell_price, 2),
+                'sell_price_pln': round(sell_price_estimate, 2),
                 'margin_percent': round(margin_percent, 1),
-                'trend_score': sold, 
+                'trend_score': round(score, 1),
                 'final_score': round(score, 1),
                 'paczkomat_fit': 'B',
                 'status': 'keep_new',
@@ -1088,26 +1114,179 @@ def scout_by_phrase(phrase: str, filters: dict = None) -> list[dict]:
                 'created_at': datetime.now().isoformat()
             })
             
+            # Limit iteracji żeby nie czekać wieczność
+            if len(candidates) >= 10:
+                break
+        
         if not candidates:
             return [{
-                'id': 'empty', 'product_name': f'Pobrano {len(offers)} ofert. Filtry odrzuciły wszystkie! Odznacz filtry i spróbuj ponownie.', 
-                'category': '-', 'source': 'allegro',
-                'source_url': f'https://allegro.pl/listing?string={phrase}', 'buy_price_pln': 0, 'sell_price_pln': 0, 
+                'id': 'empty', 
+                'product_name': f'Znaleziono {len(all_products)} produktów z Chin, ale filtry odrzuciły wszystkie. Odznacz filtry i spróbuj ponownie.', 
+                'category': '-', 'source': 'alibaba',
+                'source_url': f'https://www.alibaba.com/trade/search?SearchText={phrase}', 
+                'buy_price_pln': 0, 'sell_price_pln': 0, 
                 'margin_percent': 0, 'trend_score': 0, 'final_score': 0,
-                'paczkomat_fit': '-', 'status': 'keep_new', 'image_url': '', 'allegro_competition': 0, 'created_at': datetime.now().isoformat()
+                'paczkomat_fit': '-', 'status': 'keep_new', 'image_url': '', 
+                'allegro_competition': 0, 'created_at': datetime.now().isoformat()
             }]
-            
-        # Sortuj: sprzedaż↓, marża↑
-        candidates.sort(key=lambda x: (-x['trend_score'], x['margin_percent']))
+        
+        # Sortuj: marża↓, konkurencja↑
+        candidates.sort(key=lambda x: (-x['margin_percent'], x['allegro_competition']))
+        _log(f"[scout_phrase] GOTOWE: {len(candidates)} kandydatów dla '{phrase}'")
         return candidates[:10]
         
     except Exception as e:
         _log(f"[scout_phrase] Error: {e}")
+        import traceback
+        traceback.print_exc()
         return [{
-            'id': 'err', 'product_name': f'Błąd wyszukiwania: {str(e)[:100]}', 'category': '-', 'source': 'allegro',
+            'id': 'err', 'product_name': f'Błąd wyszukiwania: {str(e)[:100]}', 'category': '-', 'source': 'alibaba',
             'source_url': '#', 'buy_price_pln': 0, 'sell_price_pln': 0, 'margin_percent': 0, 'trend_score': 0, 'final_score': 0,
             'paczkomat_fit': '-', 'status': 'keep_new', 'image_url': '', 'allegro_competition': 0, 'created_at': datetime.now().isoformat()
         }]
+
+
+def _scrape_alibaba_search(phrase: str, limit: int = 30) -> list[dict]:
+    """Szuka produktów na Alibaba.com po frazie. Zwraca listę z nazwą, ceną USD, URL, obrazkiem."""
+    products = []
+    try:
+        query = phrase.replace(' ', '+')[:80]
+        search_url = f'https://www.alibaba.com/trade/search?SearchText={query}&viewtype=G'
+        
+        session = requests.Session()
+        session.headers.update(HEADERS)
+        
+        resp = session.get(search_url, timeout=15, allow_redirects=True)
+        if resp.status_code != 200:
+            _log(f"[scout_phrase] Alibaba HTTP {resp.status_code}")
+            return []
+        
+        html = resp.text
+        
+        # Wyciągnij produkty: tytuły
+        titles = re.findall(r'class="[^"]*elements-title-normal[^"]*"[^>]*>([^<]{10,150})<', html)
+        if not titles:
+            titles = re.findall(r'<h2[^>]*>.*?<a[^>]*>([^<]{10,150})</a>', html, re.DOTALL)
+        if not titles:
+            titles = re.findall(r'"subject":"([^"]{10,120})"', html)
+        
+        # Ceny
+        prices = re.findall(r'\$\s*([\d.]+)\s*(?:-\s*\$\s*[\d.]+)?', html)
+        
+        # Obrazki
+        images = re.findall(r'<img[^>]*(?:data-src|src)="(//[^"]*alibaba[^"]*\.(?:jpg|jpeg|png|webp))"', html, re.I)
+        images = [f'https:{img}' for img in images]
+        if not images:
+            images = re.findall(r'<img[^>]*src="(https://[^"]*alibaba[^"]*\.(?:jpg|jpeg|png|webp))"', html, re.I)
+        
+        # URLs
+        urls = re.findall(r'href="(https://www\.alibaba\.com/product-detail/[^"]+)"', html)
+        if not urls:
+            urls = re.findall(r'href="(//www\.alibaba\.com/product-detail/[^"]+)"', html)
+            urls = [f'https:{u}' for u in urls]
+        
+        seen = set()
+        for i, title in enumerate(titles[:limit]):
+            title = title.strip()
+            if title in seen or len(title) < 10:
+                continue
+            seen.add(title)
+            
+            price_usd = 0
+            if i < len(prices):
+                try:
+                    price_usd = float(prices[i])
+                    if price_usd > 500: price_usd = 0  # Filtruj nierealne ceny
+                except:
+                    pass
+            
+            products.append({
+                'name': title,
+                'price_usd': price_usd,
+                'url': urls[i] if i < len(urls) else search_url,
+                'image': images[i] if i < len(images) else '',
+                'source': 'alibaba',
+                'category': phrase,
+            })
+        
+        _log(f"[scout_phrase] Alibaba search: {len(products)} produktów z cenami")
+        
+    except Exception as e:
+        _log(f"[scout_phrase] Alibaba search error: {e}")
+    
+    return products
+
+
+def _scrape_aliexpress_search(phrase: str, limit: int = 20) -> list[dict]:
+    """Szuka produktów na AliExpress po frazie."""
+    products = []
+    try:
+        query = requests.utils.quote(phrase[:80])
+        search_url = f'https://www.aliexpress.com/wholesale?SearchText={query}&SortType=total_tranpro_desc'
+        
+        session = requests.Session()
+        session.headers.update(HEADERS)
+        
+        resp = session.get(search_url, timeout=15, allow_redirects=True)
+        if resp.status_code != 200:
+            _log(f"[scout_phrase] AliExpress HTTP {resp.status_code}")
+            return []
+        
+        html = resp.text
+        
+        # JSON w stronie
+        titles = re.findall(r'"subject":"([^"]{10,120})"', html)
+        if not titles:
+            titles = re.findall(r'<h1[^>]*>([^<]{10,150})</h1>', html)
+        if not titles:
+            titles = re.findall(r'<h3[^>]*>([^<]{10,150})</h3>', html)
+        
+        # Ceny (AliExpress używa USD lub EUR)
+        prices = re.findall(r'\"minPrice\":\"([\d.]+)\"', html)
+        if not prices:
+            prices = re.findall(r'US\s*\$\s*([\d.]+)', html)
+        
+        # Obrazki
+        images = re.findall(r'"imageUrl":"(https://[^"]+\.(?:jpg|jpeg|png|webp))"', html, re.I)
+        if not images:
+            images = re.findall(r'<img[^>]*src="(https://ae\d+\.alicdn\.com/[^"]+)"', html)
+        
+        # URLs
+        urls = re.findall(r'"productDetailUrl":"(https://[^"]+)"', html)
+        if not urls:
+            urls = re.findall(r'href="(https://(?:www\.)?aliexpress\.com/item/[^"]+)"', html)
+        
+        seen = set()
+        for i, title in enumerate(titles[:limit]):
+            title = title.strip()
+            if title in seen or len(title) < 10:
+                continue
+            seen.add(title)
+            
+            price_usd = 0
+            if i < len(prices):
+                try:
+                    price_usd = float(prices[i])
+                    if price_usd > 500: price_usd = 0
+                except:
+                    pass
+            
+            products.append({
+                'name': title,
+                'price_usd': price_usd,
+                'url': urls[i] if i < len(urls) else search_url,
+                'image': images[i] if i < len(images) else '',
+                'source': 'aliexpress',
+                'category': phrase,
+            })
+        
+        _log(f"[scout_phrase] AliExpress search: {len(products)} produktów")
+        
+    except Exception as e:
+        _log(f"[scout_phrase] AliExpress search error: {e}")
+    
+    return products
+
 
 
 def _score_candidate(candidate: dict) -> dict:
