@@ -772,9 +772,11 @@ IMPORTANT: "why_new", "why_can_sell" and "risk_flags" values MUST be in Polish l
 def _gemini_search_fallback(phrase_en: str) -> list[dict]:
     """Używa Gemini do symulacji wyszukiwania produktów z Chin, gdy scrapery są zablokowane."""
     try:
-        from modules.database import get_config
-        api_key = get_config('gemini_api_key', '')
-        if not api_key: return []
+        from modules.gemini_helper import get_gemini_api_key
+        api_key = get_gemini_api_key()
+        if not api_key:
+            _log("[scout] Gemini Search Fallback skipped: BRAK KLUCZA API")
+            return []
 
         _log(f"[scout] Gemini Search Fallback dla: '{phrase_en}'")
         
@@ -946,8 +948,8 @@ def _check_allegro_competition(product_name_pl: str) -> int:
 def _estimate_competition_ai(product_name: str) -> int:
     """Używa Gemini do oszacowania nasycenia rynku na Allegro dla danej nazwy produktu."""
     try:
-        from modules.database import get_config
-        api_key = get_config('gemini_api_key', '')
+        from modules.gemini_helper import get_gemini_api_key
+        api_key = get_gemini_api_key()
         if not api_key: return 10 # Safely assume medium competition
 
         prompt = f"""Estimate the competition/popularity on Polish marketplace 'Allegro' for this product: "{product_name}".
@@ -1160,13 +1162,18 @@ def scout_by_phrase(phrase: str, filters: dict = None) -> list[dict]:
             _log(f"[scout_phrase] Gemini AI Search zwrócił {len(all_products)} produktów")
         
         if not all_products:
+            error_msg = f'Brak wyników z Alibaba/AliExpress dla: "{phrase}". Spróbuj po angielsku!'
+            from modules.gemini_helper import get_gemini_api_key
+            if not get_gemini_api_key():
+                error_msg = f'Błąd: Nie skonfigurowano klucza Gemini AI (sprawdź gemini_config.py)!'
+            
             return [{
                 'id': 'no-data', 
-                'product_name': f'Brak wyników z Alibaba/AliExpress dla: "{phrase}". Spróbuj po angielsku (np. "fishing rod")', 
-                'category': '-', 'source': 'alibaba',
+                'product_name': error_msg, 
+                'category': '-', 'source': 'ALI',
                 'source_url': f'https://www.alibaba.com/trade/search?SearchText={phrase}', 
                 'buy_price_pln': 0, 'sell_price_pln': 0, 
-                'margin_percent': 0, 'trend_score': 0, 'final_score': 0,
+                'margin_percent': 0, 'trend_score': 0, 'final_score': 0.0,
                 'paczkomat_fit': '-', 'status': 'keep_new', 'image_url': '', 
                 'allegro_competition': 0, 'created_at': datetime.now().isoformat()
             }]
