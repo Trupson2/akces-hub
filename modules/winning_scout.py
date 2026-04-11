@@ -902,7 +902,7 @@ def _search_alibaba(product_name: str) -> dict:
 # ─── ALLEGRO COMPETITION CHECK (WEB SCRAPING) ────────────────────────────────
 
 def _check_allegro_competition(product_name_pl: str) -> int:
-    """Sprawdza ile ofert jest na Allegro dla tego produktu via web scraping."""
+    """Sprawdza ile ofert jest na Allegro dla tego produktu via web scraping z fallbackiem na AI."""
     try:
         import urllib.parse
         query = urllib.parse.quote_plus(product_name_pl[:80])
@@ -913,26 +913,64 @@ def _check_allegro_competition(product_name_pl: str) -> int:
             'Accept-Language': 'pl-PL,pl;q=0.9',
         }
         
-        resp = requests.get(url, headers=headers, timeout=15)
-        if resp.status_code != 200:
-            return -1
-        
-        html = resp.text
-        
-        # Szukamy "X ofert" lub "X wyników"
-        import re
-        count_match = re.search(r'(\d[\d\s]*)\s*(?:ofert|wynik)', html)
-        if count_match:
-            count_str = count_match.group(1).replace(' ', '').replace('\xa0', '')
-            return int(count_str)
-        
-        # Fallback: policz ile <article> elementów (ofert) jest na stronie
-        articles = html.count('<article')
-        return articles if articles > 0 else -1
+        try:
+            resp = requests.get(url, headers=headers, timeout=10)
+            if resp.status_code == 200:
+                html = resp.text
+                if "captcha" in html.lower() or "robot" in html.lower():
+                    _log(f"[scout] Allegro blocked (captcha detected). Switching to AI estimation.")
+                    return _estimate_competition_ai(product_name_pl)
+
+                # Szukamy "X ofert" lub "X wyników"
+                import re
+                count_match = re.search(r'(\d[\d\s]*)\s*(?:ofert|wynik)', html)
+                if count_match:
+                    count_str = count_match.group(1).replace(' ', '').replace('\xa0', '')
+                    return int(count_str)
+            
+                # Fallback: policz ile <article> elementów
+                articles = html.count('<article')
+                if articles > 0: return articles
+        except Exception:
+            pass
+
+        # Jeśli scraping zawiódł zupełnie (timeout, 403, 429) -> Używamy AI
+        _log(f"[scout] Allegro access failed. Estimating competition via AI for '{product_name_pl[:30]}...'")
+        return _estimate_competition_ai(product_name_pl)
         
     except Exception as e:
         _log(f"[scout] Allegro competition check error: {e}")
-        return -1
+        return _estimate_competition_ai(product_name_pl)
+
+
+def _estimate_competition_ai(product_name: str) -> int:
+    """Używa Gemini do oszacowania nasycenia rynku na Allegro dla danej nazwy produktu."""
+    try:
+        from modules.database import get_config
+        api_key = get_config('gemini_api_key', '')
+        if not api_key: return 10 # Safely assume medium competition
+
+        prompt = f"""Estimate the competition/popularity on Polish marketplace 'Allegro' for this product: "{product_name}".
+How many sellers roughly offer this EXACT OR VERY SIMILAR product?
+Options: 0 (new niche), 5 (low), 20 (medium), 100 (high), 500+ (saturated).
+Return ONLY an integer representing the estimated count (or closest match from options)."""
+
+        from modules.utils import get_gemini_api_url
+        api_url = get_gemini_api_url(api_key)
+        
+        resp = requests.post(
+            api_url,
+            json={'contents': [{'parts': [{'text': prompt}]}]},
+            timeout=10
+        )
+        if resp.status_code == 200:
+            text = resp.json()['candidates'][0]['content']['parts'][0]['text']
+            num = re.search(r'\d+', text)
+            if num:
+                return int(num.group())
+    except Exception:
+        pass
+    return 15 # Default fallback
 
 
 # ─── ALLEGRO SEARCH VIA WEB SCRAPING ─────────────────────────────────────────
