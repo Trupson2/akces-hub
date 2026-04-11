@@ -27,8 +27,27 @@ def get_gemini_api_key():
         return env_key
 
     # 3. Próba z bazy danych
-    db_key = get_config('gemini_api_key', '')
-    if db_key:
-        return db_key
+    try:
+        db_key = get_config('gemini_api_key', '')
+        if db_key:
+            return db_key
+    except:
+        pass
+
+    # 4. NOWOŚĆ: Ostateczny fallback - czytaj plik ręcznie z dysku (pancerne)
+    try:
+        # Sprawdź w katalogu głównym (o jeden wyżej od modules/)
+        paths = ['gemini_config.py', '../gemini_config.py', './gemini_config.py']
+        import re
+        for p in paths:
+            if os.path.exists(p):
+                with open(p, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    # Szukaj GEMINI_API_KEY = '...' lub "..."
+                    match = re.search(r"GEMINI_API_KEY\s*=\s*['\"]([^'\"]+)['\"]", content)
+                    if match and match.group(1) != 'WKLEJ_TUTAJ_SWOJ_KLUCZ':
+                        return match.group(1).strip()
+    except:
+        pass
 
     return ''

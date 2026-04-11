@@ -1,5 +1,5 @@
 // Service Worker dla Akces Hub PWA
-const CACHE_NAME = 'akces-hub-v11';
+const CACHE_NAME = 'akces-hub-v12';
 
 // Zasoby do cache'owania
 const CACHE_ASSETS = [

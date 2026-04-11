@@ -380,35 +380,24 @@ def _translate_to_pl(text: str) -> str:
 
 def _translate_to_en(text: str) -> str:
     """Tłumaczy tekst na angielski dla lepszych wyników w Chinach."""
-    if not text or len(text) < 3:
-        return text
-
-    # Sprawdź czy to już po angielsku (brak polskich znaków)
+    if not text or len(text) < 3: return text
     polish_chars = set('ąćęłńóśźż')
-    if not any(c in text.lower() for c in polish_chars):
-        return text
+    if not any(c in text.lower() for c in polish_chars): return text
 
     try:
         url = 'https://translate.googleapis.com/translate_a/single'
-        params = {
-            'client': 'gtx',
-            'sl': 'pl',
-            'tl': 'en',
-            'dt': 't',
-            'q': text[:500],
-        }
-        resp = requests.get(url, params=params, timeout=10, headers={
-            'User-Agent': HEADERS['User-Agent']
-        })
+        params = { 'client': 'gtx', 'sl': 'pl', 'tl': 'en', 'dt': 't', 'q': text[:500] }
+        resp = requests.get(url, params=params, timeout=10, headers={'User-Agent': HEADERS['User-Agent']})
         if resp.status_code == 200:
             data = resp.json()
             if data and data[0]:
                 translated = ''.join(part[0] for part in data[0] if part[0])
                 if translated and len(translated) > 2:
+                    _log(f"[scout] Translation: '{text}' -> '{translated}'")
                     return translated
+        _log(f"[scout] Translation failed (HTTP {resp.status_code}), using original text.")
     except Exception as e:
-        _log(f"[scout] Translation to EN error: {e}")
-
+        _log(f"[scout] Translation error: {e}")
     return text
 
 
@@ -737,85 +726,52 @@ IMPORTANT: "why_new", "why_can_sell" and "risk_flags" values MUST be in Polish l
 
             for item in batch_items:
                 if not isinstance(item, dict) or not item.get('name'):
-                    continue
-
-                buy_usd = float(item.get('buy_price_usd', 0) or 0)
-                sell_pln = float(item.get('sell_price_pln', 0) or 0)
-                buy_pln = buy_usd * 4.2
-
-                products.append({
-                    'name': item['name'],
-                    'category': item.get('category', 'inne'),
-                    'source': item.get('source', 'aliexpress'),
-                    'source_url': '',
-                    'buy_price_pln': round(buy_pln, 2),
-                    'sell_price_pln': sell_pln,
-                    'why_new': item.get('why_new', ''),
-                    'why_can_sell': item.get('why_can_sell', ''),
-                    'risk_flags': item.get('risk_flags', ''),
-                    'paczkomat_fit': item.get('paczkomat_fit', 'B'),
-                    'growth_7d': int(item.get('growth_7d', 0) or 0),
-                    'alibaba_moq': int(item.get('alibaba_moq', 0) or 0),
-                    'alibaba_price_usd': float(item.get('alibaba_price_usd', 0) or 0),
-                })
-
-            time.sleep(2)  # Rate limit między batchami
-
-        _log(f"[scout] Gemini discovery TOTAL: {len(products)} produktów z {len(batches)} batchy")
-
-    except Exception as e:
-        _log(f"[scout] Gemini discovery error: {e}")
-
-    return products
-
-
-def _gemini_search_fallback(phrase_en: str) -> list[dict]:
+                    cdef _gemini_search_fallback(phrase_en: str) -> list[dict]:
     """Używa Gemini do symulacji wyszukiwania produktów z Chin, gdy scrapery są zablokowane."""
     try:
         from modules.gemini_helper import get_gemini_api_key
         api_key = get_gemini_api_key()
         if not api_key:
-            _log("[scout] Gemini Search Fallback skipped: BRAK KLUCZA API")
+            _log("[scout] AI Fallback: BRAK KLUCZA API")
             return []
 
-        _log(f"[scout] Gemini Search Fallback dla: '{phrase_en}'")
+        _log(f"[scout] AI Fallback start dla: '{phrase_en}'")
+        prompt = f"""Find 10 LATEST/TRENDING wholesale products on Alibaba/AliExpress related to: "{phrase_en}".
+Return ONLY a valid JSON array of objects. Schema: [{{"name":"Type name","price_usd":10,"image_url":"","source":"alibaba","url":""}}]
+NO markdown, NO comments, ONLY the array."""
         
-        prompt = f"""You are a product sourcing expert. I am searching for products on Alibaba and AliExpress but their site is down.
-Find 10 LATEST/TRENDING products related to: "{phrase_en}".
-
-RULES:
-- Focus on practical, selling wholesale products
-- Buy price: 2-40 USD
-- Mix sizes (mostly Paczkomat B or C)
-- These must be real existing product types
-
-Return ONLY JSON array of 10 objects, no markdown:
-[{{"name":"Product Title","price_usd":15,"image_url":"","source":"alibaba","url":"https://www.alibaba.com/trade/search?SearchText=query"}}]
-"""
         from modules.utils import get_gemini_api_url
         api_url = get_gemini_api_url(api_key)
         
-        resp = requests.post(
-            api_url,
-            json={'contents': [{'parts': [{'text': prompt}]}]},
-            timeout=30
-        )
-        if resp.status_code == 200:
-            text = resp.json()['candidates'][0]['content']['parts'][0]['text']
-            items = _parse_gemini_json(text)
-            results = []
-            for it in items:
-                results.append({
-                    'name': it.get('name', ''),
-                    'price_usd': float(it.get('price_usd', 0) or 0),
-                    'url': it.get('url', ''),
-                    'image': it.get('image_url', ''),
-                    'source': it.get('source', 'alibaba'),
-                    'category': phrase_en
-                })
-            return results
+        resp = requests.post(api_url, json={'contents': [{'parts': [{'text': prompt}]}]}, timeout=25)
+        if resp.status_code != 200:
+            _log(f"[scout] AI API Error: {resp.status_code} - {resp.text[:100]}")
+            return []
+
+        data = resp.json()
+        if 'candidates' not in data or not data['candidates']:
+            _log(f"[scout] AI Error: Empty candidates. Raw: {data}")
+            return []
+
+        text = data['candidates'][0]['content']['parts'][0]['text']
+        items = _parse_gemini_json(text)
+        if not items:
+            _log(f"[scout] AI Error: Failed to parse JSON from response: {text[:200]}")
+            return []
+
+        results = []
+        for it in items:
+            results.append({
+                'name': it.get('name', 'Brak nazwy'),
+                'price_usd': float(it.get('price_usd', 0) or 0),
+                'url': it.get('url', ''),
+                'image': it.get('image_url', ''),
+                'source': it.get('source', 'alibaba'),
+                'category': phrase_en
+            })
+        return results
     except Exception as e:
-        _log(f"[scout] Gemini search fallback error: {e}")
+        _log(f"[scout] AI Fallback CRITICAL error: {e}")
     return []
 
 
