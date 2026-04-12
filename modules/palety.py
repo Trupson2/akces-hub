@@ -3407,7 +3407,7 @@ def paleta_szczegoly(paleta_id):
           )
     ''', (paleta_id,)).fetchone()[0] or 0
 
-    # Przychód z Allegro (sprzedaze bez offline) - oba ścieżki: bezpośredni + przez oferta_id
+    # Przychód z Allegro (sprzedaze BEZ offline) - oba ścieżki: bezpośredni + przez oferta_id
     przychod_allegro_db = conn.execute('''
         SELECT COALESCE(SUM(s.cena * s.ilosc), 0)
         FROM sprzedaze s
@@ -3416,6 +3416,7 @@ def paleta_szczegoly(paleta_id):
         LEFT JOIN produkty pr2 ON o.produkt_id = pr2.id
         WHERE COALESCE(pr.paleta_id, pr2.paleta_id) = ?
           AND COALESCE(s.status,'') NOT IN ('anulowana','anulowane','zwrot','')
+          AND COALESCE(s.kupujacy,'') != 'offline'
     ''', (paleta_id,)).fetchone()[0] or 0
 
 
