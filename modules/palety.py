@@ -3657,8 +3657,8 @@ def paleta_szczegoly(paleta_id):
 
             <!-- QUICK ACTIONS -->
             <div style="display:flex;gap:4px">
-                <button type="button"
-                   onclick="document.getElementById('korektaProduktId').value='{p['id']}';document.getElementById('korektaIlosc').value={p['ilosc'] or 0};document.getElementById('maxIlosc').value={p['ilosc'] or 0};document.getElementById('sprzedajIlosc').value=1;document.getElementById('sprzedajIlosc').max={p['ilosc'] or 0};document.getElementById('sprzedajCena').value='{int(p['cena_allegro'] or p['cena_brutto'] or 0)}';document.getElementById('offlineSzt').value='{int(p_offline_szt)}';var cs=document.getElementById('cofnijOfflineSection');if({int(p_offline_szt)}>0){{cs.style.display='block';document.getElementById('offlineInfo').textContent='{int(p_offline_szt)} szt.';document.getElementById('cofnijIlosc').value=1;document.getElementById('cofnijIlosc').max={int(p_offline_szt)}}}else{{cs.style.display='none'}};document.getElementById('modalKorekta').style.display='block'"
+                <button type="button" class="btn-korekta"
+                   data-pid="{p['id']}" data-ilosc="{int(p['ilosc'] or 0)}" data-cena="{int(p['cena_allegro'] or p['cena_brutto'] or 0)}" data-offline="{int(p_offline_szt)}"
                    style="padding:5px 8px;background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.25);color:#f97316;font-size:0.62rem;font-weight:700;cursor:pointer;flex:1;text-transform:uppercase;letter-spacing:0.5px">
                     <span class=material-symbols-outlined style="font-size:0.7rem;vertical-align:middle">edit</span> Korekta
                 </button>
