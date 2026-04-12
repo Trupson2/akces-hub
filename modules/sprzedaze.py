@@ -1337,7 +1337,7 @@ def produkt_oznacz_sprzedany(produkt_id):
         obecny_przychod_offline = 0
 
     nowe_szt_offline = obecne_szt_offline + ilosc_sprzedana
-    nowy_przychod_offline = obecny_przychod_offline  # NIE aktualizuj - przychod trafia do sprzedaze
+    nowy_przychod_offline = obecny_przychod_offline + przychod  # Dodaj przychód do offline trackingu
 
     print(f"UPDATE: ilosc={nowa_ilosc}, status={nowy_status}, offline_szt={nowe_szt_offline}, offline_przychod={nowy_przychod_offline}")
 
