@@ -7,6 +7,7 @@ import os
 import json
 from datetime import datetime
 from pathlib import Path
+from .utils import sanitize_csv_cell as _sc
 
 # Folder na eksporty - najpierw sprawdź czy istnieje Google Drive / Dropbox
 # Kolejność: G:/Mój dysk, C:/Users/*/Google Drive, lokalny fallback
@@ -94,8 +95,8 @@ def export_palety_csv(conn=None):
                 
                 writer.writerow([
                     p['id'],
-                    p['nazwa'] or '',
-                    p['dostawca'] or '',
+                    _sc(p['nazwa'] or ''),
+                    _sc(p['dostawca'] or ''),
                     f"{cena_brutto:.2f}",
                     f"{cena_netto:.2f}",
                     p['data_zakupu'] or '',
@@ -105,7 +106,7 @@ def export_palety_csv(conn=None):
                     p['sprzedano_szt'] or 0,
                     f"{sprzedano:.2f}",
                     f"{roi:.1f}",
-                    p['notatki'] or ''
+                    _sc(p['notatki'] or '')
                 ])
         
         print(f"[OK] Eksportowano palety do: {filepath}")
@@ -170,17 +171,17 @@ def export_produkty_csv(paleta_id=None, conn=None):
                 
                 writer.writerow([
                     p['id'],
-                    p['ean'] or '',
-                    p['asin'] or '',
-                    p['nazwa'] or '',
+                    _sc(p['ean'] or ''),
+                    _sc(p['asin'] or ''),
+                    _sc(p['nazwa'] or ''),
                     p['ilosc'] or 0,
                     f"{cena_brutto:.2f}",
                     f"{cena_netto:.2f}",
                     f"{p['cena_allegro'] or 0:.2f}",
                     p['status'] or 'magazyn',
-                    p['dostawca'] or '',
-                    p['paleta_nazwa'] or '',
-                    p['lokalizacja'] or ''
+                    _sc(p['dostawca'] or ''),
+                    _sc(p['paleta_nazwa'] or ''),
+                    _sc(p['lokalizacja'] or '')
                 ])
         
         print(f"[OK] Eksportowano produkty do: {filepath}")

@@ -2,6 +2,8 @@
 
 ## 12.04.2026
 
+- security: full production hardening - rate limiting, session fix, webhooks, encrypted backups
+- security: fix critical and high severity vulnerabilities
 - fix: exclude offline sales from przychod_allegro_db to prevent double counting
 - fix: replace inline onclick with data-attributes on Korekta button
 - fix: update przychod_offline on offline sale and ensure sprzedaze record
@@ -124,6 +126,4 @@
 - fix: ASCII-only Gemini prompt + aggressive JSON cleanup
 - fix: robust JSON parser - strict=False, encoding fix, regex fallback
 - fix: better JSON parsing - log exact errors + fix trailing commas
-- fix: always search Alibaba for link/supplier + add enrichment logging
-- fix: strip markdown code blocks from Gemini JSON response
 
