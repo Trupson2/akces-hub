@@ -769,26 +769,45 @@ app.register_blueprint(onboarding_bp)
 
 # ============================================================
 # RATE LIMITING — per-endpoint limits (on top of global 200/min)
+# Verified against actual Flask endpoint names from url_map
 # ============================================================
 if limiter:
-    # Login brute-force protection: 5 attempts per minute per IP
-    limiter.limit("5 per minute")(app.view_functions.get('auth.login', lambda: None))
-    # First setup: 3 per minute (prevents abuse)
-    limiter.limit("3 per minute")(app.view_functions.get('auth.first_setup', lambda: None))
-    # API write endpoints: 30 per minute
+    _rl_applied = []
+
+    # Auth brute-force protection
+    for _ep, _limit in [
+        ('auth.login', '5 per minute'),
+        ('auth.first_setup', '3 per minute'),
+        ('auth.zmien_haslo', '5 per minute'),
+        ('auth.user_add', '10 per minute'),
+    ]:
+        _fn = app.view_functions.get(_ep)
+        if _fn:
+            limiter.limit(_limit)(_fn)
+            _rl_applied.append(_ep)
+
+    # Sensitive API write endpoints: 30 per minute shared
     _api_write_limit = limiter.shared_limit("30 per minute", scope="api_write")
-    for _ep_name in ('api_create_backup', 'backup.api_create_backup', 'backup.api_restore_backup',
-                      'api_ngrok_control', 'api_notify'):
-        _fn = app.view_functions.get(_ep_name)
+    for _ep in [
+        'backup.api_create_backup', 'backup.api_restore_backup', 'backup.api_sync_gdrive',
+        'api_ngrok_control', 'api_notify', 'api_license_verify',
+        'setup_save', 'setup_logo',
+        'token_refresh.api_refresh_token',
+    ]:
+        _fn = app.view_functions.get(_ep)
         if _fn:
             _api_write_limit(_fn)
-    # Webhook endpoints: 60 per minute (Telegram, Allegro callbacks)
+            _rl_applied.append(_ep)
+
+    # Allegro callback: 60 per minute
     _webhook_limit = limiter.shared_limit("60 per minute", scope="webhooks")
-    for _ep_name in ('telegram.telegram_main', 'allegro.allegro_callback'):
-        _fn = app.view_functions.get(_ep_name)
+    for _ep in ['allegro.callback', 'allegro.auth', 'telegram.api_send']:
+        _fn = app.view_functions.get(_ep)
         if _fn:
             _webhook_limit(_fn)
-    print("[OK] Rate limits applied: login=5/min, API write=30/min, webhooks=60/min")
+            _rl_applied.append(_ep)
+
+    print(f"[OK] Rate limits applied to {len(_rl_applied)} endpoints: {', '.join(_rl_applied[:5])}...")
 
 
 # ============================================================
