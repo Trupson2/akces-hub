@@ -1583,62 +1583,49 @@ def sprzedaj_produkt(code):
     conn = get_db()
     p = get_produkt_by_code(conn, code)
     
-    if p and p['ilosc'] > 0:
-        new_qty = p['ilosc'] - 1
+    if p and int(p['ilosc'] or 0) > 0:
+        new_qty = int(p['ilosc']) - 1
         old_status = p['status'] or 'magazyn'
         new_status = 'sprzedany' if new_qty == 0 else old_status
         now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
+
         # Cena za sztukę — doliczy się do przychodu palety
         cena_szt = float(p['cena_allegro'] or p['cena_brutto'] or 0)
-        
-        # Obecne wartości offline
-        try:
-            obecne_offline = p['sprzedano_offline'] or 0
-        except:
-            obecne_offline = 0
-        try:
-            obecny_przychod_offline = p['przychod_offline'] or 0
-        except:
-            obecny_przychod_offline = 0
-        
-        nowe_offline = obecne_offline + 1
-        nowy_przychod_offline = obecny_przychod_offline + cena_szt
-        
-        # Upewnij się że kolumna przychod_offline istnieje
-        try:
-            conn.execute("SELECT przychod_offline FROM produkty LIMIT 1")
-        except:
-            try:
-                conn.execute("ALTER TABLE produkty ADD COLUMN przychod_offline REAL DEFAULT 0")
-                conn.commit()
-            except:
-                pass
-        
-        # UPDATE produkty — ilość, status, sprzedano_offline, przychod_offline
-        # NIE ruszamy tabeli sprzedaze → dzienne statystyki bez zmian
-        conn.execute('''UPDATE produkty 
-            SET ilosc=?, status=?, sprzedano_offline=?, przychod_offline=?,
-                data_sprzedazy=CASE WHEN ? = 0 THEN ? ELSE data_sprzedazy END
-            WHERE id=?''',
-            (new_qty, new_status, nowe_offline, nowy_przychod_offline,
-             new_qty, now_str, p['id']))
+
+        # Atomowy UPDATE — bez race condition (inkrementacja w SQL)
+        conn.execute('''UPDATE produkty
+            SET ilosc = ilosc - 1,
+                status = CASE WHEN ilosc - 1 = 0 THEN 'sprzedany' ELSE status END,
+                sprzedano_offline = COALESCE(sprzedano_offline, 0) + 1,
+                przychod_offline = COALESCE(przychod_offline, 0) + ?,
+                data_sprzedazy = CASE WHEN ilosc - 1 = 0 THEN ? ELSE data_sprzedazy END
+            WHERE id = ? AND ilosc > 0''',
+            (cena_szt, now_str, p['id']))
         conn.commit()
-        
+
+        # Dodaj do sprzedaze_prywatne (żeby było w statystykach)
+        try:
+            conn.execute('''INSERT INTO sprzedaze_prywatne
+                (produkt_id, cena, ilosc, data_sprzedazy, kanal)
+                VALUES (?, ?, 1, ?, 'offline')''',
+                (p['id'], cena_szt, now_str))
+            conn.commit()
+        except Exception:
+            pass
+
         add_historia(p['id'], 'sprzedano',
-            f'Korekta -1 szt. Pozostało: {new_qty}. Przychód palety +{cena_szt:.0f} zł',
-            {'poprzednia_ilosc': p['ilosc'], 'nowa_ilosc': new_qty,
+            f'Sprzedaz offline -1 szt. Pozostalo: {new_qty}. +{cena_szt:.0f} zl',
+            {'poprzednia_ilosc': int(p['ilosc']), 'nowa_ilosc': new_qty,
              'stary_status': old_status, 'nowy_status': new_status,
              'cena_sprzedazy': cena_szt})
-        
+
         if cena_szt > 0:
-            msg = f'<span class=material-symbols-outlined>check_circle</span> -1 szt. (+{cena_szt:.0f} zł na palecie) Pozostało: {new_qty} szt'
+            msg = f'<span class=material-symbols-outlined>check_circle</span> -1 szt. (+{cena_szt:.0f} zl) Pozostalo: {new_qty} szt'
         else:
-            msg = f'<span class=material-symbols-outlined>check_circle</span> -1 szt. Pozostało: {new_qty} szt'
+            msg = f'<span class=material-symbols-outlined>check_circle</span> -1 szt. Pozostalo: {new_qty} szt'
     else:
         msg = '<span class=material-symbols-outlined>cancel</span> Brak na stanie!'
-    
-    
+
     product_code = get_product_code(p) if p else code
     return redirect(f'/magazyn/produkt/{product_code}?msg={msg}')
 
