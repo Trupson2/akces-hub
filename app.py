@@ -176,7 +176,7 @@ _generate_changelog()
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_NAME'] = 'akces_session'
-app.config['SESSION_COOKIE_SECURE'] = False  # Pi działa na HTTP (LAN), ngrok ma własne HTTPS
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production' or os.path.exists('/etc/systemd/system/akces-hub.service')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)  # Sesja wygasa po 12h
 
 # CSRF protection
@@ -510,9 +510,9 @@ def handle_404(e):
 # ============================================================
 CORS(app, resources={
     r"/*": {
-        "origins": ["http://localhost:*", "http://127.0.0.1:*"],  # Tylko lokalne domeny
+        "origins": ["http://localhost:5000", "http://127.0.0.1:5000"],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization", "Accept"],
+        "allow_headers": ["Content-Type", "Authorization", "Accept", "X-CSRFToken"],
         "expose_headers": ["Content-Type", "X-Total-Count"],
         "supports_credentials": True,
         "max_age": 3600

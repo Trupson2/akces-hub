@@ -81,16 +81,17 @@ def _hash_password(password, salt=None):
 
 
 def _verify_password(password, stored_hash):
-    """Weryfikuje haslo — obsluguje nowy pbkdf2 i stary SHA-256 (migracja)"""
+    """Weryfikuje haslo — TYLKO pbkdf2. Legacy SHA-256 wymaga resetu hasla."""
     if stored_hash.startswith('pbkdf2:'):
         return check_password_hash(stored_hash, password)
-    # Legacy SHA-256: salt:hash
-    salt = stored_hash.split(':')[0]
-    legacy_hash = hashlib.sha256(f"{salt}:{password}".encode()).hexdigest()
-    if f"{salt}:{legacy_hash}" == stored_hash:
-        # Haslo poprawne — uaktualnij do pbkdf2
-        return True
+    # Legacy SHA-256 — NIE akceptuj, wymuś reset
+    # (stare hashe SHA-256 są łatwe do złamania)
     return False
+
+
+def _has_legacy_hash(stored_hash):
+    """Check if hash is legacy SHA-256 (requires password reset)."""
+    return stored_hash and not stored_hash.startswith('pbkdf2:') and ':' in stored_hash
 
 
 def _get_auth_db():
