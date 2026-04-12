@@ -20,7 +20,7 @@ def render(content, page_title='Statystyki'):
         content=content,
         version=current_app.config.get('VERSION',''),
         brand_name=current_app.config.get('BRAND_NAME','Akces Hub'),
-        current_user=session.get('user'))
+        current_user=session.get('username'))
 
 
 @analityka_bp.route('/statystyki')
@@ -792,7 +792,7 @@ def analityka_dashboard():
         # Base template vars
         version=current_app.config.get('VERSION', ''),
         brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
-        current_user=session.get('user')
+        current_user=session.get('username')
     )
 
 
@@ -4804,5 +4804,5 @@ def analityka_zakupy_dostawcy():
         macierz=[dict(r) for r in macierz],
         version=current_app.config.get('VERSION', ''),
         brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
-        current_user=session.get('user'),
+        current_user=session.get('username'),
     )

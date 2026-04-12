@@ -275,7 +275,8 @@ def block_unauthenticated_external():
         return
 
     # Zalogowany użytkownik — przepuść zawsze
-    if session.get('user'):
+    # NOTE: auth.py sets session['user_id'], NOT session['user']
+    if session.get('user_id'):
         return
 
     # Niezalogowany — sprawdź czy lokalne czy zewnętrzne
@@ -306,7 +307,8 @@ def csrf_protect_forms():
     if request.path in ('/auth/login', '/auth/setup', '/setup'):
         return
     # Tylko zalogowani użytkownicy muszą mieć CSRF (zewnętrzne API webhooks nie mają sesji)
-    if not session.get('user'):
+    # NOTE: auth.py sets session['user_id'], NOT session['user']
+    if not session.get('user_id'):
         return
     ct = request.content_type or ''
     # Wyłączenia CSRF: wewnętrzne API, webhooks, Allegro callbacks
@@ -344,6 +346,53 @@ def csrf_protect_forms():
                 generate_csrf()
                 from flask import abort
                 abort(400, 'CSRF token wygasł. Odśwież stronę.')
+
+# ============================================================
+# WEBHOOK SIGNATURE VALIDATION — Telegram & Allegro
+# ============================================================
+@app.before_request
+def validate_webhook_signatures():
+    """Validate webhook requests using HMAC signatures.
+    - Telegram: X-Telegram-Bot-Api-Secret-Token header (set during setWebhook)
+    - Allegro: X-Allegro-Webhook-Secret header (shared secret)
+    """
+    if request.method != 'POST':
+        return
+    import hmac as _hmac
+    import hashlib as _hl
+
+    # Telegram webhook validation
+    if request.path.startswith('/telegram/webhook'):
+        try:
+            from modules.database import get_config_cached
+            bot_token = get_config_cached('telegram_bot_token', '')
+            if bot_token:
+                # Telegram sends X-Telegram-Bot-Api-Secret-Token if set during setWebhook
+                # We use a HMAC-SHA256 of the bot token as the expected secret
+                expected_secret = _hmac.new(
+                    b'telegram-webhook-secret', bot_token.encode(), _hl.sha256
+                ).hexdigest()[:32]
+                received_secret = request.headers.get('X-Telegram-Bot-Api-Secret-Token', '')
+                if received_secret and not _hmac.compare_digest(received_secret, expected_secret):
+                    from modules.logger import log_warning
+                    log_warning(f"Telegram webhook: invalid signature from {request.remote_addr}")
+                    return jsonify({'error': 'Invalid webhook signature'}), 403
+        except Exception:
+            pass  # Don't block webhook if validation setup fails
+
+    # Allegro webhook validation
+    if request.path.startswith('/allegro/webhook') or request.path.startswith('/allegro/callback'):
+        try:
+            from modules.database import get_config_cached
+            webhook_secret = get_config_cached('allegro_webhook_secret', '')
+            if webhook_secret:
+                received_sig = request.headers.get('X-Allegro-Webhook-Secret', '')
+                if received_sig and not _hmac.compare_digest(received_sig, webhook_secret):
+                    from modules.logger import log_warning
+                    log_warning(f"Allegro webhook: invalid signature from {request.remote_addr}")
+                    return jsonify({'error': 'Invalid webhook signature'}), 403
+        except Exception:
+            pass  # Don't block if config unavailable
 
 # Sprawdzanie licencji
 @app.before_request
@@ -489,21 +538,56 @@ app.logger.setLevel(logging.ERROR)
 
 @app.errorhandler(500)
 def handle_500(e):
+    """500 handler — log full details server-side, return generic message to client."""
     import traceback
     from modules.logger import log_error
+    from modules.utils import safe_error_message
     tb = traceback.format_exc()
-    log_error(f"500 error: {e}\n{tb}")
-    from flask import request as _req, jsonify as _jf
-    if _req.headers.get('X-Requested-With') == 'XMLHttpRequest' or _req.content_type == 'application/json':
-        return _jf({'success': False, 'message': 'Internal server error'}), 500
-    return "<h1>500 Internal Server Error</h1><p>Wystapil blad serwera. Szczegoly zostaly zapisane w logach.</p>", 500
+    # Full details server-side only
+    log_error(f"500 error on {request.method} {request.path}: {e}\n{tb}")
+    # Generic message to client — never leak internals
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or (request.content_type and 'application/json' in request.content_type):
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+    return render_template_string('''<!DOCTYPE html>
+<html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>500 - Błąd serwera</title>
+<style>body{font-family:system-ui,-apple-system,sans-serif;background:#0e0e10;color:#e5e7eb;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+.box{text-align:center;max-width:420px;padding:2rem}.code{font-size:5rem;font-weight:700;color:#6366f1;margin:0}.msg{color:#9ca3af;margin:1rem 0}
+a{color:#6366f1;text-decoration:none}a:hover{text-decoration:underline}</style></head>
+<body><div class="box"><p class="code">500</p><p class="msg">Wystąpił błąd serwera. Szczegóły zostały zapisane w logach.</p>
+<a href="/dashboard">Powrót do Dashboard</a></div></body></html>'''), 500
 
 @app.errorhandler(404)
 def handle_404(e):
+    """404 handler — clean page, log the miss."""
     from modules.logger import log_warning
-    from flask import request as _req
-    log_warning(f"404: {_req.method} {_req.path}")
-    return "<h1>404</h1><p>Strona nie znaleziona.</p>", 404
+    log_warning(f"404: {request.method} {request.path}")
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or (request.content_type and 'application/json' in request.content_type):
+        return jsonify({'success': False, 'message': 'Nie znaleziono'}), 404
+    return render_template_string('''<!DOCTYPE html>
+<html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>404 - Nie znaleziono</title>
+<style>body{font-family:system-ui,-apple-system,sans-serif;background:#0e0e10;color:#e5e7eb;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+.box{text-align:center;max-width:420px;padding:2rem}.code{font-size:5rem;font-weight:700;color:#6366f1;margin:0}.msg{color:#9ca3af;margin:1rem 0}
+a{color:#6366f1;text-decoration:none}a:hover{text-decoration:underline}</style></head>
+<body><div class="box"><p class="code">404</p><p class="msg">Strona nie znaleziona.</p>
+<a href="/dashboard">Powrót do Dashboard</a></div></body></html>'''), 404
+
+@app.errorhandler(403)
+def handle_403(e):
+    """403 handler — forbidden access."""
+    from modules.logger import log_warning
+    log_warning(f"403: {request.method} {request.path} from {request.remote_addr}")
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or (request.content_type and 'application/json' in request.content_type):
+        return jsonify({'success': False, 'message': 'Brak dostępu'}), 403
+    return render_template_string('''<!DOCTYPE html>
+<html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>403 - Brak dostępu</title>
+<style>body{font-family:system-ui,-apple-system,sans-serif;background:#0e0e10;color:#e5e7eb;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+.box{text-align:center;max-width:420px;padding:2rem}.code{font-size:5rem;font-weight:700;color:#ef4444;margin:0}.msg{color:#9ca3af;margin:1rem 0}
+a{color:#6366f1;text-decoration:none}a:hover{text-decoration:underline}</style></head>
+<body><div class="box"><p class="code">403</p><p class="msg">Brak dostępu do tej strony.</p>
+<a href="/dashboard">Powrót do Dashboard</a></div></body></html>'''), 403
 
 # ============================================================
 # [OK] CORS CONFIGURATION - NGROK & REMOTE ACCESS FIX!
@@ -587,7 +671,7 @@ def after_request(response):
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-    response.headers['Permissions-Policy'] = 'camera=(self), microphone=(), geolocation=()'
+    response.headers['Permissions-Policy'] = 'camera=(self), microphone=(), geolocation=(), payment=(), usb=()'
     # CSP already set above for HTML responses — don't overwrite with stricter one
     # Skip CSP for static assets (images, fonts, JS, CSS) — they don't need it
     # and it can interfere with manifest icon loading
@@ -680,6 +764,30 @@ app.register_blueprint(eula_bp)
 
 from modules.onboarding import onboarding_bp
 app.register_blueprint(onboarding_bp)
+
+
+# ============================================================
+# RATE LIMITING — per-endpoint limits (on top of global 200/min)
+# ============================================================
+if limiter:
+    # Login brute-force protection: 5 attempts per minute per IP
+    limiter.limit("5 per minute")(app.view_functions.get('auth.login', lambda: None))
+    # First setup: 3 per minute (prevents abuse)
+    limiter.limit("3 per minute")(app.view_functions.get('auth.first_setup', lambda: None))
+    # API write endpoints: 30 per minute
+    _api_write_limit = limiter.shared_limit("30 per minute", scope="api_write")
+    for _ep_name in ('api_create_backup', 'backup.api_create_backup', 'backup.api_restore_backup',
+                      'api_ngrok_control', 'api_notify'):
+        _fn = app.view_functions.get(_ep_name)
+        if _fn:
+            _api_write_limit(_fn)
+    # Webhook endpoints: 60 per minute (Telegram, Allegro callbacks)
+    _webhook_limit = limiter.shared_limit("60 per minute", scope="webhooks")
+    for _ep_name in ('telegram.telegram_main', 'allegro.allegro_callback'):
+        _fn = app.view_functions.get(_ep_name)
+        if _fn:
+            _webhook_limit(_fn)
+    print("[OK] Rate limits applied: login=5/min, API write=30/min, webhooks=60/min")
 
 
 # ============================================================
@@ -2682,7 +2790,7 @@ def narzedzia_licencje():
         existing=existing,
         version=app.config.get('VERSION', ''),
         brand_name=app.config.get('BRAND_NAME', 'Akces Hub'),
-        current_user=session.get('user')
+        current_user=session.get('username')
     )
 
 

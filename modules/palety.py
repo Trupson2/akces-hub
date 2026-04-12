@@ -188,7 +188,7 @@ def render(content, page_title='Palety', extra_js=''):
         palety_js=_PALETY_JS + extra_js,
         version=current_app.config.get('VERSION', ''),
         brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
-        current_user=session.get('user')
+        current_user=session.get('username')
     )
 
 

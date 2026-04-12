@@ -399,7 +399,7 @@ def render(content, page_title='Magazynier'):
         magazynier_js=_MAGAZYNIER_JS,
         version=current_app.config.get('VERSION', ''),
         brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
-        current_user=session.get('user')
+        current_user=session.get('username')
     )
 
 # ============================================================
@@ -418,7 +418,7 @@ def index():
         products=products,
         brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
         version=current_app.config.get('VERSION', ''),
-        current_user=session.get('user')
+        current_user=session.get('username')
     )
 
 @magazynier_bp.route('/skaner')
@@ -1186,7 +1186,7 @@ def produkt(code):
         prowizja_rate=_prowizja_rate,
         prowizja_kwota=_prowizja_kwota,
         brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
-        current_user=session.get('user'),
+        current_user=session.get('username'),
         processed_photos=processed_photos,
     )
 
@@ -8839,7 +8839,7 @@ def remanent_page():
         suma_sprzedano=suma_sprzedano,
         brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
         version=current_app.config.get('VERSION', ''),
-        current_user=session.get('user')
+        current_user=session.get('username')
     )
 
 

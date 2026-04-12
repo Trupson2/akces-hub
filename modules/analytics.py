@@ -285,7 +285,7 @@ def dashboard_kpi():
     return render_template('dashboard_kpi.html',
         version=current_app.config.get('VERSION', ''),
         brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
-        current_user=session.get('user'),
+        current_user=session.get('username'),
         timestamp=today.strftime('%d.%m.%Y %H:%M'),
         alerts=alerts,
         dzis_suma=f'{dzis["suma"] or 0:.0f}',
@@ -548,7 +548,7 @@ def kalkulator_palety():
     return render_template_string(html,
         version=current_app.config.get('VERSION', ''),
         brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
-        current_user=session.get('user')
+        current_user=session.get('username')
     )
 
 
@@ -1608,7 +1608,7 @@ function getAiRecommendations() {
     return render_template_string(html,
         version=current_app.config.get('VERSION', ''),
         brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
-        current_user=session.get('user')
+        current_user=session.get('username')
     )
 
 

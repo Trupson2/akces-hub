@@ -1486,7 +1486,7 @@ def wysylki_lista():
         content=html_content,
         version=current_app.config.get('VERSION', ''),
         brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
-        current_user=session.get('user'))
+        current_user=session.get('username'))
 
 
 @wysylki_bp.route('/wysylki/wyslano-order/<order_id>')
