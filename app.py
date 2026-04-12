@@ -316,6 +316,7 @@ def csrf_protect_forms():
         '/api/', '/allegro/callback', '/allegro/webhook',
         '/telegram/webhook', '/paletomat/api/', '/magazyn/api/',
         '/analityka/winning/',  # Scout AJAX
+        '/system/',  # System update/restart
     )
     if any(request.path.startswith(p) for p in _csrf_exempt):
         return
@@ -326,7 +327,12 @@ def csrf_protect_forms():
         referer = request.headers.get('Referer', '')
         host = request.host_url
         # Przepuść jeśli referer z naszej domeny (same-origin) LUB ma token
-        if not token and not referer.startswith(host):
+        # Uwzględnij ngrok/proxy — referer może być HTTPS a host HTTP
+        _referer_ok = referer.startswith(host) or referer.startswith(host.replace('http://', 'https://'))
+        # Ngrok: referer z *.ngrok-free.dev jest OK jeśli request przyszedł przez proxy
+        if not _referer_ok and '.ngrok' in referer and request.headers.get('X-Forwarded-For'):
+            _referer_ok = True
+        if not token and not _referer_ok:
             from flask import abort
             abort(403, 'CSRF: brak tokena i nieprawidłowy referer')
         if token:
