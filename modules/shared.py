@@ -155,6 +155,29 @@ body.kiosk,body.kiosk *{cursor:none!important}
 @media (max-width:480px){.container{padding:10px}.header h1{font-size:1.4rem}.header{padding:18px 0}.quick-actions{grid-template-columns:repeat(3,1fr);gap:8px}.quick-btn{padding:12px 8px}.quick-btn .icon{font-size:1.3rem}.quick-btn .label{font-size:0.65rem}.stats{grid-template-columns:repeat(2,1fr);gap:8px}.stat{padding:12px}.stat-value{font-size:1.3rem}.today-grid{gap:8px}.today-value{font-size:1.4rem}.today-label{font-size:0.7rem}.module{padding:16px}.module-stats{gap:8px}.module-stat{padding:6px 10px;font-size:0.75rem}.tools-grid{grid-template-columns:1fr 1fr}.btn{padding:13px;font-size:0.95rem}.bottom-nav-inner{justify-content:space-between;padding:0 4px}.nav-item{padding:6px 6px}.nav-icon{font-size:1.4rem}.nav-label{font-size:0.7rem}.theme-toggle{top:10px;right:10px;width:36px;height:36px;font-size:1rem}}
 @media (max-width:360px){.quick-actions{grid-template-columns:repeat(3,1fr)}.stats{grid-template-columns:1fr 1fr}.today-grid{grid-template-columns:1fr 1fr 1fr}.tools-grid{grid-template-columns:1fr}}
 </style>
+<script>
+    // Globalny mechanizm odświeżania CSRF (Stabilizacja)
+    window.refreshCsrfToken = async function() {
+        try {
+            const r = await fetch('/api/csrf-token');
+            const d = await r.json();
+            if (d.csrf_token) {
+                window.CSRF_TOKEN = d.csrf_token;
+                // Aktualizuj wszystkie ukryte pola w formularzach na stronie
+                document.querySelectorAll('input[name="csrf_token"]').forEach(el => {
+                    el.value = d.csrf_token;
+                });
+                console.log("[CSRF] Token odświeżony pomyślnie");
+            }
+        } catch (e) { console.error("[CSRF] Błąd odświeżania:", e); }
+    };
+
+    // Odświeżaj co 10 minut
+    setInterval(window.refreshCsrfToken, 600000);
+    
+    // Pierwsze pobranie jeśli puste
+    if (!window.CSRF_TOKEN) window.refreshCsrfToken();
+</script>
 '''
 
 

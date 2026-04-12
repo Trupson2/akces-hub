@@ -112,3 +112,30 @@ def winning_unlock():
 def winning_meta():
     """Kompatybilność wsteczna — zwraca puste dane."""
     return jsonify({"runs": []})
+
+@winning_bp.route("/winning/phrase", methods=["GET"])
+def winning_phrase():
+    """Wyszukiwarka po frazie testowa"""
+    try:
+        phrase = request.args.get("q", "").strip()
+        if not phrase:
+            return jsonify({"error": "Brak frazy (q)"}), 400
+            
+        filters = {
+            "sales": request.args.get("f_sales", "true") == "true",
+            "margin": request.args.get("f_margin", "true") == "true",
+            "competition": request.args.get("f_comp", "true") == "true",
+            "price": request.args.get("f_price", "true") == "true",
+        }
+            
+        from modules.winning_scout import scout_by_phrase
+        items = scout_by_phrase(phrase, filters)
+        
+        return jsonify({
+            "items": items,
+            "total": len(items),
+            "phrase": phrase
+        })
+    except Exception as e:
+        logger.error(f"[winning_bp] winning_phrase error: {e}")
+        return jsonify({"error": str(e)}), 500

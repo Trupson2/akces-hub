@@ -378,6 +378,29 @@ def _translate_to_pl(text: str) -> str:
     return text
 
 
+def _translate_to_en(text: str) -> str:
+    """Tłumaczy tekst na angielski dla lepszych wyników w Chinach."""
+    if not text or len(text) < 3: return text
+    polish_chars = set('ąćęłńóśźż')
+    if not any(c in text.lower() for c in polish_chars): return text
+
+    try:
+        url = 'https://translate.googleapis.com/translate_a/single'
+        params = { 'client': 'gtx', 'sl': 'pl', 'tl': 'en', 'dt': 't', 'q': text[:500] }
+        resp = requests.get(url, params=params, timeout=10, headers={'User-Agent': HEADERS['User-Agent']})
+        if resp.status_code == 200:
+            data = resp.json()
+            if data and data[0]:
+                translated = ''.join(part[0] for part in data[0] if part[0])
+                if translated and len(translated) > 2:
+                    _log(f"[scout] Translation: '{text}' -> '{translated}'")
+                    return translated
+        _log(f"[scout] Translation failed (HTTP {resp.status_code}), using original text.")
+    except Exception as e:
+        _log(f"[scout] Translation error: {e}")
+    return text
+
+
 # ─── SCRAPING: AMAZON BESTSELLERS ────────────────────────────────────────────
 
 def _scrape_amazon_bestsellers(category: str, url: str, limit: int = 15) -> list[dict]:
@@ -703,36 +726,53 @@ IMPORTANT: "why_new", "why_can_sell" and "risk_flags" values MUST be in Polish l
 
             for item in batch_items:
                 if not isinstance(item, dict) or not item.get('name'):
-                    continue
+                    cdef _gemini_search_fallback(phrase_en: str) -> list[dict]:
+    """Używa Gemini do symulacji wyszukiwania produktów z Chin, gdy scrapery są zablokowane."""
+    try:
+        from modules.gemini_helper import get_gemini_api_key
+        api_key = get_gemini_api_key()
+        if not api_key:
+            _log("[scout] AI Fallback: BRAK KLUCZA API")
+            return []
 
-                buy_usd = float(item.get('buy_price_usd', 0) or 0)
-                sell_pln = float(item.get('sell_price_pln', 0) or 0)
-                buy_pln = buy_usd * 4.2
+        _log(f"[scout] AI Fallback start dla: '{phrase_en}'")
+        prompt = f"""Find 10 LATEST/TRENDING wholesale products on Alibaba/AliExpress related to: "{phrase_en}".
+Return ONLY a valid JSON array of objects. Schema: [{{"name":"Type name","price_usd":10,"image_url":"","source":"alibaba","url":""}}]
+NO markdown, NO comments, ONLY the array."""
+        
+        from modules.utils import get_gemini_api_url
+        api_url = get_gemini_api_url(api_key)
+        
+        resp = requests.post(api_url, json={'contents': [{'parts': [{'text': prompt}]}]}, timeout=25)
+        if resp.status_code != 200:
+            _log(f"[scout] AI API Error: {resp.status_code} - {resp.text[:100]}")
+            return []
 
-                products.append({
-                    'name': item['name'],
-                    'category': item.get('category', 'inne'),
-                    'source': item.get('source', 'aliexpress'),
-                    'source_url': '',
-                    'buy_price_pln': round(buy_pln, 2),
-                    'sell_price_pln': sell_pln,
-                    'why_new': item.get('why_new', ''),
-                    'why_can_sell': item.get('why_can_sell', ''),
-                    'risk_flags': item.get('risk_flags', ''),
-                    'paczkomat_fit': item.get('paczkomat_fit', 'B'),
-                    'growth_7d': int(item.get('growth_7d', 0) or 0),
-                    'alibaba_moq': int(item.get('alibaba_moq', 0) or 0),
-                    'alibaba_price_usd': float(item.get('alibaba_price_usd', 0) or 0),
-                })
+        data = resp.json()
+        if 'candidates' not in data or not data['candidates']:
+            _log(f"[scout] AI Error: Empty candidates. Raw: {data}")
+            return []
 
-            time.sleep(2)  # Rate limit między batchami
+        text = data['candidates'][0]['content']['parts'][0]['text']
+        items = _parse_gemini_json(text)
+        if not items:
+            _log(f"[scout] AI Error: Failed to parse JSON from response: {text[:200]}")
+            return []
 
-        _log(f"[scout] Gemini discovery TOTAL: {len(products)} produktów z {len(batches)} batchy")
-
+        results = []
+        for it in items:
+            results.append({
+                'name': it.get('name', 'Brak nazwy'),
+                'price_usd': float(it.get('price_usd', 0) or 0),
+                'url': it.get('url', ''),
+                'image': it.get('image_url', ''),
+                'source': it.get('source', 'alibaba'),
+                'category': phrase_en
+            })
+        return results
     except Exception as e:
-        _log(f"[scout] Gemini discovery error: {e}")
-
-    return products
+        _log(f"[scout] AI Fallback CRITICAL error: {e}")
+    return []
 
 
 # ─── ALIBABA SEARCH ──────────────────────────────────────────────────────────
@@ -817,47 +857,515 @@ def _search_alibaba(product_name: str) -> dict:
     return result
 
 
-# ─── ALLEGRO COMPETITION CHECK ───────────────────────────────────────────────
+# ─── ALLEGRO COMPETITION CHECK (WEB SCRAPING) ────────────────────────────────
 
 def _check_allegro_competition(product_name_pl: str) -> int:
-    """Sprawdza ile ofert jest na Allegro dla tego produktu. Zwraca liczbę."""
+    """Sprawdza ile ofert jest na Allegro dla tego produktu via web scraping z fallbackiem na AI."""
     try:
-        from modules.allegro_api import allegro_request, is_authenticated
-        if not is_authenticated():
-            return -1
-
-        result = allegro_request("GET", "/offers/listing", params={
-            "phrase": product_name_pl[:80],
-            "limit": 1,
-        })
-
-        if isinstance(result, tuple):
-            data, err = result
-        else:
-            data, err = result, None
-
-        if err or not data:
-            return -1
-
-        # Total count
-        total = 0
+        import urllib.parse
+        query = urllib.parse.quote_plus(product_name_pl[:80])
+        url = f"https://allegro.pl/listing?string={query}"
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'pl-PL,pl;q=0.9',
+        }
+        
         try:
-            search_meta = data.get('searchMeta', {})
-            total = search_meta.get('totalCount', 0)
-            if not total:
-                items = data.get('items', {})
-                total = len(items.get('regular', [])) + len(items.get('promoted', []))
+            resp = requests.get(url, headers=headers, timeout=10)
+            if resp.status_code == 200:
+                html = resp.text
+                if "captcha" in html.lower() or "robot" in html.lower():
+                    _log(f"[scout] Allegro blocked (captcha detected). Switching to AI estimation.")
+                    return _estimate_competition_ai(product_name_pl)
+
+                # Szukamy "X ofert" lub "X wyników"
+                import re
+                count_match = re.search(r'(\d[\d\s]*)\s*(?:ofert|wynik)', html)
+                if count_match:
+                    count_str = count_match.group(1).replace(' ', '').replace('\xa0', '')
+                    return int(count_str)
+            
+                # Fallback: policz ile <article> elementów
+                articles = html.count('<article')
+                if articles > 0: return articles
         except Exception:
             pass
 
-        return total
-
+        # Jeśli scraping zawiódł zupełnie (timeout, 403, 429) -> Używamy AI
+        _log(f"[scout] Allegro access failed. Estimating competition via AI for '{product_name_pl[:30]}...'")
+        return _estimate_competition_ai(product_name_pl)
+        
     except Exception as e:
         _log(f"[scout] Allegro competition check error: {e}")
-        return -1
+        return _estimate_competition_ai(product_name_pl)
 
 
-# ─── SCORING ──────────────────────────────────────────────────────────────────
+def _estimate_competition_ai(product_name: str) -> int:
+    """Używa Gemini do oszacowania nasycenia rynku na Allegro dla danej nazwy produktu."""
+    try:
+        from modules.gemini_helper import get_gemini_api_key
+        api_key = get_gemini_api_key()
+        if not api_key: return 10 # Safely assume medium competition
+
+        prompt = f"""Estimate the competition/popularity on Polish marketplace 'Allegro' for this product: "{product_name}".
+How many sellers roughly offer this EXACT OR VERY SIMILAR product?
+Options: 0 (new niche), 5 (low), 20 (medium), 100 (high), 500+ (saturated).
+Return ONLY an integer representing the estimated count (or closest match from options)."""
+
+        from modules.utils import get_gemini_api_url
+        api_url = get_gemini_api_url(api_key)
+        
+        resp = requests.post(
+            api_url,
+            json={'contents': [{'parts': [{'text': prompt}]}]},
+            timeout=10
+        )
+        if resp.status_code == 200:
+            text = resp.json()['candidates'][0]['content']['parts'][0]['text']
+            num = re.search(r'\d+', text)
+            if num:
+                return int(num.group())
+    except Exception:
+        pass
+    return 15 # Default fallback
+
+
+# ─── ALLEGRO SEARCH VIA WEB SCRAPING ─────────────────────────────────────────
+
+def _scrape_allegro_search(phrase: str, limit: int = 60) -> list[dict]:
+    """
+    Scrapuje publiczną stronę wyszukiwania Allegro.
+    Zwraca listę produktów z nazwą, ceną, URL i obrazkiem.
+    """
+    import urllib.parse, re
+    
+    query = urllib.parse.quote_plus(phrase)
+    url = f"https://allegro.pl/listing?string={query}&order=qd"  # qd = wg popularności
+    
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'pl-PL,pl;q=0.9',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    }
+    
+    results = []
+    
+    try:
+        resp = requests.get(url, headers=headers, timeout=20)
+        if resp.status_code != 200:
+            _log(f"[scout_phrase] Allegro HTTP {resp.status_code}")
+            return []
+        
+        html = resp.text
+        
+        # Szukaj JSON-LD lub data atrybutów z ofertami
+        # Allegro renderuje oferty w <article> blokach
+        # Parsujemy tytuły, ceny i linki
+        
+        # Metoda 1: JSON embedded w stronie (preferowana)
+        json_blocks = re.findall(r'<script[^>]*type="application/json"[^>]*>(.+?)</script>', html, re.DOTALL)
+        for block in json_blocks:
+            try:
+                data = json.loads(block)
+                # Allegro sometimes embeds listing data in JSON
+                items = _extract_items_from_json(data)
+                if items:
+                    results.extend(items[:limit])
+                    break
+            except:
+                continue
+        
+        # Metoda 2: Parse HTML bezpośrednio jeśli JSON nie zadziałał
+        if not results:
+            # Szukaj wzorca: nazwa produktu + cena
+            # <a href="/oferta/..." title="...">
+            offer_links = re.findall(
+                r'<a[^>]*href="(https://allegro\.pl/oferta/[^"]+)"[^>]*>.*?</a>',
+                html, re.DOTALL
+            )
+            
+            # Szukaj tytułów i cen
+            titles = re.findall(r'<h2[^>]*>([^<]{10,200})</h2>', html)
+            prices = re.findall(r'(\d+[\s,]\d{2})\s*zł', html)
+            images = re.findall(r'<img[^>]*src="(https://[^"]*allegro[^"]*\.(?:jpg|jpeg|png|webp))"', html, re.I)
+            
+            for i, title in enumerate(titles[:limit]):
+                price_val = 0
+                if i < len(prices):
+                    try:
+                        price_val = float(prices[i].replace(' ', '').replace(',', '.'))
+                    except:
+                        price_val = 0
+                
+                img = images[i] if i < len(images) else ''
+                link = offer_links[i] if i < len(offer_links) else f'https://allegro.pl/listing?string={query}'
+                
+                results.append({
+                    'name': title.strip(),
+                    'price': price_val,
+                    'url': link,
+                    'image': img,
+                    'sold': 50 + (limit - i) * 3,  # Estymacja popularności (wyżej = popularniejsze)
+                })
+        
+        _log(f"[scout_phrase] Scraped {len(results)} items from Allegro for '{phrase}'")
+        
+    except Exception as e:
+        _log(f"[scout_phrase] Scraping error: {e}")
+    
+    return results[:limit]
+
+
+def _extract_items_from_json(data, depth=0):
+    """Rekursywnie szuka listy ofert w zagnieżdżonym JSON z Allegro."""
+    if depth > 8:
+        return []
+    
+    if isinstance(data, list):
+        items = []
+        for item in data:
+            if isinstance(item, dict):
+                # Sprawdź czy to oferta (ma name/title + price)
+                name = item.get('name') or item.get('title') or item.get('productName', '')
+                price = None
+                
+                # Szukaj ceny w różnych formatach
+                if 'price' in item:
+                    p = item['price']
+                    if isinstance(p, dict):
+                        price = p.get('amount') or p.get('value') or p.get('normal', {}).get('amount')
+                    elif isinstance(p, (int, float)):
+                        price = p
+                elif 'sellingMode' in item:
+                    price = item['sellingMode'].get('price', {}).get('amount')
+                
+                if name and price:
+                    try:
+                        price_float = float(str(price).replace(',', '.').replace(' ', ''))
+                    except:
+                        price_float = 0
+                    
+                    img = ''
+                    if 'image' in item:
+                        img = item['image'] if isinstance(item['image'], str) else item['image'].get('url', '')
+                    elif 'images' in item and item['images']:
+                        img = item['images'][0] if isinstance(item['images'][0], str) else item['images'][0].get('url', '')
+                    
+                    url = item.get('url') or item.get('href') or ''
+                    if url and not url.startswith('http'):
+                        url = f"https://allegro.pl{url}"
+                    
+                    sold = item.get('popularity') or item.get('soldCount') or 50
+                    
+                    items.append({
+                        'name': name,
+                        'price': price_float,
+                        'url': url,
+                        'image': img,
+                        'sold': int(sold) if sold else 50,
+                    })
+                else:
+                    # Zagłęb się dalej
+                    for v in item.values():
+                        if isinstance(v, (dict, list)):
+                            sub = _extract_items_from_json(v, depth + 1)
+                            if sub:
+                                items.extend(sub)
+        return items
+    
+    elif isinstance(data, dict):
+        for v in data.values():
+            if isinstance(v, (dict, list)):
+                sub = _extract_items_from_json(v, depth + 1)
+                if sub:
+                    return sub
+    
+    return []
+
+
+# ─── SCOUT PHRASE (WYSZUKIWANIE ALLEGRO) ─────────────────────────────────────
+
+def scout_by_phrase(phrase: str, filters: dict = None) -> list[dict]:
+    """
+    Szuka produktów na Alibaba/AliExpress pasujących do frazy,
+    potem sprawdza konkurencję na Allegro i oblicza marżę.
+    Flow: Chiny (źródło) → Allegro (sprawdzenie rynku) → Wynik
+    """
+    if filters is None: filters = {}
+    use_margin = filters.get('margin', True)
+    use_comp = filters.get('competition', True)
+    use_price = filters.get('price', True)
+    
+    # Przetłumacz na angielski dla lepszych wyników w Chinach
+    phrase_en = _translate_to_en(phrase)
+    _log(f"[scout_phrase] START szukam '{phrase}' (EN: '{phrase_en}') na Alibaba/AliExpress...")
+    
+    try:
+        # ===== KROK 1: Szukaj produktów na Alibaba =====
+        alibaba_products = _scrape_alibaba_search(phrase_en, limit=30)
+        _log(f"[scout_phrase] Alibaba: znaleziono {len(alibaba_products)} produktów")
+        
+        # ===== KROK 2: Szukaj produktów na AliExpress =====
+        aliexpress_products = _scrape_aliexpress_search(phrase_en, limit=20)
+        _log(f"[scout_phrase] AliExpress: znaleziono {len(aliexpress_products)} produktów")
+        
+        # ===== KROK 2b: Fallback Gemini (jeśli scrapery zawiodły) =====
+        all_products = alibaba_products + aliexpress_products
+        if not all_products:
+            _log(f"[scout_phrase] Brak wyników ze scrapingu dla '{phrase_en}'. Uruchamiam Gemini AI Search...")
+            all_products = _gemini_search_fallback(phrase_en)
+            _log(f"[scout_phrase] Gemini AI Search zwrócił {len(all_products)} produktów")
+        
+        if not all_products:
+            error_msg = f'Brak wyników z Alibaba/AliExpress dla: "{phrase}". Spróbuj po angielsku!'
+            from modules.gemini_helper import get_gemini_api_key
+            if not get_gemini_api_key():
+                error_msg = f'Błąd: Nie skonfigurowano klucza Gemini AI (sprawdź gemini_config.py)!'
+            
+            return [{
+                'id': 'no-data', 
+                'product_name': error_msg, 
+                'category': '-', 'source': 'ALI',
+                'source_url': f'https://www.alibaba.com/trade/search?SearchText={phrase}', 
+                'buy_price_pln': 0, 'sell_price_pln': 0, 
+                'margin_percent': 0, 'trend_score': 0, 'final_score': 0.0,
+                'paczkomat_fit': '-', 'status': 'keep_new', 'image_url': '', 
+                'allegro_competition': 0, 'created_at': datetime.now().isoformat()
+            }]
+        
+        # ===== KROK 3: Dla każdego produktu sprawdź Allegro + oblicz marżę =====
+        candidates = []
+        seen = set()
+        
+        for prod in all_products:
+            name = prod.get('name', '')
+            if not name or len(name) < 5:
+                continue
+                
+            norm = _normalize(name)
+            if norm in seen: continue
+            seen.add(norm)
+            
+            buy_price_usd = prod.get('price_usd', 0)
+            buy_price_pln = buy_price_usd * 4.2  # kurs USD→PLN
+            
+            if buy_price_pln <= 0:
+                continue  # Nie mamy ceny zakupu — pomijamy
+            
+            # Filtr cenowy (cena zakupu z Chin w PLN)
+            if use_price and buy_price_pln > 500:
+                continue
+            
+            # Estymacja ceny sprzedaży na Allegro (markup x2.5-x3)
+            sell_price_estimate = buy_price_pln * 2.5
+            if use_price and sell_price_estimate < 50:
+                continue
+                
+            # Sprawdź konkurencję na Allegro
+            name_pl = _translate_to_pl(name) if not any(c in name.lower() for c in ['ą','ę','ó','ś','ł','ż','ź','ć','ń']) else name
+            
+            comp_exact = 0
+            if use_comp:
+                comp_exact = _check_allegro_competition(name_pl)
+                if comp_exact > 50:
+                    _log(f"[scout_phrase] SKIP (konkurencja={comp_exact}): {name[:40]}")
+                    continue
+            
+            # Oblicz marżę
+            margin_percent = ((sell_price_estimate - buy_price_pln) / buy_price_pln) * 100
+            if use_margin and margin_percent < 30:
+                continue
+            
+            # Score: niska konkurencja = lepiej, wysoka marża = lepiej
+            score = margin_percent + max(0, (100 - comp_exact))
+            
+            image_url = prod.get('image', '')
+            source_url = prod.get('url', '')
+            source = prod.get('source', 'alibaba')
+            
+            candidates.append({
+                'id': str(uuid.uuid4())[:8],
+                'product_name': name_pl if name_pl != name else name,
+                'product_name_en': name,
+                'category': prod.get('category', phrase),
+                'source': source,
+                'source_url': source_url,
+                'buy_price_pln': round(buy_price_pln, 2),
+                'sell_price_pln': round(sell_price_estimate, 2),
+                'margin_percent': round(margin_percent, 1),
+                'trend_score': round(score, 1),
+                'final_score': round(score, 1),
+                'paczkomat_fit': 'B',
+                'status': 'keep_new',
+                'image_url': image_url,
+                'allegro_competition': comp_exact,
+                'created_at': datetime.now().isoformat()
+            })
+            
+            # Limit iteracji żeby nie czekać wieczność
+            if len(candidates) >= 10:
+                break
+        
+        if not candidates:
+            return [{
+                'id': 'empty', 
+                'product_name': f'Znaleziono {len(all_products)} produktów z Chin, ale filtry odrzuciły wszystkie. Spróbuj zmienić filtry.', 
+                'category': '-', 'source': 'alibaba',
+                'source_url': f'https://www.alibaba.com/trade/search?SearchText={phrase}', 
+                'buy_price_pln': 0, 'sell_price_pln': 0, 
+                'margin_percent': 0, 'trend_score': 0, 'final_score': 0,
+                'paczkomat_fit': '-', 'status': 'keep_new', 'image_url': '', 
+                'allegro_competition': 0, 'created_at': datetime.now().isoformat()
+            }]
+        
+        # Sortuj: marża↓, konkurencja↑
+        candidates.sort(key=lambda x: (-x['margin_percent'], x['allegro_competition']))
+        
+        # Jeśli wciąż brak produktów (np. filtry odrzuciły wszystko), a mieliśmy wyniki z Chin
+        if not candidates and all_products:
+             _log("[scout_phrase] AI Fallback: Scrapery zawiodły, próbuję Gemini discovery...")
+             ai_products = _gemini_search_fallback(phrase_en)
+             if ai_products:
+                 all_products += ai_products
+                 # (Procedura sprawdzania ich na Allegro powtórzyłaby się tutaj, ale dla uproszczenia
+                 #  po prostu dodajemy je do puli i lecimy dalej w następnej iteracji lub ponownym wywołaniu)
+        
+        _log(f"[scout_phrase] GOTOWE: {len(candidates)} kandydatów dla '{phrase}'")
+        return candidates[:10]
+        
+    except Exception as e:
+        _log(f"[scout_phrase] Error: {e}")
+        return []
+
+
+def _scrape_alibaba_search(phrase_en: str, limit: int = 30) -> list[dict]:
+    """Szuka produktów na Alibaba.com po frazie (EN). Używa showroom URL dla lepszej stabilności."""
+    products = []
+    try:
+        # Alibaba showroom URL jest bardziej stabilny
+        query_dash = phrase_en.lower().replace(' ', '-')[:80]
+        search_url = f'https://www.alibaba.com/showroom/{query_dash}.html'
+        
+        session = requests.Session()
+        session.headers.update(HEADERS)
+        
+        resp = session.get(search_url, timeout=12, allow_redirects=True)
+        if resp.status_code != 200:
+            # Fallback na standardowy search
+            query_plus = phrase_en.replace(' ', '+')
+            search_url = f'https://www.alibaba.com/trade/search?SearchText={query_plus}&viewtype=G'
+            resp = session.get(search_url, timeout=12)
+            
+        if resp.status_code != 200:
+            _log(f"[scout_phrase] Alibaba HTTP {resp.status_code}")
+            return []
+        
+        html = resp.text
+        
+        # Pattern 1: a.product-title
+        titles = re.findall(r'class="[^"]*product-title[^"]*"[^>]*title="([^"]+)"', html)
+        if not titles:
+            titles = re.findall(r'class="[^"]*elements-title-normal[^"]*"[^>]*>([^<]+)<', html)
+            
+        urls = re.findall(r'href="(https://www\.alibaba\.com/product-detail/[^"]+)"', html)
+        if not urls:
+             urls = re.findall(r'href="(//www\.alibaba\.com/product-detail/[^"]+)"', html)
+             urls = [f'https:{u}' for u in urls]
+             
+        prices = re.findall(r'\$\s*([\d.]+)\s*(?:-\s*\$\s*[\d.]+)?', html)
+        
+        images = re.findall(r'<img[^>]*(?:data-src|src)="(//[^"]*alibaba[^"]*\.(?:jpg|jpeg|png|webp))"', html, re.I)
+        images = [f'https:{img}' for img in images]
+
+        for i in range(min(len(titles), limit)):
+            name = titles[i].strip()
+            if len(name) < 10: continue
+            
+            p_val = 0
+            if i < len(prices):
+                try: p_val = float(prices[i])
+                except: pass
+                
+            products.append({
+                'name': name,
+                'price_usd': p_val,
+                'url': urls[i] if i < len(urls) else search_url,
+                'image': images[i] if i < len(images) else '',
+                'source': 'alibaba',
+                'category': phrase_en,
+            })
+        
+        _log(f"[scout_phrase] Alibaba search: found {len(products)} items")
+        
+    except Exception as e:
+        _log(f"[scout_phrase] Alibaba search error: {e}")
+    
+    return products
+
+
+def _scrape_aliexpress_search(phrase_en: str, limit: int = 20) -> list[dict]:
+    """Szuka produktów na AliExpress używając JSONa z window.runParams."""
+    products = []
+    try:
+        query_enc = requests.utils.quote(phrase_en[:80])
+        search_url = f'https://www.aliexpress.com/wholesale?SearchText={query_enc}&SortType=total_tranpro_desc'
+        
+        session = requests.Session()
+        session.headers.update(HEADERS)
+        
+        resp = session.get(search_url, timeout=12, allow_redirects=True)
+        if resp.status_code != 200:
+            _log(f"[scout_phrase] AliExpress HTTP {resp.status_code}")
+            return []
+        
+        html = resp.text
+        
+        # Wyciągnij JSON z window.runParams
+        json_match = re.search(r'window\.runParams\s*=\s*(\{.+?\});', html, re.DOTALL)
+        if not json_match:
+            json_match = re.search(r'data-gwd-json="(\{.+?\})"', html)
+            
+        if json_match:
+            try:
+                raw_json = json_match.group(1)
+                data = json.loads(raw_json)
+                items_data = _extract_items_from_json(data)
+                if items_data:
+                    for item in items_data[:limit]:
+                        products.append({
+                            'name': item.get('name', ''),
+                            'price_usd': item.get('price', 0),
+                            'url': item.get('url', ''),
+                            'image': item.get('image', ''),
+                            'source': 'aliexpress',
+                            'category': phrase_en,
+                        })
+                    return products
+            except:
+                pass
+
+        # Fallback na regex
+        titles = re.findall(r'"subject":"([^"]{10,120})"', html)
+        prices = re.findall(r'\"minPrice\":\"([\d.]+)\"', html)
+        urls = re.findall(r'"productDetailUrl":"(https://[^"]+)"', html)
+        
+        for i in range(min(len(titles), limit)):
+            products.append({
+                'name': titles[i],
+                'price_usd': float(prices[i]) if i < len(prices) else 0,
+                'url': urls[i] if i < len(urls) else search_url,
+                'image': '',
+                'source': 'aliexpress',
+                'category': phrase_en,
+            })
+            
+    except Exception as e:
+        _log(f"[scout_phrase] AliExpress error: {e}")
+    
+    return products
+
+
 
 def _score_candidate(candidate: dict) -> dict:
     """
@@ -1376,3 +1884,6 @@ try:
     init_scout_tables()
 except Exception as _init_e:
     _log(f"[scout] Init tables error: {_init_e}")
+
+
+
