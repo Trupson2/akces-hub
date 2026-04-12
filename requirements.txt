@@ -51,6 +51,7 @@ psutil>=5.9.0
 python-dotenv>=1.0.0        # Ładowanie .env
 flask-wtf>=1.2.0            # CSRF protection
 flask-limiter>=3.5.0        # Rate limiting
+argon2-cffi>=23.1.0         # Argon2id password hashing
 
 # --- Testowanie ---
 pytest>=8.0.0

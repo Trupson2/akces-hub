@@ -380,9 +380,9 @@ def validate_webhook_signatures():
                     b'telegram-webhook-secret', bot_token.encode(), _hl.sha256
                 ).hexdigest()[:32]
                 received_secret = request.headers.get('X-Telegram-Bot-Api-Secret-Token', '')
-                if received_secret and not _hmac.compare_digest(received_secret, expected_secret):
+                if not received_secret or not _hmac.compare_digest(received_secret, expected_secret):
                     from modules.logger import log_warning
-                    log_warning(f"Telegram webhook: invalid signature from {request.remote_addr}")
+                    log_warning(f"Telegram webhook: missing/invalid signature from {request.remote_addr}")
                     return jsonify({'error': 'Invalid webhook signature'}), 403
         except Exception:
             pass  # Don't block webhook if validation setup fails
@@ -394,9 +394,9 @@ def validate_webhook_signatures():
             webhook_secret = get_config_cached('allegro_webhook_secret', '')
             if webhook_secret:
                 received_sig = request.headers.get('X-Allegro-Webhook-Secret', '')
-                if received_sig and not _hmac.compare_digest(received_sig, webhook_secret):
+                if not received_sig or not _hmac.compare_digest(received_sig, webhook_secret):
                     from modules.logger import log_warning
-                    log_warning(f"Allegro webhook: invalid signature from {request.remote_addr}")
+                    log_warning(f"Allegro webhook: missing/invalid signature from {request.remote_addr}")
                     return jsonify({'error': 'Invalid webhook signature'}), 403
         except Exception:
             pass  # Don't block if config unavailable
@@ -599,9 +599,10 @@ a{color:#6366f1;text-decoration:none}a:hover{text-decoration:underline}</style><
 # ============================================================
 # [OK] CORS CONFIGURATION - NGROK & REMOTE ACCESS FIX!
 # ============================================================
+_cors_origins = os.environ.get('CORS_ORIGINS', 'http://localhost:5000,http://127.0.0.1:5000').split(',')
 CORS(app, resources={
     r"/*": {
-        "origins": ["http://localhost:5000", "http://127.0.0.1:5000"],
+        "origins": [o.strip() for o in _cors_origins],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization", "Accept", "X-CSRFToken"],
         "expose_headers": ["Content-Type", "X-Total-Count"],

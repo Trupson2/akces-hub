@@ -1,6 +1,6 @@
 """
 System logowania do AKCES HUB
-Prosty auth oparty na sesji Flask + hashowane hasla (SHA-256)
+Auth oparty na sesji Flask + hashowane hasla (Argon2id)
 Rate limiting na login (ochrona przed brute-force)
 """
 
@@ -14,6 +14,12 @@ from pathlib import Path
 
 from flask import Blueprint, request, redirect, url_for, session, render_template_string, render_template, jsonify, abort, flash
 from werkzeug.security import generate_password_hash, check_password_hash
+
+# Argon2id — nowoczesny hashing haseł (odporny na GPU/ASIC ataki)
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError, VerificationError, InvalidHashError
+
+_ph = PasswordHasher(time_cost=2, memory_cost=65536, parallelism=1)
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -76,17 +82,32 @@ def _record_failed_login(ip):
 
 
 def _hash_password(password, salt=None):
-    """Hashuje haslo z pbkdf2 (werkzeug). Parametr salt ignorowany — dla kompatybilnosci."""
-    return generate_password_hash(password, method='pbkdf2:sha256', salt_length=16)
+    """Hashuje haslo z Argon2id. Parametr salt ignorowany — dla kompatybilnosci."""
+    return _ph.hash(password)
 
 
 def _verify_password(password, stored_hash):
-    """Weryfikuje haslo — TYLKO pbkdf2. Legacy SHA-256 wymaga resetu hasla."""
+    """Weryfikuje haslo — Argon2id (nowe) + pbkdf2 (migracja). Legacy SHA-256 odrzucone."""
+    # Argon2id (nowe hashe)
+    if stored_hash.startswith('$argon2'):
+        try:
+            return _ph.verify(stored_hash, password)
+        except (VerifyMismatchError, VerificationError, InvalidHashError):
+            return False
+    # pbkdf2 (stare hashe — migracja; caller powinien upgrade'owac)
     if stored_hash.startswith('pbkdf2:'):
         return check_password_hash(stored_hash, password)
     # Legacy SHA-256 — NIE akceptuj, wymuś reset
-    # (stare hashe SHA-256 są łatwe do złamania)
     return False
+
+
+def _needs_rehash(stored_hash):
+    """Sprawdza czy hash wymaga upgrade'u do Argon2id."""
+    if stored_hash.startswith('$argon2'):
+        # Argon2 — sprawdz czy parametry sa aktualne
+        return _ph.check_needs_rehash(stored_hash)
+    # pbkdf2 lub inne — zawsze upgrade
+    return True
 
 
 def _has_legacy_hash(stored_hash):
@@ -422,8 +443,8 @@ def login():
         ).fetchone()
 
         if user and _verify_password(password, user['password_hash']):
-            # Migracja starych haszy SHA-256 do pbkdf2
-            if not user['password_hash'].startswith('pbkdf2:'):
+            # Migracja starych haszy (pbkdf2/SHA-256) do Argon2id
+            if _needs_rehash(user['password_hash']):
                 conn.execute(
                     'UPDATE users SET password_hash = ? WHERE id = ?',
                     (_hash_password(password), user['id'])

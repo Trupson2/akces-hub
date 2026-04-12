@@ -1,8 +1,9 @@
 # Historia zmian (auto-generated)
 
-<<<<<<< Updated upstream
 ## 12.04.2026
 
+- security: full production hardening - rate limiting, session fix, webhooks, encrypted backups
+- security: fix critical and high severity vulnerabilities
 - fix: exclude offline sales from przychod_allegro_db to prevent double counting
 - fix: replace inline onclick with data-attributes on Korekta button
 - fix: update przychod_offline on offline sale and ensure sprzedaze record
@@ -26,16 +27,6 @@
 
 ## 05.04.2026
 
-=======
-## 06.04.2026
-
-- feat: add stock column to Allegro Performance and bundle suggestions to product detail
-- fix: filter Amazon cross-selling and store promo from bullet points
-- fix: expand Allegro banned phrases filter for descriptions
-
-## 05.04.2026
-
->>>>>>> Stashed changes
 - fix: translate English/German titles to Polish before formatting
 - feat: use Google Translate instead of Gemini for product titles
 - fix: edit form shows pallet cost instead of Amazon price for BRUTTO/SZT
@@ -135,20 +126,4 @@
 - fix: ASCII-only Gemini prompt + aggressive JSON cleanup
 - fix: robust JSON parser - strict=False, encoding fix, regex fallback
 - fix: better JSON parsing - log exact errors + fix trailing commas
-- fix: always search Alibaba for link/supplier + add enrichment logging
-- fix: strip markdown code blocks from Gemini JSON response
-<<<<<<< Updated upstream
-=======
-- fix: Gemini API call - remove responseMimeType + add logging
-- fix: scout scan lock auto-unlock after 5min + force reset endpoint
-- feat: replace Winning Products with Winning Scout (new product discovery)
-- fix: Notion revenue excludes offline sales (match dashboard)
-- fix: notion_tasks used wrong column names (key/value vs klucz/wartosc)
-- fix: mass listing uses SUM(ilosc) + skips duplicate ASINs
-- fix: use Google Translate instead of Gemini for title translation
-- fix: use configured Gemini model for translation (not hardcoded)
-- fix: reject bad translations + use gemini-2.0-flash for translating
-- fix: better translation prompt with examples + rate limit retry
-- feat: auto-translate non-Polish titles to Polish before SEO formatting
->>>>>>> Stashed changes
 
