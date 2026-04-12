@@ -640,20 +640,31 @@ def _get_fernet():
         print("[WARN] cryptography not installed — secrets stored as plaintext. Run: pip install cryptography")
         return None
 
+    # Priority: env variable > .env.key file
     key = os.environ.get('AKCES_ENCRYPTION_KEY', '')
     if not key:
         key_path = _APP_DIR / '.env.key'
         if key_path.exists():
             key = key_path.read_text().strip()
+            # Security: verify file permissions (Unix only)
+            try:
+                import stat
+                perms = os.stat(str(key_path)).st_mode
+                if perms & stat.S_IROTH:  # world-readable
+                    os.chmod(str(key_path), 0o600)
+                    print(f"[WARN] Fixed .env.key permissions to 600 (was world-readable)")
+            except Exception:
+                pass
         else:
-            # Pierwszy raz — generuj klucz
+            # First run — generate key
             key = Fernet.generate_key().decode()
             key_path.write_text(key)
             try:
                 os.chmod(str(key_path), 0o600)
             except Exception:
-                pass  # Windows nie obsługuje chmod
+                pass
             print(f"[OK] Wygenerowano klucz szyfrowania: {key_path}")
+            print(f"[WARN] For production, set AKCES_ENCRYPTION_KEY env variable instead of file")
     _fernet_instance = Fernet(key.encode() if isinstance(key, str) else key)
     return _fernet_instance
 

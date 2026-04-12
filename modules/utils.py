@@ -6,6 +6,51 @@ Utils module - funkcje pomocnicze
 import re
 import requests
 
+
+def sanitize_csv_cell(value):
+    """Sanitize CSV/Excel cell value to prevent formula injection (CSV injection).
+    Cells starting with =, +, -, @, |, \t, \r, \n can execute formulas in Excel."""
+    if not isinstance(value, str):
+        return value
+    value = value.strip()
+    if value and value[0] in ('=', '+', '-', '@', '|', '\t', '\r', '\n'):
+        # Prefix with single quote to neutralize formula
+        value = "'" + value
+    return value
+
+
+def sanitize_html(text):
+    """Escape HTML characters to prevent XSS."""
+    if not isinstance(text, str):
+        return text
+    return (text
+        .replace('&', '&amp;')
+        .replace('<', '&lt;')
+        .replace('>', '&gt;')
+        .replace('"', '&quot;')
+        .replace("'", '&#x27;')
+    )
+
+
+def safe_error_message(error):
+    """Return safe error message without leaking internal info."""
+    msg = str(error).lower()
+    if 'database' in msg or 'sqlite' in msg or 'sql' in msg:
+        return "Database error"
+    if 'permission' in msg or 'access' in msg:
+        return "Access denied"
+    if 'timeout' in msg:
+        return "Request timeout"
+    if 'connection' in msg:
+        return "Connection error"
+    if 'file' in msg and ('not found' in msg or 'no such' in msg):
+        return "File not found"
+    # Remove file paths from error
+    clean = re.sub(r'[A-Za-z]:\\[^\s]+', '[path]', str(error))
+    clean = re.sub(r'/home/[^\s]+', '[path]', clean)
+    clean = re.sub(r'/[a-z]+/[^\s]+\.py', '[module]', clean)
+    return clean[:100]
+
 # NOWE API Gemini
 try:
     from google import genai
