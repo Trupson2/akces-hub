@@ -1,108 +1,129 @@
 # Historia zmian (auto-generated)
 
-## 29.03.2026
+## 12.04.2026
 
-- gitignore: exclude photo_daemon work/storage files
-- gitignore: exclude photo_daemon work/storage files
-- Label: add quality class A/Nowy format, PNG download on product card
-- Disable text removal - use original Amazon images
-- Disable text removal - use original Amazon images
-- Better text mask: 3 PSM modes, LaMa handles large areas
-- Disable text removal (skip=true) - detection too aggressive
-- Fix text mask: add 15% safety limit, reduce MSER aggressiveness
-- Add IOPaint (lama-cleaner) text removal via HTTP API
-- config: enable ComfyUI LaMa text removal (text_removal_skip=false)
-- fix: disable destructive opencv inpainting - add text_removal_skip flag
-- feat: dodaj brakujące galerie + fix db lock podczas scrapowania
-- fix: amazon rate limiting - delay 0.8s between scrapes + 2s every 5 products
-- fix: photo-clear-and-requeue - delete all jobs and create fresh with image_index 0-7
-- feat: galeria packshot per-produkt - 1 wiersz = 1 produkt + wszystkie zdjecia
-- fix: db busy_timeout 10s→60s + allegro_main 1200→2560px
-- feat: studio foto - usuń i przetwórz od nowa + kolejkuj wszystkie
-- feat: gallery text/watermark removal + 2560px + split pipeline per image_index
-- feat: allegro photo pipeline - main thumbnail 1:1 white bg + gallery variants per spec
-- feat: scrape all 8 Amazon images per product + gallery by photo id
-- feat: studio foto gallery page + lightbox + pagination
-- feat: show processed photos in product detail + serve photo files
-- feat: increase worker batch to 50 + auto-repeat until queue empty
-- fix: winning_analyzer SQL bug + worker log capture + log button
-- fix: remove invalid scope from allegro OAuth URL
-- fix: allegro OAuth scopes for offers:read + config.yaml db_path correct path
-- feat: photo worker via subprocess + live stats polling + photo-stats endpoint
-- debug: add /winning/test-allegro diagnostic endpoint
-- fix: studio foto worker button + product links by kod_magazynowy + winning allegro auth check
-- fix: winning_analyzer allegro_request tuple unpack + photo_worker URL download
-- fix: Allegro dashboard przychod — usun koszt_dostawy i offline
-- docs: zaktualizuj MANUAL.md — Winning Products, Studio Foto, Bulk nadawanie, Photo Daemon
-- fix: winning_analyzer używa compute_scores() zamiast nieistniejących funkcji
-- fix: usuń duplikat bulk_nadaj, napraw PDF merge (pypdf), ujednolic format requesta
-- feat: Winning Products akcje + Studio Foto pipeline UI
-- feat: bulk nadawanie etykiet — NADAJ ZAZNACZONE
-- feat: rejestracja winning_bp + link w menu (#65)
-- feat: Photo Daemon + Winning Products Analyzer (#64)
-- fix: status produktu po nadaniu + rok w kalkulacji podatkowej (#63)
-- fix: ai_analizy w kalkulatorze czasu zawsze bylo 0 (#62)
-- fix: ujednolicenie przychodu we wszystkich widokach (#61)
-- fix: dodaj ilosc sztuk do powiadomienia o sprzedazy (#60)
-- fix: session key mismatch w oznacz_zwrot/cofnij_zwrot (#59)
-- fix: wyklucz offline z przychodu na dashboardzie (#58)
-- fix: usun koszt_dostawy z przychodu na dashboardzie (#57)
-- fix: HTML w flash messages i opcjach selecta (#56)
-- feat: per-sektor wybor modelu AI (#55)
-- feat: wylicznik czasu oszczedzonego (#54)
+- fix: exclude offline sales from przychod_allegro_db to prevent double counting
+- fix: replace inline onclick with data-attributes on Korekta button
+- fix: update przychod_offline on offline sale and ensure sprzedaze record
+- fix: rewrite offline sale to atomic SQL update, prevent race conditions
 
-## 28.03.2026
+## 07.04.2026
 
-- feat: gemini-2.5-flash + response_schema structured output (#53)
-- fix: TEMPO spike przy swiezej 1. sprzedazy (#52)
-- feat: TEMPO od 1. sprzedaży + KPI średnie tempo (#51)
-- fix: eliminate duplicate rows in czas-sprzedazy query (#50)
-- Fix czas-sprzedazy: use listing date not pallet purchase date
-- Fix COGS: per-pallet unit cost instead of global average
-- Fix license page: hide upgrade widget + DEV button for MAX/business plan
-- Security: fix 3 critical vulnerabilities
-- bulk_nadaj: mark orders as wyslana (was nadana, still showed in list)
-- Fix label content + retry loop for shipment labels
-- Fix produkt link in lezaki (#43)
-- Fix produkt link in lezaki (produkty -> produkt)
-- Fix chart + redirect old statystyki-zakupow (#42)
-- Fix chart + redirect old statystyki-zakupow
-- Add Purchase Analytics (Supplier HUD) page (#41)
-- Add Purchase Analytics (Supplier HUD) page
-- Add bulk labels endpoint fallback + better label debug logging
-- Auto-reload page after closing bulk nadaj modal
-- Uncheck orders after successful bulk nadaj
-- Increase label retry: 10 attempts x 5s (was 5 x 3s)
-- Show product name and image in bulk nadaj modal
-- Fix bulk nadaj carrier detection: use CSS class instead of text
-- Add bulk label creation: select orders, choose sizes, nadaj all
-- Fix Urgent Packing: show all orders from DB, not just Allegro API
-- Update license plans: Trial, Pro, Max, Enterprise
-- Security hardening: fix 5 critical/high vulnerabilities
-- Reliability improvements: DB persistence, toasts, retries, logging
-- Default unknown courier orders to DPD badge
-- Add /api/wysylki/backfill-carriers endpoint
-- Add KURIER badge for orders without specific carrier
-- Redesign pakowanie.html: Order Details, Spinner, Ready sections
-- Auto-order pickup for Orlen (free), ask for DPD/DHL
-- Add courier pickup button for DPD/DHL orders
-- Fix badge detection: fallback to address when delivery_method empty
-- Add carrier badges (DPD, DHL, Orlen) + metoda_dostawy column
-- Fix DPD NoneType crash: guard all .get() chains for None values
-- Fix WZA label: use batch endpoint /shipments/labels?shipmentIds=
-- Fix label download: try both endpoints and Accept types
-- Fix TypeError in zamowienie_detail: unhashable type dict
-- Fullautomat: silent print 100x150mm for Vretti 420B
-- Add Fullautomat Scan-to-Print module
-- Shipment reference: location + short product name (ASCII only)
-- Fix shipment referenceNumber: remove Polish chars, use location/order ID
-- Fix START PACKING: search by allegro_order_id in DB fallback
-- Cyberpunk redesign: Allegro Performance page
-- Remove per-route session checks — middleware handles auth
-- Add credentials:same-origin to system update fetch
-- Fix auth middleware: allow logged-in users always, fix ngrok session
-- Fix sync result page styling + add backup integrity verification
-- Security: CSRF tokens on goal forms, hide error details, fix cookie
-- CRITICAL: Block unauthenticated external requests (ngrok exposure)
-- Fix mobile responsive: grids collapse to 2 cols on tablet, 1 col on phone
+- fix: use correct paleta_koszt_szt for profit calculation in Smart Insights
+- feat: add Smart Insights page and automated Telegram alerts
+- feat: add filter buttons on pallet detail (aktywne/szkice/niewystawione/w magazynie)
+- feat: show real Allegro offer status on pallet detail page
+- fix: improve bundle matching with complementary categories and keywords
+- feat: cross-pallet stock count in Telegram sale notifications
+
+## 06.04.2026
+
+- feat: add dedicated Zestawy Allegro page for bundle suggestions
+- feat: add stock column to Allegro Performance and bundle suggestions to product detail
+- fix: filter Amazon cross-selling and store promo from bullet points
+- fix: expand Allegro banned phrases filter for descriptions
+
+## 05.04.2026
+
+- fix: translate English/German titles to Polish before formatting
+- feat: use Google Translate instead of Gemini for product titles
+- fix: edit form shows pallet cost instead of Amazon price for BRUTTO/SZT
+- fix: filter Amazon junk from bullet points before description generation
+- fix: filter Amazon marketing junk from bullet points
+- feat: replace Gemini with programmatic SEO title generation
+- fix: brand at end of title, strip quantities (szt/pack)
+- fix: skip translation for already-Polish Amazon titles
+- feat: auto-scrape Amazon (BS4) when name too short in Regeneruj
+- feat: use BeautifulSoup for Amazon title/bullet scraping
+- fix: strip commas from generated SEO titles
+- fix: use optimize_title_seo as fallback instead of raw nazwa
+- fix: strip ASIN from input before Gemini, remove broken title fallback
+- fix: remove ASIN codes from generated SEO titles
+- fix: improve SEO title generation - inject bullet_points/ASIN into prompt (#114)
+- fix: improve SEO title generation - inject bullet_points/ASIN into prompt
+
+## 03.04.2026
+
+- fix: PhonkBot dashboard opens in same window (kiosk friendly)
+- fix: disable old kiosk.css overrides in kiosk_home.html
+- fix: kiosk fullscreen - override .container max-width:1400px
+- fix: PhonkBot links use dynamic hostname instead of localhost
+- fix: force Gemini to rewrite bullet points, not copy/translate them
+- fix: replace broken emoji placeholders with real emoji
+- fix: batch meta title - skip stale tytul_seo, always use Gemini AI
+- fix: remove fast path in meta title - always use Gemini AI
+
+## 02.04.2026
+
+- fix: kiosk on Pi IP 192.168.100.200 + localhost
+- cleanup: remove kiosk debug logging
+- debug: log kiosk detection - remote, xff, pi_screen
+- fix: kiosk only when accessed from Pi localhost, not remote
+- fix: kiosk only on Pi (Linux ARM) or ?kiosk=1, desktop/mobile get home.html
+- feat: mobile gets home.html, desktop/Pi gets kiosk_home.html
+- fix: kiosk 40px side padding + full width header
+- fix: kiosk full width - calc(100vw - 250px sidebar)
+- fix: kiosk left padding 260px to clear 250px sidebar
+- fix: kiosk padding - keep left space for sidebar, expand right
+- fix: restore kiosk base.html extends + fullscreen content override
+- feat: kiosk fullscreen - standalone layout, no sidebar, wider grid
+- feat: kiosk_home.html as default dashboard after login
+- fix: add /dashboard route + fix all redirects for launcher flow
+- feat: PhonkBot kiosk widget + launcher + proxy routes
+
+## 01.04.2026
+
+- fix: restock alert uses listing date not inventory date (#113)
+- fix: batch dedup for Allegro listings, show total order price, stabilize ngrok (#112)
+
+## 31.03.2026
+
+- feat: winning products â€” badge NOWE + sortowanie po dacie
+- fix: PWA offline â†’ przekierowanie na ngrok URL
+- fix: ngrok start/stop cross-platform + token z env
+- feat: marĹĽa na rÄ™kÄ™ po VAT 23% + PIT liniowy 19%
+- fix: marĹĽa netto % liczona od koszt_palet_msc zamiast COGS
+- feat: marĹĽa netto % na dashboardzie w kaflu Zysk
+- fix: ujednolicenie przychodu w dashboardzie â€” jedna baza dla przychod/prowizja/zysk
+- fix: grupowanie po ASIN+stan + poprawna suma ilosci w streamie
+- feat: parametr Stan (11323) + dedup per condition
+- fix: extract_parameters_with_ai - REST API zamiast SDK google.generativeai
+- fix: usun condition z payloadu product-offers - unsupported property
+- feat: wizualne grupowanie po ASIN w widoku palety
+- fix: condition produktu wysylane do Allegro przy tworzeniu oferty
+- feat: ASIN dedup przy quick-draft - dodaj ilosc do istniejacej oferty Allegro
+- fix: usun cross-pallet dedup - kazda paleta ma wlasne ilosci
+- feat: ASIN/EAN deduplication across pallets + API endpoints
+- security: rate limiting + configurable license URL + path traversal fix
+- fix: remove SENT query - not valid checkout-forms status
+- fix: SENT without date filter, only READY_FOR_PROCESSING with date
+- fix: remove CANCELLED from sync - also returns 400 with date filter
+- fix: remove FILLED/BOUGHT from sync - Allegro returns 400 with date filter
+- debug: log URL/method on Allegro API 400 errors
+- fix: Gemini writes why_new/why_can_sell/risk_flags in Polish
+- fix: revert CSP nonce - breaks onclick handlers across entire app
+- fix: CSP add unsafe-inline fallback for onclick handlers
+
+## 30.03.2026
+
+- security: auto-login LAN toggle + secret encryption + CSP nonce
+- security: fix CSRF, XSS, DB download auth, OLX secret exposure
+- fix: auto-mark orders as 'wyslana' when fulfill=SENT and older than 4h
+- feat: keep all scan history + deduplicate across scans
+- feat: add search, category, paczkomat, margin filters to Scout UI
+- fix: reduce scout cooldown from 30min to 10min
+- feat: inline product thumbnails from DuckDuckGo Images
+- feat: add photo column + image links in table and detail modal
+- fix: blacklist karimaty/sleeping pads - confirmed shit product
+- fix: better Paczkomat size rules - most products fit B/C, NO only for furniture
+- feat: 3-batch Gemini discovery (30 products) + mixed sizes A/B/C/courier
+- fix: strip unsupported HTML tags from Telegram messages
+- feat: auto-generate Alibaba/AliExpress links + image_url + faster scan
+- fix: use print() instead of logger for visible journalctl output
+- fix: increase maxOutputTokens to 8192 + handle truncated JSON
+- fix: ASCII-only Gemini prompt + aggressive JSON cleanup
+- fix: robust JSON parser - strict=False, encoding fix, regex fallback
+- fix: better JSON parsing - log exact errors + fix trailing commas
+- fix: always search Alibaba for link/supplier + add enrichment logging
+- fix: strip markdown code blocks from Gemini JSON response
 

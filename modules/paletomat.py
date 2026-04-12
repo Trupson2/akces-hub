@@ -5548,7 +5548,7 @@ def generator_detail(asin):
         current_product_id=current_product_id,
         product_count=len(magazyn_products),
         brand_name=current_app.config.get('BRAND_NAME', 'Akces Hub'),
-        current_user=session.get('user')
+        current_user=session.get('username')
     )
     
 

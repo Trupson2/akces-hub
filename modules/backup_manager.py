@@ -64,6 +64,26 @@ def create_backup():
 
         print(f"[OK] Backup utworzony i zweryfikowany: {backup_name}")
 
+        # Encrypt backup using Fernet (from database._get_fernet)
+        try:
+            from .database import _get_fernet
+            fernet = _get_fernet()
+            if fernet:
+                with open(str(backup_path), 'rb') as f_in:
+                    plaintext = f_in.read()
+                encrypted = fernet.encrypt(plaintext)
+                enc_path = backup_path.parent / (backup_name + '.enc')
+                with open(str(enc_path), 'wb') as f_out:
+                    f_out.write(encrypted)
+                # Remove unencrypted backup
+                backup_path.unlink()
+                backup_path = enc_path
+                print(f"[OK] Backup zaszyfrowany: {enc_path.name}")
+            else:
+                print("[WARN] Fernet unavailable — backup saved unencrypted")
+        except Exception as e:
+            print(f"[WARN] Encryption failed, backup saved unencrypted: {e}")
+
         # Usuń stare backupy
         cleanup_old_backups()
 
@@ -126,10 +146,12 @@ def sync_to_gdrive(backup_path=None):
 def cleanup_old_backups():
     """Usuwa stare backupy, zostawia tylko MAX_BACKUPS najnowszych"""
     try:
-        # Szukaj zarówno nowych jak i starych backupów
-        all_backups = list(BACKUP_DIR.glob('akces_hub_backup_*.db')) + list(BACKUP_DIR.glob('magazyn_backup_*.db'))
+        # Szukaj zarówno nowych jak i starych backupów (including encrypted .enc)
+        all_backups = (list(BACKUP_DIR.glob('akces_hub_backup_*.db')) +
+                       list(BACKUP_DIR.glob('akces_hub_backup_*.db.enc')) +
+                       list(BACKUP_DIR.glob('magazyn_backup_*.db')))
         backups = sorted(all_backups, key=lambda x: x.stat().st_mtime, reverse=True)
-        
+
         # Usuń backupy powyżej limitu
         for old_backup in backups[MAX_BACKUPS:]:
             old_backup.unlink()
@@ -144,7 +166,9 @@ def get_backups():
     backups = []
     
     # Szukaj zarówno nowych (akces_hub_backup_*) jak i starych (magazyn_backup_*) oraz wgranych (uploaded_*) backupów
-    all_backup_files = (list(BACKUP_DIR.glob('akces_hub_backup_*.db')) + 
+    # Also include encrypted (.enc) backups
+    all_backup_files = (list(BACKUP_DIR.glob('akces_hub_backup_*.db')) +
+                        list(BACKUP_DIR.glob('akces_hub_backup_*.db.enc')) +
                         list(BACKUP_DIR.glob('magazyn_backup_*.db')) +
                         list(BACKUP_DIR.glob('uploaded_*.db')))
     
@@ -167,10 +191,31 @@ def restore_backup(backup_filename):
     
     try:
         backup_path = BACKUP_DIR / backup_filename
-        
+
         if not backup_path.exists():
             return False, f"Backup nie istnieje: {backup_filename}"
-        
+
+        # Decrypt .enc backup to temporary file first
+        _temp_decrypted = None
+        if str(backup_path).endswith('.enc'):
+            try:
+                from .database import _get_fernet
+                fernet = _get_fernet()
+                if not fernet:
+                    return False, "Cannot decrypt backup: Fernet encryption unavailable"
+                with open(str(backup_path), 'rb') as f_enc:
+                    encrypted_data = f_enc.read()
+                decrypted_data = fernet.decrypt(encrypted_data)
+                _temp_decrypted = BACKUP_DIR / f"_temp_restore_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
+                with open(str(_temp_decrypted), 'wb') as f_dec:
+                    f_dec.write(decrypted_data)
+                backup_path = _temp_decrypted
+                print(f"[OK] Backup odszyfrowany tymczasowo: {_temp_decrypted.name}")
+            except Exception as e:
+                if _temp_decrypted and _temp_decrypted.exists():
+                    _temp_decrypted.unlink(missing_ok=True)
+                return False, f"Decryption failed: {str(e)[:100]}"
+
         # Sprawdź czy backup jest poprawny przed przywracaniem
         try:
             test_conn = sqlite3.connect(str(backup_path))
@@ -226,6 +271,10 @@ def restore_backup(backup_filename):
         error_msg = f"Błąd przywracania: {str(e)}"
         print(f"[ERR] {error_msg}")
         return False, error_msg
+    finally:
+        # Clean up temporary decrypted file
+        if _temp_decrypted and _temp_decrypted.exists():
+            _temp_decrypted.unlink(missing_ok=True)
 
 def verify_backup(backup_filename):
     """Sprawdza integralność backupu"""

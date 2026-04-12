@@ -222,7 +222,7 @@ def warehouse_shelf_view(code):
         total_items=total_items,
         brand_name='AKCES HUB',
         version='4.0',
-        current_user=session.get('user', 'admin')
+        current_user=session.get('username', 'admin')
     )
 
     # OLD INLINE HTML (kept for reference, dead code below)

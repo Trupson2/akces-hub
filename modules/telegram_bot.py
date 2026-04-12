@@ -532,7 +532,7 @@ def render(content, page_title='Powiadomienia'):
         content=content,
         version=current_app.config.get('VERSION',''),
         brand_name=current_app.config.get('BRAND_NAME','Akces Hub'),
-        current_user=session.get('user'))
+        current_user=session.get('username'))
 
 # ============================================================
 # ROUTES
