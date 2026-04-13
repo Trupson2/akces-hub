@@ -5715,28 +5715,17 @@ def poziom_page():
     year_start = f'{year}-01-01'
     month_start = datetime.now().strftime('%Y-%m-01')
 
-    # Przychód z Allegro (bez offline, bez zwrotów)
+    # Przychód z wszystkich źródeł (Allegro + offline, bez zwrotów/anulowanych)
     row = conn.execute('''
         SELECT
-            COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? AND status NOT IN ('zwrot','anulowane','anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline') THEN cena * ilosc ELSE 0 END), 0) as rok,
-            COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? AND status NOT IN ('zwrot','anulowane','anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline') THEN cena * ilosc ELSE 0 END), 0) as msc
+            COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? AND COALESCE(status,'') NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc ELSE 0 END), 0) as rok,
+            COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? AND COALESCE(status,'') NOT IN ('zwrot','anulowane','anulowana') THEN cena * ilosc ELSE 0 END), 0) as msc
         FROM sprzedaze
     ''', (year_start, month_start)).fetchone()
     przychod_rok = float(row['rok'] or 0)
     przychod_msc = float(row['msc'] or 0)
 
-    # + sprzedaże prywatne (offline) z osobnej tabeli
-    try:
-        row_pryw = conn.execute('''
-            SELECT
-                COALESCE(SUM(CASE WHEN date(data) >= ? THEN kwota ELSE 0 END), 0) as rok,
-                COALESCE(SUM(CASE WHEN date(data) >= ? THEN kwota ELSE 0 END), 0) as msc
-            FROM sprzedaze_prywatne
-        ''', (year_start, month_start)).fetchone()
-        przychod_rok += float(row_pryw['rok'] or 0)
-        przychod_msc += float(row_pryw['msc'] or 0)
-    except:
-        pass
+    # sprzedaze_prywatne NIE dodajemy — offline jest już w sprzedaze jako status='sprzedana'
 
     # Palety w tym roku
     row3 = conn.execute('''
