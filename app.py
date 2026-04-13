@@ -2315,9 +2315,20 @@ def system_gemini_model():
 
 @app.route('/system/update', methods=['POST'])
 def system_update():
-    """Git pull + restart serwisu z poziomu apki"""
+    """Backup + Git pull + restart serwisu z poziomu apki"""
     import subprocess
     try:
+        # BACKUP PRZED AKTUALIZACJĄ
+        try:
+            from modules.backup_manager import create_backup
+            backup_result = create_backup()
+            if backup_result:
+                print(f"[OK] Pre-update backup: {backup_result}")
+            else:
+                print("[WARN] Pre-update backup failed — continuing update anyway")
+        except Exception as e:
+            print(f"[WARN] Pre-update backup error: {e}")
+
         # Git pull
         result = subprocess.run(
             ['git', 'pull'], capture_output=True, text=True, timeout=30,
