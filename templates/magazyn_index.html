@@ -205,7 +205,7 @@
 </div>
 
 {% for p in products %}
-{% set img = p.zdjecie_url or "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='45' height='45'%3E%3Crect fill='%2312121a' width='45' height='45'/%3E%3Ctext x='22' y='28' fill='%23555' text-anchor='middle' font-size='12'%3EIMG%3C/text%3E%3C/svg%3E" %}
+{% set img = p._resolved_img or p.zdjecie_url or "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='45' height='45'%3E%3Crect fill='%2312121a' width='45' height='45'/%3E%3Ctext x='22' y='28' fill='%23555' text-anchor='middle' font-size='12'%3EIMG%3C/text%3E%3C/svg%3E" %}
 {% set _ean = p.ean if p.ean and p.ean|upper not in ['N/A','NAN','NONE'] else '' %}
 {% set display_code = _ean or p.asin or ('#' ~ p.id) %}
 {% set pcode = p.kod_magazynowy or p.id %}
