@@ -50,6 +50,54 @@ def get_produkt_by_code(conn, code):
         (c, c)).fetchone()
 
 
+_PLACEHOLDER_IMG_SM = 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2790%27 height=%2790%27%3E%3Crect fill=%27%23262528%27 width=%2790%27 height=%2790%27 rx=%278%27/%3E%3Ctext x=%2745%27 y=%2752%27 fill=%27%23767577%27 text-anchor=%27middle%27 font-size=%2728%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
+
+def _resolve_product_image(p, size='sm'):
+    """Rozwiąż URL zdjęcia produktu z pełnym fallback chain.
+
+    Kolejność: zdjecie_url → images JSON → ASIN folder → placeholder.
+    size: 'sm' (lista 90px) lub 'lg' (detal).
+    """
+    img = p.get('zdjecie_url') or '' if hasattr(p, 'get') else (p['zdjecie_url'] if 'zdjecie_url' in p.keys() else '')
+
+    # Waliduj lokalne ścieżki
+    if img and img.startswith('/static/downloads/'):
+        if not os.path.exists(img.lstrip('/')):
+            img = ''
+
+    # Fallback: kolumna images (JSON array lokalnych plików)
+    if not img:
+        _images_raw = p.get('images', '[]') if hasattr(p, 'get') else (p['images'] if 'images' in p.keys() else '[]')
+        if _images_raw:
+            try:
+                _imgs = json.loads(_images_raw) if isinstance(_images_raw, str) else _images_raw
+                if _imgs and len(_imgs) > 0:
+                    first_img = _imgs[0]
+                    if first_img.startswith('static/'):
+                        img = '/' + first_img
+                    else:
+                        img = first_img
+            except Exception:
+                pass
+
+    # Fallback: szukaj lokalnego pliku po ASIN
+    if not img:
+        _asin = p.get('asin', '') if hasattr(p, 'get') else (p['asin'] if 'asin' in p.keys() else '')
+        if _asin:
+            local_path = f"static/downloads/{_asin}/image_1.jpg"
+            if os.path.exists(local_path):
+                img = '/' + local_path
+
+    # Ostateczny placeholder
+    if not img:
+        if size == 'lg':
+            img = 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27400%27 height=%27180%27%3E%3Crect fill=%27%2312121a%27 width=%27400%27 height=%27180%27/%3E%3Ctext x=%27200%27 y=%2795%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2718%27%3EBRAK ZDJECIA%3C/text%3E%3C/svg%3E'
+        else:
+            img = _PLACEHOLDER_IMG_SM
+
+    return img
+
+
 def _format_stan_label(stan_przyjecia, klasa_jakosci):
     """Formatuj stan na etykietę: A/Nowy, B/Powystawowy itp."""
     stan = (stan_przyjecia or '').strip()
@@ -412,6 +460,9 @@ def index():
     products = conn.execute('SELECT * FROM produkty ORDER BY data_dodania DESC LIMIT 10').fetchall()
     # Convert Row objects to dicts for Jinja2 template access
     products = [dict(p) for p in products]
+    # Rozwiąż obrazki z pełnym fallback chain (images JSON, ASIN folder, placeholder)
+    for p in products:
+        p['_resolved_img'] = _resolve_product_image(p, size='sm')
     return render_template(
         'magazyn_index.html',
         stats=s,
@@ -843,7 +894,7 @@ def produkty():
     html += '<div style="display:flex;flex-direction:column;gap:12px">'
 
     for p in products:
-        img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2790%27 height=%2790%27%3E%3Crect fill=%27%23262528%27 width=%2790%27 height=%2790%27 rx=%278%27/%3E%3Ctext x=%2745%27 y=%2752%27 fill=%27%23767577%27 text-anchor=%27middle%27 font-size=%2728%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
+        img = _resolve_product_image(p, size='sm')
         pcode = get_product_code(p)
         _km = p['kod_magazynowy'] if p['kod_magazynowy'] else f"#{p['id']}"
         _ean_clean = p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else ''
@@ -1082,32 +1133,7 @@ def produkt(code):
                 p['paleta'] = _pal['nazwa']
 
     product_code = get_product_code(p) if not is_new else code
-    img = p['zdjecie_url'] or ''
-    # Jeśli lokalna ścieżka nie istnieje, wyczyść
-    if img and img.startswith('/static/downloads/'):
-        import os
-        if not os.path.exists(img.lstrip('/')):
-            img = ''
-    # Fallback: jeśli brak zdjecie_url, spróbuj z kolumny images (lokalne pliki)
-    if not img and p.get('images'):
-        try:
-            _imgs = json.loads(p['images']) if isinstance(p['images'], str) else p['images']
-            if _imgs and len(_imgs) > 0:
-                first_img = _imgs[0]
-                if first_img.startswith('static/'):
-                    img = '/' + first_img
-                else:
-                    img = first_img
-        except:
-            pass
-    # Fallback: szukaj lokalnego pliku po ASIN
-    if not img and p.get('asin'):
-        import os
-        local_path = f"static/downloads/{p['asin']}/image_1.jpg"
-        if os.path.exists(local_path):
-            img = '/' + local_path
-    if not img:
-        img = 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27400%27 height=%27180%27%3E%3Crect fill=%27%2312121a%27 width=%27400%27 height=%27180%27/%3E%3Ctext x=%27200%27 y=%2795%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2718%27%3EBRAK ZDJECIA%3C/text%3E%3C/svg%3E'
+    img = _resolve_product_image(p, size='lg')
 
     # Koszt brutto/szt = własna cena produktu (jednostkowa z importu)
     # Fallback na średnią z palety tylko gdy produkt nie ma własnej ceny
@@ -1708,11 +1734,11 @@ def szukaj():
     html = f'''<div class="hdr"><h1><span class=material-symbols-outlined>search</span> WYNIKI</h1><small>"{_esc(q)}"</small></div>'''
     
     for r in results:
-        img = r['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
+        img = _resolve_product_image(r, size='sm')
         pcode = get_product_code(r)
         display_code = r['ean'] or r['asin'] or f"#{r['id']}"
         html += f'''<a href="/magazyn/produkt/{pcode}" class="item">
-            <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
+            <img src="{img}" onerror="this.src='{_PLACEHOLDER_IMG_SM}'">
             <div class="item-info">
                 <div class="item-name">{r['nazwa']}</div>
                 <div class="item-meta">{display_code}</div>
@@ -3925,7 +3951,7 @@ def paleta_detail_by_id(paleta_id):
     html += '<div style="display:flex;flex-direction:column;gap:10px">'
 
     for p in products:
-        img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2790%27 height=%2790%27%3E%3Crect fill=%27%23262528%27 width=%2790%27 height=%2790%27 rx=%278%27/%3E%3Ctext x=%2745%27 y=%2752%27 fill=%27%23767577%27 text-anchor=%27middle%27 font-size=%2728%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
+        img = _resolve_product_image(p, size='sm')
         pcode = get_product_code(p)
         _ean_c = p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else ''
         display_code = _ean_c or p['asin'] or f"#{p['id']}"
@@ -4276,11 +4302,11 @@ def paleta_detail(n):
         html += '</div>'
     
     for p in products:
-        img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
+        img = _resolve_product_image(p, size='sm')
         pcode = get_product_code(p)
         _ean_c = p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else ''
         display_code = _ean_c or p['asin'] or f"#{p['id']}"
-        
+
         # Cena zakupu produktu ZA SZTUKĘ (cena_netto/cena_brutto w bazie JUŻ są jednostkowe!)
         cena_za_sztuke = p['cena_netto'] if p['cena_netto'] and p['cena_netto'] > 0 else (p['cena_brutto'] or 0)
         
@@ -4681,12 +4707,12 @@ def dostawca_detail(n):
     html = f'''<div class="hdr"><h1><span class=material-symbols-outlined>local_shipping</span> {nazwa_dostawcy}</h1><small>{len(products)} produktów</small></div>'''
     
     for p in products:
-        img = p['zdjecie_url'] or 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'
+        img = _resolve_product_image(p, size='sm')
         pcode = get_product_code(p)
         _ean_c = p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else ''
         display_code = _ean_c or p['asin'] or f"#{p['id']}"
         html += f'''<a href="/magazyn/produkt/{pcode}" class="item">
-            <img src="{img}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2745%27 height=%2745%27%3E%3Crect fill=%27%2312121a%27 width=%2745%27 height=%2745%27/%3E%3Ctext x=%2722%27 y=%2728%27 fill=%27%23555%27 text-anchor=%27middle%27 font-size=%2716%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
+            <img src="{img}" onerror="this.src='{_PLACEHOLDER_IMG_SM}'">
             <div class="item-info">
                 <div class="item-name">{p['nazwa'][:30]}...</div>
                 <div class="item-meta">{display_code} | <span class=material-symbols-outlined>inventory_2</span> {p['paleta'] or '—'}</div>
