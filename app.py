@@ -5718,8 +5718,18 @@ def poziom_page():
     przychod_rok = float(row['rok'] or 0)
     przychod_msc = float(row['msc'] or 0)
 
-    # NOTE: sprzedaze_prywatne nie dodajemy — offline sales są już w tabeli sprzedaze
-    # (kupujacy='offline'). Dodanie sprzedaze_prywatne powodowalo podwojne liczenie.
+    # + sprzedaże prywatne (offline) z osobnej tabeli
+    try:
+        row_pryw = conn.execute('''
+            SELECT
+                COALESCE(SUM(CASE WHEN date(data) >= ? THEN kwota ELSE 0 END), 0) as rok,
+                COALESCE(SUM(CASE WHEN date(data) >= ? THEN kwota ELSE 0 END), 0) as msc
+            FROM sprzedaze_prywatne
+        ''', (year_start, month_start)).fetchone()
+        przychod_rok += float(row_pryw['rok'] or 0)
+        przychod_msc += float(row_pryw['msc'] or 0)
+    except:
+        pass
 
     # Palety w tym roku
     row3 = conn.execute('''
