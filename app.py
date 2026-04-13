@@ -5715,6 +5715,7 @@ def poziom_page():
     year_start = f'{year}-01-01'
     month_start = datetime.now().strftime('%Y-%m-01')
 
+    # Wszystkie sprzedaże (Allegro + offline w jednej tabeli)
     row = conn.execute('''
         SELECT
             COALESCE(SUM(CASE WHEN date(data_sprzedazy) >= ? AND COALESCE(status,'') NOT IN ('zwrot','anulowane','anulowana','') THEN cena * ilosc ELSE 0 END), 0) as rok,
@@ -5724,18 +5725,8 @@ def poziom_page():
     przychod_rok = float(row['rok'] or 0)
     przychod_msc = float(row['msc'] or 0)
 
-    # + sprzedaże prywatne (offline) z osobnej tabeli
-    try:
-        row_pryw = conn.execute('''
-            SELECT
-                COALESCE(SUM(CASE WHEN date(data) >= ? THEN kwota ELSE 0 END), 0) as rok,
-                COALESCE(SUM(CASE WHEN date(data) >= ? THEN kwota ELSE 0 END), 0) as msc
-            FROM sprzedaze_prywatne
-        ''', (year_start, month_start)).fetchone()
-        przychod_rok += float(row_pryw['rok'] or 0)
-        przychod_msc += float(row_pryw['msc'] or 0)
-    except:
-        pass  # tabela nie istnieje — ok
+    # NOTE: sprzedaze_prywatne nie dodajemy — offline sales są już w tabeli sprzedaze
+    # (kupujacy='offline'). Dodanie sprzedaze_prywatne powodowalo podwojne liczenie.
 
     # Palety w tym roku
     row3 = conn.execute('''
