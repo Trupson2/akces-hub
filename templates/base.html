@@ -125,7 +125,7 @@ if('serviceWorker' in navigator){
             else{r.update();}
         });
     });
-    navigator.serviceWorker.register('/sw.js?v=5', {scope: '/'}).then(function(reg){
+    navigator.serviceWorker.register('/sw.js?v=6', {scope: '/'}).then(function(reg){
         reg.update();
         // Gdy nowy SW jest gotowy, aktywuj go od razu
         reg.addEventListener('updatefound',function(){
