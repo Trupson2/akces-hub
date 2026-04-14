@@ -451,13 +451,86 @@ footer a { color: var(--text-muted); text-decoration: none; transition: color 0.
 footer a:hover { color: var(--text); }
 .footer-links { display: flex; gap: 1.5rem; justify-content: center; margin-top: 0.75rem; }
 
-/* ===== UTILITIES ===== */
-@media (max-width: 480px) {
-  section { padding: 4rem 0; }
-  .hero-content { padding: 1rem; }
-  .pricing-grid { grid-template-columns: 1fr; }
-  .price-card.featured { transform: scale(1); }
+/* ===== MOBILE OPTIMIZATION ===== */
+@media (max-width: 768px) {
+  section { padding: 3.5rem 0; }
+  .container { padding: 0 1rem; }
+  nav { padding: 0.75rem 1rem; }
+  .nav-logo { font-size: 1.1rem; }
+
+  /* Hero */
+  .hero { padding-top: 6rem; min-height: auto; padding-bottom: 3rem; }
+  .hero-content { padding: 1.5rem 1rem; }
+  .hero-badge { font-size: 0.7rem; padding: 0.3rem 0.8rem; margin-bottom: 1rem; }
+  .hero h1 { font-size: 1.8rem !important; line-height: 1.15; margin-bottom: 1rem; }
+  .hero p { font-size: 0.95rem; margin-bottom: 1.5rem; }
+  .hero-buttons { gap: 0.6rem; }
+  .btn { padding: 0.7rem 1.3rem; font-size: 0.9rem; }
+
+  /* Section titles */
+  .section-title { font-size: 1.6rem !important; margin-bottom: 0.8rem; }
+  .section-sub { font-size: 0.95rem; margin-bottom: 2rem; }
+  .section-label { font-size: 0.7rem; letter-spacing: 1.5px; }
+
+  /* Cards */
+  .pain-card, .feature-card { padding: 1.4rem; }
+  .feature-card h3 { font-size: 1rem; }
+  .feature-card p, .pain-card p { font-size: 0.85rem; }
+  .feature-card .icon, .pain-card .icon { font-size: 1.6rem; margin-bottom: 0.75rem; }
+
+  /* Lifetime box */
+  .lifetime-box { padding: 1.25rem; margin-bottom: 2rem; }
+  .lifetime-badge { font-size: 0.65rem; padding: 0.3rem 0.75rem; margin-bottom: 1rem; }
+  .lifetime-title { font-size: 1.5rem !important; margin-bottom: 0.5rem; }
+  .lifetime-desc { font-size: 0.85rem; margin-bottom: 1rem; }
+  .lifetime-features li { font-size: 0.8rem; padding: 0.3rem 0; }
+  .lifetime-right { padding: 1.25rem 1rem; }
+  .lifetime-price-old { font-size: 1rem; }
+  .lifetime-price { font-size: 2.5rem; }
+  .lifetime-price-sub { font-size: 0.75rem; margin-bottom: 1rem; }
+
+  /* Pricing */
+  .pricing-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .price-card { padding: 1.75rem 1.25rem; }
+  .price-card.featured { transform: none; }
   .price-card.featured:hover { transform: translateY(-4px); }
+  .price-card h3 { font-size: 1.1rem; }
+  .price-amount { font-size: 2.2rem; }
+  .price-card li { font-size: 0.85rem; padding: 0.35rem 0; }
+  .pricing-or { margin: 1.5rem 0; font-size: 0.75rem; }
+
+  /* Steps */
+  .step { padding: 1rem; }
+  .step-number { width: 44px; height: 44px; font-size: 1.1rem; margin-bottom: 0.8rem; }
+  .step h3 { font-size: 1rem; }
+  .step p { font-size: 0.85rem; }
+
+  /* Comparison */
+  .comparison th, .comparison td { padding: 0.7rem 0.8rem; font-size: 0.8rem; }
+
+  /* FAQ */
+  .faq-q { font-size: 0.95rem; padding: 1rem 0; }
+  .faq-a p { font-size: 0.85rem; }
+
+  /* Contact */
+  .contact-form input, .contact-form textarea { padding: 0.75rem 1rem; font-size: 0.95rem; }
+
+  /* Footer */
+  footer { padding: 1.75rem 0; font-size: 0.75rem; }
+}
+
+@media (max-width: 480px) {
+  section { padding: 2.5rem 0; }
+  .hero h1 { font-size: 1.55rem !important; }
+  .hero p { font-size: 0.9rem; }
+  .section-title { font-size: 1.4rem !important; }
+  .hero-buttons { flex-direction: column; width: 100%; }
+  .hero-buttons .btn { width: 100%; justify-content: center; }
+  .lifetime-price { font-size: 2.2rem; }
+  .lifetime-title { font-size: 1.3rem !important; }
+  .price-amount { font-size: 1.9rem; }
+  .feature-card { padding: 1.2rem; }
+  .nav-links a.nav-login { padding: 0.4rem 0.9rem; font-size: 0.85rem; }
 }
 </style>
 </head>
