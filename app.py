@@ -2382,17 +2382,54 @@ def monitor_toggle_source():
         return redirect(f'/monitor?msg={source.title()}+{state}')
     return redirect('/monitor')
 
+def _validate_csrf_or_abort():
+    """Belt-and-suspenders CSRF — explicit check wewnatrz krytycznych routow.
+    Nie polegamy TYLKO na before_request middleware — druga warstwa ochrony
+    przed regresja jesli middleware zostanie kiedys zmienione/wylaczone.
+
+    Sprawdza X-CSRFToken header (AJAX), form 'csrf_token', lub same-origin Referer.
+    Abort(403) jesli brak.
+    """
+    # Pomin w trybie testowym (testy maja WTF_CSRF_ENABLED=False)
+    if os.environ.get('AKCES_TEST_MODE') == '1':
+        return
+    token = (request.headers.get('X-CSRFToken')
+             or request.headers.get('X-CSRF-Token')
+             or (request.form.get('csrf_token') if request.form else None)
+             or (request.get_json(silent=True) or {}).get('csrf_token'))
+    if token:
+        try:
+            from flask_wtf.csrf import validate_csrf
+            validate_csrf(token)
+            return  # OK
+        except Exception:
+            from flask import abort
+            abort(403, description='CSRF token nieprawidlowy lub wygasl')
+    # Brak tokena — sprobuj same-origin Referer fallback
+    referer = request.headers.get('Referer', '')
+    host = request.host_url
+    if not (referer.startswith(host) or referer.startswith(host.replace('http://', 'https://'))):
+        from flask import abort
+        abort(403, description='CSRF: brak tokena i nieprawidlowy Referer')
+
+
 @app.route('/system/gemini-model', methods=['POST'])
 @require_admin
 def system_gemini_model():
-    """Szybka zmiana modelu Gemini AI — tylko admin (koszty API)."""
-    from modules.database import get_config, set_config
+    """Szybka zmiana modelu Gemini AI — tylko admin (koszty API).
+    CSRF + audit log (kto zmienil model, kiedy, z jakiego IP)."""
+    _validate_csrf_or_abort()
+    from modules.database import get_config, set_config, log_admin_action
     data = request.get_json(silent=True) or {}
     model = data.get('model', '')
     allowed = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3.1-flash-lite-preview', 'gemini-3.1-pro-preview']
     if model not in allowed:
+        log_admin_action('system_gemini_model', {'attempted_model': model}, success=False,
+                         error_message=f'Nieznany model: {model}')
         return jsonify({'ok': False, 'error': f'Nieznany model: {model}'})
+    old_model = get_config('gemini_model', '')
     set_config('gemini_model', model)
+    log_admin_action('system_gemini_model', {'old': old_model, 'new': model}, success=True)
     return jsonify({'ok': True, 'model': model})
 
 
@@ -2400,8 +2437,19 @@ def system_gemini_model():
 @require_admin
 def system_update():
     """Backup + Git pull + restart serwisu z poziomu apki.
-    TYLKO admin — git pull + systemctl restart = RCE jeśli ktoś przejmie sesję usera.
-    Autoryzacja serwerowa przez @require_admin (twarde sprawdzenie, nie polegaj na UI)."""
+
+    Security layers:
+    1. @require_admin — JSON-aware serwerowy admin check (401/403)
+    2. _validate_csrf_or_abort() — explicit CSRF check (belt-and-suspenders
+       poza before_request middleware)
+    3. log_admin_action() — audit log (user_id, timestamp, IP, UA, success)
+    4. POST-only (GET -> 405)
+
+    TYLKO admin — git pull + systemctl restart = RCE jesli ktos przejmie
+    sesje usera. NIE polegaj na ukrywaniu przycisku w UI.
+    """
+    _validate_csrf_or_abort()
+    from modules.database import log_admin_action
     import subprocess
     try:
         # BACKUP PRZED AKTUALIZACJĄ
@@ -2422,6 +2470,8 @@ def system_update():
         )
         pull_output = result.stdout.strip()
         if result.returncode != 0:
+            log_admin_action('system_update', {'stage': 'git_pull'}, success=False,
+                             error_message=f'Git pull failed: {result.stderr[:200]}')
             return jsonify({'ok': False, 'error': f'Git pull failed: {result.stderr[:200]}'})
 
         if 'Already up to date' in pull_output:
@@ -2446,6 +2496,7 @@ def system_update():
                     os.execv(sys.executable, [sys.executable] + sys.argv)
                 except Exception:
                     pass
+            log_admin_action('system_update', {'stage': 'already_up_to_date', 'restart': True}, success=True)
             threading.Thread(target=_force_restart, daemon=True).start()
             return jsonify({'ok': True, 'msg': 'Już aktualne — restart za chwilę...'})
 
@@ -2538,11 +2589,22 @@ def system_update():
                 os.execv(sys.executable, [sys.executable] + sys.argv)
             except Exception:
                 pass
+        log_admin_action('system_update', {
+            'stage': 'updated',
+            'commit_hash': commit_hash,
+            'commit_msg': commit_msg[:200],
+            'pull_output': pull_output[:500],
+            'restart': True,
+        }, success=True)
         threading.Thread(target=_delayed_restart, daemon=True).start()
         return jsonify({'ok': True, 'msg': f'Zaktualizowano! {pull_output[:100]}. Restart za chwilę...'})
     except subprocess.TimeoutExpired:
+        log_admin_action('system_update', {'stage': 'timeout'}, success=False,
+                         error_message='Timeout — brak polaczenia z internetem')
         return jsonify({'ok': False, 'error': 'Timeout — sprawdź połączenie z internetem'})
     except Exception as e:
+        log_admin_action('system_update', {'stage': 'exception'}, success=False,
+                         error_message=str(e)[:500])
         return jsonify({'ok': False, 'error': str(e)[:200]})
 
 # ============================================================

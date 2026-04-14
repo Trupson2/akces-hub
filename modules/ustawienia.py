@@ -1232,11 +1232,18 @@ def admin_update_git():
 
 @ustawienia_bp.route('/admin/update', methods=['POST'])
 def admin_update():
-    """Aktualizacja systemu -- upload ZIP + backup + rozpakowanie + restart"""
+    """Aktualizacja systemu -- upload ZIP + backup + rozpakowanie + restart.
+    TYLKO admin. Logowanie do audit logu: kto, kiedy, z jakiego IP, czy sukces."""
     import subprocess, zipfile, shutil
     from html import escape
+    try:
+        from modules.database import log_admin_action
+    except Exception:
+        log_admin_action = lambda *a, **k: None
 
     if session.get('rola') != 'admin':
+        log_admin_action('admin_update_zip', {'reason': 'not_admin'}, success=False,
+                         error_message='Brak uprawnien')
         return 'Brak uprawnien', 403
 
     page_style = 'background:#0a0a0f;color:#e2e8f0;font-family:monospace;padding:40px;white-space:pre-wrap'
@@ -1303,18 +1310,27 @@ def admin_update():
                 if os.path.isabs(member.filename) or member.filename.startswith(('/', '\\')):
                     shutil.rmtree(tmp_dir, ignore_errors=True)
                     logs.append(f'  -> BLAD: Absolute path w ZIP: {member.filename}')
+                    log_admin_action('admin_update_zip',
+                                     {'attack': 'zip_slip_absolute', 'filename': member.filename[:200]},
+                                     success=False, error_message='Absolute path w ZIP')
                     return page('Blad: Niebezpieczny ZIP (absolute path)', '#ef4444')
                 # Odrzuć ścieżki które wychodzą poza tmp_dir ("../../../")
                 target = os.path.realpath(os.path.join(tmp_dir, member.filename))
                 if os.path.commonpath([_tmp_real, target]) != _tmp_real:
                     shutil.rmtree(tmp_dir, ignore_errors=True)
                     logs.append(f'  -> BLAD: Path traversal w ZIP: {member.filename}')
+                    log_admin_action('admin_update_zip',
+                                     {'attack': 'zip_slip_traversal', 'filename': member.filename[:200]},
+                                     success=False, error_message='Path traversal w ZIP')
                     return page('Blad: Niebezpieczny ZIP (path traversal)', '#ef4444')
                 # Odrzuć symlinki (mogą wskazywać poza tmp_dir)
                 # external_attr high bits = Unix mode; 0o120000 == symlink
                 if (member.external_attr >> 16) & 0o170000 == 0o120000:
                     shutil.rmtree(tmp_dir, ignore_errors=True)
                     logs.append(f'  -> BLAD: Symlink w ZIP: {member.filename}')
+                    log_admin_action('admin_update_zip',
+                                     {'attack': 'zip_slip_symlink', 'filename': member.filename[:200]},
+                                     success=False, error_message='Symlink w ZIP')
                     return page('Blad: Niebezpieczny ZIP (symlink)', '#ef4444')
             # Walidacja przeszła — extractall jest teraz bezpieczny
             zf.extractall(tmp_dir)
@@ -1356,6 +1372,7 @@ def admin_update():
                 updated += 1
 
         logs.append(f'  -> Skopiowano {updated} plikow')
+        log_admin_action('admin_update_zip', {'files_updated': updated}, success=True)
 
         # Cleanup tmp
         shutil.rmtree(tmp_dir, ignore_errors=True)

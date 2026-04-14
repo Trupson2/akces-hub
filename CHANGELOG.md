@@ -1,13 +1,32 @@
 # Historia zmian (auto-generated)
 
+## 15.04.2026
+
+- security: Phase 1 critical hardening â€” access control, proxy trust, zip-slip
+
 ## 14.04.2026
 
-- fix: mobile zostaje na home.html (nie kiosk) + wieksze fonty/KPI/przyciski pod kciuk
-- fix: mobile dostaje kiosk_home.html (user-agent detect) + responsive CSS dla kioska
-- feat: replace ngrok widget in kiosk with Cloudflare Tunnel status (app.akceshub.com)
-- fix: kiosk mode triggering on mobile through Cloudflare Tunnel (localhost false positive)
-- feat: landing page with Lifetime Early Bird + SaaS tiers + Enterprise contact
-- perf: switch from Flask dev server to waitress (produkcyjny WSGI) — stabilność
+- fix: mobile zostaje na home.html (pelny dashboard) + wieksze UI
+- fix: kiosk mobile â€” przywroc sidebar jako slide-out drawer (pelna funkcjonalnosc)
+- fix: kiosk mobile â€” force-remove sidebar via inline script (cache-proof)
+- fix: mobile dostaje kiosk_home.html zamiast home.html (user complaint: za male)
+- feat: kiosk widget â€” ngrok â†’ Cloudflare Tunnel (app.akceshub.com)
+- landing: optimize UI sizes for mobile (<=768px and <=480px)
+- fix: kiosk mode on mobile through Cloudflare Tunnel + update landing
+- perf: switch to waitress WSGI server instead of Flask dev server
+- fix: disable license heartbeat blocking - no dedicated license server
+- fix: harden license middleware - catch all exceptions, not just ImportError
+
+## 13.04.2026
+
+- fix: zdjecia nie wyswietlaja sie na liscie produktow - pelny fallback chain
+- fix: level shows 167K - include all sales except zwrot/anulowana, no double counting
+- fix: restore sprzedaze_prywatne in level calculation (was 145K, should be ~157K)
+- fix: restore offline filter in level - count only Allegro sales (~170K not 178K)
+- fix: remove double-counting of offline sales in level calculation
+- fix: include offline sales in poziom/level calculation
+- fix: group multi-item orders into single Telegram notification
+- feat: auto-backup before system update (git pull)
 
 ## 12.04.2026
 
@@ -113,26 +132,4 @@
 - fix: SENT without date filter, only READY_FOR_PROCESSING with date
 - fix: remove CANCELLED from sync - also returns 400 with date filter
 - fix: remove FILLED/BOUGHT from sync - Allegro returns 400 with date filter
-- debug: log URL/method on Allegro API 400 errors
-- fix: Gemini writes why_new/why_can_sell/risk_flags in Polish
-- fix: revert CSP nonce - breaks onclick handlers across entire app
-- fix: CSP add unsafe-inline fallback for onclick handlers
-
-## 30.03.2026
-
-- security: auto-login LAN toggle + secret encryption + CSP nonce
-- security: fix CSRF, XSS, DB download auth, OLX secret exposure
-- fix: auto-mark orders as 'wyslana' when fulfill=SENT and older than 4h
-- feat: keep all scan history + deduplicate across scans
-- feat: add search, category, paczkomat, margin filters to Scout UI
-- fix: reduce scout cooldown from 30min to 10min
-- feat: inline product thumbnails from DuckDuckGo Images
-- feat: add photo column + image links in table and detail modal
-- fix: blacklist karimaty/sleeping pads - confirmed shit product
-- fix: better Paczkomat size rules - most products fit B/C, NO only for furniture
-- feat: 3-batch Gemini discovery (30 products) + mixed sizes A/B/C/courier
-- fix: strip unsupported HTML tags from Telegram messages
-- feat: auto-generate Alibaba/AliExpress links + image_url + faster scan
-- fix: use print() instead of logger for visible journalctl output
-- fix: increase maxOutputTokens to 8192 + handle truncated JSON
 

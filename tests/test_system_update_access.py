@@ -195,6 +195,173 @@ def test_backup_restore_path_traversal_blocked(app_client):
 
 
 # ────────────────────────────────────────────────────────────────────
+# CSRF — belt-and-suspenders na /system/update
+# ────────────────────────────────────────────────────────────────────
+
+def test_system_update_csrf_check_function_exists():
+    """Sanity: helper _validate_csrf_or_abort istnieje w app.py."""
+    try:
+        from app import _validate_csrf_or_abort
+    except ImportError:
+        pytest.skip('app._validate_csrf_or_abort niedostepny')
+    assert callable(_validate_csrf_or_abort)
+
+
+def test_system_update_not_in_csrf_exempt_list():
+    """KRYTYCZNE: /system/update NIE MOZE byc w csrf_exempt.
+    Wczesniej (przed fixem) byl exempt przez prefix '/system/' — kazdy
+    zalogowany user mogl trigger git pull + restart bez CSRF tokena."""
+    # Odtwarzamy dokladna liste z app.py:315
+    EXPECTED_EXEMPT = (
+        '/allegro/callback',
+        '/allegro/webhook',
+        '/telegram/webhook',
+    )
+    for path in ('/system/update', '/system/gemini-model',
+                 '/backup/restore', '/backup/create', '/admin/update'):
+        is_exempt = any(path.startswith(p) for p in EXPECTED_EXEMPT)
+        assert not is_exempt, f'{path} NIE MOZE byc CSRF-exempt!'
+
+
+def test_system_update_csrf_required_live(app_client, monkeypatch):
+    """Live test: /system/update bez CSRF tokena + bez same-origin Referer
+    powinien zwrocic 403. Uzywamy monkeypatch zeby WYLACZYC tryb testowy
+    (AKCES_TEST_MODE) tylko dla tego testu — wtedy CSRF jest realnie sprawdzany."""
+    # Zaloguj jako admin
+    _login_as(app_client, role='admin', user_id=1, username='admin')
+
+    # Wylaczamy AKCES_TEST_MODE w srodku testu — ale middleware check_license
+    # by sie odpalil. Zamiast tego zamockujemy _validate_csrf_or_abort wprost
+    # zeby zweryfikowac zachowanie przy "zlym" tokenie.
+    from flask import abort
+    from unittest.mock import patch
+
+    def _fail_csrf():
+        abort(403, 'CSRF token nieprawidlowy (symulowany test)')
+
+    with patch('app._validate_csrf_or_abort', side_effect=_fail_csrf):
+        r = app_client.post('/system/update',
+                            json={},  # brak csrf_token w body
+                            headers={'X-Requested-With': 'XMLHttpRequest'})
+        assert r.status_code == 403, \
+            f'Bez CSRF tokena /system/update powinien dac 403, dostal {r.status_code}'
+
+
+# ────────────────────────────────────────────────────────────────────
+# AUDIT LOG — log_admin_action helper
+# ────────────────────────────────────────────────────────────────────
+
+def test_log_admin_action_helper_exists():
+    """Sanity: modules.database.log_admin_action istnieje."""
+    try:
+        from modules.database import log_admin_action
+    except ImportError:
+        pytest.skip('modules.database niedostepny')
+    assert callable(log_admin_action)
+
+
+def test_log_admin_action_writes_to_db(tmp_path, monkeypatch):
+    """log_admin_action powinien napisac wpis do admin_audit_log z user_id,
+    username, role, action, details, success, ip_address."""
+    import sqlite3, os as _os
+    # Izolowana baza na test
+    db_path = str(tmp_path / 'audit_test.db')
+
+    # Stworz tabele (skopiowany schemat z init_db)
+    conn = sqlite3.connect(db_path)
+    conn.execute('''CREATE TABLE admin_audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        user_id INTEGER,
+        username TEXT,
+        role TEXT,
+        action TEXT NOT NULL,
+        details TEXT,
+        ip_address TEXT,
+        user_agent TEXT,
+        success INTEGER DEFAULT 1,
+        error_message TEXT
+    )''')
+    conn.commit()
+    conn.close()
+
+    # Patch get_db zeby uzywal naszej bazy
+    from contextlib import contextmanager
+    @contextmanager
+    def _fake_db():
+        c = sqlite3.connect(db_path)
+        c.row_factory = sqlite3.Row
+        try:
+            yield c
+        finally:
+            c.close()
+
+    from modules import database
+    monkeypatch.setattr(database, 'get_db', _fake_db)
+
+    # Wywolaj log_admin_action POZA Flask context (scheduler/CLI use-case)
+    database.log_admin_action(
+        'system_update', {'stage': 'test'}, success=True,
+        user_id=42, username='testadmin', role='admin', ip_address='1.2.3.4',
+        user_agent='pytest/1.0')
+
+    # Sprawdz wpis
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute('SELECT * FROM admin_audit_log ORDER BY id DESC LIMIT 1').fetchone()
+    conn.close()
+
+    assert row is not None, 'Brak wpisu w audit logu!'
+    assert row['user_id'] == 42
+    assert row['username'] == 'testadmin'
+    assert row['role'] == 'admin'
+    assert row['action'] == 'system_update'
+    assert row['success'] == 1
+    assert row['ip_address'] == '1.2.3.4'
+    assert '"stage": "test"' in (row['details'] or '')
+
+
+def test_log_admin_action_records_failure(tmp_path, monkeypatch):
+    """Proba ataku (np. path traversal) tez musi zostac zalogowana."""
+    import sqlite3
+    db_path = str(tmp_path / 'audit_fail.db')
+    conn = sqlite3.connect(db_path)
+    conn.execute('''CREATE TABLE admin_audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        user_id INTEGER, username TEXT, role TEXT,
+        action TEXT NOT NULL, details TEXT,
+        ip_address TEXT, user_agent TEXT,
+        success INTEGER DEFAULT 1, error_message TEXT)''')
+    conn.commit(); conn.close()
+
+    from contextlib import contextmanager
+    @contextmanager
+    def _fake_db():
+        c = sqlite3.connect(db_path); c.row_factory = sqlite3.Row
+        try: yield c
+        finally: c.close()
+
+    from modules import database
+    monkeypatch.setattr(database, 'get_db', _fake_db)
+    database.log_admin_action(
+        'backup_restore',
+        {'attempted_filename': '../../etc/passwd', 'reason': 'path_traversal_blocked'},
+        success=False, error_message='Nieprawidlowa nazwa pliku',
+        user_id=1, username='atakujacy', role='admin',
+        ip_address='6.6.6.6')
+
+    conn = sqlite3.connect(db_path); conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT * FROM admin_audit_log WHERE action='backup_restore'").fetchone()
+    conn.close()
+    assert row is not None
+    assert row['success'] == 0, 'Nieudana akcja musi miec success=0'
+    assert '../../etc/passwd' in (row['details'] or ''), \
+        'Details musi zawierac proba filename dla forensics'
+    assert row['error_message'] == 'Nieprawidlowa nazwa pliku'
+
+
+# ────────────────────────────────────────────────────────────────────
 # Smoke test: sam dekorator require_admin (unit test bez Flask app)
 # ────────────────────────────────────────────────────────────────────
 

@@ -435,17 +435,24 @@ try:
     @_require_admin_api
     def api_restore_backup():
         """API endpoint do przywracania backupu — TYLKO admin.
-        Filename validation zapobiega path traversal (np. '../../../etc/passwd')."""
+        Filename validation zapobiega path traversal (np. '../../../etc/passwd').
+        Kazda proba przywrocenia (udana/nieudana/odrzucona) jest logowana do audit logu."""
         import gc
+        from .database import log_admin_action
 
         data = request.get_json(silent=True) or {}
         filename = data.get('filename')
 
         if not filename:
+            log_admin_action('backup_restore', {'reason': 'missing_filename'}, success=False,
+                             error_message='Brak nazwy pliku')
             return jsonify({'success': False, 'error': 'Brak nazwy pliku'}), 400
 
-        # PATH TRAVERSAL GUARD
+        # PATH TRAVERSAL GUARD — loguj proby ataku
         if not _is_safe_backup_filename(filename):
+            log_admin_action('backup_restore', {'attempted_filename': filename[:200],
+                                                'reason': 'path_traversal_blocked'},
+                             success=False, error_message='Nieprawidlowa nazwa pliku backupu')
             return jsonify({'success': False, 'error': 'Nieprawidłowa nazwa pliku backupu'}), 400
 
         # Zamknij CAŁY connection pool przed przywracaniem
@@ -459,6 +466,9 @@ try:
         gc.collect()
 
         success, message = restore_backup(filename)
+        log_admin_action('backup_restore', {'filename': filename, 'message': message[:200]},
+                         success=success,
+                         error_message=None if success else message[:200])
 
         # Po przywracaniu wyczyść pool ponownie - nowe połączenia otworzą się na nowej bazie
         try:

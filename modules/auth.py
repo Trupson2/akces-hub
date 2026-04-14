@@ -205,15 +205,19 @@ def require_role(*roles):
 
 
 def _wants_json():
-    """Wykryj czy request oczekuje JSON (AJAX/fetch) czy HTML."""
+    """Wykryj czy request oczekuje JSON (AJAX/fetch) czy HTML.
+    Uzywa Werkzeug accept_mimetypes.best_match — bardziej niezawodne
+    niz recznie parsowanie Accept headera (obsluguje q=... priority).
+    """
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return True
-    accept = request.headers.get('Accept', '')
-    ct = request.content_type or ''
-    if 'application/json' in accept and 'text/html' not in accept:
+    if request.is_json:
         return True
-    if 'application/json' in ct:
-        return True
+    # Porownanie priorytetu JSON vs HTML w Accept headerze
+    best = request.accept_mimetypes.best_match(['application/json', 'text/html'])
+    if best == 'application/json':
+        # JSON tylko gdy ma wyzszy lub rowny priorytet niz HTML
+        return request.accept_mimetypes[best] >= request.accept_mimetypes['text/html']
     return False
 
 

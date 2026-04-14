@@ -484,6 +484,26 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )''')
 
+        # === AUDIT LOG — krytyczne akcje administracyjne ===
+        # Loguj wszystkie privileged actions (system update, restart, backup
+        # restore, zmiana konfiguracji) — dla forensics i compliance.
+        conn.execute('''CREATE TABLE IF NOT EXISTS admin_audit_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            user_id INTEGER,
+            username TEXT,
+            role TEXT,
+            action TEXT NOT NULL,
+            details TEXT,
+            ip_address TEXT,
+            user_agent TEXT,
+            success INTEGER DEFAULT 1,
+            error_message TEXT
+        )''')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON admin_audit_log(timestamp DESC)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_audit_user ON admin_audit_log(user_id, timestamp DESC)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_audit_action ON admin_audit_log(action, timestamp DESC)')
+
         # Domyślna konfiguracja
         defaults = [
             ('telegram_bot_token', ''),
@@ -1428,11 +1448,88 @@ def add_historia(produkt_id, akcja, opis, dane=None):
 def get_historia(produkt_id, limit=20):
     """Pobiera historię produktu"""
     return query_db('''
-        SELECT * FROM historia_produktu 
-        WHERE produkt_id = ? 
-        ORDER BY data DESC 
+        SELECT * FROM historia_produktu
+        WHERE produkt_id = ?
+        ORDER BY data DESC
         LIMIT ?
     ''', (produkt_id, limit))
+
+
+def log_admin_action(action, details=None, success=True, error_message=None,
+                     user_id=None, username=None, role=None,
+                     ip_address=None, user_agent=None):
+    """Zapisz krytyczna akcje administracyjna do audit logu.
+
+    Loguje kto/kiedy/co/skad wykonal privileged action. Dla:
+    - /system/update (git pull + restart)
+    - /system/gemini-model (zmiana AI = koszty)
+    - /backup/create, /backup/restore (manipulacja danymi)
+    - /admin/update (upload ZIP)
+    - Zmiany userow, ustawien bezpieczenstwa
+
+    Parametry user_id/username/role/ip domyslnie pobierane z flask.session
+    i flask.request — wystarczy wolac log_admin_action('system_update', {...}).
+
+    Args:
+        action: short code ('system_update', 'backup_restore', itp.)
+        details: dict z dodatkowymi danymi (serialized do JSON)
+        success: czy akcja sie powiodla
+        error_message: komunikat bledu jesli success=False
+    """
+    import json as _json
+    try:
+        from flask import session, request
+        # Auto-fill z flask context jesli dostepny
+        if user_id is None:
+            user_id = session.get('user_id')
+        if username is None:
+            username = session.get('username', '')
+        if role is None:
+            role = session.get('rola', '')
+        if ip_address is None:
+            # Uzyj prawdziwego IP (CF-Connecting-IP > X-Real-IP > remote_addr)
+            ip_address = (
+                request.headers.get('CF-Connecting-IP')
+                or request.headers.get('X-Real-IP')
+                or request.remote_addr
+                or ''
+            )
+        if user_agent is None:
+            user_agent = request.headers.get('User-Agent', '')[:500]  # trim long UA
+    except (ImportError, RuntimeError):
+        # Poza Flask context (CLI, scheduler) — OK, uzyj przekazanych wartosci
+        pass
+
+    details_json = _json.dumps(details, default=str, ensure_ascii=False) if details else None
+
+    try:
+        with get_db() as conn:
+            conn.execute('''
+                INSERT INTO admin_audit_log
+                (user_id, username, role, action, details, ip_address,
+                 user_agent, success, error_message)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, username, role, action, details_json,
+                  ip_address, user_agent, 1 if success else 0, error_message))
+            conn.commit()
+    except Exception as _e:
+        # Audit log failure NIE MOZE blokowac akcji biznesowej — log do stderr
+        print(f"[WARN] admin_audit_log insert failed: {_e}")
+
+
+def get_admin_audit_log(limit=100, action=None, user_id=None):
+    """Pobiera ostatnie wpisy audit logu, opcjonalnie filtruj po akcji/userze."""
+    sql = 'SELECT * FROM admin_audit_log WHERE 1=1'
+    args = []
+    if action:
+        sql += ' AND action = ?'
+        args.append(action)
+    if user_id:
+        sql += ' AND user_id = ?'
+        args.append(user_id)
+    sql += ' ORDER BY timestamp DESC LIMIT ?'
+    args.append(limit)
+    return query_db(sql, tuple(args))
 
 
 def get_historia_all(limit=50):
