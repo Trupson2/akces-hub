@@ -7112,7 +7112,15 @@ if __name__ == '__main__':
     log("Serwer startuje: http://0.0.0.0:5000")
     print("="*60)
 
-    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+    # Produkcyjny WSGI server (waitress) — zamiast Flask dev server (nie padał)
+    try:
+        from waitress import serve
+        log("Uzywam waitress (produkcyjny WSGI)")
+        serve(app, host='0.0.0.0', port=5000, threads=8, channel_timeout=120)
+    except ImportError:
+        # Fallback na Flask dev server jesli waitress nie zainstalowany
+        log("[WARN] Waitress niedostepny — fallback na Flask dev server")
+        app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
 
 # ============================================================
 # SZTUKI - per-unit tracking
