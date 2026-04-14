@@ -1956,7 +1956,9 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     except:
         pass
 
-    # Kiosk na Pi ekranie (localhost BEZ proxy), normalny dashboard na reszcie
+    # Kiosk na Pi ekranie (localhost BEZ proxy) ORAZ na telefonie (user-agent mobile).
+    # Desktop/laptop dostaje home.html. Mobile dostaje kiosk bo ma wieksze kafelki
+    # ktore lepiej wygladaja na malym ekranie niz geste desktop layout.
     # UWAGA: Cloudflare Tunnel i ngrok forwardują przez localhost:5000 — trzeba to wykryć
     _xff = request.headers.get('X-Forwarded-For', '')
     _cf_ip = request.headers.get('CF-Connecting-IP', '')           # Cloudflare
@@ -1966,8 +1968,11 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     _remote = request.remote_addr or ''
     _is_proxied = bool(_xff or _cf_ip or _cf_ray or _ngrok_trace or _fwd_host)
     _is_pi_screen = _remote in ('127.0.0.1', '::1', '192.168.100.200') and not _is_proxied
+    _ua = (request.headers.get('User-Agent', '') or '').lower()
+    _is_mobile = any(m in _ua for m in ('mobile', 'android', 'iphone', 'ipad', 'ipod'))
     _force_kiosk = request.args.get('kiosk') == '1'
-    if _is_pi_screen or _force_kiosk:
+    _force_desktop = request.args.get('desktop') == '1'  # override dla testow
+    if (_is_pi_screen or _is_mobile or _force_kiosk) and not _force_desktop:
         resp = make_response(render_template('kiosk_home.html',
             version=VERSION,
             today=today, mag=mag, pal=pal, allegro=allegro,
