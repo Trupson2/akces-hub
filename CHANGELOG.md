@@ -2,6 +2,8 @@
 
 ## 14.04.2026
 
+- fix: kiosk mode triggering on mobile through Cloudflare Tunnel (localhost false positive)
+- feat: landing page with Lifetime Early Bird + SaaS tiers + Enterprise contact
 - perf: switch from Flask dev server to waitress (produkcyjny WSGI) — stabilność
 
 ## 12.04.2026

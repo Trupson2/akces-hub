@@ -35,9 +35,39 @@ body {
   overflow-x: hidden;
 }
 
+/* ===== ANNOUNCEMENT BAR ===== */
+.announcement-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 101;
+  background: linear-gradient(90deg, #dc2626 0%, #991b1b 100%);
+  color: #fff; padding: 0.55rem 0; font-size: 0.85rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+.announcement-content {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0.75rem; flex-wrap: wrap; text-align: center;
+}
+.announcement-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #fff;
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+.announcement-counter { opacity: 0.9; }
+.announcement-cta {
+  color: #fff; text-decoration: underline; font-weight: 700;
+  margin-left: 0.3rem;
+}
+.announcement-cta:hover { color: #fde68a; }
+@media (max-width: 600px) {
+  .announcement-bar { font-size: 0.75rem; padding: 0.45rem 0.75rem; }
+  .announcement-counter { display: none; }
+}
+
 /* ===== NAV ===== */
 nav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  position: fixed; top: 38px; left: 0; right: 0; z-index: 100;
   padding: 1rem 2rem;
   background: rgba(10,10,15,0.8);
   backdrop-filter: blur(20px);
@@ -57,6 +87,16 @@ nav {
   transition: color 0.2s;
 }
 .nav-links a:hover { color: var(--text); }
+.nav-links a.nav-login {
+  background: linear-gradient(135deg, var(--primary), #4f46e5);
+  color: #fff !important; padding: 0.5rem 1.1rem; border-radius: 10px;
+  font-weight: 600; transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 12px rgba(99,102,241,0.25);
+}
+.nav-links a.nav-login:hover {
+  color: #fff !important; transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(99,102,241,0.4);
+}
 .hamburger {
   display: none; flex-direction: column; gap: 5px; cursor: pointer;
   background: none; border: none; padding: 4px;
@@ -107,7 +147,7 @@ section { padding: 6rem 0; }
 .hero {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
   text-align: center; position: relative; overflow: hidden;
-  padding-top: 5rem;
+  padding-top: 7.5rem;
 }
 .hero-bg {
   position: absolute; inset: 0; z-index: 0;
@@ -217,6 +257,112 @@ section { padding: 6rem 0; }
 .check { color: var(--accent); font-weight: 700; font-size: 1.1rem; }
 .cross { color: #ef4444; font-size: 0.9rem; }
 
+/* ===== LIFETIME EARLY BIRD ===== */
+.lifetime-box {
+  position: relative;
+  background: linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(16,185,129,0.08) 100%);
+  border: 2px solid var(--primary);
+  border-radius: 20px;
+  padding: 2.5rem;
+  margin-bottom: 3rem;
+  text-align: left;
+  box-shadow: 0 20px 60px rgba(99,102,241,0.15);
+  overflow: hidden;
+}
+.lifetime-box::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(99,102,241,0.15) 0%, transparent 50%),
+    radial-gradient(circle at 10% 90%, rgba(16,185,129,0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+.lifetime-badge {
+  display: inline-block; position: relative;
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+  color: #fff; padding: 0.4rem 1rem; border-radius: 50px;
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; margin-bottom: 1.5rem;
+}
+.lifetime-grid {
+  display: grid; grid-template-columns: 1.3fr 1fr; gap: 2.5rem; align-items: center;
+  position: relative;
+}
+.lifetime-label {
+  font-size: 0.85rem; font-weight: 700; color: var(--primary-light);
+  letter-spacing: 1px; text-transform: uppercase; margin-bottom: 0.5rem;
+}
+.lifetime-title {
+  font-size: clamp(1.8rem, 3vw, 2.4rem); font-weight: 900;
+  margin-bottom: 0.75rem; line-height: 1.1;
+}
+.lifetime-desc {
+  color: var(--text-muted); font-size: 0.95rem;
+  line-height: 1.6; margin-bottom: 1.25rem;
+}
+.lifetime-desc s { opacity: 0.6; }
+.lifetime-features {
+  list-style: none; padding: 0;
+}
+.lifetime-features li {
+  padding: 0.4rem 0; font-size: 0.9rem; color: var(--text);
+  display: flex; align-items: flex-start; gap: 0.6rem;
+}
+.lifetime-features li::before {
+  content: '\2713'; color: var(--accent); font-weight: 700; flex-shrink: 0;
+}
+.lifetime-right {
+  background: var(--bg-card); border: 1px solid var(--glass-border);
+  border-radius: 16px; padding: 2rem 1.5rem; text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+.lifetime-price-old {
+  font-size: 1.2rem; color: var(--text-muted);
+  text-decoration: line-through; margin-bottom: 0.3rem;
+}
+.lifetime-price {
+  font-size: 3.5rem; font-weight: 900;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+.lifetime-price-sub {
+  font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;
+}
+.lifetime-slots { margin-bottom: 1.25rem; }
+.slots-bar {
+  height: 8px; background: rgba(255,255,255,0.06);
+  border-radius: 50px; overflow: hidden; margin-bottom: 0.5rem;
+}
+.slots-fill {
+  height: 100%; width: 94%;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  border-radius: 50px;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 12px rgba(99,102,241,0.5);
+}
+.slots-text {
+  font-size: 0.8rem; color: var(--text-muted);
+}
+.slots-text strong { color: var(--accent); font-weight: 700; }
+
+.pricing-or {
+  display: flex; align-items: center; gap: 1rem;
+  margin: 2.5rem 0; color: var(--text-muted); font-size: 0.9rem;
+  text-transform: uppercase; letter-spacing: 2px; font-weight: 600;
+}
+.pricing-or::before, .pricing-or::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+}
+
+@media (max-width: 768px) {
+  .lifetime-box { padding: 1.5rem; }
+  .lifetime-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+  .lifetime-right { padding: 1.5rem; }
+}
+
 /* ===== PRICING ===== */
 .pricing { text-align: center; }
 .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; align-items: start; }
@@ -317,6 +463,16 @@ footer a:hover { color: var(--text); }
 </head>
 <body>
 
+<!-- ANNOUNCEMENT BAR -->
+<div class="announcement-bar">
+  <div class="container announcement-content">
+    <span class="announcement-dot"></span>
+    <strong>Early Bird:</strong> 499 zl dozywotnia zamiast 1999 zl —
+    <span class="announcement-counter">pozostalo <strong id="slotsLeft">47</strong>/50 miejsc</span>
+    <a href="#cennik" class="announcement-cta">Zobacz &rarr;</a>
+  </div>
+</div>
+
 <!-- NAV -->
 <nav>
   <div class="nav-logo">AKCES HUB</div>
@@ -324,12 +480,12 @@ footer a:hover { color: var(--text); }
     <span></span><span></span><span></span>
   </button>
   <ul class="nav-links" id="navLinks">
-    <li><a href="#problemy">Problemy</a></li>
     <li><a href="#funkcje">Funkcje</a></li>
     <li><a href="#jak-dziala">Jak dziala</a></li>
     <li><a href="#cennik">Cennik</a></li>
     <li><a href="#faq">FAQ</a></li>
     <li><a href="#kontakt">Kontakt</a></li>
+    <li><a href="https://app.akceshub.com" target="_blank" rel="noopener" class="nav-login">Zaloguj &rarr;</a></li>
   </ul>
 </nav>
 
@@ -342,9 +498,12 @@ footer a:hover { color: var(--text); }
     <h1>Zarzadzaj paletami zwrotow jak profesjonalista</h1>
     <p>Allegro, OLX, Vinted — jeden system. Magazyn, wysylki, analityka. Dziala na Twoim urzadzeniu, nawet offline.</p>
     <div class="hero-buttons">
-      <a href="#kontakt" class="btn btn-primary">&#x1F680; Umow demo</a>
-      <a href="#cennik" class="btn btn-secondary">&#x1F4CB; Zobacz cennik</a>
+      <a href="https://app.akceshub.com" target="_blank" rel="noopener" class="btn btn-primary">Zobacz demo live &rarr;</a>
+      <a href="#cennik" class="btn btn-secondary">Zobacz cennik</a>
     </div>
+    <p style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
+      Bez karty kredytowej &middot; Pierwszy miesiac za 1 zl &middot; Zrezygnuj w kazdej chwili
+    </p>
   </div>
 </section>
 
@@ -484,6 +643,43 @@ footer a:hover { color: var(--text); }
       <h2 class="section-title">Wybierz plan dla siebie</h2>
       <p class="section-sub" style="margin-left:auto;margin-right:auto">Bez ukrytych kosztow. Mozesz zmienic plan w kazdej chwili.</p>
     </div>
+
+    <!-- LIFETIME EARLY BIRD BOX -->
+    <div class="lifetime-box reveal">
+      <div class="lifetime-badge">Oferta ograniczona</div>
+      <div class="lifetime-grid">
+        <div class="lifetime-left">
+          <div class="lifetime-label">Early Bird &mdash; tylko dla pierwszych 50 klientow</div>
+          <h3 class="lifetime-title">Licencja dozywotnia</h3>
+          <p class="lifetime-desc">
+            Jednorazowa platnosc. Wszystkie funkcje PRO na zawsze. Darmowe aktualizacje przez 2 lata.
+            Po wyczerpaniu miejsc — cena wraca do <s>1999 zl</s>.
+          </p>
+          <ul class="lifetime-features">
+            <li>Wszystko z planu PRO</li>
+            <li>Bez miesiecznych oplat &mdash; raz i juz</li>
+            <li>Darmowe aktualizacje przez 24 miesiace</li>
+            <li>Priorytetowy support przez 12 miesiecy</li>
+            <li>Mozliwosc instalacji na wlasnym sprzecie</li>
+          </ul>
+        </div>
+        <div class="lifetime-right">
+          <div class="lifetime-price-old">1999 zl</div>
+          <div class="lifetime-price">499 zl</div>
+          <div class="lifetime-price-sub">jednorazowo, dozywotnio</div>
+          <div class="lifetime-slots">
+            <div class="slots-bar">
+              <div class="slots-fill" id="slotsBar"></div>
+            </div>
+            <div class="slots-text">Pozostalo <strong id="slotsLeft2">47</strong>/50 miejsc</div>
+          </div>
+          <a href="#kontakt" class="btn btn-primary" style="width:100%;justify-content:center">Zarezerwuj miejsce</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="pricing-or reveal"><span>lub subskrypcja</span></div>
+
     <div class="pricing-grid reveal">
       <!-- START -->
       <div class="price-card">
@@ -515,18 +711,20 @@ footer a:hover { color: var(--text); }
       <!-- ENTERPRISE -->
       <div class="price-card">
         <h3>ENTERPRISE</h3>
-        <div class="price-amount">449 zl <span>/mies.</span></div>
+        <div class="price-amount" style="font-size: 1.7rem; padding-top: 0.7rem;">Porozmawiajmy</div>
         <ul>
           <li class="li-check">Wszystko z PRO</li>
-          <li class="li-check">Customizacja</li>
-          <li class="li-check">Priorytetowy support</li>
+          <li class="li-check">Customizacja pod Twoj biznes</li>
+          <li class="li-check">Dedykowany opiekun konta</li>
+          <li class="li-check">SLA 99.9% uptime</li>
           <li class="li-check">Integracje na zyczenie</li>
+          <li class="li-check">Wdrozenie w Twojej firmie</li>
         </ul>
-        <a href="#kontakt" class="btn btn-secondary">Wybierz ENTERPRISE</a>
+        <a href="#kontakt" class="btn btn-secondary">Umow rozmowe</a>
       </div>
     </div>
-    <p class="pricing-note reveal">&#x1F4A1; Pierwszy miesiac za 1 zl — przetestuj bez ryzyka</p>
-    <p class="pricing-small reveal">Zestaw sprzetowy (Raspberry Pi) — 899 zl jednorazowo (opcjonalnie)</p>
+    <p class="pricing-note reveal">Pierwszy miesiac za 1 zl &mdash; przetestuj bez ryzyka</p>
+    <p class="pricing-small reveal">Zestaw sprzetowy (Raspberry Pi z preinstalowanym systemem) &mdash; 899 zl jednorazowo (opcjonalnie)</p>
   </div>
 </section>
 

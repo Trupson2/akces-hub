@@ -1930,9 +1930,15 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
         pass
 
     # Kiosk na Pi ekranie (localhost BEZ proxy), normalny dashboard na reszcie
+    # UWAGA: Cloudflare Tunnel i ngrok forwardują przez localhost:5000 — trzeba to wykryć
     _xff = request.headers.get('X-Forwarded-For', '')
+    _cf_ip = request.headers.get('CF-Connecting-IP', '')           # Cloudflare
+    _cf_ray = request.headers.get('CF-Ray', '')                    # Cloudflare Ray ID
+    _ngrok_trace = request.headers.get('ngrok-trace-id', '')       # ngrok
+    _fwd_host = request.headers.get('X-Forwarded-Host', '')        # reverse proxy
     _remote = request.remote_addr or ''
-    _is_pi_screen = _remote in ('127.0.0.1', '::1', '192.168.100.200') and not _xff
+    _is_proxied = bool(_xff or _cf_ip or _cf_ray or _ngrok_trace or _fwd_host)
+    _is_pi_screen = _remote in ('127.0.0.1', '::1', '192.168.100.200') and not _is_proxied
     _force_kiosk = request.args.get('kiosk') == '1'
     if _is_pi_screen or _force_kiosk:
         resp = make_response(render_template('kiosk_home.html',
