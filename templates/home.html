@@ -919,38 +919,65 @@ function toggleDrilldown(id){
     from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
     to { transform: translateX(-50%) translateY(0); opacity: 1; }
 }
-/* Responsive overrides for stitch layout */
+/* ═══════════════════ MOBILE — wieksze fonty, wieksze kafelki ═══════════════════ */
 @media(max-width:900px){
-    .stitch-kpi .kpi-value{font-size:1.4rem}
-    .sparkline-container{width:60px!important}
+    /* Sidebar MUSI byc ukryty (bulletproof) */
+    .sidebar:not(.open){transform:translateX(-100%)!important}
+    .main-content{margin-left:0!important;padding:16px!important;max-width:100vw;overflow-x:hidden}
+    /* Typography bump — czytelne na telefonie */
+    body{font-size:16px}
+    h1{font-size:1.7rem!important}
+    h2{font-size:1.4rem!important}
+    h3{font-size:1.2rem!important}
+    /* KPI tiles — WIEKSZE liczby (user complaint: za male) */
+    .stitch-kpi .kpi-value,.kpi-value{font-size:2rem!important;font-weight:800}
+    .kpi-label,.stitch-kpi .kpi-label{font-size:0.85rem!important}
+    .sparkline-container{width:80px!important;height:36px!important}
+    /* Glass cards — wieksza padding */
+    .glass-card,.card{padding:18px!important;border-radius:14px}
+    /* Stat rows */
+    .stat-row .stat-val,.stat-val{font-size:1.4rem!important}
+    .stat-row .stat-label,.stat-label{font-size:0.8rem!important}
+    /* Przyciski — wieksze pod kciuk */
+    .btn,button:not(.menu-toggle):not(#theme-toggle){min-height:44px;font-size:0.95rem!important;padding:12px 18px!important}
+    .action-btn{font-size:1rem!important;padding:14px 16px!important;min-height:52px}
+    /* PALETOMAT banner — duzszy na mobile */
+    .paletomat-banner,.stitch-banner{padding:16px 18px!important;font-size:1rem!important}
+    /* Tabela kompakt ale czytelna */
+    table th,table td{font-size:0.9rem!important;padding:10px 8px!important}
+    /* Sale item rows */
+    .log-item,.feed-item{padding:12px!important;font-size:0.9rem!important}
+    .log-msg{font-size:0.95rem!important;white-space:normal!important}
+    .log-time{font-size:0.8rem!important}
 }
-@media(max-width:600px){
-    .stitch-kpi .kpi-value{font-size:1.2rem}
-}
-/* Mobile responsive — fix overlapping grids */
+/* Tablet/srednie — 2 kolumny dla gridów 3-4 */
 @media(max-width:768px){
     div[style*="grid-template-columns:repeat(4,1fr)"],
-    div[style*="grid-template-columns: repeat(4,1fr)"]{
-        grid-template-columns:repeat(2,1fr)!important;
-    }
-    div[style*="grid-template-columns:repeat(3,1fr)"],
-    div[style*="grid-template-columns: repeat(3,1fr)"]{
-        grid-template-columns:repeat(2,1fr)!important;
-    }
+    div[style*="grid-template-columns: repeat(4,1fr)"],
     div[style*="grid-template-columns:1fr 1fr 1fr 1fr"]{
         grid-template-columns:repeat(2,1fr)!important;
     }
+    div[style*="grid-template-columns:repeat(3,1fr)"],
+    div[style*="grid-template-columns: repeat(3,1fr)"]{
+        grid-template-columns:repeat(2,1fr)!important;
+    }
+    .kpi-grid{grid-template-columns:repeat(2,1fr)!important;gap:12px}
+    .dash-grid,.dash-grid-3,.dash-grid-r{grid-template-columns:1fr!important;gap:14px}
 }
+/* Male telefony — wszystko 1 kolumna, fonty lekko ciasniej */
 @media(max-width:480px){
+    body{font-size:15px}
+    h1{font-size:1.5rem!important}
+    .stitch-kpi .kpi-value,.kpi-value{font-size:1.7rem!important}
     div[style*="grid-template-columns:repeat(4,1fr)"],
     div[style*="grid-template-columns: repeat(4,1fr)"],
     div[style*="grid-template-columns:repeat(3,1fr)"],
-    div[style*="grid-template-columns: repeat(3,1fr)"]{
-        grid-template-columns:1fr!important;
-    }
+    div[style*="grid-template-columns: repeat(3,1fr)"],
     div[style*="grid-template-columns:1fr 1fr"]{
         grid-template-columns:1fr!important;
     }
+    .kpi-grid{grid-template-columns:1fr 1fr!important}
+    .main-content{padding:12px!important}
 }
 </style>
 
