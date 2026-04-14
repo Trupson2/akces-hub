@@ -43,7 +43,7 @@ from html import escape as _html_escape  # Security: XSS prevention
 from datetime import datetime, timedelta
 import json
 
-from flask import Flask, render_template, render_template_string, request, redirect, jsonify, Response, send_from_directory, make_response, flash, url_for, session
+from flask import Flask, render_template, render_template_string, request, redirect, jsonify, Response, send_from_directory, make_response, flash, url_for, session, g
 from flask_cors import CORS  # ← DODANO DLA NGROK!
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 
@@ -695,24 +695,45 @@ werkzeug.serving.WSGIRequestHandler.sys_version = ""
 # CSP Nonce — generuj unikalne nonce per request
 import secrets as _secrets
 
+@app.before_request
+def _generate_csp_nonce():
+    """Generuj unikalny nonce per request (przed handlerem) i zapisz w flask.g.
+
+    Nonce uzywany w naglowku Content-Security-Policy (after_request) oraz
+    w templateach Jinja2 przez context processor inject_csp_nonce().
+
+    UWAGA: nonce MUSI byc generowany per-request (nie cachowany), w przeciwnym
+    razie traci wartosc bezpieczenstwa.
+    """
+    g.csp_nonce = _secrets.token_urlsafe(16)
+
+
 @app.context_processor
 def inject_csp_nonce():
-    """Wstrzyknij nonce do wszystkich templateów Jinja2."""
-    nonce = _secrets.token_urlsafe(16)
-    request._csp_nonce = nonce
+    """Wstrzyknij nonce do wszystkich templateów Jinja2.
+
+    Uzycie w template: <script nonce="{{ csp_nonce }}">...</script>
+    Dzieki temu kiedy w Phase 3 usuniemy 'unsafe-inline' z CSP, nowe inline
+    skrypty z nonce nadal beda dzialac (a obce skrypty XSS — nie).
+    """
+    nonce = getattr(g, 'csp_nonce', None) or _secrets.token_urlsafe(16)
     return {'csp_nonce': nonce}
 
 @app.after_request
 def after_request(response):
     """Dodaj CORS headers + cache control + CSP nonce"""
-    # CSP — nonce-based zamiast unsafe-inline (dla script)
+    # CSP — nonce-based + unsafe-inline fallback (Phase 2 fundament).
+    # TODO Phase 3: usunac 'unsafe-inline' i 'unsafe-eval' po migracji 577 inline
+    # event handlerow (onclick/onchange/onsubmit) na addEventListener oraz
+    # usunieciu eval()/Function() z legacy kodu (Chart.js itp.).
     if response.content_type and 'text/html' in response.content_type:
-        nonce = getattr(request, '_csp_nonce', _secrets.token_urlsafe(16))
+        nonce = getattr(g, 'csp_nonce', None) or _secrets.token_urlsafe(16)
+        nonce_directive = f"'nonce-{nonce}'"
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; "
-            # Nonce-based script-src + unsafe-eval (wymagane przez Chart.js)
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com; "
-            "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.tailwindcss.com; "
+            # Nonce-based script-src — w Phase 3 usunac 'unsafe-inline' i 'unsafe-eval'
+            f"script-src 'self' {nonce_directive} 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com; "
+            f"style-src 'self' {nonce_directive} 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.tailwindcss.com; "
             "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
             "img-src 'self' data: blob: https:; "
             "connect-src 'self' https://generativelanguage.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com wss: ws:; "
