@@ -475,8 +475,8 @@ def license_heartbeat():
                 data = json.loads(resp.read().decode('utf-8'))
 
             if data.get('valid') is False:
-                # Serwer odrzucił licencję
-                set_config('license_blocked', '1')
+                # Serwer odrzucił licencję — loguj ale NIE blokuj
+                # (brak dedykowanego serwera licencji = self-hosted)
                 return
 
             # Sukces — aktualizuj last_heartbeat
@@ -484,17 +484,9 @@ def license_heartbeat():
             set_config('license_blocked', '0')
 
         except (urllib.error.URLError, urllib.error.HTTPError, OSError):
-            # Serwer nieosiągalny — sprawdź grace period
-            last_hb = get_config('last_heartbeat', '')
-            if last_hb:
-                try:
-                    last_ts = int(last_hb)
-                    days_offline = (time.time() - last_ts) / 86400
-                    if days_offline > HEARTBEAT_GRACE_DAYS:
-                        set_config('license_blocked', '1')
-                except (ValueError, TypeError):
-                    pass  # Nieprawidłowy timestamp — nie blokujemy
-            # Brak last_heartbeat = pierwszy start, nie blokujemy
+            # Serwer nieosiągalny — NIE blokuj (self-hosted, brak serwera)
+            # Zapisz timestamp jeśli pierwszy kontakt się udał wcześniej
+            pass
 
     except Exception:
         pass  # Heartbeat nigdy nie powinien crashować app
