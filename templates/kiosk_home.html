@@ -90,6 +90,53 @@ body.kiosk *{cursor:auto!important}
 /* Footer */
 .kd-foot{display:flex;gap:8px;background:rgba(15,15,30,0.45);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:8px}
 .kd-foot .kd-btn{flex:1;padding:12px 8px;font-size:0.72rem}
+
+/* ═══ MOBILE — telefony (do 900px) ═══ */
+@media(max-width:900px){
+    /* Ukryj sidebar z base.html gdy jest kiosk na mobile */
+    .sidebar,.sidebar-overlay,.menu-toggle{display:none!important}
+    /* Layout — wypelnij caly ekran, stackuj pionowo */
+    .kd{margin-left:0!important;width:100vw!important;height:auto!important;min-height:100vh;padding:12px!important;grid-template-rows:auto auto auto auto;overflow:visible;gap:10px}
+    /* Header — kompakt */
+    .kd-head{flex-direction:column;align-items:flex-start;gap:6px}
+    .kd-head-left{width:100%}
+    .kd-title{font-size:1.3rem}
+    .kd-right{width:100%;text-align:left}
+    .kd-time{font-size:1.2rem}
+    .kd-hw{justify-content:flex-start;flex-wrap:wrap;font-size:0.65rem}
+    /* Stats bar — 2 kolumny zamiast 6 */
+    .kd-stats-bar{grid-template-columns:1fr 1fr!important;gap:8px}
+    .kd-sypie-card{grid-column:1 / -1;min-width:0;padding:10px 14px}
+    .kd-sypie-txt{font-size:1.1rem}
+    .kd-stat{padding:10px 8px}
+    .kd-stat-val{font-size:1.2rem}
+    .kd-stat-label{font-size:0.55rem;letter-spacing:0.5px}
+    /* Main — side panel pod kafelkami */
+    .kd-main{grid-template-columns:1fr!important;gap:10px;overflow:visible}
+    .kd-apps{grid-template-columns:1fr!important;grid-template-rows:auto!important;grid-column:auto!important;gap:10px}
+    .kd-app{padding:14px}
+    .kd-app-name{font-size:1rem}
+    .kd-side{overflow:visible}
+    .kd-side-card{min-height:auto}
+    .kd-feed{max-height:240px}
+    /* Footer — 2 rzedy po 3 przyciski, wyzsze */
+    .kd-foot{flex-wrap:wrap;padding:6px}
+    .kd-foot .kd-btn{flex:1 1 calc(33% - 6px);padding:14px 6px;font-size:0.7rem;min-width:0}
+    /* Cloudflare/URL box — czytelniejsze */
+    .kd-ngrok-url{font-size:0.75rem}
+    .kd-ngrok-copy{padding:8px 14px;font-size:0.72rem}
+    /* Przyciski w kafelkach — wieksze dla kciuka */
+    .kd-btn{padding:14px 10px;font-size:0.85rem}
+}
+/* ═══ MAŁE TELEFONY (do 480px) ═══ */
+@media(max-width:480px){
+    .kd{padding:10px!important;gap:8px}
+    .kd-title{font-size:1.15rem}
+    .kd-time{font-size:1.1rem}
+    .kd-stat-val{font-size:1.05rem}
+    .kd-foot .kd-btn{flex:1 1 calc(50% - 4px);font-size:0.68rem}
+    .kd-btns{grid-template-columns:1fr 1fr!important}
+}
 </style>
 
 <div class="kd kiosk-dash">
