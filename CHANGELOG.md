@@ -2,6 +2,7 @@
 
 ## 14.04.2026
 
+- feat: replace ngrok widget in kiosk with Cloudflare Tunnel status (app.akceshub.com)
 - fix: kiosk mode triggering on mobile through Cloudflare Tunnel (localhost false positive)
 - feat: landing page with Lifetime Early Bird + SaaS tiers + Enterprise contact
 - perf: switch from Flask dev server to waitress (produkcyjny WSGI) — stabilność

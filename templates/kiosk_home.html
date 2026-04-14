@@ -192,23 +192,23 @@ body.kiosk *{cursor:auto!important}
                 </div>
             </div>
 
-            <!-- Ngrok Tunnel -->
+            <!-- Cloudflare Tunnel -->
             <div class="kd-app">
                 <div class="kd-app-head">
-                    <div class="kd-app-icon" style="background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.10)"><span class="material-symbols-outlined" style="font-size:1.6rem;color:#8ff5ff;opacity:0.7">hub</span></div>
+                    <div class="kd-app-icon" style="background:rgba(247,145,31,0.08);border:1px solid rgba(247,145,31,0.18)"><span class="material-symbols-outlined" style="font-size:1.6rem;color:#f7911f">cloud</span></div>
                     <div>
-                        <div class="kd-app-name">Ngrok Tunnel</div>
-                        <div class="kd-app-desc">Zdalny dostep</div>
+                        <div class="kd-app-name">Cloudflare Tunnel</div>
+                        <div class="kd-app-desc">Zdalny dostep · HTTPS</div>
                     </div>
                 </div>
-                <div class="kd-status"><div class="kd-dot" id="ng-dot"></div> <span id="ng-status">Sprawdzam...</span></div>
-                <div id="ng-url-box" class="kd-ngrok-box" style="display:none">
-                    <div class="kd-ngrok-url" id="ng-url"></div>
-                    <button class="kd-ngrok-copy" onclick="navigator.clipboard.writeText(document.getElementById('ng-url').dataset.full);this.textContent='Skopiowano!';setTimeout(()=>this.textContent=' Kopiuj URL',1500)"> Kopiuj URL</button>
+                <div class="kd-status"><div class="kd-dot" id="cf-dot"></div> <span id="cf-status">Sprawdzam...</span></div>
+                <div class="kd-ngrok-box" style="background:rgba(247,145,31,0.06);border-color:rgba(247,145,31,0.18)">
+                    <div class="kd-ngrok-url" id="cf-url" style="color:#f7b955">https://app.akceshub.com</div>
+                    <button class="kd-ngrok-copy" style="background:rgba(247,185,85,0.15);border-color:rgba(247,185,85,0.25);color:#f7b955" onclick="navigator.clipboard.writeText('https://app.akceshub.com');this.textContent='Skopiowano!';setTimeout(()=>this.textContent='Kopiuj URL',1500)">Kopiuj URL</button>
                 </div>
                 <div class="kd-btns">
-                    <button class="kd-btn purple" id="ng-start" onclick="ngAction('start')"><span class="material-symbols-outlined" style="font-size:1rem">play_arrow</span> Start</button>
-                    <button class="kd-btn red" id="ng-stop" onclick="ngAction('stop')" disabled><span class="material-symbols-outlined" style="font-size:1rem">stop</span> Stop</button>
+                    <a href="https://app.akceshub.com" target="_blank" class="kd-btn open" style="border-color:rgba(247,185,85,0.3);color:#f7b955"><span class="material-symbols-outlined" style="font-size:1rem">open_in_new</span> Otworz</a>
+                    <a href="https://one.dash.cloudflare.com/" target="_blank" class="kd-btn gray"><span class="material-symbols-outlined" style="font-size:1rem">dashboard</span> Dashboard</a>
                 </div>
             </div>
         </div>
@@ -312,42 +312,26 @@ body.kiosk *{cursor:auto!important}
     }
     loadFeed();setInterval(loadFeed,30000);
 
-    /* Ngrok status */
-    function ng(){
-        fetch('/api/ngrok-status').then(r=>r.json()).then(d=>{
-            var dot=document.getElementById('ng-dot');
-            var st=document.getElementById('ng-status');
-            var box=document.getElementById('ng-url-box');
-            var url=document.getElementById('ng-url');
-            var btnStart=document.getElementById('ng-start');
-            var btnStop=document.getElementById('ng-stop');
-            if(d.url){
+    /* Cloudflare Tunnel status */
+    function cf(){
+        fetch('/api/cloudflare-status').then(r=>r.json()).then(d=>{
+            var dot=document.getElementById('cf-dot');
+            var st=document.getElementById('cf-status');
+            if(d.active){
                 dot.className='kd-dot on';
-                st.textContent='Online';st.style.color='#beee00';
-                box.style.display='block';
-                url.textContent=d.url;url.dataset.full=d.url;
-                btnStart.disabled=true;btnStop.disabled=false;
+                st.textContent='Online · '+(d.hostname||'app.akceshub.com');
+                st.style.color='#beee00';
             }else{
                 dot.className='kd-dot off';
-                st.textContent='Offline';st.style.color='#ef4444';
-                box.style.display='none';
-                btnStart.disabled=false;btnStop.disabled=true;
+                st.textContent='Offline';
+                st.style.color='#ef4444';
             }
-        }).catch(function(){});
+        }).catch(function(){
+            document.getElementById('cf-dot').className='kd-dot warn';
+            document.getElementById('cf-status').textContent='Brak danych';
+        });
     }
-    ng();setInterval(ng,15000);
-
-    /* Ngrok start/stop */
-    window.ngAction=function(act){
-        var btn=document.getElementById(act==='start'?'ng-start':'ng-stop');
-        btn.textContent=act==='start'?'Laczenie...':'Zatrzymuje...';btn.disabled=true;
-        fetch('/api/ngrok-control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:act})})
-        .then(r=>r.json()).then(d=>{
-            if(act==='start'){setTimeout(ng,3000);setTimeout(ng,6000);setTimeout(ng,10000);}
-            else{setTimeout(ng,1500);}
-        })
-        .catch(()=>{btn.textContent=act==='start'?'▶ Start':'⏹ Stop';btn.disabled=false;});
-    };
+    cf();setInterval(cf,15000);
 
     /* PhonkBot status */
     function pbStatus(){
