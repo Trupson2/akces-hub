@@ -1,7 +1,14 @@
 # Historia zmian (auto-generated)
 
+## 14.04.2026
+
+- perf: switch from Flask dev server to waitress (produkcyjny WSGI) — stabilność
+
 ## 12.04.2026
 
+- fix: CSRF referer check fails through ngrok proxy (403 on /system/update)
+- security: fix rate limiting to use verified endpoint names
+- security: fix webhook bypass, apply CSV sanitization, add verification report
 - security: full production hardening - rate limiting, session fix, webhooks, encrypted backups
 - security: fix critical and high severity vulnerabilities
 - fix: exclude offline sales from przychod_allegro_db to prevent double counting
@@ -123,7 +130,4 @@
 - feat: auto-generate Alibaba/AliExpress links + image_url + faster scan
 - fix: use print() instead of logger for visible journalctl output
 - fix: increase maxOutputTokens to 8192 + handle truncated JSON
-- fix: ASCII-only Gemini prompt + aggressive JSON cleanup
-- fix: robust JSON parser - strict=False, encoding fix, regex fallback
-- fix: better JSON parsing - log exact errors + fix trailing commas
 
