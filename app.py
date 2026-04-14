@@ -429,6 +429,8 @@ def check_license_middleware():
             return redirect('/time-manipulation')
     except ImportError:
         pass  # Brak modułu license = dev mode
+    except Exception:
+        pass  # DB error, license corrupt — przepuść, nie blokuj
 
 # Sprawdzanie EULA
 @app.before_request
