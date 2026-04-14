@@ -32,6 +32,73 @@ def sanitize_html(text):
     )
 
 
+def sanitize_svg(content):
+    """Sanitize SVG content — odrzuc jesli zawiera potencjalnie niebezpieczne elementy XSS.
+
+    SVG osadzony przez <object>, <embed>, <iframe>, <use xlink:href>, lub serwowany
+    z Content-Type: image/svg+xml moze wykonywac JS jesli zawiera <script>, event
+    handlers (onclick, onload, ...), foreignObject z HTML, lub xlink:href do
+    javascript: URL.
+
+    Args:
+        content: bytes lub str — surowa zawartosc pliku SVG
+
+    Returns:
+        (is_safe: bool, reason: str) — (True, '') jesli OK,
+        (False, 'opis dlaczego odrzucony') jesli niebezpieczne.
+    """
+    if isinstance(content, bytes):
+        try:
+            text = content.decode('utf-8', errors='replace')
+        except Exception:
+            return False, 'svg_decode_error'
+    else:
+        text = str(content)
+
+    if not text.strip():
+        return False, 'svg_empty'
+
+    # Szybkie sprawdzenie heurystyczne (case-insensitive, bez whitespace tricks)
+    # Robimy to PRZED defusedxml zeby zlapac przypadki ktore parser moze tolerowac
+    lower = text.lower()
+    # Usun komentarze XML zeby nie ukrywac ataku w nich
+    lower_no_comments = re.sub(r'<!--.*?-->', '', lower, flags=re.DOTALL)
+    # Usun whitespace miedzy znakami tagow (atak: <s c r i p t>)
+    compact = re.sub(r'\s+', '', lower_no_comments)
+
+    forbidden_tags = ['<script', '<foreignobject', '<iframe', '<embed', '<object', '<use']
+    for tag in forbidden_tags:
+        if tag in compact:
+            return False, f'svg_forbidden_tag:{tag.strip("<")}'
+
+    # Event handlers (onclick=, onload=, onmouseover=, ...)
+    if re.search(r'\bon[a-z]+\s*=', lower_no_comments):
+        return False, 'svg_event_handler'
+
+    # javascript: URI
+    if 'javascript:' in compact:
+        return False, 'svg_javascript_uri'
+
+    # Zewnetrzne xlink:href (data:, http:, https:, file:) — odrzucaj wszystko poza # (fragment)
+    # NOTE: <use> juz odrzucone wyzej, ale xlink moze byc na innych elementach
+    for m in re.finditer(r'(?:xlink:)?href\s*=\s*["\']?([^"\'\s>]+)', lower_no_comments):
+        href = m.group(1).strip()
+        if href.startswith('#') or not href:
+            continue  # fragment OK
+        # Wszystko inne (data:, http:, file:, ftp:, javascript:) — niebezpieczne
+        return False, f'svg_external_href:{href[:30]}'
+
+    # Spróbuj sparsować przez defusedxml — wykryje XXE, entity expansion, itp.
+    try:
+        from defusedxml import ElementTree as DefusedET
+        DefusedET.fromstring(text)
+    except Exception as e:
+        # defusedxml zglasza wyjatek dla XXE, billion laughs, itp.
+        return False, f'svg_xml_attack:{str(e)[:50]}'
+
+    return True, ''
+
+
 def safe_error_message(error):
     """Return safe error message without leaking internal info."""
     msg = str(error).lower()

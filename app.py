@@ -737,6 +737,10 @@ def after_request(response):
     # Cache dla statycznych plików (obrazki, CSS, JS)
     elif response.mimetype and (response.mimetype.startswith('image/') or response.mimetype in ('text/css', 'application/javascript')):
         response.headers['Cache-Control'] = 'public, max-age=86400'
+        # Defense-in-depth: SVG (image/svg+xml) moze zawierac JS jesli sanitizer ominie cos
+        # Wymuszamy CSP default-src 'none' zeby nawet jak SVG zawiera <script>, nie wykonal sie
+        if response.mimetype == 'image/svg+xml' or request.path.lower().endswith('.svg'):
+            response.headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
     else:
         # Prywatne strony — nie cachuj
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
@@ -2662,10 +2666,34 @@ def setup_logo():
         fname = f.filename or 'logo.png'
         ext = fname.rsplit('.', 1)[-1].lower() if '.' in fname else 'png'
         if ext == 'svg':
-            # SVG — zapisz bezpośrednio
+            # SVG sanitization — odrzuc XSS payloady przed zapisem
+            from modules.utils import sanitize_svg
+            try:
+                f.stream.seek(0)
+            except Exception:
+                pass
+            svg_content = f.read()
+            is_safe, reason = sanitize_svg(svg_content)
+            if not is_safe:
+                # Audit log — proba ataku
+                try:
+                    from modules.database import log_admin_action
+                    log_admin_action(
+                        'logo_upload',
+                        {'attack': 'svg_xss', 'reason': reason, 'filename': fname[:100]},
+                        success=False,
+                        error_message=f'SVG odrzucony: {reason}'
+                    )
+                except Exception:
+                    pass
+                return jsonify({'ok': False, 'error': f'SVG odrzucony (potencjalny XSS): {reason}'}), 400
+            # Bezpieczny SVG — zapisz pod kontrolowana nazwa (NIE z user-controlled filename)
+            from werkzeug.utils import secure_filename
+            _ = secure_filename(fname)  # walidacja nazwy (efekt uboczny — nie uzywamy bo nazwa stala)
             logo_name = 'brand_logo.svg'
             logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', logo_name)
-            f.save(logo_path)
+            with open(logo_path, 'wb') as out:
+                out.write(svg_content)
         else:
             # Raster — resize i zapisz jako PNG
             img = Image.open(f.stream)
