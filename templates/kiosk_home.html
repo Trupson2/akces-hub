@@ -1,25 +1,22 @@
 {% extends "base.html" %}
 {% block content %}
 <script nonce="{{ csp_nonce }}">
-/* MOBILE — natychmiast ukryj sidebar + overlay ZANIM narysuje sie strona.
-   Dziala niezaleznie od CSS cache (service worker moze trzymac stary base.html) */
+/* MOBILE — wymus pelnoekranowy layout (sidebar jako slide-out drawer via base.html hamburger).
+   Sidebar jest ukryty przez translateX(-100%) z base.html @media. Hamburger (menu-toggle)
+   otwiera go. Zaden DOM remove — chcemy pelnej funkcjonalnosci: nawigacja do wszystkich stron. */
 (function(){
     if(window.innerWidth <= 900 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)){
-        var css = '.sidebar,.sidebar-overlay,.menu-toggle,.sidebar.open{display:none!important;transform:translateX(-100%)!important;visibility:hidden!important;width:0!important}'
-                + '.main-content,.app-layout,.container,.content-area{margin-left:0!important;padding-left:0!important;padding-right:0!important;max-width:100vw!important;width:100vw!important}'
-                + '.topbar{padding-left:0!important}';
+        document.documentElement.classList.add('kiosk-mobile');
+        // Jak cache trzyma stary base.html bez media query — wymus reguly inline
+        var css = 'html.kiosk-mobile .sidebar:not(.open){transform:translateX(-100%)!important}'
+                + 'html.kiosk-mobile .sidebar.open{transform:translateX(0)!important}'
+                + 'html.kiosk-mobile .sidebar-overlay.open{display:block!important}'
+                + 'html.kiosk-mobile .menu-toggle{display:flex!important;top:14px!important;left:14px!important;z-index:300!important}'
+                + 'html.kiosk-mobile .main-content,html.kiosk-mobile .app-layout{margin-left:0!important;padding-left:0!important;max-width:100vw!important;width:100vw!important}';
         var s = document.createElement('style');
         s.setAttribute('data-kiosk-mobile','1');
         s.textContent = css;
         (document.head || document.documentElement).appendChild(s);
-        document.documentElement.classList.add('kiosk-mobile');
-        // Po DOMContentLoaded — usun calkowicie z DOM (na wypadek jakby JS bazy je jeszcze toggle'owal)
-        document.addEventListener('DOMContentLoaded', function(){
-            ['.sidebar','.sidebar-overlay','.menu-toggle'].forEach(function(sel){
-                var el = document.querySelector(sel);
-                if(el) el.remove();
-            });
-        });
     }
 })();
 </script>
@@ -118,10 +115,12 @@ html.kiosk-mobile .kd{margin-left:0!important;width:100vw!important}
 
 /* ═══ MOBILE — telefony (do 900px) ═══ */
 @media(max-width:900px){
-    /* Ukryj sidebar z base.html gdy jest kiosk na mobile */
-    .sidebar,.sidebar-overlay,.menu-toggle{display:none!important}
+    /* Sidebar ukryty przez translateX (base.html), hamburger (menu-toggle) widoczny —
+       daje pelny dostep do wszystkich stron (Produkty, Palety, Koszty, itd.) */
     /* Layout — wypelnij caly ekran, stackuj pionowo */
     .kd{margin-left:0!important;width:100vw!important;height:auto!important;min-height:100vh;padding:12px!important;grid-template-rows:auto auto auto auto;overflow:visible;gap:10px}
+    /* Miejsce na hamburger w top-left (52px — 42px btn + marginesy) */
+    .kd-head{padding-left:52px!important}
     /* Header — kompakt */
     .kd-head{flex-direction:column;align-items:flex-start;gap:6px}
     .kd-head-left{width:100%}
