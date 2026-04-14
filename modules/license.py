@@ -132,8 +132,10 @@ def generate_license_key(client_name, plan='pro', months=12):
     else:
         expires = 0  # Bezterminowo
 
-    # Plan code: T=trial, P=pro, M=max, E=enterprise
-    plan_code = {'trial': 'T', 'pro': 'P', 'max': 'M', 'enterprise': 'E'}.get(plan, 'P')
+    # Plan code: T=trial/free, P=pro, M=max, S=starter, B=business, E=enterprise
+    # Mapa musi byc identyczna z verify_license() ponizej!
+    plan_code = {'trial': 'T', 'free': 'T', 'pro': 'P', 'max': 'M',
+                 'starter': 'S', 'business': 'B', 'enterprise': 'E'}.get(plan, 'P')
 
     # Payload do podpisania
     payload = f"{client_name}|{plan_code}|{created}|{expires}"
@@ -188,7 +190,9 @@ def verify_license(license_data):
         return False, 'Niekompletne dane licencji'
 
     # Sprawdź podpis
-    plan_code = {'trial': 'T', 'pro': 'P', 'max': 'M', 'starter': 'S', 'business': 'B', 'enterprise': 'E'}.get(plan, 'P')
+    # Mapa musi byc identyczna z generate_license_key() powyzej!
+    plan_code = {'trial': 'T', 'free': 'T', 'pro': 'P', 'max': 'M',
+                 'starter': 'S', 'business': 'B', 'enterprise': 'E'}.get(plan, 'P')
     payload = f"{client}|{plan_code}|{created}|{expires}"
 
     expected_sig = hmac.new(
