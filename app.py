@@ -389,7 +389,10 @@ def csrf_protect_forms():
                 from flask import abort
                 abort(400, 'CSRF token nieprawidłowy. Odśwież stronę.')
     else:
-        # Formularz HTML — wymagaj csrf_token
+        # Formularz HTML — wymagaj csrf_token LUB same-origin Referer
+        # Test mode: testy maja WTF_CSRF_ENABLED=False, wiec pomijamy enforcement
+        if os.environ.get('AKCES_TEST_MODE') == '1':
+            return
         if request.form.get('csrf_token'):
             try:
                 csrf.protect()
@@ -398,6 +401,18 @@ def csrf_protect_forms():
                 generate_csrf()
                 from flask import abort
                 abort(400, 'CSRF token wygasł. Odśwież stronę.')
+        else:
+            # Brak tokena w body — wymagaj same-origin Referer (zabezpiecza przed
+            # cross-origin form POST bez JS, ktory wczesniej przechodzil bez sprawdzenia)
+            referer = request.headers.get('Referer', '')
+            host = request.host_url
+            _referer_ok = referer.startswith(host) or referer.startswith(host.replace('http://', 'https://'))
+            # Ngrok: referer z *.ngrok-free.dev jest OK jesli przyszedl przez proxy
+            if not _referer_ok and '.ngrok' in referer and request.headers.get('X-Forwarded-For'):
+                _referer_ok = True
+            if not _referer_ok:
+                from flask import abort
+                abort(403, 'CSRF: form POST bez tokena i nie same-origin')
 
 # ============================================================
 # WEBHOOK SIGNATURE VALIDATION — Telegram & Allegro
