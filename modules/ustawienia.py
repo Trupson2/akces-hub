@@ -1289,10 +1289,36 @@ def admin_update():
             shutil.rmtree(tmp_dir)
         os.makedirs(tmp_dir)
 
-        f.save(os.path.join(tmp_dir, 'update.zip'))
-        with zipfile.ZipFile(os.path.join(tmp_dir, 'update.zip'), 'r') as zf:
+        zip_path = os.path.join(tmp_dir, 'update.zip')
+        f.save(zip_path)
+
+        # ── ZIP-SLIP GUARD ──
+        # Weryfikuj każdy członek archiwum PRZED extractall — atakujący mógłby
+        # zrobić ZIP z plikiem "../../../etc/cron.d/pwn" i nadpisać system.
+        # Referencja: https://snyk.io/research/zip-slip-vulnerability
+        _tmp_real = os.path.realpath(tmp_dir)
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            for member in zf.infolist():
+                # Odrzuć absolute paths (np. "/etc/passwd")
+                if os.path.isabs(member.filename) or member.filename.startswith(('/', '\\')):
+                    shutil.rmtree(tmp_dir, ignore_errors=True)
+                    logs.append(f'  -> BLAD: Absolute path w ZIP: {member.filename}')
+                    return page('Blad: Niebezpieczny ZIP (absolute path)', '#ef4444')
+                # Odrzuć ścieżki które wychodzą poza tmp_dir ("../../../")
+                target = os.path.realpath(os.path.join(tmp_dir, member.filename))
+                if os.path.commonpath([_tmp_real, target]) != _tmp_real:
+                    shutil.rmtree(tmp_dir, ignore_errors=True)
+                    logs.append(f'  -> BLAD: Path traversal w ZIP: {member.filename}')
+                    return page('Blad: Niebezpieczny ZIP (path traversal)', '#ef4444')
+                # Odrzuć symlinki (mogą wskazywać poza tmp_dir)
+                # external_attr high bits = Unix mode; 0o120000 == symlink
+                if (member.external_attr >> 16) & 0o170000 == 0o120000:
+                    shutil.rmtree(tmp_dir, ignore_errors=True)
+                    logs.append(f'  -> BLAD: Symlink w ZIP: {member.filename}')
+                    return page('Blad: Niebezpieczny ZIP (symlink)', '#ef4444')
+            # Walidacja przeszła — extractall jest teraz bezpieczny
             zf.extractall(tmp_dir)
-        os.remove(os.path.join(tmp_dir, 'update.zip'))
+        os.remove(zip_path)
 
         # Znajdz root folder w ZIP (moze byc nested)
         extracted = os.listdir(tmp_dir)

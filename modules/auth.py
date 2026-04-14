@@ -204,6 +204,45 @@ def require_role(*roles):
     return decorator
 
 
+def _wants_json():
+    """Wykryj czy request oczekuje JSON (AJAX/fetch) czy HTML."""
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return True
+    accept = request.headers.get('Accept', '')
+    ct = request.content_type or ''
+    if 'application/json' in accept and 'text/html' not in accept:
+        return True
+    if 'application/json' in ct:
+        return True
+    return False
+
+
+def require_admin(f):
+    """Dekorator wymagający ROLI admin — JSON-aware.
+
+    - Anonim (brak sesji): 401 JSON dla AJAX/fetch, redirect do /auth/login dla GET HTML
+    - Zalogowany nie-admin: 403 JSON dla AJAX/fetch, abort(403) dla HTML
+    - Admin: przepuszcza
+
+    Używaj na endpointach wykonujących czynności administracyjne po stronie serwera
+    (system update, restart, backup restore, zarządzanie userami itp.).
+    Serwerowa autoryzacja — NIE polegaj na ukrywaniu przycisków w UI.
+    """
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('user_id'):
+            if _wants_json() or request.method != 'GET':
+                return jsonify({'ok': False, 'success': False, 'error': 'Wymagane logowanie'}), 401
+            return redirect(url_for('auth.login', next=request.full_path.rstrip('?')))
+        user_role = (session.get('rola') or '').lower()
+        if user_role != 'admin':
+            if _wants_json() or request.method != 'GET':
+                return jsonify({'ok': False, 'success': False, 'error': 'Brak uprawnień (wymaga admin)'}), 403
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated
+
+
 # ============================================================
 # STRONA LOGOWANIA
 # ============================================================
@@ -1087,12 +1126,30 @@ def setup_auth(app):
 
         # Niezalogowany — auto-login na Pi (localhost / sieć lokalna)
         # SECURITY: Domyślnie WYŁĄCZONY. Włącz w Ustawienia → Bezpieczeństwo.
+        # CRITICAL: Auto-login działa TYLKO gdy request nie przyszedł przez proxy.
+        # Cloudflare Tunnel / ngrok robią request.remote_addr=127.0.0.1 dla
+        # zewnętrznych userów — bez tego checku każdy z internetu dostałby admina.
         if not session.get('user_id'):
             _auto = False
             _remote = request.remote_addr or ''
+            # Wykryj proxy: jeśli SĄ headery od proxy/CDN, to request NIE JEST lokalny
+            # (nawet jeśli ProxyFix nadpisał remote_addr). Bezpiecznie odrzuć.
+            _is_proxied = bool(
+                request.headers.get('X-Forwarded-For')
+                or request.headers.get('X-Real-IP')
+                or request.headers.get('CF-Connecting-IP')
+                or request.headers.get('CF-Ray')
+                or request.headers.get('ngrok-trace-id')
+                or request.headers.get('X-Forwarded-Host')
+            )
+            _is_local_net = (
+                _remote in ('127.0.0.1', '::1')
+                or _remote.startswith('192.168.')
+                or _remote.startswith('10.')
+            )
             from modules.database import get_config_cached
             _auto_login_enabled = get_config_cached('auto_login_lan', 'false') == 'true'
-            if _auto_login_enabled and (_remote in ('127.0.0.1', '::1') or _remote.startswith('192.168.') or _remote.startswith('10.')):
+            if _auto_login_enabled and _is_local_net and not _is_proxied:
                 try:
                     _conn = _get_auth_db()
                     _admin = _conn.execute("SELECT id, username, rola FROM users WHERE rola='admin' AND aktywny=1 ORDER BY id LIMIT 1").fetchone()

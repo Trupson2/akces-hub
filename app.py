@@ -55,7 +55,7 @@ from modules.paletomat import paletomat_bp, get_stats as pal_stats
 from modules.telegram_bot import telegram_bp, send_telegram, bot_status, start_bot, stop_bot
 from modules.allegro_api import allegro_bp
 from modules.logger import log, log_error, log_warning
-from modules.auth import auth_bp, setup_auth
+from modules.auth import auth_bp, setup_auth, require_admin, require_login
 # OLX i Vinted - pliki zachowane, moduły wyłączone z menu
 # from modules.olx_api import olx_bp
 # from modules.vinted_api import vinted_bp
@@ -115,6 +115,20 @@ VERSION = _get_version()
 APP_START_TIME = time.time()
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
+
+# ── ProxyFix: Cloudflare Tunnel / nginx / ngrok przekazują prawdziwy IP w X-Forwarded-For.
+# Bez tego request.remote_addr == '127.0.0.1' dla WSZYSTKICH userów przez tunnel,
+# co łamie: rate-limiter per-IP, auto-login LAN, block_unauthenticated_external. ──
+try:
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+    print("[OK] ProxyFix aktywny (X-Forwarded-For, X-Forwarded-Proto)")
+except Exception as _e:
+    print(f"[WARN] ProxyFix nie załadowany: {_e}")
+
+# Max rozmiar uploadu — chroni przed DoS (zapychanie RAM/dysku)
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB
+
 # SECRET_KEY — generowany losowo i zapisywany do pliku (nie hardcoded!)
 _secret_key_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.secret_key')
 if os.path.exists(_secret_key_path):
@@ -176,7 +190,14 @@ _generate_changelog()
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_NAME'] = 'akces_session'
-app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production' or os.path.exists('/etc/systemd/system/akces-hub.service')
+# SESSION_COOKIE_SECURE: HTTPS-only cookies. Włączone w produkcji (Pi + systemd)
+# oraz gdy działamy za Cloudflare Tunnel / ngrok (X-Forwarded-Proto=https).
+# Dynamiczne wykrywanie HTTPS per-request robi before_request _enforce_secure_cookie.
+app.config['SESSION_COOKIE_SECURE'] = (
+    os.environ.get('FLASK_ENV') == 'production'
+    or os.path.exists('/etc/systemd/system/akces-hub.service')
+    or os.path.exists('/etc/systemd/system/akceshub.service')
+)
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)  # Sesja wygasa po 12h
 
 # CSRF protection
@@ -184,16 +205,27 @@ csrf = CSRFProtect(app)
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Wyłącz domyślnie, włącz per-route
 
 # Rate limiting — ochrona przed brute-force i DDoS
+def _real_ip():
+    """Prawdziwy IP klienta — Cloudflare/ngrok/nginx -> ProxyFix X-Forwarded-For.
+    Fallback chain: CF-Connecting-IP (Cloudflare) -> X-Real-IP (nginx) -> remote_addr."""
+    cf = request.headers.get('CF-Connecting-IP', '').strip()
+    if cf:
+        return cf
+    xr = request.headers.get('X-Real-IP', '').strip()
+    if xr:
+        return xr
+    # ProxyFix już zaaplikowany — request.remote_addr zawiera X-Forwarded-For[0]
+    return request.remote_addr or '127.0.0.1'
+
 try:
     from flask_limiter import Limiter
-    from flask_limiter.util import get_remote_address
     limiter = Limiter(
-        get_remote_address,
+        _real_ip,
         app=app,
         default_limits=["200 per minute"],  # Globalny limit
         storage_uri="memory://",
     )
-    print("[OK] Rate limiter aktywny (200/min global)")
+    print("[OK] Rate limiter aktywny (200/min global, per real IP)")
 except ImportError:
     limiter = None
     print("[WARN] flask-limiter nie zainstalowany — brak rate limitingu")
@@ -280,8 +312,21 @@ def block_unauthenticated_external():
         return
 
     # Niezalogowany — sprawdź czy lokalne czy zewnętrzne
+    # CRITICAL: jeśli są headery proxy (CF/ngrok/nginx), to request nie jest lokalny
+    # nawet jeśli remote_addr wygląda jak 127.0.0.1 / 192.168.*
     remote_ip = request.remote_addr or ''
-    is_local = remote_ip in ('127.0.0.1', '::1') or remote_ip.startswith('192.168.') or remote_ip.startswith('10.')
+    is_proxied = bool(
+        request.headers.get('X-Forwarded-For')
+        or request.headers.get('X-Real-IP')
+        or request.headers.get('CF-Connecting-IP')
+        or request.headers.get('CF-Ray')
+        or request.headers.get('ngrok-trace-id')
+    )
+    is_local = (
+        remote_ip in ('127.0.0.1', '::1')
+        or remote_ip.startswith('192.168.')
+        or remote_ip.startswith('10.')
+    ) and not is_proxied
 
     # Lokalne bez sesji — przepuść (Pi w LAN)
     if is_local:
@@ -311,12 +356,13 @@ def csrf_protect_forms():
     if not session.get('user_id'):
         return
     ct = request.content_type or ''
-    # Wyłączenia CSRF: wewnętrzne API, webhooks, Allegro callbacks
+    # Wyłączenia CSRF: TYLKO webhooks z własną weryfikacją HMAC podpisu.
+    # /system/* WYMAGA CSRF (wcześniej każdy zalogowany user mógł trigger git pull + restart).
+    # /api/* NIE jest exempt — używa X-CSRFToken z sesji (chroni przed CSRF z obcych domen).
     _csrf_exempt = (
-        '/api/', '/allegro/callback', '/allegro/webhook',
-        '/telegram/webhook', '/paletomat/api/', '/magazyn/api/',
-        '/analityka/winning/',  # Scout AJAX
-        '/system/',  # System update/restart
+        '/allegro/callback',      # OAuth redirect z Allegro (signed state param)
+        '/allegro/webhook',       # HMAC validated w handlerze
+        '/telegram/webhook',      # secret_token validated w handlerze
     )
     if any(request.path.startswith(p) for p in _csrf_exempt):
         return
@@ -404,6 +450,9 @@ def validate_webhook_signatures():
 @app.before_request
 def check_license_middleware():
     """Blokuj dostęp bez aktywnej licencji (oprócz setup, login, aktywacji)"""
+    # Test mode: pomijamy sprawdzanie licencji (pytest)
+    if os.environ.get('AKCES_TEST_MODE') == '1':
+        return
     allowed = ('/setup', '/auth', '/static', '/api/system-stats', '/api/csrf-token', '/license', '/favicon', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/eula', '/onboarding', '/launcher')
     if any(request.path.startswith(p) for p in allowed):
         return
@@ -436,6 +485,8 @@ def check_license_middleware():
 @app.before_request
 def check_eula_middleware():
     """Po walidacji licencji sprawdz czy EULA zaakceptowane"""
+    if os.environ.get('AKCES_TEST_MODE') == '1':
+        return
     allowed = ('/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/launcher')
     if any(request.path.startswith(p) for p in allowed):
         return
@@ -450,6 +501,8 @@ def check_eula_middleware():
 @app.before_request
 def check_onboarding_middleware():
     """Po akceptacji EULA sprawdz czy onboarding ukonczony"""
+    if os.environ.get('AKCES_TEST_MODE') == '1':
+        return
     allowed = ('/onboarding', '/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/launcher')
     if any(request.path.startswith(p) for p in allowed):
         return
@@ -2330,8 +2383,9 @@ def monitor_toggle_source():
     return redirect('/monitor')
 
 @app.route('/system/gemini-model', methods=['POST'])
+@require_admin
 def system_gemini_model():
-    """Szybka zmiana modelu Gemini AI"""
+    """Szybka zmiana modelu Gemini AI — tylko admin (koszty API)."""
     from modules.database import get_config, set_config
     data = request.get_json(silent=True) or {}
     model = data.get('model', '')
@@ -2343,8 +2397,11 @@ def system_gemini_model():
 
 
 @app.route('/system/update', methods=['POST'])
+@require_admin
 def system_update():
-    """Backup + Git pull + restart serwisu z poziomu apki"""
+    """Backup + Git pull + restart serwisu z poziomu apki.
+    TYLKO admin — git pull + systemctl restart = RCE jeśli ktoś przejmie sesję usera.
+    Autoryzacja serwerowa przez @require_admin (twarde sprawdzenie, nie polegaj na UI)."""
     import subprocess
     try:
         # BACKUP PRZED AKTUALIZACJĄ

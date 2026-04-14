@@ -363,22 +363,61 @@ def _backup_loop():
 # FLASK BLUEPRINT (opcjonalnie)
 # ============================================================
 
+def _is_safe_backup_filename(name):
+    """Path traversal guard — filename musi być płaska nazwa pliku w BACKUP_DIR.
+    Odrzuca: puste, z '/', '\\', '..', absolute path, spoza BACKUP_DIR."""
+    if not name or not isinstance(name, str):
+        return False
+    # Tylko sama nazwa pliku — bez ścieżek
+    if name != os.path.basename(name):
+        return False
+    if '..' in name or name.startswith('.') or '/' in name or '\\' in name:
+        return False
+    # Whitelist rozszerzeń
+    if not (name.endswith('.db') or name.endswith('.db.enc')):
+        return False
+    # Zrealizowana ścieżka musi być WEWNĄTRZ BACKUP_DIR (po resolve symlinków)
+    try:
+        target = (BACKUP_DIR / name).resolve()
+        if os.path.commonpath([str(target), str(BACKUP_DIR.resolve())]) != str(BACKUP_DIR.resolve()):
+            return False
+    except Exception:
+        return False
+    return True
+
+
 try:
-    from flask import Blueprint, jsonify, request
-    
+    from flask import Blueprint, jsonify, request, abort, session, redirect, url_for
+    from functools import wraps
+
     backup_bp = Blueprint('backup', __name__)
-    
+
+    def _require_admin_api(f):
+        """Lokalna wersja require_admin — JSON responses, unika circular importu z auth.py.
+        Zwraca 401 gdy brak sesji, 403 gdy nie-admin."""
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            if not session.get('user_id'):
+                return jsonify({'success': False, 'error': 'Wymagane logowanie'}), 401
+            if (session.get('rola') or '').lower() != 'admin':
+                return jsonify({'success': False, 'error': 'Brak uprawnień (wymaga admin)'}), 403
+            return f(*args, **kwargs)
+        return decorated
+
     @backup_bp.route('/backup/create', methods=['POST'])
+    @_require_admin_api
     def api_create_backup():
-        """API endpoint do tworzenia backupu"""
+        """API endpoint do tworzenia backupu — TYLKO admin."""
         backup_path = create_backup()
         if backup_path:
             return jsonify({'success': True, 'backup': backup_path.name})
         return jsonify({'success': False, 'error': 'Nie udało się utworzyć backupu'}), 500
-    
+
     @backup_bp.route('/backup/list')
+    @_require_admin_api
     def api_list_backups():
-        """API endpoint do listowania backupów"""
+        """API endpoint do listowania backupów — TYLKO admin.
+        Ujawnia nazwy plików = wektor reconnaissance dla atakującego."""
         backups = get_backups()
         return jsonify({
             'success': True,
@@ -391,18 +430,24 @@ try:
                 for b in backups
             ]
         })
-    
+
     @backup_bp.route('/backup/restore', methods=['POST'])
+    @_require_admin_api
     def api_restore_backup():
-        """API endpoint do przywracania backupu"""
+        """API endpoint do przywracania backupu — TYLKO admin.
+        Filename validation zapobiega path traversal (np. '../../../etc/passwd')."""
         import gc
-        
-        data = request.get_json()
+
+        data = request.get_json(silent=True) or {}
         filename = data.get('filename')
-        
+
         if not filename:
             return jsonify({'success': False, 'error': 'Brak nazwy pliku'}), 400
-        
+
+        # PATH TRAVERSAL GUARD
+        if not _is_safe_backup_filename(filename):
+            return jsonify({'success': False, 'error': 'Nieprawidłowa nazwa pliku backupu'}), 400
+
         # Zamknij CAŁY connection pool przed przywracaniem
         try:
             from .database import close_connection_pool
@@ -421,23 +466,27 @@ try:
             close_connection_pool()
         except Exception as e:
             print(f"[WARN] Nie udało się zamknąć connection pool po przywracaniu: {e}")
-        
+
         return jsonify({'success': success, 'message': message})
-    
+
     @backup_bp.route('/backup/verify/<filename>')
+    @_require_admin_api
     def api_verify_backup(filename):
-        """API endpoint do weryfikacji backupu"""
+        """API endpoint do weryfikacji backupu — TYLKO admin."""
+        if not _is_safe_backup_filename(filename):
+            return jsonify({'success': False, 'error': 'Nieprawidłowa nazwa pliku backupu'}), 400
         success, message = verify_backup(filename)
         return jsonify({'success': success, 'message': message})
 
     @backup_bp.route('/backup/sync-gdrive', methods=['POST'])
+    @_require_admin_api
     def api_sync_gdrive():
-        """Ręczna synchronizacja backupów z Google Drive"""
+        """Ręczna synchronizacja backupów z Google Drive — TYLKO admin."""
         success = sync_to_gdrive()
         if success:
             return jsonify({'success': True, 'message': 'Zsynchronizowano z Google Drive'})
         return jsonify({'success': False, 'error': 'Nie udało się zsynchronizować. Sprawdź konfigurację rclone.'}), 500
-    
+
 except ImportError:
     # Flask niedostępny, skipujemy API endpoints
     backup_bp = None
