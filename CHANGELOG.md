@@ -2,6 +2,7 @@
 
 ## 14.04.2026
 
+- fix: mobile zostaje na home.html (nie kiosk) + wieksze fonty/KPI/przyciski pod kciuk
 - fix: mobile dostaje kiosk_home.html (user-agent detect) + responsive CSS dla kioska
 - feat: replace ngrok widget in kiosk with Cloudflare Tunnel status (app.akceshub.com)
 - fix: kiosk mode triggering on mobile through Cloudflare Tunnel (localhost false positive)
