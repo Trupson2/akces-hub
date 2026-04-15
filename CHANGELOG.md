@@ -2,6 +2,16 @@
 
 ## 15.04.2026
 
+- landing: typewriter effect na H1 + highlights 4-module section + workflow proof
+- docs: security audit 2026-04 (Phase 1-3 summary dla partnera biznesowego)
+- security: 2FA TOTP opt-in for users (pyotp + backup codes + UI)
+- security: Cloudflare Turnstile on login (bot protection, disabled without keys)
+- security: move encryption key outside DB folder (systemd EnvironmentFile)
+- security: add CSP nonce infrastructure (fundament pod Phase 3 rollout)
+- security: sanitize SVG uploads (defusedxml + reject scripts/events)
+- security: close CSRF form-POST bypass (require token or same-origin Referer)
+- security: fix license test prefix mapping (starter/business/free)
+- security: Phase 1.5 â€” explicit CSRF + audit log na privileged actions
 - security: Phase 1 critical hardening â€” access control, proxy trust, zip-slip
 
 ## 14.04.2026
