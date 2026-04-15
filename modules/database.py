@@ -650,7 +650,17 @@ def invalidate_config_cache():
 _fernet_instance = None
 
 def _get_fernet():
-    """Lazy-init Fernet encryption. Klucz w .env.key lub env var."""
+    """Lazy-init Fernet encryption.
+
+    Klucz ladowany przez modules.key_loader.load_encryption_key() ktory
+    sprawdza (w kolejnosci):
+      1. env var AKCES_ENCRYPTION_KEY (systemd EnvironmentFile)
+      2. /etc/akces/env.key (produkcja, chmod 600)
+      3. ~/.akces/env.key (dev fallback)
+      4. <app_dir>/.env.key (LEGACY, print warning)
+
+    Zobacz docs/DEPLOYMENT.md po szczegoly deploymentu.
+    """
     global _fernet_instance
     if _fernet_instance:
         return _fernet_instance
@@ -660,32 +670,16 @@ def _get_fernet():
         print("[WARN] cryptography not installed — secrets stored as plaintext. Run: pip install cryptography")
         return None
 
-    # Priority: env variable > .env.key file
-    key = os.environ.get('AKCES_ENCRYPTION_KEY', '')
-    if not key:
-        key_path = _APP_DIR / '.env.key'
-        if key_path.exists():
-            key = key_path.read_text().strip()
-            # Security: verify file permissions (Unix only)
-            try:
-                import stat
-                perms = os.stat(str(key_path)).st_mode
-                if perms & stat.S_IROTH:  # world-readable
-                    os.chmod(str(key_path), 0o600)
-                    print(f"[WARN] Fixed .env.key permissions to 600 (was world-readable)")
-            except Exception:
-                pass
-        else:
-            # First run — generate key
-            key = Fernet.generate_key().decode()
-            key_path.write_text(key)
-            try:
-                os.chmod(str(key_path), 0o600)
-            except Exception:
-                pass
-            print(f"[OK] Wygenerowano klucz szyfrowania: {key_path}")
-            print(f"[WARN] For production, set AKCES_ENCRYPTION_KEY env variable instead of file")
-    _fernet_instance = Fernet(key.encode() if isinstance(key, str) else key)
+    try:
+        from modules.key_loader import load_encryption_key
+        key_bytes, source = load_encryption_key(auto_generate=True, migrate_legacy=True)
+    except Exception as e:
+        print(f"[ERR] Nie moge zaladowac klucza szyfrowania: {e}")
+        return None
+
+    # Log skad pochodzi klucz (pomaga diagnostyce) — bez drukowania klucza.
+    print(f"[OK] Klucz szyfrowania zaladowany ze zrodla: {source}")
+    _fernet_instance = Fernet(key_bytes)
     return _fernet_instance
 
 
