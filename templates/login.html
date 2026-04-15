@@ -155,6 +155,12 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min
 <span class="toggle-text">Zapamietaj sesje</span>
 </div>
 
+{% if turnstile_site_key %}
+<!-- Cloudflare Turnstile — CAPTCHA-less anti-bot challenge -->
+<div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-theme="dark" style="margin-bottom:24px"></div>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{% endif %}
+
 <button type="submit" class="btn-login" id="submitBtn">
 {% if first_run %}Utworz konto{% else %}Zaloguj{% endif %}
 <span class="material-symbols-outlined" style="font-size:1.2rem">arrow_right_alt</span>

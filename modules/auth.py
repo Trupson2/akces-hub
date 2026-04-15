@@ -486,6 +486,42 @@ def login():
         ).fetchone()
 
         if user and _verify_password(password, user['password_hash']):
+            # Cloudflare Turnstile — walidacja antybot PO credentials OK
+            # (oszczedza siteverify call dla oczywiscie zlych hasel).
+            # FAIL-CLOSED: jesli verify_token zwroci success=False z jakiegokolwiek
+            # powodu (brak tokena, network error, Cloudflare rejected), login blocked.
+            try:
+                from modules import turnstile as _turnstile
+                if _turnstile.is_enabled():
+                    ts_token = request.form.get('cf-turnstile-response', '')
+                    ts_result = _turnstile.verify_token(ts_token, remote_ip=client_ip)
+                    if not ts_result.success:
+                        conn.close()
+                        # Audit log (nie blokuj odpowiedzi jesli log fail)
+                        try:
+                            from modules.database import log_admin_action
+                            log_admin_action(
+                                'login_turnstile_fail',
+                                details={
+                                    'username': username,
+                                    'ip': client_ip,
+                                    'error_codes': list(ts_result.error_codes),
+                                },
+                                success=False,
+                                username=username,
+                            )
+                        except Exception:
+                            pass
+                        # Nie uzywamy abort(403) — zeby user dostal przyjemniejsza
+                        # wiadomosc bez pelnego 403 error page.
+                        error = 'Walidacja antybot nieudana. Odswiez strone i sprobuj ponownie.'
+                        return render_template(
+                            'login.html', error=error, username=username, first_run=False
+                        )
+            except ImportError:
+                # Modul turnstile niezaladowany — zachowaj sie jakby feature disabled
+                pass
+
             # Migracja starych haszy (pbkdf2/SHA-256) do Argon2id
             if _needs_rehash(user['password_hash']):
                 conn.execute(
@@ -1219,6 +1255,12 @@ def setup_auth(app):
     @app.context_processor
     def inject_user():
         from modules.database import is_module_enabled, get_config_cached
+        # Turnstile site key — puste gdy feature disabled (backward compat)
+        try:
+            from modules import turnstile as _turnstile
+            _turnstile_key = _turnstile.get_site_key() if _turnstile.is_enabled() else ''
+        except ImportError:
+            _turnstile_key = ''
         return {
             'current_user': session.get('username'),
             'current_role': session.get('rola'),
@@ -1231,4 +1273,5 @@ def setup_auth(app):
             'brand_name': get_config_cached('brand_name', 'AKCES HUB'),
             'brand_color': get_config_cached('brand_color', '#6366f1'),
             'brand_logo': os.path.exists(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'brand_logo.png')),
+            'turnstile_site_key': _turnstile_key,
         }
