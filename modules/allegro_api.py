@@ -4323,14 +4323,15 @@ def sync_returns(month=None):
         for chunk_start in range(0, len(ids_list), CHUNK_SIZE):
             chunk = ids_list[chunk_start:chunk_start + CHUNK_SIZE]
             placeholders = ','.join(['?'] * len(chunk))
-            # Range filter na data (uzywa indexu) + IN dla order_id
-            params = chunk + [month_start, month_end]
+            # UWAGA: NIE filtrujemy po data_sprzedazy — zwrot moze zostac zlozony
+            # w innym miesiacu niz oryginalne zamowienie (typowy case: zakup w marcu,
+            # zwrot w kwietniu). API juz filtruje po occurredAt.gte, a allegro_order_id
+            # IN() precyzyjnie matchuje konkretne zamowienia.
             result = conn.execute(f'''
                 UPDATE sprzedaze SET status = 'zwrot'
                 WHERE allegro_order_id IN ({placeholders})
                   AND status != 'zwrot'
-                  AND data_sprzedazy >= ? AND data_sprzedazy < ?
-            ''', params)
+            ''', chunk)
             updated += result.rowcount
 
             # Ktore z chunka realnie sie zaktualizowaly — do logu summary
