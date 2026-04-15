@@ -807,7 +807,8 @@ def scraper_status():
 # SZABLONY
 # ============================================================
 CSS = '''<style>
-:root{--bg:#f0f2f5;--bg-card:rgba(15,15,30,0.65);--bg-sidebar:#0c0f1a;--border:rgba(255,255,255,0.08);--border-light:rgba(255,255,255,0.04);--text:#1e293b;--text-muted:#64748b;--accent:#8ff5ff;--accent2:#ff6b9b;--accent-soft:rgba(143,245,255,0.08);--green:#beee00;--green-soft:rgba(190,238,0,0.08);--yellow:#eab308;--yellow-soft:rgba(234,179,8,0.08);--red:#ef4444;--red-soft:rgba(239,68,68,0.08);--blue:#8ff5ff;--blue-soft:rgba(143,245,255,0.08);--cyan:#8ff5ff;--shadow:0 1px 3px rgba(0,0,0,0.06);--shadow-md:0 4px 12px rgba(0,0,0,0.08);--shadow-lg:0 8px 24px rgba(0,0,0,0.12);--radius:16px;--radius-sm:10px}
+:root{--bg:#06060f;--bg-card:rgba(15,15,30,0.65);--bg-sidebar:#0a0a16;--border:rgba(255,255,255,0.08);--border-light:rgba(255,255,255,0.04);--text:#e2e8f0;--text-muted:#64748b;--accent:#8ff5ff;--accent2:#ff6b9b;--accent-soft:rgba(143,245,255,0.12);--green:#beee00;--green-soft:rgba(190,238,0,0.12);--yellow:#eab308;--yellow-soft:rgba(234,179,8,0.12);--red:#ef4444;--red-soft:rgba(239,68,68,0.12);--blue:#8ff5ff;--blue-soft:rgba(143,245,255,0.12);--cyan:#8ff5ff;--shadow:0 1px 3px rgba(0,0,0,0.2);--shadow-md:0 4px 12px rgba(0,0,0,0.25);--shadow-lg:0 8px 24px rgba(0,0,0,0.3);--radius:16px;--radius-sm:10px}
+[data-theme="light"]{--bg:#f0f2f5;--bg-card:#ffffff;--bg-sidebar:#0c0f1a;--border:rgba(0,0,0,0.08);--border-light:rgba(0,0,0,0.04);--text:#1e293b;--text-muted:#64748b;--accent-soft:rgba(143,245,255,0.08);--green-soft:rgba(190,238,0,0.08);--yellow-soft:rgba(234,179,8,0.08);--red-soft:rgba(239,68,68,0.08);--blue-soft:rgba(143,245,255,0.08);--shadow:0 1px 3px rgba(0,0,0,0.06);--shadow-md:0 4px 12px rgba(0,0,0,0.08);--shadow-lg:0 8px 24px rgba(0,0,0,0.12)}
 [data-theme="dark"]{--bg:#06060f;--bg-card:rgba(15,15,30,0.65);--bg-sidebar:#0a0a16;--border:rgba(255,255,255,0.08);--border-light:rgba(255,255,255,0.04);--text:#e2e8f0;--text-muted:#64748b;--accent-soft:rgba(143,245,255,0.12);--green-soft:rgba(190,238,0,0.12);--yellow-soft:rgba(234,179,8,0.12);--red-soft:rgba(239,68,68,0.12);--blue-soft:rgba(143,245,255,0.12);--shadow:0 1px 3px rgba(0,0,0,0.2);--shadow-md:0 4px 12px rgba(0,0,0,0.25);--shadow-lg:0 8px 24px rgba(0,0,0,0.3)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',-apple-system,system-ui,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
@@ -990,8 +991,8 @@ body{font-family:'Inter',-apple-system,system-ui,'Segoe UI',sans-serif;backgroun
 }
 </style>'''
 
-BASE = '''<!DOCTYPE html><html lang="pl" data-theme="light"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Paletomat</title><meta name="theme-color" content="#f0f2f5">
+BASE = '''<!DOCTYPE html><html lang="pl" data-theme="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paletomat</title><meta name="theme-color" content="#0a0a0f">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <style>.mi{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:inherit;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-smoothing:antialiased;vertical-align:middle}</style>
