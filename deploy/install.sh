@@ -14,7 +14,7 @@ echo "============================================"
 echo ""
 
 # 1. System packages
-echo "[1/8] Instalacja pakietow systemowych..."
+echo "[1/9] Instalacja pakietow systemowych..."
 sudo apt update
 sudo apt install -y \
     python3 python3-pip python3-venv \
@@ -27,7 +27,7 @@ sudo apt install -y \
     fonts-noto-color-emoji
 
 # 2. Create app user (if not exists)
-echo "[2/8] Tworzenie uzytkownika $APP_USER..."
+echo "[2/9] Tworzenie uzytkownika $APP_USER..."
 if ! id "$APP_USER" &>/dev/null; then
     sudo useradd -m -s /bin/bash "$APP_USER"
 fi
@@ -35,13 +35,13 @@ sudo usermod -aG bluetooth "$APP_USER"
 sudo usermod -aG video "$APP_USER"
 
 # 3. Copy app files
-echo "[3/8] Kopiowanie plikow do $APP_DIR..."
+echo "[3/9] Kopiowanie plikow do $APP_DIR..."
 sudo mkdir -p "$APP_DIR"
 sudo rsync -av --exclude='venv' --exclude='__pycache__' --exclude='.git' . "$APP_DIR/"
 sudo chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 
 # 4. Python virtual environment + dependencies
-echo "[4/8] Tworzenie srodowiska Python + instalacja zaleznosci..."
+echo "[4/9] Tworzenie srodowiska Python + instalacja zaleznosci..."
 sudo -u "$APP_USER" python3 -m venv "$APP_DIR/venv"
 sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install --upgrade pip
 sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install -r "$APP_DIR/requirements.txt"
@@ -49,7 +49,7 @@ sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install -r "$APP_DIR/requirements.tx
 sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install pyngrok
 
 # 5. Bluetooth permissions (for Niimbot BLE printer)
-echo "[5/8] Konfiguracja Bluetooth BLE..."
+echo "[5/9] Konfiguracja Bluetooth BLE..."
 sudo cp "$APP_DIR/deploy/99-bluetooth.rules" /etc/udev/rules.d/
 sudo udevadm control --reload-rules
 sudo udevadm trigger
@@ -59,7 +59,7 @@ if [ -f "$PYTHON_BIN" ]; then
 fi
 
 # 6. systemd services (Flask + Ngrok)
-echo "[6/8] Instalacja serwisow systemd..."
+echo "[6/9] Instalacja serwisow systemd..."
 sudo cp "$APP_DIR/deploy/akces-hub.service" /etc/systemd/system/
 sudo cp "$APP_DIR/deploy/akces-ngrok.service" /etc/systemd/system/
 # Usun stary ngrok.service jesli istnieje (unikamy konfliktu)
@@ -75,7 +75,7 @@ sleep 3
 sudo systemctl start akces-ngrok.service
 
 # 7. Kiosk auto-start
-echo "[7/8] Konfiguracja trybu kiosk..."
+echo "[7/9] Konfiguracja trybu kiosk..."
 AUTOSTART_DIR="/home/$APP_USER/.config/autostart"
 sudo -u "$APP_USER" mkdir -p "$AUTOSTART_DIR"
 sudo cp "$APP_DIR/deploy/kiosk.desktop" "$AUTOSTART_DIR/"
@@ -85,8 +85,30 @@ sudo chmod +x "/home/$APP_USER/kiosk.sh"
 sudo chown "$APP_USER:$APP_USER" "/home/$APP_USER/kiosk.sh"
 
 # 8. Auto-login to desktop
-echo "[8/8] Auto-login..."
+echo "[8/9] Auto-login..."
 sudo raspi-config nonint do_boot_behaviour B4
+
+# 9. Hardening (UFW & Fail2Ban)
+echo "[9/9] Hardening (UFW & Fail2Ban)..."
+sudo apt install -y ufw fail2ban
+sudo ufw --force reset
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 22/tcp
+sudo ufw allow 5000/tcp
+sudo ufw --force enable
+
+sudo bash -c 'cat > /etc/fail2ban/jail.local <<EOF
+[sshd]
+enabled = true
+port = 22
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = 3
+bantime = 3600
+EOF'
+sudo systemctl enable fail2ban
+sudo systemctl restart fail2ban
 
 echo ""
 echo "============================================"

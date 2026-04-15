@@ -133,8 +133,17 @@
         input.type = 'hidden';
         input.name = 'printer_type';
         input.value = printerType;
-        
         form.appendChild(input);
+
+        const csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = 'csrf_token';
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta) {
+            csrf.value = meta.content;
+            form.appendChild(csrf);
+        }
+        
         document.body.appendChild(form);
         form.submit();
     }

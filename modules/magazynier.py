@@ -7,6 +7,7 @@ import io
 import csv
 import json
 import tempfile
+from html import escape
 from datetime import datetime
 from flask import Blueprint, render_template, render_template_string, request, redirect, Response, url_for, session, current_app, jsonify
 from flask_wtf.csrf import generate_csrf
@@ -943,10 +944,14 @@ def produkty():
         _is_sold_out = _qty <= 0
         _opacity = 'opacity:0.5;' if _is_sold_out else ''
 
+        safe_nazwa = escape(str(p['nazwa'] or ''))
+        safe_paleta = escape(str(p['paleta'] or ''))
+        safe_dostawca = escape(str(p['dostawca'] or ''))
+
         html += f'''
         <div class="product-item" style="position:relative;{_opacity}"
-             data-name="{p['nazwa'].lower()}" data-status="{product_status}"
-             data-paleta="{p['paleta'] or ''}" data-dostawca="{p['dostawca'] or ''}">
+             data-name="{safe_nazwa.lower()}" data-status="{product_status}"
+             data-paleta="{safe_paleta}" data-dostawca="{safe_dostawca}">
             <input type="checkbox" name="product_ids" value="{p['id']}" class="product-checkbox"
                    style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:18px;height:18px;cursor:pointer;z-index:2;accent-color:#8ff5ff"
                    onchange="updateCount()">
@@ -961,7 +966,7 @@ def produkty():
                             {_klasa_label}
                             <span style="font-size:0.7rem;font-weight:700;color:#adaaad">{display_code}</span>
                         </div>
-                        <div style="font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;color:#f9f5f8;line-height:1.3;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{p['nazwa'][:45]}</div>
+                        <div style="font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;color:#f9f5f8;line-height:1.3;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{safe_nazwa[:45]}</div>
                     </div>
                     <div style="display:flex;justify-content:space-between;align-items:flex-end">
                         <div>
@@ -1421,15 +1426,15 @@ def edytuj_produkt(code):
     <div class="card" style="padding:15px">
         <div class="form-row">
             <div class="form-group"><label>EAN</label>
-                <input type="text" name="ean" class="form-ctrl" value="{p.get('ean', '')}" placeholder="EAN-13">
+                <input type="text" name="ean" class="form-ctrl" value="{escape(str(p.get('ean', '')))}" placeholder="EAN-13">
             </div>
             <div class="form-group"><label>ASIN</label>
-                <input type="text" name="asin" class="form-ctrl" value="{p.get('asin', '')}" placeholder="B0XXXXXXXX">
+                <input type="text" name="asin" class="form-ctrl" value="{escape(str(p.get('asin', '')))}" placeholder="B0XXXXXXXX">
             </div>
         </div>
         
         <div class="form-group"><label>Nazwa</label>
-            <input type="text" name="nazwa" class="form-ctrl" value="{p['nazwa']}" required>
+            <input type="text" name="nazwa" class="form-ctrl" value="{escape(str(p.get('nazwa', '')))}" required>
         </div>
         
         <div class="form-row">
@@ -1531,7 +1536,7 @@ def edytuj_produkt(code):
         
         <div class="form-row-3">
             <div class="form-group"><label>Regał</label>
-                <input type="text" name="lokalizacja" class="form-ctrl" value="{p['lokalizacja'] or ''}">
+                <input type="text" name="lokalizacja" class="form-ctrl" value="{escape(str(p.get('lokalizacja') or ''))}">
             </div>
             <div class="form-group">
                 <label>Paleta</label>

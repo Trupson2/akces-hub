@@ -25,8 +25,8 @@ SLEEP_BETWEEN = 2  # sekundy między requestami do Amazon
 MAX_PRODUCTS = 200  # limit produktów do scrapowania
 
 
-def scrape_amazon(asin):
-    """Scrapuje dane produktu z Amazon — próbuje wiele domen"""
+def scrape_amazon(asin, max_retries=3):
+    """Scrapuje dane produktu z Amazon — próbuje wiele domen z backoffem"""
     domains = ['amazon.pl', 'amazon.de', 'amazon.com', 'amazon.co.uk', 'amazon.fr']
 
     session = requests.Session()
@@ -36,93 +36,110 @@ def scrape_amazon(asin):
         'Accept-Language': 'pl-PL,pl;q=0.9,en;q=0.7',
     })
 
-    for domain in domains:
-        try:
-            # Cookies
+    for attempt in range(max_retries):
+        for domain in domains:
             try:
-                session.get(f'https://www.{domain}/', timeout=8)
-            except:
-                pass
-
-            url = f'https://www.{domain}/dp/{asin}'
-            resp = session.get(url, timeout=12)
-            if resp.status_code != 200:
-                continue
-
-            text = resp.text
-            if 'captcha' in text.lower() or 'robot check' in text.lower():
-                print(f'  CAPTCHA na {domain}, próbuję dalej...')
-                continue
-
-            # Tytuł
-            title = None
-            for pattern in [
-                r'<span id="productTitle"[^>]*>\s*([^<]+?)\s*</span>',
-                r'<h1[^>]*id="title"[^>]*>.*?<span[^>]*>([^<]+)</span>',
-            ]:
-                m = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
-                if m:
-                    t = re.sub(r'\s+', ' ', m.group(1).strip())
-                    if len(t) > 15:
-                        title = t
-                        break
-
-            if not title:
-                # Fallback: <title> tag
-                m = re.search(r'<title>(.+?)</title>', text, re.IGNORECASE)
-                if m:
-                    t = m.group(1).split(':')[0].split('|')[0].split(' - Amazon')[0].strip()
-                    t = re.sub(r'\s+', ' ', t)
-                    if len(t) > 15 and 'amazon' not in t.lower():
-                        title = t
-
-            if not title:
-                continue
-
-            # Bullet points
-            bullet_points = []
-            bp_matches = re.findall(r'<span class="a-list-item">\s*([^<]{15,300})\s*</span>', text)
-            for bp in bp_matches[:6]:
-                bp_clean = re.sub(r'\s+', ' ', bp.strip())
-                if len(bp_clean) > 10 and not bp_clean.startswith('{'):
-                    bullet_points.append(bp_clean)
-
-            # Zdjęcia
-            all_images = []
-            img_matches = re.findall(r'"hiRes"\s*:\s*"(https://[^"]+)"', text)
-            if img_matches:
-                all_images = list(dict.fromkeys(img_matches))[:8]
-            if not all_images:
-                img_matches = re.findall(r'"large"\s*:\s*"(https://[^"]+)"', text)
-                all_images = list(dict.fromkeys(img_matches))[:8]
-
-            # Cena
-            price = 0
-            price_m = re.search(r'class="a-price-whole">(\d[\d\s,.]*)<', text)
-            if price_m:
+                # Cookies
                 try:
-                    price = float(price_m.group(1).replace(' ', '').replace('.', '').replace(',', '.'))
+                    session.get(f'https://www.{domain}/', timeout=8)
                 except:
                     pass
 
-            # Kategoria
-            category = ''
-            cat_m = re.search(r'<a[^>]*class="a-link-normal a-color-tertiary"[^>]*>\s*([^<]+)', text)
-            if cat_m:
-                category = cat_m.group(1).strip()
+                url = f'https://www.{domain}/dp/{asin}'
+                resp = session.get(url, timeout=12)
+                if resp.status_code != 200:
+                    continue
 
-            return {
-                'title': title,
-                'bullet_points': bullet_points,
-                'all_images': all_images,
-                'price': price,
-                'category': category,
-                'domain': domain,
-            }
+                text = resp.text
+                if 'captcha' in text.lower() or 'robot check' in text.lower():
+                    print(f'  CAPTCHA na {domain}, próbuję dalej...')
+                    continue
 
-        except Exception as e:
-            print(f'  Błąd {domain}: {e}')
-            continue
+                # Tytuł
+                title = None
+                for pattern in [
+                    r'<span id="productTitle"[^>]*>\s*([^<]+?)\s*</span>',
+                    r'<h1[^>]*id="title"[^>]*>.*?<span[^>]*>([^<]+)</span>',
+                ]:
+                    m = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+                    if m:
+                        t = re.sub(r'\s+', ' ', m.group(1).strip())
+                        if len(t) > 15:
+                            title = t
+                            break
+
+                if not title:
+                    # Fallback: <title> tag
+                    m = re.search(r'<title>(.+?)</title>', text, re.IGNORECASE)
+                    if m:
+                        t = m.group(1).split(':')[0].split('|')[0].split(' - Amazon')[0].strip()
+                        t = re.sub(r'\s+', ' ', t)
+                        if len(t) > 15 and 'amazon' not in t.lower():
+                            title = t
+
+                if not title:
+                    continue
+                
+                # --- OPTYMALIZACJA POD ALLEGRO API v2 ---
+                # Usunięcie niedozwolonych słów kluczowych i skracanie do 75 znaków
+                title = re.sub(r'(?i)\bamazon\b', '', title).replace('  ', ' ').strip()
+                title = re.sub(r'(?i)\bprime\b', '', title).replace('  ', ' ').strip()
+                if len(title) > 75:
+                    # Utnij do ostatnich całych słów mieszczących się w 75 znakach
+                    title = title[:75].rsplit(' ', 1)[0]
+
+                # Bullet points (czyszczenie z niedozwolonych znaków dla chust Allegro)
+                bullet_points = []
+                bp_matches = re.findall(r'<span class="a-list-item">\s*([^<]{15,300})\s*</span>', text)
+                for bp in bp_matches[:6]:
+                    bp_clean = re.sub(r'\s+', ' ', bp.strip())
+                    # Usunięcie emoji czy dziwnych znaków (często odrzucane przez API)
+                    bp_clean = re.sub(r'[^\w\s.,;:!?-]', '', bp_clean)
+                    if len(bp_clean) > 10 and not bp_clean.startswith('{'):
+                        bullet_points.append(bp_clean.strip())
+
+                # Zdjęcia
+                all_images = []
+                img_matches = re.findall(r'"hiRes"\s*:\s*"(https://[^"]+)"', text)
+                if img_matches:
+                    all_images = list(dict.fromkeys(img_matches))[:8]
+                if not all_images:
+                    img_matches = re.findall(r'"large"\s*:\s*"(https://[^"]+)"', text)
+                    all_images = list(dict.fromkeys(img_matches))[:8]
+
+                # Cena
+                price = 0
+                price_m = re.search(r'class="a-price-whole">(\d[\d\s,.]*)<', text)
+                if price_m:
+                    try:
+                        price = float(price_m.group(1).replace(' ', '').replace('.', '').replace(',', '.'))
+                    except:
+                        pass
+
+                # Kategoria
+                category = ''
+                cat_m = re.search(r'<a[^>]*class="a-link-normal a-color-tertiary"[^>]*>\s*([^<]+)', text)
+                if cat_m:
+                    category = cat_m.group(1).strip()
+
+                return {
+                    'title': title,
+                    'bullet_points': bullet_points,
+                    'all_images': all_images,
+                    'price': price,
+                    'category': category,
+                    'domain': domain,
+                }
+
+            except Exception as e:
+                print(f'  Błąd {domain} na próbie {attempt+1}: {e}')
+                continue
+                
+        # Exponential backoff przed kolejną próbą na wszystkich domenach
+        if attempt < max_retries - 1:
+            backoff_time = 5 * (2 ** attempt)
+            print(f'  Wszystkie domeny zawiodły. Czekam {backoff_time}s przed ponowną próbą...')
+            time.sleep(backoff_time)
 
     return None
 

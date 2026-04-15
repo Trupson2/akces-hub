@@ -2,8 +2,9 @@
 
 ## 15.04.2026
 
-- landing: typewriter effect na H1 + highlights 4-module section + workflow proof
+- docs: changelog 15.04 â€” Phase 1-3 security + landing + audit
 - docs: security audit 2026-04 (Phase 1-3 summary dla partnera biznesowego)
+- landing: typewriter effect + highlights section + workflow proof
 - security: 2FA TOTP opt-in for users (pyotp + backup codes + UI)
 - security: Cloudflare Turnstile on login (bot protection, disabled without keys)
 - security: move encryption key outside DB folder (systemd EnvironmentFile)
@@ -131,15 +132,4 @@
 - fix: grupowanie po ASIN+stan + poprawna suma ilosci w streamie
 - feat: parametr Stan (11323) + dedup per condition
 - fix: extract_parameters_with_ai - REST API zamiast SDK google.generativeai
-- fix: usun condition z payloadu product-offers - unsupported property
-- feat: wizualne grupowanie po ASIN w widoku palety
-- fix: condition produktu wysylane do Allegro przy tworzeniu oferty
-- feat: ASIN dedup przy quick-draft - dodaj ilosc do istniejacej oferty Allegro
-- fix: usun cross-pallet dedup - kazda paleta ma wlasne ilosci
-- feat: ASIN/EAN deduplication across pallets + API endpoints
-- security: rate limiting + configurable license URL + path traversal fix
-- fix: remove SENT query - not valid checkout-forms status
-- fix: SENT without date filter, only READY_FOR_PROCESSING with date
-- fix: remove CANCELLED from sync - also returns 400 with date filter
-- fix: remove FILLED/BOUGHT from sync - Allegro returns 400 with date filter
 

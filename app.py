@@ -225,6 +225,9 @@ try:
         default_limits=["200 per minute"],  # Globalny limit
         storage_uri="memory://",
     )
+    # Granularne limity per-endpoint sa aplikowane ponizej w register_endpoint_limits()
+    # (auth.login 5/min, first_setup 3/min, zmien_haslo 5/min, user_add 10/min,
+    # API writes 30/min, api_show_key 5/min) — bardziej precyzyjne niz per-blueprint
     print("[OK] Rate limiter aktywny (200/min global, per real IP)")
 except ImportError:
     limiter = None
