@@ -166,11 +166,48 @@ section { padding: 6rem 0; }
 .hero h1 {
   font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 900;
   line-height: 1.1; margin-bottom: 1.25rem;
+  min-height: 2.3em;  /* reserve space so layout nie skacze podczas typing */
+}
+.hero h1 .type-text {
   background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
-.hero p { color: var(--text-muted); font-size: clamp(1rem, 2vw, 1.25rem); max-width: 600px; margin: 0 auto 2.5rem; }
-.hero-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+.type-caret {
+  display: inline-block; width: 3px; height: 0.85em;
+  background: var(--primary-light);
+  margin-left: 6px; vertical-align: -0.05em;
+  border-radius: 2px;
+  animation: caret-blink 0.75s steps(1) infinite;
+  box-shadow: 0 0 8px rgba(129,140,248,0.6);
+}
+@keyframes caret-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.type-caret.fade-out { animation: caret-fade 0.6s ease forwards; }
+@keyframes caret-fade {
+  to { opacity: 0; transform: scaleY(0.3); }
+}
+.hero p.hero-sub { color: var(--text-muted); font-size: clamp(1rem, 1.6vw, 1.15rem); max-width: 620px; margin: 0 auto 1.75rem; }
+.hero-bullets {
+  display: flex; gap: 1.5rem 2rem; justify-content: center; flex-wrap: wrap;
+  margin: 0 auto 2rem; max-width: 680px; padding: 0;
+  list-style: none;
+}
+.hero-bullets li {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.92rem; color: var(--text); font-weight: 500;
+}
+.hero-bullets li::before {
+  content: '\2713'; color: var(--accent); font-weight: 800;
+  font-size: 0.95rem;
+}
+.hero-buttons { display: flex; gap: 0.85rem; justify-content: center; flex-wrap: wrap; }
+.hero-proof {
+  margin-top: 1.25rem; font-size: 0.82rem; color: var(--text-muted);
+  letter-spacing: 0.3px;
+}
+.hero-proof .dot { color: var(--primary-light); margin: 0 0.5rem; opacity: 0.6; }
 
 .btn {
   display: inline-flex; align-items: center; gap: 0.5rem;
@@ -189,6 +226,106 @@ section { padding: 6rem 0; }
   border: 1px solid var(--glass-border);
 }
 .btn-secondary:hover { background: rgba(255,255,255,0.06); }
+
+/* ===== HIGHLIGHTS (top 4 modules right under hero) ===== */
+.highlights {
+  padding: 3rem 0 5rem;
+  background: linear-gradient(180deg, var(--bg) 0%, #0c0c13 100%);
+  position: relative;
+}
+.highlights-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem;
+}
+.highlight-card {
+  position: relative;
+  background: linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.015) 100%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 1.75rem 1.5rem;
+  transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+  overflow: hidden;
+}
+.highlight-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(99,102,241,0.08), transparent 60%);
+  opacity: 0; transition: opacity 0.3s;
+  pointer-events: none;
+}
+.highlight-card:hover { transform: translateY(-4px); border-color: rgba(99,102,241,0.35); }
+.highlight-card:hover::before { opacity: 1; }
+.highlight-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(16,185,129,0.12));
+  border: 1px solid rgba(99,102,241,0.25);
+  font-size: 1.4rem; margin-bottom: 1rem;
+  position: relative; z-index: 1;
+}
+.highlight-card h3 {
+  font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem;
+  letter-spacing: -0.2px; position: relative; z-index: 1;
+}
+.highlight-card p {
+  color: var(--text-muted); font-size: 0.88rem; line-height: 1.5;
+  position: relative; z-index: 1;
+}
+@media (max-width: 900px) {
+  .highlights-grid { grid-template-columns: repeat(2, 1fr); }
+  .highlights { padding: 2rem 0 4rem; }
+}
+@media (max-width: 480px) {
+  .highlights-grid { grid-template-columns: 1fr; gap: 0.9rem; }
+  .highlight-card { padding: 1.3rem 1.2rem; }
+}
+
+/* ===== WORKFLOW PROOF ===== */
+.workflow { background: #0b0b11; position: relative; }
+.workflow-flow {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem; margin: 2rem 0 1.5rem;
+  align-items: stretch;
+}
+.flow-step {
+  background: var(--bg-card); border: 1px solid var(--glass-border);
+  border-radius: 12px; padding: 1.2rem 1rem; text-align: center;
+  position: relative;
+}
+.flow-step .flow-num {
+  position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+  background: var(--bg); color: var(--primary-light);
+  padding: 0.15rem 0.6rem; border-radius: 50px;
+  font-size: 0.7rem; font-weight: 800; letter-spacing: 1px;
+  border: 1px solid var(--glass-border);
+}
+.flow-step .flow-icon { font-size: 1.5rem; margin: 0.5rem 0 0.6rem; }
+.flow-step h4 { font-size: 0.92rem; font-weight: 700; margin-bottom: 0.25rem; }
+.flow-step p { font-size: 0.78rem; color: var(--text-muted); line-height: 1.4; }
+.flow-arrow {
+  display: flex; align-items: center; justify-content: center;
+  color: var(--primary-light); font-size: 1.2rem; opacity: 0.5;
+}
+.workflow-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;
+  margin-top: 3rem; max-width: 820px; margin-left: auto; margin-right: auto;
+}
+.stat-card {
+  text-align: center; padding: 1.5rem 1rem;
+  background: var(--glass); border: 1px solid var(--glass-border);
+  border-radius: 14px;
+}
+.stat-num {
+  font-size: 2.2rem; font-weight: 900; line-height: 1;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.3rem;
+}
+.stat-label { color: var(--text-muted); font-size: 0.85rem; }
+@media (max-width: 900px) {
+  .workflow-flow { grid-template-columns: 1fr; gap: 0.75rem; }
+  .workflow-flow .flow-arrow { display: none; }
+  .workflow-stats { grid-template-columns: 1fr; gap: 1rem; }
+}
 
 /* ===== PROBLEM ===== */
 .problem { background: linear-gradient(180deg, var(--bg) 0%, #0d0d14 100%); text-align: center; }
@@ -459,12 +596,15 @@ footer a:hover { color: var(--text); }
   .nav-logo { font-size: 1.1rem; }
 
   /* Hero */
-  .hero { padding-top: 6rem; min-height: auto; padding-bottom: 3rem; }
+  .hero { padding-top: 6rem; min-height: auto; padding-bottom: 2.5rem; }
   .hero-content { padding: 1.5rem 1rem; }
   .hero-badge { font-size: 0.7rem; padding: 0.3rem 0.8rem; margin-bottom: 1rem; }
-  .hero h1 { font-size: 1.8rem !important; line-height: 1.15; margin-bottom: 1rem; }
-  .hero p { font-size: 0.95rem; margin-bottom: 1.5rem; }
+  .hero h1 { font-size: 1.9rem !important; line-height: 1.12; margin-bottom: 0.9rem; }
+  .hero p.hero-sub { font-size: 0.95rem; margin-bottom: 1.25rem; }
+  .hero-bullets { gap: 0.75rem 1.25rem; margin-bottom: 1.5rem; font-size: 0.85rem; }
+  .hero-bullets li { font-size: 0.85rem; }
   .hero-buttons { gap: 0.6rem; }
+  .hero-proof { font-size: 0.75rem; margin-top: 1rem; }
   .btn { padding: 0.7rem 1.3rem; font-size: 0.9rem; }
 
   /* Section titles */
@@ -554,6 +694,7 @@ footer a:hover { color: var(--text); }
   </button>
   <ul class="nav-links" id="navLinks">
     <li><a href="#funkcje">Funkcje</a></li>
+    <li><a href="#workflow">Workflow</a></li>
     <li><a href="#jak-dziala">Jak dziala</a></li>
     <li><a href="#cennik">Cennik</a></li>
     <li><a href="#faq">FAQ</a></li>
@@ -567,16 +708,49 @@ footer a:hover { color: var(--text); }
   <div class="hero-bg"></div>
   <canvas id="particles"></canvas>
   <div class="hero-content">
-    <div class="hero-badge">System do zarzadzania paletami zwrotow</div>
-    <h1>Zarzadzaj paletami zwrotow jak profesjonalista</h1>
-    <p>Allegro, OLX, Vinted — jeden system. Magazyn, wysylki, analityka. Dziala na Twoim urzadzeniu, nawet offline.</p>
+    <div class="hero-badge">System operacyjny dla sprzedawcow towaru z palet</div>
+    <h1 id="heroHeadline" data-text="Od palety do oferty na Allegro — w kilka minut"><span class="type-text"></span><span class="type-caret" id="typeCaret"></span></h1>
+    <p class="hero-sub">Skaner, etykiety, API Allegro i AI opisy w jednym systemie. Zbudowany dla sprzedawcow palet zwrotow, magazynow i e-commerce.</p>
+    <ul class="hero-bullets">
+      <li>Skan &rarr; opis AI &rarr; oferta</li>
+      <li>Allegro, OLX, Vinted z jednego panelu</li>
+      <li>Magazyn, etykiety, GPSR i wysylki</li>
+    </ul>
     <div class="hero-buttons">
-      <a href="https://app.akceshub.com" target="_blank" rel="noopener" class="btn btn-primary">Zobacz demo live &rarr;</a>
-      <a href="#cennik" class="btn btn-secondary">Zobacz cennik</a>
+      <a href="#cennik" class="btn btn-primary">Sprawdz plany &rarr;</a>
+      <a href="https://app.akceshub.com" target="_blank" rel="noopener" class="btn btn-secondary">Zobacz demo</a>
     </div>
-    <p style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
-      Bez karty kredytowej &middot; Pierwszy miesiac za 1 zl &middot; Zrezygnuj w kazdej chwili
+    <p class="hero-proof">
+      Bez karty <span class="dot">&bull;</span> Pierwszy miesiac za 1 zl <span class="dot">&bull;</span> Dziala offline na Twoim urzadzeniu
     </p>
+  </div>
+</section>
+
+<!-- HIGHLIGHTS - top 4 modules right under hero -->
+<section class="highlights">
+  <div class="container">
+    <div class="highlights-grid">
+      <div class="highlight-card reveal">
+        <div class="highlight-icon">&#x1F4F7;</div>
+        <h3>Skaner kodow</h3>
+        <p>Skan EAN/ASIN &mdash; produkt sam uzupelnia nazwe, dane i zdjecia z baz.</p>
+      </div>
+      <div class="highlight-card reveal">
+        <div class="highlight-icon">&#x1F3F7;</div>
+        <h3>Etykiety magazynowe</h3>
+        <p>Generator etykiet, kodow QR i wydruk z przegladarki. Bez Excela.</p>
+      </div>
+      <div class="highlight-card reveal">
+        <div class="highlight-icon">&#x1F6D2;</div>
+        <h3>API Allegro</h3>
+        <p>Wystawianie, edycja cen, odswiezanie ofert i auto-synchronizacja stanow.</p>
+      </div>
+      <div class="highlight-card reveal">
+        <div class="highlight-icon">&#x1F916;</div>
+        <h3>AI opisy ofert</h3>
+        <p>Gemini generuje opis, kategorie i parametry z jednego zdjecia produktu.</p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -585,20 +759,20 @@ footer a:hover { color: var(--text); }
   <div class="container">
     <div class="reveal">
       <p class="section-label">Wyzwania</p>
-      <h2 class="section-title">Znasz to?</h2>
+      <h2 class="section-title">Magazyn palet to reczna robota. Nie musi byc.</h2>
     </div>
     <div class="pain-points reveal">
       <div class="pain-card">
         <div class="icon">&#x1F4CB;</div>
-        <p>Excel z 500 pozycjami i zero kontroli nad towarem</p>
+        <p>Palety po 200 produktow &mdash; kazdy recznie wpisywany do Excela</p>
       </div>
       <div class="pain-card">
         <div class="icon">&#x23F0;</div>
-        <p>Reczne wystawianie tego samego produktu na 3 platformach</p>
+        <p>Ta sama oferta klikana osobno na Allegro, OLX i Vinted</p>
       </div>
       <div class="pain-card">
         <div class="icon">&#x1F4C9;</div>
-        <p>Brak wiedzy co sie sprzedaje, a co lezy miesiącami</p>
+        <p>Zwroty, GPSR, etykiety &mdash; 3 rozne narzedzia dla jednej paczki</p>
       </div>
     </div>
     <div class="reveal">
@@ -613,39 +787,110 @@ footer a:hover { color: var(--text); }
   <div class="container">
     <div class="reveal" style="text-align:center">
       <p class="section-label">Funkcje</p>
-      <h2 class="section-title">Wszystko czego potrzebujesz</h2>
+      <h2 class="section-title">Wszystko do obslugi palet &mdash; w jednym panelu</h2>
       <p class="section-sub" style="margin-left:auto;margin-right:auto">Jeden system zamiast dziesieciu narzedzi.</p>
     </div>
     <div class="features-grid">
       <div class="feature-card reveal">
         <span class="icon">&#x1F4E6;</span>
-        <h3>Magazyn 3D</h3>
-        <p>Heatmapa, regaly, lokalizacje. Wiesz gdzie co lezy.</p>
+        <h3>Magazyn z lokalizacjami</h3>
+        <p>Regaly, polki, heatmapa zaleglosci. Wiesz gdzie kazdy produkt lezy i ile czasu juz tam czeka.</p>
       </div>
       <div class="feature-card reveal">
         <span class="icon">&#x1F6D2;</span>
         <h3>Multi-platforma</h3>
-        <p>Allegro + OLX + Vinted — jedno klikniecie, trzy oferty.</p>
+        <p>Allegro + OLX + Vinted &mdash; jedno klikniecie, trzy oferty. Stany magazynowe synchronizowane automatycznie.</p>
       </div>
       <div class="feature-card reveal">
         <span class="icon">&#x1F916;</span>
-        <h3>AI Opisy</h3>
-        <p>Gemini AI generuje opisy zoptymalizowane pod SEO.</p>
+        <h3>AI opisy i parametry</h3>
+        <p>Gemini generuje opis, kategorie i parametry z nazwy produktu. Dziala dla AGD, elektroniki, odziezy.</p>
       </div>
       <div class="feature-card reveal">
-        <span class="icon">&#x1F4CA;</span>
-        <h3>Analityka</h3>
-        <p>Dashboard zyskow, czas sprzedazy, trendy kategorii.</p>
+        <span class="icon">&#x1F6E1;</span>
+        <h3>GPSR compliance</h3>
+        <p>Automatyczne pobieranie danych producenta i GPSR pod nowe regulacje EU. Zero recznej pracy.</p>
       </div>
       <div class="feature-card reveal">
         <span class="icon">&#x1F69A;</span>
-        <h3>Wysylki</h3>
-        <p>Zarzadzanie zamowieniami, etykiety, sledzenie paczek.</p>
+        <h3>Wysylki i etykiety</h3>
+        <p>Integracja z kurierami, etykiety Allegro Smart, tracking. Wszystko z poziomu zamowienia.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="icon">&#x1F4CA;</span>
+        <h3>Analityka zyskow</h3>
+        <p>Zysk netto per produkt, per paleta, per kategoria. Co lezy, co sie kreci &mdash; widzisz natychmiast.</p>
       </div>
       <div class="feature-card reveal">
         <span class="icon">&#x1F514;</span>
-        <h3>Powiadomienia</h3>
-        <p>Telegram — alerty o sprzedazach w czasie rzeczywistym.</p>
+        <h3>Powiadomienia Telegram</h3>
+        <p>Alerty o sprzedazach, pytaniach, problemach z oferta &mdash; w czasie rzeczywistym na telefon.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="icon">&#x1F512;</span>
+        <h3>Offline i Twoje dane</h3>
+        <p>Dziala na Twoim urzadzeniu. Cloudflare tunnel, brak cudzego serwera, backupy lokalne.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WORKFLOW PROOF -->
+<section class="workflow" id="workflow">
+  <div class="container">
+    <div class="reveal" style="text-align:center">
+      <p class="section-label">Workflow</p>
+      <h2 class="section-title">Od skanu do oferty &mdash; 5 krokow</h2>
+      <p class="section-sub" style="margin-left:auto;margin-right:auto">Prawdziwy flow, bez Excela i przeklikiwania 3 platform.</p>
+    </div>
+    <div class="workflow-flow reveal">
+      <div class="flow-step">
+        <div class="flow-num">01</div>
+        <div class="flow-icon">&#x1F4F7;</div>
+        <h4>Skan EAN</h4>
+        <p>Czytnik lub kamera telefonu.</p>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">
+        <div class="flow-num">02</div>
+        <div class="flow-icon">&#x1F50D;</div>
+        <h4>Auto-dane</h4>
+        <p>Nazwa, zdjecia, kategoria &mdash; z baz.</p>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">
+        <div class="flow-num">03</div>
+        <div class="flow-icon">&#x1F916;</div>
+        <h4>AI opis</h4>
+        <p>Gemini pisze opis i parametry.</p>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">
+        <div class="flow-num">04</div>
+        <div class="flow-icon">&#x1F3F7;</div>
+        <h4>Etykieta</h4>
+        <p>QR, lokalizacja, wydruk.</p>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">
+        <div class="flow-num">05</div>
+        <div class="flow-icon">&#x1F6D2;</div>
+        <h4>Wystaw</h4>
+        <p>Allegro + OLX + Vinted.</p>
+      </div>
+    </div>
+    <div class="workflow-stats reveal">
+      <div class="stat-card">
+        <div class="stat-num">~3 min</div>
+        <div class="stat-label">sredni czas skan &rarr; oferta</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">3x</div>
+        <div class="stat-label">mniej klikania vs panele platform</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">100%</div>
+        <div class="stat-label">GPSR compliance out-of-the-box</div>
       </div>
     </div>
   </div>
@@ -656,24 +901,24 @@ footer a:hover { color: var(--text); }
   <div class="container">
     <div class="reveal">
       <p class="section-label">Jak to dziala</p>
-      <h2 class="section-title">3 proste kroki</h2>
+      <h2 class="section-title">Start w 15 minut</h2>
       <p class="section-sub" style="margin-left:auto;margin-right:auto">Od rozpakowania do pierwszej sprzedazy w kilka minut.</p>
     </div>
     <div class="steps-grid">
       <div class="step reveal">
         <div class="step-number">1</div>
-        <h3>Dostajesz gotowe urzadzenie</h3>
-        <p>Plug & play. Podpinasz do pradu i routera.</p>
+        <h3>Podepnij urzadzenie</h3>
+        <p>Raspberry Pi z preinstalowanym systemem. Podlaczasz do routera, otwierasz w przegladarce.</p>
       </div>
       <div class="step reveal">
         <div class="step-number">2</div>
-        <h3>Otwierasz w przegladarce</h3>
-        <p>Na telefonie, laptopie lub tablecie. Zero instalacji.</p>
+        <h3>Zaimportuj palete</h3>
+        <p>CSV z dostawcy lub skan fizyczny. System sam zaciaga zdjecia i dane.</p>
       </div>
       <div class="step reveal">
         <div class="step-number">3</div>
-        <h3>Importujesz palete</h3>
-        <p>System robi reszte: scraping, opisy AI, wystawianie.</p>
+        <h3>Sprzedawaj na 3 platformach</h3>
+        <p>Jedno klikniecie = oferta na Allegro, OLX i Vinted. Stany synchronizowane automatycznie.</p>
       </div>
     </div>
   </div>
@@ -692,14 +937,17 @@ footer a:hover { color: var(--text); }
           <tr>
             <th>Funkcja</th>
             <th>AKCES HUB</th>
-            <th>Inne systemy</th>
+            <th>Panele platform</th>
           </tr>
         </thead>
         <tbody>
           <tr><td>Dziala offline</td><td class="check">&#x2713;</td><td class="cross">&#x2717;</td></tr>
-          <tr><td>3 platformy (Allegro+OLX+Vinted)</td><td class="check">&#x2713;</td><td class="cross">&#x2717; Tylko Allegro</td></tr>
+          <tr><td>Skaner kodow w telefonie</td><td class="check">&#x2713;</td><td class="cross">&#x2717; Tylko reczne wpisywanie</td></tr>
+          <tr><td>AI opisy i parametry</td><td class="check">&#x2713;</td><td class="cross">&#x2717; Musisz pisac sam</td></tr>
+          <tr><td>3 platformy (Allegro+OLX+Vinted)</td><td class="check">&#x2713;</td><td class="cross">&#x2717; Kazda osobno</td></tr>
+          <tr><td>GPSR compliance</td><td class="check">&#x2713;</td><td class="cross">&#x2717; Musisz ogarnac sam</td></tr>
           <tr><td>Twoje dane, Twoje urzadzenie</td><td class="check">&#x2713;</td><td class="cross">&#x2717; Cudzy serwer</td></tr>
-          <tr><td>Magazyn 3D z heatmapa</td><td class="check">&#x2713;</td><td class="cross">&#x2717;</td></tr>
+          <tr><td>Magazyn z lokalizacjami i heatmapa</td><td class="check">&#x2713;</td><td class="cross">&#x2717;</td></tr>
           <tr><td>Zdalny support SSH</td><td class="check">&#x2713;</td><td class="cross">&#x2717; Tylko email</td></tr>
           <tr><td>Bez limitu produktow</td><td class="check">&#x2713;</td><td class="check">&#x2713;</td></tr>
         </tbody>
@@ -863,6 +1111,41 @@ footer a:hover { color: var(--text); }
 </footer>
 
 <script>
+// Typewriter effect for hero headline
+(function() {
+  const h1 = document.getElementById('heroHeadline');
+  if (!h1) return;
+  const textEl = h1.querySelector('.type-text');
+  const caret = h1.querySelector('.type-caret');
+  const full = h1.getAttribute('data-text') || '';
+  let i = 0;
+  const startDelay = 350;   // lekkie opoznienie po loadzie
+  const charDelay = 55;     // ms per znak
+  const postHoldMs = 1800;  // caret mruga jeszcze po skonczeniu
+  function step() {
+    if (i <= full.length) {
+      textEl.textContent = full.slice(0, i);
+      i++;
+      // szybciej na spacjach i myslnikach zeby flow byl naturalny
+      const next = full[i - 1];
+      const delay = (next === ' ' || next === '\u2014') ? charDelay * 0.4 : charDelay;
+      setTimeout(step, delay);
+    } else {
+      // caret mruga jeszcze chwile, potem znika
+      setTimeout(() => {
+        if (caret) caret.classList.add('fade-out');
+      }, postHoldMs);
+    }
+  }
+  // respektuj reduced-motion
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    textEl.textContent = full;
+    if (caret) caret.style.display = 'none';
+  } else {
+    setTimeout(step, startDelay);
+  }
+})();
+
 // Hamburger menu
 const hamburger = document.getElementById('hamburger');
 const navLinks = document.getElementById('navLinks');
