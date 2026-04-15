@@ -730,13 +730,16 @@ def after_request(response):
     # event handlerow (onclick/onchange/onsubmit) na addEventListener oraz
     # usunieciu eval()/Function() z legacy kodu (Chart.js itp.).
     if response.content_type and 'text/html' in response.content_type:
-        nonce = getattr(g, 'csp_nonce', None) or _secrets.token_urlsafe(16)
-        nonce_directive = f"'nonce-{nonce}'"
+        # UWAGA: CSP Level 3 spec — gdy 'nonce-XXX' jest w source list, przegladarka
+        # IGNORUJE 'unsafe-inline'. Wlaczenie nonce tutaj zablokuje WSZYSTKIE inline
+        # <style>/<script> w templateach, poki nie dostana atrybutu nonce="{{ csp_nonce }}".
+        # W kodzie mamy 577 inline event handlerow + wiele <style> tagow — Phase 4 refactor.
+        # Do tego czasu: zostajemy przy unsafe-inline bez nonce w headerze.
+        # Nonce infrastructure (g.csp_nonce, context processor) zostaje — gotowe pod Phase 4.
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; "
-            # Nonce-based script-src — w Phase 3 usunac 'unsafe-inline' i 'unsafe-eval'
-            f"script-src 'self' {nonce_directive} 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com; "
-            f"style-src 'self' {nonce_directive} 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.tailwindcss.com; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com; "
+            "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.tailwindcss.com; "
             "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
             "img-src 'self' data: blob: https:; "
             "connect-src 'self' https://generativelanguage.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com wss: ws:; "

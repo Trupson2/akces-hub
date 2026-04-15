@@ -1,13 +1,20 @@
-"""Smoke test CSP nonce infrastructure (Phase 2 — fundament dla Phase 3).
+"""Smoke test CSP nonce infrastructure (fundament pod Phase 4 rollout).
 
-Phase 2 dodaje nonce do CSP, ale wciaz zostawia 'unsafe-inline' jako fallback
-(577 inline event handlerow do migracji w Phase 3). Test sprawdza:
-1. CSP header zawiera nonce- prefix dla script-src i style-src
-2. Nonce zmienia sie miedzy requestami (nie cachowany)
-3. unsafe-inline nadal jest obecny (bo tak ma byc w tej fazie)
+HISTORIA:
+- Phase 2 dodal fundament nonce (g.csp_nonce, context processor).
+- Phase 3 probowal wstrzykiwac 'nonce-XXX' do CSP headera, ale okazalo sie ze
+  CSP Level 3 spec IGNORUJE 'unsafe-inline' gdy nonce jest obecny w source list
+  (https://www.w3.org/TR/CSP3/#match-element-to-source-list). Skutek: wszystkie
+  577 inline <style>/<script>/event-handlerow zostalo zablokowanych i strona
+  sie rozjechala (hot-fix 15.04.2026 rollback).
+- Phase 4 (przyszly): migracja 577 inline handlerow na addEventListener +
+  dodanie nonce="{{ csp_nonce }}" do wszystkich pozostalych inline blokow —
+  wtedy mozna wlaczyc nonce w CSP headerze i wywalic unsafe-inline.
+
+Ten test waliduje obecny stan: infrastructure istnieje i dziala,
+ALE nonce NIE jest w CSP headerze (dopoki Phase 4 nie zrobi rollout).
 """
 import os
-import re
 import sys
 import pytest
 
@@ -34,64 +41,71 @@ def _get_csp_header(rv):
     return rv.headers.get('Content-Security-Policy', '')
 
 
-def _extract_nonce(csp_header):
-    """Wyciagnij wartosc nonce z CSP header. Zwroc None jesli brak."""
-    m = re.search(r"'nonce-([A-Za-z0-9_-]+)'", csp_header)
-    return m.group(1) if m else None
-
-
-def test_csp_header_contains_nonce(csp_client):
-    """GET dowolny endpoint HTML → response ma CSP header z nonce- prefix."""
-    rv = csp_client.get('/')
+def test_csp_header_present(csp_client):
+    """GET HTML endpoint → response ma CSP header (defense-in-depth)."""
+    rv = csp_client.get('/auth/login')
     csp = _get_csp_header(rv)
-    # CSP jest ustawiany tylko dla text/html — sprawdz czy odpowiedz to HTML
-    if not csp:
-        # Jesli to redirect (302) bez body HTML — sprobuj inny endpoint
-        rv = csp_client.get('/auth/login')
-        csp = _get_csp_header(rv)
     assert csp, "Brak Content-Security-Policy header w odpowiedzi HTML"
-    assert "'nonce-" in csp, f"CSP nie zawiera 'nonce-' prefix:\n{csp}"
-    # Nonce musi byc obecne w script-src i style-src
-    # (sprawdzamy ze wystepuje min. raz — moze byc raz dla obu)
-    nonce = _extract_nonce(csp)
-    assert nonce is not None, "Nie znaleziono wartosci nonce"
-    assert len(nonce) >= 16, f"Nonce za krotkie ({len(nonce)} chars), spodziewano >=16"
+    # Kluczowe directives musza byc obecne
+    assert "default-src 'self'" in csp
+    assert "script-src" in csp
+    assert "style-src" in csp
+    assert "frame-ancestors 'self'" in csp
 
 
-def test_csp_nonce_changes_between_requests(csp_client):
-    """Dwa kolejne GET → dwa rozne nonce values (nie cache).
+def test_csp_has_unsafe_inline_fallback_pre_phase4(csp_client):
+    """Dopoki Phase 4 rollout nie zrobiony — 'unsafe-inline' musi byc w CSP.
 
-    Krytyczne: jesli nonce sie powtarza, attacker moze go uzyc w kolejnym
-    requeste (predictable nonce = no protection).
-    """
-    rv1 = csp_client.get('/auth/login')
-    rv2 = csp_client.get('/auth/login')
-    csp1 = _get_csp_header(rv1)
-    csp2 = _get_csp_header(rv2)
-    nonce1 = _extract_nonce(csp1)
-    nonce2 = _extract_nonce(csp2)
-    assert nonce1 is not None and nonce2 is not None, "Nonce nie znaleziony"
-    assert nonce1 != nonce2, f"Nonce powtorzony miedzy requestami! '{nonce1}' == '{nonce2}'"
-
-
-def test_csp_still_has_unsafe_inline_phase2(csp_client):
-    """Phase 2: 'unsafe-inline' nadal w CSP (fallback do czasu Phase 3 refactora).
-
-    Ten test BEDZIE failowac w Phase 3 — wtedy nalezy go usunac/zmienic.
+    Gdy kiedys wywalmy unsafe-inline (po migracji 577 inline handlerow),
+    ten test ma failowac jako sygnal ze trzeba go zaktualizowac.
     """
     rv = csp_client.get('/auth/login')
     csp = _get_csp_header(rv)
-    assert csp, "Brak CSP header"
-    assert "'unsafe-inline'" in csp, "unsafe-inline usuniety przedwczesnie (Phase 3 nie wykonany)"
+    assert csp
+    assert "'unsafe-inline'" in csp, \
+        "unsafe-inline usuniety przedwczesnie — 577 inline handlerow jeszcze nie zmigrowane"
 
 
-def test_csp_nonce_in_both_script_and_style(csp_client):
-    """Nonce musi byc w script-src I style-src (oba wsparte w Phase 3 rollout)."""
+def test_csp_does_not_have_nonce_yet_pre_phase4(csp_client):
+    """Hot-fix regression guard: 'nonce-XXX' NIE MOZE byc w CSP headerze
+
+    Powod: CSP3 spec — nonce w source list IGNORUJE unsafe-inline. Skutek:
+    wszystkie inline <style>/<script> zostaly zablokowane, strona rozjebana.
+    Dopoki Phase 4 nie doda nonce do wszystkich inline blokow w templateach,
+    NIE wolno wstrzykiwac nonce w CSP headerze.
+    """
     rv = csp_client.get('/auth/login')
     csp = _get_csp_header(rv)
-    # script-src i style-src — sprawdz ze nonce- jest po obu
-    # (regex: szuka wystapien 'nonce-XXX' po script-src i po style-src)
-    script_match = re.search(r"script-src[^;]*'nonce-[A-Za-z0-9_-]+'", csp)
-    style_match = re.search(r"style-src[^;]*'nonce-[A-Za-z0-9_-]+'", csp)
-    assert script_match, f"Brak nonce w script-src:\n{csp}"
-    assert style_match, f"Brak nonce w style-src:\n{csp}"
+    assert "'nonce-" not in csp, (
+        f"REGRESSION: 'nonce-' wrocil do CSP headera — zablokuje inline style!\n"
+        f"CSP: {csp}"
+    )
+
+
+def test_csp_nonce_infrastructure_exists(csp_client):
+    """Infrastructure nonce (context processor + g.csp_nonce) gotowa pod Phase 4.
+
+    Nawet gdy nie wstrzykujemy nonce w CSP headerze, templates moga juz zaczac
+    uzywac `nonce="{{ csp_nonce }}"` w nowych inline blokach — beda dzialac
+    (bo unsafe-inline je przepuszcza), a w dniu Phase 4 rollout wystarczy przelaczyc
+    flag w CSP headerze.
+
+    Sprawdzamy ze context processor wstrzykuje `csp_nonce` do renderowanych templateow.
+    """
+    from app import app
+    # Rendered response z test clienta — context processor wstrzykuje csp_nonce
+    # nawet jesli template go nie uzywa, `g.csp_nonce` jest ustawione przez before_request
+    with app.test_request_context('/'):
+        # preprocess_request wywoluje wszystkie before_request hooks
+        # (jeden z nich to _generate_csp_nonce)
+        app.try_trigger_before_first_request_functions() if hasattr(
+            app, 'try_trigger_before_first_request_functions'
+        ) else None
+        # Rzeczywisty request przez test client zagwarantuje ze hook sie wywola
+    rv = csp_client.get('/auth/login')
+    # context processor inject_csp_nonce MUSI byc zarejestrowany
+    assert 'inject_csp_nonce' in [f.__name__ for f in app.template_context_processors[None]], \
+        "inject_csp_nonce context processor nie zarejestrowany"
+    # before_request MUSI zawierac _generate_csp_nonce
+    assert '_generate_csp_nonce' in [f.__name__ for f in app.before_request_funcs[None]], \
+        "_generate_csp_nonce before_request hook nie zarejestrowany"
