@@ -49,6 +49,7 @@ PUBLIC_PREFIXES = [
     '/auth/login',        # Logowanie
     '/auth/setup',        # Tworzenie pierwszego konta
     '/auth/logout',       # Wylogowanie
+    '/auth/2fa/verify',   # 2FA step po password — pending user bez user_id w session
     '/changelog',         # Historia zmian — dostępna bez logowania
 ]
 
@@ -136,6 +137,18 @@ def init_auth_db():
         utworzony TEXT DEFAULT CURRENT_TIMESTAMP,
         ostatnie_logowanie TEXT
     )''')
+    # Migracja 2FA TOTP (Phase 3) — bezpieczne na istniejacych bazach
+    totp_migrations = [
+        ('totp_secret', 'TEXT'),
+        ('totp_enabled', 'INTEGER DEFAULT 0'),
+        ('totp_backup_codes', 'TEXT'),
+        ('totp_last_verified_at', 'TIMESTAMP'),
+    ]
+    for col, coltype in totp_migrations:
+        try:
+            conn.execute(f'ALTER TABLE users ADD COLUMN {col} {coltype}')
+        except Exception:
+            pass  # kolumna juz istnieje
     conn.commit()
     conn.close()
 
@@ -188,7 +201,12 @@ ROLE_ALLOWED_PATHS = {
 }
 
 def require_role(*roles):
-    """Dekorator wymagający jednej z podanych ról (lub wyższej)"""
+    """Dekorator wymagający jednej z podanych ról (lub wyższej).
+
+    Rowniez wymusza 2FA re-verify gdy user ma totp_enabled=1 ale sesja
+    nie zawiera 2fa_verified (np. sesja po migracji lub gdy user wlaczyl
+    2FA w trakcie trwajacej sesji z innego klienta).
+    """
     def decorator(f):
         @wraps(f)
         def decorated(*args, **kwargs):
@@ -199,6 +217,15 @@ def require_role(*roles):
             min_level = min(ROLE_HIERARCHY.get(r, 99) for r in roles)
             if user_level < min_level:
                 abort(403)
+            # 2FA gate — user z opt-in 2FA musi miec zweryfikowana sesje
+            if _user_requires_2fa_reverify():
+                if _wants_json() or request.method != 'GET':
+                    return jsonify({'ok': False, 'success': False, 'error': 'Wymagana weryfikacja 2FA'}), 401
+                session['2fa_pending_user_id'] = session['user_id']
+                session['2fa_pending_rola'] = session.get('rola', user_role)
+                session['2fa_pending_username'] = session.get('username', '')
+                session['2fa_pending_next'] = request.full_path.rstrip('?')
+                return redirect(url_for('auth.totp_verify'))
             return f(*args, **kwargs)
         return decorated
     return decorator
@@ -221,12 +248,34 @@ def _wants_json():
     return False
 
 
+def _user_requires_2fa_reverify():
+    """Sprawdz czy user ma totp_enabled=1 ale nie zweryfikowal 2FA w tej sesji.
+
+    Zwraca True gdy trzeba wymusic /auth/2fa/verify.
+    """
+    if not session.get('user_id'):
+        return False
+    if session.get('2fa_verified'):
+        return False
+    try:
+        conn = _get_auth_db()
+        row = conn.execute(
+            'SELECT totp_enabled FROM users WHERE id = ?',
+            (session['user_id'],)
+        ).fetchone()
+        conn.close()
+        return bool(row and row['totp_enabled'])
+    except Exception:
+        return False
+
+
 def require_admin(f):
     """Dekorator wymagający ROLI admin — JSON-aware.
 
     - Anonim (brak sesji): 401 JSON dla AJAX/fetch, redirect do /auth/login dla GET HTML
     - Zalogowany nie-admin: 403 JSON dla AJAX/fetch, abort(403) dla HTML
-    - Admin: przepuszcza
+    - Admin z totp_enabled ale bez 2fa_verified: redirect do /auth/2fa/verify (HTML) lub 401 JSON
+    - Admin (zweryfikowany): przepuszcza
 
     Używaj na endpointach wykonujących czynności administracyjne po stronie serwera
     (system update, restart, backup restore, zarządzanie userami itp.).
@@ -243,6 +292,16 @@ def require_admin(f):
             if _wants_json() or request.method != 'GET':
                 return jsonify({'ok': False, 'success': False, 'error': 'Brak uprawnień (wymaga admin)'}), 403
             abort(403)
+        # 2FA gate — admin z opt-in 2FA musi miec zweryfikowana sesje
+        if _user_requires_2fa_reverify():
+            if _wants_json() or request.method != 'GET':
+                return jsonify({'ok': False, 'success': False, 'error': 'Wymagana weryfikacja 2FA'}), 401
+            # Ustaw pending dla plynnego flow
+            session['2fa_pending_user_id'] = session['user_id']
+            session['2fa_pending_rola'] = session.get('rola', 'admin')
+            session['2fa_pending_username'] = session.get('username', '')
+            session['2fa_pending_next'] = request.full_path.rstrip('?')
+            return redirect(url_for('auth.totp_verify'))
         return f(*args, **kwargs)
     return decorated
 
@@ -544,6 +603,24 @@ def login():
             # Wymuś nowy CSRF token po wyczyszczeniu sesji
             from flask_wtf.csrf import generate_csrf
             generate_csrf()
+
+            # 2FA TOTP — jesli user wlaczyl 2FA, zatrzymaj w trybie "pending"
+            # (nie ustawiaj user_id) i wymus weryfikacje kodu TOTP.
+            _totp_enabled = False
+            try:
+                _totp_enabled = bool(user['totp_enabled']) and bool(user['totp_secret'])
+            except (IndexError, KeyError, TypeError):
+                _totp_enabled = False
+
+            if _totp_enabled:
+                session['2fa_pending_user_id'] = user['id']
+                session['2fa_pending_rola'] = user['rola']
+                session['2fa_pending_username'] = user['username']
+                session['2fa_pending_next'] = request.args.get('next', '/dashboard')
+                session.permanent = True
+                conn.close()
+                return redirect(url_for('auth.totp_verify'))
+
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['rola'] = user['rola']
@@ -664,6 +741,345 @@ def logout():
     """Wylogowanie"""
     session.clear()
     return redirect(url_for('auth.login'))
+
+
+# ============================================================
+# 2FA TOTP (opt-in)
+# ============================================================
+
+_TOTP_SETUP_TEMPLATE = '''{% extends "base.html" %}
+{% block content %}
+<style>
+.tw{max-width:560px;margin:40px auto;padding:24px;color:#e5e7eb;font-family:system-ui,sans-serif}
+.tw h1{font-size:1.5rem;margin-bottom:8px;color:#8ff5ff}
+.tw p{color:#94a3b8;margin-bottom:16px;line-height:1.5}
+.tw .qr{background:#fff;padding:16px;border-radius:12px;max-width:280px;margin:20px auto}
+.tw .qr svg{width:100%;height:auto}
+.tw .secret{background:#12122a;padding:12px;border-radius:8px;font-family:monospace;letter-spacing:2px;text-align:center;margin:16px 0;word-break:break-all;font-size:0.9rem;color:#8ff5ff}
+.tw label{display:block;font-size:0.85rem;color:#cbd5e1;margin:16px 0 6px}
+.tw input[type=text]{width:100%;padding:14px;background:#0f0f20;border:1px solid #334155;border-radius:10px;color:#fff;font-size:1.1rem;letter-spacing:6px;text-align:center}
+.tw button{width:100%;padding:14px;margin-top:16px;background:#6366f1;color:#fff;border:none;border-radius:10px;font-weight:600;cursor:pointer;font-size:0.95rem}
+.tw button:hover{opacity:0.92}
+.tw .err{background:rgba(239,68,68,.12);border-left:3px solid #ef4444;color:#fca5a5;padding:12px 14px;margin-bottom:16px;border-radius:6px}
+.tw .ok{background:rgba(34,197,94,.12);border-left:3px solid #22c55e;color:#86efac;padding:12px 14px;margin-bottom:16px;border-radius:6px}
+.tw .codes{background:#0f0f20;border:1px solid #334155;border-radius:10px;padding:16px;margin:20px 0;font-family:monospace;font-size:1rem;letter-spacing:2px}
+.tw .codes ul{list-style:none;padding:0;margin:0;columns:2;column-gap:24px}
+.tw .codes li{padding:6px 0;color:#e2e8f0}
+.tw .warn{color:#fbbf24;font-weight:600;margin:12px 0}
+</style>
+<div class="tw">
+  <h1>Konfiguracja 2FA (TOTP)</h1>
+  {% if error %}<div class="err">{{ error }}</div>{% endif %}
+  {% if backup_codes %}
+    <div class="ok">2FA wlaczone! Zapisz ponizsze kody zapasowe w bezpiecznym miejscu &mdash; kazdy dziala jednorazowo.</div>
+    <div class="warn">Te kody pokazujemy TYLKO RAZ. Po opuszczeniu tej strony nie zobaczysz ich ponownie.</div>
+    <div class="codes">
+      <ul>
+        {% for c in backup_codes %}<li>{{ c }}</li>{% endfor %}
+      </ul>
+    </div>
+    <a href="/ustawienia" style="display:inline-block;padding:12px 24px;background:#6366f1;color:#fff;border-radius:10px;text-decoration:none">Zapisalem kody &rarr; przejdz do ustawien</a>
+  {% else %}
+    <p>1. Zainstaluj aplikacje Google Authenticator, Authy lub 1Password.</p>
+    <p>2. Zeskanuj QR kod ponizej lub wpisz secret recznie.</p>
+    <div class="qr">{{ qr_svg|safe }}</div>
+    <p>Secret (jesli nie mozesz zeskanowac):</p>
+    <div class="secret">{{ secret }}</div>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="secret" value="{{ secret }}">
+      <label>Wpisz 6-cyfrowy kod z aplikacji:</label>
+      <input type="text" name="code" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autofocus>
+      <button type="submit">Potwierdz i wlacz 2FA</button>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}'''
+
+
+_TOTP_VERIFY_TEMPLATE = '''<!DOCTYPE html>
+<html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Weryfikacja 2FA</title>
+<style>
+body{background:#0e0e10;color:#e5e7eb;font-family:system-ui,sans-serif;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.w{max-width:420px;width:90%;padding:32px;background:#19191c;border-left:4px solid #8ff5ff;border-radius:8px}
+h1{color:#8ff5ff;font-size:1.4rem;margin:0 0 16px}
+p{color:#94a3b8;margin:0 0 16px;line-height:1.5}
+label{display:block;font-size:0.85rem;color:#cbd5e1;margin:16px 0 6px}
+input[type=text]{width:100%;padding:14px;background:#0f0f20;border:1px solid #334155;border-radius:10px;color:#fff;font-size:1.2rem;letter-spacing:6px;text-align:center;box-sizing:border-box}
+button{width:100%;padding:14px;margin-top:16px;background:#6366f1;color:#fff;border:none;border-radius:10px;font-weight:600;cursor:pointer;font-size:0.95rem}
+button:hover{opacity:0.92}
+.err{background:rgba(239,68,68,.12);border-left:3px solid #ef4444;color:#fca5a5;padding:12px 14px;margin-bottom:16px;border-radius:6px}
+.hint{font-size:0.8rem;color:#64748b;margin-top:16px;text-align:center}
+.hint a{color:#8ff5ff}
+</style></head>
+<body>
+  <div class="w">
+    <h1>Weryfikacja 2FA</h1>
+    <p>Wpisz 6-cyfrowy kod z aplikacji Authenticator lub jeden z kodow zapasowych.</p>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Kod:</label>
+      <input type="text" name="code" autocomplete="one-time-code" inputmode="text" maxlength="12" required autofocus>
+      <button type="submit">Zweryfikuj</button>
+    </form>
+    <p class="hint"><a href="/auth/logout">Anuluj i wroc do loginu</a></p>
+  </div>
+</body></html>'''
+
+
+@auth_bp.route('/2fa/setup', methods=['GET', 'POST'])
+def totp_setup():
+    """Konfiguracja 2FA - wymaga zalogowanego usera (bez 2fa_verified)."""
+    if not session.get('user_id'):
+        return redirect(url_for('auth.login'))
+
+    from modules import totp as _totp
+
+    conn = _get_auth_db()
+    user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    if not user:
+        conn.close()
+        return redirect(url_for('auth.login'))
+
+    # Jesli 2FA juz wlaczone - redirect do ustawien
+    if user['totp_enabled']:
+        conn.close()
+        flash('2FA jest juz wlaczone dla tego konta. Aby wygenerowac nowe backup codes, wylacz i wlacz ponownie.', 'info')
+        return redirect('/ustawienia')
+
+    error = None
+    backup_codes_plain = None
+
+    if request.method == 'POST':
+        secret = request.form.get('secret', '').strip()
+        code = request.form.get('code', '').strip()
+
+        if not secret or not code:
+            error = 'Brak secret lub kodu.'
+        elif not _totp.verify_code(secret, code, window=1):
+            error = 'Kod nieprawidlowy. Sprawdz zegar w telefonie i sprobuj ponownie.'
+            # Audit log nieudanej proby
+            try:
+                from modules.database import log_admin_action
+                log_admin_action(
+                    '2fa_setup_fail',
+                    details={'username': user['username']},
+                    success=False,
+                )
+            except Exception:
+                pass
+        else:
+            # OK — wygeneruj backup codes i zapisz
+            plain, hashed_json = _totp.generate_backup_codes(n=8)
+            conn.execute(
+                'UPDATE users SET totp_secret = ?, totp_enabled = 1, '
+                'totp_backup_codes = ?, totp_last_verified_at = CURRENT_TIMESTAMP '
+                'WHERE id = ?',
+                (secret, hashed_json, user['id'])
+            )
+            conn.commit()
+            session['2fa_verified'] = True
+            backup_codes_plain = plain
+            try:
+                from modules.database import log_admin_action
+                log_admin_action(
+                    '2fa_enable',
+                    details={'username': user['username']},
+                    success=True,
+                )
+            except Exception:
+                pass
+
+    # GET lub POST fail — wygeneruj (lub zachowaj z POSTu) QR i secret
+    if backup_codes_plain:
+        secret = ''
+        qr_svg = ''
+    else:
+        # Jesli POST fail, zachowaj ten sam secret (zeby user nie musial ponownie skanowac)
+        secret = request.form.get('secret', '').strip() or _totp.generate_secret()
+        qr_svg = _totp.generate_qr_svg(user['username'], secret)
+
+    conn.close()
+    return render_template_string(
+        _TOTP_SETUP_TEMPLATE,
+        secret=secret,
+        qr_svg=qr_svg,
+        error=error,
+        backup_codes=backup_codes_plain,
+    )
+
+
+@auth_bp.route('/2fa/verify', methods=['GET', 'POST'])
+def totp_verify():
+    """Weryfikacja kodu TOTP.
+
+    Obsluguje dwa scenariusze:
+    A) Pending login: session['2fa_pending_user_id'] ustawione po password check,
+       `user_id` jeszcze NIE ustawiony. Po weryfikacji: pelna sesja.
+    B) Re-verify: user juz zalogowany (session['user_id']) ale session['2fa_verified']
+       != True. Np. require_admin zablokowal dostep do panelu. Po weryfikacji:
+       session['2fa_verified'] = True, redirect do zapisanego next_url.
+    """
+    pending_user_id = session.get('2fa_pending_user_id') or session.get('user_id')
+    if not pending_user_id:
+        return redirect(url_for('auth.login'))
+
+    from modules import totp as _totp
+
+    conn = _get_auth_db()
+    user = conn.execute('SELECT * FROM users WHERE id = ? AND aktywny = 1', (pending_user_id,)).fetchone()
+    if not user or not user['totp_enabled'] or not user['totp_secret']:
+        conn.close()
+        session.clear()
+        return redirect(url_for('auth.login'))
+
+    error = None
+
+    if request.method == 'POST':
+        code = request.form.get('code', '').strip()
+        verified = False
+        verification_method = ''
+
+        if _totp.verify_code(user['totp_secret'], code, window=1):
+            verified = True
+            verification_method = 'totp'
+        else:
+            ok, new_hashes = _totp.verify_backup_code(user['totp_backup_codes'] or '', code)
+            if ok:
+                verified = True
+                verification_method = 'backup_code'
+                conn.execute(
+                    'UPDATE users SET totp_backup_codes = ? WHERE id = ?',
+                    (new_hashes, user['id'])
+                )
+                conn.commit()
+
+        if verified:
+            username = user['username']
+            rola = user['rola']
+            next_url = session.get('2fa_pending_next', '/dashboard')
+            if not next_url.startswith('/') or next_url.startswith('//'):
+                next_url = '/dashboard'
+
+            # Scenariusz A (pending login) vs B (re-verify)
+            was_pending_only = bool(session.get('2fa_pending_user_id')) and not session.get('user_id')
+            if was_pending_only:
+                session.clear()
+                from flask_wtf.csrf import generate_csrf
+                generate_csrf()
+                session['user_id'] = user['id']
+                session['username'] = username
+                session['rola'] = rola
+            # W obu scenariuszach:
+            session['2fa_verified'] = True
+            session.pop('2fa_pending_user_id', None)
+            session.pop('2fa_pending_rola', None)
+            session.pop('2fa_pending_username', None)
+            session.pop('2fa_pending_next', None)
+            session.permanent = True
+
+            try:
+                conn.execute(
+                    'UPDATE users SET ostatnie_logowanie = CURRENT_TIMESTAMP, '
+                    'totp_last_verified_at = CURRENT_TIMESTAMP WHERE id = ?',
+                    (user['id'],)
+                )
+                conn.commit()
+            except sqlite3.OperationalError:
+                pass
+            conn.close()
+
+            try:
+                from modules.database import log_admin_action
+                log_admin_action(
+                    '2fa_verify_success',
+                    details={'method': verification_method},
+                    success=True,
+                    user_id=user['id'],
+                    username=username,
+                    role=rola,
+                )
+            except Exception:
+                pass
+            return redirect(next_url)
+        else:
+            error = 'Kod nieprawidlowy. Sprobuj ponownie lub uzyj backup code.'
+            try:
+                from modules.database import log_admin_action
+                log_admin_action(
+                    '2fa_verify_fail',
+                    details={'username': user['username']},
+                    success=False,
+                    user_id=user['id'],
+                    username=user['username'],
+                    role=user['rola'],
+                )
+            except Exception:
+                pass
+
+    conn.close()
+    return render_template_string(_TOTP_VERIFY_TEMPLATE, error=error)
+
+
+@auth_bp.route('/2fa/disable', methods=['POST'])
+def totp_disable():
+    """Wylacz 2FA dla zalogowanego usera - WYMAGA aktualnego TOTP kodu."""
+    if not session.get('user_id'):
+        return jsonify({'ok': False, 'error': 'Wymagane logowanie'}), 401
+
+    from modules import totp as _totp
+
+    code = request.form.get('code', '').strip()
+    conn = _get_auth_db()
+    user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    if not user or not user['totp_enabled'] or not user['totp_secret']:
+        conn.close()
+        flash('2FA jest juz wylaczone.', 'info')
+        return redirect('/ustawienia')
+
+    # Wymagamy aktualnego TOTP kodu ZANIM wylaczymy (ochrona sesji)
+    if not _totp.verify_code(user['totp_secret'], code, window=1):
+        # Akceptujemy rowniez backup code jako fallback
+        ok, new_hashes = _totp.verify_backup_code(user['totp_backup_codes'] or '', code)
+        if not ok:
+            conn.close()
+            try:
+                from modules.database import log_admin_action
+                log_admin_action(
+                    '2fa_disable_fail',
+                    details={'username': user['username']},
+                    success=False,
+                )
+            except Exception:
+                pass
+            flash('Kod nieprawidlowy. 2FA nie zostalo wylaczone.', 'error')
+            return redirect('/ustawienia')
+        # Zarejestruj zuzycie backup codu (nawet przy disable)
+        conn.execute('UPDATE users SET totp_backup_codes = ? WHERE id = ?', (new_hashes, user['id']))
+
+    # Wylacz 2FA i wyczysc secret + backup codes
+    conn.execute(
+        'UPDATE users SET totp_enabled = 0, totp_secret = NULL, '
+        'totp_backup_codes = NULL WHERE id = ?',
+        (user['id'],)
+    )
+    conn.commit()
+    conn.close()
+
+    session.pop('2fa_verified', None)
+    try:
+        from modules.database import log_admin_action
+        log_admin_action(
+            '2fa_disable',
+            details={'username': user['username']},
+            success=True,
+        )
+    except Exception:
+        pass
+    flash('2FA wylaczone.', 'success')
+    return redirect('/ustawienia')
 
 
 @auth_bp.route('/zmien-haslo', methods=['GET', 'POST'])

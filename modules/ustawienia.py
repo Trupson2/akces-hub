@@ -50,6 +50,25 @@ def ustawienia():
     ngrok_token = get_config('ngrok_auth_token', '')
     ngrok_domain = get_config('ngrok_domain', '')
     data_retention_years = get_config('data_retention_years', '5')
+
+    # 2FA TOTP status (Phase 3)
+    totp_enabled = False
+    totp_backup_remaining = 0
+    try:
+        from modules.auth import _get_auth_db
+        from modules.totp import backup_codes_remaining
+        uid = session.get('user_id')
+        if uid:
+            _c = _get_auth_db()
+            _r = _c.execute(
+                'SELECT totp_enabled, totp_backup_codes FROM users WHERE id = ?', (uid,)
+            ).fetchone()
+            _c.close()
+            if _r:
+                totp_enabled = bool(_r['totp_enabled'])
+                totp_backup_remaining = backup_codes_remaining(_r['totp_backup_codes'] or '')
+    except Exception:
+        pass
     dpd_cennik_id = get_config('dpd_cennik_id', 'bf1a1cf0-6a1e-41b3-a42e-d46846b35f43')
     zwroty_warunki_id = get_config('zwroty_warunki_id', '7b75ba63-0967-4536-a439-730f8e563a59')
     reklamacje_warunki_id = get_config('reklamacje_warunki_id', '128af307-9341-4f8c-b406-63b9060cce7d')
@@ -82,6 +101,8 @@ def ustawienia():
         firma_email=get_config('firma_email', ''),
         firma_telefon=get_config('firma_telefon', ''),
         custom_dostawcy=get_config('custom_dostawcy', ''),
+        totp_enabled=totp_enabled,
+        totp_backup_remaining=totp_backup_remaining,
     )
 
 

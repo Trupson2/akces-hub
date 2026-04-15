@@ -461,6 +461,29 @@ select.ust-input{cursor:pointer;appearance:none;background-image:url("data:image
         </div>
         <span class="ust-link-arrow">&rarr;</span>
     </a>
+    {% if totp_enabled %}
+    <div class="ust-link" style="cursor:default">
+        <span class="material-symbols-outlined" style="color:#22c55e">verified_user</span>
+        <div class="ust-link-info">
+            <div class="ust-link-title">2FA (TOTP) <span style="color:#22c55e;font-size:0.85em">&bullet; wlaczone</span></div>
+            <div class="ust-link-desc">Backup codes pozostalo: {{ totp_backup_remaining }}</div>
+        </div>
+        <form method="POST" action="/auth/2fa/disable" onsubmit="var c=prompt('Wpisz aktualny kod TOTP (lub backup code) aby wylaczyc 2FA:'); if(!c)return false; this.code.value=c; return true">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="code" value="">
+            <button type="submit" style="padding:6px 12px;background:rgba(239,68,68,.1);color:#ef4444;border:1px solid #ef4444;border-radius:6px;cursor:pointer;font-size:0.82rem">Wylacz 2FA</button>
+        </form>
+    </div>
+    {% else %}
+    <a href="/auth/2fa/setup" class="ust-link">
+        <span class="material-symbols-outlined">security</span>
+        <div class="ust-link-info">
+            <div class="ust-link-title">Wlacz 2FA (TOTP)</div>
+            <div class="ust-link-desc">Dwuskladnikowe uwierzytelnianie (Google Authenticator / Authy)</div>
+        </div>
+        <span class="ust-link-arrow">&rarr;</span>
+    </a>
+    {% endif %}
     <a href="/narzedzia" class="ust-link">
         <span class="material-symbols-outlined">sync</span>
         <div class="ust-link-info">
