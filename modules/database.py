@@ -504,6 +504,84 @@ def init_db():
         conn.execute('CREATE INDEX IF NOT EXISTS idx_audit_user ON admin_audit_log(user_id, timestamp DESC)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_audit_action ON admin_audit_log(action, timestamp DESC)')
 
+        # === API v1 — Public REST API ===
+        # Klucze API dla zewnetrznych integracji (sklepy, scripts, partnerzy).
+        # key_hash: werkzeug pbkdf2 hash. Plain key pokazywany userowi RAZ przy
+        # tworzeniu. key_prefix: szybki lookup (indexed).
+        conn.execute('''CREATE TABLE IF NOT EXISTS api_keys (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            key_hash TEXT NOT NULL,
+            key_prefix TEXT NOT NULL,
+            name TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_used_at TIMESTAMP,
+            revoked_at TIMESTAMP,
+            rate_limit_per_min INTEGER DEFAULT 60
+        )''')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_api_keys_prefix ON api_keys(key_prefix)')
+        # Partial index: tylko aktywne klucze (pozwala SELECT ... WHERE revoked_at IS NULL
+        # byc super-szybkim nawet dla tysiecy revoked kluczy historycznie)
+        try:
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_api_keys_active '
+                         'ON api_keys(revoked_at) WHERE revoked_at IS NULL')
+        except Exception:
+            # Stare SQLite moga nie wspierac partial index — fallback na zwykly
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_api_keys_active ON api_keys(revoked_at)')
+
+        # Log uzycia API per-key — do analytics/billing/debug
+        conn.execute('''CREATE TABLE IF NOT EXISTS api_usage_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            api_key_id INTEGER NOT NULL,
+            endpoint TEXT NOT NULL,
+            method TEXT NOT NULL,
+            status_code INTEGER,
+            ip_address TEXT,
+            response_time_ms INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (api_key_id) REFERENCES api_keys(id)
+        )''')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_api_usage_key_ts '
+                     'ON api_usage_log(api_key_id, created_at DESC)')
+
+        # Zarejestrowane webhooki outbound (klient dostaje eventy z naszej strony)
+        conn.execute('''CREATE TABLE IF NOT EXISTS webhooks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            api_key_id INTEGER NOT NULL,
+            url TEXT NOT NULL,
+            events TEXT NOT NULL,
+            secret TEXT NOT NULL,
+            active INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (api_key_id) REFERENCES api_keys(id) ON DELETE CASCADE
+        )''')
+        try:
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_webhooks_active '
+                         'ON webhooks(active) WHERE active = 1')
+        except Exception:
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_webhooks_active ON webhooks(active)')
+
+        # Kolejka dostaw webhookow — retry z exponential backoff
+        conn.execute('''CREATE TABLE IF NOT EXISTS webhook_deliveries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            webhook_id INTEGER NOT NULL,
+            event_type TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            attempts INTEGER DEFAULT 0,
+            last_error TEXT,
+            next_retry_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            completed_at TIMESTAMP,
+            FOREIGN KEY (webhook_id) REFERENCES webhooks(id) ON DELETE CASCADE
+        )''')
+        try:
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_pending '
+                         "ON webhook_deliveries(status, next_retry_at) "
+                         "WHERE status = 'pending'")
+        except Exception:
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_pending '
+                         'ON webhook_deliveries(status, next_retry_at)')
+
         # Domyślna konfiguracja
         defaults = [
             ('telegram_bot_token', ''),
