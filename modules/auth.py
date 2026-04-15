@@ -44,6 +44,7 @@ PUBLIC_PREFIXES = [
     '/sw.js',
     '/api/health',
     '/api/warehouse/heatmap',  # tylko odczyt heatmapy (bez assign/remove)
+    '/api/v1/',                # Public REST API v1 — auth via X-API-Key (nie sesja)
     '/license',  # Aktywacja licencji — dostępna bez logowania
     '/setup',    # Setup wizard — dostępny bez logowania
     '/auth/login',        # Logowanie

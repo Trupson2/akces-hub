@@ -304,8 +304,10 @@ def block_unauthenticated_external():
     """Blokuj requesty z zewnątrz (ngrok) bez zalogowanej sesji.
     Lokalne requesty (127.0.0.1, 192.168.*) przechodzą bez sesji do strony logowania."""
     # Pozwól na statyczne pliki, login, API system-stats
+    # /api/v1/* uzywa X-API-Key auth — nie wymaga sesji, wiec nie blokujemy
     safe_paths = ('/auth', '/static', '/favicon', '/api/system-stats', '/api/csrf-token', '/launcher',
-                  '/license', '/setup', '/eula', '/onboarding', '/subscription-expired', '/launcher')
+                  '/license', '/setup', '/eula', '/onboarding', '/subscription-expired', '/launcher',
+                  '/api/v1/')
     if any(request.path.startswith(p) for p in safe_paths):
         return
 
@@ -366,6 +368,7 @@ def csrf_protect_forms():
         '/allegro/callback',      # OAuth redirect z Allegro (signed state param)
         '/allegro/webhook',       # HMAC validated w handlerze
         '/telegram/webhook',      # secret_token validated w handlerze
+        '/api/v1/',               # Public REST API — auth przez X-API-Key zamiast sesji
     )
     if any(request.path.startswith(p) for p in _csrf_exempt):
         return
@@ -471,7 +474,7 @@ def check_license_middleware():
     # Test mode: pomijamy sprawdzanie licencji (pytest)
     if os.environ.get('AKCES_TEST_MODE') == '1':
         return
-    allowed = ('/setup', '/auth', '/static', '/api/system-stats', '/api/csrf-token', '/license', '/favicon', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/eula', '/onboarding', '/launcher')
+    allowed = ('/setup', '/auth', '/static', '/api/system-stats', '/api/csrf-token', '/license', '/favicon', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/eula', '/onboarding', '/launcher', '/api/v1/')
     if any(request.path.startswith(p) for p in allowed):
         return
     if request.path == '/':
@@ -505,7 +508,7 @@ def check_eula_middleware():
     """Po walidacji licencji sprawdz czy EULA zaakceptowane"""
     if os.environ.get('AKCES_TEST_MODE') == '1':
         return
-    allowed = ('/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/launcher')
+    allowed = ('/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/launcher', '/api/v1/')
     if any(request.path.startswith(p) for p in allowed):
         return
     try:
@@ -521,7 +524,7 @@ def check_onboarding_middleware():
     """Po akceptacji EULA sprawdz czy onboarding ukonczony"""
     if os.environ.get('AKCES_TEST_MODE') == '1':
         return
-    allowed = ('/onboarding', '/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/launcher')
+    allowed = ('/onboarding', '/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/launcher', '/api/v1/')
     if any(request.path.startswith(p) for p in allowed):
         return
     try:
@@ -872,6 +875,15 @@ app.register_blueprint(eula_bp)
 
 from modules.onboarding import onboarding_bp
 app.register_blueprint(onboarding_bp)
+
+# === API v1 — Public REST API dla zewnetrznych integracji ===
+# Rejestruje blueprint /api/v1/* (products/orders/stock/pallets/webhooks),
+# panel admina /api/admin/keys, OpenAPI docs /api/v1/docs, webhook delivery worker.
+try:
+    from modules.api_v1 import register_api_v1
+    register_api_v1(app)
+except Exception as _e:
+    print(f"[WARN] API v1 nie zarejestrowane: {_e}")
 
 
 # ============================================================
