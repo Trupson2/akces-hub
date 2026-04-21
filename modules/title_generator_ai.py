@@ -181,10 +181,11 @@ Wygeneruj tytuł:"""
             json={
                 'contents': [{'parts': [{'text': prompt}]}],
                 'generationConfig': {
-                    'temperature': 0.3,  # Niska temperatura = bardziej przewidywalne wyniki
-                    'maxOutputTokens': 100,  # Tytuł to max kilkadziesiąt tokenów
+                    'temperature': 0.3,
+                    'maxOutputTokens': 200,
                     'topP': 0.95,
-                    'topK': 40
+                    'topK': 40,
+                    'thinkingConfig': {'thinkingBudget': 0}  # disable thinking - tokens nie marnowane na myślenie
                 }
             },
             timeout=30
