@@ -192,13 +192,12 @@ Wygeneruj tytuł:"""
         
         if response.status_code == 200:
             data = response.json()
-            # Gemini 2.5+ thinking models return parts[0] as thought (thought:true) and last part as real answer
+            # Gemini 2.5+ thinking models interleave thought parts (thought:true) with answer parts
+            # Concatenate ALL non-thought parts to get the full response
             _parts = data.get('candidates', [{}])[0].get('content', {}).get('parts', [])
-            generated_text = ''
-            for _part in _parts:
-                if not _part.get('thought', False) and _part.get('text', ''):
-                    generated_text = _part['text']
-                    break
+            generated_text = ''.join(
+                _p.get('text', '') for _p in _parts if not _p.get('thought', False)
+            )
             
             if generated_text:
                 # Wyczyść odpowiedź AI - usuń preambuły
