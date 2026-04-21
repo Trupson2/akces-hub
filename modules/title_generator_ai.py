@@ -62,6 +62,7 @@ def generate_allegro_title_ai(product_data: Dict, gemini_key: str, max_length: i
     
     # META PROMPT dla AI - BARDZO PRECYZYJNY
     prompt = f"""ZADANIE: Wygeneruj tytuł oferty Allegro dla tego produktu.
+JĘZYK WYJŚCIOWY: TYLKO POLSKI - przetłumacz nazwę na język polski niezależnie od języka wejściowego (angielski, niemiecki, itd.)
 
 PRODUKT: {nazwa}
 {f'ASIN: {asin}' if asin else ''}
@@ -71,65 +72,65 @@ PRODUKT: {nazwa}
 
 === KRYTYCZNE WYMAGANIA (NARUSZENIE = ODRZUCENIE) ===
 
-1. DŁUGOŚĆ:
+1. JĘZYK: ZAWSZE po polsku. Tłumacz z angielskiego, niemieckiego, każdego innego języka.
+   ✓ "Fußmatten BMW X3" → "Maty Samochodowe BMW X3"
+   ✓ "Car Charger Anker" → "Ładowarka Samochodowa Anker"
+   ✓ "Backup Camera" → "Kamera Cofania"
+
+2. DŁUGOŚĆ:
    - ABSOLUTNE MAXIMUM: {max_length} znaków (wliczając spacje)
    - Jeśli przekracza limit, utnij najmniej ważne elementy z końca
    - NIGDY nie ucinaj nazwy modelu w połowie
 
-2. HIERARCHIA SŁÓW KLUCZOWYCH (od lewej najważniejsze):
+3. HIERARCHIA SŁÓW KLUCZOWYCH (od lewej najważniejsze):
    [Rodzaj Produktu] + [Marka] + [Model] + [Kluczowy Parametr] + [Kod producenta]
-   
+
    PRZYKŁADY DOBREJ HIERARCHII:
    ✓ "Kamera Cofania Sony X200 170st IP68 12V"
    ✓ "Ładowarka Samochodowa Anker 45W USB-C PD"
    ✓ "Mysz Logitech MX Master 3 Bluetooth 4000DPI"
    ✓ "Kabel HDMI 4K 2m Pozłacany HDR ARC"
-   
+
    PRZYKŁADY ZŁEJ HIERARCHII:
    ✗ "Super Okazja Sony X200 Nowa Wysoka Jakość" (marketing na początku)
    ✗ "12V IP68 170st Kamera X200" (parametry przed nazwą produktu)
 
-3. LISTA ZAKAZANA (STOP WORDS) - USUŃ BEZWZGLĘDNIE:
-   
-   MARKETING:
-   <span class=material-symbols-outlined style=color:#ef4444>cancel</span> "Super", "Hit", "Nowy", "Okazja", "Wyprzedaż", "Sale", "Hot"
-   <span class=material-symbols-outlined style=color:#ef4444>cancel</span> "Profesjonalny", "Premium", "Exclusive", "Limited"
-   <span class=material-symbols-outlined style=color:#ef4444>cancel</span> "Wysoka jakość", "Najlepsza jakość", "Top quality"
-   <span class=material-symbols-outlined style=color:#ef4444>cancel</span> "Bestseller", "Polecamy", "Sprawdź"
-   
-   ZBĘDNE ŁĄCZNIKI (chyba że niezbędne):
-   <span class=material-symbols-outlined style=color:#ef4444>cancel</span> "do", "z", "i", "dla", "na" (np. "do iPhone" → "iPhone")
-   <span class=material-symbols-outlined style=color:#ef4444>cancel</span> Wyjątek: "Etui do iPhone" (tutaj "do" jest OK)
-   
-   SŁOWA OZDOBNE:
-   <span class=material-symbols-outlined style=color:#ef4444>cancel</span> "Oryginalny" (chyba że to część nazwy marki)
-   <span class=material-symbols-outlined style=color:#ef4444>cancel</span> "Prawdziwy", "Autentyczny", "Genuine"
-   <span class=material-symbols-outlined style=color:#ef4444>cancel</span> "Uniwersalny", "Wielofunkcyjny"
-   
-   ZAKAZANE ZNAKI:
-   <span class=material-symbols-outlined style=color:#ef4444>cancel</span> Emoji, cudzysłowy, nawiasy ozdobne: <span class=material-symbols-outlined>local_fire_department</span> "" '' „" () []
+4. LISTA ZAKAZANA (STOP WORDS) - USUŃ BEZWZGLĘDNIE:
 
-4. FORMATOWANIE:
+   MARKETING:
+   ✗ "Super", "Hit", "Nowy", "Okazja", "Wyprzedaż", "Sale", "Hot"
+   ✗ "Profesjonalny", "Premium", "Exclusive", "Limited"
+   ✗ "Wysoka jakość", "Najlepsza jakość", "Top quality"
+   ✗ "Bestseller", "Polecamy", "Sprawdź"
+
+   ZBĘDNE ŁĄCZNIKI (chyba że niezbędne):
+   ✗ "do", "z", "i", "dla", "na" (np. "do iPhone" → "iPhone")
+   ✗ Wyjątek: "Etui do iPhone" (tutaj "do" jest OK)
+
+   SŁOWA OZDOBNE:
+   ✗ "Oryginalny" (chyba że to część nazwy marki)
+   ✗ "Prawdziwy", "Autentyczny", "Genuine"
+   ✗ "Uniwersalny", "Wielofunkcyjny"
+
+   ZAKAZANE ZNAKI:
+   ✗ Emoji, cudzysłowy, nawiasy ozdobne: "" '' „" () []
+
+5. FORMATOWANIE:
    ✓ Title Case: Wielkie litery na początku wyrazów
    ✓ NIE PISZ CAPSLOCKIEM: "SUPER KAMERA" → "Kamera"
    ✓ Brak kropki na końcu tytułu
    ✓ Pojedyncze spacje między wyrazami
-   
-   PRZYKŁADY:
-   ✓ "Kamera Cofania Sony X200 170st" (Title Case)
-   ✗ "KAMERA COFANIA SONY X200 170ST" (CAPSLOCK)
-   ✗ "kamera cofania sony x200 170st" (lowercase)
 
-5. CO ZOSTAWIĆ (jeśli jest w nazwie):
+6. CO ZOSTAWIĆ (jeśli jest w nazwie):
    ✓ Nazwę produktu (co to jest): "Kamera", "Ładowarka", "Kabel"
-   ✓ Markę: "Sony", "Anker", "Samsung"
-   ✓ Model: "X200", "MX Master 3", "Galaxy S24"
+   ✓ Markę: "Sony", "Anker", "Samsung", "BMW"
+   ✓ Model: "X200", "MX Master 3", "Galaxy S24", "G45"
    ✓ Kluczowe parametry: "170°", "45W", "4K", "2m"
    ✓ Materiał: "IP68", "Skóra", "Aluminium"
    ✓ Kolor (jeśli charakterystyczny): "Czarny", "Srebrny"
    ✓ Kod producenta (jeśli krótki): "Type-C", "USB-C"
 
-6. INTELIGENTNE SKRACANIE (gdy przekracza {max_length} znaków):
+7. INTELIGENTNE SKRACANIE (gdy przekracza {max_length} znaków):
    PRIORYTET USUWANIA (od pierwszego do ostatniego):
    1. Usuń kolor (jeśli jest standardowy: czarny, biały)
    2. Usuń dodatkowe parametry (zostaw najważniejszy)
@@ -141,13 +142,13 @@ PRODUKT: {nazwa}
 ZWRÓĆ TYLKO TYTUŁ - NIC WIĘCEJ!
 
 NIE PISZ:
-<span class=material-symbols-outlined style=color:#ef4444>cancel</span> "Oto propozycja tytułu:"
-<span class=material-symbols-outlined style=color:#ef4444>cancel</span> "Tytuł oferty:"
-<span class=material-symbols-outlined style=color:#ef4444>cancel</span> "Sugeruję:"
-<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Jakichkolwiek dodatkowych wyjaśnień
+✗ "Oto propozycja tytułu:"
+✗ "Tytuł oferty:"
+✗ "Sugeruję:"
+✗ Jakichkolwiek dodatkowych wyjaśnień
 
 NAPISZ:
-✓ Sam tytuł oferty (dokładnie {max_length} znaków lub mniej)
+✓ Sam tytuł oferty po polsku (dokładnie {max_length} znaków lub mniej)
 
 === PRZYKŁADY KOŃCOWE ===
 
@@ -159,6 +160,9 @@ OUTPUT: Ładowarka Samochodowa Anker 45W USB-C PD
 
 INPUT: "Logitech MX Master 3 Advanced Wireless Mouse Bluetooth High Precision 4000DPI Black"
 OUTPUT: Mysz Logitech MX Master 3 Bluetooth 4000DPI Czarna
+
+INPUT: "3w bmw x3 g01 2018-2024/ix3 g08 2021-2024 2025 fußmatten und"
+OUTPUT: Maty Samochodowe BMW X3 G01 G08 2018-2024
 
 Wygeneruj tytuł:"""
 

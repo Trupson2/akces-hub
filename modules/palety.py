@@ -266,13 +266,18 @@ def produkt_regenerate_meta_title(produkt_id):
         # Użyj dłuższej nazwy
         amazon_nazwa = scraped_nazwa if len(scraped_nazwa) >= len(prod_nazwa) else (prod_nazwa or scraped_nazwa)
 
-        # Generuj meta_title przez AI
-        from modules.smart_importer import generate_meta_title
-        meta_title = generate_meta_title(
-            produkt_nazwa=amazon_nazwa,
-            produkt_ean=produkt['ean'] or '',
-            produkt_asin=asin,
-            bullet_points=bullet_pts
+        # Generuj meta_title przez Gemini AI
+        import json as _json
+        from modules.title_generator_ai import generate_allegro_title_ai
+        _bullets = []
+        if bullet_pts:
+            try:
+                _bullets = _json.loads(bullet_pts) if isinstance(bullet_pts, str) else bullet_pts
+            except Exception:
+                _bullets = []
+        meta_title = generate_allegro_title_ai(
+            product_data={'nazwa': amazon_nazwa, 'bullet_points': _bullets, 'asin': asin},
+            gemini_key=gemini_key
         )
 
         if not meta_title:
@@ -408,13 +413,17 @@ def generate_meta_title_batch():
 
                 print(f"   → Amazon title: {_amazon_nazwa[:60]}")
 
-                # Generuj meta_title
-                from modules.smart_importer import generate_meta_title
-                meta_title = generate_meta_title(
-                    produkt_nazwa=_amazon_nazwa,
-                    produkt_ean=produkt['ean'] or '',
-                    produkt_asin=_asin,
-                    bullet_points=_bullet_pts
+                # Generuj meta_title przez Gemini AI
+                from modules.title_generator_ai import generate_allegro_title_ai
+                _bullets_list = []
+                if _bullet_pts:
+                    try:
+                        _bullets_list = json.loads(_bullet_pts) if isinstance(_bullet_pts, str) else _bullet_pts
+                    except Exception:
+                        _bullets_list = []
+                meta_title = generate_allegro_title_ai(
+                    product_data={'nazwa': _amazon_nazwa, 'bullet_points': _bullets_list, 'asin': _asin},
+                    gemini_key=gemini_key
                 )
 
                 print(f"   ← Otrzymano meta_title: {meta_title[:75] if meta_title else 'BRAK'}")
