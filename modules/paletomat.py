@@ -3278,7 +3278,8 @@ def generator_mass_create_from_paleta_stream():
     def generate():
         # Wewnątrz funkcji już NIE wywołujemy request.args.get
         # Korzystamy ze zmiennej 'ids_str' pobranej wyżej
-        
+        yield ": ping\n\n"  # Potwierdza że stream działa (Waitress flush)
+
         if not ids_str:
             yield "data: " + json.dumps({'type': 'error', 'title': 'System', 'error': 'Brak ID produktów'}) + "\n\n"
             yield "data: " + json.dumps({'type': 'done'}) + "\n\n"
@@ -3298,16 +3299,19 @@ def generator_mass_create_from_paleta_stream():
             return
             
         # ... dalsza część kodu bez zmian ...
-        
-        conn = get_db()
-        
-        placeholders = ','.join('?' * len(product_ids))
-        products = conn.execute(
-            "SELECT * FROM produkty WHERE id IN (" + placeholders + ") "
-            "AND status NOT IN ('usuniety', 'sprzedany') ORDER BY id",
-            product_ids).fetchall()
 
-        total = len(products)
+        try:
+            conn = get_db()
+            placeholders = ','.join('?' * len(product_ids))
+            products = conn.execute(
+                "SELECT * FROM produkty WHERE id IN (" + placeholders + ") "
+                "AND status NOT IN ('usuniety', 'sprzedany') ORDER BY id",
+                product_ids).fetchall()
+            total = len(products)
+        except Exception as _dberr:
+            yield "data: " + json.dumps({'type': 'error', 'title': 'System', 'error': f'Błąd bazy danych: {str(_dberr)[:80]}'}) + "\n\n"
+            yield "data: " + json.dumps({'type': 'done'}) + "\n\n"
+            return
 
         if total == 0:
             yield "data: " + json.dumps({'type': 'error', 'title': 'System', 'error': 'Brak produktów lub już wystawione'}) + "\n\n"
@@ -3883,25 +3887,32 @@ def generator_mass_create_stream():
     import time
     
     def generate():
+        yield ": ping\n\n"  # Potwierdza że stream działa (Waitress flush)
+
         # Pobierz klucz Gemini API
         gemini_key = get_config('gemini_api_key', '')
-        
+
         # Sprawdź autoryzację
         if not is_authenticated():
             yield f"data: {json.dumps({'type': 'error', 'asin': '-', 'error': 'Nie zalogowany do Allegro'})}\n\n"
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
             return
-        
+
         shipping_id = get_config('allegro_shipping_id', '')
         if not shipping_id:
             yield f"data: {json.dumps({'type': 'error', 'asin': '-', 'error': 'Brak cennika wysyłki'})}\n\n"
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
             return
-        
-        conn = get_db()
-        products = conn.execute('SELECT * FROM scraped WHERE status NOT IN ("usuniety", "blad") ORDER BY data_scrape DESC LIMIT 150').fetchall()
-        total = len(products)
-        
+
+        try:
+            conn = get_db()
+            products = conn.execute('SELECT * FROM scraped WHERE status NOT IN ("usuniety", "blad") ORDER BY data_scrape DESC LIMIT 150').fetchall()
+            total = len(products)
+        except Exception as _dberr:
+            yield f"data: {json.dumps({'type': 'error', 'asin': '-', 'error': f'Błąd bazy: {str(_dberr)[:80]}'})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            return
+
         if total == 0:
             yield f"data: {json.dumps({'type': 'error', 'asin': '-', 'error': 'Brak produktów'})}\n\n"
             yield f"data: {json.dumps({'type': 'done'})}\n\n"

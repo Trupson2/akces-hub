@@ -7344,7 +7344,7 @@ if __name__ == '__main__':
     try:
         from waitress import serve
         log("Uzywam waitress (produkcyjny WSGI)")
-        serve(app, host='0.0.0.0', port=5000, threads=8, channel_timeout=120)
+        serve(app, host='0.0.0.0', port=5000, threads=8, channel_timeout=600)
     except ImportError:
         # Fallback na Flask dev server jesli waitress nie zainstalowany
         log("[WARN] Waitress niedostepny — fallback na Flask dev server")
