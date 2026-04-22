@@ -763,7 +763,7 @@ def after_request(response):
     if response.mimetype == 'text/event-stream':
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['X-Accel-Buffering'] = 'no'
-        response.headers['Connection'] = 'keep-alive'
+        # NIE ustawiaj Connection: keep-alive — hop-by-hop headers są zakazane w WSGI (PEP 3333)
     # Cache dla statycznych plików (obrazki, CSS, JS)
     elif response.mimetype and (response.mimetype.startswith('image/') or response.mimetype in ('text/css', 'application/javascript')):
         response.headers['Cache-Control'] = 'public, max-age=86400'
