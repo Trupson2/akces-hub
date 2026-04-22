@@ -485,7 +485,13 @@ def scrape_amazon_product(asin, preferred_domain=None):
                         'buy now', 'kup teraz', 'free shipping', 'darmowa wysyłka',
                         'aby kupić', 'wyszukaj', 'asin:', 'asin :', 'search for',
                         'visit our', 'odwiedź nasz', 'sprawdź nasz', 'naszym sklepie',
-                        'nasza marka', 'our brand', 'our store', 'nasz sklep']
+                        'nasza marka', 'our brand', 'our store', 'nasz sklep',
+                        # Amazon UI śmieci (obrazy, rankingi, breadcrumbs)
+                        'obraz niedostępny', 'zdjęcie niedostępne', 'image unavailable',
+                        'photo unavailable', 'picture unavailable',
+                        'pozycja ', 'w kategorii', 'top 100', 'bestseller rank',
+                        'amazon\'s choice', 'amazon\'s choice', '#1 best seller',
+                        '—kolor:', '—color:', 'zobacz top', 'see top']
             bullet_points = [bp for bp in bullet_points
                              if not any(w in bp.lower() for w in _blocked)]
 
@@ -2043,7 +2049,12 @@ def generuj_opis_html_pro(nazwa, zdjecia_urls, kategoria='inne', bullet_points=N
                         'after-sale', 'aftersale', 'obsługa klienta',
                         'aby kupić', 'wyszukaj', 'asin:', 'asin :', 'search for',
                         'visit our', 'odwiedź nasz', 'sprawdź nasz', 'naszym sklepie',
-                        'nasza marka', 'our brand', 'our store', 'nasz sklep']
+                        'nasza marka', 'our brand', 'our store', 'nasz sklep',
+                        'obraz niedostępny', 'zdjęcie niedostępne', 'image unavailable',
+                        'photo unavailable', 'picture unavailable',
+                        'pozycja ', 'w kategorii', 'top 100', 'bestseller rank',
+                        'amazon\'s choice', '#1 best seller', '—kolor:', '—color:',
+                        'zobacz top', 'see top']
         _before = len(bullet_points)
         bullet_points = [bp for bp in bullet_points
                          if not any(w in bp.lower() for w in _blocked_bp)]
