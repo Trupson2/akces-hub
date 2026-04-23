@@ -705,6 +705,11 @@ def produkty():
         count = conn.execute('SELECT COUNT(*) FROM produkty WHERE status = ? OR (status IS NULL AND ? = "nowy")', (status, status)).fetchone()[0]
         status_counts[status] = count
     nieocenione_cnt = conn.execute("SELECT COUNT(*) FROM produkty WHERE stan_przyjecia = 'nieoceniony' OR (stan_przyjecia IS NULL AND status = 'magazyn') OR stan_przyjecia = ''").fetchone()[0]
+    do_wyst_cnt = conn.execute(
+        "SELECT COUNT(DISTINCT p.id) FROM produkty p "
+        "LEFT JOIN oferty o ON o.produkt_id = p.id AND o.status IN ('draft','szkic') "
+        "WHERE (p.status NOT IN ('wystawiony','sprzedany','wyslany') OR o.id IS NOT NULL) AND p.ilosc > 0"
+    ).fetchone()[0]
 
     # Stan przedmiotu counts
     _stan_counts = {}
@@ -744,6 +749,8 @@ def produkty():
             Sprzedane ({status_counts['sprzedany']})</a>
         <a href="/magazyn/produkty?status=nieoceniony" style="flex-shrink:0;padding:8px 18px;border-radius:10px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;white-space:nowrap;transition:all 0.2s;{'background:#f59e0b;color:#422006;box-shadow:0 0 15px rgba(245,158,11,0.3)' if filter_status == 'nieoceniony' else 'background:#262528;color:#adaaad;border:1px solid rgba(72,71,74,0.2)'}">
             Nieocenione ({nieocenione_cnt})</a>
+        <a href="/magazyn/do-wystawienia" style="flex-shrink:0;padding:8px 18px;border-radius:10px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;white-space:nowrap;transition:all 0.2s;background:#7c3aed;color:#e9d5ff;box-shadow:0 0 15px rgba(124,58,237,0.3)">
+            <span class=material-symbols-outlined style="font-size:0.85rem;vertical-align:middle;margin-right:3px">rocket_launch</span>Do wystawienia ({do_wyst_cnt})</a>
     </div>
 
     <!-- STAN PRZEDMIOTU + KLASA JAKOŚCI - compact bento grid -->
@@ -1101,6 +1108,143 @@ def produkty():
     <div style="text-align:center;margin-top:24px"><a href="/magazyn" style="font-size:0.82rem;color:#adaaad;text-decoration:none;font-weight:600;letter-spacing:0.05em">&larr; Powrót</a></div>
     '''
     return render(html)
+
+@magazynier_bp.route('/do-wystawienia')
+def do_wystawienia():
+    conn = get_db()
+
+    # 1. Szkice - produkty z ofertą w stanie draft
+    szkice = conn.execute("""
+        SELECT p.*, o.allegro_id as draft_allegro_id, o.id as oferta_id
+        FROM produkty p
+        JOIN oferty o ON o.produkt_id = p.id
+        WHERE o.status IN ('draft','szkic')
+          AND p.status NOT IN ('sprzedany','wyslany')
+        ORDER BY o.data_aktualizacji DESC
+    """).fetchall()
+
+    # 2. Niewystawione gotowe (cena > 0) - bez aktywnej/draft oferty
+    gotowe = conn.execute("""
+        SELECT * FROM produkty
+        WHERE status NOT IN ('wystawiony','sprzedany','wyslany')
+          AND ilosc > 0
+          AND cena_allegro > 0
+          AND id NOT IN (
+              SELECT produkt_id FROM oferty
+              WHERE produkt_id IS NOT NULL
+                AND status IN ('draft','szkic','active','ACTIVE','aktywna','wystawiona','published')
+          )
+        ORDER BY data_dodania DESC
+    """).fetchall()
+
+    # 3. Niewystawione bez ceny
+    bez_ceny = conn.execute("""
+        SELECT * FROM produkty
+        WHERE status NOT IN ('wystawiony','sprzedany','wyslany')
+          AND ilosc > 0
+          AND (cena_allegro IS NULL OR cena_allegro = 0)
+          AND id NOT IN (
+              SELECT produkt_id FROM oferty
+              WHERE produkt_id IS NOT NULL
+                AND status IN ('draft','szkic','active','ACTIVE','aktywna','wystawiona','published')
+          )
+        ORDER BY data_dodania DESC
+        LIMIT 50
+    """).fetchall()
+
+    def _card(p, badge_color, badge_text, action_html):
+        img = _resolve_product_image(p, size='sm')
+        pcode = get_product_code(p)
+        safe_nazwa = escape(str(p['nazwa'] or ''))
+        _ca = float(p['cena_allegro'] or 0)
+        _qty = int(p['ilosc'] or 0)
+        return f'''
+        <div style="display:flex;gap:12px;background:#131315;border-radius:10px;border-left:3px solid {badge_color};padding:12px;align-items:center">
+            <a href="/magazyn/produkt/{pcode}" style="display:flex;gap:12px;flex:1;text-decoration:none;color:inherit;min-width:0;align-items:center">
+                <div style="width:56px;height:56px;background:#262528;border-radius:8px;overflow:hidden;flex-shrink:0">
+                    <img src="{img}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
+                </div>
+                <div style="flex:1;min-width:0">
+                    <div style="font-size:0.6rem;color:{badge_color};font-weight:700;text-transform:uppercase;letter-spacing:0.1em">{badge_text}</div>
+                    <div style="font-size:0.92rem;font-weight:700;color:#f9f5f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Space Grotesk',sans-serif">{safe_nazwa[:50]}</div>
+                    <div style="font-size:0.72rem;color:#adaaad;margin-top:2px">{'%.0f zł' % _ca if _ca else 'brak ceny'} · {_qty} szt.</div>
+                </div>
+            </a>
+            {action_html}
+        </div>'''
+
+    gotowe_ids = ','.join(str(p['id']) for p in gotowe)
+    mass_btn = ''
+    if gotowe_ids:
+        mass_btn = f'<a href="/paletomat/generator/mass-create-from-paleta?ids={gotowe_ids}" class="btn btn-ok" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;padding:10px 18px"><span class=material-symbols-outlined style=font-size:1rem>rocket_launch</span> Wystaw wszystkie gotowe ({len(gotowe)})</a>'
+
+    html = '''
+    <div style="margin-bottom:24px">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.15em;color:#7c3aed;font-weight:700;font-family:'Space Grotesk',sans-serif;margin-bottom:4px">Allegro</div>
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.8rem;font-weight:800;color:#f9f5f8;letter-spacing:-0.02em;margin:0 0 16px">Szybkie wystawianie</h2>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <a href="/magazyn/produkty" style="font-size:0.78rem;color:#adaaad;text-decoration:none;font-weight:600">&larr; Produkty</a>
+    ''' + (f'<div style="margin-left:auto">{mass_btn}</div>' if mass_btn else '') + '''
+        </div>
+    </div>'''
+
+    # --- SZKICE ---
+    html += f'''
+    <div style="margin-bottom:24px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <span class=material-symbols-outlined style="color:#f59e0b;font-size:1.2rem">pending</span>
+            <span style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#f59e0b;font-family:'Space Grotesk',sans-serif">Szkice Allegro ({len(szkice)})</span>
+        </div>'''
+
+    if szkice:
+        html += '<div style="display:flex;flex-direction:column;gap:8px">'
+        for p in szkice:
+            aid = p['draft_allegro_id']
+            action = f'<a href="/paletomat/oferty/{aid}/publish" style="flex-shrink:0;padding:8px 14px;background:#f59e0b;color:#000;border-radius:8px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;text-decoration:none;white-space:nowrap;display:flex;align-items:center;gap:4px"><span class=material-symbols-outlined style=font-size:0.9rem>rocket_launch</span>Opublikuj</a>'
+            html += _card(p, '#f59e0b', 'SZKIC', action)
+        html += '</div>'
+    else:
+        html += '<div style="padding:20px;text-align:center;background:#131315;border-radius:10px;color:#767577;font-size:0.82rem">Brak szkiców</div>'
+
+    html += '</div>'
+
+    # --- GOTOWE DO WYSTAWIENIA ---
+    html += f'''
+    <div style="margin-bottom:24px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <span class=material-symbols-outlined style="color:#beee00;font-size:1.2rem">inventory_2</span>
+            <span style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#beee00;font-family:'Space Grotesk',sans-serif">Gotowe do wystawienia ({len(gotowe)})</span>
+        </div>'''
+
+    if gotowe:
+        html += '<div style="display:flex;flex-direction:column;gap:8px">'
+        for p in gotowe:
+            pid = p['id']
+            action = f'<a href="/paletomat/generator/mass-create-from-paleta?ids={pid}" style="flex-shrink:0;padding:8px 14px;background:#beee00;color:#1a2e00;border-radius:8px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;text-decoration:none;white-space:nowrap;display:flex;align-items:center;gap:4px"><span class=material-symbols-outlined style=font-size:0.9rem>add_circle</span>Wystaw</a>'
+            html += _card(p, '#beee00', 'GOTOWY', action)
+        html += '</div>'
+    else:
+        html += '<div style="padding:20px;text-align:center;background:#131315;border-radius:10px;color:#767577;font-size:0.82rem">Brak produktów gotowych do wystawienia</div>'
+
+    html += '</div>'
+
+    # --- BEZ CENY ---
+    if bez_ceny:
+        html += f'''
+        <div style="margin-bottom:24px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+                <span class=material-symbols-outlined style="color:#ef4444;font-size:1.2rem">price_change</span>
+                <span style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#ef4444;font-family:'Space Grotesk',sans-serif">Brak ceny — uzupełnij ({len(bez_ceny)})</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">'''
+        for p in bez_ceny:
+            pcode = get_product_code(p)
+            action = f'<a href="/magazyn/produkt/{pcode}#cena" style="flex-shrink:0;padding:8px 14px;background:#262528;border:1px solid rgba(239,68,68,0.3);color:#ef4444;border-radius:8px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;text-decoration:none;white-space:nowrap">Uzupełnij</a>'
+            html += _card(p, '#ef4444', 'BRAK CENY', action)
+        html += '</div></div>'
+
+    return render(html, 'Do wystawienia')
+
 
 @magazynier_bp.route('/produkt/<path:code>')
 def produkt(code):
