@@ -255,7 +255,12 @@ def _clean_ai_response(text: str) -> str:
     
     # Usuń cudzysłowy
     text = text.strip('"\'„"''')
-    
+
+    # Zastąp nie-polskie znaki specjalne (umlauty niemieckie itp.)
+    _umlaut_map = {'ü': 'u', 'Ü': 'U', 'ö': 'o', 'Ö': 'O', 'ä': 'a', 'Ä': 'A', 'ß': 'ss'}
+    for _ch, _rep in _umlaut_map.items():
+        text = text.replace(_ch, _rep)
+
     # Usuń emoji i nietypowe znaki
     text = re.sub(r'[^\w\sąćęłńóśźżĄĆĘŁŃÓŚŹŻ°\-./]', '', text, flags=re.UNICODE)
     

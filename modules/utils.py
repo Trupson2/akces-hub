@@ -1238,6 +1238,10 @@ Wygeneruj opis:"""
                             text = ''.join(parts_text).strip()
                 
                 if text:
+                    # Zamień nie-polskie znaki specjalne (umlauty)
+                    _uml = {'ü': 'u', 'Ü': 'U', 'ö': 'o', 'Ö': 'O', 'ä': 'a', 'Ä': 'A', 'ß': 'ss'}
+                    for _c, _r in _uml.items():
+                        text = text.replace(_c, _r)
                     # Usuń niechciane sekcje
                     lines = text.strip().split('\n')
                     filtered = []

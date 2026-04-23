@@ -2146,8 +2146,9 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
     sections = []
 
     # === SEKCJA 0: Tytuł <h2> na górze ===
+    _h2_nazwa = nazwa[:75].replace('&', '&amp;')
     sections.append({
-        'items': [{'type': 'TEXT', 'content': f'<h2>{nazwa[:75]}</h2>'}]
+        'items': [{'type': 'TEXT', 'content': f'<h2>{_h2_nazwa}</h2>'}]
     })
 
     # === Bullet points HTML ===
@@ -2195,20 +2196,17 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
     img_idx = 0
 
     if uploaded_images:
-        # SEKCJA 1: Zdjęcie[0] + bullet points LUB pierwszy chunk opisu
-        if bp_html:
-            sections.append({
-                'items': [
-                    {'type': 'IMAGE', 'url': uploaded_images[0]},
-                    {'type': 'TEXT', 'content': bp_html}
-                ]
-            })
-        elif chunks:
+        # SEKCJA 1: Zdjęcie[0] + pierwszy chunk opisu AI (nie bullet points z Amazona)
+        if chunks:
             sections.append({
                 'items': [
                     {'type': 'IMAGE', 'url': uploaded_images[0]},
                     {'type': 'TEXT', 'content': chunks.pop(0)}
                 ]
+            })
+        else:
+            sections.append({
+                'items': [{'type': 'IMAGE', 'url': uploaded_images[0]}]
             })
         img_idx = 1
 
