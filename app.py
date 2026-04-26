@@ -271,10 +271,10 @@ def serve_manifest():
         "orientation": "portrait-primary",
         "prefer_related_applications": False,
         "icons": [
-            {"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-            {"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
-            {"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-            {"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+            {"src": "/static/icon-192.png?v=2", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": "/static/icon-192.png?v=2", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
+            {"src": "/static/icon-512.png?v=2", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": "/static/icon-512.png?v=2", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
         ],
         "categories": ["business", "productivity"],
         "lang": "pl-PL"
