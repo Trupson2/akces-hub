@@ -1012,7 +1012,7 @@ if('serviceWorker' in navigator){
             else{r.update();}
         });
     });
-    navigator.serviceWorker.register('/sw.js?v=13', {scope: '/'}).then(function(reg){
+    navigator.serviceWorker.register('/sw.js?v=14', {scope: '/'}).then(function(reg){
         reg.update();
         reg.addEventListener('updatefound',function(){
             var nw=reg.installing;

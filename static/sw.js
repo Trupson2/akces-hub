@@ -1,5 +1,5 @@
 // Service Worker dla Akces Hub PWA
-const CACHE_NAME = 'akces-hub-v13';
+const CACHE_NAME = 'akces-hub-v14';
 
 // Zasoby do cache'owania
 const CACHE_ASSETS = [
@@ -35,19 +35,29 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Aktywacja - czyszczenie starych cache'y
+// Aktywacja - czyszczenie starych cache'y + wymuszenie reload otwartych kart
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            console.log('🗑️ Deleting old cache:', cacheName);
+            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     }).then(() => self.clients.claim())
+    .then(() => {
+      // Force reload wszystkich otwartych kart żeby wyrzucic stary kod ze starym SW
+      return self.clients.matchAll({type: 'window'}).then((clients) => {
+        clients.forEach((client) => {
+          if (client.url && 'navigate' in client) {
+            client.navigate(client.url).catch(() => {});
+          }
+        });
+      });
+    })
   );
 });
 
