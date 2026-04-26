@@ -993,12 +993,41 @@ body{font-family:'Inter',-apple-system,system-ui,'Segoe UI',sans-serif;backgroun
 
 BASE = '''<!DOCTYPE html><html lang="pl" data-theme="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Paletomat</title><meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Akces Hub">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <style>.mi{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:inherit;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-smoothing:antialiased;vertical-align:middle}</style>
 <script>
 const saved = localStorage.getItem('theme');
 if(saved) document.documentElement.setAttribute('data-theme', saved);
+// PWA: rejestracja service workera
+if('serviceWorker' in navigator){
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+        regs.forEach(function(r){
+            if(r.scope.includes('/static')){r.unregister();}
+            else{r.update();}
+        });
+    });
+    navigator.serviceWorker.register('/sw.js?v=8', {scope: '/'}).then(function(reg){
+        reg.update();
+        reg.addEventListener('updatefound',function(){
+            var nw=reg.installing;
+            if(nw) nw.addEventListener('statechange',function(){
+                if(nw.state==='installed' && navigator.serviceWorker.controller){
+                    nw.postMessage({action:'skipWaiting'});
+                }
+            });
+        });
+    }).catch(function(e){console.log('SW fail',e);});
+    var refreshing=false;
+    navigator.serviceWorker.addEventListener('controllerchange',function(){
+        if(!refreshing){refreshing=true; location.reload();}
+    });
+}
 </script>''' + CSS + '''<link rel="stylesheet" href="/static/kiosk.css"></head><body>
 <script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>
 
