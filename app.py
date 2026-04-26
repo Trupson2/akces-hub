@@ -5741,18 +5741,10 @@ def offline():
     return render_template('offline.html')
 
 # ============================================================
-# IKONY PWA (generowane dynamicznie)
+# IKONY PWA — usuniety dynamiczny route ktory zwracal SVG zamiast PNG
+# Flask serwuje teraz prawdziwe static/icon-{192,512}.png z dysku.
+# Manifest deklaruje image/png — Chrome wymaga prawdziwego PNG.
 # ============================================================
-@app.route('/static/icon-<int:size>.png')
-def pwa_icon(size):
-    """Generuje ikonę PWA jako SVG (przeglądarki obsługują)"""
-    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}">
-    <rect width="{size}" height="{size}" rx="{int(size*0.2)}" fill="#0a0a0f"/>
-    <rect x="{int(size*0.08)}" y="{int(size*0.08)}" width="{int(size*0.84)}" height="{int(size*0.84)}" rx="{int(size*0.15)}" fill="#12121a"/>
-    <text x="50%" y="50%" font-size="{int(size*0.45)}" text-anchor="middle" dominant-baseline="middle"><span class=material-symbols-outlined>inventory_2</span></text>
-    <text x="50%" y="80%" font-family="system-ui,sans-serif" font-size="{int(size*0.11)}" font-weight="bold" fill="#3b82f6" text-anchor="middle">AKCES</text>
-    </svg>'''
-    return Response(svg, mimetype='image/svg+xml')
 
 # ============================================================
 # USTAWIENIA SYSTEMU
