@@ -3830,19 +3830,21 @@ def generator_mass_create_from_paleta_stream():
                     max_db_retries = 5
                     for db_attempt in range(max_db_retries):
                         try:
-                            conn.execute('UPDATE produkty SET status = \'wystawiony\' WHERE id = ?', (product_id,))
+                            # create_offer tworzy ofertę jako INACTIVE (szkic) na Allegro —
+                            # dopóki nie zostanie opublikowana, produkt NIE jest "wystawiony"
+                            # i oferta ma status 'draft' (widoczna na /magazyn/do-wystawienia)
 
                             # === KLUCZOWE: Zapisz link oferta→produkt do tabeli oferty ===
                             # Bez tego sync zamówień nie powiąże sprzedaży z produktem!
                             if offer_id:
                                 conn.execute('''INSERT OR REPLACE INTO oferty
-                                    (tytul, opis, cena, ilosc, status, allegro_id, produkt_id, data_wystawienia)
-                                    VALUES (?, ?, ?, ?, 'aktywna', ?, ?, datetime('now'))''',
+                                    (tytul, opis, cena, ilosc, status, allegro_id, produkt_id, data_aktualizacji)
+                                    VALUES (?, ?, ?, ?, 'draft', ?, ?, datetime('now'))''',
                                     (tytul_seo[:100], '', cena, ilosc, str(offer_id), product_id))
 
                             try:
                                 from .inventory_utils import add_historia
-                                add_historia(product_id, 'wystawiono', f'Wystawiono na Allegro za {cena:.0f} zł', {'allegro_id': offer_id, 'cena': cena})
+                                add_historia(product_id, 'szkic_utworzony', f'Utworzono szkic na Allegro za {cena:.0f} zł', {'allegro_id': offer_id, 'cena': cena})
                             except:
                                 pass
 
@@ -4119,19 +4121,19 @@ def generator_mass_create_stream():
                     # Dodaj info o liczbie zdjęć
                     yield f"data: {json.dumps({'type': 'success', 'asin': asin, 'title': tytul_seo[:50], 'ilosc': ilosc, 'zdjecia': len(uploaded_urls)})}\n\n"
                     
-                    # Zapisz link oferta→produkt
+                    # Zapisz link oferta→produkt (oferta tworzona jako szkic — INACTIVE na Allegro)
                     _offer_id = result.get('id') if result else None
                     if _offer_id:
                         try:
                             if _produkt_id:
                                 conn.execute('''INSERT OR REPLACE INTO oferty
-                                    (tytul, opis, cena, ilosc, status, allegro_id, produkt_id, data_wystawienia)
-                                    VALUES (?, ?, ?, ?, 'aktywna', ?, ?, datetime('now'))''',
+                                    (tytul, opis, cena, ilosc, status, allegro_id, produkt_id, data_aktualizacji)
+                                    VALUES (?, ?, ?, ?, 'draft', ?, ?, datetime('now'))''',
                                     (tytul_seo[:100], '', cena, ilosc, str(_offer_id), _produkt_id))
                             else:
                                 conn.execute('''INSERT OR REPLACE INTO oferty
-                                    (tytul, cena, ilosc, status, allegro_id, data_wystawienia)
-                                    VALUES (?, ?, ?, 'aktywna', ?, datetime('now'))''',
+                                    (tytul, cena, ilosc, status, allegro_id, data_aktualizacji)
+                                    VALUES (?, ?, ?, 'draft', ?, datetime('now'))''',
                                     (tytul_seo[:100], cena, ilosc, str(_offer_id)))
                         except:
                             pass
@@ -6303,9 +6305,12 @@ def publish_allegro_offer(offer_id):
             <a href="/paletomat/oferty" class="back">← Powrót</a>
         ''')
     
-    # Zaktualizuj status w lokalnej bazie
+    # Zaktualizuj status w lokalnej bazie + ustaw produkt jako wystawiony
     conn = get_db()
-    conn.execute('UPDATE oferty SET status="aktywna" WHERE allegro_id=?', (offer_id,))
+    conn.execute('UPDATE oferty SET status="aktywna", data_wystawienia=datetime(\'now\') WHERE allegro_id=?', (offer_id,))
+    _ofr = conn.execute('SELECT produkt_id FROM oferty WHERE allegro_id=?', (offer_id,)).fetchone()
+    if _ofr and _ofr['produkt_id']:
+        conn.execute('UPDATE produkty SET status="wystawiony" WHERE id=?', (_ofr['produkt_id'],))
     conn.commit()
     
     return render('''
