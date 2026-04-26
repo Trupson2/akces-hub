@@ -303,9 +303,11 @@ def block_unauthenticated_external():
     Lokalne requesty (127.0.0.1, 192.168.*) przechodzą bez sesji do strony logowania."""
     # Pozwól na statyczne pliki, login, API system-stats
     # /api/v1/* uzywa X-API-Key auth — nie wymaga sesji, wiec nie blokujemy
+    # /manifest.json + /sw.js MUSZA byc publiczne — bez tego PWA install nie dziala
+    # (browser pobiera je przed zalogowaniem; redirect na login psuje rejestracje SW)
     safe_paths = ('/auth', '/static', '/favicon', '/api/system-stats', '/api/csrf-token', '/launcher',
                   '/license', '/setup', '/eula', '/onboarding', '/subscription-expired', '/launcher',
-                  '/api/v1/')
+                  '/api/v1/', '/manifest.json', '/sw.js')
     if any(request.path.startswith(p) for p in safe_paths):
         return
 
@@ -472,7 +474,7 @@ def check_license_middleware():
     # Test mode: pomijamy sprawdzanie licencji (pytest)
     if os.environ.get('AKCES_TEST_MODE') == '1':
         return
-    allowed = ('/setup', '/auth', '/static', '/api/system-stats', '/api/csrf-token', '/license', '/favicon', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/eula', '/onboarding', '/launcher', '/api/v1/')
+    allowed = ('/setup', '/auth', '/static', '/api/system-stats', '/api/csrf-token', '/license', '/favicon', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/eula', '/onboarding', '/launcher', '/api/v1/', '/manifest.json', '/sw.js')
     if any(request.path.startswith(p) for p in allowed):
         return
     if request.path == '/':
@@ -506,7 +508,7 @@ def check_eula_middleware():
     """Po walidacji licencji sprawdz czy EULA zaakceptowane"""
     if os.environ.get('AKCES_TEST_MODE') == '1':
         return
-    allowed = ('/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/launcher', '/api/v1/')
+    allowed = ('/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/launcher', '/api/v1/', '/manifest.json', '/sw.js')
     if any(request.path.startswith(p) for p in allowed):
         return
     try:
@@ -522,7 +524,7 @@ def check_onboarding_middleware():
     """Po akceptacji EULA sprawdz czy onboarding ukonczony"""
     if os.environ.get('AKCES_TEST_MODE') == '1':
         return
-    allowed = ('/onboarding', '/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/launcher', '/api/v1/')
+    allowed = ('/onboarding', '/eula', '/license', '/auth', '/static', '/setup', '/favicon', '/api/system-stats', '/api/license/verify', '/subscription-expired', '/time-manipulation', '/launcher', '/api/v1/', '/manifest.json', '/sw.js')
     if any(request.path.startswith(p) for p in allowed):
         return
     try:
@@ -536,7 +538,7 @@ def check_onboarding_middleware():
 @app.before_request
 def check_plan_features():
     """Blokuj dostęp do funkcji wymagających wyższego planu."""
-    allowed = ('/auth', '/static', '/license', '/setup', '/favicon', '/api/', '/eula', '/onboarding', '/subscription-expired', '/time-manipulation', '/system/', '/cennik')
+    allowed = ('/auth', '/static', '/license', '/setup', '/favicon', '/api/', '/eula', '/onboarding', '/subscription-expired', '/time-manipulation', '/system/', '/cennik', '/manifest.json', '/sw.js')
     if any(request.path.startswith(p) for p in allowed):
         return
     if request.path == '/':
