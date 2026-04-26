@@ -23,7 +23,7 @@
     function refreshCsrf(){
         if(_csrfRefreshing) return Promise.resolve();
         _csrfRefreshing = true;
-        return _fetch.call(window, '/api/csrf-token', {headers:{'ngrok-skip-browser-warning':'1'}})
+        return _fetch.call(window, '/api/csrf-token')
             .then(function(r){ return r.json(); })
             .then(function(d){
                 if(d.csrf_token){
@@ -45,7 +45,6 @@
         opts = opts || {};
         opts.headers = opts.headers || {};
         if (!(opts.headers instanceof Headers)) {
-            opts.headers['ngrok-skip-browser-warning'] = '1';
             // Dołącz CSRF token do wszystkich fetch requestów
             var meta = document.querySelector('meta[name="csrf-token"]');
             if (meta && meta.content) {
@@ -108,10 +107,6 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800;900&display=swap">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block" rel="stylesheet">
 <script nonce="{{ csp_nonce }}">
-/* ngrok: dodaj header do WSZYSTKICH fetch — pomija interstitial */
-(function(){var _f=window.fetch;window.fetch=function(u,o){o=o||{};o.headers=new Headers(o.headers||{});o.headers.set('ngrok-skip-browser-warning','1');return _f.call(this,u,o);}})();
-/* Zapisz ngrok URL do localStorage — offline PWA użyje go do przekierowania */
-(function(){fetch('/api/ngrok-status').then(function(r){return r.json();}).then(function(d){if(d.url&&d.url.startsWith('https://'))localStorage.setItem('ngrok_url',d.url);}).catch(function(){});})();
 (function(){
     const saved = localStorage.getItem('theme');
     if(saved) document.documentElement.setAttribute('data-theme', saved);
