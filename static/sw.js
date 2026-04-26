@@ -1,5 +1,5 @@
 // Service Worker dla Akces Hub PWA
-const CACHE_NAME = 'akces-hub-v12';
+const CACHE_NAME = 'akces-hub-v13';
 
 // Zasoby do cache'owania
 const CACHE_ASSETS = [
@@ -51,34 +51,25 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch - dodaj ngrok header do requestów do NASZEGO serwera + Network First z cache
+// Fetch - Network First z cache (bez modyfikacji headerow — Cloudflare nie potrzebuje)
 self.addEventListener('fetch', (event) => {
   // Przepuść external URLs (Google Fonts, CDN, etc.) BEZ modyfikacji
   if (!event.request.url.startsWith(self.location.origin)) {
     return;
   }
 
-  // Dodaj ngrok-skip-browser-warning tylko do NASZYCH requestów
-  const modifiedHeaders = new Headers(event.request.headers);
-  modifiedHeaders.set('ngrok-skip-browser-warning', '1');
-
-  const modifiedRequest = new Request(event.request, {
-    headers: modifiedHeaders
-  });
-
-  // POST, PUT, DELETE i API — przepuść z nowym headerem, bez cache
+  // POST, PUT, DELETE i API — przepuść bez cache
   if (event.request.method !== 'GET' ||
       event.request.url.includes('/api/') ||
       event.request.url.includes('/sprzedaze/') ||
       event.request.url.includes('/produkt/') ||
       event.request.url.includes('/analityka/') ||
       event.request.url.includes('/winning/')) {
-    event.respondWith(fetch(modifiedRequest));
     return;
   }
 
   event.respondWith(
-    fetch(modifiedRequest)
+    fetch(event.request)
       .then((response) => {
         // Zapisz do cache jeśli sukces
         if (response.status === 200) {
@@ -91,7 +82,7 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() => {
         // Offline - użyj cache
-        return caches.match(event.request)
+        return caches.match(event.request, {ignoreSearch: true})
           .then((cachedResponse) => {
             if (cachedResponse) {
               return cachedResponse;

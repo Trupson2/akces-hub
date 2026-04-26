@@ -257,33 +257,31 @@ def add_ngrok_headers(response):
 
 @app.route('/manifest.json')
 def serve_manifest():
-    """Dynamic manifest with base64 icons to bypass ngrok interstitial"""
-    import base64
-    icons_b64 = {}
-    for name in ('icon-192.png', 'icon-512.png'):
-        path = os.path.join(app.static_folder, name)
-        if os.path.exists(path):
-            with open(path, 'rb') as f:
-                icons_b64[name] = base64.b64encode(f.read()).decode()
+    """PWA manifest — Chrome install prompt wymaga URL-i ikon (nie data: URI)"""
     manifest = {
         "name": "Akces Hub",
         "short_name": "Akces",
         "id": "/",
         "description": "Zarządzanie paletami i sprzedażą Allegro",
         "start_url": "/",
+        "scope": "/",
         "display": "standalone",
         "background_color": "#0e0e10",
         "theme_color": "#0e0e10",
         "orientation": "portrait-primary",
+        "prefer_related_applications": False,
         "icons": [
-            {"src": f"data:image/png;base64,{icons_b64.get('icon-192.png','')}", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-            {"src": f"data:image/png;base64,{icons_b64.get('icon-192.png','')}", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
-            {"src": f"data:image/png;base64,{icons_b64.get('icon-512.png','')}", "sizes": "512x512", "type": "image/png", "purpose": "any"}
+            {"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
+            {"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
         ],
         "categories": ["business", "productivity"],
         "lang": "pl-PL"
     }
-    return jsonify(manifest)
+    resp = jsonify(manifest)
+    resp.headers['Content-Type'] = 'application/manifest+json'
+    return resp
 
 @app.route('/sw.js')
 def serve_sw():
