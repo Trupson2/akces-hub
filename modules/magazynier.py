@@ -2777,7 +2777,24 @@ def statystyki():
     vat_do_zaplaty_msc = vat_sprzedaz_msc - vat_koszty_msc
     przychod_netto_msc_tax = przychod_total_msc / 1.23 if przychod_total_msc > 0 else 0
     koszty_netto_msc_tax = koszty_total_msc / 1.23 if koszty_total_msc > 0 else 0
-    dochod_msc = przychod_netto_msc_tax - koszty_netto_msc_tax
+
+    # Prowizja Allegro - jesli user nie wpisal recznie do tabeli `koszty` (kategoria='allegro'),
+    # doszacuj 11% z przychodu netto. Inaczej dochod jest zawyzony bo Allegro pobiera prowizje.
+    try:
+        _allegro_recznie_msc = conn.execute('''
+            SELECT COALESCE(SUM(kwota), 0) as suma FROM koszty
+            WHERE strftime('%Y-%m', data) = ? AND COALESCE(kategoria,'') = 'allegro'
+        ''', (biezacy_m_str,)).fetchone()
+        allegro_recznie_msc = float(_allegro_recznie_msc['suma'] or 0)
+    except Exception:
+        allegro_recznie_msc = 0
+    prowizja_allegro_msc = max(przychod_netto_msc_tax * 0.11, allegro_recznie_msc)
+
+    # Dochod = przychod_netto - koszty_netto - prowizja_allegro (jesli nie wpisana recznie)
+    # Jesli prowizja byla wpisana recznie do `koszty`, juz jest w koszty_netto_msc_tax,
+    # wiec odejmujemy tylko ROZNICE: max(0, prowizja_szacowana - allegro_recznie)
+    prowizja_doszacowana = max(0, (przychod_netto_msc_tax * 0.11) - allegro_recznie_msc)
+    dochod_msc = przychod_netto_msc_tax - koszty_netto_msc_tax - prowizja_doszacowana
     podatek_msc = max(0, dochod_msc * 0.19)
     zysk_na_reke_msc = dochod_msc - podatek_msc
     zysk_na_reke_msc_kolor = '#beee00' if zysk_na_reke_msc >= 0 else '#ef4444'
@@ -2891,6 +2908,8 @@ def statystyki():
         przychod_netto_msc_tax=przychod_netto_msc_tax,
         koszty_total_msc=koszty_total_msc,
         koszty_netto_msc_tax=koszty_netto_msc_tax,
+        prowizja_allegro_msc=prowizja_allegro_msc,
+        prowizja_doszacowana_msc=prowizja_doszacowana,
         dochod_msc=dochod_msc,
         vat_sprzedaz_msc=vat_sprzedaz_msc,
         vat_koszty_msc=vat_koszty_msc,

@@ -196,6 +196,10 @@
             <div class="st-tax-item-val">{{ "%.2f"|format(vat_koszty_msc) }} zl</div>
         </div>
         <div class="st-tax-item">
+            <div class="st-tax-item-label">Prowizja Allegro 11%</div>
+            <div class="st-tax-item-val" style="color:#ff6b9b">{{ "%.2f"|format(prowizja_allegro_msc) }} zl</div>
+        </div>
+        <div class="st-tax-item">
             <div class="st-tax-item-label">VAT do zaplaty</div>
             <div class="st-tax-item-val" style="color:#f59e0b">{{ "%.2f"|format(vat_do_zaplaty_msc) }} zl</div>
         </div>
@@ -209,7 +213,7 @@
             <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);font-weight:600;margin-bottom:4px">
                 <span class="material-symbols-outlined" style="font-size:0.7rem">stars</span> Zysk na reke ({{ miesiac_nazwa_tax }})
             </div>
-            <div style="font-size:0.72rem;color:var(--text-muted)">Po odliczeniu VAT i zaliczki PIT (PIT-36L roczny)</div>
+            <div style="font-size:0.72rem;color:var(--text-muted)">Po odliczeniu VAT, prowizji Allegro i zaliczki PIT (PIT-36L roczny)</div>
         </div>
         <div class="font-display" style="font-size:1.6rem;font-weight:800;letter-spacing:-0.5px;color:{{ zysk_na_reke_msc_kolor }};text-shadow:0 0 15px {{ zysk_na_reke_msc_kolor }}40">
             {{ "%.2f"|format(zysk_na_reke_msc) }} zl

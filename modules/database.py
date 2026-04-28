@@ -1341,21 +1341,32 @@ def get_full_stats():
         prowizja_msc = przychod_netto_msc * 0.11
 
         # Koszty operacyjne z tabeli `koszty` w biezacym miesiacu
-        # Wykluczamy kategorie 'zakup' bo to zakup towaru = juz w cogs/koszt_palet (zeby nie dublowac)
+        # Wykluczamy kategorie:
+        # - 'zakup' bo to zakup towaru = juz w cogs/koszt_palet (zeby nie dublowac)
+        # - 'allegro' bo prowizja Allegro juz liczona automatycznie ponizej (11% z netto)
         try:
             koszty_op_row = conn.execute('''
-                SELECT COALESCE(SUM(kwota), 0) as suma
+                SELECT COALESCE(SUM(kwota), 0) as suma,
+                       COALESCE(SUM(CASE WHEN COALESCE(kategoria,'') = 'allegro' THEN kwota ELSE 0 END), 0) as allegro_recznie
                 FROM koszty
-                WHERE date(data) >= ? AND COALESCE(kategoria,'') != 'zakup'
+                WHERE date(data) >= ? AND COALESCE(kategoria,'') NOT IN ('zakup','allegro')
             ''', (month_start,)).fetchone()
             koszty_op_msc = float(koszty_op_row['suma'] or 0)
+            allegro_recznie_msc = float(koszty_op_row['allegro_recznie'] or 0)
         except Exception:
             koszty_op_msc = 0
+            allegro_recznie_msc = 0
+
+        # Prowizja Allegro: jesli user wpisal recznie z billingu, uzyj tego (dokladniejsze).
+        # Inaczej szacuj jako 11% z netto (tylko gdy nie ma rekordow w `koszty` z kategoria 'allegro').
+        prowizja_finalna = max(prowizja_msc, allegro_recznie_msc)
 
         # Zysk = przychod_netto - koszt_sprzedanych - prowizja - koszty_operacyjne
-        stats['zysk_miesiac'] = przychod_netto_msc - koszt_sprzedanych - prowizja_msc - koszty_op_msc
+        stats['zysk_miesiac'] = przychod_netto_msc - koszt_sprzedanych - prowizja_finalna - koszty_op_msc
         stats['przychod_netto_msc'] = przychod_netto_msc
-        stats['prowizja_msc'] = prowizja_msc
+        stats['prowizja_msc'] = prowizja_finalna
+        stats['prowizja_estimowana_msc'] = prowizja_msc
+        stats['allegro_recznie_msc'] = allegro_recznie_msc
         stats['koszty_op_msc'] = koszty_op_msc
         stats['koszt_sprzedanych_msc'] = koszt_sprzedanych
         stats['cogs_miesiac'] = cogs_miesiac
