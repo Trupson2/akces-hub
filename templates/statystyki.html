@@ -163,7 +163,61 @@
     </div>
 </div>
 
-<!-- ═══════════════ SECTION 4: TAX SETTLEMENT ═══════════════ -->
+<!-- ═══════════════ SECTION 4a: TAX SETTLEMENT — MONTHLY ═══════════════ -->
+<div class="st-section">
+    <span class="st-section-bar pink"></span>
+    <span class="st-section-label">Rozliczenie podatkowe {{ miesiac_nazwa_tax }} {{ current_year }}</span>
+</div>
+
+<div class="st-tax-panel">
+    <div class="st-tax-grid">
+        <div class="st-tax-item">
+            <div class="st-tax-item-label">Przychod brutto</div>
+            <div class="st-tax-item-val" style="color:var(--neon-primary)">{{ "%.2f"|format(przychod_total_msc) }} zl</div>
+        </div>
+        <div class="st-tax-item">
+            <div class="st-tax-item-label">Przychod netto</div>
+            <div class="st-tax-item-val">{{ "%.2f"|format(przychod_netto_msc_tax) }} zl</div>
+        </div>
+        <div class="st-tax-item">
+            <div class="st-tax-item-label">Koszty netto</div>
+            <div class="st-tax-item-val" style="color:var(--neon-secondary)">{{ "%.2f"|format(koszty_netto_msc_tax) }} zl</div>
+        </div>
+        <div class="st-tax-item">
+            <div class="st-tax-item-label">Dochod</div>
+            <div class="st-tax-item-val">{{ "%.2f"|format(dochod_msc) }} zl</div>
+        </div>
+        <div class="st-tax-item">
+            <div class="st-tax-item-label">VAT nalezny</div>
+            <div class="st-tax-item-val">{{ "%.2f"|format(vat_sprzedaz_msc) }} zl</div>
+        </div>
+        <div class="st-tax-item">
+            <div class="st-tax-item-label">VAT naliczony</div>
+            <div class="st-tax-item-val">{{ "%.2f"|format(vat_koszty_msc) }} zl</div>
+        </div>
+        <div class="st-tax-item">
+            <div class="st-tax-item-label">VAT do zaplaty</div>
+            <div class="st-tax-item-val" style="color:#f59e0b">{{ "%.2f"|format(vat_do_zaplaty_msc) }} zl</div>
+        </div>
+        <div class="st-tax-item">
+            <div class="st-tax-item-label">PIT 19% liniowy</div>
+            <div class="st-tax-item-val" style="color:#f59e0b">{{ "%.2f"|format(podatek_msc) }} zl</div>
+        </div>
+    </div>
+    <div class="st-tax-highlight">
+        <div>
+            <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);font-weight:600;margin-bottom:4px">
+                <span class="material-symbols-outlined" style="font-size:0.7rem">stars</span> Zysk na reke ({{ miesiac_nazwa_tax }})
+            </div>
+            <div style="font-size:0.72rem;color:var(--text-muted)">Po odliczeniu VAT i PIT</div>
+        </div>
+        <div class="font-display" style="font-size:1.6rem;font-weight:800;letter-spacing:-0.5px;color:{{ zysk_na_reke_msc_kolor }};text-shadow:0 0 15px {{ zysk_na_reke_msc_kolor }}40">
+            {{ "%.2f"|format(zysk_na_reke_msc) }} zl
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ SECTION 4b: TAX SETTLEMENT — YEARLY ═══════════════ -->
 <div class="st-section">
     <span class="st-section-bar pink"></span>
     <span class="st-section-label">Rozliczenie podatkowe {{ current_year }}</span>
@@ -195,11 +249,19 @@
             <div class="st-tax-item-label">VAT naliczony</div>
             <div class="st-tax-item-val">{{ "%.2f"|format(vat_koszty) }} zl</div>
         </div>
+        <div class="st-tax-item">
+            <div class="st-tax-item-label">VAT do zaplaty</div>
+            <div class="st-tax-item-val" style="color:#f59e0b">{{ "%.2f"|format(vat_do_zaplaty) }} zl</div>
+        </div>
+        <div class="st-tax-item">
+            <div class="st-tax-item-label">PIT 19% liniowy</div>
+            <div class="st-tax-item-val" style="color:#f59e0b">{{ "%.2f"|format(podatek) }} zl</div>
+        </div>
     </div>
     <div class="st-tax-highlight">
         <div>
             <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);font-weight:600;margin-bottom:4px">
-                <span class="material-symbols-outlined" style="font-size:0.7rem">stars</span> Zysk na reke
+                <span class="material-symbols-outlined" style="font-size:0.7rem">stars</span> Zysk na reke (rok)
             </div>
             <div style="font-size:0.72rem;color:var(--text-muted)">Po odliczeniu VAT i podatku</div>
         </div>

@@ -2755,6 +2755,33 @@ def statystyki():
     # Prawdziwy zysk na rękę
     zysk_na_reke = dochod - podatek
     zysk_na_reke_kolor = '#beee00' if zysk_na_reke >= 0 else '#ef4444'
+
+    # === ROZLICZENIE MIESIĘCZNE (analogicznie do rocznego) ===
+    # Dla biezacego miesiaca - osobne PIT/VAT bo system pokazywal tylko roczne,
+    # a uzytkownik faktycznie placi VAT i PIT miesiecznie i roznice byly nieprzejrzyste
+    biezacy_m = datetime.now().month
+    biezacy_m_str = f"{current_year}-{biezacy_m:02d}"
+    _przychod_msc_row = conn.execute('''
+        SELECT COALESCE(SUM(cena * ilosc), 0) as suma
+        FROM sprzedaze
+        WHERE strftime('%Y-%m', REPLACE(SUBSTR(data_sprzedazy,1,19),'T',' ')) = ?
+          AND status NOT IN ('zwrot', 'anulowane', 'anulowana')
+          AND (kupujacy IS NULL OR kupujacy != 'offline')
+    ''', (biezacy_m_str,)).fetchone()
+    przychod_total_msc = float(_przychod_msc_row['suma'] or 0) + float(pryw_per_msc.get(biezacy_m, 0))
+    koszty_total_msc = float(koszty_per_msc.get(biezacy_m, 0)) + float(palety_per_msc.get(biezacy_m, 0))
+
+    # VAT/PIT identyczna logika jak roczne, ale dla msc
+    vat_sprzedaz_msc = przychod_total_msc - (przychod_total_msc / 1.23) if przychod_total_msc > 0 else 0
+    vat_koszty_msc = koszty_total_msc - (koszty_total_msc / 1.23) if koszty_total_msc > 0 else 0
+    vat_do_zaplaty_msc = vat_sprzedaz_msc - vat_koszty_msc
+    przychod_netto_msc_tax = przychod_total_msc / 1.23 if przychod_total_msc > 0 else 0
+    koszty_netto_msc_tax = koszty_total_msc / 1.23 if koszty_total_msc > 0 else 0
+    dochod_msc = przychod_netto_msc_tax - koszty_netto_msc_tax
+    podatek_msc = max(0, dochod_msc * 0.19)
+    zysk_na_reke_msc = dochod_msc - podatek_msc
+    zysk_na_reke_msc_kolor = '#beee00' if zysk_na_reke_msc >= 0 else '#ef4444'
+    nazwa_miesiaca_pl = ['Styczen','Luty','Marzec','Kwiecien','Maj','Czerwiec','Lipiec','Sierpien','Wrzesien','Pazdziernik','Listopad','Grudzien'][biezacy_m - 1]
     dane_miesieczne = [0] * 12
     dane_miesieczne_cnt = [0] * 12  # ilość zamówień per miesiąc
     dane_koszty = [0] * 12          # koszty per miesiąc
@@ -2858,6 +2885,19 @@ def statystyki():
         podatek=podatek,
         zysk_na_reke=zysk_na_reke,
         zysk_na_reke_kolor=zysk_na_reke_kolor,
+        # Rozliczenie miesieczne (analogiczne do rocznego)
+        miesiac_nazwa_tax=nazwa_miesiaca_pl,
+        przychod_total_msc=przychod_total_msc,
+        przychod_netto_msc_tax=przychod_netto_msc_tax,
+        koszty_total_msc=koszty_total_msc,
+        koszty_netto_msc_tax=koszty_netto_msc_tax,
+        dochod_msc=dochod_msc,
+        vat_sprzedaz_msc=vat_sprzedaz_msc,
+        vat_koszty_msc=vat_koszty_msc,
+        vat_do_zaplaty_msc=vat_do_zaplaty_msc,
+        podatek_msc=podatek_msc,
+        zysk_na_reke_msc=zysk_na_reke_msc,
+        zysk_na_reke_msc_kolor=zysk_na_reke_msc_kolor,
         histogram_html=histogram_html,
         palety_roi=palety_roi,
         roi_total=roi_total,
