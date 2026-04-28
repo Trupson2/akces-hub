@@ -3332,9 +3332,24 @@ def generator_mass_create_from_paleta_stream():
         try:
             conn = get_db()
             placeholders = ','.join('?' * len(product_ids))
+            # Najpierw - zlicz pominiete "dla siebie" zeby zaraportowac uzytkownikowi
+            try:
+                _skipped_dla_siebie = conn.execute(
+                    "SELECT id, nazwa, COALESCE(powod_zatrzymania,'') AS powod FROM produkty "
+                    "WHERE id IN (" + placeholders + ") AND COALESCE(dla_siebie,0) = 1",
+                    product_ids).fetchall()
+            except Exception:
+                _skipped_dla_siebie = []
+            if _skipped_dla_siebie:
+                _names = ', '.join((dict(r).get('nazwa') or '?')[:30] for r in _skipped_dla_siebie[:5])
+                _more = f' +{len(_skipped_dla_siebie)-5}' if len(_skipped_dla_siebie) > 5 else ''
+                yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>lock</span> Pominieto {len(_skipped_dla_siebie)} produktow zatrzymanych dla siebie: {_names}{_more}', 'color': '#ef4444'}) + "\n\n"
+
             products = conn.execute(
                 "SELECT * FROM produkty WHERE id IN (" + placeholders + ") "
-                "AND status NOT IN ('usuniety', 'sprzedany') ORDER BY id",
+                "AND status NOT IN ('usuniety', 'sprzedany') "
+                "AND COALESCE(dla_siebie, 0) = 0 "
+                "ORDER BY id",
                 product_ids).fetchall()
             total = len(products)
         except Exception as _dberr:
@@ -3343,7 +3358,7 @@ def generator_mass_create_from_paleta_stream():
             return
 
         if total == 0:
-            yield "data: " + json.dumps({'type': 'error', 'title': 'System', 'error': 'Brak produktów lub już wystawione'}) + "\n\n"
+            yield "data: " + json.dumps({'type': 'error', 'title': 'System', 'error': 'Brak produktów do wystawienia (wszystkie sprzedane lub zatrzymane dla siebie)'}) + "\n\n"
             yield "data: " + json.dumps({'type': 'done'}) + "\n\n"
             return
         
@@ -5611,7 +5626,26 @@ def generator_create(asin):
     action = request.form.get('action', 'draft')
     enhance_photos_flag = '1' if request.form.get('enhance_photos') == '1' else '0'
     produkt_id_param = request.form.get('produkt_id', type=int)
-    
+
+    # Blokada: produkt zatrzymany "dla siebie" nie moze isc na Allegro
+    if produkt_id_param:
+        try:
+            _conn = get_db()
+            _row = _conn.execute(
+                "SELECT nazwa, COALESCE(dla_siebie,0) AS ds, COALESCE(powod_zatrzymania,'') AS powod "
+                "FROM produkty WHERE id = ?", (produkt_id_param,)
+            ).fetchone()
+            if _row and int(_row['ds']) == 1:
+                _powod = (_row['powod'] or '').strip()
+                _msg = f'Produkt "{(_row["nazwa"] or "?")[:60]}" jest zatrzymany dla siebie' + (f' ("{_powod[:80]}")' if _powod else '') + '. Zwolnij go na stronie produktu zeby wystawic.'
+                return render(f'''
+                    <div class="hdr"><h1><span class=material-symbols-outlined>lock</span> ZABLOKOWANE</h1></div>
+                    <div class="alert alert-err">⛔ {_msg}</div>
+                    <a href="/magazyn/produkty" class="back">← Powrót do produktów</a>
+                ''')
+        except Exception:
+            pass
+
     # Pobierz wszystkie zdjęcia z JSON
     zdjecia_json = request.form.get('zdjecia', '[]')
     try:
@@ -6637,10 +6671,24 @@ def publish_single_draft(oferta_id):
     
     conn = get_db()
     o = conn.execute('SELECT * FROM oferty WHERE id=?', (oferta_id,)).fetchone()
-    
+
     if not o:
         return redirect('/paletomat/oferty')
-    
+
+    # Blokada: jesli powiazany produkt jest "dla siebie" - nie wystawiaj
+    if o['produkt_id']:
+        _p = conn.execute(
+            "SELECT nazwa, COALESCE(dla_siebie,0) AS ds, COALESCE(powod_zatrzymania,'') AS powod "
+            "FROM produkty WHERE id = ?", (o['produkt_id'],)
+        ).fetchone()
+        if _p and int(_p['ds']) == 1:
+            _powod = (_p['powod'] or '').strip()
+            return render(f'''
+                <div class="hdr"><h1><span class=material-symbols-outlined>lock</span> ZABLOKOWANE</h1></div>
+                <div class="alert alert-err">⛔ Produkt "{(_p['nazwa'] or '?')[:60]}" jest zatrzymany dla siebie{(' (' + _powod[:80] + ')') if _powod else ''}. Zwolnij go zeby wystawic.</div>
+                <a href="/paletomat/oferty" class="back">← Powrót</a>
+            ''')
+
     # Auto-generuj GPSR
     from .utils import generuj_gpsr_info
     gpsr = generuj_gpsr_info(o['tytul'] or '', o.get('kategoria', '') or '')
@@ -6687,15 +6735,29 @@ def publish_all_drafts():
         ''')
     
     conn = get_db()
-    drafts = conn.execute('SELECT * FROM oferty WHERE status="draft"').fetchall()
-    
+    drafts = conn.execute('''
+        SELECT o.* FROM oferty o
+        LEFT JOIN produkty p ON p.id = o.produkt_id
+        WHERE o.status="draft"
+          AND COALESCE(p.dla_siebie, 0) = 0
+    ''').fetchall()
+    skipped_dla_siebie = conn.execute('''
+        SELECT o.tytul, COALESCE(p.powod_zatrzymania,'') AS powod
+        FROM oferty o JOIN produkty p ON p.id = o.produkt_id
+        WHERE o.status="draft" AND COALESCE(p.dla_siebie, 0) = 1
+    ''').fetchall()
+
     if not drafts:
-        return render('''
+        skipped_html = ''
+        if skipped_dla_siebie:
+            skipped_html = f'<div class="alert alert-warn" style="margin-top:10px"><span class=material-symbols-outlined>lock</span> Pominieto {len(skipped_dla_siebie)} szkicow zatrzymanych dla siebie</div>'
+        return render(f'''
             <div class="hdr"><h1><span class=material-symbols-outlined style=color:#3b82f6>info</span> INFO</h1></div>
-            <div class="alert alert-warn">Brak szkiców do wystawienia</div>
+            <div class="alert alert-warn">Brak szkicow do wystawienia</div>
+            {skipped_html}
             <a href="/paletomat/oferty" class="back">← Powrót</a>
         ''')
-    
+
     success = 0
     errors = []
     
@@ -6721,7 +6783,12 @@ def publish_all_drafts():
     
     if errors:
         html += f'<div class="alert alert-err" style="font-size:0.8rem">Błędy ({len(errors)}):<br>{"<br>".join(errors[:5])}</div>'
-    
+
+    if skipped_dla_siebie:
+        _list = '<br>'.join(f'• {(dict(r).get("tytul") or "?")[:50]}' + (f' <span style="color:#94a3b8">("{(dict(r).get("powod") or "")[:40]}")</span>' if dict(r).get("powod") else '') for r in skipped_dla_siebie[:10])
+        _more = f'<br><em>...i jeszcze {len(skipped_dla_siebie)-10}</em>' if len(skipped_dla_siebie) > 10 else ''
+        html += f'<div class="alert alert-warn" style="font-size:0.8rem;border-left:3px solid #ef4444"><span class=material-symbols-outlined>lock</span> Pominieto {len(skipped_dla_siebie)} szkicow zatrzymanych dla siebie:<br>{_list}{_more}</div>'
+
     html += '''
     <div class="alert alert-warn" style="font-size:0.85rem"><span class=material-symbols-outlined>warning</span> Oferty są NIEAKTYWNE - aktywuj je w panelu Allegro lub pojedynczo</div>
     <a href="/paletomat/oferty" class="btn btn-p"><span class=material-symbols-outlined>edit_note</span> Moje oferty</a>

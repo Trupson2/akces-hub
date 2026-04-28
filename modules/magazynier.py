@@ -479,6 +479,19 @@ def skaner():
     html = '''
     <div class="hdr"><h1><span class=material-symbols-outlined>qr_code_scanner</span> SKANER KODÓW</h1><small>Zeskanuj EAN/ASIN</small></div>
 
+    <div class="card" style="padding:12px 14px;margin-bottom:12px;border-left:3px solid #ef4444;background:rgba(239,68,68,0.05)">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="trybDlaSiebie" style="width:18px;height:18px;accent-color:#ef4444;cursor:pointer">
+            <div style="flex:1">
+                <div style="color:#ef4444;font-weight:700;font-size:0.9rem;display:flex;align-items:center;gap:6px">
+                    <span class="material-symbols-outlined" style="font-size:1.1rem">lock</span> TRYB DLA SIEBIE
+                </div>
+                <div style="font-size:0.7rem;color:#94a3b8;margin-top:2px">Skanowane produkty oznaczane jako zatrzymane (bez otwierania strony)</div>
+            </div>
+            <input type="text" id="trybPowod" placeholder="powod" maxlength="200" style="display:none;padding:6px 10px;font-size:0.8rem;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:6px;color:#fff;width:130px">
+        </label>
+    </div>
+
     <div id="scanner-container" style="position:relative;width:100%;max-width:400px;margin:0 auto 15px">
         <video id="video" style="width:100%;border-radius:12px;background:#000" playsinline></video>
         <div id="scan-line" style="position:absolute;left:10%;right:10%;top:50%;height:2px;background:#beee00;box-shadow:0 0 10px #beee00;animation:scan 2s infinite"></div>
@@ -570,7 +583,33 @@ def skaner():
                         lastScanned.style.display = 'block';
                         lastCode.textContent = code;
                         manualInput.value = code;
-                        
+
+                        // Tryb "dla siebie" - zamiast redirect, oznaczamy produkt POST-em
+                        const trybDS = document.getElementById('trybDlaSiebie');
+                        if (trybDS && trybDS.checked) {
+                            const powod = (document.getElementById('trybPowod').value || '').trim();
+                            fetch('/api/csrf-token').then(r => r.json()).then(t => {
+                                const fd = new FormData();
+                                fd.append('csrf_token', t.csrf_token);
+                                if (powod) fd.append('powod', powod);
+                                return fetch('/magazyn/produkt/' + encodeURIComponent(code) + '/dla-siebie', {
+                                    method: 'POST',
+                                    body: fd,
+                                    headers: {'X-CSRFToken': t.csrf_token}
+                                });
+                            }).then(r => {
+                                if (r.ok || r.redirected) {
+                                    resultDiv.innerHTML = '<div style="color:#ef4444;font-size:1.2rem;font-weight:700"><span class=material-symbols-outlined style=vertical-align:middle>lock</span> ZATRZYMANE: ' + code + '</div>';
+                                    if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+                                } else {
+                                    resultDiv.innerHTML = '<div style="color:#ef4444">Blad oznaczania produktu</div>';
+                                }
+                            }).catch(e => {
+                                resultDiv.innerHTML = '<div style="color:#ef4444">Blad: ' + e.message + '</div>';
+                            });
+                            return;
+                        }
+
                         // Przekieruj do produktu po 1.5s
                         setTimeout(() => {
                             window.location.href = '/magazyn/szukaj?q=' + encodeURIComponent(code);
@@ -584,6 +623,14 @@ def skaner():
         window.addEventListener('beforeunload', () => {
             codeReader.reset();
         });
+
+        // Pokaz/ukryj pole powod gdy tryb wlaczony
+        const _ds = document.getElementById('trybDlaSiebie');
+        if (_ds) {
+            _ds.addEventListener('change', function() {
+                document.getElementById('trybPowod').style.display = this.checked ? 'block' : 'none';
+            });
+        }
 
         // === AUTO-SEARCH: szukaj po wpisaniu kodu ręcznie ===
         let searchTimer = null;
@@ -931,6 +978,14 @@ def produkty():
         _status_colors = {'nowy': '#8ff5ff', 'wystawiony': '#ff6b9b', 'sprzedany': '#beee00', 'wyslany': '#beee00', 'uszkodzony': '#ef4444', 'zwrot': '#f59e0b'}
         _bcolor = _border_colors.get(_klasa, _status_colors.get(product_status, '#48474a'))
 
+        # Flaga "dla siebie" - czerwony border + badge
+        try:
+            _is_dla_siebie = int(p['dla_siebie'] or 0) == 1
+        except (IndexError, KeyError):
+            _is_dla_siebie = False
+        if _is_dla_siebie:
+            _bcolor = '#ef4444'
+
         # Klasa label
         _klasa_label = f'<span style="font-size:0.6rem;color:{_bcolor};text-transform:uppercase;letter-spacing:0.1em;font-weight:700;font-family:\'Space Grotesk\',sans-serif">Klasa {_klasa}</span>' if _klasa else f'<span style="font-size:0.6rem;color:#767577;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;font-family:\'Space Grotesk\',sans-serif">{product_status}</span>'
 
@@ -969,9 +1024,12 @@ def produkty():
                 </div>
                 <div style="display:flex;flex-direction:column;justify-content:space-between;flex:1;min-width:0">
                     <div>
-                        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
                             {_klasa_label}
-                            <span style="font-size:0.7rem;font-weight:700;color:#adaaad">{display_code}</span>
+                            <div style="display:flex;align-items:center;gap:6px">
+                                {('<span style="font-size:0.6rem;font-weight:800;color:#ef4444;background:rgba(239,68,68,0.12);padding:2px 6px;border-radius:4px;letter-spacing:0.05em;display:inline-flex;align-items:center;gap:3px;white-space:nowrap"><span class=material-symbols-outlined style=font-size:0.75rem>lock</span>DLA SIEBIE</span>') if _is_dla_siebie else ''}
+                                <span style="font-size:0.7rem;font-weight:700;color:#adaaad">{display_code}</span>
+                            </div>
                         </div>
                         <div style="font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;color:#f9f5f8;line-height:1.3;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{safe_nazwa[:45]}</div>
                     </div>
@@ -1120,6 +1178,7 @@ def do_wystawienia():
         JOIN oferty o ON o.produkt_id = p.id
         WHERE o.status IN ('draft','szkic')
           AND p.status NOT IN ('sprzedany','wyslany')
+          AND COALESCE(p.dla_siebie, 0) = 0
         ORDER BY o.data_aktualizacji DESC
     """).fetchall()
 
@@ -1129,6 +1188,7 @@ def do_wystawienia():
         WHERE status NOT IN ('wystawiony','sprzedany','wyslany')
           AND ilosc > 0
           AND cena_allegro > 0
+          AND COALESCE(dla_siebie, 0) = 0
           AND id NOT IN (
               SELECT produkt_id FROM oferty
               WHERE produkt_id IS NOT NULL
@@ -1143,11 +1203,22 @@ def do_wystawienia():
         WHERE status NOT IN ('wystawiony','sprzedany','wyslany')
           AND ilosc > 0
           AND (cena_allegro IS NULL OR cena_allegro = 0)
+          AND COALESCE(dla_siebie, 0) = 0
           AND id NOT IN (
               SELECT produkt_id FROM oferty
               WHERE produkt_id IS NOT NULL
                 AND status IN ('draft','szkic','active','ACTIVE','aktywna','wystawiona','published')
           )
+        ORDER BY data_dodania DESC
+        LIMIT 50
+    """).fetchall()
+
+    # 4. Pominięte - "dla siebie" (info dla uzytkownika ze sa wykluczone z wystawiania)
+    dla_siebie = conn.execute("""
+        SELECT * FROM produkty
+        WHERE status NOT IN ('sprzedany','wyslany')
+          AND ilosc > 0
+          AND COALESCE(dla_siebie, 0) = 1
         ORDER BY data_dodania DESC
         LIMIT 50
     """).fetchall()
@@ -1241,6 +1312,24 @@ def do_wystawienia():
             pcode = get_product_code(p)
             action = f'<a href="/magazyn/produkt/{pcode}#cena" style="flex-shrink:0;padding:8px 14px;background:#262528;border:1px solid rgba(239,68,68,0.3);color:#ef4444;border-radius:8px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;text-decoration:none;white-space:nowrap">Uzupełnij</a>'
             html += _card(p, '#ef4444', 'BRAK CENY', action)
+        html += '</div></div>'
+
+    # --- POMINIETE: DLA SIEBIE ---
+    if dla_siebie:
+        html += f'''
+        <div style="margin-bottom:24px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+                <span class=material-symbols-outlined style="color:#ef4444;font-size:1.2rem">lock</span>
+                <span style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#ef4444;font-family:'Space Grotesk',sans-serif">Zatrzymane dla siebie — pominięte ({len(dla_siebie)})</span>
+            </div>
+            <div style="font-size:0.72rem;color:#94a3b8;margin-bottom:8px;padding:8px 12px;background:rgba(239,68,68,0.05);border-left:2px solid #ef4444;border-radius:4px">⛔ Te produkty są wykluczone z masowego wystawiania. Zwolnij na stronie produktu jeśli mają pójść do sprzedaży.</div>
+            <div style="display:flex;flex-direction:column;gap:8px">'''
+        for p in dla_siebie:
+            pcode = get_product_code(p)
+            powod = (p['powod_zatrzymania'] if 'powod_zatrzymania' in p.keys() else '') or ''
+            action = f'<a href="/magazyn/produkt/{pcode}" style="flex-shrink:0;padding:8px 14px;background:#262528;border:1px solid rgba(190,238,0,0.3);color:#beee00;border-radius:8px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;text-decoration:none;white-space:nowrap">Zwolnij</a>'
+            badge_text = f'DLA SIEBIE — {escape(powod[:30])}' if powod else 'DLA SIEBIE'
+            html += _card(p, '#ef4444', badge_text, action)
         html += '</div></div>'
 
     return render(html, 'Do wystawienia')
@@ -1405,6 +1494,35 @@ def zmien_status_produktu(code):
     
     product_code = get_product_code(dict(p))
     return redirect(f'/magazyn/produkt/{product_code}?msg=Status+zmieniony+na+{status_names.get(new_status, new_status)}')
+
+
+@magazynier_bp.route('/produkt/<path:code>/dla-siebie', methods=['POST'])
+def toggle_dla_siebie(code):
+    """Zatrzymaj/zwolnij produkt 'dla siebie' (blokuje wystawianie na marketplace)."""
+    from .database import add_historia
+
+    conn = get_db()
+    p = get_produkt_by_code(conn, code)
+    if not p:
+        return redirect('/magazyn')
+
+    obecnie = int(p['dla_siebie'] or 0) if 'dla_siebie' in p.keys() else 0
+    if obecnie:
+        # zwalniamy do sprzedazy
+        conn.execute('UPDATE produkty SET dla_siebie = 0, powod_zatrzymania = "" WHERE id = ?', (p['id'],))
+        conn.commit()
+        add_historia(p['id'], 'edytowano', 'Zwolniono do sprzedazy (juz nie dla siebie)', {})
+        msg = 'Zwolniono+do+sprzedazy'
+    else:
+        powod = (request.form.get('powod') or '').strip()[:200]
+        conn.execute('UPDATE produkty SET dla_siebie = 1, powod_zatrzymania = ? WHERE id = ?', (powod, p['id']))
+        conn.commit()
+        add_historia(p['id'], 'edytowano', f'Zatrzymano dla siebie: {powod}' if powod else 'Zatrzymano dla siebie', {'powod': powod})
+        msg = 'Zatrzymano+dla+siebie'
+
+    product_code = get_product_code(dict(p))
+    return redirect(f'/magazyn/produkt/{product_code}?msg={msg}')
+
 
 @magazynier_bp.route('/produkt/<path:code>/edytuj', methods=['GET', 'POST'])
 def edytuj_produkt(code):

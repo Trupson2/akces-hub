@@ -250,6 +250,8 @@ def init_db():
             ('palety', 'koszt_jednostkowy', 'REAL DEFAULT 0'),  # ← NOWA! Stały koszt brutto/szt
             ('sztuki', 'zdjecie', 'TEXT DEFAULT ""'),  # ← NOWA! Zdjęcie sztuki (base64)
             ('produkty', 'kod_magazynowy', 'TEXT DEFAULT ""'),  # ← NOWA! Unikalny kod magazynowy MAG-XXXXX
+            ('produkty', 'dla_siebie', 'INTEGER DEFAULT 0'),  # 1 = zatrzymane do uzytku wlasnego, blokuje wystawianie
+            ('produkty', 'powod_zatrzymania', 'TEXT DEFAULT ""'),  # opcjonalna notatka czemu zatrzymane
         ]
         
         for table, column, coltype in migrations:

@@ -254,6 +254,42 @@
             </div>
         </div>
 
+        <!-- DLA SIEBIE / ZATRZYMANE -->
+        {% set is_dla_siebie = (p.dla_siebie or 0)|int == 1 %}
+        <div class="pd-status" style="border-color:{{ '#ef4444' if is_dla_siebie else '#475569' }}">
+            <div class="pd-status-row">
+                <div style="flex:1">
+                    <div class="pd-status-label">UZYTEK WLASNY</div>
+                    {% if is_dla_siebie %}
+                    <div class="pd-status-value" style="color:#ef4444">
+                        <span class="material-symbols-outlined">lock</span> ZATRZYMANE DLA SIEBIE
+                    </div>
+                    {% if p.powod_zatrzymania %}
+                    <div style="font-size:0.8rem;color:#94a3b8;margin-top:4px;font-style:italic">"{{ p.powod_zatrzymania }}"</div>
+                    {% endif %}
+                    <div style="font-size:0.7rem;color:#ef4444;margin-top:6px">⛔ Zablokowane wystawianie na Allegro/OLX/Vinted</div>
+                    {% else %}
+                    <div class="pd-status-value" style="color:#94a3b8;font-size:0.95rem;font-weight:500">
+                        <span class="material-symbols-outlined" style="font-size:1.1rem">lock_open</span> Dostepne do sprzedazy
+                    </div>
+                    {% endif %}
+                </div>
+                <form method="POST" action="/magazyn/produkt/{{ product_code }}/dla-siebie" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    {% if is_dla_siebie %}
+                    <button type="submit" class="form-input" style="padding:8px 14px;font-size:0.85rem;background:rgba(190,238,0,0.1);border:1px solid rgba(190,238,0,0.4);color:#beee00;cursor:pointer">
+                        🔓 Zwolnij do sprzedazy
+                    </button>
+                    {% else %}
+                    <input type="text" name="powod" placeholder="Powod (opcjonalnie, np. dla mamy)" maxlength="200" class="form-input" style="padding:8px 12px;font-size:0.85rem;width:240px">
+                    <button type="submit" class="form-input" style="padding:8px 14px;font-size:0.85rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.4);color:#ef4444;cursor:pointer">
+                        🔒 Zatrzymaj dla siebie
+                    </button>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
         <!-- PHOTO STATUS + GALLERY -->
         {% if processed_photos %}
         <div style="margin-bottom:10px">
