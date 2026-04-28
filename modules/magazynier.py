@@ -9657,9 +9657,9 @@ def przyjecie_palety(paleta_id):
         is_ds = int(p['dla_siebie'] or 0) if 'dla_siebie' in p.keys() else 0
         ds_powod = (p['powod_zatrzymania'] if 'powod_zatrzymania' in p.keys() else '') or ''
         if is_ds:
-            ds_btn = f'''<button onclick="markDlaSiebie({pid}, {p['id']}, true)" style="padding:8px 10px;border-radius:8px;border:2px solid #ef4444;background:#ef444422;color:#ef4444;font-size:0.75rem;cursor:pointer;white-space:nowrap" title="Aktualnie: zatrzymane{(' - ' + ds_powod) if ds_powod else ''}">🔒 Dla siebie</button>'''
+            ds_btn = f'''<button id="ds-btn-{pid}" data-pid="{pid}" data-product-id="{p['id']}" data-marked="1" onclick="markDlaSiebie(this)" style="padding:8px 10px;border-radius:8px;border:2px solid #ef4444;background:#ef444422;color:#ef4444;font-size:0.75rem;cursor:pointer;white-space:nowrap" title="Aktualnie: zatrzymane{(' - ' + ds_powod) if ds_powod else ''}">🔒 Dla siebie</button>'''
         else:
-            ds_btn = f'''<button onclick="markDlaSiebie({pid}, {p['id']}, false)" style="padding:8px 10px;border-radius:8px;border:2px solid #475569;background:#0a0a0f;color:#94a3b8;font-size:0.75rem;cursor:pointer;white-space:nowrap" title="Zatrzymaj dla siebie - blokuje wystawianie">🔒 Dla siebie</button>'''
+            ds_btn = f'''<button id="ds-btn-{pid}" data-pid="{pid}" data-product-id="{p['id']}" data-marked="0" onclick="markDlaSiebie(this)" style="padding:8px 10px;border-radius:8px;border:2px solid #475569;background:#0a0a0f;color:#94a3b8;font-size:0.75rem;cursor:pointer;white-space:nowrap" title="Zatrzymaj dla siebie - blokuje wystawianie">🔒 Dla siebie</button>'''
 
         html += f'''
                     {split_btn}
@@ -9815,13 +9815,23 @@ def przyjecie_palety(paleta_id):
         document.getElementById('camera-input').click();
     }}
 
-    function markDlaSiebie(pid, productId, alreadyMarked) {{
+    function markDlaSiebie(btn) {{
+        const pid = parseInt(btn.dataset.pid);
+        const productId = parseInt(btn.dataset.productId);
+        const alreadyMarked = btn.dataset.marked === '1';
+
         let powod = '';
         if (!alreadyMarked) {{
             powod = prompt('Powod (opcjonalnie, np. dla mamy, prezent):', '') || '';
         }} else {{
             if (!confirm('Zwolnic produkt z powrotem do sprzedazy?')) return;
         }}
+
+        // Wizualnie zablokuj button na czas requesta
+        btn.disabled = true;
+        const _origText = btn.textContent;
+        btn.textContent = '⏳ ...';
+
         fetch('/api/csrf-token').then(r => r.json()).then(t => {{
             const fd = new FormData();
             fd.append('csrf_token', t.csrf_token);
@@ -9832,20 +9842,20 @@ def przyjecie_palety(paleta_id):
                 headers: {{'X-CSRFToken': t.csrf_token}}
             }});
         }}).then(r => {{
+            btn.disabled = false;
+            btn.textContent = _origText;
             if (!r.ok && !r.redirected) {{
-                alert('Blad: nie udalo sie oznaczyc');
+                alert('Blad HTTP ' + r.status);
                 return;
             }}
-            // === Aktualizacja UI w miejscu (bez reload zeby nie tracic ocen innych produktow) ===
+            // Aktualizacja UI w miejscu (bez reload)
             const card = document.getElementById('prod-' + pid);
             if (!card) return;
 
             if (!alreadyMarked) {{
-                // Oznacz jako "dla siebie"
                 card.style.border = '1px solid #ef4444';
                 card.style.background = 'rgba(239,68,68,0.06)';
 
-                // Banner pod nazwa produktu
                 let banner = card.querySelector('.ds-banner');
                 if (!banner) {{
                     banner = document.createElement('div');
@@ -9856,26 +9866,19 @@ def przyjecie_palety(paleta_id):
                 }}
                 banner.textContent = '🔒 ZATRZYMANE DLA SIEBIE' + (powod ? ' — ' + powod : '');
 
-                // Wyszarzaj przyciski klas (nie ma sensu oceniac)
                 card.querySelectorAll('.stan-btn-' + pid).forEach(b => {{
                     b.style.opacity = '0.4';
                     b.disabled = true;
                 }});
 
-                // Liczy sie jako oceniony - wlasna kategoria 'dla_siebie'
                 currentStany[pid] = 'dla_siebie';
                 splitModes[pid] = false;
 
-                // Zmien przycisk Dla siebie na aktywny + onclick na zwolnienie
-                const dsBtn = card.querySelector('button[onclick^="markDlaSiebie(' + pid + ','][onclick$=', false)"]');
-                if (dsBtn) {{
-                    dsBtn.style.border = '2px solid #ef4444';
-                    dsBtn.style.background = '#ef444422';
-                    dsBtn.style.color = '#ef4444';
-                    dsBtn.setAttribute('onclick', 'markDlaSiebie(' + pid + ', ' + productId + ', true)');
-                }}
+                btn.style.border = '2px solid #ef4444';
+                btn.style.background = '#ef444422';
+                btn.style.color = '#ef4444';
+                btn.dataset.marked = '1';
             }} else {{
-                // Zwolnij - przywroc normalny wyglad
                 card.style.border = '1px solid rgba(255,255,255,0.08)';
                 card.style.background = 'rgba(15,15,30,0.65)';
                 const banner = card.querySelector('.ds-banner');
@@ -9886,16 +9889,17 @@ def przyjecie_palety(paleta_id):
                 }});
                 if (currentStany[pid] === 'dla_siebie') delete currentStany[pid];
 
-                const dsBtn = card.querySelector('button[onclick^="markDlaSiebie(' + pid + ','][onclick$=', true)"]');
-                if (dsBtn) {{
-                    dsBtn.style.border = '2px solid #475569';
-                    dsBtn.style.background = '#0a0a0f';
-                    dsBtn.style.color = '#94a3b8';
-                    dsBtn.setAttribute('onclick', 'markDlaSiebie(' + pid + ', ' + productId + ', false)');
-                }}
+                btn.style.border = '2px solid #475569';
+                btn.style.background = '#0a0a0f';
+                btn.style.color = '#94a3b8';
+                btn.dataset.marked = '0';
             }}
             updateProgress();
-        }}).catch(e => alert('Blad: ' + e.message));
+        }}).catch(e => {{
+            btn.disabled = false;
+            btn.textContent = _origText;
+            alert('Blad: ' + e.message);
+        }});
     }}
 
     function handlePhoto(event) {{
