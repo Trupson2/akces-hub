@@ -843,12 +843,15 @@ def sync_orders_with_stock(today_only: bool = True) -> Dict[str, Any]:
                     order_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
                 # Zapisz sprzedaż
-                conn.execute('''
-                    INSERT INTO sprzedaze
+                # OR IGNORE: UNIQUE INDEX na (allegro_order_id, nazwa) blokuje duplikaty
+                cur = conn.execute('''
+                    INSERT OR IGNORE INTO sprzedaze
                     (allegro_order_id, oferta_id, produkt_id, cena, ilosc, kupujacy, status, data_sprzedazy, nazwa, notified)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
                 ''', (order_id, oferta_db_id, produkt_id, cena, ilosc, kupujacy, 'nowa', order_date, nazwa))
-                
+                if cur.rowcount == 0:
+                    continue  # duplikat, juz zapisany przez inny path
+
                 result["synced"] += 1
                 
                 # ========================================

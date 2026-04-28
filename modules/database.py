@@ -330,6 +330,37 @@ def init_db():
             ''')
         except:
             pass
+
+        # === DEDUPLIKACJA SPRZEDAZY ===
+        # Trzy miejsca w kodzie wstawialy do sprzedaze niezaleznie (sync_orders, telegram_bot,
+        # inventory_utils) - kazde z wlasnym dedup, ktore sie nie chronily nawzajem.
+        # Jednorazowy cleanup + UNIQUE INDEX zeby nikt wiecej nie wstawil duplikatu.
+        try:
+            # Usun duplikaty (allegro_order_id, nazwa) - zostaw najstarszy (najnizszy id)
+            removed = conn.execute('''
+                DELETE FROM sprzedaze
+                WHERE id NOT IN (
+                    SELECT MIN(id) FROM sprzedaze
+                    WHERE allegro_order_id IS NOT NULL AND allegro_order_id != ''
+                    GROUP BY allegro_order_id, COALESCE(nazwa, '')
+                )
+                AND allegro_order_id IS NOT NULL AND allegro_order_id != ''
+            ''').rowcount
+            if removed:
+                conn.commit()
+                print(f"[DB] Usunieto {removed} zduplikowanych sprzedaży")
+        except Exception as _e:
+            print(f"[DB] Cleanup sprzedaze skipped: {_e}")
+
+        # UNIQUE INDEX (partial - tylko dla rekordów Allegro z order_id)
+        try:
+            conn.execute('''
+                CREATE UNIQUE INDEX IF NOT EXISTS uniq_sprzedaze_order_nazwa
+                ON sprzedaze(allegro_order_id, nazwa)
+                WHERE allegro_order_id IS NOT NULL AND allegro_order_id != ''
+            ''')
+        except Exception as _e:
+            print(f"[DB] Unique index sprzedaze skipped: {_e}")
         
         # Tabela logów Telegram
         conn.execute('''CREATE TABLE IF NOT EXISTS telegram_logs (

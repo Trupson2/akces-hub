@@ -1015,8 +1015,9 @@ def save_order_to_db(order):
                     oferta_db_id = oferta['id']
                     produkt_id = oferta['produkt_id']
 
+            # OR IGNORE: UNIQUE INDEX na (allegro_order_id, nazwa) blokuje duplikaty
             conn.execute('''
-                INSERT INTO sprzedaze (allegro_order_id, cena, ilosc, kupujacy, adres, status,
+                INSERT OR IGNORE INTO sprzedaze (allegro_order_id, cena, ilosc, kupujacy, adres, status,
                                        nazwa, data_sprzedazy, produkt_id, oferta_id, notified)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
             ''', (order_id, price, qty, kupujacy, adres, 'nowa',

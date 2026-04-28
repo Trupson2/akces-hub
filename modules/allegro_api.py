@@ -3698,10 +3698,14 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                 _item_delivery = round(_order_delivery_cost / _order_item_count, 2)
 
                 # Zapisz do bazy - z produkt_id, oferta_id, nazwą, adresem i kosztem dostawy
-                conn.execute('''INSERT INTO sprzedaze
+                # OR IGNORE: UNIQUE INDEX na (allegro_order_id, nazwa) blokuje duplikaty od innych pathow zapisu
+                cur = conn.execute('''INSERT OR IGNORE INTO sprzedaze
                     (allegro_order_id, cena, ilosc, kupujacy, status, data_sprzedazy, produkt_id, oferta_id, nazwa, adres, notified, koszt_dostawy, metoda_dostawy)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                     (order_id, cena, ilosc, kupujacy, 'nowa', order_date, produkt_id, oferta_db_id, nazwa, adres, 0, _item_delivery, _metoda_dostawy))
+                if cur.rowcount == 0:
+                    print(f"  ⏭ Skip duplikat (unique idx): {nazwa[:30]} ({order_id[:12]}...)")
+                    continue
                 synced += 1
                 
                 # ========================================
@@ -3871,6 +3875,17 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
         except:
             pass
     
+    # Backfill: dolinkuj sprzedaze ktore nie znalazly produkt_id w pierwszym przebiegu
+    # (np. ze starszych syncow, albo gdy oferta byla podpinana po). Dzieje sie automatycznie
+    # zeby COGS/zysk byly liczone na pelnych danych zamiast estymacji.
+    try:
+        bf_stats = backfill_link_sprzedaze(dry_run=False)
+        _bf_total = bf_stats.get('sprzedaze_via_oferty', 0) + bf_stats.get('sprzedaze_direct', 0)
+        if _bf_total > 0:
+            print(f"[OK] Backfill: dolinkowano {_bf_total} sprzedaży do produktów")
+    except Exception as _bf_e:
+        print(f"[WARN] Backfill skipped: {_bf_e}")
+
     print(f"[OK] Zsynchronizowano {synced} zamówień, wysłano {notified} powiadomień, zaktualizowano {stock_updated} stanów")
     return synced, None
 
