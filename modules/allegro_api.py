@@ -3717,11 +3717,49 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                     produkt = conn.execute('''
                         SELECT p.id, p.ilosc, p.nazwa, p.lokalizacja, p.regal,
                                p.data_dodania, p.cena_allegro,
+                               COALESCE(p.ean,'') as ean, COALESCE(p.asin,'') as asin,
                                COALESCE(pal.nazwa, p.paleta, '') as paleta_nazwa
                         FROM produkty p
                         LEFT JOIN palety pal ON p.paleta_id = pal.id
                         WHERE p.id = ?
                     ''', (produkt_id,)).fetchone()
+
+                    # Jesli oryginalny produkt jest juz wyzerowany, a ten sam towar jest
+                    # na innej palecie (ten sam ASIN/EAN, ilosc > 0) - przerzuc sprzedaz
+                    # na alternatywny produkt FIFO. Bez tego stan z palety B nigdy nie
+                    # schodzi gdy paleta A jest pusta.
+                    if produkt and (produkt['ilosc'] or 0) <= 0:
+                        _alt = None
+                        if produkt['asin'] and len(produkt['asin']) >= 5:
+                            _alt = conn.execute(
+                                "SELECT id, nazwa, ilosc FROM produkty WHERE asin = ? AND ilosc > 0 AND id != ? ORDER BY data_dodania ASC LIMIT 1",
+                                (produkt['asin'], produkt['id'])
+                            ).fetchone()
+                        if not _alt and produkt['ean'] and len(produkt['ean']) >= 8:
+                            _alt = conn.execute(
+                                "SELECT id, nazwa, ilosc FROM produkty WHERE ean = ? AND ilosc > 0 AND id != ? ORDER BY data_dodania ASC LIMIT 1",
+                                (produkt['ean'], produkt['id'])
+                            ).fetchone()
+                        if _alt:
+                            print(f"  [SWAP] Produkt {produkt['id']} pusty - przerzucam sprzedaz na {_alt['id']} ({_alt['nazwa'][:30]}, stan {_alt['ilosc']})")
+                            produkt_id = _alt['id']
+                            # Zaktualizuj sprzedaz zeby wskazywala na alternatywny produkt
+                            conn.execute('UPDATE sprzedaze SET produkt_id = ? WHERE allegro_order_id = ? AND nazwa = ?',
+                                       (produkt_id, order_id, nazwa))
+                            # Przepnij rowniez oferte zeby kolejne sprzedaze trafialy w wlasciwy produkt
+                            if oferta_db_id:
+                                conn.execute('UPDATE oferty SET produkt_id = ? WHERE id = ?', (produkt_id, oferta_db_id))
+                            # Pobierz pelny rekord alternatywy do dalszej logiki
+                            produkt = conn.execute('''
+                                SELECT p.id, p.ilosc, p.nazwa, p.lokalizacja, p.regal,
+                                       p.data_dodania, p.cena_allegro,
+                                       COALESCE(p.ean,'') as ean, COALESCE(p.asin,'') as asin,
+                                       COALESCE(pal.nazwa, p.paleta, '') as paleta_nazwa
+                                FROM produkty p
+                                LEFT JOIN palety pal ON p.paleta_id = pal.id
+                                WHERE p.id = ?
+                            ''', (produkt_id,)).fetchone()
+
                     if produkt:
                         new_qty = max(0, produkt['ilosc'] - ilosc)
                         conn.execute('''

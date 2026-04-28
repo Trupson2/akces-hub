@@ -701,10 +701,34 @@ def update_stock_on_sale(
         if not product:
             result["message"] = "Nie znaleziono produktu w bazie"
             return result
-            
+
+        # Jesli oryginalny produkt jest pusty, sprobuj alternatywnego z tym samym
+        # ASIN/EAN i ilosc > 0 (FIFO). Inaczej stan z innych palet by nie schodzil.
+        if (product['ilosc'] or 0) <= 0:
+            _alt = None
+            _asin = product['asin'] if 'asin' in product.keys() else ''
+            _ean = product['ean'] if 'ean' in product.keys() else ''
+            if _asin and len(_asin) >= 5:
+                _alt = conn.execute(
+                    "SELECT * FROM produkty WHERE asin = ? AND ilosc > 0 AND id != ? ORDER BY data_dodania ASC LIMIT 1",
+                    (_asin, product['id'])
+                ).fetchone()
+            if not _alt and _ean and len(_ean) >= 8:
+                _alt = conn.execute(
+                    "SELECT * FROM produkty WHERE ean = ? AND ilosc > 0 AND id != ? ORDER BY data_dodania ASC LIMIT 1",
+                    (_ean, product['id'])
+                ).fetchone()
+            if _alt:
+                print(f"[INVE] Swap: produkt {product['id']} pusty -> uzywam {_alt['id']} (stan {_alt['ilosc']})")
+                product = _alt
+                # Przepnij oferte na alternatywny produkt zeby kolejne sprzedaze trafialy w wlasciwe
+                if allegro_offer_id:
+                    conn.execute('UPDATE oferty SET produkt_id = ? WHERE allegro_id = ?',
+                               (product['id'], allegro_offer_id))
+
         result["product_id"] = product['id']
         result["old_stock"] = product['ilosc']
-        
+
         # Oblicz nowy stan
         new_stock = max(0, product['ilosc'] - quantity_sold)
         result["new_stock"] = new_stock
