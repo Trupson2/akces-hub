@@ -1957,6 +1957,7 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
         'przychod_netto': f"{przychod_netto_msc:.0f}",
         'cogs': f"{stats.get('cogs_miesiac', 0):.0f}",
         'koszt_palet': f"{stats.get('koszt_palet_msc', 0):.0f}",
+        'koszty_op': f"{stats.get('koszty_op_msc', 0):.0f}",
         'prowizja': f"{_prowizja_kwota:.0f}",
         'zysk': f"{_zysk:.0f}",
         'marza': _marza,

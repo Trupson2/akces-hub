@@ -1339,9 +1339,24 @@ def get_full_stats():
         przychod_po_zwrotach = stats['sprzedaz_miesiac_suma']  # brutto z Allegro
         przychod_netto_msc = przychod_po_zwrotach / 1.23 if przychod_po_zwrotach > 0 else 0
         prowizja_msc = przychod_netto_msc * 0.11
-        stats['zysk_miesiac'] = przychod_netto_msc - koszt_sprzedanych - prowizja_msc
+
+        # Koszty operacyjne z tabeli `koszty` w biezacym miesiacu
+        # Wykluczamy kategorie 'zakup' bo to zakup towaru = juz w cogs/koszt_palet (zeby nie dublowac)
+        try:
+            koszty_op_row = conn.execute('''
+                SELECT COALESCE(SUM(kwota), 0) as suma
+                FROM koszty
+                WHERE date(data) >= ? AND COALESCE(kategoria,'') != 'zakup'
+            ''', (month_start,)).fetchone()
+            koszty_op_msc = float(koszty_op_row['suma'] or 0)
+        except Exception:
+            koszty_op_msc = 0
+
+        # Zysk = przychod_netto - koszt_sprzedanych - prowizja - koszty_operacyjne
+        stats['zysk_miesiac'] = przychod_netto_msc - koszt_sprzedanych - prowizja_msc - koszty_op_msc
         stats['przychod_netto_msc'] = przychod_netto_msc
         stats['prowizja_msc'] = prowizja_msc
+        stats['koszty_op_msc'] = koszty_op_msc
         stats['koszt_sprzedanych_msc'] = koszt_sprzedanych
         stats['cogs_miesiac'] = cogs_miesiac
         stats['koszt_palet_msc'] = koszt_palet_msc  # do porównania

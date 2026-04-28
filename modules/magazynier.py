@@ -8676,14 +8676,16 @@ def koszty_page():
     suma_msc = koszty_msc.get(biezacy_m, 0)
     
     
+    # UWAGA: te etykiety lecą do <option> w <select> - HTML jest stripowany,
+    # wiec uzywamy emoji a nie Material Symbols. Kolejnosc i klucze niezmienione.
     KATEGORIE = [
-        ('allegro', '<span class=material-symbols-outlined>shopping_cart</span> Prowizje Allegro'),
-        ('wysylka', '<span class=material-symbols-outlined>inventory_2</span> Wysyłka / InPost'),
+        ('allegro', '🛒 Prowizje Allegro'),
+        ('wysylka', '📦 Wysyłka / InPost'),
         ('reklama', '📣 Reklama'),
-        ('magazyn', '<span class=material-symbols-outlined>factory</span> Magazyn / najem'),
-        ('zakup', '<span class=material-symbols-outlined>paid</span> Zakup towaru'),
-        ('ksiegowosc', '<span class=material-symbols-outlined>list_alt</span> Księgowość / ZUS'),
-        ('inne', '<span class=material-symbols-outlined>bolt</span> Inne'),
+        ('magazyn', '🏭 Magazyn / najem'),
+        ('zakup', '💰 Zakup towaru'),
+        ('ksiegowosc', '📋 Księgowość / ZUS'),
+        ('inne', '⚡ Inne'),
     ]
     
     nazwy_m = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru']

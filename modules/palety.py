@@ -1550,6 +1550,7 @@ def paleta_import_xlsx():
             col_ilosc = request.form.get('col_ilosc', '')
             col_cena = request.form.get('col_cena', '')
             col_cena_detal = request.form.get('col_cena_detal', '')
+            cena_typ = (request.form.get('cena_typ') or 'brutto').lower()  # brutto | netto
 
             # Utwórz paletę
             paleta_id = add_paleta(nazwa, dostawca, cena_zakupu, data_zakupu, f'Import z: {file.filename}', regal)
@@ -1564,10 +1565,15 @@ def paleta_import_xlsx():
                     prod_nazwa = str(row[col_nazwa]) if col_nazwa and col_nazwa in df.columns else f'Produkt {idx+1}'
                     prod_ean = str(row[col_ean]) if col_ean and col_ean in df.columns else ''
                     prod_ilosc = int(row[col_ilosc]) if col_ilosc and col_ilosc in df.columns and pd.notna(row[col_ilosc]) else 1
-                    prod_cena = float(row[col_cena]) if col_cena and col_cena in df.columns and pd.notna(row[col_cena]) else 0
-                    prod_cena_detal = float(row[col_cena_detal]) if col_cena_detal and col_cena_detal in df.columns and pd.notna(row[col_cena_detal]) else prod_cena * 2
-                    # cena_brutto = cena_netto * 1.23 (VAT 23%)
-                    prod_cena_brutto = round(prod_cena * 1.23, 2)
+                    prod_cena_raw = float(row[col_cena]) if col_cena and col_cena in df.columns and pd.notna(row[col_cena]) else 0
+                    # Interpretacja kolumny ceny zaleznie od wyboru w formularzu
+                    if cena_typ == 'brutto':
+                        prod_cena_brutto = round(prod_cena_raw, 2)
+                        prod_cena = round(prod_cena_raw / 1.23, 2) if prod_cena_raw > 0 else 0  # netto
+                    else:
+                        prod_cena = round(prod_cena_raw, 2)  # netto
+                        prod_cena_brutto = round(prod_cena_raw * 1.23, 2)  # brutto = netto * 1.23
+                    prod_cena_detal = float(row[col_cena_detal]) if col_cena_detal and col_cena_detal in df.columns and pd.notna(row[col_cena_detal]) else prod_cena_brutto * 2
 
                     # Pomiń puste wiersze
                     if not prod_nazwa or prod_nazwa == 'nan' or prod_nazwa.strip() == '':
@@ -1718,6 +1724,21 @@ def paleta_import_xlsx():
                 <label>RRP / Detal</label>
                 <input type="text" name="col_cena_detal" placeholder="np. RRP" class="form-control">
             </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:15px;padding:10px 12px;background:rgba(143,245,255,0.05);border-left:3px solid #8ff5ff;border-radius:6px">
+            <label style="font-size:0.82rem;font-weight:700;color:#8ff5ff;display:block;margin-bottom:6px">Cena w pliku to:</label>
+            <div style="display:flex;gap:14px">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+                    <input type="radio" name="cena_typ" value="brutto" checked style="accent-color:#8ff5ff">
+                    <span>BRUTTO (z VAT)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+                    <input type="radio" name="cena_typ" value="netto" style="accent-color:#8ff5ff">
+                    <span>NETTO (bez VAT)</span>
+                </label>
+            </div>
+            <div style="font-size:0.7rem;color:#94a3b8;margin-top:4px">Domyślnie BRUTTO. Wybierz NETTO jeśli faktura/paleta podaje ceny bez VAT (Jobalots, dostawca z UE etc.)</div>
         </div>
 
         <button type="submit" class="btn btn-success">
