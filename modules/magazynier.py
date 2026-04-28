@@ -691,6 +691,7 @@ def produkty():
     
     filter_stan = request.args.get('stan', '')
     filter_klasa = request.args.get('klasa', '')
+    filter_dla_siebie = request.args.get('dla_siebie', '')
 
     if filter_status == 'nieoceniony':
         query += " AND (stan_przyjecia = 'nieoceniony' OR stan_przyjecia IS NULL OR stan_przyjecia = '')"
@@ -705,6 +706,9 @@ def produkty():
     if filter_klasa:
         query += ' AND klasa_jakosci = ?'
         params.append(filter_klasa)
+
+    if filter_dla_siebie == '1':
+        query += ' AND COALESCE(dla_siebie, 0) = 1'
 
     filter_paleta_id = request.args.get('paleta_id', '')
     if filter_paleta_id:
@@ -757,6 +761,10 @@ def produkty():
         "LEFT JOIN oferty o ON o.produkt_id = p.id AND o.status IN ('draft','szkic') "
         "WHERE (p.status NOT IN ('wystawiony','sprzedany','wyslany') OR o.id IS NOT NULL) AND p.ilosc > 0"
     ).fetchone()[0]
+    try:
+        dla_siebie_cnt = conn.execute("SELECT COUNT(*) FROM produkty WHERE COALESCE(dla_siebie,0) = 1").fetchone()[0]
+    except Exception:
+        dla_siebie_cnt = 0
 
     # Stan przedmiotu counts
     _stan_counts = {}
@@ -798,6 +806,8 @@ def produkty():
             Nieocenione ({nieocenione_cnt})</a>
         <a href="/magazyn/do-wystawienia" style="flex-shrink:0;padding:8px 18px;border-radius:10px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;white-space:nowrap;transition:all 0.2s;background:#7c3aed;color:#e9d5ff;box-shadow:0 0 15px rgba(124,58,237,0.3)">
             <span class=material-symbols-outlined style="font-size:0.85rem;vertical-align:middle;margin-right:3px">rocket_launch</span>Do wystawienia ({do_wyst_cnt})</a>
+        <a href="/magazyn/produkty?dla_siebie=1" style="flex-shrink:0;padding:8px 18px;border-radius:10px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;white-space:nowrap;transition:all 0.2s;{'background:#ef4444;color:#fff;box-shadow:0 0 15px rgba(239,68,68,0.4)' if filter_dla_siebie == '1' else 'background:#262528;color:#ef4444;border:1px solid rgba(239,68,68,0.3)'}">
+            🔒 Dla siebie ({dla_siebie_cnt})</a>
     </div>
 
     <!-- STAN PRZEDMIOTU + KLASA JAKOŚCI - compact bento grid -->
@@ -9601,8 +9611,15 @@ def przyjecie_palety(paleta_id):
         # Ilość badge
         ilosc_badge = f'<span style="background:#8ff5ff33;color:#8ff5ff;padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:700">{ilosc} szt.</span>' if ilosc > 1 else '<span style="color:#64748b;font-size:0.75rem">1 szt.</span>'
 
+        # Pre-load flag dla siebie zeby wyroznic karte juz przy renderze
+        _is_ds_card = int(p['dla_siebie'] or 0) if 'dla_siebie' in p.keys() else 0
+        _ds_powod_card = (p['powod_zatrzymania'] if 'powod_zatrzymania' in p.keys() else '') or ''
+        _card_border = '1px solid #ef4444' if _is_ds_card else '1px solid rgba(255,255,255,0.08)'
+        _card_bg = 'rgba(239,68,68,0.06)' if _is_ds_card else 'rgba(15,15,30,0.65)'
+        _ds_banner = f'<div style="margin-top:6px;font-size:0.7rem;color:#ef4444;font-weight:700">🔒 ZATRZYMANE DLA SIEBIE{" — " + _ds_powod_card if _ds_powod_card else ""}</div>' if _is_ds_card else ''
+
         html += f'''
-        <div class="prod-card" id="prod-{pid}" data-ilosc="{ilosc}" style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:15px;margin-bottom:12px">
+        <div class="prod-card" id="prod-{pid}" data-ilosc="{ilosc}" style="backdrop-filter:blur(16px);background:{_card_bg};border:{_card_border};border-radius:12px;padding:15px;margin-bottom:12px">
             <div style="display:flex;gap:12px;align-items:flex-start">
                 {img_html}
                 <div style="flex:1;min-width:0">
@@ -9611,6 +9628,7 @@ def przyjecie_palety(paleta_id):
                         {ilosc_badge}
                     </div>
                     <div style="font-size:0.75rem;color:#64748b">EAN: {p['ean'] or '—'}</div>
+                    {_ds_banner}
                 </div>
             </div>
 
@@ -9635,8 +9653,17 @@ def przyjecie_palety(paleta_id):
         if ilosc > 1:
             split_btn = f'''<button onclick="showSplitMode({pid}, {ilosc})" style="padding:8px 10px;border-radius:8px;border:2px solid #8ff5ff;background:#8ff5ff22;color:#8ff5ff;font-size:0.75rem;cursor:pointer;white-space:nowrap" title="Różne stany dla poszczególnych sztuk">✂ Podziel</button>'''
 
+        # Przycisk "Dla siebie" - oznacza produkt jako zatrzymany dla uzytkownika
+        is_ds = int(p['dla_siebie'] or 0) if 'dla_siebie' in p.keys() else 0
+        ds_powod = (p['powod_zatrzymania'] if 'powod_zatrzymania' in p.keys() else '') or ''
+        if is_ds:
+            ds_btn = f'''<button onclick="markDlaSiebie({pid}, {p['id']}, true)" style="padding:8px 10px;border-radius:8px;border:2px solid #ef4444;background:#ef444422;color:#ef4444;font-size:0.75rem;cursor:pointer;white-space:nowrap" title="Aktualnie: zatrzymane{(' - ' + ds_powod) if ds_powod else ''}">🔒 Dla siebie</button>'''
+        else:
+            ds_btn = f'''<button onclick="markDlaSiebie({pid}, {p['id']}, false)" style="padding:8px 10px;border-radius:8px;border:2px solid #475569;background:#0a0a0f;color:#94a3b8;font-size:0.75rem;cursor:pointer;white-space:nowrap" title="Zatrzymaj dla siebie - blokuje wystawianie">🔒 Dla siebie</button>'''
+
         html += f'''
                     {split_btn}
+                    {ds_btn}
                 </div>
             </div>
 
@@ -9771,6 +9798,43 @@ def przyjecie_palety(paleta_id):
     function openCamera(pid) {{
         currentPhotoProductId = pid;
         document.getElementById('camera-input').click();
+    }}
+
+    function markDlaSiebie(pid, productId, alreadyMarked) {{
+        let powod = '';
+        if (!alreadyMarked) {{
+            powod = prompt('Powod (opcjonalnie, np. dla mamy, prezent):', '') || '';
+        }} else {{
+            if (!confirm('Zwolnic produkt z powrotem do sprzedazy?')) return;
+        }}
+        fetch('/api/csrf-token').then(r => r.json()).then(t => {{
+            const fd = new FormData();
+            fd.append('csrf_token', t.csrf_token);
+            if (powod) fd.append('powod', powod.trim().slice(0, 200));
+            return fetch('/magazyn/produkt/' + productId + '/dla-siebie', {{
+                method: 'POST',
+                body: fd,
+                headers: {{'X-CSRFToken': t.csrf_token}}
+            }});
+        }}).then(r => {{
+            if (r.ok || r.redirected) {{
+                // Wizualnie oznacz karte
+                const card = document.getElementById('prod-' + pid);
+                if (card) {{
+                    if (!alreadyMarked) {{
+                        card.style.borderColor = '#ef4444';
+                        card.style.background = 'rgba(239,68,68,0.06)';
+                    }} else {{
+                        card.style.borderColor = 'rgba(255,255,255,0.08)';
+                        card.style.background = 'rgba(15,15,30,0.65)';
+                    }}
+                }}
+                // Reload za 0.5s zeby przyciski sie zaktualizowaly z bazy
+                setTimeout(() => window.location.reload(), 500);
+            }} else {{
+                alert('Blad: nie udalo sie oznaczyc');
+            }}
+        }}).catch(e => alert('Blad: ' + e.message));
     }}
 
     function handlePhoto(event) {{
