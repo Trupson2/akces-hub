@@ -1345,13 +1345,16 @@ def get_full_stats():
         # - 'zakup' bo to zakup towaru = juz w cogs/koszt_palet (zeby nie dublowac)
         # - 'allegro' bo prowizja Allegro juz liczona automatycznie ponizej (11% z netto)
         try:
+            # WHERE wyklucza tylko 'zakup' (dubluje cogs); 'allegro' zliczamy osobno przez CASE
+            # zeby uzyc go jako prowizji (max szacunek vs recznie wpisany billing).
+            # ABS bo koszty czasem sa zapisywane jako ujemne (UI dodaje znak minus)
             koszty_op_row = conn.execute('''
-                SELECT COALESCE(SUM(kwota), 0) as suma,
-                       COALESCE(SUM(CASE WHEN COALESCE(kategoria,'') = 'allegro' THEN kwota ELSE 0 END), 0) as allegro_recznie
+                SELECT COALESCE(SUM(CASE WHEN COALESCE(kategoria,'') != 'allegro' THEN ABS(kwota) ELSE 0 END), 0) as suma_op,
+                       COALESCE(SUM(CASE WHEN COALESCE(kategoria,'') = 'allegro' THEN ABS(kwota) ELSE 0 END), 0) as allegro_recznie
                 FROM koszty
-                WHERE date(data) >= ? AND COALESCE(kategoria,'') NOT IN ('zakup','allegro')
+                WHERE date(data) >= ? AND COALESCE(kategoria,'') != 'zakup'
             ''', (month_start,)).fetchone()
-            koszty_op_msc = float(koszty_op_row['suma'] or 0)
+            koszty_op_msc = float(koszty_op_row['suma_op'] or 0)
             allegro_recznie_msc = float(koszty_op_row['allegro_recznie'] or 0)
         except Exception:
             koszty_op_msc = 0

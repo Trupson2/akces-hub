@@ -2782,7 +2782,7 @@ def statystyki():
     # doszacuj 11% z przychodu netto. Inaczej dochod jest zawyzony bo Allegro pobiera prowizje.
     try:
         _allegro_recznie_msc = conn.execute('''
-            SELECT COALESCE(SUM(kwota), 0) as suma FROM koszty
+            SELECT COALESCE(SUM(ABS(kwota)), 0) as suma FROM koszty
             WHERE strftime('%Y-%m', data) = ? AND COALESCE(kategoria,'') = 'allegro'
         ''', (biezacy_m_str,)).fetchone()
         allegro_recznie_msc = float(_allegro_recznie_msc['suma'] or 0)
