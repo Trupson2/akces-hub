@@ -200,7 +200,7 @@
             <div class="st-tax-item-val" style="color:#f59e0b">{{ "%.2f"|format(vat_do_zaplaty_msc) }} zl</div>
         </div>
         <div class="st-tax-item">
-            <div class="st-tax-item-label">PIT 19% liniowy</div>
+            <div class="st-tax-item-label">Zaliczka PIT 19%</div>
             <div class="st-tax-item-val" style="color:#f59e0b">{{ "%.2f"|format(podatek_msc) }} zl</div>
         </div>
     </div>
@@ -209,7 +209,7 @@
             <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);font-weight:600;margin-bottom:4px">
                 <span class="material-symbols-outlined" style="font-size:0.7rem">stars</span> Zysk na reke ({{ miesiac_nazwa_tax }})
             </div>
-            <div style="font-size:0.72rem;color:var(--text-muted)">Po odliczeniu VAT i PIT</div>
+            <div style="font-size:0.72rem;color:var(--text-muted)">Po odliczeniu VAT i zaliczki PIT (PIT-36L roczny)</div>
         </div>
         <div class="font-display" style="font-size:1.6rem;font-weight:800;letter-spacing:-0.5px;color:{{ zysk_na_reke_msc_kolor }};text-shadow:0 0 15px {{ zysk_na_reke_msc_kolor }}40">
             {{ "%.2f"|format(zysk_na_reke_msc) }} zl
