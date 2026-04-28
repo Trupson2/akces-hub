@@ -9616,7 +9616,7 @@ def przyjecie_palety(paleta_id):
         _ds_powod_card = (p['powod_zatrzymania'] if 'powod_zatrzymania' in p.keys() else '') or ''
         _card_border = '1px solid #ef4444' if _is_ds_card else '1px solid rgba(255,255,255,0.08)'
         _card_bg = 'rgba(239,68,68,0.06)' if _is_ds_card else 'rgba(15,15,30,0.65)'
-        _ds_banner = f'<div style="margin-top:6px;font-size:0.7rem;color:#ef4444;font-weight:700">🔒 ZATRZYMANE DLA SIEBIE{" — " + _ds_powod_card if _ds_powod_card else ""}</div>' if _is_ds_card else ''
+        _ds_banner = f'<div class="ds-banner" style="margin-top:6px;font-size:0.7rem;color:#ef4444;font-weight:700">🔒 ZATRZYMANE DLA SIEBIE{" — " + _ds_powod_card if _ds_powod_card else ""}</div>' if _is_ds_card else ''
 
         html += f'''
         <div class="prod-card" id="prod-{pid}" data-ilosc="{ilosc}" style="backdrop-filter:blur(16px);background:{_card_bg};border:{_card_border};border-radius:12px;padding:15px;margin-bottom:12px">
@@ -9729,6 +9729,21 @@ def przyjecie_palety(paleta_id):
     const totalProducts = {len(produkty)};
     const stanNames = ['Nowy', 'Jak_nowy', 'Dobry', 'Uszkodzony', 'Zniszczony'];
 
+    // Pre-load: produkty juz oznaczone "dla siebie" w bazie - traktuj jak ocenione
+    // (banner widoczny, przyciski stanu wyszarzone). updateProgress wezmie je pod uwage.
+    document.querySelectorAll('.prod-card').forEach(card => {{
+        if (card.querySelector('.ds-banner')) {{
+            const pid = parseInt(card.id.replace('prod-', ''));
+            if (pid) {{
+                currentStany[pid] = 'dla_siebie';
+                card.querySelectorAll('.stan-btn-' + pid).forEach(b => {{
+                    b.style.opacity = '0.4';
+                    b.disabled = true;
+                }});
+            }}
+        }}
+    }});
+
     function selectStan(pid, stan, btn) {{
         document.querySelectorAll('.stan-btn-' + pid).forEach(b => {{
             b.style.border = '2px solid #1e1e2e';
@@ -9817,23 +9832,69 @@ def przyjecie_palety(paleta_id):
                 headers: {{'X-CSRFToken': t.csrf_token}}
             }});
         }}).then(r => {{
-            if (r.ok || r.redirected) {{
-                // Wizualnie oznacz karte
-                const card = document.getElementById('prod-' + pid);
-                if (card) {{
-                    if (!alreadyMarked) {{
-                        card.style.borderColor = '#ef4444';
-                        card.style.background = 'rgba(239,68,68,0.06)';
-                    }} else {{
-                        card.style.borderColor = 'rgba(255,255,255,0.08)';
-                        card.style.background = 'rgba(15,15,30,0.65)';
-                    }}
-                }}
-                // Reload za 0.5s zeby przyciski sie zaktualizowaly z bazy
-                setTimeout(() => window.location.reload(), 500);
-            }} else {{
+            if (!r.ok && !r.redirected) {{
                 alert('Blad: nie udalo sie oznaczyc');
+                return;
             }}
+            // === Aktualizacja UI w miejscu (bez reload zeby nie tracic ocen innych produktow) ===
+            const card = document.getElementById('prod-' + pid);
+            if (!card) return;
+
+            if (!alreadyMarked) {{
+                // Oznacz jako "dla siebie"
+                card.style.border = '1px solid #ef4444';
+                card.style.background = 'rgba(239,68,68,0.06)';
+
+                // Banner pod nazwa produktu
+                let banner = card.querySelector('.ds-banner');
+                if (!banner) {{
+                    banner = document.createElement('div');
+                    banner.className = 'ds-banner';
+                    banner.style.cssText = 'margin-top:6px;font-size:0.7rem;color:#ef4444;font-weight:700';
+                    const titleBox = card.querySelector('div[style*="flex:1"]');
+                    if (titleBox) titleBox.appendChild(banner);
+                }}
+                banner.textContent = '🔒 ZATRZYMANE DLA SIEBIE' + (powod ? ' — ' + powod : '');
+
+                // Wyszarzaj przyciski klas (nie ma sensu oceniac)
+                card.querySelectorAll('.stan-btn-' + pid).forEach(b => {{
+                    b.style.opacity = '0.4';
+                    b.disabled = true;
+                }});
+
+                // Liczy sie jako oceniony - wlasna kategoria 'dla_siebie'
+                currentStany[pid] = 'dla_siebie';
+                splitModes[pid] = false;
+
+                // Zmien przycisk Dla siebie na aktywny + onclick na zwolnienie
+                const dsBtn = card.querySelector('button[onclick^="markDlaSiebie(' + pid + ','][onclick$=', false)"]');
+                if (dsBtn) {{
+                    dsBtn.style.border = '2px solid #ef4444';
+                    dsBtn.style.background = '#ef444422';
+                    dsBtn.style.color = '#ef4444';
+                    dsBtn.setAttribute('onclick', 'markDlaSiebie(' + pid + ', ' + productId + ', true)');
+                }}
+            }} else {{
+                // Zwolnij - przywroc normalny wyglad
+                card.style.border = '1px solid rgba(255,255,255,0.08)';
+                card.style.background = 'rgba(15,15,30,0.65)';
+                const banner = card.querySelector('.ds-banner');
+                if (banner) banner.remove();
+                card.querySelectorAll('.stan-btn-' + pid).forEach(b => {{
+                    b.style.opacity = '1';
+                    b.disabled = false;
+                }});
+                if (currentStany[pid] === 'dla_siebie') delete currentStany[pid];
+
+                const dsBtn = card.querySelector('button[onclick^="markDlaSiebie(' + pid + ','][onclick$=', true)"]');
+                if (dsBtn) {{
+                    dsBtn.style.border = '2px solid #475569';
+                    dsBtn.style.background = '#0a0a0f';
+                    dsBtn.style.color = '#94a3b8';
+                    dsBtn.setAttribute('onclick', 'markDlaSiebie(' + pid + ', ' + productId + ', false)');
+                }}
+            }}
+            updateProgress();
         }}).catch(e => alert('Blad: ' + e.message));
     }}
 
@@ -9890,6 +9951,12 @@ def przyjecie_palety(paleta_id):
             const pid = parseInt(card.id.replace('prod-', ''));
             const notatki = document.getElementById('notatki-' + pid)?.value || '';
             const regal = document.getElementById('regal-' + pid)?.value || '';
+
+            // Produkty oznaczone "dla_siebie" zostaly zapisane przez osobny endpoint -
+            // pomijamy je w masowym zapisie przyjecia palety
+            if (currentStany[pid] === 'dla_siebie') {{
+                return;
+            }}
 
             if (splitModes[pid]) {{
                 const split = {{}};
