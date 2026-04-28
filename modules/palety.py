@@ -2618,10 +2618,11 @@ def paleta_mass_edit(paleta_id):
     if not paleta:
         return redirect('/palety')
 
-    # Pobierz produkty z magazynu
+    # Pobierz produkty z magazynu - bez "dla siebie" (nie wystawiamy ich na Allegro)
     produkty = conn.execute('''
         SELECT * FROM produkty
         WHERE paleta_id = ?
+          AND COALESCE(dla_siebie, 0) = 0
         ORDER BY
             CASE
                 WHEN status = 'wystawiony' THEN 1
@@ -2630,6 +2631,15 @@ def paleta_mass_edit(paleta_id):
             END,
             data_dodania DESC
     ''', (paleta_id,)).fetchall()
+
+    # Ile pominietych "dla siebie" zeby user wiedzial
+    try:
+        dla_siebie_paleta_cnt = conn.execute(
+            "SELECT COUNT(*) FROM produkty WHERE paleta_id = ? AND COALESCE(dla_siebie, 0) = 1",
+            (paleta_id,)
+        ).fetchone()[0]
+    except Exception:
+        dla_siebie_paleta_cnt = 0
 
     # Stats
     stats = conn.execute('''
@@ -2640,6 +2650,7 @@ def paleta_mass_edit(paleta_id):
             COALESCE(SUM(cena_allegro * ilosc), 0) as wartosc_total
         FROM produkty
         WHERE paleta_id = ?
+          AND COALESCE(dla_siebie, 0) = 0
     ''', (paleta_id,)).fetchone()
 
 
@@ -2965,6 +2976,8 @@ def paleta_mass_edit(paleta_id):
         <span class="material-symbols-outlined">lightbulb</span>
         Zaznacz produkty → edytuj ceny → kliknij <b>Wystaw</b>. Wystawione (zielone) nie można zaznaczyć.
     </div>
+
+    {f'<div style="padding:10px 14px;margin-bottom:12px;background:rgba(239,68,68,0.05);border-left:3px solid #ef4444;border-radius:6px;font-size:0.82rem;color:#94a3b8">⛔ <b style="color:#ef4444">Pominięto {dla_siebie_paleta_cnt}</b> produktów zatrzymanych dla siebie. Zwolnij na stronie produktu jeśli mają pójść do sprzedaży.</div>' if dla_siebie_paleta_cnt > 0 else ''}
 
     <div class="bl-panel" style="margin-bottom:160px">
         <div class="bl-panel-header">
