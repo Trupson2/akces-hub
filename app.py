@@ -1938,27 +1938,26 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
         ))
         return resp
 
-    # Statystyki COGS do dashboardu
+    # Statystyki do dashboardu - zgodne z kalkulatorem marzy
+    # zysk_miesiac liczy: przychod_netto (po VAT) - koszt - prowizja_z_netto (patrz database.py)
     zwroty_suma = float(stats.get('zwroty_miesiac_suma', 0))
-    przychod_netto = miesiac_kwota  # msc_suma już odlicza zwroty
+    przychod_brutto_msc = miesiac_kwota  # brutto z Allegro (po zwrotach)
+    przychod_netto_msc = float(stats.get('przychod_netto_msc', 0)) or (przychod_brutto_msc / 1.23 if przychod_brutto_msc > 0 else 0)
     _zysk = float(stats.get('zysk_miesiac', 0))
-    # Marża po koszcie palet (nie COGS): (przychód - koszt_palet_msc - prowizja) / przychód
-    _koszt_palet = float(stats.get('koszt_palet_msc', 0))
-    _prowizja_kwota = przychod_netto * 0.11
-    _zysk_palet = przychod_netto - _koszt_palet - _prowizja_kwota
-    _marza = round(_zysk_palet / przychod_netto * 100) if przychod_netto > 0 else 0
+    _prowizja_kwota = float(stats.get('prowizja_msc', 0)) or (przychod_netto_msc * 0.11)
+    # Marża = zysk / przychod_brutto (bo to porownujemy do tego co klient zaplacil)
+    _marza = round(_zysk / przychod_brutto_msc * 100) if przychod_brutto_msc > 0 else 0
     _marza_color = '#22c55e' if _marza >= 40 else '#beee00' if _marza >= 25 else '#eab308' if _marza >= 15 else '#ef4444'
-    # Marża po VAT (23%) i PIT liniowym (19%)
-    # Przychód i koszty są brutto — VAT należny minus naliczony z palet i prowizji = _zysk_palet * 23/123
-    # Dochód netto dla PIT = _zysk_palet / 1.23; podatek = * 0.19; zostaje = * 0.81
-    _marza_net = round(_zysk_palet / 1.23 * 0.81 / przychod_netto * 100) if przychod_netto > 0 else 0
+    # "Na rękę" = po PIT liniowym 19% (zysk juz jest po VAT)
+    _marza_net = round(_zysk * 0.81 / przychod_brutto_msc * 100) if przychod_brutto_msc > 0 else 0
     _marza_net_color = '#22c55e' if _marza_net >= 25 else '#beee00' if _marza_net >= 15 else '#eab308' if _marza_net >= 10 else '#ef4444'
     monthly_stats = {
-        'przychod': f"{przychod_netto:.0f}",
-        'przychod_brutto': f"{miesiac_kwota:.0f}",
+        'przychod': f"{przychod_brutto_msc:.0f}",
+        'przychod_brutto': f"{przychod_brutto_msc:.0f}",
+        'przychod_netto': f"{przychod_netto_msc:.0f}",
         'cogs': f"{stats.get('cogs_miesiac', 0):.0f}",
         'koszt_palet': f"{stats.get('koszt_palet_msc', 0):.0f}",
-        'prowizja': f"{przychod_netto * 0.11:.0f}",
+        'prowizja': f"{_prowizja_kwota:.0f}",
         'zysk': f"{_zysk:.0f}",
         'marza': _marza,
         'marza_color': _marza_color,

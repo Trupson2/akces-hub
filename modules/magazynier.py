@@ -955,8 +955,9 @@ def produkty():
         _ean_clean = p['ean'] if p['ean'] and p['ean'].upper() not in ('N/A','NAN','NONE') else ''
         display_code = f"{_km}"
 
-        # Zysk per item (koszt = paleta.cena_zakupu / szt, fallback to cena_brutto)
-        _ca = float(p['cena_allegro'] or 0)
+        # Zysk per item (jak kalkulator marzy: przychod NETTO - koszt brutto - prowizja_z_NETTO)
+        _ca = float(p['cena_allegro'] or 0)  # cena allegro brutto
+        _ca_netto = _ca / 1.23 if _ca > 0 else 0
         _ks = _koszt_cache.get(p['paleta_id'], 0)
         if _ks <= 0:
             _ks = float(p['cena_brutto'] or 0)
@@ -965,7 +966,7 @@ def produkty():
         except (KeyError, IndexError):
             _kat = 'inne'
         _pr = ALLEGRO_PROWIZJE.get(_kat, 0.11)
-        _zy = _ca - _ks - (_ca * _pr) if _ca > 0 and _ks > 0 else None
+        _zy = _ca_netto - _ks - (_ca_netto * _pr) if _ca_netto > 0 and _ks > 0 else None
 
         product_status = p['status'] if p['status'] else 'nowy'
 
@@ -1410,11 +1411,13 @@ def produkt(code):
     asin_display = p.get('asin') or '—'
 
     # Zysk per item = cena_allegro - koszt_zakupu - prowizja
-    _cena_al = float(p['cena_allegro'] or 0)
+    _cena_al = float(p['cena_allegro'] or 0)  # brutto (z VAT)
     _kat = (p.get('kategoria') or 'inne').lower()
     _prowizja_rate = ALLEGRO_PROWIZJE.get(_kat, 0.11)
-    _prowizja_kwota = _cena_al * _prowizja_rate
-    _zysk_szt = _cena_al - _koszt_brutto_szt - _prowizja_kwota if _cena_al > 0 and _koszt_brutto_szt > 0 else 0
+    # Zysk jak kalkulator marzy: cena_allegro_NETTO - koszt_brutto - prowizja_z_NETTO
+    _cena_al_netto = _cena_al / 1.23 if _cena_al > 0 else 0
+    _prowizja_kwota = _cena_al_netto * _prowizja_rate
+    _zysk_szt = _cena_al_netto - _koszt_brutto_szt - _prowizja_kwota if _cena_al_netto > 0 and _koszt_brutto_szt > 0 else 0
     _zysk_color = '#beee00' if _zysk_szt >= 0 else '#ef4444'
 
     # Convert p to object-like dict for template dot-access
@@ -3990,8 +3993,10 @@ def paleta_detail_by_id(paleta_id):
     if netto > brutto and brutto > 0:
         netto, brutto = brutto, netto
     
-    allegro = stats['allegro_all'] or 0  # Potencjalny przychód ze WSZYSTKICH produktów
-    zysk = allegro - brutto - (allegro * 0.11)
+    allegro = stats['allegro_all'] or 0  # Potencjalny przychód ze WSZYSTKICH produktów (brutto)
+    # Zysk liczymy jak kalkulator marzy: przychod NETTO (bez VAT) - koszt brutto - prowizja od NETTO
+    allegro_netto = allegro / 1.23 if allegro > 0 else 0
+    zysk = allegro_netto - brutto - (allegro_netto * 0.11)
     
     # Użyj ilosc_sztuk z palety jeśli jest, w przeciwnym razie z produktów
     sztuki_display = ilosc_sztuk_paleta if ilosc_sztuk_paleta > 0 else (stats['items'] or 0)

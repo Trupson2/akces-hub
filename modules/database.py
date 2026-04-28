@@ -1239,14 +1239,24 @@ def get_full_stats():
 
         # COGS = koszt sprzedanych produktów w tym miesiącu
         # Dla każdej sprzedaży: koszt = paleta.cena_zakupu / ilość_sztuk_z_palety
+        # ZWROT: razem z COGS pobieramy też przychod_z_cogs, zeby moc doszacowac
+        # koszt dla sprzedazy bez produkt_id (Allegro synced bez powiazania)
         cogs_row = conn.execute('''
-            SELECT COALESCE(SUM(
+            SELECT
+              COALESCE(SUM(
                 CASE
                     WHEN pal.cena_zakupu > 0 AND pal_total.total_szt > 0
                     THEN (pal.cena_zakupu / pal_total.total_szt) * s.ilosc
                     ELSE 0
                 END
-            ), 0) as cogs
+              ), 0) as cogs,
+              COALESCE(SUM(
+                CASE
+                    WHEN pal.cena_zakupu > 0 AND pal_total.total_szt > 0
+                    THEN s.cena * s.ilosc
+                    ELSE 0
+                END
+              ), 0) as przychod_powiazany
             FROM sprzedaze s
             LEFT JOIN produkty p ON s.produkt_id = p.id
             LEFT JOIN palety pal ON p.paleta_id = pal.id
@@ -1265,19 +1275,42 @@ def get_full_stats():
             WHERE date(s.data_sprzedazy) >= ?
             AND s.status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (s.kupujacy IS NULL OR s.kupujacy != 'offline')
         ''', (month_start,)).fetchone()
-        cogs_miesiac = cogs_row['cogs'] or 0
+        cogs_powiazany = cogs_row['cogs'] or 0
+        przychod_powiazany = cogs_row['przychod_powiazany'] or 0
+        przychod_total_msc = stats.get('sprzedaz_miesiac_suma', 0) or 0
 
-        # Jeśli COGS = 0 (brak powiązań produkt→paleta), fallback na koszt palet
-        # To zabezpieczenie na wypadek gdy sprzedaże nie mają produkt_id
+        # Doszacowanie kosztu dla sprzedazy bez produkt_id:
+        # ratio = COGS_powiazany / przychod_powiazany  (sredni stosunek koszt/przychod)
+        # cogs_dosacowany = (przychod_total - przychod_powiazany) * ratio
+        if przychod_powiazany > 0 and przychod_total_msc > przychod_powiazany:
+            ratio_kosztu = cogs_powiazany / przychod_powiazany
+            przychod_bez_powiazania = przychod_total_msc - przychod_powiazany
+            cogs_dosacowany = przychod_bez_powiazania * ratio_kosztu
+        else:
+            cogs_dosacowany = 0
+
+        cogs_miesiac = cogs_powiazany + cogs_dosacowany
+
+        # Fallback gdy w ogole nie ma COGS (zadne sprzedaze nie maja produkt_id z paleta)
         if cogs_miesiac > 0:
             koszt_sprzedanych = cogs_miesiac
         else:
-            koszt_sprzedanych = koszt_palet_msc  # fallback
+            koszt_sprzedanych = koszt_palet_msc  # fallback na koszt palet kupionych w msc
+
+        # Statystyki diagnostyczne — pokazuja jaka czesc sprzedazy ma realne COGS
+        stats['cogs_powiazany_msc'] = cogs_powiazany
+        stats['cogs_dosacowany_msc'] = cogs_dosacowany
+        stats['przychod_powiazany_msc'] = przychod_powiazany
+        stats['cogs_pokrycie_pct'] = round(przychod_powiazany / przychod_total_msc * 100) if przychod_total_msc > 0 else 0
 
         # sprzedaz_miesiac_suma już wyklucza zwroty (status NOT IN 'zwrot')
-        przychod_po_zwrotach = stats['sprzedaz_miesiac_suma']
-        prowizja_msc = przychod_po_zwrotach * 0.11
-        stats['zysk_miesiac'] = przychod_po_zwrotach - koszt_sprzedanych - prowizja_msc
+        # Zysk liczymy jak kalkulator marzy: przychod NETTO (bez VAT 23%) - koszt brutto - prowizja od NETTO
+        przychod_po_zwrotach = stats['sprzedaz_miesiac_suma']  # brutto z Allegro
+        przychod_netto_msc = przychod_po_zwrotach / 1.23 if przychod_po_zwrotach > 0 else 0
+        prowizja_msc = przychod_netto_msc * 0.11
+        stats['zysk_miesiac'] = przychod_netto_msc - koszt_sprzedanych - prowizja_msc
+        stats['przychod_netto_msc'] = przychod_netto_msc
+        stats['prowizja_msc'] = prowizja_msc
         stats['koszt_sprzedanych_msc'] = koszt_sprzedanych
         stats['cogs_miesiac'] = cogs_miesiac
         stats['koszt_palet_msc'] = koszt_palet_msc  # do porównania
