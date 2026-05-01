@@ -1,7 +1,71 @@
 # Historia zmian (auto-generated)
 
+## 28.04.2026
+
+- fix(mass-edit): odfiltruj "dla siebie" z bezposredniego wystawiania z palety
+- fix(przyjecie): markDlaSiebie z data-attributes zamiast krchych selektorow
+- fix(przyjecie): natychmiastowe oznaczenie "Dla siebie" + liczy sie jako ocenione
+- feat(dla_siebie): przycisk w ekranie oceniania palety + zakladka filtra na liscie
+- fix(stock): przerzuc sprzedaz na inna palete gdy oryginalny produkt pusty
+- fix(zysk): bug w SQL - WHERE wykluczalo 'allegro' zanim CASE go zlapal
+- fix(zysk): zsynchronizuj prowizje Allegro miedzy dashboardem a tax settlement
+- fix(kategorie): Material Symbols spany w KATEGORIE_DISPLAY na emoji
+- fix(statystyki): w miesiecznym to zaliczka PIT, nie PIT (PIT-36L jest roczny)
+- feat(statystyki): rozliczenie podatkowe miesieczne (VAT + PIT) obok rocznego
+- fix(zysk+ux): dropdown emoji, import netto/brutto, koszty operacyjne w zysku
+- fix(sprzedaze): napraw duplikujace sie zamowienia + auto-backfill po syncu
+- fix(zysk): licz zysk jak kalkulator marzy + doszacuj COGS dla nieprzypisanych sprzedazy
+- feat(magazyn): flaga "dla siebie" - blokuje wystawianie na Allegro
+
+## 26.04.2026
+
+- fix(pwa): cache buster ?v=2 na ikonach ĹĽeby ominÄ…Ä‡ Cloudflare cache
+- fix(pwa): usun dynamiczny /static/icon-{192,512}.png ktory zwracal SVG
+- fix(pwa): wywal ngrok-skip-browser-warning ze wszystkich fetchy w base.html
+- fix(pwa): SW v14 - force reload otwartych kart przy aktywacji
+- fix(pwa): /manifest.json + /sw.js whitelisted we wszystkich auth middleware
+- fix(pwa): napraw install prompt - URL ikon zamiast data: URI
+- fix(pwa): dodaj manifest + SW registration do login + paletomat
+- fix(allegro): zapisuj nowe oferty jako 'draft' zamiast 'aktywna'
+
+## 23.04.2026
+
+- feat(nav): dodaj link 'Do wystawienia' w sidebarze
+- feat(magazyn): dodaj strone 'Do wystawienia' ze szkicami i niewystawionymi
+- fix(allegro): usun bullet pointy Amazona z opisu, napraw & i umlauty
+
+## 22.04.2026
+
+- fix(scraper): filtruj Amazon UI smieci z bullet points (obrazy niedostepne, rankingi, kategorie)
+- fix(sse): usun Connection:keep-alive - hop-by-hop header crashuje Waitress (PEP 3333)
+- fix(sse): napraw utracono-polaczenie w streamie Allegro (ping + try/except + waitress timeout)
+
+## 21.04.2026
+
+- fix(title-gen): wyĹ‚Ä…cz thinking mode Gemini 2.5 (thinkingBudget=0) + wiÄ™cej tokenĂłw na odpowiedĹş
+- fix(title-gen): zĹ‚Ä…cz wszystkie non-thought parts (Gemini 2.5 interleaves thinking)
+- fix(title-gen): pomiĹ„ thinking parts Gemini 2.5 (parts[0]=thought, nie odpowiedĹş)
+- fix(title-gen): uzyj Gemini zamiast Google Translate + napraw HTML w prompcie
+
+## 16.04.2026
+
+- feat(booth): sesja 1 - szkielet + mock motor control
+
 ## 15.04.2026
 
+- test(api-v1): 37 tests covering all endpoints + auth + webhooks
+- feat(api-v1): admin UI for API key management
+- feat(api-v1): OpenAPI 3.0 spec + Swagger UI docs
+- feat(api-v1): webhooks - registration + delivery worker + HMAC signatures
+- feat(api-v1): stock + pallets endpoints
+- feat(api-v1): orders CRUD + webhook trigger integration
+- feat(api-v1): products CRUD endpoints + schemas
+- feat(api-v1): DB schema - api_keys, api_usage_log, webhooks, webhook_deliveries
+- feat(api-v1): infrastructure - blueprint, auth, rate limit, response helpers
+- fix: scraper_hub / paletomat mial biale tlo zamiast dark
+- fix: sync_returns nie oznaczal zwrotow gdy zamowienie bylo z innego miesiaca
+- perf: sync_returns â€” batch UPDATE + paginacja + range filter (10-30x szybciej)
+- security(hotfix): rollback nonce z CSP headera â€” rozjebuje inline styles
 - docs: changelog 15.04 â€” Phase 1-3 security + landing + audit
 - docs: security audit 2026-04 (Phase 1-3 summary dla partnera biznesowego)
 - landing: typewriter effect + highlights section + workflow proof
@@ -43,6 +107,7 @@
 
 - fix: CSRF referer check fails through ngrok proxy (403 on /system/update)
 - security: fix rate limiting to use verified endpoint names
+- resolve CHANGELOG conflict
 - security: fix webhook bypass, apply CSV sanitization, add verification report
 - security: full production hardening - rate limiting, session fix, webhooks, encrypted backups
 - security: fix critical and high severity vulnerabilities
@@ -50,86 +115,27 @@
 - fix: replace inline onclick with data-attributes on Korekta button
 - fix: update przychod_offline on offline sale and ensure sprzedaze record
 - fix: rewrite offline sale to atomic SQL update, prevent race conditions
+- fix: add missing CSRF tokens to dynamically created JS forms (korekty, sprzedaj offline)
+
+## 11.04.2026
+
+- fix: absolute stabilization of search with manual config reading and robust parsing
+- fix: total restoration of search with unified API key helper and improved error reporting
+- fix: stabilize search with AI competition fallback and global CSRF self-healing
+- fix: implement Gemini AI search fallback and dynamic CSRF token handling
+- fix: updated scrapers with JSON/showroom logic, added auto-translation to EN, and fixed CSRF in inventory corrections
+- feat: rewrite scout_by_phrase - search Alibaba/AliExpress first, then check Allegro competition
+- fix: remove duplicate old scout_by_phrase that was overriding new web-scraping version
+- fix: replace blocked /offers/listing API with web scraping + fix Service Worker caching POST forms
+- feat: added diagnostic items to Winning Scout UI to show why results are empty
+- fix: relax winning scout search filters to prevent empty lists
+- feat: security hardening (XSS, Rate Limiting, Fail2Ban) and Winning Scout phrase search filters
+
+## 10.04.2026
+
+- Zoptymalizowano scraper_laptop.py pod Allegro API v2
 
 ## 07.04.2026
 
 - fix: use correct paleta_koszt_szt for profit calculation in Smart Insights
-- feat: add Smart Insights page and automated Telegram alerts
-- feat: add filter buttons on pallet detail (aktywne/szkice/niewystawione/w magazynie)
-- feat: show real Allegro offer status on pallet detail page
-- fix: improve bundle matching with complementary categories and keywords
-- feat: cross-pallet stock count in Telegram sale notifications
-
-## 06.04.2026
-
-- feat: add dedicated Zestawy Allegro page for bundle suggestions
-- feat: add stock column to Allegro Performance and bundle suggestions to product detail
-- fix: filter Amazon cross-selling and store promo from bullet points
-- fix: expand Allegro banned phrases filter for descriptions
-
-## 05.04.2026
-
-- fix: translate English/German titles to Polish before formatting
-- feat: use Google Translate instead of Gemini for product titles
-- fix: edit form shows pallet cost instead of Amazon price for BRUTTO/SZT
-- fix: filter Amazon junk from bullet points before description generation
-- fix: filter Amazon marketing junk from bullet points
-- feat: replace Gemini with programmatic SEO title generation
-- fix: brand at end of title, strip quantities (szt/pack)
-- fix: skip translation for already-Polish Amazon titles
-- feat: auto-scrape Amazon (BS4) when name too short in Regeneruj
-- feat: use BeautifulSoup for Amazon title/bullet scraping
-- fix: strip commas from generated SEO titles
-- fix: use optimize_title_seo as fallback instead of raw nazwa
-- fix: strip ASIN from input before Gemini, remove broken title fallback
-- fix: remove ASIN codes from generated SEO titles
-- fix: improve SEO title generation - inject bullet_points/ASIN into prompt (#114)
-- fix: improve SEO title generation - inject bullet_points/ASIN into prompt
-
-## 03.04.2026
-
-- fix: PhonkBot dashboard opens in same window (kiosk friendly)
-- fix: disable old kiosk.css overrides in kiosk_home.html
-- fix: kiosk fullscreen - override .container max-width:1400px
-- fix: PhonkBot links use dynamic hostname instead of localhost
-- fix: force Gemini to rewrite bullet points, not copy/translate them
-- fix: replace broken emoji placeholders with real emoji
-- fix: batch meta title - skip stale tytul_seo, always use Gemini AI
-- fix: remove fast path in meta title - always use Gemini AI
-
-## 02.04.2026
-
-- fix: kiosk on Pi IP 192.168.100.200 + localhost
-- cleanup: remove kiosk debug logging
-- debug: log kiosk detection - remote, xff, pi_screen
-- fix: kiosk only when accessed from Pi localhost, not remote
-- fix: kiosk only on Pi (Linux ARM) or ?kiosk=1, desktop/mobile get home.html
-- feat: mobile gets home.html, desktop/Pi gets kiosk_home.html
-- fix: kiosk 40px side padding + full width header
-- fix: kiosk full width - calc(100vw - 250px sidebar)
-- fix: kiosk left padding 260px to clear 250px sidebar
-- fix: kiosk padding - keep left space for sidebar, expand right
-- fix: restore kiosk base.html extends + fullscreen content override
-- feat: kiosk fullscreen - standalone layout, no sidebar, wider grid
-- feat: kiosk_home.html as default dashboard after login
-- fix: add /dashboard route + fix all redirects for launcher flow
-- feat: PhonkBot kiosk widget + launcher + proxy routes
-
-## 01.04.2026
-
-- fix: restock alert uses listing date not inventory date (#113)
-- fix: batch dedup for Allegro listings, show total order price, stabilize ngrok (#112)
-
-## 31.03.2026
-
-- feat: winning products â€” badge NOWE + sortowanie po dacie
-- fix: PWA offline â†’ przekierowanie na ngrok URL
-- fix: ngrok start/stop cross-platform + token z env
-- feat: marĹĽa na rÄ™kÄ™ po VAT 23% + PIT liniowy 19%
-- fix: marĹĽa netto % liczona od koszt_palet_msc zamiast COGS
-- feat: marĹĽa netto % na dashboardzie w kaflu Zysk
-- fix: ujednolicenie przychodu w dashboardzie â€” jedna baza dla przychod/prowizja/zysk
-- fix: grupowanie po ASIN+stan + poprawna suma ilosci w streamie
-- feat: parametr Stan (11323) + dedup per condition
-- fix: extract_parameters_with_ai - REST API zamiast SDK google.generativeai
 

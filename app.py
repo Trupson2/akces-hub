@@ -184,7 +184,82 @@ def _generate_changelog():
     except Exception:
         pass
 
-_generate_changelog()
+# PERF: changelog odpalamy w tle — git log moze trwac kilka s, nie blokuj startu
+import threading as _threading_init
+_threading_init.Thread(target=_generate_changelog, daemon=True).start()
+
+# ── Asynchroniczny git fetch + porownanie z origin (uzywany przez /dashboard) ──
+def _git_update_check_async():
+    """Background: git fetch + porownaj HEAD z origin, zapisz w cache.
+    Nigdy nie blokuje route'a — odpalany w threadzie."""
+    try:
+        import subprocess as _sp
+        from modules.database import get_config, set_config
+        _app_dir = os.path.dirname(os.path.abspath(__file__))
+        if not os.path.isdir(os.path.join(_app_dir, '.git')):
+            return
+        _cur_branch = _sp.run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+                              capture_output=True, text=True, timeout=5,
+                              cwd=_app_dir).stdout.strip() or 'main'
+        _sp.run(['git', 'fetch', 'origin', _cur_branch, '--quiet'],
+                capture_output=True, timeout=15, cwd=_app_dir)
+        local = _sp.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, timeout=5,
+                        cwd=_app_dir).stdout.strip()
+        remote = _sp.run(['git', 'rev-parse', f'origin/{_cur_branch}'], capture_output=True, text=True, timeout=5,
+                         cwd=_app_dir).stdout.strip()
+        has_update = local != remote
+        remote_msg = ''
+        remote_hash = ''
+        if has_update:
+            r = _sp.run(['git', 'log', f'HEAD..origin/{_cur_branch}', '--pretty=format:%h - %s', '--reverse'],
+                        capture_output=True, text=True, timeout=5, cwd=_app_dir)
+            remote_msg = r.stdout.strip()[:300] if r.returncode == 0 else ''
+            rh = _sp.run(['git', 'rev-parse', '--short', f'origin/{_cur_branch}'],
+                         capture_output=True, text=True, timeout=5, cwd=_app_dir)
+            remote_hash = rh.stdout.strip() if rh.returncode == 0 else ''
+        cache_raw = get_config('update_check_cache', '')
+        try:
+            old_cache = json.loads(cache_raw) if cache_raw else {}
+        except Exception:
+            old_cache = {}
+        cache = {
+            'checked_at': time.time(),
+            'has_update': has_update,
+            'remote_msg': remote_msg,
+            'remote_hash': remote_hash,
+            'local_hash': local[:7],
+            'notified': old_cache.get('notified', False) if has_update else False,
+        }
+        set_config('update_check_cache', json.dumps(cache))
+        # TG notify (raz)
+        if has_update and not cache.get('notified'):
+            try:
+                bot_token = get_config('telegram_bot_token', '')
+                chat_id = get_config('telegram_chat_id', '')
+                if bot_token and chat_id:
+                    import requests as _req
+                    text = (
+                        f"Dostepna aktualizacja!\n\n"
+                        f"Nowa wersja: {remote_hash}\n"
+                        f"Zmiany:\n{remote_msg[:200]}\n\n"
+                        f"Wejdz na dashboard i kliknij Aktualizuj"
+                    )
+                    _req.post(
+                        f'https://api.telegram.org/bot{bot_token}/sendMessage',
+                        json={'chat_id': chat_id, 'text': text},
+                        timeout=5
+                    )
+                    cache['notified'] = True
+                    set_config('update_check_cache', json.dumps(cache))
+            except Exception:
+                pass
+    except Exception:
+        pass
+    finally:
+        try:
+            home._git_check_running = False
+        except Exception:
+            pass
 
 # Session cookie security
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -1988,62 +2063,11 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
         cache = json.loads(cache_raw) if cache_raw else {}
         cache_age = time.time() - cache.get('checked_at', 0)
 
-        if cache_age > 900:  # co 15 min sprawdzaj
-            # Wykryj aktualny branch i porównaj z jego remote tracking
-            _cur_branch = _sp.run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
-                                  capture_output=True, text=True, timeout=5,
-                                  cwd=_app_dir).stdout.strip() or 'main'
-            _sp.run(['git', 'fetch', 'origin', _cur_branch, '--quiet'],
-                    capture_output=True, timeout=15, cwd=_app_dir)
-
-            local = _sp.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, timeout=5,
-                            cwd=_app_dir).stdout.strip()
-            remote = _sp.run(['git', 'rev-parse', f'origin/{_cur_branch}'], capture_output=True, text=True, timeout=5,
-                             cwd=_app_dir).stdout.strip()
-
-            has_update = local != remote
-            remote_msg = ''
-            remote_hash = ''
-            if has_update:
-                r = _sp.run(['git', 'log', f'HEAD..origin/{_cur_branch}', '--pretty=format:%h — %s', '--reverse'],
-                            capture_output=True, text=True, timeout=5, cwd=_app_dir)
-                remote_msg = r.stdout.strip()[:300] if r.returncode == 0 else ''
-                rh = _sp.run(['git', 'rev-parse', '--short', f'origin/{_cur_branch}'],
-                             capture_output=True, text=True, timeout=5, cwd=_app_dir)
-                remote_hash = rh.stdout.strip() if rh.returncode == 0 else ''
-
-            cache = {
-                'checked_at': time.time(),
-                'has_update': has_update,
-                'remote_msg': remote_msg,
-                'remote_hash': remote_hash,
-                'local_hash': local[:7],
-                'notified': cache.get('notified', False) if has_update else False
-            }
-            set_config('update_check_cache', json.dumps(cache))
-
-            # Wyślij TG powiadomienie o nowej wersji (raz)
-            if has_update and not cache.get('notified'):
-                try:
-                    bot_token = get_config('telegram_bot_token', '')
-                    chat_id = get_config('telegram_chat_id', '')
-                    if bot_token and chat_id:
-                        import requests as _req
-                        text = (
-                            f"\U0001F4E2 *Dost\u0119pna aktualizacja {get_config_cached('brand_name', 'AKCES HUB')}!*\n\n"
-                            f"\U0001F4E6 Nowa wersja: `{remote_hash}`\n"
-                            f"\U0001F4DD Zmiany:\n{remote_msg[:200]}\n\n"
-                            f"\U0001F4A1 Wejd\u017A na dashboard i kliknij *Aktualizuj*"
-                        )
-                        _req.post(
-                            f'https://api.telegram.org/bot{bot_token}/sendMessage',
-                            json={'chat_id': chat_id, 'text': text, 'parse_mode': 'Markdown'},
-                            timeout=5
-                        )
-                        cache['notified'] = True
-                        set_config('update_check_cache', json.dumps(cache))
-                except:
-                    pass
+        # PERF: NIGDY nie wywoluj git fetch synchronicznie w route - blokowal dashboard do 15s.
+        # Cache stary -> odpal background refresh i zwroc to co jest.
+        if cache_age > 900 and not getattr(home, '_git_check_running', False):
+            home._git_check_running = True
+            threading.Thread(target=_git_update_check_async, daemon=True).start()
 
         update_status = {
             'has_update': cache.get('has_update', False),
@@ -7063,13 +7087,18 @@ if __name__ == '__main__':
     log("Baza danych OK")
     print_banner()
 
-    # Jednorazowe migracje
-    from modules.database import migrate_reset_fake_data_wystawienia, fix_product_status_integrity
-    migrate_reset_fake_data_wystawienia()
-
-    # Naprawa integralności statusów produktów
-    log("Sprawdzam integralnosc danych...")
-    fix_product_status_integrity()
+    # Jednorazowe migracje + naprawa integralnosci — W TLE
+    # PERF: fix_product_status_integrity() robi REINDEX (rebuild wszystkich indeksow),
+    # to bywa wolne. Migracja moze zostac w tle - nie blokujemy startu serwera.
+    def _migrations_async():
+        try:
+            from modules.database import migrate_reset_fake_data_wystawienia, fix_product_status_integrity
+            migrate_reset_fake_data_wystawienia()
+            fix_product_status_integrity()
+            log("Integralnosc danych OK (background)")
+        except Exception as e:
+            log_warning(f"Migracje async - blad: {e}")
+    threading.Thread(target=_migrations_async, daemon=True).start()
 
     # Uruchom daemon'y w tle
     log("Uruchamiam daemon'y...")
@@ -7105,15 +7134,18 @@ if __name__ == '__main__':
         log_warning(f"Warehouse heatmap init error: {e}")
     
     # Automatyczne czyszczenie starych zdjęć (starsze niż 7 dni)
-    try:
-        from modules.allegro_api import cleanup_old_images, get_images_stats
-        deleted = cleanup_old_images(days=7)
-        stats = get_images_stats()
-        if deleted > 0:
-            log(f"Wyczyszczono {deleted} starych zdjec")
-        log(f"Folder zdjec: {stats['count']} plikow ({stats['size_mb']} MB)")
-    except Exception as e:
-        log_warning(f"Czyszczenie zdjec: {e}")
+    # PERF: leci w tle — skanowanie folderu zdjec moze trwac sekundy na duzych instalacjach
+    def _cleanup_images_async():
+        try:
+            from modules.allegro_api import cleanup_old_images, get_images_stats
+            deleted = cleanup_old_images(days=7)
+            stats = get_images_stats()
+            if deleted > 0:
+                log(f"Wyczyszczono {deleted} starych zdjec")
+            log(f"Folder zdjec: {stats['count']} plikow ({stats['size_mb']} MB)")
+        except Exception as e:
+            log_warning(f"Czyszczenie zdjec: {e}")
+    threading.Thread(target=_cleanup_images_async, daemon=True).start()
     
     # Start Telegram bota w tle (raport dzienny + auto-monitoring zamówień)
     try:
@@ -7133,8 +7165,8 @@ if __name__ == '__main__':
             except Exception as e:
                 log_warning(f"Notion daily note error: {e}")
 
-        # Wygeneruj zaległą notatkę od razu na starcie (jeśli po 7:30 i nie istnieje)
-        _notion_daily()
+        # PERF: zaleglą notatkę generuj W TLE — synchronicznie wisi serwer na requeście do Notion
+        threading.Thread(target=_notion_daily, daemon=True).start()
 
         _sched.every().day.at("07:30").do(_notion_daily)
 
