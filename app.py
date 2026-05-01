@@ -2545,10 +2545,19 @@ def system_update():
         except Exception as e:
             print(f"[WARN] Pre-update backup error: {e}")
 
-        # Git pull
+        # CHANGELOG.md jest auto-generowany przy starcie -> zawsze ma lokalne zmiany.
+        # Discardujemy je zeby git pull nie wywalal "would be overwritten by merge".
+        _app_cwd = os.path.dirname(os.path.abspath(__file__))
+        try:
+            subprocess.run(['git', 'checkout', 'HEAD', '--', 'CHANGELOG.md'],
+                           capture_output=True, text=True, timeout=10, cwd=_app_cwd)
+        except Exception:
+            pass
+
+        # Git pull (--autostash = lokalne zmiany w innych plikach stash'owane automatycznie)
         result = subprocess.run(
-            ['git', 'pull'], capture_output=True, text=True, timeout=30,
-            cwd=os.path.dirname(os.path.abspath(__file__))
+            ['git', 'pull', '--autostash'], capture_output=True, text=True, timeout=30,
+            cwd=_app_cwd
         )
         pull_output = result.stdout.strip()
         if result.returncode != 0:

@@ -1104,7 +1104,14 @@ def admin_update_git():
                 remote_url = f'https://{github_token}@github.com/{github_repo}.git'
                 subprocess.run(['git', 'remote', 'set-url', 'origin', remote_url],
                               cwd=app_dir, capture_output=True, timeout=10)
-            r = subprocess.run(['git', 'pull', '--ff-only', 'origin', 'main'],
+            # CHANGELOG.md auto-generowany przy starcie -> zawsze ma local changes,
+            # bez tego git pull wala "would be overwritten by merge".
+            try:
+                subprocess.run(['git', 'checkout', 'HEAD', '--', 'CHANGELOG.md'],
+                              cwd=app_dir, capture_output=True, timeout=10)
+            except Exception:
+                pass
+            r = subprocess.run(['git', 'pull', '--ff-only', '--autostash', 'origin', 'main'],
                               cwd=app_dir, capture_output=True, text=True, timeout=60)
             if r.returncode == 0 and 'Already up to date' not in r.stdout:
                 logs.append(f'  -> Git pull: {r.stdout.strip()}')
