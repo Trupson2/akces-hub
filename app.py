@@ -7096,18 +7096,24 @@ if __name__ == '__main__':
     log("Baza danych OK")
     print_banner()
 
-    # Jednorazowe migracje + naprawa integralnosci — W TLE
-    # PERF: fix_product_status_integrity() robi REINDEX (rebuild wszystkich indeksow),
-    # to bywa wolne. Migracja moze zostac w tle - nie blokujemy startu serwera.
-    def _migrations_async():
-        try:
-            from modules.database import migrate_reset_fake_data_wystawienia, fix_product_status_integrity
-            migrate_reset_fake_data_wystawienia()
-            fix_product_status_integrity()
-            log("Integralnosc danych OK (background)")
-        except Exception as e:
-            log_warning(f"Migracje async - blad: {e}")
-    threading.Thread(target=_migrations_async, daemon=True).start()
+    # Jednorazowe migracje + naprawa integralnosci - SYNCHRONICZNIE (sa szybkie,
+    # bez REINDEX). REINDEX wyniesiony do maintenance_reindex_if_needed() ktore
+    # leci w tle i tylko raz na 7 dni - inaczej blokowal DB i auto-sync Allegro
+    # walil "database is locked".
+    from modules.database import (
+        migrate_reset_fake_data_wystawienia,
+        fix_product_status_integrity,
+        maintenance_reindex_if_needed,
+    )
+    migrate_reset_fake_data_wystawienia()
+    log("Sprawdzam integralnosc danych...")
+    fix_product_status_integrity()
+
+    # REINDEX w tle, z opoznieniem 60s zeby auto-sync zdazyl wystartowac.
+    def _reindex_later():
+        time.sleep(60)
+        maintenance_reindex_if_needed()
+    threading.Thread(target=_reindex_later, daemon=True).start()
 
     # Uruchom daemon'y w tle
     log("Uruchamiam daemon'y...")

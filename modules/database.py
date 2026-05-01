@@ -1047,23 +1047,39 @@ def migrate_reset_fake_data_wystawienia():
         print(f"[WARN] Migracja reset wystawienia: {e}")
 
 
+def maintenance_reindex_if_needed():
+    """REINDEX trzyma exclusive lock na DB — robimy go MAX raz na 7 dni
+    i poza godzinami szczytu. Wolany w background po starcie."""
+    import time as _time
+    try:
+        last = get_config('last_reindex_ts', '0')
+        try:
+            last_ts = float(last)
+        except Exception:
+            last_ts = 0
+        if _time.time() - last_ts < 7 * 86400:
+            return  # nie czas jeszcze
+        with get_db() as conn:
+            conn.execute("REINDEX")
+            conn.commit()
+        set_config('last_reindex_ts', str(_time.time()))
+        print("  [OK] REINDEX (raz/7dni) zakonczony")
+    except Exception as e:
+        print(f"  [WARN] REINDEX: {e}")
+
+
 def fix_product_status_integrity():
     """
-    Naprawia niespójności statusów produktów:
-    1. REINDEX — naprawia uszkodzone indeksy SQLite
-    2. status='sprzedany' ale ilosc > 0 → status='magazyn'
-    3. status='magazyn'/'wystawiony' ale ilosc = 0 → status='sprzedany'
+    Naprawia niespójności statusów produktów (szybkie 2 UPDATE-y, bez REINDEX):
+    1. status='sprzedany' ale ilosc > 0 → status='magazyn'
+    2. status='magazyn'/'wystawiony' ale ilosc = 0 → status='sprzedany'
     Uruchamiane przy starcie aplikacji.
+
+    REINDEX wyniesiony do maintenance_reindex_if_needed() - blokowal DB
+    i powodowal "database is locked" w auto-sync Allegro.
     """
     try:
         with get_db() as conn:
-            # Krok 0: REINDEX naprawia uszkodzone indeksy (częsty problem z SQLite WAL)
-            try:
-                conn.execute("REINDEX")
-                conn.commit()
-            except Exception as e:
-                print(f"  [WARN] REINDEX: {e}")
-
             # 1. Produkty ze statusem 'sprzedany' ale ilosc > 0 → przywróć do magazynu
             fix1 = conn.execute('''
                 UPDATE produkty SET status = 'magazyn'
