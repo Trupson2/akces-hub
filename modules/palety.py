@@ -3356,8 +3356,8 @@ def paleta_szczegoly(paleta_id):
                    SUM(CASE WHEN status = 'wystawiony' THEN 1 ELSE 0 END) as wystawione,
                    SUM(CASE WHEN status = 'magazyn' THEN 1 ELSE 0 END) as magazyn,
                    SUM(CASE WHEN status = 'sprzedany' THEN 1 ELSE 0 END) as sprzedane_cnt,
-                   COALESCE(SUM(cena_brutto), 0) as zakup_brutto_suma,
-                   COALESCE(SUM(cena_netto), 0) as zakup_netto_suma,
+                   COALESCE(SUM(cena_brutto * ilosc), 0) as zakup_brutto_suma,
+                   COALESCE(SUM(cena_netto * ilosc), 0) as zakup_netto_suma,
                    COALESCE(SUM(sprzedano_offline), 0) as sprzedano_offline_suma,
                    COALESCE(SUM(przychod_offline), 0) as przychod_offline_suma
             FROM produkty WHERE paleta_id = ?
@@ -3373,8 +3373,8 @@ def paleta_szczegoly(paleta_id):
                    SUM(CASE WHEN status = 'wystawiony' THEN 1 ELSE 0 END) as wystawione,
                    SUM(CASE WHEN status = 'magazyn' THEN 1 ELSE 0 END) as magazyn,
                    SUM(CASE WHEN status = 'sprzedany' THEN 1 ELSE 0 END) as sprzedane_cnt,
-                   COALESCE(SUM(cena_brutto), 0) as zakup_brutto_suma,
-                   COALESCE(SUM(cena_netto), 0) as zakup_netto_suma,
+                   COALESCE(SUM(cena_brutto * ilosc), 0) as zakup_brutto_suma,
+                   COALESCE(SUM(cena_netto * ilosc), 0) as zakup_netto_suma,
                    0 as sprzedano_offline_suma,
                    0 as przychod_offline_suma
             FROM produkty WHERE paleta_id = ?

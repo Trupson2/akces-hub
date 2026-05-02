@@ -21,6 +21,30 @@ from .title_generator_ai import generate_allegro_title_ai
 paletomat_bp = Blueprint('paletomat', __name__)
 
 
+def _resolve_initial_name(conn, asin, ean=None):
+    """Zwraca nazwe dla nowo wstawianego produktu.
+
+    Jezeli ASIN byl juz raz scrapeowany (jest w tabeli `scraped` z poprawna nazwa)
+    - uzyj tej nazwy od razu, zeby uniknac placeholdera "Produkt B0...".
+    W przeciwnym razie zwroc placeholder, ktory zostanie podmieniony pozniej
+    przez auto-sync na widoku palety albo przycisk "Popraw nazwy".
+    """
+    if not asin:
+        return f'Produkt {ean or "?"}'
+    try:
+        r = conn.execute(
+            "SELECT nazwa FROM scraped WHERE UPPER(asin) = UPPER(?) "
+            "AND nazwa IS NOT NULL AND nazwa != '' AND nazwa NOT LIKE 'Produkt %' "
+            "LIMIT 1",
+            (asin,)
+        ).fetchone()
+        if r and r['nazwa']:
+            return r['nazwa']
+    except Exception:
+        pass
+    return f'Produkt {asin}'
+
+
 def _ensure_local_images(wszystkie_zdjecia, asin, zdjecie_url=''):
     """
     Sprawdza czy lokalne ścieżki zdjęć istnieją.
@@ -1680,9 +1704,10 @@ def scraper_miglo():
             # Szukaj produktu TYLKO w tej samej palecie (nie nadpisuj produktu z innej palety!)
             existing = conn.execute('SELECT id, ean FROM produkty WHERE asin = ? AND paleta_id = ?', (asin, paleta_id)).fetchone()
             if not existing:
-                conn.execute('''INSERT INTO produkty (asin, nazwa, ilosc, cena_netto, cena_brutto, cena_allegro, paleta_id, paleta, dostawca, zdjecie_url, stan) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
-                    (asin, f'Produkt {asin}', qty, cena_netto, cena_brutto, cena_allegro, paleta_id, paleta_nazwa, dostawca, get_amazon_image_url(asin), 'Nowy'))
+                _initial_name = _resolve_initial_name(conn, asin)
+                conn.execute('''INSERT INTO produkty (asin, nazwa, ilosc, cena_netto, cena_brutto, cena_allegro, paleta_id, paleta, dostawca, zdjecie_url, stan)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (asin, _initial_name, qty, cena_netto, cena_brutto, cena_allegro, paleta_id, paleta_nazwa, dostawca, get_amazon_image_url(asin), 'Nowy'))
             else:
                 # Aktualizuj - tylko w tej palecie - SUMUJ ilość (ten sam ASIN może być w wielu wierszach)
                 conn.execute('UPDATE produkty SET cena_netto = ?, cena_brutto = ?, cena_allegro = ?, ilosc = ilosc + ?, paleta = ?, dostawca = ? WHERE id = ?',
@@ -1838,9 +1863,10 @@ def scraper_asin():
             existing = conn.execute('SELECT id FROM produkty WHERE asin = ? AND paleta_id = ?', (asin, paleta_id)).fetchone()
             if not existing:
                     # Nowy produkt w tej palecie — INSERT
+                    _initial_name = _resolve_initial_name(conn, asin)
                     conn.execute('''INSERT INTO produkty (asin, nazwa, ilosc, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta, dostawca, zdjecie_url, stan)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                        (asin, f'Produkt {asin}', qty, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta_nazwa, dostawca, get_amazon_image_url(asin), 'Nowy'))
+                        (asin, _initial_name, qty, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta_nazwa, dostawca, get_amazon_image_url(asin), 'Nowy'))
             else:
                 # Zaktualizuj paletę, dostawcę, cenę i ilość - WHERE id = ? (tylko ten konkretny rekord)
                 if cena_brutto > 0:
@@ -2316,18 +2342,19 @@ def scraper_file():
                 existing = conn.execute('SELECT id, ean FROM produkty WHERE asin = ? AND paleta_id = ?', (asin, paleta_id)).fetchone()
                 if not existing:
                     print(f"➕ Nowy produkt: {asin}, paleta_id={paleta_id}, ean={ean or 'brak'}, ilość={qty}, cena_jedn={cena_brutto}, cena_allegro={cena_allegro}, zdjęć={len(images_from_file)}")
+                    _initial_name = _resolve_initial_name(conn, asin, ean)
                     try:
                         # Próbuj z kolumną images
                         # WAŻNE: zapisujemy ceny JEDNOSTKOWE (cena_brutto, cena_netto), nie całkowite!
-                        conn.execute('''INSERT INTO produkty (asin, ean, nazwa, ilosc, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta, dostawca, zdjecie_url, images) 
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
-                            (asin, ean, f'Produkt {asin}', qty, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta_nazwa, dostawca, 
+                        conn.execute('''INSERT INTO produkty (asin, ean, nazwa, ilosc, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta, dostawca, zdjecie_url, images)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                            (asin, ean, _initial_name, qty, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta_nazwa, dostawca,
                              images_from_file[0] if images_from_file else get_amazon_image_url(asin), images_json))
                     except Exception:
                         # Fallback bez kolumny images (starsza baza)
-                        conn.execute('''INSERT INTO produkty (asin, ean, nazwa, ilosc, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta, dostawca, zdjecie_url) 
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
-                            (asin, ean, f'Produkt {asin}', qty, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta_nazwa, dostawca, 
+                        conn.execute('''INSERT INTO produkty (asin, ean, nazwa, ilosc, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta, dostawca, zdjecie_url)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                            (asin, ean, _initial_name, qty, cena_brutto, cena_netto, cena_allegro, paleta_id, paleta_nazwa, dostawca,
                              images_from_file[0] if images_from_file else get_amazon_image_url(asin)))
                     added += 1
                 else:
@@ -2603,6 +2630,117 @@ def rescrape_all_fallback():
         flash(f'Błąd synchronizacji: {str(e)}', 'error')
 
     return redirect(request.referrer or '/paletomat')
+
+
+@paletomat_bp.route('/api/rescrape-names-stream/paleta/<int:paleta_id>', methods=['POST'])
+def api_rescrape_names_paleta_stream(paleta_id):
+    """Streamuje proces podmiany placeholder nazw 'Produkt B0...' na realne nazwy z Amazon.
+
+    Strategia 2-fazowa:
+      1) Sync z tabeli `scraped` (jeden UPDATE) - tani, dziala dla ASIN-ow
+         juz raz scrapeowanych gdzie indziej.
+      2) Dla ASIN-ow ktorych nie ma w `scraped` - wywolaj scrape_amazon_product
+         i zapisz do produkty + scraped. Po kazdym produkcie wysyla event SSE.
+    """
+    def generate():
+        conn = get_db()
+
+        # Faza 1: sync z scraped (zlap to co juz mamy)
+        synced = 0
+        try:
+            cur = conn.execute('''
+                UPDATE produkty
+                SET nazwa = (SELECT s.nazwa FROM scraped s WHERE UPPER(s.asin) = UPPER(produkty.asin))
+                WHERE paleta_id = ?
+                  AND asin IS NOT NULL AND asin != ''
+                  AND (nazwa IS NULL OR nazwa = '' OR nazwa LIKE 'Produkt %')
+                  AND EXISTS (
+                      SELECT 1 FROM scraped s
+                      WHERE UPPER(s.asin) = UPPER(produkty.asin)
+                        AND s.nazwa IS NOT NULL AND s.nazwa != '' AND s.nazwa NOT LIKE 'Produkt %'
+                  )
+            ''', (paleta_id,))
+            synced = cur.rowcount or 0
+            conn.commit()
+        except Exception as e:
+            yield f"data: {json.dumps({'type':'error','message':f'Sync z scraped: {e}'}, ensure_ascii=False)}\n\n"
+
+        if synced > 0:
+            yield f"data: {json.dumps({'type':'sync','count':synced}, ensure_ascii=False)}\n\n"
+
+        # Faza 2: produkty z placeholder + ASIN-em ktorych dalej nie ma w scraped
+        produkty = conn.execute('''
+            SELECT id, asin, nazwa
+            FROM produkty
+            WHERE paleta_id = ?
+              AND asin IS NOT NULL AND asin != ''
+              AND (nazwa IS NULL OR nazwa = '' OR nazwa LIKE 'Produkt %')
+        ''', (paleta_id,)).fetchall()
+
+        total = len(produkty)
+        stats = {'type': 'done', 'total': total, 'synced': synced, 'scraped': 0, 'errors': 0, 'skipped': 0}
+        processed = 0
+
+        for p in produkty:
+            processed += 1
+            asin = (p['asin'] or '').strip().upper()
+            nazwa_old = p['nazwa'] or ''
+
+            ev = {'type': 'progress', 'current': processed, 'total': total, 'asin': asin, 'old_name': nazwa_old[:50]}
+
+            # Walidacja formatu ASIN-a Amazon (musi byc B0 + 8-10 alfanum)
+            if not re.match(r'^B0[A-Z0-9]{8,10}$', asin):
+                stats['skipped'] += 1
+                ev['source'] = 'invalid_asin'
+                ev['new_name'] = None
+                yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
+                continue
+
+            try:
+                amazon_data = scrape_amazon_product(asin)
+                if not amazon_data or not amazon_data.get('title'):
+                    stats['errors'] += 1
+                    ev['source'] = 'amazon_blocked'
+                    ev['new_name'] = None
+                    yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
+                    continue
+
+                nowa_nazwa = translate_product_name(amazon_data['title'], use_ai=True)
+
+                # Zapisz do produkty (tylko placeholdery dla tego ASIN-a w tej palecie)
+                conn.execute('''
+                    UPDATE produkty SET nazwa = ?
+                    WHERE paleta_id = ? AND UPPER(asin) = ?
+                      AND (nazwa IS NULL OR nazwa = '' OR nazwa LIKE 'Produkt %')
+                ''', (nowa_nazwa, paleta_id, asin))
+
+                # Zapisz tez do scraped zeby inne palety mogly skorzystac
+                conn.execute('''
+                    INSERT INTO scraped (asin, nazwa, status) VALUES (?, ?, 'nowy')
+                    ON CONFLICT(asin) DO UPDATE SET nazwa = excluded.nazwa
+                ''', (asin, nowa_nazwa))
+                conn.commit()
+
+                stats['scraped'] += 1
+                ev['source'] = 'amazon'
+                ev['new_name'] = nowa_nazwa[:60]
+                yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
+
+            except Exception as e:
+                stats['errors'] += 1
+                ev['source'] = 'error'
+                ev['new_name'] = None
+                ev['error'] = str(e)[:80]
+                yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
+
+        yield f"data: {json.dumps(stats, ensure_ascii=False)}\n\n"
+
+    return Response(
+        generate(),
+        mimetype='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    )
+
 
 @paletomat_bp.route('/generator')
 def generator():

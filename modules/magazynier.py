@@ -3978,7 +3978,27 @@ def paleta_detail_by_id(paleta_id):
     """Szczegóły palety po ID (bezpieczniejsze niż po nazwie)"""
     from urllib.parse import quote
     conn = get_db()
-    
+
+    # Auto-sync: jezeli ten sam ASIN byl scrapeowany gdzie indziej (np. w generatorze)
+    # podmien placeholder "Produkt B0..." na prawdziwa nazwe z tabeli scraped.
+    # Tani UPDATE - dziala tylko dla produktow tej palety, 0 wierszy = 0 kosztu.
+    try:
+        conn.execute('''
+            UPDATE produkty
+            SET nazwa = (SELECT s.nazwa FROM scraped s WHERE UPPER(s.asin) = UPPER(produkty.asin))
+            WHERE paleta_id = ?
+              AND asin IS NOT NULL AND asin != ''
+              AND (nazwa IS NULL OR nazwa = '' OR nazwa LIKE 'Produkt %')
+              AND EXISTS (
+                  SELECT 1 FROM scraped s
+                  WHERE UPPER(s.asin) = UPPER(produkty.asin)
+                    AND s.nazwa IS NOT NULL AND s.nazwa != '' AND s.nazwa NOT LIKE 'Produkt %'
+              )
+        ''', (paleta_id,))
+        conn.commit()
+    except Exception:
+        pass
+
     # Pobierz dane palety z ceną zakupu
     try:
         paleta_row = conn.execute('SELECT nazwa, dostawca, regal, ilosc_sztuk, cena_zakupu, cena_zakupu_netto, COALESCE(dostarczona, 0) as dostarczona FROM palety WHERE id = ?', (paleta_id,)).fetchone()
@@ -4029,11 +4049,13 @@ def paleta_detail_by_id(paleta_id):
         pass
 
     # Statystyki palety
+    # UWAGA: cena_brutto/cena_netto sa per-sztuka (jednostkowe), wiec mnozymy x ilosc
+    # zeby dostac realna sume kosztu (a nie tylko sume cen jednostkowych SKU).
     stats = conn.execute('''
-        SELECT COUNT(*) as cnt, SUM(ilosc) as items, 
+        SELECT COUNT(*) as cnt, SUM(ilosc) as items,
                SUM(CASE WHEN status IN ('wystawiony', 'szkic') THEN cena_allegro*ilosc ELSE 0 END) as allegro,
                SUM(cena_allegro * ilosc) as allegro_all,
-               SUM(cena_brutto) as suma_produktow_brutto
+               SUM(cena_brutto * ilosc) as suma_produktow_brutto
         FROM produkty WHERE paleta_id = ?
     ''', (paleta_id,)).fetchone()
     
@@ -4213,11 +4235,20 @@ def paleta_detail_by_id(paleta_id):
     </div>
     '''
     
+    # Policz placeholdery (nazwa = "Produkt B0..." lub pusta + ASIN niepusty)
+    placeholder_cnt = sum(
+        1 for p in products
+        if (p['asin'] or '').strip()
+        and (not p['nazwa'] or (p['nazwa'] or '').startswith('Produkt '))
+    )
+
     # Przyciski akcji na palecie
     html += '<div style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap">'
     html += f'<a href="/palety/{paleta_id}/mass-edit" class="btn" style="background:var(--purple);flex:1"><span class=material-symbols-outlined>shopping_cart</span> Wystaw bezpośrednio</a>'
     html += f'<a href="/magazyn/paleta-id/{paleta_id}/to-paletomat" class="btn btn-ok" style="flex:1"><span class=material-symbols-outlined>sync</span> PALETOMAT (scrapuj)</a>'
     html += f'<button onclick="autoWycenaPaleta({paleta_id})" class="btn" style="background:#f59e0b;flex:1"><span class=material-symbols-outlined>paid</span> Auto-wycena</button>'
+    if placeholder_cnt > 0:
+        html += f'<button onclick="poprawNazwyPaleta({paleta_id})" class="btn" style="background:#8b5cf6;flex:1"><span class=material-symbols-outlined>auto_fix_high</span> Popraw nazwy ({placeholder_cnt})</button>'
     html += '</div>'
     
     # Script dla Auto-wyceny (streamowane)
@@ -4285,9 +4316,79 @@ def paleta_detail_by_id(paleta_id):
         btn.disabled = false;
         btn.innerHTML = '<span class=material-symbols-outlined>paid</span> Auto-wycena';
     }
+
+    async function poprawNazwyPaleta(paletaId) {
+        const btn = event.target.closest('button');
+        const orgHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '⟳ Pobieranie nazw...';
+
+        let progressDiv = document.getElementById('rescrape-names-progress');
+        if (!progressDiv) {
+            progressDiv = document.createElement('div');
+            progressDiv.id = 'rescrape-names-progress';
+            progressDiv.style.cssText = 'background:#1a1a2e;border:1px solid #8b5cf6;border-radius:8px;padding:12px;margin:10px 0;font-size:13px;max-height:300px;overflow-y:auto';
+            btn.parentNode.after(progressDiv);
+        }
+        progressDiv.style.display = 'block';
+        progressDiv.innerHTML = '<b><span class=material-symbols-outlined>auto_fix_high</span> Naprawianie nazw...</b><br>';
+
+        try {
+            const resp = await fetch('/paletomat/api/rescrape-names-stream/paleta/' + paletaId, {method: 'POST'});
+            const reader = resp.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let stats = {synced:0, scraped:0, errors:0, skipped:0, total:0};
+
+            while (true) {
+                const {done, value} = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, {stream: true});
+                const lines = buffer.split('\\n');
+                buffer = lines.pop();
+
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    try {
+                        const ev = JSON.parse(line.slice(6));
+                        if (ev.type === 'sync') {
+                            progressDiv.innerHTML += '<span style="color:#8ff5ff">⚡ ' + ev.count + ' nazw zsynchronizowano z bazy (bez Amazon)</span><br>';
+                        } else if (ev.type === 'progress') {
+                            const pct = ev.total > 0 ? Math.round(ev.current / ev.total * 100) : 0;
+                            btn.innerHTML = '⟳ Amazon ' + pct + '% (' + ev.current + '/' + ev.total + ')';
+                            let color = '#10b981';
+                            let label = ev.new_name || '—';
+                            if (ev.source === 'invalid_asin') { color = '#f59e0b'; label = 'pominieto (zly format ASIN: ' + ev.asin + ')'; }
+                            else if (ev.source === 'amazon_blocked') { color = '#ef4444'; label = 'Amazon nie zwrocil (CAPTCHA?)'; }
+                            else if (ev.source === 'error') { color = '#ef4444'; label = 'blad: ' + (ev.error || ''); }
+                            progressDiv.innerHTML += '<span style="color:' + color + '">• ' + ev.asin + ' → ' + label + '</span><br>';
+                            progressDiv.scrollTop = progressDiv.scrollHeight;
+                        } else if (ev.type === 'done') {
+                            stats = ev;
+                        } else if (ev.type === 'error') {
+                            progressDiv.innerHTML += '<span style="color:#ef4444"><span class=material-symbols-outlined>cancel</span> ' + ev.message + '</span><br>';
+                        }
+                    } catch(e) {}
+                }
+            }
+
+            const fixed = (stats.synced || 0) + (stats.scraped || 0);
+            progressDiv.innerHTML += '<br><b style="color:#10b981"><span class=material-symbols-outlined>check_circle</span> Gotowe! Naprawione: ' + fixed + ' (' + (stats.synced||0) + ' z bazy + ' + (stats.scraped||0) + ' z Amazon), pominiete: ' + (stats.skipped||0) + ', bledy: ' + (stats.errors||0) + '</b>';
+            if (fixed > 0) {
+                setTimeout(() => location.reload(), 2500);
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = orgHtml;
+            }
+        } catch (e) {
+            progressDiv.innerHTML += '<br><b style="color:#ef4444"><span class=material-symbols-outlined>cancel</span> Blad: ' + e.message + '</b>';
+            btn.disabled = false;
+            btn.innerHTML = orgHtml;
+        }
+    }
     </script>
     '''
-    
+
     html += '<div style="font-size:0.62rem;color:#8ff5ff;font-weight:700;letter-spacing:0.12em;font-family:\'Space Grotesk\',sans-serif;text-transform:uppercase;margin-bottom:12px;margin-top:20px">Produkty</div>'
     html += '<div style="display:flex;flex-direction:column;gap:10px">'
 
