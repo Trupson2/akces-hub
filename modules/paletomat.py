@@ -1882,13 +1882,13 @@ def scraper_asin():
             added += 1
         except:
             pass
-    
+
     # Zaktualizuj ilość produktów i sztuk w palecie
     if paleta_id:
         count = conn.execute('SELECT COUNT(*) as cnt FROM produkty WHERE paleta_id = ?', (paleta_id,)).fetchone()['cnt']
         # AKUMULUJ cena_zakupu — NIE nadpisuj, dodaj do istniejącej (żeby sprzedaż nie zmniejszała kosztu palety)
         stara_cena = conn.execute('SELECT COALESCE(cena_zakupu, 0) FROM palety WHERE id = ?', (paleta_id,)).fetchone()[0]
-        nowa_cena = round(stara_cena + total_brutto, 2)
+        nowa_cena = round(stara_cena + total_value, 2)
         stary_netto = conn.execute('SELECT COALESCE(cena_zakupu_netto, 0) FROM palety WHERE id = ?', (paleta_id,)).fetchone()[0]
         nowy_netto = round(stary_netto + total_netto, 2)
         try:
