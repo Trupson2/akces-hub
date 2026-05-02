@@ -3999,6 +3999,25 @@ def paleta_detail_by_id(paleta_id):
     except Exception:
         pass
 
+    # Auto-sync EAN-ow: jezeli wczesniej scrape Amazon wyciagnal EAN ze specs
+    # (kolumna scraped.ean) - uzupelnij produkty ktore go nie maja.
+    try:
+        conn.execute('''
+            UPDATE produkty
+            SET ean = (SELECT s.ean FROM scraped s WHERE UPPER(s.asin) = UPPER(produkty.asin))
+            WHERE paleta_id = ?
+              AND asin IS NOT NULL AND asin != ''
+              AND (ean IS NULL OR ean = '' OR UPPER(ean) IN ('N/A','NAN','NONE'))
+              AND EXISTS (
+                  SELECT 1 FROM scraped s
+                  WHERE UPPER(s.asin) = UPPER(produkty.asin)
+                    AND s.ean IS NOT NULL AND s.ean != ''
+              )
+        ''', (paleta_id,))
+        conn.commit()
+    except Exception:
+        pass
+
     # Pobierz dane palety z ceną zakupu
     try:
         paleta_row = conn.execute('SELECT nazwa, dostawca, regal, ilosc_sztuk, cena_zakupu, cena_zakupu_netto, COALESCE(dostarczona, 0) as dostarczona FROM palety WHERE id = ?', (paleta_id,)).fetchone()

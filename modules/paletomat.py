@@ -21,6 +21,34 @@ from .title_generator_ai import generate_allegro_title_ai
 paletomat_bp = Blueprint('paletomat', __name__)
 
 
+def _extract_ean_from_specs(specs):
+    """Wyciaga EAN/GTIN/UPC z slownika product_specs Amazonu.
+
+    Amazon w roznych krajach uzywa roznych etykiet: 'EAN', 'GTIN', 'UPC',
+    'Numer EAN', 'EAN/UPC', 'Code-barres', 'Codigo de barras' itd.
+    Wartosc czasem ma kilka kodow oddzielonych przecinkiem - bierzemy pierwszy
+    pasujacy do formatu cyfrowego (8-14 cyfr).
+    """
+    if not specs or not isinstance(specs, dict):
+        return None
+    # Slowa kluczowe ktore sygnalizuja ze pole zawiera EAN/GTIN/UPC
+    EAN_KEYS = ('ean', 'gtin', 'upc', 'kod kreskowy', 'kod paskowy',
+                'codigo de barras', 'code-barres', 'codice a barre',
+                'streckkod', 'barcode')
+    for key, val in specs.items():
+        if not key or not val:
+            continue
+        kl = str(key).lower().strip().rstrip(':')
+        if not any(k in kl for k in EAN_KEYS):
+            continue
+        # Wyciagnij pierwszy ciag 8-14 cyfr z wartosci (czesto sa kropki/spacje)
+        for token in re.findall(r'\d[\d\s\-]{6,15}\d', str(val)):
+            digits = re.sub(r'\D', '', token)
+            if 8 <= len(digits) <= 14:
+                return digits
+    return None
+
+
 def _resolve_initial_name(conn, asin, ean=None):
     """Zwraca nazwe dla nowo wstawianego produktu.
 
@@ -415,6 +443,8 @@ def process_single_product(asin, position, total, preferred_domain=None):
         print(f"[EDIT_NOTE] Features: {len(bullet_points)}")
 
         # <span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> NATYCHMIAST zapisz nazwę do bazy (żeby nie było "Produkt B0...")
+        # Wyciagnij EAN ze specyfikacji Amazonu (jesli jest)
+        extracted_ean = _extract_ean_from_specs(product_specs)
         try:
             conn = get_db()
             # Aktualizuj produkty z placeholder nazwami
@@ -425,6 +455,22 @@ def process_single_product(asin, position, total, preferred_domain=None):
                 (zdjecie_url, asin))
             conn.execute('UPDATE scraped SET nazwa=?, kategoria=? WHERE asin=?',
                 (nazwa, kategoria, asin))
+            # Zapisz EAN do produktow ktore go nie maja (NULL/puste/N/A)
+            if extracted_ean:
+                conn.execute(
+                    "UPDATE produkty SET ean=? "
+                    "WHERE asin=? AND (ean IS NULL OR ean='' OR UPPER(ean) IN ('N/A','NAN','NONE'))",
+                    (extracted_ean, asin)
+                )
+                # Cache do scraped (kolumna ean dodana w pozniejszej migracji - moze nie istniec)
+                try:
+                    conn.execute(
+                        "UPDATE scraped SET ean=? WHERE asin=? AND (ean IS NULL OR ean='')",
+                        (extracted_ean, asin)
+                    )
+                except Exception:
+                    pass
+                print(f"[BARCODE] EAN ze specs: {extracted_ean}")
             conn.commit()
             print(f"[EDIT_NOTE] Nazwa zapisana od razu: {nazwa[:50]}")
         except Exception as e:
