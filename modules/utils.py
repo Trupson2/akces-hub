@@ -705,6 +705,55 @@ def scrape_amazon_product(asin, preferred_domain=None):
             product_specs.pop('ASIN', None)
             product_specs.pop('asin', None)
 
+            # ========== EAN/GTIN/UPC EXTRACTION ==========
+            # Amazon czesto nie wpisuje EAN-a w widocznych specach.
+            # Probujemy 3 sciezki: JSON-LD, regex w HTML, twin-finder ASINs.
+            extracted_ean = None
+
+            # Method A: JSON-LD (najbardziej wiarygodne - gdy istnieje)
+            try:
+                jsonld_blocks = re.findall(
+                    r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>',
+                    text, re.DOTALL | re.IGNORECASE
+                )
+                for blk in jsonld_blocks:
+                    for key in ('gtin13', 'gtin12', 'gtin8', 'gtin', 'gtin14', 'mpn', 'productID', 'ean', 'upc'):
+                        m = re.search(rf'"{key}"\s*:\s*"?([0-9]{{8,14}})"?', blk, re.IGNORECASE)
+                        if m:
+                            digits = re.sub(r'\D', '', m.group(1))
+                            if 8 <= len(digits) <= 14:
+                                extracted_ean = digits
+                                break
+                    if extracted_ean:
+                        break
+            except Exception:
+                pass
+
+            # Method B: regex po surowym HTML - "EAN: 5901234567890" itp.
+            if not extracted_ean:
+                try:
+                    # Wzorce w roznych jezykach Amazonu
+                    patterns = [
+                        r'(?:EAN|GTIN|UPC|EAN-?13|EAN-?8|kod\s*kreskowy|kod\s*paskowy|barcode|streckkod|c[oó]digo\s*de\s*barras|code[\s-]*barres|codice\s*a\s*barre)\s*[:.\- ]?\s*<[^>]+>\s*([\d\s.\-]{8,20})',
+                        r'(?:EAN|GTIN|UPC|EAN-?13|EAN-?8)\s*[:.\- ]?\s*([\d\s.\-]{8,20})',
+                        r'<th[^>]*>\s*(?:EAN|GTIN|UPC)[^<]*</th>\s*<td[^>]*>\s*([\d\s.\-]{8,20})',
+                    ]
+                    for pat in patterns:
+                        for raw in re.findall(pat, text, re.IGNORECASE | re.DOTALL):
+                            digits = re.sub(r'\D', '', raw)
+                            if 8 <= len(digits) <= 14:
+                                extracted_ean = digits
+                                break
+                        if extracted_ean:
+                            break
+                except Exception:
+                    pass
+
+            # Method C: jezeli udalo sie znalezc - wepnij do specs zeby helper to zlapal
+            if extracted_ean:
+                product_specs.setdefault('EAN', extracted_ean)
+                print(f"[EAN] Extracted: {extracted_ean} (z JSON-LD/HTML)")
+
             if product_specs:
                 print(f"[Specs] Extracted {len(product_specs)} specs: {list(product_specs.keys())[:5]}...")
 
