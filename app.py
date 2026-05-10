@@ -7129,14 +7129,24 @@ if __name__ == '__main__':
         log_warning(f"Backup daemon - blad: {e}")
     
     # Auto-refresh tokena Allegro
+    # FIX 2026-05-09: daemon startuje gdy sa credentials (client_id+secret),
+    # nie gdy istnieje token. Wczesniej `if token_info:` blokowal start, bo
+    # `get_token_info` szukal klucza `allegro_token_expires_at` ktory nigdy
+    # nie byl zapisany - allegro_api.py uzywa `allegro_token_expires` bez `_at`.
+    # Skutek: daemon NIGDY nie startowal w produkcji, refresh dzialal tylko
+    # lazy on-401 z `allegro_api.refresh_access_token`.
     try:
         from modules.token_refresh import start_token_refresh_daemon, get_token_info
-        token_info = get_token_info()
-        if token_info:
+        from modules.allegro_api import is_configured as _allegro_is_configured
+        if _allegro_is_configured():
             start_token_refresh_daemon()
-            log(f"Token refresh daemon uruchomiony, wygasa: {token_info['expires_at_str']}")
+            token_info = get_token_info()
+            if token_info:
+                log(f"Token refresh daemon uruchomiony, wygasa: {token_info['expires_at_str']}")
+            else:
+                log("Token refresh daemon uruchomiony (czeka na /allegro/auth - brak aktualnego tokena)")
         else:
-            log_warning("Token refresh - brak tokena Allegro")
+            log_warning("Token refresh - Allegro nie skonfigurowane (brak client_id/secret)")
     except Exception as e:
         log_warning(f"Token refresh daemon - blad: {e}")
     

@@ -15,12 +15,17 @@ CHECK_INTERVAL = 60  # Sprawdzaj co minutę czy czas refresh
 
 _refresh_daemon_running = False
 _refresh_thread = None
+# FIX 2026-05-09: licznik kolejnych porazek refresh - alert Telegram po 2x z rzedu
+_refresh_failure_count = 0
 
 def get_token_info():
     """Pobiera informacje o tokenie"""
     token = get_config('allegro_access_token', '')
-    expires_at_str = get_config('allegro_token_expires_at', '')
-    
+    # FIX 2026-05-09 BUG #1: allegro_api.py zapisuje pod kluczem
+    # `allegro_token_expires` (bez `_at`). Wczesniej szukalismy `_at`
+    # ktory nigdy nie byl zapisany - przez to daemon nigdy nie startowal.
+    expires_at_str = get_config('allegro_token_expires', '')
+
     if not token or not expires_at_str:
         return None
     
@@ -43,6 +48,7 @@ def get_token_info():
 
 def refresh_allegro_token():
     """Odświeża token Allegro używając refresh_token"""
+    global _refresh_failure_count
     try:
         print("[SYNC] Odświeżanie tokena Allegro...")
         
@@ -78,39 +84,54 @@ def refresh_allegro_token():
             
             set_config('allegro_access_token', new_access_token)
             set_config('allegro_refresh_token', new_refresh_token)
-            set_config('allegro_token_expires_at', expires_at.isoformat())
-            
+            # FIX 2026-05-09 BUG #1: synchronizacja klucza z allegro_api.py
+            set_config('allegro_token_expires', expires_at.isoformat())
+            # FIX 2026-05-09 BUG #2: jezeli Allegro dalo NOWY refresh_token
+            # (rotacja), reset 30-dniowego okna zycia. Jezeli nie, zostawiamy
+            # stary timestamp (refresh nadal 30d od ostatniej rotacji).
+            if new_refresh_token != refresh_token:
+                refresh_expires = datetime.now() + timedelta(days=30)
+                set_config('allegro_refresh_token_expires_at', refresh_expires.isoformat())
+
             print(f"[OK] Token odświeżony! Wygasa: {expires_at.strftime('%Y-%m-%d %H:%M:%S')}")
-            
+
+            # Reset licznika porazek (alert Telegram po 2x z rzedu)
+            _refresh_failure_count = 0
+
             # Wyślij powiadomienie Telegram jeśli dostępne
             try:
                 from modules.telegram_bot import send_telegram
-                send_telegram(f"<span class=material-symbols-outlined style=color:#22c55e>check_circle</span> Token Allegro odświeżony\nWygasa: {expires_at.strftime('%Y-%m-%d %H:%M')}")
+                send_telegram(f"✅ Token Allegro odświeżony\nWygasa: {expires_at.strftime('%Y-%m-%d %H:%M')}")
             except:
                 pass
-            
+
             return True
         else:
             print(f"[ERR] Błąd odświeżania tokena: {response.status_code} - {response.text}")
-            
-            # Wyślij powiadomienie o błędzie
-            try:
-                from modules.telegram_bot import send_telegram
-                send_telegram(f"<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Błąd odświeżania tokena Allegro\nKod: {response.status_code}\nMusisz zalogować się ponownie!")
-            except:
-                pass
-            
+
+            # FIX 2026-05-09: alert Telegram dopiero po 2x porazce z rzedu
+            # (jednorazowy timeout/network error nie wymaga panickowania).
+            _refresh_failure_count += 1
+            if _refresh_failure_count >= 2:
+                try:
+                    from modules.telegram_bot import send_telegram
+                    send_telegram(f"❌ Błąd odświeżania tokena Allegro (próba #{_refresh_failure_count})\nKod: {response.status_code}\nWymagane /allegro/auth")
+                except:
+                    pass
+
             return False
-            
+
     except Exception as e:
         print(f"[ERR] Wyjątek podczas odświeżania tokena: {e}")
-        
-        try:
-            from modules.telegram_bot import send_telegram
-            send_telegram(f"<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Błąd odświeżania tokena Allegro\n{str(e)}\nMusisz zalogować się ponownie!")
-        except:
-            pass
-        
+
+        _refresh_failure_count += 1
+        if _refresh_failure_count >= 2:
+            try:
+                from modules.telegram_bot import send_telegram
+                send_telegram(f"❌ Błąd odświeżania tokena Allegro (próba #{_refresh_failure_count})\n{str(e)}\nWymagane /allegro/auth")
+            except:
+                pass
+
         return False
 
 def start_token_refresh_daemon():
