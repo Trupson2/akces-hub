@@ -3,6 +3,7 @@ Auto-refresh tokena Allegro
 Automatycznie odświeża token przed jego wygaśnięciem
 """
 
+import base64
 import threading
 import time
 from datetime import datetime, timedelta
@@ -17,6 +18,9 @@ _refresh_daemon_running = False
 _refresh_thread = None
 # FIX 2026-05-09: licznik kolejnych porazek refresh - alert Telegram po 2x z rzedu
 _refresh_failure_count = 0
+# FIX 2026-05-10: throttle alertu (max 1/h) zeby nie spamowac przy ciaglym failu
+_refresh_last_alert_at = 0
+_ALERT_COOLDOWN_SECONDS = 3600  # 1h miedzy alertami
 
 def get_token_info():
     """Pobiera informacje o tokenie"""
@@ -46,31 +50,57 @@ def get_token_info():
     except:
         return None
 
+def _maybe_send_alert(msg):
+    """Wyslij alert Telegram z throttle (max 1 alert na _ALERT_COOLDOWN_SECONDS).
+
+    FIX 2026-05-10: aktualnie daemon co 10 min retry-uje po failu, wiec bez
+    throttle dostawalismy alert ~6x/h. Throttle = max 1/h zeby user widzial
+    problem, ale nie byl spamowany.
+    """
+    global _refresh_last_alert_at
+    now = time.time()
+    if now - _refresh_last_alert_at < _ALERT_COOLDOWN_SECONDS:
+        return
+    try:
+        from modules.telegram_bot import send_telegram
+        send_telegram(msg)
+        _refresh_last_alert_at = now
+    except Exception:
+        pass
+
+
 def refresh_allegro_token():
     """Odświeża token Allegro używając refresh_token"""
-    global _refresh_failure_count
+    global _refresh_failure_count, _refresh_last_alert_at
     try:
         print("[SYNC] Odświeżanie tokena Allegro...")
-        
+
         refresh_token = get_config('allegro_refresh_token', '')
         client_id = get_config('allegro_client_id', '')
         client_secret = get_config('allegro_client_secret', '')
-        
+
         if not all([refresh_token, client_id, client_secret]):
             print("[ERR] Brak wymaganych danych do odświeżenia tokena")
             return False
-        
+
         # Allegro OAuth2 token refresh endpoint
         token_url = 'https://allegro.pl/auth/oauth/token'
-        
+
+        # FIX 2026-05-10: Basic Auth zgodnie z RFC 6749 §2.3.1 - Allegro odrzuca
+        # client_id/secret w body z HTTP 401 "invalid_client". Zsynchronizowane
+        # z `allegro_api.refresh_access_token` ktore Basic Auth uzywa.
+        auth_string = f"{client_id}:{client_secret}"
+        auth_b64 = base64.b64encode(auth_string.encode()).decode()
+        headers = {
+            'Authorization': f'Basic {auth_b64}',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
         data = {
             'grant_type': 'refresh_token',
-            'refresh_token': refresh_token,
-            'client_id': client_id,
-            'client_secret': client_secret
+            'refresh_token': refresh_token
         }
-        
-        response = requests.post(token_url, data=data, timeout=15)
+
+        response = requests.post(token_url, headers=headers, data=data, timeout=15)
         
         if response.status_code == 200:
             token_data = response.json()
@@ -95,29 +125,29 @@ def refresh_allegro_token():
 
             print(f"[OK] Token odświeżony! Wygasa: {expires_at.strftime('%Y-%m-%d %H:%M:%S')}")
 
-            # Reset licznika porazek (alert Telegram po 2x z rzedu)
+            # Reset licznika porazek + reset throttle (po sukcesie alert moze
+            # natychmiast zlecic gdy nastepnym razem padnie)
             _refresh_failure_count = 0
+            _refresh_last_alert_at = 0
 
-            # Wyślij powiadomienie Telegram jeśli dostępne
+            # Wyślij powiadomienie Telegram (sukces - bez throttle, raz na 11h)
             try:
                 from modules.telegram_bot import send_telegram
                 send_telegram(f"✅ Token Allegro odświeżony\nWygasa: {expires_at.strftime('%Y-%m-%d %H:%M')}")
-            except:
+            except Exception:
                 pass
 
             return True
         else:
             print(f"[ERR] Błąd odświeżania tokena: {response.status_code} - {response.text}")
 
-            # FIX 2026-05-09: alert Telegram dopiero po 2x porazce z rzedu
-            # (jednorazowy timeout/network error nie wymaga panickowania).
+            # Alert dopiero po 2x z rzedu + throttle 1/h
             _refresh_failure_count += 1
             if _refresh_failure_count >= 2:
-                try:
-                    from modules.telegram_bot import send_telegram
-                    send_telegram(f"❌ Błąd odświeżania tokena Allegro (próba #{_refresh_failure_count})\nKod: {response.status_code}\nWymagane /allegro/auth")
-                except:
-                    pass
+                _maybe_send_alert(
+                    f"❌ Błąd odświeżania tokena Allegro (próba #{_refresh_failure_count})\n"
+                    f"Kod: {response.status_code}\nWymagane /allegro/auth"
+                )
 
             return False
 
@@ -126,11 +156,10 @@ def refresh_allegro_token():
 
         _refresh_failure_count += 1
         if _refresh_failure_count >= 2:
-            try:
-                from modules.telegram_bot import send_telegram
-                send_telegram(f"❌ Błąd odświeżania tokena Allegro (próba #{_refresh_failure_count})\n{str(e)}\nWymagane /allegro/auth")
-            except:
-                pass
+            _maybe_send_alert(
+                f"❌ Błąd odświeżania tokena Allegro (próba #{_refresh_failure_count})\n"
+                f"{str(e)}\nWymagane /allegro/auth"
+            )
 
         return False
 
