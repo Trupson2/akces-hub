@@ -4366,7 +4366,8 @@ def paleta_szczegoly(paleta_id):
             '<div onclick="menuStatus(\'zwrot\')" class="menu-item">[UNDO] Oddane (zwrot)</div>';
         document.getElementById('menuInne').innerHTML =
             '<div onclick="pokazRozbij('+produktId+', '+ilosc+', \''+nazwa.replace(/'/g,"\\'")+'\'); zamknijMenu()" class="menu-item"><span class=material-symbols-outlined>target</span> Rozbij na sztuki</div>' +
-            '<a href="/magazyn/produkt/'+produktId+'/edytuj" class="menu-item" style="text-decoration:none;display:block;color:var(--text)"><span class=material-symbols-outlined>edit</span> Edytuj produkt</a>';
+            '<a href="/magazyn/produkt/'+produktId+'/edytuj" class="menu-item" style="text-decoration:none;display:block;color:var(--text)"><span class=material-symbols-outlined>edit</span> Edytuj produkt</a>' +
+            '<div onclick="usunProdukt('+produktId+', \''+nazwa.replace(/'/g,"\\'")+'\'); zamknijMenu()" class="menu-item" style="color:var(--red)"><span class=material-symbols-outlined>delete</span> Usuń produkt</div>';
         const rect = evt.target.getBoundingClientRect();
         menu.style.display = 'block';
         menu.style.top = (rect.bottom + window.scrollY + 4) + 'px';
@@ -4384,6 +4385,28 @@ def paleta_szczegoly(paleta_id):
     }
     function zamknijMenu() { document.getElementById('menuKontekst').style.display='none'; }
     document.addEventListener('click', zamknijMenu);
+
+    // FIX 2026-05-10: usuwanie produktu z palety - wczesniej nie bylo opcji w UI.
+    // Endpoint `/magazyn/produkt/<code>/usun` akceptuje numeryczne ID (do 6 cyfr)
+    // przez get_produkt_by_code() w magazynier.py.
+    function usunProdukt(produktId, nazwa) {
+        if (!confirm('Na pewno usunac produkt #' + produktId + '\\n"' + nazwa + '"?\\n\\nUWAGA: usuniecie kasuje historie ruchow tego produktu, ale ZACHOWUJE rekordy sprzedazy (zeby statystyki palety zostaly poprawne).')) return;
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/magazyn/produkt/' + produktId + '/usun';
+        // CSRF - dolacz token jesli dostepny (na wypadek per-route enforcement)
+        var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        var csrfTok = csrfMeta ? csrfMeta.content : (window.CSRF_TOKEN || '');
+        if (csrfTok) {
+            var inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = 'csrf_token';
+            inp.value = csrfTok;
+            form.appendChild(inp);
+        }
+        document.body.appendChild(form);
+        form.submit();
+    }
 
     // Kropki stanów na kartach
     const KOLORY_STAN = {'Nowy':'#22c55e','Powystawowy':'#3b82f6','Używany':'#eab308','Uszkodzony':'#ef4444','Odnowiony':'#8b5cf6'};
