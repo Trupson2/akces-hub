@@ -546,8 +546,13 @@ def refresh_access_token():
         if response.status_code == 200:
             tokens = response.json()
             set_config('allegro_access_token', tokens['access_token'])
-            if 'refresh_token' in tokens:
+            # FIX 2026-05-09 BUG #2: Allegro rotuje refresh_token przy
+            # kazdym refresh - nowy 30-dniowy window. Zapisujemy expires_at
+            # zeby daemon mogl alertowac przy zblizajacym sie wygasnieciu.
+            if 'refresh_token' in tokens and tokens['refresh_token'] != config['refresh_token']:
                 set_config('allegro_refresh_token', tokens['refresh_token'])
+                refresh_expires = datetime.now() + timedelta(days=30)
+                set_config('allegro_refresh_token_expires_at', refresh_expires.isoformat())
             expires_in = tokens.get('expires_in', 43200)
             expires_at = datetime.now() + timedelta(seconds=expires_in - 300)
             set_config('allegro_token_expires', expires_at.isoformat())
@@ -4909,6 +4914,15 @@ def callback():
             expires_in = tokens.get('expires_in', 43200)
             expires_at = datetime.now() + timedelta(seconds=expires_in - 300)
             set_config('allegro_token_expires', expires_at.isoformat())
+
+            # FIX 2026-05-09 BUG #2: zapisz 30-dniowe okno zycia refresh_token
+            # zeby daemon mogl alertowac przy zblizajacym sie wygasnieciu.
+            # Allegro produkcja = 30 dni, sandbox = 24 h.
+            from .database import get_config_cached
+            is_sandbox = get_config_cached('allegro_sandbox', 'false') == 'true'
+            refresh_lifetime_days = 1 if is_sandbox else 30
+            refresh_expires = datetime.now() + timedelta(days=refresh_lifetime_days)
+            set_config('allegro_refresh_token_expires_at', refresh_expires.isoformat())
 
             # Wyczyść state
             set_config('allegro_oauth_state', '')

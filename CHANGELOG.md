@@ -1,5 +1,34 @@
 # Historia zmian (auto-generated)
 
+## 13.05.2026
+
+- Revert "fix(palety): dodaj USUN PRODUKT do menu kontekstowego na widoku palety"
+- fix(palety): dodaj USUN PRODUKT do menu kontekstowego na widoku palety
+
+## 11.05.2026
+
+- fix(allegro): Basic Auth w daemon refresh + throttle alertu Telegram 1/h
+
+## 10.05.2026
+
+- fix(allegro): napraw automatyczny refresh tokena (BUG #1+#2+#3 z incydentu 2026-05-09)
+
+## 06.05.2026
+
+- feat(scrape): wyciaganie EAN z JSON-LD + regex HTML (Amazon czesto nie pokazuje w specs)
+
+## 02.05.2026
+
+- feat(scrape): wyciagaj EAN ze specyfikacji Amazon i zapisuj do produktow
+- fix(paletomat): NameError total_brutto przy /scraper/asin (POST)
+- fix(palety): podmiana placeholder Produkt{asin} + naprawa fallback netto/brutto
+
+## 01.05.2026
+
+- fix(db): naprawa "database is locked" - REINDEX gryzlo sie z auto-sync Allegro
+- fix(update): naprawa "git pull failed - CHANGELOG.md would be overwritten"
+- perf(start): wynies blocking ops do background - dashboard + start ladowal sie 10-20s
+
 ## 28.04.2026
 
 - fix(mass-edit): odfiltruj "dla siebie" z bezposredniego wystawiania z palety
@@ -19,7 +48,7 @@
 
 ## 26.04.2026
 
-- fix(pwa): cache buster ?v=2 na ikonach ĹĽeby ominÄ…Ä‡ Cloudflare cache
+- fix(pwa): cache buster ?v=2 na ikonach żeby ominąć Cloudflare cache
 - fix(pwa): usun dynamiczny /static/icon-{192,512}.png ktory zwracal SVG
 - fix(pwa): wywal ngrok-skip-browser-warning ze wszystkich fetchy w base.html
 - fix(pwa): SW v14 - force reload otwartych kart przy aktywacji
@@ -42,9 +71,9 @@
 
 ## 21.04.2026
 
-- fix(title-gen): wyĹ‚Ä…cz thinking mode Gemini 2.5 (thinkingBudget=0) + wiÄ™cej tokenĂłw na odpowiedĹş
-- fix(title-gen): zĹ‚Ä…cz wszystkie non-thought parts (Gemini 2.5 interleaves thinking)
-- fix(title-gen): pomiĹ„ thinking parts Gemini 2.5 (parts[0]=thought, nie odpowiedĹş)
+- fix(title-gen): wyłącz thinking mode Gemini 2.5 (thinkingBudget=0) + więcej tokenów na odpowiedź
+- fix(title-gen): złącz wszystkie non-thought parts (Gemini 2.5 interleaves thinking)
+- fix(title-gen): pomiń thinking parts Gemini 2.5 (parts[0]=thought, nie odpowiedź)
 - fix(title-gen): uzyj Gemini zamiast Google Translate + napraw HTML w prompcie
 
 ## 16.04.2026
@@ -64,9 +93,9 @@
 - feat(api-v1): infrastructure - blueprint, auth, rate limit, response helpers
 - fix: scraper_hub / paletomat mial biale tlo zamiast dark
 - fix: sync_returns nie oznaczal zwrotow gdy zamowienie bylo z innego miesiaca
-- perf: sync_returns â€” batch UPDATE + paginacja + range filter (10-30x szybciej)
-- security(hotfix): rollback nonce z CSP headera â€” rozjebuje inline styles
-- docs: changelog 15.04 â€” Phase 1-3 security + landing + audit
+- perf: sync_returns — batch UPDATE + paginacja + range filter (10-30x szybciej)
+- security(hotfix): rollback nonce z CSP headera — rozjebuje inline styles
+- docs: changelog 15.04 — Phase 1-3 security + landing + audit
 - docs: security audit 2026-04 (Phase 1-3 summary dla partnera biznesowego)
 - landing: typewriter effect + highlights section + workflow proof
 - security: 2FA TOTP opt-in for users (pyotp + backup codes + UI)
@@ -76,16 +105,16 @@
 - security: sanitize SVG uploads (defusedxml + reject scripts/events)
 - security: close CSRF form-POST bypass (require token or same-origin Referer)
 - security: fix license test prefix mapping (starter/business/free)
-- security: Phase 1.5 â€” explicit CSRF + audit log na privileged actions
-- security: Phase 1 critical hardening â€” access control, proxy trust, zip-slip
+- security: Phase 1.5 — explicit CSRF + audit log na privileged actions
+- security: Phase 1 critical hardening — access control, proxy trust, zip-slip
 
 ## 14.04.2026
 
 - fix: mobile zostaje na home.html (pelny dashboard) + wieksze UI
-- fix: kiosk mobile â€” przywroc sidebar jako slide-out drawer (pelna funkcjonalnosc)
-- fix: kiosk mobile â€” force-remove sidebar via inline script (cache-proof)
+- fix: kiosk mobile — przywroc sidebar jako slide-out drawer (pelna funkcjonalnosc)
+- fix: kiosk mobile — force-remove sidebar via inline script (cache-proof)
 - fix: mobile dostaje kiosk_home.html zamiast home.html (user complaint: za male)
-- feat: kiosk widget â€” ngrok â†’ Cloudflare Tunnel (app.akceshub.com)
+- feat: kiosk widget — ngrok → Cloudflare Tunnel (app.akceshub.com)
 - landing: optimize UI sizes for mobile (<=768px and <=480px)
 - fix: kiosk mode on mobile through Cloudflare Tunnel + update landing
 - perf: switch to waitress WSGI server instead of Flask dev server
@@ -121,21 +150,4 @@
 
 - fix: absolute stabilization of search with manual config reading and robust parsing
 - fix: total restoration of search with unified API key helper and improved error reporting
-- fix: stabilize search with AI competition fallback and global CSRF self-healing
-- fix: implement Gemini AI search fallback and dynamic CSRF token handling
-- fix: updated scrapers with JSON/showroom logic, added auto-translation to EN, and fixed CSRF in inventory corrections
-- feat: rewrite scout_by_phrase - search Alibaba/AliExpress first, then check Allegro competition
-- fix: remove duplicate old scout_by_phrase that was overriding new web-scraping version
-- fix: replace blocked /offers/listing API with web scraping + fix Service Worker caching POST forms
-- feat: added diagnostic items to Winning Scout UI to show why results are empty
-- fix: relax winning scout search filters to prevent empty lists
-- feat: security hardening (XSS, Rate Limiting, Fail2Ban) and Winning Scout phrase search filters
-
-## 10.04.2026
-
-- Zoptymalizowano scraper_laptop.py pod Allegro API v2
-
-## 07.04.2026
-
-- fix: use correct paleta_koszt_szt for profit calculation in Smart Insights
 
