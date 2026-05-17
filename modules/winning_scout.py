@@ -726,7 +726,39 @@ IMPORTANT: "why_new", "why_can_sell" and "risk_flags" values MUST be in Polish l
 
             for item in batch_items:
                 if not isinstance(item, dict) or not item.get('name'):
-                    cdef _gemini_search_fallback(phrase_en: str) -> list[dict]:
+                    continue
+
+                buy_usd = float(item.get('buy_price_usd', 0) or 0)
+                sell_pln = float(item.get('sell_price_pln', 0) or 0)
+                buy_pln = buy_usd * 4.2
+
+                products.append({
+                    'name': item['name'],
+                    'category': item.get('category', 'inne'),
+                    'source': item.get('source', 'aliexpress'),
+                    'source_url': '',
+                    'buy_price_pln': round(buy_pln, 2),
+                    'sell_price_pln': sell_pln,
+                    'why_new': item.get('why_new', ''),
+                    'why_can_sell': item.get('why_can_sell', ''),
+                    'risk_flags': item.get('risk_flags', ''),
+                    'paczkomat_fit': item.get('paczkomat_fit', 'B'),
+                    'growth_7d': int(item.get('growth_7d', 0) or 0),
+                    'alibaba_moq': int(item.get('alibaba_moq', 0) or 0),
+                    'alibaba_price_usd': float(item.get('alibaba_price_usd', 0) or 0),
+                })
+
+            time.sleep(2)  # Rate limit między batchami
+
+        _log(f"[scout] Gemini discovery TOTAL: {len(products)} produktów z {len(batches)} batchy")
+
+    except Exception as e:
+        _log(f"[scout] Gemini discovery error: {e}")
+
+    return products
+
+
+def _gemini_search_fallback(phrase_en: str) -> list[dict]:
     """Używa Gemini do symulacji wyszukiwania produktów z Chin, gdy scrapery są zablokowane."""
     try:
         from modules.gemini_helper import get_gemini_api_key
