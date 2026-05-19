@@ -98,7 +98,9 @@ def refresh_olx_token():
             print("[OK] OLX token refreshed")
             return True
         else:
-            print(f"[ERR] OLX token refresh failed: {response.status_code} {response.text}")
+            # FIX 2026-05 (PHASE 1.1+): OLX token-endpoint — NIE logować body
+            # (ta sama klasa co Allegro: token/echo w odpowiedzi).
+            print(f"[ERR] OLX token refresh failed: HTTP {response.status_code} (body ukryty)")
             return False
     except Exception as e:
         print(f"[ERR] OLX token refresh error: {e}")

@@ -215,7 +215,7 @@ Wygeneruj tytuł:"""
                 print(f"[TITLE AI] [WARN] Brak odpowiedzi z API, używam fallback")
                 return _fallback_title(nazwa, max_length)
         else:
-            print(f"[TITLE AI] [ERR] Błąd API: {response.status_code} - {response.text[:200]}")
+            print(f"[TITLE AI] [ERR] Błąd API: HTTP {response.status_code} (body ukryty — PHASE 1.1+)")
             return _fallback_title(nazwa, max_length)
             
     except requests.exceptions.Timeout:

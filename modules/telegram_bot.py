@@ -55,7 +55,7 @@ def send_whatsapp(message):
             print(f"[WhatsApp] Wysłano: {message[:30]}...")
             return True
         else:
-            print(f"[WhatsApp] Błąd: {response.text}")
+            print(f"[WhatsApp] Błąd: HTTP {response.status_code}")
             return False
             
     except Exception as e:
@@ -126,7 +126,7 @@ def send_telegram(message, parse_mode='HTML', silent=False):
             log_message('sent', message, message_id)
             return True
         else:
-            print(f"[Telegram] Błąd: {response.text}")
+            print(f"[Telegram] Błąd: HTTP {response.status_code}")
             return False
             
     except Exception as e:
@@ -160,7 +160,7 @@ def send_telegram_support(message, parse_mode='HTML'):
         if response.status_code == 200:
             return True
         else:
-            print(f"[Telegram Support] Błąd: {response.text}")
+            print(f"[Telegram Support] Błąd: HTTP {response.status_code}")
             return False
 
     except Exception as e:

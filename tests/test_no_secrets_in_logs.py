@@ -11,13 +11,20 @@ Statyczny (regex na źródle) — pełny runtime-mock byłby dokładniejszy, ale
 ta klasa regresji ("ktoś znów wstawił response.text do print/_handle_
 failure/_send_alert") jest w pełni łapana statycznie i zero-kosztowo.
 """
+import glob
 import os
 import re
 
 _BASE = os.path.join(os.path.dirname(__file__), "..", "modules")
 
-# Pliki dotykające Allegro token-endpointu (access/refresh token w body)
-_FILES = ["allegro_api.py", "token_refresh.py"]
+# PHASE 1.1+: skan CALEGO modules/ (nie tylko allegro/token_refresh).
+# Szerszy scan wykryl OLX token-refresh (olx_api.py) + telegram_bot +
+# gemini (utils/title_generator) logujace response.text — wszystkie
+# naprawione. Test pilnuje calej klasy globalnie, w kazdym module.
+_FILES = sorted(
+    os.path.basename(p)
+    for p in glob.glob(os.path.join(_BASE, "*.py"))
+)
 
 # Linia logująca/alertująca, która jednocześnie zrzuca surowe body odpowiedzi
 _BAD = re.compile(
