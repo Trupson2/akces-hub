@@ -1,13 +1,12 @@
 // Service Worker dla Akces Hub PWA
-const CACHE_NAME = 'akces-hub-v14';
+// FIX 2026-05 (v15): NIE precache'owac HTML routes (/, /magazyn, /paletomat...)
+// — Flask za proxy redirectuje je na http:// (Mixed Content blocked na HTTPS)
+// ORAZ cache'owanie HTML powodowalo serwowanie STAREJ strony po deployu
+// ("naprawiam, a na Pi widac stare"). Cache TYLKO prawdziwe statyczne assety.
+const CACHE_NAME = 'akces-hub-v15';
 
-// Zasoby do cache'owania
+// Zasoby do cache'owania — WYLACZNIE statyczne (zero HTML/nawigacji)
 const CACHE_ASSETS = [
-  '/',
-  '/magazyn',
-  '/paletomat',
-  '/narzedzia',
-  '/analytics/dashboard',
   '/static/manifest.json',
   '/static/offline.html'
 ];
@@ -65,6 +64,20 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Przepuść external URLs (Google Fonts, CDN, etc.) BEZ modyfikacji
   if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
+  // FIX 2026-05 (v15): nawigacja HTML = ZAWSZE z sieci, NIGDY z cache.
+  // Eliminuje: (1) serwowanie starej strony po deployu, (2) Mixed Content
+  // gdy cache trzyma http:// redirect. Offline.html tylko gdy brak sieci.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() =>
+        caches.match('/static/offline.html').then(
+          (p) => p || new Response('Offline', { status: 503 })
+        )
+      )
+    );
     return;
   }
 
