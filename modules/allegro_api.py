@@ -2627,7 +2627,7 @@ def upload_gpsr_attachment(gpsr_text, product_name=''):
             print(f"[SHIE] GPSR attachment uploaded: {attachment_id}")
             return attachment_id
         else:
-            print(f"[SHIE] GPSR upload error: {resp.status_code}: {resp.text[:300]}")
+            print(f"[SHIE] GPSR upload error: HTTP {resp.status_code} (body ukryty — PHASE 1.1+)")
             return None
 
     except Exception as e:

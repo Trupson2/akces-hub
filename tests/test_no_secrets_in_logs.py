@@ -26,21 +26,27 @@ _FILES = sorted(
     for p in glob.glob(os.path.join(_BASE, "*.py"))
 )
 
-# Linia logująca/alertująca, która jednocześnie zrzuca surowe body odpowiedzi
+# Linia logująca/alertująca zrzucająca surowe body odpowiedzi.
+# PHASE 1.1++: lapie OBA warianty nazwy zmiennej (response./resp.) ORAZ
+# .text i .content (poprzedni regex tylko response.text — przeoczyl
+# resp.text w olx/vinted/gpsr/gemini/perplexity, wykryte szerszym scanem).
 _BAD = re.compile(
-    r"(print|log\w*|_handle_failure|_send_alert|_maybe_send_alert)\s*\("
-    r"[^\n]*response\.text"
+    r"(print|log\w*|logger\.|logging\.|_handle_failure|_send_alert"
+    r"|_maybe_send_alert)\s*\([^\n]*\b(response|resp)\.(text|content)\b"
 )
+# Bezpieczne: len(resp.text) = DLUGOSC (liczba), nie tresc; oraz
+# linie juz zsanityzowane (marker "body ukryty"/_safe_resp_err).
+_OK = re.compile(r"len\((response|resp)\.(text|content)\)|body ukryty|_safe_resp_err")
 
 
 def test_no_raw_response_text_in_log_sinks():
-    """Żaden print/log/alert nie może zawierać surowego response.text."""
+    """Żaden print/log/alert nie loguje surowego response/resp .text/.content."""
     offenders = []
     for fname in _FILES:
         path = os.path.abspath(os.path.join(_BASE, fname))
         with open(path, encoding="utf-8") as fh:
             for i, line in enumerate(fh, 1):
-                if _BAD.search(line):
+                if _BAD.search(line) and not _OK.search(line):
                     offenders.append(f"{fname}:{i}: {line.strip()[:120]}")
     assert not offenders, (
         "Surowe response.text w log/alert sink (token leak — PHASE 1.1):\n"

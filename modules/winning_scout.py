@@ -745,7 +745,7 @@ NO markdown, NO comments, ONLY the array."""
         
         resp = requests.post(api_url, json={'contents': [{'parts': [{'text': prompt}]}]}, timeout=25)
         if resp.status_code != 200:
-            _log(f"[scout] AI API Error: {resp.status_code} - {resp.text[:100]}")
+            _log(f"[scout] AI API Error: HTTP {resp.status_code} (body ukryty — PHASE 1.1+)")
             return []
 
         data = resp.json()
