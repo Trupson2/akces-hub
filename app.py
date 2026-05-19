@@ -1473,7 +1473,10 @@ def api_health():
         conn = get_db()
         conn.execute('SELECT 1').fetchone()
     except Exception as e:
-        db_status = f'error: {e}'
+        # PHASE 2: generyczny status w publicznym body (bez {e} = bez
+        # leak sciezek/SQL — duch PHASE 1). Szczegoly tylko do logu serwera.
+        db_status = 'error'
+        log_warning(f"[health] DB check failed: {e}")
 
     # Uptime
     uptime_sec = int(time.time() - APP_START_TIME)
@@ -1488,6 +1491,9 @@ def api_health():
     else:
         uptime_str = f"{mins}m {secs}s"
 
+    # PHASE 2: HTTP 503 gdy DB padla — monitoring zewnetrzny (UptimeRobot
+    # itp.) patrzy na kod HTTP, nie parsuje body. Wczesniej zawsze 200 =
+    # awaria DB niewykrywalna z zewnatrz.
     return jsonify({
         'status': 'ok' if db_status == 'ok' else 'degraded',
         'version': VERSION,
@@ -1501,7 +1507,7 @@ def api_health():
             'allegro': True,
             'telegram': True,
         }
-    })
+    }), (200 if db_status == 'ok' else 503)
 
 @app.route('/api/ngrok-status')
 def api_ngrok_status():
@@ -7348,12 +7354,12 @@ if __name__ == '__main__':
         from datetime import date as _date
         while True:
             time.sleep(3600)
-            try:
-                from modules.backup_manager import create_backup
-                create_backup()
-                log("[Auto] Backup godzinny zapisany")
-            except Exception as e:
-                log_warning(f"[Auto] Blad backupu: {e}")
+            # PHASE 2: USUNIETO duplikat create_backup() — backup robi
+            # WYLACZNIE daemon backup_manager (start_backup_daemon, wyzej)
+            # ktory ma rotacje (MAX_BACKUPS=24), PRAGMA integrity_check i
+            # cloud_export. Wczesniej 2x backup/h (daemon + ta petla) =
+            # podwojne I/O, mylace logi, restore "ktory plik". Ta petla
+            # zostaje TYLKO dla RODO + license check (raz dziennie).
             # RODO auto-anonimizacja raz dziennie
             try:
                 today = _date.today().isoformat()
@@ -7376,7 +7382,7 @@ if __name__ == '__main__':
             except Exception as e:
                 log_warning(f"[Mailer] Blad sprawdzania licencji: {e}")
     threading.Thread(target=hourly_backup, daemon=True).start()
-    log("Auto-backup co godzine: WLACZONY")
+    log("Auto: RODO+license check co godzine (backup = daemon backup_manager)")
 
     # Reset cache aktualizacji przy starcie — żeby od razu sprawdzał
     try:
@@ -7395,8 +7401,15 @@ if __name__ == '__main__':
         log("Uzywam waitress (produkcyjny WSGI)")
         serve(app, host='0.0.0.0', port=5000, threads=8, channel_timeout=600)
     except ImportError:
-        # Fallback na Flask dev server jesli waitress nie zainstalowany
-        log("[WARN] Waitress niedostepny — fallback na Flask dev server")
+        # PHASE 2: fallback zostaje (lepiej dzialac na dev niz nie dzialac
+        # u klienta), ale GLOSNO — produkcja na Flask dev serverze nie ma
+        # wydajnosci ani odpornosci waitress. Operator MUSI to zobaczyc.
+        _banner = "!" * 64
+        log(_banner)
+        log("[CRITICAL] WAITRESS NIEZAINSTALOWANY — dzialam na Flask DEV serverze!")
+        log("[CRITICAL] To NIE jest setup produkcyjny. Wykonaj:  pip install waitress")
+        log("[CRITICAL] potem zrestartuj usluge. (requirements.txt zawiera waitress)")
+        log(_banner)
         app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
 
 # ============================================================
