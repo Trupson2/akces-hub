@@ -19,7 +19,10 @@ from datetime import datetime
 # Pliki/foldery do WYKLUCZENIA
 EXCLUDE_FILES = {
     '.env',
+    '.env.key',        # PHASE 4: Fernet master key (deszyfruje WSZYSTKIE sekrety)
+    '.env.extra',      # PHASE 4: dodatkowe env vars (mogą zawierać sekrety)
     '.secret_key',
+    '.license_secret', # PHASE 4: sekret podpisu licencji (klient mógłby fałszować)
     'gemini_config.py',
     'api_key.txt',
     'vinted_cookies.json',
@@ -54,6 +57,7 @@ EXCLUDE_DIRS = {
 EXCLUDE_EXTENSIONS = {
     '.pyc', '.db', '.db-wal', '.db-shm', '.log',
     '.bak', '.gz',
+    '.out',  # PHASE 4: nohup.out/server.out — dokładny wektor incydentu PHASE 1
 }
 
 EXCLUDE_PREFIXES = {
@@ -126,6 +130,60 @@ def build_release(source_dir, output_path):
     print(f"Pliki wykluczone: {files_excluded}")
     print(f"Rozmiar ZIP: {size_mb:.1f} MB")
     print(f"\nGotowe! Plik: {output_path}")
+
+    verify_release(output_path)
+
+
+# PHASE 4 — automatyczna weryfikacja paczki (fail-closed).
+# Skanuje GOTOWY zip: zakazane pliki + sygnatura tokenu (incydent PHASE 1).
+# Druga linia obrony NIEZALEŻNA od EXCLUDE_* (gdyby ktoś rozszczelnił listę).
+_FORBIDDEN_NAMES = {
+    '.env', '.env.key', '.env.extra', '.secret_key', '.license_secret',
+    'nohup.out', 'gemini_config.py', 'generate_license.py',
+}
+_FORBIDDEN_EXTS = {'.db', '.db-wal', '.db-shm', '.out', '.log', '.pyc', '.key'}
+_FORBIDDEN_PARTS = ('/.git/', '/backups/', '/cloud_exports/', '/tools/', '/__pycache__/')
+_TOKEN_RE = __import__('re').compile(rb'eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}')
+_SCAN_EXT = {'.py', '.md', '.txt', '.json', '.html', '.js', '.cfg',
+             '.ini', '.sh', '.yml', '.yaml', '.env', ''}
+
+
+def verify_release(zip_path):
+    """Skan gotowego ZIP. Zwraca True/False; przy FAIL -> SystemExit(1)."""
+    print("\n-- Weryfikacja paczki (PHASE 4) --")
+    problems = []
+    with zipfile.ZipFile(zip_path) as zf:
+        for info in zf.infolist():
+            arc = info.filename
+            base = os.path.basename(arc)
+            _, ext = os.path.splitext(base)
+            # Pusty .gitkeep = celowy placeholder pustego katalogu
+            # (logs/ backups/ static/downloads/ tworzy sam builder).
+            if base == '.gitkeep' and info.file_size == 0:
+                continue
+            if base in _FORBIDDEN_NAMES:
+                problems.append(f"ZAKAZANY plik: {arc}")
+                continue
+            if ext in _FORBIDDEN_EXTS:
+                problems.append(f"ZAKAZANE rozszerzenie: {arc}")
+                continue
+            if any(p in '/' + arc for p in _FORBIDDEN_PARTS):
+                problems.append(f"ZAKAZANY katalog: {arc}")
+                continue
+            if ext.lower() in _SCAN_EXT and info.file_size <= 2_000_000:
+                try:
+                    if _TOKEN_RE.search(zf.read(arc)):
+                        problems.append(f"SYGNATURA TOKENU (eyJ…): {arc}")
+                except Exception:
+                    pass
+    if problems:
+        print("  [FAIL] Paczka NIE nadaje sie do wysylki:")
+        for p in problems[:40]:
+            print(f"   x {p}")
+        print(f"\n  Lacznie problemow: {len(problems)}. Usun pliki i zbuduj ponownie.")
+        raise SystemExit(1)
+    print("  [OK] Brak zakazanych plikow, sekretow i sygnatur tokenow. OK do wysylki.")
+    return True
 
 
 def main():
