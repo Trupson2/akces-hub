@@ -4212,11 +4212,11 @@ def paleta_szczegoly(paleta_id):
             html += '<div style="display:flex;align-items:center;gap:12px;background:'+kolor+'11;border:1px solid '+kolor+'44;border-radius:10px;padding:12px;margin-bottom:8px">' +
               '<div style="width:14px;height:14px;border-radius:50%;background:'+kolor+';flex-shrink:0"></div>' +
               '<div style="flex:1;font-weight:600">'+s+'</div>' +
-              '<button onclick="zmienjRozbij(\''+s+'\',-1)" style="width:36px;height:36px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1.1rem;cursor:pointer">−</button>' +
+              `<button onclick="zmienjRozbij('${s}',-1)" style="width:36px;height:36px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1.1rem;cursor:pointer">−</button>` +
               '<input type="number" id="rozbij_'+s+'" value="'+val+'" min="0" max="'+_rozbijIlosc+'"' +
               ' style="width:60px;text-align:center;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px;font-size:1rem"' +
               ' oninput="aktualizujSume()">' +
-              '<button onclick="zmienjRozbij(\''+s+'\',1)" style="width:36px;height:36px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1.1rem;cursor:pointer">+</button>' +
+              `<button onclick="zmienjRozbij('${s}',1)" style="width:36px;height:36px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1.1rem;cursor:pointer">+</button>` +
             '</div>';
         });
         document.getElementById('rozbijStany').innerHTML = html;
@@ -4288,7 +4288,7 @@ def paleta_szczegoly(paleta_id):
                   '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
                     '<div style="font-weight:700;color:var(--orange)"><span class=material-symbols-outlined>build</span> szt. '+s.numer+' <span style="font-size:0.7rem">DO NAPRAWY</span></div>' +
                     '<div style="display:flex;gap:6px">' +
-                      '<button onclick="edytujNaprawa('+s.id+', \''+((s.opis_naprawy||'').replace(/'/g,"\\'"))+'\')" style="padding:4px 10px;background:var(--purple);border:none;border-radius:6px;color:#fff;font-size:0.72rem;cursor:pointer"><span class=material-symbols-outlined>edit</span> Edytuj</button>' +
+                      `<button class="js-napraw-edit" data-id="${s.id}" data-opis="${encodeURIComponent(s.opis_naprawy||'')}" style="padding:4px 10px;background:var(--purple);border:none;border-radius:6px;color:#fff;font-size:0.72rem;cursor:pointer"><span class=material-symbols-outlined>edit</span> Edytuj</button>` +
                       '<button onclick="cofnijNaprawa('+s.id+')" style="padding:4px 10px;background:var(--red-soft);border:1px solid var(--red);border-radius:6px;color:var(--red);font-size:0.72rem;cursor:pointer">↩ Cofnij</button>' +
                     '</div>' +
                   '</div>' +
@@ -4352,6 +4352,13 @@ def paleta_szczegoly(paleta_id):
     }
     function zamknijNaprawa() { document.getElementById('modalNaprawa').style.display='none'; }
 
+    // FIX 2026-05: edycja naprawy przez data-attr + delegation (bezpieczne -
+    // opis_naprawy to user-input, NIE wstrzykiwac do inline onclick = XSS)
+    document.addEventListener('click', function(e) {
+        var b = e.target.closest('.js-napraw-edit');
+        if (b) edytujNaprawa(b.dataset.id, decodeURIComponent(b.dataset.opis || ''));
+    });
+
     // ---- MENU KONTEKSTOWE ----
     function pokazMenu(evt, produktId, ilosc, nazwa) {
         evt.stopPropagation();
@@ -4359,14 +4366,14 @@ def paleta_szczegoly(paleta_id):
         const menu = document.getElementById('menuKontekst');
         document.getElementById('menuNaglowek').textContent = 'ZMIEŃ STATUS (dostępne: ' + ilosc + '/' + ilosc + ')';
         document.getElementById('menuStatusy').innerHTML =
-            '<div onclick="menuStatus(\'sprzedany\')" class="menu-item"><span class=material-symbols-outlined>check_circle</span> Sprzedane</div>' +
-            '<div onclick="menuStatus(\'sprzedany_uszkodzony\')" class="menu-item"><span class=material-symbols-outlined>warning</span> Sprzedane uszkodzone</div>' +
-            '<div onclick="menuNaprawyModal('+produktId+', \''+nazwa.replace(/'/g,"\\'")+'\', '+ilosc+')" class="menu-item"><span class=material-symbols-outlined>build</span> Do naprawy...</div>' +
-            '<div onclick="menuStatus(\'wyrzucenie\')" class="menu-item"><span class=material-symbols-outlined>delete</span> Do wyrzucenia</div>' +
-            '<div onclick="menuStatus(\'zwrot\')" class="menu-item">[UNDO] Oddane (zwrot)</div>';
+            `<div class="menu-item js-menu-status" data-st="sprzedany"><span class=material-symbols-outlined>check_circle</span> Sprzedane</div>` +
+            `<div class="menu-item js-menu-status" data-st="sprzedany_uszkodzony"><span class=material-symbols-outlined>warning</span> Sprzedane uszkodzone</div>` +
+            `<div class="menu-item js-menu-naprawa" data-id="${produktId}" data-nazwa="${encodeURIComponent(nazwa)}" data-ilosc="${ilosc}"><span class=material-symbols-outlined>build</span> Do naprawy...</div>` +
+            `<div class="menu-item js-menu-status" data-st="wyrzucenie"><span class=material-symbols-outlined>delete</span> Do wyrzucenia</div>` +
+            `<div class="menu-item js-menu-status" data-st="zwrot">[UNDO] Oddane (zwrot)</div>`;
         document.getElementById('menuInne').innerHTML =
-            '<div onclick="pokazRozbij('+produktId+', '+ilosc+', \''+nazwa.replace(/'/g,"\\'")+'\'); zamknijMenu()" class="menu-item"><span class=material-symbols-outlined>target</span> Rozbij na sztuki</div>' +
-            '<a href="/magazyn/produkt/'+produktId+'/edytuj" class="menu-item" style="text-decoration:none;display:block;color:var(--text)"><span class=material-symbols-outlined>edit</span> Edytuj produkt</a>';
+            `<div class="menu-item js-menu-rozbij" data-id="${produktId}" data-ilosc="${ilosc}" data-nazwa="${encodeURIComponent(nazwa)}"><span class=material-symbols-outlined>target</span> Rozbij na sztuki</div>` +
+            `<a href="/magazyn/produkt/${produktId}/edytuj" class="menu-item" style="text-decoration:none;display:block;color:var(--text)"><span class=material-symbols-outlined>edit</span> Edytuj produkt</a>`;
         const rect = evt.target.getBoundingClientRect();
         menu.style.display = 'block';
         menu.style.top = (rect.bottom + window.scrollY + 4) + 'px';
@@ -4384,6 +4391,18 @@ def paleta_szczegoly(paleta_id):
     }
     function zamknijMenu() { document.getElementById('menuKontekst').style.display='none'; }
     document.addEventListener('click', zamknijMenu);
+
+    // FIX 2026-05: menu kontekstowe przez data-attr + delegation (bezpieczne -
+    // nazwa produktu pochodzi ze scrape Allegro/Amazon = dane niezaufane, NIE
+    // wstrzykiwac do inline onclick. encodeURIComponent koduje "<>& = XSS-safe)
+    document.addEventListener('click', function(e) {
+        var st = e.target.closest('.js-menu-status');
+        if (st) { menuStatus(st.dataset.st); return; }
+        var np = e.target.closest('.js-menu-naprawa');
+        if (np) { menuNaprawyModal(np.dataset.id, decodeURIComponent(np.dataset.nazwa || ''), parseInt(np.dataset.ilosc)); return; }
+        var rz = e.target.closest('.js-menu-rozbij');
+        if (rz) { pokazRozbij(rz.dataset.id, parseInt(rz.dataset.ilosc), decodeURIComponent(rz.dataset.nazwa || '')); zamknijMenu(); }
+    });
 
     // Kropki stanów na kartach
     const KOLORY_STAN = {'Nowy':'#22c55e','Powystawowy':'#3b82f6','Używany':'#eab308','Uszkodzony':'#ef4444','Odnowiony':'#8b5cf6'};
