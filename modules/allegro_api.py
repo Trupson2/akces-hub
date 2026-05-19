@@ -514,6 +514,20 @@ def is_authenticated():
     return True
 
 
+def _safe_resp_err(resp):
+    """FIX 2026-05 (PHASE 1.1): bezpieczny komunikat z odpowiedzi Allegro
+    BEZ body/tokenów. Token-endpoint przy 200 zwraca access+refresh_token,
+    a przy błędzie Allegro WKLEJA fragment refresh_token w error_description
+    (widziane: "Invalid refresh token: eyJ..."). Dlatego NIGDY nie logujemy
+    response.text ani error_description — tylko status + krótki kod 'error'
+    (np. invalid_grant), który jest bezpieczny."""
+    try:
+        code = (resp.json() or {}).get('error', '')
+    except Exception:
+        code = ''
+    return f"HTTP {resp.status_code}" + (f" ({code})" if code else "")
+
+
 def refresh_access_token():
     config = get_allegro_config()
     if not config['refresh_token']:
@@ -559,7 +573,7 @@ def refresh_access_token():
             print(f"[TokenRefresh] [OK] Token odświeżony, wygasa: {expires_at.isoformat()}")
             return True
         else:
-            print(f"[TokenRefresh] [ERR] Błąd: {response.text[:200]}")
+            print(f"[TokenRefresh] [ERR] Błąd: {_safe_resp_err(response)}")
         return False
     except Exception as e:
         print(f"[TokenRefresh] [ERR] Wyjątek: {e}")
@@ -663,7 +677,7 @@ def allegro_request(method, endpoint, data=None, params=None, _retry=False, _att
             except ValueError:
                 # response.json() failed — not valid JSON
                 error_details = f"Allegro API HTTP {response.status_code} (odpowiedź nie jest JSON)"
-                print(f"* {error_details}: {response.text[:200]}")
+                print(f"* {error_details} (body ukryty — PHASE 1.1)")
             except Exception as ex:
                 print(f"* Allegro API error {response.status_code}: {ex}")
             return None, error_details
@@ -4901,7 +4915,9 @@ def callback():
         print(f"[OAuth] Token exchange: POST {token_url}")
         print(f"[OAuth] redirect_uri: {config['redirect_uri']}")
         response = requests.post(token_url, headers=headers, data=data, timeout=30)
-        print(f"[OAuth] Response: {response.status_code} {response.text[:200]}")
+        # FIX 2026-05 (PHASE 1.1): NIE logować body — przy 200 zawiera
+        # access_token+refresh_token w czystej postaci (CRITICAL leak).
+        print(f"[OAuth] Response: {_safe_resp_err(response)}")
 
         if response.status_code == 200:
             tokens = response.json()
@@ -4934,11 +4950,14 @@ def callback():
                 <a href="/allegro" class="btn btn-secondary"><span class=material-symbols-outlined>shopping_cart</span> Przejdz do Allegro</a>
             ''', 'Sukces')
         else:
+            # FIX 2026-05 (PHASE 1.1): fallback bez raw body (mogłoby
+            # zawierać token). error_description zostaje (celowy komunikat
+            # Allegro dla usera), ale gdy go brak — generyczny, nie body.
             try:
                 err_data = response.json()
-                err_msg = err_data.get('error_description', err_data.get('error', response.text[:200]))
-            except:
-                err_msg = response.text[:200]
+                err_msg = err_data.get('error_description') or err_data.get('error') or f"Błąd autoryzacji (HTTP {response.status_code})"
+            except Exception:
+                err_msg = f"Błąd autoryzacji (HTTP {response.status_code})"
 
             return render(f'''
                 <div class="alert alert-error">{err_msg}</div>
@@ -5633,7 +5652,7 @@ def get_shipment_label(order_id):
                         print(f"   → [OK] Etykieta WZA pobrana! Rozmiar: {len(response.content)} bytes")
                         return response.content, shipment_id, None
                     else:
-                        print(f"   → [WARN] {response.status_code}: {response.text[:100]}")
+                        print(f"   → [WARN] HTTP {response.status_code} (body ukryty — PHASE 1.1, etykieta WZA = dane adresowe/RODO)")
                 except Exception as e:
                     print(f"   → [ERR] Wyjątek: {e}")
     # METODA 2: Sprawdź standardowe API (checkout-forms shipments)

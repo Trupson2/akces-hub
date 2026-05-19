@@ -252,9 +252,17 @@ def refresh_allegro_token():
             return True
         else:
             # FIX 2026-05-10 (B): blad API (400=martwy refresh, 401=zly client)
+            # FIX 2026-05 (PHASE 1.1): NIE logować response.text — Allegro
+            # wkleja fragment refresh_token w error_description. Tylko
+            # status + krótki bezpieczny kod 'error'. _handle_failure
+            # loguje to ORAZ wysyła na Telegram — token nie może tam trafić.
+            try:
+                _err_code = (response.json() or {}).get('error', '')
+            except Exception:
+                _err_code = ''
             return _handle_failure(
                 'API',
-                f"HTTP {response.status_code}: {response.text[:200]}")
+                f"HTTP {response.status_code}" + (f" ({_err_code})" if _err_code else ""))
 
     except Exception as e:
         # FIX 2026-05-10 (B): nieznany blad (nie network, nie API) - np. JSON
