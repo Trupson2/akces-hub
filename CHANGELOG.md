@@ -1,5 +1,31 @@
 # Historia zmian (auto-generated)
 
+## 19.05.2026
+
+- feat(audit): PHASE 3 — audyt login/logout (rozliczalność dostępu)
+- fix(scout): PHASE 3 — napraw strukturalny SyntaxError winning_scout.py:729
+- feat(ops): PHASE 2 — hardening produkcyjny (healthcheck 503, backup single-source, głośny dev-fallback)
+- docs: raport koncowy PHASE 1 incydentu z logami (operacyjny, do wydania)
+- fix(security): PHASE 1.1++ — domknij wzorzec resp.text (5 sinków) + test łapie response|resp .text|.content
+- fix(security): PHASE 1.1+ — domknij szerszy scan response.text (7 przeoczonych sinków)
+- test(fix): popraw URL w tescie PHASE 1.5 (auth_bp url_prefix=/auth)
+- fix(security): PHASE 1.5 — decyzja roli magazynier (Opcja B: 1-admin, doc + test fundamentu)
+- fix(docs): PHASE 1.4 — README spójny z realnym kodem (BLOKER instalacji)
+- fix(security): PHASE 1.3 — wyłącz redundantne/niebezpieczne ścieżki update (BLOKER)
+- fix(security): PHASE 1.2 — usun nohup.out z repo (zawieral token Allegro) + domknij .gitignore
+- fix(security): PHASE 1.1 — token Allegro nie wycieka do logów (BLOKER sprzedaży)
+- fix(palety): _getCsrfToken na poziomie modulu (ReferenceError -> sprzedaz offline nie zapisywala)
+- fix(sw): Service Worker v15 — HTML zawsze z sieci (koniec stale-after-deploy + Mixed Content)
+- fix(palety): napraw zepsuty inline JS (korekta/menu/usuwanie nie dzialaly) + test regresyjny
+
+## 16.05.2026
+
+- fix(allegro): odpornosc refresh daemona - retry zapisu, klasyfikacja bledow, backoff, early-stop, healthcheck
+
+## 14.05.2026
+
+- chore(changelog): update history through 13.05.2026
+
 ## 13.05.2026
 
 - Revert "fix(palety): dodaj USUN PRODUKT do menu kontekstowego na widoku palety"
@@ -127,27 +153,4 @@
 - fix: level shows 167K - include all sales except zwrot/anulowana, no double counting
 - fix: restore sprzedaze_prywatne in level calculation (was 145K, should be ~157K)
 - fix: restore offline filter in level - count only Allegro sales (~170K not 178K)
-- fix: remove double-counting of offline sales in level calculation
-- fix: include offline sales in poziom/level calculation
-- fix: group multi-item orders into single Telegram notification
-- feat: auto-backup before system update (git pull)
-
-## 12.04.2026
-
-- fix: CSRF referer check fails through ngrok proxy (403 on /system/update)
-- security: fix rate limiting to use verified endpoint names
-- resolve CHANGELOG conflict
-- security: fix webhook bypass, apply CSV sanitization, add verification report
-- security: full production hardening - rate limiting, session fix, webhooks, encrypted backups
-- security: fix critical and high severity vulnerabilities
-- fix: exclude offline sales from przychod_allegro_db to prevent double counting
-- fix: replace inline onclick with data-attributes on Korekta button
-- fix: update przychod_offline on offline sale and ensure sprzedaze record
-- fix: rewrite offline sale to atomic SQL update, prevent race conditions
-- fix: add missing CSRF tokens to dynamically created JS forms (korekty, sprzedaj offline)
-
-## 11.04.2026
-
-- fix: absolute stabilization of search with manual config reading and robust parsing
-- fix: total restoration of search with unified API key helper and improved error reporting
 

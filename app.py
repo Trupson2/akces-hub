@@ -151,7 +151,10 @@ def _generate_changelog():
         _cwd = os.path.dirname(os.path.abspath(__file__))
         result = subprocess.run(
             ['git', 'log', '--format=%ai|%s', '--no-merges', '-100'],
-            capture_output=True, text=True, timeout=10, cwd=_cwd
+            capture_output=True, text=True, timeout=10, cwd=_cwd,
+            # git wypisuje UTF-8; bez jawnego encoding subprocess dekoduje
+            # locale-em (cp1250 na Win) -> mojibake w CHANGELOG.md. PHASE 4.
+            encoding='utf-8', errors='replace'
         )
         if result.returncode != 0 or not result.stdout.strip():
             return
@@ -4228,8 +4231,8 @@ function sortTable(col) {
     var rows = Array.from(tbody.querySelectorAll('tr'));
     sortDir[col] = !sortDir[col];
     rows.sort(function(a, b) {
-        var aVal = a.cells[col].textContent.trim().replace(/[^0-9.\-]/g, '');
-        var bVal = b.cells[col].textContent.trim().replace(/[^0-9.\-]/g, '');
+        var aVal = a.cells[col].textContent.trim().replace(/[^0-9.\\-]/g, '');
+        var bVal = b.cells[col].textContent.trim().replace(/[^0-9.\\-]/g, '');
         var aNum = parseFloat(aVal) || 0;
         var bNum = parseFloat(bVal) || 0;
         if (col === 0 || col === 2) {

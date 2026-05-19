@@ -493,7 +493,7 @@ function testVps() {
     var res = document.getElementById('vpsTestResult');
     if(!url) { res.innerHTML='<span style="color:#ef4444">Wpisz URL!</span>'; return; }
     res.innerHTML='<span style="color:#eab308">Testowanie...</span>';
-    fetch(url.replace(/\/$/, '') + '/health')
+    fetch(url.replace(/\\/$/, '') + '/health')
         .then(r => r.json())
         .then(d => {
             if(d.status === 'ok' && d.rembg) {
