@@ -2,6 +2,9 @@
 
 ## 19.05.2026
 
+- docs: PHASE 4 — RELEASE.md (konsolidacja release workflow)
+- fix(cleanup): PHASE 4 — encoding CHANGELOG + invalid escape sequences
+- fix(release): PHASE 4 — domknij luki sekretów w build_release + auto-weryfikacja
 - feat(audit): PHASE 3 — audyt login/logout (rozliczalność dostępu)
 - fix(scout): PHASE 3 — napraw strukturalny SyntaxError winning_scout.py:729
 - feat(ops): PHASE 2 — hardening produkcyjny (healthcheck 503, backup single-source, głośny dev-fallback)
@@ -150,7 +153,4 @@
 ## 13.04.2026
 
 - fix: zdjecia nie wyswietlaja sie na liscie produktow - pelny fallback chain
-- fix: level shows 167K - include all sales except zwrot/anulowana, no double counting
-- fix: restore sprzedaze_prywatne in level calculation (was 145K, should be ~157K)
-- fix: restore offline filter in level - count only Allegro sales (~170K not 178K)
 
