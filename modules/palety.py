@@ -4043,6 +4043,15 @@ def paleta_szczegoly(paleta_id):
             .catch(() => { el.style.border = '1px solid var(--red)'; });
     }
 
+    // FIX 2026-05: _getCsrfToken na poziomie modulu. Byla zagniezdzona
+    // w cofnijOffline() -> ReferenceError gdy wolana z oznaczSprzedany/
+    // zapiszKorekta/cofnijSprzedaz/_submitKorekta -> POST nie wychodzil
+    // -> "sprzedaz nie dolicza". Bug ukryty pod root-bugiem (Python-escape).
+    function _getCsrfToken() {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.content : (window.CSRF_TOKEN || "");
+    }
+
     function cofnijOffline() {
         const ilosc = document.getElementById('cofnijIlosc').value;
         const maxOffline = document.getElementById('offlineSzt').value;
@@ -4053,11 +4062,6 @@ def paleta_szczegoly(paleta_id):
         }
 
         if (!confirm('Cofnąć ' + ilosc + ' szt. ze sprzedaży offline?\\n\\n(Produkty wrócą do magazynu)')) return;
-
-        function _getCsrfToken() {
-            var meta = document.querySelector('meta[name="csrf-token"]');
-            return meta ? meta.content : (window.CSRF_TOKEN || "");
-        }
 
         const produktId = document.getElementById('korektaProduktId').value;
         const form = document.createElement('form');
