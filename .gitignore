@@ -30,6 +30,8 @@ test_*.png
 test_*.xlsx
 test_*.txt
 *.log
+*.out
+nohup.out
 logs/
 curl_*.txt
 server_out.*
