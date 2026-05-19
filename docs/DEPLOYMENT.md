@@ -237,9 +237,34 @@ raz i od razu znika z puli. Po ich wyczerpaniu:
 
 ---
 
+## 7. Model rol — pierwszy klient (WAZNE)
+
+**Decyzja bezpieczenstwa (PHASE 1.5, 2026-05):**
+
+- **Pierwszy klient = 1 administrator.** Managed install: konto zalozone
+  przez `/setup` ma role `admin` i zarzadza systemem samodzielnie.
+- **Zabezpieczenie twarde (zweryfikowane):** zmiana/nadanie roli
+  (`POST /users/role/<id>`, `auth.py:1383`) jest `@require_role('admin')`.
+  **Self-eskalacja niemozliwa** — zaden non-admin nie awansuje sam ani
+  nikogo. To fundament tej decyzji (chroniony testem regresyjnym).
+- **Ograniczenie znane:** rola `magazynier` jest egzekwowana przez
+  *prefix-allowlist* (`ROLE_ALLOWED_PATHS`, `auth.py:189`), nie przez
+  dekoratory per-route. Destrukcyjne POST-y magazynu/palet
+  (`/magazyn/produkt/<code>/usun`, `/magazyn/paleta/<n>/usun`,
+  `/magazyn/api/palety-usun`) NIE maja wlasnego `@require_role` — konto
+  `magazynier` moze je wywolac.
+- **Zasada na pierwszego klienta:** **NIE nadawac roli `magazynier`**
+  dopoki nie wdrozone twarde dekoratory per-route (roadmapa PHASE 3 —
+  "po pierwszym kliencie"). Dla 1-admin instalacji ryzyko nie wystepuje
+  (nikt nie ma tej roli). Gdy klient bedzie chcial konto pracownika
+  magazynu — najpierw PHASE 3.
+
+---
+
 ## Checklist wdrozenia produkcyjnego
 
 - [ ] User `akces` utworzony, katalog `/opt/akces-hub` owned przez `akces:akces`
+- [ ] **Tylko konto `admin`** — NIE tworzyc kont z rola `magazynier` (patrz sekcja 7)
 - [ ] `/etc/akces/env.key` istnieje, chmod 640, owner `root:akces`
 - [ ] Systemd unit z `User=akces` i `EnvironmentFile=/etc/akces/env.key`
 - [ ] W logach startowych: `Klucz szyfrowania zaladowany ze zrodla: env:AKCES_ENCRYPTION_KEY`
