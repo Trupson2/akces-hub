@@ -417,7 +417,8 @@ def test_role_change_denied_for_non_admin(app_client):
     """magazynier/user NIE moze zmienic roli (self-eskalacja zablokowana)."""
     for role in ('magazynier', 'user', 'manager'):
         _login_as(app_client, role=role, user_id=2, username=f'x_{role}')
-        r = app_client.post('/users/role/1',
+        # auth_bp zarejestrowany z url_prefix='/auth' (app.py:878)
+        r = app_client.post('/auth/users/role/1',
                             data={'rola': 'admin'},
                             headers={'X-Requested-With': 'XMLHttpRequest'})
         assert r.status_code in DENIED_CODES, (
