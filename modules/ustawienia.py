@@ -1059,6 +1059,14 @@ def download_db():
 @ustawienia_bp.route('/admin/update-git', methods=['POST'])
 def admin_update_git():
     """Aktualizacja systemu -- git pull + pip install + restart"""
+    # FIX 2026-05 (PHASE 1.3): WYŁĄCZONE przed sprzedażą. Brak CSRF +
+    # fallback pobierał ZIP z GitHub bez weryfikacji podpisu = RCE przy
+    # przejętej sesji admina. Redundantne wobec /system/update (app.py
+    # ~2518: require_admin + CSRF + audit). Jedyna dozwolona ścieżka
+    # aktualizacji = /system/update. Przywrócić tylko z CSRF + weryfikacją
+    # podpisu (PHASE 3.4).
+    from flask import abort
+    abort(404)
     import subprocess
     from html import escape
 
@@ -1262,6 +1270,12 @@ def admin_update_git():
 def admin_update():
     """Aktualizacja systemu -- upload ZIP + backup + rozpakowanie + restart.
     TYLKO admin. Logowanie do audit logu: kto, kiedy, z jakiego IP, czy sukces."""
+    # FIX 2026-05 (PHASE 1.3): WYŁĄCZONE przed sprzedażą. Brak inline CSRF
+    # na uploadzie ZIP nadpisującym pliki = RCE przy przejętej sesji.
+    # Redundantne wobec /system/update (app.py ~2518). Jedyna dozwolona
+    # ścieżka = /system/update. Przywrócić tylko z CSRF (PHASE 3.4).
+    from flask import abort
+    abort(404)
     import subprocess, zipfile, shutil
     from html import escape
     try:

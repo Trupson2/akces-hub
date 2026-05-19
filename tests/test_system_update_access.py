@@ -372,3 +372,33 @@ def test_require_admin_decorator_exists():
     except ImportError:
         pytest.skip('modules.auth niedostepny')
     assert callable(require_admin), 'require_admin musi byc dekoratorem (callable)'
+
+
+# ────────────────────────────────────────────────────────────────────
+# PHASE 1.3 — redundantne/niebezpieczne sciezki update WYLACZONE
+# /admin/update-git: brak CSRF + ZIP bez podpisu = RCE
+# /admin/update: brak inline CSRF na uploadzie nadpisujacym pliki
+# Jedyna dozwolona = /system/update (require_admin + CSRF + audit).
+# Regresja: jesli ktos usunie abort(404) -> endpoint ozyje -> test fail.
+# ────────────────────────────────────────────────────────────────────
+
+def test_admin_update_git_disabled_even_for_admin(app_client):
+    """/admin/update-git musi byc martwy (404) NAWET dla admina."""
+    _login_as(app_client, role='admin', user_id=1, username='admin')
+    r = app_client.post('/admin/update-git',
+                        headers={'X-Requested-With': 'XMLHttpRequest'})
+    assert r.status_code == 404, (
+        f'/admin/update-git ma byc wylaczony (404), dostal {r.status_code} '
+        f'— niebezpieczna sciezka update przywrocona?'
+    )
+
+
+def test_admin_update_zip_disabled_even_for_admin(app_client):
+    """/admin/update (ZIP upload) musi byc martwy (404) NAWET dla admina."""
+    _login_as(app_client, role='admin', user_id=1, username='admin')
+    r = app_client.post('/admin/update',
+                        headers={'X-Requested-With': 'XMLHttpRequest'})
+    assert r.status_code == 404, (
+        f'/admin/update ma byc wylaczony (404), dostal {r.status_code} '
+        f'— niebezpieczna sciezka update przywrocona?'
+    )
