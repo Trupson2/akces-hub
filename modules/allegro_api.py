@@ -3560,6 +3560,14 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                         elif new_local_status == 'wyslana' and cur not in ('wyslana', 'wysłane', 'wyslane'):
                             conn.execute('UPDATE sprzedaze SET status = ? WHERE id = ?', (new_local_status, row['id']))
                             updated_cnt += 1
+                            # FIX 2026-05: zapis kalibracji ceny po finalizacji
+                            # sprzedazy (data-driven autowycena). Fail-safe — nie
+                            # blokuje glownego sync flow nawet gdyby helper crashowal.
+                            try:
+                                from modules.magazynier import zapisz_kalibracje_z_sprzedazy
+                                zapisz_kalibracje_z_sprzedazy(conn, row['id'])
+                            except Exception as _kal_err:
+                                print(f"  [WARN] Kalibracja zapis sprzedaz={row['id']}: {_kal_err}")
                         elif new_local_status == 'anulowana' and cur != 'anulowana':
                             conn.execute('UPDATE sprzedaze SET status = ? WHERE id = ?', (new_local_status, row['id']))
                             updated_cnt += 1

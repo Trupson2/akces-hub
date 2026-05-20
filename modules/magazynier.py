@@ -130,6 +130,86 @@ def _paleta_koszt_szt(conn, paleta_id):
     return 0
 
 
+# ────────────────────────────────────────────────────────────────────────
+# KALIBRACJA CEN — uczenie sie z realnych sprzedazy (PHASE: data-driven)
+# ────────────────────────────────────────────────────────────────────────
+
+def zapisz_kalibracje_z_sprzedazy(conn, sprzedaz_id):
+    """
+    Zapisz wpis kalibracji ceny po finalizacji sprzedazy.
+    Wywolane po UPDATE sprzedaze SET status='wyslana'.
+    Idempotent: UNIQUE(sprzedaz_id) constraint zapobiega duplikatom.
+    Allegro sprzedaze.cena to cena per-szt (lineItems[].price.amount).
+    """
+    try:
+        sale = conn.execute('''
+            SELECT s.produkt_id, s.cena, s.ilosc, COALESCE(p.nazwa, s.nazwa, '') as nazwa,
+                   COALESCE(p.asin, '') as asin,
+                   COALESCE(p.cena_brutto, 0) as cena_brutto, p.paleta_id
+            FROM sprzedaze s LEFT JOIN produkty p ON s.produkt_id = p.id
+            WHERE s.id = ? AND s.status = 'wyslana'
+        ''', (sprzedaz_id,)).fetchone()
+        if not sale or not sale['nazwa'] or not sale['cena'] or float(sale['cena']) <= 0:
+            return
+        koszt_szt = _paleta_koszt_szt(conn, sale['paleta_id']) if sale['paleta_id'] else 0
+        conn.execute('''
+            INSERT OR IGNORE INTO wycena_kalibracja
+            (produkt_id, sprzedaz_id, nazwa, asin, cena_brutto_snapshot,
+             cena_sprzedazy, paleta_koszt_szt, zrodlo)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (sale['produkt_id'], sprzedaz_id, sale['nazwa'],
+              sale['asin'], float(sale['cena_brutto']),
+              float(sale['cena']), float(koszt_szt), 'sprzedaz'))
+    except Exception as _e:
+        print(f"[Kalibracja] Blad zapisu sprzedaz_id={sprzedaz_id}: {_e}")
+
+
+def _get_kalibracje_dla_promptu(conn, batch_produkty, max_total=12):
+    """
+    Dla batch produktow zwroc top-K precedensow z wycena_kalibracja.
+    Similarity heurystyka: nazwa LIKE po 2-3 najdluzszych slowach klucz +
+    ASIN exact match. Recency tie-break.
+    Zwraca: list[dict] gotowy do wstawienia jako tekst w prompt.
+    """
+    import re as _re
+    found = []
+    seen_ids = set()
+    for p in batch_produkty:
+        nazwa = (p['nazwa'] or '').lower()
+        asin = (p['asin'] or '').strip()
+        # 1) exact ASIN match (highest priority)
+        if asin and len(asin) >= 8:
+            rows = conn.execute('''
+                SELECT id, nazwa, cena_sprzedazy, data_kalibracji, zrodlo
+                FROM wycena_kalibracja
+                WHERE asin = ?
+                ORDER BY data_kalibracji DESC LIMIT 2
+            ''', (asin,)).fetchall()
+            for r in rows:
+                if r['id'] not in seen_ids:
+                    seen_ids.add(r['id'])
+                    found.append(dict(r))
+        # 2) najdluzsze 2-3 slowa klucz z nazwy (>=4 znaki)
+        words = [w for w in _re.split(r'\W+', nazwa) if len(w) >= 4]
+        words = sorted(set(words), key=len, reverse=True)[:3]
+        if words:
+            like_clauses = ' OR '.join(['LOWER(nazwa) LIKE ?'] * len(words))
+            params = [f'%{w}%' for w in words]
+            rows = conn.execute(f'''
+                SELECT id, nazwa, cena_sprzedazy, data_kalibracji, zrodlo
+                FROM wycena_kalibracja
+                WHERE ({like_clauses})
+                ORDER BY data_kalibracji DESC LIMIT 3
+            ''', params).fetchall()
+            for r in rows:
+                if r['id'] not in seen_ids:
+                    seen_ids.add(r['id'])
+                    found.append(dict(r))
+    # 3) najnowsze najbardziej wartosciowe, max_total
+    found.sort(key=lambda r: r['data_kalibracji'], reverse=True)
+    return found[:max_total]
+
+
 _mag_stats_cache = {'data': None, 'time': 0}
 
 def get_stats():
@@ -7860,6 +7940,50 @@ def api_autowycena_zastosuj(product_id):
     return json.dumps({'success': True, 'nowa_cena': nowa_cena}), 200, {'Content-Type': 'application/json'}
 
 
+@magazynier_bp.route('/api/wycena/kalibruj', methods=['POST'])
+def api_kalibruj_cene():
+    """Manualna kalibracja ceny — dodaje precedens bez czekania na sprzedaz.
+
+    Body: {"produkt_id": int, "cena": float, "notatki": str (opcjonalne)}
+    Wpisuje rekord do wycena_kalibracja z zrodlo='manual'. Nastepna
+    autowycena tej (lub podobnej nazwa/asin) palety dostanie ten
+    precedens jako [M] w prompcie Gemini.
+    """
+    import json as _json
+    data = request.get_json() or {}
+    try:
+        produkt_id = int(data.get('produkt_id', 0))
+        cena = float(data.get('cena', 0))
+        notatki = (data.get('notatki') or '')[:200]
+    except (ValueError, TypeError):
+        return _json.dumps({'error': 'produkt_id musi byc int, cena float'}), 400
+    if not produkt_id or cena <= 0:
+        return _json.dumps({'error': 'Brak produkt_id lub cena <= 0'}), 400
+
+    conn = get_db()
+    p = conn.execute(
+        'SELECT nazwa, asin, cena_brutto, paleta_id FROM produkty WHERE id = ?',
+        (produkt_id,)
+    ).fetchone()
+    if not p:
+        return _json.dumps({'error': 'Produkt nie znaleziony'}), 404
+
+    koszt_szt = _paleta_koszt_szt(conn, p['paleta_id']) if p['paleta_id'] else 0
+    conn.execute('''
+        INSERT INTO wycena_kalibracja
+        (produkt_id, sprzedaz_id, nazwa, asin, cena_brutto_snapshot,
+         cena_sprzedazy, paleta_koszt_szt, zrodlo, notatki)
+        VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?)
+    ''', (produkt_id, p['nazwa'] or '', p['asin'] or '',
+          float(p['cena_brutto'] or 0), cena, float(koszt_szt),
+          'manual', notatki))
+    conn.commit()
+    return _json.dumps({
+        'success': True,
+        'message': f'Kalibracja: {(p["nazwa"] or "")[:60]} -> {cena:.0f} zl'
+    }), 200, {'Content-Type': 'application/json'}
+
+
 @magazynier_bp.route('/api/autowycena/paleta/<int:paleta_id>', methods=['POST'])
 def api_autowycena_paleta(paleta_id):
     """Auto-wycena (legacy, redirect do stream)"""
@@ -7939,9 +8063,34 @@ def api_autowycena_paleta_stream(paleta_id):
                 f"- Stan produktow: nowe lub powystawowe z Amazon Returns (UK/USA)\n"
             )
 
+            # FIX 2026-05 (data-driven): top-K precedensow z realnych sprzedazy
+            # i manualnych kalibracji. Te dane > moje przykady ogolne — AI
+            # ma realne ceny z TWOJEGO asortymentu zamiast zgadywac.
+            _kalibracje = _get_kalibracje_dla_promptu(conn, batch, max_total=12)
+            if _kalibracje:
+                _kalib_lines = []
+                for k in _kalibracje:
+                    _dt = (k['data_kalibracji'] or '')[:10]
+                    _marker = '[*]' if k['zrodlo'] == 'sprzedaz' else '[M]'
+                    _kalib_lines.append(
+                        f"  {_marker} \"{(k['nazwa'] or '')[:90]}\" -> {k['cena_sprzedazy']:.0f} zl ({_dt})"
+                    )
+                _kalibracje_block = (
+                    "\nTWOJE POTWIERDZONE PRECEDENSY (realne sprzedaze/kalibracje):\n"
+                    + "\n".join(_kalib_lines)
+                    + "\n[*] = potwierdzona sprzedaz na Allegro,  [M] = manualna kalibracja operatora.\n"
+                    + "WAGA: TE DANE > moje przyklady ogolne ponizej. Gdy nazwa/marka\n"
+                    + "podobna do precedensu, bazuj wprost na cenie precedensu.\n"
+                )
+            else:
+                _kalibracje_block = (
+                    "\n(BRAK precedensow w wycena_kalibracja dla tej palety —\n"
+                    " bazuj na przykladach ogolnych w sekcji #7 nizej.)\n"
+                )
+
             prompt = f"""Jestes polskim ekspertem sprzedazy na Allegro.pl, specjalizujacym sie w produktach z palet zwrotowych (Amazon Returns z UK/USA, hurtowni). Twoja praca: dla KAZDEGO produktu z listy podaj REALNA cene sprzedazy na Allegro.pl w PLN.
 
-{_paleta_block}
+{_paleta_block}{_kalibracje_block}
 PRODUKTY DO WYCENY:
 {chr(10).join(prod_list)}
 

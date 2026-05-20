@@ -156,6 +156,59 @@ def init_db():
             FOREIGN KEY (produkt_id) REFERENCES produkty(id)
         )''')
         
+        # FIX 2026-05: Tabela kalibracji cen Allegro — uczenie się z realnych
+        # sprzedazy. Po kazdej finalizacji sprzedazy (status='wyslana') zapis
+        # rekordu (nazwa, cena_sprzedazy, paleta_koszt_szt). Przy autowycenie
+        # Gemini dostaje top-K najblizszych precedensow zamiast zgadywac
+        # "z powietrza". UNIQUE(sprzedaz_id) zapobiega duplikatom przy
+        # ponownej synchronizacji.
+        conn.execute('''CREATE TABLE IF NOT EXISTS wycena_kalibracja (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            produkt_id INTEGER,
+            sprzedaz_id INTEGER UNIQUE,
+            nazwa TEXT NOT NULL,
+            asin TEXT DEFAULT '',
+            cena_brutto_snapshot REAL DEFAULT 0,
+            cena_sprzedazy REAL NOT NULL,
+            paleta_koszt_szt REAL DEFAULT 0,
+            zrodlo TEXT DEFAULT 'sprzedaz',
+            notatki TEXT DEFAULT '',
+            data_kalibracji TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (produkt_id) REFERENCES produkty(id),
+            FOREIGN KEY (sprzedaz_id) REFERENCES sprzedaze(id)
+        )''')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_kalibracja_nazwa ON wycena_kalibracja(LOWER(nazwa))')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_kalibracja_asin ON wycena_kalibracja(asin)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_kalibracja_data ON wycena_kalibracja(data_kalibracji DESC)')
+
+        # Backfill: jednorazowo (gdy tabela pusta) zapisz kalibracje z
+        # istniejacych zakonczonych sprzedazy. paleta_koszt_szt = 0 dla
+        # backfill — zostawiamy bezposrednim sprzedazom przyszlosci.
+        try:
+            _kalib_count = conn.execute('SELECT COUNT(*) FROM wycena_kalibracja').fetchone()[0]
+            if _kalib_count == 0:
+                conn.execute('''
+                    INSERT OR IGNORE INTO wycena_kalibracja
+                    (produkt_id, sprzedaz_id, nazwa, asin, cena_brutto_snapshot,
+                     cena_sprzedazy, paleta_koszt_szt, zrodlo, data_kalibracji)
+                    SELECT s.produkt_id, s.id,
+                           COALESCE(p.nazwa, s.nazwa, ''),
+                           COALESCE(p.asin, ''),
+                           COALESCE(p.cena_brutto, 0),
+                           s.cena, 0, 'sprzedaz_backfill',
+                           s.data_sprzedazy
+                    FROM sprzedaze s
+                    LEFT JOIN produkty p ON s.produkt_id = p.id
+                    WHERE s.status = 'wyslana'
+                      AND s.cena IS NOT NULL AND s.cena > 0
+                      AND COALESCE(p.nazwa, s.nazwa, '') != ''
+                ''')
+                _filled = conn.execute('SELECT COUNT(*) FROM wycena_kalibracja').fetchone()[0]
+                if _filled > 0:
+                    print(f"[init_db] Backfill wycena_kalibracja: {_filled} precedensow z historii sprzedazy")
+        except Exception as _be:
+            print(f"[init_db] Backfill wycena_kalibracja blad: {_be}")
+
         # Tabela sprzedaży
         conn.execute('''CREATE TABLE IF NOT EXISTS sprzedaze (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
