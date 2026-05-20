@@ -12,7 +12,15 @@ Wszystkie kroki są wykonalne copy/paste.
 
 ## 1. Operator — przed budową paczki
 
+> **UWAGA**: te 3 sanity to **maszyna operatora** (gdzie masz repo
+> źródłowe), NIE serwer klienta/Pi. Uruchom **w katalogu repo**
+> (gdzie istnieje `app.py` + `modules/` + `tests/` + `.git/`).
+> Dla weryfikacji **po wdrożeniu** na serwerze klienta → sekcja 5
+> (`curl`/`journalctl`/`sqlite3`, działają bez kodu źródłowego).
+
 ```bash
+cd /sciezka/do/repo/akces-hub   # MUSI być repo z .git/, NIE ~ ani /opt
+
 # (a) Testy regresji muszą być zielone (PHASE 1+2+3+4):
 python -m pytest tests/test_no_secrets_in_logs.py tests/test_phase2_ops.py \
                  tests/test_phase3_audit.py tests/test_phase3_syntax.py \
@@ -20,7 +28,10 @@ python -m pytest tests/test_no_secrets_in_logs.py tests/test_phase2_ops.py \
                  tests/test_rendered_js_syntax.py -q
 
 # (b) Żaden plik trackowany nie zawiera tokenu JWT:
-git grep -nE 'eyJ[A-Za-z0-9_-]{20,}' -- . ':(exclude)tests/*'   # MUSI być puste
+#     UWAGA: jeśli uruchomisz poza repo git, git grep zwróci błąd
+#     i gałąź "|| OK" wyda FAŁSZYWE "OK". Sprawdź że jesteś w repo:
+git rev-parse --is-inside-work-tree && \
+  git grep -nE 'eyJ[A-Za-z0-9_-]{20,}' -- . ':(exclude)tests/*'   # MUSI być puste
 
 # (c) Cały kod się kompiluje:
 python -m compileall -q modules/ app.py                          # zero błędów
