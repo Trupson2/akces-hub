@@ -2,6 +2,7 @@
 
 ## 19.05.2026
 
+- chore(changelog): regen po PHASE 4 (autogeneracja UTF-8)
 - docs: PHASE 4 — RELEASE.md (konsolidacja release workflow)
 - fix(cleanup): PHASE 4 — encoding CHANGELOG + invalid escape sequences
 - fix(release): PHASE 4 — domknij luki sekretów w build_release + auto-weryfikacja
@@ -149,8 +150,4 @@
 - perf: switch to waitress WSGI server instead of Flask dev server
 - fix: disable license heartbeat blocking - no dedicated license server
 - fix: harden license middleware - catch all exceptions, not just ImportError
-
-## 13.04.2026
-
-- fix: zdjecia nie wyswietlaja sie na liscie produktow - pelny fallback chain
 
