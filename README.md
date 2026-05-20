@@ -6,57 +6,44 @@ Właśnie nabyłeś profesjonalny system do zarządzania paletami zwrotów z **p
 
 ---
 
-## ⚡ QUICK START (15 minut):
+## ⚡ INSTALACJA
 
-### 1. Zainstaluj Python
+> **Model wdrożenia: managed install.** Instancję stawia się na
+> serwerze klienta (Pi/VPS, Linux). Każdy klient = osobna instancja
+> (osobna baza, sekrety, własna aplikacja Allegro).
+
+### Wariant A — instalator Pi/VPS (zalecany)
 ```bash
-# Pobierz Python 3.11+ z python.org
-# Zainstaluj z opcją "Add to PATH"
+scp setup_client.sh user@SERWER:~
+ssh user@SERWER "bash setup_client.sh"
 ```
+Skrypt: aktualizuje system, instaluje zależności, klonuje repo,
+konfiguruje usługę. **Pełna instrukcja produkcyjna (systemd, env.key,
+HTTPS, 2FA): [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)** — to jest
+referencyjny dokument wdrożeniowy.
 
-### 2. KRYTYCZNE - Uruchom instalator!
+### Wariant B — ręcznie (dev / test)
 ```bash
-cd akces_hub_clean
-
-# Windows:
-INSTALL.bat
-
-# Linux/Mac:
-rm -f akces_hub.db
 pip install -r requirements.txt
-python init_db.py
+python app.py            # serwer dev — TYLKO do testów
 ```
+Produkcyjnie NIE uruchamiaj `python app.py` — użyj waitress+systemd
+wg `docs/DEPLOYMENT.md`.
 
-**⚠️ WAŻNE:** Musisz uruchomić INSTALL.bat - tworzy on czystą bazę demo!
+**Baza danych tworzy się AUTOMATYCZNIE** przy pierwszym starcie
+(`modules/database.py` → `init_db()`). Nie ma osobnego skryptu init.
 
-### 3. Uruchom system
-```bash
-# Windows:
-RUN.bat
+### Pierwsze uruchomienie
+1. Otwórz `https://TWOJA-DOMENA` (lub `http://localhost:5000` w dev)
+2. System przekieruje na **`/setup`** — utwórz konto administratora
+   (min. 8 znaków; brak domyślnego admin/admin)
+3. Przejdź **`/onboarding`** — wpisz klucz licencji, skonfiguruj Allegro
+4. (Opcjonalnie) włącz 2FA w ustawieniach
 
-# Linux/Mac:
-python app.py
-```
-
-### 4. Otwórz przeglądarkę
-```
-http://localhost:5000
-```
-
-**Przy pierwszej instalacji zobaczysz automatycznie bazę DEMO z przykładowymi danymi!**
-
----
-
-## 📊 CO ZOBACZYSZ (Demo):
-
-**Dashboard:**
-- 3 palety demonstracyjne
-- 7 przykładowych produktów
-- Elektronika (Sony, Anker, JBL)
-- AGD (Philips, Tefal)
-- Sport (Reebok, hantle)
-
-**To NIE są prawdziwe dane - to przykładowy pokaz dla klientów!**
+> **Uwaga:** świeża instancja startuje **pusta** (zero palet/produktów).
+> To zamierzone — to system produkcyjny klienta, nie pokaz. Dane
+> demonstracyjne do prezentacji generuje osobny skrypt seed
+> (`seed_demo.py` — patrz roadmapa; **nie uruchamiaj na produkcji**).
 
 ---
 
@@ -276,8 +263,9 @@ akces_hub_clean/
 ├── MANUAL.md                  ← Instrukcja użytkownika
 ├── FAQ.md                     ← Najczęstsze pytania
 │
-├── app.py                     ← Główna aplikacja
-├── init_db.py                 ← Auto-tworzenie demo
+├── app.py                     ← Główna aplikacja (init_db auto przy starcie)
+├── setup_client.sh            ← Instalator Pi/VPS (managed install)
+├── docs/DEPLOYMENT.md         ← Referencyjna instrukcja wdrożenia
 ├── requirements.txt           ← Zależności Python
 │
 ├── modules/                   ← Wszystkie moduły

@@ -1182,7 +1182,7 @@ def analyze_top_deals_with_perplexity(deals, max_deals=6):
         )
 
         if resp.status_code != 200:
-            log(f"Perplexity API error: HTTP {resp.status_code} — {resp.text[:200]}")
+            log(f"Perplexity API error: HTTP {resp.status_code} (body ukryty — PHASE 1.1+)")
             return
 
         data = resp.json()

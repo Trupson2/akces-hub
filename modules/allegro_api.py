@@ -514,6 +514,20 @@ def is_authenticated():
     return True
 
 
+def _safe_resp_err(resp):
+    """FIX 2026-05 (PHASE 1.1): bezpieczny komunikat z odpowiedzi Allegro
+    BEZ body/tokenów. Token-endpoint przy 200 zwraca access+refresh_token,
+    a przy błędzie Allegro WKLEJA fragment refresh_token w error_description
+    (widziane: "Invalid refresh token: eyJ..."). Dlatego NIGDY nie logujemy
+    response.text ani error_description — tylko status + krótki kod 'error'
+    (np. invalid_grant), który jest bezpieczny."""
+    try:
+        code = (resp.json() or {}).get('error', '')
+    except Exception:
+        code = ''
+    return f"HTTP {resp.status_code}" + (f" ({code})" if code else "")
+
+
 def refresh_access_token():
     config = get_allegro_config()
     if not config['refresh_token']:
@@ -546,15 +560,20 @@ def refresh_access_token():
         if response.status_code == 200:
             tokens = response.json()
             set_config('allegro_access_token', tokens['access_token'])
-            if 'refresh_token' in tokens:
+            # FIX 2026-05-09 BUG #2: Allegro rotuje refresh_token przy
+            # kazdym refresh - nowy 30-dniowy window. Zapisujemy expires_at
+            # zeby daemon mogl alertowac przy zblizajacym sie wygasnieciu.
+            if 'refresh_token' in tokens and tokens['refresh_token'] != config['refresh_token']:
                 set_config('allegro_refresh_token', tokens['refresh_token'])
+                refresh_expires = datetime.now() + timedelta(days=30)
+                set_config('allegro_refresh_token_expires_at', refresh_expires.isoformat())
             expires_in = tokens.get('expires_in', 43200)
             expires_at = datetime.now() + timedelta(seconds=expires_in - 300)
             set_config('allegro_token_expires', expires_at.isoformat())
             print(f"[TokenRefresh] [OK] Token odświeżony, wygasa: {expires_at.isoformat()}")
             return True
         else:
-            print(f"[TokenRefresh] [ERR] Błąd: {response.text[:200]}")
+            print(f"[TokenRefresh] [ERR] Błąd: {_safe_resp_err(response)}")
         return False
     except Exception as e:
         print(f"[TokenRefresh] [ERR] Wyjątek: {e}")
@@ -658,7 +677,7 @@ def allegro_request(method, endpoint, data=None, params=None, _retry=False, _att
             except ValueError:
                 # response.json() failed — not valid JSON
                 error_details = f"Allegro API HTTP {response.status_code} (odpowiedź nie jest JSON)"
-                print(f"* {error_details}: {response.text[:200]}")
+                print(f"* {error_details} (body ukryty — PHASE 1.1)")
             except Exception as ex:
                 print(f"* Allegro API error {response.status_code}: {ex}")
             return None, error_details
@@ -2608,7 +2627,7 @@ def upload_gpsr_attachment(gpsr_text, product_name=''):
             print(f"[SHIE] GPSR attachment uploaded: {attachment_id}")
             return attachment_id
         else:
-            print(f"[SHIE] GPSR upload error: {resp.status_code}: {resp.text[:300]}")
+            print(f"[SHIE] GPSR upload error: HTTP {resp.status_code} (body ukryty — PHASE 1.1+)")
             return None
 
     except Exception as e:
@@ -4896,7 +4915,9 @@ def callback():
         print(f"[OAuth] Token exchange: POST {token_url}")
         print(f"[OAuth] redirect_uri: {config['redirect_uri']}")
         response = requests.post(token_url, headers=headers, data=data, timeout=30)
-        print(f"[OAuth] Response: {response.status_code} {response.text[:200]}")
+        # FIX 2026-05 (PHASE 1.1): NIE logować body — przy 200 zawiera
+        # access_token+refresh_token w czystej postaci (CRITICAL leak).
+        print(f"[OAuth] Response: {_safe_resp_err(response)}")
 
         if response.status_code == 200:
             tokens = response.json()
@@ -4910,6 +4931,15 @@ def callback():
             expires_at = datetime.now() + timedelta(seconds=expires_in - 300)
             set_config('allegro_token_expires', expires_at.isoformat())
 
+            # FIX 2026-05-09 BUG #2: zapisz 30-dniowe okno zycia refresh_token
+            # zeby daemon mogl alertowac przy zblizajacym sie wygasnieciu.
+            # Allegro produkcja = 30 dni, sandbox = 24 h.
+            from .database import get_config_cached
+            is_sandbox = get_config_cached('allegro_sandbox', 'false') == 'true'
+            refresh_lifetime_days = 1 if is_sandbox else 30
+            refresh_expires = datetime.now() + timedelta(days=refresh_lifetime_days)
+            set_config('allegro_refresh_token_expires_at', refresh_expires.isoformat())
+
             # Wyczyść state
             set_config('allegro_oauth_state', '')
 
@@ -4920,11 +4950,14 @@ def callback():
                 <a href="/allegro" class="btn btn-secondary"><span class=material-symbols-outlined>shopping_cart</span> Przejdz do Allegro</a>
             ''', 'Sukces')
         else:
+            # FIX 2026-05 (PHASE 1.1): fallback bez raw body (mogłoby
+            # zawierać token). error_description zostaje (celowy komunikat
+            # Allegro dla usera), ale gdy go brak — generyczny, nie body.
             try:
                 err_data = response.json()
-                err_msg = err_data.get('error_description', err_data.get('error', response.text[:200]))
-            except:
-                err_msg = response.text[:200]
+                err_msg = err_data.get('error_description') or err_data.get('error') or f"Błąd autoryzacji (HTTP {response.status_code})"
+            except Exception:
+                err_msg = f"Błąd autoryzacji (HTTP {response.status_code})"
 
             return render(f'''
                 <div class="alert alert-error">{err_msg}</div>
@@ -5619,7 +5652,7 @@ def get_shipment_label(order_id):
                         print(f"   → [OK] Etykieta WZA pobrana! Rozmiar: {len(response.content)} bytes")
                         return response.content, shipment_id, None
                     else:
-                        print(f"   → [WARN] {response.status_code}: {response.text[:100]}")
+                        print(f"   → [WARN] HTTP {response.status_code} (body ukryty — PHASE 1.1, etykieta WZA = dane adresowe/RODO)")
                 except Exception as e:
                     print(f"   → [ERR] Wyjątek: {e}")
     # METODA 2: Sprawdź standardowe API (checkout-forms shipments)

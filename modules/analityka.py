@@ -3706,7 +3706,7 @@ def analizator_palet():
                 var prog = d.progress || 'Analizuję...';
                 document.getElementById('excel-progress-text').textContent = ' ' + prog;
                 // Parsuj "batch X/Y" z progressu
-                var m = prog.match(/batch\s+(\d+)\/(\d+)/);
+                var m = prog.match(/batch\\s+(\\d+)\\/(\\d+)/);
                 if (m) {{
                     var cur = parseInt(m[1]);
                     var total = parseInt(m[2]);
@@ -3714,10 +3714,10 @@ def analizator_palet():
                     var pct = Math.round((cur - 1) / total * 100);
                     document.getElementById('excel-progress-bar').style.width = pct + '%';
                     document.getElementById('excel-progress-pct').textContent = pct + '%';
-                    document.getElementById('excel-progress-detail').textContent = 'Batch ' + cur + ' z ' + total + ' • Gemini analizuje ' + (m[0].match(/\((\d+)/)?.[1] || '15') + ' produktów...';
+                    document.getElementById('excel-progress-detail').textContent = 'Batch ' + cur + ' z ' + total + ' • Gemini analizuje ' + (m[0].match(/\\((\\d+)/)?.[1] || '15') + ' produktów...';
                 }}
                 // Parsuj "(X produktów)" z progressu
-                var mp = prog.match(/\((\d+)\s+produkt/);
+                var mp = prog.match(/\\((\\d+)\\s+produkt/);
                 if (mp) {{
                     document.getElementById('excel-progress-detail').textContent = 'Analizuję ' + mp[1] + ' produktów w tym batchu...';
                 }}
@@ -4111,7 +4111,7 @@ def _get_render_results_js():
     function filterProducts() {
         var q = (document.getElementById('product-filter').value || '').toLowerCase().trim();
         if (!q || !window._analysisProducts) return clearFilter();
-        var keywords = q.split(/[\s,;]+/);
+        var keywords = q.split(/[\\s,;]+/);
         var filtered = window._analysisProducts.filter(function(p) {
             var txt = ((p.nazwa||'') + ' ' + (p.uwagi||'')).toLowerCase();
             return keywords.some(function(k) { return txt.indexOf(k) >= 0; });

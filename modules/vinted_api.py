@@ -277,7 +277,7 @@ def upload_photo_vinted(session, image_path_or_url, csrf_token=None):
             print(f"[OK] Vinted photo uploaded: {photo_id}")
             return photo_id
         else:
-            print(f"[ERR] Vinted photo upload: {resp.status_code} {resp.text[:200]}")
+            print(f"[ERR] Vinted photo upload: HTTP {resp.status_code} (body ukryty — PHASE 1.1+)")
 
     except Exception as e:
         print(f"[ERR] Vinted photo upload error: {e}")

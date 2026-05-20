@@ -7964,7 +7964,7 @@ Przykład:
                                     if 1 < price < 50000:
                                         ai_prices[pid] = round(price, 2)
                     else:
-                        print(f"[Auto-wycena] Gemini error {resp.status_code}: {resp.text[:200]}")
+                        print(f"[Auto-wycena] Gemini error: HTTP {resp.status_code} (body ukryty — PHASE 1.1+)")
                 except Exception as e:
                     print(f"[Auto-wycena] Gemini batch error: {e}")
                     stats['errors'] += 1

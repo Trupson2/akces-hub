@@ -2210,7 +2210,7 @@ Odpowiedz TYLKO w formacie JSON (bez markdown)."""
                     specs = ai_data.get('specs', [])
                     print(f"[Gemini] [OK] Wygenerowano: intro={len(intro_text)} chars, {len(features)} features")
             else:
-                print(f"[Gemini HTML] [ERR] API error: {response.status_code}: {response.text[:200]}")
+                print(f"[Gemini HTML] [ERR] API error: HTTP {response.status_code} (body ukryty — PHASE 1.1+)")
         except Exception as e:
             print(f"[Gemini HTML] [WARN] Błąd: {e}")
     
@@ -2799,7 +2799,7 @@ Odpowiedz TYLKO zoptymalizowanym tytułem, nic więcej:"""
                     else:
                         print(f"[WARN] [SEO] AI response za długi lub za krótki: {len(optimized)} znaków")
             else:
-                print(f"[WARN] [SEO] API error: {response.text[:200]}")
+                print(f"[WARN] [SEO] API error: HTTP {response.status_code} (body ukryty — PHASE 1.1+)")
                     
         except Exception as e:
             print(f"[WARN] Błąd AI optymalizacji: {e}")

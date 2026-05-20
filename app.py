@@ -151,7 +151,10 @@ def _generate_changelog():
         _cwd = os.path.dirname(os.path.abspath(__file__))
         result = subprocess.run(
             ['git', 'log', '--format=%ai|%s', '--no-merges', '-100'],
-            capture_output=True, text=True, timeout=10, cwd=_cwd
+            capture_output=True, text=True, timeout=10, cwd=_cwd,
+            # git wypisuje UTF-8; bez jawnego encoding subprocess dekoduje
+            # locale-em (cp1250 na Win) -> mojibake w CHANGELOG.md. PHASE 4.
+            encoding='utf-8', errors='replace'
         )
         if result.returncode != 0 or not result.stdout.strip():
             return
@@ -1473,7 +1476,10 @@ def api_health():
         conn = get_db()
         conn.execute('SELECT 1').fetchone()
     except Exception as e:
-        db_status = f'error: {e}'
+        # PHASE 2: generyczny status w publicznym body (bez {e} = bez
+        # leak sciezek/SQL — duch PHASE 1). Szczegoly tylko do logu serwera.
+        db_status = 'error'
+        log_warning(f"[health] DB check failed: {e}")
 
     # Uptime
     uptime_sec = int(time.time() - APP_START_TIME)
@@ -1488,6 +1494,9 @@ def api_health():
     else:
         uptime_str = f"{mins}m {secs}s"
 
+    # PHASE 2: HTTP 503 gdy DB padla — monitoring zewnetrzny (UptimeRobot
+    # itp.) patrzy na kod HTTP, nie parsuje body. Wczesniej zawsze 200 =
+    # awaria DB niewykrywalna z zewnatrz.
     return jsonify({
         'status': 'ok' if db_status == 'ok' else 'degraded',
         'version': VERSION,
@@ -1501,7 +1510,7 @@ def api_health():
             'allegro': True,
             'telegram': True,
         }
-    })
+    }), (200 if db_status == 'ok' else 503)
 
 @app.route('/api/ngrok-status')
 def api_ngrok_status():
@@ -4222,8 +4231,8 @@ function sortTable(col) {
     var rows = Array.from(tbody.querySelectorAll('tr'));
     sortDir[col] = !sortDir[col];
     rows.sort(function(a, b) {
-        var aVal = a.cells[col].textContent.trim().replace(/[^0-9.\-]/g, '');
-        var bVal = b.cells[col].textContent.trim().replace(/[^0-9.\-]/g, '');
+        var aVal = a.cells[col].textContent.trim().replace(/[^0-9.\\-]/g, '');
+        var bVal = b.cells[col].textContent.trim().replace(/[^0-9.\\-]/g, '');
         var aNum = parseFloat(aVal) || 0;
         var bNum = parseFloat(bVal) || 0;
         if (col === 0 || col === 2) {
@@ -7129,14 +7138,24 @@ if __name__ == '__main__':
         log_warning(f"Backup daemon - blad: {e}")
     
     # Auto-refresh tokena Allegro
+    # FIX 2026-05-09: daemon startuje gdy sa credentials (client_id+secret),
+    # nie gdy istnieje token. Wczesniej `if token_info:` blokowal start, bo
+    # `get_token_info` szukal klucza `allegro_token_expires_at` ktory nigdy
+    # nie byl zapisany - allegro_api.py uzywa `allegro_token_expires` bez `_at`.
+    # Skutek: daemon NIGDY nie startowal w produkcji, refresh dzialal tylko
+    # lazy on-401 z `allegro_api.refresh_access_token`.
     try:
         from modules.token_refresh import start_token_refresh_daemon, get_token_info
-        token_info = get_token_info()
-        if token_info:
+        from modules.allegro_api import is_configured as _allegro_is_configured
+        if _allegro_is_configured():
             start_token_refresh_daemon()
-            log(f"Token refresh daemon uruchomiony, wygasa: {token_info['expires_at_str']}")
+            token_info = get_token_info()
+            if token_info:
+                log(f"Token refresh daemon uruchomiony, wygasa: {token_info['expires_at_str']}")
+            else:
+                log("Token refresh daemon uruchomiony (czeka na /allegro/auth - brak aktualnego tokena)")
         else:
-            log_warning("Token refresh - brak tokena Allegro")
+            log_warning("Token refresh - Allegro nie skonfigurowane (brak client_id/secret)")
     except Exception as e:
         log_warning(f"Token refresh daemon - blad: {e}")
     
@@ -7338,12 +7357,12 @@ if __name__ == '__main__':
         from datetime import date as _date
         while True:
             time.sleep(3600)
-            try:
-                from modules.backup_manager import create_backup
-                create_backup()
-                log("[Auto] Backup godzinny zapisany")
-            except Exception as e:
-                log_warning(f"[Auto] Blad backupu: {e}")
+            # PHASE 2: USUNIETO duplikat create_backup() — backup robi
+            # WYLACZNIE daemon backup_manager (start_backup_daemon, wyzej)
+            # ktory ma rotacje (MAX_BACKUPS=24), PRAGMA integrity_check i
+            # cloud_export. Wczesniej 2x backup/h (daemon + ta petla) =
+            # podwojne I/O, mylace logi, restore "ktory plik". Ta petla
+            # zostaje TYLKO dla RODO + license check (raz dziennie).
             # RODO auto-anonimizacja raz dziennie
             try:
                 today = _date.today().isoformat()
@@ -7366,7 +7385,7 @@ if __name__ == '__main__':
             except Exception as e:
                 log_warning(f"[Mailer] Blad sprawdzania licencji: {e}")
     threading.Thread(target=hourly_backup, daemon=True).start()
-    log("Auto-backup co godzine: WLACZONY")
+    log("Auto: RODO+license check co godzine (backup = daemon backup_manager)")
 
     # Reset cache aktualizacji przy starcie — żeby od razu sprawdzał
     try:
@@ -7385,8 +7404,15 @@ if __name__ == '__main__':
         log("Uzywam waitress (produkcyjny WSGI)")
         serve(app, host='0.0.0.0', port=5000, threads=8, channel_timeout=600)
     except ImportError:
-        # Fallback na Flask dev server jesli waitress nie zainstalowany
-        log("[WARN] Waitress niedostepny — fallback na Flask dev server")
+        # PHASE 2: fallback zostaje (lepiej dzialac na dev niz nie dzialac
+        # u klienta), ale GLOSNO — produkcja na Flask dev serverze nie ma
+        # wydajnosci ani odpornosci waitress. Operator MUSI to zobaczyc.
+        _banner = "!" * 64
+        log(_banner)
+        log("[CRITICAL] WAITRESS NIEZAINSTALOWANY — dzialam na Flask DEV serverze!")
+        log("[CRITICAL] To NIE jest setup produkcyjny. Wykonaj:  pip install waitress")
+        log("[CRITICAL] potem zrestartuj usluge. (requirements.txt zawiera waitress)")
+        log(_banner)
         app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
 
 # ============================================================

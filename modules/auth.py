@@ -644,6 +644,14 @@ def login():
                 pass  # Nie blokuj logowania z powodu locka
             conn.close()
 
+            # PHASE 3 — audyt udanego logowania (infra admin_audit_log;
+            # sesja juz ustawiona -> user_id/username/rola auto-fill)
+            try:
+                from modules.database import log_admin_action
+                log_admin_action('login_success', details={'ip': client_ip})
+            except Exception:
+                pass
+
             next_url = request.args.get('next', '/dashboard')
             # Zabezpieczenie przed Open Redirect — tylko lokalne ścieżki
             if not next_url.startswith('/') or next_url.startswith('//'):
@@ -668,6 +676,18 @@ def login():
             return redirect(next_url)
         else:
             _record_failed_login(client_ip)
+            # PHASE 3 — audyt nieudanego logowania (widocznosc brute-force;
+            # brak sesji -> przekazujemy username jawnie, success=False)
+            try:
+                from modules.database import log_admin_action
+                log_admin_action(
+                    'login_failed',
+                    details={'username': username, 'ip': client_ip},
+                    success=False,
+                    username=username,
+                )
+            except Exception:
+                pass
             import sqlite3 as _sq2
             try:
                 con2 = _sq2.connect(DB_PATH, timeout=3)
@@ -746,6 +766,12 @@ def first_setup():
 @auth_bp.route('/logout')
 def logout():
     """Wylogowanie"""
+    # PHASE 3 — audyt wylogowania PRZED session.clear() (auto-fill z sesji)
+    try:
+        from modules.database import log_admin_action
+        log_admin_action('logout')
+    except Exception:
+        pass
     session.clear()
     return redirect(url_for('auth.login'))
 
