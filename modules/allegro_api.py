@@ -409,9 +409,13 @@ def upload_image_to_allegro(image_path_or_url, asin=None):
                             last_error = errors[0].get('message', str(err_data))
                         else:
                             last_error = str(err_data)
-                    except:
-                        last_error = response.text[:200]
-                    
+                    except Exception:
+                        # PHASE 1.1++ (post-deploy): NIE logować response.text
+                        # — defense-in-depth, response body z 4xx może zawierać
+                        # echo input (PII/RODO) lub fragment tokena na endpointach
+                        # OAuth. Status code wystarcza operatorowi do diagnostyki.
+                        last_error = f"HTTP {response.status_code}"
+
                     print(f"    [ERR] Allegro error: {last_error}")
                     
             except requests.RequestException as e:

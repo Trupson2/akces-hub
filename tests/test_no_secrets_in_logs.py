@@ -61,3 +61,53 @@ def test_safe_helper_exists():
     assert "def _safe_resp_err(" in src, (
         "Brak _safe_resp_err — helper maskujący błędy token-endpointu"
     )
+
+
+# PHASE 1.1++ (post-deploy): taint-flow var = response.text -> print(var).
+# Wcześniejszy regex _BAD łapał tylko BEZPOŚREDNIE log/print(response.text).
+# Bug w produkcji (allegro_api.py:413 `last_error = response.text[:200]`
+# potem `print(f"...{last_error}")`) prześliznął się — variable jako
+# pośrednik. Test rozszerzony: znajdź wszystkie `var = response.text...`,
+# a potem czy `var` trafia do log/print sink w tym samym pliku.
+_VAR_ASSIGN = re.compile(
+    r"^\s*(\w+)\s*=\s*\b(response|resp)\.(text|content)\b"
+)
+
+
+def test_no_response_text_via_variable():
+    """Pattern przez zmienna posrednia (taint-flow): var=response.text -> log(var)."""
+    offenders = []
+    for fname in _FILES:
+        path = os.path.abspath(os.path.join(_BASE, fname))
+        with open(path, encoding="utf-8") as fh:
+            lines = fh.readlines()
+
+        # 1) znajdz wszystkie assignmenty `var = response.text[...]`
+        tainted = {}  # var_name -> line_no
+        for i, line in enumerate(lines, 1):
+            m = _VAR_ASSIGN.match(line)
+            if m and not _OK.search(line):
+                tainted[m.group(1)] = i
+
+        if not tainted:
+            continue
+
+        # 2) czy ktoras tainted variable trafia do print/log w tym samym pliku
+        log_sink = re.compile(
+            r"(print|log\w*|logger\.|logging\.|_send_alert|_handle_failure"
+            r"|_maybe_send_alert)\s*\([^\n]*\b("
+            + "|".join(map(re.escape, tainted.keys()))
+            + r")\b"
+        )
+        for i, line in enumerate(lines, 1):
+            m = log_sink.search(line)
+            if m and not _OK.search(line) and i not in tainted.values():
+                var = m.group(2)
+                offenders.append(
+                    f"{fname}:{tainted[var]} '{var} = response.text...' "
+                    f"-> sink:{i} {line.strip()[:80]}"
+                )
+    assert not offenders, (
+        "var = response.text -> log(var) (taint-flow leak, PHASE 1.1++ post-deploy):\n"
+        + "\n".join(offenders)
+    )
