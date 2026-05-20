@@ -7954,12 +7954,20 @@ ZASADY WYCENY (przeczytaj WSZYSTKIE i stosuj):
    z wlasnym poziomem cenowym, nie generyczny odkurzacz. Markowe produkty kosztuja wiecej
    niz no-name w tej samej kategorii.
 
-3. **TYPOWE MARZE NETTO (cena Allegro vs koszt zakupu szt)** dla produktow z palet zwrotowych:
-   - Akcesoria zwierzece (odkurzacze, maszynki, karmniki, posłania): cena = koszt × 2.0–3.5
-   - Elektronika konsumencka (gadgety USB, oswietlenie LED, ladowarki): cena = koszt × 1.8–3.0
-   - Akcesoria moto (rampy, narzedzia, organizery): cena = koszt × 2.2–4.0
-   - Kosmetyka / kuchnia / dom: cena = koszt × 1.8–3.0
-   - Sport / outdoor (camping, fitness): cena = koszt × 2.0–3.5
+3. **TYPOWE MNOZNIKI (cena Allegro vs paleta_koszt_szt)** dla produktow z palet zwrotowych:
+   - Akcesoria zwierzece (odkurzacze, maszynki, karmniki, posłania): cena = koszt × 2.5–5.0
+   - Elektronika konsumencka (gadgety USB, oswietlenie, ladowarki): cena = koszt × 2.0–4.0
+   - Akcesoria moto CODZIENNE (organizery, oslony, drobne akcesoria): cena = koszt × 2.5–5.0
+   - SPRZET SPECJALISTYCZNY / PROFESJONALNY (rampy 300kg, narzedzia pro,
+     wiertarki udarowe, fotele gamingowe, rowery elektryczne, akumulatory
+     przemyslowe): cena = koszt × **5.0–15.0** (TAK, kilkanascie razy koszt —
+     to nie blad, profesjonalne produkty maja olbrzymie marze. Patrz #7.)
+   - Kosmetyka / kuchnia / dom: cena = koszt × 2.0–3.5
+   - Sport / outdoor (camping, fitness): cena = koszt × 2.5–4.5
+
+   UWAGA: paleta_koszt_szt to ŚREDNIA dla CALEJ palety, wiec dla pojedynczego
+   produktu jest tylko sygnalem orientacyjnym. Bazuj GLOWNIE na nazwie/marce/
+   konkretnym modelu — marze powyzej to checkpoint, nie sztywne wytyczne.
 
 4. **DOLNY PROG TWARDY dla TEJ palety**: cena_allegro >= {_pal_koszt_szt * 1.4:.0f} zl
    (= koszt zakupu szt {_pal_koszt_szt:.0f} zl × 1.4 = pokrycie prowizji 11%
@@ -7976,21 +7984,45 @@ ZASADY WYCENY (przeczytaj WSZYSTKIE i stosuj):
    - Niszowe (popyt sredni): mediana z dolnej polowy (mniej konkurencji)
    - W obu przypadkach zwracaj MEDIANE, nie min/max
 
-7. **PRZYKLAD KALIBRACYJNY** (zapamietaj te poziomy cen):
-   - "Odkurzacz dla psow Oneisall 4w1 12000Pa" → mediana 280–380 zl, zwracaj ~320 zl
-   - "Maszynka do strzyzenia psa 4w1 bezprzewodowa" → mediana 110–170 zl, zwracaj ~140 zl
-   - "Automatyczny karmnik dla kota WiFi 5L" → mediana 180–250 zl, zwracaj ~210 zl
-   - "Rampa teleskopowa aluminium 300x22cm 300kg" → mediana 280–380 zl, zwracaj ~330 zl
-   - Szczotki/akcesoria do odkurzacza: 80–140 zl
-   Te poziomy obowiazuja w polskim rynku Allegro, NIE konwertuj z Amazon.
+7. **PRZYKLADY KALIBRACYJNE — REALNE CENY z polskiego Allegro (maj 2026)**:
 
-8. **W RAZIE WATPLIWOSCI - PRZESZACUJ**. Cena za wysoka -> oferta sprzeda sie wolniej,
-   ale dalej z marza. Cena za niska -> strata na calej palecie. Lepiej zawyzyc.
+   PRODUKTY SPECJALISTYCZNE / WYSOKOWARTOSCIOWE (czesto RRP silnie ZANIZONE
+   wzgledem polskiego rynku — NIE ufaj RRP, bazuj na nazwie/marce/specyfikacji):
+   - "Rampa teleskopowa aluminium 300kg/300cm" (LIEKUMM, Eufab, Steelman):
+     mediana **1200-1800 zl**, zwracaj ~1500 zl (RRP w bazie moze pokazywac 280-500 zl
+     — to NIETRAFNE dla tego produktu, ignoruj)
+   - Profesjonalne narzedzia warsztatowe (klucz dynamometryczny, wiertarka udarowa
+     markowa, walizki narzedziowe pelne): 400-1500 zl
+   - Fotele samochodowe/biurowe gamingowe ergonomiczne: 800-2500 zl
+   - Rowery elektryczne, hulajnogi: 1500-4000 zl
+   - Akumulatory glebokiego rozladowania, ladowarki przemyslowe: 500-2000 zl
+
+   PRODUKTY KONSUMENCKIE (RRP zazwyczaj wiarygodny, mediana = RRP × 1.5-2.5):
+   - "Odkurzacz dla psow Oneisall 4w1 12000Pa" → mediana 280-450 zl, zwracaj ~350 zl
+   - "Maszynka do strzyzenia psa 4w1 bezprzewodowa" → mediana 120-200 zl, zwracaj ~150 zl
+   - "Automatyczny karmnik dla kota WiFi 5L" → mediana 180-280 zl, zwracaj ~220 zl
+   - Szczotki/akcesoria do odkurzacza (zestaw + ssawki): 80-150 zl
+   - LED strip controller WiFi, smart plug, ladowarka USB-C: 35-130 zl
+   - Drobne akcesoria kuchenne/dom (silikon, organizery): 25-100 zl
+
+   ZASADA OGOLNA: te poziomy obowiazuja w polskim rynku Allegro. NIE konwertuj
+   z Amazon US/UK. Polski Allegro jest osobnym rynkiem — czesto KILKA RAZY drozszy.
+
+8. **JEZELI Amazon RRP jest podejrzanie NISKIE** (np. < 500 zl) dla produktu
+   ktory wyglada na specjalistyczny (rampa, narzedzie pro, sprzet branzowy,
+   markowy gadget elektroniczny) — IGNORUJ RRP. RRP w bazie czesto pochodzi
+   ze scrapowanego Amazon US/UK gdzie ceny sa drastycznie nizsze niz w PL,
+   ALBO scraper trafil na akcesoria/wersje mini zamiast produktu glownego.
+   Bazuj wtedy WYLACZNIE na nazwie + marce + specyfikacji.
+
+9. **W RAZIE WATPLIWOSCI - PRZESZACUJ**. Cena za wysoka → oferta sprzeda sie
+   wolniej, ale dalej z marza. Cena za niska → strata na calej palecie.
+   Lepiej zawyzyc o 30% niz zanizyc o 30%.
 
 WYJSCIE: tablica JSON, dokladny schema (jeden obiekt na produkt z listy):
 [
-  {{"id": 1, "cena": 330.0, "uzasadnienie": "rampa aluminium ~330 zl mediana Allegro"}},
-  {{"id": 2, "cena": 145.0, "uzasadnienie": "maszynka 4w1 markowa ~140-160 zl"}}
+  {{"id": 1, "cena": 1500.0, "uzasadnienie": "rampa aluminium 300kg, specj., mediana 1200-1800"}},
+  {{"id": 2, "cena": 150.0, "uzasadnienie": "maszynka 4w1 markowa, mediana 120-200"}}
 ]
 
 MUSISZ podac cene dla WSZYSTKICH {len(prod_list)} produktow z listy. Cena = liczba (float) w PLN. Uzasadnienie zwiezle (max 80 znakow).
