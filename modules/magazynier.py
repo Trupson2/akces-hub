@@ -7804,9 +7804,16 @@ def api_autowycena(product_id):
                 # Konwersja wg domeny Amazon
                 cena_pln = _amazon_price_to_pln(cena_amazon, amazon_data.get('domain'))
 
-                # Sugerowana cena Allegro = 85% ceny w PLN
-                result['cena_allegro_sugerowana'] = round(cena_pln * 0.85, 2)
-                result['zrodlo'] = f"amazon ({amazon_data.get('domain', '?')})"
+                # FIX 2026-05: Amazon US/UK po konwersji na PLN jest typowo
+                # 30-60% TANSZY niz polski Allegro (rynek polski drozszy).
+                # Wczesniej "× 0.85" sugerowal 85% Amazon = grubo ponizej rynku.
+                # Teraz × 1.4 (Amazon × 1.4 ≈ mediana Allegro). PLUS dolny
+                # prog cena_brutto_szt × 1.7 (pokrycie prowizji + marzy).
+                sugerowana = cena_pln * 1.4
+                if cena_brutto_szt > 0:
+                    sugerowana = max(sugerowana, cena_brutto_szt * 1.7)
+                result['cena_allegro_sugerowana'] = round(sugerowana, 2)
+                result['zrodlo'] = f"amazon ({amazon_data.get('domain', '?')}) × 1.4 + floor"
         except Exception as e:
             print(f"[Auto-wycena] Błąd pobierania z Amazon: {e}")
     
@@ -7879,6 +7886,18 @@ def api_autowycena_paleta_stream(paleta_id):
             (paleta_id,)
         ).fetchall()
 
+        # FIX 2026-05: kontekst palety dla Gemini (wczesniej AI nie znal nazwy
+        # palety, dostawcy, kosztu zakupu, RRP — strzelal ceny "z powietrza"
+        # i systematycznie zanizal). Pelny kontekst → realne ceny rynkowe.
+        paleta_info = conn.execute(
+            'SELECT nazwa, dostawca, cena_zakupu FROM palety WHERE id = ?',
+            (paleta_id,)
+        ).fetchone()
+        _paleta_nazwa = (paleta_info['nazwa'] if paleta_info else '') or 'bez nazwy'
+        _paleta_dostawca = (paleta_info['dostawca'] if paleta_info else '') or 'nieznany'
+        _paleta_cena_zakupu = float(paleta_info['cena_zakupu'] if paleta_info else 0) or 0
+        _pal_koszt_szt = float(_paleta_koszt_szt(conn, paleta_id) or 0)
+
         total = len(produkty)
         stats = {
             'type': 'done', 'total': total, 'updated': 0,
@@ -7892,43 +7911,109 @@ def api_autowycena_paleta_stream(paleta_id):
         processed = 0
 
         for batch_idx, batch in enumerate(batches):
-            # Zbuduj listę produktów do wyceny
+            # FIX 2026-05: prod_list teraz zawiera ASIN + Amazon RRP +
+            # ilosc — bez tego AI nie miala podstawy do wyceny i strzelala
+            # zanizone "wartosci defaultowe". Wczesniej tylko ID+nazwa+szt.
             prod_list = []
             for p in batch:
-                nazwa = p['nazwa'] or f'Produkt #{p["id"]}'
-                prod_list.append(f'{p["id"]}. {nazwa} (szt: {p["ilosc"] or 1})')
+                nazwa = (p['nazwa'] or f'Produkt #{p["id"]}').strip()
+                asin = (p['asin'] or '').strip() or 'brak'
+                cena_brutto = float(p['cena_brutto'] or 0)
+                ilosc = int(p['ilosc'] or 1)
+                rrp_line = (f"Amazon RRP: {cena_brutto:.0f} zl" if cena_brutto > 0
+                            else "Amazon RRP: nieznane (bazuj na nazwie + ASIN)")
+                prod_list.append(
+                    f"[ID:{p['id']}] {nazwa[:140]}\n"
+                    f"   - ASIN: {asin}\n"
+                    f"   - {rrp_line}\n"
+                    f"   - Ilosc w palecie: {ilosc} szt"
+                )
 
-            prompt = f"""Jesteś ekspertem sprzedaży na Allegro.pl w Polsce. Dla KAŻDEGO produktu z listy podaj cenę sprzedaży na Allegro w PLN.
+            # Kontekst palety dla AI (mniej zgadywania, wiecej kalibracji)
+            _paleta_block = (
+                f"KONTEKST PALETY:\n"
+                f"- Nazwa: \"{_paleta_nazwa}\"\n"
+                f"- Dostawca: \"{_paleta_dostawca}\"\n"
+                f"- Koszt zakupu calej palety: {_paleta_cena_zakupu:.0f} zl\n"
+                f"- Szacowany koszt jednostkowy: ~{_pal_koszt_szt:.0f} zl/szt\n"
+                f"- Stan produktow: nowe lub powystawowe z Amazon Returns (UK/USA)\n"
+            )
 
-WAŻNE:
-- Podaj cenę za jaką ten produkt AKTUALNIE się sprzedaje na Allegro.pl (nie zaniżaj!)
-- Produkty są NOWE, oryginalne, z Amazon/hurtowni
-- Uwzględnij że na Allegro ceny są często WYŻSZE niż na Amazon (bo Allegro to polski rynek)
-- Nie zaniżaj cen — sprzedawcy na Allegro mają marżę 30-100% ponad cenę zakupu
-- MUSISZ podać cenę dla KAŻDEGO produktu z listy (wszystkie {len(prod_list)} pozycji)
+            prompt = f"""Jestes polskim ekspertem sprzedazy na Allegro.pl, specjalizujacym sie w produktach z palet zwrotowych (Amazon Returns z UK/USA, hurtowni). Twoja praca: dla KAZDEGO produktu z listy podaj REALNA cene sprzedazy na Allegro.pl w PLN.
 
-Produkty:
+{_paleta_block}
+PRODUKTY DO WYCENY:
 {chr(10).join(prod_list)}
 
-Odpowiedz DOKŁADNIE w tym formacie, po jednej linii na produkt, BEZ dodatkowego tekstu:
-ID:CENA
-Przykład:
-123:299
-456:89.99"""
+ZASADY WYCENY (przeczytaj WSZYSTKIE i stosuj):
+
+1. **Cena = MEDIANA aktualnych ofert** dla danego konkretnego modelu/marki na Allegro.pl.
+   NIE najtansze (to dumping outliers), NIE srednie (zawyzone przez kilka drogich), MEDIANA.
+
+2. **Bazuj na konkretnym modelu** (ASIN + nazwa). "Oneisall 4w1 12000Pa" to konkretna marka
+   z wlasnym poziomem cenowym, nie generyczny odkurzacz. Markowe produkty kosztuja wiecej
+   niz no-name w tej samej kategorii.
+
+3. **TYPOWE MARZE NETTO (cena Allegro vs koszt zakupu szt)** dla produktow z palet zwrotowych:
+   - Akcesoria zwierzece (odkurzacze, maszynki, karmniki, posłania): cena = koszt × 2.0–3.5
+   - Elektronika konsumencka (gadgety USB, oswietlenie LED, ladowarki): cena = koszt × 1.8–3.0
+   - Akcesoria moto (rampy, narzedzia, organizery): cena = koszt × 2.2–4.0
+   - Kosmetyka / kuchnia / dom: cena = koszt × 1.8–3.0
+   - Sport / outdoor (camping, fitness): cena = koszt × 2.0–3.5
+
+4. **DOLNY PROG TWARDY dla TEJ palety**: cena_allegro >= {_pal_koszt_szt * 1.4:.0f} zl
+   (= koszt zakupu szt {_pal_koszt_szt:.0f} zl × 1.4 = pokrycie prowizji 11%
+   + wysylki + min marzy 25%). System POST-walidacji i tak wymusi ten prog,
+   jezeli zwrocisz mniej. Bazuj na koszcie zakupu szt z kontekstu palety
+   powyzej, NIE na Amazon RRP (RRP to katalogowa cena, czesto zawyzona).
+
+5. **AMAZON RRP to REFERENCJA, nie cena docelowa**. Polski Allegro jest zawsze
+   drozszy niz Amazon US/UK po przeliczeniu na PLN (typowo o 30–80% wiecej dla
+   tej samej rzeczy). Jezeli RRP to 67 zl, na Allegro mediana to czesto 130–200 zl.
+
+6. **POPULARNOSC vs NISZA**:
+   - Codzienne produkty (popyt wysoki): mediana z gornej polowy ofert
+   - Niszowe (popyt sredni): mediana z dolnej polowy (mniej konkurencji)
+   - W obu przypadkach zwracaj MEDIANE, nie min/max
+
+7. **PRZYKLAD KALIBRACYJNY** (zapamietaj te poziomy cen):
+   - "Odkurzacz dla psow Oneisall 4w1 12000Pa" → mediana 280–380 zl, zwracaj ~320 zl
+   - "Maszynka do strzyzenia psa 4w1 bezprzewodowa" → mediana 110–170 zl, zwracaj ~140 zl
+   - "Automatyczny karmnik dla kota WiFi 5L" → mediana 180–250 zl, zwracaj ~210 zl
+   - "Rampa teleskopowa aluminium 300x22cm 300kg" → mediana 280–380 zl, zwracaj ~330 zl
+   - Szczotki/akcesoria do odkurzacza: 80–140 zl
+   Te poziomy obowiazuja w polskim rynku Allegro, NIE konwertuj z Amazon.
+
+8. **W RAZIE WATPLIWOSCI - PRZESZACUJ**. Cena za wysoka -> oferta sprzeda sie wolniej,
+   ale dalej z marza. Cena za niska -> strata na calej palecie. Lepiej zawyzyc.
+
+WYJSCIE: tablica JSON, dokladny schema (jeden obiekt na produkt z listy):
+[
+  {{"id": 1, "cena": 330.0, "uzasadnienie": "rampa aluminium ~330 zl mediana Allegro"}},
+  {{"id": 2, "cena": 145.0, "uzasadnienie": "maszynka 4w1 markowa ~140-160 zl"}}
+]
+
+MUSISZ podac cene dla WSZYSTKICH {len(prod_list)} produktow z listy. Cena = liczba (float) w PLN. Uzasadnienie zwiezle (max 80 znakow).
+"""
 
             ai_prices = {}
 
             if gemini_key:
                 try:
+                    # FIX 2026-05: schema rozszerzony o `uzasadnienie` — wymusza
+                    # od AI uzasadnienie (kategoria + mediana). Robi 2 rzeczy:
+                    # (a) lepsze diagnostyki w logach (jasne czemu taka cena),
+                    # (b) wymuszenie "myslenia" AI → wyzsza dokladnosc.
                     _wycena_schema = {
                         "type": "ARRAY",
                         "items": {
                             "type": "OBJECT",
                             "properties": {
                                 "id": {"type": "INTEGER"},
-                                "cena": {"type": "NUMBER"}
+                                "cena": {"type": "NUMBER"},
+                                "uzasadnienie": {"type": "STRING"}
                             },
-                            "required": ["id", "cena"]
+                            "required": ["id", "cena", "uzasadnienie"]
                         }
                     }
                     api_url = f'https://generativelanguage.googleapis.com/v1beta/models/{_wycena_model}:generateContent?key={gemini_key}'
@@ -7951,8 +8036,11 @@ Przykład:
                             for item in items:
                                 pid = int(item.get('id', 0))
                                 price = float(item.get('cena', 0))
+                                uzasad = (item.get('uzasadnienie') or '').strip()
                                 if pid and 1 < price < 50000:
                                     ai_prices[pid] = round(price, 2)
+                                    if uzasad:
+                                        print(f"[Auto-wycena] AI {pid}: {price:.0f} zl — {uzasad[:100]}")
                         except Exception as _pe:
                             print(f"[Auto-wycena] JSON parse fallback: {_pe}")
                             for line in ai_text.strip().split('\n'):
@@ -7977,6 +8065,22 @@ Przykład:
                 nazwa = p['nazwa'] or ''
                 cena_allegro = ai_prices.get(p['id'])
                 zrodlo = 'gemini' if cena_allegro else None
+
+                # FIX 2026-05 POST-VALIDATION: dolny prog cena_allegro >=
+                # paleta_koszt_szt × 1.4 (rzeczywisty koszt z palety + prowizja
+                # Allegro 11% + min marza ~25%). Wazne: floor NIE bazuje na
+                # Amazon RRP (cena_brutto) bo RRP to katalogowa cena, czesto
+                # ZAWYZONA wzgledem rynkowej — szczegolnie dla palet UK/USA
+                # (Amazon retail >> realny market price). _paleta_koszt_szt
+                # = paleta.cena_zakupu / total_sztuk = co RZECZYWISCIE
+                # zaplacilismy za szt. Bez tego AI okazjonalnie zwracala
+                # cene PONIZEJ tego progu → strata na palecie.
+                if cena_allegro and _pal_koszt_szt > 0:
+                    _min_price = round(_pal_koszt_szt * 1.4, 2)
+                    if cena_allegro < _min_price:
+                        print(f"[Auto-wycena] {p['id']}: AI zanizyl ({cena_allegro} < floor {_min_price} = koszt_szt×1.4), korekta")
+                        cena_allegro = _min_price
+                        zrodlo = 'gemini+floor'
 
                 if cena_allegro:
                     stats['from_estimate'] += 1
