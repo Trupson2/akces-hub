@@ -963,6 +963,17 @@ try:
 except Exception as _e:
     print(f"[WARN] API v1 nie zarejestrowane: {_e}")
 
+# Sklepakces integration (Faza 3) — separate /api/v1/sklepakces/* namespace.
+# Plugin WooCommerce sklepakces.pl wysyła webhooki tutaj (HMAC + nonce).
+# Tabele sklepakces_* osobne od api_v1 owners — patrz README_SKLEPAKCES.md.
+try:
+    from modules.sklepakces_blueprint import sklepakces_bp, init_sklepakces_schema
+    init_sklepakces_schema()
+    app.register_blueprint(sklepakces_bp)
+    print("[OK] Sklepakces integration zarejestrowane (prefix /api/v1/sklepakces)")
+except Exception as _e:
+    print(f"[WARN] Sklepakces integration nie zarejestrowana: {_e}")
+
 
 # ============================================================
 # RATE LIMITING — per-endpoint limits (on top of global 200/min)

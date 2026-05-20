@@ -57,5 +57,8 @@ pyotp>=2.9.0                # TOTP 2FA (Google Authenticator / Authy)
 qrcode[pil]>=7.4.2          # QR codes dla setup 2FA
 bcrypt>=4.0.0               # Hashowanie backup codes
 
+# --- Sklepakces integration (Faza 3) ---
+redis>=5.0.0               # Nonce cache (replay protection) — fallback in-memory jeśli unavailable
+
 # --- Testowanie ---
 pytest>=8.0.0
