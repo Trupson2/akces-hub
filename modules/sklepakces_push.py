@@ -86,16 +86,102 @@ STAN_MAP: Dict[str, str] = {
     'nieoceniony': 'jak-nowy',       # fallback domyślny
 }
 
-# Hub `kategoria` → WC product_cat slug(i). Hero tiles z theme: audio/wnetrze/narzedzia/elektronika.
+# Hub `kategoria` → list of WC product_cat slugs (plugin tworzy term jeśli nie istnieje).
+# Theme hero tiles: audio/wnetrze/narzedzia/elektronika — produkty z kategorii powiązanych
+# z tile'em dostają DODATKOWO ten slug (np. foto_video → ['foto-video', 'elektronika']),
+# żeby pojawiły się i pod specyficzną kategorią i pod hero tile na stronie głównej.
+# Klucze normalizowane przez _norm_kategoria (case-insensitive, diacritics handled).
 KATEGORIA_MAP: Dict[str, List[str]] = {
-    'audio': ['audio'],
-    'agd': ['wnetrze'],
-    'wnetrze': ['wnetrze'],
-    'wnętrze': ['wnetrze'],
-    'narzedzia': ['narzedzia'],
-    'narzędzia': ['narzedzia'],
-    'elektronika': ['elektronika'],
-    # 'inne' i puste -> brak categories (WC default = Uncategorized)
+    # === AUDIO/RTV hero tile parent: 'elektronika' lub osobny tile ===
+    'audio':            ['audio'],
+    'car_audio':        ['car-audio', 'audio', 'motoryzacja'],
+    'rtv':              ['rtv', 'elektronika'],
+    'muzyka':           ['muzyka', 'audio'],
+
+    # === ELEKTRONIKA hero tile family ===
+    'elektronika':      ['elektronika'],
+    'foto_video':       ['foto-video', 'elektronika'],
+    'foto-video':       ['foto-video', 'elektronika'],
+    'smart_home':       ['smart-home', 'elektronika'],
+    'smart-home':       ['smart-home', 'elektronika'],
+    'komputery':        ['komputery', 'elektronika'],
+    'telefony':         ['telefony', 'elektronika'],
+    'gaming':           ['gaming', 'elektronika'],
+    'druk3d':           ['druk-3d', 'elektronika'],
+    'druk-3d':          ['druk-3d', 'elektronika'],
+    'optyka':           ['optyka', 'elektronika'],
+    'cb_radio':         ['cb-radio', 'elektronika'],
+    'cb-radio':         ['cb-radio', 'elektronika'],
+    'akcesoria':        ['akcesoria', 'elektronika'],
+
+    # === WNĘTRZE hero tile family ===
+    'wnetrze':          ['wnetrze'],
+    'wnętrze':          ['wnetrze'],
+    'agd':              ['agd-male', 'wnetrze'],          # legacy alias
+    'agd_male':         ['agd-male', 'wnetrze'],
+    'agd-male':         ['agd-male', 'wnetrze'],
+    'agd_duze':         ['agd-duze', 'wnetrze'],
+    'agd-duze':         ['agd-duze', 'wnetrze'],
+    'kuchnia':          ['kuchnia', 'wnetrze'],
+    'dekoracje':        ['dekoracje', 'wnetrze'],
+    'oswietlenie':      ['oswietlenie', 'wnetrze'],
+    'oświetlenie':      ['oswietlenie', 'wnetrze'],
+    'tekstylia':        ['tekstylia', 'wnetrze'],
+    'dom_ogrod':        ['dom-ogrod', 'wnetrze'],
+    'dom-ogrod':        ['dom-ogrod', 'wnetrze'],
+    'klimatyzacja':     ['klimatyzacja', 'wnetrze'],
+
+    # === NARZĘDZIA hero tile family ===
+    'narzedzia':        ['narzedzia'],
+    'narzędzia':        ['narzedzia'],
+    'elektronarzedzia': ['elektronarzedzia', 'narzedzia'],
+    'budowa':           ['budowa', 'narzedzia'],
+
+    # === MOTORYZACJA (osobna gałąź) ===
+    'motoryzacja':      ['motoryzacja'],
+    'ev_ladowarki':     ['ev-ladowarki', 'motoryzacja'],
+    'ev-ladowarki':     ['ev-ladowarki', 'motoryzacja'],
+
+    # === SPORT/OUTDOOR ===
+    'sport':            ['sport'],
+    'silownia':         ['silownia', 'sport'],
+    'siłownia':         ['silownia', 'sport'],
+    'rowery':           ['rowery', 'sport'],
+    'hulajnogi':        ['hulajnogi', 'sport'],
+    'wedkarstwo':       ['wedkarstwo', 'sport'],
+    'wędkarstwo':       ['wedkarstwo', 'sport'],
+    'outdoor':          ['outdoor'],
+
+    # === DZIECI/RODZINA ===
+    'niemowleta':       ['niemowleta'],
+    'niemowlęta':       ['niemowleta'],
+    'zabawki':          ['zabawki'],
+    'zwierzeta':        ['zwierzeta'],
+    'zwierzęta':        ['zwierzeta'],
+
+    # === MODA/LIFESTYLE ===
+    'moda':             ['moda'],
+    'kosmetyki':        ['kosmetyki'],
+    'zdrowie':          ['zdrowie'],
+    'rehabilitacja':    ['rehabilitacja', 'zdrowie'],
+    'bagaz':            ['bagaz'],
+    'bagaż':            ['bagaz'],
+
+    # === BIZNES/HOBBY ===
+    'biuro':            ['biuro'],
+    'ksiazki':          ['ksiazki'],
+    'książki':          ['ksiazki'],
+    'hobby':            ['hobby'],
+    'prezenty':         ['prezenty'],
+    'bezpieczenstwo':   ['bezpieczenstwo'],
+    'bezpieczeństwo':   ['bezpieczenstwo'],
+
+    # === SPECJALISTYCZNE ===
+    'rolnictwo':        ['rolnictwo'],
+    'hydroponika':      ['hydroponika'],
+    'laboratorium':     ['laboratorium'],
+    'event':            ['event'],
+    # 'inne' i puste → brak categories (WC default = Uncategorized)
 }
 
 SKU_REGEX = re.compile(r'^[A-Z0-9-]{3,64}$')
@@ -124,11 +210,23 @@ def _norm_stan(stan_raw: str) -> str:
 
 
 def _norm_kategoria(kategoria_raw: str) -> List[str]:
-    """Hub kategoria → list of WC product_cat slugs (puste = []) ."""
+    """Hub kategoria → list of WC product_cat slugs (puste = []).
+
+    Normalizacja:
+      - strip + lower
+      - try as-is, potem replace '_'→'-', potem '-'→'_' (Hub używa '_', WC slugs używają '-')
+      - keep first match (KATEGORIA_MAP zwraca już listę 1-3 slug)
+    """
     if not kategoria_raw:
         return []
     key = kategoria_raw.strip().lower()
-    return list(KATEGORIA_MAP.get(key, []))
+    if not key or key == 'inne':
+        return []
+    # Try exact + underscore/dash variants
+    for variant in (key, key.replace('_', '-'), key.replace('-', '_')):
+        if variant in KATEGORIA_MAP:
+            return list(KATEGORIA_MAP[variant])
+    return []
 
 
 def _build_sku(hub_id: int, ean: str) -> str:

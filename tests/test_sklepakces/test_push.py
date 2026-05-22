@@ -60,12 +60,12 @@ def test_norm_stan(raw, expected):
 
 @pytest.mark.parametrize('raw,expected', [
     ('audio', ['audio']),
-    ('AGD', ['wnetrze']),
+    ('AGD', ['agd-male', 'wnetrze']),       # legacy 'agd' → specific + hero tile
     ('Wnętrze', ['wnetrze']),
     ('narzędzia', ['narzedzia']),
     ('Narzedzia', ['narzedzia']),
     ('Elektronika', ['elektronika']),
-    ('inne', []),         # nie w mapie → puste = WC default
+    ('inne', []),         # NOT mapped → puste = WC default
     ('', []),
     ('xyz', []),
 ])
@@ -604,3 +604,82 @@ def test_suspicious_threshold_value():
     # threshold=1.3 → cena/koszt < 1.3 = alert. Realistic:
     # koszt 50zł, cena 60zł, markup=1.2 → alert (poniżej 30%).
     # koszt 50zł, cena 70zł, markup=1.4 → OK.
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# KATEGORIA_MAP — full Hub kategoria → WC slugs mapping
+# ──────────────────────────────────────────────────────────────────────────────
+
+@pytest.mark.parametrize('hub_kat,expected', [
+    # Audio/RTV
+    ('audio',           ['audio']),
+    ('car_audio',       ['car-audio', 'audio', 'motoryzacja']),
+    ('rtv',             ['rtv', 'elektronika']),
+    # Elektronika family (foto_video produkt → hero tile elektronika)
+    ('elektronika',     ['elektronika']),
+    ('foto_video',      ['foto-video', 'elektronika']),
+    ('foto-video',      ['foto-video', 'elektronika']),
+    ('smart_home',      ['smart-home', 'elektronika']),
+    ('komputery',       ['komputery', 'elektronika']),
+    ('telefony',        ['telefony', 'elektronika']),
+    ('gaming',          ['gaming', 'elektronika']),
+    ('druk3d',          ['druk-3d', 'elektronika']),
+    # Wnętrze family
+    ('wnetrze',         ['wnetrze']),
+    ('wnętrze',         ['wnetrze']),  # diacritics
+    ('agd',             ['agd-male', 'wnetrze']),  # legacy
+    ('agd_male',        ['agd-male', 'wnetrze']),
+    ('agd_duze',        ['agd-duze', 'wnetrze']),
+    ('kuchnia',         ['kuchnia', 'wnetrze']),
+    ('dekoracje',       ['dekoracje', 'wnetrze']),
+    ('oswietlenie',     ['oswietlenie', 'wnetrze']),
+    ('oświetlenie',     ['oswietlenie', 'wnetrze']),
+    # Narzędzia
+    ('narzedzia',       ['narzedzia']),
+    ('narzędzia',       ['narzedzia']),
+    ('elektronarzedzia',['elektronarzedzia', 'narzedzia']),
+    # Motoryzacja
+    ('motoryzacja',     ['motoryzacja']),
+    ('ev_ladowarki',    ['ev-ladowarki', 'motoryzacja']),
+    # Sport
+    ('sport',           ['sport']),
+    ('rowery',          ['rowery', 'sport']),
+    ('silownia',        ['silownia', 'sport']),
+    ('siłownia',        ['silownia', 'sport']),
+    ('wedkarstwo',      ['wedkarstwo', 'sport']),
+    # Dzieci/zwierzeta z diakrytykami
+    ('zwierzeta',       ['zwierzeta']),
+    ('zwierzęta',       ['zwierzeta']),
+    ('niemowleta',      ['niemowleta']),
+    ('niemowlęta',      ['niemowleta']),
+    # Inne — wszystkie warianty puste/inne → []
+    ('inne',            []),
+    ('',                []),
+    ('nieznana_kategoria_xyz', []),
+])
+def test_norm_kategoria_mapping(hub_kat, expected):
+    assert _norm_kategoria(hub_kat) == expected
+
+
+def test_norm_kategoria_underscore_dash_fallback():
+    """Gdy klucz nie istnieje w MAP, try replace _↔- jako fallback."""
+    # foto-video (z dashem) NIE jest aliasem foto_video? Sprawdzę obu:
+    assert _norm_kategoria('foto-video') == _norm_kategoria('foto_video')
+    # case-insensitive
+    assert _norm_kategoria('FOTO_VIDEO') == _norm_kategoria('foto_video')
+    assert _norm_kategoria('  Audio  ') == ['audio']  # strip + lower
+
+
+def test_map_full_row_audio_kategoria_unchanged():
+    """Regression: 'audio' nadal mapuje na sam 'audio' (nie dodaje innych)."""
+    row = _hub_row(kategoria='audio')
+    payload = map_hub_to_plugin(row)
+    assert payload['categories'] == ['audio']
+
+
+def test_map_foto_video_includes_hero_tile_parent():
+    """foto_video produkt trafia do hero tile 'elektronika' (też do specyficznej kategorii)."""
+    row = _hub_row(kategoria='foto_video')
+    payload = map_hub_to_plugin(row)
+    assert 'foto-video' in payload['categories']
+    assert 'elektronika' in payload['categories']  # hero tile parent
