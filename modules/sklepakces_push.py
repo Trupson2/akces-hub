@@ -55,6 +55,10 @@ ENDPOINT_URL_PATH = '/wp-json/akces/v1/products'
 # Hub MUSI podpisywać tym samym path co plugin verify, INACZEJ akces_invalid_signature.
 ENDPOINT_CANONICAL_PATH = '/akces/v1/products'
 
+# Bulk delete endpoint — usuwa wszystkie produkty utworzone przez Hub (po meta _akces_hub_id).
+BULK_DELETE_URL_PATH = '/wp-json/akces/v1/products/bulk_delete'
+BULK_DELETE_CANONICAL_PATH = '/akces/v1/products/bulk_delete'
+
 # Alias dla backward-compat (testy używały ENDPOINT_PATH; teraz wskazuje URL path).
 ENDPOINT_PATH = ENDPOINT_URL_PATH
 
@@ -764,6 +768,98 @@ def push_one_product(
         'wc_product_id': wc_product_id,
         'duration_ms': duration_ms,
         'response': response,
+    }
+
+
+def delete_all_from_wc(
+    mode: str = 'trash',
+    skus: Optional[List[str]] = None,
+    url: Optional[str] = None,
+    secret: Optional[str] = None,
+) -> dict:
+    """Usuń wszystkie produkty Hub z WC (po meta _akces_hub_id) + czysci mirror.
+
+    Args:
+        mode: 'trash' (do kosza WP, recoverable) lub 'force' (permanent delete)
+        skus: lista konkretnych SKU do usunięcia; None → wszystkie Hub products
+        url, secret: WC URL + HMAC secret (default z config)
+
+    Returns dict z statusem + ile usunięto.
+    """
+    if mode not in ('trash', 'force'):
+        return {'status': 'error', 'msg': f'invalid mode={mode!r} (allowed: trash, force)'}
+
+    if url is None:
+        url = get_sklepakces_url()
+    if secret is None:
+        secret = get_hmac_secret()
+    if not url or not secret:
+        return {'status': 'error', 'msg': 'brak sklepakces_url / sklepakces_hmac_secret w config'}
+
+    payload = {
+        'confirm': 'DELETE_HUB_PRODUCTS',  # safeguard string
+        'mode': mode,
+    }
+    if skus:
+        payload['skus'] = list(skus)
+
+    body = json.dumps(payload, separators=(',', ':'), ensure_ascii=False)
+    ts = int(time.time())
+    nonce = str(uuid.uuid4())
+    signature = sign('POST', BULK_DELETE_CANONICAL_PATH, ts, body, secret)
+
+    headers = {
+        'Content-Type': 'application/json',
+        'X-Akces-Timestamp': str(ts),
+        'X-Akces-Signature': signature,
+        'X-Akces-Nonce': nonce,
+        'User-Agent': 'AkcesHub-Push/1.0',
+    }
+
+    try:
+        r = requests.post(
+            url + BULK_DELETE_URL_PATH,
+            data=body.encode('utf-8'),
+            headers=headers,
+            timeout=120,  # delete może długo trwać przy ~100 produktów
+        )
+    except requests.RequestException as e:
+        logger.warning(f'sklepakces bulk_delete HTTP fail: {e}')
+        return {'status': 'error', 'http_status': 0, 'msg': str(e)}
+
+    try:
+        resp = r.json()
+    except Exception:
+        resp = {'raw_body': r.text[:500]}
+
+    if not (200 <= r.status_code < 300):
+        return {
+            'status': 'error',
+            'http_status': r.status_code,
+            'response': resp,
+            'msg': resp.get('error') or resp.get('message') or f'HTTP {r.status_code}',
+        }
+
+    # Sukces — wyczyść mirror table żeby Hub też wiedział że te produkty już nie istnieją
+    deleted_count = int(resp.get('deleted', 0))
+    try:
+        conn = get_db()
+        if skus:
+            placeholders = ','.join('?' * len(skus))
+            conn.execute(f'DELETE FROM sklepakces_products WHERE sku IN ({placeholders})', list(skus))
+        else:
+            conn.execute('DELETE FROM sklepakces_products')
+        conn.commit()
+        logger.info(f'sklepakces mirror table wyczyszczone po bulk delete ({deleted_count} produktów na WC)')
+    except Exception as e:
+        logger.warning(f'mirror cleanup after bulk delete failed: {e}')
+
+    return {
+        'status': 'ok',
+        'http_status': r.status_code,
+        'deleted': deleted_count,
+        'mode': mode,
+        'response': resp,
     }
 
 

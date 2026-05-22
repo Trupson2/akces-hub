@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 import logging
 
-from flask import Blueprint, jsonify, redirect, render_template_string, request, url_for, flash
+from flask import Blueprint, flash, jsonify, redirect, render_template_string, request, url_for
 
 from .database import get_db
 from .auth import require_admin
@@ -267,6 +267,14 @@ table.sk-table tr:hover { background: var(--bg); }
             <span class="material-symbols-outlined" style="font-size:1rem">refresh</span> Re-push wszystkie
         </button>
     </form>
+    <form method="POST" action="{{ url_for('sklepakces_ui.delete_all') }}" id="bulk-delete-form"
+          onsubmit="return akcesBulkDeleteConfirm(this)" style="display:inline">
+        <input type="hidden" name="confirm" value="DELETE_HUB_PRODUCTS">
+        <input type="hidden" name="mode" value="trash">
+        <button class="sk-btn danger" type="submit" title="Usuń wszystkie produkty Hub z sklepakces.pl">
+            <span class="material-symbols-outlined" style="font-size:1rem">delete_sweep</span> Usuń wszystkie z WC
+        </button>
+    </form>
     <div style="display:flex;gap:6px;margin-left:auto">
         <button class="sk-filter-btn active" onclick="filterRows('all', event)">Wszystkie</button>
         <button class="sk-filter-btn" onclick="filterRows('publish', event)">Publish</button>
@@ -408,6 +416,41 @@ function filterRows(type, evt) {
         row.style.display = show ? '' : 'none';
     });
 }
+
+function akcesBulkDeleteConfirm(form) {
+    // Krok 1 — wybierz tryb (trash vs force)
+    const total = {{ stats.total }};
+    if (total === 0) {
+        alert('Brak produktów do usunięcia (mirror jest pusty).');
+        return false;
+    }
+    const choice = prompt(
+        '⚠️ USUWANIE ' + total + ' PRODUKTÓW Z SKLEPAKCES.PL\n\n' +
+        'Wybierz tryb:\n' +
+        '  "trash" — do kosza WP (możesz przywrócić z WP admin → Produkty → Kosz)\n' +
+        '  "force" — PERMANENT delete (nieodwracalne!)\n\n' +
+        'Wpisz "trash" lub "force":',
+        'trash'
+    );
+    if (choice === null) return false;  // user cancelled
+    const mode = String(choice).trim().toLowerCase();
+    if (mode !== 'trash' && mode !== 'force') {
+        alert('Niepoprawny tryb. Operacja anulowana.');
+        return false;
+    }
+    form.mode.value = mode;
+    // Krok 2 — typed confirmation
+    const typed = prompt(
+        'Aby potwierdzić, wpisz dokładnie: USUN\n\n' +
+        '(' + mode.toUpperCase() + ' — ' + total + ' produktów)'
+    );
+    if (typed === null) return false;
+    if (typed.trim().toUpperCase() !== 'USUN') {
+        alert('Niepoprawne potwierdzenie. Operacja anulowana.');
+        return false;
+    }
+    return true;  // submit form
+}
 </script>
 {% endblock %}
 """
@@ -513,3 +556,43 @@ def api_products():
         p.pop('product_data', None)
         p.pop('payload', None)
     return jsonify(data)
+
+
+@sklepakces_ui_bp.route('/delete_all', methods=['POST'])
+@require_admin
+def delete_all():
+    """Bulk delete WSZYSTKICH Hub produktów z WC + cleanup mirror table.
+
+    Wymaga POST z form field `confirm=DELETE_HUB_PRODUCTS` (button to wysyła z
+    double-confirm dialogiem JS) + opcjonalnie `mode=trash|force`.
+
+    UWAGA: 'force' = permanent delete (nie ma cofnięcia!). 'trash' = WP trash
+    (recoverable z WP admin → Produkty → Kosz). Default = trash.
+    """
+    confirm = (request.form.get('confirm') or '').strip()
+    mode = (request.form.get('mode') or 'trash').strip()
+
+    if confirm != 'DELETE_HUB_PRODUCTS':
+        flash('Brak potwierdzenia (confirm=DELETE_HUB_PRODUCTS) — operacja anulowana.', 'error')
+        return redirect(url_for('sklepakces_ui.dashboard'))
+
+    try:
+        from .sklepakces_push import delete_all_from_wc
+        result = delete_all_from_wc(mode=mode)
+    except Exception as e:
+        logger.exception('delete_all_from_wc failed')
+        flash(f'Bulk delete EXCEPTION: {e}', 'error')
+        return redirect(url_for('sklepakces_ui.dashboard'))
+
+    if result.get('status') == 'ok':
+        flash(
+            f'✅ Usunięto {result.get("deleted", 0)} produktów z sklepakces.pl '
+            f'(mode={result.get("mode")}). Mirror table wyczyszczone.',
+            'success',
+        )
+    else:
+        flash(
+            f'❌ Bulk delete error: {result.get("msg")} (HTTP {result.get("http_status")})',
+            'error',
+        )
+    return redirect(url_for('sklepakces_ui.dashboard'))
