@@ -93,9 +93,9 @@ def cmd_check() -> int:
     return 0
 
 
-def cmd_push_id(hub_id: int) -> int:
-    print(f'Push Hub produkt id={hub_id}...')
-    result = push_one_product(hub_id)
+def cmd_push_id(hub_id: int, with_gpsr: bool, gpsr_region: str) -> int:
+    print(f'Push Hub produkt id={hub_id} (gpsr={"AUTO" if with_gpsr else "OFF"}, region={gpsr_region})...')
+    result = push_one_product(hub_id, with_gpsr=with_gpsr, gpsr_region=gpsr_region)
     print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
     return 0 if result.get('status') in ('ok', 'skip') else 1
 
@@ -123,10 +123,10 @@ def cmd_dry_run(limit: int) -> int:
     return 0
 
 
-def cmd_push_all(limit: int) -> int:
-    print(f'PUSH ALL — wysyłam {limit or "wszystkie"} eligible (status="magazyn" AND not in mirror), throttle 1.1s/req...\n')
+def cmd_push_all(limit: int, with_gpsr: bool, gpsr_region: str) -> int:
+    print(f'PUSH ALL — wysyłam {limit or "wszystkie"} eligible (status="magazyn" AND not in mirror), throttle 1.1s/req (gpsr={"AUTO" if with_gpsr else "OFF"}, region={gpsr_region})...\n')
     ok = err = skip = 0
-    for r in push_all_unsynced(limit=limit, dry_run=False):
+    for r in push_all_unsynced(limit=limit, dry_run=False, with_gpsr=with_gpsr, gpsr_region=gpsr_region):
         marker = {'ok': '✅', 'skip': '⊘', 'error': '❌'}.get(r.get('status'), '?')
         sku = r.get('sku', '(no-sku)')
         http = r.get('http_status')
@@ -161,17 +161,20 @@ def main() -> int:
     group.add_argument('--dry-run', action='store_true', help='Pokaż co BYŁOBY wysłane (bez HTTP, walidacja schema)')
     group.add_argument('--all', action='store_true', help='Push wszystkich eligible (status=magazyn AND not in mirror)')
     parser.add_argument('--limit', type=int, default=0, help='Max produktów (do --dry-run / --all)')
+    parser.add_argument('--no-gpsr', action='store_true', help='Pomiń auto-fetch GPSR z Amazon (produkty → draft w WP)')
+    parser.add_argument('--gpsr-region', default='de', choices=['de', 'pl', 'uk', 'it', 'fr', 'es'], help='Amazon region dla GPSR lookup (default de)')
 
     args = parser.parse_args()
+    with_gpsr = not args.no_gpsr
 
     if args.check:
         return cmd_check()
     if args.id is not None:
-        return cmd_push_id(args.id)
+        return cmd_push_id(args.id, with_gpsr, args.gpsr_region)
     if args.dry_run:
         return cmd_dry_run(args.limit)
     if args.all:
-        return cmd_push_all(args.limit)
+        return cmd_push_all(args.limit, with_gpsr, args.gpsr_region)
 
     return 1
 

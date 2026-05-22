@@ -175,6 +175,47 @@ def test_map_no_image_no_images_key():
     assert 'images' not in payload
 
 
+def test_map_no_gpsr_default_no_key():
+    """Bez gpsr arg → payload nie ma 'gpsr' key (produkt → draft po stronie pluginu)."""
+    payload = map_hub_to_plugin(_hub_row())
+    assert 'gpsr' not in payload
+
+
+def test_map_with_gpsr_compliant():
+    """gpsr={manufacturer_name} → trafia do payload (plugin GPSR gate → publish)."""
+    gpsr = {
+        'manufacturer_name': 'Test Mf',
+        'manufacturer_address': 'Test Addr',
+        'responsible_person_name': '',
+        'responsible_person_address': '',
+        'responsible_person_email': '',
+        'product_safety_info': '',
+    }
+    payload = map_hub_to_plugin(_hub_row(), gpsr=gpsr)
+    assert payload.get('gpsr') == gpsr
+
+
+def test_map_with_empty_gpsr_no_key():
+    """gpsr przekazane ale puste (bez manufacturer/rp) → nie idzie w payload."""
+    gpsr = {
+        'manufacturer_name': '',
+        'responsible_person_name': '',
+        'manufacturer_address': '',
+        'responsible_person_address': '',
+        'responsible_person_email': '',
+        'product_safety_info': '',
+    }
+    payload = map_hub_to_plugin(_hub_row(), gpsr=gpsr)
+    assert 'gpsr' not in payload
+
+
+def test_map_with_responsible_person_only():
+    """Sam responsible_person (bez manufacturer) → też compliant, w payload."""
+    gpsr = {'responsible_person_name': 'EU Rep', 'manufacturer_name': ''}
+    payload = map_hub_to_plugin(_hub_row(), gpsr=gpsr)
+    assert payload.get('gpsr', {}).get('responsible_person_name') == 'EU Rep'
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # validate_payload — happy + each failure mode
 # ──────────────────────────────────────────────────────────────────────────────

@@ -135,8 +135,13 @@ def _build_sku(hub_id: int, ean: str) -> str:
     return f'HUB-{hub_id}'
 
 
-def map_hub_to_plugin(row: dict) -> dict:
+def map_hub_to_plugin(row: dict, gpsr: Optional[Dict] = None) -> dict:
     """Map Hub `produkty` row → plugin REST payload.
+
+    Args:
+        row:   Hub `produkty` row dict
+        gpsr:  opcjonalnie GPSR data dict (zwykle z amazon_gpsr_scraper.fetch_gpsr().to_plugin_payload());
+               gdy obecne (z manufacturer_name lub responsible_person_name) → produkt publish; inaczej draft
 
     Returns payload dict ready to JSON-serialize. NIE wysyła; tylko mapuje.
     """
@@ -175,6 +180,11 @@ def map_hub_to_plugin(row: dict) -> dict:
         payload['ean'] = ean
     if row.get('zdjecie_url'):
         payload['images'] = [{'url': (row['zdjecie_url'] or '').strip(), 'alt': title}]
+
+    # GPSR — dodaj gdy dostarczone i ma minimum manufacturer lub responsible_person.
+    # Plugin GPSR gate (class-akces-gpsr.is_compliant): manufacturer OR responsible_person → publish, inaczej draft.
+    if gpsr and (gpsr.get('manufacturer_name') or gpsr.get('responsible_person_name')):
+        payload['gpsr'] = gpsr
 
     return payload
 
@@ -319,8 +329,14 @@ def record_log(conn, sku: str, http_code: int, status_label: str, error_message:
 # Public API
 # ──────────────────────────────────────────────────────────────────────────────
 
-def push_one_product(hub_product_id: int) -> dict:
-    """Push 1 Hub produkt by ID. Returns dict z status / sku / response / hub_id."""
+def push_one_product(hub_product_id: int, with_gpsr: bool = True, gpsr_region: str = 'de') -> dict:
+    """Push 1 Hub produkt by ID. Returns dict z status / sku / response / hub_id.
+
+    Args:
+        with_gpsr:    auto-fetch GPSR z Amazon (cache lub HTTP) i dodaj do payload (default True;
+                      bez GPSR plugin tworzy produkt jako draft)
+        gpsr_region:  region Amazon dla GPSR lookup (de/pl/uk/it/fr; default 'de')
+    """
     conn = get_db()
     cur = conn.execute('SELECT * FROM produkty WHERE id = ?', (hub_product_id,))
     row = cur.fetchone()
@@ -332,7 +348,25 @@ def push_one_product(hub_product_id: int) -> dict:
         }
 
     row_dict = dict(row)
-    payload = map_hub_to_plugin(row_dict)
+
+    # Auto-fetch GPSR z Amazon (cache hit szybko, miss → 3s fetch + parse).
+    # Gdy compliant → produkt publish. Gdy nie (no asin lub Amazon ma luki) → fallback AKCES jako importer.
+    gpsr_payload = None
+    if with_gpsr:
+        try:
+            from .amazon_gpsr_scraper import fetch_gpsr  # lazy import — circular-safe
+            asin = (row_dict.get('asin') or '').strip()
+            g = fetch_gpsr(
+                asin=asin, region=gpsr_region, ean=(row_dict.get('ean') or '').strip(),
+                use_cache=True, use_fallback=True,
+            )
+            if g.is_compliant():
+                gpsr_payload = g.to_plugin_payload()
+                logger.info(f'GPSR: hub_id={hub_product_id} source={g.source} rp="{g.responsible_person_name[:30]}"')
+        except Exception as e:
+            logger.warning(f'GPSR fetch failed (push continues without gpsr) hub_id={hub_product_id}: {e}')
+
+    payload = map_hub_to_plugin(row_dict, gpsr=gpsr_payload)
 
     ok, err = validate_payload(payload)
     if not ok:
@@ -386,6 +420,8 @@ def push_all_unsynced(
     limit: Optional[int] = None,
     dry_run: bool = False,
     only_status: str = 'magazyn',
+    with_gpsr: bool = True,
+    gpsr_region: str = 'de',
 ) -> Iterator[dict]:
     """Iteruj Hub produkty status=`magazyn` AND nie w mirror, pushuj każdy.
 
@@ -437,5 +473,5 @@ def push_all_unsynced(
         if i > 0:
             time.sleep(THROTTLE_SECONDS)
 
-        result = push_one_product(row_dict['id'])
+        result = push_one_product(row_dict['id'], with_gpsr=with_gpsr, gpsr_region=gpsr_region)
         yield result
