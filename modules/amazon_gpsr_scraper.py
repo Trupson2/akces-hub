@@ -397,6 +397,42 @@ def _strip_html(s: str) -> str:
     return s.strip()
 
 
+def _find_section_by_header_text(html: str, header_patterns: list) -> str:
+    """Content-based search: znajdź header (h1-h6/strong/b/span/div z bold class)
+    który matchuje którykolwiek pattern, potem capture sąsiedni content do następnego
+    header (max 3000 chars).
+
+    Bardziej resilient niż _extract_block_text bo nie polega na konkretnych ID anchors
+    — Amazon zmienia layout co kilka miesięcy. Header text jest stabilny.
+    """
+    for pattern in header_patterns:
+        # Match w różnych tag types: h1-h6, span, b, strong, label, dt
+        m = re.search(
+            r'<(h[1-6]|strong|b|label|dt|span|div)\b[^>]*>\s*(?:<[^>]+>\s*)*'
+            + r'(' + pattern + r')'
+            + r'\s*(?:<[^>]+>\s*)*</\1>',
+            html, re.IGNORECASE | re.DOTALL,
+        )
+        if not m:
+            continue
+        # Capture od końca headera do następnego h1-h6 lub max 3000 chars
+        section_start = m.end()
+        cap = min(section_start + 3000, len(html))
+        section_html = html[section_start:cap]
+        next_header = re.search(
+            r'<h[1-6]\b',
+            section_html,
+            re.IGNORECASE,
+        )
+        if next_header and next_header.start() > 30:  # mały minimum żeby nie złapać header samego siebie
+            section_html = section_html[:next_header.start()]
+        stripped = _strip_html(section_html)
+        # Wymóg minimum: musi mieć przynajmniej 10 chars i nie być sam labelem
+        if len(stripped) >= 10:
+            return stripped
+    return ''
+
+
 def _strip_header_lines(text: str, header_patterns: list) -> str:
     """Usuń z początku text linie pasujące do header patterns (Amazon intro/label sentences).
 
@@ -466,6 +502,69 @@ def parse_gpsr_from_html(html: str) -> Dict[str, str]:
         'responsible_person_email': '',
         'product_safety_info': '',
     }
+
+    # =====================================================================
+    # STRATEGY 0 — CONTENT-BASED (najszerszy net, działa nawet gdy
+    # Amazon zmieni anchor IDs / data-feature-name attrs). Szukamy headera
+    # po TEXT ("Responsible person", "Manufacturer information") a nie po ID.
+    # =====================================================================
+    mf_content = _find_section_by_header_text(html, [
+        r'Manufacturer\s+information',
+        r'Manufacturer\b',
+        r'Hersteller\b',
+        r'Producent\b',
+        r'Fabricant\b',
+        r'Productor\b',
+    ])
+    if mf_content:
+        cleaned = _strip_header_lines(mf_content, [
+            r'^Manufacturer\s+information\s*$',
+            r'^Manufacturer\s*$',
+            r'^Hersteller\s*$',
+            r'^Manufacturing\s+information\b.*',
+            r'^Information\s+(?:about|on)\b.*',
+        ])
+        name, addr, _email = _parse_address_lines(cleaned)
+        if name:
+            out['manufacturer_name'] = name
+            out['manufacturer_address'] = addr
+
+    rp_content = _find_section_by_header_text(html, [
+        r'Responsible\s+person',
+        r'EU\s+representative',
+        r'EU[-\s]?Verantwortlicher',
+        r'Verantwortlicher\s+(?:Inverkehrbringer|Bevollm[äa]chtigter)',
+        r'Osoba\s+odpowiedzialna',
+        r'Personne\s+responsable',
+        r'Persona\s+responsable',
+        r'Persona\s+responsabile',
+    ])
+    if rp_content:
+        cleaned = _strip_header_lines(rp_content, [
+            r'^Responsible\s+person\s*$',
+            r'^EU\s+representative\s*$',
+            r'^Osoba\s+odpowiedzialna\b.*',
+            r'^EU\s+based\s+economic\s+operator\b.*',
+            r'^Economic\s+operator\b.*',
+        ])
+        name, addr, email = _parse_address_lines(cleaned)
+        if name:
+            out['responsible_person_name'] = name
+            out['responsible_person_address'] = addr
+            out['responsible_person_email'] = email
+
+    # Strategy 0 znalazła RP/MF? Pobierz też safety info i wracaj.
+    if out['manufacturer_name'] or out['responsible_person_name']:
+        # Safety info — z legacy combined block (zachowuje pełen text dla audit/debug)
+        safety_text = _extract_block_text(html, LEGACY_COMBINED_ANCHORS)
+        if safety_text:
+            out['product_safety_info'] = safety_text[:3000]
+        else:
+            # Jeśli brak legacy block, doczep mf+rp text jako fallback
+            chunks = [t for t in (mf_content, rp_content) if t]
+            if chunks:
+                out['product_safety_info'] = ' '.join(chunks)[:3000]
+        return out
 
     # =====================================================================
     # STRATEGY A — NEW layout (2024 Amazon, osobne sekcje per typ)
