@@ -48,7 +48,16 @@ except Exception:
 
 logger = logging.getLogger(__name__)
 
-ENDPOINT_PATH = '/wp-json/akces/v1/products'
+# URL path: gdzie POSTujemy (HTTP request line)
+ENDPOINT_URL_PATH = '/wp-json/akces/v1/products'
+# Canonical path do HMAC sign: WP REST router strippuje "/wp-json" przed routingiem
+# (per class-akces-hmac.php KONTRAKT PATH: $request->get_route() = "/akces/v1/products").
+# Hub MUSI podpisywać tym samym path co plugin verify, INACZEJ akces_invalid_signature.
+ENDPOINT_CANONICAL_PATH = '/akces/v1/products'
+
+# Alias dla backward-compat (testy używały ENDPOINT_PATH; teraz wskazuje URL path).
+ENDPOINT_PATH = ENDPOINT_URL_PATH
+
 DEFAULT_URL = 'https://sklepakces.pl'
 THROTTLE_SECONDS = 1.1   # plugin RATE_LIMIT = 60/min → 1.1s/req = ~54/min safe
 HTTP_TIMEOUT = 30
@@ -209,11 +218,13 @@ def push_product(
     if not secret:
         raise RuntimeError('sklepakces_hmac_secret nieskonfigurowany — set_config("sklepakces_hmac_secret", "<64 hex chars z plugin WP option akces_hub_hmac_secret>")')
 
-    # Canonical: METHOD:PATH:TS:BODY (TA SAMA forma co plugin verify)
+    # Canonical: METHOD:PATH:TS:BODY (TA SAMA forma co plugin verify).
+    # KRYTYCZNE: path = ENDPOINT_CANONICAL_PATH (bez "/wp-json"), bo plugin verify
+    # używa $request->get_route() który WP REST router odcina o "/wp-json" prefix.
     body = json.dumps(payload, separators=(',', ':'), ensure_ascii=False)
     ts = int(time.time())
     nonce = str(uuid.uuid4())
-    signature = sign('POST', ENDPOINT_PATH, ts, body, secret)
+    signature = sign('POST', ENDPOINT_CANONICAL_PATH, ts, body, secret)
 
     headers = {
         'Content-Type': 'application/json',
@@ -225,7 +236,7 @@ def push_product(
 
     try:
         r = requests.post(
-            url + ENDPOINT_PATH,
+            url + ENDPOINT_URL_PATH,
             data=body.encode('utf-8'),
             headers=headers,
             timeout=timeout,

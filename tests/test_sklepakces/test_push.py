@@ -25,7 +25,8 @@ from modules.sklepakces_push import (
     record_log,
     record_sync,
     validate_payload,
-    ENDPOINT_PATH,
+    ENDPOINT_URL_PATH,
+    ENDPOINT_CANONICAL_PATH,
 )
 
 
@@ -241,18 +242,21 @@ def test_push_product_signs_canonical_string():
 
     assert status == 201
     assert response['wc_product_id'] == 999
-    assert captured['url'] == 'https://example.test' + ENDPOINT_PATH
+    # POSTujemy na ENDPOINT_URL_PATH (z /wp-json), ale podpisujemy ENDPOINT_CANONICAL_PATH (bez /wp-json).
+    assert captured['url'] == 'https://example.test' + ENDPOINT_URL_PATH
     h = captured['headers']
     assert h['Content-Type'] == 'application/json'
     assert h['X-Akces-Timestamp']
     assert h['X-Akces-Signature']
     assert h['X-Akces-Nonce']
 
-    # Verify signature matches canonical (same algo as plugin PHP)
+    # Verify signature matches canonical (same algo as plugin PHP).
+    # KRYTYCZNE: canonical path = ENDPOINT_CANONICAL_PATH ('/akces/v1/products'),
+    # nie ENDPOINT_URL_PATH (WP REST router strippuje '/wp-json' przed routingiem).
     import hashlib
     import hmac as _hmac
     body = captured['data'].decode('utf-8') if isinstance(captured['data'], bytes) else captured['data']
-    canonical = f'POST:{ENDPOINT_PATH}:{h["X-Akces-Timestamp"]}:{body}'
+    canonical = f'POST:{ENDPOINT_CANONICAL_PATH}:{h["X-Akces-Timestamp"]}:{body}'
     expected = _hmac.new(secret.encode(), canonical.encode(), hashlib.sha256).hexdigest()
     assert h['X-Akces-Signature'] == expected
 
