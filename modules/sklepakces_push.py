@@ -556,14 +556,28 @@ def already_synced(conn, sku: str) -> bool:
     return cur.fetchone() is not None
 
 
-def record_sync(conn, payload: dict, wc_product_id: Optional[int], success: bool) -> None:
+def record_sync(conn, payload: dict, wc_product_id: Optional[int], success: bool,
+                wc_response: Optional[dict] = None, hub_id: Optional[int] = None) -> None:
     """Insert/update sklepakces_products mirror po pomyślnej syncrze.
 
     Schema: wc_product_id UNIQUE — upsert by wc_product_id.
     Pomijamy zapis gdy wc_product_id brak (np. error przed kreacją WC produktu).
+
+    Args:
+        wc_response: response dict z plugin (zawiera status='publish'|'draft', gpsr_blocked, action)
+        hub_id: Hub product ID (wstrzykiwany do product_data dla dashboard JOIN)
     """
     if wc_product_id is None or not success:
         return  # nie zaśmiecaj mirror gdy push fail (osobny log via record_log)
+
+    # Wstrzykiwane fields do product_data dla późniejszego JOIN/display w dashboardzie
+    enriched_payload = dict(payload)
+    if hub_id is not None:
+        enriched_payload['hub_id'] = int(hub_id)
+    if wc_response is not None:
+        enriched_payload['_last_wc_status'] = wc_response.get('status', '')
+        enriched_payload['_last_wc_action'] = wc_response.get('action', '')
+        enriched_payload['_last_gpsr_blocked'] = bool(wc_response.get('gpsr_blocked', False))
 
     try:
         conn.execute(
@@ -584,7 +598,7 @@ def record_sync(conn, payload: dict, wc_product_id: Optional[int], success: bool
                 payload.get('title', ''),
                 float(payload.get('price_pln', 0)),
                 int(payload.get('stock', 0)),
-                json.dumps(payload, ensure_ascii=False),
+                json.dumps(enriched_payload, ensure_ascii=False),
             ),
         )
         conn.commit()
@@ -735,7 +749,9 @@ def push_one_product(
     if not success and isinstance(response, dict):
         err_msg = (response.get('message') or response.get('error') or str(response))[:500]
     record_log(conn, payload['sku'], http_code, 'success' if success else 'error', err_msg, duration_ms)
-    record_sync(conn, payload, wc_product_id, success)
+    record_sync(conn, payload, wc_product_id, success,
+                wc_response=response if isinstance(response, dict) else None,
+                hub_id=hub_product_id)
 
     log_func = logger.info if success else logger.warning
     log_func(f'sklepakces push: sku={payload["sku"]} hub_id={hub_product_id} http={http_code} dur={duration_ms}ms')
