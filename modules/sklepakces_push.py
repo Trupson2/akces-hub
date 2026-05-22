@@ -135,15 +135,85 @@ def _build_sku(hub_id: int, ean: str) -> str:
     return f'HUB-{hub_id}'
 
 
-def map_hub_to_plugin(row: dict, gpsr: Optional[Dict] = None) -> dict:
+def _collect_image_urls(row: dict, conn=None) -> List[str]:
+    """Zbierz wszystkie URLe zdjęć produktu — max 8 (limit plugin/WC media).
+
+    Kolejność źródeł:
+      1. produkty.images (JSON array, primary; setowane przy scrape/AI enrichment)
+      2. scraped.wszystkie_zdjecia (JSON array, fallback po asin JOIN)
+      3. produkty.zdjecie_url (last-resort single)
+
+    De-dup po URL (pierwsze wystąpienie wygrywa).
+    """
+    urls: List[str] = []
+    seen = set()
+
+    def _add(u: str) -> None:
+        u = (u or '').strip()
+        if u and u not in seen and (u.startswith('http://') or u.startswith('https://')):
+            urls.append(u)
+            seen.add(u)
+
+    # 1. produkty.images JSON
+    images_raw = row.get('images')
+    if images_raw:
+        try:
+            arr = json.loads(images_raw) if isinstance(images_raw, str) else images_raw
+            if isinstance(arr, list):
+                for item in arr:
+                    if isinstance(item, str):
+                        _add(item)
+                    elif isinstance(item, dict):
+                        _add(item.get('url') or item.get('src') or '')
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    # 2. scraped.wszystkie_zdjecia po asin JOIN (fallback dla scrapowanych z Amazon)
+    if conn is not None and len(urls) < 8:
+        asin = (row.get('asin') or '').strip().upper()
+        if asin:
+            try:
+                scraped_row = conn.execute(
+                    'SELECT wszystkie_zdjecia FROM scraped WHERE asin = ?', (asin,)
+                ).fetchone()
+                if scraped_row:
+                    wsz = scraped_row['wszystkie_zdjecia'] if hasattr(scraped_row, 'keys') else scraped_row[0]
+                    if wsz:
+                        arr = json.loads(wsz) if isinstance(wsz, str) else wsz
+                        if isinstance(arr, list):
+                            for item in arr:
+                                if isinstance(item, str):
+                                    _add(item)
+                                elif isinstance(item, dict):
+                                    _add(item.get('url') or item.get('src') or '')
+            except (json.JSONDecodeError, TypeError, Exception):
+                pass
+
+    # 3. zdjecie_url single (last-resort)
+    if not urls and row.get('zdjecie_url'):
+        _add(row['zdjecie_url'])
+
+    return urls[:8]  # plugin/WC limit
+
+
+def map_hub_to_plugin(row: dict, gpsr: Optional[Dict] = None, conn=None) -> dict:
     """Map Hub `produkty` row → plugin REST payload.
 
     Args:
         row:   Hub `produkty` row dict
         gpsr:  opcjonalnie GPSR data dict (zwykle z amazon_gpsr_scraper.fetch_gpsr().to_plugin_payload());
                gdy obecne (z manufacturer_name lub responsible_person_name) → produkt publish; inaczej draft
+        conn:  opcjonalny DB connection — używany do JOIN scraped.wszystkie_zdjecia (Amazon multi-image
+               fallback przy asin); gdy None → tylko zdjecie_url + produkty.images.
 
     Returns payload dict ready to JSON-serialize. NIE wysyła; tylko mapuje.
+
+    UWAGA semantyki cen Hub `produkty` (sprawdzone w smart_importer.py):
+      cena_brutto  = PROPORCJONALNY KOSZT zakupu per produkt (split palety, z VAT) — WHOLESALE, NIE detal!
+      cena_allegro = RRP / cena DETALICZNA (Amazon MSRP / target sell price)
+      cena_netto   = supplier netto (źródłowa cena dostawcy)
+    Stąd kolejność: cena_allegro (retail) > cena_netto*1.23 (fallback retail z netto)
+    cena_brutto NIE używana jako retail (była buggy w starej wersji — robiła "za niskie ceny").
     """
     hub_id = int(row['id'])
     ean = (row.get('ean') or '').strip()
@@ -151,10 +221,9 @@ def map_hub_to_plugin(row: dict, gpsr: Optional[Dict] = None) -> dict:
 
     title = (row.get('krotki_tytul') or '').strip() or (row.get('nazwa') or '').strip()
 
-    # Price: cena_brutto > cena_allegro > cena_netto * 1.23 (fallback VAT)
-    price = float(row.get('cena_brutto') or 0)
-    if price <= 0:
-        price = float(row.get('cena_allegro') or 0)
+    # Price: cena_allegro (RRP) > cena_netto * 1.23 (fallback supplier→retail).
+    # cena_brutto NIE używamy — to KOSZT proporcjonalny, nie retail.
+    price = float(row.get('cena_allegro') or 0)
     if price <= 0:
         netto = float(row.get('cena_netto') or 0)
         if netto > 0:
@@ -169,8 +238,9 @@ def map_hub_to_plugin(row: dict, gpsr: Optional[Dict] = None) -> dict:
     }
 
     # --- Optional ---
+    # description_html (KONTRAKT: plugin sanitize_payload czyta 'description_html' a NIE 'description'!)
     if row.get('opis_ai'):
-        payload['description'] = (row['opis_ai'] or '').strip()
+        payload['description_html'] = (row['opis_ai'] or '').strip()
     cats = _norm_kategoria(row.get('kategoria') or '')
     if cats:
         payload['categories'] = cats
@@ -178,8 +248,14 @@ def map_hub_to_plugin(row: dict, gpsr: Optional[Dict] = None) -> dict:
         payload['brand'] = (row['dostawca'] or '').strip()
     if ean and EAN_REGEX.match(ean):
         payload['ean'] = ean
-    if row.get('zdjecie_url'):
-        payload['images'] = [{'url': (row['zdjecie_url'] or '').strip(), 'alt': title}]
+
+    # Images — multi-source collect (max 8). Pierwszy = primary (cover).
+    image_urls = _collect_image_urls(row, conn=conn)
+    if image_urls:
+        payload['images'] = [
+            {'url': u, 'alt': title, 'is_primary': (i == 0)}
+            for i, u in enumerate(image_urls)
+        ]
 
     # GPSR — dodaj gdy dostarczone i ma minimum manufacturer lub responsible_person.
     # Plugin GPSR gate (class-akces-gpsr.is_compliant): manufacturer OR responsible_person → publish, inaczej draft.
@@ -329,13 +405,21 @@ def record_log(conn, sku: str, http_code: int, status_label: str, error_message:
 # Public API
 # ──────────────────────────────────────────────────────────────────────────────
 
-def push_one_product(hub_product_id: int, with_gpsr: bool = True, gpsr_region: str = 'de') -> dict:
+def push_one_product(
+    hub_product_id: int,
+    with_gpsr: bool = True,
+    gpsr_region: str = 'de',
+    force: bool = False,
+) -> dict:
     """Push 1 Hub produkt by ID. Returns dict z status / sku / response / hub_id.
 
     Args:
         with_gpsr:    auto-fetch GPSR z Amazon (cache lub HTTP) i dodaj do payload (default True;
                       bez GPSR plugin tworzy produkt jako draft)
         gpsr_region:  region Amazon dla GPSR lookup (de/pl/uk/it/fr; default 'de')
+        force:        bypass `already_synced()` mirror check — re-pushuj nawet jeśli SKU już
+                      jest w mirror (plugin po stronie WC UPDATE'uje istniejący produkt po SKU).
+                      Używaj gdy mapping się zmienił (np. price/images) i chcesz re-sync existing.
     """
     conn = get_db()
     cur = conn.execute('SELECT * FROM produkty WHERE id = ?', (hub_product_id,))
@@ -366,7 +450,7 @@ def push_one_product(hub_product_id: int, with_gpsr: bool = True, gpsr_region: s
         except Exception as e:
             logger.warning(f'GPSR fetch failed (push continues without gpsr) hub_id={hub_product_id}: {e}')
 
-    payload = map_hub_to_plugin(row_dict, gpsr=gpsr_payload)
+    payload = map_hub_to_plugin(row_dict, gpsr=gpsr_payload, conn=conn)
 
     ok, err = validate_payload(payload)
     if not ok:
@@ -377,13 +461,13 @@ def push_one_product(hub_product_id: int, with_gpsr: bool = True, gpsr_region: s
             'msg': err,
         }
 
-    # Idempotency: check if already synced by this sku
-    if already_synced(conn, payload['sku']):
+    # Idempotency: check if already synced by this sku (chyba że --force)
+    if not force and already_synced(conn, payload['sku']):
         return {
             'status': 'skip',
             'hub_id': hub_product_id,
             'sku': payload['sku'],
-            'msg': 'już zsynchronizowany (mirror sklepakces_products)',
+            'msg': 'już zsynchronizowany (mirror sklepakces_products) — użyj force=True aby re-push',
         }
 
     t0 = time.time()
@@ -454,7 +538,7 @@ def push_all_unsynced(
     for i, row in enumerate(rows):
         row_dict = dict(row)
         if dry_run:
-            payload = map_hub_to_plugin(row_dict)
+            payload = map_hub_to_plugin(row_dict, conn=conn)
             ok, err = validate_payload(payload)
             yield {
                 'dry_run': True,
@@ -464,6 +548,7 @@ def push_all_unsynced(
                 'price': payload.get('price_pln'),
                 'condition': payload.get('condition'),
                 'stock': payload.get('stock'),
+                'images_count': len(payload.get('images') or []),
                 'valid': ok,
                 'validation_error': err,
             }

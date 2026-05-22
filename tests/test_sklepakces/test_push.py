@@ -125,25 +125,33 @@ def test_map_full_row():
     payload = map_hub_to_plugin(_hub_row())
     assert payload['sku'] == 'EAN-5901234123457'
     assert payload['title'] == 'Sony WH-1000XM4'  # krotki_tytul ma pierwszeństwo
-    assert payload['price_pln'] == 984.0           # cena_brutto preferowana
+    # cena_allegro (1100, RRP) preferowana; cena_brutto (984, koszt proporcjonalny) IGNOROWANE
+    assert payload['price_pln'] == 1100.0
     assert payload['condition'] == 'jak-nowy'
     assert payload['stock'] == 1
-    assert payload['description'] == 'Premium słuchawki z noise cancelling.'
+    # description_html (plugin KONTRAKT: sanitize_payload czyta description_html, nie description)
+    assert payload['description_html'] == 'Premium słuchawki z noise cancelling.'
+    assert 'description' not in payload  # stary klucz NIE wysyłany
     assert payload['categories'] == ['audio']
     assert payload['brand'] == 'Amazon DE'
     assert payload['ean'] == '5901234123457'
-    assert payload['images'] == [{'url': 'https://hub.local/photos/1.jpg', 'alt': 'Sony WH-1000XM4'}]
+    assert payload['images'] == [
+        {'url': 'https://hub.local/photos/1.jpg', 'alt': 'Sony WH-1000XM4', 'is_primary': True}
+    ]
 
 
-def test_map_fallback_price_to_allegro():
-    """Brak cena_brutto → użyj cena_allegro."""
-    payload = map_hub_to_plugin(_hub_row(cena_brutto=0, cena_allegro=550.0))
-    assert payload['price_pln'] == 550.0
+def test_map_price_ignores_cena_brutto():
+    """REGRESSION: cena_brutto = proporcjonalny koszt zakupu (NIE retail!).
+    Nawet gdy cena_brutto > 0, ma być ignorowana.
+    """
+    # cena_allegro=0 + cena_brutto=500 (np. koszt z palety) + cena_netto=0 → price=0 (validation fail).
+    payload = map_hub_to_plugin(_hub_row(cena_brutto=500.0, cena_allegro=0, cena_netto=0))
+    assert payload['price_pln'] == 0  # cena_brutto NIE używamy jako retail
 
 
 def test_map_fallback_price_to_netto_vat():
-    """Brak obu — przelicz z netto * 1.23."""
-    payload = map_hub_to_plugin(_hub_row(cena_brutto=0, cena_allegro=0, cena_netto=100.0))
+    """Brak cena_allegro — przelicz z cena_netto * 1.23 (fallback supplier retail)."""
+    payload = map_hub_to_plugin(_hub_row(cena_allegro=0, cena_netto=100.0))
     assert payload['price_pln'] == 123.0  # 100 * 1.23
 
 
@@ -173,6 +181,73 @@ def test_map_stan_uszkodzony():
 def test_map_no_image_no_images_key():
     payload = map_hub_to_plugin(_hub_row(zdjecie_url=''))
     assert 'images' not in payload
+
+
+def test_map_multi_images_from_produkty_images_json():
+    """produkty.images JSON array → wszystkie zdjęcia w payload (max 8), zdjecie_url ignored gdy są images."""
+    row = _hub_row(
+        zdjecie_url='https://hub.local/photos/cover.jpg',  # ignorowane gdy images są pełne
+        images=json.dumps([
+            'https://amazon.com/img1.jpg',
+            'https://amazon.com/img2.jpg',
+            'https://amazon.com/img3.jpg',
+        ]),
+    )
+    payload = map_hub_to_plugin(row)
+    assert len(payload['images']) == 3
+    urls = [img['url'] for img in payload['images']]
+    assert urls == [
+        'https://amazon.com/img1.jpg',
+        'https://amazon.com/img2.jpg',
+        'https://amazon.com/img3.jpg',
+    ]
+    assert payload['images'][0]['is_primary'] is True
+    assert payload['images'][1]['is_primary'] is False
+
+
+def test_map_images_dedup():
+    """Powtórzony URL → de-dup (pierwsze wystąpienie wygrywa)."""
+    row = _hub_row(
+        zdjecie_url='https://amazon.com/img1.jpg',  # dup z images[0]
+        images=json.dumps(['https://amazon.com/img1.jpg', 'https://amazon.com/img2.jpg']),
+    )
+    payload = map_hub_to_plugin(row)
+    assert len(payload['images']) == 2  # nie 3
+
+
+def test_map_images_max_8_cap():
+    """Hub może mieć więcej niż 8 zdjęć → cap na 8 (limit WC/plugin)."""
+    row = _hub_row(
+        images=json.dumps([f'https://amazon.com/img{i}.jpg' for i in range(12)]),
+    )
+    payload = map_hub_to_plugin(row)
+    assert len(payload['images']) == 8
+
+
+def test_map_images_invalid_json_falls_back_to_zdjecie_url():
+    """Gdy images JSON corrupted → fallback do zdjecie_url."""
+    row = _hub_row(
+        zdjecie_url='https://hub.local/fallback.jpg',
+        images='{not valid json',
+    )
+    payload = map_hub_to_plugin(row)
+    assert payload['images'] == [
+        {'url': 'https://hub.local/fallback.jpg', 'alt': 'Sony WH-1000XM4', 'is_primary': True}
+    ]
+
+
+def test_map_images_skips_non_http_urls():
+    """data: URI, relative paths, etc → odrzucane (tylko http(s))."""
+    row = _hub_row(
+        images=json.dumps([
+            'data:image/png;base64,iVBOR...',
+            '/relative/path.jpg',
+            'https://amazon.com/valid.jpg',
+        ]),
+    )
+    payload = map_hub_to_plugin(row)
+    assert len(payload['images']) == 1
+    assert payload['images'][0]['url'] == 'https://amazon.com/valid.jpg'
 
 
 def test_map_no_gpsr_default_no_key():
@@ -243,7 +318,7 @@ def test_validate_missing_title():
 
 
 def test_validate_zero_price():
-    payload = map_hub_to_plugin(_hub_row(cena_brutto=0, cena_allegro=0, cena_netto=0))
+    payload = map_hub_to_plugin(_hub_row(cena_allegro=0, cena_netto=0))
     ok, err = validate_payload(payload)
     assert ok is False
     assert 'price' in err
