@@ -507,6 +507,7 @@ def _oferty_conn(tmp_path):
         allegro_id TEXT,
         produkt_id INTEGER,
         tytul TEXT,
+        opis TEXT,
         cena REAL DEFAULT 0,
         ilosc INTEGER DEFAULT 1,
         status TEXT DEFAULT 'draft',
@@ -691,14 +692,18 @@ def test_map_foto_video_includes_hero_tile_parent():
 # ──────────────────────────────────────────────────────────────────────────────
 
 def test_get_allegro_active_offer_returns_dict(tmp_path):
-    """Pełna oferta: cena + ilosc + allegro_id."""
+    """Pełna oferta: cena + ilosc + opis + tytul + allegro_id."""
     conn = _oferty_conn(tmp_path)
     conn.execute(
-        "INSERT INTO oferty (allegro_id, produkt_id, tytul, cena, ilosc, status) "
-        "VALUES ('17539123456', 13, 'Test', 199.99, 7, 'aktywna')"
+        "INSERT INTO oferty (allegro_id, produkt_id, tytul, opis, cena, ilosc, status) "
+        "VALUES ('17539123456', 13, 'Test', 'Opis tutaj', 199.99, 7, 'aktywna')"
     )
     offer = _get_allegro_active_offer(conn, 13)
-    assert offer == {'cena': 199.99, 'ilosc': 7, 'allegro_id': '17539123456'}
+    assert offer == {
+        'cena': 199.99, 'ilosc': 7,
+        'opis': 'Opis tutaj', 'tytul': 'Test',
+        'allegro_id': '17539123456',
+    }
 
 
 def test_get_allegro_active_offer_none_when_no_active(tmp_path):
@@ -715,7 +720,11 @@ def test_get_allegro_active_offer_handles_zero_ilosc(tmp_path):
         "INSERT INTO oferty (produkt_id, tytul, cena, ilosc, status) VALUES (13, 'Sold', 100.0, 0, 'aktywna')"
     )
     offer = _get_allegro_active_offer(conn, 13)
-    assert offer == {'cena': 100.0, 'ilosc': 0, 'allegro_id': ''}
+    assert offer == {
+        'cena': 100.0, 'ilosc': 0,
+        'opis': '', 'tytul': 'Sold',
+        'allegro_id': '',
+    }
 
 
 def test_get_allegro_active_price_backward_compat(tmp_path):
@@ -759,3 +768,56 @@ def test_map_allegro_price_and_stock_independent():
     p2 = map_hub_to_plugin(row, allegro_active_stock=10)
     assert p2['price_pln'] == 100.0  # z DB
     assert p2['stock'] == 10
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Allegro active offer — OPIS (description z oferty.opis, nie opis_ai)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_get_allegro_active_offer_includes_opis(tmp_path):
+    """_get_allegro_active_offer zwraca też opis z oferty.opis."""
+    conn = _oferty_conn(tmp_path)
+    conn.execute(
+        "INSERT INTO oferty (produkt_id, tytul, opis, cena, ilosc, status) "
+        "VALUES (13, 'Tytuł listingu', '<p>Pełny opis HTML produktu</p>', 250.0, 3, 'aktywna')"
+    )
+    offer = _get_allegro_active_offer(conn, 13)
+    assert offer['opis'] == '<p>Pełny opis HTML produktu</p>'
+    assert offer['tytul'] == 'Tytuł listingu'
+
+
+def test_map_uses_allegro_active_description_when_provided():
+    """allegro_active_description (z oferty.opis) NADPISUJE opis_ai z DB."""
+    row = _hub_row(opis_ai='AI-generated z Hub')
+    payload = map_hub_to_plugin(
+        row, allegro_active_description='<p>Opis z Allegro listing — user-written</p>'
+    )
+    assert payload['description_html'] == '<p>Opis z Allegro listing — user-written</p>'
+
+
+def test_map_falls_back_to_opis_ai_when_no_allegro_description():
+    """Brak allegro_active_description → użyj opis_ai z Hub DB."""
+    row = _hub_row(opis_ai='Hub Gemini description')
+    payload = map_hub_to_plugin(row)
+    assert payload['description_html'] == 'Hub Gemini description'
+
+
+def test_map_empty_allegro_description_falls_back():
+    """allegro_active_description='' (puste) → fallback do opis_ai (nie ustaw pustego)."""
+    row = _hub_row(opis_ai='Hub fallback opis')
+    payload = map_hub_to_plugin(row, allegro_active_description='')
+    assert payload['description_html'] == 'Hub fallback opis'
+
+
+def test_map_whitespace_allegro_description_falls_back():
+    """Whitespace-only allegro opis → fallback (.strip() check)."""
+    row = _hub_row(opis_ai='Hub opis')
+    payload = map_hub_to_plugin(row, allegro_active_description='   \n\t  ')
+    assert payload['description_html'] == 'Hub opis'
+
+
+def test_map_no_description_at_all_no_key():
+    """Brak opisu w obu source'ach → 'description_html' nie w payload."""
+    row = _hub_row(opis_ai='')
+    payload = map_hub_to_plugin(row)
+    assert 'description_html' not in payload

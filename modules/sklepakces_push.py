@@ -241,22 +241,22 @@ def _build_sku(hub_id: int, ean: str) -> str:
 
 
 def _get_allegro_active_offer(conn, hub_id: int) -> Optional[Dict]:
-    """Pobierz AKTYWNĄ ofertę Allegro dla danego Hub produktu (cena + ilosc).
+    """Pobierz AKTYWNĄ ofertę Allegro dla danego Hub produktu (cena + ilosc + opis + tytul).
 
-    Zwraca dict {cena, ilosc, allegro_id} lub None gdy:
+    Zwraca dict {cena, ilosc, opis, tytul, allegro_id} lub None gdy:
       - brak oferty (produkt nigdy nie był wystawiony)
       - wszystkie oferty są draft/zakonczona/wystawiona (none aktywna)
       - cena <= 0 (sanity check)
 
     Sortowanie: najnowsza aktywna oferta (po data_aktualizacji DESC) wygrywa
-    — gdy user manualnie zaktualizował cenę/stock, ostatnia jest aktualna.
+    — gdy user manualnie zaktualizował cenę/stock/opis, ostatnia jest aktualna.
     """
     if conn is None or not hub_id:
         return None
     try:
         row = conn.execute(
             """
-            SELECT cena, ilosc, allegro_id FROM oferty
+            SELECT cena, ilosc, opis, tytul, allegro_id FROM oferty
             WHERE produkt_id = ? AND status = 'aktywna' AND cena > 0
             ORDER BY data_aktualizacji DESC
             LIMIT 1
@@ -268,13 +268,17 @@ def _get_allegro_active_offer(conn, hub_id: int) -> Optional[Dict]:
         return None
     if not row:
         return None
-    d = dict(row) if hasattr(row, 'keys') else {'cena': row[0], 'ilosc': row[1], 'allegro_id': row[2]}
+    d = dict(row) if hasattr(row, 'keys') else {
+        'cena': row[0], 'ilosc': row[1], 'opis': row[2], 'tytul': row[3], 'allegro_id': row[4],
+    }
     cena = float(d.get('cena') or 0)
     if cena <= 0:
         return None
     return {
         'cena': cena,
         'ilosc': int(d.get('ilosc') or 0),
+        'opis': (d.get('opis') or '').strip(),
+        'tytul': (d.get('tytul') or '').strip(),
         'allegro_id': d.get('allegro_id') or '',
     }
 
@@ -373,6 +377,7 @@ def map_hub_to_plugin(
     conn=None,
     allegro_active_price: Optional[float] = None,
     allegro_active_stock: Optional[int] = None,
+    allegro_active_description: Optional[str] = None,
 ) -> dict:
     """Map Hub `produkty` row → plugin REST payload.
 
@@ -432,9 +437,17 @@ def map_hub_to_plugin(
     }
 
     # --- Optional ---
-    # description_html (KONTRAKT: plugin sanitize_payload czyta 'description_html' a NIE 'description'!)
-    if row.get('opis_ai'):
-        payload['description_html'] = (row['opis_ai'] or '').strip()
+    # description_html priorytety:
+    #   1. allegro_active_description (oferty.opis z aktywnej aukcji — co user wpisał przy listing)
+    #   2. opis_ai (Hub DB Gemini-generated description fallback)
+    # Plugin KONTRAKT: sanitize_payload czyta 'description_html' a NIE 'description'.
+    description = ''
+    if allegro_active_description and allegro_active_description.strip():
+        description = allegro_active_description.strip()
+    elif row.get('opis_ai'):
+        description = (row['opis_ai'] or '').strip()
+    if description:
+        payload['description_html'] = description
     cats = _norm_kategoria(row.get('kategoria') or '')
     if cats:
         payload['categories'] = cats
@@ -687,6 +700,7 @@ def push_one_product(
         row_dict, gpsr=gpsr_payload, conn=conn,
         allegro_active_price=allegro_active_price,
         allegro_active_stock=allegro_active_stock,
+        allegro_active_description=(allegro_offer['opis'] if allegro_offer else None),
     )
 
     ok, err = validate_payload(payload)
@@ -783,6 +797,7 @@ def push_all_unsynced(
                 row_dict, conn=conn,
                 allegro_active_price=(offer['cena'] if offer else None),
                 allegro_active_stock=(offer['ilosc'] if offer else None),
+                allegro_active_description=(offer['opis'] if offer else None),
             )
             ok, err = validate_payload(payload)
             yield {

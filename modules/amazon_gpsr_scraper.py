@@ -319,6 +319,67 @@ def _extract_block_text(html: str, anchor_ids: list) -> str:
     return ''
 
 
+def _extract_by_data_feature(html: str, feature_names: list) -> str:
+    """Wyciągnij text z bloków o data-feature-name='X' attribute (Amazon 2024 layout)."""
+    for fname in feature_names:
+        m = re.search(
+            r'<(?:div|section)[^>]*data-feature-name\s*=\s*["\']' + re.escape(fname) + r'["\'][^>]*>(.*?)</(?:div|section)>',
+            html, re.IGNORECASE | re.DOTALL,
+        )
+        if m:
+            return _strip_html(m.group(1))
+    return ''
+
+
+# Anchor IDs do Manufacturer info card (nowy Amazon GPSR layout 2024)
+MANUFACTURER_ANCHORS = [
+    'manufacturerInformation_feature_div',
+    'manufacturer-information',
+    'manufacturerInformation',
+    'productManufacturer_feature_div',
+    'productManufacturer',
+]
+MANUFACTURER_FEATURES = [
+    'manufacturerInformation',
+    'productManufacturer',
+    'manufacturer',
+]
+
+# Anchor IDs do Responsible Person card
+RESPONSIBLE_PERSON_ANCHORS = [
+    'responsiblePerson_feature_div',
+    'responsible-person',
+    'responsiblePerson',
+    'gpsr-eu-responsible-party_feature_div',
+    'euResponsibleParty_feature_div',
+]
+RESPONSIBLE_PERSON_FEATURES = [
+    'responsiblePerson',
+    'euResponsibleParty',
+    'gpsrResponsiblePerson',
+]
+
+# Anchor IDs do Product Safety info
+SAFETY_ANCHORS = [
+    'productSafetyImages_feature_div',
+    'product-safety-images',
+    'productSafety_feature_div',
+    'safety-information',
+    'product-safety-information',
+]
+
+# Stare anchor IDs (one-block layout — Amazon do 2023) — fallback
+LEGACY_COMBINED_ANCHORS = [
+    'product-safety-and-compliance_feature_div',
+    'productSafetyInformation_feature_div',
+    'important-information',
+    'importantInformation_feature_div',
+    'manufacturer_feature_div',
+    'manufacturerInformation_feature_div',
+    'images-documents-and-contacts_feature_div',
+]
+
+
 def _strip_html(s: str) -> str:
     """Strip tags, normalize whitespace BUT zachowaj newlines (z <br>/</p>/</li>) —
     parser address-lines polega na nich."""
@@ -334,6 +395,25 @@ def _strip_html(s: str) -> str:
     s = re.sub(r' *\n *', '\n', s)        # strip spaces around newlines
     s = re.sub(r'\n{3,}', '\n\n', s)       # max 2 consecutive newlines
     return s.strip()
+
+
+def _strip_header_lines(text: str, header_patterns: list) -> str:
+    """Usuń z początku text linie pasujące do header patterns (Amazon intro/label sentences).
+
+    Iteruje od góry: dopóki pierwsza linia pasuje do któregokolwiek z patterns
+    (case-insensitive), usuwa ją. Stop gdy pierwsza linia NIE pasuje — to już dane.
+    """
+    lines = text.split('\n')
+    while lines:
+        first = lines[0].strip()
+        if not first:
+            lines.pop(0)
+            continue
+        if any(re.match(p, first, re.IGNORECASE) for p in header_patterns):
+            lines.pop(0)
+        else:
+            break
+    return '\n'.join(lines).strip()
 
 
 def _parse_address_lines(text: str) -> tuple[str, str, str]:
@@ -363,11 +443,18 @@ def parse_gpsr_from_html(html: str) -> Dict[str, str]:
     """
     Parsuj GPSR fields z Amazon HTML.
 
-    Strategy:
-    1. Szukaj #product-safety-and-compliance_feature_div  / #important-information /
-       #manufacturer_feature_div / #productSafetyInformation_feature_div blocks
-    2. W każdym wytnij segment po LABEL_RESPONSIBLE_PERSON / LABEL_MANUFACTURER
-    3. Wyciągnij name / address / email heurystyką
+    Strategy A (NEW Amazon layout 2024 — osobne sekcje per tab):
+      - "Manufacturer information" tab → <div id="manufacturerInformation_feature_div">
+      - "Responsible person" tab → <div id="responsiblePerson_feature_div">
+      - "Product safety images" tab → <div id="productSafetyImages_feature_div">
+      Pierwsza linia bloku = name (bold/strong), reszta = address + email.
+
+    Strategy B (LEGACY layout — one block z labelami):
+      - <div id="product-safety-and-compliance_feature_div">
+      - W tekście szukamy labeli "Manufacturer/Hersteller/EU representative/..."
+      - Wycinamy segment do następnego labela.
+
+    Strategy B fires gdy A nie znalazł nic (backward-compat z 2023 layoutem).
 
     Returns dict (empty values gdy brak danych).
     """
@@ -380,45 +467,87 @@ def parse_gpsr_from_html(html: str) -> Dict[str, str]:
         'product_safety_info': '',
     }
 
-    # 1. Spróbuj kilka znanych anchor IDs (Amazon zmienia layout co kilka miesięcy)
-    safety_text = _extract_block_text(
-        html,
-        anchor_ids=[
-            'product-safety-and-compliance_feature_div',
-            'productSafetyInformation_feature_div',
-            'important-information',
-            'importantInformation_feature_div',
-            'manufacturer_feature_div',
-            'manufacturerInformation_feature_div',
-        ],
-    )
+    # =====================================================================
+    # STRATEGY A — NEW layout (2024 Amazon, osobne sekcje per typ)
+    # =====================================================================
+    # Header / intro patterns które należy SKIP (Amazon dodaje sentence "Manufacturing
+    # information includes the address..." nad faktycznymi danymi)
+    MF_HEADER_LINES = [
+        r'^Manufacturer\s+information\s*$',
+        r'^Manufacturer\s*$',
+        r'^Hersteller\s*$',
+        r'^Producent\s*$',
+        r'^Manufacturing\s+information\b.*',  # "Manufacturing information includes..."
+        r'^Information\s+(?:about|on)\s+(?:the\s+)?manufacturer\b.*',
+    ]
+    RP_HEADER_LINES = [
+        r'^Responsible\s+person\s*$',
+        r'^EU\s+representative\s*$',
+        r'^EU-?Verantwortlicher\s*$',
+        r'^Osoba\s+odpowiedzialna\s*$',
+        r'^EU\s+based\s+economic\s+operator\b.*',  # intro sentence
+        r'^Economic\s+operator\b.*',
+        r'^Osoba\s+odpowiedzialna\s+za\s+zgodno[śs][ćc]\b.*',
+    ]
 
+    mf_block = _extract_block_text(html, MANUFACTURER_ANCHORS)
+    if not mf_block:
+        mf_block = _extract_by_data_feature(html, MANUFACTURER_FEATURES)
+    if mf_block:
+        cleaned = _strip_header_lines(mf_block, MF_HEADER_LINES)
+        name, addr, _email = _parse_address_lines(cleaned)
+        out['manufacturer_name'] = name
+        out['manufacturer_address'] = addr
+
+    rp_block = _extract_block_text(html, RESPONSIBLE_PERSON_ANCHORS)
+    if not rp_block:
+        rp_block = _extract_by_data_feature(html, RESPONSIBLE_PERSON_FEATURES)
+    if rp_block:
+        cleaned = _strip_header_lines(rp_block, RP_HEADER_LINES)
+        # Multi-responsible (np. Amazon Retourenkauf + LIAO ZHENWEI) — bierzemy całość;
+        # _parse_address_lines weźmie name=first-line, address=joined-rest, email=first match.
+        # User dostaje wszystko w joined address. Splitting na osobne person wymagałby
+        # bardziej skomplikowanej heurystyki (np. detection ALL_CAPS new name) — skip na teraz.
+        name, addr, email = _parse_address_lines(cleaned)
+        out['responsible_person_name'] = name
+        out['responsible_person_address'] = addr
+        out['responsible_person_email'] = email
+
+    # Safety info (osobno, niekrytyczne)
+    safety_block = _extract_block_text(html, SAFETY_ANCHORS)
+    if safety_block:
+        out['product_safety_info'] = safety_block[:3000]
+
+    # Strategy A znalazł cokolwiek? Wracaj.
+    if out['manufacturer_name'] or out['responsible_person_name']:
+        return out
+
+    # =====================================================================
+    # STRATEGY B — LEGACY layout (2023, one block z labelami inline)
+    # =====================================================================
+    safety_text = _extract_block_text(html, LEGACY_COMBINED_ANCHORS)
     if not safety_text:
         return out
 
-    # Cap full safety text (limit 3000 chars dla product_safety_info)
     out['product_safety_info'] = safety_text[:3000]
 
-    # 2. Wyciągnij Responsible Person segment
+    # Wyciągnij Responsible Person segment
     m_rp = LABEL_RESPONSIBLE_PERSON.search(safety_text)
     if m_rp:
-        # Text od labela do następnego labela (Manufacturer / Safety / koniec, max 800 chars)
         start = m_rp.end()
         rest = safety_text[start:start + 800]
-        # Stop przy następnym znanym labelu
         for stop_re in (LABEL_MANUFACTURER, LABEL_SAFETY):
             mstop = stop_re.search(rest)
             if mstop:
                 rest = rest[:mstop.start()]
                 break
-        # Usuń leading delimiters
         rest = re.sub(r'^[:\s\-—–]+', '', rest).strip()
         name, addr, email = _parse_address_lines(rest)
         out['responsible_person_name'] = name
         out['responsible_person_address'] = addr
         out['responsible_person_email'] = email
 
-    # 3. Wyciągnij Manufacturer segment
+    # Wyciągnij Manufacturer segment
     m_mf = LABEL_MANUFACTURER.search(safety_text)
     if m_mf:
         start = m_mf.end()
