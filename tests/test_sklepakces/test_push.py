@@ -492,6 +492,7 @@ def test_record_log_writes_audit_entry(tmp_path):
 
 from modules.sklepakces_push import (  # noqa: E402
     _get_allegro_active_price,
+    _get_allegro_active_offer,
     _paleta_koszt_szt,
     SUSPICIOUS_MARKUP_THRESHOLD,
 )
@@ -683,3 +684,78 @@ def test_map_foto_video_includes_hero_tile_parent():
     payload = map_hub_to_plugin(row)
     assert 'foto-video' in payload['categories']
     assert 'elektronika' in payload['categories']  # hero tile parent
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Allegro active offer — STOCK (ilosc z oferty.ilosc, nie produkty.ilosc)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_get_allegro_active_offer_returns_dict(tmp_path):
+    """Pełna oferta: cena + ilosc + allegro_id."""
+    conn = _oferty_conn(tmp_path)
+    conn.execute(
+        "INSERT INTO oferty (allegro_id, produkt_id, tytul, cena, ilosc, status) "
+        "VALUES ('17539123456', 13, 'Test', 199.99, 7, 'aktywna')"
+    )
+    offer = _get_allegro_active_offer(conn, 13)
+    assert offer == {'cena': 199.99, 'ilosc': 7, 'allegro_id': '17539123456'}
+
+
+def test_get_allegro_active_offer_none_when_no_active(tmp_path):
+    conn = _oferty_conn(tmp_path)
+    conn.execute("INSERT INTO oferty (produkt_id, tytul, cena, ilosc, status) VALUES (13, 'X', 100, 5, 'draft')")
+    assert _get_allegro_active_offer(conn, 13) is None
+
+
+def test_get_allegro_active_offer_handles_zero_ilosc(tmp_path):
+    """Edge: oferta aktywna ale ilosc=0 (sold out) — zwraca offer z ilosc=0,
+    user może rozważyć skip albo set stock=0 w WC."""
+    conn = _oferty_conn(tmp_path)
+    conn.execute(
+        "INSERT INTO oferty (produkt_id, tytul, cena, ilosc, status) VALUES (13, 'Sold', 100.0, 0, 'aktywna')"
+    )
+    offer = _get_allegro_active_offer(conn, 13)
+    assert offer == {'cena': 100.0, 'ilosc': 0, 'allegro_id': ''}
+
+
+def test_get_allegro_active_price_backward_compat(tmp_path):
+    """Stara funkcja nadal zwraca tylko cenę (deleguje do _offer)."""
+    conn = _oferty_conn(tmp_path)
+    conn.execute(
+        "INSERT INTO oferty (produkt_id, tytul, cena, ilosc, status) VALUES (13, 'Test', 250.0, 3, 'aktywna')"
+    )
+    assert _get_allegro_active_price(conn, 13) == 250.0
+
+
+def test_map_uses_allegro_active_stock_when_provided():
+    """allegro_active_stock NADPISUJE produkty.ilosc."""
+    row = _hub_row(ilosc=1)  # Hub ma 1 sztukę
+    payload = map_hub_to_plugin(row, allegro_active_stock=7)  # Allegro auction ma 7
+    assert payload['stock'] == 7
+
+
+def test_map_falls_back_to_db_stock_when_no_allegro_stock():
+    """Brak allegro_active_stock → użyj produkty.ilosc."""
+    row = _hub_row(ilosc=5)
+    payload = map_hub_to_plugin(row)  # bez allegro_active_stock
+    assert payload['stock'] == 5  # z DB
+
+
+def test_map_allegro_stock_zero_respected():
+    """allegro_active_stock=0 (sold out na Allegro) → push z stock=0 (out of stock)."""
+    row = _hub_row(ilosc=5)  # DB pokazuje 5 ale Allegro 0 (priorytet Allegro)
+    payload = map_hub_to_plugin(row, allegro_active_stock=0)
+    assert payload['stock'] == 0
+
+
+def test_map_allegro_price_and_stock_independent():
+    """Można przekazać tylko cenę albo tylko stock niezależnie."""
+    row = _hub_row(ilosc=2, cena_allegro=100.0)
+    # Tylko price override:
+    p1 = map_hub_to_plugin(row, allegro_active_price=500.0)
+    assert p1['price_pln'] == 500.0
+    assert p1['stock'] == 2  # z DB
+    # Tylko stock override:
+    p2 = map_hub_to_plugin(row, allegro_active_stock=10)
+    assert p2['price_pln'] == 100.0  # z DB
+    assert p2['stock'] == 10

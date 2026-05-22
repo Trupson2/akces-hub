@@ -240,23 +240,23 @@ def _build_sku(hub_id: int, ean: str) -> str:
     return f'HUB-{hub_id}'
 
 
-def _get_allegro_active_price(conn, hub_id: int) -> Optional[float]:
-    """Pobierz cenę z AKTYWNEJ aukcji Allegro dla danego Hub produktu.
+def _get_allegro_active_offer(conn, hub_id: int) -> Optional[Dict]:
+    """Pobierz AKTYWNĄ ofertę Allegro dla danego Hub produktu (cena + ilosc).
 
-    Zwraca None gdy:
+    Zwraca dict {cena, ilosc, allegro_id} lub None gdy:
       - brak oferty (produkt nigdy nie był wystawiony)
       - wszystkie oferty są draft/zakonczona/wystawiona (none aktywna)
       - cena <= 0 (sanity check)
 
     Sortowanie: najnowsza aktywna oferta (po data_aktualizacji DESC) wygrywa
-    — gdy user manualnie zaktualizował cenę, ostatnia jest aktualna.
+    — gdy user manualnie zaktualizował cenę/stock, ostatnia jest aktualna.
     """
     if conn is None or not hub_id:
         return None
     try:
         row = conn.execute(
             """
-            SELECT cena FROM oferty
+            SELECT cena, ilosc, allegro_id FROM oferty
             WHERE produkt_id = ? AND status = 'aktywna' AND cena > 0
             ORDER BY data_aktualizacji DESC
             LIMIT 1
@@ -264,12 +264,25 @@ def _get_allegro_active_price(conn, hub_id: int) -> Optional[float]:
             (int(hub_id),),
         ).fetchone()
     except Exception as e:
-        logger.warning(f'_get_allegro_active_price hub_id={hub_id} db error: {e}')
+        logger.warning(f'_get_allegro_active_offer hub_id={hub_id} db error: {e}')
         return None
     if not row:
         return None
-    cena = row['cena'] if hasattr(row, 'keys') else row[0]
-    return float(cena) if cena and float(cena) > 0 else None
+    d = dict(row) if hasattr(row, 'keys') else {'cena': row[0], 'ilosc': row[1], 'allegro_id': row[2]}
+    cena = float(d.get('cena') or 0)
+    if cena <= 0:
+        return None
+    return {
+        'cena': cena,
+        'ilosc': int(d.get('ilosc') or 0),
+        'allegro_id': d.get('allegro_id') or '',
+    }
+
+
+def _get_allegro_active_price(conn, hub_id: int) -> Optional[float]:
+    """Backward-compat alias — tylko cena z aktywnej oferty Allegro."""
+    offer = _get_allegro_active_offer(conn, hub_id)
+    return offer['cena'] if offer else None
 
 
 def _paleta_koszt_szt(row: dict) -> float:
@@ -359,6 +372,7 @@ def map_hub_to_plugin(
     gpsr: Optional[Dict] = None,
     conn=None,
     allegro_active_price: Optional[float] = None,
+    allegro_active_stock: Optional[int] = None,
 ) -> dict:
     """Map Hub `produkty` row → plugin REST payload.
 
@@ -401,12 +415,20 @@ def map_hub_to_plugin(
             if netto > 0:
                 price = round(netto * 1.23, 2)
 
+    # Stock priority:
+    # 1. allegro_active_stock (REAL oferty.ilosc z aktywnej aukcji Allegro)
+    # 2. produkty.ilosc (DB fallback)
+    if allegro_active_stock is not None and allegro_active_stock >= 0:
+        stock = int(allegro_active_stock)
+    else:
+        stock = int(row.get('ilosc') or 0)
+
     payload: dict = {
         'sku': sku,
         'title': title,
         'price_pln': price,
         'condition': _norm_stan(row.get('stan') or ''),
-        'stock': int(row.get('ilosc') or 0),
+        'stock': stock,
     }
 
     # --- Optional ---
@@ -606,15 +628,17 @@ def push_one_product(
 
     row_dict = dict(row)
 
-    # Pobierz cenę z aktywnej oferty Allegro — to NAJWAŻNIEJSZY price source.
-    # User chce ceny które FAKTYCZNIE wystawione na Allegro, nie zaśmiecone cena_allegro w DB.
-    allegro_active_price = _get_allegro_active_price(conn, hub_product_id)
+    # Pobierz CENĘ + STOCK z aktywnej oferty Allegro — to NAJWAŻNIEJSZE source'y.
+    # User chce ceny i ilosc które FAKTYCZNIE wystawione na Allegro, nie zaśmiecone DB.
+    allegro_offer = _get_allegro_active_offer(conn, hub_product_id)
+    allegro_active_price = allegro_offer['cena'] if allegro_offer else None
+    allegro_active_stock = allegro_offer['ilosc'] if allegro_offer else None
 
     sku_preview = _build_sku(hub_product_id, (row_dict.get('ean') or '').strip())
     nazwa = (row_dict.get('krotki_tytul') or row_dict.get('nazwa') or '').strip()
 
     # GATE: brak aktywnej oferty Allegro → SKIP + Telegram alert.
-    if allegro_active_price is None and require_allegro_active:
+    if allegro_offer is None and require_allegro_active:
         try:
             if _HAS_TELEGRAM:
                 sklepakces_telegram.alert_no_allegro_offer(hub_product_id, sku_preview, nazwa)
@@ -662,6 +686,7 @@ def push_one_product(
     payload = map_hub_to_plugin(
         row_dict, gpsr=gpsr_payload, conn=conn,
         allegro_active_price=allegro_active_price,
+        allegro_active_stock=allegro_active_stock,
     )
 
     ok, err = validate_payload(payload)
@@ -753,14 +778,19 @@ def push_all_unsynced(
     for i, row in enumerate(rows):
         row_dict = dict(row)
         if dry_run:
-            allegro_price = _get_allegro_active_price(conn, row_dict['id'])
-            payload = map_hub_to_plugin(row_dict, conn=conn, allegro_active_price=allegro_price)
+            offer = _get_allegro_active_offer(conn, row_dict['id'])
+            payload = map_hub_to_plugin(
+                row_dict, conn=conn,
+                allegro_active_price=(offer['cena'] if offer else None),
+                allegro_active_stock=(offer['ilosc'] if offer else None),
+            )
             ok, err = validate_payload(payload)
             yield {
                 'dry_run': True,
                 'hub_id': row_dict['id'],
-                'allegro_active_price': allegro_price,
-                'has_allegro_offer': allegro_price is not None,
+                'allegro_active_price': offer['cena'] if offer else None,
+                'allegro_active_stock': offer['ilosc'] if offer else None,
+                'has_allegro_offer': offer is not None,
                 'sku': payload.get('sku'),
                 'title': payload.get('title'),
                 'price': payload.get('price_pln'),
