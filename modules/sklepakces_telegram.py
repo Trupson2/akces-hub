@@ -115,6 +115,38 @@ def alert_redis_down() -> bool:
     )
 
 
+def alert_no_allegro_offer(hub_id: int, sku: str, nazwa: str = '') -> bool:
+    """Push do sklepakces.pl SKIPPED — produkt nie ma aktywnej oferty Allegro
+    (oferty.status='aktywna'). User musi najpierw wystawić na Allegro, dopiero
+    push pobierze realną cenę.
+    """
+    short = (nazwa or '')[:60]
+    msg = (
+        f"<b>Push SKIP — brak aukcji Allegro</b>\n"
+        f"hub_id=<code>{hub_id}</code> sku=<code>{sku}</code>\n"
+        f"{short}\n"
+        f"<i>Wystaw na Allegro → uruchom push --force ponownie.</i>"
+    )
+    return alert('no_allegro_offer', msg, '⚠️')
+
+
+def alert_suspicious_low_price(
+    hub_id: int, sku: str, nazwa: str, price: float, koszt_szt: float, markup: float
+) -> bool:
+    """Push poszedł, ale cena Allegro jest podejrzanie niska względem
+    kosztu zakupu palety (markup < threshold).
+    """
+    short = (nazwa or '')[:60]
+    msg = (
+        f"<b>Niska cena Allegro</b>\n"
+        f"hub_id=<code>{hub_id}</code> sku=<code>{sku}</code>\n"
+        f"{short}\n"
+        f"cena={price:.2f} PLN  koszt/szt={koszt_szt:.2f} PLN  markup=<b>{markup:.2f}x</b>\n"
+        f"<i>Pushnięte ale rozważ podniesienie ceny na Allegro.</i>"
+    )
+    return alert('suspicious_low_price', msg, '💰')
+
+
 def get_throttle_stats() -> dict:
     """Debug helper — current throttle buckets state."""
     with _throttle_lock:

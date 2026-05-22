@@ -93,9 +93,12 @@ def cmd_check() -> int:
     return 0
 
 
-def cmd_push_id(hub_id: int, with_gpsr: bool, gpsr_region: str, force: bool) -> int:
-    print(f'Push Hub produkt id={hub_id} (gpsr={"AUTO" if with_gpsr else "OFF"}, region={gpsr_region}, force={force})...')
-    result = push_one_product(hub_id, with_gpsr=with_gpsr, gpsr_region=gpsr_region, force=force)
+def cmd_push_id(hub_id: int, with_gpsr: bool, gpsr_region: str, force: bool, allow_no_allegro: bool) -> int:
+    print(f'Push Hub produkt id={hub_id} (gpsr={"AUTO" if with_gpsr else "OFF"}, region={gpsr_region}, force={force}, require_allegro={not allow_no_allegro})...')
+    result = push_one_product(
+        hub_id, with_gpsr=with_gpsr, gpsr_region=gpsr_region, force=force,
+        require_allegro_active=not allow_no_allegro,
+    )
     print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
     return 0 if result.get('status') in ('ok', 'skip') else 1
 
@@ -123,10 +126,13 @@ def cmd_dry_run(limit: int) -> int:
     return 0
 
 
-def cmd_push_all(limit: int, with_gpsr: bool, gpsr_region: str) -> int:
-    print(f'PUSH ALL — wysyłam {limit or "wszystkie"} eligible (status="magazyn" AND not in mirror), throttle 1.1s/req (gpsr={"AUTO" if with_gpsr else "OFF"}, region={gpsr_region})...\n')
+def cmd_push_all(limit: int, with_gpsr: bool, gpsr_region: str, allow_no_allegro: bool) -> int:
+    print(f'PUSH ALL — wysyłam {limit or "wszystkie"} eligible (status="magazyn" AND not in mirror), throttle 1.1s/req (gpsr={"AUTO" if with_gpsr else "OFF"}, region={gpsr_region}, require_allegro={not allow_no_allegro})...\n')
     ok = err = skip = 0
-    for r in push_all_unsynced(limit=limit, dry_run=False, with_gpsr=with_gpsr, gpsr_region=gpsr_region):
+    for r in push_all_unsynced(
+        limit=limit, dry_run=False, with_gpsr=with_gpsr, gpsr_region=gpsr_region,
+        require_allegro_active=not allow_no_allegro,
+    ):
         marker = {'ok': '✅', 'skip': '⊘', 'error': '❌'}.get(r.get('status'), '?')
         sku = r.get('sku', '(no-sku)')
         http = r.get('http_status')
@@ -164,6 +170,7 @@ def main() -> int:
     parser.add_argument('--no-gpsr', action='store_true', help='Pomiń auto-fetch GPSR z Amazon (produkty → draft w WP)')
     parser.add_argument('--gpsr-region', default='de', choices=['de', 'pl', 'uk', 'it', 'fr', 'es'], help='Amazon region dla GPSR lookup (default de)')
     parser.add_argument('--force', action='store_true', help='Re-push nawet jeśli już w mirror (plugin UPDATE\'uje WC produkt po SKU; użyj po fix mapowania)')
+    parser.add_argument('--allow-no-allegro', action='store_true', help='Pozwól push produktów BEZ aktywnej oferty Allegro (fallback na cena_allegro z DB; default = SKIP + Telegram alert)')
 
     args = parser.parse_args()
     with_gpsr = not args.no_gpsr
@@ -171,11 +178,11 @@ def main() -> int:
     if args.check:
         return cmd_check()
     if args.id is not None:
-        return cmd_push_id(args.id, with_gpsr, args.gpsr_region, args.force)
+        return cmd_push_id(args.id, with_gpsr, args.gpsr_region, args.force, args.allow_no_allegro)
     if args.dry_run:
         return cmd_dry_run(args.limit)
     if args.all:
-        return cmd_push_all(args.limit, with_gpsr, args.gpsr_region)
+        return cmd_push_all(args.limit, with_gpsr, args.gpsr_region, args.allow_no_allegro)
 
     return 1
 

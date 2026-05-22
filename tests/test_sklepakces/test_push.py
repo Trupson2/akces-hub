@@ -484,3 +484,123 @@ def test_record_log_writes_audit_entry(tmp_path):
     assert rows[0]['http_code'] == 201
     assert rows[1]['status'] == 'error'
     assert rows[1]['error_message'] == 'invalid sku'
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Allegro active offer price source + suspicious low-price detection
+# ──────────────────────────────────────────────────────────────────────────────
+
+from modules.sklepakces_push import (  # noqa: E402
+    _get_allegro_active_price,
+    _paleta_koszt_szt,
+    SUSPICIOUS_MARKUP_THRESHOLD,
+)
+
+
+def _oferty_conn(tmp_path):
+    """In-memory DB z oferty table (minimal schema dla testów)."""
+    db = sqlite3.connect(':memory:')
+    db.row_factory = sqlite3.Row
+    db.execute('''CREATE TABLE oferty (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        allegro_id TEXT,
+        produkt_id INTEGER,
+        tytul TEXT,
+        cena REAL DEFAULT 0,
+        ilosc INTEGER DEFAULT 1,
+        status TEXT DEFAULT 'draft',
+        data_aktualizacji TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+    return db
+
+
+def test_get_allegro_active_price_finds_aktywna(tmp_path):
+    conn = _oferty_conn(tmp_path)
+    conn.execute(
+        "INSERT INTO oferty (produkt_id, tytul, cena, status) VALUES (13, 'Test', 250.0, 'aktywna')"
+    )
+    assert _get_allegro_active_price(conn, 13) == 250.0
+
+
+def test_get_allegro_active_price_ignores_draft_and_ended(tmp_path):
+    conn = _oferty_conn(tmp_path)
+    conn.execute("INSERT INTO oferty (produkt_id, tytul, cena, status) VALUES (13, 'Draft', 100.0, 'draft')")
+    conn.execute("INSERT INTO oferty (produkt_id, tytul, cena, status) VALUES (13, 'Ended', 200.0, 'zakonczona')")
+    assert _get_allegro_active_price(conn, 13) is None
+
+
+def test_get_allegro_active_price_picks_latest_when_multiple_active(tmp_path):
+    conn = _oferty_conn(tmp_path)
+    conn.execute(
+        "INSERT INTO oferty (produkt_id, tytul, cena, status, data_aktualizacji) "
+        "VALUES (13, 'Old', 200.0, 'aktywna', '2026-01-01 10:00:00')"
+    )
+    conn.execute(
+        "INSERT INTO oferty (produkt_id, tytul, cena, status, data_aktualizacji) "
+        "VALUES (13, 'New', 350.0, 'aktywna', '2026-05-22 14:00:00')"
+    )
+    assert _get_allegro_active_price(conn, 13) == 350.0  # newest wins
+
+
+def test_get_allegro_active_price_zero_cena_skipped(tmp_path):
+    """sanity: oferta z cena=0 nie używana (mimo status=aktywna)."""
+    conn = _oferty_conn(tmp_path)
+    conn.execute("INSERT INTO oferty (produkt_id, tytul, cena, status) VALUES (13, 'Free', 0, 'aktywna')")
+    assert _get_allegro_active_price(conn, 13) is None
+
+
+def test_get_allegro_active_price_no_conn_returns_none():
+    assert _get_allegro_active_price(None, 13) is None
+
+
+def test_get_allegro_active_price_zero_hub_id_returns_none(tmp_path):
+    conn = _oferty_conn(tmp_path)
+    assert _get_allegro_active_price(conn, 0) is None
+
+
+def test_paleta_koszt_szt_basic():
+    row = {'cena_brutto': 100.0, 'ilosc': 5}
+    assert _paleta_koszt_szt(row) == 20.0
+
+
+def test_paleta_koszt_szt_zero_ilosc_returns_zero():
+    row = {'cena_brutto': 100.0, 'ilosc': 0}
+    assert _paleta_koszt_szt(row) == 0.0
+
+
+def test_paleta_koszt_szt_zero_brutto_returns_zero():
+    row = {'cena_brutto': 0.0, 'ilosc': 5}
+    assert _paleta_koszt_szt(row) == 0.0
+
+
+def test_paleta_koszt_szt_missing_fields_returns_zero():
+    assert _paleta_koszt_szt({}) == 0.0
+
+
+def test_map_uses_allegro_active_price_when_provided():
+    """allegro_active_price NADPISUJE cena_allegro z DB (nawet jak ta jest niska)."""
+    row = _hub_row(cena_allegro=40.88)  # niska cena DB
+    payload = map_hub_to_plugin(row, allegro_active_price=350.0)  # realna z Allegro
+    assert payload['price_pln'] == 350.0  # nadpisała
+
+
+def test_map_falls_back_to_db_when_no_allegro_active_price():
+    """Brak allegro_active_price → użyj cena_allegro z DB."""
+    row = _hub_row(cena_allegro=1100.0)
+    payload = map_hub_to_plugin(row)  # bez allegro_active_price
+    assert payload['price_pln'] == 1100.0  # z DB
+
+
+def test_map_zero_allegro_active_price_treated_as_missing():
+    """allegro_active_price=0 → fallback (gdyby ktoś przekazał 0)."""
+    row = _hub_row(cena_allegro=500.0)
+    payload = map_hub_to_plugin(row, allegro_active_price=0.0)
+    assert payload['price_pln'] == 500.0  # fallback do DB
+
+
+def test_suspicious_threshold_value():
+    """SUSPICIOUS_MARKUP_THRESHOLD sanity — niech nie skoczy nagle do 5x."""
+    assert 1.0 < SUSPICIOUS_MARKUP_THRESHOLD < 2.5
+    # threshold=1.3 → cena/koszt < 1.3 = alert. Realistic:
+    # koszt 50zł, cena 60zł, markup=1.2 → alert (poniżej 30%).
+    # koszt 50zł, cena 70zł, markup=1.4 → OK.

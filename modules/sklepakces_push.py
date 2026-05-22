@@ -62,6 +62,13 @@ DEFAULT_URL = 'https://sklepakces.pl'
 THROTTLE_SECONDS = 1.1   # plugin RATE_LIMIT = 60/min → 1.1s/req = ~54/min safe
 HTTP_TIMEOUT = 30
 
+# Pricing source priority:
+#   1) oferty.cena WHERE produkt_id=X AND status='aktywna' (REAL aktywne Allegro auction)
+#   2) produkty.cena_allegro (DB RRP fallback gdy ALLOW_DB_FALLBACK=True; INACZEJ skip + Telegram alert)
+#   3) cena_netto * 1.23 (last-resort fallback supplier price → VAT brutto)
+# Threshold "podejrzanie niska": price < koszt_paleta_szt * SUSPICIOUS_MARKUP_THRESHOLD → Telegram alert (push idzie dalej)
+SUSPICIOUS_MARKUP_THRESHOLD = 1.3  # 30% min markup nad kosztem zakupu — poniżej alert
+
 # Hub `stan` (wszystkie warianty case/diacritics) → plugin condition (whitelist).
 STAN_MAP: Dict[str, str] = {
     'nowy': 'nowy',
@@ -135,6 +142,59 @@ def _build_sku(hub_id: int, ean: str) -> str:
     return f'HUB-{hub_id}'
 
 
+def _get_allegro_active_price(conn, hub_id: int) -> Optional[float]:
+    """Pobierz cenę z AKTYWNEJ aukcji Allegro dla danego Hub produktu.
+
+    Zwraca None gdy:
+      - brak oferty (produkt nigdy nie był wystawiony)
+      - wszystkie oferty są draft/zakonczona/wystawiona (none aktywna)
+      - cena <= 0 (sanity check)
+
+    Sortowanie: najnowsza aktywna oferta (po data_aktualizacji DESC) wygrywa
+    — gdy user manualnie zaktualizował cenę, ostatnia jest aktualna.
+    """
+    if conn is None or not hub_id:
+        return None
+    try:
+        row = conn.execute(
+            """
+            SELECT cena FROM oferty
+            WHERE produkt_id = ? AND status = 'aktywna' AND cena > 0
+            ORDER BY data_aktualizacji DESC
+            LIMIT 1
+            """,
+            (int(hub_id),),
+        ).fetchone()
+    except Exception as e:
+        logger.warning(f'_get_allegro_active_price hub_id={hub_id} db error: {e}')
+        return None
+    if not row:
+        return None
+    cena = row['cena'] if hasattr(row, 'keys') else row[0]
+    return float(cena) if cena and float(cena) > 0 else None
+
+
+def _paleta_koszt_szt(row: dict) -> float:
+    """Proporcjonalny koszt zakupu per sztuka dla danego produktu.
+
+    Hub semantyka:
+      produkty.cena_brutto = TOTAL koszt allocated dla tego produktu (split palety, with VAT)
+      produkty.ilosc       = ilość sztuk w tym produkcie
+    → koszt_szt = cena_brutto / ilosc
+
+    Zwraca 0.0 gdy nie da się obliczyć (brak danych) — w tym przypadku
+    suspicious-price check zostanie pominięty (lepiej cicho niż false alert).
+    """
+    try:
+        cena_brutto = float(row.get('cena_brutto') or 0)
+        ilosc = int(row.get('ilosc') or 0)
+        if cena_brutto > 0 and ilosc > 0:
+            return cena_brutto / ilosc
+    except (ValueError, TypeError):
+        pass
+    return 0.0
+
+
 def _collect_image_urls(row: dict, conn=None) -> List[str]:
     """Zbierz wszystkie URLe zdjęć produktu — max 8 (limit plugin/WC media).
 
@@ -196,24 +256,32 @@ def _collect_image_urls(row: dict, conn=None) -> List[str]:
     return urls[:8]  # plugin/WC limit
 
 
-def map_hub_to_plugin(row: dict, gpsr: Optional[Dict] = None, conn=None) -> dict:
+def map_hub_to_plugin(
+    row: dict,
+    gpsr: Optional[Dict] = None,
+    conn=None,
+    allegro_active_price: Optional[float] = None,
+) -> dict:
     """Map Hub `produkty` row → plugin REST payload.
 
     Args:
-        row:   Hub `produkty` row dict
-        gpsr:  opcjonalnie GPSR data dict (zwykle z amazon_gpsr_scraper.fetch_gpsr().to_plugin_payload());
-               gdy obecne (z manufacturer_name lub responsible_person_name) → produkt publish; inaczej draft
-        conn:  opcjonalny DB connection — używany do JOIN scraped.wszystkie_zdjecia (Amazon multi-image
-               fallback przy asin); gdy None → tylko zdjecie_url + produkty.images.
+        row:                   Hub `produkty` row dict
+        gpsr:                  opcjonalnie GPSR data dict (zwykle z amazon_gpsr_scraper.fetch_gpsr().to_plugin_payload());
+                               gdy obecne (z manufacturer_name lub responsible_person_name) → produkt publish; inaczej draft
+        conn:                  opcjonalny DB connection — używany do JOIN scraped.wszystkie_zdjecia (Amazon multi-image
+                               fallback przy asin); gdy None → tylko zdjecie_url + produkty.images.
+        allegro_active_price:  PRIMARY price — gdy przekazane, NADPISUJE cena_allegro/cena_netto chain.
+                               Pochodzi z oferty.cena WHERE status='aktywna' (real-time Allegro auction price).
+                               Gdy None i row.get('cena_allegro')=0 → fallback na cena_netto*1.23.
 
     Returns payload dict ready to JSON-serialize. NIE wysyła; tylko mapuje.
 
     UWAGA semantyki cen Hub `produkty` (sprawdzone w smart_importer.py):
       cena_brutto  = PROPORCJONALNY KOSZT zakupu per produkt (split palety, z VAT) — WHOLESALE, NIE detal!
-      cena_allegro = RRP / cena DETALICZNA (Amazon MSRP / target sell price)
+      cena_allegro = RRP / cena DETALICZNA (Amazon MSRP / target sell price) — DB FALLBACK!
       cena_netto   = supplier netto (źródłowa cena dostawcy)
-    Stąd kolejność: cena_allegro (retail) > cena_netto*1.23 (fallback retail z netto)
-    cena_brutto NIE używana jako retail (była buggy w starej wersji — robiła "za niskie ceny").
+    Najlepiej: użyj `allegro_active_price` z `_get_allegro_active_price(conn, hub_id)` przed
+    wywołaniem (real-time z aktywnej oferty Allegro). DB fallback chain to ostatnia deska ratunku.
     """
     hub_id = int(row['id'])
     ean = (row.get('ean') or '').strip()
@@ -221,13 +289,19 @@ def map_hub_to_plugin(row: dict, gpsr: Optional[Dict] = None, conn=None) -> dict
 
     title = (row.get('krotki_tytul') or '').strip() or (row.get('nazwa') or '').strip()
 
-    # Price: cena_allegro (RRP) > cena_netto * 1.23 (fallback supplier→retail).
+    # Price priority:
+    # 1. allegro_active_price (REAL active Allegro auction price — z oferty.cena status='aktywna')
+    # 2. cena_allegro (DB RRP fallback — często stara/zaniżona)
+    # 3. cena_netto * 1.23 (supplier price → VAT brutto)
     # cena_brutto NIE używamy — to KOSZT proporcjonalny, nie retail.
-    price = float(row.get('cena_allegro') or 0)
-    if price <= 0:
-        netto = float(row.get('cena_netto') or 0)
-        if netto > 0:
-            price = round(netto * 1.23, 2)
+    if allegro_active_price and allegro_active_price > 0:
+        price = float(allegro_active_price)
+    else:
+        price = float(row.get('cena_allegro') or 0)
+        if price <= 0:
+            netto = float(row.get('cena_netto') or 0)
+            if netto > 0:
+                price = round(netto * 1.23, 2)
 
     payload: dict = {
         'sku': sku,
@@ -410,16 +484,17 @@ def push_one_product(
     with_gpsr: bool = True,
     gpsr_region: str = 'de',
     force: bool = False,
+    require_allegro_active: bool = True,
 ) -> dict:
     """Push 1 Hub produkt by ID. Returns dict z status / sku / response / hub_id.
 
     Args:
-        with_gpsr:    auto-fetch GPSR z Amazon (cache lub HTTP) i dodaj do payload (default True;
-                      bez GPSR plugin tworzy produkt jako draft)
-        gpsr_region:  region Amazon dla GPSR lookup (de/pl/uk/it/fr; default 'de')
-        force:        bypass `already_synced()` mirror check — re-pushuj nawet jeśli SKU już
-                      jest w mirror (plugin po stronie WC UPDATE'uje istniejący produkt po SKU).
-                      Używaj gdy mapping się zmienił (np. price/images) i chcesz re-sync existing.
+        with_gpsr:               auto-fetch GPSR z Amazon (cache lub HTTP) i dodaj do payload (default True)
+        gpsr_region:             region Amazon dla GPSR lookup (de/pl/uk/it/fr; default 'de')
+        force:                   bypass `already_synced()` mirror check — plugin UPDATE'uje istniejący WC po SKU
+        require_allegro_active:  gdy True (default), produkt MUSI mieć aktywną ofertę Allegro (oferty.status='aktywna')
+                                 inaczej push SKIP + Telegram alert. Gdy False → fallback do produkty.cena_allegro
+                                 (DB) — backward-compat (np. dla produktów premium które nie idą na Allegro).
     """
     conn = get_db()
     cur = conn.execute('SELECT * FROM produkty WHERE id = ?', (hub_product_id,))
@@ -432,6 +507,42 @@ def push_one_product(
         }
 
     row_dict = dict(row)
+
+    # Pobierz cenę z aktywnej oferty Allegro — to NAJWAŻNIEJSZY price source.
+    # User chce ceny które FAKTYCZNIE wystawione na Allegro, nie zaśmiecone cena_allegro w DB.
+    allegro_active_price = _get_allegro_active_price(conn, hub_product_id)
+
+    sku_preview = _build_sku(hub_product_id, (row_dict.get('ean') or '').strip())
+    nazwa = (row_dict.get('krotki_tytul') or row_dict.get('nazwa') or '').strip()
+
+    # GATE: brak aktywnej oferty Allegro → SKIP + Telegram alert.
+    if allegro_active_price is None and require_allegro_active:
+        try:
+            if _HAS_TELEGRAM:
+                sklepakces_telegram.alert_no_allegro_offer(hub_product_id, sku_preview, nazwa)
+        except Exception as e:
+            logger.warning(f'Telegram alert no_allegro_offer failed: {e}')
+        return {
+            'status': 'skip',
+            'hub_id': hub_product_id,
+            'sku': sku_preview,
+            'msg': 'brak aktywnej oferty Allegro (oferty.status=aktywna) — wystaw na Allegro, potem push --force',
+        }
+
+    # Suspicious low price check — pushujemy DALEJ ale wysyłamy alert.
+    if allegro_active_price and allegro_active_price > 0:
+        koszt_szt = _paleta_koszt_szt(row_dict)
+        if koszt_szt > 0:
+            markup = allegro_active_price / koszt_szt
+            if markup < SUSPICIOUS_MARKUP_THRESHOLD:
+                try:
+                    if _HAS_TELEGRAM:
+                        sklepakces_telegram.alert_suspicious_low_price(
+                            hub_product_id, sku_preview, nazwa,
+                            allegro_active_price, koszt_szt, markup,
+                        )
+                except Exception as e:
+                    logger.warning(f'Telegram alert suspicious_low_price failed: {e}')
 
     # Auto-fetch GPSR z Amazon (cache hit szybko, miss → 3s fetch + parse).
     # Gdy compliant → produkt publish. Gdy nie (no asin lub Amazon ma luki) → fallback AKCES jako importer.
@@ -450,7 +561,10 @@ def push_one_product(
         except Exception as e:
             logger.warning(f'GPSR fetch failed (push continues without gpsr) hub_id={hub_product_id}: {e}')
 
-    payload = map_hub_to_plugin(row_dict, gpsr=gpsr_payload, conn=conn)
+    payload = map_hub_to_plugin(
+        row_dict, gpsr=gpsr_payload, conn=conn,
+        allegro_active_price=allegro_active_price,
+    )
 
     ok, err = validate_payload(payload)
     if not ok:
@@ -506,6 +620,7 @@ def push_all_unsynced(
     only_status: str = 'magazyn',
     with_gpsr: bool = True,
     gpsr_region: str = 'de',
+    require_allegro_active: bool = True,
 ) -> Iterator[dict]:
     """Iteruj Hub produkty status=`magazyn` AND nie w mirror, pushuj każdy.
 
@@ -513,6 +628,8 @@ def push_all_unsynced(
         limit: max produktów do push (None = wszystkie eligible)
         dry_run: pokaż payloady, nie wysyłaj (do test)
         only_status: filter Hub `status` column (default 'magazyn' = ready to sell)
+        require_allegro_active: gdy True (default) skip produktów bez aktywnej oferty Allegro
+                                + Telegram alert (zob. push_one_product docstring)
 
     Yields dict per produkt — generator (streaming, nie blokuje na batchu).
     """
@@ -538,11 +655,14 @@ def push_all_unsynced(
     for i, row in enumerate(rows):
         row_dict = dict(row)
         if dry_run:
-            payload = map_hub_to_plugin(row_dict, conn=conn)
+            allegro_price = _get_allegro_active_price(conn, row_dict['id'])
+            payload = map_hub_to_plugin(row_dict, conn=conn, allegro_active_price=allegro_price)
             ok, err = validate_payload(payload)
             yield {
                 'dry_run': True,
                 'hub_id': row_dict['id'],
+                'allegro_active_price': allegro_price,
+                'has_allegro_offer': allegro_price is not None,
                 'sku': payload.get('sku'),
                 'title': payload.get('title'),
                 'price': payload.get('price_pln'),
@@ -558,5 +678,10 @@ def push_all_unsynced(
         if i > 0:
             time.sleep(THROTTLE_SECONDS)
 
-        result = push_one_product(row_dict['id'], with_gpsr=with_gpsr, gpsr_region=gpsr_region)
+        result = push_one_product(
+            row_dict['id'],
+            with_gpsr=with_gpsr,
+            gpsr_region=gpsr_region,
+            require_allegro_active=require_allegro_active,
+        )
         yield result
