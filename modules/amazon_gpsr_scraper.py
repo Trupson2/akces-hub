@@ -276,9 +276,10 @@ def fetch_amazon_html(asin: str, region: str = 'de', session: Optional[requests.
         return None
 
     if is_captcha_page(r.text):
-        logger.warning(f'Amazon captcha wykryta asin={asin} — pomijam (cooldown wymagany)')
+        logger.warning(f'Amazon captcha wykryta asin={asin} (size={len(r.text)}b) — pomijam (cooldown wymagany)')
         return None
 
+    logger.debug(f'Amazon HTML OK asin={asin} size={len(r.text)}b region={region}')
     return r.text
 
 
@@ -486,6 +487,19 @@ def fetch_gpsr(
     parsed = {}
     if html:
         parsed = parse_gpsr_from_html(html)
+        # Diagnostic — pokazuje co parser znalazł (lub brak)
+        mf = parsed.get('manufacturer_name', '')
+        rp = parsed.get('responsible_person_name', '')
+        sf = parsed.get('product_safety_info', '')
+        if mf or rp:
+            logger.info(f'Amazon parsed asin={asin}: mf="{mf[:25]}" rp="{rp[:25]}"')
+        else:
+            # HTML pobrany (nie captcha) ALE parser nie znalazł GPSR sections.
+            # Możliwe: (a) Amazon nie ma GPSR dla tego produktu, (b) layout inny, (c) lazy-loaded JS.
+            logger.warning(
+                f'Amazon HTML OK asin={asin} (size={len(html)}b) ale parser BRAK GPSR sections '
+                f'(safety="{sf[:50]}"). Sprawdz https://www.{domain}/dp/{asin} manualnie.'
+            )
 
     has_data = any(parsed.get(k) for k in ('manufacturer_name', 'responsible_person_name'))
 
