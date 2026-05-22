@@ -145,6 +145,27 @@ def cmd_all(region: str, limit: int) -> int:
     return 0
 
 
+def cmd_purge_cache(only_fallback: bool) -> int:
+    """Wyczyść cache.
+
+    only_fallback=True → kasuje tylko entries z fallback AKCES (gdzie poprzednio
+    Amazon był blocked → cache trzymał 'dziadka'). Cache realnych Amazon zostaje.
+    """
+    conn = get_db()
+    init_cache_schema(conn)
+    if only_fallback:
+        cur = conn.execute(
+            "DELETE FROM gpsr_amazon_cache WHERE responsible_person_name LIKE 'AKCES%' AND manufacturer_name = ''"
+        )
+    else:
+        cur = conn.execute('DELETE FROM gpsr_amazon_cache')
+    conn.commit()
+    deleted = cur.rowcount
+    label = 'fallback (AKCES) entries' if only_fallback else 'ALL cache entries'
+    print(f'Usunięto {deleted} {label} z gpsr_amazon_cache.')
+    return 0
+
+
 def cmd_show_cache(limit: int) -> int:
     conn = get_db()
     init_cache_schema(conn)
@@ -174,6 +195,8 @@ def main() -> int:
     group.add_argument('--hub-id', type=int, metavar='ID', help='Fetch dla Hub product by id (bierze asin z produkty table)')
     group.add_argument('--all-from-hub', action='store_true', help='Fetch dla wszystkich Hub produktów z asin (status=magazyn) jeszcze nie w cache')
     group.add_argument('--show-cache', action='store_true', help='Pokaż cache GPSR (co już mamy)')
+    group.add_argument('--purge-fallback-cache', action='store_true', help='Wyczyść TYLKO fallback AKCES entries (zachowaj realne Amazon)')
+    group.add_argument('--purge-all-cache', action='store_true', help='Wyczyść CAŁY cache GPSR (force full re-scrape przy następnym push)')
     parser.add_argument('--region', default='de', choices=sorted(REGION_DOMAIN.keys()), help='Amazon region (default de)')
     parser.add_argument('--limit', type=int, default=0, help='Max produktów dla --all-from-hub / --show-cache')
     parser.add_argument('--force', action='store_true', help='Wymuś re-fetch (ignor cache)')
@@ -187,6 +210,10 @@ def main() -> int:
         return cmd_all(args.region, args.limit)
     if args.show_cache:
         return cmd_show_cache(args.limit or 20)
+    if args.purge_fallback_cache:
+        return cmd_purge_cache(only_fallback=True)
+    if args.purge_all_cache:
+        return cmd_purge_cache(only_fallback=False)
     return 1
 
 

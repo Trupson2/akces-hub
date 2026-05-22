@@ -76,10 +76,13 @@ def test_parse_address_lines_only_email():
 # ──────────────────────────────────────────────────────────────────────────────
 
 def test_is_captcha_page_detects_validate():
-    assert is_captcha_page('<html>/errors/validateCaptcha</html>')
-    assert is_captcha_page('Type the characters you see in this image')
-    assert is_captcha_page('Geben Sie die Zeichen ein')
-    assert not is_captcha_page('<html><body>Normal product page</body></html>')
+    # Pattern-based detection (size irrelevant gdy pattern obecny)
+    assert is_captcha_page('<html>/errors/validateCaptcha</html>' + 'x' * 50_000)
+    assert is_captcha_page('Type the characters you see in this image' + 'x' * 50_000)
+    assert is_captcha_page('Geben Sie die Zeichen ein' + 'x' * 50_000)
+    # Normalna strona produktu — duża + brak captcha markers
+    normal_page = '<html><body>Normal product page</body></html>' + 'x' * 50_000
+    assert not is_captcha_page(normal_page)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -260,6 +263,41 @@ def test_fetch_gpsr_fallback_when_amazon_fail():
         g = fetch_gpsr(asin='B07FAIL', region='de', use_fallback=True, conn=conn)
     assert g.source == 'fallback'
     assert g.is_compliant()
+
+
+def test_fetch_gpsr_fallback_NOT_cached():
+    """KRYTYCZNE: fallback NIE jest zapisywany w cache — każdy następny push spróbuje Amazon znowu,
+    nie wraca automatycznie do 'dziadka'. Cache trzyma TYLKO realne Amazon data."""
+    conn = _cache_conn()
+    # 1. Pierwszy fetch — Amazon fail → fallback
+    with patch('modules.amazon_gpsr_scraper.fetch_amazon_html', return_value=None):
+        g1 = fetch_gpsr(asin='B07RETRY', region='de', use_fallback=True, conn=conn)
+    assert g1.source == 'fallback'
+    # 2. Cache MUSI być pusty dla tego asin (fallback NIE saved)
+    cached = cache_lookup('B07RETRY', 'de', conn=conn)
+    assert cached is None, 'Cache nie powinien mieć fallback — to powoduje wieczne "dziadka"'
+    # 3. Drugi fetch — teraz Amazon zwraca dane → cache real
+    with patch('modules.amazon_gpsr_scraper.fetch_amazon_html', return_value=HTML_WITH_RP_AND_MF):
+        g2 = fetch_gpsr(asin='B07RETRY', region='de', use_fallback=True, conn=conn)
+    assert g2.source == 'amazon'
+    assert g2.responsible_person_name == 'My EU Rep GmbH'
+    # Teraz cache MA real data
+    cached = cache_lookup('B07RETRY', 'de', conn=conn)
+    assert cached is not None
+    assert cached.responsible_person_name == 'My EU Rep GmbH'
+
+
+def test_is_captcha_page_small_size():
+    """Strona <30 KB = stub/blocked, niezależnie od pattern markerów."""
+    assert is_captcha_page('<html><body>tiny</body></html>')
+    assert is_captcha_page('<html>' + 'x' * 5000 + '</html>')  # 5 KB stub
+    assert not is_captcha_page('<html>' + 'x' * 50_000 + '</html>')  # 50 KB = potencjalnie real
+
+
+def test_is_captcha_page_opfcaptcha_signature():
+    """Nowa Amazon captcha forma (button challenge): 'opfcaptcha.amazon' marker."""
+    html_with_opf = '<html>' + 'x' * 50_000 + 'opfcaptcha.amazon' + '</html>'
+    assert is_captcha_page(html_with_opf)
 
 
 # ──────────────────────────────────────────────────────────────────────────────

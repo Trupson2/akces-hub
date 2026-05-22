@@ -91,7 +91,15 @@ CAPTCHA_PATTERNS = [
     'api-services-support@amazon.com',
     '/errors/validateCaptcha',
     'Sorry, we just need to make sure you',
+    'opfcaptcha.amazon',           # OPF CAPTCHA service (Amazon new anti-bot)
+    'csm-captcha-instrumentation',
+    'Klicke auf die Schaltfläche unten',  # DE button challenge
+    'Click the button below to continue',  # EN button challenge
+    'Zur Bestätigung, dass Sie kein Roboter sind',
 ]
+
+# Stub/blocked page size threshold — Amazon captcha pages są ~5 KB, real product ~300+ KB
+MIN_REAL_PAGE_BYTES = 30_000
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Data class
@@ -224,8 +232,17 @@ def cache_save(gpsr: GpsrData, raw_snippet: str = '', conn=None) -> None:
 # ──────────────────────────────────────────────────────────────────────────────
 
 def is_captcha_page(html: str) -> bool:
-    """Wykryj Amazon captcha / blocked page."""
-    return any(p in html for p in CAPTCHA_PATTERNS)
+    """Wykryj Amazon captcha / blocked page.
+
+    Sygnały: znane pattern stringi OR mała wielkość strony (Amazon stub ~5 KB
+    vs realna karta produktu 300+ KB).
+    """
+    if any(p in html for p in CAPTCHA_PATTERNS):
+        return True
+    # Size-based check: Amazon product page < 30 KB to prawie na pewno stub/blocked
+    if len(html) < MIN_REAL_PAGE_BYTES:
+        return True
+    return False
 
 
 def fetch_amazon_html(asin: str, region: str = 'de', session: Optional[requests.Session] = None) -> Optional[str]:
@@ -484,7 +501,8 @@ def fetch_gpsr(
         logger.info(f'GPSR z Amazon: asin={asin} mf="{gpsr.manufacturer_name[:30]}" rp="{gpsr.responsible_person_name[:30]}"')
         return gpsr
 
-    # 3. Fallback
+    # 3. Fallback — NIE cachuj. Cache TYLKO realne Amazon data (source='amazon');
+    # fallback dla każdego nieudanego fetch'a osobny → następny push znowu spróbuje Amazon.
     if use_fallback:
         gpsr = GpsrData(
             asin=asin, region=region,
@@ -493,9 +511,7 @@ def fetch_gpsr(
             fetched_at=datetime.utcnow().isoformat() + 'Z',
             **FALLBACK_RESPONSIBLE_PERSON,
         )
-        # Cache też fallback (żeby nie ponownie scrapować dla tego ASIN co i tak nie ma GPSR)
-        cache_save(gpsr, raw_snippet='[fallback: Amazon nie miał GPSR data, użyto AKCES jako importer]', conn=conn)
-        logger.info(f'GPSR fallback (AKCES importer) asin={asin}')
+        logger.info(f'GPSR fallback (AKCES importer, NIE cached — następny push retry Amazon) asin={asin}')
         return gpsr
 
     return GpsrData(asin=asin, region=region, source='')
