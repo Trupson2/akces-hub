@@ -886,6 +886,13 @@ app.register_blueprint(serwisant_bp, url_prefix='/serwis')
 app.register_blueprint(paletomat_bp, url_prefix='/paletomat')
 app.register_blueprint(telegram_bp, url_prefix='/telegram')
 app.register_blueprint(allegro_bp, url_prefix='/allegro')
+
+# Sklepakces UI dashboard (przegląd pushed produktów + akcje)
+try:
+    from modules.sklepakces_dashboard import sklepakces_ui_bp
+    app.register_blueprint(sklepakces_ui_bp)
+except Exception as e:
+    print(f'[sklepakces_ui] blueprint registration failed: {e}')
 # app.register_blueprint(olx_bp, url_prefix='/olx')
 # app.register_blueprint(vinted_bp, url_prefix='/vinted')
 
