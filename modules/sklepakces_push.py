@@ -244,6 +244,72 @@ def _build_sku(hub_id: int, ean: str) -> str:
     return f'HUB-{hub_id}'
 
 
+def _generate_minimal_attributes(row: dict) -> List[Dict]:
+    """Auto-gen WC product attributes dla Specyfikacja tab z dostępnych Hub fields.
+
+    Returns list of {name, value, visible} dicts. Plugin po stronie WC zapisuje
+    jako WC_Product_Attribute → renderowane w "Specyfikacja" tab przez theme
+    (single-tabs.php $product->get_attributes()).
+
+    Źródła:
+      1. Stan (produkty.stan)
+      2. Marka (produkty.dostawca — gdy != amazon/allegro/jobalots)
+      3. Kategoria (produkty.kategoria → human label)
+      4. EAN (produkty.ean — walidny)
+      5. produkty.parameters JSON (Gemini-extracted specs: brand/model/color/itp)
+
+    pa_stan i pa_marka są już osobne taxonomy (theme wyklucza je z Specyfikacja
+    żeby uniknąć duplikatu z eyebrow/condition card). Tu dajemy zwykłe attributes.
+    """
+    attrs = []
+    stan = (row.get('stan') or '').strip()
+    if stan:
+        attrs.append({'name': 'Stan produktu', 'value': stan, 'visible': True})
+
+    dostawca = (row.get('dostawca') or '').strip()
+    if dostawca and dostawca.lower() not in ('amazon', 'amazon de', 'allegro', 'jobalots', ''):
+        attrs.append({'name': 'Marka / Producent', 'value': dostawca, 'visible': True})
+
+    kat = (row.get('kategoria') or '').strip()
+    if kat and kat.lower() not in ('inne', ''):
+        kat_label = kat.replace('_', ' ').replace('-', ' ').title()
+        attrs.append({'name': 'Kategoria', 'value': kat_label, 'visible': True})
+
+    ean = (row.get('ean') or '').strip()
+    if ean and EAN_REGEX.match(ean):
+        attrs.append({'name': 'Kod EAN', 'value': ean, 'visible': True})
+
+    asin = (row.get('asin') or '').strip().upper()
+    if asin and len(asin) == 10:
+        attrs.append({'name': 'Kod ASIN', 'value': asin, 'visible': True})
+
+    # Parameters JSON (z Gemini AI extraction — np. {"model": "WH-1000XM4", "color": "czarny"})
+    params_raw = row.get('parameters')
+    if params_raw:
+        try:
+            params = json.loads(params_raw) if isinstance(params_raw, str) else params_raw
+            if isinstance(params, dict):
+                # Ignoruj keys już pokryte przez explicit fields powyżej + helper-keys
+                skip_keys = {'ean', 'asin', 'sku', 'stan', 'kategoria', 'dostawca', 'marka',
+                             'producent', 'brand', 'manufacturer', 'condition', 'category'}
+                for k, v in params.items():
+                    key_lower = str(k).strip().lower()
+                    if key_lower in skip_keys or not v:
+                        continue
+                    name = str(k).replace('_', ' ').replace('-', ' ').strip().title()[:60]
+                    # Value może być string, number, bool — convert + cap 200 chars
+                    if isinstance(v, (list, tuple)):
+                        value = ', '.join(str(x) for x in v if x)[:200]
+                    else:
+                        value = str(v).strip()[:200]
+                    if name and value:
+                        attrs.append({'name': name, 'value': value, 'visible': True})
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    return attrs
+
+
 def _generate_minimal_description(row: dict) -> str:
     """Auto-generate minimalny opis HTML z dostępnych danych Hub.
 
@@ -512,6 +578,12 @@ def map_hub_to_plugin(
             {'url': u, 'alt': title, 'is_primary': (i == 0)}
             for i, u in enumerate(image_urls)
         ]
+
+    # Attributes (dla Specyfikacja tab) — auto-gen z dostępnych Hub fields + parameters JSON.
+    # Plugin zapisuje jako WC_Product_Attribute. Theme renderuje przez $product->get_attributes().
+    attrs = _generate_minimal_attributes(row)
+    if attrs:
+        payload['attributes'] = attrs
 
     # GPSR — dodaj gdy dostarczone i ma minimum manufacturer lub responsible_person.
     # Plugin GPSR gate (class-akces-gpsr.is_compliant): manufacturer OR responsible_person → publish, inaczej draft.
