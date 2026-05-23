@@ -71,13 +71,13 @@ def _fmt_gpsr(g: GpsrData) -> str:
     )
 
 
-def cmd_asin(asin: str, region: str, force: bool) -> int:
-    g = fetch_gpsr(asin=asin, region=region, use_cache=not force)
+def cmd_asin(asin: str, region: str, force: bool, use_playwright: bool = False) -> int:
+    g = fetch_gpsr(asin=asin, region=region, use_cache=not force, use_playwright=use_playwright)
     print(_fmt_gpsr(g))
     return 0 if g.is_compliant() else 1
 
 
-def cmd_hub_id(hub_id: int, region: str, force: bool) -> int:
+def cmd_hub_id(hub_id: int, region: str, force: bool, use_playwright: bool = False) -> int:
     conn = get_db()
     row = conn.execute('SELECT id, asin, ean, nazwa FROM produkty WHERE id = ?', (hub_id,)).fetchone()
     if row is None:
@@ -89,7 +89,7 @@ def cmd_hub_id(hub_id: int, region: str, force: bool) -> int:
         g = fetch_gpsr(asin='', region=region, use_fallback=True)
     else:
         print(f'Hub produkt id={hub_id} asin={asin} ("{dict(row)["nazwa"][:50]}")...')
-        g = fetch_gpsr(asin=asin, region=region, ean=dict(row).get('ean') or '', use_cache=not force)
+        g = fetch_gpsr(asin=asin, region=region, ean=dict(row).get('ean') or '', use_cache=not force, use_playwright=use_playwright)
     print(_fmt_gpsr(g))
     return 0 if g.is_compliant() else 1
 
@@ -200,12 +200,13 @@ def main() -> int:
     parser.add_argument('--region', default='de', choices=sorted(REGION_DOMAIN.keys()), help='Amazon region (default de)')
     parser.add_argument('--limit', type=int, default=0, help='Max produktów dla --all-from-hub / --show-cache')
     parser.add_argument('--force', action='store_true', help='Wymuś re-fetch (ignor cache)')
+    parser.add_argument('--playwright', action='store_true', help='Użyj headless Chromium (Playwright) do scrap\'u lazy-loaded GPSR tabs. Wymaga: pip install playwright && playwright install chromium')
     args = parser.parse_args()
 
     if args.asin:
-        return cmd_asin(args.asin.strip().upper(), args.region, args.force)
+        return cmd_asin(args.asin.strip().upper(), args.region, args.force, args.playwright)
     if args.hub_id is not None:
-        return cmd_hub_id(args.hub_id, args.region, args.force)
+        return cmd_hub_id(args.hub_id, args.region, args.force, args.playwright)
     if args.all_from_hub:
         return cmd_all(args.region, args.limit)
     if args.show_cache:

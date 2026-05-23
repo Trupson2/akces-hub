@@ -699,14 +699,19 @@ def push_one_product(
 
     # Auto-fetch GPSR z Amazon (cache hit szybko, miss → 3s fetch + parse).
     # Gdy compliant → produkt publish. Gdy nie (no asin lub Amazon ma luki) → fallback AKCES jako importer.
+    # Playwright opt-in: config 'amazon_gpsr_playwright_fallback'='1' włącza headless browser
+    # gdy HTTP scraper widzi tylko placeholder (lazy-loaded Amazon GPSR tabs).
     gpsr_payload = None
     if with_gpsr:
         try:
             from .amazon_gpsr_scraper import fetch_gpsr  # lazy import — circular-safe
+            from .database import get_config as _get_cfg
             asin = (row_dict.get('asin') or '').strip()
+            pw_fallback = (_get_cfg('amazon_gpsr_playwright_fallback', '0') or '0') == '1'
             g = fetch_gpsr(
                 asin=asin, region=gpsr_region, ean=(row_dict.get('ean') or '').strip(),
                 use_cache=True, use_fallback=True,
+                playwright_fallback=pw_fallback,
             )
             if g.is_compliant():
                 gpsr_payload = g.to_plugin_payload()

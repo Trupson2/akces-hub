@@ -668,6 +668,23 @@ def parse_gpsr_from_html(html: str) -> Dict[str, str]:
 # Public API
 # ──────────────────────────────────────────────────────────────────────────────
 
+def _try_playwright_fetch(asin: str, region: str) -> Optional[str]:
+    """Lazy-load playwright module + fetch. Returns HTML lub None gdy unavailable/fail."""
+    try:
+        from .amazon_gpsr_playwright import fetch_amazon_html_playwright, is_available
+    except ImportError:
+        logger.debug('Playwright module not importable')
+        return None
+    if not is_available():
+        logger.warning('Playwright nie zainstalowany — pomijam fallback (pip install playwright)')
+        return None
+    try:
+        return fetch_amazon_html_playwright(asin=asin, region=region)
+    except Exception as e:
+        logger.warning(f'Playwright fetch exception asin={asin}: {e}')
+        return None
+
+
 def fetch_gpsr(
     asin: str,
     region: str = 'de',
@@ -676,6 +693,8 @@ def fetch_gpsr(
     use_fallback: bool = True,
     session: Optional[requests.Session] = None,
     conn=None,
+    use_playwright: bool = False,
+    playwright_fallback: bool = False,
 ) -> GpsrData:
     """
     Główna funkcja: cache → Amazon fetch → parse → cache save → fallback gdy fail.
@@ -688,9 +707,18 @@ def fetch_gpsr(
         use_fallback: gdy fetch fail lub brak danych → użyj Twojej firmy jako importer (default True)
         session:     opcjonalna shared requests.Session (dla batchu)
         conn:        opcjonalny SQLite connection
+        use_playwright: gdy True, używa headless Chromium do scrap'owania lazy-loaded
+                        GPSR tabs (manufacturer + responsible person). Wolniejsze
+                        (~5-10s/req) ale wyciąga real producenta gdy HTTP scraper widzi
+                        tylko placeholder. Wymaga `pip install playwright + playwright install chromium`.
+        playwright_fallback: gdy use_playwright=False ale HTTP scraper nic nie znalazł
+                             AND playwright dostępny → automatycznie spróbuj playwright
+                             jako fallback (przed AKCES). Default False (opt-in).
+                             Aktywuj via config: set_config('amazon_gpsr_playwright_fallback', '1')
+                             lub explicit parameter playwright_fallback=True.
 
     Returns:
-        GpsrData (source='amazon'/'cache'/'fallback')
+        GpsrData (source='amazon'/'amazon_playwright'/'cache'/'fallback')
     """
     if not asin:
         if use_fallback:
@@ -707,40 +735,57 @@ def fetch_gpsr(
             logger.info(f'GPSR cache hit asin={asin} region={region}')
             return cached
 
-    # 2. Fetch z Amazon
-    html = fetch_amazon_html(asin, region, session=session)
     domain = REGION_DOMAIN.get(region, 'amazon.de')
     source_url = f'https://www.{domain}/dp/{asin}'
 
+    # 2a. Primary fetch — Playwright gdy explicit requested, inaczej HTTP requests
     parsed = {}
-    if html:
-        parsed = parse_gpsr_from_html(html)
+    used_source = 'amazon'
+    if use_playwright:
+        html = _try_playwright_fetch(asin, region)
+        if html:
+            parsed = parse_gpsr_from_html(html)
+            used_source = 'amazon_playwright'
+    else:
+        html = fetch_amazon_html(asin, region, session=session)
+        if html:
+            parsed = parse_gpsr_from_html(html)
+
         # Diagnostic — pokazuje co parser znalazł (lub brak)
         mf = parsed.get('manufacturer_name', '')
         rp = parsed.get('responsible_person_name', '')
         sf = parsed.get('product_safety_info', '')
         if mf or rp:
             logger.info(f'Amazon parsed asin={asin}: mf="{mf[:25]}" rp="{rp[:25]}"')
-        else:
-            # HTML pobrany (nie captcha) ALE parser nie znalazł GPSR sections.
-            # Możliwe: (a) Amazon nie ma GPSR dla tego produktu, (b) layout inny, (c) lazy-loaded JS.
+        elif html:
+            # HTML pobrany ALE parser nie znalazł GPSR sections (lazy-loaded JS).
             logger.warning(
                 f'Amazon HTML OK asin={asin} (size={len(html)}b) ale parser BRAK GPSR sections '
-                f'(safety="{sf[:50]}"). Sprawdz https://www.{domain}/dp/{asin} manualnie.'
+                f'(safety="{sf[:50]}"). Spróbuję Playwright fallback={playwright_fallback}.'
             )
 
     has_data = any(parsed.get(k) for k in ('manufacturer_name', 'responsible_person_name'))
 
+    # 2b. Playwright fallback — gdy HTTP scraper nic nie znalazł i playwright_fallback=True
+    if not has_data and playwright_fallback and not use_playwright:
+        pw_html = _try_playwright_fetch(asin, region)
+        if pw_html:
+            parsed = parse_gpsr_from_html(pw_html)
+            has_data = any(parsed.get(k) for k in ('manufacturer_name', 'responsible_person_name'))
+            if has_data:
+                used_source = 'amazon_playwright'
+                logger.info(f'Playwright fallback ZNALAZL GPSR asin={asin}')
+
     if has_data:
         gpsr = GpsrData(
             asin=asin, region=region,
-            source='amazon',
+            source=used_source,
             source_url=source_url,
             fetched_at=datetime.utcnow().isoformat() + 'Z',
             **parsed,
         )
         cache_save(gpsr, raw_snippet=parsed.get('product_safety_info', ''), conn=conn)
-        logger.info(f'GPSR z Amazon: asin={asin} mf="{gpsr.manufacturer_name[:30]}" rp="{gpsr.responsible_person_name[:30]}"')
+        logger.info(f'GPSR z {used_source}: asin={asin} mf="{gpsr.manufacturer_name[:30]}" rp="{gpsr.responsible_person_name[:30]}"')
         return gpsr
 
     # 3. Fallback — NIE cachuj. Cache TYLKO realne Amazon data (source='amazon');
