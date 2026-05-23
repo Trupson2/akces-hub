@@ -244,6 +244,45 @@ def _build_sku(hub_id: int, ean: str) -> str:
     return f'HUB-{hub_id}'
 
 
+def _generate_minimal_description(row: dict) -> str:
+    """Auto-generate minimalny opis HTML z dostępnych danych Hub.
+
+    Używany jako last-resort fallback gdy oferty.opis i opis_ai są puste.
+    Zwraca HTML z bullet pointami: nazwa, stan, marka, kategoria, EAN.
+    Nie zastępuje pełnego opisu (lepiej user wypełni Allegro listing lub
+    uruchomi Gemini opis_ai generator), ale chroni przed placeholder
+    "Pełny opis produktu zostanie uzupełniony wkrótce" na sklepie.
+    """
+    nazwa = (row.get('krotki_tytul') or '').strip() or (row.get('nazwa') or '').strip()
+    if not nazwa:
+        return ''  # bez nazwy nie warto generować
+
+    parts = [f'<p><strong>{nazwa}</strong></p>']
+    bullets = []
+    stan = (row.get('stan') or '').strip()
+    dostawca = (row.get('dostawca') or '').strip()
+    kategoria = (row.get('kategoria') or '').strip()
+    ean = (row.get('ean') or '').strip()
+
+    if stan:
+        bullets.append(f'<li><strong>Stan:</strong> {stan}</li>')
+    if dostawca and dostawca.lower() not in ('amazon', 'allegro', 'jobalots'):
+        bullets.append(f'<li><strong>Marka:</strong> {dostawca}</li>')
+    if kategoria and kategoria.lower() not in ('inne', ''):
+        bullets.append(f'<li><strong>Kategoria:</strong> {kategoria.replace("_", " ").title()}</li>')
+    if ean and EAN_REGEX.match(ean):
+        bullets.append(f'<li><strong>EAN:</strong> {ean}</li>')
+
+    if bullets:
+        parts.append('<ul>' + ''.join(bullets) + '</ul>')
+
+    parts.append(
+        '<p><em>Pełny opis i specyfikacja produktu dostępne na życzenie. '
+        'Skontaktuj się z nami w razie pytań.</em></p>'
+    )
+    return '\n'.join(parts)
+
+
 def _get_allegro_active_offer(conn, hub_id: int) -> Optional[Dict]:
     """Pobierz AKTYWNĄ ofertę Allegro dla danego Hub produktu (cena + ilosc + opis + tytul).
 
@@ -444,12 +483,18 @@ def map_hub_to_plugin(
     # description_html priorytety:
     #   1. allegro_active_description (oferty.opis z aktywnej aukcji — co user wpisał przy listing)
     #   2. opis_ai (Hub DB Gemini-generated description fallback)
+    #   3. auto-generated z dostępnych danych Hub (nazwa, stan, marka, kategoria)
+    #      — fallback dla starych ofert Allegro bez opis + produktów bez Gemini opisu.
+    #      Plugin nie pokaze placeholder "Pełny opis ... wkrótce" gdy zwrócimy
+    #      cokolwiek non-empty.
     # Plugin KONTRAKT: sanitize_payload czyta 'description_html' a NIE 'description'.
     description = ''
     if allegro_active_description and allegro_active_description.strip():
         description = allegro_active_description.strip()
     elif row.get('opis_ai'):
         description = (row['opis_ai'] or '').strip()
+    else:
+        description = _generate_minimal_description(row)
     if description:
         payload['description_html'] = description
     cats = _norm_kategoria(row.get('kategoria') or '')

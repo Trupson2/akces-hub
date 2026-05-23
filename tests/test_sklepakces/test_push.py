@@ -816,8 +816,24 @@ def test_map_whitespace_allegro_description_falls_back():
     assert payload['description_html'] == 'Hub opis'
 
 
-def test_map_no_description_at_all_no_key():
-    """Brak opisu w obu source'ach → 'description_html' nie w payload."""
+def test_map_no_description_falls_back_to_auto_generated():
+    """Brak opisu w obu source'ach → auto-generuj minimalny z nazwy+stanu+marki etc.
+
+    Chroni przed placeholder "Pełny opis... wkrótce" na sklepie.
+    """
     row = _hub_row(opis_ai='')
+    payload = map_hub_to_plugin(row)
+    assert 'description_html' in payload
+    desc = payload['description_html']
+    # Powinien zawierać nazwę produktu (krotki_tytul w _hub_row)
+    assert 'Sony WH-1000XM4' in desc
+    # I bullet pointy z dostępnych pól
+    assert 'Stan' in desc
+    assert 'Kategoria' in desc or 'Marka' in desc
+
+
+def test_map_no_description_no_nazwa_no_key():
+    """Brak NAWET nazwy → brak description_html (bez nazwy nie generujemy)."""
+    row = _hub_row(opis_ai='', nazwa='', krotki_tytul='')
     payload = map_hub_to_plugin(row)
     assert 'description_html' not in payload
