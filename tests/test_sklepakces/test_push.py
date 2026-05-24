@@ -111,7 +111,7 @@ def _hub_row(**overrides):
         'regal': 'A',
         'paleta_id': 5,
         'paleta': 'Pal-2026-001',
-        'dostawca': 'Amazon DE',
+        'dostawca': 'Sony',  # Real brand; "Amazon DE" / "Warrington" blacklisted (paleta_supplier)
         'kategoria': 'audio',
         'zdjecie_url': 'https://hub.local/photos/1.jpg',
         'stan': 'Jak nowy',
@@ -133,7 +133,7 @@ def test_map_full_row():
     assert payload['description_html'] == 'Premium słuchawki z noise cancelling.'
     assert 'description' not in payload  # stary klucz NIE wysyłany
     assert payload['categories'] == ['audio']
-    assert payload['brand'] == 'Amazon DE'
+    assert payload['brand'] == 'Sony'  # Real brand z produkty.dostawca (nie paleta-supplier)
     assert payload['ean'] == '5901234123457'
     assert payload['images'] == [
         {'url': 'https://hub.local/photos/1.jpg', 'alt': 'Sony WH-1000XM4', 'is_primary': True}
@@ -598,6 +598,47 @@ def test_map_zero_allegro_active_price_treated_as_missing():
     row = _hub_row(cena_allegro=500.0)
     payload = map_hub_to_plugin(row, allegro_active_price=0.0)
     assert payload['price_pln'] == 500.0  # fallback do DB
+
+
+@pytest.mark.parametrize('dostawca,expected_brand', [
+    ('Sony', 'Sony'),                              # real brand
+    ('JJC', 'JJC'),                                # real brand
+    ('HOMCA', 'HOMCA'),                            # real brand
+    ('Warrington', None),                          # paleta name → blacklisted
+    ('Jobalots Premium 2024-08', None),            # paleta name z substring match
+    ('Amazon DE', None),                           # dostawca-pośrednik
+    ('B-Stock', None),                             # paleta supplier
+    ('amazon retourenkauf', None),                 # case-insensitive match
+    ('', None),                                    # empty
+])
+def test_brand_payload_blacklists_paleta_suppliers(dostawca, expected_brand):
+    """Brand field NIE bierze nazw palet/dostawców (Warrington, Jobalots, Amazon DE, etc.)."""
+    row = _hub_row(dostawca=dostawca, parameters='')
+    payload = map_hub_to_plugin(row)
+    if expected_brand is None:
+        assert 'brand' not in payload, f'brand should not be set for paleta supplier "{dostawca}"'
+    else:
+        assert payload.get('brand') == expected_brand
+
+
+def test_brand_priority_gemini_parameters_over_dostawca():
+    """Gdy parameters JSON ma 'brand': X (Gemini-extracted), użyj X zamiast produkty.dostawca."""
+    row = _hub_row(
+        dostawca='Warrington',  # paleta name (blacklisted)
+        parameters=json.dumps({'brand': 'Canon', 'model': 'EOS R6'}),
+    )
+    payload = map_hub_to_plugin(row)
+    assert payload['brand'] == 'Canon'
+
+
+def test_brand_skips_gemini_when_paleta_name():
+    """Gdy parameters['brand']=paleta_name (np. AI źle wykrył) → skip + fallback dostawca."""
+    row = _hub_row(
+        dostawca='Sony',  # real
+        parameters=json.dumps({'brand': 'Warrington'}),  # Gemini hallucination
+    )
+    payload = map_hub_to_plugin(row)
+    assert payload['brand'] == 'Sony'  # fallback do dostawca (Warrington skipped)
 
 
 def test_suspicious_threshold_value():

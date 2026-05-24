@@ -244,6 +244,37 @@ def _build_sku(hub_id: int, ean: str) -> str:
     return f'HUB-{hub_id}'
 
 
+# Nazwy palet / dostawców / pośredników — NIE są to marki produktów.
+# User raport: "Marka: Warrington" → Warrington to nazwa palety, nie producent.
+# Lista rozszerzalna — case-insensitive substring match.
+_PALETA_SUPPLIER_BLACKLIST = {
+    'amazon', 'amazon de', 'amazon.de', 'amazon.com', 'amazon.pl', 'amazon retourenkauf',
+    'allegro', 'allegro.pl',
+    'jobalots', 'jobalot',
+    'b-stock', 'bstock', 'b stock',
+    'warrington', 'miglo', 'liquidation', 'returns', 'salvex',
+    'palety', 'paleta', 'pallet', 'pallets', 'jobalots premium',
+    'mix paleta', 'mix pallet',
+}
+
+
+def _is_paleta_supplier(value: str) -> bool:
+    """True gdy value to nazwa palety/dostawcy (nie prawdziwa marka producenta)."""
+    if not value:
+        return True
+    v = value.strip().lower()
+    if not v:
+        return True
+    # Exact match
+    if v in _PALETA_SUPPLIER_BLACKLIST:
+        return True
+    # Substring match — np. "Warrington Returns Pallet 2025-08" → contains "warrington"
+    for bad in _PALETA_SUPPLIER_BLACKLIST:
+        if bad in v:
+            return True
+    return False
+
+
 def _generate_minimal_attributes(row: dict) -> List[Dict]:
     """Auto-gen WC product attributes dla Specyfikacja tab z dostępnych Hub fields.
 
@@ -251,12 +282,14 @@ def _generate_minimal_attributes(row: dict) -> List[Dict]:
     jako WC_Product_Attribute → renderowane w "Specyfikacja" tab przez theme
     (single-tabs.php $product->get_attributes()).
 
-    Źródła:
+    Źródła (z priorytetami):
       1. Stan (produkty.stan)
-      2. Marka (produkty.dostawca — gdy != amazon/allegro/jobalots)
+      2. Marka — PRIORYTET: parameters['brand']/['marka']/['producent'] (Gemini-extracted),
+         FALLBACK: produkty.dostawca (TYLKO gdy nie jest paleta/dostawca z _PALETA_SUPPLIER_BLACKLIST)
       3. Kategoria (produkty.kategoria → human label)
       4. EAN (produkty.ean — walidny)
-      5. produkty.parameters JSON (Gemini-extracted specs: brand/model/color/itp)
+      5. ASIN (produkty.asin — walidny 10 chars)
+      6. produkty.parameters JSON (Gemini-extracted specs: model/color/wymiary/itp)
 
     pa_stan i pa_marka są już osobne taxonomy (theme wyklucza je z Specyfikacja
     żeby uniknąć duplikatu z eyebrow/condition card). Tu dajemy zwykłe attributes.
@@ -266,9 +299,30 @@ def _generate_minimal_attributes(row: dict) -> List[Dict]:
     if stan:
         attrs.append({'name': 'Stan produktu', 'value': stan, 'visible': True})
 
-    dostawca = (row.get('dostawca') or '').strip()
-    if dostawca and dostawca.lower() not in ('amazon', 'amazon de', 'allegro', 'jobalots', ''):
-        attrs.append({'name': 'Marka / Producent', 'value': dostawca, 'visible': True})
+    # Parsuj parameters JSON jeden raz (używamy do brand priority + reszty)
+    params = {}
+    params_raw = row.get('parameters')
+    if params_raw:
+        try:
+            p = json.loads(params_raw) if isinstance(params_raw, str) else params_raw
+            if isinstance(p, dict):
+                params = p
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    # MARKA: priority Gemini-extracted brand > dostawca (gdy nie paleta) > skip
+    brand_value = ''
+    for key in ('brand', 'marka', 'producent', 'manufacturer'):
+        v = params.get(key)
+        if v and not _is_paleta_supplier(str(v)):
+            brand_value = str(v).strip()
+            break
+    if not brand_value:
+        dostawca = (row.get('dostawca') or '').strip()
+        if dostawca and not _is_paleta_supplier(dostawca):
+            brand_value = dostawca
+    if brand_value:
+        attrs.append({'name': 'Marka / Producent', 'value': brand_value[:200], 'visible': True})
 
     kat = (row.get('kategoria') or '').strip()
     if kat and kat.lower() not in ('inne', ''):
@@ -283,29 +337,21 @@ def _generate_minimal_attributes(row: dict) -> List[Dict]:
     if asin and len(asin) == 10:
         attrs.append({'name': 'Kod ASIN', 'value': asin, 'visible': True})
 
-    # Parameters JSON (z Gemini AI extraction — np. {"model": "WH-1000XM4", "color": "czarny"})
-    params_raw = row.get('parameters')
-    if params_raw:
-        try:
-            params = json.loads(params_raw) if isinstance(params_raw, str) else params_raw
-            if isinstance(params, dict):
-                # Ignoruj keys już pokryte przez explicit fields powyżej + helper-keys
-                skip_keys = {'ean', 'asin', 'sku', 'stan', 'kategoria', 'dostawca', 'marka',
-                             'producent', 'brand', 'manufacturer', 'condition', 'category'}
-                for k, v in params.items():
-                    key_lower = str(k).strip().lower()
-                    if key_lower in skip_keys or not v:
-                        continue
-                    name = str(k).replace('_', ' ').replace('-', ' ').strip().title()[:60]
-                    # Value może być string, number, bool — convert + cap 200 chars
-                    if isinstance(v, (list, tuple)):
-                        value = ', '.join(str(x) for x in v if x)[:200]
-                    else:
-                        value = str(v).strip()[:200]
-                    if name and value:
-                        attrs.append({'name': name, 'value': value, 'visible': True})
-        except (json.JSONDecodeError, TypeError):
-            pass
+    # Pozostałe parameters (skip already-used + helper keys)
+    if params:
+        skip_keys = {'ean', 'asin', 'sku', 'stan', 'kategoria', 'dostawca', 'marka',
+                     'producent', 'brand', 'manufacturer', 'condition', 'category'}
+        for k, v in params.items():
+            key_lower = str(k).strip().lower()
+            if key_lower in skip_keys or not v:
+                continue
+            name = str(k).replace('_', ' ').replace('-', ' ').strip().title()[:60]
+            if isinstance(v, (list, tuple)):
+                value = ', '.join(str(x) for x in v if x)[:200]
+            else:
+                value = str(v).strip()[:200]
+            if name and value:
+                attrs.append({'name': name, 'value': value, 'visible': True})
 
     return attrs
 
@@ -332,7 +378,7 @@ def _generate_minimal_description(row: dict) -> str:
 
     if stan:
         bullets.append(f'<li><strong>Stan:</strong> {stan}</li>')
-    if dostawca and dostawca.lower() not in ('amazon', 'allegro', 'jobalots'):
+    if dostawca and not _is_paleta_supplier(dostawca):
         bullets.append(f'<li><strong>Marka:</strong> {dostawca}</li>')
     if kategoria and kategoria.lower() not in ('inne', ''):
         bullets.append(f'<li><strong>Kategoria:</strong> {kategoria.replace("_", " ").title()}</li>')
@@ -566,8 +612,25 @@ def map_hub_to_plugin(
     cats = _norm_kategoria(row.get('kategoria') or '')
     if cats:
         payload['categories'] = cats
-    if row.get('dostawca'):
-        payload['brand'] = (row['dostawca'] or '').strip()
+    # Brand priority: Gemini-extracted parameters > dostawca (gdy NIE jest paleta/dostawca)
+    brand_payload = ''
+    try:
+        params_raw = row.get('parameters')
+        if params_raw:
+            p = json.loads(params_raw) if isinstance(params_raw, str) else params_raw
+            if isinstance(p, dict):
+                for k in ('brand', 'marka', 'producent', 'manufacturer'):
+                    if p.get(k) and not _is_paleta_supplier(str(p[k])):
+                        brand_payload = str(p[k]).strip()
+                        break
+    except (json.JSONDecodeError, TypeError):
+        pass
+    if not brand_payload:
+        dostawca_raw = (row.get('dostawca') or '').strip()
+        if dostawca_raw and not _is_paleta_supplier(dostawca_raw):
+            brand_payload = dostawca_raw
+    if brand_payload:
+        payload['brand'] = brand_payload
     if ean and EAN_REGEX.match(ean):
         payload['ean'] = ean
 
