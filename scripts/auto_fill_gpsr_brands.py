@@ -121,20 +121,20 @@ KRYTYCZNE ZASADY:
 4. Jeśli NIE ZNASZ specific EU rep dla tego brandu — zwróć name=null
    (skip — fallback handle sam). NIE zgaduj.
 
-Zwróć WYŁĄCZNIE valid JSON:
+Zwróć WYŁĄCZNIE valid JSON (BEZ pola "notes" — nie potrzebne):
 {{
   "name": "Pełna nazwa firmy EU rep (np. 'AZDOME GmbH') lub null jeśli nie wiesz",
   "address": "Pełen adres (ulica, miasto, kod, kraj) lub null",
   "email": "Kontakt mailowy EU rep lub null",
-  "confidence": "high" (jesteś pewien) | "medium" (znany brand, rep prawdopodobny) | "low" (zgadujesz),
-  "notes": "krótki komentarz o źródle info, np. 'Canon official EU office'"
+  "confidence": "high" (jesteś pewien) | "medium" (znany brand, rep prawdopodobny) | "low" (zgadujesz)
 }}
 
-WAŻNE: confidence=low + name=null → SKIP (lepsze niż błędny guess).
-NIE wracaj CET PRODUCT SERVICE / Amazon Retourenkauf chyba że WIESZ że ten brand
-formalnie używa tego rep'a (rzadko).
-
-Bez markdown, tylko czysty JSON."""
+WAŻNE:
+- confidence=low + name=null → SKIP (lepsze niż błędny guess).
+- NIE wracaj CET PRODUCT SERVICE / Amazon Retourenkauf chyba że WIESZ
+  że ten brand formalnie używa tego rep'a (rzadko).
+- NIE dodawaj długich tekstów ani pola "notes" — TYLKO 4 pola powyżej.
+- Bez markdown, tylko czysty JSON."""
 
     client = genai.Client(api_key=api_key)
     # Model chain — od najnowszego/highest quota do legacy.
@@ -147,7 +147,7 @@ Bez markdown, tylko czysty JSON."""
                 # 2.5-flash thinking mode zjada tokeny — disable dla prostego lookup-u.
                 config_kwargs = {
                     'temperature': 0.0,  # deterministic — brand → rep mapping, no creativity
-                    'max_output_tokens': 2048,  # 500 było za mało gdy thinking aktywne
+                    'max_output_tokens': 4096,  # bump bo Gemini pisał eseje w "notes" → truncated JSON
                     'response_mime_type': 'application/json',
                 }
                 if '2.5' in model_name:
