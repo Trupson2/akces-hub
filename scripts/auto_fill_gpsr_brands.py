@@ -142,12 +142,13 @@ Zwróć WYŁĄCZNIE valid JSON:
   "notes": "MAX 60 znaków źródło info"
 }}
 
-KRYTYCZNE — WYMAGANIA GPSR (UE 2023/988):
-- EU rep MUSI mieć fizyczny adres w UE + kontakt. Sam "name" jest BEZUŻYTECZNY prawnie.
-- Jeśli podajesz "name": musisz podać też "address" (z Amazon listing, oficjalnej strony,
-  rejestru handlowego Niemiec/Holandii/Polski). Email jeśli znasz.
-- Jeśli ZNASZ tylko name a NIE ZNASZ address → ustaw name=null też (nie składaj fragmentów).
-- Lepiej skip niż "X GmbH" bez adresu — Hub i tak odrzuci taki incomplete entry.
+WSKAZÓWKI:
+- EU rep MUSI mieć fizyczny adres w UE + kontakt (UE 2023/988).
+- Jeśli ZNASZ tylko name (np. "JOILCAN GmbH" z Amazon listing) bez konkretnego address —
+  podaj name, address=null. Hub zachowa name + brak address line na karcie produktu.
+  To OK — lepsze prawdziwa marka bez adresu niż fake fallback.
+- Jeśli ZNASZ pełen address — tym lepiej, podaj. Email jeśli znasz.
+- name=null TYLKO gdy faktycznie nie wiesz nic o brandzie (niche/unknown).
 
 PRZYKŁADY POPRAWNYCH PEŁNYCH ODPOWIEDZI:
 - Canon: address="Bovenkerkerweg 59, 1185 XB Amstelveen, Netherlands"
@@ -304,14 +305,13 @@ def cmd_all(force: bool, limit: int, api_key: str, force_manual: bool = False) -
             print(f'  ⊘ [{i+1:>3}/{len(brands)}] {brand:<25} REJECT generic guess: "{data["name"][:30]}" → użyj manual lub fallback')
             skip += 1
             continue
-        # REJECT incomplete data — name bez address jest BEZUŻYTECZNE dla GPSR
-        # (UE 2023/988 art. 8 wymaga adres + kontakt). Lepiej skip niż fragment.
+        # Address/email są nice-to-have — name nawet bez nich jest lepsze
+        # niż AKCES fallback. User raport: "wczesneji te marki wyszukiwal
+        # a teraz nie w wyszukuje a napewno one maja gpsr".
+        # Plugin (v1.1.1) gracefully handle missing address — renderuje tylko
+        # te pola które są niepuste.
         addr = (data.get('address') or '').strip()
         email = (data.get('email') or '').strip()
-        if not addr and not email:
-            print(f'  ⊘ [{i+1:>3}/{len(brands)}] {brand:<25} INCOMPLETE: name bez address/email (skip — bezużyteczne dla GPSR)')
-            skip += 1
-            continue
         conf = data.get('confidence', 'medium')
         save_brand_gpsr_override(
             brand,

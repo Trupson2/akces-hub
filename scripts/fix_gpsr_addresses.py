@@ -132,18 +132,22 @@ def step2_cleanup_fallback(dry: bool) -> int:
 # ────────────────────────────────────────────────────────────────────────
 
 def step3_cleanup_incomplete(dry: bool) -> int:
-    print('\n━━━ KROK 3: CLEANUP brand_overrides BEZ ADRESU (incomplete) ━━━')
+    print('\n━━━ KROK 3: CLEANUP brand_overrides PRAWDZIWIE MARTWYCH ━━━')
     conn = get_db()
-    # CHRONIMY source='manual' nawet jeśli ma puste address (user wie co robi)
+    # USUWAMY tylko brand overrides bez NAZWY (totalnie puste, bezużyteczne).
+    # Entries z name ale bez address ZACHOWUJEMY — name to już value (lepsze
+    # niż AKCES fallback). Plugin renderuje co jest, brak address = brak linii.
+    # CHRONIMY source='manual' zawsze.
     rows = conn.execute(
         "SELECT brand, source FROM gpsr_brand_overrides "
-        "WHERE (responsible_person_address IS NULL OR responsible_person_address = '') "
+        "WHERE (responsible_person_name IS NULL OR responsible_person_name = '') "
+        "  AND (manufacturer_name IS NULL OR manufacturer_name = '') "
         "  AND source != 'manual'"
     ).fetchall()
     if not rows:
-        print('  ✅ wszystkie brand overrides mają address (lub są manual)')
+        print('  ✅ wszystkie brand overrides mają przynajmniej name (manual chronione)')
         return 0
-    print(f'  Znaleziono {len(rows)} incomplete entries do usunięcia (re-fill via Gemini):')
+    print(f'  Znaleziono {len(rows)} TOTALNIE pustych entries do usunięcia:')
     for r in rows[:20]:
         print(f'    - {r["brand"]} ({r["source"]})')
     if len(rows) > 20:
@@ -153,11 +157,12 @@ def step3_cleanup_incomplete(dry: bool) -> int:
         return len(rows)
     conn.execute(
         "DELETE FROM gpsr_brand_overrides "
-        "WHERE (responsible_person_address IS NULL OR responsible_person_address = '') "
+        "WHERE (responsible_person_name IS NULL OR responsible_person_name = '') "
+        "  AND (manufacturer_name IS NULL OR manufacturer_name = '') "
         "  AND source != 'manual'"
     )
     conn.commit()
-    print(f'  ✅ usunięto {len(rows)} incomplete')
+    print(f'  ✅ usunięto {len(rows)} totalnie pustych')
     return len(rows)
 
 
