@@ -1229,12 +1229,34 @@ def push_one_product(
             if override and (override.get('responsible_person_name') or override.get('manufacturer_name')):
                 if not gpsr_payload:
                     gpsr_payload = {}
+                # PRIORYTET: brand override (user-curated/Gemini) ZAWSZE wins nad
+                # fallback CET. Wyjątek: jeśli current jest REAL Amazon scrape
+                # (non-fallback rp), preserve — to autosaved real data.
+                current_rp = (gpsr_payload.get('responsible_person_name') or '').strip()
+                is_fallback = current_rp in (
+                    '', 'CET PRODUCT SERVICE SP. Z O.O.',
+                    'AKCES Andrzej Gauza', 'CET PRODUCT SERVICE',
+                ) or 'gauza' in current_rp.lower() or 'akces' in current_rp.lower()
+                applied = []
                 for fld in ('manufacturer_name', 'manufacturer_address',
                             'responsible_person_name', 'responsible_person_address',
                             'responsible_person_email'):
-                    if override.get(fld) and not gpsr_payload.get(fld):
+                    if not override.get(fld):
+                        continue
+                    # responsible_person_* → overwrite gdy fallback lub puste
+                    if fld.startswith('responsible_'):
+                        if not gpsr_payload.get(fld) or is_fallback:
+                            gpsr_payload[fld] = override[fld]
+                            applied.append(fld)
+                    # manufacturer_* → fill empty (preserve Amazon real chinese name)
+                    elif not gpsr_payload.get(fld):
                         gpsr_payload[fld] = override[fld]
-                logger.info(f'GPSR brand override: hub_id={hub_product_id} brand="{brand_from_params}" rp="{override.get("responsible_person_name", "")[:40]}"')
+                        applied.append(fld)
+                logger.info(
+                    f'GPSR brand override: hub_id={hub_product_id} brand="{brand_from_params}" '
+                    f'rp="{override.get("responsible_person_name", "")[:40]}" '
+                    f'applied={applied} (current_was_fallback={is_fallback})'
+                )
             elif gpsr_payload and gpsr_payload.get('responsible_person_name') and \
                  gpsr_payload['responsible_person_name'] not in ('CET PRODUCT SERVICE SP. Z O.O.', 'AKCES Andrzej Gauza'):
                 # AUTO-SAVE: Amazon scrape OK dla TEJ marki (NIE generic fallback) → reuse dla reszty
