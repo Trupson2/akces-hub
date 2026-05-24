@@ -46,6 +46,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Suppress noisy SDK logs (HTTP per call + AFC zaciemnia output enrichu).
+for _noisy in ('google_genai', 'google.genai', 'httpx', 'httpcore', 'urllib3'):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
+
 from modules.database import get_db, get_config  # noqa: E402
 
 THROTTLE_SEC = 2.0  # Gemini API quota — 2s/req safe (free tier 60/min)

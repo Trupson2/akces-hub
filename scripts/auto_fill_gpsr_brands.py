@@ -43,6 +43,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Suppress noisy google.genai SDK logs (HTTP request per call + AFC info zaciemnia output).
+# Pokazuj tylko WARNING+ z tych modułów.
+for _noisy in ('google_genai', 'google.genai', 'httpx', 'httpcore', 'urllib3'):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
+
 from modules.database import get_db, get_config  # noqa: E402
 from modules.amazon_gpsr_scraper import (  # noqa: E402
     init_brand_overrides_schema, get_brand_gpsr_override, save_brand_gpsr_override,
@@ -121,19 +126,20 @@ KRYTYCZNE ZASADY:
 4. Jeśli NIE ZNASZ specific EU rep dla tego brandu — zwróć name=null
    (skip — fallback handle sam). NIE zgaduj.
 
-Zwróć WYŁĄCZNIE valid JSON (BEZ pola "notes" — nie potrzebne):
+Zwróć WYŁĄCZNIE valid JSON:
 {{
   "name": "Pełna nazwa firmy EU rep (np. 'AZDOME GmbH') lub null jeśli nie wiesz",
   "address": "Pełen adres (ulica, miasto, kod, kraj) lub null",
   "email": "Kontakt mailowy EU rep lub null",
-  "confidence": "high" (jesteś pewien) | "medium" (znany brand, rep prawdopodobny) | "low" (zgadujesz)
+  "confidence": "high" (jesteś pewien) | "medium" (znany brand, rep prawdopodobny) | "low" (zgadujesz),
+  "notes": "MAX 60 znaków — krótkie źródło info, np. 'Canon official EU'"
 }}
 
 WAŻNE:
 - confidence=low + name=null → SKIP (lepsze niż błędny guess).
 - NIE wracaj CET PRODUCT SERVICE / Amazon Retourenkauf chyba że WIESZ
   że ten brand formalnie używa tego rep'a (rzadko).
-- NIE dodawaj długich tekstów ani pola "notes" — TYLKO 4 pola powyżej.
+- Pole "notes" MUSI być KRÓTKIE (max 60 znaków). Nie pisz esejów!
 - Bez markdown, tylko czysty JSON."""
 
     client = genai.Client(api_key=api_key)
@@ -147,7 +153,7 @@ WAŻNE:
                 # 2.5-flash thinking mode zjada tokeny — disable dla prostego lookup-u.
                 config_kwargs = {
                     'temperature': 0.0,  # deterministic — brand → rep mapping, no creativity
-                    'max_output_tokens': 4096,  # bump bo Gemini pisał eseje w "notes" → truncated JSON
+                    'max_output_tokens': 8192,  # max safety bo Gemini bywa rozgaduje się
                     'response_mime_type': 'application/json',
                 }
                 if '2.5' in model_name:
