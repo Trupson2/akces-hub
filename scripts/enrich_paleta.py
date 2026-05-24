@@ -51,28 +51,40 @@ THROTTLE_SEC = 2.0  # Gemini API quota — 2s/req safe (free tier 60/min)
 
 
 def _gemini_call(prompt: str, api_key: str, max_tokens: int = 800) -> str:
-    """Call Gemini API z prompt. Returns text response lub '' on fail."""
+    """Call Gemini API z prompt. Returns text response lub '' on fail.
+
+    Próbuje multiple model names (Google zmienia versions, fallback chain).
+    """
     try:
         import google.generativeai as genai
     except ImportError:
         logger.error('google-generativeai SDK not installed. Run: pip3 install --break-system-packages google-generativeai')
         return ''
 
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash-exp')
-        resp = model.generate_content(
-            prompt,
-            generation_config={
-                'temperature': 0.2,
-                'max_output_tokens': max_tokens,
-                'response_mime_type': 'application/json',
-            },
-        )
-        return (resp.text or '').strip()
-    except Exception as e:
-        logger.warning(f'Gemini call failed: {e}')
-        return ''
+    genai.configure(api_key=api_key)
+    # Fallback chain (od najnowszego): jak Google retire model, try kolejny
+    for model_name in ('gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp'):
+        try:
+            model = genai.GenerativeModel(model_name)
+            resp = model.generate_content(
+                prompt,
+                generation_config={
+                    'temperature': 0.2,
+                    'max_output_tokens': max_tokens,
+                    'response_mime_type': 'application/json',
+                },
+            )
+            return (resp.text or '').strip()
+        except Exception as e:
+            err = str(e)
+            if '404' in err or 'not found' in err.lower() or 'NOT_FOUND' in err:
+                # Model nie istnieje — try next
+                logger.debug(f'Gemini model {model_name} not available, trying next...')
+                continue
+            logger.warning(f'Gemini call failed ({model_name}): {e}')
+            return ''
+    logger.error('All Gemini models failed — check API key + quota at https://aistudio.google.com/')
+    return ''
 
 
 def _enrich_prompt(nazwa: str, kategoria: str = '') -> str:
