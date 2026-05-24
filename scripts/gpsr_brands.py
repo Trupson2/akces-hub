@@ -89,6 +89,23 @@ def cmd_add(brand: str, mf_name: str, mf_addr: str, rp_name: str, rp_addr: str, 
         return 1
 
 
+def cmd_purge_generic() -> int:
+    """Usuń wszystkie entries z generic CET/Amazon Retourenkauf rep
+    (auto-generated guesses które user chce zastąpić specyficznymi)."""
+    conn = get_db()
+    init_brand_overrides_schema(conn)
+    cur = conn.execute('''
+        DELETE FROM gpsr_brand_overrides
+        WHERE LOWER(responsible_person_name) LIKE '%cet product service%'
+           OR LOWER(responsible_person_name) LIKE '%amazon retourenkauf%'
+           OR LOWER(responsible_person_name) LIKE '%amazon returns%'
+    ''')
+    conn.commit()
+    print(f'Usunięto {cur.rowcount} entries z generic CET/Amazon Retourenkauf rep.')
+    print('Możesz teraz re-run: python3 scripts/auto_fill_gpsr_brands.py --all --force')
+    return 0
+
+
 def cmd_remove(brand: str) -> int:
     conn = get_db()
     init_brand_overrides_schema(conn)
@@ -111,6 +128,7 @@ def main() -> int:
     group.add_argument('--show', metavar='BRAND', help='Pokaż override dla 1 marki')
     group.add_argument('--add', metavar='BRAND', help='Dodaj/update override dla marki')
     group.add_argument('--remove', metavar='BRAND', help='Usuń override dla marki')
+    group.add_argument('--purge-generic', action='store_true', help='Usuń wszystkie generic CET/Amazon Retourenkauf entries (przed re-run auto_fill z lepszym promptem)')
 
     parser.add_argument('--mf-name', default='', help='Manufacturer name (np. ZHONGSHAN STYLE APPLIANCES)')
     parser.add_argument('--mf-addr', default='', help='Manufacturer address')
@@ -127,6 +145,8 @@ def main() -> int:
         return cmd_add(args.add, args.mf_name, args.mf_addr, args.rp_name, args.rp_addr, args.rp_email)
     if args.remove:
         return cmd_remove(args.remove)
+    if args.purge_generic:
+        return cmd_purge_generic()
     return 1
 
 

@@ -51,39 +51,48 @@ THROTTLE_SEC = 1.5  # Gemini paid tier safe
 
 
 def _gemini_lookup(brand: str, api_key: str) -> dict:
-    """Zapytaj Gemini o EU responsible person dla brand. Returns dict lub {}."""
+    """Zapytaj Gemini o EU responsible person dla brand. Returns dict lub {}.
+
+    Strategia: prompt strict — NIE używaj generic CET/Amazon Retourenkauf
+    jako default guess. Każdy brand MA SWÓJ EU rep (UE 2023/988 art. 8).
+    Jeśli Gemini nie zna konkretnego brand'a — zwróć null (skip override).
+    """
     try:
         import google.generativeai as genai
     except ImportError:
         logger.error('google-generativeai nie zainstalowane')
         return {}
 
-    prompt = f"""Jesteś ekspertem prawnym GPSR (UE 2023/988).
+    prompt = f"""Jesteś ekspertem prawnym GPSR (UE 2023/988 art. 8).
 
 BRAND: "{brand}"
 
-Podaj EU responsible person dla tego brandu (per UE 2023/988 art. 8).
-Wymagane pola:
-- name: pełna nazwa firmy EU representative (np. "Canon Europa N.V.", "Sony Europe B.V.")
-- address: pełen adres EU rep (ulica, miasto, kod, kraj)
-- email: kontakt mailowy EU rep
+ZADANIE: Znajdź SPECYFICZNEGO EU responsible person dla TEGO konkretnego brandu.
 
-Jeśli to popularny brand (Canon, Sony, Bosch, Tesla, UGREEN, JJC, Smallrig, PETKIT etc.),
-podaj znany EU representative. Dla niszowych chińskich brandów (np. AZDOME, HOMCA) —
-często EU rep to Amazon Retourenkauf / CET PRODUCT SERVICE SP. Z O.O. (Polska).
-
-Jeśli NIE znasz, zwróć {{name: null, address: null, email: null, confidence: "low"}}.
-Dla pewnych zwróć confidence: "high". Dla średnich (znany brand ale rep niepewny):
-"medium".
+KRYTYCZNE ZASADY:
+1. KAŻDY brand sprzedawany w UE MUSI mieć WŁASNEGO EU representative.
+2. NIE wracaj generic "CET PRODUCT SERVICE SP. Z O.O." ani "Amazon Retourenkauf"
+   jako default guess. To są EU reps SPECYFICZNE dla Amazon Renewed/Returns,
+   NIE dla każdego brandu chińskiego.
+3. Dla brandu "ELVIROS" → szukaj specific "ELVIROS EU GmbH" lub podobne.
+   Dla "AZDOME" → "AZDOME GmbH" lub ich Amazon DE rejestracja.
+   Dla "Canon" → "Canon Europa N.V." (Amsterdam, NL).
+   Dla "Sony" → "Sony Europe B.V." (Surrey, UK lub NL).
+4. Jeśli NIE ZNASZ specific EU rep dla tego brandu — zwróć name=null
+   (skip — fallback handle sam). NIE zgaduj.
 
 Zwróć WYŁĄCZNIE valid JSON:
 {{
-  "name": "string or null",
-  "address": "string or null",
-  "email": "string or null",
-  "confidence": "high|medium|low",
-  "notes": "krótki komentarz, np. źródło info"
+  "name": "Pełna nazwa firmy EU rep (np. 'AZDOME GmbH') lub null jeśli nie wiesz",
+  "address": "Pełen adres (ulica, miasto, kod, kraj) lub null",
+  "email": "Kontakt mailowy EU rep lub null",
+  "confidence": "high" (jesteś pewien) | "medium" (znany brand, rep prawdopodobny) | "low" (zgadujesz),
+  "notes": "krótki komentarz o źródle info, np. 'Canon official EU office'"
 }}
+
+WAŻNE: confidence=low + name=null → SKIP (lepsze niż błędny guess).
+NIE wracaj CET PRODUCT SERVICE / Amazon Retourenkauf chyba że WIESZ że ten brand
+formalnie używa tego rep'a (rzadko).
 
 Bez markdown, tylko czysty JSON."""
 
@@ -167,6 +176,13 @@ def cmd_all(force: bool, limit: int, api_key: str) -> int:
             continue
         if not data or not data.get('name'):
             print(f'  ⊘ [{i+1:>3}/{len(brands)}] {brand:<25} Gemini: unknown ({data.get("confidence", "?")})')
+            skip += 1
+            continue
+        # REJECT generic CET/Amazon Retourenkauf guesses — Gemini leniwie wpisuje to
+        # dla niszowych chińskich brandów, ale user chce SPECYFICZNEGO rep'a per brand.
+        name_lower = data['name'].lower()
+        if any(generic in name_lower for generic in ('cet product service', 'amazon retourenkauf', 'amazon returns')):
+            print(f'  ⊘ [{i+1:>3}/{len(brands)}] {brand:<25} REJECT generic guess: "{data["name"][:30]}" → użyj manual lub fallback')
             skip += 1
             continue
         conf = data.get('confidence', 'medium')
