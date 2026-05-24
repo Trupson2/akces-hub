@@ -68,6 +68,92 @@ FALLBACK_RESPONSIBLE_PERSON = {
 }
 
 
+def init_brand_overrides_schema(conn=None) -> None:
+    """Tabela GPSR per brand override (np. AZDOME → EU rep registered z Amazon).
+
+    Workflow:
+      1. User raz wpisze EU rep dla AZDOME (z Amazon listing)
+      2. Wszystkie produkty z brand=AZDOME (z Gemini parameters) dostają ten sam rep
+      3. Plus auto-populate: gdy Amazon scrape udało się dla 1 ASIN brand → save
+         + reuse dla pozostałych produktów tej marki (smart caching).
+    """
+    if conn is None:
+        from .database import get_db
+        conn = get_db()
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS gpsr_brand_overrides (
+            brand TEXT PRIMARY KEY,
+            manufacturer_name TEXT DEFAULT '',
+            manufacturer_address TEXT DEFAULT '',
+            responsible_person_name TEXT DEFAULT '',
+            responsible_person_address TEXT DEFAULT '',
+            responsible_person_email TEXT DEFAULT '',
+            source TEXT DEFAULT 'manual',
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+
+
+def get_brand_gpsr_override(brand: str, conn=None) -> Optional[dict]:
+    """Pobierz GPSR override dla brand (case-insensitive). Returns dict lub None."""
+    if not brand:
+        return None
+    if conn is None:
+        from .database import get_db
+        conn = get_db()
+    try:
+        init_brand_overrides_schema(conn)
+        row = conn.execute(
+            'SELECT * FROM gpsr_brand_overrides WHERE LOWER(brand) = LOWER(?) LIMIT 1',
+            (brand.strip(),),
+        ).fetchone()
+    except Exception:
+        return None
+    if not row:
+        return None
+    return dict(row) if hasattr(row, 'keys') else None
+
+
+def save_brand_gpsr_override(brand: str, gpsr_data: dict, source: str = 'auto', conn=None) -> bool:
+    """Zapisz GPSR override dla brand (UPSERT). source='manual'|'auto'|'amazon_scrape'."""
+    if not brand:
+        return False
+    if conn is None:
+        from .database import get_db
+        conn = get_db()
+    try:
+        init_brand_overrides_schema(conn)
+        conn.execute('''
+            INSERT INTO gpsr_brand_overrides
+                (brand, manufacturer_name, manufacturer_address,
+                 responsible_person_name, responsible_person_address, responsible_person_email,
+                 source, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            ON CONFLICT(brand) DO UPDATE SET
+                manufacturer_name = excluded.manufacturer_name,
+                manufacturer_address = excluded.manufacturer_address,
+                responsible_person_name = excluded.responsible_person_name,
+                responsible_person_address = excluded.responsible_person_address,
+                responsible_person_email = excluded.responsible_person_email,
+                source = excluded.source,
+                updated_at = excluded.updated_at
+        ''', (
+            brand.strip(),
+            (gpsr_data.get('manufacturer_name') or '').strip(),
+            (gpsr_data.get('manufacturer_address') or '').strip(),
+            (gpsr_data.get('responsible_person_name') or '').strip(),
+            (gpsr_data.get('responsible_person_address') or '').strip(),
+            (gpsr_data.get('responsible_person_email') or '').strip(),
+            source,
+        ))
+        conn.commit()
+        return True
+    except Exception as e:
+        logger.warning(f'save_brand_gpsr_override failed brand={brand}: {e}')
+        return False
+
+
 def _get_fallback_rp() -> dict:
     """Get fallback EU rep — z Hub config gdy ustawione, inaczej hardcoded CET default.
 

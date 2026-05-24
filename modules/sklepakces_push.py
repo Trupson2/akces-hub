@@ -1073,8 +1073,6 @@ def push_one_product(
 
     # ENHANCE: gdy Amazon nie dał manufacturer (~88% przypadków) ALE Gemini wyciągnął
     # real brand do parameters JSON → wpisz brand jako manufacturer_name w GPSR payload.
-    # Theme wyświetli "Producent: Canon" zamiast tylko "Osoba odpowiedzialna w UE: AKCES Andrzej Gauza".
-    # User: "tylko ze dalej daje gauziniego xd" → dla 88% produktów ekstra-fallback z Gemini.
     if gpsr_payload and not gpsr_payload.get('manufacturer_name'):
         try:
             params_raw = row_dict.get('parameters')
@@ -1087,12 +1085,45 @@ def push_one_product(
                             gpsr_payload['manufacturer_name'] = str(v).strip()[:120]
                             logger.info(f'GPSR manufacturer z Gemini brand: hub_id={hub_product_id} brand="{gpsr_payload["manufacturer_name"]}"')
                             break
-                    # Model number jako bonus (theme pokazuje)
                     model = params.get('model')
                     if model and not gpsr_payload.get('model_number'):
                         gpsr_payload['model_number'] = str(model).strip()[:60]
         except (json.JSONDecodeError, TypeError):
             pass
+
+    # BRAND-BASED GPSR OVERRIDE — user: "homca, azdome ze maja tam wlasne gpsr i itp ze to trzeba dac".
+    # Pobiera real EU rep z gpsr_brand_overrides (user raz wpisuje per brand z Amazon listing).
+    # Plus AUTO-POPULATE: gdy Amazon scrape udało się dla 1 ASIN → save dla reszty produktów tej marki.
+    try:
+        params_raw = row_dict.get('parameters')
+        brand_from_params = ''
+        if params_raw:
+            params = json.loads(params_raw) if isinstance(params_raw, str) else params_raw
+            if isinstance(params, dict):
+                for k in ('brand', 'marka', 'producent', 'manufacturer'):
+                    v = params.get(k)
+                    if v and not _is_paleta_supplier(str(v)):
+                        brand_from_params = str(v).strip()
+                        break
+        if brand_from_params:
+            from .amazon_gpsr_scraper import get_brand_gpsr_override, save_brand_gpsr_override
+            override = get_brand_gpsr_override(brand_from_params, conn=conn)
+            if override and (override.get('responsible_person_name') or override.get('manufacturer_name')):
+                if not gpsr_payload:
+                    gpsr_payload = {}
+                for fld in ('manufacturer_name', 'manufacturer_address',
+                            'responsible_person_name', 'responsible_person_address',
+                            'responsible_person_email'):
+                    if override.get(fld) and not gpsr_payload.get(fld):
+                        gpsr_payload[fld] = override[fld]
+                logger.info(f'GPSR brand override: hub_id={hub_product_id} brand="{brand_from_params}" rp="{override.get("responsible_person_name", "")[:40]}"')
+            elif gpsr_payload and gpsr_payload.get('responsible_person_name') and \
+                 gpsr_payload['responsible_person_name'] not in ('CET PRODUCT SERVICE SP. Z O.O.', 'AKCES Andrzej Gauza'):
+                # AUTO-SAVE: Amazon scrape OK dla TEJ marki (NIE generic fallback) → reuse dla reszty
+                save_brand_gpsr_override(brand_from_params, gpsr_payload, source='amazon_scrape', conn=conn)
+                logger.info(f'GPSR auto-saved brand override: brand="{brand_from_params}" z Amazon scrape ASIN={row_dict.get("asin", "?")}')
+    except Exception as e:
+        logger.debug(f'GPSR brand override hub_id={hub_product_id}: {e}')
 
     payload = map_hub_to_plugin(
         row_dict, gpsr=gpsr_payload, conn=conn,
