@@ -328,6 +328,98 @@ def _sanitize_paleta_names_from_text(text: str) -> str:
     return out
 
 
+def _is_oversize(row: dict) -> bool:
+    """Czy produkt jest gabarytowy (NIE mieści się do paczkomatu InPost)?
+
+    Paczkomat InPost C (największy) limits:
+      - Wymiary: 41 × 38 × 64 cm
+      - Waga: 25 kg
+      - Powyżej → kurier (DPD/GLS), NIE paczkomat
+
+    Detection chain:
+      1. Kategoria w "oversized" blacklist (rowery, agd_duze, hulajnogi, etc.)
+      2. produkty.parameters JSON: waga > 25kg lub wymiar > 64cm
+      3. krotki_tytul/nazwa zawiera markery ("XL", "bieżnia", "lodówka", "fotel")
+
+    Plugin (set_oversize_class) ustawia WC shipping class "gabaryt" gdy True →
+    WC admin może wyłączyć paczkomat method dla tej class (Shipping Zones config).
+    """
+    # 1. Kategoria — known oversized
+    OVERSIZED_KATEGORIE = {
+        'rowery', 'hulajnogi', 'silownia', 'siłownia',
+        'agd_duze', 'agd-duze',
+        'meble', 'wnetrze',  # niektóre meble (sofy, stoły, łóżka)
+    }
+    kat = (row.get('kategoria') or '').strip().lower()
+    if kat in OVERSIZED_KATEGORIE:
+        return True
+
+    # 2. Title markers — keyword detection w nazwie/krotki_tytul
+    title = ((row.get('krotki_tytul') or '') + ' ' + (row.get('nazwa') or '')).lower()
+    OVERSIZED_KEYWORDS = (
+        'bieżnia', 'biezni', 'treadmill', 'walking pad',
+        'lodówka', 'lodowka', 'fridge',
+        'pralka', 'pralk', 'washing machine',
+        'zmywarka', 'dishwasher',
+        'piec', 'okap', 'pochłaniacz', 'pochlani',
+        'rower ', 'rowerem', 'roweru', 'bike ', 'bicycle',
+        'hulajnoga elektr', 'e-scooter',
+        'fotel masuj', 'fotel gaming', 'fotel obrotow',
+        'sofa', 'kanapa',
+        'łóżko polowe', 'lozko polowe', 'cot bed',
+        'walizk',  # duże walizki
+        'namiot ', 'tent',
+        'choink', 'christmas tree',
+        'parasol ogrod',
+        'grill ',
+        'taczka', 'wózek transport', 'wozek transport',
+    )
+    for kw in OVERSIZED_KEYWORDS:
+        if kw in title:
+            return True
+
+    # 3. Parameters JSON (Gemini-extracted waga/wymiary)
+    try:
+        params_raw = row.get('parameters')
+        if params_raw:
+            params = json.loads(params_raw) if isinstance(params_raw, str) else params_raw
+            if isinstance(params, dict):
+                # Waga: "2.5 kg", "25kg", "25000 g", itp.
+                waga_str = str(params.get('waga') or params.get('weight') or '').lower()
+                m = re.search(r'(\d+(?:[.,]\d+)?)\s*(kg|g|lb)', waga_str)
+                if m:
+                    val = float(m.group(1).replace(',', '.'))
+                    unit = m.group(2)
+                    waga_kg = val if unit == 'kg' else (val / 1000 if unit == 'g' else val * 0.4536)
+                    if waga_kg > 25:
+                        return True
+                # Wymiary: szukamy max wymiaru > 64cm (paczkomat C limit)
+                wymiary_str = str(params.get('wymiary') or params.get('dimensions') or '').lower()
+                # Match np. "100x80x40cm" → znajdź unit (cm/m) i wszystkie numbers przed.
+                # Strategia: znajdź unit suffix, potem wszystkie liczby w stringu before unit.
+                unit_match = re.search(r'\b(cm|mm|m)\b', wymiary_str)
+                if unit_match:
+                    unit = unit_match.group(1)
+                    nums = re.findall(r'\d+(?:[.,]\d+)?', wymiary_str)
+                    for n in nums:
+                        try:
+                            val = float(n.replace(',', '.'))
+                        except ValueError:
+                            continue
+                        if unit == 'cm':
+                            val_cm = val
+                        elif unit == 'mm':
+                            val_cm = val / 10
+                        else:  # 'm'
+                            val_cm = val * 100
+                        if val_cm > 64:
+                            return True
+    except (json.JSONDecodeError, TypeError, ValueError):
+        pass
+
+    return False
+
+
 def _generate_minimal_attributes(row: dict) -> List[Dict]:
     """Auto-gen WC product attributes dla Specyfikacja tab z dostępnych Hub fields.
 
@@ -819,6 +911,12 @@ def map_hub_to_plugin(
     attrs = _generate_minimal_attributes(row)
     if attrs:
         payload['attributes'] = attrs
+
+    # Gabaryt detection — plugin set_oversize_class ustawi WC shipping class 'gabaryt'
+    # → WC admin może wyłączyć paczkomat InPost method dla tej class (Shipping Zones).
+    # User: "czy juz jest logika zeby gabarytow do paczkomatu niebrali".
+    if _is_oversize(row):
+        payload['oversize'] = True
 
     # GPSR — dodaj gdy dostarczone i ma minimum manufacturer lub responsible_person.
     # Plugin GPSR gate (class-akces-gpsr.is_compliant): manufacturer OR responsible_person → publish, inaczej draft.
