@@ -59,12 +59,17 @@ USER_AGENT = (
     'Chrome/121.0.0.0 Safari/537.36'
 )
 
-# Playwright timeouts (ms)
-GOTO_TIMEOUT_MS = 30_000
-SELECTOR_TIMEOUT_MS = 5_000
-CLICK_TIMEOUT_MS = 3_000
-TAB_WAIT_MS = 1_200
-INITIAL_WAIT_MS = 2_500
+# Playwright timeouts (ms) — zmniejszone bo Amazon blokuje GPSR side-sheet
+# dla headless (zwraca error response). User raport "wisi minutami" → KeyboardInterrupt.
+# Total target per ASIN: ~12-15s max.
+GOTO_TIMEOUT_MS = 10_000      # było 30s
+SELECTOR_TIMEOUT_MS = 2_500   # było 5s
+CLICK_TIMEOUT_MS = 2_000      # było 3s
+TAB_WAIT_MS = 600             # było 1.2s
+INITIAL_WAIT_MS = 1_500       # było 2.5s
+
+# Overall hard timeout for whole fetch_amazon_html_playwright (signal.alarm Unix only)
+TOTAL_TIMEOUT_SEC = 18
 
 
 def is_available() -> bool:
@@ -85,28 +90,57 @@ def fetch_amazon_html_playwright(
     region: str = 'de',
     headless: bool = True,
     debug: bool = False,
+    total_timeout_sec: int = TOTAL_TIMEOUT_SEC,
 ) -> Optional[str]:
-    """Fetch Amazon product page HTML z lazy-loaded GPSR sections (manufacturer + responsible).
+    """Fetch Amazon product page HTML z lazy-loaded GPSR sections.
 
-    Returns concatenated HTML z obu tabs (manufacturer + responsible person stan)
-    lub None gdy fail (captcha, brak playwright, network error).
-
-    Strategy:
-      1. Open Chromium headless, navigate do /dp/{ASIN}
-      2. Scroll do końca strony (force lazy-load resources)
-      3. Click expander "Safety and product resources" (jeśli collapsed)
-      4. Click tab "Manufacturer information" → wait → snapshot HTML
-      5. Click tab "Responsible person" → wait → snapshot HTML
-      6. Return concat HTML (oba tabs content)
+    HARD TIMEOUT (total_timeout_sec) — kill całej operacji po N sekundach
+    żeby push --all nie wisiał na 1 produkcie minutami (Amazon blokuje
+    side-sheet AJAX dla headless → operacje wiszą na waits).
 
     Args:
         asin: Amazon Standard ID
         region: 'de'/'pl'/'uk'/'it'/'fr'/'es'
-        headless: True (default) = bez UI window; False = pokaż okno (debug)
+        headless: True (default) = bez UI window
         debug: True = log każdego kroku + screenshot przy fail
+        total_timeout_sec: hard timeout (default 18s) — Unix only (signal.alarm)
 
-    Returns: HTML string lub None.
+    Returns: HTML string lub None (timeout/error/captcha).
     """
+    # Hard timeout via signal.alarm (Unix). Jeśli nie dostępne (Windows), skip — best effort.
+    import signal
+    has_alarm = hasattr(signal, 'SIGALRM')
+    old_handler = None
+
+    class _PlaywrightTimeout(Exception):
+        pass
+
+    def _timeout_handler(signum, frame):
+        raise _PlaywrightTimeout(f'Playwright hard timeout {total_timeout_sec}s')
+
+    if has_alarm:
+        old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
+        signal.alarm(total_timeout_sec)
+
+    try:
+        return _fetch_amazon_html_playwright_impl(asin, region, headless, debug)
+    except _PlaywrightTimeout as e:
+        logger.warning(f'Playwright TIMEOUT asin={asin}: {e} (HTTP fallback only)')
+        return None
+    finally:
+        if has_alarm:
+            signal.alarm(0)  # cancel pending alarm
+            if old_handler:
+                signal.signal(signal.SIGALRM, old_handler)
+
+
+def _fetch_amazon_html_playwright_impl(
+    asin: str,
+    region: str,
+    headless: bool,
+    debug: bool,
+) -> Optional[str]:
+    """Internal: actual Playwright work wrapped przez timeout signal."""
     try:
         from playwright.sync_api import sync_playwright, Error as PlaywrightError, TimeoutError as PlaywrightTimeout
     except ImportError:

@@ -1148,16 +1148,36 @@ def push_one_product(
                     logger.warning(f'Telegram alert suspicious_low_price failed: {e}')
 
     # Auto-fetch GPSR z Amazon (cache hit szybko, miss → 3s fetch + parse).
-    # Gdy compliant → produkt publish. Gdy nie (no asin lub Amazon ma luki) → fallback AKCES jako importer.
-    # Playwright opt-in: config 'amazon_gpsr_playwright_fallback'='1' włącza headless browser
-    # gdy HTTP scraper widzi tylko placeholder (lazy-loaded Amazon GPSR tabs).
+    # Gdy compliant → produkt publish. Gdy nie (no asin lub Amazon ma luki) → fallback.
+    #
+    # SMART OPTIMIZATION: jeśli istnieje brand override dla tego produktu (z Gemini brand
+    # w parameters JSON), skip Playwright (i tak override będzie nadpisał, no point fetching
+    # Amazon side-sheet który zazwyczaj blokowany przez headless detection).
     gpsr_payload = None
     if with_gpsr:
         try:
-            from .amazon_gpsr_scraper import fetch_gpsr  # lazy import — circular-safe
+            from .amazon_gpsr_scraper import fetch_gpsr, get_brand_gpsr_override
             from .database import get_config as _get_cfg
             asin = (row_dict.get('asin') or '').strip()
-            pw_fallback = (_get_cfg('amazon_gpsr_playwright_fallback', '0') or '0') == '1'
+
+            # Check brand override first — skip Playwright gdy brand mamy w bazie
+            skip_pw = False
+            try:
+                params_raw = row_dict.get('parameters')
+                if params_raw:
+                    params = json.loads(params_raw) if isinstance(params_raw, str) else params_raw
+                    if isinstance(params, dict):
+                        for k in ('brand', 'marka', 'producent', 'manufacturer'):
+                            v = params.get(k)
+                            if v and not _is_paleta_supplier(str(v)):
+                                if get_brand_gpsr_override(str(v).strip(), conn=conn):
+                                    skip_pw = True
+                                    logger.info(f'GPSR brand override exists for "{v}" — skip Playwright')
+                                break
+            except (json.JSONDecodeError, TypeError, Exception):
+                pass
+
+            pw_fallback = (_get_cfg('amazon_gpsr_playwright_fallback', '0') or '0') == '1' and not skip_pw
             g = fetch_gpsr(
                 asin=asin, region=gpsr_region, ean=(row_dict.get('ean') or '').strip(),
                 use_cache=True, use_fallback=True,
