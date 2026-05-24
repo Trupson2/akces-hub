@@ -879,3 +879,69 @@ def test_map_no_description_no_nazwa_no_key():
     row = _hub_row(opis_ai='', nazwa='', krotki_tytul='')
     payload = map_hub_to_plugin(row)
     assert 'description_html' not in payload
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# _strip_images_from_html — usuwa <img> z opisu (sklep ma własną galerię)
+# ──────────────────────────────────────────────────────────────────────────────
+
+from modules.sklepakces_push import _strip_images_from_html  # noqa: E402
+
+
+@pytest.mark.parametrize('html,expected_no_img', [
+    ('<p>Opis</p><img src="x.jpg"><p>Reszta</p>', True),
+    ('<img src="https://allegro.pl/image/y.png" alt="X"/>Opis tekst', True),
+    ('<figure><img src="a.jpg"><figcaption>X</figcaption></figure>Opis', True),
+    ('<picture><source srcset="a.webp"><img src="a.jpg"></picture>Tekst', True),
+    ('Plain text opis bez images', True),
+    ('<p>Pierwszy paragraph</p>\n<p>Drugi</p>', True),
+])
+def test_strip_images_no_img_remains(html, expected_no_img):
+    """Po strip nie powinno być żadnego <img>/<figure>/<picture> w output."""
+    out = _strip_images_from_html(html)
+    assert '<img' not in out.lower()
+    assert '<figure' not in out.lower()
+    assert '<picture' not in out.lower()
+
+
+def test_strip_images_preserves_text():
+    """Tekst opisu zostaje, tylko images usuwane."""
+    html = '<p>Pierwszy <strong>akapit</strong>.</p><img src="x.jpg"><p>Drugi akapit.</p>'
+    out = _strip_images_from_html(html)
+    assert 'Pierwszy' in out
+    assert 'Drugi akapit' in out
+    assert '<strong>akapit</strong>' in out
+
+
+def test_strip_images_preserves_lists():
+    """Bullet pointy nie usuwane."""
+    html = '<ul><li>Punkt 1</li><li>Punkt 2 <img src="x.jpg"></li></ul>'
+    out = _strip_images_from_html(html)
+    assert '<ul>' in out
+    assert 'Punkt 1' in out
+    assert 'Punkt 2' in out
+    assert '<img' not in out
+
+
+def test_strip_images_empty_input():
+    assert _strip_images_from_html('') == ''
+    assert _strip_images_from_html(None) is None
+
+
+def test_strip_images_cleanup_empty_paragraphs():
+    """Po usunięciu <img> z <p>...img...</p> empty <p></p> tez usuwany."""
+    html = '<p><img src="x.jpg"></p><p>Opis</p>'
+    out = _strip_images_from_html(html)
+    assert '<p></p>' not in out
+    assert 'Opis' in out
+
+
+def test_map_allegro_description_strips_images():
+    """allegro_active_description z <img> → wstawiany bez images do payload."""
+    row = _hub_row(opis_ai='')
+    payload = map_hub_to_plugin(
+        row, allegro_active_description='<p>Opis Allegro</p><img src="https://allegro/x.jpg"><p>Drugi</p>'
+    )
+    assert '<img' not in payload['description_html']
+    assert 'Opis Allegro' in payload['description_html']
+    assert 'Drugi' in payload['description_html']

@@ -453,6 +453,35 @@ def _get_scraped_tytul_seo(conn, asin: str) -> str:
     return (t or '').strip()
 
 
+def _strip_images_from_html(html: str) -> str:
+    """Remove wszystkie <img>, <figure>, <picture> tags + base64 inline images z HTML.
+
+    User raport: "z allegro ale bez tych zdjec zebyn ie wstawial" — opisy Allegro
+    mają inline <img> które dublują się z WC product gallery (theme single-gallery.php
+    już pokazuje wszystkie images jako thumb + main). Strippujemy images z opisu
+    żeby unik duplikatu + wymusić cleaner content (text + bullets).
+
+    Zachowuje: <p>, <ul>, <li>, <strong>, <em>, links, headings.
+    """
+    if not html:
+        return html
+    out = html
+    # Strip <img ... />, <img ...> (self-closing or not)
+    out = re.sub(r'<img\b[^>]*/?>\s*', '', out, flags=re.IGNORECASE)
+    # Strip <figure>...</figure> (Allegro/HTML5 image containers)
+    out = re.sub(r'<figure\b[^>]*>.*?</figure>\s*', '', out, flags=re.IGNORECASE | re.DOTALL)
+    # Strip <picture>...</picture> (responsive images)
+    out = re.sub(r'<picture\b[^>]*>.*?</picture>\s*', '', out, flags=re.IGNORECASE | re.DOTALL)
+    # Strip <a> linki które tylko zawierają strippowany image (linki do galerii)
+    out = re.sub(r'<a\b[^>]*>\s*</a>\s*', '', out, flags=re.IGNORECASE)
+    # Cleanup empty paragraphs/divs po image removal
+    out = re.sub(r'<p[^>]*>\s*</p>\s*', '', out, flags=re.IGNORECASE)
+    out = re.sub(r'<div[^>]*>\s*</div>\s*', '', out, flags=re.IGNORECASE)
+    # Multiple consecutive blank lines → max 2
+    out = re.sub(r'\n\s*\n\s*\n+', '\n\n', out)
+    return out.strip()
+
+
 def _get_scraped_opis_html(conn, asin: str) -> str:
     """Pobierz cached opis_html ze scraped table (Hub generuje przy Allegro listing).
 
@@ -743,11 +772,15 @@ def map_hub_to_plugin(
         else:
             description = _generate_minimal_description(row)
     if description:
-        # NIE sanitize description — zbyt ryzykowne false-positive z legitnymi
-        # produktami ("kompatybilny z Amazon Echo" itp.). Brand/title już są
-        # filtrowane przez _is_paleta_supplier — wystarczy żeby skrupulatnie
-        # blokować nazwy dostawców jako "Marka".
-        payload['description_html'] = description
+        # Strip <img>/<figure>/<picture> tags z opisu — sklep ma już galerię w
+        # single-gallery.php (cover + thumbs), inline images z Allegro/Amazon
+        # opisu dublowałyby się. User: "z allegro ale bez tych zdjec zebyn ie wstawial".
+        description = _strip_images_from_html(description)
+        # Brand/title sanitize NIE robimy na description (zbyt ryzykowne false-positive
+        # z legitnymi produktami "kompatybilny z Amazon Echo" itp.). Brand attr już
+        # filtrowane przez _is_paleta_supplier.
+        if description:
+            payload['description_html'] = description
     cats = _norm_kategoria(row.get('kategoria') or '')
     if cats:
         payload['categories'] = cats
