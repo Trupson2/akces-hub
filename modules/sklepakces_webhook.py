@@ -153,23 +153,31 @@ def handle_order_webhook():
 
 
 def _apply_cross_channel_stock_sync(items: list, wc_order_id: int) -> dict:
-    """Po sprzedaży na sklepie WC:
-    1. Dla każdego item parse SKU (HUB-X lub EAN-X) → znajdź produkt w Hub
-    2. Zmniejsz produkty.ilosc o item.quantity
-    3. Gdy ilosc <= 0: status='sprzedane' + data_sprzedazy=now
-    4. Znajdź aktywne oferty Allegro (status='aktywna') dla tego produkt_id
-    5. Dla każdej oferty wywołaj allegro_api.close_offer() → set ENDED
+    """Po sprzedaży na sklepie WC — EAN-based stock pooling.
 
-    Returns: {'sold_products': N, 'closed_offers': N, 'skipped': N, 'errors': [...]}
+    User scenario: same produkt na 2 paletach (16+16 szt), wystawiony jako
+    JEDNA aukcja Allegro z stock=32. Gdy paleta 1 wyprzeda, NIE zamykamy
+    aukcji — paleta 2 dalej ma 16 szt. Allegro stock = sum(remaining
+    across all produkty z tym samym EAN).
+
+    Workflow per item:
+    1. Parse SKU → znajdź wszystkie produkty z tym EAN/id (multi-pallet)
+    2. Wybierz pierwszy z stock > 0 (FIFO po id), decrementuj go
+    3. Gdy primary.ilosc=0: status='sprzedane' + data_sprzedazy=now
+    4. Suma stocku across all related produkty z tym EAN
+    5. Jeśli suma > 0: update Allegro stock = suma (KEEP offer open)
+       Jeśli suma = 0: close_offer() na wszystkich linked aukcjach
     """
-    summary = {'sold_products': 0, 'closed_offers': 0, 'skipped': 0, 'errors': []}
+    summary = {
+        'sold_products': 0, 'closed_offers': 0, 'updated_stock': 0,
+        'skipped': 0, 'errors': [],
+    }
     if not items:
         return summary
 
-    # Lazy import — allegro_api ładuje sporo zależności, nie chcemy spowolnić webhook'u
-    # gdy żadna pozycja nie ma aktywnych aukcji
     conn = get_db()
-    close_offer_fn = None  # lazy load
+    close_offer_fn = None
+    update_offer_stock_fn = None
 
     for item in items:
         if not isinstance(item, dict):
@@ -180,88 +188,189 @@ def _apply_cross_channel_stock_sync(items: list, wc_order_id: int) -> dict:
             summary['skipped'] += 1
             continue
 
-        # Parse SKU → hub_product_id
-        hub_id = _resolve_hub_id_from_sku(sku, conn)
-        if not hub_id:
-            logger.info(f'[cross-sync] order={wc_order_id} SKU={sku} → brak match w produkty (skip)')
+        # Resolve SKU → wszystkie related produkty (multi-pallet pooling)
+        related = _resolve_related_produkty(sku, conn)
+        if not related:
+            logger.info(f'[cross-sync] order={wc_order_id} SKU={sku} → brak match (skip)')
             summary['skipped'] += 1
             continue
 
-        # Aktualnie zapisany stan
-        row = conn.execute(
-            'SELECT id, ilosc, status FROM produkty WHERE id = ?',
-            (hub_id,),
-        ).fetchone()
-        if not row:
-            summary['skipped'] += 1
-            continue
-        current_qty = int(row['ilosc'] or 0)
-        current_status = (row['status'] or '').strip()
-
-        # Już sprzedany — nie robimy nic (idempotent)
-        if current_status == 'sprzedane':
-            logger.info(f'[cross-sync] hub_id={hub_id} już sprzedany — skip')
+        # Wybierz primary do decrement: pierwszy z stock > 0 (FIFO po id).
+        # Jeśli wszystkie mają ilosc=0 → oznacz idempotent skip (już wszystkie sprzedane).
+        primary = next((r for r in related if int(r['ilosc'] or 0) > 0), None)
+        if primary is None:
+            logger.info(
+                f'[cross-sync] SKU={sku} order={wc_order_id} → wszystkie {len(related)} '
+                f'related produkty już ilosc=0 (idempotent skip)'
+            )
             summary['skipped'] += 1
             continue
 
+        primary_id = int(primary['id'])
+        current_qty = int(primary['ilosc'] or 0)
         new_qty = max(0, current_qty - qty)
-        # Update produkty
+
+        # Update primary produkt
         if new_qty == 0:
             conn.execute(
                 "UPDATE produkty SET ilosc = 0, status = 'sprzedane', "
                 "data_sprzedazy = CURRENT_TIMESTAMP WHERE id = ?",
-                (hub_id,),
+                (primary_id,),
             )
             summary['sold_products'] += 1
         else:
             conn.execute(
                 'UPDATE produkty SET ilosc = ? WHERE id = ?',
-                (new_qty, hub_id),
+                (new_qty, primary_id),
             )
         conn.commit()
 
-        # Jeśli ilość poszła do 0 — zamknij aukcje Allegro
-        if new_qty == 0:
-            allegro_offers = conn.execute(
-                "SELECT id, allegro_id FROM oferty "
-                "WHERE produkt_id = ? AND status = 'aktywna' AND allegro_id IS NOT NULL "
-                "  AND allegro_id != ''",
-                (hub_id,),
-            ).fetchall()
-            if allegro_offers and close_offer_fn is None:
-                try:
-                    from modules.allegro_api import close_offer as _co
-                    close_offer_fn = _co
-                except ImportError as e:
-                    summary['errors'].append(f'allegro_api import failed: {e}')
-                    continue
+        # POOL TOTAL: suma stocku across all related produkty
+        # (after primary decrement — re-fetch z DB żeby uwzględnić update)
+        related_ids = [int(r['id']) for r in related]
+        placeholders = ','.join('?' * len(related_ids))
+        pool_total_row = conn.execute(
+            f'SELECT COALESCE(SUM(ilosc), 0) AS total FROM produkty WHERE id IN ({placeholders})',
+            related_ids,
+        ).fetchone()
+        pool_total = int(pool_total_row['total'] or 0)
 
-            for offer_row in allegro_offers:
-                allegro_id = offer_row['allegro_id']
-                try:
+        # Znajdź WSZYSTKIE aktywne aukcje Allegro linked do related produkty
+        # (jedna aukcja może wskazywać na primary, ale wszystkie related ją dotyczą)
+        allegro_offers = conn.execute(
+            f"SELECT id, allegro_id, produkt_id FROM oferty "
+            f"WHERE produkt_id IN ({placeholders}) AND status = 'aktywna' "
+            f"  AND allegro_id IS NOT NULL AND allegro_id != ''",
+            related_ids,
+        ).fetchall()
+
+        if not allegro_offers:
+            logger.info(
+                f'[cross-sync] SKU={sku} primary={primary_id} sold {qty} '
+                f'(no active Allegro offers — shop-only)'
+            )
+            continue
+
+        # Lazy load Allegro funkcji
+        if close_offer_fn is None or update_offer_stock_fn is None:
+            try:
+                from modules.allegro_api import close_offer as _co, update_offer_stock as _uos
+                close_offer_fn = _co
+                update_offer_stock_fn = _uos
+            except ImportError as e:
+                summary['errors'].append(f'allegro_api import failed: {e}')
+                continue
+
+        # Decyzja: pool_total > 0 → update stock, pool_total = 0 → close
+        for offer_row in allegro_offers:
+            allegro_id = offer_row['allegro_id']
+            try:
+                if pool_total > 0:
+                    # KEEP open, update stock = pool_total (suma multi-pallet)
+                    result, err = update_offer_stock_fn(allegro_id, pool_total)
+                    if err and 'OFFER_NOT_EXISTS' not in err:
+                        summary['errors'].append(f'allegro_id={allegro_id} stock update: {err}')
+                        logger.warning(f'[cross-sync] update_offer_stock({allegro_id}, {pool_total}) error: {err}')
+                    else:
+                        summary['updated_stock'] += 1
+                        logger.info(
+                            f'[cross-sync] update stock allegro_id={allegro_id} → {pool_total} '
+                            f'(pool z {len(related)} pallet, primary={primary_id}, order={wc_order_id})'
+                        )
+                else:
+                    # CLOSE — wszystkie palety wyczerpane
                     result, err = close_offer_fn(allegro_id)
                     if err and 'OFFER_ALREADY_ENDED_OR_GONE' not in err:
-                        summary['errors'].append(f'allegro_id={allegro_id}: {err}')
-                        logger.warning(
-                            f'[cross-sync] close_offer({allegro_id}) error: {err}'
-                        )
+                        summary['errors'].append(f'allegro_id={allegro_id} close: {err}')
+                        logger.warning(f'[cross-sync] close_offer({allegro_id}) error: {err}')
                     else:
                         summary['closed_offers'] += 1
                         logger.info(
-                            f'[cross-sync] zamknięto allegro_id={allegro_id} '
-                            f'(hub_id={hub_id}, order={wc_order_id})'
+                            f'[cross-sync] CLOSED allegro_id={allegro_id} '
+                            f'(pool_total=0, primary={primary_id}, order={wc_order_id})'
                         )
-                except Exception as e:
-                    summary['errors'].append(f'allegro_id={allegro_id}: {e}')
-                    logger.exception(f'[cross-sync] close_offer({allegro_id}) exception')
+            except Exception as e:
+                summary['errors'].append(f'allegro_id={allegro_id}: {e}')
+                logger.exception(f'[cross-sync] allegro_id={allegro_id} exception')
 
     return summary
+
+
+def _resolve_related_produkty(sku: str, conn) -> list:
+    """Znajdź WSZYSTKIE produkty powiązane z SKU (multi-pallet pooling).
+
+    Scenariusze:
+    - "HUB-42" (specific produkt) → szukamy też innych z tym samym EAN
+      (gdy produkt 42 ma EAN, dołącz inne produkty z tym EAN — pooling)
+    - "EAN-1234567890" → wszystkie produkty z tym EAN
+    - Inny SKU → mirror table fallback
+
+    Returns: list sorted by id ASC (FIFO — pierwszy z stock>0 dostaje sale).
+    """
+    if not sku:
+        return []
+    rows = []
+    m = _SKU_HUB_RE.match(sku)
+    if m:
+        try:
+            hub_id = int(m.group(1))
+        except ValueError:
+            return []
+        # Pobierz produkt + jego EAN
+        primary = conn.execute(
+            'SELECT id, ean, ilosc, status FROM produkty WHERE id = ?',
+            (hub_id,),
+        ).fetchone()
+        if not primary:
+            return []
+        ean = (primary['ean'] or '').strip()
+        if ean and _SKU_EAN_RE.match(f'EAN-{ean}'):
+            # Multi-pallet pooling: wszystkie produkty z tym EAN (włącznie z primary)
+            rows = conn.execute(
+                'SELECT id, ean, ilosc, status FROM produkty '
+                'WHERE ean = ? ORDER BY id ASC',
+                (ean,),
+            ).fetchall()
+        else:
+            # Brak EAN → tylko ten jeden produkt (single-source)
+            rows = [primary]
+        return [dict(r) for r in rows]
+
+    m = _SKU_EAN_RE.match(sku)
+    if m:
+        ean = m.group(1)
+        rows = conn.execute(
+            'SELECT id, ean, ilosc, status FROM produkty '
+            'WHERE ean = ? ORDER BY id ASC',
+            (ean,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    # Fallback: mirror table sklepakces_products → resolve hub_id → wszystkie z tym EAN
+    hub_id = _resolve_hub_id_from_sku(sku, conn)
+    if hub_id:
+        primary = conn.execute(
+            'SELECT id, ean, ilosc, status FROM produkty WHERE id = ?',
+            (hub_id,),
+        ).fetchone()
+        if primary:
+            ean = (primary['ean'] or '').strip()
+            if ean and _SKU_EAN_RE.match(f'EAN-{ean}'):
+                rows = conn.execute(
+                    'SELECT id, ean, ilosc, status FROM produkty '
+                    'WHERE ean = ? ORDER BY id ASC',
+                    (ean,),
+                ).fetchall()
+                return [dict(r) for r in rows]
+            return [dict(primary)]
+    return []
 
 
 def _resolve_hub_id_from_sku(sku: str, conn) -> int | None:
     """SKU 'HUB-42' → 42, SKU 'EAN-1234567890' → produkt.id WHERE ean='1234567890'.
 
     Returns hub_id (int) lub None gdy nie znaleziono.
+    Używane jako fallback w _resolve_related_produkty dla custom SKU.
     """
     if not sku:
         return None
