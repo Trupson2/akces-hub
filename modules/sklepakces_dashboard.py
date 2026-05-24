@@ -454,6 +454,14 @@ table.sk-table tr:hover { background: var(--bg); }
                     <a class="sk-btn secondary" href="{{ wc_base }}/wp-admin/post.php?post={{ p.wc_product_id }}&action=edit" target="_blank" rel="noopener" title="Edytuj w WP admin">
                         <span class="material-symbols-outlined" style="font-size:1rem">edit</span>
                     </a>
+                    <form method="POST" action="{{ url_for('sklepakces_ui.delete_one', sku=p.sku) }}"
+                          onsubmit="return confirm('Usunąć produkt &quot;{{ (p.hub_krotki_tytul or p.hub_nazwa or p.name)[:50] }}&quot; (sku {{ p.sku }}) z sklepakces.pl?\n\n• mode=trash (do kosza WP, można przywrócić)');"
+                          style="display:inline">
+                        <input type="hidden" name="mode" value="trash">
+                        <button class="sk-btn danger" type="submit" title="Usuń produkt (do kosza WP)">
+                            <span class="material-symbols-outlined" style="font-size:1rem">delete</span>
+                        </button>
+                    </form>
                 </td>
             </tr>
             {% endfor %}
@@ -771,6 +779,33 @@ def api_products():
         p.pop('product_data', None)
         p.pop('payload', None)
     return jsonify(data)
+
+
+@sklepakces_ui_bp.route('/delete_one/<sku>', methods=['POST'])
+@require_admin
+def delete_one(sku: str):
+    """Usuń 1 produkt po SKU (z mode=trash default — recoverable z WP kosza)."""
+    mode = (request.form.get('mode') or 'trash').strip()
+    if mode not in ('trash', 'force'):
+        mode = 'trash'
+    try:
+        from .sklepakces_push import delete_one_from_wc
+        result = delete_one_from_wc(sku=sku, mode=mode)
+    except Exception as e:
+        logger.exception(f'delete_one sku={sku} failed')
+        flash(f'Delete sku={sku} EXCEPTION: {e}', 'error')
+        return redirect(url_for('sklepakces_ui.dashboard'))
+
+    if result.get('status') == 'ok':
+        deleted = result.get('deleted', 0)
+        if deleted > 0:
+            flash(f'✅ Usunięto {sku} z sklepakces.pl (mode={mode}).', 'success')
+        else:
+            flash(f'⊘ SKU {sku} nie znaleziony na WC (może już usunięty).', 'warning')
+    else:
+        flash(f'❌ Delete error: {result.get("msg")} (HTTP {result.get("http_status")})', 'error')
+    _invalidate_dashboard_cache()
+    return redirect(url_for('sklepakces_ui.dashboard'))
 
 
 @sklepakces_ui_bp.route('/delete_all', methods=['POST'])

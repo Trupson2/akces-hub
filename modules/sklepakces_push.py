@@ -896,6 +896,24 @@ def push_one_product(
     }
 
 
+def delete_one_from_wc(
+    sku: str,
+    mode: str = 'trash',
+    url: Optional[str] = None,
+    secret: Optional[str] = None,
+) -> dict:
+    """Usuń 1 produkt z WC po SKU (re-uży bulk_delete endpoint z skus=[X]).
+
+    Args:
+        sku:  SKU produktu (EAN-X lub HUB-X)
+        mode: 'trash' (default, recoverable) lub 'force' (permanent)
+    """
+    if not sku:
+        return {'status': 'error', 'msg': 'sku required'}
+    result = delete_all_from_wc(mode=mode, skus=[sku], url=url, secret=secret)
+    return result
+
+
 def delete_all_from_wc(
     mode: str = 'trash',
     skus: Optional[List[str]] = None,
