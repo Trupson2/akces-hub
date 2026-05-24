@@ -95,10 +95,12 @@ def _gemini_lookup(brand: str, api_key: str) -> dict:
     jako default guess. Każdy brand MA SWÓJ EU rep (UE 2023/988 art. 8).
     Jeśli Gemini nie zna konkretnego brand'a — zwróć null (skip override).
     """
+    # Nowy SDK google.genai (google-generativeai jest deprecated od 2025).
     try:
-        import google.generativeai as genai
+        from google import genai
+        from google.genai import types
     except ImportError:
-        logger.error('google-generativeai nie zainstalowane')
+        logger.error('google-genai nie zainstalowane. Run: pip install --break-system-packages google-genai')
         return {}
 
     prompt = f"""Jesteś ekspertem prawnym GPSR (UE 2023/988 art. 8).
@@ -134,33 +136,28 @@ formalnie używa tego rep'a (rzadko).
 
 Bez markdown, tylko czysty JSON."""
 
-    genai.configure(api_key=api_key)
+    client = genai.Client(api_key=api_key)
     # Model chain — od najnowszego/highest quota do legacy.
     # gemini-2.5-flash = current stable, dobry quota dla paid tier.
     # gemini-2.5-flash-lite = lighter, jeszcze tańszy.
     # gemini-1.5-flash-latest = legacy fallback.
-    for model_name in ('gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-1.5-flash-latest', 'gemini-2.0-flash'):
+    for model_name in ('gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'):
         for attempt in range(3):
             try:
-                model = genai.GenerativeModel(model_name)
-                # Gemini 2.5-flash ma thinking mode włączony defaultowo —
-                # zjada wszystkie tokeny na "myślenie" i odcina output JSON mid-stream.
-                # Dla prostego brand lookup-u thinking nie potrzebne → disable + bump tokens.
-                gen_config = {
+                # 2.5-flash thinking mode zjada tokeny — disable dla prostego lookup-u.
+                config_kwargs = {
                     'temperature': 0.0,  # deterministic — brand → rep mapping, no creativity
                     'max_output_tokens': 2048,  # 500 było za mało gdy thinking aktywne
                     'response_mime_type': 'application/json',
                 }
-                # Spróbuj wyłączyć thinking dla 2.5-flash (gdy SDK wspiera)
                 if '2.5' in model_name:
-                    gen_config_with_think = dict(gen_config, thinking_config={'thinking_budget': 0})
-                    try:
-                        resp = model.generate_content(prompt, generation_config=gen_config_with_think)
-                    except (TypeError, ValueError):
-                        # Starszy SDK nie zna thinking_config — fallback na sam max_tokens=2048
-                        resp = model.generate_content(prompt, generation_config=gen_config)
-                else:
-                    resp = model.generate_content(prompt, generation_config=gen_config)
+                    config_kwargs['thinking_config'] = types.ThinkingConfig(thinking_budget=0)
+                config = types.GenerateContentConfig(**config_kwargs)
+                resp = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=config,
+                )
                 text = (resp.text or '').strip()
                 if not text:
                     return {}  # empty response — try next model
