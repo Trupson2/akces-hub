@@ -803,8 +803,16 @@ def map_hub_to_plugin(
     ean = (row.get('ean') or '').strip()
     sku = _build_sku(hub_id, ean)
 
-    # Title priority: krotki_tytul → nazwa → scraped.tytul_seo (cached Polish translation)
-    title = (row.get('krotki_tytul') or '').strip() or (row.get('nazwa') or '').strip()
+    # Title priority: meta_title (AI Polish display) → krotki_tytul (SEO short)
+    # → nazwa (raw Amazon, czasem foreign) → scraped.tytul_seo (cached PL translation)
+    # User raport: francuski tytuł "Caméra de recul..." na sklepie = nazwa
+    # raw bez Polish translation. meta_title to canonical AI-generated polish
+    # display title (db migration line 286 oznacza "KRYTYCZNA!").
+    title = (
+        (row.get('meta_title') or '').strip()
+        or (row.get('krotki_tytul') or '').strip()
+        or (row.get('nazwa') or '').strip()
+    )
     # Jeśli title wygląda na obcojęzyczny (np. francuski/niemiecki Amazon name),
     # spróbuj fallback ze scraped.tytul_seo (Hub generuje SEO PL przy paletomat scrape).
     if title and conn is not None and _looks_like_non_polish(title):
