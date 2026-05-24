@@ -244,16 +244,18 @@ def _build_sku(hub_id: int, ean: str) -> str:
     return f'HUB-{hub_id}'
 
 
-# Nazwy palet / dostawców / pośredników — NIE są to marki produktów.
+# Nazwy palet / dostawców hurtowych — NIE są to marki produktów ani platformy ogólne.
 # User raport: "Marka: Warrington" → Warrington to nazwa palety, nie producent.
-# Lista rozszerzalna — case-insensitive substring match.
+# Plus: "zdradzanie dostawcow nie git" — nie pokazuj konkurencji skąd masz hurtowo.
+#
+# Tylko stricte paletowe brands tu — NIE "amazon"/"allegro" (zbyt szerokie, false
+# positives w opisach produktów typu "kompatybilny z Amazon Echo / Allegro Smart").
 _PALETA_SUPPLIER_BLACKLIST = {
-    'amazon', 'amazon de', 'amazon.de', 'amazon.com', 'amazon.pl', 'amazon retourenkauf',
-    'allegro', 'allegro.pl',
-    'jobalots', 'jobalot',
+    'warrington', 'jobalots', 'jobalot', 'jobalots premium',
     'b-stock', 'bstock', 'b stock',
-    'warrington', 'miglo', 'liquidation', 'returns', 'salvex',
-    'palety', 'paleta', 'pallet', 'pallets', 'jobalots premium',
+    'miglo',
+    'salvex', 'liquidation auction',
+    'amazon retourenkauf', 'amazon returns',
     'mix paleta', 'mix pallet',
 }
 
@@ -273,6 +275,57 @@ def _is_paleta_supplier(value: str) -> bool:
         if bad in v:
             return True
     return False
+
+
+def _sanitize_paleta_names_from_text(text: str) -> str:
+    """Wytnij z text fragments które wyglądają na nazwy palet/dostawców.
+
+    Cele:
+    - "Warrington Lot 2024-08 - Mini kamera Full HD" → "Mini kamera Full HD"
+    - "Jobalots Mix Pallet / Aparat fotograficzny" → "Aparat fotograficzny"
+    - "<p>Dostawca: Warrington Returns</p>" → "<p>Dostawca: </p>" → strip pustki
+    - Każda fraza zawierająca paleta-supplier name → wytnij całe paragrafy/linie
+
+    Cel BIZNESOWY: nie zdradzaj sklepowi publicznemu skąd masz hurtowo produkty
+    (konkurencja by chciała wiedzieć). User raport: "zdradzanie dostawcow nie git".
+    """
+    if not text:
+        return text
+    out = text
+
+    # Strip linie/paragraphs które ZAWIERAJĄ nazwę palety (case-insensitive)
+    # Patterny: "Dostawca: X", "From: X", "Source: X", "Paleta: X", "Lot: X"
+    for bad in _PALETA_SUPPLIER_BLACKLIST:
+        # Skip ogólnych słów które mogą być fałszywym positives
+        if bad in ('returns', 'pallets', 'pallet', 'palety', 'paleta', 'mix paleta', 'mix pallet'):
+            continue
+        # Pattern: cała fraza zawierająca tę nazwę (do separatora ./;\n lub end)
+        # Np. "Warrington Returns Lot 2024" — match całość przed separator
+        bad_escaped = re.escape(bad)
+        # Strip w title-line (np. "Warrington XXX / Produkt nazwa" → "Produkt nazwa")
+        out = re.sub(
+            r'(?i)\b[^./;,\n<>|]*\b' + bad_escaped + r'\b[^./;,\n<>|]*[./;,|]?\s*',
+            '',
+            out,
+        )
+        # Strip w HTML paragraph (np. "<p>Dostawca: Warrington XXX</p>" → "")
+        out = re.sub(
+            r'(?is)<p[^>]*>[^<]*\b' + bad_escaped + r'\b[^<]*</p>\s*',
+            '',
+            out,
+        )
+        # Strip w <li> (np. "<li>Marka: Warrington</li>" → "")
+        out = re.sub(
+            r'(?is)<li[^>]*>[^<]*\b' + bad_escaped + r'\b[^<]*</li>\s*',
+            '',
+            out,
+        )
+
+    # Cleanup multiple whitespace + leading/trailing separators
+    out = re.sub(r'\s{2,}', ' ', out)
+    out = re.sub(r'^\s*[-–—,;:|/]\s*', '', out)
+    out = out.strip()
+    return out
 
 
 def _generate_minimal_attributes(row: dict) -> List[Dict]:
@@ -354,6 +407,76 @@ def _generate_minimal_attributes(row: dict) -> List[Dict]:
                 attrs.append({'name': name, 'value': value, 'visible': True})
 
     return attrs
+
+
+def _looks_like_non_polish(text: str) -> bool:
+    """Heurystyka: czy text wygląda na obcojęzyczny (FR/DE/EN)?
+
+    Triggers gdy znajdziemy charakterystyczne dla obcych języków słowa, plus
+    BRAK polskich diakrytyków (ąćęłńóśźż). Konserwatywnie — false positives
+    OK (zostanie original title).
+    """
+    if not text:
+        return False
+    t = text.lower()
+    # Polskie diakrytyki → na pewno po polsku
+    if any(c in t for c in 'ąćęłńóśźż'):
+        return False
+    # Charakterystyczne francuskie słowa
+    fr_markers = ['caméra', 'sans fil', 'pouces', 'voiture', 'étanche', 'deux', 'vision nocturne',
+                  'avec', 'pour', 'écran', 'sécurité', 'téléphone', 'maison']
+    if any(m in t for m in fr_markers):
+        return True
+    # Niemieckie
+    de_markers = ['kabelloser', 'für ihre', 'mit der', 'wasserdicht', 'überwachung', 'sicherheit',
+                  'fernseher', 'küche', 'wohnzimmer']
+    if any(m in t for m in de_markers):
+        return True
+    return False
+
+
+def _get_scraped_tytul_seo(conn, asin: str) -> str:
+    """Pobierz cached PL tytul SEO ze scraped (Hub generuje przy paletomat scrape)."""
+    if conn is None or not asin:
+        return ''
+    asin = asin.strip().upper()
+    try:
+        row = conn.execute(
+            'SELECT tytul_seo FROM scraped WHERE asin = ? AND tytul_seo IS NOT NULL AND tytul_seo != "" LIMIT 1',
+            (asin,),
+        ).fetchone()
+    except Exception:
+        return ''
+    if not row:
+        return ''
+    t = row['tytul_seo'] if hasattr(row, 'keys') else row[0]
+    return (t or '').strip()
+
+
+def _get_scraped_opis_html(conn, asin: str) -> str:
+    """Pobierz cached opis_html ze scraped table (Hub generuje przy Allegro listing).
+
+    Hub paletomat.py wywołuje generuj_opis_html_pro() podczas wystawiania na
+    Allegro i zapisuje wynik do scraped.opis_html (po asin). Reuse tego cache
+    dla sklepakces.pl push'a — user nie chce ponownie wywoływać Gemini.
+
+    Returns: HTML opis lub '' gdy brak.
+    """
+    if conn is None or not asin:
+        return ''
+    asin = asin.strip().upper()
+    try:
+        row = conn.execute(
+            'SELECT opis_html FROM scraped WHERE asin = ? AND opis_html IS NOT NULL AND opis_html != "" LIMIT 1',
+            (asin,),
+        ).fetchone()
+    except Exception as e:
+        logger.debug(f'_get_scraped_opis_html asin={asin}: {e}')
+        return ''
+    if not row:
+        return ''
+    opis = row['opis_html'] if hasattr(row, 'keys') else row[0]
+    return (opis or '').strip()
 
 
 def _generate_minimal_description(row: dict) -> str:
@@ -559,7 +682,14 @@ def map_hub_to_plugin(
     ean = (row.get('ean') or '').strip()
     sku = _build_sku(hub_id, ean)
 
+    # Title priority: krotki_tytul → nazwa → scraped.tytul_seo (cached Polish translation)
     title = (row.get('krotki_tytul') or '').strip() or (row.get('nazwa') or '').strip()
+    # Jeśli title wygląda na obcojęzyczny (np. francuski/niemiecki Amazon name),
+    # spróbuj fallback ze scraped.tytul_seo (Hub generuje SEO PL przy paletomat scrape).
+    if title and conn is not None and _looks_like_non_polish(title):
+        scraped_title = _get_scraped_tytul_seo(conn, row.get('asin') or '')
+        if scraped_title:
+            title = scraped_title
 
     # Price priority:
     # 1. allegro_active_price (REAL active Allegro auction price — z oferty.cena status='aktywna')
@@ -592,13 +722,13 @@ def map_hub_to_plugin(
     }
 
     # --- Optional ---
-    # description_html priorytety:
+    # description_html priorytety (od najbardziej user-friendly do auto-gen fallback):
     #   1. allegro_active_description (oferty.opis z aktywnej aukcji — co user wpisał przy listing)
-    #   2. opis_ai (Hub DB Gemini-generated description fallback)
-    #   3. auto-generated z dostępnych danych Hub (nazwa, stan, marka, kategoria)
-    #      — fallback dla starych ofert Allegro bez opis + produktów bez Gemini opisu.
-    #      Plugin nie pokaze placeholder "Pełny opis ... wkrótce" gdy zwrócimy
-    #      cokolwiek non-empty.
+    #   2. opis_ai (produkty.opis_ai — Gemini batch-generated przez enrich_paleta.py)
+    #   3. scraped.opis_html JOIN po asin (Hub generuje przy paletomat scrape — CACHE
+    #      generated dla Allegro listings, REUSE dla sklepakces by uniknąć ponownego wywołania Gemini)
+    #   4. auto-generated z dostępnych danych Hub (nazwa, stan, marka, kategoria) — last resort
+    #      Plugin nie pokaze placeholder "Pełny opis ... wkrótce" gdy zwrócimy cokolwiek non-empty.
     # Plugin KONTRAKT: sanitize_payload czyta 'description_html' a NIE 'description'.
     description = ''
     if allegro_active_description and allegro_active_description.strip():
@@ -606,8 +736,17 @@ def map_hub_to_plugin(
     elif row.get('opis_ai'):
         description = (row['opis_ai'] or '').strip()
     else:
-        description = _generate_minimal_description(row)
+        # Spróbuj scraped.opis_html z cache po asin (Hub generuje dla Allegro listings)
+        scraped_opis = _get_scraped_opis_html(conn, row.get('asin') or '')
+        if scraped_opis:
+            description = scraped_opis
+        else:
+            description = _generate_minimal_description(row)
     if description:
+        # NIE sanitize description — zbyt ryzykowne false-positive z legitnymi
+        # produktami ("kompatybilny z Amazon Echo" itp.). Brand/title już są
+        # filtrowane przez _is_paleta_supplier — wystarczy żeby skrupulatnie
+        # blokować nazwy dostawców jako "Marka".
         payload['description_html'] = description
     cats = _norm_kategoria(row.get('kategoria') or '')
     if cats:

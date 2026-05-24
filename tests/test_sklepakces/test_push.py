@@ -604,11 +604,12 @@ def test_map_zero_allegro_active_price_treated_as_missing():
     ('Sony', 'Sony'),                              # real brand
     ('JJC', 'JJC'),                                # real brand
     ('HOMCA', 'HOMCA'),                            # real brand
+    ('Amazon DE', 'Amazon DE'),                    # OK — mass-market sprzedawca, NIE paleta-supplier
     ('Warrington', None),                          # paleta name → blacklisted
     ('Jobalots Premium 2024-08', None),            # paleta name z substring match
-    ('Amazon DE', None),                           # dostawca-pośrednik
     ('B-Stock', None),                             # paleta supplier
-    ('amazon retourenkauf', None),                 # case-insensitive match
+    ('amazon retourenkauf', None),                 # paleta-specific (Amazon Retourenkauf B2B)
+    ('Salvex', None),                              # liquidation platform
     ('', None),                                    # empty
 ])
 def test_brand_payload_blacklists_paleta_suppliers(dostawca, expected_brand):
