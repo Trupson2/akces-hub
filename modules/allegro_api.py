@@ -3288,6 +3288,49 @@ def publish_offer(offer_id):
     return result, error
 
 
+def close_offer(allegro_offer_id):
+    """Zamyka (ENDED) aktywną ofertę na Allegro — używane po sprzedaży na sklepie
+    (cross-channel stock sync).
+
+    Setuje publication.status='ENDED' przez PATCH /sale/product-offers/{id}.
+    Lokalna tabela oferty → status='zakonczona' + data_aktualizacji=now.
+
+    Returns (result_dict, error_str). error_str=None gdy sukces.
+    """
+    if not is_authenticated():
+        return None, "Nie zalogowany do Allegro"
+
+    data = {'publication': {'status': 'ENDED'}}
+    result, error = allegro_request('PATCH', f'/sale/product-offers/{allegro_offer_id}', data=data)
+    if error:
+        error_lower = str(error).lower()
+        # Już zakończona / nie istnieje — oznacz lokalnie i zwróć success (idempotent)
+        if ('not exist' in error_lower or 'not found' in error_lower
+                or '404' in error_lower or 'ended' in error_lower):
+            conn = get_db()
+            conn.execute(
+                "UPDATE oferty SET status='zakonczona', data_aktualizacji=CURRENT_TIMESTAMP "
+                "WHERE allegro_id=?",
+                (allegro_offer_id,),
+            )
+            conn.commit()
+            return None, f"OFFER_ALREADY_ENDED_OR_GONE:{allegro_offer_id}"
+        # Fallback do PUT (jak publish_offer)
+        result, error = allegro_request('PUT', f'/sale/product-offers/{allegro_offer_id}', data=data)
+        if error:
+            return None, error
+
+    # Update local DB
+    conn = get_db()
+    conn.execute(
+        "UPDATE oferty SET status='zakonczona', ilosc=0, data_aktualizacji=CURRENT_TIMESTAMP "
+        "WHERE allegro_id=?",
+        (allegro_offer_id,),
+    )
+    conn.commit()
+    return result, None
+
+
 def update_offer_stock(allegro_offer_id, new_quantity):
     """Aktualizuje ilość sztuk istniejącej oferty na Allegro"""
     if not is_authenticated():

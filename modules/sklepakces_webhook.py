@@ -13,6 +13,8 @@ Caller MUSI zarejestrować @require_sklepakces_hmac PRZED tą funkcją
 from __future__ import annotations
 
 import json
+import logging
+import re
 import time
 
 from flask import request
@@ -21,8 +23,15 @@ from modules.api_v1.response import ErrorCodes, error_response, success_response
 from modules.database import get_db
 from modules.sklepakces_telegram import alert_order_received
 
+logger = logging.getLogger(__name__)
 
 _REQUIRED_FIELDS = ('order_id', 'total', 'customer', 'items')
+
+# SKU formats z modules/sklepakces_push.py:_build_sku()
+#   "EAN-{8-14 cyfr}" → szukaj produkt po ean
+#   "HUB-{int}"       → szukaj produkt po id
+_SKU_HUB_RE = re.compile(r'^HUB-(\d+)$', re.I)
+_SKU_EAN_RE = re.compile(r'^EAN-(\d{8,14})$', re.I)
 
 
 def handle_order_webhook():
@@ -118,7 +127,20 @@ def handle_order_webhook():
     except Exception as e:
         print(f"[sklepakces_webhook] Telegram alert failed: {e}")
 
-    # 6. Log + return success
+    # 6. CROSS-CHANNEL STOCK SYNC — sprzedaż na sklepie → zamknij aukcje Allegro
+    # Best-effort: failure NIE kasuje response 200 dla pluginu WC.
+    try:
+        sync_result = _apply_cross_channel_stock_sync(items, int(payload['order_id']))
+        if sync_result['closed_offers'] > 0:
+            logger.info(
+                f'[sklepakces_webhook] order={payload["order_id"]} '
+                f'cross-channel: zamknięto {sync_result["closed_offers"]} aukcji Allegro, '
+                f'sprzedano {sync_result["sold_products"]} produktów'
+            )
+    except Exception as e:
+        logger.warning(f'[sklepakces_webhook] cross-channel sync failed (non-fatal): {e}')
+
+    # 7. Log + return success
     duration_ms = int((time.perf_counter() - t_start) * 1000)
     _log_webhook('order_received', int(payload['order_id']),
                  'success', 200, None, duration_ms)
@@ -128,6 +150,148 @@ def handle_order_webhook():
         'order_id': payload['order_id'],
         'hub_internal_id': hub_internal_id,
     })
+
+
+def _apply_cross_channel_stock_sync(items: list, wc_order_id: int) -> dict:
+    """Po sprzedaży na sklepie WC:
+    1. Dla każdego item parse SKU (HUB-X lub EAN-X) → znajdź produkt w Hub
+    2. Zmniejsz produkty.ilosc o item.quantity
+    3. Gdy ilosc <= 0: status='sprzedane' + data_sprzedazy=now
+    4. Znajdź aktywne oferty Allegro (status='aktywna') dla tego produkt_id
+    5. Dla każdej oferty wywołaj allegro_api.close_offer() → set ENDED
+
+    Returns: {'sold_products': N, 'closed_offers': N, 'skipped': N, 'errors': [...]}
+    """
+    summary = {'sold_products': 0, 'closed_offers': 0, 'skipped': 0, 'errors': []}
+    if not items:
+        return summary
+
+    # Lazy import — allegro_api ładuje sporo zależności, nie chcemy spowolnić webhook'u
+    # gdy żadna pozycja nie ma aktywnych aukcji
+    conn = get_db()
+    close_offer_fn = None  # lazy load
+
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        sku = str(item.get('sku') or '').strip().upper()
+        qty = int(item.get('quantity') or item.get('qty') or 1)
+        if not sku:
+            summary['skipped'] += 1
+            continue
+
+        # Parse SKU → hub_product_id
+        hub_id = _resolve_hub_id_from_sku(sku, conn)
+        if not hub_id:
+            logger.info(f'[cross-sync] order={wc_order_id} SKU={sku} → brak match w produkty (skip)')
+            summary['skipped'] += 1
+            continue
+
+        # Aktualnie zapisany stan
+        row = conn.execute(
+            'SELECT id, ilosc, status FROM produkty WHERE id = ?',
+            (hub_id,),
+        ).fetchone()
+        if not row:
+            summary['skipped'] += 1
+            continue
+        current_qty = int(row['ilosc'] or 0)
+        current_status = (row['status'] or '').strip()
+
+        # Już sprzedany — nie robimy nic (idempotent)
+        if current_status == 'sprzedane':
+            logger.info(f'[cross-sync] hub_id={hub_id} już sprzedany — skip')
+            summary['skipped'] += 1
+            continue
+
+        new_qty = max(0, current_qty - qty)
+        # Update produkty
+        if new_qty == 0:
+            conn.execute(
+                "UPDATE produkty SET ilosc = 0, status = 'sprzedane', "
+                "data_sprzedazy = CURRENT_TIMESTAMP WHERE id = ?",
+                (hub_id,),
+            )
+            summary['sold_products'] += 1
+        else:
+            conn.execute(
+                'UPDATE produkty SET ilosc = ? WHERE id = ?',
+                (new_qty, hub_id),
+            )
+        conn.commit()
+
+        # Jeśli ilość poszła do 0 — zamknij aukcje Allegro
+        if new_qty == 0:
+            allegro_offers = conn.execute(
+                "SELECT id, allegro_id FROM oferty "
+                "WHERE produkt_id = ? AND status = 'aktywna' AND allegro_id IS NOT NULL "
+                "  AND allegro_id != ''",
+                (hub_id,),
+            ).fetchall()
+            if allegro_offers and close_offer_fn is None:
+                try:
+                    from modules.allegro_api import close_offer as _co
+                    close_offer_fn = _co
+                except ImportError as e:
+                    summary['errors'].append(f'allegro_api import failed: {e}')
+                    continue
+
+            for offer_row in allegro_offers:
+                allegro_id = offer_row['allegro_id']
+                try:
+                    result, err = close_offer_fn(allegro_id)
+                    if err and 'OFFER_ALREADY_ENDED_OR_GONE' not in err:
+                        summary['errors'].append(f'allegro_id={allegro_id}: {err}')
+                        logger.warning(
+                            f'[cross-sync] close_offer({allegro_id}) error: {err}'
+                        )
+                    else:
+                        summary['closed_offers'] += 1
+                        logger.info(
+                            f'[cross-sync] zamknięto allegro_id={allegro_id} '
+                            f'(hub_id={hub_id}, order={wc_order_id})'
+                        )
+                except Exception as e:
+                    summary['errors'].append(f'allegro_id={allegro_id}: {e}')
+                    logger.exception(f'[cross-sync] close_offer({allegro_id}) exception')
+
+    return summary
+
+
+def _resolve_hub_id_from_sku(sku: str, conn) -> int | None:
+    """SKU 'HUB-42' → 42, SKU 'EAN-1234567890' → produkt.id WHERE ean='1234567890'.
+
+    Returns hub_id (int) lub None gdy nie znaleziono.
+    """
+    if not sku:
+        return None
+    m = _SKU_HUB_RE.match(sku)
+    if m:
+        try:
+            return int(m.group(1))
+        except ValueError:
+            return None
+    m = _SKU_EAN_RE.match(sku)
+    if m:
+        ean = m.group(1)
+        row = conn.execute(
+            'SELECT id FROM produkty WHERE ean = ? LIMIT 1',
+            (ean,),
+        ).fetchone()
+        return int(row['id']) if row else None
+    # Fallback: szukaj w mirror table sklepakces_products po SKU
+    # (np. gdy plugin dodał custom SKU lub user ręcznie edytował WC)
+    try:
+        row = conn.execute(
+            "SELECT json_extract(product_data, '$.hub_id') AS hub_id "
+            "FROM sklepakces_products WHERE sku = ? LIMIT 1",
+            (sku,),
+        ).fetchone()
+        if row and row['hub_id']:
+            return int(row['hub_id'])
+    except Exception:
+        pass  # malformed JSON w product_data — ignoruj
+    return None
 
 
 # ---------------------------------------------------------------------------
