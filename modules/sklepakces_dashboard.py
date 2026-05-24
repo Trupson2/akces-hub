@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
+import time
 
 from flask import Blueprint, flash, jsonify, redirect, render_template_string, request, url_for
 
@@ -29,6 +31,20 @@ logger = logging.getLogger(__name__)
 sklepakces_ui_bp = Blueprint('sklepakces_ui', __name__, url_prefix='/sklepakces')
 
 WC_BASE_URL = 'https://sklepakces.pl'
+
+# In-memory state dla background bulk operations (re-push all).
+# Single-process Flask — wystarczy dict + Lock. Nie przeżywa restartu app.py.
+_bg_lock = threading.Lock()
+_bg_state = {
+    'task': None,        # 'repush_all' | 'bulk_delete' | None
+    'running': False,
+    'ok': 0, 'err': 0, 'skip': 0,
+    'total': 0,
+    'current': 0,
+    'started_at': None,
+    'finished_at': None,
+    'last_msg': '',
+}
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -236,6 +252,32 @@ table.sk-table tr:hover { background: var(--bg); }
     {% endfor %}
 {% endwith %}
 
+{% if bg_state and (bg_state.running or (bg_state.finished_at and bg_state.elapsed_sec < 30)) %}
+<div id="sk-bg-banner" class="sk-bg-banner {{ 'running' if bg_state.running else 'done' }}">
+    <div class="sk-bg-info">
+        <strong>{{ 'Re-push w toku' if bg_state.running else 'Re-push zakończony' }}:</strong>
+        <span id="sk-bg-progress">{{ bg_state.current }}/{{ bg_state.total }}</span>
+        — ok=<span id="sk-bg-ok">{{ bg_state.ok }}</span>,
+        skip=<span id="sk-bg-skip">{{ bg_state.skip }}</span>,
+        err=<span id="sk-bg-err">{{ bg_state.err }}</span>
+        (<span id="sk-bg-elapsed">{{ bg_state.elapsed_sec }}s</span>)
+    </div>
+    <div class="sk-bg-msg" id="sk-bg-msg">{{ bg_state.last_msg or '...' }}</div>
+    <div class="sk-bg-bar"><div class="sk-bg-bar-fill" id="sk-bg-bar-fill"
+        style="width: {{ ((bg_state.current / bg_state.total * 100) if bg_state.total else 0)|round|int }}%"></div></div>
+</div>
+<style>
+.sk-bg-banner { background: var(--blue-soft); border: 1px solid var(--blue); border-radius: 10px;
+                padding: 14px 18px; margin-bottom: 16px; }
+.sk-bg-banner.done { background: var(--green-soft); border-color: var(--green); }
+.sk-bg-info { font-size: 14px; color: var(--text); }
+.sk-bg-msg { font-size: 12px; color: var(--text-muted); margin-top: 6px; font-family: ui-monospace, monospace; }
+.sk-bg-bar { margin-top: 10px; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.sk-bg-bar-fill { height: 100%; background: var(--blue); transition: width 0.5s ease; }
+.sk-bg-banner.done .sk-bg-bar-fill { background: var(--green); }
+</style>
+{% endif %}
+
 <div class="sk-stats">
     <div class="sk-stat info">
         <div class="lbl">Wszystkie</div><div class="val">{{ stats.total }}</div>
@@ -417,6 +459,39 @@ function filterRows(type, evt) {
     });
 }
 
+// Auto-poll background task status (re-push all in progress)
+(function() {
+    const banner = document.getElementById('sk-bg-banner');
+    if (!banner || !banner.classList.contains('running')) return;
+    let pollInterval = setInterval(async function() {
+        try {
+            const r = await fetch('{{ url_for("sklepakces_ui.api_repush_status") }}', { credentials: 'same-origin' });
+            const s = await r.json();
+            const progressEl = document.getElementById('sk-bg-progress');
+            const okEl = document.getElementById('sk-bg-ok');
+            const skipEl = document.getElementById('sk-bg-skip');
+            const errEl = document.getElementById('sk-bg-err');
+            const elapsedEl = document.getElementById('sk-bg-elapsed');
+            const msgEl = document.getElementById('sk-bg-msg');
+            const barEl = document.getElementById('sk-bg-bar-fill');
+            if (progressEl) progressEl.textContent = s.current + '/' + s.total;
+            if (okEl) okEl.textContent = s.ok;
+            if (skipEl) skipEl.textContent = s.skip;
+            if (errEl) errEl.textContent = s.err;
+            if (elapsedEl) elapsedEl.textContent = s.elapsed_sec + 's';
+            if (msgEl) msgEl.textContent = s.last_msg || '...';
+            if (barEl && s.total) barEl.style.width = Math.round(s.current / s.total * 100) + '%';
+            if (!s.running) {
+                clearInterval(pollInterval);
+                banner.classList.remove('running');
+                banner.classList.add('done');
+                // Auto-reload page po 3s żeby zaktualizować tabelę produktów
+                setTimeout(() => location.reload(), 3000);
+            }
+        } catch (e) { /* network glitch — try next poll */ }
+    }, 2000);  // poll co 2s
+})();
+
 function akcesBulkDeleteConfirm(form) {
     // Krok 1 — wybierz tryb (trash vs force)
     const total = {{ stats.total }};
@@ -460,9 +535,17 @@ function akcesBulkDeleteConfirm(form) {
 @require_admin
 def dashboard():
     data = _get_dashboard_data()
+    with _bg_lock:
+        bg = dict(_bg_state)
+    if bg.get('started_at'):
+        end_ts = bg.get('finished_at') or time.time()
+        bg['elapsed_sec'] = int(end_ts - bg['started_at'])
+    else:
+        bg['elapsed_sec'] = 0
     return render_template_string(
         DASHBOARD_TEMPLATE,
         wc_base=WC_BASE_URL,
+        bg_state=bg,
         **data,
     )
 
@@ -499,11 +582,23 @@ def repush(hub_id: int):
 @sklepakces_ui_bp.route('/repush_all', methods=['POST'])
 @require_admin
 def repush_all():
-    """Re-push wszystkich produktów z mirror (force, batchowo).
+    """Re-push wszystkich produktów z mirror (force, w BACKGROUND THREAD).
 
-    UWAGA: throttle 1.1s/req → przy ~20 produktach to ~22 sekundy.
-    Większe batche mogą hit Telegram throttle (10/min) jeśli wiele alertów.
+    Klient HTTP NIE czeka na zakończenie batchu (mogłby timeout'ować przy
+    100+ produktach × 1.1s throttle = ~2 min, Cloudflare ubija po 100s).
+    Zamiast tego startujemy worker thread + flash "uruchomiono w tle".
+    Postęp widoczny przez dashboard banner (in-memory _bg_state + auto-refresh JS).
     """
+    # Quick guard: czy już running?
+    with _bg_lock:
+        if _bg_state['running']:
+            flash(
+                f'Re-push już w toku ({_bg_state["current"]}/{_bg_state["total"]}). Poczekaj aż skończy.',
+                'warning',
+            )
+            return redirect(url_for('sklepakces_ui.dashboard'))
+
+    # Pobierz IDs PRZED startem thread (Flask request lifetime constraint)
     try:
         conn = get_db()
         rows = conn.execute("""
@@ -521,29 +616,78 @@ def repush_all():
         flash('Brak produktów z hub_id w mirror — nic do re-pushowania.', 'warning')
         return redirect(url_for('sklepakces_ui.dashboard'))
 
-    from .sklepakces_push import push_one_product
-    import time
-    ok = err = skip = 0
-    for i, hid in enumerate(hub_ids):
-        if i > 0:
-            time.sleep(1.1)  # plugin RATE_LIMIT
+    # Inicjuj _bg_state PRZED startem thread (lock-protected race)
+    with _bg_lock:
+        _bg_state.update({
+            'task': 'repush_all',
+            'running': True,
+            'ok': 0, 'err': 0, 'skip': 0,
+            'total': len(hub_ids), 'current': 0,
+            'started_at': time.time(), 'finished_at': None,
+            'last_msg': '',
+        })
+
+    def _repush_worker(ids):
+        """Background worker — push wszystkich produktów, throttle 1.1s/req."""
+        from .sklepakces_push import push_one_product
         try:
-            r = push_one_product(hid, force=True)
-            if r.get('status') == 'ok':
-                ok += 1
-            elif r.get('status') == 'skip':
-                skip += 1
-            else:
-                err += 1
-        except Exception as e:
-            logger.warning(f'repush_all hub_id={hid} failed: {e}')
-            err += 1
+            for i, hid in enumerate(ids):
+                if i > 0:
+                    time.sleep(1.1)  # plugin RATE_LIMIT 60/min
+                with _bg_lock:
+                    _bg_state['current'] = i + 1
+                try:
+                    r = push_one_product(hid, force=True)
+                    status = r.get('status')
+                    with _bg_lock:
+                        if status == 'ok':
+                            _bg_state['ok'] += 1
+                            _bg_state['last_msg'] = f'OK hub_id={hid}'
+                        elif status == 'skip':
+                            _bg_state['skip'] += 1
+                            _bg_state['last_msg'] = f'SKIP hub_id={hid}'
+                        else:
+                            _bg_state['err'] += 1
+                            _bg_state['last_msg'] = f'ERR hub_id={hid}: {r.get("msg", "?")[:80]}'
+                except Exception as e:
+                    logger.warning(f'repush_all worker hub_id={hid} failed: {e}')
+                    with _bg_lock:
+                        _bg_state['err'] += 1
+                        _bg_state['last_msg'] = f'EXC hub_id={hid}: {str(e)[:80]}'
+        finally:
+            with _bg_lock:
+                _bg_state['running'] = False
+                _bg_state['finished_at'] = time.time()
+            logger.info(
+                f'repush_all background DONE: ok={_bg_state["ok"]} '
+                f'skip={_bg_state["skip"]} err={_bg_state["err"]} total={len(ids)}'
+            )
+
+    t = threading.Thread(target=_repush_worker, args=(hub_ids,), daemon=True)
+    t.start()
 
     flash(
-        f'Re-push batch zakończony: ok={ok} skip={skip} error={err} total={len(hub_ids)}',
-        'success' if err == 0 else 'error',
+        f'🚀 Re-push uruchomiony w tle dla {len(hub_ids)} produktów (throttle 1.1s/req → '
+        f'~{int(len(hub_ids) * 1.1 / 60)} min). Postęp widoczny w bannerze, dashboard '
+        f'odświeży się automatycznie.',
+        'success',
     )
     return redirect(url_for('sklepakces_ui.dashboard'))
+
+
+@sklepakces_ui_bp.route('/api/repush_status.json', methods=['GET'])
+@require_admin
+def api_repush_status():
+    """Endpoint JSON dla JS polling — pokazuje progress background tasku."""
+    with _bg_lock:
+        s = dict(_bg_state)
+    # Compute elapsed sec
+    if s.get('started_at'):
+        end_ts = s.get('finished_at') or time.time()
+        s['elapsed_sec'] = int(end_ts - s['started_at'])
+    else:
+        s['elapsed_sec'] = 0
+    return jsonify(s)
 
 
 @sklepakces_ui_bp.route('/api/products.json', methods=['GET'])
