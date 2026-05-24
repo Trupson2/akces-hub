@@ -96,14 +96,16 @@ def _gemini_call(prompt: str, api_key: str, max_tokens: int = 800) -> str:
     for model_name in ('gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'):
         for attempt in range(3):
             try:
-                # 2.5-flash thinking mode zjada tokeny — disable + bump tokens.
+                # 2.5-flash: thinking + output to OSOBNE budżety w nowym SDK.
+                # thinking=0 powoduje że Gemini nie reasonuje → częste "unknown".
+                # Dajemy 1024 na thinking (wystarczy dla brand extraction) + bump output.
                 config_kwargs = {
                     'temperature': 0.2,
-                    'max_output_tokens': max(max_tokens, 2048),  # min 2048 bo thinking
+                    'max_output_tokens': max(max_tokens, 4096),  # response body
                     'response_mime_type': 'application/json',
                 }
                 if '2.5' in model_name:
-                    config_kwargs['thinking_config'] = types.ThinkingConfig(thinking_budget=0)
+                    config_kwargs['thinking_config'] = types.ThinkingConfig(thinking_budget=1024)
                 config = types.GenerateContentConfig(**config_kwargs)
                 resp = client.models.generate_content(
                     model=model_name,

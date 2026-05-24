@@ -150,14 +150,19 @@ WAŻNE:
     for model_name in ('gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'):
         for attempt in range(3):
             try:
-                # 2.5-flash thinking mode zjada tokeny — disable dla prostego lookup-u.
+                # 2.5-flash MUSI mieć thinking (knowledge recall = reasoning).
+                # Test: thinking=0 → Gemini defaultuje na "unknown" dla znanych brandów.
+                # Nowy SDK: thinking i output to OSOBNE budżety (nie konkurują),
+                # więc dajemy 2048 na thinking + 8192 na output = pełna jakość.
                 config_kwargs = {
-                    'temperature': 0.0,  # deterministic — brand → rep mapping, no creativity
-                    'max_output_tokens': 8192,  # max safety bo Gemini bywa rozgaduje się
+                    'temperature': 0.0,  # deterministic — brand → rep mapping
+                    'max_output_tokens': 8192,  # response body (notes + reszta)
                     'response_mime_type': 'application/json',
                 }
                 if '2.5' in model_name:
-                    config_kwargs['thinking_config'] = types.ThinkingConfig(thinking_budget=0)
+                    # Pozwól na 2048 tokenów reasoning — Gemini przypomina sobie
+                    # brand → EU rep zanim odpowie. Bez tego: same "unknown".
+                    config_kwargs['thinking_config'] = types.ThinkingConfig(thinking_budget=2048)
                 config = types.GenerateContentConfig(**config_kwargs)
                 resp = client.models.generate_content(
                     model=model_name,
