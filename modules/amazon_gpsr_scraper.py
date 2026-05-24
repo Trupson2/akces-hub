@@ -45,14 +45,49 @@ from .database import get_db, get_config
 logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Config — fallback (Twoja firma jako importer EU dla GPSR)
+# Config — fallback EU responsible person.
 # ──────────────────────────────────────────────────────────────────────────────
-
+# UWAGA PRAWNA: kto jest tu wpisany, ten odpowiada prawnie za produkt przed UOKiK
+# (UE 2023/988). User raport: "jak cos jebnie to gauzini odpowiedzialny jest za to".
+#
+# Większość produktów Hub to palety zwrotów Amazon DE Retourenkauf → Amazon DE
+# zarejestrowała "Amazon Retourenkauf / CET PRODUCT SERVICE SP. Z O.O." jako EU
+# responsible person dla tych produktów. To jest FAKT zarejestrowany u Amazon
+# (widoczne na każdym Amazon DE returns product page → "Verantwortliche Person").
+# Sklepakces.pl tylko PRZEKAZUJE te dane konsumentom — nie zmienia odpowiedzialności.
+#
+# Per UE 2023/988 art. 11: sprzedawca musi udostępnić info o EU rep, nie zmienia
+# kto nim jest. CET = rejestrowany EU rep dla Amazon returns = faktyczny.
+#
+# Override przez config 'fallback_responsible_person_name' / '_address' / '_email'
+# jeśli user chce custom (np. AKCES jako legitnym importerem dla NIE-Amazon produktów).
 FALLBACK_RESPONSIBLE_PERSON = {
-    'responsible_person_name':    'AKCES Andrzej Gauza',
-    'responsible_person_address': 'ul. Poniatowskiego 13, 74-505 Mieszkowice, woj. zachodniopomorskie, Polska',
-    'responsible_person_email':   'kontakt@sklepakces.pl',
+    'responsible_person_name':    'CET PRODUCT SERVICE SP. Z O.O.',
+    'responsible_person_address': 'Ul. Dluga 33 102, 95-100 Zgierz, Polska',
+    'responsible_person_email':   'info@cetproduct.com',
 }
+
+
+def _get_fallback_rp() -> dict:
+    """Get fallback EU rep — z Hub config gdy ustawione, inaczej hardcoded CET default.
+
+    Pozwala user'owi nadpisać per environment:
+        set_config('fallback_responsible_person_name', 'My Company GmbH')
+        set_config('fallback_responsible_person_address', '...')
+        set_config('fallback_responsible_person_email', 'eu-rep@my.com')
+    """
+    try:
+        from .database import get_config
+        name = (get_config('fallback_responsible_person_name', '') or '').strip()
+        if name:
+            return {
+                'responsible_person_name':    name,
+                'responsible_person_address': (get_config('fallback_responsible_person_address', '') or '').strip(),
+                'responsible_person_email':   (get_config('fallback_responsible_person_email', '') or '').strip(),
+            }
+    except Exception:
+        pass
+    return FALLBACK_RESPONSIBLE_PERSON
 
 # Realistic UA — Chrome 121 stable na Windows. Niska rotacja by Amazon nie banowało.
 USER_AGENTS = {
@@ -722,7 +757,7 @@ def fetch_gpsr(
     """
     if not asin:
         if use_fallback:
-            return GpsrData(asin='', region=region, source='fallback', **FALLBACK_RESPONSIBLE_PERSON)
+            return GpsrData(asin='', region=region, source='fallback', **_get_fallback_rp())
         return GpsrData(asin='', region=region, source='')
 
     asin = asin.strip().upper()
@@ -791,14 +826,15 @@ def fetch_gpsr(
     # 3. Fallback — NIE cachuj. Cache TYLKO realne Amazon data (source='amazon');
     # fallback dla każdego nieudanego fetch'a osobny → następny push znowu spróbuje Amazon.
     if use_fallback:
+        rp = _get_fallback_rp()
         gpsr = GpsrData(
             asin=asin, region=region,
             source='fallback',
             source_url=source_url,
             fetched_at=datetime.utcnow().isoformat() + 'Z',
-            **FALLBACK_RESPONSIBLE_PERSON,
+            **rp,
         )
-        logger.info(f'GPSR fallback (AKCES importer, NIE cached — następny push retry Amazon) asin={asin}')
+        logger.info(f'GPSR fallback rp="{rp["responsible_person_name"]}" NIE cached — następny push retry Amazon, asin={asin}')
         return gpsr
 
     return GpsrData(asin=asin, region=region, source='')
