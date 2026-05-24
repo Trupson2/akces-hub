@@ -268,6 +268,55 @@ table.sk-table tr:hover { background: var(--bg); }
 .sk-btn-row form { display: inline; margin: 0; }
 .sk-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; background: var(--bg); }
 
+/* Mobile responsive (< 900px) */
+@media (max-width: 900px) {
+    .sk-stats {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+    }
+    .sk-stat { padding: 10px !important; }
+    .sk-stat .val { font-size: 22px !important; }
+    .sk-stat .lbl { font-size: 10px !important; }
+
+    .sk-action-bar {
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+    }
+    .sk-action-bar form { flex: 1 1 calc(50% - 6px); }
+    .sk-action-bar form .sk-btn { width: 100%; justify-content: center; padding: 10px 8px !important; font-size: 11px !important; }
+    .sk-action-bar > div { flex: 1 1 100% !important; flex-wrap: wrap !important; }
+    .sk-filter-btn { flex: 1 1 calc(33% - 6px); padding: 8px 6px !important; font-size: 11px !important; }
+
+    /* Tabela: horizontal scroll na mobile */
+    .sk-card { overflow-x: auto; }
+    .sk-card .sk-card-header { min-width: 600px; }
+    table.sk-table { font-size: 11px; min-width: 900px; }
+    table.sk-table th { font-size: 9px; padding: 6px 4px; }
+    table.sk-table td { padding: 8px 4px; }
+    .sk-name { max-width: 200px; font-size: 12px; }
+    .sk-name small { font-size: 9px; }
+    .sk-thumb { width: 32px; height: 32px; }
+    .sk-btn { padding: 4px 6px !important; font-size: 10px !important; }
+    .sk-btn-row { gap: 2px !important; }
+    .sk-btn-row .material-symbols-outlined { font-size: 0.85rem !important; }
+
+    /* Banner mobile */
+    .sk-bg-banner { padding: 10px 12px !important; }
+    .sk-bg-info { font-size: 12px !important; }
+    .sk-bg-msg { font-size: 10px !important; }
+    .sk-subtitle { font-size: 12px !important; margin-bottom: 12px !important; }
+    .sk-flash { font-size: 12px !important; padding: 10px !important; }
+}
+
+/* Smaller phones (< 480px) */
+@media (max-width: 480px) {
+    .sk-stats { grid-template-columns: 1fr 1fr !important; }
+    .sk-stat .val { font-size: 18px !important; }
+    .sk-action-bar form { flex: 1 1 100%; }
+    .sk-filter-btn { flex: 1 1 calc(50% - 6px); }
+    table.sk-table { font-size: 10px; }
+}
+
 .sk-flash { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; font-weight: 500; }
 .sk-flash.success { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
 .sk-flash.error { background: var(--red-soft); color: var(--red); border: 1px solid var(--red); }
