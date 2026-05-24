@@ -340,10 +340,11 @@ table.sk-table tr:hover { background: var(--bg); }
 
 <div class="sk-action-bar">
     <form method="POST" action="{{ url_for('sklepakces_ui.repush_all') }}"
-          onsubmit="return confirm('Re-pushnij WSZYSTKIE produkty z mirror? (force, ~1.1s/req)');">
-        <button class="sk-btn primary" type="submit">
-            <span class="material-symbols-outlined" style="font-size:1rem">refresh</span> Re-push wszystkie
+          onsubmit="return akcesSyncAllConfirm(this);">
+        <button class="sk-btn primary" type="submit" title="Synchronizuj wszystkie produkty z Hub do sklepakces.pl (re-push istniejących + push nowych eligible)">
+            <span class="material-symbols-outlined" style="font-size:1rem">cloud_sync</span> Synchronizuj wszystko
         </button>
+        <input type="hidden" name="allegro_only" id="sk-allegro-only-input" value="">
     </form>
     <form method="POST" action="{{ url_for('sklepakces_ui.delete_all') }}" id="bulk-delete-form"
           onsubmit="return akcesBulkDeleteConfirm(this)" style="display:inline">
@@ -528,6 +529,26 @@ function filterRows(type, evt) {
     }, 2000);  // poll co 2s
 })();
 
+function akcesSyncAllConfirm(form) {
+    // Krok 1 — confirm + wybór mode
+    const choice = prompt(
+        '🔄 SYNCHRONIZACJA WSZYSTKICH PRODUKTÓW\n\n' +
+        'Wybierz tryb:\n' +
+        '  "all"     — wszystkie produkty (z aktywną Allegro LUB bez, fallback cena_allegro z DB)\n' +
+        '  "allegro" — TYLKO produkty z aktywną aukcją Allegro (ceny live z Allegro)\n\n' +
+        'Wpisz "all" lub "allegro":',
+        'all'
+    );
+    if (choice === null) return false;
+    const mode = String(choice).trim().toLowerCase();
+    if (mode !== 'all' && mode !== 'allegro') {
+        alert('Niepoprawny tryb. Operacja anulowana.');
+        return false;
+    }
+    form.allegro_only.value = (mode === 'allegro') ? 'on' : '';
+    return true;
+}
+
 function akcesBulkDeleteConfirm(form) {
     // Krok 1 — wybierz tryb (trash vs force)
     const total = {{ stats.total }};
@@ -619,12 +640,18 @@ def repush(hub_id: int):
 @sklepakces_ui_bp.route('/repush_all', methods=['POST'])
 @require_admin
 def repush_all():
-    """Re-push wszystkich produktów z mirror (force, w BACKGROUND THREAD).
+    """Synchronizuj wszystko: re-push istniejących z mirror + push NEW eligible z Hub.
 
-    Klient HTTP NIE czeka na zakończenie batchu (mogłby timeout'ować przy
-    100+ produktach × 1.1s throttle = ~2 min, Cloudflare ubija po 100s).
-    Zamiast tego startujemy worker thread + flash "uruchomiono w tle".
-    Postęp widoczny przez dashboard banner (in-memory _bg_state + auto-refresh JS).
+    UNION:
+      1. Hub IDs z mirror table (sklepakces_products) — re-push (force update)
+      2. Hub IDs z produkty WHERE status='magazyn' AND nie w mirror — new push
+
+    Domyślnie require_allegro_active=False — pushuje też produkty bez aktywnej
+    aukcji Allegro (cena/stock z DB fallback). User checkbox w form decyduje:
+      - form.allegro_only=on → tylko z aktywną Allegro (oryginalne behavior)
+      - bez → wszystkie eligible (default)
+
+    W BACKGROUND THREAD bo 100+ × 1.1s = ~2 min, Cloudflare ubije po 100s.
     """
     # Quick guard: czy już running?
     with _bg_lock:
@@ -635,22 +662,34 @@ def repush_all():
             )
             return redirect(url_for('sklepakces_ui.dashboard'))
 
+    allegro_only = request.form.get('allegro_only') == 'on'
+
     # Pobierz IDs PRZED startem thread (Flask request lifetime constraint)
+    # UNION: mirror existing + Hub eligible new
     try:
         conn = get_db()
         rows = conn.execute("""
-            SELECT json_extract(product_data, '$.hub_id') AS hub_id
-            FROM sklepakces_products
-            WHERE json_extract(product_data, '$.hub_id') IS NOT NULL
-            ORDER BY wc_product_id DESC
+            SELECT hub_id FROM (
+                -- Existing w mirror (re-push)
+                SELECT CAST(json_extract(product_data, '$.hub_id') AS INTEGER) AS hub_id
+                FROM sklepakces_products
+                WHERE json_extract(product_data, '$.hub_id') IS NOT NULL
+                UNION
+                -- New eligible z Hub (push)
+                SELECT p.id AS hub_id
+                FROM produkty p
+                WHERE p.status = 'magazyn'
+            )
+            WHERE hub_id IS NOT NULL
+            ORDER BY hub_id
         """).fetchall()
-        hub_ids = [int(r['hub_id']) for r in rows if r['hub_id']]
+        hub_ids = sorted(set(int(r['hub_id']) for r in rows if r['hub_id']))
     except Exception as e:
         flash(f'Lookup error: {e}', 'error')
         return redirect(url_for('sklepakces_ui.dashboard'))
 
     if not hub_ids:
-        flash('Brak produktów z hub_id w mirror — nic do re-pushowania.', 'warning')
+        flash('Brak produktów do push — Hub `produkty` table jest pusta lub status != magazyn.', 'warning')
         return redirect(url_for('sklepakces_ui.dashboard'))
 
     # Inicjuj _bg_state PRZED startem thread (lock-protected race)
@@ -664,7 +703,7 @@ def repush_all():
             'last_msg': '',
         })
 
-    def _repush_worker(ids):
+    def _repush_worker(ids, require_allegro):
         """Background worker — push wszystkich produktów, throttle 1.1s/req."""
         from .sklepakces_push import push_one_product
         try:
@@ -674,7 +713,7 @@ def repush_all():
                 with _bg_lock:
                     _bg_state['current'] = i + 1
                 try:
-                    r = push_one_product(hid, force=True)
+                    r = push_one_product(hid, force=True, require_allegro_active=require_allegro)
                     status = r.get('status')
                     with _bg_lock:
                         if status == 'ok':
@@ -682,7 +721,7 @@ def repush_all():
                             _bg_state['last_msg'] = f'OK hub_id={hid}'
                         elif status == 'skip':
                             _bg_state['skip'] += 1
-                            _bg_state['last_msg'] = f'SKIP hub_id={hid}'
+                            _bg_state['last_msg'] = f'SKIP hub_id={hid}: {r.get("msg", "?")[:60]}'
                         else:
                             _bg_state['err'] += 1
                             _bg_state['last_msg'] = f'ERR hub_id={hid}: {r.get("msg", "?")[:80]}'
@@ -700,14 +739,15 @@ def repush_all():
                 f'skip={_bg_state["skip"]} err={_bg_state["err"]} total={len(ids)}'
             )
 
-    t = threading.Thread(target=_repush_worker, args=(hub_ids,), daemon=True)
+    t = threading.Thread(target=_repush_worker, args=(hub_ids, allegro_only), daemon=True)
     t.start()
 
     _invalidate_dashboard_cache()
+    mode_label = 'tylko z aktywną Allegro' if allegro_only else 'WSZYSTKIE (z Allegro lub bez)'
+    eta_min = max(1, int(len(hub_ids) * 1.1 / 60))
     flash(
-        f'🚀 Re-push uruchomiony w tle dla {len(hub_ids)} produktów (throttle 1.1s/req → '
-        f'~{int(len(hub_ids) * 1.1 / 60)} min). Postęp widoczny w bannerze, dashboard '
-        f'odświeży się automatycznie.',
+        f'🚀 Synchronizacja uruchomiona w tle dla {len(hub_ids)} produktów '
+        f'({mode_label}, ~{eta_min} min). Postęp widoczny w bannerze.',
         'success',
     )
     return redirect(url_for('sklepakces_ui.dashboard'))
