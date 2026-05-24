@@ -92,14 +92,20 @@ def _gemini_call(prompt: str, api_key: str, max_tokens: int = 800) -> str:
         for attempt in range(3):
             try:
                 model = genai.GenerativeModel(model_name)
-                resp = model.generate_content(
-                    prompt,
-                    generation_config={
-                        'temperature': 0.2,
-                        'max_output_tokens': max_tokens,
-                        'response_mime_type': 'application/json',
-                    },
-                )
+                # 2.5-flash thinking mode zjada tokeny — bump + disable thinking gdy możliwe.
+                gen_config = {
+                    'temperature': 0.2,
+                    'max_output_tokens': max(max_tokens, 2048),  # min 2048 bo 2.5 może zjeść 1500 na thinking
+                    'response_mime_type': 'application/json',
+                }
+                if '2.5' in model_name:
+                    gen_config_with_think = dict(gen_config, thinking_config={'thinking_budget': 0})
+                    try:
+                        resp = model.generate_content(prompt, generation_config=gen_config_with_think)
+                    except (TypeError, ValueError):
+                        resp = model.generate_content(prompt, generation_config=gen_config)
+                else:
+                    resp = model.generate_content(prompt, generation_config=gen_config)
                 return _clean_gemini_json(resp.text or '')
             except Exception as e:
                 err = str(e)

@@ -143,14 +143,24 @@ Bez markdown, tylko czysty JSON."""
         for attempt in range(3):
             try:
                 model = genai.GenerativeModel(model_name)
-                resp = model.generate_content(
-                    prompt,
-                    generation_config={
-                        'temperature': 0.1,
-                        'max_output_tokens': 500,
-                        'response_mime_type': 'application/json',
-                    },
-                )
+                # Gemini 2.5-flash ma thinking mode włączony defaultowo —
+                # zjada wszystkie tokeny na "myślenie" i odcina output JSON mid-stream.
+                # Dla prostego brand lookup-u thinking nie potrzebne → disable + bump tokens.
+                gen_config = {
+                    'temperature': 0.0,  # deterministic — brand → rep mapping, no creativity
+                    'max_output_tokens': 2048,  # 500 było za mało gdy thinking aktywne
+                    'response_mime_type': 'application/json',
+                }
+                # Spróbuj wyłączyć thinking dla 2.5-flash (gdy SDK wspiera)
+                if '2.5' in model_name:
+                    gen_config_with_think = dict(gen_config, thinking_config={'thinking_budget': 0})
+                    try:
+                        resp = model.generate_content(prompt, generation_config=gen_config_with_think)
+                    except (TypeError, ValueError):
+                        # Starszy SDK nie zna thinking_config — fallback na sam max_tokens=2048
+                        resp = model.generate_content(prompt, generation_config=gen_config)
+                else:
+                    resp = model.generate_content(prompt, generation_config=gen_config)
                 text = (resp.text or '').strip()
                 if not text:
                     return {}  # empty response — try next model
