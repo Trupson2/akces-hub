@@ -845,8 +845,11 @@ def push_one_product(
 
     ok, err = validate_payload(payload)
     if not ok:
+        # "brak ceny" to SKIP (oczekiwane dla produktów bez Allegro+DB price),
+        # nie error — żeby banner pokazywał skip=N nie err=N.
+        is_no_price = 'price_pln' in (err or '')
         return {
-            'status': 'error',
+            'status': 'skip' if is_no_price else 'error',
             'hub_id': hub_product_id,
             'sku': payload.get('sku'),
             'msg': err,

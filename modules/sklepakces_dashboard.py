@@ -530,14 +530,15 @@ function filterRows(type, evt) {
 })();
 
 function akcesSyncAllConfirm(form) {
-    // Krok 1 — confirm + wybór mode
+    // Krok 1 — wybór mode (default = safe "allegro": tylko z aktywną aukcją Allegro)
     const choice = prompt(
         '🔄 SYNCHRONIZACJA WSZYSTKICH PRODUKTÓW\n\n' +
         'Wybierz tryb:\n' +
-        '  "all"     — wszystkie produkty (z aktywną Allegro LUB bez, fallback cena_allegro z DB)\n' +
-        '  "allegro" — TYLKO produkty z aktywną aukcją Allegro (ceny live z Allegro)\n\n' +
-        'Wpisz "all" lub "allegro":',
-        'all'
+        '  "allegro" — TYLKO produkty z aktywną aukcją Allegro (ceny live z Allegro) — domyślne, bezpieczne\n' +
+        '  "all"     — wszystkie produkty (z Allegro LUB bez; bez Allegro fallback do cena_allegro DB,\n' +
+        '              SKIP jeśli i tam brak ceny)\n\n' +
+        'Wpisz "allegro" lub "all":',
+        'allegro'
     );
     if (choice === null) return false;
     const mode = String(choice).trim().toLowerCase();
@@ -545,7 +546,8 @@ function akcesSyncAllConfirm(form) {
         alert('Niepoprawny tryb. Operacja anulowana.');
         return false;
     }
-    form.allegro_only.value = (mode === 'allegro') ? 'on' : '';
+    // Default safe: allegro_only=on. "all" opt-in świadomie.
+    form.allegro_only.value = (mode === 'all') ? '' : 'on';
     return true;
 }
 
