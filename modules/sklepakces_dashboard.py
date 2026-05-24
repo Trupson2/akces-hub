@@ -340,11 +340,24 @@ table.sk-table tr:hover { background: var(--bg); }
 
 <div class="sk-action-bar">
     <form method="POST" action="{{ url_for('sklepakces_ui.repush_all') }}"
-          onsubmit="return akcesSyncAllConfirm(this);">
-        <button class="sk-btn primary" type="submit" title="Synchronizuj wszystkie produkty z Hub do sklepakces.pl (re-push istniejących + push nowych eligible)">
-            <span class="material-symbols-outlined" style="font-size:1rem">cloud_sync</span> Synchronizuj wszystko
+          onsubmit="return confirm('Synchronizuj WSZYSTKIE produkty z aktywną aukcją Allegro?\\n\\n• Ceny LIVE z Allegro\\n• Produkty bez Allegro → SKIP\\n• Throttle 1.1s/req, ~2 min dla 100 produktów');"
+          style="display:inline">
+        <input type="hidden" name="allegro_only" value="on">
+        <button class="sk-btn primary" type="submit"
+                title="Pushuje tylko produkty z aktywną ofertą Allegro (ceny live)">
+            <span class="material-symbols-outlined" style="font-size:1rem">cloud_sync</span>
+            Synchronizuj (Allegro)
         </button>
-        <input type="hidden" name="allegro_only" id="sk-allegro-only-input" value="">
+    </form>
+    <form method="POST" action="{{ url_for('sklepakces_ui.repush_all') }}"
+          onsubmit="return confirm('Synchronizuj WSZYSTKIE eligible produkty?\\n\\n• Z Allegro → cena LIVE\\n• Bez Allegro → fallback cena_allegro z DB\\n• Brak ceny w obu → SKIP\\n\\nKontynuować?');"
+          style="display:inline">
+        <input type="hidden" name="allegro_only" value="">
+        <button class="sk-btn secondary" type="submit"
+                title="Pushuje wszystkie produkty (Allegro + fallback DB cena)">
+            <span class="material-symbols-outlined" style="font-size:1rem">sync</span>
+            Sync ALL (z DB)
+        </button>
     </form>
     <form method="POST" action="{{ url_for('sklepakces_ui.delete_all') }}" id="bulk-delete-form"
           onsubmit="return akcesBulkDeleteConfirm(this)" style="display:inline">
@@ -528,28 +541,6 @@ function filterRows(type, evt) {
         } catch (e) { /* network glitch — try next poll */ }
     }, 2000);  // poll co 2s
 })();
-
-function akcesSyncAllConfirm(form) {
-    // Krok 1 — wybór mode (default = safe "allegro": tylko z aktywną aukcją Allegro)
-    const choice = prompt(
-        '🔄 SYNCHRONIZACJA WSZYSTKICH PRODUKTÓW\n\n' +
-        'Wybierz tryb:\n' +
-        '  "allegro" — TYLKO produkty z aktywną aukcją Allegro (ceny live z Allegro) — domyślne, bezpieczne\n' +
-        '  "all"     — wszystkie produkty (z Allegro LUB bez; bez Allegro fallback do cena_allegro DB,\n' +
-        '              SKIP jeśli i tam brak ceny)\n\n' +
-        'Wpisz "allegro" lub "all":',
-        'allegro'
-    );
-    if (choice === null) return false;
-    const mode = String(choice).trim().toLowerCase();
-    if (mode !== 'all' && mode !== 'allegro') {
-        alert('Niepoprawny tryb. Operacja anulowana.');
-        return false;
-    }
-    // Default safe: allegro_only=on. "all" opt-in świadomie.
-    form.allegro_only.value = (mode === 'all') ? '' : 'on';
-    return true;
-}
 
 function akcesBulkDeleteConfirm(form) {
     // Krok 1 — wybierz tryb (trash vs force)
