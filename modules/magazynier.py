@@ -4539,7 +4539,7 @@ def paleta_detail_by_id(paleta_id):
                 <img src="{img}" style="width:100%;height:100%;object-fit:cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2790%27 height=%2790%27%3E%3Crect fill=%27%23262528%27 width=%2790%27 height=%2790%27 rx=%278%27/%3E%3Ctext x=%2745%27 y=%2752%27 fill=%27%23767577%27 text-anchor=%27middle%27 font-size=%2728%27%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E'">
             </div>
             <div style="display:flex;flex-direction:column;justify-content:center;flex:1;min-width:0">
-                <div style="font-family:'Space Grotesk',sans-serif;font-size:0.88rem;font-weight:700;color:#f9f5f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{p['nazwa'][:40]}</div>
+                <div style="font-family:'Space Grotesk',sans-serif;font-size:0.88rem;font-weight:700;color:#f9f5f8;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word">{p['nazwa']}</div>
                 <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap">
                     <span style="font-size:0.65rem;color:#adaaad;font-family:monospace">{display_code}</span>
                     {_stock_dot}
