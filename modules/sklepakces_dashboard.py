@@ -46,6 +46,39 @@ _bg_state = {
     'last_msg': '',
 }
 
+# Dashboard data cache — 350+ subqueries dla 117 produktów było slow (>5s),
+# Cloudflare/browser timeout. TTL 10s: F5 / redirect-after-POST są instant,
+# user dostaje stale data max 10s (akceptowalne dla admin UI).
+_dashboard_cache = {'data': None, 'ts': 0.0}
+_dashboard_cache_lock = threading.Lock()
+DASHBOARD_CACHE_TTL_SEC = 10
+
+
+def _get_dashboard_data_cached():
+    """Cached wrapper dla _get_dashboard_data() — 10s TTL.
+
+    Invalidowane przez _invalidate_dashboard_cache() po akcjach modyfikujących
+    state (repush, delete, etc.) żeby user dostał fresh data po klik.
+    """
+    with _dashboard_cache_lock:
+        now = time.time()
+        cached = _dashboard_cache.get('data')
+        if cached is not None and (now - _dashboard_cache['ts']) < DASHBOARD_CACHE_TTL_SEC:
+            return cached
+    # Cache miss / expired — heavy query (poza lockiem żeby nie blokować innych readów)
+    data = _get_dashboard_data()
+    with _dashboard_cache_lock:
+        _dashboard_cache['data'] = data
+        _dashboard_cache['ts'] = time.time()
+    return data
+
+
+def _invalidate_dashboard_cache():
+    """Wyczyść cache — call po POST actions (repush/delete) żeby następny GET fetch fresh."""
+    with _dashboard_cache_lock:
+        _dashboard_cache['data'] = None
+        _dashboard_cache['ts'] = 0.0
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Data helpers
@@ -55,8 +88,16 @@ def _get_dashboard_data():
     """Pobierz wszystkie dane potrzebne do dashboardu (one query, joinami)."""
     conn = get_db()
 
-    # Pushed produkty z mirror — JOIN z produkty (Hub) i oferty (active Allegro).
+    # Pushed produkty z mirror — JOIN z produkty (Hub) + oferty (active Allegro).
+    # Optymalizacja: CTE z window function ROW_NUMBER (SQLite 3.25+) zamiast
+    # 3× correlated subquery per row (było ~350 subqueries × 117 produktów = slow).
     rows = conn.execute("""
+        WITH active_offer AS (
+            SELECT produkt_id, cena, ilosc, allegro_id,
+                   ROW_NUMBER() OVER (PARTITION BY produkt_id ORDER BY data_aktualizacji DESC) AS rn
+            FROM oferty
+            WHERE status = 'aktywna' AND cena > 0
+        )
         SELECT
             s.wc_product_id, s.sku, s.name, s.regular_price, s.stock_quantity,
             s.product_data, s.created_at, s.updated_at,
@@ -71,19 +112,14 @@ def _get_dashboard_data():
             p.cena_brutto   AS hub_cena_brutto,
             p.cena_allegro  AS hub_cena_allegro,
             p.ilosc         AS hub_ilosc,
-            (SELECT cena FROM oferty o
-                WHERE o.produkt_id = p.id AND o.status='aktywna' AND o.cena > 0
-                ORDER BY o.data_aktualizacji DESC LIMIT 1) AS allegro_cena,
-            (SELECT ilosc FROM oferty o
-                WHERE o.produkt_id = p.id AND o.status='aktywna' AND o.cena > 0
-                ORDER BY o.data_aktualizacji DESC LIMIT 1) AS allegro_ilosc,
-            (SELECT allegro_id FROM oferty o
-                WHERE o.produkt_id = p.id AND o.status='aktywna' AND o.cena > 0
-                ORDER BY o.data_aktualizacji DESC LIMIT 1) AS allegro_id
+            ao.cena         AS allegro_cena,
+            ao.ilosc        AS allegro_ilosc,
+            ao.allegro_id   AS allegro_id
         FROM sklepakces_products s
         LEFT JOIN produkty p ON p.id = json_extract(s.product_data, '$.hub_id')
             OR ('EAN-' || p.ean = s.sku)
             OR ('HUB-' || p.id = s.sku)
+        LEFT JOIN active_offer ao ON ao.produkt_id = p.id AND ao.rn = 1
         ORDER BY s.updated_at DESC, s.created_at DESC
         LIMIT 500
     """).fetchall()
@@ -534,7 +570,7 @@ function akcesBulkDeleteConfirm(form) {
 @sklepakces_ui_bp.route('/', methods=['GET'])
 @require_admin
 def dashboard():
-    data = _get_dashboard_data()
+    data = _get_dashboard_data_cached()
     with _bg_lock:
         bg = dict(_bg_state)
     if bg.get('started_at'):
@@ -576,6 +612,7 @@ def repush(hub_id: int):
             f'❌ Re-push hub_id={hub_id} ERROR: {result.get("msg") or result.get("response")}',
             'error',
         )
+    _invalidate_dashboard_cache()
     return redirect(url_for('sklepakces_ui.dashboard'))
 
 
@@ -666,6 +703,7 @@ def repush_all():
     t = threading.Thread(target=_repush_worker, args=(hub_ids,), daemon=True)
     t.start()
 
+    _invalidate_dashboard_cache()
     flash(
         f'🚀 Re-push uruchomiony w tle dla {len(hub_ids)} produktów (throttle 1.1s/req → '
         f'~{int(len(hub_ids) * 1.1 / 60)} min). Postęp widoczny w bannerze, dashboard '
@@ -739,4 +777,5 @@ def delete_all():
             f'❌ Bulk delete error: {result.get("msg")} (HTTP {result.get("http_status")})',
             'error',
         )
+    _invalidate_dashboard_cache()
     return redirect(url_for('sklepakces_ui.dashboard'))
