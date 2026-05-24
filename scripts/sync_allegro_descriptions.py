@@ -100,26 +100,94 @@ def _sections_to_html(description: dict) -> str:
     return '\n\n'.join(parts).strip()
 
 
-def _sync_one(allegro_id: str, force: bool = False) -> dict:
-    """Fetch description z Allegro API + save do oferty.opis.
+def _extract_gtin_from_allegro_offer(result: dict) -> str:
+    """Wyciągnij GTIN/EAN z Allegro offer JSON (różne miejsca per Allegro API version)."""
+    # 1. external.id (GTIN-13 jako string)
+    ext = result.get('external') or {}
+    if ext.get('id'):
+        return str(ext['id']).strip()
+    # 2. productSet[0].product.gtin / .gtinTag / .ean
+    psets = result.get('productSet') or []
+    if psets and isinstance(psets, list):
+        prod = (psets[0].get('product') or {}) if isinstance(psets[0], dict) else {}
+        for key in ('gtin', 'gtinTag', 'ean', 'EAN'):
+            if prod.get(key):
+                return str(prod[key]).strip()
+    # 3. Parameters list (rzadziej)
+    for psets_item in psets:
+        if not isinstance(psets_item, dict): continue
+        params = (psets_item.get('product') or {}).get('parameters') or []
+        for p in params:
+            if not isinstance(p, dict): continue
+            pid = (p.get('id') or '').lower()
+            if 'ean' in pid or 'gtin' in pid:
+                vals = p.get('values') or []
+                if vals: return str(vals[0]).strip()
+    return ''
 
-    Returns dict {status, allegro_id, msg, opis_len}.
+
+def _link_produkt_id(conn, oferta_db_id: int, allegro_offer: dict, tytul: str) -> int:
+    """Match oferty.produkt_id z Hub produkty po EAN (Allegro GTIN) lub fuzzy title.
+
+    Returns produkt_id (lub 0 gdy nie znaleziono).
+    """
+    # 1. Try po GTIN/EAN
+    ean = _extract_gtin_from_allegro_offer(allegro_offer)
+    if ean and len(ean) >= 8:
+        row = conn.execute('SELECT id FROM produkty WHERE ean = ? LIMIT 1', (ean,)).fetchone()
+        if row:
+            pid = int(row['id'])
+            conn.execute('UPDATE oferty SET produkt_id = ? WHERE id = ?', (pid, oferta_db_id))
+            return pid
+
+    # 2. Fallback: fuzzy match po tytule (first 30 chars LIKE)
+    if tytul:
+        # Sanitize: take first 30 chars, escape SQL wildcards
+        prefix = tytul.strip()[:40].replace('%', '').replace('_', '')
+        if len(prefix) >= 10:
+            row = conn.execute(
+                'SELECT id FROM produkty WHERE (krotki_tytul LIKE ? OR nazwa LIKE ?) LIMIT 1',
+                (f'%{prefix}%', f'%{prefix}%'),
+            ).fetchone()
+            if row:
+                pid = int(row['id'])
+                conn.execute('UPDATE oferty SET produkt_id = ? WHERE id = ?', (pid, oferta_db_id))
+                return pid
+
+    return 0
+
+
+def _sync_one(allegro_id: str, force: bool = False) -> dict:
+    """Fetch description z Allegro API + save do oferty.opis + link produkt_id.
+
+    Returns dict {status, allegro_id, msg, opis_len, produkt_id (after link)}.
     """
     conn = get_db()
     row = conn.execute(
-        'SELECT id, produkt_id, opis FROM oferty WHERE allegro_id = ? LIMIT 1',
+        'SELECT id, produkt_id, opis, tytul FROM oferty WHERE allegro_id = ? LIMIT 1',
         (allegro_id,),
     ).fetchone()
     if not row:
         return {'status': 'skip', 'allegro_id': allegro_id, 'msg': 'oferta nie w bazie'}
 
-    if not force and row['opis'] and len(row['opis']) > 50:
-        return {'status': 'skip', 'allegro_id': allegro_id, 'msg': 'opis już cached (use --force)'}
-
     # Fetch z Allegro API
     result, error = allegro_request('GET', f'/sale/product-offers/{allegro_id}')
     if error or not result:
         return {'status': 'error', 'allegro_id': allegro_id, 'msg': f'Allegro API: {error or "no data"}'}
+
+    # ZAWSZE try link produkt_id (jeśli pusto) — niezależnie od force/cached opis
+    produkt_id = row['produkt_id']
+    if not produkt_id:
+        produkt_id = _link_produkt_id(conn, row['id'], result, row['tytul'] or '')
+        conn.commit()
+
+    # Sprawdz cached opis (po link próbie)
+    if not force and row['opis'] and len(row['opis']) > 50:
+        return {
+            'status': 'skip', 'allegro_id': allegro_id,
+            'produkt_id': produkt_id or None,
+            'msg': f'opis cached, link {"OK" if produkt_id else "FAIL"}',
+        }
 
     description = result.get('description') or {}
     html = _sections_to_html(description)
@@ -134,7 +202,7 @@ def _sync_one(allegro_id: str, force: bool = False) -> dict:
     return {
         'status': 'ok',
         'allegro_id': allegro_id,
-        'produkt_id': row['produkt_id'],
+        'produkt_id': produkt_id or None,
         'opis_len': len(html),
     }
 
