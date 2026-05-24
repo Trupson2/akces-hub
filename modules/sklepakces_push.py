@@ -1071,6 +1071,29 @@ def push_one_product(
         except Exception as e:
             logger.warning(f'GPSR fetch failed (push continues without gpsr) hub_id={hub_product_id}: {e}')
 
+    # ENHANCE: gdy Amazon nie dał manufacturer (~88% przypadków) ALE Gemini wyciągnął
+    # real brand do parameters JSON → wpisz brand jako manufacturer_name w GPSR payload.
+    # Theme wyświetli "Producent: Canon" zamiast tylko "Osoba odpowiedzialna w UE: AKCES Andrzej Gauza".
+    # User: "tylko ze dalej daje gauziniego xd" → dla 88% produktów ekstra-fallback z Gemini.
+    if gpsr_payload and not gpsr_payload.get('manufacturer_name'):
+        try:
+            params_raw = row_dict.get('parameters')
+            if params_raw:
+                params = json.loads(params_raw) if isinstance(params_raw, str) else params_raw
+                if isinstance(params, dict):
+                    for k in ('brand', 'marka', 'producent', 'manufacturer'):
+                        v = params.get(k)
+                        if v and not _is_paleta_supplier(str(v)):
+                            gpsr_payload['manufacturer_name'] = str(v).strip()[:120]
+                            logger.info(f'GPSR manufacturer z Gemini brand: hub_id={hub_product_id} brand="{gpsr_payload["manufacturer_name"]}"')
+                            break
+                    # Model number jako bonus (theme pokazuje)
+                    model = params.get('model')
+                    if model and not gpsr_payload.get('model_number'):
+                        gpsr_payload['model_number'] = str(model).strip()[:60]
+        except (json.JSONDecodeError, TypeError):
+            pass
+
     payload = map_hub_to_plugin(
         row_dict, gpsr=gpsr_payload, conn=conn,
         allegro_active_price=allegro_active_price,
