@@ -3293,7 +3293,25 @@ def api_update_price():
 
 @palety_bp.route('/palety/<int:paleta_id>')
 def paleta_szczegoly(paleta_id):
-    """Widok szczegółów palety z kolorami statusów"""
+    """[REDIRECT] /palety/<id> → /magazyn/paleta-id/<id>.
+
+    User raport (2026-05-24): "zjednolic do tego 2 widoku" — clean view
+    (magazynier/paleta_detail_by_id) ma lepszy UX (stats cards + tabs +
+    big action buttons) niż stary rich view w paleta_szczegoly.
+
+    Edit features dostępne dalej przez:
+      - /palety/<id>/mass-edit  (paleta_mass_edit, bulk operations)
+      - /magazyn/paleta-id/<id> ma własne edit buttony (W drodze, Edytuj, etc.)
+
+    Stary HTML render zachowany niżej (po return) jako _paleta_szczegoly_legacy()
+    na wypadek gdyby trzeba było cofnąć (commit history też ma).
+    """
+    from flask import redirect, url_for
+    return redirect(f'/magazyn/paleta-id/{paleta_id}', code=302)
+
+
+def _paleta_szczegoly_legacy(paleta_id):
+    """Legacy rich view — wycofany 2026-05-24. Nie route'owany, do referencji."""
     from modules.database import get_db
 
     conn = get_db()
