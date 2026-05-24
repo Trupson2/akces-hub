@@ -1099,6 +1099,26 @@ def push_one_product(
             'msg': 'już zsynchronizowany (mirror sklepakces_products) — użyj force=True aby re-push',
         }
 
+    # DEDUP po EAN — żeby 2 produkty z tym samym EAN nie wylądowały jako 2 osobne
+    # produkty na WC (user raport: "2 ofert takich samych nie bylo na sklepie").
+    # Hub może mieć 2+ produktów z tym samym EAN (różne paleta_id) — bierzemy
+    # pierwszy zsynchronizowany, reszta SKIP.
+    ean_payload = (payload.get('ean') or '').strip()
+    if ean_payload and not force:
+        existing_dup = conn.execute(
+            "SELECT wc_product_id, sku FROM sklepakces_products WHERE sku = ? AND sku != ? LIMIT 1",
+            (f'EAN-{ean_payload}', payload['sku']),
+        ).fetchone()
+        if existing_dup:
+            return {
+                'status': 'skip',
+                'hub_id': hub_product_id,
+                'sku': payload['sku'],
+                'msg': f'duplikat EAN — produkt o EAN={ean_payload} już na sklepie jako '
+                       f'{dict(existing_dup).get("sku")} (wc_id={dict(existing_dup).get("wc_product_id")}). '
+                       f'Użyj force=True aby UPDATE existing.',
+            }
+
     t0 = time.time()
     http_code, response = push_product(payload)
     duration_ms = int((time.time() - t0) * 1000)
