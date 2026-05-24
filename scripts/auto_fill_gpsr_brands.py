@@ -108,23 +108,30 @@ def _gemini_lookup(brand: str, api_key: str) -> dict:
         logger.error('google-genai nie zainstalowane. Run: pip install --break-system-packages google-genai')
         return {}
 
-    prompt = f"""Jesteś ekspertem prawnym GPSR (UE 2023/988 art. 8).
+    prompt = f"""Jesteś ekspertem prawnym GPSR (UE 2023/988 art. 8) i znasz EU representatives
+zarówno dużych korporacji jak i małych chińskich sellerów z Amazon.
 
 BRAND: "{brand}"
 
-ZADANIE: Znajdź SPECYFICZNEGO EU responsible person dla TEGO konkretnego brandu.
+ZADANIE: Pomyśl krok po kroku.
+1. Sprawdź swoją wiedzę o brandzie "{brand}" — czy widziałeś go na Amazon/eBay z GPSR info?
+2. Jeśli brand ma listing w sklepie internetowym w UE — kto jest tam EU rep?
+3. Większość chińskich brandów ma EU GmbH zarejestrowane w Niemczech (np. "{brand} GmbH").
+4. Korporacje mają oficjalne EU offices (Canon Europa N.V., Sony Europe B.V.).
 
 KRYTYCZNE ZASADY:
 1. KAŻDY brand sprzedawany w UE MUSI mieć WŁASNEGO EU representative.
 2. NIE wracaj generic "CET PRODUCT SERVICE SP. Z O.O." ani "Amazon Retourenkauf"
    jako default guess. To są EU reps SPECYFICZNE dla Amazon Renewed/Returns,
    NIE dla każdego brandu chińskiego.
-3. Dla brandu "ELVIROS" → szukaj specific "ELVIROS EU GmbH" lub podobne.
-   Dla "AZDOME" → "AZDOME GmbH" lub ich Amazon DE rejestracja.
-   Dla "Canon" → "Canon Europa N.V." (Amsterdam, NL).
-   Dla "Sony" → "Sony Europe B.V." (Surrey, UK lub NL).
-4. Jeśli NIE ZNASZ specific EU rep dla tego brandu — zwróć name=null
-   (skip — fallback handle sam). NIE zgaduj.
+3. Przykłady poprawnych odpowiedzi:
+   "ELVIROS" → "ELVIROS EU GmbH" (lub podobne, conf=medium)
+   "AZDOME" → "AZDOME GmbH" (conf=high)
+   "Canon" → "Canon Europa N.V." Amsterdam NL (conf=high)
+   "Sony" → "Sony Europe B.V." NL (conf=high)
+   "ATUMTEK" → "ATUMTEK EU GmbH" (conf=high, znany Amazon brand)
+4. Jeśli FAKTYCZNIE nie masz żadnej wiedzy o tym brandzie — name=null, conf=low.
+   Ale NAJPIERW pomyśl czy to nie znany Amazon seller.
 
 Zwróć WYŁĄCZNIE valid JSON:
 {{
@@ -150,19 +157,21 @@ WAŻNE:
     for model_name in ('gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'):
         for attempt in range(3):
             try:
-                # 2.5-flash MUSI mieć thinking (knowledge recall = reasoning).
-                # Test: thinking=0 → Gemini defaultuje na "unknown" dla znanych brandów.
-                # Nowy SDK: thinking i output to OSOBNE budżety (nie konkurują),
-                # więc dajemy 2048 na thinking + 8192 na output = pełna jakość.
+                # 2.5-flash + nowy SDK: temp=0 + fixed thinking budżet => model
+                # zbyt sztywny, mówi "unknown" dla brandów które zna z weak signal.
+                # Dynamic thinking (-1) + lekki temp pozwala Geminemu commit na
+                # weaker beliefs (np. "ATUMTEK EU GmbH" z conf=medium zamiast
+                # null+conf=high).
                 config_kwargs = {
-                    'temperature': 0.0,  # deterministic — brand → rep mapping
-                    'max_output_tokens': 8192,  # response body (notes + reszta)
+                    'temperature': 0.1,  # mała randomness — odbloku weak signals
+                    'max_output_tokens': 8192,
                     'response_mime_type': 'application/json',
                 }
                 if '2.5' in model_name:
-                    # Pozwól na 2048 tokenów reasoning — Gemini przypomina sobie
-                    # brand → EU rep zanim odpowie. Bez tego: same "unknown".
-                    config_kwargs['thinking_config'] = types.ThinkingConfig(thinking_budget=2048)
+                    # -1 = dynamic — model sam decyduje ile thinking potrzebuje.
+                    # Daje to lepsze recall niż fixed budget (test confirmed
+                    # że fixed=0 i fixed=2048 dawały gorsze rezultaty).
+                    config_kwargs['thinking_config'] = types.ThinkingConfig(thinking_budget=-1)
                 config = types.GenerateContentConfig(**config_kwargs)
                 resp = client.models.generate_content(
                     model=model_name,
