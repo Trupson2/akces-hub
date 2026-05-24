@@ -28,6 +28,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
 import time
 
@@ -48,6 +49,43 @@ from modules.amazon_gpsr_scraper import (  # noqa: E402
 )
 
 THROTTLE_SEC = 4.0  # Gemini 2.5-flash paid tier: 1000 RPM teoretycznie, ale per-key/region quota bywa niższa. 4s = 15 RPM = bezpieczne dla mniejszych limitów (po user raport 429 errors).
+
+
+def _clean_gemini_json(text: str) -> str:
+    """Strip Gemini's common formatting bugs przed json.loads.
+
+    Gemini 2.5-flash bywa że zwraca markdown wrap mimo response_mime_type=application/json,
+    albo prefix/suffix typu "Here is the JSON:" → wytnij.
+    """
+    if not text:
+        return text
+    s = text.strip()
+    # Strip markdown code fences: ```json ... ``` lub ``` ... ```
+    if s.startswith('```'):
+        # Remove opening fence (```json\n or ```\n)
+        first_newline = s.find('\n')
+        if first_newline > 0:
+            s = s[first_newline + 1:]
+        # Remove closing fence
+        if s.endswith('```'):
+            s = s[:-3].rstrip()
+    # Strip leading BOM jeśli jest
+    if s.startswith('﻿'):
+        s = s[1:]
+    return s.strip()
+
+
+def _extract_json_object(text: str) -> str:
+    """Spróbuj wyciągnąć pierwszy {...} JSON object z tekstu (regex fallback).
+
+    Gdy Gemini doda komentarze/wyjaśnienie przed/po JSON, ten regex znajdzie
+    najszerszy match na fragment podobny do JSON object.
+    """
+    if not text:
+        return ''
+    # Greedy match od pierwszego { do ostatniego } (najszerszy possibly-JSON span)
+    m = re.search(r'\{.*\}', text, re.DOTALL)
+    return m.group(0) if m else ''
 
 
 def _gemini_lookup(brand: str, api_key: str) -> dict:
@@ -114,12 +152,25 @@ Bez markdown, tylko czysty JSON."""
                     },
                 )
                 text = (resp.text or '').strip()
-                if text:
-                    return json.loads(text)
-                return {}  # empty response — try next model
-            except json.JSONDecodeError as e:
-                logger.warning(f'Gemini JSON parse fail brand={brand} model={model_name}: {e}')
-                return {}
+                if not text:
+                    return {}  # empty response — try next model
+                # Gemini czasem zwraca markdown wrap ```json ... ``` mimo response_mime_type
+                # (znany bug 2.5-flash dla niszowych queries — strip & re-parse).
+                cleaned = _clean_gemini_json(text)
+                try:
+                    return json.loads(cleaned)
+                except json.JSONDecodeError as je:
+                    logger.warning(
+                        f'Gemini JSON parse fail brand={brand} model={model_name}: {je} | raw[0:300]={text[:300]!r}'
+                    )
+                    # Spróbuj wyciągnąć JSON object regex jako last resort
+                    extracted = _extract_json_object(text)
+                    if extracted:
+                        try:
+                            return json.loads(extracted)
+                        except json.JSONDecodeError:
+                            pass
+                    return {}
             except Exception as e:
                 err = str(e)
                 # 429 Rate limit / quota — backoff retry

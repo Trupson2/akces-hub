@@ -31,6 +31,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
 import time
 
@@ -48,6 +49,30 @@ logger = logging.getLogger(__name__)
 from modules.database import get_db, get_config  # noqa: E402
 
 THROTTLE_SEC = 2.0  # Gemini API quota — 2s/req safe (free tier 60/min)
+
+
+def _clean_gemini_json(text: str) -> str:
+    """Strip Gemini's common formatting bugs (markdown fences, BOM)."""
+    if not text:
+        return text
+    s = text.strip()
+    if s.startswith('```'):
+        first_newline = s.find('\n')
+        if first_newline > 0:
+            s = s[first_newline + 1:]
+        if s.endswith('```'):
+            s = s[:-3].rstrip()
+    if s.startswith('﻿'):
+        s = s[1:]
+    return s.strip()
+
+
+def _extract_json_object(text: str) -> str:
+    """Fallback: wyciągnij pierwszy {...} object z tekstu."""
+    if not text:
+        return ''
+    m = re.search(r'\{.*\}', text, re.DOTALL)
+    return m.group(0) if m else ''
 
 
 def _gemini_call(prompt: str, api_key: str, max_tokens: int = 800) -> str:
@@ -75,7 +100,7 @@ def _gemini_call(prompt: str, api_key: str, max_tokens: int = 800) -> str:
                         'response_mime_type': 'application/json',
                     },
                 )
-                return (resp.text or '').strip()
+                return _clean_gemini_json(resp.text or '')
             except Exception as e:
                 err = str(e)
                 if '429' in err or 'Resource exhausted' in err or 'quota' in err.lower():
@@ -152,7 +177,15 @@ def _enrich_one(produkt: dict, api_key: str, force: bool = False) -> dict:
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as e:
-        return {'status': 'error', 'id': pid, 'msg': f'JSON parse fail: {e}', 'raw': raw[:200]}
+        # Last resort — regex wyciągnij {...} z tekstu (Gemini doda komentarz przed/po)
+        extracted = _extract_json_object(raw)
+        if extracted:
+            try:
+                data = json.loads(extracted)
+            except json.JSONDecodeError:
+                return {'status': 'error', 'id': pid, 'msg': f'JSON parse fail: {e}', 'raw': raw[:200]}
+        else:
+            return {'status': 'error', 'id': pid, 'msg': f'JSON parse fail: {e}', 'raw': raw[:200]}
 
     if not isinstance(data, dict):
         return {'status': 'error', 'id': pid, 'msg': f'Gemini zwrocil non-dict: {type(data).__name__}'}
