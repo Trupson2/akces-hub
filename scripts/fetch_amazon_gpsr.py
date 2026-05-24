@@ -71,8 +71,21 @@ def _fmt_gpsr(g: GpsrData) -> str:
     )
 
 
+def _is_playwright_fallback_enabled() -> bool:
+    """Czy Hub config ma amazon_gpsr_playwright_fallback='1' (auto fallback)."""
+    try:
+        from modules.database import get_config
+        return (get_config('amazon_gpsr_playwright_fallback', '0') or '0') == '1'
+    except Exception:
+        return False
+
+
 def cmd_asin(asin: str, region: str, force: bool, use_playwright: bool = False) -> int:
-    g = fetch_gpsr(asin=asin, region=region, use_cache=not force, use_playwright=use_playwright)
+    pw_fb = _is_playwright_fallback_enabled()
+    g = fetch_gpsr(
+        asin=asin, region=region, use_cache=not force,
+        use_playwright=use_playwright, playwright_fallback=pw_fb,
+    )
     print(_fmt_gpsr(g))
     return 0 if g.is_compliant() else 1
 
@@ -89,7 +102,8 @@ def cmd_hub_id(hub_id: int, region: str, force: bool, use_playwright: bool = Fal
         g = fetch_gpsr(asin='', region=region, use_fallback=True)
     else:
         print(f'Hub produkt id={hub_id} asin={asin} ("{dict(row)["nazwa"][:50]}")...')
-        g = fetch_gpsr(asin=asin, region=region, ean=dict(row).get('ean') or '', use_cache=not force, use_playwright=use_playwright)
+        pw_fb = _is_playwright_fallback_enabled()
+        g = fetch_gpsr(asin=asin, region=region, ean=dict(row).get('ean') or '', use_cache=not force, use_playwright=use_playwright, playwright_fallback=pw_fb)
     print(_fmt_gpsr(g))
     return 0 if g.is_compliant() else 1
 
