@@ -47,7 +47,7 @@ from modules.amazon_gpsr_scraper import (  # noqa: E402
     init_brand_overrides_schema, get_brand_gpsr_override, save_brand_gpsr_override,
 )
 
-THROTTLE_SEC = 1.5  # Gemini paid tier safe
+THROTTLE_SEC = 4.0  # Gemini 2.5-flash paid tier: 1000 RPM teoretycznie, ale per-key/region quota bywa niższa. 4s = 15 RPM = bezpieczne dla mniejszych limitów (po user raport 429 errors).
 
 
 def _gemini_lookup(brand: str, api_key: str) -> dict:
@@ -97,29 +97,48 @@ formalnie używa tego rep'a (rzadko).
 Bez markdown, tylko czysty JSON."""
 
     genai.configure(api_key=api_key)
-    for model_name in ('gemini-2.0-flash', 'gemini-1.5-flash'):
-        try:
-            model = genai.GenerativeModel(model_name)
-            resp = model.generate_content(
-                prompt,
-                generation_config={
-                    'temperature': 0.1,  # Low = factual
-                    'max_output_tokens': 500,
-                    'response_mime_type': 'application/json',
-                },
-            )
-            text = (resp.text or '').strip()
-            if text:
-                return json.loads(text)
-        except json.JSONDecodeError as e:
-            logger.warning(f'Gemini JSON parse fail brand={brand}: {e}')
-            return {}
-        except Exception as e:
-            err = str(e)
-            if '404' in err or 'NOT_FOUND' in err:
-                continue
-            logger.warning(f'Gemini fail ({model_name}) brand={brand}: {e}')
-            return {}
+    # Model chain — od najnowszego/highest quota do legacy.
+    # gemini-2.5-flash = current stable, dobry quota dla paid tier.
+    # gemini-2.5-flash-lite = lighter, jeszcze tańszy.
+    # gemini-1.5-flash-latest = legacy fallback.
+    for model_name in ('gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-1.5-flash-latest', 'gemini-2.0-flash'):
+        for attempt in range(3):
+            try:
+                model = genai.GenerativeModel(model_name)
+                resp = model.generate_content(
+                    prompt,
+                    generation_config={
+                        'temperature': 0.1,
+                        'max_output_tokens': 500,
+                        'response_mime_type': 'application/json',
+                    },
+                )
+                text = (resp.text or '').strip()
+                if text:
+                    return json.loads(text)
+                return {}  # empty response — try next model
+            except json.JSONDecodeError as e:
+                logger.warning(f'Gemini JSON parse fail brand={brand} model={model_name}: {e}')
+                return {}
+            except Exception as e:
+                err = str(e)
+                # 429 Rate limit / quota — backoff retry
+                if '429' in err or 'Resource exhausted' in err or 'quota' in err.lower():
+                    if attempt < 2:
+                        backoff = 2 ** attempt * 3  # 3s, 6s, 12s
+                        logger.info(f'Gemini 429 brand={brand} model={model_name} — retry za {backoff}s ({attempt+1}/3)')
+                        time.sleep(backoff)
+                        continue
+                    # Po 3 retry — try next model (może ma osobny quota)
+                    logger.warning(f'Gemini 429 final brand={brand} model={model_name} — try next model')
+                    break
+                # 404 / model not found — try next model
+                if '404' in err or 'NOT_FOUND' in err or 'not found' in err.lower():
+                    logger.debug(f'Gemini model {model_name} not available for brand={brand}, try next')
+                    break
+                # Inne errors — log + return empty
+                logger.warning(f'Gemini fail ({model_name}) brand={brand}: {e}')
+                return {}
     return {}
 
 
