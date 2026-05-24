@@ -190,47 +190,67 @@ def step4_refill_gemini(dry: bool, api_key: str) -> int:
 # ────────────────────────────────────────────────────────────────────────
 
 def step5_repush(dry: bool, limit: int = 0) -> dict:
-    print('\n━━━ KROK 5: RE-PUSH produktów na sklep (force=True) ━━━')
+    print('\n━━━ KROK 5: PUSH produktów na sklep ━━━')
     conn = get_db()
-    # Liczymy produkty które są na sklepie (są w mirror sklepakces_products)
-    count = conn.execute(
-        "SELECT COUNT(*) FROM sklepakces_products"
-    ).fetchone()[0]
-    print(f'  Produktów na sklepie (sklepakces_products mirror): {count}')
-
-    # Liczymy produkty z brand w parameters (kandydaci do nowego GPSR)
-    with_brand = conn.execute(
+    # Diagnostyka stanu
+    mirror_count = conn.execute('SELECT COUNT(*) FROM sklepakces_products').fetchone()[0]
+    eligible_count = conn.execute(
         "SELECT COUNT(*) FROM produkty p "
-        "JOIN sklepakces_products s ON s.sku IN ('EAN-' || p.ean, 'HUB-' || p.id) "
-        "WHERE p.parameters IS NOT NULL AND json_valid(p.parameters) = 1 "
+        "WHERE p.status = 'magazyn' "
+        "  AND NOT EXISTS (SELECT 1 FROM sklepakces_products s "
+        "                  WHERE s.sku IN ('EAN-' || p.ean, 'HUB-' || p.id))"
+    ).fetchone()[0]
+    with_brand_count = conn.execute(
+        "SELECT COUNT(*) FROM produkty p "
+        "WHERE p.status = 'magazyn' "
+        "  AND p.parameters IS NOT NULL AND json_valid(p.parameters) = 1 "
         "  AND json_extract(p.parameters, '$.brand') IS NOT NULL"
     ).fetchone()[0]
-    print(f'  Produktów z brand (kandydaci do GPSR override): {with_brand}')
+    print(f'  Mirror sklepakces_products:           {mirror_count}')
+    print(f'  Eligible (status=magazyn, unsynced):  {eligible_count}')
+    print(f'  Z brand w parameters:                 {with_brand_count}')
+
+    if eligible_count == 0:
+        print('  ⊘ Nic do pushu (wszystkie produkty już zsynchronizowane lub brak status=magazyn)')
+        print('  → Jeśli chcesz RE-pushnąć już-zsynchronizowane (force=True), użyj:')
+        print('     python3 scripts/push_sklepakces.py --all --limit 50')
+        return {'pushed': 0, 'skipped': mirror_count, 'errors': 0}
 
     if dry:
-        print(f'  [DRY] re-push wszystkich {count} produktów (force=True)')
-        return {'pushed': 0, 'skipped': count, 'errors': 0}
+        print(f'  [DRY] pushnąłbym {eligible_count} eligible produktów')
+        return {'pushed': 0, 'skipped': eligible_count, 'errors': 0}
 
-    # Import push_all
+    # Import correct function (push_all_unsynced — generator)
     try:
-        from modules.sklepakces_push import push_all
+        from modules.sklepakces_push import push_all_unsynced
     except ImportError as e:
-        print(f'  ❌ import sklepakces_push failed: {e}')
+        print(f'  ❌ import sklepakces_push.push_all_unsynced failed: {e}')
         return {'pushed': 0, 'skipped': 0, 'errors': 1}
 
-    print(f'  Running push_all(force=True)... (może potrwać kilka minut)')
+    print(f'  Running push_all_unsynced(limit={limit or None})... (może potrwać kilka min)')
     t0 = time.perf_counter()
+    pushed = skipped = errors = 0
     try:
-        result = push_all(force=True)
+        for result in push_all_unsynced(
+            limit=limit if limit > 0 else None,
+            dry_run=False,
+            only_status='magazyn',
+            with_gpsr=True,
+            require_allegro_active=False,  # NIE wymagaj Allegro — pcham też produkty bez aukcji
+        ):
+            status = result.get('status', '?') if isinstance(result, dict) else '?'
+            if status == 'ok' or status == 'success':
+                pushed += 1
+            elif status == 'skip':
+                skipped += 1
+            else:
+                errors += 1
     except Exception as e:
-        print(f'  ❌ push_all error: {e}')
-        return {'pushed': 0, 'skipped': 0, 'errors': 1}
+        print(f'  ❌ push_all_unsynced error: {e}')
+        return {'pushed': pushed, 'skipped': skipped, 'errors': errors + 1}
     dt = time.perf_counter() - t0
-    if isinstance(result, dict):
-        print(f'  ✅ push_all skończony w {dt:.0f}s: {result}')
-        return result
-    print(f'  ✅ push_all skończony w {dt:.0f}s (raw: {result})')
-    return {'pushed': result, 'skipped': 0, 'errors': 0}
+    print(f'  ✅ push_all_unsynced skończony w {dt:.0f}s: pushed={pushed} skipped={skipped} errors={errors}')
+    return {'pushed': pushed, 'skipped': skipped, 'errors': errors}
 
 
 # ────────────────────────────────────────────────────────────────────────
