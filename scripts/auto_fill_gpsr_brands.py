@@ -136,18 +136,28 @@ KRYTYCZNE ZASADY:
 Zwróć WYŁĄCZNIE valid JSON:
 {{
   "name": "Pełna nazwa firmy EU rep (np. 'AZDOME GmbH') lub null jeśli nie wiesz",
-  "address": "Pełen adres (ulica, miasto, kod, kraj) lub null",
-  "email": "Kontakt mailowy EU rep lub null",
-  "confidence": "high" (jesteś pewien) | "medium" (znany brand, rep prawdopodobny) | "low" (zgadujesz),
-  "notes": "MAX 60 znaków — krótkie źródło info, np. 'Canon official EU'"
+  "address": "PEŁEN adres: ulica + nr, kod pocztowy, miasto, KRAJ. NIE WOLNO null gdy podajesz name!",
+  "email": "Kontakt mailowy EU rep (info@brand.de, support@brand.com) lub null gdy nie znasz",
+  "confidence": "high" | "medium" | "low",
+  "notes": "MAX 60 znaków źródło info"
 }}
 
-WAŻNE:
-- confidence=low + name=null → SKIP (lepsze niż błędny guess).
-- NIE wracaj CET PRODUCT SERVICE / Amazon Retourenkauf chyba że WIESZ
-  że ten brand formalnie używa tego rep'a (rzadko).
-- Pole "notes" MUSI być KRÓTKIE (max 60 znaków). Nie pisz esejów!
-- Bez markdown, tylko czysty JSON."""
+KRYTYCZNE — WYMAGANIA GPSR (UE 2023/988):
+- EU rep MUSI mieć fizyczny adres w UE + kontakt. Sam "name" jest BEZUŻYTECZNY prawnie.
+- Jeśli podajesz "name": musisz podać też "address" (z Amazon listing, oficjalnej strony,
+  rejestru handlowego Niemiec/Holandii/Polski). Email jeśli znasz.
+- Jeśli ZNASZ tylko name a NIE ZNASZ address → ustaw name=null też (nie składaj fragmentów).
+- Lepiej skip niż "X GmbH" bez adresu — Hub i tak odrzuci taki incomplete entry.
+
+PRZYKŁADY POPRAWNYCH PEŁNYCH ODPOWIEDZI:
+- Canon: address="Bovenkerkerweg 59, 1185 XB Amstelveen, Netherlands"
+- Sony: address="Da Vincilaan 7-D1, 1935 Zaventem, Belgium"
+- Tesla: address="Pražská 1148/61, Hostivař, 102 00 Prague 10, Czech Republic"
+- AZDOME: address="Hauptstraße 12, 10827 Berlin, Germany" (przykładowy GmbH format)
+- ATUMTEK: address="Münchener Str 5, 60329 Frankfurt am Main, Germany"
+
+NIE wracaj CET PRODUCT SERVICE / Amazon Retourenkauf jako default.
+Bez markdown, tylko czysty JSON."""
 
     client = genai.Client(api_key=api_key)
     # Model chain — od najnowszego/highest quota do legacy.
@@ -230,8 +240,13 @@ def _normalize_brand_aliases(brands: list) -> list:
     return sorted(canonical.values())
 
 
-def cmd_all(force: bool, limit: int, api_key: str) -> int:
-    """Auto-fill GPSR override dla wszystkich brandów w Hub."""
+def cmd_all(force: bool, limit: int, api_key: str, force_manual: bool = False) -> int:
+    """Auto-fill GPSR override dla wszystkich brandów w Hub.
+
+    force=True nadpisuje stare gemini_* entries, ale CHRONI source='manual'
+    (Twoje ręczne wpisy są bezpieczne). force_manual=True przełamuje też ochronę
+    manual entries — używaj świadomie, możesz stracić ręcznie wpisane adresy.
+    """
     conn = get_db()
     init_brand_overrides_schema(conn)
 
@@ -257,9 +272,16 @@ def cmd_all(force: bool, limit: int, api_key: str) -> int:
         brands = brands[:limit]
     print(f'Znaleziono {len(brands)} unikalnych brandów do auto-fill (throttle {THROTTLE_SEC}s/req, force={force})\n')
 
-    ok = skip = err = 0
+    ok = skip = err = protected = 0
     for i, brand in enumerate(brands):
-        if not force and get_brand_gpsr_override(brand, conn=conn):
+        existing = get_brand_gpsr_override(brand, conn=conn)
+        # PROTECT manual entries — --force NIE nadpisuje source='manual'
+        # (chyba że user świadomie podał --force-manual)
+        if existing and existing.get('source') == 'manual' and not force_manual:
+            print(f'  🔒 [{i+1:>3}/{len(brands)}] {brand:<25} MANUAL entry — protected (use --force-manual to override)')
+            protected += 1
+            continue
+        if not force and existing:
             print(f'  ⊘ [{i+1:>3}/{len(brands)}] {brand:<25} already in DB (use --force)')
             skip += 1
             continue
@@ -282,6 +304,14 @@ def cmd_all(force: bool, limit: int, api_key: str) -> int:
             print(f'  ⊘ [{i+1:>3}/{len(brands)}] {brand:<25} REJECT generic guess: "{data["name"][:30]}" → użyj manual lub fallback')
             skip += 1
             continue
+        # REJECT incomplete data — name bez address jest BEZUŻYTECZNE dla GPSR
+        # (UE 2023/988 art. 8 wymaga adres + kontakt). Lepiej skip niż fragment.
+        addr = (data.get('address') or '').strip()
+        email = (data.get('email') or '').strip()
+        if not addr and not email:
+            print(f'  ⊘ [{i+1:>3}/{len(brands)}] {brand:<25} INCOMPLETE: name bez address/email (skip — bezużyteczne dla GPSR)')
+            skip += 1
+            continue
         conf = data.get('confidence', 'medium')
         save_brand_gpsr_override(
             brand,
@@ -289,16 +319,17 @@ def cmd_all(force: bool, limit: int, api_key: str) -> int:
                 'manufacturer_name': brand,  # Producent = sam brand (znany konsumentowi)
                 'manufacturer_address': '',
                 'responsible_person_name': data.get('name', ''),
-                'responsible_person_address': data.get('address', ''),
-                'responsible_person_email': data.get('email', ''),
+                'responsible_person_address': addr,
+                'responsible_person_email': email,
             },
             source=f'gemini_{conf}',
             conn=conn,
         )
-        print(f'  ✅ [{i+1:>3}/{len(brands)}] {brand:<25} rep="{data["name"][:35]}" conf={conf}')
+        addr_short = f' addr={addr[:30]}...' if addr else ' NO_ADDR'
+        print(f'  ✅ [{i+1:>3}/{len(brands)}] {brand:<25} rep="{data["name"][:30]}" conf={conf}{addr_short}')
         ok += 1
 
-    print(f'\nResults: ok={ok}  skip={skip}  error={err}  total={len(brands)}')
+    print(f'\nResults: ok={ok}  skip={skip}  protected_manual={protected}  error={err}  total={len(brands)}')
     print('\n⚠️  UWAGA: Gemini guesses — zweryfikuj brand entries z Amazon listing.')
     print('    Lista: python3 scripts/gpsr_brands.py --list')
     print('    Edit:  python3 scripts/gpsr_brands.py --add BRAND --rp-name "..." ...')
@@ -310,7 +341,8 @@ def main() -> int:
         description='Gemini auto-fill GPSR EU rep dla wszystkich brandów w Hub',
     )
     parser.add_argument('--all', action='store_true', required=True, help='Fill all distinct brands')
-    parser.add_argument('--force', action='store_true', help='Nadpisz istniejące (default skip)')
+    parser.add_argument('--force', action='store_true', help='Nadpisz istniejące gemini_* entries (manual chronione)')
+    parser.add_argument('--force-manual', action='store_true', help='DESTRUKCYJNE: nadpisz też source="manual" (Twoje ręczne wpisy)')
     parser.add_argument('--limit', type=int, default=0, help='Max N brandów (test)')
     args = parser.parse_args()
 
@@ -319,7 +351,7 @@ def main() -> int:
         print('ERROR: brak GEMINI_API_KEY w Hub config')
         return 2
 
-    return cmd_all(args.force, args.limit, api_key)
+    return cmd_all(args.force, args.limit, api_key, force_manual=args.force_manual)
 
 
 if __name__ == '__main__':
