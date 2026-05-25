@@ -887,27 +887,40 @@ app.register_blueprint(paletomat_bp, url_prefix='/paletomat')
 app.register_blueprint(telegram_bp, url_prefix='/telegram')
 app.register_blueprint(allegro_bp, url_prefix='/allegro')
 
-# Sklepakces UI dashboard (przegląd pushed produktów + akcje)
-# GATED: dostępne TYLKO dla planów 'enterprise' i 'business' (premium feature).
-# Plan 'trial'/'pro'/'max' → blueprint NIE rejestrowany → URL /sklepakces 404.
-def _plan_has_sklepakces() -> bool:
-    """Czy obecna licencja ma dostęp do sklepakces integration?"""
+# Sklepakces integration — TWOJA marka (sklepakces.pl), NIE generic WC sync.
+# GATED przez WHITELIST license.client (nie plan!) — nawet Enterprise klient
+# bez zezwolenia NIE może pushować produktów na Twój sklep.
+#
+# Konfiguracja: env var AKCES_SKLEPAKCES_OWNERS (CSV nazw klientów licencji).
+# Default: tylko "Adrian Gauza". Możesz dodać znajomych explicite:
+#   export AKCES_SKLEPAKCES_OWNERS="Adrian Gauza,Jan Kowalski"
+#
+# Anti-abuse: nawet jeśli ktoś sfałszuje plan na enterprise, jego license
+# client (podpisany HMAC sigem) musi matchować whitelist. Brak match = 404.
+_SKLEPAKCES_OWNERS = [
+    n.strip() for n in os.environ.get('AKCES_SKLEPAKCES_OWNERS', 'Adrian Gauza').split(',')
+    if n.strip()
+]
+
+def _is_sklepakces_owner() -> bool:
+    """Czy obecna licencja jest na whitelist właścicieli sklepakces?"""
     try:
         from modules.license import get_license_info
         lic = get_license_info() or {}
-        return (lic.get('plan') or '').lower() in ('enterprise', 'business')
+        client = (lic.get('client') or '').strip()
+        return client in _SKLEPAKCES_OWNERS
     except Exception:
-        return False  # brak licencji / błąd → safe default = no access
+        return False
 
-if _plan_has_sklepakces():
+if _is_sklepakces_owner():
     try:
         from modules.sklepakces_dashboard import sklepakces_ui_bp
         app.register_blueprint(sklepakces_ui_bp)
-        print('[OK] Sklepakces UI dashboard zarejestrowane (plan enterprise/business)')
+        print(f'[OK] Sklepakces UI dashboard zarejestrowane (owner whitelist match)')
     except Exception as e:
         print(f'[sklepakces_ui] blueprint registration failed: {e}')
 else:
-    print('[INFO] Sklepakces UI dashboard SKIPPED (wymaga plan enterprise/business)')
+    print('[INFO] Sklepakces UI dashboard SKIPPED (license client NIE na whitelist owners)')
 # app.register_blueprint(olx_bp, url_prefix='/olx')
 # app.register_blueprint(vinted_bp, url_prefix='/vinted')
 
@@ -988,17 +1001,18 @@ except Exception as _e:
 # Sklepakces integration (Faza 3) — separate /api/v1/sklepakces/* namespace.
 # Plugin WooCommerce sklepakces.pl wysyła webhooki tutaj (HMAC + nonce).
 # Tabele sklepakces_* osobne od api_v1 owners — patrz README_SKLEPAKCES.md.
-# GATED: tylko plan enterprise/business (premium feature, zob. _plan_has_sklepakces() wyżej).
-if _plan_has_sklepakces():
+# GATED: whitelist license.client (zob. _is_sklepakces_owner() wyżej).
+# Twoja marka = tylko Ty (i ewentualnie świadomie wpisani znajomi).
+if _is_sklepakces_owner():
     try:
         from modules.sklepakces_blueprint import sklepakces_bp, init_sklepakces_schema
         init_sklepakces_schema()
         app.register_blueprint(sklepakces_bp)
-        print("[OK] Sklepakces integration zarejestrowane (prefix /api/v1/sklepakces, plan enterprise/business)")
+        print("[OK] Sklepakces integration zarejestrowane (prefix /api/v1/sklepakces, owner whitelist match)")
     except Exception as _e:
         print(f"[WARN] Sklepakces integration nie zarejestrowana: {_e}")
 else:
-    print("[INFO] Sklepakces webhook API SKIPPED (wymaga plan enterprise/business)")
+    print("[INFO] Sklepakces webhook API SKIPPED (license client NIE na whitelist owners)")
 
 
 # ============================================================
