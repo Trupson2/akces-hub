@@ -888,11 +888,26 @@ app.register_blueprint(telegram_bp, url_prefix='/telegram')
 app.register_blueprint(allegro_bp, url_prefix='/allegro')
 
 # Sklepakces UI dashboard (przegląd pushed produktów + akcje)
-try:
-    from modules.sklepakces_dashboard import sklepakces_ui_bp
-    app.register_blueprint(sklepakces_ui_bp)
-except Exception as e:
-    print(f'[sklepakces_ui] blueprint registration failed: {e}')
+# GATED: dostępne TYLKO dla planów 'enterprise' i 'business' (premium feature).
+# Plan 'trial'/'pro'/'max' → blueprint NIE rejestrowany → URL /sklepakces 404.
+def _plan_has_sklepakces() -> bool:
+    """Czy obecna licencja ma dostęp do sklepakces integration?"""
+    try:
+        from modules.license import get_license_info
+        lic = get_license_info() or {}
+        return (lic.get('plan') or '').lower() in ('enterprise', 'business')
+    except Exception:
+        return False  # brak licencji / błąd → safe default = no access
+
+if _plan_has_sklepakces():
+    try:
+        from modules.sklepakces_dashboard import sklepakces_ui_bp
+        app.register_blueprint(sklepakces_ui_bp)
+        print('[OK] Sklepakces UI dashboard zarejestrowane (plan enterprise/business)')
+    except Exception as e:
+        print(f'[sklepakces_ui] blueprint registration failed: {e}')
+else:
+    print('[INFO] Sklepakces UI dashboard SKIPPED (wymaga plan enterprise/business)')
 # app.register_blueprint(olx_bp, url_prefix='/olx')
 # app.register_blueprint(vinted_bp, url_prefix='/vinted')
 
@@ -973,13 +988,17 @@ except Exception as _e:
 # Sklepakces integration (Faza 3) — separate /api/v1/sklepakces/* namespace.
 # Plugin WooCommerce sklepakces.pl wysyła webhooki tutaj (HMAC + nonce).
 # Tabele sklepakces_* osobne od api_v1 owners — patrz README_SKLEPAKCES.md.
-try:
-    from modules.sklepakces_blueprint import sklepakces_bp, init_sklepakces_schema
-    init_sklepakces_schema()
-    app.register_blueprint(sklepakces_bp)
-    print("[OK] Sklepakces integration zarejestrowane (prefix /api/v1/sklepakces)")
-except Exception as _e:
-    print(f"[WARN] Sklepakces integration nie zarejestrowana: {_e}")
+# GATED: tylko plan enterprise/business (premium feature, zob. _plan_has_sklepakces() wyżej).
+if _plan_has_sklepakces():
+    try:
+        from modules.sklepakces_blueprint import sklepakces_bp, init_sklepakces_schema
+        init_sklepakces_schema()
+        app.register_blueprint(sklepakces_bp)
+        print("[OK] Sklepakces integration zarejestrowane (prefix /api/v1/sklepakces, plan enterprise/business)")
+    except Exception as _e:
+        print(f"[WARN] Sklepakces integration nie zarejestrowana: {_e}")
+else:
+    print("[INFO] Sklepakces webhook API SKIPPED (wymaga plan enterprise/business)")
 
 
 # ============================================================
