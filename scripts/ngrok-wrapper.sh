@@ -1,7 +1,14 @@
 #!/bin/bash
 # Ngrok wrapper - stabilny autostart z retry i cleanup
-
-NGROK_URL="unsatiating-dirgelike-audrina.ngrok-free.dev"
+# UWAGA: env NGROK_URL musi być ustawiony przed uruchomieniem.
+# Cloudflare Tunnel jest preferowane jako stabilny endpoint (nie wymaga tego wrappera).
+NGROK_URL="${NGROK_URL:-}"
+if [ -z "$NGROK_URL" ]; then
+    echo "[ngrok-wrapper] BŁĄD: env NGROK_URL nie ustawione."
+    echo "  Ustaw przez: export NGROK_URL=twoja-stala-domena.ngrok-free.dev"
+    echo "  LUB użyj Cloudflare Tunnel (bardziej stabilne): zob. docs/DEPLOYMENT.md"
+    exit 2
+fi
 NGROK_BIN="/usr/local/bin/ngrok"
 MAX_RETRIES=5
 RETRY_DELAY=30

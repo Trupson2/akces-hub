@@ -1,6 +1,10 @@
 version: "3"
+# UWAGA: ten plik to TEMPLATE — zastąp URL swoją domeną ngrok lub przenieś
+# na Cloudflare Tunnel (bardziej stabilne, free, custom subdomain).
+# Cloudflare Tunnel setup: docs/DEPLOYMENT.md
 tunnels:
   akceshub:
     addr: 5000
     proto: http
-    url: https://unsatiating-dirgelike-audrina.ngrok-free.dev
+    # url: https://YOUR-STABLE-DOMAIN.ngrok-free.dev  # ngrok pro/stable
+    # ALTERNATIVE: bez `url:` = ngrok random tunnel per restart (nie zalecane)

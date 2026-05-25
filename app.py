@@ -2855,31 +2855,38 @@ def license_page():
                     # DEV mode: pełna aktywacja z wszystkimi polami
                     ok, result = activate_license(key, client, plan or 'pro', int(created), int(expires or 0), signature)
                 else:
-                    # Klient: aktywacja kluczem przez serwer licencyjny
-                    try:
-                        import requests as _rq
-                        from modules.license import get_hwid
-                        _hwid = get_hwid()
-                        _lic_server = get_config('license_server_url', 'https://unsatiating-dirgelike-audrina.ngrok-free.dev')
-                        _resp = _rq.post(f'{_lic_server}/api/license/verify',
-                            json={'key': key, 'hwid': _hwid, 'timestamp': __import__('datetime').datetime.now().isoformat(),
-                                  'version': VERSION}, timeout=15)
-                        _data = _resp.json()
-                        if _data.get('valid'):
-                            # Serwer potwierdził — aktywuj lokalnie
-                            import time as _t, hmac as _hm, hashlib as _hl
-                            _created = int(_t.time())
-                            _exp = _data.get('expires_timestamp', 0)
-                            _plan = _data.get('plan', 'pro')
-                            from modules.license import LICENSE_SECRET as _secret
-                            _sig_data = f"{key}|{client}|{_plan}|{_created}|{_exp}"
-                            _sig = _hm.new(_secret.encode(), _sig_data.encode(), _hl.sha256).hexdigest()[:16]
-                            ok, result = activate_license(key, client, _plan, _created, _exp, _sig)
-                        else:
-                            ok, result = False, _data.get('error', 'Nieprawidlowy klucz licencyjny')
-                    except Exception as _e:
-                        # Serwer niedostępny — spróbuj offline
-                        ok, result = False, f'Nie mozna zweryfikowac klucza. Sprawdz polaczenie z internetem. ({str(_e)[:80]})'
+                    # Klient: aktywacja kluczem przez serwer licencyjny.
+                    # Gdy license_server_url NIE skonfigurowany (default) → wymaga
+                    # pełnych pól (sig+created+expires) jako manual offline activation.
+                    _lic_server = (get_config('license_server_url', '') or '').strip().rstrip('/')
+                    if not _lic_server:
+                        ok, result = False, ('Server licencyjny nie skonfigurowany. '
+                                             'Skontaktuj się z dostawcą o klucz z pełną sygnaturą '
+                                             '(key+client+plan+created+expires+signature), '
+                                             'lub set_config(license_server_url, https://twoj-serwer)')
+                    else:
+                        try:
+                            import requests as _rq
+                            from modules.license import get_hwid
+                            _hwid = get_hwid()
+                            _resp = _rq.post(f'{_lic_server}/api/license/verify',
+                                json={'key': key, 'hwid': _hwid, 'timestamp': __import__('datetime').datetime.now().isoformat(),
+                                      'version': VERSION}, timeout=15)
+                            _data = _resp.json()
+                            if _data.get('valid'):
+                                # Serwer potwierdził — aktywuj lokalnie
+                                import time as _t, hmac as _hm, hashlib as _hl
+                                _created = int(_t.time())
+                                _exp = _data.get('expires_timestamp', 0)
+                                _plan = _data.get('plan', 'pro')
+                                from modules.license import LICENSE_SECRET as _secret
+                                _sig_data = f"{key}|{client}|{_plan}|{_created}|{_exp}"
+                                _sig = _hm.new(_secret.encode(), _sig_data.encode(), _hl.sha256).hexdigest()[:16]
+                                ok, result = activate_license(key, client, _plan, _created, _exp, _sig)
+                            else:
+                                ok, result = False, _data.get('error', 'Nieprawidlowy klucz licencyjny')
+                        except Exception as _e:
+                            ok, result = False, f'Nie mozna zweryfikowac klucza. Sprawdz polaczenie z internetem. ({str(_e)[:80]})'
 
                 if ok:
                     msg = result

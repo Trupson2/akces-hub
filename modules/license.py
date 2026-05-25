@@ -42,14 +42,18 @@ def _load_license_secret():
 LICENSE_SECRET = _load_license_secret()
 
 # Heartbeat config
-# SECURITY: URL konfigurowalny — nie hardcoded
+# SECURITY: URL konfigurowalny — bez ngrok hardcoded. Default = pusty
+# → heartbeat WYŁĄCZONY → license validation 100% offline (HMAC + HWID).
+# Aby włączyć remote verify: set_config('license_server_url', 'https://api.akceshub.com')
+# License endpoint POST musi obsłużyć /api/license/verify z { license_key, hwid, version }.
 try:
     from modules.database import get_config as _gc
-    HEARTBEAT_URL = _gc('license_server_url', 'https://unsatiating-dirgelike-audrina.ngrok-free.dev') + '/api/license/verify'
+    _LIC_BASE = (_gc('license_server_url', '') or '').strip().rstrip('/')
+    HEARTBEAT_URL = (_LIC_BASE + '/api/license/verify') if _LIC_BASE else ''
 except Exception:
-    HEARTBEAT_URL = 'https://unsatiating-dirgelike-audrina.ngrok-free.dev/api/license/verify'
+    HEARTBEAT_URL = ''
 HEARTBEAT_INTERVAL = 86400  # 24h
-HEARTBEAT_GRACE_DAYS = 7  # Dni offline bez blokady
+HEARTBEAT_GRACE_DAYS = 7  # Dni offline bez blokady (gdy URL skonfigurowany)
 
 
 def _encode_base36(num):
@@ -441,7 +445,14 @@ def license_heartbeat():
     Wyślij heartbeat do serwera licencji.
     Sprawdza ważność klucza online. Przy braku połączenia
     pozwala na pracę offline do HEARTBEAT_GRACE_DAYS dni.
+
+    UWAGA: gdy HEARTBEAT_URL pusty (default) → heartbeat skipped,
+    licencja walidowana 100% offline przez HMAC + HWID.
     """
+    # Heartbeat wyłączony gdy URL nie skonfigurowany (self-hosted default)
+    if not HEARTBEAT_URL:
+        return
+
     try:
         import urllib.request
         import urllib.error

@@ -15,11 +15,12 @@ import json
 import requests
 
 # ═══════════════════════════════════════════════════════════════
-# KONFIGURACJA — zmień PI_URL na swój adres ngrok lub lokalny IP
+# KONFIGURACJA — ustaw env var PI_URL na adres swojego Hub:
+#   export PI_URL=http://192.168.100.200:5000              # local LAN
+#   export PI_URL=https://app.twoja-domena.pl              # Cloudflare Tunnel
 # ═══════════════════════════════════════════════════════════════
-PI_URL = 'https://unsatiating-dirgelike-audrina.ngrok-free.dev'
-# Alternatywnie w sieci lokalnej:
-# PI_URL = 'http://192.168.100.X:5000'
+import os
+PI_URL = os.environ.get('PI_URL', 'http://192.168.100.200:5000')
 
 SLEEP_BETWEEN = 2  # sekundy między requestami do Amazon
 MAX_PRODUCTS = 200  # limit produktów do scrapowania
