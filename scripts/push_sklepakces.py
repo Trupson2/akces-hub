@@ -127,9 +127,65 @@ def cmd_dry_run(limit: int) -> int:
 
 
 def cmd_push_all(limit: int, with_gpsr: bool, gpsr_region: str, allow_no_allegro: bool,
-                 include_listed: bool = False) -> int:
+                 include_listed: bool = False, force: bool = False) -> int:
     status_filter = '*' if include_listed else 'magazyn'
     status_label = 'magazyn+wystawiony+aktywny+z_aukcją_Allegro' if include_listed else 'magazyn'
+    if force:
+        # Force re-push: bypass mirror check przez push_one_product per ID
+        print(f'PUSH ALL --force — re-push WSZYSTKICH eligible (status="{status_label}", włącznie z już-zsynchronizowanymi)...\n')
+        from modules.database import get_db
+        from modules.sklepakces_push import push_one_product
+        conn = get_db()
+        if include_listed:
+            sql = """
+                SELECT p.id FROM produkty p
+                WHERE (
+                    p.status IN ('magazyn', 'wystawiony', 'aktywny')
+                    OR EXISTS (
+                        SELECT 1 FROM oferty o
+                        WHERE o.produkt_id = p.id AND o.status = 'aktywna'
+                          AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
+                    )
+                )
+                ORDER BY p.id
+            """
+        else:
+            sql = "SELECT id FROM produkty WHERE status='magazyn' ORDER BY id"
+        if limit and limit > 0:
+            sql += f' LIMIT {int(limit)}'
+        ids = [r[0] for r in conn.execute(sql).fetchall()]
+        print(f'Re-push {len(ids)} produktów (force=True)\n')
+        ok = err = skip = 0
+        for i, hub_id in enumerate(ids, 1):
+            try:
+                r = push_one_product(
+                    hub_product_id=hub_id, force=True, with_gpsr=with_gpsr,
+                    gpsr_region=gpsr_region,
+                    require_allegro_active=not allow_no_allegro,
+                )
+            except Exception as e:
+                print(f'  ❌ [{i}/{len(ids)}] hub_id={hub_id} EXCEPTION: {e}')
+                err += 1
+                continue
+            marker = {'ok': '✅', 'skip': '⊘', 'error': '❌'}.get(r.get('status'), '?')
+            sku = r.get('sku', '(no-sku)')
+            http = r.get('http_status')
+            msg = ''
+            if r.get('status') == 'ok':
+                msg = f' wc_id={r.get("wc_product_id")} {r.get("duration_ms")}ms'
+            elif r.get('status') != 'ok':
+                msg = f' -- {r.get("msg") or "?"}'
+            print(f'  {marker} [{i:>3}/{len(ids)}] hub_id={hub_id:>5} sku={sku:<20} http={http}{msg}')
+            if r.get('status') == 'ok':
+                ok += 1
+            elif r.get('status') == 'skip':
+                skip += 1
+            else:
+                err += 1
+        print(f'\nResults: ok={ok}  skip={skip}  error={err}  total={ok+skip+err}')
+        return 0 if err == 0 else 1
+
+    # Default path: push_all_unsynced (skip if already in mirror)
     print(f'PUSH ALL — wysyłam {limit or "wszystkie"} eligible (status="{status_label}" AND not in mirror), throttle 1.1s/req (gpsr={"AUTO" if with_gpsr else "OFF"}, region={gpsr_region}, require_allegro={not allow_no_allegro})...\n')
     ok = err = skip = 0
     for r in push_all_unsynced(
@@ -188,7 +244,7 @@ def main() -> int:
         return cmd_dry_run(args.limit)
     if args.all:
         return cmd_push_all(args.limit, with_gpsr, args.gpsr_region, args.allow_no_allegro,
-                            include_listed=args.include_listed)
+                            include_listed=args.include_listed, force=args.force)
 
     return 1
 
