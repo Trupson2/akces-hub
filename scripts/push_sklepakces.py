@@ -126,11 +126,15 @@ def cmd_dry_run(limit: int) -> int:
     return 0
 
 
-def cmd_push_all(limit: int, with_gpsr: bool, gpsr_region: str, allow_no_allegro: bool) -> int:
-    print(f'PUSH ALL — wysyłam {limit or "wszystkie"} eligible (status="magazyn" AND not in mirror), throttle 1.1s/req (gpsr={"AUTO" if with_gpsr else "OFF"}, region={gpsr_region}, require_allegro={not allow_no_allegro})...\n')
+def cmd_push_all(limit: int, with_gpsr: bool, gpsr_region: str, allow_no_allegro: bool,
+                 include_listed: bool = False) -> int:
+    status_filter = '*' if include_listed else 'magazyn'
+    status_label = 'magazyn+wystawiony+aktywny+z_aukcją_Allegro' if include_listed else 'magazyn'
+    print(f'PUSH ALL — wysyłam {limit or "wszystkie"} eligible (status="{status_label}" AND not in mirror), throttle 1.1s/req (gpsr={"AUTO" if with_gpsr else "OFF"}, region={gpsr_region}, require_allegro={not allow_no_allegro})...\n')
     ok = err = skip = 0
     for r in push_all_unsynced(
         limit=limit, dry_run=False, with_gpsr=with_gpsr, gpsr_region=gpsr_region,
+        only_status=status_filter,
         require_allegro_active=not allow_no_allegro,
     ):
         marker = {'ok': '✅', 'skip': '⊘', 'error': '❌'}.get(r.get('status'), '?')
@@ -171,6 +175,7 @@ def main() -> int:
     parser.add_argument('--gpsr-region', default='de', choices=['de', 'pl', 'uk', 'it', 'fr', 'es'], help='Amazon region dla GPSR lookup (default de)')
     parser.add_argument('--force', action='store_true', help='Re-push nawet jeśli już w mirror (plugin UPDATE\'uje WC produkt po SKU; użyj po fix mapowania)')
     parser.add_argument('--allow-no-allegro', action='store_true', help='Pozwól push produktów BEZ aktywnej oferty Allegro (fallback na cena_allegro z DB; default = SKIP + Telegram alert)')
+    parser.add_argument('--include-listed', action='store_true', help='Push też produkty BEZ status=magazyn (np. wystawione na Allegro) — szukaj po aktywnej aukcji')
 
     args = parser.parse_args()
     with_gpsr = not args.no_gpsr
@@ -182,7 +187,8 @@ def main() -> int:
     if args.dry_run:
         return cmd_dry_run(args.limit)
     if args.all:
-        return cmd_push_all(args.limit, with_gpsr, args.gpsr_region, args.allow_no_allegro)
+        return cmd_push_all(args.limit, with_gpsr, args.gpsr_region, args.allow_no_allegro,
+                            include_listed=args.include_listed)
 
     return 1
 

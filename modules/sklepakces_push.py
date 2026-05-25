@@ -1483,16 +1483,39 @@ def push_all_unsynced(
     Yields dict per produkt — generator (streaming, nie blokuje na batchu).
     """
     conn = get_db()
-    sql = """
-        SELECT p.* FROM produkty p
-        WHERE p.status = ?
-          AND NOT EXISTS (
-              SELECT 1 FROM sklepakces_products s
-              WHERE s.sku IN ('EAN-' || p.ean, 'HUB-' || p.id)
-          )
-        ORDER BY p.id
-    """
-    params: List = [only_status]
+    # only_status='*' lub '' → bez filtra status (np. żeby pchnąć produkty
+    # status='wystawiony' które są na Allegro ale jeszcze nie na sklepie).
+    no_status_filter = only_status in (None, '', '*')
+    if no_status_filter:
+        sql = """
+            SELECT p.* FROM produkty p
+            WHERE NOT EXISTS (
+                  SELECT 1 FROM sklepakces_products s
+                  WHERE s.sku IN ('EAN-' || p.ean, 'HUB-' || p.id)
+              )
+              AND (
+                  p.status IN ('magazyn', 'wystawiony', 'aktywny')
+                  OR EXISTS (
+                      SELECT 1 FROM oferty o
+                      WHERE o.produkt_id = p.id
+                        AND o.status = 'aktywna'
+                        AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
+                  )
+              )
+            ORDER BY p.id
+        """
+        params: List = []
+    else:
+        sql = """
+            SELECT p.* FROM produkty p
+            WHERE p.status = ?
+              AND NOT EXISTS (
+                  SELECT 1 FROM sklepakces_products s
+                  WHERE s.sku IN ('EAN-' || p.ean, 'HUB-' || p.id)
+              )
+            ORDER BY p.id
+        """
+        params = [only_status]
     if limit and limit > 0:
         sql += ' LIMIT ?'
         params.append(int(limit))
