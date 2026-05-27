@@ -22,10 +22,13 @@ def _get_system_info():
     info['time'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     # Wersja aplikacji
+    # Wersja z pliku VERSION (NIE 'from app import VERSION' — circular import
+    # gdy support modul jest ladowany z routes a app.py jeszcze sie inicjalizuje)
     try:
-        from app import VERSION
-        info['app_version'] = VERSION
-    except:
+        version_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'VERSION')
+        with open(version_file, 'r', encoding='utf-8') as f:
+            info['app_version'] = f.read().strip() or '?'
+    except Exception:
         info['app_version'] = '?'
 
     # Uptime i zasoby (tylko na Linux/Pi)
