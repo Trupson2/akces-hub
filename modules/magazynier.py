@@ -6382,23 +6382,164 @@ def dodaj():
     """Przekierowanie do dodawania produktu"""
     html = '''
     <div class="hdr"><h1><span class=material-symbols-outlined>add</span> DODAJ PRODUKT</h1></div>
-    
+
     <div class="card" style="padding:15px">
+        <h3 style="margin:0 0 10px 0;color:#8ff5ff;font-size:0.9rem">Wyszukaj z Amazon / Allegro</h3>
         <form action="/magazyn/szukaj" method="GET">
             <div class="form-group">
                 <label>Wpisz EAN / ASIN / SKU</label>
-                <input type="text" name="q" class="form-ctrl" placeholder="np. B0CFQBBT7G" autofocus required>
+                <input type="text" name="q" class="form-ctrl" placeholder="np. B0CFQBBT7G" required>
             </div>
             <button type="submit" class="btn btn-ok"><span class=material-symbols-outlined>search</span> SZUKAJ / DODAJ</button>
         </form>
     </div>
-    
-    <div style="text-align:center;color:#64748b;padding:15px">lub</div>
-    
-    <a href="/magazyn/skanuj" class="btn btn-p"><span class=material-symbols-outlined>photo_camera</span> SKANUJ KAMERĄ</a>
-    <a href="/magazyn/import" class="btn btn-2" style="margin-top:10px"><span class=material-symbols-outlined>download</span> IMPORT Z PLIKU</a>
-    
+
+    <div style="text-align:center;color:#64748b;padding:10px">lub</div>
+
+    <a href="/magazyn/dodaj-recznie" class="btn btn-2" style="margin-bottom:10px"><span class=material-symbols-outlined>edit_note</span> DODAJ RĘCZNIE (wpisz pola)</a>
+    <a href="/magazyn/skanuj" class="btn btn-p" style="margin-bottom:10px"><span class=material-symbols-outlined>photo_camera</span> SKANUJ KAMERĄ</a>
+    <a href="/magazyn/import" class="btn btn-2"><span class=material-symbols-outlined>download</span> IMPORT Z PLIKU (CSV/XLSX)</a>
+
     <a href="/magazyn" class="back">← Powrót</a>
+    '''
+    return render(html)
+
+
+@magazynier_bp.route('/dodaj-recznie', methods=['GET', 'POST'])
+def dodaj_recznie():
+    """Ręczne dodawanie produktu z pełnym formularzem (bez scrape Amazon/Allegro).
+
+    Use case: klient wpisuje swoje produkty bezpośrednio (np. własna produkcja,
+    handmade, kupione manualnie). Wszystkie pola opcjonalne poza nazwą.
+    """
+    from .database import get_db
+    from flask import request, redirect
+
+    if request.method == 'POST':
+        conn = get_db()
+        try:
+            nazwa = (request.form.get('nazwa', '') or '').strip()[:300]
+            if not nazwa:
+                return render('<div class="card" style="padding:15px;color:#ef4444">Nazwa wymagana</div><a href="/magazyn/dodaj-recznie" class="btn">← Wróć</a>')
+
+            ean = (request.form.get('ean', '') or '').strip()[:20]
+            asin = (request.form.get('asin', '') or '').strip()[:20].upper()
+            ilosc = int(request.form.get('ilosc', '1') or '1')
+            cena_brutto = float(request.form.get('cena_brutto', '0') or '0')
+            cena_netto = round(cena_brutto / 1.23, 2) if cena_brutto > 0 else 0
+            cena_allegro = float(request.form.get('cena_allegro', '0') or '0')
+            kategoria = (request.form.get('kategoria', 'inne') or 'inne').strip()[:80]
+            stan = (request.form.get('stan', 'Nowy') or 'Nowy').strip()[:30]
+            lokalizacja = (request.form.get('lokalizacja', '') or '').strip()[:60]
+            regal = (request.form.get('regal', '') or '').strip()[:30]
+            dostawca = (request.form.get('dostawca', 'Własny') or 'Własny').strip()[:80]
+            zdjecie_url = (request.form.get('zdjecie_url', '') or '').strip()[:500]
+
+            cur = conn.execute('''
+                INSERT INTO produkty
+                    (nazwa, krotki_tytul, ean, asin, ilosc, cena_netto, cena_brutto, cena_allegro,
+                     kategoria, stan, status, lokalizacja, regal, dostawca, zdjecie_url,
+                     paleta_id, data_dodania)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'magazyn', ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+            ''', (nazwa, nazwa[:120], ean, asin, ilosc, cena_netto, cena_brutto, cena_allegro,
+                  kategoria, stan, lokalizacja, regal, dostawca, zdjecie_url))
+            conn.commit()
+            new_id = cur.lastrowid
+            return redirect(f'/magazyn/produkt/{new_id}?dodany=1')
+        except Exception as e:
+            return render(f'<div class="card" style="padding:15px;color:#ef4444">Błąd: {str(e)[:200]}</div><a href="/magazyn/dodaj-recznie" class="btn">← Wróć</a>')
+
+    # GET — render form
+    html = '''
+    <div class="hdr"><h1><span class=material-symbols-outlined>edit_note</span> DODAJ PRODUKT RĘCZNIE</h1></div>
+
+    <div class="card" style="padding:15px">
+        <form method="POST" action="/magazyn/dodaj-recznie">
+            <div class="form-group">
+                <label>Nazwa produktu <span style="color:#ef4444">*</span></label>
+                <input type="text" name="nazwa" class="form-ctrl" placeholder="np. Kabel USB-C 1m czarny" required autofocus maxlength="300">
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="form-group">
+                    <label>EAN (kod kreskowy)</label>
+                    <input type="text" name="ean" class="form-ctrl" placeholder="8-13 cyfr" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label>ASIN (Amazon)</label>
+                    <input type="text" name="asin" class="form-ctrl" placeholder="B0XXXXXXXX" maxlength="20" style="text-transform:uppercase">
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+                <div class="form-group">
+                    <label>Ilość sztuk</label>
+                    <input type="number" name="ilosc" class="form-ctrl" value="1" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Cena brutto (PLN)</label>
+                    <input type="number" name="cena_brutto" class="form-ctrl" placeholder="0.00" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Cena Allegro</label>
+                    <input type="number" name="cena_allegro" class="form-ctrl" placeholder="0.00" step="0.01" min="0">
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="form-group">
+                    <label>Kategoria</label>
+                    <select name="kategoria" class="form-ctrl">
+                        <option value="inne">Inne</option>
+                        <option value="elektronika">Elektronika</option>
+                        <option value="dom-ogrod">Dom i Ogród</option>
+                        <option value="moda">Moda</option>
+                        <option value="sport">Sport</option>
+                        <option value="zabawki">Zabawki</option>
+                        <option value="motoryzacja">Motoryzacja</option>
+                        <option value="kosmetyki">Kosmetyki</option>
+                        <option value="zdrowie">Zdrowie</option>
+                        <option value="ksiazki">Książki</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Stan</label>
+                    <select name="stan" class="form-ctrl">
+                        <option value="Nowy">Nowy</option>
+                        <option value="Powystawowy">Powystawowy</option>
+                        <option value="Używany - bdb">Używany - bardzo dobry</option>
+                        <option value="Używany">Używany</option>
+                        <option value="Uszkodzony">Uszkodzony / Wadliwy</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="form-group">
+                    <label>Lokalizacja (np. magazyn)</label>
+                    <input type="text" name="lokalizacja" class="form-ctrl" placeholder="np. Magazyn główny" maxlength="60">
+                </div>
+                <div class="form-group">
+                    <label>Regał / półka</label>
+                    <input type="text" name="regal" class="form-ctrl" placeholder="np. A3-2" maxlength="30">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Dostawca / pochodzenie</label>
+                <input type="text" name="dostawca" class="form-ctrl" placeholder="np. Własny / Zakupy hurtowe / Producent X" value="Własny" maxlength="80">
+            </div>
+
+            <div class="form-group">
+                <label>URL zdjęcia (opcjonalne)</label>
+                <input type="url" name="zdjecie_url" class="form-ctrl" placeholder="https://..." maxlength="500">
+            </div>
+
+            <button type="submit" class="btn btn-ok"><span class=material-symbols-outlined>save</span> DODAJ DO MAGAZYNU</button>
+        </form>
+    </div>
+
+    <a href="/magazyn/dodaj" class="back">← Powrót do menu dodawania</a>
     '''
     return render(html)
 
