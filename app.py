@@ -2894,7 +2894,8 @@ def license_page():
                     # Klient: aktywacja kluczem przez serwer licencyjny.
                     # Gdy license_server_url NIE skonfigurowany (default) → wymaga
                     # pełnych pól (sig+created+expires) jako manual offline activation.
-                    _lic_server = (get_config('license_server_url', '') or '').strip().rstrip('/')
+                    from modules.database import get_config as _get_config
+                    _lic_server = (_get_config('license_server_url', '') or '').strip().rstrip('/')
                     if not _lic_server:
                         ok, result = False, ('Server licencyjny nie skonfigurowany. '
                                              'Skontaktuj się z dostawcą o klucz z pełną sygnaturą '
