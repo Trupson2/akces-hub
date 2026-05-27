@@ -226,6 +226,14 @@
         </div>
         <div class="nc-arrow">›</div>
     </a>
+    <div class="narz-card glass-card" onclick="doFixCurrency()">
+        <div class="nc-icon orange"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">currency_exchange</span></div>
+        <div class="nc-info">
+            <div class="nc-name">Napraw stare waluty</div>
+            <div class="nc-desc" id="fixCurDesc">Przelicz zamówienia HUF/CZK/EUR z Allegro na PLN po aktualnym kursie NBP</div>
+        </div>
+        <div class="nc-arrow">›</div>
+    </div>
     <div class="narz-card glass-card" id="updateCard" onclick="{% if is_zip_install %}doUpdateZip(){% else %}doUpdate(){% endif %}">
         <div class="nc-icon blue"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">sync</span></div>
         <div class="nc-info">
@@ -382,6 +390,36 @@ function doUpdateZip() {
         card.style.opacity = '1';
         card.style.pointerEvents = 'auto';
         console.error('[doUpdateZip] outer catch:', e);
+    });
+}
+
+function doFixCurrency() {
+    if (!confirm('Sprawdzić ostatnie 500 zamówień z Allegro i przeliczyć HUF/CZK/EUR na PLN po aktualnym kursie NBP?\n\nUWAGA: zmieni ceny w bazie - operacja nieodwracalna bez backupu DB.')) return;
+    var desc = document.getElementById('fixCurDesc');
+    var origText = desc.textContent;
+    desc.innerHTML = '<span class="spinner"></span> Sprawdzam zamówienia (może potrwać 1-3 min)...';
+    fetch('/narzedzia/fix-currency', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        credentials: 'same-origin',
+        body: '{}'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.ok) {
+            desc.textContent = '✓ ' + d.msg + ' (pominięto ' + d.skipped + ')';
+            if (d.errors && d.errors.length) {
+                console.warn('[fix-currency] błędy:', d.errors);
+            }
+            setTimeout(function() { desc.textContent = origText; }, 8000);
+        } else {
+            desc.textContent = '❌ ' + (d.error || 'Błąd nieznany');
+            setTimeout(function() { desc.textContent = origText; }, 5000);
+        }
+    })
+    .catch(function(e) {
+        desc.textContent = '❌ Błąd fetch: ' + (e && e.message ? e.message : 'nieznany');
+        setTimeout(function() { desc.textContent = origText; }, 5000);
     });
 }
 </script>

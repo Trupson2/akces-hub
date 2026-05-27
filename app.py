@@ -5067,6 +5067,80 @@ function showTab(id, btn) {
 
 # EXPORT
 
+@app.route('/narzedzia/fix-currency', methods=['POST'])
+@require_admin
+def narzedzia_fix_currency():
+    """Backfill: przelicz stare zamowienia (zapisane jako PLN gdy faktycznie HUF/CZK/EUR).
+
+    Leci po ostatnich 500 zamowieniach z allegro_order_id, fetch z Allegro,
+    jesli currency != PLN -> przelicza po aktualnym kursie NBP, UPDATE sprzedaze.
+    """
+    _validate_csrf_or_abort()
+    from modules.database import get_db
+    from modules.allegro_api import is_authenticated, get_order_details
+    from modules.fx_rates import get_pln_rate
+
+    if not is_authenticated():
+        return jsonify({'ok': False, 'error': 'Allegro nie zalogowany'})
+
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT id, allegro_order_id, cena, ilosc, nazwa FROM sprzedaze "
+        "WHERE allegro_order_id IS NOT NULL AND allegro_order_id != '' "
+        "ORDER BY data_sprzedazy DESC LIMIT 500"
+    ).fetchall()
+
+    fixed = 0
+    skipped = 0
+    errors = []
+
+    for row in rows:
+        try:
+            order_id = row['allegro_order_id']
+            order, err = get_order_details(order_id)
+            if err or not order:
+                skipped += 1
+                continue
+
+            items = order.get('lineItems', [])
+            target_item = None
+            for item in items:
+                if (item.get('offer') or {}).get('name', '')[:50] == (row['nazwa'] or '')[:50]:
+                    target_item = item
+                    break
+            if not target_item and items:
+                target_item = items[0]
+            if not target_item:
+                skipped += 1
+                continue
+
+            price_obj = target_item.get('price') or {}
+            cena_orig = float(price_obj.get('amount', 0))
+            currency = (price_obj.get('currency') or 'PLN').upper()
+
+            if currency == 'PLN':
+                skipped += 1
+                continue
+
+            fx = get_pln_rate(currency)
+            cena_pln = round(cena_orig * fx, 2)
+            conn.execute('UPDATE sprzedaze SET cena = ? WHERE id = ?', (cena_pln, row['id']))
+            fixed += 1
+            print(f'[FIX-CUR] #{row["id"]}: {cena_orig} {currency} -> {cena_pln} PLN (kurs {fx})')
+        except Exception as e:
+            errors.append(f'#{row["id"]}: {str(e)[:100]}')
+
+    conn.commit()
+    return jsonify({
+        'ok': True,
+        'fixed': fixed,
+        'skipped': skipped,
+        'errors': errors[:10],
+        'total_checked': len(rows),
+        'msg': f'Naprawiono {fixed} zamowien (z {len(rows)} sprawdzonych).'
+    })
+
+
 @app.route('/narzedzia/export', methods=['GET', 'POST'])
 def narzedzia_export():
     if request.method == 'POST':
