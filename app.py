@@ -1855,7 +1855,14 @@ def _get_insights_safe():
 @app.route("/launcher")
 def project_launcher():
     kiosk = request.args.get("kiosk", "")
-    return render_template("project_launcher.html", version=VERSION, kiosk=kiosk)
+    _brand = (get_config('brand_name', '') or 'AKCES HUB').strip()
+    _platform = (get_config('platform_name', '') or 'Hub').strip()
+    _pb_enabled = (get_config('phonkbot_enabled', '0') or '0') == '1'
+    return render_template("project_launcher.html",
+        version=VERSION, kiosk=kiosk,
+        brand_name=_brand, platform_name=_platform,
+        phonkbot_enabled=_pb_enabled,
+    )
 
 @app.route('/dashboard')
 def home():
@@ -2195,13 +2202,18 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     _remote = request.remote_addr or ''
     _is_proxied = bool(_xff or _cf_ip or _cf_ray or _ngrok_trace or _fwd_host)
     # Kiosk mode OPT-IN — domyślnie WYŁĄCZONY (klient widzi pełen dashboard).
-    # Adrian może włączyć dla swojego ekranu Pi:
+    # Włącz dla swojego Pi przez:
     #   set_config('kiosk_auto_enabled', '1')
-    # Wtedy LAN access (127.0.0.1/Pi local IP) trigger'uje kiosk view.
+    # LAN IPs auto-detekcji konfigurowalne via config (NIE hardcoded Adrian's Pi):
+    #   set_config('kiosk_local_ips', '127.0.0.1,::1,192.168.X.Y')
     _kiosk_auto_enabled = (get_config('kiosk_auto_enabled', '0') or '0') == '1'
+    _local_ips = [
+        ip.strip() for ip in (get_config('kiosk_local_ips', '127.0.0.1,::1') or '127.0.0.1,::1').split(',')
+        if ip.strip()
+    ]
     _is_pi_screen = (
         _kiosk_auto_enabled
-        and _remote in ('127.0.0.1', '::1', '192.168.100.200')
+        and _remote in _local_ips
         and not _is_proxied
     )
     _force_kiosk = request.args.get('kiosk') == '1'

@@ -147,8 +147,8 @@ body::before{
     <div class="launcher">
         <div class="header">
             <div class="header-title">Wybierz projekt</div>
-            <div class="header-brand">AKCES ENTERPRISE</div>
-            <div class="header-sub">Raspberry Pi 5 &middot; {{ version }}</div>
+            <div class="header-brand">{{ brand_name or 'AKCES HUB' }}</div>
+            <div class="header-sub">{{ platform_name or 'Hub' }} &middot; {{ version }}</div>
         </div>
 
         <div class="projects">
@@ -157,7 +157,7 @@ body::before{
                 <div class="card-icon">
                     <span class="material-symbols-outlined">inventory_2</span>
                 </div>
-                <div class="card-name">AKCES HUB</div>
+                <div class="card-name">{{ brand_name or 'AKCES HUB' }}</div>
                 <div class="card-desc">
                     Magazyn &middot; Paletomat &middot; Allegro<br>
                     Zarzadzanie paletami zwrotow
@@ -168,7 +168,8 @@ body::before{
                 </div>
             </div>
 
-            <!-- PhonkBot -->
+            {% if phonkbot_enabled %}
+            <!-- PhonkBot (osobny projekt — domyślnie ukryty dla klientów) -->
             <a href="" class="project-card card-phonk" id="phonk-link">
 <script>document.getElementById('phonk-link').href='http://'+location.hostname+':5001/';</script>
                 <div class="card-icon">
@@ -184,9 +185,10 @@ body::before{
                     Port 5001 &middot; Active
                 </div>
             </a>
+            {% endif %}
         </div>
     </div>
 
-    <div class="footer">AKCES ENTERPRISE &copy; 2026</div>
+    <div class="footer">{{ brand_name or 'AKCES HUB' }} &copy; 2026</div>
 </body>
 </html>
