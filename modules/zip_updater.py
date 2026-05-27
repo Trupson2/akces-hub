@@ -31,6 +31,9 @@ PRESERVE_PATHS = {
     'akces_hub.db-shm',
     'akces_hub.db-wal',
     '.license_secret',
+    '.license',           # opcjonalny plik licencji (jesli klient ma backup obok DB)
+    '.lic',
+    'license.json',
     '.secret_key',
     '.env',
     'static/uploads',
@@ -38,8 +41,12 @@ PRESERVE_PATHS = {
     'backups',
     'logs',
     'venv',
-    'python',  # embedded Python folder (jesli klient ma)
+    'installer/python',   # embedded Python folder (380 MB, NIE nadpisuj)
+    'python',             # backward compat
     '__pycache__',
+    # vendor_config.json NIE jest w preserve - nadpisuje sie z aktualnej wersji
+    # zeby klient dostawal nowe vendor credentials gdy Adrian zmieni token.
+    # Wymaga: app.py przy starcie reloaduje vendor_config.json do DB (TODO).
 }
 
 
