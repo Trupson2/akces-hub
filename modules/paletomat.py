@@ -3916,7 +3916,7 @@ def generator_mass_create_from_paleta_stream():
                     _failed_paths = []
                     while not _upload_done:
                         try:
-                            status, idx, result, src_path = _upload_q.get(timeout=1)
+                            status, idx, result, src_path = _upload_q.get(timeout=3)
                             if status == 'done':
                                 _upload_done = True
                             elif status == 'ok' and result:
@@ -4032,7 +4032,7 @@ def generator_mass_create_from_paleta_stream():
                     t.start()
                     while True:
                         try:
-                            status, val = _result_q.get(timeout=1)
+                            status, val = _result_q.get(timeout=3)
                             if status == 'ok':
                                 return val
                             raise val
@@ -4109,7 +4109,7 @@ def generator_mass_create_from_paleta_stream():
                 _offer_t.start()
                 while True:
                     try:
-                        result, error = _offer_q.get(timeout=1)
+                        result, error = _offer_q.get(timeout=3)
                         break
                     except queue.Empty:
                         yield ": keepalive\n\n"

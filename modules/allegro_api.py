@@ -489,7 +489,6 @@ def get_allegro_config():
         'city': get_config_cached('allegro_city', 'Poznan'),
         'province': get_config_cached('allegro_province', 'WIELKOPOLSKIE'),
         'postcode': get_config_cached('allegro_postcode', '61-001'),
-        'default_currency': get_config_cached('default_currency', 'PLN'),
     }
 
 
@@ -1837,7 +1836,7 @@ def update_offer_condition(offer_id, stan):
     return None
 
 
-def create_offer(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=1, czas_wysylki='PT24H', ean=None, asin=None, gpsr=None, stan=None, product_specs=None, bullet_points=None, kod_magazynowy=None, shipping_id_override=None, currency=None):
+def create_offer(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=1, czas_wysylki='PT24H', ean=None, asin=None, gpsr=None, stan=None, product_specs=None, bullet_points=None, kod_magazynowy=None, shipping_id_override=None):
     """
     Tworzy nową ofertę na Allegro.
     WERSJA 2.0 - poprawiona obsługa zdjęć + GPSR
@@ -1850,7 +1849,7 @@ def create_offer(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=
     sys.stdout = log_capture = io.StringIO()
 
     try:
-        return _create_offer_impl(nazwa, opis, cena, zdjecia_urls, kategoria_id, ilosc, czas_wysylki, ean, asin, gpsr, stan, product_specs=product_specs, bullet_points=bullet_points, kod_magazynowy=kod_magazynowy, shipping_id_override=shipping_id_override, currency=currency)
+        return _create_offer_impl(nazwa, opis, cena, zdjecia_urls, kategoria_id, ilosc, czas_wysylki, ean, asin, gpsr, stan, product_specs=product_specs, bullet_points=bullet_points, kod_magazynowy=kod_magazynowy, shipping_id_override=shipping_id_override)
     finally:
         logs = log_capture.getvalue()
         sys.stdout = old_stdout
@@ -1866,7 +1865,7 @@ def create_offer(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=
             print(logs)
 
 
-def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=1, czas_wysylki='PT24H', ean=None, asin=None, gpsr=None, stan=None, product_specs=None, bullet_points=None, kod_magazynowy=None, shipping_id_override=None, currency=None):
+def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=1, czas_wysylki='PT24H', ean=None, asin=None, gpsr=None, stan=None, product_specs=None, bullet_points=None, kod_magazynowy=None, shipping_id_override=None):
     """Implementacja tworzenia oferty"""
     if not is_authenticated():
         return None, "Nie zalogowany do Allegro"
@@ -1939,18 +1938,12 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
     _condition = _map_stan_to_condition(stan)
     print(f"[COND] Stan: {stan!r} → condition: {_condition} (ustawiane po wystawieniu przez PATCH)")
 
-    # Waluta: priorytet param > config > PLN default
-    # Wspierane: PLN (Allegro.pl), CZK (Allegro.cz), EUR (Allegro.sk), HUF (potencjalnie)
-    _currency = (currency or config.get('default_currency', 'PLN') or 'PLN').upper()
-    if _currency not in ('PLN', 'EUR', 'CZK', 'HUF'):
-        _currency = 'PLN'
-
     offer_data = {
         'name': nazwa[:75],
         'category': {'id': str(kategoria_id)},
         'sellingMode': {
             'format': 'BUY_NOW',
-            'price': {'amount': f"{float(cena):.2f}", 'currency': _currency}
+            'price': {'amount': f"{float(cena):.2f}", 'currency': 'PLN'}
         },
         'stock': {'available': int(ilosc)},
         'publication': {'status': 'INACTIVE'},
@@ -3690,20 +3683,10 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
             _metoda_dostawy = _method_name[:20] or 'Kurier'
 
         # Oblicz koszt dostawy per zamówienie (totalToPay - suma item prices)
-        # WAZNE: konwersja walut (HUF/CZK/EUR -> PLN) przez NBP API
-        from modules.fx_rates import get_pln_rate
         _order_summary = order.get('summary') or {}
-        _total_obj = _order_summary.get('totalToPay') or {}
-        _total_curr = (_total_obj.get('currency') or 'PLN').upper()
-        _total_fx = get_pln_rate(_total_curr)
-        _order_total = float(_total_obj.get('amount', 0)) * _total_fx
+        _order_total = float((_order_summary.get('totalToPay') or {}).get('amount', 0))
         _order_items = order.get('lineItems') or []
-        def _item_pln(it):
-            p = it.get('price') or {}
-            curr = (p.get('currency') or 'PLN').upper()
-            fx = get_pln_rate(curr)
-            return float(p.get('amount', 0)) * fx * it.get('quantity', 1)
-        _order_items_value = sum(_item_pln(it) for it in _order_items)
+        _order_items_value = sum(float(it.get('price', {}).get('amount', 0)) * it.get('quantity', 1) for it in _order_items)
         _order_delivery_cost = max(0, _order_total - _order_items_value)
         _order_item_count = len(_order_items) or 1
 
@@ -3713,14 +3696,7 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
             try:
                 offer = item.get('offer') or {}
                 nazwa = (offer.get('name') or 'Produkt')[:100]  # Zwiększone do 100 znaków
-                cena_raw = float(item['price']['amount'])
-                cena_currency = (item['price'].get('currency') or 'PLN').upper()
-                # Konwersja na PLN przez NBP API (cache 12h) + fallback hardcoded
-                from modules.fx_rates import get_pln_rate
-                _fx_rate = get_pln_rate(cena_currency)
-                cena = round(cena_raw * _fx_rate, 2)
-                if cena_currency != 'PLN':
-                    print(f'[ORDER] Konwersja: {cena_raw} {cena_currency} → {cena} PLN (kurs {_fx_rate})')
+                cena = float(item['price']['amount'])
                 kupujacy = (order.get('buyer') or {}).get('login', 'Nieznany')
                 ilosc = item.get('quantity', 1)
                 offer_id = offer.get('id', '')

@@ -1964,18 +1964,9 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
             produkty_magazyn=produkty_magazyn, regaly_cnt=regaly_cnt)
 
     # Onboarding — redirect jeśli nie przeszedł setup
-    from modules.database import get_config as _gc, set_config as _sc
+    from modules.database import get_config as _gc
     if not _gc('setup_done', ''):
-        # AUTO-FIX: jesli klient ma juz licencje + brand_name + uzytkownika -> wizard
-        # niepotrzebny (klient wszedl manualnie w /ustawienia bez wizarda).
-        # Bez tego: wieczna patelnia w wizard mimo ze wszystko jest ustawione.
-        _has_license = bool(_gc('license_data', ''))
-        _has_brand = bool(_gc('brand_name', '').strip())
-        if _has_license and _has_brand:
-            _sc('setup_done', '1')
-            print('[setup] Auto-marked as done (license + brand wykryte)')
-        else:
-            return redirect('/setup')
+        return redirect('/setup')
 
     # Sprawdź czy jest wybrane konto (auto-set adrian if not)
     user = request.cookies.get('akces_user')
@@ -2971,11 +2962,7 @@ def system_update_zip():
 @app.route('/setup')
 def setup_wizard():
     """Wizard po pierwszym logowaniu — branding, moduły, API"""
-    from modules.database import get_config, set_config
-    # Skip wizard jesli juz wszystko skonfigurowane (defensive)
-    if get_config('license_data', '') and (get_config('brand_name', '') or '').strip():
-        set_config('setup_done', '1')
-        return redirect('/dashboard')
+    from modules.database import get_config
     return render_template('setup.html',
         version=VERSION,
         current_brand=get_config('brand_name', 'AKCES HUB'),
@@ -3241,44 +3228,6 @@ def license_upgrade_enterprise():
 # ============================================================
 # GENERATOR LICENCJI — panel admina
 # ============================================================
-@app.route('/license/reset-hwid', methods=['POST'])
-def license_reset_hwid_endpoint():
-    """Self-service reset HWID — klient zmienil komputer."""
-    _validate_csrf_or_abort()
-    from modules.license import reset_hwid
-    reason = (request.form.get('reason', '') or '').strip()
-    ok, msg = reset_hwid(reason=reason)
-    if ok:
-        return redirect('/license?msg=' + msg[:200].replace(' ', '+'))
-    return redirect('/license?err=' + msg[:200].replace(' ', '+'))
-
-
-@app.route('/license/add-hwid', methods=['POST'])
-def license_add_hwid_endpoint():
-    """Dodaj aktualny komputer do listy aktywnych (multi-seat)."""
-    _validate_csrf_or_abort()
-    from modules.license import add_hwid_to_license
-    reason = (request.form.get('reason', '') or '').strip()
-    ok, msg = add_hwid_to_license(reason=reason)
-    if ok:
-        return redirect('/license?msg=' + msg[:200].replace(' ', '+'))
-    return redirect('/license?err=' + msg[:200].replace(' ', '+'))
-
-
-@app.route('/license/remove-hwid', methods=['POST'])
-def license_remove_hwid_endpoint():
-    """Usun konkretny HWID z listy aktywnych."""
-    _validate_csrf_or_abort()
-    from modules.license import remove_hwid_from_license
-    target = (request.form.get('hwid', '') or '').strip()
-    if not target:
-        return redirect('/license?err=Brak+HWID')
-    ok, msg = remove_hwid_from_license(target)
-    if ok:
-        return redirect('/license?msg=' + msg[:200].replace(' ', '+'))
-    return redirect('/license?err=' + msg[:200].replace(' ', '+'))
-
-
 @app.route('/narzedzia/licencje/delete', methods=['POST'])
 def narzedzia_licencje_delete():
     """Usuń wygenerowaną licencję (plik .json + DB licenses_issued).
@@ -5117,98 +5066,6 @@ function showTab(id, btn) {
 
 
 # EXPORT
-
-@app.route('/narzedzia/fix-currency', methods=['POST'])
-@require_admin
-def narzedzia_fix_currency():
-    """Backfill: przelicz stare zamowienia (zapisane jako 31000 PLN gdy faktycznie 31000 HUF).
-
-    Pobiera szczegoly z Allegro API per zamowienie, sprawdza oryginalna walute,
-    przelicza na PLN po aktualnym kursie NBP, updateuje DB.
-
-    UWAGA: leci tylko po zamowieniach z 'allegro_order_id' (te z Allegro sync).
-    Pomija manualne sprzedaze (te i tak zapisuje user lokalnie w PLN).
-    """
-    _validate_csrf_or_abort()
-    from modules.database import get_db
-    from modules.allegro_api import is_authenticated, get_order_details
-    from modules.fx_rates import get_pln_rate
-
-    if not is_authenticated():
-        return jsonify({'ok': False, 'error': 'Allegro nie zalogowany - musisz polączyć konto'})
-
-    conn = get_db()
-    # Stare zamowienia w PLN > 1000 prawdopodobnie sa HUF/CZK ktore wygladaja podejrzanie
-    # ALE musimy sprawdzic wszystkie zamowienia z allegro_order_id zeby byc pewnym
-    rows = conn.execute('''
-        SELECT id, allegro_order_id, cena, ilosc, nazwa
-        FROM sprzedaze
-        WHERE allegro_order_id IS NOT NULL AND allegro_order_id != ''
-        ORDER BY data_sprzedazy DESC
-        LIMIT 500
-    ''').fetchall()
-
-    fixed = 0
-    skipped = 0
-    errors = []
-
-    for row in rows:
-        try:
-            order_id = row['allegro_order_id']
-            order, err = get_order_details(order_id)
-            if err or not order:
-                skipped += 1
-                continue
-
-            items = order.get('lineItems', [])
-            # Znajdz item po nazwie (lub bierz pierwszy)
-            target_item = None
-            for item in items:
-                if (item.get('offer') or {}).get('name', '')[:50] == (row['nazwa'] or '')[:50]:
-                    target_item = item
-                    break
-            if not target_item and items:
-                target_item = items[0]
-            if not target_item:
-                skipped += 1
-                continue
-
-            price_obj = target_item.get('price') or {}
-            cena_orig = float(price_obj.get('amount', 0))
-            currency = (price_obj.get('currency') or 'PLN').upper()
-
-            if currency == 'PLN':
-                # Juz PLN, nic do naprawy
-                skipped += 1
-                continue
-
-            # Konwersja
-            fx = get_pln_rate(currency)
-            cena_pln = round(cena_orig * fx, 2)
-
-            conn.execute('''
-                UPDATE sprzedaze
-                SET cena = ?,
-                    cena_oryginalna = ?,
-                    waluta_oryginalna = ?,
-                    kurs_pln = ?
-                WHERE id = ?
-            ''', (cena_pln, cena_orig, currency, fx, row['id']))
-            fixed += 1
-            print(f'[FIX-CUR] #{row["id"]}: {cena_orig} {currency} -> {cena_pln} PLN (kurs {fx})')
-        except Exception as e:
-            errors.append(f'#{row["id"]}: {str(e)[:100]}')
-
-    conn.commit()
-    return jsonify({
-        'ok': True,
-        'fixed': fixed,
-        'skipped': skipped,
-        'errors': errors[:10],
-        'total_checked': len(rows),
-        'msg': f'Naprawiono {fixed} zamowien (z {len(rows)} sprawdzonych).'
-    })
-
 
 @app.route('/narzedzia/export', methods=['GET', 'POST'])
 def narzedzia_export():
@@ -7752,14 +7609,6 @@ if __name__ == '__main__':
         log("License heartbeat uruchomiony (co 24h)")
     except Exception as e:
         log_warning(f"License heartbeat error: {e}")
-
-    # Start update notify thread (co 6h - sprawdza GitHub Releases + Telegram)
-    try:
-        from modules.zip_updater import start_update_notify_thread
-        start_update_notify_thread(interval_hours=6)
-        log("Update notify uruchomiony (co 6h - GitHub Releases + Telegram)")
-    except Exception as e:
-        log_warning(f"Update notify thread error: {e}")
 
     # ============================================================
     # AUTO-SYNC ZAMÓWIEŃ Z ALLEGRO
