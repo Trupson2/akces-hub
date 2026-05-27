@@ -43,6 +43,10 @@ SPRZEDAZE_LISTA_TEMPLATE = '''
         <span class=material-symbols-outlined style="font-size:16px;color:#ff6b9b">sync</span>
         Sync zwrotow
     </a>
+    <a href="javascript:void(0)" onclick="syncZwrotyHistoria()" class="sp-action" title="Sync 12 miesiecy wstecz (stare zwroty)">
+        <span class=material-symbols-outlined style="font-size:16px;color:#ff6b9b">history</span>
+        Sync historii (12mc)
+    </a>
     <a href="/sprzedaze/napraw-nazwy?miesiac={{ miesiac_filter }}" class="sp-action">
         <span class=material-symbols-outlined style="font-size:16px;color:#8ff5ff">build</span>
         Napraw dane
@@ -195,6 +199,27 @@ function anonimizujKlienta(buyerName, btn) {
         alert('Blad polaczenia: ' + e);
         btn.disabled = false;
         btn.innerHTML = '&#128274; Anonimizuj';
+    });
+}
+
+function syncZwrotyHistoria(){
+    if(!confirm('Sprawdzic zwroty z OSTATNICH 12 MIESIACY z Allegro?\\n\\nTo zajmie 1-3 min (12 zapytan do Allegro API).')) return;
+    var msg = document.createElement('div');
+    msg.style.cssText='position:fixed;top:20px;right:20px;padding:14px 20px;background:#ff6b9b;color:#fff;border-radius:8px;z-index:9999;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,0.3)';
+    msg.textContent='Synchronizuje 12 miesiecy zwrotow...';
+    document.body.appendChild(msg);
+    fetch('/sprzedaze/sync-zwroty-historia?months=12').then(function(r){return r.json();}).then(function(d){
+        if(d.ok){
+            msg.style.background='#22c55e';
+            msg.textContent='✓ ' + d.msg;
+            setTimeout(function(){ location.reload(); }, 3000);
+        } else {
+            msg.style.background='#ef4444';
+            msg.textContent='✗ ' + (d.error || 'Blad');
+        }
+    }).catch(function(e){
+        msg.style.background='#ef4444';
+        msg.textContent='✗ Polaczenie: ' + e.message;
     });
 }
 </script>
@@ -440,6 +465,53 @@ def sync_zwroty_allegro():
     except Exception as e:
         print(f"Blad sync_returns: {e}")
         return redirect(f'{base_url}&msg=error&detail={str(e)[:50]}')
+
+
+@sprzedaze_bp.route('/sprzedaze/sync-zwroty-historia')
+def sync_zwroty_historia():
+    """Synchronizuje zwroty z Allegro - PEŁNA HISTORIA (12 miesięcy wstecz)."""
+    from modules.allegro_api import sync_returns, is_authenticated
+    from datetime import date
+
+    if not is_authenticated():
+        return jsonify({'ok': False, 'error': 'Allegro nie zalogowany'})
+
+    miesiace_count = int(request.args.get('months', '12'))
+    miesiace_count = max(1, min(miesiace_count, 24))  # 1-24 miesiace max
+
+    today = date.today()
+    total_updated = 0
+    errors = []
+    months_done = []
+
+    for offset in range(miesiace_count):
+        # Cofaj o N miesiecy
+        y = today.year
+        m = today.month - offset
+        while m <= 0:
+            m += 12
+            y -= 1
+        month_str = f"{y}-{m:02d}"
+
+        try:
+            updated, error = sync_returns(month_str)
+            if error:
+                errors.append(f"{month_str}: {error[:80]}")
+            else:
+                total_updated += updated
+                months_done.append(f"{month_str} ({updated})")
+                print(f"[SYNC-ZWROTY-HISTORIA] {month_str}: {updated} zwrotow")
+        except Exception as e:
+            errors.append(f"{month_str}: {str(e)[:80]}")
+
+    return jsonify({
+        'ok': True,
+        'total_updated': total_updated,
+        'months_checked': miesiace_count,
+        'months_done': months_done,
+        'errors': errors[:10],
+        'msg': f'Sprawdzono {miesiace_count} miesięcy, znaleziono {total_updated} zwrotów łącznie.'
+    })
 
 
 @sprzedaze_bp.route('/sprzedaze/napraw-nazwy')
