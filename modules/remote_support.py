@@ -94,25 +94,35 @@ def _get_system_info():
 
 
 def _format_telegram_message(info, user_message=''):
-    """Formatuje wiadomosc Telegram z info o systemie"""
+    """Formatuje wiadomosc Telegram z info o systemie.
+
+    UWAGA: Telegram HTML parse_mode obsluguje TYLKO: <b>, <i>, <u>, <s>,
+    <code>, <pre>, <a>, <tg-spoiler>. NIE wolno uzywac <span class=...>
+    (parse_mode HTTP 400). Wszystkie ikony to EMOJI.
+    """
     from .database import get_config
     brand = get_config('brand_name', 'AKCES HUB')
 
     msg = f"🆘 <b>ZGŁOSZENIE SUPPORTU</b>\n"
     msg += f"━━━━━━━━━━━━━━━━━━\n"
-    msg += f"<span class=material-symbols-outlined>location_on</span> <b>Instancja:</b> {brand} ({info.get('hostname', '?')})\n"
-    msg += f"<span class=material-symbols-outlined>schedule</span> <b>Czas:</b> {info.get('time', '?')}\n"
-    msg += f"<span class=material-symbols-outlined>inventory_2</span> <b>Wersja:</b> {info.get('app_version', '?')}\n"
-    msg += f"<span class=material-symbols-outlined>language</span> <b>Ngrok:</b> {info.get('ngrok_url', '?')}\n"
+    msg += f"📍 <b>Instancja:</b> {brand} ({info.get('hostname', '?')})\n"
+    msg += f"🕐 <b>Czas:</b> {info.get('time', '?')}\n"
+    msg += f"📦 <b>Wersja:</b> {info.get('app_version', '?')}\n"
+    msg += f"🌐 <b>Ngrok:</b> {info.get('ngrok_url', '?')}\n"
 
     kontakt = info.get('kontakt', '')
     if kontakt:
-        msg += f"\n<span class=material-symbols-outlined>assignment</span> <b>Kontakt klienta:</b>\n{kontakt}\n"
+        # Klient kontakt moze tez miec <span> tagi (z form) -> usun je
+        import re
+        kontakt_clean = re.sub(r'<span[^>]*>.*?</span>', '', kontakt)
+        msg += f"\n📋 <b>Kontakt klienta:</b>\n{kontakt_clean}\n"
 
     if user_message:
-        msg += f"\n<span class=material-symbols-outlined>chat</span> <b>Opis problemu:</b>\n{user_message}\n"
+        # User moze wpisac < > znaki -> Telegram by parsowal jako tag
+        user_safe = (user_message.replace('<', '&lt;').replace('>', '&gt;'))[:2000]
+        msg += f"\n💬 <b>Opis problemu:</b>\n{user_safe}\n"
 
-    msg += f"\n<span class=material-symbols-outlined>bar_chart</span> <b>System:</b>\n"
+    msg += f"\n📊 <b>System:</b>\n"
     msg += f"  CPU: {info.get('cpu_percent', '?')} | Temp: {info.get('cpu_temp', '?')}\n"
     msg += f"  RAM: {info.get('ram_used', '?')}\n"
     msg += f"  Dysk: {info.get('disk_used', '?')}\n"
@@ -121,7 +131,9 @@ def _format_telegram_message(info, user_message=''):
 
     errors = info.get('recent_errors', '')
     if errors and errors != 'brak bledow' and errors != 'brak dostepu do journalctl':
-        msg += f"\n● <b>Ostatnie bledy:</b>\n<code>{errors[:300]}</code>\n"
+        # Errors moga miec znaki HTML
+        errors_safe = errors.replace('<', '&lt;').replace('>', '&gt;')[:300]
+        msg += f"\n● <b>Ostatnie bledy:</b>\n<code>{errors_safe}</code>\n"
 
     msg += f"\n━━━━━━━━━━━━━━━━━━"
     return msg
@@ -144,14 +156,14 @@ def support_zgloszenie():
         # Zbierz info o systemie
         info = _get_system_info()
 
-        # Dodaj dane kontaktowe klienta
+        # Dodaj dane kontaktowe klienta (emoji zamiast Material — Telegram nie obsluguje <span>)
         kontakt_info = ''
         if kontakt_nazwa:
-            kontakt_info += f"<span class=material-symbols-outlined>person</span> {kontakt_nazwa}\n"
+            kontakt_info += f"👤 {kontakt_nazwa}\n"
         if kontakt_email:
-            kontakt_info += f"<span class=material-symbols-outlined>email</span> {kontakt_email}\n"
+            kontakt_info += f"📧 {kontakt_email}\n"
         if kontakt_telefon:
-            kontakt_info += f"<span class=material-symbols-outlined>smartphone</span> {kontakt_telefon}\n"
+            kontakt_info += f"📱 {kontakt_telefon}\n"
         info['kontakt'] = kontakt_info.strip()
 
         # Wyślij na Telegram support
