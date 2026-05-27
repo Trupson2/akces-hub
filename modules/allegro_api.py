@@ -3690,10 +3690,20 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
             _metoda_dostawy = _method_name[:20] or 'Kurier'
 
         # Oblicz koszt dostawy per zamówienie (totalToPay - suma item prices)
+        # WAZNE: konwersja walut (HUF/CZK/EUR -> PLN) zeby dostawa byla spojna
+        _FX_TO_PLN = {'PLN': 1.0, 'EUR': 4.30, 'CZK': 0.175, 'HUF': 0.011}
         _order_summary = order.get('summary') or {}
-        _order_total = float((_order_summary.get('totalToPay') or {}).get('amount', 0))
+        _total_obj = _order_summary.get('totalToPay') or {}
+        _total_curr = (_total_obj.get('currency') or 'PLN').upper()
+        _total_fx = _FX_TO_PLN.get(_total_curr, 1.0)
+        _order_total = float(_total_obj.get('amount', 0)) * _total_fx
         _order_items = order.get('lineItems') or []
-        _order_items_value = sum(float(it.get('price', {}).get('amount', 0)) * it.get('quantity', 1) for it in _order_items)
+        def _item_pln(it):
+            p = it.get('price') or {}
+            curr = (p.get('currency') or 'PLN').upper()
+            fx = _FX_TO_PLN.get(curr, 1.0)
+            return float(p.get('amount', 0)) * fx * it.get('quantity', 1)
+        _order_items_value = sum(_item_pln(it) for it in _order_items)
         _order_delivery_cost = max(0, _order_total - _order_items_value)
         _order_item_count = len(_order_items) or 1
 
@@ -3703,7 +3713,21 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
             try:
                 offer = item.get('offer') or {}
                 nazwa = (offer.get('name') or 'Produkt')[:100]  # Zwiększone do 100 znaków
-                cena = float(item['price']['amount'])
+                cena_raw = float(item['price']['amount'])
+                cena_currency = (item['price'].get('currency') or 'PLN').upper()
+                # Konwersja na PLN (zeby raporty/dashboard mialy spojny analytic)
+                # Zamowienie z HUF/CZK/EUR przeliczamy na PLN po przyblizonym kursie.
+                # Dokladniejsze kursy: integracja z NBP API (TODO follow-up).
+                _FX_TO_PLN = {
+                    'PLN': 1.0,
+                    'EUR': 4.30,    # ~4.30 PLN za 1 EUR
+                    'CZK': 0.175,   # ~0.175 PLN za 1 CZK
+                    'HUF': 0.011,   # ~0.011 PLN za 1 HUF (1000 HUF ≈ 11 PLN)
+                }
+                _fx_rate = _FX_TO_PLN.get(cena_currency, 1.0)
+                cena = round(cena_raw * _fx_rate, 2)
+                if cena_currency != 'PLN':
+                    print(f'[ORDER] Konwersja: {cena_raw} {cena_currency} → {cena} PLN (kurs {_fx_rate})')
                 kupujacy = (order.get('buyer') or {}).get('login', 'Nieznany')
                 ilosc = item.get('quantity', 1)
                 offer_id = offer.get('id', '')
