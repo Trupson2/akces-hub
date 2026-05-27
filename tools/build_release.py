@@ -29,6 +29,7 @@ EXCLUDE_FILES = {
     'email_config.json',
     'goal_data.json',
     'OFERTA_KLIENTA.md',
+    'OFERTA DLA KLIENTA.md',
     'TODO_IMPROVEMENTS.md',
     'app.py.backup',
     'server.log',
@@ -37,6 +38,24 @@ EXCLUDE_FILES = {
     'server_err.txt',
     'print_debug.log',
     'nul',
+    # Internal docs/reports — NIE dla klientów
+    'SECURITY_HARDENING_REPORT.md',
+    'SECURITY_VERIFICATION.md',
+    'SECURITY_AUDIT_2026-04.md',
+    'PLAN.md',
+    'WINNING_SCOUT_PROMPT.md',
+    'INTEGRATION_NOTE.txt',
+    'PHASE1_INCIDENT_REPORT.md',
+    'README_SKLEPAKCES.md',  # internal sklepakces (klient bez Enterprise nie ma)
+    # Random debug/screenshots
+    'op13_logcat.txt',
+    'op13_preview.png',
+    'op13_screen.png',
+    'tab_now.png',
+    'tab_screen.png',
+    'warehouse_layout.json',
+    # Twoje narzędzia developmentowe
+    'push_file.ps1',
 }
 
 EXCLUDE_DIRS = {
@@ -52,6 +71,15 @@ EXCLUDE_DIRS = {
     'logs',
     'tools',  # Generator licencji — nie dla klientów
     'static/downloads',
+    # Inne projekty Adriana (NIE dla klienta):
+    'mobile',     # Akces Booth Flutter app
+    'landing',    # Twoja landing page index.html
+    'designs',    # Marketing designs
+    'docs',       # Twoje internal docs (DEPLOYMENT, SECURITY_AUDIT, PHASE1...)
+    '.pytest_cache',
+    '.idea',      # IDE config
+    'dist',
+    'build',
 }
 
 EXCLUDE_EXTENSIONS = {
