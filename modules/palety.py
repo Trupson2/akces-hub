@@ -2656,6 +2656,31 @@ def paleta_mass_edit(paleta_id):
     except Exception as _e:
         print(f'[mass-edit] shipping rates: {_e}')
 
+    # Pre-render paneli zeby uniknac NESTED f-string (Python 3.11)
+    shipping_panel_html = ''
+    if shipping_options_html:
+        shipping_panel_html = (
+            '<div style="display:flex;align-items:center;gap:14px;padding:14px 18px;margin-bottom:12px;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.18);border-radius:10px;flex-wrap:wrap">'
+            '<span class="material-symbols-outlined" style="color:#8ff5ff">local_shipping</span>'
+            '<span style="font-size:0.85rem;font-weight:600;color:#8ff5ff">Szybkie ustawienie cennika dla zaznaczonych:</span>'
+            '<select id="shipping-bulk-select" style="background:#0f1019;color:#e2e8f0;border:1px solid #2d3748;border-radius:6px;padding:8px 10px;font-size:0.85rem;font-family:monospace;min-width:240px">'
+            + shipping_options_html +
+            '</select>'
+            '<button type="button" onclick="applyShippingToSelected()" style="padding:8px 16px;background:rgba(143,245,255,0.15);border:1px solid #8ff5ff;color:#8ff5ff;border-radius:6px;cursor:pointer;font-weight:600;font-size:0.8rem">'
+            'Zastosuj do zaznaczonych</button>'
+            '<span style="font-size:0.72rem;color:#64748b">Albo wybierz indywidualnie cennik per produkt w kolumnie "Cennik wysyłki"</span>'
+            '</div>'
+        )
+
+    dla_siebie_panel_html = ''
+    if dla_siebie_paleta_cnt > 0:
+        dla_siebie_panel_html = (
+            '<div style="padding:10px 14px;margin-bottom:12px;background:rgba(239,68,68,0.05);'
+            'border-left:3px solid #ef4444;border-radius:6px;font-size:0.82rem;color:#94a3b8">'
+            f'⛔ <b style="color:#ef4444">Pominięto {dla_siebie_paleta_cnt}</b> produktów zatrzymanych '
+            'dla siebie. Zwolnij na stronie produktu jeśli mają pójść do sprzedaży.</div>'
+        )
+
     # Stats
     stats = conn.execute('''
         SELECT
@@ -2999,19 +3024,9 @@ def paleta_mass_edit(paleta_id):
         Zaznacz produkty → edytuj ceny → wybierz <b>cennik</b> → kliknij <b>Wystaw</b>. Wystawione (zielone) nie można zaznaczyć.
     </div>
 
-    {f'''<div style="display:flex;align-items:center;gap:14px;padding:14px 18px;margin-bottom:12px;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.18);border-radius:10px;flex-wrap:wrap">
-        <span class="material-symbols-outlined" style="color:#8ff5ff">local_shipping</span>
-        <span style="font-size:0.85rem;font-weight:600;color:#8ff5ff">Szybkie ustawienie cennika dla zaznaczonych:</span>
-        <select id="shipping-bulk-select" style="background:#0f1019;color:#e2e8f0;border:1px solid #2d3748;border-radius:6px;padding:8px 10px;font-size:0.85rem;font-family:monospace;min-width:240px">
-            {shipping_options_html}
-        </select>
-        <button type="button" onclick="applyShippingToSelected()" style="padding:8px 16px;background:rgba(143,245,255,0.15);border:1px solid #8ff5ff;color:#8ff5ff;border-radius:6px;cursor:pointer;font-weight:600;font-size:0.8rem">
-            Zastosuj do zaznaczonych
-        </button>
-        <span style="font-size:0.72rem;color:#64748b">Albo wybierz indywidualnie cennik per produkt w kolumnie "Cennik wysyłki"</span>
-    </div>''' if shipping_options_html else ''}
+    {shipping_panel_html}
 
-    {f'<div style="padding:10px 14px;margin-bottom:12px;background:rgba(239,68,68,0.05);border-left:3px solid #ef4444;border-radius:6px;font-size:0.82rem;color:#94a3b8">⛔ <b style="color:#ef4444">Pominięto {dla_siebie_paleta_cnt}</b> produktów zatrzymanych dla siebie. Zwolnij na stronie produktu jeśli mają pójść do sprzedaży.</div>' if dla_siebie_paleta_cnt > 0 else ''}
+    {dla_siebie_panel_html}
 
     <div class="bl-panel" style="margin-bottom:160px">
         <div class="bl-panel-header">
