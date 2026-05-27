@@ -3535,8 +3535,19 @@ def generator_mass_create_from_paleta_stream():
     # 1. Pobieramy dane tutaj (NAD funkcją generate), póki mamy dostęp do requestu
     ids_str = request.args.get('ids', '')
     force_new = request.args.get('force', '0') == '1'
-    # Override cennika (puste = uzyj domyslnego z config)
+    # Override cennika:
+    # - shipping_id = jeden cennik dla wszystkich (legacy / bulk)
+    # - shipping_map = JSON {pid: ship_id, ...} per-product (nowy)
     shipping_override = request.args.get('shipping_id', '').strip() or None
+    shipping_map_raw = request.args.get('shipping_map', '').strip()
+    shipping_map = {}
+    if shipping_map_raw:
+        try:
+            shipping_map = json.loads(shipping_map_raw)
+            # Klucze jako str (product_id)
+            shipping_map = {str(k): v for k, v in shipping_map.items() if v}
+        except Exception as _e:
+            print(f'[mass-create] shipping_map parse fail: {_e}')
 
     def generate():
         # Wewnątrz funkcji już NIE wywołujemy request.args.get
@@ -4071,6 +4082,12 @@ def generator_mass_create_from_paleta_stream():
                     yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>bar_chart</span> EAN: {ean}', 'color': '#6366f1'}) + "\n\n"
                 yield "data: " + json.dumps({'type': 'log', 'message': '<span class=material-symbols-outlined>smart_toy</span> Tworzę ofertę + parametry AI...', 'color': '#3b82f6'}) + "\n\n"
 
+                # Wybor cennika dla TEGO produktu:
+                # 1. Per-product z mapy (najwazniejsze - klient wybral indywidualnie)
+                # 2. Bulk override (klient ustawil ten sam dla wszystkich)
+                # 3. None -> create_offer uzyje config default
+                _ship_for_product = shipping_map.get(str(product_id)) or shipping_override
+
                 # create_offer w wątku z keepalive
                 _offer_q = queue.Queue()
                 def _create_offer_worker():
@@ -4082,7 +4099,7 @@ def generator_mass_create_from_paleta_stream():
                             ean=ean, asin=asin, gpsr=gpsr,
                             product_specs=product_specs, bullet_points=bullet_points,
                             kod_magazynowy=_km,
-                            shipping_id_override=shipping_override,
+                            shipping_id_override=_ship_for_product,
                         )
                         _offer_q.put(r)
                     except Exception as e:

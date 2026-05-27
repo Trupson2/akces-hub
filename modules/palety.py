@@ -2858,6 +2858,9 @@ def paleta_mass_edit(paleta_id):
                 {cena_input}
                 <div class="bl-cost-info">{ceny_tekst}</div>
             </td>
+            <td class="bl-td-ship">
+                {f'<select class="bl-ship-select ship-select" data-product-id="{p["id"]}">{shipping_options_html}</select>' if shipping_options_html else '<span style="color:#64748b;font-size:0.75rem">brak listy</span>'}
+            </td>
             <td class="bl-td-status">{status_badge}</td>
         </tr>
         '''
@@ -2909,6 +2912,10 @@ def paleta_mass_edit(paleta_id):
     .bl-stock-med{{color:#eab308;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.2)}}
     .bl-stock-low{{color:#ff6b9b;background:rgba(255,107,155,0.1);border:1px solid rgba(255,107,155,0.2)}}
 
+    .bl-ship-select{{width:100%;padding:8px 6px;background:rgba(22,26,33,0.8);border:1px solid rgba(143,245,255,0.15);border-radius:8px;color:#e2e8f0;font-size:0.78rem;font-family:'Manrope',sans-serif;cursor:pointer}}
+    .bl-ship-select:hover{{border-color:rgba(143,245,255,0.4)}}
+    .bl-ship-select:focus{{border-color:#8ff5ff;outline:none;box-shadow:0 0 8px rgba(143,245,255,0.2)}}
+    .bl-td-ship{{min-width:180px}}
     .bl-td-price .price-input{{width:90px;padding:10px 8px;background:rgba(22,26,33,0.8);border:2px solid rgba(143,245,255,0.15);border-radius:10px;color:#beee00;text-align:center;font-weight:700;font-size:1rem;font-family:'Space Grotesk',sans-serif;min-height:42px;transition:all 0.3s}}
     .bl-td-price .price-input:focus{{border-color:#8ff5ff;box-shadow:0 0 12px rgba(143,245,255,0.2);outline:none}}
     .bl-cost-info{{font-family:'Manrope',sans-serif;font-size:0.65rem;color:var(--text-muted);margin-top:4px;max-width:140px}}
@@ -2992,13 +2999,16 @@ def paleta_mass_edit(paleta_id):
         Zaznacz produkty → edytuj ceny → wybierz <b>cennik</b> → kliknij <b>Wystaw</b>. Wystawione (zielone) nie można zaznaczyć.
     </div>
 
-    {f'''<div style="display:flex;align-items:center;gap:14px;padding:14px 18px;margin-bottom:12px;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.18);border-radius:10px">
+    {f'''<div style="display:flex;align-items:center;gap:14px;padding:14px 18px;margin-bottom:12px;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.18);border-radius:10px;flex-wrap:wrap">
         <span class="material-symbols-outlined" style="color:#8ff5ff">local_shipping</span>
-        <label for="shipping-select" style="font-size:0.85rem;font-weight:600;color:#8ff5ff;white-space:nowrap">Cennik wysyłki:</label>
-        <select id="shipping-select" style="flex:1;background:#0f1019;color:#e2e8f0;border:1px solid #2d3748;border-radius:6px;padding:8px 10px;font-size:0.85rem;font-family:monospace">
+        <span style="font-size:0.85rem;font-weight:600;color:#8ff5ff">Szybkie ustawienie cennika dla zaznaczonych:</span>
+        <select id="shipping-bulk-select" style="background:#0f1019;color:#e2e8f0;border:1px solid #2d3748;border-radius:6px;padding:8px 10px;font-size:0.85rem;font-family:monospace;min-width:240px">
             {shipping_options_html}
         </select>
-        <span style="font-size:0.72rem;color:#64748b;white-space:nowrap">np. mały → paczkomat, duży → kurier</span>
+        <button type="button" onclick="applyShippingToSelected()" style="padding:8px 16px;background:rgba(143,245,255,0.15);border:1px solid #8ff5ff;color:#8ff5ff;border-radius:6px;cursor:pointer;font-weight:600;font-size:0.8rem">
+            Zastosuj do zaznaczonych
+        </button>
+        <span style="font-size:0.72rem;color:#64748b">Albo wybierz indywidualnie cennik per produkt w kolumnie "Cennik wysyłki"</span>
     </div>''' if shipping_options_html else ''}
 
     {f'<div style="padding:10px 14px;margin-bottom:12px;background:rgba(239,68,68,0.05);border-left:3px solid #ef4444;border-radius:6px;font-size:0.82rem;color:#94a3b8">⛔ <b style="color:#ef4444">Pominięto {dla_siebie_paleta_cnt}</b> produktów zatrzymanych dla siebie. Zwolnij na stronie produktu jeśli mają pójść do sprzedaży.</div>' if dla_siebie_paleta_cnt > 0 else ''}
@@ -3028,6 +3038,7 @@ def paleta_mass_edit(paleta_id):
                         <th>SKU / ASIN</th>
                         <th style="width:80px">Stan</th>
                         <th style="width:160px">Cena</th>
+                        <th style="width:200px">Cennik wysyłki</th>
                         <th style="width:120px">Status</th>
                     </tr>
                 </thead>
@@ -3155,11 +3166,45 @@ def paleta_mass_edit(paleta_id):
                 productIds.add(cb.value);
             }}
         }});
-        // Wybrany cennik (jesli dropdown jest)
-        const shipSel = document.getElementById('shipping-select');
-        const shipId = shipSel ? shipSel.value : '';
-        const shipParam = shipId ? '&shipping_id=' + encodeURIComponent(shipId) : '';
+        // Zbierz per-product shipping_id z dropdownow w wierszach
+        // Format: shipping_map={"pid1":"uuid1","pid2":"uuid2",...}
+        const shippingMap = {{}};
+        [...productIds].forEach(pid => {{
+            const sel = document.querySelector('.ship-select[data-product-id="' + pid + '"]');
+            if (sel && sel.value) shippingMap[pid] = sel.value;
+        }});
+        // Sprawdz czy wszystkie maja ten sam cennik -> tylko jeden query parameter
+        const uniqueShips = [...new Set(Object.values(shippingMap))];
+        let shipParam = '';
+        if (uniqueShips.length === 1) {{
+            shipParam = '&shipping_id=' + encodeURIComponent(uniqueShips[0]);
+        }} else if (uniqueShips.length > 1) {{
+            shipParam = '&shipping_map=' + encodeURIComponent(JSON.stringify(shippingMap));
+        }}
         window.location.href = '/paletomat/generator/mass-create-from-paleta?paleta_id={paleta_id}&ids=' + [...productIds].join(',') + shipParam;
+    }}
+
+    // Bulk: ustaw cennik dla wszystkich zaznaczonych produktow (zmienia kazdy dropdown w wierszu)
+    function applyShippingToSelected() {{
+        const bulkSel = document.getElementById('shipping-bulk-select');
+        if (!bulkSel) return;
+        const targetShipId = bulkSel.value;
+        const checked = document.querySelectorAll('.product-checkbox:checked:not(:disabled)');
+        if (checked.length === 0) {{
+            alert('Najpierw zaznacz produkty!');
+            return;
+        }}
+        let count = 0;
+        checked.forEach(cb => {{
+            const pids = cb.dataset.productIds ? cb.dataset.productIds.split(',') : [cb.value];
+            pids.forEach(pid => {{
+                const sel = document.querySelector('.ship-select[data-product-id="' + pid.trim() + '"]');
+                if (sel) {{ sel.value = targetShipId; count++; }}
+            }});
+        }});
+        // Wizualne potwierdzenie
+        bulkSel.style.background = '#22c55e';
+        setTimeout(() => {{ bulkSel.style.background = ''; }}, 800);
     }}
 
     function batchGenerateMetaTitles() {{
