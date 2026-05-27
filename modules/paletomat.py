@@ -3359,13 +3359,38 @@ def generator_mass_create_from_paleta():
         print(f'[mass-create] Blad pobierania cennikow: {e}')
 
     count = len(product_ids)
-    
+
+    # Per-product shipping_map z mass-edit (jesli user wybral rozne cenniki per wiersz)
+    # Format URL: ?shipping_map=<JSON {"pid": "uuid", ...}>
+    # PRE-RENDER do JS variable + info HTML zeby uniknac nested f-string (Python 3.11 fail)
+    _ship_map_raw_in = request.args.get('shipping_map', '').strip()
+    _ship_map_in = {}
+    if _ship_map_raw_in:
+        try:
+            _parsed = json.loads(_ship_map_raw_in)
+            _ship_map_in = {str(k): v for k, v in _parsed.items() if v}
+        except Exception as _e:
+            print(f'[mass-create page] shipping_map parse fail: {_e}')
+    ship_map_json_for_js = json.dumps(_ship_map_in) if _ship_map_in else 'null'
+    ship_map_info_html = ''
+    if _ship_map_in:
+        ship_map_info_html = (
+            '<div style="padding:10px 14px;margin-bottom:12px;background:rgba(143,245,255,0.06);'
+            'border-left:3px solid #8ff5ff;border-radius:8px;font-size:0.82rem;color:#8ff5ff">'
+            '<span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">tune</span> '
+            f'<b>Per-produkt cennik z mass-edit aktywny</b> ({len(_ship_map_in)} produktów). '
+            'Wybór poniżej nadpisze TYLKO produkty bez indywidualnego cennika.'
+            '</div>'
+        )
+
     html = f'''
     <div class="hdr"><h1><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> MASOWE WYSTAWIANIE Z PALETY</h1><small>{count} produktów</small></div>
-    
+
     <div class="alert alert-ok" style="font-size:0.85rem">
         <span class=material-symbols-outlined>check_circle</span> Allegro połączone | <span class=material-symbols-outlined>check_circle</span> Cennik wysyłki OK | <span class=material-symbols-outlined>check_circle</span> Produkty wybrane
     </div>
+
+    {ship_map_info_html}
 
     <!-- WYBOR CENNIKA WYSYLKI (per batch) -->
     <div class="card" id="shipping-picker" style="padding:20px;margin-bottom:15px;border:2px solid rgba(143,245,255,0.2)">
@@ -3442,13 +3467,20 @@ def generator_mass_create_from_paleta():
         }}
     }}
 
+    // Per-product shipping_map z mass-edit (lub null jesli brak)
+    const PRESET_SHIPPING_MAP = {ship_map_json_for_js};
+
     // Odpal stream dopiero po klik Start (uzytkownik wybiera cennik wczesniej)
     let evtSource = null;
     document.getElementById('start-btn').onclick = function() {{
         const selEl = document.getElementById('shipping-select') || document.getElementById('shipping-select-input');
         const shipId = selEl ? selEl.value.trim() : '';
-        const url = '/paletomat/generator/mass-create-from-paleta-stream?ids={ids_str}' +
-                    (shipId ? '&shipping_id=' + encodeURIComponent(shipId) : '');
+        let url = '/paletomat/generator/mass-create-from-paleta-stream?ids={ids_str}' +
+                  (shipId ? '&shipping_id=' + encodeURIComponent(shipId) : '');
+        // Doklej per-produkt cennik jesli byl z mass-edit
+        if (PRESET_SHIPPING_MAP && Object.keys(PRESET_SHIPPING_MAP).length > 0) {{
+            url += '&shipping_map=' + encodeURIComponent(JSON.stringify(PRESET_SHIPPING_MAP));
+        }}
         document.getElementById('shipping-picker').style.opacity = '0.5';
         document.getElementById('shipping-picker').style.pointerEvents = 'none';
         this.disabled = true;
