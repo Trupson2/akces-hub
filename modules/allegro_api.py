@@ -5648,6 +5648,13 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
         shipment_input['sender']['point'] = sender_point
         print(f"   → Nadanie z paczkomatu: {sender_point} (sendingAtPoint)")
 
+    # REFERENCJA NA ETYKIECIE: pojawia sie jako "REF" lub w komentarzu DPD/InPost.
+    # Wypisuje sie na etykiecie -> Maciek wie ktora paczka jest ktorego zamowienia
+    # przed nadaniem (kod_magazynowy / lokalizacja / order_id short).
+    if reference:
+        shipment_input['reference'] = str(reference)[:50]
+        print(f"   → [MAIL] REFERENCE na etykiecie: {shipment_input['reference']}")
+
     print(f"   → [MAIL] SENDER PAYLOAD: {shipment_input['sender']}")
     print(f"   → [MAIL] RECEIVER PAYLOAD: {shipment_input.get('receiver', 'BRAK!')}")
 
