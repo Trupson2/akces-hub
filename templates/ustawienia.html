@@ -181,20 +181,24 @@ select.ust-input{cursor:pointer;appearance:none;background-image:url("data:image
                 <h3>Parametry integracji</h3>
             </div>
             <form action="/ustawienia/integracje-parametry" method="POST">
+                <div class="ust-hint" style="margin-bottom:14px;font-size:0.78rem;color:#94a3b8">
+                    UUID-y pobierasz ze swojego konta Allegro (DPD cennik, polityki zwrotow/reklamacji).
+                    Bez tych ID-ek "Wyslij z Allegro" nie zadziala.
+                </div>
                 <div class="ust-form-group">
                     <label>ID cennika DPD</label>
                     <input type="text" name="dpd_cennik_id" class="ust-input mono" value="{{ dpd_cennik_id }}"
-                        placeholder="bf1a1cf0-6a1e-41b3-a42e-d46846b35f43">
+                        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
                 </div>
                 <div class="ust-form-group">
                     <label>ID warunkow zwrotow</label>
                     <input type="text" name="zwroty_warunki_id" class="ust-input mono" value="{{ zwroty_warunki_id }}"
-                        placeholder="7b75ba63-0967-4536-a439-730f8e563a59">
+                        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
                 </div>
                 <div class="ust-form-group">
                     <label>ID warunkow reklamacji</label>
                     <input type="text" name="reklamacje_warunki_id" class="ust-input mono" value="{{ reklamacje_warunki_id }}"
-                        placeholder="128af307-9341-4f8c-b406-63b9060cce7d">
+                        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
                 </div>
                 <button type="submit" class="ust-btn ust-btn-pink">Zapisz parametry</button>
             </form>
