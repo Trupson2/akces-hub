@@ -225,17 +225,135 @@ def verify_license(license_data):
         except (ValueError, TypeError):
             pass  # Nieprawidłowy format — ignoruj
 
-    # Sprawdź HWID binding (backward compatible — jeśli brak hwid, pomijamy)
-    stored_hwid = license_data.get('hwid', '')
-    if stored_hwid:
+    # Sprawdź HWID binding (multi-HWID: lista komputerow w 'hwids' + legacy 'hwid')
+    # Plan -> max seatow: trial/pro=1, max=3, enterprise=5
+    stored_hwids = license_data.get('hwids', [])
+    if not stored_hwids:
+        # Backward compat: stara licencja ma 'hwid' (string)
+        old_hwid = license_data.get('hwid', '')
+        if old_hwid:
+            stored_hwids = [old_hwid]
+
+    if stored_hwids:
         try:
             current_hwid = get_hwid()
-            if current_hwid != 'UNKNOWN' and stored_hwid != current_hwid:
-                return False, 'Licencja przypisana do innego urzadzenia'
+            if current_hwid != 'UNKNOWN' and current_hwid not in stored_hwids:
+                return False, 'Licencja nie jest aktywowana na tym komputerze. Wejdz /license -> Dodaj ten komputer.'
         except Exception:
             pass  # Błąd HWID nie blokuje — bezpieczeństwo
 
     return True, 'OK'
+
+
+# Plan -> maksymalna liczba HWID jednoczesnie (seaty)
+PLAN_MAX_SEATS = {
+    'trial': 1, 'starter': 1,
+    'pro': 1,
+    'max': 3, 'business': 3,
+    'enterprise': 5,
+}
+
+
+def add_hwid_to_license(reason=''):
+    """Dodaj AKTUALNY HWID do listy aktywnych komputerow licencji.
+
+    - Sprawdza limit per plan (max 3 dla MAX, 5 dla ENTERPRISE)
+    - Jesli HWID juz na liscie -> no-op (success)
+    - Wysyla Telegram notify do dostawcy (vendor_bot)
+
+    Returns: (success: bool, message: str)
+    """
+    lic = get_license_info()
+    if not lic:
+        return False, 'Brak licencji'
+
+    current = get_hwid()
+    if current == 'UNKNOWN':
+        return False, 'Nie moge odczytac HWID tego komputera'
+
+    # Pobierz aktualna liste (backward compat z 'hwid' single string)
+    hwids = list(lic.get('hwids', []))
+    if not hwids and lic.get('hwid'):
+        hwids = [lic['hwid']]
+
+    if current in hwids:
+        return True, 'Ten komputer juz jest aktywowany'
+
+    # Limit per plan
+    plan = (lic.get('plan', 'pro') or 'pro').lower()
+    max_seats = PLAN_MAX_SEATS.get(plan, 1)
+    if len(hwids) >= max_seats:
+        return False, (
+            f'Limit komputerow ({max_seats}) osiagniety dla planu {plan.upper()}. '
+            f'Usun jeden z listy lub skontaktuj sie z dostawca.'
+        )
+
+    # Dodaj
+    hwids.append(current)
+    lic['hwids'] = hwids
+    lic.pop('hwid', None)  # usun legacy field zeby nie myliło
+    save_license(lic)
+
+    # Notify dostawcy
+    try:
+        from .telegram_bot import send_telegram_support
+        from .database import get_config
+        brand = get_config('brand_name', 'AKCES HUB')
+        client = lic.get('client', '?')
+        reason_safe = (reason or '').replace('<', '&lt;').replace('>', '&gt;')[:300]
+        msg = (
+            f"➕ <b>DODANO KOMPUTER do licencji</b>\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"📍 Klient: <b>{brand}</b> / {client}\n"
+            f"📦 Plan: {plan.upper()} ({len(hwids)}/{max_seats})\n"
+            f"🆕 Nowy HWID: <code>{current[:16]}</code>\n"
+            f"💬 Powod: {reason_safe or '(brak)'}\n"
+            f"━━━━━━━━━━━━━━━━━━"
+        )
+        send_telegram_support(msg, parse_mode='HTML')
+    except Exception as e:
+        print(f'[license] add_hwid notify fail: {e}')
+
+    return True, f'Komputer dodany ({len(hwids)}/{max_seats}).'
+
+
+def remove_hwid_from_license(target_hwid):
+    """Usun HWID z listy aktywnych komputerow."""
+    lic = get_license_info()
+    if not lic:
+        return False, 'Brak licencji'
+
+    hwids = list(lic.get('hwids', []))
+    if not hwids and lic.get('hwid'):
+        hwids = [lic['hwid']]
+
+    if target_hwid not in hwids:
+        return False, 'Ten HWID nie jest na liscie'
+
+    if len(hwids) <= 1:
+        return False, 'Nie mozesz usunac OSTATNIEGO komputera (licencja przestałaby działać)'
+
+    hwids.remove(target_hwid)
+    lic['hwids'] = hwids
+    save_license(lic)
+
+    # Notify dostawcy
+    try:
+        from .telegram_bot import send_telegram_support
+        from .database import get_config
+        brand = get_config('brand_name', 'AKCES HUB')
+        client = lic.get('client', '?')
+        msg = (
+            f"➖ <b>USUNIETO KOMPUTER z licencji</b>\n"
+            f"📍 {brand} / {client}\n"
+            f"🗑️ HWID: <code>{target_hwid[:16]}</code>\n"
+            f"📊 Pozostalo: {len(hwids)} komputerow"
+        )
+        send_telegram_support(msg, parse_mode='HTML')
+    except Exception:
+        pass
+
+    return True, f'Komputer usunięty. Pozostalo: {len(hwids)}.'
 
 
 _license_cache = {'data': None, 'ts': 0}
@@ -356,11 +474,11 @@ def activate_license(key, client_name, plan, created, expires, signature):
     if not is_valid:
         return False, msg
 
-    # Bind HWID przy aktywacji
+    # Bind HWID przy aktywacji (lista - wspiera multi-seat per plan)
     try:
         hwid = get_hwid()
         if hwid != 'UNKNOWN':
-            license_data['hwid'] = hwid
+            license_data['hwids'] = [hwid]
     except Exception:
         pass  # Błąd HWID nie blokuje aktywacji
 

@@ -3240,6 +3240,32 @@ def license_reset_hwid_endpoint():
     return redirect('/license?err=' + msg[:200].replace(' ', '+'))
 
 
+@app.route('/license/add-hwid', methods=['POST'])
+def license_add_hwid_endpoint():
+    """Dodaj aktualny komputer do listy aktywnych (multi-seat)."""
+    _validate_csrf_or_abort()
+    from modules.license import add_hwid_to_license
+    reason = (request.form.get('reason', '') or '').strip()
+    ok, msg = add_hwid_to_license(reason=reason)
+    if ok:
+        return redirect('/license?msg=' + msg[:200].replace(' ', '+'))
+    return redirect('/license?err=' + msg[:200].replace(' ', '+'))
+
+
+@app.route('/license/remove-hwid', methods=['POST'])
+def license_remove_hwid_endpoint():
+    """Usun konkretny HWID z listy aktywnych."""
+    _validate_csrf_or_abort()
+    from modules.license import remove_hwid_from_license
+    target = (request.form.get('hwid', '') or '').strip()
+    if not target:
+        return redirect('/license?err=Brak+HWID')
+    ok, msg = remove_hwid_from_license(target)
+    if ok:
+        return redirect('/license?msg=' + msg[:200].replace(' ', '+'))
+    return redirect('/license?err=' + msg[:200].replace(' ', '+'))
+
+
 @app.route('/narzedzia/licencje/delete', methods=['POST'])
 def narzedzia_licencje_delete():
     """Usuń wygenerowaną licencję (plik .json + DB licenses_issued).
