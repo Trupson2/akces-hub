@@ -110,6 +110,13 @@ EXCLUDE_IMAGE_EXTENSIONS = {'.jpg', '.png', '.jpeg'}
 
 def should_exclude(path, name):
     """Sprawdź czy plik/folder powinien być wykluczony."""
+    # WYJATEK: embedded Python (installer/python/) — zawiera .zip (stdlib),
+    # .pyc (bytecode), .pyd (extension modules) ktore inaczej byloby wykluczone.
+    # Wszystko w tym folderze jest CELOWO trzymane (klient nie ma Pythona).
+    norm_path = path.replace('\\', '/').lower()
+    if '/installer/python' in norm_path or norm_path.endswith('/installer/python'):
+        return False
+
     if name in EXCLUDE_FILES:
         return True
     if name in EXCLUDE_DIRS:
@@ -317,6 +324,11 @@ def verify_release(zip_path, allow_license_secret=False):
                 continue
             # .license_secret jest CELOWO embedded gdy build for client
             if base == '.license_secret' and allow_license_secret:
+                continue
+            # WYJATEK: embedded Python (installer/python/) — zawiera stdlib jako
+            # python3XX.zip, .pyc files, .pyd, ktore inaczej byloby ZAKAZANE.
+            # Sa CELOWO embedded zeby klient mial dzialajacy Python out-of-box.
+            if 'installer/python' in arc.replace('\\', '/').lower():
                 continue
             if base in _FORBIDDEN_NAMES:
                 problems.append(f"ZAKAZANY plik: {arc}")

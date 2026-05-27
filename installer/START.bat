@@ -7,9 +7,10 @@ REM ============================================
 setlocal
 cd /d "%~dp0\.."
 
-REM Sprawdz czy jest embedded Python (folder python\)
-if exist "python\python.exe" (
-    set "PYTHON_EXE=%~dp0..\python\pythonw.exe"
+REM Sprawdz czy jest embedded Python (folder installer\python\)
+if exist "installer\python\pythonw.exe" (
+    set "PYTHON_EXE=%~dp0python\pythonw.exe"
+    echo Uzywam embedded Python ^(installer\python\^)
 ) else (
     REM Fallback: system Python
     where pythonw >nul 2>&1
@@ -20,6 +21,7 @@ if exist "python\python.exe" (
         exit /b 1
     )
     set "PYTHON_EXE=pythonw.exe"
+    echo Uzywam systemowego Python
 )
 
 REM Sprawdz czy juz nie chodzi (lock plik z PID)

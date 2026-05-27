@@ -85,3 +85,13 @@ app.py.backup
 tools/generate_license.py
 tools/license_*.json
 .env.key
+
+# Embedded Python for Windows installer (~100 MB, regenerable via prepare_python_embed.py)
+installer/python/
+_python-*-embed.zip
+get-pip.py
+
+# Release artifacts (regenerable via build_release.py)
+akces-hub-v*.zip
+akces-hub-v*.zip.sig
+akces-hub-release-*.zip

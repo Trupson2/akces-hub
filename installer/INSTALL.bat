@@ -12,24 +12,24 @@ echo ============================================
 echo.
 
 REM ---- 1. Sprawdz/uzyj embedded Python ----
-if exist "python\python.exe" (
-    set "PY=%~dp0..\python\python.exe"
-    echo [1/5] Python: embedded ^(folder python\^)
-) else (
-    where python >nul 2>&1
-    if !ERRORLEVEL! neq 0 (
-        echo BLAD: Python nie jest zainstalowany.
-        echo Pobierz Python 3.10+ z: https://www.python.org/downloads/
-        echo Wazne: zaznacz "Add Python to PATH" podczas instalacji!
-        start "" "https://www.python.org/downloads/"
-        pause
-        exit /b 1
-    )
-    set "PY=python"
-    echo [1/5] Python: systemowy
+if exist "installer\python\python.exe" (
+    set "PY=%~dp0python\python.exe"
+    echo [1/5] Python: embedded ^(installer\python\^) - biblioteki juz zainstalowane
+    goto skip_pip
 )
+where python >nul 2>&1
+if !ERRORLEVEL! neq 0 (
+    echo BLAD: Python nie jest zainstalowany.
+    echo Pobierz Python 3.10+ z: https://www.python.org/downloads/
+    echo Wazne: zaznacz "Add Python to PATH" podczas instalacji!
+    start "" "https://www.python.org/downloads/"
+    pause
+    exit /b 1
+)
+set "PY=python"
+echo [1/5] Python: systemowy
 
-REM ---- 2. Pip install requirements ----
+REM ---- 2. Pip install requirements (TYLKO gdy brak embedded) ----
 echo [2/5] Instaluje biblioteki Python ^(moze potrwac 2-3 min^)...
 "%PY%" -m pip install --upgrade pip --quiet
 "%PY%" -m pip install -r requirements.txt --quiet
@@ -40,6 +40,7 @@ if !ERRORLEVEL! neq 0 (
     exit /b 1
 )
 echo      OK
+:skip_pip
 
 REM ---- 3. Inicjalizacja bazy (init_db) ----
 echo [3/5] Inicjalizacja bazy danych...
