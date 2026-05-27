@@ -3242,24 +3242,26 @@ def narzedzia_licencje_delete():
 
     filename = (request.form.get('filename') or '').strip()
     license_key = (request.form.get('key') or '').strip()
-    # Safety: nazwa pliku musi pasować do whitelist regex
+
+    # Safety: filename musi zaczynac sie 'license_' i konczyc '.json'.
+    # Akceptujemy SPACJE i polskie znaki (np. 'license_Adrian Gauza_max.json').
+    # Path traversal blokuje os.path.abspath() check ponizej.
     import re as _re
-    if not _re.match(r'^license_[a-zA-Z0-9_-]+_[a-zA-Z]+\.json$', filename):
-        return redirect('/narzedzia/licencje?err=invalid_filename')
-
-    _tools_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools')
-    fpath = os.path.join(_tools_dir, filename)
-    # Path traversal guard
-    if not os.path.abspath(fpath).startswith(os.path.abspath(_tools_dir) + os.sep):
-        return redirect('/narzedzia/licencje?err=path_traversal')
-
+    # Tylko podstawowy sanity check + brak '..' i sciezki
     deleted_file = False
-    if os.path.exists(fpath):
-        try:
-            os.remove(fpath)
-            deleted_file = True
-        except Exception:
-            pass
+    safe_filename = filename and filename.startswith('license_') and filename.endswith('.json') \
+                    and '..' not in filename and '/' not in filename and '\\' not in filename
+    if safe_filename:
+        _tools_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools')
+        fpath = os.path.join(_tools_dir, filename)
+        # Path traversal guard (final check)
+        if os.path.abspath(fpath).startswith(os.path.abspath(_tools_dir) + os.sep):
+            if os.path.exists(fpath):
+                try:
+                    os.remove(fpath)
+                    deleted_file = True
+                except Exception:
+                    pass
 
     # Usuń też z licenses_issued (server-side tracking)
     deleted_db = False
