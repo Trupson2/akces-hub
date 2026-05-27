@@ -2821,6 +2821,133 @@ def system_update():
                          error_message=str(e)[:500])
         return jsonify({'ok': False, 'error': str(e)[:200]})
 
+
+# ============================================================
+# ZIP-BASED UPDATE (dla klient\xf3w bez gita, np. Windows)
+# ============================================================
+@app.route('/system/check-update-zip', methods=['POST'])
+@require_admin
+def system_check_update_zip():
+    """Sprawdza GitHub Releases czy jest nowa wersja zip-a.
+
+    Wywolywane przez UI w /ustawienia (przycisk "Sprawdz aktualizacje").
+    Nie modyfikuje plikow — tylko czyta GitHub API.
+    """
+    _validate_csrf_or_abort()
+    from modules.zip_updater import check_github_release
+    from modules.database import get_config
+    repo = (get_config('github_release_repo', '') or '').strip()
+    if not repo:
+        return jsonify({
+            'ok': False,
+            'error': 'Brak github_release_repo w konfiguracji. Skontaktuj sie z dostawca.'
+        })
+    info = check_github_release(repo, timeout=10)
+    return jsonify({'ok': True, **info})
+
+
+@app.route('/system/update-zip', methods=['POST'])
+@require_admin
+def system_update_zip():
+    """Pobierz + zainstaluj zip update z GitHub Releases.
+
+    Wymaga: github_release_repo w config, podpis HMAC zip-a.
+    Bezpieczenstwo:
+    - @require_admin + CSRF (jak /system/update)
+    - HMAC verification zip-a (LICENSE_SECRET)
+    - Backup obecnej kopii pre-update
+    - Restart Pythona przez wrapper bat-owy (Windows) lub execv (Linux)
+    """
+    _validate_csrf_or_abort()
+    from modules.database import log_admin_action, get_config
+    from modules.zip_updater import (
+        check_github_release, download_release_zip,
+        install_update, restart_python_process,
+    )
+    import tempfile, threading, time as _time
+
+    repo = (get_config('github_release_repo', '') or '').strip()
+    if not repo:
+        log_admin_action('system_update_zip', {'stage': 'config'}, success=False,
+                         error_message='Brak github_release_repo')
+        return jsonify({'ok': False, 'error': 'Brak github_release_repo w konfiguracji'})
+
+    # 1. Sprawdz release
+    info = check_github_release(repo, timeout=10)
+    if info.get('error'):
+        log_admin_action('system_update_zip', {'stage': 'check'}, success=False,
+                         error_message=info['error'])
+        return jsonify({'ok': False, 'error': info['error']})
+    if not info.get('available'):
+        return jsonify({'ok': True, 'msg': 'Juz aktualne', 'restart': False})
+
+    # 2. Pobierz zip + signature
+    tmpdir = tempfile.mkdtemp(prefix='akces_dl_')
+    zip_path = os.path.join(tmpdir, 'release.zip')
+    if not download_release_zip(info['download_url'], zip_path, timeout=180):
+        log_admin_action('system_update_zip', {'stage': 'download'}, success=False,
+                         error_message='Download failed')
+        return jsonify({'ok': False, 'error': 'Pobieranie zip nie powiodlo sie'})
+
+    sig_hex = ''
+    if info.get('signature_url'):
+        sig_path = os.path.join(tmpdir, 'release.zip.sig')
+        if download_release_zip(info['signature_url'], sig_path, timeout=30):
+            try:
+                with open(sig_path, 'r', encoding='utf-8') as f:
+                    sig_hex = f.read().strip().split()[0]  # plik moze byc "hex  filename"
+            except Exception:
+                pass
+
+    # 3. Install (verify + backup + extract)
+    result = install_update(zip_path, signature_hex=sig_hex)
+    if not result.get('ok'):
+        log_admin_action('system_update_zip', {'stage': 'install', **result}, success=False,
+                         error_message=result.get('error', ''))
+        return jsonify({'ok': False, 'error': result.get('error', 'Install failed')})
+
+    log_admin_action('system_update_zip', {
+        'stage': 'updated',
+        'latest': info.get('latest', ''),
+        'files_updated': result.get('files_updated', 0),
+        'backup_path': result.get('backup_path', ''),
+        'restart': True,
+    }, success=True)
+
+    # 4. Telegram notify (jak dla git-update)
+    try:
+        bot_token = get_config('telegram_bot_token', '')
+        chat_id = get_config('telegram_chat_id', '')
+        if bot_token and chat_id:
+            import requests as _req
+            text = (
+                f"\U0001F504 *{get_config('brand_name', 'AKCES HUB')} — Aktualizacja*\n\n"
+                f"\U0001F4E6 Wersja: `{info.get('latest', '?')}`\n"
+                f"\U0001F4DD Plik\xf3w zaktualizowanych: {result.get('files_updated', 0)}\n"
+                f"✅ Restart za chwilę..."
+            )
+            _req.post(
+                f'https://api.telegram.org/bot{bot_token}/sendMessage',
+                json={'chat_id': chat_id, 'text': text, 'parse_mode': 'Markdown'},
+                timeout=5
+            )
+    except Exception:
+        pass
+
+    # 5. Restart Pythona (po 3s zeby response dotarl + browser pokazal toast)
+    threading.Thread(
+        target=lambda: (_time.sleep(3), restart_python_process()),
+        daemon=True,
+    ).start()
+
+    return jsonify({
+        'ok': True,
+        'msg': f'Zaktualizowano do {info.get("latest", "?")}. Restart za chwile...',
+        'files_updated': result.get('files_updated', 0),
+        'restart': True,
+    })
+
+
 # ============================================================
 # ONBOARDING — kreator pierwszej konfiguracji
 # ============================================================
@@ -3584,6 +3711,10 @@ def narzedzia():
         pass  # Brak modułu lub błąd = pokaż wszystko
     from modules.database import get_config
     gemini_model = get_config('gemini_model', 'gemini-2.5-flash')
+    # Detect install method (git vs zip) — wplywa na sciezke update w UI
+    _app_dir = os.path.dirname(os.path.abspath(__file__))
+    is_zip_install = not os.path.isdir(os.path.join(_app_dir, '.git'))
+    github_release_repo = (get_config('github_release_repo', '') or '').strip()
     return render_template('narzedzia.html',
         version=VERSION,
         is_admin=(session.get('rola') == 'admin'),
@@ -3591,6 +3722,8 @@ def narzedzia():
         plan_level=plan_level,
         current_plan=current_plan,
         gemini_model=gemini_model,
+        is_zip_install=is_zip_install,
+        github_release_repo=github_release_repo,
         active_narzedzia='active', active_home='', active_magazyn='',
         active_paletomat='', active_allegro='', active_monitor='')
 

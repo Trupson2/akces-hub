@@ -223,11 +223,17 @@
         </div>
         <div class="nc-arrow">›</div>
     </a>
-    <div class="narz-card glass-card" id="updateCard" onclick="doUpdate()">
+    <div class="narz-card glass-card" id="updateCard" onclick="{% if is_zip_install %}doUpdateZip(){% else %}doUpdate(){% endif %}">
         <div class="nc-icon blue"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">sync</span></div>
         <div class="nc-info">
             <div class="nc-name">Update systemu</div>
-            <div class="nc-desc" id="updateDesc">Git pull + restart serwisu</div>
+            <div class="nc-desc" id="updateDesc">
+                {% if is_zip_install %}
+                    {% if github_release_repo %}Pobierz aktualizację z GitHub Releases{% else %}Skontaktuj się z dostawcą — brak konfiguracji repo{% endif %}
+                {% else %}
+                    Git pull + restart serwisu
+                {% endif %}
+            </div>
         </div>
         <div class="nc-arrow">›</div>
     </div>
@@ -297,6 +303,79 @@ function doUpdate() {
     desc.textContent = ' Restart w toku... odświeżam za 5s';
         card.style.opacity='1';
         setTimeout(function(){ location.reload(); }, 5000);
+    });
+}
+
+// ZIP-based update (dla klientow bez gita, np. Windows)
+function doUpdateZip() {
+    var card = document.getElementById('updateCard');
+    var desc = document.getElementById('updateDesc');
+    desc.textContent = ' Sprawdzam GitHub Releases...';
+    card.style.pointerEvents = 'none';
+    card.style.opacity = '0.6';
+
+    // 1. Najpierw sprawdz czy jest update
+    fetch('/system/check-update-zip', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        credentials: 'same-origin',
+        body: '{}'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (!d.ok) {
+            desc.textContent = ' Błąd: ' + (d.error || 'nieznany');
+            card.style.opacity = '1';
+            card.style.pointerEvents = 'auto';
+            return;
+        }
+        if (!d.available) {
+            desc.textContent = ' Już aktualne (' + (d.current || '?') + ')';
+            card.style.opacity = '1';
+            card.style.pointerEvents = 'auto';
+            return;
+        }
+        // 2. Potwierdz z userem
+        var msg = 'Dostępna aktualizacja:\n\n' +
+                  'Aktualnie: ' + d.current + '\n' +
+                  'Najnowsza: ' + d.latest + '\n\n' +
+                  (d.changelog ? 'Zmiany:\n' + d.changelog.slice(0, 300) + '\n\n' : '') +
+                  'Pobrać i zainstalować?';
+        if (!confirm(msg)) {
+            desc.textContent = ' Anulowano';
+            card.style.opacity = '1';
+            card.style.pointerEvents = 'auto';
+            return;
+        }
+        // 3. Pobierz + zainstaluj
+        desc.textContent = ' Pobieram zip + instaluję (może potrwać 1-2 min)...';
+        fetch('/system/update-zip', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            credentials: 'same-origin',
+            body: '{}'
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d2) {
+            if (d2.ok) {
+                desc.textContent = ' ' + d2.msg + ' Odświeżam za 8s...';
+                setTimeout(function(){ location.reload(); }, 8000);
+            } else {
+                desc.textContent = ' Błąd: ' + (d2.error || 'nieznany');
+                card.style.opacity = '1';
+                card.style.pointerEvents = 'auto';
+            }
+        })
+        .catch(function(e) {
+            console.log('[UpdateZip] Catch (likely restart):', e);
+            desc.textContent = ' Restart w toku... odświeżam za 8s';
+            setTimeout(function(){ location.reload(); }, 8000);
+        });
+    })
+    .catch(function(e) {
+        desc.textContent = ' Błąd połączenia z GitHub';
+        card.style.opacity = '1';
+        card.style.pointerEvents = 'auto';
     });
 }
 </script>
