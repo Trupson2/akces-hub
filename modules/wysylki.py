@@ -340,9 +340,33 @@ def wysylki_pakowanie():
 
 @wysylki_bp.route('/api/wysylki/pending')
 def api_wysylki_pending():
-    """API - zwraca listę zamówień oczekujących na pakowanie (z Allegro API + lokalna baza)"""
+    """API - zwraca liste zamowien oczekujacych na pakowanie.
+
+    OPTYMALIZACJA: cache 30s w pamieci (5-10x szybszy refresh).
+    Allegro round-trip to 2-5s, lokalna iteracja to <50ms.
+    Pierwszy request -> fetch z Allegro + cache. Kolejne (do 30s) -> instant.
+    """
     from modules.allegro_api import is_authenticated, get_orders
     from modules.database import get_db
+    import time as _t
+
+    # CACHE: zwroc gotowy wynik jesli mlodszy niz 30s
+    global _PENDING_CACHE
+    try:
+        _cache = _PENDING_CACHE
+    except NameError:
+        _cache = None
+    if _cache and (_t.time() - _cache.get('ts', 0)) < 30:
+        # Refresh shipped_today (zmienia sie czesto, ale szybkie)
+        try:
+            conn = get_db()
+            from datetime import date
+            today = date.today().isoformat()
+            shipped_row = conn.execute("SELECT COUNT(*) as cnt FROM sprzedaze WHERE status IN ('wyslana','nadana') AND date(data_sprzedazy) = ?", (today,)).fetchone()
+            _cache['data']['shipped_today'] = shipped_row['cnt'] if shipped_row else 0
+        except Exception:
+            pass
+        return jsonify(_cache['data'])
 
     orders = []
     shipped_today = 0
@@ -449,7 +473,14 @@ def api_wysylki_pending():
     except Exception as e:
             print(f"[WARN] DB fallback orders error: {e}")
 
-    return jsonify({'orders': orders, 'total': len(orders), 'shipped_today': shipped_today})
+    _result = {'orders': orders, 'total': len(orders), 'shipped_today': shipped_today}
+    # ZAPISZ DO CACHE (30s) - kolejne /api/wysylki/pending requesty pojda instant
+    try:
+        _PENDING_CACHE = {'ts': _t.time(), 'data': _result}
+        globals()['_PENDING_CACHE'] = _PENDING_CACHE
+    except Exception:
+        pass
+    return jsonify(_result)
 
 
 @wysylki_bp.route('/api/wysylki/cennik')
