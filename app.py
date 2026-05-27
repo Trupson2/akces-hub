@@ -2194,9 +2194,17 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     _fwd_host = request.headers.get('X-Forwarded-Host', '')        # reverse proxy
     _remote = request.remote_addr or ''
     _is_proxied = bool(_xff or _cf_ip or _cf_ray or _ngrok_trace or _fwd_host)
-    _is_pi_screen = _remote in ('127.0.0.1', '::1', '192.168.100.200') and not _is_proxied
+    # Auto-kiosk dla LAN IP — można wyłączyć w config (gdy user chce pełny dashboard
+    # mimo wejścia z Pi/LAN).
+    _kiosk_auto_disabled = (get_config('kiosk_auto_disabled', '0') or '0') == '1'
+    _is_pi_screen = (
+        _remote in ('127.0.0.1', '::1', '192.168.100.200')
+        and not _is_proxied
+        and not _kiosk_auto_disabled
+    )
     _force_kiosk = request.args.get('kiosk') == '1'
-    if _is_pi_screen or _force_kiosk:
+    _force_full = request.args.get('kiosk') == '0' or request.args.get('full') == '1'
+    if (_is_pi_screen or _force_kiosk) and not _force_full:
         # Per-instance konfiguracja (NIE hardcoded Adrian's Pi):
         _platform = (get_config('platform_name', '') or '').strip()
         _cf_url = (get_config('cloudflare_url', '') or '').strip()
