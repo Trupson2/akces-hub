@@ -14,6 +14,8 @@ import sys
 import shutil
 import argparse
 import zipfile
+import hmac
+import hashlib
 from datetime import datetime
 
 # Pliki/foldery do WYKLUCZENIA
@@ -165,6 +167,38 @@ def _get_master_secret(source_dir):
     return None
 
 
+def _sign_zip(zip_path, secret):
+    """Oblicz HMAC-SHA256 zip-a i zapisz jako {zip_path}.sig.
+
+    Klient (modules/zip_updater.py) sprawdza tę sygnaturę przed instalacją
+    — bez podpisu odrzuca pobrany zip (ochrona przed podstawieniem).
+
+    Args:
+        zip_path: ścieżka do .zip
+        secret: bytes/str master LICENSE_SECRET
+
+    Returns:
+        ścieżka do .sig (lub None jeśli błąd)
+    """
+    if isinstance(secret, str):
+        secret = secret.encode('utf-8')
+    h = hmac.new(secret, digestmod=hashlib.sha256)
+    try:
+        with open(zip_path, 'rb') as f:
+            while True:
+                chunk = f.read(65536)
+                if not chunk:
+                    break
+                h.update(chunk)
+        sig_path = zip_path + '.sig'
+        with open(sig_path, 'w', encoding='ascii') as f:
+            f.write(h.hexdigest())
+        return sig_path
+    except Exception as e:
+        print(f"  [WARN] Sign zip failed: {e}")
+        return None
+
+
 def build_release(source_dir, output_path, embed_secret=True):
     """Zbuduj czystą wersję. embed_secret=True dołącza Twój MASTER LICENSE_SECRET
     do .license_secret w zipie — klient używa go automatycznie, licencje walidują."""
@@ -218,6 +252,35 @@ def build_release(source_dir, output_path, embed_secret=True):
     print(f"\nGotowe! Plik: {output_path}")
 
     verify_release(output_path, allow_license_secret=embed_secret)
+
+    # Podpisz zip HMAC-SHA256 z master LICENSE_SECRET. Bez tego klient odrzuci
+    # pobrany zip ("Nieprawidlowy podpis HMAC zip-a — atak?").
+    if master_secret:
+        print("\n-- Podpisuje zip (HMAC-SHA256 z LICENSE_SECRET) --")
+        sig_path = _sign_zip(output_path, master_secret)
+        if sig_path:
+            print(f"  [OK] Sygnatura: {sig_path}")
+            print(f"  [OK] Hex (64 znaki): {open(sig_path).read()}")
+            print(f"\nUPLOAD DO GitHub Releases:")
+            print(f"  gh release create v{_read_version(source_dir)} \\")
+            print(f"    --notes 'Opis zmian...' \\")
+            print(f"    '{output_path}' \\")
+            print(f"    '{sig_path}'")
+        else:
+            print("  [FAIL] Nie udalo sie podpisac — klient odrzuci pobrany zip!")
+    else:
+        print("\n[WARN] Brak master_secret -> NIE podpisuje zip-a.")
+        print("       Klient odrzuci pobrany zip (HMAC verify fail).")
+        print("       Ustaw AKCES_LICENSE_SECRET env var lub .license_secret.")
+
+
+def _read_version(source_dir):
+    """Czyta VERSION z source dir, fallback '0.0.0'."""
+    try:
+        with open(os.path.join(source_dir, 'VERSION'), 'r', encoding='utf-8') as f:
+            return f.read().strip()
+    except Exception:
+        return '0.0.0'
 
 
 # PHASE 4 — automatyczna weryfikacja paczki (fail-closed).
@@ -295,10 +358,11 @@ def main():
     if args.output:
         output_path = args.output
     else:
-        date_str = datetime.now().strftime('%Y%m%d')
+        version = _read_version(source_dir)
+        # Naming: akces-hub-v1.0.2.zip (matches GitHub Release tag convention)
         output_path = os.path.join(
             os.path.dirname(source_dir),
-            f'akces-hub-release-{date_str}.zip'
+            f'akces-hub-v{version}.zip'
         )
 
     build_release(source_dir, output_path, embed_secret=not args.no_embed_secret)
