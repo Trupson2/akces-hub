@@ -1,5 +1,118 @@
 # Historia zmian (auto-generated)
 
+## 27.05.2026
+
+- fix(db): migrate_reset_fake_data_wystawienia uzywa Polish schema klucz/wartosc
+- fix(import): get_config + set_config na top-level w app.py
+- fix(privacy+ui): generic launcher / dostawcy placeholder / kiosk LAN configurable
+- fix(privacy): WYWAL hardcoded personal data (Adrian Gauza, Poniatowskiego, Mieszkowice...)
+- feat(kod_magazynowy): configurowalny prefix per klient (Ty=MAG, Kolega=ZAG)
+- feat(magazyn): własny kod_magazynowy + bulk reformat
+- feat(magazyn): ręczne dodawanie produktu z formularzem
+- fix(ui): kiosk mode OPT-IN (domyslnie wyłączony — klient widzi pełen dashboard)
+- fix(ui): wyłączalny auto-kiosk + ?full=1 / ?kiosk=0 override
+- fix(ui): /api/cloudflare-status hostname z config (NIE hardcoded)
+- fix(ui): sidebar Sklepakces.pl link conditionally hidden (non-owners)
+- fix(ui): PhonkBot widget DOMYŚLNIE OFF (osobny projekt, opt-in via config)
+- feat(poziom): wizard ustawiania celów per-klient (NIE hardcoded 1M)
+- fix(ui): per-instance platform_name + cloudflare_url (NIE hardcoded)
+- fix(release): EXCLUDE static/downloads + DB backups + accidental .zip files
+- feat(release): embed MASTER LICENSE_SECRET w zipie klienta (default ON)
+- fix(license): import get_config w licence_activate handler
+- fix(release): EXCLUDE single-digit debug files (1, 2, 3, tmp.txt)
+- fix(release): EXCLUDE nested akces-hub/ subfolder + photo_daemon
+- fix(release): EXCLUDE niepotrzebne foldery/pliki klienta
+- fix(push): NoneType format crash gdy license denied + complete error dict
+- security+ux: defense-in-depth sklepakces gate + delete licencji
+- fix(sklepakces): whitelist case-insensitive + substring match (UX)
+
+## 25.05.2026
+
+- security: sklepakces gate przez license.client whitelist (NIE plan)
+- security: gate sklepakces integration za plan enterprise/business
+- security: wywal hardcoded ngrok URL (audit pre-sale)
+- fix(push): --force działa w trybie --all (re-push wszystkich z bypass mirror)
+- feat(scripts): fetch_allegro_images.py — pobierz zdjęcia z Allegro dla stubów
+- feat(scripts): relink_orphaned_oferty.py — fix oferty.produkt_id=NULL
+- feat(scripts): import_allegro_legacy.py — import starych aukcji Allegro do Hub
+- feat(push): --include-listed — push też produkty wystawione na Allegro
+
+## 24.05.2026
+
+- fix(titles): meta_title (Polish display) > krotki_tytul (SEO short) > nazwa
+- feat(scripts): generate_polish_titles.py — bulk polski krotki_tytul via Gemini
+- fix(gpsr): brand override OVERRIDES fallback CET (precedence bug)
+- fix(fix_gpsr_addresses): poprawna nazwa funkcji + lepsza diagnostyka
+- fix(gpsr): relax INCOMPLETE filter — name bez address > AKCES fallback
+- fix(palety): pełne tytuły produktów (2-line wrap zamiast ellipsis)
+- refactor(palety): unify pallet view — redirect /palety/<id> → /magazyn/paleta-id/<id>
+- feat(stock-sync): EAN-based multi-pallet pooling — nie zamykać aukcji gdy inna paleta ma stock
+- feat(scripts): fix_gpsr_addresses.py — end-to-end naprawa adresów na sklepie
+- fix(gpsr): protect manual entries z --force + wymuszać address+email
+- fix(gemini): dynamic thinking_budget=-1 + step-by-step prompt
+- fix(gemini): enable thinking_budget=2048 — brand recall WYMAGA reasoning
+- fix(gemini): revert notes removal (regresja ATUMTEK) + silence SDK logs
+- fix(gemini): remove 'notes' field z prompt — przyczyna JSON truncation
+- chore(gemini): migracja google.generativeai → google.genai (SDK 2025)
+- feat(stock-sync): sprzedaż na sklepie → auto-zamknięcie aukcji Allegro
+- fix(gemini): 2.5-flash thinking mode obcina output → disable + bump tokens
+- fix(gemini): tolerant JSON parsing — strip markdown wrap + regex fallback
+- fix(gemini): model gemini-2.5-flash (current) + 429 retry z backoff
+- fix(gpsr): Gemini prompt strict — NIE używaj CET/Amazon Retourenkauf jako guess
+- feat: scripts/auto_fill_gpsr_brands.py — Gemini auto-fill EU rep per brand
+- fix(gpsr): hard timeout 18s/Playwright + skip gdy brand override istnieje
+- feat(sklepakces_push): auto-detect gabaryt → WC shipping class "gabaryt"
+- feat(gpsr): brand-based override + auto-populate (per producent EU rep)
+- fix(gpsr): EU responsible person fallback z AKCES → CET PRODUCT SERVICE (legal)
+- feat(sklepakces): GPSR manufacturer fallback z Gemini brand (parameters JSON)
+- fix(fetch_amazon_gpsr CLI): respektuj config amazon_gpsr_playwright_fallback
+- fix(sklepakces): dedup EAN — 2 produkty Hub z tym samym EAN → SKIP drugi push
+- feat: link oferty.produkt_id z Hub produkty (po EAN/GTIN lub fuzzy title)
+- feat: scripts/sync_allegro_descriptions.py — fetch FAKTYCZNE opisy z Allegro
+- fix(sklepakces): strip <img>/<figure>/<picture> z opisów (Allegro/scraped/Gemini)
+- fix(enrich_paleta): Gemini model fallback chain (Google retires versions)
+- feat(sklepakces_dashboard): responsive mobile CSS (telefon-friendly)
+- feat(sklepakces): cache scraped.opis_html + scraped.tytul_seo + PL fallback title
+- fix(sklepakces): paleta-supplier blacklist + Gemini enrich script
+- feat(sklepakces): single DELETE per produkt w dashboardzie (🗑 button per row)
+- fix(sklepakces_dashboard): 2 osobne przyciski zamiast JS prompt (blocked)
+- fix(sklepakces): default safe "allegro_only" + skip-bez-ceny zamiast error
+- feat(sklepakces_dashboard): "Synchronizuj wszystko" pushuje też NEW eligible + opcjonalny allegro-only
+- perf(sklepakces_dashboard): cache 10s + CTE window function (zamiast 350× subquery)
+- fix(sklepakces_dashboard): background thread + progress banner dla "Re-push wszystkie"
+
+## 23.05.2026
+
+- feat(sklepakces_push): auto-gen WC attributes dla Specyfikacja tab
+- feat(sklepakces_push): auto-generuj minimalny opis HTML gdy brak Allegro+Gemini
+- feat(gpsr): Playwright headless browser fallback dla lazy-loaded Amazon GPSR
+
+## 22.05.2026
+
+- feat(sklepakces): bulk delete WSZYSTKICH Hub produktów z WC + dashboard button
+- feat(sklepakces): dark theme + sidebar nav + WC publish/draft stats
+- fix(gpsr): content-based parser — szuka po HEADER TEXT zamiast po ID anchorach
+- feat(sklepakces): Dashboard UI — przegląd pushed produktów + akcje
+- feat: opis z aktywnej Allegro + parser Amazon GPSR 2024 layout
+- feat(sklepakces_push): pobieraj STOCK z aktywnej oferty Allegro (oferty.ilosc)
+- debug(gpsr): rozroznij captcha vs brak-GPSR-w-HTML w fallback messages
+- feat(sklepakces_push): pełne mapowanie Hub kategoria → WC slugs + hero tile parents
+- feat(sklepakces_push): bierz cenę z AKTYWNEJ aukcji Allegro + alerty Telegram
+- fix(sklepakces_push): poprawione mapowanie ceny + multi-image attach + --force
+- fix(gpsr): nie cachuj fallback "dziadka", lepsza captcha detection, --purge-cache CLI
+- feat(gpsr): Amazon scraper dla danych UE 2023/988 + auto-publish przy push
+- fix(sklepakces_push): canonical path bez '/wp-json' (WP REST router strippuje prefix)
+- feat(sklepakces): Hub→sklepakces.pl product push (OUTGOING sync, HMAC-signed POST)
+
+## 20.05.2026
+
+- feat(autowycena): data-driven kalibracja — AI uczy sie z realnych sprzedazy
+- fix(autowycena): kalibracja przykladow dla specjalistycznych produktow
+- fix(autowycena): radykalna poprawa promptu Gemini + dolny prog cena_allegro
+- fix(security): PHASE 1.1++ post-deploy — taint-flow leak allegro_api.py:413
+- docs(release): jasno oznacz że sanity sekcji 1 jest na maszynie operatora
+- chore(changelog): regen RC (final auto-stamp PHASE 1-4)
+
 ## 19.05.2026
 
 - chore(changelog): regen po PHASE 4 (autogeneracja UTF-8)
@@ -7,147 +120,4 @@
 - fix(cleanup): PHASE 4 — encoding CHANGELOG + invalid escape sequences
 - fix(release): PHASE 4 — domknij luki sekretów w build_release + auto-weryfikacja
 - feat(audit): PHASE 3 — audyt login/logout (rozliczalność dostępu)
-- fix(scout): PHASE 3 — napraw strukturalny SyntaxError winning_scout.py:729
-- feat(ops): PHASE 2 — hardening produkcyjny (healthcheck 503, backup single-source, głośny dev-fallback)
-- docs: raport koncowy PHASE 1 incydentu z logami (operacyjny, do wydania)
-- fix(security): PHASE 1.1++ — domknij wzorzec resp.text (5 sinków) + test łapie response|resp .text|.content
-- fix(security): PHASE 1.1+ — domknij szerszy scan response.text (7 przeoczonych sinków)
-- test(fix): popraw URL w tescie PHASE 1.5 (auth_bp url_prefix=/auth)
-- fix(security): PHASE 1.5 — decyzja roli magazynier (Opcja B: 1-admin, doc + test fundamentu)
-- fix(docs): PHASE 1.4 — README spójny z realnym kodem (BLOKER instalacji)
-- fix(security): PHASE 1.3 — wyłącz redundantne/niebezpieczne ścieżki update (BLOKER)
-- fix(security): PHASE 1.2 — usun nohup.out z repo (zawieral token Allegro) + domknij .gitignore
-- fix(security): PHASE 1.1 — token Allegro nie wycieka do logów (BLOKER sprzedaży)
-- fix(palety): _getCsrfToken na poziomie modulu (ReferenceError -> sprzedaz offline nie zapisywala)
-- fix(sw): Service Worker v15 — HTML zawsze z sieci (koniec stale-after-deploy + Mixed Content)
-- fix(palety): napraw zepsuty inline JS (korekta/menu/usuwanie nie dzialaly) + test regresyjny
-
-## 16.05.2026
-
-- fix(allegro): odpornosc refresh daemona - retry zapisu, klasyfikacja bledow, backoff, early-stop, healthcheck
-
-## 14.05.2026
-
-- chore(changelog): update history through 13.05.2026
-
-## 13.05.2026
-
-- Revert "fix(palety): dodaj USUN PRODUKT do menu kontekstowego na widoku palety"
-- fix(palety): dodaj USUN PRODUKT do menu kontekstowego na widoku palety
-
-## 11.05.2026
-
-- fix(allegro): Basic Auth w daemon refresh + throttle alertu Telegram 1/h
-
-## 10.05.2026
-
-- fix(allegro): napraw automatyczny refresh tokena (BUG #1+#2+#3 z incydentu 2026-05-09)
-
-## 06.05.2026
-
-- feat(scrape): wyciaganie EAN z JSON-LD + regex HTML (Amazon czesto nie pokazuje w specs)
-
-## 02.05.2026
-
-- feat(scrape): wyciagaj EAN ze specyfikacji Amazon i zapisuj do produktow
-- fix(paletomat): NameError total_brutto przy /scraper/asin (POST)
-- fix(palety): podmiana placeholder Produkt{asin} + naprawa fallback netto/brutto
-
-## 01.05.2026
-
-- fix(db): naprawa "database is locked" - REINDEX gryzlo sie z auto-sync Allegro
-- fix(update): naprawa "git pull failed - CHANGELOG.md would be overwritten"
-- perf(start): wynies blocking ops do background - dashboard + start ladowal sie 10-20s
-
-## 28.04.2026
-
-- fix(mass-edit): odfiltruj "dla siebie" z bezposredniego wystawiania z palety
-- fix(przyjecie): markDlaSiebie z data-attributes zamiast krchych selektorow
-- fix(przyjecie): natychmiastowe oznaczenie "Dla siebie" + liczy sie jako ocenione
-- feat(dla_siebie): przycisk w ekranie oceniania palety + zakladka filtra na liscie
-- fix(stock): przerzuc sprzedaz na inna palete gdy oryginalny produkt pusty
-- fix(zysk): bug w SQL - WHERE wykluczalo 'allegro' zanim CASE go zlapal
-- fix(zysk): zsynchronizuj prowizje Allegro miedzy dashboardem a tax settlement
-- fix(kategorie): Material Symbols spany w KATEGORIE_DISPLAY na emoji
-- fix(statystyki): w miesiecznym to zaliczka PIT, nie PIT (PIT-36L jest roczny)
-- feat(statystyki): rozliczenie podatkowe miesieczne (VAT + PIT) obok rocznego
-- fix(zysk+ux): dropdown emoji, import netto/brutto, koszty operacyjne w zysku
-- fix(sprzedaze): napraw duplikujace sie zamowienia + auto-backfill po syncu
-- fix(zysk): licz zysk jak kalkulator marzy + doszacuj COGS dla nieprzypisanych sprzedazy
-- feat(magazyn): flaga "dla siebie" - blokuje wystawianie na Allegro
-
-## 26.04.2026
-
-- fix(pwa): cache buster ?v=2 na ikonach żeby ominąć Cloudflare cache
-- fix(pwa): usun dynamiczny /static/icon-{192,512}.png ktory zwracal SVG
-- fix(pwa): wywal ngrok-skip-browser-warning ze wszystkich fetchy w base.html
-- fix(pwa): SW v14 - force reload otwartych kart przy aktywacji
-- fix(pwa): /manifest.json + /sw.js whitelisted we wszystkich auth middleware
-- fix(pwa): napraw install prompt - URL ikon zamiast data: URI
-- fix(pwa): dodaj manifest + SW registration do login + paletomat
-- fix(allegro): zapisuj nowe oferty jako 'draft' zamiast 'aktywna'
-
-## 23.04.2026
-
-- feat(nav): dodaj link 'Do wystawienia' w sidebarze
-- feat(magazyn): dodaj strone 'Do wystawienia' ze szkicami i niewystawionymi
-- fix(allegro): usun bullet pointy Amazona z opisu, napraw & i umlauty
-
-## 22.04.2026
-
-- fix(scraper): filtruj Amazon UI smieci z bullet points (obrazy niedostepne, rankingi, kategorie)
-- fix(sse): usun Connection:keep-alive - hop-by-hop header crashuje Waitress (PEP 3333)
-- fix(sse): napraw utracono-polaczenie w streamie Allegro (ping + try/except + waitress timeout)
-
-## 21.04.2026
-
-- fix(title-gen): wyłącz thinking mode Gemini 2.5 (thinkingBudget=0) + więcej tokenów na odpowiedź
-- fix(title-gen): złącz wszystkie non-thought parts (Gemini 2.5 interleaves thinking)
-- fix(title-gen): pomiń thinking parts Gemini 2.5 (parts[0]=thought, nie odpowiedź)
-- fix(title-gen): uzyj Gemini zamiast Google Translate + napraw HTML w prompcie
-
-## 16.04.2026
-
-- feat(booth): sesja 1 - szkielet + mock motor control
-
-## 15.04.2026
-
-- test(api-v1): 37 tests covering all endpoints + auth + webhooks
-- feat(api-v1): admin UI for API key management
-- feat(api-v1): OpenAPI 3.0 spec + Swagger UI docs
-- feat(api-v1): webhooks - registration + delivery worker + HMAC signatures
-- feat(api-v1): stock + pallets endpoints
-- feat(api-v1): orders CRUD + webhook trigger integration
-- feat(api-v1): products CRUD endpoints + schemas
-- feat(api-v1): DB schema - api_keys, api_usage_log, webhooks, webhook_deliveries
-- feat(api-v1): infrastructure - blueprint, auth, rate limit, response helpers
-- fix: scraper_hub / paletomat mial biale tlo zamiast dark
-- fix: sync_returns nie oznaczal zwrotow gdy zamowienie bylo z innego miesiaca
-- perf: sync_returns — batch UPDATE + paginacja + range filter (10-30x szybciej)
-- security(hotfix): rollback nonce z CSP headera — rozjebuje inline styles
-- docs: changelog 15.04 — Phase 1-3 security + landing + audit
-- docs: security audit 2026-04 (Phase 1-3 summary dla partnera biznesowego)
-- landing: typewriter effect + highlights section + workflow proof
-- security: 2FA TOTP opt-in for users (pyotp + backup codes + UI)
-- security: Cloudflare Turnstile on login (bot protection, disabled without keys)
-- security: move encryption key outside DB folder (systemd EnvironmentFile)
-- security: add CSP nonce infrastructure (fundament pod Phase 3 rollout)
-- security: sanitize SVG uploads (defusedxml + reject scripts/events)
-- security: close CSRF form-POST bypass (require token or same-origin Referer)
-- security: fix license test prefix mapping (starter/business/free)
-- security: Phase 1.5 — explicit CSRF + audit log na privileged actions
-- security: Phase 1 critical hardening — access control, proxy trust, zip-slip
-
-## 14.04.2026
-
-- fix: mobile zostaje na home.html (pelny dashboard) + wieksze UI
-- fix: kiosk mobile — przywroc sidebar jako slide-out drawer (pelna funkcjonalnosc)
-- fix: kiosk mobile — force-remove sidebar via inline script (cache-proof)
-- fix: mobile dostaje kiosk_home.html zamiast home.html (user complaint: za male)
-- feat: kiosk widget — ngrok → Cloudflare Tunnel (app.akceshub.com)
-- landing: optimize UI sizes for mobile (<=768px and <=480px)
-- fix: kiosk mode on mobile through Cloudflare Tunnel + update landing
-- perf: switch to waitress WSGI server instead of Flask dev server
-- fix: disable license heartbeat blocking - no dedicated license server
-- fix: harden license middleware - catch all exceptions, not just ImportError
 
