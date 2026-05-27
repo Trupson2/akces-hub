@@ -417,3 +417,81 @@ def restart_python_process():
             os.execv(sys.executable, [sys.executable] + sys.argv)
         except Exception:
             pass
+
+
+# ============================================================
+# AUTO-CHECK + TELEGRAM NOTIFY (co 6h)
+# ============================================================
+
+def check_and_notify_if_update():
+    """Sprawdz GitHub Releases. Jesli nowa wersja -> wyslij Telegram do klienta.
+
+    Notify TYLKO raz per wersja (nie spam). Stan w config: 'update_notified_version'.
+    """
+    try:
+        from modules.database import get_config, set_config
+        repo = (get_config('github_release_repo', '') or '').strip()
+        if not repo:
+            return  # brak repo skonfigurowanego
+
+        info = check_github_release(repo, timeout=15)
+        if info.get('error') or not info.get('available'):
+            return  # brak nowej wersji albo error
+
+        latest = info.get('latest', '')
+        already_notified = get_config('update_notified_version', '')
+        if already_notified == latest:
+            return  # juz powiadomiony o tej wersji
+
+        # Wyslij Telegram do klienta (jego bot + chat_id)
+        try:
+            from modules.telegram_bot import send_telegram
+            from modules.database import get_config as _gc
+            brand = _gc('brand_name', 'AKCES HUB')
+            current = info.get('current', '?')
+            changelog = (info.get('changelog') or '').strip()[:500]
+
+            msg = (
+                f"🚀 <b>Dostepna nowa wersja {brand}!</b>\n\n"
+                f"📦 Aktualnie masz: <code>{current}</code>\n"
+                f"✨ Nowa wersja: <code>{latest}</code>\n\n"
+            )
+            if changelog:
+                msg += f"📝 <b>Co nowego:</b>\n{changelog}\n\n"
+            msg += (
+                f"👉 Wejdz w aplikacji: <b>Narzedzia</b> → <b>Aktualizacja systemu</b> "
+                f"i klik. Trwa ~1-2 min, restart automatyczny."
+            )
+
+            ok = send_telegram(msg, parse_mode='HTML')
+            if ok:
+                set_config('update_notified_version', latest)
+                print(f'[zip_updater] Telegram notify wyslany dla wersji {latest}')
+            else:
+                print(f'[zip_updater] Telegram send_telegram zwrocil False')
+        except Exception as _e:
+            print(f'[zip_updater] Telegram notify fail: {_e}')
+    except Exception as e:
+        print(f'[zip_updater] check_and_notify error: {e}')
+
+
+def start_update_notify_thread(interval_hours=6):
+    """Background thread - sprawdza GitHub Releases co X godzin + notify.
+
+    Wywolaj raz przy starcie aplikacji.
+    """
+    import threading
+
+    def _loop():
+        # Pierwsze sprawdzenie po 60s (zeby Flask zdazyl wstac)
+        time.sleep(60)
+        while True:
+            try:
+                check_and_notify_if_update()
+            except Exception as e:
+                print(f'[zip_updater] notify thread error: {e}')
+            time.sleep(interval_hours * 3600)
+
+    t = threading.Thread(target=_loop, daemon=True, name='update-notify-thread')
+    t.start()
+    return t

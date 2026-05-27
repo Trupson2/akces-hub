@@ -7610,6 +7610,14 @@ if __name__ == '__main__':
     except Exception as e:
         log_warning(f"License heartbeat error: {e}")
 
+    # Start update notify thread (co 6h - sprawdza GitHub Releases + Telegram)
+    try:
+        from modules.zip_updater import start_update_notify_thread
+        start_update_notify_thread(interval_hours=6)
+        log("Update notify uruchomiony (co 6h - GitHub Releases + Telegram)")
+    except Exception as e:
+        log_warning(f"Update notify thread error: {e}")
+
     # ============================================================
     # AUTO-SYNC ZAMÓWIEŃ Z ALLEGRO
     # ============================================================
