@@ -6422,6 +6422,7 @@ def dodaj_recznie():
             if not nazwa:
                 return render('<div class="card" style="padding:15px;color:#ef4444">Nazwa wymagana</div><a href="/magazyn/dodaj-recznie" class="btn">← Wróć</a>')
 
+            kod_mag = (request.form.get('kod_magazynowy', '') or '').strip()[:60]
             ean = (request.form.get('ean', '') or '').strip()[:20]
             asin = (request.form.get('asin', '') or '').strip()[:20].upper()
             ilosc = int(request.form.get('ilosc', '1') or '1')
@@ -6435,13 +6436,20 @@ def dodaj_recznie():
             dostawca = (request.form.get('dostawca', 'Własny') or 'Własny').strip()[:80]
             zdjecie_url = (request.form.get('zdjecie_url', '') or '').strip()[:500]
 
+            # kod_magazynowy: jeśli pusty → trigger auto MAG-XXXXX, jeśli wpisany → preserved
+            # Verify unique (no collision):
+            if kod_mag:
+                existing = conn.execute('SELECT id FROM produkty WHERE kod_magazynowy = ? LIMIT 1', (kod_mag,)).fetchone()
+                if existing:
+                    return render(f'<div class="card" style="padding:15px;color:#ef4444">Kod magazynowy <b>{kod_mag}</b> już istnieje (produkt id={existing[0]})</div><a href="/magazyn/dodaj-recznie" class="btn">← Wróć</a>')
+
             cur = conn.execute('''
                 INSERT INTO produkty
-                    (nazwa, krotki_tytul, ean, asin, ilosc, cena_netto, cena_brutto, cena_allegro,
+                    (nazwa, krotki_tytul, kod_magazynowy, ean, asin, ilosc, cena_netto, cena_brutto, cena_allegro,
                      kategoria, stan, status, lokalizacja, regal, dostawca, zdjecie_url,
                      paleta_id, data_dodania)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'magazyn', ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
-            ''', (nazwa, nazwa[:120], ean, asin, ilosc, cena_netto, cena_brutto, cena_allegro,
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'magazyn', ?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+            ''', (nazwa, nazwa[:120], kod_mag, ean, asin, ilosc, cena_netto, cena_brutto, cena_allegro,
                   kategoria, stan, lokalizacja, regal, dostawca, zdjecie_url))
             conn.commit()
             new_id = cur.lastrowid
@@ -6458,6 +6466,11 @@ def dodaj_recznie():
             <div class="form-group">
                 <label>Nazwa produktu <span style="color:#ef4444">*</span></label>
                 <input type="text" name="nazwa" class="form-ctrl" placeholder="np. Kabel USB-C 1m czarny" required autofocus maxlength="300">
+            </div>
+
+            <div class="form-group">
+                <label>Kod magazynowy <span style="color:#64748b;font-size:0.7rem">(zostaw puste = auto MAG-XXXXX, lub wpisz własny np. AKC-001)</span></label>
+                <input type="text" name="kod_magazynowy" class="form-ctrl" placeholder="auto MAG-XXXXX gdy puste" maxlength="60">
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -6540,6 +6553,101 @@ def dodaj_recznie():
     </div>
 
     <a href="/magazyn/dodaj" class="back">← Powrót do menu dodawania</a>
+    '''
+    return render(html)
+
+
+@magazynier_bp.route('/kody-magazynowe', methods=['GET', 'POST'])
+def kody_magazynowe():
+    """Bulk reformat kodów magazynowych — klient ustawia własny format."""
+    from .database import get_db
+    from flask import request
+
+    conn = get_db()
+    if request.method == 'POST':
+        prefix = (request.form.get('prefix', 'MAG') or 'MAG').strip()[:20].upper()
+        pad = int(request.form.get('pad', '5') or '5')
+        if pad < 1 or pad > 10:
+            pad = 5
+        start = int(request.form.get('start', '1') or '1')
+
+        # Apply per id ascending
+        rows = conn.execute('SELECT id FROM produkty ORDER BY id').fetchall()
+        updated = 0
+        seq = start
+        for row in rows:
+            new_kod = f"{prefix}-{seq:0{pad}d}"
+            try:
+                conn.execute('UPDATE produkty SET kod_magazynowy = ? WHERE id = ?', (new_kod, row[0]))
+                seq += 1
+                updated += 1
+            except Exception:
+                pass
+        conn.commit()
+        return render(f'''
+        <div class="hdr"><h1>Kody zaktualizowane</h1></div>
+        <div class="card" style="padding:15px;color:#22c55e">✓ Przepisano {updated} kodów na format <b>{prefix}-{start:0{pad}d}</b> ... <b>{prefix}-{seq-1:0{pad}d}</b></div>
+        <a href="/magazyn/kody-magazynowe" class="btn">← Wróć</a>
+        <a href="/magazyn/produkty" class="btn btn-2" style="margin-top:8px">Zobacz produkty</a>
+        ''')
+
+    # GET — render form + preview obecnych
+    samples = conn.execute(
+        "SELECT kod_magazynowy, COUNT(*) AS cnt FROM produkty "
+        "WHERE kod_magazynowy IS NOT NULL AND kod_magazynowy != '' "
+        "GROUP BY substr(kod_magazynowy, 1, 4) ORDER BY cnt DESC LIMIT 5"
+    ).fetchall()
+    total = conn.execute('SELECT COUNT(*) FROM produkty').fetchone()[0]
+    samples_html = ''.join(
+        f'<li>{s["kod_magazynowy"][:8]}... ({s["cnt"]} produktów)</li>'
+        for s in samples
+    )
+    html = f'''
+    <div class="hdr"><h1><span class=material-symbols-outlined>tag</span> KODY MAGAZYNOWE</h1></div>
+
+    <div class="card" style="padding:15px;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.2);margin-bottom:14px">
+        <p style="margin:0 0 10px 0;color:#94a3b8;font-size:0.85rem">
+            Masz <b style="color:#8ff5ff">{total}</b> produktów w bazie.<br>
+            Obecne kody (top 5):
+        </p>
+        <ul style="margin:0;padding-left:18px;font-size:0.8rem;color:#cbd5e1">{samples_html}</ul>
+    </div>
+
+    <div class="card" style="padding:15px">
+        <h3 style="margin:0 0 14px 0;color:#8ff5ff">Bulk reformat — Twój własny system numerowania</h3>
+        <p style="font-size:0.8rem;color:#94a3b8;margin-bottom:14px">
+            UWAGA: nadpisuje WSZYSTKIE kody magazynowe sekwencyjnie od podanego startu.
+            Robi to po kolejności id (najstarszy produkt dostaje najniższy numer).
+        </p>
+
+        <form method="POST" action="/magazyn/kody-magazynowe">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+                <div class="form-group">
+                    <label>Prefix</label>
+                    <input type="text" name="prefix" class="form-ctrl" value="MAG" maxlength="20" required style="text-transform:uppercase">
+                </div>
+                <div class="form-group">
+                    <label>Padding (zerowanie)</label>
+                    <input type="number" name="pad" class="form-ctrl" value="5" min="1" max="10" required>
+                </div>
+                <div class="form-group">
+                    <label>Start od</label>
+                    <input type="number" name="start" class="form-ctrl" value="1" min="1" required>
+                </div>
+            </div>
+
+            <p style="font-size:0.75rem;color:#64748b;margin:10px 0 14px 0">
+                Przykład: prefix <b>AKC</b>, padding <b>3</b>, start <b>1</b> →
+                AKC-001, AKC-002, AKC-003, ...
+            </p>
+
+            <button type="submit" class="btn btn-ok" onclick="return confirm('Nadpisać WSZYSTKIE kody magazynowe? Operacja nieodwracalna.')">
+                <span class=material-symbols-outlined>refresh</span> PRZEPISZ WSZYSTKIE KODY
+            </button>
+        </form>
+    </div>
+
+    <a href="/magazyn" class="back">← Powrót do magazynu</a>
     '''
     return render(html)
 
