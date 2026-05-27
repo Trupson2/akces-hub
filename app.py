@@ -2066,12 +2066,17 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
         return resp
     is_kiosk = kiosk_param == '1'
     if is_kiosk:
+        # Per-instance konfiguracja (klient ma swoje, nie Twoje):
+        _platform = (get_config('platform_name', '') or '').strip()
+        _cf_url = (get_config('cloudflare_url', '') or '').strip()
         resp = make_response(render_template('kiosk_home.html',
             version=VERSION,
             today=today, mag=mag, pal=pal, allegro=allegro,
             active_home='active', active_magazyn='', active_paletomat='',
             active_allegro='', active_olx='', active_vinted='', active_narzedzia='',
             active_monitor='',
+            platform_name=_platform,
+            cloudflare_url=_cf_url,
             **sypie_data
         ))
         return resp
@@ -2167,12 +2172,17 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     _is_pi_screen = _remote in ('127.0.0.1', '::1', '192.168.100.200') and not _is_proxied
     _force_kiosk = request.args.get('kiosk') == '1'
     if _is_pi_screen or _force_kiosk:
+        # Per-instance konfiguracja (NIE hardcoded Adrian's Pi):
+        _platform = (get_config('platform_name', '') or '').strip()
+        _cf_url = (get_config('cloudflare_url', '') or '').strip()
         resp = make_response(render_template('kiosk_home.html',
             version=VERSION,
             today=today, mag=mag, pal=pal, allegro=allegro,
             active_home='active', active_magazyn='', active_paletomat='',
             active_allegro='', active_olx='', active_vinted='', active_narzedzia='',
             active_monitor='',
+            platform_name=_platform,
+            cloudflare_url=_cf_url,
             **sypie_data
         ))
     else:

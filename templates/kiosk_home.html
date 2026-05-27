@@ -170,7 +170,7 @@ html.kiosk-mobile .kd{margin-left:0!important;width:100vw!important}
             {% if brand_logo %}<img src="/static/brand_logo.png" style="max-height:44px;border-radius:8px">{% endif %}
             <div>
                 <div class="kd-title">{{ brand_name }}</div>
-                <div class="kd-sub">Raspberry Pi · Kiosk Mode</div>
+                <div class="kd-sub">{{ platform_name or 'Hub · Dashboard' }}</div>
             </div>
         </div>
         <div class="kd-right">
@@ -273,12 +273,22 @@ html.kiosk-mobile .kd{margin-left:0!important;width:100vw!important}
                     </div>
                 </div>
                 <div class="kd-status"><div class="kd-dot" id="cf-dot"></div> <span id="cf-status">Sprawdzam...</span></div>
+                {% if cloudflare_url %}
                 <div class="kd-ngrok-box" style="background:rgba(247,145,31,0.06);border-color:rgba(247,145,31,0.18)">
-                    <div class="kd-ngrok-url" id="cf-url" style="color:#f7b955">https://app.akceshub.com</div>
-                    <button class="kd-ngrok-copy" style="background:rgba(247,185,85,0.15);border-color:rgba(247,185,85,0.25);color:#f7b955" onclick="navigator.clipboard.writeText('https://app.akceshub.com');this.textContent='Skopiowano!';setTimeout(()=>this.textContent='Kopiuj URL',1500)">Kopiuj URL</button>
+                    <div class="kd-ngrok-url" id="cf-url" style="color:#f7b955">{{ cloudflare_url }}</div>
+                    <button class="kd-ngrok-copy" style="background:rgba(247,185,85,0.15);border-color:rgba(247,185,85,0.25);color:#f7b955" onclick="navigator.clipboard.writeText('{{ cloudflare_url }}');this.textContent='Skopiowano!';setTimeout(()=>this.textContent='Kopiuj URL',1500)">Kopiuj URL</button>
                 </div>
+                {% else %}
+                <div class="kd-ngrok-box" style="background:rgba(100,116,139,0.06);border-color:rgba(100,116,139,0.18)">
+                    <div class="kd-ngrok-url" style="color:#94a3b8;font-size:0.75rem">Tunnel nieskonfigurowany — ustaw <code>cloudflare_url</code> w Ustawieniach</div>
+                </div>
+                {% endif %}
                 <div class="kd-btns">
-                    <a href="https://app.akceshub.com" target="_blank" class="kd-btn open" style="border-color:rgba(247,185,85,0.3);color:#f7b955"><span class="material-symbols-outlined" style="font-size:1rem">open_in_new</span> Otworz</a>
+                    {% if cloudflare_url %}
+                    <a href="{{ cloudflare_url }}" target="_blank" class="kd-btn open" style="border-color:rgba(247,185,85,0.3);color:#f7b955"><span class="material-symbols-outlined" style="font-size:1rem">open_in_new</span> Otworz</a>
+                    {% else %}
+                    <a href="/ustawienia#cloudflare" class="kd-btn gray"><span class="material-symbols-outlined" style="font-size:1rem">settings</span> Konfiguruj</a>
+                    {% endif %}
                     <a href="https://one.dash.cloudflare.com/" target="_blank" class="kd-btn gray"><span class="material-symbols-outlined" style="font-size:1rem">dashboard</span> Dashboard</a>
                 </div>
             </div>
