@@ -74,9 +74,11 @@ def ustawienia():
                 totp_backup_remaining = backup_codes_remaining(_r['totp_backup_codes'] or '')
     except Exception:
         pass
-    # KAZDY klient ma WLASNE Allegro UUIDs (cennik DPD, polityka zwrotow/gwarancji)
-    # Defaults puste -> klient WPISZE w /ustawienia (instrukcja jak pobrac w hint).
+    # KAZDY klient ma WLASNE Allegro UUIDs (cenniki kurierow, polityki zwrotow/gwarancji).
+    # 'dpd_cennik_id' to LEGACY nazwa - moze zawierac ID dowolnego kuriera (DPD/GLS/DHL...).
+    # Defaults puste -> klient WPISZE w /ustawienia.
     dpd_cennik_id = get_config('dpd_cennik_id', '')
+    inpost_cennik_id = get_config('inpost_cennik_id', '')
     zwroty_warunki_id = get_config('zwroty_warunki_id', '')
     reklamacje_warunki_id = get_config('reklamacje_warunki_id', '')
 
@@ -96,6 +98,7 @@ def ustawienia():
         ngrok_domain=ngrok_domain,
         data_retention_years=data_retention_years,
         dpd_cennik_id=dpd_cennik_id,
+        inpost_cennik_id=inpost_cennik_id,
         zwroty_warunki_id=zwroty_warunki_id,
         reklamacje_warunki_id=reklamacje_warunki_id,
         smtp_cfg=smtp_cfg,
@@ -615,12 +618,14 @@ def ustawienia_save():
 
 @ustawienia_bp.route('/ustawienia/integracje-parametry', methods=['POST'])
 def ustawienia_integracje_parametry():
-    """Zapisuje parametry integracji (DPD cennik, warunki zwrotow/reklamacji)"""
+    """Zapisuje parametry integracji (cenniki kurierow, polityki zwrotow/reklamacji).
+    UWAGA: zapisuje TEZ puste stringi -> klient moze CELOWO wyczyscic pole
+    (np. nie uzywa InPostu, kasuje cennik)."""
     from modules.database import set_config
-    for key in ('dpd_cennik_id', 'zwroty_warunki_id', 'reklamacje_warunki_id'):
-        val = request.form.get(key, '').strip()
-        if val:
-            set_config(key, val)
+    for key in ('dpd_cennik_id', 'inpost_cennik_id', 'zwroty_warunki_id', 'reklamacje_warunki_id'):
+        # Pole TYLKO jesli istnieje w formularzu (None => skip, '' => clear)
+        if key in request.form:
+            set_config(key, request.form.get(key, '').strip())
     return redirect('/ustawienia')
 
 

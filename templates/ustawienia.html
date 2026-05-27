@@ -182,12 +182,18 @@ select.ust-input{cursor:pointer;appearance:none;background-image:url("data:image
             </div>
             <form action="/ustawienia/integracje-parametry" method="POST">
                 <div class="ust-hint" style="margin-bottom:14px;font-size:0.78rem;color:#94a3b8">
-                    UUID-y pobierasz ze swojego konta Allegro (DPD cennik, polityki zwrotow/reklamacji).
-                    Bez tych ID-ek "Wyslij z Allegro" nie zadziala.
+                    UUID-y wszystkich politik/cennikow pobierasz ze swojego konta Allegro
+                    (Dodatki &rarr; Polityki zwrotow / reklamacji / Cenniki dostaw).
+                    Wypelnij tylko cenniki tych kurierow ktorych <b>uzywasz</b>.
                 </div>
                 <div class="ust-form-group">
-                    <label>ID cennika DPD</label>
+                    <label>ID cennika kuriera (np. DPD, InPost, GLS, DHL, Pocztex)</label>
                     <input type="text" name="dpd_cennik_id" class="ust-input mono" value="{{ dpd_cennik_id }}"
+                        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                </div>
+                <div class="ust-form-group">
+                    <label>ID cennika InPost paczkomat <span style="color:#64748b;font-size:0.75rem">(opcjonalne)</span></label>
+                    <input type="text" name="inpost_cennik_id" class="ust-input mono" value="{{ inpost_cennik_id }}"
                         placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
                 </div>
                 <div class="ust-form-group">
