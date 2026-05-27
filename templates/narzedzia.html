@@ -226,10 +226,10 @@
     <div class="narz-card glass-card" id="updateCard" onclick="{% if is_zip_install %}doUpdateZip(){% else %}doUpdate(){% endif %}">
         <div class="nc-icon blue"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">sync</span></div>
         <div class="nc-info">
-            <div class="nc-name">Update systemu</div>
+            <div class="nc-name">Update systemu ⚡ v1.0.6 TEST</div>
             <div class="nc-desc" id="updateDesc">
                 {% if is_zip_install %}
-                    {% if github_release_repo %}Pobierz aktualizację z GitHub Releases{% else %}Skontaktuj się z dostawcą — brak konfiguracji repo{% endif %}
+                    {% if github_release_repo %}✅ AUTO-UPDATE DZIAŁA — pobierasz z GitHub Releases{% else %}Skontaktuj się z dostawcą — brak konfiguracji repo{% endif %}
                 {% else %}
                     Git pull + restart serwisu
                 {% endif %}
