@@ -6088,11 +6088,44 @@ def print_banner():
 # ═══════════════════════════════════════════════════════════════════════════
 # ROUTE: POZIOM — gamifikacja / progress tracker
 # ═══════════════════════════════════════════════════════════════════════════
+@app.route('/poziom/config', methods=['POST'])
+def poziom_config():
+    """Zapisz cele/persona usera dla /poziom — kazdy klient ma swoje."""
+    from modules.database import set_config
+    if session.get('rola') not in ('admin', 'manager'):
+        return 'Brak dostepu', 403
+    try:
+        goal = int(request.form.get('goal_yearly_pln', 1000000) or 1000000)
+        if goal < 10000 or goal > 100000000:
+            goal = 1000000
+        set_config('goal_yearly_pln', str(goal))
+        title = (request.form.get('persona_title', '') or '').strip()[:60]
+        if title:
+            set_config('persona_title', title)
+        tags = (request.form.get('persona_tags', '') or '').strip()[:200]
+        if tags:
+            set_config('persona_tags', tags)
+    except (ValueError, TypeError):
+        pass
+    return redirect('/poziom')
+
+
 @app.route('/poziom')
 def poziom_page():
-    from modules.database import get_db
+    from modules.database import get_db, get_config
     conn = get_db()
     year = datetime.now().year
+
+    # Per-instance personalizacja (NIE hardcoded Adrian's goals):
+    try:
+        cel = int(get_config('goal_yearly_pln', '1000000') or '1000000')
+        if cel < 10000:
+            cel = 1000000
+    except (ValueError, TypeError):
+        cel = 1000000
+    persona_title = (get_config('persona_title', '') or '').strip() or 'PALET BOSS'
+    persona_tags = (get_config('persona_tags', '') or '').strip() or 'zwroty konsumenckie · allegro · family team · 2h/dzien'
+    needs_wizard = (get_config('goal_yearly_pln', '') == '')  # show wizard for fresh installs
 
     # Przychód roczny — identycznie jak get_full_stats() w database.py
     # Allegro + normalne sprzedaże (bez zwrotów, bez offline, bez MANUAL)
@@ -6118,7 +6151,7 @@ def poziom_page():
     ''', (str(year),)).fetchone()
     palety_rok = int(row3['cnt'] or 0)
 
-    cel = 1000000
+    # cel pobrany z config wyżej (per-instance, NIE hardcoded 1M)
     xp_pct = min(99, round(przychod_rok / cel * 100, 1))
     brakuje = max(0, cel - przychod_rok)
     palety_msc = max(1, round(palety_rok / max(1, datetime.now().month)))
@@ -6131,8 +6164,9 @@ def poziom_page():
     else:
         miesiecy_do_celu = 99
 
-    boss_pct = min(100, round(przychod_msc / 83333 * 100, 1))
-    palety_potrzeba = max(1, round(83333 / max(1, avg_paleta)))
+    monthly_goal = round(cel / 12)
+    boss_pct = min(100, round(przychod_msc / max(1, monthly_goal) * 100, 1))
+    palety_potrzeba = max(1, round(monthly_goal / max(1, avg_paleta)))
 
     # Prognoza na koniec miesiąca
     import calendar
@@ -6185,7 +6219,15 @@ def poziom_page():
     data_script = f'<script nonce="{_nonce}">window.REAL_DATA = {_json.dumps(real_data)};</script>'
 
     username = session.get('username', 'User')
-    html = render_template('poziom.html', username=username)
+    html = render_template('poziom.html',
+        username=username,
+        persona_title=persona_title,
+        persona_tags=persona_tags,
+        cel_yearly=cel,
+        cel_yearly_fmt=f"{cel:,.0f}".replace(',', ' '),
+        monthly_goal_fmt=f"{round(cel / 12):,.0f}".replace(',', ' '),
+        needs_wizard=needs_wizard,
+    )
     # Wstaw dane przed </head>
     html = html.replace('</head>', data_script + '\n</head>')
     return html

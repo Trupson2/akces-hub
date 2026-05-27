@@ -205,12 +205,37 @@ tailwind.config = {
       <span class="material-symbols-outlined text-bg text-2xl">inventory_2</span>
     </div>
     <div class="flex-1 min-w-0">
-      <h1 class="font-headline text-base font-bold text-txt tracking-wide">{{ username|default('USER')|upper }} — PALET BOSS</h1>
-      <p class="text-xs text-muted mt-0.5">zwroty konsumenckie &middot; allegro &middot; family team &middot; 2h/dzien</p>
+      <h1 class="font-headline text-base font-bold text-txt tracking-wide">{{ username|default('USER')|upper }} &mdash; {{ persona_title|default('PALET BOSS') }}</h1>
+      <p class="text-xs text-muted mt-0.5">{{ persona_tags|default('zwroty konsumenckie · allegro · family team · 2h/dzien') }}</p>
+      <button onclick="document.getElementById('poziom-wizard').style.display='flex'" style="margin-top:6px;padding:4px 10px;font-size:0.7rem;background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.25);color:#8ff5ff;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px">⚙ Edytuj cele i persona</button>
     </div>
     <div id="levelBadge" class="flex-shrink-0 font-headline text-xs px-3 py-1.5 rounded-lg border border-cyan/30 bg-cyan/5 text-cyan tracking-wider uppercase">
       POZIOM 1
     </div>
+  </div>
+
+  <!-- WIZARD MODAL (klient ustawia własne cele/persona) -->
+  <div id="poziom-wizard" style="display:{% if needs_wizard %}flex{% else %}none{% endif %};position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px)">
+    <form method="POST" action="/poziom/config" style="background:#0a0a14;border:1px solid rgba(143,245,255,0.3);border-radius:16px;padding:28px;max-width:480px;width:100%">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.2rem;font-weight:700;color:#8ff5ff;margin:0 0 8px 0">⚙ Konfiguruj swoje cele</h2>
+      <p style="font-size:0.85rem;color:#94a3b8;margin:0 0 18px 0">Spersonalizuj /poziom dla siebie — tytuł, tagi i roczny cel sprzedaży.</p>
+
+      <label style="display:block;font-size:0.75rem;color:#adaaad;margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase">Tytuł persona</label>
+      <input type="text" name="persona_title" value="{{ persona_title }}" placeholder="np. PALET BOSS / E-COMMERCE GOD / SELLER 10K" maxlength="60" style="width:100%;padding:10px 12px;background:#131315;border:1px solid rgba(143,245,255,0.15);border-radius:8px;color:#f9f5f8;font-size:0.9rem;margin-bottom:14px">
+
+      <label style="display:block;font-size:0.75rem;color:#adaaad;margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase">Tagi (oddzielone " · ")</label>
+      <input type="text" name="persona_tags" value="{{ persona_tags }}" placeholder="np. allegro · vinted · 4h/dzien" maxlength="200" style="width:100%;padding:10px 12px;background:#131315;border:1px solid rgba(143,245,255,0.15);border-radius:8px;color:#f9f5f8;font-size:0.9rem;margin-bottom:14px">
+
+      <label style="display:block;font-size:0.75rem;color:#adaaad;margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase">Roczny cel sprzedaży (PLN)</label>
+      <input type="number" name="goal_yearly_pln" value="{{ cel_yearly }}" min="10000" max="100000000" step="10000" required style="width:100%;padding:10px 12px;background:#131315;border:1px solid rgba(143,245,255,0.15);border-radius:8px;color:#f9f5f8;font-size:0.9rem;margin-bottom:18px">
+
+      <div style="display:flex;gap:10px">
+        <button type="submit" style="flex:1;padding:12px;background:linear-gradient(135deg,#beee00,#8ff5ff);border:0;border-radius:8px;color:#0a0a14;font-weight:700;font-size:0.9rem;cursor:pointer">Zapisz</button>
+        {% if not needs_wizard %}
+        <button type="button" onclick="document.getElementById('poziom-wizard').style.display='none'" style="padding:12px 18px;background:rgba(100,116,139,0.1);border:1px solid rgba(100,116,139,0.3);border-radius:8px;color:#94a3b8;cursor:pointer">Anuluj</button>
+        {% endif %}
+      </div>
+    </form>
   </div>
 
   <!-- XP CIRCULAR PROGRESS -->
@@ -236,7 +261,7 @@ tailwind.config = {
 
       <!-- XP Info -->
       <div class="flex-1 text-center sm:text-left">
-        <div id="xpNums" class="font-headline text-lg font-semibold text-txt mb-1">0 / 1 000 000 PLN</div>
+        <div id="xpNums" class="font-headline text-lg font-semibold text-txt mb-1">0 / {{ cel_yearly_fmt|default('1 000 000') }} PLN</div>
         <div id="xpSub" class="text-sm text-muted leading-relaxed">Ladowanie danych...</div>
         <div class="flex gap-4 mt-3 justify-center sm:justify-start">
           <div class="text-center">
