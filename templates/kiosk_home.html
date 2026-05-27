@@ -400,9 +400,15 @@ html.kiosk-mobile .kd{margin-left:0!important;width:100vw!important}
         fetch('/api/cloudflare-status').then(r=>r.json()).then(d=>{
             var dot=document.getElementById('cf-dot');
             var st=document.getElementById('cf-status');
+            if(!d.configured){
+                dot.className='kd-dot warn';
+                st.textContent='Nieskonfigurowany';
+                st.style.color='#94a3b8';
+                return;
+            }
             if(d.active){
                 dot.className='kd-dot on';
-                st.textContent='Online · '+(d.hostname||'app.akceshub.com');
+                st.textContent='Online · '+(d.hostname||'tunnel');
                 st.style.color='#beee00';
             }else{
                 dot.className='kd-dot off';

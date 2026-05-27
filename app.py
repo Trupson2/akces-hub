@@ -1656,30 +1656,43 @@ def api_ngrok_control():
 
 @app.route('/api/cloudflare-status')
 def api_cloudflare_status():
-    """Cloudflare Tunnel status — sprawdza czy cloudflared dziala (systemd + proces)"""
+    """Cloudflare Tunnel status — sprawdza czy cloudflared dziala (systemd + proces)
+
+    Hostname pobierany z config('cloudflare_url'), NIE hardcoded.
+    """
     import subprocess, sys
-    hostname = 'app.akceshub.com'
+    raw_url = (get_config('cloudflare_url', '') or '').strip()
+    # Extract hostname z URL (https://app.example.com → app.example.com)
+    hostname = raw_url
+    if raw_url.startswith('http'):
+        try:
+            from urllib.parse import urlparse
+            hostname = urlparse(raw_url).hostname or raw_url
+        except Exception:
+            pass
     active = False
     try:
         if sys.platform != 'win32':
-            # Linux (Pi) — sprawdz systemd service
             r = subprocess.run(['systemctl', 'is-active', 'cloudflared'],
                                capture_output=True, text=True, timeout=3)
             if r.stdout.strip() == 'active':
                 active = True
             else:
-                # Fallback — sprawdz czy proces cloudflared chodzi
                 r2 = subprocess.run(['pgrep', '-f', 'cloudflared'],
                                     capture_output=True, text=True, timeout=3)
                 active = bool(r2.stdout.strip())
         else:
-            # Windows — sprawdz proces
             r = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq cloudflared.exe'],
                                capture_output=True, text=True, timeout=3)
             active = 'cloudflared.exe' in r.stdout
     except Exception:
         active = False
-    return jsonify({'active': active, 'hostname': hostname, 'url': f'https://{hostname}'})
+    return jsonify({
+        'active': active,
+        'hostname': hostname,
+        'url': raw_url if raw_url else ('https://' + hostname if hostname else ''),
+        'configured': bool(raw_url),
+    })
 
 @app.route('/allegro/moje-oferty')
 def redirect_moje_oferty():
