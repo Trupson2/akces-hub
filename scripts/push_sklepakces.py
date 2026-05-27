@@ -203,7 +203,9 @@ def cmd_push_all(limit: int, with_gpsr: bool, gpsr_region: str, allow_no_allegro
             msg_extra = f' (wc_id={r.get("wc_product_id")}, {r.get("duration_ms")}ms)'
         elif r.get('status') == 'skip':
             msg_extra = f' -- {r.get("msg")}'
-        print(f'  {marker} hub_id={r.get("hub_id"):>5} sku={sku:<20} http={http}{msg_extra}')
+        # Defensive: hub_id może być None (np. LICENSE_DENIED error early-yield)
+        _hub_id = r.get('hub_id') or 0
+        print(f'  {marker} hub_id={_hub_id:>5} sku={sku:<20} http={http}{msg_extra}')
         if r.get('status') == 'ok':
             ok += 1
         elif r.get('status') == 'skip':

@@ -1528,7 +1528,10 @@ def push_all_unsynced(
     try:
         _check_sklepakces_owner()
     except PermissionError as _pe:
-        yield {'status': 'error', 'msg': f'LICENSE_DENIED: {_pe}'}
+        yield {
+            'status': 'error', 'hub_id': 0, 'sku': '(license-denied)',
+            'http_status': 403, 'msg': f'LICENSE_DENIED: {_pe}',
+        }
         return
 
     conn = get_db()
