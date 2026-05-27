@@ -207,7 +207,9 @@ def support_zgloszenie():
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pomoc techniczna — {brand}</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
 <style>{css}</style>
+<style>.material-symbols-outlined{{font-family:'Material Symbols Outlined';font-weight:400;font-style:normal;display:inline-block;line-height:1;vertical-align:middle;font-size:1.1em}}</style>
 <style>
 body {{ background: #0a0a0f; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; }}
 .container {{ max-width: 600px; margin: 0 auto; }}
@@ -417,6 +419,8 @@ def support_pomysl():
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Zaproponuj funkcję — {brand}</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
+<style>.material-symbols-outlined{{font-family:'Material Symbols Outlined';font-weight:400;font-style:normal;display:inline-block;line-height:1;vertical-align:middle;font-size:1.1em}}</style>
 <style>{css}</style>
 <style>
 body {{ background: #0a0a0f; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; }}

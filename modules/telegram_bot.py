@@ -135,16 +135,28 @@ def send_telegram(message, parse_mode='HTML', silent=False):
 
 
 def send_telegram_support(message, parse_mode='HTML'):
-    """Wysyła wiadomość na chat supportu (do właściciela systemu).
-    Używa tego samego bota, ale osobny chat_id z configu 'support_chat_id'.
-    Jeśli support_chat_id nie ustawiony — wysyła na główny chat_id.
+    """Wysyla wiadomosc supportu do DOSTAWCY systemu (Adriana), NIE do klienta.
+
+    PRIORYTET:
+    1. vendor_bot_token + vendor_chat_id (TWOJE credentials embedded w zipie)
+       -> kazdy klient pisze do CIEBIE niezaleznie od jego konfiguracji
+    2. Fallback: bot klienta + support_chat_id (gdy vendor nie ustawiony)
+    3. Fallback: bot klienta + main chat_id (klient pisze do siebie - degraded)
     """
-    token = get_bot_token()
-    support_chat = get_config('support_chat_id', '')
-    chat_id = support_chat if support_chat else get_chat_id()
+    # 1. Vendor (Adrian) - priorytetowy
+    vendor_token = get_config('vendor_bot_token', '')
+    vendor_chat = get_config('vendor_chat_id', '')
+    if vendor_token and vendor_chat:
+        token = vendor_token
+        chat_id = vendor_chat
+    else:
+        # 2/3. Fallback: bot klienta
+        token = get_bot_token()
+        support_chat = get_config('support_chat_id', '')
+        chat_id = support_chat if support_chat else get_chat_id()
 
     if not token or not chat_id:
-        print("[Telegram Support] Brak tokena lub chat_id")
+        print("[Telegram Support] Brak tokena lub chat_id (ani vendor ani klient)")
         return False
 
     try:

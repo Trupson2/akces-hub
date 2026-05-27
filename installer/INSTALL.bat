@@ -42,9 +42,16 @@ if !ERRORLEVEL! neq 0 (
 echo      OK
 :skip_pip
 
-REM ---- 3. Inicjalizacja bazy + konfiguracja release repo ----
+REM ---- 3. Inicjalizacja bazy + konfiguracja release repo + vendor support ----
+REM Vendor credentials (Adrian) sa wpisywane bezposrednio w build_release.py
+REM przez tools/embed_vendor_config.py. Klient nie musi ich konfigurowac.
 echo [3/5] Inicjalizacja bazy danych + konfiguracja auto-update...
 "%PY%" -c "from modules.database import init_db, set_config; init_db(); set_config('github_release_repo', 'Trupson2/akces-hub-release'); print('OK')"
+
+REM Vendor config (jesli plik vendor_config.json istnieje - embedded przez build_release.py)
+if exist "vendor_config.json" (
+    "%PY%" -c "import json; from modules.database import set_config; c = json.load(open('vendor_config.json')); [set_config(k, v) for k, v in c.items()]; print('Vendor config OK')"
+)
 
 REM ---- 4. Skrot na pulpicie + autostart ----
 echo [4/5] Tworze skrot na pulpicie + autostart...

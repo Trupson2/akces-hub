@@ -86,6 +86,10 @@ tools/generate_license.py
 tools/license_*.json
 .env.key
 
+# Vendor credentials (TWOJE Telegram support — embedded w zipie klienta,
+# ale NIE w git żeby ktokolwiek przeglądający repo nie zobaczył)
+vendor_config.json
+
 # Embedded Python for Windows installer (~100 MB, regenerable via prepare_python_embed.py)
 installer/python/
 _python-*-embed.zip

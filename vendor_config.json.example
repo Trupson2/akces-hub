@@ -1,0 +1,8 @@
+{
+  "_comment": "TEMPLATE dla vendor_config.json (TWOJE credentials Adriana, embedded w zipie klienta przez build_release.py). Skopiuj jako vendor_config.json i wypelnij. Plik jest w .gitignore (nie commituj).",
+  "vendor_bot_token": "1234567890:ABCdefGHI_jkl_mno",
+  "vendor_chat_id": "123456789",
+  "vendor_name": "Adrian Akces Hub Support",
+  "support_email": "support@example.com",
+  "support_phone": "+48 600 000 000"
+}

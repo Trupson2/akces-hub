@@ -28,6 +28,9 @@
 
 /* Animations */
 @keyframes fadeSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(143,245,255,0.2);border-top-color:#8ff5ff;border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:6px}
+.updating .nc-icon .material-symbols-outlined{animation:spin 1.2s linear infinite;display:inline-block}
 @keyframes fadeSlideLeft{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
 @keyframes pulse-neon{0%,100%{box-shadow:0 0 0 0 rgba(143,245,255,0)}50%{box-shadow:0 0 20px 2px rgba(143,245,255,0.15),0 0 40px rgba(143,245,255,0.05)}}
 .narz-header{animation:fadeSlideUp 0.5s ease}
@@ -310,9 +313,10 @@ function doUpdate() {
 function doUpdateZip() {
     var card = document.getElementById('updateCard');
     var desc = document.getElementById('updateDesc');
-    desc.textContent = ' Sprawdzam GitHub Releases...';
+    desc.innerHTML = '<span class="spinner"></span> Sprawdzam GitHub Releases...';
     card.style.pointerEvents = 'none';
-    card.style.opacity = '0.6';
+    card.style.opacity = '0.7';
+    card.classList.add('updating');
 
     // 1. Najpierw sprawdz czy jest update
     fetch('/system/check-update-zip', {
@@ -348,7 +352,7 @@ function doUpdateZip() {
             return;
         }
         // 3. Pobierz + zainstaluj
-        desc.textContent = ' Pobieram zip + instaluję (może potrwać 1-2 min)...';
+        desc.innerHTML = '<span class="spinner"></span> Pobieram zip + instaluję (może potrwać 1-2 min)...';
         fetch('/system/update-zip', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -358,24 +362,26 @@ function doUpdateZip() {
         .then(function(r) { return r.json(); })
         .then(function(d2) {
             if (d2.ok) {
-                desc.textContent = ' ' + d2.msg + ' Odświeżam za 8s...';
+                desc.innerHTML = '<span class="spinner"></span> ' + d2.msg + ' Odświeżam za 8s...';
                 setTimeout(function(){ location.reload(); }, 8000);
             } else {
-                desc.textContent = ' Błąd: ' + (d2.error || 'nieznany');
+                desc.textContent = '❌ Błąd: ' + (d2.error || 'nieznany');
                 card.style.opacity = '1';
                 card.style.pointerEvents = 'auto';
+                card.classList.remove('updating');
             }
         })
         .catch(function(e) {
             console.log('[UpdateZip] Catch (likely restart):', e);
-            desc.textContent = ' Restart w toku... odświeżam za 8s';
+            desc.innerHTML = '<span class="spinner"></span> Restart w toku... odświeżam za 8s';
             setTimeout(function(){ location.reload(); }, 8000);
         });
     })
     .catch(function(e) {
-        desc.textContent = ' Błąd połączenia z GitHub';
+        desc.textContent = ' Błąd: ' + (e && e.message ? e.message : 'fetch nie powiodlo sie - sprawdz logi Python');
         card.style.opacity = '1';
         card.style.pointerEvents = 'auto';
+        console.error('[doUpdateZip] outer catch:', e);
     });
 }
 </script>
