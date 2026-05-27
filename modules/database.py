@@ -242,6 +242,19 @@ def init_db():
             conn.execute("ALTER TABLE sprzedaze ADD COLUMN koszt_dostawy REAL DEFAULT 0")
         except:
             pass
+        # Migracja: oryginalna waluta + cena (HUF/CZK/EUR -> zachowana, cena PLN przeliczona)
+        try:
+            conn.execute("ALTER TABLE sprzedaze ADD COLUMN cena_oryginalna REAL DEFAULT 0")
+        except:
+            pass
+        try:
+            conn.execute("ALTER TABLE sprzedaze ADD COLUMN waluta_oryginalna TEXT DEFAULT 'PLN'")
+        except:
+            pass
+        try:
+            conn.execute("ALTER TABLE sprzedaze ADD COLUMN kurs_pln REAL DEFAULT 1.0")
+        except:
+            pass
         # Migracja: dodaj kolumnę tytul do oferty jeśli brak (stare bazy)
         try:
             conn.execute("ALTER TABLE oferty ADD COLUMN tytul TEXT DEFAULT ''")

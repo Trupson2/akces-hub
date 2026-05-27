@@ -226,6 +226,14 @@
         </div>
         <div class="nc-arrow">›</div>
     </a>
+    <div class="narz-card glass-card" onclick="doFixCurrency()">
+        <div class="nc-icon orange"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">currency_exchange</span></div>
+        <div class="nc-info">
+            <div class="nc-name">Napraw stare waluty</div>
+            <div class="nc-desc" id="fixCurDesc">Przelicz zamówienia HUF/CZK/EUR z Allegro na PLN (backfill)</div>
+        </div>
+        <div class="nc-arrow">›</div>
+    </div>
     <div class="narz-card glass-card" id="updateCard" onclick="{% if is_zip_install %}doUpdateZip(){% else %}doUpdate(){% endif %}">
         <div class="nc-icon blue"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">sync</span></div>
         <div class="nc-info">
@@ -306,6 +314,31 @@ function doUpdate() {
     desc.textContent = ' Restart w toku... odświeżam za 5s';
         card.style.opacity='1';
         setTimeout(function(){ location.reload(); }, 5000);
+    });
+}
+
+// Napraw stare waluty (backfill HUF/CZK/EUR z Allegro -> PLN)
+function doFixCurrency() {
+    if(!confirm('Sprawdzić ostatnie 500 zamówień z Allegro i przeliczyć HUF/CZK/EUR na PLN?\\n\\nTo zajmie 2-5 min (każde zamówienie = 1 request do Allegro).')) return;
+    var desc = document.getElementById('fixCurDesc');
+    desc.innerHTML = '<span class="spinner"></span> Sprawdzam zamówienia...';
+    fetch('/narzedzia/fix-currency', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRFToken':document.querySelector('meta[name="csrf-token"]')?.content || ''},
+        body:'{}',
+        credentials:'same-origin'
+    })
+    .then(function(r){return r.json();})
+    .then(function(d){
+        if(d.ok){
+            desc.textContent = '✓ ' + d.msg;
+            setTimeout(function(){ location.reload(); }, 4000);
+        } else {
+            desc.textContent = '❌ ' + (d.error || 'Błąd');
+        }
+    })
+    .catch(function(e){
+        desc.textContent = '❌ Połączenie: ' + e.message;
     });
 }
 
