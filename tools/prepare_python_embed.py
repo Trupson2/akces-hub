@@ -93,6 +93,10 @@ def prepare_embed(version: str, force: bool = False):
         # Dodaj sciezki ktore embedded Python potrzebuje dla naszych modulow
         if 'Lib\\site-packages' not in content:
             content += '\nLib\\site-packages\n'
+        # KRYTYCZNE: dodaj ..\..\ zeby akces-hub\ byl w sys.path (modules\, app.py).
+        # Bez tego: ModuleNotFoundError: No module named 'modules' przy init_db.
+        if '..\\..' not in content:
+            content += '..\\..\n'
         pth.write_text(content, encoding='utf-8')
         print(f"  [OK] {pth.name} zaktualizowany")
 
