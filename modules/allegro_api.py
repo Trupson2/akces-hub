@@ -3688,11 +3688,22 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
         else:
             _metoda_dostawy = _method_name[:20] or 'Kurier'
 
-        # Oblicz koszt dostawy per zamówienie (totalToPay - suma item prices)
+        # Oblicz koszt dostawy per zamówienie (totalToPay - suma item prices).
+        # Multi-currency: convert HUF/CZK/EUR -> PLN po aktualnym kursie NBP.
+        try:
+            from modules.fx_rates import get_pln_rate as _fx
+        except Exception:
+            _fx = lambda c: 1.0  # fallback (PLN)
         _order_summary = order.get('summary') or {}
-        _order_total = float((_order_summary.get('totalToPay') or {}).get('amount', 0))
+        _total_obj = _order_summary.get('totalToPay') or {}
+        _total_curr = (_total_obj.get('currency') or 'PLN').upper()
+        _order_total = float(_total_obj.get('amount', 0)) * _fx(_total_curr)
         _order_items = order.get('lineItems') or []
-        _order_items_value = sum(float(it.get('price', {}).get('amount', 0)) * it.get('quantity', 1) for it in _order_items)
+        def _item_pln(it):
+            p = it.get('price') or {}
+            curr = (p.get('currency') or 'PLN').upper()
+            return float(p.get('amount', 0)) * _fx(curr) * it.get('quantity', 1)
+        _order_items_value = sum(_item_pln(it) for it in _order_items)
         _order_delivery_cost = max(0, _order_total - _order_items_value)
         _order_item_count = len(_order_items) or 1
 
@@ -3702,7 +3713,22 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
             try:
                 offer = item.get('offer') or {}
                 nazwa = (offer.get('name') or 'Produkt')[:100]  # Zwiększone do 100 znaków
-                cena = float(item['price']['amount'])
+                # Multi-currency: konwersja na PLN po AKTUALNYM kursie NBP
+                # (zamowienie z Allegro.cz w CZK / Allegro.sk w EUR / .hu w HUF -> PLN).
+                _price_obj = item.get('price') or {}
+                _cena_raw = float(_price_obj.get('amount', 0))
+                _curr = (_price_obj.get('currency') or 'PLN').upper()
+                if _curr != 'PLN':
+                    try:
+                        from modules.fx_rates import get_pln_rate
+                        _fx = get_pln_rate(_curr)
+                        cena = round(_cena_raw * _fx, 2)
+                        print(f'[ORDER] Konwersja: {_cena_raw} {_curr} → {cena} PLN (kurs NBP {_fx})')
+                    except Exception as _e:
+                        print(f'[ORDER] FX conversion failed for {_curr}: {_e}, uzywam raw value')
+                        cena = _cena_raw
+                else:
+                    cena = _cena_raw
                 kupujacy = (order.get('buyer') or {}).get('login', 'Nieznany')
                 ilosc = item.get('quantity', 1)
                 offer_id = offer.get('id', '')
