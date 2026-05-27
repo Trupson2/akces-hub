@@ -2865,6 +2865,15 @@ def paleta_mass_edit(paleta_id):
             </label>'''
             group_badge = ''
 
+        # Pre-render shipping cell (zeby uniknac NESTED f-string w wierszu produktu)
+        if shipping_options_html:
+            ship_cell_html = (
+                '<select class="bl-ship-select ship-select" data-product-id="'
+                + str(p['id']) + '">' + shipping_options_html + '</select>'
+            )
+        else:
+            ship_cell_html = '<span style="color:#64748b;font-size:0.75rem">brak listy</span>'
+
         produkty_html += f'''
         <tr class="bl-row" data-status="{p['status']}">
             <td class="bl-td-check">
@@ -2884,9 +2893,7 @@ def paleta_mass_edit(paleta_id):
                 {cena_input}
                 <div class="bl-cost-info">{ceny_tekst}</div>
             </td>
-            <td class="bl-td-ship">
-                {f'<select class="bl-ship-select ship-select" data-product-id="{p["id"]}">{shipping_options_html}</select>' if shipping_options_html else '<span style="color:#64748b;font-size:0.75rem">brak listy</span>'}
-            </td>
+            <td class="bl-td-ship">{ship_cell_html}</td>
             <td class="bl-td-status">{status_badge}</td>
         </tr>
         '''
