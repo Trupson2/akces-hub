@@ -1599,6 +1599,8 @@ def bulk_nadaj():
     for i, item in enumerate(items):
         order_id = item.get('order_id', '')
         size = item.get('size')  # A/B/C/S/M/L or None
+        # Custom REF (user override) - pojawia sie na etykiecie DPD/InPost
+        custom_ref = (item.get('custom_ref') or '').strip()[:50] or None
         dimensions = None
 
         if item.get('dim_l'):
@@ -1609,11 +1611,11 @@ def bulk_nadaj():
                 'weight_kg': item.get('dim_kg', '1'),
             }
 
-        print(f"[BULK] Nadaję {i+1}/{len(items)}: {order_id[:12]}... size={size} dims={dimensions}")
+        print(f"[BULK] Nadaję {i+1}/{len(items)}: {order_id[:12]}... size={size} dims={dimensions} ref={custom_ref or 'auto'}")
 
         try:
             label_pdf, shipment_id, error = create_and_get_label(
-                order_id, parcel_size=size, dimensions=dimensions
+                order_id, reference=custom_ref, parcel_size=size, dimensions=dimensions
             )
         except Exception as e:
             error = str(e)

@@ -5791,9 +5791,15 @@ def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=
     if error == "BRAK_PRZESYLKI":
         # Utwórz nową przesyłkę
         print(f"[INVE] Brak przesyłki - tworzę nową...")
-        
-        # Pobierz dane zamówienia dla referencji (lokalizacja + nazwa produktu)
-        order, ord_err = get_order_details(order_id)
+
+        # Jesli user przekazal custom reference (override) -> uzyj GO zamiast auto-generated
+        if reference:
+            print(f"   → User override reference: '{reference}' (pomijam auto-generate)")
+            # Pomin caly auto-generate blok, idz prosto do create_shipment
+            order = None
+        else:
+            # Pobierz dane zamówienia dla referencji (lokalizacja + nazwa produktu)
+            order, ord_err = get_order_details(order_id)
         if order:
             items = order.get('lineItems', [])
             if items:
@@ -5814,22 +5820,24 @@ def create_and_get_label(order_id, reference=None, parcel_size=None, dimensions=
                             lok = p['kod_magazynowy'] or p['lokalizacja'] or p['regal'] or ''
                     except:
                         pass
-                # Numer referencyjny = lokalizacja + skrócona nazwa (bez polskich znaków)
-                # Zamień polskie znaki na ASCII
+                # Numer referencyjny = CZYTELNA nazwa produktu (max 50 chars).
+                # Format: 'Poduszka HOMCA 2w1 — B12' (kluczowe slowa + lokalizacja).
+                # Allegro Wyslam z Allegro pozwala 50 chars w polu reference.
                 _pl = str.maketrans('ąćęłńóśźżĄĆĘŁŃÓŚŹŻ', 'acelnoszzACELNOSZZ')
                 import re as _re_ref
                 clean_name = (name or '').translate(_pl)
-                clean_name = _re_ref.sub(r'[^a-zA-Z0-9 _/\-]', '', clean_name).strip()
-                # Skróć do kluczowych słów
-                words = clean_name.split()[:3]  # max 3 słowa
-                short = ' '.join(words)
+                # Zachowaj litery+cyfry+spacje+kropki+myslnik+slash (zwykle DPD akceptuje)
+                clean_name = _re_ref.sub(r'[^a-zA-Z0-9 .,_/\-]', '', clean_name).strip()
+                # Wez pierwsze ~5 slow (czytelne, identyfikowalne)
+                words = clean_name.split()[:5]
+                short = ' '.join(words)[:40]  # max 40 chars dla nazwy
 
                 if lok:
                     clean_lok = _re_ref.sub(r'[^a-zA-Z0-9_/\-]', '', lok)
-                    remaining = 20 - len(clean_lok) - 1
-                    reference = f"{clean_lok}/{short[:remaining]}"[:20]
+                    # Format: 'Poduszka HOMCA 2w1 - B12' (lokalizacja na koncu)
+                    reference = f"{short} - {clean_lok}"[:50]
                 else:
-                    reference = short[:20] or order_id[:8].upper()
+                    reference = short[:50] or order_id[:8].upper()
                 print(f"   → Referencja: '{reference}'")
         
         # Spróbuj utworzyć przez Wysyłam z Allegro
