@@ -5615,17 +5615,23 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
     except:
         _fn = _fi = _fna = _fu = _fc = _fp = _fe = _ft = ''
 
-    sender_first = _fi if _fi else 'Andrzej'
-    sender_last = _fna if _fna else 'Gauza'
+    # Sender data — KAŻDY klient musi mieć WŁASNE w /ustawienia → "Dane nadawcy"
+    # NIE fallbackuj na Adrian's personal data (poprzednio wyciekały do paczek
+    # klientów co stanowiło GDPR violation + leak osobistych info).
+    if not (_fi and _fna and _fu and _fc and _fp and _fe and _ft):
+        raise ValueError(
+            'Dane nadawcy nieuzupełnione. Wejdź na /ustawienia#nadawca i wpisz '
+            'imię, nazwisko, ulicę, miasto, kod pocztowy, email, telefon.'
+        )
     shipment_input['sender'] = {
-        'name': f'{sender_first} {sender_last}',
-        'company': _fn if _fn else 'AKCES',
-        'street': _fu if _fu else 'Poniatowskiego 13',
-        'city': _fc if _fc else 'Mieszkowice',
-        'postalCode': _fp if _fp else '74-505',
+        'name': f'{_fi} {_fna}',
+        'company': _fn or '',
+        'street': _fu,
+        'city': _fc,
+        'postalCode': _fp,
         'countryCode': 'PL',
-        'email': _fe if _fe else 'agauza@interia.eu',
-        'phone': _ft if _ft else '+48604753407',
+        'email': _fe,
+        'phone': _ft,
     }
     # Nadanie w paczkomacie - sendingAtPoint + punkt nadania
     if is_inpost or is_orlen:
