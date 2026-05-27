@@ -128,11 +128,46 @@ def should_exclude(path, name):
     return False
 
 
-def build_release(source_dir, output_path):
-    """Zbuduj czystą wersję."""
+def _get_master_secret(source_dir):
+    """Pobierz Twój LICENSE_SECRET (z env lub .license_secret) — do wbudowania w zip klienta.
+
+    Klient potrzebuje SAMEGO secretu co Ty żeby Twoje wygenerowane licencje walidowały.
+    Bez tego: Hub klienta generuje SWÓJ random secret → mismatch → Nieprawidłowy klucz.
+
+    Returns: hex secret (str) lub None gdy brak.
+    """
+    s = os.environ.get('AKCES_LICENSE_SECRET', '').strip()
+    if s:
+        return s
+    path = os.path.join(source_dir, '.license_secret')
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            s = f.read().strip()
+            if s:
+                return s
+    # Spróbuj z .env
+    env_path = os.path.join(source_dir, '.env')
+    if os.path.exists(env_path):
+        with open(env_path, 'r', encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                if line.startswith('AKCES_LICENSE_SECRET='):
+                    return line.split('=', 1)[1].strip().strip('"').strip("'")
+    return None
+
+
+def build_release(source_dir, output_path, embed_secret=True):
+    """Zbuduj czystą wersję. embed_secret=True dołącza Twój MASTER LICENSE_SECRET
+    do .license_secret w zipie — klient używa go automatycznie, licencje walidują."""
     print(f"Budowanie release z: {source_dir}")
     print(f"Output: {output_path}")
     print()
+
+    master_secret = _get_master_secret(source_dir) if embed_secret else None
+    if embed_secret:
+        if master_secret:
+            print(f"  [INFO] MASTER secret znaleziony (len={len(master_secret)}) — zostanie wbudowany")
+        else:
+            print("  [WARN] Brak MASTER secret — klient wygeneruje SWÓJ → Twoje licencje nie zadziałają!")
 
     files_included = 0
     files_excluded = 0
@@ -160,13 +195,19 @@ def build_release(source_dir, output_path):
         for empty_dir in ['logs', 'backups', 'static/downloads']:
             zf.writestr(f'akces-hub/{empty_dir}/.gitkeep', '')
 
+        # Wbuduj MASTER LICENSE_SECRET (klient potrzebuje TWOJEGO secretu
+        # żeby Twoje wygenerowane licencje walidowały u niego)
+        if embed_secret and master_secret:
+            zf.writestr('akces-hub/.license_secret', master_secret)
+            print(f"  [INFO] .license_secret wbudowany do zipa (klient = Twój secret)")
+
     size_mb = os.path.getsize(output_path) / (1024 * 1024)
     print(f"Pliki dołączone: {files_included}")
     print(f"Pliki wykluczone: {files_excluded}")
     print(f"Rozmiar ZIP: {size_mb:.1f} MB")
     print(f"\nGotowe! Plik: {output_path}")
 
-    verify_release(output_path)
+    verify_release(output_path, allow_license_secret=embed_secret)
 
 
 # PHASE 4 — automatyczna weryfikacja paczki (fail-closed).
@@ -183,8 +224,13 @@ _SCAN_EXT = {'.py', '.md', '.txt', '.json', '.html', '.js', '.cfg',
              '.ini', '.sh', '.yml', '.yaml', '.env', ''}
 
 
-def verify_release(zip_path):
-    """Skan gotowego ZIP. Zwraca True/False; przy FAIL -> SystemExit(1)."""
+def verify_release(zip_path, allow_license_secret=False):
+    """Skan gotowego ZIP. Zwraca True/False; przy FAIL -> SystemExit(1).
+
+    allow_license_secret=True: pozwala na .license_secret w zipie (build dla
+    klienta z embedded master secret — celowo, klient potrzebuje go do walidacji
+    licencji wygenerowanych w Twoim panelu).
+    """
     print("\n-- Weryfikacja paczki (PHASE 4) --")
     problems = []
     with zipfile.ZipFile(zip_path) as zf:
@@ -195,6 +241,9 @@ def verify_release(zip_path):
             # Pusty .gitkeep = celowy placeholder pustego katalogu
             # (logs/ backups/ static/downloads/ tworzy sam builder).
             if base == '.gitkeep' and info.file_size == 0:
+                continue
+            # .license_secret jest CELOWO embedded gdy build for client
+            if base == '.license_secret' and allow_license_secret:
                 continue
             if base in _FORBIDDEN_NAMES:
                 problems.append(f"ZAKAZANY plik: {arc}")
@@ -225,6 +274,10 @@ def main():
     parser = argparse.ArgumentParser(description='Build AKCES HUB release')
     parser.add_argument('--output', '-o', default=None,
                         help='Ścieżka do pliku ZIP (default: akces-hub-YYYYMMDD.zip)')
+    parser.add_argument('--no-embed-secret', action='store_true',
+                        help='NIE wbudowuj Twojego LICENSE_SECRET (klient wygeneruje swój — UI '
+                             'Generator licencji u Ciebie wtedy NIE będzie generować ważnych '
+                             'licencji dla tego klienta!)')
     args = parser.parse_args()
 
     source_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -238,7 +291,7 @@ def main():
             f'akces-hub-release-{date_str}.zip'
         )
 
-    build_release(source_dir, output_path)
+    build_release(source_dir, output_path, embed_secret=not args.no_embed_secret)
 
 
 if __name__ == '__main__':
