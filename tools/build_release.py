@@ -38,6 +38,10 @@ EXCLUDE_FILES = {
     'server_err.txt',
     'print_debug.log',
     'nul',
+    '1',         # debug placeholder pliku z reusage typu `echo > 1`
+    '2',
+    '3',
+    'tmp.txt',
     # Internal docs/reports — NIE dla klientów
     'SECURITY_HARDENING_REPORT.md',
     'SECURITY_VERIFICATION.md',
