@@ -370,31 +370,50 @@ def install_update(zip_path: str, signature_hex: str = '') -> Dict[str, Any]:
 
 
 def restart_python_process():
-    """Restart obecnego procesu Pythona (Windows-friendly).
+    """Restart obecnego procesu Pythona (Windows + Linux).
 
-    Wywolaj W TLE PO wyslaniu response, np:
+    KLUCZOWE: NIE uzywaj 'os._exit(0)' + flagi pliku — to wymaga watchdog'a
+    bat-owego ktorego klient nie ma. Wtedy proces UMIERA na zawsze.
+
+    ZAMIAST: uzyj subprocess.Popen() zeby odpalic NOWY proces Pythona
+    z tym samym app.py, potem os._exit(0) na starym. Nowy proces zyje
+    niezaleznie od konsoli (DETACHED_PROCESS na Windows).
+
+    Wywoluj W TLE PO wyslaniu response, np:
         threading.Thread(target=lambda: (time.sleep(2), restart_python_process()),
                          daemon=True).start()
     """
+    import subprocess
     try:
-        # Windows: nie wykorzystuj execv (nie zawsze dziala z waitress + threads).
-        # Lepiej: zapisz "restart pending", a wrapper bat-owy/systemd zauwazy
-        # exit code i sam restartuje. Jesli wrappera nie ma — uzyj execv.
         if sys.platform.startswith('win'):
-            # Sprawdz czy jest START.bat wrapper (klient Windows)
-            wrapper = os.path.join(_app_dir(), 'START.bat')
-            if os.path.isfile(wrapper):
-                # Zapisz flage — START.bat watch loop ja zauwazy i zrestartuje
-                with open(os.path.join(_app_dir(), '.restart_pending'), 'w') as f:
-                    f.write(str(int(time.time())))
-                # Zakoncz obecny proces — wrapper bat-owy odpali nowy
-                os._exit(0)
-            else:
-                # Brak wrappera — execv (sam Python)
-                os.execv(sys.executable, [sys.executable] + sys.argv)
+            # Windows: odpal nowy pythonw.exe (silent, bez konsoli) z app.py
+            # DETACHED_PROCESS (0x00000008) + CREATE_NEW_PROCESS_GROUP (0x00000200)
+            # zeby nowy proces zyl po smierci obecnego.
+            DETACHED_PROCESS = 0x00000008
+            CREATE_NEW_PROCESS_GROUP = 0x00000200
+            python_exe = sys.executable
+            # Jesli obecnie chodzimy z python.exe (konsola) -> uzyj pythonw.exe (cicho)
+            if python_exe.lower().endswith('python.exe'):
+                pythonw = python_exe[:-len('python.exe')] + 'pythonw.exe'
+                if os.path.isfile(pythonw):
+                    python_exe = pythonw
+            app_py = os.path.join(_app_dir(), 'app.py')
+            subprocess.Popen(
+                [python_exe, app_py],
+                creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP,
+                cwd=_app_dir(),
+                close_fds=True,
+            )
+            # Daj nowemu procesowi 1s na bind portu, potem zabij obecny
+            time.sleep(1)
+            os._exit(0)
         else:
-            # Linux/Mac: execv
+            # Linux/Mac: execv (replace in place)
             os.execv(sys.executable, [sys.executable] + sys.argv)
     except Exception as e:
         print(f'[zip_updater] restart failed: {e}')
-        os._exit(0)  # fallback — wrapper musi odpalic
+        # Fallback: spróbuj execv
+        try:
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+        except Exception:
+            pass
