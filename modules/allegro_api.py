@@ -1836,7 +1836,7 @@ def update_offer_condition(offer_id, stan):
     return None
 
 
-def create_offer(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=1, czas_wysylki='PT24H', ean=None, asin=None, gpsr=None, stan=None, product_specs=None, bullet_points=None, kod_magazynowy=None):
+def create_offer(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=1, czas_wysylki='PT24H', ean=None, asin=None, gpsr=None, stan=None, product_specs=None, bullet_points=None, kod_magazynowy=None, shipping_id_override=None):
     """
     Tworzy nową ofertę na Allegro.
     WERSJA 2.0 - poprawiona obsługa zdjęć + GPSR
@@ -1849,7 +1849,7 @@ def create_offer(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=
     sys.stdout = log_capture = io.StringIO()
 
     try:
-        return _create_offer_impl(nazwa, opis, cena, zdjecia_urls, kategoria_id, ilosc, czas_wysylki, ean, asin, gpsr, stan, product_specs=product_specs, bullet_points=bullet_points, kod_magazynowy=kod_magazynowy)
+        return _create_offer_impl(nazwa, opis, cena, zdjecia_urls, kategoria_id, ilosc, czas_wysylki, ean, asin, gpsr, stan, product_specs=product_specs, bullet_points=bullet_points, kod_magazynowy=kod_magazynowy, shipping_id_override=shipping_id_override)
     finally:
         logs = log_capture.getvalue()
         sys.stdout = old_stdout
@@ -1865,15 +1865,16 @@ def create_offer(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=
             print(logs)
 
 
-def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=1, czas_wysylki='PT24H', ean=None, asin=None, gpsr=None, stan=None, product_specs=None, bullet_points=None, kod_magazynowy=None):
+def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=1, czas_wysylki='PT24H', ean=None, asin=None, gpsr=None, stan=None, product_specs=None, bullet_points=None, kod_magazynowy=None, shipping_id_override=None):
     """Implementacja tworzenia oferty"""
     if not is_authenticated():
         return None, "Nie zalogowany do Allegro"
     
     config = get_allegro_config()
-    
-    # Sprawdź cennik wysyłki
-    shipping_id = config.get('shipping_id', '')
+
+    # Sprawdź cennik wysyłki — uzytkownik moze nadpisac przy wystawianiu
+    # (np. mniejszy produkt -> cennik z InPost paczkomat zamiast tylko DPD).
+    shipping_id = shipping_id_override or config.get('shipping_id', '')
     if not shipping_id:
         return None, "BRAK CENNIKA WYSYŁKI! Wejdź w Allegro → Ustawienia i wybierz cennik."
     
