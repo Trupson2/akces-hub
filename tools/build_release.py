@@ -76,10 +76,13 @@ EXCLUDE_DIRS = {
     'landing',    # Twoja landing page index.html
     'designs',    # Marketing designs
     'docs',       # Twoje internal docs (DEPLOYMENT, SECURITY_AUDIT, PHASE1...)
+    'photo_daemon',  # Photo Daemon side-project
     '.pytest_cache',
     '.idea',      # IDE config
     'dist',
     'build',
+    # Zagnieżdżona kopia repo (occurs when source dir literalnie zawiera akces-hub/ subfolder):
+    'akces-hub',  # zapobiega arcname zip 'akces-hub/akces-hub/...'
 }
 
 EXCLUDE_EXTENSIONS = {
