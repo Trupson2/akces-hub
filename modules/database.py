@@ -337,13 +337,26 @@ def init_db():
         except:
             pass
 
-        # Trigger: auto-generate kod_magazynowy na INSERT
+        # Trigger: auto-generate kod_magazynowy na INSERT.
+        # Prefix CONFIGUROWALNY: czyta z config.kod_magazynowy_prefix (default 'MAG').
+        # Klient ustawia własny: set_config('kod_magazynowy_prefix', 'ZAG')
+        # → wszystkie nowe produkty auto-dostają ZAG-00001, ZAG-00002...
+        # Drop stary trigger jeśli istnieje (hardcoded MAG-) → recreate dynamic.
+        try:
+            conn.execute('DROP TRIGGER IF EXISTS auto_kod_magazynowy')
+        except Exception:
+            pass
         conn.execute('''CREATE TRIGGER IF NOT EXISTS auto_kod_magazynowy
             AFTER INSERT ON produkty
             FOR EACH ROW
             WHEN NEW.kod_magazynowy IS NULL OR NEW.kod_magazynowy = ''
             BEGIN
-                UPDATE produkty SET kod_magazynowy = 'MAG-' || SUBSTR('00000' || NEW.id, -5) WHERE id = NEW.id;
+                UPDATE produkty SET kod_magazynowy =
+                    COALESCE(
+                        (SELECT wartosc FROM config WHERE klucz = 'kod_magazynowy_prefix' AND wartosc != ''),
+                        'MAG'
+                    ) || '-' || SUBSTR('00000' || NEW.id, -5)
+                WHERE id = NEW.id;
             END''')
 
         # Trigger: auto-uppercase ASIN na INSERT

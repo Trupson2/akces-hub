@@ -6559,8 +6559,8 @@ def dodaj_recznie():
 
 @magazynier_bp.route('/kody-magazynowe', methods=['GET', 'POST'])
 def kody_magazynowe():
-    """Bulk reformat kodów magazynowych — klient ustawia własny format."""
-    from .database import get_db
+    """Bulk reformat kodów magazynowych — klient ustawia własny format/prefix."""
+    from .database import get_db, get_config, set_config
     from flask import request
 
     conn = get_db()
@@ -6570,8 +6570,14 @@ def kody_magazynowe():
         if pad < 1 or pad > 10:
             pad = 5
         start = int(request.form.get('start', '1') or '1')
+        save_as_default = request.form.get('save_as_default') == '1'
 
-        # Apply per id ascending
+        # SAVE prefix jako default dla wszystkich NOWYCH produktów
+        # → trigger w database.py auto-czyta to z config
+        if save_as_default:
+            set_config('kod_magazynowy_prefix', prefix)
+
+        # Apply per id ascending — przepisuje istniejące
         rows = conn.execute('SELECT id FROM produkty ORDER BY id').fetchall()
         updated = 0
         seq = start
@@ -6584,14 +6590,16 @@ def kody_magazynowe():
             except Exception:
                 pass
         conn.commit()
+        msg_default = '<br>+ <b>zapisano jako domyślny prefix</b> — nowe produkty automatycznie dostaną kody z tym prefixem' if save_as_default else ''
         return render(f'''
         <div class="hdr"><h1>Kody zaktualizowane</h1></div>
-        <div class="card" style="padding:15px;color:#22c55e">✓ Przepisano {updated} kodów na format <b>{prefix}-{start:0{pad}d}</b> ... <b>{prefix}-{seq-1:0{pad}d}</b></div>
+        <div class="card" style="padding:15px;color:#22c55e">✓ Przepisano {updated} kodów na format <b>{prefix}-{start:0{pad}d}</b> ... <b>{prefix}-{seq-1:0{pad}d}</b>{msg_default}</div>
         <a href="/magazyn/kody-magazynowe" class="btn">← Wróć</a>
         <a href="/magazyn/produkty" class="btn btn-2" style="margin-top:8px">Zobacz produkty</a>
         ''')
 
     # GET — render form + preview obecnych
+    current_prefix = (get_config('kod_magazynowy_prefix', '') or 'MAG').strip()
     samples = conn.execute(
         "SELECT kod_magazynowy, COUNT(*) AS cnt FROM produkty "
         "WHERE kod_magazynowy IS NOT NULL AND kod_magazynowy != '' "
@@ -6608,6 +6616,7 @@ def kody_magazynowe():
     <div class="card" style="padding:15px;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.2);margin-bottom:14px">
         <p style="margin:0 0 10px 0;color:#94a3b8;font-size:0.85rem">
             Masz <b style="color:#8ff5ff">{total}</b> produktów w bazie.<br>
+            Domyślny prefix dla NOWYCH: <b style="color:#beee00">{current_prefix}</b><br>
             Obecne kody (top 5):
         </p>
         <ul style="margin:0;padding-left:18px;font-size:0.8rem;color:#cbd5e1">{samples_html}</ul>
@@ -6616,15 +6625,15 @@ def kody_magazynowe():
     <div class="card" style="padding:15px">
         <h3 style="margin:0 0 14px 0;color:#8ff5ff">Bulk reformat — Twój własny system numerowania</h3>
         <p style="font-size:0.8rem;color:#94a3b8;margin-bottom:14px">
-            UWAGA: nadpisuje WSZYSTKIE kody magazynowe sekwencyjnie od podanego startu.
-            Robi to po kolejności id (najstarszy produkt dostaje najniższy numer).
+            UWAGA: nadpisuje WSZYSTKIE kody magazynowe sekwencyjnie od podanego startu.<br>
+            Najstarszy produkt dostaje najniższy numer (po ASC id).
         </p>
 
         <form method="POST" action="/magazyn/kody-magazynowe">
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
                 <div class="form-group">
-                    <label>Prefix</label>
-                    <input type="text" name="prefix" class="form-ctrl" value="MAG" maxlength="20" required style="text-transform:uppercase">
+                    <label>Prefix <span style="color:#64748b;font-size:0.7rem">(np. MAG, ZAG, AKC, PLU)</span></label>
+                    <input type="text" name="prefix" class="form-ctrl" value="{current_prefix}" maxlength="20" required style="text-transform:uppercase">
                 </div>
                 <div class="form-group">
                     <label>Padding (zerowanie)</label>
@@ -6637,9 +6646,17 @@ def kody_magazynowe():
             </div>
 
             <p style="font-size:0.75rem;color:#64748b;margin:10px 0 14px 0">
-                Przykład: prefix <b>AKC</b>, padding <b>3</b>, start <b>1</b> →
-                AKC-001, AKC-002, AKC-003, ...
+                Przykład: prefix <b>ZAG</b>, padding <b>5</b>, start <b>1</b> →
+                ZAG-00001, ZAG-00002, ZAG-00003, ...
             </p>
+
+            <div style="margin-bottom:14px;padding:10px;background:rgba(190,238,0,0.06);border:1px solid rgba(190,238,0,0.2);border-radius:8px">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;color:#beee00">
+                    <input type="checkbox" name="save_as_default" value="1" checked style="cursor:pointer">
+                    <span><b>Zapisz jako DEFAULT</b> — nowe produkty automatycznie dostaną prefix
+                    (zalecane przy pierwszym setup)</span>
+                </label>
+            </div>
 
             <button type="submit" class="btn btn-ok" onclick="return confirm('Nadpisać WSZYSTKIE kody magazynowe? Operacja nieodwracalna.')">
                 <span class=material-symbols-outlined>refresh</span> PRZEPISZ WSZYSTKIE KODY
