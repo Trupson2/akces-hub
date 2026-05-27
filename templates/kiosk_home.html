@@ -296,7 +296,8 @@ html.kiosk-mobile .kd{margin-left:0!important;width:100vw!important}
 
         <!-- SIDE PANEL -->
         <div class="kd-side">
-            <!-- PhonkBot widget -->
+            {% if phonkbot_enabled %}
+            <!-- PhonkBot widget (osobny projekt — domyślnie WYŁĄCZONY) -->
             <div class="kd-side-card" style="flex:0 0 auto;border-color:rgba(255,68,68,0.12)">
                 <div class="kd-side-title" style="color:#ff4444"><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;margin-right:4px">music_note</span> PhonkBot</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
@@ -323,6 +324,7 @@ html.kiosk-mobile .kd{margin-left:0!important;width:100vw!important}
                     <button class="kd-btn green" id="pb-generate" onclick="pbGenerate()" style="padding:8px;font-size:0.7rem"><span class="material-symbols-outlined" style="font-size:1rem">play_arrow</span> Generate</button>
                 </div>
             </div>
+            {% endif %}
             <!-- Ostatnie sprzedaze -->
             <div class="kd-side-card" style="flex:2">
                 <div class="kd-side-title"><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;margin-right:4px;color:#ff6b9b">fiber_manual_record</span> Live sprzedaz</div>

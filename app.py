@@ -2069,6 +2069,7 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
         # Per-instance konfiguracja (klient ma swoje, nie Twoje):
         _platform = (get_config('platform_name', '') or '').strip()
         _cf_url = (get_config('cloudflare_url', '') or '').strip()
+        _pb_enabled = (get_config('phonkbot_enabled', '0') or '0') == '1'
         resp = make_response(render_template('kiosk_home.html',
             version=VERSION,
             today=today, mag=mag, pal=pal, allegro=allegro,
@@ -2077,6 +2078,7 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
             active_monitor='',
             platform_name=_platform,
             cloudflare_url=_cf_url,
+            phonkbot_enabled=_pb_enabled,
             **sypie_data
         ))
         return resp
@@ -2175,6 +2177,7 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
         # Per-instance konfiguracja (NIE hardcoded Adrian's Pi):
         _platform = (get_config('platform_name', '') or '').strip()
         _cf_url = (get_config('cloudflare_url', '') or '').strip()
+        _pb_enabled = (get_config('phonkbot_enabled', '0') or '0') == '1'
         resp = make_response(render_template('kiosk_home.html',
             version=VERSION,
             today=today, mag=mag, pal=pal, allegro=allegro,
@@ -2183,6 +2186,7 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
             active_monitor='',
             platform_name=_platform,
             cloudflare_url=_cf_url,
+            phonkbot_enabled=_pb_enabled,
             **sypie_data
         ))
     else:
