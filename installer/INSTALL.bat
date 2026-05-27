@@ -42,9 +42,9 @@ if !ERRORLEVEL! neq 0 (
 echo      OK
 :skip_pip
 
-REM ---- 3. Inicjalizacja bazy (init_db) ----
-echo [3/5] Inicjalizacja bazy danych...
-"%PY%" -c "from modules.database import init_db; init_db(); print('OK')"
+REM ---- 3. Inicjalizacja bazy + konfiguracja release repo ----
+echo [3/5] Inicjalizacja bazy danych + konfiguracja auto-update...
+"%PY%" -c "from modules.database import init_db, set_config; init_db(); set_config('github_release_repo', 'Trupson2/akces-hub-release'); print('OK')"
 
 REM ---- 4. Skrot na pulpicie + autostart ----
 echo [4/5] Tworze skrot na pulpicie + autostart...

@@ -51,6 +51,11 @@ def ustawienia():
     ngrok_domain = get_config('ngrok_domain', '')
     data_retention_years = get_config('data_retention_years', '5')
 
+    # Auto-update (GitHub Releases) — dla klient\xf3w bez gita
+    github_release_repo = get_config('github_release_repo', '')
+    github_release_token = get_config('github_release_token', '')
+    has_github_token = bool(github_release_token)
+
     # 2FA TOTP status (Phase 3)
     totp_enabled = False
     totp_backup_remaining = 0
@@ -103,6 +108,8 @@ def ustawienia():
         custom_dostawcy=get_config('custom_dostawcy', ''),
         totp_enabled=totp_enabled,
         totp_backup_remaining=totp_backup_remaining,
+        github_release_repo=github_release_repo,
+        has_github_token=has_github_token,
     )
 
 
@@ -701,6 +708,52 @@ def ustawienia_ngrok_token():
         set_config('ngrok_auth_token', token)
     set_config('ngrok_domain', domain)
     return redirect('/ustawienia')
+
+
+@ustawienia_bp.route('/ustawienia/github-token', methods=['POST'])
+def ustawienia_github_token():
+    """Konfiguracja GitHub tokena dla auto-update z PRIVATE repo.
+
+    Token (fine-grained PAT) dostarcza Adrian przez Telegram/email.
+    Klient wkleja TYLKO RAZ. Token jest read-only (scope: repo content).
+
+    Walidacja: prefix github_pat_/ghp_/gho_ + test API call do repo.
+    """
+    from modules.database import set_config, get_config
+    token = request.form.get('github_token', '').strip()
+    repo = request.form.get('github_repo', '').strip()
+
+    if token == '__CLEAR__':
+        # Specjalna komenda — usun token z DB
+        set_config('github_release_token', '')
+        return redirect('/ustawienia?msg=token_usuniety')
+
+    if not token:
+        return redirect('/ustawienia?error=brak_tokena')
+
+    # Sanity check prefix
+    if not (token.startswith('github_pat_') or token.startswith('ghp_') or token.startswith('gho_')):
+        return redirect('/ustawienia?error=zly_format_tokena')
+
+    # Test API call — sprawdz czy token + repo dzialaja zanim zapiszemy
+    test_repo = repo or get_config('github_release_repo', 'Trupson2/akces-hub-release')
+    try:
+        import requests as _req
+        r = _req.get(
+            f'https://api.github.com/repos/{test_repo}',
+            headers={'Authorization': f'Bearer {token}', 'Accept': 'application/vnd.github+json'},
+            timeout=10,
+        )
+        if r.status_code != 200:
+            return redirect(f'/ustawienia?error=token_nieprawidlowy_status_{r.status_code}')
+    except Exception:
+        # Nie blokujemy save jesli brak internetu — token moze byc OK
+        pass
+
+    set_config('github_release_token', token)
+    if repo:
+        set_config('github_release_repo', repo)
+    return redirect('/ustawienia?msg=token_zapisany')
 
 
 @ustawienia_bp.route('/ustawienia/email', methods=['POST'])

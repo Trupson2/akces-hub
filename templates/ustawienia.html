@@ -224,6 +224,40 @@ select.ust-input{cursor:pointer;appearance:none;background-image:url("data:image
             </div>
         </div>
 
+        <!-- AUTO-UPDATE (GitHub Releases) -->
+        <div class="ust-panel accent-left-cyan">
+            <div class="ust-panel-title">
+                <span class="material-symbols-outlined">cloud_download</span>
+                <h3>Auto-update systemu</h3>
+            </div>
+            <form action="/ustawienia/github-token" method="POST">
+                <div class="ust-form-group">
+                    <label>GitHub repo (release distribution)</label>
+                    <input type="text" name="github_repo" class="ust-input mono"
+                        value="{{ github_release_repo or 'Trupson2/akces-hub-release' }}"
+                        placeholder="Trupson2/akces-hub-release">
+                </div>
+                <div class="ust-form-group">
+                    <label>GitHub token (otrzymaj od dostawcy)</label>
+                    <input type="password" name="github_token" class="ust-input mono"
+                        value="{% if has_github_token %}**** zapisany ****{% endif %}"
+                        placeholder="github_pat_... lub ghp_...">
+                </div>
+                <button type="submit" class="ust-btn ust-btn-cyan">Zapisz token</button>
+                {% if has_github_token %}
+                <button type="submit" name="github_token" value="__CLEAR__"
+                    class="ust-btn ust-btn-ghost" style="margin-left:8px"
+                    onclick="return confirm('Usunac token? Auto-update przestanie dzialac.')">
+                    Usun token
+                </button>
+                {% endif %}
+            </form>
+            <div class="ust-hint">
+                Token jest read-only do PRIVATE repo. Bez niego auto-update nie zadziala.
+                Sprawdz aktualizacje w <a href="/narzedzia" style="color:var(--neon-primary)">Narzedzia</a>.
+            </div>
+        </div>
+
         <!-- KIOSK MODE -->
         <div class="ust-panel">
             <div class="ust-panel-title">
