@@ -79,6 +79,7 @@ def ustawienia():
     # Defaults puste -> klient WPISZE w /ustawienia.
     dpd_cennik_id = get_config('dpd_cennik_id', '')
     inpost_cennik_id = get_config('inpost_cennik_id', '')
+    default_currency = get_config('default_currency', 'PLN')
     zwroty_warunki_id = get_config('zwroty_warunki_id', '')
     reklamacje_warunki_id = get_config('reklamacje_warunki_id', '')
 
@@ -99,6 +100,7 @@ def ustawienia():
         data_retention_years=data_retention_years,
         dpd_cennik_id=dpd_cennik_id,
         inpost_cennik_id=inpost_cennik_id,
+        default_currency=default_currency,
         zwroty_warunki_id=zwroty_warunki_id,
         reklamacje_warunki_id=reklamacje_warunki_id,
         smtp_cfg=smtp_cfg,
@@ -622,10 +624,16 @@ def ustawienia_integracje_parametry():
     UWAGA: zapisuje TEZ puste stringi -> klient moze CELOWO wyczyscic pole
     (np. nie uzywa InPostu, kasuje cennik)."""
     from modules.database import set_config
-    for key in ('dpd_cennik_id', 'inpost_cennik_id', 'zwroty_warunki_id', 'reklamacje_warunki_id'):
+    for key in ('dpd_cennik_id', 'inpost_cennik_id', 'zwroty_warunki_id', 'reklamacje_warunki_id', 'default_currency'):
         # Pole TYLKO jesli istnieje w formularzu (None => skip, '' => clear)
         if key in request.form:
-            set_config(key, request.form.get(key, '').strip())
+            val = request.form.get(key, '').strip()
+            # Waluta uppercase + whitelist
+            if key == 'default_currency':
+                val = val.upper()
+                if val not in ('PLN', 'EUR', 'CZK', 'HUF'):
+                    val = 'PLN'
+            set_config(key, val)
     return redirect('/ustawienia')
 
 

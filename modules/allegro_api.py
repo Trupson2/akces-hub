@@ -489,6 +489,7 @@ def get_allegro_config():
         'city': get_config_cached('allegro_city', 'Poznan'),
         'province': get_config_cached('allegro_province', 'WIELKOPOLSKIE'),
         'postcode': get_config_cached('allegro_postcode', '61-001'),
+        'default_currency': get_config_cached('default_currency', 'PLN'),
     }
 
 
@@ -1836,7 +1837,7 @@ def update_offer_condition(offer_id, stan):
     return None
 
 
-def create_offer(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=1, czas_wysylki='PT24H', ean=None, asin=None, gpsr=None, stan=None, product_specs=None, bullet_points=None, kod_magazynowy=None, shipping_id_override=None):
+def create_offer(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=1, czas_wysylki='PT24H', ean=None, asin=None, gpsr=None, stan=None, product_specs=None, bullet_points=None, kod_magazynowy=None, shipping_id_override=None, currency=None):
     """
     Tworzy nową ofertę na Allegro.
     WERSJA 2.0 - poprawiona obsługa zdjęć + GPSR
@@ -1849,7 +1850,7 @@ def create_offer(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=
     sys.stdout = log_capture = io.StringIO()
 
     try:
-        return _create_offer_impl(nazwa, opis, cena, zdjecia_urls, kategoria_id, ilosc, czas_wysylki, ean, asin, gpsr, stan, product_specs=product_specs, bullet_points=bullet_points, kod_magazynowy=kod_magazynowy, shipping_id_override=shipping_id_override)
+        return _create_offer_impl(nazwa, opis, cena, zdjecia_urls, kategoria_id, ilosc, czas_wysylki, ean, asin, gpsr, stan, product_specs=product_specs, bullet_points=bullet_points, kod_magazynowy=kod_magazynowy, shipping_id_override=shipping_id_override, currency=currency)
     finally:
         logs = log_capture.getvalue()
         sys.stdout = old_stdout
@@ -1865,7 +1866,7 @@ def create_offer(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=
             print(logs)
 
 
-def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=1, czas_wysylki='PT24H', ean=None, asin=None, gpsr=None, stan=None, product_specs=None, bullet_points=None, kod_magazynowy=None, shipping_id_override=None):
+def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=1, czas_wysylki='PT24H', ean=None, asin=None, gpsr=None, stan=None, product_specs=None, bullet_points=None, kod_magazynowy=None, shipping_id_override=None, currency=None):
     """Implementacja tworzenia oferty"""
     if not is_authenticated():
         return None, "Nie zalogowany do Allegro"
@@ -1938,12 +1939,18 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
     _condition = _map_stan_to_condition(stan)
     print(f"[COND] Stan: {stan!r} → condition: {_condition} (ustawiane po wystawieniu przez PATCH)")
 
+    # Waluta: priorytet param > config > PLN default
+    # Wspierane: PLN (Allegro.pl), CZK (Allegro.cz), EUR (Allegro.sk), HUF (potencjalnie)
+    _currency = (currency or config.get('default_currency', 'PLN') or 'PLN').upper()
+    if _currency not in ('PLN', 'EUR', 'CZK', 'HUF'):
+        _currency = 'PLN'
+
     offer_data = {
         'name': nazwa[:75],
         'category': {'id': str(kategoria_id)},
         'sellingMode': {
             'format': 'BUY_NOW',
-            'price': {'amount': f"{float(cena):.2f}", 'currency': 'PLN'}
+            'price': {'amount': f"{float(cena):.2f}", 'currency': _currency}
         },
         'stock': {'available': int(ilosc)},
         'publication': {'status': 'INACTIVE'},

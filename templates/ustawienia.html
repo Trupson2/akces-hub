@@ -186,6 +186,19 @@ select.ust-input{cursor:pointer;appearance:none;background-image:url("data:image
                     (Dodatki &rarr; Polityki zwrotow / reklamacji / Cenniki dostaw).
                     Wypelnij tylko cenniki tych kurierow ktorych <b>uzywasz</b>.
                 </div>
+
+                <div class="ust-form-group">
+                    <label>Domyślna waluta wystawiania</label>
+                    <select name="default_currency" class="ust-input mono">
+                        <option value="PLN" {{ 'selected' if default_currency == 'PLN' else '' }}>PLN — Polska (Allegro.pl)</option>
+                        <option value="EUR" {{ 'selected' if default_currency == 'EUR' else '' }}>EUR — Słowacja (Allegro.sk)</option>
+                        <option value="CZK" {{ 'selected' if default_currency == 'CZK' else '' }}>CZK — Czechy (Allegro.cz)</option>
+                        <option value="HUF" {{ 'selected' if default_currency == 'HUF' else '' }}>HUF — Węgry</option>
+                    </select>
+                    <div style="font-size:0.7rem;color:#64748b;margin-top:4px">
+                        Waluta podstawowa dla wystawianych ofert. Per produkt mozesz nadpisac przy wystawianiu.
+                    </div>
+                </div>
                 <div class="ust-form-group">
                     <label>ID cennika kuriera (np. DPD, InPost, GLS, DHL, Pocztex)</label>
                     <input type="text" name="dpd_cennik_id" class="ust-input mono" value="{{ dpd_cennik_id }}"
