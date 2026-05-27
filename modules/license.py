@@ -270,6 +270,77 @@ def save_license(license_data):
     _license_cache['ts'] = 0
 
 
+# Maksymalna liczba reset HWID per licencja (bez kontaktu z dostawca)
+HWID_TRANSFER_LIMIT = 3
+
+
+def reset_hwid(reason=''):
+    """Self-service reset HWID — klient zmienil komputer.
+
+    Workflow:
+    1. Sprawdz limit transfer (max HWID_TRANSFER_LIMIT bez kontaktu z dostawca)
+    2. Zapisz stary HWID jako previous_hwid (audit)
+    3. Wpisz aktualny HWID (z nowego komputera)
+    4. Notify do dostawcy przez Telegram (vendor_bot)
+    5. Zapisz transfer_count + reason
+
+    Returns: (success: bool, message: str)
+    """
+    lic = get_license_info()
+    if not lic:
+        return False, 'Brak licencji do zresetowania'
+
+    transfer_count = int(lic.get('hwid_transfer_count', 0))
+    if transfer_count >= HWID_TRANSFER_LIMIT:
+        return False, (
+            f'Osiagnieto limit reset HWID ({HWID_TRANSFER_LIMIT}). '
+            f'Skontaktuj sie z dostawca: support@example.com'
+        )
+
+    old_hwid = lic.get('hwid', '')
+    new_hwid = get_hwid()
+    if new_hwid == 'UNKNOWN':
+        return False, 'Nie moge odczytac HWID tego komputera'
+
+    if old_hwid == new_hwid:
+        return False, 'HWID nie zmienil sie — to ten sam komputer'
+
+    # Update licencji
+    from datetime import datetime
+    lic['previous_hwid'] = old_hwid
+    lic['hwid'] = new_hwid
+    lic['hwid_transfer_count'] = transfer_count + 1
+    lic['hwid_reset_at'] = datetime.now().isoformat()
+    lic['hwid_reset_reason'] = (reason or '')[:300]
+
+    save_license(lic)
+
+    # Notify dostawcy (Twoj Telegram) - WAZNE: audit, wiesz ze klient zmienil komp
+    try:
+        from .telegram_bot import send_telegram_support
+        from .database import get_config
+        brand = get_config('brand_name', 'AKCES HUB')
+        client = lic.get('client', '?')
+        # Escape HTML w reason
+        reason_safe = (reason or '').replace('<', '&lt;').replace('>', '&gt;')[:500]
+        msg = (
+            f"🔄 <b>HWID RESET</b>\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"📍 Klient: <b>{brand}</b> / {client}\n"
+            f"📦 Licencja: <code>{lic.get('key', '?')[:30]}</code>\n"
+            f"🔁 Transfer #{transfer_count + 1}/{HWID_TRANSFER_LIMIT}\n\n"
+            f"➡️ Stary HWID: <code>{old_hwid[:16]}</code>\n"
+            f"➡️ Nowy HWID: <code>{new_hwid[:16]}</code>\n\n"
+            f"💬 Powod: {reason_safe or '(brak)'}\n"
+            f"━━━━━━━━━━━━━━━━━━"
+        )
+        send_telegram_support(msg, parse_mode='HTML')
+    except Exception as e:
+        print(f'[license] HWID reset notify fail: {e}')
+
+    return True, f'HWID zresetowany ({transfer_count + 1}/{HWID_TRANSFER_LIMIT}). Licencja aktywna na nowym komputerze.'
+
+
 def activate_license(key, client_name, plan, created, expires, signature):
     """Aktywuj licencję z podanych danych. Binduje HWID przy aktywacji."""
     license_data = {

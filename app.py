@@ -3228,6 +3228,18 @@ def license_upgrade_enterprise():
 # ============================================================
 # GENERATOR LICENCJI — panel admina
 # ============================================================
+@app.route('/license/reset-hwid', methods=['POST'])
+def license_reset_hwid_endpoint():
+    """Self-service reset HWID — klient zmienil komputer."""
+    _validate_csrf_or_abort()
+    from modules.license import reset_hwid
+    reason = (request.form.get('reason', '') or '').strip()
+    ok, msg = reset_hwid(reason=reason)
+    if ok:
+        return redirect('/license?msg=' + msg[:200].replace(' ', '+'))
+    return redirect('/license?err=' + msg[:200].replace(' ', '+'))
+
+
 @app.route('/narzedzia/licencje/delete', methods=['POST'])
 def narzedzia_licencje_delete():
     """Usuń wygenerowaną licencję (plik .json + DB licenses_issued).

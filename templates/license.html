@@ -197,6 +197,25 @@ body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min
                 <button type="submit" class="lic-form-btn dev"><span class="material-symbols-outlined">arrow_upward</span> DEV: Upgrade do Max</button>
             </form>
             {% endif %}
+
+            <!-- HWID Reset (self-service - zmienilem komputer) -->
+            <div style="margin-top:20px;padding:16px;background:rgba(143,245,255,0.04);border:1px solid rgba(143,245,255,0.15);border-radius:10px">
+                <h4 style="font-size:0.85rem;color:#8ff5ff;margin-bottom:8px">
+                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">devices</span>
+                    Zmieniles komputer?
+                </h4>
+                <p style="font-size:0.75rem;color:#94a3b8;margin-bottom:10px">
+                    Licencja jest przypisana do tego komputera (HWID). Jesli wymienitas
+                    laptop/komputer — uzyj resetu (max 3 razy bez kontaktu z dostawca).
+                </p>
+                <form action="/license/reset-hwid" method="POST" onsubmit="return confirm('Zresetowac HWID licencji?\\n\\nLicencja przypisze sie do tego komputera. Reset bedzie zalogowany u dostawcy.')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="text" name="reason" placeholder="Powod (np. 'wymieniłem laptop')" maxlength="300" style="width:100%;padding:8px 10px;margin-bottom:8px;background:#0f1019;color:#e2e8f0;border:1px solid #2d3748;border-radius:6px;font-size:0.8rem">
+                    <button type="submit" class="lic-form-btn" style="background:rgba(143,245,255,0.1);color:#8ff5ff;border:1px solid rgba(143,245,255,0.3)">
+                        <span class="material-symbols-outlined">restart_alt</span> Zresetuj HWID
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 
