@@ -74,24 +74,24 @@ EXCLUDE_DIRS = {
     '_update_tmp',
     'logs',
     'tools',  # Generator licencji — nie dla klientów
-    'static/downloads',
+    'downloads',  # static/downloads — 270+ MB scraped images
     # Inne projekty Adriana (NIE dla klienta):
     'mobile',     # Akces Booth Flutter app
     'landing',    # Twoja landing page index.html
     'designs',    # Marketing designs
     'docs',       # Twoje internal docs (DEPLOYMENT, SECURITY_AUDIT, PHASE1...)
-    'photo_daemon',  # Photo Daemon side-project
+    'photo_daemon',  # Photo Daemon side-project (69MB)
     '.pytest_cache',
     '.idea',      # IDE config
     'dist',
     'build',
-    # Zagnieżdżona kopia repo (occurs when source dir literalnie zawiera akces-hub/ subfolder):
+    # Zagnieżdżona kopia repo:
     'akces-hub',  # zapobiega arcname zip 'akces-hub/akces-hub/...'
 }
 
 EXCLUDE_EXTENSIONS = {
     '.pyc', '.db', '.db-wal', '.db-shm', '.log',
-    '.bak', '.gz',
+    '.bak', '.backup', '.gz', '.zip',  # .zip = przypadkowe zostawione paczki
     '.out',  # PHASE 4: nohup.out/server.out — dokładny wektor incydentu PHASE 1
 }
 
@@ -124,6 +124,16 @@ def should_exclude(path, name):
             return True
     # Pliki licencji JSON
     if name.startswith('license_') and name.endswith('.json'):
+        return True
+    # DB backup files (akces_hub.db.before_*, akces_hub_*.db, akces_hub.db-*)
+    name_lower = name.lower()
+    if name_lower.startswith('akces_hub') and ('.db' in name_lower or 'backup' in name_lower):
+        return True
+    # ZIP files (przypadkowo zostawione paczki release w source dir)
+    if name_lower.endswith('.zip'):
+        return True
+    # Windows-style mangled paths (e.g. "C:UsersadriaDesktopakces-hub-CLEAN.zip")
+    if name_lower.startswith('c:users') or name_lower.startswith('c:\\users'):
         return True
     return False
 
