@@ -3507,28 +3507,14 @@ def generator_mass_create_from_paleta():
         }}
     }};
 
-    // AUTO-RECONNECT: jesli stream sie zrywa, sprobuj reconnect (max 3x)
-    var _sseReconnectAttempts = window._sseReconnectAttempts || 0;
     evtSource.onerror = function() {{
         evtSource.close();
-        if (_sseReconnectAttempts < 3) {{
-            _sseReconnectAttempts++;
-            window._sseReconnectAttempts = _sseReconnectAttempts;
-            log.innerHTML += '<div style="color:#f59e0b;padding:4px 0"><span class=material-symbols-outlined>sync</span> Stream sie zerwal — reconnect ' + _sseReconnectAttempts + '/3 za 2s...</div>';
-            log.scrollTop = log.scrollHeight;
-            setTimeout(function() {{
-                // Re-create EventSource z TAKIM SAMYM URL (kontynuuje od miejsca przerwania)
-                evtSource = new EventSource(evtSource.url || window.location.pathname.replace('mass-create-from-paleta', 'mass-create-from-paleta-stream') + window.location.search);
-                attachStreamHandlers();
-            }}, 2000);
-        }} else {{
-            _stopTimer();
-            _timerEl.style.color = '#ef4444';
-            icon.innerHTML = '<span class=material-symbols-outlined>cancel</span>';
-            text.textContent = 'Blad polaczenia ze streamem (3 proby reconnect)';
-            log.innerHTML += '<div style="color:#ef4444;padding:4px 0"><span class=material-symbols-outlined>cancel</span> Utracono polaczenie na stale</div>';
-            document.getElementById('done-buttons').style.display = 'flex';
-        }}
+        _stopTimer();
+        _timerEl.style.color = '#ef4444';
+        icon.innerHTML = '<span class=material-symbols-outlined>cancel</span>';
+        text.textContent = 'Blad polaczenia ze streamem';
+        log.innerHTML += '<div style="color:#ef4444;padding:4px 0"><span class=material-symbols-outlined>cancel</span> Utracono polaczenie</div>';
+        document.getElementById('done-buttons').style.display = 'flex';
     }};
     }}  // end attachStreamHandlers
     </script>
