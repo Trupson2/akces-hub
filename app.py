@@ -48,7 +48,7 @@ from flask_cors import CORS  # ← DODANO DLA NGROK!
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 
 # Importy modułów
-from modules.database import init_db, get_db, get_config_cached
+from modules.database import init_db, get_db, get_config_cached, get_config, set_config
 from modules.magazynier import magazynier_bp, get_stats as mag_stats
 from modules.serwisant import serwisant_bp
 from modules.paletomat import paletomat_bp, get_stats as pal_stats
@@ -1661,7 +1661,8 @@ def api_cloudflare_status():
     Hostname pobierany z config('cloudflare_url'), NIE hardcoded.
     """
     import subprocess, sys
-    raw_url = (get_config('cloudflare_url', '') or '').strip()
+    from modules.database import get_config as _get_config
+    raw_url = (_get_config('cloudflare_url', '') or '').strip()
     # Extract hostname z URL (https://app.example.com → app.example.com)
     hostname = raw_url
     if raw_url.startswith('http'):
