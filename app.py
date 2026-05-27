@@ -2194,13 +2194,15 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
     _fwd_host = request.headers.get('X-Forwarded-Host', '')        # reverse proxy
     _remote = request.remote_addr or ''
     _is_proxied = bool(_xff or _cf_ip or _cf_ray or _ngrok_trace or _fwd_host)
-    # Auto-kiosk dla LAN IP — można wyłączyć w config (gdy user chce pełny dashboard
-    # mimo wejścia z Pi/LAN).
-    _kiosk_auto_disabled = (get_config('kiosk_auto_disabled', '0') or '0') == '1'
+    # Kiosk mode OPT-IN — domyślnie WYŁĄCZONY (klient widzi pełen dashboard).
+    # Adrian może włączyć dla swojego ekranu Pi:
+    #   set_config('kiosk_auto_enabled', '1')
+    # Wtedy LAN access (127.0.0.1/Pi local IP) trigger'uje kiosk view.
+    _kiosk_auto_enabled = (get_config('kiosk_auto_enabled', '0') or '0') == '1'
     _is_pi_screen = (
-        _remote in ('127.0.0.1', '::1', '192.168.100.200')
+        _kiosk_auto_enabled
+        and _remote in ('127.0.0.1', '::1', '192.168.100.200')
         and not _is_proxied
-        and not _kiosk_auto_disabled
     )
     _force_kiosk = request.args.get('kiosk') == '1'
     _force_full = request.args.get('kiosk') == '0' or request.args.get('full') == '1'
