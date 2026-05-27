@@ -1964,9 +1964,18 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
             produkty_magazyn=produkty_magazyn, regaly_cnt=regaly_cnt)
 
     # Onboarding — redirect jeśli nie przeszedł setup
-    from modules.database import get_config as _gc
+    from modules.database import get_config as _gc, set_config as _sc
     if not _gc('setup_done', ''):
-        return redirect('/setup')
+        # AUTO-FIX: jesli klient ma juz licencje + brand_name + uzytkownika -> wizard
+        # niepotrzebny (klient wszedl manualnie w /ustawienia bez wizarda).
+        # Bez tego: wieczna patelnia w wizard mimo ze wszystko jest ustawione.
+        _has_license = bool(_gc('license_data', ''))
+        _has_brand = bool(_gc('brand_name', '').strip())
+        if _has_license and _has_brand:
+            _sc('setup_done', '1')
+            print('[setup] Auto-marked as done (license + brand wykryte)')
+        else:
+            return redirect('/setup')
 
     # Sprawdź czy jest wybrane konto (auto-set adrian if not)
     user = request.cookies.get('akces_user')
@@ -2962,7 +2971,11 @@ def system_update_zip():
 @app.route('/setup')
 def setup_wizard():
     """Wizard po pierwszym logowaniu — branding, moduły, API"""
-    from modules.database import get_config
+    from modules.database import get_config, set_config
+    # Skip wizard jesli juz wszystko skonfigurowane (defensive)
+    if get_config('license_data', '') and (get_config('brand_name', '') or '').strip():
+        set_config('setup_done', '1')
+        return redirect('/dashboard')
     return render_template('setup.html',
         version=VERSION,
         current_brand=get_config('brand_name', 'AKCES HUB'),
