@@ -3329,7 +3329,7 @@ def generator_mass_create_from_paleta():
     
     allegro_ok = is_authenticated()
     shipping_id = get_config('allegro_shipping_id', '')
-    
+
     if not allegro_ok:
         return render('''
             <div class="hdr"><h1><span class=material-symbols-outlined>cancel</span> BŁĄD</h1></div>
@@ -3337,7 +3337,7 @@ def generator_mass_create_from_paleta():
             <a href="/allegro" class="btn btn-ok">[KEY] Połącz z Allegro</a>
             <a href="/palety" class="back">← Powrót</a>
         ''')
-    
+
     if not shipping_id:
         return render('''
             <div class="hdr"><h1><span class=material-symbols-outlined>cancel</span> BŁĄD</h1></div>
@@ -3345,14 +3345,46 @@ def generator_mass_create_from_paleta():
             <a href="/allegro/config" class="btn btn-ok"><span class=material-symbols-outlined>settings</span> Ustawienia Allegro</a>
             <a href="/palety" class="back">← Powrót</a>
         ''')
-    
+
+    # Pobierz wszystkie cenniki z Allegro (do dropdownu wyboru przed wystawianiem)
+    shipping_options_html = ''
+    try:
+        from .allegro_api import get_shipping_rates
+        rates, _ = get_shipping_rates()
+        if rates and 'shippingRates' in rates:
+            for rate in rates['shippingRates']:
+                sel = 'selected' if rate['id'] == shipping_id else ''
+                shipping_options_html += f'<option value="{rate["id"]}" {sel}>{rate["name"]}</option>'
+    except Exception as e:
+        print(f'[mass-create] Blad pobierania cennikow: {e}')
+
     count = len(product_ids)
     
     html = f'''
     <div class="hdr"><h1><span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> MASOWE WYSTAWIANIE Z PALETY</h1><small>{count} produktów</small></div>
     
     <div class="alert alert-ok" style="font-size:0.85rem">
-        <span class=material-symbols-outlined>check_circle</span> Allegro połączone | <span class=material-symbols-outlined>check_circle</span> Cennik wysyłki OK | <span class=material-symbols-outlined>check_circle</span> Produkty wybrane | <span class='material-symbols-outlined' style='font-size:1rem;vertical-align:middle'>rocket_launch</span> Startujemy...
+        <span class=material-symbols-outlined>check_circle</span> Allegro połączone | <span class=material-symbols-outlined>check_circle</span> Cennik wysyłki OK | <span class=material-symbols-outlined>check_circle</span> Produkty wybrane
+    </div>
+
+    <!-- WYBOR CENNIKA WYSYLKI (per batch) -->
+    <div class="card" id="shipping-picker" style="padding:20px;margin-bottom:15px;border:2px solid rgba(143,245,255,0.2)">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px">
+            <div style="flex:1;min-width:280px">
+                <label style="display:block;font-size:0.78rem;color:#94a3b8;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">
+                    <span class=material-symbols-outlined style='font-size:1rem;vertical-align:middle'>local_shipping</span>
+                    Cennik wysyłki dla tej partii ({count} produktów)
+                </label>
+                {'<select id="shipping-select" class="form-control" style="width:100%">' + shipping_options_html + '</select>' if shipping_options_html else '<input type="text" id="shipping-select-input" class="form-control" value="' + shipping_id + '" placeholder="UUID cennika">'}
+                <div style="font-size:0.72rem;color:#64748b;margin-top:6px">
+                    Wybierz cennik pasujacy do gabarytu (np. maly cennik dla paczkomatu, duzy dla kuriera).
+                    Default = ustawiony w /allegro.
+                </div>
+            </div>
+            <button id="start-btn" class="btn btn-ok" style="white-space:nowrap;padding:14px 26px;font-size:0.95rem;font-weight:700">
+                <span class='material-symbols-outlined' style='font-size:1.1rem;vertical-align:middle'>rocket_launch</span> Wystaw ({count})
+            </button>
+        </div>
     </div>
     
     <div class="card" style="text-align:center;padding:30px">
@@ -3410,7 +3442,22 @@ def generator_mass_create_from_paleta():
         }}
     }}
 
-    const evtSource = new EventSource('/paletomat/generator/mass-create-from-paleta-stream?ids={ids_str}');
+    // Odpal stream dopiero po klik Start (uzytkownik wybiera cennik wczesniej)
+    let evtSource = null;
+    document.getElementById('start-btn').onclick = function() {{
+        const selEl = document.getElementById('shipping-select') || document.getElementById('shipping-select-input');
+        const shipId = selEl ? selEl.value.trim() : '';
+        const url = '/paletomat/generator/mass-create-from-paleta-stream?ids={ids_str}' +
+                    (shipId ? '&shipping_id=' + encodeURIComponent(shipId) : '');
+        document.getElementById('shipping-picker').style.opacity = '0.5';
+        document.getElementById('shipping-picker').style.pointerEvents = 'none';
+        this.disabled = true;
+        this.innerHTML = '<span class=material-symbols-outlined>hourglass_top</span> Wystawiam...';
+        evtSource = new EventSource(url);
+        attachStreamHandlers();
+    }};
+
+    function attachStreamHandlers() {{
     const log = document.getElementById('log');
     const bar = document.getElementById('progress-bar');
     const text = document.getElementById('progress-text');
@@ -3469,6 +3516,7 @@ def generator_mass_create_from_paleta():
         log.innerHTML += '<div style="color:#ef4444;padding:4px 0"><span class=material-symbols-outlined>cancel</span> Utracono polaczenie</div>';
         document.getElementById('done-buttons').style.display = 'flex';
     }};
+    }}  // end attachStreamHandlers
     </script>
     '''
     return render(html)
@@ -3487,6 +3535,8 @@ def generator_mass_create_from_paleta_stream():
     # 1. Pobieramy dane tutaj (NAD funkcją generate), póki mamy dostęp do requestu
     ids_str = request.args.get('ids', '')
     force_new = request.args.get('force', '0') == '1'
+    # Override cennika (puste = uzyj domyslnego z config)
+    shipping_override = request.args.get('shipping_id', '').strip() or None
 
     def generate():
         # Wewnątrz funkcji już NIE wywołujemy request.args.get
@@ -4031,7 +4081,8 @@ def generator_mass_create_from_paleta_stream():
                             kategoria_id=kategoria_id, ilosc=ilosc,
                             ean=ean, asin=asin, gpsr=gpsr,
                             product_specs=product_specs, bullet_points=bullet_points,
-                            kod_magazynowy=_km
+                            kod_magazynowy=_km,
+                            shipping_id_override=shipping_override,
                         )
                         _offer_q.put(r)
                     except Exception as e:
