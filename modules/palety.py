@@ -2641,6 +2641,21 @@ def paleta_mass_edit(paleta_id):
     except Exception:
         dla_siebie_paleta_cnt = 0
 
+    # Pobierz cenniki wysylki z Allegro (do dropdownu wyboru przed wystawianiem)
+    shipping_options_html = ''
+    try:
+        from modules.database import get_config as _gc
+        from modules.allegro_api import get_shipping_rates, is_authenticated
+        _default_ship = _gc('allegro_shipping_id', '')
+        if is_authenticated():
+            rates, _ = get_shipping_rates()
+            if rates and 'shippingRates' in rates:
+                for rate in rates['shippingRates']:
+                    sel = 'selected' if rate['id'] == _default_ship else ''
+                    shipping_options_html += f'<option value="{rate["id"]}" {sel}>{rate["name"]}</option>'
+    except Exception as _e:
+        print(f'[mass-edit] shipping rates: {_e}')
+
     # Stats
     stats = conn.execute('''
         SELECT
@@ -2974,8 +2989,17 @@ def paleta_mass_edit(paleta_id):
 
     <div class="bl-info">
         <span class="material-symbols-outlined">lightbulb</span>
-        Zaznacz produkty → edytuj ceny → kliknij <b>Wystaw</b>. Wystawione (zielone) nie można zaznaczyć.
+        Zaznacz produkty → edytuj ceny → wybierz <b>cennik</b> → kliknij <b>Wystaw</b>. Wystawione (zielone) nie można zaznaczyć.
     </div>
+
+    {f'''<div style="display:flex;align-items:center;gap:14px;padding:14px 18px;margin-bottom:12px;background:rgba(143,245,255,0.06);border:1px solid rgba(143,245,255,0.18);border-radius:10px">
+        <span class="material-symbols-outlined" style="color:#8ff5ff">local_shipping</span>
+        <label for="shipping-select" style="font-size:0.85rem;font-weight:600;color:#8ff5ff;white-space:nowrap">Cennik wysyłki:</label>
+        <select id="shipping-select" style="flex:1;background:#0f1019;color:#e2e8f0;border:1px solid #2d3748;border-radius:6px;padding:8px 10px;font-size:0.85rem;font-family:monospace">
+            {shipping_options_html}
+        </select>
+        <span style="font-size:0.72rem;color:#64748b;white-space:nowrap">np. mały → paczkomat, duży → kurier</span>
+    </div>''' if shipping_options_html else ''}
 
     {f'<div style="padding:10px 14px;margin-bottom:12px;background:rgba(239,68,68,0.05);border-left:3px solid #ef4444;border-radius:6px;font-size:0.82rem;color:#94a3b8">⛔ <b style="color:#ef4444">Pominięto {dla_siebie_paleta_cnt}</b> produktów zatrzymanych dla siebie. Zwolnij na stronie produktu jeśli mają pójść do sprzedaży.</div>' if dla_siebie_paleta_cnt > 0 else ''}
 
@@ -3131,7 +3155,11 @@ def paleta_mass_edit(paleta_id):
                 productIds.add(cb.value);
             }}
         }});
-        window.location.href = '/paletomat/generator/mass-create-from-paleta?paleta_id={paleta_id}&ids=' + [...productIds].join(',');
+        // Wybrany cennik (jesli dropdown jest)
+        const shipSel = document.getElementById('shipping-select');
+        const shipId = shipSel ? shipSel.value : '';
+        const shipParam = shipId ? '&shipping_id=' + encodeURIComponent(shipId) : '';
+        window.location.href = '/paletomat/generator/mass-create-from-paleta?paleta_id={paleta_id}&ids=' + [...productIds].join(',') + shipParam;
     }}
 
     function batchGenerateMetaTitles() {{
