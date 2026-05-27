@@ -1859,6 +1859,14 @@ def project_launcher():
     _brand = (get_config('brand_name', '') or 'AKCES HUB').strip()
     _platform = (get_config('platform_name', '') or 'Hub').strip()
     _pb_enabled = (get_config('phonkbot_enabled', '0') or '0') == '1'
+
+    # Single-project tenant (klient bez PhonkBota) -> launcher z 1 kafelkiem to
+    # zbedny extra klik. Redirect od razu do /dashboard (login screen jesli nie
+    # zalogowany). Wlasciciel z PhonkBotem widzi launcher normalnie.
+    # Wymus pokazanie launchera: ?force=1 (debug/preview).
+    if not _pb_enabled and request.args.get('force') != '1':
+        return redirect('/dashboard')
+
     return render_template("project_launcher.html",
         version=VERSION, kiosk=kiosk,
         brand_name=_brand, platform_name=_platform,
