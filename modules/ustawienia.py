@@ -74,9 +74,11 @@ def ustawienia():
                 totp_backup_remaining = backup_codes_remaining(_r['totp_backup_codes'] or '')
     except Exception:
         pass
-    dpd_cennik_id = get_config('dpd_cennik_id', 'bf1a1cf0-6a1e-41b3-a42e-d46846b35f43')
-    zwroty_warunki_id = get_config('zwroty_warunki_id', '7b75ba63-0967-4536-a439-730f8e563a59')
-    reklamacje_warunki_id = get_config('reklamacje_warunki_id', '128af307-9341-4f8c-b406-63b9060cce7d')
+    # KAZDY klient ma WLASNE Allegro UUIDs (cennik DPD, polityka zwrotow/gwarancji)
+    # Defaults puste -> klient WPISZE w /ustawienia (instrukcja jak pobrac w hint).
+    dpd_cennik_id = get_config('dpd_cennik_id', '')
+    zwroty_warunki_id = get_config('zwroty_warunki_id', '')
+    reklamacje_warunki_id = get_config('reklamacje_warunki_id', '')
 
     return render_template('ustawienia.html',
         version=current_app.config.get('VERSION', ''),

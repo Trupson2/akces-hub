@@ -5467,11 +5467,18 @@ def create_wysylam_z_allegro_shipment(order_id, reference=None, parcel_size=None
     """
     print(f"[INVE] Tworzenie przesyłki (Wysyłam z Allegro) dla: {order_id}")
 
-    # ── Stałe cenników i warunków ──
-    CREDENTIALS_DPD = 'bf1a1cf0-6a1e-41b3-a42e-d46846b35f43'
-    CREDENTIALS_INPOST = 'da329cd5-9819-4aef-aa77-2ee2d51abc59'
-    RETURN_POLICY_ID = '7b75ba63-0967-4536-a439-730f8e563a59'
-    WARRANTY_POLICY_ID = '128af307-9341-4f8c-b406-63b9060cce7d'
+    # ── Cenniki i warunki: KAZDY klient ma WLASNE UUIDs ──
+    # Konfiguracja w /ustawienia → Parametry integracji.
+    # Bez tego: Allegro odrzuci request (UUID-y sa per-konto klienta).
+    from modules.database import get_config as _gc
+    CREDENTIALS_DPD = _gc('dpd_cennik_id', '') or ''
+    CREDENTIALS_INPOST = _gc('inpost_cennik_id', '') or ''
+    RETURN_POLICY_ID = _gc('zwroty_warunki_id', '') or ''
+    WARRANTY_POLICY_ID = _gc('reklamacje_warunki_id', '') or ''
+    if not all([CREDENTIALS_DPD, RETURN_POLICY_ID, WARRANTY_POLICY_ID]):
+        return None, ('Brak UUID Allegro w konfiguracji. Wejdz /ustawienia → '
+                      'Parametry integracji i wpisz: ID cennika DPD, ID warunkow '
+                      'zwrotow, ID warunkow reklamacji (pobierz z konta Allegro).')
 
     # Pobierz dane zamówienia
     order, error = get_order_details(order_id)

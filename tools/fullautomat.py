@@ -33,12 +33,21 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # KONFIGURACJA
 # ============================================================
 
-# DPD credentials (Twoje cenniki)
-DPD_CREDENTIALS = {
-    'cennik': 'bf1a1cf0-6a1e-41b3-a42e-d46846b35f43',
-    'zwroty': '7b75ba63-0967-4536-a439-730f8e563a59',
-    'reklamacje': '128af307-9341-4f8c-b406-63b9060cce7d',
-}
+# DPD credentials — czyta z config (KAZDY klient ma WLASNE Allegro UUIDs).
+# Konfiguracja w /ustawienia. Skrypt fullautomat.py jest WYLACZNIE wewnetrzny
+# (tools/ NIE idzie do klienta przez build_release.py).
+def _load_dpd_credentials():
+    try:
+        from modules.database import get_config
+        return {
+            'cennik': get_config('dpd_cennik_id', '') or '',
+            'zwroty': get_config('zwroty_warunki_id', '') or '',
+            'reklamacje': get_config('reklamacje_warunki_id', '') or '',
+        }
+    except Exception:
+        return {'cennik': '', 'zwroty': '', 'reklamacje': ''}
+
+DPD_CREDENTIALS = _load_dpd_credentials()
 
 # Domyślny gabaryt paczkomatu
 DEFAULT_PARCEL_SIZE = 'A'  # A=mały, B=średni, C=duży
