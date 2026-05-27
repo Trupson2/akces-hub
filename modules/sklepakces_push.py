@@ -1085,6 +1085,38 @@ def record_log(conn, sku: str, http_code: int, status_label: str, error_message:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# License gate — sklepakces to MOJA marka (Adrian Gauza), nie generic feature
+# Defense-in-depth: web blueprint gated w app.py + funkcje też (bypass CLI/scripts).
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _check_sklepakces_owner() -> None:
+    """Raise PermissionError jeśli current license.client NIE na whitelist owners.
+
+    Used as defensive check inside push functions — chroni przed bezpośrednim
+    importem i wywołaniem przez scripts/CLI/cron, bypass'ując web blueprint gate.
+    """
+    import os as _os
+    owners = [
+        n.strip().lower() for n in _os.environ.get(
+            'AKCES_SKLEPAKCES_OWNERS', 'Adrian Gauza,Adrian'
+        ).split(',') if n.strip()
+    ]
+    try:
+        from .license import get_license_info
+        lic = get_license_info() or {}
+        client = (lic.get('client') or '').strip().lower()
+    except Exception:
+        client = ''
+    if not client:
+        raise PermissionError('Brak aktywnej licencji — sklepakces push odmówiony')
+    if client not in owners:
+        raise PermissionError(
+            f'License client="{client}" NIE na whitelist sklepakces owners. '
+            f'Sklepakces to brand-specific feature — kontakt: support@akceshub.pl'
+        )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Public API
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -1105,6 +1137,16 @@ def push_one_product(
                                  inaczej push SKIP + Telegram alert. Gdy False → fallback do produkty.cena_allegro
                                  (DB) — backward-compat (np. dla produktów premium które nie idą na Allegro).
     """
+    # License gate — chroni przed CLI/scripts bypass (defense-in-depth)
+    try:
+        _check_sklepakces_owner()
+    except PermissionError as _pe:
+        return {
+            'status': 'error',
+            'hub_id': hub_product_id,
+            'msg': f'LICENSE_DENIED: {_pe}',
+        }
+
     conn = get_db()
     cur = conn.execute('SELECT * FROM produkty WHERE id = ?', (hub_product_id,))
     row = cur.fetchone()
@@ -1482,6 +1524,13 @@ def push_all_unsynced(
 
     Yields dict per produkt — generator (streaming, nie blokuje na batchu).
     """
+    # License gate — chroni przed CLI/scripts bypass (defense-in-depth)
+    try:
+        _check_sklepakces_owner()
+    except PermissionError as _pe:
+        yield {'status': 'error', 'msg': f'LICENSE_DENIED: {_pe}'}
+        return
+
     conn = get_db()
     # only_status='*' lub '' → bez filtra status (np. żeby pchnąć produkty
     # status='wystawiony' które są na Allegro ale jeszcze nie na sklepie).

@@ -899,26 +899,19 @@ app.register_blueprint(allegro_bp, url_prefix='/allegro')
 # client (podpisany HMAC sigem) musi matchować whitelist. Brak match = 404.
 _SKLEPAKCES_OWNERS = [
     n.strip().lower() for n in os.environ.get(
-        'AKCES_SKLEPAKCES_OWNERS',
-        'Adrian Gauza,Adrian,adrian gauza,Adrian Gauza ',  # przyjazne defaults — różne warianty
-    ).split(',')
-    if n.strip()
+        'AKCES_SKLEPAKCES_OWNERS', 'Adrian Gauza,Adrian'
+    ).split(',') if n.strip()
 ]
 
 def _is_sklepakces_owner() -> bool:
     """Czy obecna licencja jest na whitelist właścicieli sklepakces?
-    Case-insensitive + strip whitespace dla większej tolerancji literówek."""
+    Exact match (case-insensitive po strip). NIE substring — bo "Adrian"
+    nie powinien matchować "Adrian Kowalski" gdyby ktoś dodał takiego klienta."""
     try:
         from modules.license import get_license_info
         lic = get_license_info() or {}
         client = (lic.get('client') or '').strip().lower()
-        if not client:
-            return False
-        # Exact match albo substring match (Adrian matches "Adrian Gauza")
-        for owner in _SKLEPAKCES_OWNERS:
-            if client == owner or owner in client or client in owner:
-                return True
-        return False
+        return bool(client) and client in _SKLEPAKCES_OWNERS
     except Exception:
         return False
 
@@ -3039,6 +3032,54 @@ def license_upgrade_enterprise():
 # ============================================================
 # GENERATOR LICENCJI — panel admina
 # ============================================================
+@app.route('/narzedzia/licencje/delete', methods=['POST'])
+def narzedzia_licencje_delete():
+    """Usuń wygenerowaną licencję (plik .json + DB licenses_issued).
+
+    Dev-only (sama generator UI). Bezpieczne — nie wpływa na aktywną licencję
+    Twojego Hub'a (ta jest w config table, nie w licenses_issued).
+    """
+    from modules.database import get_config
+    is_dev = get_config('is_dev', '0') == '1'
+    if session.get('rola') != 'admin' or not is_dev:
+        return 'Brak dostepu', 403
+
+    filename = (request.form.get('filename') or '').strip()
+    license_key = (request.form.get('key') or '').strip()
+    # Safety: nazwa pliku musi pasować do whitelist regex
+    import re as _re
+    if not _re.match(r'^license_[a-zA-Z0-9_-]+_[a-zA-Z]+\.json$', filename):
+        return redirect('/narzedzia/licencje?err=invalid_filename')
+
+    _tools_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools')
+    fpath = os.path.join(_tools_dir, filename)
+    # Path traversal guard
+    if not os.path.abspath(fpath).startswith(os.path.abspath(_tools_dir) + os.sep):
+        return redirect('/narzedzia/licencje?err=path_traversal')
+
+    deleted_file = False
+    if os.path.exists(fpath):
+        try:
+            os.remove(fpath)
+            deleted_file = True
+        except Exception:
+            pass
+
+    # Usuń też z licenses_issued (server-side tracking)
+    deleted_db = False
+    if license_key:
+        try:
+            from modules.database import get_db
+            _db = get_db()
+            cur = _db.execute('DELETE FROM licenses_issued WHERE license_key = ?', (license_key,))
+            _db.commit()
+            deleted_db = (cur.rowcount > 0)
+        except Exception:
+            pass
+
+    return redirect(f'/narzedzia/licencje?deleted={"1" if (deleted_file or deleted_db) else "0"}')
+
+
 @app.route('/narzedzia/licencje', methods=['GET', 'POST'])
 def narzedzia_licencje():
     """Panel generowania licencji — dostepny tylko dla dev"""

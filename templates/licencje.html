@@ -91,6 +91,11 @@
                             <div style="display:flex;gap:6px">
                                 <button class="btn" style="padding:4px 10px;font-size:0.72rem;background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.15);color:var(--neon-primary)" onclick="copyText(this, `{{ lic.json|e }}`)">Kopiuj</button>
                                 <button class="btn" style="padding:4px 10px;font-size:0.72rem;background:rgba(190,238,0,0.08);border:1px solid rgba(190,238,0,0.15);color:var(--neon-tertiary)" onclick="dlText(`{{ lic.json|e }}`,`{{ lic.filename }}`)">Pobierz</button>
+                                <form method="POST" action="/narzedzia/licencje/delete" style="display:inline" onsubmit="return confirm('Usunąć licencję dla {{ lic.client }} ({{ lic.key }})?');">
+                                    <input type="hidden" name="filename" value="{{ lic.filename }}">
+                                    <input type="hidden" name="key" value="{{ lic.key }}">
+                                    <button type="submit" class="btn" style="padding:4px 10px;font-size:0.72rem;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:#ef4444">Usuń</button>
+                                </form>
                             </div>
                         </td>
                     </tr>
