@@ -3190,7 +3190,7 @@ def paleta_mass_edit(paleta_id):
             }}
         }});
         // Zbierz per-product shipping_id z dropdownow w wierszach
-        // Format: shipping_map={"pid1":"uuid1","pid2":"uuid2",...}
+        // Format: shipping_map=JSON {{ pid: uuid }}
         const shippingMap = {{}};
         [...productIds].forEach(pid => {{
             const sel = document.querySelector('.ship-select[data-product-id="' + pid + '"]');
