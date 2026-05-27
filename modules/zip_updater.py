@@ -122,13 +122,17 @@ def check_github_release(repo: str, timeout: int = 10) -> Dict[str, Any]:
         result['changelog'] = (data.get('body') or '')[:1000]
         result['published_at'] = data.get('published_at', '')
         # Znajdz asset .zip + asset .sig
+        # WAZNE: dla PRIVATE repo uzywamy API URL (assets/{id}) zamiast
+        # browser_download_url, bo browser url wymaga sesji a API akceptuje
+        # Bearer token + Accept: application/octet-stream → redirect do CDN.
         for asset in data.get('assets', []):
             name = asset.get('name', '')
-            url = asset.get('browser_download_url', '')
+            asset_id = asset.get('id', 0)
+            api_url = f'https://api.github.com/repos/{repo}/releases/assets/{asset_id}'
             if name.endswith('.zip'):
-                result['download_url'] = url
+                result['download_url'] = api_url
             elif name.endswith('.sig') or name.endswith('.signature'):
-                result['signature_url'] = url
+                result['signature_url'] = api_url
         if not result['download_url']:
             result['error'] = 'Release nie ma asset .zip'
             return result
@@ -144,21 +148,36 @@ def check_github_release(repo: str, timeout: int = 10) -> Dict[str, Any]:
 
 
 def download_release_zip(url: str, dest_path: str, timeout: int = 120,
-                         progress_cb=None) -> bool:
+                         progress_cb=None, token: str = '') -> bool:
     """Sciaga zip z GitHub Releases. Strumieniowo (nie ladowac calego do RAM).
 
     Args:
-        url: URL do .zip (z asset.browser_download_url)
+        url: URL do asset (API url 'https://api.github.com/repos/.../assets/{id}')
         dest_path: gdzie zapisac
         timeout: total timeout w sekundach
         progress_cb: opcjonalnie callable(downloaded_bytes, total_bytes)
+        token: GitHub PAT (wymagany dla PRIVATE repo, opcjonalny dla PUBLIC)
 
     Returns:
         True gdy OK, False gdy blad.
     """
     import requests
+    headers = {}
+    # Token: Bearer auth dla PRIVATE repo
+    if not token:
+        try:
+            from modules.database import get_config
+            token = get_config('github_release_token', '') or ''
+        except Exception:
+            pass
+    if token:
+        headers['Authorization'] = f'Bearer {token}'
+    # KRYTYCZNE: dla API URL /releases/assets/{id} GitHub zwraca metadata JSON
+    # bez tego header. Z 'application/octet-stream' zwraca redirect do CDN
+    # z signed URL gdzie idzie pobieranie binarki.
+    headers['Accept'] = 'application/octet-stream'
     try:
-        with requests.get(url, stream=True, timeout=timeout) as r:
+        with requests.get(url, headers=headers, stream=True, timeout=timeout, allow_redirects=True) as r:
             r.raise_for_status()
             total = int(r.headers.get('Content-Length', 0))
             downloaded = 0
