@@ -570,9 +570,11 @@ if(localStorage.getItem('kiosk_mode')==='1'){
         <a href="/allegro" class="sidebar-link">
             <span class="sl-icon material-symbols-outlined">shopping_cart</span>Allegro
         </a>
+        {% if sklepakces_owner %}
         <a href="/sklepakces/" class="sidebar-link">
             <span class="sl-icon material-symbols-outlined">storefront</span>Sklepakces.pl
         </a>
+        {% endif %}
 
         <div class="sidebar-section">Analityka</div>
         <a href="/analytics/dashboard" class="sidebar-link">

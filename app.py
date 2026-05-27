@@ -803,6 +803,16 @@ def inject_csp_nonce():
     nonce = getattr(g, 'csp_nonce', None) or _secrets.token_urlsafe(16)
     return {'csp_nonce': nonce}
 
+
+@app.context_processor
+def inject_sklepakces_owner():
+    """Pokazuje czy obecna licencja jest na sklepakces whitelist.
+    Używane w base.html do conditional rendering sidebar link."""
+    try:
+        return {'sklepakces_owner': _is_sklepakces_owner()}
+    except Exception:
+        return {'sklepakces_owner': False}
+
 @app.after_request
 def after_request(response):
     """Dodaj CORS headers + cache control + CSP nonce"""
