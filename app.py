@@ -898,17 +898,27 @@ app.register_blueprint(allegro_bp, url_prefix='/allegro')
 # Anti-abuse: nawet jeśli ktoś sfałszuje plan na enterprise, jego license
 # client (podpisany HMAC sigem) musi matchować whitelist. Brak match = 404.
 _SKLEPAKCES_OWNERS = [
-    n.strip() for n in os.environ.get('AKCES_SKLEPAKCES_OWNERS', 'Adrian Gauza').split(',')
+    n.strip().lower() for n in os.environ.get(
+        'AKCES_SKLEPAKCES_OWNERS',
+        'Adrian Gauza,Adrian,adrian gauza,Adrian Gauza ',  # przyjazne defaults — różne warianty
+    ).split(',')
     if n.strip()
 ]
 
 def _is_sklepakces_owner() -> bool:
-    """Czy obecna licencja jest na whitelist właścicieli sklepakces?"""
+    """Czy obecna licencja jest na whitelist właścicieli sklepakces?
+    Case-insensitive + strip whitespace dla większej tolerancji literówek."""
     try:
         from modules.license import get_license_info
         lic = get_license_info() or {}
-        client = (lic.get('client') or '').strip()
-        return client in _SKLEPAKCES_OWNERS
+        client = (lic.get('client') or '').strip().lower()
+        if not client:
+            return False
+        # Exact match albo substring match (Adrian matches "Adrian Gauza")
+        for owner in _SKLEPAKCES_OWNERS:
+            if client == owner or owner in client or client in owner:
+                return True
+        return False
     except Exception:
         return False
 
