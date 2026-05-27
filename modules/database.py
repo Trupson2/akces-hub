@@ -1090,9 +1090,9 @@ def migrate_reset_fake_data_wystawienia():
     """
     try:
         with get_db() as conn:
-            # Sprawdź czy migracja już była wykonana
+            # Sprawdź czy migracja już była wykonana (Polish schema: klucz/wartosc)
             done = conn.execute(
-                "SELECT value FROM config WHERE key='migr_reset_wystawienia_v1' LIMIT 1"
+                "SELECT wartosc FROM config WHERE klucz='migr_reset_wystawienia_v1' LIMIT 1"
             ).fetchone()
             if done:
                 return
@@ -1105,7 +1105,7 @@ def migrate_reset_fake_data_wystawienia():
                 "UPDATE oferty SET data_wystawienia = NULL WHERE allegro_id IS NOT NULL AND allegro_id != ''"
             )
             conn.execute(
-                "INSERT OR REPLACE INTO config(key, value) VALUES('migr_reset_wystawienia_v1', '1')"
+                "INSERT OR REPLACE INTO config(klucz, wartosc) VALUES('migr_reset_wystawienia_v1', '1')"
             )
             conn.commit()
             print(f"[OK] Migracja: zresetowano data_wystawienia dla {cnt} ofert (zostaną uzupełnione przy syncu Allegro)")
