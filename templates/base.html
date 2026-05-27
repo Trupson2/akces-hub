@@ -113,30 +113,39 @@
 })();
 /* kiosk mode is URL-param only now, no localStorage */
 if('serviceWorker' in navigator){
-    // Wyrejestruj stare SW z /static/ scope
-    navigator.serviceWorker.getRegistrations().then(function(regs){
-        regs.forEach(function(r){
-            if(r.scope.includes('/static')){r.unregister();}
-            else{r.update();}
+    // SW (PWA + offline cache) ma sens TYLKO dla zdalnego dostepu (HTTPS/Cloudflare).
+    // Na localhost klient NIE potrzebuje cache offline -> jeszcze przeszkadza
+    // (cachuje offline.html i pokazuje "Brak polaczenia" gdy fetch chwile zajaknie).
+    // Wyrejestruj wszystkie SW na localhost zeby naprawic stare instalacje klientow.
+    var _isLocal = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.startsWith('192.168.'));
+    if(_isLocal){
+        navigator.serviceWorker.getRegistrations().then(function(regs){
+            regs.forEach(function(r){ r.unregister(); });
         });
-    });
-    navigator.serviceWorker.register('/sw.js?v=15', {scope: '/'}).then(function(reg){
-        reg.update();
-        // Gdy nowy SW jest gotowy, aktywuj go od razu
-        reg.addEventListener('updatefound',function(){
-            var nw=reg.installing;
-            if(nw) nw.addEventListener('statechange',function(){
-                if(nw.state==='installed' && navigator.serviceWorker.controller){
-                    nw.postMessage({action:'skipWaiting'});
-                }
+    } else {
+        // Public URL (Cloudflare Tunnel / ngrok) -> rejestracja SW dla PWA
+        navigator.serviceWorker.getRegistrations().then(function(regs){
+            regs.forEach(function(r){
+                if(r.scope.includes('/static')){r.unregister();}
+                else{r.update();}
             });
         });
-    }).catch(function(e){console.log('SW fail',e);});
-    // Reload po przejęciu kontroli przez nowy SW
-    var refreshing=false;
-    navigator.serviceWorker.addEventListener('controllerchange',function(){
-        if(!refreshing){refreshing=true; location.reload();}
-    });
+        navigator.serviceWorker.register('/sw.js?v=16', {scope: '/'}).then(function(reg){
+            reg.update();
+            reg.addEventListener('updatefound',function(){
+                var nw=reg.installing;
+                if(nw) nw.addEventListener('statechange',function(){
+                    if(nw.state==='installed' && navigator.serviceWorker.controller){
+                        nw.postMessage({action:'skipWaiting'});
+                    }
+                });
+            });
+        }).catch(function(e){console.log('SW fail',e);});
+        var refreshing=false;
+        navigator.serviceWorker.addEventListener('controllerchange',function(){
+            if(!refreshing){refreshing=true; location.reload();}
+        });
+    }
 }
 </script>
 <style>
