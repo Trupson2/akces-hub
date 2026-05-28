@@ -68,17 +68,17 @@ def close_connection_pool():
 def retry_db_operation(func, max_retries=5, delay=0.5):
     """
     Wykonuje operację bazodanową z retry w przypadku database locked.
-    
+
     Args:
         func: Funkcja do wykonania (lambda lub callable)
         max_retries: Maksymalna liczba prób
         delay: Opóźnienie między próbami w sekundach
-    
+
     Returns:
         Wynik funkcji lub None w przypadku błędu
     """
     import time
-    
+
     for attempt in range(max_retries):
         try:
             return func()
@@ -93,8 +93,73 @@ def retry_db_operation(func, max_retries=5, delay=0.5):
         except Exception as e:
             print(f"[ERR] Unexpected error: {e}")
             raise
-    
+
     return None
+
+
+def execute_with_retry(conn, sql, params=(), max_retries=5, base_delay=0.5):
+    """
+    Wykonuje conn.execute(sql, params) z retry przy 'database is locked'.
+    Backoff: 0.5s, 1s, 2s, 4s, 8s (max 5 prob).
+
+    Args:
+        conn: aktywne polaczenie sqlite3
+        sql: query string
+        params: tuple/list parametrow
+        max_retries: max prob (domyslnie 5)
+        base_delay: bazowe opoznienie (mnozone *2^attempt — exponential backoff)
+
+    Returns:
+        Cursor sqlite3 lub raise OperationalError po wyczerpaniu prob.
+    """
+    import time
+
+    last_err = None
+    for attempt in range(max_retries):
+        try:
+            return conn.execute(sql, params)
+        except sqlite3.OperationalError as e:
+            last_err = e
+            if 'database is locked' in str(e) and attempt < max_retries - 1:
+                wait = base_delay * (2 ** attempt)  # 0.5, 1, 2, 4, 8
+                print(f"[WARN] execute_with_retry: locked (proba {attempt+1}/{max_retries}), sleep {wait}s")
+                time.sleep(wait)
+                continue
+            raise
+    if last_err:
+        raise last_err
+
+
+def commit_with_retry(conn, max_retries=5, base_delay=0.5):
+    """
+    Wykonuje conn.commit() z retry przy 'database is locked'.
+    Exponential backoff: 0.5s, 1s, 2s, 4s, 8s.
+
+    Args:
+        conn: aktywne polaczenie sqlite3
+        max_retries: max prob (domyslnie 5)
+        base_delay: bazowe opoznienie
+
+    Returns:
+        None. Raise OperationalError po wyczerpaniu prob.
+    """
+    import time
+
+    last_err = None
+    for attempt in range(max_retries):
+        try:
+            conn.commit()
+            return
+        except sqlite3.OperationalError as e:
+            last_err = e
+            if 'database is locked' in str(e) and attempt < max_retries - 1:
+                wait = base_delay * (2 ** attempt)
+                print(f"[WARN] commit_with_retry: locked (proba {attempt+1}/{max_retries}), sleep {wait}s")
+                time.sleep(wait)
+                continue
+            raise
+    if last_err:
+        raise last_err
 
 def init_db():
     """Inicjalizuje bazę danych - tworzy tabele jeśli nie istnieją"""
@@ -1280,30 +1345,40 @@ def get_full_stats():
         
         # === SPRZEDAŻ W MIESIĄCU ===
         # Tylko opłacone (bez zwrotów i anulowanych)
+        # FIX 2026-05-28: dodana GORNA granica daty (`< date(month_start, '+1 month')`)
+        # - bez tego dashboard liczyl wszystko OD month_start DO konca czasu, lacznie z
+        # rekordami z przyszlych miesiecy (np. blędne TZ Allegro). Sprzedaze stronicowane
+        # uzywaja `strftime('%Y-%m') = '2026-05'` ktore ma wbudowana gorna granice.
+        # Plus usuniety `+ koszt_dostawy` dla spojnosci z /sprzedaze (klient placi za
+        # wysylke ale to NIE jego przychod - to przejscie do kuriera).
         row = conn.execute('''
-            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc + COALESCE(koszt_dostawy, 0)), 0) as suma
+            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
             FROM sprzedaze WHERE date(data_sprzedazy) >= ?
+            AND date(data_sprzedazy) < date(?, '+1 month')
             AND status NOT IN ('zwrot', 'anulowane', 'anulowana') AND (kupujacy IS NULL OR kupujacy != 'offline')
-
-        ''', (month_start,)).fetchone()
+        ''', (month_start, month_start)).fetchone()
         stats['sprzedaz_miesiac_cnt'] = row['cnt']
         stats['sprzedaz_miesiac_suma'] = row['suma']
         # Dolicz sprzedaże prywatne w miesiącu
         try:
             row_pryw_msc = conn.execute('''
                 SELECT COUNT(*) as cnt, COALESCE(SUM(kwota), 0) as suma
-                FROM sprzedaze_prywatne WHERE date(data) >= ?
-            ''', (month_start,)).fetchone()
+                FROM sprzedaze_prywatne
+                WHERE date(data) >= ? AND date(data) < date(?, '+1 month')
+            ''', (month_start, month_start)).fetchone()
             stats['sprzedaz_miesiac_cnt'] += row_pryw_msc['cnt'] or 0
             stats['sprzedaz_miesiac_suma'] += row_pryw_msc['suma'] or 0
         except Exception:
             pass
         
         # Zwroty w miesiącu
+        # FIX 2026-05-28: gorna granica + usuniety koszt_dostawy (spojnosc z /sprzedaze)
         row_zwroty_msc = conn.execute('''
-            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc + COALESCE(koszt_dostawy, 0)), 0) as suma
-            FROM sprzedaze WHERE date(data_sprzedazy) >= ? AND status = 'zwrot'
-        ''', (month_start,)).fetchone()
+            SELECT COUNT(*) as cnt, COALESCE(SUM(cena * ilosc), 0) as suma
+            FROM sprzedaze
+            WHERE date(data_sprzedazy) >= ? AND date(data_sprzedazy) < date(?, '+1 month')
+            AND status = 'zwrot'
+        ''', (month_start, month_start)).fetchone()
         stats['zwroty_miesiac_cnt'] = row_zwroty_msc['cnt']
         stats['zwroty_miesiac_suma'] = row_zwroty_msc['suma']
         

@@ -5206,9 +5206,11 @@ def narzedzia_fix_currency():
     jesli currency != PLN -> przelicza po aktualnym kursie NBP, UPDATE sprzedaze.
     """
     _validate_csrf_or_abort()
-    from modules.database import get_db
+    from modules.database import get_db, execute_with_retry, commit_with_retry
     from modules.allegro_api import is_authenticated, get_order_details
     from modules.fx_rates import get_pln_rate
+    import sqlite3 as _sqlite3
+    import time as _time
 
     if not is_authenticated():
         return jsonify({'ok': False, 'error': 'Allegro nie zalogowany'})
@@ -5254,13 +5256,32 @@ def narzedzia_fix_currency():
 
             fx = get_pln_rate(currency)
             cena_pln = round(cena_orig * fx, 2)
-            conn.execute('UPDATE sprzedaze SET cena = ? WHERE id = ?', (cena_pln, row['id']))
+            # RETRY: 'database is locked' - auto-sync Allegro moze trzymac WRITE lock
+            _updated_ok = False
+            for _att in range(4):
+                try:
+                    execute_with_retry(conn, 'UPDATE sprzedaze SET cena = ? WHERE id = ?', (cena_pln, row['id']))
+                    _updated_ok = True
+                    break
+                except _sqlite3.OperationalError as _e:
+                    if 'database is locked' in str(_e).lower() and _att < 3:
+                        _w = 2 ** _att  # 1, 2, 4, 8
+                        print(f"[RETRY] fix_currency UPDATE locked #{row['id']} (proba {_att+1}/4), sleep {_w}s")
+                        _time.sleep(_w)
+                        continue
+                    raise
+            if not _updated_ok:
+                errors.append(f'#{row["id"]}: locked po 4 probach')
+                continue
             fixed += 1
             print(f'[FIX-CUR] #{row["id"]}: {cena_orig} {currency} -> {cena_pln} PLN (kurs {fx})')
         except Exception as e:
             errors.append(f'#{row["id"]}: {str(e)[:100]}')
 
-    conn.commit()
+    try:
+        commit_with_retry(conn)
+    except _sqlite3.OperationalError as e:
+        errors.append(f'commit lock: {str(e)[:80]}')
     return jsonify({
         'ok': True,
         'fixed': fixed,

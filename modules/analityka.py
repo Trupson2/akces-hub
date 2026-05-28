@@ -663,21 +663,29 @@ def analityka_dashboard():
 
     # ========== TOP/FLOP PRODUKTY ==========
     # Pobierz produkty posortowane po zysku - z ceną zakupu
+    # FIX BUG: poprzednia wersja LEFT JOINowala palety + pal_sum bezposrednio do sprzedaze,
+    # przez co po GROUP BY s.nazwa SUM(s.cena*s.ilosc) mogl byc wielokrotnie zliczany
+    # gdy ten sam produkt_id mapowal na wiele kombinacji paleta/sztuki.
+    # Rozwiazanie: agregacje sprzedazy liczymy NAJPIERW w CTE sales_agg (bez zadnych JOINow),
+    # a koszt z palety dodajemy osobno jednym JOINem ktory NIE moze pomnozyc wierszy.
+    # Plus: ograniczenie do biezacego miesiaca (dashboard pokazuje TOP10 dla biezacego okresu).
     top_flop_data = conn.execute('''
-        SELECT
-            s.nazwa,
-            SUM(s.ilosc) as ilosc_sprzedazy,
-            SUM(s.cena * s.ilosc) as przychod,
-            AVG(s.cena) as srednia_cena,
-            AVG(CASE
-                WHEN pal.cena_zakupu > 0 AND pal_sum.total_szt > 0
-                THEN pal.cena_zakupu / pal_sum.total_szt
-                ELSE 0
-            END) as avg_koszt_paleta
-        FROM sprzedaze s
-        LEFT JOIN produkty p2 ON s.produkt_id = p2.id
-        LEFT JOIN palety pal ON p2.paleta_id = pal.id
-        LEFT JOIN (
+        WITH sales_agg AS (
+            SELECT
+                s.nazwa,
+                SUM(s.ilosc) as ilosc_sprzedazy,
+                SUM(s.cena * s.ilosc) as przychod,
+                AVG(s.cena) as srednia_cena,
+                -- bierzemy jeden reprezentatywny produkt_id (MIN) zeby dopiac koszt palety
+                MIN(s.produkt_id) as repr_produkt_id
+            FROM sprzedaze s
+            WHERE s.status NOT IN ('anulowana', 'zwrot')
+              AND s.nazwa IS NOT NULL AND s.nazwa != ''
+              AND date(REPLACE(SUBSTR(s.data_sprzedazy,1,19),'T',' ')) >= date('now','start of month')
+            GROUP BY s.nazwa
+            HAVING SUM(s.ilosc) >= 1
+        ),
+        pal_totals AS (
             SELECT pr.paleta_id,
                 COALESCE(SUM(pr.ilosc), 0)
                 + COALESCE(SUM(pr.sprzedano_offline), 0)
@@ -688,12 +696,22 @@ def analityka_dashboard():
                     AND sp2.status NOT IN ('zwrot','anulowane','anulowana')
                 ), 0) as total_szt
             FROM produkty pr GROUP BY pr.paleta_id
-        ) pal_sum ON p2.paleta_id = pal_sum.paleta_id
-        WHERE s.status NOT IN ('anulowana', 'zwrot')
-        AND s.nazwa IS NOT NULL AND s.nazwa != ''
-        GROUP BY s.nazwa
-        HAVING SUM(s.ilosc) >= 1
-        ORDER BY przychod DESC
+        )
+        SELECT
+            sa.nazwa,
+            sa.ilosc_sprzedazy,
+            sa.przychod,
+            sa.srednia_cena,
+            CASE
+                WHEN pal.cena_zakupu > 0 AND pt.total_szt > 0
+                THEN pal.cena_zakupu * 1.0 / pt.total_szt
+                ELSE 0
+            END as avg_koszt_paleta
+        FROM sales_agg sa
+        LEFT JOIN produkty p2 ON sa.repr_produkt_id = p2.id
+        LEFT JOIN palety pal ON p2.paleta_id = pal.id
+        LEFT JOIN pal_totals pt ON p2.paleta_id = pt.paleta_id
+        ORDER BY sa.przychod DESC
     ''').fetchall()
 
     # TOP 10 - najlepsze produkty

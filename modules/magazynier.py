@@ -6600,6 +6600,75 @@ def _auto_detect_columns(headers):
     return result
 
 
+def _parse_number_universal(value):
+    """Uniwersalny parser liczb z roznych formatow (PL/US/etc).
+
+    Obsluguje:
+    - "600,50" (PL) -> 600.5
+    - "600.50" (US) -> 600.5
+    - "1.234,56" (PL z separator tysiecy) -> 1234.56
+    - "1,234.56" (US z separator tysiecy) -> 1234.56
+    - "1 234,56" (PL spacja) -> 1234.56
+    - "46 870,00" -> 46870.0
+    - "600" -> 600.0
+    - "" / None / 0 -> 0.0
+    """
+    if value is None or value == '':
+        return 0.0
+    # Liczby (int/float) - zwroc od razu
+    if isinstance(value, (int, float)):
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return 0.0
+    s = str(value).strip()
+    if not s:
+        return 0.0
+    # Wyczysc spacje (NBSP tez), waluty, znaki specjalne
+    for ch in [' ', ' ', ' ', 'zl', 'PLN', 'EUR', 'USD', '€', '$']:
+        s = s.replace(ch, '')
+    # Lowercase wariant zl tez (z polskim ogonkiem)
+    s = s.replace('zł', '').replace('ZŁ', '').replace('Zł', '')
+    if not s:
+        return 0.0
+    n_dots = s.count('.')
+    n_commas = s.count(',')
+    # Oba separatory - ten OSTATNI jest dziesietny
+    if n_dots > 0 and n_commas > 0:
+        last_dot = s.rfind('.')
+        last_comma = s.rfind(',')
+        if last_dot > last_comma:
+            # US: 1,234.56 -> usun przecinki
+            s = s.replace(',', '')
+        else:
+            # PL: 1.234,56 -> usun kropki, przecinek -> kropka
+            s = s.replace('.', '').replace(',', '.')
+    elif n_commas > 1:
+        # Wiele przecinkow = tysiace US (1,234,567)
+        s = s.replace(',', '')
+    elif n_dots > 1:
+        # Wiele kropek = tysiace PL (1.234.567)
+        s = s.replace('.', '')
+    elif n_commas == 1:
+        # Jeden przecinek - dziesietny (PL) lub tysiace (US ambiguous)
+        # Heurystyka: jesli po przecinku 3 cyfry i przed nim 1-3 cyfry -> tysiace
+        # inaczej -> dziesietny (PL format)
+        before, after = s.split(',')
+        if len(after) == 3 and 1 <= len(before) <= 3:
+            # Ambiguous - przyjmij US tysiace (1,234)
+            s = s.replace(',', '')
+        else:
+            s = s.replace(',', '.')
+    elif n_dots == 1:
+        # Jedna kropka - dziesietny (US/SI standard) lub tysiace (PL ambiguous)
+        # Default: zostaw jako dziesietny (najpopularniejsze w Excelach)
+        pass
+    try:
+        return float(s)
+    except (ValueError, TypeError):
+        return 0.0
+
+
 def _parse_row_with_mapping(row, col_map, row_idx):
     """Sparsuj jeden wiersz Excela do dict produktu wg col_map.
 
@@ -6642,21 +6711,13 @@ def _parse_row_with_mapping(row, col_map, row_idx):
 
     def get_float(role):
         v = get(role)
-        if v is None or str(v).strip() == '':
-            return 0.0
-        try:
-            return float(str(v).replace(',', '.').replace(' ', '').replace('zł', '').replace('PLN', '').strip())
-        except Exception:
-            return 0.0
+        return _parse_number_universal(v)
 
     def get_int(role, default=1):
-        v = get(role)
-        if v is None or str(v).strip() == '':
+        v = _parse_number_universal(get(role))
+        if v == 0:
             return default
-        try:
-            return int(float(str(v).replace(',', '.')))
-        except Exception:
-            return default
+        return int(round(v))
 
     nr_paleta = get_str('nr_paleta')
     asin = get_str('asin')

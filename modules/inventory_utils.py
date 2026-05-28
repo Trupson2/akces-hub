@@ -732,18 +732,37 @@ def update_stock_on_sale(
         # Oblicz nowy stan
         new_stock = max(0, product['ilosc'] - quantity_sold)
         result["new_stock"] = new_stock
-        
-        # Aktualizuj w bazie
-        conn.execute('''
-            UPDATE produkty SET
-                ilosc = ?,
-                status = CASE WHEN ? = 0 THEN 'sprzedany' ELSE status END,
-                data_sprzedazy = CASE WHEN ? = 0 THEN ? ELSE data_sprzedazy END
-            WHERE id = ?
-        ''', (new_stock, new_stock, new_stock, datetime.now().isoformat(), product['id']))
-        
-        conn.commit()
-        
+
+        # RETRY: 4 proby exp backoff 1s/2s/4s/8s gdy 'database is locked'
+        # (auto-sync Allegro / inny watek moze trzymac WRITE lock)
+        import sqlite3 as _sqlite3
+        import time as _time
+        _ok = False
+        for _att in range(4):
+            try:
+                # Aktualizuj w bazie
+                conn.execute('''
+                    UPDATE produkty SET
+                        ilosc = ?,
+                        status = CASE WHEN ? = 0 THEN 'sprzedany' ELSE status END,
+                        data_sprzedazy = CASE WHEN ? = 0 THEN ? ELSE data_sprzedazy END
+                    WHERE id = ?
+                ''', (new_stock, new_stock, new_stock, datetime.now().isoformat(), product['id']))
+                conn.commit()
+                _ok = True
+                break
+            except _sqlite3.OperationalError as _e:
+                if 'database is locked' in str(_e).lower() and _att < 3:
+                    _w = 2 ** _att  # 1, 2, 4, 8
+                    print(f"[RETRY] update_stock_on_sale locked produkt {product['id']} (proba {_att+1}/4), sleep {_w}s")
+                    _time.sleep(_w)
+                    continue
+                raise
+
+        if not _ok:
+            result["message"] = "Blad: database locked po 4 probach"
+            return result
+
         result["success"] = True
         result["message"] = f"Zaktualizowano stan: {result['old_stock']} -> {new_stock}"
         

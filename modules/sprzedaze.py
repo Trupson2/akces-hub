@@ -422,6 +422,8 @@ def usun_sprzedaz(sale_id):
 def sync_zwroty_allegro():
     """Synchronizuje zwroty z Allegro API dla wybranego miesiaca"""
     from modules.allegro_api import sync_returns, is_authenticated
+    import sqlite3 as _sqlite3
+    import time as _time
 
     miesiac = request.args.get('miesiac', '')
     base_url = f'/sprzedaze?miesiac={miesiac}' if miesiac else '/sprzedaze'
@@ -429,17 +431,38 @@ def sync_zwroty_allegro():
     if not is_authenticated():
         return redirect(f'{base_url}&msg=allegro_auth')
 
-    try:
-        updated, error = sync_returns(miesiac if miesiac else None)
-        if error:
-            return redirect(f'{base_url}&msg=error&detail={error[:50]}')
-        elif updated > 0:
-            return redirect(f'{base_url}&msg=success&cnt={updated}')
-        else:
-            return redirect(f'{base_url}&msg=none')
-    except Exception as e:
-        print(f"Blad sync_returns: {e}")
-        return redirect(f'{base_url}&msg=error&detail={str(e)[:50]}')
+    # RETRY: 4 proby exp backoff 1s/2s/4s/8s gdy 'database is locked'
+    # (auto-sync Allegro w innym watku moze trzymac WRITE lock)
+    updated = 0
+    error = None
+    last_exc = None
+    for _attempt in range(4):
+        try:
+            updated, error = sync_returns(miesiac if miesiac else None)
+            last_exc = None
+            break
+        except _sqlite3.OperationalError as e:
+            last_exc = e
+            if 'database is locked' in str(e).lower() and _attempt < 3:
+                _wait = 2 ** _attempt  # 1, 2, 4, 8
+                print(f"[RETRY] sync_returns locked (proba {_attempt+1}/4), sleep {_wait}s")
+                _time.sleep(_wait)
+                continue
+            break
+        except Exception as e:
+            last_exc = e
+            break
+
+    if last_exc is not None:
+        print(f"Blad sync_returns: {last_exc}")
+        return redirect(f'{base_url}&msg=error&detail={str(last_exc)[:50]}')
+
+    if error:
+        return redirect(f'{base_url}&msg=error&detail={error[:50]}')
+    elif updated > 0:
+        return redirect(f'{base_url}&msg=success&cnt={updated}')
+    else:
+        return redirect(f'{base_url}&msg=none')
 
 
 @sprzedaze_bp.route('/sprzedaze/sync-historyczny', methods=['POST'])
@@ -457,6 +480,24 @@ def sync_historyczny():
     from modules.allegro_api import sync_orders, sync_returns, is_authenticated
     from datetime import date, timedelta
     import time as _time
+    import sqlite3 as _sqlite3
+
+    def _call_with_retry(fn, *args, **kwargs):
+        """4 proby exp backoff 1s/2s/4s/8s przy 'database is locked'."""
+        last = None
+        for _attempt in range(4):
+            try:
+                return fn(*args, **kwargs)
+            except _sqlite3.OperationalError as e:
+                last = e
+                if 'database is locked' in str(e).lower() and _attempt < 3:
+                    _wait = 2 ** _attempt  # 1, 2, 4, 8
+                    print(f"[RETRY] {fn.__name__} locked (proba {_attempt+1}/4), sleep {_wait}s")
+                    _time.sleep(_wait)
+                    continue
+                raise
+        if last:
+            raise last
 
     if not is_authenticated():
         return jsonify({'ok': False, 'error': 'Allegro nie zalogowany'})
@@ -484,7 +525,7 @@ def sync_historyczny():
     orders_synced = 0
     orders_error = None
     try:
-        result = sync_orders(today_only=False, notify=False, from_date_str=from_date_str)
+        result = _call_with_retry(sync_orders, today_only=False, notify=False, from_date_str=from_date_str)
         # sync_orders moze zwrocic dict z metadanymi lub int (zaleznie od wersji)
         if isinstance(result, dict):
             orders_synced = result.get('new_orders', 0) + result.get('updated_orders', 0)
@@ -510,7 +551,7 @@ def sync_historyczny():
 
     for month in months_iter:
         try:
-            updated, err = sync_returns(month)
+            updated, err = _call_with_retry(sync_returns, month)
             returns_per_month.append({'month': month, 'returns': updated or 0})
             if err:
                 errors.append(f"{month}: {err[:80]}")

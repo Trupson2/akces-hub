@@ -16,7 +16,7 @@ from flask import Blueprint, request, redirect, jsonify
 from flask_wtf.csrf import generate_csrf
 from io import BytesIO
 
-from .database import get_db, get_config, set_config
+from .database import get_db, get_config, set_config, execute_with_retry, commit_with_retry
 from .telegram_bot import send_telegram, alert_sprzedaz, alert_whatsapp_sprzedaz, whatsapp_enabled
 
 allegro_bp = Blueprint('allegro', __name__)
@@ -4823,6 +4823,9 @@ def sync_returns(month=None):
         # Zbierz IDki zaktualizowane (do summary SELECT poza petla)
         updated_ids = []
 
+        import sqlite3 as _sqlite3
+        import time as _time
+
         for chunk_start in range(0, len(ids_list), CHUNK_SIZE):
             chunk = ids_list[chunk_start:chunk_start + CHUNK_SIZE]
             placeholders = ','.join(['?'] * len(chunk))
@@ -4830,11 +4833,34 @@ def sync_returns(month=None):
             # w innym miesiacu niz oryginalne zamowienie (typowy case: zakup w marcu,
             # zwrot w kwietniu). API juz filtruje po occurredAt.gte, a allegro_order_id
             # IN() precyzyjnie matchuje konkretne zamowienia.
-            result = conn.execute(f'''
-                UPDATE sprzedaze SET status = 'zwrot'
-                WHERE allegro_order_id IN ({placeholders})
-                  AND status != 'zwrot'
-            ''', chunk)
+            # RETRY: jesli auto-sync Allegro trzyma lock, czekamy max 0.5+1+2+4+8s
+            # DODATKOWO: 3x retry per chunk z sleep 1s/2s/4s — NIE wybijamy do user-a, log + skip chunk
+            result = None
+            for _att in range(3):
+                try:
+                    result = execute_with_retry(conn, f'''
+                        UPDATE sprzedaze SET status = 'zwrot'
+                        WHERE allegro_order_id IN ({placeholders})
+                          AND status != 'zwrot'
+                    ''', chunk)
+                    break
+                except _sqlite3.OperationalError as _e:
+                    if 'database is locked' in str(_e).lower() and _att < 2:
+                        _w = 2 ** _att  # 1, 2, 4
+                        print(f"[RETRY] sync_returns chunk locked (proba {_att+1}/3), sleep {_w}s")
+                        _time.sleep(_w)
+                        continue
+                    print(f"[ERR] sync_returns chunk skip (lock not released): {_e}")
+                    result = None
+                    break
+                except Exception as _e:
+                    print(f"[ERR] sync_returns chunk error: {_e}")
+                    result = None
+                    break
+
+            if result is None:
+                continue
+
             updated += result.rowcount
 
             # Ktore z chunka realnie sie zaktualizowaly — do logu summary
@@ -4842,8 +4868,8 @@ def sync_returns(month=None):
             if result.rowcount > 0:
                 updated_ids.extend(chunk)
 
-        # 1 commit na koncu — atomic
-        conn.commit()
+        # 1 commit na koncu — atomic, z retry przy lockach
+        commit_with_retry(conn)
 
         # Summary SELECT: kilka przykladow kupujacych (zamiast N+1)
         if updated_ids:
