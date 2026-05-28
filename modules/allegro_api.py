@@ -1836,6 +1836,293 @@ def update_offer_condition(offer_id, stan):
     return None
 
 
+# ════════════════════════════════════════════════════════════════════════
+# LAYOUTY OPISU ALLEGRO
+# Klient wybiera w /ustawienia/layout-opisu (config: allegro_opis_layout)
+# 4 opcje: klasyczny | mirror | tekst_top | galeria_first
+# ════════════════════════════════════════════════════════════════════════
+
+LAYOUTS_AVAILABLE = ['klasyczny', 'mirror', 'tekst_top', 'galeria_first']
+
+LAYOUTS_INFO = {
+    'klasyczny': {
+        'label': 'Klasyczny',
+        'desc': 'Zdjęcie z lewej + tekst z prawej, przeplatane. Reszta zdjęć na końcu po 2.',
+        'wireframe': (
+            'H2 Tytuł\n'
+            '[IMG]  [TEXT]\n'
+            '[IMG]  [TEXT]\n'
+            '[IMG]  [TEXT]\n'
+            '[IMG] [IMG]\n'
+        ),
+    },
+    'mirror': {
+        'label': 'Lustro',
+        'desc': 'Tekst z lewej + zdjęcie z prawej (odwrotnie niż klasyczny). Cieplejsze dla tekstu.',
+        'wireframe': (
+            'H2 Tytuł\n'
+            '[TEXT] [IMG]\n'
+            '[TEXT] [IMG]\n'
+            '[TEXT] [IMG]\n'
+            '[IMG] [IMG]\n'
+        ),
+    },
+    'tekst_top': {
+        'label': 'Tekst dominujący',
+        'desc': 'Jedno duże zdjęcie + cały tekst pod spodem. Reszta zdjęć po 2 na końcu. Czyste, mniej rozpraszające.',
+        'wireframe': (
+            'H2 Tytuł\n'
+            '[IMG]\n'
+            '[TEXT]\n'
+            '[TEXT]\n'
+            '[IMG] [IMG]\n'
+            '[IMG] [IMG]\n'
+        ),
+    },
+    'galeria_first': {
+        'label': 'Galeria na górze',
+        'desc': 'Najpierw 4 zdjęcia w 2 wierszach, potem cały opis. Klient widzi produkt zanim czyta.',
+        'wireframe': (
+            'H2 Tytuł\n'
+            '[IMG] [IMG]\n'
+            '[IMG] [IMG]\n'
+            '[TEXT]\n'
+            '[TEXT]\n'
+        ),
+    },
+}
+
+
+def _parse_paragraphs_and_chunks(opis_html_clean, n_chunks_target):
+    """Parsuj <p>...</p> z opisu HTML, podziel na N chunków do parowania ze zdjęciami.
+
+    Returns: list[str] chunków HTML (każdy gotowy do wsadzenia do TEXT item)
+    """
+    paragraphs = []
+    if opis_html_clean:
+        all_paragraphs = re.findall(r'<p>(.*?)</p>', opis_html_clean, re.DOTALL)
+        # Pomiń pierwszy paragraf jeśli to bold tytuł
+        if all_paragraphs and '<b>' in all_paragraphs[0][:10]:
+            paragraphs = all_paragraphs[1:]
+        else:
+            paragraphs = list(all_paragraphs)
+
+        # FALLBACK: jeśli regex nie znalazł <p>, użyj całego opisu jako 1 paragraf
+        if not paragraphs and len(opis_html_clean.strip()) > 10:
+            _stripped = opis_html_clean.strip()
+            if not _stripped.startswith('<'):
+                _stripped = f'<p>{_stripped}</p>'
+            paragraphs = [_stripped]
+
+    if not paragraphs:
+        return []
+
+    if n_chunks_target <= 1:
+        _has_tags = any('<' in p for p in paragraphs)
+        return [''.join(p if _has_tags else f'<p>{p}</p>' for p in paragraphs)]
+
+    chunk_size = max(2, len(paragraphs) // n_chunks_target)
+    chunks = []
+    for i in range(0, len(paragraphs), chunk_size):
+        chunk = ''.join(f'<p>{p}</p>' for p in paragraphs[i:i+chunk_size])
+        chunks.append(chunk)
+    return chunks
+
+
+def _h2_section(nazwa):
+    """Tytuł H2 jako pierwsza sekcja."""
+    _h2 = nazwa[:75].replace('&', '&amp;')
+    return {'items': [{'type': 'TEXT', 'content': f'<h2>{_h2}</h2>'}]}
+
+
+def _build_description_sections(layout, nazwa, opis_html_clean, bullet_points, uploaded_images):
+    """Główny dispatcher layoutu opisu Allegro.
+
+    Args:
+        layout: 'klasyczny' | 'mirror' | 'tekst_top' | 'galeria_first'
+        nazwa: nazwa produktu
+        opis_html_clean: opis HTML (już przetworzony, z &amp; escape)
+        bullet_points: lista cech (lub None) - obecnie nieużywane wewnątrz sections
+        uploaded_images: lista URL-i zdjęć już uploadnięte do Allegro
+    Returns:
+        list[dict] - sections gotowe do offer_data['description']['sections']
+    """
+    if layout not in LAYOUTS_AVAILABLE:
+        layout = 'klasyczny'
+
+    if layout == 'mirror':
+        sections = _layout_mirror(nazwa, opis_html_clean, uploaded_images)
+    elif layout == 'tekst_top':
+        sections = _layout_tekst_top(nazwa, opis_html_clean, uploaded_images)
+    elif layout == 'galeria_first':
+        sections = _layout_galeria_first(nazwa, opis_html_clean, uploaded_images)
+    else:
+        sections = _layout_klasyczny(nazwa, opis_html_clean, uploaded_images)
+
+    # SAFETY NET: jeśli sections nie zawiera TEXT a mamy opis → dodaj go
+    has_text_section = any(
+        item.get('type') == 'TEXT'
+        for s in sections for item in s.get('items', [])
+    )
+    if not has_text_section and opis_html_clean and len(opis_html_clean.strip()) > 10:
+        _fallback = opis_html_clean.strip()
+        if not _fallback.startswith('<'):
+            _fallback = f'<p>{_fallback}</p>'
+        sections.append({'items': [{'type': 'TEXT', 'content': _fallback}]})
+        print(f"OPIS SAFETY NET: dodano caly opis jako ostatnia sekcja ({len(_fallback)} chars)")
+
+    return sections
+
+
+def _layout_klasyczny(nazwa, opis_html_clean, uploaded_images):
+    """Layout DEFAULT (kanoniczny styl Adriana): IMG+TEXT przeplatane, reszta zdjęć po 2."""
+    sections = [_h2_section(nazwa)]
+    text_images = max(0, min(len(uploaded_images), 4) - 1)
+    chunks = _parse_paragraphs_and_chunks(opis_html_clean, text_images or 1)
+    img_idx = 0
+
+    if uploaded_images:
+        if chunks:
+            sections.append({'items': [
+                {'type': 'IMAGE', 'url': uploaded_images[0]},
+                {'type': 'TEXT', 'content': chunks.pop(0)},
+            ]})
+        else:
+            sections.append({'items': [{'type': 'IMAGE', 'url': uploaded_images[0]}]})
+        img_idx = 1
+
+        chunk_idx = 0
+        while img_idx < min(len(uploaded_images), 4) and chunk_idx < len(chunks):
+            sections.append({'items': [
+                {'type': 'IMAGE', 'url': uploaded_images[img_idx]},
+                {'type': 'TEXT', 'content': chunks[chunk_idx]},
+            ]})
+            img_idx += 1
+            chunk_idx += 1
+
+        if chunk_idx < len(chunks):
+            sections.append({'items': [
+                {'type': 'TEXT', 'content': ''.join(chunks[chunk_idx:])},
+            ]})
+
+        while img_idx < min(len(uploaded_images), 8):
+            img_items = [{'type': 'IMAGE', 'url': uploaded_images[img_idx]}]
+            img_idx += 1
+            if img_idx < min(len(uploaded_images), 8):
+                img_items.append({'type': 'IMAGE', 'url': uploaded_images[img_idx]})
+                img_idx += 1
+            sections.append({'items': img_items})
+
+    elif chunks:
+        sections.append({'items': [{'type': 'TEXT', 'content': ''.join(chunks)}]})
+
+    return sections
+
+
+def _layout_mirror(nazwa, opis_html_clean, uploaded_images):
+    """TEXT+IMG (odwrotnie niż klasyczny): tekst z lewej, zdjęcie z prawej."""
+    sections = [_h2_section(nazwa)]
+    text_images = max(0, min(len(uploaded_images), 4) - 1)
+    chunks = _parse_paragraphs_and_chunks(opis_html_clean, text_images or 1)
+    img_idx = 0
+
+    if uploaded_images:
+        if chunks:
+            sections.append({'items': [
+                {'type': 'TEXT', 'content': chunks.pop(0)},
+                {'type': 'IMAGE', 'url': uploaded_images[0]},
+            ]})
+        else:
+            sections.append({'items': [{'type': 'IMAGE', 'url': uploaded_images[0]}]})
+        img_idx = 1
+
+        chunk_idx = 0
+        while img_idx < min(len(uploaded_images), 4) and chunk_idx < len(chunks):
+            sections.append({'items': [
+                {'type': 'TEXT', 'content': chunks[chunk_idx]},
+                {'type': 'IMAGE', 'url': uploaded_images[img_idx]},
+            ]})
+            img_idx += 1
+            chunk_idx += 1
+
+        if chunk_idx < len(chunks):
+            sections.append({'items': [
+                {'type': 'TEXT', 'content': ''.join(chunks[chunk_idx:])},
+            ]})
+
+        while img_idx < min(len(uploaded_images), 8):
+            img_items = [{'type': 'IMAGE', 'url': uploaded_images[img_idx]}]
+            img_idx += 1
+            if img_idx < min(len(uploaded_images), 8):
+                img_items.append({'type': 'IMAGE', 'url': uploaded_images[img_idx]})
+                img_idx += 1
+            sections.append({'items': img_items})
+
+    elif chunks:
+        sections.append({'items': [{'type': 'TEXT', 'content': ''.join(chunks)}]})
+
+    return sections
+
+
+def _layout_tekst_top(nazwa, opis_html_clean, uploaded_images):
+    """Jedno duże zdjęcie na górze + cały tekst pod spodem + reszta zdjęć po 2."""
+    sections = [_h2_section(nazwa)]
+    # Cały tekst w jednym chunku (no parowanie ze zdjęciami)
+    chunks = _parse_paragraphs_and_chunks(opis_html_clean, 1)
+    img_idx = 0
+
+    # Zdjęcie główne SAMO
+    if uploaded_images:
+        sections.append({'items': [{'type': 'IMAGE', 'url': uploaded_images[0]}]})
+        img_idx = 1
+
+    # Cały tekst pod spodem
+    if chunks:
+        sections.append({'items': [{'type': 'TEXT', 'content': ''.join(chunks)}]})
+
+    # Reszta zdjęć po 2
+    while img_idx < min(len(uploaded_images), 8):
+        img_items = [{'type': 'IMAGE', 'url': uploaded_images[img_idx]}]
+        img_idx += 1
+        if img_idx < min(len(uploaded_images), 8):
+            img_items.append({'type': 'IMAGE', 'url': uploaded_images[img_idx]})
+            img_idx += 1
+        sections.append({'items': img_items})
+
+    return sections
+
+
+def _layout_galeria_first(nazwa, opis_html_clean, uploaded_images):
+    """Najpierw 4 zdjęcia w 2 sekcjach po 2, potem cały opis."""
+    sections = [_h2_section(nazwa)]
+
+    # Galeria 4 zdjęć na górze, po 2 per sekcja
+    img_idx = 0
+    while img_idx < min(len(uploaded_images), 4):
+        img_items = [{'type': 'IMAGE', 'url': uploaded_images[img_idx]}]
+        img_idx += 1
+        if img_idx < min(len(uploaded_images), 4):
+            img_items.append({'type': 'IMAGE', 'url': uploaded_images[img_idx]})
+            img_idx += 1
+        sections.append({'items': img_items})
+
+    # Cały tekst
+    chunks = _parse_paragraphs_and_chunks(opis_html_clean, 1)
+    if chunks:
+        sections.append({'items': [{'type': 'TEXT', 'content': ''.join(chunks)}]})
+
+    # Pozostałe zdjęcia (5-8) po 2
+    while img_idx < min(len(uploaded_images), 8):
+        img_items = [{'type': 'IMAGE', 'url': uploaded_images[img_idx]}]
+        img_idx += 1
+        if img_idx < min(len(uploaded_images), 8):
+            img_items.append({'type': 'IMAGE', 'url': uploaded_images[img_idx]})
+            img_idx += 1
+        sections.append({'items': img_items})
+
+    return sections
+
+
 def create_offer(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=1, czas_wysylki='PT24H', ean=None, asin=None, gpsr=None, stan=None, product_specs=None, bullet_points=None, kod_magazynowy=None, shipping_id_override=None, currency=None):
     """
     Tworzy nową ofertę na Allegro.
@@ -2170,129 +2457,22 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
     # OPIS Z OBRAZKAMI - ŁADNY LAYOUT (zdjęcia przeplatane z tekstem)
     # ============================================================
     # ============================================================
-    # BUDOWANIE SEKCJI OPISU - PROSTA LOGIKA
-    # Tytuł RAZ na górze, każde zdjęcie RAZ, cały opis bez ucinania
+    # BUDOWANIE SEKCJI OPISU - konfigurowalny layout (4 opcje)
+    # Klient wybiera w /ustawienia/layout-opisu. Default = 'klasyczny'.
     # ============================================================
-    sections = []
+    try:
+        from .database import get_config as _gc
+        _layout_choice = (_gc('allegro_opis_layout', 'klasyczny') or 'klasyczny').strip().lower()
+    except Exception:
+        _layout_choice = 'klasyczny'
 
-    # === SEKCJA 0: Tytuł <h2> na górze ===
-    _h2_nazwa = nazwa[:75].replace('&', '&amp;')
-    sections.append({
-        'items': [{'type': 'TEXT', 'content': f'<h2>{_h2_nazwa}</h2>'}]
-    })
-
-    # === Bullet points HTML ===
-    bp_html = ''
-    if bullet_points and isinstance(bullet_points, list) and len(bullet_points) > 0:
-        bp_items = [f'<li>{bp}</li>' for bp in bullet_points[:8]]
-        bp_html = '<ul>' + ''.join(bp_items) + '</ul>'
-
-    # === Parsuj paragrafy z opisu (pomiń tytuł - już jest w sekcji 0) ===
-    paragraphs = []
-    if opis_html_clean:
-        all_paragraphs = re.findall(r'<p>(.*?)</p>', opis_html_clean, re.DOTALL)
-        # Pomiń pierwszy paragraf jeśli to bold tytuł
-        if all_paragraphs and '<b>' in all_paragraphs[0][:10]:
-            paragraphs = all_paragraphs[1:]
-        else:
-            paragraphs = list(all_paragraphs)
-
-        # FALLBACK: jeśli regex nie znalazł <p>, użyj całego opisu jako 1 paragraf
-        if not paragraphs and len(opis_html_clean.strip()) > 10:
-            print(f"OPIS FALLBACK: brak <p> tagow, uzyj calego opisu ({len(opis_html_clean)} chars)")
-            # Owin w <p> jeśli nie ma żadnych tagów blokowych
-            _stripped = opis_html_clean.strip()
-            if not _stripped.startswith('<'):
-                _stripped = f'<p>{_stripped}</p>'
-            paragraphs = [_stripped]  # Cały opis jako 1 "paragraf" (już z tagami)
-
-    # === Podziel paragrafy na chunki (po 2-3 paragrafy) do parowania ze zdjęciami ===
-    # Ile zdjęć mamy na tekst? (image[0] idzie z bullet_points, reszta z opisem)
-    text_images = max(0, min(len(uploaded_images), 4) - 1)  # max 3 zdjęcia z tekstem
-    if not text_images or not paragraphs:
-        # Brak zdjęć na tekst lub brak paragrafów → 1 duży chunk
-        # Jeśli fallback (paragraf już ma tagi) → nie owijaj ponownie w <p>
-        _has_tags = any('<' in p for p in paragraphs)
-        chunks = [''.join(p if _has_tags else f'<p>{p}</p>' for p in paragraphs)] if paragraphs else []
-    else:
-        # Podziel paragrafy równo na tyle chunków ile mamy zdjęć
-        chunk_size = max(2, len(paragraphs) // text_images)
-        chunks = []
-        for i in range(0, len(paragraphs), chunk_size):
-            chunk = ''.join(f'<p>{p}</p>' for p in paragraphs[i:i+chunk_size])
-            chunks.append(chunk)
-
-    # === BUDOWANIE SEKCJI ===
-    img_idx = 0
-
-    if uploaded_images:
-        # SEKCJA 1: Zdjęcie[0] + pierwszy chunk opisu AI (nie bullet points z Amazona)
-        if chunks:
-            sections.append({
-                'items': [
-                    {'type': 'IMAGE', 'url': uploaded_images[0]},
-                    {'type': 'TEXT', 'content': chunks.pop(0)}
-                ]
-            })
-        else:
-            sections.append({
-                'items': [{'type': 'IMAGE', 'url': uploaded_images[0]}]
-            })
-        img_idx = 1
-
-        # SEKCJE 2-4: Zdjęcia[1..3] + chunki opisu
-        chunk_idx = 0
-        while img_idx < min(len(uploaded_images), 4) and chunk_idx < len(chunks):
-            sections.append({
-                'items': [
-                    {'type': 'IMAGE', 'url': uploaded_images[img_idx]},
-                    {'type': 'TEXT', 'content': chunks[chunk_idx]}
-                ]
-            })
-            img_idx += 1
-            chunk_idx += 1
-
-        # Pozostały tekst (bez zdjęć)
-        if chunk_idx < len(chunks):
-            remaining = ''.join(chunks[chunk_idx:])
-            sections.append({
-                'items': [{'type': 'TEXT', 'content': remaining}]
-            })
-
-        # Pozostałe zdjęcia (po 2, bez tekstu) - max 8 zdjęć łącznie w opisie
-        while img_idx < min(len(uploaded_images), 8):
-            img_items = [{'type': 'IMAGE', 'url': uploaded_images[img_idx]}]
-            img_idx += 1
-            if img_idx < min(len(uploaded_images), 8):
-                img_items.append({'type': 'IMAGE', 'url': uploaded_images[img_idx]})
-                img_idx += 1
-            sections.append({'items': img_items})
-
-    elif chunks:
-        # Brak zdjęć - cały tekst w jednej sekcji
-        sections.append({
-            'items': [{'type': 'TEXT', 'content': ''.join(chunks)}]
-        })
-
-    elif uploaded_images:
-        # Brak tekstu - tylko zdjęcia
-        for i in range(0, min(len(uploaded_images), 8), 2):
-            img_items = [{'type': 'IMAGE', 'url': uploaded_images[i]}]
-            if i + 1 < len(uploaded_images):
-                img_items.append({'type': 'IMAGE', 'url': uploaded_images[i + 1]})
-            sections.append({'items': img_items})
-    
-    # SAFETY NET: jeśli sections nie zawiera TEXT a mamy opis → dodaj go
-    has_text_section = any(
-        item.get('type') == 'TEXT'
-        for s in sections for item in s.get('items', [])
+    sections = _build_description_sections(
+        layout=_layout_choice,
+        nazwa=nazwa,
+        opis_html_clean=opis_html_clean,
+        bullet_points=bullet_points,
+        uploaded_images=uploaded_images,
     )
-    if not has_text_section and opis_html_clean and len(opis_html_clean.strip()) > 10:
-        _fallback_content = opis_html_clean.strip()
-        if not _fallback_content.startswith('<'):
-            _fallback_content = f'<p>{_fallback_content}</p>'
-        sections.append({'items': [{'type': 'TEXT', 'content': _fallback_content}]})
-        print(f"OPIS SAFETY NET: dodano caly opis jako ostatnia sekcja ({len(_fallback_content)} chars)")
 
     if sections:
         offer_data['description'] = {'sections': sections}

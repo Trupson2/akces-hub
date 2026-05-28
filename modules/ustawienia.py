@@ -722,6 +722,98 @@ def ustawienia_ai_prompt_save():
     return redirect('/ustawienia/ai-prompt')
 
 
+# ════════════════════════════════════════════════════════════════════════
+# LAYOUT OPISU ALLEGRO - klient wybiera uklad sekcji opisu (zdjecie/tekst)
+# ════════════════════════════════════════════════════════════════════════
+
+@ustawienia_bp.route('/ustawienia/layout-opisu', methods=['GET'])
+def ustawienia_layout_opisu():
+    """Wybor layoutu opisu Allegro (4 predefiniowane uklady sekcji)."""
+    from modules.allegro_api import LAYOUTS_AVAILABLE, LAYOUTS_INFO
+    current = get_config('allegro_opis_layout', 'klasyczny').strip().lower()
+    if current not in LAYOUTS_AVAILABLE:
+        current = 'klasyczny'
+
+    return render_template_string('''{% extends "base.html" %}
+{% block page_title %}Layout opisu Allegro{% endblock %}
+{% block content %}
+<div style="max-width:1200px;margin:auto">
+    <div class="hdr">
+        <h1><span class="material-symbols-outlined">view_quilt</span> LAYOUT OPISU ALLEGRO</h1>
+        <div style="font-size:0.85rem;color:#94a3b8;margin-top:6px">
+            Wybierz układ sekcji opisu (gdzie zdjęcia, gdzie tekst) przy wystawianiu ofert
+        </div>
+    </div>
+
+    <div class="card" style="padding:18px;margin-bottom:18px;background:rgba(143,245,255,0.04);border:1px solid rgba(143,245,255,0.15)">
+        <div style="font-weight:700;color:#8ff5ff;margin-bottom:8px">
+            <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">info</span> Jak to działa
+        </div>
+        <div style="font-size:0.82rem;color:#94a3b8;line-height:1.6">
+            Allegro pokazuje opis jako sekcje. Każda sekcja może mieć 1 lub 2 elementy (zdjęcie, tekst, zdjęcie+tekst).
+            Ten ustawienie wpływa na <b>kolejność</b> i <b>parowanie</b> tych elementów. Nazwa, ASIN, parametry i GPSR są budowane osobno.
+        </div>
+    </div>
+
+    <form action="/ustawienia/layout-opisu" method="POST">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:20px">
+        {% for key in layouts_order %}
+            {% set info = layouts_info[key] %}
+            <label style="cursor:pointer;display:block">
+                <input type="radio" name="layout" value="{{ key }}" {{ 'checked' if key == current else '' }}
+                    style="position:absolute;opacity:0;pointer-events:none" onchange="this.closest('label').parentElement.querySelectorAll('label > div').forEach(d => d.classList.remove('selected')); this.closest('label').querySelector('div').classList.add('selected')">
+                <div class="layout-card {{ 'selected' if key == current else '' }}" style="padding:16px;border-radius:12px;border:2px solid {{ '#8ff5ff' if key == current else 'rgba(255,255,255,0.06)' }};background:{{ 'rgba(143,245,255,0.06)' if key == current else 'rgba(22,26,33,0.5)' }};transition:all 0.2s;height:100%">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                        <div style="font-weight:800;color:#8ff5ff;font-size:0.95rem">{{ info.label }}</div>
+                        {% if key == 'klasyczny' %}<span style="font-size:0.7rem;background:rgba(190,238,0,0.15);color:#beee00;padding:2px 8px;border-radius:4px;font-weight:700">DOMYŚLNY</span>{% endif %}
+                    </div>
+                    <div style="font-size:0.78rem;color:#94a3b8;line-height:1.5;margin-bottom:12px;min-height:55px">
+                        {{ info.desc }}
+                    </div>
+                    <pre style="background:#0f1019;border:1px solid #2d3748;border-radius:6px;padding:10px;color:#e2e8f0;font-family:'Cascadia Code', 'Consolas', monospace;font-size:0.72rem;line-height:1.4;margin:0;white-space:pre">{{ info.wireframe }}</pre>
+                </div>
+            </label>
+        {% endfor %}
+        </div>
+
+        <style>
+        .layout-card:hover { border-color:rgba(143,245,255,0.4) !important; }
+        .layout-card.selected { box-shadow:0 0 16px rgba(143,245,255,0.15); }
+        </style>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button type="submit" class="btn btn-ok" style="padding:12px 26px;font-weight:700">
+                <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">save</span> Zapisz wybrany layout
+            </button>
+            <a href="/ustawienia" class="back" style="margin-left:auto">← Ustawienia</a>
+        </div>
+    </form>
+
+    <div class="card" style="padding:14px;margin-top:18px;background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.2)">
+        <div style="font-size:0.78rem;color:#fbbf24">
+            <b>Uwaga:</b> Layout wpływa tylko na <b>nowo wystawiane</b> oferty (po zapisaniu). Już wystawione oferty zachowują swój istniejący opis.
+        </div>
+    </div>
+</div>
+{% endblock %}
+''',
+        current=current,
+        layouts_order=LAYOUTS_AVAILABLE,
+        layouts_info=LAYOUTS_INFO,
+    )
+
+
+@ustawienia_bp.route('/ustawienia/layout-opisu', methods=['POST'])
+def ustawienia_layout_opisu_save():
+    """Zapisz wybrany layout (whitelist - tylko 4 zdefiniowane)."""
+    from modules.allegro_api import LAYOUTS_AVAILABLE
+    chosen = request.form.get('layout', '').strip().lower()
+    if chosen not in LAYOUTS_AVAILABLE:
+        chosen = 'klasyczny'
+    set_config('allegro_opis_layout', chosen)
+    return redirect('/ustawienia/layout-opisu')
+
+
 @ustawienia_bp.route('/ustawienia/integracje-parametry', methods=['POST'])
 def ustawienia_integracje_parametry():
     """Zapisuje parametry integracji (cenniki kurierow, polityki zwrotow/reklamacji).
