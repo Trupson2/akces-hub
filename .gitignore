@@ -68,8 +68,12 @@ modules/image_cleaner.txt
 OFERTA_KLIENTA.md
 TODO_IMPROVEMENTS.md
 
-# Client-specific
+# Client-specific (klient moze wgrac wlasne logo, NIE nadpisuj przy git pull)
 static/brand_logo.png
+static/brand_logo.svg
+static/pwa_icon.png
+static/icon-192.png
+static/icon-512.png
 
 # OS
 static/downloads/
