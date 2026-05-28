@@ -7058,17 +7058,42 @@ def import_multi_execute():
                 _effective_status = status
                 if ilosc_w_magazynie == 0 and status == 'magazyn':
                     _effective_status = 'sprzedany'
-                conn.execute(
-                    """INSERT INTO produkty
-                       (ean, asin, nazwa, ilosc, cena_netto, cena_brutto, cena_allegro,
-                        dostawca, paleta_id, paleta, stan, status, opis_ai, zdjecie_url)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (parsed['ean'], parsed['asin'], parsed['nazwa'], ilosc_w_magazynie,
-                     cena_netto, cena_brutto, parsed['cena_allegro'],
-                     palety_stats[target_pid]['dostawca'],
-                     target_pid, paleta_label, stan, _effective_status, parsed['info'],
-                     _zdjecie_url)
-                )
+
+                # FIX 2026-05-28: DEDUPLIKACJA - jesli w bazie juz jest produkt
+                # z tej palety + ten sam ASIN (lub ta sama nazwa[:60] jak brak ASIN),
+                # UPDATE istniejacy zamiast INSERT. Bez tego re-import tego samego
+                # Excela tworzy duplikaty na /do-wystawienia.
+                _dedup_key_value = parsed['asin'] if parsed['asin'] else parsed['nazwa'][:60]
+                _dedup_field = 'asin' if parsed['asin'] else 'substr(nazwa,1,60)'
+                _existing = conn.execute(
+                    f"SELECT id FROM produkty WHERE paleta_id = ? AND {_dedup_field} = ? AND status IN ('magazyn', 'wystawiony', 'szkic') LIMIT 1",
+                    (target_pid, _dedup_key_value)
+                ).fetchone()
+                if _existing:
+                    # UPDATE istniejacy - aktualizuj ilosc i ceny
+                    conn.execute(
+                        """UPDATE produkty
+                           SET ilosc = ?, cena_netto = ?, cena_brutto = ?,
+                               cena_allegro = ?, stan = ?, status = ?,
+                               opis_ai = COALESCE(NULLIF(opis_ai, ''), ?),
+                               zdjecie_url = COALESCE(NULLIF(zdjecie_url, ''), ?)
+                           WHERE id = ?""",
+                        (ilosc_w_magazynie, cena_netto, cena_brutto,
+                         parsed['cena_allegro'], stan, _effective_status,
+                         parsed['info'], _zdjecie_url, _existing[0])
+                    )
+                else:
+                    conn.execute(
+                        """INSERT INTO produkty
+                           (ean, asin, nazwa, ilosc, cena_netto, cena_brutto, cena_allegro,
+                            dostawca, paleta_id, paleta, stan, status, opis_ai, zdjecie_url)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (parsed['ean'], parsed['asin'], parsed['nazwa'], ilosc_w_magazynie,
+                         cena_netto, cena_brutto, parsed['cena_allegro'],
+                         palety_stats[target_pid]['dostawca'],
+                         target_pid, paleta_label, stan, _effective_status, parsed['info'],
+                         _zdjecie_url)
+                    )
                 added_total += 1
                 palety_stats[target_pid]['count'] += 1
 
