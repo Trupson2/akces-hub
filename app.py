@@ -736,6 +736,20 @@ def inject_branding():
         _bc = get_config_cached('brand_color', '#6366f1')
         _bl = get_config_cached('brand_logo', '')
         _ua = get_config_cached('update_available', '0')
+        # Cache (porownanie local vs origin) jest authoritative — jesli mowi
+        # ze nie ma nowej wersji, ukryj banner nawet jesli config flaga
+        # wisi z poprzedniego stanu (np. po niekompletnym wyczyszczeniu po update).
+        if _ua == '1':
+            try:
+                cache_raw = get_config_cached('update_check_cache', '')
+                if cache_raw:
+                    _cache = json.loads(cache_raw)
+                    if _cache.get('has_update') is False:
+                        _ua = '0'
+                        from modules.database import set_config as _sc_sync
+                        _sc_sync('update_available', '0')
+            except Exception:
+                pass
     except Exception:
         _bn, _bc, _bl, _ua = 'AKCES HUB', '#6366f1', '', '0'
     # Model Gemini
@@ -2973,6 +2987,21 @@ def system_update_from_public():
                          error_message=info['error'])
         return jsonify({'ok': False, 'error': info['error']})
     if not info.get('available'):
+        # Wyczysc flage banner - system aktualny, banner nie powinien wisiec
+        try:
+            from modules.database import set_config
+            set_config('update_available', '0')
+            set_config('update_check_cache', json.dumps({
+                'checked_at': _t.time(),
+                'has_update': False,
+                'remote_msg': '',
+                'remote_hash': info.get('latest', ''),
+                'local_hash': info.get('current', ''),
+                'notified': False,
+                'is_zip': True,
+            }))
+        except Exception:
+            pass
         # Mimo to wymus restart - moze klient chce odswiezyc cache
         _th.Thread(target=lambda: (_t.sleep(2), restart_python_process()), daemon=True).start()
         return jsonify({'ok': True, 'msg': 'Już aktualne — restart za chwilę...',
