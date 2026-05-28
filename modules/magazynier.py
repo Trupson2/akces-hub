@@ -6722,8 +6722,11 @@ def _parse_row_with_mapping(row, col_map, row_idx):
     nr_paleta = get_str('nr_paleta')
     asin = get_str('asin')
     ean = get_str('ean')
-    if not ean and asin:
-        ean = asin
+    # FIX 2026-05-28: NIE kopiuj ASIN do EAN. To DWA RÓŻNE pola:
+    # - EAN = kod kreskowy (8-13 cyfr, np 4250958612345)
+    # - ASIN = kod Amazon (B0XXXXXXXX, 10 znaków alfanum)
+    # Wcześniej wpisywałem ASIN do EAN gdy brak EAN, ale to powodowało że
+    # UI pokazywało B07C549VCV jako "EAN" co jest błędne. Zostaw oba osobno.
     nazwa = get_str('nazwa')
 
     # Wiersz bez ASIN/EAN i bez nazwy = nic do importu
@@ -7392,10 +7395,12 @@ def _import_multi_upload_removed():
                     ean = str(row[col_ean] or '').strip()
                     if ean.endswith('.0'):
                         ean = ean[:-2]
-                # ASIN ma priorytet jako kod (Maciek to format)
-                if not ean and asin:
-                    ean = asin
-                # Jesli wciaz brak - pomin
+                # FIX 2026-05-28: NIE kopiuj ASIN do EAN (DWA RÓŻNE pola).
+                # Wcześniej `if not ean and asin: ean = asin` powodował
+                # że produkty Macka miały B07C549VCV w polu EAN co jest błędne.
+                # Plus update_zdjecia szukał `asin >= 8 znaków` więc nie
+                # znajdowal tych produktów (asin puste, ASIN w ean).
+                # Pomin tylko jak BRAK obu (kompletnie pusty wiersz):
                 if not ean and not asin:
                     skipped_no_data += 1
                     continue

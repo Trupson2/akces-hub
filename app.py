@@ -5299,17 +5299,41 @@ def narzedzia_fix_currency():
 @app.route('/narzedzia/uzupelnij-zdjecia-amazon', methods=['POST'])
 @require_admin
 def narzedzia_uzupelnij_zdjecia_amazon():
-    """Wszystkim produktom z ASIN ale pustym zdjecie_url podstaw URL Amazon.
+    """Naprawa pomieszania ASIN/EAN + uzupełnij zdjęcia.
 
-    NIE pobiera plików - tylko wstawia URL. Browser przy renderowaniu UI
-    automatycznie zaladuje obraz z Amazon CDN. Wykonuje sie natychmiast
-    (jeden UPDATE), niezaleznie od liczby produktów.
+    Trzy operacje w jednej akcji:
+    1. Przenieś ASIN z pola ean → asin (gdy ean wygląda jak ASIN: B0XXXXXXXX)
+    2. Wyczyść ean dla rekordów z ASIN-em (zostanie puste)
+    3. Uzupełnij zdjecie_url URL-em Amazon dla produktów z ASIN ale bez zdjęcia
     """
     _validate_csrf_or_abort()
     from modules.database import get_db
     conn = get_db()
     try:
-        result = conn.execute("""
+        # KROK 1: przenieś ASIN z ean → asin (produkty Macka z multi-paleta importu)
+        # ASIN = B0 + 8 znaków alfanum, 10 znaków total
+        r1 = conn.execute("""
+            UPDATE produkty
+            SET asin = UPPER(TRIM(ean)), ean = ''
+            WHERE (asin IS NULL OR asin = '')
+              AND ean IS NOT NULL
+              AND LENGTH(TRIM(ean)) = 10
+              AND UPPER(TRIM(ean)) LIKE 'B0%'
+              AND UPPER(TRIM(ean)) GLOB 'B0[A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9]'
+        """)
+        moved = r1.rowcount
+
+        # KROK 2: też wyczyść ean gdy DUPLIKAT asin (kiedy zarówno ean jak asin maja ten sam ASIN)
+        r2 = conn.execute("""
+            UPDATE produkty SET ean = ''
+            WHERE ean IS NOT NULL AND ean != ''
+              AND asin IS NOT NULL AND asin != ''
+              AND UPPER(TRIM(ean)) = UPPER(TRIM(asin))
+        """)
+        cleaned = r2.rowcount
+
+        # KROK 3: uzupełnij zdjęcia Amazon dla produktów z ASIN ale bez zdjęcia
+        r3 = conn.execute("""
             UPDATE produkty
             SET zdjecie_url = 'https://m.media-amazon.com/images/I/' || UPPER(TRIM(asin)) || '._AC_SL1500_.jpg'
             WHERE (zdjecie_url IS NULL OR zdjecie_url = '')
@@ -5317,12 +5341,22 @@ def narzedzia_uzupelnij_zdjecia_amazon():
               AND LENGTH(TRIM(asin)) >= 8
               AND TRIM(UPPER(asin)) NOT IN ('NONE', 'NAN', 'N/A')
         """)
-        updated = result.rowcount
+        photos = r3.rowcount
+
         conn.commit()
+        msg_parts = []
+        if moved: msg_parts.append(f'{moved} ASIN przeniesiono z EAN do ASIN')
+        if cleaned: msg_parts.append(f'{cleaned} EAN-ów wyczyszczono (duplikat ASIN)')
+        if photos: msg_parts.append(f'{photos} zdjęć uzupełniono')
+        if not msg_parts:
+            msg_parts.append('nic do naprawy (już OK)')
+        msg = '; '.join(msg_parts)
         return jsonify({
             'ok': True,
-            'updated': updated,
-            'msg': f'Uzupełniono {updated} produktów'
+            'updated': photos,
+            'moved_to_asin': moved,
+            'cleaned_ean': cleaned,
+            'msg': msg
         })
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)[:200]})
