@@ -2,6 +2,8 @@
 
 ## 28.05.2026
 
+- ux(narzedzia): wywalono sekcje KALKULATORY (oplacalnosci + marzy) - malo uzywane, endpointy zostaja dostepne przez URL
+- fix(paletomat): anti-duplicate request lock (60s TTL per user+ids) chroni przed EventSource auto-reconnect i double-submit - 1 klik = 1 oferta na Allegro
 - fix(paletomat): dedup widzi szkice (status='draft') - drugi klik "Wystaw bezposrednio" zwieksza ilosc na istniejacym szkicu zamiast tworzyc duplikat
 - test(update): smoke test mechanizmu update z banera (bez zmian funkcjonalnych, tylko VERSION bump)
 - fix(banner): JS fallback do /system/update jak /admin/update-git zwroci 404 (stary serwer bez restartu Flask po git pull samonaprawia sie)

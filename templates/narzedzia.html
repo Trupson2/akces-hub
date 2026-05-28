@@ -138,27 +138,6 @@
     </a>
 </div>
 
-<div class="narz-section">Kalkulatory</div>
-<div class="narz-grid">
-    <a href="/analytics/kalkulator-palety" class="narz-card glass-card {{ 'locked' if plan_level < 2 }}">
-        <div class="nc-icon orange"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">calculate</span></div>
-        <div class="nc-info">
-            <div class="nc-name">Kalkulator oplacalnosci</div>
-            <div class="nc-desc">Oszacuj zysk przed zakupem palety</div>
-        </div>
-        {% if plan_level < 2 %}<span class="plan-lock">PRO</span>{% endif %}
-        <div class="nc-arrow">›</div>
-    </a>
-    <a href="/narzedzia/kalkulator" class="narz-card glass-card">
-        <div class="nc-icon green"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">paid</span></div>
-        <div class="nc-info">
-            <div class="nc-name">Kalkulator marzy</div>
-            <div class="nc-desc">Oblicz cene sprzedazy z prowizja Allegro</div>
-        </div>
-        <div class="nc-arrow">›</div>
-    </a>
-</div>
-
 <div class="narz-section">Automatyzacja {% if plan_level < 3 %}<span class="plan-lock">MAX</span>{% endif %}</div>
 <div class="narz-grid">
     <a href="/narzedzia/generator" class="narz-card glass-card {{ 'locked' if plan_level < 3 }}">

@@ -3571,7 +3571,7 @@ def generator_mass_create_from_paleta_stream():
     from .database import get_config
     import time
     import sqlite3
-    
+
    # --- POPRAWIONY FRAGMENT (Wklej w miejsce starego) ---
 
     # 1. Pobieramy dane tutaj (NAD funkcją generate), póki mamy dostęp do requestu
@@ -3590,6 +3590,37 @@ def generator_mass_create_from_paleta_stream():
             shipping_map = {str(k): v for k, v in shipping_map.items() if v}
         except Exception as _e:
             print(f'[mass-create] shipping_map parse fail: {_e}')
+
+    # === ANTI-DUPLICATE REQUEST LOCK (v1.0.87) ===
+    # EventSource auto-reconnect (gdy proxy zerwie polaczenie) lub double-click
+    # moga uruchomic ten endpoint 2x z tym samym ids_str. Bez locku oba requesty
+    # robia POST do Allegro -> 2 szkice tego samego produktu.
+    # Lock per (user_id, ids_hash) z TTL 60s odrzuca duplikaty.
+    try:
+        import hashlib as _hl
+        _uid = str(session.get('user_id', 'anon'))
+        _lock_key = _hl.sha256(f"{_uid}|{ids_str}|{force_new}|{shipping_override or ''}|{shipping_map_raw}".encode()).hexdigest()[:16]
+        if not hasattr(generator_mass_create_from_paleta_stream, '_active_locks'):
+            generator_mass_create_from_paleta_stream._active_locks = {}
+        _locks = generator_mass_create_from_paleta_stream._active_locks
+        _now_lock = time.time()
+        # Cleanup stare locki (TTL 10 min - duzy batch moze trwac dlugo)
+        _stale = [k for k, v in _locks.items() if v < _now_lock - 600]
+        for _k in _stale:
+            _locks.pop(_k, None)
+        # Sprawdz lock - jak ostatni request <60s temu z tym samym hashem -> odrzuc
+        if _lock_key in _locks and (_now_lock - _locks[_lock_key]) < 60:
+            _age = int(_now_lock - _locks[_lock_key])
+            def _reject_dup():
+                yield ": ping\n\n"
+                yield "data: " + json.dumps({'type': 'log', 'message': f'<span class="material-symbols-outlined">block</span> Duplikat requestu ({_age}s temu juz odpalony ten sam batch) - odrzucono. Poczekaj 60s lub odswiez strone.', 'color': '#ef4444'}) + "\n\n"
+                yield "data: " + json.dumps({'type': 'error', 'title': 'System', 'error': f'Duplikat requestu wykryty (poprzedni {_age}s temu) - anti-duplicate lock'}) + "\n\n"
+                yield "data: " + json.dumps({'type': 'done'}) + "\n\n"
+            return Response(_reject_dup(), mimetype='text/event-stream',
+                            headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+        _locks[_lock_key] = _now_lock
+    except Exception as _le:
+        print(f"[mass-create] anti-dup lock error (ignoring): {_le}")
 
     def generate():
         # Wewnątrz funkcji już NIE wywołujemy request.args.get
