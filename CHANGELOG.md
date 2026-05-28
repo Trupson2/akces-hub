@@ -2,6 +2,7 @@
 
 ## 28.05.2026
 
+- test(update): smoke test mechanizmu update z banera (bez zmian funkcjonalnych, tylko VERSION bump)
 - fix(banner): JS fallback do /system/update jak /admin/update-git zwroci 404 (stary serwer bez restartu Flask po git pull samonaprawia sie)
 - ux(layout): wyrazny cyan glow + badge "WYBRANO" + scale 1.015 + animacja pop -> Maciek nie przegapi ze klik zmienil layout
 - fix(paletomat): dedup hierarchiczny ASIN > EAN > nazwa_norm dla produktow BEZ ASIN (kierownice MOZA, OLX towar bez kodow tez sie dedupuje)
