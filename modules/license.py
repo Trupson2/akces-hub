@@ -18,7 +18,13 @@ import threading
 # Secret do podpisywania licencji — TYLKO w Twoim generatorze
 # Klient NIE ma tego klucza, więc nie może wygenerować licencji sam
 def _load_license_secret():
-    """Wczytaj secret z env → pliku → wygeneruj nowy (NIE hardcodowany)."""
+    """Wczytaj secret z env → pliku → wygeneruj nowy (NIE hardcodowany).
+
+    FIX 2026-05-28: backup starego secret-a przed wygenerowaniem nowego
+    + wyrazne ostrzezenie. Klient ktory niechcacy usunie .license_secret
+    przez update / skopiowanie plikow widzi WAZNY KOMUNIKAT zamiast
+    cichego rotation.
+    """
     s = os.environ.get('AKCES_LICENSE_SECRET', '').strip()
     if s:
         return s
@@ -28,6 +34,31 @@ def _load_license_secret():
             s = f.read().strip()
         if s:
             return s
+
+    # Sprawdz czy w bazie jest JUZ aktywowana licencja - jezeli tak,
+    # NIE generuj nowego secret-a tylko poinformuj uzytkownika.
+    try:
+        from modules.database import get_config
+        existing_license = get_config('license_data', '')
+        if existing_license:
+            import sys
+            print("=" * 70, file=sys.stderr)
+            print("[LICENSE CRITICAL] BRAK .license_secret ALE BAZA MA AKTYWNA LICENCJE!",
+                  file=sys.stderr)
+            print("  Walidacja nie zadziala. Mozliwe przyczyny:", file=sys.stderr)
+            print("  1) Update / skopiowanie plikow bez .license_secret", file=sys.stderr)
+            print("  2) Plik zostal przypadkiem usuniety", file=sys.stderr)
+            print("  3) Klient ma backup .license_secret w starym folderze", file=sys.stderr)
+            print("", file=sys.stderr)
+            print("  ROZWIAZANIE: Skopiuj .license_secret z poprzedniej kopii.", file=sys.stderr)
+            print(f"  Sciezka: {_path}", file=sys.stderr)
+            print("  Jak nie masz - skontaktuj sie z dostawca o nowy klucz licencji.", file=sys.stderr)
+            print("=" * 70, file=sys.stderr)
+            # Mimo to wygeneruj awaryjny secret (aplikacja musi dzialac),
+            # ale zaznacz ze licencja nie zadziala.
+    except Exception:
+        pass
+
     import secrets as _sec
     s = _sec.token_hex(32)
     try:
