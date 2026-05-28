@@ -55,6 +55,10 @@ def ustawienia():
     github_release_repo = get_config('github_release_repo', '')
     github_release_token = get_config('github_release_token', '')
     has_github_token = bool(github_release_token)
+    # Wykryj typ instalacji - z gita czy z ZIP. Klient z gitem NIE potrzebuje
+    # tokena (publiczne repo Trupson2/akces-hub, git pull dziala bez auth).
+    _app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    is_zip_install = not os.path.isdir(os.path.join(_app_dir, '.git'))
 
     # 2FA TOTP status (Phase 3)
     totp_enabled = False
@@ -115,6 +119,7 @@ def ustawienia():
         totp_backup_remaining=totp_backup_remaining,
         github_release_repo=github_release_repo,
         has_github_token=has_github_token,
+        is_zip_install=is_zip_install,
     )
 
 
