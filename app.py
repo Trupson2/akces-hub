@@ -2845,6 +2845,98 @@ def system_update():
 # ============================================================
 # ZIP-BASED UPDATE (dla klient\xf3w bez gita, np. Windows)
 # ============================================================
+
+@app.route('/system/check-update-public', methods=['POST'])
+@require_admin
+def system_check_update_public():
+    """Sprawdz nowa wersje na PUBLIC repo Trupson2/akces-hub (BEZ tokenu).
+
+    Alternatywa dla check-update-zip ktore wymaga PRIVATE release distribution.
+    Klient ZIP install bez tokenu moze updateowac tu - public repo dziala
+    bez autoryzacji.
+    """
+    _validate_csrf_or_abort()
+    from modules.zip_updater import check_public_version
+    info = check_public_version(repo='Trupson2/akces-hub', branch='main', timeout=10)
+    return jsonify({'ok': True, **info})
+
+
+@app.route('/system/update-from-public', methods=['POST'])
+@require_admin
+def system_update_from_public():
+    """Pobierz + zainstaluj ZIP z PUBLIC repo (bez tokenu, bez HMAC podpisu).
+
+    UWAGA: pomija weryfikacje HMAC - publiczny ZIP nie ma podpisu vendora.
+    Bezpieczenstwo: ZIP pobierany przez HTTPS z github.com (TLS chroni
+    integralnosc transportu). Source code commits sa publiczne i podpisane
+    przez gita (sha hash).
+    """
+    _validate_csrf_or_abort()
+    from modules.database import log_admin_action
+    from modules.zip_updater import (
+        check_public_version, download_public_archive,
+        install_update, restart_python_process,
+    )
+    import tempfile as _tf, threading as _th, time as _t
+
+    # 1. Sprawdz wersje
+    info = check_public_version(repo='Trupson2/akces-hub', branch='main', timeout=10)
+    if info.get('error'):
+        log_admin_action('system_update_public', {'stage': 'check'}, success=False,
+                         error_message=info['error'])
+        return jsonify({'ok': False, 'error': info['error']})
+    if not info.get('available'):
+        # Mimo to wymus restart - moze klient chce odswiezyc cache
+        _th.Thread(target=lambda: (_t.sleep(2), restart_python_process()), daemon=True).start()
+        return jsonify({'ok': True, 'msg': 'Już aktualne — restart za chwilę...',
+                        'current': info['current'], 'latest': info['latest']})
+
+    # 2. Pobierz ZIP
+    zip_path = _tf.mktemp(suffix='.zip', prefix='akces_public_')
+    ok = download_public_archive(
+        repo='Trupson2/akces-hub', branch='main',
+        dest_path=zip_path, timeout=180,
+    )
+    if not ok:
+        log_admin_action('system_update_public', {'stage': 'download'}, success=False,
+                         error_message='Download failed')
+        return jsonify({'ok': False, 'error': 'Pobranie ZIPa z GitHub nie powiodlo sie'})
+
+    # 3. Install (signature_hex='' = pomin HMAC - public repo nie ma podpisu)
+    result = install_update(zip_path, signature_hex='')
+    try:
+        os.remove(zip_path)
+    except Exception:
+        pass
+
+    if not result.get('ok'):
+        log_admin_action('system_update_public', {'stage': 'install'}, success=False,
+                         error_message=result.get('error', 'install failed'))
+        return jsonify({'ok': False, 'error': result.get('error', 'Install failed')})
+
+    log_admin_action('system_update_public',
+                     {'stage': 'ok', 'files_updated': result.get('files_updated', 0),
+                      'from': info['current'], 'to': info['latest']}, success=True)
+
+    # Wyczysc banner update
+    try:
+        from modules.database import set_config
+        set_config('update_available', '0')
+    except Exception:
+        pass
+
+    # 4. Restart Pythona po 2s (zeby response zdazyl dojsc do browsera)
+    _th.Thread(target=lambda: (_t.sleep(2), restart_python_process()), daemon=True).start()
+
+    return jsonify({
+        'ok': True,
+        'msg': f'Zaktualizowano do {info["latest"]} ({result.get("files_updated", 0)} plikow). Restart za chwilę...',
+        'from': info['current'],
+        'to': info['latest'],
+        'files_updated': result.get('files_updated', 0),
+    })
+
+
 @app.route('/system/check-update-zip', methods=['POST'])
 @require_admin
 def system_check_update_zip():

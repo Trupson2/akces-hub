@@ -154,6 +154,88 @@ def check_github_release(repo: str, timeout: int = 10) -> Dict[str, Any]:
         return result
 
 
+def check_public_version(repo: str = 'Trupson2/akces-hub', branch: str = 'main',
+                          timeout: int = 10) -> Dict[str, Any]:
+    """Sprawdz najnowsza wersje na PUBLIC repo (bez tokenu).
+
+    Pobiera raw VERSION z github.com przez raw.githubusercontent.com.
+    Bezpieczne dla klientow z ZIP install ktorzy NIE maja github_release_token.
+
+    Args:
+        repo: 'owner/name' (default: Trupson2/akces-hub - publiczne)
+        branch: branch git (default: main)
+        timeout: HTTP timeout
+    Returns:
+        dict: available, current, latest, download_url, error
+    """
+    import requests
+    current = _get_current_version()
+    result = {
+        'available': False,
+        'current': current,
+        'latest': '',
+        'download_url': f'https://github.com/{repo}/archive/refs/heads/{branch}.zip',
+        'repo': repo,
+        'branch': branch,
+    }
+    try:
+        # Raw VERSION z public repo (bez auth)
+        version_url = f'https://raw.githubusercontent.com/{repo}/{branch}/VERSION'
+        r = requests.get(version_url, timeout=timeout)
+        if r.status_code != 200:
+            result['error'] = f'GitHub raw VERSION: HTTP {r.status_code}'
+            return result
+        latest = (r.text or '').strip().split('\n')[0].strip()
+        result['latest'] = latest
+        result['available'] = _version_tuple(latest) > _version_tuple(current)
+        return result
+    except requests.Timeout:
+        result['error'] = 'Timeout GitHub raw'
+        return result
+    except Exception as e:
+        result['error'] = f'{type(e).__name__}: {str(e)[:200]}'
+        return result
+
+
+def download_public_archive(repo: str, branch: str, dest_path: str,
+                            timeout: int = 180, progress_cb=None) -> bool:
+    """Sciaga archive ZIP z PUBLIC repo (bez tokenu).
+
+    URL: https://github.com/{repo}/archive/refs/heads/{branch}.zip
+    GitHub odpowiada 302 redirect do codeload.github.com z signed URL.
+
+    Args:
+        repo: 'owner/name'
+        branch: branch git
+        dest_path: lokalna sciezka pliku zip do zapisania
+        timeout: total timeout
+        progress_cb: opcjonalne callable(downloaded, total)
+    Returns:
+        True OK, False fail
+    """
+    import requests
+    url = f'https://github.com/{repo}/archive/refs/heads/{branch}.zip'
+    try:
+        with requests.get(url, stream=True, timeout=timeout, allow_redirects=True) as r:
+            r.raise_for_status()
+            total = int(r.headers.get('Content-Length', 0))
+            downloaded = 0
+            with open(dest_path, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=65536):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if progress_cb:
+                            try:
+                                progress_cb(downloaded, total)
+                            except Exception:
+                                pass
+        return True
+    except Exception as e:
+        print(f'[zip_updater] download public failed: {e}')
+        return False
+
+
 def download_release_zip(url: str, dest_path: str, timeout: int = 120,
                          progress_cb=None, token: str = '') -> bool:
     """Sciaga zip z GitHub Releases. Strumieniowo (nie ladowac calego do RAM).

@@ -343,6 +343,54 @@ function doUpdateZip() {
     })
     .then(function(r) { return r.json(); })
     .then(function(d) {
+        // FIX 2026-05-28: backend moze zwrocic d.ok=true ale z d.error
+        // (np 404 PRIVATE repo bez tokena). Sprawdzaj d.error pierwsze.
+        if (d.error) {
+            // Fallback: sprobuj PUBLIC repo bez tokena
+            desc.innerHTML = '<span class="spinner"></span> Brak tokena, próbuję z publicznego repo...';
+            return fetch('/system/check-update-public', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                credentials: 'same-origin', body: '{}'
+            }).then(function(r2) { return r2.json(); }).then(function(d2) {
+                if (d2.error) {
+                    desc.textContent = ' Błąd: ' + d2.error;
+                    card.style.opacity = '1';
+                    card.style.pointerEvents = 'auto';
+                    return;
+                }
+                if (!d2.available) {
+                    desc.textContent = ' Już aktualne (' + (d2.current || '?') + ')';
+                    card.style.opacity = '1';
+                    card.style.pointerEvents = 'auto';
+                    return;
+                }
+                var msg2 = 'Dostepna aktualizacja z PUBLIC repo:\n\n' +
+                          'Aktualnie: ' + d2.current + '\nNajnowsza: ' + d2.latest + '\n\nPobrac i zainstalowac?';
+                if (!confirm(msg2)) {
+                    desc.textContent = ' Anulowano';
+                    card.style.opacity = '1';
+                    card.style.pointerEvents = 'auto';
+                    return;
+                }
+                desc.innerHTML = '<span class="spinner"></span> Pobieram z public repo (1-2 min)...';
+                return fetch('/system/update-from-public', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    credentials: 'same-origin', body: '{}'
+                }).then(function(r3) { return r3.json(); }).then(function(d3) {
+                    if (d3.ok) {
+                        desc.innerHTML = '<span class="spinner"></span> ' + d3.msg + ' Odswiezam za 8s...';
+                        setTimeout(function() { location.reload(); }, 8000);
+                    } else {
+                        desc.textContent = ' Blad: ' + (d3.error || 'nieznany');
+                        card.style.opacity = '1';
+                        card.style.pointerEvents = 'auto';
+                    }
+                }).catch(function() {
+                    desc.innerHTML = '<span class="spinner"></span> Restart w toku... odswiezam za 8s';
+                    setTimeout(function() { location.reload(); }, 8000);
+                });
+            });
+        }
         if (!d.ok) {
             desc.textContent = ' Błąd: ' + (d.error || 'nieznany');
             card.style.opacity = '1';
