@@ -1721,6 +1721,9 @@ def setup_auth(app):
             'module_magazynier': is_module_enabled('magazynier'),
             'brand_name': get_config_cached('brand_name', 'AKCES HUB'),
             'brand_color': get_config_cached('brand_color', '#6366f1'),
-            'brand_logo': os.path.exists(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'brand_logo.png')),
+            # FIX 2026-05-28: os.path.exists() zwraca True/False, ktore Jinja
+            # renderuje jako 'True' -> 404 GET /static/True w base.html. Zwraca
+            # nazwe pliku (lub pusty string, ktory tez evaluuje na falsy w {% if %}).
+            'brand_logo': 'brand_logo.png' if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'brand_logo.png')) else '',
             'turnstile_site_key': _turnstile_key,
         }
