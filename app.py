@@ -5311,15 +5311,16 @@ def narzedzia_uzupelnij_zdjecia_amazon():
     conn = get_db()
     try:
         # KROK 1: przenieś ASIN z ean → asin (produkty Macka z multi-paleta importu)
-        # ASIN = B0 + 8 znaków alfanum, 10 znaków total
+        # ASIN to "B0" + 8-10 znaków alfanum (10-12 total). EAN to 8-13 cyfr.
+        # FIX 2026-05-28: usunieto GLOB pattern - nie matchowal, zostal LIKE.
+        # Plus rozszerzono LENGTH 10-13 zeby objac dluzsze ASIN-y B0XXXXXXXXXX.
         r1 = conn.execute("""
             UPDATE produkty
             SET asin = UPPER(TRIM(ean)), ean = ''
             WHERE (asin IS NULL OR asin = '')
               AND ean IS NOT NULL
-              AND LENGTH(TRIM(ean)) = 10
+              AND LENGTH(TRIM(ean)) BETWEEN 10 AND 13
               AND UPPER(TRIM(ean)) LIKE 'B0%'
-              AND UPPER(TRIM(ean)) GLOB 'B0[A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9]'
         """)
         moved = r1.rowcount
 
