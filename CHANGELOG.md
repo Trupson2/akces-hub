@@ -2,6 +2,7 @@
 
 ## 28.05.2026
 
+- feat(paletomat): "Wystaw BEZ zdjec" toggle w mass-create-from-paleta (checkbox pod cennikiem). Pomija upload + CDN fallback - oszczednosc 5-15s/oferta. Backend &skip_images=1 param. Klient dodaje zdjecia recznie na Allegro pozniej.
 - feat(update): ZIP install (Macek) tez ma background update check + banner. _public_update_check_async() pobiera VERSION z public repo, ustawia update_available. Banner JS rozszerzony 3-poziomowy fallback (update-git -> update-from-public -> /system/update).
 - feat(gpsr): wybor domyslnego producenta + osoby odpowiedzialnej w /allegro/config (dropdown z listy Allegro) - zamiast [0] losowego z listy. Puste = fallback do pierwszego.
 - ux(narzedzia): wywalono sekcje KALKULATORY (oplacalnosci + marzy) - malo uzywane, endpointy zostaja dostepne przez URL

@@ -3420,6 +3420,11 @@ def generator_mass_create_from_paleta():
                 <span class='material-symbols-outlined' style='font-size:1.1rem;vertical-align:middle'>rocket_launch</span> Wystaw ({count})
             </button>
         </div>
+        <!-- v1.0.90: Wystaw bez zdjec (szybciej) -->
+        <label style="display:flex;align-items:center;gap:8px;margin-top:14px;padding:10px 12px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:8px;cursor:pointer;font-size:0.82rem;color:#fbbf24">
+            <input type="checkbox" id="skip-images-toggle" style="width:16px;height:16px;cursor:pointer">
+            <span><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">flash_on</span> Wystaw BEZ zdjec (szybciej ~5-15s/oferta, zdjecia dodasz pozniej recznie na Allegro)</span>
+        </label>
     </div>
     
     <div class="card" style="text-align:center;padding:30px">
@@ -3485,8 +3490,12 @@ def generator_mass_create_from_paleta():
     document.getElementById('start-btn').onclick = function() {{
         const selEl = document.getElementById('shipping-select') || document.getElementById('shipping-select-input');
         const shipId = selEl ? selEl.value.trim() : '';
+        // v1.0.90: Skip images toggle
+        const skipImgs = document.getElementById('skip-images-toggle');
+        const skipImagesFlag = (skipImgs && skipImgs.checked) ? '&skip_images=1' : '';
         let url = '/paletomat/generator/mass-create-from-paleta-stream?ids={ids_str}' +
-                  (shipId ? '&shipping_id=' + encodeURIComponent(shipId) : '');
+                  (shipId ? '&shipping_id=' + encodeURIComponent(shipId) : '') +
+                  skipImagesFlag;
         // Doklej per-produkt cennik jesli byl z mass-edit
         if (PRESET_SHIPPING_MAP && Object.keys(PRESET_SHIPPING_MAP).length > 0) {{
             url += '&shipping_map=' + encodeURIComponent(JSON.stringify(PRESET_SHIPPING_MAP));
@@ -3577,6 +3586,8 @@ def generator_mass_create_from_paleta_stream():
     # 1. Pobieramy dane tutaj (NAD funkcją generate), póki mamy dostęp do requestu
     ids_str = request.args.get('ids', '')
     force_new = request.args.get('force', '0') == '1'
+    # v1.0.90: Wystaw bez zdjec - pomija fetch+upload zdjec, oszczedza 5-15s/oferta
+    skip_images = request.args.get('skip_images', '0') == '1'
     # Override cennika:
     # - shipping_id = jeden cennik dla wszystkich (legacy / bulk)
     # - shipping_map = JSON {pid: ship_id, ...} per-product (nowy)
@@ -4023,7 +4034,10 @@ def generator_mass_create_from_paleta_stream():
                 # 3. Upload WSZYSTKICH zdjęć do Allegro (max 8)
                 # Używamy wątku + keepalive żeby SSE stream się nie zerwał
                 zdjecia_urls = []
-                if wszystkie_zdjecia:
+                # v1.0.90: skip_images toggle - omija najwolniejsza czesc (upload)
+                if skip_images:
+                    yield "data: " + json.dumps({'type': 'log', 'message': '<span class="material-symbols-outlined">flash_on</span> Skip images: pomijam upload zdjec (klient doda zdjecia recznie na Allegro)', 'color': '#fbbf24'}) + "\n\n"
+                elif wszystkie_zdjecia:
                     _imgs_to_upload = wszystkie_zdjecia[:8]
                     yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>photo_camera</span> {len(_imgs_to_upload)} zdjęć, uploaduję...', 'color': '#3b82f6'}) + "\n\n"
 
