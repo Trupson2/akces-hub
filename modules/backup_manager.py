@@ -44,14 +44,33 @@ def create_backup():
         backup_path = BACKUP_DIR / backup_name
         
         # Wykonaj backup używając SQLite backup API (bezpieczniejsze niż shutil.copy)
-        source_conn = sqlite3.connect(str(DB_PATH))
+        # FIX 2026-05-28 (incydent 03:43): backup BEZ batchowania trzymal write
+        # lock przez 30+s na duzej bazie (token refresh padl 3x z 'database is
+        # locked'). Mini-batche (pages=20, sleep=0.05) zwalniaja lock co
+        # ~80KB skopiowanych - inni writerzy maja okno 50ms zeby zapisac.
+        # Plus wal_checkpoint przed - synchronizuje WAL z main DB, mniej do
+        # skopiowania. Plus busy_timeout=5s zeby source_conn sam nie czekal
+        # wiecznie jak akurat ktos inny pisze.
+        source_conn = sqlite3.connect(str(DB_PATH), timeout=30.0)
+        source_conn.execute('PRAGMA busy_timeout=5000')
+        try:
+            # Skonsoliduj WAL -> main przed backupem (PASSIVE = nie blokuje
+            # writers, robi tylko to co da sie zrobic bez locka)
+            source_conn.execute('PRAGMA wal_checkpoint(PASSIVE)')
+        except Exception as _e:
+            print(f"[WARN] wal_checkpoint przed backupem: {_e}")
+
         backup_conn = sqlite3.connect(str(backup_path))
-        
-        with backup_conn:
-            source_conn.backup(backup_conn)
-        
-        source_conn.close()
-        backup_conn.close()
+
+        try:
+            # pages=20 (~80KB) per iteracja, sleep=0.05 (50ms) miedzy.
+            # Dla bazy 100MB to ~1250 iteracji * 50ms = ~63s laczne czekanie,
+            # ale lock_window per iteracja = ~kilka ms zamiast 30s+ block.
+            source_conn.backup(backup_conn, pages=20, sleep=0.05)
+            backup_conn.commit()
+        finally:
+            backup_conn.close()
+            source_conn.close()
 
         # Weryfikuj integralność backupu
         verify_conn = sqlite3.connect(str(backup_path))
@@ -233,26 +252,35 @@ def restore_backup(backup_filename):
         
         if DB_PATH.exists():
             try:
-                # Użyj SQLite backup API dla bezpieczeństwa
-                source_conn = sqlite3.connect(str(DB_PATH))
+                # Użyj SQLite backup API dla bezpieczeństwa (mini-batche jak
+                # w create_backup, fix incydentu 2026-05-28)
+                source_conn = sqlite3.connect(str(DB_PATH), timeout=30.0)
+                source_conn.execute('PRAGMA busy_timeout=5000')
                 safety_conn = sqlite3.connect(str(safety_backup_path))
-                source_conn.backup(safety_conn)
-                safety_conn.close()
-                source_conn.close()
+                try:
+                    source_conn.backup(safety_conn, pages=20, sleep=0.05)
+                    safety_conn.commit()
+                finally:
+                    safety_conn.close()
+                    source_conn.close()
                 print(f"[SAVE] Bezpieczeństwo: stworzono backup przed przywracaniem: {safety_backup_name}")
             except Exception as e:
                 print(f"[WARN] Nie udało się stworzyć safety backup: {e}")
-        
+
         # Wymuś garbage collection żeby zamknąć ewentualne połączenia
         gc.collect()
-        
-        # Przywróć z backupu używając SQLite backup API
+
+        # Przywróć z backupu używając SQLite backup API (mini-batche)
         try:
             backup_conn = sqlite3.connect(str(backup_path))
-            dest_conn = sqlite3.connect(str(DB_PATH))
-            backup_conn.backup(dest_conn)
-            dest_conn.close()
-            backup_conn.close()
+            dest_conn = sqlite3.connect(str(DB_PATH), timeout=30.0)
+            dest_conn.execute('PRAGMA busy_timeout=5000')
+            try:
+                backup_conn.backup(dest_conn, pages=20, sleep=0.05)
+                dest_conn.commit()
+            finally:
+                dest_conn.close()
+                backup_conn.close()
             
             print(f"[OK] Przywrócono bazę z backupu: {backup_filename}")
             return True, f"Przywrócono bazę z backupu: {backup_filename}. Odśwież stronę."
