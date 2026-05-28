@@ -78,11 +78,21 @@ def dashboard_kpi():
     ''', (last_month_start, last_month_end)).fetchone()
 
     # === MAGAZYN ===
+    # FIX 2026-05-28: wartosc liczy AKTUALNY stan magazynu:
+    # - cena_brutto * ilosc (nie sama cena - musi byc × ilosc dla wartosci wszystkich sztuk)
+    # - tylko status 'magazyn'/'wystawiony' (sprzedane/uszkodzone/wyslane NIE)
+    # - tylko dla_siebie=0 (produkty trzymane dla siebie nie sa w magazynie do sprzedazy)
+    # - tylko palety dostarczone (LEFT JOIN bo luzne produkty bez palety tez sie licza)
     magazyn = conn.execute('''
-        SELECT COUNT(*) as produkty, COALESCE(SUM(ilosc), 0) as sztuki,
-               COALESCE(SUM(cena_brutto), 0) as wartosc_zakupu,
-               COALESCE(SUM(cena_allegro * ilosc), 0) as wartosc_sprzedazy
-        FROM produkty WHERE status IN ('magazyn', 'wystawiony')
+        SELECT COUNT(*) as produkty,
+               COALESCE(SUM(p.ilosc), 0) as sztuki,
+               COALESCE(SUM(p.cena_brutto * p.ilosc), 0) as wartosc_zakupu,
+               COALESCE(SUM(p.cena_allegro * p.ilosc), 0) as wartosc_sprzedazy
+        FROM produkty p
+        LEFT JOIN palety pl ON p.paleta_id = pl.id
+        WHERE p.status IN ('magazyn', 'wystawiony')
+          AND COALESCE(p.dla_siebie, 0) = 0
+          AND (pl.id IS NULL OR COALESCE(pl.dostarczona, 0) = 1)
     ''').fetchone()
 
     # === ROI OGÓLNE ===

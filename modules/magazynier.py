@@ -6514,7 +6514,11 @@ _IMPORT_ROLES = [
     # EAN: tylko nazwy ktore JEDNOZNACZNIE oznaczaja kod (NIE 'KOD' - to czesto
     # numer porzadkowy LP). User mapuje recznie jak ma 'KOD' jako EAN.
     ('ean',          'EAN / Barcode',     False, ['EAN','BARCODE','KODKRESKOWY']),
-    ('ilosc',        'Ilość',             False, ['ILOSC','ILOŚĆ','QTY','QUANTITY','SZTUK','SZTUKI','STOCK']),
+    ('ilosc',        'Ilość (total)',     False, ['ILOSC','ILOŚĆ','QTY','QUANTITY','SZTUK','SZTUKI','STOCK']),
+    # NOWE: kolumna 'Sprzedane' (ile juz sprzedanych z tej ilosci) - import
+    # odejmie od 'Ilosc' zeby wstawic AKTUALNY stan w magazynie. Plus utworzy
+    # osobny rekord historyczny ze sprzedanymi sztukami.
+    ('sprzedane',    'Sprzedane (juz)',   False, ['SPRZEDANE','SOLD','SOLDQTY']),
     ('stan',         'Stan produktu',     False, ['STAN','CONDITION','JAKOSC']),
     # STATUS: tylko literal 'STATUS' (NIE 'SPRZEDANE' - to liczba ile sprzedanych)
     ('status',       'Status sprzedaży',  False, ['STATUS']),
@@ -6675,6 +6679,7 @@ def _parse_row_with_mapping(row, col_map, row_idx):
         'ean': ean,
         'nazwa': nazwa,
         'ilosc': get_int('ilosc', 1),
+        'sprzedane': get_int('sprzedane', 0),  # ile juz sprzedanych (do odjecia od ilosci)
         'stan_raw': get('stan'),
         'status_raw': get('status'),
         'cena_netto': get_float('cena_netto'),
@@ -6954,21 +6959,70 @@ def import_multi_execute():
                 cena_netto = parsed['cena_netto']
                 cena_brutto = round(cena_netto * 1.23, 2) if cena_netto > 0 else 0
 
+                # FIX 2026-05-28: respektuj kolumne 'Sprzedane' - odejmij od ilosci
+                # zeby zostal AKTUALNY stan magazynu. Plus jak sa juz sprzedane,
+                # utworz osobny rekord historyczny ze status='sprzedany'.
+                ilosc_total = max(0, parsed['ilosc'])
+                ilosc_sprzedanych = max(0, parsed['sprzedane'])
+                # Cap sprzedanych do max ilosci (Excel czasem ma sprzedane > ilosc - blad)
+                if ilosc_sprzedanych > ilosc_total:
+                    ilosc_sprzedanych = ilosc_total
+
+                if status == 'sprzedany':
+                    # Caly rekord oznaczony Sprzedane w Excelu - wszystkie sztuki sprzedane
+                    ilosc_w_magazynie = 0
+                    ilosc_historycznie_sprzedanych = ilosc_total
+                else:
+                    # Status='Dostepne' (magazyn) lub 'Wyjebane' (uszkodzony)
+                    # Odejmij sprzedane od ilosci -> AKTUALNY stan
+                    ilosc_w_magazynie = max(0, ilosc_total - ilosc_sprzedanych)
+                    ilosc_historycznie_sprzedanych = ilosc_sprzedanych
+
+                # GLOWNY rekord: aktualny stan magazynu (status z mappingu)
+                # Jesli ilosc_w_magazynie=0 ale status='magazyn' -> oznacz jako 'sprzedany'
+                # zeby NIE liczyc do magazynu (i nie probowac wystawiac).
+                _effective_status = status
+                if ilosc_w_magazynie == 0 and status == 'magazyn':
+                    _effective_status = 'sprzedany'
                 conn.execute(
                     """INSERT INTO produkty
                        (ean, asin, nazwa, ilosc, cena_netto, cena_brutto, cena_allegro,
                         dostawca, paleta_id, paleta, stan, status, opis_ai)
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (parsed['ean'], parsed['asin'], parsed['nazwa'], parsed['ilosc'],
+                    (parsed['ean'], parsed['asin'], parsed['nazwa'], ilosc_w_magazynie,
                      cena_netto, cena_brutto, parsed['cena_allegro'],
                      palety_stats[target_pid]['dostawca'],
-                     target_pid, paleta_label, stan, status, parsed['info'])
+                     target_pid, paleta_label, stan, _effective_status, parsed['info'])
                 )
                 added_total += 1
                 palety_stats[target_pid]['count'] += 1
-                if status == 'sprzedany':
+
+                # DODATKOWY rekord historyczny tylko jak:
+                # - status='Dostepne' w Excelu (czesc sprzedana, czesc w magazynie)
+                # - i Sprzedane > 0
+                # Zeby zachowac liczbe sprzedanych dla statystyk.
+                if status != 'sprzedany' and ilosc_historycznie_sprzedanych > 0:
+                    _info_hist = (parsed['info'] + ' | ' if parsed['info'] else '') + \
+                                 f'[Import] Historycznie sprzedanych z palety przed importem: {ilosc_historycznie_sprzedanych}'
+                    conn.execute(
+                        """INSERT INTO produkty
+                           (ean, asin, nazwa, ilosc, cena_netto, cena_brutto, cena_allegro,
+                            dostawca, paleta_id, paleta, stan, status, opis_ai)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (parsed['ean'], parsed['asin'], parsed['nazwa'],
+                         ilosc_historycznie_sprzedanych,
+                         cena_netto, cena_brutto, parsed['cena_allegro'],
+                         palety_stats[target_pid]['dostawca'],
+                         target_pid, paleta_label, stan, 'sprzedany', _info_hist[:500])
+                    )
+                    added_total += 1
+                    palety_stats[target_pid]['count'] += 1
                     palety_stats[target_pid]['sprzedane'] += 1
-                elif status == 'uszkodzony':
+
+                # Stats dla glownego rekordu
+                if _effective_status == 'sprzedany':
+                    palety_stats[target_pid]['sprzedane'] += 1
+                elif _effective_status == 'uszkodzony':
                     palety_stats[target_pid]['uszkodzone'] += 1
                 else:
                     palety_stats[target_pid]['magazyn'] += 1
