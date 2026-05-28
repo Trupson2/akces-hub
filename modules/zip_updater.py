@@ -38,15 +38,22 @@ PRESERVE_PATHS = {
     '.env',
     'static/uploads',
     'static/downloads',
+    # FIX 2026-05-28: klient logo / branding plików - klient wgral wlasne,
+    # NIE nadpisuj przy update (sa juz w .gitignore, ale safety net).
+    'static/brand_logo.svg',
+    'static/brand_logo.png',
+    'static/pwa_icon.png',
+    'static/icon-192.png',
+    'static/icon-512.png',
+    # vendor_config.json - safety net (gitignore, ale gdyby ktos przypadkiem
+    # zacommitowal swoja kopie do publicznego repo, nie nadpisuj klienckiej)
+    'vendor_config.json',
     'backups',
     'logs',
     'venv',
     'installer/python',   # embedded Python folder (380 MB, NIE nadpisuj)
     'python',             # backward compat
     '__pycache__',
-    # vendor_config.json NIE jest w preserve - nadpisuje sie z aktualnej wersji
-    # zeby klient dostawal nowe vendor credentials gdy Adrian zmieni token.
-    # Wymaga: app.py przy starcie reloaduje vendor_config.json do DB (TODO).
 }
 
 
