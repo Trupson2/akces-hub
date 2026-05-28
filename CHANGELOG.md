@@ -2,6 +2,7 @@
 
 ## 28.05.2026
 
+- fix(paletomat): dedup hierarchiczny ASIN > EAN > nazwa_norm dla produktow BEZ ASIN (kierownice MOZA, OLX towar bez kodow tez sie dedupuje)
 - fix(paletomat): deduplikacja per ASIN+stan PRZED petla wystawiania (Wystaw bezposrednio nie dubluje juz ofert z roznych palet)
 - fix(layout+banner): label onclick zaznacza karte (closest nie dzialal z position:absolute) + banner fetch zamiast form submit (nie zostawia 404 URL)
 - fix(import): deduplikacja przy multi-paleta import (UPDATE jak istnieje w palecie + ASIN, INSERT jak nowy)

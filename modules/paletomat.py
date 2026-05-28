@@ -3609,34 +3609,60 @@ def generator_mass_create_from_paleta_stream():
             yield "data: " + json.dumps({'type': 'done'}) + "\n\n"
             return
 
-        # FIX 2026-05-28: DEDUPLIKACJA per ASIN+stan przed wystawianiem.
-        # Bez tego ten sam produkt (np mata gimnastyczna) z 2 różnych palet
-        # → 2 osobne oferty na Allegro = duplikaty. Łączymy do jednej oferty
-        # z sumą ilości - jedna oferta = jeden produkt na Allegro.
+        # FIX 2026-05-28 v1.0.82: DEDUPLIKACJA hierarchiczna przed wystawianiem.
+        # Hierarchia: ASIN+stan -> EAN+stan -> nazwa_norm+stan (fallback dla
+        # produktow bez ASIN/EAN, np kierownice MOZA z OLX bez kodow).
+        # Bez tego ten sam produkt z 2 roznych palet -> 2 osobne oferty.
         try:
+            import re as _re
             from .database import get_db as _gdb
             _conn = _gdb()
             _placeholders = ','.join('?' * len(product_ids))
             _rows = _conn.execute(
-                f"SELECT id, asin, stan FROM produkty WHERE id IN ({_placeholders})",
+                f"SELECT id, asin, ean, nazwa, stan FROM produkty WHERE id IN ({_placeholders})",
                 product_ids
             ).fetchall()
-            _asin_stan_to_id = {}
+            _seen_asin = set()  # set of (ASIN, stan)
+            _seen_ean = set()   # set of (EAN, stan)
+            _seen_nazwa = set() # set of (nazwa_norm, stan)
             _deduped_ids = []
+            _skip_reasons = {'asin': 0, 'ean': 0, 'nazwa': 0}
             for _r in _rows:
                 _a = (_r['asin'] or '').strip().upper()
+                _e = (_r['ean'] or '').strip()
+                _n_raw = (_r['nazwa'] or '').strip().lower()
+                # Normalizacja: usun znaki specjalne, weź pierwsze 40 char
+                _n = _re.sub(r'[^a-z0-9 ]+', '', _n_raw)[:40].strip()
                 _s = (_r['stan'] or 'Nowy').strip()
-                if _a and (_a, _s) in _asin_stan_to_id:
-                    # Duplikat - skip (pierwsze wystąpienie już w liście)
-                    continue
+                # Hierarchia: ASIN > EAN > nazwa
                 if _a:
-                    _asin_stan_to_id[(_a, _s)] = _r['id']
+                    if (_a, _s) in _seen_asin:
+                        _skip_reasons['asin'] += 1
+                        continue
+                    _seen_asin.add((_a, _s))
+                elif _e:
+                    if (_e, _s) in _seen_ean:
+                        _skip_reasons['ean'] += 1
+                        continue
+                    _seen_ean.add((_e, _s))
+                elif _n:
+                    if (_n, _s) in _seen_nazwa:
+                        _skip_reasons['nazwa'] += 1
+                        continue
+                    _seen_nazwa.add((_n, _s))
                 _deduped_ids.append(_r['id'])
-            if len(_deduped_ids) < len(product_ids):
-                _skipped = len(product_ids) - len(_deduped_ids)
+            _total_skipped = sum(_skip_reasons.values())
+            if _total_skipped > 0:
+                _parts = []
+                if _skip_reasons['asin']:
+                    _parts.append(f"{_skip_reasons['asin']} po ASIN")
+                if _skip_reasons['ean']:
+                    _parts.append(f"{_skip_reasons['ean']} po EAN")
+                if _skip_reasons['nazwa']:
+                    _parts.append(f"{_skip_reasons['nazwa']} po nazwie")
                 yield "data: " + json.dumps({
                     'type': 'log',
-                    'message': f'<span class="material-symbols-outlined">merge</span> Deduplikacja: pominięto {_skipped} duplikatów (ten sam ASIN+stan z różnych palet)',
+                    'message': f'<span class="material-symbols-outlined">merge</span> Deduplikacja: pominieto {_total_skipped} duplikatow ({", ".join(_parts)})',
                     'color': '#fb923c'
                 }) + "\n\n"
                 product_ids = _deduped_ids
