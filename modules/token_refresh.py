@@ -96,17 +96,28 @@ def _send_alert_now(msg):
 
 
 def _persist_tokens(access_token, refresh_token, expires_at, refresh_rotated):
-    """FIX 2026-05-10 (A): zapis tokenow z retry.
+    """FIX 2026-05-10 (A) + 2026-05-28: zapis tokenow z agresywnym retry.
 
     Allegro przy HTTP 200 JUZ ZUZYL stary refresh_token (rotacja). Jezeli
-    zapis nowego do bazy padnie (np. 'database is locked' przy REINDEX/backup),
-    integracja jest martwa az do recznego /allegro/auth - bo Allegro nie da
-    nam juz odswiezyc starym tokenem. Dlatego 3 proby z rosnacym sleep.
+    zapis nowego do bazy padnie (np. 'database is locked' przy REINDEX/backup/
+    VACUUM/long sync), integracja jest martwa az do recznego /allegro/auth -
+    bo Allegro nie da nam juz odswiezyc starym tokenem.
+
+    INCYDENT 2026-05-28 03:44: stary kod (3 proby, sleep 2/4/6s, total 12s)
+    padl bo lock trzymal sie >30s na kazda probe (busy_timeout=30000ms).
+    Token bezpowrotnie utracony, integracja zdechla do rana.
+
+    FIX: 8 prob z exponential backoff (5/10/20/40/60/60/60/60s sleep,
+    plus busy_timeout=30s na kazda probe set_config). Total mozliwy czas
+    czekania na unlock: ~315s (~5 min). Refresh_token ma 30 dni waznosci
+    wiec 5 minut czekania jest niczym - lepiej zaczekac niz stracic token.
 
     Zwraca True jezeli zapisano, False jezeli token bezpowrotnie utracony.
     """
+    # Exponential backoff caps na 60s zeby nie czekac zbyt dlugo per proba
+    SLEEPS = [5, 10, 20, 40, 60, 60, 60, 60]  # 8 prob, total ~315s
     last_err = None
-    for attempt in range(1, 4):
+    for attempt, sleep_s in enumerate(SLEEPS, 1):
         try:
             set_config('allegro_access_token', access_token)
             set_config('allegro_refresh_token', refresh_token)
@@ -115,27 +126,43 @@ def _persist_tokens(access_token, refresh_token, expires_at, refresh_rotated):
                 refresh_expires = datetime.now() + timedelta(days=30)
                 set_config('allegro_refresh_token_expires_at',
                            refresh_expires.isoformat())
+            if attempt > 1:
+                print(f"[OK] Zapis tokena udal sie po {attempt} probach")
             return True
         except sqlite3.OperationalError as e:
             last_err = e
-            print(f"[DB] Zapis tokena - proba {attempt}/3 padla (lock?): {e}")
-            time.sleep(2 * attempt)  # 2s, 4s, 6s
+            print(f"[DB] Zapis tokena - proba {attempt}/{len(SLEEPS)} "
+                  f"padla (lock?): {e} - czekam {sleep_s}s")
+            # Early alert na 4-tej probie - daj userowi szanse zauwazyc
+            # ze cos lockuje DB ZANIM token bedzie bezpowrotnie utracony
+            if attempt == 4:
+                try:
+                    _send_alert_now(
+                        f"⚠️ Allegro odswiezylo token, ale DB lockowane "
+                        f"({attempt}/{len(SLEEPS)} prob). Probuje dalej, "
+                        f"max ~{sum(SLEEPS[attempt:])}s pozostalo. "
+                        f"Co lockuje? Sprawdz dziennik."
+                    )
+                except Exception:
+                    pass
+            time.sleep(sleep_s)
         except Exception as e:
             last_err = e
-            print(f"[DB] Zapis tokena - proba {attempt}/3 padla: {e}")
-            time.sleep(2 * attempt)
+            print(f"[DB] Zapis tokena - proba {attempt}/{len(SLEEPS)} "
+                  f"padla: {e} - czekam {sleep_s}s")
+            time.sleep(sleep_s)
 
-    # 3 proby padly - token z Allegro UTRACONY (stary refresh juz zuzyty)
-    print("[CRITICAL] Allegro zwrocilo 200 OK ale zapis do bazy padl 3x: "
-          f"{last_err}")
+    # Wszystkie proby padly - token z Allegro UTRACONY (stary refresh juz zuzyty)
+    print(f"[CRITICAL] Allegro zwrocilo 200 OK ale zapis do bazy padl "
+          f"{len(SLEEPS)}x: {last_err}")
     print("[CRITICAL] Stary refresh_token zostal ZUZYTY przez Allegro - "
           "WYMAGANE reczne /allegro/auth")
     _send_alert_now(
         "🔴 KRYTYCZNE: Allegro odświeżyło token (HTTP 200), ale zapis do "
-        f"bazy padł 3× ({last_err}).\n\n"
+        f"bazy padł {len(SLEEPS)}× w ciągu ~{sum(SLEEPS)}s ({last_err}).\n\n"
         "Stary refresh_token został już ZUŻYTY przez Allegro — integracja "
         "martwa do ręcznego /allegro/auth.\n\n"
-        "Najpewniej 'database is locked' (REINDEX/backup). "
+        "Najpewniej 'database is locked' (REINDEX/backup/VACUUM/long sync). "
         "Wejdź na /allegro/auth NATYCHMIAST."
     )
     return False
