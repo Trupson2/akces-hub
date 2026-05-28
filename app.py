@@ -234,6 +234,11 @@ def _git_update_check_async():
             'notified': old_cache.get('notified', False) if has_update else False,
         }
         set_config('update_check_cache', json.dumps(cache))
+
+        # FIX 2026-05-28: ustaw 'update_available' (uzywane przez fioletowy
+        # banner w base.html). Wczesniej config NIGDY nie byl ustawiany,
+        # wiec banner nigdy sie nie pokazywal mimo ze update byl dostepny.
+        set_config('update_available', '1' if has_update else '0')
         # TG notify (raz)
         if has_update and not cache.get('notified'):
             try:
@@ -2174,7 +2179,9 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
 
         # PERF: NIGDY nie wywoluj git fetch synchronicznie w route - blokowal dashboard do 15s.
         # Cache stary -> odpal background refresh i zwroc to co jest.
-        if cache_age > 900 and not getattr(home, '_git_check_running', False):
+        # FIX 2026-05-28: skrocony z 900s (15min) na 120s (2min) - klient szybciej
+        # zobaczy ze pojawila sie nowa wersja (banner). git fetch raz na 2min = OK.
+        if cache_age > 120 and not getattr(home, '_git_check_running', False):
             home._git_check_running = True
             threading.Thread(target=_git_update_check_async, daemon=True).start()
 
@@ -2719,6 +2726,11 @@ def system_update():
                 except Exception:
                     pass
             log_admin_action('system_update', {'stage': 'already_up_to_date', 'restart': True}, success=True)
+            # Wyczysc banner update bo nic nowego nie ma
+            try:
+                set_config('update_available', '0')
+            except Exception:
+                pass
             threading.Thread(target=_force_restart, daemon=True).start()
             return jsonify({'ok': True, 'msg': 'Już aktualne — restart za chwilę...'})
 
