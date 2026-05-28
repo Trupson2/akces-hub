@@ -269,6 +269,68 @@ def _git_update_check_async():
         except Exception:
             pass
 
+
+def _public_update_check_async():
+    """Background: sprawdz wersje na PUBLIC repo (dla ZIP install jak Macek).
+
+    v1.0.89: bez tego klienci ZIP nigdy nie widzieli banera 'Dostepna aktualizacja'.
+    _git_update_check_async wychodzil early na if not .git folder.
+    """
+    try:
+        from modules.zip_updater import check_public_version
+        from modules.database import get_config, set_config
+        info = check_public_version(repo='Trupson2/akces-hub', branch='main', timeout=10)
+        has_update = bool(info.get('available', False))
+        latest = info.get('latest', '') or ''
+        current = info.get('current', '') or ''
+        err = info.get('error', '')
+        cache_raw = get_config('update_check_cache', '')
+        try:
+            old_cache = json.loads(cache_raw) if cache_raw else {}
+        except Exception:
+            old_cache = {}
+        cache = {
+            'checked_at': time.time(),
+            'has_update': has_update,
+            'remote_msg': (f'v{latest} dostepna' if has_update else f'aktualny v{current}') if not err else f'check error: {err[:60]}',
+            'remote_hash': latest,
+            'local_hash': current,
+            'notified': old_cache.get('notified', False) if has_update else False,
+            'is_zip': True,
+        }
+        set_config('update_check_cache', json.dumps(cache))
+        set_config('update_available', '1' if has_update else '0')
+        # TG notify (raz) gdy nowa wersja
+        if has_update and not cache.get('notified'):
+            try:
+                bot_token = get_config('telegram_bot_token', '')
+                chat_id = get_config('telegram_chat_id', '')
+                if bot_token and chat_id:
+                    import requests as _req
+                    text = (
+                        f"Dostepna aktualizacja!\n\n"
+                        f"Nowa wersja: {latest}\n"
+                        f"Twoja: {current}\n\n"
+                        f"Wejdz na dashboard i kliknij Aktualizuj"
+                    )
+                    _req.post(
+                        f'https://api.telegram.org/bot{bot_token}/sendMessage',
+                        json={'chat_id': chat_id, 'text': text},
+                        timeout=5
+                    )
+                    cache['notified'] = True
+                    set_config('update_check_cache', json.dumps(cache))
+            except Exception:
+                pass
+    except Exception as e:
+        print(f"[update] public check error: {e}")
+    finally:
+        try:
+            home._git_check_running = False  # ten sam flag co git check (mutex)
+        except Exception:
+            pass
+
+
 # Session cookie security
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
@@ -2161,35 +2223,34 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
         'stojace': stats.get('stojace_30dni', 0),
     }
 
-    # Sprawdź czy jest nowa wersja dostępna (cache 1h)
+    # Sprawdź czy jest nowa wersja dostępna (cache 2 min)
     update_status = None
     try:
         import subprocess as _sp
         from modules.database import get_config, set_config
 
-        # Sprawdź czy to instalacja z git (nie ZIP)
+        # v1.0.89: ZIP install (Macek) tez ma background check - poprzez public repo.
         _app_dir = os.path.dirname(os.path.abspath(__file__))
-        if not os.path.isdir(os.path.join(_app_dir, '.git')):
-            update_status = {'has_update': False, 'remote_msg': '', 'remote_hash': '', 'local_hash': '', 'is_zip': True}
-            raise Exception('ZIP install — skip git check')
+        _is_zip = not os.path.isdir(os.path.join(_app_dir, '.git'))
 
         cache_raw = get_config('update_check_cache', '')
         cache = json.loads(cache_raw) if cache_raw else {}
         cache_age = time.time() - cache.get('checked_at', 0)
 
-        # PERF: NIGDY nie wywoluj git fetch synchronicznie w route - blokowal dashboard do 15s.
-        # Cache stary -> odpal background refresh i zwroc to co jest.
-        # FIX 2026-05-28: skrocony z 900s (15min) na 120s (2min) - klient szybciej
-        # zobaczy ze pojawila sie nowa wersja (banner). git fetch raz na 2min = OK.
+        # PERF: NIGDY nie wywoluj git fetch / HTTP synchronicznie w route -
+        # blokowal dashboard do 15s. Cache stary -> odpal background refresh
+        # i zwroc to co jest. TTL 120s (2 min).
         if cache_age > 120 and not getattr(home, '_git_check_running', False):
             home._git_check_running = True
-            threading.Thread(target=_git_update_check_async, daemon=True).start()
+            _target = _public_update_check_async if _is_zip else _git_update_check_async
+            threading.Thread(target=_target, daemon=True).start()
 
         update_status = {
             'has_update': cache.get('has_update', False),
             'remote_msg': cache.get('remote_msg', ''),
             'remote_hash': cache.get('remote_hash', ''),
             'local_hash': cache.get('local_hash', ''),
+            'is_zip': _is_zip,
         }
     except:
         pass

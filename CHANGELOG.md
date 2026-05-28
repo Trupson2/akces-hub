@@ -2,6 +2,7 @@
 
 ## 28.05.2026
 
+- feat(update): ZIP install (Macek) tez ma background update check + banner. _public_update_check_async() pobiera VERSION z public repo, ustawia update_available. Banner JS rozszerzony 3-poziomowy fallback (update-git -> update-from-public -> /system/update).
 - feat(gpsr): wybor domyslnego producenta + osoby odpowiedzialnej w /allegro/config (dropdown z listy Allegro) - zamiast [0] losowego z listy. Puste = fallback do pierwszego.
 - ux(narzedzia): wywalono sekcje KALKULATORY (oplacalnosci + marzy) - malo uzywane, endpointy zostaja dostepne przez URL
 - fix(paletomat): anti-duplicate request lock (60s TTL per user+ids) chroni przed EventSource auto-reconnect i double-submit - 1 klik = 1 oferta na Allegro
