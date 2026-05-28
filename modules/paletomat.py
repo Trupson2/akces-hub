@@ -3961,7 +3961,7 @@ def generator_mass_create_from_paleta_stream():
                                 _failed_paths.append(src_path)
                                 yield "data: " + json.dumps({'type': 'log', 'message': f'   <span class=material-symbols-outlined>cancel</span> [{idx}] {result}', 'color': '#ef4444'}) + "\n\n"
                         except queue.Empty:
-                            yield ": keepalive\n\n"
+                            yield "data: " + json.dumps({'type': 'ping'}) + "\n\n"
 
                     yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>photo_camera</span> Uploadowano {len(zdjecia_urls)}/{len(_imgs_to_upload)} zdjęć', 'color': '#22c55e' if zdjecia_urls else '#ef4444'}) + "\n\n"
 
@@ -3978,7 +3978,7 @@ def generator_mass_create_from_paleta_stream():
                                     yield "data: " + json.dumps({'type': 'log', 'message': f'   <span class=material-symbols-outlined>cancel</span> [CDN {_ui}] Nie przeszło', 'color': '#ef4444'}) + "\n\n"
                             except:
                                 pass
-                            yield ": keepalive\n\n"
+                            yield "data: " + json.dumps({'type': 'ping'}) + "\n\n"
                         if zdjecia_urls:
                             yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>check_circle</span> CDN fallback: {len(zdjecia_urls)} zdjęć', 'color': '#22c55e'}) + "\n\n"
                 
@@ -4069,7 +4069,7 @@ def generator_mass_create_from_paleta_stream():
                                 return val
                             raise val
                         except queue.Empty:
-                            yield ": keepalive\n\n"
+                            yield "data: " + json.dumps({'type': 'ping'}) + "\n\n"
 
                 # Generuj opis w tle z keepalive
                 opis_html = ''
@@ -4092,7 +4092,7 @@ def generator_mass_create_from_paleta_stream():
                             _done_count += 1
                             _futures[f] = 'got'
                         if _done_count < 2:
-                            yield ": keepalive\n\n"
+                            yield "data: " + json.dumps({'type': 'ping'}) + "\n\n"
                             time.sleep(3)
 
                     try:
@@ -4144,7 +4144,7 @@ def generator_mass_create_from_paleta_stream():
                         result, error = _offer_q.get(timeout=3)
                         break
                     except queue.Empty:
-                        yield ": keepalive\n\n"
+                        yield "data: " + json.dumps({'type': 'ping'}) + "\n\n"
 
                 if error:
                     yield "data: " + json.dumps({'type': 'error', 'title': nazwa[:40], 'error': error[:80]}) + "\n\n"
