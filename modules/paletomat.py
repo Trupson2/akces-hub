@@ -1962,6 +1962,16 @@ def scraper_asin():
         <a href="/paletomat" class="back">← Powrót do Paletomat</a>
     ''')
 
+@paletomat_bp.route('/scraper/file', methods=['GET'])
+def scraper_file_get():
+    """FIX 2026-05-28: GET na /scraper/file - przekierowanie na parent.
+
+    User wchodzil tu przez F5/Back button po POST submit -> Method Not Allowed
+    bo endpoint byl tylko POST. Teraz GET -> redirect do /paletomat/scraper.
+    """
+    return redirect('/paletomat/scraper')
+
+
 @paletomat_bp.route('/scraper/file', methods=['POST'])
 def scraper_file():
     """Import ASIN-ów z pliku (Excel lub CSV/TXT)"""
