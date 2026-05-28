@@ -7280,6 +7280,271 @@ def _parse_paleta_url_to_dostawca(url):
     return ''
 
 
+# ─────────────────────────────────────────────────────────────────
+# v1.0.92: NAPRAWA CEN Z EXCELA (retro-fix)
+# Dla produktow ktorych ceny nie zaladowaly sie przy import_multi
+# (bo stary parser nie lapal kolumny lub formatu liczby).
+# UPDATE-uje TYLKO ceny istniejacych produktow, nie tworzy nowych.
+# ─────────────────────────────────────────────────────────────────
+
+@magazynier_bp.route('/naprawa-cen-excel', methods=['GET'])
+def naprawa_cen_excel_form():
+    """Form upload Excel + checkbox dry-run."""
+    html = '''
+    <div class="hdr"><h1><span class="material-symbols-outlined">payments</span> NAPRAWA CEN Z EXCELA</h1>
+        <div style="font-size:0.85rem;color:#94a3b8;margin-top:6px">
+            Wgraj Excel z cenami. Tool zaktualizuje TYLKO ceny istniejacych produktow (match po ASIN/EAN/nazwie). Nie tworzy nowych, nie rusza palet ani statusow.
+        </div>
+    </div>
+
+    <form action="/magazyn/naprawa-cen-excel/execute" method="POST" enctype="multipart/form-data">
+        <div class="card" style="padding:30px;text-align:center;cursor:pointer" onclick="document.getElementById('cenFile').click()">
+            <div style="font-size:3rem;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:3rem">cloud_upload</span></div>
+            <div style="font-weight:600;font-size:1.05rem">Wybierz plik Excel (.xlsx)</div>
+            <div style="font-size:0.8rem;color:#64748b;margin-top:5px">System rozpozna kolumny ASIN/EAN/nazwa/cena_netto/cena_allegro</div>
+            <input type="file" id="cenFile" name="file" style="display:none" accept=".xlsx" onchange="this.form.submit()">
+        </div>
+
+        <div class="card" style="padding:14px;margin-top:14px">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+                <input type="checkbox" name="dry_run" value="1" checked style="width:18px;height:18px">
+                <div>
+                    <div style="font-weight:600">TYLKO PODGLAD (dry-run)</div>
+                    <div style="font-size:0.78rem;color:#94a3b8">Nie zapisuje do bazy - pokazuje co BY zostalo zmienione. Odznacz zeby wykonac zapis.</div>
+                </div>
+            </label>
+        </div>
+    </form>
+
+    <div class="card" style="padding:18px;margin-top:18px;background:rgba(143,245,255,0.04);border:1px solid rgba(143,245,255,0.15)">
+        <div style="font-weight:700;color:#8ff5ff;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">info</span> Jak dzialamy</div>
+        <ul style="font-size:0.82rem;color:#94a3b8;line-height:1.7;padding-left:20px;margin:0">
+            <li>Match produktu PRIORYTET: ASIN -> EAN -> nazwa (znormalizowana, pierwsze 40 znakow)</li>
+            <li>UPDATE cena_netto + cena_brutto (=netto*1.23) jezeli kol. netto > 0</li>
+            <li>UPDATE cena_allegro jezeli > 0</li>
+            <li>NIE rusza: status, stan, ilosc, paleta_id, zdjecia</li>
+            <li>Pomija produkty ze sprzedazami (status='sprzedany') - tam ceny historyczne</li>
+        </ul>
+    </div>
+
+    <a href="/narzedzia" class="back" style="margin-top:18px">← Powrot do Narzedzi</a>
+    '''
+    return render(html, 'Naprawa cen z Excela')
+
+
+@magazynier_bp.route('/naprawa-cen-excel/execute', methods=['POST'])
+def naprawa_cen_excel_execute():
+    """Parse Excel + match produkty + UPDATE ceny.
+
+    Match strategy: ASIN > EAN > normalized nazwa[:40].
+    Update tylko cena_netto + cena_brutto + cena_allegro jezeli > 0.
+    """
+    from .database import get_db
+    import openpyxl
+    import re as _re_norm
+
+    if 'file' not in request.files:
+        return render('<div class="hdr"><h1><span class=material-symbols-outlined>cancel</span> BLAD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/naprawa-cen-excel" class="back">Powrot</a>')
+
+    file = request.files['file']
+    if not file.filename or not file.filename.lower().endswith('.xlsx'):
+        return render('<div class="hdr"><h1><span class=material-symbols-outlined>cancel</span> BLAD</h1></div><div class="alert alert-err">Tylko .xlsx</div><a href="/magazyn/naprawa-cen-excel" class="back">Powrot</a>')
+
+    dry_run = request.form.get('dry_run', '') == '1'
+
+    import secrets
+    _import_cleanup_old()
+    tmp_uuid = secrets.token_urlsafe(16).replace('-', '_').replace('/', '_')
+    tmp_path = _import_tmp_dir() / f'{tmp_uuid}.xlsx'
+    file.save(str(tmp_path))
+
+    try:
+        wb = openpyxl.load_workbook(str(tmp_path), data_only=True)
+    except Exception as e:
+        return render(f'<div class="hdr"><h1><span class=material-symbols-outlined>cancel</span> BLAD</h1></div><div class="alert alert-err">Nie da sie otworzyc: {str(e)[:200]}</div><a href="/magazyn/naprawa-cen-excel" class="back">Powrot</a>')
+
+    # Wybierz pierwszy sensowny sheet
+    target_sheet = wb.sheetnames[0]
+    for sn in wb.sheetnames:
+        if 'magazyn' in sn.lower() or 'inventory' in sn.lower():
+            target_sheet = sn
+            break
+    ws = wb[target_sheet]
+
+    header_row = _find_header_row(ws)
+    if header_row < 0:
+        return render('<div class="hdr"><h1><span class=material-symbols-outlined>cancel</span> BLAD</h1></div><div class="alert alert-err">Nie znaleziono wiersza naglowkowego (max 15 wierszy od gory)</div><a href="/magazyn/naprawa-cen-excel" class="back">Powrot</a>')
+
+    headers = [str(ws.cell(row=header_row, column=c).value or '').strip()
+               for c in range(1, (ws.max_column or 0) + 1)]
+    col_map = _auto_detect_columns(headers)
+
+    # Stats
+    total_rows = 0
+    matched_count = 0
+    updated_count = 0
+    skipped_no_match = 0
+    skipped_no_prices = 0
+    skipped_sold = 0
+    changes_preview = []  # dla dry-run
+
+    conn = get_db()
+
+    def _norm_nazwa(n):
+        return _re_norm.sub(r'[^a-z0-9 ]+', '', (n or '').lower())[:40].strip()
+
+    try:
+        for row_idx, row in enumerate(ws.iter_rows(min_row=header_row + 1, values_only=True), start=header_row + 1):
+            parsed = _parse_row_with_mapping(row, col_map, row_idx)
+            if not parsed or '_skip_reason' in parsed:
+                continue
+            total_rows += 1
+
+            asin = (parsed.get('asin') or '').strip().upper()
+            ean = (parsed.get('ean') or '').strip()
+            nazwa = (parsed.get('nazwa') or '').strip()
+            cena_netto_new = parsed.get('cena_netto', 0) or 0
+            cena_allegro_new = parsed.get('cena_allegro', 0) or 0
+
+            if cena_netto_new <= 0 and cena_allegro_new <= 0:
+                skipped_no_prices += 1
+                continue
+
+            # Match: ASIN > EAN > nazwa_norm
+            existing = None
+            if asin:
+                existing = conn.execute(
+                    "SELECT id, nazwa, asin, ean, cena_netto, cena_allegro, status FROM produkty WHERE UPPER(TRIM(asin))=? LIMIT 1",
+                    (asin,)
+                ).fetchone()
+            if not existing and ean:
+                existing = conn.execute(
+                    "SELECT id, nazwa, asin, ean, cena_netto, cena_allegro, status FROM produkty WHERE TRIM(ean)=? LIMIT 1",
+                    (ean,)
+                ).fetchone()
+            if not existing and nazwa:
+                nazwa_norm = _norm_nazwa(nazwa)
+                if nazwa_norm:
+                    rows = conn.execute(
+                        "SELECT id, nazwa, asin, ean, cena_netto, cena_allegro, status FROM produkty WHERE LENGTH(nazwa)>5 LIMIT 5000"
+                    ).fetchall()
+                    for r in rows:
+                        if _norm_nazwa(r['nazwa']) == nazwa_norm:
+                            existing = r
+                            break
+
+            if not existing:
+                skipped_no_match += 1
+                continue
+
+            if (existing['status'] or '').lower() == 'sprzedany':
+                skipped_sold += 1
+                continue
+
+            matched_count += 1
+
+            old_netto = existing['cena_netto'] or 0
+            old_allegro = existing['cena_allegro'] or 0
+
+            updates = []
+            params = []
+            if cena_netto_new > 0:
+                updates.append("cena_netto = ?")
+                params.append(round(cena_netto_new, 2))
+                updates.append("cena_brutto = ?")
+                params.append(round(cena_netto_new * 1.23, 2))
+            if cena_allegro_new > 0:
+                updates.append("cena_allegro = ?")
+                params.append(round(cena_allegro_new, 2))
+
+            if not updates:
+                continue
+
+            if dry_run:
+                changes_preview.append({
+                    'id': existing['id'],
+                    'nazwa': (existing['nazwa'] or '')[:60],
+                    'asin': existing['asin'] or '',
+                    'old_netto': old_netto,
+                    'new_netto': cena_netto_new if cena_netto_new > 0 else old_netto,
+                    'old_allegro': old_allegro,
+                    'new_allegro': cena_allegro_new if cena_allegro_new > 0 else old_allegro,
+                })
+            else:
+                params.append(existing['id'])
+                conn.execute(f"UPDATE produkty SET {', '.join(updates)} WHERE id = ?", tuple(params))
+                updated_count += 1
+
+        if not dry_run:
+            conn.commit()
+    except Exception as e:
+        return render(f'<div class="hdr"><h1><span class=material-symbols-outlined>cancel</span> BLAD</h1></div><div class="alert alert-err">Wyjatek: {str(e)[:200]}</div><a href="/magazyn/naprawa-cen-excel" class="back">Powrot</a>')
+
+    # Render statystyk
+    detected_cols = '<br>'.join([
+        f"<b>{role}</b>: {'kol. ' + str(col_map[role] + 1) + ' (' + headers[col_map[role]] + ')' if col_map.get(role, -1) >= 0 else '<span style=color:#fca5a5>nie znaleziono</span>'}"
+        for role in ['asin', 'ean', 'nazwa', 'cena_netto', 'cena_allegro']
+    ])
+
+    if dry_run:
+        preview_rows = ''.join([
+            f"<tr><td>{c['id']}</td><td>{c['nazwa']}</td><td>{c['asin']}</td>"
+            f"<td>{c['old_netto']:.2f} <span style='color:#22c55e'>&rarr; {c['new_netto']:.2f}</span></td>"
+            f"<td>{c['old_allegro']:.2f} <span style='color:#22c55e'>&rarr; {c['new_allegro']:.2f}</span></td></tr>"
+            for c in changes_preview[:50]
+        ])
+        result_html = f'''
+        <div class="card" style="padding:18px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3)">
+            <div style="font-weight:800;color:#fbbf24;font-size:1.1rem"><span class=material-symbols-outlined>preview</span> PODGLAD (dry-run) - NIC NIE ZAPISANE</div>
+        </div>
+        <div class="card" style="padding:14px;margin-top:14px">
+            <div style="font-weight:700;margin-bottom:8px">Wykryte kolumny:</div>
+            <div style="font-size:0.85rem">{detected_cols}</div>
+        </div>
+        <div class="card" style="padding:14px;margin-top:14px">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
+                <div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase">Wszystkich</div><div style="font-size:1.5rem;font-weight:800">{total_rows}</div></div>
+                <div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase">Match</div><div style="font-size:1.5rem;font-weight:800;color:#22c55e">{matched_count}</div></div>
+                <div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase">Brak match</div><div style="font-size:1.5rem;font-weight:800;color:#fca5a5">{skipped_no_match}</div></div>
+                <div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase">Bez cen</div><div style="font-size:1.5rem;font-weight:800;color:#94a3b8">{skipped_no_prices}</div></div>
+                <div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase">Sprzedane (skip)</div><div style="font-size:1.5rem;font-weight:800;color:#94a3b8">{skipped_sold}</div></div>
+            </div>
+        </div>
+        <div class="card" style="padding:14px;margin-top:14px;overflow-x:auto">
+            <div style="font-weight:700;margin-bottom:10px">Pierwsze 50 zmian:</div>
+            <table style="width:100%;font-size:0.82rem;border-collapse:collapse">
+                <tr style="border-bottom:1px solid #2d3748"><th style="text-align:left;padding:6px">ID</th><th style="text-align:left;padding:6px">Nazwa</th><th style="text-align:left;padding:6px">ASIN</th><th style="text-align:left;padding:6px">Netto</th><th style="text-align:left;padding:6px">Allegro</th></tr>
+                {preview_rows}
+            </table>
+        </div>
+        <div style="margin-top:18px;display:flex;gap:10px">
+            <a href="/magazyn/naprawa-cen-excel" class="btn btn-secondary">Powrot</a>
+            <form action="/magazyn/naprawa-cen-excel/execute" method="POST" enctype="multipart/form-data" style="display:inline">
+                <p style="font-size:0.82rem;color:#fbbf24">Aby ZAPISAC: wroc, wgraj plik PONOWNIE i ODZNACZ checkbox dry-run.</p>
+            </form>
+        </div>
+        '''
+    else:
+        result_html = f'''
+        <div class="card" style="padding:18px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3)">
+            <div style="font-weight:800;color:#22c55e;font-size:1.1rem"><span class=material-symbols-outlined>check_circle</span> ZAPISANE</div>
+            <div style="margin-top:6px;font-size:0.9rem">Zaktualizowano <b>{updated_count}</b> produktow.</div>
+        </div>
+        <div class="card" style="padding:14px;margin-top:14px">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
+                <div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase">Wszystkich</div><div style="font-size:1.5rem;font-weight:800">{total_rows}</div></div>
+                <div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase">Update</div><div style="font-size:1.5rem;font-weight:800;color:#22c55e">{updated_count}</div></div>
+                <div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase">Brak match</div><div style="font-size:1.5rem;font-weight:800;color:#fca5a5">{skipped_no_match}</div></div>
+                <div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase">Bez cen</div><div style="font-size:1.5rem;font-weight:800;color:#94a3b8">{skipped_no_prices}</div></div>
+                <div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase">Sprzedane (skip)</div><div style="font-size:1.5rem;font-weight:800;color:#94a3b8">{skipped_sold}</div></div>
+            </div>
+        </div>
+        <a href="/magazyn/produkty" class="back" style="margin-top:18px">Przejdz do magazynu</a>
+        '''
+
+    return render('<div class="hdr"><h1><span class=material-symbols-outlined>payments</span> NAPRAWA CEN - WYNIK</h1></div>' + result_html, 'Naprawa cen wynik')
+
+
 def _map_excel_status_to_system(excel_status):
     """Maciek's STATUS column -> system status.
 

@@ -2,6 +2,7 @@
 
 ## 28.05.2026
 
+- feat(narzedzia): /magazyn/naprawa-cen-excel - retro-fix dla produktow z brakujacymi cenami. Wgraj Excel, match po ASIN/EAN/nazwa, UPDATE tylko cen (cena_netto+cena_brutto+cena_allegro). Dry-run domyslnie wlaczony - podglad przed zapisem. Kafelek w /narzedzia.
 - fix(import): rozszerzony auto-detect kolumn cen + robust parser. CENAZAKUPU/ZAKUP/KOSZT/BUY/PURCHASE/CENABRUTTO dla cena_netto, ALLEGRO/SPRZEDAZ dla cena_allegro. Parser usuwa /szt, *, (), waluty (PLN/EUR/GBP/kn) regex. Bez tego klient z 'Cena zakupu' w Excelu mial wszedzie 0.
 - feat(paletomat): "Wystaw BEZ zdjec" toggle w mass-create-from-paleta (checkbox pod cennikiem). Pomija upload + CDN fallback - oszczednosc 5-15s/oferta. Backend &skip_images=1 param. Klient dodaje zdjecia recznie na Allegro pozniej.
 - feat(update): ZIP install (Macek) tez ma background update check + banner. _public_update_check_async() pobiera VERSION z public repo, ustawia update_available. Banner JS rozszerzony 3-poziomowy fallback (update-git -> update-from-public -> /system/update).
