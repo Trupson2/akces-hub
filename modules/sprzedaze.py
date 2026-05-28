@@ -442,6 +442,99 @@ def sync_zwroty_allegro():
         return redirect(f'{base_url}&msg=error&detail={str(e)[:50]}')
 
 
+@sprzedaze_bp.route('/sprzedaze/sync-historyczny', methods=['POST'])
+def sync_historyczny():
+    """Sync historyczny zamowien + zwrotow z Allegro za N miesiecy wstecz.
+
+    POST JSON: {months_back: 3 | 6 | 12 | 24}
+
+    Krok 1: sync_orders(from_date_str=today - N miesiecy) - pobiera zamowienia
+    Krok 2: petla po miesiacach (najnowszy -> najstarszy), dla kazdego wywoluje
+            sync_returns(month) - oznacza zwroty
+
+    Returns: JSON {ok, orders_synced, returns_per_month, errors, total_time_s}
+    """
+    from modules.allegro_api import sync_orders, sync_returns, is_authenticated
+    from datetime import date, timedelta
+    import time as _time
+
+    if not is_authenticated():
+        return jsonify({'ok': False, 'error': 'Allegro nie zalogowany'})
+
+    _data = request.get_json(silent=True) or {}
+    try:
+        months_back = int(_data.get('months_back', 12))
+    except (ValueError, TypeError):
+        months_back = 12
+    if months_back not in (3, 6, 12, 24):
+        months_back = 12
+
+    _start = _time.time()
+    today = date.today()
+    # Data startowa = pierwszy dzien (today - months_back miesiecy)
+    _y = today.year
+    _m = today.month - months_back
+    while _m <= 0:
+        _y -= 1
+        _m += 12
+    from_date_str = f"{_y}-{_m:02d}-01"
+
+    # Krok 1: pobierz wszystkie zamowienia od tej daty
+    print(f"[SYNC-HIST] Pobieram zamowienia od {from_date_str} ({months_back} miesiecy)...")
+    orders_synced = 0
+    orders_error = None
+    try:
+        result = sync_orders(today_only=False, notify=False, from_date_str=from_date_str)
+        # sync_orders moze zwrocic dict z metadanymi lub int (zaleznie od wersji)
+        if isinstance(result, dict):
+            orders_synced = result.get('new_orders', 0) + result.get('updated_orders', 0)
+        elif isinstance(result, int):
+            orders_synced = result
+        elif isinstance(result, tuple) and len(result) >= 1:
+            orders_synced = result[0] if isinstance(result[0], int) else 0
+    except Exception as e:
+        orders_error = str(e)[:120]
+        print(f"[SYNC-HIST] sync_orders error: {e}")
+
+    # Krok 2: zwroty - petla po miesiacach
+    returns_per_month = []
+    errors = []
+    months_iter = []
+    for i in range(months_back):
+        _ym = today.month - i
+        _yy = today.year
+        while _ym <= 0:
+            _yy -= 1
+            _ym += 12
+        months_iter.append(f"{_yy}-{_ym:02d}")
+
+    for month in months_iter:
+        try:
+            updated, err = sync_returns(month)
+            returns_per_month.append({'month': month, 'returns': updated or 0})
+            if err:
+                errors.append(f"{month}: {err[:80]}")
+        except Exception as e:
+            errors.append(f"{month}: {str(e)[:80]}")
+            print(f"[SYNC-HIST] {month} sync_returns error: {e}")
+
+    total_returns = sum(r['returns'] for r in returns_per_month)
+    elapsed = round(_time.time() - _start, 1)
+
+    return jsonify({
+        'ok': True,
+        'months_back': months_back,
+        'from_date': from_date_str,
+        'orders_synced': orders_synced,
+        'orders_error': orders_error,
+        'total_returns_marked': total_returns,
+        'returns_per_month': returns_per_month,
+        'errors': errors[:20],
+        'total_time_s': elapsed,
+        'msg': f'Pobrano {orders_synced} zamowien + oznaczono {total_returns} zwrotow z {months_back} miesiecy ({elapsed}s)',
+    })
+
+
 @sprzedaze_bp.route('/sprzedaze/napraw-nazwy')
 def napraw_nazwy_sprzedazy():
     """Uzupelnia brakujace nazwy, zdjecia i daty w sprzedazach z Allegro API"""

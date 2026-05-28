@@ -728,11 +728,17 @@ def ustawienia_ai_prompt_save():
 
 @ustawienia_bp.route('/ustawienia/layout-opisu', methods=['GET'])
 def ustawienia_layout_opisu():
-    """Wybor layoutu opisu Allegro (4 predefiniowane uklady sekcji)."""
+    """Wybor layoutu opisu Allegro + max zdjec do opisu (2/4/6/8)."""
     from modules.allegro_api import LAYOUTS_AVAILABLE, LAYOUTS_INFO
     current = get_config('allegro_opis_layout', 'klasyczny').strip().lower()
     if current not in LAYOUTS_AVAILABLE:
         current = 'klasyczny'
+    try:
+        current_max_img = int(get_config('allegro_max_zdjec_opis', '8') or '8')
+    except (ValueError, TypeError):
+        current_max_img = 8
+    if current_max_img not in (2, 4, 6, 8):
+        current_max_img = 8
 
     return render_template_string('''{% extends "base.html" %}
 {% block page_title %}Layout opisu Allegro{% endblock %}
@@ -811,6 +817,25 @@ def ustawienia_layout_opisu():
         {% endfor %}
         </div>
 
+        <div class="card" style="padding:16px;margin-bottom:18px">
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+                <div class="layout-icon-wrap" style="background:rgba(143,245,255,0.1);border:1px solid rgba(143,245,255,0.3)">
+                    <span class="material-symbols-outlined" style="color:#8ff5ff">image</span>
+                </div>
+                <div style="flex:1;min-width:200px">
+                    <div style="font-weight:800;color:#8ff5ff;font-size:0.95rem">Max zdjęć w opisie</div>
+                    <div style="font-size:0.78rem;color:#94a3b8;line-height:1.5;margin-top:4px">
+                        Ile zdjęć produktu wstawić w opisie Allegro (galeria oferty zawsze pokazuje wszystkie). Mniej zdjęć = szybciej się ładuje + krótszy opis.
+                    </div>
+                </div>
+                <select name="max_img" style="padding:10px 14px;background:#0f1019;border:1px solid #2d3748;border-radius:8px;color:#e2e8f0;font-size:0.95rem;font-weight:700;min-width:120px">
+                    {% for n in [2, 4, 6, 8] %}
+                    <option value="{{ n }}" {{ 'selected' if n == current_max_img else '' }}>{{ n }} zdjęć{% if n == 8 %} (domyślnie){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
             <button type="submit" class="layout-save-btn">
                 <span class="material-symbols-outlined">save</span> Zapisz wybrany layout
@@ -829,6 +854,7 @@ def ustawienia_layout_opisu():
 {% endblock %}
 ''',
         current=current,
+        current_max_img=current_max_img,
         layouts_order=LAYOUTS_AVAILABLE,
         layouts_info=LAYOUTS_INFO,
     )
@@ -836,12 +862,21 @@ def ustawienia_layout_opisu():
 
 @ustawienia_bp.route('/ustawienia/layout-opisu', methods=['POST'])
 def ustawienia_layout_opisu_save():
-    """Zapisz wybrany layout (whitelist - tylko 4 zdefiniowane)."""
+    """Zapisz wybrany layout (whitelist) + max zdjec w opisie."""
     from modules.allegro_api import LAYOUTS_AVAILABLE
     chosen = request.form.get('layout', '').strip().lower()
     if chosen not in LAYOUTS_AVAILABLE:
         chosen = 'klasyczny'
     set_config('allegro_opis_layout', chosen)
+
+    try:
+        max_img = int(request.form.get('max_img', '8'))
+    except (ValueError, TypeError):
+        max_img = 8
+    if max_img not in (2, 4, 6, 8):
+        max_img = 8
+    set_config('allegro_max_zdjec_opis', str(max_img))
+
     return redirect('/ustawienia/layout-opisu')
 
 

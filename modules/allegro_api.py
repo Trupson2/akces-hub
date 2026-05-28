@@ -1842,7 +1842,7 @@ def update_offer_condition(offer_id, stan):
 # 4 opcje: klasyczny | mirror | tekst_top | galeria_first
 # ════════════════════════════════════════════════════════════════════════
 
-LAYOUTS_AVAILABLE = ['klasyczny', 'mirror', 'tekst_top', 'galeria_first', 'bloki']
+LAYOUTS_AVAILABLE = ['klasyczny', 'mirror', 'tekst_top', 'galeria_first', 'bloki', 'sandwich']
 
 LAYOUTS_INFO = {
     'klasyczny': {
@@ -1912,6 +1912,19 @@ LAYOUTS_INFO = {
             '[TEXT]\n'
         ),
     },
+    'sandwich': {
+        'label': 'Sandwich',
+        'icon': 'lunch_dining',
+        'color': '#34d399',
+        'desc': 'Tekst → pojedyncze zdjęcia (każde w osobnej sekcji) → tekst. Minimalistyczny, klient ogląda zdjęcia jedno po drugim.',
+        'wireframe': (
+            'H2 Tytuł\n'
+            '[TEXT]\n'
+            '[IMG]\n'
+            '[IMG]\n'
+            '[TEXT]\n'
+        ),
+    },
 }
 
 
@@ -1959,31 +1972,41 @@ def _h2_section(nazwa):
     return {'items': [{'type': 'TEXT', 'content': f'<h2>{_h2}</h2>'}]}
 
 
-def _build_description_sections(layout, nazwa, opis_html_clean, bullet_points, uploaded_images):
+def _build_description_sections(layout, nazwa, opis_html_clean, bullet_points, uploaded_images, max_img=8):
     """Główny dispatcher layoutu opisu Allegro.
 
     Args:
-        layout: 'klasyczny' | 'mirror' | 'tekst_top' | 'galeria_first'
+        layout: 'klasyczny' | 'mirror' | 'tekst_top' | 'galeria_first' | 'bloki' | 'sandwich'
         nazwa: nazwa produktu
         opis_html_clean: opis HTML (już przetworzony, z &amp; escape)
         bullet_points: lista cech (lub None) - obecnie nieużywane wewnątrz sections
         uploaded_images: lista URL-i zdjęć już uploadnięte do Allegro
+        max_img: max zdjec w opisie (2/4/6/8) - klient konfiguruje w /ustawienia/layout-opisu
     Returns:
         list[dict] - sections gotowe do offer_data['description']['sections']
     """
     if layout not in LAYOUTS_AVAILABLE:
         layout = 'klasyczny'
 
+    # Bezpieczna walidacja max_img (whitelist 2/4/6/8)
+    if max_img not in (2, 4, 6, 8):
+        max_img = 8
+
+    # Obetnij liste zdjec do max_img zeby uproscic funkcje layoutu
+    imgs = list(uploaded_images or [])[:max_img]
+
     if layout == 'mirror':
-        sections = _layout_mirror(nazwa, opis_html_clean, uploaded_images)
+        sections = _layout_mirror(nazwa, opis_html_clean, imgs)
     elif layout == 'tekst_top':
-        sections = _layout_tekst_top(nazwa, opis_html_clean, uploaded_images)
+        sections = _layout_tekst_top(nazwa, opis_html_clean, imgs)
     elif layout == 'galeria_first':
-        sections = _layout_galeria_first(nazwa, opis_html_clean, uploaded_images)
+        sections = _layout_galeria_first(nazwa, opis_html_clean, imgs)
     elif layout == 'bloki':
-        sections = _layout_bloki(nazwa, opis_html_clean, uploaded_images)
+        sections = _layout_bloki(nazwa, opis_html_clean, imgs)
+    elif layout == 'sandwich':
+        sections = _layout_sandwich(nazwa, opis_html_clean, imgs)
     else:
-        sections = _layout_klasyczny(nazwa, opis_html_clean, uploaded_images)
+        sections = _layout_klasyczny(nazwa, opis_html_clean, imgs)
 
     # SAFETY NET: jeśli sections nie zawiera TEXT a mamy opis → dodaj go
     has_text_section = any(
@@ -2204,6 +2227,44 @@ def _layout_bloki(nazwa, opis_html_clean, uploaded_images):
     return sections
 
 
+def _layout_sandwich(nazwa, opis_html_clean, uploaded_images):
+    """TEXT na gorze -> pojedyncze zdjecia (kazde w osobnej sekcji) -> TEXT na dole.
+    Minimalistyczny, dobry gdy klient chce wyrazne pokazanie kazdego zdjecia
+    osobno (bez parowania po 2 obok siebie).
+    """
+    sections = [_h2_section(nazwa)]
+
+    max_img = min(len(uploaded_images), 8)
+    chunks = _parse_paragraphs_and_chunks(opis_html_clean, 2)
+
+    # Edge case'y
+    if not chunks and not uploaded_images:
+        return sections  # tylko H2
+    if not uploaded_images:
+        # Same teksty
+        sections.append({'items': [{'type': 'TEXT', 'content': ''.join(chunks)}]})
+        return sections
+    if not chunks:
+        # Same zdjecia - pojedyncze, kazde w osobnej sekcji
+        for i in range(max_img):
+            sections.append({'items': [{'type': 'IMAGE', 'url': uploaded_images[i]}]})
+        return sections
+
+    # PEŁNY UKŁAD: TEXT, IMG, IMG, ..., IMG, TEXT
+    # Intro
+    sections.append({'items': [{'type': 'TEXT', 'content': chunks[0]}]})
+
+    # Wszystkie zdjecia pojedynczo
+    for i in range(max_img):
+        sections.append({'items': [{'type': 'IMAGE', 'url': uploaded_images[i]}]})
+
+    # Outro tekst - reszta chunkow zlepiona
+    if len(chunks) > 1:
+        sections.append({'items': [{'type': 'TEXT', 'content': ''.join(chunks[1:])}]})
+
+    return sections
+
+
 def create_offer(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, ilosc=1, czas_wysylki='PT24H', ean=None, asin=None, gpsr=None, stan=None, product_specs=None, bullet_points=None, kod_magazynowy=None, shipping_id_override=None, currency=None):
     """
     Tworzy nową ofertę na Allegro.
@@ -2308,7 +2369,9 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
 
     # Waluta: priorytet param > config > PLN default
     # Wspierane: PLN (Allegro.pl), CZK (Allegro.cz), EUR (Allegro.sk), HUF
-    _currency = (currency or get_config_cached('default_currency', 'PLN') or 'PLN').upper()
+    # FIX 2026-05-28: lokalny import bo top-level moze nie miec get_config_cached
+    from modules.database import get_config_cached as _gcc
+    _currency = (currency or _gcc('default_currency', 'PLN') or 'PLN').upper()
     if _currency not in ('PLN', 'EUR', 'CZK', 'HUF', 'USD', 'GBP'):
         _currency = 'PLN'
 
@@ -2544,8 +2607,16 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
     try:
         from .database import get_config as _gc
         _layout_choice = (_gc('allegro_opis_layout', 'klasyczny') or 'klasyczny').strip().lower()
+        # Max zdjec w opisie (2/4/6/8) - klient wybiera w /ustawienia/layout-opisu
+        try:
+            _max_img_choice = int(_gc('allegro_max_zdjec_opis', '8') or '8')
+        except (ValueError, TypeError):
+            _max_img_choice = 8
+        if _max_img_choice not in (2, 4, 6, 8):
+            _max_img_choice = 8
     except Exception:
         _layout_choice = 'klasyczny'
+        _max_img_choice = 8
 
     sections = _build_description_sections(
         layout=_layout_choice,
@@ -2553,6 +2624,7 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
         opis_html_clean=opis_html_clean,
         bullet_points=bullet_points,
         uploaded_images=uploaded_images,
+        max_img=_max_img_choice,
     )
 
     if sections:
