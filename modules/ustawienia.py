@@ -751,13 +751,29 @@ def ustawienia_layout_opisu():
 <style>
 .layout-card {
     padding:16px;border-radius:12px;border:2px solid rgba(255,255,255,0.06);
-    background:rgba(22,26,33,0.5);transition:all 0.2s;height:100%;
-    display:flex;flex-direction:column;gap:10px;
+    background:rgba(22,26,33,0.5);transition:all 0.25s ease;height:100%;
+    display:flex;flex-direction:column;gap:10px;position:relative;
 }
 .layout-card:hover { border-color:rgba(143,245,255,0.35); transform:translateY(-2px); }
 .layout-card.selected {
-    box-shadow:0 0 24px rgba(143,245,255,0.2);
-    background:rgba(143,245,255,0.06);
+    border-color:#8ff5ff !important;
+    box-shadow:0 0 32px rgba(143,245,255,0.45), inset 0 0 0 1px rgba(143,245,255,0.35);
+    background:rgba(143,245,255,0.08);
+    transform:scale(1.015);
+}
+.layout-card.selected::after {
+    content:'\2713 WYBRANO';
+    position:absolute;top:-10px;right:12px;
+    background:linear-gradient(135deg,#8ff5ff,#22d3ee);color:#0a0e16;
+    font-size:0.65rem;font-weight:900;letter-spacing:0.8px;
+    padding:4px 10px;border-radius:6px;
+    box-shadow:0 4px 12px rgba(143,245,255,0.4);
+    animation:badgePop 0.3s ease;
+}
+@keyframes badgePop {
+    0% { transform:scale(0.5); opacity:0; }
+    60% { transform:scale(1.15); }
+    100% { transform:scale(1); opacity:1; }
 }
 .layout-icon-wrap {
     width:48px;height:48px;border-radius:10px;display:flex;align-items:center;
