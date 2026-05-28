@@ -7,33 +7,44 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0d0d14;color:#e2e8f0;font-family:'Inter',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:32px 24px;text-align:center;max-width:360px;width:100%}
+.card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:32px 24px;text-align:center;max-width:380px;width:100%}
 .icon{font-size:3rem;margin-bottom:16px}
 h1{font-size:1.2rem;font-weight:700;margin-bottom:8px}
 p{font-size:0.85rem;color:#94a3b8;margin-bottom:24px;line-height:1.5}
 .btn{display:block;padding:14px 20px;border-radius:10px;font-weight:700;font-size:0.9rem;text-decoration:none;cursor:pointer;border:none;width:100%;margin-bottom:10px}
 .btn-primary{background:linear-gradient(135deg,#8ff5ff,#beee00);color:#0d0d14}
 .btn-secondary{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#e2e8f0}
-.status{font-size:0.75rem;color:#64748b;margin-top:16px}
+.status{font-size:0.75rem;color:#64748b;margin-top:16px;word-break:break-all}
+.hint{font-size:0.78rem;color:#94a3b8;background:rgba(143,245,255,0.05);border:1px solid rgba(143,245,255,0.15);border-radius:8px;padding:10px 12px;margin-top:14px;line-height:1.5}
+.hint code{background:#0a0a0f;padding:1px 6px;border-radius:4px;color:#beee00;font-family:monospace;font-size:0.82rem}
 </style>
 </head>
 <body>
 <div class="card">
   <div class="icon">📡</div>
   <h1>Brak połączenia</h1>
-  <p id="msg">Szukam tunelu ngrok...</p>
+  <p id="msg">Sprawdzam zapisany adres...</p>
   <div id="btns"></div>
   <div class="status" id="status"></div>
+  <div class="hint" id="hint" style="display:none">
+    Jeśli używasz aplikacji lokalnie, otwórz <code>http://192.168.X.X:5000</code> (IP twojego Raspberry Pi w sieci LAN).
+  </div>
 </div>
 <script>
 (function(){
   var path = window.location.pathname || '/';
-  var ngrokUrl = null;
-  try { ngrokUrl = localStorage.getItem('ngrok_url'); } catch(e){}
+  // Zapisany adres aplikacji (Cloudflare Tunnel / ngrok / lokalny)
+  // - 'app_url': nowa nazwa, generic (Cloudflare / cokolwiek)
+  // - 'ngrok_url': legacy, dla starych klientów z ngrokiem
+  var savedUrl = null;
+  try {
+    savedUrl = localStorage.getItem('app_url') || localStorage.getItem('ngrok_url');
+  } catch(e){}
 
   var msg = document.getElementById('msg');
   var btns = document.getElementById('btns');
   var status = document.getElementById('status');
+  var hint = document.getElementById('hint');
 
   function makeBtn(label, cls, href, onclick){
     var b = document.createElement(href ? 'a' : 'button');
@@ -44,18 +55,18 @@ p{font-size:0.85rem;color:#94a3b8;margin-bottom:24px;line-height:1.5}
     btns.appendChild(b);
   }
 
-  if(ngrokUrl){
-    msg.textContent = 'Znaleziono tunel ngrok. Przekierowuję...';
-    status.textContent = ngrokUrl;
-    // Próbuj połączyć przez ngrok
-    var target = ngrokUrl + (path === '/offline' ? '/' : path);
+  if(savedUrl){
+    msg.textContent = 'Znaleziono zapisany adres aplikacji. Przekierowuję...';
+    status.textContent = savedUrl;
+    var target = savedUrl.replace(/\/$/, '') + (path === '/offline' ? '/' : path);
     setTimeout(function(){ window.location.replace(target); }, 1200);
-    makeBtn('Otwórz przez ngrok →', 'btn-primary', target);
-    makeBtn('Spróbuj lokalnie', 'btn-secondary', null, function(){ window.location.reload(); });
-  } else {
-    msg.textContent = 'Nie masz połączenia i brak zapisanego tunelu ngrok.';
-    status.textContent = 'Otwórz aplikację w domu (LAN) — ngrok URL zostanie zapisany automatycznie.';
+    makeBtn('Otwórz aplikację →', 'btn-primary', target);
     makeBtn('Spróbuj ponownie', 'btn-secondary', null, function(){ window.location.reload(); });
+  } else {
+    msg.textContent = 'Aplikacja jest tymczasowo niedostępna.';
+    status.textContent = 'Sprawdź połączenie z internetem lub czy aplikacja działa na serwerze.';
+    makeBtn('Spróbuj ponownie', 'btn-primary', null, function(){ window.location.reload(); });
+    hint.style.display = 'block';
   }
 })();
 </script>

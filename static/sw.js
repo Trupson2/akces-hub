@@ -110,7 +110,7 @@ self.addEventListener('fetch', (event) => {
             if (cachedResponse) {
               return cachedResponse;
             }
-            // Brak w cache — serwuj offline.html (przekieruje na ngrok URL jeśli znany)
+            // Brak w cache — serwuj offline.html (przekieruje na zapisany adres aplikacji)
             return caches.match('/static/offline.html')
               .then(function(offlinePage){
                 return offlinePage || new Response('Offline', {status: 503});
