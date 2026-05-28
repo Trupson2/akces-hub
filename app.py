@@ -5333,14 +5333,23 @@ def narzedzia_uzupelnij_zdjecia_amazon():
         """)
         cleaned = r2.rowcount
 
-        # KROK 3: uzupełnij zdjęcia Amazon dla produktów z ASIN ale bez zdjęcia
+        # KROK 3: uzupełnij/NAPRAW zdjęcia Amazon dla produktów z ASIN.
+        # FIX 2026-05-28: format URL zmieniony z 'images/I/{ASIN}' (NIE DZIAŁA,
+        # Amazon wymaga image_id w /I/, nie ASIN) na 'images/P/{ASIN}.01._SL500_.jpg'
+        # (prawidłowy format dla ASIN bez scrapowania).
+        # Plus warunek nie tylko gdy zdjecie_url puste, ale tez gdy ma stary
+        # ZŁY format (zawiera 'images/I/'+ASIN albo placeholder z nieistniejacym URL).
         r3 = conn.execute("""
             UPDATE produkty
-            SET zdjecie_url = 'https://m.media-amazon.com/images/I/' || UPPER(TRIM(asin)) || '._AC_SL1500_.jpg'
-            WHERE (zdjecie_url IS NULL OR zdjecie_url = '')
-              AND asin IS NOT NULL AND TRIM(asin) != ''
+            SET zdjecie_url = 'https://m.media-amazon.com/images/P/' || UPPER(TRIM(asin)) || '.01._SL500_.jpg'
+            WHERE asin IS NOT NULL AND TRIM(asin) != ''
               AND LENGTH(TRIM(asin)) >= 8
               AND TRIM(UPPER(asin)) NOT IN ('NONE', 'NAN', 'N/A')
+              AND (
+                zdjecie_url IS NULL
+                OR zdjecie_url = ''
+                OR zdjecie_url LIKE '%images/I/%'  -- stary nieprawidłowy format
+              )
         """)
         photos = r3.rowcount
 
