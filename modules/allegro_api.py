@@ -648,12 +648,18 @@ def allegro_request(method, endpoint, data=None, params=None, _retry=False, _att
                 return allegro_request(method, endpoint, data, params, _retry=True)
             return None, "Brak dostępu — zaloguj się ponownie na /allegro"
 
-        # Retry on 5xx server errors (max 2 retries)
-        if response.status_code >= 500 and _attempt < 2:
+        # Retry on 5xx server errors (max 2 retries) — TYLKO GET.
+        # FIX 2026-05-28 INCYDENT DUPLIKATY: POST/PUT/PATCH/DELETE sa nie-idempotentne,
+        # retry po 5xx tworzy DUPLIKATY oferty (Allegro czasem zwraca 502/503
+        # PO utworzeniu zasobu). GET mozemy bezpiecznie ponawiac - tylko czyta.
+        if response.status_code >= 500 and _attempt < 2 and method == 'GET':
             import time as _t
             _t.sleep(1 + _attempt)
-            print(f"[AllegroAPI] {response.status_code} na {endpoint}, retry {_attempt+1}/2...")
+            print(f"[AllegroAPI] {response.status_code} na {endpoint}, retry {_attempt+1}/2 (GET only)...")
             return allegro_request(method, endpoint, data, params, _retry, _attempt + 1)
+        elif response.status_code >= 500:
+            # NIE-GET + 5xx: log i zwroc error - NIE retry zeby uniknac duplikatow
+            print(f"[AllegroAPI] {method} {endpoint} -> {response.status_code} (BEZ retry - nie-idempotentne, ryzyko duplikatu)")
 
         if response.status_code >= 400:
             error_details = f"Błąd {response.status_code}"
@@ -694,18 +700,24 @@ def allegro_request(method, endpoint, data=None, params=None, _retry=False, _att
                 return {'raw_content': response.content, 'status': response.status_code}, None
         return {}, None
     except requests.exceptions.Timeout:
-        if _attempt < 2:
+        # FIX 2026-05-28 DUPLIKATY: timeout retry tylko dla GET. POST mogl
+        # dotrzec do Allegro i utworzyc oferte - retry zrobil by duplikat.
+        if _attempt < 2 and method == 'GET':
             import time as _t
             _t.sleep(1 + _attempt)
-            print(f"[AllegroAPI] Timeout na {endpoint}, retry {_attempt+1}/2...")
+            print(f"[AllegroAPI] Timeout na GET {endpoint}, retry {_attempt+1}/2...")
             return allegro_request(method, endpoint, data, params, _retry, _attempt + 1)
-        return None, "Timeout — Allegro API nie odpowiada (po 3 próbach)"
+        if method != 'GET':
+            print(f"[AllegroAPI] Timeout na {method} {endpoint} - NIE retry (ryzyko duplikatu)")
+        return None, f"Timeout — Allegro API nie odpowiada ({method})"
     except requests.exceptions.ConnectionError:
-        if _attempt < 2:
+        if _attempt < 2 and method == 'GET':
             import time as _t
             _t.sleep(1 + _attempt)
-            print(f"[AllegroAPI] ConnectionError na {endpoint}, retry {_attempt+1}/2...")
+            print(f"[AllegroAPI] ConnectionError na GET {endpoint}, retry {_attempt+1}/2...")
             return allegro_request(method, endpoint, data, params, _retry, _attempt + 1)
+        if method != 'GET':
+            print(f"[AllegroAPI] ConnectionError na {method} {endpoint} - NIE retry (ryzyko duplikatu)")
         return None, "Brak połączenia z Allegro API (po 3 próbach)"
     except Exception as e:
         print(f"* Wyjątek allegro_request: {e}")
