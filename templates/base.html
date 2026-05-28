@@ -503,11 +503,38 @@ if(localStorage.getItem('kiosk_mode')==='1'){
 
 <!-- Update notification bar -->
 {% if update_available == '1' %}
-<div id="updateBar" style="position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:8px 16px;text-align:center;cursor:pointer;box-shadow:0 2px 12px rgba(99,102,241,0.4);font-size:0.82rem;color:#fff;font-weight:500;display:flex;align-items:center;justify-content:center;gap:8px" onclick="document.getElementById('updateForm').submit()">
-    <span>&#x1F4E6; Dostepna aktualizacja — kliknij aby zainstalowac</span>
-    <span style="font-size:0.7rem;opacity:0.7;margin-left:8px">&#x2715;</span>
-    <form id="updateForm" method="POST" action="/admin/update-git" style="display:none"></form>
+<div id="updateBar" style="position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:8px 16px;text-align:center;cursor:pointer;box-shadow:0 2px 12px rgba(99,102,241,0.4);font-size:0.82rem;color:#fff;font-weight:500;display:flex;align-items:center;justify-content:center;gap:8px" onclick="doUpdateFromBanner(event)">
+    <span id="updateBarText">&#x1F4E6; Dostepna aktualizacja — kliknij aby zainstalowac</span>
+    <span style="font-size:0.7rem;opacity:0.7;margin-left:8px;cursor:pointer" onclick="event.stopPropagation();document.getElementById('updateBar').style.display='none'">&#x2715;</span>
 </div>
+<script>
+function doUpdateFromBanner(e) {
+    // FIX 2026-05-28: fetch zamiast form submit. Form submit nawigowal na URL
+    // (zostawal 404 jak endpoint nie istnial). fetch zostaje na aktualnej stronie
+    // i pokazuje toast - user nie traci kontekstu.
+    if (e) e.stopPropagation();
+    var txt = document.getElementById('updateBarText');
+    var origText = txt.innerHTML;
+    txt.innerHTML = '<span class="spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:bspin 1s linear infinite"></span> Aktualizuję...';
+    fetch('/admin/update-git', {method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'})
+        .then(function(r){return r.json();})
+        .then(function(d){
+            if (d.ok) {
+                txt.innerHTML = '✓ ' + (d.msg || 'Zaktualizowano - restart...');
+                setTimeout(function(){location.reload();}, 6000);
+            } else {
+                txt.innerHTML = '❌ ' + (d.error || 'Błąd');
+                setTimeout(function(){txt.innerHTML = origText;}, 5000);
+            }
+        })
+        .catch(function(){
+            // Może aplikacja restartuje - poczekaj i reload
+            txt.innerHTML = '<span class="spinner"></span> Restart w toku... odświeżam za 8s';
+            setTimeout(function(){location.reload();}, 8000);
+        });
+}
+</script>
+<style>@keyframes bspin{from{transform:rotate(0)}to{transform:rotate(360deg)}}</style>
 <style>#updateBar ~ .app-layout .main-content .topbar{top:34px} #updateBar ~ .menu-toggle{top:48px}</style>
 {% endif %}
 

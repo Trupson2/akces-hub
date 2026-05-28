@@ -799,10 +799,9 @@ def ustawienia_layout_opisu():
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:24px">
         {% for key in layouts_order %}
             {% set info = layouts_info[key] %}
-            <label style="cursor:pointer;display:block">
+            <label style="cursor:pointer;display:block" onclick="document.querySelectorAll('.layout-card').forEach(c=>c.classList.remove('selected'));this.querySelector('.layout-card').classList.add('selected');this.querySelector('input[type=radio]').checked=true;">
                 <input type="radio" name="layout" value="{{ key }}" {{ 'checked' if key == current else '' }}
-                    style="position:absolute;opacity:0;pointer-events:none"
-                    onchange="document.querySelectorAll('.layout-card').forEach(c => c.classList.remove('selected')); this.closest('label').querySelector('.layout-card').classList.add('selected')">
+                    style="position:absolute;opacity:0;pointer-events:none">
                 <div class="layout-card {{ 'selected' if key == current else '' }}" style="border-color:{{ info.color if key == current else 'rgba(255,255,255,0.06)' }}">
                     <div style="display:flex;align-items:center;gap:12px">
                         <div class="layout-icon-wrap" style="background:{{ info.color }}1a;border:1px solid {{ info.color }}55">
