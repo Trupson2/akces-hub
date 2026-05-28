@@ -6522,8 +6522,30 @@ _IMPORT_ROLES = [
     ('stan',         'Stan produktu',     False, ['STAN','CONDITION','JAKOSC']),
     # STATUS: tylko literal 'STATUS' (NIE 'SPRZEDANE' - to liczba ile sprzedanych)
     ('status',       'Status sprzedaży',  False, ['STATUS']),
-    ('cena_netto',   'Cena netto / szt',  False, ['ZAKUP1SZTNETTO','ZAKUP1SZT','CENANETTO1SZT','CENANETTO','KOSZTNETTO','PRICENETTO','COSTNETTO']),
-    ('cena_allegro', 'Cena Allegro',      False, ['CENAALLEGRO','CENAA','ALLEGROPRICE','PRICEALLEGRO']),
+    # v1.0.91: rozszerzone keywords zeby lapac wiecej formatow Excela.
+    # cena_netto przyjmuje rowniez warianty BRUTTO/ZAKUPU - klient czesto
+    # ma cene zakupu jako brutto, my przeliczamy z VAT 23% dla widoku.
+    ('cena_netto',   'Cena netto / szt',  False, [
+        'ZAKUP1SZTNETTO','ZAKUP1SZT','CENANETTO1SZT','CENANETTO',
+        'KOSZTNETTO','PRICENETTO','COSTNETTO',
+        # warianty BRUTTO/ZAKUPU (Twoj Excel ma 'Cena zakupu')
+        'CENAZAKUPU','CENAZAKUP','CENAZAKUPUBRUTTO','CENAZAKUPUNETTO',
+        'ZAKUPBRUTTO','ZAKUPUBRUTTO','ZAKUPBRUTTO1SZT',
+        'CENABRUTTO','CENABRUTTO1SZT','CENABRUTTO1SZTUKE',
+        'KOSZTBRUTTO','KOSZT1SZT','KOSZTZAKUPU',
+        'BUYPRICE','PURCHASEPRICE','UNITCOST','UNITPRICE',
+        # ostatnie - najbardziej generyczne (matchuje jak nic innego nie zlapalo)
+        'ZAKUP','KOSZT','PURCHASE','BUY'
+    ]),
+    ('cena_allegro', 'Cena Allegro',      False, [
+        'CENAALLEGRO','CENAA','ALLEGROPRICE','PRICEALLEGRO',
+        'CENAALLEGROBRUTTO','CENAALLEGRO1SZT','CENAALLEGROBRUTTO1SZT',
+        'ALLEGROBRUTTO','ALLEGRONETTO','ALLEGROCENA',
+        # cena sprzedazy = cena na Allegro
+        'CENASPRZEDAZY','CENASPRZEDAZ','SPRZEDAZBRUTTO',
+        'SELLPRICE','SALEPRICE','RETAILPRICE',
+        'ALLEGRO'
+    ]),
     ('info',         'Notatki / INFO',    False, ['INFO','NOTATKI','NOTES','UWAGI','COMMENT','REMARK']),
 ]
 
@@ -6629,7 +6651,12 @@ def _parse_number_universal(value):
         s = s.replace(ch, '')
     # Lowercase wariant zl tez (z polskim ogonkiem)
     s = s.replace('zł', '').replace('ZŁ', '').replace('Zł', '')
-    if not s:
+    # v1.0.91: agresywny regex cleanup - usun WSZYSTKO co nie jest cyfra,
+    # przecinek, kropka, minus. Lapie '/szt', 'PLN', '*', '()', 'pcs',
+    # 'GBP', 'kn', dowolne litery itp. Robust nawet dla niesztampowych formatow.
+    import re as _re_num
+    s = _re_num.sub(r'[^0-9.,\-]', '', s)
+    if not s or s in ('-', '.', ',', '-.', '-,'):
         return 0.0
     n_dots = s.count('.')
     n_commas = s.count(',')
