@@ -2452,23 +2452,50 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
         return upload_gpsr_attachment(gpsr, nazwa)
 
     def _task_gpsr_producer():
-        """Pobierz producenta z Allegro (~1s)"""
+        """Pobierz producenta z Allegro (~1s).
+
+        v1.0.88: respektuje config 'gpsr_default_producer_id' (jezeli ustawiony).
+        Fallback: pierwszy z listy.
+        """
         if not gpsr:
             return None
         try:
             producers = get_responsible_producers()
-            return producers[0] if producers else None
-        except:
+            if not producers:
+                return None
+            _cfg_id = get_config('gpsr_default_producer_id', '').strip()
+            if _cfg_id:
+                for p in producers:
+                    if str(p.get('id', '')) == _cfg_id:
+                        return p
+                # config ustawiony ale producent usuniety z Allegro - fallback + warning
+                print(f"[WARN] GPSR default producer_id='{_cfg_id}' nie istnieje na Allegro - fallback do [0]")
+            return producers[0]
+        except Exception as e:
+            print(f"[WARN] _task_gpsr_producer error: {e}")
             return None
 
     def _task_gpsr_person():
-        """Pobierz osobę odpowiedzialną (~1s)"""
+        """Pobierz osobę odpowiedzialną (~1s).
+
+        v1.0.88: respektuje config 'gpsr_default_person_id' (jezeli ustawiony).
+        Fallback: pierwsza z listy.
+        """
         if not gpsr:
             return None
         try:
             persons = get_responsible_persons()
-            return persons[0] if persons else None
-        except:
+            if not persons:
+                return None
+            _cfg_id = get_config('gpsr_default_person_id', '').strip()
+            if _cfg_id:
+                for p in persons:
+                    if str(p.get('id', '')) == _cfg_id:
+                        return p
+                print(f"[WARN] GPSR default person_id='{_cfg_id}' nie istnieje na Allegro - fallback do [0]")
+            return persons[0]
+        except Exception as e:
+            print(f"[WARN] _task_gpsr_person error: {e}")
             return None
 
     # Odpal WSZYSTKO równolegle (zamiast sekwencyjnie ~25s → ~15s)
@@ -5068,6 +5095,9 @@ def config():
                 'allegro_province': request.form.get('province', 'WIELKOPOLSKIE').strip(),
                 'allegro_postcode': request.form.get('postcode', '61-001').strip(),
                 'allegro_autosync': 'true' if request.form.get('autosync') else 'false',
+                # v1.0.88: GPSR defaults (puste = pierwszy z listy)
+                'gpsr_default_producer_id': request.form.get('gpsr_producer_id', '').strip(),
+                'gpsr_default_person_id': request.form.get('gpsr_person_id', '').strip(),
             }
             # Client secret: nadpisuj tylko jeśli podano nowy
             if _new_secret:
@@ -5100,6 +5130,37 @@ def config():
             for rate in rates['shippingRates']:
                 selected = 'selected' if rate['id'] == shipping_id else ''
                 shipping_options += f'<option value="{rate["id"]}" {selected}>{rate["name"]}</option>'
+
+    # v1.0.88: pobierz listy GPSR (producent + osoba odpowiedzialna)
+    gpsr_default_producer_id = get_config('gpsr_default_producer_id', '').strip()
+    gpsr_default_person_id = get_config('gpsr_default_person_id', '').strip()
+    gpsr_producer_options = ''
+    gpsr_person_options = ''
+    gpsr_producers_count = 0
+    gpsr_persons_count = 0
+    if is_authenticated():
+        try:
+            _producers = get_responsible_producers() or []
+            gpsr_producers_count = len(_producers)
+            for _p in _producers:
+                _pid = str(_p.get('id', ''))
+                _name = (_p.get('name') or '?').replace('<', '&lt;').replace('>', '&gt;')
+                _sel = 'selected' if _pid == gpsr_default_producer_id else ''
+                gpsr_producer_options += f'<option value="{_pid}" {_sel}>{_name} (ID: {_pid[:8]})</option>'
+        except Exception as _e:
+            print(f"[WARN] GPSR producers fetch error: {_e}")
+        try:
+            _persons = get_responsible_persons() or []
+            gpsr_persons_count = len(_persons)
+            for _p in _persons:
+                _pid = str(_p.get('id', ''))
+                _name = (_p.get('name') or '?').replace('<', '&lt;').replace('>', '&gt;')
+                _city = (_p.get('address', {}).get('city', '') or '').replace('<', '&lt;').replace('>', '&gt;')
+                _sel = 'selected' if _pid == gpsr_default_person_id else ''
+                _label = f"{_name}" + (f" ({_city})" if _city else "") + f" (ID: {_pid[:8]})"
+                gpsr_person_options += f'<option value="{_pid}" {_sel}>{_label}</option>'
+        except Exception as _e:
+            print(f"[WARN] GPSR persons fetch error: {_e}")
 
     html = f'''
     <form method="POST">
@@ -5169,6 +5230,24 @@ def config():
                 <option value="WIELKOPOLSKIE" {'selected' if province=='WIELKOPOLSKIE' else ''}>Wielkopolskie</option>
                 <option value="ZACHODNIOPOMORSKIE" {'selected' if province=='ZACHODNIOPOMORSKIE' else ''}>Zachodniopomorskie</option>
             </select>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><div class="card-title"><span class=material-symbols-outlined>shield</span> GPSR &mdash; Producent i Osoba odpowiedzialna</div></div>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;line-height:1.55">
+            Allegro od 13.12.2024 wymaga GPSR przy kazdej ofercie: producenta + osoby odpowiedzialnej (importer/dystrybutor UE).
+            Zarzadzaj nimi w <b>Allegro Panel &rarr; Konto &rarr; GPSR</b>.
+            Jezeli masz wiele wpisow &mdash; wybierz ktore Akces Hub ma uzywac domyslnie.
+            <b>Puste = pierwszy z listy</b> (auto-fallback).
+        </p>
+        <div class="form-group">
+            <label>Producent ({gpsr_producers_count} dostepnych)</label>
+            {('<select name="gpsr_producer_id" class="form-control"><option value="">-- Pierwszy z listy (domyslnie) --</option>' + gpsr_producer_options + '</select>') if gpsr_producer_options else '<div style="padding:10px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:8px;color:#fca5a5;font-size:0.82rem">Brak producentow w Allegro &mdash; dodaj w <b>Allegro Panel &rarr; Konto &rarr; GPSR &rarr; Producenci</b>. Bez tego oferty pojda jako szkic.</div>'}
+        </div>
+        <div class="form-group" style="margin-top:14px">
+            <label>Osoba odpowiedzialna ({gpsr_persons_count} dostepnych)</label>
+            {('<select name="gpsr_person_id" class="form-control"><option value="">-- Pierwsza z listy (domyslnie) --</option>' + gpsr_person_options + '</select>') if gpsr_person_options else '<div style="padding:10px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:8px;color:#fca5a5;font-size:0.82rem">Brak osob odpowiedzialnych w Allegro &mdash; dodaj w <b>Allegro Panel &rarr; Konto &rarr; GPSR &rarr; Osoby odpowiedzialne</b>. Wymagane gdy producent jest spoza UE.</div>'}
         </div>
     </div>
 

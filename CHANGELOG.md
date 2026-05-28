@@ -2,6 +2,7 @@
 
 ## 28.05.2026
 
+- feat(gpsr): wybor domyslnego producenta + osoby odpowiedzialnej w /allegro/config (dropdown z listy Allegro) - zamiast [0] losowego z listy. Puste = fallback do pierwszego.
 - ux(narzedzia): wywalono sekcje KALKULATORY (oplacalnosci + marzy) - malo uzywane, endpointy zostaja dostepne przez URL
 - fix(paletomat): anti-duplicate request lock (60s TTL per user+ids) chroni przed EventSource auto-reconnect i double-submit - 1 klik = 1 oferta na Allegro
 - fix(paletomat): dedup widzi szkice (status='draft') - drugi klik "Wystaw bezposrednio" zwieksza ilosc na istniejacym szkicu zamiast tworzyc duplikat
