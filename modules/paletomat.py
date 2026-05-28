@@ -3609,6 +3609,40 @@ def generator_mass_create_from_paleta_stream():
             yield "data: " + json.dumps({'type': 'done'}) + "\n\n"
             return
 
+        # FIX 2026-05-28: DEDUPLIKACJA per ASIN+stan przed wystawianiem.
+        # Bez tego ten sam produkt (np mata gimnastyczna) z 2 różnych palet
+        # → 2 osobne oferty na Allegro = duplikaty. Łączymy do jednej oferty
+        # z sumą ilości - jedna oferta = jeden produkt na Allegro.
+        try:
+            from .database import get_db as _gdb
+            _conn = _gdb()
+            _placeholders = ','.join('?' * len(product_ids))
+            _rows = _conn.execute(
+                f"SELECT id, asin, stan FROM produkty WHERE id IN ({_placeholders})",
+                product_ids
+            ).fetchall()
+            _asin_stan_to_id = {}
+            _deduped_ids = []
+            for _r in _rows:
+                _a = (_r['asin'] or '').strip().upper()
+                _s = (_r['stan'] or 'Nowy').strip()
+                if _a and (_a, _s) in _asin_stan_to_id:
+                    # Duplikat - skip (pierwsze wystąpienie już w liście)
+                    continue
+                if _a:
+                    _asin_stan_to_id[(_a, _s)] = _r['id']
+                _deduped_ids.append(_r['id'])
+            if len(_deduped_ids) < len(product_ids):
+                _skipped = len(product_ids) - len(_deduped_ids)
+                yield "data: " + json.dumps({
+                    'type': 'log',
+                    'message': f'<span class="material-symbols-outlined">merge</span> Deduplikacja: pominięto {_skipped} duplikatów (ten sam ASIN+stan z różnych palet)',
+                    'color': '#fb923c'
+                }) + "\n\n"
+                product_ids = _deduped_ids
+        except Exception as _de:
+            print(f"[mass-create] deduplikacja error: {_de}")
+
         if not is_authenticated():
             yield "data: " + json.dumps({'type': 'error', 'title': 'System', 'error': 'Nie zalogowany do Allegro'}) + "\n\n"
             yield "data: " + json.dumps({'type': 'done'}) + "\n\n"
