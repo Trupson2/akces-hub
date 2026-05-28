@@ -1,4 +1,4 @@
-﻿"""
+"""
 Magazynier module - zarządzanie stanami magazynowymi
 """
 

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Modul analityki -- routes dla /analityka/*, /statystyki
 """
 from flask import Blueprint, request, redirect, session, flash, jsonify, Response, current_app

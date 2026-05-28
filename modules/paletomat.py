@@ -1,4 +1,4 @@
-﻿"""
+"""
 Paletomat module - scraper Amazon + generator ofert Allegro
 """
 

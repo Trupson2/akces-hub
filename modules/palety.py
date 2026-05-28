@@ -1,4 +1,4 @@
-﻿"""
+"""
 Moduł palet — routes dla /palety/*, /produkt/* (edycja), /produkty/* (meta)
 """
 from flask import Blueprint, request, redirect, session, flash, jsonify, Response, current_app, render_template, render_template_string

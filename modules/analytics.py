@@ -1,4 +1,4 @@
-﻿"""
+"""
 ANALYTICS MODULE - Dashboard KPI & Kalkulator opłacalności palety
 v2.0 - Redesign with base.html template
 """
