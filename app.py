@@ -8027,6 +8027,37 @@ if __name__ == '__main__':
         log(f"Backup daemon uruchomiony (backup co godzine) -- {backup_info}")
     except Exception as e:
         log_warning(f"Backup daemon - blad: {e}")
+
+    # FIX 2026-05-28: Auto-uzupełnij zdjęcia Amazon przy starcie
+    # (jednorazowy bulk UPDATE w tle, 10s opóźnienia żeby DB była gotowa).
+    # Robi to dla każdego produktu z ASIN >= 8 znaków i pustym zdjecie_url.
+    # Browser załaduje URL dynamicznie - bez fetchowania plików.
+    def _auto_fill_amazon_images_at_startup():
+        import time as _t
+        _t.sleep(10)
+        try:
+            from modules.database import get_db
+            conn = get_db()
+            r = conn.execute("""
+                UPDATE produkty
+                SET zdjecie_url = 'https://m.media-amazon.com/images/I/' || UPPER(TRIM(asin)) || '._AC_SL1500_.jpg'
+                WHERE (zdjecie_url IS NULL OR zdjecie_url = '')
+                  AND asin IS NOT NULL AND TRIM(asin) != ''
+                  AND LENGTH(TRIM(asin)) >= 8
+                  AND TRIM(UPPER(asin)) NOT IN ('NONE', 'NAN', 'N/A')
+            """)
+            n = r.rowcount
+            conn.commit()
+            if n > 0:
+                print(f"[AUTO-FILL] Uzupełniono zdjęcia Amazon dla {n} produktów")
+        except Exception as _e:
+            print(f"[AUTO-FILL] Błąd auto-uzupełnienia zdjęć: {_e}")
+
+    try:
+        threading.Thread(target=_auto_fill_amazon_images_at_startup, daemon=True,
+                         name='amazon-images-auto-fill').start()
+    except Exception as _e:
+        log_warning(f"Amazon images auto-fill thread: {_e}")
     
     # Auto-refresh tokena Allegro
     # FIX 2026-05-09: daemon startuje gdy sa credentials (client_id+secret),
